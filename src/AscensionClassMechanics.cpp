@@ -1,0 +1,1051 @@
+/* Copyright (C) 2016+ AzerothCore, GNU AGPL v3. */
+
+#include "AscensionClassMechanics.h"
+#include "AscensionBarbarian.h"
+#include "AscensionClassMechanics12To17.h"
+#include "AscensionClassMechanics19To25.h"
+#include "AscensionClassMechanics26To32.h"
+#include "AscensionClassMechanicsData.h"
+#include "Cell.h"
+#include "CellImpl.h"
+#include "GridNotifiers.h"
+#include "GridNotifiersImpl.h"
+#include "Item.h"
+#include "Log.h"
+#include "Player.h"
+#include "Random.h"
+#include "Spell.h"
+#include "SpellAuraEffects.h"
+#include "SpellAuras.h"
+#include "SpellMgr.h"
+#include <algorithm>
+#include <array>
+#include <cmath>
+#include <list>
+#include <vector>
+
+namespace
+{
+constexpr uint32 SPELL_GUARDIAN_TOWER_FORMATION = 800317;
+constexpr uint32 SPELL_GUARDIAN_TOWER_FORMATION_EFFECTS = 803431;
+constexpr uint32 SPELL_GUARDIAN_TOWER_FORMATION_STANCE = 803907;
+constexpr uint32 SPELL_GUARDIAN_LINE_FORMATION = 803130;
+constexpr uint32 SPELL_GUARDIAN_LINE_FORMATION_EFFECTS = 803151;
+constexpr uint32 SPELL_GUARDIAN_ASSAULT_FORMATION = 803417;
+constexpr uint32 SPELL_GUARDIAN_ASSAULT_FORMATION_EFFECTS = 803709;
+constexpr uint32 SPELL_GUARDIAN_ASSAULT_FORMATION_VISUAL = 803419;
+constexpr uint32 SPELL_GUARDIAN_TOWER_FORMATION_VISUAL = 803941;
+constexpr uint32 SPELL_GUARDIAN_FOOTMANS_CALLING = 92105;
+constexpr uint32 SPELL_GUARDIAN_FOOTMANS_CALLING_EFFECTS = 807728;
+constexpr uint32 SPELL_GUARDIAN_REPRISAL = 800316;
+constexpr uint32 SPELL_GUARDIAN_REPRISAL_READY = 504885;
+constexpr uint32 SPELL_GUARDIAN_CENTURION_SWORD_ATTACKS = 807967;
+constexpr uint8 GUARDIAN_CENTURION_SWORD_EVENT = 16;
+constexpr uint32 SPELL_GUARDIAN_CENTURION_AXE_EFFECTS = 542238;
+constexpr uint32 SPELL_GUARDIAN_CENTURION_MACE_EFFECTS = 542265;
+constexpr uint32 SPELL_GUARDIAN_RAISE_SHIELD = 500168;
+constexpr uint32 SPELL_GUARDIAN_RAISE_SHIELD_ENERGIZE = 500493;
+constexpr uint32 SPELL_GUARDIAN_GUARDBREAKER = 504385;
+constexpr uint32 SPELL_GUARDIAN_GUARDBREAKER_RESET = 802895;
+constexpr uint32 SPELL_GUARDIAN_REFUSE = 804892;
+constexpr uint32 SPELL_GUARDIAN_REFUSE_RESET = 807191;
+constexpr uint32 SPELL_GUARDIAN_NO_ESCAPE = 802300;
+constexpr uint32 SPELL_GUARDIAN_NO_ESCAPE_RESET = 806544;
+constexpr uint32 SPELL_GUARDIAN_BULWARK_RUSH = 300536;
+constexpr uint32 SPELL_GUARDIAN_BULWARK_RUSH_EFFECTS = 300537;
+constexpr uint32 SPELL_GUARDIAN_ORDER_IN_THE_COURT = 707716;
+constexpr uint32 SPELL_GUARDIAN_ORDER_IN_THE_COURT_DEBUFF = 704417;
+constexpr uint32 SPELL_GUARDIAN_FORCEFUL_IMPACT = 705346;
+constexpr uint32 SPELL_GUARDIAN_BRACE = 800313;
+constexpr uint32 SPELL_GUARDIAN_KINGS_GUARD = 803134;
+constexpr uint32 SPELL_GUARDIAN_KINGS_GUARD_RESET = 520284;
+constexpr uint32 SPELL_GUARDIAN_WRECK_FORMATION = 803126;
+constexpr uint32 SPELL_GUARDIAN_WRECK_FORMATION_AP = 803416;
+constexpr uint32 SPELL_GUARDIAN_HIGH_GUARD = 707621;
+constexpr uint32 SPELL_GUARDIAN_HIGH_GUARD_EFFECTS = 504586;
+constexpr uint32 SPELL_GUARDIAN_PLATE_BUSTER = 705333;
+constexpr uint32 SPELL_GUARDIAN_PLATE_BUSTER_RESET = 705334;
+constexpr uint32 SPELL_GUARDIAN_VANGUARDS_MIGHT = 705345;
+constexpr uint32 SPELL_GUARDIAN_VANGUARDS_MIGHT_EFFECTS = 802894;
+constexpr uint32 SPELL_GUARDIAN_VETERAN = 300540;
+constexpr uint32 SPELL_GUARDIAN_VETERAN_HEAL = 705382;
+constexpr uint32 SPELL_GUARDIAN_HONORABLE = 705377;
+constexpr uint32 SPELL_GUARDIAN_HONORABLE_EFFECTS = 524931;
+constexpr uint32 SPELL_GUARDIAN_RECUPERATION = 801121;
+constexpr uint32 SPELL_GUARDIAN_RECUPERATION_ENERGIZE = 803135;
+constexpr uint32 SPELL_GUARDIAN_PINNED_DOWN = 301252;
+constexpr uint32 SPELL_GUARDIAN_PINNED_DOWN_REFRESH = 600325;
+constexpr uint32 SPELL_GUARDIAN_SHOW_OF_FORCE = 573047;
+constexpr uint32 SPELL_GUARDIAN_SHOW_OF_FORCE_DISPEL = 520861;
+constexpr uint32 SPELL_GUARDIAN_KNIGHTS_SONG = 505228;
+constexpr uint32 SPELL_GUARDIAN_KNIGHTS_SONG_EFFECTS = 807460;
+constexpr uint32 SPELL_GUARDIAN_MINSTREL = 704533;
+constexpr uint32 SPELL_GUARDIAN_MINSTREL_EFFECTS = 704534;
+constexpr int32 GUARDIAN_RAISE_SHIELD_ENERGY_BASE_POINTS = 29;
+constexpr uint32 GUARDIAN_FORCEFUL_IMPACT_EXTENSION_MS = 1000;
+constexpr uint32 GUARDIAN_KINGS_GUARD_ICD_MS = 1000;
+constexpr uint8 GUARDIAN_GUARDBREAKER_CHANCE = 20;
+constexpr uint8 GUARDIAN_KINGS_GUARD_CHANCE = 10;
+constexpr float GUARDIAN_CENTURION_POLEARM_DEPTH = 5.0f;
+constexpr float GUARDIAN_CENTURION_POLEARM_HALF_WIDTH = 2.5f;
+constexpr uint32 GUARDIAN_CENTURION_DAMAGE_EFFECT_MASK =
+    (1u << EFFECT_0) | (1u << EFFECT_2);
+
+constexpr uint32 SPELL_RANGER_ADVANTAGE = 804329;
+constexpr uint32 SPELL_RANGER_ADVANTAGE_DECREMENT = 520618;
+constexpr uint32 SPELL_RANGER_ADVANTAGE_DECREMENT_PASSIVE = 582770;
+constexpr uint32 SPELL_RANGER_ADVANTAGE_INCREMENT = 524659;
+constexpr uint32 SPELL_RANGER_ELUDE = 801345;
+constexpr uint32 SPELL_RANGER_ELUDE_EFFECTS = 524862;
+constexpr uint32 SPELL_RANGER_ELUDE_SPEED_PENALTY = 524886;
+constexpr uint32 SPELL_RANGER_RAVAGER = 92116;
+constexpr uint32 SPELL_RANGER_RAVAGER_LEGACY = 500024;
+constexpr uint32 SPELL_RANGER_ARCHERY_MASTER = 706281;
+constexpr uint32 SPELL_RANGER_RUB_IT_IN = 705085;
+constexpr uint32 SPELL_RANGER_SNIPERS_FOCUS = 680470;
+constexpr uint32 SPELL_RANGER_SNIPERS_FOCUS_ENERGIZE = 807318;
+constexpr uint32 SPELL_RANGER_MAXIMUM_POWER = 560688;
+constexpr uint32 SPELL_RANGER_MAXIMUM_POWER_EXTENSION = 560689;
+constexpr uint32 SPELL_RANGER_LETHAL_CUNNING = 704320;
+constexpr uint32 SPELL_RANGER_LETHAL_CUNNING_EFFECTS = 704321;
+constexpr uint32 SPELL_RANGER_SKIRMISH = 802039;
+constexpr uint32 SPELL_RANGER_SEARING_QUIVER = 500103;
+constexpr uint32 SPELL_RANGER_POISON_QUIVER = 800260;
+constexpr uint32 SPELL_RANGER_LIGHT_QUIVER = 800261;
+constexpr uint32 SPELL_RANGER_HUNTING_QUIVER = 800262;
+constexpr uint32 SPELL_RANGER_SKIRMISHERS_QUIVER = 801069;
+constexpr uint32 SPELL_RANGER_SEARING_QUIVER_DAMAGE = 681109;
+constexpr uint32 SPELL_RANGER_POISON_QUIVER_DAMAGE = 500104;
+constexpr uint32 SPELL_RANGER_BOUNTY_HUNTER = 803114;
+constexpr uint32 SPELL_RANGER_BOUNTY_HUNTER_DEBUFF = 560722;
+constexpr uint32 SPELL_RANGER_RUSTY_SHIV_DAMAGE = 681459;
+constexpr uint8 RANGER_ADVANTAGE_REFUND_CHANCE = 20;
+
+constexpr uint32 SPELL_CULTIST_TWILIGHT_SHIELDTOSS_SLOW = 524880;
+constexpr uint32 SPELL_VENOMANCER_BARBED_STINGER = 803196;
+constexpr uint32 SPELL_VENOMANCER_BARBED_STINGER_EFFECT = 680854;
+
+constexpr std::array<uint32, 3> GUARDIAN_FORMATIONS =
+{{
+    SPELL_GUARDIAN_TOWER_FORMATION,
+    SPELL_GUARDIAN_LINE_FORMATION,
+    SPELL_GUARDIAN_ASSAULT_FORMATION
+}};
+
+constexpr std::array<uint32, 7> GUARDIAN_FORMATION_HELPERS =
+{{
+    SPELL_GUARDIAN_TOWER_FORMATION_EFFECTS,
+    SPELL_GUARDIAN_TOWER_FORMATION_STANCE,
+    SPELL_GUARDIAN_LINE_FORMATION_EFFECTS,
+    SPELL_GUARDIAN_ASSAULT_FORMATION_EFFECTS,
+    SPELL_GUARDIAN_FOOTMANS_CALLING_EFFECTS,
+    SPELL_GUARDIAN_ASSAULT_FORMATION_VISUAL,
+    SPELL_GUARDIAN_TOWER_FORMATION_VISUAL
+}};
+
+constexpr std::array<uint32, 5> RANGER_QUIVERS =
+{{
+    SPELL_RANGER_SEARING_QUIVER,
+    SPELL_RANGER_POISON_QUIVER,
+    SPELL_RANGER_LIGHT_QUIVER,
+    SPELL_RANGER_HUNTING_QUIVER,
+    SPELL_RANGER_SKIRMISHERS_QUIVER
+}};
+
+void RemoveGuardianFormationHelpers(Player* player)
+{
+    for (uint32 spellId : GUARDIAN_FORMATION_HELPERS)
+        player->RemoveAurasDueToSpell(spellId);
+}
+
+void ApplyGuardianFormation(Player* player, uint32 spellId)
+{
+    for (uint32 formationId : GUARDIAN_FORMATIONS)
+        if (formationId != spellId)
+            player->RemoveAurasDueToSpell(formationId);
+
+    RemoveGuardianFormationHelpers(player);
+    switch (spellId)
+    {
+        case SPELL_GUARDIAN_TOWER_FORMATION:
+            player->CastSpell(player, SPELL_GUARDIAN_TOWER_FORMATION_EFFECTS, true);
+            player->CastSpell(player, SPELL_GUARDIAN_TOWER_FORMATION_STANCE, true);
+            break;
+        case SPELL_GUARDIAN_LINE_FORMATION:
+            player->CastSpell(player, SPELL_GUARDIAN_LINE_FORMATION_EFFECTS, true);
+            break;
+        case SPELL_GUARDIAN_ASSAULT_FORMATION:
+            player->CastSpell(player, SPELL_GUARDIAN_ASSAULT_FORMATION_EFFECTS, true);
+            break;
+        default:
+            break;
+    }
+
+    if ((spellId == SPELL_GUARDIAN_TOWER_FORMATION ||
+            spellId == SPELL_GUARDIAN_LINE_FORMATION) &&
+        player->HasAura(SPELL_GUARDIAN_FOOTMANS_CALLING))
+    {
+        player->CastSpell(player, SPELL_GUARDIAN_FOOTMANS_CALLING_EFFECTS,
+            true);
+    }
+}
+
+bool IsSpellInRange(uint32 spellId, uint32 first, uint32 last)
+{
+    return spellId >= first && spellId <= last;
+}
+
+bool IsGuardianCenturionStrike(uint32 spellId)
+{
+    switch (spellId)
+    {
+        case 802286:
+        case 802734:
+        case 802735:
+        case 802736:
+        case 802737:
+        case 802738:
+            return true;
+        default:
+            return false;
+    }
+}
+
+bool IsGuardianRam(uint32 spellId)
+{
+    return spellId == 802284 || IsSpellInRange(spellId, 573204, 573211);
+}
+
+bool IsGuardianPulverize(uint32 spellId)
+{
+    return spellId == 800311 || IsSpellInRange(spellId, 802439, 802443) ||
+        spellId == 573286 || spellId == 573292;
+}
+
+bool IsGuardianHeavyBlow(uint32 spellId)
+{
+    return spellId == 803129 || IsSpellInRange(spellId, 503119, 503126);
+}
+
+bool IsGuardianHammerOfJustice(uint32 spellId)
+{
+    return spellId == 704418 || IsSpellInRange(spellId, 707710, 707715);
+}
+
+bool IsGuardianSpearThrow(uint32 spellId)
+{
+    return spellId == 500463 || IsSpellInRange(spellId, 572142, 572147);
+}
+
+bool IsGuardianAdvance(uint32 spellId)
+{
+    return spellId == 500170 || IsSpellInRange(spellId, 503344, 503351);
+}
+
+bool IsGuardianBattleRush(uint32 spellId)
+{
+    return spellId == 802197 || IsSpellInRange(spellId, 501546, 501548);
+}
+
+bool IsGuardianBalladOfTheConqueror(uint32 spellId)
+{
+    return spellId == 801776 || IsSpellInRange(spellId, 501068, 501074) ||
+        spellId == 574340;
+}
+
+bool IsGuardianBallad(uint32 spellId)
+{
+    return IsGuardianBalladOfTheConqueror(spellId) || spellId == 801772 ||
+        IsSpellInRange(spellId, 572717, 572719) ||
+        IsSpellInRange(spellId, 574363, 574364) ||
+        IsSpellInRange(spellId, 501066, 501067) || spellId == 574341;
+}
+
+bool IsGuardianStandardOfValiance(uint32 spellId)
+{
+    return spellId == 800315 || spellId == 800319 ||
+        IsSpellInRange(spellId, 501538, 501545) ||
+        IsSpellInRange(spellId, 803931, 803938);
+}
+
+void ExtendGuardianBrace(Player* player)
+{
+    Aura* brace = player->GetAura(SPELL_GUARDIAN_BRACE);
+    if (!brace)
+        return;
+
+    int32 extendedDuration = std::min(brace->GetMaxDuration(),
+        brace->GetDuration() + int32(GUARDIAN_FORCEFUL_IMPACT_EXTENSION_MS));
+    brace->SetDuration(extendedDuration);
+}
+
+void TryGuardianKingsGuardReset(Player* player)
+{
+    if (!player->HasAura(SPELL_GUARDIAN_KINGS_GUARD) ||
+        player->HasSpellCooldown(SPELL_GUARDIAN_KINGS_GUARD) ||
+        !roll_chance_i(GUARDIAN_KINGS_GUARD_CHANCE))
+    {
+        return;
+    }
+
+    player->CastSpell(player, SPELL_GUARDIAN_KINGS_GUARD_RESET, true);
+    player->AddSpellCooldown(SPELL_GUARDIAN_KINGS_GUARD, 0,
+        GUARDIAN_KINGS_GUARD_ICD_MS);
+}
+
+uint32 GetMainHandWeaponSubclass(Player const* player)
+{
+    Item const* weapon = player->GetWeaponForAttack(BASE_ATTACK, true);
+    ItemTemplate const* itemTemplate = weapon ? weapon->GetTemplate() : nullptr;
+    if (!itemTemplate || itemTemplate->Class != ITEM_CLASS_WEAPON)
+        return MAX_ITEM_SUBCLASS_WEAPON;
+    return itemTemplate->SubClass;
+}
+
+bool IsSwordSubclass(uint32 subclass)
+{
+    return subclass == ITEM_SUBCLASS_WEAPON_SWORD ||
+        subclass == ITEM_SUBCLASS_WEAPON_SWORD2;
+}
+
+bool IsAxeSubclass(uint32 subclass)
+{
+    return subclass == ITEM_SUBCLASS_WEAPON_AXE ||
+        subclass == ITEM_SUBCLASS_WEAPON_AXE2;
+}
+
+bool IsMaceSubclass(uint32 subclass)
+{
+    return subclass == ITEM_SUBCLASS_WEAPON_MACE ||
+        subclass == ITEM_SUBCLASS_WEAPON_MACE2;
+}
+
+void RemoveGuardianCenturionWeaponEffects(Player* player)
+{
+    player->RemoveAurasDueToSpell(SPELL_GUARDIAN_CENTURION_AXE_EFFECTS);
+    player->RemoveAurasDueToSpell(SPELL_GUARDIAN_CENTURION_MACE_EFFECTS);
+}
+
+void AddGuardianCenturionPolearmTargets(Spell* spell, Player* player)
+{
+    Unit* primary = spell->GetOriginalTarget();
+    if (!primary || primary == player)
+        return;
+
+    float directionX = primary->GetPositionX() - player->GetPositionX();
+    float directionY = primary->GetPositionY() - player->GetPositionY();
+    float directionLength = std::hypot(directionX, directionY);
+    if (directionLength <= 0.001f)
+        return;
+
+    directionX /= directionLength;
+    directionY /= directionLength;
+
+    float searchRange = directionLength + GUARDIAN_CENTURION_POLEARM_DEPTH;
+    std::list<Unit*> candidates;
+    Acore::AnyUnfriendlyUnitInObjectRangeCheck check(player, player, searchRange);
+    Acore::UnitListSearcher<Acore::AnyUnfriendlyUnitInObjectRangeCheck> searcher(
+        player, candidates, check);
+    Cell::VisitObjects(player, searcher, searchRange);
+
+    for (Unit* candidate : candidates)
+    {
+        if (!candidate || candidate == primary || !candidate->IsAlive() ||
+            !player->IsValidAttackTarget(candidate, spell->GetSpellInfo()) ||
+            !player->IsWithinLOSInMap(candidate))
+            continue;
+
+        float relativeX = candidate->GetPositionX() - primary->GetPositionX();
+        float relativeY = candidate->GetPositionY() - primary->GetPositionY();
+        float depth = relativeX * directionX + relativeY * directionY;
+        float lateral = std::abs(relativeX * directionY - relativeY * directionX);
+        if (depth <= 0.0f || depth > GUARDIAN_CENTURION_POLEARM_DEPTH ||
+            lateral > GUARDIAN_CENTURION_POLEARM_HALF_WIDTH + candidate->GetCombatReach() ||
+            std::abs(candidate->GetPositionZ() - primary->GetPositionZ()) >
+                GUARDIAN_CENTURION_POLEARM_DEPTH)
+            continue;
+
+        // Only the two weapon-damage effects are copied. The caster-only
+        // Motivation-duration helper must still execute exactly once.
+        spell->AddUnitTargetForScript(candidate,
+            GUARDIAN_CENTURION_DAMAGE_EFFECT_MASK, true, true);
+    }
+}
+
+bool IsRangerWildStrike(uint32 spellId)
+{
+    return spellId == 800083 || IsSpellInRange(spellId, 501724, 501734);
+}
+
+bool IsRangerFlank(uint32 spellId)
+{
+    return spellId == 804940 || IsSpellInRange(spellId, 805082, 805088) ||
+        IsSpellInRange(spellId, 582530, 582531);
+}
+
+bool IsRangerQuickShot(uint32 spellId)
+{
+    return spellId == 500074 || IsSpellInRange(spellId, 572727, 572732);
+}
+
+bool IsRangerHuntingShot(uint32 spellId)
+{
+    return spellId == 801191 || IsSpellInRange(spellId, 547202, 547208);
+}
+
+bool IsRangerToxicDart(uint32 spellId)
+{
+    return spellId == 807237 || IsSpellInRange(spellId, 807324, 807330);
+}
+
+bool IsRangerBountyHunterTrigger(uint32 spellId)
+{
+    return IsRangerFlank(spellId) ||
+        spellId == SPELL_RANGER_RUSTY_SHIV_DAMAGE;
+}
+
+bool IsCultistTwilightShieldtoss(uint32 spellId)
+{
+    switch (spellId)
+    {
+        case 503487:
+        case 503488:
+        case 524876:
+        case 804208:
+            return true;
+        default:
+            return false;
+    }
+}
+
+void AddRangerAdvantage(Player* player, uint8 amount)
+{
+    for (uint8 index = 0; index < amount; ++index)
+        player->CastSpell(player, SPELL_RANGER_ADVANTAGE_INCREMENT, true);
+}
+
+void ApplyRangerQuiver(Player* player, uint32 spellId)
+{
+    for (uint32 quiverId : RANGER_QUIVERS)
+        if (quiverId != spellId)
+            player->RemoveAurasDueToSpell(quiverId);
+}
+
+void SynchronizeRangerQuiver(Player* player)
+{
+    Aura const* newest = nullptr;
+    uint32 newestId = 0;
+    for (uint32 spellId : RANGER_QUIVERS)
+    {
+        Aura const* aura = player->GetAura(spellId);
+        if (aura && (!newest || aura->GetApplyTime() > newest->GetApplyTime()))
+        {
+            newest = aura;
+            newestId = spellId;
+        }
+    }
+
+    if (newest)
+        ApplyRangerQuiver(player, newestId);
+}
+
+bool DidRangerAdvantageConsumerSucceed(Spell* spell, Player const* player)
+{
+    bool hasExternalTarget = false;
+    for (TargetInfo const& targetInfo : *spell->GetUniqueTargetInfo())
+    {
+        if (targetInfo.targetGUID == player->GetGUID())
+            continue;
+
+        hasExternalTarget = true;
+        if (targetInfo.missCondition == SPELL_MISS_NONE)
+            return true;
+    }
+
+    // Self-only spenders have no hostile target that can miss, dodge, or
+    // parry. Empty source-area casts are also successful casts.
+    return !hasExternalTarget;
+}
+
+void HandleRangerQuiverHit(Player* player, Unit* target,
+    SpellInfo const* spellInfo, uint32 damage)
+{
+    if (spellInfo->DmgClass != SPELL_DAMAGE_CLASS_RANGED)
+        return;
+
+    if (AuraEffect const* searing = player->GetAuraEffect(
+            SPELL_RANGER_SEARING_QUIVER, EFFECT_0); searing && damage)
+    {
+        int32 fireDamage = CalculatePct(damage, searing->GetAmount());
+        player->CastCustomSpell(target, SPELL_RANGER_SEARING_QUIVER_DAMAGE,
+            &fireDamage, nullptr, nullptr, true, nullptr, searing);
+    }
+
+    if (AuraEffect const* poison = player->GetAuraEffect(
+            SPELL_RANGER_POISON_QUIVER, EFFECT_1))
+    {
+        player->CastSpell(target, SPELL_RANGER_POISON_QUIVER_DAMAGE, true,
+            nullptr, poison);
+    }
+}
+
+void HandleRangerBountyHunterHit(Player* player, Unit* target,
+    uint32 spellId, uint32 damage)
+{
+    if (damage && player->HasAura(SPELL_RANGER_BOUNTY_HUNTER) &&
+        IsRangerBountyHunterTrigger(spellId))
+    {
+        player->CastSpell(target, SPELL_RANGER_BOUNTY_HUNTER_DEBUFF, true);
+    }
+}
+
+void HandleRangerAdvantageSpent(Player* player, uint8 amount)
+{
+    if (player->HasAura(SPELL_RANGER_RUB_IT_IN))
+    {
+        for (uint8 index = 0; index < amount; ++index)
+            if (roll_chance_i(RANGER_ADVANTAGE_REFUND_CHANCE))
+                AddRangerAdvantage(player, 1);
+    }
+
+    if (player->HasAura(SPELL_RANGER_SNIPERS_FOCUS))
+    {
+        for (uint8 index = 0; index < amount; ++index)
+            if (roll_chance_i(RANGER_ADVANTAGE_REFUND_CHANCE))
+                player->CastSpell(player,
+                    SPELL_RANGER_SNIPERS_FOCUS_ENERGIZE, true);
+    }
+
+    if (amount == 5 && player->HasAura(SPELL_RANGER_MAXIMUM_POWER) &&
+        player->HasAura(SPELL_RANGER_SKIRMISH))
+    {
+        player->CastSpell(player, SPELL_RANGER_MAXIMUM_POWER_EXTENSION, true);
+    }
+}
+}
+
+void ApplyAscensionClassMechanics(SpellInfo* spellInfo)
+{
+    if (!spellInfo)
+        return;
+
+    ApplyAscensionClassMechanics19To25(spellInfo);
+    ApplyAscensionBarbarianSpellChanges(spellInfo);
+
+    if (spellInfo->Id == SPELL_GUARDIAN_RAISE_SHIELD_ENERGIZE)
+    {
+        SpellEffectInfo& effect = spellInfo->Effects[EFFECT_0];
+        if (effect.Effect == SPELL_EFFECT_ENERGIZE &&
+            effect.MiscValue == POWER_ENERGY &&
+            (effect.BasePoints == 19 ||
+                effect.BasePoints == GUARDIAN_RAISE_SHIELD_ENERGY_BASE_POINTS))
+        {
+            effect.BasePoints = GUARDIAN_RAISE_SHIELD_ENERGY_BASE_POINTS;
+        }
+        else
+        {
+            LOG_ERROR("module.ascension_compat",
+                "Skipped unexpected Raise Shield energize record {}",
+                spellInfo->Id);
+        }
+    }
+
+    if (spellInfo->Id == SPELL_RANGER_BOUNTY_HUNTER)
+    {
+        SpellEffectInfo const& effect = spellInfo->Effects[EFFECT_0];
+        if (spellInfo->SpellFamilyName == uint32(CLASS_RANGER) + 6 &&
+            (spellInfo->ProcFlags == PROC_FLAG_DONE_MELEE_AUTO_ATTACK ||
+                spellInfo->ProcFlags == PROC_FLAG_NONE) &&
+            effect.Effect == SPELL_EFFECT_APPLY_AURA &&
+            effect.ApplyAuraName == SPELL_AURA_PROC_TRIGGER_SPELL &&
+            effect.TriggerSpell == SPELL_RANGER_BOUNTY_HUNTER_DEBUFF)
+        {
+            // The copied proc flag incorrectly binds this talent to ordinary
+            // melee swings. The exact Flank/Rusty event is dispatched below.
+            spellInfo->ProcFlags = PROC_FLAG_NONE;
+        }
+        else
+        {
+            LOG_ERROR("module.ascension_compat",
+                "Skipped unexpected Bounty Hunter record {}", spellInfo->Id);
+        }
+    }
+
+    auto const& deprecated = AscensionMechanics::DeprecatedSpells;
+    spellInfo->IsDeprecatedForPlayers = std::binary_search(deprecated.begin(), deprecated.end(), spellInfo->Id);
+
+    auto const& charges = AscensionMechanics::Charges;
+    auto charge = std::lower_bound(charges.begin(), charges.end(), spellInfo->Id,
+        [](auto const& entry, uint32 id) { return entry.SpellId < id; });
+    if (charge != charges.end() && charge->SpellId == spellInfo->Id &&
+        spellInfo->SpellFamilyName == uint32(charge->ClassId) + 6)
+    {
+        spellInfo->MaxCharges = charge->Maximum;
+        spellInfo->ChargeRecoveryTime = charge->RecoveryMs;
+        spellInfo->ChargeRecoveryKey = charge->FirstSpellId;
+        spellInfo->ChargeCategoryId = charge->Category;
+    }
+
+    auto const& repairs = AscensionMechanics::RangedRepairs;
+    auto repair = std::lower_bound(repairs.begin(), repairs.end(), spellInfo->Id,
+        [](auto const& entry, uint32 id) { return entry.SpellId < id; });
+    if (repair != repairs.end() && repair->SpellId == spellInfo->Id)
+    {
+        if (spellInfo->SpellFamilyName != repair->Family || spellInfo->EquippedItemClass != repair->ItemClass ||
+            uint32(spellInfo->EquippedItemSubClassMask) != repair->SubclassMask ||
+            (uint32(spellInfo->EquippedItemInventoryTypeMask) != repair->Before &&
+             uint32(spellInfo->EquippedItemInventoryTypeMask) != repair->After))
+        {
+            LOG_ERROR("module.ascension_compat", "Skipped unexpected ranged equipment record {}", spellInfo->Id);
+        }
+        else
+            spellInfo->EquippedItemInventoryTypeMask = int32(repair->After);
+    }
+}
+
+void SynchronizeAscensionClassMechanics(Player* player)
+{
+    if (!player || !IsAscensionClass(player->getClass()))
+        return;
+
+    // The user subsequently authorized removal of already learned deprecated
+    // class spells. This flag is explicit DBC evidence, not snapshot absence.
+    std::vector<uint32> obsolete;
+    for (auto const& [spellId, playerSpell] : player->GetSpellMap())
+    {
+        SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spellId);
+        if (playerSpell->State != PLAYERSPELL_REMOVED && spellInfo && spellInfo->IsDeprecatedForPlayers)
+            obsolete.push_back(spellId);
+    }
+    for (uint32 spellId : obsolete)
+        player->removeSpell(spellId, SPEC_MASK_ALL, false);
+
+    if (player->getClass() == CLASS_GUARDIAN)
+    {
+        if (player->HasAura(SPELL_GUARDIAN_TOWER_FORMATION))
+            ApplyGuardianFormation(player, SPELL_GUARDIAN_TOWER_FORMATION);
+        else if (player->HasAura(SPELL_GUARDIAN_LINE_FORMATION))
+            ApplyGuardianFormation(player, SPELL_GUARDIAN_LINE_FORMATION);
+        else if (player->HasAura(SPELL_GUARDIAN_ASSAULT_FORMATION))
+            ApplyGuardianFormation(player, SPELL_GUARDIAN_ASSAULT_FORMATION);
+        else
+            RemoveGuardianFormationHelpers(player);
+    }
+    else if (player->getClass() == CLASS_RANGER)
+    {
+        SynchronizeRangerQuiver(player);
+        if (player->HasAura(SPELL_RANGER_ELUDE))
+        {
+            if (!player->HasAura(SPELL_RANGER_ELUDE_EFFECTS))
+                player->CastSpell(player, SPELL_RANGER_ELUDE_EFFECTS, true);
+            if (!player->HasAura(SPELL_RANGER_ELUDE_SPEED_PENALTY))
+                player->CastSpell(player, SPELL_RANGER_ELUDE_SPEED_PENALTY, true);
+        }
+        else
+        {
+            player->RemoveAurasDueToSpell(SPELL_RANGER_ELUDE_EFFECTS);
+            player->RemoveAurasDueToSpell(SPELL_RANGER_ELUDE_SPEED_PENALTY);
+        }
+    }
+
+    player->SendAllSpellChargeStates();
+}
+
+void PrepareAscensionClassMechanicsCast(Spell* spell)
+{
+    if (!spell || spell->IsTriggered())
+        return;
+
+    Player* player = spell->GetCaster()->ToPlayer();
+    if (!player || player->getClass() != CLASS_GUARDIAN ||
+        !IsGuardianCenturionStrike(spell->GetSpellInfo()->Id))
+        return;
+
+    RemoveGuardianCenturionWeaponEffects(player);
+    uint32 weaponSubclass = GetMainHandWeaponSubclass(player);
+    if (IsAxeSubclass(weaponSubclass))
+        player->CastSpell(player, SPELL_GUARDIAN_CENTURION_AXE_EFFECTS, true);
+    else if (IsMaceSubclass(weaponSubclass))
+        player->CastSpell(player, SPELL_GUARDIAN_CENTURION_MACE_EFFECTS, true);
+    else if (weaponSubclass == ITEM_SUBCLASS_WEAPON_POLEARM)
+        AddGuardianCenturionPolearmTargets(spell, player);
+}
+
+void HandleAscensionClassMechanicsCalculatedTarget(Spell* spell, Player* player,
+    Unit* target, TargetInfo& targetInfo)
+{
+    if (!spell || !player || !target)
+        return;
+
+    HandleAscensionClassMechanics12To17CalculatedTarget(spell, player, target,
+        targetInfo);
+
+    if (player->getClass() == CLASS_GUARDIAN &&
+        IsGuardianCenturionStrike(spell->GetSpellInfo()->Id) &&
+        GetMainHandWeaponSubclass(player) == ITEM_SUBCLASS_WEAPON_POLEARM)
+    {
+        Unit* primary = spell->GetOriginalTarget();
+        if (!primary || targetInfo.targetGUID != primary->GetGUID())
+            return;
+
+        // A polearm stabs the primary target an additional time. Secondary
+        // units behind it receive one copy of the weapon-damage effects.
+        targetInfo.damage *= 2;
+        targetInfo.damageBeforeTakenMods *= 2;
+        return;
+    }
+
+    if (player->getClass() == CLASS_RANGER &&
+        IsRangerWildStrike(spell->GetSpellInfo()->Id) &&
+        (player->HasAura(SPELL_RANGER_RAVAGER) ||
+            player->HasAura(SPELL_RANGER_RAVAGER_LEGACY)) &&
+        target->HasAuraState(AURA_STATE_BLEEDING, spell->GetSpellInfo(), player))
+    {
+        targetInfo.damage = CalculatePct(targetInfo.damage, 150);
+        targetInfo.damageBeforeTakenMods =
+            CalculatePct(targetInfo.damageBeforeTakenMods, 150);
+    }
+}
+
+void HandleAscensionClassMechanicsHit(Spell* spell, Player* player,
+    Unit* target, std::uint8_t missInfo, std::uint32_t damage,
+    std::uint32_t /*healing*/, bool critical)
+{
+    if (!spell || !player || !target || missInfo != SPELL_MISS_NONE)
+        return;
+
+    HandleAscensionClassMechanics12To17Hit(spell, player, target, missInfo,
+        damage, critical);
+    HandleAscensionClassMechanics19To25Hit(spell, player, target, missInfo,
+        damage);
+    HandleAscensionClassMechanics26To32Hit(spell, player, target, missInfo,
+        damage, critical);
+
+    // The remaining contracts apply only to an offensive target. Several
+    // abilities also have a separate caster-target helper in the same cast.
+    if (target == player || player->IsFriendlyTo(target))
+        return;
+
+    uint32 spellId = spell->GetSpellInfo()->Id;
+    if (player->getClass() == CLASS_RANGER)
+        HandleRangerBountyHunterHit(player, target, spellId, damage);
+
+    // The adapters above deliberately admit their exact triggered children
+    // (including Rusty Shiv, Solar Flare, and Dirge). The remaining contracts
+    // retain the non-triggered-cast boundary.
+    if (spell->IsTriggered())
+        return;
+
+    if (player->getClass() == CLASS_GUARDIAN)
+    {
+        if (IsGuardianCenturionStrike(spellId) &&
+            IsSwordSubclass(GetMainHandWeaponSubclass(player)) &&
+            target == spell->GetOriginalTarget() &&
+            spell->TryMarkScriptEventHandled(GUARDIAN_CENTURION_SWORD_EVENT))
+        {
+            // The copied helper contains SPELL_EFFECT_ADD_EXTRA_ATTACKS with
+            // an exact amount of three after the normal weapon-damage hit.
+            player->CastSpell(player,
+                SPELL_GUARDIAN_CENTURION_SWORD_ATTACKS, true);
+        }
+
+        if (!damage)
+            return;
+
+        if (IsGuardianRam(spellId))
+        {
+            if (player->HasAura(SPELL_GUARDIAN_NO_ESCAPE) &&
+                target->HasRootAura())
+            {
+                player->CastSpell(player, SPELL_GUARDIAN_NO_ESCAPE_RESET,
+                    true);
+            }
+            if (critical && player->HasAura(SPELL_GUARDIAN_PLATE_BUSTER))
+                player->CastSpell(player, SPELL_GUARDIAN_PLATE_BUSTER_RESET,
+                    true);
+            if (player->HasAura(SPELL_GUARDIAN_SHOW_OF_FORCE))
+                player->CastSpell(target, SPELL_GUARDIAN_SHOW_OF_FORCE_DISPEL,
+                    true);
+            TryGuardianKingsGuardReset(player);
+        }
+        else if (IsGuardianPulverize(spellId))
+            TryGuardianKingsGuardReset(player);
+        else if (IsGuardianHammerOfJustice(spellId) &&
+            player->HasAura(SPELL_GUARDIAN_ORDER_IN_THE_COURT))
+        {
+            player->CastSpell(target,
+                SPELL_GUARDIAN_ORDER_IN_THE_COURT_DEBUFF, true);
+        }
+        else if (IsGuardianSpearThrow(spellId) &&
+            player->HasAura(SPELL_GUARDIAN_PINNED_DOWN))
+        {
+            player->CastSpell(target, SPELL_GUARDIAN_PINNED_DOWN_REFRESH,
+                true);
+        }
+        return;
+    }
+
+    if (player->getClass() == CLASS_CULTIST && IsCultistTwilightShieldtoss(spellId))
+    {
+        // The copied active ranks put the authored slow helper in a DUMMY
+        // target effect. Ascension's private dispatcher invokes it for each
+        // successful bounce; stock AzerothCore otherwise drops that slot.
+        player->CastSpell(target, SPELL_CULTIST_TWILIGHT_SHIELDTOSS_SLOW, true);
+        return;
+    }
+
+    if (player->getClass() == CLASS_PROPHET &&
+        spellId == SPELL_VENOMANCER_BARBED_STINGER)
+    {
+        // Keep the native launch/rip effects and attach the exact authored
+        // damage-from-caster modifier that occupies Barbed Stinger's DUMMY
+        // target slot.
+        player->CastSpell(target, SPELL_VENOMANCER_BARBED_STINGER_EFFECT, true);
+        return;
+    }
+
+    if (player->getClass() != CLASS_RANGER)
+        return;
+
+    HandleRangerQuiverHit(player, target, spell->GetSpellInfo(), damage);
+
+    if (IsRangerWildStrike(spellId))
+    {
+        uint8 amount = 1;
+        if (player->HasAura(SPELL_RANGER_RAVAGER) ||
+            player->HasAura(SPELL_RANGER_RAVAGER_LEGACY))
+            ++amount;
+        AddRangerAdvantage(player, amount);
+    }
+    else if (IsRangerFlank(spellId))
+        AddRangerAdvantage(player, 2);
+    else if (IsRangerHuntingShot(spellId))
+        AddRangerAdvantage(player, 1);
+    else if (IsRangerQuickShot(spellId))
+    {
+        AddRangerAdvantage(player, 1);
+        if (critical && player->HasAura(SPELL_RANGER_ARCHERY_MASTER))
+            AddRangerAdvantage(player, 1);
+    }
+    else if (IsRangerToxicDart(spellId))
+        AddRangerAdvantage(player, 1);
+}
+
+void HandleAscensionClassMechanicsCast(Spell* spell)
+{
+    HandleAscensionBarbarianCast(spell);
+    if (!spell || spell->IsTriggered())
+        return;
+    Player* player = spell->GetCaster()->ToPlayer();
+    if (!player)
+        return;
+
+    SpellInfo const* info = spell->GetSpellInfo();
+    if (player->getClass() == CLASS_RANGER &&
+        info->CasterAuraSpell == SPELL_RANGER_ADVANTAGE)
+    {
+        // CoA refunds the full spend when every external target missed,
+        // dodged, or parried. Delayed missiles already have their launch-time
+        // miss condition in the target list, so consumption can remain here.
+        if (!DidRangerAdvantageConsumerSucceed(spell, player))
+            return;
+
+        // Ascension's private proc service applies this hidden passive after
+        // every successful Advantage consumer. AzerothCore does not generate a
+        // proc entry for it because its copied DBC ProcFlags are zero. Preserve
+        // Elven Tactics by applying its native chance spellmod to the helper.
+        float consumeChance = 100.0f;
+        player->ApplySpellMod(SPELL_RANGER_ADVANTAGE_DECREMENT_PASSIVE,
+            SPELLMOD_CHANCE_OF_SUCCESS, consumeChance, spell);
+        if (roll_chance_f(consumeChance))
+        {
+            uint8 spent = 0;
+            if (Aura const* advantage = player->GetAura(SPELL_RANGER_ADVANTAGE))
+                spent = advantage->GetStackAmount();
+            player->CastSpell(player, SPELL_RANGER_ADVANTAGE_DECREMENT, true);
+            HandleRangerAdvantageSpent(player, spent);
+        }
+        return;
+    }
+
+    if (player->getClass() != CLASS_GUARDIAN)
+        return;
+
+    uint32 firstRank = sSpellMgr->GetFirstSpellInChain(info->Id);
+    if (firstRank == 800316) // Reprisal, all seven verified ranks
+    {
+        // The block-ready window remains usable until its native aura expires;
+        // the separate rechargeable pool now prevents unlimited attacks.
+        // Valiance already adds 20 through the native Effect1 spell modifier on
+        // this helper's family mask. Casting twice would incorrectly grant 80.
+        player->CastSpell(player, 500175, true);
+    }
+    else if (IsGuardianCenturionStrike(info->Id) && player->HasAura(504140)) // Centurion Strike / Supremacy
+    {
+        player->CastSpell(player, 504143, true); // Native category-54 restore + block-ready trigger
+    }
+
+    uint32 spellId = info->Id;
+    bool guardbreakerAbility = IsGuardianPulverize(spellId) ||
+        IsGuardianRam(spellId) ||
+        (player->HasAura(505344) &&
+            IsGuardianBalladOfTheConqueror(spellId));
+    if (guardbreakerAbility && player->HasAura(SPELL_GUARDIAN_GUARDBREAKER) &&
+        roll_chance_i(GUARDIAN_GUARDBREAKER_CHANCE))
+    {
+        player->CastSpell(player, SPELL_GUARDIAN_GUARDBREAKER_RESET, true);
+    }
+
+    if (IsGuardianAdvance(spellId) && player->HasAura(SPELL_GUARDIAN_REFUSE))
+        player->CastSpell(player, SPELL_GUARDIAN_REFUSE_RESET, true);
+
+    if (IsGuardianBattleRush(spellId) &&
+        player->HasAura(SPELL_GUARDIAN_BULWARK_RUSH))
+    {
+        player->CastSpell(player, SPELL_GUARDIAN_BULWARK_RUSH_EFFECTS, true);
+    }
+
+    if ((spellId == SPELL_GUARDIAN_RAISE_SHIELD ||
+            IsGuardianHeavyBlow(spellId)) &&
+        player->HasAura(SPELL_GUARDIAN_FORCEFUL_IMPACT))
+    {
+        ExtendGuardianBrace(player);
+    }
+
+    if (IsGuardianHeavyBlow(spellId))
+    {
+        if (player->HasAura(SPELL_GUARDIAN_VANGUARDS_MIGHT))
+        {
+            player->CastSpell(player,
+                SPELL_GUARDIAN_VANGUARDS_MIGHT_EFFECTS, true);
+        }
+        if (player->HasAura(SPELL_GUARDIAN_HIGH_GUARD_EFFECTS))
+        {
+            player->RemoveAurasDueToSpell(
+                SPELL_GUARDIAN_HIGH_GUARD_EFFECTS);
+            player->CastSpell(player, SPELL_GUARDIAN_REPRISAL_READY, true);
+        }
+    }
+
+    if ((spellId == SPELL_GUARDIAN_RAISE_SHIELD ||
+            IsGuardianAdvance(spellId) || IsGuardianBattleRush(spellId)) &&
+        player->HasAura(SPELL_GUARDIAN_HIGH_GUARD))
+    {
+        player->CastSpell(player, SPELL_GUARDIAN_HIGH_GUARD_EFFECTS, true);
+    }
+
+    if ((IsGuardianStandardOfValiance(spellId) || spellId == 803420) &&
+        player->HasAura(SPELL_GUARDIAN_WRECK_FORMATION))
+    {
+        player->CastSpell(player, SPELL_GUARDIAN_WRECK_FORMATION_AP, true);
+    }
+
+    if (IsGuardianBallad(spellId))
+    {
+        if (player->HasAura(SPELL_GUARDIAN_KNIGHTS_SONG))
+        {
+            player->CastSpell(player,
+                SPELL_GUARDIAN_KNIGHTS_SONG_EFFECTS, true);
+        }
+        if (player->HasAura(SPELL_GUARDIAN_MINSTREL))
+            player->CastSpell(player, SPELL_GUARDIAN_MINSTREL_EFFECTS, true);
+    }
+
+    if (IsGuardianCenturionStrike(info->Id))
+        RemoveGuardianCenturionWeaponEffects(player);
+}
+
+void HandleAscensionClassMechanicsBlock(Player* player)
+{
+    if (!player || player->getClass() != CLASS_GUARDIAN)
+        return;
+
+    if (player->HasSpell(SPELL_GUARDIAN_REPRISAL))
+        player->CastSpell(player, SPELL_GUARDIAN_REPRISAL_READY, true);
+    if (player->HasAura(SPELL_GUARDIAN_VETERAN))
+        player->CastSpell(player, SPELL_GUARDIAN_VETERAN_HEAL, true);
+    if (player->HasAura(SPELL_GUARDIAN_HONORABLE))
+        player->CastSpell(player, SPELL_GUARDIAN_HONORABLE_EFFECTS, true);
+    if (player->HasAura(SPELL_GUARDIAN_RECUPERATION))
+        player->CastSpell(player, SPELL_GUARDIAN_RECUPERATION_ENERGIZE, true);
+}
+
+void HandleAscensionClassMechanicsDamageTaken(Player* player,
+    std::uint32_t damage)
+{
+    if (!player || !damage || player->getClass() != CLASS_GUARDIAN ||
+        !player->HasAura(SPELL_GUARDIAN_RAISE_SHIELD))
+        return;
+
+    // The latest copied CoA changelog supersedes Raise Shield's stale DBC
+    // proc: every successful damaging hit received restores 30 Energy.
+    player->CastSpell(player, SPELL_GUARDIAN_RAISE_SHIELD_ENERGIZE, true);
+}
+
+void HandleAscensionClassMechanicsAuraApply(Player* player, std::uint32_t spellId)
+{
+    HandleAscensionBarbarianAura(player, spellId, true);
+    if (!player)
+        return;
+
+    auto formation = std::find(GUARDIAN_FORMATIONS.begin(), GUARDIAN_FORMATIONS.end(), spellId);
+    if (player->getClass() == CLASS_GUARDIAN && formation != GUARDIAN_FORMATIONS.end())
+    {
+        ApplyGuardianFormation(player, spellId);
+        return;
+    }
+
+    if (player->getClass() == CLASS_GUARDIAN &&
+        spellId == SPELL_GUARDIAN_FOOTMANS_CALLING)
+    {
+        if (player->HasAura(SPELL_GUARDIAN_TOWER_FORMATION))
+            ApplyGuardianFormation(player, SPELL_GUARDIAN_TOWER_FORMATION);
+        else if (player->HasAura(SPELL_GUARDIAN_LINE_FORMATION))
+            ApplyGuardianFormation(player, SPELL_GUARDIAN_LINE_FORMATION);
+        return;
+    }
+
+    if (player->getClass() == CLASS_RANGER && spellId == SPELL_RANGER_ELUDE)
+    {
+        player->CastSpell(player, SPELL_RANGER_ELUDE_EFFECTS, true);
+        player->CastSpell(player, SPELL_RANGER_ELUDE_SPEED_PENALTY, true);
+        if (player->HasAura(SPELL_RANGER_LETHAL_CUNNING))
+            player->CastSpell(player, SPELL_RANGER_LETHAL_CUNNING_EFFECTS,
+                true);
+    }
+
+    else if (player->getClass() == CLASS_RANGER &&
+        std::find(RANGER_QUIVERS.begin(), RANGER_QUIVERS.end(), spellId) !=
+            RANGER_QUIVERS.end())
+    {
+        ApplyRangerQuiver(player, spellId);
+    }
+}
+
+void HandleAscensionClassMechanicsAuraRemove(Player* player, std::uint32_t spellId)
+{
+    HandleAscensionBarbarianAura(player, spellId, false);
+    if (!player)
+        return;
+
+    auto formation = std::find(GUARDIAN_FORMATIONS.begin(), GUARDIAN_FORMATIONS.end(), spellId);
+    if (player->getClass() == CLASS_GUARDIAN && formation != GUARDIAN_FORMATIONS.end())
+    {
+        RemoveGuardianFormationHelpers(player);
+        return;
+    }
+
+    if (player->getClass() == CLASS_GUARDIAN &&
+        spellId == SPELL_GUARDIAN_FOOTMANS_CALLING)
+    {
+        player->RemoveAurasDueToSpell(
+            SPELL_GUARDIAN_FOOTMANS_CALLING_EFFECTS);
+        return;
+    }
+
+    if (player->getClass() == CLASS_RANGER && spellId == SPELL_RANGER_ELUDE)
+    {
+        player->RemoveAurasDueToSpell(SPELL_RANGER_ELUDE_EFFECTS);
+        player->RemoveAurasDueToSpell(SPELL_RANGER_ELUDE_SPEED_PENALTY);
+    }
+}
