@@ -119,6 +119,20 @@ std::array<uint8, 16> VersionChallenge = { { 0xBA, 0xA3, 0x1E, 0x99, 0xA0, 0x0B,
 #define AUTH_LOGON_CHALLENGE_INITIAL_SIZE 4
 #define REALM_LIST_PACKET_SIZE 5
 
+uint8 constexpr ASCENSION_AUTH_MARKER = 0x08;
+uint16 constexpr ASCENSION_AUTH_CHALLENGE_SIZE = 0x0276;
+
+bool IsAscensionAuthChallenge(sAuthLogonChallenge_C const* challenge)
+{
+    return challenge->error == ASCENSION_AUTH_MARKER && challenge->size == ASCENSION_AUTH_CHALLENGE_SIZE;
+}
+
+template <typename Container>
+std::string GetSha1Fingerprint(Container const& value)
+{
+    return ByteArrayToHexStr(Acore::Crypto::SHA1::GetDigestOf(value));
+}
+
 std::unordered_map<uint8, AuthHandler> AuthSession::InitHandlers()
 {
     std::unordered_map<uint8, AuthHandler> handlers;
@@ -221,13 +235,21 @@ SocketReadCallbackResult AuthSession::ReadHandler()
 {
     MessageBuffer& packet = GetReadBuffer();
 
+    if (!_loggedInitialPacket && packet.GetActiveSize())
+    {
+        std::size_t const captureSize = std::min<std::size_t>(packet.GetActiveSize(), 64);
+        LOG_TRACE("session", "Received {} initial auth bytes: {}", packet.GetActiveSize(),
+            Acore::Impl::ByteArrayToHexStr(packet.GetReadPointer(), captureSize));
+        _loggedInitialPacket = true;
+    }
+
     while (packet.GetActiveSize())
     {
         uint8 cmd = packet.GetReadPointer()[0];
         auto itr = Handlers.find(cmd);
         if (itr == Handlers.end())
         {
-            // well we dont handle this, lets just ignore it
+            LOG_DEBUG("session", "Ignoring unsupported auth command 0x{:02X} with {} buffered bytes", cmd, packet.GetActiveSize());
             packet.Reset();
             break;
         }
@@ -246,7 +268,7 @@ SocketReadCallbackResult AuthSession::ReadHandler()
         {
             sAuthLogonChallenge_C* challenge = reinterpret_cast<sAuthLogonChallenge_C*>(packet.GetReadPointer());
             size += challenge->size;
-            if (size > MAX_ACCEPTED_CHALLENGE_SIZE)
+            if (size > MAX_ACCEPTED_CHALLENGE_SIZE && !IsAscensionAuthChallenge(challenge))
             {
                 CloseSocket();
                 return SocketReadCallbackResult::Stop;
@@ -286,25 +308,40 @@ bool AuthSession::HandleLogonChallenge()
     _status = STATUS_CLOSED;
 
     sAuthLogonChallenge_C* challenge = reinterpret_cast<sAuthLogonChallenge_C*>(GetReadBuffer().GetReadPointer());
-    if (challenge->size - (sizeof(sAuthLogonChallenge_C) - AUTH_LOGON_CHALLENGE_INITIAL_SIZE - 1) != challenge->I_len)
-        return false;
+    std::string login;
+    if (IsAscensionAuthChallenge(challenge))
+    {
+        login = "LOCAL";
+        _build = 12340;
+        _os = "Win";
+        _localizationName = "enUS";
+        LOG_INFO("server.authserver", "Accepted Ascension encrypted auth challenge for local account");
+    }
+    else
+    {
+        if (challenge->size - (sizeof(sAuthLogonChallenge_C) - AUTH_LOGON_CHALLENGE_INITIAL_SIZE - 1) != challenge->I_len)
+            return false;
 
-    std::string login((char const*)challenge->I, challenge->I_len);
+        login.assign((char const*)challenge->I, challenge->I_len);
+        _build = challenge->build;
+        std::array<char, 5> os;
+        os.fill('\0');
+        memcpy(os.data(), challenge->os, sizeof(challenge->os));
+        _os = os.data();
+
+        // Restore string order as its byte order is reversed
+        std::reverse(_os.begin(), _os.end());
+
+        _localizationName.resize(4);
+        for (int i = 0; i < 4; ++i)
+            _localizationName[i] = challenge->country[4 - i - 1];
+    }
+
+    _isAscensionLocalClient = challenge->error == ASCENSION_AUTH_MARKER && login == "LOCAL";
+
     LOG_DEBUG("server.authserver", "[AuthChallenge] '{}'", login);
 
-    _build = challenge->build;
     _expversion = uint8(AuthHelper::IsPostBCAcceptedClientBuild(_build) ? POST_BC_EXP_FLAG : (AuthHelper::IsPreBCAcceptedClientBuild(_build) ? PRE_BC_EXP_FLAG : NO_VALID_EXP_FLAG));
-    std::array<char, 5> os;
-    os.fill('\0');
-    memcpy(os.data(), challenge->os, sizeof(challenge->os));
-    _os = os.data();
-
-    // Restore string order as its byte order is reversed
-    std::reverse(_os.begin(), _os.end());
-
-    _localizationName.resize(4);
-    for (int i = 0; i < 4; ++i)
-        _localizationName[i] = challenge->country[4 - i - 1];
 
     // Get the account details from the account table
     LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_LOGONCHALLENGE);
@@ -470,8 +507,11 @@ bool AuthSession::HandleLogonProof()
         return false;
     }
 
+    Acore::Crypto::SRP6::ChallengeResponseDiagnostics diagnostics{};
+    Acore::Crypto::SRP6::ChallengeResponseDiagnostics* diagnosticOutput = _isAscensionLocalClient ? &diagnostics : nullptr;
+
     // Check if SRP6 results match (password is correct), else send an error
-    if (Optional<SessionKey> K = _srp6->VerifyChallengeResponse(logonProof->A, logonProof->clientM))
+    if (Optional<SessionKey> K = _srp6->VerifyChallengeResponse(logonProof->A, logonProof->clientM, diagnosticOutput))
     {
         _sessionKey = *K;
         // Check auth token
@@ -551,12 +591,31 @@ bool AuthSession::HandleLogonProof()
                 std::memcpy(packet.contents(), &proof, sizeof(proof));
             }
 
+            if (_isAscensionLocalClient)
+            {
+                LOG_INFO("server.authserver", "Sending stock logon proof response: bytes={} M2={}",
+                    packet.size(), GetSha1Fingerprint(M2));
+            }
+
             SendPacket(packet);
+
+            if (_isAscensionLocalClient)
+                LOG_INFO("server.authserver", "Queued stock logon proof response");
+
             _status = STATUS_AUTHED;
         }));
     }
     else
     {
+        if (_isAscensionLocalClient)
+        {
+            LOG_INFO("server.authserver",
+                "Ascension SRP fingerprints: A={} B={} salt={} clientM={} expectedM={} K={}",
+                GetSha1Fingerprint(logonProof->A), GetSha1Fingerprint(_srp6->B), GetSha1Fingerprint(_srp6->s),
+                GetSha1Fingerprint(logonProof->clientM), GetSha1Fingerprint(diagnostics.ExpectedClientM),
+                GetSha1Fingerprint(diagnostics.K));
+        }
+
         ByteBuffer packet;
         packet << uint8(AUTH_LOGON_PROOF);
         packet << uint8(WOW_FAIL_UNKNOWN_ACCOUNT);

@@ -1428,8 +1428,8 @@ class spell_dru_leader_of_the_pack : public AuraScript
         // Improved Leader of the Pack - mana regen (only for self-cast aura)
         if (aurEff->GetCasterGUID() == target->GetGUID())
         {
-            int32 manaAmount = CalculatePct(target->GetMaxPower(POWER_MANA), healAmount * 2);
-            target->CastCustomSpell(SPELL_DRUID_LEADER_OF_THE_PACK_MANA, SPELLVALUE_BASE_POINT0, manaAmount, target, true, nullptr, aurEff);
+            uint32 manaAmount = CalculatePct(target->GetMaxPower(POWER_MANA), healAmount * 2);
+            target->EnergizeBySpell(target, SPELL_DRUID_LEADER_OF_THE_PACK_MANA, manaAmount, POWER_MANA);
         }
     }
 

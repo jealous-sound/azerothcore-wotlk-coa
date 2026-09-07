@@ -1638,8 +1638,11 @@ void Unit::CalculateSpellDamageTaken(SpellNonMeleeDamage* damageInfo, int32 dama
     }
 }
 
-void Unit::DealSpellDamage(SpellNonMeleeDamage* damageInfo, bool durabilityLoss, Spell const* spell /*= nullptr*/)
+void Unit::DealSpellDamage(SpellNonMeleeDamage* damageInfo, bool durabilityLoss, Spell const* spell /*= nullptr*/, uint32* scriptDamageResult /*= nullptr*/)
 {
+    if (scriptDamageResult)
+        *scriptDamageResult = 0;
+
     if (damageInfo == 0)
         return;
 
@@ -1660,7 +1663,9 @@ void Unit::DealSpellDamage(SpellNonMeleeDamage* damageInfo, bool durabilityLoss,
 
     // Call default DealDamage
     CleanDamage cleanDamage(damageInfo->cleanDamage, damageInfo->absorb, BASE_ATTACK, MELEE_HIT_NORMAL);
-    Unit::DealDamage(this, victim, damageInfo->damage, &cleanDamage, SPELL_DIRECT_DAMAGE, SpellSchoolMask(damageInfo->schoolMask), spellProto, durabilityLoss, false, spell);
+    uint32 damageDealt = Unit::DealDamage(this, victim, damageInfo->damage, &cleanDamage, SPELL_DIRECT_DAMAGE, SpellSchoolMask(damageInfo->schoolMask), spellProto, durabilityLoss, false, spell);
+    if (scriptDamageResult)
+        *scriptDamageResult = damageDealt;
 }
 
 // @todo for melee need create structure as in
@@ -2233,6 +2238,22 @@ uint32 Unit::CalcArmorReducedDamage(Unit const* attacker, Unit const* victim, co
         for (AuraEffect const* aurEff : targetIgnoreRes)
             if (aurEff->GetMiscValue() & SPELL_SCHOOL_MASK_NORMAL && aurEff->IsAffectedOnSpell(spellInfo))
                 armor = std::floor(AddPct(armor, -aurEff->GetAmount()));
+
+        // Ascension's ignore-armor aura is used both as an attacker buff and as
+        // a caster-specific debuff on the victim.
+        int32 ignoreArmorPct = attacker->GetTotalAuraModifier(
+            SPELL_AURA_ASCENSION_MOD_IGNORE_ARMOR_PCT);
+        if (attacker != victim)
+        {
+            ignoreArmorPct += victim->GetTotalAuraModifier(
+                SPELL_AURA_ASCENSION_MOD_IGNORE_ARMOR_PCT, [attacker](AuraEffect const* aurEff)
+            {
+                return attacker->GetGUID() == aurEff->GetCasterGUID();
+            });
+        }
+
+        if (ignoreArmorPct)
+            armor = std::floor(AddPct(armor, -ignoreArmorPct));
 
         // Apply Player CR_ARMOR_PENETRATION rating and buffs from stances\specializations etc.
         if (attacker->IsPlayer())
@@ -3915,9 +3936,19 @@ float Unit::GetUnitCriticalChance(WeaponAttackType attackType, Unit const* victi
     else
         crit += victim->GetTotalAuraModifier(SPELL_AURA_MOD_ATTACKER_MELEE_CRIT_CHANCE);
 
+    crit += GetTotalAuraModifierByMiscMask(
+        SPELL_AURA_ASCENSION_MOD_CRIT_CHANCE, SPELL_SCHOOL_MASK_NORMAL);
+
     crit += victim->GetTotalAuraModifier(SPELL_AURA_MOD_CRIT_CHANCE_FOR_CASTER, [this](AuraEffect const* aurEff)
     {
        return GetGUID() == aurEff->GetCasterGUID();
+    });
+
+    crit += victim->GetTotalAuraModifier(
+        SPELL_AURA_ASCENSION_MOD_CRIT_CHANCE_AGAINST_TARGET, [this](AuraEffect const* aurEff)
+    {
+        return GetGUID() == aurEff->GetCasterGUID() &&
+            (aurEff->GetMiscValue() & SPELL_SCHOOL_MASK_NORMAL);
     });
 
     // reduce crit chance from Rating for players
@@ -9085,6 +9116,11 @@ int32 Unit::SpellBaseDamageBonusDone(SpellSchoolMask schoolMask)
                 // 0 == any inventory type (not wand then)
                 aurEff->GetSpellInfo()->EquippedItemInventoryTypeMask == 0;
     });
+    DoneAdvertisedBenefit += GetTotalAuraModifier(SPELL_AURA_ASCENSION_MOD_SPELL_POWER_FLAT,
+        [schoolMask](AuraEffect const* aurEff)
+        {
+            return !aurEff->GetMiscValue() || (aurEff->GetMiscValue() & schoolMask) != 0;
+        });
 
     if (IsPlayer())
     {
@@ -9200,6 +9236,9 @@ float Unit::SpellDoneCritChance(Unit const* /*victim*/, SpellInfo const* spellPr
         default:
             return 0.0f;
     }
+
+    crit_chance += GetTotalAuraModifierByMiscMask(
+        SPELL_AURA_ASCENSION_MOD_CRIT_CHANCE, schoolMask);
 
     // percent done
     // only players use intelligence for critical chance computations
@@ -9407,6 +9446,13 @@ float Unit::SpellTakenCritChance(Unit const* caster, SpellInfo const* spellProto
         {
             return caster->GetGUID() == aurEff->GetCasterGUID();
         });
+
+        crit_chance += GetTotalAuraModifier(
+            SPELL_AURA_ASCENSION_MOD_CRIT_CHANCE_AGAINST_TARGET, [caster, schoolMask](AuraEffect const* aurEff)
+        {
+            return caster->GetGUID() == aurEff->GetCasterGUID() &&
+                (aurEff->GetMiscValue() & schoolMask);
+        });
     }
 
     // Modify critical chance by victim SPELL_AURA_MOD_ATTACKER_SPELL_AND_WEAPON_CRIT_CHANCE
@@ -9520,6 +9566,15 @@ float Unit::SpellPctHealingModsDone(Unit* victim, SpellInfo const* spellProto, D
     // Healing done percent
     if (includeHealingDonePct)
         DoneTotalMod *= GetTotalAuraMultiplier(SPELL_AURA_MOD_HEALING_DONE_PERCENT);
+
+    if (victim)
+    {
+        DoneTotalMod *= GetTotalAuraMultiplier(
+            SPELL_AURA_ASCENSION_MOD_HEALING_DONE_VERSUS_AURASTATE, [victim](AuraEffect const* aurEff)
+        {
+            return victim->HasAuraState(AuraStateType(aurEff->GetMiscValue()));
+        });
+    }
 
     // done scripted mod (take it from owner)
     Unit* owner = GetOwner() ? GetOwner() : this;
@@ -9720,6 +9775,8 @@ uint32 Unit::SpellHealingBonusTaken(Unit* caster, SpellInfo const* spellProto, u
     if (maxval)
         AddPct(TakenTotalMod, maxval);
 
+    TakenTotalMod *= GetTotalAuraMultiplier(SPELL_AURA_ASCENSION_MOD_HEALING_RECEIVED_PCT);
+
     // Tenacity increase healing % taken
     if (AuraEffect const* Tenacity = GetAuraEffect(58549, 0))
         AddPct(TakenTotalMod, Tenacity->GetAmount());
@@ -9840,6 +9897,11 @@ int32 Unit::SpellBaseHealingBonusDone(SpellSchoolMask schoolMask)
     {
         return !aurEff->GetMiscValue() || (aurEff->GetMiscValue() & schoolMask) != 0;
     });
+    AdvertisedBenefit += GetTotalAuraModifier(SPELL_AURA_ASCENSION_MOD_SPELL_POWER_FLAT,
+        [schoolMask](AuraEffect const* aurEff)
+        {
+            return !aurEff->GetMiscValue() || (aurEff->GetMiscValue() & schoolMask) != 0;
+        });
 
     // Healing bonus of spirit, intellect and strength
     if (IsPlayer())
@@ -11915,12 +11977,24 @@ float Unit::GetSpellMinRangeForTarget(Unit const* target, SpellInfo const* spell
         return 0;
     }
 
+    float minRange = 0.0f;
     if (spellInfo->RangeEntry->RangeMin[1] == spellInfo->RangeEntry->RangeMin[0])
     {
-        return spellInfo->GetMinRange();
+        minRange = spellInfo->GetMinRange();
+    }
+    else
+    {
+        minRange = spellInfo->GetMinRange(!IsHostileTo(target));
     }
 
-    return spellInfo->GetMinRange(!IsHostileTo(target));
+    for (AuraEffect const* auraEffect :
+        GetAuraEffectsByType(SPELL_AURA_ASCENSION_IGNORE_MIN_RANGE))
+    {
+        if (auraEffect->IsAffectedOnSpell(spellInfo))
+            return 0.0f;
+    }
+
+    return minRange;
 }
 
 void Unit::SetAnimTier(AnimTier animTier)
@@ -12519,7 +12593,7 @@ void Unit::SetMaxPower(Powers power, uint32 val)
 
 uint32 Unit::GetCreatePowers(Powers power) const
 {
-    // Only hunter pets have POWER_FOCUS and POWER_HAPPINESS
+    // Ranger uses player Focus; Happiness remains exclusive to hunter pets.
     switch (power)
     {
         case POWER_MANA:
@@ -12527,6 +12601,8 @@ uint32 Unit::GetCreatePowers(Powers power) const
         case POWER_RAGE:
             return 1000;
         case POWER_FOCUS:
+            if (IsPlayer() && getClass() == CLASS_RANGER)
+                return 100;
             return (IsPlayer() || !((Creature const*)this)->IsPet() || ((Pet const*)this)->getPetType() != HUNTER_PET ? 0 : 100);
         case POWER_ENERGY:
             return 100;
@@ -12831,6 +12907,7 @@ void Unit::ProcSkillsAndReactives(bool isVictim, Unit* target, uint32 procFlag, 
                 {
                     ModifyAuraState(AURA_STATE_DEFENSE, true);
                     StartReactiveTimer(REACTIVE_DEFENSE);
+                    sScriptMgr->OnBlock(this, target);
                 }
             }
             else // For attacker

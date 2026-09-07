@@ -104,6 +104,8 @@ private:
     std::string _ipCountry;
     uint16 _build;
     uint8 _expversion;
+    bool _loggedInitialPacket = false;
+    bool _isAscensionLocalClient = false;
 
     QueryCallbackProcessor _queryProcessor;
 };

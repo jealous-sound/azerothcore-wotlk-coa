@@ -28,3 +28,6 @@
 
 # Ignore sql/* files
 data/sql/*    linguist-documentation
+
+# Preserve the exact bytes of this already-applied local migration on future checkouts.
+data/sql/updates/pending_db_world/rev_1787754600000000000.sql -text

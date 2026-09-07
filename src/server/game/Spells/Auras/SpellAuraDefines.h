@@ -372,12 +372,28 @@ enum AuraType
     SPELL_AURA_309                                          = 309,
     SPELL_AURA_MOD_CREATURE_AOE_DAMAGE_AVOIDANCE            = 310,
     SPELL_AURA_311                                          = 311,
-    SPELL_AURA_312                                          = 312,
+    SPELL_AURA_ASCENSION_IGNORE_MIN_RANGE                   = 312,
     SPELL_AURA_313                                          = 313,
     SPELL_AURA_PREVENT_RESURRECTION                         = 314,
     SPELL_AURA_UNDERWATER_WALKING                           = 315,
     SPELL_AURA_PERIODIC_HASTE                               = 316,
-    TOTAL_AURAS                                             = 317
+    // Project Ascension extends the 3.3.5 aura range through 366. Unknown
+    // custom auras remain script-visible and have no immediate core effect
+    // until their individual mechanics are ported.
+    SPELL_AURA_ASCENSION_MOD_ABSORB_AMOUNT_PCT              = 317,
+    SPELL_AURA_ASCENSION_MOD_HEALING_RECEIVED_PCT           = 319,
+    SPELL_AURA_ASCENSION_MOD_STAT_FROM_STAT                 = 327,
+    SPELL_AURA_ASCENSION_MOD_MAX_MANA_FROM_STAT             = 328,
+    SPELL_AURA_ASCENSION_MOD_CRIT_CHANCE_AGAINST_TARGET     = 330,
+    SPELL_AURA_ASCENSION_MOD_HIT_CHANCE_ALL_PCT             = 333,
+    SPELL_AURA_ASCENSION_MOD_IGNORE_ARMOR_PCT               = 338,
+    SPELL_AURA_ASCENSION_MOD_ATTACK_POWER_FLAT               = 344,
+    SPELL_AURA_ASCENSION_MOD_SPELL_POWER_FLAT                = 345,
+    SPELL_AURA_ASCENSION_MOD_CRIT_CHANCE                     = 350,
+    SPELL_AURA_ASCENSION_MOD_INSTANT_MANA_COST_PCT           = 357,
+    SPELL_AURA_ASCENSION_MOD_HEALING_DONE_VERSUS_AURASTATE  = 360,
+    SPELL_AURA_ASCENSION_LAST                               = 366,
+    TOTAL_AURAS                                             = 367
 };
 
 enum AuraObjectType

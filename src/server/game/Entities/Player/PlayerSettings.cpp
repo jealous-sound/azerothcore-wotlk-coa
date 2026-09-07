@@ -111,9 +111,6 @@ void Player::_LoadCharacterSettings(PreparedQueryResult result)
 {
     m_charSettingsMap.clear();
 
-    if (!sWorld->getBoolConfig(CONFIG_PLAYER_SETTINGS_ENABLED))
-        return;
-
     if (!result)
         return;
 
@@ -121,6 +118,9 @@ void Player::_LoadCharacterSettings(PreparedQueryResult result)
     {
         Field* fields = result->Fetch();
         std::string source = fields[0].Get<std::string>();
+        // Gameplay state is mandatory, even if optional player preferences are disabled.
+        if (!sWorld->getBoolConfig(CONFIG_PLAYER_SETTINGS_ENABLED) && source.rfind("core.", 0) != 0)
+            continue;
         std::string data = fields[1].Get<std::string>();
 
         PlayerSettingVector settings = PlayerSettingsStore::ParseSettingsData(data);
@@ -143,11 +143,10 @@ PlayerSetting Player::GetPlayerSetting(std::string const& source, uint32 index)
 
 void Player::_SavePlayerSettings(CharacterDatabaseTransaction trans)
 {
-    if (!sWorld->getBoolConfig(CONFIG_PLAYER_SETTINGS_ENABLED))
-        return;
-
     for (auto const& [source, settings] : m_charSettingsMap)
     {
+        if (!sWorld->getBoolConfig(CONFIG_PLAYER_SETTINGS_ENABLED) && source.rfind("core.", 0) != 0)
+            continue;
         if (settings.empty())
             continue;
 

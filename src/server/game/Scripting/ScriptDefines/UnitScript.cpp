@@ -29,6 +29,16 @@ void ScriptMgr::OnDamage(Unit* attacker, Unit* victim, uint32& damage)
     CALL_ENABLED_HOOKS(UnitScript, UNITHOOK_ON_DAMAGE, script->OnDamage(attacker, victim, damage));
 }
 
+void ScriptMgr::OnBlock(Unit* victim, Unit* attacker)
+{
+    CALL_ENABLED_HOOKS(UnitScript, UNITHOOK_ON_BLOCK, script->OnBlock(victim, attacker));
+}
+
+void ScriptMgr::OnPeriodicDamageResult(Unit* target, Unit* attacker, uint32 damage, SpellInfo const* spellInfo)
+{
+    CALL_ENABLED_HOOKS(UnitScript, UNITHOOK_ON_PERIODIC_DAMAGE_RESULT, script->OnPeriodicDamageResult(target, attacker, damage, spellInfo));
+}
+
 void ScriptMgr::ModifyPeriodicDamageAurasTick(Unit* target, Unit* attacker, uint32& damage, SpellInfo const* spellInfo)
 {
     CALL_ENABLED_HOOKS(UnitScript, UNITHOOK_MODIFY_PERIODIC_DAMAGE_AURAS_TICK, script->ModifyPeriodicDamageAurasTick(target, attacker, damage, spellInfo));
@@ -77,6 +87,12 @@ void ScriptMgr::OnAuraApply(Unit* unit, Aura* aura)
 void ScriptMgr::OnAuraRemove(Unit* unit, AuraApplication* aurApp, AuraRemoveMode mode)
 {
     CALL_ENABLED_HOOKS(UnitScript, UNITHOOK_ON_AURA_REMOVE, script->OnAuraRemove(unit, aurApp, mode));
+}
+
+void ScriptMgr::OnSendAuraUpdate(Unit* target, Player* receiver, AuraApplication const* application, bool remove)
+{
+    CALL_ENABLED_HOOKS(UnitScript, UNITHOOK_ON_SEND_AURA_UPDATE,
+        script->OnSendAuraUpdate(target, receiver, application, remove));
 }
 
 bool ScriptMgr::IfNormalReaction(Unit const* unit, Unit const* target, ReputationRank& repRank)

@@ -581,6 +581,7 @@ Spell::Spell(Unit* caster, SpellInfo const* info, TriggerCastFlags triggerFlags,
     m_needComboPoints = m_spellInfo->NeedsComboPoints();
     m_comboPointGain = 0;
     m_comboTarget = nullptr;
+    m_scriptEventMask = 0;
     m_delayStart = 0;
     m_delayAtDamageCount = 0;
 
@@ -2629,6 +2630,8 @@ void Spell::DoAllEffectOnTarget(TargetInfo* target)
         return;
 
     SpellMissInfo missInfo = target->missCondition;
+    SpellMissInfo scriptMissInfo = missInfo;
+    uint32 scriptDamageResult = 0;
 
     // Need init unitTarget by default unit (can changed in code on reflect)
     // Or on missInfo != SPELL_MISS_NONE unitTarget undefined (but need in trigger subsystem)
@@ -2689,6 +2692,9 @@ void Spell::DoAllEffectOnTarget(TargetInfo* target)
         m_reflectionTargetPosition = Position();
         if (missInfo2 != SPELL_MISS_NONE)
         {
+            // Preserve native proc/miss policy, but tell observers about a
+            // late immunity or other failure after the projectile launched.
+            scriptMissInfo = missInfo2;
             if (missInfo2 != SPELL_MISS_MISS)
                 m_caster->SendSpellMiss(spellHitTarget, m_spellInfo->Id, missInfo2);
             m_damage = 0;
@@ -2828,6 +2834,7 @@ void Spell::DoAllEffectOnTarget(TargetInfo* target)
         if (unitTarget->IsImmunedToDamage(caster, m_spellInfo))
         {
             m_damage = 0;
+            scriptMissInfo = SPELL_MISS_IMMUNE;
 
             // no packet found in sniffs
         }
@@ -2891,7 +2898,7 @@ void Spell::DoAllEffectOnTarget(TargetInfo* target)
 
             procVictim |= PROC_FLAG_TAKEN_DAMAGE;
 
-            caster->DealSpellDamage(&damageInfo, true, this);
+            caster->DealSpellDamage(&damageInfo, true, this, &scriptDamageResult);
 
             // do procs after damage, eg healing effects
             // no need to check if target is alive, done in procdamageandspell
@@ -2988,6 +2995,11 @@ void Spell::DoAllEffectOnTarget(TargetInfo* target)
 
         CallScriptAfterHitHandlers();
     }
+
+    sScriptMgr->OnSpellHitResult(this, spellHitTarget ? spellHitTarget : effectUnit,
+        uint8(scriptMissInfo == SPELL_MISS_NONE ? missInfo : scriptMissInfo), scriptDamageResult,
+        m_healing > 0 ? uint32(m_healing) : 0,
+        target->crit || GetSpellValue()->ForcedCritResult);
 }
 
 SpellMissInfo Spell::DoSpellHitOnUnit(Unit* unit, uint32 effectMask, bool scaleAura)
@@ -3946,6 +3958,8 @@ void Spell::_cast(bool skipCheck)
         modOwner->SetSpellModTakingSpell(this, true);
 
     PrepareScriptHitHandlers();
+
+    sScriptMgr->OnSpellBeforeEffects(this, m_caster, m_spellInfo);
 
     HandleLaunchPhase();
 
@@ -4929,6 +4943,12 @@ void Spell::SendSpellGo()
 
 void Spell::WriteAmmoToPacket(WorldPacket* data)
 {
+    // This client repurposes the stock WotLK fallback display rows 5996/5998.
+    // Its verified ArrowFlight/BulletFlight rows keep no-ammo ranged attacks
+    // visible without changing any spell-specific missile or visual record.
+    constexpr uint32 ASCENSION_ARROW_PROJECTILE_DISPLAY_ID = 3482;
+    constexpr uint32 ASCENSION_BULLET_PROJECTILE_DISPLAY_ID = 3483;
+
     uint32 ammoInventoryType = 0;
     uint32 ammoDisplayID = 0;
 
@@ -4952,9 +4972,13 @@ void Spell::WriteAmmoToPacket(WorldPacket* data)
                         ammoInventoryType = pProto->InventoryType;
                     }
                 }
-                else if (m_caster->HasAura(46699))      // Requires No Ammo
+                else if (m_caster->HasAura(46699) || (IsAscensionClass(m_caster->getClass()) &&
+                    (pItem->GetTemplate()->SubClass == ITEM_SUBCLASS_WEAPON_BOW ||
+                     pItem->GetTemplate()->SubClass == ITEM_SUBCLASS_WEAPON_GUN ||
+                     pItem->GetTemplate()->SubClass == ITEM_SUBCLASS_WEAPON_CROSSBOW))) // Requires No Ammo
                 {
-                    ammoDisplayID = 5996;                   // normal arrow
+                    ammoDisplayID = pItem->GetTemplate()->SubClass == ITEM_SUBCLASS_WEAPON_GUN ?
+                        ASCENSION_BULLET_PROJECTILE_DISPLAY_ID : ASCENSION_ARROW_PROJECTILE_DISPLAY_ID;
                     ammoInventoryType = INVTYPE_AMMO;
                 }
             }
@@ -4980,11 +5004,11 @@ void Spell::WriteAmmoToPacket(WorldPacket* data)
                                 break;
                             case ITEM_SUBCLASS_WEAPON_BOW:
                             case ITEM_SUBCLASS_WEAPON_CROSSBOW:
-                                ammoDisplayID = 5996;       // is this need fixing?
+                                ammoDisplayID = ASCENSION_ARROW_PROJECTILE_DISPLAY_ID;
                                 ammoInventoryType = INVTYPE_AMMO;
                                 break;
                             case ITEM_SUBCLASS_WEAPON_GUN:
-                                ammoDisplayID = 5998;       // is this need fixing?
+                                ammoDisplayID = ASCENSION_BULLET_PROJECTILE_DISPLAY_ID;
                                 ammoInventoryType = INVTYPE_AMMO;
                                 break;
                             default:
@@ -5006,6 +5030,9 @@ void Spell::WriteAmmoToPacket(WorldPacket* data)
             ammoInventoryType = nonRangedAmmoInventoryType;
         }
     }
+
+    if (Player* player = m_caster->ToPlayer())
+        sScriptMgr->OnPlayerGetAmmoDisplay(player, m_spellInfo, ammoDisplayID, ammoInventoryType);
 
     *data << uint32(ammoDisplayID);
     *data << uint32(ammoInventoryType);
@@ -5380,6 +5407,9 @@ void Spell::TakePower()
 
 void Spell::TakeAmmo()
 {
+    if (m_caster->IsPlayer() && IsAscensionClass(m_caster->getClass()))
+        return;
+
     if (m_attackType == RANGED_ATTACK && m_caster->IsPlayer() && !m_spellInfo->HasAttribute(SPELL_ATTR6_DO_NOT_CONSUME_RESOURCES))
     {
         Item* pItem = m_caster->ToPlayer()->GetWeaponForAttack(RANGED_ATTACK);
@@ -5655,7 +5685,10 @@ void Spell::HandleEffects(Unit* pUnitTarget, Item* pItemTarget, GameObject* pGOT
 
     if (!preventDefault && eff < TOTAL_SPELL_EFFECTS)
     {
-        (this->*SpellEffects[eff])((SpellEffIndex)i);
+        pEffect handler = SpellEffects[eff];
+        if (!handler)
+            handler = &Spell::EffectNULL;
+        (this->*handler)((SpellEffIndex)i);
     }
 }
 
@@ -7697,6 +7730,11 @@ SpellCastResult Spell::CheckItems(uint32* param1, uint32* param2)
                     if (!pItem || pItem->IsBroken())
                         return SPELL_FAILED_EQUIPPED_ITEM;
 
+                    // Keep the real ranged-weapon/broken-item checks above.
+                    // Custom classes do not require or consume projectile stacks.
+                    if (IsAscensionClass(m_caster->getClass()))
+                        break;
+
                     switch (pItem->GetTemplate()->SubClass)
                     {
                         case ITEM_SUBCLASS_WEAPON_THROWN:
@@ -8440,6 +8478,7 @@ void Spell::DoAllEffectOnLaunchTarget(TargetInfo& targetInfo, float* multiplier)
     float critChance = caster->SpellDoneCritChance(unit, m_spellInfo, m_spellSchoolMask, m_attackType, false);
     critChance = unit->SpellTakenCritChance(caster, m_spellInfo, m_spellSchoolMask, critChance, m_attackType, false);
     targetInfo.crit = roll_chance_f(std::max(0.0f, critChance));
+    sScriptMgr->OnSpellCalculatedTarget(this, unit, targetInfo);
 }
 
 SpellCastResult Spell::CanOpenLock(uint32 effIndex, uint32 lockId, SkillType& skillId, int32& reqSkillValue, int32& skillValue)

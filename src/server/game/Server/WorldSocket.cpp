@@ -119,7 +119,8 @@ void EncryptableAndCompressiblePacket::CompressIfNeeded()
 }
 
 WorldSocket::WorldSocket(IoContextTcpSocket&& socket)
-    : Socket(std::move(socket)), _OverSpeedPings(0), _worldSession(nullptr), _authed(false), _sendBufferSize(4096), _loggingPackets(false)
+    : Socket(std::move(socket)), _OverSpeedPings(0), _worldSession(nullptr), _authed(false), _sendBufferSize(4096), _loggingPackets(false),
+      _loggedFirstClientHeader(false)
 {
     Acore::Crypto::GetRandomBytes(_authSeed);
     _headerBuffer.Resize(sizeof(ClientPktHeader));
@@ -308,7 +309,11 @@ bool WorldSocket::ReadHeaderHandler()
 {
     ASSERT(_headerBuffer.GetActiveSize() == sizeof(ClientPktHeader));
 
-    if (_authCrypt.IsInitialized())
+    bool const cryptInitialized = _authCrypt.IsInitialized();
+    std::string const rawHeader = Acore::Impl::ByteArrayToHexStr(
+        _headerBuffer.GetReadPointer(), sizeof(ClientPktHeader));
+
+    if (cryptInitialized)
     {
         _authCrypt.DecryptRecv(_headerBuffer.GetReadPointer(), sizeof(ClientPktHeader));
     }
@@ -317,10 +322,25 @@ bool WorldSocket::ReadHeaderHandler()
     EndianConvertReverse(header->size);
     EndianConvert(header->cmd);
 
-    if (!header->IsValidSize() || !header->IsValidOpcode())
+    if (!_loggedFirstClientHeader && GetRemoteIpAddress().is_loopback())
     {
-        LOG_ERROR("network", "WorldSocket::ReadHeaderHandler(): client {} sent malformed packet (size: {}, cmd: {})",
-            GetRemoteIpAddress().to_string(), header->size, header->cmd);
+        _loggedFirstClientHeader = true;
+        LOG_INFO("module.ascension_compat",
+            "First loopback world header: raw={}, cryptInitialized={}, decodedSize={}, decodedOpcode=0x{:04X}",
+            rawHeader, cryptInitialized, header->size, header->cmd);
+    }
+
+    bool const isLoopbackAscensionExtension = GetRemoteIpAddress().is_loopback() &&
+        sConfigMgr->GetOption<bool>("AscensionCompat.Enable", false) &&
+        header->cmd >= sConfigMgr->GetOption<uint32>("AscensionCompat.FirstExtensionOpcode", 0x051F) &&
+        header->cmd <= sConfigMgr->GetOption<uint32>("AscensionCompat.LastExtensionOpcode", 0x09D3);
+
+    if (!header->IsValidSize() || (!header->IsValidOpcode() && !isLoopbackAscensionExtension))
+    {
+        LOG_ERROR("network",
+            "WorldSocket::ReadHeaderHandler(): client {} sent malformed packet "
+            "(raw: {}, cryptInitialized: {}, size: {}, cmd: {})",
+            GetRemoteIpAddress().to_string(), rawHeader, cryptInitialized, header->size, header->cmd);
 
         return false;
     }
@@ -478,6 +498,20 @@ WorldSocket::ReadDataHandlerResult WorldSocket::ReadDataHandler()
         return ReadDataHandlerResult::Error;
     }
 
+    if (!sScriptMgr->CanPacketReceiveEarly(_worldSession, *packetToQueue))
+    {
+        delete packetToQueue;
+        return ReadDataHandlerResult::Ok;
+    }
+
+    if (uint32(opcode) >= NUM_OPCODE_HANDLERS)
+    {
+        LOG_ERROR("network.opcode", "Opcode outside handler table {} sent by {}",
+            GetOpcodeNameForLogging(opcode), _worldSession->GetPlayerInfo());
+        delete packetToQueue;
+        return ReadDataHandlerResult::Error;
+    }
+
     OpcodeHandler const* handler = opcodeTable[opcode];
     if (!handler)
     {
@@ -532,6 +566,9 @@ void WorldSocket::HandleAuthSession(WorldPacket & recvPacket)
 {
     std::shared_ptr<ClientAuthSession> authSession = std::make_shared<ClientAuthSession>();
 
+    if (GetRemoteIpAddress().is_loopback())
+        LOG_INFO("module.ascension_compat", "Parsing loopback CMSG_AUTH_SESSION with {} payload bytes", recvPacket.size());
+
     // Read the content of the packet
     recvPacket >> authSession->Build;
     recvPacket >> authSession->LoginServerID;
@@ -546,6 +583,13 @@ void WorldSocket::HandleAuthSession(WorldPacket & recvPacket)
     authSession->AddonInfo.resize(recvPacket.size() - recvPacket.rpos());
     recvPacket.read(authSession->AddonInfo.contents(), authSession->AddonInfo.size()); // .contents will throw if empty, thats what we want
 
+    if (GetRemoteIpAddress().is_loopback())
+    {
+        LOG_INFO("module.ascension_compat",
+            "Parsed loopback CMSG_AUTH_SESSION: account={}, build={}, realmId={}, addonBytes={}",
+            authSession->Account, authSession->Build, authSession->RealmID, authSession->AddonInfo.size());
+    }
+
     // Get the account information from the auth database
     LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_ACCOUNT_INFO_BY_NAME);
     stmt->SetData(0, int32(realm.Id.Realm));
@@ -556,6 +600,13 @@ void WorldSocket::HandleAuthSession(WorldPacket & recvPacket)
 
 void WorldSocket::HandleAuthSessionCallback(std::shared_ptr<ClientAuthSession> authSession, PreparedQueryResult result)
 {
+    if (GetRemoteIpAddress().is_loopback())
+    {
+        LOG_INFO("module.ascension_compat",
+            "Loopback auth query completed: foundAccount={}, cryptInitializedBeforeCallback={}",
+            bool(result), _authCrypt.IsInitialized());
+    }
+
     // Stop if the account is not found
     if (!result)
     {
@@ -567,6 +618,9 @@ void WorldSocket::HandleAuthSessionCallback(std::shared_ptr<ClientAuthSession> a
     }
 
     AccountInfo account(result->Fetch());
+
+    bool const usePlaintextWorldHeaders = GetRemoteIpAddress().is_loopback() &&
+        sConfigMgr->GetOption<bool>("AscensionCompat.PlaintextWorldHeaders", false);
 
     // For hook purposes, we get Remoteaddress at this point.
     std::string address = sConfigMgr->GetOption<bool>("AllowLoggingIPAddressesInDatabase", true, true) ? GetRemoteIpAddress().to_string() : "0.0.0.0";
@@ -580,9 +634,16 @@ void WorldSocket::HandleAuthSessionCallback(std::shared_ptr<ClientAuthSession> a
     LoginDatabase.Execute(stmt);
     // This also allows to check for possible "hack" attempts on account
 
-    if (!sToCloud9Sidecar->ClusterModeEnabled())
+    if (!sToCloud9Sidecar->ClusterModeEnabled() && !_authCrypt.IsInitialized() && !usePlaintextWorldHeaders)
         // even if auth credentials are bad, try using the session key we have - client cannot read auth response error without it
         _authCrypt.Init(account.SessionKey);
+
+    if (GetRemoteIpAddress().is_loopback())
+    {
+        LOG_INFO("module.ascension_compat",
+            "Loopback world-header mode selected: plaintextCompatibility={}, cryptInitialized={}",
+            usePlaintextWorldHeaders, _authCrypt.IsInitialized());
+    }
 
     // First reject the connection if packet contains invalid data or realm state doesn't allow logging in
     if (sWorld->IsClosed())

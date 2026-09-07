@@ -54,8 +54,15 @@ namespace Acore::Crypto
             return SHA1::GetDigestOf(A, clientM, K);
         }
 
+        struct ChallengeResponseDiagnostics
+        {
+            SessionKey K;
+            SHA1::Digest ExpectedClientM;
+        };
+
         SRP6(std::string const& username, Salt const& salt, Verifier const& verifier);
-        std::optional<SessionKey> VerifyChallengeResponse(EphemeralKey const& A, SHA1::Digest const& clientM);
+        std::optional<SessionKey> VerifyChallengeResponse(EphemeralKey const& A, SHA1::Digest const& clientM,
+            ChallengeResponseDiagnostics* diagnostics = nullptr);
 
     private:
         bool _used = false; // a single instance can only be used to verify once

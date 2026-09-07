@@ -17,6 +17,7 @@
 
 #include "Config.h"
 #include "Creature.h"
+#include "Item.h"
 #include "Pet.h"
 #include "Player.h"
 #include "ScriptMgr.h"
@@ -43,6 +44,41 @@ inline bool _ModifyUInt32(bool apply, uint32& baseValue, int32& amount)
         baseValue -= amount;
     }
     return apply;
+}
+
+namespace
+{
+float GetAscensionStatFromStatBonus(Player const& player, Stats destinationStat)
+{
+    float bonus = 0.0f;
+    Unit::AuraEffectList const& effects = player.GetAuraEffectsByType(SPELL_AURA_ASCENSION_MOD_STAT_FROM_STAT);
+    for (AuraEffect const* effect : effects)
+    {
+        int32 const sourceStat = effect->GetMiscValueB();
+        if (effect->GetMiscValue() != destinationStat || sourceStat < STAT_STRENGTH || sourceStat >= MAX_STATS || sourceStat == destinationStat)
+            continue;
+
+        bonus += CalculatePct(float(player.GetStat(Stats(sourceStat))), effect->GetAmount());
+    }
+
+    return bonus;
+}
+
+float GetAscensionMaxManaFromStatBonus(Player const& player)
+{
+    float bonus = 0.0f;
+    Unit::AuraEffectList const& effects = player.GetAuraEffectsByType(SPELL_AURA_ASCENSION_MOD_MAX_MANA_FROM_STAT);
+    for (AuraEffect const* effect : effects)
+    {
+        int32 const sourceStat = effect->GetMiscValueB();
+        if (effect->GetMiscValue() != POWER_MANA || sourceStat < STAT_STRENGTH || sourceStat >= MAX_STATS)
+            continue;
+
+        bonus += CalculatePct(float(player.GetStat(Stats(sourceStat))), effect->GetAmount());
+    }
+
+    return bonus;
+}
 }
 
 /*#######################################
@@ -100,7 +136,7 @@ bool Player::UpdateStats(Stats stat)
         return false;
 
     // value = ((base_value * base_pct) + total_value) * total_pct
-    float value  = GetTotalStatValue(stat);
+    float value = GetTotalStatValue(stat, GetAscensionStatFromStatBonus(*this, stat));
 
     SetStat(stat, int32(value));
 
@@ -161,6 +197,33 @@ bool Player::UpdateStats(Stats stat)
             if (mask & (1 << rating))
                 ApplyRatingMod(CombatRating(rating), 0, true);
     }
+
+    AuraEffectList const& statFromStat = GetAuraEffectsByType(SPELL_AURA_ASCENSION_MOD_STAT_FROM_STAT);
+    for (AuraEffect const* effect : statFromStat)
+    {
+        int32 const sourceStat = effect->GetMiscValueB();
+        if (sourceStat == stat && effect->GetMiscValue() >= STAT_STRENGTH && effect->GetMiscValue() < MAX_STATS && effect->GetMiscValue() != sourceStat)
+        {
+            // Refresh all destinations after a source stat changes. UpdateAllStats
+            // performs the conversion pass without recursively invoking UpdateStats.
+            UpdateAllStats();
+            break;
+        }
+    }
+
+    if (stat != STAT_INTELLECT)
+    {
+        AuraEffectList const& manaFromStat = GetAuraEffectsByType(SPELL_AURA_ASCENSION_MOD_MAX_MANA_FROM_STAT);
+        for (AuraEffect const* effect : manaFromStat)
+        {
+            if (effect->GetMiscValue() == POWER_MANA && effect->GetMiscValueB() == stat)
+            {
+                UpdateMaxPower(POWER_MANA);
+                break;
+            }
+        }
+    }
+
     return true;
 }
 
@@ -208,6 +271,19 @@ bool Player::UpdateAllStats()
     {
         float value = GetTotalStatValue(Stats(i));
         SetStat(Stats(i), int32(value));
+    }
+
+    // Source stats must be current before evaluating aura 327. Keeping the
+    // conversion in this second pass also makes simultaneous stat rebuilds
+    // independent of the destination/source enum ordering.
+    if (!GetAuraEffectsByType(SPELL_AURA_ASCENSION_MOD_STAT_FROM_STAT).empty())
+    {
+        for (uint8 i = STAT_STRENGTH; i < MAX_STATS; ++i)
+        {
+            Stats const stat = Stats(i);
+            float value = GetTotalStatValue(stat, GetAscensionStatFromStatBonus(*this, stat));
+            SetStat(stat, int32(value));
+        }
     }
 
     UpdateArmor();
@@ -271,6 +347,15 @@ void Player::UpdateArmor()
     UnitMods unitMod = UNIT_MOD_ARMOR;
 
     float value = GetFlatModifierValue(unitMod, BASE_VALUE);   // base armor (from items)
+    // Tower Formation increases the equipped shield's contribution, not all
+    // base armor. Its runtime aura is DUMMY to avoid a second BASE_PCT bonus.
+    if (getClass() == CLASS_GUARDIAN)
+        if (AuraEffect const* tower = GetAuraEffect(800317, EFFECT_1))
+            if (tower->GetAuraType() == SPELL_AURA_DUMMY)
+                if (Item* shield = GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_OFFHAND))
+                    if (!shield->IsBroken() && shield->GetTemplate()->Class == ITEM_CLASS_ARMOR &&
+                        shield->GetTemplate()->SubClass == ITEM_SUBCLASS_ARMOR_SHIELD)
+                        value += CalculatePct(float(shield->GetTemplate()->Armor), tower->GetAmount());
     value *= GetPctModifierValue(unitMod, BASE_PCT);           // armor percent from items
     value += GetStat(STAT_AGILITY) * 2.0f;                             // armor bonus from stats
     value += GetFlatModifierValue(unitMod, TOTAL_VALUE);
@@ -327,7 +412,13 @@ void Player::UpdateMaxPower(Powers power)
 {
     UnitMods unitMod = UnitMods(static_cast<uint16>(UNIT_MOD_POWER_START) + power);
 
-    float bonusPower = (power == POWER_MANA && GetCreatePowers(power) > 0) ? GetManaBonusFromIntellect() : 0;
+    float bonusPower = 0.0f;
+    if (power == POWER_MANA)
+    {
+        if (GetCreatePowers(power) > 0)
+            bonusPower += GetManaBonusFromIntellect();
+        bonusPower += GetAscensionMaxManaFromStatBonus(*this);
+    }
 
     float value = GetFlatModifierValue(unitMod, BASE_VALUE) + GetCreatePowers(power);
     value *= GetPctModifierValue(unitMod, BASE_PCT);
@@ -605,7 +696,7 @@ void Player::CalculateMinMaxDamage(WeaponAttackType attType, bool normalized, bo
         weaponMinDamage = BASE_MINDAMAGE;
         weaponMaxDamage = BASE_MAXDAMAGE;
     }
-    else if (attType == RANGED_ATTACK) // add ammo DPS to ranged damage
+    else if (attType == RANGED_ATTACK && !IsAscensionClass(getClass())) // stock classes use ammo DPS
     {
         weaponMinDamage += GetAmmoDPS() * attackSpeedMod;
         weaponMaxDamage += GetAmmoDPS() * attackSpeedMod;
@@ -746,7 +837,7 @@ float Player::GetMissPercentageFromDefence() const
     diminishing += (int32(GetRatingBonusValue(CR_DEFENSE_SKILL))) * 0.04f;
 
     // apply diminishing formula to diminishing miss chance
-    uint32 pclass = getClass() - 1;
+    uint32 pclass = GetLegacyClassForCustomClass(Classes(getClass())) - 1;
     return nondiminishing + (diminishing * miss_cap[pclass] / (diminishing + miss_cap[pclass] * m_diminishing_k[pclass]));
 }
 
@@ -770,7 +861,7 @@ void Player::UpdateParryPercentage()
     // No parry
     float value = 0.0f;
     m_realParry = 0.0f;
-    uint32 pclass = getClass() - 1;
+    uint32 pclass = GetLegacyClassForCustomClass(Classes(getClass())) - 1;
     if (CanParry() && parry_cap[pclass] > 0.0f)
     {
         float nondiminishing  = 5.0f;
@@ -823,7 +914,7 @@ void Player::UpdateDodgePercentage()
     // Dodge from rating
     diminishing += GetRatingBonusValue(CR_DODGE);
     // apply diminishing formula to diminishing dodge chance
-    uint32 pclass = getClass() - 1;
+    uint32 pclass = GetLegacyClassForCustomClass(Classes(getClass())) - 1;
     m_realDodge = nondiminishing + (diminishing * dodge_cap[pclass] / (diminishing + dodge_cap[pclass] * m_diminishing_k[pclass]));
 
     m_realDodge = m_realDodge < 0.0f ? 0.0f : m_realDodge;
@@ -871,18 +962,21 @@ void Player::UpdateArmorPenetration(int32 amount)
 void Player::UpdateMeleeHitChances()
 {
     m_modMeleeHitChance = (float)GetTotalAuraModifier(SPELL_AURA_MOD_HIT_CHANCE);
+    m_modMeleeHitChance += GetTotalAuraModifier(SPELL_AURA_ASCENSION_MOD_HIT_CHANCE_ALL_PCT);
     m_modMeleeHitChance += GetRatingBonusValue(CR_HIT_MELEE);
 }
 
 void Player::UpdateRangedHitChances()
 {
     m_modRangedHitChance = (float)GetTotalAuraModifier(SPELL_AURA_MOD_HIT_CHANCE);
+    m_modRangedHitChance += GetTotalAuraModifier(SPELL_AURA_ASCENSION_MOD_HIT_CHANCE_ALL_PCT);
     m_modRangedHitChance += GetRatingBonusValue(CR_HIT_RANGED);
 }
 
 void Player::UpdateSpellHitChances()
 {
     m_modSpellHitChance = (float)GetTotalAuraModifier(SPELL_AURA_MOD_SPELL_HIT_CHANCE);
+    m_modSpellHitChance += GetTotalAuraModifier(SPELL_AURA_ASCENSION_MOD_HIT_CHANCE_ALL_PCT);
     m_modSpellHitChance += GetRatingBonusValue(CR_HIT_SPELL);
 }
 

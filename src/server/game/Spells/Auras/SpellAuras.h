@@ -78,9 +78,19 @@ public:
     void ClientUpdate(bool remove = false);
 
     // xinef: stacking
-    bool IsActive(uint8 effIdx) { return ((1 << effIdx) & _disableMask) == 0; }
-    void SetDisableMask(uint8 effIdx) { _disableMask |= 1 << effIdx; }
-    void RemoveDisableMask(uint8 effIdx) { _disableMask &= ~(1 << effIdx); }
+    bool IsActive(uint8 effIdx) const { return ((1 << effIdx) & _disableMask) == 0; }
+    void SetDisableMask(uint8 effIdx)
+    {
+        if (IsActive(effIdx))
+            SetNeedClientUpdate();
+        _disableMask |= 1 << effIdx;
+    }
+    void RemoveDisableMask(uint8 effIdx)
+    {
+        if (!IsActive(effIdx))
+            SetNeedClientUpdate();
+        _disableMask &= ~(1 << effIdx);
+    }
 };
 
 class Aura

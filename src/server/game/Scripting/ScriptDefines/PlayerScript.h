@@ -215,6 +215,8 @@ enum PlayerHook
     PLAYERHOOK_ON_GET_REPUTATION_PRICE_DISCOUNT,
     PLAYERHOOK_ON_LEARN_TAXI_NODE,
     PLAYERHOOK_ON_BEFORE_GET_LEVEL_FOR_XP_GAIN,
+    PLAYERHOOK_ON_CREATE_INITIAL_ITEMS,
+    PLAYERHOOK_ON_GET_AMMO_DISPLAY,
     PLAYERHOOK_END
 };
 
@@ -337,6 +339,11 @@ public:
 
     // Called when a player is created.
     virtual void OnPlayerCreate(Player* /*player*/) { }
+
+    // Called only during Player::Create, before initial item placement/save.
+    // Set handled to replace default creation items and their auto-equip pass.
+    // Return false to abort creation; leave handled unchanged when not owning it.
+    [[nodiscard]] virtual bool OnPlayerCreateInitialItems(Player* /*player*/, bool& /*handled*/) { return true; }
 
     // Called when a player is deleted.
     virtual void OnPlayerDelete(ObjectGuid /*guid*/, uint32 /*accountId*/) { }
@@ -578,6 +585,10 @@ public:
     [[nodiscard]] virtual bool OnPlayerCanCastItemUseSpell(Player* /*player*/, Item* /*item*/, SpellCastTargets const& /*targets*/, uint8 /*cast_count*/, uint32 /*glyphIndex*/) { return true; }
 
     virtual void OnPlayerApplyAmmoBonuses(Player* /*player*/, ItemTemplate const* /*proto*/, float& /*currentAmmoDPS*/) { }
+
+    // Cosmetic fields of outgoing spell-start/go packets. Does not change ammunition or damage.
+    virtual void OnPlayerGetAmmoDisplay(Player* /*player*/, SpellInfo const* /*spellInfo*/,
+        uint32& /*displayId*/, uint32& /*inventoryType*/) { }
 
     [[nodiscard]] virtual bool OnPlayerCanEquipItem(Player* /*player*/, uint8 /*slot*/, uint16& /*dest*/, Item* /*pItem*/, bool /*swap*/, bool /*not_loading*/) { return true; }
 

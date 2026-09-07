@@ -902,7 +902,7 @@ SkillRaceClassInfoEntry const* GetSkillRaceClassInfo(uint32 skill, uint8 race, u
             continue;
         }
 
-        if (itr->second->ClassMask && !(itr->second->ClassMask & (1 << (class_ - 1))))
+        if (itr->second->ClassMask && !(itr->second->ClassMask & (uint32(1) << (class_ - 1))))
         {
             continue;
         }

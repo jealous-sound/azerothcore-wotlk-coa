@@ -17,6 +17,7 @@
 
 #include "QuestDef.h"
 #include "Formulas.h"
+#include "LocalLevelScaling.h"
 #include "Opcodes.h"
 #include "Player.h"
 #include "World.h"
@@ -198,7 +199,8 @@ void Quest::LoadQuestTemplateAddon(Field* fields)
 
 uint32 Quest::XPValue(uint8 playerLevel) const
 {
-    int32 quest_level = (Level == -1 ? playerLevel : Level);
+    int32 quest_level = LocalLevelScaling::QuestEnabled.load(std::memory_order_relaxed) ?
+        LocalLevelScaling::ScaleQuestLevel(Level, playerLevel) : (Level == -1 ? playerLevel : Level);
     QuestXPEntry const* xpentry = sQuestXPStore.LookupEntry(quest_level);
     if (!xpentry)
     {

@@ -89,6 +89,31 @@ void ScriptMgr::OnSpellPrepare(Spell* spell, Unit* caster, SpellInfo const* spel
     CALL_ENABLED_HOOKS(AllSpellScript, ALLSPELLHOOK_ON_PREPARE, script->OnSpellPrepare(spell, caster, spellInfo));
 }
 
+void ScriptMgr::OnSpellBeforeEffects(Spell* spell, Unit* caster, SpellInfo const* spellInfo)
+{
+    CALL_ENABLED_HOOKS(AllSpellScript, ALLSPELLHOOK_ON_BEFORE_EFFECTS,
+        script->OnSpellBeforeEffects(spell, caster, spellInfo));
+}
+
+void ScriptMgr::OnSpellCalculatedTarget(Spell* spell, Unit* target, TargetInfo& targetInfo)
+{
+    CALL_ENABLED_HOOKS(AllSpellScript, ALLSPELLHOOK_ON_CALCULATED_TARGET,
+        script->OnSpellCalculatedTarget(spell, target, targetInfo));
+}
+
+void ScriptMgr::OnSpellHitResult(Spell* spell, Unit* target, uint8 missInfo,
+    uint32 damage, uint32 healing, bool critical)
+{
+    CALL_ENABLED_HOOKS(AllSpellScript, ALLSPELLHOOK_ON_HIT_RESULT,
+        script->OnSpellHitResult(spell, target, missInfo, damage, healing, critical));
+}
+
+void ScriptMgr::OnSpellSuccessfulInterrupt(Spell* spell, Unit* target)
+{
+    CALL_ENABLED_HOOKS(AllSpellScript, ALLSPELLHOOK_ON_SUCCESSFUL_INTERRUPT,
+        script->OnSpellSuccessfulInterrupt(spell, target));
+}
+
 AllSpellScript::AllSpellScript(char const* name, std::vector<uint16> enabledHooks)
     : ScriptObject(name, ALLSPELLHOOK_END)
 {

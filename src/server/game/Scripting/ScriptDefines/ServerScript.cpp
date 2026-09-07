@@ -62,6 +62,17 @@ bool ScriptMgr::CanPacketReceive(WorldSession* session, WorldPacket const& packe
     CALL_ENABLED_BOOLEAN_HOOKS(ServerScript, SERVERHOOK_CAN_PACKET_RECEIVE, !script->CanPacketReceive(session, packet));
 }
 
+bool ScriptMgr::CanPacketReceiveEarly(WorldSession* session, WorldPacket const& packet)
+{
+    ASSERT(session);
+
+    if (ScriptRegistry<ServerScript>::ScriptPointerList.empty())
+        return true;
+
+    CALL_ENABLED_BOOLEAN_HOOKS(ServerScript, SERVERHOOK_CAN_PACKET_RECEIVE_EARLY,
+        !script->CanPacketReceiveEarly(session, packet));
+}
+
 ServerScript::ServerScript(char const* name, std::vector<uint16> enabledHooks)
     : ScriptObject(name, SERVERHOOK_END)
 {

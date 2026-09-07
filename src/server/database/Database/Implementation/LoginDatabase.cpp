@@ -23,6 +23,9 @@ void LoginDatabaseConnection::DoPrepareStatements()
     if (!m_reconnecting)
         m_stmts.resize(MAX_LOGINDATABASE_STATEMENTS);
 
+    // COUNT always returns a row: a failed read must not prove an ID absent.
+    PrepareStatement(LOGIN_SEL_FRESH_CHECK_ACCOUNT_COUNT, "SELECT COUNT(*) FROM account WHERE id = ?", CONNECTION_SYNCH);
+
     PrepareStatement(LOGIN_SEL_LOGONCHALLENGE,
         "SELECT a.id, a.username, a.locked, a.lock_country, a.last_ip, a.Flags, a.failed_logins, "
         "ab.unbandate > UNIX_TIMESTAMP() OR ab.unbandate = ab.bandate, ab.unbandate = ab.bandate, "

@@ -26,6 +26,7 @@
 #include "CharacterPackets.h"
 #include "Chat.h"
 #include "Common.h"
+#include "Config.h"
 #include "DatabaseEnv.h"
 #include "GameTime.h"
 #include "GitRevision.h"
@@ -287,6 +288,15 @@ void WorldSession::HandleCharCreateOpcode(WorldPacket& recvData)
              >> createInfo->FacialHair
              >> createInfo->OutfitId;
 
+    if (createInfo->Class == 10 && GetRemoteAddress() == "127.0.0.1" &&
+        sConfigMgr->GetOption<bool>("AscensionCompat.MapClass10ToWarrior", false))
+    {
+        LOG_INFO("module.ascension_compat",
+            "Mapping Ascension class 10 to warrior for local character creation (account ID: {})",
+            GetAccountId());
+        createInfo->Class = CLASS_WARRIOR;
+    }
+
     if (!HasPermission(rbac::RBAC_PERM_SKIP_CHECK_CHARACTER_CREATION_TEAMMASK))
     {
         if (uint32 mask = sWorld->getIntConfig(CONFIG_CHARACTER_CREATING_DISABLED))
@@ -344,7 +354,7 @@ void WorldSession::HandleCharCreateOpcode(WorldPacket& recvData)
     if (!HasPermission(rbac::RBAC_PERM_SKIP_CHECK_CHARACTER_CREATION_CLASSMASK))
     {
         uint32 classMaskDisabled = sWorld->getIntConfig(CONFIG_CHARACTER_CREATING_DISABLED_CLASSMASK);
-        if ((1 << (createInfo->Class - 1)) & classMaskDisabled)
+        if ((uint32(1) << (createInfo->Class - 1)) & classMaskDisabled)
         {
             SendCharCreate(CHAR_CREATE_DISABLED);
             return;
@@ -1246,10 +1256,26 @@ void WorldSession::HandlePlayerLoginToCharInWorld(Player* pCurrChar)
                 if (val == 0)
                     continue;
 
-                WorldPacket data(Opcode, (1 + 1 + 4));
-                data << uint8(eff);
-                data << uint8(opType);
-                data << int32(val);
+                bool const useAscensionSpellModifierLayout =
+                    GetRemoteAddress() == "127.0.0.1" &&
+                    sConfigMgr->GetOption<bool>("AscensionCompat.Enable", false);
+                WorldPacket data(Opcode, useAscensionSpellModifierLayout ? 11 : 6);
+                if (useAscensionSpellModifierLayout)
+                {
+                    // Ascension prefixes individual modifier updates with a
+                    // zero mode byte and appends the character-spec index.
+                    data << uint8(0);
+                    data << uint8(eff);
+                    data << uint8(opType);
+                    data << int32(val);
+                    data << uint32(0);
+                }
+                else
+                {
+                    data << uint8(eff);
+                    data << uint8(opType);
+                    data << int32(val);
+                }
                 SendPacket(&data);
             }
         }

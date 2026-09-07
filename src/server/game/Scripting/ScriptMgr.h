@@ -158,6 +158,7 @@ public: /* ServerScript */
     void OnNetworkStop();
     void OnSocketOpen(std::shared_ptr<WorldSocket> const& socket);
     void OnSocketClose(std::shared_ptr<WorldSocket> const& socket);
+    bool CanPacketReceiveEarly(WorldSession* session, WorldPacket const& packet);
     bool CanPacketReceive(WorldSession* session, WorldPacket const& packet);
     bool CanPacketSend(WorldSession* session, WorldPacket const& packet);
 
@@ -331,6 +332,7 @@ public: /* PlayerScript */
     void OnPlayerBeforeLogout(Player* player);
     void OnPlayerLogout(Player* player);
     void OnPlayerCreate(Player* player);
+    bool OnPlayerCreateInitialItems(Player* player, bool& handled);
     void OnPlayerSave(Player* player);
     void OnPlayerDelete(ObjectGuid guid, uint32 accountId);
     void OnPlayerFailedDelete(ObjectGuid guid, uint32 accountId);
@@ -421,6 +423,7 @@ public: /* PlayerScript */
     bool OnPlayerCanCastItemCombatSpell(Player* player, Unit* target, WeaponAttackType attType, uint32 procVictim, uint32 procEx, Item* item, ItemTemplate const* proto);
     bool OnPlayerCanCastItemUseSpell(Player* player, Item* item, SpellCastTargets const& targets, uint8 cast_count, uint32 glyphIndex);
     void OnPlayerApplyAmmoBonuses(Player* player, ItemTemplate const* proto, float& currentAmmoDPS);
+    void OnPlayerGetAmmoDisplay(Player* player, SpellInfo const* spellInfo, uint32& displayId, uint32& inventoryType);
     bool OnPlayerCanEquipItem(Player* player, uint8 slot, uint16& dest, Item* pItem, bool swap, bool not_loading);
     bool OnPlayerCanUnequipItem(Player* player, uint16 pos, bool swap);
     bool OnPlayerCanUseItem(Player* player, ItemTemplate const* proto, InventoryResult& result);
@@ -547,6 +550,8 @@ public: /* Scheduled scripts */
 public: /* UnitScript */
     void OnHeal(Unit* healer, Unit* reciever, uint32& gain);
     void OnDamage(Unit* attacker, Unit* victim, uint32& damage);
+    void OnBlock(Unit* victim, Unit* attacker);
+    void OnPeriodicDamageResult(Unit* target, Unit* attacker, uint32 damage, SpellInfo const* spellInfo);
     void ModifyPeriodicDamageAurasTick(Unit* target, Unit* attacker, uint32& damage, SpellInfo const* spellInfo);
     void ModifyMeleeDamage(Unit* target, Unit* attacker, uint32& damage);
     void ModifySpellDamageTaken(Unit* target, Unit* attacker, int32& damage, SpellInfo const* spellInfo);
@@ -555,6 +560,7 @@ public: /* UnitScript */
     void OnBeforeRollMeleeOutcomeAgainst(Unit const* attacker, Unit const* victim, WeaponAttackType attType, int32& attackerMaxSkillValueForLevel, int32& victimMaxSkillValueForLevel, int32& attackerWeaponSkill, int32& victimDefenseSkill, int32& crit_chance, int32& miss_chance, int32& dodge_chance, int32& parry_chance, int32& block_chance);
     void OnAuraApply(Unit* /*unit*/, Aura* /*aura*/);
     void OnAuraRemove(Unit* unit, AuraApplication* aurApp, AuraRemoveMode mode);
+    void OnSendAuraUpdate(Unit* target, Player* receiver, AuraApplication const* application, bool remove);
     bool IfNormalReaction(Unit const* unit, Unit const* target, ReputationRank& repRank);
     bool CanSetPhaseMask(Unit const* unit, uint32 newPhaseMask, bool update);
     bool IsCustomBuildValuesUpdate(Unit const* unit, uint8 updateType, ByteBuffer& fieldBuffer, Player const* target, uint16 index);
@@ -639,6 +645,11 @@ public: /* SpellSC */
     void OnSpellCastCancel(Spell* spell, Unit* caster, SpellInfo const* spellInfo, bool bySelf);
     void OnSpellCast(Spell* spell, Unit* caster, SpellInfo const* spellInfo, bool skipCheck);
     void OnSpellPrepare(Spell* spell, Unit* caster, SpellInfo const* spellInfo);
+    void OnSpellBeforeEffects(Spell* spell, Unit* caster, SpellInfo const* spellInfo);
+    void OnSpellCalculatedTarget(Spell* spell, Unit* target, TargetInfo& targetInfo);
+    void OnSpellHitResult(Spell* spell, Unit* target, uint8 missInfo, uint32 damage,
+        uint32 healing, bool critical);
+    void OnSpellSuccessfulInterrupt(Spell* spell, Unit* target);
 
 public: /* GameEventScript */
     void OnGameEventStart(uint16 EventID);

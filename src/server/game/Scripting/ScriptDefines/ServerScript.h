@@ -30,6 +30,7 @@ enum ServerHook
     SERVERHOOK_ON_SOCKET_OPEN,
     SERVERHOOK_ON_SOCKET_CLOSE,
     SERVERHOOK_CAN_PACKET_SEND,
+    SERVERHOOK_CAN_PACKET_RECEIVE_EARLY,
     SERVERHOOK_CAN_PACKET_RECEIVE,
     SERVERHOOK_END
 };
@@ -62,6 +63,21 @@ public:
      * @return True if you want to continue sending the packet, false if you want to disallow sending the packet
      */
     [[nodiscard]] virtual bool CanPacketSend(WorldSession* /*session*/, WorldPacket const& /*packet*/) { return true; }
+
+    /**
+     * @brief Called on the socket thread before an authenticated client packet is looked up in the opcode table.
+     *
+     * This hook can consume protocol-extension packets that are unknown to the core. Implementations must be
+     * thread-safe and must not retain the session or packet pointers after returning.
+     *
+     * @param session Contains information about the WorldSession
+     * @param packet Contains information about the WorldPacket
+     * @return True to continue normal opcode lookup, false to consume the packet
+     */
+    [[nodiscard]] virtual bool CanPacketReceiveEarly(WorldSession* /*session*/, WorldPacket const& /*packet*/)
+    {
+        return true;
+    }
 
     /**
      * @brief Called when a (valid) packet is received by a client.

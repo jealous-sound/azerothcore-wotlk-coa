@@ -105,12 +105,33 @@ AC_API_EXPORT EnumText EnumUtils<Classes>::ToString(Classes value)
         case CLASS_MAGE: return { "CLASS_MAGE", "Mage", "" };
         case CLASS_WARLOCK: return { "CLASS_WARLOCK", "Warlock", "" };
         case CLASS_DRUID: return { "CLASS_DRUID", "Druid", "" };
+        case CLASS_BARBARIAN: return { "CLASS_BARBARIAN", "Barbarian", "" };
+        case CLASS_WITCH_DOCTOR: return { "CLASS_WITCH_DOCTOR", "Witch Doctor", "" };
+        case CLASS_DEMON_HUNTER: return { "CLASS_DEMON_HUNTER", "Felsworn", "" };
+        case CLASS_WITCH_HUNTER: return { "CLASS_WITCH_HUNTER", "Witch Hunter", "" };
+        case CLASS_STORMBRINGER: return { "CLASS_STORMBRINGER", "Stormbringer", "" };
+        case CLASS_FLESHWARDEN: return { "CLASS_FLESHWARDEN", "Knight of Xoroth", "" };
+        case CLASS_GUARDIAN: return { "CLASS_GUARDIAN", "Guardian", "" };
+        case CLASS_MONK: return { "CLASS_MONK", "Templar", "" };
+        case CLASS_SON_OF_ARUGAL: return { "CLASS_SON_OF_ARUGAL", "Bloodmage", "" };
+        case CLASS_RANGER: return { "CLASS_RANGER", "Ranger", "" };
+        case CLASS_CHRONOMANCER: return { "CLASS_CHRONOMANCER", "Chronomancer", "" };
+        case CLASS_NECROMANCER: return { "CLASS_NECROMANCER", "Necromancer", "" };
+        case CLASS_PYROMANCER: return { "CLASS_PYROMANCER", "Pyromancer", "" };
+        case CLASS_CULTIST: return { "CLASS_CULTIST", "Cultist", "" };
+        case CLASS_STARCALLER: return { "CLASS_STARCALLER", "Starcaller", "" };
+        case CLASS_SUN_CLERIC: return { "CLASS_SUN_CLERIC", "Sun Cleric", "" };
+        case CLASS_TINKER: return { "CLASS_TINKER", "Tinker", "" };
+        case CLASS_PROPHET: return { "CLASS_PROPHET", "Venomancer", "" };
+        case CLASS_REAPER: return { "CLASS_REAPER", "Reaper", "" };
+        case CLASS_WILDWALKER: return { "CLASS_WILDWALKER", "Primalist", "" };
+        case CLASS_SPIRIT_MAGE: return { "CLASS_SPIRIT_MAGE", "Runemaster", "" };
         default: throw std::out_of_range("value");
     }
 }
 
 template <>
-AC_API_EXPORT std::size_t EnumUtils<Classes>::Count() { return 10; }
+AC_API_EXPORT std::size_t EnumUtils<Classes>::Count() { return 31; }
 
 template <>
 AC_API_EXPORT Classes EnumUtils<Classes>::FromIndex(std::size_t index)
@@ -127,6 +148,27 @@ AC_API_EXPORT Classes EnumUtils<Classes>::FromIndex(std::size_t index)
         case 7: return CLASS_MAGE;
         case 8: return CLASS_WARLOCK;
         case 9: return CLASS_DRUID;
+        case 10: return CLASS_BARBARIAN;
+        case 11: return CLASS_WITCH_DOCTOR;
+        case 12: return CLASS_DEMON_HUNTER;
+        case 13: return CLASS_WITCH_HUNTER;
+        case 14: return CLASS_STORMBRINGER;
+        case 15: return CLASS_FLESHWARDEN;
+        case 16: return CLASS_GUARDIAN;
+        case 17: return CLASS_MONK;
+        case 18: return CLASS_SON_OF_ARUGAL;
+        case 19: return CLASS_RANGER;
+        case 20: return CLASS_CHRONOMANCER;
+        case 21: return CLASS_NECROMANCER;
+        case 22: return CLASS_PYROMANCER;
+        case 23: return CLASS_CULTIST;
+        case 24: return CLASS_STARCALLER;
+        case 25: return CLASS_SUN_CLERIC;
+        case 26: return CLASS_TINKER;
+        case 27: return CLASS_PROPHET;
+        case 28: return CLASS_REAPER;
+        case 29: return CLASS_WILDWALKER;
+        case 30: return CLASS_SPIRIT_MAGE;
         default: throw std::out_of_range("index");
     }
 }
@@ -146,6 +188,27 @@ AC_API_EXPORT std::size_t EnumUtils<Classes>::ToIndex(Classes value)
         case CLASS_MAGE: return 7;
         case CLASS_WARLOCK: return 8;
         case CLASS_DRUID: return 9;
+        case CLASS_BARBARIAN: return 10;
+        case CLASS_WITCH_DOCTOR: return 11;
+        case CLASS_DEMON_HUNTER: return 12;
+        case CLASS_WITCH_HUNTER: return 13;
+        case CLASS_STORMBRINGER: return 14;
+        case CLASS_FLESHWARDEN: return 15;
+        case CLASS_GUARDIAN: return 16;
+        case CLASS_MONK: return 17;
+        case CLASS_SON_OF_ARUGAL: return 18;
+        case CLASS_RANGER: return 19;
+        case CLASS_CHRONOMANCER: return 20;
+        case CLASS_NECROMANCER: return 21;
+        case CLASS_PYROMANCER: return 22;
+        case CLASS_CULTIST: return 23;
+        case CLASS_STARCALLER: return 24;
+        case CLASS_SUN_CLERIC: return 25;
+        case CLASS_TINKER: return 26;
+        case CLASS_PROPHET: return 27;
+        case CLASS_REAPER: return 28;
+        case CLASS_WILDWALKER: return 29;
+        case CLASS_SPIRIT_MAGE: return 30;
         default: throw std::out_of_range("value");
     }
 }

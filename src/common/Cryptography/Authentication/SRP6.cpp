@@ -84,7 +84,8 @@ using SRP6 = Acore::Crypto::SRP6;
 SRP6::SRP6(std::string const& username, Salt const& salt, Verifier const& verifier)
     : _I(SHA1::GetDigestOf(username)), _b(Crypto::GetRandomBytes<32>()), _v(verifier), s(salt), B(_B(_b, _v)) {}
 
-std::optional<SessionKey> SRP6::VerifyChallengeResponse(EphemeralKey const& A, SHA1::Digest const& clientM)
+std::optional<SessionKey> SRP6::VerifyChallengeResponse(EphemeralKey const& A, SHA1::Digest const& clientM,
+    ChallengeResponseDiagnostics* diagnostics)
 {
     ASSERT(!_used, "A single SRP6 object must only ever be used to verify ONCE!");
     _used = true;
@@ -105,6 +106,12 @@ std::optional<SessionKey> SRP6::VerifyChallengeResponse(EphemeralKey const& A, S
     std::transform(NHash.begin(), NHash.end(), gHash.begin(), NgHash.begin(), std::bit_xor<>());
 
     SHA1::Digest const ourM = SHA1::GetDigestOf(NgHash, _I, s, A, B, K);
+    if (diagnostics)
+    {
+        diagnostics->K = K;
+        diagnostics->ExpectedClientM = ourM;
+    }
+
     if (ourM == clientM)
         return K;
 

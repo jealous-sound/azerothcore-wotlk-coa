@@ -371,6 +371,12 @@ public:
     SpellCastTimesEntry const* CastTimeEntry;
     uint32 RecoveryTime;
     uint32 CategoryRecoveryTime;
+    // Optional local extension, populated only from verified class data.
+    uint32 ChargeRecoveryKey = 0;
+    uint32 ChargeCategoryId = 0;
+    uint32 ChargeRecoveryTime = 0;
+    uint8 MaxCharges = 0;
+    bool IsDeprecatedForPlayers = false;
     uint32 StartRecoveryCategory;
     uint32 StartRecoveryTime;
     uint32 InterruptFlags;

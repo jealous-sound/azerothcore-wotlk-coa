@@ -37,6 +37,7 @@
 #include "PlayerTaxi.h"
 #include "QuestDef.h"
 #include "SpellAuras.h"
+#include "SpellChargeState.h"
 #include "SpellInfo.h"
 #include "TradeData.h"
 #include "Unit.h"
@@ -1445,7 +1446,7 @@ public:
     /***                    QUEST SYSTEM                   ***/
     /*********************************************************/
 
-    int32 GetQuestLevel(Quest const* quest) const { return quest && (quest->GetQuestLevel() > 0) ? quest->GetQuestLevel() : GetLevel(); }
+    int32 GetQuestLevel(Quest const* quest) const;
 
     void PrepareQuestMenu(ObjectGuid guid);
     void SendPreparedQuest(ObjectGuid guid);
@@ -1836,6 +1837,12 @@ public:
     void RemoveAllSpellCooldown();
     void _LoadSpellCooldowns(PreparedQueryResult result);
     void _SaveSpellCooldowns(CharacterDatabaseTransaction trans, bool logout);
+    [[nodiscard]] SpellChargeState GetSpellCharges(SpellInfo const* spellInfo) const;
+    void ConsumeSpellCharge(SpellInfo const* spellInfo, Spell* spell);
+    void RestoreSpellCharge(uint32 spellId, uint32 count = 1);
+    void RestoreSpellChargeCategory(uint32 categoryId, uint32 count);
+    void SendSpellChargeState(uint32 spellId) const;
+    void SendAllSpellChargeStates() const;
     uint32 GetLastPotionId() { return m_lastPotionId; }
     void SetLastPotionId(uint32 item_id) { m_lastPotionId = item_id; }
     void UpdatePotionCooldown(Spell* spell = nullptr);
@@ -3073,6 +3080,7 @@ private:
     bool _wasOutdoor;
 
     PlayerSettingMap m_charSettingsMap;
+    void StoreSpellCharges(SpellInfo const* spellInfo, SpellChargeState const& state);
 
     Seconds m_creationTime;
 

@@ -138,6 +138,7 @@ private:
     std::string _ipCountry;
 
     bool _loggingPackets;
+    bool _loggedFirstClientHeader;
 };
 
 #endif

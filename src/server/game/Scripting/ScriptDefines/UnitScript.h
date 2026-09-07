@@ -25,6 +25,8 @@ enum UnitHook
 {
     UNITHOOK_ON_HEAL,
     UNITHOOK_ON_DAMAGE,
+    UNITHOOK_ON_BLOCK,
+    UNITHOOK_ON_PERIODIC_DAMAGE_RESULT,
     UNITHOOK_MODIFY_PERIODIC_DAMAGE_AURAS_TICK,
     UNITHOOK_MODIFY_MELEE_DAMAGE,
     UNITHOOK_MODIFY_SPELL_DAMAGE_TAKEN,
@@ -44,6 +46,7 @@ enum UnitHook
     UNITHOOK_ON_UNIT_EXIT_COMBAT,
     UNITHOOK_ON_UNIT_DEATH,
     UNITHOOK_ON_UNIT_SET_SHAPESHIFT_FORM,
+    UNITHOOK_ON_SEND_AURA_UPDATE,
     UNITHOOK_END
 };
 
@@ -62,6 +65,13 @@ public:
 
     // Called when a unit deals damage to another unit
     virtual void OnDamage(Unit* /*attacker*/, Unit* /*victim*/, uint32& /*damage*/) { }
+
+    // Called after a unit blocks a melee or ranged attack
+    virtual void OnBlock(Unit* /*victim*/, Unit* /*attacker*/) { }
+
+    // Called after a harmful periodic tick resolves mitigation and damage.
+    // Unlike ModifyPeriodicDamageAurasTick, this never observes healing.
+    virtual void OnPeriodicDamageResult(Unit* /*target*/, Unit* /*attacker*/, uint32 /*damage*/, SpellInfo const* /*spellInfo*/) { }
 
     // Called when DoT's Tick Damage is being Dealt
     // Attacker can be nullptr if he is despawned while the aura still exists on target
@@ -84,6 +94,11 @@ public:
     virtual void OnAuraApply(Unit* /*unit*/, Aura* /*aura*/) { }
 
     virtual void OnAuraRemove(Unit* /*unit*/, AuraApplication* /*aurApp*/, AuraRemoveMode /*mode*/) { }
+
+    // World/map-thread notification before the stock aura packet. A null receiver
+    // means the target's visible set; a null application means a full snapshot.
+    virtual void OnSendAuraUpdate(Unit* /*target*/, Player* /*receiver*/,
+        AuraApplication const* /*application*/, bool /*remove*/) { }
 
     [[nodiscard]] virtual bool IfNormalReaction(Unit const* /*unit*/, Unit const* /*target*/, ReputationRank& /*repRank*/) { return true; }
 

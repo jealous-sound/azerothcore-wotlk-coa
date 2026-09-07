@@ -112,7 +112,7 @@ bool AchievementCriteriaData::IsValid(AchievementCriteriaEntry const* criteria)
             }
             return true;
         case ACHIEVEMENT_CRITERIA_DATA_TYPE_T_PLAYER_CLASS_RACE:
-            if (classRace.class_id && ((1 << (classRace.class_id - 1)) & CLASSMASK_ALL_PLAYABLE) == 0)
+            if (classRace.class_id && ((uint32(1) << (classRace.class_id - 1)) & CLASSMASK_ALL_PLAYABLE) == 0)
             {
                 LOG_ERROR("sql.sql", "Table `achievement_criteria_data` (Entry: {} Type: {}) for data type ACHIEVEMENT_CRITERIA_DATA_TYPE_T_PLAYER_CLASS_RACE ({}) has non-existing class in value1 ({}), ignored.",
                                  criteria->ID, criteria->requiredType, dataType, classRace.class_id);
@@ -272,7 +272,7 @@ bool AchievementCriteriaData::IsValid(AchievementCriteriaEntry const* criteria)
                                  criteria->ID, criteria->requiredType, dataType);
                 return false;
             }
-            if (classRace.class_id && ((1 << (classRace.class_id - 1)) & CLASSMASK_ALL_PLAYABLE) == 0)
+            if (classRace.class_id && ((uint32(1) << (classRace.class_id - 1)) & CLASSMASK_ALL_PLAYABLE) == 0)
             {
                 LOG_ERROR("sql.sql", "Table `achievement_criteria_data` (Entry: {} Type: {}) for data type ACHIEVEMENT_CRITERIA_DATA_TYPE_S_PLAYER_CLASS_RACE ({}) has non-existing class in value1 ({}), ignored.",
                                  criteria->ID, criteria->requiredType, dataType, classRace.class_id);

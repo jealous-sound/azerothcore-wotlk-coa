@@ -22,6 +22,7 @@
 #include "GameTime.h"
 #include "GitRevision.h"
 #include "GossipDef.h"
+#include "LocalLevelScaling.h"
 #include "Group.h"
 #include "MapMgr.h"
 #include "Player.h"
@@ -36,6 +37,15 @@
 /*********************************************************/
 /***                    QUEST SYSTEM                   ***/
 /*********************************************************/
+
+int32 Player::GetQuestLevel(Quest const* quest) const
+{
+    if (!quest)
+        return GetLevel();
+    if (LocalLevelScaling::QuestEnabled.load(std::memory_order_relaxed))
+        return LocalLevelScaling::ScaleQuestLevel(quest->GetQuestLevel(), GetLevel());
+    return quest->GetQuestLevel() > 0 ? quest->GetQuestLevel() : GetLevel();
+}
 
 void Player::PrepareQuestMenu(ObjectGuid guid)
 {

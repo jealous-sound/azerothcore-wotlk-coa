@@ -236,6 +236,7 @@ void AuraApplication::ClientUpdate(bool remove)
                 if (plr->NeedSendSpectatorData() && ArenaSpectator::ShouldSendAura(aura, GetEffectMask(), GetTarget()->GetGUID(), remove))
                     ArenaSpectator::SendCommand_Aura(plr->FindMap(), plr->GetGUID(), "AUR", aura->GetCasterGUID(), aura->GetSpellInfo()->Id, aura->GetSpellInfo()->IsPositive(), aura->GetSpellInfo()->Dispel, aura->GetDuration(), aura->GetMaxDuration(), (aura->GetCharges() > 1 ? aura->GetCharges() : aura->GetStackAmount()), remove);
 
+    sScriptMgr->OnSendAuraUpdate(_target, nullptr, this, remove);
     _target->SendMessageToSet(&data, true);
 }
 
@@ -2863,6 +2864,26 @@ void UnitAura::FillTargetMap(std::map<Unit*, uint8>& targets, Unit* caster)
                             if (Unit* owner = GetUnitOwner()->GetCharmerOrOwner())
                                 if (GetUnitOwner()->IsWithinDistInMap(owner, radius))
                                     targetList.push_back(owner);
+                            break;
+                        }
+                    case SPELL_EFFECT_ASCENSION_APPLY_AURA_TO_SUMMONS:
+                        {
+                            Unit* owner = GetUnitOwner();
+                            for (Unit* controlled : owner->m_Controlled)
+                            {
+                                if (!controlled || !controlled->IsSummon() || controlled->GetOwnerGUID() != owner->GetGUID())
+                                    continue;
+
+                                if (!owner->IsInMap(controlled))
+                                    continue;
+
+                                // Several pet-scaling rows intentionally have no radius. A nonzero
+                                // DBC radius remains authoritative for range-limited summon auras.
+                                if (radius > 0.0f && !owner->IsWithinDistInMap(controlled, radius))
+                                    continue;
+
+                                targetList.push_back(controlled);
+                            }
                             break;
                         }
                 }

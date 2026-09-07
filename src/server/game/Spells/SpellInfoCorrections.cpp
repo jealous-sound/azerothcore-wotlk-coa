@@ -18,6 +18,7 @@
 #include "DBCStores.h"
 #include "DBCStructure.h"
 #include "GameGraveyard.h"
+#include "ItemTemplate.h"
 #include "SpellInfo.h"
 #include "SpellMgr.h"
 
@@ -39,6 +40,36 @@ inline void ApplySpellFix(std::initializer_list<uint32> spellIds, void(*fix)(Spe
 void SpellMgr::LoadSpellInfoCorrections()
 {
     uint32 oldMSTime = getMSTime();
+
+    // Local Guardian formations have mixed bonuses and penalties but are
+    // voluntarily selected buffs. Only the main aura is a cancellation surface.
+    ApplySpellFix({ 800317, 803130, 803417 }, [](SpellInfo* spellInfo)
+    {
+        if (spellInfo->SpellFamilyName != 24)
+            return;
+        spellInfo->Attributes &= ~SPELL_ATTR0_NO_AURA_CANCEL;
+        spellInfo->AttributesCu |= SPELL_ATTR0_CU_POSITIVE;
+        if (spellInfo->Id == 800317 &&
+            spellInfo->Effects[EFFECT_1].ApplyAuraName == SPELL_AURA_MOD_BASE_RESISTANCE_PCT &&
+            spellInfo->Effects[EFFECT_1].MiscValueB == (1 << ITEM_SUBCLASS_ARMOR_SHIELD))
+            spellInfo->Effects[EFFECT_1].ApplyAuraName = SPELL_AURA_DUMMY; // shield-only in Player::UpdateArmor
+    });
+    ApplySpellFix({ 803431, 803907, 803151, 803709, 803419, 803941, 807728 }, [](SpellInfo* spellInfo)
+    {
+        if (spellInfo->SpellFamilyName != 24)
+            return;
+        spellInfo->Attributes |= SPELL_ATTR0_NO_AURA_CANCEL;
+        spellInfo->AttributesEx |= SPELL_ATTR1_NO_AURA_ICON;
+    });
+    // Reclaim uses the owner's exact standard GUID in its script; the authored
+    // entry-area target must not enumerate nearby unrelated creatures first.
+    ApplySpellFix({ 801504 }, [](SpellInfo* spellInfo)
+    {
+        if (spellInfo->SpellFamilyName != 24 || spellInfo->Effects[EFFECT_0].TriggerSpell != 801503)
+            return;
+        spellInfo->Effects[EFFECT_0].TargetA = SpellImplicitTargetInfo(TARGET_UNIT_CASTER);
+        spellInfo->Effects[EFFECT_0].TargetB = SpellImplicitTargetInfo(0);
+    });
 
     ApplySpellFix({
         467,    // Thorns (Rank 1)

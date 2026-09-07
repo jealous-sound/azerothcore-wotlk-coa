@@ -55,6 +55,7 @@
 #include "InstanceSaveMgr.h"
 #include "InstanceScript.h"
 #include "LFGMgr.h"
+#include "LiveClassResourcePolicy.h"
 #include "Log.h"
 #include "LootItemStorage.h"
 #include "MapMgr.h"
@@ -516,7 +517,7 @@ bool Player::Create(ObjectGuid::LowType guidlow, CharacterCreateInfo* createInfo
 
     SetMap(sMapMgr->CreateMap(info->mapId, this));
 
-    uint8 powertype = cEntry->powerType;
+    uint8 powertype = uint8(LiveClassResourcePolicy::DefaultPowerForClass(createInfo->Class, cEntry->powerType));
 
     SetObjectScale(1.0f);
 
@@ -626,8 +627,20 @@ bool Player::Create(ObjectGuid::LowType guidlow, CharacterCreateInfo* createInfo
     for (PlayerCreateInfoActions::const_iterator action_itr = info->action.begin(); action_itr != info->action.end(); ++action_itr)
         addActionButton(action_itr->button, action_itr->action, action_itr->type);
 
+    // A creation-only script may provide exact equipment/backpack positions.
+    // Failure aborts creation before its initial save; it must not fall back to
+    // stock items after a partially completed custom initialization.
+    bool initialItemsHandled = false;
+    if (!sScriptMgr->OnPlayerCreateInitialItems(this, initialItemsHandled))
+    {
+        // The session's create-failure deleter only cleans characters bearing
+        // AT_LOGIN_FIRST, which is not set yet. Initial spells may own auras.
+        CleanupsBeforeDelete();
+        return false;
+    }
+
     // original items
-    if (CharStartOutfitEntry const* oEntry = GetCharStartOutfitEntry(createInfo->Race, createInfo->Class, createInfo->Gender))
+    if (CharStartOutfitEntry const* oEntry = initialItemsHandled ? nullptr : GetCharStartOutfitEntry(createInfo->Race, createInfo->Class, createInfo->Gender))
     {
         for (int j = 0; j < MAX_OUTFIT_ITEMS; ++j)
         {
@@ -663,7 +676,7 @@ bool Player::Create(ObjectGuid::LowType guidlow, CharacterCreateInfo* createInfo
         }
     }
 
-    for (PlayerCreateInfoItems::const_iterator item_id_itr = info->item.begin(); item_id_itr != info->item.end(); ++item_id_itr)
+    for (PlayerCreateInfoItems::const_iterator item_id_itr = info->item.begin(); !initialItemsHandled && item_id_itr != info->item.end(); ++item_id_itr)
         StoreNewItemInBestSlots(item_id_itr->item_id, item_id_itr->item_amount);
 
     // Collector's Edition starter gift voucher
@@ -715,7 +728,8 @@ bool Player::Create(ObjectGuid::LowType guidlow, CharacterCreateInfo* createInfo
     // bags and main-hand weapon must equipped at this moment
     // now second pass for not equipped (offhand weapon/shield if it attempt equipped before main-hand weapon)
     // or ammo not equipped in special bag
-    for (uint8 i = INVENTORY_SLOT_ITEM_START; i < INVENTORY_SLOT_ITEM_END; i++)
+    // Exact scripted backpack stacks must not be moved/auto-equipped here.
+    for (uint8 i = INVENTORY_SLOT_ITEM_START; !initialItemsHandled && i < INVENTORY_SLOT_ITEM_END; i++)
     {
         if (Item* pItem = GetItemByPos(INVENTORY_SLOT_BAG_0, i))
         {
@@ -750,6 +764,11 @@ bool Player::Create(ObjectGuid::LowType guidlow, CharacterCreateInfo* createInfo
     // ensure player starts with full health
     UpdateAllStats();
     SetFullHealth();
+
+    // Exact scripted starters can learn intellect passives after the early mana
+    // fill. Start those new mana users full at the final, modified maximum.
+    if (initialItemsHandled && HasActivePowerType(POWER_MANA))
+        SetPower(POWER_MANA, GetMaxPower(POWER_MANA));
 
     CheckAllAchievementCriteria();
 
@@ -1808,6 +1827,8 @@ void Player::RegenerateAll()
 
     Regenerate(POWER_ENERGY);
 
+    Regenerate(POWER_FOCUS);
+
     Regenerate(POWER_MANA);
 
     // Runes act as cooldowns, and they don't need to send any data
@@ -1955,8 +1976,13 @@ void Player::Regenerate(Powers power)
                 }
             }
             break;
-        case POWER_RUNE:
         case POWER_FOCUS:
+            // Ranger's base is empirically calibrated from the pinned live capture.
+            // Other player Focus keeps its existing base; native modifiers follow below.
+            addvalue = (getClass() == CLASS_RANGER ? LiveClassResourcePolicy::RangerFocusPerSecond : 6.0f) *
+                sWorld->getRate(RATE_POWER_FOCUS) * m_regenTimer / IN_MILLISECONDS;
+            break;
+        case POWER_RUNE:
         case POWER_HAPPINESS:
             break;
         case POWER_HEALTH:
@@ -1972,7 +1998,8 @@ void Player::Regenerate(Powers power)
 
         // Butchery requires combat for this effect
         if (power != POWER_RUNIC_POWER || IsInCombat())
-            addvalue += float(GetTotalAuraModifierByMiscValue(SPELL_AURA_MOD_POWER_REGEN, power) * ((power != POWER_ENERGY) ? m_regenTimerCount : m_regenTimer)) / (5.0f * IN_MILLISECONDS);
+            addvalue += float(GetTotalAuraModifierByMiscValue(SPELL_AURA_MOD_POWER_REGEN, power) *
+                (power == POWER_FOCUS ? m_regenTimer : m_regenTimerCount)) / (5.0f * IN_MILLISECONDS);
     }
 
     if (addvalue < 0.0f)
@@ -2550,7 +2577,7 @@ void Player::GiveLevel(uint8 level)
         SetPower(POWER_ENERGY, GetMaxPower(POWER_ENERGY));
         if (GetPower(POWER_RAGE) > GetMaxPower(POWER_RAGE))
             SetPower(POWER_RAGE, GetMaxPower(POWER_RAGE));
-        SetPower(POWER_FOCUS, 0);
+        SetPower(POWER_FOCUS, GetMaxPower(POWER_FOCUS));
         SetPower(POWER_HAPPINESS, 0);
     }
 
@@ -2769,7 +2796,7 @@ void Player::InitStatsForLevel(bool reapplyMods)
     SetPower(POWER_ENERGY, GetMaxPower(POWER_ENERGY));
     if (GetPower(POWER_RAGE) > GetMaxPower(POWER_RAGE))
         SetPower(POWER_RAGE, GetMaxPower(POWER_RAGE));
-    SetPower(POWER_FOCUS, 0);
+    SetPower(POWER_FOCUS, GetMaxPower(POWER_FOCUS));
     SetPower(POWER_HAPPINESS, 0);
     SetPower(POWER_RUNIC_POWER, 0);
 
@@ -3411,6 +3438,11 @@ bool Player::IsNeedCastPassiveSpellAtLearn(SpellInfo const* spellInfo) const
 
 void Player::learnSpell(uint32 spellId, bool temporary /*= false*/, bool learnFromSkill /*= false*/)
 {
+    if (IsAscensionClass(getClass()))
+        if (SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spellId))
+            if (spellInfo->IsDeprecatedForPlayers)
+                return;
+
     // Xinef: don't allow to learn active spell once more
     if (HasActiveSpell(spellId))
     {
@@ -3700,6 +3732,16 @@ void Player::RemoveCategoryCooldown(uint32 cat)
 
 void Player::RemoveArenaSpellCooldowns(bool removeActivePetCooldowns)
 {
+    std::unordered_set<uint32> restoredChargePools;
+    for (auto const& [spellId, playerSpell] : m_spells)
+    {
+        SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spellId);
+        if (playerSpell->State != PLAYERSPELL_REMOVED && spellInfo && spellInfo->MaxCharges &&
+            spellInfo->ChargeRecoveryTime < 10 * MINUTE * IN_MILLISECONDS &&
+            restoredChargePools.insert(spellInfo->ChargeRecoveryKey).second)
+            RestoreSpellCharge(spellId, 255);
+    }
+
     // remove cooldowns on spells that have < 10 min CD
     uint32 infTime = GameTime::GetGameTimeMS().count() + infinityCooldownDelayCheck;
     SpellCooldowns::iterator itr, next;
@@ -3735,6 +3777,19 @@ void Player::RemoveArenaSpellCooldowns(bool removeActivePetCooldowns)
 
 void Player::RemoveAllSpellCooldown()
 {
+    std::unordered_set<uint32> restoredChargePools;
+    for (auto const& [spellId, playerSpell] : m_spells)
+    {
+        if (playerSpell->State != PLAYERSPELL_REMOVED)
+        {
+            if (SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spellId))
+            {
+                if (spellInfo->MaxCharges && restoredChargePools.insert(spellInfo->ChargeRecoveryKey).second)
+                    RestoreSpellCharge(spellId, 255);
+            }
+        }
+    }
+
     uint32 infTime = GameTime::GetGameTimeMS().count() + infinityCooldownDelayCheck;
     if (!m_spellCooldowns.empty())
     {
@@ -5301,6 +5356,7 @@ void Player::GetDodgeFromAgility(float& diminishing, float& nondiminishing)
 
     uint8 level = GetLevel();
     uint32 pclass = getClass();
+    uint32 fallbackClassIndex = GetLegacyClassForCustomClass(Classes(getClass())) - 1;
 
     if (level > GT_MAX_LEVEL)
         level = GT_MAX_LEVEL;
@@ -5315,8 +5371,8 @@ void Player::GetDodgeFromAgility(float& diminishing, float& nondiminishing)
     float bonus_agility = GetStat(STAT_AGILITY) - base_agility;
 
     // calculate diminishing (green in char screen) and non-diminishing (white) contribution
-    diminishing = 100.0f * bonus_agility * dodgeRatio->ratio * crit_to_dodge[pclass - 1];
-    nondiminishing = 100.0f * (dodge_base[pclass - 1] + base_agility * dodgeRatio->ratio * crit_to_dodge[pclass - 1]);
+    diminishing = 100.0f * bonus_agility * dodgeRatio->ratio * crit_to_dodge[fallbackClassIndex];
+    nondiminishing = 100.0f * (dodge_base[fallbackClassIndex] + base_agility * dodgeRatio->ratio * crit_to_dodge[fallbackClassIndex]);
 }
 
 float Player::GetSpellCritFromIntellect()
@@ -7827,6 +7883,19 @@ void Player::_ApplyAllLevelScaleItemMods(bool apply)
 
 void Player::_ApplyAmmoBonuses()
 {
+    if (IsAscensionClass(getClass()))
+    {
+        // CoA ranged damage comes from the equipped weapon, not a projectile
+        // stack. Clear stale ammo DPS as well as refusing new ammo bonuses.
+        if (m_ammoDPS != 0.0f)
+        {
+            m_ammoDPS = 0.0f;
+            if (CanModifyStats())
+                UpdateDamagePhysical(RANGED_ATTACK);
+        }
+        return;
+    }
+
     // check ammo
     uint32 ammo_id = GetUInt32Value(PLAYER_AMMO_ID);
     if (!ammo_id)
@@ -10099,10 +10168,26 @@ void Player::AddSpellMod(SpellModifier* mod, bool apply)
                     val += (*itr)->value;
             }
             val += apply ? mod->value : -(mod->value);
-            WorldPacket data(Opcode, (1 + 1 + 4));
-            data << uint8(eff);
-            data << uint8(mod->op);
-            data << int32(val);
+            bool const useAscensionSpellModifierLayout =
+                GetSession()->GetRemoteAddress() == "127.0.0.1" &&
+                sConfigMgr->GetOption<bool>("AscensionCompat.Enable", false);
+            WorldPacket data(Opcode, useAscensionSpellModifierLayout ? 11 : 6);
+            if (useAscensionSpellModifierLayout)
+            {
+                // The custom client keeps modifiers per character spec. Mode
+                // zero is one modifier followed by the active spec index.
+                data << uint8(0);
+                data << uint8(eff);
+                data << uint8(mod->op);
+                data << int32(val);
+                data << uint32(0);
+            }
+            else
+            {
+                data << uint8(eff);
+                data << uint8(mod->op);
+                data << int32(val);
+            }
             SendDirectMessage(&data);
         }
     }
@@ -10775,8 +10860,12 @@ void Player::InitDataForForm(bool reapplyMods)
         default:                                            // 0, for example
             {
                 ChrClassesEntry const* cEntry = sChrClassesStore.LookupEntry(getClass());
-                if (cEntry && cEntry->powerType < MAX_POWERS && uint32(getPowerType()) != cEntry->powerType)
-                    setPowerType(Powers(cEntry->powerType));
+                if (cEntry)
+                {
+                    uint32 const defaultPower = LiveClassResourcePolicy::DefaultPowerForClass(getClass(), cEntry->powerType);
+                    if (defaultPower < MAX_POWERS && uint32(getPowerType()) != defaultPower)
+                        setPowerType(Powers(defaultPower));
+                }
                 break;
             }
     }
@@ -11082,6 +11171,9 @@ uint32 Player::GetMaxPersonalArenaRatingRequirement(uint32 minarenaslot) const
 
 void Player::AddSpellAndCategoryCooldowns(SpellInfo const* spellInfo, uint32 itemId, Spell* spell, bool infinityCooldown)
 {
+    if (spell && !itemId && !infinityCooldown && spellInfo->MaxCharges)
+        ConsumeSpellCharge(spellInfo, spell);
+
     // init cooldown values
     uint32 cat   = 0;
     int32 rec    = -1;
@@ -12321,6 +12413,7 @@ void Player::GetAurasForTarget(Unit* target, bool force /*= false*/)
         auraApp->BuildUpdatePacket(data, false);
     }
 
+    sScriptMgr->OnSendAuraUpdate(target, this, nullptr, false);
     SendDirectMessage(&data);
 }
 
@@ -16699,6 +16792,10 @@ bool Player::IsSummonAsSpectator() const
 
 bool Player::HasSpellCooldown(uint32 spell_id) const
 {
+    if (SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spell_id))
+        if (spellInfo->MaxCharges && GetSpellCharges(spellInfo).Available == 0)
+            return true;
+
     SpellCooldowns::const_iterator itr = m_spellCooldowns.find(spell_id);
     return itr != m_spellCooldowns.end() && itr->second.end > getMSTime();
 }
@@ -16711,8 +16808,118 @@ bool Player::HasSpellItemCooldown(uint32 spell_id, uint32 itemid) const
 
 uint32 Player::GetSpellCooldownDelay(uint32 spell_id) const
 {
+    uint32 chargeDelay = 0;
+    if (SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spell_id))
+    {
+        if (spellInfo->MaxCharges)
+        {
+            SpellChargeState state = GetSpellCharges(spellInfo);
+            if (!state.Available)
+            {
+                uint64 now = std::chrono::duration_cast<Milliseconds>(GameTime::GetSystemTime().time_since_epoch()).count();
+                chargeDelay = uint32(state.NextRecovery > now ? state.NextRecovery - now : 0);
+            }
+        }
+    }
     SpellCooldowns::const_iterator itr = m_spellCooldowns.find(spell_id);
-    return uint32(itr != m_spellCooldowns.end() && itr->second.end > getMSTime() ? itr->second.end - getMSTime() : 0);
+    return std::max(chargeDelay,
+        uint32(itr != m_spellCooldowns.end() && itr->second.end > getMSTime() ? itr->second.end - getMSTime() : 0));
+}
+
+SpellChargeState Player::GetSpellCharges(SpellInfo const* spellInfo) const
+{
+    SpellChargeState state{spellInfo->MaxCharges, 0, spellInfo->ChargeRecoveryTime};
+    if (!spellInfo->MaxCharges)
+        return state;
+
+    auto found = m_charSettingsMap.find("core.spell_charge." + std::to_string(spellInfo->ChargeRecoveryKey));
+    if (found != m_charSettingsMap.end() && found->second.size() == 5 && found->second[4].value == 1)
+    {
+        auto const& values = found->second;
+        state.Available = std::min<uint32>(values[0].value, spellInfo->MaxCharges);
+        state.NextRecovery = uint64(values[1].value) * IN_MILLISECONDS + std::min(values[2].value, 999u);
+        state.RecoveryTime = std::clamp(values[3].value, 1u, uint32(DAY * IN_MILLISECONDS));
+    }
+    uint64 now = std::chrono::duration_cast<Milliseconds>(GameTime::GetSystemTime().time_since_epoch()).count();
+    state.Update(spellInfo->MaxCharges, now);
+    return state;
+}
+
+void Player::StoreSpellCharges(SpellInfo const* spellInfo, SpellChargeState const& state)
+{
+    std::string source = "core.spell_charge." + std::to_string(spellInfo->ChargeRecoveryKey);
+    UpdatePlayerSetting(source, 0, state.Available);
+    UpdatePlayerSetting(source, 1, uint32(state.NextRecovery / IN_MILLISECONDS));
+    UpdatePlayerSetting(source, 2, uint32(state.NextRecovery % IN_MILLISECONDS));
+    UpdatePlayerSetting(source, 3, state.RecoveryTime);
+    UpdatePlayerSetting(source, 4, 1); // serialization version
+}
+
+void Player::ConsumeSpellCharge(SpellInfo const* spellInfo, Spell* spell)
+{
+    if (!spellInfo->MaxCharges || GetCommandStatus(CHEAT_COOLDOWN))
+        return;
+    int32 recovery = int32(spellInfo->ChargeRecoveryTime);
+    ApplySpellMod(spellInfo->Id, SPELLMOD_COOLDOWN, recovery, spell);
+    recovery = std::clamp(recovery, 1, int32(DAY * IN_MILLISECONDS));
+    SpellChargeState state = GetSpellCharges(spellInfo);
+    uint64 now = std::chrono::duration_cast<Milliseconds>(GameTime::GetSystemTime().time_since_epoch()).count();
+    if (state.Consume(spellInfo->MaxCharges, uint32(recovery), now))
+    {
+        StoreSpellCharges(spellInfo, state);
+        SendSpellChargeState(spellInfo->Id);
+    }
+}
+
+void Player::RestoreSpellCharge(uint32 spellId, uint32 count)
+{
+    SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spellId);
+    if (!spellInfo || !spellInfo->MaxCharges)
+        return;
+    SpellChargeState state = GetSpellCharges(spellInfo);
+    uint64 now = std::chrono::duration_cast<Milliseconds>(GameTime::GetSystemTime().time_since_epoch()).count();
+    state.Restore(spellInfo->MaxCharges, count, now);
+    StoreSpellCharges(spellInfo, state);
+    SendSpellChargeState(spellId);
+}
+
+void Player::SendSpellChargeState(uint32 spellId) const
+{
+    SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spellId);
+    if (!spellInfo || !spellInfo->MaxCharges || !GetSession())
+        return;
+    SpellChargeState state = GetSpellCharges(spellInfo);
+    uint64 now = std::chrono::duration_cast<Milliseconds>(GameTime::GetSystemTime().time_since_epoch()).count();
+    uint32 remaining = uint32(state.NextRecovery > now ? state.NextRecovery - now : 0);
+    std::string message = "ASC_LOCAL_CHARGES\t" + std::to_string(spellId) + ":" +
+        std::to_string(state.Available) + ":" + std::to_string(spellInfo->MaxCharges) + ":" +
+        std::to_string(remaining) + ":" + std::to_string(state.RecoveryTime) + ":" +
+        std::to_string(spellInfo->ChargeRecoveryKey);
+    WorldPacket packet;
+    ChatHandler::BuildChatPacket(packet, CHAT_MSG_WHISPER, LANG_ADDON, GetGUID(), GetGUID(), message,
+        0, GetName(), GetName(), 0, false);
+    GetSession()->SendPacket(&packet);
+}
+
+void Player::RestoreSpellChargeCategory(uint32 categoryId, uint32 count)
+{
+    // A recharge-category effect addresses metadata explicitly. Normal spending
+    // still uses independent ability pools. Restore each rank family only once.
+    std::unordered_set<uint32> restored;
+    for (auto const& [spellId, playerSpell] : m_spells)
+    {
+        SpellInfo const* info = sSpellMgr->GetSpellInfo(spellId);
+        if (playerSpell->State != PLAYERSPELL_REMOVED && info && info->MaxCharges &&
+            info->ChargeCategoryId == categoryId && restored.insert(info->ChargeRecoveryKey).second)
+            RestoreSpellCharge(spellId, count);
+    }
+}
+
+void Player::SendAllSpellChargeStates() const
+{
+    for (auto const& [spellId, playerSpell] : m_spells)
+        if (playerSpell->State != PLAYERSPELL_REMOVED && playerSpell->Active)
+            SendSpellChargeState(spellId);
 }
 
 std::string Player::GetDebugInfo() const

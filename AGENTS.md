@@ -21,6 +21,10 @@ Read the matching doc(s) BEFORE starting the task:
 - Reviewing a changeset or PR → `.agents/docs/code-review.md`
 - Self-reviewing, or opening or updating a PR → also `.agents/docs/self-review-rules.md`
 - Touching a subsystem that has a doc in `.agents/docs/systems/` → read that doc too
+- Ascension damage/healing, AP/RAP/SP coefficients, triggered spells or tooltip parity →
+  `.agents/docs/systems/ascension-spell-parity.md`
+- Local SQL/binary/client deployment, MPQ synchronization or deployment-verifier tests →
+  `.agents/docs/systems/ascension-local-deployment.md`
 - Capturing a lesson or adding/updating agent docs → `.agents/docs/README.md`
 
 ## Repository layout
@@ -41,6 +45,10 @@ Read the matching doc(s) BEFORE starting the task:
 ## Modules
 
 External modules live in `modules/`, each a subdir with its own `CMakeLists.txt`. Disable with `-DDISABLED_AC_MODULES="mod1;mod2"`. See `modules/how_to_make_a_module.md`.
+
+In this private fork, `modules/mod-ascension-compat` is vendored into this repository, not a submodule
+or a separate working tree. `origin` is the private CoA fork; `upstream` is the original AzerothCore
+repository. Fetching upstream is separate from reviewing, merging, building or deploying its changes.
 
 ## Persisting lessons
 

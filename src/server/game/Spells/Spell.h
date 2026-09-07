@@ -304,6 +304,16 @@ public:
 
     void EffectNULL(SpellEffIndex effIndex);
     void EffectUnused(SpellEffIndex effIndex);
+    void EffectAscensionModifyCooldown(SpellEffIndex effIndex);
+    void EffectAscensionRestoreBaseManaPct(SpellEffIndex effIndex);
+    void EffectAscensionRefreshAura(SpellEffIndex effIndex);
+    void EffectAscensionModifyAuraStacks(SpellEffIndex effIndex);
+    void EffectAscensionModifyAuraStacksBySpell(SpellEffIndex effIndex);
+    void EffectAscensionModifyAuraDuration(SpellEffIndex effIndex);
+    void EffectAscensionRestoreBaseHealthPct(SpellEffIndex effIndex);
+    void EffectAscensionTriggerSpellDelayed(SpellEffIndex effIndex);
+    void EffectAscensionResetCooldown(SpellEffIndex effIndex);
+    void EffectAscensionRestoreSpellCharges(SpellEffIndex effIndex);
     void EffectDistract(SpellEffIndex effIndex);
     void EffectPull(SpellEffIndex effIndex);
     void EffectSchoolDMG(SpellEffIndex effIndex);
@@ -603,6 +613,20 @@ public:
     // xinef: moved to public
     void LoadScripts();
     std::list<TargetInfo>* GetUniqueTargetInfo() { return &m_UniqueTargetInfo; }
+    void AddUnitTargetForScript(Unit* target, uint32 effectMask, bool checkIfValid = true,
+        bool implicit = true) { AddUnitTarget(target, effectMask, checkIfValid, implicit); }
+    bool TryMarkScriptEventHandled(uint8 eventIndex)
+    {
+        if (eventIndex >= 32)
+            return false;
+
+        uint32 eventMask = 1u << eventIndex;
+        if (m_scriptEventMask & eventMask)
+            return false;
+
+        m_scriptEventMask |= eventMask;
+        return true;
+    }
 
     [[nodiscard]] uint32 GetTriggeredByAuraTickNumber() const { return m_triggeredByAuraSpell.tickNumber; }
     [[nodiscard]] SpellInfo const* GetTriggeredByAuraSpellInfo() const { return m_triggeredByAuraSpell.spellInfo; }
@@ -641,6 +665,7 @@ public:
     bool m_canReflect;                                  // can reflect this spell?
 
     uint8 m_spellFlags;                                 // for spells whose target was changed in cast i.e. due to reflect
+    uint32 m_scriptEventMask;                           // one-shot events owned by global spell scripts
 
     bool m_autoRepeat;
     uint8 m_runesState;

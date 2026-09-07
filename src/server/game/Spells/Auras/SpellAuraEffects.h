@@ -63,7 +63,13 @@ public:
     AuraType GetAuraType() const;
     int32 GetAmount() const { return m_isAuraEnabled ? m_amount : 0; }
     int32 GetForcedAmount() const { return m_amount; }
-    void SetAmount(int32 amount) { m_amount = amount; m_canBeRecalculated = false;}
+    void SetAmount(int32 amount)
+    {
+        if (m_amount != amount)
+            GetBase()->SetNeedClientUpdateForTargets();
+        m_amount = amount;
+        m_canBeRecalculated = false;
+    }
 
     int32 GetPeriodicTimer() const { return m_periodicTimer; }
     void SetPeriodicTimer(int32 periodicTimer) { m_periodicTimer = periodicTimer; }
@@ -115,7 +121,12 @@ public:
 
     int32 GetOldAmount() const { return m_oldAmount; }
     void SetOldAmount(int32 amount) { m_oldAmount = amount; }
-    void SetEnabled(bool enabled) { m_isAuraEnabled = enabled; }
+    void SetEnabled(bool enabled)
+    {
+        if (m_isAuraEnabled != enabled)
+            GetBase()->SetNeedClientUpdateForTargets();
+        m_isAuraEnabled = enabled;
+    }
 
 private:
     Aura* const m_base;
@@ -245,6 +256,8 @@ public:
     //    stat
     void HandleAuraModStat(AuraApplication const* aurApp, uint8 mode, bool apply) const;
     void HandleModPercentStat(AuraApplication const* aurApp, uint8 mode, bool apply) const;
+    void HandleAscensionModStatFromStat(AuraApplication const* aurApp, uint8 mode, bool apply) const;
+    void HandleAscensionModMaxManaFromStat(AuraApplication const* aurApp, uint8 mode, bool apply) const;
     void HandleModSpellDamagePercentFromStat(AuraApplication const* aurApp, uint8 mode, bool apply) const;
     void HandleModSpellHealingPercentFromStat(AuraApplication const* aurApp, uint8 mode, bool apply) const;
     void HandleModSpellDamagePercentFromAttackPower(AuraApplication const* aurApp, uint8 mode, bool apply) const;
@@ -270,6 +283,7 @@ public:
     void HandleAuraModRegenInterrupt(AuraApplication const* aurApp, uint8 mode, bool apply) const;
     void HandleAuraModWeaponCritPercent(AuraApplication const* aurApp, uint8 mode, bool apply) const;
     void HandleModHitChance(AuraApplication const* aurApp, uint8 mode, bool apply) const;
+    void HandleAscensionModHitChanceAll(AuraApplication const* aurApp, uint8 mode, bool apply) const;
     void HandleModSpellHitChance(AuraApplication const* aurApp, uint8 mode, bool apply) const;
     void HandleModSpellCritChance(AuraApplication const* aurApp, uint8 mode, bool apply) const;
     void HandleModSpellCritChanceShool(AuraApplication const* aurApp, uint8 mode, bool apply) const;
@@ -287,6 +301,7 @@ public:
     void HandleModRatingFromStat(AuraApplication const* aurApp, uint8 mode, bool apply) const;
     //   attack power
     void HandleAuraModAttackPower(AuraApplication const* aurApp, uint8 mode, bool apply) const;
+    void HandleAscensionModAttackPowerFlat(AuraApplication const* aurApp, uint8 mode, bool apply) const;
     void HandleAuraModRangedAttackPower(AuraApplication const* aurApp, uint8 mode, bool apply) const;
     void HandleAuraModAttackPowerPercent(AuraApplication const* aurApp, uint8 mode, bool apply) const;
     void HandleAuraModRangedAttackPowerPercent(AuraApplication const* aurApp, uint8 mode, bool apply) const;

@@ -221,7 +221,7 @@ void PlayerMenu::SendGossipMenu(uint32 titleTextId, ObjectGuid objectGUID)
         {
             data << uint32(questID);
             data << uint32(item.QuestIcon);
-            data << int32(quest->GetQuestLevel());
+            data << int32(_session->GetPlayer()->GetQuestLevel(quest));
             data << uint32(quest->GetFlags()); // 3.3.3 quest flags
             data << uint8(quest->IsRepeatable() && !quest->IsDailyOrWeekly() && !quest->IsMonthly()); // 3.3.3 icon changes: blue question mark or yellow exclamation mark
             std::string title = quest->GetTitle();
@@ -363,7 +363,7 @@ void PlayerMenu::SendQuestGiverQuestList(QEmote const& eEmote, std::string const
 
             data << uint32(questID);
             data << uint32(questMenuItem.QuestIcon);
-            data << int32(quest->GetQuestLevel());
+            data << int32(_session->GetPlayer()->GetQuestLevel(quest));
             data << uint32(quest->GetFlags());                                                        // 3.3.3 quest flags
             data << uint8(quest->IsRepeatable() && !quest->IsDailyOrWeekly() && !quest->IsMonthly()); // 3.3.3 changes icon: blue question or yellow exclamation
             data << title;
@@ -533,7 +533,7 @@ void PlayerMenu::SendQuestQueryResponse(Quest const* quest) const
 
     data << uint32(quest->GetQuestId());                    // quest id
     data << uint32(quest->GetQuestMethod());                // Accepted values: 0, 1 or 2. 0 == IsAutoComplete() (skip objectives/details)
-    data << uint32(quest->GetQuestLevel());                 // may be -1, static data, in other cases must be used dynamic level: Player::GetQuestLevel (0 is not known, but assuming this is no longer valid for quest intended for client)
+    data << uint32(_session->GetPlayer()->GetQuestLevel(quest)); // per-player level; template remains immutable
     data << uint32(quest->GetMinLevel());                   // min level
     data << uint32(quest->GetZoneOrSort());                 // zone or sort to display in quest log
 

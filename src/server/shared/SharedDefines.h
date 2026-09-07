@@ -122,28 +122,82 @@ enum class DisplayRace : uint8
 // EnumUtils: DESCRIBE THIS
 enum Classes
 {
-    CLASS_NONE          = 0, // SKIP
-    CLASS_WARRIOR       = 1, // TITLE Warrior
-    CLASS_PALADIN       = 2, // TITLE Paladin
-    CLASS_HUNTER        = 3, // TITLE Hunter
-    CLASS_ROGUE         = 4, // TITLE Rogue
-    CLASS_PRIEST        = 5, // TITLE Priest
-    CLASS_DEATH_KNIGHT  = 6, // TITLE Death Knight
-    CLASS_SHAMAN        = 7, // TITLE Shaman
-    CLASS_MAGE          = 8, // TITLE Mage
-    CLASS_WARLOCK       = 9, // TITLE Warlock
-    //CLASS_UNK           = 10,
-    CLASS_DRUID         = 11 // TITLE Druid
+    CLASS_NONE           = 0,  // SKIP
+    CLASS_WARRIOR        = 1,  // TITLE Warrior
+    CLASS_PALADIN        = 2,  // TITLE Paladin
+    CLASS_HUNTER         = 3,  // TITLE Hunter
+    CLASS_ROGUE          = 4,  // TITLE Rogue
+    CLASS_PRIEST         = 5,  // TITLE Priest
+    CLASS_DEATH_KNIGHT   = 6,  // TITLE Death Knight
+    CLASS_SHAMAN         = 7,  // TITLE Shaman
+    CLASS_MAGE           = 8,  // TITLE Mage
+    CLASS_WARLOCK        = 9,  // TITLE Warlock
+    // CLASS_HERO        = 10, // Ascension classless/free-pick shell
+    CLASS_DRUID          = 11, // TITLE Druid
+    CLASS_BARBARIAN      = 12, // TITLE Barbarian
+    CLASS_WITCH_DOCTOR   = 13, // TITLE Witch Doctor
+    CLASS_DEMON_HUNTER   = 14, // TITLE Felsworn
+    CLASS_WITCH_HUNTER   = 15, // TITLE Witch Hunter
+    CLASS_STORMBRINGER   = 16, // TITLE Stormbringer
+    CLASS_FLESHWARDEN    = 17, // TITLE Knight of Xoroth
+    CLASS_GUARDIAN       = 18, // TITLE Guardian
+    CLASS_MONK           = 19, // TITLE Templar
+    CLASS_SON_OF_ARUGAL  = 20, // TITLE Bloodmage
+    CLASS_RANGER         = 21, // TITLE Ranger
+    CLASS_CHRONOMANCER   = 22, // TITLE Chronomancer
+    CLASS_NECROMANCER    = 23, // TITLE Necromancer
+    CLASS_PYROMANCER     = 24, // TITLE Pyromancer
+    CLASS_CULTIST        = 25, // TITLE Cultist
+    CLASS_STARCALLER     = 26, // TITLE Starcaller
+    CLASS_SUN_CLERIC     = 27, // TITLE Sun Cleric
+    CLASS_TINKER         = 28, // TITLE Tinker
+    CLASS_PROPHET        = 29, // TITLE Venomancer
+    CLASS_REAPER         = 30, // TITLE Reaper
+    CLASS_WILDWALKER     = 31, // TITLE Primalist
+    CLASS_SPIRIT_MAGE    = 32  // TITLE Runemaster
 };
 
 // max+1 for player class
-#define MAX_CLASSES       12
+#define MAX_CLASSES       33
 
-#define CLASSMASK_ALL_PLAYABLE \
-    ((1<<(CLASS_WARRIOR-1))|(1<<(CLASS_PALADIN-1))|(1<<(CLASS_HUNTER-1))| \
-    (1<<(CLASS_ROGUE-1))  |(1<<(CLASS_PRIEST-1)) |(1<<(CLASS_SHAMAN-1))| \
-    (1<<(CLASS_MAGE-1))   |(1<<(CLASS_WARLOCK-1))|(1<<(CLASS_DRUID-1)) | \
-    (1<<(CLASS_DEATH_KNIGHT-1)))
+// Every client class bit except Ascension's reserved classless/free-pick ID 10.
+#define CLASSMASK_ALL_PLAYABLE 0xFFFFFDFFu
+
+constexpr bool IsAscensionClass(uint8 classId)
+{
+    return classId >= CLASS_BARBARIAN && classId <= CLASS_SPIRIT_MAGE;
+}
+
+// Several WotLK formulas have hard-coded per-class constants rather than DBC
+// data. Keep their fallback in one place until each custom formula is ported.
+constexpr Classes GetLegacyClassForCustomClass(Classes playerClass)
+{
+    switch (playerClass)
+    {
+        case CLASS_BARBARIAN:     return CLASS_ROGUE;
+        case CLASS_WITCH_DOCTOR:  return CLASS_SHAMAN;
+        case CLASS_DEMON_HUNTER:  return CLASS_ROGUE;
+        case CLASS_WITCH_HUNTER:  return CLASS_HUNTER;
+        case CLASS_STORMBRINGER:  return CLASS_SHAMAN;
+        case CLASS_FLESHWARDEN:   return CLASS_WARRIOR;
+        case CLASS_GUARDIAN:      return CLASS_WARRIOR;
+        case CLASS_MONK:          return CLASS_ROGUE;
+        case CLASS_SON_OF_ARUGAL: return CLASS_DRUID;
+        case CLASS_RANGER:        return CLASS_HUNTER;
+        case CLASS_CHRONOMANCER:  return CLASS_PRIEST;
+        case CLASS_NECROMANCER:   return CLASS_WARLOCK;
+        case CLASS_PYROMANCER:    return CLASS_MAGE;
+        case CLASS_CULTIST:       return CLASS_PALADIN;
+        case CLASS_STARCALLER:    return CLASS_DRUID;
+        case CLASS_SUN_CLERIC:    return CLASS_PRIEST;
+        case CLASS_TINKER:        return CLASS_HUNTER;
+        case CLASS_PROPHET:       return CLASS_SHAMAN;
+        case CLASS_REAPER:        return CLASS_ROGUE;
+        case CLASS_WILDWALKER:    return CLASS_DRUID;
+        case CLASS_SPIRIT_MAGE:   return CLASS_SHAMAN;
+        default:                  return playerClass;
+    }
+}
 
 // valid classes for creature_template.unit_class
 #define CLASSMASK_ALL_CREATURES ((1<<(CLASS_WARRIOR-1)) | (1<<(CLASS_PALADIN-1)) | (1<<(CLASS_ROGUE-1)) | (1<<(CLASS_MAGE-1)))
@@ -928,7 +982,26 @@ enum SpellEffects
     SPELL_EFFECT_TALENT_SPEC_SELECT                 = 162,
     SPELL_EFFECT_163                                = 163,
     SPELL_EFFECT_REMOVE_AURA                        = 164,
-    TOTAL_SPELL_EFFECTS                             = 165
+    // Project Ascension extends the 3.3.5 spell-effect range through 198.
+    // Unknown custom effects are loaded and exposed to scripts, but use the
+    // safe null handler until their individual server mechanics are ported.
+    SPELL_EFFECT_ASCENSION_FIRST                    = 165,
+    SPELL_EFFECT_ASCENSION_MODIFY_COOLDOWN          = 165,
+    SPELL_EFFECT_ASCENSION_RESTORE_BASE_MANA_PCT    = 166,
+    SPELL_EFFECT_ASCENSION_SPREAD_AURA              = 169,
+    SPELL_EFFECT_ASCENSION_SPREAD_AURA_2            = 170,
+    SPELL_EFFECT_ASCENSION_REFRESH_AURA             = 173,
+    SPELL_EFFECT_ASCENSION_MODIFY_AURA_STACKS       = 175,
+    SPELL_EFFECT_ASCENSION_MODIFY_AURA_STACKS_2     = 176,
+    SPELL_EFFECT_ASCENSION_MODIFY_AURA_DURATION     = 177,
+    SPELL_EFFECT_ASCENSION_RESTORE_BASE_HEALTH_PCT  = 181,
+    SPELL_EFFECT_ASCENSION_TRIGGER_SPELL_DELAYED    = 183,
+    SPELL_EFFECT_ASCENSION_TRIGGER_RANDOM_SPELL     = 184,
+    SPELL_EFFECT_ASCENSION_RESTORE_SPELL_CHARGES    = 187,
+    SPELL_EFFECT_ASCENSION_APPLY_AURA_TO_SUMMONS    = 190,
+    SPELL_EFFECT_ASCENSION_RESET_COOLDOWN           = 195,
+    SPELL_EFFECT_ASCENSION_LAST                     = 198,
+    TOTAL_SPELL_EFFECTS                             = 199
 };
 
 // EnumUtils: DESCRIBE THIS

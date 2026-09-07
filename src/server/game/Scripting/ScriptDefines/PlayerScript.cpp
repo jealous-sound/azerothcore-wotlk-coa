@@ -237,6 +237,11 @@ void ScriptMgr::OnPlayerCreate(Player* player)
     CALL_ENABLED_HOOKS(PlayerScript, PLAYERHOOK_ON_CREATE, script->OnPlayerCreate(player));
 }
 
+bool ScriptMgr::OnPlayerCreateInitialItems(Player* player, bool& handled)
+{
+    CALL_ENABLED_BOOLEAN_HOOKS(PlayerScript, PLAYERHOOK_ON_CREATE_INITIAL_ITEMS, !script->OnPlayerCreateInitialItems(player, handled));
+}
+
 void ScriptMgr::OnPlayerSave(Player* player)
 {
     CALL_ENABLED_HOOKS(PlayerScript, PLAYERHOOK_ON_SAVE, script->OnPlayerSave(player));
@@ -952,6 +957,13 @@ void ScriptMgr::OnPlayerBeforeGetLevelForXPGain(Player const* player, uint8& lev
 {
     CALL_ENABLED_HOOKS(PlayerScript, PLAYERHOOK_ON_BEFORE_GET_LEVEL_FOR_XP_GAIN, script->OnPlayerBeforeGetLevelForXPGain(player, level));
     level = std::clamp(level, uint8(1), uint8(sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL)));
+}
+
+void ScriptMgr::OnPlayerGetAmmoDisplay(Player* player, SpellInfo const* spellInfo,
+    uint32& displayId, uint32& inventoryType)
+{
+    CALL_ENABLED_HOOKS(PlayerScript, PLAYERHOOK_ON_GET_AMMO_DISPLAY,
+        script->OnPlayerGetAmmoDisplay(player, spellInfo, displayId, inventoryType));
 }
 
 PlayerScript::PlayerScript(char const* name, std::vector<uint16> enabledHooks)
