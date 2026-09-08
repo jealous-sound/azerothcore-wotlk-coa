@@ -116,7 +116,7 @@ Map* MapInstanced::CreateInstanceForPlayer(const uint32 mapId, Player* player)
 
     if (player->GetScriptedPrivateMapId() == mapId)
     {
-        if (!IsNonRaidDungeon() || player->GetGroup())
+        if (!IsNonRaidDungeon() || player->GetScriptedPrivateMembers().size() > 5)
             return nullptr;
 
         uint32 id = player->GetScriptedPrivateInstanceId();
@@ -124,7 +124,8 @@ Map* MapInstanced::CreateInstanceForPlayer(const uint32 mapId, Player* player)
         {
             Map* existing = FindInstanceMap(id);
             return existing && existing->IsScriptedPrivateInstance()
-                && existing->ToInstanceMap()->GetScriptedPrivateOwner() == player->GetGUID() ? existing : nullptr;
+                && existing->ToInstanceMap()->GetScriptedPrivateOwner() == player->GetScriptedPrivateOwner()
+                && existing->ToInstanceMap()->IsScriptedPrivateMember(player->GetGUID()) ? existing : nullptr;
         }
 
         id = sMapMgr->GenerateInstanceId();
@@ -223,7 +224,7 @@ InstanceMap* MapInstanced::CreateInstance(uint32 InstanceId, InstanceSave* save,
     bool const privateInstance = player && player->GetScriptedPrivateMapId() == GetId()
         && player->GetScriptedPrivateInstanceId() == InstanceId;
     if (privateInstance)
-        map->SetScriptedPrivateOwner(player->GetGUID());
+        map->SetScriptedPrivateOwner(player->GetScriptedPrivateOwner(), player->GetScriptedPrivateMembers());
     ASSERT(map->IsDungeon());
     m_InstancedMaps[InstanceId] = map;
 

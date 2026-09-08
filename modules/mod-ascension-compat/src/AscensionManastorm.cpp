@@ -6,6 +6,8 @@
 #include "AscensionManastormData.h"
 #include "AscensionManastormProtocol.h"
 #include "AscensionManastormRules.h"
+#include "AscensionManastormGadgets.h"
+#include "AllSpellScript.h"
 #include "AllCreatureScript.h"
 #include "AllMapScript.h"
 #include "Chat.h"
@@ -15,14 +17,21 @@
 #include "CreatureAI.h"
 #include "DatabaseEnv.h"
 #include "EventMap.h"
+#include "GameObject.h"
 #include "GameTime.h"
 #include "GossipDef.h"
+#include "GlobalScript.h"
+#include "Group.h"
 #include "InstanceScript.h"
+#include "Item.h"
+#include "ItemScript.h"
 #include "Log.h"
+#include "LootMgr.h"
 #include "Mail.h"
 #include "MailMgr.h"
 #include "Map.h"
 #include "MapMgr.h"
+#include "ModelIgnoreFlags.h"
 #include "ObjectMgr.h"
 #include "Player.h"
 #include "PlayerScript.h"
@@ -30,6 +39,9 @@
 #include "SpellAuraEffects.h"
 #include "SpellAuras.h"
 #include "SpellMgr.h"
+#include "Spell.h"
+#include "SpellScript.h"
+#include "SpellScriptLoader.h"
 #include "TemporarySummon.h"
 #include "UnitScript.h"
 #include "World.h"
@@ -48,7 +60,6 @@ namespace
 {
     using namespace Ascension::Manastorm;
     using namespace Acore::ChatCommands;
-    constexpr uint32 MapId = 389;
     constexpr uint32 GuideEntry = 80919;
     constexpr uint32 SafetyBubble = 93306;
     constexpr uint32 SafetyBubbleHelper = 93307;
@@ -65,36 +76,70 @@ namespace
         uint64 token;
         uint16 opcode;
         uint32 depth;
+        uint32 spell = 0;
     };
 
-    struct Run
+    struct RewardMail
     {
-        uint64 token = 0;
-        Progress progress;
+        Mail mail{};
+        std::vector<std::unique_ptr<Item>> items;
+    };
+
+    struct Encounter
+    {
         Phase phase = Phase::Idle;
         uint32 depth = 0;
         uint32 instanceId = 0;
         uint32 level = 0;
         uint32 bossBaseHealth = 0;
         uint32 guideAction = 0;
+        uint32 sceneIndex = 0;
+        uint8 mode = 0;
+        uint32 bonusCaches = 0;
+        uint32 resurrectionCharges = 5;
+        bool treasureSpawned = false;
+        ObjectGuid treasure;
+        std::map<ObjectGuid, float> enemyDamage;
+        std::map<ObjectGuid, time_t> hearts;
         ObjectGuid boss;
         ObjectGuid guide;
         ObjectGuid portal;
-        bool portalArmed = false;
+        std::set<ObjectGuid> portalArmed;
         std::set<ObjectGuid> guards;
+        time_t transferStarted = 0;
+        bool initialized = false;
+        ObjectGuid owner;
+        std::set<ObjectGuid> members;
+        uint32 pendingCommits = 0;
+        bool finished = false;
+    };
+
+    struct Run
+    {
+        std::shared_ptr<Encounter> encounter = std::make_shared<Encounter>();
+        bool needsTransfer = false;
+        uint64 token = 0;
+        Progress progress;
+        uint32 pendingXP = 0;
+        bool awardingXP = false;
+        bool xpClaimPending = false;
+        std::array<uint32, LoadoutSlots> slots{};
+        std::array<uint32, 8> pity{};
+        std::array<uint32, 8> caches{};
         WorldLocation returnLocation;
         EventMap uiEvents;
         time_t lastSeen = 0;
         time_t lastRequest = 0;
-        time_t transferStarted = 0;
-        bool initialized = false;
         bool databaseReady = false;
         bool commitReady = false;
         bool commitSucceeded = false;
         bool progressDirty = false;
-
-        Scene const& GetScene() const { return Scenes.at((depth - 1) % Scenes.size()); }
-        uint32 MaxCompleted() const { return progress[0].empty() ? 0 : progress[0].back(); }
+        bool loadoutDirty = false;
+        bool loadoutPending = false;
+        uint32 pendingSlot = 0;
+        char const* slotResult = nullptr;
+        Scene const& GetScene() const { return Scenes.at(encounter->sceneIndex); }
+        uint32 MaxCompleted() const { return progress[encounter->mode].empty() ? 0 : progress[encounter->mode].back(); }
     };
 
     class ManastormService
@@ -112,6 +157,116 @@ namespace
             enabled.store(sConfigMgr->GetOption<bool>("Ascension.Manastorm.Enable", false));
         }
 
+        void ValidateScenes()
+        {
+            if (!enabled.load())
+                return;
+            for (uint32 i = 0; i < Scenes.size(); ++i)
+            {
+                Scene const& scene = Scenes[i];
+                Map* map = sMapMgr->CreateBaseMap(scene.map);
+                if (!map || !map->IsNonRaidDungeon())
+                    continue;
+                auto valid = [map](Spawn const& spawn)
+                {
+                    if (!spawn.entry)
+                        return true;
+                    float const ground = map->GetHeight(PHASEMASK_NORMAL, spawn.x, spawn.y, spawn.z + 2, true, 10);
+                    return sObjectMgr->GetCreatureTemplate(spawn.entry) && std::isfinite(ground)
+                        && std::abs(ground - spawn.z) <= 4;
+                };
+                if (!valid(scene.entrance) || !valid(scene.boss)
+                    || !std::all_of(scene.guards.begin(), scene.guards.end(), valid))
+                    continue;
+                // Connect the room through visible, walkable segments. Guards behind a bend
+                // are allowed; closed walls, cliffs and isolated platforms are excluded.
+                std::vector<Spawn> points = {scene.entrance, scene.boss};
+                for (Spawn const& guard : scene.guards)
+                    if (guard.entry)
+                        points.push_back(guard);
+                std::vector<bool> reachable(points.size(), false);
+                reachable[0] = true;
+                for (std::size_t pass = 0; pass < points.size(); ++pass)
+                    for (std::size_t a = 0; a < points.size(); ++a)
+                        for (std::size_t b = 0; b < points.size(); ++b)
+                            if (reachable[a] && !reachable[b])
+                            {
+                                Spawn const& from = points[a];
+                                Spawn const& to = points[b];
+                                float const distance = std::hypot(from.x - to.x, from.y - to.y);
+                                if (distance > 70 || !map->isInLineOfSight(from.x, from.y, from.z + 1.5f,
+                                    to.x, to.y, to.z + 1.5f, PHASEMASK_NORMAL, LINEOFSIGHT_ALL_CHECKS,
+                                    VMAP::ModelIgnoreFlags::Nothing))
+                                    continue;
+                                bool walkable = true;
+                                uint32 const steps = uint32(distance / 4) + 1;
+                                for (uint32 step = 1; step < steps; ++step)
+                                {
+                                    float const t = float(step) / steps;
+                                    float const z = from.z + (to.z - from.z) * t;
+                                    float const ground = map->GetHeight(PHASEMASK_NORMAL,
+                                        from.x + (to.x - from.x) * t, from.y + (to.y - from.y) * t, z + 2, true, 10);
+                                    if (!std::isfinite(ground) || std::abs(ground - z) > 3)
+                                    {
+                                        walkable = false;
+                                        break;
+                                    }
+                                }
+                                if (walkable)
+                                    reachable[b] = true;
+                            }
+                if (std::all_of(reachable.begin(), reachable.end(), [](bool value) { return value; }))
+                    validScenes.push_back(i);
+            }
+            LOG_INFO("module.ascension_compat", "Manastorm: {} of {} scenes have available templates and geometry",
+                validScenes.size(), Scenes.size());
+            uint32 const opening = uint32(std::count_if(validScenes.begin(), validScenes.end(), [](uint32 index)
+            {
+                return Scenes[index].unlock == 1;
+            }));
+            LOG_INFO("module.ascension_compat", "Manastorm: {} validated opening rooms", opening);
+            if (!opening)
+            {
+                enabled.store(false);
+                LOG_ERROR("module.ascension_compat", "Manastorm disabled: no reachable opening room is installed");
+            }
+        }
+
+        bool IsAwardingXP(Player const* player)
+        {
+            std::lock_guard<std::recursive_mutex> lock(mutex);
+            auto itr = runs.find(player->GetGUID());
+            return itr != runs.end() && itr->second.awardingXP;
+        }
+
+        SpellCastResult CheckUtility(Player* player, uint32 spell)
+        {
+            Gadget const* gadget = FindGadget(spell);
+            if (!gadget && spell != 254440 && spell != 93309 && spell != 93311)
+                return SPELL_CAST_OK;
+            std::lock_guard<std::recursive_mutex> lock(mutex);
+            auto itr = runs.find(player->GetGUID());
+            if (itr == runs.end() || !OwnsScene(player, itr->second))
+                return SPELL_FAILED_NOT_HERE;
+            Run const& run = itr->second;
+            if (run.encounter->phase != Phase::Preparing && run.encounter->phase != Phase::Running && run.encounter->phase != Phase::Completed)
+                return SPELL_FAILED_NOT_READY;
+            if (spell == 93309 && (!run.encounter->resurrectionCharges || player->IsInCombat()))
+                return player->IsInCombat() ? SPELL_FAILED_AFFECTING_COMBAT : SPELL_FAILED_NO_CHARGES_REMAIN;
+            if (gadget && !gadget->passive && (!player->HasSpell(spell)
+                || std::find(run.slots.begin(), run.slots.end(), spell) == run.slots.end()))
+                return SPELL_FAILED_NOT_READY;
+            return SPELL_CAST_OK;
+        }
+
+        void UsedResurrection(Player* player)
+        {
+            std::lock_guard<std::recursive_mutex> lock(mutex);
+            auto itr = runs.find(player->GetGUID());
+            if (itr != runs.end() && OwnsScene(player, itr->second) && itr->second.encounter->resurrectionCharges)
+                --itr->second.encounter->resurrectionCharges;
+        }
+
         bool Queue(WorldSession* session, WorldPacket const& packet)
         {
             uint16 const opcode = packet.GetOpcode();
@@ -120,16 +275,15 @@ namespace
             uint64 const token = session->GetScriptPacketToken();
             if (!token || !enabled.load())
                 return true;
-            if ((opcode == Enter && packet.size() != 4) || (opcode == Leave && packet.size() != 0))
+            if ((opcode == Enter && packet.size() != 4) || (opcode == Leave && packet.size() != 0)
+                || (opcode == SetSlot && packet.size() != 8))
                 return true;
-            // Loadouts are outside this pilot; no unchecked slot index ever reaches game objects.
-            if (opcode == SetSlot)
-                return true;
-            uint32 const depth = opcode == Enter ? packet.read<uint32>(0) : 0;
+            uint32 const depth = opcode != Leave ? packet.read<uint32>(0) : 0;
+            uint32 const spell = opcode == SetSlot ? packet.read<uint32>(4) : 0;
             std::lock_guard<std::mutex> lock(queueMutex);
             auto& queue = requests[session->GetAccountId()];
             if (queue.size() < MaxQueuedRequests)
-                queue.push_back({token, opcode, depth});
+                queue.push_back({token, opcode, depth, spell});
             return true;
         }
 
@@ -163,29 +317,29 @@ namespace
                 } while (result->NextRow());
             }
             SendProgress(player, run, true);
+            LoadBonusAndSlots(player, run);
             SendCapability(player, run.databaseReady);
-            WorldPacket loadout(LoadoutData, 4);
-            loadout << uint32(0);
-            player->SendDirectMessage(&loadout);
+            SendLoadout(player, run);
 
-            if (run.depth && run.instanceId && GameTime::GetGameTime().count() - run.lastSeen <= ReconnectSeconds)
+            if (run.encounter->depth && run.encounter->instanceId && GameTime::GetGameTime().count() - run.lastSeen <= ReconnectSeconds)
             {
-                Map* map = sMapMgr->FindMap(MapId, run.instanceId);
+                Map* map = sMapMgr->FindMap(run.GetScene().map, run.encounter->instanceId);
                 if (map && map->IsScriptedPrivateInstance()
-                    && map->ToInstanceMap()->GetScriptedPrivateOwner() == player->GetGUID()
-                    && run.phase != Phase::Failed && run.phase != Phase::Leaving)
+                    && map->ToInstanceMap()->IsScriptedPrivateMember(player->GetGUID())
+                    && run.encounter->phase != Phase::Failed && run.encounter->phase != Phase::Leaving)
                 {
-                    player->PrepareScriptedPrivateInstance(MapId, run.returnLocation);
-                    player->SetScriptedPrivateInstanceId(run.instanceId);
+                    player->PrepareScriptedPrivateInstance(run.GetScene().map, run.returnLocation, run.encounter->owner, run.encounter->members);
+                    player->SetScriptedPrivateInstanceId(run.encounter->instanceId);
                     auto const& entry = run.GetScene().entrance;
-                    if (player->TeleportTo(MapId, entry.x, entry.y, entry.z, entry.o, 0, nullptr, true))
+                    if (player->TeleportTo(run.GetScene().map, entry.x, entry.y, entry.z, entry.o, 0, nullptr, true))
                         return;
                     player->ClearScriptedPrivateInstance();
                 }
             }
             // SaveToDB stored the outside position; a server crash never recreates a half-finished scene.
-            run.phase = Phase::Idle;
-            run.depth = run.instanceId = 0;
+            ClearUtilities(player);
+            run.encounter = std::make_shared<Encounter>();
+            run.needsTransfer = false;
             SendActive(player, run);
         }
 
@@ -212,13 +366,14 @@ namespace
             if (itr == runs.end())
                 return;
             Run& run = itr->second;
-            if (run.depth && !OwnsScene(player, run) && run.phase != Phase::Transferring
-                && run.phase != Phase::Leaving && run.phase != Phase::Committing)
+            if (run.encounter->depth && !OwnsScene(player, run) && run.encounter->phase != Phase::Transferring
+                && run.encounter->phase != Phase::Leaving && run.encounter->phase != Phase::Committing)
             {
                 ClearBubble(player);
+                ClearUtilities(player);
                 player->ClearScriptedPrivateInstance();
-                run.phase = Phase::Idle;
-                run.depth = run.instanceId = 0;
+                run.encounter = std::make_shared<Encounter>();
+                run.needsTransfer = false;
                 SendActive(player, run);
             }
         }
@@ -237,7 +392,7 @@ namespace
             for (auto itr = runs.begin(); itr != runs.end();)
             {
                 if (!itr->second.token && now - itr->second.lastSeen > ReconnectSeconds
-                    && (itr->second.phase != Phase::Committing || itr->second.commitReady))
+                    && (itr->second.encounter->phase != Phase::Committing || itr->second.commitReady))
                     itr = runs.erase(itr);
                 else
                     ++itr;
@@ -248,7 +403,7 @@ namespace
                 if (run == runs.end() || !run->second.token)
                     std::erase_if(itr->second, [now](auto const& mail)
                     {
-                        return now - mail->deliver_time > ReconnectSeconds;
+                        return now - mail->mail.deliver_time > ReconnectSeconds;
                     });
                 if (itr->second.empty())
                     itr = readyMails.erase(itr);
@@ -276,14 +431,32 @@ namespace
             if (itr == runs.end())
                 return;
             Run& run = itr->second;
+            if (run.loadoutDirty)
+            {
+                run.loadoutDirty = false;
+                SendLoadout(player, run);
+                if (run.slotResult)
+                {
+                    WorldPacket result(SetSlotResult, 48);
+                    result << run.pendingSlot << run.slotResult;
+                    player->SendDirectMessage(&result);
+                    WorldPacket update(UpdateSlot, 8);
+                    update << run.pendingSlot << run.slots[run.pendingSlot];
+                    player->SendDirectMessage(&update);
+                    run.slotResult = nullptr;
+                }
+            }
             auto delivered = readyMails.find(player->GetGUID());
             if (delivered != readyMails.end())
             {
                 for (auto const& mail : delivered->second)
-                    if (!player->GetMail(mail->messageID))
+                    if (!player->GetMail(mail->mail.messageID))
                     {
-                        player->AddMail(new Mail(*mail));
-                        player->AddNewMailDeliverTime(mail->deliver_time);
+                        player->AddMail(new Mail(mail->mail));
+                        for (auto& item : mail->items)
+                            if (item && !player->GetMItem(item->GetGUID().GetCounter()))
+                                player->AddMItem(item.release());
+                        player->AddNewMailDeliverTime(mail->mail.deliver_time);
                     }
                 readyMails.erase(delivered);
             }
@@ -292,7 +465,22 @@ namespace
                 run.progressDirty = false;
                 SendProgress(player, run, false);
             }
-            if (run.phase == Phase::Committing && run.commitReady && !player->IsBeingTeleported()
+            if (run.databaseReady && run.pendingXP && !run.xpClaimPending && !player->IsBeingTeleported() && player->IsAlive()
+                && (run.encounter->phase == Phase::Idle || run.encounter->phase == Phase::Completed))
+                ClaimXP(player, run);
+            if (run.needsTransfer && run.encounter->instanceId && !player->IsBeingTeleported()
+                && run.encounter->phase != Phase::Leaving && !OwnsScene(player, run))
+            {
+                player->PrepareScriptedPrivateInstance(run.GetScene().map, run.returnLocation,
+                    run.encounter->owner, run.encounter->members);
+                player->SetScriptedPrivateInstanceId(run.encounter->instanceId);
+                Spawn const& entry = run.GetScene().entrance;
+                if (!player->TeleportTo(run.GetScene().map, entry.x, entry.y, entry.z, entry.o, 0, nullptr, true))
+                    run.encounter->phase = Phase::Leaving;
+            }
+            if (run.encounter->phase == Phase::Leaving && !player->IsBeingTeleported() && OwnsScene(player, run))
+                Exit(player, run);
+            if (run.encounter->phase == Phase::Committing && run.commitReady && !player->IsBeingTeleported()
                 && !OwnsScene(player, run))
             {
                 // An external teleport must not strand the journal callback in a departed instance.
@@ -302,14 +490,15 @@ namespace
                 run.commitReady = false;
                 ClearBubble(player);
                 player->ClearScriptedPrivateInstance();
-                run.phase = Phase::Idle;
-                run.depth = run.instanceId = 0;
+                run.encounter = std::make_shared<Encounter>();
+                run.needsTransfer = false;
                 SendActive(player, run);
             }
             run.uiEvents.Update(diff);
             if (run.uiEvents.ExecuteEvent() == EventCapability)
             {
                 SendCapability(player, run.databaseReady);
+                SendProgress(player, run, false);
                 run.uiEvents.ScheduleEvent(EventCapability, 5s);
             }
             for (auto const& request : incoming)
@@ -322,24 +511,26 @@ namespace
                 run.lastRequest = now;
                 if (request.opcode == Enter)
                     Start(player, run, request.depth);
+                else if (request.opcode == SetSlot)
+                    SetLoadout(player, run, request.depth, request.spell);
                 else
                     Exit(player, run);
             }
-            if (run.phase == Phase::Leaving && !player->IsBeingTeleported() && player->GetMapId() != MapId)
+            if (run.encounter->phase == Phase::Leaving && !player->IsBeingTeleported() && !OwnsScene(player, run))
             {
-                run.phase = Phase::Idle;
-                run.depth = run.instanceId = 0;
+                run.encounter = std::make_shared<Encounter>();
+                run.needsTransfer = false;
                 player->ClearScriptedPrivateInstance();
                 SendActive(player, run);
                 SendResult(player, LeaveResult, "LEAVE_MANASTORM_OK");
                 player->SaveToDB(false, false);
             }
-            if (run.phase == Phase::Transferring && !player->IsBeingTeleported() && !OwnsScene(player, run)
-                && GameTime::GetGameTime().count() - run.transferStarted > 10)
+            if (run.encounter->phase == Phase::Transferring && !player->IsBeingTeleported() && !OwnsScene(player, run)
+                && GameTime::GetGameTime().count() - run.encounter->transferStarted > 10)
             {
                 player->ClearScriptedPrivateInstance();
-                run.phase = Phase::Idle;
-                run.depth = run.instanceId = 0;
+                run.encounter = std::make_shared<Encounter>();
+                run.needsTransfer = false;
                 SendActive(player, run);
                 SendResult(player, EnterResult, "ENTER_MANASTORM_UNKNOWN");
             }
@@ -351,7 +542,7 @@ namespace
             auto itr = runs.find(player->GetGUID());
             if (itr == runs.end() || !enabled.load())
             {
-                ChatHandler(player->GetSession()).SendSysMessage("Manastorm pilot is not enabled on this server.");
+                ChatHandler(player->GetSession()).SendSysMessage("Manastorm is not available on this server.");
                 return true;
             }
             Run& run = itr->second;
@@ -360,14 +551,15 @@ namespace
             else if (action == "leave")
                 Exit(player, run);
             else if ((action == "next" || action == "start") && OwnsScene(player, run))
-                run.guideAction = action == "next" ? 2 : 1;
+                run.encounter->guideAction = action == "next" ? 2 : 1;
             else
             {
                 SendCapability(player, run.databaseReady);
                 SendProgress(player, run, true);
                 SendActive(player, run);
                 ChatHandler(player->GetSession()).PSendSysMessage(
-                    "Manastorm: depth {}, completed {}, pilot 1-15 (solo).", run.depth, run.MaxCompleted());
+                    "Manastorm: depth {}, completed {}, resurrection charges {}.",
+                    run.encounter->depth, run.MaxCompleted(), run.encounter->resurrectionCharges);
             }
             return true;
         }
@@ -376,13 +568,15 @@ namespace
         {
             std::lock_guard<std::recursive_mutex> lock(mutex);
             auto itr = runs.find(player->GetGUID());
-            if (itr == runs.end() || map->GetScriptedPrivateOwner() != player->GetGUID())
+            if (itr == runs.end() || !map->IsScriptedPrivateMember(player->GetGUID())
+                || itr->second.encounter->owner != map->GetScriptedPrivateOwner())
                 return;
             Run& run = itr->second;
-            run.instanceId = map->GetInstanceId();
-            if (!run.initialized)
+            run.needsTransfer = false;
+            run.encounter->instanceId = map->GetInstanceId();
+            if (!run.encounter->initialized)
             {
-                run.guards.clear();
+                run.encounter->guards.clear();
                 auto const& scene = run.GetScene();
                 Creature* boss = SpawnEnemy(map, scene.boss, run, true);
                 if (!boss)
@@ -390,7 +584,7 @@ namespace
                     FailRun(player, run);
                     return;
                 }
-                run.boss = boss->GetGUID();
+                run.encounter->boss = boss->GetGUID();
                 for (auto const& spawn : scene.guards)
                     if (spawn.entry)
                     {
@@ -400,23 +594,24 @@ namespace
                             FailRun(player, run);
                             return;
                         }
-                        run.guards.insert(guard->GetGUID());
+                        run.encounter->guards.insert(guard->GetGUID());
                     }
-                run.phase = Phase::Preparing;
-                run.initialized = true;
+                run.encounter->phase = Phase::Preparing;
+                run.encounter->initialized = true;
                 auto const& entry = scene.entrance;
                 player->CastSpell(entry.x, entry.y, entry.z, SafetyBubble, true);
+                SpawnGuide(player, run, entry);
                 ChatHandler(player->GetSession()).SendSysMessage(
                     "Manastorm: leave the safety bubble to begin. Defeat the boss; nearby guards empower Chaotic Link.");
             }
             SendActive(player, run);
-            if (run.phase == Phase::Completed)
+            if (run.encounter->phase == Phase::Completed)
             {
                 WorldPacket completed(CompletedLevel, 4);
-                completed << run.depth;
+                completed << run.encounter->depth;
                 player->SendDirectMessage(&completed);
             }
-            else if (run.phase == Phase::Preparing || run.phase == Phase::Running)
+            else if (run.encounter->phase == Phase::Preparing || run.encounter->phase == Phase::Running)
                 UpdateLink(player, run);
             SendProgress(player, run, false);
             SendResult(player, EnterResult, "ENTER_MANASTORM_OK");
@@ -436,55 +631,112 @@ namespace
             Run& run = itr->second;
             if (player->IsBeingTeleported())
                 return;
-            if (run.phase == Phase::Committing && run.commitReady)
+            if (run.encounter->phase == Phase::Committing && !run.encounter->pendingCommits)
             {
-                run.commitReady = false;
-                if (run.commitSucceeded)
+                bool failed = false;
+                for (ObjectGuid guid : run.encounter->members)
                 {
-                    Finish(player, run);
+                    auto member = runs.find(guid);
+                    if (member != runs.end() && member->second.encounter == run.encounter
+                        && member->second.commitReady && !member->second.commitSucceeded)
+                        failed = true;
                 }
-                else
+                if (failed)
                 {
-                    run.phase = Phase::Failed;
-                    ChatHandler(player->GetSession()).SendSysMessage("Manastorm could not save this clear. "
-                        "No reward was issued; leave and retry from your saved checkpoint.");
+                    run.encounter->phase = Phase::Failed;
+                    ChatHandler(player->GetSession()).SendSysMessage("Manastorm could not save every party reward. "
+                        "Successfully saved rewards remain in the mail; return from your saved checkpoint.");
+                    FailRun(player, run);
+                    return;
                 }
+                for (auto const& reference : map->GetPlayers())
+                    if (Player* member = reference.GetSource())
+                        if (auto state = runs.find(member->GetGUID()); state != runs.end()
+                            && state->second.encounter == run.encounter && state->second.commitReady)
+                        {
+                            state->second.commitReady = false;
+                            Finish(member, state->second);
+                        }
             }
-            if (!player->IsAlive() || player->GetGroup())
+            if (!player->IsAlive())
             {
                 FailRun(player, run);
                 return;
             }
-            if (run.guideAction == 2)
+            if (run.encounter->guideAction == 2)
             {
-                run.guideAction = 0;
-                if (CanAdvance(run.phase, run.depth))
-                    Transfer(player, run, run.depth + 1);
+                run.encounter->guideAction = 0;
+                if (CanAdvance(run.encounter->phase, run.encounter->depth))
+                    Transfer(player, run, run.encounter->depth + 1);
                 return;
             }
-            if (run.phase == Phase::Preparing)
+            if (run.encounter->phase == Phase::Preparing)
             {
-                auto const& entry = run.GetScene().entrance;
-                if (run.guideAction == 1 || player->GetExactDist(entry.x, entry.y, entry.z) > 8.0f)
+                uint32 arrived = 0;
+                for (auto const& reference : map->GetPlayers())
+                    if (Player* member = reference.GetSource())
+                        if (map->IsScriptedPrivateMember(member->GetGUID()) && !member->IsBeingTeleported())
+                            ++arrived;
+                if (arrived < run.encounter->members.size())
                 {
-                    run.guideAction = 0;
-                    ClearBubble(player);
-                    run.phase = Phase::Running;
-                    if (Creature* boss = map->GetCreature(run.boss))
+                    if (GameTime::GetGameTime().count() - run.encounter->transferStarted > 30)
+                        FailRun(player, run);
+                    return;
+                }
+                auto const& entry = run.GetScene().entrance;
+                bool outside = false;
+                for (auto const& reference : map->GetPlayers())
+                    if (Player* member = reference.GetSource())
+                        outside = outside || (member->IsAlive() && member->GetExactDist(entry.x, entry.y, entry.z) > 8.0f);
+                if (run.encounter->guideAction == 1 || outside)
+                {
+                    run.encounter->guideAction = 0;
+                    for (auto const& reference : map->GetPlayers())
+                        if (Player* member = reference.GetSource())
+                            ClearBubble(member);
+                    run.encounter->phase = Phase::Running;
+                    if (Creature* boss = map->GetCreature(run.encounter->boss))
                         boss->SetReactState(REACT_AGGRESSIVE);
-                    for (auto const& guid : run.guards)
+                    for (auto const& guid : run.encounter->guards)
                         if (Creature* guard = map->GetCreature(guid))
                             guard->SetReactState(REACT_AGGRESSIVE);
                 }
             }
-            if (run.phase == Phase::Completed && CanAdvance(run.phase, run.depth))
-                if (Creature* portal = map->GetCreature(run.portal))
+            if (run.encounter->phase == Phase::Running)
+                for (auto heart = run.encounter->hearts.begin(); heart != run.encounter->hearts.end();)
                 {
-                    float const distance = player->GetExactDist(portal);
-                    if (distance > 6.0f)
-                        run.portalArmed = true;
-                    else if (run.portalArmed && distance <= 2.5f)
-                        run.guideAction = 2;
+                    GameObject* object = map->GetGameObject(heart->first);
+                    Player* collector = nullptr;
+                    for (auto const& reference : map->GetPlayers())
+                        if (Player* member = reference.GetSource())
+                            if (object && member->IsAlive() && member->IsWithinDistInMap(object, 2.5f))
+                            {
+                                collector = member;
+                                break;
+                            }
+                    if (!object || collector || heart->second < GameTime::GetGameTime().count())
+                    {
+                        if (collector)
+                            HealFromHeart(collector);
+                        if (object)
+                            object->Delete();
+                        heart = run.encounter->hearts.erase(heart);
+                    }
+                    else
+                        ++heart;
+                }
+            if (run.encounter->phase == Phase::Completed && CanAdvance(run.encounter->phase, run.encounter->depth))
+                if (Creature* portal = map->GetCreature(run.encounter->portal))
+                {
+                    for (auto const& reference : map->GetPlayers())
+                        if (Player* member = reference.GetSource())
+                        {
+                            float const distance = member->GetExactDist(portal);
+                            if (distance > 6.0f)
+                                run.encounter->portalArmed.insert(member->GetGUID());
+                            else if (run.encounter->portalArmed.contains(member->GetGUID()) && distance <= 2.5f)
+                                run.encounter->guideAction = 2;
+                        }
                 }
         }
 
@@ -501,23 +753,42 @@ namespace
             if (itr == runs.end() || !OwnsScene(player, itr->second))
                 return;
             Run& run = itr->second;
-            if (run.phase != Phase::Running || !player->IsAlive())
+            if (run.encounter->phase != Phase::Running || !player->IsAlive())
                 return;
-            if (unit->GetGUID() == run.boss)
-                Complete(player, run);
-            else if (run.guards.erase(unit->GetGUID()))
+            if (unit->GetGUID() == run.encounter->boss)
+            {
+                run.encounter->phase = Phase::Committing;
+                for (auto const& reference : map->GetPlayers())
+                    if (Player* member = reference.GetSource())
+                        if (auto state = runs.find(member->GetGUID()); state != runs.end()
+                            && state->second.encounter == run.encounter)
+                            Complete(member, state->second);
+            }
+            else if (unit->GetGUID() == run.encounter->treasure)
+            {
+                run.encounter->treasure.Clear();
+                run.encounter->bonusCaches += 2;
+                ChatHandler(player->GetSession()).SendSysMessage("Treasure Keeper defeated: two additional caches secured.");
+            }
+            else if (run.encounter->guards.erase(unit->GetGUID()))
             {
                 UpdateLink(player, run);
-                // Authored Hearty Heal formula; no triggered helper or implicit class SP coefficient.
-                uint32 const heal = uint32(10 + player->GetLevel() * 7
-                    + player->SpellBaseHealingBonusDone(SPELL_SCHOOL_MASK_ALL) * 0.13247f
-                    + player->GetTotalAttackPowerValue(BASE_ATTACK) * 0.092729f);
-                if (SpellInfo const* info = sSpellMgr->GetSpellInfo(HeartyHeal))
+                if (GameObject* heart = map->SummonGameObject(80779, unit->GetPosition(), 0, 0, 0, 1, 60))
+                    run.encounter->hearts[heart->GetGUID()] = GameTime::GetGameTime().count() + 60;
+                if (!run.encounter->treasureSpawned && roll_chance_f(std::min(10.0f, 2.0f + run.encounter->depth * 0.015f)))
                 {
-                    HealInfo healInfo(player, player, heal, info, info->GetSchoolMask());
-                    player->HealBySpell(healInfo, false);
+                    run.encounter->treasureSpawned = true;
+                    Spawn const spawn{10111377, unit->GetPositionX(), unit->GetPositionY(), unit->GetPositionZ(),
+                        unit->GetOrientation()};
+                    if (Creature* treasure = SpawnEnemy(map, spawn, run, false))
+                    {
+                        run.encounter->treasure = treasure->GetGUID();
+                        treasure->RemoveAurasDueToSpell(UnrelentingSpeed);
+                        treasure->RemoveAurasDueToSpell(Leeching);
+                        treasure->RemoveAurasDueToSpell(TribalFury);
+                        treasure->SetReactState(REACT_AGGRESSIVE);
+                    }
                 }
-                player->EnergizeBySpell(player, HeartyHeal, player->GetMaxPower(POWER_MANA) * 15 / 100, POWER_MANA);
             }
         }
 
@@ -526,17 +797,25 @@ namespace
             if (!victim || !victim->IsInWorld() || !victim->FindMap() || !victim->GetMap()->IsScriptedPrivateInstance())
                 return;
             std::lock_guard<std::recursive_mutex> lock(mutex);
-            ObjectGuid const owner = victim->GetMap()->ToInstanceMap()->GetScriptedPrivateOwner();
-            auto itr = runs.find(owner);
-            if (itr == runs.end() || itr->second.instanceId != victim->GetInstanceId())
+            Player* member = FindOwner(victim->GetMap()->ToInstanceMap());
+            if (!member)
+                return;
+            auto itr = runs.find(member->GetGUID());
+            if (itr == runs.end() || itr->second.encounter->instanceId != victim->GetInstanceId())
                 return;
             Run const& run = itr->second;
-            if (run.phase != Phase::Running)
+            if (run.encounter->phase != Phase::Running)
                 damage = 0;
-            else if (attacker && attacker->GetGUID() == run.boss)
-                damage = uint32(float(damage) * LinkedDamage(uint32(run.guards.size())));
+            else if (attacker)
+            {
+                auto scale = run.encounter->enemyDamage.find(attacker->GetGUID());
+                if (scale != run.encounter->enemyDamage.end())
+                    damage = uint32(std::min(50000000.0f, float(damage) * scale->second));
+                if (attacker->GetGUID() == run.encounter->boss)
+                    damage = uint32(std::min(100000000.0f, float(damage) * LinkedDamage(uint32(run.encounter->guards.size()))));
+            }
             if (damage && attacker && attacker->IsAlive() && attacker->HasAura(Leeching)
-                && (attacker->GetGUID() == run.boss || run.guards.contains(attacker->GetGUID())))
+                && (attacker->GetGUID() == run.encounter->boss || run.encounter->guards.contains(attacker->GetGUID())))
                 if (SpellInfo const* info = sSpellMgr->GetSpellInfo(Leeching))
                 {
                     uint32 const amount = std::min(damage, victim->GetHealth()) * 30 / 100;
@@ -549,15 +828,46 @@ namespace
         {
             std::lock_guard<std::recursive_mutex> lock(mutex);
             auto itr = runs.find(player->GetGUID());
-            if (itr == runs.end() || !OwnsScene(player, itr->second) || creature->GetGUID() != itr->second.guide
-                || !player->IsAlive() || !player->IsWithinDistInMap(creature, INTERACTION_DISTANCE))
+            bool const companion = creature->GetEntry() == GuideEntry && creature->IsSummon()
+                && creature->ToTempSummon()->GetSummonerGUID() == player->GetGUID();
+            bool const guide = itr != runs.end() && OwnsScene(player, itr->second)
+                && creature->GetGUID() == itr->second.encounter->guide;
+            if (itr == runs.end() || (!guide && !companion)
+                || !player->IsAlive() || player->IsInCombat()
+                || !player->IsWithinDistInMap(creature, INTERACTION_DISTANCE))
                 return false;
-            if (!action)
+            if (!action || action == 10)
             {
                 ClearGossipMenuFor(player);
-                if (CanAdvance(itr->second.phase, itr->second.depth))
+                if (action == 10)
+                {
+                    for (uint32 i = 0; i < Gadgets.size(); ++i)
+                    {
+                        Gadget const& gadget = Gadgets[i];
+                        if (player->HasSpell(gadget.spell) || (gadget.previous && !player->HasSpell(gadget.previous))
+                            || player->HasItemCount(gadget.item, 1, true))
+                            continue;
+                        if (ItemTemplate const* item = sObjectMgr->GetItemTemplate(gadget.item))
+                            AddGossipItemFor(player, GOSSIP_ICON_VENDOR,
+                                item->Name1 + " - " + std::to_string(gadget.cost) + " Bonzo Bolts", GOSSIP_SENDER_MAIN, 100 + i);
+                    }
+                    if (!player->HasSpell(93418) && !player->HasItemCount(98074, 1, true))
+                        AddGossipItemFor(player, GOSSIP_ICON_VENDOR, "Cogsley companion - 10 Bedlam Bullion",
+                            GOSSIP_SENDER_MAIN, 20);
+                    AddGossipItemFor(player, GOSSIP_ICON_VENDOR, "Exchange 1 Bedlam Bullion for 10 Bonzo Bolts",
+                        GOSSIP_SENDER_MAIN, 21);
+                    AddGossipItemFor(player, GOSSIP_ICON_CHAT, "Back", GOSSIP_SENDER_MAIN, 1);
+                    SendGossipMenuFor(player, DEFAULT_GOSSIP_MESSAGE, creature->GetGUID());
+                    return true;
+                }
+                if (guide && CanAdvance(itr->second.encounter->phase, itr->second.encounter->depth))
                     AddGossipItemFor(player, GOSSIP_ICON_CHAT, "Continue the Manastorm", GOSSIP_SENDER_MAIN, 2);
-                AddGossipItemFor(player, GOSSIP_ICON_CHAT, "Leave the Manastorm", GOSSIP_SENDER_MAIN, 3);
+                AddGossipItemFor(player, GOSSIP_ICON_CHAT, "Collect rewards from the mailbox", GOSSIP_SENDER_MAIN, 4);
+                AddGossipItemFor(player, GOSSIP_ICON_VENDOR, "Manastorm potions and upgrades", GOSSIP_SENDER_MAIN, 10);
+                AddGossipItemFor(player, GOSSIP_ICON_VENDOR, "Repair equipment and sell items", GOSSIP_SENDER_MAIN, 5);
+                AddGossipItemFor(player, GOSSIP_ICON_CHAT, "Replace missing starter potions", GOSSIP_SENDER_MAIN, 6);
+                if (guide)
+                    AddGossipItemFor(player, GOSSIP_ICON_CHAT, "Leave the Manastorm", GOSSIP_SENDER_MAIN, 3);
                 SendGossipMenuFor(player, DEFAULT_GOSSIP_MESSAGE, creature->GetGUID());
             }
             else
@@ -566,27 +876,284 @@ namespace
                 if (action == 3)
                     Exit(player, itr->second);
                 else if (action == 2)
-                    itr->second.guideAction = 2;
+                    itr->second.encounter->guideAction = 2;
+                else if (action == 1)
+                    Gossip(player, creature, 0);
+                else if (action == 4)
+                    player->GetSession()->SendShowMailBox(creature->GetGUID());
+                else if (action == 5)
+                    player->GetSession()->SendListInventory(creature->GetGUID());
+                else if (action == 6)
+                    GiveStarterItems(player);
+                else if (action == 20 && !player->HasSpell(93418) && !player->HasItemCount(98074, 1, true))
+                    BuyItem(player, 98074, 1, 1297307, 10);
+                else if (action == 21)
+                    BuyItem(player, 1297308, 10, 1297307, 1);
+                else if (action >= 100 && action - 100 < Gadgets.size())
+                {
+                    Gadget const& gadget = Gadgets[action - 100];
+                    if (!player->HasSpell(gadget.spell) && (!gadget.previous || player->HasSpell(gadget.previous))
+                        && !player->HasItemCount(gadget.item, 1, true))
+                        BuyItem(player, gadget.item, 1, 1297308, gadget.cost);
+                }
             }
             return true;
         }
 
     private:
-        Player* FindOwner(InstanceMap* map) const
+        void SpawnGuide(Player* player, Run& run, Spawn const& position)
         {
+            if (Creature* previous = player->GetMap()->GetCreature(run.encounter->guide))
+                previous->DespawnOrUnsummon();
+            if (Creature* guide = player->GetMap()->SummonCreature(GuideEntry,
+                Position(position.x, position.y, position.z, position.o)))
+            {
+                guide->SetFaction(35);
+                guide->SetReactState(REACT_PASSIVE);
+                guide->ReplaceAllNpcFlags(UNIT_NPC_FLAG_GOSSIP | UNIT_NPC_FLAG_MAILBOX | UNIT_NPC_FLAG_REPAIR
+                    | UNIT_NPC_FLAG_VENDOR);
+                run.encounter->guide = guide->GetGUID();
+            }
+        }
+
+        void BuyItem(Player* player, uint32 entry, uint32 count, uint32 currency, uint32 price)
+        {
+            if (!player->HasItemCount(currency, price))
+            {
+                ChatHandler(player->GetSession()).SendSysMessage("You do not have enough Manastorm currency.");
+                return;
+            }
+            ItemPosCountVec positions;
+            InventoryResult const result = player->CanStoreNewItem(NULL_BAG, NULL_SLOT, positions, entry, count);
+            if (result != EQUIP_ERR_OK)
+            {
+                player->SendEquipError(result, nullptr, nullptr, entry);
+                return;
+            }
+            Item* item = player->StoreNewItem(positions, entry, true);
+            if (!item)
+                return;
+            player->DestroyItemCount(currency, price, true);
+            player->SendNewItem(item, count, true, false);
+            // The inventory purchase uses the same native character transaction as ordinary vendors.
+            player->SaveToDB(false, false);
+        }
+
+        static Gadget const* FindGadget(uint32 spell)
+        {
+            auto itr = std::find_if(Gadgets.begin(), Gadgets.end(), [spell](Gadget const& gadget)
+            {
+                return gadget.spell == spell;
+            });
+            return itr == Gadgets.end() ? nullptr : &*itr;
+        }
+
+        void LoadBonusAndSlots(Player* player, Run& run)
+        {
+            bool bonusReady = false;
+            bool slotsReady = false;
+            auto* bonus = CharacterDatabase.GetPreparedStatement(CHAR_SEL_MANASTORM_BONUS);
+            bonus->SetData(0, player->GetGUID().GetCounter());
+            if (PreparedQueryResult result = CharacterDatabase.Query(bonus))
+                do
+                {
+                    Field* fields = result->Fetch();
+                    uint8 const mode = fields[0].Get<uint8>();
+                    if (mode == 255)
+                        bonusReady = true;
+                    else if (mode < run.pity.size())
+                    {
+                        run.pity[mode] = std::min(10000u, fields[1].Get<uint32>());
+                        run.caches[mode] = fields[2].Get<uint32>();
+                    }
+                } while (result->NextRow());
+            auto* slots = CharacterDatabase.GetPreparedStatement(CHAR_SEL_MANASTORM_LOADOUT);
+            slots->SetData(0, player->GetGUID().GetCounter());
+            if (PreparedQueryResult result = CharacterDatabase.Query(slots))
+                do
+                {
+                    Field* fields = result->Fetch();
+                    uint8 const slot = fields[0].Get<uint8>();
+                    if (slot == 255)
+                        slotsReady = true;
+                    else if (slot < run.slots.size())
+                    {
+                        uint32 const spell = fields[1].Get<uint32>();
+                        run.slots[slot] = player->HasSpell(spell) && FindGadget(spell) ? spell : 0;
+                    }
+                } while (result->NextRow());
+            auto* xp = CharacterDatabase.GetPreparedStatement(CHAR_SEL_MANASTORM_XP);
+            xp->SetData(0, player->GetGUID().GetCounter());
+            PreparedQueryResult xpResult = CharacterDatabase.Query(xp);
+            if (xpResult)
+                run.pendingXP = uint32(std::min<uint64>(xpResult->Fetch()[0].Get<uint64>(), 1000000000));
+            run.databaseReady = run.databaseReady && bonusReady && slotsReady && bool(xpResult);
+        }
+
+        void ClaimXP(Player* player, Run& run)
+        {
+            uint32 const amount = run.pendingXP;
+            run.pendingXP = 0;
+            run.xpClaimPending = true;
+            run.awardingXP = true;
+            player->GiveXP(amount, nullptr);
+            run.awardingXP = false;
+            auto transaction = CharacterDatabase.BeginTransaction();
+            player->SaveToDB(transaction, false, false);
+            auto* claim = CharacterDatabase.GetPreparedStatement(CHAR_CLAIM_MANASTORM_XP);
+            claim->SetData(0, amount);
+            claim->SetData(1, player->GetGUID().GetCounter());
+            transaction->Append(claim);
+            ObjectGuid const guid = player->GetGUID();
+            uint64 const token = run.token;
+            transactions.emplace_back(CharacterDatabase.AsyncCommitTransaction(transaction));
+            transactions.back().AfterComplete([this, guid, token](bool success)
+            {
+                if (auto itr = runs.find(guid); itr != runs.end())
+                {
+                    itr->second.xpClaimPending = false;
+                    if (itr->second.token != token)
+                        ReloadXP(guid, itr->second);
+                    if (!success)
+                    {
+                        // The durable voucher remains. Reload the persisted character before retrying.
+                        itr->second.databaseReady = false;
+                        LOG_ERROR("module.ascension_compat", "Manastorm XP save failed for {}; relog required", guid.ToString());
+                    }
+                }
+            });
+        }
+
+        void ReloadXP(ObjectGuid guid, Run& run)
+        {
+            auto* statement = CharacterDatabase.GetPreparedStatement(CHAR_SEL_MANASTORM_XP);
+            statement->SetData(0, guid.GetCounter());
+            if (PreparedQueryResult result = CharacterDatabase.Query(statement))
+                run.pendingXP = uint32(std::min<uint64>(result->Fetch()[0].Get<uint64>(), 1000000000));
+            else
+                run.databaseReady = false;
+        }
+
+        void SendLoadout(Player* player, Run const& run)
+        {
+            WorldPacket packet(LoadoutData, 20);
+            packet << uint32(run.slots.size());
+            for (uint32 spell : run.slots)
+                packet << spell;
+            player->SendDirectMessage(&packet);
+        }
+
+        void SetLoadout(Player* player, Run& run, uint32 slot, uint32 spell)
+        {
+            char const* error = nullptr;
+            Gadget const* gadget = FindGadget(spell);
+            if (!run.databaseReady || run.loadoutPending)
+                error = "SET_MANASTORM_LOADOUT_UNKNOWN";
+            else if (slot >= LoadoutSlots)
+                error = "SET_MANASTORM_LOADOUT_OUT_OF_RANGE";
+            else if (run.encounter->phase != Phase::Idle)
+                error = "SET_MANASTORM_LOADOUT_ACTIVE_MANASTORM";
+            else if (spell && (!gadget || gadget->passive))
+                error = "SET_MANASTORM_LOADOUT_BAD_SPELL";
+            else if (spell && !player->HasSpell(spell))
+                error = "SET_MANASTORM_LOADOUT_NOT_KNOWN";
+            else if (spell)
+            {
+                for (Gadget const& other : Gadgets)
+                    if (other.family == gadget->family && other.rank > gadget->rank && player->HasSpell(other.spell))
+                        error = "SET_MANASTORM_LOADOUT_BAD_RANK";
+                for (uint32 i = 0; i < run.slots.size(); ++i)
+                    if (i != slot)
+                        if (Gadget const* other = FindGadget(run.slots[i]))
+                            if (other->family == gadget->family)
+                                error = "SET_MANASTORM_LOADOUT_ALREADY_SET";
+            }
+            if (error)
+            {
+                WorldPacket packet(SetSlotResult, 64);
+                packet << slot << error;
+                player->SendDirectMessage(&packet);
+                return;
+            }
+            auto* statement = CharacterDatabase.GetPreparedStatement(CHAR_REP_MANASTORM_LOADOUT);
+            statement->SetData(0, player->GetGUID().GetCounter());
+            statement->SetData(1, uint8(slot));
+            statement->SetData(2, spell);
+            auto transaction = CharacterDatabase.BeginTransaction();
+            transaction->Append(statement);
+            run.loadoutPending = true;
+            ObjectGuid const guid = player->GetGUID();
+            transactions.emplace_back(CharacterDatabase.AsyncCommitTransaction(transaction));
+            transactions.back().AfterComplete([this, guid, slot, spell](bool success)
+            {
+                auto itr = runs.find(guid);
+                if (itr == runs.end())
+                    return;
+                Run& state = itr->second;
+                if (success)
+                    state.slots[slot] = spell;
+                state.loadoutPending = false;
+                state.loadoutDirty = true;
+                state.pendingSlot = slot;
+                state.slotResult = success ? "SET_MANASTORM_LOADOUT_OK" : "SET_MANASTORM_LOADOUT_UNKNOWN";
+            });
+        }
+
+        void GiveStarterItems(Player* player)
+        {
+            for (uint32 item : {254041u, 97895u, 254042u})
+                if (!player->HasItemCount(item, 1, true))
+                    if (!player->AddItem(item, 1))
+                        ChatHandler(player->GetSession()).SendSysMessage(
+                            "Make room in your bags, then ask Cogsley to replace your missing starter potions.");
+        }
+
+        void HealFromHeart(Player* player)
+        {
+            uint32 rank = 0;
+            for (Gadget const& gadget : Gadgets)
+                if (gadget.passive && player->HasSpell(gadget.spell))
+                    rank = std::max(rank, gadget.rank);
+            float const ap = std::max(player->GetTotalAttackPowerValue(BASE_ATTACK),
+                player->GetTotalAttackPowerValue(RANGED_ATTACK));
+            uint32 const heal = uint32((10 + player->GetLevel() * 7
+                + player->SpellBaseHealingBonusDone(SPELL_SCHOOL_MASK_ALL) * 0.13247f + ap * 0.092729f)
+                * (1.0f + rank * 0.25f));
+            if (SpellInfo const* info = sSpellMgr->GetSpellInfo(HeartyHeal))
+            {
+                HealInfo healInfo(player, player, heal, info, info->GetSchoolMask());
+                player->HealBySpell(healInfo, false);
+            }
+            player->EnergizeBySpell(player, HeartyHeal, player->GetMaxPower(POWER_MANA) * 15 / 100, POWER_MANA);
+            player->CastSpell(player, 93394, true);
+        }
+
+        Player* FindOwner(InstanceMap* map)
+        {
+            std::lock_guard<std::recursive_mutex> lock(mutex);
+            Player* fallback = nullptr;
             for (auto const& reference : map->GetPlayers())
                 if (Player* player = reference.GetSource())
-                    if (player->GetGUID() == map->GetScriptedPrivateOwner())
-                        return player;
-            return nullptr;
+                {
+                    auto itr = runs.find(player->GetGUID());
+                    if (itr != runs.end() && OwnsScene(player, itr->second))
+                    {
+                        if (player->IsAlive() && !player->IsBeingTeleported())
+                            return player;
+                        fallback = player;
+                    }
+                }
+            return fallback;
         }
 
         bool OwnsScene(Player const* player, Run const& run) const
         {
             Map* map = player->FindMap();
-            return map && run.instanceId && player->GetMapId() == MapId && player->GetInstanceId() == run.instanceId
+            return map && run.encounter->instanceId && player->GetMapId() == run.GetScene().map
+                && player->GetInstanceId() == run.encounter->instanceId
                 && map->IsScriptedPrivateInstance()
-                && map->ToInstanceMap()->GetScriptedPrivateOwner() == player->GetGUID();
+                && map->ToInstanceMap()->IsScriptedPrivateMember(player->GetGUID())
+                && map->ToInstanceMap()->GetScriptedPrivateOwner() == run.encounter->owner;
         }
 
         void SendResult(Player* player, uint16 opcode, char const* result)
@@ -599,7 +1166,7 @@ namespace
         void SendCapability(Player* player, bool ready)
         {
             WorldPacket packet;
-            std::string const message = ready ? "LOCAL_MANASTORM\t1:15:10:59" : "LOCAL_MANASTORM\t0:0:0:0";
+            std::string const message = ready ? "LOCAL_MANASTORM\t1:16384:10:80" : "LOCAL_MANASTORM\t0:0:0:0";
             ChatHandler::BuildChatPacket(packet, CHAT_MSG_WHISPER, LANG_ADDON, player->GetGUID(), player->GetGUID(),
                 message, 0, player->GetName(), player->GetName(), 0, false);
             player->SendDirectMessage(&packet);
@@ -611,46 +1178,99 @@ namespace
             if (!initial)
                 packet << player->GetGUID().GetRawValue();
             WriteProgress(packet, run.progress);
-            player->SendDirectMessage(&packet);
+            if (!initial && player->GetGroup())
+                player->GetGroup()->BroadcastPacket(&packet, false);
+            else
+                player->SendDirectMessage(&packet);
         }
 
         void SendActive(Player* player, Run const& run)
         {
-            bool const active = run.depth && run.phase != Phase::Idle && run.phase != Phase::Leaving;
+            bool const active = run.encounter->depth && run.encounter->phase != Phase::Idle && run.encounter->phase != Phase::Leaving;
             WorldPacket packet(ActiveData, 40);
-            WriteActive(packet, active ? run.depth : 0, active ? run.GetScene().stage : 0, 0);
+            uint32 const stage = run.encounter->mode >= 4 ? run.GetScene().endgameStage : run.GetScene().stage;
+            WriteActive(packet, active ? run.encounter->depth : 0, active ? stage : 0, run.encounter->mode, 0,
+                CacheChance(run.pity[run.encounter->mode], std::max(1u, run.encounter->depth), run.encounter->mode >= 4) / 100.0f,
+                CacheForLevel(player->GetLevel(), run.encounter->depth, run.encounter->mode >= 4));
             player->SendDirectMessage(&packet);
         }
 
         void Start(Player* player, Run& run, uint32 depth)
         {
+            if (!player->IsInWorld() || !player->FindMap() || player->GetMap()->Instanceable())
+            {
+                SendResult(player, EnterResult, "ENTER_MANASTORM_UNKNOWN");
+                return;
+            }
+            std::vector<Player*> party;
+            Group* group = player->GetGroup();
+            if (group && (!group->IsLeader(player->GetGUID()) || group->isRaidGroup() || group->GetMembersCount() > 5))
+            {
+                SendResult(player, EnterResult, "ENTER_MANASTORM_BAD_GROUP_SIZE");
+                return;
+            }
+            for (auto const& reference : player->GetMap()->GetPlayers())
+                if (Player* member = reference.GetSource())
+                    if ((member == player || (group && member->GetGroup() == group))
+                        && player->IsWithinDistInMap(member, 100.0f))
+                        party.push_back(member);
+            if (party.size() != (group ? group->GetMembersCount() : 1))
+            {
+                ChatHandler(player->GetSession()).SendSysMessage("Gather your party within 100 yards before entering.");
+                SendResult(player, EnterResult, "ENTER_MANASTORM_BAD_GROUP_SIZE");
+                return;
+            }
+            uint32 maxLevel = 0;
+            uint32 minLevel = 255;
+            for (Player* member : party)
+            {
+                maxLevel = std::max(maxLevel, uint32(member->GetLevel()));
+                minLevel = std::min(minLevel, uint32(member->GetLevel()));
+            }
+            uint8 const mode = uint8(std::min<std::size_t>(party.size() - 1, 3)
+                + (maxLevel >= std::max(60u, sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL)) ? 4 : 0));
             char const* error = nullptr;
-            if (!run.databaseReady)
-                error = "ENTER_MANASTORM_UNKNOWN";
-            else if (run.phase != Phase::Idle)
-                error = "ENTER_MANASTORM_ALREADY_ACTIVE";
-            else if (player->GetLevel() < MinPlayerLevel)
+            if (minLevel < MinPlayerLevel)
                 error = "ENTER_MANASTORM_TOO_LOW_PLAYER_LEVEL";
-            else if (player->GetLevel() > MaxPilotPlayerLevel)
-                error = "ENTER_MANASTORM_END_GAME_NOT_ENABLED";
-            else if (player->GetGroup())
+            else if (maxLevel - minLevel > 10)
                 error = "ENTER_MANASTORM_BAD_GROUP_SIZE";
-            else if (!CanStart(depth, run.MaxCompleted()))
-                error = "ENTER_MANASTORM_BAD_LEVEL";
-            else if (!player->IsInWorld() || !player->FindMap() || player->GetMap()->Instanceable()
-                || !player->IsAlive() || player->IsInCombat()
-                || player->IsBeingTeleported() || player->GetTransport() || player->GetVehicle() || player->duel)
-                error = "ENTER_MANASTORM_UNKNOWN";
-            else if (player->IsInFlight())
-                error = "ENTER_MANASTORM_ON_FLIGHT_PATH";
+            for (Player* member : party)
+            {
+                auto itr = runs.find(member->GetGUID());
+                if (itr == runs.end() || !itr->second.databaseReady || !member->IsAlive() || member->IsInCombat()
+                    || member->IsBeingTeleported() || member->GetTransport() || member->GetVehicle() || member->duel)
+                    error = "ENTER_MANASTORM_UNKNOWN";
+                else if (itr->second.encounter->phase != Phase::Idle || itr->second.loadoutPending)
+                    error = "ENTER_MANASTORM_ALREADY_ACTIVE";
+                else if (member->IsInFlight())
+                    error = "ENTER_MANASTORM_ON_FLIGHT_PATH";
+                else
+                {
+                    auto const& progress = itr->second.progress[mode];
+                    uint32 const completed = progress.empty() ? 0 : progress.back();
+                    if (!CanStart(depth, completed, mode >= 4))
+                        error = "ENTER_MANASTORM_BAD_LEVEL";
+                }
+            }
             if (error)
             {
                 SendResult(player, EnterResult, error);
                 return;
             }
-            run.returnLocation = WorldLocation(player->GetMapId(), player->GetPositionX(), player->GetPositionY(),
-                player->GetPositionZ(), player->GetOrientation());
-            run.level = player->GetLevel();
+            auto encounter = std::make_shared<Encounter>();
+            encounter->owner = player->GetGUID();
+            encounter->mode = mode;
+            encounter->level = maxLevel;
+            for (Player* member : party)
+                encounter->members.insert(member->GetGUID());
+            for (Player* member : party)
+            {
+                Run& state = runs.at(member->GetGUID());
+                state.encounter = encounter;
+                state.returnLocation = WorldLocation(member->GetMapId(), member->GetPositionX(), member->GetPositionY(),
+                    member->GetPositionZ(), member->GetOrientation());
+                GiveStarterItems(member);
+            }
             Transfer(player, run, depth);
         }
 
@@ -658,36 +1278,89 @@ namespace
         {
             if (player->IsBeingTeleported() || player->IsInCombat() || !player->IsAlive())
                 return;
-            Phase const previousPhase = run.phase;
-            uint32 const previousDepth = run.depth;
-            uint32 const previousInstance = run.instanceId;
-            ClearBubble(player);
-            run.depth = depth;
-            run.phase = Phase::Transferring;
-            run.transferStarted = GameTime::GetGameTime().count();
-            player->PrepareScriptedPrivateInstance(MapId, run.returnLocation);
-            auto const& entry = run.GetScene().entrance;
-            if (!player->TeleportTo(MapId, entry.x, entry.y, entry.z, entry.o, 0, nullptr, true))
+            uint32 maxLevel = 0;
+            uint32 present = 0;
+            for (auto const& reference : player->GetMap()->GetPlayers())
+                if (Player* member = reference.GetSource())
+                    if (run.encounter->members.contains(member->GetGUID()) && !member->IsBeingTeleported())
+                    {
+                        ++present;
+                        maxLevel = std::max(maxLevel, uint32(member->GetLevel()));
+                    }
+            if (present != run.encounter->members.size())
             {
-                run.phase = previousPhase;
-                run.depth = previousDepth;
+                run.encounter->portalArmed.clear();
+                ChatHandler(player->GetSession()).SendSysMessage("Wait for every party member before continuing.");
+                return;
+            }
+            if (run.encounter->mode < 4 && maxLevel >= std::max(60u, sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL)))
+            {
+                ChatHandler(player->GetSession()).SendSysMessage("Maximum level reached! Your rewards are saved. Enter again to begin endgame Manastorm.");
+                Exit(player, run);
+                return;
+            }
+            run.encounter->level = maxLevel;
+            Phase const previousPhase = run.encounter->phase;
+            uint32 const previousDepth = run.encounter->depth;
+            uint32 const previousInstance = run.encounter->instanceId;
+            uint32 const previousScene = run.encounter->sceneIndex;
+            uint32 const previousMap = run.GetScene().map;
+            ClearBubble(player);
+            std::vector<uint32> choices;
+            for (uint32 index : validScenes)
+                if (Scenes[index].unlock <= depth && (index != previousScene || depth == 1))
+                    choices.push_back(index);
+            if (choices.empty() && Scenes[previousScene].unlock <= depth
+                && std::find(validScenes.begin(), validScenes.end(), previousScene) != validScenes.end())
+                choices.push_back(previousScene);
+            if (choices.empty())
+            {
+                SendResult(player, EnterResult, "ENTER_MANASTORM_UNKNOWN");
+                return;
+            }
+            run.encounter->sceneIndex = depth == 1 ? choices.front() : choices[urand(0, uint32(choices.size() - 1))];
+            run.encounter->depth = depth;
+            run.encounter->phase = Phase::Transferring;
+            run.encounter->transferStarted = GameTime::GetGameTime().count();
+            player->PrepareScriptedPrivateInstance(run.GetScene().map, run.returnLocation, run.encounter->owner, run.encounter->members);
+            auto const& entry = run.GetScene().entrance;
+            if (!player->TeleportTo(run.GetScene().map, entry.x, entry.y, entry.z, entry.o, 0, nullptr, true))
+            {
+                run.encounter->phase = previousPhase;
+                run.encounter->depth = previousDepth;
+                run.encounter->sceneIndex = previousScene;
+                player->PrepareScriptedPrivateInstance(previousMap, run.returnLocation, run.encounter->owner, run.encounter->members);
                 player->SetScriptedPrivateInstanceId(previousInstance);
                 if (!previousInstance)
                     player->ClearScriptedPrivateInstance();
                 SendResult(player, EnterResult, "ENTER_MANASTORM_UNKNOWN");
                 return;
             }
-            if (Map* previous = sMapMgr->FindMap(MapId, previousInstance))
+            if (Map* previous = sMapMgr->FindMap(previousMap, previousInstance))
                 if (previous->IsScriptedPrivateInstance())
                     previous->ToInstanceMap()->RequestScriptedPrivateUnload();
-            run.instanceId = 0;
-            run.initialized = false;
-            run.guide.Clear();
-            run.portal.Clear();
-            run.portalArmed = false;
-            run.boss.Clear();
-            run.guards.clear();
+            run.encounter->instanceId = 0;
+            run.encounter->initialized = false;
+            run.encounter->guide.Clear();
+            run.encounter->portal.Clear();
+            run.encounter->portalArmed.clear();
+            run.encounter->boss.Clear();
+            run.encounter->guards.clear();
             run.commitReady = false;
+            run.encounter->enemyDamage.clear();
+            run.encounter->hearts.clear();
+            run.encounter->treasure.Clear();
+            run.encounter->treasureSpawned = false;
+            run.encounter->bonusCaches = 0;
+            run.encounter->resurrectionCharges = 5;
+            run.encounter->finished = false;
+            run.encounter->pendingCommits = 0;
+            for (ObjectGuid guid : run.encounter->members)
+                if (auto state = runs.find(guid); state != runs.end() && state->second.encounter == run.encounter)
+                {
+                    state->second.needsTransfer = true;
+                    state->second.commitReady = false;
+                }
         }
 
         Creature* SpawnEnemy(InstanceMap* map, Spawn const& spawn, Run& run, bool boss)
@@ -704,39 +1377,48 @@ namespace
             Creature* creature = map->SummonCreature(spawn.entry, Position(spawn.x, spawn.y, spawn.z, spawn.o));
             if (!creature)
                 return nullptr;
-            creature->SetLevel(run.level);
+            creature->SetLevel(run.encounter->level);
             creature->SetFaction(16);
             creature->SetReactState(REACT_PASSIVE);
             creature->SetLootRewardDisabled(true);
             creature->SetReputationRewardDisabled(true);
             creature->SetLootMode(0);
-            float const scale = 1.0f + float(run.depth - 1) * 0.06f;
-            uint32 const health = uint32((140 + 35 * run.level) * scale * (boss ? 4.0f : 1.0f));
+            float const scale = 1.0f + float(run.encounter->depth - 1) * 0.06f + float(run.encounter->depth - 1) * (run.encounter->depth - 1) * 0.0004f;
+            float const groupHealth = 1.0f + float(run.encounter->members.size() - 1) * 0.8f;
+            uint32 const health = uint32(std::min(500000000.0f,
+                (140 + 35 * run.encounter->level) * scale * (boss ? 4.0f : 1.0f) * groupHealth));
             creature->SetMaxHealth(health);
             creature->SetHealth(health);
-            creature->SetBaseWeaponDamage(BASE_ATTACK, MINDAMAGE, (5.0f + run.level) * scale);
-            creature->SetBaseWeaponDamage(BASE_ATTACK, MAXDAMAGE, (8.0f + run.level * 1.4f) * scale);
+            float const ratio = float(run.encounter->level) / std::max(1u, uint32(creature->GetCreatureTemplate()->maxlevel));
+            float const groupDamage = 1.0f + float(run.encounter->members.size() - 1) * 0.1f;
+            float const spellScale = std::clamp(ratio * ratio, 0.01f, 64.0f) * scale * groupDamage;
+            run.encounter->enemyDamage[creature->GetGUID()] = spellScale;
+            creature->SetInt32Value(UNIT_FIELD_ATTACK_POWER, 0);
+            creature->SetBaseWeaponDamage(BASE_ATTACK, MINDAMAGE, (5.0f + run.encounter->level) * scale * groupDamage / spellScale);
+            creature->SetBaseWeaponDamage(BASE_ATTACK, MAXDAMAGE, (8.0f + run.encounter->level * 1.4f) * scale * groupDamage / spellScale);
+            creature->SetStatFlatModifier(UNIT_MOD_ARMOR, BASE_VALUE, float(run.encounter->level) * 20.0f);
+            creature->UpdateArmor();
             creature->UpdateDamagePhysical(BASE_ATTACK);
-            if (run.depth >= 6)
+            if (run.encounter->depth >= 6)
             {
                 constexpr std::array<uint32, 3> affixes = {UnrelentingSpeed, Leeching, TribalFury};
                 // Only the boss carries the nearby-allies emitter; do not multiply emitters on each guard.
-                uint32 const affix = affixes[(run.depth - 6) % affixes.size()];
+                uint32 const affix = affixes[(run.encounter->depth - 6) % affixes.size()];
                 if (affix != TribalFury || boss)
                     creature->AddAura(affix, creature);
             }
             if (boss)
-                run.bossBaseHealth = health;
+                run.encounter->bossBaseHealth = health;
             return creature;
         }
 
         void UpdateLink(Player* player, Run& run)
         {
-            uint32 const stacks = uint32(run.guards.size());
-            if (Creature* boss = player->GetMap()->GetCreature(run.boss))
+            uint32 const stacks = uint32(run.encounter->guards.size());
+            if (Creature* boss = player->GetMap()->GetCreature(run.encounter->boss))
             {
                 float const fraction = boss->GetHealthPct() / 100.0f;
-                uint32 const health = LinkedHealth(run.bossBaseHealth, stacks);
+                uint32 const health = LinkedHealth(run.encounter->bossBaseHealth, stacks);
                 boss->SetMaxHealth(health);
                 boss->SetHealth(std::max(1u, uint32(health * fraction)));
                 if (stacks)
@@ -749,40 +1431,78 @@ namespace
             }
             WorldPacket packet(ChaoticLink, 4);
             packet << stacks;
-            player->SendDirectMessage(&packet);
+            for (auto const& reference : player->GetMap()->GetPlayers())
+                if (Player* member = reference.GetSource())
+                    member->SendDirectMessage(&packet);
         }
 
         void Complete(Player* player, Run& run)
         {
-            run.phase = Phase::Committing;
-            // Replays earn no additional first-clear mail.
-            if (std::binary_search(run.progress[0].begin(), run.progress[0].end(), run.depth))
-            {
-                Finish(player, run);
-                return;
-            }
-            auto mail = std::make_shared<Mail>();
+            run.encounter->phase = Phase::Committing;
+            uint8 const mode = run.encounter->mode;
+            bool const first = !std::binary_search(run.progress[mode].begin(), run.progress[mode].end(), run.encounter->depth);
+            uint32 const chance = CacheChance(run.pity[mode], run.encounter->depth, mode >= 4);
+            bool const wonCache = urand(1, 10000) <= chance;
+            uint32 const pity = wonCache ? 0 : chance;
+            uint32 const cacheCount = uint32(wonCache) + run.encounter->bonusCaches;
+            uint32 const totalCaches = run.caches[mode] + cacheCount;
+            auto reward = std::make_shared<RewardMail>();
+            Mail* mail = &reward->mail;
             mail->messageID = sObjectMgr->GenerateMailID();
             mail->messageType = MAIL_CREATURE;
             mail->stationery = MAIL_STATIONERY_DEFAULT;
             mail->sender = GuideEntry;
             mail->receiver = player->GetGUID().GetCounter();
-            mail->subject = "Manastorm: first clear " + std::to_string(run.depth);
-            mail->body = "Local Manastorm pilot reward. Your checkpoint progress has been saved.";
-            mail->money = RewardCopper;
+            mail->subject = "Manastorm: level " + std::to_string(run.encounter->depth);
+            mail->body = first ? "A new depth conquered! Your first-completion bullion, bolts and spoils are enclosed."
+                : "Another storm conquered! Your bolts and spoils are enclosed. Keep pushing deeper!";
+            mail->money = player->GetLevel() * 20 * (1 + std::min(run.encounter->depth, 1000u) / 10);
             mail->deliver_time = GameTime::GetGameTime().count();
             mail->expire_time = mail->deliver_time + 30 * DAY;
             mail->checked = MAIL_CHECK_MASK_HAS_BODY;
             mail->state = MAIL_STATE_UNCHANGED;
             CharacterDatabaseTransaction transaction = CharacterDatabase.BeginTransaction();
-            auto* clear = CharacterDatabase.GetPreparedStatement(CHAR_INS_MANASTORM_CLEAR);
-            clear->SetData(0, player->GetGUID().GetCounter());
-            clear->SetData(1, uint8(0));
-            clear->SetData(2, run.depth);
-            clear->SetData(3, run.GetScene().stage);
-            clear->SetData(4, mail->messageID);
-            clear->SetData(5, uint32(mail->deliver_time));
-            transaction->Append(clear);
+            if (first)
+            {
+                auto* clear = CharacterDatabase.GetPreparedStatement(CHAR_INS_MANASTORM_CLEAR);
+                clear->SetData(0, player->GetGUID().GetCounter());
+                clear->SetData(1, mode);
+                clear->SetData(2, run.encounter->depth);
+                clear->SetData(3, run.GetScene().stage);
+                clear->SetData(4, mail->messageID);
+                clear->SetData(5, uint32(mail->deliver_time));
+                transaction->Append(clear);
+            }
+            auto* bonus = CharacterDatabase.GetPreparedStatement(CHAR_REP_MANASTORM_BONUS);
+            bonus->SetData(0, player->GetGUID().GetCounter());
+            bonus->SetData(1, mode);
+            bonus->SetData(2, pity);
+            bonus->SetData(3, totalCaches);
+            transaction->Append(bonus);
+            std::vector<std::pair<uint32, uint32>> items;
+            items.emplace_back(1297308, BoltReward(run.encounter->depth) + run.encounter->bonusCaches * 10);
+            if (first)
+                items.emplace_back(1297307, BullionReward(run.encounter->depth));
+            for (uint32 i = 0; i < cacheCount; ++i)
+                items.emplace_back(CacheForLevel(player->GetLevel(), run.encounter->depth, mode >= 4), 1);
+            for (auto const& [entry, count] : items)
+            {
+                std::unique_ptr<Item> item(Item::CreateItem(entry, count, player));
+                if (!item)
+                {
+                    run.commitReady = true;
+                    run.commitSucceeded = false;
+                    return;
+                }
+                item->SaveToDB(transaction);
+                mail->AddItem(item->GetGUID().GetCounter(), entry);
+                auto* attachment = CharacterDatabase.GetPreparedStatement(CHAR_INS_MAIL_ITEM);
+                attachment->SetData(0, mail->messageID);
+                attachment->SetData(1, item->GetGUID().GetCounter());
+                attachment->SetData(2, mail->receiver);
+                transaction->Append(attachment);
+                reward->items.push_back(std::move(item));
+            }
             // Native mail persistence, with in-memory publication postponed until COMMIT succeeds.
             auto* statement = CharacterDatabase.GetPreparedStatement(CHAR_INS_MAIL);
             statement->SetData(0, mail->messageID);
@@ -793,7 +1513,7 @@ namespace
             statement->SetData(5, mail->receiver);
             statement->SetData(6, mail->subject);
             statement->SetData(7, mail->body);
-            statement->SetData(8, false);
+            statement->SetData(8, true);
             statement->SetData(9, uint32(mail->expire_time));
             statement->SetData(10, uint32(mail->deliver_time));
             statement->SetData(11, mail->money);
@@ -801,28 +1521,48 @@ namespace
             statement->SetData(13, uint8(mail->checked));
             transaction->Append(statement);
             ObjectGuid const guid = player->GetGUID();
-            uint32 const instanceId = run.instanceId;
-            uint32 const depth = run.depth;
-            transactions.emplace_back(CharacterDatabase.AsyncCommitTransaction(transaction));
-            transactions.back().AfterComplete([this, guid, instanceId, depth, mail](bool success)
+            uint32 const instanceId = run.encounter->instanceId;
+            uint32 const depth = run.encounter->depth;
+            uint32 const xp = mode < 4 ? uint32(sObjectMgr->GetXPForLevel(player->GetLevel()) *
+                (first ? 0.075f : 0.06f)) : 0;
+            uint64 const token = run.token;
+            if (xp)
             {
+                auto* voucher = CharacterDatabase.GetPreparedStatement(CHAR_ADD_MANASTORM_XP);
+                voucher->SetData(0, guid.GetCounter());
+                voucher->SetData(1, xp);
+                transaction->Append(voucher);
+            }
+            auto encounter = run.encounter;
+            ++encounter->pendingCommits;
+            transactions.emplace_back(CharacterDatabase.AsyncCommitTransaction(transaction));
+            transactions.back().AfterComplete([this, guid, instanceId, depth, reward, mode, pity, totalCaches, xp,
+                encounter, token](bool success)
+            {
+                --encounter->pendingCommits;
                 auto itr = runs.find(guid);
                 if (success)
                 {
                     sMailMgr->OnMailSent(guid.GetCounter());
-                    readyMails[guid].push_back(mail);
+                    readyMails[guid].push_back(reward);
                     if (itr != runs.end())
                     {
-                        auto& progress = itr->second.progress[0];
+                        auto& progress = itr->second.progress[mode];
                         if (!std::binary_search(progress.begin(), progress.end(), depth))
                         {
                             progress.push_back(depth);
                             std::sort(progress.begin(), progress.end());
                         }
                         itr->second.progressDirty = true;
+                        itr->second.pity[mode] = pity;
+                        itr->second.caches[mode] = totalCaches;
+                        if (itr->second.token != token)
+                            ReloadXP(guid, itr->second);
+                        else
+                            itr->second.pendingXP += xp;
                     }
                 }
-                if (itr != runs.end() && itr->second.instanceId == instanceId && itr->second.depth == depth)
+                if (itr != runs.end() && itr->second.encounter->instanceId == instanceId && itr->second.encounter->depth == depth)
                 {
                     itr->second.commitReady = true;
                     itr->second.commitSucceeded = success;
@@ -832,38 +1572,42 @@ namespace
 
         void Finish(Player* player, Run& run)
         {
-            if (!std::binary_search(run.progress[0].begin(), run.progress[0].end(), run.depth))
+            if (!std::binary_search(run.progress[run.encounter->mode].begin(), run.progress[run.encounter->mode].end(), run.encounter->depth))
             {
-                run.progress[0].push_back(run.depth);
-                std::sort(run.progress[0].begin(), run.progress[0].end());
+                run.progress[run.encounter->mode].push_back(run.encounter->depth);
+                std::sort(run.progress[run.encounter->mode].begin(), run.progress[run.encounter->mode].end());
             }
-            run.phase = Phase::Completed;
-            for (auto const& guid : run.guards)
+            run.encounter->phase = Phase::Completed;
+            if (!player->IsAlive())
+            {
+                player->ResurrectPlayer(1.0f);
+                player->SpawnCorpseBones();
+            }
+            for (auto const& guid : run.encounter->guards)
                 if (Creature* guard = player->GetMap()->GetCreature(guid))
                     guard->DespawnOrUnsummon();
-            run.guards.clear();
+            run.encounter->guards.clear();
             player->CombatStop(true);
+            if (run.pendingXP && !run.xpClaimPending)
+                ClaimXP(player, run);
             WorldPacket completed(CompletedLevel, 4);
-            completed << run.depth;
+            completed << run.encounter->depth;
             player->SendDirectMessage(&completed);
             SendProgress(player, run, false);
+            SendActive(player, run);
+            if (run.encounter->finished)
+                return;
+            run.encounter->finished = true;
             auto const& pos = run.GetScene().boss;
             if (Creature* portal = player->GetMap()->SummonCreature(12999, Position(pos.x, pos.y, pos.z, pos.o)))
             {
                 portal->SetReactState(REACT_PASSIVE);
                 portal->AddAura(PortalAura, portal);
-                run.portal = portal->GetGUID();
+                run.encounter->portal = portal->GetGUID();
             }
-            if (Creature* guide = player->GetMap()->SummonCreature(GuideEntry, Position(pos.x, pos.y, pos.z, pos.o)))
-            {
-                guide->SetFaction(35);
-                guide->SetReactState(REACT_PASSIVE);
-                guide->ReplaceAllNpcFlags(UNIT_NPC_FLAG_GOSSIP);
-                run.guide = guide->GetGUID();
-            }
-            ChatHandler(player->GetSession()).SendSysMessage(run.depth < MaxDepth
-                ? "Manastorm complete. Speak to Cogsley to continue or leave. First-clear rewards arrive by mail."
-                : "Manastorm pilot complete: depth 15. Speak to Cogsley to leave. Your progress is saved.");
+            SpawnGuide(player, run, pos);
+            ChatHandler(player->GetSession()).SendSysMessage(
+                "Manastorm complete. Cogsley has your mail, supplies and the way forward.");
         }
 
         void ClearBubble(Player* player)
@@ -873,49 +1617,59 @@ namespace
             player->RemoveAurasDueToSpell(SafetyBubbleHelper);
         }
 
+        void ClearUtilities(Player* player)
+        {
+            for (Gadget const& gadget : Gadgets)
+                if (!gadget.passive)
+                    player->RemoveAurasDueToSpell(gadget.spell);
+            player->RemoveAurasDueToSpell(93311);
+            player->RemoveAurasDueToSpell(254462);
+        }
+
         void FailRun(Player* player, Run& run)
         {
-            if (run.phase == Phase::Committing)
+            if (run.encounter->phase == Phase::Committing)
                 return; // Preserve the pending durable completion until its outcome is known.
-            if (run.phase != Phase::Failed)
+            if (run.encounter->phase != Phase::Failed)
             {
                 WorldPacket failed(Fail, 0);
                 player->SendDirectMessage(&failed);
             }
-            run.phase = Phase::Failed;
+            run.encounter->phase = Phase::Failed;
             Exit(player, run);
         }
 
         void Exit(Player* player, Run& run)
         {
-            if (run.phase == Phase::Idle)
+            if (run.encounter->phase == Phase::Idle)
             {
                 SendResult(player, LeaveResult, "LEAVE_MANASTORM_NOT_ACTIVE");
                 return;
             }
-            if (player->IsBeingTeleported() || run.phase == Phase::Committing)
+            if (player->IsBeingTeleported() || run.encounter->phase == Phase::Committing)
             {
                 SendResult(player, LeaveResult, "LEAVE_MANASTORM_TRANSITION");
                 return;
             }
             ClearBubble(player);
+            ClearUtilities(player);
             player->CombatStop(true);
             if (!player->IsAlive())
             {
                 player->ResurrectPlayer(0.5f);
                 player->SpawnCorpseBones();
             }
-            Phase const previous = run.phase;
-            run.phase = Phase::Leaving;
+            Phase const previous = run.encounter->phase;
+            run.encounter->phase = Phase::Leaving;
             player->ClearScriptedPrivateInstance();
             if (!player->TeleportTo(run.returnLocation))
             {
-                player->PrepareScriptedPrivateInstance(MapId, run.returnLocation);
-                player->SetScriptedPrivateInstanceId(run.instanceId);
-                run.phase = previous;
+                player->PrepareScriptedPrivateInstance(run.GetScene().map, run.returnLocation, run.encounter->owner, run.encounter->members);
+                player->SetScriptedPrivateInstanceId(run.encounter->instanceId);
+                run.encounter->phase = previous;
                 SendResult(player, LeaveResult, "LEAVE_MANASTORM_UNKNOWN");
             }
-            else if (Map* previousMap = sMapMgr->FindMap(MapId, run.instanceId))
+            else if (Map* previousMap = sMapMgr->FindMap(run.GetScene().map, run.encounter->instanceId))
                 if (previousMap->IsScriptedPrivateInstance())
                     previousMap->ToInstanceMap()->RequestScriptedPrivateUnload();
         }
@@ -926,7 +1680,8 @@ namespace
         std::recursive_mutex mutex;
         std::map<uint32, std::deque<Request>> requests;
         std::map<ObjectGuid, Run> runs;
-        std::map<ObjectGuid, std::vector<std::shared_ptr<Mail>>> readyMails;
+        std::map<ObjectGuid, std::vector<std::shared_ptr<RewardMail>>> readyMails;
+        std::vector<uint32> validScenes;
         std::list<TransactionCallback> transactions;
     };
 
@@ -947,7 +1702,7 @@ namespace
         ManastormMaps() : AllMapScript("AscensionManastormMaps") { }
         void OnBeforeCreateInstanceScript(InstanceMap* map, InstanceScript** script, bool, std::string, uint32) override
         {
-            if (map->GetId() == MapId && map->IsScriptedPrivateInstance())
+            if (map->IsScriptedPrivateInstance())
                 *script = new ManastormInstance(map);
         }
     };
@@ -963,6 +1718,12 @@ namespace
             auto* statement = CharacterDatabase.GetPreparedStatement(CHAR_DEL_MANASTORM_CLEARS);
             statement->SetData(0, guid);
             transaction->Append(statement);
+            for (auto id : {CHAR_DEL_MANASTORM_BONUS, CHAR_DEL_MANASTORM_LOADOUT, CHAR_DEL_MANASTORM_XP})
+            {
+                auto* extra = CharacterDatabase.GetPreparedStatement(id);
+                extra->SetData(0, guid);
+                transaction->Append(extra);
+            }
         }
         void OnPlayerMapChanged(Player* player) override { ManastormService::Get().MapChanged(player); }
         void OnPlayerUpdate(Player* player, uint32 diff) override
@@ -972,7 +1733,7 @@ namespace
         void OnPlayerGiveXP(Player* player, uint32& amount, Unit*, uint8) override
         {
             Map const* map = player->FindMap();
-            if (map && map->IsScriptedPrivateInstance())
+            if (map && map->IsScriptedPrivateInstance() && !ManastormService::Get().IsAwardingXP(player))
                 amount = 0;
         }
         bool OnPlayerPassedQuestKilledMonsterCredit(Player* player, Quest const*, uint32, uint32, ObjectGuid) override
@@ -1000,12 +1761,100 @@ namespace
         }
     };
 
+    class ManastormSpells final : public AllSpellScript
+    {
+    public:
+        ManastormSpells() : AllSpellScript("AscensionManastormSpells") { }
+        void OnSpellCheckCast(Spell* spell, bool, SpellCastResult& result) override
+        {
+            if (Player* player = spell->GetCaster()->ToPlayer())
+            {
+                SpellCastResult const utility = ManastormService::Get().CheckUtility(player, spell->GetSpellInfo()->Id);
+                if (utility != SPELL_CAST_OK)
+                    result = utility;
+            }
+        }
+        void OnSpellHitResult(Spell* spell, Unit*, uint8 miss, uint32, uint32, bool) override
+        {
+            if (!miss && spell->GetSpellInfo()->Id == 93309)
+                if (Player* player = spell->GetCaster()->ToPlayer())
+                    ManastormService::Get().UsedResurrection(player);
+        }
+    };
+
+    class spell_ascension_manastorm_potion final : public SpellScript
+    {
+        PrepareSpellScript(spell_ascension_manastorm_potion);
+        void Resource(SpellEffIndex effect)
+        {
+            PreventHitDefaultEffect(effect);
+            GetCaster()->CastSpell(GetCaster(), 254462, true);
+        }
+        void Register() override
+        {
+            OnEffectHitTarget += SpellEffectFn(spell_ascension_manastorm_potion::Resource, EFFECT_2, 183);
+        }
+    };
+
+    class ManastormLoot final : public GlobalScript
+    {
+    public:
+        ManastormLoot() : GlobalScript("AscensionManastormLoot", {GLOBALHOOK_ON_BEFORE_LOOT_EQUAL_CHANCED}) { }
+        bool OnBeforeLootEqualChanced(Player const* player, std::list<LootStoreItem*> entries,
+            Loot& loot, LootStore const& store) override
+        {
+            if (!player || &store != &LootTemplates_Item)
+                return true;
+            Item const* container = player->GetItemByGuid(loot.containerGUID);
+            constexpr std::array<uint32, 9> caches = {97877, 97878, 97879, 97880, 97881, 97882, 97883, 1278050, 1278051};
+            if (!container || std::find(caches.begin(), caches.end(), container->GetEntry()) == caches.end()
+                || entries.empty())
+                return true;
+            std::vector<LootStoreItem*> eligible;
+            uint32 bestLevel = 0;
+            for (LootStoreItem* entry : entries)
+                if (ItemTemplate const* item = sObjectMgr->GetItemTemplate(entry->itemid))
+                    if (player->CanUseItem(item) == EQUIP_ERR_OK
+                        && (!item->GetSkill() || player->GetSkillValue(item->GetSkill())))
+                    {
+                        eligible.push_back(entry);
+                        bestLevel = std::max(bestLevel, item->RequiredLevel);
+                    }
+            // Prefer gear close to the opener's level, retaining neutral slots for every class.
+            std::erase_if(eligible, [bestLevel](LootStoreItem const* entry)
+            {
+                return sObjectMgr->GetItemTemplate(entry->itemid)->RequiredLevel + 5 < bestLevel;
+            });
+            if (!eligible.empty())
+                loot.AddItem(*eligible[urand(0, uint32(eligible.size() - 1))]);
+            else
+                // An unusually restricted character still gets a real tradable dungeon item.
+                loot.AddItem(**std::next(entries.begin(), urand(0, uint32(entries.size() - 1))));
+            return false;
+        }
+    };
+
+    class item_ascension_manastorm_cache final : public ItemScript
+    {
+    public:
+        item_ascension_manastorm_cache() : ItemScript("item_ascension_manastorm_cache") { }
+        bool OnUse(Player* player, Item* item, SpellCastTargets const&) override
+        {
+            if (player->IsAlive() && !player->IsInCombat())
+                player->SendLoot(item->GetGUID(), LOOT_CORPSE);
+            return true;
+        }
+    };
+
     class ManastormGuides final : public AllCreatureScript
     {
     public:
         ManastormGuides() : AllCreatureScript("AscensionManastormGuides") { }
         void OnCreatureAddWorld(Creature* creature) override
         {
+            if (creature->GetEntry() == GuideEntry)
+                creature->ReplaceAllNpcFlags(UNIT_NPC_FLAG_GOSSIP | UNIT_NPC_FLAG_MAILBOX | UNIT_NPC_FLAG_REPAIR
+                    | UNIT_NPC_FLAG_VENDOR);
             if (creature->GetMap()->IsScriptedPrivateInstance())
             {
                 creature->SetLootRewardDisabled(true);
@@ -1029,6 +1878,7 @@ namespace
         ManastormWorld() : WorldScript("AscensionManastormWorld") { }
         void OnAfterConfigLoad(bool reload) override { if (!reload) ManastormService::Get().Configure(); }
         void OnUpdate(uint32) override { ManastormService::Get().PollTransactions(); }
+        void OnStartup() override { ManastormService::Get().ValidateScenes(); }
     };
 
     class ManastormCommands final : public CommandScript
@@ -1084,6 +1934,10 @@ void AddAscensionManastormScripts()
     new ManastormMaps();
     new ManastormPlayers();
     new ManastormUnits();
+    new ManastormSpells();
+    new ManastormLoot();
+    new item_ascension_manastorm_cache();
+    RegisterSpellScript(spell_ascension_manastorm_potion);
     new ManastormGuides();
     new ManastormCommands();
 }

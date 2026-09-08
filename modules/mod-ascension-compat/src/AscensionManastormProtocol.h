@@ -16,7 +16,8 @@ namespace Ascension::Manastorm
         Enter = 0x651, EnterResult = 0x652, ProgressUpdate = 0x65D,
         CompletedLevel = 0x65E, Data = 0x65F, ActiveData = 0x660,
         Leave = 0x665, LeaveResult = 0x666, Fail = 0x67B,
-        ChaoticLink = 0x67F, LoadoutData = 0x688, SetSlot = 0x689
+        ChaoticLink = 0x67F, LoadoutData = 0x688, SetSlot = 0x689,
+        SetSlotResult = 0x68A, UpdateSlot = 0x68B
     };
 
     inline constexpr std::array<char const*, 8> Types = {
@@ -37,10 +38,11 @@ namespace Ascension::Manastorm
     }
 
     template<class Buffer>
-    void WriteActive(Buffer& packet, std::uint32_t depth, std::uint32_t scene, std::uint8_t type)
+    void WriteActive(Buffer& packet, std::uint32_t depth, std::uint32_t scene, std::uint8_t type,
+        std::uint32_t caches = 0, float chance = 0, std::uint32_t item = 0)
     {
         // RVA 2A1E90: two DWORDs, NUL-terminated type, DWORD caches, float chance, DWORD item.
-        packet << depth << scene << Types.at(type) << std::uint32_t(0) << float(0) << std::uint32_t(0);
+        packet << depth << scene << Types.at(type) << caches << chance << item;
     }
 }
 

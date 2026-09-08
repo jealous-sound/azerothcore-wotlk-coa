@@ -5610,17 +5610,35 @@ void Unit::RemoveNotOwnSingleTargetAuras()
     }
 }
 
+bool Unit::HasManastormMovementGrace() const
+{
+    // Aura 313 is a private client extension. Only the eight authored Mobility Mixtures
+    // in an authorized scripted instance enable it; unrelated aura-313 class spells do not.
+    Map const* map = FindMap();
+    if (!IsPlayer() || !map || !map->IsScriptedPrivateInstance())
+        return false;
+    for (uint32 spell : {1300179u, 1300186u, 1300187u, 1300188u, 1300189u, 1300190u, 1300191u, 1300192u})
+        if (HasAura(spell))
+            return true;
+    return false;
+}
+
 void Unit::RemoveAurasWithInterruptFlags(uint32 flag, uint32 except, bool isAutoshot /*= false*/)
 {
     if (!(m_interruptMask & flag))
         return;
 
-    // interrupt auras
+    Spell* channel = m_currentSpells[CURRENT_CHANNELED_SPELL];
+    bool const mobileChannel = channel && HasManastormMovementGrace();
+    uint32 const channelId = channel ? channel->m_spellInfo->Id : 0;
+    // Drink, stealth and all other auras retain their own movement interruption.
     for (AuraApplicationList::iterator iter = m_interruptableAuras.begin(); iter != m_interruptableAuras.end();)
     {
         Aura* aura = (*iter)->GetBase();
         ++iter;
-        if ((aura->GetSpellInfo()->AuraInterruptFlags & flag) && (!except || aura->GetId() != except))
+        uint32 const auraFlags = mobileChannel && aura->GetId() == channelId
+            ? flag & ~(AURA_INTERRUPT_FLAG_MOVE | AURA_INTERRUPT_FLAG_TURNING) : flag;
+        if ((aura->GetSpellInfo()->AuraInterruptFlags & auraFlags) && (!except || aura->GetId() != except))
         {
             uint32 removedAuras = m_removedAurasCount;
             RemoveAura(aura);
@@ -5632,7 +5650,9 @@ void Unit::RemoveAurasWithInterruptFlags(uint32 flag, uint32 except, bool isAuto
     // interrupt channeled spell
     if (Spell* spell = m_currentSpells[CURRENT_CHANNELED_SPELL])
     {
-        if (spell->getState() == SPELL_STATE_CASTING && (spell->m_spellInfo->ChannelInterruptFlags & flag) && spell->m_spellInfo->Id != except)
+        uint32 const channelFlags = HasManastormMovementGrace()
+            ? flag & ~(AURA_INTERRUPT_FLAG_MOVE | AURA_INTERRUPT_FLAG_TURNING) : flag;
+        if (spell->getState() == SPELL_STATE_CASTING && (spell->m_spellInfo->ChannelInterruptFlags & channelFlags) && spell->m_spellInfo->Id != except)
         {
             // Do not interrupt if auto shot
             if (!(isAutoshot && spell->m_spellInfo->HasAttribute(SPELL_ATTR2_DO_NOT_RESET_COMBAT_TIMERS)))

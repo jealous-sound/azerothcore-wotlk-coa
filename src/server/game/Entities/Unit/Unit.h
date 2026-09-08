@@ -1598,6 +1598,7 @@ public:
     // delayed+channeled spells are always accounted as casted
     // we can skip channeled or delayed checks using flags
     [[nodiscard]] bool IsNonMeleeSpellCast(bool withDelayed, bool skipChanneled = false, bool skipAutorepeat = false, bool isAutoshoot = false, bool skipInstant = true) const;
+    [[nodiscard]] bool HasManastormMovementGrace() const;
 
     // set withDelayed to true to interrupt delayed spells too
     // delayed+channeled spells are always interrupted

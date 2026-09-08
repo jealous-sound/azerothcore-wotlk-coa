@@ -656,6 +656,16 @@ void CharacterDatabaseConnection::DoPrepareStatements()
     // A duplicate first clear must fail the WHOLE transaction, including its reward mail.
     PrepareStatement(CHAR_INS_MANASTORM_CLEAR, "INSERT INTO ascension_manastorm_clear (guid, mode, depth, scene, mail_id, completed_at) VALUES (?, ?, ?, ?, ?, ?)", CONNECTION_ASYNC);
     PrepareStatement(CHAR_DEL_MANASTORM_CLEARS, "DELETE FROM ascension_manastorm_clear WHERE guid = ?", CONNECTION_ASYNC);
+    PrepareStatement(CHAR_SEL_MANASTORM_BONUS, "SELECT mode, pity, caches FROM ascension_manastorm_bonus WHERE guid = ? UNION ALL SELECT 255, 0, 0", CONNECTION_SYNCH);
+    PrepareStatement(CHAR_REP_MANASTORM_BONUS, "REPLACE INTO ascension_manastorm_bonus (guid, mode, pity, caches) VALUES (?, ?, ?, ?)", CONNECTION_ASYNC);
+    PrepareStatement(CHAR_DEL_MANASTORM_BONUS, "DELETE FROM ascension_manastorm_bonus WHERE guid = ?", CONNECTION_ASYNC);
+    PrepareStatement(CHAR_SEL_MANASTORM_LOADOUT, "SELECT slot, spell FROM ascension_manastorm_loadout WHERE guid = ? UNION ALL SELECT 255, 0", CONNECTION_SYNCH);
+    PrepareStatement(CHAR_REP_MANASTORM_LOADOUT, "REPLACE INTO ascension_manastorm_loadout (guid, slot, spell) VALUES (?, ?, ?)", CONNECTION_ASYNC);
+    PrepareStatement(CHAR_DEL_MANASTORM_LOADOUT, "DELETE FROM ascension_manastorm_loadout WHERE guid = ?", CONNECTION_ASYNC);
+    PrepareStatement(CHAR_SEL_MANASTORM_XP, "SELECT COALESCE((SELECT amount FROM ascension_manastorm_xp WHERE guid = ?), 0)", CONNECTION_SYNCH);
+    PrepareStatement(CHAR_ADD_MANASTORM_XP, "INSERT INTO ascension_manastorm_xp (guid, amount) VALUES (?, ?) ON DUPLICATE KEY UPDATE amount = amount + VALUES(amount)", CONNECTION_ASYNC);
+    PrepareStatement(CHAR_CLAIM_MANASTORM_XP, "UPDATE ascension_manastorm_xp SET amount = amount - ? WHERE guid = ?", CONNECTION_ASYNC);
+    PrepareStatement(CHAR_DEL_MANASTORM_XP, "DELETE FROM ascension_manastorm_xp WHERE guid = ?", CONNECTION_ASYNC);
 }
 
 CharacterDatabaseConnection::CharacterDatabaseConnection(MySQLConnectionInfo& connInfo) : MySQLConnection(connInfo)

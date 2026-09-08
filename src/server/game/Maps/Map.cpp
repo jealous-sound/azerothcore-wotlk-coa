@@ -1986,7 +1986,7 @@ bool Map::IsScriptedPrivateInstance() const
 Map::EnterState InstanceMap::CannotEnter(Player* player, bool loginCheck)
 {
     if (IsScriptedPrivateInstance())
-        return player->GetGUID() == _scriptedPrivateOwner && !player->GetGroup()
+        return IsScriptedPrivateMember(player->GetGUID())
             ? Map::CannotEnter(player, loginCheck) : CANNOT_ENTER_INSTANCE_BIND_MISMATCH;
 
     if (!loginCheck && player->GetMapRef().getTarget() == this)
@@ -2062,7 +2062,7 @@ bool InstanceMap::AddPlayerToMap(Player* player)
     if (m_resetAfterUnload) // this instance has been reset, it's not meant to be used anymore
         return false;
 
-    if (IsScriptedPrivateInstance() && (player->GetGUID() != _scriptedPrivateOwner || player->GetGroup()))
+    if (IsScriptedPrivateInstance() && !IsScriptedPrivateMember(player->GetGUID()))
         return false;
 
     if (IsDungeon() && !IsScriptedPrivateInstance())

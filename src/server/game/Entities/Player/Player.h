@@ -2134,18 +2134,29 @@ public:
 
     WorldLocation& GetTeleportDest() { return teleportStore_dest; }
 
-    // Ephemeral solo instances never replace ordinary dungeon bindings or saved login positions.
-    void PrepareScriptedPrivateInstance(uint32 mapId, WorldLocation const& returnLocation)
+    // Ephemeral instances never replace ordinary dungeon bindings or saved login positions.
+    void PrepareScriptedPrivateInstance(uint32 mapId, WorldLocation const& returnLocation,
+        ObjectGuid owner = ObjectGuid::Empty, std::set<ObjectGuid> const& members = {})
     {
         _scriptedPrivateMapId = mapId;
         _scriptedPrivateInstanceId = 0;
         _scriptedPrivateReturn = returnLocation;
+        _scriptedPrivateOwner = owner.IsEmpty() ? GetGUID() : owner;
+        _scriptedPrivateMembers = members;
+        _scriptedPrivateMembers.insert(GetGUID());
     }
     void SetScriptedPrivateInstanceId(uint32 id) { _scriptedPrivateInstanceId = id; }
     uint32 GetScriptedPrivateMapId() const { return _scriptedPrivateMapId; }
     uint32 GetScriptedPrivateInstanceId() const { return _scriptedPrivateInstanceId; }
+    ObjectGuid GetScriptedPrivateOwner() const { return _scriptedPrivateOwner; }
+    std::set<ObjectGuid> const& GetScriptedPrivateMembers() const { return _scriptedPrivateMembers; }
     WorldLocation const& GetScriptedPrivateReturn() const { return _scriptedPrivateReturn; }
-    void ClearScriptedPrivateInstance() { _scriptedPrivateMapId = _scriptedPrivateInstanceId = 0; }
+    void ClearScriptedPrivateInstance()
+    {
+        _scriptedPrivateMapId = _scriptedPrivateInstanceId = 0;
+        _scriptedPrivateOwner.Clear();
+        _scriptedPrivateMembers.clear();
+    }
     [[nodiscard]] bool IsBeingTeleported() const { return mSemaphoreTeleport_Near != 0 || mSemaphoreTeleport_Far != 0; }
     [[nodiscard]] bool IsBeingTeleportedNear() const { return mSemaphoreTeleport_Near != 0; }
     [[nodiscard]] bool IsBeingTeleportedFar() const { return mSemaphoreTeleport_Far != 0; }
@@ -2847,6 +2858,8 @@ protected:
     uint32 _scriptedPrivateMapId = 0;
     uint32 _scriptedPrivateInstanceId = 0;
     WorldLocation _scriptedPrivateReturn;
+    ObjectGuid _scriptedPrivateOwner;
+    std::set<ObjectGuid> _scriptedPrivateMembers;
     void _SaveInstanceTimeRestrictions(CharacterDatabaseTransaction trans);
     void _SavePlayerSettings(CharacterDatabaseTransaction trans);
     void UpdateAdditionalSaves(uint32 p_time);

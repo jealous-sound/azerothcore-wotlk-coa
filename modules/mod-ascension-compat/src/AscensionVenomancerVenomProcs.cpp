@@ -12,6 +12,7 @@
 #include "SpellInfo.h"
 #include "SpellMgr.h"
 #include "SpellScript.h"
+#include "SpellScriptLoader.h"
 
 namespace
 {
@@ -185,5 +186,5 @@ class aura_ascension_venomancer_venom_proc : public AuraScript
 
 void AddAscensionVenomancerVenomProcScripts()
 {
-    RegisterAuraScript(aura_ascension_venomancer_venom_proc);
+    RegisterSpellScript(aura_ascension_venomancer_venom_proc);
 }
