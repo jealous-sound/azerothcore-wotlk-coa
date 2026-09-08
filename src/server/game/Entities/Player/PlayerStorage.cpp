@@ -261,7 +261,9 @@ uint8 Player::FindEquipSlot(ItemTemplate const* proto, uint32 slot, bool swap) c
         for (uint8 i = 0; i < 4; ++i)
             if (slots[i] != NULL_SLOT && !GetItemByPos(INVENTORY_SLOT_BAG_0, slots[i]))
                 // in case 2hand equipped weapon (without titan grip) offhand slot empty but not free
-                if (slots[i] != EQUIPMENT_SLOT_OFFHAND || !IsTwoHandUsed())
+                if (slots[i] != EQUIPMENT_SLOT_OFFHAND || !IsTwoHandUsed() ||
+                    (GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_MAINHAND) &&
+                     CanUseTwoHandWithShield(GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_MAINHAND)->GetTemplate(), proto)))
                     return slots[i];
 
         // if not found free and can swap return first appropriate from used
@@ -2020,13 +2022,18 @@ InventoryResult Player::CanEquipItem(uint8 slot, uint16& dest, Item* pItem, bool
                 // Do not allow offhand with main hand polearm, staff or fishing pole
                 if (Item* mhWeapon = GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_MAINHAND))
                     if (ItemTemplate const* mhWeaponProto = mhWeapon->GetTemplate())
-                        if (mhWeaponProto->SubClass == ITEM_SUBCLASS_WEAPON_POLEARM ||
+                        if (!CanUseTwoHandWithShield(mhWeaponProto, pProto) &&
+                            (mhWeaponProto->SubClass == ITEM_SUBCLASS_WEAPON_POLEARM ||
                             mhWeaponProto->SubClass == ITEM_SUBCLASS_WEAPON_STAFF ||
-                            mhWeaponProto->SubClass == ITEM_SUBCLASS_WEAPON_FISHING_POLE)
+                            mhWeaponProto->SubClass == ITEM_SUBCLASS_WEAPON_FISHING_POLE))
                             return EQUIP_ERR_CANT_EQUIP_WITH_TWOHANDED;
 
                 if (IsTwoHandUsed())
-                    return EQUIP_ERR_CANT_EQUIP_WITH_TWOHANDED;
+                {
+                    Item const* main = GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_MAINHAND);
+                    if (!main || !CanUseTwoHandWithShield(main->GetTemplate(), pProto))
+                        return EQUIP_ERR_CANT_EQUIP_WITH_TWOHANDED;
+                }
             }
 
             // equip two-hand weapon case (with possible unequip 2 items)
@@ -2045,7 +2052,7 @@ InventoryResult Player::CanEquipItem(uint8 slot, uint16& dest, Item* pItem, bool
                     // offhand item must can be stored in inventory for offhand item and it also must be unequipped
                     Item* offItem = GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_OFFHAND);
                     ItemPosCountVec off_dest;
-                    if (offItem && (!not_loading ||
+                    if (offItem && !CanUseTwoHandWithShield(pProto, offItem->GetTemplate()) && (!not_loading ||
                                     CanUnequipItem(uint16(INVENTORY_SLOT_BAG_0) << 8 | EQUIPMENT_SLOT_OFFHAND, false) != EQUIP_ERR_OK ||
                                     CanStoreItem(NULL_BAG, NULL_SLOT, off_dest, offItem, false) != EQUIP_ERR_OK))
                         return swap ? EQUIP_ERR_ITEMS_CANT_BE_SWAPPED : EQUIP_ERR_INVENTORY_FULL;

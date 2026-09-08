@@ -79,7 +79,15 @@ namespace FactorySelector
     {
         // special pet case, if a tamed creature uses AIName (example SmartAI) we need to override it
         if (creature->IsPet())
+        {
+            // This reconstructed permanent companion extends PetAI; ordinary tamed creatures keep the stock path.
+            if (creature->GetEntry() == 50124)
+                if (Unit* owner = creature->GetOwner())
+                    if (owner->getClass() == CLASS_WITCH_HUNTER)
+                        if (CreatureAI* scriptedAI = sScriptMgr->GetCreatureAI(creature))
+                            return scriptedAI;
             return ASSERT_NOTNULL(sCreatureAIRegistry->GetRegistryItem("PetAI"))->Create(creature);
+        }
 
         // scriptname in db
         if (CreatureAI* scriptedAI = sScriptMgr->GetCreatureAI(creature))

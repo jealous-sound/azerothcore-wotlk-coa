@@ -116,7 +116,7 @@ struct ResourceGainRule
 // These active abilities advertise resource generation in their tooltips, but
 // their public Spell.dbc records contain no effect that performs it. Ranges are
 // rank chains verified against the local Ascension spell dump.
-inline constexpr std::array<ResourceGainRule, 153> ResourceGainRules =
+inline constexpr std::array<ResourceGainRule, 157> ResourceGainRules =
 {{
     {14, 704368, 704368, 800058, 1, ResourceMutation::AuraStacks,
         ResourceGainEvent::FirstSuccessfulHostileTarget},
@@ -208,11 +208,15 @@ inline constexpr std::array<ResourceGainRule, 153> ResourceGainRules =
         ResourceGainEvent::FirstCriticalDamagingHit, 707390},
 
     {21, 800086, 800086, 804329, 1, ResourceMutation::AuraStacks},
+    {21, 800088, 800088, 804329, 1, ResourceMutation::AuraStacks},
+    {21, 806359, 806359, 804329, 1, ResourceMutation::AuraStacks},
     {21, 806360, 806360, 804329, 1, ResourceMutation::AuraStacks},
+    {21, 807820, 807820, 804329, 1, ResourceMutation::AuraStacks},
     {21, 800093, 800093, 804329, 1, ResourceMutation::AuraStacks},
     {21, 803851, 803851, 804329, 1, ResourceMutation::AuraStacks},
     {21, 803859, 803864, 804329, 1, ResourceMutation::AuraStacks},
     {21, 520227, 520227, 804329, 2, ResourceMutation::AuraStacks},
+    {21, 573243, 573246, 804329, 2, ResourceMutation::AuraStacks},
     {21, 806345, 806345, 804329, 2, ResourceMutation::AuraStacks},
     {21, 803104, 803104, 804329, 2, ResourceMutation::AuraStacks},
     {21, 803852, 803852, 804329, 2, ResourceMutation::AuraStacks},

@@ -7273,10 +7273,11 @@ void Player::UpdateWeaponDependentCritAuras(WeaponAttackType attackType)
     }
 
     float amount = 0.0f;
-    amount += GetTotalAuraModifier(SPELL_AURA_MOD_WEAPON_CRIT_PERCENT, std::bind(&Unit::CheckAttackFitToAuraRequirement, this, attackType, std::placeholders::_1));
-
-    // these auras don't have item requirement (only Combat Expertise in 3.3.5a)
-    amount += GetTotalAuraModifier(SPELL_AURA_MOD_CRIT_PCT);
+    amount += GetTotalAuraModifier(SPELL_AURA_MOD_WEAPON_CRIT_PERCENT, SPELL_AURA_MOD_CRIT_PCT,
+        [this, attackType](AuraEffect const* effect)
+        {
+            return effect->GetAuraType() == SPELL_AURA_MOD_CRIT_PCT || CheckAttackFitToAuraRequirement(attackType, effect);
+        });
 
     SetBaseModFlatValue(modGroup, amount);
 }
@@ -12836,13 +12837,17 @@ void Player::AutoUnequipOffhandIfNeed(bool force /*= false*/)
     // unequip offhand weapon if player main hand weapon is a polearm or staff or fishing pole
     if (Item* mhWeapon = GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_MAINHAND))
         if (ItemTemplate const* mhWeaponProto = mhWeapon->GetTemplate())
-            if (mhWeaponProto->SubClass == ITEM_SUBCLASS_WEAPON_POLEARM ||
+            if (!CanUseTwoHandWithShield(mhWeaponProto, offItem->GetTemplate()) &&
+                (mhWeaponProto->SubClass == ITEM_SUBCLASS_WEAPON_POLEARM ||
                 mhWeaponProto->SubClass == ITEM_SUBCLASS_WEAPON_STAFF ||
-                mhWeaponProto->SubClass == ITEM_SUBCLASS_WEAPON_FISHING_POLE)
+                mhWeaponProto->SubClass == ITEM_SUBCLASS_WEAPON_FISHING_POLE))
                 force = true;
 
     // need unequip offhand for 2h-weapon without TitanGrip (in any from hands)
-    if (!force && (CanTitanGrip() || (offItem->GetTemplate()->InventoryType != INVTYPE_2HWEAPON && !IsTwoHandUsed())))
+    Item const* main = GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_MAINHAND);
+    bool shieldPair = main && CanUseTwoHandWithShield(main->GetTemplate(), offItem->GetTemplate());
+    if (!force && (shieldPair || CanTitanGrip() ||
+        (offItem->GetTemplate()->InventoryType != INVTYPE_2HWEAPON && !IsTwoHandUsed())))
     {
         UpdateTitansGrip();
         return;
@@ -13549,6 +13554,57 @@ void Player::SetCanBlock(bool value)
 void Player::SetCanTitanGrip(bool value)
 {
     m_canTitanGrip = value;
+}
+
+void Player::SetTemporarySpellReplacement(uint32 original, uint32 replacement)
+{
+    auto itr = m_temporarySpellReplacements.find(original);
+    uint32 previous = itr == m_temporarySpellReplacements.end() ? original : itr->second;
+    if (!replacement)
+    {
+        m_temporarySpellReplacements.erase(original);
+        replacement = original;
+    }
+    else
+    {
+        if (!HasActiveSpell(original) || !HasActiveSpell(replacement))
+            return;
+        m_temporarySpellReplacements[original] = replacement;
+    }
+    if (previous != replacement && IsInWorld())
+    {
+        WorldPacket packet(SMSG_SUPERCEDED_SPELL, 8);
+        packet << previous << replacement;
+        GetSession()->SendPacket(&packet);
+    }
+}
+
+uint32 Player::GetTemporarySpellReplacement(uint32 original) const
+{
+    auto itr = m_temporarySpellReplacements.find(original);
+    return itr != m_temporarySpellReplacements.end() && HasActiveSpell(original) && HasActiveSpell(itr->second) ?
+        itr->second : original;
+}
+
+bool Player::CanUseTwoHandWithShield(ItemTemplate const* main, ItemTemplate const* off) const
+{
+    if (getClass() != CLASS_GUARDIAN || !main || !off || main->InventoryType != INVTYPE_2HWEAPON ||
+        main->Class != ITEM_CLASS_WEAPON || off->InventoryType != INVTYPE_SHIELD)
+        return false;
+    return (main->SubClass == ITEM_SUBCLASS_WEAPON_POLEARM &&
+        (HasSpell(802299) || HasSpell(803832) || HasSpell(807892))) ||
+        (main->SubClass == ITEM_SUBCLASS_WEAPON_MACE2 && HasSpell(803738));
+}
+
+float Player::GetMeleeAbilityRangeBonus() const
+{
+    Item const* weapon = GetWeaponForAttack(BASE_ATTACK, true);
+    if (getClass() != CLASS_GUARDIAN || !weapon || weapon->GetTemplate()->SubClass != ITEM_SUBCLASS_WEAPON_POLEARM)
+        return 0.0f;
+    for (uint32 id : {807892u, 803832u, 802299u})
+        if (AuraEffect const* effect = GetAuraEffect(id, EFFECT_0))
+            return float(effect->GetAmount());
+    return 0.0f;
 }
 
 bool ItemPosCount::isContainedIn(ItemPosCountVec const& vec) const

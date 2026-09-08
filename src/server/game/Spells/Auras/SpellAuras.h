@@ -20,6 +20,7 @@
 
 #include "SpellAuraDefines.h"
 #include "Unit.h"
+#include <map>
 
 class Unit;
 class SpellInfo;
@@ -136,6 +137,19 @@ public:
     void Update(uint32 diff, Unit* caster);
 
     time_t GetApplyTime() const { return m_applyTime; }
+    // In-memory script snapshots belong to this aura instance, not to a unit-wide spell id.
+    void SetScriptValue(uint32 key, uint64 value)
+    {
+        if (value)
+            m_scriptValues[key] = value;
+        else
+            m_scriptValues.erase(key);
+    }
+    uint64 GetScriptValue(uint32 key) const
+    {
+        auto itr = m_scriptValues.find(key);
+        return itr != m_scriptValues.end() ? itr->second : 0;
+    }
     int32 GetMaxDuration() const { return m_maxDuration; }
     void SetMaxDuration(int32 duration) { m_maxDuration = duration; }
     int32 CalcMaxDuration() const { return CalcMaxDuration(GetCaster()); }
@@ -262,6 +276,7 @@ public:
 
 private:
     void _DeleteRemovedApplications();
+    std::map<uint32, uint64> m_scriptValues;
 
 protected:
     SpellInfo const* const m_spellInfo;

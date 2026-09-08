@@ -5,6 +5,7 @@
 #define ASCENSION_MANASTORM_RULES_H
 
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include "AscensionManastormCheckpoints.h"
 
@@ -17,6 +18,25 @@ namespace Ascension::Manastorm
     inline constexpr std::uint32_t ReconnectSeconds = 120;
 
     enum class Phase : std::uint8_t { Idle, Transferring, Preparing, Running, Committing, Completed, Leaving, Failed };
+
+    inline float PartyStatMultiplier(std::uint32_t players)
+    {
+        // mod-autobalance's default five-player curve: inflection 0.5, floor 0, ceiling 1.
+        // See trickerer/mod-autobalance at 3020acda28a23b532ff9b7515dc4de41a4ef0be8.
+        float const count = float(std::clamp(players, 1u, 5u));
+        return (std::tanh((count - 2.5f) / 1.5f) + 1.0f) / (std::tanh(2.5f / 1.5f) + 1.0f);
+    }
+
+    inline float DepthStatMultiplier(std::uint32_t depth)
+    {
+        float const extra = float(std::clamp(depth, 1u, MaxDepth) - 1);
+        return 1.0f + extra * 0.06f + extra * extra * 0.0004f;
+    }
+
+    inline bool IsCache(std::uint32_t entry)
+    {
+        return (entry >= 97877 && entry <= 97883) || entry == 1278050 || entry == 1278051;
+    }
 
     inline bool CanStart(std::uint32_t depth, std::uint32_t completed, bool endgame = false)
     {

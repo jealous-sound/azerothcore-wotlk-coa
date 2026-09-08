@@ -1,6 +1,7 @@
 /* Copyright (C) 2016+ AzerothCore, GNU AGPL v3. */
 
 #include "AscensionBarbarian.h"
+#include "AscensionBarbarianCompletion.h"
 #include "Player.h"
 #include "Random.h"
 #include "Spell.h"
@@ -22,6 +23,7 @@ constexpr uint32 SPEAR_THROWER = 574321;
 
 void ApplyAscensionBarbarianSpellChanges(SpellInfo* info)
 {
+    AscensionBarbarian::ApplyContracts(info);
     if (info && info->Id == BODY_BUILDER_SIZE && info->Effects[EFFECT_1].ApplyAuraName == SPELL_AURA_MOD_SCALE &&
         info->Effects[EFFECT_1].BasePoints == 6 && info->Effects[EFFECT_1].DieSides == 1)
         info->Effects[EFFECT_1].BasePoints = 4; // authored 5%, not the old helper's 7%
@@ -106,14 +108,14 @@ void HandleAscensionBarbarianCast(Spell* spell)
         return;
 
     // The old 574322 helper contains +100, which the local effect-165 handler
-    // treats as +100ms, not a reset. Clear the three verified spear rank families
+    // treats as +100ms, not a reset. Clear the four verified spear rank families
     // and their shared categories explicitly; never touch unrelated cooldowns.
     std::vector<uint32> reset;
     for (auto const& [spellId, cooldown] : player->GetSpellCooldownMap())
     {
         (void)cooldown;
         uint32 root = sSpellMgr->GetFirstSpellInChain(spellId);
-        if (root == 804137 || root == 500984 || root == 560881)
+        if (root == 804137 || root == 500984 || root == 560881 || root == 804139)
             reset.push_back(spellId);
     }
     for (uint32 spellId : reset)

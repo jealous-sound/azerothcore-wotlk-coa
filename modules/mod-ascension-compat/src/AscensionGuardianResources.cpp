@@ -1,6 +1,7 @@
 /* Copyright (C) 2016+ AzerothCore, GNU AGPL v3. */
 
 #include "AscensionGuardianResources.h"
+#include "AscensionGuardianCompletion.h"
 #include "Player.h"
 #include "Spell.h"
 #include "SpellAuras.h"
@@ -33,6 +34,8 @@ void ApplyAscensionGuardianResourceContracts(SpellInfo* info)
 {
     if (!info || info->SpellFamilyName != 24)
         return;
+
+    AscensionGuardian::ApplyContracts(info);
 
     // Native spell modifiers consume charges once per affected successful cast,
     // including delayed missiles. Do not add a spell_proc row for these auras:
@@ -100,10 +103,19 @@ void HandleAscensionGuardianResourceCast(Spell* spell)
         // independent of how many enemies it hits.
         if (player->HasAura(504782))
             player->CastSpell(player, 505198, true);
-        if (player->HasAura(704525))
+        SpellInfo const* source = spell->GetTriggeredByAuraSpellInfo();
+        if (player->HasAura(704525) && (!source || (source->Id != 801774 && source->Id != 803524 &&
+            source->Id != 803956 && source->Id != 570759)))
             player->CastSpell(player, 707904, true);
         if (player->HasAura(705350))
             player->CastSpell(player, 552780, true);
+        if (player->HasAura(704539))
+            player->CastSpell(player, 574338, true);
+        if (player->HasAura(704524) && !player->HasSpellCooldown(704524) && roll_chance_i(40))
+        {
+            player->AddSpellCooldown(704524, 0, 1000);
+            player->CastSpell(player, 587253, true);
+        }
         return;
     }
     if (spell->IsTriggered())

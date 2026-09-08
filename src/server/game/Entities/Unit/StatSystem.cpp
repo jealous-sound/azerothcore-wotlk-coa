@@ -948,9 +948,7 @@ void Player::UpdateSpellCritChance(uint32 school)
     // Crit from Intellect
     crit += GetSpellCritFromIntellect();
     // Increase crit from SPELL_AURA_MOD_SPELL_CRIT_CHANCE
-    crit += GetTotalAuraModifier(SPELL_AURA_MOD_SPELL_CRIT_CHANCE);
-    // Increase crit from SPELL_AURA_MOD_CRIT_PCT
-    crit += GetTotalAuraModifier(SPELL_AURA_MOD_CRIT_PCT);
+    crit += GetTotalAuraModifier(SPELL_AURA_MOD_SPELL_CRIT_CHANCE, SPELL_AURA_MOD_CRIT_PCT);
     // Increase crit by school from SPELL_AURA_MOD_SPELL_CRIT_CHANCE_SCHOOL
     crit += GetTotalAuraModifierByMiscMask(SPELL_AURA_MOD_SPELL_CRIT_CHANCE_SCHOOL, 1 << school);
     // Increase crit from spell crit ratings
@@ -968,22 +966,19 @@ void Player::UpdateArmorPenetration(int32 amount)
 
 void Player::UpdateMeleeHitChances()
 {
-    m_modMeleeHitChance = (float)GetTotalAuraModifier(SPELL_AURA_MOD_HIT_CHANCE);
-    m_modMeleeHitChance += GetTotalAuraModifier(SPELL_AURA_ASCENSION_MOD_HIT_CHANCE_ALL_PCT);
+    m_modMeleeHitChance = float(GetTotalAuraModifier(SPELL_AURA_MOD_HIT_CHANCE, SPELL_AURA_ASCENSION_MOD_HIT_CHANCE_ALL_PCT));
     m_modMeleeHitChance += GetRatingBonusValue(CR_HIT_MELEE);
 }
 
 void Player::UpdateRangedHitChances()
 {
-    m_modRangedHitChance = (float)GetTotalAuraModifier(SPELL_AURA_MOD_HIT_CHANCE);
-    m_modRangedHitChance += GetTotalAuraModifier(SPELL_AURA_ASCENSION_MOD_HIT_CHANCE_ALL_PCT);
+    m_modRangedHitChance = float(GetTotalAuraModifier(SPELL_AURA_MOD_HIT_CHANCE, SPELL_AURA_ASCENSION_MOD_HIT_CHANCE_ALL_PCT));
     m_modRangedHitChance += GetRatingBonusValue(CR_HIT_RANGED);
 }
 
 void Player::UpdateSpellHitChances()
 {
-    m_modSpellHitChance = (float)GetTotalAuraModifier(SPELL_AURA_MOD_SPELL_HIT_CHANCE);
-    m_modSpellHitChance += GetTotalAuraModifier(SPELL_AURA_ASCENSION_MOD_HIT_CHANCE_ALL_PCT);
+    m_modSpellHitChance = float(GetTotalAuraModifier(SPELL_AURA_MOD_SPELL_HIT_CHANCE, SPELL_AURA_ASCENSION_MOD_HIT_CHANCE_ALL_PCT));
     m_modSpellHitChance += GetRatingBonusValue(CR_HIT_SPELL);
 }
 

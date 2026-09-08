@@ -785,36 +785,46 @@ void SpellMgr::GetSetOfSpellsInSpellGroup(SpellGroup group_id, std::set<uint32>&
     }
 }
 
-bool SpellMgr::AddSameEffectStackRuleSpellGroups(SpellInfo const* spellInfo, uint32 auraType, int32 amount, std::map<SpellGroup, int32>& groups) const
+bool SpellMgr::IsEffectInSameEffectStackGroup(SpellInfo const* spellInfo, uint8 effectIndex, SpellGroup group) const
+{
+    // CoA raid groups must not swallow a talent's separate personal effect.
+    return (group < 2000180 || group > 2000183 || spellInfo->Effects[effectIndex].IsAreaAuraEffect()) &&
+        IsSpellMemberOfSpellGroup(spellInfo->GetFirstRankSpell()->Id, group);
+}
+
+bool SpellMgr::AddSameEffectStackRuleSpellGroups(SpellInfo const* spellInfo, uint8 effectIndex, uint32 auraType, int32 amount, std::map<SpellGroup, int32>& groups) const
 {
     uint32 spellId = spellInfo->GetFirstRankSpell()->Id;
     auto spellGroupBounds = GetSpellSpellGroupMapBounds(spellId);
     // Find group with SPELL_GROUP_STACK_RULE_EXCLUSIVE_SAME_EFFECT if it belongs to one
-    for (auto itr = spellGroupBounds.first; itr != spellGroupBounds.second; ++itr)
-    {
-        SpellGroup group = itr->second;
-        auto found = mSpellSameEffectStack.find(group);
-        if (found != mSpellSameEffectStack.end())
+    for (bool dedicatedRaidGroup : { true, false })
+        for (auto itr = spellGroupBounds.first; itr != spellGroupBounds.second; ++itr)
         {
-            // check auraTypes
-            if (!found->second.count(auraType))
+            SpellGroup group = itr->second;
+            if ((group >= 2000180 && group <= 2000183) != dedicatedRaidGroup)
                 continue;
-
-            // Put the highest amount in the map
-            auto groupItr = groups.find(group);
-            if (groupItr == groups.end())
-                groups.emplace(group, amount);
-            else
+            auto found = mSpellSameEffectStack.find(group);
+            if (found != mSpellSameEffectStack.end() && IsEffectInSameEffectStackGroup(spellInfo, effectIndex, group))
             {
-                int32 curr_amount = groups[group];
-                // Take absolute value because this also counts for the highest negative aura
-                if (std::abs(curr_amount) < std::abs(amount))
-                    groupItr->second = amount;
+                // check auraTypes
+                if (!found->second.count(auraType))
+                    continue;
+
+                // Put the highest amount in the map
+                auto groupItr = groups.find(group);
+                if (groupItr == groups.end())
+                    groups.emplace(group, amount);
+                else
+                {
+                    int32 curr_amount = groups[group];
+                    // Take absolute value because this also counts for the highest negative aura
+                    if (std::abs(curr_amount) < std::abs(amount))
+                        groupItr->second = amount;
+                }
+                // return because a spell should be in only one SPELL_GROUP_STACK_RULE_EXCLUSIVE_SAME_EFFECT group per auraType
+                return true;
             }
-            // return because a spell should be in only one SPELL_GROUP_STACK_RULE_EXCLUSIVE_SAME_EFFECT group per auraType
-            return true;
         }
-    }
     // Not in a SPELL_GROUP_STACK_RULE_EXCLUSIVE_SAME_EFFECT group, so return false
     return false;
 }
@@ -1849,7 +1859,17 @@ void SpellMgr::LoadSpellGroupStackRules()
 
         std::unordered_set<uint32> auraTypes;
 
-        // we have to 'guess' what effect this group corresponds to
+        // CoA's raid auras encode the same statistic with several aura types.
+        switch (group_id)
+        {
+            case 2000180: auraTypes = { SPELL_AURA_MOD_ATTACK_POWER_PCT, SPELL_AURA_MOD_RANGED_ATTACK_POWER_PCT }; break;
+            case 2000181: auraTypes = { SPELL_AURA_MOD_CRIT_PCT, SPELL_AURA_MOD_WEAPON_CRIT_PERCENT, SPELL_AURA_MOD_SPELL_CRIT_CHANCE }; break;
+            case 2000182: auraTypes = { SPELL_AURA_MOD_MELEE_RANGED_HASTE, SPELL_AURA_HASTE_SPELLS }; break;
+            case 2000183: auraTypes = { SPELL_AURA_ASCENSION_MOD_HIT_CHANCE_ALL_PCT, SPELL_AURA_MOD_HIT_CHANCE, SPELL_AURA_MOD_SPELL_HIT_CHANCE }; break;
+            default: break;
+        }
+        // Infer the effect for the existing native groups.
+        if (auraTypes.empty())
         {
             std::unordered_multiset<uint32 /*auraName*/> frequencyContainer;
 

@@ -12,6 +12,8 @@
 #include "AscensionWitchHunterScaling.h"
 #include "AscensionWitchHunterTargeting.h"
 #include "AscensionWitchHunterStake.h"
+#include "AscensionWitchHunterCompletion.h"
+#include "AscensionWitchDoctorCompletion.h"
 #include "AscensionConditionalCombat.h"
 #include "AscensionRunemasterGlyphs.h"
 #include "AscensionRunemasterBrand.h"
@@ -147,6 +149,8 @@ constexpr uint32 SPELL_RANGER_BOUNTY_HUNTER = 803114;
 constexpr uint32 SPELL_RANGER_BOUNTY_HUNTER_DEBUFF = 560722;
 constexpr uint32 SPELL_RANGER_RUSTY_SHIV_DAMAGE = 681459;
 constexpr uint8 RANGER_ADVANTAGE_REFUND_CHANCE = 20;
+constexpr uint8 RANGER_ADVANTAGE_CAST_EVENT = 30;
+constexpr uint8 RANGER_ARCHERY_MASTER_EVENT = 31;
 
 constexpr uint32 SPELL_CULTIST_TWILIGHT_SHIELDTOSS_SLOW = 524880;
 constexpr uint32 SPELL_VENOMANCER_BARBED_STINGER = 803196;
@@ -667,14 +671,15 @@ void ApplyAdditionalTargetContracts(SpellInfo* spellInfo)
         int32 BasePoints;
         std::array<uint32, 3> Mask;
     };
-    static constexpr std::array<Contract, 6> contracts =
+    static constexpr std::array<Contract, 7> contracts =
     {{
         {705068, 27, EFFECT_2, 1, {{512, 0, 0}}},    // Aerial Assault
         {704794, 32, EFFECT_0, 0, {{0, 128, 0}}},    // Pulsar Explosion, rank 1
         {707894, 32, EFFECT_0, 1, {{0, 128, 0}}},    // Pulsar Explosion, rank 2
         {680797, 35, EFFECT_0, 0, {{0, 0, 524288}}}, // Good Venom
         {706477, 35, EFFECT_0, 4, {{4194304, 0, 0}}}, // Lifemender
-        {706956, 35, EFFECT_1, 4, {{0, 0, 8}}}       // Prophetic Speaker
+        {706956, 35, EFFECT_1, 4, {{0, 0, 8}}},      // Prophetic Speaker
+        {806081, 24, EFFECT_2, 0, {{16, 0, 0}}}     // Earthsplitter
     }};
 
     for (Contract const& contract : contracts)
@@ -809,6 +814,29 @@ void AddRangerAdvantage(Player* player, uint8 amount)
         player->CastSpell(player, SPELL_RANGER_ADVANTAGE_INCREMENT, true);
 }
 
+void HandleRangerAdvantageCast(Spell* spell, Player* player)
+{
+    uint32 spellId = spell->GetSpellInfo()->Id;
+    uint8 amount = 0;
+    if (IsRangerWildStrike(spellId))
+        amount = player->HasAura(SPELL_RANGER_RAVAGER) || player->HasAura(SPELL_RANGER_RAVAGER_LEGACY) ? 2 : 1;
+    else if (IsRangerFlank(spellId))
+        amount = 2;
+    else if (IsRangerQuickShot(spellId) || IsRangerToxicDart(spellId))
+        amount = 1;
+    else if (IsRangerHuntingShot(spellId))
+    {
+        // Hunting Shot retains one gain per ricochet target. The user's local
+        // rule includes failed hit rolls; the native list already deduplicates targets.
+        for (TargetInfo const& target : *spell->GetUniqueTargetInfo())
+            if (target.targetGUID != player->GetGUID())
+                ++amount;
+    }
+
+    if (amount && spell->TryMarkScriptEventHandled(RANGER_ADVANTAGE_CAST_EVENT))
+        AddRangerAdvantage(player, amount);
+}
+
 void ApplyRangerQuiver(Player* player, uint32 spellId)
 {
     for (uint32 quiverId : RANGER_QUIVERS)
@@ -930,6 +958,8 @@ void ApplyAscensionClassMechanics(SpellInfo* spellInfo)
     ApplyAscensionWitchHunterScalingContracts(spellInfo);
     ApplyAscensionWitchHunterTargetingContracts(spellInfo);
     ApplyAscensionWitchHunterStakeContracts(spellInfo);
+    AscensionWitchHunter::ApplyContracts(spellInfo);
+    AscensionWitchDoctor::ApplyContracts(spellInfo);
     ApplyAscensionConditionalCombatContracts(spellInfo);
     ApplyAscensionRunemasterGlyphContracts(spellInfo);
     ApplyAscensionRunemasterBrandContracts(spellInfo);
@@ -1211,25 +1241,9 @@ void HandleAscensionClassMechanicsHit(Spell* spell, Player* player,
 
     HandleRangerQuiverHit(player, target, spell->GetSpellInfo(), damage);
 
-    if (IsRangerWildStrike(spellId))
-    {
-        uint8 amount = 1;
-        if (player->HasAura(SPELL_RANGER_RAVAGER) ||
-            player->HasAura(SPELL_RANGER_RAVAGER_LEGACY))
-            ++amount;
-        AddRangerAdvantage(player, amount);
-    }
-    else if (IsRangerFlank(spellId))
-        AddRangerAdvantage(player, 2);
-    else if (IsRangerHuntingShot(spellId))
-        AddRangerAdvantage(player, 1);
-    else if (IsRangerQuickShot(spellId))
-    {
-        AddRangerAdvantage(player, 1);
-        if (critical && player->HasAura(SPELL_RANGER_ARCHERY_MASTER))
-            AddRangerAdvantage(player, 1);
-    }
-    else if (IsRangerToxicDart(spellId))
+    // Only Archery Master's additional point requires an actual critical hit.
+    if (IsRangerQuickShot(spellId) && critical && player->HasAura(SPELL_RANGER_ARCHERY_MASTER) &&
+        spell->TryMarkScriptEventHandled(RANGER_ARCHERY_MASTER_EVENT))
         AddRangerAdvantage(player, 1);
 }
 
@@ -1244,6 +1258,9 @@ void HandleAscensionClassMechanicsCast(Spell* spell)
         return;
 
     SpellInfo const* info = spell->GetSpellInfo();
+    if (player->getClass() == CLASS_RANGER)
+        HandleRangerAdvantageCast(spell, player);
+
     if (player->getClass() == CLASS_RANGER &&
         info->CasterAuraSpell == SPELL_RANGER_ADVANTAGE)
     {
@@ -1369,8 +1386,6 @@ void HandleAscensionClassMechanicsBlock(Player* player)
         player->CastSpell(player, SPELL_GUARDIAN_VETERAN_HEAL, true);
     if (player->HasAura(SPELL_GUARDIAN_HONORABLE))
         player->CastSpell(player, SPELL_GUARDIAN_HONORABLE_EFFECTS, true);
-    if (player->HasAura(SPELL_GUARDIAN_RECUPERATION))
-        player->CastSpell(player, SPELL_GUARDIAN_RECUPERATION_ENERGIZE, true);
 }
 
 void HandleAscensionClassMechanicsDamageTaken(Player* player,

@@ -1800,6 +1800,11 @@ public:
 
     [[nodiscard]] PlayerSpellMap const& GetSpellMap() const { return m_spells; }
     PlayerSpellMap&       GetSpellMap()       { return m_spells; }
+    // Transient action replacements; never written to character spell ownership.
+    void SetTemporarySpellReplacement(uint32 original, uint32 replacement);
+    [[nodiscard]] uint32 GetTemporarySpellReplacement(uint32 original) const;
+    [[nodiscard]] bool CanUseTwoHandWithShield(ItemTemplate const* main, ItemTemplate const* off) const;
+    [[nodiscard]] float GetMeleeAbilityRangeBonus() const;
 
     [[nodiscard]] SpellCooldowns const& GetSpellCooldownMap() const { return m_spellCooldowns; }
     SpellCooldowns&       GetSpellCooldownMap()       { return m_spellCooldowns; }
@@ -2915,6 +2920,7 @@ protected:
 
     PlayerMails m_mail;
     PlayerSpellMap m_spells;
+    std::map<uint32, uint32> m_temporarySpellReplacements;
     PlayerTalentMap m_talents;
     uint32 m_lastPotionId;                              // last used health/mana potion in combat, that block next potion use
 

@@ -22,6 +22,8 @@ using uint16 = std::uint16_t;
 using uint32 = std::uint32_t;
 using uint64 = std::uint64_t;
 using namespace Ascension::Manastorm;
+using namespace std::chrono_literals;
+constexpr uint32 EventCacheDelivery = 2;
 struct WorldPacket
 {
     uint16 opcode = 0;
@@ -84,6 +86,7 @@ enum Statements
     CHAR_INS_MAIL_ITEM,
     CHAR_ADD_MANASTORM_XP,
     CHAR_REP_MANASTORM_LOADOUT,
+    CHAR_INS_MANASTORM_CACHE,
     ITEM_SAVE
 };
 struct Statement
@@ -121,6 +124,7 @@ struct Database
 {
     std::map<std::string, uint32> clears;
     std::map<uint32, uint32> mails, items, attachments, xp;
+    std::map<uint32, uint32> pendingCaches;
     std::map<std::string, std::pair<uint32, uint32>> bonus;
     std::map<std::string, uint32> slots;
     auto BeginTransaction()
@@ -166,6 +170,9 @@ struct Database
                     break;
                 case CHAR_REP_MANASTORM_LOADOUT:
                     candidate.slots[v.at(0) + ":" + v.at(1)] = n(2);
+                    break;
+                case CHAR_INS_MANASTORM_CACHE:
+                    success &= candidate.pendingCaches.emplace(n(0), n(1)).second;
                     break;
             }
         }
@@ -213,6 +220,7 @@ struct Item
     {
         return guid;
     }
+    void SetBinding(bool) {}
     void SaveToDB(CharacterDatabaseTransaction t)
     {
         auto* s = CharacterDatabase.GetPreparedStatement(ITEM_SAVE);
@@ -282,6 +290,11 @@ struct Encounter
 };
 struct Run
 {
+    bool cachesPending = false;
+    struct Events
+    {
+        void RescheduleEvent(uint32, std::chrono::milliseconds) {}
+    } uiEvents;
     std::shared_ptr<Encounter> encounter = std::make_shared<Encounter>();
     Progress progress;
     uint64 token = 42;
@@ -396,15 +409,18 @@ int main(int argc, char** argv)
     assert(run.encounter->pendingCommits == 0 && run.commitReady && run.commitSucceeded);
     assert(CharacterDatabase.clears.size() == 1 && CharacterDatabase.mails.size() == 1 &&
            CharacterDatabase.items.size() == 3);
-    assert(CharacterDatabase.attachments.size() == 3 && CharacterDatabase.xp[7] == 75 && run.pendingXP == 75);
+    assert(CharacterDatabase.attachments.size() == 2 && CharacterDatabase.xp[7] == 75 && run.pendingXP == 75);
+    assert(CharacterDatabase.pendingCaches.size() == 1 && run.cachesPending);
     auto& first = *s.readyMails[player.guid].back();
-    assert(first.items[0]->entry == 1297308 && first.items[1]->entry == 1297307 && first.items[2]->entry == 97877);
+    assert(first.items.size() == 2 && first.items[0]->entry == 1297308 && first.items[1]->entry == 1297307);
+    assert(CharacterDatabase.items.at(CharacterDatabase.pendingCaches.begin()->first) == 97877);
     s.Complete(&player, run);
     assert(CharacterDatabase.Commit(s.transactions.back()));
     assert(CharacterDatabase.clears.size() == 1 && CharacterDatabase.items.size() == 5 &&
            CharacterDatabase.xp[7] == 135);
     auto& repeat = *s.readyMails[player.guid].back();
-    assert(repeat.items.size() == 2 && repeat.items[0]->entry == 1297308);
+    assert(repeat.items.size() == 1 && repeat.items[0]->entry == 1297308);
+    assert(CharacterDatabase.pendingCaches.size() == 2);
     run.progress[0].clear();
     s.Complete(&player, run);
     assert(!CharacterDatabase.Commit(s.transactions.back()));
@@ -426,14 +442,16 @@ int main(int argc, char** argv)
     s.Complete(&player, run);
     assert(CharacterDatabase.Commit(s.transactions.back()));
     assert(run.pity[4] == 0);
-    assert(s.readyMails[player.guid].back()->items.back()->entry == 1278051);
+    assert(s.readyMails[player.guid].back()->items.size() == 1);
+    assert(CharacterDatabase.items.at(CharacterDatabase.pendingCaches.rbegin()->first) == 1278051);
     run.encounter->mode = 1;
     run.encounter->depth = 1;
     run.encounter->bonusCaches = 2;
     nextRoll = 1;
     s.Complete(&player, run);
     assert(CharacterDatabase.Commit(s.transactions.back()));
-    assert(s.readyMails[player.guid].back()->items.size() == 5);
+    assert(s.readyMails[player.guid].back()->items.size() == 2);
+    assert(CharacterDatabase.pendingCaches.size() == 6);
     assert(s.readyMails[player.guid].back()->items[0]->count == 23);
     run.encounter->depth = 2;
     s.Complete(&player, run);

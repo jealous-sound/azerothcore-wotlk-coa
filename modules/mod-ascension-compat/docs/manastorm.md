@@ -3,6 +3,11 @@
 This implements a playable private reconstruction on the copied Ascension client. Official backend
 parity is not asserted. Numerical balance below is an explicit local policy, authorized by the user.
 
+The 2026-09-08 solo-scaling/cache-delivery follow-up below is prepared in source and a client candidate,
+but has not been built or installed. The current installed class-completion release still uses the prior
+Manastorm rules until that follow-up is deployed. Its source receipt is
+`C:/Ascension/runtime/validation/manastorm-solotuning-20260908/implemented.md`.
+
 ## Playing
 
 Enter through the native Manastorm queue, or `.manastorm enter 1`. Characters need level 10.
@@ -25,8 +30,13 @@ Depths extend through the native limit of 16,384. Start checkpoints use the clie
 difficulty-0/2 flags, not an invented every-fifth-level rule. Separate progress is stored for solo,
 duo, trio and group, with separate endgame variants. With this server's existing level-80 cap, endgame
 starts at 80; reaching the cap ends the leveling run before its next floor. NPC levels refresh on each
-floor. Higher depths scale health/damage; group scaling is 80% additional health and 10% additional
-damage per extra participant. Chaotic Link adds 25% health and 10% damage per living guard, capped at eight.
+floor. Higher depths scale health/damage. Player-count scaling follows the default five-player
+AutoBalance curve, normalized to the existing five-player Manastorm baseline. For `n` participants,
+`f(n) = (tanh((n - 2.5) / 1.5) + 1) / (tanh(2.5 / 1.5) + 1)`, clamped to one through five players.
+Health uses `4.2 * f(n)` and damage uses `1.4 * f(n)` in place of the old linear group multipliers;
+armor uses `f(n)`. Solo health is about 48% lower and damage about 83% lower than the previous policy.
+Depth scaling, the five-player baseline and native NPC abilities remain. Chaotic Link adds 25%
+health and 10% damage per living guard, capped at eight. This adapts the curve, not the full NPCBots module.
 
 Five shared out-of-combat resurrection charges reset each floor. A full wipe ends the run. A short
 disconnect can resume an existing instance for up to 120 seconds. A process restart returns characters
@@ -34,8 +44,10 @@ to their saved outside positions; it does not recreate unfinished combat.
 
 ## Rewards and gadgets
 
-Every successful floor creates real mail attachments and gold. There is no bonus-on-exit cache or
-classless ability-card reward. For depth `d`:
+Successful floors create real rewards. Caches are delivered directly into bags, using available stacks.
+If bags are full, the saved cache waits for space and is retried automatically, including after relog.
+Currency and gold retain their existing mail delivery. Previously mailed caches are preserved.
+There is no bonus-on-exit cache or classless ability-card reward. For depth `d`:
 
 | Reward | Local rule |
 | --- | --- |
@@ -68,11 +80,16 @@ number do not acquire this exception.
 
 ## Persistence and isolation
 
-A floor's first-clear record, pity/cache counters, mail, item instances, attachments and XP voucher
-share one database transaction. Online mail publication waits for successful commit. XP application
-saves the native character state and consumes the voucher together. Session tokens and bounded packet
-queues protect deferred input. Shared encounter state is separate from each participant's personal
-progress, inventory/loadout and return location.
+A floor's first-clear record, pity/cache counters, currency mail, item instances, pending-cache records
+and XP voucher share one database transaction. Each cache has a durable item GUID before delivery.
+Moving that item into an empty inventory slot, or merging it into an existing saved stack, commits with
+consumption of its pending record. Native bag publication waits for a successful commit; the player's
+map thread waits for that small transaction so the selected slot cannot change meanwhile. A slot conflict
+fails instead of overwriting an inventory row. Native stack state and its update queue are preserved when
+serializing the prospective stack. Newly created unsaved bags/stacks defer delivery until persisted.
+Online mail publication waits for commit too. XP application saves native character state and consumes
+the voucher together. Session tokens and bounded packet queues protect deferred input. Shared encounter
+state is separate from each participant's personal progress, inventory/loadout and return location.
 
 Private instances retain their owner's GUID plus an explicit participant allowlist. They do not use
 ordinary dungeon bindings, persistent world spawns, normal kill loot/reputation or quest kill credit.
@@ -100,3 +117,7 @@ Research references: [official Manastorm feature update](https://ascension.gg/cs
 for per-floor rewards, group progression, accumulating cache chance and gadget upgrades;
 [official CoA update](https://ascension.gg/en/news/conquest-of-azeroth-massive-update-article/464)
 for CoA context. Exact drop rates were not recovered; the table above describes this server's own balance.
+The solo follow-up uses [trickerer/mod-autobalance at 3020acda](https://github.com/trickerer/mod-autobalance/blob/3020acda28a23b532ff9b7515dc4de41a4ef0be8/src/AutoBalance.cpp)
+and its configuration defaults. A pinned copy and hashes are in `client-reference/manastorm-solotuning-v1/autobalance`.
+`tests/manastorm/solo_tuning.py` compares actual before/after spawn blocks and the original AutoBalance function,
+then exercises production cache delivery with native item-queue functions against isolated transaction doubles.

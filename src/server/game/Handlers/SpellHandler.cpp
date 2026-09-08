@@ -405,6 +405,18 @@ void WorldSession::HandleCastSpellOpcode(WorldPacket& recvPacket)
         return;
     }
 
+    if (mover == _player)
+    {
+        uint32 replacement = _player->GetTemporarySpellReplacement(spellId);
+        if (replacement != spellId)
+        {
+            spellInfo = sSpellMgr->GetSpellInfo(replacement);
+            if (!spellInfo)
+                return;
+            spellId = replacement;
+        }
+    }
+
     // fail if we are cancelling pending request
     if (!_player->SpellQueue.empty())
     {

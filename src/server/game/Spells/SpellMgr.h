@@ -702,7 +702,8 @@ public:
     void GetSetOfSpellsInSpellGroup(SpellGroup group_id, std::set<uint32>& foundSpells, std::set<SpellGroup>& usedGroups) const;
 
     // Spell Group Stack Rules table
-    bool AddSameEffectStackRuleSpellGroups(SpellInfo const* spellInfo, uint32 auraType, int32 amount, std::map<SpellGroup, int32>& groups) const;
+    bool AddSameEffectStackRuleSpellGroups(SpellInfo const* spellInfo, uint8 effectIndex, uint32 auraType, int32 amount, std::map<SpellGroup, int32>& groups) const;
+    bool IsEffectInSameEffectStackGroup(SpellInfo const* spellInfo, uint8 effectIndex, SpellGroup group) const;
     SpellGroupStackRule CheckSpellGroupStackRules(SpellInfo const* spellInfo1, SpellInfo const* spellInfo2) const;
     SpellGroupStackRule GetSpellGroupStackRule(SpellGroup group_id) const;
 

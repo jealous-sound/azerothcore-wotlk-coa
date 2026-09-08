@@ -90,6 +90,23 @@ struct npc_ascension_guardian_standard : ScriptedAI
     ObjectGuid ownerGuid;
     EventMap events;
 
+    void RefreshTalents(Player* owner)
+    {
+        auto const* contract = FindStandard(me->GetEntry(), true);
+        if (!contract || (contract->spell != 800319 && (contract->spell < 803931 || contract->spell > 803938)))
+            return;
+        for (auto const& pair : {std::pair<uint32, uint32>{505200, 525043}, {806142, 524981}})
+        {
+            if (owner->HasAura(pair.first))
+            {
+                if (!me->HasAura(pair.second))
+                    me->CastSpell(me, pair.second, true);
+            }
+            else
+                me->RemoveAurasDueToSpell(pair.second);
+        }
+    }
+
     void AttackStart(Unit* /*target*/) override { }
     void MoveInLineOfSight(Unit* /*target*/) override { }
     void EnterEvadeMode(EvadeReason /*why*/) override { }
@@ -113,6 +130,7 @@ struct npc_ascension_guardian_standard : ScriptedAI
         // The native area-aura owner is the stationary standard, not the player.
         // Keep this caster GUID so range/cleanup and multiple owners stay native.
         me->CastSpell(me, contract->field, true);
+        RefreshTalents(owner);
         events.ScheduleEvent(STANDARD_OWNER_CHECK, Milliseconds(STANDARD_OWNER_CHECK_MS));
     }
 
@@ -128,13 +146,15 @@ struct npc_ascension_guardian_standard : ScriptedAI
         events.Update(diff);
         if (events.ExecuteEvent() == STANDARD_OWNER_CHECK)
         {
-            if (!StandardOwner(me))
+            Player* owner = StandardOwner(me);
+            if (!owner)
             {
                 me->RemoveAllAuras();
                 ForgetStandard(ownerGuid, me->GetGUID());
                 me->DespawnOrUnsummon();
                 return;
             }
+            RefreshTalents(owner);
             events.ScheduleEvent(STANDARD_OWNER_CHECK, Milliseconds(STANDARD_OWNER_CHECK_MS));
         }
     }

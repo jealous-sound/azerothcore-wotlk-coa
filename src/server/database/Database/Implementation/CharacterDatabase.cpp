@@ -666,6 +666,13 @@ void CharacterDatabaseConnection::DoPrepareStatements()
     PrepareStatement(CHAR_ADD_MANASTORM_XP, "INSERT INTO ascension_manastorm_xp (guid, amount) VALUES (?, ?) ON DUPLICATE KEY UPDATE amount = amount + VALUES(amount)", CONNECTION_ASYNC);
     PrepareStatement(CHAR_CLAIM_MANASTORM_XP, "UPDATE ascension_manastorm_xp SET amount = amount - ? WHERE guid = ?", CONNECTION_ASYNC);
     PrepareStatement(CHAR_DEL_MANASTORM_XP, "DELETE FROM ascension_manastorm_xp WHERE guid = ?", CONNECTION_ASYNC);
+    PrepareStatement(CHAR_SEL_MANASTORM_CACHES, "SELECT ii.creatorGuid, ii.giftCreatorGuid, ii.count, ii.duration, ii.charges, ii.flags, ii.enchantments, ii.randomPropertyId, ii.durability, ii.playedTime, ii.text, mc.item, ii.itemEntry FROM ascension_manastorm_cache mc LEFT JOIN item_instance ii ON ii.guid = mc.item AND ii.owner_guid = mc.guid WHERE mc.guid = ? UNION ALL SELECT 0, 0, 0, 0, '', 0, '', 0, 0, 0, '', 0, 0 ORDER BY 12 LIMIT 4", CONNECTION_SYNCH);
+    PrepareStatement(CHAR_INS_MANASTORM_CACHE, "INSERT INTO ascension_manastorm_cache (item, guid) VALUES (?, ?)", CONNECTION_ASYNC);
+    PrepareStatement(CHAR_DEL_MANASTORM_CACHE, "DELETE FROM ascension_manastorm_cache WHERE item = ? AND guid = ?", CONNECTION_ASYNC);
+    PrepareStatement(CHAR_DEL_MANASTORM_CACHES, "DELETE FROM ascension_manastorm_cache WHERE guid = ?", CONNECTION_ASYNC);
+    PrepareStatement(CHAR_DEL_MANASTORM_CACHE_ITEMS, "DELETE ii FROM item_instance ii INNER JOIN ascension_manastorm_cache mc ON mc.item = ii.guid AND mc.guid = ii.owner_guid WHERE mc.guid = ?", CONNECTION_ASYNC);
+    PrepareStatement(CHAR_INS_MANASTORM_CACHE_INVENTORY, "INSERT INTO character_inventory (guid, bag, slot, item) VALUES (?, ?, ?, ?)", CONNECTION_ASYNC);
+    PrepareStatement(CHAR_SEL_MANASTORM_INVENTORY_ITEM, "SELECT COUNT(*) FROM character_inventory ci INNER JOIN item_instance ii ON ii.guid = ci.item AND ii.owner_guid = ci.guid WHERE ci.guid = ? AND ci.item = ?", CONNECTION_SYNCH);
 }
 
 CharacterDatabaseConnection::CharacterDatabaseConnection(MySQLConnectionInfo& connInfo) : MySQLConnection(connInfo)

@@ -10,6 +10,7 @@
 #include "AllSpellScript.h"
 #include "AllCreatureScript.h"
 #include "AllMapScript.h"
+#include "Bag.h"
 #include "Chat.h"
 #include "CommandScript.h"
 #include "Config.h"
@@ -36,6 +37,7 @@
 #include "Player.h"
 #include "PlayerScript.h"
 #include "ScriptedGossip.h"
+#include "ScriptMgr.h"
 #include "SpellAuraEffects.h"
 #include "SpellAuras.h"
 #include "SpellMgr.h"
@@ -70,6 +72,7 @@ namespace
     constexpr uint32 TribalFury = 93422;
     constexpr uint32 PortalAura = 93338;
     constexpr uint32 EventCapability = 1;
+    constexpr uint32 EventCacheDelivery = 2;
 
     struct Request
     {
@@ -123,6 +126,8 @@ namespace
         uint32 pendingXP = 0;
         bool awardingXP = false;
         bool xpClaimPending = false;
+        bool cachesPending = false;
+        bool cacheSpaceWarning = false;
         std::array<uint32, LoadoutSlots> slots{};
         std::array<uint32, 8> pity{};
         std::array<uint32, 8> caches{};
@@ -296,6 +301,9 @@ namespace
             run.token = ++nextToken;
             run.uiEvents.Reset();
             run.uiEvents.ScheduleEvent(EventCapability, 2s);
+            run.cachesPending = true;
+            run.cacheSpaceWarning = false;
+            run.uiEvents.ScheduleEvent(EventCacheDelivery, 250ms);
             player->GetSession()->SetScriptPacketToken(run.token);
             auto* statement = CharacterDatabase.GetPreparedStatement(CHAR_SEL_MANASTORM_CLEARS);
             statement->SetData(0, player->GetGUID().GetCounter());
@@ -495,11 +503,22 @@ namespace
                 SendActive(player, run);
             }
             run.uiEvents.Update(diff);
-            if (run.uiEvents.ExecuteEvent() == EventCapability)
+            while (uint32 event = run.uiEvents.ExecuteEvent())
             {
-                SendCapability(player, run.databaseReady);
-                SendProgress(player, run, false);
-                run.uiEvents.ScheduleEvent(EventCapability, 5s);
+                if (event == EventCapability)
+                {
+                    SendCapability(player, run.databaseReady);
+                    SendProgress(player, run, false);
+                    run.uiEvents.ScheduleEvent(EventCapability, 5s);
+                }
+                else if (event == EventCacheDelivery && run.cachesPending)
+                {
+                    if (run.databaseReady && !player->IsBeingTeleported() && player->IsInWorld()
+                        && !player->IsInCombat() && !run.xpClaimPending)
+                        DeliverCaches(player, run);
+                    if (run.cachesPending)
+                        run.uiEvents.ScheduleEvent(EventCacheDelivery, 2s);
+                }
             }
             for (auto const& request : incoming)
             {
@@ -1024,6 +1043,118 @@ namespace
             });
         }
 
+        static bool HasStoredItem(Player* player, Item* item)
+        {
+            auto* statement = CharacterDatabase.GetPreparedStatement(CHAR_SEL_MANASTORM_INVENTORY_ITEM);
+            statement->SetData(0, player->GetGUID().GetCounter());
+            statement->SetData(1, item->GetGUID().GetCounter());
+            PreparedQueryResult result = CharacterDatabase.Query(statement);
+            return result && result->Fetch()[0].Get<uint32>() == 1;
+        }
+
+        static void AppendCacheStack(Player* player, Item* stack, CharacterDatabaseTransaction transaction)
+        {
+            // Serialize the future stack using native item fields, then restore live state until COMMIT.
+            // SaveToDB clears the queue index; remove/reinsert explicitly so the old queue has no stale entry.
+            uint32 const count = stack->GetCount();
+            ItemUpdateState const state = stack->GetState();
+            bool const queued = stack->IsInUpdateQueue();
+            if (queued)
+                stack->RemoveFromUpdateQueueOf(player);
+            stack->SetCount(count + 1);
+            stack->FSetState(ITEM_CHANGED);
+            stack->SaveToDB(transaction);
+            stack->SetCount(count);
+            stack->FSetState(state);
+            if (queued)
+                stack->AddToUpdateQueueOf(player);
+        }
+
+        void DeliverCaches(Player* player, Run& run)
+        {
+            auto* statement = CharacterDatabase.GetPreparedStatement(CHAR_SEL_MANASTORM_CACHES);
+            statement->SetData(0, player->GetGUID().GetCounter());
+            PreparedQueryResult result = CharacterDatabase.Query(statement);
+            // A sentinel distinguishes an empty queue from a failed read. Process at most three items per tick.
+            if (!result)
+                return;
+            bool found = false;
+            do
+            {
+                Field* fields = result->Fetch();
+                uint32 const itemGuid = fields[11].Get<uint32>();
+                if (!itemGuid)
+                    continue;
+                found = true;
+                uint32 const entry = fields[12].Get<uint32>();
+                if (!IsCache(entry) || fields[2].Get<uint32>() != 1)
+                {
+                    LOG_ERROR("module.ascension_compat", "Invalid pending Manastorm cache {} for {}",
+                        itemGuid, player->GetGUID().ToString());
+                    return;
+                }
+                auto item = std::make_unique<Item>();
+                if (!item->LoadFromDB(itemGuid, player->GetGUID(), fields, entry))
+                    return;
+                item->SetState(ITEM_UNCHANGED);
+                ItemPosCountVec positions;
+                InventoryResult const error = player->CanStoreItem(NULL_BAG, NULL_SLOT, positions, item.get());
+                if (error != EQUIP_ERR_OK || positions.size() != 1 || positions.front().count != 1)
+                {
+                    if (!run.cacheSpaceWarning)
+                    {
+                        ChatHandler(player->GetSession()).SendSysMessage(
+                            "Your Manastorm cache is saved. Free bag space and it will be delivered automatically.");
+                        run.cacheSpaceWarning = true;
+                    }
+                    return;
+                }
+                uint16 const position = positions.front().pos;
+                uint8 const bagSlot = uint8(position >> 8);
+                Bag* bag = bagSlot == INVENTORY_SLOT_BAG_0 ? nullptr : player->GetBagByPos(bagSlot);
+                // Do not attach a durable reward to a bag that has not yet been saved.
+                if (bagSlot != INVENTORY_SLOT_BAG_0 && (!bag || !HasStoredItem(player, bag)))
+                    return;
+                Item* stack = player->GetItemByPos(position);
+                if (stack && (!HasStoredItem(player, stack) || stack->IsInTrade()))
+                    return;
+                auto transaction = CharacterDatabase.BeginTransaction();
+                if (stack)
+                {
+                    AppendCacheStack(player, stack, transaction);
+                    Item::DeleteFromDB(transaction, itemGuid);
+                }
+                else
+                {
+                    auto* inventory = CharacterDatabase.GetPreparedStatement(CHAR_INS_MANASTORM_CACHE_INVENTORY);
+                    inventory->SetData(0, player->GetGUID().GetCounter());
+                    inventory->SetData(1, bag ? bag->GetGUID().GetCounter() : 0);
+                    inventory->SetData(2, uint8(position));
+                    inventory->SetData(3, itemGuid);
+                    transaction->Append(inventory);
+                }
+                auto* claim = CharacterDatabase.GetPreparedStatement(CHAR_DEL_MANASTORM_CACHE);
+                claim->SetData(0, itemGuid);
+                claim->SetData(1, player->GetGUID().GetCounter());
+                transaction->Append(claim);
+                // Wait for this small inventory transaction on the player's map thread. The slot cannot
+                // change while waiting, and a failed commit leaves both the live bag and reward intact.
+                if (!CharacterDatabase.AsyncCommitTransaction(transaction).m_future.get())
+                {
+                    LOG_ERROR("module.ascension_compat", "Manastorm cache delivery failed for {}; reward retained",
+                        player->GetGUID().ToString());
+                    return;
+                }
+                Item* stored = player->StoreItem(positions, item.release(), true);
+                player->ItemAddedQuestCheck(entry, 1);
+                player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_OWN_ITEM, entry, 1);
+                sScriptMgr->OnPlayerStoreNewItem(player, stored, 1);
+                player->SendNewItem(stored, 1, true, false);
+                run.cacheSpaceWarning = false;
+            } while (result->NextRow());
+            run.cachesPending = found;
+        }
+
         void ReloadXP(ObjectGuid guid, Run& run)
         {
             auto* statement = CharacterDatabase.GetPreparedStatement(CHAR_SEL_MANASTORM_XP);
@@ -1383,20 +1514,22 @@ namespace
             creature->SetLootRewardDisabled(true);
             creature->SetReputationRewardDisabled(true);
             creature->SetLootMode(0);
-            float const scale = 1.0f + float(run.encounter->depth - 1) * 0.06f + float(run.encounter->depth - 1) * (run.encounter->depth - 1) * 0.0004f;
-            float const groupHealth = 1.0f + float(run.encounter->members.size() - 1) * 0.8f;
+            float const scale = DepthStatMultiplier(run.encounter->depth);
+            float const party = PartyStatMultiplier(uint32(run.encounter->members.size()));
+            // Retain the established five-player baseline, then apply AutoBalance's player-count curve.
+            float const groupHealth = 4.2f * party;
             uint32 const health = uint32(std::min(500000000.0f,
                 (140 + 35 * run.encounter->level) * scale * (boss ? 4.0f : 1.0f) * groupHealth));
             creature->SetMaxHealth(health);
             creature->SetHealth(health);
             float const ratio = float(run.encounter->level) / std::max(1u, uint32(creature->GetCreatureTemplate()->maxlevel));
-            float const groupDamage = 1.0f + float(run.encounter->members.size() - 1) * 0.1f;
+            float const groupDamage = 1.4f * party;
             float const spellScale = std::clamp(ratio * ratio, 0.01f, 64.0f) * scale * groupDamage;
             run.encounter->enemyDamage[creature->GetGUID()] = spellScale;
             creature->SetInt32Value(UNIT_FIELD_ATTACK_POWER, 0);
             creature->SetBaseWeaponDamage(BASE_ATTACK, MINDAMAGE, (5.0f + run.encounter->level) * scale * groupDamage / spellScale);
             creature->SetBaseWeaponDamage(BASE_ATTACK, MAXDAMAGE, (8.0f + run.encounter->level * 1.4f) * scale * groupDamage / spellScale);
-            creature->SetStatFlatModifier(UNIT_MOD_ARMOR, BASE_VALUE, float(run.encounter->level) * 20.0f);
+            creature->SetStatFlatModifier(UNIT_MOD_ARMOR, BASE_VALUE, float(run.encounter->level) * 20.0f * party);
             creature->UpdateArmor();
             creature->UpdateDamagePhysical(BASE_ATTACK);
             if (run.encounter->depth >= 6)
@@ -1454,8 +1587,8 @@ namespace
             mail->sender = GuideEntry;
             mail->receiver = player->GetGUID().GetCounter();
             mail->subject = "Manastorm: level " + std::to_string(run.encounter->depth);
-            mail->body = first ? "A new depth conquered! Your first-completion bullion, bolts and spoils are enclosed."
-                : "Another storm conquered! Your bolts and spoils are enclosed. Keep pushing deeper!";
+            mail->body = first ? "A new depth conquered! Your bullion and bolts are enclosed. Caches go to your bags."
+                : "Another storm conquered! Your bolts are enclosed. Caches go to your bags. Keep pushing deeper!";
             mail->money = player->GetLevel() * 20 * (1 + std::min(run.encounter->depth, 1000u) / 10);
             mail->deliver_time = GameTime::GetGameTime().count();
             mail->expire_time = mail->deliver_time + 30 * DAY;
@@ -1493,6 +1626,16 @@ namespace
                     run.commitReady = true;
                     run.commitSucceeded = false;
                     return;
+                }
+                if (IsCache(entry))
+                {
+                    item->SetBinding(true);
+                    item->SaveToDB(transaction);
+                    auto* pending = CharacterDatabase.GetPreparedStatement(CHAR_INS_MANASTORM_CACHE);
+                    pending->SetData(0, item->GetGUID().GetCounter());
+                    pending->SetData(1, player->GetGUID().GetCounter());
+                    transaction->Append(pending);
+                    continue;
                 }
                 item->SaveToDB(transaction);
                 mail->AddItem(item->GetGUID().GetCounter(), entry);
@@ -1556,6 +1699,8 @@ namespace
                         itr->second.progressDirty = true;
                         itr->second.pity[mode] = pity;
                         itr->second.caches[mode] = totalCaches;
+                        itr->second.cachesPending = true;
+                        itr->second.uiEvents.RescheduleEvent(EventCacheDelivery, 1ms);
                         if (itr->second.token != token)
                             ReloadXP(guid, itr->second);
                         else
@@ -1718,7 +1863,8 @@ namespace
             auto* statement = CharacterDatabase.GetPreparedStatement(CHAR_DEL_MANASTORM_CLEARS);
             statement->SetData(0, guid);
             transaction->Append(statement);
-            for (auto id : {CHAR_DEL_MANASTORM_BONUS, CHAR_DEL_MANASTORM_LOADOUT, CHAR_DEL_MANASTORM_XP})
+            for (auto id : {CHAR_DEL_MANASTORM_BONUS, CHAR_DEL_MANASTORM_LOADOUT, CHAR_DEL_MANASTORM_XP,
+                CHAR_DEL_MANASTORM_CACHE_ITEMS, CHAR_DEL_MANASTORM_CACHES})
             {
                 auto* extra = CharacterDatabase.GetPreparedStatement(id);
                 extra->SetData(0, guid);

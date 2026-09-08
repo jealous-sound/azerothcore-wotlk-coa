@@ -1525,12 +1525,14 @@ public:
     [[nodiscard]] int32 GetMaxNegativeAuraModifier(AuraType auratype) const;
 
     [[nodiscard]] int32 GetTotalAuraModifier(AuraType auratype, std::function<bool(AuraEffect const*)> const& predicate) const;
+    [[nodiscard]] int32 GetTotalAuraModifier(AuraType first, AuraType second, std::function<bool(AuraEffect const*)> const& predicate = [](AuraEffect const*) { return true; }) const;
     [[nodiscard]] float GetTotalAuraMultiplier(AuraType auraType, std::function<bool(AuraEffect const*)> const& predicate) const;
     [[nodiscard]] int32 GetMaxPositiveAuraModifier(AuraType auraType, std::function<bool(AuraEffect const*)> const& predicate) const;
     [[nodiscard]] int32 GetMaxNegativeAuraModifier(AuraType auraType, std::function<bool(AuraEffect const*)> const& predicate) const;
 
     [[nodiscard]] int32 GetTotalAuraModifierByMiscMask(AuraType auratype, uint32 misc_mask) const;
     [[nodiscard]] float GetTotalAuraMultiplierByMiscMask(AuraType auratype, uint32 misc_mask) const;
+    [[nodiscard]] float GetHealthBasedDamageTakenMultiplier() const;
     [[nodiscard]] int32 GetMaxPositiveAuraModifierByMiscMask(AuraType auratype, uint32 misc_mask, AuraEffect const* except = nullptr) const;
     [[nodiscard]] int32 GetMaxNegativeAuraModifierByMiscMask(AuraType auratype, uint32 misc_mask) const;
 
@@ -1731,7 +1733,9 @@ public:
     [[nodiscard]] float GetHoverHeight() const { return IsHovering() ? GetFloatValue(UNIT_FIELD_HOVERHEIGHT) : 0.0f; }
 
     [[nodiscard]] virtual bool IsMovementPreventedByCasting() const;
+    [[nodiscard]] bool CanCastSpellWhileMoving(SpellInfo const* info) const;
     [[nodiscard]] bool IsActionPreventedByCasting() const;
+    [[nodiscard]] bool CanCastDuringChannel(SpellInfo const* info) const;
 
     [[nodiscard]] virtual bool CanEnterWater() const = 0;
     [[nodiscard]] virtual bool CanSwim() const;

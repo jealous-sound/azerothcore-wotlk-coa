@@ -25,6 +25,7 @@
 #include "SharedDefines.h"
 #include "SpellInfo.h"
 #include "Unit.h"
+#include <map>
 
 class Unit;
 class Player;
@@ -601,6 +602,10 @@ public:
     Unit* GetOriginalCaster() const { return m_originalCaster; }
     ObjectGuid GetOriginalCasterGUID() const { return m_originalCasterGUID; }
     WeaponAttackType GetScriptMeleeAttackType() const { return m_scriptMeleeAttackType; }
+    void SetScriptDamageEchoPercent(int32 percent) { m_scriptDamageEchoPercent = percent; }
+    int32 GetScriptDamageEchoPercent() const { return m_scriptDamageEchoPercent; }
+    void SetScriptExtraPowerSpent(uint32 amount) { m_scriptExtraPowerSpent = amount; }
+    uint32 GetScriptExtraPowerSpent() const { return m_scriptExtraPowerSpent; }
     void SetScriptWeaponDamageMultiplier(float multiplier);
     Unit* GetOriginalTarget() const;
     SpellInfo const* GetSpellInfo() const { return m_spellInfo; }
@@ -622,7 +627,7 @@ public:
     std::list<TargetInfo> const* GetUniqueTargetInfo() const { return &m_UniqueTargetInfo; }
     void AddUnitTargetForScript(Unit* target, uint32 effectMask, bool checkIfValid = true,
         bool implicit = true) { AddUnitTarget(target, effectMask, checkIfValid, implicit); }
-    bool TryMarkScriptEventHandled(uint8 eventIndex)
+    bool TryMarkScriptEventHandled(uint8 eventIndex) const
     {
         if (eventIndex >= 32)
             return false;
@@ -633,6 +638,14 @@ public:
 
         m_scriptEventMask |= eventMask;
         return true;
+    }
+
+    // Script-owned snapshots live with the cast, including delayed targets. Keys are spell ids.
+    void SetScriptValue(uint32 key, uint64 value) { m_scriptValues[key] = value; }
+    uint64 GetScriptValue(uint32 key) const
+    {
+        auto itr = m_scriptValues.find(key);
+        return itr != m_scriptValues.end() ? itr->second : 0;
     }
 
     [[nodiscard]] uint32 GetTriggeredByAuraTickNumber() const { return m_triggeredByAuraSpell.tickNumber; }
@@ -668,13 +681,16 @@ public:
     WeaponAttackType m_attackType;                      // For weapon based attack
     float m_scriptWeaponDamageMultiplier = 1.0f;
     WeaponAttackType m_scriptMeleeAttackType = MAX_ATTACK;
+    int32 m_scriptDamageEchoPercent = 0;
+    uint32 m_scriptExtraPowerSpent = 0;
     int32 m_powerCost;                                  // Calculated spell cost     initialized only in Spell::prepare
     int32 m_casttime;                                   // Calculated spell cast time initialized only in Spell::prepare
     int32 m_channeledDuration;                          // Calculated channeled spell duration in order to calculate correct pushback.
     bool m_canReflect;                                  // can reflect this spell?
 
     uint8 m_spellFlags;                                 // for spells whose target was changed in cast i.e. due to reflect
-    uint32 m_scriptEventMask;                           // one-shot events owned by global spell scripts
+    mutable uint32 m_scriptEventMask;                   // per-cast bookkeeping, including read-only proc callbacks
+    std::map<uint32, uint64> m_scriptValues;
     uint32 m_scriptHealthLeechDamage = 0;
 
     bool m_autoRepeat;

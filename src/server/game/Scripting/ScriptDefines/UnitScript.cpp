@@ -107,6 +107,19 @@ bool ScriptMgr::IfNormalReaction(Unit const* unit, Unit const* target, Reputatio
     CALL_ENABLED_BOOLEAN_HOOKS(UnitScript, UNITHOOK_IF_NORMAL_REACTION, !script->IfNormalReaction(unit, target, repRank));
 }
 
+bool ScriptMgr::CanUnitAttack(Unit const* attacker, Unit const* target, SpellInfo const* spell)
+{
+    CALL_ENABLED_BOOLEAN_HOOKS(UnitScript, UNITHOOK_CAN_UNIT_ATTACK, !script->CanUnitAttack(attacker, target, spell));
+}
+
+Unit* ScriptMgr::SpellMagnetTarget(Unit* attacker, Unit* victim, SpellInfo const* spell)
+{
+    Unit* result = nullptr;
+    CALL_ENABLED_HOOKS(UnitScript, UNITHOOK_SPELL_MAGNET_TARGET,
+        if (!result) result = script->SpellMagnetTarget(attacker, victim, spell));
+    return result;
+}
+
 bool ScriptMgr::CanSetPhaseMask(Unit const* unit, uint32 newPhaseMask, bool update)
 {
     CALL_ENABLED_BOOLEAN_HOOKS(UnitScript, UNITHOOK_CAN_SET_PHASE_MASK, !script->CanSetPhaseMask(unit, newPhaseMask, update));

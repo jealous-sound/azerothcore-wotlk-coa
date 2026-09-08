@@ -2251,13 +2251,17 @@ uint32 Unit::CalcArmorReducedDamage(Unit const* attacker, Unit const* victim, co
         // Ascension's ignore-armor aura is used both as an attacker buff and as
         // a caster-specific debuff on the victim.
         int32 ignoreArmorPct = attacker->GetTotalAuraModifier(
-            SPELL_AURA_ASCENSION_MOD_IGNORE_ARMOR_PCT);
+            SPELL_AURA_ASCENSION_MOD_IGNORE_ARMOR_PCT, [spellInfo](AuraEffect const* aurEff)
+        {
+            return !aurEff->GetSpellInfo()->Effects[aurEff->GetEffIndex()].SpellClassMask || aurEff->IsAffectedOnSpell(spellInfo);
+        });
         if (attacker != victim)
         {
             ignoreArmorPct += victim->GetTotalAuraModifier(
-                SPELL_AURA_ASCENSION_MOD_IGNORE_ARMOR_PCT, [attacker](AuraEffect const* aurEff)
+                SPELL_AURA_ASCENSION_MOD_IGNORE_ARMOR_PCT, [attacker, spellInfo](AuraEffect const* aurEff)
             {
-                return attacker->GetGUID() == aurEff->GetCasterGUID();
+                return attacker->GetGUID() == aurEff->GetCasterGUID() &&
+                    (!aurEff->GetSpellInfo()->Effects[aurEff->GetEffIndex()].SpellClassMask || aurEff->IsAffectedOnSpell(spellInfo));
             });
         }
 
@@ -4297,7 +4301,7 @@ void Unit::SetCurrentCastedSpell(Spell* pSpell)
                 // generic spells always break channeled not delayed spells
                 if (Spell* s = GetCurrentSpell(CURRENT_CHANNELED_SPELL))
                 {
-                    if (!s->GetSpellInfo()->IsActionAllowedChannel())
+                    if (!s->GetSpellInfo()->IsActionAllowedChannel() && !CanCastDuringChannel(pSpell->GetSpellInfo()))
                     {
                         InterruptSpell(CURRENT_CHANNELED_SPELL, false);
                     }
@@ -4493,6 +4497,20 @@ int32 Unit::GetCurrentSpellCastTime(uint32 spell_id) const
     return 0;
 }
 
+bool Unit::CanCastSpellWhileMoving(SpellInfo const* info) const
+{
+    if (!info)
+        return false;
+    if (getClass() == CLASS_WITCH_DOCTOR && info->SpellFamilyName == 19 &&
+        ((info->SpellFamilyFlags[1] & 4) || (info->SpellFamilyFlags[0] & 33554432)))
+        return true;
+    if (info->SpellFamilyName == 21 && info->IsChanneled() &&
+        ((info->SpellFamilyFlags[0] & 2) || info->Id == 807364))
+        return true;
+    // Copied aura 313 grants movement only to spells selected by its family mask.
+    return HasAuraTypeWithAffectMask(SPELL_AURA_313, info);
+}
+
 bool Unit::IsMovementPreventedByCasting() const
 {
     // can always move when not casting
@@ -4501,12 +4519,16 @@ bool Unit::IsMovementPreventedByCasting() const
         return false;
     }
 
+    if (Spell* spell = m_currentSpells[CURRENT_GENERIC_SPELL])
+        if (spell->getState() != SPELL_STATE_FINISHED && CanCastSpellWhileMoving(spell->GetSpellInfo()))
+            return false;
+
     // channeled spells during channel stage (after the initial cast timer) allow movement with a specific spell attribute
     if (Spell* spell = m_currentSpells[CURRENT_CHANNELED_SPELL])
     {
         if (spell->getState() != SPELL_STATE_FINISHED && spell->IsChannelActive())
         {
-            if (spell->GetSpellInfo()->IsActionAllowedChannel())
+            if (spell->GetSpellInfo()->IsActionAllowedChannel() || CanCastSpellWhileMoving(spell->GetSpellInfo()))
             {
                 return false;
             }
@@ -4535,6 +4557,16 @@ bool Unit::IsActionPreventedByCasting() const
 
     // prohibit actions for all other spell casts
     return true;
+}
+
+bool Unit::CanCastDuringChannel(SpellInfo const* info) const
+{
+    Spell* channel = GetCurrentSpell(CURRENT_CHANNELED_SPELL);
+    return getClass() == CLASS_WITCH_DOCTOR && info && info->SpellFamilyName == 19 &&
+        ((info->SpellFamilyFlags[1] & 2048) || (info->SpellFamilyFlags[2] & 536870913)) &&
+        channel && channel->getState() != SPELL_STATE_FINISHED && channel->IsChannelActive() &&
+        channel->GetSpellInfo()->SpellFamilyName == 19 &&
+        (channel->GetSpellInfo()->SpellFamilyFlags[1] & 4194304);
 }
 
 bool Unit::isInFrontInMap(Unit const* target, float distance,  float arc) const
@@ -4714,13 +4746,14 @@ int32 Unit::GetHighestExclusiveSameEffectSpellGroupValue(AuraEffect const* aurEf
     SpellSpellGroupMapBounds spellGroup = sSpellMgr->GetSpellSpellGroupMapBounds(aurEff->GetSpellInfo()->GetFirstRankSpell()->Id);
     for (SpellSpellGroupMap::const_iterator itr = spellGroup.first; itr != spellGroup.second ; ++itr)
     {
-        if (sSpellMgr->GetSpellGroupStackRule(itr->second) == SPELL_GROUP_STACK_RULE_EXCLUSIVE_SAME_EFFECT)
+        if (sSpellMgr->GetSpellGroupStackRule(itr->second) == SPELL_GROUP_STACK_RULE_EXCLUSIVE_SAME_EFFECT &&
+            sSpellMgr->IsEffectInSameEffectStackGroup(aurEff->GetSpellInfo(), aurEff->GetEffIndex(), itr->second))
         {
             AuraEffectList const& auraEffList = GetAuraEffectsByType(auraType);
             for (AuraEffectList::const_iterator auraItr = auraEffList.begin(); auraItr != auraEffList.end(); ++auraItr)
             {
                 if (aurEff != (*auraItr) && (!checkMiscValue || (*auraItr)->GetMiscValue() == miscValue) &&
-                    sSpellMgr->IsSpellMemberOfSpellGroup((*auraItr)->GetSpellInfo()->Id, itr->second))
+                    sSpellMgr->IsEffectInSameEffectStackGroup((*auraItr)->GetSpellInfo(), (*auraItr)->GetEffIndex(), itr->second))
                 {
                     // absolute value only
                     if (abs(val) < abs((*auraItr)->GetAmount()))
@@ -5629,7 +5662,8 @@ void Unit::RemoveAurasWithInterruptFlags(uint32 flag, uint32 except, bool isAuto
         return;
 
     Spell* channel = m_currentSpells[CURRENT_CHANNELED_SPELL];
-    bool const mobileChannel = channel && HasManastormMovementGrace();
+    bool const mobileChannel = channel && (HasManastormMovementGrace() ||
+        CanCastSpellWhileMoving(channel->GetSpellInfo()));
     uint32 const channelId = channel ? channel->m_spellInfo->Id : 0;
     // Drink, stealth and all other auras retain their own movement interruption.
     for (AuraApplicationList::iterator iter = m_interruptableAuras.begin(); iter != m_interruptableAuras.end();)
@@ -5650,7 +5684,7 @@ void Unit::RemoveAurasWithInterruptFlags(uint32 flag, uint32 except, bool isAuto
     // interrupt channeled spell
     if (Spell* spell = m_currentSpells[CURRENT_CHANNELED_SPELL])
     {
-        uint32 const channelFlags = HasManastormMovementGrace()
+        uint32 const channelFlags = HasManastormMovementGrace() || CanCastSpellWhileMoving(spell->GetSpellInfo())
             ? flag & ~(AURA_INTERRUPT_FLAG_MOVE | AURA_INTERRUPT_FLAG_TURNING) : flag;
         if (spell->getState() == SPELL_STATE_CASTING && (spell->m_spellInfo->ChannelInterruptFlags & channelFlags) && spell->m_spellInfo->Id != except)
         {
@@ -6381,23 +6415,20 @@ uint32 Unit::GetDoTsByCaster(ObjectGuid casterGUID) const
 
 int32 Unit::GetTotalAuraModifier(AuraType auraType, std::function<bool(AuraEffect const*)> const& predicate) const
 {
-    AuraEffectList const& mTotalAuraList = GetAuraEffectsByType(auraType);
-    if (mTotalAuraList.empty())
-        return 0;
+    return GetTotalAuraModifier(auraType, SPELL_AURA_NONE, predicate);
+}
 
+int32 Unit::GetTotalAuraModifier(AuraType first, AuraType second, std::function<bool(AuraEffect const*)> const& predicate) const
+{
     std::map<SpellGroup, int32> sameEffectSpellGroup;
     int32 modifier = 0;
 
-    for (AuraEffect const* aurEff : mTotalAuraList)
-    {
-        if (predicate(aurEff))
-        {
-            // Check if the Aura Effect has a the Same Effect Stack Rule and if so, use the highest amount of that SpellGroup
-            // If the Aura Effect does not have this Stack Rule, it returns false so we can add to the multiplier as usual
-            if (!sSpellMgr->AddSameEffectStackRuleSpellGroups(aurEff->GetSpellInfo(), static_cast<uint32>(auraType), aurEff->GetAmount(), sameEffectSpellGroup))
-                modifier += aurEff->GetAmount();
-        }
-    }
+    for (AuraType type : { first, second })
+        if (type != SPELL_AURA_NONE)
+            for (AuraEffect const* aurEff : GetAuraEffectsByType(type))
+                if (predicate(aurEff) && !sSpellMgr->AddSameEffectStackRuleSpellGroups(aurEff->GetSpellInfo(),
+                    aurEff->GetEffIndex(), static_cast<uint32>(type), aurEff->GetAmount(), sameEffectSpellGroup))
+                    modifier += aurEff->GetAmount();
 
     // Add the highest of the Same Effect Stack Rule SpellGroups to the accumulator
     for (auto const& [_, amount] : sameEffectSpellGroup)
@@ -6421,7 +6452,7 @@ float Unit::GetTotalAuraMultiplier(AuraType auraType, std::function<bool(AuraEff
         {
             // Check if the Aura Effect has a the Same Effect Stack Rule and if so, use the highest amount of that SpellGroup
             // If the Aura Effect does not have this Stack Rule, it returns false so we can add to the multiplier as usual
-            if (!sSpellMgr->AddSameEffectStackRuleSpellGroups(aurEff->GetSpellInfo(), static_cast<uint32>(auraType), aurEff->GetAmount(), sameEffectSpellGroup))
+            if (!sSpellMgr->AddSameEffectStackRuleSpellGroups(aurEff->GetSpellInfo(), aurEff->GetEffIndex(), static_cast<uint32>(auraType), aurEff->GetAmount(), sameEffectSpellGroup))
                 AddPct(multiplier, aurEff->GetAmount());
         }
     }
@@ -8377,6 +8408,11 @@ Unit* Unit::GetMagicHitRedirectTarget(Unit* victim, SpellInfo const* spellInfo)
                 return magnet;
             }
     }
+    if (Unit* magnet = sScriptMgr->SpellMagnetTarget(this, victim, spellInfo))
+        if (magnet->IsAlive() && IsInMap(magnet) && InSamePhase(magnet) &&
+            spellInfo->CheckExplicitTarget(this, magnet) == SPELL_CAST_OK &&
+            _IsValidAttackTarget(magnet, spellInfo) && IsWithinLOSInMap(magnet))
+            return magnet;
     return victim;
 }
 
@@ -8637,6 +8673,9 @@ float Unit::SpellPctDamageModsDone(Unit* victim, SpellInfo const* spellProto, Da
 
     // Done total percent damage auras
     float DoneTotalMod = 1.0f;
+
+    if (AuraEffect const* drums = GetAuraEffect(570759, EFFECT_0))
+        AddPct(DoneTotalMod, drums->GetAmount());
 
     DoneTotalMod *= GetTotalAuraMultiplier(SPELL_AURA_MOD_DAMAGE_PERCENT_DONE, [spellProto, this, damagetype](AuraEffect const* aurEff)
     {
@@ -9150,9 +9189,24 @@ uint32 Unit::SpellDamageBonusDone(Unit* victim, SpellInfo const* spellProto, uin
     return uint32(std::max(tmpDamage, 0.0f));
 }
 
+float Unit::GetHealthBasedDamageTakenMultiplier() const
+{
+    // Defiance's live 30-80% reduction belongs to damage calculation, not the
+    // shared periodic callback (which also receives healing ticks).
+    if (IsPlayer() && getClass() == CLASS_BARBARIAN && HasAura(806228))
+        return 0.2f + 0.5f * GetHealthPct() / 100.0f;
+    return 1.0f;
+}
+
 uint32 Unit::SpellDamageBonusTaken(Unit* caster, SpellInfo const* spellProto, uint32 pdamage, DamageEffectType damagetype, uint32 stack)
 {
     if (!spellProto || damagetype == DIRECT_DAMAGE)
+        return pdamage;
+
+    // Converted Barbarian damage already includes the source hit's target
+    // modifiers. Preserve ordinary spells and native final absorb/resist rules.
+    if ((spellProto->SpellFamilyName == 18 || spellProto->Id == 680532 || spellProto->Id == 807262 ||
+        spellProto->Id == 567570) && spellProto->HasAttribute(SPELL_ATTR4_IGNORE_DAMAGE_TAKEN_MODIFIERS))
         return pdamage;
 
     int32 TakenTotal = 0;
@@ -9161,6 +9215,7 @@ uint32 Unit::SpellDamageBonusTaken(Unit* caster, SpellInfo const* spellProto, ui
     // from positive and negative SPELL_AURA_MOD_DAMAGE_PERCENT_TAKEN
     // multiplicative bonus, for example Dispersion + Shadowform (0.10*0.85=0.085)
     TakenTotalMod *= GetTotalAuraMultiplierByMiscMask(SPELL_AURA_MOD_DAMAGE_PERCENT_TAKEN, spellProto->GetSchoolMask());
+    TakenTotalMod *= GetHealthBasedDamageTakenMultiplier();
 
     TakenTotalMod = processDummyAuras(TakenTotalMod);
 
@@ -9758,6 +9813,8 @@ float Unit::SpellPctHealingModsDone(Unit* victim, SpellInfo const* spellProto, D
     // Healing done percent
     if (includeHealingDonePct)
         DoneTotalMod *= GetTotalAuraMultiplier(SPELL_AURA_MOD_HEALING_DONE_PERCENT);
+    if (AuraEffect const* drums = GetAuraEffect(570759, EFFECT_0))
+        AddPct(DoneTotalMod, drums->GetAmount());
 
     if (victim)
     {
@@ -10501,6 +10558,8 @@ uint32 Unit::MeleeDamageBonusDone(Unit* victim, uint32 pdamage, WeaponAttackType
     float DoneTotalMod = 1.0f;
 
     // mods for SPELL_SCHOOL_MASK_NORMAL are already factored in base melee damage calculation
+    if (AuraEffect const* drums = GetAuraEffect(570759, EFFECT_0))
+        AddPct(DoneTotalMod, drums->GetAmount());
     if (!(damageSchoolMask & SPELL_SCHOOL_MASK_NORMAL))
     {
         // Some spells don't benefit from pct done mods
@@ -10652,6 +10711,7 @@ uint32 Unit::MeleeDamageBonusTaken(Unit* attacker, uint32 pdamage, WeaponAttackT
     float TakenTotalMod = 1.0f;
 
     TakenTotalMod *= GetTotalAuraMultiplierByMiscMask(SPELL_AURA_MOD_DAMAGE_PERCENT_TAKEN, damageSchoolMask);
+    TakenTotalMod *= GetHealthBasedDamageTakenMultiplier();
 
     // .. taken pct (special attacks)
     if (spellProto)
@@ -11014,6 +11074,9 @@ bool Unit::IsValidAttackTarget(Unit const* target, SpellInfo const* bySpell) con
 bool Unit::_IsValidAttackTarget(Unit const* target, SpellInfo const* bySpell, WorldObject const* obj) const
 {
     ASSERT(target);
+
+    if (!sScriptMgr->CanUnitAttack(this, target, bySpell))
+        return false;
 
     // can't attack self
     if (this == target)
@@ -11483,6 +11546,8 @@ void Unit::UpdateSpeed(UnitMoveType mtype, bool forced)
     }
 
     // now we ready for speed calculation
+    if (mtype == MOVE_RUN && !IsMounted() && IsPlayer() && getClass() == CLASS_WITCH_HUNTER && HasAura(504790))
+        main_speed_mod = std::max(main_speed_mod, 20);
     float speed = std::max(non_stack_bonus, stack_bonus);
     if (main_speed_mod)
         AddPct(speed, main_speed_mod);
@@ -11561,6 +11626,10 @@ void Unit::UpdateSpeed(UnitMoveType mtype, bool forced)
         if (speed < min_speed)
             speed = min_speed;
     }
+
+    if (mtype == MOVE_RUN && IsPlayer() && getClass() == CLASS_GUARDIAN && HasAura(803130))
+        if (AuraEffect const* floor = GetAuraEffect(300542, EFFECT_0))
+            speed = std::max(speed, float(floor->GetAmount()) / 100.0f);
 
     SetSpeed(mtype, speed, forced);
 }
@@ -11987,7 +12056,14 @@ void Unit::ModSpellCastTime(SpellInfo const* spellInfo, int32& castTime, Spell* 
 {
     if (!spellInfo || castTime < 0)
         return;
-
+    if (CanCastDuringChannel(spellInfo))
+    {
+        castTime = 0;
+        return;
+    }
+    if (getClass() == CLASS_WITCH_DOCTOR && spellInfo->SpellFamilyName == 19 &&
+        (spellInfo->SpellFamilyFlags[0] & 33554432))
+        castTime = int32(castTime / (1.0f + std::max(0.0f, GetStat(STAT_AGILITY)) / 1000.0f));
     if (spellInfo->IsChanneled() && spellInfo->HasAura(SPELL_AURA_MOUNTED))
         return;
 
@@ -12164,17 +12240,20 @@ float Unit::GetSpellMaxRangeForTarget(Unit const* target, SpellInfo const* spell
         return 0;
     }
 
+    float bonus = IsPlayer() && spellInfo->DmgClass == SPELL_DAMAGE_CLASS_MELEE &&
+        spellInfo->RangeEntry->Flags == SPELL_RANGE_MELEE ?
+        ToPlayer()->GetMeleeAbilityRangeBonus() : 0.0f;
     if (spellInfo->RangeEntry->RangeMax[1] == spellInfo->RangeEntry->RangeMax[0])
     {
-        return spellInfo->GetMaxRange();
+        return spellInfo->GetMaxRange() + bonus;
     }
 
     if (!target)
     {
-        return spellInfo->GetMaxRange(true);
+        return spellInfo->GetMaxRange(true) + bonus;
     }
 
-    return spellInfo->GetMaxRange(!IsHostileTo(target));
+    return spellInfo->GetMaxRange(!IsHostileTo(target)) + bonus;
 }
 
 float Unit::GetSpellMinRangeForTarget(Unit const* target, SpellInfo const* spellInfo) const
