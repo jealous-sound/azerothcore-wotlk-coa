@@ -347,15 +347,22 @@ void Player::UpdateArmor()
     UnitMods unitMod = UNIT_MOD_ARMOR;
 
     float value = GetFlatModifierValue(unitMod, BASE_VALUE);   // base armor (from items)
-    // Tower Formation increases the equipped shield's contribution, not all
-    // base armor. Its runtime aura is DUMMY to avoid a second BASE_PCT bonus.
-    if (getClass() == CLASS_GUARDIAN)
-        if (AuraEffect const* tower = GetAuraEffect(800317, EFFECT_1))
-            if (tower->GetAuraType() == SPELL_AURA_DUMMY)
-                if (Item* shield = GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_OFFHAND))
-                    if (!shield->IsBroken() && shield->GetTemplate()->Class == ITEM_CLASS_ARMOR &&
-                        shield->GetTemplate()->SubClass == ITEM_SUBCLASS_ARMOR_SHIELD)
-                        value += CalculatePct(float(shield->GetTemplate()->Armor), tower->GetAmount());
+    // Apply scoped armor multipliers only to native effective item contributions.
+    // Unrestricted BASE_PCT and TOTAL_PCT modifiers still apply afterwards.
+    for (uint32 subclass = 0; subclass < MAX_ITEM_SUBCLASS_ARMOR; ++subclass)
+    {
+        float multiplier = GetTotalAuraMultiplier(SPELL_AURA_MOD_BASE_RESISTANCE_PCT,
+            [subclass](AuraEffect const* effect)
+            {
+                return (effect->GetSpellInfo()->Effects[effect->GetEffIndex()].GetItemArmorSubclassMask() &
+                    (1u << subclass)) != 0;
+            });
+        if (getClass() == CLASS_GUARDIAN)
+            if (AuraEffect const* tower = GetAuraEffect(800317, EFFECT_1))
+                if (tower->GetSpellInfo()->Effects[tower->GetEffIndex()].GetItemArmorSubclassMask() & (1u << subclass))
+                    AddPct(multiplier, tower->GetAmount());
+        value += GetItemArmorBySubclass(subclass) * (multiplier - 1.0f);
+    }
     value *= GetPctModifierValue(unitMod, BASE_PCT);           // armor percent from items
     value += GetStat(STAT_AGILITY) * 2.0f;                             // armor bonus from stats
     value += GetFlatModifierValue(unitMod, TOTAL_VALUE);

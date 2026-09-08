@@ -2632,6 +2632,7 @@ void Spell::DoAllEffectOnTarget(TargetInfo* target)
     SpellMissInfo missInfo = target->missCondition;
     SpellMissInfo scriptMissInfo = missInfo;
     uint32 scriptDamageResult = 0;
+    m_scriptHealthLeechDamage = 0;
 
     // Need init unitTarget by default unit (can changed in code on reflect)
     // Or on missInfo != SPELL_MISS_NONE unitTarget undefined (but need in trigger subsystem)
@@ -2898,7 +2899,12 @@ void Spell::DoAllEffectOnTarget(TargetInfo* target)
 
             procVictim |= PROC_FLAG_TAKEN_DAMAGE;
 
+            // Match native leech's pre-damage health cap. Keep the resolved
+            // damage result for other scripts, and do not infer damage from
+            // later health deltas that can include triggered heals or damage.
+            uint32 const healthBeforeDamage = unitTarget->GetHealth();
             caster->DealSpellDamage(&damageInfo, true, this, &scriptDamageResult);
+            m_scriptHealthLeechDamage = std::min(scriptDamageResult, healthBeforeDamage);
 
             // do procs after damage, eg healing effects
             // no need to check if target is alive, done in procdamageandspell
@@ -7175,7 +7181,7 @@ SpellCastResult Spell::CheckRange(bool strict)
         }
 
         // Check min range - for ranged spells, min range is the spell's min range + melee range (no leeway)
-        if (range_type == SPELL_RANGE_RANGED)
+        if (range_type == SPELL_RANGE_RANGED && !m_caster->IgnoresSpellMinRange(m_spellInfo))
         {
             float minRangeCombined = min_range + m_caster->GetMeleeRange(target);
             if (m_caster->IsWithinRange(target, minRangeCombined))
@@ -8555,6 +8561,31 @@ SpellCastResult Spell::CanOpenLock(uint32 effIndex, uint32 lockId, SkillType& sk
     return SPELL_CAST_OK;
 }
 
+void Spell::SetScriptWeaponDamageMultiplier(float multiplier)
+{
+    // Preserve fractional weapon percentages until the native weapon roll is
+    // scaled. Later changes would disagree with damage already calculated.
+    if ((m_spellState != SPELL_STATE_NULL && m_spellState != SPELL_STATE_PREPARING) ||
+        m_spellInfo->DmgClass != SPELL_DAMAGE_CLASS_MELEE ||
+        !m_spellInfo->HasEffect(SPELL_EFFECT_WEAPON_PERCENT_DAMAGE) ||
+        !std::isfinite(multiplier) || multiplier < 0.0f)
+        return;
+
+    m_scriptWeaponDamageMultiplier = multiplier;
+}
+
+void Spell::SetScriptMeleeAttackType(int32 attackType)
+{
+    // Unit::CastSpell supplies custom values before prepare. Changing hands
+    // later would disagree with the already prepared hit and proc context.
+    if (m_spellState != SPELL_STATE_NULL || m_spellInfo->DmgClass != SPELL_DAMAGE_CLASS_MELEE ||
+        (attackType != BASE_ATTACK && attackType != OFF_ATTACK))
+        return;
+
+    m_scriptMeleeAttackType = WeaponAttackType(attackType);
+    m_attackType = m_scriptMeleeAttackType;
+}
+
 void Spell::SetSpellValue(SpellValueMod mod, int32 value)
 {
     switch (mod)
@@ -8591,6 +8622,9 @@ void Spell::SetSpellValue(SpellValueMod mod, int32 value)
             break;
         case SPELLVALUE_MISCVALUE2:
             m_spellValue->MiscVal[2] = value;
+            break;
+        case SPELLVALUE_MELEE_ATTACK_TYPE:
+            SetScriptMeleeAttackType(value);
             break;
     }
 }

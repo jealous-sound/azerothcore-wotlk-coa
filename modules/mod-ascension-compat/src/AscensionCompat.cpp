@@ -7,10 +7,12 @@
 #include "AllCreatureScript.h"
 #include "AllSpellScript.h"
 #include "AscensionChangelogCompat.h"
+#include "AscensionManastorm.h"
 #include "AscensionClassMechanics.h"
 #include "AscensionClassMechanics19To25.h"
 #include "AscensionClassMechanics26To32.h"
 #include "AscensionCoATalentData.h"
+#include "AscensionRunemasterEchoes.h"
 #include "AscensionCollectionModelData.h"
 #include "AscensionAmmunitionData.h"
 #include "AscensionCollectibleSpellData.h"
@@ -21,7 +23,14 @@
 #include "AscensionCustomResourceData.h"
 #include "AscensionFreshCharacterCheck.h"
 #include "AscensionLiveBaselineData.h"
+#include "AscensionPrimalistEarthshaping.h"
+#include "AscensionPrimalistSpiritBeast.h"
+#include "AscensionReaperSoulStrike.h"
+#include "AscensionReaperDeathwind.h"
+#include "AscensionReaperPainmail.h"
+#include "AscensionVenomancerCatalyst.h"
 #include "AscensionSpellProgressionData.h"
+#include "AscensionTaughtAbilityData.h"
 #include "Bag.h"
 #include "Battlefield.h"
 #include "BattlefieldMgr.h"
@@ -444,6 +453,7 @@ public:
       ++learned;
     }
 
+    ReconcileRunemasterFists(player, activeSpec);
     learned += SynchronizeAutomaticTalents(player, GetActiveSpecialization(player));
     // Rank upgrades are conditional on already owning the root. They cannot
     // spend talent points, pick an unselected ability, or leak an old spec.
@@ -460,6 +470,9 @@ public:
         }
     }
 
+    learned += SynchronizeTaughtAbilities(player);
+    SynchronizeAscensionRunemasterEchoes(player, GetActiveSpecialization(player));
+
     if (learned)
     {
       ChatHandler(player->GetSession())
@@ -472,6 +485,49 @@ public:
 
     return learned;
   }
+
+    bool AffectsTaughtAbilities(uint32 spellId) const
+    {
+        return std::any_of(AscensionCompatData::TaughtAbilities.begin(),
+            AscensionCompatData::TaughtAbilities.end(),
+            [spellId](auto const& entry) { return entry.ParentSpellId == spellId; });
+    }
+
+    uint32 SynchronizeTaughtAbilities(Player* player)
+    {
+        if (!IsAscensionCustomClass(player))
+            return 0;
+
+        uint32 const specializationId = GetActiveSpecialization(player);
+        uint32 learned = 0;
+        for (auto const& entry : AscensionCompatData::TaughtAbilities)
+        {
+            if (entry.ClassId != player->getClass())
+                continue;
+
+            // Wait for CAD's confirmed specialization after login. A persisted
+            // parent alone must not teach an ability from the previous spec.
+            bool const allowed = specializationId == entry.SpecId &&
+                player->GetLevel() >= entry.RequiredLevel && player->HasSpell(entry.ParentSpellId);
+            if (!allowed)
+            {
+                player->removeSpell(entry.SpellId, SPEC_MASK_ALL, true);
+                continue;
+            }
+
+            // Preserve independent permanent ownership, other native specs and
+            // pending deletion records. Native _addSpell would resurrect a
+            // tombstone as CHANGED even when requested as temporary.
+            auto const& spells = player->GetSpellMap();
+            if (spells.find(entry.SpellId) != spells.end() || !sSpellMgr->GetSpellInfo(entry.SpellId))
+                continue;
+
+            player->learnSpell(entry.SpellId, true);
+            if (player->HasSpell(entry.SpellId))
+                ++learned;
+        }
+        return learned;
+    }
 
   bool AffectsProficiencies(uint32 spellId) const {
     bool const isProficiency = std::any_of(
@@ -961,6 +1017,49 @@ public:
                 return false;
         }
         return true;
+    }
+
+    static void ReconcileRunemasterFists(Player* player, uint32 specializationId)
+    {
+        // An unconfirmed custom specialization cannot disprove a saved identity.
+        if (!player || player->getClass() != CLASS_SPIRIT_MAGE || !specializationId)
+            return;
+
+        auto const& entries = AscensionCompatData::CoATalentEntries;
+        auto findEntry = [&entries](uint32 entryId)
+        {
+            return std::lower_bound(entries.begin(), entries.end(), entryId,
+                [](AscensionCompatData::CoATalentEntry const& entry, uint32 id)
+                {
+                    return entry.EntryId < id;
+                });
+        };
+        auto const fists = findEntry(4062);
+        auto const zenith = findEntry(29521);
+        if (fists == entries.end() || fists->EntryId != 4062 ||
+            fists->ClassId != CLASS_SPIRIT_MAGE || fists->SpecId != 61 ||
+            fists->SpellCount != 1 || fists->AECost || fists->TECost || fists->RequiredLevel != 10 ||
+            fists->SpellIds != std::array<uint32, 3>{92153, 0, 0} ||
+            zenith == entries.end() || zenith->EntryId != 29521 ||
+            zenith->ClassId != CLASS_SPIRIT_MAGE || zenith->SpecId ||
+            zenith->SpellCount != 1 || zenith->AECost != 1 || zenith->TECost || zenith->RequiredLevel ||
+            zenith->SpellIds != std::array<uint32, 3>{712325, 0, 0})
+            return;
+
+        auto const& dependencies = AscensionCompatData::CoAAutomaticDependencies;
+        auto const dependency = std::lower_bound(dependencies.begin(), dependencies.end(), uint32(4062),
+            [](AscensionCompatData::CoAAutomaticDependency const& entry, uint32 id)
+            {
+                return entry.EntryId < id;
+            });
+        if (dependency == dependencies.end() || dependency->EntryId != 4062 ||
+            dependency->RequiredEntryIds != std::array<uint32, 2>{29521, 0})
+            return;
+
+        // Preserve native HasSpell eligibility, including an inactive Zenith or
+        // a temporary prerequisite. Acquisition still uses normal progression.
+        if (!CanGrantAutomaticEntry(player, *fists, specializationId) && player->HasSpell(92153))
+            player->removeSpell(92153, player->GetActiveSpecMask(), false);
     }
 
 private:
@@ -2878,6 +2977,9 @@ public:
     if (opcode < firstOpcode || opcode > lastOpcode)
       return true;
 
+    if (QueueAscensionManastormPacket(session, packet))
+      return false;
+
     if (opcode == CMSG_APPLY_APPEARANCES ||
         opcode == CMSG_SET_CAN_SEE_APPEARANCES ||
         opcode == CMSG_VANITY_DELIVERY) {
@@ -3107,7 +3209,10 @@ public:
   static bool HandleLocalChargesCommand(ChatHandler* handler)
   {
     if (Player* player = handler->GetPlayer())
+    {
         player->SendAllSpellChargeStates();
+        SendAscensionRunemasterEchoesOwnership(player);
+    }
     return true;
   }
 };
@@ -3122,6 +3227,7 @@ public:
              PLAYERHOOK_ON_STORE_NEW_ITEM, PLAYERHOOK_ON_CREATE_ITEM,
              PLAYERHOOK_ON_PLAYER_IS_CLASS, PLAYERHOOK_ON_LEVEL_CHANGED,
              PLAYERHOOK_ON_LEARN_SPELL, PLAYERHOOK_ON_FORGOT_SPELL,
+             PLAYERHOOK_ON_AFTER_SPEC_SLOT_CHANGED,
              PLAYERHOOK_ON_CREATE_INITIAL_ITEMS,
              PLAYERHOOK_ON_GET_AMMO_DISPLAY,
              PLAYERHOOK_ON_AFTER_UPDATE_ATTACK_POWER_AND_DAMAGE,
@@ -3214,6 +3320,15 @@ public:
   }
 
   void OnPlayerLearnSpell(Player *player, uint32 spellId) override {
+    if (ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED) &&
+        (spellId == 712325 || spellId == 712389 || spellId == 521211))
+      SynchronizeAscensionRunemasterEchoes(player,
+          AscensionClassService::Instance().GetActiveSpecialization(player));
+
+    if (ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED) &&
+        AscensionClassService::Instance().AffectsTaughtAbilities(spellId))
+      AscensionClassService::Instance().SynchronizeTaughtAbilities(player);
+
     if (ascensionCompatConfig.GetConfigValue<bool>(
             AscensionCompatConfig::ENABLED) &&
         AscensionClassService::Instance().AffectsProficiencies(spellId))
@@ -3221,11 +3336,31 @@ public:
   }
 
   void OnPlayerForgotSpell(Player *player, uint32 spellId) override {
+    if (ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED) && spellId == 712325)
+      AscensionClassService::ReconcileRunemasterFists(player,
+          AscensionClassService::Instance().GetActiveSpecialization(player));
+
+    if (ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED) &&
+        (spellId == 712325 || spellId == 712389 || spellId == 521211))
+      SynchronizeAscensionRunemasterEchoes(player,
+          AscensionClassService::Instance().GetActiveSpecialization(player));
+
+    if (ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED) &&
+        AscensionClassService::Instance().AffectsTaughtAbilities(spellId))
+      AscensionClassService::Instance().SynchronizeTaughtAbilities(player);
+
     if (ascensionCompatConfig.GetConfigValue<bool>(
             AscensionCompatConfig::ENABLED) &&
         AscensionClassService::Instance().AffectsProficiencies(spellId))
       AscensionClassService::Instance().SynchronizeProficiencies(player);
   }
+
+    void OnPlayerAfterSpecSlotChanged(Player* player, uint8 /*newSlot*/) override
+    {
+        if (ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED))
+            AscensionClassService::ReconcileRunemasterFists(player,
+                AscensionClassService::Instance().GetActiveSpecialization(player));
+    }
 
   void OnPlayerLogout(Player *player) override {
     AscensionClassService::Instance().OnPlayerLogout(player);
@@ -3273,6 +3408,10 @@ public:
 
     if (actualClass < CLASS_BARBARIAN || actualClass > CLASS_SPIRIT_MAGE)
       return std::nullopt;
+
+    if (context == CLASS_CONTEXT_PET && playerClass == CLASS_HUNTER &&
+        HasAscensionPrimalistHunterPetContext(player))
+      return true;
 
     switch (context) {
     case CLASS_CONTEXT_STATS:
@@ -3368,6 +3507,8 @@ public:
                 target, missInfo, damage, critical);
             HandleAscensionClassMechanicsHit(spell, player, target, missInfo,
                 damage, healing, critical);
+            HandleAscensionReaperSoulStrikeHit(spell, player, target, missInfo);
+            HandleAscensionReaperPainmailHit(spell, player, target, missInfo, damage);
         }
     }
 
@@ -3439,14 +3580,14 @@ public:
   }
 
   void OnAuraRemove(Unit* unit, AuraApplication* aurApp,
-                    AuraRemoveMode /*mode*/) override {
+                    AuraRemoveMode mode) override {
     if (!ascensionCompatConfig.GetConfigValue<bool>(
             AscensionCompatConfig::ENABLED) ||
         !unit || !unit->IsPlayer() || !aurApp || !aurApp->GetBase())
       return;
 
     HandleAscensionClassMechanicsAuraRemove(unit->ToPlayer(),
-                                            aurApp->GetBase()->GetId());
+        aurApp->GetBase()->GetId(), mode == AURA_REMOVE_BY_DEATH);
   }
 };
 
@@ -3462,6 +3603,10 @@ public:
         {
             ApplyAscensionChangelogSpellChanges(spellInfo);
             ApplyAscensionClassMechanics(spellInfo);
+            ApplyAscensionPrimalistEarthshapingContracts(spellInfo);
+            ApplyAscensionPrimalistSpiritBeastContract(spellInfo);
+            ApplyAscensionVenomancerCatalystContract(spellInfo);
+            ApplyAscensionReaperDeathwindContracts(spellInfo);
         }
     }
 };
@@ -3542,6 +3687,7 @@ private:
   static bool CanScale(Creature const* creature)
   {
     return LocalLevelScaling::CreatureEnabled.load(std::memory_order_relaxed) && creature &&
+        !creature->GetMap()->IsScriptedPrivateInstance() &&
         !creature->IsPet() && !creature->IsTotem() && !creature->IsTrigger() && !creature->IsCritter() &&
         creature->GetCreatureType() != CREATURE_TYPE_NON_COMBAT_PET && !creature->GetCharmerOrOwner();
   }
@@ -3631,8 +3777,6 @@ public:
 // This is an ItemScript rather than a creature: the scroll has no companion NPC
 // (unlike the Books, which summon one), and ItemScript exposes both OnUse and
 // OnGossipSelect, so the whole interaction lives on the item.
-
-
 
 struct ScrollProfession
 {
@@ -3821,6 +3965,13 @@ class spell_ascension_local_mount : public SpellScript
 };
 
 } // namespace
+
+bool IsAscensionPrimalistTameEligible(Player const* player)
+{
+    return player && ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED) &&
+        player->getClass() == CLASS_WILDWALKER && player->GetLevel() >= 10 && player->HasSpell(92148) &&
+        AscensionClassService::Instance().GetActiveSpecialization(player) == 59;
+}
 
 void AddAscensionCompatScripts() {
   RegisterSpellScript(spell_ascension_local_mount);

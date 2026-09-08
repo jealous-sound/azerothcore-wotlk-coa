@@ -966,6 +966,21 @@ void ScriptMgr::OnPlayerGetAmmoDisplay(Player* player, SpellInfo const* spellInf
         script->OnPlayerGetAmmoDisplay(player, spellInfo, displayId, inventoryType));
 }
 
+void ScriptMgr::OnPlayerNormalizeActionButtonSpell(Player* player, uint32& action, bool loading)
+{
+    CALL_ENABLED_HOOKS(PlayerScript, PLAYERHOOK_ON_NORMALIZE_ACTION_BUTTON_SPELL, script->OnPlayerNormalizeActionButtonSpell(player, action, loading));
+}
+
+void ScriptMgr::OnPlayerSpellChargeConsumed(Player* player, SpellInfo const* spellInfo, Spell* spell, uint32 recoveryMs, uint64 nowEpochMs)
+{
+    CALL_ENABLED_HOOKS(PlayerScript, PLAYERHOOK_ON_SPELL_CHARGE_CONSUMED, script->OnPlayerSpellChargeConsumed(player, spellInfo, spell, recoveryMs, nowEpochMs));
+}
+
+void ScriptMgr::OnPlayerSpellCooldownCalculated(Player* player, SpellInfo const* spellInfo, Spell* spell, uint32 recoveryMs)
+{
+    CALL_ENABLED_HOOKS(PlayerScript, PLAYERHOOK_ON_SPELL_COOLDOWN_CALCULATED, script->OnPlayerSpellCooldownCalculated(player, spellInfo, spell, recoveryMs));
+}
+
 PlayerScript::PlayerScript(char const* name, std::vector<uint16> enabledHooks)
     : ScriptObject(name, PLAYERHOOK_END)
 {

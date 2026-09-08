@@ -651,6 +651,11 @@ void CharacterDatabaseConnection::DoPrepareStatements()
     // By providing the realm ID explicitly, this ensures that mysql reverse proxy will use
     // correct realm database for the transaction.
     PrepareStatement(CHAR_NO_OP_PROVIDE_REALM_CONTEXT, "SELECT ? AS no_op", CONNECTION_ASYNC);
+
+    PrepareStatement(CHAR_SEL_MANASTORM_CLEARS, "SELECT mode, depth FROM ascension_manastorm_clear WHERE guid = ? UNION ALL SELECT 255, 0 ORDER BY mode, depth", CONNECTION_SYNCH);
+    // A duplicate first clear must fail the WHOLE transaction, including its reward mail.
+    PrepareStatement(CHAR_INS_MANASTORM_CLEAR, "INSERT INTO ascension_manastorm_clear (guid, mode, depth, scene, mail_id, completed_at) VALUES (?, ?, ?, ?, ?, ?)", CONNECTION_ASYNC);
+    PrepareStatement(CHAR_DEL_MANASTORM_CLEARS, "DELETE FROM ascension_manastorm_clear WHERE guid = ?", CONNECTION_ASYNC);
 }
 
 CharacterDatabaseConnection::CharacterDatabaseConnection(MySQLConnectionInfo& connInfo) : MySQLConnection(connInfo)

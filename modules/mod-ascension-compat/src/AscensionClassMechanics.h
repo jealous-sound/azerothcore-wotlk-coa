@@ -23,6 +23,6 @@ void HandleAscensionClassMechanicsBlock(Player* player);
 void HandleAscensionClassMechanicsDamageTaken(Player* player,
     std::uint32_t damage);
 void HandleAscensionClassMechanicsAuraApply(Player* player, std::uint32_t spellId);
-void HandleAscensionClassMechanicsAuraRemove(Player* player, std::uint32_t spellId);
+void HandleAscensionClassMechanicsAuraRemove(Player* player, std::uint32_t spellId, bool removedByDeath);
 
 #endif

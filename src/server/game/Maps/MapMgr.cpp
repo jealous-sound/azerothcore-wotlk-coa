@@ -142,6 +142,20 @@ Map::EnterState MapMgr::PlayerCannotEnter(uint32 mapid, Player* player, bool log
     if (!entry->IsDungeon())
         return Map::CAN_ENTER;
 
+    if (player->GetScriptedPrivateMapId() == mapid)
+    {
+        if (!entry->IsNonRaidDungeon() || player->GetGroup())
+            return Map::CANNOT_ENTER_INSTANCE_BIND_MISMATCH;
+        if (uint32 id = player->GetScriptedPrivateInstanceId())
+        {
+            Map* destination = FindMap(mapid, id);
+            if (!destination || !destination->IsScriptedPrivateInstance())
+                return Map::CANNOT_ENTER_UNSPECIFIED_REASON;
+            return destination->CannotEnter(player, loginCheck);
+        }
+        return Map::CAN_ENTER; // Creation remains in the normal worldport-ack path.
+    }
+
     InstanceTemplate const* instance = sObjectMgr->GetInstanceTemplate(mapid);
     if (!instance)
         return Map::CANNOT_ENTER_UNINSTANCED_DUNGEON;

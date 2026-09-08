@@ -96,6 +96,7 @@
 #include "WorldStateDefines.h"
 #include "WorldStatePackets.h"
 #include <cmath>
+#include <limits>
 #include <queue>
 
 /// @todo: this import is not necessary for compilation and marked as unused by the IDE
@@ -2657,6 +2658,12 @@ void Player::InitStatsForLevel(bool reapplyMods)
     SetUInt32Value(UNIT_FIELD_AURASTATE, 0);
 
     UpdateSkillsForLevel();
+
+    // Rating-from-stat auras remain registered during stat rebuilding.
+    // Remove their applied speed contribution before resetting the speed fields.
+    ApplyRatingHaste(CR_HASTE_MELEE, 0.0f);
+    ApplyRatingHaste(CR_HASTE_RANGED, 0.0f);
+    ApplyRatingHaste(CR_HASTE_SPELL, 0.0f);
 
     // set default cast time multiplier
     SetFloatValue(UNIT_MOD_CAST_SPEED, 1.0f);
@@ -5471,35 +5478,7 @@ float Player::OCTRegenMPPerSpirit()
 
 void Player::ApplyRatingMod(CombatRating cr, int32 value, bool apply)
 {
-    float oldRating = m_baseRatingValue[cr];
     m_baseRatingValue[cr] += (apply ? value : -value);
-    // explicit affected values
-    if (cr == CR_HASTE_MELEE || cr == CR_HASTE_RANGED || cr == CR_HASTE_SPELL)
-    {
-        float const mult = GetRatingMultiplier(cr);
-        float const oldVal = oldRating * mult;
-        float const newVal = m_baseRatingValue[cr] * mult;
-        switch (cr)
-        {
-            case CR_HASTE_MELEE:
-                ApplyAttackTimePercentMod(BASE_ATTACK, oldVal, false);
-                ApplyAttackTimePercentMod(OFF_ATTACK, oldVal, false);
-                ApplyAttackTimePercentMod(BASE_ATTACK, newVal, true);
-                ApplyAttackTimePercentMod(OFF_ATTACK, newVal, true);
-                break;
-            case CR_HASTE_RANGED:
-                ApplyAttackTimePercentMod(RANGED_ATTACK, oldVal, false);
-                ApplyAttackTimePercentMod(RANGED_ATTACK, newVal, true);
-                break;
-            case CR_HASTE_SPELL:
-                ApplyCastTimePercentMod(oldVal, false);
-                ApplyCastTimePercentMod(newVal, true);
-                break;
-            default:
-                break;
-        }
-    }
-
     UpdateRating(cr);
 }
 
@@ -7071,6 +7050,10 @@ void Player::_ApplyItemBonuses(ItemTemplate const* proto, uint8 slot, bool apply
                     break;
             }
         }
+        // Track the same effective base contribution used by native item stats,
+        // including heirloom scaling and durability-driven removal/reapplication.
+        if (modType == BASE_VALUE && proto->SubClass < MAX_ITEM_SUBCLASS_ARMOR)
+            m_itemArmorBySubclass[proto->SubClass] += apply ? float(armor) : -float(armor);
         HandleStatFlatModifier(UNIT_MOD_ARMOR, modType, float(armor), apply);
     }
 
@@ -10148,12 +10131,26 @@ template AC_GAME_API void Player::ApplySpellMod(uint32 spellId, SpellModOp op, f
 
 void Player::AddSpellMod(SpellModifier* mod, bool apply)
 {
+    if (!mod)
+        return;
+
+    // Custom DBCs can contain modifier operations beyond the native table.
+    // Keep their owning aura intact, but never index unrelated Player memory.
+    if (uint32(mod->op) >= MAX_SPELLMOD)
+    {
+        if (apply)
+            LOG_ERROR("spells.aura", "Spell {} uses unsupported modifier operation {}", mod->spellId, uint32(mod->op));
+        else if (!mod->ownerAura)
+            delete mod;
+        return;
+    }
+
     LOG_DEBUG("spells.aura", "Player::AddSpellMod {}", mod->spellId);
     uint16 Opcode = (mod->type == SPELLMOD_FLAT) ? SMSG_SET_FLAT_SPELL_MODIFIER : SMSG_SET_PCT_SPELL_MODIFIER;
 
     int i = 0;
     flag96 _mask = 0;
-    for (int eff = 0; eff < 96; ++eff)
+    for (int eff = 0; eff < 96 && mod->op < MAX_CLIENT_SPELLMOD; ++eff)
     {
         if (eff != 0 && eff % 32 == 0)
             _mask[i++] = 0;
@@ -10857,6 +10854,16 @@ void Player::InitDataForForm(bool reapplyMods)
                     setPowerType(POWER_RAGE);
                 break;
             }
+        case FORM_VENOMANCER_SPIDER:
+        case FORM_VENOMANCER_BEETLE:
+            if (getClass() == CLASS_PROPHET) // Venomancer
+            {
+                Powers const power = form == FORM_VENOMANCER_SPIDER ? POWER_ENERGY : POWER_RAGE;
+                if (getPowerType() != power)
+                    setPowerType(power);
+                break;
+            }
+            [[fallthrough]];
         default:                                            // 0, for example
             {
                 ChrClassesEntry const* cEntry = sChrClassesStore.LookupEntry(getClass());
@@ -11250,6 +11257,9 @@ void Player::AddSpellAndCategoryCooldowns(SpellInfo const* spellInfo, uint32 ite
         // replace negative cooldowns by 0
         if (rec < 0) rec = 0;
         if (catrec < 0) catrec = 0;
+
+        if (spell && !itemId)
+            sScriptMgr->OnPlayerSpellCooldownCalculated(this, spellInfo, spell, uint32(rec));
 
         // no cooldown after applying spell mods
         if (rec == 0 && catrec == 0)
@@ -15329,7 +15339,19 @@ void Player::_SaveCharacter(bool create, CharacterDatabaseTransaction trans)
         stmt->SetData(index++, GetByteValue(PLAYER_BYTES_2, 3));
         stmt->SetData(index++, GetPlayerFlags());
 
-        if (!IsBeingTeleported())
+        if (_scriptedPrivateMapId && (GetMapId() == _scriptedPrivateMapId
+            || (IsBeingTeleported() && GetTeleportDest().GetMapId() == _scriptedPrivateMapId)))
+        {
+            // Private-instance IDs are process-local. Crash recovery always starts outside.
+            stmt->SetData(index++, uint16(_scriptedPrivateReturn.GetMapId()));
+            stmt->SetData(index++, uint32(0));
+            stmt->SetData(index++, uint8(GetDungeonDifficulty()) | uint8(GetRaidDifficulty()) << 4);
+            stmt->SetData(index++, finiteAlways(_scriptedPrivateReturn.GetPositionX()));
+            stmt->SetData(index++, finiteAlways(_scriptedPrivateReturn.GetPositionY()));
+            stmt->SetData(index++, finiteAlways(_scriptedPrivateReturn.GetPositionZ()));
+            stmt->SetData(index++, finiteAlways(_scriptedPrivateReturn.GetOrientation()));
+        }
+        else if (!IsBeingTeleported())
         {
             Difficulty dd = GetDungeonDifficulty(), rd = GetRaidDifficulty();
             if (Map* m = FindMap())
@@ -16826,6 +16848,32 @@ uint32 Player::GetSpellCooldownDelay(uint32 spell_id) const
         uint32(itr != m_spellCooldowns.end() && itr->second.end > getMSTime() ? itr->second.end - getMSTime() : 0));
 }
 
+bool Player::HasStoredSpellCharges(SpellInfo const* spellInfo) const
+{
+    if (!spellInfo || !spellInfo->MaxCharges || !spellInfo->ChargeRecoveryKey)
+        return false;
+    PlayerSettingVector const* values = FindPlayerSettings("core.spell_charge." + std::to_string(spellInfo->ChargeRecoveryKey));
+    if (!values || values->size() != 5 || (*values)[4].value != 1 ||
+        (*values)[0].value > spellInfo->MaxCharges || (*values)[2].value > 999 ||
+        !(*values)[3].value || (*values)[3].value > DAY * IN_MILLISECONDS)
+        return false;
+    uint64 const next = uint64((*values)[1].value) * IN_MILLISECONDS + (*values)[2].value;
+    return (*values)[0].value == spellInfo->MaxCharges ? next == 0 : next != 0;
+}
+
+bool Player::SetSpellCharges(SpellInfo const* spellInfo, SpellChargeState const& state)
+{
+    if (!spellInfo || !spellInfo->MaxCharges || !spellInfo->ChargeRecoveryKey ||
+        state.Available > spellInfo->MaxCharges || !state.RecoveryTime ||
+        state.RecoveryTime > DAY * IN_MILLISECONDS ||
+        state.NextRecovery / IN_MILLISECONDS > std::numeric_limits<uint32>::max() ||
+        (state.Available == spellInfo->MaxCharges ? state.NextRecovery != 0 : state.NextRecovery == 0))
+        return false;
+    StoreSpellCharges(spellInfo, state);
+    SendSpellChargeState(spellInfo->Id);
+    return true;
+}
+
 SpellChargeState Player::GetSpellCharges(SpellInfo const* spellInfo) const
 {
     SpellChargeState state{spellInfo->MaxCharges, 0, spellInfo->ChargeRecoveryTime};
@@ -16867,6 +16915,7 @@ void Player::ConsumeSpellCharge(SpellInfo const* spellInfo, Spell* spell)
     if (state.Consume(spellInfo->MaxCharges, uint32(recovery), now))
     {
         StoreSpellCharges(spellInfo, state);
+        sScriptMgr->OnPlayerSpellChargeConsumed(this, spellInfo, spell, uint32(recovery), now);
         SendSpellChargeState(spellInfo->Id);
     }
 }

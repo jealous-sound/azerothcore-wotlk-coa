@@ -599,9 +599,15 @@ public:
 
     Unit* GetCaster() const { return m_caster; }
     Unit* GetOriginalCaster() const { return m_originalCaster; }
+    ObjectGuid GetOriginalCasterGUID() const { return m_originalCasterGUID; }
+    WeaponAttackType GetScriptMeleeAttackType() const { return m_scriptMeleeAttackType; }
+    void SetScriptWeaponDamageMultiplier(float multiplier);
     Unit* GetOriginalTarget() const;
     SpellInfo const* GetSpellInfo() const { return m_spellInfo; }
     int32 GetPowerCost() const { return m_powerCost; }
+    // Current target's resolved damage, capped by health immediately before
+    // damage is dealt. Result hooks can use this for leech without overkill.
+    uint32 GetScriptHealthLeechDamage() const { return m_scriptHealthLeechDamage; }
 
     bool UpdatePointers();                              // must be used at call Spell code after time delay (non triggered spell cast/update spell call/etc)
 
@@ -613,6 +619,7 @@ public:
     // xinef: moved to public
     void LoadScripts();
     std::list<TargetInfo>* GetUniqueTargetInfo() { return &m_UniqueTargetInfo; }
+    std::list<TargetInfo> const* GetUniqueTargetInfo() const { return &m_UniqueTargetInfo; }
     void AddUnitTargetForScript(Unit* target, uint32 effectMask, bool checkIfValid = true,
         bool implicit = true) { AddUnitTarget(target, effectMask, checkIfValid, implicit); }
     bool TryMarkScriptEventHandled(uint8 eventIndex)
@@ -659,6 +666,8 @@ public:
     //Spell data
     SpellSchoolMask m_spellSchoolMask;                  // Spell school (can be overwrite for some spells (wand shoot for example)
     WeaponAttackType m_attackType;                      // For weapon based attack
+    float m_scriptWeaponDamageMultiplier = 1.0f;
+    WeaponAttackType m_scriptMeleeAttackType = MAX_ATTACK;
     int32 m_powerCost;                                  // Calculated spell cost     initialized only in Spell::prepare
     int32 m_casttime;                                   // Calculated spell cast time initialized only in Spell::prepare
     int32 m_channeledDuration;                          // Calculated channeled spell duration in order to calculate correct pushback.
@@ -666,6 +675,7 @@ public:
 
     uint8 m_spellFlags;                                 // for spells whose target was changed in cast i.e. due to reflect
     uint32 m_scriptEventMask;                           // one-shot events owned by global spell scripts
+    uint32 m_scriptHealthLeechDamage = 0;
 
     bool m_autoRepeat;
     uint8 m_runesState;
@@ -725,6 +735,7 @@ public:
     uint32 m_procVictim;                  // Victim   trigger flags
     uint32 m_procEx;
     void   prepareDataForTriggerSystem(AuraEffect const* triggeredByAura);
+    void SetScriptMeleeAttackType(int32 attackType);
 
     // *****************************************
     // Spell target subsystem

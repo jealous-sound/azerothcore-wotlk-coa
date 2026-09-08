@@ -116,7 +116,7 @@ struct ResourceGainRule
 // These active abilities advertise resource generation in their tooltips, but
 // their public Spell.dbc records contain no effect that performs it. Ranges are
 // rank chains verified against the local Ascension spell dump.
-inline constexpr std::array<ResourceGainRule, 133> ResourceGainRules =
+inline constexpr std::array<ResourceGainRule, 153> ResourceGainRules =
 {{
     {14, 704368, 704368, 800058, 1, ResourceMutation::AuraStacks,
         ResourceGainEvent::FirstSuccessfulHostileTarget},
@@ -217,6 +217,17 @@ inline constexpr std::array<ResourceGainRule, 133> ResourceGainRules =
     {21, 803104, 803104, 804329, 2, ResourceMutation::AuraStacks},
     {21, 803852, 803852, 804329, 2, ResourceMutation::AuraStacks},
 
+    {24, 803819, 803825, 807389, 20, ResourceMutation::AuraStacks},
+    {24, 556833, 556837, 807389, 10, ResourceMutation::AuraStacks,
+        ResourceGainEvent::EachSuccessfulDamagingHit},
+    {24, 572890, 572890, 807389, 10, ResourceMutation::AuraStacks,
+        ResourceGainEvent::EachSuccessfulDamagingHit},
+    {24, 500649, 500652, 807389, 50, ResourceMutation::AuraStacks},
+    {24, 535650, 535651, 807389, 30, ResourceMutation::AuraStacks},
+    {24, 582762, 582764, 807389, 30, ResourceMutation::AuraStacks},
+    // The copied invocation already grants three Embers through native triggers.
+    {24, 802119, 802119, 807533, 2, ResourceMutation::AuraStacks},
+
     {24, 502020, 502031, 807389, 10, ResourceMutation::AuraStacks,
         ResourceGainEvent::PeriodicDamageTick},
     {24, 800791, 800791, 807389, 10, ResourceMutation::AuraStacks,
@@ -279,6 +290,10 @@ inline constexpr std::array<ResourceGainRule, 133> ResourceGainRules =
         ResourceGainEvent::EachSuccessfulDamagingHit, 681087},
     {25, 524876, 524876, 500706, 3, ResourceMutation::AuraStacks,
         ResourceGainEvent::EachSuccessfulDamagingHit, 681087},
+    {25, 572140, 572141, 500706, 3, ResourceMutation::AuraStacks,
+        ResourceGainEvent::EachSuccessfulDamagingHit, 681087},
+    {25, 572715, 572715, 500706, 3, ResourceMutation::AuraStacks,
+        ResourceGainEvent::EachSuccessfulDamagingHit, 681087},
     {25, 804208, 804208, 500706, 3, ResourceMutation::AuraStacks,
         ResourceGainEvent::EachSuccessfulDamagingHit, 681087},
     {25, 0, 0, 500706, 3, ResourceMutation::AuraStacks,
@@ -305,6 +320,14 @@ inline constexpr std::array<ResourceGainRule, 133> ResourceGainRules =
         ResourceGainEvent::FirstSuccessfulHostileTarget},
     {29, 0, 0, 804972, 1, ResourceMutation::AuraStacks,
         ResourceGainEvent::PeriodicDamageTick, 706036, 0, 10},
+
+    // Every current Soul Strike rank grants one Reaped Soul on a landed
+    // strike, including an absorbed hit. The old heal helper's Fragment text
+    // predates the visible ability; Soul Collector changes only Reap.
+    {30, 500517, 500521, 500363, 1, ResourceMutation::AuraStacks,
+        ResourceGainEvent::FirstSuccessfulHostileTarget},
+    {30, 500646, 500646, 500363, 1, ResourceMutation::AuraStacks,
+        ResourceGainEvent::FirstSuccessfulHostileTarget},
 
     // Soul Fragment's public helper depends on private custom effect 183.
     // Add the aura stack directly and let the compatibility service perform
@@ -349,12 +372,14 @@ inline constexpr std::array<ResourceGainRule, 133> ResourceGainRules =
     // and private behavior grant three, so only the missing third is local.
     {30, 805185, 805185, 500363, 1, ResourceMutation::AuraStacks},
 
-    {30, 500376, 500376, 805077, 1, ResourceMutation::AuraStacks,
-        ResourceGainEvent::FirstSuccessfulDamagingHit},
-    {30, 502679, 502684, 805077, 1, ResourceMutation::AuraStacks,
-        ResourceGainEvent::FirstSuccessfulDamagingHit},
-    {30, 504622, 504622, 805077, 1, ResourceMutation::AuraStacks,
-        ResourceGainEvent::FirstSuccessfulDamagingHit},
+    // Murder's current conditional tooltip grants a whole soul only with
+    // Soul Collector; its critical Soul Generator bonus remains independent.
+    {30, 500376, 500376, 500363, 1, ResourceMutation::AuraStacks,
+        ResourceGainEvent::FirstSuccessfulHostileTarget, 706731},
+    {30, 502679, 502684, 500363, 1, ResourceMutation::AuraStacks,
+        ResourceGainEvent::FirstSuccessfulHostileTarget, 706731},
+    {30, 504622, 504622, 500363, 1, ResourceMutation::AuraStacks,
+        ResourceGainEvent::FirstSuccessfulHostileTarget, 706731},
     {30, 500376, 500376, 500363, 1, ResourceMutation::AuraStacks,
         ResourceGainEvent::FirstCriticalDamagingHit, 520056},
     {30, 502679, 502684, 500363, 1, ResourceMutation::AuraStacks,
@@ -372,6 +397,29 @@ inline constexpr std::array<ResourceGainRule, 133> ResourceGainRules =
     {30, 567531, 567532, 500363, 1, ResourceMutation::AuraStacks,
         ResourceGainEvent::FirstCriticalDamagingHit, 704552},
 
+    // Deathwind grants once when the cloud is cast, including an empty area;
+    // repeated field applications and leech ticks cannot generate more souls.
+    {30, 800174, 800174, 500363, 1, ResourceMutation::AuraStacks,
+        ResourceGainEvent::Cast},
+    {30, 502989, 502994, 500363, 1, ResourceMutation::AuraStacks,
+        ResourceGainEvent::Cast},
+
+    // Current Earthshaping identity uses cast events; Geode's +1 amount is
+    // reconstructed from helper 681264, whose older hit wording is superseded.
+    {31, 500402, 500402, 680441, 1, ResourceMutation::AuraStacks,
+        ResourceGainEvent::Cast, 92149},
+    {31, 502769, 502777, 680441, 1, ResourceMutation::AuraStacks,
+        ResourceGainEvent::Cast, 92149},
+    {31, 503258, 503264, 680441, 2, ResourceMutation::AuraStacks,
+        ResourceGainEvent::Cast, 92149},
+    {31, 803981, 803981, 680441, 2, ResourceMutation::AuraStacks,
+        ResourceGainEvent::Cast, 92149},
+    {31, 560171, 560175, 680441, 1, ResourceMutation::AuraStacks,
+        ResourceGainEvent::Cast, 92149},
+    {31, 582532, 582532, 680441, 1, ResourceMutation::AuraStacks,
+        ResourceGainEvent::Cast, 92149},
+    {31, 804433, 804433, 680441, 1, ResourceMutation::AuraStacks,
+        ResourceGainEvent::Cast, 92149},
     {31, 680442, 680442, 680441, 2, ResourceMutation::AuraStacks,
         ResourceGainEvent::Cast, 92149},
     {31, 681114, 681117, 680441, 2, ResourceMutation::AuraStacks,
@@ -395,7 +443,7 @@ struct NativePowerGainRule
 // Rage and Runic Power are represented internally in tenths. These Reaper
 // abilities describe fixed gains, but their public DBC records omit the
 // energize effect that Ascension's private server applies.
-inline constexpr std::array<NativePowerGainRule, 7> NativePowerGainRules =
+inline constexpr std::array<NativePowerGainRule, 16> NativePowerGainRules =
 {{
     {19, 0, 0, 3, 10, ResourceGainEvent::PeriodicDamageTick, 301253},
     {23, 704355, 704355, 6, 200,
@@ -412,7 +460,17 @@ inline constexpr std::array<NativePowerGainRule, 7> NativePowerGainRules =
     {30, 801624, 801624, 6, 200,
         ResourceGainEvent::FirstSuccessfulHostileTarget},
     {30, 802422, 802428, 6, 200,
-        ResourceGainEvent::FirstSuccessfulHostileTarget}
+        ResourceGainEvent::FirstSuccessfulHostileTarget},
+    // Primalist visible descriptions and energize helpers use internal tenths.
+    {31, 503258, 503264, 1, 200},
+    {31, 803981, 803981, 1, 200},
+    {31, 560171, 560175, 1, 40, ResourceGainEvent::EachSuccessfulHostileTarget},
+    {31, 582532, 582532, 1, 40, ResourceGainEvent::EachSuccessfulHostileTarget},
+    {31, 804433, 804433, 1, 40, ResourceGainEvent::EachSuccessfulHostileTarget},
+    {31, 680442, 680442, 1, 10, ResourceGainEvent::EachSuccessfulDamagingHit},
+    {31, 681114, 681117, 1, 10, ResourceGainEvent::EachSuccessfulDamagingHit},
+    {31, 680442, 680442, 1, 10, ResourceGainEvent::PeriodicDamageTick},
+    {31, 681114, 681117, 1, 10, ResourceGainEvent::PeriodicDamageTick}
 }};
 
 struct ResourceCostRule
@@ -430,7 +488,7 @@ struct ResourceCostRule
 // Rules marked None still receive a local power check, but their public DBC
 // effect already performs the spend. Fixed and All replace private-server
 // consumption that is absent from the public DBC.
-inline constexpr std::array<ResourceCostRule, 35> ResourceCostRules =
+inline constexpr std::array<ResourceCostRule, 55> ResourceCostRules =
 {{
     {14, 801904, 801904, 800058, 2, ResourceConsumption::Fixed,
         705137, 30},
@@ -443,6 +501,9 @@ inline constexpr std::array<ResourceCostRule, 35> ResourceCostRules =
         804219, 25},
     {14, 801895, 801895, 800058, 2, ResourceConsumption::Fixed,
         804219, 25},
+    {14, 802060, 802060, 800058, 2, ResourceConsumption::Fixed},
+    {14, 501314, 501321, 800058, 2, ResourceConsumption::Fixed},
+    {14, 705121, 705121, 800058, 2, ResourceConsumption::Fixed},
 
     {16, 500038, 500038, 803102, 25, ResourceConsumption::Fixed},
     {16, 501469, 501475, 803102, 25, ResourceConsumption::Fixed},
@@ -466,6 +527,24 @@ inline constexpr std::array<ResourceCostRule, 35> ResourceCostRules =
     {16, 806430, 806436, 803102, 40, ResourceConsumption::Fixed},
     {16, 806400, 806400, 803102, 50, ResourceConsumption::Fixed},
     {16, 807713, 807717, 803102, 50, ResourceConsumption::Fixed},
+
+    {24, 502057, 502063, 807533, 1, ResourceConsumption::Fixed},
+    {24, 534600, 534604, 807533, 1, ResourceConsumption::Fixed},
+    {24, 535509, 535512, 807533, 1, ResourceConsumption::Fixed},
+    {24, 567589, 567590, 807533, 1, ResourceConsumption::Fixed},
+    {24, 570750, 570750, 807533, 1, ResourceConsumption::Fixed},
+    {24, 572159, 572160, 807533, 1, ResourceConsumption::Fixed},
+    {24, 572618, 572623, 807533, 1, ResourceConsumption::Fixed},
+    {24, 578307, 578309, 807533, 1, ResourceConsumption::Fixed},
+    {24, 680369, 680369, 807533, 1, ResourceConsumption::Fixed},
+    {24, 704278, 704278, 807533, 1, ResourceConsumption::Fixed},
+    {24, 706854, 706854, 807533, 1, ResourceConsumption::Fixed},
+    {24, 800792, 800792, 807533, 1, ResourceConsumption::Fixed},
+    {24, 801915, 801915, 807533, 1, ResourceConsumption::Fixed},
+    {24, 802174, 802174, 807533, 1, ResourceConsumption::Fixed},
+    {24, 802791, 802791, 807533, 1, ResourceConsumption::Fixed},
+    {24, 803407, 803410, 807533, 1, ResourceConsumption::Fixed},
+    {24, 805500, 805500, 807533, 1, ResourceConsumption::Fixed},
 
     {24, 502085, 502087, 807533, 1, ResourceConsumption::None},
     {24, 520320, 520320, 807533, 1, ResourceConsumption::None},

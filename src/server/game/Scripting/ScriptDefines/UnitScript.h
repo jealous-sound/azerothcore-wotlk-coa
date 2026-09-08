@@ -47,6 +47,7 @@ enum UnitHook
     UNITHOOK_ON_UNIT_DEATH,
     UNITHOOK_ON_UNIT_SET_SHAPESHIFT_FORM,
     UNITHOOK_ON_SEND_AURA_UPDATE,
+    UNITHOOK_MODIFY_SPELL_EFFECT_BASE_VALUE,
     UNITHOOK_END
 };
 
@@ -82,6 +83,11 @@ public:
 
     // Called when Spell Damage is being Dealt
     virtual void ModifySpellDamageTaken(Unit* /*target*/, Unit* /*attacker*/, int32& /*damage*/, SpellInfo const* /*spellInfo*/) { }
+
+    // Adjust the rolled, level-adjusted base before combo-point and effect modifiers.
+    // Implementations must scope their spells and preserve finite, representable values.
+    virtual void ModifySpellEffectBaseValue(Unit const* /*caster*/, SpellInfo const* /*spellInfo*/,
+        uint8 /*effectIndex*/, float& /*value*/) { }
 
     // Called when Heal is Recieved
     virtual void ModifyHealReceived(Unit* /*target*/, Unit* /*healer*/, uint32& /*heal*/, SpellInfo const* /*spellInfo*/) { }

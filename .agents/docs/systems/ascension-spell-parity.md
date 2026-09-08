@@ -27,9 +27,13 @@ Acquisition, displayed values, server mechanics and observed combat are separate
   spell-power scaling. SQL `ap_bonus`/`ap_dot_bonus` supply attack-power scaling separately.
   An existing SP coefficient does not implement an AP term. Zeroing a SQL SP coefficient changes
   behavior and requires its own justification; do not copy the Barbarian zero-SP policy globally.
-- The damage path selects RAP only when `IsRangedWeaponSpell()` is true **and** `DmgClass` is not
-  `SPELL_DAMAGE_CLASS_MELEE`. Otherwise it selects melee AP. Inspect family/flags, ranged equipment
-  mask and `SPELL_ATTR0_USES_RANGED_SLOT`; names, animations and cast range are not stat selectors.
+- By default the damage path selects RAP only when `IsRangedWeaponSpell()` is true **and** `DmgClass`
+  is not `SPELL_DAMAGE_CLASS_MELEE`. The default-false `UseRangedAttackPowerForDamage` runtime field
+  can override only the two damage coefficient stat selectors. Its sole current exact metadata
+  opt-in is Tinker Combustion helper 801388 (SQL38, source-tested and not deployed). Healing, hit,
+  weapon, range and proc classification do not read the field. Preserve native per-victim AP
+  bonuses, coefficient modifiers and LAUNCH_TARGET sampling. Inspect family/flags, equipment mask
+  and `SPELL_ATTR0_USES_RANGED_SLOT`; names, animations and range alone do not select the stat.
 - Evaluate the metadata of the child doing damage, not just its parent. Rush helper 560519 has
   `SPELL_DAMAGE_CLASS_NONE` and no ranged mask: a plain SQL AP coefficient would choose the wrong stat.
   Do not change damage class/equipment flags solely to redirect AP; these affect other mechanics.
@@ -139,6 +143,23 @@ Lessons from the Guardian correction; these are source/test findings, not a clai
   projectile loader when its required ItemDisplayInfo texture filename is missing (Elven Grace).
 
 ## Local examples
+
+- Private spellmod indices need their own reviewed semantics. Cinder and Ashes 707317 is
+  aura 107 (flat), operation 41: its amount 25 adds 0.25 coefficient points. Percentage aura
+  108 forms elsewhere are a different contract. A masked override selector avoids native
+  fixed-size spellmod arrays/packets. Weapon-effect spells use MeleeDamageBonusDone, so a
+  school-damage coefficient fix alone cannot implement this talent. Preserve normal
+  BONUS_MULTIPLIER, level penalty and final damage modifiers on both paths.
+- Read effective metadata after native corrections. LoadSpellCustomAttr removes NORMAL from
+  mixed NORMAL/magic masks and sets SCHOOLMASK_NORMAL_WITH_MAGIC before module hooks. Purifier
+  helpers with raw mask 5 therefore execute the Fire weapon path. Applying a blanket physical
+  off-hand factor from that raw mask would change their contract. Hybrid resistance is separate.
+- Effect 142 already dispatches native trigger-with-value at launch/launch-target. Check its
+  explicit-target routing to avoid double triggers; the native setter may encode all three
+  custom basepoint values differently according to each helper effect's die sides. Preserve
+  parent rank values and weapon hand. Exact rank coefficient overrides may be necessary when
+  later ranks differ: native spell_bonus_data lookup falls back to the first rank, not the
+  nearest preceding override. These lessons are source/harness evidence, not world combat QA.
 
 - `C:/Ascension/tools/Audit-BarbarianDamage.py` — pinned pre-fix contract audit, not a post-fix health check.
 - `C:/Ascension/tools/Test-BarbarianDamageFix.py` — native block and x86/x64 launcher fixtures.

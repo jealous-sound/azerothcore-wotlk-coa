@@ -268,6 +268,7 @@ public:
     virtual void RemoveAllPlayers();
 
     [[nodiscard]] uint32 GetInstanceId() const { return i_InstanceId; }
+    bool IsScriptedPrivateInstance() const;
     [[nodiscard]] uint8 GetSpawnMode() const { return (i_spawnMode); }
 
     enum EnterState
@@ -736,6 +737,9 @@ public:
     [[nodiscard]] InstanceScript* GetInstanceScript() { return instance_data; }
     [[nodiscard]] InstanceScript const* GetInstanceScript() const { return instance_data; }
     void PermBindAllPlayers();
+    ObjectGuid GetScriptedPrivateOwner() const { return _scriptedPrivateOwner; }
+    void SetScriptedPrivateOwner(ObjectGuid owner) { _scriptedPrivateOwner = owner; }
+    void RequestScriptedPrivateUnload() { _scriptedPrivateUnloadDelay = MIN_UNLOAD_DELAY; }
     void UnloadAll() override;
     EnterState CannotEnter(Player* player, bool loginCheck = false) override;
     void SendResetWarnings(uint32 timeLeft) const;
@@ -748,6 +752,8 @@ public:
     std::string GetDebugInfo() const override;
 
 private:
+    ObjectGuid _scriptedPrivateOwner;
+    uint32 _scriptedPrivateUnloadDelay = 120000;
     bool m_resetAfterUnload;
     bool m_unloadWhenEmpty;
     InstanceScript* instance_data;

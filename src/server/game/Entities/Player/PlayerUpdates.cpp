@@ -612,6 +612,40 @@ void Player::UpdateDefense()
         UpdateDefenseBonusesMod(); // update dependent from defense skill part
 }
 
+void Player::ApplyRatingHaste(CombatRating cr, float value)
+{
+    if (cr < CR_HASTE_MELEE || cr > CR_HASTE_SPELL)
+        return;
+
+    float& applied = m_appliedRatingHaste[cr - CR_HASTE_MELEE];
+    if (applied == value)
+        return;
+
+    // Level changes also change the rating multiplier. Undo the percentage
+    // actually applied, rather than converting the previous rating again.
+    switch (cr)
+    {
+        case CR_HASTE_MELEE:
+            ApplyAttackTimePercentMod(BASE_ATTACK, applied, false);
+            ApplyAttackTimePercentMod(OFF_ATTACK, applied, false);
+            ApplyAttackTimePercentMod(BASE_ATTACK, value, true);
+            ApplyAttackTimePercentMod(OFF_ATTACK, value, true);
+            break;
+        case CR_HASTE_RANGED:
+            ApplyAttackTimePercentMod(RANGED_ATTACK, applied, false);
+            ApplyAttackTimePercentMod(RANGED_ATTACK, value, true);
+            break;
+        case CR_HASTE_SPELL:
+            ApplyCastTimePercentMod(applied, false);
+            ApplyCastTimePercentMod(value, true);
+            break;
+        default:
+            break;
+    }
+
+    applied = value;
+}
+
 void Player::UpdateRating(CombatRating cr)
 {
     int32 amount = m_baseRatingValue[cr];
@@ -681,9 +715,10 @@ void Player::UpdateRating(CombatRating cr)
     case CR_CRIT_TAKEN_SPELL: // Implemented in Unit::SpellCriticalBonus (only
                               // for chance to crit)
         break;
-    case CR_HASTE_MELEE: // Implemented in Player::ApplyRatingMod
+    case CR_HASTE_MELEE:
     case CR_HASTE_RANGED:
     case CR_HASTE_SPELL:
+        ApplyRatingHaste(cr, amount * GetRatingMultiplier(cr));
         break;
     case CR_WEAPON_SKILL_MAINHAND: // Implemented in
                                    // Unit::RollMeleeOutcomeAgainst

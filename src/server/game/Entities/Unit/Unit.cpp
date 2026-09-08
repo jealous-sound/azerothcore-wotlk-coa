@@ -260,6 +260,11 @@ void DamageInfo::ModifyDamage(int32 amount)
     m_damage += amount;
 }
 
+void DamageInfo::LimitDamage(uint32 maximum)
+{
+    m_damage = std::min(m_damage, maximum);
+}
+
 void DamageInfo::AbsorbDamage(uint32 amount)
 {
     amount = std::min(amount, GetDamage());
@@ -1553,6 +1558,8 @@ void Unit::CalculateSpellDamageTaken(SpellNonMeleeDamage* damageInfo, int32 dama
                     crit_mod += GetTotalAuraModifierByMiscMask(SPELL_AURA_MOD_CRIT_DAMAGE_BONUS, spellInfo->GetSchoolMask());
                     // Increase crit damage from SPELL_AURA_MOD_CRIT_PERCENT_VERSUS
                     crit_mod += GetTotalAuraModifierByMiscMask(SPELL_AURA_MOD_CRIT_PERCENT_VERSUS, crTypeMask);
+                    crit_mod += GetAscensionConditionalCombatModifier(
+                        victim, spellInfo, ASCENSION_CONDITIONAL_CRIT_DAMAGE);
 
                     if (crit_bonus != 0 && crit_mod != 0.0f)
                         AddPct(crit_bonus, crit_mod);
@@ -1844,6 +1851,8 @@ void Unit::CalculateMeleeDamage(Unit* victim, CalcDamageInfo* damageInfo, Weapon
 
                     // Increase crit damage from SPELL_AURA_MOD_CRIT_PERCENT_VERSUS
                     mod += GetTotalAuraModifierByMiscMask(SPELL_AURA_MOD_CRIT_PERCENT_VERSUS, crTypeMask);
+                    mod += GetAscensionConditionalCombatModifier(
+                        damageInfo->target, nullptr, ASCENSION_CONDITIONAL_CRIT_DAMAGE);
                     if (mod != 0)
                     {
                         AddPct(damageInfo->damages[i].damage, mod);
@@ -2251,6 +2260,9 @@ uint32 Unit::CalcArmorReducedDamage(Unit const* attacker, Unit const* victim, co
                 return attacker->GetGUID() == aurEff->GetCasterGUID();
             });
         }
+
+        ignoreArmorPct += attacker->GetAscensionConditionalCombatModifier(
+            victim, spellInfo, ASCENSION_CONDITIONAL_IGNORE_ARMOR);
 
         if (ignoreArmorPct)
             armor = std::floor(AddPct(armor, -ignoreArmorPct));
@@ -3225,7 +3237,7 @@ uint32 Unit::CalculateDamage(WeaponAttackType attType, bool normalized, bool add
 
 float Unit::CalculateLevelPenalty(SpellInfo const* spellProto) const
 {
-    if (!IsPlayer())
+    if (!IsPlayer() || spellProto->IgnoreSpellLevelPenalty)
         return 1.0f;
 
     if (spellProto->SpellLevel <= 0 || spellProto->SpellLevel >= spellProto->MaxLevel)
@@ -3334,7 +3346,8 @@ int32 Unit::GetMechanicResistChance(SpellInfo const* spell)
 }
 
 // Melee based spells hit result calculations
-SpellMissInfo Unit::MeleeSpellHitResult(Unit* victim, SpellInfo const* spellInfo)
+SpellMissInfo Unit::MeleeSpellHitResult(Unit* victim, SpellInfo const* spellInfo,
+    WeaponAttackType scriptedAttackType /*= MAX_ATTACK*/)
 {
     // Spells with SPELL_ATTR3_ALWAYS_HIT will additionally fully ignore
     // resist and deflect chances
@@ -3347,6 +3360,8 @@ SpellMissInfo Unit::MeleeSpellHitResult(Unit* victim, SpellInfo const* spellInfo
     // - they are meele, but can't be dodged/parried/deflected because of ranged dmg class
     if (spellInfo->DmgClass == SPELL_DAMAGE_CLASS_RANGED)
         attType = RANGED_ATTACK;
+    else if (spellInfo->DmgClass == SPELL_DAMAGE_CLASS_MELEE && scriptedAttackType == OFF_ATTACK)
+        attType = OFF_ATTACK;
 
     int32 attackerWeaponSkill;
     // skill value for these spells (for example judgements) is 5* level
@@ -3769,7 +3784,7 @@ SpellMissInfo Unit::SpellHitResult(Unit* victim, Spell const* spell, bool CanRef
     {
         case SPELL_DAMAGE_CLASS_RANGED:
         case SPELL_DAMAGE_CLASS_MELEE:
-            return MeleeSpellHitResult(victim, spellInfo);
+            return MeleeSpellHitResult(victim, spellInfo, spell->GetScriptMeleeAttackType());
         case SPELL_DAMAGE_CLASS_NONE:
         {
             if (spellInfo->SpellFamilyName)
@@ -3900,6 +3915,103 @@ float Unit::GetUnitBlockChance() const
     }
 }
 
+bool Unit::HasAscensionConditionalCombatState(int32 state) const
+{
+    // Private health states are evaluated from current health. In particular,
+    // Heartstopper's cast-requirement bypass must not satisfy a damage condition.
+    uint64 health = uint64(GetHealth()) * 100;
+    uint64 maximum = GetMaxHealth();
+    switch (state)
+    {
+        case AURA_STATE_HEALTHLESS_20_PERCENT:
+            return maximum && health < maximum * 20;
+        case AURA_STATE_HEALTHLESS_35_PERCENT:
+            return maximum && health < maximum * 35;
+        case AURA_STATE_HEALTH_ABOVE_75_PERCENT:
+            return maximum && health > maximum * 75;
+        case ASCENSION_TARGET_HEALTH_ABOVE_80_PERCENT:
+            return maximum && health > maximum * 80;
+        case AURA_STATE_FROZEN:
+            return HasAuraState(AURA_STATE_FROZEN);
+        case AURA_STATE_BLEEDING:
+            return HasAuraState(AURA_STATE_BLEEDING);
+        case AURA_STATE_ASCENSION_POISONED:
+            return HasAuraState(AURA_STATE_ASCENSION_POISONED);
+        default:
+            return false;
+    }
+}
+
+int32 Unit::GetAscensionConditionalCombatModifier(Unit const* victim, SpellInfo const* spellInfo,
+    AscensionConditionalCombatModifier modifier) const
+{
+    if (!victim || !IsPlayer() || victim == this || IsFriendlyTo(victim) ||
+        (spellInfo && spellInfo->IsPositive()))
+        return 0;
+
+    return GetTotalAuraModifier(SPELL_AURA_OVERRIDE_CLASS_SCRIPTS, [this, victim, spellInfo, modifier](AuraEffect const* effect)
+    {
+        if (effect->GetSpellInfo()->SpellFamilyName != uint32(getClass()) + 6)
+            return false;
+
+        bool global = false;
+        bool creature = false;
+        AscensionConditionalCombatModifier kind;
+        switch (effect->GetMiscValue())
+        {
+            case ASCENSION_STATE_MASKED_CRIT:
+                kind = ASCENSION_CONDITIONAL_CRIT_CHANCE;
+                break;
+            case ASCENSION_STATE_GLOBAL_CRIT:
+                kind = ASCENSION_CONDITIONAL_CRIT_CHANCE;
+                global = true;
+                break;
+            case ASCENSION_STATE_MASKED_AND_AUTO_CRIT:
+                kind = ASCENSION_CONDITIONAL_CRIT_CHANCE;
+                global = !spellInfo;
+                break;
+            case ASCENSION_CREATURE_MASKED_CRIT:
+                kind = ASCENSION_CONDITIONAL_CRIT_CHANCE;
+                creature = true;
+                break;
+            case ASCENSION_CREATURE_GLOBAL_CRIT:
+                kind = ASCENSION_CONDITIONAL_CRIT_CHANCE;
+                creature = global = true;
+                break;
+            case ASCENSION_STATE_MASKED_GUARANTEED_CRIT:
+                kind = ASCENSION_CONDITIONAL_GUARANTEED_CRIT;
+                break;
+            case ASCENSION_CREATURE_MASKED_GUARANTEED_CRIT:
+                kind = ASCENSION_CONDITIONAL_GUARANTEED_CRIT;
+                creature = true;
+                break;
+            case ASCENSION_STATE_GLOBAL_CRIT_DAMAGE:
+                kind = ASCENSION_CONDITIONAL_CRIT_DAMAGE;
+                global = true;
+                break;
+            case ASCENSION_STATE_MASKED_CRIT_DAMAGE:
+                kind = ASCENSION_CONDITIONAL_CRIT_DAMAGE;
+                break;
+            case ASCENSION_STATE_GLOBAL_IGNORE_ARMOR:
+                kind = ASCENSION_CONDITIONAL_IGNORE_ARMOR;
+                global = true;
+                break;
+            case ASCENSION_STATE_MASKED_IGNORE_ARMOR:
+                kind = ASCENSION_CONDITIONAL_IGNORE_ARMOR;
+                break;
+            default:
+                return false;
+        }
+
+        if (kind != modifier || (!global && (!spellInfo || !effect->IsAffectedOnSpell(spellInfo))))
+            return false;
+
+        int32 condition = effect->GetMiscValueB();
+        return creature ? condition > 0 && (victim->GetCreatureTypeMask() & uint32(condition)) :
+            victim->HasAscensionConditionalCombatState(condition);
+    });
+}
+
 float Unit::GetUnitCriticalChance(WeaponAttackType attackType, Unit const* victim) const
 {
     float crit;
@@ -3950,6 +4062,8 @@ float Unit::GetUnitCriticalChance(WeaponAttackType attackType, Unit const* victi
         return GetGUID() == aurEff->GetCasterGUID() &&
             (aurEff->GetMiscValue() & SPELL_SCHOOL_MASK_NORMAL);
     });
+
+    crit += float(GetAscensionConditionalCombatModifier(victim, nullptr, ASCENSION_CONDITIONAL_CRIT_CHANCE));
 
     // reduce crit chance from Rating for players
     if (attackType != RANGED_ATTACK)
@@ -7734,7 +7848,7 @@ bool Unit::HasAuraState(AuraStateType flag, SpellInfo const* spellProto, Unit co
         }
         // Check per caster aura state
         // If aura with aurastate by caster not found return false
-        if ((1 << (flag - 1)) & PER_CASTER_AURA_STATE_MASK)
+        if ((1u << (flag - 1)) & PER_CASTER_AURA_STATE_MASK)
         {
             AuraStateAurasMapBounds range = m_auraStateAuras.equal_range(flag);
             for (AuraStateAurasMap::const_iterator itr = range.first; itr != range.second; ++itr)
@@ -7744,7 +7858,16 @@ bool Unit::HasAuraState(AuraStateType flag, SpellInfo const* spellProto, Unit co
         }
     }
 
-    return HasFlag(UNIT_FIELD_AURASTATE, 1 << (flag - 1));
+    if (flag == AURA_STATE_ASCENSION_POISONED)
+    {
+        for (auto const& [spellId, application] : GetAppliedAuras())
+            if (!application->GetRemoveMode() && !application->IsPositive() &&
+                application->GetBase()->GetSpellInfo()->Dispel == DISPEL_POISON)
+                return true;
+        return false;
+    }
+
+    return HasFlag(UNIT_FIELD_AURASTATE, 1u << (flag - 1));
 }
 
 void Unit::SetOwnerGUID(ObjectGuid owner)
@@ -8528,6 +8651,8 @@ float Unit::SpellPctDamageModsDone(Unit* victim, SpellInfo const* spellProto, Da
     // bonus against aurastate
     DoneTotalMod *= GetTotalAuraMultiplier(SPELL_AURA_MOD_DAMAGE_DONE_VERSUS_AURASTATE, [victim, spellProto, damagetype, this](AuraEffect const* aurEff)
     {
+        if (aurEff->GetMiscValueB() == ASCENSION_CLASSMASK_AURASTATE_DAMAGE && !aurEff->IsAffectedOnSpell(spellProto))
+            return false;
         return victim->HasAuraState(AuraStateType(aurEff->GetMiscValue())) && spellProto->ValidateAttribute6SpellDamageMods(this, aurEff, damagetype == DOT);
     });
 
@@ -8795,6 +8920,36 @@ float Unit::SpellPctDamageModsDone(Unit* victim, SpellInfo const* spellProto, Da
     return DoneTotalMod;
 }
 
+float Unit::GetSpellPowerCoefficientFlatBonus(SpellInfo const* spellInfo) const
+{
+    if (!spellInfo)
+        return 0.0f;
+
+    Unit const* owner = GetSpellModOwner();
+    if (!owner)
+        owner = this;
+
+    return float(owner->GetTotalAuraModifier(SPELL_AURA_OVERRIDE_CLASS_SCRIPTS, [spellInfo](AuraEffect const* effect)
+    {
+        return effect->GetMiscValue() == ASCENSION_SPELL_POWER_COEFFICIENT_FLAT && effect->IsAffectedOnSpell(spellInfo);
+    })) / 100.0f;
+}
+
+float Unit::GetSpellAttackPowerCoefficientMultiplier(SpellInfo const* spellInfo, bool periodic) const
+{
+    if (!spellInfo)
+        return 1.0f;
+
+    Unit const* owner = GetSpellModOwner();
+    if (!owner)
+        owner = this;
+    int32 const script = periodic ? ASCENSION_PERIODIC_AP_COEFFICIENT_PCT : ASCENSION_DIRECT_AP_COEFFICIENT_PCT;
+    return owner->GetTotalAuraMultiplier(SPELL_AURA_OVERRIDE_CLASS_SCRIPTS, [spellInfo, script](AuraEffect const* effect)
+    {
+        return effect->GetMiscValue() == script && effect->IsAffectedOnSpell(spellInfo);
+    });
+}
+
 uint32 Unit::SpellDamageBonusDone(Unit* victim, SpellInfo const* spellProto, uint32 pdamage, DamageEffectType damagetype, uint8 effIndex, float TotalMod, uint32 stack)
 {
     if (!spellProto || !victim || damagetype == DIRECT_DAMAGE)
@@ -8821,7 +8976,7 @@ uint32 Unit::SpellDamageBonusDone(Unit* victim, SpellInfo const* spellProto, uin
     }
 
     // Done total percent damage auras
-    float ApCoeffMod = 1.0f;
+    float ApCoeffMod = GetSpellAttackPowerCoefficientMultiplier(spellProto, damagetype == DOT);
     int32 DoneTotal = 0;
     float DoneTotalMod = TotalMod ? TotalMod : SpellPctDamageModsDone(victim, spellProto, damagetype);
 
@@ -8921,7 +9076,7 @@ uint32 Unit::SpellDamageBonusDone(Unit* victim, SpellInfo const* spellProto, uin
             coeff = bonus->dot_damage;
             if (bonus->ap_dot_bonus > 0)
             {
-                WeaponAttackType attType = (spellProto->IsRangedWeaponSpell() && spellProto->DmgClass != SPELL_DAMAGE_CLASS_MELEE) ? RANGED_ATTACK : BASE_ATTACK;
+                WeaponAttackType attType = (spellProto->UseRangedAttackPowerForDamage || (spellProto->IsRangedWeaponSpell() && spellProto->DmgClass != SPELL_DAMAGE_CLASS_MELEE)) ? RANGED_ATTACK : BASE_ATTACK;
                 float APbonus = float(victim->GetTotalAuraModifier(attType == BASE_ATTACK ? SPELL_AURA_MELEE_ATTACK_POWER_ATTACKER_BONUS : SPELL_AURA_RANGED_ATTACK_POWER_ATTACKER_BONUS));
                 APbonus += GetTotalAttackPowerValue(attType);
                 DoneTotal += int32(bonus->ap_dot_bonus * stack * ApCoeffMod * APbonus);
@@ -8932,7 +9087,7 @@ uint32 Unit::SpellDamageBonusDone(Unit* victim, SpellInfo const* spellProto, uin
             coeff = bonus->direct_damage;
             if (bonus->ap_bonus > 0)
             {
-                WeaponAttackType attType = (spellProto->IsRangedWeaponSpell() && spellProto->DmgClass != SPELL_DAMAGE_CLASS_MELEE) ? RANGED_ATTACK : BASE_ATTACK;
+                WeaponAttackType attType = (spellProto->UseRangedAttackPowerForDamage || (spellProto->IsRangedWeaponSpell() && spellProto->DmgClass != SPELL_DAMAGE_CLASS_MELEE)) ? RANGED_ATTACK : BASE_ATTACK;
                 float APbonus = float(victim->GetTotalAuraModifier(attType == BASE_ATTACK ? SPELL_AURA_MELEE_ATTACK_POWER_ATTACKER_BONUS : SPELL_AURA_RANGED_ATTACK_POWER_ATTACKER_BONUS));
                 APbonus += GetTotalAttackPowerValue(attType);
                 DoneTotal += int32(bonus->ap_bonus * stack * ApCoeffMod * APbonus);
@@ -8947,7 +9102,13 @@ uint32 Unit::SpellDamageBonusDone(Unit* victim, SpellInfo const* spellProto, uin
     }
 
     // Default calculation
-    if (coeff && DoneAdvertisedBenefit)
+    coeff += GetSpellPowerCoefficientFlatBonus(spellProto);
+    // Unleashed Frost Glyph has no base SP term, but Unleashed Power supplies
+    // one through the native flat coefficient modifier. Preserve every other
+    // zero-coefficient spell's admission and the normal spellmod calculation.
+    bool const unleashedFrostGlyph = spellProto->Id == 520096 && spellProto->SpellFamilyName == 38 &&
+        effIndex == 0 && damagetype != DOT;
+    if ((coeff || unleashedFrostGlyph) && DoneAdvertisedBenefit)
     {
         float factorMod = CalculateLevelPenalty(spellProto) * stack;
 
@@ -9457,8 +9618,16 @@ float Unit::SpellTakenCritChance(Unit const* caster, SpellInfo const* spellProto
 
     // Modify critical chance by victim SPELL_AURA_MOD_ATTACKER_SPELL_AND_WEAPON_CRIT_CHANCE
     // xinef: should be calculated at the end
+    if (caster)
+        crit_chance += caster->GetAscensionConditionalCombatModifier(
+            this, spellProto, ASCENSION_CONDITIONAL_CRIT_CHANCE);
+
     if (!spellProto->IsPositive())
         crit_chance += GetTotalAuraModifier(SPELL_AURA_MOD_ATTACKER_SPELL_AND_WEAPON_CRIT_CHANCE);
+
+    if (caster && GetTotalAuraModifier(SPELL_AURA_MOD_ATTACKER_SPELL_AND_WEAPON_CRIT_CHANCE) > -100 &&
+        caster->GetAscensionConditionalCombatModifier(this, spellProto, ASCENSION_CONDITIONAL_GUARANTEED_CRIT) > 0)
+        crit_chance = std::max(crit_chance, 100.0f);
 
     // xinef: can be negative!
     return crit_chance;
@@ -9487,6 +9656,9 @@ uint32 Unit::SpellCriticalDamageBonus(Unit const* caster, SpellInfo const* spell
 
         if (victim)
             crit_mod += caster->GetTotalAuraModifierByMiscMask(SPELL_AURA_MOD_CRIT_PERCENT_VERSUS, victim->GetCreatureTypeMask());
+
+        crit_mod += caster->GetAscensionConditionalCombatModifier(
+            victim, spellProto, ASCENSION_CONDITIONAL_CRIT_DAMAGE);
 
         if (crit_bonus != 0 && crit_mod != 0.0f)
             AddPct(crit_bonus, crit_mod);
@@ -10293,6 +10465,18 @@ uint32 Unit::MeleeDamageBonusDone(Unit* victim, uint32 pdamage, WeaponAttackType
         DoneFlatBenefit += int32(APbonus / 14.0f * GetAPMultiplier(attType, normalized));
     }
 
+    if (float coeff = GetSpellPowerCoefficientFlatBonus(spellProto))
+    {
+        if (Player* modOwner = GetSpellModOwner())
+        {
+            coeff *= 100.0f;
+            modOwner->ApplySpellMod(spellProto->Id, SPELLMOD_BONUS_MULTIPLIER, coeff);
+            coeff /= 100.0f;
+        }
+
+        DoneFlatBenefit += int32(SpellBaseDamageBonusDone(damageSchoolMask) * coeff * CalculateLevelPenalty(spellProto));
+    }
+
     // Done total percent damage auras
     float DoneTotalMod = 1.0f;
 
@@ -10326,6 +10510,9 @@ uint32 Unit::MeleeDamageBonusDone(Unit* victim, uint32 pdamage, WeaponAttackType
     // bonus against aurastate
     DoneTotalMod *= GetTotalAuraMultiplier(SPELL_AURA_MOD_DAMAGE_DONE_VERSUS_AURASTATE, [victim, spellProto, this](AuraEffect const* aurEff)
     {
+        if (aurEff->GetMiscValueB() == ASCENSION_CLASSMASK_AURASTATE_DAMAGE &&
+            (!spellProto || !aurEff->IsAffectedOnSpell(spellProto)))
+            return false;
         return (victim->HasAuraState(AuraStateType(aurEff->GetMiscValue())) && (!spellProto || spellProto->ValidateAttribute6SpellDamageMods(this, aurEff, false)));
     });
 
@@ -11987,14 +12174,42 @@ float Unit::GetSpellMinRangeForTarget(Unit const* target, SpellInfo const* spell
         minRange = spellInfo->GetMinRange(!IsHostileTo(target));
     }
 
-    for (AuraEffect const* auraEffect :
-        GetAuraEffectsByType(SPELL_AURA_ASCENSION_IGNORE_MIN_RANGE))
-    {
-        if (auraEffect->IsAffectedOnSpell(spellInfo))
-            return 0.0f;
-    }
+    if (IgnoresSpellMinRange(spellInfo))
+        return 0.0f;
 
     return minRange;
+}
+
+bool Unit::IgnoresSpellMinRange(SpellInfo const* spellInfo) const
+{
+    if (!spellInfo)
+        return false;
+
+    bool const shotRange = spellInfo->RangeEntry && spellInfo->RangeEntry->Flags == SPELL_RANGE_RANGED;
+    for (AuraEffect const* auraEffect : GetAuraEffectsByType(SPELL_AURA_ASCENSION_IGNORE_MIN_RANGE))
+    {
+        switch (auraEffect->GetMiscValue())
+        {
+            case IGNORE_MIN_RANGE_SHOTS:
+                if (shotRange)
+                    return true;
+                break;
+            case IGNORE_MIN_RANGE_RANGED_ABILITIES:
+                // Ravager's old mask only names a subset of the current shots.
+                // Its description covers all ranged abilities, including the
+                // native auto-repeat shots that use another spell family.
+                if (shotRange || spellInfo->DmgClass == SPELL_DAMAGE_CLASS_RANGED ||
+                    spellInfo->IsRangedWeaponSpell())
+                    return true;
+                break;
+            case IGNORE_MIN_RANGE_CLASS_MASK:
+            default:
+                if (auraEffect->IsAffectedOnSpell(spellInfo))
+                    return true;
+                break;
+        }
+    }
+    return false;
 }
 
 void Unit::SetAnimTier(AnimTier animTier)
@@ -12589,6 +12804,16 @@ void Unit::SetMaxPower(Powers power, uint32 val)
 
     if (val < cur_power)
         SetPower(power, val);
+}
+
+bool Unit::CanReceivePowerFromSpell(Powers power)
+{
+    // Witch Hunter restores both pools; Primalist has secondary Rage even
+    // before specialization. Spell restoration does not enable the native
+    // automatic Rage formulas, which retain their HasActivePowerType gate.
+    return HasActivePowerType(power) || (IsPlayer() &&
+        ((getClass() == CLASS_WITCH_HUNTER && (power == POWER_MANA || power == POWER_RAGE)) ||
+            (getClass() == CLASS_WILDWALKER && power == POWER_RAGE)));
 }
 
 uint32 Unit::GetCreatePowers(Powers power) const

@@ -129,6 +129,12 @@ void Player::_LoadCharacterSettings(PreparedQueryResult result)
     } while (result->NextRow());
 }
 
+PlayerSettingVector const* Player::FindPlayerSettings(std::string const& source) const
+{
+    auto const found = m_charSettingsMap.find(source);
+    return found == m_charSettingsMap.end() ? nullptr : &found->second;
+}
+
 PlayerSetting Player::GetPlayerSetting(std::string const& source, uint32 index)
 {
     auto it = m_charSettingsMap.find(source);

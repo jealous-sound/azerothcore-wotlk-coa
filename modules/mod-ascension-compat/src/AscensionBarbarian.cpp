@@ -82,13 +82,16 @@ void HandleAscensionBarbarianCast(Spell* spell)
         return;
 
     SpellInfo const* info = spell->GetSpellInfo();
+    bool preserveTankard = player->HasAura(705218) && info->SpellFamilyName == 18 &&
+        (info->Id == 805780 || info->Id == 573064 || info->Id == 573224 || info->Id == 573225);
     if (AuraEffect const* tankard = player->GetAuraEffect(TANKARD, EFFECT_0))
     {
         SpellInfo const* resource = tankard->GetSpellInfo();
-        if (resource->SpellFamilyName == info->SpellFamilyName &&
+        if (!preserveTankard && resource->SpellFamilyName == info->SpellFamilyName &&
             (resource->Effects[EFFECT_0].SpellClassMask & info->SpellFamilyFlags))
             // OnSpellCast runs AFTER SendSpellCooldown: the native -10% per stack
             // modifier has already shortened this cast's cooldown, then empties.
+            // The Finest Ale keeps those stacks after Ale of the God-King.
             player->RemoveAurasDueToSpell(TANKARD);
     }
 

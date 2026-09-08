@@ -10,6 +10,10 @@ namespace
 {
 constexpr std::uint32_t SPELL_TEMPLAR_RECKONING = 805421;
 constexpr std::uint32_t SPELL_TEMPLAR_RECKONING_ENERGY = 521241;
+constexpr std::uint32_t SPELL_RANGER_ELUDE = 801345;
+constexpr std::uint32_t SPELL_RANGER_ONSLAUGHT = 801951;
+constexpr std::uint32_t SPELL_RANGER_FOREST_DWELLER = 524864;
+constexpr std::uint32_t SPELL_RANGER_FOREST_DWELLER_HEAL = 524863;
 constexpr std::uint32_t SPELL_CHRONOMANCER_INFINITE_SHIELD = 520457;
 constexpr std::uint32_t SPELL_CHRONOMANCER_INFINITE_SHIELD_HEAL = 520458;
 constexpr std::uint32_t SPELL_CHRONOMANCER_PARADOX_CANNON = 806203;
@@ -21,6 +25,23 @@ constexpr std::uint32_t CHRONOMANCER_FAMILY = 28;
 constexpr std::uint32_t PYROMANCER_FAMILY = 30;
 constexpr std::uint32_t INFINITE_SHIELD_CHARGES = 10;
 constexpr std::uint32_t PARADOX_CANNON_PERIOD_MS = 3000;
+
+bool IsTemplarReckoning(std::uint32_t spellId)
+{
+    switch (spellId)
+    {
+        case SPELL_TEMPLAR_RECKONING:
+        case 748505:
+        case 748506:
+        case 748507:
+        case 572739:
+        case 572740:
+        case 572741:
+            return true;
+        default:
+            return false;
+    }
+}
 }
 
 void ApplyAscensionClassMechanics19To25(SpellInfo* spellInfo)
@@ -81,6 +102,16 @@ bool CanPrepareAscensionClassMechanics19To25(Spell* spell)
 
     Player* player = spell->GetCaster()->ToPlayer();
     SpellInfo const* info = spell->GetSpellInfo();
+    if (player && player->getClass() == CLASS_RANGER && info->SpellFamilyName == uint32(CLASS_RANGER) + 6 &&
+        info->Id == SPELL_RANGER_FOREST_DWELLER_HEAL && info->Effects[EFFECT_0].Effect == SPELL_EFFECT_HEAL_PCT)
+    {
+        // The passive's periodic trigger otherwise heals even outside Elude.
+        // Onslaught explicitly grants Elude's benefits without stealth. Use
+        // CanPrepare because triggered casts bypass CasterAuraSpell checks.
+        return player->HasAura(SPELL_RANGER_FOREST_DWELLER) &&
+            (player->HasAura(SPELL_RANGER_ELUDE) || player->HasAura(SPELL_RANGER_ONSLAUGHT));
+    }
+
     if (!player || player->getClass() != CLASS_PYROMANCER ||
         info->Id != SPELL_PYROMANCER_CLEANSING_FLAMES_BONUS ||
         info->SpellFamilyName != PYROMANCER_FAMILY)
@@ -103,7 +134,7 @@ void HandleAscensionClassMechanics19To25Hit(Spell* spell, Player* player,
 {
     if (!spell || !player || !target || spell->IsTriggered() ||
         player->getClass() != CLASS_MONK ||
-        spell->GetSpellInfo()->Id != SPELL_TEMPLAR_RECKONING ||
+        !IsTemplarReckoning(spell->GetSpellInfo()->Id) ||
         spell->GetSpellInfo()->SpellFamilyName != std::uint32_t(CLASS_MONK) + 6 ||
         target == player || missInfo != SPELL_MISS_NONE || !damage ||
         player->IsFriendlyTo(target))

@@ -6,6 +6,23 @@
 #include "AscensionClassMechanics19To25.h"
 #include "AscensionClassMechanics26To32.h"
 #include "AscensionClassMechanicsData.h"
+#include "AscensionRangerDamage.h"
+#include "AscensionWitchHunterTonics.h"
+#include "AscensionWitchHunterFlames.h"
+#include "AscensionWitchHunterScaling.h"
+#include "AscensionWitchHunterTargeting.h"
+#include "AscensionWitchHunterStake.h"
+#include "AscensionConditionalCombat.h"
+#include "AscensionRunemasterGlyphs.h"
+#include "AscensionRunemasterBrand.h"
+#include "AscensionRunemasterScaling.h"
+#include "AscensionRunemasterDamageModifiers.h"
+#include "AscensionTinkerCombustion.h"
+#include "AscensionTinkerOverload.h"
+#include "AscensionRunemasterZenith.h"
+#include "AscensionTemplarLibrams.h"
+#include "AscensionHealingStatSelectors.h"
+#include "AscensionGuardianResources.h"
 #include "Cell.h"
 #include "CellImpl.h"
 #include "GridNotifiers.h"
@@ -18,6 +35,7 @@
 #include "SpellAuraEffects.h"
 #include "SpellAuras.h"
 #include "SpellMgr.h"
+#include "WorldSession.h"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -26,6 +44,10 @@
 
 namespace
 {
+constexpr uint32 SPELL_TINKER_SCRAP = 801816;
+constexpr uint32 SPELL_TINKER_SCRAPPER = 525039;
+constexpr uint32 SPELL_TINKER_GENERATE_TEN_SCRAP = 704594;
+constexpr uint32 SPELL_TINKER_GENERATE_TWENTY_SCRAP = 707596;
 constexpr uint32 SPELL_GUARDIAN_TOWER_FORMATION = 800317;
 constexpr uint32 SPELL_GUARDIAN_TOWER_FORMATION_EFFECTS = 803431;
 constexpr uint32 SPELL_GUARDIAN_TOWER_FORMATION_STANCE = 803907;
@@ -98,8 +120,13 @@ constexpr uint32 SPELL_RANGER_ADVANTAGE_INCREMENT = 524659;
 constexpr uint32 SPELL_RANGER_ELUDE = 801345;
 constexpr uint32 SPELL_RANGER_ELUDE_EFFECTS = 524862;
 constexpr uint32 SPELL_RANGER_ELUDE_SPEED_PENALTY = 524886;
+constexpr uint32 SPELL_RANGER_ELUSIVE_CHARACTER = 560340;
+constexpr uint32 SPELL_RANGER_ELUSIVE_CHARACTER_EFFECTS = 705046;
+constexpr uint32 SPELL_RANGER_FOREST_DWELLER = 524864;
+constexpr uint32 SPELL_RANGER_FOREST_DWELLER_HEAL = 524863;
 constexpr uint32 SPELL_RANGER_RAVAGER = 92116;
 constexpr uint32 SPELL_RANGER_RAVAGER_LEGACY = 500024;
+constexpr uint32 SPELL_RANGER_HUNTING_TACTICS = 300897;
 constexpr uint32 SPELL_RANGER_ARCHERY_MASTER = 706281;
 constexpr uint32 SPELL_RANGER_RUB_IT_IN = 705085;
 constexpr uint32 SPELL_RANGER_SNIPERS_FOCUS = 680470;
@@ -398,6 +425,361 @@ bool IsRangerToxicDart(uint32 spellId)
     return spellId == 807237 || IsSpellInRange(spellId, 807324, 807330);
 }
 
+void ApplyRangerEludeExitEffects(Player* player, bool removedByDeath)
+{
+    if (!player || player->getClass() != CLASS_RANGER || removedByDeath || !player->IsAlive() ||
+        !player->IsInWorld() || !player->GetSession() || player->GetSession()->PlayerLogout() ||
+        player->HasAura(SPELL_RANGER_ELUDE) || !player->HasAura(SPELL_RANGER_ELUSIVE_CHARACTER))
+        return;
+
+    // The native removal hook runs after the old aura is detached. Keep the
+    // authored amount/duration on the proc aura instead of duplicating them.
+    player->CastSpell(player, SPELL_RANGER_ELUSIVE_CHARACTER_EFFECTS, true);
+}
+
+void RefreshRangerEludePenalty(Player* player)
+{
+    if (!player || player->getClass() != CLASS_RANGER)
+        return;
+
+    AuraEffect* penalty = player->GetAuraEffect(SPELL_RANGER_ELUDE_SPEED_PENALTY, EFFECT_2);
+    if (!penalty || penalty->GetAuraType() != SPELL_AURA_MOD_DECREASE_SPEED)
+        return;
+
+    // CoA changelog 71881 replaces the old non-stacking speed bonus with
+    // removal of Elude's own penalty. Other slows and speed buffs stay native.
+    if (player->HasAura(SPELL_RANGER_FOREST_DWELLER))
+        penalty->ChangeAmount(0);
+    else
+    {
+        penalty->SetCanBeRecalculated(true);
+        penalty->ChangeAmount(penalty->CalculateAmount(player), false);
+    }
+}
+
+void ApplyTinkerScrapperContract(SpellInfo* spellInfo)
+{
+    if (!spellInfo || spellInfo->Id != SPELL_TINKER_SCRAPPER ||
+        spellInfo->SpellFamilyName != uint32(CLASS_TINKER) + 6)
+        return;
+
+    SpellEffectInfo& tick = spellInfo->Effects[EFFECT_0];
+    if (tick.Effect == SPELL_EFFECT_APPLY_AURA &&
+        tick.ApplyAuraName == SPELL_AURA_PERIODIC_TRIGGER_SPELL &&
+        (tick.TriggerSpell == SPELL_TINKER_GENERATE_TWENTY_SCRAP ||
+            tick.TriggerSpell == SPELL_TINKER_GENERATE_TEN_SCRAP))
+    {
+        // Preserve the channel cadence and separate mana tick; only its
+        // resource payload differs from the authored ten Scrap per tick.
+        tick.TriggerSpell = SPELL_TINKER_GENERATE_TEN_SCRAP;
+    }
+    else
+    {
+        LOG_ERROR("module.ascension_compat",
+            "Skipped unexpected Scrapper resource record {}", spellInfo->Id);
+    }
+}
+
+void ApplyTinkerScrapResourceContract(SpellInfo* spellInfo)
+{
+    if (!spellInfo || spellInfo->Id != SPELL_TINKER_SCRAP ||
+        spellInfo->SpellFamilyName != uint32(CLASS_TINKER) + 6)
+        return;
+
+    std::array<uint32, MAX_SPELL_EFFECTS> const originalAuras =
+        {SPELL_AURA_ADD_FLAT_MODIFIER, SPELL_AURA_ADD_PCT_MODIFIER,
+            SPELL_AURA_ADD_FLAT_MODIFIER};
+    std::array<int32, MAX_SPELL_EFFECTS> const originalBasePoints = {999, 9, 1};
+    for (uint8 index = 0; index < MAX_SPELL_EFFECTS; ++index)
+    {
+        SpellEffectInfo const& effect = spellInfo->Effects[index];
+        if (effect.Effect != SPELL_EFFECT_APPLY_AURA ||
+            (effect.ApplyAuraName != originalAuras[index] &&
+                effect.ApplyAuraName != SPELL_AURA_DUMMY) ||
+            effect.MiscValue != SPELLMOD_DAMAGE || effect.SpellClassMask ||
+            effect.BasePoints != originalBasePoints[index] || effect.DieSides != 1)
+        {
+            LOG_ERROR("module.ascension_compat",
+                "Skipped unexpected Scrap resource record {}", spellInfo->Id);
+            return;
+        }
+    }
+
+    // These copied resource markers otherwise register wildcard damage mods:
+    // +1002 flat and +10% per stored Scrap. Keep all stack-scaled amounts,
+    // especially effect 0 / 1000 used by the capacity tooltip, without creating
+    // combat modifiers. Actual Scrap spending and generation keep their aura ID.
+    for (SpellEffectInfo& effect : spellInfo->Effects)
+        effect.ApplyAuraName = SPELL_AURA_DUMMY;
+}
+
+void ApplyRangerFixedDurationContract(SpellInfo* spellInfo)
+{
+    if (!spellInfo || spellInfo->Id != SPELL_RANGER_ADVANTAGE ||
+        spellInfo->SpellFamilyName != uint32(CLASS_RANGER) + 6)
+        return;
+
+    SpellEffectInfo& duration = spellInfo->Effects[EFFECT_1];
+    if (duration.Effect == SPELL_EFFECT_APPLY_AURA &&
+        duration.ApplyAuraName == SPELL_AURA_ADD_FLAT_MODIFIER &&
+        duration.MiscValue == SPELLMOD_DURATION &&
+        (duration.SpellClassMask == flag96(16777280, 0, 1048704) ||
+            duration.SpellClassMask == flag96(16777216, 0, 1048704)))
+    {
+        // Changelog 71878/71880: Rusty Shiv and Guise no longer gain duration
+        // from Advantage. The only other spell with this bit is instant
+        // Pick Pocket (Sticky Fingers), which has no duration or aura.
+        duration.SpellClassMask = flag96(16777216, 0, 1048704);
+    }
+    else
+    {
+        LOG_ERROR("module.ascension_compat", "Skipped unexpected Advantage duration record {}", spellInfo->Id);
+    }
+}
+
+void ApplyRangerConditionalDamageContracts(SpellInfo* spellInfo)
+{
+    if (!spellInfo || spellInfo->SpellFamilyName != uint32(CLASS_RANGER) + 6)
+        return;
+
+    SpellEffIndex index;
+    int32 amount;
+    AuraStateType state;
+    flag96 mask;
+    if (spellInfo->Id == SPELL_RANGER_RAVAGER)
+    {
+        index = EFFECT_2;
+        amount = 49;
+        state = AURA_STATE_BLEEDING;
+        mask = flag96(0, 32768, 0);
+    }
+    else if (spellInfo->Id == SPELL_RANGER_HUNTING_TACTICS)
+    {
+        index = EFFECT_0;
+        amount = 29;
+        state = AURA_STATE_ASCENSION_POISONED;
+        mask = flag96(0, 134217728, 0);
+    }
+    else
+        return;
+
+    SpellEffectInfo& effect = spellInfo->Effects[index];
+    bool const copied = effect.ApplyAuraName == SPELL_AURA_OVERRIDE_CLASS_SCRIPTS &&
+        effect.MiscValue == ASCENSION_CLASSMASK_AURASTATE_DAMAGE && effect.MiscValueB == int32(state);
+    bool const converted = effect.ApplyAuraName == SPELL_AURA_MOD_DAMAGE_DONE_VERSUS_AURASTATE &&
+        effect.MiscValue == int32(state) && effect.MiscValueB == ASCENSION_CLASSMASK_AURASTATE_DAMAGE;
+    if (effect.Effect == SPELL_EFFECT_APPLY_AURA && (copied || converted) && effect.BasePoints == amount &&
+        effect.DieSides == 1 && effect.SpellClassMask == mask &&
+        effect.TargetA.GetTarget() == TARGET_UNIT_CASTER && effect.TargetB.GetTarget() == 0)
+    {
+        effect.ApplyAuraName = SPELL_AURA_MOD_DAMAGE_DONE_VERSUS_AURASTATE;
+        effect.MiscValue = int32(state);
+        effect.MiscValueB = ASCENSION_CLASSMASK_AURASTATE_DAMAGE;
+    }
+    else
+        LOG_ERROR("module.ascension_compat", "Skipped unexpected Ranger conditional damage record {}", spellInfo->Id);
+}
+
+void ApplyRangerUnderhandedContracts(SpellInfo* spellInfo)
+{
+    if (!spellInfo || spellInfo->SpellFamilyName != uint32(CLASS_RANGER) + 6 ||
+        (spellInfo->Id != 705061 && spellInfo->Id != 707884))
+        return;
+
+    int32 const basePoints = spellInfo->Id == 705061 ? 14 : 29;
+    std::array<flag96, 2> const masks = {{flag96(0, 134217728, 0), flag96(0, 0, 128)}};
+    for (SpellEffIndex index : {EFFECT_0, EFFECT_1})
+    {
+        SpellEffectInfo const& effect = spellInfo->Effects[index];
+        int32 const copiedIndex = index == EFFECT_0 ? 42 : 45;
+        int32 const script = index == EFFECT_0 ? ASCENSION_DIRECT_AP_COEFFICIENT_PCT : ASCENSION_PERIODIC_AP_COEFFICIENT_PCT;
+        bool const copied = effect.ApplyAuraName == SPELL_AURA_ADD_PCT_MODIFIER && effect.MiscValue == copiedIndex;
+        bool const converted = effect.ApplyAuraName == SPELL_AURA_OVERRIDE_CLASS_SCRIPTS && effect.MiscValue == script;
+        if (effect.Effect != SPELL_EFFECT_APPLY_AURA || (!copied && !converted) || effect.MiscValueB != 0 ||
+            effect.BasePoints != basePoints || effect.DieSides != 1 || effect.SpellClassMask != masks[index] ||
+            effect.TargetA.GetTarget() != TARGET_UNIT_CASTER || effect.TargetB.GetTarget() != 0)
+        {
+            LOG_ERROR("module.ascension_compat", "Skipped unexpected Underhanded coefficient record {}", spellInfo->Id);
+            return;
+        }
+    }
+
+    for (SpellEffIndex index : {EFFECT_0, EFFECT_1})
+    {
+        spellInfo->Effects[index].ApplyAuraName = SPELL_AURA_OVERRIDE_CLASS_SCRIPTS;
+        spellInfo->Effects[index].MiscValue = index == EFFECT_0 ? ASCENSION_DIRECT_AP_COEFFICIENT_PCT : ASCENSION_PERIODIC_AP_COEFFICIENT_PCT;
+    }
+}
+
+void ApplyRangerInstinctualCombatantContract(SpellInfo* spellInfo)
+{
+    if (!spellInfo || (spellInfo->Id != 520572 && spellInfo->Id != 707319) ||
+        spellInfo->SpellFamilyName != uint32(CLASS_RANGER) + 6)
+        return;
+
+    if (spellInfo->Id == 707319)
+    {
+        SpellEffectInfo& attackPower = spellInfo->Effects[EFFECT_1];
+        if (attackPower.Effect == SPELL_EFFECT_APPLY_AURA && attackPower.ApplyAuraName == SPELL_AURA_ADD_FLAT_MODIFIER &&
+            attackPower.MiscValue == SPELLMOD_EFFECT2 && attackPower.MiscValueB == 0 &&
+            attackPower.BasePoints == 9 && attackPower.DieSides == 1 &&
+            attackPower.TargetA.GetTarget() == TARGET_UNIT_CASTER && attackPower.TargetB.GetTarget() == 0 &&
+            (attackPower.SpellClassMask == flag96(16, 0, 8) || attackPower.SpellClassMask == flag96(16, 0, 0)))
+            // Only Instinct's melee AP percentage. The old extra bit also
+            // modified Battle Screech and this talent's own crit helper.
+            attackPower.SpellClassMask = flag96(16, 0, 0);
+        else
+            LOG_ERROR("module.ascension_compat", "Skipped unexpected Instinctual Combatant talent record {}", spellInfo->Id);
+        return;
+    }
+
+    SpellEffectInfo& criticalChance = spellInfo->Effects[EFFECT_1];
+    if (spellInfo->ProcFlags == 0 && (spellInfo->ProcCharges == 0 || spellInfo->ProcCharges == 3) &&
+        spellInfo->GetDuration() == 20000 &&
+        criticalChance.Effect == SPELL_EFFECT_APPLY_AURA &&
+        criticalChance.ApplyAuraName == SPELL_AURA_ADD_FLAT_MODIFIER &&
+        criticalChance.MiscValue == SPELLMOD_CRITICAL_CHANCE && criticalChance.MiscValueB == 0 &&
+        criticalChance.BasePoints == 99 && criticalChance.DieSides == 1 &&
+        criticalChance.TargetA.GetTarget() == TARGET_UNIT_CASTER && criticalChance.TargetB.GetTarget() == 0 &&
+        (criticalChance.SpellClassMask == flag96(0, 134250498, 0) ||
+            criticalChance.SpellClassMask == flag96(0, 134250496, 0)))
+    {
+        // Talent 707319 promises three Skullpiercer or Assault casts. Let the
+        // native charged spell modifier own consumption, refresh and expiry.
+        // Assaulted is a separate triggered spell, not another promised cast.
+        spellInfo->ProcCharges = 3;
+        criticalChance.SpellClassMask = flag96(0, 134250496, 0);
+    }
+    else
+        LOG_ERROR("module.ascension_compat", "Skipped unexpected Instinctual Combatant record {}", spellInfo->Id);
+}
+
+void ApplyAdditionalTargetContracts(SpellInfo* spellInfo)
+{
+    if (!spellInfo)
+        return;
+
+    struct Contract
+    {
+        uint32 SpellId;
+        uint32 Family;
+        SpellEffIndex EffectIndex;
+        int32 BasePoints;
+        std::array<uint32, 3> Mask;
+    };
+    static constexpr std::array<Contract, 6> contracts =
+    {{
+        {705068, 27, EFFECT_2, 1, {{512, 0, 0}}},    // Aerial Assault
+        {704794, 32, EFFECT_0, 0, {{0, 128, 0}}},    // Pulsar Explosion, rank 1
+        {707894, 32, EFFECT_0, 1, {{0, 128, 0}}},    // Pulsar Explosion, rank 2
+        {680797, 35, EFFECT_0, 0, {{0, 0, 524288}}}, // Good Venom
+        {706477, 35, EFFECT_0, 4, {{4194304, 0, 0}}}, // Lifemender
+        {706956, 35, EFFECT_1, 4, {{0, 0, 8}}}       // Prophetic Speaker
+    }};
+
+    for (Contract const& contract : contracts)
+    {
+        if (spellInfo->Id != contract.SpellId)
+            continue;
+
+        SpellEffectInfo& effect = spellInfo->Effects[contract.EffectIndex];
+        if (spellInfo->SpellFamilyName == contract.Family &&
+            spellInfo->ProcCharges == 0 &&
+            effect.Effect == SPELL_EFFECT_APPLY_AURA &&
+            (effect.ApplyAuraName == SPELL_AURA_ADD_FLAT_MODIFIER ||
+                effect.ApplyAuraName == SPELL_AURA_MOD_MAX_AFFECTED_TARGETS) &&
+            effect.MiscValue == 34 && effect.BasePoints == contract.BasePoints &&
+            effect.DieSides == 1 && effect.TargetA.GetTarget() == TARGET_UNIT_CASTER &&
+            effect.TargetB.GetTarget() == 0 &&
+            effect.SpellClassMask == flag96(contract.Mask[0], contract.Mask[1], contract.Mask[2]))
+        {
+            // These uncharged target-count modifiers match the native area/cone
+            // aura contract. Do not send operation 34 through the client's
+            // ordinary modifier packet: its family-bit stride is only 31.
+            effect.ApplyAuraName = SPELL_AURA_MOD_MAX_AFFECTED_TARGETS;
+        }
+        else
+        {
+            LOG_ERROR("module.ascension_compat",
+                "Skipped unexpected additional-target record {}", spellInfo->Id);
+        }
+        return;
+    }
+}
+
+void ApplyRangerForestDwellerContract(SpellInfo* spellInfo)
+{
+    if (!spellInfo || spellInfo->Id != SPELL_RANGER_FOREST_DWELLER ||
+        spellInfo->SpellFamilyName != uint32(CLASS_RANGER) + 6)
+        return;
+
+    SpellEffectInfo const& heal = spellInfo->Effects[EFFECT_0];
+    SpellEffectInfo& obsoleteSpeed = spellInfo->Effects[EFFECT_1];
+    if (heal.Effect != SPELL_EFFECT_APPLY_AURA || heal.ApplyAuraName != SPELL_AURA_PERIODIC_TRIGGER_SPELL ||
+        heal.TriggerSpell != SPELL_RANGER_FOREST_DWELLER_HEAL || heal.Amplitude != 3000 ||
+        !((obsoleteSpeed.Effect == SPELL_EFFECT_APPLY_AURA &&
+            obsoleteSpeed.ApplyAuraName == SPELL_AURA_ADD_FLAT_MODIFIER &&
+            obsoleteSpeed.MiscValue == SPELLMOD_EFFECT1) || obsoleteSpeed.Effect == 0))
+    {
+        LOG_ERROR("module.ascension_compat", "Skipped unexpected Forest Dweller record {}", spellInfo->Id);
+        return;
+    }
+
+    // The old modifier adds movement speed through 524862 and would retain
+    // the superseded bonus alongside the correctly removed slow.
+    obsoleteSpeed.Effect = 0;
+    obsoleteSpeed.ApplyAuraName = SPELL_AURA_NONE;
+}
+
+void ApplyRangerOffensiveSpellContracts(SpellInfo* spellInfo)
+{
+    if (!spellInfo || spellInfo->SpellFamilyName != uint32(CLASS_RANGER) + 6)
+        return;
+
+    bool const toxicDart = IsRangerToxicDart(spellInfo->Id);
+    bool const precisionShot = spellInfo->Id == 500075 || IsSpellInRange(spellInfo->Id, 572108, 572113);
+    if (toxicDart || precisionShot)
+    {
+        SpellEffectInfo const& damage = spellInfo->Effects[EFFECT_0];
+        bool const expectedDamage = toxicDart
+            ? damage.Effect == SPELL_EFFECT_APPLY_AURA && damage.ApplyAuraName == SPELL_AURA_PERIODIC_DAMAGE
+            : damage.Effect == SPELL_EFFECT_SCHOOL_DAMAGE;
+        SpellEffectInfo& helper = spellInfo->Effects[EFFECT_1];
+        if (!expectedDamage || spellInfo->DmgClass != SPELL_DAMAGE_CLASS_RANGED ||
+            (toxicDart && (helper.Effect != SPELL_EFFECT_TRIGGER_SPELL ||
+                (helper.TriggerSpell != 681293 && helper.TriggerSpell != 807821))))
+        {
+            LOG_ERROR("module.ascension_compat", "Skipped unexpected Ranger offensive spell {}", spellInfo->Id);
+            return;
+        }
+
+        // Usable from Elude still means the offensive cast leaves stealth.
+        // Native prepare removes cast/attack-interrupted auras after validation;
+        // triggered ticks and helpers retain their native interruption exemption.
+        spellInfo->AttributesEx &= ~SPELL_ATTR1_ALLOW_WHILE_STEALTHED;
+        if (toxicDart)
+        {
+            // The visible rank promises its own poison plus the 807821 silence.
+            // 681293 is a second poison (Toxishot), not that silence helper.
+            helper.TriggerSpell = 807821;
+        }
+    }
+
+    if (spellInfo->Id == 570017)
+    {
+        SpellEffectInfo const& stealth = spellInfo->Effects[EFFECT_1];
+        if (stealth.Effect == SPELL_EFFECT_APPLY_AURA && stealth.ApplyAuraName == SPELL_AURA_MOD_STEALTH)
+        {
+            // Woodland Adept's actual stealth carrier only had a shapeshift
+            // interrupt flag, letting its stealth survive attacks after Elude ended.
+            spellInfo->AuraInterruptFlags |= AURA_INTERRUPT_FLAG_CAST |
+                AURA_INTERRUPT_FLAG_MELEE_ATTACK | AURA_INTERRUPT_FLAG_SPELL_ATTACK;
+        }
+        else
+            LOG_ERROR("module.ascension_compat", "Skipped unexpected Woodland Adept stealth {}", spellInfo->Id);
+    }
+}
+
 bool IsRangerBountyHunterTrigger(uint32 spellId)
 {
     return IsRangerFlank(spellId) ||
@@ -411,6 +793,9 @@ bool IsCultistTwilightShieldtoss(uint32 spellId)
         case 503487:
         case 503488:
         case 524876:
+        case 572140:
+        case 572141:
+        case 572715:
         case 804208:
             return true;
         default:
@@ -529,8 +914,35 @@ void ApplyAscensionClassMechanics(SpellInfo* spellInfo)
     if (!spellInfo)
         return;
 
+    ApplyAscensionGuardianResourceContracts(spellInfo);
+
     ApplyAscensionClassMechanics19To25(spellInfo);
     ApplyAscensionBarbarianSpellChanges(spellInfo);
+    ApplyTinkerScrapResourceContract(spellInfo);
+    ApplyTinkerScrapperContract(spellInfo);
+    ApplyRangerFixedDurationContract(spellInfo);
+    ApplyRangerConditionalDamageContracts(spellInfo);
+    ApplyRangerUnderhandedContracts(spellInfo);
+    ApplyRangerInstinctualCombatantContract(spellInfo);
+    ApplyAscensionRangerDamageContracts(spellInfo);
+    ApplyAscensionWitchHunterTonicContracts(spellInfo);
+    ApplyAscensionWitchHunterFlameContracts(spellInfo);
+    ApplyAscensionWitchHunterScalingContracts(spellInfo);
+    ApplyAscensionWitchHunterTargetingContracts(spellInfo);
+    ApplyAscensionWitchHunterStakeContracts(spellInfo);
+    ApplyAscensionConditionalCombatContracts(spellInfo);
+    ApplyAscensionRunemasterGlyphContracts(spellInfo);
+    ApplyAscensionRunemasterBrandContracts(spellInfo);
+    ApplyAscensionRunemasterScalingContracts(spellInfo);
+    ApplyAscensionRunemasterDamageModifierContracts(spellInfo);
+    ApplyAscensionTinkerCombustionContracts(spellInfo);
+    ApplyAscensionTinkerOverloadMetadata(spellInfo);
+    ApplyAscensionRunemasterZenithContracts(spellInfo);
+    ApplyAscensionTemplarLibramContracts(spellInfo);
+    ApplyAscensionHealingStatSelectorContracts(spellInfo);
+    ApplyAdditionalTargetContracts(spellInfo);
+    ApplyRangerOffensiveSpellContracts(spellInfo);
+    ApplyRangerForestDwellerContract(spellInfo);
 
     if (spellInfo->Id == SPELL_GUARDIAN_RAISE_SHIELD_ENERGIZE)
     {
@@ -640,6 +1052,7 @@ void SynchronizeAscensionClassMechanics(Player* player)
                 player->CastSpell(player, SPELL_RANGER_ELUDE_EFFECTS, true);
             if (!player->HasAura(SPELL_RANGER_ELUDE_SPEED_PENALTY))
                 player->CastSpell(player, SPELL_RANGER_ELUDE_SPEED_PENALTY, true);
+            RefreshRangerEludePenalty(player);
         }
         else
         {
@@ -693,17 +1106,6 @@ void HandleAscensionClassMechanicsCalculatedTarget(Spell* spell, Player* player,
         targetInfo.damage *= 2;
         targetInfo.damageBeforeTakenMods *= 2;
         return;
-    }
-
-    if (player->getClass() == CLASS_RANGER &&
-        IsRangerWildStrike(spell->GetSpellInfo()->Id) &&
-        (player->HasAura(SPELL_RANGER_RAVAGER) ||
-            player->HasAura(SPELL_RANGER_RAVAGER_LEGACY)) &&
-        target->HasAuraState(AURA_STATE_BLEEDING, spell->GetSpellInfo(), player))
-    {
-        targetInfo.damage = CalculatePct(targetInfo.damage, 150);
-        targetInfo.damageBeforeTakenMods =
-            CalculatePct(targetInfo.damageBeforeTakenMods, 150);
     }
 }
 
@@ -833,6 +1235,7 @@ void HandleAscensionClassMechanicsHit(Spell* spell, Player* player,
 
 void HandleAscensionClassMechanicsCast(Spell* spell)
 {
+    HandleAscensionGuardianResourceCast(spell);
     HandleAscensionBarbarianCast(spell);
     if (!spell || spell->IsTriggered())
         return;
@@ -988,6 +1391,10 @@ void HandleAscensionClassMechanicsAuraApply(Player* player, std::uint32_t spellI
     if (!player)
         return;
 
+    if (player->getClass() == CLASS_RANGER &&
+        (spellId == SPELL_RANGER_FOREST_DWELLER || spellId == SPELL_RANGER_ELUDE_SPEED_PENALTY))
+        RefreshRangerEludePenalty(player);
+
     auto formation = std::find(GUARDIAN_FORMATIONS.begin(), GUARDIAN_FORMATIONS.end(), spellId);
     if (player->getClass() == CLASS_GUARDIAN && formation != GUARDIAN_FORMATIONS.end())
     {
@@ -1022,8 +1429,9 @@ void HandleAscensionClassMechanicsAuraApply(Player* player, std::uint32_t spellI
     }
 }
 
-void HandleAscensionClassMechanicsAuraRemove(Player* player, std::uint32_t spellId)
+void HandleAscensionClassMechanicsAuraRemove(Player* player, std::uint32_t spellId, bool removedByDeath)
 {
+    RemoveAscensionGuardianResourceTalent(player, spellId);
     HandleAscensionBarbarianAura(player, spellId, false);
     if (!player)
         return;
@@ -1047,5 +1455,12 @@ void HandleAscensionClassMechanicsAuraRemove(Player* player, std::uint32_t spell
     {
         player->RemoveAurasDueToSpell(SPELL_RANGER_ELUDE_EFFECTS);
         player->RemoveAurasDueToSpell(SPELL_RANGER_ELUDE_SPEED_PENALTY);
+        ApplyRangerEludeExitEffects(player, removedByDeath);
     }
+
+    if (player->getClass() == CLASS_RANGER && spellId == SPELL_RANGER_ELUSIVE_CHARACTER)
+        player->RemoveAurasDueToSpell(SPELL_RANGER_ELUSIVE_CHARACTER_EFFECTS);
+
+    if (player->getClass() == CLASS_RANGER && spellId == SPELL_RANGER_FOREST_DWELLER)
+        RefreshRangerEludePenalty(player);
 }

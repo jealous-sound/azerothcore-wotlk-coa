@@ -396,6 +396,65 @@ enum AuraType
     TOTAL_AURAS                                             = 367
 };
 
+// Selectors of copied aura 312. Mode 1 is documented by sample spell 2180313;
+// mode 10 is used by Ravager's all-ranged-abilities contract (92116).
+enum AscensionIgnoreMinRangeType
+{
+    IGNORE_MIN_RANGE_CLASS_MASK = 0,
+    IGNORE_MIN_RANGE_SHOTS = 1,
+    IGNORE_MIN_RANGE_RANGED_ABILITIES = 10
+};
+
+// Reviewed override-script conversions retain their selector in MiscValueB
+// to request class-mask filtering from native aura 303.
+enum AscensionAuraStateDamageScope
+{
+    ASCENSION_CLASSMASK_AURASTATE_DAMAGE = 20007
+};
+
+// Local conversions of reviewed coefficient modifiers. Keep private client
+// spellmod indices out of the native player's fixed-size modifier arrays.
+enum AscensionAttackPowerCoefficientScript
+{
+    ASCENSION_DIRECT_AP_COEFFICIENT_PCT = 20042,
+    ASCENSION_PERIODIC_AP_COEFFICIENT_PCT = 20045
+};
+
+enum AscensionSpellPowerCoefficientScript
+{
+    ASCENSION_SPELL_POWER_COEFFICIENT_FLAT = 20041
+};
+
+// These selectors are assigned only by reviewed module metadata conversions.
+// Raw private 20000-series records are not implicitly enabled.
+enum AscensionConditionalCombatScript
+{
+    ASCENSION_STATE_MASKED_CRIT = 21000,
+    ASCENSION_STATE_GLOBAL_CRIT = 21001,
+    ASCENSION_CREATURE_MASKED_CRIT = 21002,
+    ASCENSION_CREATURE_GLOBAL_CRIT = 21003,
+    ASCENSION_STATE_MASKED_GUARANTEED_CRIT = 21004,
+    ASCENSION_CREATURE_MASKED_GUARANTEED_CRIT = 21005,
+    ASCENSION_STATE_GLOBAL_CRIT_DAMAGE = 21006,
+    ASCENSION_STATE_MASKED_CRIT_DAMAGE = 21007,
+    ASCENSION_STATE_GLOBAL_IGNORE_ARMOR = 21008,
+    ASCENSION_STATE_MASKED_IGNORE_ARMOR = 21009,
+    ASCENSION_STATE_MASKED_AND_AUTO_CRIT = 21010
+};
+
+enum AscensionConditionalCombatModifier
+{
+    ASCENSION_CONDITIONAL_CRIT_CHANCE,
+    ASCENSION_CONDITIONAL_GUARANTEED_CRIT,
+    ASCENSION_CONDITIONAL_CRIT_DAMAGE,
+    ASCENSION_CONDITIONAL_IGNORE_ARMOR
+};
+
+enum AscensionConditionalTargetState
+{
+    ASCENSION_TARGET_HEALTH_ABOVE_80_PERCENT = 28
+};
+
 enum AuraObjectType
 {
     UNIT_AURA_TYPE,

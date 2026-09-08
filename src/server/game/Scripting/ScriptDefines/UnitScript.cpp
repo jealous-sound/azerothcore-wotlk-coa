@@ -54,6 +54,13 @@ void ScriptMgr::ModifySpellDamageTaken(Unit* target, Unit* attacker, int32& dama
     CALL_ENABLED_HOOKS(UnitScript, UNITHOOK_MODIFY_SPELL_DAMAGE_TAKEN, script->ModifySpellDamageTaken(target, attacker, damage, spellInfo));
 }
 
+void ScriptMgr::ModifySpellEffectBaseValue(Unit const* caster, SpellInfo const* spellInfo,
+    uint8 effectIndex, float& value)
+{
+    CALL_ENABLED_HOOKS(UnitScript, UNITHOOK_MODIFY_SPELL_EFFECT_BASE_VALUE,
+        script->ModifySpellEffectBaseValue(caster, spellInfo, effectIndex, value));
+}
+
 void ScriptMgr::ModifyHealReceived(Unit* target, Unit* healer, uint32& heal, SpellInfo const* spellInfo)
 {
     CALL_ENABLED_HOOKS(UnitScript, UNITHOOK_MODIFY_HEAL_RECEIVED, script->ModifyHealReceived(target, healer, heal, spellInfo));

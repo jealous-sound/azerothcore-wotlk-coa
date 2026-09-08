@@ -2082,6 +2082,12 @@ void AuraEffect::HandleAuraModShapeshift(AuraApplication const* aurApp, uint8 mo
             PowerType = POWER_RAGE;
             break;
 
+        case FORM_VENOMANCER_SPIDER:
+        case FORM_VENOMANCER_BEETLE:
+            if (target->IsPlayer() && target->getClass() == CLASS_PROPHET) // Venomancer
+                PowerType = form == FORM_VENOMANCER_SPIDER ? POWER_ENERGY : POWER_RAGE;
+            break;
+
         case FORM_TREE:                                     // 0x02
         case FORM_TRAVEL:                                   // 0x03
         case FORM_AQUA:                                     // 0x04
@@ -4194,6 +4200,11 @@ void AuraEffect::HandleAuraModBaseResistancePCT(AuraApplication const* aurApp, u
         return;
 
     Unit* target = aurApp->GetTarget();
+    if (target->IsPlayer() && GetSpellInfo()->Effects[GetEffIndex()].GetItemArmorSubclassMask())
+    {
+        target->UpdateArmor();
+        return;
+    }
     for (uint8 x = SPELL_SCHOOL_NORMAL; x < MAX_SPELL_SCHOOL; x++)
     {
         if (GetMiscValue() & int32(1 << x))
@@ -4202,7 +4213,12 @@ void AuraEffect::HandleAuraModBaseResistancePCT(AuraApplication const* aurApp, u
                 target->ApplyStatPctModifier(UnitMods(UNIT_MOD_RESISTANCE_START + x), BASE_PCT, float(GetAmount()));
             else
             {
-                float amount = target->GetTotalAuraMultiplierByMiscMask(SPELL_AURA_MOD_BASE_RESISTANCE_PCT, 1 << x);
+                float amount = target->GetTotalAuraMultiplier(SPELL_AURA_MOD_BASE_RESISTANCE_PCT,
+                    [target, x](AuraEffect const* effect)
+                    {
+                        return (effect->GetMiscValue() & (1 << x)) &&
+                            (!target->IsPlayer() || !effect->GetSpellInfo()->Effects[effect->GetEffIndex()].GetItemArmorSubclassMask());
+                    });
                 target->SetStatPctModifier(UnitMods(UNIT_MOD_RESISTANCE_START + x), BASE_PCT, amount);
             }
         }
@@ -5288,6 +5304,9 @@ void AuraEffect::HandleAuraDummy(AuraApplication const* aurApp, uint8 mode, bool
         return;
 
     Unit* target = aurApp->GetTarget();
+
+    if (target->IsPlayer() && GetSpellInfo()->Effects[GetEffIndex()].GetItemArmorSubclassMask())
+        target->UpdateArmor();
 
     Unit* caster = GetCaster();
 
@@ -6630,10 +6649,9 @@ void AuraEffect::HandlePeriodicHealthLeechAuraTick(Unit* target, Unit* caster) c
     if (dmgInfo.GetDamage())
         procVictim |= PROC_FLAG_TAKEN_DAMAGE;
 
-    if (target->GetHealth() < dmgInfo.GetDamage())
-    {
-        dmgInfo.ModifyDamage(dmgInfo.GetDamage() - target->GetHealth());
-    }
+    // Leech cannot credit overkill. ModifyDamage adds its signed argument;
+    // clamp directly so large unsigned damage cannot wrap during subtraction.
+    dmgInfo.LimitDamage(target->GetHealth());
 
     damage = dmgInfo.GetDamage();
 
@@ -6943,7 +6961,7 @@ void AuraEffect::HandlePeriodicEnergizeAuraTick(Unit* target, Unit* caster) cons
 {
     Powers PowerType = Powers(GetMiscValue());
 
-    if (target->IsPlayer() && !target->HasActivePowerType(PowerType) && !m_spellInfo->HasAttribute(SPELL_ATTR7_ONLY_IN_SPELLBOOK_UNTIL_LEARNED))
+    if (target->IsPlayer() && !target->CanReceivePowerFromSpell(PowerType) && !m_spellInfo->HasAttribute(SPELL_ATTR7_ONLY_IN_SPELLBOOK_UNTIL_LEARNED))
         return;
 
     if (!target->IsAlive() || !target->GetMaxPower(PowerType))

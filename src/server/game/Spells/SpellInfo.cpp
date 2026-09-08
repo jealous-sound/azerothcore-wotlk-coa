@@ -27,6 +27,7 @@
 #include "SpellAuraDefines.h"
 #include "SpellAuraEffects.h"
 #include "SpellMgr.h"
+#include <algorithm>
 
 uint32 GetTargetFlagMask(SpellTargetObjectTypes objType)
 {
@@ -360,6 +361,30 @@ bool SpellEffectInfo::IsEffect(SpellEffects effectName) const
     return Effect == effectName;
 }
 
+uint32 SpellEffectInfo::GetItemArmorSubclassMask() const
+{
+    if (!_spellInfo || _spellInfo->SpellFamilyName != 24 || MiscValue != SPELL_SCHOOL_MASK_NORMAL)
+        return 0;
+
+    switch (_spellInfo->Id)
+    {
+        case 800317: // Tower Formation has already been scoped to a dummy aura.
+            return EffectIndex == EFFECT_1 && IsAura(SPELL_AURA_DUMMY) && MiscValueB == 64 ? 64 : 0;
+        case 705331: // Iron Barrier
+            return EffectIndex == EFFECT_1 && IsAura(SPELL_AURA_MOD_BASE_RESISTANCE_PCT) &&
+                MiscValueB == 64 ? 64 : 0;
+        case 705370: // Shield Wall
+        case 707814:
+            return EffectIndex == EFFECT_0 && IsAura(SPELL_AURA_MOD_BASE_RESISTANCE_PCT) &&
+                MiscValueB == 64 ? 64 : 0;
+        case 803128: // Heavy Expert
+            return EffectIndex == EFFECT_0 && IsAura(SPELL_AURA_MOD_BASE_RESISTANCE_PCT) &&
+                MiscValueB == 24 ? 24 : 0;
+        default:
+            return 0;
+    }
+}
+
 bool SpellEffectInfo::IsAura() const
 {
     return (IsUnitOwnedAuraEffect() || Effect == SPELL_EFFECT_PERSISTENT_AREA_AURA) && ApplyAuraName != 0;
@@ -451,6 +476,8 @@ int32 SpellEffectInfo::CalcValue(Unit const* caster, int32 const* bp, Unit const
     // random damage
     if (caster)
     {
+        sScriptMgr->ModifySpellEffectBaseValue(caster, _spellInfo, EffectIndex, value);
+
         // bonus amount from combo points
         if (uint8 comboPoints = caster->GetComboPoints())
         {
@@ -1371,6 +1398,22 @@ bool SpellInfo::IsAffected(uint32 familyName, flag96 const& familyFlags) const
     return true;
 }
 
+uint8 SpellInfo::CalcMaxAuraStacks(Unit* caster) const
+{
+    // Zero denotes an aura which cannot stack. A modifier must not make an
+    // unrelated, nonstacking helper stackable just because it shares a mask.
+    if (!StackAmount)
+        return 0;
+
+    float maximum = float(StackAmount);
+    if (caster)
+        if (Player* modOwner = caster->GetSpellModOwner())
+            modOwner->ApplySpellMod(Id, SPELLMOD_MAX_AURA_STACKS, maximum);
+
+    // Aura's stored stack count and the client update field are both uint8.
+    return uint8(std::clamp(maximum, 1.0f, 255.0f));
+}
+
 bool SpellInfo::IsAffectedBySpellMods() const
 {
     return !(AttributesEx3 & SPELL_ATTR3_IGNORE_CASTER_MODIFIERS);
@@ -1378,14 +1421,24 @@ bool SpellInfo::IsAffectedBySpellMods() const
 
 bool SpellInfo::IsAffectedBySpellMod(SpellModifier const* mod) const
 {
+    // Stim's copied healing ignores caster modifiers, but Bandage Gun explicitly
+    // increases its chain targets. Keep the exemption limited to that modifier;
+    // its ordinary family/mask and script checks still run below.
+    bool const bandageGunTargets = Id == 653241 && SpellFamilyName == 34 &&
+        mod->spellId == 705780 && mod->op == SPELLMOD_JUMP_TARGETS && mod->type == SPELLMOD_FLAT &&
+        mod->mask == flag96(128, 0, 0);
+
     // xinef: dont check duration mod
-    if (mod->op != SPELLMOD_DURATION)
+    if (mod->op != SPELLMOD_DURATION && !bandageGunTargets)
         if (!IsAffectedBySpellMods())
             return false;
 
     SpellInfo const* affectSpell = sSpellMgr->GetSpellInfo(mod->spellId);
 
     if (!affectSpell)
+        return false;
+
+    if (mod->targetSpellId && mod->targetSpellId != Id)
         return false;
 
     if (!sScriptMgr->OnIsAffectedBySpellModCheck(affectSpell, this, mod))

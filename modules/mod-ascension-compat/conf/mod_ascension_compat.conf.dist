@@ -60,3 +60,8 @@ AscensionCompat.QuestLevelScaling = 1
 # Keep these values decimal because ConfigMgr numeric values are parsed as decimal.
 AscensionCompat.FirstExtensionOpcode = 1311
 AscensionCompat.LastExtensionOpcode = 2515
+
+# Experimental local Manastorm. Requires the matching character migration and client UI patch.
+# Startup-only: solo levels 10-59, three scenes, depths 1-15. Realm level cap is unchanged.
+# Enable only with the reviewed installation package; native gameplay acceptance is still required.
+Ascension.Manastorm.Enable = 0

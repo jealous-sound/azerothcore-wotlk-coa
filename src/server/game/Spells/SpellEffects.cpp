@@ -2212,7 +2212,7 @@ void Spell::EffectEnergize(SpellEffIndex effIndex)
 
     Powers power = Powers(m_spellInfo->Effects[effIndex].MiscValue);
 
-    if (unitTarget->IsPlayer() && !unitTarget->HasActivePowerType(power) && m_spellInfo->SpellFamilyName != SPELLFAMILY_POTION
+    if (unitTarget->IsPlayer() && !unitTarget->CanReceivePowerFromSpell(power) && m_spellInfo->SpellFamilyName != SPELLFAMILY_POTION
             && !m_spellInfo->HasAttribute(SPELL_ATTR7_ONLY_IN_SPELLBOOK_UNTIL_LEARNED))
         return;
 
@@ -2320,7 +2320,7 @@ void Spell::EffectEnergizePct(SpellEffIndex effIndex)
 
     Powers power = Powers(m_spellInfo->Effects[effIndex].MiscValue);
 
-    if (unitTarget->IsPlayer() && !unitTarget->HasActivePowerType(power) && !m_spellInfo->HasAttribute(SPELL_ATTR7_ONLY_IN_SPELLBOOK_UNTIL_LEARNED))
+    if (unitTarget->IsPlayer() && !unitTarget->CanReceivePowerFromSpell(power) && !m_spellInfo->HasAttribute(SPELL_ATTR7_ONLY_IN_SPELLBOOK_UNTIL_LEARNED))
         return;
 
     uint32 maxPower = unitTarget->GetMaxPower(power);
@@ -3970,6 +3970,8 @@ void Spell::EffectWeaponDmg(SpellEffIndex effIndex)
     {
         weaponDamage = m_caster->CalculateDamage(m_attackType, normalized, isPhysical);
     }
+
+    weaponDamagePercentMod *= m_scriptWeaponDamageMultiplier;
 
     // Sequence is important
     for (int j = 0; j < MAX_SPELL_EFFECTS; ++j)

@@ -175,8 +175,14 @@ class spell_ascension_guardian_standard : public SpellScript
     void SkipAutomaticReclaim(SpellEffIndex index)
     {
         // Replacement is atomic at summon success, not the parent's earlier
-        // launch trigger. The independent third-effect timed buff is untouched.
+        // launch trigger. Field Commander is checked separately below.
         PreventHitDefaultEffect(index);
+    }
+
+    void RequireFieldCommander(SpellEffIndex index)
+    {
+        if (!GetCaster()->HasAura(705320))
+            PreventHitDefaultEffect(index);
     }
 
     void Register() override
@@ -186,6 +192,10 @@ class spell_ascension_guardian_standard : public SpellScript
             EFFECT_1, SPELL_EFFECT_TRIGGER_SPELL);
         OnEffectLaunchTarget += SpellEffectFn(spell_ascension_guardian_standard::SkipAutomaticReclaim,
             EFFECT_1, SPELL_EFFECT_TRIGGER_SPELL);
+        OnEffectLaunch += SpellEffectFn(spell_ascension_guardian_standard::RequireFieldCommander,
+            EFFECT_2, SPELL_EFFECT_TRIGGER_SPELL);
+        OnEffectLaunchTarget += SpellEffectFn(spell_ascension_guardian_standard::RequireFieldCommander,
+            EFFECT_2, SPELL_EFFECT_TRIGGER_SPELL);
     }
 };
 

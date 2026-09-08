@@ -35,6 +35,17 @@
 
 #include <algorithm>
 
+namespace
+{
+bool IsValidSpellProcFamily(uint32 family)
+{
+    // CoA class spell families follow the class ID with an offset of six.
+    // Preserve the native families and their reserved gaps as well.
+    return !family || (family >= 3 && family <= 17 && family != 14 && family != 16) ||
+        (family >= uint32(CLASS_BARBARIAN) + 6 && family <= uint32(CLASS_SPIRIT_MAGE) + 6);
+}
+}
+
 bool IsPrimaryProfessionSkill(uint32 skill)
 {
     SkillLineEntry const* pSkill = sSkillLineStore.LookupEntry(skill);
@@ -2086,7 +2097,7 @@ void SpellMgr::LoadSpellProcs()
             // validate data
             if (procEntry.SchoolMask & ~SPELL_SCHOOL_MASK_ALL)
                 LOG_ERROR("sql.sql", "`spell_proc` table entry for SpellId {} has wrong `SchoolMask` set: {}", spellId, procEntry.SchoolMask);
-            if (procEntry.SpellFamilyName && (procEntry.SpellFamilyName < 3 || procEntry.SpellFamilyName > 17 || procEntry.SpellFamilyName == 14 || procEntry.SpellFamilyName == 16))
+            if (!IsValidSpellProcFamily(procEntry.SpellFamilyName))
                 LOG_ERROR("sql.sql", "`spell_proc` table entry for SpellId {} has wrong `SpellFamilyName` set: {}", spellId, procEntry.SpellFamilyName);
             if (procEntry.Chance < 0)
             {

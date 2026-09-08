@@ -969,15 +969,16 @@ void Aura::SetStackAmount(uint8 stackAmount)
 bool Aura::ModStackAmount(int32 num, AuraRemoveMode removeMode, bool periodicReset /*= false*/)
 {
     int32 stackAmount = m_stackAmount + num;
+    int32 maxStackAmount = num > 0 ? m_spellInfo->CalcMaxAuraStacks(GetCaster()) : m_spellInfo->StackAmount;
 
     // limit the stack amount (only on stack increase, stack amount may be changed manually)
-    if ((num > 0) && (stackAmount > int32(m_spellInfo->StackAmount)))
+    if ((num > 0) && (stackAmount > maxStackAmount))
     {
         // not stackable aura - set stack amount to 1
         if (!m_spellInfo->StackAmount)
             stackAmount = 1;
         else
-            stackAmount = m_spellInfo->StackAmount;
+            stackAmount = maxStackAmount;
     }
     // we're out of stacks, remove
     else if (stackAmount <= 0)

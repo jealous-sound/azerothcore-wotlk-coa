@@ -114,6 +114,24 @@ Map* MapInstanced::CreateInstanceForPlayer(const uint32 mapId, Player* player)
 
     Map* map = nullptr;
 
+    if (player->GetScriptedPrivateMapId() == mapId)
+    {
+        if (!IsNonRaidDungeon() || player->GetGroup())
+            return nullptr;
+
+        uint32 id = player->GetScriptedPrivateInstanceId();
+        if (id)
+        {
+            Map* existing = FindInstanceMap(id);
+            return existing && existing->IsScriptedPrivateInstance()
+                && existing->ToInstanceMap()->GetScriptedPrivateOwner() == player->GetGUID() ? existing : nullptr;
+        }
+
+        id = sMapMgr->GenerateInstanceId();
+        player->SetScriptedPrivateInstanceId(id);
+        return CreateInstance(id, nullptr, DUNGEON_DIFFICULTY_NORMAL, player);
+    }
+
     if (IsBattlegroundOrArena())
     {
         // instantiate or find existing bg map for player
@@ -202,11 +220,18 @@ InstanceMap* MapInstanced::CreateInstance(uint32 InstanceId, InstanceSave* save,
     LOG_DEBUG("maps", "MapInstanced::CreateInstance: {} map instance {} for {} created with difficulty {}", save ? "" : "new ", InstanceId, GetId(), difficulty ? "heroic" : "normal");
 
     InstanceMap* map = new InstanceMap(GetId(), InstanceId, difficulty, this);
+    bool const privateInstance = player && player->GetScriptedPrivateMapId() == GetId()
+        && player->GetScriptedPrivateInstanceId() == InstanceId;
+    if (privateInstance)
+        map->SetScriptedPrivateOwner(player->GetGUID());
     ASSERT(map->IsDungeon());
     m_InstancedMaps[InstanceId] = map;
 
-    map->LoadRespawnTimes();
-    map->LoadCorpseData();
+    if (!privateInstance)
+    {
+        map->LoadRespawnTimes();
+        map->LoadCorpseData();
+    }
 
     if (save)
         map->CreateInstanceScript(true, save->GetInstanceData(), save->GetCompletedEncounterMask());
@@ -225,7 +250,7 @@ InstanceMap* MapInstanced::CreateInstance(uint32 InstanceId, InstanceSave* save,
 
     map->OnCreateMap();
 
-    if (!save) // this is for sure a dungeon (assert above), no need to check here
+    if (!save && !privateInstance) // Ephemeral scenes have no instance-save row.
         sInstanceSaveMgr->AddInstanceSave(GetId(), InstanceId, difficulty);
 
     return map;

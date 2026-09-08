@@ -1977,8 +1977,18 @@ void InstanceMap::InitVisibilityDistance()
 /*
     Do map specific checks to see if the player can enter
 */
+bool Map::IsScriptedPrivateInstance() const
+{
+    InstanceMap const* instance = ToInstanceMap();
+    return instance && !instance->GetScriptedPrivateOwner().IsEmpty();
+}
+
 Map::EnterState InstanceMap::CannotEnter(Player* player, bool loginCheck)
 {
+    if (IsScriptedPrivateInstance())
+        return player->GetGUID() == _scriptedPrivateOwner && !player->GetGroup()
+            ? Map::CannotEnter(player, loginCheck) : CANNOT_ENTER_INSTANCE_BIND_MISMATCH;
+
     if (!loginCheck && player->GetMapRef().getTarget() == this)
     {
         LOG_ERROR("maps", "InstanceMap::CanEnter - player {} ({}) already in map {}, {}, {}!",
@@ -2052,7 +2062,10 @@ bool InstanceMap::AddPlayerToMap(Player* player)
     if (m_resetAfterUnload) // this instance has been reset, it's not meant to be used anymore
         return false;
 
-    if (IsDungeon())
+    if (IsScriptedPrivateInstance() && (player->GetGUID() != _scriptedPrivateOwner || player->GetGroup()))
+        return false;
+
+    if (IsDungeon() && !IsScriptedPrivateInstance())
     {
         Group* group = player->GetGroup();
 
@@ -2150,7 +2163,8 @@ void InstanceMap::RemovePlayerFromMap(Player* player, bool remove)
 void InstanceMap::AfterPlayerUnlinkFromMap()
 {
     if (!m_unloadTimer && !HavePlayers())
-        m_unloadTimer = m_unloadWhenEmpty ? MIN_UNLOAD_DELAY : std::max(sWorld->getIntConfig(CONFIG_INSTANCE_UNLOAD_DELAY), (uint32)MIN_UNLOAD_DELAY);
+        m_unloadTimer = IsScriptedPrivateInstance() ? _scriptedPrivateUnloadDelay
+            : (m_unloadWhenEmpty ? MIN_UNLOAD_DELAY : std::max(sWorld->getIntConfig(CONFIG_INSTANCE_UNLOAD_DELAY), (uint32)MIN_UNLOAD_DELAY));
     Map::AfterPlayerUnlinkFromMap();
 }
 
@@ -2251,7 +2265,7 @@ std::string const& InstanceMap::GetScriptName() const
 
 void InstanceMap::PermBindAllPlayers()
 {
-    if (!IsDungeon())
+    if (!IsDungeon() || IsScriptedPrivateInstance())
         return;
 
     InstanceSave* save = sInstanceSaveMgr->GetInstanceSave(GetInstanceId());
@@ -2613,6 +2627,9 @@ bool Map::IsSpawnGroupActive(uint32 groupId) const
 
 bool Map::SpawnGroupSpawn(uint32 groupId, bool ignoreRespawn /*= false*/, bool force /*= false*/)
 {
+    if (IsScriptedPrivateInstance())
+        return false;
+
     SpawnGroupTemplateData const* groupData = sObjectMgr->GetSpawnGroupData(groupId);
     if (!groupData || (groupData->flags & SPAWNGROUP_FLAG_SYSTEM))
     {
@@ -2917,6 +2934,9 @@ void Map::ProcessGameObjectRespawn(ObjectGuid::LowType spawnId)
 
 void Map::UpdateEncounterState(EncounterCreditType type, uint32 creditEntry, Unit* source)
 {
+    if (IsScriptedPrivateInstance())
+        return; // The owning controller journals its own clears; no ordinary dungeon credit/save.
+
     Difficulty difficulty_fixed = (IsSharedDifficultyMap(GetId()) ? Difficulty(GetDifficulty() % 2) : GetDifficulty());
     DungeonEncounterList const* encounters;
     // 631 : ICC - 724 : Ruby Sanctum --- For heroic difficulties, for some reason, we don't have an encounter list, so we get the encounter list from normal diff. We shouldn't change difficulty_fixed variable.

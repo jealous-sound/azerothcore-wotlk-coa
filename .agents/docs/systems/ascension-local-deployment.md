@@ -97,3 +97,14 @@ Examples to inspect, not blindly rerun for a new task:
 - `C:/Ascension/Sync-LocalClientSpellPatch.ps1` — fixed-candidate archive synchronization with backup.
 - `C:/Ascension/tools/Test-BarbarianDamageFix.py` — isolated x86/x64 success and failure scenarios.
 - `C:/Ascension/runtime/validation/barbarian-damage-20260906/implemented.md` — evidence and limitations.
+
+## Native lifecycle checks learned from Manastorm
+
+- `Player::LoadFromDB` can update achievement criteria before `SetMap`. Global player hooks must
+  handle a missing map with `FindMap`; `GetMap` asserts. A mapless player must retain ordinary
+  achievement behavior. Scene entry and ownership must also reject mapless transfer states.
+- Readiness alone does not exercise character loading. For a lifecycle correction, reproduce the
+  failing callback with actual source and a mapless player, preserve the old-code failure, and test
+  ordinary/private-map behavior. Keep real login and gameplay acceptance distinct from this harness.
+- Native ChatCommandBuilder stores a reference to its child command vector. Keep child tables alive
+  (for example, static storage); an inline temporary compiles but can crash command initialization.

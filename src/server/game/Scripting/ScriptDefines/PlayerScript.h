@@ -217,6 +217,9 @@ enum PlayerHook
     PLAYERHOOK_ON_BEFORE_GET_LEVEL_FOR_XP_GAIN,
     PLAYERHOOK_ON_CREATE_INITIAL_ITEMS,
     PLAYERHOOK_ON_GET_AMMO_DISPLAY,
+    PLAYERHOOK_ON_NORMALIZE_ACTION_BUTTON_SPELL,
+    PLAYERHOOK_ON_SPELL_CHARGE_CONSUMED,
+    PLAYERHOOK_ON_SPELL_COOLDOWN_CALCULATED,
     PLAYERHOOK_END
 };
 
@@ -353,6 +356,10 @@ public:
 
     // Called when a player is about to be saved.
     virtual void OnPlayerSave(Player* /*player*/) { }
+
+    virtual void OnPlayerNormalizeActionButtonSpell(Player* /*player*/, uint32& /*action*/, bool /*loading*/) { }
+    virtual void OnPlayerSpellChargeConsumed(Player* /*player*/, SpellInfo const* /*spellInfo*/, Spell* /*spell*/, uint32 /*recoveryMs*/, uint64 /*nowEpochMs*/) { }
+    virtual void OnPlayerSpellCooldownCalculated(Player* /*player*/, SpellInfo const* /*spellInfo*/, Spell* /*spell*/, uint32 /*recoveryMs*/) { }
 
     // Called when a player is bound to an instance
     virtual void OnPlayerBindToInstance(Player* /*player*/, Difficulty /*difficulty*/, uint32 /*mapId*/, bool /*permanent*/) { }
