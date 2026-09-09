@@ -1,5 +1,49 @@
 # Local compatibility release — 2026-09-09
 
+The Necromancer Life Force/summon-size/UI follow-up, Templar, Felsworn, Starcaller and Knight of Xoroth
+are now committed, built and installed with the earlier class packages. The user requested a server
+build for testing and explicitly excluded launching the client. No client was launched and no Git
+push occurred. Current report: `C:/Ascension/runtime/releases/class-followup-20260909/implemented.md`;
+current receipt: `validation/deployment-current.json` under that release.
+
+World SHA-256: `FD43708B172B740E7F33F3A506A963DD4B2AA2B98E309DD876A79FBFE3742DAF`.
+SourceDirectory: `C:/Ascension/runtime/releases/class-followup-20260909/source`.
+Fresh VS2022 x64 RelWithDebInfo build in `C:/Ascension/Build-ClassFollowup`, with bounded `/m:2`
+and `CL_MPCount=4`. Final world started at `2026-09-09T16:10:21.3949145+03:00`; readiness passed
+at `16:11:42+03:00`. Ports 8085/3443 belong to that world process. New unique startup errors: zero.
+MySQL and auth were started when initially absent and were retained during the two world repairs.
+
+Core checkpoint `46bf8121e52c42796e72a400a8ec80dfe14e3c7c` is followed by startup corrections
+`057e9fcbe1a248074f04ec60b8d68174af51fd5b` and `12d2cda4d7c8ad59e4da5a1fc0850fecff91f665`.
+The final source manifest pins 10,565 files. Subsequent release documentation is separate from this
+compiled source snapshot. Normal updater applied world SQL03 through SQL10; all applied migrations,
+including the earlier SQL00/01/02, are immutable. Use a new migration for any later correction.
+
+The first startup exposed invalid periodic AuraScript registrations, three inert aura bindings,
+two proc disable masks and a mismatched raid group. Actual native tests and new SQL09/10 correct
+these without rewriting applied SQL03–08. SQL10 groups Shrouded Stars' damage-taken reduction with
+Sanctuary/Vigilance in 2000185, preserving its independent stagger. The first two startup results,
+first binary/PDB and failed fixture runs remain in the release record.
+
+The matching two-member Necromancer/Templar B is installed in both canonical and copied-client paths:
+`1C35C1D6CC52FD52E6FECA6A1302FE26AD9AE752C97A0F892F0F9ADDF6481AC9`.
+Exactly 1,400 archive members are preserved. Server Spell.dbc, three existing model DBCs, T, client
+EXE/DLL, cache, WTF and the original client are unchanged. All 22 selected creature model chains and
+13 gameobject dependencies resolve; rendered appearance and UI remain untested.
+
+One verified full backup is `C:/Ascension/runtime/server/backups/before-class-followup-20260909-151045-513070`:
+117 character tables, 22 auth tables, nine scoped world tables and 716 WTF files. A separate verified
+`damage-reduction-repair` supplement protects `spell_group_stack_rules` before SQL10. The final 149-table
+snapshot preserves personal data and matches every planned SQL row. Reviewed operational changes are
+three zero-player uptime rows, outdoor respawns, Wintergrasp clock 3781 and 33 expired daily heroic
+reset schedules. Whole-database equality is false. Reuse this bounded review; do not chase live timers.
+
+Gameplay, summon appearance, movement and rendered resource/Oath UI acceptance remain separate.
+
+## Historical state before this installation
+
+The following source-only and earlier-release notes are superseded by the installation above.
+
 Starcaller is now source ready and uninstalled, with 164 individual dispositions, 124 coefficient
 slots, 99 bindings and 35 proc rows in pending SQL06. Its report is
 `C:/Ascension/runtime/validation/starcaller-completion-20260909/implemented.md`.

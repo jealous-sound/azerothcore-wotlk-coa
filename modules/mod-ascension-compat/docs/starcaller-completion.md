@@ -94,12 +94,19 @@ next tick. Integer remainder is conserved; early aura removal settles the unpaid
 logout settles before the native character save, and death clears the remainder. This runtime pool
 does not introduce a crash-recovery database journal. It does not delay its own periodic payments.
 
-Pending SQL06 binds Starcaller scripts and joins the established raid damage-reduction group.
-Pending SQL08 updates exactly 64 Felsworn/Knight proc rows from old mask 63 to 9331, adding native
+SQL06 binds Starcaller scripts. Its original raid-group entry was corrected at linked deployment:
+SQL09's intermediate group 1038 inferred stat-percent aura 137, so applied SQL10 moves Shrouded Stars
+704785 into dedicated damage-taken group 2000185 with Sanctuary 67480 and Vigilance 50720. Native
+inference selects aura 87; the largest reduction applies once and the independent stagger is preserved.
+The deployed AuraScript registers its periodic callback only when the actual spell has a periodic
+dummy aura. SQL09 removes Moonblade's inert aura binding while retaining its native/global handling.
+
+SQL08 updates exactly 64 Felsworn/Knight proc rows from old mask 63 to 9331, adding native
 BLOCK, ABSORB and FULL_BLOCK admission. Earlier SQL05/07 remain unchanged. Their earlier proc fixture
 tested only six low bits and missed this failure; the new 24,948-case native test supersedes that
 admission evidence. Script-level talent, ownership, hit and cooldown filters still decide actual procs.
 
-The source is ready for a separately requested linked build and coherent installation. No migration,
-binary or client was installed here. Native syntax and callback tests do not establish runtime
-registration, combat, movement, group behavior or UI acceptance.
+The separately requested linked build is now installed as `class-followup-20260909`, with matching
+Necromancer/Templar UI dependencies. Final startup has no new unique errors. SQL03–10 are applied and
+immutable; earlier source-only receipts are historical. Combat, movement, group behavior and rendered
+UI acceptance remain separate from build, native callback tests and startup validation.

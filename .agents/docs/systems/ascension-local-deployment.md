@@ -108,3 +108,19 @@ Examples to inspect, not blindly rerun for a new task:
   ordinary/private-map behavior. Keep real login and gameplay acceptance distinct from this harness.
 - Native ChatCommandBuilder stores a reference to its child command vector. Keep child tables alive
   (for example, static storage); an inline temporary compiles but can crash command initialization.
+
+## Native spell validation learned from the class follow-up
+
+- Register AuraScript callbacks against the actual spell's valid aura effects. An unconditional
+  periodic handler on a nonperiodic aura fails startup validation even if its body would do nothing.
+  During registration, resolve `m_scriptSpellId` through SpellMgr; a cast object may not exist yet.
+- A nonzero raw `ApplyAuraName` in Spell.dbc does not establish an aura when the effect itself is zero.
+  Use native `IsAura`/`HasAura` for proc disable masks and group compatibility. Validate actual bindings,
+  not just a simplified hand-built record with the expected flags.
+- Group IDs are not semantic names. Expand subgroups and execute the native same-effect inference:
+  group 1038 includes a stat-percent subgroup, despite also listing Sanctuary. A damage-taken aura
+  requires a group that actually selects its aura type. Verify largest-only stacking and preservation
+  of independent absorb/stagger effects using the real native group methods.
+- When a later correction adds a previously unmodified table, preserve the original full backup and
+  add one verified table supplement. Validate the amended exact plan against both baselines; do not
+  rewrite the original backup plan or rerun a full backup merely to satisfy an old table-count check.
