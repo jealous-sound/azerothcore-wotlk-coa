@@ -1,6 +1,7 @@
 """Source-only publication guard. Reports locations, never matched credential values."""
 import ast
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
@@ -28,12 +29,20 @@ def main():
     checked = 0
     for path in paths:
         name = path.relative_to(ROOT).as_posix()
-        if not path.is_file():
+        if path.is_symlink():
+            # Git checks out directory links as links on Linux and as text files on
+            # Windows. Inspect the link itself; its tracked targets are scanned separately.
+            raw = os.readlink(path).encode('utf-8')
+            target = path.resolve()
+            if not target.is_relative_to(ROOT) or not target.exists():
+                issues.append((name, 'broken or external symbolic link'))
+        elif not path.is_file():
             issues.append((name, 'tracked file missing'))
             continue
+        else:
+            raw = path.read_bytes()
         if path.suffix.lower() in FORBIDDEN or path.name == '.env' or '/WTF/' in '/' + name:
             issues.append((name, 'private/generated artifact'))
-        raw = path.read_bytes()
         if PATTERN.search(raw):
             issues.append((name, 'credential pattern'))
         if ACCOUNT.search(raw):
