@@ -1,0 +1,20 @@
+name: CoA compatibility issue
+description: Report a reproducible local core or module issue
+body:
+  - type: textarea
+    id: version
+    attributes:
+      label: Core revision and client profile
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction, expected result and actual result
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Minimal redacted evidence and verification limits
+      description: Do not include passwords, account profiles or database dumps.

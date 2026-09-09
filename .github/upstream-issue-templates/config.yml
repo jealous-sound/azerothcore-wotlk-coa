@@ -1,0 +1,17 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Website
+    url: https://www.azerothcore.org
+    about: On the AC website you can find a lot of things, such as existing modules.
+  - name: Wiki
+    url: https://www.azerothcore.org/wiki
+    about: You can find plenty of information on our Wiki.
+  - name: FAQ
+    url: https://www.azerothcore.org/wiki/faq
+    about: Frequently asked questions.
+  - name: Common Errors
+    url: https://www.azerothcore.org/wiki/common-errors
+    about: You can find common errors and their solutions here.
+  - name: Discord
+    url: https://discord.gg/gkt4y2x
+    about: Join the discussions over at our Discord Server.
