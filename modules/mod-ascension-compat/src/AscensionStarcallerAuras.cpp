@@ -191,8 +191,10 @@ class aura_ascension_starcaller_lifecycle : public AuraScript
                                               AURA_EFFECT_HANDLE_REAL_OR_REAPPLY_MASK);
         AfterEffectRemove += AuraEffectRemoveFn(aura_ascension_starcaller_lifecycle::Remove, EFFECT_ALL, SPELL_AURA_ANY,
                                                 AURA_EFFECT_HANDLE_REAL);
-        OnEffectPeriodic +=
-            AuraEffectPeriodicFn(aura_ascension_starcaller_lifecycle::Tick, EFFECT_ALL, SPELL_AURA_PERIODIC_DUMMY);
+        if (SpellInfo const* info = sSpellMgr->GetSpellInfo(m_scriptSpellId);
+            info && info->HasAura(SPELL_AURA_PERIODIC_DUMMY))
+            OnEffectPeriodic +=
+                AuraEffectPeriodicFn(aura_ascension_starcaller_lifecycle::Tick, EFFECT_ALL, SPELL_AURA_PERIODIC_DUMMY);
     }
 };
 class aura_ascension_starcaller_absorb : public AuraScript
