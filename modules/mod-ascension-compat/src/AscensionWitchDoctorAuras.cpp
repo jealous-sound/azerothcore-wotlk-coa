@@ -424,7 +424,7 @@ class aura_ascension_witch_doctor_lifecycle : public AuraScript
             AuraEffectPeriodicFn(aura_ascension_witch_doctor_lifecycle::Tick, EFFECT_ALL, SPELL_AURA_ANY);
         if (sSpellMgr->GetSpellInfo(m_scriptSpellId)->HasAura(SPELL_AURA_SCHOOL_ABSORB))
             OnEffectAbsorb +=
-                AuraEffectAbsorbFn(aura_ascension_witch_doctor_lifecycle::Absorb, EFFECT_ALL, SPELL_AURA_SCHOOL_ABSORB);
+                AuraEffectAbsorbFn(aura_ascension_witch_doctor_lifecycle::Absorb, EFFECT_ALL);
         AfterEffectRemove += AuraEffectRemoveFn(aura_ascension_witch_doctor_lifecycle::Removed, EFFECT_ALL,
                                                 SPELL_AURA_ANY, AURA_EFFECT_HANDLE_REAL);
         AfterDispel += AuraDispelFn(aura_ascension_witch_doctor_lifecycle::Dispel);

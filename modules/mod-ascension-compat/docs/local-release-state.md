@@ -1,71 +1,64 @@
-# Local compatibility release — 2026-09-08
+# Local compatibility release — 2026-09-09
 
-The Witch Doctor package completed on 2026-09-09 is **source ready, not installed**.
-It addresses 119 source findings and includes a new world migration and three staged server DBCs.
-See `witch-doctor-completion.md` and
-`runtime/validation/witch-doctor-completion-20260908/implemented.md`.
-Its guarded model/template definitions need absent-or-exact checks before a future coherent installation.
-The independent Manastorm solo/cache and Witch Hunter/Ranger follow-ups are preserved.
+Starcaller is now source ready and uninstalled, with 164 individual dispositions, 124 coefficient
+slots, 99 bindings and 35 proc rows in pending SQL06. Its report is
+`C:/Ascension/runtime/validation/starcaller-completion-20260909/implemented.md`.
+Pending SQL08 corrects 64 Felsworn/Knight proc hit masks to include native block, absorb and full block.
+Their earlier low-bit admission test missed those outcomes; the new 24,948-case test supersedes that
+portion of the old evidence. Prior SQL remains unchanged. Twenty-seven focused tests, 73 unchanged
+regressions, 80 native cost cases and 12 native syntax units pass. New SQL/C++ lint is clean.
+No build or installation occurred; source/header hashes, unchanged runtime hashes and a scoped patch
+against the post-Knight baseline are captured. The patch is checked in an isolated fixture.
 
-The later Witch Hunter / Ranger follow-up is **source ready, not installed**.
-It changes Advantage generation and Witch Hunter channel/pet/DoT handling.
-See `witch-hunter-ranger-followup.md` and
-`runtime/validation/witch-hunter-ranger-followup-20260908/implemented.md`.
-The installed release described below remains the live deployment.
+Felsworn and Knight of Xoroth are also source ready and uninstalled. Their pending migrations are
+SQL05 and SQL07; reports are `runtime/validation/felsworn-completion-20260909/implemented.md` and
+`runtime/validation/knight-of-xoroth-completion-20260909/implemented.md` under `C:/Ascension`.
+Knight has 122 implemented/extended and two retained dispositions, 65 coefficient slots, 113 bindings
+and 26 proc entries. Its 96 guarded template/model/pet-level/forge inserts need conflict checks before
+installation. Existing native models are used without a DBC/client change. Twenty-one focused tests,
+52 regressions, 2,808 native proc cases, 80 Sever forwarding cases and 12 native syntax units pass.
+Starcaller's subsequent completion and proc correction are above. These source packages do not change
+the installed release below.
 
-Guardian, Barbarian and Witch Hunter completion packages are installed together
-with the existing Manastorm loop. The user explicitly requested the server build
-and copied-client launch. The source checkout remains dirty over a98f3c59ce7ec708fce5160bbc1c68d9f5493384;
-this deployment does not commit or publish that source.
+Pending after this installation: the focused Necromancer Life Force/model/UI correction and the
+Templar completion. Both are source ready, uncommitted and not installed. Their reports are
+`C:/Ascension/runtime/validation/necromancer-followup-20260909/implemented.md` and
+`C:/Ascension/runtime/validation/templar-completion-20260909/implemented.md`.
 
-The current worldserver uses `C:/Ascension/runtime/releases/class-completion-20260908/source`,
-built in fresh `C:/Ascension/Build-ClassCompletion` with VS2022 RelWithDebInfo.
-Its SHA-256 is `4CAD52F7814A599EFB1C6D32823E96BB73060186DC69649A91910459AF3FB5CA`.
-Final startup was 20:40:43 Moscow; readiness on 8085/3443 and zero new unique
-startup errors are verified. Auth and MySQL were not restarted.
+Necromancer now prevents the duplicate native summon and enforces available Life Force on each paid
+minion. Capacity grows through the recovered level-10/Animation level-30 grants and Master Animator;
+the matched UI displays free and total points. Pending SQL03 scales 11 exact summon templates.
+Templar has dispositions for all 25 findings, including Oaths, stagger, finite charges/replacements,
+113 coefficient slots, proc routing and owned summons. Pending SQL04 supplies 86 bindings, 32 proc
+entries and guarded Hope definitions. The combined two-member client candidate has SHA-256
+`1C35C1D6CC52FD52E6FECA6A1302FE26AD9AE752C97A0F892F0F9ADDF6481AC9`; 1,400 other members are preserved.
 
-## Applied data and startup corrections
+No linked build, installation or gameplay acceptance occurred for these follow-ups. Use their scoped
+patches and final manifests. Reject conflicting Hope definitions before installation, and retain the
+matching Life Force client/server dependency. The installed release described below remains unchanged.
 
-| World migration | SHA-1 |
-| --- | --- |
-| rev_20260908_05_guardian_completion.sql | BDC84D48C514B1479972B8E66B1B22398779AABF |
-| rev_20260908_06_barbarian_completion.sql | F540FCB4CDFD90F971B24769DF1C8EA6934C32AC |
-| rev_20260908_07_witch_hunter_completion.sql | B490D871FD16A724680FCABA06461D85317B8B57 |
-| rev_20260908_08_class_completion_runtime.sql | B20BD14B01A7B13561C3F6C2285D2F28D824DE0B |
+The Witch Doctor and Necromancer packages, Witch Hunter/Ranger follow-up and Manastorm solo/cache
+changes are installed. Earlier Guardian, Barbarian, Witch Hunter and client fixes remain.
+Report: `C:/Ascension/runtime/releases/necromancer-completion-20260909/implemented.md`.
+Current receipt: `validation/deployment-current.json` under that release.
 
-These files were applied once through the normal updater and are now immutable.
-The earlier Guardian 01/02, Manastorm 03/04 and all preceding applied migrations
-remain unchanged. Before its first application, Witch Hunter 07 was corrected to
-retain native shared model-info values rather than infer them from mesh geometry.
-All 105 guarded creature/model/pet/gameobject definitions passed conflict checks.
+World SHA-256: `66CE233F53DEE19FFD55909BC4D6FBF6AB617FA3EAA10A4C81ACC1E8D566E720`.
+SourceDirectory: `C:/Ascension/runtime/releases/necromancer-completion-20260909/source`.
+Fresh VS2022 RelWithDebInfo build; final startup `2026-09-09T06:07:54.3965070+03:00`. Ports 8085/3443,
+exact SQL and personal-data checks pass. New unique startup errors: zero. Auth/MySQL were not restarted.
 
-The first linked build crashed while validating Barbarian's ability registration:
-there is no cast object during Register. It now resolves metadata by m_scriptSpellId.
-Slayer retains its native raid crit aura and separate personal bonus. Migration 08
-clears unused proc masks and an unsupported hit bit on 48 exact rows; event flags,
-chance, cooldown, charges and bindings remain. Native selection is equivalent over
-140,400 tested cases. Failed artifacts and every correction remain in the report.
+Normal updater applied Witch Doctor 00, Necromancer 01, Necromancer runtime 02 and character cache
+delivery 02. All are now immutable. The report records exact hashes and bounded compile/data fixes,
+including local appearances for the three champions whose recovered display references were absent.
+Use later migrations for further corrections; never rewrite these applied generator outputs.
 
-Two server model DBCs are updated. Server Spell.dbc is unchanged. Client B remains
-`27375ECF21CFCBF370AAA4A977D38C2BFB27B34C5C7A553428343757A20C35D6`; T remains
-`AA2679D59A300F8337ABBE2FC4913C39B45A042B350042EA15DEECEE8AEC228C`.
-The successful copied-client launch at 20:47:20 has fresh stock-auth, addon,
-lighting and 42,753-entry native catalog proof. No original client, on-disk
-client executable/DLL or cache reset was involved. No automatic login occurred.
+Three model DBCs and the one-member Manastorm client B delta are installed. B is
+`A5AA56895AE8A19B602461BE350B2ED3F2D59F36684C4FD7A230682DC7A100CF`; T and server Spell.dbc are unchanged.
+The copied client started at `2026-09-09T06:16:20.9738231+03:00` with fresh stock-auth/addon/lighting/catalog proof.
+No automatic login, cache reset, original-client change or progress rollback occurred.
 
-## Evidence and acceptance
-
-Report: `C:/Ascension/runtime/releases/class-completion-20260908/implemented.md`.
-Current machine-readable status: its `validation/deployment-current.json`.
-One verified backup protects all 116 character and 22 auth tables, 11 scoped world
-tables, relevant files and 682 WTF files. The final audit of 149 tables matches
-intended SQL and preserves personal data; reviewed operational timer/realm deltas
-mean whole-database equality is false. Do not rerun historical installers or restore
-old source/database snapshots wholesale.
-
-The class packages address their 93 Guardian, 73 Barbarian and 125 Witch Hunter
-source findings. See [Guardian policy](guardian-completion.md), [Barbarian policy](barbarian-completion.md)
-and [Witch Hunter policy](witch-hunter-completion.md). Deployment and startup checks
-do not establish complete combat, pet, party, movement or replacement-UI acceptance.
-[Manastorm behavior and balance](manastorm.md) continues to describe the installed
-local game loop; official backend parity is not claimed.
+One backup protects all 116 character/22 auth tables, 12 scoped world tables and 703 WTF files.
+The 151-table audit preserves personal data and separates reviewed native daily/respawn state changes.
+Gameplay acceptance remains distinct from deployment. Class policies remain in
+`necromancer-completion.md`, `witch-doctor-completion.md`, `witch-hunter-ranger-followup.md` and `manastorm.md`.
+The earlier class release is historical: `runtime/releases/class-completion-20260908/implemented.md`.

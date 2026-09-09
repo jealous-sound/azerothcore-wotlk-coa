@@ -4,6 +4,7 @@
  * https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-AGPL3
  */
 
+#include "AscensionFelsworn.h"
 #include "AllCreatureScript.h"
 #include "AllSpellScript.h"
 #include "AscensionChangelogCompat.h"
@@ -1801,6 +1802,9 @@ private:
     {
         if (!amount)
             return;
+
+        if (spellId == 800058 && amount > 0)
+            AscensionFelsworn::Generated(player, uint32(amount));
 
         if (Aura* aura = player->GetAura(spellId))
         {

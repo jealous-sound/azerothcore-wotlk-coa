@@ -657,6 +657,9 @@ public: /* SpellSC */
     void OnSpellHitResult(Spell* spell, Unit* target, uint8 missInfo, uint32 damage,
         uint32 healing, bool critical);
     void OnSpellSuccessfulInterrupt(Spell* spell, Unit* target);
+    void OnSpellInterruptDuration(Spell* spell, Unit* target, int32& duration);
+    void OnSpellSuccessfulSteal(Spell* spell, Unit* target, uint32 count);
+    void OnSpellCritChance(Spell* spell, Unit* target, float& chance);
 
 public: /* GameEventScript */
     void OnGameEventStart(uint16 EventID);

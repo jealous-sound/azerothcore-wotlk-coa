@@ -1736,6 +1736,7 @@ public:
     [[nodiscard]] bool CanCastSpellWhileMoving(SpellInfo const* info) const;
     [[nodiscard]] bool IsActionPreventedByCasting() const;
     [[nodiscard]] bool CanCastDuringChannel(SpellInfo const* info) const;
+    [[nodiscard]] bool CanDefendDuringChannel() const;
 
     [[nodiscard]] virtual bool CanEnterWater() const = 0;
     [[nodiscard]] virtual bool CanSwim() const;

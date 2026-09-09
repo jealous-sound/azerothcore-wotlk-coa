@@ -363,6 +363,11 @@ bool SpellEffectInfo::IsEffect(SpellEffects effectName) const
 
 uint32 SpellEffectInfo::GetItemArmorSubclassMask() const
 {
+    if (_spellInfo && _spellInfo->SpellFamilyName == 20 &&
+        (_spellInfo->Id == 520252 || _spellInfo->Id == 520253))
+        return EffectIndex == EFFECT_0 && IsAura(SPELL_AURA_MOD_BASE_RESISTANCE_PCT) &&
+            MiscValue == SPELL_SCHOOL_MASK_NORMAL && MiscValueB == 6 ? 6 : 0;
+
     if (_spellInfo && _spellInfo->Id == 680525 && _spellInfo->SpellFamilyName == 21)
         return EffectIndex == EFFECT_0 && IsAura(SPELL_AURA_MOD_BASE_RESISTANCE_PCT) &&
             MiscValue == SPELL_SCHOOL_MASK_NORMAL && MiscValueB == 8 ? 8 : 0;
@@ -2828,6 +2833,9 @@ float SpellInfo::GetMaxRange(bool positive, Unit* caster, Spell* spell) const
     if (caster)
         if (Player* modOwner = caster->GetSpellModOwner())
             modOwner->ApplySpellMod(Id, SPELLMOD_RANGE, range, spell);
+    if (caster && caster->IsPlayer() && caster->getClass() == CLASS_STARCALLER && caster->HasAura(801975) &&
+        SpellFamilyName == 32 && DmgClass == SPELL_DAMAGE_CLASS_RANGED)
+        range = 50.0f;
     return range;
 }
 
@@ -2923,7 +2931,7 @@ int32 SpellInfo::CalcPowerCost(Unit const* caster, SpellSchoolMask schoolMask, S
                 powerCost += int32(CalculatePct(caster->GetCreateHealth(), ManaCostPercentage));
                 break;
             case POWER_MANA:
-                powerCost += int32(CalculatePct(caster->GetCreateMana(), ManaCostPercentage));
+                powerCost += int32(CalculatePct(UsesMaxManaForCost ? caster->GetMaxPower(POWER_MANA) : caster->GetCreateMana(), ManaCostPercentage));
                 break;
             case POWER_RAGE:
             case POWER_FOCUS:

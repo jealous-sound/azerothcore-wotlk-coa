@@ -4085,7 +4085,8 @@ void Spell::EffectInterruptCast(SpellEffIndex effIndex)
                 if (m_originalCaster)
                 {
                     int32 duration = m_originalCaster->ModSpellDuration(m_spellInfo, unitTarget, m_originalCaster->CalcSpellDuration(m_spellInfo), false, 1 << effIndex);
-                    unitTarget->ProhibitSpellSchool(curSpellInfo->GetSchoolMask(), duration/*spellInfo->GetDuration()*/);
+                    sScriptMgr->OnSpellInterruptDuration(this, unitTarget, duration);
+                    unitTarget->ProhibitSpellSchool(curSpellInfo->GetSchoolMask(), uint32(std::max(0, duration)));
                 }
                 ExecuteLogEffectInterruptCast(effIndex, unitTarget, curSpellInfo->Id);
                 unitTarget->InterruptSpell(CurrentSpellTypes(i), false);
@@ -6025,6 +6026,7 @@ void Spell::EffectStealBeneficialBuff(SpellEffIndex effIndex)
         unitTarget->RemoveAurasDueToSpellBySteal(itr->first, itr->second, m_caster);
     }
     m_caster->SendMessageToSet(&dataSuccess, true);
+    sScriptMgr->OnSpellSuccessfulSteal(this, unitTarget, uint32(success_list.size()));
 }
 
 void Spell::EffectKillCreditPersonal(SpellEffIndex effIndex)

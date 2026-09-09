@@ -14,6 +14,11 @@
 #include "AscensionWitchHunterStake.h"
 #include "AscensionWitchHunterCompletion.h"
 #include "AscensionWitchDoctorCompletion.h"
+#include "AscensionNecromancer.h"
+#include "AscensionTemplar.h"
+#include "AscensionFelsworn.h"
+#include "AscensionXoroth.h"
+#include "AscensionStarcaller.h"
 #include "AscensionConditionalCombat.h"
 #include "AscensionRunemasterGlyphs.h"
 #include "AscensionRunemasterBrand.h"
@@ -960,6 +965,11 @@ void ApplyAscensionClassMechanics(SpellInfo* spellInfo)
     ApplyAscensionWitchHunterStakeContracts(spellInfo);
     AscensionWitchHunter::ApplyContracts(spellInfo);
     AscensionWitchDoctor::ApplyContracts(spellInfo);
+    AscensionNecromancer::ApplyContracts(spellInfo);
+    AscensionTemplar::ApplyContracts(spellInfo);
+    AscensionFelsworn::ApplyContracts(spellInfo);
+    AscensionXoroth::ApplyContracts(spellInfo);
+    AscensionStarcaller::ApplyContracts(spellInfo);
     ApplyAscensionConditionalCombatContracts(spellInfo);
     ApplyAscensionRunemasterGlyphContracts(spellInfo);
     ApplyAscensionRunemasterBrandContracts(spellInfo);

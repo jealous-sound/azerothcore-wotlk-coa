@@ -48,7 +48,7 @@ inline constexpr std::array<ResourceDisplay, 32> ResourceDisplays =
     {14, 800058, 0, "Felfury"},
     {16, 803102, 100, "Static"},
     {17, 500906, 6, "Demonfire"},
-    {19, 704576, 3, "Oath chain"},
+    {19, 704576, 10, "Oath chain"},
     {19, 804903, 0, "Templar combo: Judgment"},
     {19, 804904, 0, "Templar combo: Absolution"},
     {19, 804922, 0, "Templar combo: Inquisition"},
@@ -116,7 +116,7 @@ struct ResourceGainRule
 // These active abilities advertise resource generation in their tooltips, but
 // their public Spell.dbc records contain no effect that performs it. Ranges are
 // rank chains verified against the local Ascension spell dump.
-inline constexpr std::array<ResourceGainRule, 157> ResourceGainRules =
+inline constexpr std::array<ResourceGainRule, 162> ResourceGainRules =
 {{
     {14, 704368, 704368, 800058, 1, ResourceMutation::AuraStacks,
         ResourceGainEvent::FirstSuccessfulHostileTarget},
@@ -202,10 +202,16 @@ inline constexpr std::array<ResourceGainRule, 157> ResourceGainRules =
     {16, 501403, 501411, 803102, 2, ResourceMutation::AuraStacks,
         ResourceGainEvent::PeriodicDamageTick, 0, 800098},
 
-    // Carver adds a second Demonfire only when the current live Gore root
+    // Carver adds a second Demonfire only when any learned Gore rank
     // critically damages its target.
     {17, 805555, 805555, 500906, 1, ResourceMutation::AuraStacks,
         ResourceGainEvent::FirstCriticalDamagingHit, 707390},
+    {17, 680939, 680944, 500906, 1, ResourceMutation::AuraStacks,
+        ResourceGainEvent::FirstCriticalDamagingHit, 707390},
+    {17, 800340, 800340, 500906, 2, ResourceMutation::AuraStacks, ResourceGainEvent::FirstSuccessfulHostileTarget},
+    {17, 501508, 501510, 500906, 2, ResourceMutation::AuraStacks, ResourceGainEvent::FirstSuccessfulHostileTarget},
+    {17, 578119, 578119, 500906, 2, ResourceMutation::AuraStacks, ResourceGainEvent::FirstSuccessfulHostileTarget},
+    {17, 804353, 804353, 500906, 2, ResourceMutation::AuraStacks, ResourceGainEvent::FirstSuccessfulHostileTarget},
 
     {21, 800086, 800086, 804329, 1, ResourceMutation::AuraStacks},
     {21, 800088, 800088, 804329, 1, ResourceMutation::AuraStacks},

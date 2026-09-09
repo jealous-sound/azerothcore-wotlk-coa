@@ -20,7 +20,8 @@ constexpr uint32 TEMPLAR_FAMILY = 25;
 bool IsCurrentMainLibram(SpellInfo const* spellInfo)
 {
     if (!spellInfo || spellInfo->SpellFamilyName != TEMPLAR_FAMILY ||
-        spellInfo->DmgClass != SPELL_DAMAGE_CLASS_MELEE || !(spellInfo->SpellFamilyFlags[2] & 2048))
+        (spellInfo->DmgClass != SPELL_DAMAGE_CLASS_MELEE && spellInfo->DmgClass != SPELL_DAMAGE_CLASS_MAGIC) ||
+        !(spellInfo->SpellFamilyFlags[2] & 2048))
         return false;
 
     switch (spellInfo->Id)
@@ -86,11 +87,12 @@ class spell_ascension_templar_temporary_libram : public AuraScript
         if (IsCurrentMainLibram(castInfo))
             return true;
 
-        // The current tooltip condition names a legacy passive, not a cast ID.
-        // Do not grant it or reinterpret Scourgebane's damage helper as a use.
+        // Current specialization 92111 supersedes the legacy passive named by this tooltip.
         return GetSpellInfo()->Id == SPELL_EONAR && castInfo && castInfo->Id == SPELL_SILVERHAND &&
-            castInfo->SpellFamilyName == TEMPLAR_FAMILY && castInfo->DmgClass == SPELL_DAMAGE_CLASS_MELEE &&
-            castInfo->SpellFamilyFlags == flag96(0, 536870912, 0) && player->HasSpell(SPELL_LEGACY_SCOURGEBANE);
+            castInfo->SpellFamilyName == TEMPLAR_FAMILY &&
+            (castInfo->DmgClass == SPELL_DAMAGE_CLASS_MELEE || castInfo->DmgClass == SPELL_DAMAGE_CLASS_MAGIC) &&
+            castInfo->SpellFamilyFlags == flag96(0, 536870912, 0) &&
+            (player->HasSpell(SPELL_LEGACY_SCOURGEBANE) || player->HasSpell(92111));
     }
 
     void Register() override

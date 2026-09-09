@@ -2724,6 +2724,21 @@ void Unit::CalcHealAbsorb(HealInfo& healInfo)
         if (!((*i)->GetMiscValue() & healInfo.GetSpellInfo()->SchoolMask))
             continue;
 
+        // Life For Power converts a fraction of every heal, not a finite twenty-point healing absorb.
+        if ((*i)->GetId() == 705746 && healInfo.GetTarget()->getClass() == CLASS_NECROMANCER)
+        {
+            int32 converted = CalculatePct(std::max(0, healing - absorbAmount), 20);
+            absorbAmount += converted;
+            Unit* target = healInfo.GetTarget();
+            int64 shield = converted;
+            if (AuraEffect const* old = target->GetAuraEffect(707194, EFFECT_0))
+                shield += std::max(0, old->GetAmount());
+            if (converted)
+                target->CastCustomSpell(707194, SPELLVALUE_BASE_POINT0,
+                    int32(std::min<int64>(shield, INT32_MAX)), target, true);
+            continue;
+        }
+
         // Max Amount can be absorbed by this aura
         int32 currentAbsorb = (*i)->GetAmount();
 
@@ -3060,7 +3075,7 @@ MeleeHitOutcome Unit::RollMeleeOutcomeAgainst(Unit const* victim, WeaponAttackTy
         tmp = dodge_chance;
 
         // xinef: if casting or stunned - cant dodge
-        if (victim->IsNonMeleeSpellCast(false, false, true) || victim->HasUnitState(UNIT_STATE_CONTROLLED))
+        if (victim->IsNonMeleeSpellCast(false, victim->CanDefendDuringChannel(), true) || victim->HasUnitState(UNIT_STATE_CONTROLLED))
             tmp = 0;
 
         if ((tmp > 0)                                        // check if unit _can_ dodge
@@ -3092,7 +3107,7 @@ MeleeHitOutcome Unit::RollMeleeOutcomeAgainst(Unit const* victim, WeaponAttackTy
             tmp = parry_chance;
 
             // xinef: cant parry while casting or while stunned
-            if (victim->IsNonMeleeSpellCast(false, false, true) || victim->HasUnitState(UNIT_STATE_CONTROLLED))
+            if (victim->IsNonMeleeSpellCast(false, victim->CanDefendDuringChannel(), true) || victim->HasUnitState(UNIT_STATE_CONTROLLED))
                 tmp = 0;
 
             if (tmp > 0                                         // check if unit _can_ parry
@@ -3162,6 +3177,12 @@ MeleeHitOutcome Unit::RollMeleeOutcomeAgainst(Unit const* victim, WeaponAttackTy
             if (roll < (sum += tmp))
             {
                 LOG_DEBUG("entities.unit", "RollMeleeOutcomeAgainst: CRUSHING <{}, {})", sum - tmp, sum);
+                // Local fierce-blow policy: Forgemaster may turn an otherwise crushing
+                // frontal melee hit into a normal shield block; ordinary block rolls stay native.
+                if (Player const* knight = victim->ToPlayer(); knight && knight->getClass() == 17 &&
+                    knight->HasAura(560655) && knight->CanBlock() && knight->GetShield(true) &&
+                    victim->HasInArc(float(M_PI), this) && roll_chance_i(60))
+                    return MELEE_HIT_BLOCK;
                 return MELEE_HIT_CRUSHING;
             }
         }
@@ -3380,6 +3401,8 @@ SpellMissInfo Unit::MeleeSpellHitResult(Unit* victim, SpellInfo const* spellInfo
     uint32 roll = urand (0, 10000);
 
     uint32 missChance = uint32(MeleeSpellMissChance(victim, attType, skillDiff, spellInfo->Id) * 100.0f);
+    if (IsPlayer() && getClass() == CLASS_STARCALLER && HasAura(802203))
+        missChance = 0;
     // Roll miss
     uint32 tmp = missChance;
     if (roll < tmp)
@@ -3483,7 +3506,7 @@ SpellMissInfo Unit::MeleeSpellHitResult(Unit* victim, SpellInfo const* spellInfo
             dodgeChance -= GetTotalAuraModifier(SPELL_AURA_MOD_EXPERTISE) * 25;
 
         // xinef: cant dodge while casting or while stunned
-        if (dodgeChance < 0 || victim->IsNonMeleeSpellCast(false, false, true) || victim->HasUnitState(UNIT_STATE_CONTROLLED))
+        if (dodgeChance < 0 || victim->IsNonMeleeSpellCast(false, victim->CanDefendDuringChannel(), true) || victim->HasUnitState(UNIT_STATE_CONTROLLED))
             dodgeChance = 0;
 
         tmp += dodgeChance;
@@ -3502,7 +3525,7 @@ SpellMissInfo Unit::MeleeSpellHitResult(Unit* victim, SpellInfo const* spellInfo
             parryChance -= GetTotalAuraModifier(SPELL_AURA_MOD_EXPERTISE) * 25;
 
         // xinef: cant parry while casting or while stunned
-        if (parryChance < 0 || victim->IsNonMeleeSpellCast(false, false, true) || victim->HasUnitState(UNIT_STATE_CONTROLLED))
+        if (parryChance < 0 || victim->IsNonMeleeSpellCast(false, victim->CanDefendDuringChannel(), true) || victim->HasUnitState(UNIT_STATE_CONTROLLED))
             parryChance = 0;
 
         tmp += parryChance;
@@ -3610,6 +3633,8 @@ SpellMissInfo Unit::MagicSpellHitResult(Unit* victim, SpellInfo const* spellInfo
         HitChance = 10000;
 
     int32 tmp = 10000 - HitChance;
+    if (IsPlayer() && getClass() == CLASS_STARCALLER && HasAura(802203))
+        tmp = 0;
 
     int32 rand = irand(1, 10000); // Needs to be  1 to 10000 to avoid the 1/10000 chance to miss on 100% hit rating
 
@@ -4011,6 +4036,22 @@ int32 Unit::GetAscensionConditionalCombatModifier(Unit const* victim, SpellInfo 
             return false;
 
         int32 condition = effect->GetMiscValueB();
+        if (getClass() == CLASS_NECROMANCER && !creature)
+        {
+            if (condition == AURA_STATE_FROZEN)
+            {
+                Spell const* cast = ToPlayer()->m_spellModTakingSpell;
+                Aura const* periodic = spellInfo ? victim->GetAura(spellInfo->Id, GetGUID()) : nullptr;
+                if (HasAura(801747) || (cast && cast->GetScriptValue(801747)) ||
+                    (periodic && periodic->GetScriptValue(801747)))
+                    return true;
+            }
+            if (condition == 31) // reviewed Fiend selector: a disease owned by this caster
+                for (auto const& [key, application] : victim->GetAppliedAuras())
+                    if (Aura const* aura = application->GetBase(); aura->GetCasterGUID() == GetGUID() &&
+                        aura->GetSpellInfo()->SpellFamilyName == 29 && aura->GetSpellInfo()->Dispel == DISPEL_DISEASE)
+                        return true;
+        }
         return creature ? condition > 0 && (victim->GetCreatureTypeMask() & uint32(condition)) :
             victim->HasAscensionConditionalCombatState(condition);
     });
@@ -4501,6 +4542,11 @@ bool Unit::CanCastSpellWhileMoving(SpellInfo const* info) const
 {
     if (!info)
         return false;
+    if (IsPlayer() && getClass() == CLASS_STARCALLER &&
+        (info->Id == 801990 || info->Id == 802682 || (HasAura(704772) && !info->IsPositive())))
+        return true;
+    if (IsPlayer() && getClass() == CLASS_DEMON_HUNTER && info->Id == 800206)
+        return true;
     if (getClass() == CLASS_WITCH_DOCTOR && info->SpellFamilyName == 19 &&
         ((info->SpellFamilyFlags[1] & 4) || (info->SpellFamilyFlags[0] & 33554432)))
         return true;
@@ -4559,9 +4605,26 @@ bool Unit::IsActionPreventedByCasting() const
     return true;
 }
 
-bool Unit::CanCastDuringChannel(SpellInfo const* info) const
+bool Unit::CanDefendDuringChannel() const
 {
     Spell* channel = GetCurrentSpell(CURRENT_CHANNELED_SPELL);
+    Spell* generic = GetCurrentSpell(CURRENT_GENERIC_SPELL);
+    return IsPlayer() && getClass() == CLASS_DEMON_HUNTER && channel && channel->IsChannelActive() &&
+        channel->getState() != SPELL_STATE_FINISHED && channel->GetSpellInfo()->Id == 800206 &&
+        (!generic || generic->getState() == SPELL_STATE_FINISHED);
+}
+
+bool Unit::CanCastDuringChannel(SpellInfo const* info) const
+{
+    if (IsPlayer() && getClass() == CLASS_STARCALLER && info && info->Id == 800386)
+        return true;
+    if (IsPlayer() && getClass() == CLASS_NECROMANCER && info && info->Id == 500991)
+        return true;
+    Spell* channel = GetCurrentSpell(CURRENT_CHANNELED_SPELL);
+    if (IsPlayer() && getClass() == CLASS_DEMON_HUNTER && info && info->SpellFamilyName == 20 &&
+        (info->SpellFamilyFlags[1] & 3) && channel && channel->getState() != SPELL_STATE_FINISHED &&
+        channel->IsChannelActive() && channel->GetSpellInfo()->Id == 800355)
+        return true;
     return getClass() == CLASS_WITCH_DOCTOR && info && info->SpellFamilyName == 19 &&
         ((info->SpellFamilyFlags[1] & 2048) || (info->SpellFamilyFlags[2] & 536870913)) &&
         channel && channel->getState() != SPELL_STATE_FINISHED && channel->IsChannelActive() &&
@@ -11631,6 +11694,9 @@ void Unit::UpdateSpeed(UnitMoveType mtype, bool forced)
         if (AuraEffect const* floor = GetAuraEffect(300542, EFFECT_0))
             speed = std::max(speed, float(floor->GetAmount()) / 100.0f);
 
+    if (mtype == MOVE_RUN && HasAura(300513))
+        speed = std::min(speed, 1.0f); // Crusader's Brand caps running at normal speed.
+
     SetSpeed(mtype, speed, forced);
 }
 
@@ -12056,6 +12122,12 @@ void Unit::ModSpellCastTime(SpellInfo const* spellInfo, int32& castTime, Spell* 
 {
     if (!spellInfo || castTime < 0)
         return;
+    if (IsPlayer() && getClass() == CLASS_NECROMANCER && spellInfo->Id == 803741 &&
+        GetPower(POWER_RUNIC_POWER) > 500)
+    {
+        castTime = 0;
+        return;
+    }
     if (CanCastDuringChannel(spellInfo))
     {
         castTime = 0;
@@ -12320,6 +12392,10 @@ uint32 Unit::GetCreatureType() const
 {
     if (IsPlayer())
     {
+        if (getClass() == 17 && HasAura(804345))
+            return CREATURE_TYPE_DEMON;
+        if (getClass() == CLASS_NECROMANCER && HasAura(500981))
+            return CREATURE_TYPE_UNDEAD;
         ShapeshiftForm form = GetShapeshiftForm();
         SpellShapeshiftFormEntry const* ssEntry = sSpellShapeshiftFormStore.LookupEntry(form);
         if (ssEntry && ssEntry->creatureType > 0)
@@ -12912,6 +12988,7 @@ bool Unit::CanReceivePowerFromSpell(Powers power)
     // automatic Rage formulas, which retain their HasActivePowerType gate.
     return HasActivePowerType(power) || (IsPlayer() &&
         ((getClass() == CLASS_WITCH_HUNTER && (power == POWER_MANA || power == POWER_RAGE)) ||
+            (getClass() == CLASS_NECROMANCER && power == POWER_MANA) ||
             (getClass() == CLASS_WILDWALKER && power == POWER_RAGE)));
 }
 
@@ -15617,6 +15694,15 @@ void Unit::ApplyResilience(Unit const* victim, float* crit, int32* damage, bool 
     if (!target)
         return;
 
+    // Damage callers have already required player-controlled outgoing damage. The unknown baseline is a
+    // local ten-percent policy; the additional twenty-percent critical reduction is explicit client data.
+    if (damage && *damage > 0 && victim->HasAura(552011))
+    {
+        *damage = int32(int64(*damage) * 90 / 100);
+        if (isCrit)
+            *damage = int32(int64(*damage) * 80 / 100);
+    }
+
     switch (type)
     {
         case CR_CRIT_TAKEN_MELEE:
@@ -15857,6 +15943,12 @@ uint32 Unit::GetModelForForm(ShapeshiftForm form, uint32 spellId)
         if (uint32 ModelId = sObjectMgr->GetModelForShapeshift(form, ToPlayer()))
             return ModelId;
     }
+
+    // The copied client's Inner Demon form has no model. Keep selected appearances,
+    // then fall back to the installed native metamorphosis display.
+    if (IsPlayer() && getClass() == CLASS_DEMON_HUNTER && spellId == 804216 && uint32(form) == 56)
+        if (SpellShapeshiftFormEntry const* demon = sSpellShapeshiftFormStore.LookupEntry(FORM_METAMORPHOSIS))
+            return demon->modelID_A;
 
     uint32 modelid = 0;
     SpellShapeshiftFormEntry const* formEntry = sSpellShapeshiftFormStore.LookupEntry(form);

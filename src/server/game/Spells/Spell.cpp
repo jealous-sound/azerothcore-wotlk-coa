@@ -3665,7 +3665,9 @@ SpellCastResult Spell::prepare(SpellCastTargets const* targets, AuraEffect const
     //Containers for channeled spells have to be set
     //TODO:Apply this to all casted spells if needed
     // Why check duration? 29350: channelled triggers channelled
-    if (HasTriggeredCastFlag(TRIGGERED_CAST_DIRECTLY) && (!m_spellInfo->IsChanneled() || !m_spellInfo->GetMaxDuration()))
+    if ((HasTriggeredCastFlag(TRIGGERED_CAST_DIRECTLY) && (!m_spellInfo->IsChanneled() || !m_spellInfo->GetMaxDuration())) ||
+        (m_caster->IsPlayer() && m_caster->getClass() == CLASS_NECROMANCER && m_spellInfo->Id == 500991) ||
+        (m_caster->IsPlayer() && m_caster->getClass() == CLASS_STARCALLER && m_spellInfo->Id == 800386))
         cast(true);
     else
     {
@@ -6061,9 +6063,14 @@ SpellCastResult Spell::CheckCast(bool strict, uint32* /*param1*/, uint32* /*para
             return locRes;
     }
 
-    // not let players cast spells at mount (and let do it to creatures)
+    // Divine Charge explicitly permits its recipients to cast on the finite steed.
+    Aura const* divineCharge = m_caster->GetAura(527272);
+    Unit const* divineCaster = divineCharge ? divineCharge->GetCaster() : nullptr;
+    bool divineSteed = divineCaster && divineCaster->IsPlayer() && divineCaster->getClass() == CLASS_MONK &&
+        m_caster->GetMountID() == 14584 && !m_caster->IsInFlight();
     if (m_caster->IsMounted() && m_caster->IsPlayer() && !HasTriggeredCastFlag(TRIGGERED_IGNORE_CASTER_MOUNTED_OR_ON_VEHICLE) &&
-            !m_spellInfo->IsPassive() && !m_spellInfo->HasAttribute(SPELL_ATTR0_ALLOW_WHILE_MOUNTED))
+            !m_spellInfo->IsPassive() && !m_spellInfo->HasAttribute(SPELL_ATTR0_ALLOW_WHILE_MOUNTED) && !divineSteed &&
+            !(m_caster->getClass() == CLASS_STARCALLER && m_caster->HasAura(704772) && !m_caster->IsInFlight()))
     {
         if (m_caster->IsInFlight())
             return SPELL_FAILED_NOT_ON_TAXI;
@@ -6735,6 +6742,8 @@ SpellCastResult Spell::CheckCast(bool strict, uint32* /*param1*/, uint32* /*para
                 }
             case SPELL_AURA_MOUNTED:
                 {
+                    if (m_caster->HasAura(300513))
+                        return SPELL_FAILED_CASTER_AURASTATE;
                     // Disallow casting flying mounts in water
                     if (m_caster->IsInWater() && m_spellInfo->HasAura(SPELL_AURA_MOD_INCREASE_MOUNTED_FLIGHT_SPEED))
                         return SPELL_FAILED_ONLY_ABOVEWATER;
@@ -8489,6 +8498,7 @@ void Spell::DoAllEffectOnLaunchTarget(TargetInfo& targetInfo, float* multiplier)
         caster = m_originalCaster;
 
     float critChance = caster->SpellDoneCritChance(unit, m_spellInfo, m_spellSchoolMask, m_attackType, false);
+    sScriptMgr->OnSpellCritChance(this, unit, critChance);
     critChance = unit->SpellTakenCritChance(caster, m_spellInfo, m_spellSchoolMask, critChance, m_attackType, false);
     targetInfo.crit = roll_chance_f(std::max(0.0f, critChance));
     sScriptMgr->OnSpellCalculatedTarget(this, unit, targetInfo);

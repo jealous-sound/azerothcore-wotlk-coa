@@ -114,6 +114,24 @@ void ScriptMgr::OnSpellSuccessfulInterrupt(Spell* spell, Unit* target)
         script->OnSpellSuccessfulInterrupt(spell, target));
 }
 
+void ScriptMgr::OnSpellSuccessfulSteal(Spell* spell, Unit* target, uint32 count)
+{
+    CALL_ENABLED_HOOKS(AllSpellScript, ALLSPELLHOOK_ON_SUCCESSFUL_STEAL,
+        script->OnSpellSuccessfulSteal(spell, target, count));
+}
+
+void ScriptMgr::OnSpellInterruptDuration(Spell* spell, Unit* target, int32& duration)
+{
+    CALL_ENABLED_HOOKS(AllSpellScript, ALLSPELLHOOK_ON_INTERRUPT_DURATION,
+        script->OnSpellInterruptDuration(spell, target, duration));
+}
+
+void ScriptMgr::OnSpellCritChance(Spell* spell, Unit* target, float& chance)
+{
+    CALL_ENABLED_HOOKS(AllSpellScript, ALLSPELLHOOK_ON_CRIT_CHANCE,
+        script->OnSpellCritChance(spell, target, chance));
+}
+
 AllSpellScript::AllSpellScript(char const* name, std::vector<uint16> enabledHooks)
     : ScriptObject(name, ALLSPELLHOOK_END)
 {
