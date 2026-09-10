@@ -15,6 +15,7 @@
 #include "AscensionTinkerCombatSymbiosis.h"
 
 void AddAscensionCompatScripts();
+void AddCoABugReportScripts();
 void AddAscensionBarbarianCompletionScripts();
 void AddAscensionBarbarianEventScripts();
 void AddAscensionBarbarianAbilityScripts();
@@ -227,4 +228,5 @@ void Addmod_ascension_compatScripts()
     AddAscensionRunemasterEchoesScripts();
     AddAscensionVenomancerVenomScripts();
     AddAscensionTinkerCombatSymbiosisScripts();
+    AddCoABugReportScripts();
 }

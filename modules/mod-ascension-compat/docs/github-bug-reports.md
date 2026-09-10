@@ -4,8 +4,10 @@ The existing Ascension Help UI submits local-realm reports to
 `jealous-sound/azerothcore-wotlk-coa`. The adapter applies only to the exact realm
 `AzerothCore`. Other realms retain the original submit, events and link actions.
 
-Status: implemented in source, disabled by default, not installed. No live GitHub
-issue, worldserver build, game launch or player-data change was used to test it.
+The local relay forwards reports to `https://coa-bug-report.up.railway.app/v1/reports`.
+The GitHub token stays in Railway. The distributed relay includes the separately
+configured intake API key, which grants access only to this report endpoint.
+The module remains disabled in its default configuration; deployment must enable it.
 
 ## Player experience
 
@@ -73,12 +75,12 @@ chat hook; keep the spool on a local disk, not a network share.
 3. Install `coa_bugreport.conf` from the dist template into the server's module config
    directory. Set `CoABugReport.Enable = 1` and `CoABugReport.SpoolDirectory` to the
    absolute directory above. These settings are read at startup, not on config reload.
-4. Configure `COA_BUGREPORT_GITHUB_TOKEN` in the relay process's environment using the
-   server's secret storage. Do not put it in Lua, MPQs, Git, launch arguments or chat.
-   Use a repository-scoped fine-grained token with **Issues: read and write**, or a
-   GitHub App installation token with the corresponding access to this repository.
-   Enable Issues on the repository. Reports appear under the token's user/bot identity;
-   players do not need GitHub accounts. Token refresh/rotation is the operator's responsibility.
+4. Deploy the private `jealous-sound/coa-bug-report` service on Railway with
+   `GITHUB_TOKEN` and `REPORT_API_KEY`. The GitHub credential needs issue creation
+   access to the fixed target repository and stays in Railway's environment.
+   Set the same intake key in the distributed relay, or override its bundled value
+   with `COA_BUGREPORT_API_KEY`. Players do not need GitHub accounts.
+   The Railway service needs no persistent volume or database.
 5. Start the worker from the repository root, preferably supervised by the
    server service manager. Replace `<absolute-spool-directory>` with the same
    absolute path configured in `CoABugReport.SpoolDirectory`. This command
@@ -91,7 +93,7 @@ chat hook; keep the spool on a local disk, not a network share.
    ```
 
    Without `--send`, the command only validates current `.report` files, then exits;
-   it does not read the token, contact GitHub or write a journal. `--once --send` processes
+   it does not read the intake key, contact Railway or write a journal. `--once --send` processes
    one pass, respecting any persisted delay; it does not drain a rate-limited queue.
 6. Package the matching TOC and adapter into a new overlay on the **current**
    B archive. Verify changed member hashes and preservation of the realm-card
@@ -102,39 +104,40 @@ The repository destination is fixed in the adapter and relay. Changing it requir
 coordinated source/configuration review; a player cannot choose an API URL or repository.
 Existing draft SavedVariables are created by normal client use, not by the installer.
 
-GitHub's [create-issue endpoint and token permissions](https://docs.github.com/en/rest/issues/issues#create-an-issue)
-define the API contract. The relay sends title/body only: no player-controlled assignees,
-labels or issue-management actions. `@` mentions are neutralized before publishing to avoid
-notifying arbitrary users/teams. HTTP redirects are refused, and credentials are only
-sent to the fixed `api.github.com` endpoint. The API version is `2026-03-10`.
+The relay sends title/body only to the fixed Railway endpoint: no player-controlled
+destination, assignees, labels or issue-management actions. The service neutralizes
+`@` mentions before publishing. Both HTTP clients refuse redirects. The intake key
+is sent only to Railway; only Railway sends the GitHub credential to GitHub.
 
 ## Delivery and recovery
 
-The relay uses a SQLite journal with committed intent before each POST, atomic status
-files and one OS-locked worker per spool. Ordinary duplicate submissions with the same
-request ID return the original queued report or issue. This is request deduplication;
-two independently written reports about the same bug can still create separate issues.
+The local relay uses a SQLite journal with committed intent before each POST, atomic
+status files and one OS-locked worker per spool. This journal lives on the game server's
+existing local disk; it requires no Railway storage. Repeated submissions with the same
+request ID return the original queued report or issue.
+
+Railway also filters identical normalized title/body content in memory for up to 24 hours
+or 4,096 records. It reserves content while an upload is in flight, so simultaneous clicks
+cannot create the same issue twice in that process. It returns HTTP 202 while a matching
+request is pending and returns the original issue after completion. It never queries GitHub
+to find duplicates. Restarting/redeploying Railway resets this content cache; reports with
+different content, including different server context, remain separate reports.
 
 Successful issue creation stores the number before publishing the status file. After
 a restart, a missing status file can be rebuilt from the journal without another POST.
-GitHub outages do not block game threads. Rate limits and definite permission failures
-pause delivery; the token/configuration can be repaired and the worker restarted.
-The worker serializes creation at a minimum of five seconds between attempts and honors
-GitHub's rate-limit retry/reset headers. See [GitHub rate limits](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api).
+Network calls do not block game threads. Rate limits and definite permission failures
+pause delivery. The worker spaces requests at least five seconds apart and honors the
+service's `Retry-After` header. Known pending requests are retried through the same content
+filter. Invalid requests become `failed`; service authentication or definite repository
+access failures become `blocked` and can recover after configuration is repaired.
 
-GitHub does not provide a create-issue idempotency key. A timeout, 5xx response, malformed
-success response or interrupted `posting` journal entry becomes `uncertain`. The relay
-looks for the report's opaque marker in up to ten pages of recently updated issues,
-including closed issues. Finding it recovers the number. **An unsuccessful lookup never
-automatically authorizes another POST.** This avoids blind duplicate creation but can
-leave delivery needing administrator review even when no issue was created.
-
-For `uncertain` reports, inspect the journal's marker and the repository. If the issue
-exists, allow reconciliation to find it; if necessary an administrator can repair the
-journal/receipt after checking the exact report. No automatic force-resend command is
-provided. A generic `failed` status means the request was invalid or GitHub rejected its
-content. `blocked` means credentials, repository access or configuration need attention.
-Detailed API response bodies and tokens are never returned to the addon.
+An ambiguous timeout, 5xx response, malformed success response or interrupted `posting`
+journal entry becomes `uncertain`. Neither component searches GitHub. The relay does not
+automatically resend an uncertain report, because Railway's duplicate cache can reset.
+An administrator must check the exact report and repository before repairing its local
+journal/receipt. No automatic force-resend command is provided. The journal retains its
+legacy opaque marker column for compatibility, but markers are not added to issue bodies
+or used for network requests. Detailed API responses and credentials never reach the addon.
 
 Keep `.report`, `.status` and `relay.sqlite3` together and back them up. Do not delete the
 journal to clear an error: that discards duplicate protection. Completed records are retained;
@@ -144,10 +147,12 @@ not a claim of transactional durability across the game server, filesystem and G
 
 ## Verification
 
-Recorded offline validation exercised the real Lua 5.1 adapter, a small
-executable using the actual protocol header, and mocked GitHub delivery.
-The combined checks used a separate harness with MSVC x64, Python and `lupa`;
-they did not launch worldserver or the game.
+Earlier offline validation exercised the real Lua 5.1 adapter, a small executable using
+the actual protocol header, and the previous direct-GitHub relay. Those historical checks
+do not validate the new Railway transport. The relay fixtures were updated for Railway,
+but were not run, following the owner's request to proceed to deployment without local tests.
+Read-only checks of the deployed service confirmed health, rejection without an intake key
+and authenticated method handling with the configured key. They did not submit a report.
 
 Standalone relay tests need only Python. Run from the repository root:
 
@@ -155,11 +160,9 @@ Standalone relay tests need only Python. Run from the repository root:
 python -B modules/mod-ascension-compat/tests/bugreport/test_relay.py
 ```
 
-Actual-source MSVC `/Zs` checks covered `CoABugReport.cpp` and `MP_loader.cpp`
-against native project headers. Earlier failed validation phases remain distinct
-from successful checks. These establish offline behavior and source syntax,
-not an installed server build, rendered UI, live packet delivery or a successful
-authenticated GitHub API request.
+Earlier actual-source MSVC `/Zs` checks covered `CoABugReport.cpp` and `MP_loader.cpp`
+against native project headers. Build and installation receipts are deployment-specific.
+Offline checks do not establish rendered UI, live packet delivery or successful issue creation.
 
 Live acceptance must exercise the normal Help entry point, all category fields, a normal
 player account, successful creation/link copy, close/reopen during delivery and normal

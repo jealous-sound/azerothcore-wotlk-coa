@@ -1,0 +1,7 @@
+# Optional in-game GitHub bug reports. Startup settings; disabled until explicitly configured.
+# Create a private directory readable/writable only by worldserver and the relay service account.
+# The relay's --spool must name this same directory. Never put a GitHub token in this file or the client.
+CoABugReport.Enable = 0
+CoABugReport.SpoolDirectory = ""
+# Per authenticated account, unaffected by relogging. Minimum 60; reset on worldserver restart.
+CoABugReport.CooldownSeconds = 120
