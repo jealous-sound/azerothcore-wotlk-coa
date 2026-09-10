@@ -147,6 +147,7 @@ class CoaLootMigrations(unittest.TestCase):
         for setup in (
             "INSERT INTO creature_template (entry,name,lootid) VALUES (999,'Other owner',10161);",
             "UPDATE creature_template SET name='Different NPC' WHERE entry=10161;",
+            "UPDATE creature_template SET name='ROOKERY WHELP' WHERE entry=10161;",
             "INSERT INTO creature_loot_template (Entry,Item) VALUES (10161,999);",
             "INSERT INTO conditions (SourceTypeOrReferenceId,SourceGroup,SourceEntry) VALUES (1,10161,1180298);",
         ):

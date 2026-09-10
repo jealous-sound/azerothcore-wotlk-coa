@@ -58,6 +58,6 @@ client JSON and game archives are unchanged/excluded.
 
 No in-game validation has occurred. Base c3beca68b compiled successfully using CMake 3.31,
 OpenSSL 3.5.8, eight jobs and BelowNormal priority; nothing was installed. Full C++ lint passed.
-The repository SQL linter cannot finish because it fetches the absent origin/master branch; it also
-misclassifies BINARY and a valid multiline DELETE before INSERT. Direct checks confirm the other
-SQL style checks pass; these lint limitations are not SQL execution failures.
+All unchanged SQL lint check functions pass on the migration. The full repository SQL linter cannot
+finish because it fetches the absent origin/master branch; that existing entry-point limitation is
+reported separately from the contribution's SQL validation.
