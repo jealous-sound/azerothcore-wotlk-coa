@@ -1327,7 +1327,8 @@ bool Guardian::UpdateAllStats()
 
 void Guardian::UpdateArmor()
 {
-    if (HasAura(805015) && GetOwner() && GetOwner()->getClass() == CLASS_NECROMANCER)
+    if (GetOwner() && ((HasAura(805015) && GetOwner()->getClass() == CLASS_NECROMANCER) ||
+        (HasAura(707698) && GetOwner()->getClass() == CLASS_TINKER)))
         return Creature::UpdateArmor();
     float value = GetFlatModifierValue(UNIT_MOD_ARMOR, BASE_VALUE);
     value *= GetPctModifierValue(UNIT_MOD_ARMOR, BASE_PCT);
@@ -1339,7 +1340,8 @@ void Guardian::UpdateArmor()
 
 void Guardian::UpdateMaxHealth()
 {
-    if (HasAura(805015) && GetOwner() && GetOwner()->getClass() == CLASS_NECROMANCER)
+    if (GetOwner() && ((HasAura(805015) && GetOwner()->getClass() == CLASS_NECROMANCER) ||
+        (HasAura(707698) && GetOwner()->getClass() == CLASS_TINKER)))
         return Creature::UpdateMaxHealth();
     UnitMods unitMod = UNIT_MOD_HEALTH;
     float stamina = std::max<float>(GetStat(STAT_STAMINA) - GetCreateStat(STAT_STAMINA), 0.0f);
@@ -1386,7 +1388,8 @@ void Guardian::UpdateMaxHealth()
 
 void Guardian::UpdateMaxPower(Powers power)
 {
-    if (HasAura(805015) && GetOwner() && GetOwner()->getClass() == CLASS_NECROMANCER)
+    if (GetOwner() && ((HasAura(805015) && GetOwner()->getClass() == CLASS_NECROMANCER) ||
+        (HasAura(707698) && GetOwner()->getClass() == CLASS_TINKER)))
         return Creature::UpdateMaxPower(power);
     UnitMods unitMod = UnitMods(static_cast<uint16>(UNIT_MOD_POWER_START) + power);
 
@@ -1423,7 +1426,8 @@ void Guardian::UpdateMaxPower(Powers power)
 void Guardian::UpdateAttackPowerAndDamage(bool ranged)
 {
     // Necromancy supplies weighted owner AP. Native guardian Strength must not overwrite that base on aura updates.
-    if (HasAura(805015) && GetOwner() && GetOwner()->getClass() == CLASS_NECROMANCER)
+    if (GetOwner() && ((HasAura(805015) && GetOwner()->getClass() == CLASS_NECROMANCER) ||
+        (HasAura(707698) && GetOwner()->getClass() == CLASS_TINKER)))
         return Creature::UpdateAttackPowerAndDamage(ranged);
     if (ranged)
         return;
@@ -1458,7 +1462,8 @@ void Guardian::UpdateAttackPowerAndDamage(bool ranged)
 
 void Guardian::UpdateDamagePhysical(WeaponAttackType attType)
 {
-    if (HasAura(805015) && GetOwner() && GetOwner()->getClass() == CLASS_NECROMANCER)
+    if (GetOwner() && ((HasAura(805015) && GetOwner()->getClass() == CLASS_NECROMANCER) ||
+        (HasAura(707698) && GetOwner()->getClass() == CLASS_TINKER)))
         return Creature::UpdateDamagePhysical(attType);
     if (attType > BASE_ATTACK)
         return;

@@ -1140,8 +1140,14 @@ int32 Aura::CalcDispelChance(Unit* auraTarget, bool offensive) const
 
     // Apply dispel mod from aura caster
     if (Unit* caster = GetCaster())
+    {
         if (Player* modOwner = caster->GetSpellModOwner())
             modOwner->ApplySpellMod(GetId(), SPELLMOD_RESIST_DISPEL_CHANCE, resistChance);
+        AuraApplication const* application = auraTarget ? GetApplicationOfTarget(auraTarget->GetGUID()) : nullptr;
+        if (offensive && application && application->IsPositive() && caster->IsPlayer() && caster->getClass() == CLASS_PYROMANCER)
+            if (AuraEffect const* protection = caster->GetAuraEffect(706650, EFFECT_0))
+                resistChance += std::max(0, protection->GetAmount());
+    }
 
     // Dispel resistance from target SPELL_AURA_MOD_DISPEL_RESIST
     // Only affects offensive dispels
@@ -1161,6 +1167,12 @@ void Aura::SetLoadedState(int32 maxduration, int32 duration, int32 charges, uint
     m_isUsingCharges = m_procCharges != 0;
     m_stackAmount = stackamount;
     Unit* caster = GetCaster();
+    // Venomancer's saved dummy slots contain periodic snapshots read while
+    // rebuilding effect zero. Load those amounts before its periodic callback.
+    if (GetSpellInfo()->SpellFamilyName == 35)
+        for (uint8 i = 0; i < MAX_SPELL_EFFECTS; ++i)
+            if (m_effects[i])
+                m_effects[i]->SetAmount(amount[i]);
     for (uint8 i = 0; i < MAX_SPELL_EFFECTS; ++i)
         if (m_effects[i])
         {

@@ -358,6 +358,9 @@ public:
     // Override only the stat source of native damage AP coefficients.
     bool UseRangedAttackPowerForDamage = false;
     bool UsesMaxManaForCost = false;
+    bool AscensionIgnoreAbsorbAndResistance = false;
+    bool AscensionIgnoreAbsorb = false;
+    bool AscensionInheritsResolvedAmount = false;
     // Runtime-only opt-in for explicitly authored coefficients. Rank base
     // growth still uses the original SpellLevel and MaxLevel metadata.
     bool IgnoreSpellLevelPenalty = false;

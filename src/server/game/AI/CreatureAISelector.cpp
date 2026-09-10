@@ -86,6 +86,11 @@ namespace FactorySelector
                     if (owner->getClass() == CLASS_WITCH_HUNTER)
                         if (CreatureAI* scriptedAI = sScriptMgr->GetCreatureAI(creature))
                             return scriptedAI;
+            if (creature->GetEntry() == 50048 || creature->GetEntry() == 500481 || creature->GetEntry() == 60671 ||
+                creature->GetEntry() == 60070 || creature->GetEntry() == 60672)
+                if (Unit* owner = creature->GetOwner(); owner && owner->getClass() == CLASS_TINKER)
+                    if (CreatureAI* scriptedAI = sScriptMgr->GetCreatureAI(creature))
+                        return scriptedAI;
             return ASSERT_NOTNULL(sCreatureAIRegistry->GetRegistryItem("PetAI"))->Create(creature);
         }
 

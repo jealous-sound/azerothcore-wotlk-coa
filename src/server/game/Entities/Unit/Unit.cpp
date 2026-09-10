@@ -1588,7 +1588,7 @@ void Unit::CalculateSpellDamageTaken(SpellNonMeleeDamage* damageInfo, int32 dama
                 }
 
                 int32 resilienceReduction = damage;
-                if (CanApplyResilience())
+                if (CanApplyResilience() && !spellInfo->AscensionInheritsResolvedAmount)
                 {
                     if (attackType != RANGED_ATTACK)
                     {
@@ -1617,7 +1617,7 @@ void Unit::CalculateSpellDamageTaken(SpellNonMeleeDamage* damageInfo, int32 dama
                 }
 
                 int32 resilienceReduction = damage;
-                if (CanApplyResilience())
+                if (CanApplyResilience() && !spellInfo->AscensionInheritsResolvedAmount)
                 {
                     Unit::ApplyResilience(victim, nullptr, &resilienceReduction, crit, CR_CRIT_TAKEN_SPELL);
                 }
@@ -2268,6 +2268,19 @@ uint32 Unit::CalcArmorReducedDamage(Unit const* attacker, Unit const* victim, co
         ignoreArmorPct += attacker->GetAscensionConditionalCombatModifier(
             victim, spellInfo, ASCENSION_CONDITIONAL_IGNORE_ARMOR);
 
+        if (attacker->IsPlayer() && attacker->getClass() == CLASS_TINKER && spellInfo &&
+            spellInfo->SpellFamilyName == 34 && (spellInfo->SpellFamilyFlags & flag96(16,0,256)) &&
+            attacker->HasAura(707254))
+        {
+            bool burning = false;
+            for (AuraType type : {SPELL_AURA_PERIODIC_DAMAGE,SPELL_AURA_PERIODIC_DAMAGE_PERCENT})
+                for (AuraEffect const* effect : victim->GetAuraEffectsByType(type))
+                    burning |= bool(effect->GetSpellInfo()->GetSchoolMask() & SPELL_SCHOOL_MASK_FIRE);
+            if (burning)
+                if (AuraEffect const* talent = attacker->GetAuraEffect(707254,EFFECT_0))
+                    ignoreArmorPct += talent->GetAmount();
+        }
+
         if (ignoreArmorPct)
             armor = std::floor(AddPct(armor, -ignoreArmorPct));
 
@@ -2368,6 +2381,9 @@ void Unit::CalcAbsorbResist(DamageInfo& dmgInfo, bool Splited)
     SpellSchoolMask schoolMask = dmgInfo.GetSchoolMask();
     SpellInfo const* spellInfo = dmgInfo.GetSpellInfo();
 
+    if (spellInfo && spellInfo->AscensionIgnoreAbsorbAndResistance)
+        return;
+
     if (!victim || !victim->IsAlive() || !damage)
         return;
 
@@ -2449,6 +2465,9 @@ void Unit::CalcAbsorbResist(DamageInfo& dmgInfo, bool Splited)
         })));
         RoundToInterval(auraAbsorbMod, 0.0f, 100.0f);
     }
+
+    if (spellInfo && spellInfo->AscensionIgnoreAbsorb)
+        auraAbsorbMod = 100.0f;
 
     // We're going to call functions which can modify content of the list during iteration over it's elements
     // Let's copy the list so we can prevent iterator invalidation
@@ -3410,6 +3429,9 @@ SpellMissInfo Unit::MeleeSpellHitResult(Unit* victim, SpellInfo const* spellInfo
 
     bool canDodge = !spellInfo->HasAttribute(SPELL_ATTR7_NO_ATTACK_DODGE);
     bool canParry = !spellInfo->HasAttribute(SPELL_ATTR7_NO_ATTACK_PARRY);
+    if (IsPlayer() && getClass() == CLASS_PROPHET && HasAura(705966) &&
+        (HasAura(800841) || HasAura(803183)))
+        canDodge = canParry = false;
     bool canBlock = spellInfo->HasAttribute(SPELL_ATTR3_COMPLETELY_BLOCKED) && !spellInfo->HasAttribute(SPELL_ATTR0_CU_DIRECT_DAMAGE);
 
     // Same spells cannot be parry/dodge
@@ -4553,6 +4575,11 @@ bool Unit::CanCastSpellWhileMoving(SpellInfo const* info) const
     if (info->SpellFamilyName == 21 && info->IsChanneled() &&
         ((info->SpellFamilyFlags[0] & 2) || info->Id == 807364))
         return true;
+    if (IsPlayer() && getClass() == CLASS_TINKER && info->SpellFamilyName == 34 &&
+        (info->Id == 500213 || info->Id == 504594 ||
+         sSpellMgr->GetFirstSpellInChain(info->Id) == 504527 ||
+         sSpellMgr->GetFirstSpellInChain(info->Id) == 801387))
+        return true;
     // Copied aura 313 grants movement only to spells selected by its family mask.
     return HasAuraTypeWithAffectMask(SPELL_AURA_313, info);
 }
@@ -4616,6 +4643,11 @@ bool Unit::CanDefendDuringChannel() const
 
 bool Unit::CanCastDuringChannel(SpellInfo const* info) const
 {
+    if (IsPlayer() && getClass() == CLASS_TINKER && info && info->SpellFamilyName == 34 && info->Id == 801798)
+        return true;
+    if (IsPlayer() && getClass() == CLASS_CULTIST && info && info->SpellFamilyName == 31 &&
+        (info->Id == 802575 || (HasAura(560977) && (info->Id == 808036 || info->Id == 808037 || info->Id == 808038))))
+        return true;
     if (IsPlayer() && getClass() == CLASS_STARCALLER && info && info->Id == 800386)
         return true;
     if (IsPlayer() && getClass() == CLASS_NECROMANCER && info && info->Id == 500991)
@@ -9266,6 +9298,9 @@ uint32 Unit::SpellDamageBonusTaken(Unit* caster, SpellInfo const* spellProto, ui
     if (!spellProto || damagetype == DIRECT_DAMAGE)
         return pdamage;
 
+    if (spellProto->AscensionInheritsResolvedAmount)
+        return pdamage;
+
     // Converted Barbarian damage already includes the source hit's target
     // modifiers. Preserve ordinary spells and native final absorb/resist rules.
     if ((spellProto->SpellFamilyName == 18 || spellProto->Id == 680532 || spellProto->Id == 807262 ||
@@ -10071,6 +10106,8 @@ uint32 Unit::SpellHealingBonusDone(Unit* victim, SpellInfo const* spellProto, ui
 
 uint32 Unit::SpellHealingBonusTaken(Unit* caster, SpellInfo const* spellProto, uint32 healamount, DamageEffectType damagetype, uint32 stack)
 {
+    if (spellProto && spellProto->AscensionInheritsResolvedAmount)
+        return healamount;
     float TakenTotalMod = 1.0f;
     float minval = 0.0f;
 

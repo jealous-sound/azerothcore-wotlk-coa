@@ -5,6 +5,11 @@
  */
 
 #include "AscensionFelsworn.h"
+#include "AscensionPyromancer.h"
+#include "AscensionCultist.h"
+#include "AscensionVenomancer.h"
+#include "AscensionTinker.h"
+#include "AscensionSunCleric.h"
 #include "AllCreatureScript.h"
 #include "AllSpellScript.h"
 #include "AscensionChangelogCompat.h"
@@ -1801,6 +1806,21 @@ private:
     static void ModifyAuraStacks(Player* player, uint32 spellId, int32 amount)
     {
         if (!amount)
+            return;
+
+        if (AscensionPyromancer::Resource(player, spellId, amount))
+            return;
+
+        if (AscensionCultist::Resource(player, spellId, amount))
+            return;
+
+        if (AscensionVenomancer::Resource(player, spellId, amount))
+            return;
+
+        if (AscensionTinker::Resource(player, spellId, amount))
+            return;
+
+        if (AscensionSunCleric::Resource(player, spellId, amount))
             return;
 
         if (spellId == 800058 && amount > 0)

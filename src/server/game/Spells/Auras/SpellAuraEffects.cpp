@@ -442,7 +442,7 @@ AuraEffect::AuraEffect(Aura* base, uint8 effIndex, int32* baseAmount, Unit* cast
 
     m_amount = CalculateAmount(caster);
     m_casterLevel = caster ? caster->GetLevel() : 0;
-    m_applyResilience = caster && caster->CanApplyResilience();
+    m_applyResilience = caster && caster->CanApplyResilience() && !m_spellInfo->AscensionInheritsResolvedAmount;
 
     CalculateSpellMod();
 
@@ -633,6 +633,10 @@ int32 AuraEffect::CalculateAmount(Unit* caster)
         (GetAuraType() == SPELL_AURA_SCHOOL_ABSORB || GetAuraType() == SPELL_AURA_MANA_SHIELD))
     {
         Unit* target = GetBase()->GetUnitOwner();
+        if (Unit* caster = GetCaster(); caster && caster->IsPlayer() &&
+            ((caster->ToPlayer()->getClass() == CLASS_PYROMANCER && m_spellInfo->SpellFamilyName == 30) ||
+             (caster->ToPlayer()->getClass() == CLASS_CULTIST && m_spellInfo->SpellFamilyName == 31)))
+            target = caster;
         float const absorbMultiplier = target->GetTotalAuraMultiplier(
             SPELL_AURA_ASCENSION_MOD_ABSORB_AMOUNT_PCT, [this](AuraEffect const* aurEff)
             {
@@ -724,6 +728,12 @@ void AuraEffect::CalculatePeriodic(Unit* caster, bool create, bool load)
     {
         m_tickNumber = m_amplitude ? GetBase()->GetDuration() / m_amplitude : 0;
         m_periodicTimer = m_amplitude ? GetBase()->GetDuration() % m_amplitude : 0;
+        if (m_spellInfo->SpellFamilyName == 35 && m_amplitude)
+        {
+            int32 elapsed = std::max(0,GetBase()->GetMaxDuration()-GetBase()->GetDuration());
+            m_tickNumber = uint32(elapsed / m_amplitude);
+            m_periodicTimer = m_amplitude - elapsed % m_amplitude;
+        }
         if (m_spellInfo->HasAttribute(SPELL_ATTR5_EXTRA_INITIAL_PERIOD))
             ++m_tickNumber;
     }
@@ -6500,7 +6510,14 @@ void AuraEffect::HandlePeriodicDamageAurasTick(Unit* target, Unit* caster) const
     // calculate crit chance
     bool crit = false;
     if ((crit = roll_chance_f(GetCritChance())))
+    {
+        uint32 const beforeCritical = damage;
         damage = Unit::SpellCriticalDamageBonus(caster, m_spellInfo, damage, target);
+        if (m_spellInfo->SpellFamilyName == 30 && (m_spellInfo->SpellFamilyFlags[0] & 512))
+            if (AuraEffect const* snapshot = GetBase()->GetEffect(EFFECT_2); snapshot &&
+                snapshot->GetAuraType() == SPELL_AURA_DUMMY && snapshot->GetAmount() > 0)
+                damage += CalculatePct(damage - beforeCritical, snapshot->GetAmount());
+    }
 
     // Auras reducing damage from AOE spells
     if (!GetSpellInfo()->HasAttribute(SPELL_ATTR4_IGNORE_DAMAGE_TAKEN_MODIFIERS))
@@ -6776,7 +6793,11 @@ void AuraEffect::HandlePeriodicHealAurasTick(Unit* target, Unit* caster) const
         if (GetBase()->GetType() == DYNOBJ_AURA_TYPE)
             damage = caster->SpellHealingBonusDone(target, GetSpellInfo(), damage, DOT, GetEffIndex(), 0.0f, GetBase()->GetStackAmount());
 
-        if (caster && GetBase()->GetType() == UNIT_AURA_TYPE)
+        // These owned HoTs already copied their source heal after outgoing modifiers.
+        if (caster && GetBase()->GetType() == UNIT_AURA_TYPE &&
+            !(GetSpellInfo()->AscensionInheritsResolvedAmount &&
+              ((GetSpellInfo()->SpellFamilyName == 31 && GetSpellInfo()->Id == 520497) ||
+               (GetSpellInfo()->SpellFamilyName == 34 && GetSpellInfo()->Id == 706255))))
             damage = int32(float(damage) * caster->GetTotalAuraMultiplier(SPELL_AURA_MOD_HEALING_DONE_PERCENT));
 
         damage = target->SpellHealingBonusTaken(caster, GetSpellInfo(), damage, DOT, GetBase()->GetStackAmount());

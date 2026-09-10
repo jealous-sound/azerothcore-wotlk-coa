@@ -116,7 +116,7 @@ struct ResourceGainRule
 // These active abilities advertise resource generation in their tooltips, but
 // their public Spell.dbc records contain no effect that performs it. Ranges are
 // rank chains verified against the local Ascension spell dump.
-inline constexpr std::array<ResourceGainRule, 162> ResourceGainRules =
+inline constexpr std::array<ResourceGainRule, 165> ResourceGainRules =
 {{
     {14, 704368, 704368, 800058, 1, ResourceMutation::AuraStacks,
         ResourceGainEvent::FirstSuccessfulHostileTarget},
@@ -276,14 +276,16 @@ inline constexpr std::array<ResourceGainRule, 162> ResourceGainRules =
     {25, 502213, 502220, 500706, 10, ResourceMutation::AuraStacks},
     {25, 800446, 800446, 500706, 10, ResourceMutation::AuraStacks},
     {25, 560109, 560109, 500706, 10, ResourceMutation::AuraStacks},
-    {25, 578263, 578263, 500706, 10, ResourceMutation::AuraStacks},
-    {25, 806222, 806222, 500706, 10, ResourceMutation::AuraStacks},
-    {25, 806825, 806828, 500706, 10, ResourceMutation::AuraStacks},
+    {25, 578263, 578263, 500706, 20, ResourceMutation::AuraStacks},
+    {25, 806222, 806222, 500706, 20, ResourceMutation::AuraStacks},
+    {25, 806825, 806828, 500706, 20, ResourceMutation::AuraStacks},
     {25, 805572, 805572, 500706, 10, ResourceMutation::AuraStacks},
     {25, 806893, 806897, 500706, 10, ResourceMutation::AuraStacks},
     {25, 807969, 807969, 500706, 10, ResourceMutation::AuraStacks},
     {25, 500720, 500720, 500706, 20, ResourceMutation::AuraStacks},
+    {25, 502114, 502124, 500706, 20, ResourceMutation::AuraStacks},
     {25, 800416, 800416, 500706, 10, ResourceMutation::AuraStacks},
+    {25, 502173, 502184, 500706, 10, ResourceMutation::AuraStacks},
     {25, 500712, 500712, 500706, 20, ResourceMutation::AuraStacks},
 
     {25, 500110, 500110, 500706, 10, ResourceMutation::AuraStacks,
@@ -317,9 +319,11 @@ inline constexpr std::array<ResourceGainRule, 162> ResourceGainRules =
         ResourceGainEvent::FirstSuccessfulDamagingHit},
 
     {29, 800880, 800880, 804972, 1, ResourceMutation::AuraStacks,
-        ResourceGainEvent::FirstSuccessfulDamagingHit, 807600},
+        ResourceGainEvent::FirstSuccessfulDamagingHit, 92143},
     {29, 502896, 502904, 804972, 1, ResourceMutation::AuraStacks,
-        ResourceGainEvent::FirstSuccessfulDamagingHit, 807600},
+        ResourceGainEvent::FirstSuccessfulDamagingHit, 92143},
+    {29, 504705, 504705, 804972, 1, ResourceMutation::AuraStacks,
+        ResourceGainEvent::FirstSuccessfulDamagingHit},
     {29, 800882, 800882, 804972, 1, ResourceMutation::AuraStacks,
         ResourceGainEvent::FirstSuccessfulDamagingHit},
     {29, 502905, 502911, 804972, 1, ResourceMutation::AuraStacks,

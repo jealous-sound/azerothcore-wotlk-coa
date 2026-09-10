@@ -19,6 +19,11 @@
 #include "AscensionFelsworn.h"
 #include "AscensionXoroth.h"
 #include "AscensionStarcaller.h"
+#include "AscensionPyromancer.h"
+#include "AscensionCultist.h"
+#include "AscensionVenomancer.h"
+#include "AscensionTinker.h"
+#include "AscensionSunCleric.h"
 #include "AscensionConditionalCombat.h"
 #include "AscensionRunemasterGlyphs.h"
 #include "AscensionRunemasterBrand.h"
@@ -158,8 +163,6 @@ constexpr uint8 RANGER_ADVANTAGE_CAST_EVENT = 30;
 constexpr uint8 RANGER_ARCHERY_MASTER_EVENT = 31;
 
 constexpr uint32 SPELL_CULTIST_TWILIGHT_SHIELDTOSS_SLOW = 524880;
-constexpr uint32 SPELL_VENOMANCER_BARBED_STINGER = 803196;
-constexpr uint32 SPELL_VENOMANCER_BARBED_STINGER_EFFECT = 680854;
 
 constexpr std::array<uint32, 3> GUARDIAN_FORMATIONS =
 {{
@@ -970,6 +973,11 @@ void ApplyAscensionClassMechanics(SpellInfo* spellInfo)
     AscensionFelsworn::ApplyContracts(spellInfo);
     AscensionXoroth::ApplyContracts(spellInfo);
     AscensionStarcaller::ApplyContracts(spellInfo);
+    AscensionPyromancer::ApplyContracts(spellInfo);
+    AscensionCultist::ApplyContracts(spellInfo);
+    AscensionVenomancer::ApplyContracts(spellInfo);
+    AscensionTinker::ApplyContracts(spellInfo);
+    AscensionSunCleric::ApplyContracts(spellInfo);
     ApplyAscensionConditionalCombatContracts(spellInfo);
     ApplyAscensionRunemasterGlyphContracts(spellInfo);
     ApplyAscensionRunemasterBrandContracts(spellInfo);
@@ -1233,16 +1241,6 @@ void HandleAscensionClassMechanicsHit(Spell* spell, Player* player,
         // target effect. Ascension's private dispatcher invokes it for each
         // successful bounce; stock AzerothCore otherwise drops that slot.
         player->CastSpell(target, SPELL_CULTIST_TWILIGHT_SHIELDTOSS_SLOW, true);
-        return;
-    }
-
-    if (player->getClass() == CLASS_PROPHET &&
-        spellId == SPELL_VENOMANCER_BARBED_STINGER)
-    {
-        // Keep the native launch/rip effects and attach the exact authored
-        // damage-from-caster modifier that occupies Barbed Stinger's DUMMY
-        // target slot.
-        player->CastSpell(target, SPELL_VENOMANCER_BARBED_STINGER_EFFECT, true);
         return;
     }
 

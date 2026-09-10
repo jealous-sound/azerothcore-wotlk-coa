@@ -363,6 +363,21 @@ bool SpellEffectInfo::IsEffect(SpellEffects effectName) const
 
 uint32 SpellEffectInfo::GetItemArmorSubclassMask() const
 {
+    if (_spellInfo && _spellInfo->SpellFamilyName == 35 &&
+        (_spellInfo->Id == 706955 || _spellInfo->Id == 707872))
+        return EffectIndex == EFFECT_0 && IsAura(SPELL_AURA_MOD_BASE_RESISTANCE_PCT) &&
+            MiscValue == SPELL_SCHOOL_MASK_NORMAL && MiscValueB == 8 ? 8 : 0;
+    if (_spellInfo && _spellInfo->SpellFamilyName == 33 &&
+        (_spellInfo->Id == 680652 || _spellInfo->Id == 681467 || _spellInfo->Id == 805265))
+    {
+        uint32 mask = _spellInfo->Id == 805265 ? 64 : 16;
+        return EffectIndex == EFFECT_0 && IsAura(SPELL_AURA_MOD_BASE_RESISTANCE_PCT) &&
+            MiscValue == SPELL_SCHOOL_MASK_NORMAL && uint32(MiscValueB) == mask ? mask : 0;
+    }
+    if (_spellInfo && _spellInfo->SpellFamilyName == 31 &&
+        (_spellInfo->Id == 560091 || _spellInfo->Id == 561336))
+        return EffectIndex == EFFECT_0 && IsAura(SPELL_AURA_MOD_BASE_RESISTANCE_PCT) &&
+            MiscValue == SPELL_SCHOOL_MASK_NORMAL && MiscValueB == 64 ? 64 : 0;
     if (_spellInfo && _spellInfo->SpellFamilyName == 20 &&
         (_spellInfo->Id == 520252 || _spellInfo->Id == 520253))
         return EffectIndex == EFFECT_0 && IsAura(SPELL_AURA_MOD_BASE_RESISTANCE_PCT) &&
@@ -1454,7 +1469,59 @@ bool SpellInfo::IsAffectedBySpellMod(SpellModifier const* mod) const
     if (mod->targetSpellId && mod->targetSpellId != Id)
         return false;
 
+    if (SpellFamilyName == 31 && affectSpell->SpellFamilyName == 31)
+    {
+        // The copied Dark Veil mask collides with Hammer. Route these modifiers
+        // by their named roots while preserving normal effect and cost calculation.
+        uint32 root = sSpellMgr->GetFirstSpellInChain(Id);
+        switch (mod->spellId)
+        {
+            case 520682: case 520810: return Id == 520345;
+            case 680600: case 802047: return root == 805116 || root == 804152;
+            case 805115: return root == 500720 || root == 806222 || root == 805116;
+            case 681102: case 681389: case 806768: return Id == 300277;
+            default: break;
+        }
+    }
+
+    if (SpellFamilyName == 33 && affectSpell->SpellFamilyName == 33)
+    {
+        uint32 root = sSpellMgr->GetFirstSpellInChain(Id);
+        switch (mod->spellId)
+        {
+            case 301242: return root == 800357 || root == 500143 || root == 500141 || root == 800231;
+            case 800722: case 680642: case 301293: return root == 500143;
+            case 300354: return root == 500141;
+            case 807299: return root == 500146;
+            case 800601: return root == 800357;
+            case 680639: return Id == 680700;
+            default: break;
+        }
+    }
+
+    if (SpellFamilyName == 34 && affectSpell->SpellFamilyName == 34)
+    {
+        uint32 root = sSpellMgr->GetFirstSpellInChain(Id);
+        bool mech = root == 801387 || root == 805372 || Id == 801388 || Id == 801390;
+        switch (mod->spellId)
+        {
+            case 680200: case 681482: return mech || root == 801009;
+            case 705788: return mech;
+            case 506818: case 506825: return Id == 524835;
+            case 802963: return root == 801005 || Id == 500601;
+            default: break;
+        }
+        if (Id == 504594 && mod->op == SPELLMOD_DURATION)
+            return false; // Four ticks are fixed; Makeshift modifiers must not add or remove ticks.
+    }
+
     if (!sScriptMgr->OnIsAffectedBySpellModCheck(affectSpell, this, mod))
+        return true;
+
+    // Widow's Kiss replaces Venom Fang and inherits its ordinary modifiers.
+    // Keep the replacement's own mask and all preceding eligibility checks.
+    if (Id == 504705 && SpellFamilyName == 35 && affectSpell->SpellFamilyName == 35 &&
+        (mod->mask & flag96(0, 16384, 0)))
         return true;
 
     return IsAffected(affectSpell->SpellFamilyName, mod->mask);
@@ -2855,11 +2922,14 @@ int32 SpellInfo::GetMaxDuration() const
 
 uint32 SpellInfo::CalcCastTime(Unit* caster, Spell* spell) const
 {
+    bool serpent = caster && caster->IsPlayer() && caster->getClass() == CLASS_PROPHET &&
+        SpellFamilyName == 35 && caster->HasAura(800841) && caster->HasAura(805104) &&
+        (SpellFamilyFlags & flag96(16, 1263620, 65536));
     // not all spells have cast time index and this is all is pasiive abilities
-    if (!CastTimeEntry)
+    if (!CastTimeEntry && !serpent)
         return 0;
 
-    int32 castTime = CastTimeEntry->CastTime;
+    int32 castTime = serpent ? 1000 : CastTimeEntry->CastTime;
     if (HasAttribute(SPELL_ATTR0_USES_RANGED_SLOT) && (!IsAutoRepeatRangedSpell()))
         castTime += 500;
 
@@ -2906,6 +2976,13 @@ uint32 SpellInfo::GetRecoveryTime() const
 
 int32 SpellInfo::CalcPowerCost(Unit const* caster, SpellSchoolMask schoolMask, Spell* spell) const
 {
+    if (PowerType == POWER_MANA && caster->IsPlayer() && caster->getClass() == CLASS_TINKER &&
+        SpellFamilyName == 34 && sSpellMgr->GetFirstSpellInChain(Id) == 801005 && caster->HasAura(707272))
+        return 0;
+    if (PowerType == POWER_MANA && caster->IsPlayer() && caster->ToPlayer()->getClass() == CLASS_PYROMANCER &&
+        caster->HasAura(573220))
+        return 0;
+
     // Spell drain all exist power on cast (Only paladin lay of Hands)
     if (AttributesEx & SPELL_ATTR1_USE_ALL_MANA)
     {
@@ -2992,7 +3069,32 @@ int32 SpellInfo::CalcPowerCost(Unit const* caster, SpellSchoolMask schoolMask, S
     if (PowerType == POWER_MANA && !IsChanneled() && (!CastTimeEntry || CastTimeEntry->CastTime == 0))
         powerCostMultiplier -= float(caster->GetTotalAuraModifier(SPELL_AURA_ASCENSION_MOD_INSTANT_MANA_COST_PCT)) / 100.0f;
 
+    if (PowerType == POWER_MANA && caster->IsPlayer() && caster->getClass() == CLASS_CULTIST && SpellFamilyName == 31)
+    {
+        uint32 insanity = caster->GetAura(500706) ? caster->GetAura(500706)->GetStackAmount() : 0;
+        if (Id == 801153 && insanity > 60)
+            return 0;
+        if (!IsChanneled() && (!CastTimeEntry || CastTimeEntry->CastTime == 0))
+            if (AuraEffect const* talent = caster->GetAuraEffect(582307, EFFECT_0))
+                powerCostMultiplier -= insanity * talent->GetAmount() / 100.0f;
+    }
+
     powerCost = int32(powerCost * (1.0f + powerCostMultiplier));
+    if (PowerType == POWER_MANA && caster->IsPlayer() && caster->getClass() == CLASS_SUN_CLERIC &&
+        SpellFamilyName == 33)
+    {
+        uint32 root = sSpellMgr->GetFirstSpellInChain(Id);
+        if (caster->HasAura(681436) && (root == 800764 || root == 500152 || root == 503651 || root == 806159))
+            return 0;
+        if (caster->HasAura(803719) && caster->HasAura(807440))
+            powerCost /= 2;
+    }
+    if (caster->IsPlayer() && caster->getClass() == CLASS_PROPHET && SpellFamilyName == 35)
+    {
+        if (sSpellMgr->GetFirstSpellInChain(Id) == sSpellMgr->GetFirstSpellInChain(800946) &&
+            (caster->HasAura(706032) || caster->HasAura(681321)))
+            return 0;
+    }
     if (powerCost < 0)
         powerCost = 0;
     return powerCost;

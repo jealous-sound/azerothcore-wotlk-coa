@@ -168,3 +168,120 @@ Lessons from the Guardian correction; these are source/test findings, not a clai
 - `C:/Ascension/runtime/validation/barbarian-damage-20260906/implemented.md` — deployment facts and limits.
 - `C:/Ascension/tools/Test-GuardianStandards.py` — actual-source summon/scaling/armor cases and model checks.
 - `C:/Ascension/azerothcore-wotlk-coa/modules/mod-ascension-compat/src/AscensionGuardianStandards.cpp` — stationary standards.
+
+## Pyromancer follow-up lessons
+
+- Prefer the active parent description and native target selector over dormant helper text/amounts.
+  Combustion's passive field is five, while Explode and the active passive both specify fifteen
+  percent per owned DoT. Wild Magic's mana helper targets the caster; Binding Flames also restores
+  the caster's missing mana even though Essence is cast on another ally. Target limits and radii
+  are independent of private-effect basepoints: Overwhelming has one recipient within eight yards.
+- `Aura::GetScriptValue` is transient. Finite charges can use native saved charges when automatic
+  proc consumption is disabled. A few explicitly scoped unused effect slots can hold saved DoT
+  snapshots/budgets with recalculation disabled; REAL application after loading must not reset
+  them, while genuine REAPPLY can reset a fresh application's extension cap. Preserve the next
+  periodic timer when extending/spreading. This is normal save continuity, not a crash journal.
+- A resolved copy must not receive the original coefficient/resilience/taken multipliers twice.
+  New shields/immunity still need their own policy, and Pyroclasm's transfer of remaining pre-PvP
+  periodic damage is a new DoT rather than a copy of an already-resolved hit.
+- A correct-looking private effect record is not executable evidence. Cataclysm 520868 still
+  dispatched effect 178 to EffectNULL; its scoped dummy binding and owned six-second slow need
+  verification. Suppress native summons in both HIT phases, because one phase's prevention does
+  not automatically cover the other. A single script-instance guard prevents duplicate creation.
+- Helpful-aura dispel resistance belongs to the caster's positive application, not an arbitrary
+  aura recipient. Check the application polarity as well as offensive dispel direction so harmful
+  auras do not inherit Lava-Drenched protection.
+
+## Cultist follow-up lessons
+
+- A successful spell hit is not proof of a successful dispel. EffectDispel returns early when
+  the eligible or successful aura list is empty; attach Devour Magic's heal only after the
+  successful removals, with exact class/family/spell scope. Keep native Warlock controls.
+- Periodic healing may apply an outgoing healing-percent multiplier inside its tick handler
+  even when the usual bonus functions already treat a copied amount as resolved. Vision needs
+  a scoped exemption at that native site. Test the actual native branch and ordinary HoTs.
+- One shared spell-family bit may cover unrelated active spells. Ward/Hammer/Dark Veil and
+  Shadow of the Void/Covenant require reviewed exact modifier routing; do not change all masks.
+  Native operation 31 is maximum aura stacks, while ability cast charges are separate state.
+- Match summon callbacks to actual ownership and entry. A generic owned-summon set also includes
+  portals and clones, which must not qualify for tentacle-only bonuses. Remove an outgoing
+  tentacle silence by its caster GUID on death and before world removal, preserving other owners.
+- Native creature/model IDs may have been claimed by a preceding package. Cultist Hallucination
+  uses new entry 840025 because 840000 belongs to installed Witch Doctor. Appearance copies can
+  run random native paths without inheriting another class's attack AI or editing its template.
+- Ten ritual participants means ten distinct living group members actively channeling the
+  same stone, not ten clicks. Keep native SummonRequest consent for the separate summoning
+  object. Model-chain existence, /Zs and bounded fixtures do not establish rendered or group QA.
+- Keep uncertain acquisition separate from functioning mechanics: Corrupting Whispers' learned
+  proc can be implemented without inventing a free level-10 grant for unresolved identity 4041.
+
+## Sun Cleric follow-up lessons
+
+- A cast charge and a result event have different lifetimes. Preserve Dawn's selected values for
+  native hand/channel children and delayed landing without charging again or retaining raw pointers.
+  A foreign caster's Dawn does not fulfill the recipient's Vow. The last charged event must retain
+  the no-generation rule even after the visible Dawn aura has been removed.
+- Absorb depletion must use the actual AFTER_ABSORB amount, after native bypass, and before the
+  engine subtracts remaining capacity. Dispel/expiry of unused capacity is not depletion. An area
+  split-damage contract also needs a target count; a generic-family native meteor branch does not
+  automatically apply to custom spell family 33.
+- Preserve native duration/spellmod behavior when it already matches the contract. Halberd's
+  native mask covers both Champion and Chains; adding another script bonus would double Champion.
+  Test gear and finite-cast selectors with wrong families and unrelated targets.
+- Tooltip symbols matter even for a heal: Radiance uses SP, while Illumination uses bonus healing.
+  Holyfire damage does not imply that an explicit Holy-power coefficient can read Fire power.
+  Use different test values for damage power, healing power and schools to expose these mistakes.
+- A private aura-removal effect must be suppressed in its actual HIT phase. Suncharge clears by
+  caster GUID, so it must not also run a native removal that clears another cleric's stacks.
+- Portal model candidates need inspection: display 19283 is a practice dummy. Sun Gate uses
+  existing Shattrath portal 23719 as an explicit local substitute; dependency resolution and
+  controlled movement fixtures do not establish rendered appearance or live navigation.
+
+## Venomancer completion, 2026-09-10
+
+Source package: `runtime/validation/venomancer-completion-20260910`; new SQL14 only. See its
+190 individual dispositions and `modules/mod-ascension-compat/docs/venomancer-completion.md`.
+Preserve the pending Pyromancer, Cultist and Sun Cleric packages and current native-file launcher.
+
+- Distinguish an obsolete zero-flag proc field from a functioning native effect: Venomancy Expert
+  already supplies its five-percent discount. Do not add a second one.
+- Resource acquisition and spell replacement can have different gates. Fang's Brood grant uses
+  specialization 92143; Widow's Kiss 807600 owns only the third-cast replacement. A new gain row
+  also requires updating the constexpr array size. Kiss's native Fang modifiers need an exact
+  selector extension, retaining the original eligibility checks and replacement mask.
+- Saved periodic dummy fields must load before a periodic effect reads them. Reconstruct phase
+  from elapsed duration, retain finite charges and carry original crit/percentage snapshots when
+  spreading a HoT. Scope this correction to the intended spell family.
+- Sepsis represents nominal future damage, including remaining Withering growth. It must retain
+  target mitigation, unlike an echo of already resolved damage; dispel and death do not release it.
+- An invisible creature display is not evidence of mushroom appearance. The native Putrid Mushroom
+  visual supplies the actual asset. Likewise 800389's raw 25622 is BloodElfFemale, not a Nerubian;
+  preserve base forms until a trustworthy augmented model is identified.
+- Regeneration must pay all current-stack costs before healing. Barbed Stinger's global HIT phase
+  may have no target and must not consume the action before the target HIT embeds or rips it.
+- Native /Zs and fixture checks are separate from server linking, startup registration and live
+  gameplay. Retain failed phases, pin final inputs, and do not present a lint refresh as a regression run.
+
+
+## Tinker completion, 2026-09-10
+
+The pending Tinker policy is `modules/mod-ascension-compat/docs/tinker-completion.md`; individual
+dispositions are in `runtime/validation/tinker-completion-20260910/findings.md`. Source reconstruction
+does not establish linked runtime behavior or official parity. Nanobot Reconstruction scaling remains
+unresolved; keep its current first/higher-rank coefficients until evidence establishes a stat term.
+
+- Removing a temporarily learned channel spell can cancel its live aura. Spending Gear Grind's proc
+  must preserve the replacement until the channel finishes. Test the native removal relationship.
+- A zero-mask aura 271 cannot implement the intended owned Fire vulnerability. Napalm/Oil Pylon use
+  explicit owner-scoped routing; do not leak a victim modifier to foreign casters or add it twice.
+- Five new permanent pets require the exact custom-AI selector exception; the general PetAI path
+  otherwise wins. Owner-based stat formulas also require a scoped native Guardian branch to prevent
+  duplicate Stamina/Intellect/armor/AP inheritance. Check the actual native hit and crit consumers.
+- Persist a cross-recipient Module selection in a normal saved, non-recalculated effect amount. An
+  in-memory map alone cannot reconcile a different recipient after ordinary logout/login.
+- Verify the actual DB schema before accepting an isolated SQL fixture: action slots live in
+  creature_template_spell with the composite CreatureID/Index key. A fixture copied from a proposed
+  migration can falsely approve nonexistent columns. Preserve the failed proposal and supersede it
+  with actual-schema replay. Reject conflicting or extra action slots before installation.
+- Retained Tinker proc updates use HitMask 9283 (normal/crit/block/absorb/full block). 9331 would also
+  admit dodge/parry. Exercise all native hit bits and retain the scripts' positive-damage filters.
