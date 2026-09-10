@@ -1,7 +1,7 @@
 """Exercise the pending CoA loot migration on a disposable MySQL 8 database.
 
 Usage: python apps/test-framework/test_coa_loot_migrations.py --mysql-bin /path/to/mysql/bin
-Add --before-ref <commit> to reproduce the original duplicate-key failure before checking the fix.
+Add --before-ref <commit> to show the required data assertions fail before this migration exists.
 The server uses a unique local socket/named pipe, no TCP listeners, and a temporary data directory.
 """
 
