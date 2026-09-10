@@ -1,44 +1,94 @@
-# CoA on AzerothCore
+# ![logo](https://raw.githubusercontent.com/azerothcore/azerothcore.github.io/master/images/logo-github.png) AzerothCore
 
-Private AzerothCore fork implementing local compatibility with the Ascension CoA client.
-The game client is the standalone `ascension-live` directory; the official Launcher application is not part of this project.
-This is an independent reconstruction, not the official backend or a claim of complete gameplay parity.
+[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
+[![CodeFactor](https://www.codefactor.io/repository/github/azerothcore/azerothcore-wotlk/badge)](https://www.codefactor.io/repository/github/azerothcore/azerothcore-wotlk)
+[![Discord](https://img.shields.io/discord/217589275766685707?logo=discord&logoColor=white)](https://discord.gg/gkt4y2x "Our community hub on Discord")
 
-## Project repositories
+## Build Status
 
-- **This repository:** C++ core, vendored `modules/mod-ascension-compat`, SQL and server mechanics tests.
-- **[coa-local-kit](https://github.com/jealous-sound/coa-local-kit):** client file Apply/Restore engine,
-  generator/policy/test source snapshot and preparation of a portable client workflow.
+[![nopch-build](https://github.com/azerothcore/azerothcore-wotlk/actions/workflows/core-build-nopch.yml/badge.svg?branch=master)](https://github.com/azerothcore/azerothcore-wotlk/actions/workflows/core-build-nopch.yml?query=branch%3Amaster)
+[![pch-build](https://github.com/azerothcore/azerothcore-wotlk/actions/workflows/core-build-pch.yml/badge.svg?branch=master)](https://github.com/azerothcore/azerothcore-wotlk/actions/workflows/core-build-pch.yml?query=branch%3Amaster)
+[![core-modules-build](https://github.com/azerothcore/azerothcore-wotlk/actions/workflows/core_modules_build.yml/badge.svg?branch=master)](https://github.com/azerothcore/azerothcore-wotlk/actions/workflows/core_modules_build.yml?query=branch%3Amaster)
+[![windows-build](https://github.com/azerothcore/azerothcore-wotlk/actions/workflows/windows_build.yml/badge.svg?branch=master)](https://github.com/azerothcore/azerothcore-wotlk/actions/workflows/windows_build.yml?query=branch%3Amaster)
+[![macos-build](https://github.com/azerothcore/azerothcore-wotlk/actions/workflows/macos_build.yml/badge.svg?branch=master)](https://github.com/azerothcore/azerothcore-wotlk/actions/workflows/macos_build.yml?query=branch%3Amaster)
+[![docker-build](https://github.com/azerothcore/azerothcore-wotlk/actions/workflows/docker_build.yml/badge.svg?branch=master)](https://github.com/azerothcore/azerothcore-wotlk/actions/workflows/docker_build.yml?query=branch%3Amaster)
+[![tools-build](https://github.com/azerothcore/azerothcore-wotlk/actions/workflows/tools_build.yml/badge.svg?branch=master)](https://github.com/azerothcore/azerothcore-wotlk/actions/workflows/tools_build.yml?query=branch%3Amaster)
+[![dashboard-ci](https://github.com/azerothcore/azerothcore-wotlk/actions/workflows/dashboard-ci.yml/badge.svg?branch=master)](https://github.com/azerothcore/azerothcore-wotlk/actions/workflows/dashboard-ci.yml?query=branch%3Amaster)
 
-Both repositories remain private. Game files, extracted assets, databases, credentials, profiles and installed
-runtime files stay outside Git. The module remains in this fork because it depends on changes in the core.
+## Introduction
 
-## Current state
+AzerothCore is an open-source game server application and framework designed for hosting massively multiplayer online role-playing games (MMORPGs). It is based on the popular MMORPG World of Warcraft (WoW) and seeks to recreate the gameplay experience of the original game from patch 3.3.5a.
 
-The September 9 class-followup release contains the current class and Manastorm work. Its build/startup fixes
-and migration corrections are committed; [local-release-state.md](../modules/mod-ascension-compat/docs/local-release-state.md)
-records the installed baseline and separate gameplay/UI acceptance limits.
-Source presence and successful startup are not a full gameplay test. The client kit's prepared-file engine is tested
-on synthetic files; generation of a complete clean-client package and portable per-process startup remain in its roadmap.
+The original code is based on MaNGOS, TrinityCore, and SunwellCore and has since then had extensive development to improve stability, in-game mechanics, and modularity to the game. AC has also grown into a community-driven project with a significant number of contributors and developers. It is written in C++ and provides a solid foundation for creating private servers that mimic the mechanics and behavior of the official WoW servers.
 
-The core's existing developer setup is described by [AzerothCore installation documentation](https://www.azerothcore.org/wiki/installation).
-CoA additionally needs matching client-derived server data and the compatibility module configuration.
-A clean clone is source code, not a ready-to-run server repack. Never replace the required data with another user's DB dump.
+## Philosophy
 
-## Development
+Our main goal is to create a playable game server, offering a fully working in-game experience.
 
-Read [AGENTS.md](../AGENTS.md) and the matching task guides before changes. Applied SQL is immutable:
-new corrections require new migrations, even when applied files remain under a `pending` directory.
-Do not build/configure the server or change a running installation as an incidental repository-management step.
+Here are the main points we focus on:
 
-The active CI checks source boundaries and metadata without configuring or building the server.
-Original upstream workflows and issue templates are preserved under `.github/upstream-*` as inactive references.
-See [repository organization](../docs/repository-organization.md), [contributing](CONTRIBUTING.md)
-and [security reporting](SECURITY.md).
+* Stability
+  * We make sure all changes pass the CIs before being merged into the master branch.
 
-## Attribution and licensing
+* Blizzlike content
+  * We strive to make all in-game content to be blizzlike. Therefore we have a high standard for fixes being made.
 
-Based on [AzerothCore](https://github.com/azerothcore/azerothcore-wotlk), with its existing
-[LICENSE](../LICENSE) and [AUTHORS](../AUTHORS) preserved. Follow per-file third-party notices.
-The compatibility module's MIT template and AGPL source headers require a provenance review before a future public release;
-this repository organization does not relicense them. No public release is authorized at this stage.
+* Customization
+  * It is easy to customize your experience using [modules](#modules).
+
+* Community driven
+  * AzerothCore has an active community of developers, contributors, and users who collaborate, share knowledge, and provide support through forums, Discord channels, and other communication platforms. 
+
+### Modules
+
+AzerothCore is designed to be highly modular, allowing developers to extend and customize the game to suit their preferences or create unique gameplay experiences. This flexibility enables the addition of custom features, content, and modifications.
+
+We have a lot of modules already made by the community, many of which can be found in the [Module Catalogue](https://www.azerothcore.org/catalogue.html#/).
+
+## Installation
+
+Detailed installation instructions are available [here](http://www.azerothcore.org/wiki/installation).
+
+## Contributing
+
+AzerothCore can also serve as a learning resource for aspiring developers who want to understand how WoW servers work, how MMORPGs are structured, how game server emulators are created, or to improve their C++ and SQL knowledge.
+
+If you want to contribute to the project, you will find a lot of resources that will guide you in our [wiki](https://www.azerothcore.org/wiki/contribute).
+
+We also recommend you read our [Contributor Covenant Code of Conduct](https://github.com/azerothcore/azerothcore-wotlk/blob/master/.github/CODE_OF_CONDUCT.md).
+
+Feel free to join our [Discord server](https://discord.gg/gkt4y2x).
+
+🤖 If you use any AI agent to work on AzerothCore, please read our [AI Agentic Engineering guidelines](https://www.azerothcore.org/wiki/agentic-engineering).
+Agent instructions for this repo live in [AGENTS.md](../AGENTS.md), with task-scoped guides in [.agents/docs/](../.agents/docs/); [.agents/README.md](../.agents/README.md) explains how to hook up your agent.
+
+Click on the "⭐ Star" button to help us gain more visibility on GitHub!
+
+## Authors & Contributors
+
+The project was born in 2016 based on SunwellCore. Unfortunately, SunwellCore was published without any git history, so on git there are no credits for all the contributors before 2016.
+
+You can check the [authors](https://github.com/azerothcore/azerothcore-wotlk/blob/master/AUTHORS) file for more details.
+
+## Important Links
+
+- [Doxygen documentation](https://www.azerothcore.org/pages/doxygen/index.html)
+- [Website](http://www.azerothcore.org/)
+- [AzerothCore catalogue](http://www.azerothcore.org/catalogue.html  "Modules, tools, and other stuff for AzerothCore") (modules, tools, etc...)
+- [Our Discord server](https://discord.gg/gkt4y2x)
+- [Our wiki](http://www.azerothcore.org/wiki "Easy to use and developed by AzerothCore founder")
+- [Our forum](https://github.com/azerothcore/azerothcore-wotlk/discussions/)
+- [Our Facebook page](https://www.facebook.com/AzerothCore/)
+- [Our LinkedIn page](https://www.linkedin.com/company/azerothcore/)
+
+## License
+
+- The AzerothCore source code is released under the [GNU GPL v2](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
+
+It's important to note that AzerothCore is not an official Blizzard Entertainment product, and it is not affiliated with or endorsed by World of Warcraft or Blizzard Entertainment. AzerothCore does not in any case sponsor nor support illegal public servers. If you use this project to run an illegal public server and not for testing and learning it is your own personal choice.
+
+## Special thanks
+
+[JetBrains](https://www.jetbrains.com/?from=AzerothCore) is providing free [open-source licenses](https://www.jetbrains.com/community/opensource/) to the AzerothCore developers.
+
+[![JetBrains logo.](https://resources.jetbrains.com/storage/products/company/brand/logos/jetbrains.svg)](https://jb.gg/OpenSourceSupport)
