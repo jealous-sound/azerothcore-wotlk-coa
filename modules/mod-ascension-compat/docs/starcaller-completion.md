@@ -1,8 +1,7 @@
 # Starcaller reconstruction policy — 2026-09-09
 
-This source package addresses the 164 findings captured in
-`C:/Ascension/runtime/validation/starcaller-completion-20260909/original-contracts.json`.
-The individual ledger is `findings.md` beside that capture. Class 26 uses spell family 32.
+This source package addresses the 164 findings from the Starcaller class audit.
+Class 26 uses spell family 32.
 The package follows recovered client spell records, helper chains and the archived changelog;
 the choices below fill gaps in that evidence. It does not claim official backend parity.
 
@@ -106,7 +105,8 @@ BLOCK, ABSORB and FULL_BLOCK admission. Earlier SQL05/07 remain unchanged. Their
 tested only six low bits and missed this failure; the new 24,948-case native test supersedes that
 admission evidence. Script-level talent, ownership, hit and cooldown filters still decide actual procs.
 
-The separately requested linked build is now installed as `class-followup-20260909`, with matching
-Necromancer/Templar UI dependencies. Final startup has no new unique errors. SQL03–10 are applied and
-immutable; earlier source-only receipts are historical. Combat, movement, group behavior and rendered
-UI acceptance remain separate from build, native callback tests and startup validation.
+The [September 9 class follow-up release](local-release-state.md) included a
+linked build and matching Necromancer/Templar UI dependencies. Final startup
+reported no new unique errors. SQL03–10 were applied and are immutable. Combat,
+movement, group behavior and rendered UI acceptance remain separate from build,
+native callback tests and startup validation.

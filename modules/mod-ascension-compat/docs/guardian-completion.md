@@ -1,9 +1,8 @@
 # Guardian reconstruction, 2026-09-08
 
-Source implementation addresses all 93 findings in the saved first-pass Guardian audit.
-The preceding armor/resource/coefficient package is already installed with Manastorm.
-This follow-up uses the copied client records and later changelog corrections first.
-The user explicitly authorized local choices where those sources do not disclose a rule.
+Source implementation addresses all 93 findings in the first-pass Guardian audit.
+It builds on the preceding armor/resource/coefficient implementation and uses
+copied client records and later changelog corrections as its primary contracts.
 
 Local policy for the undisclosed parts:
 
@@ -44,16 +43,16 @@ Local policy for the undisclosed parts:
   Shieldlord no longer invokes unrestricted Titan Grip. Other two-handed/off-hand combinations
   retain the ordinary equipment rules. Polearm range applies to native melee-range abilities.
 
-These choices are local reconstruction, not recovered official values. Percentages, masks, rank
-lists and durations that are present in the copied data are preserved unless a specific correction
-is described above or in the per-finding report. Dynamic nearby/stat effects refresh once per second.
+These choices are local reconstruction, not recovered official values. Copied-data
+percentages, masks, rank lists and durations were the starting contracts for the
+audit. Dynamic nearby/stat effects refresh once per second.
 
-The new migration is `rev_20260908_05_guardian_completion.sql`: 30 proc entries, 121 scoped script
-bindings, nine coefficient rows, four raid groups and one guarded missing-template insertion.
-It also removes obsolete proc ownership for Honorable Demeanor and Echoes of War. Applied
-migrations 01/02 are unchanged. Generator: `C:/Ascension/tools/Generate-GuardianCompletion.py`.
+The [Guardian migration](../../../data/sql/updates/pending_db_world/rev_20260908_05_guardian_completion.sql)
+contains 30 proc entries, 121 scoped script bindings, nine coefficient rows, four
+raid groups and one guarded missing-template insertion. It also removes obsolete
+proc ownership for Honorable Demeanor and Echoes of War. Applied migrations 01/02
+are unchanged.
 
-Verification and the complete finding ledger are under
-`C:/Ascension/runtime/validation/guardian-completion-20260908/implemented.md` and `findings.md`.
-No configure, full linked build, SQL application, client installation or gameplay acceptance has
-been performed for this package. The installed Manastorm release remains the live deployment.
+Validation of this source package did not include configuration, a linked server
+build, SQL application, client installation or gameplay acceptance. See the
+[release history](local-release-state.md) for later integration.

@@ -1,7 +1,8 @@
 # Necromancer Life Force and summon sizes — 2026-09-09
 
-Source/UI candidate only; this follow-up is not installed. The September 9 completion release remains
-the installed baseline. Report: `C:/Ascension/runtime/validation/necromancer-followup-20260909/implemented.md`.
+This document describes the Life Force, summon-size and UI source changes.
+The [September 9 release summary](local-release-state.md) records their later
+integration.
 
 ## Occupancy
 
@@ -40,10 +41,12 @@ Server and Lua changes must be installed together; the Lua candidate is not for 
 
 ## Models
 
-All 33 templates were checked against the pinned installed release and current model DBCs. MySQL was
-stopped during this follow-up, so the SQL evidence is the previous verified installation, not a new
-live read. Crypt Fiend 50323/display 17308 gets template DisplayScale 0.5. Ten other large army models
-receive scoped reductions; full values and mesh bounds are in `model-review.json`.
+The review of all 33 templates used previously verified installation data and
+model DBCs; it did not include a fresh live database query. Crypt Fiend
+50323/display 17308 gets template DisplayScale 0.5. Ten other large army models
+receive scoped reductions. Exact scale changes and approximate model heights
+are documented in the
+[summon-size migration](../../../data/sql/updates/pending_db_world/rev_20260909_03_necromancer_summon_sizes.sql).
 
 Migration 03 changes only guarded template-model links. Shared model-info, display DBCs, player models,
 world NPC templates, existing SQL and all 22 other summon scales are preserved. Giants remain larger

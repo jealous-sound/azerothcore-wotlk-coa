@@ -1,10 +1,9 @@
 # Barbarian source completion — 2026-09-08
 
-This package addresses the 73 findings in the preserved class audit. It extends the
-current dirty Guardian package over `a98f3c59c`; it must not replace that package with
-an older clean checkout. Source completion is distinct from linked-build, deployment
-and gameplay acceptance. The per-finding disposition and validation receipts are in
-`C:/Ascension/runtime/validation/barbarian-completion-20260908/`.
+This package addresses the 73 findings in the Barbarian class audit. It builds on
+the [Guardian reconstruction](guardian-completion.md), including its shared raid
+groups and spell replacement API. Source completion is distinct from linked-build,
+deployment and gameplay acceptance.
 
 ## Evidence and reconstruction choices
 
@@ -12,11 +11,10 @@ The starting contracts are the active client descriptions, effective installed D
 records and the dated audit, followed by the archived Ascension changelog. Hidden
 helpers can describe retired mechanics. They do not override the active description.
 
-- Audit: `runtime/validation/class-parity-20260907/class-agents/12-barbarian/findings.json`.
+- Barbarian class audit dated 2026-09-07.
 - Effective server Spell.dbc SHA-256:
   `7651A1FC8C13640268F8E316917379AECB234F8AD5B52CC9801C0A0D68A16FE7`.
-- Changelog archive: `archive/changelog/changelog.jsonl`, with selected records copied
-  to this package's `changelog-evidence.json`. Records 70978 and 70980, dated
+- Archived Ascension changelog records 70978 and 70980, dated
   2026-08-13, specify the 2.7-second Ancestral Strike baseline and the Whirling
   Assault internal cooldown following Barbaric Whirl's actual cooldown. Record
   54404 confirms Impaling Spear's 15% RAP endpoint term. Public primary source:
@@ -99,11 +97,11 @@ Storm of Steel damage stacks are cleaned up with their owning auras.
 
 ## Data and installation boundary
 
-`tools/Generate-BarbarianCompletion.py` owns the new pending migration
-`rev_20260908_06_barbarian_completion.sql`: 45 proc rows, 124 exact script bindings,
-11 coefficient rows and two additions to existing raid groups. Existing applied
-Barbarian damage SQL and Guardian 01/02 are immutable. Guardian completion 05
-is still pending and supplies the shared group definitions required by 06.
+The [Barbarian migration](../../../data/sql/updates/pending_db_world/rev_20260908_06_barbarian_completion.sql)
+contains 45 proc rows, 124 exact script bindings, 11 coefficient rows and two
+additions to existing raid groups. Applied Barbarian damage SQL and Guardian
+01/02 are immutable. Guardian completion 05 supplies the shared group definitions
+required by 06.
 
 Hodir's Wrath uses the stated 120% AP. Maximum Carnage's real damage helper uses
 30% AP per pulse, taking the active talent formula rather than its stale hidden
@@ -111,11 +109,10 @@ Hodir's Wrath uses the stated 120% AP. Maximum Carnage's real damage helper uses
 Puncture's 5.5% RAP per tick are computed on the actual effects. Explicit zero
 SQL coefficients prevent unintended stock SP terms or duplicate scaling.
 
-New sources are collected by the existing module source glob. No CMake configure,
-linked server build, SQL execution, client archive installation or restart is part
-of this source task. The live Manastorm release remains separate. A later installation
-must include a coherent Guardian/Barbarian source and migration package, using the
+New sources are collected by the existing module source glob. Installation must
+include a coherent Guardian/Barbarian source and migration package, using the
 normal backup/updater workflow and the Guardian gameobject conflict check.
+See the [release history](local-release-state.md) for later integration.
 
 The source audit cannot establish combat feel, packet/UI rendering, pathfinding,
 interrupt interactions, group aura behavior, reconnects or full official parity.

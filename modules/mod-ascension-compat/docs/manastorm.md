@@ -3,10 +3,8 @@
 This implements a playable private reconstruction on the copied Ascension client. Official backend
 parity is not asserted. Numerical balance below is an explicit local policy, authorized by the user.
 
-The 2026-09-08 solo-scaling/cache-delivery follow-up below is prepared in source and a client candidate,
-but has not been built or installed. The current installed class-completion release still uses the prior
-Manastorm rules until that follow-up is deployed. Its source receipt is
-`C:/Ascension/runtime/validation/manastorm-solotuning-20260908/implemented.md`.
+The solo-scaling and cache-delivery changes described below are covered by the
+[September 9 release summary](local-release-state.md).
 
 ## Playing
 
@@ -98,26 +96,27 @@ this package.
 
 ## Evidence and reproduction
 
-The local release is `C:/Ascension/runtime/releases/manastorm-complete-20260908`; focused evidence is
-`C:/Ascension/runtime/validation/manastorm-complete-20260908`. `final-source-manifest.json` includes
-the bounded compile corrections and data-only follow-up; the earlier manifests/logs retain their history.
+The repository's [Manastorm harness](../tests/manastorm/run.py) compiles production
+reward, queue and loadout methods against an isolated transaction backend.
+Additional validation covered the native checkpoint dataset, mapless ownership,
+movement scope and actual Lua 5.1 behavior. These checks and a linked build do not
+constitute a manual in-game combat run.
 
-The standalone `tests/manastorm/run.py` compiles production reward/queue/loadout methods against an
-isolated transaction backend. The local `tools/Test-ManastormComplete.ps1` additionally checks the
-native checkpoint dataset, mapless ownership, movement scope and actual Lua 5.1 behavior. These tests
-and a linked build do not constitute a manual in-game combat run.
-
-Local generators are `tools/Generate-ManastormComplete.py`, `Generate-ManastormRewardTiers.py` and
-`Generate-ManastormCompleteClient.py`; their hash-pinned inputs are in `client-reference/manastorm-complete-v1`.
-SQL goes through the normal updater. Never edit an already applied migration; use a new follow-up.
-Client overlays remain outside this core repository, including the earlier Ranger secondary-mana,
-Advantage and trusted ScenarioObjectiveTracker saved-position fixes.
+SQL goes through the normal updater. Never edit an already applied migration;
+use a new follow-up. Client overlays remain external deployment inputs, including
+the earlier Ranger secondary-mana, Advantage and trusted ScenarioObjectiveTracker
+saved-position fixes.
 
 Research references: [official Manastorm feature update](https://ascension.gg/cs/news/s9-ch.2-full-features-overview/458)
 for per-floor rewards, group progression, accumulating cache chance and gadget upgrades;
 [official CoA update](https://ascension.gg/en/news/conquest-of-azeroth-massive-update-article/464)
 for CoA context. Exact drop rates were not recovered; the table above describes this server's own balance.
 The solo follow-up uses [trickerer/mod-autobalance at 3020acda](https://github.com/trickerer/mod-autobalance/blob/3020acda28a23b532ff9b7515dc4de41a4ef0be8/src/AutoBalance.cpp)
-and its configuration defaults. A pinned copy and hashes are in `client-reference/manastorm-solotuning-v1/autobalance`.
-`tests/manastorm/solo_tuning.py` compares actual before/after spawn blocks and the original AutoBalance function,
-then exercises production cache delivery with native item-queue functions against isolated transaction doubles.
+and its configuration defaults.
+The [solo-tuning harness](../tests/manastorm/solo_tuning.py) compares actual
+before/after spawn blocks and the original AutoBalance function, then exercises
+production cache delivery with native item-queue functions against isolated
+transaction doubles. It requires the pinned AutoBalance source and hash manifest
+as `--autobalance`, and the original module source as `--before-source`; those
+historical inputs are supplied separately. Both runners require Python and a
+C++20 compiler.

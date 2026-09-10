@@ -1,10 +1,10 @@
 # Witch Doctor reconstruction — 2026-09-09
 
-The 119 findings from `class-parity-20260907/class-agents/13-witch-doctor` have a source disposition.
-This package is not installed. It preserves the installed Guardian, Barbarian and Witch Hunter work,
-the later Ranger/Witch Hunter follow-up, and the pending Manastorm solo/cache package.
-The per-finding ledger, recovered spell records and verification receipts are under
-`C:/Ascension/runtime/validation/witch-doctor-completion-20260908`.
+This source reconstruction addresses the 119 Witch Doctor findings from the
+2026-09-07 class audit. It builds on the Guardian, Barbarian and Witch Hunter
+implementations, the [Ranger/Witch Hunter follow-up](witch-hunter-ranger-followup.md)
+and [Manastorm solo-scaling/cache delivery](manastorm.md). See the
+[release history](local-release-state.md) for later integration.
 
 ## Evidence and policy
 
@@ -51,7 +51,9 @@ choices. These are explicit reconstruction decisions and require combat/balance 
 ## Implementation boundaries
 
 Six new C++ units implement metadata/scaling, completed casts/hits, aura lifetimes, proc events, brewing,
-and summon AI. `AscensionWitchDoctorCoefficients.h` contains 148 effect slots. Helpers which forward an
+and summon AI.
+[AscensionWitchDoctorCoefficients.h](../src/AscensionWitchDoctorCoefficients.h)
+contains 148 effect slots. Helpers which forward an
 already computed damage/healing amount have no second automatic coefficient or critical multiplier.
 Threads keep their original expiry while collecting damage; Other Side stacks also do not refresh it.
 Beast's direct physical damage debt is paid over five pulses and flushed on removal without losing rounding.
@@ -78,22 +80,26 @@ the correct first-rank representatives; it does not merge unrelated effects of m
 
 ## Future installation
 
-Apply only the new `rev_20260909_00_witch_doctor_completion.sql` through the normal updater. It contains
-23 proc rows, 148 exact bindings, 154 coefficient-suppression rows, 27 missing creature templates and
+The [Witch Doctor migration](../../../data/sql/updates/pending_db_world/rev_20260909_00_witch_doctor_completion.sql)
+uses the normal updater. It contains 23 proc rows, 148 exact bindings,
+154 coefficient-suppression rows, 27 missing creature templates and
 model bindings, 13 missing model-info rows, two gameobjects, nine Arrow ranks and one ten-member damage
 group. The 27 templates comprise 25 summons and two transform lookups. The eight existing model-info
 rows are preserved, including the previously installed Witch Hunter model. Applied migrations 05–08
 and all earlier SQL remain immutable.
 
-The candidate directory adds rows to three server DBCs: CreatureDisplayInfo (13), CreatureModelData (12),
-and GameObjectDisplayInfo (1). Every old row and string byte is preserved. It does not alter live DBCs,
-server Spell.dbc, client archives or native executable files. The selected no-collision cauldron path
-comes from client data; rendered asset loading and collision behavior still need runtime verification.
+The required external server data package adds rows to three DBCs:
+CreatureDisplayInfo (13), CreatureModelData (12) and GameObjectDisplayInfo (1).
+Every old row and string byte is preserved. Server Spell.dbc, client archives and
+native executable files are unchanged. The selected no-collision cauldron model
+comes from client data; rendered asset loading and collision behavior still need
+runtime verification.
 
 Before installation, compare every guarded creature/template binding, new model-info row, both
 gameobjects, Arrow chain and group 2000184 against the recorded absent-or-exact candidate. A conflicting
-live definition must not be overwritten. Verify the three live DBC hashes against `model-candidate.json`
-before installing the coherent candidate set. Preserve the independent pending Manastorm migration.
+live definition must not be overwritten. Verify the three server DBCs against the
+baseline used to prepare their additions before installing the coherent set.
+Preserve the independent Manastorm migration.
 
 The 69 guarded INSERT statements intentionally do not DELETE missing templates/model rows/gameobjects.
 That is the reviewed exception to the repository's mechanical INSERT/DELETE lint rule; it is verified

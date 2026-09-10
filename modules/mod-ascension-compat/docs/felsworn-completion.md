@@ -3,8 +3,7 @@
 This is a local reconstruction from the pinned copied-client records and recovered changelog,
 not the official backend. Source package only; installation and gameplay acceptance are separate.
 The audit's 131 findings have 127 new/extended implementations and four retained mechanisms.
-The per-finding ledger and verification receipts are in
-`C:/Ascension/runtime/validation/felsworn-completion-20260909`.
+See the [release history](local-release-state.md) for later integration.
 
 Felfury remains capped at six, with the existing two-stack spender gate and existing cost exemptions.
 Generated Felfury drives Fury of Archimonde (ten generated points), Felspill and Demonic Blood,
@@ -52,8 +51,10 @@ ends it. Ten Fel Rifts use new private goober entries9000140–9000149 and nativ
 are pinned from the local game_tele table. Use requires the owner or same raid/party, same phase, proximity,
 alive and out of combat. Existing portal templates are preserved.
 
-SQL05 contains65 coefficient slots,121 exact bindings,38 combat proc rows and12 guarded template/model
-inserts. Man'ari joins native Mark/Gift subgroup1078 (nested in1089); earlier raid groups remain.
+[SQL05](../../../data/sql/updates/pending_db_world/rev_20260909_05_felsworn_completion.sql)
+contains 65 coefficient slots, 121 exact bindings, 38 combat proc rows and 12
+guarded template/model inserts. Man'ari joins native Mark/Gift subgroup1078
+(nested in1089); earlier raid groups remain.
 Before installation, reject conflicting Infernal/model/rift definitions. Applied SQL is immutable.
 No client patch or server DBC change is needed for Felsworn. Preserve the separate pending Necromancer
 and Templar UI candidate and their SQL03/04. Original Ranger Elude files remain byte-identical.

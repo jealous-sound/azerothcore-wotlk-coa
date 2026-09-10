@@ -1,22 +1,19 @@
 # Witch Hunter source completion — 2026-09-08
 
-This package addresses the 125 findings in the preserved Witch Hunter audit. It extends
-the dirty Guardian and Barbarian packages over `a98f3c59c`. It is a local reconstruction;
-source completion does not establish official backend parity or in-game acceptance.
-The per-finding ledger, original records, staged DBCs and verification receipts are in
-`C:/Ascension/runtime/validation/witch-hunter-completion-20260908/`.
+This package addresses the 125 findings in the Witch Hunter audit. It builds on
+the [Guardian](guardian-completion.md) and [Barbarian](barbarian-completion.md)
+reconstructions. Source completion does not establish official backend parity or
+in-game acceptance.
 
 ## Evidence and decisions
 
 The active client descriptions, effective installed Spell.dbc and their rank/helper
 records define the starting contract. The installed Spell.dbc hash is
 `7651A1FC8C13640268F8E316917379AECB234F8AD5B52CC9801C0A0D68A16FE7`.
-`spell-records.json` contains 1,104 family-21 records; `support-records.json` contains
-the ten referenced records from other families. The original audit is
-`runtime/validation/class-parity-20260907/class-agents/15-witch-hunter/findings.json`.
+The 2026-09-07 audit reviewed 1,104 family-21 spell records and ten referenced
+records from other families.
 
-The local changelog archive contributes 1,419 Witch Hunter records, preserved as
-`changelog-evidence.json`. It is an archive of the official
+The evidence review also used 1,419 archived Witch Hunter records from the official
 [CoA changelog](https://ascension.gg/en/changelog/4), not measured combat output.
 Records 60361, 66977, 66979 and 68989 document Noctis scaling and leech changes.
 The active 50% leech contract is retained; the later pending-restart 71867/71868
@@ -49,7 +46,8 @@ These are the explicit reconstruction choices where the recovered contract is in
 
 ## Integration boundaries
 
-`AscensionWitchHunterCompletion.cpp` owns scoped runtime metadata and 116 explicit
+[AscensionWitchHunterCompletion.cpp](../src/AscensionWitchHunterCompletion.cpp)
+owns scoped runtime metadata and 116 explicit
 effect coefficient records. Damage percentages, slows, summon counts and movement
 effects do not receive AP/RAP/SP coefficients. Parent-to-child forwarding is counted
 once. The new code is split into abilities, events, defenses and summons; the existing
@@ -74,20 +72,20 @@ normal behavior. This changes the server ABI and requires a coherent future buil
 
 ## Future installation
 
-This task does not configure or build the server, apply SQL, change installed DBCs,
-modify MPQs, restart processes, or change characters. The live Manastorm release is
-separate from this source package.
+The server, SQL and model DBC additions must be installed together. See the
+[release history](local-release-state.md) for recorded integrations.
 
-Migration `rev_20260908_07_witch_hunter_completion.sql` contains 47 proc definitions,
-340 exact script bindings, 108 explicit zero-bonus rows, nine missing creature
+The [Witch Hunter migration](../../../data/sql/updates/pending_db_world/rev_20260908_07_witch_hunter_completion.sql)
+contains 47 proc definitions, 340 exact script bindings, 108 explicit zero-bonus
+rows, nine missing creature
 templates/model associations, six model-info definitions and 80 pet levels. Zero
 bonus rows prevent generic coefficient inference from double-counting explicit or
 forwarded scaling. Applied and previously pending SQL files are unchanged.
 
-`server-dbc-candidate` appends four missing CreatureDisplayInfo rows and four missing
-CreatureModelData rows. Every old row and the old string block are preserved. These
-two staged server DBCs are needed alongside the migration and compiled code; there
-is no Spell.dbc or client archive replacement in this package.
+The external server data package appends four missing CreatureDisplayInfo rows
+and four missing CreatureModelData rows. Every old row and the old string block
+are preserved. These two server DBCs are needed alongside the migration and
+compiled code; there is no Spell.dbc or client archive replacement in this package.
 
 Before a future install, reject any existing creature template, model association,
 model-info or pet-level row that conflicts with the candidate. Guarded INSERTs
@@ -101,6 +99,5 @@ changes require live acceptance after an explicitly requested build/install.
 
 Deployment preparation on 2026-09-08 found native shared display rows 11686 and
 16049 already present. Their server radius/reach (0.5/1 and 0.3825/2.5) are retained,
-including VerifiedBuild 53788/0. The pending generator now uses those exact rows
-instead of inferring shared server collision from mesh geometry. No existing row
-is overwritten. Evidence: `runtime/releases/class-completion-20260908/data-corrections`.
+including VerifiedBuild 53788/0. The migration uses those exact rows instead of
+inferring shared server collision from mesh geometry. No existing row is overwritten.

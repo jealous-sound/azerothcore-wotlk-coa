@@ -1,10 +1,9 @@
 # Witch Hunter / Ranger follow-up — 2026-09-08
 
-Source fixes following the installed class-completion release. The user requested
-continued Witch Hunter corrections and explicitly required Ranger Advantage on
-misses. They had not yet tested Witch Hunter in game. This is a code/evidence review,
-not gameplay acceptance. Receipts and the scoped diff are in
-`C:/Ascension/runtime/validation/witch-hunter-ranger-followup-20260908`.
+This follow-up corrects Witch Hunter behavior and makes Ranger Advantage apply
+on misses under the selected local rule. Validation covered source behavior;
+Witch Hunter had not yet received manual gameplay acceptance. See the
+[release history](local-release-state.md) for later integration.
 
 ## Ranger Advantage
 
@@ -25,8 +24,8 @@ deduplication markers; other event bits are unchanged.
 Four additional cast-rule rows repair missing described gains: Horn of Perseverance
 800088, Horn of Endurance 806359 and Dust Toss 807820 grant one; Deadshot ranks
 573243–573246 grant two. Existing resource rules for other classes are identical.
-Recovered Ranger records and rank sets are pinned in `ranger-generators.json`;
-helper descriptions copied from parents do not authorize duplicate resource gains.
+The audit reviewed recovered Ranger records and rank sets; helper descriptions
+copied from parents do not authorize duplicate resource gains.
 
 ## Witch Hunter
 
@@ -62,8 +61,8 @@ headers; final hashes are reconciled. C++ lint and diff whitespace pass.
 The old Forest Dweller test fixture lacked the already installed Cycle branch's
 unit context and used a float where native UpdateSpeed uses int32. Its fixture now
 supplies that context and adds Cycle controls; existing Ranger assertions and
-`Test-RangerEludeTalents.py` are unchanged. The old Guardian/Ranger hit-policy tests
-explicitly change their obsolete miss expectations to the user's new contract.
+Elude talent tests are unchanged. The old Guardian/Ranger hit-policy tests
+explicitly change their obsolete miss expectations to the new cast-gain contract.
 
 One historical Witch Hunter pre-install model check is outside this source-only
 run because its DBC candidate is already installed. The 62 existing pending world
@@ -71,7 +70,6 @@ SQL files are byte-identical. Historical SQL lint still has pre-existing safety,
 semicolon and backtick findings; its CLI also attempts an unavailable origin/master
 fetch, so the same checks were run offline. This is not a clean global SQL-lint claim.
 
-No CMake configuration, linked server build, SQL application, client patch or process
-restart occurred. Repository AGENTS.md requires an explicit build request. The live
-world remains the frozen `class-completion-20260908` release; include this follow-up
-in the next explicitly requested build. Manual combat/channel/pet acceptance remains.
+Source validation did not include CMake configuration, a linked server build,
+SQL application, a client patch or a process restart. Manual combat, channel and
+pet acceptance remained separate from the recorded tests.

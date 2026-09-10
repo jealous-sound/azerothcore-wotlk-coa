@@ -1,9 +1,9 @@
 # Templar reconstruction policy — 2026-09-09
 
-This is a source-ready local compatibility implementation. It is not installed and is not a claim
-of official Ascension backend parity. The pinned evidence, original 25 findings, 905 client spell
-records, 647 archived changelog entries and validation receipts are under
-`C:/Ascension/runtime/validation/templar-completion-20260909`.
+This local compatibility implementation addresses 25 findings using 905 client
+spell records and 647 archived changelog entries. It does not claim official
+Ascension backend parity. See the [release history](local-release-state.md) for
+later integration.
 
 ## Evidence and boundaries
 

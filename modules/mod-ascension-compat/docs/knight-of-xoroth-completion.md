@@ -3,8 +3,7 @@
 This package reconstructs the local class from the pinned copied-client records and the recovered
 changelog. It is source ready; a linked server build, installation and gameplay acceptance are separate.
 The 124 original findings have 122 implemented/extended dispositions and two retained native mechanisms.
-The evidence, individual ledger and checks are in
-`C:/Ascension/runtime/validation/knight-of-xoroth-completion-20260909`.
+See the [release history](local-release-state.md) for later integration.
 
 ## Resources and attacks
 
@@ -115,12 +114,14 @@ or raid members within five yards, alive and out of combat.
 
 ## Installation boundary
 
-SQL07 is new and unapplied. It composes with the earlier pending class packages and has 113 exact script
-bindings, 26 HIT proc entries, guarded native model definitions, pet levels and forge/anvil entries.
+[SQL07](../../../data/sql/updates/pending_db_world/rev_20260909_07_knight_of_xoroth_completion.sql)
+composes with the preceding class migrations and has 113 exact script bindings,
+26 HIT proc entries, guarded native model definitions, pet levels and forge/anvil
+entries.
 All 71 captured preceding SQL files and the original Ranger Elude files remain byte-identical. There
 is no Knight client/DBC candidate. The earlier Necromancer/Templar client dependency remains separate.
 
 Source checks do not certify registration in a linked server, pet controls, aura rendering, group
 stacking, model size, movement or combat balance. Those remain installation/gameplay acceptance work.
 No server build, SQL application, restart, client launch, cache reset, character-data operation or Git
-publication is part of this source package. Use the scoped patch against its captured before-source.
+publication is part of this source package.

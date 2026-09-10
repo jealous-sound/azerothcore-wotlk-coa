@@ -1,14 +1,12 @@
 # Necromancer reconstruction — 2026-09-09
 
-This is a source package for the local copied-client server. It is not an official backend implementation
-or an in-game acceptance result. The accumulated preceding core was committed and pushed as
-`4ced46023551c36b3c0182c5fbd68eca3a25fd9c` before this work started.
+This source reconstruction addresses the 140 Necromancer audit findings. It is
+not an official backend implementation or an in-game acceptance result.
 
-The 140 audit findings have individual dispositions in
-`C:/Ascension/runtime/validation/necromancer-completion-20260909/findings.md`.
-Evidence includes 1,363 installed spell records, recovered client creature/model records and the archived
-official changelog. Visible current parent descriptions take precedence over stale hidden helper text.
-An absent tooltip-only legacy spell is documented, rather than turned into an invented active ability.
+Evidence includes 1,363 installed spell records, recovered client creature/model
+records and the archived official changelog. Visible current parent descriptions
+take precedence over stale hidden helper text. An absent tooltip-only legacy
+spell is documented, rather than turned into an invented active ability.
 
 ## Army and resources
 
@@ -97,16 +95,18 @@ Necromancer can receive mana from spells while retaining Runic Power as its acti
 
 ## Installation boundary
 
-Pending migration: `rev_20260909_01_necromancer_completion.sql` (168 exact bindings, two central proc rows,
-explicit zero bonus rows, guarded creature/model definitions, three raid-group memberships and two item
-cooldown corrections). Applied SQL and the pending Witch Doctor migration are unchanged.
+The [Necromancer migration](../../../data/sql/updates/pending_db_world/rev_20260909_01_necromancer_completion.sql)
+contains 168 exact bindings, two central proc rows, explicit zero bonus rows,
+guarded creature/model definitions, three raid-group memberships and two item
+cooldown corrections. Applied SQL and the preceding Witch Doctor migration are
+unchanged.
 
 The two server model DBC candidates are composed on the pending Witch Doctor candidates, preserving all
 their rows and strings. Install that combined model set with the matching source and SQL. Before any future
 installation, require every guarded definition to be absent or exactly match the candidate; never overwrite
 a conflicting existing definition. Keep the Witch Doctor GameObject model candidate as a separate dependency.
 
-This task does not configure/build the server, apply SQL, install DBC/MPQ files, restart processes, clear
-caches or alter player data. A linked server build and manual combat, UI, movement, pet-control and PvP
-acceptance remain separate. The report pins actual-source tests and native syntax inputs; it does not claim
-that syntax checking proves those gameplay outcomes.
+Validation used actual-source tests and native syntax checks. A linked server
+build and manual combat, UI, movement, pet-control and PvP acceptance are separate
+checks; syntax checking does not establish those gameplay outcomes. See the
+[release history](local-release-state.md) for later integration.
