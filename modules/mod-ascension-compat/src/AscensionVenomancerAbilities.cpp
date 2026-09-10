@@ -402,12 +402,16 @@ class spell_ascension_venomancer_ability : public SpellScript
     }
     void Register() override
     {
-        if (GetSpellInfo()->HasEffect(SPELL_EFFECT_DUMMY))
+        SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(m_scriptSpellId);
+        if (!spellInfo)
+            return;
+
+        if (spellInfo->HasEffect(SPELL_EFFECT_DUMMY))
         {
             OnEffectHitTarget += SpellEffectFn(spell_ascension_venomancer_ability::Effect,EFFECT_ALL,SPELL_EFFECT_DUMMY);
             OnEffectHit += SpellEffectFn(spell_ascension_venomancer_ability::Effect,EFFECT_ALL,SPELL_EFFECT_DUMMY);
         }
-        if (GetSpellInfo()->HasEffect(SPELL_EFFECT_SUMMON))
+        if (spellInfo->HasEffect(SPELL_EFFECT_SUMMON))
         {
             OnEffectHit += SpellEffectFn(spell_ascension_venomancer_ability::SkipSummon,EFFECT_ALL,SPELL_EFFECT_SUMMON);
             OnEffectHitTarget += SpellEffectFn(spell_ascension_venomancer_ability::SkipSummon,EFFECT_ALL,SPELL_EFFECT_SUMMON);
