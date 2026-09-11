@@ -1,7 +1,8 @@
 # Ascension spell calculations and tooltip parity
 
-Reusable lessons verified in this local fork through 2026-09-07. Reinspect the current code and effective
-data before applying them to another spell. The official backend is not available as a parity oracle.
+Read only the calculation or subsystem sections relevant to the task. These examples are technical references,
+not a full verification checklist or a statement of current deployment. Reinspect relevant code/data before reuse.
+The official backend is not available as a parity oracle.
 Acquisition, displayed values, server mechanics and observed combat are separate verification layers.
 
 ## Establish the calculation contract first
@@ -73,19 +74,19 @@ the target's armor or reconstruct the two events.
 
 ## Verification that can be reused
 
-- Extract current native calculation functions/blocks into bounded harnesses where practical. Verify
-  stub constants, enum masks, rank lookup, signed fields and encodings against source; wrong test
-  doubles can invent a failure. Do not rewrite the expected formula into both sides of the test.
-- Cover all relevant ranks/slots, distinct AP and RAP, zero/nonzero SP, modifiers, helper counts,
-  periodic timing, repeated callback calls, wrong spell/class/NPC, existing SQL bonus and overflow.
-  Include a negative control that recreates the original defect and asserts the intended failure.
-- Test client description-only edits by restoring changed offsets/header fields and comparing all
-  original bytes. Preserve old shared strings and numeric fields. Re-extract the packaged member and
-  verify its hash; edit generator-owned candidates through their generator, not live-only files.
+- Start with existing functional tests. Add a focused regression when the changed behavior needs coverage;
+  create a native extraction harness only when existing tests cannot exercise a material risk.
+  Validate any necessary test doubles against source; do not copy the expected formula into both sides of a test.
+- Select cases relevant to the change: affected ranks, distinct AP/RAP/SP, ownership, timing, duplicate callbacks,
+  modifiers, or overflow as applicable. A small correction does not require the entire matrix or other classes.
+- Edit generator-owned candidates through their generator. For description changes, check the changed strings
+  and preservation of numeric fields. Verify the final changed MPQ member when packaging; do not create a new
+  snapshot, byte-restoration harness, or phase manifest merely for a text edit.
 - Report coverage precisely: an extracted formula/armor block is not a full hit/crit/proc test;
   a successful build or open window is not combat validation. Keep unresolved contracts explicit.
-- Keep pinned before-evidence immutable. A diagnostic asserting missing coefficients should reject
-  the installed fix, not regenerate the old conclusion from changed state.
+- Historical diagnostics and input-hash assertions describe their captured release. Keep them out of ordinary
+  functional regression selection; preserve existing evidence and numerical assertions, and report stale tooling
+  honestly. Routine tests need no new before/after trees, receipts, or permanent output folders.
 
 ## Stationary summons and formation bundles
 
@@ -259,8 +260,8 @@ Preserve the pending Pyromancer, Cultist and Sun Cleric packages and current nat
   preserve base forms until a trustworthy augmented model is identified.
 - Regeneration must pay all current-stack costs before healing. Barbed Stinger's global HIT phase
   may have no target and must not consume the action before the target HIT embeds or rips it.
-- Native /Zs and fixture checks are separate from server linking, startup registration and live
-  gameplay. Retain failed phases, pin final inputs, and do not present a lint refresh as a regression run.
+- Native /Zs and fixture checks are separate from linking, startup registration, and live gameplay.
+  State which checks ran; a lint refresh is not a regression run. Routine work needs no phase archive.
 
 
 ## Tinker completion, 2026-09-10
@@ -281,7 +282,7 @@ unresolved; keep its current first/higher-rank coefficients until evidence estab
   in-memory map alone cannot reconcile a different recipient after ordinary logout/login.
 - Verify the actual DB schema before accepting an isolated SQL fixture: action slots live in
   creature_template_spell with the composite CreatureID/Index key. A fixture copied from a proposed
-  migration can falsely approve nonexistent columns. Preserve the failed proposal and supersede it
-  with actual-schema replay. Reject conflicting or extra action slots before installation.
+  migration can falsely approve nonexistent columns. Check against the actual schema and correct the proposal.
+  Reject conflicting or extra action slots before installation; retaining failed proposals is not a routine requirement.
 - Retained Tinker proc updates use HitMask 9283 (normal/crit/block/absorb/full block). 9331 would also
   admit dodge/parry. Exercise all native hit bits and retain the scripts' positive-damage filters.

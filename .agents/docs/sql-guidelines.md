@@ -6,7 +6,9 @@
 2. `./create_sql.sh` generates an empty `rev_<timestamp>.sql` to write into.
 3. Conventions (linted): every `INSERT` preceded by a matching `DELETE` (idempotency); no double semicolons; no multiple blank lines; InnoDB engine.
 
-Run the linter before claiming a change is done: `python apps/codestyle/codestyle-sql.py` (compares to origin/master).
+For SQL changes, lint the affected files: `python apps/codestyle/codestyle-sql.py --files <path> ...`.
+Use `--base <local-ref>` when selecting changes against a branch. The linter does not fetch from the network.
+The no-argument command retains broad SQL checks and resolves a locally available default comparison branch.
 
 ## Data conventions
 

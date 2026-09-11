@@ -1,6 +1,7 @@
 # C++ guidelines
 
-Run the linter before claiming a change is done: `python apps/codestyle/codestyle-cpp.py`
+For C++ changes, lint the affected files: `python apps/codestyle/codestyle-cpp.py --files <path> ...`.
+The no-argument command retains the full `src/` scan for broad checks; routine edits do not require it.
 
 ## Code style
 

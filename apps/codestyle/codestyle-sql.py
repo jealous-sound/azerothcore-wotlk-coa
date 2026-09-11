@@ -1,3 +1,4 @@
+import argparse
 import io
 import os
 import sys
@@ -10,14 +11,6 @@ base_dir = os.getcwd()
 # Get the pending directory of the project
 pattern = os.path.join(base_dir, 'data/sql/updates/pending_db_*')
 src_directory = glob.glob(pattern)
-
-# Get files from base dir
-base_pattern = os.path.join(base_dir, 'data/sql/base/db_*')
-base_directory = glob.glob(base_pattern)
-
-# Get files from archive dir
-archive_pattern = os.path.join(base_dir, 'data/sql/archive/db_*')
-archive_directory = glob.glob(archive_pattern)
 
 # Global variables
 error_handler = False
@@ -42,26 +35,31 @@ def collect_files_from_directories(directories: list) -> list:
                     all_files.append(os.path.join(root, file))
     return all_files
 
-# Used to find changed or added files compared to main.
-def get_changed_files() -> list:
-    subprocess.run(["git", "fetch", "origin", "main"], check=True)
+# Resolve local refs only: linting must not fetch or depend on a remote being available.
+def get_changed_files(base=None) -> list:
+    candidates = [base] if base else ["origin/HEAD", "origin/main", "origin/master", "main", "master", "HEAD"]
+    revision = None
+    for candidate in candidates:
+        resolved = subprocess.run(
+            ["git", "rev-parse", "--verify", "--quiet", "--end-of-options", f"{candidate}^{{commit}}"],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+        )
+        if resolved.returncode == 0:
+            revision = resolved.stdout.strip()
+            break
+    if revision is None:
+        raise ValueError(f"No local comparison ref found for {base or 'the default branch'}; use --files or --base.")
     result = subprocess.run(
-        ["git", "diff", "--name-status", "origin/main"],
+        ["git", "diff", "--name-only", "--diff-filter=ACMR", "-z", revision, "--"],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
+        check=True,
     )
-    changed_files = []
-    for line in result.stdout.strip().splitlines():
-        if not line:
-            continue
-        status, path = line.split(maxsplit=1)
-        if status in ("A", "M"):
-            changed_files.append(path)
-    return changed_files
+    return [path for path in result.stdout.split("\0") if path.lower().endswith(".sql")]
 
 # Main function to parse all the files of the project
-def parsing_file(files: list) -> None:
+def parsing_file(files: list, changed_files=None) -> None:
     print("Starting AzerothCore SQL Codestyle check...")
     print(" ")
     print("Please read the SQL Standards for AzerothCore:")
@@ -70,7 +68,8 @@ def parsing_file(files: list) -> None:
 
     # Iterate over all files in data/sql/updates/pending_db_*
     for file_path in files:
-        if "base" not in file_path and "archive" not in file_path:
+        path_parts = os.path.normpath(file_path).split(os.sep)
+        if "base" not in path_parts and "archive" not in path_parts:
             try:
                 with open(file_path, 'r', encoding='utf-8') as file:
                     multiple_blank_lines_check(file, file_path)
@@ -85,10 +84,12 @@ def parsing_file(files: list) -> None:
                 sys.exit(1)
 
     # Make sure we only check changed or added files when we work with base/archive paths
-    changed_files = get_changed_files()
+    if changed_files is None:
+        changed_files = get_changed_files()
     # Iterate over all file paths
     for file_path in changed_files:
-        if "base" in file_path or "archive" in file_path:
+        path_parts = os.path.normpath(file_path).split(os.sep)
+        if "base" in path_parts or "archive" in path_parts:
             try:
                 with open(file_path, "r", encoding="utf-8") as f:
                     directory_check(f, file_path)
@@ -455,8 +456,25 @@ def non_innodb_engine_check(file: io, file_path: str) -> None:
         error_handler = True
         results["Table engine check"] = "Failed"    
 
-# Collect all files from matching directories
-all_files = collect_files_from_directories(src_directory) + collect_files_from_directories(base_directory) + collect_files_from_directories(archive_directory)
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Check SQL codestyle without network access.")
+    selection = parser.add_mutually_exclusive_group()
+    selection.add_argument("--files", nargs="+", metavar="PATH", help="Check only the supplied SQL files.")
+    selection.add_argument("--base", metavar="REF", help="Check SQL changes against this locally available ref.")
+    args = parser.parse_args()
+    try:
+        if args.files:
+            for path in args.files:
+                if not os.path.isfile(path) or not path.lower().endswith(".sql"):
+                    parser.error(f"Expected an existing SQL file: {path}")
+            parsing_file(args.files, args.files)
+        else:
+            changed_files = get_changed_files(args.base)
+            files = changed_files if args.base else collect_files_from_directories(src_directory)
+            parsing_file(files, changed_files)
+    except (OSError, ValueError, subprocess.CalledProcessError) as error:
+        parser.error(str(error))
 
-# Main function
-parsing_file(all_files)
+
+if __name__ == "__main__":
+    main()
