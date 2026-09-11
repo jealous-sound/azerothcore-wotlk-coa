@@ -7,20 +7,25 @@ AzerothCore is a C++ MMORPG server emulator for World of Warcraft 3.3.5a (WotLK)
 - **Do not configure or build unless explicitly asked.** Builds are slow and rarely needed for code changes.
 - **Never edit SQL files outside `data/sql/updates/pending_db_*/` unless explicitly requested.** `data/sql/base/`, `data/sql/archive/`, and `data/sql/updates/db_*/` are immutable.
 - Formatting follows `.editorconfig`: UTF-8, LF, max 120 cols, trailing newline, no trailing whitespace; 4-space indent for C++ (tabs forbidden), 2-space for JSON/YAML/sh/ts/js.
-- Planning docs go in `.agents/plans/<task-slug>/` (gitignored), named `<task-slug>.<TYPE>.md` (`PLAN`, `REQUIREMENTS`, `ANALYSIS`, …).
+- Keep ordinary plans and results in the conversation. If a planning document is requested or necessary,
+  use `.agents/plans/<task-slug>/` (gitignored); no per-task document is required.
+- Use existing tools and the smallest relevant checks. Routine edits need no source snapshots, backup folders,
+  receipts, or standalone reports. Preserve unique untracked work and use Git diffs for tracked files.
+- A source-only task ends with the requested change and relevant checks. Builds, deployment, and in-game
+  acceptance are separate scopes. Repeat passing checks only after changes or a specific unresolved concern.
 
-## Mandatory reading per task
+## Task references
 
-Read the matching doc(s) BEFORE starting the task:
+Read the relevant sections when needed for the work. Do not read every guide or turn examples into extra tasks.
 
-- Compiling, configuring, or running tests → `.agents/docs/build.md`
+- Authorized CMake configuration/build or native test setup → `.agents/docs/build.md`
 - Writing or modifying C++ → `.agents/docs/cpp-guidelines.md`
   - Script work (under `src/server/scripts/`) → also `.agents/docs/cpp-scripts.md`
 - Creating or modifying SQL → `.agents/docs/sql-guidelines.md`
   - SmartAI work (`smart_scripts` data) → also `.agents/docs/cpp-scripts.md`
 - Reviewing a changeset or PR → `.agents/docs/code-review.md`
-- Self-reviewing, or opening or updating a PR → also `.agents/docs/self-review-rules.md`
-- Touching a subsystem that has a doc in `.agents/docs/systems/` → read that doc too
+- Preparing an actual PR → `.agents/docs/self-review-rules.md`
+- Subsystem-specific questions → the relevant section in `.agents/docs/systems/`
 - Ascension damage/healing, AP/RAP/SP coefficients, triggered spells or tooltip parity →
   `.agents/docs/systems/ascension-spell-parity.md`
 - Local SQL/binary/client deployment, MPQ synchronization or deployment-verifier tests →
@@ -50,6 +55,7 @@ In this private fork, `modules/mod-ascension-compat` is vendored into this repos
 or a separate working tree. `origin` is the private CoA fork; `upstream` is the original AzerothCore
 repository. Fetching upstream is separate from reviewing, merging, building or deploying its changes.
 
-## Persisting lessons
+## Maintaining guidance
 
-When a user correction reveals a lesson that generalizes, offer to persist it into these docs (placement per `.agents/docs/README.md`): use the `/self-improve` skill if installed, otherwise suggest the user to install it and read this page: https://www.azerothcore.org/wiki/agentic-engineering
+Keep only stable conventions and essential routing here. Update guidance when requested or when a durable
+correction is needed; do not automatically offer lesson capture, install skills, or append task histories.
