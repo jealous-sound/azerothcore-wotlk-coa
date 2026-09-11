@@ -10969,9 +10969,12 @@ void Unit::Mount(uint32 mount, uint32 VehicleId, uint32 creatureEntry)
             }
         }
 
-        // unsummon pet
+        // Mechsuit is a combat form. Its mount helper is applied at launch, before
+        // the main aura, and its pet must remain available for Laser Beam and talents.
+        bool tinkerMechsuit = getClass() == CLASS_TINKER && creatureEntry == 229921 &&
+            HasAura(803451, GetGUID());
         Pet* pet = player->GetPet();
-        if (pet)
+        if (pet && !tinkerMechsuit)
         {
             Battleground* bg = ToPlayer()->GetBattleground();
             // don't unsummon pet in arena but SetFlag UNIT_FLAG_STUNNED to disable pet's interface
@@ -10982,7 +10985,7 @@ void Unit::Mount(uint32 mount, uint32 VehicleId, uint32 creatureEntry)
         }
 
         // xinef: if we have charmed npc, stun him also
-        if (Unit* charm = player->GetCharm())
+        if (Unit* charm = player->GetCharm(); charm && !tinkerMechsuit)
             if (charm->IsCreature())
                 charm->SetUnitFlag(UNIT_FLAG_STUNNED);
 

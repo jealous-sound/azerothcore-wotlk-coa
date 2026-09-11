@@ -2507,7 +2507,13 @@ public:
     void SetTemporaryUnsummonedPetNumber(uint32 petnumber) { m_temporaryUnsummonedPetNumber = petnumber; }
     void UnsummonPetTemporaryIfAny();
     void ResummonPetTemporaryUnSummonedIfAny();
-    [[nodiscard]] bool IsPetNeedBeTemporaryUnsummoned() const { return GetSession()->PlayerLogout() || !IsInWorld() || !IsAlive() || IsMounted()/*+in flight*/ || GetVehicle() || IsBeingTeleported(); }
+    [[nodiscard]] bool IsPetNeedBeTemporaryUnsummoned() const
+    {
+        bool mechsuit = getClass() == CLASS_TINKER && !IsInFlight() &&
+            HasAura(801384, GetGUID()) && HasAura(803451, GetGUID());
+        return GetSession()->PlayerLogout() || !IsInWorld() || !IsAlive() ||
+            (IsMounted() && !mechsuit) || GetVehicle() || IsBeingTeleported();
+    }
     bool CanResummonPet(uint32 spellid);
 
     void SendCinematicStart(uint32 CinematicSequenceId) const;

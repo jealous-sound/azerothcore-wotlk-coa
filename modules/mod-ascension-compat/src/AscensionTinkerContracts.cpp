@@ -102,6 +102,15 @@ void ApplyContracts(SpellInfo* info)
         dummy(0);
         info->ProcFlags = 0;
     }
+    if (Named(info,801709))
+        info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_PERIODIC_DUMMY;
+    if (id == 573054)
+    {
+        // The lifecycle tick selects enemies around the recipient; damage belongs
+        // to the Tinker, so its coefficient and threat redirection use that caster.
+        info->Effects[EFFECT_0].TargetA = SpellImplicitTargetInfo(TARGET_UNIT_TARGET_ENEMY);
+        info->Effects[EFFECT_0].TargetB = SpellImplicitTargetInfo();
+    }
     if (id == 524935)
     {
         info->Effects[0].Effect = SPELL_EFFECT_APPLY_AURA;

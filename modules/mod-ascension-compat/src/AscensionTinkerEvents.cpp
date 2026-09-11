@@ -16,7 +16,11 @@ void PetCast(Player* player, Unit* target, uint32 spell, bool turret)
 {
     for (Creature* device : Devices(player))
         if (turret ? Turret(device->GetEntry()) : Permanent(device->GetEntry()))
+        {
+            if (target && Turret(device->GetEntry()))
+                device->SetFacingToObject(target);
             Cast(device,target ? target : device,spell);
+        }
 }
 void DeviceEvent(Player* player, Creature* device, Unit* target, SpellInfo const* info,
                  uint32 damage, uint32 healing, bool critical, bool periodic)

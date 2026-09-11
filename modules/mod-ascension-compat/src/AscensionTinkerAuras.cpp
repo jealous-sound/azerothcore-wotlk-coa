@@ -9,6 +9,7 @@
 #include "SpellAuras.h"
 #include "SpellMgr.h"
 #include "SpellScript.h"
+#include "ThreatManager.h"
 #include <algorithm>
 namespace
 {
@@ -43,6 +44,8 @@ class aura_ascension_tinker_lifecycle : public AuraScript
             GetAura()->SetScriptValue(805657,player->GetGUID().GetRawValue());
         if (id == Mechsuit)
             Refresh(player);
+        if (Named(GetSpellInfo(),801709))
+            player->GetThreatMgr().RegisterRedirectThreat(id,target->GetGUID(),100);
         if (id == 712289 && GetAura()->GetStackAmount() >= 6 && !target->HasAura(712401,player->GetGUID()))
         {
             Cast(player,target,712319);
@@ -79,6 +82,13 @@ class aura_ascension_tinker_lifecycle : public AuraScript
                                                .1f * GetAura()->GetStackAmount()));
         if (id == 706692)
             GetAura()->SetScriptValue(706692,GameTime::GetGameTimeMS().count());
+        if (id == 806757)
+            for (uint32 helper : {806780,806778})
+                if (Aura* aura = target->GetAura(helper,player->GetGUID()))
+                {
+                    aura->SetMaxDuration(GetAura()->GetMaxDuration());
+                    aura->SetDuration(GetAura()->GetDuration());
+                }
     }
     void Remove(AuraEffect const* effect, AuraEffectHandleModes)
     {
@@ -96,12 +106,35 @@ class aura_ascension_tinker_lifecycle : public AuraScript
             player->RemoveAurasDueToSpell(801386);
         if (GetId() == 681245)
             Refresh(player);
+        if (GetId() == 500213 && GetTarget() == player)
+            for (uint32 id : TinkerFinite)
+            {
+                uint64 generation = GetAura()->GetScriptValue(id);
+                GetAura()->SetScriptValue(id,0);
+                Spend(player,id,generation);
+            }
+        if (Named(GetSpellInfo(),801709))
+            player->GetThreatMgr().UnregisterRedirectThreat(GetId(),GetTarget()->GetGUID());
+        if (GetId() == 806757)
+            for (uint32 helper : {806780,806778})
+                GetTarget()->RemoveAurasDueToSpell(helper,player->GetGUID());
     }
     void Tick(AuraEffect const* effect)
     {
         Player* player = Owner(GetCaster());
         if (!player)
             return;
+        if (Named(GetSpellInfo(),801709) && effect->GetEffIndex() == EFFECT_0)
+        {
+            PreventDefaultAction();
+            auto targets = Nearby(GetTarget(),Radius(573054));
+            targets.remove_if([player](Unit* enemy) { return !player->IsValidAttackTarget(enemy); });
+            if (SpellInfo const* helper = sSpellMgr->GetSpellInfo(573054); helper && helper->MaxAffectedTargets &&
+                targets.size() > helper->MaxAffectedTargets)
+                targets.resize(helper->MaxAffectedTargets);
+            for (Unit* enemy : targets)
+                player->CastCustomSpell(573054,SPELLVALUE_BASE_POINT0,effect->GetAmount(),enemy,true);
+        }
         if ((Named(GetSpellInfo(),500232) || GetId() == 504667 || GetId() == 500612) &&
             effect->GetEffIndex() == EFFECT_1)
         {

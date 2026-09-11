@@ -1,9 +1,42 @@
 # Tinker source reconstruction — 2026-09-10
 
 The Tinker class audit contains 139 findings: 117 implemented or extended,
-21 retained native mechanisms, and one unresolved coefficient. This package is
-source ready with that question open. It has not been built into a server,
-installed, or accepted in gameplay.
+21 retained native mechanisms, and one unresolved coefficient. This records
+the original source audit, with that question open. Its later package delivery is recorded
+in `CoA-Repack/RELEASE.json`; that delivery does not establish gameplay parity.
+The integration corrections below form the `tinker-20260911` patch. Installation status,
+binary identity and rollback information are recorded in `CoA-Repack/RELEASE.json`.
+
+## Integration corrections
+
+- Sentry Turret acquires nearby hostile targets without a prior Scrap Shot, retains explicit
+  Scrap Shot/Gatling Gun focus, and can assist spell/ranged combat without a melee victim. Selection checks
+  range, visibility and line of sight. Native ranged timers preserve haste and control effects;
+  upgraded grenades target the enemy's location. Turret command casts face their target.
+- Mechsuit permits family-34 casts while its two owned auras are active and retains the pet needed
+  by Laser Beam and pet talents. Ordinary mounts, flight, vehicles, death and teleport gates remain.
+- Stationary devices participate in native summon-area auras through the owner's controlled set.
+  Death, unsummon, possession teardown and map removal detach them before deferred destruction.
+- Spider Bomb count and device duration use native effect/duration modifiers, enabling Duobombers
+  and duration talents. The fixed lifetime of mobile bombs remains unchanged.
+- Gatling Gun spends selected Scrap Shot modifiers once when its owner-side channel aura ends,
+  preserving the modifier for channel damage and preserving newly granted generations. Innate
+  Brilliance drains mana once per successful channel. The reused foreign-class ID 800346 is excluded.
+- Nanobot Swarm's damage originates from its Tinker around the recipient, retaining the owner's
+  spell-power route. Its threat redirect ends with that recipient's aura. Overclocked Machine's
+  two helpers end with their owned parent.
+- Hyperblast Barrage's lesser Sticky Bomb uses 0.1 Fire SP + 0.5 AP from the active parent contract,
+  instead of the hidden helper's conflicting copied description.
+
+These corrections require the additional
+[integration migration](../../../data/sql/updates/pending_db_world/rev_20260911_00_tinker_integration.sql).
+`tools/Test-TinkerIntegration.py` exercises the affected native gates, selection, timers, lifecycle
+callbacks and migration replay with bounded dependencies. It does not run a server or game client.
+
+The additional [ascension-data export](https://github.com/hertigservices/ascension-data/tree/main/supplemental/exiles-db)
+is derived from the [AcensionOfflineDatabase mirror](https://github.com/Duff-SPP/AcensionOfflineDatabase).
+They are one source lineage, not independent backend evidence. Rendered descriptions support the
+Hyperblast, Cogmaster and Duobombers contracts but do not resolve Reconstruction's coefficient.
 
 ## Evidence and unresolved scaling
 
