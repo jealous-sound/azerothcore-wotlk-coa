@@ -79246,10 +79246,19 @@ DELETE `g` FROM `_coa_tw_new` AS `g` INNER JOIN `_coa_tw_9` AS `s` ON `s`.`_owne
 DELETE `g` FROM `_coa_tw_new` AS `g` INNER JOIN `_coa_tw_11` AS `s` ON `s`.`_owner` = `g`.`entry` LEFT JOIN
     `item_template` AS `i` ON `i`.`entry` = `s`.`Item` WHERE `i`.`entry` IS NULL OR `i`.`class` = 12 OR `i`.`Bonding` =
     4 OR `i`.`startquest` <> 0;
+CREATE TEMPORARY TABLE `_coa_tw_quest_items` (`Item` INT UNSIGNED NOT NULL PRIMARY KEY) ENGINE=InnoDB;
+DELETE FROM `_coa_tw_quest_items` WHERE 1 = 0;
+INSERT INTO `_coa_tw_quest_items` (`Item`)
+SELECT `RequiredItemId1` FROM `quest_template` WHERE `RequiredItemId1` > 0 UNION SELECT `RequiredItemId2` FROM
+    `quest_template` WHERE `RequiredItemId2` > 0 UNION SELECT `RequiredItemId3` FROM `quest_template` WHERE
+    `RequiredItemId3` > 0 UNION SELECT `RequiredItemId4` FROM `quest_template` WHERE `RequiredItemId4` > 0 UNION SELECT
+    `RequiredItemId5` FROM `quest_template` WHERE `RequiredItemId5` > 0 UNION SELECT `RequiredItemId6` FROM
+    `quest_template` WHERE `RequiredItemId6` > 0 UNION SELECT `ItemDrop1` FROM `quest_template` WHERE `ItemDrop1` > 0
+    UNION SELECT `ItemDrop2` FROM `quest_template` WHERE `ItemDrop2` > 0 UNION SELECT `ItemDrop3` FROM `quest_template`
+    WHERE `ItemDrop3` > 0 UNION SELECT `ItemDrop4` FROM `quest_template` WHERE `ItemDrop4` > 0;
 DELETE `g` FROM `_coa_tw_new` AS `g` INNER JOIN `_coa_tw_11` AS `s` ON `s`.`_owner` = `g`.`entry` INNER JOIN
-    `quest_template` AS `q` ON `s`.`Item` IN (`q`.`RequiredItemId1`, `q`.`RequiredItemId2`, `q`.`RequiredItemId3`,
-    `q`.`RequiredItemId4`, `q`.`RequiredItemId5`, `q`.`RequiredItemId6`, `q`.`ItemDrop1`, `q`.`ItemDrop2`,
-    `q`.`ItemDrop3`, `q`.`ItemDrop4`);
+    `_coa_tw_quest_items` AS `q` ON `s`.`Item` = `q`.`Item`;
+DROP TEMPORARY TABLE `_coa_tw_quest_items`;
 CREATE TEMPORARY TABLE `_coa_tw_owned` ENGINE=InnoDB AS SELECT DISTINCT `s`.`entry` FROM `_coa_tw_0` AS `s` INNER JOIN
     `_coa_tw_new` AS `g` ON `g`.`entry` = `s`.`_owner`;
 DELETE `creature_template` FROM `creature_template` NATURAL JOIN `_coa_tw_owned`;

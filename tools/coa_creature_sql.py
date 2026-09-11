@@ -307,8 +307,15 @@ def emit_sql(cohorts, report):
             'LEFT JOIN `item_template` AS `i` ON `i`.`entry` = `s`.`Item` '
             'WHERE `i`.`entry` IS NULL OR `i`.`class` = 12 OR `i`.`Bonding` = 4 OR `i`.`startquest` <> 0;')
         fields = ['RequiredItemId'+str(i) for i in range(1,7)] + ['ItemDrop'+str(i) for i in range(1,5)]
+        # Materialize the union once. Joining every drop against ten quest columns is quadratic.
+        put('CREATE TEMPORARY TABLE `_coa_tw_quest_items` '
+            '(`Item` INT UNSIGNED NOT NULL PRIMARY KEY) ENGINE=InnoDB;')
+        put('DELETE FROM `_coa_tw_quest_items` WHERE 1 = 0;')
+        put('INSERT INTO `_coa_tw_quest_items` (`Item`)')
+        put(' UNION '.join(f'SELECT `{field}` FROM `quest_template` WHERE `{field}` > 0' for field in fields) + ';')
         put(f'DELETE `g` FROM `_coa_tw_new` AS `g` INNER JOIN `{stage}` AS `s` ON `s`.`_owner` = `g`.`entry` '
-            'INNER JOIN `quest_template` AS `q` ON `s`.`Item` IN (' + ', '.join('`q`.`'+c+'`' for c in fields) + ');')
+            'INNER JOIN `_coa_tw_quest_items` AS `q` ON `s`.`Item` = `q`.`Item`;')
+        put('DROP TEMPORARY TABLE `_coa_tw_quest_items`;')
     for table, values in tables.items():
         stage = stages[table]
         columns = list(values[0][1])

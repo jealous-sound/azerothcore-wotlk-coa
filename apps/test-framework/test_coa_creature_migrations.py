@@ -176,7 +176,7 @@ class CreatureMigrations(CreatureMySQLFixture, unittest.TestCase):
         self.assertEqual([],self.query('SELECT * FROM `creature_loot_template` WHERE `Entry`=15;'))
 
     def test_missing_or_newly_quest_sensitive_item_blocks_complete_cohort(self):
-        for mode in ('missing', 'bonding', 'quest'):
+        for mode in ('missing', 'bonding', 'quest', 'late_quest_field', 'duplicate_quest_fields'):
             with self.subTest(mode=mode):
                 self.setUp()
                 try:
@@ -184,9 +184,15 @@ class CreatureMigrations(CreatureMySQLFixture, unittest.TestCase):
                         self.query(f'DELETE FROM `item_template` WHERE `entry`={self.cabal_item};')
                     elif mode == 'bonding':
                         self.query(f'UPDATE `item_template` SET `Bonding`=4 WHERE `entry`={self.cabal_item};')
-                    else:
+                    elif mode == 'quest':
                         self.query('INSERT INTO `quest_template` (`ID`,`RequiredItemId1`) '
                                    f'VALUES (123,{self.cabal_item});')
+                    elif mode == 'late_quest_field':
+                        self.query('INSERT INTO `quest_template` (`ID`,`ItemDrop4`) '
+                                   f'VALUES (123,{self.cabal_item});')
+                    else:
+                        self.query('INSERT INTO `quest_template` (`ID`,`RequiredItemId6`,`ItemDrop4`) '
+                                   f'VALUES (123,{self.cabal_item},{self.cabal_item});')
                     self.apply()
                     self.assertEqual([], self.query('SELECT `entry` FROM `creature_template` WHERE `entry`=15;'))
                     self.assertEqual([], self.query('SELECT `Item` FROM `creature_loot_template` WHERE `Entry`=15;'))

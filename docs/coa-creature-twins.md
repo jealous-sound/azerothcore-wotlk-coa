@@ -68,3 +68,12 @@ are contributed. No source archives, client JSON, DBCs, credentials or profiles 
 NPC drop lists are capped at 20 and report zero observations. Stated drop chances are not measurements;
 this batch is partial loot reconstruction. Approximated donor behavior may differ from Ascension. Named
 exclusions stay outside this migration; they are not silently downgraded into allegedly working encounters.
+
+## Local validation limit
+
+On the current-world scratch snapshot, all 1,590 planned creatures and 19,496 loot rows were inserted;
+reapplication preserved the complete affected-table snapshot. The core loaded all 32,753 creature definitions
+without new faction, class, model or other creature diagnostics. Both the unmodified baseline and candidate
+then exited with access violation 0xC0000005 before SmartAI loading. Full startup and runtime SmartAI validation
+are therefore incomplete; the SmartAI evidence is the synthetic transformer suite and database integrity checks.
+No live realm application or in-game validation of this batch is claimed.
