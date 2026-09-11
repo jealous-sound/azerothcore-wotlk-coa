@@ -124,6 +124,11 @@ WorldSocket::WorldSocket(IoContextTcpSocket&& socket)
 {
     Acore::Crypto::GetRandomBytes(_authSeed);
     _headerBuffer.Resize(sizeof(ClientPktHeader));
+
+    // Extensions.dll changes the local Ascension client's ping period to five seconds.
+    // Allow one second of jitter while retaining the ordinary overspeed strike limit.
+    if (GetRemoteIpAddress().is_loopback() && sConfigMgr->GetOption<bool>("AscensionCompat.Enable", false))
+        _minimumPingInterval = std::chrono::seconds(4);
 }
 
 WorldSocket::~WorldSocket() = default;
@@ -820,7 +825,7 @@ bool WorldSocket::HandlePing(WorldPacket& recvPacket)
 
         _LastPingTime = now;
 
-        if (diff < seconds(27))
+        if (diff < _minimumPingInterval)
         {
             ++_OverSpeedPings;
 
@@ -832,8 +837,10 @@ bool WorldSocket::HandlePing(WorldPacket& recvPacket)
 
                 if (_worldSession && !_worldSession->HasPermission(rbac::RBAC_PERM_SKIP_CHECK_OVERSPEED_PING))
                 {
-                    LOG_ERROR("network", "WorldSocket::HandlePing: {} kicked for over-speed pings (address: {})",
-                        _worldSession->GetPlayerInfo(), GetRemoteIpAddress().to_string());
+                    LOG_ERROR("network", "WorldSocket::HandlePing: {} kicked for over-speed pings "
+                        "(address: {}, interval: {} ms, minimum: {} ms)", _worldSession->GetPlayerInfo(),
+                        GetRemoteIpAddress().to_string(), duration_cast<milliseconds>(diff).count(),
+                        duration_cast<milliseconds>(_minimumPingInterval).count());
 
                     return false;
                 }
