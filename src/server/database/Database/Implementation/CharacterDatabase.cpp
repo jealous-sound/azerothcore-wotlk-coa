@@ -662,7 +662,10 @@ void CharacterDatabaseConnection::DoPrepareStatements()
     PrepareStatement(CHAR_SEL_MANASTORM_LOADOUT, "SELECT slot, spell FROM ascension_manastorm_loadout WHERE guid = ? UNION ALL SELECT 255, 0", CONNECTION_SYNCH);
     PrepareStatement(CHAR_REP_MANASTORM_LOADOUT, "REPLACE INTO ascension_manastorm_loadout (guid, slot, spell) VALUES (?, ?, ?)", CONNECTION_ASYNC);
     PrepareStatement(CHAR_DEL_MANASTORM_LOADOUT, "DELETE FROM ascension_manastorm_loadout WHERE guid = ?", CONNECTION_ASYNC);
-    PrepareStatement(CHAR_SEL_MANASTORM_XP, "SELECT COALESCE((SELECT amount FROM ascension_manastorm_xp WHERE guid = ?), 0)", CONNECTION_SYNCH);
+    // Mixing unsigned BIGINT with signed zero can yield DECIMAL; Field::Get<uint64>() needs binary BIGINT.
+    PrepareStatement(CHAR_SEL_MANASTORM_XP,
+        "SELECT CAST(COALESCE((SELECT amount FROM ascension_manastorm_xp WHERE guid = ?), 0) AS UNSIGNED)",
+        CONNECTION_SYNCH);
     PrepareStatement(CHAR_ADD_MANASTORM_XP, "INSERT INTO ascension_manastorm_xp (guid, amount) VALUES (?, ?) ON DUPLICATE KEY UPDATE amount = amount + VALUES(amount)", CONNECTION_ASYNC);
     PrepareStatement(CHAR_CLAIM_MANASTORM_XP, "UPDATE ascension_manastorm_xp SET amount = amount - ? WHERE guid = ?", CONNECTION_ASYNC);
     PrepareStatement(CHAR_DEL_MANASTORM_XP, "DELETE FROM ascension_manastorm_xp WHERE guid = ?", CONNECTION_ASYNC);
