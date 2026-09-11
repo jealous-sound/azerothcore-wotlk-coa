@@ -231,6 +231,19 @@ def prepare(records, target, archive, dbc, items, quests):
     report['loot_exclusions'] = dict(report['loot_exclusions'])
     return cohorts, report
 OWNER_KEYS = dict(CHILD_KEYS, creature_template='entry', creature_loot_template='Entry')
+ORPHAN_GUARDS = (
+    ('creature_template_locale', 'entry', None),
+    ('creature_onkill_reputation', 'creature_id', None),
+    ('creature_questitem', 'CreatureEntry', None),
+    ('creature_summon_groups', 'summonerId', '`t`.`summonerType` = 0'),
+    ('creature_queststarter', 'id', None),
+    ('creature_questender', 'id', None),
+    ('game_event_creature_quest', 'id', None),
+    ('npc_vendor', 'entry', None),
+    ('npc_spellclick_spells', 'npc_entry', None),
+    ('creature_default_trainer', 'CreatureId', None),
+    ('vehicle_template_accessory', 'entry', None),
+)
 
 def emit_sql(cohorts, report):
     tables = defaultdict(list)
@@ -262,9 +275,13 @@ def emit_sql(cohorts, report):
     put('CREATE TEMPORARY TABLE `_coa_tw_new` (`entry` INT UNSIGNED NOT NULL PRIMARY KEY) ENGINE=InnoDB;')
     put('DELETE FROM `_coa_tw_new` WHERE 1 = 0;')
     put(f'INSERT INTO `_coa_tw_new` SELECT `_owner` FROM `{root}`;')
-    # Check all ordinary child namespaces, even where this cohort contributes no rows.
+    # Check staged children and unstaged template-owned namespaces before activating a new entry.
     for table, key in OWNER_KEYS.items():
         put(f'DELETE `g` FROM `_coa_tw_new` AS `g` INNER JOIN `{table}` AS `t` ON `t`.`{key}` = `g`.`entry`;')
+    for table, key, predicate in ORPHAN_GUARDS:
+        suffix = ' AND ' + predicate if predicate else ''
+        put(f'DELETE `g` FROM `_coa_tw_new` AS `g` INNER JOIN `{table}` AS `t` '
+            f'ON `t`.`{key}` = `g`.`entry`{suffix};')
     put('DELETE `g` FROM `_coa_tw_new` AS `g` INNER JOIN `creature_template` AS `t` '
         'ON `t`.`lootid` = `g`.`entry`;')
     put('DELETE `g` FROM `_coa_tw_new` AS `g` INNER JOIN `conditions` AS `t` '

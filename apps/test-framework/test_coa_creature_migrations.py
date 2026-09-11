@@ -14,9 +14,16 @@ PENDING = ROOT / 'data/sql/updates/pending_db_world'
 MIGRATION = PENDING / 'rev_1789088238898143200.sql'
 from coa_mysql_fixture import CreatureMySQLFixture, PROCESS_OPTIONS
 
-TABLES = ['creature_template','creature_template_model','creature_template_spell','creature_template_addon',
-          'creature_template_resistance','creature_template_movement','creature_equip_template','creature_text',
-          'creature_text_locale','smart_scripts','conditions','creature_loot_template','quest_template']
+TABLES = [
+    'creature_template', 'creature_template_model', 'creature_template_spell',
+    'creature_template_addon', 'creature_template_resistance', 'creature_template_movement',
+    'creature_equip_template', 'creature_text', 'creature_text_locale', 'smart_scripts',
+    'conditions', 'creature_loot_template', 'quest_template', 'creature_template_locale',
+    'creature_onkill_reputation', 'creature_questitem', 'creature_summon_groups',
+    'creature_queststarter', 'creature_questender', 'game_event_creature_quest',
+    'npc_vendor', 'npc_spellclick_spells', 'creature_default_trainer',
+    'vehicle_template_accessory',
+]
 
 class CreatureMigrations(CreatureMySQLFixture, unittest.TestCase):
     mysql_bin = None
@@ -97,6 +104,57 @@ class CreatureMigrations(CreatureMySQLFixture, unittest.TestCase):
         self.assertEqual([],self.query('SELECT * FROM `creature_template` WHERE `entry`=15;'))
         self.assertEqual([('744',)],self.query('SELECT `Spell` FROM `creature_template_spell` WHERE `CreatureID`=15;'))
         self.assertEqual([],self.query('SELECT * FROM `creature_template_model` WHERE `CreatureID`=15;'))
+
+    def test_unstaged_template_owned_rows_block_each_complete_cohort(self):
+        cases = [
+            (15, "INSERT INTO `creature_template_locale` (`entry`,`locale`) VALUES (15,'frFR');",
+             'SELECT `entry` FROM `creature_template_locale` WHERE `entry`=15;'),
+            (16, 'INSERT INTO `creature_onkill_reputation` (`creature_id`) VALUES (16);',
+             'SELECT `creature_id` FROM `creature_onkill_reputation` WHERE `creature_id`=16;'),
+            (17, 'INSERT INTO `creature_questitem` (`CreatureEntry`,`Idx`,`ItemId`) VALUES (17,0,118);',
+             'SELECT `CreatureEntry` FROM `creature_questitem` WHERE `CreatureEntry`=17;'),
+            (18, 'INSERT INTO `creature_summon_groups` (`summonerId`,`summonerType`,`entry`) '
+                 'VALUES (18,0,42);',
+             'SELECT `summonerId` FROM `creature_summon_groups` WHERE `summonerId`=18;'),
+            (20, 'INSERT INTO `creature_queststarter` (`id`,`quest`) VALUES (20,123);',
+             'SELECT `id` FROM `creature_queststarter` WHERE `id`=20;'),
+            (21, 'INSERT INTO `creature_questender` (`id`,`quest`) VALUES (21,123);',
+             'SELECT `id` FROM `creature_questender` WHERE `id`=21;'),
+            (22, 'INSERT INTO `game_event_creature_quest` (`eventEntry`,`id`,`quest`) VALUES (1,22,123);',
+             'SELECT `id` FROM `game_event_creature_quest` WHERE `id`=22;'),
+            (23, 'INSERT INTO `npc_vendor` (`entry`,`item`) VALUES (23,118);',
+             'SELECT `entry` FROM `npc_vendor` WHERE `entry`=23;'),
+            (24, 'INSERT INTO `npc_spellclick_spells` (`npc_entry`,`spell_id`,`cast_flags`) '
+                 'VALUES (24,744,0);',
+             'SELECT `npc_entry` FROM `npc_spellclick_spells` WHERE `npc_entry`=24;'),
+            (27, 'INSERT INTO `creature_default_trainer` (`CreatureId`,`TrainerId`) VALUES (27,0);',
+             'SELECT `CreatureId` FROM `creature_default_trainer` WHERE `CreatureId`=27;'),
+            (10511, 'INSERT INTO `vehicle_template_accessory` '
+                    '(`entry`,`accessory_entry`,`seat_id`,`description`) '
+                    "VALUES (10511,42,0,'Synthetic orphan');",
+             'SELECT `entry` FROM `vehicle_template_accessory` WHERE `entry`=10511;'),
+        ]
+        for _, insert, _ in cases:
+            self.query(insert)
+
+        self.apply()
+
+        for entry, _, preserved in cases:
+            with self.subTest(entry=entry):
+                self.assertEqual([], self.query(
+                    f'SELECT `entry` FROM `creature_template` WHERE `entry`={entry};'))
+                self.assertTrue(self.query(preserved))
+
+    def test_gameobject_summon_group_id_does_not_block_creature_entry(self):
+        self.query('INSERT INTO `creature_summon_groups` (`summonerId`,`summonerType`,`entry`) '
+                   'VALUES (15,1,42);')
+
+        self.apply()
+
+        self.assertTrue(self.query('SELECT `entry` FROM `creature_template` WHERE `entry`=15;'))
+        self.assertTrue(self.query(
+            'SELECT `summonerId` FROM `creature_summon_groups` '
+            'WHERE `summonerId`=15 AND `summonerType`=1;'))
 
     def test_shared_loot_owner_blocks_new_creature(self):
         self.query('UPDATE `creature_template` SET `lootid`=15 WHERE `entry`=42;')

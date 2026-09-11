@@ -2,7 +2,7 @@
 
 Planned: 1590 creatures; 19496 partial loot rows.
 
-SQL SHA-256: `bbcea8303d5806dd5bae596ec8ac3783a741cc4254060c8f8f2ab36fca861e1e`.
+SQL SHA-256: `8edf154419c00b435587f935010f6ece81506419eb1ff8ce5ba626de78afc610`.
 
 ## 15 — Cabal Cultist
 

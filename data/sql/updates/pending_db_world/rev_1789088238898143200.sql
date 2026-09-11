@@ -79217,6 +79217,16 @@ DELETE `g` FROM `_coa_tw_new` AS `g` INNER JOIN `creature_text` AS `t` ON `t`.`C
 DELETE `g` FROM `_coa_tw_new` AS `g` INNER JOIN `creature_text_locale` AS `t` ON `t`.`CreatureID` = `g`.`entry`;
 DELETE `g` FROM `_coa_tw_new` AS `g` INNER JOIN `creature_template` AS `t` ON `t`.`entry` = `g`.`entry`;
 DELETE `g` FROM `_coa_tw_new` AS `g` INNER JOIN `creature_loot_template` AS `t` ON `t`.`Entry` = `g`.`entry`;
+DELETE `g` FROM `_coa_tw_new` AS `g` INNER JOIN `creature_template_locale` AS `t` ON `t`.`entry` = `g`.`entry`;
+DELETE `g` FROM `_coa_tw_new` AS `g` INNER JOIN `creature_onkill_reputation` AS `t` ON `t`.`creature_id` = `g`.`entry`;
+DELETE `g` FROM `_coa_tw_new` AS `g` INNER JOIN `creature_questitem` AS `t` ON `t`.`CreatureEntry` = `g`.`entry`;
+DELETE `g` FROM `_coa_tw_new` AS `g` INNER JOIN `creature_summon_groups` AS `t` ON `t`.`summonerId` = `g`.`entry` AND
+    `t`.`summonerType` = 0;
+DELETE `g` FROM `_coa_tw_new` AS `g` INNER JOIN `creature_queststarter` AS `t` ON `t`.`id` = `g`.`entry`;
+DELETE `g` FROM `_coa_tw_new` AS `g` INNER JOIN `creature_questender` AS `t` ON `t`.`id` = `g`.`entry`;
+DELETE `g` FROM `_coa_tw_new` AS `g` INNER JOIN `game_event_creature_quest` AS `t` ON `t`.`id` = `g`.`entry`;
+DELETE `g` FROM `_coa_tw_new` AS `g` INNER JOIN `npc_vendor` AS `t` ON `t`.`entry` = `g`.`entry`;
+DELETE `g` FROM `_coa_tw_new` AS `g` INNER JOIN `npc_spellclick_spells` AS `t` ON `t`.`npc_entry` = `g`.`entry`;
 DELETE `g` FROM `_coa_tw_new` AS `g` INNER JOIN `creature_template` AS `t` ON `t`.`lootid` = `g`.`entry`;
 DELETE `g` FROM `_coa_tw_new` AS `g` INNER JOIN `conditions` AS `t` ON (`t`.`SourceTypeOrReferenceId` = 1 AND
     `t`.`SourceGroup` = `g`.`entry`) OR (`t`.`SourceTypeOrReferenceId` = 22 AND `t`.`SourceEntry` = `g`.`entry` AND
