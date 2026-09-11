@@ -18,6 +18,19 @@
 #include "DBCStore.h"
 #include "DBCDatabaseLoader.h"
 
+namespace
+{
+char const* GetFileFormat(DBCFileLoader const& dbc, char const* format)
+{
+    // Game-table DBCs contain one float per row; the row number is the ID.
+    // Their SQL overlays add an explicit ID column and still require "df".
+    if (std::strcmp(format, "df") == 0 && dbc.GetCols() == 1 && dbc.GetRowSize() == sizeof(float))
+        return "f";
+
+    return format;
+}
+}
+
 DBCStorageBase::DBCStorageBase(char const* fmt) : _fieldCount(0), _fileFormat(fmt), _dataTable(nullptr), _indexTableSize(0)
 {
 }
@@ -40,12 +53,13 @@ bool DBCStorageBase::Load(char const* path, char**& indexTable)
         return false;
 
     _fieldCount = dbc.GetCols();
+    char const* fileFormat = GetFileFormat(dbc, _fileFormat);
 
     // load raw non-string data
-    _dataTable = dbc.AutoProduceData(_fileFormat, _indexTableSize, indexTable);
+    _dataTable = dbc.AutoProduceData(fileFormat, _indexTableSize, indexTable);
 
     // load strings from dbc data
-    if (char* stringBlock = dbc.AutoProduceStrings(_fileFormat, _dataTable))
+    if (char* stringBlock = dbc.AutoProduceStrings(fileFormat, _dataTable))
         _stringPool.push_back(stringBlock);
 
     // error in dbc file at loading if nullptr
@@ -65,7 +79,7 @@ bool DBCStorageBase::LoadStringsFrom(char const* path, char** indexTable)
         return false;
 
     // load strings from another locale dbc data
-    if (char* stringBlock = dbc.AutoProduceStrings(_fileFormat, _dataTable))
+    if (char* stringBlock = dbc.AutoProduceStrings(GetFileFormat(dbc, _fileFormat), _dataTable))
         _stringPool.push_back(stringBlock);
 
     return true;

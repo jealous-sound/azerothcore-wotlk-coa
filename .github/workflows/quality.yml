@@ -17,5 +17,6 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -B apps/codestyle/tests/test_scoped_lint.py
+      - run: python -B modules/mod-ascension-compat/tests/client_compat/run.py
       - run: python -B tools/check_repository.py
       - run: git diff --check HEAD^ HEAD
