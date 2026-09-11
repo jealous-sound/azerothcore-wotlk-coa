@@ -19,7 +19,8 @@ bool Select(uint32 id, SpellInfo const* info)
 {
     switch (id)
     {
-        case 707250: case 707261: case 653273: return Named(info,500549) || (info && info->Id == 800346);
+        case 707250: case 707261: case 653273:
+            return Named(info,500549) || (info && info->Id == 500213);
         case 707272: return Named(info,801005);
         case 537247: return Named(info,500235);
         case 503553: return Any(info,{801707,802684});
@@ -45,13 +46,17 @@ void Finish(Player* player, Spell* spell)
 {
     for (uint32 id : TinkerFinite)
         if (uint64 generation = spell->GetScriptValue(id))
-            if (Aura* aura = player->GetAura(id); aura && generation == aura->GetScriptValue(Scrap))
-            {
-                if (aura->GetCharges() > 1)
-                    aura->SetCharges(aura->GetCharges() - 1);
-                else
-                    aura->Remove();
-            }
+        {
+            // The children calculate their damage during the channel. Keep the
+            // selected modifiers until its owner-side aura ends, then spend once.
+            if (spell->GetSpellInfo()->Id == 500213)
+                if (Aura* channel = player->GetAura(500213,player->GetGUID()))
+                {
+                    channel->SetScriptValue(id,generation);
+                    continue;
+                }
+            Spend(player,id,generation);
+        }
 }
 void Counter(Player* player, uint32 stack, uint32 buff)
 {
@@ -124,20 +129,20 @@ public:
                 Cast(player,player,504749);
         }
         Finish(player,spell);
-        bool shot = Named(info,500549) || id == 800346;
+        bool shot = Named(info,500549);
         bool sticky = Named(info,500232);
         bool rocket = Named(info,500235);
         bool bomb = Named(info,801005);
         if (player->HasAura(92141) && (shot || sticky))
             Resource(player,Scrap,shot ? 3 : 10);
+        if ((shot || id == 500213) && target)
+        {
+            State(player).focus = target->GetGUID();
+            for (Creature* device : Devices(player))
+                device->AI()->SetGUID(target->GetGUID(),1);
+        }
         if (shot)
         {
-            if (target)
-            {
-                State(player).focus = target->GetGUID();
-                for (Creature* device : Devices(player))
-                    device->AI()->SetGUID(target->GetGUID(),1);
-            }
             if (player->HasAura(707249))
                 Counter(player,707251,707250);
             if (player->HasAura(572545) && player->HasAura(653232))
@@ -252,7 +257,16 @@ public:
         if (healing && Named(info,801707) && player->HasAura(524834))
             if (Creature* device = target->ToCreature(); device && Owned(player,device))
                 Overcharge(player,device);
-        if (damage && spell->GetScriptValue(653273))
+        bool brilliance = spell->GetScriptValue(653273) != 0;
+        if (info->Id == 500577)
+            if (Spell* channel = player->GetCurrentSpell(CURRENT_CHANNELED_SPELL);
+                channel && channel->GetSpellInfo()->Id == 500213 && channel->GetScriptValue(653273) &&
+                !channel->GetScriptValue(653244) && damage)
+            {
+                channel->SetScriptValue(653244,1);
+                brilliance = true;
+            }
+        if (damage && brilliance)
             player->CastCustomSpell(653244,SPELLVALUE_BASE_POINT0,
                 Amount(653244,0,player) + int32(player->GetTotalAttackPowerValue(RANGED_ATTACK) * .1f),target,true);
     }

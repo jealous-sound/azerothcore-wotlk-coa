@@ -6068,8 +6068,12 @@ SpellCastResult Spell::CheckCast(bool strict, uint32* /*param1*/, uint32* /*para
     Unit const* divineCaster = divineCharge ? divineCharge->GetCaster() : nullptr;
     bool divineSteed = divineCaster && divineCaster->IsPlayer() && divineCaster->getClass() == CLASS_MONK &&
         m_caster->GetMountID() == 14584 && !m_caster->IsInFlight();
+    bool tinkerMechsuit = m_caster->IsPlayer() && m_caster->getClass() == CLASS_TINKER &&
+        m_spellInfo->SpellFamilyName == 34 && !m_caster->IsInFlight() &&
+        m_caster->HasAura(801384, m_caster->GetGUID()) && m_caster->HasAura(803451, m_caster->GetGUID());
     if (m_caster->IsMounted() && m_caster->IsPlayer() && !HasTriggeredCastFlag(TRIGGERED_IGNORE_CASTER_MOUNTED_OR_ON_VEHICLE) &&
             !m_spellInfo->IsPassive() && !m_spellInfo->HasAttribute(SPELL_ATTR0_ALLOW_WHILE_MOUNTED) && !divineSteed &&
+            !tinkerMechsuit &&
             !(m_caster->getClass() == CLASS_STARCALLER && m_caster->HasAura(704772) && !m_caster->IsInFlight()))
     {
         if (m_caster->IsInFlight())

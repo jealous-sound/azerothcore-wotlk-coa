@@ -159,7 +159,7 @@ bool Chance(Player* player, uint32 id, uint32 cooldown)
 }
 bool Shot(SpellInfo const* info)
 {
-    return Any(info,{500549,800346,500577});
+    return Any(info,{500549,500577});
 }
 bool MechAbility(SpellInfo const* info)
 {
@@ -223,6 +223,18 @@ void Grant(Player* player, uint32 id, uint32 charges)
         aura->SetStackAmount(1);
         aura->SetScriptValue(Scrap,++State(player).sequence);
     }
+}
+void Spend(Player* player, uint32 id, uint64 generation)
+{
+    if (generation)
+        if (Aura* aura = player->GetAura(id,player->GetGUID());
+            aura && generation == aura->GetScriptValue(Scrap))
+        {
+            if (aura->GetCharges() > 1)
+                aura->SetCharges(aura->GetCharges() - 1);
+            else
+                aura->Remove();
+        }
 }
 void ActivateModule(Player* player, uint32 id)
 {

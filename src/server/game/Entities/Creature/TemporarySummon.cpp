@@ -311,6 +311,13 @@ void TempSummon::UnSummon(Milliseconds msTime)
         return;
     }
 
+    // Tinker devices use stationary TempSummons registered as controlled summons
+    // for native pet talents. Detach before deferred deletion or owner logout.
+    if (!HasUnitTypeMask(UNIT_MASK_MINION))
+        if (Unit* owner = GetOwner(); owner && owner->IsPlayer() && owner->getClass() == CLASS_TINKER &&
+            GetSummonerGUID() == owner->GetGUID())
+            owner->m_Controlled.erase(this);
+
     if (WorldObject* owner = GetSummoner())
     {
         if (owner->IsCreature() && owner->ToCreature()->IsAIEnabled)
@@ -332,6 +339,12 @@ void TempSummon::RemoveFromWorld()
 {
     if (!IsInWorld())
         return;
+
+    // Map unload can bypass UnSummon (including a possessed Destructo-Bot).
+    if (!HasUnitTypeMask(UNIT_MASK_MINION))
+        if (Unit* owner = GetOwner(); owner && owner->IsPlayer() && owner->getClass() == CLASS_TINKER &&
+            GetSummonerGUID() == owner->GetGUID())
+            owner->m_Controlled.erase(this);
 
     if (m_Properties)
         if (uint32 slot = m_Properties->Slot)
