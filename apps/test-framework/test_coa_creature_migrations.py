@@ -22,7 +22,7 @@ TABLES = [
     'creature_onkill_reputation', 'creature_questitem', 'creature_summon_groups',
     'creature_queststarter', 'creature_questender', 'game_event_creature_quest',
     'npc_vendor', 'npc_spellclick_spells', 'creature_default_trainer',
-    'vehicle_template_accessory',
+    'vehicle_template_accessory', 'creature', 'creature_multispawn', 'script_waypoint',
 ]
 
 class CreatureMigrations(CreatureMySQLFixture, unittest.TestCase):
@@ -37,9 +37,15 @@ class CreatureMigrations(CreatureMySQLFixture, unittest.TestCase):
         cls.query(re.search(r'CREATE TABLE `item_template` \(.*?\) ENGINE=.*?;', item_sql, re.S).group(0))
         # Use schema from the repository; source data stays outside the test artifact.
         for table in TABLES:
+            if table == 'creature_multispawn':
+                continue
             text = (ROOT/'data/sql/base/db_world'/(table+'.sql')).read_text(encoding='utf8')
             ddl = re.search(r'CREATE TABLE `'+table+r'` \(.*?\) ENGINE=.*?;',text,re.S).group(0)
             cls.query(ddl)
+        # The base dump predates the current multispawn schema. Apply its checked-in update so
+        # the fixture exercises the same creature.id namespace as current source.
+        update = (ROOT/'data/sql/updates/db_world/2026_06_16_00.sql').read_text(encoding='utf8')
+        cls.query(update)
 
         # Supply synthetic, non-quest item fixtures for every staged reference. The migration itself
         # still executes unmodified in each test; no archived item content is embedded in the test.
@@ -133,7 +139,14 @@ class CreatureMigrations(CreatureMySQLFixture, unittest.TestCase):
                     '(`entry`,`accessory_entry`,`seat_id`,`description`) '
                     "VALUES (10511,42,0,'Synthetic orphan');",
              'SELECT `entry` FROM `vehicle_template_accessory` WHERE `entry`=10511;'),
+            (10512, 'INSERT INTO `creature` (`guid`,`id`) VALUES (900001,10512);',
+             'SELECT `id` FROM `creature` WHERE `guid`=900001;'),
+            (40553, 'INSERT INTO `creature_multispawn` (`spawnId`,`entry`) VALUES (900002,40553);',
+             'SELECT `entry` FROM `creature_multispawn` WHERE `spawnId`=900002;'),
+            (40554, 'INSERT INTO `script_waypoint` (`entry`,`pointid`) VALUES (40554,0);',
+             'SELECT `entry` FROM `script_waypoint` WHERE `entry`=40554;'),
         ]
+        self.query('INSERT INTO `creature` (`guid`,`id`) VALUES (900002,42);')
         for _, insert, _ in cases:
             self.query(insert)
 

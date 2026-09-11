@@ -79227,6 +79227,11 @@ DELETE `g` FROM `_coa_tw_new` AS `g` INNER JOIN `creature_questender` AS `t` ON 
 DELETE `g` FROM `_coa_tw_new` AS `g` INNER JOIN `game_event_creature_quest` AS `t` ON `t`.`id` = `g`.`entry`;
 DELETE `g` FROM `_coa_tw_new` AS `g` INNER JOIN `npc_vendor` AS `t` ON `t`.`entry` = `g`.`entry`;
 DELETE `g` FROM `_coa_tw_new` AS `g` INNER JOIN `npc_spellclick_spells` AS `t` ON `t`.`npc_entry` = `g`.`entry`;
+DELETE `g` FROM `_coa_tw_new` AS `g` INNER JOIN `creature_default_trainer` AS `t` ON `t`.`CreatureId` = `g`.`entry`;
+DELETE `g` FROM `_coa_tw_new` AS `g` INNER JOIN `vehicle_template_accessory` AS `t` ON `t`.`entry` = `g`.`entry`;
+DELETE `g` FROM `_coa_tw_new` AS `g` INNER JOIN `creature` AS `t` ON `t`.`id` = `g`.`entry`;
+DELETE `g` FROM `_coa_tw_new` AS `g` INNER JOIN `creature_multispawn` AS `t` ON `t`.`entry` = `g`.`entry`;
+DELETE `g` FROM `_coa_tw_new` AS `g` INNER JOIN `script_waypoint` AS `t` ON `t`.`entry` = `g`.`entry`;
 DELETE `g` FROM `_coa_tw_new` AS `g` INNER JOIN `creature_template` AS `t` ON `t`.`lootid` = `g`.`entry`;
 DELETE `g` FROM `_coa_tw_new` AS `g` INNER JOIN `conditions` AS `t` ON (`t`.`SourceTypeOrReferenceId` = 1 AND
     `t`.`SourceGroup` = `g`.`entry`) OR (`t`.`SourceTypeOrReferenceId` = 22 AND `t`.`SourceEntry` = `g`.`entry` AND

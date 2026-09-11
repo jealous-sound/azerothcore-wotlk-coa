@@ -243,6 +243,9 @@ ORPHAN_GUARDS = (
     ('npc_spellclick_spells', 'npc_entry', None),
     ('creature_default_trainer', 'CreatureId', None),
     ('vehicle_template_accessory', 'entry', None),
+    ('creature', 'id', None),
+    ('creature_multispawn', 'entry', None),
+    ('script_waypoint', 'entry', None),
 )
 
 def emit_sql(cohorts, report):
