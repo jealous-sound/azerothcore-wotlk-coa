@@ -1,7 +1,6 @@
 # .agents/docs
 
-Task-scoped agent guidance, routed from AGENTS.md's "Mandatory reading per task". Keep every doc
-compact and agent-agnostic.
+Task references routed from AGENTS.md. Read only relevant sections and keep guidance compact.
 
 ## Taxonomy
 
@@ -14,7 +13,9 @@ compact and agent-agnostic.
 
 - The most specific applicable doc wins.
 - Generic language lesson → the language doc (e.g. generic C++ → `cpp-guidelines.md`).
-- Subsystem-specific lesson → `systems/<subsystem>.md`; create it if missing.
+- Subsystem-specific guidance → the relevant document in `systems/`.
 - Extend an existing doc before creating a new one.
-- A new doc REQUIRES adding its routing bullet to AGENTS.md's "Mandatory reading per task" in the
-  same change.
+- Create a document only when requested or when substantial reusable guidance needs a home.
+- Add routing only when needed for discovery; do not make every new lesson mandatory reading.
+- Keep task histories, hashes, process IDs, failed phases, and acceptance receipts in existing task/release records.
+  Ordinary changes need no new document or report. Do not automatically suggest skills or lesson capture.

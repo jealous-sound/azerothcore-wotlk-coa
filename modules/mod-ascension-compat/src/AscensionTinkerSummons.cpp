@@ -117,6 +117,8 @@ void Summon(Player* player, Unit* target, uint32 spell, Position const* destinat
     if (spell == 500600) entry = 226112;
     if (spell == 850020 || spell == 806760) count = 2;
     if (spell == 500236) count = 3;
+    if (spell == 500535)
+        count = uint32(std::max(1, info->Effects[EFFECT_1].CalcValue(player)));
     if (!entry)
         return;
     if (spell == 500239)
@@ -127,7 +129,9 @@ void Summon(Player* player, Unit* target, uint32 spell, Position const* destinat
                 return;
             }
     Position origin = destination ? *destination : player->GetPosition();
-    uint32 duration = uint32(std::max(1000,info->GetDuration()));
+    int32 modifiedDuration = info->GetDuration();
+    player->ApplySpellMod(spell, SPELLMOD_DURATION, modifiedDuration);
+    uint32 duration = uint32(std::max(1000, modifiedDuration));
     if (spell == 500535 || spell == 802477 || spell == 500600)
         duration = 15000;
     for (uint32 n = 0; n < count; ++n)
@@ -226,6 +230,9 @@ struct npc_ascension_tinker_device : ScriptedAI
             return;
         owner = player->GetGUID();
         me->SetOwnerGUID(owner);
+        // Native summon-area auras enumerate m_Controlled, not our GUID index.
+        // Keep the stationary TempSummon AI while participating in that lifecycle.
+        player->m_Controlled.insert(me);
         me->SetFaction(player->GetFaction());
         me->SetReactState(REACT_PASSIVE);
         me->SetCombatMovement(Mobile());
@@ -319,9 +326,55 @@ struct npc_ascension_tinker_device : ScriptedAI
     void Cleanup()
     {
         if (Player* player = ObjectAccessor::FindPlayer(owner))
+        {
+            player->m_Controlled.erase(me);
             State(player).summons.erase(me->GetGUID());
+        }
     }
+    void OnDespawn() override { Cleanup(); }
     ~npc_ascension_tinker_device() override { Cleanup(); }
+    Unit* TurretTarget(Player* player)
+    {
+        SpellInfo const* shot = sSpellMgr->GetSpellInfo(706689);
+        if (!shot)
+            return nullptr;
+        float range = shot->GetMaxRange(false,me);
+        auto valid = [this,player,range](Unit* target)
+        {
+            return target && target->IsAlive() && player->IsValidAttackTarget(target) &&
+                me->IsWithinDistInMap(target,range) && me->CanSeeOrDetect(target) && me->IsWithinLOSInMap(target);
+        };
+        if (Unit* target = ObjectAccessor::GetUnit(*me,focus); valid(target))
+            return target;
+        if (Unit* target = player->GetVictim(); valid(target))
+            return target;
+        // Spell and ranged attacks need not set the player's melee victim.
+        if (Unit* target = player->GetSelectedUnit(); valid(target) && player->IsInCombatWith(target))
+            return target;
+        Unit* nearest = nullptr;
+        for (Unit* target : Nearby(me,range))
+            if (valid(target) && (player->IsInCombatWith(target) || player->IsHostileTo(target)) &&
+                (!nearest || me->GetExactDist(target) < me->GetExactDist(nearest)))
+                nearest = target;
+        return nearest;
+    }
+    void UpdateTurret(Player* player)
+    {
+        if (!Turret(me->GetEntry()) || me->HasUnitState(UNIT_STATE_CONTROLLED | UNIT_STATE_CASTING) ||
+            me->HasAuraType(SPELL_AURA_MOD_PACIFY) || me->HasAuraType(SPELL_AURA_MOD_PACIFY_SILENCE) ||
+            !me->isAttackReady(RANGED_ATTACK))
+            return;
+        if (Unit* target = TurretTarget(player))
+        {
+            me->SetFacingToObject(target);
+            if (me->HasAura(706692))
+                me->CastSpell(target->GetPositionX(),target->GetPositionY(),target->GetPositionZ(),706694,true);
+            else
+                Cast(me,target,706689);
+            // The native timer includes ranged haste and adjusts when haste changes.
+            me->resetAttackTimer(RANGED_ATTACK);
+        }
+    }
     void UpdateAI(uint32 diff) override
     {
         Player* player = ObjectAccessor::FindPlayer(owner);
@@ -330,6 +383,7 @@ struct npc_ascension_tinker_device : ScriptedAI
             me->DespawnOrUnsummon();
             return;
         }
+        UpdateTurret(player);
         events.Update(diff);
         while (uint32 event = events.ExecuteEvent())
         {
@@ -364,12 +418,6 @@ struct npc_ascension_tinker_device : ScriptedAI
             {
                 Scale(player,me,false);
                 uint32 next = 1000;
-                if (Turret(entry) && target)
-                {
-                    me->SetFacingToObject(target);
-                    Cast(me,target,me->HasAura(706692) ? 706694 : 706689);
-                    next = std::max(200u,me->GetAttackTime(RANGED_ATTACK));
-                }
                 if (entry == 500711 && target)
                 {
                     AttackStart(target);

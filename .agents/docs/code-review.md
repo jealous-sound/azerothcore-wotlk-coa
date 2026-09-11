@@ -1,19 +1,16 @@
 # Code review
 
-Reviewing a changeset or PR, your own before submission or a contributor's. The task-scoped docs
-(`cpp-guidelines.md`, `sql-guidelines.md`, `cpp-scripts.md`) apply as a checklist to every changed
-line, not as background reading.
+Review the requested changeset or PR and affected dependencies. Use relevant language/subsystem guidance.
+Routine self-checks do not require a formal report, a clean working tree, or a committed review round.
 
 - A posted review carries findings only: no summary, no praise. Nothing to report means one line
   saying so.
-- Label `To Be Merged` only on a merge-ready PR, approved or not; remove `Ready to be Reviewed` in
-  the same step.
 - A finding names what is wrong, why it matters and the fix, on the offending line. Findings are
   bugs, crashes, lifetime and memory errors, data-integrity problems, injection, and violations of
   a rule written down in AGENTS.md or `.agents/docs/`; taste no rule covers is not a finding.
-- Review codestyle on every changed line, even when style is not the change's subject. Run both
-  linters and report violations as findings: `python apps/codestyle/codestyle-cpp.py` and
-  `python apps/codestyle/codestyle-sql.py`.
+- Run the affected language's linter on changed files with `--files <path> ...`:
+  `python apps/codestyle/codestyle-cpp.py` or `python apps/codestyle/codestyle-sql.py`.
+  Do not run unrelated linters or full-tree scans for a small diff. Documentation-only changes need no code lint.
 - Title and description follow the [commit message guidelines](https://www.azerothcore.org/wiki/commit-message-guidelines).
 - Prefer data over code: when a C++ or script change is also achievable through world DB data
   (SmartAI, conditions, templates), flag the DB-only alternative (see `cpp-scripts.md`).
@@ -24,15 +21,9 @@ line, not as background reading.
   states it can leave behind (null, empty, fall-through) into every consumer of them — including
   unchanged lines the new flow now reaches — and verify what runs when an acquire/attack/GetX
   call leaves a null result, not just what enables it.
-- Check the change is still needed against current `master`: the surrounding code may have moved,
+- Check the change against the actual target branch (`main` in this fork): the surrounding code may have moved,
   or another change may have landed the same fix.
-- On an existing PR, walk every discussion item one by one, bot reviews included: what was raised,
-  whether it was answered, and whether it still applies to the current head. Never skip one
-  because it looks resolved, old, or minor; this walk overrides any read-comments-lightly default
-  of the reviewing skill. `gh pr view` misses review bodies and inline threads; pull all three:
-
-  ```
-  gh api repos/azerothcore/azerothcore-wotlk/issues/<N>/comments --paginate  # conversation comments
-  gh api repos/azerothcore/azerothcore-wotlk/pulls/<N>/reviews --paginate    # review verdicts + bodies
-  gh api repos/azerothcore/azerothcore-wotlk/pulls/<N>/comments --paginate   # inline comments
-  ```
+- On an existing PR, read unresolved discussions and resolved items affected by the current diff, including relevant
+  bot findings. Fetch review bodies/inline threads when needed; use the actual PR repository, not a fixed upstream URL.
+  A complete historical discussion audit is needed only when requested or relevant to an unresolved issue.
+- Do not post reviews, comments, or change PR labels unless the user authorized that action.
