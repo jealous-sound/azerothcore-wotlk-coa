@@ -3383,7 +3383,7 @@ void ObjectMgr::LoadItemTemplates()
         itemTemplate.BuyPrice                  = int32(fields[10].Get<int64>());
         itemTemplate.SellPrice                 = uint32(fields[11].Get<uint32>());
         itemTemplate.InventoryType             = uint32(fields[12].Get<uint8>());
-        itemTemplate.AllowableClass            = fields[13].Get<int32>();
+        itemTemplate.AllowableClass            = GetItemAllowableClassMask(fields[13].Get<int32>());
         itemTemplate.AllowableRace             = fields[14].Get<int32>();
         itemTemplate.ItemLevel                 = uint32(fields[15].Get<uint16>());
         itemTemplate.RequiredLevel             = uint32(fields[16].Get<uint8>());
