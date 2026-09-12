@@ -29,6 +29,7 @@
 #include "AscensionCustomResourceData.h"
 #include "AscensionFreshCharacterCheck.h"
 #include "AscensionLiveBaselineData.h"
+#include "AscensionRacialAbilities.h"
 #include "AscensionPrimalistEarthshaping.h"
 #include "AscensionPrimalistSpiritBeast.h"
 #include "AscensionReaperSoulStrike.h"
@@ -364,6 +365,34 @@ AscensionCompatData::StarterKit const *GetStarterKit(uint8 playerClass) {
   return itr == AscensionCompatData::StarterKits.end() ? nullptr : &*itr;
 }
 
+std::vector<uint32> GetAscensionRacialSpells(Player const* player)
+{
+    std::vector<uint32> spells;
+    for (auto const& skill : AscensionRacialAbilities::Skills)
+        if (skill.RaceId == player->getRace())
+            for (SkillLineAbilityEntry const* ability : GetSkillLineAbilitiesBySkillLine(skill.SkillId))
+                if (AscensionRacialAbilities::CanLearn(*ability, player->getRace(), player->getClass()))
+                    spells.push_back(ability->Spell);
+
+    std::sort(spells.begin(), spells.end());
+    spells.erase(std::unique(spells.begin(), spells.end()), spells.end());
+    return spells;
+}
+
+bool CanGrantAscensionRacialSpell(Player const* player, uint32 spellId)
+{
+    bool racial = false;
+    auto const bounds = sSpellMgr->GetSkillLineAbilityMapBounds(spellId);
+    for (auto itr = bounds.first; itr != bounds.second; ++itr)
+        if (AscensionRacialAbilities::GetRace(itr->second->SkillLine))
+        {
+            racial = true;
+            if (AscensionRacialAbilities::CanLearn(*itr->second, player->getRace(), player->getClass()))
+                return true;
+        }
+    return !racial;
+}
+
 class AscensionClassService {
 public:
   static AscensionClassService &Instance() {
@@ -379,6 +408,7 @@ public:
     // grants. Do not scan arbitrary quest, collection or purchased spells for
     // absence from a level-one snapshot. Valid selected talents are independent.
     uint32 const activeSpec = GetActiveSpecialization(player);
+    auto const racialSpells = GetAscensionRacialSpells(player);
     auto selectedTalentOwns = [player, activeSpec](uint32 spellId)
     {
       uint32 const root = sSpellMgr->GetFirstSpellInChain(spellId);
@@ -392,8 +422,10 @@ public:
                 [spellId, root](uint32 id) { return id && (id == spellId || id == root); });
           });
     };
-    auto currentGrantAllows = [player, activeSpec, &selectedTalentOwns](uint32 spellId)
+    auto currentGrantAllows = [player, activeSpec, &selectedTalentOwns, &racialSpells](uint32 spellId)
     {
+      if (!CanGrantAscensionRacialSpell(player, spellId))
+        return false;
       // Older local talent choices were persisted only as learned spell IDs.
       // A colliding paid talent therefore remains protected until the client
       // supplies its selection, rather than treating catalog absence as proof.
@@ -410,7 +442,9 @@ public:
             return CanGrantAutomaticEntry(player, entry, activeSpec) &&
                    std::find(entry.SpellIds.begin(), entry.SpellIds.end(), spellId) != entry.SpellIds.end();
           });
-      return observed || proficiency || unresolved || automatic || selectedTalentOwns(spellId) || std::any_of(AscensionCompatData::ClassSpells.begin(),
+      return std::binary_search(racialSpells.begin(), racialSpells.end(), spellId) ||
+          observed || proficiency || unresolved || automatic || selectedTalentOwns(spellId) ||
+          std::any_of(AscensionCompatData::ClassSpells.begin(),
           AscensionCompatData::ClassSpells.end(), [player, spellId](auto const& entry)
           {
             return entry.ClassId == player->getClass() && entry.SpellId == spellId &&
@@ -434,8 +468,16 @@ public:
       LOG_INFO("module.ascension_compat", "Reconciled {} proven class grants for {} against live level {}",
           removed, player->GetName(), uint32(player->GetLevel()));
     uint32 learned = 0;
+    // The live baseline sampled one race per class. Repair every race from its own DBC skill line.
+    for (uint32 spellId : racialSpells)
+        if (!player->HasSpell(spellId) && sSpellMgr->GetSpellInfo(spellId))
+        {
+            player->learnSpell(spellId, false);
+            ++learned;
+        }
     for (auto const& entry : AscensionLiveBaseline::Spells)
       if (entry.ClassId == player->getClass() && (!entry.RaceId || entry.RaceId == player->getRace()) &&
+          CanGrantAscensionRacialSpell(player, entry.SpellId) &&
           !player->HasSpell(entry.SpellId) && sSpellMgr->GetSpellInfo(entry.SpellId))
       {
         player->learnSpell(entry.SpellId, false);
@@ -445,6 +487,7 @@ public:
          AscensionCompatData::ClassSpells) {
       if (progressionSpell.ClassId != player->getClass() ||
           progressionSpell.RequiredLevel > player->GetLevel() ||
+          !CanGrantAscensionRacialSpell(player, progressionSpell.SpellId) ||
           player->HasSpell(progressionSpell.SpellId))
         continue;
 
@@ -643,10 +686,24 @@ public:
 
     // Called only inside Player::Create, never while loading an existing player.
     // Hidden proficiency spells are separate from the visible spellbook roots.
+    for (uint32 spellId : GetAscensionRacialSpells(player))
+    {
+      if (!sSpellMgr->GetSpellInfo(spellId))
+        return false;
+      if (!player->HasSpell(spellId))
+        player->addSpell(spellId, SPEC_MASK_ALL, true);
+    }
     for (auto const& entry : AscensionLiveBaseline::Spells)
     {
       if (entry.ClassId != player->getClass() || (entry.RaceId && entry.RaceId != player->getRace()))
         continue;
+      if (!CanGrantAscensionRacialSpell(player, entry.SpellId))
+      {
+        // Earlier creation SQL also classified Gemcutting as a class-wide grant.
+        if (player->HasSpell(entry.SpellId))
+          player->removeSpell(entry.SpellId, SPEC_MASK_ALL, false);
+        continue;
+      }
       if (!sSpellMgr->GetSpellInfo(entry.SpellId))
         return false;
       player->addSpell(entry.SpellId, SPEC_MASK_ALL, true);
