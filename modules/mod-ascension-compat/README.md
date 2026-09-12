@@ -23,13 +23,9 @@ protocol, data or process problem.
 
 ## World database installation
 
-For a new CoA source installation, import the versioned world-content baseline
-before the first worldserver startup. The repack includes harvested content that
-the stock AzerothCore base SQL and historical migrations do not fully reproduce.
-See [the world-content workflow](../../apps/coa-world/README.md) for the guarded
-empty-schema import and the read-only audit of existing installations. Keep later
-content changes in tracked pending SQL migrations so source installations and
-future repacks use the same data.
+Import the [world database package](../../apps/coa-world/README.md) into an empty
+world schema before the first worldserver startup. The same guide covers auditing
+an existing database and updating the package.
 
 ## Login and natural regeneration
 
