@@ -10149,6 +10149,13 @@ void Player::AddSpellMod(SpellModifier* mod, bool apply)
     LOG_DEBUG("spells.aura", "Player::AddSpellMod {}", mod->spellId);
     uint16 Opcode = (mod->type == SPELLMOD_FLAT) ? SMSG_SET_FLAT_SPELL_MODIFIER : SMSG_SET_PCT_SPELL_MODIFIER;
 
+    bool const useAscensionSpellModifierLayout =
+        GetSession() &&
+        GetSession()->GetRemoteAddress() == "127.0.0.1" &&
+        sConfigMgr->GetOption<bool>("AscensionCompat.Enable", false);
+    SpellInfo const* modSpell = sSpellMgr->GetSpellInfo(mod->spellId);
+    uint32 const spellFamily = modSpell ? modSpell->SpellFamilyName : 0;
+
     int i = 0;
     flag96 _mask = 0;
     for (int eff = 0; eff < 96 && mod->op < MAX_CLIENT_SPELLMOD; ++eff)
@@ -10163,22 +10170,29 @@ void Player::AddSpellMod(SpellModifier* mod, bool apply)
             for (SpellModContainer::iterator itr = m_spellMods[mod->op].begin(); itr != m_spellMods[mod->op].end(); ++itr)
             {
                 if ((*itr)->type == mod->type && (*itr)->mask & _mask)
+                {
+                    if (useAscensionSpellModifierLayout)
+                    {
+                        SpellInfo const* itrSpell = sSpellMgr->GetSpellInfo((*itr)->spellId);
+                        if (!itrSpell || itrSpell->SpellFamilyName != spellFamily)
+                            continue;
+                    }
                     val += (*itr)->value;
+                }
             }
             val += apply ? mod->value : -(mod->value);
-            bool const useAscensionSpellModifierLayout =
-                GetSession()->GetRemoteAddress() == "127.0.0.1" &&
-                sConfigMgr->GetOption<bool>("AscensionCompat.Enable", false);
             WorldPacket data(Opcode, useAscensionSpellModifierLayout ? 11 : 6);
             if (useAscensionSpellModifierLayout)
             {
-                // The custom client keeps modifiers per character spec. Mode
-                // zero is one modifier followed by the active spec index.
+                // In Ascension's multi-class modifier engine, mode 0 (11 bytes) specifies
+                // an individual modifier where the trailing uint32 is the SpellFamilyName
+                // (e.g. 32 for Starcaller, 9 for Hunter), indexing client table slice:
+                // SpellFamilyName * 0x11A0 + eff * 31 + opType.
                 data << uint8(0);
                 data << uint8(eff);
                 data << uint8(mod->op);
                 data << int32(val);
-                data << uint32(0);
+                data << uint32(spellFamily);
             }
             else
             {
