@@ -43,6 +43,7 @@
 #include "ObjectMgr.h"
 #include "Opcodes.h"
 #include "Pet.h"
+#include "SpellMgr.h"
 #include "Player.h"
 #include "PlayerDump.h"
 #include "QueryHolder.h"
@@ -1242,41 +1243,83 @@ void WorldSession::HandlePlayerLoginToCharInWorld(Player* pCurrChar)
             if (spellMods.empty())
                 continue;
 
-            for (int32 eff = 0; eff < 96; ++eff)
+            bool const useAscensionSpellModifierLayout =
+                GetRemoteAddress() == "127.0.0.1" &&
+                sConfigMgr->GetOption<bool>("AscensionCompat.Enable", false);
+
+            if (useAscensionSpellModifierLayout)
             {
-                if (eff != 0 && eff % 32 == 0)
-                    _mask[i++] = 0;
-
-                _mask[i] = uint32(1) << (eff - (32 * i));
-                int32 val = 0;
+                std::unordered_set<uint32> families;
                 for (auto const& spellMod : spellMods)
-                    if (spellMod->type == modType && spellMod->mask & _mask)
-                        val += spellMod->value;
-
-                if (val == 0)
-                    continue;
-
-                bool const useAscensionSpellModifierLayout =
-                    GetRemoteAddress() == "127.0.0.1" &&
-                    sConfigMgr->GetOption<bool>("AscensionCompat.Enable", false);
-                WorldPacket data(Opcode, useAscensionSpellModifierLayout ? 11 : 6);
-                if (useAscensionSpellModifierLayout)
                 {
-                    // Ascension prefixes individual modifier updates with a
-                    // zero mode byte and appends the character-spec index.
-                    data << uint8(0);
+                    if (spellMod->type == modType)
+                    {
+                        SpellInfo const* info = sSpellMgr->GetSpellInfo(spellMod->spellId);
+                        families.insert(info ? info->SpellFamilyName : 0);
+                    }
+                }
+
+                for (uint32 family : families)
+                {
+                    int32 fi = 0;
+                    flag96 fmask = 0;
+                    for (int32 eff = 0; eff < 96; ++eff)
+                    {
+                        if (eff != 0 && eff % 32 == 0)
+                            fmask[fi++] = 0;
+
+                        fmask[fi] = uint32(1) << (eff - (32 * fi));
+                        int32 val = 0;
+                        for (auto const& spellMod : spellMods)
+                        {
+                            if (spellMod->type == modType && (spellMod->mask & fmask))
+                            {
+                                SpellInfo const* info = sSpellMgr->GetSpellInfo(spellMod->spellId);
+                                uint32 const sFam = info ? info->SpellFamilyName : 0;
+                                if (sFam == family)
+                                    val += spellMod->value;
+                            }
+                        }
+
+                        if (val == 0)
+                            continue;
+
+                        // In Ascension's multi-class modifier engine, mode 0 (11 bytes) specifies
+                        // an individual modifier where the trailing uint32 is the SpellFamilyName
+                        // (e.g. 32 for Starcaller, 9 for Hunter), indexing client table slice:
+                        // SpellFamilyName * 0x11A0 + eff * 31 + opType.
+                        WorldPacket data(Opcode, 11);
+                        data << uint8(0);
+                        data << uint8(eff);
+                        data << uint8(opType);
+                        data << int32(val);
+                        data << uint32(family);
+                        SendPacket(&data);
+                    }
+                }
+            }
+            else
+            {
+                for (int32 eff = 0; eff < 96; ++eff)
+                {
+                    if (eff != 0 && eff % 32 == 0)
+                        _mask[i++] = 0;
+
+                    _mask[i] = uint32(1) << (eff - (32 * i));
+                    int32 val = 0;
+                    for (auto const& spellMod : spellMods)
+                        if (spellMod->type == modType && (spellMod->mask & _mask))
+                            val += spellMod->value;
+
+                    if (val == 0)
+                        continue;
+
+                    WorldPacket data(Opcode, 6);
                     data << uint8(eff);
                     data << uint8(opType);
                     data << int32(val);
-                    data << uint32(0);
+                    SendPacket(&data);
                 }
-                else
-                {
-                    data << uint8(eff);
-                    data << uint8(opType);
-                    data << int32(val);
-                }
-                SendPacket(&data);
             }
         }
     }
