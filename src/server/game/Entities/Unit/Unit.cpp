@@ -15984,12 +15984,7 @@ uint32 Unit::GetModelForForm(ShapeshiftForm form, uint32 spellId)
             return ModelId;
     }
 
-    // The copied client's Inner Demon form has no model. Keep selected appearances,
-    // then fall back to the installed native metamorphosis display.
-    if (IsPlayer() && getClass() == CLASS_DEMON_HUNTER && spellId == 804216 && uint32(form) == 56)
-        if (SpellShapeshiftFormEntry const* demon = sSpellShapeshiftFormStore.LookupEntry(FORM_METAMORPHOSIS))
-            return demon->modelID_A;
-
+    // Model-less forms such as Inner Demon keep the character's appearance and use spell visuals.
     uint32 modelid = 0;
     SpellShapeshiftFormEntry const* formEntry = sSpellShapeshiftFormStore.LookupEntry(form);
     if (formEntry && formEntry->modelID_A)

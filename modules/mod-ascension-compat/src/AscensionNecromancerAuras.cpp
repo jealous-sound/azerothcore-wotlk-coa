@@ -14,6 +14,13 @@
 namespace
 {
 using namespace AscensionNecromancer;
+enum StanceSpells
+{
+    SPELL_UNDEAD_ASSAULT = 500982,
+    SPELL_UNDEAD_PACIFY = 500983,
+    SPELL_UNDEAD_PROTECT = 500985
+};
+
 class aura_ascension_necromancer_lifecycle : public AuraScript
 {
     PrepareAuraScript(aura_ascension_necromancer_lifecycle);
@@ -44,9 +51,9 @@ class aura_ascension_necromancer_lifecycle : public AuraScript
             amount = int32(Count(player, {50076}) * 5);
         if (id == 560012 && index == 0)
             amount = Count(player, {50075}) ? Amount(523613, 1, player) : 0;
-        if (id == 500982 && index == 2)
+        if (id == SPELL_UNDEAD_ASSAULT && index == 2)
             amount = player->HasAura(560595) ? 5 : 0;
-        if (id == 500985 && index == 1)
+        if (id == SPELL_UNDEAD_PROTECT && index == 1)
             amount = player->HasAura(560595) ? -75 : 0;
         if (id == 301207 && index == 0)
             amount = int32(Count(player, {50068, 50115}) * 30);
@@ -62,9 +69,26 @@ class aura_ascension_necromancer_lifecycle : public AuraScript
     void Apply(AuraEffect const* effect, AuraEffectHandleModes /*mode*/)
     {
         Player* player = Owner(GetCaster());
-        if (!player || !First(effect))
+        if (!player)
             return;
         uint32 id = GetId();
+        // Assault and Protect start with summon-only effects, which never apply to the player.
+        if (GetTarget() == player &&
+            (id == SPELL_UNDEAD_ASSAULT || id == SPELL_UNDEAD_PACIFY || id == SPELL_UNDEAD_PROTECT))
+        {
+            State(player).stance = id;
+            for (uint32 stance : {SPELL_UNDEAD_ASSAULT, SPELL_UNDEAD_PACIFY, SPELL_UNDEAD_PROTECT})
+                if (stance != id)
+                {
+                    player->RemoveAurasDueToSpell(stance, player->GetGUID());
+                    for (Creature* minion : Minions(player))
+                        minion->RemoveAurasDueToSpell(stance, player->GetGUID());
+                }
+            if (id == SPELL_UNDEAD_PACIFY)
+                State(player).focus.Clear();
+        }
+        if (!First(effect))
+            return;
         if (GetTarget() != player && player->HasAura(801747))
             GetAura()->SetScriptValue(801747, 1);
         if (id == 807796)
@@ -73,15 +97,6 @@ class aura_ascension_necromancer_lifecycle : public AuraScript
             _cost = GetSpellInfo()->CalcPowerCost(player, GetSpellInfo()->GetSchoolMask());
         if (GetTarget() != player)
             return;
-        if (id == 500982 || id == 500983 || id == 500985)
-        {
-            State(player).stance = id;
-            for (uint32 stance : {500982, 500983, 500985})
-                if (stance != id)
-                    player->RemoveAurasDueToSpell(stance);
-            if (id == 500983)
-                State(player).focus.Clear();
-        }
         if (id == 680388 || id == 681460 || id == 681529)
         {
             for (uint32 ward : {680388, 681460, 681529})

@@ -27,6 +27,22 @@ Import the [world database package](../../apps/coa-world/README.md) into an empt
 world schema before the first worldserver startup. The same guide covers auditing
 an existing database and updating the package.
 
+## Automatic specialization talents
+
+Automatic spec progression requires its level and spec-tree prerequisites, but
+does not require purchasing a talent in the shared class tree. The workspace
+`tools/Generate-LocalCoATalentData.ps1` removes those paid cross-tree requirements
+before generating both `AscensionCoATalentData.h` and the canonical client's
+`CoATalentNodeData.lua`. Paid talents and selectable free choices remain explicit.
+Regenerate both outputs together; the matching client source must be packaged
+when deploying the server change.
+
+Run `python -B modules/mod-ascension-compat/tests/test_automatic_talent_dependencies.py`
+for the server data regressions. Add `--client-addon-dir <Ascension_Collections>`
+with `lupa` installed to also exercise the client Lua 5.1 rank calculation and
+check that its dependencies match the server. These checks do not build or launch
+the server or game client.
+
 ## Login and natural regeneration
 
 The copied client's `Extensions.dll` patches the ping timer at executable address

@@ -68,8 +68,11 @@ void Totem::InitStats(uint32 duration)
             data.SpellID = GetUInt32Value(UNIT_CREATED_BY_SPELL);
             owner->ToPlayer()->SendDirectMessage(data.Write());
 
-            // set display id depending on caster's race
-            SetDisplayId(sObjectMgr->GetModelForTotem(SummonSlot(slot), Races(owner->getRace())));
+            // Non-totem creatures (e.g. Cultist tentacles) also use totem summon slots.
+            // Keep their template model and scale; only actual totems use racial models.
+            if (GetCreatureType() == CREATURE_TYPE_TOTEM)
+                if (uint32 modelId = sObjectMgr->GetModelForTotem(SummonSlot(slot), Races(owner->getRace())))
+                    SetDisplayId(modelId);
         }
 
         SetLevel(owner->GetLevel());

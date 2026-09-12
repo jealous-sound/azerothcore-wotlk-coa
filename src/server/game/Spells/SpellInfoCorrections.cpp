@@ -41,6 +41,17 @@ void SpellMgr::LoadSpellInfoCorrections()
 {
     uint32 oldMSTime = getMSTime();
 
+    // Arm of Thorim's hostile stun helper needs both mechanic fields for
+    // diminishing returns, trinket removal and spell/effect immunity checks.
+    ApplySpellFix({ 570339 }, [](SpellInfo* spellInfo)
+    {
+        if (spellInfo->SpellFamilyName != 22 || !spellInfo->Effects[EFFECT_0].IsAura(SPELL_AURA_MOD_STUN))
+            return;
+
+        spellInfo->Mechanic = MECHANIC_STUN;
+        spellInfo->Effects[EFFECT_0].Mechanic = MECHANIC_STUN;
+    });
+
     // Local Guardian formations have mixed bonuses and penalties but are
     // voluntarily selected buffs. Only the main aura is a cancellation surface.
     ApplySpellFix({ 800317, 803130, 803417 }, [](SpellInfo* spellInfo)

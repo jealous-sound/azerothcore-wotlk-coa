@@ -490,11 +490,15 @@ void Player::UpdateAttackPowerAndDamage(bool ranged)
     }
     else
     {
-        if (IsClass(CLASS_PALADIN, CLASS_CONTEXT_STATS) || IsClass(CLASS_DEATH_KNIGHT, CLASS_CONTEXT_STATS) || IsClass(CLASS_WARRIOR, CLASS_CONTEXT_STATS))
+        // Barbarian uses Warrior melee AP independently of its Rogue compatibility for other systems.
+        if (getClass() == CLASS_BARBARIAN || IsClass(CLASS_PALADIN, CLASS_CONTEXT_STATS) ||
+            IsClass(CLASS_DEATH_KNIGHT, CLASS_CONTEXT_STATS) || IsClass(CLASS_WARRIOR, CLASS_CONTEXT_STATS))
         {
             val2 = level * 3.0f + GetStat(STAT_STRENGTH) * 2.0f - 20.0f;
         }
-        else if (IsClass(CLASS_HUNTER, CLASS_CONTEXT_STATS) || IsClass(CLASS_SHAMAN, CLASS_CONTEXT_STATS) || IsClass(CLASS_ROGUE, CLASS_CONTEXT_STATS))
+        // Bloodmage gains Rogue base AP; its form/stat auras are added below as normal modifiers.
+        else if (getClass() == CLASS_SON_OF_ARUGAL || IsClass(CLASS_HUNTER, CLASS_CONTEXT_STATS) ||
+            IsClass(CLASS_SHAMAN, CLASS_CONTEXT_STATS) || IsClass(CLASS_ROGUE, CLASS_CONTEXT_STATS))
         {
             val2 = level * 2.0f + GetStat(STAT_STRENGTH) + GetStat(STAT_AGILITY) - 20.0f;
         }
@@ -870,7 +874,11 @@ void Player::UpdateParryPercentage()
     // No parry
     float value = 0.0f;
     m_realParry = 0.0f;
-    uint32 pclass = GetLegacyClassForCustomClass(Classes(getClass())) - 1;
+    // Starcaller learns Parry, unlike its general Druid stat fallback.
+    // Use the Hunter parry curve for both its cap and diminishing coefficient.
+    Classes const parryClass = getClass() == CLASS_STARCALLER ? CLASS_HUNTER :
+        GetLegacyClassForCustomClass(Classes(getClass()));
+    uint32 const pclass = parryClass - 1;
     if (CanParry() && parry_cap[pclass] > 0.0f)
     {
         float nondiminishing  = 5.0f;

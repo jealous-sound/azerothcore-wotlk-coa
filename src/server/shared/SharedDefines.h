@@ -199,6 +199,20 @@ constexpr Classes GetLegacyClassForCustomClass(Classes playerClass)
     }
 }
 
+// Expand legacy item/quest restrictions without widening explicitly authored custom-class masks.
+constexpr uint32 ExpandLegacyClassMask(uint32 classMask)
+{
+    if (classMask & 0xFFFFF800u)
+        return classMask;
+
+    uint32 result = classMask;
+    for (uint8 classId = CLASS_BARBARIAN; classId < MAX_CLASSES; ++classId)
+        if (classMask & (uint32(1) << (GetLegacyClassForCustomClass(Classes(classId)) - 1)))
+            result |= uint32(1) << (classId - 1);
+
+    return result;
+}
+
 // valid classes for creature_template.unit_class
 #define CLASSMASK_ALL_CREATURES ((1<<(CLASS_WARRIOR-1)) | (1<<(CLASS_PALADIN-1)) | (1<<(CLASS_ROGUE-1)) | (1<<(CLASS_MAGE-1)))
 
