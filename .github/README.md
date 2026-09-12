@@ -47,9 +47,8 @@ We have a lot of modules already made by the community, many of which can be fou
 
 ## Installation
 
-For this CoA fork, follow the [world database baseline workflow](../apps/coa-world/README.md)
-before the first worldserver startup. It installs the same world content as the CoA Repack;
-the upstream base SQL alone does not contain all harvested CoA items and quests.
+For this CoA fork, install the [world database package](../apps/coa-world/README.md)
+into an empty world schema before the first worldserver startup.
 
 Detailed installation instructions are available [here](http://www.azerothcore.org/wiki/installation).
 
