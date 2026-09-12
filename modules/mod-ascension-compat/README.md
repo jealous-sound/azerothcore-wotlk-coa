@@ -21,6 +21,16 @@ directory, preserve applied SQL hashes, and follow
 Do not run historical installers or clear client caches to compensate for a
 protocol, data or process problem.
 
+## World database installation
+
+For a new CoA source installation, import the versioned world-content baseline
+before the first worldserver startup. The repack includes harvested content that
+the stock AzerothCore base SQL and historical migrations do not fully reproduce.
+See [the world-content workflow](../../apps/coa-world/README.md) for the guarded
+empty-schema import and the read-only audit of existing installations. Keep later
+content changes in tracked pending SQL migrations so source installations and
+future repacks use the same data.
+
 ## Login and natural regeneration
 
 The copied client's `Extensions.dll` patches the ping timer at executable address
