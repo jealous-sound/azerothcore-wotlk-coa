@@ -620,20 +620,11 @@ constexpr uint32 GetItemAllowableClassMask(uint32 classMask)
     constexpr uint32 ascensionClassMask = 0xFFFFF800u;
     constexpr uint32 classlessClassMask = 0x00000200u; // Reserved Ascension class ID 10.
 
-    // Explicit custom-class restrictions and unrestricted masks are already client-compatible.
-    if (classMask & ascensionClassMask)
-        return classMask;
-
     if (classMask == classlessClassMask)
         return classMask | ascensionClassMask;
 
     // Legacy sets may also include the classless bit; retain their class-specific restrictions.
-    uint32 result = classMask;
-    for (uint8 classId = CLASS_BARBARIAN; classId < MAX_CLASSES; ++classId)
-        if (classMask & (uint32(1) << (GetLegacyClassForCustomClass(Classes(classId)) - 1)))
-            result |= uint32(1) << (classId - 1);
-
-    return result;
+    return ExpandLegacyClassMask(classMask);
 }
 
 struct ItemTemplate

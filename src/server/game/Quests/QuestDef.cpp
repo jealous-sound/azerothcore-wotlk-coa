@@ -173,7 +173,7 @@ void Quest::LoadQuestOfferReward(Field* fields)
 void Quest::LoadQuestTemplateAddon(Field* fields)
 {
     MaxLevel = fields[1].Get<uint8>();
-    RequiredClasses = fields[2].Get<uint32>();
+    RequiredClasses = ExpandLegacyClassMask(fields[2].Get<uint32>());
     SourceSpellid = fields[3].Get<uint32>();
     PrevQuestId = fields[4].Get<int32>();
     NextQuestId = fields[5].Get<uint32>();
