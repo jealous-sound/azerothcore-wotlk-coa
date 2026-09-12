@@ -47,6 +47,9 @@ We have a lot of modules already made by the community, many of which can be fou
 
 ## Installation
 
+For this CoA fork, install the [world database package](../apps/coa-world/README.md)
+into an empty world schema before the first worldserver startup.
+
 Detailed installation instructions are available [here](http://www.azerothcore.org/wiki/installation).
 
 ## Contributing

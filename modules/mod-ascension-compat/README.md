@@ -21,6 +21,12 @@ directory, preserve applied SQL hashes, and follow
 Do not run historical installers or clear client caches to compensate for a
 protocol, data or process problem.
 
+## World database installation
+
+Import the [world database package](../../apps/coa-world/README.md) into an empty
+world schema before the first worldserver startup. The same guide covers auditing
+an existing database and updating the package.
+
 ## Login and natural regeneration
 
 The copied client's `Extensions.dll` patches the ping timer at executable address
