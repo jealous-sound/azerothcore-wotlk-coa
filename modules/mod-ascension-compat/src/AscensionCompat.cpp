@@ -106,6 +106,7 @@ constexpr uint32 SPELL_REAPER_SOUL_INFUSION = 803031;
 constexpr uint32 SPELL_REAPER_SOUL_FRAGMENT = 805077;
 constexpr uint32 SPELL_REAPER_GENERATE_SOUL = 805078;
 constexpr char ASCENSION_LOCAL_RESOURCE_PREFIX[] = "ASC_LOCAL_RESOURCE";
+constexpr char ASCENSION_ACTIVE_SPEC_SETTING[] = "core.ascension_active_spec";
 
 constexpr uint8 PYROMANCER_HEAT_PER_EMBER = 100;
 constexpr uint8 REAPER_SOUL_FRAGMENT_COST = 3;
@@ -886,6 +887,10 @@ public:
     if (!IsAscensionCustomClass(player))
       return;
 
+    uint32 const specializationId = player->GetPlayerSetting(ASCENSION_ACTIVE_SPEC_SETTING, 0).value;
+    if (specializationId)
+        _activeSpecializations[player->GetGUID().GetCounter()] = specializationId;
+
     SynchronizeProgression(player);
     SynchronizeProficiencies(player);
     RepairStarterKit(player, false);
@@ -929,6 +934,7 @@ public:
     {
       _activeSpecializations[player->GetGUID().GetCounter()] =
           specializationId;
+      player->UpdatePlayerSetting(ASCENSION_ACTIVE_SPEC_SETTING, 0, specializationId);
 
       uint32 granted = SynchronizeProgression(player);
       LOG_INFO("module.ascension_compat",
@@ -958,6 +964,7 @@ public:
 
     _activeSpecializations[player->GetGUID().GetCounter()] =
         specializationId;
+    player->UpdatePlayerSetting(ASCENSION_ACTIVE_SPEC_SETTING, 0, specializationId);
 
     uint32 granted = SynchronizeProgression(player);
     ChatHandler(player->GetSession())
