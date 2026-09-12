@@ -870,7 +870,11 @@ void Player::UpdateParryPercentage()
     // No parry
     float value = 0.0f;
     m_realParry = 0.0f;
-    uint32 pclass = GetLegacyClassForCustomClass(Classes(getClass())) - 1;
+    // Starcaller learns Parry, unlike its general Druid stat fallback.
+    // Use the Hunter parry curve for both its cap and diminishing coefficient.
+    Classes const parryClass = getClass() == CLASS_STARCALLER ? CLASS_HUNTER :
+        GetLegacyClassForCustomClass(Classes(getClass()));
+    uint32 const pclass = parryClass - 1;
     if (CanParry() && parry_cap[pclass] > 0.0f)
     {
         float nondiminishing  = 5.0f;
