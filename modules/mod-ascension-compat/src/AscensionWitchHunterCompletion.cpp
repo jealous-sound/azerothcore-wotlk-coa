@@ -189,9 +189,11 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_MOD_DAMAGE_PERCENT_TAKEN;
     if (id == 501380)
     {
+        // This damage-breakable incapacitate shares the native disorient DR group.
+        info->Mechanic = MECHANIC_KNOCKOUT;
         info->Effects[EFFECT_0].Effect = SPELL_EFFECT_APPLY_AURA;
         info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_MOD_CONFUSE;
-        info->Effects[EFFECT_0].Mechanic = MECHANIC_DISORIENTED;
+        info->Effects[EFFECT_0].Mechanic = MECHANIC_KNOCKOUT;
         info->AuraInterruptFlags |= AURA_INTERRUPT_FLAG_TAKE_DAMAGE;
     }
     if (id == 562225)
