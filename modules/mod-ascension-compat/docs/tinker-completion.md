@@ -13,6 +13,13 @@ binary identity and rollback information are recorded in `CoA-Repack/RELEASE.jso
   Scrap Shot/Gatling Gun focus, and can assist spell/ranged combat without a melee victim. Selection checks
   range, visibility and line of sight. Native ranged timers preserve haste and control effects;
   upgraded grenades target the enemy's location. Turret command casts face their target.
+- The #89 follow-up initializes Sentry player-control and PvP flags like native minions, so
+  native shot validation admits the owner's neutral targets and NPC-immune training dummies.
+  Its model migration reduces only Sentry display 28526 to scale 0.35. These source changes
+  require a new server binary and the pending `rev_20260913_00_tinker_sentry.sql` migration.
+  `tests/tinker_sentry/run.py` exercises initialization, native immunity/CvC admission,
+  firing, target filters, timers and migration replay; `--source-ref` reproduces the earlier
+  rotating-without-firing failure. These are bounded offline checks, not in-game acceptance.
 - Mechsuit permits family-34 casts while its two owned auras are active and retains the pet needed
   by Laser Beam and pet talents. Ordinary mounts, flight, vehicles, death and teleport gates remain.
 - Stationary devices participate in native summon-area auras through the owner's controlled set.

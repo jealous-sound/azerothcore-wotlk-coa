@@ -1,0 +1,208 @@
+#include <cassert>
+#include <cmath>
+#include <cstdint>
+#include <list>
+#include <map>
+#include <set>
+#include <utility>
+#include <vector>
+
+using uint32 = std::uint32_t;
+using int32 = std::int32_t;
+using WeaponAttackType = uint32;
+constexpr uint32 RANGED_ATTACK = 2, UNIT_STATE_CONTROLLED = 1, UNIT_STATE_CASTING = 2;
+constexpr uint32 SPELL_AURA_MOD_PACIFY = 3, SPELL_AURA_MOD_PACIFY_SILENCE = 4;
+constexpr uint32 UNIT_FLAG_PLAYER_CONTROLLED = 1, UNIT_FLAG_NON_ATTACKABLE = 2, UNIT_FLAG_TAXI_FLIGHT = 4;
+constexpr uint32 UNIT_FLAG_NOT_ATTACKABLE_1 = 8, UNIT_FLAG_NON_ATTACKABLE_2 = 16;
+constexpr uint32 WORLD_TRIGGER = 12999, TYPEMASK_GAMEOBJECT = 1, TYPEMASK_DYNAMICOBJECT = 2, UNIT_FIELD_BYTES_2 = 0;
+constexpr int REP_NEUTRAL = 4, REP_HOSTILE = 2;
+
+struct Unit;
+struct WorldObject
+{
+    Unit* unit = nullptr;
+    Unit* ToUnit() const { return unit; }
+    bool isType(uint32) const { return false; }
+};
+
+struct Unit : WorldObject
+{
+    Unit() { unit = this; }
+    uint32 guid = 0, entry = 0, flags = 0, pvp = 0;
+    float x = 0;
+    bool alive = true, friendly = false, hostile = false, visible = true, los = true;
+    bool immuneNPC = false, immunePC = false, m_ControlledByPlayer = false;
+    int32 m_attackTimer[3]{};
+    float m_modAttackSpeedPct[3]{1, 1, 1};
+    bool IsAlive() const { return alive; }
+    uint32 GetEntry() const { return entry; }
+    uint32 GetGUID() const { return guid; }
+    uint32 GetAttackTime(uint32) const { return 2000; }
+    uint32 GetByteValue(uint32, uint32) const { return pvp; }
+    void SetByteValue(uint32, uint32, uint32 value) { pvp = value; }
+    void SetUnitFlag(uint32 flag) { flags |= flag; }
+    bool HasUnitFlag(uint32 mask) const { return (flags & mask) != 0; }
+    bool IsImmuneToNPC() const { return immuneNPC; }
+    bool IsImmuneToPC() const { return immunePC; }
+    int GetReactionTo(Unit const* target) const { return hostile || target->hostile ? REP_HOSTILE : REP_NEUTRAL; }
+    float GetPositionX() const { return x; }
+    float GetPositionY() const { return 0; }
+    float GetPositionZ() const { return 0; }
+    void resetAttackTimer(WeaponAttackType);
+    bool NativeAttackAdmission(Unit const* target) const
+    {
+        WorldObject const* obj = nullptr;
+        // ACTUAL_ADMISSION
+        return true;
+    }
+};
+
+// ACTUAL_TIMER
+
+struct Player : Unit
+{
+    Player() { flags = UNIT_FLAG_PLAYER_CONTROLLED; guid = 1; }
+    Unit* victim = nullptr;
+    Unit* selected = nullptr;
+    std::set<Unit*> combat, m_Controlled;
+    bool IsValidAttackTarget(Unit* target) const
+    {
+        return target && !target->friendly && NativeAttackAdmission(target);
+    }
+    bool IsHostileTo(Unit* target) const { return target->hostile; }
+    bool IsInCombatWith(Unit* target) const { return combat.contains(target); }
+    Unit* GetVictim() const { return victim; }
+    Unit* GetSelectedUnit() const { return selected; }
+    uint32 GetFaction() const { return 1; }
+};
+
+Player* currentOwner = nullptr;
+Player* Owner(Unit* unit) { return unit && unit == currentOwner ? currentOwner : nullptr; }
+
+struct Creature : Unit
+{
+    Creature() { entry = 50046; }
+    uint32 state = 0, owner = 0;
+    bool upgraded = false, pacified = false;
+    Unit* facing = nullptr;
+    std::vector<std::pair<uint32, float>> shots;
+    void SetOwnerGUID(uint32 id) { owner = id; }
+    void SetFaction(uint32) { }
+    bool HasUnitState(uint32 mask) const { return (state & mask) != 0; }
+    bool HasAuraType(uint32) const { return pacified; }
+    bool HasAura(uint32 id) const { return id == 706692 && upgraded; }
+    bool isAttackReady(uint32 type) const { return m_attackTimer[type] <= 0; }
+    bool IsWithinDistInMap(Unit* target, float range) const { return std::abs(x - target->x) <= range; }
+    bool CanSeeOrDetect(Unit* target) const { return target->visible; }
+    bool IsWithinLOSInMap(Unit* target) const { return target->los; }
+    float GetExactDist(Unit* target) const { return std::abs(x - target->x); }
+    void SetFacingToObject(Unit* target) { facing = target; }
+    void CastSpell(float destX, float, float, uint32 id, bool) { shots.emplace_back(id, destX); }
+};
+
+struct SpellInfo
+{
+    float GetMaxRange(bool, Creature*) const { return 45; }
+} info;
+struct Manager
+{
+    SpellInfo const* GetSpellInfo(uint32 id) const { assert(id == 706689); return &info; }
+} manager;
+auto sSpellMgr = &manager;
+std::map<uint32, Unit*> units;
+std::list<Unit*> neighborhood;
+namespace ObjectAccessor
+{
+Unit* GetUnit(Creature const&, uint32 guid) { return units.contains(guid) ? units[guid] : nullptr; }
+}
+std::list<Unit*> Nearby(Unit*, float) { return neighborhood; }
+void Cast(Creature* caster, Unit* target, uint32 id)
+{
+    if (caster->NativeAttackAdmission(target))
+        caster->shots.emplace_back(id, target->x);
+}
+
+// ACTUAL_TURRET
+
+struct Device
+{
+    Creature* me;
+    uint32 focus = 0, owner = 0;
+    // ACTUAL_INITIALIZATION
+    // ACTUAL_TARGET
+    // ACTUAL_UPDATE
+};
+
+int main()
+{
+    Player player;
+    player.pvp = 5;
+    currentOwner = &player;
+    Creature turret;
+    Device ai{&turret};
+    Unit neutral, enemy;
+    neutral.guid = 2;
+    neutral.x = 10;
+    enemy.guid = 3;
+    enemy.x = 20;
+    enemy.hostile = true;
+    units = {{2, &neutral}, {3, &enemy}};
+    neighborhood = {&neutral, &enemy};
+    player.selected = &neutral;
+    player.combat.insert(&neutral);
+
+    // Owner selection succeeds while an unregistered TempSummon's actual shot fails.
+    assert(ai.TurretTarget(&player) == &neutral);
+    assert(!turret.NativeAttackAdmission(&neutral));
+    ai.IsSummonedBy(&player);
+    ai.UpdateTurret(&player);
+    assert(turret.facing == &neutral);
+    if (turret.shots.size() != 1) // Reproduces #89 before the control flags are initialized.
+        return 89;
+    assert(turret.m_ControlledByPlayer && turret.pvp == player.pvp);
+    assert(player.m_Controlled.contains(&turret));
+    assert(turret.m_attackTimer[RANGED_ATTACK] == 2000);
+    ai.UpdateTurret(&player);
+    assert(turret.shots.size() == 1);
+
+    neutral.immuneNPC = true;
+    assert(turret.NativeAttackAdmission(&neutral));
+    neutral.immunePC = true;
+    assert(!turret.NativeAttackAdmission(&neutral));
+    neutral.immunePC = false;
+    neutral.flags = UNIT_FLAG_NON_ATTACKABLE;
+    assert(!turret.NativeAttackAdmission(&neutral));
+    neutral.flags = 0;
+
+    ai.focus = enemy.guid;
+    turret.m_attackTimer[RANGED_ATTACK] = 0;
+    turret.m_modAttackSpeedPct[RANGED_ATTACK] = 0.5f;
+    ai.UpdateTurret(&player);
+    assert(turret.shots.size() == 2 && turret.facing == &enemy);
+    assert(turret.m_attackTimer[RANGED_ATTACK] == 1000);
+    enemy.visible = false;
+    assert(ai.TurretTarget(&player) == &neutral);
+    neutral.los = false;
+    assert(!ai.TurretTarget(&player));
+    neutral.los = true;
+    turret.m_attackTimer[RANGED_ATTACK] = 0;
+    turret.pacified = true;
+    ai.UpdateTurret(&player);
+    assert(turret.shots.size() == 2);
+    turret.pacified = false;
+    turret.state = UNIT_STATE_CONTROLLED;
+    ai.UpdateTurret(&player);
+    assert(turret.shots.size() == 2);
+    turret.state = 0;
+    turret.upgraded = true;
+    ai.UpdateTurret(&player);
+    assert((turret.shots.back() == std::pair<uint32, float>(706694, neutral.x)));
+
+    Creature beacon, orphan;
+    beacon.entry = 50037;
+    Device other{&beacon}, missing{&orphan};
+    other.IsSummonedBy(&player);
+    missing.IsSummonedBy(nullptr);
+    assert(!beacon.m_ControlledByPlayer && !beacon.HasUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED));
+    assert(!orphan.owner && !orphan.m_ControlledByPlayer);
+}

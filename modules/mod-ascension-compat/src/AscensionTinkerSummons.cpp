@@ -234,6 +234,14 @@ struct npc_ascension_tinker_device : ScriptedAI
         // Keep the stationary TempSummon AI while participating in that lifecycle.
         player->m_Controlled.insert(me);
         me->SetFaction(player->GetFaction());
+        if (Turret(me->GetEntry()))
+        {
+            // TempSummon skips SetMinion: owner GUID alone still leaves shots
+            // on the creature-vs-creature target and immunity checks.
+            me->m_ControlledByPlayer = true;
+            me->SetUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED);
+            me->SetByteValue(UNIT_FIELD_BYTES_2, 1, player->GetByteValue(UNIT_FIELD_BYTES_2, 1));
+        }
         me->SetReactState(REACT_PASSIVE);
         me->SetCombatMovement(Mobile());
         State(player).summons.insert(me->GetGUID());
