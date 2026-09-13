@@ -130,6 +130,80 @@ class ClientAutomaticRanks(unittest.TestCase):
         self.assertIsNone(self.rank(self.prepare(7229)))  # Paid Hive Instinct remains a choice.
 
 
+class ClientSpecializationTabs(unittest.TestCase):
+    def setUp(self):
+        if CLIENT_ADDON is None:
+            self.skipTest("Pass --client-addon-dir to exercise client Lua.")
+        from lupa.lua51 import LuaRuntime
+        self.vm = LuaRuntime(unpack_returned_tuples=True)
+        self.vm.execute("""
+            level, activeSpec = 11, 60
+            known, messages = {}, {}
+            format, tinsert = string.format, table.insert
+            function wipe(t) for k in pairs(t) do t[k] = nil end end
+            function table.invert(t)
+                local result = {}
+                for k, v in pairs(t) do result[v] = k end
+                return result
+            end
+            function IsDefaultClass() return false end
+            function UnitClass() return "Primalist", "WILDWALKER" end
+            function UnitGUID() return "Primalist-test" end
+            function UnitLevel() return level end
+            function IsSpellKnown(id) return known[id] end
+            function SendChatMessage(message) table.insert(messages, message) end
+            function CreateFrame()
+                return {RegisterEvent = function() end, SetScript = function() end}
+            end
+            C_ClassInfo = {
+                GetAllSpecs = function() return {58, 59, 60, 95} end,
+                GetSpecInfoByID = function(id)
+                    local tokens = {[58] = "LIFE", [59] = "PRIMAL", [60] = "MOUNTAINKING", [95] = "GEOMANCY"}
+                    return {ID = id, Class = "WILDWALKER", Spec = tokens[id]}
+                end,
+            }
+            C_CharacterAdvancement = {GetActiveChrSpec = function() return activeSpec end}
+            CharacterAdvancementUtil = {}
+        """)
+        utility = CLIENT_ADDON.parents[1] / "FrameXML/Util/CharacterAdvancementUtil.lua"
+        source = utility.read_text(encoding="utf-8-sig")
+        self.vm.execute(source[source.index("function CharacterAdvancementUtil.GetClassDBCByFile("):])
+        for name in ("CoATalentNodeData.lua", "CharacterAdvancementCompat.lua",
+                     "CharacterAdvancementStateCompat.lua"):
+            self.vm.execute((CLIENT_ADDON / name).read_text(encoding="utf-8-sig"))
+
+    def test_mountain_king_tree_uses_client_token(self):
+        self.vm.execute("""
+            local tab = CharacterAdvancementUtil.GetSpecDBCByFile("MOUNTAINKING")
+            local entries = C_CharacterAdvancement.GetEntriesByClass("Primalist", tab)
+            assert(#entries == 40, "Mountain King must expose all 40 nodes")
+            local ids = {}
+            for _, entry in ipairs(entries) do
+                assert(entry.Tab == "Mountain King")
+                ids[entry.ID] = true
+            end
+            assert(ids[4064] and ids[9214], "Both progression passives must be present")
+            for _, other in ipairs({"Life", "Primal", "Geomancy", "Class"}) do
+                assert(#C_CharacterAdvancement.GetEntriesByClass("Primalist", other) > 0)
+            end
+            assert(#C_CharacterAdvancement.GetEntriesByClass("Ranger", tab) == 0)
+        """)
+
+    def test_mountain_king_passives_follow_level_and_spec(self):
+        self.vm.execute("""
+            local rank = C_CharacterAdvancement.GetPendingRankByEntryID
+            level = 9
+            assert(rank(4064) == 0)
+            level = 11
+            assert(rank(4064) == 1, "Mountain Giant must unlock at level 10")
+            assert(rank(9214) == 0, "King of the Mountain requires level 20")
+            level = 20
+            assert(rank(9214) == 1)
+            assert(C_CharacterAdvancement.SwitchActiveChrSpec(95))
+            assert(rank(4064) == 0 and rank(9214) == 0)
+        """)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--client-addon-dir", type=Path)

@@ -43,6 +43,12 @@ with `lupa` installed to also exercise the client Lua 5.1 rank calculation and
 check that its dependencies match the server. These checks do not build or launch
 the server or game client.
 
+The same generator supplies client tab aliases. Primalist's native `MountainKing`
+tab must resolve to the builder's `Mountain King` tab for both tree lookup and
+automatic passive recognition. The client regressions above cover its 40 nodes,
+level gates, and specialization switching. This correction requires the generated
+client Lua to be packaged; the server talent catalog already uses spec ID 60.
+
 ## Login and natural regeneration
 
 The copied client's `Extensions.dll` patches the ping timer at executable address
