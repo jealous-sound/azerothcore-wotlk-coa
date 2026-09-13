@@ -223,7 +223,8 @@ def reconcile_ledger(mysql, covered):
     mysql.query("START TRANSACTION;")
     try:
         for name, expected, native in changed:
-            rows = mysql.query("UPDATE `updates` SET `hash`='" + native + "' WHERE `name`='" + name
+            # UpdateFetcher compares hexadecimal hashes case-sensitively and writes uppercase.
+            rows = mysql.query("UPDATE `updates` SET `hash`='" + native.upper() + "' WHERE `name`='" + name
                                + "' AND LOWER(`hash`)='" + expected + "'; SELECT ROW_COUNT();")
             if rows != [["1"]]:
                 raise ValueError("Unexpected covered migration identity: " + name)

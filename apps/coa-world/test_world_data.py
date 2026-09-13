@@ -130,6 +130,21 @@ class WorldDataTests(unittest.TestCase):
         self.assertEqual(database.statements[-1], "ROLLBACK;")
         self.assertNotIn("COMMIT;", database.statements)
 
+    def test_rebound_hash_uses_native_updater_casing(self):
+        class Ledger:
+            def __init__(self):
+                self.statements = []
+
+            def query(self, sql):
+                self.statements.append(sql)
+                return [["1"]] if sql.startswith("UPDATE") else []
+
+        database = Ledger()
+        reconcile_ledger(database, [("rev_test.sql", "a" * 40, "b" * 40)])
+        self.assertIn("SET `hash`='" + "B" * 40 + "'", database.statements[1])
+        self.assertIn("LOWER(`hash`)='" + "a" * 40 + "'", database.statements[1])
+        self.assertEqual(database.statements[-1], "COMMIT;")
+
 
 if __name__ == "__main__":
     unittest.main()

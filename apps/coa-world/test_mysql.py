@@ -21,13 +21,13 @@ def migrate_source(mysql):
 
 
 def apply_updates(mysql):
-    recorded = {row[0]: (row[1].lower(), row[2]) for row in mysql.query("SELECT name,hash,state FROM updates;")}
+    recorded = {row[0]: (row[1], row[2]) for row in mysql.query("SELECT name,hash,state FROM updates;")}
     released = [(p, "RELEASED") for p in sorted((ROOT / "data/sql/updates/db_world").glob("*.sql"))]
     pending = [(p, "PENDING") for p in (ROOT / "data/sql/updates/pending_db_world").glob("*.sql")]
     modules = [(p, "MODULE") for p in (ROOT / "modules/mod-ascension-compat/data/sql/db-world").glob("*.sql")]
     applied = []
     for path, state in released + sorted(pending + modules, key=lambda entry: entry[0].name):
-        checksum = native_sql_hash(path.read_bytes())
+        checksum = native_sql_hash(path.read_bytes()).upper()
         previous = recorded.get(path.name)
         # These are active directories: an ARCHIVED ledger state alone does not skip their hash check.
         if previous and previous[0] == checksum:
