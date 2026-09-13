@@ -116,7 +116,7 @@ struct ResourceGainRule
 // These active abilities advertise resource generation in their tooltips, but
 // their public Spell.dbc records contain no effect that performs it. Ranges are
 // rank chains verified against the local Ascension spell dump.
-inline constexpr std::array<ResourceGainRule, 165> ResourceGainRules =
+inline constexpr std::array<ResourceGainRule, 166> ResourceGainRules =
 {{
     {14, 704368, 704368, 800058, 1, ResourceMutation::AuraStacks,
         ResourceGainEvent::FirstSuccessfulHostileTarget},
@@ -224,6 +224,8 @@ inline constexpr std::array<ResourceGainRule, 165> ResourceGainRules =
     {21, 520227, 520227, 804329, 2, ResourceMutation::AuraStacks},
     {21, 573243, 573246, 804329, 2, ResourceMutation::AuraStacks},
     {21, 806345, 806345, 804329, 2, ResourceMutation::AuraStacks},
+    // Captured Falconstrike ranks 2-8 specify one Advantage; rank 1 explicitly specifies two.
+    {21, 806437, 806443, 804329, 1, ResourceMutation::AuraStacks},
     {21, 803104, 803104, 804329, 2, ResourceMutation::AuraStacks},
     {21, 803852, 803852, 804329, 2, ResourceMutation::AuraStacks},
 

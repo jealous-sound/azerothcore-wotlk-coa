@@ -131,6 +131,8 @@ enum DoctorSpells : uint32
     LoaBrew = 801670,
     LoaBlessing = 705848,
     LoaEchoHeal = 899906,
+    JungleSecrets = 707212,
+    JungleSecretsHeal = 712348,
     BlessingOne = 802207,
     BlessingTwo = 802208,
     BlessingThree = 802215,
@@ -397,6 +399,7 @@ void Mix(Player* player, uint32 mojo);
 uint32 IngredientMask(Player* player);
 void PotionEffects(Player* player, Unit* target, bool splash, uint32 mojo, uint32 ingredients);
 void PruneSummons(Player* player);
+void HealThroughEffigies(Player* player, Unit* primary, uint32 healing);
 void Summon(Player* player, uint32 spell, Unit* target, Position const& position);
 void Mirror(Player* player, Unit* target, uint32 spell);
 bool HasSummon(Player* player, uint32 entry);

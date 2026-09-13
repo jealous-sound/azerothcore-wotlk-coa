@@ -23,6 +23,7 @@
 #include "ArenaTeam.h"
 #include "ArenaTeamMgr.h"
 #include "ArenaSeasonMgr.h"
+#include "AscensionPooledVitality.h"
 #include "Battlefield.h"
 #include "BattlefieldMgr.h"
 #include "BattlefieldWG.h"
@@ -10111,6 +10112,36 @@ void Player::ApplySpellMod(uint32 spellId, SpellModOp op, T& basevalue, Spell* s
     // Drop charges for triggering spells instead of triggered ones
     if (m_spellModTakingSpell)
         spell = m_spellModTakingSpell;
+
+    // The module snapshots readiness before prepare calculates cost/cast time.
+    // Keep the modifiers on that cast, including delayed summon effects, without
+    // installing permanent empowered auras on the player.
+    if (spell && spell->GetCaster() == this && !spell->IsTriggered() && getClass() == CLASS_SON_OF_ARUGAL &&
+        spellInfo->SpellFamilyName == 26 && spell->GetSpellInfo()->Id == spellId && !temporaryPet)
+    {
+        using namespace AscensionBloodmage;
+        Empowerment kind = GetEmpowerment(spellId);
+        if (kind != None && spell->GetScriptValue(PooledVitalityTalent) == kind)
+        {
+            if ((op == SPELLMOD_CASTING_TIME && kind == Mend) ||
+                (op == SPELLMOD_COST && (kind == CrimsonTide || kind == Fleshcraft || kind == Apotheosis)))
+            {
+                basevalue = 0;
+                return;
+            }
+            if (op == SPELLMOD_RADIUS && kind == CrimsonTide)
+                totalflat += 5;
+            if (kind == AnimatedBlood)
+            {
+                if (op == SPELLMOD_EFFECT1)
+                    totalflat += 1;
+                if (op == SPELLMOD_DURATION)
+                    totalflat += 5000;
+            }
+            if (op == SPELLMOD_COOLDOWN && kind == Transfusion)
+                basevalue = T(std::max(0.0, double(basevalue) - 60000.0));
+        }
+    }
 
     for (auto mod : m_spellMods[op])
     {

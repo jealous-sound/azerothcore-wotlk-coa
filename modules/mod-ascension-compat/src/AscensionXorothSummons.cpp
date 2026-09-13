@@ -13,6 +13,7 @@
 #include "TemporarySummon.h"
 #include "ThreatManager.h"
 #include <algorithm>
+#include <cstdlib>
 namespace AscensionXoroth
 {
 void Summon(Player* player, uint32 entry, Position const& position, uint32 duration)
@@ -98,6 +99,16 @@ struct npc_ascension_xoroth_summon : public ScriptedAI
         if (me->GetEntry() == 50268 && summoner && player->IsAlive() && !player->IsInCombat() &&
             player->IsWithinDistInMap(me, 5) && (player == summoner || summoner->IsInRaidWith(player)))
             Cast(player, player, 804775);
+    }
+    void JustDied(Unit*) override
+    {
+        if (me->GetEntry() != 50301) // Only Hellfire Imps, never a timed despawn or another summon.
+            return;
+        if (Player* player = Owner(ObjectAccessor::GetPlayer(*me, owner)); player && player->HasAura(804013))
+        {
+            Reduce(player, 805677, std::abs(Amount(804012, 0, player)));
+            Reduce(player, 524897, std::abs(Amount(804012, 1, player)));
+        }
     }
     void UpdateAI(uint32 diff) override
     {

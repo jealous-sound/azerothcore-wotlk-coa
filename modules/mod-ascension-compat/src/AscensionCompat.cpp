@@ -32,11 +32,17 @@
 #include "AscensionRacialAbilities.h"
 #include "AscensionPrimalistEarthshaping.h"
 #include "AscensionPrimalistSpiritBeast.h"
+#include "AscensionPrimalistWeapons.h"
+#include "AscensionRunemasterTalents.h"
+#include "AscensionRangerTalents.h"
+#include "AscensionChronomancerTalents.h"
+#include "AscensionReaperTalents.h"
 #include "AscensionReaperSoulStrike.h"
 #include "AscensionReaperDeathwind.h"
 #include "AscensionReaperPainmail.h"
 #include "AscensionVenomancerCatalyst.h"
 #include "AscensionSpellProgressionData.h"
+#include "AscensionTalentReplacementData.h"
 #include "AscensionTaughtAbilityData.h"
 #include "Bag.h"
 #include "Battlefield.h"
@@ -74,9 +80,11 @@
 #include <filesystem>
 #include <fstream>
 #include <functional>
+#include <map>
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <set>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -521,6 +529,8 @@ public:
     }
 
     learned += SynchronizeTaughtAbilities(player);
+    learned += SynchronizeTalentReplacements(player);
+    RemoveAscensionPrimalistWeapons(player);
     SynchronizeAscensionRunemasterEchoes(player, GetActiveSpecialization(player));
 
     if (learned)
@@ -576,6 +586,106 @@ public:
             if (player->HasSpell(entry.SpellId))
                 ++learned;
         }
+        if (player->getClass() == CLASS_BLOODMAGE)
+        {
+            // Native spec changes reconcile this flag, but removing a temporary
+            // spell during a CAD refund does not. Preserve independently owned 674.
+            bool const dualWield = player->HasSpell(674);
+            if (player->CanDualWield() != dualWield)
+            {
+                player->SetCanDualWield(dualWield);
+                if (!dualWield)
+                    player->AutoUnequipOffhandIfNeed();
+            }
+        }
+        return learned;
+    }
+
+    bool AffectsTalentReplacements(uint32 spellId) const
+    {
+        uint32 const root = sSpellMgr->GetFirstSpellInChain(spellId);
+        return std::any_of(AscensionCompatData::TalentReplacements.begin(),
+            AscensionCompatData::TalentReplacements.end(), [spellId, root](auto const& entry)
+            {
+                return entry.ParentSpellId == spellId || entry.OriginalSpellId == root;
+            });
+    }
+
+    uint32 SynchronizeTalentReplacements(Player* player)
+    {
+        if (!IsAscensionCustomClass(player))
+            return 0;
+
+        uint32 const specializationId = GetActiveSpecialization(player);
+        std::set<uint32> candidates;
+        std::map<uint32, uint32> replacements;
+        for (auto const& entry : AscensionCompatData::TalentReplacements)
+        {
+            if (entry.ClassId != player->getClass())
+                continue;
+
+            uint32 replacement = 0;
+            bool const allowed = specializationId == entry.SpecId && player->HasSpell(entry.ParentSpellId);
+            for (auto const& rank : entry.Ranks)
+            {
+                if (!rank.SpellId)
+                    continue;
+                candidates.insert(rank.SpellId);
+                if (allowed && rank.RequiredLevel <= player->GetLevel() && sSpellMgr->GetSpellInfo(rank.SpellId))
+                    replacement = rank.SpellId;
+            }
+
+            for (auto const& [id, spell] : player->GetSpellMap())
+            {
+                if (sSpellMgr->GetFirstSpellInChain(id) != entry.OriginalSpellId)
+                    continue;
+                // Several mutually exclusive specs can transform the same root.
+                // An ineligible row must not erase another row's valid choice.
+                replacements.try_emplace(id, 0);
+                if (replacement && player->HasActiveSpell(id))
+                    replacements[id] = replacement;
+            }
+        }
+
+        std::set<uint32> desired;
+        for (auto const& [id, replacement] : replacements)
+        {
+            if (replacement)
+                desired.insert(replacement);
+            // Restore the old button before its temporary spell disappears.
+            if (player->GetTemporarySpellReplacement(id) != replacement)
+                player->SetTemporarySpellReplacement(id, 0);
+        }
+
+        for (uint32 id : candidates)
+        {
+            if (desired.count(id))
+                continue;
+            // Native removal recursively removes higher ranks. A lower rank may
+            // need to remain while a desired higher rank is still owned.
+            bool const neededByHigherRank = std::any_of(desired.begin(), desired.end(), [id](uint32 rank)
+            {
+                return sSpellMgr->GetFirstSpellInChain(id) == sSpellMgr->GetFirstSpellInChain(rank) &&
+                    sSpellMgr->GetSpellRank(id) < sSpellMgr->GetSpellRank(rank);
+            });
+            if (!neededByHigherRank)
+                player->removeSpell(id, SPEC_MASK_ALL, true);
+        }
+
+        uint32 learned = 0;
+        for (uint32 id : desired)
+        {
+            // Preserve permanent/other-spec ownership and pending deletions, as
+            // with ordinary taught abilities. Child IDs cannot re-enter this hook.
+            if (player->GetSpellMap().find(id) == player->GetSpellMap().end())
+            {
+                player->learnSpell(id, true);
+                if (player->HasSpell(id))
+                    ++learned;
+            }
+        }
+        for (auto const& [id, replacement] : replacements)
+            player->SetTemporarySpellReplacement(id, replacement);
         return learned;
     }
 
@@ -1870,6 +1980,9 @@ private:
     static void ModifyAuraStacks(Player* player, uint32 spellId, int32 amount)
     {
         if (!amount)
+            return;
+
+        if (HandleAscensionReaperResource(player, spellId, amount))
             return;
 
         if (AscensionPyromancer::Resource(player, spellId, amount))
@@ -3417,6 +3530,10 @@ public:
         AscensionClassService::Instance().AffectsTaughtAbilities(spellId))
       AscensionClassService::Instance().SynchronizeTaughtAbilities(player);
 
+    if (ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED) &&
+        AscensionClassService::Instance().AffectsTalentReplacements(spellId))
+      AscensionClassService::Instance().SynchronizeTalentReplacements(player);
+
     if (ascensionCompatConfig.GetConfigValue<bool>(
             AscensionCompatConfig::ENABLED) &&
         AscensionClassService::Instance().AffectsProficiencies(spellId))
@@ -3424,6 +3541,8 @@ public:
   }
 
   void OnPlayerForgotSpell(Player *player, uint32 spellId) override {
+    if (spellId == 537218)
+      RemoveAscensionPrimalistWeapons(player);
     if (ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED) && spellId == 712325)
       AscensionClassService::ReconcileRunemasterFists(player,
           AscensionClassService::Instance().GetActiveSpecialization(player));
@@ -3437,6 +3556,13 @@ public:
         AscensionClassService::Instance().AffectsTaughtAbilities(spellId))
       AscensionClassService::Instance().SynchronizeTaughtAbilities(player);
 
+    if (ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED) &&
+        AscensionClassService::Instance().AffectsTalentReplacements(spellId))
+    {
+      player->SetTemporarySpellReplacement(spellId, 0);
+      AscensionClassService::Instance().SynchronizeTalentReplacements(player);
+    }
+
     if (ascensionCompatConfig.GetConfigValue<bool>(
             AscensionCompatConfig::ENABLED) &&
         AscensionClassService::Instance().AffectsProficiencies(spellId))
@@ -3446,8 +3572,13 @@ public:
     void OnPlayerAfterSpecSlotChanged(Player* player, uint8 /*newSlot*/) override
     {
         if (ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED))
+        {
             AscensionClassService::ReconcileRunemasterFists(player,
                 AscensionClassService::Instance().GetActiveSpecialization(player));
+            AscensionClassService::Instance().SynchronizeTaughtAbilities(player);
+            AscensionClassService::Instance().SynchronizeTalentReplacements(player);
+            RemoveAscensionPrimalistWeapons(player);
+        }
     }
 
   void OnPlayerLogout(Player *player) override {
@@ -3693,6 +3824,12 @@ public:
             ApplyAscensionClassMechanics(spellInfo);
             ApplyAscensionPrimalistEarthshapingContracts(spellInfo);
             ApplyAscensionPrimalistSpiritBeastContract(spellInfo);
+            ApplyAscensionPrimalistWeaponsContract(spellInfo);
+            ApplyAscensionRunemasterTalentContracts(spellInfo);
+            ApplyAscensionManuscriptionContracts(spellInfo);
+            ApplyAscensionRunemasterTravelContracts(spellInfo);
+            ApplyAscensionRangerTalentContracts(spellInfo);
+            ApplyAscensionChronomancerTalentContracts(spellInfo);
             ApplyAscensionVenomancerCatalystContract(spellInfo);
             ApplyAscensionReaperDeathwindContracts(spellInfo);
         }
@@ -4059,6 +4196,14 @@ bool IsAscensionPrimalistTameEligible(Player const* player)
     return player && ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED) &&
         player->getClass() == CLASS_WILDWALKER && player->GetLevel() >= 10 && player->HasSpell(92148) &&
         AscensionClassService::Instance().GetActiveSpecialization(player) == 59;
+}
+
+bool IsAscensionPrimalistWeaponsEligible(Player const* player, bool allowUnconfirmed)
+{
+    return player && ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED) &&
+        player->getClass() == CLASS_WILDWALKER && player->GetLevel() >= 20 && player->HasSpell(537218) &&
+        (AscensionClassService::Instance().GetActiveSpecialization(player) == 59 ||
+            (allowUnconfirmed && !AscensionClassService::Instance().GetActiveSpecialization(player)));
 }
 
 void AddAscensionCompatScripts() {

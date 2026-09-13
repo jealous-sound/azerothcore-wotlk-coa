@@ -3881,7 +3881,16 @@ uint32 Unit::GetDefenseSkillValue(Unit const* target) const
 float Unit::GetUnitDodgeChance() const
 {
     if (IsPlayer())
-        return ToPlayer()->GetRealDodge(); //GetFloatValue(PLAYER_DODGE_PERCENTAGE);
+    {
+        float dodge = ToPlayer()->GetRealDodge();
+        enum SpiritualReflexesSpells : uint32 { SpiritualReflexes = 705436, SpiritualReflexesAmount = 707454 };
+        // Evaluate health at the roll, so a heal or hit in the same update cannot
+        // leave the conditional dodge bonus active on the wrong side of 35%.
+        if (getClass() == CLASS_REAPER && HealthBelowPct(35) && HasAura(SpiritualReflexes))
+            if (SpellInfo const* helper = sSpellMgr->GetSpellInfo(SpiritualReflexesAmount))
+                dodge += helper->Effects[EFFECT_0].CalcValue(this);
+        return dodge;
+    }
     else
     {
         if (ToCreature()->IsTotem())

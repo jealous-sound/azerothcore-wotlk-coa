@@ -15,6 +15,12 @@ an empty target set or any successful target prevents this refund. Bellows combi
 The recovered changelog record 69912 (2026-08-01) supplies the miss-refund rule. Blood Frenzy and Stoke
 apply their refunds only to non-refunded spending. Blood and Demonfire are independent resources.
 
+Claws of Hell refreshes the caster's own Unleash Apocalypse on the selected target after spending
+at least four Demonfire without a refund. Triggered casts and another caster's effect do not qualify;
+the existing periodic tick timer is preserved. Fiery Retribution reduces Sacrificial Circle by two
+seconds and Implosion by one second when an owned Hellfire Imp dies. Other summons and timed despawns
+do not qualify. `tests/xoroth_passives/run.py` exercises these callbacks with the workspace fixture.
+
 Skulltaker and Warbringer gain 20% and 18% damage per Demonfire respectively, following record 66622
 (2025-12-22). The other recovered bundle rules are explicit: Flames +50% damage per stack, Hellmaw
 +20% direct/periodic damage, Implosion +100% damage and one additional imp, Melt -4% armor, Suffuse

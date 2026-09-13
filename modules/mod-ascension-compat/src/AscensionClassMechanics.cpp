@@ -7,6 +7,7 @@
 #include "AscensionClassMechanics26To32.h"
 #include "AscensionClassMechanicsData.h"
 #include "AscensionRangerDamage.h"
+#include "AscensionRangerTalents.h"
 #include "AscensionWitchHunterTonics.h"
 #include "AscensionWitchHunterFlames.h"
 #include "AscensionWitchHunterScaling.h"
@@ -1277,6 +1278,9 @@ void HandleAscensionClassMechanicsCast(Spell* spell)
         // miss condition in the target list, so consumption can remain here.
         if (!DidRangerAdvantageConsumerSucceed(spell, player))
             return;
+
+        // "Used with five" also includes casts whose stacks Elven Tactics preserves.
+        HandleAscensionRangerStonemason(spell, player);
 
         // Ascension's private proc service applies this hidden passive after
         // every successful Advantage consumer. AzerothCore does not generate a

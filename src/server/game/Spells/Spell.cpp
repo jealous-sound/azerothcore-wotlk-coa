@@ -17,6 +17,7 @@
 
 #include "Spell.h"
 #include "ArenaSpectator.h"
+#include "AscensionPooledVitality.h"
 #include "BattlefieldMgr.h"
 #include "Battleground.h"
 #include "CharmInfo.h"
@@ -5397,7 +5398,11 @@ void Spell::TakePower()
     // health as power used
     if (PowerType == POWER_HEALTH)
     {
-        m_caster->ModifyHealth(-(int32)m_powerCost);
+        int32 spent = m_caster->ModifyHealth(-(int32)m_powerCost);
+        if (spent < 0 && m_caster->IsPlayer() && m_caster->getClass() == CLASS_SON_OF_ARUGAL &&
+            m_spellInfo->SpellFamilyName == 26 && !IsTriggered() &&
+            m_caster->HasAura(AscensionBloodmage::PooledVitalityTalent))
+            SetScriptValue(AscensionBloodmage::PooledVitality, 1);
         return;
     }
 

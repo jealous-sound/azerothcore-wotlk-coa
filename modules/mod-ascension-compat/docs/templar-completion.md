@@ -85,6 +85,13 @@ do not gain a second caster coefficient, crit, target modifier or armor pass. Ex
 rows accompany these source paths. Additional-target bases are corrected, and Consecration ranks gain
 one through four jumps beyond the primary target. Changed target selectors rebuild their explicit masks.
 
+Sacred Resistance applies its native 15% armor buff once per completed, non-triggered Reckoning cast,
+including every rank. Armor of Faith triggers only when the caster's Staffguard shield is exhausted
+by damage; expiry, cancellation and dispelling a shield with capacity remaining do not trigger it.
+Its native area damage and threat retain the authored 20% AP and 50% Holy spell-power coefficients
+through pending `rev_20260913_02_templar_passives.sql`. The regression at
+`tests/templar_passives/run.py` reuses the workspace completion fixture in a temporary directory.
+
 ## Summons, movement and installation
 
 Testament of Hope retains the native two-creature summon effect and 20-second lifetime. GUID-owned AI

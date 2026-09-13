@@ -191,6 +191,7 @@ class witch_doctor_casts : public AllSpellScript
         uint32 id = info->Id;
         if (Family(info, 1, 131072))
         {
+            HealThroughEffigies(player, target, healing);
             auto& state = State(player);
             if (!spell->IsTriggered() && state.previousBrew != target->GetGUID())
             {

@@ -76,6 +76,27 @@ bool HasSummon(Player* player, uint32 entry)
                 return true;
     return false;
 }
+void HealThroughEffigies(Player* player, Unit* primary, uint32 healing)
+{
+    if (!player || !primary || !healing || !player->HasAura(JungleSecrets))
+        return;
+    SpellInfo const* info = sSpellMgr->GetSpellInfo(JungleSecretsHeal);
+    if (!info)
+        return;
+    uint32 amount = uint32(uint64(healing) * std::clamp(Amount(JungleSecrets, EFFECT_0, player), 0, 100) / 100);
+    float radius = info->Effects[EFFECT_0].CalcRadius(player);
+    auto summons = State(player).summons;
+    for (ObjectGuid guid : summons)
+        if (Creature* effigy = ObjectAccessor::GetCreature(*player, guid))
+            if (Slot(effigy->GetEntry()) == EffigySlot && effigy->IsAlive() &&
+                effigy->GetOwnerGUID() == player->GetGUID() && player->IsInMap(effigy) && player->InSamePhase(effigy))
+            {
+                auto allies = Allies(player, effigy, radius);
+                allies.remove(primary);
+                if (!allies.empty())
+                    Copy(player, allies.front(), JungleSecretsHeal, amount);
+            }
+}
 void WardBuff(Player* player, uint32 spell)
 {
     for (ObjectGuid guid : State(player).summons)

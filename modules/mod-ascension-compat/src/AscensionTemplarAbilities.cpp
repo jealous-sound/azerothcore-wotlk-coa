@@ -135,6 +135,8 @@ class templar_casts : public AllSpellScript
             if (player->HasAura(passive))
                 Cast(player, player, child);
         };
+        if (Named(info, 805421)) // Sacred Resistance: all Reckoning ranks, once per completed cast.
+            talent(301309, 680870);
         Unit* target = spell->m_targets.GetUnitTarget();
         if (Family(info, 2, 1) || info->Id == 500689)
         {

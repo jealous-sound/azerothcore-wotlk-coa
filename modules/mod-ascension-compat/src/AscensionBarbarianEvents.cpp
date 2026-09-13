@@ -228,6 +228,8 @@ class aura_ascension_barbarian_event : public AuraScript
                 cast(801783, false);
                 if (owner->HasAura(500061))
                     cast(805813);
+                if (owner->HasAura(804768) && Ancestor(player))
+                    cast(804769);
                 break;
             case 706804:
                 owner->CastCustomSpell(707660, SPELLVALUE_BASE_POINT0,

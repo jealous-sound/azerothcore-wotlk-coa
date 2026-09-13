@@ -209,6 +209,10 @@ class aura_ascension_templar_lifecycle : public AuraScript
             return;
         if (GetTarget() != player)
             return;
+        if (id == 706583 && effect->GetAmount() <= 0 &&
+            GetTargetApplication()->GetRemoveMode() == AURA_REMOVE_BY_ENEMY_SPELL &&
+            player->IsAlive() && player->HasAura(804930))
+            Cast(player, player, 801546); // Armor of Faith: only an exhausted Staffguard shield.
         if (id == 704576 && !State(player).oath)
             ClearOaths(player);
         if (id == 801482 && GetTargetApplication()->GetRemoveMode() == AURA_REMOVE_BY_EXPIRE && player->IsAlive())

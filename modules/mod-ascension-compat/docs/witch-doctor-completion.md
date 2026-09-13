@@ -8,6 +8,13 @@ and [Manastorm solo-scaling/cache delivery](manastorm.md). See the
 
 ## Evidence and policy
 
+The #88 follow-up connects Jungle Secrets to successful Loa's Brew healing. Each
+living owned effigy selects one additional living party/raid ally in its native
+heal radius and line of sight, prioritizing the lowest health percentage. The
+original Brew recipient is excluded. The helper copies 35% of effective healing,
+without another critical roll or healing bonus. `tests/witch_doctor_passives/run.py`
+exercises the production hit callback, selection, ownership and helper metadata.
+
 The installed copied-client Spell.dbc and its family-19 helper closure define ranks, masks, descriptions,
 base values, durations, coefficients and targeting contracts. Raw client creature/model records supply
 missing model rows. Archived official changelog records are supporting evidence, not a measured backend.

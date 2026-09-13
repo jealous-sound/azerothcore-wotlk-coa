@@ -391,6 +391,9 @@ class xoroth_casts : public AllSpellScript
                 Gain(player, fire);
             if (fire && !refunded)
             {
+                if (fire >= 4 && player->HasAura(805706) && target)
+                    if (Aura* apocalypse = target->GetAura(560817, player->GetGUID()))
+                        apocalypse->SetDuration(apocalypse->GetMaxDuration()); // Claws of Hell.
                 if (player->HasAura(520008) && fire >= 4)
                     Gain(player, 1);
                 if (player->HasAura(704973) && fire == 6 && (Named(info, 800168) || id == 803334))
