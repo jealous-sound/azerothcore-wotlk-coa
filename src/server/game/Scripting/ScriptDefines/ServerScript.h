@@ -55,6 +55,9 @@ public:
     // being open; it is not.
     virtual void OnSocketClose(std::shared_ptr<WorldSocket> const& /*socket*/) { }
 
+    // mod_playerbots: bots observe the incoming packets of their session
+    virtual void OnPacketReceived(WorldSession* /*session*/, WorldPacket const& /*packet*/) { }
+
     /**
      * @brief This hook is called when a packet is sent to a client.
      *

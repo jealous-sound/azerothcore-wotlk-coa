@@ -919,6 +919,9 @@ public:
 
     uint32 GetNodeState(uint8 nodeType) const { return (uint8)nodePoint[nodeType].nodeState; }
 
+    // mod_playerbots: bots read the battleground state through this accessor
+    [[nodiscard]] ICNodePoint const& GetICNodePoint(uint8 index) { return nodePoint[index]; }
+
     bool AllNodesConrolledByTeam(TeamId teamId) const override;  // overwrited
     bool IsResourceGlutAllowed(TeamId teamId) const;
     void DoAction(uint32 action, ObjectGuid guid) override;

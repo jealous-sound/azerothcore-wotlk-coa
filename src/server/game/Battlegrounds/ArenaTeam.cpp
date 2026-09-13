@@ -575,6 +575,25 @@ void ArenaTeam::BroadcastPacket(WorldPacket* packet)
             player->SendDirectMessage(packet);
 }
 
+void ArenaTeam::SetEmblem(uint32 backgroundColor, uint8 emblemStyle, uint32 emblemColor, uint8 borderStyle, uint32 borderColor)
+{
+    BackgroundColor = backgroundColor;
+    EmblemStyle = emblemStyle;
+    EmblemColor = emblemColor;
+    BorderStyle = borderStyle;
+    BorderColor = borderColor;
+}
+
+void ArenaTeam::SetRatingForAll(uint32 rating)
+{
+    Stats.Rating = rating;
+
+    for (MemberList::iterator itr = Members.begin(); itr != Members.end(); ++itr)
+    {
+        itr->PersonalRating = rating;
+    }
+}
+
 void ArenaTeam::BroadcastEvent(ArenaTeamEvents event, ObjectGuid guid, uint8 strCount, std::string const& str1, std::string const& str2, std::string const& str3)
 {
     WorldPacket data(SMSG_ARENA_TEAM_EVENT, 1 + 1 + 1);

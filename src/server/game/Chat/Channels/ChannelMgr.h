@@ -38,6 +38,8 @@ public:
 
     static ChannelMgr* forTeam(TeamId teamId);
 
+    // mod_playerbots: bots search the open channels
+    const ChannelMap& GetChannels() const { return channels; }
     Channel* GetJoinChannel(std::string const& name, uint32 channel_id);
     Channel* GetChannel(std::string const& name, Player* p, bool pkt = true);
     static void LoadChannels();

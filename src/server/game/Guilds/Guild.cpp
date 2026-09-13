@@ -1339,6 +1339,44 @@ void Guild::HandleSetEmblem(WorldSession* session, EmblemInfo const& emblemInfo)
     }
 }
 
+// mod_playerbots: _MemberHasTabRights is defined inline in this file and is therefore not
+// visible outside it. The public version repeats the logic here instead of forwarding,
+// which keeps the symbol resolvable for modules.
+bool Guild::MemberHasTabRights(ObjectGuid guid, uint8 tabId, uint32 rights) const
+{
+    if (Member const* member = GetMember(guid))
+    {
+        // Leader always has full rights
+        if (member->IsRank(GR_GUILDMASTER) || m_leaderGuid == guid)
+            return true;
+        return (_GetRankBankTabRights(member->GetRankId(), tabId) & rights) == rights;
+    }
+    return false;
+}
+
+void Guild::HandleSetEmblem(EmblemInfo const& emblemInfo)
+{
+    m_emblemInfo = emblemInfo;
+    m_emblemInfo.SaveToDB(m_id);
+}
+
+void Guild::HandleSetRankInfo(uint8 rankId, uint32 rights, std::string_view name, uint32 moneyPerDay)
+{
+    if (RankInfo* rankInfo = GetRankInfo(rankId))
+    {
+        if (!name.empty())
+            rankInfo->SetName(name);
+
+        if (rights > 0)
+            rankInfo->SetRights(rights);
+
+        if (moneyPerDay > 0)
+            _SetRankBankMoneyPerDay(rankId, moneyPerDay);
+
+        _BroadcastEvent(GE_RANK_UPDATED, ObjectGuid::Empty, std::to_string(rankId), rankInfo->GetName(), std::to_string(m_ranks.size()));
+    }
+}
+
 void Guild::HandleSetLeader(WorldSession* session, std::string_view name)
 {
     Player* player = session->GetPlayer();

@@ -301,5 +301,12 @@ private:
     uint8 _controlledPoints[PVP_TEAMS_COUNT] {};
     bool _teamScores500Disadvantage[PVP_TEAMS_COUNT] {};
     uint32 _configurableMaxTeamScore;
+
+public:
+    // mod_playerbots: bots read the battleground state through this accessor.
+    // Placed at the end of the class because CapturePointInfo is a private nested struct
+    // and would not be known further up.
+    [[nodiscard]] CapturePointInfo const& GetCapturePointInfo(uint32 node) const { return _capturePointInfo[node]; }
+
 };
 #endif

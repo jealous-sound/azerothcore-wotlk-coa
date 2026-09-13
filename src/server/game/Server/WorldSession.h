@@ -30,6 +30,7 @@
 #include "DatabaseEnv.h"
 #include "Duration.h"
 #include "GossipDef.h"
+#include "QueryHolder.h"   // mod_playerbots: LoginQueryHolder derives from CharacterDatabaseQueryHolder
 #include "Packet.h"
 #include "SharedDefines.h"
 #include "World.h"
@@ -42,7 +43,22 @@ class Creature;
 class GameObject;
 class InstanceSave;
 class Item;
-class LoginQueryHolder;
+// mod_playerbots: the class lived in CharacterHandler.cpp and was visible only there.
+// Bots derive from it (PlayerbotLoginQueryHolder), so it now lives in the header.
+// The definition of Initialize() stays in CharacterHandler.cpp.
+class LoginQueryHolder : public CharacterDatabaseQueryHolder
+{
+private:
+    uint32 m_accountId;
+    ObjectGuid m_guid;
+public:
+    LoginQueryHolder(uint32 accountId, ObjectGuid guid)
+        : m_accountId(accountId), m_guid(guid) { }
+
+    ObjectGuid GetGuid() const { return m_guid; }
+    uint32 GetAccountId() const { return m_accountId; }
+    bool Initialize();
+};
 class LoadPetFromDBQueryHolder;
 class Object;
 class Pet;
@@ -349,6 +365,13 @@ class CharacterCreateInfo
     friend class WorldSession;
     friend class Player;
 
+public:
+    // mod_playerbots: bots create characters without a client packet and therefore need a
+    // constructor that takes all appearance fields directly.
+    CharacterCreateInfo(std::string const name = "", uint8 _race = 0, uint8 _class = 0, uint8 gender = 0, uint8 skin = 0, uint8 face = 0,
+        uint8 hairStyle = 0, uint8 hairColor = 0, uint8 facialHair = 0)
+        : Name(name), Race(_race), Class(_class), Gender(gender), Skin(skin), Face(face), HairStyle(hairStyle), HairColor(hairColor), FacialHair(facialHair) { }
+
 protected:
     /// User specified variables
     std::string Name;
@@ -409,7 +432,7 @@ struct PacketCounter
 class WorldSession
 {
 public:
-    WorldSession(uint32 id, std::string&& name, uint32 accountFlags, std::shared_ptr<WorldSocket> sock, AccountTypes sec, uint8 expansion, time_t mute_time, LocaleConstant locale, uint32 recruiter, bool isARecruiter, bool skipQueue, uint32 TotalTime);
+    WorldSession(uint32 id, std::string&& name, uint32 accountFlags, std::shared_ptr<WorldSocket> sock, AccountTypes sec, uint8 expansion, time_t mute_time, LocaleConstant locale, uint32 recruiter, bool isARecruiter, bool skipQueue, uint32 TotalTime, bool is_bot = false);
     ~WorldSession();
 
     uint32 GetAccountFlags() const { return _accountFlags; }
@@ -1209,8 +1232,17 @@ public:                                                 // opcodes handlers
 
     void SetPacketLogging(bool state);
 
+    LockedQueue<WorldPacket*>& GetPacketQueue();
+
+    [[nodiscard]] bool IsBot() const
+    {
+        return _isBot;
+    }
+
 private:
     void ProcessQueryCallbacks();
+
+    bool _isBot;
 
     QueryCallbackProcessor _queryProcessor;
     AsyncCallbackProcessor<TransactionCallback> _transactionCallbacks;

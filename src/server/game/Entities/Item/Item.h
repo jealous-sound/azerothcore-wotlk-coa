@@ -219,7 +219,9 @@ bool ItemCanGoIntoBag(ItemTemplate const* proto, ItemTemplate const* pBagProto);
 class Item : public Object
 {
 public:
-    static Item* CreateItem(uint32 item, uint32 count, Player const* player = nullptr, bool clone = false, uint32 randomPropertyId = 0);
+    // mod_playerbots: temp=true creates a throwaway item that draws no GUID from the generator,
+    // so bots can evaluate gear without consuming item GUIDs.
+    static Item* CreateItem(uint32 item, uint32 count, Player const* player = nullptr, bool clone = false, uint32 randomPropertyId = 0, bool temp = false);
     Item* CloneItem(uint32 count, Player const* player = nullptr) const;
 
     Item();

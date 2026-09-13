@@ -1886,6 +1886,8 @@ public:
     // Reputations system
     ReputationRank GetReactionTo(Unit const* target, bool checkOriginalFaction = false) const;
     ReputationRank GetFactionReactionTo(FactionTemplateEntry const* factionTemplateEntry, Unit const* target) const;
+    // mod_playerbots: reaction between two factions without a Unit instance
+    static ReputationRank GetFactionReactionTo(FactionTemplateEntry const* factionTemplateEntry, FactionTemplateEntry const* targetFactionTemplateEntry);
 
     // Shared vision
     SharedVisionList const& GetSharedVisionList() { return m_sharedVision; }
@@ -2044,6 +2046,8 @@ public:
     void SendComboPoints();
 
     void SendPlaySpellVisual(uint32 id);
+    // mod_playerbots: visual effect on a foreign target
+    void SendPlaySpellVisual(ObjectGuid guid, uint32 id);
     void SendPlaySpellImpact(ObjectGuid guid, uint32 id);
 
     void SendPetActionFeedback(uint8 msg) const;

@@ -238,7 +238,10 @@ enum GuildMemberFlags
 class EmblemInfo
 {
 public:
-    EmblemInfo() : m_style(0), m_color(0), m_borderStyle(0), m_borderColor(0), m_backgroundColor(0) { }
+    // mod_playerbots: bots call the constructor with five arguments.
+    // As in the playerbot fork the values are deliberately discarded; ReadPacket/LoadFromDB set them.
+    EmblemInfo(uint32 /*style*/ = 0, uint32 /*color*/ = 0, uint32 /*borderStyle*/ = 0, uint32 /*borderColor*/ = 0, uint32 /*backgroundColor*/ = 0) :
+        m_style(0), m_color(0), m_borderStyle(0), m_borderColor(0), m_backgroundColor(0) { }
 
     void LoadFromDB(Field* fields);
     void SaveToDB(uint32 guildId) const;
@@ -701,6 +704,15 @@ public:
     void HandleSetBankTabInfo(WorldSession* session, uint8 tabId, std::string_view name, std::string_view icon);
     void HandleSetMemberNote(WorldSession* session, std::string_view name, std::string_view note, bool isPublic);
     void HandleSetRankInfo(WorldSession* session, uint8 rankId, std::string_view name, uint32 rights, uint32 moneyPerDay, std::array<GuildBankRightsAndSlots, GUILD_BANK_MAX_TABS> const& rightsAndSlots);
+
+    // mod_playerbots: session-free variants. Bots act without a client session and therefore
+    // cannot use the WorldSession versions. The rights queries forward to the existing
+    // private versions.
+    void HandleSetEmblem(EmblemInfo const& emblemInfo);
+    void HandleSetRankInfo(uint8 rankId, uint32 rights = 0, std::string_view name = "", uint32 moneyPerDay = 0);
+    [[nodiscard]] bool HasRankRight(Player* player, uint32 right) const { return _HasRankRight(player, right); }
+    [[nodiscard]] uint32 GetRankRights(uint8 rankId) const { return _GetRankRights(rankId); }
+    [[nodiscard]] bool MemberHasTabRights(ObjectGuid guid, uint8 tabId, uint32 rights) const;
     void HandleBuyBankTab(WorldSession* session, uint8 tabId);
     void HandleInviteMember(WorldSession* session, std::string const& name);
     void HandleAcceptMember(WorldSession* session);

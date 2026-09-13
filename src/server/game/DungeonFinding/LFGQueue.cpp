@@ -16,6 +16,7 @@
  */
 
 #include "LFGQueue.h"
+#include "ScriptMgr.h"   // mod_playerbots: OnPlayerbotCheckLFGQueue
 #include "Containers.h"
 #include "DBCStores.h"
 #include "GameTime.h"
@@ -410,6 +411,11 @@ namespace lfg
 
         if (!sLFGMgr->AllQueued(check)) // can't create proposal
             return LFG_COMPATIBILITY_PENDING;
+
+        if (!sScriptMgr->OnPlayerbotCheckLFGQueue(proposal.queues))
+        {
+            return LFG_INCOMPATIBLES_HAS_IGNORES;
+        }
 
         // Create a new proposal
         proposal.cancelTime = GameTime::GetGameTime().count() + LFG_TIME_PROPOSAL;

@@ -184,6 +184,10 @@ public:
     void SaveToDB(bool forceMemberSave = false);
 
     void BroadcastPacket(WorldPacket* packet);
+    // mod_playerbots: bots found arena teams without a client session
+    void SetEmblem(uint32 backgroundColor, uint8 emblemStyle, uint32 emblemColor, uint8 borderStyle, uint32 borderColor);
+    void SetRatingForAll(uint32 rating);
+
     void BroadcastEvent(ArenaTeamEvents event, ObjectGuid guid, uint8 strCount, std::string const& str1, std::string const& str2, std::string const& str3);
     void NotifyStatsChanged();
 

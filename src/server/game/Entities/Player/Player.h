@@ -1328,6 +1328,8 @@ public:
     [[nodiscard]] bool HasItemTotemCategory(uint32 TotemCategory) const;
     bool IsTotemCategoryCompatiableWith(ItemTemplate const* pProto, uint32 requiredTotemCategoryId) const;
     InventoryResult CanUseItem(ItemTemplate const* pItem) const;
+    // mod_playerbots: like CanUseItem, but with the relic check used for gear evaluation
+    InventoryResult BotCanUseItem(ItemTemplate const* pItem) const;
     [[nodiscard]] InventoryResult CanUseAmmo(uint32 item) const;
     InventoryResult CanRollForItemInLFG(ItemTemplate const* item, WorldObject const* lootedObject) const;
     Item* StoreNewItem(ItemPosCountVec const& pos, uint32 item, bool update, int32 randomPropertyId = 0, bool refund = false);
@@ -2117,6 +2119,8 @@ public:
     void JoinedChannel(Channel* c);
     void LeftChannel(Channel* c);
     void CleanupChannels();
+    // mod_playerbots: bots check whether they already joined a channel
+    bool IsInChannel(const Channel* c);
     void ClearChannelWatch();
     void UpdateLFGChannel();
     void UpdateLocalChannels(uint32 newZone);

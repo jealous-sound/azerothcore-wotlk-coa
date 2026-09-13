@@ -7585,6 +7585,22 @@ ReputationRank Unit::GetFactionReactionTo(FactionTemplateEntry const* factionTem
     return REP_NEUTRAL;
 }
 
+ReputationRank Unit::GetFactionReactionTo(FactionTemplateEntry const* factionTemplateEntry, FactionTemplateEntry const* targetFactionTemplateEntry)
+{
+    // common faction based check
+    if (factionTemplateEntry->IsHostileTo(*targetFactionTemplateEntry))
+        return REP_HOSTILE;
+    if (factionTemplateEntry->IsFriendlyTo(*targetFactionTemplateEntry))
+        return REP_FRIENDLY;
+    if (targetFactionTemplateEntry->IsFriendlyTo(*factionTemplateEntry))
+        return REP_FRIENDLY;
+    if (factionTemplateEntry->factionFlags & FACTION_TEMPLATE_FLAG_HATES_ALL_EXCEPT_FRIENDS)
+        return REP_HOSTILE;
+
+    // neutral by default
+    return REP_NEUTRAL;
+}
+
 bool Unit::IsHostileTo(Unit const* unit) const
 {
     return GetReactionTo(unit) <= REP_HOSTILE;
@@ -13132,6 +13148,11 @@ void Unit::CleanupBeforeRemoveFromMap(bool finalCleanup)
     if (IsInWorld()) // not in world and not being removed atm
         RemoveFromWorld();
 
+    // Added for mod_playerbots crash fixes; cancel and remove pending events before aura/spellmod cleanup.
+    // Without this SpellEvent may be cancelled later during EventProcessor destruction after auras/spellmods
+    // are already removed and leading to invalid access in Player::RestoreSpellMods on logout.
+    m_Events.KillAllEvents(false);
+
     ASSERT(GetGUID());
 
     // A unit may be in removelist and not in world, but it is still in grid
@@ -14755,6 +14776,8 @@ void Unit::Kill(Unit* killer, Unit* victim, bool durabilityLoss, WeaponAttackTyp
             }
         }
 
+        sScriptMgr->OnPlayerbotCheckKillTask(player, victim);
+
         // Dungeon specific stuff, only applies to players killing creatures
         if (creature->GetInstanceId())
         {
@@ -15703,6 +15726,14 @@ void Unit::SendPlaySpellVisual(uint32 id)
 {
     WorldPacket data(SMSG_PLAY_SPELL_VISUAL, 8 + 4);
     data << GetGUID();
+    data << uint32(id); // SpellVisualKit.dbc index
+    SendMessageToSet(&data, true);
+}
+
+void Unit::SendPlaySpellVisual(ObjectGuid guid, uint32 id)
+{
+    WorldPacket data(SMSG_PLAY_SPELL_VISUAL, 8 + 4);
+    data << guid;
     data << uint32(id); // SpellVisualKit.dbc index
     SendMessageToSet(&data, true);
 }

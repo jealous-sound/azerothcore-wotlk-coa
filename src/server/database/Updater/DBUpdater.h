@@ -79,6 +79,9 @@ public:
 
     static inline std::string GetConfigEntry();
     static inline std::string GetTableName();
+    // mod_playerbots: the module ships its SQL under modules/mod-playerbots, so the
+    // update directories have to be resolved per database.
+    static std::string GetSourceDirectory();
     static std::string GetBaseFilesDirectory();
     static bool IsEnabled(uint32 const updateMask);
     static BaseLocation GetBaseLocationType();

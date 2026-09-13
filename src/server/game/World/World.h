@@ -229,6 +229,9 @@ public:
     // used World DB version
     void LoadDBVersion() override;
     [[nodiscard]] char const* GetDBVersion() const override { return _dbVersion.c_str(); }
+#ifdef MOD_PLAYERBOTS
+    [[nodiscard]] char const* GetPlayerbotsDBRevision() const override { return m_PlayerbotsDBRevision.c_str(); }
+#endif
 
     void UpdateAreaDependentAuras() override;
 
@@ -258,6 +261,9 @@ protected:
     void ResetRandomBG();
     void CalendarDeleteOldEvents();
     void ResetGuildCap();
+
+    // mod_playerbots: bots log characters in through a QueryHolder
+    SQLQueryHolderCallback& AddQueryHolderCallback(SQLQueryHolderCallback&& callback) override;
 private:
     WorldConfig _worldConfig;
 
@@ -302,8 +308,14 @@ private:
     // used versions
     std::string _dbVersion;
     uint32 _dbClientCacheVersion;
+#ifdef MOD_PLAYERBOTS
+    std::string m_PlayerbotsDBRevision;
+#endif
 
     void ProcessQueryCallbacks();
+    // mod_playerbots: bots log characters in through a QueryHolder
+    AsyncCallbackProcessor<SQLQueryHolderCallback> _queryHolderProcessor;
+
     QueryCallbackProcessor _queryProcessor;
 
     /**

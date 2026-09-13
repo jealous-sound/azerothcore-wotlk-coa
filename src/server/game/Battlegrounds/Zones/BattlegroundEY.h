@@ -428,5 +428,12 @@ private:
     uint8 _flagState;
     uint32 _flagCapturedObject;
     uint32 _configurableMaxTeamScore;
+
+public:
+    // mod_playerbots: bots read the battleground state through this accessor.
+    // Placed at the end of the class because CapturePointInfo is a private nested struct
+    // and would not be known further up.
+    [[nodiscard]] CapturePointInfo const& GetCapturePointInfo(uint32 node) const { return _capturePointInfo[node]; }
+
 };
 #endif
