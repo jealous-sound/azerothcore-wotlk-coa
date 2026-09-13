@@ -147,10 +147,17 @@ World* sWorld = &world;
 struct Config
 {
     bool Enabled = false;
-    template<class T> T GetOption(char const* name, T) const
+    bool AllowRemote = false;
+    bool Plaintext = true;
+    template<class T> T GetOption(char const* name, T fallback, bool = true) const
     {
-        assert(std::strcmp(name, "AscensionCompat.Enable") == 0);
-        return T(Enabled);
+        if (std::strcmp(name, "AscensionCompat.Enable") == 0)
+            return T(Enabled);
+        if (std::strcmp(name, "AscensionCompat.AllowRemoteClients") == 0)
+            return T(AllowRemote);
+        if (std::strcmp(name, "AscensionCompat.PlaintextWorldHeaders") == 0)
+            return T(Plaintext);
+        return fallback;
     }
 } config;
 Config* sConfigMgr = &config;
@@ -207,10 +214,11 @@ bool Ping(WorldSocket& socket, std::chrono::milliseconds elapsed)
     return socket.HandlePing(packet);
 }
 
-void TestPing(bool enabled, bool loopback, bool gm, bool expected)
+void TestPing(bool enabled, bool loopback, bool gm, bool expected, bool allowRemote = false)
 {
     using namespace std::chrono_literals;
     config.Enabled = enabled;
+    config.AllowRemote = allowRemote;
     WorldSession session;
     session.GM = gm;
     WorldSocket socket(IoContextTcpSocket{loopback});
@@ -219,20 +227,24 @@ void TestPing(bool enabled, bool loopback, bool gm, bool expected)
     for (int i = 0; i < 24 && connected; ++i)
         connected = Ping(socket, 5s);
     Check(connected == expected && session.Latency == 42,
-        enabled && loopback && !gm ? "ordinary Ascension account accepts two minutes of five-second pings" :
-        gm ? "existing GM permission remains effective" : "stock and remote sessions retain the 27-second limit");
+        enabled && (loopback || allowRemote) && !gm ?
+        "ordinary Ascension account accepts two minutes of five-second pings" :
+        gm ? "existing GM permission remains effective" : "unconfigured sessions retain the 27-second limit");
+    Check(socket._usePlaintextWorldHeaders == (loopback || allowRemote),
+        "plaintext headers require loopback or explicit remote configuration");
 }
 
-void TestFlood()
+void TestFlood(bool loopback = true)
 {
     using namespace std::chrono_literals;
     config.Enabled = true;
+    config.AllowRemote = !loopback;
     WorldSession session;
-    WorldSocket socket(IoContextTcpSocket{true});
+    WorldSocket socket(IoContextTcpSocket{loopback});
     socket._worldSession = &session;
     Check(Ping(socket, 0ms) && Ping(socket, 1s) && Ping(socket, 1s) && !Ping(socket, 1s),
         "ordinary Ascension accounts are still disconnected for sustained ping flooding");
-    WorldSocket recovered(IoContextTcpSocket{true});
+    WorldSocket recovered(IoContextTcpSocket{loopback});
     recovered._worldSession = &session;
     Check(Ping(recovered, 0ms) && Ping(recovered, 1s) && Ping(recovered, 1s) && Ping(recovered, 4s) &&
         Ping(recovered, 1s), "jitter margin and good intervals reset overspeed strikes");
@@ -258,8 +270,11 @@ int main(int argc, char** argv)
     TestPing(true, true, false, true);
     TestPing(false, true, false, false);
     TestPing(true, false, false, false);
+    TestPing(true, false, false, true, true);
+    TestPing(false, false, false, false, true);
     TestPing(false, true, true, true);
     TestFlood();
+    TestFlood(false);
     std::cout << checks - failures << '/' << checks << " checks passed\n";
     return failures ? 1 : 0;
 }

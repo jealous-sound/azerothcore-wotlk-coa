@@ -7,8 +7,13 @@
 # Enable the compatibility packet filter.
 AscensionCompat.Enable = 1
 
+# Apply the Ascension protocol settings to remote connections as well as loopback.
+# Enable only on realms dedicated to the matching Ascension client build.
+# Authentication proofs and packet size checks remain required. Restart to apply.
+AscensionCompat.AllowRemoteClients = 0
+
 # This Ascension client keeps world packet headers plaintext after its valid
-# CMSG_AUTH_SESSION proof. Restrict the compatibility behavior to loopback.
+# CMSG_AUTH_SESSION proof. Remote use also requires AllowRemoteClients above.
 AscensionCompat.PlaintextWorldHeaders = 1
 
 # Ascension's classless character creator submits reserved WotLK class ID 10.

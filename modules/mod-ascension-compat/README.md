@@ -54,6 +54,14 @@ accounts are disconnected after exceeding `MaxOverspeedPings`, while GM permissi
 the five-second cadence with a one-second jitter margin. Faster sustained flooding
 still reaches the strike limit. Other connections retain the stock limit.
 
+For a realm dedicated to this client, set `AscensionCompat.AllowRemoteClients = 1`
+and restart worldserver. This also applies the configured plaintext world headers,
+extension opcode range and ping interval to remote connections. The default is `0`;
+password proofs, IP bans and packet size validation remain required.
+The native v4 client also needs the [world-address fix](../../apps/client-compat/README.md)
+to enter remote worlds without its DLL corrupting an active client hook. That fix uses
+the authserver's realm address without a per-IP allowlist.
+
 The `gtOCTRegenHP`, `gtRegenHPPerSpt` and `gtRegenMPPerSpt` client files each contain
 3,200 single-float rows indexed by class and level. Their SQL tables contain explicit
 IDs, with the stock dataset covering only IDs 0–1099. The DBC loader accepts implicit

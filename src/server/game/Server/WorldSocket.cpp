@@ -125,10 +125,21 @@ WorldSocket::WorldSocket(IoContextTcpSocket&& socket)
     Acore::Crypto::GetRandomBytes(_authSeed);
     _headerBuffer.Resize(sizeof(ClientPktHeader));
 
-    // Extensions.dll changes the local Ascension client's ping period to five seconds.
+    bool const allowAscensionClient = GetRemoteIpAddress().is_loopback() ||
+        sConfigMgr->GetOption<bool>("AscensionCompat.AllowRemoteClients", false, false);
+    _ascensionCompatEnabled = allowAscensionClient &&
+        sConfigMgr->GetOption<bool>("AscensionCompat.Enable", false, false);
+    _usePlaintextWorldHeaders = allowAscensionClient &&
+        sConfigMgr->GetOption<bool>("AscensionCompat.PlaintextWorldHeaders", false, false);
+
+    // Extensions.dll changes the Ascension client's ping period to five seconds.
     // Allow one second of jitter while retaining the ordinary overspeed strike limit.
-    if (GetRemoteIpAddress().is_loopback() && sConfigMgr->GetOption<bool>("AscensionCompat.Enable", false))
+    if (_ascensionCompatEnabled)
+    {
         _minimumPingInterval = std::chrono::seconds(4);
+        _firstAscensionExtensionOpcode = sConfigMgr->GetOption<uint32>("AscensionCompat.FirstExtensionOpcode", 0x051F);
+        _lastAscensionExtensionOpcode = sConfigMgr->GetOption<uint32>("AscensionCompat.LastExtensionOpcode", 0x09D3);
+    }
 }
 
 WorldSocket::~WorldSocket() = default;
@@ -335,12 +346,10 @@ bool WorldSocket::ReadHeaderHandler()
             rawHeader, cryptInitialized, header->size, header->cmd);
     }
 
-    bool const isLoopbackAscensionExtension = GetRemoteIpAddress().is_loopback() &&
-        sConfigMgr->GetOption<bool>("AscensionCompat.Enable", false) &&
-        header->cmd >= sConfigMgr->GetOption<uint32>("AscensionCompat.FirstExtensionOpcode", 0x051F) &&
-        header->cmd <= sConfigMgr->GetOption<uint32>("AscensionCompat.LastExtensionOpcode", 0x09D3);
+    bool const isAscensionExtension = _ascensionCompatEnabled &&
+        header->cmd >= _firstAscensionExtensionOpcode && header->cmd <= _lastAscensionExtensionOpcode;
 
-    if (!header->IsValidSize() || (!header->IsValidOpcode() && !isLoopbackAscensionExtension))
+    if (!header->IsValidSize() || (!header->IsValidOpcode() && !isAscensionExtension))
     {
         LOG_ERROR("network",
             "WorldSocket::ReadHeaderHandler(): client {} sent malformed packet "
@@ -624,8 +633,7 @@ void WorldSocket::HandleAuthSessionCallback(std::shared_ptr<ClientAuthSession> a
 
     AccountInfo account(result->Fetch());
 
-    bool const usePlaintextWorldHeaders = GetRemoteIpAddress().is_loopback() &&
-        sConfigMgr->GetOption<bool>("AscensionCompat.PlaintextWorldHeaders", false);
+    bool const usePlaintextWorldHeaders = _usePlaintextWorldHeaders;
 
     // For hook purposes, we get Remoteaddress at this point.
     std::string address = sConfigMgr->GetOption<bool>("AllowLoggingIPAddressesInDatabase", true, true) ? GetRemoteIpAddress().to_string() : "0.0.0.0";
