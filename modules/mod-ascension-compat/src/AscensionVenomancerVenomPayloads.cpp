@@ -88,6 +88,10 @@ public:
             0.0001859597762293 * level * level;
         // Native PPL and one random roll already ran. Scale only that raw base,
         // before combo/effect modifiers and periodic SP/BH snapshot calculations.
+        // The curve-scaled result is already the per-tick amount (WotLK periodic auras
+        // apply their base value identically on every tick, see AuraEffect::Update),
+        // except 630869 (Adrenal heal) whose raw base is authored as a 3-tick total
+        // (Amplitude 2000 / Duration 6000) and must still be split across those ticks.
         double const adjusted = double(value) * curve / (info->Id == 630869 ? 3.0 : 1.0);
         if (!std::isfinite(adjusted))
             return;
