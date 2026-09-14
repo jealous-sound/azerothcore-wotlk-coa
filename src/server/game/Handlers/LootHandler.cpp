@@ -431,7 +431,17 @@ void WorldSession::DoLootRelease(ObjectGuid lguid)
         }
         else if (pItem->loot.isLooted() || !proto->HasFlag(ITEM_FLAG_HAS_LOOT))
         {
-            player->DestroyItem(pItem->GetBagSlot(), pItem->GetSlot(), true);
+            if (proto->HasFlag(ITEM_FLAG_HAS_LOOT) && pItem->GetCount() > 1)
+            {
+                // One loot window belongs to one container, even when the containers stack.
+                sLootItemStorage->RemoveStoredLoot(pItem->GetGUID());
+                pItem->m_lootGenerated = false;
+                pItem->loot.clear();
+                uint32 count = 1;
+                player->DestroyItemCount(pItem, count, true);
+            }
+            else
+                player->DestroyItem(pItem->GetBagSlot(), pItem->GetSlot(), true);
             return;
         }
     }
