@@ -63,7 +63,8 @@ bool IsDirectChapterCast(SpellInfo const* info, uint8 depth = 0)
     for (SpellEffectInfo const& effect : info->Effects)
     {
         if (effect.Effect == SPELL_EFFECT_SCHOOL_DAMAGE || effect.Effect == SPELL_EFFECT_WEAPON_DAMAGE ||
-            effect.Effect == SPELL_EFFECT_WEAPON_DAMAGE_NOSCHOOL || effect.Effect == SPELL_EFFECT_WEAPON_PERCENT_DAMAGE ||
+            effect.Effect == SPELL_EFFECT_WEAPON_DAMAGE_NOSCHOOL ||
+            effect.Effect == SPELL_EFFECT_WEAPON_PERCENT_DAMAGE ||
             effect.Effect == SPELL_EFFECT_NORMALIZED_WEAPON_DMG)
             return true;
         if (depth < 2 && (effect.Effect == SPELL_EFFECT_TRIGGER_SPELL ||

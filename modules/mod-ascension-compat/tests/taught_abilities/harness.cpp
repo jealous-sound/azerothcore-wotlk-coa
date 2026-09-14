@@ -474,6 +474,7 @@ int main()
     for (uint32 parent : {537218u, 300728u, 504088u, 806302u, 520925u})
         assert(!service.AffectsTaughtAbilities(parent));
     CheckReplacements();
-    std::cout << "PASS: seven active grants, Eternal dual wield, and all " << AscensionCompatData::TaughtAbilities.size()
+    std::cout << "PASS: seven active grants, Eternal dual wield, and all "
+        << AscensionCompatData::TaughtAbilities.size()
               << " parent/level/spec/native ownership/save lifecycles\n";
 }

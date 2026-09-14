@@ -38,7 +38,8 @@ class aura_ascension_blessed_by_earth : public AuraScript
     void Register() override
     {
         DoCheckProc += AuraCheckProcFn(aura_ascension_blessed_by_earth::CheckProc);
-        OnEffectProc += AuraEffectProcFn(aura_ascension_blessed_by_earth::Gain, EFFECT_0, SPELL_AURA_PROC_TRIGGER_SPELL);
+        OnEffectProc += AuraEffectProcFn(aura_ascension_blessed_by_earth::Gain,
+            EFFECT_0, SPELL_AURA_PROC_TRIGGER_SPELL);
     }
 };
 
@@ -75,8 +76,9 @@ public:
 
     void OnLoadSpellCustomAttr(SpellInfo* info) override
     {
+        // Old trigger granted Mountain on the first stack without its talent.
         if (info->Id == EarthsRage && info->SpellFamilyName == 37)
-            info->Effects[EFFECT_2].Effect = 0; // Old trigger granted Mountain on the very first stack without its talent.
+            info->Effects[EFFECT_2].Effect = 0;
     }
 };
 }

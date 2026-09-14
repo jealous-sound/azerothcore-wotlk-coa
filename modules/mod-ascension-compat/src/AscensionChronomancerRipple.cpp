@@ -268,7 +268,8 @@ class aura_ascension_ripple_debt : public AuraScript
 class chronomancer_ripple_duration : public AllSpellScript
 {
 public:
-    chronomancer_ripple_duration() : AllSpellScript("chronomancer_ripple_duration", {ALLSPELLHOOK_ON_CALC_MAX_DURATION}) { }
+    chronomancer_ripple_duration() : AllSpellScript("chronomancer_ripple_duration",
+        {ALLSPELLHOOK_ON_CALC_MAX_DURATION}) { }
 
     void OnCalcMaxDuration(Aura const* aura, int32& duration) override
     {

@@ -229,7 +229,11 @@ struct Player : Unit
 struct SpellMgr
 {
     std::map<uint32, SpellInfo> spells;
-    SpellInfo const* GetSpellInfo(uint32 id) { auto it = spells.find(id); return it == spells.end() ? nullptr : &it->second; }
+    SpellInfo const* GetSpellInfo(uint32 id)
+    {
+        auto it = spells.find(id);
+        return it == spells.end() ? nullptr : &it->second;
+    }
 } manager;
 auto sSpellMgr = &manager;
 struct Hook { template<class T> void operator+=(T) { } };

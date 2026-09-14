@@ -27,7 +27,10 @@ class aura_ascension_harvester : public AuraScript
 {
     PrepareAuraScript(aura_ascension_harvester);
 
-    bool Validate(SpellInfo const*) override { return ValidateSpellInfo({SPELL_HARVESTER_AMOUNT, SPELL_BLOOD_HARVEST}); }
+    bool Validate(SpellInfo const*) override
+    {
+        return ValidateSpellInfo({SPELL_HARVESTER_AMOUNT, SPELL_BLOOD_HARVEST});
+    }
 
     bool CheckProc(ProcEventInfo& event)
     {
