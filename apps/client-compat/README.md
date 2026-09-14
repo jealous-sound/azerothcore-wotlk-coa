@@ -37,3 +37,22 @@ the native-pair manifest through the existing deployment guards. Keep the native
 and RealmData companion fixes. Set `Data/<locale>/realmlist.wtf` to the authserver and set
 the server's realm address to its reachable world endpoint. Enable the module's remote
 client compatibility settings as described in its [README](../../modules/mod-ascension-compat/README.md).
+
+## Run without requesting administrator privileges
+
+`patch_execution_level.py` changes the accepted native v4 EXE's embedded Windows manifest from
+`requireAdministrator` to `asInvoker`. Windows then uses the launching process's permissions.
+The 21 changed bytes are confined to manifest resource 1 (language 1033); executable code,
+resource sizes, file offsets and the companion DLL remain unchanged.
+
+```sh
+python apps/client-compat/patch_execution_level.py \
+  --input /path/to/native-v4/Ascension.exe \
+  --output /path/to/new-candidate/Ascension.exe
+```
+
+The same separate-output and pinned-input guards apply. The resulting EXE has SHA256
+`f4b9f6fce448194638c5b1c751483090a48c597c6272237f31b3d151b50d3114`.
+This creates a candidate without installing or launching it. The client folder must be writable
+by its user. An explicitly elevated launcher or a Windows compatibility setting can still launch
+the game with administrator privileges.
