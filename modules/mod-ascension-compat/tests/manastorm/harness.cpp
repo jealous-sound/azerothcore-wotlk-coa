@@ -15,6 +15,7 @@
 #include <mutex>
 #include <set>
 #include <string>
+#include <tuple>
 #include <vector>
 using uint8 = std::uint8_t;
 using int8 = std::int8_t;
@@ -24,6 +25,7 @@ using uint64 = std::uint64_t;
 using namespace Ascension::Manastorm;
 using namespace std::chrono_literals;
 constexpr uint32 EventCacheDelivery = 2;
+constexpr uint32 SPELL_AURA_MOD_XP_PCT = 200;
 struct WorldPacket
 {
     uint16 opcode = 0;
@@ -186,6 +188,7 @@ struct Player
 {
     ObjectGuid guid;
     uint32 level = 10;
+    float xpMultiplier = 1.0f;
     std::set<uint32> known;
     std::vector<WorldPacket> sent;
     ObjectGuid GetGUID() const
@@ -195,6 +198,11 @@ struct Player
     uint32 GetLevel() const
     {
         return level;
+    }
+    float GetTotalAuraMultiplier(uint32 aura) const
+    {
+        assert(aura == SPELL_AURA_MOD_XP_PCT);
+        return xpMultiplier;
     }
     bool HasSpell(uint32 id) const
     {
@@ -489,5 +497,27 @@ int main(int argc, char** argv)
     s.SetLoadout(&player, loadout, 0, 0);
     assert(CharacterDatabase.Commit(s.transactions.back()));
     assert(loadout.slots[0] == 0);
+    // Exercise real completion and persistence with no buff, potion, aura, and combined bonuses.
+    uint32 guid = 100;
+    for (auto const& [multiplier, firstXP, repeatXP] :
+         {std::tuple{1.0f, 75u, 60u}, {1.25f, 93u, 75u}, {1.5f, 112u, 90u}, {1.875f, 140u, 112u}})
+    {
+        Player boosted;
+        boosted.guid.value = guid++;
+        boosted.xpMultiplier = multiplier;
+        Run& rewardRun = s.runs[boosted.guid];
+        s.Complete(&boosted, rewardRun);
+        boosted.xpMultiplier = 1.0f; // Expiry while the transaction is in flight must not change the reward.
+        assert(CharacterDatabase.Commit(s.transactions.back()));
+        assert(CharacterDatabase.xp[boosted.guid.value] == firstXP && rewardRun.pendingXP == firstXP);
+        boosted.xpMultiplier = multiplier;
+        s.Complete(&boosted, rewardRun);
+        assert(CharacterDatabase.Commit(s.transactions.back()));
+        assert(CharacterDatabase.xp[boosted.guid.value] == firstXP + repeatXP);
+        rewardRun.encounter->mode = 4;
+        s.Complete(&boosted, rewardRun);
+        assert(CharacterDatabase.Commit(s.transactions.back()));
+        assert(CharacterDatabase.xp[boosted.guid.value] == firstXP + repeatXP);
+    }
     return 0;
 }
