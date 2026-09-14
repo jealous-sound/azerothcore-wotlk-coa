@@ -82,6 +82,11 @@ void ApplyContracts(SpellInfo* info)
     if (!info || info->SpellFamilyName != 21)
         return;
     uint32 id = info->Id;
+    if (Family(info, 1, 4194304)) // Witchbane and its ranks.
+    {
+        info->InterruptFlags |= SPELL_INTERRUPT_FLAG_MOVEMENT;
+        info->ChannelInterruptFlags |= AURA_INTERRUPT_FLAG_MOVE;
+    }
     if (id == 707535)
     {
         info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_MOD_SPELL_DAMAGE_OF_STAT_PERCENT;
