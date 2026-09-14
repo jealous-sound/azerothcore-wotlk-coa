@@ -29,6 +29,14 @@ void Immunity(Player* player, uint32 source, std::initializer_list<uint32> mecha
 class aura_ascension_cultist_lifecycle : public AuraScript
 {
     PrepareAuraScript(aura_ascension_cultist_lifecycle);
+    void ScaleHerald(AuraEffect const*, AuraEffectHandleModes)
+    {
+        constexpr uint32 HeraldDisplay = 28844;
+        // This display carries a 4x boss scale in CreatureDisplayInfo.dbc.
+        if (GetTarget()->GetDisplayId() == HeraldDisplay && GetTarget()->getTransForm() == Herald)
+            GetTarget()->SetObjectScale(0.25f);
+    }
+
     void Apply(AuraEffect const* effect, AuraEffectHandleModes mode)
     {
         if (!First(effect))
@@ -290,6 +298,9 @@ class aura_ascension_cultist_lifecycle : public AuraScript
         SpellInfo const* info = sSpellMgr->GetSpellInfo(m_scriptSpellId);
         if (!info)
             return;
+        if (info->Id == Herald)
+            AfterEffectApply += AuraEffectApplyFn(aura_ascension_cultist_lifecycle::ScaleHerald,
+                EFFECT_0, SPELL_AURA_TRANSFORM, AURA_EFFECT_HANDLE_SEND_FOR_CLIENT_MASK);
         bool periodic = false;
         for (uint8 i = 0; i < MAX_SPELL_EFFECTS; ++i)
         {
