@@ -42,7 +42,7 @@ def main():
             pass
         else:
             raise AssertionError('Conflicting existing appearance was accepted')
-    print('PASS: all eight captured rows, original records/string pool preserved, idempotence and conflict rejection')
+    print('PASS: all captured rows, original records/string pool preserved, idempotence and conflict rejection')
 
 
 if __name__ == '__main__':

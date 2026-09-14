@@ -1,8 +1,9 @@
-"""Prepare the captured appearance dependencies for issue #82 in separate DBC copies.
+"""Prepare the captured appearance dependencies for issues #51/#82 in separate DBC copies.
 
 Does not modify runtime data or MPQs. The matching pending SQL supplies Creature
 entries 377942 (Conduit), 421460 (Natural Disguise), 462071 (Hemostasis) and
-346852 (Ancient of Lore). Both server and client need these records when deploying.
+346852 (Ancient of Lore), plus Animated Blood's summons. Both server and client
+need these records when deploying; SQL DBC overrides alone cannot fix client models.
 """
 import argparse
 from pathlib import Path
@@ -12,12 +13,19 @@ from runemaster_travel import merge_rows
 
 ROWS = {
     'CreatureDisplayInfo': [
+        [93307, 10899, 0, 0, 4.0, 255, 'bloodelemental', '', '', '', 0, 0, 0, 0, 0, 0],
+        [236827, 110722, 0, 0, 0.20000000298023224, 255, 'bloodticklarva', '', '', '', 0, 0, 0, 0, 0, 0],
         [94074, 8498, 6696, 0, 1.0, 255, '', '', '', '', 0, 0, 0, 0, 0, 0],
         [111213, 187112, 0, 0, 0.699999988079071, 255, 'AncientofLoreSkin', '', '', '', 4, 0, 94, 0, 0, 0],
         [421460, 421460, 0, 0, 1.0, 255, '', '', '', '', 0, 0, 0, 0, 0, 0],
         [462071, 462071, 0, 0, 1.0, 255, '', '', '', '', 0, 0, 0, 0, 0, 0],
     ],
     'CreatureModelData': [
+        [10899, 3, r'creature\bloodelemental\bloodelemental.mdx', 1, 1.0, 1, 0, 18.0, 12.0, 1.0,
+         0, 0, 6118, 0, 2.031280040740967, 1.0, 0.0, -1.1306400299072266, -1.4304399490356445,
+         -0.5066109895706177, 1.6768100261688232, 1.6711900234222412, 3.9143900871276855, 1.0, 0.0, 1.0, 0.0, 0.0],
+        [110722, 0, r'Creature\bloodticklarva\bloodticklarva.mdx', 0, 1.0, 1, 5, 10.0, 6.0, 1.0,
+         0, 0, 0, 3294, 0.0, 2.0, 0.0, -5.0, -2.0, 0.0, 3.0, 2.0, 4.0, 1.0, 1.0, 0.0, 0.0, 0.0],
         [8498, 4097, r'creature\lightningelemental\lightningelemental.mdx', 1, 1.0, 18, 4,
          18.0, 12.0, 1.0, 0, 0, 5535, 0, 2.031280040740967, 1.0, 0.0, -0.9996770024299622,
          -1.507949948310852, 0.9417759776115417, 0.9307060241699219, 1.5024399757385254,
