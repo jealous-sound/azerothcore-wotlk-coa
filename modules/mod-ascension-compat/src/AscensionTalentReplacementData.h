@@ -26,8 +26,9 @@ struct TalentReplacement
 // base replacement; higher ranks use the captured class trainer's level gates.
 // Only ranks whose outstanding requirement was the missing root are included.
 // Transient procs and equipment-dependent selectors need separate policies.
-inline constexpr std::array<TalentReplacement, 12> TalentReplacements =
+inline constexpr std::array<TalentReplacement, 13> TalentReplacements =
 {{
+    { 17, 18, 570727, 801059, {{ { 802581, 0 } }} }, // Flames of Xoroth -> Warbringer
     // Tempest Calling: Conjure Storm -> Updraft; Call Lightning -> Aeroblast.
     { 16, 13, 707615, 800227, {{
         { 802354, 0 }, { 570161, 18 }, { 570162, 26 }, { 570163, 34 },
