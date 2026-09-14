@@ -21,6 +21,13 @@ enum StanceSpells
     SPELL_UNDEAD_PROTECT = 500985
 };
 
+enum WardSpells
+{
+    SPELL_FETID_WARD = 680388,
+    SPELL_GLACIAL_WARD = 681460,
+    SPELL_BONE_WARD = 681529
+};
+
 class aura_ascension_necromancer_lifecycle : public AuraScript
 {
     PrepareAuraScript(aura_ascension_necromancer_lifecycle);
@@ -97,16 +104,19 @@ class aura_ascension_necromancer_lifecycle : public AuraScript
             _cost = GetSpellInfo()->CalcPowerCost(player, GetSpellInfo()->GetSchoolMask());
         if (GetTarget() != player)
             return;
-        if (id == 680388 || id == 681460 || id == 681529)
+        if (id == SPELL_FETID_WARD || id == SPELL_GLACIAL_WARD || id == SPELL_BONE_WARD)
         {
-            for (uint32 ward : {680388, 681460, 681529})
+            for (uint32 ward : {SPELL_FETID_WARD, SPELL_GLACIAL_WARD, SPELL_BONE_WARD})
                 if (ward != id)
                 {
                     player->RemoveAurasDueToSpell(ward);
                     for (Creature* minion : Minions(player))
                         minion->RemoveAurasDueToSpell(ward, player->GetGUID());
                 }
-            BuffArmy(player, id);
+            // Ward spells target the caster; recasting them on minions reapplies this aura recursively.
+            for (Creature* minion : Minions(player))
+                if (Aura* ward = player->AddAura(id, minion))
+                    ward->SetDuration(GetDuration());
         }
         if (id == 500981 || id == 804371)
             Cast(player, player, 504747);
@@ -221,7 +231,7 @@ class aura_ascension_necromancer_lifecycle : public AuraScript
                 State(player).diseases.clear();
                 player->SetTemporarySpellReplacement(801938, 0);
             }
-            if (id == 680388 || id == 681460 || id == 681529)
+            if (id == SPELL_FETID_WARD || id == SPELL_GLACIAL_WARD || id == SPELL_BONE_WARD)
                 for (Creature* minion : Minions(player))
                     minion->RemoveAurasDueToSpell(id, player->GetGUID());
         }
