@@ -1233,6 +1233,13 @@ bool SpellInfo::IsAutocastable() const
 
 bool SpellInfo::ComputeIsStackableWithRanks() const
 {
+    // Aspect ranks share one stance slot; lower ranks must be superseded in the client spell list.
+    constexpr uint32 AspectOfTheStarsRank1 = 800510;
+    constexpr uint32 AspectOfTheStarsRank2 = 803887;
+    constexpr uint32 AspectOfTheStarsRank3 = 803888;
+    if (Id == AspectOfTheStarsRank1 || Id == AspectOfTheStarsRank2 || Id == AspectOfTheStarsRank3)
+        return false;
+
     if (IsPassive())
         return false;
     if (PowerType != POWER_MANA && PowerType != POWER_HEALTH)
