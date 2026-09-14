@@ -9,6 +9,7 @@
 #include "SpellAuras.h"
 #include "SpellMgr.h"
 #include "SpellScript.h"
+#include "Timer.h"
 #include <algorithm>
 #include <array>
 #include <limits>
@@ -19,7 +20,7 @@ using namespace AscensionWitchHunter;
 
 bool Night()
 {
-    uint32 hour = (uint64(GameTime::GetGameTime().count()) / 3600 + 3) % 24;
+    uint32 const hour = Acore::Time::GetHours(GameTime::GetGameTime());
     return hour < 6 || hour >= 18;
 }
 
