@@ -44,15 +44,24 @@ void WorldSession::HandleAddFriendOpcode(WorldPacket& recv_data)
     recv_data >> friendNote;
 
     if (!normalizePlayerName(friendName))
+    {
+        sSocialMgr->SendFriendStatus(GetPlayer(), FRIEND_NOT_FOUND, ObjectGuid::Empty, false);
         return;
+    }
 
     ObjectGuid friendGuid = sCharacterCache->GetCharacterGuidByName(friendName);
     if (!friendGuid)
+    {
+        sSocialMgr->SendFriendStatus(GetPlayer(), FRIEND_NOT_FOUND, ObjectGuid::Empty, false);
         return;
+    }
 
     CharacterCacheEntry const* playerData = sCharacterCache->GetCharacterCacheByGuid(friendGuid);
     if (!playerData)
+    {
+        sSocialMgr->SendFriendStatus(GetPlayer(), FRIEND_NOT_FOUND, ObjectGuid::Empty, false);
         return;
+    }
 
     uint32 friendAccountId = playerData->AccountId;
     TeamId teamId = Player::TeamIdForRace(playerData->Race);
