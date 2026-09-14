@@ -224,6 +224,13 @@ class npc_ascension_witch_doctor : public ScriptedAI
         }
         if (me->GetEntry() == NpcMarionette)
             _timer = 2000;
+        if (me->GetEntry() == NpcSerpent || me->GetEntry() == NpcMassSerpent || me->GetEntry() == NpcViper)
+            _timer = WardAttackInterval();
+    }
+    uint32 WardAttackInterval() const
+    {
+        int32 haste = me->GetTotalAuraModifier(SPELL_AURA_HASTE_SPELLS);
+        return (me->GetEntry() == NpcViper ? 1000 : 2000) * 100 / std::max(1, 100 + haste);
     }
     void SetData(uint32 key, uint32 value) override
     {
@@ -372,8 +379,7 @@ class npc_ascension_witch_doctor : public ScriptedAI
                                                        player->GetRatingBonusValue(CR_CRIT_RANGED)))
                     me->CastSpell(target, ViperFire, true, nullptr, nullptr, _owner);
             }
-            int32 haste = me->GetTotalAuraModifier(SPELL_AURA_HASTE_SPELLS);
-            _timer = (entry == NpcViper ? 1000 : 2000) * 100 / std::max(1, 100 + haste);
+            _timer = WardAttackInterval();
         }
         if (entry == NpcHealing)
         {
