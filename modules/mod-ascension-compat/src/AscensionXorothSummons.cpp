@@ -83,6 +83,10 @@ struct npc_ascension_xoroth_summon : public ScriptedAI
             me->SetReactState(REACT_DEFENSIVE);
             if (me->GetEntry() == 50301)
             {
+                // This TempSummon bypasses SetMinion; Firebolt still needs player target and immunity rules.
+                me->m_ControlledByPlayer = true;
+                me->SetUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED);
+                me->SetByteValue(UNIT_FIELD_BYTES_2, 1, player->GetByteValue(UNIT_FIELD_BYTES_2, 1));
                 State(player).imps.push_back(me->GetGUID());
                 me->GetThreatMgr().RegisterRedirectThreat(706571, owner, 100);
                 Cast(player, me, 800443);
