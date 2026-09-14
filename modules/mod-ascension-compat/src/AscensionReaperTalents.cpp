@@ -1,5 +1,8 @@
 /* Copyright (C) 2016+ AzerothCore, GNU AGPL v3. */
 #include "AscensionReaperTalents.h"
+#include "CellImpl.h"
+#include "GridNotifiersImpl.h"
+#include "ObjectAccessor.h"
 #include "Player.h"
 #include "ScriptMgr.h"
 #include "SpellAuraEffects.h"
@@ -8,6 +11,7 @@
 #include "SpellScript.h"
 #include <algorithm>
 #include <limits>
+#include <list>
 
 namespace
 {
@@ -19,8 +23,74 @@ enum ReaperTalentSpells : uint32
     SPELL_FROM_THE_SHADOWS = 561099,
     SPELL_FROM_THE_SHADOWS_CRIT = 561128,
     SPELL_REAPED_SOUL = 500363,
+    SPELL_SOUL_CAPTURED = 572887,
     SPELL_SOUL_SPLINTERS = 805719,
     SPELL_SOUL_SPLINTER = 805720
+};
+
+class spell_ascension_soul_capture : public SpellScript
+{
+    PrepareSpellScript(spell_ascension_soul_capture);
+    ObjectGuid _corpse;
+
+    bool Validate(SpellInfo const*) override
+    {
+        return ValidateSpellInfo({SPELL_SOUL_CAPTURED, SPELL_REAPED_SOUL});
+    }
+
+    bool Eligible(Unit* unit)
+    {
+        Unit* caster = GetCaster();
+        return unit && unit != caster && !unit->IsAlive() && !caster->IsFriendlyTo(unit) &&
+            !unit->HasAura(SPELL_SOUL_CAPTURED) && caster->IsInMap(unit) && caster->InSamePhase(unit) &&
+            caster->IsWithinDistInMap(unit, GetSpellInfo()->Effects[EFFECT_0].CalcRadius(caster)) &&
+            caster->IsWithinLOSInMap(unit);
+    }
+
+    SpellCastResult CheckCorpse()
+    {
+        _corpse.Clear();
+        Unit* caster = GetCaster();
+        std::list<Unit*> corpses;
+        Acore::AnyDeadUnitCheck check;
+        Acore::UnitListSearcher<Acore::AnyDeadUnitCheck> searcher(caster, corpses, check);
+        Cell::VisitObjects(caster, searcher, GetSpellInfo()->Effects[EFFECT_0].CalcRadius(caster));
+        for (Unit* corpse : corpses)
+            if (Eligible(corpse))
+            {
+                _corpse = corpse->GetGUID();
+                return SPELL_CAST_OK;
+            }
+        return SPELL_FAILED_NO_EDIBLE_CORPSES;
+    }
+
+    void SuppressTrigger(SpellEffIndex index)
+    {
+        PreventHitDefaultEffect(index);
+    }
+
+    void Capture(SpellEffIndex index)
+    {
+        Unit* caster = GetCaster();
+        Unit* corpse = ObjectAccessor::GetUnit(*caster, _corpse);
+        // Recheck at impact: another cast can consume the same corpse after CheckCast.
+        if (!Eligible(corpse) || !caster->AddAura(SPELL_SOUL_CAPTURED, corpse))
+        {
+            PreventHitDefaultEffect(index);
+            return;
+        }
+        caster->CastSpell(caster, SPELL_REAPED_SOUL, true);
+    }
+
+    void Register() override
+    {
+        OnCheckCast += SpellCheckCastFn(spell_ascension_soul_capture::CheckCorpse);
+        OnEffectLaunch += SpellEffectFn(spell_ascension_soul_capture::SuppressTrigger,
+            EFFECT_ALL, SPELL_EFFECT_TRIGGER_SPELL);
+        OnEffectLaunchTarget += SpellEffectFn(spell_ascension_soul_capture::SuppressTrigger,
+            EFFECT_ALL, SPELL_EFFECT_TRIGGER_SPELL);
+        OnEffectHitTarget += SpellEffectFn(spell_ascension_soul_capture::Capture, EFFECT_2, SPELL_EFFECT_HEAL_PCT);
+    }
 };
 
 class aura_ascension_harvester : public AuraScript
@@ -107,6 +177,7 @@ bool HandleAscensionReaperResource(Player* player, uint32 spellId, int32 amount)
 
 void AddSC_AscensionReaperTalents()
 {
+    RegisterSpellScript(spell_ascension_soul_capture);
     RegisterSpellScript(aura_ascension_harvester);
     new reaper_talent_events();
 }
