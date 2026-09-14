@@ -508,6 +508,8 @@ void ApplyContracts(SpellInfo* info)
                     effect.TargetA = SpellImplicitTargetInfo(heal ? TARGET_UNIT_TARGET_ALLY : TARGET_UNIT_TARGET_ENEMY);
                     effect.TargetB = SpellImplicitTargetInfo();
                 }
+            // Contracts run after the core caches this mask; keep the explicit recipient of copied effects.
+            info->_InitializeExplicitTargetMask();
         }
     if (id == JungleSecretsHeal)
     {

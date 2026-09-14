@@ -122,6 +122,25 @@ int main()
     assert(info.AttributesEx3 & SPELL_ATTR3_IGNORE_CASTER_MODIFIERS);
     assert(!info.Effects[0].BonusMultiplier && info.Effects[0].TargetA.GetTarget() == TARGET_UNIT_TARGET_ALLY);
     assert(!info.Effects[0].TargetB.GetTarget() && info.fixtureMaskUpdates == 1);
+    for (uint32 id : {DevotionHeal, LoaEchoHeal, WaveHeal, ThistleHeal, ConcoctionsHeal, FrenzyHeal})
+    {
+        info = {};
+        info.Id = id;
+        info.Effects[0].Effect = SPELL_EFFECT_HEAL;
+        info.Effects[0].TargetA = SpellImplicitTargetInfo(TARGET_UNIT_CASTER);
+        ApplyContracts(&info);
+        assert(info.Effects[0].TargetA.GetTarget() == TARGET_UNIT_TARGET_ALLY);
+        assert(info.fixtureMaskUpdates == 1); // Explicit targets must survive Spell::InitExplicitTargets.
+    }
+    for (uint32 id : {ThreadsDamage, BottleDamage, StringsDamage, GuileDamage})
+    {
+        info = {};
+        info.Id = id;
+        info.Effects[0].Effect = SPELL_EFFECT_SCHOOL_DAMAGE;
+        info.Effects[0].TargetA = SpellImplicitTargetInfo(TARGET_UNIT_CASTER);
+        ApplyContracts(&info);
+        assert(info.Effects[0].TargetA.GetTarget() == TARGET_UNIT_TARGET_ENEMY && info.fixtureMaskUpdates == 1);
+    }
 }
 '''
 
@@ -129,7 +148,7 @@ int main()
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--workspace-tools", type=Path, default=ROOT.parent / "tools")
-    parser.add_argument("--source-ref", help="Use older Brew hit callbacks as a negative control")
+    parser.add_argument("--source-ref", help="Use older Witch Doctor callbacks and contracts as a negative control")
     parser.add_argument("--spell-dbc", type=Path)
     args = parser.parse_args()
     spec = importlib.util.spec_from_file_location("doctor_completion_fixture",
@@ -154,8 +173,8 @@ def main():
     source = fixture.source
     if args.source_ref:
         fixture.source = lambda part: (subprocess.check_output(["git", "show",
-            f"{args.source_ref}:modules/mod-ascension-compat/src/AscensionWitchDoctorAbilities.cpp"],
-            cwd=ROOT).decode("utf-8") if part == "Abilities" else source(part))
+            f"{args.source_ref}:modules/mod-ascension-compat/src/AscensionWitchDoctor{part}.cpp"],
+            cwd=ROOT).decode("utf-8") if part in {"Abilities", "Completion"} else source(part))
     production = read(fixture.MODULE / "AscensionWitchDoctorCoefficients.h")
     production += "\nnamespace AscensionWitchDoctor {\n"
     production += fixture.methods("Summons", ["Slot", "HealThroughEffigies"])
@@ -177,7 +196,7 @@ def main():
                 rows[sid] = struct.unpack_from("<234I", raw, offset)
         assert rows[707212][80] + rows[707212][74] == 35 and rows[712348][92] == 9
         assert rows[712348][71] == 10 and rows[712348][208] == 19
-    print("PASS: Brew dispatch, effective-heal share, effigy ownership, centered smart selection and helper metadata")
+    print("PASS: Brew dispatch, effective-heal share, effigy ownership, smart selection and copied-effect target masks")
 
 
 if __name__ == "__main__":
