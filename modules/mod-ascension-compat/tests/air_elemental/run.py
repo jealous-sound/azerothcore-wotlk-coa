@@ -47,7 +47,8 @@ def main():
     db = sqlite3.connect(":memory:")
     db.executescript("""
         CREATE TABLE creature_template (entry INT, name TEXT, minlevel INT, maxlevel INT, faction INT,
-            unit_class INT, type INT, family INT, spell1 INT, spell2 INT, spell3 INT);
+            unit_class INT, type INT, family INT);
+        CREATE TABLE creature_template_spell (CreatureID INT, `Index` INT, Spell INT, VerifiedBuild INT);
         CREATE TABLE creature_template_model (CreatureID INT, Idx INT, CreatureDisplayID INT,
             DisplayScale FLOAT, Probability FLOAT);
         CREATE TABLE spell_script_names (spell_id INT, ScriptName TEXT);
@@ -61,7 +62,8 @@ def main():
     db.executescript(sql)
     assert before == list(db.iterdump())
     assert db.execute("SELECT CreatureDisplayID FROM creature_template_model WHERE CreatureID=500941").fetchone() == (8714,)
-    assert db.execute("SELECT spell1, spell2, spell3, family FROM creature_template WHERE entry=500941").fetchone() == (806016, 300836, 804022, 0)
+    assert db.execute("SELECT family FROM creature_template WHERE entry=500941").fetchone() == (0,)
+    assert db.execute("SELECT `Index`, Spell FROM creature_template_spell WHERE CreatureID=500941 ORDER BY `Index`").fetchall() == [(0, 806016), (1, 300836), (2, 804022)]
     assert db.execute("SELECT * FROM spell_proc").fetchone() == (806020, 332116, 1, 2, 3, 2, 100)
     assert db.execute("SELECT COUNT(*) FROM spell_script_names").fetchone() == (3,)
     if args.spell_dbc:
