@@ -21,7 +21,7 @@ constexpr uint32 HallucinationEntry = 840025;
 enum SummonEvent : uint32 { Pulse = 1 };
 bool Tentacle(uint32 entry)
 {
-    return entry == 50272 || entry == 501464 || entry == 500465 || entry == 50096 || entry == 500464;
+    return entry == CthunTentacle || entry == 501464 || entry == 500465 || entry == 50096 || entry == 500464;
 }
 void Wander(Creature* creature)
 {
@@ -161,16 +161,21 @@ struct npc_ascension_cultist_summon : public ScriptedAI
     }
     Unit* Target(Player* player)
     {
+        auto valid = [this, player](Unit* unit, bool commanded = false)
+        {
+            return unit && unit->IsAlive() && player->IsValidAttackTarget(unit) &&
+                (commanded || player->IsInCombatWith(unit) || player->IsHostileTo(unit)) &&
+                me->IsWithinDistInMap(unit, 40) && me->IsWithinLOSInMap(unit);
+        };
         Unit* target = ObjectAccessor::GetUnit(*me, command);
-        if (!target || !player->IsValidAttackTarget(target))
-            target = player->GetVictim();
-        if (!target || !player->IsValidAttackTarget(target))
-            target = player->GetSelectedUnit();
-        if (target && player->IsValidAttackTarget(target) && me->IsWithinDistInMap(target, 40) &&
-            me->IsWithinLOSInMap(target))
+        if (valid(target, true))
+            return target;
+        if (target = player->GetVictim(); valid(target))
+            return target;
+        if (target = player->GetSelectedUnit(); valid(target))
             return target;
         for (Unit* enemy : Nearby(me, 30))
-            if (player->IsValidAttackTarget(enemy) && me->IsWithinLOSInMap(enemy))
+            if (valid(enemy))
                 return enemy;
         return nullptr;
     }
@@ -244,7 +249,8 @@ struct npc_ascension_cultist_summon : public ScriptedAI
         if (!timers.ExecuteEvent())
             return;
         uint32 entry = me->GetEntry();
-        timers.ScheduleEvent(Pulse, entry == 50272 ? 1500ms : (entry == 501464 || entry == 500464) ? 6000ms : 1000ms);
+        timers.ScheduleEvent(Pulse, entry == CthunTentacle ? 1500ms :
+            (entry == 501464 || entry == 500464) ? 6000ms : 1000ms);
         if (entry == 50298)
         {
             Ritual(player);
@@ -270,8 +276,8 @@ struct npc_ascension_cultist_summon : public ScriptedAI
             me->CastSpell(target, spell, false);
             me->DespawnOrUnsummon(sSpellMgr->GetSpellInfo(spell)->IsChanneled() ? 10000ms : 5000ms);
         }
-        else if (entry == 50272)
-            Cast(me, target, 804999);
+        else if (entry == CthunTentacle && !me->HasUnitState(UNIT_STATE_CASTING))
+            me->CastSpell(target, MentalAssault, false);
         else if (entry == 501464 || entry == 500464)
         {
             Cast(me, target, 806596);

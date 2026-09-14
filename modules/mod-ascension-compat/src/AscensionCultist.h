@@ -18,6 +18,9 @@ constexpr uint32 VoidRune = 800431;
 constexpr uint32 Madness = 803061;
 constexpr uint32 Herald = 520326;
 constexpr uint32 BlackBlood = 804153;
+constexpr uint32 CthunTentacle = 50272;
+constexpr uint32 MentalAssault = 801151;
+constexpr uint32 CthunDamage = 804999;
 struct CultistState
 {
     EventMap timers;
