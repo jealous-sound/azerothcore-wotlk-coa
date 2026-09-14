@@ -80,6 +80,7 @@
 #include <filesystem>
 #include <fstream>
 #include <functional>
+#include <limits>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -4189,6 +4190,46 @@ class spell_ascension_local_mount : public SpellScript
     }
 };
 
+class spell_ascension_experience_potion : public SpellScript
+{
+    PrepareSpellScript(spell_ascension_experience_potion);
+
+    int32 _remaining = 0;
+
+    bool Load() override
+    {
+        return ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED) && GetCaster()->IsPlayer();
+    }
+
+    void SnapshotDuration(SpellMissInfo missInfo)
+    {
+        _remaining = 0;
+        if (missInfo == SPELL_MISS_NONE)
+            if (Unit* target = GetHitUnit())
+                if (Aura* aura = target->GetAura(GetSpellInfo()->Id, GetCaster()->GetGUID()))
+                    _remaining = std::max(0, aura->GetDuration());
+    }
+
+    void ExtendDuration()
+    {
+        if (_remaining > 0)
+            if (Aura* aura = GetHitAura())
+            {
+                // Each potion adds its normal duration to the unexpired time from previous potions.
+                int32 const duration = int32(std::min<int64>(int64(aura->GetDuration()) + _remaining,
+                    std::numeric_limits<int32>::max()));
+                aura->SetMaxDuration(duration);
+                aura->SetDuration(duration);
+            }
+    }
+
+    void Register() override
+    {
+        BeforeHit += BeforeSpellHitFn(spell_ascension_experience_potion::SnapshotDuration);
+        AfterHit += SpellHitFn(spell_ascension_experience_potion::ExtendDuration);
+    }
+};
+
 } // namespace
 
 bool IsAscensionPrimalistTameEligible(Player const* player)
@@ -4207,6 +4248,7 @@ bool IsAscensionPrimalistWeaponsEligible(Player const* player, bool allowUnconfi
 }
 
 void AddAscensionCompatScripts() {
+  RegisterSpellScript(spell_ascension_experience_potion);
   RegisterSpellScript(spell_ascension_local_mount);
   new AscensionTradesmanScroll();
   new AscensionCompatServerScript();
