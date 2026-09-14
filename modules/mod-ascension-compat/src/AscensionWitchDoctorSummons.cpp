@@ -493,8 +493,12 @@ class spell_ascension_witch_doctor_summon : public SpellScript
     {
         SpellInfo const* info = sSpellMgr->GetSpellInfo(m_scriptSpellId);
         if (info->HasEffect(SPELL_EFFECT_SUMMON))
-            OnEffectLaunch +=
+        {
+            OnEffectHit +=
                 SpellEffectFn(spell_ascension_witch_doctor_summon::Handle, EFFECT_ALL, SPELL_EFFECT_SUMMON);
+            OnEffectHitTarget +=
+                SpellEffectFn(spell_ascension_witch_doctor_summon::Handle, EFFECT_ALL, SPELL_EFFECT_SUMMON);
+        }
         if (info->HasEffect(SPELL_EFFECT_SCRIPT_EFFECT))
             OnEffectHitTarget +=
                 SpellEffectFn(spell_ascension_witch_doctor_summon::Handle, EFFECT_ALL, SPELL_EFFECT_SCRIPT_EFFECT);
