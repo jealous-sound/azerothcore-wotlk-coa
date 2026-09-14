@@ -322,6 +322,8 @@ class npc_ascension_witch_doctor : public ScriptedAI
     }
     Unit* Enemy(Player* player)
     {
+        if (!player->IsInCombat())
+            return nullptr;
         Unit* target = player->GetSelectedUnit();
         if (target && player->IsValidAttackTarget(target) && me->IsWithinDistInMap(target, 30.0f) &&
             me->IsWithinLOSInMap(target))
