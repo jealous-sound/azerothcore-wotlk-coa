@@ -587,7 +587,7 @@ public:
             if (player->HasSpell(entry.SpellId))
                 ++learned;
         }
-        if (player->getClass() == CLASS_BLOODMAGE)
+        if (player->getClass() == CLASS_SON_OF_ARUGAL)
         {
             // Native spec changes reconcile this flag, but removing a temporary
             // spell during a CAD refund does not. Preserve independently owned 674.

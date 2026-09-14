@@ -133,6 +133,7 @@ def main():
                 "uint32 SynchronizeTalentReplacements(Player*) { return 0; }")
     harness = (HERE / "harness.cpp").read_text(encoding="utf-8")
     for marker, code in (
+        ("CLASSES", method(source("src/server/shared/SharedDefines.h"), "enum Classes\n") + ";"),
         ("STATE", method(player_header, "enum PlayerSpellState") + ";"),
         ("SPELL_RECORD", method(player_header, "struct PlayerSpell\n") + ";"),
         ("DATA", header + "\n" + replacement_header),

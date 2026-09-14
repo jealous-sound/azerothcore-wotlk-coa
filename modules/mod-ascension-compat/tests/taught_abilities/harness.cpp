@@ -12,12 +12,12 @@
 using uint8 = std::uint8_t;
 using uint32 = std::uint32_t;
 constexpr uint8 SPEC_MASK_ALL = 3, MAX_SPELL_EFFECTS = 3;
-constexpr uint32 CLASS_BLOODMAGE = 20;
 constexpr uint32 SPELL_ATTR0_PASSIVE = 64, SPELL_ATTR0_DO_NOT_DISPLAY = 128, SPELL_EFFECT_LEARN_SPELL = 36;
 using SpellAttr0 = uint32;
 #define LOG_INFO(...) ((void)0)
 #define LOG_DEBUG(...) ((void)0)
 
+// ACTUAL_CLASSES
 // ACTUAL_STATE
 // ACTUAL_SPELL_RECORD
 // ACTUAL_DATA
@@ -374,7 +374,7 @@ int main()
     }
 
     Player eternal;
-    eternal.cls = CLASS_BLOODMAGE;
+    eternal.cls = CLASS_SON_OF_ARUGAL;
     service._activeSpecializations[1] = 99;
     eternal.learnSpell(92114);
     assert(eternal.HasSpell(674) && eternal.CanDualWield());
