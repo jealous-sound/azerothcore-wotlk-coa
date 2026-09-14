@@ -11,6 +11,7 @@
 #include "SpellMgr.h"
 #include "SpellScript.h"
 #include <algorithm>
+#include <vector>
 namespace
 {
 using namespace AscensionSunCleric;
@@ -164,6 +165,13 @@ class aura_ascension_sun_cleric_lifecycle : public AuraScript
         uint32 id = GetId();
         uint8 slot = effect->GetEffIndex();
         Unit* target = GetTarget();
+        if (id == RejuvenatingRays && !slot)
+        {
+            PreventDefaultAction();
+            if (target->IsAlive() && !target->IsInCombat())
+                player->CastSpell(target, Rejuvenating,
+                    TriggerCastFlags(TRIGGERED_FULL_MASK | TRIGGERED_NO_PERIODIC_RESET));
+        }
         if (id == 803719 && !slot)
         {
             PreventDefaultAction();
@@ -258,8 +266,47 @@ class aura_ascension_sun_cleric_lifecycle : public AuraScript
         }
     }
 };
+
+class aura_ascension_rejuvenating_rays : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_rejuvenating_rays);
+    uint32 _seconds = 0;
+
+    void Tick(AuraEffect const* effect)
+    {
+        Unit* target = GetTarget();
+        if (target->IsInCombat() || !target->HasAura(RejuvenatingRays, GetCasterGUID()))
+        {
+            PreventDefaultAction();
+            GetAura()->Remove();
+            return;
+        }
+
+        if (effect->GetEffIndex() != EFFECT_0 || ++_seconds < 10)
+            return;
+
+        // Remove every disease after ten continuous seconds in this caster's field.
+        std::vector<std::pair<uint32, ObjectGuid>> diseases;
+        for (auto const& entry : target->GetAppliedAuras())
+            if (!entry.second->IsPositive() && entry.second->GetBase()->GetSpellInfo()->Dispel == DISPEL_DISEASE)
+                diseases.emplace_back(entry.first, entry.second->GetBase()->GetCasterGUID());
+        for (auto const& disease : diseases)
+            if (Aura* aura = target->GetAura(disease.first, disease.second))
+                target->RemoveAurasDueToSpellByDispel(disease.first, RejuvenatingRays, disease.second, target,
+                    aura->IsUsingCharges() ? aura->GetCharges() : aura->GetStackAmount());
+    }
+
+    void Register() override
+    {
+        OnEffectPeriodic += AuraEffectPeriodicFn(aura_ascension_rejuvenating_rays::Tick,
+            EFFECT_0, SPELL_AURA_OBS_MOD_HEALTH);
+        OnEffectPeriodic += AuraEffectPeriodicFn(aura_ascension_rejuvenating_rays::Tick,
+            EFFECT_1, SPELL_AURA_OBS_MOD_POWER);
+    }
+};
 }
 void AddSC_AscensionSunClericAuras()
 {
     RegisterSpellScript(aura_ascension_sun_cleric_lifecycle);
+    RegisterSpellScript(aura_ascension_rejuvenating_rays);
 }

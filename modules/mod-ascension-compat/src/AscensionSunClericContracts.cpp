@@ -15,6 +15,13 @@ void ApplyContracts(SpellInfo* info)
     if (!info || info->SpellFamilyName != 33)
         return;
     uint32 id = info->Id;
+    if (id == Rejuvenating)
+        for (auto& effect : info->Effects)
+            if (effect.IsAura())
+            {
+                effect.TargetA = SpellImplicitTargetInfo(TARGET_UNIT_TARGET_ALLY);
+                effect.TargetB = SpellImplicitTargetInfo();
+            }
     auto dummy = [info](uint8 slot)
     {
         info->Effects[slot].ApplyAuraName = SPELL_AURA_DUMMY;

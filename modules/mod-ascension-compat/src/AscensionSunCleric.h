@@ -19,6 +19,8 @@ constexpr uint32 Bless = 804247;
 constexpr uint32 HolyForm = 805301;
 constexpr uint32 Sunrise = 500477;
 constexpr uint32 Sunset = 500511;
+constexpr uint32 RejuvenatingRays = 807240;
+constexpr uint32 Rejuvenating = 807239;
 struct SunClericState
 {
     EventMap timers;
