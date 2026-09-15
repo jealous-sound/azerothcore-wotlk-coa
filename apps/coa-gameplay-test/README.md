@@ -103,6 +103,7 @@ before taking baselines; assert stable maximums and final levels when testing da
 | `cast_charm` | Same fields: native pet-cast handler, with the charmed unit as the default target. |
 | `gossip_hello` | `actor`, optional `target`: native gossip handler; defaults to the actor's summoned companion. |
 | `gossip_select` | `actor`, zero-based `option`: select from the current menu through the session handler. |
+| `who` | `actor`, optional name-filter `target`, `class_mask`, `race_mask`: submit a native Who query. |
 | `add_item` | `actor`, `item`, optional `count` (default 1): grant fixture inventory. |
 | `equip` | `actor`, `item`, `slot` (0..18): equip an owned item through the session handler. |
 | `use_item` | `actor`, `item`, `spell`, optional `target`: normal item-use handler. |
@@ -127,6 +128,10 @@ Metrics: `health`, `max_health`, `power`, `max_power`, `alive`, `combat`, `casti
 `dynamic_object_duration_ms`.
 Boolean metrics use 0/1. Spell/aura metrics require `spell`; `item_count` requires `item`.
 `gossip_options` counts the player's current server-side gossip options; it does not verify client rendering.
+`who_count` counts players in the actor's last native Who response; `who_class` requires a player `target`
+and returns that player's class ID, or zero if absent. These inspect packets from socketless test sessions,
+not client packet delivery. Masks use native Who bits (`1 << classID`, `1 << raceID`), with class 32 in bit zero;
+omitted masks mean all. The custom-class scenario expects ordinary player RBAC, including faction separation.
 `health_pct` observes current health as a percentage of maximum health.
 `cast_speed_multiplier` observes the native cast-time multiplier; smaller values mean faster casts.
 `spell_crit_chance` observes the player's Shadow spell critical chance, in percentage points.

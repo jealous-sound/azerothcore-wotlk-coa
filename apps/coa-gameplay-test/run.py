@@ -30,8 +30,10 @@ METRICS = {
     'charm_entry', 'charm_aura_stacks', 'controls_self', 'private_instance',
     'dynamic_object', 'dynamic_object_duration_ms', 'gossip_options',
     'cast_speed_multiplier', 'spell_crit_chance', 'spell_power_cost',
+    'who_count', 'who_class',
 }
-METRIC_FIELDS = {'actor', 'metric', 'spell', 'power', 'caster', 'effect', 'item', 'entry', 'relative_to', 'ratio_to'}
+METRIC_FIELDS = {'actor', 'metric', 'spell', 'power', 'caster', 'effect', 'item', 'entry',
+                 'relative_to', 'ratio_to', 'target'}
 ACTIONS = {
     'console': ({'command'}, {'command'}),
     'command': ({'actor', 'command'}, {'actor', 'command'}),
@@ -45,6 +47,7 @@ ACTIONS = {
     'cast_charm': ({'actor', 'spell'}, {'actor', 'spell', 'target'}),
     'gossip_hello': ({'actor'}, {'actor', 'target'}),
     'gossip_select': ({'actor', 'option'}, {'actor', 'option'}),
+    'who': ({'actor'}, {'actor', 'target', 'race_mask', 'class_mask'}),
     'talent': ({'actor', 'talent', 'rank'}, {'actor', 'talent', 'rank'}),
     'reset_talents': ({'actor'}, {'actor'}),
     'add_item': ({'actor', 'item'}, {'actor', 'item', 'count'}),
@@ -171,6 +174,11 @@ def validate(scenario):
                 number(step[key], f'{where}.{key}', 0, maximum, True)
         if 'stacks' in step:
             number(step['stacks'], f'{where}.stacks', 0, 255, True)
+        for key in ('race_mask', 'class_mask'):
+            if key in step:
+                number(step[key], f'{where}.{key}', 0, 2**32 - 1, True)
+        if action == 'who' and 'target' in step:
+            require(step['target'] in player_ids, f'{where}: Who name filter needs a player')
         for key in ('ms', 'within_ms'):
             if key in step:
                 number(step[key], f'{where}.{key}', 0, scenario.get('timeout_ms', 90000), True)
@@ -185,6 +193,8 @@ def validate(scenario):
                 require('spell' in step, f'{where}: metric needs spell')
             if metric == 'item_count':
                 require('item' in step, f'{where}: metric needs item')
+            if metric == 'who_class':
+                require(step.get('target') in player_ids, f'{where}: Who class metric needs a target player')
             if metric == 'owned_creature_count':
                 require('entry' in step, f'{where}: metric needs creature entry')
                 require('caster' not in step or 'spell' in step, f'{where}: aura caster filter needs spell')
@@ -192,7 +202,7 @@ def validate(scenario):
                           'pet_entry', 'pet_aura_stacks', 'owned_creature_count', 'charm_entry',
                           'charm_aura_stacks', 'controls_self', 'private_instance',
                           'dynamic_object', 'dynamic_object_duration_ms', 'gossip_options',
-                          'cast_speed_multiplier', 'spell_crit_chance', 'spell_power_cost'}:
+                          'cast_speed_multiplier', 'spell_crit_chance', 'spell_power_cost', 'who_count', 'who_class'}:
                 require(step['actor'] in player_ids, f'{where}: metric needs a player')
             if 'relative_to' in step:
                 require(snapshots.get(step['relative_to']) == metric, f'{where}: missing or incompatible snapshot')

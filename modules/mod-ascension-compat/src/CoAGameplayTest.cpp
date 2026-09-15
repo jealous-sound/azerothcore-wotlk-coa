@@ -33,6 +33,7 @@
 #include "World.h"
 #include "WorldPacket.h"
 #include "WorldSession.h"
+#include "WhoListCacheMgr.h"
 // BOOST_BIND_NO_PLACEHOLDERS (deps/boost) stops boost/bind/bind.hpp from including
 // placeholders.hpp, but the Boost.PropertyTree JSON parser uses boost::placeholders (e.g. Boost 1.83).
 #include <boost/bind/placeholders.hpp>
@@ -88,6 +89,8 @@ struct Actor
     Tree definition;
     std::string account;
     std::string name;
+    std::map<std::string, uint32> whoClasses;
+    uint32 whoResponses = 0;
     std::unique_ptr<WorldSession> session;
     ObjectGuid guid;
     ActorStage stage = ActorStage::Account;
@@ -236,6 +239,26 @@ private:
                 return;
             actor.session = std::make_unique<WorldSession>(accountId, std::string(actor.account), 0, nullptr,
                 SEC_PLAYER, EXPANSION_WRATH_OF_THE_LICH_KING, 0, LOCALE_enUS, 0, false, false, 0);
+            actor.session->SetSocketlessPacketObserver([&actor](WorldPacket const& packet)
+            {
+                if (packet.GetOpcode() != SMSG_WHO)
+                    return;
+                WorldPacket response(packet);
+                uint32 displayed, matches;
+                response >> displayed >> matches;
+                Require(displayed <= matches, "Invalid Who response counts");
+                actor.whoClasses.clear();
+                for (uint32 index = 0; index < displayed; ++index)
+                {
+                    std::string name, guild;
+                    uint32 level, playerClass, race, zone;
+                    uint8 gender;
+                    response >> name >> guild >> level >> playerClass >> race >> gender >> zone;
+                    actor.whoClasses.emplace(name, playerClass);
+                }
+                Require(response.rpos() == response.size(), "Unexpected Who response fields");
+                ++actor.whoResponses;
+            });
             actor.session->InitializeSession();
             WorldPacket create(CMSG_CHAR_CREATE, 32);
             uint32 race = actor.definition.get<uint32>("race");
@@ -447,6 +470,15 @@ private:
             return player->HasSpell(spell);
         if (metric == "gossip_options")
             return player->PlayerTalkClass->GetGossipMenu().GetMenuItemCount();
+        if (metric == "who_count" || metric == "who_class")
+        {
+            Actor const& actor = _actors.at(step.get<std::string>("actor"));
+            Require(actor.whoResponses != 0, "No native Who response received");
+            if (metric == "who_count")
+                return actor.whoClasses.size();
+            auto found = actor.whoClasses.find(_actors.at(step.get<std::string>("target")).name);
+            return found == actor.whoClasses.end() ? 0 : found->second;
+        }
         if (metric == "cast_speed_multiplier")
             return player->GetFloatValue(UNIT_MOD_CAST_SPEED);
         if (metric == "spell_crit_chance")
@@ -641,6 +673,22 @@ private:
             WorldPacket packet(CMSG_GOSSIP_SELECT_OPTION, 16);
             packet << menu.GetSenderGUID() << menu.GetMenuId() << step.get<uint32>("option");
             player->GetSession()->HandleGossipSelectOptionOpcode(packet);
+        }
+        else if (action == "who")
+        {
+            // Refresh the production cache now instead of depending on its periodic world timer.
+            sWhoListCacheMgr->Update();
+            WorldPacket request(CMSG_WHO, 32);
+            std::string name;
+            if (auto target = step.get_optional<std::string>("target"))
+                name = _actors.at(*target).name;
+            request << uint32(1) << uint32(255) << name << std::string();
+            request << step.get<uint32>("race_mask", UINT32_MAX) << step.get<uint32>("class_mask", UINT32_MAX);
+            request << uint32(0) << uint32(0); // no zone or free-text filters
+            uint32 before = _actors.at(step.get<std::string>("actor")).whoResponses;
+            player->GetSession()->HandleWhoOpcode(request);
+            Require(_actors.at(step.get<std::string>("actor")).whoResponses == before + 1,
+                "Who request did not produce a native response");
         }
         else if (action == "set_aura")
         {

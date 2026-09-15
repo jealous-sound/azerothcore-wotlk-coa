@@ -303,7 +303,11 @@ ObjectGuid::LowType WorldSession::GetGuidLow() const
 void WorldSession::SendPacket(WorldPacket const* packet)
 {
     if (!m_Socket)
+    {
+        if (_socketlessPacketObserver)
+            _socketlessPacketObserver(*packet);
         return;
+    }
 
 #if defined(ACORE_DEBUG)
     // Code for network use statistic
