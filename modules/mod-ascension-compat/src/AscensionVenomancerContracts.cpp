@@ -104,7 +104,10 @@ void ApplyContracts(SpellInfo* info)
         dummy(2);
     }
     if (id == 803216)
-        info->Effects[1].ApplyAuraName = SPELL_AURA_MOD_INCREASE_HEALTH;
+        // SPELL_AURA_230 (HandleAuraModIncreaseMaxHealth, "Blood Pact/Commanding Shout") preserves the
+        // health percentage across this swing; SPELL_AURA_MOD_INCREASE_HEALTH instead deducts the raw
+        // bonus from current HP on removal, so leaving Beetle Form silently ate whatever damage was taken.
+        info->Effects[1].ApplyAuraName = SPELL_AURA_230;
     if (id == 805139)
     {
         info->CasterAuraSpell = Beetle;
