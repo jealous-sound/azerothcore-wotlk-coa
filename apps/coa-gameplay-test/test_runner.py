@@ -262,6 +262,27 @@ class RunnerTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'missing harness readiness'):
             self.fake_process(f'Path("result.json").write_text({json.dumps(json.dumps(self.report()))})\n')
 
+    def test_ready_callback_releases_waiting_child_before_scenario(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            script = directory / 'fake_server.py'
+            script.write_text(
+                'from pathlib import Path\nimport time\n'
+                'Path("ready.json").write_text(\'{"status":"ready","run_id":"012345abcdef"}\')\n'
+                'while not Path("start.json").exists():\n    time.sleep(0.01)\n'
+                f'Path("result.json").write_text({json.dumps(json.dumps(self.report()))})\n', encoding='utf-8')
+            observed = []
+
+            def release(record):
+                self.assertFalse((directory / 'result.json').exists())
+                observed.append(record['run_id'])
+                (directory / 'start.json').write_text('{}')
+
+            report, returncode = run.run_process([sys.executable, str(script)], directory, directory / 'ready.json',
+                                                 directory / 'result.json', '012345abcdef', 3, 3, on_ready=release)
+            run.check_report(report, '012345abcdef', self.scenario, returncode)
+            self.assertEqual(observed, ['012345abcdef'])
+
 
 if __name__ == '__main__':
     unittest.main()

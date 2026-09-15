@@ -129,6 +129,8 @@ public:
             CheckIsolation();
             _resultPath = sConfigMgr->GetOption<std::string>("CoAGameplayTest.ResultFile", "");
             Require(!std::filesystem::exists(_resultPath), "Result file already exists");
+            _startFile = sConfigMgr->GetOption<std::string>("CoAGameplayTest.StartFile", "");
+            Require(_startFile.empty() || !std::filesystem::exists(_startFile), "Start file already exists");
             boost::property_tree::read_json(
                 sConfigMgr->GetOption<std::string>("CoAGameplayTest.ScenarioFile", ""), _scenario);
             Require(_scenario.get<uint32>("schema") == 1, "Unsupported scenario schema");
@@ -163,6 +165,7 @@ public:
             Tree ready;
             ready.put("run_id", _runId);
             ready.put("status", "ready");
+            ready.put("waiting_for_start", !_startFile.empty());
             WriteResult(sConfigMgr->GetOption<std::string>("CoAGameplayTest.ReadyFile", ""), ready);
             LOG_INFO("module.gameplay_test", "Gameplay harness ready: {}", _runId);
         }
@@ -179,6 +182,18 @@ public:
 
         try
         {
+            // The runner records the world DB after startup migrations, before scenario actions can write it.
+            if (!_startFile.empty())
+            {
+                Require(Elapsed(_started) < 600000, "Runner did not release the startup barrier");
+                if (!std::filesystem::exists(_startFile))
+                    return;
+                Tree start;
+                boost::property_tree::read_json(_startFile, start);
+                Require(start.get<std::string>("run_id") == _runId, "Start file belongs to another run");
+                _startFile.clear();
+                _started = Clock::now();
+            }
             Require(Elapsed(_started) < _timeout, "Scenario timed out during setup or execution");
             _queries.ProcessReadyCallbacks();
             bool ready = true;
@@ -214,6 +229,9 @@ public:
 private:
     void CheckIsolation()
     {
+        std::string worldId = sConfigMgr->GetOption<std::string>("CoAGameplayTest.WorldDatabaseId", _runId);
+        Require(worldId.size() == 12 && worldId.find_first_not_of("0123456789abcdef") == std::string::npos,
+            "WorldDatabaseId must be twelve lowercase hexadecimal characters");
         for (auto const& [key, suffix] : std::map<std::string, std::string>{
             { "LoginDatabaseInfo", "auth" }, { "CharacterDatabaseInfo", "characters" },
             { "WorldDatabaseInfo", "world" } })
@@ -224,7 +242,8 @@ private:
             Require(first != std::string::npos && last != first, "Invalid database connection");
             std::string host = connection.substr(0, first);
             Require(host == "127.0.0.1" || host == "localhost" || host == "::1", "Test DB must be local");
-            Require(connection.substr(last + 1) == "coa_test_" + _runId + "_" + suffix,
+            std::string databaseId = suffix == "world" ? worldId : _runId;
+            Require(connection.substr(last + 1) == "coa_test_" + databaseId + "_" + suffix,
                 "Harness requires its own named test databases");
         }
         Require(sConfigMgr->GetOption<std::string>("BindIP", "") == "127.0.0.1", "BindIP must be loopback");
@@ -958,6 +977,7 @@ private:
     uint32 _completed = 0;
     std::string _runId;
     std::string _resultPath;
+    std::string _startFile;
     Clock::time_point _started;
     Clock::time_point _stepTime;
     Tree _scenario;

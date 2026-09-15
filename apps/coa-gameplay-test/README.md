@@ -21,8 +21,10 @@ python apps/coa-gameplay-test/run.py run apps/coa-gameplay-test/scenarios/frostb
   --mysqldump C:/path/to/mysqldump.exe
 ```
 
-The runner creates three unique `coa_test_<run-id>_*` schemas on the source connections. It copies the
-world database, the auth/character schemas, RBAC, realm definitions, active arena season and migration metadata.
+The runner creates fresh `coa_test_<run-id>_auth` and `coa_test_<run-id>_characters` schemas on each run.
+It creates a reusable `coa_test_<cache-id>_world` copy on the first run, then reuses that world database.
+The copies include world data, auth/character schemas, RBAC, realm definitions, active arena season and
+migration metadata.
 Existing accounts and characters are not copied. The MySQL user needs read access to the sources and permission
 to create/import/drop the test schemas. Sources must be local. No authserver or game client is needed.
 The copies omit MySQL triggers, routines and scheduled events.
@@ -34,7 +36,7 @@ local Repack, this file is `C:/Ascension/CoA-Repack/mysql/admin-client.ini`. Cre
 config files, never command arguments or reports; no grants or existing accounts are changed.
 
 The generated config binds the test worldserver to loopback on an unused port, uses a private log directory,
-disables map worker threads and points all three database connections to the new schemas. Source SQL updates
+disables map worker threads and points all three database connections to isolated schemas. Source SQL updates
 run normally against the copies. Source configuration and the installed server are not changed. Relative
 `DataDir` is resolved against the binary's directory; use an absolute path when that differs from your setup.
 Module `.conf` files beside the source config (in `modules/`) are copied into the test directory's
@@ -43,9 +45,49 @@ summary. Use `--modules-config-dir` for a different source location. Module conf
 isolation or harness controls. Other platforms require adapting module configuration discovery.
 
 When the scenario ends, the runtime logs out its test players and shuts down. The runner waits for process
-exit before dropping its schemas and removing generated credentials. Startup, scenario, shutdown and copy
-operations have timeouts. An interrupted run performs the same cleanup; a hard termination may leave the
-named schemas behind. Inspect `summary.json` before removing any leftovers.
+exit before dropping the auth/character schemas, auditing the cached world and removing generated credentials.
+Startup, scenario, shutdown and copy operations have timeouts. An interrupted run performs the same cleanup;
+a hard termination may leave the named schemas and cache lease behind. Inspect `summary.json` and the lease
+before removing any leftovers.
+
+## Reusing the world database
+
+Reuse is the default. Each run still starts a new worldserver and fresh accounts/characters, so inventory,
+talents, quests and other character state cannot carry over. The cache saves the full world import on later runs.
+Metadata lives under `.cache/coa-gameplay-tests/world-cache/`; `--world-cache-dir` selects a different directory.
+This directory contains ownership metadata and an exclusive lease, not credentials or SQL dumps.
+
+Add one of these options to the same `run` command when needed:
+
+- `--refresh-world`: replace the owned world copy before running, then retain it if the scenario leaves it clean.
+- `--fresh-databases`: bypass the cache, copy all three schemas and drop them after the run. Use this for final
+  verification when a completely fresh database is required. It also works with older harness binaries.
+
+The runner checks source table contents and definitions, repository SQL files under `data/sql/updates`,
+`data/sql/custom` and `modules`, and the source/main module configs. Changes refresh the cache automatically.
+Source SQL stored elsewhere needs an explicit `--refresh-world`. C++ edits and a new binary alone do not force
+a full copy. Cache ownership also includes the MySQL server identity, host, port and source world schema.
+
+Startup migrations run before the native startup barrier. The runner records the world state at that barrier,
+then releases character loading and scenario actions. After shutdown it compares the world again. Persistent
+world writes, including console edits, discard that copy. A failed gameplay assertion can still leave a clean,
+reusable world. Auth/character databases are always discarded after the owned server stops.
+
+Content checks use MySQL `CHECKSUM TABLE ... EXTENDED` and table definitions. They still scan the data and can
+briefly block writes to a table while it is read; reuse skips copying/importing rather than all database work.
+Checksums can collide, so reuse is a regression-testing optimization, not a proof of byte-for-byte equality.
+See the [MySQL checksum documentation](https://dev.mysql.com/doc/refman/8.4/en/checksum-table.html).
+World views, stored triggers/routines/events or unavailable checksums require `--fresh-databases`.
+Avoid changing source data during a run.
+
+Only one run can lease a given cache. A second run fails before using it; `--fresh-databases` allows an independent
+concurrent run. A hard interruption or an unkillable server keeps the lease blocked. Check the lease's runner PID
+and result directory and verify that its worldserver has exited before recovering it; never delete a lease to
+override a running test. Refresh does not bypass a lease or an ownership mismatch.
+
+`summary.json` records `world_cache.mode` (`created`, `reused`, `refreshed` or `fresh`), the retained world schema,
+invalidation reason, and preparation/server/total seconds. A retained world with `retained: true` is intentional.
+Generated credential and module configuration files are removed on every normal cleanup.
 
 Results default to `.cache/coa-gameplay-tests/<run-id>/`:
 
@@ -55,7 +97,7 @@ Results default to `.cache/coa-gameplay-tests/<run-id>/`:
 - `summary.json`: overall result, binary/scenario SHA-256 and any cleanup failure.
 
 Exit code zero requires every expected assertion and step to complete, matching run identity, a clean server
-exit and successful database cleanup. A submitted cast alone is never a pass. Numeric fields in the server's
+exit and successful cleanup/cache audit. A submitted cast alone is never a pass. Numeric fields in the server's
 property-tree JSON are strings; the Python runner converts and rechecks assertion values.
 
 ## Scenario format
@@ -184,9 +226,10 @@ not provide an automatic statistical test. Keep intended values independent of t
 ## Runner checks
 
 ```powershell
-python apps/coa-gameplay-test/test_runner.py
+python -m unittest discover -s apps/coa-gameplay-test -p 'test_*.py'
 python apps/codestyle/codestyle-cpp.py --files modules/mod-ascension-compat/src/CoAGameplayTest.cpp
 ```
 
-Runner checks cover invalid scenarios, incorrect/partial results, owned-process timeouts, isolation and
-partial-clone cleanup. They do not substitute for building and running the native scenario.
+Runner checks cover invalid scenarios, incorrect/partial results, owned-process timeouts, isolation,
+partial-clone cleanup, cache reuse/invalidation, ownership and exclusive leases. They do not substitute for
+building and running the native scenario.

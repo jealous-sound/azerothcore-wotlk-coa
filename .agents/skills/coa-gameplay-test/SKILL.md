@@ -44,13 +44,22 @@ Read that checkout's `AGENTS.md` and `apps/coa-gameplay-test/README.md` before t
    database copies and owned test process; it does not authorize replacing the installed server.
 4. Run `python apps/coa-gameplay-test/run.py run <scenario> --worldserver <exe> --config <conf>
    --mysql <mysql> --mysqldump <mysqldump>`. Invoke as one shell command with properly quoted arguments.
-   The runner creates fresh local schemas, applies updates there, starts the test worldserver, collects
-   results, shuts it down, drops its schemas and removes generated credentials. Never point the enabled
-   runtime module at normal databases or reuse a result directory.
+   The runner reuses its owned world copy by default, with fresh accounts/characters on each run. It checks
+   source data, repository SQL and configs for changes, applies startup updates and audits persistent world
+   writes after shutdown. A clean world copy is retained; disposable character/auth schemas and credentials
+   are removed. Use `--refresh-world` to replace a cache or `--fresh-databases` for a fully disposable run.
+   Never point the enabled runtime module at normal databases or reuse a result directory.
 5. Inspect `summary.json`, `result.json` and relevant startup/runtime log errors. A pass requires the runner's
    zero exit code and completed assertions. Missing readiness, a crash, a partial result, a timeout or cleanup
    failure is a failed run. Diagnose infrastructure failures before interpreting gameplay outcomes. Use a
    new run after a correction; preserve evidence of the failed attempt while investigating it.
+
+6. Check `world_cache` in the summary: a retained, verified world is intentional. A scenario that writes world
+   data discards that copy. Reuse needs the current startup-barrier binary; older builds require fresh mode.
+   Source SQL outside the documented repository directories needs explicit refresh. For clean acceptance,
+   use fresh mode when the task needs an independent database baseline. A cache lease blocks concurrent
+   users; do not remove it until its runner and worldserver are confirmed stopped. Fresh mode can run
+   independently while a cache is leased.
 
 ## Report
 

@@ -17,6 +17,8 @@ import sys
 import tempfile
 import time
 
+from world_cache import WorldCache, input_fingerprint
+
 ROOT = Path(__file__).resolve().parents[2]
 CREATE_FLAGS = subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
 IDENTIFIER = re.compile(r'[A-Za-z_][A-Za-z0-9_]*\Z')
@@ -345,10 +347,10 @@ class Databases:
                 detail = detail.replace(connection.password, '[redacted]')
         return detail.strip()[-4000:]
 
-    def sql(self, role, statement):
+    def sql(self, role, statement, timeout=60):
         result = subprocess.run([self.mysql, f'--defaults-extra-file={self.option_files[role]}',
                                  '--batch', '--skip-column-names'], input=statement, text=True,
-                                capture_output=True, timeout=60, creationflags=CREATE_FLAGS)
+                                capture_output=True, timeout=timeout, creationflags=CREATE_FLAGS)
         if result.returncode:
             detail = self.redact(result.stderr)
             raise ValueError(f'MySQL operation failed for {role}: {detail or result.returncode}')
@@ -385,8 +387,8 @@ class Databases:
                         process.kill()
                         process.wait()
 
-    def prepare(self):
-        for role in ('auth', 'characters', 'world'):
+    def prepare(self, roles=('auth', 'characters', 'world')):
+        for role in roles:
             name = self.names[role]
             # CREATE without IF NOT EXISTS fails closed on collisions; only our creations are dropped.
             self.sql(role, f'CREATE DATABASE `{name}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;')
@@ -488,7 +490,7 @@ def check_report(report, run_id, scenario, returncode):
             require(record.get('status') == 'completed', 'An action did not complete')
 
 
-def run_process(command, directory, ready_path, result_path, run_id, startup_timeout, timeout):
+def run_process(command, directory, ready_path, result_path, run_id, startup_timeout, timeout, on_ready=None):
     with (directory / 'worldserver.log').open('wb') as log:
         process = subprocess.Popen(command, cwd=directory, stdin=subprocess.PIPE, stdout=log, stderr=log,
                                    creationflags=CREATE_FLAGS)
@@ -501,7 +503,9 @@ def run_process(command, directory, ready_path, result_path, run_id, startup_tim
                     ready = read_json(ready_path)
                     require(ready.get('run_id') == run_id and ready.get('status') == 'ready',
                             'Invalid readiness record')
-                    ready_at = now
+                    if on_ready:
+                        on_ready(ready)
+                    ready_at = time.monotonic()
                     print('Worldserver harness is ready; executing scenario...', flush=True)
                 if ready_at is None:
                     require(now - start < startup_timeout, 'Worldserver/harness readiness timed out')
@@ -511,6 +515,7 @@ def run_process(command, directory, ready_path, result_path, run_id, startup_tim
             require(result_path.exists(), 'Worldserver exited without a result; check the build and server log')
             report = read_json(result_path)
             if report.get('status') == 'passed':
+                require(on_ready is None or ready_at is not None, 'Startup barrier was not observed')
                 require(ready_path.exists(), 'Successful result is missing harness readiness')
                 ready = read_json(ready_path)
                 require(ready.get('run_id') == run_id and ready.get('status') == 'ready', 'Invalid readiness record')
@@ -537,6 +542,7 @@ def sha256(path):
 
 
 def execute(args, scenario):
+    started = time.monotonic()
     binary = args.worldserver.resolve(strict=True)
     source_config = args.config.resolve(strict=True)
     mysql = args.mysql.resolve(strict=True)
@@ -557,6 +563,7 @@ def execute(args, scenario):
     print(f'Run {run_id}: {output}', flush=True)
     generated_config = output / 'worldserver.conf'
     module_configs = []
+    cache = None
     retain_databases = False
     summary = {'schema': 1, 'run_id': run_id, 'scenario': scenario['name'], 'status': 'failed',
                'binary_sha256': sha256(binary), 'scenario_sha256': sha256(scenario_path),
@@ -564,7 +571,16 @@ def execute(args, scenario):
     database = Databases(mysql, dump, output, connections, run_id)
     summary['databases'] = database.names
     try:
-        database.prepare()
+        module_source = args.modules_config_dir or source_config.parent / 'modules'
+        if not args.fresh_databases:
+            cache = WorldCache(database, args.world_cache_dir.resolve(),
+                               input_fingerprint(ROOT, source_config, module_source))
+            summary['world_cache'] = cache.info
+            cache.prepare(refresh=args.refresh_world)
+        else:
+            summary['world_cache'] = {'mode': 'fresh', 'retained': False}
+        database.prepare(roles=('auth', 'characters') if cache else ('auth', 'characters', 'world'))
+        summary['database_prepare_seconds'] = round(time.monotonic() - started, 3)
         data_dir = Path(config.get('DataDir', '.'))
         if not data_dir.is_absolute():
             data_dir = binary.parent / data_dir
@@ -578,17 +594,21 @@ def execute(args, scenario):
             'Warden.Enabled': 0, 'Network.UseSocketActivation': 0,
             'LoginDatabase.WorkerThreads': 1, 'CharacterDatabase.WorkerThreads': 1,
             'Updates.EnableDatabases': 7, 'CoAGameplayTest.Enable': 1, 'CoAGameplayTest.RunId': run_id,
+            'CoAGameplayTest.WorldDatabaseId': cache.metadata['world_id'] if cache else run_id,
+            'CoAGameplayTest.StartFile': (output / 'start.json').as_posix() if cache else '',
             'CoAGameplayTest.ScenarioFile': scenario_path.as_posix(),
             'CoAGameplayTest.ReadyFile': ready_path.as_posix(),
             'CoAGameplayTest.ResultFile': result_path.as_posix(),
         }
-        module_source = args.modules_config_dir or source_config.parent / 'modules'
         module_configs = stage_modules(module_source, output, set(overrides))
         summary['module_config_sha256'] = {path.name: sha256(path) for path in module_configs}
         write_config(source_config, generated_config, overrides)
+        server_started = time.monotonic()
+        on_ready = (lambda record: cache.ready(record, output / 'start.json', run_id)) if cache else None
         report, returncode = run_process([str(binary), '-c', str(generated_config)], output, ready_path,
                                          result_path, run_id, args.startup_timeout,
-                                         scenario.get('timeout_ms', 90000) / 1000 + 30)
+                                         scenario.get('timeout_ms', 90000) / 1000 + 30, on_ready=on_ready)
+        summary['server_seconds'] = round(time.monotonic() - server_started, 3)
         check_report(report, run_id, scenario, returncode)
         summary.update(status='passed', assertions=int(report['assertions']))
     except ServerStillRunning as error:
@@ -598,12 +618,19 @@ def execute(args, scenario):
         summary['message'] = str(error)
     finally:
         failures = list(database.names.values()) if retain_databases else database.cleanup()
+        if cache:
+            try:
+                cache.finish(server_still_running=retain_databases)
+            except (ValueError, OSError, subprocess.SubprocessError, KeyError) as error:
+                summary['cache_cleanup_error'] = str(error)
+                failures.append(database.names['world'])
         if failures:
             summary.update(status='failed', cleanup_failed=failures)
         generated_config.unlink(missing_ok=True)
         for path in module_configs:
             path.unlink(missing_ok=True)
         database.remove_credentials()
+        summary['total_seconds'] = round(time.monotonic() - started, 3)
         (output / 'summary.json').write_text(json.dumps(summary, indent=2) + '\n', encoding='utf-8')
     print(f"{summary['status'].upper()}: {scenario['name']}\nResults: {output}")
     if 'message' in summary:
@@ -616,7 +643,7 @@ def main(argv=None):
     subparsers = parser.add_subparsers(dest='command', required=True)
     check = subparsers.add_parser('validate', help='Validate a scenario without starting a server')
     check.add_argument('scenario', type=Path)
-    run = subparsers.add_parser('run', help='Clone local test DBs, run a scenario, and clean up')
+    run = subparsers.add_parser('run', help='Prepare isolated test DBs, run a scenario, and clean up')
     run.add_argument('scenario', type=Path)
     run.add_argument('--worldserver', type=Path, required=True)
     run.add_argument('--config', type=Path, required=True, help='Source worldserver config; never changed')
@@ -627,6 +654,11 @@ def main(argv=None):
     run.add_argument('--modules-config-dir', type=Path, help='Defaults to the source config directory/modules')
     run.add_argument('--output', type=Path, help='New directory for logs and results')
     run.add_argument('--startup-timeout', type=float, default=600)
+    mode = run.add_mutually_exclusive_group()
+    mode.add_argument('--fresh-databases', action='store_true', help='Use disposable copies without the world cache')
+    mode.add_argument('--refresh-world', action='store_true', help='Replace the owned world cache before this run')
+    run.add_argument('--world-cache-dir', type=Path, default=ROOT / '.cache/coa-gameplay-tests/world-cache',
+                     help='Local cache metadata/lease directory; database ownership is verified separately')
     args = parser.parse_args(argv)
     try:
         scenario = validate(read_json(args.scenario))
