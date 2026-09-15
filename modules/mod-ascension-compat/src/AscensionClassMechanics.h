@@ -20,8 +20,6 @@ void HandleAscensionClassMechanicsHit(Spell* spell, Player* player,
     std::uint32_t healing, bool critical);
 void HandleAscensionClassMechanicsCast(Spell* spell);
 void HandleAscensionClassMechanicsBlock(Player* player);
-void HandleAscensionClassMechanicsDamageTaken(Player* player,
-    std::uint32_t damage);
 void HandleAscensionClassMechanicsAuraApply(Player* player, std::uint32_t spellId);
 void HandleAscensionClassMechanicsAuraRemove(Player* player, std::uint32_t spellId, bool removedByDeath);
 

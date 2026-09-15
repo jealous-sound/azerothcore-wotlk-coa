@@ -116,7 +116,7 @@ constexpr uint32 SPELL_GUARDIAN_KNIGHTS_SONG = 505228;
 constexpr uint32 SPELL_GUARDIAN_KNIGHTS_SONG_EFFECTS = 807460;
 constexpr uint32 SPELL_GUARDIAN_MINSTREL = 704533;
 constexpr uint32 SPELL_GUARDIAN_MINSTREL_EFFECTS = 704534;
-constexpr int32 GUARDIAN_RAISE_SHIELD_ENERGY_BASE_POINTS = 29;
+constexpr int32 GUARDIAN_RAISE_SHIELD_ENERGY_BASE_POINTS = 19;
 constexpr uint32 GUARDIAN_FORCEFUL_IMPACT_EXTENSION_MS = 1000;
 constexpr uint32 GUARDIAN_KINGS_GUARD_ICD_MS = 1000;
 constexpr uint8 GUARDIAN_GUARDBREAKER_CHANCE = 20;
@@ -999,7 +999,8 @@ void ApplyAscensionClassMechanics(SpellInfo* spellInfo)
         SpellEffectInfo& effect = spellInfo->Effects[EFFECT_0];
         if (effect.Effect == SPELL_EFFECT_ENERGIZE &&
             effect.MiscValue == POWER_ENERGY &&
-            (effect.BasePoints == 19 ||
+            effect.DieSides == 1 &&
+            (effect.BasePoints == 29 ||
                 effect.BasePoints == GUARDIAN_RAISE_SHIELD_ENERGY_BASE_POINTS))
         {
             effect.BasePoints = GUARDIAN_RAISE_SHIELD_ENERGY_BASE_POINTS;
@@ -1393,24 +1394,16 @@ void HandleAscensionClassMechanicsBlock(Player* player)
     if (!player || player->getClass() != CLASS_GUARDIAN)
         return;
 
+    // A full block also restores Energy; damage taken is not required.
+    if (player->HasAura(SPELL_GUARDIAN_RAISE_SHIELD))
+        player->CastSpell(player, SPELL_GUARDIAN_RAISE_SHIELD_ENERGIZE, true);
+
     if (player->HasSpell(SPELL_GUARDIAN_REPRISAL))
         player->CastSpell(player, SPELL_GUARDIAN_REPRISAL_READY, true);
     if (player->HasAura(SPELL_GUARDIAN_VETERAN))
         player->CastSpell(player, SPELL_GUARDIAN_VETERAN_HEAL, true);
     if (player->HasAura(SPELL_GUARDIAN_HONORABLE))
         player->CastSpell(player, SPELL_GUARDIAN_HONORABLE_EFFECTS, true);
-}
-
-void HandleAscensionClassMechanicsDamageTaken(Player* player,
-    std::uint32_t damage)
-{
-    if (!player || !damage || player->getClass() != CLASS_GUARDIAN ||
-        !player->HasAura(SPELL_GUARDIAN_RAISE_SHIELD))
-        return;
-
-    // The latest copied CoA changelog supersedes Raise Shield's stale DBC
-    // proc: every successful damaging hit received restores 30 Energy.
-    player->CastSpell(player, SPELL_GUARDIAN_RAISE_SHIELD_ENERGIZE, true);
 }
 
 void HandleAscensionClassMechanicsAuraApply(Player* player, std::uint32_t spellId)

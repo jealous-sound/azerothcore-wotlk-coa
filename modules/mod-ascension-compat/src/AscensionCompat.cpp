@@ -4104,7 +4104,7 @@ class AscensionCompatUnitScript : public UnitScript {
 public:
   AscensionCompatUnitScript()
       : UnitScript("AscensionCompatUnitScript", true,
-            {UNITHOOK_ON_DAMAGE, UNITHOOK_ON_BLOCK,
+            {UNITHOOK_ON_BLOCK,
              UNITHOOK_ON_PERIODIC_DAMAGE_RESULT,
              UNITHOOK_ON_AURA_APPLY, UNITHOOK_ON_AURA_REMOVE,
              UNITHOOK_ON_SEND_AURA_UPDATE}) {}
@@ -4115,15 +4115,6 @@ public:
         if (ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED))
             SendAscensionAuraAmounts(target, receiver, application, remove);
     }
-
-  void OnDamage(Unit* /*attacker*/, Unit* victim, uint32& damage) override {
-    if (!ascensionCompatConfig.GetConfigValue<bool>(
-            AscensionCompatConfig::ENABLED) ||
-        !victim || !victim->IsPlayer())
-      return;
-
-    HandleAscensionClassMechanicsDamageTaken(victim->ToPlayer(), damage);
-  }
 
   void OnBlock(Unit *victim, Unit * /*attacker*/) override {
     if (!ascensionCompatConfig.GetConfigValue<bool>(
