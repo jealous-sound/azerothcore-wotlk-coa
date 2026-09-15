@@ -51,6 +51,7 @@ bool Pact(SpellInfo const* info);
 bool Rush(SpellInfo const* info);
 bool Twin(SpellInfo const* info);
 bool Inner(Unit const* player);
+bool Triggered(Spell const* spell);
 int32 Amount(uint32 spell, uint8 effect = 0, Unit* caster = nullptr);
 uint32 Fury(Unit const* player);
 void Gain(Player* player, uint32 amount);

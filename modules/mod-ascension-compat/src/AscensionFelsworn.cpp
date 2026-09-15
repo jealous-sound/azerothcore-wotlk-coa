@@ -9,6 +9,7 @@
 #include "Player.h"
 #include "Random.h"
 #include "ScriptMgr.h"
+#include "Spell.h"
 #include "SpellAuraEffects.h"
 #include "SpellAuras.h"
 #include "SpellMgr.h"
@@ -116,6 +117,12 @@ bool Twin(SpellInfo const* info)
 bool Inner(Unit const* player)
 {
     return player && player->HasAura(804216);
+}
+bool Triggered(Spell const* spell)
+{
+    // SPELL_ATTR4_ALLOW_CAST_WHILE_CASTING adds these flags to direct player casts (Inner Demon among them).
+    constexpr uint32 castWhileCasting = TRIGGERED_IGNORE_CAST_IN_PROGRESS | TRIGGERED_CAST_DIRECTLY;
+    return spell->HasTriggeredCastFlag(TriggerCastFlags(TRIGGERED_FULL_MASK & ~castWhileCasting));
 }
 int32 Amount(uint32 spell, uint8 effect, Unit* caster)
 {

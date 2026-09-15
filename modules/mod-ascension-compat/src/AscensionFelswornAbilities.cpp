@@ -57,7 +57,7 @@ class felsworn_casts : public AllSpellScript
     void OnSpellCheckCast(Spell* spell, bool, SpellCastResult& result) override
     {
         Player* player = Owner(spell->GetCaster());
-        if (!player || spell->IsTriggered() || result != SPELL_CAST_OK)
+        if (!player || Triggered(spell) || result != SPELL_CAST_OK)
             return;
         uint32 id = spell->GetSpellInfo()->Id;
         if (id == 804216 && !Fury(player))
@@ -77,7 +77,7 @@ class felsworn_casts : public AllSpellScript
     void OnSpellBeforeEffects(Spell* spell, Unit* caster, SpellInfo const* info) override
     {
         // Native reflection processing keeps the original spell, rank, crit and combat log.
-        if (!spell->IsTriggered() && !info->IsPositive() && info->DmgClass == SPELL_DAMAGE_CLASS_MAGIC &&
+        if (!Triggered(spell) && !info->IsPositive() && info->DmgClass == SPELL_DAMAGE_CLASS_MAGIC &&
             !info->HasAttribute(SPELL_ATTR1_NO_REFLECTION))
             if (Aura* bane = caster->GetAura(525001); bane && Owner(bane->GetCaster()))
             {
@@ -125,7 +125,7 @@ class felsworn_casts : public AllSpellScript
                 if (player->IsFriendlyTo(ally))
                     spell->AddUnitTargetForScript(ally, 7);
         }
-        if (!spell->IsTriggered() && Spender(info))
+        if (!Triggered(spell) && Spender(info))
         {
             uint32 energy = player->GetPower(POWER_ENERGY) + std::max(0, spell->GetPowerCost());
             uint32 bonus = player->HasAura(300489) ? energy / 10 * std::max(1, Amount(300489, 1)) : 0;
@@ -134,7 +134,7 @@ class felsworn_casts : public AllSpellScript
         }
         if (SpenderImpact(info))
             spell->SetScriptValue(560087, State(player).spenderCrit);
-        if (spell->IsTriggered())
+        if (Triggered(spell))
             return;
         if (info->Id == 804216)
             spell->SetScriptValue(800058, Fury(player));
@@ -189,7 +189,7 @@ class felsworn_casts : public AllSpellScript
     }
     void OnSpellCast(Spell* spell, Unit* caster, SpellInfo const* info, bool) override
     {
-        if (!spell->IsTriggered())
+        if (!Triggered(spell))
             for (auto const& pair : caster->GetAppliedAuras())
                 if (Aura* aura = pair.second->GetBase(); aura->GetId() == 712483 && Owner(aura->GetCaster()))
                 {
@@ -198,7 +198,7 @@ class felsworn_casts : public AllSpellScript
                     aura->SetStackAmount(std::max<uint64>(1, count)); // don't refresh its deadline
                 }
         Player* player = Owner(caster);
-        if (!player || info->SpellFamilyName != 20 || spell->IsTriggered())
+        if (!player || info->SpellFamilyName != 20 || Triggered(spell))
             return;
         auto talent = [player](uint32 passive, uint32 child) {
             if (player->HasAura(passive))
