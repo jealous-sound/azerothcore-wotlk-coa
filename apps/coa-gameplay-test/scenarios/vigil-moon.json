@@ -1,0 +1,215 @@
+{
+  "schema": 1,
+  "name": "Vigil of the Moon: owl and beam ground effects",
+  "contract": "Vigil creates both authored ground effects without crashing, spends mana and expires both effects. Client rendering is outside this server test.",
+  "players": [
+    {
+      "id": "caster",
+      "race": 1,
+      "class": 26,
+      "level": 28
+    }
+  ],
+  "location": {
+    "map": 0,
+    "x": -8949.95,
+    "y": -132.493,
+    "z": 83.5312,
+    "o": 0
+  },
+  "steps": [
+    {
+      "action": "wait",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "caster",
+      "spell": 802797
+    },
+    {
+      "action": "snapshot",
+      "actor": "caster",
+      "metric": "power",
+      "power": 0,
+      "save_as": "mana_0"
+    },
+    {
+      "action": "cast",
+      "actor": "caster",
+      "spell": 802797,
+      "destination": {
+        "x": -8944.95,
+        "y": -132.493,
+        "z": 83.5312
+      }
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "dynamic_object",
+      "spell": 802797,
+      "equals": 1,
+      "within_ms": 3000,
+      "label": "Owl ground effect exists"
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "dynamic_object_duration_ms",
+      "spell": 802797,
+      "min": 1,
+      "max": 15000
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "dynamic_object",
+      "spell": 802798,
+      "equals": 1,
+      "within_ms": 3000,
+      "label": "Light beam ground effect exists"
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "dynamic_object_duration_ms",
+      "spell": 802798,
+      "min": 1,
+      "max": 15000
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "power",
+      "power": 0,
+      "relative_to": "mana_0",
+      "max": -1,
+      "label": "Normal cast spends mana"
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "cooldown_ms",
+      "spell": 802797,
+      "min": 20000
+    },
+    {
+      "action": "wait",
+      "ms": 16000
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "dynamic_object",
+      "spell": 802797,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "dynamic_object",
+      "spell": 802798,
+      "equals": 0
+    },
+    {
+      "action": "wait",
+      "ms": 15000
+    },
+    {
+      "action": "snapshot",
+      "actor": "caster",
+      "metric": "power",
+      "power": 0,
+      "save_as": "mana_1"
+    },
+    {
+      "action": "cast",
+      "actor": "caster",
+      "spell": 802797,
+      "destination": {
+        "x": -8944.95,
+        "y": -132.493,
+        "z": 83.5312
+      }
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "dynamic_object",
+      "spell": 802797,
+      "equals": 1,
+      "within_ms": 3000,
+      "label": "Owl ground effect exists"
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "dynamic_object_duration_ms",
+      "spell": 802797,
+      "min": 1,
+      "max": 15000
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "dynamic_object",
+      "spell": 802798,
+      "equals": 1,
+      "within_ms": 3000,
+      "label": "Light beam ground effect exists"
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "dynamic_object_duration_ms",
+      "spell": 802798,
+      "min": 1,
+      "max": 15000
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "power",
+      "power": 0,
+      "relative_to": "mana_1",
+      "max": -1,
+      "label": "Normal cast spends mana"
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "cooldown_ms",
+      "spell": 802797,
+      "min": 20000
+    },
+    {
+      "action": "wait",
+      "ms": 16000
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "dynamic_object",
+      "spell": 802797,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "dynamic_object",
+      "spell": 802798,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "alive",
+      "equals": 1
+    },
+    {
+      "action": "console",
+      "command": "server info"
+    }
+  ]
+}
