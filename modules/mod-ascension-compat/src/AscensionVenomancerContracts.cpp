@@ -110,6 +110,10 @@ void ApplyContracts(SpellInfo* info)
         info->CasterAuraSpell = Beetle;
         dummy(1); // Summons are controlled by Spider Lord's reviewed cast/auto-attack events.
     }
+    if (id == 804968)
+        // Spider/Beetle are plain auras, not real shapeshift forms, so the native Stances
+        // requirement can never be met; venomancer_spells::OnSpellCheckCast enforces the OR instead.
+        info->Stances = 0;
     if (id == 680800)
         dummy(0); // Empty cooldown selector would otherwise affect every class spell.
     if (id == 706035)
