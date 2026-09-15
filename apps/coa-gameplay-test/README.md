@@ -76,7 +76,11 @@ property-tree JSON are strings; the Python runner converts and rechecks assertio
 worldserver image plus Python and shares the `ac-database` network namespace, so MySQL is reachable on
 `127.0.0.1` and the isolation checks are unchanged. The repository is mounted read-only (runner, scenarios and
 SQL updates), the live `DOCKER_VOL_ETC` configs are read-only sources, and `DOCKER_AC_ENV_FILE` applies the same
-`AC_*` settings as the live worldserver. Build the worldserver image first; rebuild the test image after it.
+`AC_*` settings as the live worldserver. Unlike the live worldserver, the service does not receive `AC_LOGS_DIR`
+or the `AC_*_DATABASE_INFO` variables from `docker-compose.yml`'s `environment:` block; source databases come
+from `worldserver.conf` in `DOCKER_VOL_ETC`, whose connections must already use `127.0.0.1`/`localhost` and
+port 3306 — a Compose host name such as `ac-database` there is rejected ("Only local database sources are
+supported"). Build the worldserver image first; rebuild the test image after it.
 
 ```bash
 mkdir -p .cache/coa-gameplay-tests
@@ -86,14 +90,21 @@ docker compose -f docker-compose.yml -f apps/coa-gameplay-test/docker/compose.ym
   run --rm ac-gameplay-test run apps/coa-gameplay-test/scenarios/frostbolt.json
 ```
 
-`validate <scenario>` works the same way without touching MySQL. The service connects as MySQL `root` with
-`DOCKER_DB_ROOT_PASSWORD`. Credentials are written only to mode-600 files in a private temporary directory
-inside the disposable container, never to the result directory, and are removed when the run ends.
-`docker stop`/`compose stop` sends SIGTERM, which now triggers the same cleanup; only SIGKILL, or a stop
-without enough grace time, can leave the `coa_test_*` schemas behind (check `summary.json`'s `cleanup_failed`
-field). To stop a running test container without losing cleanup, use `docker stop -t 120 <container>`
-(`docker ps` to find its name). Results appear in `.cache/coa-gameplay-tests/<UTC timestamp>/`. The service
-does not stop the running worldserver; stop it to free CPU if needed.
+Run these commands from the checkout that owns the running stack (matching project name and `.env`), or pass
+`--project-name`/`--env-file` explicitly; add `--no-deps` when `ac-database` is already running so Compose does
+not start or change it. `validate <scenario>` works the same way without touching MySQL. The entrypoint fixes
+`--worldserver`, `--config`, `--modules-config-dir`, `--server-modules-dir`, `--mysql`, `--mysqldump`,
+`--database-client-config` and `--output`; passing any of them after the scenario argument has no effect.
+
+The service connects as MySQL `root` with `DOCKER_DB_ROOT_PASSWORD` (it must not contain `"`, `;`, or a carriage
+return/line feed; the runner rejects such characters before connecting). Credentials are written only to
+mode-600 files in a private temporary directory inside the disposable container, never to the result
+directory, and are removed when the run ends. `docker stop`/`compose stop` sends SIGTERM, which now triggers
+the same cleanup; only SIGKILL, or a stop without enough grace time, can leave the `coa_test_*` schemas behind
+(check `summary.json`'s `cleanup_failed` field). To stop a running test container without losing cleanup, use
+`docker stop -t 120 <container>` (`docker ps` to find its name). Results appear in
+`.cache/coa-gameplay-tests/<UTC timestamp>/`. The service does not stop the running worldserver; stop it to free
+CPU if needed.
 
 ## Scenario format
 

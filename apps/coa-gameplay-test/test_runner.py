@@ -273,7 +273,6 @@ class RunnerTests(unittest.TestCase):
                 environment=run.server_environment({'Updates.EnableDatabases': 7}))
         run.check_report(result, '012345abcdef', self.scenario, returncode)
 
-
     def test_module_configs_never_replace_server_files(self):
         with tempfile.TemporaryDirectory() as temporary:
             directory = Path(temporary)
