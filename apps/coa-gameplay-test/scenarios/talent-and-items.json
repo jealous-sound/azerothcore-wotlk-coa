@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "name": "Talent passive, equipment and healing potion",
+  "contract": "A learned talent installs its passive. A usable potion consumes one item and restores health.",
+  "timeout_ms": 90000,
+  "players": [
+    { "id": "caster", "race": 1, "class": 8, "level": 80 }
+  ],
+  "steps": [
+    { "action": "assert", "actor": "caster", "metric": "has_talent", "spell": 11070, "equals": 0 },
+    { "action": "snapshot", "actor": "caster", "metric": "talent_points", "save_as": "talent_points_before" },
+    { "action": "talent", "actor": "caster", "talent": 37, "rank": 0 },
+    { "action": "assert", "actor": "caster", "metric": "has_talent", "spell": 11070, "equals": 1 },
+    {
+      "action": "assert", "label": "Learning spends one talent point", "actor": "caster",
+      "metric": "talent_points", "relative_to": "talent_points_before", "equals": -1
+    },
+    {
+      "action": "assert", "label": "Improved Frostbolt applies its passive", "actor": "caster",
+      "metric": "aura", "spell": 11070, "equals": 1
+    },
+    { "action": "reset_talents", "actor": "caster" },
+    { "action": "assert", "actor": "caster", "metric": "has_talent", "spell": 11070, "equals": 0 },
+    { "action": "assert", "actor": "caster", "metric": "aura", "spell": 11070, "equals": 0 },
+    {
+      "action": "assert", "label": "Reset restores the spent talent point", "actor": "caster",
+      "metric": "talent_points", "relative_to": "talent_points_before", "equals": 0
+    },
+    { "action": "add_item", "actor": "caster", "item": 2576 },
+    {
+      "action": "assert", "label": "Equipment fixture is out of combat", "actor": "caster",
+      "metric": "combat", "equals": 0
+    },
+    { "action": "equip", "actor": "caster", "item": 2576, "slot": 3 },
+    { "action": "assert", "actor": "caster", "metric": "item_count", "item": 2576, "equals": 1 },
+    { "action": "add_item", "actor": "caster", "item": 118, "count": 2 },
+    { "action": "assert", "actor": "caster", "metric": "item_count", "item": 118, "equals": 2 },
+    { "action": "set_health", "actor": "caster", "value": 1 },
+    { "action": "snapshot", "actor": "caster", "metric": "health", "save_as": "injured_health" },
+    { "action": "use_item", "actor": "caster", "item": 118, "spell": 439 },
+    {
+      "action": "assert", "label": "Potion use consumes one item", "actor": "caster",
+      "metric": "item_count", "item": 118, "equals": 1, "within_ms": 1000
+    },
+    {
+      "action": "assert", "label": "Potion use restores health", "actor": "caster",
+      "metric": "health", "relative_to": "injured_health", "min": 1
+    }
+  ]
+}

@@ -19,6 +19,7 @@ void AddAscensionTravelPermitScripts();
 void AddSC_AscensionRulesets();
 void AddSC_AscensionThreatRedirect();
 void AddCoABugReportScripts();
+void AddCoAGameplayTestScripts();
 void AddAscensionBarbarianCompletionScripts();
 void AddAscensionBarbarianEventScripts();
 void AddAscensionBarbarianAbilityScripts();
@@ -309,6 +310,7 @@ void Addmod_ascension_compatScripts()
     AddAscensionVenomancerVenomScripts();
     AddAscensionTinkerCombatSymbiosisScripts();
     AddCoABugReportScripts();
+    AddCoAGameplayTestScripts();
     AddSC_AscensionRulesets();
     AddSC_AscensionThreatRedirect();
 }

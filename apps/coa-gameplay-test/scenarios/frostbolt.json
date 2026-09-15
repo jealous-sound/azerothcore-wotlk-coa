@@ -1,0 +1,51 @@
+{
+  "schema": 1,
+  "name": "Frostbolt: learned spell, damage, slow, mana and expiry",
+  "contract": "Only a learned Frostbolt damages, slows and spends mana. Its slow expires. Damage ranges are untested.",
+  "timeout_ms": 90000,
+  "players": [
+    { "id": "caster", "race": 1, "class": 8, "level": 80, "spell_hit_rating": 10000 }
+  ],
+  "creatures": [
+    { "id": "target", "owner": "caster", "entry": 36, "level": 80, "health": 100000, "distance": 3 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let spawn AI and local level scaling settle", "ms": 5000 },
+    { "action": "console", "command": "server info" },
+    { "action": "unlearn", "actor": "caster", "spell": 116 },
+    { "action": "assert", "actor": "caster", "metric": "knows_spell", "spell": 116, "equals": 0 },
+    { "action": "snapshot", "actor": "target", "metric": "health", "save_as": "target_health" },
+    { "action": "snapshot", "actor": "target", "metric": "max_health", "save_as": "target_max_health" },
+    { "action": "cast", "actor": "caster", "spell": 116, "target": "target" },
+    { "action": "wait", "ms": 4000 },
+    {
+      "action": "assert", "label": "Target maximum health stays stable", "actor": "target",
+      "metric": "max_health", "relative_to": "target_max_health", "equals": 0
+    },
+    {
+      "action": "assert", "label": "Unlearned spell causes no damage", "actor": "target",
+      "metric": "health", "relative_to": "target_health", "equals": 0
+    },
+    { "action": "learn", "actor": "caster", "spell": 116 },
+    { "action": "assert", "actor": "caster", "metric": "knows_spell", "spell": 116, "equals": 1 },
+    { "action": "snapshot", "actor": "target", "metric": "health", "save_as": "health_before_learned_cast" },
+    { "action": "snapshot", "actor": "caster", "metric": "power", "power": 0, "save_as": "mana_before" },
+    { "action": "cast", "actor": "caster", "spell": 116, "target": "target" },
+    {
+      "action": "assert", "label": "Normal cast applies the caster's slow", "actor": "target",
+      "metric": "aura", "spell": 116, "caster": "caster", "equals": 1, "within_ms": 5000
+    },
+    {
+      "action": "assert", "label": "Normal cast causes damage", "actor": "target",
+      "metric": "health", "relative_to": "health_before_learned_cast", "max": -1
+    },
+    {
+      "action": "assert", "label": "Normal cast spends mana", "actor": "caster",
+      "metric": "power", "power": 0, "relative_to": "mana_before", "max": -1
+    },
+    {
+      "action": "assert", "label": "Slow expires through world updates", "actor": "target",
+      "metric": "aura", "spell": 116, "caster": "caster", "equals": 0, "within_ms": 30000
+    }
+  ]
+}
