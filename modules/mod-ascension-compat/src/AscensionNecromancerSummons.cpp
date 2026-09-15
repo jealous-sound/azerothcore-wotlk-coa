@@ -25,6 +25,12 @@ bool Stationary(uint32 entry)
 {
     return entry == 50132 || entry == 542064 || entry == 575091;
 }
+// Skeletal Archer's Shoot (AttackSpell() 801516) already fires every 3s
+// regardless of range, so it never needed to close to melee.
+bool Ranged(uint32 entry)
+{
+    return entry == 50076;
+}
 uint32 AttackSpell(uint32 entry)
 {
     switch (entry)
@@ -258,7 +264,7 @@ class npc_ascension_necromancer : public ScriptedAI
         me->SetCreatorGUID(_owner);
         me->SetFaction(player->GetFaction());
         me->SetReactState(REACT_DEFENSIVE);
-        me->SetCombatMovement(!Stationary(me->GetEntry()));
+        me->SetCombatMovement(!Stationary(me->GetEntry()) && !Ranged(me->GetEntry()));
         State(player).minions.push_back({me->GetGUID(), _spell, _cost});
         me->AddAura(805015, me);
         Scale(player, me, _cost, _inheritedSpeed);
@@ -512,7 +518,7 @@ class npc_ascension_necromancer : public ScriptedAI
                     _events.RescheduleEvent(3, 1ms);
                     break;
                 }
-        if (!player->HasAura(500983) && !Stationary(me->GetEntry()) && UpdateVictim())
+        if (!player->HasAura(500983) && !Stationary(me->GetEntry()) && !Ranged(me->GetEntry()) && UpdateVictim())
             DoMeleeAttackIfReady();
     }
 };
