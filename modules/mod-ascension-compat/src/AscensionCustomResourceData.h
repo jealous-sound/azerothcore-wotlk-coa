@@ -527,7 +527,7 @@ struct ResourceCostRule
 // Rules marked None still receive a local power check, but their public DBC
 // effect already performs the spend. Fixed and All replace private-server
 // consumption that is absent from the public DBC.
-inline constexpr std::array<ResourceCostRule, 55> ResourceCostRules =
+inline constexpr std::array<ResourceCostRule, 59> ResourceCostRules =
 {{
     {14, 801904, 801904, 800058, 2, ResourceConsumption::Fixed,
         705137, 30},
@@ -549,6 +549,10 @@ inline constexpr std::array<ResourceCostRule, 55> ResourceCostRules =
     {16, 500039, 500039, 803102, 40, ResourceConsumption::Fixed},
     {16, 501442, 501449, 803102, 40, ResourceConsumption::Fixed},
     {16, 500041, 500041, 803102, 25, ResourceConsumption::Fixed},
+    {16, 500040, 500040, 803102, 50, ResourceConsumption::Fixed},
+    {16, 501388, 501399, 803102, 50, ResourceConsumption::Fixed},
+    {16, 800227, 800227, 803102, 50, ResourceConsumption::Fixed},
+    {16, 501415, 501420, 803102, 50, ResourceConsumption::Fixed},
     {16, 532751, 532751, 803102, 50, ResourceConsumption::Fixed},
     {16, 567555, 567555, 803102, 20, ResourceConsumption::None},
     {16, 705672, 705672, 803102, 20, ResourceConsumption::None},
