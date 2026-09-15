@@ -98,6 +98,7 @@ using namespace Acore::ChatCommands;
 namespace {
 constexpr uint16 CMSG_ANTICHEAT_ALERT = 0x051F;
 constexpr uint16 CMSG_VANITY_DELIVERY = 0x0523;
+constexpr uint16 CMSG_CREATURE_ASSET_QUERY_MULTIPLE = 0x061A;
 constexpr uint16 CMSG_APPLY_APPEARANCES = 0x0697;
 constexpr uint16 SMSG_APPLY_APPEARANCES_RESULT = 0x0698;
 constexpr uint16 SMSG_APPEARANCE_COLLECTION_INFO = 0x0699;
@@ -3337,6 +3338,41 @@ private:
       _playerStates;
 };
 
+AscensionCollectionModels::Entry const* FindCollectionModel(uint32 creatureId)
+{
+    auto const& models = AscensionCollectionModels::Entries;
+    auto const itr = std::lower_bound(models.begin(), models.end(), creatureId,
+        [](AscensionCollectionModels::Entry const& model, uint32 value)
+        {
+            return model.CreatureId < value;
+        });
+    return itr != models.end() && itr->CreatureId == creatureId ? &*itr : nullptr;
+}
+
+bool SendCollectionCreatureQueryResponse(WorldSession* session, uint32 creatureId)
+{
+    AscensionCollectionModels::Entry const* model = FindCollectionModel(creatureId);
+    if (!session || !model)
+        return false;
+
+    // Normal WotLK creature-query wire layout, mirrored from QueryHandler.
+    // This provides preview metadata only; it does not spawn a creature or
+    // invent combat stats/loot for an Ascension NPC absent from the world DB.
+    WorldPacket response(SMSG_CREATURE_QUERY_RESPONSE, 100);
+    response << creatureId << std::string(model->Name);
+    for (uint8 i = 0; i < 5; ++i)
+        response << uint8(0); // name2/3/4, title, icon
+    response << uint32(0) << uint32(CREATURE_TYPE_CRITTER) << uint32(0);
+    response << uint32(0) << uint32(0) << uint32(0); // rank, kill credits
+    response << model->DisplayId << uint32(0) << uint32(0) << uint32(0);
+    response << float(1.0f) << float(1.0f) << uint8(0);
+    for (uint8 i = 0; i < 6; ++i)
+        response << uint32(0); // quest items
+    response << uint32(0); // movementId
+    session->SendPacket(&response);
+    return true;
+}
+
 class AscensionCompatServerScript : public ServerScript {
 public:
   AscensionCompatServerScript()
@@ -3358,32 +3394,13 @@ public:
         if (sObjectMgr->GetCreatureTemplate(entry))
             return true;
 
-        auto const& models = AscensionCollectionModels::Entries;
-        auto const itr = std::lower_bound(models.begin(), models.end(), entry,
-            [](AscensionCollectionModels::Entry const& model, uint32 value)
-            {
-                return model.CreatureId < value;
-            });
-        if (itr == models.end() || itr->CreatureId != entry)
+        AscensionCollectionModels::Entry const* model = FindCollectionModel(entry);
+        if (!model)
             return true;
 
-        // Normal WotLK creature-query wire layout, mirrored from QueryHandler.
-        // This provides preview metadata only; it does not spawn a creature or
-        // invent combat stats/loot for an Ascension NPC absent from the world DB.
-        WorldPacket response(SMSG_CREATURE_QUERY_RESPONSE, 100);
-        response << entry << std::string(itr->Name);
-        for (uint8 i = 0; i < 5; ++i)
-            response << uint8(0); // name2/3/4, title, icon
-        response << uint32(0) << uint32(CREATURE_TYPE_CRITTER) << uint32(0);
-        response << uint32(0) << uint32(0) << uint32(0); // rank, kill credits
-        response << itr->DisplayId << uint32(0) << uint32(0) << uint32(0);
-        response << float(1.0f) << float(1.0f) << uint8(0);
-        for (uint8 i = 0; i < 6; ++i)
-            response << uint32(0); // quest items
-        response << uint32(0); // movementId
-        session->SendPacket(&response);
+        SendCollectionCreatureQueryResponse(session, entry);
         LOG_DEBUG("module.ascension_compat", "Answered local creature preview query: entry {}, display {}, payload {}",
-            entry, itr->DisplayId, packet.size());
+            entry, model->DisplayId, packet.size());
         return false;
     }
 
@@ -3407,6 +3424,45 @@ public:
     // consuming it during protocol discovery.
     if (opcode == CMSG_ANTICHEAT_ALERT)
       return true;
+
+    if (opcode == CMSG_CREATURE_ASSET_QUERY_MULTIPLE)
+    {
+        constexpr uint32 maxCreatureQueries = 256;
+        if (!session || packet.size() < sizeof(uint32))
+        {
+            LOG_WARN("module.ascension_compat",
+                "Malformed Ascension creature asset query payload={} bytes", packet.size());
+            return false;
+        }
+
+        uint32 const count = packet.read<uint32>(0);
+        if (!count || count > maxCreatureQueries)
+        {
+            LOG_WARN("module.ascension_compat",
+                "Malformed Ascension creature asset query count={} payload={} bytes", count, packet.size());
+            return false;
+        }
+
+        std::size_t const expectedSize = sizeof(uint32) + std::size_t(count) * sizeof(uint32);
+        if (packet.size() != expectedSize)
+        {
+            LOG_WARN("module.ascension_compat",
+                "Malformed Ascension creature asset query count={} payload={} bytes", count, packet.size());
+            return false;
+        }
+
+        uint32 answered = 0;
+        for (uint32 index = 0; index < count; ++index)
+        {
+            uint32 const entry = packet.read<uint32>(sizeof(uint32) + std::size_t(index) * sizeof(uint32));
+            if (SendCollectionCreatureQueryResponse(session, entry))
+                ++answered;
+        }
+
+        LOG_DEBUG("module.ascension_compat",
+            "Answered Ascension creature asset query: requested {}, answered {}", count, answered);
+        return false;
+    }
 
     if (QueueAscensionManastormPacket(session, packet))
       return false;
