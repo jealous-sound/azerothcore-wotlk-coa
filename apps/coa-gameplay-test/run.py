@@ -11,6 +11,8 @@ import os
 from pathlib import Path
 import re
 import secrets
+import shutil
+import signal
 import socket
 import subprocess
 import sys
@@ -435,15 +437,23 @@ def write_config(source, destination, overrides):
     destination.chmod(0o600)
 
 
+def check_no_reserved_overrides(path, reserved):
+    settings = read_config(path)
+    require(not settings.keys() & reserved
+            and not any(key.startswith('CoAGameplayTest.') for key in settings),
+            f'Module config overrides harness controls: {path.name}')
+
+
 def stage_modules(source, destination, reserved):
     """Copy module configs into the directory the worldserver reads, never replacing existing files."""
+    if destination.exists():
+        # Pre-existing files in the destination are never copied, but they must not silently win either.
+        for path in sorted(destination.glob('*.conf')):
+            check_no_reserved_overrides(path, reserved)
     staged = []
     try:
         for path in sorted(source.glob('*.conf')):
-            settings = read_config(path)
-            require(not settings.keys() & reserved
-                    and not any(key.startswith('CoAGameplayTest.') for key in settings),
-                    f'Module config overrides harness controls: {path.name}')
+            check_no_reserved_overrides(path, reserved)
             target = destination / path.name
             target.parent.mkdir(parents=True, exist_ok=True)
             with target.open('xb') as staged_file:
@@ -556,13 +566,16 @@ def execute(args, scenario):
     scenario_path = output / 'scenario.json'
     scenario_path.write_text(json.dumps(scenario, indent=2) + '\n', encoding='utf-8')
     print(f'Run {run_id}: {output}', flush=True)
-    generated_config = output / 'worldserver.conf'
+    # Credential-bearing files (option files, generated config) never live under `output`: on the Docker
+    # service that directory is a host bind mount, and on all platforms it is the disposable result directory.
+    credentials_dir = Path(tempfile.mkdtemp(prefix='coa-gameplay-test-'))
+    generated_config = credentials_dir / 'worldserver.conf'
     module_configs = []
     retain_databases = False
     summary = {'schema': 1, 'run_id': run_id, 'scenario': scenario['name'], 'status': 'failed',
                'binary_sha256': sha256(binary), 'scenario_sha256': sha256(scenario_path),
                'binary': str(binary)}
-    database = Databases(mysql, dump, output, connections, run_id)
+    database = Databases(mysql, dump, credentials_dir, connections, run_id)
     summary['databases'] = database.names
     try:
         database.prepare()
@@ -608,11 +621,17 @@ def execute(args, scenario):
         for path in module_configs:
             path.unlink(missing_ok=True)
         database.remove_credentials()
+        shutil.rmtree(credentials_dir, ignore_errors=True)
         (output / 'summary.json').write_text(json.dumps(summary, indent=2) + '\n', encoding='utf-8')
     print(f"{summary['status'].upper()}: {scenario['name']}\nResults: {output}")
     if 'message' in summary:
         print(summary['message'])
     return 0 if summary['status'] == 'passed' else 1
+
+
+def _raise_keyboard_interrupt(signum, frame):
+    """SIGTERM handler: route the ordinary Compose/`docker stop` signal through the existing interrupt cleanup."""
+    raise KeyboardInterrupt
 
 
 def main(argv=None):
@@ -634,6 +653,8 @@ def main(argv=None):
     run.add_argument('--output', type=Path, help='New directory for logs and results')
     run.add_argument('--startup-timeout', type=float, default=600)
     args = parser.parse_args(argv)
+    previous_sigterm_handler = None
+    sigterm_installed = False
     try:
         scenario = validate(read_json(args.scenario))
         if args.command == 'validate':
@@ -642,10 +663,16 @@ def main(argv=None):
         require(math.isfinite(args.startup_timeout) and args.startup_timeout > 0, 'Invalid startup timeout')
         require(args.server_modules_dir or os.name == 'nt',
                 '--server-modules-dir is required outside Windows (the worldserver reads CONF_DIR/modules)')
+        if hasattr(signal, 'SIGTERM'):
+            previous_sigterm_handler = signal.signal(signal.SIGTERM, _raise_keyboard_interrupt)
+            sigterm_installed = True
         return execute(args, scenario)
     except (ValueError, OSError, KeyError, TypeError) as error:
         print(f'ERROR: {error}', file=sys.stderr)
         return 1
+    finally:
+        if sigterm_installed:
+            signal.signal(signal.SIGTERM, previous_sigterm_handler)
 
 
 if __name__ == '__main__':

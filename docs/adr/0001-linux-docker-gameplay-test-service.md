@@ -34,5 +34,8 @@ Option 4 weakens a safety guard protecting real databases.
 - Linux users run scenarios with one Compose command; no C++ change or rebuild of the server image is needed.
 - Upstream Docker files stay untouched; the service must be combined with the root `docker-compose.yml` via `-f`.
 - The test image must be rebuilt after rebuilding the worldserver image.
-- The service uses the MySQL root password already provided to the Compose stack, written only to a file inside the
-  disposable container.
+- The service uses the MySQL root password already provided to the Compose stack. Credentials are written only to
+  mode-600 files in a private temporary directory of the runner (inside the disposable container), never to the
+  result directory, and are removed when the run ends. `docker stop`/`compose stop` sends SIGTERM, which the runner
+  now converts into its existing interrupt cleanup; only SIGKILL or a stop without enough grace time can leave the
+  `coa_test_*` schemas behind (check `summary.json`).

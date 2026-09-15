@@ -15,6 +15,8 @@ services:
     # MySQL is reachable on 127.0.0.1, as the harness isolation checks require.
     network_mode: "service:ac-database"
     init: true
+    # Give the runner's SIGTERM handler time to stop the worldserver and drop the coa_test_* schemas.
+    stop_grace_period: 2m
     working_dir: /azerothcore-src
     entrypoint: ["bash", "/azerothcore-src/apps/coa-gameplay-test/docker/entrypoint.sh"]
     env_file:

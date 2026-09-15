@@ -52,9 +52,12 @@ variables that would replace generated harness values, such as `AC_UPDATES_ENABL
 `AC_LOGIN_DATABASE_INFO`, so the generated config always controls isolation, logging and updates.
 
 When the scenario ends, the runtime logs out its test players and shuts down. The runner waits for process
-exit before dropping its schemas and removing generated credentials. Startup, scenario, shutdown and copy
-operations have timeouts. An interrupted run performs the same cleanup; a hard termination may leave the
-named schemas behind. Inspect `summary.json` before removing any leftovers.
+exit before dropping its schemas and removing generated credentials, which are written only to mode-600
+option files and a generated `worldserver.conf` in a private temporary directory of the runner, never under
+the result directory; the directory is removed when the run ends. Startup, scenario, shutdown and copy
+operations have timeouts. An interrupted run (Ctrl+C, or SIGTERM as sent by `docker stop`/`compose stop`)
+performs the same cleanup; only SIGKILL, a crash, or a stop without enough grace time can leave the named
+schemas behind. Inspect `summary.json`'s `cleanup_failed` field before removing any leftovers.
 
 Results default to `.cache/coa-gameplay-tests/<run-id>/`:
 
@@ -84,9 +87,13 @@ docker compose -f docker-compose.yml -f apps/coa-gameplay-test/docker/compose.ym
 ```
 
 `validate <scenario>` works the same way without touching MySQL. The service connects as MySQL `root` with
-`DOCKER_DB_ROOT_PASSWORD`, written only to a mode-600 file inside the disposable container. Results appear in
-`.cache/coa-gameplay-tests/<UTC timestamp>/`. The service does not stop the running worldserver; stop it to free CPU
-if needed.
+`DOCKER_DB_ROOT_PASSWORD`. Credentials are written only to mode-600 files in a private temporary directory
+inside the disposable container, never to the result directory, and are removed when the run ends.
+`docker stop`/`compose stop` sends SIGTERM, which now triggers the same cleanup; only SIGKILL, or a stop
+without enough grace time, can leave the `coa_test_*` schemas behind (check `summary.json`'s `cleanup_failed`
+field). To stop a running test container without losing cleanup, use `docker stop -t 120 <container>`
+(`docker ps` to find its name). Results appear in `.cache/coa-gameplay-tests/<UTC timestamp>/`. The service
+does not stop the running worldserver; stop it to free CPU if needed.
 
 ## Scenario format
 
