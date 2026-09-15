@@ -780,6 +780,14 @@ private:
             Require(_actors.at(step.get<std::string>("actor")).whoResponses == before + 1,
                 "Who request did not produce a native response");
         }
+        else if (action == "attack")
+        {
+            Unit* target = GetUnit(step.get<std::string>("target"));
+            Require(player->IsValidAttackTarget(target), "Invalid melee attack target");
+            WorldPacket packet(CMSG_ATTACKSWING, 8);
+            packet << target->GetGUID();
+            player->GetSession()->HandleAttackSwingOpcode(packet);
+        }
         else if (action == "set_aura")
         {
             SpellInfo const* info = sSpellMgr->GetSpellInfo(spell);

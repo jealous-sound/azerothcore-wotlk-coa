@@ -100,6 +100,7 @@ before taking baselines; assert stable maximums and final levels when testing da
 | `talent` | `actor`, `talent`, zero-based `rank`: learn with normal point/prerequisite checks. |
 | `reset_talents` | `actor`: reset active talents through normal removal, without a trainer fee. |
 | `cast` | `actor`, `spell`, optional `target` (self by default): normal session cast handler. |
+| `attack` | `actor`, `target`: native melee attack request; verify combat or damage with assertions. |
 | `cast_charm` | Same fields: native pet-cast handler, with the charmed unit as the default target. |
 | `gossip_hello` | `actor`, optional `target`: native gossip handler; defaults to the actor's summoned companion. |
 | `gossip_select` | `actor`, zero-based `option`: select from the current menu through the session handler. |

@@ -45,6 +45,7 @@ ACTIONS = {
     'unlearn': ({'actor', 'spell'}, {'actor', 'spell'}),
     'set_aura': ({'actor', 'spell', 'stacks'}, {'actor', 'spell', 'stacks'}),
     'cast': ({'actor', 'spell'}, {'actor', 'spell', 'target', 'destination'}),
+    'attack': ({'actor', 'target'}, {'actor', 'target'}),
     'cast_charm': ({'actor', 'spell'}, {'actor', 'spell', 'target'}),
     'gossip_hello': ({'actor'}, {'actor', 'target'}),
     'gossip_select': ({'actor', 'option'}, {'actor', 'option'}),

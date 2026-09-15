@@ -69,6 +69,8 @@ class RunnerTests(unittest.TestCase):
                                          'equals': 1}),
             lambda s: s['steps'].append({'action': 'cast_charm', 'actor': 'target', 'spell': 802176}),
             lambda s: s['steps'].append({'action': 'gossip_hello', 'actor': 'caster', 'target': 'missing'}),
+            lambda s: s['steps'].append({'action': 'attack', 'actor': 'caster'}),
+            lambda s: s['steps'].append({'action': 'attack', 'actor': 'caster', 'target': 'missing'}),
             lambda s: s['steps'].append({'action': 'gossip_select', 'actor': 'caster', 'option': -1}),
             lambda s: s['steps'].append({'action': 'set_aura', 'actor': 'caster', 'spell': 803102, 'stacks': 256}),
             lambda s: s['steps'].append({'action': 'set_aura', 'actor': 'target', 'spell': 803102, 'stacks': 1}),
