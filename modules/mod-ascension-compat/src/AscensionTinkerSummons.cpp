@@ -19,6 +19,11 @@
 #include <algorithm>
 namespace AscensionTinker
 {
+enum TinkerSummonSpell : uint32
+{
+    DestructoBot = 804673
+};
+
 bool Permanent(uint32 entry)
 {
     return entry == 50048 || entry == 500481 || entry == 60671 || entry == 60070 || entry == 60672;
@@ -114,7 +119,7 @@ void Summon(Player* player, Unit* target, uint32 spell, Position const* destinat
             entry = effect.MiscValue;
             // Destructo-Bot is a native puppet. Its summon properties arrange
             // possession and release it on logout, transfer and despawn.
-            if (spell == 804673)
+            if (spell == DestructoBot)
             {
                 properties = sSummonPropertiesStore.LookupEntry(effect.MiscValueB);
                 if (!properties || properties->Category != SUMMON_CATEGORY_PUPPET)
