@@ -5,8 +5,10 @@ The runtime component is `modules/mod-ascension-compat/src/CoAGameplayTest.cpp`;
 
 ## Run
 
-Windows, Python 3.11+, MySQL 8 client tools, a local MySQL server and a worldserver built with the runtime component
-are required. Follow the repository's build authorization rules. Adding the new source requires CMake
+Python 3.11+, MySQL 8 client tools, a local MySQL server and a worldserver built with the runtime component
+are required. The commands below run the runner directly (Windows example); Docker installations on Linux use
+the [Compose test service](#linux-docker), which provides all of them.
+Follow the repository's build authorization rules. Adding the new source requires CMake
 reconfiguration before building; running an older binary will fail the readiness check.
 The module requires Boost.PropertyTree headers. Component-based vcpkg installations need
 `boost-property-tree` for the same triplet as the existing Boost libraries. CMake checks this dependency.
@@ -64,6 +66,27 @@ Results default to `.cache/coa-gameplay-tests/<run-id>/`:
 Exit code zero requires every expected assertion and step to complete, matching run identity, a clean server
 exit and successful database cleanup. A submitted cast alone is never a pass. Numeric fields in the server's
 property-tree JSON are strings; the Python runner converts and rechecks assertion values.
+
+### Linux (Docker)
+
+`docker/compose.yml` adds the `ac-gameplay-test` service to the root Compose stack. It uses the locally built
+worldserver image plus Python and shares the `ac-database` network namespace, so MySQL is reachable on
+`127.0.0.1` and the isolation checks are unchanged. The repository is mounted read-only (runner, scenarios and
+SQL updates), the live `DOCKER_VOL_ETC` configs are read-only sources, and `DOCKER_AC_ENV_FILE` applies the same
+`AC_*` settings as the live worldserver. Build the worldserver image first; rebuild the test image after it.
+
+```bash
+mkdir -p .cache/coa-gameplay-tests
+docker compose -f docker-compose.yml -f apps/coa-gameplay-test/docker/compose.yml --profile tests \
+  build ac-gameplay-test
+docker compose -f docker-compose.yml -f apps/coa-gameplay-test/docker/compose.yml --profile tests \
+  run --rm ac-gameplay-test run apps/coa-gameplay-test/scenarios/frostbolt.json
+```
+
+`validate <scenario>` works the same way without touching MySQL. The service connects as MySQL `root` with
+`DOCKER_DB_ROOT_PASSWORD`, written only to a mode-600 file inside the disposable container. Results appear in
+`.cache/coa-gameplay-tests/<UTC timestamp>/`. The service does not stop the running worldserver; stop it to free CPU
+if needed.
 
 ## Scenario format
 

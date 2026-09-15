@@ -1,0 +1,32 @@
+# CoA gameplay tests on Linux, used together with the root docker-compose.yml:
+#
+#   docker compose -f docker-compose.yml -f apps/coa-gameplay-test/docker/compose.yml \
+#     --profile tests run --rm ac-gameplay-test run apps/coa-gameplay-test/scenarios/frostbolt.json
+#
+# Relative paths resolve against the repository root (the first compose file's directory).
+services:
+  ac-gameplay-test:
+    image: acore/ac-wotlk-gameplay-test:${DOCKER_IMAGE_TAG:-master}
+    build:
+      context: apps/coa-gameplay-test/docker
+      args:
+        BASE_IMAGE: acore/ac-wotlk-worldserver:${DOCKER_IMAGE_TAG:-master}
+    profiles: [tests]
+    # MySQL is reachable on 127.0.0.1, as the harness isolation checks require.
+    network_mode: "service:ac-database"
+    init: true
+    working_dir: /azerothcore-src
+    entrypoint: ["bash", "/azerothcore-src/apps/coa-gameplay-test/docker/entrypoint.sh"]
+    env_file:
+      ${DOCKER_AC_ENV_FILE:-conf/dist/env.ac}
+    environment:
+      AC_DATA_DIR: "/azerothcore/env/dist/data"
+      MYSQL_ROOT_PASSWORD: ${DOCKER_DB_ROOT_PASSWORD:-password}
+    volumes:
+      - .:/azerothcore-src:ro
+      - ${DOCKER_VOL_ETC:-./env/dist/etc}:/coa/source-etc:ro
+      - ${DOCKER_VOL_DATA:-ac-client-data}:/azerothcore/env/dist/data:ro
+      - ./.cache/coa-gameplay-tests:/results
+    depends_on:
+      ac-database:
+        condition: service_healthy
