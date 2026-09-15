@@ -77,6 +77,12 @@ void ApplyAscensionGuardianResourceContracts(SpellInfo* info)
         info->Effects[EFFECT_1].BasePoints == 24 && info->Effects[EFFECT_1].DieSides == 1)
         info->Effects[EFFECT_1].BasePoints = -26; // With Honor: -25 percentage points.
 
+    if (info->Id == 504383 && info->Effects[EFFECT_0].IsAura(SPELL_AURA_ADD_FLAT_MODIFIER) &&
+        info->Effects[EFFECT_0].MiscValue == SPELLMOD_COOLDOWN &&
+        info->Effects[EFFECT_0].BasePoints == -4001 && info->Effects[EFFECT_0].DieSides == 1 &&
+        info->Effects[EFFECT_0].SpellClassMask == flag96())
+        info->Effects[EFFECT_0].SpellClassMask = flag96(256, 268435584, 0); // With Honor: -4s on Ram, all ranks.
+
     if ((info->Id == 504730 || info->Id == 504883) &&
         info->Effects[EFFECT_0].IsAura(SPELL_AURA_ADD_PCT_MODIFIER) &&
         info->Effects[EFFECT_0].MiscValue == SPELLMOD_CRIT_DAMAGE_BONUS &&
