@@ -1,0 +1,289 @@
+{
+  "schema": 1,
+  "name": "Destructo-Bot: Manastorm possession and cleanup",
+  "contract": "Building, detonating, expiring and leaving Manastorm with a possessed Destructo-Bot preserve the server and return control to its owner.",
+  "timeout_ms": 240000,
+  "players": [
+    {
+      "id": "caster",
+      "race": 1,
+      "class": 28,
+      "level": 60
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "caster",
+      "spell": 804673
+    },
+    {
+      "action": "command",
+      "actor": "caster",
+      "command": ".manastorm enter 1"
+    },
+    {
+      "action": "wait",
+      "ms": 3000
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "private_instance",
+      "equals": 1,
+      "within_ms": 5000,
+      "label": "Entered a real Manastorm instance"
+    },
+    {
+      "action": "cast",
+      "actor": "caster",
+      "spell": 804673
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "charm_entry",
+      "equals": 50300,
+      "within_ms": 7000,
+      "label": "The build spell possesses its Destructo-Bot"
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "owned_creature_count",
+      "equals": 1,
+      "entry": 50300
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "controls_self",
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "charm_aura_stacks",
+      "equals": 1,
+      "spell": 707698,
+      "caster": "caster",
+      "label": "Scaling helper targets the bot"
+    },
+    {
+      "action": "cast_charm",
+      "actor": "caster",
+      "spell": 802176
+    },
+    {
+      "action": "wait",
+      "ms": 4000
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "charm_entry",
+      "equals": 0,
+      "within_ms": 5000
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "controls_self",
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "owned_creature_count",
+      "equals": 0,
+      "entry": 50300
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "alive",
+      "equals": 1
+    },
+    {
+      "action": "wait",
+      "ms": 41000
+    },
+    {
+      "action": "cast",
+      "actor": "caster",
+      "spell": 804673
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "charm_entry",
+      "equals": 50300,
+      "within_ms": 7000,
+      "label": "A second bot can be built after self-destruct"
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "owned_creature_count",
+      "equals": 1,
+      "entry": 50300
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "controls_self",
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "charm_aura_stacks",
+      "equals": 1,
+      "spell": 707698,
+      "caster": "caster",
+      "label": "Scaling helper targets the bot"
+    },
+    {
+      "action": "wait",
+      "ms": 46000
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "charm_entry",
+      "equals": 0,
+      "within_ms": 5000
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "controls_self",
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "owned_creature_count",
+      "equals": 0,
+      "entry": 50300
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "alive",
+      "equals": 1
+    },
+    {
+      "action": "cast",
+      "actor": "caster",
+      "spell": 804673
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "charm_entry",
+      "equals": 50300,
+      "within_ms": 7000,
+      "label": "A third bot can be built after timed expiry"
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "owned_creature_count",
+      "equals": 1,
+      "entry": 50300
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "controls_self",
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "charm_aura_stacks",
+      "equals": 1,
+      "spell": 707698,
+      "caster": "caster",
+      "label": "Scaling helper targets the bot"
+    },
+    {
+      "action": "command",
+      "actor": "caster",
+      "command": ".manastorm leave"
+    },
+    {
+      "action": "wait",
+      "ms": 5000
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "private_instance",
+      "equals": 0,
+      "label": "Leaving unloads the Manastorm instance"
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "charm_entry",
+      "equals": 0,
+      "within_ms": 5000
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "controls_self",
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "owned_creature_count",
+      "equals": 0,
+      "entry": 50300
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "alive",
+      "equals": 1
+    },
+    {
+      "action": "wait",
+      "ms": 20000
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "alive",
+      "equals": 1
+    },
+    {
+      "action": "wait",
+      "ms": 23000
+    },
+    {
+      "action": "cast",
+      "actor": "caster",
+      "spell": 804673
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "charm_entry",
+      "equals": 50300,
+      "within_ms": 7000,
+      "label": "Logout must release an actively possessed bot"
+    },
+    {
+      "action": "console",
+      "command": "server info"
+    }
+  ]
+}

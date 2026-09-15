@@ -444,6 +444,22 @@ private:
             return player->GetFreeTalentPoints();
         if (metric == "bank_bag_slots")
             return player->GetBankBagSlotCount();
+        if (metric == "private_instance")
+            return player->GetMap()->IsScriptedPrivateInstance();
+        if (metric == "controls_self")
+            return player->m_mover == player;
+        if (metric == "charm_entry" || metric == "charm_aura_stacks")
+        {
+            Unit* charm = player->GetCharm();
+            if (metric == "charm_entry")
+                return charm ? charm->GetEntry() : 0;
+            Require(sSpellMgr->GetSpellInfo(spell) != nullptr, "Unknown charm aura spell");
+            ObjectGuid caster;
+            if (auto id = step.get_optional<std::string>("caster"))
+                caster = GetUnit(*id)->GetGUID();
+            Aura* aura = charm ? charm->GetAura(spell, caster) : nullptr;
+            return aura ? aura->GetStackAmount() : 0;
+        }
         if (metric == "owned_creature_count")
         {
             uint32 entry = step.get<uint32>("entry");
@@ -560,9 +576,16 @@ private:
         std::string id = step.get<std::string>("actor");
         Player* player = GetPlayer(id);
         uint32 spell = step.get<uint32>("spell", 0);
-        if (action == "learn" || action == "unlearn" || action == "cast")
+        if (action == "learn" || action == "unlearn" || action == "cast" || action == "cast_charm")
             Require(sSpellMgr->GetSpellInfo(spell) != nullptr, "Unknown spell: " + std::to_string(spell));
-        if (action == "learn")
+        if (action == "command")
+        {
+            ChatHandler handler(player->GetSession());
+            bool handled = handler.ParseCommands(step.get<std::string>("command"));
+            Require(handled && !handler.HasSentErrorMessage(), "Player command failed");
+            record.put("result", "submitted; verify effects with assertions");
+        }
+        else if (action == "learn")
         {
             player->learnSpell(spell);
             Require(player->HasSpell(spell), "Spell learning failed");
@@ -582,16 +605,23 @@ private:
             player->resetTalents(true); // fixture reset through normal removal, without a trainer fee
             Require(player->GetFreeTalentPoints() == player->CalculateTalentsPoints(), "Talent reset rejected");
         }
-        else if (action == "cast" || action == "use_item")
+        else if (action == "cast" || action == "cast_charm" || action == "use_item")
         {
             SpellCastTargets targets;
-            Unit* target = GetUnit(step.get<std::string>("target", id));
+            Unit* caster = action == "cast_charm" ? player->GetCharm() : player;
+            Require(caster != nullptr, "Player has no charmed unit");
+            Unit* target = step.get_optional<std::string>("target") ? GetUnit(step.get<std::string>("target")) : caster;
             targets.SetUnitTarget(target);
-            record.put("spell_active", player->HasActiveSpell(spell));
-            record.put("line_of_sight", player->IsWithinLOSInMap(target));
-            WorldPacket packet(action == "cast" ? CMSG_CAST_SPELL : CMSG_USE_ITEM, 64);
-            if (action == "cast")
+            record.put("spell_active", caster->HasSpell(spell));
+            record.put("line_of_sight", caster->IsWithinLOSInMap(target));
+            WorldPacket packet(action == "cast" ? CMSG_CAST_SPELL :
+                action == "cast_charm" ? CMSG_PET_CAST_SPELL : CMSG_USE_ITEM, 64);
+            if (action == "cast" || action == "cast_charm")
+            {
+                if (action == "cast_charm")
+                    packet << caster->GetGUID();
                 packet << uint8(++_castCount) << spell << uint8(0);
+            }
             else
             {
                 Item* item = player->GetItemByEntry(step.get<uint32>("item"));
@@ -602,6 +632,8 @@ private:
             targets.Write(packet);
             if (action == "cast")
                 player->GetSession()->HandleCastSpellOpcode(packet);
+            else if (action == "cast_charm")
+                player->GetSession()->HandlePetCastSpellOpcode(packet);
             else
                 player->GetSession()->HandleUseItemOpcode(packet);
             record.put("result", "submitted; verify effects with assertions");
@@ -662,6 +694,8 @@ private:
         if (_finished)
             return;
         _finished = true;
+        if (!passed)
+            LOG_ERROR("module.gameplay_test", "Scenario failed at step {}: {}", _completed, message);
         // Normal logout tears down auras, summons, map membership and script state before maps unload.
         for (auto const& [id, target] : _targets)
             if (Map* map = sMapMgr->FindMap(target.map, target.instance))

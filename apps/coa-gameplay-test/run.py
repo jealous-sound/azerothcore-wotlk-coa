@@ -27,16 +27,19 @@ METRICS = {
     'aura', 'aura_stacks', 'aura_charges', 'aura_duration_ms', 'aura_amount',
     'knows_spell', 'has_talent', 'talent_points', 'cooldown_ms', 'item_count', 'bank_bag_slots',
     'pet_entry', 'pet_aura_stacks', 'owned_creature_count',
+    'charm_entry', 'charm_aura_stacks', 'controls_self', 'private_instance',
 }
 METRIC_FIELDS = {'actor', 'metric', 'spell', 'power', 'caster', 'effect', 'item', 'entry', 'relative_to'}
 ACTIONS = {
     'console': ({'command'}, {'command'}),
+    'command': ({'actor', 'command'}, {'actor', 'command'}),
     'wait': ({'ms'}, {'ms'}),
     'snapshot': ({'actor', 'metric', 'save_as'}, METRIC_FIELDS | {'save_as'}),
     'assert': ({'actor', 'metric'}, METRIC_FIELDS | {'equals', 'min', 'max', 'within_ms'}),
     'learn': ({'actor', 'spell'}, {'actor', 'spell'}),
     'unlearn': ({'actor', 'spell'}, {'actor', 'spell'}),
     'cast': ({'actor', 'spell'}, {'actor', 'spell', 'target'}),
+    'cast_charm': ({'actor', 'spell'}, {'actor', 'spell', 'target'}),
     'talent': ({'actor', 'talent', 'rank'}, {'actor', 'talent', 'rank'}),
     'reset_talents': ({'actor'}, {'actor'}),
     'add_item': ({'actor', 'item'}, {'actor', 'item', 'count'}),
@@ -134,10 +137,13 @@ def validate(scenario):
         action = step['action']
         required, allowed = ACTIONS[action]
         keys(step, required | {'action'}, allowed | {'action', 'label'}, where)
-        if action == 'console':
+        if action in {'console', 'command'}:
             require(isinstance(step['command'], str) and step['command'].strip()
                     and '\n' not in step['command'] and '\r' not in step['command'],
-                    f'{where}: expected one console command')
+                    f'{where}: expected one command')
+            if action == 'command':
+                require(step['command'].startswith('.') and len(step['command']) > 1,
+                        f'{where}: player command must start with a dot')
         if 'actor' in step:
             require(step['actor'] in actor_ids, f'{where}: unknown actor')
             require(action in {'snapshot', 'assert'} or step['actor'] in player_ids,
@@ -159,14 +165,16 @@ def validate(scenario):
         if action in {'snapshot', 'assert'}:
             metric = step['metric']
             require(metric in METRICS, f'{where}: unknown metric')
-            if metric.startswith('aura') or metric in {'knows_spell', 'cooldown_ms', 'has_talent', 'pet_aura_stacks'}:
+            if metric.startswith('aura') or metric in {
+                    'knows_spell', 'cooldown_ms', 'has_talent', 'pet_aura_stacks', 'charm_aura_stacks'}:
                 require('spell' in step, f'{where}: metric needs spell')
             if metric == 'item_count':
                 require('item' in step, f'{where}: metric needs item')
             if metric == 'owned_creature_count':
                 require('entry' in step, f'{where}: metric needs creature entry')
             if metric in {'knows_spell', 'has_talent', 'talent_points', 'cooldown_ms', 'item_count', 'bank_bag_slots',
-                          'pet_entry', 'pet_aura_stacks', 'owned_creature_count'}:
+                          'pet_entry', 'pet_aura_stacks', 'owned_creature_count', 'charm_entry',
+                          'charm_aura_stacks', 'controls_self', 'private_instance'}:
                 require(step['actor'] in player_ids, f'{where}: metric needs a player')
             if 'relative_to' in step:
                 require(snapshots.get(step['relative_to']) == metric, f'{where}: missing or incompatible snapshot')

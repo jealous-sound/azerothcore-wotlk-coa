@@ -1,6 +1,7 @@
 /* Copyright (C) 2016+ AzerothCore, GNU AGPL v3. */
 #include "AscensionTinker.h"
 #include "Creature.h"
+#include "DBCStores.h"
 #include "GameObject.h"
 #include "MotionMaster.h"
 #include "ObjectAccessor.h"
@@ -106,10 +107,19 @@ void Summon(Player* player, Unit* target, uint32 spell, Position const* destinat
     if (!info)
         return;
     uint32 entry = 0, count = 1;
+    SummonPropertiesEntry const* properties = nullptr;
     for (auto const& effect : info->Effects)
         if (effect.Effect == SPELL_EFFECT_SUMMON)
         {
             entry = effect.MiscValue;
+            // Destructo-Bot is a native puppet. Its summon properties arrange
+            // possession and release it on logout, transfer and despawn.
+            if (spell == 804673)
+            {
+                properties = sSummonPropertiesStore.LookupEntry(effect.MiscValueB);
+                if (!properties || properties->Category != SUMMON_CATEGORY_PUPPET)
+                    return;
+            }
             break;
         }
     if (spell == 500535) entry = 226012;
@@ -141,13 +151,11 @@ void Summon(Player* player, Unit* target, uint32 spell, Position const* destinat
             position.Relocate(position.GetPositionX(),position.GetPositionY(),position.GetPositionZ() + 5,position.GetOrientation());
         if (spell == 500236)
             player->MovePositionToFirstCollision(position,1 + n * 1.5f,0);
-        if (TempSummon* device = player->SummonCreature(entry,position,TEMPSUMMON_TIMED_DESPAWN,duration))
+        if (TempSummon* device = player->SummonCreature(entry,position,TEMPSUMMON_TIMED_DESPAWN,duration,0,properties))
         {
             device->AI()->SetData(1,spell);
             if (target)
                 device->AI()->SetGUID(target->GetGUID(),1);
-            if (spell == 804673)
-                device->SetCharmedBy(player,CHARM_TYPE_POSSESS);
         }
     }
     if (spell == 804707 || spell == 805308)
