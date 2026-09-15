@@ -13,6 +13,7 @@
 #include "DatabaseEnv.h"
 #include "DynamicObject.h"
 #include "GitRevision.h"
+#include "GossipDef.h"
 #include "Item.h"
 #include "ItemPackets.h"
 #include "Log.h"
@@ -440,6 +441,8 @@ private:
             Require(sSpellMgr->GetSpellInfo(spell) != nullptr, "Unknown spell in metric");
         if (metric == "knows_spell")
             return player->HasSpell(spell);
+        if (metric == "gossip_options")
+            return player->PlayerTalkClass->GetGossipMenu().GetMenuItemCount();
         if (metric == "has_talent")
         {
             Require(GetTalentSpellPos(spell) != nullptr, "Metric needs a talent rank's spell ID");
@@ -601,6 +604,24 @@ private:
             bool handled = handler.ParseCommands(step.get<std::string>("command"));
             Require(handled && !handler.HasSentErrorMessage(), "Player command failed");
             record.put("result", "submitted; verify effects with assertions");
+        }
+        else if (action == "gossip_hello")
+        {
+            ObjectGuid guid = step.get_optional<std::string>("target") ?
+                GetUnit(step.get<std::string>("target"))->GetGUID() : player->GetCritterGUID();
+            Require(!guid.IsEmpty(), "Gossip needs a target or summoned companion");
+            // Clear the previous menu so a rejected hello cannot appear to succeed.
+            player->PlayerTalkClass->ClearMenus();
+            WorldPacket packet(CMSG_GOSSIP_HELLO, 8);
+            packet << guid;
+            player->GetSession()->HandleGossipHelloOpcode(packet);
+        }
+        else if (action == "gossip_select")
+        {
+            auto const& menu = player->PlayerTalkClass->GetGossipMenu();
+            WorldPacket packet(CMSG_GOSSIP_SELECT_OPTION, 16);
+            packet << menu.GetSenderGUID() << menu.GetMenuId() << step.get<uint32>("option");
+            player->GetSession()->HandleGossipSelectOptionOpcode(packet);
         }
         else if (action == "learn")
         {

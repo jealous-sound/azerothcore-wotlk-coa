@@ -96,6 +96,8 @@ before taking baselines; assert stable maximums and final levels when testing da
 | `reset_talents` | `actor`: reset active talents through normal removal, without a trainer fee. |
 | `cast` | `actor`, `spell`, optional `target` (self by default): normal session cast handler. |
 | `cast_charm` | Same fields: native pet-cast handler, with the charmed unit as the default target. |
+| `gossip_hello` | `actor`, optional `target`: native gossip handler; defaults to the actor's summoned companion. |
+| `gossip_select` | `actor`, zero-based `option`: select from the current menu through the session handler. |
 | `add_item` | `actor`, `item`, optional `count` (default 1): grant fixture inventory. |
 | `equip` | `actor`, `item`, `slot` (0..18): equip an owned item through the session handler. |
 | `use_item` | `actor`, `item`, `spell`, optional `target`: normal item-use handler. |
@@ -118,6 +120,7 @@ Metrics: `health`, `max_health`, `power`, `max_power`, `alive`, `combat`, `casti
 `charm_entry`, `charm_aura_stacks`, `controls_self`, `private_instance`, `dynamic_object`,
 `dynamic_object_duration_ms`.
 Boolean metrics use 0/1. Spell/aura metrics require `spell`; `item_count` requires `item`.
+`gossip_options` counts the player's current server-side gossip options; it does not verify client rendering.
 `has_talent` requires the talent rank's spell ID; passive talents are separate from the learned spellbook.
 `talent_points` measures unspent points in the active specialization.
 `bank_bag_slots` measures the player's unlocked standard bank bag slots (0..7).

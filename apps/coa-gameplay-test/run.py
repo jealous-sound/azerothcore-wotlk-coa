@@ -28,7 +28,7 @@ METRICS = {
     'knows_spell', 'has_talent', 'talent_points', 'cooldown_ms', 'item_count', 'bank_bag_slots',
     'pet_entry', 'pet_aura_stacks', 'owned_creature_count',
     'charm_entry', 'charm_aura_stacks', 'controls_self', 'private_instance',
-    'dynamic_object', 'dynamic_object_duration_ms',
+    'dynamic_object', 'dynamic_object_duration_ms', 'gossip_options',
 }
 METRIC_FIELDS = {'actor', 'metric', 'spell', 'power', 'caster', 'effect', 'item', 'entry', 'relative_to'}
 ACTIONS = {
@@ -41,6 +41,8 @@ ACTIONS = {
     'unlearn': ({'actor', 'spell'}, {'actor', 'spell'}),
     'cast': ({'actor', 'spell'}, {'actor', 'spell', 'target', 'destination'}),
     'cast_charm': ({'actor', 'spell'}, {'actor', 'spell', 'target'}),
+    'gossip_hello': ({'actor'}, {'actor', 'target'}),
+    'gossip_select': ({'actor', 'option'}, {'actor', 'option'}),
     'talent': ({'actor', 'talent', 'rank'}, {'actor', 'talent', 'rank'}),
     'reset_talents': ({'actor'}, {'actor'}),
     'add_item': ({'actor', 'item'}, {'actor', 'item', 'count'}),
@@ -161,7 +163,7 @@ def validate(scenario):
         for key in ('spell', 'item', 'talent', 'count', 'entry'):
             if key in step:
                 number(step[key], f'{where}.{key}', 1, 2**31 - 1, True)
-        for key, maximum in (('rank', 4), ('effect', 2), ('slot', 18), ('power', 6)):
+        for key, maximum in (('rank', 4), ('effect', 2), ('slot', 18), ('power', 6), ('option', 2**32 - 1)):
             if key in step:
                 number(step[key], f'{where}.{key}', 0, maximum, True)
         for key in ('ms', 'within_ms'):
@@ -184,7 +186,7 @@ def validate(scenario):
             if metric in {'knows_spell', 'has_talent', 'talent_points', 'cooldown_ms', 'item_count', 'bank_bag_slots',
                           'pet_entry', 'pet_aura_stacks', 'owned_creature_count', 'charm_entry',
                           'charm_aura_stacks', 'controls_self', 'private_instance',
-                          'dynamic_object', 'dynamic_object_duration_ms'}:
+                          'dynamic_object', 'dynamic_object_duration_ms', 'gossip_options'}:
                 require(step['actor'] in player_ids, f'{where}: metric needs a player')
             if 'relative_to' in step:
                 require(snapshots.get(step['relative_to']) == metric, f'{where}: missing or incompatible snapshot')
