@@ -10264,10 +10264,7 @@ void Player::AddSpellMod(SpellModifier* mod, bool apply)
     LOG_DEBUG("spells.aura", "Player::AddSpellMod {}", mod->spellId);
     uint16 Opcode = (mod->type == SPELLMOD_FLAT) ? SMSG_SET_FLAT_SPELL_MODIFIER : SMSG_SET_PCT_SPELL_MODIFIER;
 
-    bool const useAscensionSpellModifierLayout =
-        GetSession() &&
-        GetSession()->GetRemoteAddress() == "127.0.0.1" &&
-        sConfigMgr->GetOption<bool>("AscensionCompat.Enable", false);
+    bool const useAscensionSpellModifierLayout = GetSession() && GetSession()->IsAscensionCompatEnabled();
     SpellInfo const* modSpell = sSpellMgr->GetSpellInfo(mod->spellId);
     uint32 const spellFamily = modSpell ? modSpell->SpellFamilyName : 0;
 

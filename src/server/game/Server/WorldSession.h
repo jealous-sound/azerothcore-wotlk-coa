@@ -488,6 +488,11 @@ public:
     ObjectGuid::LowType GetGuidLow() const;
     void SetSecurity(AccountTypes security) { _security = security; }
     std::string const& GetRemoteAddress() { return m_Address; }
+
+    // Set by WorldSocket: the connection uses the Ascension client protocol
+    // (loopback or AscensionCompat.AllowRemoteClients, and AscensionCompat.Enable).
+    bool IsAscensionCompatEnabled() const { return _ascensionCompatEnabled; }
+    void SetAscensionCompatEnabled(bool enabled) { _ascensionCompatEnabled = enabled; }
     void SetPlayer(Player* player);
     uint8 Expansion() const { return m_expansion; }
 
@@ -1274,6 +1279,7 @@ private:
     Player* _player;
     std::shared_ptr<WorldSocket> m_Socket;
     std::string m_Address;
+    bool _ascensionCompatEnabled = false;
 
     AccountTypes _security;
     bool _skipQueue;

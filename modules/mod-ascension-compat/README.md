@@ -332,7 +332,8 @@ still reaches the strike limit. Other connections retain the stock limit.
 
 For a realm dedicated to this client, set `AscensionCompat.AllowRemoteClients = 1`
 and restart worldserver. This also applies the configured plaintext world headers,
-extension opcode range and ping interval to remote connections. The default is `0`;
+extension opcode range, ping interval, Ascension spell-modifier packet layout and
+class-10 character creation mapping to remote connections. The default is `0`;
 password proofs, IP bans and packet size validation remain required.
 The native v4 client also needs the [world-address fix](../../apps/client-compat/README.md)
 to enter remote worlds without its DLL corrupting an active client hook. That fix uses

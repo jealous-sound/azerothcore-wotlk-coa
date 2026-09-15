@@ -7,7 +7,8 @@
 # Enable the compatibility packet filter.
 AscensionCompat.Enable = 1
 
-# Apply the Ascension protocol settings to remote connections as well as loopback.
+# Apply the Ascension protocol settings to remote connections as well as loopback
+# (world headers, extension opcodes, ping interval, spell-modifier layout, class-10 mapping).
 # Enable only on realms dedicated to the matching Ascension client build.
 # Authentication proofs and packet size checks remain required. Restart to apply.
 AscensionCompat.AllowRemoteClients = 0

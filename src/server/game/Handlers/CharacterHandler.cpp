@@ -289,7 +289,7 @@ void WorldSession::HandleCharCreateOpcode(WorldPacket& recvData)
              >> createInfo->FacialHair
              >> createInfo->OutfitId;
 
-    if (createInfo->Class == 10 && GetRemoteAddress() == "127.0.0.1" &&
+    if (createInfo->Class == 10 && IsAscensionCompatEnabled() &&
         sConfigMgr->GetOption<bool>("AscensionCompat.MapClass10ToWarrior", false))
     {
         LOG_INFO("module.ascension_compat",
@@ -1243,9 +1243,7 @@ void WorldSession::HandlePlayerLoginToCharInWorld(Player* pCurrChar)
             if (spellMods.empty())
                 continue;
 
-            bool const useAscensionSpellModifierLayout =
-                GetRemoteAddress() == "127.0.0.1" &&
-                sConfigMgr->GetOption<bool>("AscensionCompat.Enable", false);
+            bool const useAscensionSpellModifierLayout = IsAscensionCompatEnabled();
 
             if (useAscensionSpellModifierLayout)
             {

@@ -786,6 +786,7 @@ void WorldSocket::HandleAuthSessionCallback(std::shared_ptr<ClientAuthSession> a
 
     _worldSession = new WorldSession(account.Id, std::move(authSession->Account), account.Flags, shared_from_this(), account.Security,
         account.Expansion, account.MuteTime, account.Locale, account.Recruiter, account.IsRectuiter, account.Security ? true : false, account.TotalTime);
+    _worldSession->SetAscensionCompatEnabled(_ascensionCompatEnabled);
 
     _worldSession->ReadAddonsInfo(authSession->AddonInfo);
 
