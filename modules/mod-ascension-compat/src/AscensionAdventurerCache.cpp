@@ -13,8 +13,15 @@ namespace
 {
 enum CacheItems : uint32
 {
-    AdventurerCache = 1397885
+    AdventurerSatchel = 1397884,
+    AdventurerCache = 1397885,
+    AdventurerRareCache = 1397886
 };
+
+bool IsAdventurerReward(uint32 entry)
+{
+    return entry == AdventurerSatchel || entry == AdventurerCache || entry == AdventurerRareCache;
+}
 
 enum RewardKind : uint8
 {
@@ -32,7 +39,7 @@ public:
 
     bool OnUse(Player* player, Item* item, SpellCastTargets const&) override
     {
-        if (item->GetEntry() != AdventurerCache)
+        if (!IsAdventurerReward(item->GetEntry()))
             return false;
         // A client with the original cached template sends an item-use spell request.
         player->SendEquipError(EQUIP_ERR_NONE, item, nullptr);
@@ -54,7 +61,7 @@ public:
         if (!player || &store != &LootTemplates_Item)
             return true;
         Item const* container = player->GetItemByGuid(loot.containerGUID);
-        if (!container || container->GetEntry() != AdventurerCache)
+        if (!container || !IsAdventurerReward(container->GetEntry()))
             return true;
 
         std::array<std::vector<LootStoreItem*>, RewardKindCount> rewards;

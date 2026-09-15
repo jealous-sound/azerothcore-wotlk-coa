@@ -136,6 +136,11 @@ omitted masks mean all. The custom-class scenario expects ordinary player RBAC, 
 `cast_speed_multiplier` observes the native cast-time multiplier; smaller values mean faster casts.
 `spell_crit_chance` observes the player's Shadow spell critical chance, in percentage points.
 `spell_power_cost` requires `spell` and queries its current native resource cost; it does not submit a cast.
+`open_item` takes `actor` and `item` and submits the native container-open packet. `close_loot` takes `actor`
+and closes its current loot window. `collect_loot` takes `actor`, collects slot zero, verifies that its full rolled
+quantity reached inventory and records the item/count. It supports ordinary container loot, not quest-only slots.
+`loot_count` and `loot_entry` report the actor's current uncollected item slots and first entry; `loot_received`
+reports the inventory increase from its last successful `collect_loot`. Closed windows return zero slots/entry.
 `has_talent` requires the talent rank's spell ID; passive talents are separate from the learned spellbook.
 `talent_points` measures unspent points in the active specialization.
 `bank_bag_slots` measures the player's unlocked standard bank bag slots (0..7).

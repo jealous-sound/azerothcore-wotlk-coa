@@ -30,7 +30,7 @@ METRICS = {
     'charm_entry', 'charm_aura_stacks', 'controls_self', 'private_instance',
     'dynamic_object', 'dynamic_object_duration_ms', 'gossip_options',
     'cast_speed_multiplier', 'spell_crit_chance', 'spell_power_cost',
-    'who_count', 'who_class',
+    'who_count', 'who_class', 'loot_count', 'loot_entry', 'loot_received',
 }
 METRIC_FIELDS = {'actor', 'metric', 'spell', 'power', 'caster', 'effect', 'item', 'entry',
                  'relative_to', 'ratio_to', 'target'}
@@ -48,6 +48,9 @@ ACTIONS = {
     'gossip_hello': ({'actor'}, {'actor', 'target'}),
     'gossip_select': ({'actor', 'option'}, {'actor', 'option'}),
     'who': ({'actor'}, {'actor', 'target', 'race_mask', 'class_mask'}),
+    'open_item': ({'actor', 'item'}, {'actor', 'item'}),
+    'collect_loot': ({'actor'}, {'actor'}),
+    'close_loot': ({'actor'}, {'actor'}),
     'talent': ({'actor', 'talent', 'rank'}, {'actor', 'talent', 'rank'}),
     'reset_talents': ({'actor'}, {'actor'}),
     'add_item': ({'actor', 'item'}, {'actor', 'item', 'count'}),
@@ -202,7 +205,8 @@ def validate(scenario):
                           'pet_entry', 'pet_aura_stacks', 'owned_creature_count', 'charm_entry',
                           'charm_aura_stacks', 'controls_self', 'private_instance',
                           'dynamic_object', 'dynamic_object_duration_ms', 'gossip_options',
-                          'cast_speed_multiplier', 'spell_crit_chance', 'spell_power_cost', 'who_count', 'who_class'}:
+                          'cast_speed_multiplier', 'spell_crit_chance', 'spell_power_cost', 'who_count', 'who_class',
+                          'loot_count', 'loot_entry', 'loot_received'}:
                 require(step['actor'] in player_ids, f'{where}: metric needs a player')
             if 'relative_to' in step:
                 require(snapshots.get(step['relative_to']) == metric, f'{where}: missing or incompatible snapshot')

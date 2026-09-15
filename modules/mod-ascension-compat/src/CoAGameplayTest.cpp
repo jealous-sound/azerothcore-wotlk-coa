@@ -91,6 +91,7 @@ struct Actor
     std::string name;
     std::map<std::string, uint32> whoClasses;
     uint32 whoResponses = 0;
+    uint32 lootReceived = 0;
     std::unique_ptr<WorldSession> session;
     ObjectGuid guid;
     ActorStage stage = ActorStage::Account;
@@ -470,6 +471,23 @@ private:
             return player->HasSpell(spell);
         if (metric == "gossip_options")
             return player->PlayerTalkClass->GetGossipMenu().GetMenuItemCount();
+        if (metric == "loot_received")
+            return _actors.at(step.get<std::string>("actor")).lootReceived;
+        if (metric == "loot_count" || metric == "loot_entry")
+        {
+            Item* container = player->GetItemByGuid(player->GetLootGUID());
+            if (!container)
+                return 0;
+            uint32 count = 0;
+            for (LootItem const& item : container->loot.items)
+                if (!item.is_looted)
+                {
+                    if (metric == "loot_entry")
+                        return item.itemid;
+                    ++count;
+                }
+            return count;
+        }
         if (metric == "who_count" || metric == "who_class")
         {
             Actor const& actor = _actors.at(step.get<std::string>("actor"));
@@ -655,6 +673,39 @@ private:
             bool handled = handler.ParseCommands(step.get<std::string>("command"));
             Require(handled && !handler.HasSentErrorMessage(), "Player command failed");
             record.put("result", "submitted; verify effects with assertions");
+        }
+        else if (action == "open_item")
+        {
+            Item* item = player->GetItemByEntry(step.get<uint32>("item"));
+            Require(item != nullptr, "Item must be granted before opening");
+            WorldPacket request(CMSG_OPEN_ITEM, 2);
+            request << item->GetBagSlot() << item->GetSlot();
+            player->GetSession()->HandleOpenItemOpcode(request);
+        }
+        else if (action == "close_loot")
+        {
+            WorldPacket request(CMSG_LOOT_RELEASE, 8);
+            request << player->GetLootGUID();
+            player->GetSession()->HandleLootReleaseOpcode(request);
+        }
+        else if (action == "collect_loot")
+        {
+            Item* container = player->GetItemByGuid(player->GetLootGUID());
+            Require(container && !container->loot.items.empty(), "No open item loot");
+            LootItem const& loot = container->loot.items.front();
+            Require(!loot.is_looted && loot.count, "First loot slot is unavailable");
+            uint32 entry = loot.itemid;
+            uint32 expected = loot.count;
+            uint32 before = player->GetItemCount(entry);
+            WorldPacket request(CMSG_AUTOSTORE_LOOT_ITEM, 1);
+            request << uint8(0);
+            player->GetSession()->HandleAutostoreLootItemOpcode(request);
+            // Collecting the final reward can destroy the container; retain only copied scalar values.
+            uint32 after = player->GetItemCount(entry);
+            Require(after == before + expected, "Loot did not reach the player's inventory");
+            _actors.at(id).lootReceived = after - before;
+            record.put("item", entry);
+            record.put("received", after - before);
         }
         else if (action == "gossip_hello")
         {

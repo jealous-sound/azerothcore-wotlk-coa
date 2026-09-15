@@ -73,4 +73,21 @@ int main()
     assert(use.OnUse(&player, &player.item, {}) && player.opened == 1);
     player.item.entry = 123;
     assert(!use.OnUse(&player, &player.item, {}));
+    for (CacheItems entry : {AdventurerSatchel, AdventurerRareCache})
+    {
+        Player recipient;
+        recipient.item.entry = entry;
+        assert(use.OnUse(&recipient, &recipient.item, {}));
+        assert(recipient.opened == 1 && recipient.acknowledgements == 1);
+        Loot reward;
+        assert(!script.OnBeforeLootEqualChanced(&recipient, entries, reward, LootTemplates_Item));
+        assert(reward.awarded.size() == 1);
+        auto item = manager.GetItemTemplate(reward.awarded.front());
+        assert(item->RequiredLevel <= recipient.level);
+        recipient.combat = true;
+        assert(use.OnUse(&recipient, &recipient.item, {}) && recipient.opened == 1);
+        recipient.combat = false;
+        recipient.alive = false;
+        assert(use.OnUse(&recipient, &recipient.item, {}) && recipient.opened == 1);
+    }
 }
