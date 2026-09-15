@@ -26,6 +26,7 @@ METRICS = {
     'health', 'max_health', 'power', 'max_power', 'alive', 'combat', 'casting', 'level',
     'aura', 'aura_stacks', 'aura_charges', 'aura_duration_ms', 'aura_amount',
     'knows_spell', 'has_talent', 'talent_points', 'cooldown_ms', 'item_count', 'bank_bag_slots',
+    'pet_entry', 'pet_aura_stacks',
 }
 METRIC_FIELDS = {'actor', 'metric', 'spell', 'power', 'caster', 'effect', 'item', 'relative_to'}
 ACTIONS = {
@@ -89,7 +90,8 @@ def validate(scenario):
     player_ids = set()
     actor_ids = set()
     for player in players:
-        keys(player, {'id', 'race', 'class'}, {'id', 'race', 'class', 'level', 'spell_hit_rating'}, 'player')
+        keys(player, {'id', 'race', 'class'},
+             {'id', 'race', 'class', 'level', 'spell_hit_rating', 'ranged_hit_rating'}, 'player')
         identity = player['id']
         require(isinstance(identity, str) and ACTOR_ID.fullmatch(identity), 'Invalid player id')
         require(identity not in actor_ids, 'Duplicate actor id')
@@ -99,6 +101,7 @@ def validate(scenario):
             number(player[key], key, 1, 255, True)
         number(player.get('level', 80), 'level', 1, 255, True)
         number(player.get('spell_hit_rating', 0), 'spell_hit_rating', 0, 100000, True)
+        number(player.get('ranged_hit_rating', 0), 'ranged_hit_rating', 0, 100000, True)
     for creature in creatures:
         keys(creature, {'id', 'owner', 'entry'},
              {'id', 'owner', 'entry', 'distance', 'faction', 'level', 'health'}, 'creature')
@@ -153,11 +156,12 @@ def validate(scenario):
         if action in {'snapshot', 'assert'}:
             metric = step['metric']
             require(metric in METRICS, f'{where}: unknown metric')
-            if metric.startswith('aura') or metric in {'knows_spell', 'cooldown_ms', 'has_talent'}:
+            if metric.startswith('aura') or metric in {'knows_spell', 'cooldown_ms', 'has_talent', 'pet_aura_stacks'}:
                 require('spell' in step, f'{where}: metric needs spell')
             if metric == 'item_count':
                 require('item' in step, f'{where}: metric needs item')
-            if metric in {'knows_spell', 'has_talent', 'talent_points', 'cooldown_ms', 'item_count', 'bank_bag_slots'}:
+            if metric in {'knows_spell', 'has_talent', 'talent_points', 'cooldown_ms', 'item_count', 'bank_bag_slots',
+                          'pet_entry', 'pet_aura_stacks'}:
                 require(step['actor'] in player_ids, f'{where}: metric needs a player')
             if 'relative_to' in step:
                 require(snapshots.get(step['relative_to']) == metric, f'{where}: missing or incompatible snapshot')

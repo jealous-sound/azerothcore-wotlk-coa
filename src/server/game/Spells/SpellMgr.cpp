@@ -3612,6 +3612,9 @@ void SpellMgr::LoadSpellInfoCustomAttributes()
         }
 
         sScriptMgr->OnLoadSpellCustomAttr(spellInfo);
+
+        // Module hooks can change effect targets after the initial mask was cached.
+        spellInfo->_InitializeExplicitTargetMask();
     }
 
     // Xinef: addition for binary spells, ommit spells triggering other spells

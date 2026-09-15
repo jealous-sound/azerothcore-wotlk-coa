@@ -292,6 +292,8 @@ private:
             Require(player->GetLevel() == level, "Fixture level change rejected");
             if (auto hitRating = actor.definition.get_optional<int32>("spell_hit_rating"))
                 player->ApplyRatingMod(CR_HIT_SPELL, *hitRating, true);
+            if (auto hitRating = actor.definition.get_optional<int32>("ranged_hit_rating"))
+                player->ApplyRatingMod(CR_HIT_RANGED, *hitRating, true);
             player->SetHealth(player->GetMaxHealth());
             for (uint8 power = 0; power < MAX_POWERS; ++power)
                 player->SetPower(Powers(power), player->GetMaxPower(Powers(power)));
@@ -437,6 +439,18 @@ private:
             return player->GetFreeTalentPoints();
         if (metric == "bank_bag_slots")
             return player->GetBankBagSlotCount();
+        if (metric == "pet_entry" || metric == "pet_aura_stacks")
+        {
+            Guardian* pet = player->GetGuardianPet();
+            if (metric == "pet_entry")
+                return pet ? pet->GetEntry() : 0;
+            Require(sSpellMgr->GetSpellInfo(spell) != nullptr, "Unknown pet aura spell");
+            ObjectGuid caster;
+            if (auto id = step.get_optional<std::string>("caster"))
+                caster = GetUnit(*id)->GetGUID();
+            Aura* aura = pet ? pet->GetAura(spell, caster) : nullptr;
+            return aura ? aura->GetStackAmount() : 0;
+        }
         if (metric == "cooldown_ms")
             return player->GetSpellCooldownDelay(spell);
         if (metric == "item_count")
@@ -554,7 +568,10 @@ private:
         else if (action == "cast" || action == "use_item")
         {
             SpellCastTargets targets;
-            targets.SetUnitTarget(GetUnit(step.get<std::string>("target", id)));
+            Unit* target = GetUnit(step.get<std::string>("target", id));
+            targets.SetUnitTarget(target);
+            record.put("spell_active", player->HasActiveSpell(spell));
+            record.put("line_of_sight", player->IsWithinLOSInMap(target));
             WorldPacket packet(action == "cast" ? CMSG_CAST_SPELL : CMSG_USE_ITEM, 64);
             if (action == "cast")
                 packet << uint8(++_castCount) << spell << uint8(0);

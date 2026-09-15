@@ -1,0 +1,144 @@
+{
+  "schema": 1,
+  "name": "Shadowblast: Shadow Rage targets the summoned pet without crashing",
+  "contract": "Shadowblast damages its target; Shadow Rage buffs only its pet. Frostbolt remains functional.",
+  "players": [
+    {"id": "caster", "race": 1, "class": 15, "level": 14, "spell_hit_rating": 10000, "ranged_hit_rating": 10000},
+    {"id": "mage", "race": 1, "class": 8, "level": 80, "spell_hit_rating": 10000}
+  ],
+  "creatures": [
+    {"id": "target", "owner": "caster", "entry": 36, "level": 14, "health": 100000, "distance": 12},
+    {"id": "second", "owner": "caster", "entry": 36, "level": 14, "health": 100000, "distance": 14},
+    {"id": "frost_target", "owner": "mage", "entry": 36, "level": 80, "health": 100000, "distance": 3}
+  ],
+  "steps": [
+    {"action": "wait", "ms": 5000},
+    {"action": "learn", "actor": "caster", "spell": 5011},
+    {"action": "add_item", "actor": "caster", "item": 15807},
+    {"action": "equip", "actor": "caster", "item": 15807, "slot": 17},
+    {"action": "wait", "label": "Let the weapon swap cooldown expire", "ms": 2000},
+    {"action": "learn", "actor": "caster", "spell": 680264},
+    {"action": "assert", "actor": "caster", "metric": "knows_spell", "spell": 680264, "equals": 1},
+    {"action": "snapshot", "actor": "target", "metric": "health", "save_as": "health_before"},
+    {"action": "snapshot", "actor": "caster", "metric": "max_power", "power": 1, "save_as": "max_rage"},
+    {"action": "set_power", "actor": "caster", "power": 1, "value": 1000},
+    {"action": "snapshot", "actor": "caster", "metric": "power", "save_as": "rage_before", "power": 1},
+    {"action": "cast", "actor": "caster", "spell": 680264, "target": "target"},
+    {
+      "action": "assert",
+      "actor": "target",
+      "metric": "health",
+      "relative_to": "health_before",
+      "max": -1,
+      "within_ms": 10000
+    },
+    {"action": "assert", "actor": "caster", "metric": "power", "relative_to": "rage_before", "max": -1, "power": 1},
+    {"action": "wait", "ms": 2500},
+    {"action": "learn", "actor": "caster", "spell": 801343},
+    {"action": "assert", "actor": "caster", "metric": "pet_entry", "equals": 0},
+    {"action": "cast", "actor": "caster", "spell": 801343},
+    {"action": "assert", "actor": "caster", "metric": "pet_entry", "equals": 50124, "within_ms": 5000},
+    {"action": "wait", "ms": 6000},
+    {"action": "learn", "actor": "caster", "spell": 705455},
+    {"action": "assert", "actor": "caster", "metric": "aura", "spell": 705455, "equals": 1},
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "pet_aura_stacks",
+      "spell": 804192,
+      "caster": "caster",
+      "equals": 0
+    },
+    {"action": "set_power", "actor": "caster", "power": 1, "value": 1000},
+    {"action": "snapshot", "actor": "second", "metric": "health", "save_as": "second_before"},
+    {"action": "cast", "actor": "caster", "spell": 680264, "target": "second"},
+    {
+      "action": "assert",
+      "actor": "second",
+      "metric": "health",
+      "relative_to": "second_before",
+      "max": -1,
+      "within_ms": 10000
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "pet_aura_stacks",
+      "spell": 804192,
+      "caster": "caster",
+      "equals": 1,
+      "within_ms": 5000
+    },
+    {"action": "assert", "actor": "caster", "metric": "aura", "spell": 804192, "equals": 0},
+    {"action": "wait", "ms": 20000},
+    {"action": "assert", "actor": "caster", "metric": "alive", "equals": 1},
+    {"action": "console", "command": "server info"},
+    {"action": "wait", "label": "Let spawn AI and local level scaling settle", "ms": 5000},
+    {"action": "console", "command": "server info"},
+    {"action": "unlearn", "actor": "mage", "spell": 116},
+    {"action": "assert", "actor": "mage", "metric": "knows_spell", "spell": 116, "equals": 0},
+    {"action": "snapshot", "actor": "frost_target", "metric": "health", "save_as": "frost_target_health"},
+    {"action": "snapshot", "actor": "frost_target", "metric": "max_health", "save_as": "frost_target_max_health"},
+    {"action": "cast", "actor": "mage", "spell": 116, "target": "frost_target"},
+    {"action": "wait", "ms": 4000},
+    {
+      "action": "assert",
+      "label": "Target maximum health stays stable",
+      "actor": "frost_target",
+      "metric": "max_health",
+      "relative_to": "frost_target_max_health",
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "Unlearned spell causes no damage",
+      "actor": "frost_target",
+      "metric": "health",
+      "relative_to": "frost_target_health",
+      "equals": 0
+    },
+    {"action": "learn", "actor": "mage", "spell": 116},
+    {"action": "assert", "actor": "mage", "metric": "knows_spell", "spell": 116, "equals": 1},
+    {"action": "snapshot", "actor": "frost_target", "metric": "health", "save_as": "frost_health_before_learned_cast"},
+    {"action": "snapshot", "actor": "mage", "metric": "power", "power": 0, "save_as": "frost_mana_before"},
+    {"action": "cast", "actor": "mage", "spell": 116, "target": "frost_target"},
+    {
+      "action": "assert",
+      "label": "Normal cast applies the caster's slow",
+      "actor": "frost_target",
+      "metric": "aura",
+      "spell": 116,
+      "caster": "mage",
+      "equals": 1,
+      "within_ms": 5000
+    },
+    {
+      "action": "assert",
+      "label": "Normal cast causes damage",
+      "actor": "frost_target",
+      "metric": "health",
+      "relative_to": "frost_health_before_learned_cast",
+      "max": -1
+    },
+    {
+      "action": "assert",
+      "label": "Normal cast spends mana",
+      "actor": "mage",
+      "metric": "power",
+      "power": 0,
+      "relative_to": "frost_mana_before",
+      "max": -1
+    },
+    {
+      "action": "assert",
+      "label": "Slow expires through world updates",
+      "actor": "frost_target",
+      "metric": "aura",
+      "spell": 116,
+      "caster": "mage",
+      "equals": 0,
+      "within_ms": 30000
+    }
+  ],
+  "timeout_ms": 150000
+}
