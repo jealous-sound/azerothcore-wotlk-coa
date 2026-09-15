@@ -146,6 +146,8 @@ void Summon(Player* player, uint32 spell, Unit* target, Position const& location
     if (!entry)
         return;
     uint32 count = spell == CallSseratus ? 3 + (player->HasAura(SerpentHandler) ? 2 : 0) : spell == Marionette ? 5 : 1;
+    if (spell == Mimic)
+        count = uint32(std::max(1, info->Effects[EFFECT_2].CalcValue(player)));
     int32 duration = spell == SpiritLink ? sSpellMgr->GetSpellInfo(LinkTimer)->GetDuration() : info->GetDuration();
     player->ApplySpellMod(spell, SPELLMOD_DURATION, duration);
     if (spell == Marionette)

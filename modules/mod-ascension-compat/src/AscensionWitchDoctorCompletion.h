@@ -233,6 +233,7 @@ enum DoctorSpells : uint32
     CursedEffigy = 706542,
     CursedField = 506820,
     Mimic = 707162,
+    ChosenOne = 503742,
     WarGolem = 800330,
     StasisWard = 801678,
     Stasis = 801677,
