@@ -244,6 +244,7 @@ struct AppearanceInfo {
   uint32 SecondaryCategory = 0;
   uint32 TertiaryCategory = 0;
   uint32 EnchantId = 0;
+  uint32 CosmeticSpell = 0;
 };
 
 struct VanityInfo {
@@ -266,6 +267,8 @@ struct PlayerCollectionState {
   uint32 CompanionSpellTimer = 0;
   uint32 CompanionLootTimer = 0;
   uint32 CompanionSkinningTimer = 0;
+  uint32 CosmeticTimer = 0;
+  std::unordered_set<uint32> AppliedCosmeticSpells;
   bool CanSeeItemAppearances = true;
   bool CanSeeSpellAppearances = true;
 };
@@ -2184,6 +2187,45 @@ private:
 
 class AscensionCollectionService {
 public:
+    static bool IsCosmeticCategory(uint32 category)
+    {
+        return category >= 56 && category <= 58;
+    }
+
+    static uint32 ResolveCosmeticSpell(uint32 appearance, uint32 display, uint32 alternate)
+    {
+        // These three catalog entries have no usable spell in the supplied client data.
+        if (appearance == 2992 || appearance == 51444 || appearance == 52428)
+            return 0;
+        if (appearance == 2714)
+            display = 985235; // Noir Clockwork Steam Engine
+        if (appearance == 42965)
+            display = 935566; // Scribe's Noble Parchment Pouch
+        if (!sSpellMgr->GetSpellInfo(display))
+            display = alternate;
+
+        std::unordered_set<uint32> visited;
+        while (display && visited.insert(display).second && visited.size() <= 8)
+        {
+            SpellInfo const* spell = sSpellMgr->GetSpellInfo(display);
+            if (!spell || spell->Effects[EFFECT_1].Effect || spell->Effects[EFFECT_2].Effect)
+                return 0;
+            SpellEffectInfo const& effect = spell->Effects[EFFECT_0];
+            if (effect.Effect == SPELL_EFFECT_TRIGGER_SPELL)
+            {
+                display = effect.TriggerSpell;
+                continue;
+            }
+            // Follow cosmetic wrappers without casting their gameplay effects or implicit targets.
+            if (effect.IsAura() && (effect.ApplyAuraName == SPELL_AURA_DUMMY ||
+                effect.ApplyAuraName == SPELL_AURA_MOD_SCALE ||
+                (display == 1985213 && effect.ApplyAuraName == SPELL_AURA_PROC_TRIGGER_SPELL)))
+                return display;
+            return 0;
+        }
+        return 0;
+    }
+
   static AscensionCollectionService &Instance() {
     static AscensionCollectionService instance;
     return instance;
@@ -2198,7 +2240,7 @@ public:
     _allVanityItemIds.clear();
 
     bool appearancesLoaded =
-        ForEachWdbcRecord(dbcDirectory / "Appearances.dbc", 8,
+        ForEachWdbcRecord(dbcDirectory / "Appearances.dbc", 9,
                           [this](std::vector<uint8> const &record) {
                             uint32 appearanceId = ReadRecordField(record, 0);
                             if (!appearanceId)
@@ -2209,6 +2251,10 @@ public:
                                 displayId, ReadRecordField(record, 5),
                                 ReadRecordField(record, 6),
                                 ReadRecordField(record, 7), displayId};
+                            AppearanceInfo& appearance = _appearances[appearanceId];
+                            if (IsCosmeticCategory(appearance.PrimaryCategory))
+                                appearance.CosmeticSpell = ResolveCosmeticSpell(appearanceId,
+                                    displayId, ReadRecordField(record, 8));
                             _allAppearanceIds.push_back(appearanceId);
                           });
 
@@ -2321,6 +2367,11 @@ public:
     SendAppearanceVisibility(player, *state);
     SendVanityCollection(player, *state);
     RefreshVisibleItems(player);
+    // Reconcile any aura saved by an older session against the authoritative wardrobe selection.
+    for (auto const& [id, appearance] : _appearances)
+        if (appearance.CosmeticSpell)
+            player->RemoveAurasDueToSpell(appearance.CosmeticSpell, player->GetGUID());
+    RefreshCosmetics(player, *state);
     InitializeRiding(player);
     QueueOwnedCompanionSpells(player, *state);
 
@@ -2361,6 +2412,16 @@ public:
     ProcessPendingCompanionSpells(player, diff);
     ProcessCompanionLoot(player, diff);
     ProcessCompanionLoot(player, diff, true);
+    if (auto state = GetState(player))
+    {
+        if (state->CosmeticTimer <= diff)
+        {
+            state->CosmeticTimer = 1000;
+            RefreshCosmetics(player, *state);
+        }
+        else
+            state->CosmeticTimer -= diff;
+    }
   }
 
     void ProcessCompanionLoot(Player* player, uint32 diff, bool skin = false)
@@ -2593,11 +2654,18 @@ public:
       }
 
       AppearanceInfo const &appearance = appearanceItr->second;
-      if ((categoryId <= 14 || categoryId == APPEARANCE_CATEGORY_AMMUNITION) &&
+      if ((categoryId <= 14 || categoryId == APPEARANCE_CATEGORY_AMMUNITION ||
+          IsCosmeticCategory(categoryId)) &&
           appearance.PrimaryCategory != categoryId &&
           appearance.SecondaryCategory != categoryId &&
           appearance.TertiaryCategory != categoryId) {
         SendApplyResult(player, "APPLY_APPEARANCES_INVALID_CATEGORY");
+        return;
+      }
+
+      if (IsCosmeticCategory(categoryId) && !appearance.CosmeticSpell)
+      {
+        SendApplyResult(player, "APPLY_APPEARANCES_INVALID_SELECTION");
         return;
       }
 
@@ -2610,6 +2678,7 @@ public:
 
     state->ActiveAppearances[categoryId] = appearanceId;
     SaveActiveAppearances(player, *state);
+    RefreshCosmetics(player, *state);
     RefreshVisibleItems(player);
     SendActiveAppearances(player, *state);
     SendApplyResult(player, "APPLY_APPEARANCES_OK");
@@ -3004,11 +3073,17 @@ private:
       }
 
       AppearanceInfo const &appearance = appearanceItr->second;
-      if ((categoryId <= 14 || categoryId == APPEARANCE_CATEGORY_AMMUNITION) &&
+      if ((categoryId <= 14 || categoryId == APPEARANCE_CATEGORY_AMMUNITION ||
+          IsCosmeticCategory(categoryId)) &&
           appearance.PrimaryCategory != categoryId &&
           appearance.SecondaryCategory != categoryId &&
           appearance.TertiaryCategory != categoryId) {
         SendApplyResult(player, "APPLY_APPEARANCES_INVALID_CATEGORY");
+        return;
+      }
+      if (IsCosmeticCategory(categoryId) && !appearance.CosmeticSpell)
+      {
+        SendApplyResult(player, "APPLY_APPEARANCES_INVALID_SELECTION");
         return;
       }
     }
@@ -3021,6 +3096,7 @@ private:
 
     state->ActiveAppearances = requested;
     SaveActiveAppearances(player, *state);
+    RefreshCosmetics(player, *state);
     RefreshVisibleItems(player);
     SendApplyResult(player, "APPLY_APPEARANCES_OK");
   }
@@ -3159,6 +3235,35 @@ private:
     packet << result;
     player->GetSession()->SendPacket(&packet);
   }
+
+    void RefreshCosmetics(Player* player, PlayerCollectionState& state)
+    {
+        std::unordered_set<uint32> desired;
+        for (uint32 category = 56; category <= 58; ++category)
+        {
+            uint32 id = state.ActiveAppearances[category];
+            auto itr = _appearances.find(id);
+            if (state.CollectedAppearances.contains(id) && itr != _appearances.end() &&
+                itr->second.CosmeticSpell)
+                desired.insert(itr->second.CosmeticSpell);
+        }
+        for (uint32 spell : state.AppliedCosmeticSpells)
+            if (!desired.contains(spell))
+                player->RemoveAurasDueToSpell(spell, player->GetGUID());
+        state.AppliedCosmeticSpells = std::move(desired);
+        if (!player->IsAlive())
+            return;
+        for (uint32 spell : state.AppliedCosmeticSpells)
+        {
+            if (!player->HasAura(spell, player->GetGUID()))
+                if (Aura* aura = player->AddAura(spell, player))
+                {
+                    // A selected wardrobe cosmetic lasts until removed, including finite source effects.
+                    aura->SetMaxDuration(-1);
+                    aura->SetDuration(-1);
+                }
+        }
+    }
 
   void RefreshVisibleItems(Player *player) {
     for (uint8 slot = EQUIPMENT_SLOT_START; slot < EQUIPMENT_SLOT_END; ++slot)
@@ -4049,6 +4154,18 @@ public:
         {
             ApplyAscensionChangelogSpellChanges(spellInfo);
             ApplyAscensionExperienceContracts(spellInfo);
+            switch (spellInfo->Id)
+            {
+                // Cosmetic visual spells whose legacy aura type was left empty in the client DBC.
+                case 83328: case 83329: case 83330: case 83331: case 83332:
+                case 83334: case 83335: case 83336: case 103921:
+                    if (spellInfo->Effects[EFFECT_0].Effect == SPELL_EFFECT_APPLY_AURA &&
+                        spellInfo->Effects[EFFECT_0].ApplyAuraName == SPELL_AURA_NONE)
+                        spellInfo->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_DUMMY;
+                    break;
+                default:
+                    break;
+            }
             ApplyAscensionClassMechanics(spellInfo);
             ApplyAscensionPrimalistEarthshapingContracts(spellInfo);
             ApplyAscensionPrimalistSpiritBeastContract(spellInfo);
