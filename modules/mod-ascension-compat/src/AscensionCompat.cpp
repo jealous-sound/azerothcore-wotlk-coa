@@ -118,6 +118,8 @@ constexpr uint32 SPELL_STORMBRINGER_STATIC = 803102;
 constexpr uint32 SPELL_STORMBRINGER_CHARGED_CONDUIT = 803790;
 constexpr uint32 SPELL_REAPER_REAPED_SOUL = 500363;
 constexpr uint32 SPELL_REAPER_SOUL_INFUSION = 803031;
+// Removes Reaped Souls, Soul Infusion and Soul Fragments; Soul Infusion's own proc trigger points to it.
+constexpr uint32 SPELL_REAPER_SOUL_INFUSION_REMOVER = 561290;
 constexpr uint32 SPELL_REAPER_SOUL_FRAGMENT = 805077;
 constexpr uint32 SPELL_REAPER_GENERATE_SOUL = 805078;
 constexpr char ASCENSION_LOCAL_RESOURCE_PREFIX[] = "ASC_LOCAL_RESOURCE";
@@ -2115,6 +2117,14 @@ private:
         {
             player->RemoveAurasDueToSpell(SPELL_REAPER_REAPED_SOUL);
             player->RemoveAurasDueToSpell(SPELL_REAPER_SOUL_INFUSION);
+            return;
+        }
+
+        // Abilities that require Soul Infusion consume it together with the souls that granted it.
+        if (spellInfo->CasterAuraSpell == SPELL_REAPER_SOUL_INFUSION &&
+            player->HasAura(SPELL_REAPER_SOUL_INFUSION))
+        {
+            player->CastSpell(player, SPELL_REAPER_SOUL_INFUSION_REMOVER, true);
             return;
         }
 
