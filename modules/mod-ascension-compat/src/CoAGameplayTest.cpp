@@ -474,12 +474,16 @@ private:
         {
             uint32 entry = step.get<uint32>("entry");
             Require(sObjectMgr->GetCreatureTemplate(entry) != nullptr, "Unknown creature entry in metric");
+            Require(!spell || sSpellMgr->GetSpellInfo(spell) != nullptr, "Unknown owned creature aura spell");
+            ObjectGuid caster;
+            if (auto id = step.get_optional<std::string>("caster"))
+                caster = GetUnit(*id)->GetGUID();
             std::list<Creature*> creatures;
             player->GetCreatureListWithEntryInGrid(creatures, entry, 100.0f);
-            return std::count_if(creatures.begin(), creatures.end(), [player](Creature* creature)
+            return std::count_if(creatures.begin(), creatures.end(), [player, spell, caster](Creature* creature)
             {
                 return creature->IsAlive() && creature->GetOwnerGUID() == player->GetGUID()
-                    && player->InSamePhase(creature);
+                    && player->InSamePhase(creature) && (!spell || creature->GetAura(spell, caster));
             });
         }
         if (metric == "pet_entry" || metric == "pet_aura_stacks")

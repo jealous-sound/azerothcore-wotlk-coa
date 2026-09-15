@@ -180,6 +180,7 @@ def validate(scenario):
                 require('item' in step, f'{where}: metric needs item')
             if metric == 'owned_creature_count':
                 require('entry' in step, f'{where}: metric needs creature entry')
+                require('caster' not in step or 'spell' in step, f'{where}: aura caster filter needs spell')
             if metric in {'knows_spell', 'has_talent', 'talent_points', 'cooldown_ms', 'item_count', 'bank_bag_slots',
                           'pet_entry', 'pet_aura_stacks', 'owned_creature_count', 'charm_entry',
                           'charm_aura_stacks', 'controls_self', 'private_instance',

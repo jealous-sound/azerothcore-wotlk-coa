@@ -131,6 +131,7 @@ requires `spell`, accepts `caster` for aura ownership, and returns zero if the p
 Player commands retain normal permission and gameplay checks; verify their effects with assertions.
 `owned_creature_count` requires a player and `entry`. It counts living creatures of that entry owned by
 the player, in the same phase and within 100 yards, including summons outside the guardian-pet slot.
+An optional `spell` restricts the count to creatures with that aura; `caster` can select its aura owner.
 `power`/`max_power` accept a numeric `power` (0..6). Aura metrics optionally accept `caster` to select
 ownership; `aura_amount` also accepts an effect index (0..2, default 0). Missing auras yield zero;
 check aura presence separately when zero is a valid effect amount. Permanent aura duration is -1.

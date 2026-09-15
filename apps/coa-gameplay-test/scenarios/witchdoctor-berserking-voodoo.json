@@ -1,0 +1,389 @@
+{
+  "schema": 1,
+  "name": "Witch Doctor: Berserking wards and Big Bad Voodoo",
+  "contract": "Periodic Hex damage gives the caster ward Berserking, and summoned Bwonsamdi applies and removes Big Bad Voodoo without losing explicit targets or crashing. This observes a proc, not its statistical rate.",
+  "timeout_ms": 120000,
+  "players": [
+    {
+      "id": "caster",
+      "race": 1,
+      "class": 13,
+      "level": 60,
+      "spell_hit_rating": 10000
+    },
+    {
+      "id": "friend",
+      "race": 1,
+      "class": 13,
+      "level": 60,
+      "spell_hit_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "enemy0",
+      "owner": "caster",
+      "entry": 36,
+      "level": 60,
+      "distance": 4,
+      "health": 100000
+    },
+    {
+      "id": "enemy1",
+      "owner": "caster",
+      "entry": 36,
+      "level": 60,
+      "distance": 5,
+      "health": 100000
+    },
+    {
+      "id": "enemy2",
+      "owner": "caster",
+      "entry": 36,
+      "level": 60,
+      "distance": 6,
+      "health": 100000
+    },
+    {
+      "id": "enemy3",
+      "owner": "caster",
+      "entry": 36,
+      "level": 60,
+      "distance": 7,
+      "health": 100000
+    },
+    {
+      "id": "enemy4",
+      "owner": "caster",
+      "entry": 36,
+      "level": 60,
+      "distance": 8,
+      "health": 100000
+    },
+    {
+      "id": "enemy5",
+      "owner": "caster",
+      "entry": 36,
+      "level": 60,
+      "distance": 9,
+      "health": 100000
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "caster",
+      "spell": 500960
+    },
+    {
+      "action": "learn",
+      "actor": "caster",
+      "spell": 705925
+    },
+    {
+      "action": "learn",
+      "actor": "caster",
+      "spell": 501158
+    },
+    {
+      "action": "learn",
+      "actor": "caster",
+      "spell": 802719
+    },
+    {
+      "action": "learn",
+      "actor": "friend",
+      "spell": 500960
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "aura",
+      "spell": 705925,
+      "equals": 1
+    },
+    {
+      "action": "cast",
+      "actor": "caster",
+      "spell": 500960,
+      "target": "enemy0"
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "owned_creature_count",
+      "entry": 50105,
+      "equals": 1,
+      "within_ms": 3000
+    },
+    {
+      "action": "cast",
+      "actor": "friend",
+      "spell": 500960,
+      "target": "enemy0"
+    },
+    {
+      "action": "assert",
+      "actor": "friend",
+      "metric": "owned_creature_count",
+      "entry": 50105,
+      "equals": 1,
+      "within_ms": 3000
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "snapshot",
+      "actor": "enemy0",
+      "metric": "health",
+      "save_as": "enemy_before"
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "owned_creature_count",
+      "entry": 50105,
+      "spell": 705926,
+      "equals": 0,
+      "label": "The ward starts without Berserking"
+    },
+    {
+      "action": "cast",
+      "actor": "caster",
+      "spell": 501158,
+      "target": "enemy0"
+    },
+    {
+      "action": "wait",
+      "ms": 1700
+    },
+    {
+      "action": "assert",
+      "actor": "enemy0",
+      "metric": "aura",
+      "spell": 501158,
+      "caster": "caster",
+      "equals": 1,
+      "within_ms": 1000
+    },
+    {
+      "action": "cast",
+      "actor": "caster",
+      "spell": 501158,
+      "target": "enemy1"
+    },
+    {
+      "action": "wait",
+      "ms": 1700
+    },
+    {
+      "action": "assert",
+      "actor": "enemy1",
+      "metric": "aura",
+      "spell": 501158,
+      "caster": "caster",
+      "equals": 1,
+      "within_ms": 1000
+    },
+    {
+      "action": "cast",
+      "actor": "caster",
+      "spell": 501158,
+      "target": "enemy2"
+    },
+    {
+      "action": "wait",
+      "ms": 1700
+    },
+    {
+      "action": "assert",
+      "actor": "enemy2",
+      "metric": "aura",
+      "spell": 501158,
+      "caster": "caster",
+      "equals": 1,
+      "within_ms": 1000
+    },
+    {
+      "action": "cast",
+      "actor": "caster",
+      "spell": 501158,
+      "target": "enemy3"
+    },
+    {
+      "action": "wait",
+      "ms": 1700
+    },
+    {
+      "action": "assert",
+      "actor": "enemy3",
+      "metric": "aura",
+      "spell": 501158,
+      "caster": "caster",
+      "equals": 1,
+      "within_ms": 1000
+    },
+    {
+      "action": "cast",
+      "actor": "caster",
+      "spell": 501158,
+      "target": "enemy4"
+    },
+    {
+      "action": "wait",
+      "ms": 1700
+    },
+    {
+      "action": "assert",
+      "actor": "enemy4",
+      "metric": "aura",
+      "spell": 501158,
+      "caster": "caster",
+      "equals": 1,
+      "within_ms": 1000
+    },
+    {
+      "action": "cast",
+      "actor": "caster",
+      "spell": 501158,
+      "target": "enemy5"
+    },
+    {
+      "action": "wait",
+      "ms": 1700
+    },
+    {
+      "action": "assert",
+      "actor": "enemy5",
+      "metric": "aura",
+      "spell": 501158,
+      "caster": "caster",
+      "equals": 1,
+      "within_ms": 1000
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "owned_creature_count",
+      "entry": 50105,
+      "equals": 1,
+      "label": "The caster ward survives until the proc check"
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "owned_creature_count",
+      "entry": 50105,
+      "spell": 705926,
+      "caster": "caster",
+      "equals": 1,
+      "within_ms": 25000,
+      "label": "Periodic damage procs Berserking on the caster ward"
+    },
+    {
+      "action": "assert",
+      "actor": "friend",
+      "metric": "owned_creature_count",
+      "entry": 50105,
+      "spell": 705926,
+      "equals": 0,
+      "label": "Another owner ward receives no haste"
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "aura",
+      "spell": 705926,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "enemy0",
+      "metric": "health",
+      "relative_to": "enemy_before",
+      "max": -1
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "cast",
+      "actor": "caster",
+      "spell": 802719
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "owned_creature_count",
+      "entry": 310659,
+      "equals": 1,
+      "within_ms": 3000
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "aura",
+      "spell": 802718,
+      "caster": "caster",
+      "equals": 1,
+      "within_ms": 3000,
+      "label": "Bwonsamdi grants Big Bad Voodoo to its caster"
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "aura",
+      "spell": 803495,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "actor": "friend",
+      "metric": "aura",
+      "spell": 802718,
+      "equals": 0
+    },
+    {
+      "action": "wait",
+      "ms": 10000
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "owned_creature_count",
+      "entry": 310659,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "aura",
+      "spell": 802718,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "aura",
+      "spell": 803495,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "alive",
+      "equals": 1
+    },
+    {
+      "action": "console",
+      "command": "server info"
+    }
+  ]
+}
