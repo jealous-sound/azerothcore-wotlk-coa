@@ -26,9 +26,9 @@ METRICS = {
     'health', 'max_health', 'power', 'max_power', 'alive', 'combat', 'casting', 'level',
     'aura', 'aura_stacks', 'aura_charges', 'aura_duration_ms', 'aura_amount',
     'knows_spell', 'has_talent', 'talent_points', 'cooldown_ms', 'item_count', 'bank_bag_slots',
-    'pet_entry', 'pet_aura_stacks',
+    'pet_entry', 'pet_aura_stacks', 'owned_creature_count',
 }
-METRIC_FIELDS = {'actor', 'metric', 'spell', 'power', 'caster', 'effect', 'item', 'relative_to'}
+METRIC_FIELDS = {'actor', 'metric', 'spell', 'power', 'caster', 'effect', 'item', 'entry', 'relative_to'}
 ACTIONS = {
     'console': ({'command'}, {'command'}),
     'wait': ({'ms'}, {'ms'}),
@@ -142,7 +142,7 @@ def validate(scenario):
         for key in ('target', 'caster'):
             if key in step:
                 require(step[key] in actor_ids, f'{where}: unknown {key}')
-        for key in ('spell', 'item', 'talent', 'count'):
+        for key in ('spell', 'item', 'talent', 'count', 'entry'):
             if key in step:
                 number(step[key], f'{where}.{key}', 1, 2**31 - 1, True)
         for key, maximum in (('rank', 4), ('effect', 2), ('slot', 18), ('power', 6)):
@@ -160,8 +160,10 @@ def validate(scenario):
                 require('spell' in step, f'{where}: metric needs spell')
             if metric == 'item_count':
                 require('item' in step, f'{where}: metric needs item')
+            if metric == 'owned_creature_count':
+                require('entry' in step, f'{where}: metric needs creature entry')
             if metric in {'knows_spell', 'has_talent', 'talent_points', 'cooldown_ms', 'item_count', 'bank_bag_slots',
-                          'pet_entry', 'pet_aura_stacks'}:
+                          'pet_entry', 'pet_aura_stacks', 'owned_creature_count'}:
                 require(step['actor'] in player_ids, f'{where}: metric needs a player')
             if 'relative_to' in step:
                 require(snapshots.get(step['relative_to']) == metric, f'{where}: missing or incompatible snapshot')

@@ -1,0 +1,331 @@
+{
+  "schema": 1,
+  "name": "Shadow Effigy: one summon, combat effects, replacement and expiry",
+  "contract": "Shadow Effigy works in combat, stays singular, affects only nearby enemies and expires on replacement.",
+  "timeout_ms": 150000,
+  "players": [
+    {
+      "id": "caster",
+      "race": 1,
+      "class": 13,
+      "level": 10,
+      "spell_hit_rating": 10000
+    },
+    {
+      "id": "other",
+      "race": 1,
+      "class": 13,
+      "level": 10
+    }
+  ],
+  "creatures": [
+    {
+      "id": "enemy",
+      "owner": "caster",
+      "entry": 36,
+      "level": 10,
+      "distance": 3
+    },
+    {
+      "id": "far",
+      "owner": "caster",
+      "entry": 36,
+      "level": 10,
+      "distance": 35
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "caster",
+      "spell": 116
+    },
+    {
+      "action": "learn",
+      "actor": "caster",
+      "spell": 505339
+    },
+    {
+      "action": "learn",
+      "actor": "caster",
+      "spell": 506634
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "owned_creature_count",
+      "entry": 50119,
+      "equals": 0
+    },
+    {
+      "action": "snapshot",
+      "actor": "enemy",
+      "metric": "health",
+      "save_as": "health_before_0"
+    },
+    {
+      "action": "cast",
+      "actor": "caster",
+      "spell": 116,
+      "target": "enemy"
+    },
+    {
+      "action": "assert",
+      "actor": "enemy",
+      "metric": "health",
+      "relative_to": "health_before_0",
+      "max": -1,
+      "within_ms": 6000
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "combat",
+      "equals": 1
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "combat",
+      "equals": 1
+    },
+    {
+      "action": "cast",
+      "actor": "caster",
+      "spell": 505339
+    },
+    {
+      "action": "wait",
+      "ms": 1000
+    },
+    {
+      "action": "assert",
+      "label": "Exactly one Shadow Effigy after the cast",
+      "actor": "caster",
+      "metric": "owned_creature_count",
+      "entry": 50119,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "actor": "other",
+      "metric": "owned_creature_count",
+      "entry": 50119,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "enemy",
+      "metric": "aura",
+      "spell": 504761,
+      "caster": "caster",
+      "equals": 1,
+      "within_ms": 3000
+    },
+    {
+      "action": "assert",
+      "actor": "enemy",
+      "metric": "aura",
+      "spell": 504909,
+      "caster": "caster",
+      "equals": 1,
+      "within_ms": 3000
+    },
+    {
+      "action": "assert",
+      "actor": "far",
+      "metric": "aura",
+      "spell": 504761,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "other",
+      "metric": "aura",
+      "spell": 504761,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "alive",
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "cooldown_ms",
+      "spell": 505339,
+      "equals": 0,
+      "within_ms": 15000
+    },
+    {
+      "action": "snapshot",
+      "actor": "enemy",
+      "metric": "health",
+      "save_as": "health_before_1"
+    },
+    {
+      "action": "cast",
+      "actor": "caster",
+      "spell": 116,
+      "target": "enemy"
+    },
+    {
+      "action": "assert",
+      "actor": "enemy",
+      "metric": "health",
+      "relative_to": "health_before_1",
+      "max": -1,
+      "within_ms": 6000
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "combat",
+      "equals": 1
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "combat",
+      "equals": 1
+    },
+    {
+      "action": "cast",
+      "actor": "caster",
+      "spell": 505339
+    },
+    {
+      "action": "wait",
+      "ms": 1000
+    },
+    {
+      "action": "assert",
+      "label": "Exactly one Shadow Effigy after the cast",
+      "actor": "caster",
+      "metric": "owned_creature_count",
+      "entry": 50119,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "actor": "other",
+      "metric": "owned_creature_count",
+      "entry": 50119,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "enemy",
+      "metric": "aura",
+      "spell": 504761,
+      "caster": "caster",
+      "equals": 1,
+      "within_ms": 3000
+    },
+    {
+      "action": "assert",
+      "actor": "enemy",
+      "metric": "aura",
+      "spell": 504909,
+      "caster": "caster",
+      "equals": 1,
+      "within_ms": 3000
+    },
+    {
+      "action": "assert",
+      "actor": "far",
+      "metric": "aura",
+      "spell": 504761,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "other",
+      "metric": "aura",
+      "spell": 504761,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "alive",
+      "equals": 1
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "cast",
+      "actor": "caster",
+      "spell": 506634
+    },
+    {
+      "action": "wait",
+      "ms": 3000
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "owned_creature_count",
+      "entry": 50119,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "owned_creature_count",
+      "entry": 50120,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "actor": "enemy",
+      "metric": "aura",
+      "spell": 504761,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "enemy",
+      "metric": "aura",
+      "spell": 504909,
+      "equals": 0
+    },
+    {
+      "action": "wait",
+      "ms": 60000
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "owned_creature_count",
+      "entry": 50120,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "alive",
+      "equals": 1
+    },
+    {
+      "action": "console",
+      "command": "server info"
+    }
+  ]
+}

@@ -36,6 +36,7 @@
 #include <chrono>
 #include <cmath>
 #include <filesystem>
+#include <list>
 #include <limits>
 #include <map>
 #include <memory>
@@ -439,6 +440,18 @@ private:
             return player->GetFreeTalentPoints();
         if (metric == "bank_bag_slots")
             return player->GetBankBagSlotCount();
+        if (metric == "owned_creature_count")
+        {
+            uint32 entry = step.get<uint32>("entry");
+            Require(sObjectMgr->GetCreatureTemplate(entry) != nullptr, "Unknown creature entry in metric");
+            std::list<Creature*> creatures;
+            player->GetCreatureListWithEntryInGrid(creatures, entry, 100.0f);
+            return std::count_if(creatures.begin(), creatures.end(), [player](Creature* creature)
+            {
+                return creature->IsAlive() && creature->GetOwnerGUID() == player->GetGUID()
+                    && player->InSamePhase(creature);
+            });
+        }
         if (metric == "pet_entry" || metric == "pet_aura_stacks")
         {
             Guardian* pet = player->GetGuardianPet();

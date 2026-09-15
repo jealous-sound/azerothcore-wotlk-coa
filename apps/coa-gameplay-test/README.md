@@ -67,6 +67,8 @@ The [talent and item scenario](scenarios/talent-and-items.json) exercises talent
 equipping a shirt and consuming a healing potion. It does not measure the talent's damage coefficient.
 The [Shadowblast scenario](scenarios/shadowblast-shadow-rage.json) reproduces a Shadow Rage pet-targeting crash
 and checks the buff's recipient, with ordinary Frostbolt casts as a control.
+The [Shadow Effigy scenario](scenarios/shadow-effigy.json) checks combat casts, one active effigy per owner,
+nearby-enemy debuffs, replacement by another effigy and timed despawn.
 
 Players require `id`, numeric `race` and `class`; `level` defaults to 80. Optional `spell_hit_rating` and
 `ranged_hit_rating` add the corresponding fixture rating through normal rating calculations, eliminating misses in a
@@ -105,13 +107,15 @@ a previously named snapshot of the same metric; it is available on snapshots and
 
 Metrics: `health`, `max_health`, `power`, `max_power`, `alive`, `combat`, `casting`, `level`, `knows_spell`,
 `has_talent`, `talent_points`, `cooldown_ms`, `item_count`, `bank_bag_slots`, `aura`, `aura_stacks`, `aura_charges`,
-`aura_duration_ms`, `aura_amount`, `pet_entry`, `pet_aura_stacks`.
+`aura_duration_ms`, `aura_amount`, `pet_entry`, `pet_aura_stacks`, `owned_creature_count`.
 Boolean metrics use 0/1. Spell/aura metrics require `spell`; `item_count` requires `item`.
 `has_talent` requires the talent rank's spell ID; passive talents are separate from the learned spellbook.
 `talent_points` measures unspent points in the active specialization.
 `bank_bag_slots` measures the player's unlocked standard bank bag slots (0..7).
 `pet_entry` measures the player's current guardian pet entry, or zero if absent. `pet_aura_stacks`
 requires `spell`, accepts `caster` for aura ownership, and returns zero if the pet or aura is absent.
+`owned_creature_count` requires a player and `entry`. It counts living creatures of that entry owned by
+the player, in the same phase and within 100 yards, including summons outside the guardian-pet slot.
 `power`/`max_power` accept a numeric `power` (0..6). Aura metrics optionally accept `caster` to select
 ownership; `aura_amount` also accepts an effect index (0..2, default 0). Missing auras yield zero;
 check aura presence separately when zero is a valid effect amount. Permanent aura duration is -1.
