@@ -1,0 +1,112 @@
+{
+  "schema": 1,
+  "name": "Ornate Bank Voucher: unlock slots, consume once and remain stable",
+  "contract": "Item 102130 unlocks seven bank bag slots, consumes one voucher and preserves surplus vouchers.",
+  "players": [
+    {
+      "id": "user",
+      "race": 10,
+      "class": 17,
+      "level": 18
+    },
+    {
+      "id": "other",
+      "race": 10,
+      "class": 17,
+      "level": 18
+    }
+  ],
+  "location": {
+    "map": 530,
+    "x": 7633.86,
+    "y": -6810.22,
+    "z": 79.5987
+  },
+  "steps": [
+    {
+      "action": "assert",
+      "actor": "user",
+      "metric": "bank_bag_slots",
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "other",
+      "metric": "bank_bag_slots",
+      "equals": 0
+    },
+    {
+      "action": "add_item",
+      "actor": "user",
+      "item": 102130,
+      "count": 2
+    },
+    {
+      "action": "assert",
+      "actor": "user",
+      "metric": "item_count",
+      "item": 102130,
+      "equals": 2
+    },
+    {
+      "action": "use_item",
+      "actor": "user",
+      "item": 102130,
+      "spell": 56685
+    },
+    {
+      "action": "wait",
+      "label": "Remain responsive beyond the reported crash window",
+      "ms": 20000
+    },
+    {
+      "action": "assert",
+      "label": "Unlock all seven bank bag slots",
+      "actor": "user",
+      "metric": "bank_bag_slots",
+      "equals": 7
+    },
+    {
+      "action": "assert",
+      "label": "Consume exactly one voucher",
+      "actor": "user",
+      "metric": "item_count",
+      "item": 102130,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "actor": "other",
+      "metric": "bank_bag_slots",
+      "equals": 0
+    },
+    {
+      "action": "use_item",
+      "actor": "user",
+      "item": 102130,
+      "spell": 56685
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "assert",
+      "label": "Already unlocked slots preserve the voucher",
+      "actor": "user",
+      "metric": "item_count",
+      "item": 102130,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "actor": "user",
+      "metric": "bank_bag_slots",
+      "equals": 7
+    },
+    {
+      "action": "console",
+      "command": "server info"
+    }
+  ]
+}

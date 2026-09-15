@@ -435,6 +435,8 @@ private:
         }
         if (metric == "talent_points")
             return player->GetFreeTalentPoints();
+        if (metric == "bank_bag_slots")
+            return player->GetBankBagSlotCount();
         if (metric == "cooldown_ms")
             return player->GetSpellCooldownDelay(spell);
         if (metric == "item_count")

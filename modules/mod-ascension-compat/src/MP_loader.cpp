@@ -141,6 +141,7 @@ void AddSC_AscensionChronomancerTalents();
 void AddSC_AscensionChronomancerTime();
 void AddSC_AscensionChronomancerMovement();
 void AddSC_AscensionAdventurerCache();
+void AddSC_AscensionBankVoucher();
 void AddSC_AscensionBloodmageTalents();
 void AddSC_AscensionBloodmageVitality();
 void AddSC_AscensionReaperReflexes();
@@ -291,6 +292,7 @@ void Addmod_ascension_compatScripts()
     AddSC_AscensionChronomancerTime();
     AddSC_AscensionChronomancerMovement();
     AddSC_AscensionAdventurerCache();
+    AddSC_AscensionBankVoucher();
     AddSC_AscensionBloodmageTalents();
     AddSC_AscensionBloodmageVitality();
     AddSC_AscensionReaperReflexes();

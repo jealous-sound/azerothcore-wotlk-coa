@@ -25,7 +25,7 @@ LOCAL_HOSTS = {'127.0.0.1', 'localhost', '::1'}
 METRICS = {
     'health', 'max_health', 'power', 'max_power', 'alive', 'combat', 'casting', 'level',
     'aura', 'aura_stacks', 'aura_charges', 'aura_duration_ms', 'aura_amount',
-    'knows_spell', 'has_talent', 'talent_points', 'cooldown_ms', 'item_count',
+    'knows_spell', 'has_talent', 'talent_points', 'cooldown_ms', 'item_count', 'bank_bag_slots',
 }
 METRIC_FIELDS = {'actor', 'metric', 'spell', 'power', 'caster', 'effect', 'item', 'relative_to'}
 ACTIONS = {
@@ -157,7 +157,7 @@ def validate(scenario):
                 require('spell' in step, f'{where}: metric needs spell')
             if metric == 'item_count':
                 require('item' in step, f'{where}: metric needs item')
-            if metric in {'knows_spell', 'has_talent', 'talent_points', 'cooldown_ms', 'item_count'}:
+            if metric in {'knows_spell', 'has_talent', 'talent_points', 'cooldown_ms', 'item_count', 'bank_bag_slots'}:
                 require(step['actor'] in player_ids, f'{where}: metric needs a player')
             if 'relative_to' in step:
                 require(snapshots.get(step['relative_to']) == metric, f'{where}: missing or incompatible snapshot')

@@ -102,11 +102,12 @@ For absence checks, wait through the relevant cast/proc window first, then asser
 a previously named snapshot of the same metric; it is available on snapshots and assertions.
 
 Metrics: `health`, `max_health`, `power`, `max_power`, `alive`, `combat`, `casting`, `level`, `knows_spell`,
-`has_talent`, `talent_points`, `cooldown_ms`, `item_count`, `aura`, `aura_stacks`, `aura_charges`,
+`has_talent`, `talent_points`, `cooldown_ms`, `item_count`, `bank_bag_slots`, `aura`, `aura_stacks`, `aura_charges`,
 `aura_duration_ms`, `aura_amount`.
 Boolean metrics use 0/1. Spell/aura metrics require `spell`; `item_count` requires `item`.
 `has_talent` requires the talent rank's spell ID; passive talents are separate from the learned spellbook.
 `talent_points` measures unspent points in the active specialization.
+`bank_bag_slots` measures the player's unlocked standard bank bag slots (0..7).
 `power`/`max_power` accept a numeric `power` (0..6). Aura metrics optionally accept `caster` to select
 ownership; `aura_amount` also accepts an effect index (0..2, default 0). Missing auras yield zero;
 check aura presence separately when zero is a valid effect amount. Permanent aura duration is -1.
