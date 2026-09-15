@@ -307,6 +307,9 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[0].Effect = 0; // owner-controlled sacrifice already removed the selected minion
         info->Effects[1].TargetA = SpellImplicitTargetInfo(TARGET_UNIT_TARGET_ALLY);
         info->Effects[1].TargetB = SpellImplicitTargetInfo();
+        // the owner-controlled path casts this on the player, not the sacrificed minion, so the
+        // stale "must target a Necro Minion" requirement (805026) would otherwise block the heal
+        info->TargetAuraSpell = 0;
     }
     if (id == 801514)
     {
