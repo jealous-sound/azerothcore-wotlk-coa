@@ -244,6 +244,8 @@ enum DoctorSpells : uint32
     CauldronBuff = 504419,
     MojoCauldron = 807908,
     Mirage = 501136,
+    SenjinSwiftness = 504426,
+    SenjinWisdom = 504774,
     Slither = 500947,
     SlitherAvoid = 806295,
     Shadowstalker = 807040,

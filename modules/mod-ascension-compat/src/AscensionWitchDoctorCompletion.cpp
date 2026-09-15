@@ -352,6 +352,10 @@ void ApplyContracts(SpellInfo* info)
         periodic(EFFECT_1, 500);
     if (id == Mirage)
         info->Effects[EFFECT_1].Effect = 0; // exactly five Spirits from the successful cast
+    if (id == SenjinSwiftness)
+        info->Effects[EFFECT_1].SpellClassMask = flag96(0, 0, 1073741824); // was empty, so its -60s cooldown mod matched every WD spell instead of just Mirage
+    if (id == SenjinWisdom)
+        info->Effects[EFFECT_0].SpellClassMask = flag96(0, 0, 1073741824); // pointed at the wrong classmask word, so its +20s duration mod never matched Mirage
     if (id == RageBrewBuff)
         info->Effects[EFFECT_1].BasePoints = 14;
     if (id == Voice)
