@@ -13,6 +13,14 @@
 
 namespace AscensionNecromancer
 {
+namespace
+{
+enum RangeIndex : uint32
+{
+    SPELL_RANGE_THIRTY_YARDS = 4
+};
+}
+
 void ApplyContracts(SpellInfo* info)
 {
     if (!info)
@@ -163,6 +171,11 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[1].ApplyAuraName = SPELL_AURA_MOD_THREAT;
         info->Effects[1].MiscValue = SPELL_SCHOOL_MASK_ALL;
     }
+    if (id == 500991)
+        // Grave March is baked with the "Anywhere" range (50000 yd); every other player-cast
+        // Command spell (Crypt Fiend, Banshee, Undead, Skeletal Warriors, ...) uses this same
+        // 30-yard range instead.
+        info->RangeEntry = sSpellRangeStore.LookupEntry(SPELL_RANGE_THIRTY_YARDS);
     if (id == 300580)
         for (uint8 i = 0; i < MAX_SPELL_EFFECTS; ++i)
             if (info->Effects[i].IsEffect())
