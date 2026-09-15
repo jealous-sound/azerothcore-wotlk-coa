@@ -207,13 +207,13 @@ class RunnerTests(unittest.TestCase):
                 run.stage_modules(source, directory / 'other-run', {'BindIP'})
             self.assertFalse((directory / 'other-run').exists())
 
-    def fake_process(self, code, startup_timeout=3):
+    def fake_process(self, code, startup_timeout=3, environment=None):
         with tempfile.TemporaryDirectory() as temporary:
             directory = Path(temporary)
             script = directory / 'fake_server.py'
             script.write_text('from pathlib import Path\nimport json, sys, time\n' + code, encoding='utf-8')
             return run.run_process([sys.executable, str(script)], directory, directory / 'ready.json',
-                                   directory / 'result.json', '012345abcdef', startup_timeout, 3)
+                                   directory / 'result.json', '012345abcdef', startup_timeout, 3, environment)
 
     def test_zero_exit_without_result_is_a_failure(self):
         with self.assertRaisesRegex(ValueError, 'without a result'):
@@ -238,6 +238,39 @@ class RunnerTests(unittest.TestCase):
     def test_success_without_readiness_is_rejected(self):
         with self.assertRaisesRegex(ValueError, 'missing harness readiness'):
             self.fake_process(f'Path("result.json").write_text({json.dumps(json.dumps(self.report()))})\n')
+
+    def test_environment_names_follow_server_conversion(self):
+        for key, name in {
+                'SomeConfig': 'AC_SOME_CONFIG', 'myNestedConfig.opt1': 'AC_MY_NESTED_CONFIG_OPT_1',
+                'LogDB.Opt.ClearTime': 'AC_LOG_DB_OPT_CLEAR_TIME', 'DataDir': 'AC_DATA_DIR',
+                'LoginDatabaseInfo': 'AC_LOGIN_DATABASE_INFO',
+                'Updates.EnableDatabases': 'AC_UPDATES_ENABLE_DATABASES'}.items():
+            self.assertEqual(run.env_var_name(key), name)
+
+    def test_generated_values_are_not_replaced_by_inherited_environment(self):
+        inherited = {'AC_UPDATES_ENABLE_DATABASES': '0', 'AC_LOGS_DIR': '/live/logs',
+                     'AC_ASCENSION_MANASTORM_ENABLE': '1', 'PATH': '/usr/bin'}
+        environment = run.server_environment({'Updates.EnableDatabases': 7, 'LogsDir': '/run'}, inherited)
+        self.assertEqual(environment, {'AC_ASCENSION_MANASTORM_ENABLE': '1', 'PATH': '/usr/bin'})
+
+    def test_source_settings_follow_server_environment_precedence(self):
+        config = {'DataDir': '.'}
+        self.assertEqual(run.source_setting(config, 'DataDir', '.', {'AC_DATA_DIR': '/data'}), '/data')
+        self.assertEqual(run.source_setting(config, 'DataDir', None, {}), '.')
+        self.assertEqual(run.source_setting({}, 'DataDir', '.', {}), '.')
+        with self.assertRaisesRegex(ValueError, 'Missing source setting'):
+            run.source_setting({}, 'LoginDatabaseInfo', None, {})
+
+    def test_server_process_uses_supplied_environment(self):
+        report = self.report()
+        with patch.dict(run.os.environ, {'AC_UPDATES_ENABLE_DATABASES': '0'}):
+            result, returncode = self.fake_process(
+                'import os\n'
+                'if "AC_UPDATES_ENABLE_DATABASES" not in os.environ:\n'
+                '    Path("ready.json").write_text(json.dumps({"status":"ready","run_id":"012345abcdef"}))\n'
+                f'    Path("result.json").write_text({json.dumps(json.dumps(report))})\n',
+                environment=run.server_environment({'Updates.EnableDatabases': 7}))
+        run.check_report(result, '012345abcdef', self.scenario, returncode)
 
 
 if __name__ == '__main__':

@@ -223,6 +223,38 @@ def read_config(path):
     return values
 
 
+def env_var_name(key):
+    """Mirror IniKeyToEnvVarKey in src/common/Configuration/Config.cpp."""
+    result = []
+    for index, char in enumerate(key):
+        if char in ' .-':
+            result.append('_')
+            continue
+        if index + 1 < len(key):
+            following = key[index + 1]
+            if ((not char.isupper() and following.isupper())
+                    or ('0' <= char <= '9') != ('0' <= following <= '9')):
+                result.append(char.upper() + '_')
+                continue
+        result.append(char.upper())
+    return 'AC_' + ''.join(result)
+
+
+def server_environment(overrides, environment=None):
+    """Keep inherited settings except variables that would replace generated harness values."""
+    blocked = {env_var_name(key) for key in overrides}
+    source = os.environ if environment is None else environment
+    return {name: value for name, value in source.items() if name not in blocked}
+
+
+def source_setting(config, key, default=None, environment=None):
+    """Read a source value as the server does: an AC_* environment variable replaces the file value."""
+    source = os.environ if environment is None else environment
+    value = source.get(env_var_name(key), config.get(key, default))
+    require(value is not None, f'Missing source setting: {key}')
+    return value
+
+
 @dataclass(frozen=True)
 class Connection:
     host: str
@@ -455,10 +487,10 @@ def check_report(report, run_id, scenario, returncode):
             require(record.get('status') == 'completed', 'An action did not complete')
 
 
-def run_process(command, directory, ready_path, result_path, run_id, startup_timeout, timeout):
+def run_process(command, directory, ready_path, result_path, run_id, startup_timeout, timeout, environment=None):
     with (directory / 'worldserver.log').open('wb') as log:
         process = subprocess.Popen(command, cwd=directory, stdin=subprocess.PIPE, stdout=log, stderr=log,
-                                   creationflags=CREATE_FLAGS)
+                                   env=environment, creationflags=CREATE_FLAGS)
         start = time.monotonic()
         ready_at = None
         try:
@@ -509,7 +541,7 @@ def execute(args, scenario):
     mysql = args.mysql.resolve(strict=True)
     dump = args.mysqldump.resolve(strict=True)
     config = read_config(source_config)
-    connections = {role: Connection.parse(config[key]) for role, key in {
+    connections = {role: Connection.parse(source_setting(config, key)) for role, key in {
         'auth': 'LoginDatabaseInfo', 'characters': 'CharacterDatabaseInfo', 'world': 'WorldDatabaseInfo',
     }.items()}
     if args.database_client_config:
@@ -532,7 +564,7 @@ def execute(args, scenario):
     summary['databases'] = database.names
     try:
         database.prepare()
-        data_dir = Path(config.get('DataDir', '.'))
+        data_dir = Path(source_setting(config, 'DataDir', '.'))
         if not data_dir.is_absolute():
             data_dir = binary.parent / data_dir
         overrides = {
@@ -555,7 +587,8 @@ def execute(args, scenario):
         write_config(source_config, generated_config, overrides)
         report, returncode = run_process([str(binary), '-c', str(generated_config)], output, ready_path,
                                          result_path, run_id, args.startup_timeout,
-                                         scenario.get('timeout_ms', 90000) / 1000 + 30)
+                                         scenario.get('timeout_ms', 90000) / 1000 + 30,
+                                         server_environment(overrides))
         check_report(report, run_id, scenario, returncode)
         summary.update(status='passed', assertions=int(report['assertions']))
     except ServerStillRunning as error:

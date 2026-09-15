@@ -42,6 +42,11 @@ Module `.conf` files beside the source config (in `modules/`) are copied into th
 summary. Use `--modules-config-dir` for a different source location. Module configs cannot override database
 isolation or harness controls. Other platforms require adapting module configuration discovery.
 
+Source settings follow the server's precedence: an `AC_*` environment variable (for example `AC_DATA_DIR`)
+replaces the value in the source config. The test worldserver inherits the runner's environment except
+variables that would replace generated harness values, such as `AC_UPDATES_ENABLE_DATABASES` or
+`AC_LOGIN_DATABASE_INFO`, so the generated config always controls isolation, logging and updates.
+
 When the scenario ends, the runtime logs out its test players and shuts down. The runner waits for process
 exit before dropping its schemas and removing generated credentials. Startup, scenario, shutdown and copy
 operations have timeouts. An interrupted run performs the same cleanup; a hard termination may leave the
