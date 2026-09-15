@@ -1,6 +1,7 @@
 """Behavioral checks for scenario validation, process failures and database ownership."""
 
 import copy
+import io
 import json
 from pathlib import Path
 import sys
@@ -200,11 +201,11 @@ class RunnerTests(unittest.TestCase):
             source.mkdir()
             config = source / 'module.conf'
             config.write_text('AscensionCompat.Enable = 1\n')
-            staged = run.stage_modules(source, directory / 'run', {'BindIP'})
+            staged = run.stage_modules(source, directory / 'run' / 'configs' / 'modules', {'BindIP'})
             self.assertEqual(staged[0].read_bytes(), config.read_bytes())
             config.write_text('BindIP = "0.0.0.0"\n')
             with self.assertRaisesRegex(ValueError, 'overrides harness'):
-                run.stage_modules(source, directory / 'other-run', {'BindIP'})
+                run.stage_modules(source, directory / 'other-run' / 'configs' / 'modules', {'BindIP'})
             self.assertFalse((directory / 'other-run').exists())
 
     def fake_process(self, code, startup_timeout=3, environment=None):
@@ -272,6 +273,31 @@ class RunnerTests(unittest.TestCase):
                 environment=run.server_environment({'Updates.EnableDatabases': 7}))
         run.check_report(result, '012345abcdef', self.scenario, returncode)
 
+
+    def test_module_configs_never_replace_server_files(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            source = directory / 'source'
+            target = directory / 'server-modules'
+            source.mkdir()
+            target.mkdir()
+            (source / 'a.conf').write_text('A.Enable = 1\n')
+            (source / 'b.conf').write_text('B.Enable = 1\n')
+            (target / 'b.conf').write_text('B.Enable = 0\n')
+            with self.assertRaises(FileExistsError):
+                run.stage_modules(source, target, {'BindIP'})
+            self.assertFalse((target / 'a.conf').exists())
+            self.assertEqual((target / 'b.conf').read_text(), 'B.Enable = 0\n')
+
+    @unittest.skipIf(run.os.name == 'nt', 'Windows reads module configs relative to the working directory')
+    def test_server_module_directory_is_required_outside_windows(self):
+        scenario = str(Path(__file__).parent / 'scenarios' / 'frostbolt.json')
+        arguments = ['run', scenario, '--worldserver', 'w', '--config', 'c', '--mysql', 'm', '--mysqldump', 'd']
+        with patch('sys.stderr', new_callable=io.StringIO) as errors, patch.object(run, 'execute') as execute:
+            code = run.main(arguments)
+        self.assertEqual(code, 1)
+        self.assertIn('--server-modules-dir', errors.getvalue())
+        execute.assert_not_called()
 
 if __name__ == '__main__':
     unittest.main()

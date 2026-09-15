@@ -435,7 +435,8 @@ def write_config(source, destination, overrides):
     destination.chmod(0o600)
 
 
-def stage_modules(source, directory, reserved):
+def stage_modules(source, destination, reserved):
+    """Copy module configs into the directory the worldserver reads, never replacing existing files."""
     staged = []
     try:
         for path in sorted(source.glob('*.conf')):
@@ -443,11 +444,12 @@ def stage_modules(source, directory, reserved):
             require(not settings.keys() & reserved
                     and not any(key.startswith('CoAGameplayTest.') for key in settings),
                     f'Module config overrides harness controls: {path.name}')
-            destination = directory / 'configs' / 'modules' / path.name
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            destination.write_bytes(path.read_bytes())
-            destination.chmod(0o600)
-            staged.append(destination)
+            target = destination / path.name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            with target.open('xb') as staged_file:
+                staged.append(target)
+                staged_file.write(path.read_bytes())
+            target.chmod(0o600)
         return staged
     except BaseException:
         for path in staged:
@@ -582,7 +584,9 @@ def execute(args, scenario):
             'CoAGameplayTest.ResultFile': result_path.as_posix(),
         }
         module_source = args.modules_config_dir or source_config.parent / 'modules'
-        module_configs = stage_modules(module_source, output, set(overrides))
+        # Windows worldservers read configs/modules relative to their working directory, the output directory.
+        module_target = args.server_modules_dir or output / 'configs' / 'modules'
+        module_configs = stage_modules(module_source, module_target, set(overrides))
         summary['module_config_sha256'] = {path.name: sha256(path) for path in module_configs}
         write_config(source_config, generated_config, overrides)
         report, returncode = run_process([str(binary), '-c', str(generated_config)], output, ready_path,
@@ -625,6 +629,8 @@ def main(argv=None):
     run.add_argument('--database-client-config', type=Path,
                      help='Optional MySQL [client] file with credentials allowed to create/drop test schemas')
     run.add_argument('--modules-config-dir', type=Path, help='Defaults to the source config directory/modules')
+    run.add_argument('--server-modules-dir', type=Path,
+                     help='Directory the worldserver reads module configs from; required outside Windows')
     run.add_argument('--output', type=Path, help='New directory for logs and results')
     run.add_argument('--startup-timeout', type=float, default=600)
     args = parser.parse_args(argv)
@@ -634,6 +640,8 @@ def main(argv=None):
             print(f"Valid scenario: {scenario['name']} ({len(scenario['steps'])} steps)")
             return 0
         require(math.isfinite(args.startup_timeout) and args.startup_timeout > 0, 'Invalid startup timeout')
+        require(args.server_modules_dir or os.name == 'nt',
+                '--server-modules-dir is required outside Windows (the worldserver reads CONF_DIR/modules)')
         return execute(args, scenario)
     except (ValueError, OSError, KeyError, TypeError) as error:
         print(f'ERROR: {error}', file=sys.stderr)

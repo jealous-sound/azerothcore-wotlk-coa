@@ -37,10 +37,12 @@ The generated config binds the test worldserver to loopback on an unused port, u
 disables map worker threads and points all three database connections to the new schemas. Source SQL updates
 run normally against the copies. Source configuration and the installed server are not changed. Relative
 `DataDir` is resolved against the binary's directory; use an absolute path when that differs from your setup.
-Module `.conf` files beside the source config (in `modules/`) are copied into the test directory's
-`configs/modules/` location used by the Windows server, then removed at the end. Their hashes appear in the
-summary. Use `--modules-config-dir` for a different source location. Module configs cannot override database
-isolation or harness controls. Other platforms require adapting module configuration discovery.
+Module `.conf` files beside the source config (in `modules/`) are copied into the directory the worldserver
+reads module configs from, then removed at the end. Use `--modules-config-dir` for a different source location.
+On Windows that directory is `configs/modules/` relative to the working directory (the test directory), the
+default. Elsewhere the worldserver reads `CONF_DIR/modules/`, fixed at build time, so `--server-modules-dir`
+is required; existing files there are never replaced. Their hashes appear in the summary. Module configs cannot
+override database isolation or harness controls.
 
 Source settings follow the server's precedence: an `AC_*` environment variable (for example `AC_DATA_DIR`)
 replaces the value in the source config. The test worldserver inherits the runner's environment except
