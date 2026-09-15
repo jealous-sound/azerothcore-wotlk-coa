@@ -141,6 +141,13 @@ and closes its current loot window. `collect_loot` takes `actor`, collects slot 
 quantity reached inventory and records the item/count. It supports ordinary container loot, not quest-only slots.
 `loot_count` and `loot_entry` report the actor's current uncollected item slots and first entry; `loot_received`
 reports the inventory increase from its last successful `collect_loot`. Closed windows return zero slots/entry.
+`quest_rewarded` requires `quest` and reads the player's native rewarded status.
+`prepare_quest` takes `actor` and `quest`, adds the quest and required delivery items, then completes its objectives
+as fixture setup. `reward_quest` takes the same fields and optional zero-based `choice` (default 0); it checks normal
+reward eligibility and invokes native reward delivery. These actions do not test quest-giver interaction or objectives.
+`restore_quest_spells` takes `actor` and invokes the native restoration of spells from rewarded quests.
+`login_hooks` takes `actor` and replays registered player-login hooks on the current character; it does not reconnect
+or reload the character from the database. Use it to exercise a repair against deliberately seeded fixture state.
 `has_talent` requires the talent rank's spell ID; passive talents are separate from the learned spellbook.
 `talent_points` measures unspent points in the active specialization.
 `bank_bag_slots` measures the player's unlocked standard bank bag slots (0..7).

@@ -62,6 +62,7 @@
 #include "ObjectMgr.h"
 #include "Opcodes.h"
 #include "Player.h"
+#include "QuestDef.h"
 #include "Random.h"
 #include "ScriptMgr.h"
 #include "ScriptedGossip.h"
@@ -378,6 +379,50 @@ uint8 WeaponEffectCategoryForEquipmentSlot(uint8 slot) {
 bool IsAscensionCustomClass(Player const *player) {
   uint8 playerClass = player->getClass();
   return playerClass >= CLASS_BARBARIAN && playerClass <= CLASS_SPIRIT_MAGE;
+}
+
+enum LegacyQuestSpells : uint32
+{
+    QuestStoneskinTotem = 8073,
+    QuestPathOfDefense = 8121,
+    LegacyDefensiveStance = 1100071,
+    LegacyTaunt = 1100355,
+    LegacySunderArmor = 1107386,
+    LegacyStoneskinTotem = 1108071
+};
+
+struct LegacyQuestReward
+{
+    uint32 Wrapper;
+    std::array<uint32, MAX_SPELL_EFFECTS> Spells;
+};
+
+constexpr std::array<LegacyQuestReward, 2> LegacyQuestRewards = {{
+    {QuestStoneskinTotem, {LegacyStoneskinTotem, 0, 0}},
+    {QuestPathOfDefense, {LegacyDefensiveStance, LegacySunderArmor, LegacyTaunt}}
+}};
+
+LegacyQuestReward const* GetLegacyQuestReward(uint32 wrapper)
+{
+    for (LegacyQuestReward const& reward : LegacyQuestRewards)
+        if (reward.Wrapper == wrapper)
+            return &reward;
+    return nullptr;
+}
+
+void RemoveLegacyQuestSpells(Player* player)
+{
+    if (!IsAscensionCustomClass(player))
+        return;
+
+    // Only repair the known class-quest grants, with evidence of the corresponding rewarded quest.
+    // Do not infer ownership from absence in the generated custom-class spell catalogs.
+    for (uint32 questId : player->getRewardedQuests())
+        if (Quest const* quest = sObjectMgr->GetQuestTemplate(questId))
+            if (LegacyQuestReward const* reward = GetLegacyQuestReward(quest->GetRewSpellCast()))
+                for (uint32 spell : reward->Spells)
+                    if (spell)
+                        player->removeSpell(spell, SPEC_MASK_ALL, false);
 }
 
 AscensionCompatData::StarterKit const *GetStarterKit(uint8 playerClass) {
@@ -3620,6 +3665,7 @@ public:
     if (ascensionCompatConfig.GetConfigValue<bool>(
             AscensionCompatConfig::ENABLED)) {
       AscensionClassService::Instance().OnPlayerLogin(player);
+      RemoveLegacyQuestSpells(player);
       SynchronizeAscensionClassMechanics(player);
       AscensionResourceService::Instance().OnPlayerLogin(player);
       AscensionCollectionService::Instance().OnPlayerLogin(player);
@@ -4283,6 +4329,46 @@ public:
     }
 };
 
+class spell_ascension_legacy_quest_reward : public SpellScript
+{
+    PrepareSpellScript(spell_ascension_legacy_quest_reward);
+
+    bool Validate(SpellInfo const* info) override
+    {
+        LegacyQuestReward const* reward = GetLegacyQuestReward(info->Id);
+        if (!reward)
+            return false;
+
+        for (uint8 index = 0; index < MAX_SPELL_EFFECTS; ++index)
+            if (reward->Spells[index] && (info->Effects[index].Effect != SPELL_EFFECT_LEARN_SPELL ||
+                info->Effects[index].TriggerSpell != reward->Spells[index]))
+                return false;
+        return true;
+    }
+
+    bool Load() override
+    {
+        return ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED);
+    }
+
+    void HandleLearn(SpellEffIndex effect)
+    {
+        LegacyQuestReward const* reward = GetLegacyQuestReward(GetSpellInfo()->Id);
+        if (!reward || !reward->Spells[effect])
+            return;
+
+        if (Player* player = GetHitPlayer())
+            if (IsAscensionCustomClass(player))
+                PreventHitDefaultEffect(effect);
+    }
+
+    void Register() override
+    {
+        OnEffectHitTarget += SpellEffectFn(spell_ascension_legacy_quest_reward::HandleLearn,
+            EFFECT_ALL, SPELL_EFFECT_LEARN_SPELL);
+    }
+};
+
 // Ascension mount buttons frequently cast a wrapper, not the riding aura.
 // Resolve only validated catalog wrappers, using the same zone/riding rules
 // as AzerothCore's spell_gen_mount and the matching client spell variants.
@@ -4469,6 +4555,7 @@ void AddAscensionCompatScripts() {
   new npc_ascension_training_book();
   RegisterSpellScript(spell_ascension_experience_potion);
   RegisterSpellScript(spell_ascension_local_mount);
+  RegisterSpellScript(spell_ascension_legacy_quest_reward);
   new AscensionTradesmanScroll();
   new AscensionCompatServerScript();
   new AscensionCompatCommandScript();

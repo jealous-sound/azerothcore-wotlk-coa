@@ -23,6 +23,7 @@
 #include "ObjectMgr.h"
 #include "Opcodes.h"
 #include "Player.h"
+#include "QuestDef.h"
 #include "QueryCallback.h"
 #include "ScriptMgr.h"
 #include "Spell.h"
@@ -469,6 +470,12 @@ private:
             Require(sSpellMgr->GetSpellInfo(spell) != nullptr, "Unknown spell in metric");
         if (metric == "knows_spell")
             return player->HasSpell(spell);
+        if (metric == "quest_rewarded")
+        {
+            uint32 quest = step.get<uint32>("quest");
+            Require(sObjectMgr->GetQuestTemplate(quest) != nullptr, "Unknown quest template");
+            return player->IsQuestRewarded(quest);
+        }
         if (metric == "gossip_options")
             return player->PlayerTalkClass->GetGossipMenu().GetMenuItemCount();
         if (metric == "loot_received")
@@ -674,6 +681,38 @@ private:
             Require(handled && !handler.HasSentErrorMessage(), "Player command failed");
             record.put("result", "submitted; verify effects with assertions");
         }
+        else if (action == "prepare_quest" || action == "reward_quest")
+        {
+            Quest const* quest = sObjectMgr->GetQuestTemplate(step.get<uint32>("quest"));
+            Require(quest != nullptr, "Unknown quest template");
+            if (action == "prepare_quest")
+            {
+                Require(!player->IsActiveQuest(quest->GetQuestId()) && player->CanAddQuest(quest, false),
+                    "Cannot prepare quest fixture");
+                player->AddQuestAndCheckCompletion(quest, nullptr);
+                for (uint8 index = 0; index < QUEST_ITEM_OBJECTIVES_COUNT; ++index)
+                    if (quest->RequiredItemId[index] && quest->RequiredItemCount[index])
+                    {
+                        uint32 held = player->GetItemCount(quest->RequiredItemId[index]);
+                        if (held < quest->RequiredItemCount[index])
+                            Require(player->AddItem(quest->RequiredItemId[index], quest->RequiredItemCount[index] - held),
+                                "Cannot grant quest objective item");
+                    }
+                // Fixture setup skips objective gameplay; reward eligibility and delivery remain native.
+                player->CompleteQuest(quest->GetQuestId());
+            }
+            else
+            {
+                uint32 choice = step.get<uint32>("choice", 0);
+                Require(choice < QUEST_REWARD_CHOICES_COUNT && player->CanRewardQuest(quest, choice, false),
+                    "Quest reward eligibility rejected");
+                player->RewardQuest(quest, choice, player);
+            }
+        }
+        else if (action == "restore_quest_spells")
+            player->learnQuestRewardedSpells();
+        else if (action == "login_hooks")
+            sScriptMgr->OnPlayerLogin(player);
         else if (action == "open_item")
         {
             Item* item = player->GetItemByEntry(step.get<uint32>("item"));

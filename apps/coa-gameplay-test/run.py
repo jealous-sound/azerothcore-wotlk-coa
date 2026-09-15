@@ -31,9 +31,10 @@ METRICS = {
     'dynamic_object', 'dynamic_object_duration_ms', 'gossip_options',
     'cast_speed_multiplier', 'spell_crit_chance', 'spell_power_cost',
     'who_count', 'who_class', 'loot_count', 'loot_entry', 'loot_received',
+    'quest_rewarded',
 }
 METRIC_FIELDS = {'actor', 'metric', 'spell', 'power', 'caster', 'effect', 'item', 'entry',
-                 'relative_to', 'ratio_to', 'target'}
+                 'relative_to', 'ratio_to', 'target', 'quest'}
 ACTIONS = {
     'console': ({'command'}, {'command'}),
     'command': ({'actor', 'command'}, {'actor', 'command'}),
@@ -51,6 +52,10 @@ ACTIONS = {
     'open_item': ({'actor', 'item'}, {'actor', 'item'}),
     'collect_loot': ({'actor'}, {'actor'}),
     'close_loot': ({'actor'}, {'actor'}),
+    'prepare_quest': ({'actor', 'quest'}, {'actor', 'quest'}),
+    'reward_quest': ({'actor', 'quest'}, {'actor', 'quest', 'choice'}),
+    'restore_quest_spells': ({'actor'}, {'actor'}),
+    'login_hooks': ({'actor'}, {'actor'}),
     'talent': ({'actor', 'talent', 'rank'}, {'actor', 'talent', 'rank'}),
     'reset_talents': ({'actor'}, {'actor'}),
     'add_item': ({'actor', 'item'}, {'actor', 'item', 'count'}),
@@ -169,10 +174,11 @@ def validate(scenario):
             keys(destination, {'x', 'y', 'z'}, {'x', 'y', 'z'}, f'{where}.destination')
             for key in ('x', 'y', 'z'):
                 number(destination[key], f'{where}.destination.{key}', -17000, 17000)
-        for key in ('spell', 'item', 'talent', 'count', 'entry'):
+        for key in ('spell', 'item', 'talent', 'count', 'entry', 'quest'):
             if key in step:
                 number(step[key], f'{where}.{key}', 1, 2**31 - 1, True)
-        for key, maximum in (('rank', 4), ('effect', 2), ('slot', 18), ('power', 6), ('option', 2**32 - 1)):
+        for key, maximum in (('rank', 4), ('effect', 2), ('slot', 18), ('power', 6), ('choice', 5),
+                             ('option', 2**32 - 1)):
             if key in step:
                 number(step[key], f'{where}.{key}', 0, maximum, True)
         if 'stacks' in step:
@@ -196,6 +202,8 @@ def validate(scenario):
                 require('spell' in step, f'{where}: metric needs spell')
             if metric == 'item_count':
                 require('item' in step, f'{where}: metric needs item')
+            if metric == 'quest_rewarded':
+                require('quest' in step, f'{where}: metric needs quest')
             if metric == 'who_class':
                 require(step.get('target') in player_ids, f'{where}: Who class metric needs a target player')
             if metric == 'owned_creature_count':
@@ -206,7 +214,7 @@ def validate(scenario):
                           'charm_aura_stacks', 'controls_self', 'private_instance',
                           'dynamic_object', 'dynamic_object_duration_ms', 'gossip_options',
                           'cast_speed_multiplier', 'spell_crit_chance', 'spell_power_cost', 'who_count', 'who_class',
-                          'loot_count', 'loot_entry', 'loot_received'}:
+                          'loot_count', 'loot_entry', 'loot_received', 'quest_rewarded'}:
                 require(step['actor'] in player_ids, f'{where}: metric needs a player')
             if 'relative_to' in step:
                 require(snapshots.get(step['relative_to']) == metric, f'{where}: missing or incompatible snapshot')
