@@ -31,6 +31,9 @@
 #include "World.h"
 #include "WorldPacket.h"
 #include "WorldSession.h"
+// BOOST_BIND_NO_PLACEHOLDERS (deps/boost) stops boost/bind/bind.hpp from including
+// placeholders.hpp, but the Boost.PropertyTree JSON parser uses boost::placeholders (e.g. Boost 1.83).
+#include <boost/bind/placeholders.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <algorithm>
 #include <chrono>
