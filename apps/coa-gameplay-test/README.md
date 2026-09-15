@@ -5,8 +5,10 @@ The runtime component is `modules/mod-ascension-compat/src/CoAGameplayTest.cpp`;
 
 ## Run
 
-Windows, Python 3.11+, MySQL 8 client tools, a local MySQL server and a worldserver built with the runtime component
-are required. Follow the repository's build authorization rules. Adding the new source requires CMake
+Python 3.11+, MySQL 8 client tools, a local MySQL server and a worldserver built with the runtime component
+are required. The commands below run the runner directly (Windows example); Docker installations on Linux use
+the [Compose test service](#linux-docker), which provides all of them.
+Follow the repository's build authorization rules. Adding the new source requires CMake
 reconfiguration before building; running an older binary will fail the readiness check.
 The module requires Boost.PropertyTree headers. Component-based vcpkg installations need
 `boost-property-tree` for the same triplet as the existing Boost libraries. CMake checks this dependency.
@@ -37,15 +39,25 @@ The generated config binds the test worldserver to loopback on an unused port, u
 disables map worker threads and points all three database connections to the new schemas. Source SQL updates
 run normally against the copies. Source configuration and the installed server are not changed. Relative
 `DataDir` is resolved against the binary's directory; use an absolute path when that differs from your setup.
-Module `.conf` files beside the source config (in `modules/`) are copied into the test directory's
-`configs/modules/` location used by the Windows server, then removed at the end. Their hashes appear in the
-summary. Use `--modules-config-dir` for a different source location. Module configs cannot override database
-isolation or harness controls. Other platforms require adapting module configuration discovery.
+Module `.conf` files beside the source config (in `modules/`) are copied into the directory the worldserver
+reads module configs from, then removed at the end. Use `--modules-config-dir` for a different source location.
+On Windows that directory is `configs/modules/` relative to the working directory (the test directory), the
+default. Elsewhere the worldserver reads `CONF_DIR/modules/`, fixed at build time, so `--server-modules-dir`
+is required; existing files there are never replaced. Their hashes appear in the summary. Module configs cannot
+override database isolation or harness controls.
+
+Source settings follow the server's precedence: an `AC_*` environment variable (for example `AC_DATA_DIR`)
+replaces the value in the source config. The test worldserver inherits the runner's environment except
+variables that would replace generated harness values, such as `AC_UPDATES_ENABLE_DATABASES` or
+`AC_LOGIN_DATABASE_INFO`, so the generated config always controls isolation, logging and updates.
 
 When the scenario ends, the runtime logs out its test players and shuts down. The runner waits for process
-exit before dropping its schemas and removing generated credentials. Startup, scenario, shutdown and copy
-operations have timeouts. An interrupted run performs the same cleanup; a hard termination may leave the
-named schemas behind. Inspect `summary.json` before removing any leftovers.
+exit before dropping its schemas and removing generated credentials, which are written only to mode-600
+option files and a generated `worldserver.conf` in a private temporary directory of the runner, never under
+the result directory; the directory is removed when the run ends. Startup, scenario, shutdown and copy
+operations have timeouts. An interrupted run (Ctrl+C, or SIGTERM as sent by `docker stop`/`compose stop`)
+performs the same cleanup; only SIGKILL, a crash, or a stop without enough grace time can leave the named
+schemas behind. Inspect `summary.json`'s `cleanup_failed` field before removing any leftovers.
 
 Results default to `.cache/coa-gameplay-tests/<run-id>/`:
 
@@ -57,6 +69,42 @@ Results default to `.cache/coa-gameplay-tests/<run-id>/`:
 Exit code zero requires every expected assertion and step to complete, matching run identity, a clean server
 exit and successful database cleanup. A submitted cast alone is never a pass. Numeric fields in the server's
 property-tree JSON are strings; the Python runner converts and rechecks assertion values.
+
+### Linux (Docker)
+
+`docker/compose.yml` adds the `ac-gameplay-test` service to the root Compose stack. It uses the locally built
+worldserver image plus Python and shares the `ac-database` network namespace, so MySQL is reachable on
+`127.0.0.1` and the isolation checks are unchanged. The repository is mounted read-only (runner, scenarios and
+SQL updates), the live `DOCKER_VOL_ETC` configs are read-only sources, and `DOCKER_AC_ENV_FILE` applies the same
+`AC_*` settings as the live worldserver. Unlike the live worldserver, the service does not receive `AC_LOGS_DIR`
+or the `AC_*_DATABASE_INFO` variables from `docker-compose.yml`'s `environment:` block; source databases come
+from `worldserver.conf` in `DOCKER_VOL_ETC`, whose connections must already use `127.0.0.1`/`localhost` and
+port 3306 — a Compose host name such as `ac-database` there is rejected ("Only local database sources are
+supported"). Build the worldserver image first; rebuild the test image after it.
+
+```bash
+mkdir -p .cache/coa-gameplay-tests
+docker compose -f docker-compose.yml -f apps/coa-gameplay-test/docker/compose.yml --profile tests \
+  build ac-gameplay-test
+docker compose -f docker-compose.yml -f apps/coa-gameplay-test/docker/compose.yml --profile tests \
+  run --rm ac-gameplay-test run apps/coa-gameplay-test/scenarios/frostbolt.json
+```
+
+Run these commands from the checkout that owns the running stack (matching project name and `.env`), or pass
+`--project-name`/`--env-file` explicitly; add `--no-deps` when `ac-database` is already running so Compose does
+not start or change it. `validate <scenario>` works the same way without touching MySQL. The entrypoint fixes
+`--worldserver`, `--config`, `--modules-config-dir`, `--server-modules-dir`, `--mysql`, `--mysqldump`,
+`--database-client-config` and `--output`; passing any of them after the scenario argument has no effect.
+
+The service connects as MySQL `root` with `DOCKER_DB_ROOT_PASSWORD` (it must not contain `"`, `;`, or a carriage
+return/line feed; the runner rejects such characters before connecting). Credentials are written only to
+mode-600 files in a private temporary directory inside the disposable container, never to the result
+directory, and are removed when the run ends. `docker stop`/`compose stop` sends SIGTERM, which now triggers
+the same cleanup; only SIGKILL, or a stop without enough grace time, can leave the `coa_test_*` schemas behind
+(check `summary.json`'s `cleanup_failed` field). To stop a running test container without losing cleanup, use
+`docker stop -t 120 <container>` (`docker ps` to find its name). Results appear in
+`.cache/coa-gameplay-tests/<UTC timestamp>/`. The service does not stop the running worldserver; stop it to free
+CPU if needed.
 
 ## Scenario format
 

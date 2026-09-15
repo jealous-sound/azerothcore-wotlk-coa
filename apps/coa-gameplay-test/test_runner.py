@@ -1,6 +1,7 @@
 """Behavioral checks for scenario validation, process failures and database ownership."""
 
 import copy
+import io
 import json
 from pathlib import Path
 import sys
@@ -200,20 +201,20 @@ class RunnerTests(unittest.TestCase):
             source.mkdir()
             config = source / 'module.conf'
             config.write_text('AscensionCompat.Enable = 1\n')
-            staged = run.stage_modules(source, directory / 'run', {'BindIP'})
+            staged = run.stage_modules(source, directory / 'run' / 'configs' / 'modules', {'BindIP'})
             self.assertEqual(staged[0].read_bytes(), config.read_bytes())
             config.write_text('BindIP = "0.0.0.0"\n')
             with self.assertRaisesRegex(ValueError, 'overrides harness'):
-                run.stage_modules(source, directory / 'other-run', {'BindIP'})
+                run.stage_modules(source, directory / 'other-run' / 'configs' / 'modules', {'BindIP'})
             self.assertFalse((directory / 'other-run').exists())
 
-    def fake_process(self, code, startup_timeout=3):
+    def fake_process(self, code, startup_timeout=3, environment=None):
         with tempfile.TemporaryDirectory() as temporary:
             directory = Path(temporary)
             script = directory / 'fake_server.py'
             script.write_text('from pathlib import Path\nimport json, sys, time\n' + code, encoding='utf-8')
             return run.run_process([sys.executable, str(script)], directory, directory / 'ready.json',
-                                   directory / 'result.json', '012345abcdef', startup_timeout, 3)
+                                   directory / 'result.json', '012345abcdef', startup_timeout, 3, environment)
 
     def test_zero_exit_without_result_is_a_failure(self):
         with self.assertRaisesRegex(ValueError, 'without a result'):
@@ -238,6 +239,142 @@ class RunnerTests(unittest.TestCase):
     def test_success_without_readiness_is_rejected(self):
         with self.assertRaisesRegex(ValueError, 'missing harness readiness'):
             self.fake_process(f'Path("result.json").write_text({json.dumps(json.dumps(self.report()))})\n')
+
+    def test_environment_names_follow_server_conversion(self):
+        for key, name in {
+                'SomeConfig': 'AC_SOME_CONFIG', 'myNestedConfig.opt1': 'AC_MY_NESTED_CONFIG_OPT_1',
+                'LogDB.Opt.ClearTime': 'AC_LOG_DB_OPT_CLEAR_TIME', 'DataDir': 'AC_DATA_DIR',
+                'LoginDatabaseInfo': 'AC_LOGIN_DATABASE_INFO',
+                'Updates.EnableDatabases': 'AC_UPDATES_ENABLE_DATABASES'}.items():
+            self.assertEqual(run.env_var_name(key), name)
+
+    def test_generated_values_are_not_replaced_by_inherited_environment(self):
+        inherited = {'AC_UPDATES_ENABLE_DATABASES': '0', 'AC_LOGS_DIR': '/live/logs',
+                     'AC_ASCENSION_MANASTORM_ENABLE': '1', 'PATH': '/usr/bin'}
+        environment = run.server_environment({'Updates.EnableDatabases': 7, 'LogsDir': '/run'}, inherited)
+        self.assertEqual(environment, {'AC_ASCENSION_MANASTORM_ENABLE': '1', 'PATH': '/usr/bin'})
+
+    def test_source_settings_follow_server_environment_precedence(self):
+        config = {'DataDir': '.'}
+        self.assertEqual(run.source_setting(config, 'DataDir', '.', {'AC_DATA_DIR': '/data'}), '/data')
+        self.assertEqual(run.source_setting(config, 'DataDir', None, {}), '.')
+        self.assertEqual(run.source_setting({}, 'DataDir', '.', {}), '.')
+        with self.assertRaisesRegex(ValueError, 'Missing source setting'):
+            run.source_setting({}, 'LoginDatabaseInfo', None, {})
+
+    def test_server_process_uses_supplied_environment(self):
+        report = self.report()
+        with patch.dict(run.os.environ, {'AC_UPDATES_ENABLE_DATABASES': '0'}):
+            result, returncode = self.fake_process(
+                'import os\n'
+                'if "AC_UPDATES_ENABLE_DATABASES" not in os.environ:\n'
+                '    Path("ready.json").write_text(json.dumps({"status":"ready","run_id":"012345abcdef"}))\n'
+                f'    Path("result.json").write_text({json.dumps(json.dumps(report))})\n',
+                environment=run.server_environment({'Updates.EnableDatabases': 7}))
+        run.check_report(result, '012345abcdef', self.scenario, returncode)
+
+    def test_module_configs_never_replace_server_files(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            source = directory / 'source'
+            target = directory / 'server-modules'
+            source.mkdir()
+            target.mkdir()
+            (source / 'a.conf').write_text('A.Enable = 1\n')
+            (source / 'b.conf').write_text('B.Enable = 1\n')
+            (target / 'b.conf').write_text('B.Enable = 0\n')
+            with self.assertRaises(FileExistsError):
+                run.stage_modules(source, target, {'BindIP'})
+            self.assertFalse((target / 'a.conf').exists())
+            self.assertEqual((target / 'b.conf').read_text(), 'B.Enable = 0\n')
+
+    def test_existing_destination_configs_cannot_override_isolation(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            source = directory / 'modules'
+            source.mkdir()
+            (source / 'module.conf').write_text('AscensionCompat.Enable = 1\n')
+            destination = directory / 'server-modules'
+            destination.mkdir()
+            (destination / 'other.conf').write_text('WorldDatabaseInfo = "0;0;u;p;d"\n')
+            with self.assertRaisesRegex(ValueError, 'overrides harness controls: other.conf'):
+                run.stage_modules(source, destination, {'WorldDatabaseInfo'})
+            self.assertFalse((destination / 'module.conf').exists())
+
+    @unittest.skipIf(run.os.name == 'nt', 'Windows reads module configs relative to the working directory')
+    def test_server_module_directory_is_required_outside_windows(self):
+        scenario = str(Path(__file__).parent / 'scenarios' / 'frostbolt.json')
+        arguments = ['run', scenario, '--worldserver', 'w', '--config', 'c', '--mysql', 'm', '--mysqldump', 'd']
+        with patch('sys.stderr', new_callable=io.StringIO) as errors, patch.object(run, 'execute') as execute:
+            code = run.main(arguments)
+        self.assertEqual(code, 1)
+        self.assertIn('--server-modules-dir', errors.getvalue())
+        execute.assert_not_called()
+
+    def test_execute_keeps_credentials_out_of_the_result_directory(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            worldserver = directory / 'worldserver'
+            worldserver.write_bytes(b'binary')
+            config = directory / 'worldserver.conf'
+            config.write_text(
+                'LoginDatabaseInfo = "127.0.0.1;3306;user;secret-password;source_auth"\n'
+                'CharacterDatabaseInfo = "127.0.0.1;3306;user;secret-password;source_characters"\n'
+                'WorldDatabaseInfo = "127.0.0.1;3306;user;secret-password;source_world"\n')
+            mysql = directory / 'mysql'
+            mysql.write_bytes(b'')
+            mysqldump = directory / 'mysqldump'
+            mysqldump.write_bytes(b'')
+            (directory / 'modules').mkdir()
+            output = directory / 'output'
+            args = SimpleNamespace(
+                worldserver=worldserver, config=config, mysql=mysql, mysqldump=mysqldump,
+                database_client_config=None, modules_config_dir=None,
+                server_modules_dir=directory / 'server-modules', output=output, startup_timeout=3)
+            report = self.report()
+            credential_dirs = []
+            real_mkdtemp = tempfile.mkdtemp
+
+            def recording_mkdtemp(*a, **kw):
+                path = real_mkdtemp(*a, **kw)
+                credential_dirs.append(Path(path))
+                return path
+
+            with patch.object(run.tempfile, 'mkdtemp', side_effect=recording_mkdtemp), \
+                    patch.object(run.secrets, 'token_hex', return_value='012345abcdef'), \
+                    patch.object(run.Databases, 'prepare', lambda self: None), \
+                    patch.object(run.Databases, 'cleanup', lambda self: []), \
+                    patch.object(run, 'run_process', return_value=(report, 0)):
+                code = run.execute(args, self.scenario)
+            self.assertEqual(code, 0)
+            self.assertEqual(len(credential_dirs), 1)
+            self.assertFalse(credential_dirs[0].exists())
+            self.assertFalse((output / 'worldserver.conf').exists())
+            self.assertFalse(any(output.glob('*-client.cnf')))
+            for path in output.rglob('*'):
+                if path.is_file():
+                    self.assertNotIn('secret-password', path.read_text(encoding='utf-8', errors='replace'))
+
+    @unittest.skipUnless(hasattr(run.signal, 'SIGTERM'), 'SIGTERM is not available on this platform')
+    def test_sigterm_handler_raises_and_previous_handler_is_restored(self):
+        scenario = str(Path(__file__).parent / 'scenarios' / 'frostbolt.json')
+        arguments = ['run', scenario, '--worldserver', 'w', '--config', 'c', '--mysql', 'm', '--mysqldump', 'd',
+                     '--server-modules-dir', 'sm']
+        previous_handler = run.signal.getsignal(run.signal.SIGTERM)
+        installed_handlers = []
+
+        def fake_execute(args, scenario):
+            installed_handlers.append(run.signal.getsignal(run.signal.SIGTERM))
+            return 0
+
+        with patch.object(run, 'execute', side_effect=fake_execute):
+            code = run.main(arguments)
+        self.assertEqual(code, 0)
+        self.assertEqual(len(installed_handlers), 1)
+        self.assertIsNot(installed_handlers[0], previous_handler)
+        with self.assertRaises(KeyboardInterrupt):
+            installed_handlers[0](run.signal.SIGTERM, None)
+        self.assertEqual(run.signal.getsignal(run.signal.SIGTERM), previous_handler)
 
 
 if __name__ == '__main__':
