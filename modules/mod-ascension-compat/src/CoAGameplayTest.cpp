@@ -298,6 +298,8 @@ private:
             Require(player->GetLevel() == level, "Fixture level change rejected");
             if (auto hitRating = actor.definition.get_optional<int32>("spell_hit_rating"))
                 player->ApplyRatingMod(CR_HIT_SPELL, *hitRating, true);
+            if (auto critRating = actor.definition.get_optional<int32>("spell_crit_rating"))
+                player->ApplyRatingMod(CR_CRIT_SPELL, *critRating, true);
             if (auto hitRating = actor.definition.get_optional<int32>("ranged_hit_rating"))
                 player->ApplyRatingMod(CR_HIT_RANGED, *hitRating, true);
             if (auto hitRating = actor.definition.get_optional<int32>("melee_hit_rating"))
@@ -393,6 +395,8 @@ private:
         uint32 spell = step.get<uint32>("spell", 0);
         if (metric == "health")
             return unit->GetHealth();
+        if (metric == "health_pct")
+            return unit->GetHealthPct();
         if (metric == "max_health")
             return unit->GetMaxHealth();
         if (metric == "power" || metric == "max_power")
@@ -443,6 +447,16 @@ private:
             return player->HasSpell(spell);
         if (metric == "gossip_options")
             return player->PlayerTalkClass->GetGossipMenu().GetMenuItemCount();
+        if (metric == "cast_speed_multiplier")
+            return player->GetFloatValue(UNIT_MOD_CAST_SPEED);
+        if (metric == "spell_crit_chance")
+            return player->GetFloatValue(PLAYER_SPELL_CRIT_PERCENTAGE1 + SPELL_SCHOOL_SHADOW);
+        if (metric == "spell_power_cost")
+        {
+            SpellInfo const* info = sSpellMgr->GetSpellInfo(spell);
+            Require(info != nullptr, "Unknown spell for power cost");
+            return info->CalcPowerCost(player, info->GetSchoolMask());
+        }
         if (metric == "has_talent")
         {
             Require(GetTalentSpellPos(spell) != nullptr, "Metric needs a talent rank's spell ID");
@@ -540,6 +554,11 @@ private:
                 Require(_snapshots.count(*relative) != 0, "Unknown snapshot: " + *relative);
                 actual -= _snapshots.at(*relative);
             }
+            if (auto ratio = step.get_optional<std::string>("ratio_to"))
+            {
+                Require(_snapshots.count(*ratio) && _snapshots.at(*ratio) != 0, "Missing or zero ratio snapshot");
+                actual /= _snapshots.at(*ratio);
+            }
             record.put("actual", actual);
             record.put("actor", step.get<std::string>("actor"));
             record.put("metric", step.get<std::string>("metric"));
@@ -622,6 +641,24 @@ private:
             WorldPacket packet(CMSG_GOSSIP_SELECT_OPTION, 16);
             packet << menu.GetSenderGUID() << menu.GetMenuId() << step.get<uint32>("option");
             player->GetSession()->HandleGossipSelectOptionOpcode(packet);
+        }
+        else if (action == "set_aura")
+        {
+            SpellInfo const* info = sSpellMgr->GetSpellInfo(spell);
+            Require(info != nullptr, "Unknown fixture aura");
+            uint32 stacks = step.get<uint32>("stacks");
+            Require(stacks <= std::max<uint32>(1, info->CalcMaxAuraStacks(player)),
+                "Fixture aura exceeds its stack limit");
+            if (!stacks)
+                player->RemoveAurasDueToSpell(spell);
+            else
+            {
+                Aura* aura = player->GetAura(spell);
+                if (!aura)
+                    aura = player->AddAura(spell, player);
+                Require(aura != nullptr, "Could not apply fixture aura");
+                aura->SetStackAmount(uint8(stacks));
+            }
         }
         else if (action == "learn")
         {

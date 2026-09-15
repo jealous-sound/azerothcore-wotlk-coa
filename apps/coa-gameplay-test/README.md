@@ -71,9 +71,13 @@ The [Shadow Effigy scenario](scenarios/shadow-effigy.json) checks combat casts, 
 nearby-enemy debuffs, replacement by another effigy and timed despawn.
 The [Dusk Blade scenario](scenarios/dusk-blade.json) checks dual-wield damage, Rage spending and healing
 the wounded caster across repeated melee casts.
+The [resource talents scenario](scenarios/resource-talents.json) checks the live-tree 1% resource bonuses.
+Arm of Thorim rolls 133–144 base damage at the fixture level, so two independent rolls need ratio ranges
+of 1.10–1.31 with its 20% bonus and 0.91–1.09 without it (including integer rounding). Charged Conduit
+preserves Static and must leave the talent without a depletion bonus.
 
 Players require `id`, numeric `race` and `class`; `level` defaults to 80. Optional `spell_hit_rating`,
-`ranged_hit_rating`, `melee_hit_rating` and `expertise_rating` add the corresponding fixture rating through
+`spell_crit_rating`, `ranged_hit_rating`, `melee_hit_rating` and `expertise_rating` add fixture ratings through
 normal calculations, useful for preventing misses, dodges and parries in deterministic tests.
 Characters are created and loaded through the existing character creation, enumeration and login
 handlers with ordinary player security. Optional `location` supplies `map`, `x`, `y`, `z`, `o` for a fixture
@@ -92,6 +96,7 @@ before taking baselines; assert stable maximums and final levels when testing da
 | `console` | `command`: execute one console command on the test server; capture its output. |
 | `command` | `actor`, `command` beginning with `.`: execute with the player's normal permissions. |
 | `learn`, `unlearn` | `actor`, `spell`: configure learned spells/passives through player APIs. |
+| `set_aura` | `actor`, `spell`, `stacks`: fixture aura state, within its stack limit; zero removes it. |
 | `talent` | `actor`, `talent`, zero-based `rank`: learn with normal point/prerequisite checks. |
 | `reset_talents` | `actor`: reset active talents through normal removal, without a trainer fee. |
 | `cast` | `actor`, `spell`, optional `target` (self by default): normal session cast handler. |
@@ -112,6 +117,7 @@ Equipment changes obey combat restrictions. Prepare gear before starting combat,
 by other nearby fixture actors. Rejected equipment actions include native inventory error codes in the result.
 For absence checks, wait through the relevant cast/proc window first, then assert. `relative_to` subtracts
 a previously named snapshot of the same metric; it is available on snapshots and assertions.
+`ratio_to` then divides by a nonzero snapshot of the same metric, for comparisons such as boosted/base damage.
 `cast` accepts an optional `destination` with `x`, `y`, `z` to send an explicit ground target.
 
 Metrics: `health`, `max_health`, `power`, `max_power`, `alive`, `combat`, `casting`, `level`, `knows_spell`,
@@ -121,6 +127,10 @@ Metrics: `health`, `max_health`, `power`, `max_power`, `alive`, `combat`, `casti
 `dynamic_object_duration_ms`.
 Boolean metrics use 0/1. Spell/aura metrics require `spell`; `item_count` requires `item`.
 `gossip_options` counts the player's current server-side gossip options; it does not verify client rendering.
+`health_pct` observes current health as a percentage of maximum health.
+`cast_speed_multiplier` observes the native cast-time multiplier; smaller values mean faster casts.
+`spell_crit_chance` observes the player's Shadow spell critical chance, in percentage points.
+`spell_power_cost` requires `spell` and queries its current native resource cost; it does not submit a cast.
 `has_talent` requires the talent rank's spell ID; passive talents are separate from the learned spellbook.
 `talent_points` measures unspent points in the active specialization.
 `bank_bag_slots` measures the player's unlocked standard bank bag slots (0..7).
