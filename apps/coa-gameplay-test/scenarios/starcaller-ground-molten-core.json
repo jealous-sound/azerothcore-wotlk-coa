@@ -1,0 +1,210 @@
+{
+  "schema": 1,
+  "name": "Star Caller ground effects: Molten Core",
+  "contract": "Lunar Storm and Moonwell create, apply and expire ground auras without treating their dynamic objects as units.",
+  "players": [
+    {
+      "id": "caster",
+      "race": 1,
+      "class": 26,
+      "level": 60,
+      "spell_hit_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "enemy",
+      "owner": "caster",
+      "entry": 36,
+      "level": 60,
+      "distance": 5
+    }
+  ],
+  "location": {
+    "map": 409,
+    "x": 1091.89,
+    "y": -466.985,
+    "z": -105.084,
+    "o": 3.14159,
+    "ignore_access": true
+  },
+  "steps": [
+    {
+      "action": "wait",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "caster",
+      "spell": 227
+    },
+    {
+      "action": "learn",
+      "actor": "caster",
+      "spell": 502329
+    },
+    {
+      "action": "add_item",
+      "actor": "caster",
+      "item": 42947
+    },
+    {
+      "action": "equip",
+      "actor": "caster",
+      "item": 42947,
+      "slot": 15
+    },
+    {
+      "action": "add_item",
+      "actor": "caster",
+      "item": 44107
+    },
+    {
+      "action": "equip",
+      "actor": "caster",
+      "item": 44107,
+      "slot": 2
+    },
+    {
+      "action": "add_item",
+      "actor": "caster",
+      "item": 48691
+    },
+    {
+      "action": "equip",
+      "actor": "caster",
+      "item": 48691,
+      "slot": 4
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "snapshot",
+      "actor": "enemy",
+      "metric": "health",
+      "save_as": "before"
+    },
+    {
+      "action": "cast",
+      "actor": "caster",
+      "spell": 502329,
+      "target": "enemy"
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "dynamic_object",
+      "spell": 502329,
+      "equals": 1,
+      "within_ms": 5000
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "dynamic_object_duration_ms",
+      "spell": 502329,
+      "min": 1,
+      "max": 10000
+    },
+    {
+      "action": "assert",
+      "actor": "enemy",
+      "metric": "health",
+      "relative_to": "before",
+      "max": -1,
+      "within_ms": 15000,
+      "label": "Lunar Storm damages enemies without crashing"
+    },
+    {
+      "action": "wait",
+      "ms": 11000
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "dynamic_object",
+      "spell": 502329,
+      "equals": 0
+    },
+    {
+      "action": "learn",
+      "actor": "caster",
+      "spell": 804739
+    },
+    {
+      "action": "cast",
+      "actor": "caster",
+      "spell": 804739,
+      "destination": {
+        "x": 1091.89,
+        "y": -466.985,
+        "z": -105.084
+      }
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "dynamic_object",
+      "spell": 804739,
+      "equals": 1,
+      "within_ms": 6000
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "aura",
+      "spell": 804739,
+      "caster": "caster",
+      "equals": 1,
+      "within_ms": 2000,
+      "label": "Moonwell applies its buffs to allies in the area"
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "aura_amount",
+      "spell": 804739,
+      "effect": 0,
+      "min": 1
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "dynamic_object_duration_ms",
+      "spell": 804739,
+      "min": 1,
+      "max": 15000
+    },
+    {
+      "action": "wait",
+      "ms": 16000
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "dynamic_object",
+      "spell": 804739,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "aura",
+      "spell": 804739,
+      "caster": "caster",
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "alive",
+      "equals": 1
+    },
+    {
+      "action": "console",
+      "command": "server info"
+    }
+  ]
+}

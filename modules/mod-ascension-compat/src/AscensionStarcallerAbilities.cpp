@@ -133,7 +133,7 @@ class starcaller_spells : public AllSpellScript
     }
     void OnCalcMaxDuration(Aura const* aura, int32& duration) override
     {
-        if (!Owner(aura->GetCaster()))
+        if (aura->GetType() != UNIT_AURA_TYPE || !Owner(aura->GetCaster()))
             return;
         if (aura->GetUnitOwner()->IsControlledByPlayer())
         {

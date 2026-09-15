@@ -77,7 +77,8 @@ Players require `id`, numeric `race` and `class`; `level` defaults to 80. Option
 normal calculations, useful for preventing misses, dodges and parries in deterministic tests.
 Characters are created and loaded through the existing character creation, enumeration and login
 handlers with ordinary player security. Optional `location` supplies `map`, `x`, `y`, `z`, `o` for a fixture
-teleport. Actors share phase `1 << 30` to isolate them from ordinary spawns.
+teleport. `location.ignore_access` optionally bypasses entry requirements for a fixture (for example a solo
+raid test), without enabling GM mode during combat. Actors share phase `1 << 30` to isolate ordinary spawns.
 
 Creatures require `id`, player `owner` and template `entry`. Optional `distance` offsets X from their owner
 (default 3 yards); `faction`, `level`, `health` default to 14, 80, 100000. They retain template data and AI,
@@ -109,11 +110,13 @@ Equipment changes obey combat restrictions. Prepare gear before starting combat,
 by other nearby fixture actors. Rejected equipment actions include native inventory error codes in the result.
 For absence checks, wait through the relevant cast/proc window first, then assert. `relative_to` subtracts
 a previously named snapshot of the same metric; it is available on snapshots and assertions.
+`cast` accepts an optional `destination` with `x`, `y`, `z` to send an explicit ground target.
 
 Metrics: `health`, `max_health`, `power`, `max_power`, `alive`, `combat`, `casting`, `level`, `knows_spell`,
 `has_talent`, `talent_points`, `cooldown_ms`, `item_count`, `bank_bag_slots`, `aura`, `aura_stacks`, `aura_charges`,
 `aura_duration_ms`, `aura_amount`, `pet_entry`, `pet_aura_stacks`, `owned_creature_count`,
-`charm_entry`, `charm_aura_stacks`, `controls_self`, `private_instance`.
+`charm_entry`, `charm_aura_stacks`, `controls_self`, `private_instance`, `dynamic_object`,
+`dynamic_object_duration_ms`.
 Boolean metrics use 0/1. Spell/aura metrics require `spell`; `item_count` requires `item`.
 `has_talent` requires the talent rank's spell ID; passive talents are separate from the learned spellbook.
 `talent_points` measures unspent points in the active specialization.
@@ -123,6 +126,8 @@ requires `spell`, accepts `caster` for aura ownership, and returns zero if the p
 `charm_entry` and `charm_aura_stacks` observe the player's charmed unit in the same way.
 `controls_self` checks that the player's movement controller is their own character.
 `private_instance` checks membership in a scripted private map such as Manastorm.
+`dynamic_object` checks for the player's ground effect with the specified `spell`.
+`dynamic_object_duration_ms` measures its remaining duration, or zero when absent.
 Player commands retain normal permission and gameplay checks; verify their effects with assertions.
 `owned_creature_count` requires a player and `entry`. It counts living creatures of that entry owned by
 the player, in the same phase and within 100 yards, including summons outside the guardian-pet slot.

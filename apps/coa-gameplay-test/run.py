@@ -28,6 +28,7 @@ METRICS = {
     'knows_spell', 'has_talent', 'talent_points', 'cooldown_ms', 'item_count', 'bank_bag_slots',
     'pet_entry', 'pet_aura_stacks', 'owned_creature_count',
     'charm_entry', 'charm_aura_stacks', 'controls_self', 'private_instance',
+    'dynamic_object', 'dynamic_object_duration_ms',
 }
 METRIC_FIELDS = {'actor', 'metric', 'spell', 'power', 'caster', 'effect', 'item', 'entry', 'relative_to'}
 ACTIONS = {
@@ -38,7 +39,7 @@ ACTIONS = {
     'assert': ({'actor', 'metric'}, METRIC_FIELDS | {'equals', 'min', 'max', 'within_ms'}),
     'learn': ({'actor', 'spell'}, {'actor', 'spell'}),
     'unlearn': ({'actor', 'spell'}, {'actor', 'spell'}),
-    'cast': ({'actor', 'spell'}, {'actor', 'spell', 'target'}),
+    'cast': ({'actor', 'spell'}, {'actor', 'spell', 'target', 'destination'}),
     'cast_charm': ({'actor', 'spell'}, {'actor', 'spell', 'target'}),
     'talent': ({'actor', 'talent', 'rank'}, {'actor', 'talent', 'rank'}),
     'reset_talents': ({'actor'}, {'actor'}),
@@ -122,7 +123,8 @@ def validate(scenario):
         number(creature.get('distance', 3), 'distance', 0, 100)
     if 'location' in scenario:
         location = scenario['location']
-        keys(location, {'map', 'x', 'y', 'z'}, {'map', 'x', 'y', 'z', 'o'}, 'location')
+        keys(location, {'map', 'x', 'y', 'z'}, {'map', 'x', 'y', 'z', 'o', 'ignore_access'}, 'location')
+        require(type(location.get('ignore_access', False)) is bool, 'ignore_access must be boolean')
         number(location['map'], 'map', 0, 2**32 - 1, True)
         for key in ('x', 'y', 'z'):
             number(location[key], key, -17000, 17000)
@@ -151,6 +153,11 @@ def validate(scenario):
         for key in ('target', 'caster'):
             if key in step:
                 require(step[key] in actor_ids, f'{where}: unknown {key}')
+        if 'destination' in step:
+            destination = step['destination']
+            keys(destination, {'x', 'y', 'z'}, {'x', 'y', 'z'}, f'{where}.destination')
+            for key in ('x', 'y', 'z'):
+                number(destination[key], f'{where}.destination.{key}', -17000, 17000)
         for key in ('spell', 'item', 'talent', 'count', 'entry'):
             if key in step:
                 number(step[key], f'{where}.{key}', 1, 2**31 - 1, True)
@@ -166,7 +173,8 @@ def validate(scenario):
             metric = step['metric']
             require(metric in METRICS, f'{where}: unknown metric')
             if metric.startswith('aura') or metric in {
-                    'knows_spell', 'cooldown_ms', 'has_talent', 'pet_aura_stacks', 'charm_aura_stacks'}:
+                    'knows_spell', 'cooldown_ms', 'has_talent', 'pet_aura_stacks', 'charm_aura_stacks',
+                    'dynamic_object', 'dynamic_object_duration_ms'}:
                 require('spell' in step, f'{where}: metric needs spell')
             if metric == 'item_count':
                 require('item' in step, f'{where}: metric needs item')
@@ -174,7 +182,8 @@ def validate(scenario):
                 require('entry' in step, f'{where}: metric needs creature entry')
             if metric in {'knows_spell', 'has_talent', 'talent_points', 'cooldown_ms', 'item_count', 'bank_bag_slots',
                           'pet_entry', 'pet_aura_stacks', 'owned_creature_count', 'charm_entry',
-                          'charm_aura_stacks', 'controls_self', 'private_instance'}:
+                          'charm_aura_stacks', 'controls_self', 'private_instance',
+                          'dynamic_object', 'dynamic_object_duration_ms'}:
                 require(step['actor'] in player_ids, f'{where}: metric needs a player')
             if 'relative_to' in step:
                 require(snapshots.get(step['relative_to']) == metric, f'{where}: missing or incompatible snapshot')

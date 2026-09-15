@@ -11,6 +11,7 @@
 #include "Creature.h"
 #include "DBCStores.h"
 #include "DatabaseEnv.h"
+#include "DynamicObject.h"
 #include "GitRevision.h"
 #include "Item.h"
 #include "ItemPackets.h"
@@ -305,7 +306,8 @@ private:
             actor.stage = ActorStage::Transfer;
             if (auto location = _scenario.get_child_optional("location"))
                 Require(player->TeleportTo(location->get<uint32>("map"), location->get<float>("x"),
-                    location->get<float>("y"), location->get<float>("z"), location->get<float>("o", 0)),
+                    location->get<float>("y"), location->get<float>("z"), location->get<float>("o", 0),
+                    location->get<bool>("ignore_access", false) ? TELE_TO_GM_MODE : 0),
                     "Fixture teleport failed");
         }
 
@@ -448,6 +450,14 @@ private:
             return player->GetMap()->IsScriptedPrivateInstance();
         if (metric == "controls_self")
             return player->m_mover == player;
+        if (metric == "dynamic_object" || metric == "dynamic_object_duration_ms")
+        {
+            Require(sSpellMgr->GetSpellInfo(spell) != nullptr, "Unknown ground-effect spell");
+            DynamicObject* object = player->GetDynObject(spell);
+            if (metric == "dynamic_object")
+                return object && object->IsInWorld();
+            return object ? object->GetDuration() : 0;
+        }
         if (metric == "charm_entry" || metric == "charm_aura_stacks")
         {
             Unit* charm = player->GetCharm();
@@ -612,6 +622,9 @@ private:
             Require(caster != nullptr, "Player has no charmed unit");
             Unit* target = step.get_optional<std::string>("target") ? GetUnit(step.get<std::string>("target")) : caster;
             targets.SetUnitTarget(target);
+            if (auto destination = step.get_child_optional("destination"))
+                targets.SetDst(destination->get<float>("x"), destination->get<float>("y"),
+                    destination->get<float>("z"), caster->GetOrientation());
             record.put("spell_active", caster->HasSpell(spell));
             record.put("line_of_sight", caster->IsWithinLOSInMap(target));
             WorldPacket packet(action == "cast" ? CMSG_CAST_SPELL :
