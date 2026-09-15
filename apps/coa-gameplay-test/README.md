@@ -69,10 +69,13 @@ The [Shadowblast scenario](scenarios/shadowblast-shadow-rage.json) reproduces a 
 and checks the buff's recipient, with ordinary Frostbolt casts as a control.
 The [Shadow Effigy scenario](scenarios/shadow-effigy.json) checks combat casts, one active effigy per owner,
 nearby-enemy debuffs, replacement by another effigy and timed despawn.
+The [Dusk Blade scenario](scenarios/dusk-blade.json) checks dual-wield damage, Rage spending and healing
+the wounded caster across repeated melee casts.
 
-Players require `id`, numeric `race` and `class`; `level` defaults to 80. Optional `spell_hit_rating` and
-`ranged_hit_rating` add the corresponding fixture rating through normal rating calculations, eliminating misses in a
-test. Characters are created and loaded through the existing character creation, enumeration and login
+Players require `id`, numeric `race` and `class`; `level` defaults to 80. Optional `spell_hit_rating`,
+`ranged_hit_rating`, `melee_hit_rating` and `expertise_rating` add the corresponding fixture rating through
+normal calculations, useful for preventing misses, dodges and parries in deterministic tests.
+Characters are created and loaded through the existing character creation, enumeration and login
 handlers with ordinary player security. Optional `location` supplies `map`, `x`, `y`, `z`, `o` for a fixture
 teleport. Actors share phase `1 << 30` to isolate them from ordinary spawns.
 

@@ -91,7 +91,8 @@ def validate(scenario):
     actor_ids = set()
     for player in players:
         keys(player, {'id', 'race', 'class'},
-             {'id', 'race', 'class', 'level', 'spell_hit_rating', 'ranged_hit_rating'}, 'player')
+             {'id', 'race', 'class', 'level', 'spell_hit_rating', 'ranged_hit_rating',
+              'melee_hit_rating', 'expertise_rating'}, 'player')
         identity = player['id']
         require(isinstance(identity, str) and ACTOR_ID.fullmatch(identity), 'Invalid player id')
         require(identity not in actor_ids, 'Duplicate actor id')
@@ -102,6 +103,8 @@ def validate(scenario):
         number(player.get('level', 80), 'level', 1, 255, True)
         number(player.get('spell_hit_rating', 0), 'spell_hit_rating', 0, 100000, True)
         number(player.get('ranged_hit_rating', 0), 'ranged_hit_rating', 0, 100000, True)
+        number(player.get('melee_hit_rating', 0), 'melee_hit_rating', 0, 100000, True)
+        number(player.get('expertise_rating', 0), 'expertise_rating', 0, 100000, True)
     for creature in creatures:
         keys(creature, {'id', 'owner', 'entry'},
              {'id', 'owner', 'entry', 'distance', 'faction', 'level', 'health'}, 'creature')

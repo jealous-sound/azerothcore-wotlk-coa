@@ -43,6 +43,8 @@ class RunnerTests(unittest.TestCase):
             lambda s: s['players'][0].update(level=True),
             lambda s: s['players'][0].update(race=0),
             lambda s: s['players'][0].update(ranged_hit_rating=-1),
+            lambda s: s['players'][0].update(melee_hit_rating=-1),
+            lambda s: s['players'][0].update(expertise_rating=True),
             lambda s: s['creatures'][0].update(id='caster'),
             lambda s: s['steps'].append({'action': 'cast', 'actor': 'caster', 'spell': 116, 'target': 'missing'}),
             lambda s: s['steps'].append({'action': 'assert', 'actor': 'target', 'metric': 'health', 'equlas': 0}),

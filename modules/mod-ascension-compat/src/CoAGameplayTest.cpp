@@ -295,6 +295,10 @@ private:
                 player->ApplyRatingMod(CR_HIT_SPELL, *hitRating, true);
             if (auto hitRating = actor.definition.get_optional<int32>("ranged_hit_rating"))
                 player->ApplyRatingMod(CR_HIT_RANGED, *hitRating, true);
+            if (auto hitRating = actor.definition.get_optional<int32>("melee_hit_rating"))
+                player->ApplyRatingMod(CR_HIT_MELEE, *hitRating, true);
+            if (auto expertise = actor.definition.get_optional<int32>("expertise_rating"))
+                player->ApplyRatingMod(CR_EXPERTISE, *expertise, true);
             player->SetHealth(player->GetMaxHealth());
             for (uint8 power = 0; power < MAX_POWERS; ++power)
                 player->SetPower(Powers(power), player->GetMaxPower(Powers(power)));

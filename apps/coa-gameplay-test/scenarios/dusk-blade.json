@@ -1,0 +1,218 @@
+{
+  "schema": 1,
+  "name": "Dusk Blade: dual-wield damage, Rage spending and self healing",
+  "contract": "Dusk Blade damages an enemy and heals its wounded caster without losing the healing target or crashing.",
+  "players": [
+    {
+      "id": "caster",
+      "race": 1,
+      "class": 15,
+      "level": 16,
+      "melee_hit_rating": 10000,
+      "expertise_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "enemy",
+      "owner": "caster",
+      "entry": 36,
+      "level": 16,
+      "distance": 3
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "caster",
+      "spell": 201
+    },
+    {
+      "action": "learn",
+      "actor": "caster",
+      "spell": 1180
+    },
+    {
+      "action": "learn",
+      "actor": "caster",
+      "spell": 674
+    },
+    {
+      "action": "learn",
+      "actor": "caster",
+      "spell": 802020
+    },
+    {
+      "action": "add_item",
+      "actor": "caster",
+      "item": 25
+    },
+    {
+      "action": "equip",
+      "actor": "caster",
+      "item": 25,
+      "slot": 15
+    },
+    {
+      "action": "add_item",
+      "actor": "caster",
+      "item": 2092
+    },
+    {
+      "action": "equip",
+      "actor": "caster",
+      "item": 2092,
+      "slot": 16
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "set_health",
+      "actor": "caster",
+      "value": 100
+    },
+    {
+      "action": "set_power",
+      "actor": "caster",
+      "power": 1,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "caster",
+      "metric": "health",
+      "save_as": "caster_before_0"
+    },
+    {
+      "action": "snapshot",
+      "actor": "enemy",
+      "metric": "health",
+      "save_as": "enemy_before_0"
+    },
+    {
+      "action": "snapshot",
+      "actor": "caster",
+      "metric": "power",
+      "power": 1,
+      "save_as": "rage_before_0"
+    },
+    {
+      "action": "cast",
+      "actor": "caster",
+      "spell": 802020,
+      "target": "enemy"
+    },
+    {
+      "action": "assert",
+      "label": "Dusk Blade damages the enemy",
+      "actor": "enemy",
+      "metric": "health",
+      "relative_to": "enemy_before_0",
+      "max": -1,
+      "within_ms": 5000
+    },
+    {
+      "action": "assert",
+      "label": "Dusk Blade heals its wounded caster",
+      "actor": "caster",
+      "metric": "health",
+      "relative_to": "caster_before_0",
+      "min": 1
+    },
+    {
+      "action": "assert",
+      "label": "The normal cast spends Rage",
+      "actor": "caster",
+      "metric": "power",
+      "power": 1,
+      "relative_to": "rage_before_0",
+      "max": -1
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "set_health",
+      "actor": "caster",
+      "value": 100
+    },
+    {
+      "action": "set_power",
+      "actor": "caster",
+      "power": 1,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "caster",
+      "metric": "health",
+      "save_as": "caster_before_1"
+    },
+    {
+      "action": "snapshot",
+      "actor": "enemy",
+      "metric": "health",
+      "save_as": "enemy_before_1"
+    },
+    {
+      "action": "snapshot",
+      "actor": "caster",
+      "metric": "power",
+      "power": 1,
+      "save_as": "rage_before_1"
+    },
+    {
+      "action": "cast",
+      "actor": "caster",
+      "spell": 802020,
+      "target": "enemy"
+    },
+    {
+      "action": "assert",
+      "label": "Dusk Blade damages the enemy",
+      "actor": "enemy",
+      "metric": "health",
+      "relative_to": "enemy_before_1",
+      "max": -1,
+      "within_ms": 5000
+    },
+    {
+      "action": "assert",
+      "label": "Dusk Blade heals its wounded caster",
+      "actor": "caster",
+      "metric": "health",
+      "relative_to": "caster_before_1",
+      "min": 1
+    },
+    {
+      "action": "assert",
+      "label": "The normal cast spends Rage",
+      "actor": "caster",
+      "metric": "power",
+      "power": 1,
+      "relative_to": "rage_before_1",
+      "max": -1
+    },
+    {
+      "action": "wait",
+      "ms": 20000
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "alive",
+      "equals": 1
+    },
+    {
+      "action": "console",
+      "command": "server info"
+    }
+  ]
+}
