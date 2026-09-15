@@ -37,8 +37,6 @@ uint32 AttackSpell(uint32 entry)
         return 801516;
     case 500650:
         return 822074;
-    case 50323:
-        return 822074;
     case 50177:
         return 801513;
     case 500483:
@@ -396,6 +394,11 @@ class npc_ascension_necromancer : public ScriptedAI
         case 50133:
         case 50303:
             Cast(me, target, 801518);
+            break;
+        case 50323:
+            // Frost-Congealed Barbs is Crypt Fiend's Runic-Power command, not its baseline
+            // attack; AttackSpell() intentionally excludes it so it doesn't auto-fire every tick.
+            Cast(me, target, 822074);
             break;
         default:
             if (uint32 ability = AttackSpell(entry))
