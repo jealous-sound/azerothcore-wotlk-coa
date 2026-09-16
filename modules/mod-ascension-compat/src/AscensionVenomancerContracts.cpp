@@ -13,7 +13,14 @@ namespace AscensionVenomancer
 {
 void ApplyContracts(SpellInfo* info)
 {
-    if (!info || info->SpellFamilyName != 35)
+    if (!info)
+        return;
+    // Arachnophobia and Lure ship with CasterAuraSpell pointing at the unrelated "Skulking" template
+    // spell (520890) instead of Skulk, so the native cast check always fails. This previously lived
+    // below the SpellFamilyName gate and never took effect, so it must run ahead of that gate.
+    if (Any(info,{804970,807759}))
+        info->CasterAuraSpell = Skulk;
+    if (info->SpellFamilyName != 35)
         return;
     uint32 id = info->Id;
     auto dummy = [info](uint8 slot)
@@ -251,10 +258,6 @@ void ApplyContracts(SpellInfo* info)
         aura(0,SPELL_AURA_SCHOOL_IMMUNITY,0,SPELL_SCHOOL_MASK_ALL);
         info->Effects[1].Effect = SPELL_EFFECT_DUMMY;
     }
-    // Arachnophobia and Lure ship with CasterAuraSpell pointing at the unrelated "Skulking" template
-    // spell (520890) instead of Skulk, so the native cast check always fails.
-    if (Any(info,{804970,807759}))
-        info->CasterAuraSpell = Skulk;
     if (id == 804003)
         for (uint8 slot = 0; slot < MAX_SPELL_EFFECTS; ++slot)
             dummy(slot);
