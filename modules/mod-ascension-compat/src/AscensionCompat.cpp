@@ -5542,6 +5542,43 @@ class spell_ascension_local_mount : public SpellScript
     }
 };
 
+// Wildcard Mount (91944) is a plain SPELL_EFFECT_DUMMY spell with no built-in behavior of its own;
+// summon a random mount the player already owns, then let spell_ascension_local_mount above resolve
+// the correct speed/flying variant for it.
+class spell_ascension_wildcard_mount : public SpellScript
+{
+    PrepareSpellScript(spell_ascension_wildcard_mount);
+
+    bool Load() override
+    {
+        return ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED) &&
+            GetCaster()->IsPlayer();
+    }
+
+    void HandleDummy(SpellEffIndex effIndex)
+    {
+        PreventHitDefaultEffect(effIndex);
+        Player* player = GetHitPlayer();
+        if (!player)
+            return;
+
+        std::vector<uint32> known;
+        for (AscensionCollectibles::MountWrapper const& entry : AscensionCollectibles::MountWrappers)
+            if (player->HasSpell(entry.SpellId))
+                known.push_back(entry.SpellId);
+
+        if (known.empty())
+            return;
+
+        player->CastSpell(player, known[urand(0, uint32(known.size()) - 1)], true);
+    }
+
+    void Register() override
+    {
+        OnEffectHitTarget += SpellEffectFn(spell_ascension_wildcard_mount::HandleDummy, EFFECT_0, SPELL_EFFECT_DUMMY);
+    }
+};
+
 class npc_ascension_training_book : public CreatureScript
 {
 public:
@@ -5641,6 +5678,7 @@ void AddAscensionCompatScripts() {
   RegisterSpellScript(spell_ascension_personal_bank);
   RegisterSpellScript(spell_ascension_experience_potion);
   RegisterSpellScript(spell_ascension_local_mount);
+  RegisterSpellScript(spell_ascension_wildcard_mount);
   RegisterSpellScript(spell_ascension_legacy_quest_reward);
   new AscensionTradesmanScroll();
   new AscensionCompatServerScript();
