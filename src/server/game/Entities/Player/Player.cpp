@@ -3295,6 +3295,9 @@ bool Player::_addSpell(uint32 spellId, uint8 addSpecMask, bool temporary, bool l
     // xinef: send packet so client can properly recognize this new spell
     // xinef: ignore passive spells and spells with learn effect
     // xinef: send spells with no aura effects (ie dual wield)
+    // This site owns the announcement for a temporary learn that did not come from a skill line, and its
+    // condition mirrors the one Player::removeSpell uses for onlyTemporary. Player::learnSpell must not
+    // announce the same grant again, or the client ends up with more copies than the server ever removes.
     if (IsInWorld() && !isBeingLoaded() && temporary && !learnFromSkill && (!spellInfo->HasAttribute(SpellAttr0(SPELL_ATTR0_PASSIVE | SPELL_ATTR0_DO_NOT_DISPLAY)) || !spellInfo->HasAnyAura()) && !spellInfo->HasEffect(SPELL_EFFECT_LEARN_SPELL))
         SendLearnPacket(spellInfo->Id, true);
 
@@ -3479,7 +3482,11 @@ void Player::learnSpell(uint32 spellId, bool temporary /*= false*/, bool learnFr
         sScriptMgr->OnPlayerLearnSpell(this, spellId);
 
         // pussywizard: a system message "you have learnt spell X (rank Y)"
-        if (IsInWorld())
+        // Player::_addSpell already sent this packet for a temporary learn that did not come from a skill line,
+        // and Player::removeSpell answers such a grant with a single SMSG_REMOVED_SPELL. Announcing it twice
+        // leaves the client one extra copy of the spell per grant/revoke cycle, which both hides the real
+        // spellbook entry behind duplicates and keeps the client believing a revoked spell is still known.
+        if (IsInWorld() && (!temporary || learnFromSkill))
             SendLearnPacket(spellId, true);
     }
 
