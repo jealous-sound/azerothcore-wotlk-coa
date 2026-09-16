@@ -460,7 +460,8 @@ private:
         if (metric.rfind("aura", 0) == 0)
         {
             Require(metric == "aura" || metric == "aura_stacks" || metric == "aura_charges"
-                || metric == "aura_duration_ms" || metric == "aura_amount", "Unknown aura metric");
+                || metric == "aura_duration_ms" || metric == "aura_amount" || metric == "aura_positive",
+                "Unknown aura metric");
             Require(sSpellMgr->GetSpellInfo(spell) != nullptr, "Unknown aura spell");
             ObjectGuid caster;
             if (auto id = step.get_optional<std::string>("caster"))
@@ -470,6 +471,11 @@ private:
                 return aura != nullptr;
             if (!aura)
                 return 0;
+            if (metric == "aura_positive")
+            {
+                AuraApplication const* application = aura->GetApplicationOfTarget(unit->GetGUID());
+                return application && application->IsPositive();
+            }
             if (metric == "aura_stacks")
                 return aura->GetStackAmount();
             if (metric == "aura_charges")

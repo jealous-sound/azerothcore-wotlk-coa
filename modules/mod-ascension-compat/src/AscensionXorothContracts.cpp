@@ -205,6 +205,11 @@ void ApplyContracts(SpellInfo* info)
         e.TargetA = SpellImplicitTargetInfo(TARGET_UNIT_CASTER);
         e.TargetB = SpellImplicitTargetInfo();
     }
+    if (id == 804786)
+    {
+        // The original enemy area aura was classified before conversion to the self-only driver above.
+        info->AttributesCu &= ~SPELL_ATTR0_CU_NEGATIVE_EFF0;
+    }
     if (id == 801055 || id == 560817 || id == 802855 || id == 802856 || id == 802857 || id == 801052)
         for (auto& e : info->Effects)
             if (e.Effect)

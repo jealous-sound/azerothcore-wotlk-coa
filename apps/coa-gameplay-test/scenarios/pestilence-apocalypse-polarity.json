@@ -1,0 +1,77 @@
+{
+  "schema": 1,
+  "name": "Pestilence of Apocalypse aura polarity (#224)",
+  "contract": "Apocalypse is a beneficial self aura; nearby enemies receive its harmful vulnerability aura.",
+  "players": [
+    {
+      "id": "knight",
+      "race": 1,
+      "class": 17,
+      "level": 19
+    }
+  ],
+  "creatures": [
+    {
+      "id": "enemy",
+      "owner": "knight",
+      "entry": 36,
+      "health": 100000,
+      "distance": 3
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "knight",
+      "spell": 804786
+    },
+    {
+      "action": "cast",
+      "actor": "knight",
+      "spell": 804786
+    },
+    {
+      "action": "assert",
+      "actor": "knight",
+      "metric": "aura",
+      "spell": 804786,
+      "equals": 1,
+      "within_ms": 1000
+    },
+    {
+      "action": "assert",
+      "actor": "knight",
+      "metric": "aura_positive",
+      "spell": 804786,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "actor": "enemy",
+      "metric": "aura",
+      "spell": 804801,
+      "caster": "knight",
+      "equals": 1,
+      "within_ms": 2500
+    },
+    {
+      "action": "assert",
+      "actor": "enemy",
+      "metric": "aura_positive",
+      "spell": 804801,
+      "caster": "knight",
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "knight",
+      "metric": "aura",
+      "spell": 804801,
+      "equals": 0
+    }
+  ]
+}
