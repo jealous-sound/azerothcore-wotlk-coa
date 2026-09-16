@@ -29,16 +29,17 @@ an existing database and updating the package.
 
 ## Automatic specialization talents
 
-Automatic spec progression requires its level and spec-tree prerequisites, but
-does not require purchasing a talent in the shared class tree. The workspace
-`tools/Generate-LocalCoATalentData.ps1` removes those paid cross-tree requirements
-before generating both `AscensionCoATalentData.h` and the canonical client's
-`CoATalentNodeData.lua`. Paid talents and selectable free choices remain explicit.
-Regenerate both outputs together; the matching client source must be packaged
-when deploying the server change.
+The talent catalog is read at startup from the client's `CharacterAdvancement.dbc`
+with its class type, tab type, `ChrClasses` and `ChrSpecs` tables
+(`src/AscensionCoATalentData.cpp`). Automatic spec progression requires its level and
+spec-tree prerequisites, but does not require purchasing a talent in the shared class
+tree, so the loader drops those paid cross-tree requirements. Specialization identity
+passives named by `ChrSpecs` are level 10 grants. Paid talents and Barbarian's selectable
+free choices remain explicit. The client addon's `CoATalentNodeData.lua` must describe the
+same nodes.
 
-Run `python -B modules/mod-ascension-compat/tests/test_automatic_talent_dependencies.py`
-for the server data regressions. Add `--client-addon-dir <Ascension_Collections>`
+Run `python -B modules/mod-ascension-compat/tests/test_automatic_talent_dependencies.py --dbc-dir <server-data/dbc>`
+with a C++20 compiler available for the server data regressions. Add `--client-addon-dir <Ascension_Collections>`
 with `lupa` installed to also exercise the client Lua 5.1 rank calculation and
 check that its dependencies match the server. These checks do not build or launch
 the server or game client.

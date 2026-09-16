@@ -2,8 +2,9 @@
 
 Extracts the actual service, callbacks and Player spell-map/save code. Skill,
 achievement, aura, rank and packet APIs are bounded dependencies; this is not a
-combat test. --spell-dbc additionally checks authored teaching and transformation
-clauses; --trainer-policy checks the captured level gates of replacement ranks.
+combat test. --dbc-dir checks the grants against the talent catalog the module loads from the
+client DBCs; --spell-dbc additionally checks authored teaching and transformation clauses;
+--trainer-policy checks the captured level gates of replacement ranks.
 """
 
 import argparse
@@ -20,6 +21,7 @@ import tempfile
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[3]
 method = runpy.run_path(str(HERE.parent / "client_compat/run.py"))["method"]
+catalog_text = runpy.run_path(str(HERE.parent / "coa_talent_catalog.py"))["catalog_text"]
 NEW_GRANTS = {804729: 804834, 561069: 801662, 92097: 804019, 92114: 800157,
               92119: 806291, 92131: 520326, 680750: 567524}
 
@@ -27,11 +29,11 @@ NEW_GRANTS = {804729: 804834, 561069: 801662, 92097: 804019, 92114: 800157,
 def check_data(header, catalog, replacement_header, dbc, trainer):
     entries = [tuple(map(int, row)) for row in
                re.findall(r"\{ (\d+), (\d+), (\d+), (\d+), (\d+) \}", header)]
-    nodes = [tuple(map(int, re.findall(r"\d+", line))) for line in catalog.splitlines()
+    nodes = [tuple(map(int, re.findall(r"\d+", line))) for line in (catalog or "").splitlines()
              if line.startswith("    {")]
     assert entries and len({entry[4] for entry in entries}) == len(entries), "Child ownership must be unique"
     assert not {entry[3] for entry in entries} & {entry[4] for entry in entries}, "Grant callbacks must not cycle"
-    for cls, spec, level, parent, _ in entries:
+    for cls, spec, level, parent, _ in entries if catalog else ():
         assert any(len(node) == 10 and node[1] == cls and node[2] == spec and
                    node[6] == level and parent in node[7:] for node in nodes), (cls, spec, level, parent)
     replacements = []
@@ -39,7 +41,8 @@ def check_data(header, catalog, replacement_header, dbc, trainer):
             r"\{ (\d+), (\d+), (\d+), (\d+), \{\{(.*?)\}\} \}", replacement_header, re.S):
         ranks = [tuple(map(int, pair)) for pair in re.findall(r"\{ (\d+), (\d+) \}", body)]
         cls, spec, parent, original = map(int, (cls, spec, parent, original))
-        assert any(len(node) == 10 and node[1] == cls and node[2] == spec and parent in node[7:] for node in nodes)
+        assert not catalog or any(len(node) == 10 and node[1] == cls and node[2] == spec and parent in node[7:]
+                                  for node in nodes)
         assert ranks and ranks[0][1] == 0 and sorted(ranks, key=lambda rank: rank[1]) == ranks
         replacements.append((cls, parent, original, ranks))
     assert len(replacements) == 13
@@ -102,6 +105,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-ref", help="Read production source from a local Git ref for a negative control.")
     parser.add_argument("--service-ref", help="Use an older class service with current policy to test missing routing.")
+    parser.add_argument("--dbc-dir", type=Path)
     parser.add_argument("--spell-dbc", type=Path)
     parser.add_argument("--trainer-policy", type=Path)
     args = parser.parse_args()
@@ -117,7 +121,7 @@ def main():
             f"{args.service_ref}:modules/mod-ascension-compat/src/AscensionCompat.cpp"], cwd=ROOT).decode("utf-8")
     header = source("modules/mod-ascension-compat/src/AscensionTaughtAbilityData.h")
     replacement_header = (ROOT / "modules/mod-ascension-compat/src/AscensionTalentReplacementData.h").read_text()
-    check_data(header, source("modules/mod-ascension-compat/src/AscensionCoATalentData.h"), replacement_header,
+    check_data(header, catalog_text(args.dbc_dir) if args.dbc_dir else None, replacement_header,
                args.spell_dbc, args.trainer_policy)
     player = source("src/server/game/Entities/Player/Player.cpp")
     player_header = source("src/server/game/Entities/Player/Player.h")

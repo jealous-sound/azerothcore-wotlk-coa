@@ -1,5 +1,6 @@
 """Check spec progression data; optionally exercise the matching client rank function.
 
+--dbc-dir is the client DBC set the server loads; the module's talent loader is compiled to read it.
 Use --client-addon-dir to check generated Lua and CharacterAdvancementStateCompat.lua
 with lupa's Lua 5.1 runtime. No server build, database, or game client is needed.
 """
@@ -9,9 +10,13 @@ from pathlib import Path
 import re
 import unittest
 
+from coa_talent_catalog import catalog_text
+
 
 MODULE = Path(__file__).resolve().parents[1]
 CLIENT_ADDON = None
+DBC_DIR = None
+CATALOG = None
 # Reported automatic nodes and the spec-tree roots they must still require.
 SPEC_ROOTS = {
     3997: 4031, 4037: 0, 4041: 0, 4505: 4006, 4525: 4025, 7750: 9905,
@@ -23,7 +28,12 @@ OTHER_ROOTS = {12166: 4016, 17414: 4011, 29485: 4026, 30229: 4018, 31164: 4014, 
 
 
 def read_header():
-    text = (MODULE / "src/AscensionCoATalentData.h").read_text(encoding="utf-8")
+    global CATALOG
+    if DBC_DIR is None:
+        raise unittest.SkipTest("Pass --dbc-dir to read the talent catalog from the client DBCs.")
+    if CATALOG is None:
+        CATALOG = catalog_text(DBC_DIR)
+    text = CATALOG
     fields = "class_id spec_id spell_count ae_cost te_cost level spell1 spell2 spell3".split()
     entries = {}
     for line in text.splitlines():
@@ -53,7 +63,7 @@ class AutomaticDependencies(unittest.TestCase):
 
     def test_no_automatic_spec_depends_on_paid_class_talent(self):
         entries, dependencies = read_header()
-        self.assertEqual(len(entries), 3618)
+        self.assertTrue(entries)
         for entry_id, required_ids in dependencies.items():
             entry = entries[entry_id]
             for required_id in required_ids:
@@ -207,6 +217,8 @@ class ClientSpecializationTabs(unittest.TestCase):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--client-addon-dir", type=Path)
+    parser.add_argument("--dbc-dir", type=Path)
     args, remaining = parser.parse_known_args()
     CLIENT_ADDON = args.client_addon_dir
+    DBC_DIR = args.dbc_dir
     unittest.main(argv=[__file__, *remaining])

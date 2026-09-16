@@ -5259,6 +5259,7 @@ public:
   }
 
   void OnStartup() override {
+    AscensionCompatData::LoadCoATalentData();
     if (!ascensionCompatConfig.GetConfigValue<bool>(
             AscensionCompatConfig::ENABLED))
       return;
