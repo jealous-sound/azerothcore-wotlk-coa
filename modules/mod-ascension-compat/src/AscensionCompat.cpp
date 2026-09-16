@@ -4310,6 +4310,24 @@ public:
                         spellInfo->Effects[EFFECT_0].ApplyAuraName == SPELL_AURA_NONE)
                         spellInfo->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_DUMMY;
                     break;
+                // Shadowlands "mawhorsespikes" ground horses imported with a mounted-flight effect that the
+                // other fourteen mounts of the same import block (91611-91614, 91620-91629) do not carry.
+                // The client records leave SPELL_ATTR4_ONLY_FLYING_AREAS clear, so SpellInfo::CheckLocation
+                // never runs the continent gate and AuraEffect::HandleAuraModIncreaseFlightSpeed grants
+                // CAN_FLY anywhere, including Azeroth at level 1 with no riding skill. Drop the flight
+                // effect so these mounts match their ground-only siblings.
+                case 91616: case 91617: case 91618: case 91619:
+                    if (spellInfo->Effects[EFFECT_0].ApplyAuraName == SPELL_AURA_MOUNTED &&
+                        spellInfo->Effects[EFFECT_1].ApplyAuraName == SPELL_AURA_MOD_INCREASE_MOUNTED_SPEED &&
+                        spellInfo->Effects[EFFECT_2].Effect == SPELL_EFFECT_APPLY_AURA &&
+                        spellInfo->Effects[EFFECT_2].ApplyAuraName == SPELL_AURA_MOD_INCREASE_MOUNTED_FLIGHT_SPEED &&
+                        !spellInfo->HasAttribute(SPELL_ATTR4_ONLY_FLYING_AREAS))
+                    {
+                        spellInfo->Effects[EFFECT_2].Effect = SPELL_EFFECT_NONE;
+                        spellInfo->Effects[EFFECT_2].ApplyAuraName = SPELL_AURA_NONE;
+                        spellInfo->Effects[EFFECT_2].BasePoints = 0;
+                    }
+                    break;
                 default:
                     break;
             }
