@@ -46,6 +46,7 @@ struct Player : Unit
     void learnSpell(uint32 id, bool dependent) { assert(!dependent); known.insert(id); ++learns; }
     Player* ToPlayer() override { return this; }
     bool HasPlayerFlag(PlayerFlags flag) const { assert(flag == PLAYER_FLAGS_RESTING); return resting; }
+    bool HasAura(uint32 id) const { return auras.contains(id); }
     void RemoveAurasDueToSpell(uint32 id) { auras.erase(id); }
     void CastSpell(Player* target, uint32 id, bool triggered)
     {
@@ -125,10 +126,21 @@ int main()
     ruleset_player_spells login;
     player.known.insert(84421);
     player.known.insert(123);
+    player.auras.insert(123); // The login default leaves unrelated auras alone.
     login.OnPlayerLogin(&player);
     assert((player.known == std::set<uint32>{123, 84420, 84421, 84422}) && player.learns == 2);
+    // A character created without any ruleset aura falls back to PvE instead of Ruleset.None.
+    assert((player.auras == std::set<uint32>{123, 1004119, 9931032}));
     login.OnPlayerLogin(&player);
-    assert(player.learns == 2);
+    assert(player.learns == 2 && (player.auras == std::set<uint32>{123, 1004119, 9931032}));
+    // Any ruleset already on the character is kept, including High-Risk and War Mode.
+    for (auto const& kept : {std::set<uint32>{1004019}, std::set<uint32>{1004119},
+                             std::set<uint32>{1004119, 9931032}})
+    {
+        player.auras = kept;
+        login.OnPlayerLogin(&player);
+        assert(player.auras == kept);
+    }
     Unit npc;
     SpellInfo info;
     spell_ascension_ruleset_select script;

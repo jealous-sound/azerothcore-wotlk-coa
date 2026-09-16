@@ -16,6 +16,23 @@ enum RulesetSpells : uint32
     SPELL_PVE = 9931032
 };
 
+// Applies the aura set a selection spell stands for, without running its cast requirements.
+void ApplyRuleset(Player* player, uint32 selectionId)
+{
+    player->RemoveAurasDueToSpell(SPELL_HIGH_RISK);
+    player->RemoveAurasDueToSpell(SPELL_WAR_MODE);
+    player->RemoveAurasDueToSpell(SPELL_PVE);
+    if (selectionId == SPELL_SELECT_HIGH_RISK)
+        player->CastSpell(player, SPELL_HIGH_RISK, true);
+    else
+    {
+        // C_Player:GetRuleset distinguishes PvE by this additional marker.
+        player->CastSpell(player, SPELL_WAR_MODE, true);
+        if (selectionId == SPELL_SELECT_PVE)
+            player->CastSpell(player, SPELL_PVE, true);
+    }
+}
+
 class spell_ascension_ruleset_select : public SpellScript
 {
     PrepareSpellScript(spell_ascension_ruleset_select);
@@ -41,18 +58,7 @@ class spell_ascension_ruleset_select : public SpellScript
         if (!player || (id != SPELL_SELECT_WAR_MODE && id != SPELL_SELECT_HIGH_RISK && id != SPELL_SELECT_PVE))
             return;
 
-        player->RemoveAurasDueToSpell(SPELL_HIGH_RISK);
-        player->RemoveAurasDueToSpell(SPELL_WAR_MODE);
-        player->RemoveAurasDueToSpell(SPELL_PVE);
-        if (id == SPELL_SELECT_HIGH_RISK)
-            player->CastSpell(player, SPELL_HIGH_RISK, true);
-        else
-        {
-            // C_Player:GetRuleset distinguishes PvE by this additional marker.
-            player->CastSpell(player, SPELL_WAR_MODE, true);
-            if (id == SPELL_SELECT_PVE)
-                player->CastSpell(player, SPELL_PVE, true);
-        }
+        ApplyRuleset(player, id);
     }
 
     void Register() override
@@ -85,6 +91,12 @@ public:
         for (uint32 id : {SPELL_SELECT_WAR_MODE, SPELL_SELECT_HIGH_RISK, SPELL_SELECT_PVE})
             if (!player->HasSpell(id))
                 player->learnSpell(id, false);
+
+        // Character creation grants no ruleset, and the client's selection frame is level and
+        // rested-area gated, so a character without one can never leave C_Player.Ruleset.None
+        // on its own. Default to the only harmless ruleset until the player picks another.
+        if (!player->HasAura(SPELL_HIGH_RISK) && !player->HasAura(SPELL_WAR_MODE) && !player->HasAura(SPELL_PVE))
+            ApplyRuleset(player, SPELL_SELECT_PVE);
     }
 };
 }
