@@ -16,6 +16,8 @@ enum PrimalistSecondarySpells : uint32
     SPELL_ANCIENT_OF_LORE = 805105,
     SPELL_ANCIENT_SLOW = 504369,
     SPELL_VOLCANIC_BLAST = 681353,
+    SPELL_HAMMER_OF_LIFE_HEAL = 806073,
+    SPELL_HAMMER_OF_LIFE_DAMAGE = 807651,
     SPELL_CRACKING_EARTH = 560145,
     SPELL_CRACKING_STACK = 560146,
     SPELL_EARTHS_EMBRACE = 806143,
@@ -88,6 +90,49 @@ class aura_ascension_volcanic_blast : public AuraScript
     {
         DoCheckProc += AuraCheckProcFn(aura_ascension_volcanic_blast::Check);
         OnEffectProc += AuraEffectProcFn(aura_ascension_volcanic_blast::Proc, EFFECT_0, AuraType(354));
+    }
+};
+
+// Hammer of Life (803973): melee attacks and abilities heal nearby allies and damage nearby enemies for $s1% of the
+// damage dealt. Both helpers use effect 0's percentage, as the tooltip does; effect 2's own 30% is not described.
+// The helpers pick their targets (up to 3 each, around the caster) from their own Spell.dbc records.
+class aura_ascension_hammer_of_life : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_hammer_of_life);
+
+    bool Check(ProcEventInfo& event)
+    {
+        Unit* player = GetTarget();
+        Unit* victim = event.GetActionTarget();
+        DamageInfo const* damage = event.GetDamageInfo();
+        return player->IsPlayer() && player->getClass() == CLASS_WILDWALKER && player->IsAlive() &&
+            GetCaster() == player && event.GetActor() == player && victim && victim != player &&
+            !player->IsFriendlyTo(victim) && damage && damage->GetDamage();
+    }
+
+    void Proc(AuraEffect const* effect, ProcEventInfo& event)
+    {
+        PreventDefaultAction();
+        uint64 amount = uint64(event.GetDamageInfo()->GetDamage()) * std::clamp(effect->GetAmount(), 0, 100) / 100;
+        if (!amount)
+            return;
+        int32 value = int32(std::min<uint64>(amount, std::numeric_limits<int32>::max()));
+        GetTarget()->CastCustomSpell(SPELL_HAMMER_OF_LIFE_HEAL, SPELLVALUE_BASE_POINT0, value, GetTarget(),
+            TRIGGERED_FULL_MASK);
+        GetTarget()->CastCustomSpell(SPELL_HAMMER_OF_LIFE_DAMAGE, SPELLVALUE_BASE_POINT0, value, GetTarget(),
+            TRIGGERED_FULL_MASK);
+    }
+
+    void IgnoreSecondTrigger(AuraEffect const* /*effect*/, ProcEventInfo& /*event*/)
+    {
+        PreventDefaultAction();
+    }
+
+    void Register() override
+    {
+        DoCheckProc += AuraCheckProcFn(aura_ascension_hammer_of_life::Check);
+        OnEffectProc += AuraEffectProcFn(aura_ascension_hammer_of_life::Proc, EFFECT_0, AuraType(354));
+        OnEffectProc += AuraEffectProcFn(aura_ascension_hammer_of_life::IgnoreSecondTrigger, EFFECT_2, AuraType(354));
     }
 };
 
@@ -206,5 +251,6 @@ void AddSC_AscensionPrimalistSecondary()
     new primalist_volcanic_targets();
     new primalist_secondary_metadata();
     RegisterSpellScript(aura_ascension_volcanic_blast);
+    RegisterSpellScript(aura_ascension_hammer_of_life);
     RegisterSpellScript(spell_ascension_gaze_of_theradras);
 }
