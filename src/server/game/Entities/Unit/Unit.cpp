@@ -13774,7 +13774,8 @@ void Unit::RestoreDisplayId()
         handledAuraForced->HandleEffect(this, AURA_EFFECT_HANDLE_SEND_FOR_CLIENT, true);
         return;
     }
-    else if (!shapeshiftAura.empty()) // we've found shapeshift
+
+    if (!shapeshiftAura.empty()) // we've found shapeshift
     {
         // only one such aura possible at a time
         if (uint32 modelId = GetModelForForm(GetShapeshiftForm(), shapeshiftAura.front()->GetId()))
@@ -13782,8 +13783,13 @@ void Unit::RestoreDisplayId()
             SetDisplayId(modelId);
             return;
         }
+
+        // model-less forms (warrior stances, Shadowform, the Ascension "Cursed Form" family) own no display
+        // of their own, so they must not shadow a transform aura - fall through to it instead of reverting
+        // to the native model.
     }
-    else if (handledAura)
+
+    if (handledAura)
     {
         handledAura->HandleEffect(this, AURA_EFFECT_HANDLE_SEND_FOR_CLIENT, true);
         return;
