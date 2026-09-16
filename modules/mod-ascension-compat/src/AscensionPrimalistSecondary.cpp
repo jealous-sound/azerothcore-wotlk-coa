@@ -178,11 +178,31 @@ public:
         }
     }
 };
+
+// The Primalist spends Rage - 123 of its family-37 records carry a Rage cost, Seismic Smash among
+// them - but ChrClasses.dbc gives class 31 Mana as its display power. Unit::DealDamage grants Rage for
+// melee damage dealt and for damage received only when HasActivePowerType(POWER_RAGE) holds, and that
+// helper asks the player scripts first, otherwise comparing the display power, so auto attacks built
+// no Rage at all.
+class primalist_resources : public PlayerScript
+{
+public:
+    primalist_resources()
+        : PlayerScript("primalist_resources", {PLAYERHOOK_ON_PLAYER_HAS_ACTIVE_POWER_TYPE})
+    {
+    }
+
+    bool OnPlayerHasActivePowerType(Player const* player, Powers power) override
+    {
+        return player && player->getClass() == CLASS_WILDWALKER && power == POWER_RAGE;
+    }
+};
 }
 
 void AddSC_AscensionPrimalistSecondary()
 {
     new primalist_secondary_auras();
+    new primalist_resources();
     new primalist_volcanic_targets();
     new primalist_secondary_metadata();
     RegisterSpellScript(aura_ascension_volcanic_blast);
