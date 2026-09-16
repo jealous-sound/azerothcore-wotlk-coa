@@ -226,6 +226,11 @@ class npc_ascension_witch_doctor : public ScriptedAI
         }
         if (me->GetEntry() == NpcMarionette)
             _timer = 2000;
+        // The Cleansing Idol advertises a 3 second cleanse and repeats on that interval, but the
+        // default one-millisecond timer made it cleanse the instant it landed, so re-dropping it
+        // cleansed on demand. Wait out the first interval like the wards and the Marionette do.
+        if (me->GetEntry() == NpcCleanse)
+            _timer = 3000;
         if (me->GetEntry() == NpcSerpent || me->GetEntry() == NpcMassSerpent || me->GetEntry() == NpcViper)
             _timer = WardAttackInterval();
     }
