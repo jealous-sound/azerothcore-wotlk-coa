@@ -15,6 +15,13 @@ namespace
 {
 using namespace AscensionStarcaller;
 constexpr uint32 selected[] = {800386, 680821, 503780, 561046, 801243, 707425, 504630, 504631, 680713, 802681, 572319};
+bool IsLunarEclipseActivation(Spell const* spell)
+{
+    // The constructor adds these flags for ALLOW_CAST_WHILE_CASTING even to a normal player cast.
+    constexpr uint32 allowedFlags = TRIGGERED_IGNORE_CAST_IN_PROGRESS | TRIGGERED_CAST_DIRECTLY;
+    return spell->GetSpellInfo()->Id == 800386 && !(uint32(spell->GetTriggeredCastFlags()) & ~allowedFlags);
+}
+
 bool Select(uint32 id, SpellInfo const* info, Player* player)
 {
     switch (id)
@@ -123,7 +130,7 @@ class starcaller_spells : public AllSpellScript
     void OnSpellCheckCast(Spell* spell, bool, SpellCastResult& result) override
     {
         Player* player = Owner(spell->GetCaster());
-        if (!player || result != SPELL_CAST_OK || spell->IsTriggered())
+        if (!player || result != SPELL_CAST_OK || (spell->IsTriggered() && !IsLunarEclipseActivation(spell)))
             return;
         uint32 id = spell->GetSpellInfo()->Id;
         if (id == 800386 && (Count(player, 802985) < 4 || player->HasAura(800386)))
@@ -149,7 +156,7 @@ class starcaller_spells : public AllSpellScript
         if (!player || info->SpellFamilyName != 32)
             return;
         Snapshot(player, spell);
-        if (info->Id == 800386 && !spell->IsTriggered())
+        if (IsLunarEclipseActivation(spell))
         {
             player->RemoveAurasDueToSpell(802985);
             player->RemoveAurasDueToSpell(704519);
