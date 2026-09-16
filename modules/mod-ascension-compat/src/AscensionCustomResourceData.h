@@ -116,7 +116,7 @@ struct ResourceGainRule
 // These active abilities advertise resource generation in their tooltips, but
 // their public Spell.dbc records contain no effect that performs it. Ranges are
 // rank chains verified against the local Ascension spell dump.
-inline constexpr std::array<ResourceGainRule, 177> ResourceGainRules =
+inline constexpr std::array<ResourceGainRule, 185> ResourceGainRules =
 {{
     // Native helpers already supply Twin Slice, Fel Fireball, and Seeking Flame.
     // Fel Torpedo and the current Bane variants generate through their class scripts.
@@ -222,6 +222,27 @@ inline constexpr std::array<ResourceGainRule, 177> ResourceGainRules =
         ResourceGainEvent::PeriodicDamageTick, 0, 800098},
     {16, 501403, 501411, 803102, 2, ResourceMutation::AuraStacks,
         ResourceGainEvent::PeriodicDamageTick, 0, 800098},
+
+    // Electrocute, Gale, Brine, Lightning Cage and Tempest all advertise a flat Static gain.
+    // Gale and Brine carry a plain damage record, Lightning Cage and Tempest carry none at all, and
+    // every Electrocute rank carries an ASCENSION_MODIFY_AURA_STACKS effect with a zero MiscValue,
+    // which modifies nothing. Charge (804826) is left alone: its own record already grants 100.
+    {16, 801844, 801844, 803102, 20, ResourceMutation::AuraStacks,
+        ResourceGainEvent::FirstSuccessfulHostileTarget, 0, 800098},
+    {16, 501421, 501432, 803102, 20, ResourceMutation::AuraStacks,
+        ResourceGainEvent::FirstSuccessfulHostileTarget, 0, 800098},
+    {16, 804036, 804036, 803102, 20, ResourceMutation::AuraStacks,
+        ResourceGainEvent::FirstSuccessfulHostileTarget, 0, 800098},
+    {16, 570138, 570141, 803102, 20, ResourceMutation::AuraStacks,
+        ResourceGainEvent::FirstSuccessfulHostileTarget, 0, 800098},
+    {16, 807105, 807111, 803102, 25, ResourceMutation::AuraStacks,
+        ResourceGainEvent::FirstSuccessfulHostileTarget, 0, 800098},
+    {16, 560030, 560030, 803102, 50, ResourceMutation::AuraStacks,
+        ResourceGainEvent::Cast, 0, 800098},
+    {16, 560032, 560032, 803102, 50, ResourceMutation::AuraStacks,
+        ResourceGainEvent::Cast, 0, 800098},
+    {16, 803002, 803002, 803102, 10, ResourceMutation::AuraStacks,
+        ResourceGainEvent::Cast, 0, 800098},
 
     // Carver adds a second Demonfire only when any learned Gore rank
     // critically damages its target.
