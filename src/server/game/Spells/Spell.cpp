@@ -9088,9 +9088,10 @@ void Spell::TriggerGlobalCooldown()
 
     // Only players or controlled units have global cooldown
     if (m_caster->GetCharmInfo())
-        m_caster->GetCharmInfo()->GetGlobalCooldownMgr().AddGlobalCooldown(m_spellInfo, gcd);
+        m_globalCooldownGeneration =
+            m_caster->GetCharmInfo()->GetGlobalCooldownMgr().AddGlobalCooldown(m_spellInfo, gcd);
     else if (m_caster->IsPlayer())
-        m_caster->ToPlayer()->GetGlobalCooldownMgr().AddGlobalCooldown(m_spellInfo, gcd);
+        m_globalCooldownGeneration = m_caster->ToPlayer()->GetGlobalCooldownMgr().AddGlobalCooldown(m_spellInfo, gcd);
 }
 
 void Spell::CancelGlobalCooldown()
@@ -9102,11 +9103,16 @@ void Spell::CancelGlobalCooldown()
     if (m_caster->GetCurrentSpell(CURRENT_GENERIC_SPELL) != this)
         return;
 
+    // Only the cooldown this cast started. A cast-while-casting spell can start a newer one in the same category
+    // while this cast is still in progress, and interrupting this cast must not clear it.
+    if (!m_globalCooldownGeneration)
+        return;
+
     // Only players or controlled units have global cooldown
     if (m_caster->GetCharmInfo())
-        m_caster->GetCharmInfo()->GetGlobalCooldownMgr().CancelGlobalCooldown(m_spellInfo);
+        m_caster->GetCharmInfo()->GetGlobalCooldownMgr().CancelGlobalCooldown(m_spellInfo, m_globalCooldownGeneration);
     else if (m_caster->IsPlayer())
-        m_caster->ToPlayer()->GetGlobalCooldownMgr().CancelGlobalCooldown(m_spellInfo);
+        m_caster->ToPlayer()->GetGlobalCooldownMgr().CancelGlobalCooldown(m_spellInfo, m_globalCooldownGeneration);
 }
 
 void Spell::OnSpellLaunch()

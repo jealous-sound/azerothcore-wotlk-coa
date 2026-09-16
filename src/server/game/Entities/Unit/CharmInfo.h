@@ -68,10 +68,12 @@ enum ActiveStates : uint8
 
 struct GlobalCooldown
 {
-    explicit GlobalCooldown(uint32 _dur = 0, uint32 _time = 0) : duration(_dur), cast_time(_time) {}
+    explicit GlobalCooldown(uint32 _dur = 0, uint32 _time = 0, uint32 _generation = 0)
+        : duration(_dur), cast_time(_time), generation(_generation) {}
 
     uint32 duration;
     uint32 cast_time;
+    uint32 generation; // identifies the AddGlobalCooldown call that started it
 };
 
 typedef std::unordered_map<uint32 /*category*/, GlobalCooldown> GlobalCooldownList;
@@ -84,11 +86,13 @@ public:
 public:
     bool HasGlobalCooldown(SpellInfo const* spellInfo) const;
     uint32 GetGlobalCooldown(SpellInfo const* spellInfo) const;
-    void AddGlobalCooldown(SpellInfo const* spellInfo, uint32 gcd);
-    void CancelGlobalCooldown(SpellInfo const* spellInfo);
+    uint32 AddGlobalCooldown(SpellInfo const* spellInfo, uint32 gcd);
+    // A non-zero generation cancels the cooldown only if that AddGlobalCooldown call still owns the category.
+    void CancelGlobalCooldown(SpellInfo const* spellInfo, uint32 generation = 0);
 
 private:
     GlobalCooldownList m_GlobalCooldowns;
+    uint32 m_lastGeneration = 0;
 };
 
 struct UnitActionBarEntry
