@@ -39,6 +39,12 @@ INSERT INTO `creature_template_model` (`CreatureID`, `Idx`, `CreatureDisplayID`,
 -- own, so the linked removal is what ends it when the 30 second form expires. Form 57 carries no model, and
 -- Unit::RestoreDisplayId now falls through such forms to the surviving transform aura, so the gargoyle also
 -- holds when Accursed Form replaces a standing Eternal Curse (800157) shapeshift.
+-- 562722 also carries a third, untooltipped effect: SPELL_AURA_ADD_FLAT_MODIFIER with SPELLMOD_RADIUS -3
+-- (EffectBasePoints -4, EffectDieSides 1) on SpellFamilyName 26 / EffectSpellClassMask[0] 0x2000. In this
+-- Spell.dbc exactly one spell matches that mask - 707434 "Blood Orb" rank "Spawn", SPELL_EFFECT_SUMMON with
+-- EffectRadiusIndex 193 (6 yd) - so its summon radius becomes 3 yd while Accursed Form is up. That is
+-- authored Ascension data riding along with the transform, recorded here because linking 562722 is what
+-- makes it reachable for the first time.
 DELETE FROM `spell_linked_spell` WHERE `spell_trigger` = 562572 AND `spell_effect` = 562722 AND `type` = 2;
 INSERT INTO `spell_linked_spell` (`spell_trigger`, `spell_effect`, `type`, `comment`) VALUES
 (562572, 562722, 2, 'CoA Accursed Form - gargoyle transform and Polymorph immunity helper');
