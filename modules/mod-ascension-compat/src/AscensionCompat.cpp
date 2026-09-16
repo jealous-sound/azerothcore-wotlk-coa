@@ -1305,6 +1305,10 @@ public:
       return true;
     }
 
+    // Like Player::ActivateSpec, dismiss the pet summoned under the old specialization.
+    if (Pet* pet = player->GetPet())
+      player->RemovePet(pet, PET_SAVE_NOT_IN_SLOT);
+
     std::unordered_set<uint32> visitedSpellIds;
     uint32 removed = 0;
     for (AscensionCompatData::CoATalentEntry const &entry :
