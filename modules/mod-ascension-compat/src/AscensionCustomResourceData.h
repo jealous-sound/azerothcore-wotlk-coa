@@ -116,7 +116,7 @@ struct ResourceGainRule
 // These active abilities advertise resource generation in their tooltips, but
 // their public Spell.dbc records contain no effect that performs it. Ranges are
 // rank chains verified against the local Ascension spell dump.
-inline constexpr std::array<ResourceGainRule, 185> ResourceGainRules =
+inline constexpr std::array<ResourceGainRule, 188> ResourceGainRules =
 {{
     // Native helpers already supply Twin Slice, Fel Fireball, and Seeking Flame.
     // Fel Torpedo and the current Bane variants generate through their class scripts.
@@ -243,6 +243,15 @@ inline constexpr std::array<ResourceGainRule, 185> ResourceGainRules =
         ResourceGainEvent::Cast, 0, 800098},
     {16, 803002, 803002, 803102, 10, ResourceMutation::AuraStacks,
         ResourceGainEvent::Cast, 0, 800098},
+    // Megawatt Missile and Stormforged Strike state 20 Static as well and carry only damage effects.
+    // Thunder Orb, Stormcloak, Thunder King and Volt's helper are left alone: their records trigger a
+    // working "Add N Static" helper of their own.
+    {16, 500045, 500045, 803102, 20, ResourceMutation::AuraStacks,
+        ResourceGainEvent::FirstSuccessfulHostileTarget, 0, 800098},
+    {16, 501476, 501484, 803102, 20, ResourceMutation::AuraStacks,
+        ResourceGainEvent::FirstSuccessfulHostileTarget, 0, 800098},
+    {16, 500193, 500193, 803102, 20, ResourceMutation::AuraStacks,
+        ResourceGainEvent::FirstSuccessfulHostileTarget, 0, 800098},
 
     // Carver adds a second Demonfire only when any learned Gore rank
     // critically damages its target.
