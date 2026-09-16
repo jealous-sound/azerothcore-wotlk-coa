@@ -2385,11 +2385,14 @@ Map::EnterState BattlegroundMap::CannotEnter(Player* player, bool loginCheck)
     return Map::CannotEnter(player, loginCheck);
 }
 
+// Serverside arena gear scaling aura, outside the spell IDs the CoA client uses.
+constexpr uint32 SPELL_ARENA_GEAR_SCALING = 4000000;
+
 bool BattlegroundMap::AddPlayerToMap(Player* player)
 {
     player->m_InstanceValid = true;
     if (IsBattleArena())
-        player->CastSpell(player, 100102, true);
+        player->CastSpell(player, SPELL_ARENA_GEAR_SCALING, true);
     return Map::AddPlayerToMap(player);
 }
 
@@ -2402,7 +2405,7 @@ void BattlegroundMap::RemovePlayerFromMap(Player* player, bool remove)
             bg->RemoveSpectator(player);
     }
     if (IsBattleArena())
-        player->RemoveAura(100102);
+        player->RemoveAura(SPELL_ARENA_GEAR_SCALING);
     Map::RemovePlayerFromMap(player, remove);
 }
 

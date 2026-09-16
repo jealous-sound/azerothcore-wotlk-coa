@@ -61,6 +61,7 @@ enum ValkyrNPCs
 
 enum ValkyrSpells
 {
+    SPELL_BALL_PERIODIC_DUMMY   = 4000001, // Serverside, outside the spell IDs the CoA client uses
     SPELL_LIGHT_ESSENCE         = 65686,
     SPELL_LIGHT_ESSENCE_2       = 65811,
     SPELL_DARK_ESSENCE          = 65684,
@@ -692,7 +693,7 @@ public:
             me->SetReactState(REACT_PASSIVE);
             me->SetCanFly(true);
             me->SetDisableGravity(true);
-            me->CastSpell(me, 100101, true); // custom periodic dummy spell
+            me->CastSpell(me, SPELL_BALL_PERIODIC_DUMMY, true);
             despawning = false;
         }
 
