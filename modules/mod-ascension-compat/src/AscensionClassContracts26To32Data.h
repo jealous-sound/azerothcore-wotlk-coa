@@ -38,7 +38,7 @@ struct ResourceRule
     std::uint8_t ChancePercent;
 };
 
-inline constexpr std::array<ResourceRule, 17> CurrentResourceRuleDecisions =
+inline constexpr std::array<ResourceRule, 16> CurrentResourceRuleDecisions =
 {{
     {28, 504527, 504527, 801816, 10, ResourceEvent::FirstSuccessfulDamagingHit, Mutation::AuraStacks, 0, 100},
     {28, 504589, 504593, 801816, 10, ResourceEvent::FirstSuccessfulDamagingHit, Mutation::AuraStacks, 0, 100},
@@ -54,7 +54,6 @@ inline constexpr std::array<ResourceRule, 17> CurrentResourceRuleDecisions =
     {30, 805258, 805258, 500363, 3, ResourceEvent::FirstSuccessfulDamagingHit, Mutation::AuraStacks, 0, 100},
     {30, 806818, 806824, 500363, 3, ResourceEvent::FirstSuccessfulDamagingHit, Mutation::AuraStacks, 0, 100},
     {30, 805185, 805185, 500363, 1, ResourceEvent::Cast, Mutation::AuraStacks, 0, 100},
-    {30, 500359, 500359, 6, 150, ResourceEvent::FirstSuccessfulHostileTarget, Mutation::NativeRunicPowerInternal, 0, 100},
     {30, 801624, 801624, 6, 200, ResourceEvent::FirstSuccessfulHostileTarget, Mutation::NativeRunicPowerInternal, 0, 100},
     {30, 802422, 802428, 6, 200, ResourceEvent::FirstSuccessfulHostileTarget, Mutation::NativeRunicPowerInternal, 0, 100},
 }};

@@ -22,6 +22,9 @@ constexpr std::uint8_t TINKER_COGMASTER_CHANCE = 50;
 constexpr std::uint32_t SPELL_REAPER_DIRGE_HIT = 801311;
 constexpr std::uint32_t SPELL_REAPER_SOUL_GENERATOR = 520056;
 constexpr std::int16_t REAPER_SOUL_GENERATOR_RUNIC_POWER = 100;
+constexpr std::uint32_t SPELL_REAPER_SCYTHE_RUSH = 500359;
+constexpr std::uint32_t SPELL_REAPER_SCYTHE_RUSH_ROOT = 805689;
+constexpr std::uint32_t SPELL_REAPER_SCYTHE_RUSH_ENERGIZE = 805339;
 constexpr std::uint32_t SPELL_PRIMALIST_CAVE_IN = 500615;
 constexpr std::uint32_t SPELL_PRIMALIST_EARTHSHAPING = 680441;
 
@@ -106,6 +109,26 @@ void HandleAscensionClassMechanics26To32Hit(Spell* spell, Player* player,
                 // fragment grant remains intact and is not duplicated here.
                 player->ModifyPower(POWER_RUNIC_POWER,
                     REAPER_SOUL_GENERATOR_RUNIC_POWER);
+            }
+
+            if (spellId == SPELL_REAPER_SCYTHE_RUSH && !spell->IsTriggered())
+            {
+                // 500359 is a bare charge: its 500372 -> 805689 -> 805339 ->
+                // 500377 chain was server-side and is absent from every public
+                // record. AddAura keeps only 805689's unit-owned effect, the
+                // one second MOD_ROOT, and deliberately replays neither its
+                // second SPELL_EFFECT_CHARGE nor its own trigger of 805339,
+                // which would re-issue the movement and gate the energize
+                // behind a second melee hit roll.
+                player->AddAura(SPELL_REAPER_SCYTHE_RUSH_ROOT, target);
+
+                // 805339 energizes the caster for 150 internal tenths, the 15
+                // Runic Power both branches of the visible formula promise,
+                // through the native path that logs SPELL_ENERGIZE, and its
+                // third effect applies the 20 second 500377 marker. Live's
+                // second energize per cast is unexplained and is not copied.
+                player->CastSpell(target,
+                    SPELL_REAPER_SCYTHE_RUSH_ENERGIZE, true);
             }
             break;
         }
