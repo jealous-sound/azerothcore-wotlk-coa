@@ -2,7 +2,7 @@
 
 #include "AscensionWitchHunterCompletion.h"
 #include "Map.h"
-#include "MotionMaster.h"
+#include "MovementTypedefs.h"
 #include "ObjectAccessor.h"
 #include "Player.h"
 #include "Random.h"
@@ -289,8 +289,16 @@ class spell_ascension_witch_hunter_ability : public SpellScript
             float distance = 10.0f * player->GetSpeedRate(MOVE_RUN);
             if (AuraEffect* extra = player->GetAuraEffect(789256, EFFECT_0))
                 distance += extra->GetAmount();
-            // Native jump packet/knockback keeps terrain and client movement acknowledgements intact.
-            player->GetMotionMaster()->MoveJumpTo(angle, distance * 1.6f, 5.0f);
+            // MotionMaster::MoveJumpTo returns immediately for players, so drive the vault with the
+            // native knockback packet the way SPELL_EFFECT_KNOCK_BACK does. A knockback travels
+            // speedXY * 2 * speedZ / gravity yards, and KnockbackFrom derives its direction from
+            // (caster - source), so aim it from a point one yard behind the requested heading.
+            float const speedZ = 5.0f;
+            float const speedXY = distance * float(Movement::gravity) / (2.0f * speedZ);
+            float const heading = player->GetOrientation() + angle;
+            player->KnockbackFrom(player->GetPositionX() - std::cos(heading),
+                                  player->GetPositionY() - std::sin(heading), speedXY, speedZ);
+            sScriptMgr->AnticheatSetUnderACKmount(player);
             talent(524812, 525054);
             talent(681156, 681155);
             player->RemoveAurasDueToSpell(500102);
