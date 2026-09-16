@@ -42,7 +42,7 @@ def check_data(header, catalog, replacement_header, dbc, trainer):
         assert any(len(node) == 10 and node[1] == cls and node[2] == spec and parent in node[7:] for node in nodes)
         assert ranks and ranks[0][1] == 0 and sorted(ranks, key=lambda rank: rank[1]) == ranks
         replacements.append((cls, parent, original, ranks))
-    assert len(replacements) == 12
+    assert len(replacements) == 13
     children = {spell for _, _, _, ranks in replacements for spell, _ in ranks}
     assert not children & {value for _, parent, original, _ in replacements for value in (parent, original)}
     assert not children & {entry[4] for entry in entries}, "Replacement and taught ownership must be disjoint"
@@ -63,10 +63,15 @@ def check_data(header, catalog, replacement_header, dbc, trainer):
     assert magic == b"WDBC" and fields == 234 and size == 936
     strings_at = 20 + count * size
     assert len(raw) == strings_at + strings_size
-    wanted = set(NEW_GRANTS) | set(NEW_GRANTS.values()) | {674}
+    wanted = set(NEW_GRANTS) | set(NEW_GRANTS.values()) | {674, 801343, 578118, 680263}
     for _, parent, original, ranks in replacements:
         wanted.update([parent, original, *(spell for spell, _ in ranks)])
     rows = {row[0]: row for row in struct.iter_unpack("<234I", raw[20:strings_at]) if row[0] in wanted}
+
+    # The utilities are the authored Witch Hunter pet resurrection and dismissal spells.
+    assert rows[801343][71] == 56 and rows[801343][110] == 50124
+    assert rows[578118][208] == 21 and rows[578118][71] == 109
+    assert rows[680263][208] == 21 and rows[680263][71] == 102
 
     def text(offset):
         start = strings_at + offset
