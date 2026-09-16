@@ -131,6 +131,17 @@ class ClientDbcTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             client_dbc.extract(client, output, mpq, log=lambda _: None)
 
+    def test_original_reads_untouched_archive_copies(self):
+        client = self.path / "Data"
+        client.mkdir()
+        for name in ("patch-M.MPQ", "patch-T.MPQ", "patch-T.MPQ.ORIGINAL", "patch-M.MPQ.backup"):
+            (client / name).write_bytes(b"")
+        archives = dict(client_dbc.client_archives(client, {}, original=True))
+        self.assertEqual(archives["patch-T.MPQ"].name, "patch-T.MPQ.ORIGINAL")
+        self.assertEqual(archives["patch-M.MPQ"].name, "patch-M.MPQ")
+        replaced = dict(client_dbc.client_archives(client, {"patch-T.MPQ": client / "patch-M.MPQ"}, original=True))
+        self.assertEqual(replaced["patch-T.MPQ"].name, "patch-M.MPQ")
+
     def test_install_backs_up_and_uses_core_names(self):
         source = valid_set(self.path / "set")
         (source / "Foo.dbc").rename(source / "FOO.dbc")

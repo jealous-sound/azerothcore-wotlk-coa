@@ -239,7 +239,9 @@ def archive_rank(relative):
     return (4, 0, suffix)
 
 
-def client_archives(data_directory, replacements):
+def client_archives(data_directory, replacements, original=False):
+    """Archives in load order. `original` reads NAME.ORIGINAL, the launcher's untouched copy of a locally
+    replaced archive, wherever one exists; explicit replacements still take precedence."""
     data_directory = Path(data_directory)
     archives = {}
     for path in data_directory.iterdir():
@@ -248,6 +250,12 @@ def client_archives(data_directory, replacements):
         elif path.is_dir() and LOCALE_DIRECTORY.fullmatch(path.name):
             archives.update({f"{path.name}/{item.name}": item for item in path.iterdir()
                              if item.is_file() and item.suffix.lower() == ".mpq"})
+    if original:
+        for name, path in archives.items():
+            untouched = next((item for item in path.parent.iterdir()
+                              if item.is_file() and item.name.lower() == path.name.lower() + ".original"), None)
+            if untouched:
+                archives[name] = untouched
     folded = {name.lower(): name for name in archives}
     for name, replacement in replacements.items():
         key = folded.get(name.replace("\\", "/").lower())
@@ -280,12 +288,12 @@ class MpqCli:
         return Path(directory) / member.replace("/", "\\").rsplit("\\", 1)[-1]
 
 
-def extract(data_directory, output, mpq, replacements=None, log=print):
+def extract(data_directory, output, mpq, replacements=None, log=print, original=False):
     """Write the client's effective DBC set (last archive in load order wins) and its manifest."""
     output = Path(output)
     if output.exists() and any(output.iterdir()):
         raise ValueError(f"{output} is not empty")
-    archives = client_archives(data_directory, replacements or {})
+    archives = client_archives(data_directory, replacements or {}, original)
     carriers = {}
     for relative, path in archives:
         members = [name for name in mpq.list(path) if name.lower().replace("/", "\\").startswith(PREFIX)
@@ -385,6 +393,8 @@ def main(argv=None):
     command.add_argument("client_data", type=Path, help="the client's Data directory")
     command.add_argument("output", type=Path, help="an empty or new directory")
     command.add_argument("--mpqcli", required=True, type=Path, help="mpqcli executable")
+    command.add_argument("--original", action="store_true",
+                         help="read the launcher's untouched NAME.ORIGINAL copy of any locally replaced archive")
     command.add_argument("--archive", action="append", metavar="NAME=PATH",
                          help="read PATH in place of the client archive NAME, e.g. patch-T.MPQ=patch-T.MPQ.ORIGINAL")
 
@@ -405,7 +415,7 @@ def main(argv=None):
     try:
         if arguments.command == "extract":
             manifest = extract(arguments.client_data, arguments.output, MpqCli(arguments.mpqcli),
-                               parse_replacements(arguments.archive))
+                               parse_replacements(arguments.archive), original=arguments.original)
             print(f"{len(manifest['files'])} tables written to {arguments.output}")
             problems, notes = check(arguments.output)
         elif arguments.command == "check":
