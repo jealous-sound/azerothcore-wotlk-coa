@@ -209,6 +209,11 @@ void ApplyContracts(SpellInfo* info)
     if (id == ChosenOne && info->Effects[EFFECT_0].ApplyAuraName == SPELL_AURA_ADD_FLAT_MODIFIER &&
         info->Effects[EFFECT_0].MiscValue == SPELLMOD_EFFECT3)
         info->Effects[EFFECT_0].SpellClassMask = flag96(512, 0, 0); // Mimic Ward's summon count
+    // "Summon a mimic ward" - one, with Chosen One adding the second. The record's summon count reads
+    // as two once the core applies its base-point convention, so the ward always arrived doubled and
+    // Chosen One pushed it to three.
+    if (id == Mimic && info->Effects[EFFECT_2].Effect == SPELL_EFFECT_SUMMON)
+        info->Effects[EFFECT_2].BasePoints = 1;
     if (Family(info, 0, 4))
     {
         // Keep all victims in one cast, including rank coefficients and actual hit accounting.
