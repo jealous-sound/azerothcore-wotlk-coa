@@ -37,3 +37,11 @@ DELETE FROM `creature_template_model` WHERE `CreatureID` IN (50264, 50393);
 INSERT INTO `creature_template_model` (`CreatureID`, `Idx`, `CreatureDisplayID`, `DisplayScale`, `Probability`) VALUES
 (50264, 0, 22633, 1, 1),
 (50393, 0, 22633, 1, 1);
+-- A world that already ran the previous revision of this file keeps the 1-80 rows. UpdateFetcher reapplies
+-- a pending file whose hash changed (src/server/database/Updater/UpdateFetcher.cpp:350-354), but the guarded
+-- INSERT above then finds the row present and writes nothing, so the level band has to be corrected in
+-- place as well. The predicate matches only the exact row the previous revision wrote, leaving an
+-- operator-supplied or package-supplied template untouched, and is a no-op on a first-time install.
+UPDATE `creature_template` SET `minlevel` = 1, `maxlevel` = 1, `exp` = 0 WHERE `entry` IN (50264, 50393)
+AND `name` = 'War Falcon' AND `minlevel` = 1 AND `maxlevel` = 80 AND `exp` = 0 AND `faction` = 35
+AND `unit_class` = 1 AND `type` = 1;
