@@ -59,6 +59,12 @@ void ApplyContracts(SpellInfo* info)
     {
         info->DurationEntry = sSpellDurationStore.LookupEntry(1);
         info->Effects[2].Effect = 0;
+        // Inner Demon is the only Felsworn button the client DBC leaves out of the shared global
+        // cooldown, so it can be recast without delay and cast during another spell's cooldown.
+        // Ruin, Felwrath, Sunder, Twin Slice and Fel Fireball all use category 133 for 1000 ms.
+        // The matching client record is produced by apps/coa-spells/inner_demon_gcd.py.
+        info->StartRecoveryCategory = 133;
+        info->StartRecoveryTime = 1000;
     }
     for (auto const& rift : FelswornRifts)
         if (id == rift.spell)

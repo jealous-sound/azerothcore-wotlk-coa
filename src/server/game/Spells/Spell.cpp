@@ -3669,7 +3669,15 @@ SpellCastResult Spell::prepare(SpellCastTargets const* targets, AuraEffect const
     if ((HasTriggeredCastFlag(TRIGGERED_CAST_DIRECTLY) && (!m_spellInfo->IsChanneled() || !m_spellInfo->GetMaxDuration())) ||
         (m_caster->IsPlayer() && m_caster->getClass() == CLASS_NECROMANCER && m_spellInfo->Id == 500991) ||
         (m_caster->IsPlayer() && m_caster->getClass() == CLASS_STARCALLER && m_spellInfo->Id == 800386))
+    {
+        // SPELL_ATTR4_ALLOW_CAST_WHILE_CASTING adds TRIGGERED_CAST_DIRECTLY to ordinary player
+        // casts, which sends them down this branch and past the global cooldown their own
+        // StartRecoveryTime asks for. Real triggered casts carry TRIGGERED_IGNORE_GCD through
+        // TRIGGERED_FULL_MASK and still skip it. Trigger before cast(), which may finish the spell.
+        if (m_spellInfo->HasAttribute(SPELL_ATTR4_ALLOW_CAST_WHILE_CASTING) && !HasTriggeredCastFlag(TRIGGERED_IGNORE_GCD))
+            TriggerGlobalCooldown();
         cast(true);
+    }
     else
     {
         // stealth must be removed at cast starting (at show channel bar)
