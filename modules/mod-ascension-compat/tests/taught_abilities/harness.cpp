@@ -348,11 +348,12 @@ int main()
     auto& service = AscensionClassService::Instance();
     // Independent regression expectations: absent grant rows must fail, even if
     // all existing grants still behave correctly.
-    std::array<AscensionCompatData::TaughtAbility, 10> expected = {{
+    std::array<AscensionCompatData::TaughtAbility, 13> expected = {{
         {12, 3, 0, 804729, 804834}, {13, 6, 0, 561069, 801662}, {16, 13, 10, 92097, 804019},
         {15, 11, 0, 801343, 578118}, {15, 11, 0, 801343, 680263},
         {20, 99, 10, 92114, 800157}, {20, 99, 10, 92114, 674}, {22, 31, 10, 92119, 806291},
-        {25, 40, 10, 92131, 520326}, {25, 96, 10, 680750, 567524}
+        {25, 40, 10, 92131, 520326}, {25, 96, 10, 680750, 567524},
+        {31, 59, 10, 92148, 574302}, {31, 59, 10, 92148, 574303}, {31, 59, 10, 92148, 500860}
     }};
     for (auto const& entry : AscensionCompatData::TaughtAbilities)
     {

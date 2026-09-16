@@ -24,7 +24,7 @@ struct TaughtAbility
 // Explicit teaches clauses; ordinary CoA passives cannot contain LEARN_SPELL.
 // Tooltip references alone are not grants: they also describe procs, replacements
 // and conditional effects. Class scripts retain their existing acquisition rules.
-inline constexpr std::array<TaughtAbility, 16> TaughtAbilities =
+inline constexpr std::array<TaughtAbility, 19> TaughtAbilities =
 {{
     { 12, 3, 0, 804729, 804834 },  // Ancestor's Call -> active summon
     { 13, 6, 0, 561069, 801662 },  // Mixologist -> Ingredient: Fish Oil
@@ -37,6 +37,9 @@ inline constexpr std::array<TaughtAbility, 16> TaughtAbilities =
     { 25, 40, 10, 92131, 520326 }, // Herald of the Depths -> active form
     { 25, 96, 10, 680750, 567524 }, // Dreadnought -> active shield
     { 31, 59, 10, 92148, 574301 }, // Spirit Beast -> Harness Animal Spirit
+    { 31, 59, 10, 92148, 574302 }, // Spirit Beast -> Call Animal Spirit (Call Pet copy)
+    { 31, 59, 10, 92148, 574303 }, // Spirit Beast -> Dismiss Animal Spirit (Dismiss Pet copy)
+    { 31, 59, 10, 92148, 500860 }, // Spirit Beast -> Recall Animal Spirit (Revive Pet copy)
     { 31, 59, 40, 573365, 573364 }, // Spirit Beast Communion -> Beastmaster's Recall
     { 31, 59, 40, 573365, 573310 }, // Spirit Beast Communion -> Spirit Stable
     { 28, 51, 30, 524834, 524835 }, // Beacon Charging -> Overcharge
