@@ -276,16 +276,12 @@ struct npc_ascension_witch_hunter_hound : ScriptedAI
         if (action == ACTION_CALLED_LEAP)
             actions.Leap();
     }
-    void OwnerAttacked(Unit* target) override
-    {
-        if (target && !me->GetVictim())
-            AttackStart(target);
-    }
-    void OwnerAttackedBy(Unit* target) override
-    {
-        if (target && !me->GetVictim())
-            AttackStart(target);
-    }
+    // Deliberately no OwnerAttacked/OwnerAttackedBy override. Now that the hound is in the owner's
+    // m_Controlled set those hooks are live, and the CreatureAI defaults already route both through
+    // OnOwnerCombatInteraction: it keeps a living victim and validates a new one with CanStartAttack.
+    // AttackStart() cannot be called unguarded here, because Unit::Attack runs no faction check and
+    // Spell::cast forwards the unit target of every harmful-class spell the owner casts - including
+    // friendly ones such as the permanent Shadowhound that Scent of Magic (800528) buffs.
     void UpdateAI(uint32 diff) override
     {
         actions.Update(diff);
