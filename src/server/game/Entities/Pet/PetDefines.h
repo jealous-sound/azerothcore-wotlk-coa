@@ -206,7 +206,7 @@ enum PetScalingSpells
 constexpr float PET_FOLLOW_DIST = 2.0f;
 constexpr float PET_FOLLOW_ANGLE = std::numbers::pi_v<float> / 2;
 constexpr float MINI_PET_SUMMON_ANGLE = std::numbers::pi_v<float> / 4;
-constexpr float MINI_PET_FOLLOW_ANGLE = std::numbers::pi_v<float>;
+constexpr float MINI_PET_FOLLOW_ANGLE = 3.0f * std::numbers::pi_v<float> / 4.0f;
 
 class PetStable
 {

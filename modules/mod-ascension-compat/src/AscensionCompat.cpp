@@ -2426,12 +2426,29 @@ public:
 
     void ProcessCompanionLoot(Player* player, uint32 diff, bool skin = false)
     {
+        constexpr uint32 CREATURE_LOOTBOT_3000 = 44022;
         uint32 const category = skin ? APPEARANCE_CATEGORY_COMPANION_SKINNING : APPEARANCE_CATEGORY_COMPANION_LOOT;
         uint32 const appearance = skin ? APPEARANCE_SKIN_PEELER : APPEARANCE_LOOT_TRANSFIGURATOR;
         auto state = GetState(player);
-        if (!state || state->ActiveAppearances[category] != appearance ||
-            !state->CollectedAppearances.contains(appearance))
+        if (!state)
             return;
+
+        bool const hasAppearance = state->ActiveAppearances[category] == appearance &&
+            state->CollectedAppearances.contains(appearance);
+
+        // Lootbot 3000 grants auto-loot when summoned without requiring the appearance collected.
+        // It does not provide skinning.
+        bool isLootbot = false;
+        if (!skin && !hasAppearance)
+        {
+            Creature* c = player->GetMap()->GetCreature(player->GetCritterGUID());
+            isLootbot = c && c->IsAlive() && c->GetOwnerGUID() == player->GetGUID() &&
+                        c->GetEntry() == CREATURE_LOOTBOT_3000;
+        }
+
+        if (!hasAppearance && !isLootbot)
+            return;
+
         uint32& timer = skin ? state->CompanionSkinningTimer : state->CompanionLootTimer;
         if (timer > diff)
         {
