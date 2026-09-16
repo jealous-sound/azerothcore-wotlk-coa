@@ -23,6 +23,7 @@
 #include "SpellScript.h"
 #include "SpellScriptLoader.h"
 #include "molten_core.h"
+#include <list>
 
 enum Texts
 {
@@ -34,7 +35,7 @@ enum Spells
     // Garr
     SPELL_ANTIMAGIC_PULSE               = 19492,    // Dispels magic on nearby enemies, removing 1 beneficial spell
     SPELL_MAGMA_SHACKLES                = 19496,    // Reduces the movement speed of nearby enemies by 60%
-    SPELL_SEPARATION_ANXIETY            = 23487,    // Aura cast on himself by Garr, if adds move out of range, they will cast spell 23492 on themselves (server side)
+    SPELL_SEPARATION_ANXIETY            = 23487,    // Garr's aura on the Firesworn; one over 40 yd casts 23492
     SPELL_FRENZY                        = 19516,    // Increases the caster's attack speed by 9 + scale. Stacks up to 10 times
 
     // Fireworn
@@ -68,6 +69,22 @@ struct boss_garr : public BossAI
     {
         _JustEngagedWith();
         DoCastSelf(SPELL_SEPARATION_ANXIETY, true);
+
+        // The client defines Separation Anxiety as a plain aura with no tick, so Garr checks its holders every second.
+        firesworn.clear();
+        std::list<Creature*> nearby;
+        me->GetCreatureListWithEntryInGrid(nearby, NPC_FIRESWORN, 100.0f);
+        for (Creature* add : nearby)
+            firesworn.insert(add->GetGUID());
+
+        scheduler.CancelAll();
+        scheduler.Schedule(1s, [this](TaskContext context)
+        {
+            for (ObjectGuid const& guid : firesworn)
+                EnrageIfSeparated(ObjectAccessor::GetCreature(*me, guid));
+            context.Repeat();
+        });
+
         events.ScheduleEvent(EVENT_ANTIMAGIC_PULSE, 15s);
         events.ScheduleEvent(EVENT_MAGMA_SHACKLES, 10s);
         massEruptionTimer = 600000; // 10 mins
@@ -77,6 +94,8 @@ struct boss_garr : public BossAI
     {
         if (!UpdateVictim())
             return;
+
+        scheduler.Update(diff);
 
         // This should always process
         if (massEruptionTimer <= diff)
@@ -121,7 +140,15 @@ struct boss_garr : public BossAI
     }
 
 private:
+    void EnrageIfSeparated(Creature* add)
+    {
+        if (add && add->IsAlive() && add->HasAura(SPELL_SEPARATION_ANXIETY, me->GetGUID()) &&
+            add->GetDistance(me) > 40.0f && !add->HasAura(SPELL_SEPARATION_ANXIETY_MINION))
+            add->CastSpell(add, SPELL_SEPARATION_ANXIETY_MINION, true);
+    }
+
     uint32 massEruptionTimer;
+    GuidSet firesworn;
 };
 
 struct npc_garr_firesworn : public ScriptedAI
@@ -138,32 +165,6 @@ struct npc_garr_firesworn : public ScriptedAI
 
             DoCastAOE(SPELL_ENRAGE_TRIGGER);
         }
-    }
-};
-
-// 23487 Separation Anxiety (server side)
-class spell_garr_separation_anxiety_aura : public AuraScript
-{
-    PrepareAuraScript(spell_garr_separation_anxiety_aura);
-
-    bool Validate(SpellInfo const* /*spell*/) override
-    {
-        return ValidateSpellInfo({ SPELL_SEPARATION_ANXIETY_MINION });
-    }
-
-    void HandlePeriodic(AuraEffect const* aurEff)
-    {
-        Unit const* caster = GetCaster();
-        Unit* target = GetTarget();
-        if (caster && target && target->GetDistance(caster) > 40.0f && !target->HasAura(SPELL_SEPARATION_ANXIETY_MINION))
-        {
-            target->CastSpell(target, SPELL_SEPARATION_ANXIETY_MINION, true, nullptr, aurEff);
-        }
-    }
-
-    void Register() override
-    {
-        OnEffectPeriodic += AuraEffectPeriodicFn(spell_garr_separation_anxiety_aura::HandlePeriodic, EFFECT_0, SPELL_AURA_PERIODIC_DUMMY);
     }
 };
 
@@ -195,6 +196,5 @@ void AddSC_boss_garr()
     RegisterMoltenCoreCreatureAI(npc_garr_firesworn);
 
     // Spells
-    RegisterSpellScript(spell_garr_separation_anxiety_aura);
     RegisterSpellScript(spell_garr_frenzy);
 }

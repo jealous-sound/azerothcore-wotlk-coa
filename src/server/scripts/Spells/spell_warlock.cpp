@@ -505,7 +505,9 @@ class spell_warl_infernal_scaling : public AuraScript
         if (m_scriptSpellId == 36186)
         {
             DoEffectCalcAmount += AuraEffectCalcAmountFn(spell_warl_infernal_scaling::CalculateAPAmount, EFFECT_ALL, SPELL_AURA_MOD_ATTACK_POWER);
-            DoEffectCalcAmount += AuraEffectCalcAmountFn(spell_warl_infernal_scaling::CalculateSPAmount, EFFECT_ALL, SPELL_AURA_MOD_DAMAGE_DONE);
+            // CoA's client grants the Infernal flat spell power (aura 345) rather than spell damage done.
+            DoEffectCalcAmount += AuraEffectCalcAmountFn(spell_warl_infernal_scaling::CalculateSPAmount, EFFECT_ALL,
+                SPELL_AURA_ASCENSION_MOD_SPELL_POWER_FLAT);
         }
 
         OnEffectApply += AuraEffectApplyFn(spell_warl_infernal_scaling::HandleEffectApply, EFFECT_ALL, SPELL_AURA_ANY, AURA_EFFECT_HANDLE_REAL);

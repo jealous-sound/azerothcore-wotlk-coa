@@ -60,7 +60,7 @@ enum Spells
     SPELL_CHAMPION                          = 21090,    // Server side
     SPELL_IMMUNE_POLY                       = 21087,    // Server side
     SPELL_HATE_TO_ZERO                      = 20538,    // Threat reset after each teleport. Server side
-    SPELL_SEPARATION_ANXIETY                = 21094,    // Aura cast on himself by Majordomo Executus, if adds move out of range, they will cast spell 21095 on themselves
+    SPELL_SEPARATION_ANXIETY                = 21094,    // Majordomo's aura on his adds; one over 40 yd casts 21095
     SPELL_SEPARATION_ANXIETY_MINION         = 21095,
 
     // Outro & Ragnaros intro
@@ -181,6 +181,7 @@ struct boss_majordomo : public BossAI
     {
         me->ResetLootMode();
         events.Reset();
+        scheduler.CancelAll();
         aliveMinionsGUIDS.clear();
 
         if (instance->GetBossState(DATA_MAJORDOMO_EXECUTUS) != DONE)
@@ -229,6 +230,16 @@ struct boss_majordomo : public BossAI
 
         _JustEngagedWith();
         DoCastAOE(SPELL_SEPARATION_ANXIETY);
+
+        // The client's Separation Anxiety is a plain aura with no tick; Majordomo checks his adds every second.
+        scheduler.CancelAll();
+        scheduler.Schedule(1s, [this](TaskContext context)
+        {
+            for (ObjectGuid const& guid : aliveMinionsGUIDS)
+                EnrageIfSeparated(ObjectAccessor::GetCreature(*me, guid));
+            context.Repeat();
+        });
+
         Talk(SAY_AGGRO);
         DoCastSelf(SPELL_AEGIS_OF_RAGNAROS, true);
 
@@ -307,6 +318,7 @@ struct boss_majordomo : public BossAI
                 if (!UpdateVictim())
                     return;
 
+                scheduler.Update(diff);
                 events.Update(diff);
 
                 if (me->HasUnitState(UNIT_STATE_CASTING))
@@ -512,6 +524,13 @@ struct boss_majordomo : public BossAI
     }
 
 private:
+    void EnrageIfSeparated(Creature* add)
+    {
+        if (add && add->IsAlive() && add->HasAura(SPELL_SEPARATION_ANXIETY, me->GetGUID()) &&
+            add->GetDistance(me) > 40.0f && !add->HasAura(SPELL_SEPARATION_ANXIETY_MINION))
+            add->CastSpell(add, SPELL_SEPARATION_ANXIETY_MINION, true);
+    }
+
     GuidSet static_minionsGUIDS;    // contained data should be changed on encounter completion
     GuidSet aliveMinionsGUIDS;      // used for calculations
     std::unordered_map<uint32, MajordomoAddData> majordomoSummonsData;
@@ -540,32 +559,6 @@ class spell_hate_to_zero : public SpellScript
     }
 };
 
-// 21094 Separation Anxiety (server side)
-class spell_majordomo_separation_anxiety_aura : public AuraScript
-{
-    PrepareAuraScript(spell_majordomo_separation_anxiety_aura);
-
-    bool Validate(SpellInfo const* /*spell*/) override
-    {
-        return ValidateSpellInfo({ SPELL_SEPARATION_ANXIETY_MINION });
-    }
-
-    void HandlePeriodic(AuraEffect const* aurEff)
-    {
-        Unit const* caster = GetCaster();
-        Unit* target = GetTarget();
-        if (caster && target && target->GetDistance(caster) > 40.0f && !target->HasAura(SPELL_SEPARATION_ANXIETY_MINION))
-        {
-            target->CastSpell(target, SPELL_SEPARATION_ANXIETY_MINION, true, nullptr, aurEff);
-        }
-    }
-
-    void Register() override
-    {
-        OnEffectPeriodic += AuraEffectPeriodicFn(spell_majordomo_separation_anxiety_aura::HandlePeriodic, EFFECT_0, SPELL_AURA_PERIODIC_DUMMY);
-    }
-};
-
 // 19774 Summon Ragnaros
 class spell_summon_ragnaros : public SpellScript
 {
@@ -589,6 +582,5 @@ void AddSC_boss_majordomo()
 
     // Spells
     RegisterSpellScript(spell_hate_to_zero);
-    RegisterSpellScript(spell_majordomo_separation_anxiety_aura);
     RegisterSpellScript(spell_summon_ragnaros);
 }
