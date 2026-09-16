@@ -19,7 +19,8 @@ enum BloodmageTalentSpells : uint32
     SPELL_ACCURSED_FORM = 562572,
     SPELL_SANGUINE_SCRIPTURE = 804851,
     SPELL_SANGUINE_SCRIPTURE_BUFF = 504264,
-    SPELL_CURSED_FORM_REQUIREMENT = 525031
+    SPELL_CURSED_FORM_REQUIREMENT = 525031,
+    SPELL_CURSED_FORM_REQUIREMENT_2 = 524861
 };
 
 // Every creature Animated Blood can leave behind: worms, parasites and the rank 3 amalgam.
@@ -33,10 +34,12 @@ bool IsCursedForm(uint32 id)
     return std::find(std::begin(CursedForms), std::end(CursedForms), id) != std::end(CursedForms);
 }
 
-// The Cursed Form abilities (Ravenous Strike, Lunge, Claw Sweep, Bloodfang Bite, Bare Fangs and the
-// howls) gate their cast on CasterAuraSpell 525031, a marker literally named "Cursed Form -
-// Requirement" that nothing in Spell.dbc ever grants, so they could never be cast. Mirror the real
-// form state onto it, the same way Palm Sigil's marker follows Runeshroud/Waveforged.
+// Cursed Form abilities gate their cast on a CasterAuraSpell marker that nothing in Spell.dbc ever
+// grants, so they could never be cast. Two distinct marker spells are both named "Cursed Form" in
+// Spell.dbc and are split across the kit's abilities (e.g. Ravenous Strike/Lunge/Claw Sweep/Bloodfang
+// Bite use 525031, while Rotclaw/Ironhide/Reave/Bloodsurge/Apotheosis and others use 524861), so both
+// need to be mirrored onto the real form state, the same way Palm Sigil's marker follows
+// Runeshroud/Waveforged.
 void SyncCursedFormRequirement(Player* player)
 {
     bool active = false;
@@ -47,11 +50,13 @@ void SyncCursedFormRequirement(Player* player)
             break;
         }
 
-    if (!active)
-        player->RemoveAurasDueToSpell(SPELL_CURSED_FORM_REQUIREMENT, player->GetGUID());
-    else if (player->IsInWorld() && player->IsAlive() &&
-        !player->HasAura(SPELL_CURSED_FORM_REQUIREMENT, player->GetGUID()))
-        player->CastSpell(player, SPELL_CURSED_FORM_REQUIREMENT, true);
+    for (uint32 marker : {uint32(SPELL_CURSED_FORM_REQUIREMENT), uint32(SPELL_CURSED_FORM_REQUIREMENT_2)})
+    {
+        if (!active)
+            player->RemoveAurasDueToSpell(marker, player->GetGUID());
+        else if (player->IsInWorld() && player->IsAlive() && !player->HasAura(marker, player->GetGUID()))
+            player->CastSpell(player, marker, true);
+    }
 }
 
 class spell_ascension_animated_blood : public SpellScript
