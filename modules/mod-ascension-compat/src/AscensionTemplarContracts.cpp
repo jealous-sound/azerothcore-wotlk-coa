@@ -140,13 +140,6 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[0].MiscValue = 0;
         info->Effects[1].Effect = 0;
     }
-    if (Named(info, 801165))
-    {
-        info->MaxCharges = 3;
-        info->ChargeRecoveryTime = 35000;
-        info->ChargeRecoveryKey = 801165;
-        info->ChargeCategoryId = 251;
-    }
     if (id == 527272)
     {
         // The existing classic charger display avoids an unavailable creature

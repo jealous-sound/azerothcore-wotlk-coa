@@ -51,9 +51,6 @@ void ApplyContracts(SpellInfo* info)
         }
     if (Named(info, 520590))
     {
-        info->MaxCharges = 2;
-        info->ChargeRecoveryTime = 18000;
-        info->ChargeRecoveryKey = 520590;
         info->RecoveryTime = 0;
         info->CategoryRecoveryTime = 0;
     }

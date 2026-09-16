@@ -79,15 +79,6 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[0].MiscValue = 250043;
     if (id == 806769)
         info->Effects[2].MiscValue = 250044;
-    if (Any(info, {500720, 804711}))
-    {
-        bool blade = Named(info, 500720);
-        info->MaxCharges = blade ? 3 : 2;
-        info->ChargeRecoveryTime = blade ? 6000 : 60000;
-        info->ChargeRecoveryKey = blade ? 500720 : 804711;
-        if (!info->ChargeCategoryId)
-            info->ChargeCategoryId = blade ? 500720 : 804711;
-    }
     if (Named(info, 804152))
         info->CasterAuraSpell = 680602;
     if (Any(info, {805116, 804152}))

@@ -126,12 +126,6 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[1].Effect = 0;
     if (id == 805679)
         info->Effects[0].TargetA = SpellImplicitTargetInfo(TARGET_UNIT_CASTER);
-    if (id == 807247)
-    {
-        info->MaxCharges = 2;
-        info->ChargeRecoveryTime = 60000;
-        info->ChargeRecoveryKey = 807247;
-    }
     if (id == 302555)
     {
         info->Effects[0].Effect = SPELL_EFFECT_APPLY_AURA;

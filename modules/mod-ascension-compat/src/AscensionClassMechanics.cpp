@@ -5,7 +5,6 @@
 #include "AscensionClassMechanics12To17.h"
 #include "AscensionClassMechanics19To25.h"
 #include "AscensionClassMechanics26To32.h"
-#include "AscensionClassMechanicsData.h"
 #include "AscensionRangerDamage.h"
 #include "AscensionRangerTalents.h"
 #include "AscensionWitchHunterTonics.h"
@@ -36,8 +35,11 @@
 #include "AscensionTemplarLibrams.h"
 #include "AscensionHealingStatSelectors.h"
 #include "AscensionGuardianResources.h"
+#include "AscensionSpellProgressionData.h"
 #include "Cell.h"
 #include "CellImpl.h"
+#include "ClientDBC.h"
+#include "DBCStores.h"
 #include "GridNotifiers.h"
 #include "GridNotifiersImpl.h"
 #include "Item.h"
@@ -51,8 +53,12 @@
 #include "WorldSession.h"
 #include <algorithm>
 #include <array>
+#include <cctype>
 #include <cmath>
 #include <list>
+#include <string>
+#include <string_view>
+#include <unordered_map>
 #include <vector>
 
 namespace
@@ -947,6 +953,134 @@ void HandleRangerAdvantageSpent(Player* player, uint8 amount)
 }
 }
 
+namespace
+{
+// Custom classes 12-32 own spell families 18-38.
+bool IsCustomClassFamily(uint32 family)
+{
+    return family >= 18 && family <= 38;
+}
+
+// Spells whose client name or rank carries the word "deprecated" (or the client's "depreacated" typo).
+bool HasDeprecatedWord(char const* text)
+{
+    if (!text)
+        return false;
+
+    std::string lower(text);
+    std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char c) { return char(std::tolower(c)); });
+    auto isWordChar = [](char c) { return std::isalnum(static_cast<unsigned char>(c)) || c == '_'; };
+    for (std::string_view word : { std::string_view("deprecated"), std::string_view("depreacated") })
+        for (std::size_t at = lower.find(word); at != std::string::npos; at = lower.find(word, at + 1))
+            if ((at == 0 || !isWordChar(lower[at - 1])) &&
+                (at + word.size() == lower.size() || !isWordChar(lower[at + word.size()])))
+                return true;
+
+    return false;
+}
+
+// Some copied records use bow inventory type 15 when their subclass mask requires a crossbow (type 26), and
+// Tormentor ranks pair ranged subclasses with off-hand type 22. Keep the subclass restriction and add only the
+// inventory types that can hold those ranged subclasses.
+uint32 RepairedRangedInventoryMask(int32 itemClass, uint32 subclassMask, uint32 inventoryMask)
+{
+    uint32 const rangedSubclasses = (1 << 2) | (1 << 3) | (1 << 16) | (1 << 18) | (1 << 19);
+    if (itemClass != ITEM_CLASS_WEAPON || !subclassMask || (subclassMask & ~rangedSubclasses) || !inventoryMask)
+        return inventoryMask;
+
+    uint32 corrected = inventoryMask;
+    if (subclassMask & ((1 << 2) | (1 << 3) | (1 << 18)))
+        corrected |= (1 << INVTYPE_RANGED) | (1 << INVTYPE_RANGEDRIGHT);
+    if (subclassMask & (1 << 16))
+        corrected |= 1 << INVTYPE_THROWN;
+    if (subclassMask & (1 << 19))
+        corrected |= 1 << INVTYPE_RANGEDRIGHT;
+    return corrected;
+}
+
+struct ClientSpellCharge
+{
+    uint32 Maximum;
+    uint32 RecoveryMs;
+    uint32 Category;
+};
+
+// SpellCharges.dbc links a spell to a SpellChargesCategory.dbc row holding its charge count and recharge time.
+std::unordered_map<uint32, ClientSpellCharge> const& ClientSpellCharges()
+{
+    static std::unordered_map<uint32, ClientSpellCharge> const charges = []
+    {
+        std::unordered_map<uint32, ClientSpellCharge> result;
+        ClientDBC categories;
+        ClientDBC links;
+        if (!categories.Load(GetClientDBCPath("SpellChargesCategory.dbc"), 3) ||
+            !links.Load(GetClientDBCPath("SpellCharges.dbc"), 2))
+            return result;
+
+        std::unordered_map<uint32, std::pair<uint32, uint32>> byCategory;
+        for (uint32 row = 0; row < categories.GetRecordCount(); ++row)
+        {
+            ClientDBC::Record record = categories.GetRecord(row);
+            byCategory[record.GetUInt32(0)] = { record.GetUInt32(1), record.GetUInt32(2) };
+        }
+
+        for (uint32 row = 0; row < links.GetRecordCount(); ++row)
+        {
+            ClientDBC::Record record = links.GetRecord(row);
+            uint32 const spellId = record.GetUInt32(0);
+            uint32 const categoryId = record.GetUInt32(1);
+            auto category = byCategory.find(categoryId);
+            if (category == byCategory.end() || category->second.first < 1 || category->second.first > 20 ||
+                category->second.second < 1 || category->second.second > 86400000)
+            {
+                LOG_ERROR("module.ascension_compat", "Skipped invalid client charge category {} of spell {}",
+                    categoryId, spellId);
+                continue;
+            }
+
+            result[spellId] = { category->second.first, category->second.second, categoryId };
+        }
+
+        LOG_INFO("module.ascension_compat", "Loaded {} client spell charge records", result.size());
+        return result;
+    }();
+    return charges;
+}
+
+// Ranks of one ability share a charge pool keyed by their first rank.
+uint32 ChargeRankRoot(uint32 spellId)
+{
+    static std::unordered_map<uint32, uint32> const roots = []
+    {
+        std::unordered_map<uint32, uint32> result;
+        for (AscensionProgression::Rank const& rank : AscensionProgression::Ranks)
+            result.emplace(rank.SpellId, rank.FirstSpellId);
+        return result;
+    }();
+    auto root = roots.find(spellId);
+    return root != roots.end() ? root->second : spellId;
+}
+
+void ApplyClientSpellCharges(SpellInfo* spellInfo)
+{
+    auto charge = ClientSpellCharges().find(spellInfo->Id);
+    if (charge == ClientSpellCharges().end() || spellInfo->IsDeprecatedForPlayers ||
+        !IsCustomClassFamily(spellInfo->SpellFamilyName))
+        return;
+
+    uint32 const root = ChargeRankRoot(spellInfo->Id);
+    uint32 recoveryMs = charge->second.RecoveryMs;
+    // Runeblade's tooltip reads "3 Charges, 6 sec recharge"; its client charge category 110 recharges in 5 seconds.
+    if (root == 707141 && charge->second.Category == 110 && charge->second.Maximum == 3 && recoveryMs == 5000)
+        recoveryMs = 6000;
+
+    spellInfo->MaxCharges = charge->second.Maximum;
+    spellInfo->ChargeRecoveryTime = recoveryMs;
+    spellInfo->ChargeRecoveryKey = root;
+    spellInfo->ChargeCategoryId = charge->second.Category;
+}
+}
+
 void ApplyAscensionClassMechanics(SpellInfo* spellInfo)
 {
     if (!spellInfo)
@@ -1034,36 +1168,13 @@ void ApplyAscensionClassMechanics(SpellInfo* spellInfo)
         }
     }
 
-    auto const& deprecated = AscensionMechanics::DeprecatedSpells;
-    spellInfo->IsDeprecatedForPlayers = std::binary_search(deprecated.begin(), deprecated.end(), spellInfo->Id);
+    spellInfo->IsDeprecatedForPlayers =
+        HasDeprecatedWord(spellInfo->SpellName[0]) || HasDeprecatedWord(spellInfo->Rank[0]);
+    ApplyClientSpellCharges(spellInfo);
 
-    auto const& charges = AscensionMechanics::Charges;
-    auto charge = std::lower_bound(charges.begin(), charges.end(), spellInfo->Id,
-        [](auto const& entry, uint32 id) { return entry.SpellId < id; });
-    if (charge != charges.end() && charge->SpellId == spellInfo->Id &&
-        spellInfo->SpellFamilyName == uint32(charge->ClassId) + 6)
-    {
-        spellInfo->MaxCharges = charge->Maximum;
-        spellInfo->ChargeRecoveryTime = charge->RecoveryMs;
-        spellInfo->ChargeRecoveryKey = charge->FirstSpellId;
-        spellInfo->ChargeCategoryId = charge->Category;
-    }
-
-    auto const& repairs = AscensionMechanics::RangedRepairs;
-    auto repair = std::lower_bound(repairs.begin(), repairs.end(), spellInfo->Id,
-        [](auto const& entry, uint32 id) { return entry.SpellId < id; });
-    if (repair != repairs.end() && repair->SpellId == spellInfo->Id)
-    {
-        if (spellInfo->SpellFamilyName != repair->Family || spellInfo->EquippedItemClass != repair->ItemClass ||
-            uint32(spellInfo->EquippedItemSubClassMask) != repair->SubclassMask ||
-            (uint32(spellInfo->EquippedItemInventoryTypeMask) != repair->Before &&
-             uint32(spellInfo->EquippedItemInventoryTypeMask) != repair->After))
-        {
-            LOG_ERROR("module.ascension_compat", "Skipped unexpected ranged equipment record {}", spellInfo->Id);
-        }
-        else
-            spellInfo->EquippedItemInventoryTypeMask = int32(repair->After);
-    }
+    if (IsCustomClassFamily(spellInfo->SpellFamilyName))
+        spellInfo->EquippedItemInventoryTypeMask = int32(RepairedRangedInventoryMask(spellInfo->EquippedItemClass,
+            uint32(spellInfo->EquippedItemSubClassMask), uint32(spellInfo->EquippedItemInventoryTypeMask)));
 }
 
 void SynchronizeAscensionClassMechanics(Player* player)
