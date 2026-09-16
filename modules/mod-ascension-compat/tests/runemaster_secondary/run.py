@@ -21,7 +21,8 @@ using AuraType=uint32;
 constexpr uint32 CLASS_SPIRIT_MAGE=32, EFFECT_2=2, UNITHOOK_MODIFY_SPELL_EFFECT_BASE_VALUE=7,
     BASE_ATTACK=0, OFF_ATTACK=1, SPELLVALUE_MELEE_ATTACK_TYPE=10, SPELL_DIRECT_DAMAGE=1,
     SPELL_SCHOOL_MASK_MAGIC=126, SPELL_ATTR2_CANT_CRIT=1,
-    SPELL_ATTR3_IGNORE_CASTER_MODIFIERS=2, SPELL_ATTR4_IGNORE_DAMAGE_TAKEN_MODIFIERS=4;
+    SPELL_ATTR3_IGNORE_CASTER_MODIFIERS=2, SPELL_ATTR4_IGNORE_DAMAGE_TAKEN_MODIFIERS=4,
+    DOT=2, AURA_REMOVE_BY_EXPIRE=3, SPELL_AURA_PERIODIC_DAMAGE=3;
 template<class T> void AddPct(T& value,int32 percent) { value+=value*percent/100; }
 bool fixtureRoll=true;
 uint32 lastChance=0;
@@ -32,7 +33,12 @@ struct Unit;''', 1)
     struct Effect
 ''')
     code = code.replace('int32 value=0;', 'int32 value=0, BasePoints=0; float BonusMultiplier=1.0f;')
-    code = code.replace('uint8 stacks=1;', 'bool removed=false; void Remove() { removed=true; }\n    uint8 stacks=1;')
+    code = code.replace('uint8 stacks=1;', '''bool removed=false; void Remove() { removed=true; }
+    int32 duration=3000;
+    int32 GetDuration() const { return duration; }
+    void SetDuration(int32 value) { duration=value; }
+    bool ModStackAmount(int32 num) { stacks+=num; duration=3000; return false; }
+    uint8 stacks=1;''')
     code = code.replace('struct AuraEffect {};',
                         'struct AuraEffect { int32 amount=5; int32 GetAmount() const { return amount; } };')
     code = code.replace('struct Unit\n{', '''
@@ -77,7 +83,11 @@ struct Unit
     uint32 cls=32,''')
     code = code.replace('uint32 amount=100, school=1;',
                         'uint32 amount=100, school=1, type=1; uint32 GetDamageType() const { return type; }')
-    code = code.replace('bool prevented=false;', 'Aura fixtureAura; Aura* GetAura() { return &fixtureAura; }\n    bool prevented=false;')
+    code = code.replace('bool prevented=false;', '''Aura fixtureAura; Aura* GetAura() { return &fixtureAura; }
+    struct Application { uint32 mode=AURA_REMOVE_BY_EXPIRE; uint32 GetRemoveMode() const { return mode; } } fixtureApplication;
+    Application const* GetTargetApplication() const { return &fixtureApplication; }
+    uint8 GetStackAmount() const { return fixtureAura.stacks; }
+    bool prevented=false;''')
     code = code.replace('virtual void OnAuraApply(Unit*,Aura*) {}', '''
     virtual void ModifySpellEffectBaseValue(Unit const*,SpellInfo const*,uint8,float&) {}
     virtual void OnAuraApply(Unit*,Aura*) {}''')
@@ -155,20 +165,37 @@ int main()
     damage.type=2; assert(!sigil.Check(event)); damage.type=1;
     damage.school=1; assert(!sigil.Check(event)); damage.school=64;
     event.actor=&other; assert(!sigil.Check(event));
+    aura_ascension_runemaster_fire_engraving engraving; engraving.fixtureCaster=engraving.fixtureTarget=&player;
+    damage.type=0; event.actor=&player; player.casts.clear();
+    assert(engraving.Check(event)); engraving.Proc(&amount,event);
+    assert(engraving.prevented && player.casts.size()==1 && player.casts.back().id==653210);
+    auto* brand=player.AddAura(653210,&enemy); brand->duration=1200; player.casts.clear();
+    engraving.Proc(&amount,event); assert(player.casts.empty() && brand->stacks==2 && brand->duration==1200);
+    damage.type=2; assert(!engraving.Check(event)); damage.type=1;
+    event.actor=&other; assert(!engraving.Check(event)); event.actor=&player;
+    aura_ascension_runemaster_firebrand firebrand; firebrand.fixtureCaster=&player; firebrand.fixtureTarget=&enemy;
+    firebrand.fixtureAura.stacks=3; player.casts.clear();
+    firebrand.Explode(&amount,1);
+    assert(player.casts.size()==3 && player.casts.back().id==653212 && player.casts.back().target==&enemy);
+    firebrand.fixtureApplication.mode=0; player.casts.clear(); firebrand.Explode(&amount,1); assert(player.casts.empty());
+    firebrand.fixtureApplication.mode=AURA_REMOVE_BY_EXPIRE; enemy.alive=false;
+    firebrand.Explode(&amount,1); assert(player.casts.empty()); enemy.alive=true;
     runemaster_secondary_metadata metadata; SpellInfo info; info.SpellFamilyName=38; info.Id=712298;
     metadata.OnLoadSpellCustomAttr(&info); assert(info.AscensionInheritsResolvedAmount);
 }
 ''')
     raw = (ROOT.parent / 'runtime/server/data/dbc/Spell.dbc').read_bytes()
     count = struct.unpack_from('<I', raw, 4)[0]
-    ids = {500462, 500466, 500468, 802645, 802661, 801511, 807377, 807378, 807819, 808020}
+    ids = {500462, 500466, 500468, 802645, 802661, 801511, 807377, 807378, 807819, 808020, 653210, 653211, 653212}
     rows = {r[0]: r for r in struct.iter_unpack('<234I', raw[20:20+count*936]) if r[0] in ids}
     assert rows[500462][80] + rows[500462][74] == 50 and rows[500468][49] == 3
     assert rows[802661][35] == 20 and rows[801511][35] == 100
     assert rows[802645][82] + rows[802645][76] == 20
     assert rows[807377][110] == 15 and rows[807378][110] == 14
     assert rows[807819][95] == 3 and rows[807819][98] == 3000 and rows[808020][95] == 27
-    print('PASS: offhand copies, charge restoration, third-cast mana, Water scaling, Spellfire consumption, tattoo ownership, Sigil')
+    assert rows[653211][35] == 30 and rows[653211][95] == 42 and rows[653211][116] == 653210
+    assert rows[653210][95] == 3 and rows[653212][71] == 2
+    print('PASS: offhand copies, charge restoration, third-cast mana, Water scaling, Spellfire consumption, tattoo ownership, Sigil, Fire Engraving')
 
 
 if __name__ == '__main__':
