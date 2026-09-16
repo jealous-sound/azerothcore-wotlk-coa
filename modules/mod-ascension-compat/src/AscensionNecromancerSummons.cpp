@@ -558,9 +558,12 @@ class npc_ascension_necromancer : public ScriptedAI
                         target = player->GetVictim();
                     if (!target && !player->getAttackers().empty())
                         target = *player->getAttackers().begin();
+                    // Assault only picks up enemies: attackable neutral units such as critters are left alone,
+                    // as they are by native aggressive creatures.
                     if (!target && player->HasAura(500982))
                         for (Unit* unit : Nearby(me, 20.0f))
-                            if (player->IsValidAttackTarget(unit) && me->IsWithinLOSInMap(unit))
+                            if (player->IsValidAttackTarget(unit) && player->IsHostileTo(unit) &&
+                                me->IsWithinLOSInMap(unit))
                             {
                                 target = unit;
                                 break;
