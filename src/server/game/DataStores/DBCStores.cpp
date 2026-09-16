@@ -234,6 +234,10 @@ inline void LoadDBC(uint32& availableDbcLocales, StoreProblemList& errors, DBCSt
             if (!storage.LoadStringsFrom(localizedName.c_str()))
                 availableDbcLocales &= ~(1 << i);             // mark as not available for speedup next checks
         }
+
+        if (uint32 invalidStrings = storage.GetInvalidStringCount())
+            LOG_WARN("dbc", "{}: {} strings point outside the string block; loaded as empty.",
+                dbcFilename, invalidStrings);
     }
 
     if (dbTable)

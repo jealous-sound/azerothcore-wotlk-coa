@@ -70,13 +70,8 @@ nor stable across grid reloads. The restoration writes its spawns in the fixed b
    A stock table holds 3,792 rows; CoA's client ships 120,871, and the restored pickups use
    1,009 ids from it. Against the stock table 1,489 of 1,510 pickups never reach the world and
    the world stays empty however good the data is (it also silently drops ~1,222 stock objects).
-   `tools/install_gameobject_display_info.py` merges the client's rows into the server's, keeps
-   a backup, and verifies what it wrote:
-
-   ```bash
-   pip install mpyq
-   python tools/install_gameobject_display_info.py --client "C:/path/to/CoA/client"
-   ```
+   Install the client's DBC set with the [client DBC tool](../../apps/coa-dbc/README.md); it
+   includes this table.
 
 2. **The SQL applied.** With `Updates.EnableDatabases = 7` (all three databases) the core
    applies `data/sql/db-world/` and `data/sql/db-characters/` at startup by itself; use `6`
@@ -177,8 +172,6 @@ DROP TABLE IF EXISTS acore_characters.character_worldforged_loot;
 The undo lives under `data/sql/manual/` rather than beside the migration because it *deletes*
 rows from `gameobject_template`, which the repository's SQL lint asks updates never to do.
 Both migration files pass that lint; the undo is the one file that deletes on purpose.
-
-and restore `Data/dbc/backup/GameObjectDisplayInfo.dbc.bak-<stamp>`.
 
 To re-test one pickup from scratch, clear the character's row and re-log (the module drops its
 in-memory copy on logout):

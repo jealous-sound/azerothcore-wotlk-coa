@@ -19,7 +19,8 @@
 #include "Errors.h"
 #include <string.h>
 
-DBCFileLoader::DBCFileLoader() : recordSize(0), recordCount(0), fieldCount(0), stringSize(0), fieldsOffset(nullptr), data(nullptr), stringTable(nullptr) { }
+DBCFileLoader::DBCFileLoader() : recordSize(0), recordCount(0), fieldCount(0), stringSize(0), invalidStringCount(0),
+    fieldsOffset(nullptr), data(nullptr), stringTable(nullptr) { }
 
 bool DBCFileLoader::Load(char const* filename, char const* fmt)
 {
@@ -280,8 +281,11 @@ char* DBCFileLoader::AutoProduceStrings(char const* format, char* dataTable)
         return nullptr;
     }
 
-    char* stringPool = new char[stringSize];
+    // The byte after the copied block stays empty for string fields that point outside it.
+    // CoA's client Spell.dbc ships such offsets in locale slots the client never reads.
+    char* stringPool = new char[stringSize + 1];
     memcpy(stringPool, stringTable, stringSize);
+    stringPool[stringSize] = '\0';
 
     uint32 offset = 0;
 
@@ -307,8 +311,14 @@ char* DBCFileLoader::AutoProduceStrings(char const* format, char* dataTable)
                     char** slot = (char**)(&dataTable[offset]);
                     if (!*slot || !** slot)
                     {
-                        char const* st = getRecord(y).getString(x);
-                        *slot = stringPool + (st - (char const*)stringTable);
+                        uint32 stringOffset = getRecord(y).getUInt(x);
+                        if (stringOffset >= stringSize)
+                        {
+                            stringOffset = stringSize;
+                            ++invalidStringCount;
+                        }
+
+                        *slot = stringPool + stringOffset;
                     }
                     offset += sizeof(char*);
                     break;
