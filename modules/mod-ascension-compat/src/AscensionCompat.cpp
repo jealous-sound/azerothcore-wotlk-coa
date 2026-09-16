@@ -2570,8 +2570,14 @@ public:
         for (uint32 spellId : spells)
         {
             player->learnSpell(spellId, false);
-            if (player->HasSpell(spellId))
-                ++learned;
+            if (!player->HasSpell(spellId))
+                continue;
+
+            // The grant lands inside the login window, so Player::_addSpell records it as PLAYERSPELL_UNCHANGED
+            // and Player::_SaveSpells skips it. Without a character_spell row the next login validates the saved
+            // action buttons before this hook runs, so mount and companion buttons are dropped and deleted.
+            player->MarkSpellForSave(spellId);
+            ++learned;
         }
 
         if (learned)

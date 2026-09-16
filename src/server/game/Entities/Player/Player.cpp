@@ -3544,6 +3544,20 @@ uint8 Player::GetLearnSpellSpecMask(uint32 spellId) const
     return specMask;
 }
 
+void Player::MarkSpellForSave(uint32 spellId)
+{
+    // Player::_addSpell files a grant made while the session is still loading as PLAYERSPELL_UNCHANGED,
+    // because that state otherwise means "already stored in character_spell". A script that grants a spell
+    // inside the login window therefore never reaches the insert in Player::_SaveSpells. Promoting the entry
+    // to PLAYERSPELL_CHANGED makes the next character save write it out. That save is a DELETE + INSERT pair
+    // on the same spell, so calling this for a spell that is already stored is harmless.
+    PlayerSpellMap::iterator itr = m_spells.find(spellId);
+    if (itr == m_spells.end() || itr->second->State != PLAYERSPELL_UNCHANGED)
+        return;
+
+    itr->second->State = PLAYERSPELL_CHANGED;
+}
+
 void Player::removeSpell(uint32 spell_id, uint8 removeSpecMask, bool onlyTemporary)
 {
     PlayerSpellMap::iterator itr = m_spells.find(spell_id);
