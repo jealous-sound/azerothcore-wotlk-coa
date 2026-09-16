@@ -287,7 +287,9 @@ void Refresh(Player* player)
     bool mine = false;
     for (Creature* device : Devices(player))
         mine |= device->GetEntry() == 50045 || device->GetEntry() == 50600;
-    SetHelper(player,500354,mine);
+    // Bomb Ready (500354) is an owner area aura the mine itself carries, see
+    // npc_ascension_tinker_device::IsSummonedBy. Casting it from the Tinker can never apply it - the
+    // area aura only reaches the aura owner's own owner - and revoking it here would strip the mine's.
     if (mine && !player->HasSpell(801798))
         player->learnSpell(801798,true);
     else if (!mine)

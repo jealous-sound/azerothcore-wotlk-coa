@@ -263,6 +263,11 @@ struct npc_ascension_tinker_device : ScriptedAI
         start = previous = me->GetPosition();
         if (!Mobile())
             me->GetMotionMaster()->MoveIdle();
+        // Bomb Ready (500354) is SPELL_EFFECT_APPLY_AREA_AURA_OWNER over 60 yards with no duration, so the
+        // mine holds it and the Tinker receives it while in range. It is the caster aura Remote Detonation
+        // (801798) requires, and it lapses on its own when the mine explodes, dies or despawns.
+        if (me->GetEntry() == 50045 || me->GetEntry() == 50600)
+            Cast(me,me,500354);
         if (me->GetEntry() == 226312)
         {
             Position end = start;
