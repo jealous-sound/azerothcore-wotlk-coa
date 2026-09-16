@@ -1869,7 +1869,11 @@ void Player::RegenerateAll()
         }
 
         Regenerate(POWER_RAGE);
-        if (IsClass(CLASS_DEATH_KNIGHT, CLASS_CONTEXT_ABILITY))
+        // Rage above is regenerated for whoever actually runs on it. Runic power needs the same
+        // treatment: custom classes can carry it as their display power (ChrClasses.dbc gives the
+        // Reaper power type 6) while answering no to a Death Knight ability-context check, which
+        // left their bar frozen out of combat.
+        if (IsClass(CLASS_DEATH_KNIGHT, CLASS_CONTEXT_ABILITY) || HasActivePowerType(POWER_RUNIC_POWER))
             Regenerate(POWER_RUNIC_POWER);
 
         m_regenTimerCount -= 2000;
