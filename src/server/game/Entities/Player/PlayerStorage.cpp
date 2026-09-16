@@ -7370,7 +7370,10 @@ void Player::_SaveAuras(CharacterDatabaseTransaction trans, bool logout)
             continue;
 
         Aura* aura = itr->second;
-        if (!logout && aura->GetDuration() < 60 * IN_MILLISECONDS )
+        // Skipping an aura that is about to expire only saves a write, because the delete above already
+        // dropped every stored row. A permanent aura reports duration -1, so it must not be caught by that
+        // test: doing so loses it for good if the realm never reaches a clean logout for this character.
+        if (!logout && !aura->IsPermanent() && aura->GetDuration() < 60 * IN_MILLISECONDS)
             continue;
 
         int32 damage[MAX_SPELL_EFFECTS];

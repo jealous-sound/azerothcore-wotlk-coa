@@ -1,5 +1,6 @@
 /* Copyright (C) 2016+ AzerothCore, GNU AGPL v3. */
 
+#include "Config.h"
 #include "Player.h"
 #include "ScriptMgr.h"
 #include "SpellScript.h"
@@ -95,6 +96,18 @@ public:
         // Character creation grants no ruleset, and the client's selection frame is level and
         // rested-area gated, so a character without one can never leave C_Player.Ruleset.None
         // on its own. Default to the only harmless ruleset until the player picks another.
+        // The PvE set is 1004119 + 9931032, so it carries the War Mode name, description and
+        // SPELL_AURA_MOD_XP_PCT 15 that any explicit PvE selection already applies; a realm that does not
+        // want that applied without a player action can turn the default off here.
+        if (!sConfigMgr->GetOption<bool>("AscensionCompat.RulesetLoginDefault", true))
+            return;
+
+        // A character evicted from an instance at login is already out of the world, mid far-teleport:
+        // CharacterHandler guards its own login-time cast with the same test for that reason. Leave the
+        // default to the next login instead of casting at a unit the client is unloading.
+        if (!player->IsInWorld())
+            return;
+
         if (!player->HasAura(SPELL_HIGH_RISK) && !player->HasAura(SPELL_WAR_MODE) && !player->HasAura(SPELL_PVE))
             ApplyRuleset(player, SPELL_SELECT_PVE);
     }

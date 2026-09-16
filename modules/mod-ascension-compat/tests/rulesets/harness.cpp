@@ -39,6 +39,8 @@ struct Unit
 struct Player : Unit
 {
     bool resting = false;
+    bool inWorld = true;
+    bool IsInWorld() const { return inWorld; }
     std::set<uint32> auras;
     std::set<uint32> known;
     uint32 learns = 0;
@@ -96,6 +98,13 @@ struct PlayerScript
     PlayerScript(char const*, std::initializer_list<int>) { }
     virtual void OnPlayerLogin(Player*) { }
 };
+struct ConfigMgrStub
+{
+    bool rulesetLoginDefault = true;
+    template <class T> T GetOption(char const*, T) const { return T(rulesetLoginDefault); }
+};
+ConfigMgrStub configMgrStub;
+#define sConfigMgr (&configMgrStub)
 #define PrepareSpellScript(name)
 #define RegisterSpellScript(name)
 #define SpellCheckCastFn(...) 0
@@ -141,6 +150,17 @@ int main()
         login.OnPlayerLogin(&player);
         assert(player.auras == kept);
     }
+    // The config gate suppresses only the default; the selection spells are still learned.
+    configMgrStub.rulesetLoginDefault = false;
+    Player gated;
+    login.OnPlayerLogin(&gated);
+    assert((gated.known == std::set<uint32>{84420, 84421, 84422}) && gated.learns == 3 && gated.auras.empty());
+    configMgrStub.rulesetLoginDefault = true;
+    // A character evicted from an instance is out of the world at login; the default waits for the next one.
+    Player evicted;
+    evicted.inWorld = false;
+    login.OnPlayerLogin(&evicted);
+    assert((evicted.known == std::set<uint32>{84420, 84421, 84422}) && evicted.auras.empty());
     Unit npc;
     SpellInfo info;
     spell_ascension_ruleset_select script;

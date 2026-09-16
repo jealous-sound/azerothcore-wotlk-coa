@@ -29,6 +29,12 @@ def main():
     native += method((ROOT / 'src/server/game/Entities/Unit/Unit.cpp').read_text(),
                      'void Unit::RemoveAllAurasOnDeath()')
     code = code.replace('// NATIVE', native)
+    # The login default reads "no ruleset aura" as "this character never chose one". That only holds while a
+    # periodic (non-logout) save keeps permanent auras: _SaveAuras deletes every stored row first, so skipping
+    # them there would lose the choice whenever the realm stops without a clean logout.
+    saving = method((ROOT / 'src/server/game/Entities/Player/PlayerStorage.cpp').read_text(),
+                    'void Player::_SaveAuras(')
+    assert '!aura->IsPermanent()' in saving
     raw = (ROOT.parent / 'runtime/server/data/dbc/Spell.dbc').read_bytes()
     count = struct.unpack_from('<I', raw, 4)[0]
     ids = {84420, 84421, 84422, 1004019, 1004119, 9931032}
