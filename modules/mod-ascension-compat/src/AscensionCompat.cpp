@@ -4734,17 +4734,32 @@ public:
       // SynchronizeTaughtAbilities grants Dual Wield (674) from OnPlayerLogin, which runs only
       // after inventory is already loaded, so CanDualWield() is still false here even when the
       // player legitimately dual-wielded last session; the saved offhand item would otherwise
-      // fail EQUIP_ERR_CANT_DUAL_WIELD and get mailed back on every login. Only paper over that
-      // one not-yet-synced reason: SynchronizeTaughtAbilities's own AutoUnequipOffhandIfNeed()
-      // unequips it again moments later in the same login if the player is no longer eligible.
+      // be rejected and get mailed back on every login. Only paper over that one not-yet-synced
+      // flag: SynchronizeTaughtAbilities's own AutoUnequipOffhandIfNeed() unequips it again
+      // moments later in the same login if the player is no longer eligible.
       uint8 result = player->CanEquipItem(slot, dest, item, false, false);
-      if (result != EQUIP_ERR_CANT_DUAL_WIELD)
+      if (result == EQUIP_ERR_OK || player->CanDualWield())
       {
           err = result;
           return false;
       }
 
-      dest = (INVENTORY_SLOT_BAG_0 << 8) | slot;
+      // A one-hand weapon is refused before the dual wield check (EQUIP_ERR_ITEM_CANT_BE_EQUIPPED:
+      // FindEquipSlot offers the offhand only with dual wield), an offhand weapon at it
+      // (EQUIP_ERR_CANT_DUAL_WIELD). Re-check with the flag the login sync is about to restore.
+      player->SetCanDualWield(true);
+      uint16 dualWieldDest = 0;
+      uint8 const dualWieldResult = player->CanEquipItem(slot, dualWieldDest, item, false, false);
+      if (dualWieldResult != EQUIP_ERR_OK)
+      {
+          player->SetCanDualWield(false);
+          err = result;
+          return false;
+      }
+
+      // Keep the flag: the zone update that adds the player to the map also calls
+      // AutoUnequipOffhandIfNeed(), before OnPlayerLogin runs the taught ability sync.
+      dest = dualWieldDest;
       err = EQUIP_ERR_OK;
       return false;
   }
