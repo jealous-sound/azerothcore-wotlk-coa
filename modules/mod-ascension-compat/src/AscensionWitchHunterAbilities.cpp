@@ -203,7 +203,7 @@ class spell_ascension_witch_hunter_ability : public SpellScript
         }
         if (Heartseeking(GetSpellInfo()) && dealt)
             player->RewardRage(dealt, 0, true);
-        if (Family(GetSpellInfo(), 2, 8388608) && dealt && player->HasAura(560208) &&
+        if (Desecrate(GetSpellInfo()) && dealt && player->HasAura(560208) &&
             target->HasAura(680517, player->GetGUID()))
             player->CastCustomSpell(574335, SPELLVALUE_BASE_POINT0, int32(player->CountPctFromMaxHealth(1)), player,
                                     TRIGGERED_FULL_MASK);
@@ -347,7 +347,7 @@ class spell_ascension_witch_hunter_ability : public SpellScript
             if (_lightbringer && !roll_chance_i(25))
                 player->RemoveAurasDueToSpell(680539);
         }
-        if (Family(info, 2, 8388608))
+        if (Desecrate(info))
         {
             talent(560208, 680519);
             player->RemoveAurasDueToSpell(803166);

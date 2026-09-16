@@ -225,7 +225,7 @@ void ApplyContracts(SpellInfo* info)
             effect.TriggerSpell = 0;
             effect.TargetA = SpellImplicitTargetInfo(TARGET_UNIT_TARGET_ENEMY);
         }
-    if (Family(info, 2, 8388608) && info->Id != 681177 && info->Id != 681179)
+    if (Desecrate(info))
     {
         info->CasterAuraState = 0;
         info->CasterAuraSpell = 803166;

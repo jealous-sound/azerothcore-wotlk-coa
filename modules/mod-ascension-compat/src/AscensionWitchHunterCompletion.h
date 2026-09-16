@@ -44,6 +44,13 @@ inline bool Quickdraw(SpellInfo const* info)
 {
     return Family(info, 0, 64) && info->Id != 807527;
 }
+inline bool Desecrate(SpellInfo const* info)
+{
+    // Family word 2 bit 0x800000 is not exclusive to Desecrate: the Shadow/Death Trap casts carry it
+    // alongside the trap bit (0x840000) and so do the Shadow Trapped payloads, so key off the rank ids.
+    return info && info->SpellFamilyName == 21 &&
+           (info->Id == 680518 || (info->Id >= 681207 && info->Id <= 681211));
+}
 inline bool MainBrand(SpellInfo const* info)
 {
     return info && (info->Id == 501380 || info->Id == 562390 || info->Id == 562573 || info->Id == 807682 ||
