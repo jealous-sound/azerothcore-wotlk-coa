@@ -1721,7 +1721,7 @@ public:
             break;
         }
 
-        ConsumeReaperSouls(player, spellInfo);
+        ConsumeReaperSouls(player, spell);
         SynchronizeThresholdResources(player);
         SendClientState(player, false);
     }
@@ -2157,12 +2157,31 @@ private:
                 aura->ModStackAmount(amount - 1);
     }
 
-    static void ConsumeReaperSouls(Player* player,
-        SpellInfo const* spellInfo)
+    // True when the spell had at least one target other than the caster and every such target
+    // missed, dodged or parried it. Neutral creatures count: hostility is not required to attack.
+    static bool WasAvoidedByEveryTarget(Player const* player, Spell* spell)
+    {
+        bool external = false;
+        for (TargetInfo const& hit : *spell->GetUniqueTargetInfo())
+        {
+            if (hit.targetGUID == player->GetGUID())
+                continue;
+
+            if (hit.missCondition != SPELL_MISS_MISS && hit.missCondition != SPELL_MISS_DODGE &&
+                hit.missCondition != SPELL_MISS_PARRY)
+                return false;
+
+            external = true;
+        }
+        return external;
+    }
+
+    static void ConsumeReaperSouls(Player* player, Spell* spell)
     {
         if (player->getClass() != CLASS_REAPER)
             return;
 
+        SpellInfo const* spellInfo = spell->GetSpellInfo();
         uint32 spellId = spellInfo->Id;
         if (std::find(REAPER_ALL_SOUL_CONSUMERS.begin(),
                 REAPER_ALL_SOUL_CONSUMERS.end(), spellId) !=
@@ -2174,8 +2193,11 @@ private:
         }
 
         // Abilities that require Soul Infusion consume it together with the souls that granted it.
+        // The 2026-07-31 changelog refunds the cost when the spell misses, is dodged or parried;
+        // target results are already rolled when this runs, so an avoided cast keeps everything.
         if (spellInfo->CasterAuraSpell == SPELL_REAPER_SOUL_INFUSION &&
-            player->HasAura(SPELL_REAPER_SOUL_INFUSION))
+            player->HasAura(SPELL_REAPER_SOUL_INFUSION) &&
+            !WasAvoidedByEveryTarget(player, spell))
         {
             player->CastSpell(player, SPELL_REAPER_SOUL_INFUSION_REMOVER, true);
             return;
