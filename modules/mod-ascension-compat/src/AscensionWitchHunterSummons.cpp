@@ -347,12 +347,20 @@ struct npc_ascension_witch_hunter_field : ScriptedAI
         }
         if (entry == 506010)
         {
-            for (Unit* enemy : Nearby(me, 5.0f))
+            // A caltrop is used up by the enemies that step on it, like the Witch Hunter traps below.
+            bool triggered = false;
+            for (Unit* enemy : Nearby(me, 3.0f))
                 if (owner->IsValidAttackTarget(enemy))
                 {
                     Cast(owner, enemy, 504447);
                     Cast(owner, enemy, 504823);
+                    triggered = true;
                 }
+            if (triggered)
+            {
+                me->DespawnOrUnsummon();
+                return;
+            }
         }
         else if (entry >= 506250 && entry <= 506253)
         {
@@ -383,7 +391,7 @@ struct npc_ascension_witch_hunter_field : ScriptedAI
                     return;
                 }
         }
-        events.ScheduleEvent(EVENT_FIELD_PULSE, entry == 506010 ? 1s : 250ms);
+        events.ScheduleEvent(EVENT_FIELD_PULSE, 250ms);
     }
 };
 
@@ -408,6 +416,16 @@ class spell_ascension_witch_hunter_summon : public SpellScript
         Position position = player->GetPosition();
         if (WorldLocation const* destination = GetExplTargetDest())
             position = *destination;
+        if (effect.MiscValue == 506010)
+        {
+            // Caltrops (BasePoints 11) and Renegade's Vault drop (BasePoints 5) scatter that many small caltrops
+            // over the effect radius instead of a single one.
+            float const radius = effect.CalcRadius(player);
+            for (int32 i = std::max(1, effect.CalcValue(player)); i > 0; --i)
+                player->SummonCreature(effect.MiscValue, player->GetRandomPoint(position, radius),
+                                       TEMPSUMMON_TIMED_DESPAWN, duration);
+            return;
+        }
         player->SummonCreature(effect.MiscValue, position, TEMPSUMMON_TIMED_DESPAWN, duration);
     }
     void Register() override
