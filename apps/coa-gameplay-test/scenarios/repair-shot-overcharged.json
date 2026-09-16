@@ -1,0 +1,129 @@
+{
+  "schema": 1,
+  "name": "Repair Shot does not lock out player targets (#248)",
+  "contract": "Repeated Repair Shots heal an ally without applying the beacon Overcharged marker. A stale player marker is cleared by a successful heal.",
+  "players": [
+    {
+      "id": "tinker",
+      "race": 1,
+      "class": 28,
+      "level": 19
+    },
+    {
+      "id": "ally",
+      "race": 1,
+      "class": 8,
+      "level": 19
+    }
+  ],
+  "location": {
+    "map": 530,
+    "x": 7633.86,
+    "y": -6810.22,
+    "z": 79.5987
+  },
+  "steps": [
+    {
+      "action": "wait",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "tinker",
+      "spell": 502575
+    },
+    {
+      "action": "set_health",
+      "actor": "ally",
+      "value": 100
+    },
+    {
+      "action": "cast",
+      "actor": "tinker",
+      "spell": 502575,
+      "target": "ally"
+    },
+    {
+      "action": "assert",
+      "actor": "ally",
+      "metric": "health",
+      "min": 300,
+      "within_ms": 4000
+    },
+    {
+      "action": "assert",
+      "actor": "ally",
+      "metric": "aura",
+      "spell": 560711,
+      "equals": 0
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "set_health",
+      "actor": "ally",
+      "value": 100
+    },
+    {
+      "action": "set_aura",
+      "actor": "ally",
+      "spell": 560711,
+      "stacks": 1
+    },
+    {
+      "action": "cast",
+      "actor": "tinker",
+      "spell": 502575,
+      "target": "ally"
+    },
+    {
+      "action": "assert",
+      "actor": "ally",
+      "metric": "health",
+      "min": 300,
+      "within_ms": 4000
+    },
+    {
+      "action": "assert",
+      "actor": "ally",
+      "metric": "aura",
+      "spell": 560711,
+      "equals": 0
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "set_health",
+      "actor": "ally",
+      "value": 100
+    },
+    {
+      "action": "cast",
+      "actor": "tinker",
+      "spell": 502575,
+      "target": "ally"
+    },
+    {
+      "action": "assert",
+      "actor": "ally",
+      "metric": "health",
+      "min": 300,
+      "within_ms": 4000
+    },
+    {
+      "action": "assert",
+      "actor": "ally",
+      "metric": "aura",
+      "spell": 560711,
+      "equals": 0
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    }
+  ]
+}
