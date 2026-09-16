@@ -63,7 +63,13 @@ class aura_ascension_venomancer_lifecycle : public AuraScript
             player->SetControlled(true,UNIT_STATE_ROOT);
         }
         if (id == Skulk)
+        {
             Cast(player,player,800906);
+            // Native DBC data gates several Skulk-only abilities behind CasterAuraSpell = 520890
+            // ("Skulking"), a permanent marker aura nothing else ever grants. Without this, the
+            // game client itself blocks the cast before it reaches the server.
+            Cast(player,player,520890);
+        }
         if (id == 806154)
         {
             Cast(player,player,806152);
@@ -205,6 +211,8 @@ class aura_ascension_venomancer_lifecycle : public AuraScript
             if (Aura* aura = player->GetAura(707358))
                 aura->SetDuration(4000);
         }
+        if (id == Skulk)
+            player->RemoveAurasDueToSpell(520890);
         if (id == 800892)
             player->RemoveAurasDueToSpell(800960);
         if (id == 800848 && expired && GetAura()->GetStackAmount() < 3)
