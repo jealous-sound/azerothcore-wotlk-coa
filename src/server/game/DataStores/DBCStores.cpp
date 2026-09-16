@@ -653,6 +653,18 @@ void LoadDBCStores(std::string const& dataPath)
         exit(1);
     }
 
+    // Rows only the CoA client set has. World content references them, and the SQL overlays no longer
+    // backfill any, so a stock or partially copied set would silently drop that content.
+    if (!sCurrencyTypesStore.LookupEntry(375250)          ||       // Rune of Ascension
+            !sCreatureDisplayInfoStore.LookupEntry(236827)  ||       // Blood Parasite
+            !sGameObjectDisplayInfoStore.LookupEntry(87226) ||       // Worldforged pickup
+            !sItemLimitCategoryStore.LookupEntry(2414)      ||
+            !sMapStore.LookupEntry(3690)                    )        // Brawler's Guild
+    {
+        LOG_ERROR("dbc", "DataDir does not hold the CoA client DBC set. Install it with apps/coa-dbc/client_dbc.py.");
+        exit(1);
+    }
+
     LOG_INFO("server.loading", ">> Initialized {} Data Stores in {} ms", DBCFileCount, GetMSTimeDiffToNow(oldMSTime));
     LOG_INFO("server.loading", " ");
 }

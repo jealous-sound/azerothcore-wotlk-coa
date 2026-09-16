@@ -340,9 +340,9 @@ to enter remote worlds without its DLL corrupting an active client hook. That fi
 the authserver's realm address without a per-IP allowlist.
 
 The `gtOCTRegenHP`, `gtRegenHPPerSpt` and `gtRegenMPPerSpt` client files each contain
-3,200 single-float rows indexed by class and level. Their SQL tables contain explicit
-IDs, with the stock dataset covering only IDs 0–1099. The DBC loader accepts implicit
-row IDs for these game tables while preserving explicit-ID files and SQL overrides.
+3,200 single-float rows indexed by class and level. Their SQL overlay tables are empty,
+so every class reads the client's rows. The DBC loader accepts implicit row IDs for these
+game tables while preserving explicit-ID files and SQL overlays.
 This lets the existing regeneration formulas reach the supplied custom-class rows;
 focus and energy use separate formulas.
 
