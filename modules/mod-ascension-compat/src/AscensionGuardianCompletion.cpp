@@ -266,6 +266,10 @@ void AscensionGuardian::ApplyContracts(SpellInfo* info)
     }
     if (id == 705377)
         info->ProcFlags = 0; // Honorable Demeanor belongs to the existing block callback.
+    if (id == 500673)
+        // Advance's recast carries the Battle/Defensive Stance mask (forms 17/18), which a Guardian never has;
+        // spell_ascension_guardian_ability::Check already limits the recast to a running Advance.
+        info->Stances = 0;
     if (id == 524610 && info->Effects[EFFECT_1].TriggerSpell == 524609)
         info->Effects[EFFECT_1].Effect = 0;
     if (id == 524608)
