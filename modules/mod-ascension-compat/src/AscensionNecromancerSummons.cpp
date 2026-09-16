@@ -544,7 +544,12 @@ class npc_ascension_necromancer : public ScriptedAI
                 {
                     me->AttackStop();
                     me->InterruptNonMeleeSpells(false);
-                    me->GetMotionMaster()->MoveIdle();
+                    // Pacified minions stop fighting and walk back to their slot like passive pets, instead of
+                    // standing wherever Grave March left them. Stationary and one-shot summons stay put.
+                    if (Follows(me->GetEntry()))
+                        Regroup(player);
+                    else
+                        me->GetMotionMaster()->MoveIdle();
                 }
                 else if (!me->GetVictim() && me->GetEntry() != 523032)
                 {
