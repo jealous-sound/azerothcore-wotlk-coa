@@ -22,6 +22,7 @@
 #include "DBCStore.h"
 #include "DBCStructure.h"
 #include <list>
+#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -195,5 +196,7 @@ extern DBCStorage <WMOAreaTableEntry>            sWMOAreaTableStore;
 extern DBCStorage <WorldMapOverlayEntry>         sWorldMapOverlayStore;
 
 void LoadDBCStores(std::string const& dataPath);
+/// Path of a client DBC in the directory LoadDBCStores read, for tables read with ClientDBC.
+std::string GetClientDBCPath(std::string_view fileName);
 
 #endif

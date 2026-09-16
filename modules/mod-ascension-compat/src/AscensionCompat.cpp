@@ -52,6 +52,7 @@
 #include "Battlefield.h"
 #include "BattlefieldMgr.h"
 #include "Chat.h"
+#include "ClientDBC.h"
 #include "CommandScript.h"
 #include "ConfigValueCache.h"
 #include "DatabaseEnv.h"
@@ -84,9 +85,6 @@
 #include <cstring>
 #include <type_traits>
 #include <deque>
-#include <filesystem>
-#include <fstream>
-#include <functional>
 #include <limits>
 #include <list>
 #include <map>
@@ -300,7 +298,6 @@ enum class AscensionCompatConfig {
   LOG_CONSUMED_PACKETS,
   FIRST_EXTENSION_OPCODE,
   LAST_EXTENSION_OPCODE,
-  DBC_DIRECTORY,
   AUTO_COLLECT_APPEARANCES,
   UNLOCK_LOCAL_APPEARANCE_CATALOG,
   APPEARANCE_CATALOG_PER_CATEGORY,
@@ -329,9 +326,6 @@ public:
                            "AscensionCompat.FirstExtensionOpcode", 0x051F);
     SetConfigValue<uint32>(AscensionCompatConfig::LAST_EXTENSION_OPCODE,
                            "AscensionCompat.LastExtensionOpcode", 0x09D3);
-    SetConfigValue<std::string>(AscensionCompatConfig::DBC_DIRECTORY,
-                                "AscensionCompat.DbcDirectory",
-                                "./data/dbc/Ascension");
     SetConfigValue<bool>(AscensionCompatConfig::AUTO_COLLECT_APPEARANCES,
                          "AscensionCompat.AutoCollectAppearances", true);
     SetConfigValue<bool>(
@@ -394,66 +388,6 @@ struct PlayerCollectionState {
   bool CanSeeItemAppearances = true;
   bool CanSeeSpellAppearances = true;
 };
-
-struct WdbcHeader {
-  char Magic[4];
-  uint32 RecordCount;
-  uint32 FieldCount;
-  uint32 RecordSize;
-  uint32 StringBlockSize;
-};
-
-uint32 ReadRecordField(std::vector<uint8> const &record,
-                       std::size_t fieldIndex) {
-  uint32 value = 0;
-  std::memcpy(&value, record.data() + fieldIndex * sizeof(uint32),
-              sizeof(value));
-  return value;
-}
-
-bool ForEachWdbcRecord(
-    std::filesystem::path const &path, std::size_t minimumDwordCount,
-    std::function<void(std::vector<uint8> const &)> const &visitor) {
-  std::ifstream input(path, std::ios::binary);
-  if (!input)
-  {
-    LOG_ERROR("module.ascension_compat", "Unable to open Ascension DBC {}",
-              path.generic_string());
-    return false;
-  }
-
-  WdbcHeader header{};
-  input.read(reinterpret_cast<char *>(&header), sizeof(header));
-  if (!input || std::memcmp(header.Magic, "WDBC", 4) != 0)
-  {
-    LOG_ERROR("module.ascension_compat", "Invalid WDBC header in {}",
-              path.generic_string());
-    return false;
-  }
-
-  if (header.RecordSize < minimumDwordCount * sizeof(uint32) ||
-      header.RecordSize % sizeof(uint32) != 0) {
-    LOG_ERROR("module.ascension_compat",
-              "Unsupported record layout in {}: fields={}, recordSize={}",
-              path.generic_string(), header.FieldCount, header.RecordSize);
-    return false;
-  }
-
-  std::vector<uint8> record(header.RecordSize);
-  for (uint32 row = 0; row < header.RecordCount; ++row) {
-    input.read(reinterpret_cast<char *>(record.data()), record.size());
-    if (!input)
-    {
-      LOG_ERROR("module.ascension_compat", "Truncated DBC {} at row {}",
-                path.generic_string(), row);
-      return false;
-    }
-
-    visitor(record);
-  }
-
-  return true;
-}
 
 uint8 AppearanceCategoryForEquipmentSlot(uint8 slot) {
   switch (slot) {
@@ -2471,7 +2405,7 @@ public:
     return instance;
   }
 
-  bool LoadClientData(std::filesystem::path const &dbcDirectory) {
+  bool LoadClientData() {
     _appearances.clear();
     _itemAppearances.clear();
     _itemSetItems.clear();
@@ -2479,72 +2413,76 @@ public:
     _allAppearanceIds.clear();
     _allVanityItemIds.clear();
 
+    ClientDBC appearances;
     bool appearancesLoaded =
-        ForEachWdbcRecord(dbcDirectory / "Appearances.dbc", 9,
-                          [this](std::vector<uint8> const &record) {
-                            uint32 appearanceId = ReadRecordField(record, 0);
-                            if (!appearanceId)
-                              return;
+        appearances.Load(GetClientDBCPath("Appearances.dbc"), 9);
+    for (uint32 row = 0; row < appearances.GetRecordCount(); ++row) {
+      ClientDBC::Record record = appearances.GetRecord(row);
+      uint32 appearanceId = record.GetUInt32(0);
+      if (!appearanceId)
+        continue;
 
-                            uint32 displayId = ReadRecordField(record, 3);
-                            _appearances[appearanceId] = AppearanceInfo{
-                                displayId, ReadRecordField(record, 5),
-                                ReadRecordField(record, 6),
-                                ReadRecordField(record, 7), displayId};
-                            AppearanceInfo& appearance = _appearances[appearanceId];
-                            if (IsCosmeticCategory(appearance.PrimaryCategory))
-                                appearance.CosmeticSpell = ResolveCosmeticSpell(appearanceId,
-                                    displayId, ReadRecordField(record, 8));
-                            _allAppearanceIds.push_back(appearanceId);
-                          });
+      uint32 displayId = record.GetUInt32(3);
+      _appearances[appearanceId] =
+          AppearanceInfo{displayId, record.GetUInt32(5), record.GetUInt32(6),
+                         record.GetUInt32(7), displayId};
+      AppearanceInfo& appearance = _appearances[appearanceId];
+      if (IsCosmeticCategory(appearance.PrimaryCategory))
+        appearance.CosmeticSpell = ResolveCosmeticSpell(appearanceId,
+            displayId, record.GetUInt32(8));
+      _allAppearanceIds.push_back(appearanceId);
+    }
 
+    ClientDBC itemAppearances;
     bool itemAppearancesLoaded =
-        ForEachWdbcRecord(dbcDirectory / "ItemAppearances.dbc", 3,
-                          [this](std::vector<uint8> const &record) {
-                            uint32 itemId = ReadRecordField(record, 1);
-                            uint32 appearanceId = ReadRecordField(record, 2);
-                            if (itemId && appearanceId)
-                              _itemAppearances[itemId] = appearanceId;
-                          });
+        itemAppearances.Load(GetClientDBCPath("ItemAppearances.dbc"), 3);
+    for (uint32 row = 0; row < itemAppearances.GetRecordCount(); ++row) {
+      ClientDBC::Record record = itemAppearances.GetRecord(row);
+      uint32 itemId = record.GetUInt32(1);
+      uint32 appearanceId = record.GetUInt32(2);
+      if (itemId && appearanceId)
+        _itemAppearances[itemId] = appearanceId;
+    }
 
-    bool itemSetsLoaded =
-        ForEachWdbcRecord(dbcDirectory.parent_path() / "ItemSet.dbc", 35,
-                          [this](std::vector<uint8> const &record) {
-                            uint32 itemSetId = ReadRecordField(record, 0);
-                            if (!itemSetId)
-                              return;
+    // The core's ItemSet store keeps ten items; CoA sets list up to seventeen (DWORDs 18-34).
+    ClientDBC itemSets;
+    bool itemSetsLoaded = itemSets.Load(GetClientDBCPath("ItemSet.dbc"), 35);
+    for (uint32 row = 0; row < itemSets.GetRecordCount(); ++row) {
+      ClientDBC::Record record = itemSets.GetRecord(row);
+      uint32 itemSetId = record.GetUInt32(0);
+      if (!itemSetId)
+        continue;
 
-                            std::vector<uint32> &items =
-                                _itemSetItems[itemSetId];
-                            for (std::size_t field = 18; field <= 34; ++field) {
-                              uint32 itemId = ReadRecordField(record, field);
-                              if (itemId)
-                                items.push_back(itemId);
-                            }
-                          });
+      std::vector<uint32> &items = _itemSetItems[itemSetId];
+      for (uint32 field = 18; field <= 34; ++field) {
+        uint32 itemId = record.GetUInt32(field);
+        if (itemId)
+          items.push_back(itemId);
+      }
+    }
 
+    ClientDBC vanity;
     bool vanityLoaded =
-        ForEachWdbcRecord(dbcDirectory / "VanityCollection.dbc", 77,
-                          [this](std::vector<uint8> const &record) {
-                            uint32 itemId = ReadRecordField(record, 1);
-                            if (!itemId)
-                              return;
+        vanity.Load(GetClientDBCPath("VanityCollection.dbc"), 77);
+    for (uint32 row = 0; row < vanity.GetRecordCount(); ++row) {
+      ClientDBC::Record record = vanity.GetRecord(row);
+      uint32 itemId = record.GetUInt32(1);
+      if (!itemId)
+        continue;
 
-                            VanityInfo info{
-                                // f44 is an empty locale column. The physical
-                                // record has 77 DWORDs; f76 is LearnedSpell.
-                                ReadRecordField(record, 76),
-                                ReadRecordField(record, 12),
-                                ReadRecordField(record, 2)};
+      VanityInfo info{
+          // f44 is an empty locale column. The physical
+          // record has 77 DWORDs; f76 is LearnedSpell.
+          record.GetUInt32(76), record.GetUInt32(12), record.GetUInt32(2)};
 
-                            // The same row is what the client stores as a vanity store record,
-                            // so the packet is built from it rather than from a second table.
-                            for (std::size_t field = 0; field < VANITY_STORE_RECORD_DWORDS; ++field)
-                              info.StoreRecord[field] = ReadRecordField(record, field);
+      // The same row is what the client stores as a vanity store record,
+      // so the packet is built from it rather than from a second table.
+      for (uint32 field = 0; field < VANITY_STORE_RECORD_DWORDS; ++field)
+        info.StoreRecord[field] = record.GetUInt32(field);
 
-                            _vanityItems[itemId] = info;
-                            _allVanityItemIds.push_back(itemId);
-                          });
+      _vanityItems[itemId] = info;
+      _allVanityItemIds.push_back(itemId);
+    }
 
     std::sort(_allAppearanceIds.begin(), _allAppearanceIds.end());
     _allAppearanceIds.erase(
@@ -5329,12 +5267,8 @@ public:
         AscensionCompatConfig::FIRST_EXTENSION_OPCODE);
     uint32 lastOpcode = ascensionCompatConfig.GetConfigValue<uint32>(
         AscensionCompatConfig::LAST_EXTENSION_OPCODE);
-    std::filesystem::path dbcDirectory(
-        std::string(ascensionCompatConfig.GetConfigValue(
-            AscensionCompatConfig::DBC_DIRECTORY)));
-
     bool dataLoaded =
-        AscensionCollectionService::Instance().LoadClientData(dbcDirectory);
+        AscensionCollectionService::Instance().LoadClientData();
     AscensionResourceService::Instance().ValidateDefinitions();
     LOG_INFO("module.ascension_compat",
              "Ascension compatibility enabled; consuming extension opcodes "

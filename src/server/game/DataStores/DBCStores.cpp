@@ -200,6 +200,7 @@ DBCStorage <WorldMapOverlayEntry> sWorldMapOverlayStore(WorldMapOverlayEntryfmt)
 typedef std::list<std::string> StoreProblemList;
 
 uint32 DBCFileCount = 0;
+static std::string sDBCPath;
 
 static bool LoadDBC_assert_print(uint32 fsize, uint32 rsize, std::string const& filename)
 {
@@ -267,6 +268,7 @@ void LoadDBCStores(std::string const& dataPath)
     uint32 oldMSTime = getMSTime();
 
     std::string dbcPath = dataPath + "dbc/";
+    sDBCPath = dbcPath;
 
     StoreProblemList bad_dbc_files;
     uint32 availableDbcLocales = 0xFFFFFFFF;
@@ -667,6 +669,11 @@ void LoadDBCStores(std::string const& dataPath)
 
     LOG_INFO("server.loading", ">> Initialized {} Data Stores in {} ms", DBCFileCount, GetMSTimeDiffToNow(oldMSTime));
     LOG_INFO("server.loading", " ");
+}
+
+std::string GetClientDBCPath(std::string_view fileName)
+{
+    return sDBCPath + std::string(fileName);
 }
 
 SimpleFactionsList const* GetFactionTeamList(uint32 faction)

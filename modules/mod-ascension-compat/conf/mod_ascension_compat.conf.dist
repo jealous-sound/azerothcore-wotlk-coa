@@ -35,10 +35,6 @@ AscensionCompat.CharacterSelectionEnable = 1
 # list and can be re-activated later.
 AscensionCompat.CharacterSelectionMaxActive = 10
 
-# Directory containing the custom client DBCs used by the collection protocol.
-# Required files: Appearances.dbc, ItemAppearances.dbc, VanityCollection.dbc.
-AscensionCompat.DbcDirectory = "./data/dbc/Ascension"
-
 # Automatically add appearance and vanity entries for items obtained by a character.
 AscensionCompat.AutoCollectAppearances = 1
 
