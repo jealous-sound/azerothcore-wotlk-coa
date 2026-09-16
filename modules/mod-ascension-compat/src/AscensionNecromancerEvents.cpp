@@ -86,7 +86,8 @@ class aura_ascension_necromancer_event : public AuraScript
         {
             if (actor->HasAura(680388, player->GetGUID()))
                 LeechArmy(player, damage);
-            if (actor->HasAura(560607, player->GetGUID()))
+            // Vampiric Aura: only the minions' damage, and only while the Necromancer is below 50% health.
+            if (minion && player->HealthBelowPct(50) && actor->HasAura(560607, player->GetGUID()))
                 Copy(player, player, 561095, uint64(damage) * std::max(0, Amount(560607, 1)) / 100);
             if (actor->HasAura(800027, player->GetGUID()))
                 Copy(actor, target, 570050, uint64(damage) * std::max(0, Amount(800027)) / 100);
