@@ -21,12 +21,10 @@ class spell_ascension_summon_bank : public SpellScript
         return GetCaster()->IsPlayer();
     }
 
-    void OpenBank(SpellEffIndex effIndex)
+    void OpenBank(SpellEffIndex /*effIndex*/)
     {
-        PreventHitDefaultEffect(effIndex);
-
-        // The spells target TARGET_UNIT_TARGET_ANY, so the hit unit may be the user's current
-        // selection; the bank always belongs to whoever used the item.
+        // The spells target TARGET_UNIT_TARGET_ANY, so the explicit target is whatever the user
+        // happened to have selected; the bank always belongs to whoever used the item.
         Player* player = GetCaster()->ToPlayer();
 
         // A banker GUID equal to the player's own is the supported window without a banker NPC:
@@ -36,7 +34,13 @@ class spell_ascension_summon_bank : public SpellScript
 
     void Register() override
     {
-        OnEffectHitTarget += SpellEffectFn(spell_ascension_summon_bank::OpenBank, EFFECT_0, SPELL_EFFECT_DUMMY);
+        // Opening the bank only needs the caster, so hook the caster-side effect phase.
+        // Spell::_handle_immediate_phase runs SPELL_EFFECT_HANDLE_HIT for every effect
+        // unconditionally, while SPELL_EFFECT_HANDLE_HIT_TARGET is skipped whenever the
+        // explicit unit target misses - immune, evading or dead by the time the cast lands.
+        // The item cooldown is already committed by then (Spell::SendSpellCooldown runs during
+        // Spell::_cast), so hooking the target phase would keep burning ten minutes for nothing.
+        OnEffectHit += SpellEffectFn(spell_ascension_summon_bank::OpenBank, EFFECT_0, SPELL_EFFECT_DUMMY);
     }
 };
 }
