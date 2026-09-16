@@ -533,6 +533,27 @@ private:
             return player->GetFloatValue(UNIT_MOD_CAST_SPEED);
         if (metric == "spell_crit_chance")
             return player->GetFloatValue(PLAYER_SPELL_CRIT_PERCENTAGE1 + SPELL_SCHOOL_SHADOW);
+        if (metric == "spell_damage_taken" || metric == "melee_damage_taken")
+        {
+            Unit* attacker = GetUnit(step.get<std::string>("target"));
+            if (metric == "melee_damage_taken")
+                return player->MeleeDamageBonusTaken(attacker, 1000, BASE_ATTACK);
+
+            SpellInfo const* info = sSpellMgr->GetSpellInfo(spell);
+            Require(info != nullptr, "Unknown spell for incoming damage calculation");
+            return player->SpellDamageBonusTaken(attacker, info, 1000, SPELL_DIRECT_DAMAGE);
+        }
+        if (metric == "spell_damage_done" || metric == "melee_damage_done")
+        {
+            Unit* target = GetUnit(step.get<std::string>("target"));
+            if (metric == "melee_damage_done")
+                return player->MeleeDamageBonusDone(target, 1000, BASE_ATTACK, nullptr);
+
+            SpellInfo const* info = sSpellMgr->GetSpellInfo(spell);
+            Require(info != nullptr, "Unknown spell for damage calculation");
+            return player->SpellDamageBonusDone(target, info, 1000, SPELL_DIRECT_DAMAGE,
+                uint8(step.get<uint32>("effect", EFFECT_0)));
+        }
         if (metric == "spell_power_cost")
         {
             SpellInfo const* info = sSpellMgr->GetSpellInfo(spell);
@@ -912,6 +933,12 @@ private:
                     + std::to_string(player->IsInCombat()) + ", casting "
                     + std::to_string(player->IsNonMeleeSpellCast(false)));
             }
+        }
+        else if (action == "set_level")
+        {
+            uint32 const level = step.get<uint32>("value");
+            Require(level >= 1 && level <= 80, "Invalid fixture level");
+            player->GiveLevel(uint8(level));
         }
         else if (action == "set_health")
         {

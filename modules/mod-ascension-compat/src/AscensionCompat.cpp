@@ -24,6 +24,7 @@
 #include "AscensionCollectibleSpellData.h"
 #include "AscensionCustomClassData.h"
 #include "AscensionAuraAmounts.h"
+#include "AscensionClassTuning.h"
 #include "AscensionBarbarian.h"
 #include "AscensionBarbarianScaling.h"
 #include "AscensionCustomResourceData.h"
@@ -484,6 +485,7 @@ public:
     // grants. Do not scan arbitrary quest, collection or purchased spells for
     // absence from a level-one snapshot. Valid selected talents are independent.
     uint32 const activeSpec = GetActiveSpecialization(player);
+    AscensionClassTuning::Synchronize(player, activeSpec, true);
     auto const racialSpells = GetAscensionRacialSpells(player);
     auto selectedTalentOwns = [player, activeSpec](uint32 spellId)
     {
@@ -1227,7 +1229,24 @@ public:
     return true;
   }
 
+    void UpdateClassTuning(Player* player, uint32 diff)
+    {
+        if (!IsAscensionCustomClass(player))
+            return;
+
+        uint32& remaining = _tuningUpdates[player->GetGUID()];
+        if (diff < remaining)
+        {
+            remaining -= diff;
+            return;
+        }
+
+        remaining = 1000;
+        AscensionClassTuning::Synchronize(player, GetActiveSpecialization(player), false);
+    }
+
   void OnPlayerLogout(Player *player) {
+    _tuningUpdates.erase(player->GetGUID());
     _activeSpecializations.erase(player->GetGUID().GetCounter());
     _proficiencySynchronizations.erase(player->GetGUID().GetCounter());
   }
@@ -1351,6 +1370,7 @@ private:
         return learned;
     }
 
+  std::unordered_map<ObjectGuid, uint32> _tuningUpdates;
   std::unordered_map<uint32, uint32> _activeSpecializations;
   std::unordered_set<uint32> _proficiencySynchronizations;
 };
@@ -3977,6 +3997,7 @@ public:
   void OnPlayerUpdate(Player *player, uint32 diff) override {
     if (ascensionCompatConfig.GetConfigValue<bool>(
             AscensionCompatConfig::ENABLED)) {
+      AscensionClassService::Instance().UpdateClassTuning(player, diff);
       AscensionResourceService::Instance().OnPlayerUpdate(player, diff);
       AscensionCollectionService::Instance().OnPlayerUpdate(player, diff);
       EquipNewItems(player);

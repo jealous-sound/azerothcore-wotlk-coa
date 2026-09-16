@@ -150,6 +150,7 @@ before taking baselines; assert stable maximums and final levels when testing da
 | `add_item` | `actor`, `item`, optional `count` (default 1): grant fixture inventory. |
 | `equip` | `actor`, `item`, `slot` (0..18): equip an owned item through the session handler. |
 | `use_item` | `actor`, `item`, `spell`, optional `target`: normal item-use handler. |
+| `set_level` | `actor`, `value` (1..80): fixture level change through native `GiveLevel`, including level-change hooks. |
 | `set_health`, `set_power` | `actor`, `value` within native maximums; `set_power` accepts `power` (default 0). |
 | `wait` | `ms`: let the real world continue updating. |
 | `snapshot` | `actor`, `metric`, `save_as`: remember a numeric observation. |
@@ -179,6 +180,11 @@ omitted masks mean all. The custom-class scenario expects ordinary player RBAC, 
 `health_pct` observes current health as a percentage of maximum health.
 `cast_speed_multiplier` observes the native cast-time multiplier; smaller values mean faster casts.
 `spell_crit_chance` observes the player's Shadow spell critical chance, in percentage points.
+`spell_damage_done` and `melee_damage_done` require `target` and query native outgoing damage calculations
+with a fixed base of 1000. The spell metric also requires `spell` and accepts `effect` (default 0); the melee metric uses a main-hand white hit.
+`spell_damage_taken` and `melee_damage_taken` query the corresponding incoming bonus calculations;
+`target` identifies the attacker. These queries do not execute attacks or include hit rolls, critical hits,
+armor/resistance mitigation, or proc effects.
 `spell_power_cost` requires `spell` and queries its current native resource cost; it does not submit a cast.
 `open_item` takes `actor` and `item` and submits the native container-open packet. `close_loot` takes `actor`
 and closes its current loot window. `collect_loot` takes `actor`, collects slot zero, verifies that its full rolled

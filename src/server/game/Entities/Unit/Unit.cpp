@@ -8776,7 +8776,7 @@ float Unit::SpellPctDamageModsDone(Unit* victim, SpellInfo const* spellProto, Da
     }
 
     // Done total percent damage auras
-    float DoneTotalMod = 1.0f;
+    float DoneTotalMod = GetAscensionNormalTuningDamageMultiplier(victim, spellProto->GetSchoolMask());
 
     if (AuraEffect const* drums = GetAuraEffect(570759, EFFECT_0))
         AddPct(DoneTotalMod, drums->GetAmount());
@@ -9293,6 +9293,22 @@ uint32 Unit::SpellDamageBonusDone(Unit* victim, SpellInfo const* spellProto, uin
     return uint32(std::max(tmpDamage, 0.0f));
 }
 
+float Unit::GetAscensionNormalTuningDamageMultiplier(Unit const* victim, uint32 schoolMask) const
+{
+    // Copied aura 341 means damage against monsters (e.g. Frozen Waters 271942
+    // and Fire and Ice 1582385). Enable only the reviewed normal tuning records;
+    // aura 322 and the separately authored PvP tuning remain independent.
+    if (!victim || victim->IsCharmedOwnedByPlayerOrPlayer())
+        return 1.0f;
+
+    return GetTotalAuraMultiplier(SPELL_AURA_ASCENSION_MOD_PVE_DAMAGE_DONE_PCT,
+        [schoolMask](AuraEffect const* effect)
+        {
+            uint32 const id = effect->GetId();
+            return id >= 887000 && id <= 887090 && (effect->GetMiscValue() & schoolMask);
+        });
+}
+
 float Unit::GetHealthBasedDamageTakenMultiplier() const
 {
     // Defiance's live 30-80% reduction belongs to damage calculation, not the
@@ -9321,7 +9337,14 @@ uint32 Unit::SpellDamageBonusTaken(Unit* caster, SpellInfo const* spellProto, ui
 
     // from positive and negative SPELL_AURA_MOD_DAMAGE_PERCENT_TAKEN
     // multiplicative bonus, for example Dispersion + Shadowform (0.10*0.85=0.085)
-    TakenTotalMod *= GetTotalAuraMultiplierByMiscMask(SPELL_AURA_MOD_DAMAGE_PERCENT_TAKEN, spellProto->GetSchoolMask());
+    // Domination uses copied selector 2: damage from creatures (cf. Thunder Hide 92815).
+    TakenTotalMod *= GetTotalAuraMultiplier(SPELL_AURA_MOD_DAMAGE_PERCENT_TAKEN,
+        [caster, spellProto](AuraEffect const* effect)
+        {
+            return (effect->GetMiscValue() & spellProto->GetSchoolMask()) &&
+                (effect->GetId() != 887083 || effect->GetMiscValueB() != 2 ||
+                    (caster && !caster->IsCharmedOwnedByPlayerOrPlayer()));
+        });
     TakenTotalMod *= GetHealthBasedDamageTakenMultiplier();
 
     TakenTotalMod = processDummyAuras(TakenTotalMod);
@@ -10664,7 +10687,7 @@ uint32 Unit::MeleeDamageBonusDone(Unit* victim, uint32 pdamage, WeaponAttackType
     }
 
     // Done total percent damage auras
-    float DoneTotalMod = 1.0f;
+    float DoneTotalMod = GetAscensionNormalTuningDamageMultiplier(victim, damageSchoolMask);
 
     // mods for SPELL_SCHOOL_MASK_NORMAL are already factored in base melee damage calculation
     if (AuraEffect const* drums = GetAuraEffect(570759, EFFECT_0))
@@ -10819,7 +10842,14 @@ uint32 Unit::MeleeDamageBonusTaken(Unit* attacker, uint32 pdamage, WeaponAttackT
     // Taken total percent damage auras
     float TakenTotalMod = 1.0f;
 
-    TakenTotalMod *= GetTotalAuraMultiplierByMiscMask(SPELL_AURA_MOD_DAMAGE_PERCENT_TAKEN, damageSchoolMask);
+    // Domination uses copied selector 2: damage from creatures (cf. Thunder Hide 92815).
+    TakenTotalMod *= GetTotalAuraMultiplier(SPELL_AURA_MOD_DAMAGE_PERCENT_TAKEN,
+        [attacker, damageSchoolMask](AuraEffect const* effect)
+        {
+            return (effect->GetMiscValue() & damageSchoolMask) &&
+                (effect->GetId() != 887083 || effect->GetMiscValueB() != 2 ||
+                    (attacker && !attacker->IsCharmedOwnedByPlayerOrPlayer()));
+        });
     TakenTotalMod *= GetHealthBasedDamageTakenMultiplier();
 
     // .. taken pct (special attacks)

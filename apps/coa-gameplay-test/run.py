@@ -31,9 +31,9 @@ METRICS = {
     'pet_entry', 'pet_aura_stacks', 'owned_creature_count',
     'charm_entry', 'charm_aura_stacks', 'controls_self', 'private_instance',
     'dynamic_object', 'dynamic_object_duration_ms', 'gossip_options',
-    'cast_speed_multiplier', 'spell_crit_chance', 'spell_power_cost',
+    'cast_speed_multiplier', 'spell_crit_chance', 'spell_power_cost', 'spell_damage_done', 'melee_damage_done',
     'who_count', 'who_class', 'loot_count', 'loot_entry', 'loot_received',
-    'quest_rewarded',
+    'quest_rewarded', 'spell_damage_taken', 'melee_damage_taken',
 }
 METRIC_FIELDS = {'actor', 'metric', 'spell', 'power', 'caster', 'effect', 'item', 'entry',
                  'relative_to', 'ratio_to', 'target', 'quest'}
@@ -64,6 +64,7 @@ ACTIONS = {
     'add_item': ({'actor', 'item'}, {'actor', 'item', 'count'}),
     'equip': ({'actor', 'item', 'slot'}, {'actor', 'item', 'slot'}),
     'use_item': ({'actor', 'item', 'spell'}, {'actor', 'item', 'spell', 'target'}),
+    'set_level': ({'actor', 'value'}, {'actor', 'value'}),
     'set_health': ({'actor', 'value'}, {'actor', 'value'}),
     'set_power': ({'actor', 'value'}, {'actor', 'value', 'power'}),
 }
@@ -194,6 +195,8 @@ def validate(scenario):
         for key in ('ms', 'within_ms'):
             if key in step:
                 number(step[key], f'{where}.{key}', 0, scenario.get('timeout_ms', 90000), True)
+        if action == 'set_level':
+            number(step['value'], f'{where}.value', 1, 80, True)
         if 'value' in step:
             number(step['value'], f'{where}.value', 1 if action == 'set_health' else 0, 2**31 - 1, True)
         if action in {'snapshot', 'assert'}:
@@ -201,8 +204,11 @@ def validate(scenario):
             require(metric in METRICS, f'{where}: unknown metric')
             if metric.startswith('aura') or metric in {
                     'knows_spell', 'cooldown_ms', 'has_talent', 'pet_aura_stacks', 'charm_aura_stacks',
-                    'dynamic_object', 'dynamic_object_duration_ms', 'spell_power_cost'}:
+                    'dynamic_object', 'dynamic_object_duration_ms', 'spell_power_cost',
+                    'spell_damage_done', 'spell_damage_taken'}:
                 require('spell' in step, f'{where}: metric needs spell')
+            if metric in {'spell_damage_done', 'melee_damage_done', 'spell_damage_taken', 'melee_damage_taken'}:
+                require('target' in step, f'{where}: damage metric needs target')
             if metric == 'item_count':
                 require('item' in step, f'{where}: metric needs item')
             if metric == 'quest_rewarded':
@@ -216,7 +222,9 @@ def validate(scenario):
                           'pet_entry', 'pet_aura_stacks', 'owned_creature_count', 'charm_entry',
                           'charm_aura_stacks', 'controls_self', 'private_instance',
                           'dynamic_object', 'dynamic_object_duration_ms', 'gossip_options',
-                          'cast_speed_multiplier', 'spell_crit_chance', 'spell_power_cost', 'who_count', 'who_class',
+                          'cast_speed_multiplier', 'spell_crit_chance', 'spell_power_cost',
+                          'spell_damage_done', 'melee_damage_done', 'spell_damage_taken', 'melee_damage_taken',
+                          'who_count', 'who_class',
                           'loot_count', 'loot_entry', 'loot_received', 'quest_rewarded'}:
                 require(step['actor'] in player_ids, f'{where}: metric needs a player')
             if 'relative_to' in step:
