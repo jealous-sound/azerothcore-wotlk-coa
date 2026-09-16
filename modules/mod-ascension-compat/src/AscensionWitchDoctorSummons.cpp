@@ -246,6 +246,10 @@ class npc_ascension_witch_doctor : public ScriptedAI
         if (key == DataSource)
             _source = value;
     }
+    uint32 GetData(uint32 key) const override
+    {
+        return key == DataSource ? _source : 0;
+    }
     void SetGUID(ObjectGuid const& guid, int32 key) override
     {
         if (key != DataTarget)
@@ -512,6 +516,44 @@ class spell_ascension_witch_doctor_summon : public SpellScript
     }
 };
 
+// Spiritual Recall's SPELL_EFFECT_DESTROY_ALL_TOTEMS only reads the native totem slots, but Wards, Idols and
+// Effigies are module summons tracked in DoctorState. Destroy those instead and refund the same share of their
+// mana cost that the native effect refunds for totems.
+class spell_ascension_witch_doctor_spiritual_recall : public SpellScript
+{
+    PrepareSpellScript(spell_ascension_witch_doctor_spiritual_recall);
+    void Handle(SpellEffIndex index)
+    {
+        PreventHitDefaultEffect(index);
+        Player* player = GetCaster() ? GetCaster()->ToPlayer() : nullptr;
+        if (!player || player->getClass() != CLASS_WITCH_DOCTOR)
+            return;
+        int32 mana = 0;
+        auto summons = State(player).summons;
+        for (ObjectGuid guid : summons)
+        {
+            Creature* summon = ObjectAccessor::GetCreature(*player, guid);
+            if (!summon || !summon->IsAlive() || summon->GetOwnerGUID() != player->GetGUID() ||
+                Slot(summon->GetEntry()) > EffigySlot)
+                continue;
+            if (summon->IsAIEnabled)
+                if (SpellInfo const* source = sSpellMgr->GetSpellInfo(summon->AI()->GetData(DataSource)))
+                    mana += int32(source->ManaCost) +
+                            int32(CalculatePct(player->GetCreateMana(), source->ManaCostPercentage));
+            summon->DespawnOrUnsummon();
+        }
+        PruneSummons(player);
+        ApplyPct(mana, GetEffectValue());
+        if (mana > 0)
+            player->EnergizeBySpell(player, GetSpellInfo()->Id, uint32(mana), POWER_MANA);
+    }
+    void Register() override
+    {
+        OnEffectHit += SpellEffectFn(spell_ascension_witch_doctor_spiritual_recall::Handle, EFFECT_0,
+                                     SPELL_EFFECT_DESTROY_ALL_TOTEMS);
+    }
+};
+
 bool CanMirrorSpell(SpellInfo const* info)
 {
     if (!info || info->IsPositive() ||
@@ -582,6 +624,7 @@ void AddAscensionWitchDoctorSummonScripts()
 {
     RegisterCreatureAI(npc_ascension_witch_doctor);
     RegisterSpellScript(spell_ascension_witch_doctor_summon);
+    RegisterSpellScript(spell_ascension_witch_doctor_spiritual_recall);
     new witch_doctor_summon_events();
     new witch_doctor_magnet();
 }
