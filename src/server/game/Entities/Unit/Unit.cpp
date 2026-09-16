@@ -8571,7 +8571,8 @@ void Unit::RemoveAllControlled(bool onDeath /*= false*/)
                     if (ts->m_Properties && ts->m_Properties->Type == SUMMON_TYPE_LIGHTWELL)
                         continue;
 
-            if (!(onDeath && !IsPlayer() && target->IsGuardian()))
+            // A dying creature keeps its guardians, but not its pet, which leaves with its master.
+            if (!(onDeath && !IsPlayer() && target->IsGuardian() && !static_cast<Minion*>(target)->IsGuardianPet()))
                 target->ToTempSummon()->UnSummon();
         }
         else
