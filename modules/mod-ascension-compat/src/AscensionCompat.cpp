@@ -4670,7 +4670,8 @@ public:
              PLAYERHOOK_ON_CREATE_INITIAL_ITEMS,
              PLAYERHOOK_ON_GET_AMMO_DISPLAY,
              PLAYERHOOK_ON_AFTER_UPDATE_ATTACK_POWER_AND_DAMAGE,
-             PLAYERHOOK_ON_SEND_INITIAL_PACKETS_BEFORE_ADD_TO_MAP}) {}
+             PLAYERHOOK_ON_SEND_INITIAL_PACKETS_BEFORE_ADD_TO_MAP,
+             PLAYERHOOK_CHECK_ITEM_IN_SLOT_AT_LOAD_INVENTORY}) {}
 
     void OnPlayerGetAmmoDisplay(Player* player, SpellInfo const* spellInfo,
         uint32& displayId, uint32& inventoryType) override
@@ -4721,6 +4722,31 @@ public:
     handled = true;
     return AscensionClassService::Instance().InitializeLiveBaseline(player) &&
            AscensionClassService::Instance().InitializeLiveStarterKit(player);
+  }
+
+  bool OnPlayerCheckItemInSlotAtLoadInventory(Player* player, Item* item, uint8 slot,
+      uint8& err, uint16& dest) override
+  {
+      if (!ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED) ||
+          slot != EQUIPMENT_SLOT_OFFHAND || player->getClass() != CLASS_SON_OF_ARUGAL)
+          return true;
+
+      // SynchronizeTaughtAbilities grants Dual Wield (674) from OnPlayerLogin, which runs only
+      // after inventory is already loaded, so CanDualWield() is still false here even when the
+      // player legitimately dual-wielded last session; the saved offhand item would otherwise
+      // fail EQUIP_ERR_CANT_DUAL_WIELD and get mailed back on every login. Only paper over that
+      // one not-yet-synced reason: SynchronizeTaughtAbilities's own AutoUnequipOffhandIfNeed()
+      // unequips it again moments later in the same login if the player is no longer eligible.
+      uint8 result = player->CanEquipItem(slot, dest, item, false, false);
+      if (result != EQUIP_ERR_CANT_DUAL_WIELD)
+      {
+          err = result;
+          return false;
+      }
+
+      dest = (INVENTORY_SLOT_BAG_0 << 8) | slot;
+      err = EQUIP_ERR_OK;
+      return false;
   }
 
   void OnPlayerLogin(Player *player) override {
