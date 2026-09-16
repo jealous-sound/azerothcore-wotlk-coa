@@ -304,6 +304,24 @@ namespace
 {
 using namespace AscensionWitchHunter;
 
+// The Witch Hunter spends Rage - 216 of its family-21 records carry a Rage cost - but ChrClasses.dbc
+// gives class 15 Mana as its display power. Unit::DealDamage grants Rage for melee damage dealt and
+// for damage received only when HasActivePowerType(POWER_RAGE) is true, which asks the scripts first
+// and otherwise compares the display power, so the class gained Rage from its own abilities alone.
+class witch_hunter_resources : public PlayerScript
+{
+  public:
+    witch_hunter_resources()
+        : PlayerScript("witch_hunter_resources", {PLAYERHOOK_ON_PLAYER_HAS_ACTIVE_POWER_TYPE})
+    {
+    }
+
+    bool OnPlayerHasActivePowerType(Player const* player, Powers power) override
+    {
+        return player && player->getClass() == CLASS_WITCH_HUNTER && power == POWER_RAGE;
+    }
+};
+
 class witch_hunter_scaling : public UnitScript
 {
   public:
@@ -356,5 +374,6 @@ class spell_ascension_witch_hunter_copy : public SpellScript
 void AddAscensionWitchHunterCompletionScripts()
 {
     new witch_hunter_scaling();
+    new witch_hunter_resources();
     RegisterSpellScript(spell_ascension_witch_hunter_copy);
 }
