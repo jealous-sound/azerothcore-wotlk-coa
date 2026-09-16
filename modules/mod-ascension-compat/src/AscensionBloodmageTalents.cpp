@@ -5,6 +5,7 @@
 #include "SpellAuras.h"
 #include "SpellScript.h"
 #include "SpellInfo.h"
+#include <algorithm>
 
 namespace
 {
@@ -17,8 +18,38 @@ enum BloodmageTalentSpells : uint32
     SPELL_BLOOD_TEAR_SPAWN = 712417,
     SPELL_ACCURSED_FORM = 562572,
     SPELL_SANGUINE_SCRIPTURE = 804851,
-    SPELL_SANGUINE_SCRIPTURE_BUFF = 504264
+    SPELL_SANGUINE_SCRIPTURE_BUFF = 504264,
+    SPELL_CURSED_FORM_REQUIREMENT = 525031
 };
+
+// Every shape the Bloodmage's Cursed Form can take: Blood Curse and the spells that replace it.
+constexpr uint32 CursedForms[] = {562572, 562720, 680692, 800157, 801076};
+
+bool IsCursedForm(uint32 id)
+{
+    return std::find(std::begin(CursedForms), std::end(CursedForms), id) != std::end(CursedForms);
+}
+
+// The Cursed Form abilities (Ravenous Strike, Lunge, Claw Sweep, Bloodfang Bite, Bare Fangs and the
+// howls) gate their cast on CasterAuraSpell 525031, a marker literally named "Cursed Form -
+// Requirement" that nothing in Spell.dbc ever grants, so they could never be cast. Mirror the real
+// form state onto it, the same way Palm Sigil's marker follows Runeshroud/Waveforged.
+void SyncCursedFormRequirement(Player* player)
+{
+    bool active = false;
+    for (uint32 form : CursedForms)
+        if (player->HasAura(form, player->GetGUID()))
+        {
+            active = true;
+            break;
+        }
+
+    if (!active)
+        player->RemoveAurasDueToSpell(SPELL_CURSED_FORM_REQUIREMENT, player->GetGUID());
+    else if (player->IsInWorld() && player->IsAlive() &&
+        !player->HasAura(SPELL_CURSED_FORM_REQUIREMENT, player->GetGUID()))
+        player->CastSpell(player, SPELL_CURSED_FORM_REQUIREMENT, true);
+}
 
 class spell_ascension_animated_blood : public SpellScript
 {
@@ -57,15 +88,28 @@ class spell_ascension_animated_blood : public SpellScript
 class bloodmage_talent_events : public UnitScript
 {
 public:
-    bloodmage_talent_events() : UnitScript("bloodmage_talent_events", true, {UNITHOOK_ON_AURA_REMOVE}) { }
+    bloodmage_talent_events() : UnitScript("bloodmage_talent_events", true,
+        {UNITHOOK_ON_AURA_APPLY, UNITHOOK_ON_AURA_REMOVE}) { }
+
+    void OnAuraApply(Unit* unit, Aura* aura) override
+    {
+        Player* player = unit ? unit->ToPlayer() : nullptr;
+        if (!player || player->getClass() != CLASS_SON_OF_ARUGAL || !aura)
+            return;
+        if (IsCursedForm(aura->GetId()))
+            SyncCursedFormRequirement(player);
+    }
 
     void OnAuraRemove(Unit* unit, AuraApplication* application, AuraRemoveMode mode) override
     {
         Player* player = unit ? unit->ToPlayer() : nullptr;
-        if (!player || player->getClass() != CLASS_SON_OF_ARUGAL || !application || !player->IsAlive() ||
-            !player->IsInWorld() || mode == AURA_REMOVE_BY_DEATH)
+        if (!player || player->getClass() != CLASS_SON_OF_ARUGAL || !application)
             return;
         Aura* aura = application->GetBase();
+        if (IsCursedForm(aura->GetId()))
+            SyncCursedFormRequirement(player);
+        if (!player->IsAlive() || !player->IsInWorld() || mode == AURA_REMOVE_BY_DEATH)
+            return;
         if (aura->GetId() == SPELL_LIQUIFY && aura->GetCasterGUID() == player->GetGUID() &&
             player->HasAura(SPELL_VAMPIRIC_POOLS))
             player->CastSpell(player, SPELL_VAMPIRIC_POOLS_LEECH, true);
