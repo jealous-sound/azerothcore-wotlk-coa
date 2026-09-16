@@ -102,8 +102,13 @@ void ApplyContracts(SpellInfo* info)
         info->AttributesEx3 &= ~SPELL_ATTR3_REQUIRES_OFF_HAND_WEAPON;
     if (Heartseeking(info))
         info->Effects[EFFECT_2].TriggerSpell = 807316;
-    // Quickdraw hands its Rage to Darkslayer (Energize) through a DUMMY effect, which is scripted-only
-    // and never runs. Its sibling Darkslayer authors the identical payload as a trigger effect.
+    // Quickdraw hands its Rage to Darkslayer (Energize) 680235 through a DUMMY effect, which is
+    // scripted-only and never runs. Its sibling Darkslayer authors the identical payload as a trigger
+    // effect. Record and text conflict here: Darkslayer's and Sixfold Shot's descriptions name the Rage
+    // income, Quickdraw's omits it. The income is taken as authored because Sixfold Shot, the upgrade
+    // that replaces this same family mask, advertises and receives one, and because the ability was
+    // reported in game as spending Rage without ever paying any back. The amount is 680235's own
+    // authored 100-250 internal (10-25 Rage) and has not been observed live.
     if (Quickdraw(info) && info->Effects[EFFECT_2].TriggerSpell == 680235)
         info->Effects[EFFECT_2].Effect = SPELL_EFFECT_TRIGGER_SPELL;
     if (id == 503662)
