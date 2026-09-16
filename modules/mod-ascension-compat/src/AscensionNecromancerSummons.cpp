@@ -238,8 +238,8 @@ bool Summon(Player* player, uint32 spell, Unit* target, Position const& position
                 created = true;
                 // CreatureAI::EnterEvadeMode re-follows on GetFollowAngle(), so storing the
                 // slot's angle keeps the army spread after every fight, not just at spawn.
-                if (!stationary)
-                    unit->SetFollowAngle(angle);
+                if (!stationary && unit->IsGuardian())
+                    static_cast<Minion*>(unit)->SetFollowAngle(angle);
                 unit->GetMotionMaster()->Clear();
                 if (row.creature == 523032)
                 {
@@ -516,8 +516,8 @@ class npc_ascension_necromancer : public ScriptedAI
                         if (std::fabs(me->GetFollowAngle() - angle) > 0.01f ||
                             me->GetMotionMaster()->GetCurrentMovementGeneratorType() != FOLLOW_MOTION_TYPE)
                         {
-                            if (TempSummon* summon = me->ToTempSummon())
-                                summon->SetFollowAngle(angle);
+                            if (me->IsGuardian())
+                                static_cast<Minion*>(me)->SetFollowAngle(angle);
                             me->GetMotionMaster()->MoveFollow(player, distance, angle);
                         }
                     }
