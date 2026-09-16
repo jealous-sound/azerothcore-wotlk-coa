@@ -22,6 +22,9 @@ enum BloodmageTalentSpells : uint32
     SPELL_CURSED_FORM_REQUIREMENT = 525031
 };
 
+// Every creature Animated Blood can leave behind: worms, parasites and the rank 3 amalgam.
+constexpr uint32 AnimatedBloodSummons[] = {325301, 335301, 315301};
+
 // Every shape the Bloodmage's Cursed Form can take: Blood Curse and the spells that replace it.
 constexpr uint32 CursedForms[] = {562572, 562720, 680692, 800157, 801076};
 
@@ -77,8 +80,17 @@ class spell_ascension_animated_blood : public SpellScript
             caster->CastCustomSpell(SPELL_BLOOD_TEAR_SPAWN, SPELLVALUE_BASE_POINT0, count, caster, true);
     }
 
+    void ReplacePreviousBrood()
+    {
+        // Recasting replaces the previous brood instead of stacking a second one beside it.
+        if (Unit* caster = GetCaster())
+            for (uint32 entry : AnimatedBloodSummons)
+                caster->RemoveAllMinionsByEntry(entry);
+    }
+
     void Register() override
     {
+        BeforeCast += SpellCastFn(spell_ascension_animated_blood::ReplacePreviousBrood);
         // This destination-only helper is triggered in LAUNCH, before target-specific effects.
         OnEffectLaunch += SpellEffectFn(spell_ascension_animated_blood::HandleExtraWorms,
             EFFECT_1, SPELL_EFFECT_TRIGGER_SPELL);
