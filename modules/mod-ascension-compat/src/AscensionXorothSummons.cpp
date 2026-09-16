@@ -10,6 +10,7 @@
 #include "SpellAuraEffects.h"
 #include "SpellAuras.h"
 #include "SpellMgr.h"
+#include "SpellScript.h"
 #include "TemporarySummon.h"
 #include "ThreatManager.h"
 #include <algorithm>
@@ -161,8 +162,57 @@ struct npc_ascension_xoroth_summon : public ScriptedAI
             DoMeleeAttackIfReady();
     }
 };
+// Sacrificial Circle names owner area aura 805916 as its caster requirement, but no Hellfire Imp applies it
+// (its cost modifier is rebuilt as 805965). Check the living imps instead, and sacrifice only the caster's own
+// imps: the native ally area would also force party members to cast the self-killing helper.
+class spell_ascension_xoroth_sacrificial_circle : public SpellScript
+{
+    PrepareSpellScript(spell_ascension_xoroth_sacrificial_circle);
+    static bool OwnImp(Player const* player, WorldObject const* object)
+    {
+        Creature const* imp = object ? object->ToCreature() : nullptr;
+        return imp && imp->GetEntry() == 50301 && imp->IsAlive() && imp->GetOwnerGUID() == player->GetGUID();
+    }
+    SpellCastResult CheckImps()
+    {
+        Player* player = Owner(GetCaster());
+        if (!player)
+            return SPELL_CAST_OK;
+        float radius = GetSpellInfo()->Effects[EFFECT_0].CalcRadius(player);
+        for (ObjectGuid guid : State(player).imps)
+            if (Creature* imp = ObjectAccessor::GetCreature(*player, guid))
+                if (OwnImp(player, imp) && imp->IsWithinDistInMap(player, radius))
+                    return SPELL_CAST_OK;
+        return SPELL_FAILED_CASTER_AURASTATE;
+    }
+    void SelectImps(std::list<WorldObject*>& targets)
+    {
+        Player* player = Owner(GetCaster());
+        targets.remove_if([player](WorldObject* target) { return !player || !OwnImp(player, target); });
+    }
+    void Sacrifice(SpellEffIndex index)
+    {
+        PreventHitDefaultEffect(index);
+        Player* player = Owner(GetCaster());
+        Creature* imp = GetHitCreature();
+        if (!player || !OwnImp(player, imp))
+            return;
+        // The tooltip adds 25% of each sacrificed imp's maximum health; 706753 heals the master and kills the imp.
+        imp->CastCustomSpell(706753, SPELLVALUE_BASE_POINT0, int32(imp->CountPctFromMaxHealth(25)), player,
+                             TRIGGERED_FULL_MASK);
+    }
+    void Register() override
+    {
+        OnCheckCast += SpellCheckCastFn(spell_ascension_xoroth_sacrificial_circle::CheckImps);
+        OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_ascension_xoroth_sacrificial_circle::SelectImps,
+                                                                  EFFECT_0, TARGET_UNIT_DEST_AREA_ALLY);
+        OnEffectHitTarget += SpellEffectFn(spell_ascension_xoroth_sacrificial_circle::Sacrifice, EFFECT_0,
+                                           SPELL_EFFECT_TRIGGER_SPELL);
+    }
+};
 } // namespace
 void AddSC_AscensionXorothSummons()
 {
     RegisterCreatureAI(npc_ascension_xoroth_summon);
+    RegisterSpellScript(spell_ascension_xoroth_sacrificial_circle);
 }

@@ -177,6 +177,8 @@ void ApplyContracts(SpellInfo* info)
         dummy(1);
         dummy(2);
     }
+    if (id == 805677)
+        info->CasterAuraSpell = 0; // spell_ascension_xoroth_sacrificial_circle checks the living Hellfire Imps
     if (id == 805965)
     {
         auto& e = info->Effects[0];
