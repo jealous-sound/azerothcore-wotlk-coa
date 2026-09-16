@@ -1131,15 +1131,13 @@ uint32 Unit::DealDamage(Unit* attacker, Unit* victim, uint32 damage, CleanDamage
 
     if (!damage)
     {
-        // Rage from absorbed damage
-        if (cleanDamage && cleanDamage->absorbed_damage)
-        {
-            if (victim->HasActivePowerType(POWER_RAGE))
-                victim->RewardRage(cleanDamage->absorbed_damage, 0, false);
-
-            if (attacker && attacker->HasActivePowerType(POWER_RAGE))
-                attacker->RewardRage(cleanDamage->absorbed_damage, 0, true);
-        }
+        // Rage from absorbed damage. Only the victim is paid here: rage_damage above already carries
+        // the absorbed amount, so a fully absorbed weapon swing has just been rewarded to the attacker
+        // by the melee branch - with its weapon-speed factor - and paying again here doubled it. That
+        // branch is also the one that decides what earns attacker rage at all, so rewarding here would
+        // additionally pay for fully absorbed spells and ranged attacks, which earn none.
+        if (cleanDamage && cleanDamage->absorbed_damage && victim->HasActivePowerType(POWER_RAGE))
+            victim->RewardRage(cleanDamage->absorbed_damage, 0, false);
 
         return 0;
     }
