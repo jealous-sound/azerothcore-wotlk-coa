@@ -1520,6 +1520,7 @@ public:
     void OnPlayerLogin(Player* player) const
     {
         _lastClientResourceStates.erase(player->GetGUID().GetCounter());
+        _staticDecayTimers.erase(player->GetGUID());
         if (IsAscensionCustomClass(player))
         {
             SynchronizeThresholdResources(player);
@@ -1527,10 +1528,11 @@ public:
         }
     }
 
-    void OnPlayerUpdate(Player* player) const
+    void OnPlayerUpdate(Player* player, uint32 diff) const
     {
         if (IsAscensionCustomClass(player))
         {
+            DecayStatic(player, diff);
             SynchronizeThresholdResources(player);
             SendClientState(player, false);
         }
@@ -1539,7 +1541,10 @@ public:
     void OnPlayerLogout(Player* player) const
     {
         if (player)
+        {
             _lastClientResourceStates.erase(player->GetGUID().GetCounter());
+            _staticDecayTimers.erase(player->GetGUID());
+        }
     }
 
     [[nodiscard]] bool CanPrepare(Spell* spell) const
@@ -2140,6 +2145,35 @@ private:
         }
     }
 
+    void DecayStatic(Player* player, uint32 diff) const
+    {
+        ObjectGuid const guid = player->GetGUID();
+        uint8 const stacks = GetAuraStacks(player, SPELL_STORMBRINGER_STATIC);
+        if (player->getClass() != CLASS_STORMBRINGER || !player->IsAlive() || !stacks || player->IsInCombat())
+        {
+            _staticDecayTimers.erase(guid);
+            return;
+        }
+
+        // Preserve Static for five seconds out of combat, then lose one per second.
+        // The rate is a local tuning choice; the archived changelog only establishes the grace period.
+        constexpr uint32 graceMs = 5000;
+        constexpr uint32 intervalMs = 1000;
+        uint32& timer = _staticDecayTimers[guid];
+        uint64 const elapsed = uint64(timer) + diff;
+        if (elapsed < graceMs + intervalMs)
+        {
+            timer = uint32(elapsed);
+            return;
+        }
+
+        uint32 const loss = uint32(std::min<uint64>(stacks, (elapsed - graceMs) / intervalMs));
+        timer = graceMs + uint32((elapsed - graceMs) % intervalMs);
+        ModifyAuraStacks(player, SPELL_STORMBRINGER_STATIC, -int32(loss));
+        if (loss == stacks)
+            _staticDecayTimers.erase(guid);
+    }
+
     static void SynchronizeThresholdResources(Player* player)
     {
         for (AscensionCompatData::ResourceThresholdRule const& rule :
@@ -2194,6 +2228,7 @@ private:
     }
 
     mutable std::unordered_map<uint32, uint64> _lastClientResourceStates;
+    mutable std::unordered_map<ObjectGuid, uint32> _staticDecayTimers;
 };
 
 class AscensionCollectionService {
@@ -3942,7 +3977,7 @@ public:
   void OnPlayerUpdate(Player *player, uint32 diff) override {
     if (ascensionCompatConfig.GetConfigValue<bool>(
             AscensionCompatConfig::ENABLED)) {
-      AscensionResourceService::Instance().OnPlayerUpdate(player);
+      AscensionResourceService::Instance().OnPlayerUpdate(player, diff);
       AscensionCollectionService::Instance().OnPlayerUpdate(player, diff);
       EquipNewItems(player);
     }
