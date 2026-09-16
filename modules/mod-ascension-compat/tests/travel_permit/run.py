@@ -57,15 +57,19 @@ int main()
     {
         Player p;p.team=team;p.level=level;PermitSpell spell{&p,&item};
         assert(spell.Load() && spell.CheckCast()==SPELL_CAST_OK);spell.OpenMenu();
-        assert(p.shown==1 && p.menu.size()==3);
+        assert(p.shown==1 && p.menu.size()==4);
         auto actions=p.menu;
+        bool starter=false;
+        for (uint32 action:actions)
+            starter=starter||Destinations[action].race==(team==TEAM_ALLIANCE?RACE_DRAENEI:RACE_BLOODELF);
+        assert(starter);  // The Draenei and Blood Elf starts are offered, not just the six vanilla ones.
         for (uint32 action:actions)
         {
             auto before=p.teleports;select.OnGossipSelect(&p,&item,SenderTravelPermit,action);
             assert(p.teleports==before+1 && p.destination==Destinations[action].race && p.menu.empty());
         }
         auto before=p.teleports;
-        select.OnGossipSelect(&p,&item,SenderTravelPermit,team==TEAM_ALLIANCE?3:0);
+        select.OnGossipSelect(&p,&item,SenderTravelPermit,team==TEAM_ALLIANCE?4:0);
         select.OnGossipSelect(&p,&item,SenderTravelPermit,99);
         select.OnGossipSelect(&p,&item,0,actions[0]);
         assert(p.teleports==before);
@@ -76,7 +80,7 @@ int main()
         p.combat=false;p.alive=false;assert(spell.CheckCast()==SPELL_FAILED_CASTER_DEAD);
     }
     Player p;PermitSpell spell{&p,&item};manager.missing=RACE_HUMAN;spell.OpenMenu();
-    assert(p.menu.size()==2);select.OnGossipSelect(&p,&item,SenderTravelPermit,0);assert(!p.teleports);
+    assert(p.menu.size()==3);select.OnGossipSelect(&p,&item,SenderTravelPermit,0);assert(!p.teleports);
     item.id=1;assert(!spell.Load());select.OnGossipSelect(&p,&item,SenderTravelPermit,1);assert(!p.teleports);
     spell.item=nullptr;assert(!spell.Load());spell.OpenMenu();
 }
