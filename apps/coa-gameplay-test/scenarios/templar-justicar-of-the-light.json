@@ -1,0 +1,129 @@
+{
+  "schema": 1,
+  "name": "Justicar of the Light removes Benediction's cooldown for 10 Energy (#1009)",
+  "contract": "Benediction costs 20 Energy with a 6 sec cooldown. Justicar of the Light 707663 removes the cooldown (-100% COOLDOWN) and adds 10 Energy (flat COST).",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    },
+    {
+      "id": "talent",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 578276
+    },
+    {
+      "action": "learn",
+      "actor": "talent",
+      "spell": 578276
+    },
+    {
+      "action": "learn",
+      "actor": "talent",
+      "spell": 707663
+    },
+    {
+      "action": "assert",
+      "label": "Benediction cost without the talent",
+      "actor": "control",
+      "metric": "spell_power_cost",
+      "spell": 578276,
+      "equals": 20
+    },
+    {
+      "action": "assert",
+      "label": "Benediction cost with the talent",
+      "actor": "talent",
+      "metric": "spell_power_cost",
+      "spell": 578276,
+      "equals": 30
+    },
+    {
+      "action": "set_aura",
+      "actor": "control",
+      "spell": 704576,
+      "stacks": 1
+    },
+    {
+      "action": "set_aura",
+      "actor": "talent",
+      "spell": 704576,
+      "stacks": 1
+    },
+    {
+      "action": "set_power",
+      "actor": "control",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "set_power",
+      "actor": "talent",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "cast",
+      "actor": "control",
+      "spell": 578276
+    },
+    {
+      "action": "cast",
+      "actor": "talent",
+      "spell": 578276
+    },
+    {
+      "action": "assert",
+      "label": "Benediction spends 20 Energy without the talent",
+      "actor": "control",
+      "metric": "power",
+      "power": 3,
+      "max": 80,
+      "min": 70,
+      "within_ms": 1000
+    },
+    {
+      "action": "assert",
+      "label": "Benediction spends 30 Energy with the talent",
+      "actor": "talent",
+      "metric": "power",
+      "power": 3,
+      "max": 70,
+      "min": 60,
+      "within_ms": 1000
+    },
+    {
+      "action": "assert",
+      "label": "Cooldown starts without the talent",
+      "actor": "control",
+      "metric": "cooldown_ms",
+      "spell": 578276,
+      "min": 4000,
+      "max": 6000
+    },
+    {
+      "action": "assert",
+      "label": "No cooldown with the talent",
+      "actor": "talent",
+      "metric": "cooldown_ms",
+      "spell": 578276,
+      "equals": 0
+    }
+  ]
+}
