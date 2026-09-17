@@ -1,0 +1,136 @@
+{
+  "schema": 1,
+  "name": "Pure Focus raises Scourgebane's trigger chance and hit chance (#1214)",
+  "contract": "Scourgebane triggers 20% of the time. Pure Focus adds 5% to that chance and 2% hit chance (rank 1, 705253), or 10% and 4% (rank 2, 707852). The Scourgebane script reads the chance through this modifier. The proc rate itself is random and not measured here.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    },
+    {
+      "id": "rank_one",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    },
+    {
+      "id": "rank_two",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 92111
+    },
+    {
+      "action": "learn",
+      "actor": "rank_one",
+      "spell": 92111
+    },
+    {
+      "action": "learn",
+      "actor": "rank_two",
+      "spell": 92111
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "melee_hit_chance",
+      "save_as": "melee_hit"
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "spell_hit_chance",
+      "save_as": "spell_hit"
+    },
+    {
+      "action": "learn",
+      "actor": "rank_one",
+      "spell": 705253
+    },
+    {
+      "action": "learn",
+      "actor": "rank_two",
+      "spell": 707852
+    },
+    {
+      "action": "assert",
+      "label": "Scourgebane chance without the talent",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 520007,
+      "op": 18,
+      "base": 20,
+      "equals": 20
+    },
+    {
+      "action": "assert",
+      "label": "Rank 1 Scourgebane chance",
+      "actor": "rank_one",
+      "metric": "spell_modifier",
+      "spell": 520007,
+      "op": 18,
+      "base": 20,
+      "equals": 25
+    },
+    {
+      "action": "assert",
+      "label": "Rank 2 Scourgebane chance",
+      "actor": "rank_two",
+      "metric": "spell_modifier",
+      "spell": 520007,
+      "op": 18,
+      "base": 20,
+      "equals": 30
+    },
+    {
+      "action": "assert",
+      "label": "Rank 1 melee hit",
+      "actor": "rank_one",
+      "metric": "melee_hit_chance",
+      "relative_to": "melee_hit",
+      "min": 1.99,
+      "max": 2.01
+    },
+    {
+      "action": "assert",
+      "label": "Rank 2 melee hit",
+      "actor": "rank_two",
+      "metric": "melee_hit_chance",
+      "relative_to": "melee_hit",
+      "min": 3.99,
+      "max": 4.01
+    },
+    {
+      "action": "assert",
+      "label": "Rank 1 spell hit",
+      "actor": "rank_one",
+      "metric": "spell_hit_chance",
+      "relative_to": "spell_hit",
+      "min": 1.99,
+      "max": 2.01
+    },
+    {
+      "action": "assert",
+      "label": "Rank 2 spell hit",
+      "actor": "rank_two",
+      "metric": "spell_hit_chance",
+      "relative_to": "spell_hit",
+      "min": 3.99,
+      "max": 4.01
+    }
+  ]
+}
