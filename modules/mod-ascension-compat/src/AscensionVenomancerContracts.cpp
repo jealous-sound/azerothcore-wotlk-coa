@@ -323,6 +323,9 @@ void ApplyContracts(SpellInfo* info)
     }
     if (id == 503989 || (id >= 503990 && id <= 503994))
         info->StackAmount = 0;
+    if (id == 706037)
+        // "Increases your critical strike chance with Shadow and Nature spells and abilities by 1%."
+        aura(2, SPELL_AURA_MOD_SPELL_CRIT_CHANCE_SCHOOL, 1, SPELL_SCHOOL_MASK_SHADOW | SPELL_SCHOOL_MASK_NATURE);
     info->_InitializeExplicitTargetMask();
 }
 } // namespace AscensionVenomancer
