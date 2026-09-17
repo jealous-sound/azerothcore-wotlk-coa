@@ -58,6 +58,18 @@ void ApplyContracts(SpellInfo* info)
     for (auto const& row : NecromancerSummons)
         if (row.spell == id)
             info->Effects[row.effect].MiscValueB = 64;
+    // Keep an occupancy aura as the minion's buff only; its spell modifiers are not part of the rebuilt kit.
+    if (OccupancyCreature(id))
+        for (auto& effect : info->Effects)
+        {
+            if (effect.Effect == SPELL_EFFECT_APPLY_AREA_AURA_OWNER)
+            {
+                effect.ApplyAuraName = SPELL_AURA_DUMMY;
+                effect.SpellClassMask = flag96();
+            }
+            else
+                effect.Effect = 0;
+        }
     if (id == 805011 || id == 525004 || id == 805015)
     {
         info->DurationEntry = sSpellDurationStore.LookupEntry(21);

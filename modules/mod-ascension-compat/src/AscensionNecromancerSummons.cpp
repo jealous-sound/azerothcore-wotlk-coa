@@ -6,6 +6,7 @@
 #include "DBCStores.h"
 #include "MotionMaster.h"
 #include "ObjectAccessor.h"
+#include "Opcodes.h"
 #include "Player.h"
 #include "ScriptMgr.h"
 #include "ScriptedCreature.h"
@@ -15,6 +16,8 @@
 #include "SpellMgr.h"
 #include "SpellScript.h"
 #include "TemporarySummon.h"
+#include "WorldPacket.h"
+#include "WorldSession.h"
 #include <algorithm>
 #include <cmath>
 
@@ -354,6 +357,8 @@ class npc_ascension_necromancer : public ScriptedAI
         // on the Necromancer; the Ghoul must carry it to heal its master on melee hits.
         if (me->GetEntry() == 50073)
             player->AddAura(805290, me);
+        if (uint32 occupancy = OccupancyAura(me->GetEntry()))
+            me->CastSpell(me, occupancy, true);
         for (uint32 ward : {680388, 681460, 681529})
             if (Aura const* active = player->GetAura(ward))
                 if (Aura* copy = player->AddAura(ward, me))
@@ -671,9 +676,36 @@ class spell_ascension_necromancer_summon : public SpellScript
         OnEffectHit += SpellEffectFn(spell_ascension_necromancer_summon::SummonEffect, EFFECT_ALL, SPELL_EFFECT_ANY);
     }
 };
+
+// The core only cancels auras the player owns, and an occupancy aura is owned by its minion. Right-clicking it
+// dismisses the newest living minion of that kind instead.
+class necromancer_minion_dismiss : public ServerScript
+{
+  public:
+    necromancer_minion_dismiss() : ServerScript("necromancer_minion_dismiss", {SERVERHOOK_CAN_PACKET_RECEIVE}) {}
+    bool CanPacketReceive(WorldSession* session, WorldPacket const& packet) override
+    {
+        if (packet.GetOpcode() != CMSG_CANCEL_AURA || packet.size() < sizeof(uint32) || !session)
+            return true;
+        Player* player = Owner(session->GetPlayer());
+        uint32 creature = OccupancyCreature(packet.read<uint32>(0));
+        if (!player || !creature || !player->IsInWorld())
+            return true;
+        auto minions = Minions(player, true);
+        for (auto itr = minions.rbegin(); itr != minions.rend(); ++itr)
+            if ((*itr)->GetEntry() == creature && (*itr)->IsAlive())
+            {
+                (*itr)->DespawnOrUnsummon();
+                Sync(player);
+                break;
+            }
+        return false;
+    }
+};
 } // namespace
 void AddAscensionNecromancerSummonScripts()
 {
     RegisterCreatureAI(npc_ascension_necromancer);
     RegisterSpellScript(spell_ascension_necromancer_summon);
+    new necromancer_minion_dismiss();
 }
