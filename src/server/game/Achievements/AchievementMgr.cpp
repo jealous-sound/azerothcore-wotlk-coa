@@ -627,7 +627,7 @@ void AchievementMgr::LoadFromDB(PreparedQueryResult achievementResult, PreparedQ
         do
         {
             Field* fields = achievementResult->Fetch();
-            uint32 achievementid = fields[0].Get<uint16>();
+            uint32 achievementid = fields[0].Get<uint32>();
 
             // must not happen: cleanup at server startup in sAchievementMgr->LoadCompletedAchievements()
             AchievementEntry const* achievement = sAchievementStore.LookupEntry(achievementid);
@@ -652,7 +652,7 @@ void AchievementMgr::LoadFromDB(PreparedQueryResult achievementResult, PreparedQ
         do
         {
             Field* fields = criteriaResult->Fetch();
-            uint32 id      = fields[0].Get<uint16>();
+            uint32 id      = fields[0].Get<uint32>();
             uint32 counter = fields[1].Get<uint32>();
             time_t date    = time_t(fields[2].Get<uint32>());
 
@@ -664,7 +664,7 @@ void AchievementMgr::LoadFromDB(PreparedQueryResult achievementResult, PreparedQ
 
                 CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_INVALID_ACHIEV_PROGRESS_CRITERIA);
 
-                stmt->SetData(0, uint16(id));
+                stmt->SetData(0, id);
 
                 CharacterDatabase.Execute(stmt);
 
@@ -2986,7 +2986,7 @@ void AchievementGlobalMgr::LoadCompletedAchievements()
     {
         Field* fields = result->Fetch();
 
-        uint16 achievementId = fields[0].Get<uint16>();
+        uint32 achievementId = fields[0].Get<uint32>();
         AchievementEntry const* achievement = sAchievementStore.LookupEntry(achievementId);
         if (!achievement)
         {
@@ -2995,7 +2995,7 @@ void AchievementGlobalMgr::LoadCompletedAchievements()
 
             CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_INVALID_ACHIEVMENT);
 
-            stmt->SetData(0, uint16(achievementId));
+            stmt->SetData(0, achievementId);
             CharacterDatabase.Execute(stmt);
 
             continue;

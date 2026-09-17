@@ -317,12 +317,12 @@ void ScriptMgr::OnPlayerCriteriaProgress(Player* player, AchievementCriteriaEntr
     CALL_ENABLED_HOOKS(PlayerScript, PLAYERHOOK_ON_CRITERIA_PROGRESS, script->OnPlayerCriteriaProgress(player, criteria));
 }
 
-void ScriptMgr::OnPlayerAchievementSave(CharacterDatabaseTransaction trans, Player* player, uint16 achiId, CompletedAchievementData achiData)
+void ScriptMgr::OnPlayerAchievementSave(CharacterDatabaseTransaction trans, Player* player, uint32 achiId, CompletedAchievementData achiData)
 {
     CALL_ENABLED_HOOKS(PlayerScript, PLAYERHOOK_ON_ACHI_SAVE, script->OnPlayerAchievementSave(trans, player, achiId, achiData));
 }
 
-void ScriptMgr::OnPlayerCriteriaSave(CharacterDatabaseTransaction trans, Player* player, uint16 critId, CriteriaProgress criteriaData)
+void ScriptMgr::OnPlayerCriteriaSave(CharacterDatabaseTransaction trans, Player* player, uint32 critId, CriteriaProgress criteriaData)
 {
     CALL_ENABLED_HOOKS(PlayerScript, PLAYERHOOK_ON_CRITERIA_SAVE, script->OnPlayerCriteriaSave(trans, player, critId, criteriaData));
 }
