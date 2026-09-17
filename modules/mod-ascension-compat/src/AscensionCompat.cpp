@@ -509,10 +509,32 @@ std::vector<uint32> GetAscensionRacialSpells(Player const* player)
     return spells;
 }
 
+struct FelswornRiftGrant
+{
+    uint32 SpellId;
+    uint8 RequiredLevel;
+};
+
+// The generated class grants only hold the Alliance capital Fel Rifts (Stormwind 26, Ironforge 30, Darnassus 36).
+// These are their Horde counterparts, at their Spell.dbc SpellLevel.
+constexpr std::array<FelswornRiftGrant, 3> FelswornHordeCapitalRifts =
+{{
+    {535598, 26}, // Orgrimmar
+    {535599, 30}, // Thunder Bluff
+    {535600, 36}  // Undercity
+}};
+
+// SkillLineAbility.dbc gives the Alliance capital rifts RaceMask 1101 and the Horde ones RaceMask 690.
+constexpr std::array<uint32, 6> FelswornCapitalRifts = {535595, 535596, 535597, 535598, 535599, 535600};
+
 bool CanGrantAscensionRacialSpell(Player const* player, uint32 spellId)
 {
     bool racial = false;
     auto const bounds = sSpellMgr->GetSkillLineAbilityMapBounds(spellId);
+    if (std::find(FelswornCapitalRifts.begin(), FelswornCapitalRifts.end(), spellId) != FelswornCapitalRifts.end())
+        for (auto itr = bounds.first; itr != bounds.second; ++itr)
+            if (itr->second->RaceMask && !(itr->second->RaceMask & player->getRaceMask()))
+                return false;
     for (auto itr = bounds.first; itr != bounds.second; ++itr)
         if (AscensionRacialAbilities::GetRace(itr->second->SkillLine))
         {
@@ -633,6 +655,14 @@ public:
       player->learnSpell(progressionSpell.SpellId, false);
       ++learned;
     }
+    if (player->getClass() == CLASS_DEMON_HUNTER)
+      for (FelswornRiftGrant const& rift : FelswornHordeCapitalRifts)
+        if (rift.RequiredLevel <= player->GetLevel() && CanGrantAscensionRacialSpell(player, rift.SpellId) &&
+            !player->HasSpell(rift.SpellId) && sSpellMgr->GetSpellInfo(rift.SpellId))
+        {
+          player->learnSpell(rift.SpellId, false);
+          ++learned;
+        }
 
     ReconcileRunemasterFists(player, activeSpec);
     learned += SynchronizeAutomaticTalents(player, GetActiveSpecialization(player));
