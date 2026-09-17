@@ -29,6 +29,7 @@ enum BloodmageSecondarySpells : uint32
     SPELL_ACCURSED_FORM = 562572,
     SPELL_VAMPYRS_KISS = 504275,
     SPELL_VAMPYRS_KISS_COPY = 504785,
+    SPELL_BLACK_HEART = 680731,
     SPELL_NIGHT_HUNTER = 704659,
     SPELL_BLOOD_FEAST_RESTORE = 706608
 };
@@ -163,7 +164,12 @@ public:
                 if (Player* player = unit->ToPlayer(); player && player->getClass() == CLASS_SON_OF_ARUGAL &&
                     player->IsAlive() && player->IsInWorld() && player->InSamePhase(target) && target->IsAlive() &&
                     player->IsValidAttackTarget(target))
+                {
                     CopyDamage(player, target, SPELL_VAMPYRS_KISS_COPY, damage / 4);
+                    // Black Heart: Vampyr's Kiss also regenerates 20% of maximum Rage when it copies damage.
+                    if (player->HasAura(SPELL_BLACK_HEART))
+                        player->ModifyPower(POWER_RAGE, int32(player->GetMaxPower(POWER_RAGE)) / 5);
+                }
     }
 };
 
