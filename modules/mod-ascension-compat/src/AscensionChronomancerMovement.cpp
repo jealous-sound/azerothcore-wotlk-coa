@@ -168,7 +168,8 @@ class spell_ascension_displacement : public SpellScript
         Unit* target = GetHitUnit();
         if (!caster || !target || target == caster)
             return;
-        target->NearTeleportTo(caster->GetNearPosition(2.0f, 0.0f), true);
+        Position destination = caster->GetNearPosition(2.0f, 0.0f);
+        target->NearTeleportTo(destination, true);
         target->RemoveMovementImpairingAuras(true);
     }
 
