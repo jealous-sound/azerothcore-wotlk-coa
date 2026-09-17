@@ -299,9 +299,17 @@ class templar_scaling : public UnitScript
     }
     void ModifyPeriodicDamageAurasTick(Unit* target, Unit* attacker, uint32& damage, SpellInfo const* info) override
     {
-        if (Player* player = Owner(target))
-            if (info && !info->HasAttribute(SPELL_ATTR4_IGNORE_DAMAGE_TAKEN_MODIFIERS))
-                damage = uint32(damage * Mitigation(player, attacker, info->SchoolMask));
+        Player* player = Owner(target);
+        if (!player || !info || info->HasAttribute(SPELL_ATTR4_IGNORE_DAMAGE_TAKEN_MODIFIERS))
+            return;
+        damage = uint32(damage * Mitigation(player, attacker, info->SchoolMask));
+        // Light's Ward: its helper's periodic damage taken effect (-15%) has no core handler. This hook also runs for
+        // periodic heals, which the ward must not reduce.
+        if (AuraEffect const* ward = player->GetAuraEffect(301283, EFFECT_1))
+            if ((ward->GetMiscValue() & info->SchoolMask) &&
+                (info->HasAura(SPELL_AURA_PERIODIC_DAMAGE) || info->HasAura(SPELL_AURA_PERIODIC_DAMAGE_PERCENT) ||
+                 info->HasAura(SPELL_AURA_PERIODIC_LEECH)))
+                damage = uint32(damage * std::max(0.0f, 1.0f + float(ward->GetAmount()) / 100.0f));
     }
 };
 } // namespace
