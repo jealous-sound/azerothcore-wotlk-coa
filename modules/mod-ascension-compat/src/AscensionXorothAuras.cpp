@@ -41,6 +41,10 @@ class aura_ascension_xoroth_lifecycle : public AuraScript
     }
     void Apply(AuraEffect const* effect, AuraEffectHandleModes)
     {
+        // Xorothian Warsteed applies its mounted speed (effect 0) before it mounts (effect 1), when the speed
+        // update still reads the unmounted modifiers. Update the run speed again once mounted.
+        if (GetId() == 804703 && effect->GetEffIndex() == EFFECT_1)
+            GetTarget()->UpdateSpeed(MOVE_RUN, true);
         if (!First(effect))
             return;
         Player* player = Owner(GetCaster());
