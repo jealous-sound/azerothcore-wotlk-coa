@@ -79,6 +79,20 @@ Explicit local choices where the recovered description omits a coefficient:
 - Interdict's additional target: one valid nearby enemy within eight yards and line of sight.
 - Hope copies: owner level, half maximum health and half weapon damage, owner armor and attack speed.
 
+Choices behind the 2026-09-17 audit fixes, where the shutdown tooltip names more than the client data delivers:
+
+- Templar's Might adds Blade of Faith to Condemn's damage-from-caster mask; One-Punch Man adds Righteous Tempest's
+  damage helpers and a matching 20% periodic modifier for Blade of Faith. Oath: Retribution stays outside Combat
+  Training, as its client mask excludes it.
+- Norgannon's Wrath's blast takes Chastise's family bit ("scales with modifiers to Chastise"), debuffs every enemy
+  it hits and ignores absorbs and resistances (tooltip, and the client SpellCustomAttr bit shared with Dragon's
+  Wrath). A missed primary hit roll still cancels the blast.
+- Devotion of Khaz'goroth refunds 0.5 sec on every Libram rank (tooltip and 2025-08-04 changelog) instead of its
+  helper's per-spell values. Aggramar's Rage's crit applies only to its masked Holy abilities; the 2026-01-07
+  changelog's extra Chastise damage has no shutdown data and is not implemented.
+- Fury of Aggramar also doubles Libram of Consecration's extra jump targets through the client data; no tooltip or
+  changelog confirms that, and it is left unchanged.
+
 The 113 coefficient slots preserve normal weapon contributions while adding separately authored terms
 once. The recovered parent values override stale Scourgebane/Tempest/Chakra helpers. Copied-result helpers
 do not gain a second caster coefficient, crit, target modifier or armor pass. Exact SQL bonus suppression
