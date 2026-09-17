@@ -1,0 +1,260 @@
+{
+  "schema": 1,
+  "name": "Tyr's Blessing lets Condemn stack four times (#821)",
+  "contract": "Condemn stacks 3 times. Tyr's Blessing 705285 adds 1 maximum stack (Ascension spell modifier 31), so repeated casts reach 4 stacks on the target instead of 3.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 19,
+      "level": 80,
+      "melee_hit_rating": 10000,
+      "spell_hit_rating": 10000,
+      "expertise_rating": 10000
+    },
+    {
+      "id": "blessed",
+      "race": 1,
+      "class": 19,
+      "level": 80,
+      "melee_hit_rating": 10000,
+      "spell_hit_rating": 10000,
+      "expertise_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "dummy_control",
+      "owner": "control",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 3
+    },
+    {
+      "id": "dummy_blessed",
+      "owner": "blessed",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 3
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 567541
+    },
+    {
+      "action": "learn",
+      "actor": "blessed",
+      "spell": 567541
+    },
+    {
+      "action": "learn",
+      "actor": "blessed",
+      "spell": 705285
+    },
+    {
+      "action": "assert",
+      "label": "Base stack limit",
+      "actor": "control",
+      "metric": "spell_max_stacks",
+      "spell": 567541,
+      "equals": 3
+    },
+    {
+      "action": "assert",
+      "label": "Talented stack limit",
+      "actor": "blessed",
+      "metric": "spell_max_stacks",
+      "spell": 567541,
+      "equals": 4
+    },
+    {
+      "action": "add_item",
+      "actor": "control",
+      "item": 2495
+    },
+    {
+      "action": "equip",
+      "actor": "control",
+      "item": 2495,
+      "slot": 15
+    },
+    {
+      "action": "add_item",
+      "actor": "blessed",
+      "item": 2495
+    },
+    {
+      "action": "equip",
+      "actor": "blessed",
+      "item": 2495,
+      "slot": 15
+    },
+    {
+      "action": "set_power",
+      "actor": "control",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "set_power",
+      "actor": "blessed",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "cast",
+      "actor": "control",
+      "spell": 567541,
+      "target": "dummy_control"
+    },
+    {
+      "action": "cast",
+      "actor": "blessed",
+      "spell": 567541,
+      "target": "dummy_blessed"
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "control",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "set_power",
+      "actor": "blessed",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "cast",
+      "actor": "control",
+      "spell": 567541,
+      "target": "dummy_control"
+    },
+    {
+      "action": "cast",
+      "actor": "blessed",
+      "spell": 567541,
+      "target": "dummy_blessed"
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "control",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "set_power",
+      "actor": "blessed",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "cast",
+      "actor": "control",
+      "spell": 567541,
+      "target": "dummy_control"
+    },
+    {
+      "action": "cast",
+      "actor": "blessed",
+      "spell": 567541,
+      "target": "dummy_blessed"
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "control",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "set_power",
+      "actor": "blessed",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "cast",
+      "actor": "control",
+      "spell": 567541,
+      "target": "dummy_control"
+    },
+    {
+      "action": "cast",
+      "actor": "blessed",
+      "spell": 567541,
+      "target": "dummy_blessed"
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "control",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "set_power",
+      "actor": "blessed",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "cast",
+      "actor": "control",
+      "spell": 567541,
+      "target": "dummy_control"
+    },
+    {
+      "action": "cast",
+      "actor": "blessed",
+      "spell": 567541,
+      "target": "dummy_blessed"
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "assert",
+      "label": "Untalented Condemn stops at three stacks",
+      "actor": "dummy_control",
+      "metric": "aura_stacks",
+      "spell": 567541,
+      "caster": "control",
+      "equals": 3
+    },
+    {
+      "action": "assert",
+      "label": "Tyr's Blessing Condemn reaches four stacks",
+      "actor": "dummy_blessed",
+      "metric": "aura_stacks",
+      "spell": 567541,
+      "caster": "blessed",
+      "equals": 4
+    }
+  ]
+}
