@@ -238,6 +238,9 @@ class pyromancer_spells : public AllSpellScript
             }
             if (Named(info, 806611) && player->HasAura(807319) && !spell->GetScriptValue(807319))
                 spell->SetScriptValue(807319, 1), Reduce(player, 806611, std::abs(Amount(807349)));
+            // Dragonfire's description restores Energize 6% Max Mana, which no DBC effect casts.
+            if (Named(info, 500129))
+                Cast(player, player, 503648);
         }
         if (healing)
         {
