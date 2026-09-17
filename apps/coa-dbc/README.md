@@ -14,23 +14,25 @@ Players use the same original tables, so a client patch must not replace archive
 Python 3.11 or newer. Extraction also needs [mpqcli](https://github.com/TheGrayDot/mpqcli)
 (StormLib).
 
-## Build and install
+## Extract
 
 ```sh
 python apps/coa-dbc/client_dbc.py extract "C:/CoA/client/Data" out/client-dbc --original --mpqcli path/to/mpqcli.exe
 python apps/coa-dbc/client_dbc.py check out/client-dbc
 python apps/coa-dbc/client_dbc.py diff "C:/CoA/server/data/dbc" out/client-dbc
-python apps/coa-dbc/client_dbc.py install out/client-dbc "C:/CoA/server/data" --dry-run
-python apps/coa-dbc/client_dbc.py install out/client-dbc "C:/CoA/server/data"
 ```
+
+Copy the extracted files into the `dbc` directory under the worldserver's `DataDir` (set in
+`worldserver.conf`), replacing the files there, and restart the worldserver.
 
 `extract` reads `Data/*.MPQ` and `Data/<locale>/*.MPQ` in load order: base archives, locale
 base archives, `patch.MPQ`, `patch-<digit>`, locale patches, then letter patches in
-lexicographic order. The last archive holding a table wins. `client-dbc.manifest.json` records
-the archives read with the file each came from, and each table's archive, hash, size and the
-archives it overrides. `--original` reads
-`NAME.ORIGINAL`, the launcher's untouched copy kept when a local patch replaced an archive, in place
-of that archive. `--archive NAME=PATH` reads any other file in place of a client archive.
+lexicographic order. The last archive holding a table wins. Tables the core loads are written
+under the file names the worldserver opens, so the copy also works on case-sensitive systems.
+`client-dbc.manifest.json` records the archives read with the file each came from, and each
+table's archive, hash, size and the archives it overrides; the worldserver ignores it. `--original`
+reads `NAME.ORIGINAL`, the launcher's untouched copy kept when a local patch replaced an archive,
+in place of that archive. `--archive NAME=PATH` reads any other file in place of a client archive.
 
 `check` uses this checkout's `DBCfmt.h` and `DBCStores.cpp`. It reports missing tables, file
 names a case-sensitive system cannot open, and field layouts the core cannot read. String
@@ -39,11 +41,6 @@ empty strings. CoA's Spell.dbc has such offsets in locale slots the client never
 
 `diff` compares the values the core reads, with strings resolved, so a rebuilt string block is
 not a change. Tables the core does not load are compared as raw records.
-
-`install` checks the set, moves the current top-level `dbc/*.dbc` files to
-`DataDir/dbc-backups/client-dbc-<time>/`, copies the set and renames tables to the names the
-core opens. Subdirectories such as `dbc/Ascension/` are left unchanged. Restart the worldserver
-afterwards.
 
 ## Checks
 

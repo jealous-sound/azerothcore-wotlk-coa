@@ -70,8 +70,8 @@ nor stable across grid reloads. The restoration writes its spawns in the fixed b
    A stock table holds 3,792 rows; CoA's client ships 120,871, and the restored pickups use
    1,009 ids from it. Against the stock table 1,489 of 1,510 pickups never reach the world and
    the world stays empty however good the data is (it also silently drops ~1,222 stock objects).
-   Install the client's DBC set with the [client DBC tool](../../apps/coa-dbc/README.md); it
-   includes this table.
+   Extract the client's DBC set with the [client DBC tool](../../apps/coa-dbc/README.md) and copy
+   it into the worldserver's `DataDir/dbc`; it includes this table.
 
 2. **The SQL applied.** With `Updates.EnableDatabases = 7` (all three databases) the core
    applies `data/sql/db-world/` and `data/sql/db-characters/` at startup by itself; use `6`

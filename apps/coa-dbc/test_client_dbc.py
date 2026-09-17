@@ -116,7 +116,7 @@ class ClientDbcTest(unittest.TestCase):
             "enUS/lichking-locale-enUS.MPQ", "patch.MPQ", "patch-2.MPQ", "enUS/patch-enUS.MPQ",
             "enUS/patch-enUS-3.MPQ", "patch-C.MPQ", "patch-CZZ.MPQ", "patch-T.MPQ", "patch-TA.MPQ"])
 
-    def test_extract_takes_the_last_archive_and_honours_replacements(self):
+    def test_extract_takes_the_last_archive_honours_replacements_and_uses_core_names(self):
         client = self.path / "Data"
         (client / "enUS").mkdir(parents=True)
         for name in ("enUS/patch-enUS-3.MPQ", "patch-M.MPQ", "patch-T.MPQ", "patch-T.MPQ.ORIGINAL"):
@@ -125,18 +125,21 @@ class ClientDbcTest(unittest.TestCase):
         mpq = FakeMpq({
             "patch-enUS-3.MPQ": {"DBFilesClient\\Foo.dbc": stock,
                                  "DBFilesClient\\gtBar.dbc": wdbc([(1.0,)], 1, b"", "<f")},
-            "patch-M.MPQ": {"DBFilesClient\\Foo.dbc": custom, "Interface\\x.blp": b""},
+            "patch-M.MPQ": {"DBFilesClient\\Foo.dbc": custom, "DBFilesClient\\Custom.dbc": wdbc([(1,)], 1),
+                            "Interface\\x.blp": b""},
             "patch-T.MPQ": {"DBFilesClient\\Foo.dbc": b"not used"},
-            "patch-T.MPQ.ORIGINAL": {"DBFilesClient\\Foo.dbc": original}})
+            "patch-T.MPQ.ORIGINAL": {"DBFilesClient\\FOO.dbc": original}})
         output = self.path / "out"
         manifest = client_dbc.extract(client, output, mpq, {"patch-T.MPQ": client / "patch-T.MPQ.ORIGINAL"},
-                                      log=lambda _: None)
+                                      log=lambda _: None, root=self.root)
+        self.assertEqual({path.name for path in output.iterdir()},
+                         {"Foo.dbc", "gtBar.dbc", "Custom.dbc", client_dbc.MANIFEST})
         self.assertEqual((output / "Foo.dbc").read_bytes(), original)
         self.assertEqual(manifest["files"]["Foo.dbc"]["archive"], "patch-T.MPQ")
         self.assertEqual(manifest["files"]["Foo.dbc"]["overridden"], ["enUS/patch-enUS-3.MPQ", "patch-M.MPQ"])
         self.assertTrue((output / client_dbc.MANIFEST).is_file())
         with self.assertRaises(ValueError):
-            client_dbc.extract(client, output, mpq, log=lambda _: None)
+            client_dbc.extract(client, output, mpq, log=lambda _: None, root=self.root)
 
     def test_original_reads_untouched_archive_copies(self):
         client = self.path / "Data"
@@ -148,22 +151,6 @@ class ClientDbcTest(unittest.TestCase):
         self.assertEqual(archives["patch-M.MPQ"].name, "patch-M.MPQ")
         replaced = dict(client_dbc.client_archives(client, {"patch-T.MPQ": client / "patch-M.MPQ"}, original=True))
         self.assertEqual(replaced["patch-T.MPQ"].name, "patch-M.MPQ")
-
-    def test_install_backs_up_and_uses_core_names(self):
-        source = valid_set(self.path / "set")
-        (source / "Foo.dbc").rename(source / "FOO.dbc")
-        data = self.path / "server"
-        (data / "dbc").mkdir(parents=True)
-        (data / "dbc" / "Stale.dbc").write_bytes(b"old")
-        with self.assertRaises(ValueError):
-            client_dbc.install(source, data, self.root, log=lambda _: None)
-        (source / "FOO.dbc").rename(source / "Foo.dbc")
-        (source / "Custom.dbc").write_bytes(wdbc([(1,)], 1))
-        backup = client_dbc.install(source, data, self.root, log=lambda _: None)
-        self.assertEqual(sorted(path.name for path in (data / "dbc").iterdir()), ["Custom.dbc", "Foo.dbc", "gtBar.dbc"])
-        self.assertEqual((backup / "Stale.dbc").read_bytes(), b"old")
-        with self.assertRaises(ValueError):
-            client_dbc.install(data / "dbc", data, self.root, log=lambda _: None)
 
 
 if __name__ == "__main__":

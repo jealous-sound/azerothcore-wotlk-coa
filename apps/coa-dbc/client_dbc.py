@@ -1,4 +1,4 @@
-"""Extract, check, compare and install the CoA client DBC set the worldserver loads.
+"""Extract, check and compare the CoA client DBC set the worldserver loads.
 
 The worldserver reads DataDir/dbc once at startup. That directory must hold the client's own
 tables: with a stock or partial set the core silently drops every item limit, gameobject
@@ -302,8 +302,11 @@ class MpqCli:
         return Path(directory) / member.replace("/", "\\").rsplit("\\", 1)[-1]
 
 
-def extract(data_directory, output, mpq, replacements=None, log=print, original=False):
-    """Write the client's effective DBC set (last archive in load order wins) and its manifest."""
+def extract(data_directory, output, mpq, replacements=None, log=print, original=False, root=ROOT):
+    """Write the client's effective DBC set (last archive in load order wins) and its manifest.
+
+    Tables the core loads are written under the names DBCStores.cpp opens, so the set can be copied
+    into DataDir/dbc as it is, also on case-sensitive systems."""
     output = Path(output)
     if output.exists() and any(output.iterdir()):
         raise ValueError(f"{output} is not empty")
@@ -319,6 +322,7 @@ def extract(data_directory, output, mpq, replacements=None, log=print, original=
     if not carriers:
         raise ValueError(f"No DBFilesClient tables found in {data_directory}")
     output.mkdir(parents=True, exist_ok=True)
+    canonical = {file.lower(): file for file, _, _ in core_stores(root)}
     files = {}
     with tempfile.TemporaryDirectory() as scratch:
         for key in sorted(carriers):
@@ -326,6 +330,7 @@ def extract(data_directory, output, mpq, replacements=None, log=print, original=
             extracted = mpq.extract(path, member, scratch)
             table = Table.read(extracted)
             name = member.replace("/", "\\").rsplit("\\", 1)[-1]
+            name = canonical.get(name.lower(), name)
             target = output / name
             shutil.move(extracted, target)
             files[name] = {
@@ -341,39 +346,6 @@ def extract(data_directory, output, mpq, replacements=None, log=print, original=
         "files": files}
     (output / MANIFEST).write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     return manifest
-
-
-def install(source, data_directory, root=ROOT, dry_run=False, log=print):
-    """Replace DataDir/dbc/*.dbc with a checked set, keeping the previous files as a backup."""
-    source, data_directory = Path(source).resolve(), Path(data_directory).resolve()
-    target = data_directory / "dbc"
-    if source == target:
-        raise ValueError("The source set is the server's own dbc directory")
-    problems, _ = check(source, root)
-    if problems:
-        raise ValueError("The source set does not load:\n  " + "\n  ".join(problems))
-    canonical = {file.lower(): file for file, _, _ in core_stores(root)}
-    incoming = sorted(dbc_files(source).values())
-    current = sorted(dbc_files(target).values())
-    if (target / MANIFEST).is_file():
-        current.append(target / MANIFEST)
-    stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    backup = data_directory / "dbc-backups" / f"client-dbc-{stamp}"
-    log(f"{len(incoming)} files -> {target}; {len(current)} current files -> {backup}")
-    if dry_run:
-        return backup
-    backup.mkdir(parents=True)
-    for path in current:
-        shutil.move(path, backup / path.name)
-    target.mkdir(parents=True, exist_ok=True)
-    for path in incoming:
-        destination = target / canonical.get(path.name.lower(), path.name)
-        shutil.copyfile(path, destination)
-        if destination.read_bytes() != path.read_bytes():
-            raise RuntimeError(f"{destination}: copy verification failed")
-    if (source / MANIFEST).is_file():
-        shutil.copyfile(source / MANIFEST, target / MANIFEST)
-    return backup
 
 
 def parse_replacements(items):
@@ -420,11 +392,6 @@ def main(argv=None):
     command.add_argument("new", type=Path)
     command.add_argument("--ids", action="store_true", help="list the added, removed and changed IDs")
 
-    command = commands.add_parser("install", help="install a checked set into a server DataDir")
-    command.add_argument("source", type=Path)
-    command.add_argument("data_dir", type=Path, help="the worldserver DataDir (the parent of dbc/)")
-    command.add_argument("--dry-run", action="store_true")
-
     arguments = parser.parse_args(argv)
     try:
         if arguments.command == "extract":
@@ -434,12 +401,8 @@ def main(argv=None):
             problems, notes = check(arguments.output)
         elif arguments.command == "check":
             problems, notes = check(arguments.directory)
-        elif arguments.command == "diff":
-            print_diff(diff(arguments.old, arguments.new), arguments.ids)
-            return 0
         else:
-            backup = install(arguments.source, arguments.data_dir, dry_run=arguments.dry_run)
-            print(("Would back up to " if arguments.dry_run else "Installed; previous files in ") + str(backup))
+            print_diff(diff(arguments.old, arguments.new), arguments.ids)
             return 0
     except (OSError, ValueError, RuntimeError) as error:
         print(error, file=sys.stderr)
