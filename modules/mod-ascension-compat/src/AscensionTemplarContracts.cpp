@@ -82,6 +82,13 @@ void ApplyContracts(SpellInfo* info)
     }
     if (id == 801482)
         dummy(1); // Redemption follows natural expiry, not every five seconds
+    if (id == 801481 && info->Effects[1].TriggerSpell == 801482)
+    {
+        // Glory lasts its full duration before granting Downfall; the client's ten damage-taken charges removed it
+        // early and skipped the chain.
+        info->ProcFlags = 0;
+        info->ProcCharges = 0;
+    }
     if (id == 712678 || id == 712437)
         for (uint8 i = 0; i < MAX_SPELL_EFFECTS; ++i)
             if (info->Effects[i].Effect)
