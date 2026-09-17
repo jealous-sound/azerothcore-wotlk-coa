@@ -1,0 +1,221 @@
+{
+  "schema": 1,
+  "name": "Combat Training strengthens every Oath, including Righteous Tempest (#1396)",
+  "contract": "Combat Training 706320 increases the effectiveness of Oaths by 20%, including their 30% per stack Oath Breaker bonus that Righteous Tempest keeps. The client mask does not include Oath: Retribution, which is unchanged.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 19,
+      "level": 80,
+      "melee_hit_rating": 10000,
+      "spell_hit_rating": 10000,
+      "expertise_rating": 10000
+    },
+    {
+      "id": "trained",
+      "race": 1,
+      "class": 19,
+      "level": 80,
+      "melee_hit_rating": 10000,
+      "spell_hit_rating": 10000,
+      "expertise_rating": 10000
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 807274
+    },
+    {
+      "action": "learn",
+      "actor": "trained",
+      "spell": 807274
+    },
+    {
+      "action": "learn",
+      "actor": "trained",
+      "spell": 706320
+    },
+    {
+      "action": "set_aura",
+      "actor": "control",
+      "spell": 804904,
+      "stacks": 1
+    },
+    {
+      "action": "set_aura",
+      "actor": "control",
+      "spell": 804922,
+      "stacks": 1
+    },
+    {
+      "action": "set_aura",
+      "actor": "control",
+      "spell": 805332,
+      "stacks": 1
+    },
+    {
+      "action": "set_aura",
+      "actor": "trained",
+      "spell": 804904,
+      "stacks": 1
+    },
+    {
+      "action": "set_aura",
+      "actor": "trained",
+      "spell": 804922,
+      "stacks": 1
+    },
+    {
+      "action": "set_aura",
+      "actor": "trained",
+      "spell": 805332,
+      "stacks": 1
+    },
+    {
+      "action": "assert",
+      "label": "Vindication Zealotry chance without the talent",
+      "actor": "control",
+      "metric": "aura_amount",
+      "spell": 805332,
+      "effect": 0,
+      "equals": 20
+    },
+    {
+      "action": "assert",
+      "label": "Vindication Zealotry chance with the talent",
+      "actor": "trained",
+      "metric": "aura_amount",
+      "spell": 805332,
+      "effect": 0,
+      "equals": 24
+    },
+    {
+      "action": "assert",
+      "label": "Lunge Breaker bonus with the talent",
+      "actor": "trained",
+      "metric": "aura_amount",
+      "spell": 804904,
+      "effect": 2,
+      "equals": 36
+    },
+    {
+      "action": "assert",
+      "label": "Condemn Breaker bonus with the talent",
+      "actor": "trained",
+      "metric": "aura_amount",
+      "spell": 804922,
+      "effect": 2,
+      "equals": 36
+    },
+    {
+      "action": "assert",
+      "label": "Vindication Breaker bonus with the talent",
+      "actor": "trained",
+      "metric": "aura_amount",
+      "spell": 805332,
+      "effect": 2,
+      "equals": 36
+    },
+    {
+      "action": "add_item",
+      "actor": "control",
+      "item": 2495
+    },
+    {
+      "action": "equip",
+      "actor": "control",
+      "item": 2495,
+      "slot": 15
+    },
+    {
+      "action": "set_aura",
+      "actor": "control",
+      "spell": 704576,
+      "stacks": 1
+    },
+    {
+      "action": "set_power",
+      "actor": "control",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "cast",
+      "actor": "control",
+      "spell": 807274
+    },
+    {
+      "action": "assert",
+      "label": "Righteous Tempest active",
+      "actor": "control",
+      "metric": "aura",
+      "spell": 807274,
+      "equals": 1,
+      "within_ms": 1000
+    },
+    {
+      "action": "add_item",
+      "actor": "trained",
+      "item": 2495
+    },
+    {
+      "action": "equip",
+      "actor": "trained",
+      "item": 2495,
+      "slot": 15
+    },
+    {
+      "action": "set_aura",
+      "actor": "trained",
+      "spell": 704576,
+      "stacks": 1
+    },
+    {
+      "action": "set_power",
+      "actor": "trained",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "cast",
+      "actor": "trained",
+      "spell": 807274
+    },
+    {
+      "action": "assert",
+      "label": "Righteous Tempest active",
+      "actor": "trained",
+      "metric": "aura",
+      "spell": 807274,
+      "equals": 1,
+      "within_ms": 1000
+    },
+    {
+      "action": "assert",
+      "label": "Tempest keeps 90% without the talent",
+      "actor": "control",
+      "metric": "aura_script_value",
+      "spell": 807274,
+      "key": 805409,
+      "equals": 90
+    },
+    {
+      "action": "assert",
+      "label": "Tempest keeps 108% with the talent",
+      "actor": "trained",
+      "metric": "aura_script_value",
+      "spell": 807274,
+      "key": 805409,
+      "equals": 108
+    }
+  ]
+}
