@@ -7757,8 +7757,19 @@ void Player::CastItemUseSpell(Item* item, SpellCastTargets const& targets, uint8
     }
 
     // xinef: send all spells in one go, prevents crash because container is not set
+    ObjectGuid const itemGuid = item->GetGUID();
     for (std::list<Spell*>::const_iterator itr = pushSpells.begin(); itr != pushSpells.end(); ++itr)
+    {
+        // An earlier spell can use the item's last charge and destroy it; an item that was never saved is
+        // deleted at once, so the remaining spells must not be prepared with it.
+        if (!GetItemByGuid(itemGuid))
+        {
+            delete *itr;
+            continue;
+        }
+
         (*itr)->prepare(&targets);
+    }
 }
 
 void Player::_RemoveAllItemMods()
