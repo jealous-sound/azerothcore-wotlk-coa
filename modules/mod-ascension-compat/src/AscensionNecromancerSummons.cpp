@@ -350,8 +350,10 @@ class npc_ascension_necromancer : public ScriptedAI
         me->SetPower(POWER_MANA, me->GetMaxPower(POWER_MANA));
         if (_cost && player->HasAura(504866))
             player->CastCustomSpell(505224, SPELLVALUE_BASE_POINT0, int32(me->CountPctFromMaxHealth(40)), me, true);
+        // Ghoul Passive Healing targets its caster, so casting it would put the auto-attack heal proc
+        // on the Necromancer; the Ghoul must carry it to heal its master on melee hits.
         if (me->GetEntry() == 50073)
-            Cast(player, me, 805290);
+            player->AddAura(805290, me);
         for (uint32 ward : {680388, 681460, 681529})
             if (Aura const* active = player->GetAura(ward))
                 if (Aura* copy = player->AddAura(ward, me))
