@@ -1,0 +1,186 @@
+{
+  "schema": 1,
+  "name": "Pious Sweep: Chastise +25% above 75% health or in Tranquil Circle, nothing else (#1139)",
+  "contract": "Pious Sweep 520034 increases Chastise damage by 25% against enemies above 75% health, and adds 25% to Tranquil Circle's increase to the Templar's Chastise damage taken inside it. Other damage is not increased.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    },
+    {
+      "id": "sweep",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    }
+  ],
+  "creatures": [
+    {
+      "id": "healthy",
+      "owner": "control",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 3
+    },
+    {
+      "id": "wounded",
+      "owner": "control",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 5
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 503141
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 801205
+    },
+    {
+      "action": "learn",
+      "actor": "sweep",
+      "spell": 503141
+    },
+    {
+      "action": "learn",
+      "actor": "sweep",
+      "spell": 801205
+    },
+    {
+      "action": "learn",
+      "actor": "sweep",
+      "spell": 520034
+    },
+    {
+      "action": "set_health",
+      "label": "Wounded enemy below 75% health",
+      "actor": "wounded",
+      "value": 1000
+    },
+    {
+      "action": "wait",
+      "ms": 1000
+    },
+    {
+      "action": "assert",
+      "label": "Wounded enemy is below 75% health",
+      "actor": "wounded",
+      "metric": "health_pct",
+      "max": 74
+    },
+    {
+      "action": "assert",
+      "label": "Healthy enemy is above 75% health",
+      "actor": "healthy",
+      "metric": "health_pct",
+      "min": 76
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "spell_damage_done",
+      "save_as": "chastise_full",
+      "spell": 503141,
+      "target": "healthy"
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "spell_damage_done",
+      "save_as": "chastise_wounded",
+      "spell": 503141,
+      "target": "wounded"
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "spell_damage_done",
+      "save_as": "titanstrike_full",
+      "spell": 806835,
+      "target": "healthy"
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "melee_damage_done",
+      "save_as": "melee_full",
+      "target": "healthy"
+    },
+    {
+      "action": "assert",
+      "label": "Chastise +25% above 75% health",
+      "actor": "sweep",
+      "metric": "spell_damage_done",
+      "spell": 503141,
+      "target": "healthy",
+      "ratio_to": "chastise_full",
+      "min": 1.249,
+      "max": 1.251
+    },
+    {
+      "action": "assert",
+      "label": "No Chastise bonus below 75% health",
+      "actor": "sweep",
+      "metric": "spell_damage_done",
+      "spell": 503141,
+      "target": "wounded",
+      "ratio_to": "chastise_wounded",
+      "min": 0.999,
+      "max": 1.001
+    },
+    {
+      "action": "assert",
+      "label": "Other spells get no bonus",
+      "actor": "sweep",
+      "metric": "spell_damage_done",
+      "spell": 806835,
+      "target": "healthy",
+      "ratio_to": "titanstrike_full",
+      "min": 0.999,
+      "max": 1.001
+    },
+    {
+      "action": "assert",
+      "label": "Auto attacks get no bonus",
+      "actor": "sweep",
+      "metric": "melee_damage_done",
+      "target": "healthy",
+      "ratio_to": "melee_full",
+      "min": 0.999,
+      "max": 1.001
+    },
+    {
+      "action": "assert",
+      "label": "Tranquil Circle's Chastise vulnerability is 0 without the talent",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 801205,
+      "op": 23,
+      "base": 0,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "Tranquil Circle's Chastise vulnerability is 25 with the talent",
+      "actor": "sweep",
+      "metric": "spell_modifier",
+      "spell": 801205,
+      "op": 23,
+      "base": 0,
+      "equals": 25
+    }
+  ]
+}

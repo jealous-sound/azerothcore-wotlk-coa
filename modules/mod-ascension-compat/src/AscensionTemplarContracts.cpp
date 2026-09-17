@@ -82,6 +82,13 @@ void ApplyContracts(SpellInfo* info)
     }
     if (id == 801482)
         dummy(1); // Redemption follows natural expiry, not every five seconds
+    if (id == 520034 && info->Effects[0].ApplyAuraName == SPELL_AURA_MOD_DAMAGE_DONE_VERSUS_AURASTATE &&
+        info->Effects[0].MiscValue == AURA_STATE_HEALTH_ABOVE_75_PERCENT && !info->Effects[0].SpellClassMask)
+    {
+        // Pious Sweep's bonus against enemies above 75% health belongs to Chastise, not to all damage.
+        info->Effects[0].SpellClassMask = flag96(0, 67108864, 0);
+        info->Effects[0].MiscValueB = ASCENSION_CLASSMASK_AURASTATE_DAMAGE;
+    }
     if (id == 705284 && info->Effects[0].ApplyAuraName == SPELL_AURA_ADD_PCT_MODIFIER &&
         info->Effects[0].MiscValue == SPELLMOD_DAMAGE && !info->Effects[2].Effect)
     {
