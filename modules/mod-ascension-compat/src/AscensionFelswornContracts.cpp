@@ -237,8 +237,6 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[0].Effect = SPELL_EFFECT_DUMMY;
         info->Effects[0].ApplyAuraName = SPELL_AURA_NONE;
     }
-    if (id == 806109)
-        info->Effects[2].Effect = 0;
     if (id == 706818)
     {
         dummy(0), dummy(1);
