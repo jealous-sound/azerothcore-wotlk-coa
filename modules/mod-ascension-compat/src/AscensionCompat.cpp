@@ -49,6 +49,7 @@
 #include "AscensionSpellProgressionData.h"
 #include "AscensionTalentReplacementData.h"
 #include "AscensionTaughtAbilityData.h"
+#include "AscensionCreaturePreset.h"
 #include "Bag.h"
 #include "Battlefield.h"
 #include "BattlefieldMgr.h"
@@ -4125,9 +4126,53 @@ public:
                 return false;
         }
 
-        if (!session || !session->GetPlayer() || packet.GetOpcode() != CMSG_CREATURE_QUERY ||
-            packet.size() < sizeof(uint32) ||
+        if (!session || !session->GetPlayer() ||
             !ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED))
+            return true;
+
+        if (packet.GetOpcode() == CMSG_GET_MIRRORIMAGE_DATA && packet.size() >= sizeof(uint64))
+        {
+            ObjectGuid guid = packet.read<ObjectGuid>(0);
+            CreatureDisplayPreset const* preset = nullptr;
+
+            if (guid.IsCreatureOrVehicle())
+            {
+                uint32 displayId = 0;
+                if (Creature const* creature = session->GetPlayer()->GetMap()->GetCreature(guid))
+                    displayId = creature->GetDisplayId();
+
+                preset = sAscensionPresets->GetPreset(guid.GetEntry(), displayId);
+            }
+
+            if (!preset)
+            {
+                preset = sAscensionPresets->GetActivePresetOverride(guid);
+            }
+
+            if (preset)
+            {
+                WorldPacket response(SMSG_MIRRORIMAGE_DATA, 68);
+                response << guid;
+                response << uint32(preset->display_id);
+                response << uint8(preset->race);
+                response << uint8(preset->gender);
+                response << uint8(preset->class_id);
+                response << uint8(preset->skin);
+                response << uint8(preset->face);
+                response << uint8(preset->hair);
+                response << uint8(preset->haircolor);
+                response << uint8(preset->facialhair);
+                response << uint32(preset->guild_id);
+                for (uint32 item : preset->items)
+                    response << uint32(item);
+
+                session->SendPacket(&response);
+                return false;
+            }
+            return true;
+        }
+
+        if (packet.GetOpcode() != CMSG_CREATURE_QUERY || packet.size() < sizeof(uint32))
             return true;
 
         uint32 const entry = packet.read<uint32>(0);
@@ -4274,6 +4319,11 @@ public:
 
     static ChatCommandTable commandTable = {
         {"localfreshcheck", HandleAscensionFreshCharacterCheck, SEC_ADMINISTRATOR, Console::Yes},
+        {"localreloadpresets", HandleLocalReloadPresetsCommand, SEC_ADMINISTRATOR, Console::Yes},
+        {"morphpreset", HandleMorphPresetCommand, SEC_ADMINISTRATOR, Console::No},
+        {"demorphpreset", HandleDemorphPresetCommand, SEC_ADMINISTRATOR, Console::No},
+        {"localreloadoutfits", HandleLocalReloadPresetsCommand, SEC_ADMINISTRATOR, Console::Yes},
+        {"morphoutfit", HandleMorphPresetCommand, SEC_ADMINISTRATOR, Console::No},
         {"localappearance", HandleLocalAppearanceCommand, SEC_PLAYER,
          Console::No},
         {"localvanity", HandleLocalVanityCommand, SEC_PLAYER, Console::No},
@@ -4635,6 +4685,92 @@ public:
     handler->SendSysMessage("Spell-charge state resent to the client.");
     return true;
   }
+
+  static bool HandleLocalReloadPresetsCommand(ChatHandler* handler) {
+    sAscensionPresets->LoadFromDB();
+    handler->PSendSysMessage("Reloaded %u creature display presets into cache.", uint32(sAscensionPresets->GetPresetCount()));
+    return true;
+  }
+
+  static bool HandleMorphPresetCommand(ChatHandler* handler, uint32 entry, Optional<uint32> displayIdOpt) {
+    Unit* target = handler->getSelectedUnit();
+    if (!target)
+      target = handler->GetPlayer();
+    if (!target)
+      return false;
+
+    uint32 displayId = displayIdOpt ? *displayIdOpt : 0;
+    CreatureDisplayPreset const* preset = nullptr;
+
+    if (displayId != 0) {
+      preset = sAscensionPresets->GetPreset(entry, displayId);
+    } else if (Player* targetPlayer = target->ToPlayer()) {
+      preset = sAscensionPresets->GetPresetByGender(entry, targetPlayer->getGender());
+    } else {
+      preset = sAscensionPresets->GetPreset(entry);
+    }
+
+    if (!preset) {
+      handler->PSendSysMessage("No creature display preset found for entry %u.", entry);
+      return false;
+    }
+
+    sAscensionPresets->SetActivePresetOverride(target->GetGUID(), entry, preset->display_id);
+    target->SetDisplayId(preset->display_id);
+    target->SetUnitFlag2(UNIT_FLAG2_MIRROR_IMAGE);
+
+    WorldPacket response(SMSG_MIRRORIMAGE_DATA, 68);
+    response << target->GetGUID();
+    response << uint32(preset->display_id);
+    response << uint8(preset->race);
+    response << uint8(preset->gender);
+    response << uint8(preset->class_id);
+    response << uint8(preset->skin);
+    response << uint8(preset->face);
+    response << uint8(preset->hair);
+    response << uint8(preset->haircolor);
+    response << uint8(preset->facialhair);
+    response << uint32(preset->guild_id);
+    for (uint32 item : preset->items)
+      response << uint32(item);
+
+    target->SendMessageToSet(&response, true);
+    handler->PSendSysMessage("Morphed into creature display preset for entry %u (display %u, %s).",
+        entry, preset->display_id, preset->gender == 1 ? "Female" : "Male");
+    return true;
+  }
+
+  static bool HandleDemorphPresetCommand(ChatHandler* handler) {
+    Unit* target = handler->getSelectedUnit();
+    if (!target)
+      target = handler->GetPlayer();
+    if (!target)
+      return false;
+
+    sAscensionPresets->ClearActivePresetOverride(target->GetGUID());
+    if (Player* player = target->ToPlayer()) {
+      player->RemoveUnitFlag2(UNIT_FLAG2_MIRROR_IMAGE);
+      player->InitDisplayIds();
+    } else if (Creature* creature = target->ToCreature()) {
+      if (CreatureTemplate const* cinfo = creature->GetCreatureTemplate()) {
+        if (CreatureModel const* model = ObjectMgr::ChooseDisplayId(cinfo, creature->GetCreatureData())) {
+          creature->SetDisplayId(model->CreatureDisplayID, model->DisplayScale);
+          creature->SetNativeDisplayId(model->CreatureDisplayID);
+        }
+      }
+      if (sAscensionPresets->HasPreset(creature->GetEntry())) {
+        creature->SetUnitFlag2(UNIT_FLAG2_MIRROR_IMAGE);
+      } else {
+        creature->RemoveUnitFlag2(UNIT_FLAG2_MIRROR_IMAGE);
+      }
+    } else {
+      target->RemoveUnitFlag2(UNIT_FLAG2_MIRROR_IMAGE);
+      target->DeMorph();
+    }
+
+    handler->PSendSysMessage("Demorphed creature display preset.");
+    return true;
+  }
 };
 
 class AscensionCompatPlayerScript : public PlayerScript {
@@ -4904,6 +5040,10 @@ public:
       AscensionResourceService::Instance().OnPlayerUpdate(player, diff);
       AscensionCollectionService::Instance().OnPlayerUpdate(player, diff);
       EquipNewItems(player);
+      if (sAscensionPresets->GetActivePresetOverride(player->GetGUID())) {
+        if (!player->HasUnitFlag2(UNIT_FLAG2_MIRROR_IMAGE))
+          player->SetUnitFlag2(UNIT_FLAG2_MIRROR_IMAGE);
+      }
     }
   }
 
@@ -5329,7 +5469,8 @@ class AscensionCompatWorldScript : public WorldScript {
 public:
   AscensionCompatWorldScript()
       : WorldScript("AscensionCompatWorldScript",
-                    {WORLDHOOK_ON_BEFORE_CONFIG_LOAD, WORLDHOOK_ON_STARTUP}) {}
+                    {WORLDHOOK_ON_BEFORE_CONFIG_LOAD, WORLDHOOK_ON_STARTUP,
+                     WORLDHOOK_ON_LOAD_CUSTOM_DATABASE_TABLE}) {}
 
   void OnBeforeConfigLoad(bool reload) override {
     ascensionCompatConfig.Initialize(reload);
@@ -5338,6 +5479,14 @@ public:
         AscensionCompatConfig::LEVEL_SCALING), std::memory_order_relaxed);
     LocalLevelScaling::QuestEnabled.store(enabled && ascensionCompatConfig.GetConfigValue<bool>(
         AscensionCompatConfig::QUEST_LEVEL_SCALING), std::memory_order_relaxed);
+  }
+
+  void OnLoadCustomDatabaseTable() override {
+    if (!ascensionCompatConfig.GetConfigValue<bool>(
+            AscensionCompatConfig::ENABLED))
+      return;
+
+    sAscensionPresets->LoadFromDB();
   }
 
   void OnStartup() override {
@@ -5897,6 +6046,30 @@ std::vector<AscensionClassAbility> GetAscensionClassAbilities(uint8 classId)
     return abilities;
 }
 
+class AscensionCompatAllCreatureScript : public AllCreatureScript {
+public:
+  AscensionCompatAllCreatureScript()
+      : AllCreatureScript("AscensionCompatAllCreatureScript") {}
+
+  void OnCreatureAddWorld(Creature* creature) override {
+    if (!creature || !ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED))
+      return;
+    if (sAscensionPresets->HasPreset(creature->GetEntry())) {
+      creature->SetUnitFlag2(UNIT_FLAG2_MIRROR_IMAGE);
+    }
+  }
+
+  void OnAllCreatureUpdate(Creature* creature, uint32 /*diff*/) override {
+    if (!creature || !ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED))
+      return;
+    if (sAscensionPresets->HasPreset(creature->GetEntry())) {
+      if (!creature->HasUnitFlag2(UNIT_FLAG2_MIRROR_IMAGE)) {
+        creature->SetUnitFlag2(UNIT_FLAG2_MIRROR_IMAGE);
+      }
+    }
+  }
+};
+
 void AddAscensionCompatScripts() {
   new npc_ascension_training_book();
   RegisterSpellScript(spell_ascension_personal_bank);
@@ -5914,4 +6087,5 @@ void AddAscensionCompatScripts() {
   new AscensionCompatChangelogScript();
   new AscensionCompatLevelScalingScript();
   new AscensionCompatWorldScript();
+  new AscensionCompatAllCreatureScript();
 }
