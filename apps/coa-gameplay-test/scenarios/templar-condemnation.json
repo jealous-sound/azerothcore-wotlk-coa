@@ -1,0 +1,180 @@
+{
+  "schema": 1,
+  "name": "Condemnation: +3% Oath: Condemn crit and critical Condemn ticks (#1252)",
+  "contract": "Condemnation 704175 adds 3 to Oath: Condemn's crit effect and lets Condemn's periodic damage critically strike (aura 286 on every Condemn rank). Without it Condemn ticks never crit.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 19,
+      "level": 80,
+      "melee_hit_rating": 10000,
+      "spell_hit_rating": 10000,
+      "expertise_rating": 10000
+    },
+    {
+      "id": "talent",
+      "race": 1,
+      "class": 19,
+      "level": 80,
+      "melee_hit_rating": 10000,
+      "spell_hit_rating": 10000,
+      "expertise_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "dummy_control",
+      "owner": "control",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 3
+    },
+    {
+      "id": "dummy_talent",
+      "owner": "talent",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 3
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 567541
+    },
+    {
+      "action": "learn",
+      "actor": "talent",
+      "spell": 567541
+    },
+    {
+      "action": "learn",
+      "actor": "talent",
+      "spell": 704175
+    },
+    {
+      "action": "set_aura",
+      "actor": "control",
+      "spell": 804922,
+      "stacks": 1
+    },
+    {
+      "action": "set_aura",
+      "actor": "talent",
+      "spell": 804922,
+      "stacks": 1
+    },
+    {
+      "action": "assert",
+      "label": "Oath: Condemn 3% without the talent",
+      "actor": "control",
+      "metric": "aura_amount",
+      "spell": 804922,
+      "effect": 0,
+      "equals": 3
+    },
+    {
+      "action": "assert",
+      "label": "Oath: Condemn 6% with the talent",
+      "actor": "talent",
+      "metric": "aura_amount",
+      "spell": 804922,
+      "effect": 0,
+      "equals": 6
+    },
+    {
+      "action": "add_item",
+      "actor": "control",
+      "item": 2495
+    },
+    {
+      "action": "equip",
+      "actor": "control",
+      "item": 2495,
+      "slot": 15
+    },
+    {
+      "action": "add_item",
+      "actor": "talent",
+      "item": 2495
+    },
+    {
+      "action": "equip",
+      "actor": "talent",
+      "item": 2495,
+      "slot": 15
+    },
+    {
+      "action": "set_power",
+      "actor": "control",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "set_power",
+      "actor": "talent",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "cast",
+      "actor": "control",
+      "spell": 567541,
+      "target": "dummy_control"
+    },
+    {
+      "action": "cast",
+      "actor": "talent",
+      "spell": 567541,
+      "target": "dummy_talent"
+    },
+    {
+      "action": "assert",
+      "label": "Condemn lands (control)",
+      "actor": "dummy_control",
+      "metric": "aura",
+      "spell": 567541,
+      "caster": "control",
+      "equals": 1,
+      "within_ms": 2000
+    },
+    {
+      "action": "assert",
+      "label": "Condemn lands (talent)",
+      "actor": "dummy_talent",
+      "metric": "aura",
+      "spell": 567541,
+      "caster": "talent",
+      "equals": 1,
+      "within_ms": 2000
+    },
+    {
+      "action": "assert",
+      "label": "Condemn ticks cannot crit without the talent",
+      "actor": "dummy_control",
+      "metric": "aura_crit_chance",
+      "spell": 567541,
+      "caster": "control",
+      "effect": 0,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "Condemn ticks can crit with the talent",
+      "actor": "dummy_talent",
+      "metric": "aura_crit_chance",
+      "spell": 567541,
+      "caster": "talent",
+      "effect": 0,
+      "min": 1
+    }
+  ]
+}
