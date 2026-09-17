@@ -1,0 +1,72 @@
+{
+  "schema": 1,
+  "name": "Martyr increases Gift of Zeal by 20% (#1626)",
+  "contract": "Gift of Zeal rank 6 grants 77 Agility. Martyr 300530 increases all its effects by 20%: 92 Agility.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    },
+    {
+      "id": "talent",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 300923
+    },
+    {
+      "action": "learn",
+      "actor": "talent",
+      "spell": 300923
+    },
+    {
+      "action": "learn",
+      "actor": "talent",
+      "spell": 300530
+    },
+    {
+      "action": "cast",
+      "actor": "control",
+      "spell": 300923
+    },
+    {
+      "action": "cast",
+      "actor": "talent",
+      "spell": 300923
+    },
+    {
+      "action": "assert",
+      "label": "Gift of Zeal without the talent",
+      "actor": "control",
+      "metric": "aura_amount",
+      "spell": 300923,
+      "effect": 0,
+      "equals": 77,
+      "within_ms": 2000
+    },
+    {
+      "action": "assert",
+      "label": "Gift of Zeal with the talent",
+      "actor": "talent",
+      "metric": "aura_amount",
+      "spell": 300923,
+      "effect": 0,
+      "equals": 92,
+      "within_ms": 2000
+    }
+  ]
+}
