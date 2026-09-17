@@ -82,6 +82,21 @@ void ApplyContracts(SpellInfo* info)
     }
     if (id == 801482)
         dummy(1); // Redemption follows natural expiry, not every five seconds
+    if (id == 705284 && info->Effects[0].ApplyAuraName == SPELL_AURA_ADD_PCT_MODIFIER &&
+        info->Effects[0].MiscValue == SPELLMOD_DAMAGE && !info->Effects[2].Effect)
+    {
+        // One-Punch Man: Oath Breakers also include Righteous Tempest's damage and Blade of Faith's periodic damage.
+        info->Effects[0].SpellClassMask[0] |= 2;
+        SpellEffectInfo& dot = info->Effects[2];
+        dot.Effect = SPELL_EFFECT_APPLY_AURA;
+        dot.ApplyAuraName = SPELL_AURA_ADD_PCT_MODIFIER;
+        dot.BasePoints = info->Effects[0].BasePoints;
+        dot.DieSides = info->Effects[0].DieSides;
+        dot.MiscValue = SPELLMOD_DOT;
+        dot.SpellClassMask = flag96(0, 2048, 0);
+        dot.TargetA = SpellImplicitTargetInfo(TARGET_UNIT_CASTER);
+        dot.TargetB = SpellImplicitTargetInfo();
+    }
     if (id == 801481 && info->Effects[1].TriggerSpell == 801482)
     {
         // Glory lasts its full duration before granting Downfall; the client's ten damage-taken charges removed it

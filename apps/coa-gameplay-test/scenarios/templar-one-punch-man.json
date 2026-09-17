@@ -1,0 +1,273 @@
+{
+  "schema": 1,
+  "name": "One-Punch Man: +20% to Oath Breakers, Condemn and Titanstrike (#1119)",
+  "contract": "One-Punch Man 705284 increases the damage of Oath Breakers (including Righteous Tempest and Blade of Faith's periodic damage), Condemn and Titanstrike by 20%.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 19,
+      "level": 80,
+      "melee_hit_rating": 10000,
+      "spell_hit_rating": 10000,
+      "expertise_rating": 10000
+    },
+    {
+      "id": "punch",
+      "race": 1,
+      "class": 19,
+      "level": 80,
+      "melee_hit_rating": 10000,
+      "spell_hit_rating": 10000,
+      "expertise_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "dummy_control",
+      "owner": "control",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 3
+    },
+    {
+      "id": "dummy_punch",
+      "owner": "punch",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 3
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 803880
+    },
+    {
+      "action": "learn",
+      "actor": "punch",
+      "spell": 803880
+    },
+    {
+      "action": "learn",
+      "actor": "punch",
+      "spell": 705284
+    },
+    {
+      "action": "assert",
+      "label": "Condemn periodic damage without the talent",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 567541,
+      "op": 22,
+      "base": 1000,
+      "equals": 1000
+    },
+    {
+      "action": "assert",
+      "label": "Condemn periodic damage +20% with the talent",
+      "actor": "punch",
+      "metric": "spell_modifier",
+      "spell": 567541,
+      "op": 22,
+      "base": 1000,
+      "equals": 1200
+    },
+    {
+      "action": "assert",
+      "label": "Titanstrike damage without the talent",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 806835,
+      "op": 0,
+      "base": 1000,
+      "equals": 1000
+    },
+    {
+      "action": "assert",
+      "label": "Titanstrike damage +20% with the talent",
+      "actor": "punch",
+      "metric": "spell_modifier",
+      "spell": 806835,
+      "op": 0,
+      "base": 1000,
+      "equals": 1200
+    },
+    {
+      "action": "assert",
+      "label": "Chastise damage without the talent",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 503141,
+      "op": 0,
+      "base": 1000,
+      "equals": 1000
+    },
+    {
+      "action": "assert",
+      "label": "Chastise damage +20% with the talent",
+      "actor": "punch",
+      "metric": "spell_modifier",
+      "spell": 503141,
+      "op": 0,
+      "base": 1000,
+      "equals": 1200
+    },
+    {
+      "action": "assert",
+      "label": "Blade of Faith periodic damage without the talent",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 803880,
+      "op": 22,
+      "base": 1000,
+      "equals": 1000
+    },
+    {
+      "action": "assert",
+      "label": "Blade of Faith periodic damage +20% with the talent",
+      "actor": "punch",
+      "metric": "spell_modifier",
+      "spell": 803880,
+      "op": 22,
+      "base": 1000,
+      "equals": 1200
+    },
+    {
+      "action": "assert",
+      "label": "Righteous Tempest damage without the talent",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 570205,
+      "op": 0,
+      "base": 1000,
+      "equals": 1000
+    },
+    {
+      "action": "assert",
+      "label": "Righteous Tempest damage +20% with the talent",
+      "actor": "punch",
+      "metric": "spell_modifier",
+      "spell": 570205,
+      "op": 0,
+      "base": 1000,
+      "equals": 1200
+    },
+    {
+      "action": "assert",
+      "label": "Argent Blade is not an Oath Breaker",
+      "actor": "punch",
+      "metric": "spell_modifier",
+      "spell": 807268,
+      "op": 0,
+      "base": 1000,
+      "equals": 1000
+    },
+    {
+      "action": "add_item",
+      "actor": "control",
+      "item": 2495
+    },
+    {
+      "action": "equip",
+      "actor": "control",
+      "item": 2495,
+      "slot": 15
+    },
+    {
+      "action": "add_item",
+      "actor": "punch",
+      "item": 2495
+    },
+    {
+      "action": "equip",
+      "actor": "punch",
+      "item": 2495,
+      "slot": 15
+    },
+    {
+      "action": "set_aura",
+      "actor": "control",
+      "spell": 704576,
+      "stacks": 1
+    },
+    {
+      "action": "set_aura",
+      "actor": "punch",
+      "spell": 704576,
+      "stacks": 1
+    },
+    {
+      "action": "set_power",
+      "actor": "control",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "set_power",
+      "actor": "punch",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "cast",
+      "actor": "control",
+      "spell": 803880,
+      "target": "dummy_control"
+    },
+    {
+      "action": "cast",
+      "actor": "punch",
+      "spell": 803880,
+      "target": "dummy_punch"
+    },
+    {
+      "action": "assert",
+      "label": "Blade of Faith lands (control)",
+      "actor": "dummy_control",
+      "metric": "aura",
+      "spell": 803880,
+      "caster": "control",
+      "equals": 1,
+      "within_ms": 2000
+    },
+    {
+      "action": "assert",
+      "label": "Blade of Faith lands (talent)",
+      "actor": "dummy_punch",
+      "metric": "aura",
+      "spell": 803880,
+      "caster": "punch",
+      "equals": 1,
+      "within_ms": 2000
+    },
+    {
+      "action": "snapshot",
+      "actor": "dummy_control",
+      "metric": "aura_amount",
+      "save_as": "tick",
+      "spell": 803880,
+      "caster": "control",
+      "effect": 0
+    },
+    {
+      "action": "assert",
+      "label": "Blade of Faith ticks 20% harder",
+      "actor": "dummy_punch",
+      "metric": "aura_amount",
+      "spell": 803880,
+      "caster": "punch",
+      "effect": 0,
+      "ratio_to": "tick",
+      "min": 1.18,
+      "max": 1.22
+    }
+  ]
+}
