@@ -126,6 +126,8 @@ struct npc_ascension_guardian_standard : ScriptedAI
         me->SetFaction(owner->GetFaction());
         me->SetLevel(owner->GetLevel());
         me->SetReactState(REACT_PASSIVE);
+        // A Standard is a banner, not a combatant: enemies cannot attack it and keep to its Guardian.
+        me->SetUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
         me->GetMotionMaster()->Clear();
         me->GetMotionMaster()->MoveIdle();
         // The native area-aura owner is the stationary standard, not the player.
