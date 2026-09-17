@@ -133,7 +133,7 @@ class starcaller_spells : public AllSpellScript
         if (!player || result != SPELL_CAST_OK || (spell->IsTriggered() && !IsLunarEclipseActivation(spell)))
             return;
         uint32 id = spell->GetSpellInfo()->Id;
-        if (id == 800386 && (Count(player, 802985) < 4 || player->HasAura(800386)))
+        if (id == 800386 && (Count(player, 802985) < MaxPhase(player) || player->HasAura(800386)))
             result = SPELL_FAILED_CASTER_AURASTATE;
         if ((id == 801125 && !player->HasAura(802681)) || (id == 802682 && !player->HasAura(572319)))
             result = SPELL_FAILED_CASTER_AURASTATE;
