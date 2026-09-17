@@ -6,6 +6,7 @@
 #include "SpellScript.h"
 #include "SpellInfo.h"
 #include <algorithm>
+#include <vector>
 
 namespace
 {
@@ -20,7 +21,8 @@ enum BloodmageTalentSpells : uint32
     SPELL_SANGUINE_SCRIPTURE = 804851,
     SPELL_SANGUINE_SCRIPTURE_BUFF = 504264,
     SPELL_CURSED_FORM_REQUIREMENT = 525031,
-    SPELL_CURSED_FORM_REQUIREMENT_2 = 524861
+    SPELL_CURSED_FORM_REQUIREMENT_2 = 524861,
+    SPELL_BLOODMOON_POWER = 801961
 };
 
 // Every creature Animated Blood can leave behind: worms, parasites and the rank 3 amalgam.
@@ -130,6 +132,17 @@ public:
         if (aura->GetId() == SPELL_LIQUIFY && aura->GetCasterGUID() == player->GetGUID() &&
             player->HasAura(SPELL_VAMPIRIC_POOLS))
             player->CastSpell(player, SPELL_VAMPIRIC_POOLS_LEECH, true);
+        if (aura->GetId() == SPELL_LIQUIFY && aura->GetCasterGUID() == player->GetGUID() &&
+            player->HasAura(SPELL_BLOODMOON_POWER))
+        {
+            // Bloodmoon Power: Liquify cleanses all negative dispellable effects when it ends.
+            std::vector<uint32> remove;
+            for (auto const& pair : player->GetAppliedAuras())
+                if (!pair.second->IsPositive() && pair.second->GetBase()->GetSpellInfo()->Dispel != DISPEL_NONE)
+                    remove.push_back(pair.second->GetBase()->GetId());
+            for (uint32 id : remove)
+                player->RemoveAurasDueToSpell(id);
+        }
         if (aura->GetId() == SPELL_ACCURSED_FORM && aura->GetCasterGUID() == player->GetGUID() &&
             player->HasAura(SPELL_SANGUINE_SCRIPTURE))
             player->CastSpell(player, SPELL_SANGUINE_SCRIPTURE_BUFF, true);
