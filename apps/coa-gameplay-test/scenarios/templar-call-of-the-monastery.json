@@ -1,0 +1,77 @@
+{
+  "schema": 1,
+  "name": "Call of the Monastery raid and personal attack power (#800)",
+  "contract": "Call of the Monastery 560550 raises party/raid attack power by 5% (not stacking with similar effects) and the Templar's own attack power by a further 5%. With Trueshot Aura the raid part does not stack: 15%, not 20%.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    },
+    {
+      "id": "talent",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "attack_power",
+      "save_as": "ap"
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "ranged_attack_power",
+      "save_as": "rap"
+    },
+    {
+      "action": "learn",
+      "actor": "talent",
+      "spell": 560550
+    },
+    {
+      "action": "assert",
+      "label": "Own attack power +10%",
+      "actor": "talent",
+      "metric": "attack_power",
+      "ratio_to": "ap",
+      "min": 1.095,
+      "max": 1.105
+    },
+    {
+      "action": "assert",
+      "label": "Ranged attack power +5%",
+      "actor": "talent",
+      "metric": "ranged_attack_power",
+      "ratio_to": "rap",
+      "min": 1.045,
+      "max": 1.055
+    },
+    {
+      "action": "set_aura",
+      "actor": "talent",
+      "spell": 19506,
+      "stacks": 1
+    },
+    {
+      "action": "assert",
+      "label": "Raid effect does not stack with Trueshot Aura",
+      "actor": "talent",
+      "metric": "attack_power",
+      "ratio_to": "ap",
+      "min": 1.145,
+      "max": 1.155
+    }
+  ]
+}
