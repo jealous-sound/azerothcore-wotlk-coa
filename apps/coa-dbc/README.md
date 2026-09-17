@@ -1,20 +1,11 @@
 # CoA client DBC set
 
-The worldserver reads `DataDir/dbc` once at startup. It holds the original CoA client's DBC set:
-the launcher's untouched archives, taken in client load order, without local client patches. A
-stock or partially copied set makes the core discard content that references rows only the CoA
-client has, for example item limit categories, gameobject spawns and currencies. Game files are
-never committed; build the set locally from a client installation.
+The worldserver loads `DataDir/dbc` at startup. It must hold the original CoA client's tables: with a stock
+or partial set it drops content that references CoA-only rows, such as item limit categories, gameobjects and
+currencies. Players use the same tables, so client patches must not replace DBC archives, and `*_dbc` world
+tables must not override client rows. Game files are never committed.
 
-Players use the same original tables, so a client patch must not replace archives that carry DBCs.
-`*_dbc` world tables must not replace rows the client already has.
-
-## Requirements
-
-Python 3.11 or newer. Extraction also needs [mpqcli](https://github.com/TheGrayDot/mpqcli)
-(StormLib).
-
-## Extract
+Requires Python 3.11+ and [mpqcli](https://github.com/TheGrayDot/mpqcli).
 
 ```sh
 python apps/coa-dbc/client_dbc.py extract "C:/CoA/client/Data" out/client-dbc --original --mpqcli path/to/mpqcli.exe
@@ -22,28 +13,13 @@ python apps/coa-dbc/client_dbc.py check out/client-dbc
 python apps/coa-dbc/client_dbc.py diff "C:/CoA/server/data/dbc" out/client-dbc
 ```
 
-Copy the extracted files into the `dbc` directory under the worldserver's `DataDir` (set in
-`worldserver.conf`), replacing the files there, and restart the worldserver.
+Copy the extracted files into `<DataDir>/dbc` and restart the worldserver.
 
-`extract` reads `Data/*.MPQ` and `Data/<locale>/*.MPQ` in load order: base archives, locale
-base archives, `patch.MPQ`, `patch-<digit>`, locale patches, then letter patches in
-lexicographic order. The last archive holding a table wins. Tables the core loads are written
-under the file names the worldserver opens, so the copy also works on case-sensitive systems.
-`client-dbc.manifest.json` records the archives read with the file each came from, and each
-table's archive, hash, size and the archives it overrides; the worldserver ignores it. `--original`
-reads `NAME.ORIGINAL`, the launcher's untouched copy kept when a local patch replaced an archive,
-in place of that archive. `--archive NAME=PATH` reads any other file in place of a client archive.
+- `extract` reads the client's archives in load order; the last archive holding a table wins. `--original`
+  reads the launcher's untouched `NAME.ORIGINAL` copies, `--archive NAME=PATH` substitutes any archive. Tables
+  are named as the worldserver opens them. `client-dbc.manifest.json` records each table's archive and hash.
+- `check` validates the set against this checkout's `DBCfmt.h`: missing tables, file name case and field
+  layouts. Strings outside the string block and rows with index -1 are reported as notes.
+- `diff` compares the values the core reads, so a rebuilt string block is not a change.
 
-`check` uses this checkout's `DBCfmt.h` and `DBCStores.cpp`. It reports missing tables, file
-names a case-sensitive system cannot open, and field layouts the core cannot read. String
-fields that point outside a table's string block are reported as notes: the core loads them as
-empty strings. CoA's Spell.dbc has such offsets in locale slots the client never reads.
-
-`diff` compares the values the core reads, with strings resolved, so a rebuilt string block is
-not a change. Tables the core does not load are compared as raw records.
-
-## Checks
-
-```sh
-python apps/coa-dbc/test_client_dbc.py
-```
+Tests: `python apps/coa-dbc/test_client_dbc.py`
