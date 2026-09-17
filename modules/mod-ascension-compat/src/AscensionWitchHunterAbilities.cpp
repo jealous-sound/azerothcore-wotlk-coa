@@ -249,7 +249,11 @@ class spell_ascension_witch_hunter_ability : public SpellScript
         SpellInfo const* info = GetSpellInfo();
         uint32 id = info->Id;
         Unit* target = GetExplTargetUnit();
-        if (GetSpell()->IsTriggered())
+        // Vault has SPELL_ATTR4_ALLOW_CAST_WHILE_CASTING, which adds TRIGGERED_IGNORE_CAST_IN_PROGRESS and
+        // TRIGGERED_CAST_DIRECTLY to the player's own cast, so IsTriggered() is true for it. Real triggered
+        // casts also carry TRIGGERED_IGNORE_GCD (see Spell::prepare).
+        bool const playerVault = id == 500085 && !GetSpell()->HasTriggeredCastFlag(TRIGGERED_IGNORE_GCD);
+        if (GetSpell()->IsTriggered() && !playerVault)
             return;
         auto talent = [&](uint32 passive, uint32 helper, Unit* recipient = nullptr)
         {
