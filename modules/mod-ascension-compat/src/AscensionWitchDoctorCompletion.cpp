@@ -221,6 +221,10 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[EFFECT_0].Effect = SPELL_EFFECT_SCHOOL_DAMAGE;
         info->Effects[EFFECT_0].TriggerSpell = 0;
     }
+    // Each Call of Sseratus summon also triggers The True Spirit's buff, talent or not. Summon() already grants
+    // it per ward when the talent is known.
+    if (id == CallSseratus && info->Effects[EFFECT_1].TriggerSpell == TrueSpiritReady)
+        info->Effects[EFFECT_1].Effect = 0;
     if (id == ShadowhunterCost)
         info->Effects[EFFECT_0].Effect = info->Effects[EFFECT_1].Effect = 0;
     if (id == Spirit)

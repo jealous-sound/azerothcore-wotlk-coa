@@ -145,7 +145,7 @@ void Summon(Player* player, uint32 spell, Unit* target, Position const& location
         entry = NpcMarionette;
     if (!entry)
         return;
-    uint32 count = spell == CallSseratus ? 3 + (player->HasAura(SerpentHandler) ? 2 : 0) : spell == Marionette ? 5 : 1;
+    uint32 count = spell == CallSseratus ? 4 + (player->HasAura(SerpentHandler) ? 2 : 0) : spell == Marionette ? 5 : 1;
     if (spell == Mimic)
         count = uint32(std::max(1, info->Effects[EFFECT_2].CalcValue(player)));
     int32 duration = spell == SpiritLink ? sSpellMgr->GetSpellInfo(LinkTimer)->GetDuration() : info->GetDuration();
@@ -494,6 +494,12 @@ class spell_ascension_witch_doctor_summon : public SpellScript
         if (_made)
             return;
         _made = true;
+        // Call of Sseratus triggers its summon on every tick of a short periodic aura (five ticks), while
+        // "Summon 4 Serpent Wards" describes one group: summon it on the first tick only.
+        if (GetSpell()->GetTriggeredByAuraSpellInfo() &&
+            GetSpell()->GetTriggeredByAuraSpellInfo()->Id == CallSseratusChannel &&
+            GetSpell()->GetTriggeredByAuraTickNumber() > 1)
+            return;
         Position position = GetExplTargetDest() ? GetExplTargetDest()->GetPosition() : player->GetPosition();
         Unit* target = GetExplTargetUnit();
         if ((GetSpellInfo()->Id == WrathWard || GetSpellInfo()->Id == SerpentMass) && target)

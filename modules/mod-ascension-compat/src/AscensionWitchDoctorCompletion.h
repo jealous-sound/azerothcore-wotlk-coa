@@ -226,6 +226,7 @@ enum DoctorSpells : uint32
     SpiritManaTick = 805282,
     SentryWard = 674303,
     CallSseratus = 572899,
+    CallSseratusChannel = 681222,
     ViperTalent = 707329,
     ViperWard = 712373,
     ViperProc = 712374,
