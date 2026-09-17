@@ -113,6 +113,17 @@ def invalid_strings(table, fmt):
                for values in record_struct(table, fmt).iter_unpack(records) for i in positions)
 
 
+def unindexed_rows(table, fmt):
+    """Rows whose index field is -1; DBCFileLoader stores them but cannot index them."""
+    fmt = file_format(table, fmt)
+    kinds = [kind for kind in fmt if kind not in "xX"]
+    key = next((i for i, kind in enumerate(kinds) if kind in "nd"), None)
+    if key is None:
+        return 0
+    records = table.data[HEADER.size:table.string_start]
+    return sum(values[key] == -1 for values in record_struct(table, fmt).iter_unpack(records))
+
+
 def values(table, fmt):
     """{key: tuple of the values the core reads}, strings resolved. Keys are the index field or the row."""
     fmt = file_format(table, fmt)
@@ -172,6 +183,9 @@ def check(directory, root=ROOT):
         invalid = 0 if layout else invalid_strings(table, fmt)
         if invalid:
             notes.append(f"{file}: {invalid} string fields point outside the string block and load as empty")
+        unindexed = 0 if layout else unindexed_rows(table, fmt)
+        if unindexed:
+            notes.append(f"{file}: {unindexed} rows have index -1 and are left out of the index table")
     return problems, notes
 
 

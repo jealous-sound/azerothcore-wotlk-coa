@@ -89,6 +89,13 @@ class ClientDbcTest(unittest.TestCase):
         self.assertEqual(problems, [])
         self.assertEqual(notes, ["Foo.dbc: 1 string fields point outside the string block and load as empty"])
 
+    def test_index_minus_one_is_a_note(self):
+        directory = valid_set(self.path / "set")
+        (directory / "Foo.dbc").write_bytes(wdbc([(7, 1, 3), (0xFFFFFFFF, 1, 4)], 3, b"\0Alpha\0"))
+        problems, notes = client_dbc.check(directory, self.root)
+        self.assertEqual(problems, [])
+        self.assertEqual(notes, ["Foo.dbc: 1 rows have index -1 and are left out of the index table"])
+
     def test_diff_compares_values_not_offsets(self):
         old = valid_set(self.path / "old")
         new = valid_set(self.path / "new", name_offset=2, strings=b"\0\0Alpha\0")

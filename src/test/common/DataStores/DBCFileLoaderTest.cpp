@@ -36,12 +36,10 @@ struct TestEntry
 };
 #pragma pack(pop)
 
-// Two records of "nss": (1, "Alpha", <offset past the block>) and (2, "", "Beta").
-std::string WriteTestDbc()
+std::string WriteDbc(uint32 fields, std::vector<uint32> const& records, std::string const& strings)
 {
-    std::string const strings("\0Alpha\0Beta\0", 12);
-    std::vector<uint32> const header = { 0x43424457, 2, 3, 12, uint32(strings.size()) };
-    std::vector<uint32> const records = { 1, 1, 0xFF00FE, 2, 0, 7 };
+    std::vector<uint32> const header = { 0x43424457, uint32(records.size() / fields), fields, fields * 4,
+        uint32(strings.size()) };
 
     testing::TestInfo const* test = testing::UnitTest::GetInstance()->current_test_info();
     std::filesystem::path const path = std::filesystem::temp_directory_path() / (std::string(test->name()) + ".dbc");
@@ -50,6 +48,12 @@ std::string WriteTestDbc()
     stream.write(reinterpret_cast<char const*>(records.data()), records.size() * sizeof(uint32));
     stream.write(strings.data(), strings.size());
     return path.string();
+}
+
+// Two records of "nss": (1, "Alpha", <offset past the block>) and (2, "", "Beta").
+std::string WriteTestDbc()
+{
+    return WriteDbc(3, { 1, 1, 0xFF00FE, 2, 0, 7 }, std::string("\0Alpha\0Beta\0", 12));
 }
 }
 
@@ -76,6 +80,31 @@ TEST(DBCFileLoaderTest, StringOutsideTheBlockLoadsAsEmpty)
     EXPECT_EQ(dbc.GetInvalidStringCount(), 1u);
 
     delete[] strings;
+    delete[] data;
+    delete[] indexTable;
+    std::filesystem::remove(path);
+}
+
+TEST(DBCFileLoaderTest, IndexMinusOneIsLeftOutOfTheIndexTable)
+{
+    std::string const path = WriteDbc(2, { 5, 50, 0xFFFFFFFF, 60, 2, 20 }, std::string("\0", 1));
+    char const* format = "ni";
+
+    DBCFileLoader dbc;
+    ASSERT_TRUE(dbc.Load(path.c_str(), format));
+
+    uint32 records = 0;
+    char** indexTable = nullptr;
+    char* data = dbc.AutoProduceData(format, records, indexTable);
+    ASSERT_NE(data, nullptr);
+    EXPECT_EQ(records, 6u);
+    ASSERT_NE(indexTable[5], nullptr);
+    ASSERT_NE(indexTable[2], nullptr);
+    EXPECT_EQ(*reinterpret_cast<uint32 const*>(indexTable[5] + sizeof(uint32)), 50u);
+    EXPECT_EQ(*reinterpret_cast<uint32 const*>(indexTable[2] + sizeof(uint32)), 20u);
+    for (uint32 id : { 0u, 1u, 3u, 4u })
+        EXPECT_EQ(indexTable[id], nullptr);
+
     delete[] data;
     delete[] indexTable;
     std::filesystem::remove(path);

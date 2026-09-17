@@ -17,6 +17,7 @@
 
 #include "DBCFileLoader.h"
 #include "Errors.h"
+#include <limits>
 #include <string.h>
 
 DBCFileLoader::DBCFileLoader() : recordSize(0), recordCount(0), fieldCount(0), stringSize(0), invalidStringCount(0),
@@ -197,6 +198,10 @@ char* DBCFileLoader::AutoProduceData(char const* format, uint32& records, char**
     int32 i;
     uint32 recordsize = GetFormatRecordSize(format, &i);
 
+    // A row whose index is -1 cannot be looked up and would wrap the index table size to 0; CoA's
+    // WorldMapArea.dbc has such rows. It is stored but left out of the index table.
+    uint32 const unindexed = std::numeric_limits<uint32>::max();
+
     if (i >= 0)
     {
         uint32 maxi = 0;
@@ -204,7 +209,7 @@ char* DBCFileLoader::AutoProduceData(char const* format, uint32& records, char**
         for (uint32 y = 0; y < recordCount; ++y)
         {
             uint32 ind = getRecord(y).getUInt(i);
-            if (ind > maxi)
+            if (ind > maxi && ind != unindexed)
             {
                 maxi = ind;
             }
@@ -229,7 +234,10 @@ char* DBCFileLoader::AutoProduceData(char const* format, uint32& records, char**
     {
         if (i >= 0)
         {
-            indexTable[getRecord(y).getUInt(i)] = &dataTable[offset];
+            if (uint32 const ind = getRecord(y).getUInt(i); ind != unindexed)
+            {
+                indexTable[ind] = &dataTable[offset];
+            }
         }
         else
         {
