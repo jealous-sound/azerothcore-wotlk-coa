@@ -1,0 +1,234 @@
+{
+  "schema": 1,
+  "name": "Fury of Aggramar doubles Libram effects and damage and shortens Libram cooldowns (#1082)",
+  "contract": "Fury of Aggramar 801480 increases Libram of Consecration's damage by 100%, the effectiveness of Librams by 100% (Grace and Consecration heal/damage, Zeal haste, Tenacity damage reduction) and reduces Libram cooldowns by 25%. Libram of Tenacity reduces physical damage taken by 30% (60% with Fury).",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    },
+    {
+      "id": "fury",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    }
+  ],
+  "creatures": [
+    {
+      "id": "dummy",
+      "owner": "control",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 3
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 801461
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 803893
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 801466
+    },
+    {
+      "action": "learn",
+      "actor": "fury",
+      "spell": 801461
+    },
+    {
+      "action": "learn",
+      "actor": "fury",
+      "spell": 803893
+    },
+    {
+      "action": "learn",
+      "actor": "fury",
+      "spell": 801466
+    },
+    {
+      "action": "learn",
+      "actor": "fury",
+      "spell": 801480
+    },
+    {
+      "action": "assert",
+      "label": "Libram cooldown without Fury",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 801461,
+      "op": 11,
+      "base": 180000,
+      "equals": 180000
+    },
+    {
+      "action": "assert",
+      "label": "Libram cooldown with Fury",
+      "actor": "fury",
+      "metric": "spell_modifier",
+      "spell": 801461,
+      "op": 11,
+      "base": 180000,
+      "equals": 135000
+    },
+    {
+      "action": "assert",
+      "label": "Consecration cooldown with Fury",
+      "actor": "fury",
+      "metric": "spell_modifier",
+      "spell": 803893,
+      "op": 11,
+      "base": 180000,
+      "equals": 135000
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "spell_damage_done",
+      "save_as": "consecration",
+      "spell": 804148,
+      "target": "dummy"
+    },
+    {
+      "action": "assert",
+      "label": "Consecration damage doubles",
+      "actor": "fury",
+      "metric": "spell_damage_done",
+      "spell": 804148,
+      "target": "dummy",
+      "ratio_to": "consecration",
+      "min": 1.999,
+      "max": 2.001
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "spell_healing_done",
+      "save_as": "grace",
+      "spell": 804150,
+      "target": "control"
+    },
+    {
+      "action": "assert",
+      "label": "Grace healing doubles",
+      "actor": "fury",
+      "metric": "spell_healing_done",
+      "spell": 804150,
+      "target": "fury",
+      "ratio_to": "grace",
+      "min": 1.999,
+      "max": 2.001
+    },
+    {
+      "action": "cast",
+      "actor": "control",
+      "spell": 801461
+    },
+    {
+      "action": "cast",
+      "actor": "fury",
+      "spell": 801461
+    },
+    {
+      "action": "assert",
+      "label": "Tenacity active (control)",
+      "actor": "control",
+      "metric": "aura",
+      "spell": 801461,
+      "equals": 1,
+      "within_ms": 1000
+    },
+    {
+      "action": "assert",
+      "label": "Tenacity active (Fury)",
+      "actor": "fury",
+      "metric": "aura",
+      "spell": 801461,
+      "equals": 1,
+      "within_ms": 1000
+    },
+    {
+      "action": "assert",
+      "label": "Tenacity reduces creature melee damage by 30%",
+      "actor": "control",
+      "metric": "script_melee_damage_taken",
+      "target": "dummy",
+      "min": 699,
+      "max": 700
+    },
+    {
+      "action": "assert",
+      "label": "Tenacity reduces creature melee damage by 60% with Fury",
+      "actor": "fury",
+      "metric": "script_melee_damage_taken",
+      "target": "dummy",
+      "min": 399,
+      "max": 400
+    },
+    {
+      "action": "cast",
+      "label": "Zeal replaces Tenacity",
+      "actor": "control",
+      "spell": 801466
+    },
+    {
+      "action": "cast",
+      "label": "Zeal replaces Tenacity",
+      "actor": "fury",
+      "spell": 801466
+    },
+    {
+      "action": "assert",
+      "label": "Zeal haste without Fury",
+      "actor": "control",
+      "metric": "aura_amount",
+      "spell": 801466,
+      "effect": 1,
+      "equals": 20,
+      "within_ms": 1000
+    },
+    {
+      "action": "assert",
+      "label": "Zeal haste doubles with Fury",
+      "actor": "fury",
+      "metric": "aura_amount",
+      "spell": 801466,
+      "effect": 1,
+      "equals": 40
+    },
+    {
+      "action": "assert",
+      "label": "Tenacity cooldown without Fury",
+      "actor": "control",
+      "metric": "cooldown_ms",
+      "spell": 801461,
+      "min": 178000,
+      "max": 180000
+    },
+    {
+      "action": "assert",
+      "label": "Tenacity cooldown with Fury",
+      "actor": "fury",
+      "metric": "cooldown_ms",
+      "spell": 801461,
+      "min": 133000,
+      "max": 135000
+    }
+  ]
+}

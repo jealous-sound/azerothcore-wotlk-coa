@@ -206,8 +206,13 @@ using namespace AscensionTemplar;
 float Mitigation(Player* player, Unit* attacker, uint32 school)
 {
     float factor = 1.0f;
+    // Libram of Tenacity's own values (-30%, or -15% against players) include Fury of Aggramar's effectiveness.
     if ((school & SPELL_SCHOOL_MASK_NORMAL) && player->HasAura(801461))
-        factor *= attacker && attacker->GetCharmerOrOwnerPlayerOrPlayerItself() ? .85f : .7f;
+    {
+        bool versusPlayer = attacker && attacker->GetCharmerOrOwnerPlayerOrPlayerItself();
+        int32 reduction = Amount(801461, versusPlayer ? EFFECT_2 : EFFECT_1, player);
+        factor *= std::max(0.0f, 1.0f + float(reduction) / 100.0f);
+    }
     if ((school & SPELL_SCHOOL_MASK_MAGIC) && player->HasAura(801202) &&
         (player->HealthAbovePct(80) || player->HealthBelowPct(20)))
         factor *= .8f;
