@@ -49,6 +49,11 @@ void ApplyContracts(SpellInfo* info)
         info->DurationEntry = sSpellDurationStore.LookupEntry(8); // fifteen seconds
     if (id == 804904)
         info->Effects[2].SpellClassMask[0] = 0; // Tempest keeps this bonus on its own aura snapshot
+    // Templar's Might raises this per-stack bonus and names Blade of Faith with Lunge, Chastise and Scourgebane,
+    // but the client mask leaves out Blade of Faith's periodic damage.
+    if (Family(info, 0, 4194304) && info->Effects[1].ApplyAuraName == SPELL_AURA_MOD_DAMAGE_FROM_CASTER &&
+        info->Effects[1].SpellClassMask == flag96(8, 75497472, 0))
+        info->Effects[1].SpellClassMask[1] |= 2048;
     if (id == 707755)
         for (uint8 i = 0; i < MAX_SPELL_EFFECTS; ++i)
             dummy(i); // the recovered two-kind limit is implemented by GrantOath

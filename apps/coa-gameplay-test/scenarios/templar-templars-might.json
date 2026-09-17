@@ -1,0 +1,310 @@
+{
+  "schema": 1,
+  "name": "Templar's Might: 6% more damage per Condemn stack from the named abilities (#844)",
+  "contract": "Templar's Might 705291 makes Righteous Lunge, Chastise, Blade of Faith and Scourgebane deal 6% more damage per stack of the Templar's Condemn on the target (Condemn's damage-from-caster effect). Other abilities, such as Righteous Tempest, are unaffected.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 19,
+      "level": 80,
+      "melee_hit_rating": 10000,
+      "spell_hit_rating": 10000,
+      "expertise_rating": 10000
+    },
+    {
+      "id": "might",
+      "race": 1,
+      "class": 19,
+      "level": 80,
+      "melee_hit_rating": 10000,
+      "spell_hit_rating": 10000,
+      "expertise_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "marked_control",
+      "owner": "control",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 3
+    },
+    {
+      "id": "marked",
+      "owner": "might",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 3
+    },
+    {
+      "id": "clean",
+      "owner": "might",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 6
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 567541
+    },
+    {
+      "action": "learn",
+      "actor": "might",
+      "spell": 567541
+    },
+    {
+      "action": "learn",
+      "actor": "might",
+      "spell": 705291
+    },
+    {
+      "action": "add_item",
+      "actor": "control",
+      "item": 2495
+    },
+    {
+      "action": "equip",
+      "actor": "control",
+      "item": 2495,
+      "slot": 15
+    },
+    {
+      "action": "add_item",
+      "actor": "might",
+      "item": 2495
+    },
+    {
+      "action": "equip",
+      "actor": "might",
+      "item": 2495,
+      "slot": 15
+    },
+    {
+      "action": "set_power",
+      "actor": "control",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "set_power",
+      "actor": "might",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "cast",
+      "actor": "control",
+      "spell": 567541,
+      "target": "marked_control"
+    },
+    {
+      "action": "cast",
+      "actor": "might",
+      "spell": 567541,
+      "target": "marked"
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "control",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "set_power",
+      "actor": "might",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "cast",
+      "actor": "control",
+      "spell": 567541,
+      "target": "marked_control"
+    },
+    {
+      "action": "cast",
+      "actor": "might",
+      "spell": 567541,
+      "target": "marked"
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "control",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "set_power",
+      "actor": "might",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "cast",
+      "actor": "control",
+      "spell": 567541,
+      "target": "marked_control"
+    },
+    {
+      "action": "cast",
+      "actor": "might",
+      "spell": 567541,
+      "target": "marked"
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "assert",
+      "label": "Three Condemn stacks (control)",
+      "actor": "marked_control",
+      "metric": "aura_stacks",
+      "spell": 567541,
+      "caster": "control",
+      "equals": 3
+    },
+    {
+      "action": "assert",
+      "label": "Three Condemn stacks (talent)",
+      "actor": "marked",
+      "metric": "aura_stacks",
+      "spell": 567541,
+      "caster": "might",
+      "equals": 3
+    },
+    {
+      "action": "assert",
+      "label": "No bonus without the talent",
+      "actor": "marked_control",
+      "metric": "aura_amount",
+      "spell": 567541,
+      "caster": "control",
+      "effect": 1,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "18% bonus at three stacks with the talent",
+      "actor": "marked",
+      "metric": "aura_amount",
+      "spell": 567541,
+      "caster": "might",
+      "effect": 1,
+      "equals": 18
+    },
+    {
+      "action": "snapshot",
+      "actor": "clean",
+      "metric": "spell_damage_taken",
+      "save_as": "chastise",
+      "target": "might",
+      "spell": 503141
+    },
+    {
+      "action": "snapshot",
+      "actor": "clean",
+      "metric": "spell_damage_taken",
+      "save_as": "blade",
+      "target": "might",
+      "spell": 803880
+    },
+    {
+      "action": "snapshot",
+      "actor": "clean",
+      "metric": "spell_damage_taken",
+      "save_as": "scourgebane",
+      "target": "might",
+      "spell": 801832
+    },
+    {
+      "action": "snapshot",
+      "actor": "clean",
+      "metric": "spell_damage_taken",
+      "save_as": "tempest",
+      "target": "might",
+      "spell": 570205
+    },
+    {
+      "action": "snapshot",
+      "actor": "clean",
+      "metric": "melee_damage_taken",
+      "save_as": "lunge",
+      "target": "might",
+      "spell": 570233
+    },
+    {
+      "action": "assert",
+      "label": "Chastise +18%",
+      "actor": "marked",
+      "metric": "spell_damage_taken",
+      "target": "might",
+      "spell": 503141,
+      "ratio_to": "chastise",
+      "min": 1.179,
+      "max": 1.181
+    },
+    {
+      "action": "assert",
+      "label": "Blade of Faith +18%",
+      "actor": "marked",
+      "metric": "spell_damage_taken",
+      "target": "might",
+      "spell": 803880,
+      "ratio_to": "blade",
+      "min": 1.179,
+      "max": 1.181
+    },
+    {
+      "action": "assert",
+      "label": "Scourgebane +18%",
+      "actor": "marked",
+      "metric": "spell_damage_taken",
+      "target": "might",
+      "spell": 801832,
+      "ratio_to": "scourgebane",
+      "min": 1.179,
+      "max": 1.181
+    },
+    {
+      "action": "assert",
+      "label": "Righteous Lunge +18%",
+      "actor": "marked",
+      "metric": "melee_damage_taken",
+      "target": "might",
+      "spell": 570233,
+      "ratio_to": "lunge",
+      "min": 1.179,
+      "max": 1.181
+    },
+    {
+      "action": "assert",
+      "label": "Righteous Tempest is not named",
+      "actor": "marked",
+      "metric": "spell_damage_taken",
+      "target": "might",
+      "spell": 570205,
+      "ratio_to": "tempest",
+      "min": 0.999,
+      "max": 1.001
+    }
+  ]
+}
