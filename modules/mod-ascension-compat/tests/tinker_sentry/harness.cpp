@@ -140,23 +140,33 @@ int main()
     currentOwner = &player;
     Creature turret;
     Device ai{&turret};
-    Unit neutral, enemy;
-    neutral.guid = 2;
-    neutral.x = 10;
-    enemy.guid = 3;
-    enemy.x = 20;
-    enemy.hostile = true;
-    units = {{2, &neutral}, {3, &enemy}};
-    neighborhood = {&neutral, &enemy};
-    player.selected = &neutral;
-    player.combat.insert(&neutral);
+    Unit unregistered, mobA, mobB;
+    mobA.guid = 2;
+    mobA.x = 10;
+    mobA.hostile = true;
+    mobB.guid = 3;
+    mobB.x = 20;
+    mobB.hostile = true;
+    units = {{2, &mobA}, {3, &mobB}};
+    neighborhood = {&mobA, &mobB};
 
-    // Owner selection succeeds while an unregistered TempSummon's actual shot fails.
-    assert(ai.TurretTarget(&player) == &neutral);
-    assert(!turret.NativeAttackAdmission(&neutral));
+    // Nearby hostiles and selected targets are not attack evidence.
+    player.selected = &mobA;
+    assert(!ai.TurretTarget(&player));
+
+    // A mob attacking the player first must not wake an idle turret.
+    player.combat.insert(&mobA);
+    assert(!ai.TurretTarget(&player));
+
+    // A deliberate player attack supplies the turret target.
+    player.combat.clear();
+    player.selected = nullptr;
+    player.victim = &mobA;
+    assert(ai.TurretTarget(&player) == &mobA);
+    assert(!turret.NativeAttackAdmission(&unregistered));
     ai.IsSummonedBy(&player);
     ai.UpdateTurret(&player);
-    assert(turret.facing == &neutral);
+    assert(turret.facing == &mobA);
     if (turret.shots.size() != 1) // Reproduces #89 before the control flags are initialized.
         return 89;
     assert(turret.m_ControlledByPlayer && turret.pvp == player.pvp);
@@ -165,26 +175,52 @@ int main()
     ai.UpdateTurret(&player);
     assert(turret.shots.size() == 1);
 
-    neutral.immuneNPC = true;
-    assert(turret.NativeAttackAdmission(&neutral));
-    neutral.immunePC = true;
-    assert(!turret.NativeAttackAdmission(&neutral));
-    neutral.immunePC = false;
-    neutral.flags = UNIT_FLAG_NON_ATTACKABLE;
-    assert(!turret.NativeAttackAdmission(&neutral));
-    neutral.flags = 0;
+    mobA.immuneNPC = true;
+    assert(turret.NativeAttackAdmission(&mobA));
+    mobA.immunePC = true;
+    assert(!turret.NativeAttackAdmission(&mobA));
+    mobA.immunePC = false;
+    mobA.flags = UNIT_FLAG_NON_ATTACKABLE;
+    assert(!turret.NativeAttackAdmission(&mobA));
+    mobA.flags = 0;
 
-    ai.focus = enemy.guid;
+    // An unrelated nearby hostile is ignored while the player attacks A.
+    player.combat.insert(&mobB);
+    player.selected = &mobB;
+    assert(ai.TurretTarget(&player) == &mobA);
+
+    // Deliberately switching the player's attack to B wins over stale device focus.
+    ai.focus = mobA.guid;
+    player.victim = &mobB;
     turret.m_attackTimer[RANGED_ATTACK] = 0;
     turret.m_modAttackSpeedPct[RANGED_ATTACK] = 0.5f;
     ai.UpdateTurret(&player);
-    assert(turret.shots.size() == 2 && turret.facing == &enemy);
+    assert(turret.shots.size() == 2 && turret.facing == &mobB);
     assert(turret.m_attackTimer[RANGED_ATTACK] == 1000);
-    enemy.visible = false;
-    assert(ai.TurretTarget(&player) == &neutral);
-    neutral.los = false;
+
+    // A selected-but-not-attacked target is not a turret target.
+    player.victim = nullptr;
+    player.selected = &mobA;
+    player.combat.clear();
+    ai.focus = 0;
     assert(!ai.TurretTarget(&player));
-    neutral.los = true;
+
+    // Explicit player-initiated Tinker focus remains a valid target source.
+    player.selected = nullptr;
+    ai.focus = mobA.guid;
+    assert(ai.TurretTarget(&player) == &mobA);
+
+    // Invalid explicit focus goes idle instead of falling back to nearby hostiles.
+    mobA.alive = false;
+    assert(!ai.TurretTarget(&player));
+    mobA.alive = true;
+    mobA.visible = false;
+    assert(!ai.TurretTarget(&player));
+    mobA.visible = true;
+    mobA.los = false;
+    assert(!ai.TurretTarget(&player));
+    mobA.los = true;
+
     turret.m_attackTimer[RANGED_ATTACK] = 0;
     turret.pacified = true;
     ai.UpdateTurret(&player);
@@ -195,8 +231,9 @@ int main()
     assert(turret.shots.size() == 2);
     turret.state = 0;
     turret.upgraded = true;
+    ai.focus = mobA.guid;
     ai.UpdateTurret(&player);
-    assert((turret.shots.back() == std::pair<uint32, float>(706694, neutral.x)));
+    assert((turret.shots.back() == std::pair<uint32, float>(706694, mobA.x)));
 
     Creature beacon, orphan;
     beacon.entry = 50037;
