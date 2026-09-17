@@ -497,7 +497,7 @@ struct NativePowerGainRule
 // Rage and Runic Power are represented internally in tenths. These Reaper
 // abilities describe fixed gains, but their public DBC records omit the
 // energize effect that Ascension's private server applies.
-inline constexpr std::array<NativePowerGainRule, 18> NativePowerGainRules =
+inline constexpr std::array<NativePowerGainRule, 21> NativePowerGainRules =
 {{
     {19, 0, 0, 3, 10, ResourceGainEvent::PeriodicDamageTick, 301253},
     {23, 704355, 704355, 6, 200,
@@ -510,18 +510,25 @@ inline constexpr std::array<NativePowerGainRule, 18> NativePowerGainRules =
     // casts helper 805339, whose own energize effect grants the same 150
     // tenths and logs the SPELL_ENERGIZE event this table's ModifyPower never
     // produced. A row would stack a second silent grant on top of it.
-    // Soulrend's amount is a placeholder. Its tooltip says "generates Runic
-    // Power" without an amount, the public changelog never stated one, and the
-    // retained live logs contain no energize event for it (the gain was applied
-    // silently); spend-over-cap windows only bound it from below. 150 matches
-    // the class's other builders until a live value is confirmed; do not
-    // advertise it as official parity. 573320 is the armor-debuff aura and is
-    // deliberately excluded from the ranges.
-    {30, 572341, 572342, 6, 150,
+    // Soulrend and Doomrend both grant 20 Runic Power, 200 in the tenths this
+    // table uses. The tooltips say only "generates Runic Power" and the retained
+    // live logs carry no energize event for either - the gain was applied
+    // silently - so the amount comes from the realm this was written for rather
+    // than from a log. It replaces the 150 placeholder Soulrend carried.
+    // 573320 is Soulrend's armor-debuff aura and 560361 and 800173 are
+    // Doomrend's healing-absorb and heal halves; all three are deliberately
+    // outside the ranges.
+    {30, 572341, 572342, 6, 200,
         ResourceGainEvent::FirstSuccessfulHostileTarget},
-    {30, 573316, 573319, 6, 150,
+    {30, 573316, 573319, 6, 200,
         ResourceGainEvent::FirstSuccessfulHostileTarget},
-    {30, 573321, 573322, 6, 150,
+    {30, 573321, 573322, 6, 200,
+        ResourceGainEvent::FirstSuccessfulHostileTarget},
+    {30, 502668, 502671, 6, 200,
+        ResourceGainEvent::FirstSuccessfulHostileTarget},
+    {30, 567531, 567532, 6, 200,
+        ResourceGainEvent::FirstSuccessfulHostileTarget},
+    {30, 800172, 800172, 6, 200,
         ResourceGainEvent::FirstSuccessfulHostileTarget},
     {30, 801624, 801624, 6, 200,
         ResourceGainEvent::FirstSuccessfulHostileTarget},

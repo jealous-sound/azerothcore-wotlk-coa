@@ -1,0 +1,4 @@
+## Interface: 30300
+## Title: CoA Talent State Fix
+## Notes: Keeps the Character Advancement tree from blanking on the login specialization resync.
+CoA_TalentStateFix.lua
