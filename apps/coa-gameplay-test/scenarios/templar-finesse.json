@@ -1,0 +1,166 @@
+{
+  "schema": 1,
+  "name": "Finesse increases critical strike chance and shortens disarms (#1361)",
+  "contract": "Finesse increases critical strike chance by 2% and reduces disarm duration by 15% (rank 1, 705271), or 4% and 30% (rank 2, 707851). The disarm part is a native mechanic duration aura for mechanic 3 (disarm).",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    },
+    {
+      "id": "rank_one",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    },
+    {
+      "id": "rank_two",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "add_item",
+      "actor": "control",
+      "item": 2495
+    },
+    {
+      "action": "equip",
+      "actor": "control",
+      "item": 2495,
+      "slot": 15
+    },
+    {
+      "action": "add_item",
+      "actor": "rank_one",
+      "item": 2495
+    },
+    {
+      "action": "equip",
+      "actor": "rank_one",
+      "item": 2495,
+      "slot": 15
+    },
+    {
+      "action": "add_item",
+      "actor": "rank_two",
+      "item": 2495
+    },
+    {
+      "action": "equip",
+      "actor": "rank_two",
+      "item": 2495,
+      "slot": 15
+    },
+    {
+      "action": "set_aura",
+      "label": "Baseline crit aura computes crit chance",
+      "actor": "control",
+      "spell": 14139,
+      "stacks": 1
+    },
+    {
+      "action": "set_aura",
+      "label": "Baseline crit aura computes crit chance",
+      "actor": "rank_one",
+      "spell": 14139,
+      "stacks": 1
+    },
+    {
+      "action": "set_aura",
+      "label": "Baseline crit aura computes crit chance",
+      "actor": "rank_two",
+      "spell": 14139,
+      "stacks": 1
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "melee_crit_chance",
+      "save_as": "crit"
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "spell_crit_chance",
+      "save_as": "holy_crit",
+      "school": 1
+    },
+    {
+      "action": "learn",
+      "actor": "rank_one",
+      "spell": 705271
+    },
+    {
+      "action": "learn",
+      "actor": "rank_two",
+      "spell": 707851
+    },
+    {
+      "action": "assert",
+      "label": "Rank 1 melee crit",
+      "actor": "rank_one",
+      "metric": "melee_crit_chance",
+      "relative_to": "crit",
+      "min": 1.99,
+      "max": 2.01
+    },
+    {
+      "action": "assert",
+      "label": "Rank 2 melee crit",
+      "actor": "rank_two",
+      "metric": "melee_crit_chance",
+      "relative_to": "crit",
+      "min": 3.99,
+      "max": 4.01
+    },
+    {
+      "action": "assert",
+      "label": "Rank 1 Holy crit",
+      "actor": "rank_one",
+      "metric": "spell_crit_chance",
+      "school": 1,
+      "relative_to": "holy_crit",
+      "min": 1.99,
+      "max": 2.01
+    },
+    {
+      "action": "assert",
+      "label": "Rank 2 Holy crit",
+      "actor": "rank_two",
+      "metric": "spell_crit_chance",
+      "school": 1,
+      "relative_to": "holy_crit",
+      "min": 3.99,
+      "max": 4.01
+    },
+    {
+      "action": "assert",
+      "label": "Rank 1 disarm duration -15%",
+      "actor": "rank_one",
+      "metric": "aura_amount",
+      "spell": 705271,
+      "effect": 1,
+      "equals": -15
+    },
+    {
+      "action": "assert",
+      "label": "Rank 2 disarm duration -30%",
+      "actor": "rank_two",
+      "metric": "aura_amount",
+      "spell": 707851,
+      "effect": 1,
+      "equals": -30
+    }
+  ]
+}
