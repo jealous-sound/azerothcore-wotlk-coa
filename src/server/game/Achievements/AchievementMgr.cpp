@@ -2644,11 +2644,19 @@ void AchievementGlobalMgr::LoadAchievementCriteriaList()
     }
 
     uint32 loaded = 0;
+    uint32 unsupported = 0;
     for (uint32 entryId = 0; entryId < sAchievementCriteriaStore.GetNumRows(); ++entryId)
     {
         AchievementCriteriaEntry const* criteria = sAchievementCriteriaStore.LookupEntry(entryId);
         if (!criteria)
             continue;
+
+        // CoA's client adds criteria types the core does not implement; they cannot be indexed by type.
+        if (criteria->requiredType >= ACHIEVEMENT_CRITERIA_TYPE_TOTAL)
+        {
+            ++unsupported;
+            continue;
+        }
 
         if (!GetAchievement(criteria->referredAchievement))
         {
@@ -2782,6 +2790,9 @@ void AchievementGlobalMgr::LoadAchievementCriteriaList()
 
         ++loaded;
     }
+
+    if (unsupported)
+        LOG_WARN("server.loading", ">> Skipped {} achievement criteria with unsupported criteria types", unsupported);
 
     LOG_INFO("server.loading", ">> Loaded {} achievement criteria in {} ms", loaded, GetMSTimeDiffToNow(oldMSTime));
     LOG_INFO("server.loading", " ");
