@@ -6623,19 +6623,9 @@ void Player::_LoadSpells(PreparedQueryResult result)
             uint32 spellId = fields[0].Get<uint32>();
             uint8 specMask = fields[1].Get<uint8>();
 
-            if (CheckSkillLearnedBySpell(spellId))
-                addSpell(spellId, specMask, true);
-            else
-            {
-                // Spell was never addSpell()'d, so removeSpell is often a no-op and would
-                // leave an orphan character_spell row (MySQL 1062 on later re-learn/save).
-                removeSpell(spellId, SPEC_MASK_ALL, false);
-
-                CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_CHAR_SPELL_BY_SPELL);
-                stmt->SetData(0, GetGUID().GetRawValue());
-                stmt->SetData(1, spellId);
-                CharacterDatabase.Execute(stmt);
-            }
+            // CoA allows any race with any class and its classes share spells across class skill lines, so
+            // SkillRaceClassInfo.dbc cannot decide which spells a character may keep.
+            addSpell(spellId, specMask, true);
         } while (result->NextRow());
     }
 }
