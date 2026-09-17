@@ -23,8 +23,8 @@ talents-passives           work that batch end to end
 ```
 
 Run it with no argument first: it prints one row per batch and asks which one to take. Working a batch means, per
-issue: claim it, reproduce the bug, fix it, verify, commit, then push one branch and open **one draft PR** for the
-batch. Nothing becomes public without a further request: the PR stays a draft until you ask for `gh pr ready`, and
+issue: claim it, reproduce the bug, fix it, prove it with a gameplay scenario committed to the repository, commit,
+then push one branch and open **one draft PR** for the batch. Nothing becomes public without a further request: the PR stays a draft until you ask for `gh pr ready`, and
 status comments on the issues are posted at that point, not before.
 
 What it never does on its own: build or deploy a server, push to `main` or `upstream`, merge a PR, mark a PR ready,
@@ -89,14 +89,17 @@ Do this once per run and keep the result in the conversation:
 1. Fetch every open issue, excluding PRs:
    `gh issue list -R <repo> --state open --limit 1000 --json number,title,assignees,labels`. If the result
    reaches the limit, raise it: never mistake a default limit for the whole queue.
-2. Group the issues into batches: crashes; resources (power and aura costs and gains); summons and pets; talents
-   and passives with no effect; broken spells (split per class when large); missing talent trees and specs; items,
+2. Group the issues into batches. Most of the queue comes from a spell audit filed report by report (an issue per
+   spell saying it has "no script or aura handler"): group those **by class, and by spec when a class is too large
+   for one reviewable PR**, as in
+   [#2521](https://github.com/jealous-sound/azerothcore-wotlk-coa/pull/2521). Group the remaining issues by theme:
+   crashes; resources (power and aura costs and gains); summons and pets; missing talent trees and specs; items,
    bank and vanity; quests, world and creatures; systems and modes (RDF, Manastorm, war mode, GM, rest); client UI
    and visual; duplicates and non-bugs.
 3. Flag issues already covered by a merged or open PR (`gh pr list -R <repo> --state all --search "<number>"`,
    then read the PR body), issues assigned to someone else, probable duplicates and non-bugs.
 4. **Output is always one Markdown table**, never a bullet list per batch, even for one batch. Columns in order:
-   `Batch | Issues | Why it matters | Automated repro`. One row per batch (per class when broken spells are split);
+   `Batch | Issues | Why it matters | Automated repro`. One row per batch (per class or spec for audit reports);
    issue numbers comma-separated with a short tag when useful (`901 and 1467 Vault`); the last column is `yes`,
    `no` or `partial` plus a few words (a client-only symptom is not reproducible by a protocol bot). The table is
    conversation output: write it in the user's language, keeping issue numbers, batch keys and tool names as they
@@ -148,28 +151,53 @@ Rules in priority order:
    checked-out commit and every shipped SQL update is applied, and state what could not be checked.
 1. **Reproduce before fixing.** Time-box it: the reported scenario plus one or two variants. Use the first means
    that is available and wanted:
-   1. an e2e bot test (e.g. ConquestOfAzerothGhost) that fails on the current server;
-   2. an in-repo gameplay scenario (`coa-gameplay-test` skill);
+   1. an in-repo gameplay scenario run with the `coa-gameplay-test` skill — the required proof, see rule 6;
+   2. an e2e bot test (e.g. ConquestOfAzerothGhost) for what a scenario cannot observe: client packets, world
+      state, several sessions, systems such as RDF or duels;
    3. a module or unit test (`modules/mod-ascension-compat/tests/`);
    4. source and data analysis with exact manual steps, written in the PR as not automated.
 
    No reproduction, no fix: record what was tried.
-2. **Fix only what the issue reports.** Record similar findings in `.agents/plans/<batch>/observations.md`
+2. **Check an audit report before treating it as a bug.** Those issues were filed by searching the source for the
+   spell ID, so a passive that works through native spell modifiers or stat auras is reported as missing. Trace the
+   spell to the value the server actually uses and classify it:
+   - **real bug**: fix it, with a scenario that fails before and passes after;
+   - **already works natively**: no code change, but commit a regression scenario that proves the tooltip contract,
+     so the issue can be closed with evidence;
+   - **not obtainable**: no `CharacterAdvancement.dbc` row, no trainer, create-info, module or SQL grant, so no
+     player can reach the spell. Change nothing, and say so in the PR with the evidence.
+
+   Follow `.agents/docs/systems/ascension-spell-parity.md` for the contract, and
+   [#2521](https://github.com/jealous-sound/azerothcore-wotlk-coa/pull/2521) for the shape of such a PR. When a
+   tooltip promises more than the client data delivers, implement the tooltip part and record it in
+   `docs/<class>-completion.md`.
+3. **Fix only what the issue reports.** Record similar findings in `.agents/plans/<batch>/observations.md`
    (gitignored) and list them in the PR as examined but not fixed.
-3. **Ask instead of guessing.** Missing server logic that needs interpretation, or a change contradicting an
+4. **Ask instead of guessing.** Missing server logic that needs interpretation, or a change contradicting an
    explicit maintainer decision in the code, is a question for the user. Check first whether that decision really
    covers the reported case.
-4. **Never invent a value** (damage, amount, rate, ID). Read it from the DBC, the database or the code, or say it
+5. **Never invent a value** (damage, amount, rate, ID). Read it from the DBC, the database or the code, or say it
    is unknown. Community data sources and how far to trust them:
    `.agents/docs/systems/coa-community-references.md`.
-5. **Smallest complete fix**, following the C++/script/SQL guides. New SQL goes in
+6. **Smallest complete fix**, following the C++/script/SQL guides. New SQL goes in
    `data/sql/updates/pending_db_*/`.
-6. **Verify**: the reproduction now passes, earlier tests of the batch still pass,
+7. **Verify every issue with a gameplay scenario.** Each issue in the PR carries a scenario in
+   `apps/coa-gameplay-test/scenarios/`, run with the `coa-gameplay-test` skill, that asserts the behaviour the
+   issue is about: failing before the fix and passing after it for a real bug, passing as-is for an issue that
+   already worked. The scenario's metrics query the server's own calculations, so prefer them over reasoning from
+   the diff. Then run the other checks: earlier scenarios of the batch,
    `python apps/codestyle/codestyle-cpp.py --files <changed>`, relevant module tests, `git diff --check`. Report
-   source checks, builds, server tests and in-game tests separately; lint is not a functional test.
-7. **Commit**: `fix(CoA/<Scope>): <imperative summary>` with no issue number in the subject (the squash merge
+   source checks, builds, scenario runs and in-game tests separately; lint is not a functional test.
+
+   The harness needs a worldserver built with its runtime component and a local MySQL client, which is a build to
+   authorize. `apps/coa-gameplay-test/README.md` documents Windows paths only
+   ([#278](https://github.com/jealous-sound/azerothcore-wotlk-coa/pull/278) adds a Linux Docker service but is not
+   merged): on Linux, use the local environment's way of running it and say in the PR which platform produced the
+   results. If the harness cannot run at all, say so explicitly in the PR instead of claiming an unverified fix.
+8. **Commit**: `fix(CoA/<Scope>): <imperative summary>` with no issue number in the subject (the squash merge
    appends the PR number); body explains why when it is not obvious and ends with `Fixes #<n>` per issue fully
-   resolved. English. Stage only the fix and its tests.
+   resolved. English. One commit per issue, including the issues that only add a regression scenario. Stage only
+   the fix and its tests.
 
 ## 5. Publish
 
@@ -179,9 +207,10 @@ Rules in priority order:
    tested local head.
 3. Reuse an existing PR for the same head and base; otherwise
    `gh pr create -R <repo> --base main --head <owner>:<branch> --draft --title ... --body-file <file>`.
-   The body follows `.github/pull_request_template.md` and holds: per issue the commit, reproduction and result;
-   one `Fixes #<n>` line per resolved issue; issues examined but not fixed; checks actually run and remaining
-   limits; accurate AI disclosure.
+   The body follows `.github/pull_request_template.md` and holds: per issue the commit, its scenario and the
+   result (fixed, already worked, not obtainable); one `Fixes #<n>` line per resolved issue; issues examined but
+   not fixed; the checks actually run, on which platform the scenarios ran, and remaining limits; accurate AI
+   disclosure.
 4. If the reproduction tests live in another repository (e.g. Ghost), push a `test/<batch>` branch there and open
    its PR against that repository's primary branch as named by the local environment guidance; link both PRs.
 5. PRs stay drafts. Run `gh pr ready` only when the user asks. A later failure never undoes an earlier PR.
