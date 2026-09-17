@@ -26,6 +26,7 @@
 #include "SpellMgr.h"
 #include "TransportMgr.h"
 #include "World.h"
+#include <algorithm>
 #include <map>
 
 typedef std::map<uint16, uint32> AreaFlagByAreaID;
@@ -553,6 +554,10 @@ void LoadDBCStores(std::string const& dataPath)
     // fill data
     for (TaxiPathNodeEntry const* entry : sTaxiPathNodeStore)
         sTaxiPathNodesByPath[entry->path][entry->index] = entry;
+
+    // Paths are walked by position; drop unused node numbers (CoA's path 1984 starts at node 1).
+    for (TaxiPathNodeList& nodes : sTaxiPathNodesByPath)
+        nodes.erase(std::remove(nodes.begin(), nodes.end(), nullptr), nodes.end());
 
     // Initialize global taxinodes mask
     // include existed nodes that have at least single not spell base (scripted) path
