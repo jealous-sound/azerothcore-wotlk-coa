@@ -1,0 +1,92 @@
+{
+  "schema": 1,
+  "name": "Holy Upheaval doubles Righteous Upheaval's per-Zealotry bonus (#909)",
+  "contract": "Each Zealotry trigger during the Oath Chain grants a Righteous Upheaval stack worth 10% damage. Holy Upheaval 572547 increases that effect by 100%, so five stacks give +100% instead of +50%.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    },
+    {
+      "id": "talent",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 572027
+    },
+    {
+      "action": "learn",
+      "actor": "talent",
+      "spell": 572027
+    },
+    {
+      "action": "learn",
+      "actor": "talent",
+      "spell": 572547
+    },
+    {
+      "action": "set_aura",
+      "actor": "control",
+      "spell": 807764,
+      "stacks": 5
+    },
+    {
+      "action": "set_aura",
+      "actor": "talent",
+      "spell": 807764,
+      "stacks": 5
+    },
+    {
+      "action": "assert",
+      "label": "Five stacks give 50% without the talent",
+      "actor": "control",
+      "metric": "aura_amount",
+      "spell": 807764,
+      "effect": 0,
+      "equals": 50
+    },
+    {
+      "action": "assert",
+      "label": "Five stacks give 100% with the talent",
+      "actor": "talent",
+      "metric": "aura_amount",
+      "spell": 807764,
+      "effect": 0,
+      "equals": 100
+    },
+    {
+      "action": "assert",
+      "label": "Righteous Upheaval damage without the talent",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 572027,
+      "op": 0,
+      "base": 1000,
+      "equals": 1500
+    },
+    {
+      "action": "assert",
+      "label": "Righteous Upheaval damage with the talent",
+      "actor": "talent",
+      "metric": "spell_modifier",
+      "spell": 572027,
+      "op": 0,
+      "base": 1000,
+      "equals": 2000
+    }
+  ]
+}
