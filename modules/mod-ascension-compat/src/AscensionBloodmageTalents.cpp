@@ -1,4 +1,5 @@
 /* Copyright (C) 2016+ AzerothCore, GNU AGPL v3. */
+#include "AscensionPooledVitality.h"
 #include "DBCStores.h"
 #include "Player.h"
 #include "ScriptMgr.h"
@@ -41,7 +42,9 @@ bool IsCursedForm(uint32 id)
 // Spell.dbc and are split across the kit's abilities (e.g. Ravenous Strike/Lunge/Claw Sweep/Bloodfang
 // Bite use 525031, while Rotclaw/Ironhide/Reave/Bloodsurge/Apotheosis and others use 524861), so both
 // need to be mirrored onto the real form state, the same way Palm Sigil's marker follows
-// Runeshroud/Waveforged.
+// Runeshroud/Waveforged. AscensionBloodmage::CursedForm (802877) is a third, separate marker: it is
+// the ExcludeCasterAuraSpell Sanguine Mend and the pooled-vitality empowerment check both rely on to
+// block casting while shapeshifted, but nothing else ever grants it either, so it needs the same sync.
 void SyncCursedFormRequirement(Player* player)
 {
     bool active = false;
@@ -52,7 +55,8 @@ void SyncCursedFormRequirement(Player* player)
             break;
         }
 
-    for (uint32 marker : {uint32(SPELL_CURSED_FORM_REQUIREMENT), uint32(SPELL_CURSED_FORM_REQUIREMENT_2)})
+    for (uint32 marker : {uint32(SPELL_CURSED_FORM_REQUIREMENT), uint32(SPELL_CURSED_FORM_REQUIREMENT_2),
+        uint32(AscensionBloodmage::CursedForm)})
     {
         if (!active)
             player->RemoveAurasDueToSpell(marker, player->GetGUID());
