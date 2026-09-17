@@ -172,7 +172,12 @@ void GrantOath(Player* player, uint32 oath)
     }
     Cast(player, player, 704576);
     if (Aura* aura = player->GetAura(704576))
+    {
         aura->SetDuration(first ? aura->GetMaxDuration() : duration);
+        // The first Oath lasts as long as the new chain, including Deep Meditation and Oath Flow.
+        if (Aura* granted = first ? player->GetAura(oath) : nullptr)
+            granted->SetDuration(aura->GetDuration());
+    }
     if (first && State(player).retribution)
     {
         State(player).retribution = false;
