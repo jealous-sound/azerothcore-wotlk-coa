@@ -1,0 +1,152 @@
+{
+  "schema": 1,
+  "name": "Holy Light gives Benediction a 1.5 sec cast time and doubles its healing (#688)",
+  "contract": "Benediction is instant. Holy Light 706449 adds 1.5 sec cast time (flat CASTING_TIME +1500) and increases its healing by 100% (SPELLMOD_DAMAGE).",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    },
+    {
+      "id": "talent",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 578276
+    },
+    {
+      "action": "learn",
+      "actor": "talent",
+      "spell": 578276
+    },
+    {
+      "action": "learn",
+      "actor": "talent",
+      "spell": 706449
+    },
+    {
+      "action": "assert",
+      "label": "Benediction is instant without the talent",
+      "actor": "control",
+      "metric": "spell_cast_time_ms",
+      "spell": 578276,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "Benediction casts in 1.5 sec with the talent",
+      "actor": "talent",
+      "metric": "spell_cast_time_ms",
+      "spell": 578276,
+      "equals": 1500
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "spell_healing_done",
+      "save_as": "heal",
+      "spell": 578276,
+      "effect": 1,
+      "target": "control"
+    },
+    {
+      "action": "assert",
+      "label": "Healing doubles with the talent",
+      "actor": "talent",
+      "metric": "spell_healing_done",
+      "spell": 578276,
+      "effect": 1,
+      "target": "talent",
+      "ratio_to": "heal",
+      "min": 1.999,
+      "max": 2.001
+    },
+    {
+      "action": "set_aura",
+      "actor": "control",
+      "spell": 704576,
+      "stacks": 1
+    },
+    {
+      "action": "set_aura",
+      "actor": "talent",
+      "spell": 704576,
+      "stacks": 1
+    },
+    {
+      "action": "set_power",
+      "actor": "control",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "set_power",
+      "actor": "talent",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "cast",
+      "actor": "control",
+      "spell": 578276
+    },
+    {
+      "action": "cast",
+      "actor": "talent",
+      "spell": 578276
+    },
+    {
+      "action": "assert",
+      "label": "Talented Benediction is being cast",
+      "actor": "talent",
+      "metric": "casting",
+      "equals": 1,
+      "within_ms": 300
+    },
+    {
+      "action": "assert",
+      "label": "Untalented Benediction does not start a cast",
+      "actor": "control",
+      "metric": "casting",
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "Untalented Benediction spends Energy at once",
+      "actor": "control",
+      "metric": "power",
+      "power": 3,
+      "max": 85
+    },
+    {
+      "action": "assert",
+      "label": "Talented Benediction completes",
+      "actor": "talent",
+      "metric": "casting",
+      "equals": 0,
+      "within_ms": 2500
+    },
+    {
+      "action": "assert",
+      "label": "Talented Benediction spends Energy on completion",
+      "actor": "talent",
+      "metric": "power",
+      "power": 3,
+      "max": 85
+    }
+  ]
+}

@@ -10151,9 +10151,11 @@ void Player::ApplySpellMod(uint32 spellId, SpellModOp op, T& basevalue, Spell* s
         if (temporaryPet && mod->ownerAura && mod->ownerAura->IsUsingCharges())
             return;
 
-        // skip if already instant or cost is free
+        // skip if already instant or cost is free; a flat cast time increase can still give an instant spell a cast
+        // time (Templar Holy Light makes the instant Benediction a 1.5 sec cast)
         if (mod->op == SPELLMOD_CASTING_TIME || mod->op == SPELLMOD_COST)
-            if (((float)basevalue + (float)basevalue * (totalmul - 1.0f) + (float)totalflat) <= 0)
+            if (((float)basevalue + (float)basevalue * (totalmul - 1.0f) + (float)totalflat) <= 0 &&
+                !(mod->op == SPELLMOD_CASTING_TIME && mod->type == SPELLMOD_FLAT && mod->value > 0))
                 return;
 
         if (mod->type == SPELLMOD_FLAT)
