@@ -1,0 +1,251 @@
+{
+  "schema": 1,
+  "name": "Might of Aggramar speeds up Condemn and Blade of Faith ticks (#866)",
+  "contract": "Might of Aggramar 803163 gives auto attacks a 25% chance to grant 803164, which increases the tick rate of Condemn and Blade of Faith by 10% per stack (activation time -10%), stacking 5 times.",
+  "timeout_ms": 150000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 19,
+      "level": 80,
+      "melee_hit_rating": 10000,
+      "spell_hit_rating": 10000,
+      "expertise_rating": 10000
+    },
+    {
+      "id": "mighty",
+      "race": 1,
+      "class": 19,
+      "level": 80,
+      "melee_hit_rating": 10000,
+      "spell_hit_rating": 10000,
+      "expertise_rating": 10000
+    },
+    {
+      "id": "proc",
+      "race": 1,
+      "class": 19,
+      "level": 80,
+      "melee_hit_rating": 10000,
+      "spell_hit_rating": 10000,
+      "expertise_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "dummy_control",
+      "owner": "control",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 3
+    },
+    {
+      "id": "dummy_mighty",
+      "owner": "mighty",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 3
+    },
+    {
+      "id": "dummy_proc",
+      "owner": "proc",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 3
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 567541
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 803880
+    },
+    {
+      "action": "learn",
+      "actor": "mighty",
+      "spell": 567541
+    },
+    {
+      "action": "learn",
+      "actor": "mighty",
+      "spell": 803880
+    },
+    {
+      "action": "learn",
+      "actor": "mighty",
+      "spell": 803163
+    },
+    {
+      "action": "set_aura",
+      "label": "Five stacks of Might of Aggramar",
+      "actor": "mighty",
+      "spell": 803164,
+      "stacks": 5
+    },
+    {
+      "action": "assert",
+      "label": "Condemn ticks every 3 sec without stacks",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 567541,
+      "op": 19,
+      "base": 3000,
+      "equals": 3000
+    },
+    {
+      "action": "assert",
+      "label": "Five stacks halve Condemn's tick interval",
+      "actor": "mighty",
+      "metric": "spell_modifier",
+      "spell": 567541,
+      "op": 19,
+      "base": 3000,
+      "equals": 1500
+    },
+    {
+      "action": "assert",
+      "label": "Five stacks halve Blade of Faith's tick interval",
+      "actor": "mighty",
+      "metric": "spell_modifier",
+      "spell": 803880,
+      "op": 19,
+      "base": 3000,
+      "equals": 1500
+    },
+    {
+      "action": "add_item",
+      "actor": "control",
+      "item": 2495
+    },
+    {
+      "action": "equip",
+      "actor": "control",
+      "item": 2495,
+      "slot": 15
+    },
+    {
+      "action": "set_power",
+      "actor": "control",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "cast",
+      "actor": "control",
+      "spell": 567541,
+      "target": "dummy_control"
+    },
+    {
+      "action": "assert",
+      "label": "Condemn lands",
+      "actor": "dummy_control",
+      "metric": "aura",
+      "spell": 567541,
+      "caster": "control",
+      "equals": 1,
+      "within_ms": 2000
+    },
+    {
+      "action": "add_item",
+      "actor": "mighty",
+      "item": 2495
+    },
+    {
+      "action": "equip",
+      "actor": "mighty",
+      "item": 2495,
+      "slot": 15
+    },
+    {
+      "action": "set_power",
+      "actor": "mighty",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "cast",
+      "actor": "mighty",
+      "spell": 567541,
+      "target": "dummy_mighty"
+    },
+    {
+      "action": "assert",
+      "label": "Condemn lands",
+      "actor": "dummy_mighty",
+      "metric": "aura",
+      "spell": 567541,
+      "caster": "mighty",
+      "equals": 1,
+      "within_ms": 2000
+    },
+    {
+      "action": "assert",
+      "label": "Condemn interval without stacks",
+      "actor": "dummy_control",
+      "metric": "aura_amplitude_ms",
+      "spell": 567541,
+      "caster": "control",
+      "effect": 0,
+      "equals": 3000
+    },
+    {
+      "action": "assert",
+      "label": "Condemn interval with five stacks",
+      "actor": "dummy_mighty",
+      "metric": "aura_amplitude_ms",
+      "spell": 567541,
+      "caster": "mighty",
+      "effect": 0,
+      "equals": 1500
+    },
+    {
+      "action": "learn",
+      "actor": "proc",
+      "spell": 803163
+    },
+    {
+      "action": "add_item",
+      "actor": "proc",
+      "item": 2495
+    },
+    {
+      "action": "equip",
+      "actor": "proc",
+      "item": 2495,
+      "slot": 15
+    },
+    {
+      "action": "attack",
+      "actor": "proc",
+      "target": "dummy_proc"
+    },
+    {
+      "action": "assert",
+      "label": "Auto attacks grant Might of Aggramar",
+      "actor": "proc",
+      "metric": "aura",
+      "spell": 803164,
+      "equals": 1,
+      "within_ms": 60000
+    },
+    {
+      "action": "assert",
+      "label": "A Templar without the talent never gains it",
+      "actor": "control",
+      "metric": "aura",
+      "spell": 803164,
+      "equals": 0
+    }
+  ]
+}
