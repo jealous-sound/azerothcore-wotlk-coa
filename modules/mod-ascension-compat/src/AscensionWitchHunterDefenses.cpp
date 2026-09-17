@@ -196,7 +196,7 @@ class aura_ascension_witch_hunter_lifecycle : public AuraScript
             Cast(GetCaster(), owner, 804073);
             owner->RemoveAurasByType(SPELL_AURA_MOD_STEALTH);
         }
-        if (id == 805751 && player)
+        if (id == 805751 && player && player->HasSpell(805767)) // Evasive
             player->CastCustomSpell(805766, SPELLVALUE_AURA_DURATION, GetAura()->GetDuration(), player,
                                     TRIGGERED_FULL_MASK);
         if (id == 504790 && player)
