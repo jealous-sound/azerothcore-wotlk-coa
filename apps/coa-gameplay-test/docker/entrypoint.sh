@@ -33,4 +33,5 @@ exec python3 "$runner" run "$@" \
   --mysql /usr/bin/mysql \
   --mysqldump /usr/bin/mysqldump \
   --database-client-config "$secrets/admin-client.ini" \
-  --output "/results/$(date -u +%Y%m%dT%H%M%SZ)"
+  --world-cache-dir /results/world-cache \
+  --output "/results/$(date -u +%Y%m%dT%H%M%S%NZ)"

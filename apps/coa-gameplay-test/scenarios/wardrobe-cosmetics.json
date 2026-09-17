@@ -1,0 +1,414 @@
+{
+  "schema": 1,
+  "name": "Wardrobe cosmetics: apply, replace, share slots, clear and restore",
+  "contract": "Cosmetics persist until cleared. Invalid entries preserve selection. Login hooks only; no rendering.",
+  "timeout_ms": 120000,
+  "players": [
+    {
+      "id": "wearer",
+      "race": 1,
+      "class": 12,
+      "level": 80
+    },
+    {
+      "id": "other",
+      "race": 1,
+      "class": 12,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "command",
+      "actor": "wearer",
+      "command": ".localappearance 56 1451"
+    },
+    {
+      "action": "assert",
+      "actor": "wearer",
+      "metric": "aura",
+      "spell": 286487,
+      "equals": 1
+    },
+    {
+      "action": "command",
+      "actor": "wearer",
+      "command": ".localappearance 57 1451"
+    },
+    {
+      "action": "command",
+      "actor": "wearer",
+      "command": ".localappearance 56 1452"
+    },
+    {
+      "action": "assert",
+      "actor": "wearer",
+      "metric": "aura",
+      "spell": 286487,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "actor": "wearer",
+      "metric": "aura",
+      "spell": 286489,
+      "equals": 1
+    },
+    {
+      "action": "command",
+      "actor": "wearer",
+      "command": ".localappearance 57 0"
+    },
+    {
+      "action": "assert",
+      "actor": "wearer",
+      "metric": "aura",
+      "spell": 286487,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "wearer",
+      "metric": "aura",
+      "spell": 286489,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "actor": "other",
+      "metric": "aura",
+      "spell": 286489,
+      "equals": 0
+    },
+    {
+      "action": "command",
+      "actor": "wearer",
+      "command": ".localappearance 56 2992"
+    },
+    {
+      "action": "assert",
+      "actor": "wearer",
+      "metric": "aura",
+      "spell": 286489,
+      "equals": 1
+    },
+    {
+      "action": "command",
+      "actor": "wearer",
+      "command": ".localappearance 56 51444"
+    },
+    {
+      "action": "assert",
+      "actor": "wearer",
+      "metric": "aura",
+      "spell": 286489,
+      "equals": 1
+    },
+    {
+      "action": "command",
+      "actor": "wearer",
+      "command": ".localappearance 56 52428"
+    },
+    {
+      "action": "assert",
+      "actor": "wearer",
+      "metric": "aura",
+      "spell": 286489,
+      "equals": 1
+    },
+    {
+      "action": "command",
+      "actor": "wearer",
+      "command": ".localappearance 56 47520"
+    },
+    {
+      "action": "assert",
+      "actor": "wearer",
+      "metric": "aura",
+      "spell": 286489,
+      "equals": 1
+    },
+    {
+      "action": "set_aura",
+      "actor": "wearer",
+      "spell": 286489,
+      "stacks": 0
+    },
+    {
+      "action": "assert",
+      "actor": "wearer",
+      "metric": "aura",
+      "spell": 286489,
+      "equals": 1,
+      "within_ms": 2000
+    },
+    {
+      "action": "login_hooks",
+      "actor": "wearer"
+    },
+    {
+      "action": "assert",
+      "actor": "wearer",
+      "metric": "aura",
+      "spell": 286489,
+      "equals": 1
+    },
+    {
+      "action": "command",
+      "actor": "wearer",
+      "command": ".localappearance 56 1801"
+    },
+    {
+      "action": "assert",
+      "actor": "wearer",
+      "metric": "aura",
+      "spell": 286489,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "wearer",
+      "metric": "aura",
+      "spell": 1131816,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "actor": "wearer",
+      "metric": "aura_duration_ms",
+      "spell": 1131816,
+      "equals": -1
+    },
+    {
+      "action": "command",
+      "actor": "wearer",
+      "command": ".localappearance 56 1802"
+    },
+    {
+      "action": "assert",
+      "actor": "wearer",
+      "metric": "aura",
+      "spell": 1131816,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "wearer",
+      "metric": "aura",
+      "spell": 1131817,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "actor": "wearer",
+      "metric": "aura_duration_ms",
+      "spell": 1131817,
+      "equals": -1
+    },
+    {
+      "action": "command",
+      "actor": "wearer",
+      "command": ".localappearance 56 2714"
+    },
+    {
+      "action": "assert",
+      "actor": "wearer",
+      "metric": "aura",
+      "spell": 1131817,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "wearer",
+      "metric": "aura",
+      "spell": 985235,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "actor": "wearer",
+      "metric": "aura_duration_ms",
+      "spell": 985235,
+      "equals": -1
+    },
+    {
+      "action": "command",
+      "actor": "wearer",
+      "command": ".localappearance 56 42965"
+    },
+    {
+      "action": "assert",
+      "actor": "wearer",
+      "metric": "aura",
+      "spell": 985235,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "wearer",
+      "metric": "aura",
+      "spell": 935566,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "actor": "wearer",
+      "metric": "aura_duration_ms",
+      "spell": 935566,
+      "equals": -1
+    },
+    {
+      "action": "command",
+      "actor": "wearer",
+      "command": ".localappearance 56 52441"
+    },
+    {
+      "action": "assert",
+      "actor": "wearer",
+      "metric": "aura",
+      "spell": 935566,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "wearer",
+      "metric": "aura",
+      "spell": 498543,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "actor": "wearer",
+      "metric": "aura_duration_ms",
+      "spell": 498543,
+      "equals": -1
+    },
+    {
+      "action": "command",
+      "actor": "wearer",
+      "command": ".localappearance 56 52409"
+    },
+    {
+      "action": "assert",
+      "actor": "wearer",
+      "metric": "aura",
+      "spell": 498543,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "wearer",
+      "metric": "aura",
+      "spell": 83328,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "actor": "wearer",
+      "metric": "aura_duration_ms",
+      "spell": 83328,
+      "equals": -1
+    },
+    {
+      "action": "command",
+      "actor": "wearer",
+      "command": ".localappearance 56 52399"
+    },
+    {
+      "action": "assert",
+      "actor": "wearer",
+      "metric": "aura",
+      "spell": 83328,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "wearer",
+      "metric": "aura",
+      "spell": 93189,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "actor": "wearer",
+      "metric": "aura_duration_ms",
+      "spell": 93189,
+      "equals": -1
+    },
+    {
+      "action": "command",
+      "actor": "wearer",
+      "command": ".localappearance 56 52476"
+    },
+    {
+      "action": "assert",
+      "actor": "wearer",
+      "metric": "aura",
+      "spell": 93189,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "wearer",
+      "metric": "aura",
+      "spell": 900921,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "actor": "wearer",
+      "metric": "aura_duration_ms",
+      "spell": 900921,
+      "equals": -1
+    },
+    {
+      "action": "command",
+      "actor": "wearer",
+      "command": ".localappearance 56 1653"
+    },
+    {
+      "action": "assert",
+      "actor": "wearer",
+      "metric": "aura",
+      "spell": 900921,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "wearer",
+      "metric": "aura",
+      "spell": 1985213,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "actor": "wearer",
+      "metric": "aura_duration_ms",
+      "spell": 1985213,
+      "equals": -1
+    },
+    {
+      "action": "command",
+      "actor": "wearer",
+      "command": ".localappearance 56 0"
+    },
+    {
+      "action": "assert",
+      "actor": "wearer",
+      "metric": "aura",
+      "spell": 1985213,
+      "equals": 0
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "assert",
+      "actor": "wearer",
+      "metric": "aura",
+      "spell": 1985213,
+      "equals": 0
+    }
+  ]
+}

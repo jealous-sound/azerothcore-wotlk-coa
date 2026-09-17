@@ -15,12 +15,25 @@ bool roll_chance_i(uint32) { return true; }
 struct Player;
 using AuraRemoveMode = int;
 constexpr int SPELL_ATTR1_AURA_UNIQUE = 1;
+// The five damaging effects SpellDealsDamage asks about, with their real SharedDefines values.
+using SpellEffects = uint32;
+constexpr SpellEffects SPELL_EFFECT_SCHOOL_DAMAGE = 2;
+constexpr SpellEffects SPELL_EFFECT_WEAPON_DAMAGE_NOSCHOOL = 17;
+constexpr SpellEffects SPELL_EFFECT_WEAPON_PERCENT_DAMAGE = 31;
+constexpr SpellEffects SPELL_EFFECT_WEAPON_DAMAGE = 58;
+constexpr SpellEffects SPELL_EFFECT_NORMALIZED_WEAPON_DMG = 121;
 struct SpellInfo
 {
     uint32 Id = 0;
     int32 StackAmount = 100;
+    // Zero is SPELL_EFFECT_NONE, so a spell nobody gave effects to is not a damaging one.
+    std::array<uint32, 3> Effects = {};
     int32 CalcMaxAuraStacks(Player*) const { return StackAmount; }
     bool HasAttribute(int) const { return false; }
+    bool HasEffect(SpellEffects effect) const
+    {
+        return std::find(Effects.begin(), Effects.end(), uint32(effect)) != Effects.end();
+    }
 };
 struct Aura
 {

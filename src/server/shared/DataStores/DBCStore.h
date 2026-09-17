@@ -33,6 +33,8 @@ public:
 
     [[nodiscard]] char const* GetFormat() const { return _fileFormat; }
     [[nodiscard]] uint32 GetFieldCount() const { return _fieldCount; }
+    // String fields read as "" because the file points them outside its string block.
+    [[nodiscard]] uint32 GetInvalidStringCount() const { return _invalidStringCount; }
 
     virtual bool Load(char const* path) = 0;
     virtual bool LoadStringsFrom(char const* path) = 0;
@@ -48,6 +50,7 @@ protected:
     char* _dataTable;
     std::vector<char*> _stringPool;
     uint32 _indexTableSize;
+    uint32 _invalidStringCount;
 };
 
 template <class T>

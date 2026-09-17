@@ -19,7 +19,8 @@ def main():
         return archive.read(next(p for p in archive.namelist() if p.rsplit('/', 1)[-1] == name + '.sql')).decode()
 
     sql = (ROOT / 'data/sql/updates/pending_db_world/rev_1789371937554667200.sql').read_text()
-    candidates = set(map(int, re.findall(r'\b\d+\b', sql)))
+    variants_sql = (ROOT / 'data/sql/updates/pending_db_world/rev_1789486726522615900.sql').read_text()
+    candidates = set(map(int, re.findall(r'\b\d+\b', sql + variants_sql)))
     references = []
     for match in re.finditer(r'\((\d+),(\d+),(\d+),', table('reference_loot_template')):
         entry, item, reference = map(int, match.groups())
@@ -58,6 +59,19 @@ def main():
     assert db.execute('SELECT Comment FROM item_loot_template WHERE Entry=123').fetchone() == ('unrelated',)
     assert db.execute('SELECT Flags & 4,ScriptName FROM item_template WHERE entry=1397885').fetchone() == (
         4, 'item_ascension_adventurer_cache')
+    before_variants = list(db.execute('SELECT * FROM item_template WHERE entry NOT IN (1397884,1397886)'))
+    db.executescript(variants_sql)
+    once = list(db.iterdump())
+    db.executescript(variants_sql)
+    assert list(db.iterdump()) == once
+    assert list(db.execute('SELECT * FROM item_template WHERE entry NOT IN (1397884,1397886)')) == before_variants
+    reference = db.execute('''SELECT Item,Reference,Chance,QuestRequired,LootMode,GroupId,MinCount,MaxCount
+        FROM item_loot_template WHERE Entry=1397885 ORDER BY Item''').fetchall()
+    for entry in (1397884, 1397886):
+        assert db.execute('SELECT Flags & 4,ScriptName FROM item_template WHERE entry=?', (entry,)).fetchone() == (
+            4, 'item_ascension_adventurer_cache')
+        assert db.execute('''SELECT Item,Reference,Chance,QuestRequired,LootMode,GroupId,MinCount,MaxCount
+            FROM item_loot_template WHERE Entry=? ORDER BY Item''', (entry,)).fetchall() == reference
     pool = list(db.execute('''SELECT t.entry,t.class,t.subclass,t.Quality,t.RequiredLevel,t.ItemLevel,l.MaxCount
         FROM item_template t JOIN item_loot_template l ON t.entry=l.Item WHERE l.Entry=1397885'''))
     assert len(pool) > 100
@@ -77,7 +91,7 @@ def main():
         subprocess.run([compiler, '/nologo', '/std:c++20', '/EHsc', '/W4', '/WX', '/utf-8',
                         str(cpp), '/Fe' + str(exe)], cwd=out, check=True, timeout=60)
         subprocess.run([str(exe)], cwd=out, check=True, timeout=15)
-    print(f'PASS: {len(pool)} existing rewards; level/category selection; use guards; SQL replay/preservation')
+    print(f'PASS: three containers, {len(pool)} existing rewards; selection; use guards; SQL replay/preservation')
 
 
 if __name__ == '__main__':

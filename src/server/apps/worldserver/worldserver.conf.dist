@@ -676,6 +676,7 @@ ChatLog.Enable = 0
 
 Appender.Console=1,4,0,"1 9 3 6 5 8"
 Appender.Server=2,5,0,Server.log,w
+Appender.Playerbots=2,5,0,Playerbots.log,w
 # Appender.GM=2,5,15,gm_%s.log
 Appender.Errors=2,2,0,Errors.log,w
 # Appender.DB=3,5,0
@@ -709,6 +710,7 @@ Logger.sql=4,Console Server
 Logger.time.update=4,Console Server
 Logger.module=4,Console Server
 Logger.spells.scripts=2,Console Errors
+Logger.playerbots=5,Console Playerbots
 # Logger.achievement=4,Console Server
 # Logger.addon=4,Console Server
 # Logger.auctionHouse=4,Console Server
@@ -1852,16 +1854,6 @@ CleanCharacterDB = 0
 PersistentCharacterCleanFlags = 0
 
 #
-#    ValidateSkillLearnedBySpells
-#        Description: If enabled, players will lose spells that are invalid for their race/class.
-#        Default:     1 - (Enabled, enforce valid spells)
-#                     0 - (Disabled, allow invalid spells)
-#        Note:        Disabling this and then having your character learn spells which require DBC edits can result in the character not being saved in the database
-#                     Disable AT YOUR OWN RISK
-
-ValidateSkillLearnedBySpells = 1
-
-#
 ###################################################################################################
 
 ###################################################################################################
@@ -2016,15 +2008,19 @@ CharacterCreating.Disabled.ClassMask = 0
 #    CharactersPerAccount
 #        Description: Limit number of characters per account on all realms on this realmlist.
 #        Important:   Number must be >= CharactersPerRealm
-#        Default:     50
+#        Default:     128
 
-CharactersPerAccount = 50
+CharactersPerAccount = 128
 
 #
 #    CharactersPerRealm
 #        Description: Limit number of characters per account on this realm.
-#        Range:       1-10
-#        Default:     10 - (Client limitation)
+#                     Only active characters count; deactivated ones keep their
+#                     data without holding a slot. The Ascension character screen
+#                     also hides its create button while this many characters are
+#                     active, so one free slot is needed to create another.
+#        Range:       1-128
+#        Default:     10
 
 CharactersPerRealm = 10
 

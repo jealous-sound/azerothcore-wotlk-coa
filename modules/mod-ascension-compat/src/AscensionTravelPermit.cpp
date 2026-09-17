@@ -24,14 +24,19 @@ struct Destination
     uint8 race;
 };
 
-constexpr std::array<Destination, 6> Destinations =
+// One entry per distinct starting area; the race is only the `playercreateinfo` key the coordinates are
+// read from. Gnome and Troll are deliberately absent: they share the Dun Morogh and Durotar starts with
+// Dwarf and Orc, so listing them would offer the same two spots twice.
+constexpr std::array<Destination, 8> Destinations =
 {{
     {"Elwynn Forest", TEAM_ALLIANCE, RACE_HUMAN},
     {"Dun Morogh", TEAM_ALLIANCE, RACE_DWARF},
     {"Teldrassil", TEAM_ALLIANCE, RACE_NIGHTELF},
+    {"Ammen Vale", TEAM_ALLIANCE, RACE_DRAENEI},
     {"Tirisfal Glades", TEAM_HORDE, RACE_UNDEAD_PLAYER},
     {"Durotar", TEAM_HORDE, RACE_ORC},
-    {"Mulgore", TEAM_HORDE, RACE_TAUREN}
+    {"Mulgore", TEAM_HORDE, RACE_TAUREN},
+    {"Sunstrider Isle", TEAM_HORDE, RACE_BLOODELF}
 }};
 
 SpellCastResult CheckTravel(Player const* player)
@@ -59,7 +64,7 @@ class spell_ascension_travel_permit : public SpellScript
         return CheckTravel(GetCaster()->ToPlayer());
     }
 
-    void OpenMenu(SpellEffIndex)
+    void OpenMenu()
     {
         Player* player = GetCaster()->ToPlayer();
         Item* item = GetCastItem();
@@ -77,7 +82,13 @@ class spell_ascension_travel_permit : public SpellScript
     void Register() override
     {
         OnCheckCast += SpellCheckCastFn(spell_ascension_travel_permit::CheckCast);
-        OnEffectHitTarget += SpellEffectFn(spell_ascension_travel_permit::OpenMenu, EFFECT_0, SPELL_EFFECT_DUMMY);
+        // AfterCast rather than an effect handler. 1001088 is an Ascension client spell: its effect
+        // layout and implicit targets live in the client DBC set, so nothing in this repository can
+        // confirm which effect index or target a handler would have to be bound to. AfterCast needs
+        // none of that -- Spell::cast() calls it once for every cast that got through, whatever the
+        // effects are, and after they have all been handled, so the menu is the last thing sent. The
+        // gates are unchanged: a cast rejected by CheckCast or by the item cooldown never reaches it.
+        AfterCast += SpellCastFn(spell_ascension_travel_permit::OpenMenu);
     }
 };
 

@@ -627,7 +627,7 @@ void AchievementMgr::LoadFromDB(PreparedQueryResult achievementResult, PreparedQ
         do
         {
             Field* fields = achievementResult->Fetch();
-            uint32 achievementid = fields[0].Get<uint16>();
+            uint32 achievementid = fields[0].Get<uint32>();
 
             // must not happen: cleanup at server startup in sAchievementMgr->LoadCompletedAchievements()
             AchievementEntry const* achievement = sAchievementStore.LookupEntry(achievementid);
@@ -652,7 +652,7 @@ void AchievementMgr::LoadFromDB(PreparedQueryResult achievementResult, PreparedQ
         do
         {
             Field* fields = criteriaResult->Fetch();
-            uint32 id      = fields[0].Get<uint16>();
+            uint32 id      = fields[0].Get<uint32>();
             uint32 counter = fields[1].Get<uint32>();
             time_t date    = time_t(fields[2].Get<uint32>());
 
@@ -664,7 +664,7 @@ void AchievementMgr::LoadFromDB(PreparedQueryResult achievementResult, PreparedQ
 
                 CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_INVALID_ACHIEV_PROGRESS_CRITERIA);
 
-                stmt->SetData(0, uint16(id));
+                stmt->SetData(0, id);
 
                 CharacterDatabase.Execute(stmt);
 
@@ -2644,11 +2644,19 @@ void AchievementGlobalMgr::LoadAchievementCriteriaList()
     }
 
     uint32 loaded = 0;
+    uint32 unsupported = 0;
     for (uint32 entryId = 0; entryId < sAchievementCriteriaStore.GetNumRows(); ++entryId)
     {
         AchievementCriteriaEntry const* criteria = sAchievementCriteriaStore.LookupEntry(entryId);
         if (!criteria)
             continue;
+
+        // CoA's client adds criteria types the core does not implement; they cannot be indexed by type.
+        if (criteria->requiredType >= ACHIEVEMENT_CRITERIA_TYPE_TOTAL)
+        {
+            ++unsupported;
+            continue;
+        }
 
         if (!GetAchievement(criteria->referredAchievement))
         {
@@ -2782,6 +2790,9 @@ void AchievementGlobalMgr::LoadAchievementCriteriaList()
 
         ++loaded;
     }
+
+    if (unsupported)
+        LOG_WARN("server.loading", ">> Skipped {} achievement criteria with unsupported criteria types", unsupported);
 
     LOG_INFO("server.loading", ">> Loaded {} achievement criteria in {} ms", loaded, GetMSTimeDiffToNow(oldMSTime));
     LOG_INFO("server.loading", " ");
@@ -2975,7 +2986,7 @@ void AchievementGlobalMgr::LoadCompletedAchievements()
     {
         Field* fields = result->Fetch();
 
-        uint16 achievementId = fields[0].Get<uint16>();
+        uint32 achievementId = fields[0].Get<uint32>();
         AchievementEntry const* achievement = sAchievementStore.LookupEntry(achievementId);
         if (!achievement)
         {
@@ -2984,7 +2995,7 @@ void AchievementGlobalMgr::LoadCompletedAchievements()
 
             CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_INVALID_ACHIEVMENT);
 
-            stmt->SetData(0, uint16(achievementId));
+            stmt->SetData(0, achievementId);
             CharacterDatabase.Execute(stmt);
 
             continue;

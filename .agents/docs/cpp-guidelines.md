@@ -27,3 +27,10 @@ Hard rules (also enforced by CI with `-Werror`, plus `cppcheck`):
 - **Long-lived references**: don't store a raw `Player*` / `Creature*` / `Unit*` past the current call/tick — the object can be removed (logout, despawn, instance unload) and the pointer dangles. Store the `ObjectGuid` and resolve at use time via `ObjectAccessor::FindPlayer(guid)`, `Map::GetCreature(guid)`, etc.
 - **DB queries**: use `PreparedStatement` (via `WorldDatabase` / `CharacterDatabase` / `LoginDatabase` and the prepared-statement enums), not raw query strings. Non-blocking reads go async: `_queryProcessor.AddCallback(db.AsyncQuery(stmt).WithPreparedCallback(...))` (or `WithCallback`). Multi-statement writes wrap in `SQLTransaction` + `Execute` / `AppendPreparedStatement`.
 - **Timed actions in AI**: use `EventMap` (event id → delay; simple) or `TaskScheduler` (lambdas, repeats, cancellation), both members of `CreatureAI` — don't roll your own tick counters. See any boss script under `src/server/scripts/`.
+
+## Player lifecycle
+
+- `Player::LoadFromDB` can update achievement criteria before `SetMap`. Hooks reached during loading must
+  handle a missing map with `FindMap`; `GetMap` asserts. Preserve ordinary achievement behavior for mapless players.
+- Scene entry and ownership checks must also handle mapless transfer states. Test the affected callback during
+  loading and transfer rather than treating server startup as proof that the lifecycle is safe.

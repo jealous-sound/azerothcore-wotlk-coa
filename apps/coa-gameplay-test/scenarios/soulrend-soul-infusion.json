@@ -1,0 +1,49 @@
+{
+  "schema": 1,
+  "name": "Issue 131: Soulrend consumes Reaped Souls and Soul Infusion and generates Runic Power",
+  "contract": "Every Soulrend rank requires Soul Infusion (casterAuraSpell 803031). A landed Soulrend must remove the caster's Reaped Souls and Soul Infusion, as live logs did in 278 of 285 casts, and grant the placeholder 15 Runic Power (150 internal) on the successful hostile hit. Without Soul Infusion the cast must be rejected.",
+  "players": [
+    {
+      "id": "reaper",
+      "race": 2,
+      "class": 30,
+      "level": 60,
+      "spell_hit_rating": 10000,
+      "melee_hit_rating": 10000,
+      "expertise_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "enemy",
+      "owner": "reaper",
+      "entry": 36,
+      "level": 2,
+      "distance": 3
+    }
+  ],
+  "steps": [
+    { "action": "wait", "ms": 5000 },
+    { "action": "learn", "actor": "reaper", "spell": 572342 },
+    { "action": "assert", "actor": "reaper", "metric": "knows_spell", "spell": 572342, "equals": 1 },
+
+    { "action": "set_power", "actor": "reaper", "power": 6, "value": 0 },
+    { "action": "snapshot", "actor": "enemy", "metric": "health", "save_as": "before_rejected" },
+    { "action": "cast", "actor": "reaper", "spell": 572342, "target": "enemy" },
+    { "action": "wait", "ms": 300 },
+    { "action": "assert", "actor": "enemy", "metric": "health", "relative_to": "before_rejected", "equals": 0, "label": "Without Soul Infusion the cast is rejected and deals no damage" },
+    { "action": "assert", "actor": "reaper", "metric": "power", "power": 6, "equals": 0, "label": "A rejected cast grants no Runic Power" },
+
+    { "action": "set_aura", "actor": "reaper", "spell": 500363, "stacks": 3 },
+    { "action": "set_aura", "actor": "reaper", "spell": 803031, "stacks": 1 },
+    { "action": "assert", "actor": "reaper", "metric": "aura_stacks", "spell": 500363, "equals": 3 },
+    { "action": "assert", "actor": "reaper", "metric": "aura", "spell": 803031, "equals": 1 },
+    { "action": "set_power", "actor": "reaper", "power": 6, "value": 0 },
+    { "action": "snapshot", "actor": "enemy", "metric": "health", "save_as": "before_hit" },
+    { "action": "cast", "actor": "reaper", "spell": 572342, "target": "enemy" },
+    { "action": "assert", "actor": "enemy", "metric": "health", "relative_to": "before_hit", "max": -1, "within_ms": 1000, "label": "Soulrend lands" },
+    { "action": "assert", "actor": "reaper", "metric": "aura", "spell": 803031, "equals": 0, "within_ms": 500, "label": "Soul Infusion consumed" },
+    { "action": "assert", "actor": "reaper", "metric": "aura", "spell": 500363, "equals": 0, "within_ms": 500, "label": "Reaped Souls consumed" },
+    { "action": "assert", "actor": "reaper", "metric": "power", "power": 6, "min": 145, "max": 155, "within_ms": 500, "label": "Placeholder 15 Runic Power (150 internal) on the successful hit" }
+  ]
+}

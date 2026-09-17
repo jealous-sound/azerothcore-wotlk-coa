@@ -1,0 +1,354 @@
+{
+  "schema": 1,
+  "name": "Barbarian Onslaught in combat: baseline and both talent choices",
+  "contract": "Onslaught restores Energy, starts its cooldown and expires. Covers native server behavior, not client delivery.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "plain",
+      "race": 1,
+      "class": 12,
+      "level": 80,
+      "melee_hit_rating": 10000,
+      "expertise_rating": 10000
+    },
+    {
+      "id": "rapid",
+      "race": 1,
+      "class": 12,
+      "level": 80,
+      "melee_hit_rating": 10000,
+      "expertise_rating": 10000
+    },
+    {
+      "id": "bloody",
+      "race": 1,
+      "class": 12,
+      "level": 80,
+      "melee_hit_rating": 10000,
+      "expertise_rating": 10000
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "plain",
+      "spell": 201
+    },
+    {
+      "action": "add_item",
+      "actor": "plain",
+      "item": 25
+    },
+    {
+      "action": "equip",
+      "actor": "plain",
+      "item": 25,
+      "slot": 15
+    },
+    {
+      "action": "learn",
+      "actor": "rapid",
+      "spell": 201
+    },
+    {
+      "action": "add_item",
+      "actor": "rapid",
+      "item": 25
+    },
+    {
+      "action": "equip",
+      "actor": "rapid",
+      "item": 25,
+      "slot": 15
+    },
+    {
+      "action": "learn",
+      "actor": "bloody",
+      "spell": 201
+    },
+    {
+      "action": "add_item",
+      "actor": "bloody",
+      "item": 25
+    },
+    {
+      "action": "equip",
+      "actor": "bloody",
+      "item": 25,
+      "slot": 15
+    },
+    {
+      "action": "attack",
+      "actor": "plain",
+      "target": "enemy"
+    },
+    {
+      "action": "assert",
+      "label": "plain enters native melee combat",
+      "actor": "plain",
+      "metric": "combat",
+      "equals": 1,
+      "within_ms": 5000
+    },
+    {
+      "action": "attack",
+      "actor": "rapid",
+      "target": "enemy"
+    },
+    {
+      "action": "assert",
+      "label": "rapid enters native melee combat",
+      "actor": "rapid",
+      "metric": "combat",
+      "equals": 1,
+      "within_ms": 5000
+    },
+    {
+      "action": "attack",
+      "actor": "bloody",
+      "target": "enemy"
+    },
+    {
+      "action": "assert",
+      "label": "bloody enters native melee combat",
+      "actor": "bloody",
+      "metric": "combat",
+      "equals": 1,
+      "within_ms": 5000
+    },
+    {
+      "action": "assert",
+      "actor": "enemy",
+      "metric": "alive",
+      "equals": 1
+    },
+    {
+      "action": "learn",
+      "actor": "plain",
+      "spell": 801758
+    },
+    {
+      "action": "set_power",
+      "actor": "plain",
+      "power": 3,
+      "value": 0
+    },
+    {
+      "action": "cast",
+      "actor": "plain",
+      "spell": 801758
+    },
+    {
+      "action": "assert",
+      "label": "plain: Onslaught applies without crashing",
+      "actor": "plain",
+      "metric": "aura",
+      "spell": 801758,
+      "equals": 1,
+      "within_ms": 1000
+    },
+    {
+      "action": "assert",
+      "label": "plain: instant Energy gain",
+      "actor": "plain",
+      "metric": "power",
+      "power": 3,
+      "min": 25,
+      "max": 100
+    },
+    {
+      "action": "assert",
+      "label": "plain: native cooldown starts",
+      "actor": "plain",
+      "metric": "cooldown_ms",
+      "spell": 801758,
+      "min": 58000,
+      "max": 60000
+    },
+    {
+      "action": "learn",
+      "actor": "rapid",
+      "spell": 705171
+    },
+    {
+      "action": "learn",
+      "actor": "rapid",
+      "spell": 801758
+    },
+    {
+      "action": "set_power",
+      "actor": "rapid",
+      "power": 3,
+      "value": 0
+    },
+    {
+      "action": "cast",
+      "actor": "rapid",
+      "spell": 801758
+    },
+    {
+      "action": "assert",
+      "label": "rapid: Onslaught applies without crashing",
+      "actor": "rapid",
+      "metric": "aura",
+      "spell": 801758,
+      "equals": 1,
+      "within_ms": 1000
+    },
+    {
+      "action": "assert",
+      "label": "rapid: instant Energy gain",
+      "actor": "rapid",
+      "metric": "power",
+      "power": 3,
+      "min": 25,
+      "max": 100
+    },
+    {
+      "action": "assert",
+      "label": "rapid: native cooldown starts",
+      "actor": "rapid",
+      "metric": "cooldown_ms",
+      "spell": 801758,
+      "min": 58000,
+      "max": 60000
+    },
+    {
+      "action": "learn",
+      "actor": "bloody",
+      "spell": 707583
+    },
+    {
+      "action": "learn",
+      "actor": "bloody",
+      "spell": 801758
+    },
+    {
+      "action": "set_power",
+      "actor": "bloody",
+      "power": 3,
+      "value": 0
+    },
+    {
+      "action": "cast",
+      "actor": "bloody",
+      "spell": 801758
+    },
+    {
+      "action": "assert",
+      "label": "bloody: Onslaught applies without crashing",
+      "actor": "bloody",
+      "metric": "aura",
+      "spell": 801758,
+      "equals": 1,
+      "within_ms": 1000
+    },
+    {
+      "action": "assert",
+      "label": "bloody: instant Energy gain",
+      "actor": "bloody",
+      "metric": "power",
+      "power": 3,
+      "min": 25,
+      "max": 100
+    },
+    {
+      "action": "assert",
+      "label": "bloody: native cooldown starts",
+      "actor": "bloody",
+      "metric": "cooldown_ms",
+      "spell": 801758,
+      "min": 58000,
+      "max": 60000
+    },
+    {
+      "action": "wait",
+      "ms": 2100
+    },
+    {
+      "action": "assert",
+      "label": "plain: periodic Energy gain",
+      "actor": "plain",
+      "metric": "power",
+      "power": 3,
+      "min": 45
+    },
+    {
+      "action": "assert",
+      "actor": "plain",
+      "metric": "alive",
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "label": "rapid: periodic Energy gain",
+      "actor": "rapid",
+      "metric": "power",
+      "power": 3,
+      "min": 45
+    },
+    {
+      "action": "assert",
+      "actor": "rapid",
+      "metric": "alive",
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "label": "bloody: periodic Energy gain",
+      "actor": "bloody",
+      "metric": "power",
+      "power": 3,
+      "min": 45
+    },
+    {
+      "action": "assert",
+      "actor": "bloody",
+      "metric": "alive",
+      "equals": 1
+    },
+    {
+      "action": "wait",
+      "ms": 16000
+    },
+    {
+      "action": "assert",
+      "label": "plain: Onslaught expires",
+      "actor": "plain",
+      "metric": "aura",
+      "spell": 801758,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "rapid: Onslaught expires",
+      "actor": "rapid",
+      "metric": "aura",
+      "spell": 801758,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "bloody: Onslaught expires",
+      "actor": "bloody",
+      "metric": "aura",
+      "spell": 801758,
+      "equals": 0
+    }
+  ],
+  "creatures": [
+    {
+      "id": "enemy",
+      "owner": "plain",
+      "entry": 36,
+      "level": 80,
+      "health": 1000000,
+      "distance": 3
+    }
+  ]
+}

@@ -122,7 +122,9 @@ int main()
     info.SpellFamilyName = 22;
     info.Id = 504643;
     metadata.OnLoadSpellCustomAttr(&info);
-    assert(info.MaxCharges == 2 && info.ChargeRecoveryTime == 60000 && info.ChargeRecoveryKey == 504643);
+    assert(!info.MaxCharges); // The pool comes from the client's SpellCharges.dbc: category 532, 2 charges, 60 s.
+    info.MaxCharges = 2;
+    info.ChargeRecoveryTime = 60000;
     SpellChargeState pool;
     assert(pool.Consume(info.MaxCharges, info.ChargeRecoveryTime, 100));
     assert(pool.Consume(info.MaxCharges, info.ChargeRecoveryTime, 100));

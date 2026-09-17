@@ -31,11 +31,17 @@ Option 4 weakens a safety guard protecting real databases.
 
 ## Consequences
 
-- Linux users run scenarios with one Compose command; no C++ change or rebuild of the server image is needed.
+- Linux users run scenarios with one Compose command once a matching worldserver image with the runtime module
+  and cache startup barrier is available. The wrapper adds no C++ changes.
 - Upstream Docker files stay untouched; the service must be combined with the root `docker-compose.yml` via `-f`.
 - The test image must be rebuilt after rebuilding the worldserver image.
+- The service selects the same source schemas as the root Compose worldserver through the shared loopback
+  endpoint. Custom schema overrides must be mirrored in the test service.
+- Default world-cache reuse and explicit fresh/refresh modes match direct invocation. Metadata and leases persist
+  in the writable results mount, not the read-only checkout. Inherited `AC_*` changes invalidate the cache.
 - The service uses the MySQL root password already provided to the Compose stack. Credentials are written only to
   mode-600 files in a private temporary directory of the runner (inside the disposable container), never to the
-  result directory, and are removed when the run ends. `docker stop`/`compose stop` sends SIGTERM, which the runner
-  now converts into its existing interrupt cleanup; only SIGKILL or a stop without enough grace time can leave the
-  `coa_test_*` schemas behind (check `summary.json`).
+  result directory. The runner removes its files during cleanup; the entrypoint's admin file disappears with the
+  disposable container. SIGTERM triggers cleanup and the world-cache audit, with a 15-minute stop grace period.
+  Clean cached world schemas are intentionally retained; hard termination or cleanup failure may also leave
+  schemas or leases behind (check `summary.json` and the lease before recovery).

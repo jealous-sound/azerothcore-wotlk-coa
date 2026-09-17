@@ -35,7 +35,10 @@ enum RunemasterSecondarySpells : uint32
     SPELL_WATER_TATTOO = 801107,
     SPELL_ARCANE_SIGIL = 805380,
     SPELL_ARCANE_SIGIL_DOT = 807819,
-    SPELL_ARCANE_SIGIL_SILENCE = 808020
+    SPELL_ARCANE_SIGIL_SILENCE = 808020,
+    SPELL_FIRE_ENGRAVING = 653211,
+    SPELL_FIREBRAND = 653210,
+    SPELL_FIREBRAND_EXPLOSION = 653212
 };
 
 bool HasTattoo(Player* player, uint32 root)
@@ -219,6 +222,68 @@ class aura_ascension_arcane_palm_sigil : public AuraScript
     }
 };
 
+// Fire Engraving (equip spell of enchant 1000): direct damage has a 30% chance to apply Firebrand. The
+// proc flags come from spell_proc; this script only keeps the existing Firebrand's duration, since
+// "Additional applications do not refresh its duration".
+class aura_ascension_runemaster_fire_engraving : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_runemaster_fire_engraving);
+
+    bool Check(ProcEventInfo& event)
+    {
+        Unit* player = GetTarget();
+        DamageInfo const* damage = event.GetDamageInfo();
+        Unit* target = event.GetActionTarget();
+        return player->IsPlayer() && player->getClass() == CLASS_SPIRIT_MAGE && event.GetActor() == player &&
+            target && target != player && target->IsAlive() && damage && damage->GetDamage() &&
+            damage->GetDamageType() != DOT;
+    }
+
+    void Proc(AuraEffect const* /*effect*/, ProcEventInfo& event)
+    {
+        PreventDefaultAction();
+        Unit* player = GetTarget();
+        Unit* target = event.GetActionTarget();
+        if (Aura* brand = target->GetAura(SPELL_FIREBRAND, player->GetGUID()))
+        {
+            int32 const duration = brand->GetDuration();
+            brand->ModStackAmount(1);
+            brand->SetDuration(duration);
+            return;
+        }
+        player->CastSpell(target, SPELL_FIREBRAND, true);
+    }
+
+    void Register() override
+    {
+        DoCheckProc += AuraCheckProcFn(aura_ascension_runemaster_fire_engraving::Check);
+        OnEffectProc += AuraEffectProcFn(aura_ascension_runemaster_fire_engraving::Proc, EFFECT_0,
+                                         SPELL_AURA_PROC_TRIGGER_SPELL);
+    }
+};
+
+// Firebrand: "When this effect expires, it explodes, dealing ... Fire damage per stack."
+class aura_ascension_runemaster_firebrand : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_runemaster_firebrand);
+
+    void Explode(AuraEffect const* /*effect*/, AuraEffectHandleModes /*mode*/)
+    {
+        Unit* caster = GetCaster();
+        Unit* target = GetTarget();
+        if (GetTargetApplication()->GetRemoveMode() != AURA_REMOVE_BY_EXPIRE || !caster || !target->IsAlive())
+            return;
+        for (uint8 stack = GetStackAmount(); stack > 0; --stack)
+            caster->CastSpell(target, SPELL_FIREBRAND_EXPLOSION, true);
+    }
+
+    void Register() override
+    {
+        AfterEffectRemove += AuraEffectRemoveFn(aura_ascension_runemaster_firebrand::Explode, EFFECT_0,
+                                                SPELL_AURA_PERIODIC_DAMAGE, AURA_EFFECT_HANDLE_REAL);
+    }
+};
+
 class runemaster_secondary_metadata : public GlobalScript
 {
 public:
@@ -253,4 +318,6 @@ void AddSC_AscensionRunemasterSecondary()
     new runemaster_secondary_casts();
     new runemaster_secondary_metadata();
     RegisterSpellScript(aura_ascension_arcane_palm_sigil);
+    RegisterSpellScript(aura_ascension_runemaster_fire_engraving);
+    RegisterSpellScript(aura_ascension_runemaster_firebrand);
 }

@@ -129,6 +129,23 @@ class aura_ascension_harvester : public AuraScript
     }
 };
 
+// The Jailer's Call: attacks against enemies below 20% health trigger its extra Shadow damage.
+class aura_ascension_jailers_call : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_jailers_call);
+
+    bool CheckProc(ProcEventInfo& event)
+    {
+        Unit* victim = event.GetActionTarget();
+        return victim && victim != GetTarget() && victim->IsAlive() && victim->HealthBelowPct(20);
+    }
+
+    void Register() override
+    {
+        DoCheckProc += AuraCheckProcFn(aura_ascension_jailers_call::CheckProc);
+    }
+};
+
 class reaper_talent_events : public UnitScript
 {
 public:
@@ -179,5 +196,6 @@ void AddSC_AscensionReaperTalents()
 {
     RegisterSpellScript(spell_ascension_soul_capture);
     RegisterSpellScript(aura_ascension_harvester);
+    RegisterSpellScript(aura_ascension_jailers_call);
     new reaper_talent_events();
 }

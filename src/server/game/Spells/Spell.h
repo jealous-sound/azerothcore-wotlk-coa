@@ -842,6 +842,7 @@ public:
 
     SpellEvent* _spellEvent;
     TriggerCastFlags _triggeredCastFlags;
+    uint32 m_globalCooldownGeneration = 0; // set when this cast started a global cooldown
 
     // if need this can be replaced by Aura copy
     // we can't store original aura link to prevent access to deleted auras

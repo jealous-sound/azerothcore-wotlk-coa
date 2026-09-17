@@ -186,7 +186,9 @@ public:
     void SetEvadeDisabled(bool disable = true);
     void SetSuppressEvade(bool suppress) { mSuppressEvade = suppress; }
 
-    void SetInvincibilityHpLevel(uint32 level) { mInvincibilityHpLevel = level; }
+    void SetInvincibilityHpLevel(uint32 level) { mInvincibilityHpLevel = level; mInvincibilityHpPct = 0; }
+    // Kept as a percentage so the floor follows maximum health changes, such as a level rescale after the summon.
+    void SetInvincibilityHpPct(uint32 pct) { mInvincibilityHpPct = pct; mInvincibilityHpLevel = 0; }
 
     void sGossipHello(Player* player) override;
     void sGossipSelect(Player* player, uint32 sender, uint32 action) override;
@@ -257,6 +259,7 @@ private:
     bool mCanAutoAttack;
     bool mForcedPaused;
     uint32 mInvincibilityHpLevel;
+    uint32 mInvincibilityHpPct;
     ForcedMovement mForcedMovement;
 
     bool AssistPlayerInCombatAgainst(Unit* who);

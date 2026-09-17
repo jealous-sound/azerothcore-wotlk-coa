@@ -83,4 +83,57 @@ int main()
         service.OnSpellCast(&spell);
         assert(player.Count(800058) == 0 && player.Count(803102) == 0 && player.Count(500906) == 0);
     }
+    // A damaging spell whose damage the target swallowed whole still generates.
+    //
+    // OnSpellHitResult is handed what survived the target's mitigation, and
+    // npc_training_dummy::DamageTaken sets that to zero on every hit, so a Reaper checking a
+    // rotation on a dummy built no Soul Fragments at all. Reap 573302-573303 is
+    // FirstSuccessfulDamagingHit against Soul Fragment 805077.
+    {
+        constexpr uint32 REAP = 573303;
+        constexpr uint32 SOUL_FRAGMENT = 805077;
+        auto reap = [&service](Player& caster, Player& target, uint8 missInfo, uint32 damage,
+            uint32 effect)
+        {
+            Spell spell{&caster, {REAP}};
+            spell.info.Effects = {effect, 0, 0};
+            service.OnSpellHitResult(&spell, &target, missInfo, damage, false);
+        };
+
+        Player player, enemy;
+        player.cls = 30;
+
+        // The case the helper exists for: it landed, the spell deals damage, the figure is zero.
+        reap(player, enemy, SPELL_MISS_NONE, 0, SPELL_EFFECT_NORMALIZED_WEAPON_DMG);
+        assert(player.Count(SOUL_FRAGMENT) == 1);
+
+        // A miss is still a miss, whatever the spell would have dealt.
+        reap(player, enemy, 1, 0, SPELL_EFFECT_NORMALIZED_WEAPON_DMG);
+        assert(player.Count(SOUL_FRAGMENT) == 1);
+
+        // A spell with no damaging effect gains nothing from a zero figure,
+        player.auras.clear();
+        reap(player, enemy, SPELL_MISS_NONE, 0, 0);
+        assert(player.Count(SOUL_FRAGMENT) == 0);
+
+        // while the path that always worked, a real damage figure, is untouched.
+        reap(player, enemy, SPELL_MISS_NONE, 100, 0);
+        assert(player.Count(SOUL_FRAGMENT) == 1);
+
+        // Every effect the helper asks about counts, and only on a hostile target.
+        for (uint32 effect : {SPELL_EFFECT_SCHOOL_DAMAGE, SPELL_EFFECT_WEAPON_DAMAGE_NOSCHOOL,
+                              SPELL_EFFECT_WEAPON_PERCENT_DAMAGE, SPELL_EFFECT_WEAPON_DAMAGE,
+                              SPELL_EFFECT_NORMALIZED_WEAPON_DMG})
+        {
+            Player caster, target;
+            caster.cls = 30;
+            target.friendly = true;
+            reap(caster, target, SPELL_MISS_NONE, 0, effect);
+            assert(caster.Count(SOUL_FRAGMENT) == 0);
+
+            target.friendly = false;
+            reap(caster, target, SPELL_MISS_NONE, 0, effect);
+            assert(caster.Count(SOUL_FRAGMENT) == 1);
+        }
+    }
 }

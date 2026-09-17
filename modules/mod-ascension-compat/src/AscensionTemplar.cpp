@@ -172,7 +172,12 @@ void GrantOath(Player* player, uint32 oath)
     }
     Cast(player, player, 704576);
     if (Aura* aura = player->GetAura(704576))
+    {
         aura->SetDuration(first ? aura->GetMaxDuration() : duration);
+        // The first Oath lasts as long as the new chain, including Deep Meditation and Oath Flow.
+        if (Aura* granted = first ? player->GetAura(oath) : nullptr)
+            granted->SetDuration(aura->GetDuration());
+    }
     if (first && State(player).retribution)
     {
         State(player).retribution = false;
@@ -299,6 +304,11 @@ class templar_player : public PlayerScript
                                state.copies.end());
             if (!player->IsAlive())
                 AscensionTemplar::ClearOaths(player);
+            // Devotion of Khaz'goroth's party and raid haste aura follows the learned talent aura.
+            if (player->HasAura(560096) && !player->HasAura(567572))
+                AscensionTemplar::Cast(player, player, 567572);
+            else if (!player->HasAura(560096) && player->HasAura(567572, player->GetGUID()))
+                player->RemoveAurasDueToSpell(567572, player->GetGUID());
         }
     }
     void OnPlayerLogout(Player* player) override

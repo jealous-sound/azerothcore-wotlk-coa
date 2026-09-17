@@ -245,12 +245,6 @@ public:
             return;
         if (info->Id == SPELL_WIND_GATE)
             info->Effects[EFFECT_1].Effect = 0; // The stationary summon owns the gate; the copied area dummy is inert.
-        if (info->Id == SPELL_EVACUATE)
-        {
-            info->MaxCharges = 2;
-            info->ChargeRecoveryTime = 60000;
-            info->ChargeRecoveryKey = SPELL_EVACUATE;
-        }
     }
 };
 }

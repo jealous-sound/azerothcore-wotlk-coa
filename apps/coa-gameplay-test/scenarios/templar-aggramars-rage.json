@@ -1,0 +1,219 @@
+{
+  "schema": 1,
+  "name": "Aggramar's Rage: Holy ability crit chance and expertise (#1323)",
+  "contract": "Aggramar's Rage increases Holy critical strike chance by 3% and expertise by 5 (rank 1, 560650), or 6% and 10 (rank 2, 561346). Its crit effect names Chastise, Scarlet Hammer and Blade of Faith (client class mask; the 2026-01-07 changelog limits it to Chastise and Thousand Blades), not every attack.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    },
+    {
+      "id": "rank_one",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    },
+    {
+      "id": "rank_two",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    }
+  ],
+  "creatures": [
+    {
+      "id": "dummy",
+      "owner": "control",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 3
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "add_item",
+      "actor": "control",
+      "item": 2495
+    },
+    {
+      "action": "equip",
+      "actor": "control",
+      "item": 2495,
+      "slot": 15
+    },
+    {
+      "action": "add_item",
+      "actor": "rank_one",
+      "item": 2495
+    },
+    {
+      "action": "equip",
+      "actor": "rank_one",
+      "item": 2495,
+      "slot": 15
+    },
+    {
+      "action": "add_item",
+      "actor": "rank_two",
+      "item": 2495
+    },
+    {
+      "action": "equip",
+      "actor": "rank_two",
+      "item": 2495,
+      "slot": 15
+    },
+    {
+      "action": "set_aura",
+      "label": "Baseline crit aura computes crit chance",
+      "actor": "control",
+      "spell": 14139,
+      "stacks": 1
+    },
+    {
+      "action": "set_aura",
+      "label": "Baseline crit aura computes crit chance",
+      "actor": "rank_one",
+      "spell": 14139,
+      "stacks": 1
+    },
+    {
+      "action": "set_aura",
+      "label": "Baseline crit aura computes crit chance",
+      "actor": "rank_two",
+      "spell": 14139,
+      "stacks": 1
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "melee_crit_chance",
+      "save_as": "melee_crit"
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "expertise",
+      "save_as": "expertise"
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "spell_crit_chance",
+      "save_as": "holy_crit",
+      "school": 1
+    },
+    {
+      "action": "learn",
+      "actor": "rank_one",
+      "spell": 560650
+    },
+    {
+      "action": "learn",
+      "actor": "rank_two",
+      "spell": 561346
+    },
+    {
+      "action": "assert",
+      "label": "Rank 1 expertise",
+      "actor": "rank_one",
+      "metric": "expertise",
+      "relative_to": "expertise",
+      "equals": 5
+    },
+    {
+      "action": "assert",
+      "label": "Rank 2 expertise",
+      "actor": "rank_two",
+      "metric": "expertise",
+      "relative_to": "expertise",
+      "equals": 10
+    },
+    {
+      "action": "assert",
+      "label": "Rank 1 Chastise crit",
+      "actor": "rank_one",
+      "metric": "spell_modifier",
+      "spell": 503141,
+      "op": 7,
+      "base": 0,
+      "equals": 3
+    },
+    {
+      "action": "assert",
+      "label": "Rank 2 Chastise crit",
+      "actor": "rank_two",
+      "metric": "spell_modifier",
+      "spell": 503141,
+      "op": 7,
+      "base": 0,
+      "equals": 6
+    },
+    {
+      "action": "assert",
+      "label": "Rank 2 Scarlet Hammer crit",
+      "actor": "rank_two",
+      "metric": "spell_modifier",
+      "spell": 807035,
+      "op": 7,
+      "base": 0,
+      "equals": 6
+    },
+    {
+      "action": "assert",
+      "label": "Titanstrike is not named",
+      "actor": "rank_two",
+      "metric": "spell_modifier",
+      "spell": 806835,
+      "op": 7,
+      "base": 0,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "Melee crit chance is unchanged",
+      "actor": "rank_two",
+      "metric": "melee_crit_chance",
+      "relative_to": "melee_crit",
+      "min": -0.01,
+      "max": 0.01
+    },
+    {
+      "action": "assert",
+      "label": "General Holy spell crit is unchanged",
+      "actor": "rank_two",
+      "metric": "spell_crit_chance",
+      "school": 1,
+      "relative_to": "holy_crit",
+      "min": -0.01,
+      "max": 0.01
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "spell_done_crit_chance",
+      "save_as": "chastise_crit",
+      "spell": 503141,
+      "target": "dummy"
+    },
+    {
+      "action": "assert",
+      "label": "Chastise's crit chance rises by 6",
+      "actor": "rank_two",
+      "metric": "spell_done_crit_chance",
+      "spell": 503141,
+      "target": "dummy",
+      "relative_to": "chastise_crit",
+      "min": 5.99,
+      "max": 6.01
+    }
+  ]
+}

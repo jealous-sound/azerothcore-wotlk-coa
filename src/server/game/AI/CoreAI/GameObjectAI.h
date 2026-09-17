@@ -66,6 +66,12 @@ public:
     virtual void SpellHit(Unit* /*unit*/, SpellInfo const* /*spellInfo*/) {}
     virtual bool CanBeSeen(Player const* /*seer*/) { return true; }
 
+    // Called while this gameobject's update block is built for one specific player, so a script can
+    // give that viewer its own client-side flags: dynFlags land in GAMEOBJECT_DYNAMIC
+    // (GO_DYNFLAG_LO_*), goFlags in GAMEOBJECT_FLAGS (GO_FLAG_*). Whenever a script sets either one,
+    // the corresponding field is forced into the update even when it did not change value-wise.
+    virtual void BuildClientFlags(Player const* /*target*/, uint16& /*dynFlags*/, uint32& /*goFlags*/) { }
+
     // Called when the gameobject summon successfully other creature
     virtual void JustSummoned(Creature* /*summon*/) {}
     virtual void SummonedCreatureDespawn(Creature* /*summon*/) {}

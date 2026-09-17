@@ -1,0 +1,98 @@
+{
+  "schema": 1,
+  "name": "Issue 3967: Sanguine Mend cannot be cast while in any Cursed Form",
+  "contract": "Sanguine Mend (504079) is natively gated by ExcludeCasterAuraSpell=802877 (AscensionBloodmage::CursedForm). Nothing previously granted that marker while shapeshifted, so the native gate never fired.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "bloodmage",
+      "race": 1,
+      "class": 20,
+      "level": 80
+    }
+  ],
+  "steps": [
+    { "action": "wait", "ms": 5000 },
+    { "action": "learn", "spell": 504079, "actor": "bloodmage" },
+    {
+      "action": "assert",
+      "metric": "aura",
+      "spell": 802877,
+      "equals": 0,
+      "actor": "bloodmage"
+    },
+    { "action": "set_power", "power": 1, "value": 1000, "actor": "bloodmage" },
+    {
+      "action": "snapshot",
+      "metric": "power",
+      "power": 1,
+      "save_as": "rage_before_normal",
+      "actor": "bloodmage"
+    },
+    { "action": "cast", "spell": 504079, "actor": "bloodmage" },
+    {
+      "action": "assert",
+      "metric": "power",
+      "power": 1,
+      "relative_to": "rage_before_normal",
+      "max": -1,
+      "within_ms": 3500,
+      "actor": "bloodmage"
+    },
+    { "action": "wait", "ms": 2000 },
+    { "action": "set_aura", "spell": 800157, "stacks": 1, "actor": "bloodmage" },
+    {
+      "action": "assert",
+      "metric": "aura",
+      "spell": 802877,
+      "equals": 1,
+      "within_ms": 1000,
+      "actor": "bloodmage"
+    },
+    { "action": "set_power", "power": 1, "value": 1000, "actor": "bloodmage" },
+    {
+      "action": "snapshot",
+      "metric": "power",
+      "power": 1,
+      "save_as": "rage_before_shifted",
+      "actor": "bloodmage"
+    },
+    { "action": "cast", "spell": 504079, "actor": "bloodmage" },
+    {
+      "action": "assert",
+      "metric": "power",
+      "power": 1,
+      "relative_to": "rage_before_shifted",
+      "equals": 0,
+      "actor": "bloodmage"
+    },
+    { "action": "set_aura", "spell": 800157, "stacks": 0, "actor": "bloodmage" },
+    {
+      "action": "assert",
+      "metric": "aura",
+      "spell": 802877,
+      "equals": 0,
+      "within_ms": 1000,
+      "actor": "bloodmage"
+    },
+    { "action": "wait", "ms": 2000 },
+    { "action": "set_power", "power": 1, "value": 1000, "actor": "bloodmage" },
+    {
+      "action": "snapshot",
+      "metric": "power",
+      "power": 1,
+      "save_as": "rage_before_after",
+      "actor": "bloodmage"
+    },
+    { "action": "cast", "spell": 504079, "actor": "bloodmage" },
+    {
+      "action": "assert",
+      "metric": "power",
+      "power": 1,
+      "relative_to": "rage_before_after",
+      "max": -1,
+      "within_ms": 3500,
+      "actor": "bloodmage"
+    }
+  ]
+}

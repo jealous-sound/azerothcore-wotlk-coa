@@ -1,0 +1,102 @@
+{
+  "schema": 1,
+  "name": "Martial Training adds 150% weapon damage to Chastise and Scarlet Hammer (#952)",
+  "contract": "Chastise's third effect deals 0% weapon damage and Scarlet Hammer's first 190%. Martial Training 806525 adds 150 to each (flat EFFECT3 and EFFECT1).",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    },
+    {
+      "id": "talent",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 503141
+    },
+    {
+      "action": "learn",
+      "actor": "talent",
+      "spell": 503141
+    },
+    {
+      "action": "learn",
+      "actor": "talent",
+      "spell": 806525
+    },
+    {
+      "action": "assert",
+      "label": "Chastise weapon damage without the talent",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 503141,
+      "op": 23,
+      "base": 0,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "Chastise weapon damage with the talent",
+      "actor": "talent",
+      "metric": "spell_modifier",
+      "spell": 503141,
+      "op": 23,
+      "base": 0,
+      "equals": 150
+    },
+    {
+      "action": "assert",
+      "label": "Scarlet Hammer weapon damage without the talent",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 807035,
+      "op": 3,
+      "base": 190,
+      "equals": 190
+    },
+    {
+      "action": "assert",
+      "label": "Scarlet Hammer weapon damage with the talent",
+      "actor": "talent",
+      "metric": "spell_modifier",
+      "spell": 807035,
+      "op": 3,
+      "base": 190,
+      "equals": 340
+    },
+    {
+      "action": "assert",
+      "label": "Titanstrike is unaffected without the talent",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 806521,
+      "op": 23,
+      "base": 0,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "Titanstrike is unaffected with the talent",
+      "actor": "talent",
+      "metric": "spell_modifier",
+      "spell": 806521,
+      "op": 23,
+      "base": 0,
+      "equals": 0
+    }
+  ]
+}

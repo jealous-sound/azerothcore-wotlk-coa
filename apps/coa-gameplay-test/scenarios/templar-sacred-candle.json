@@ -1,0 +1,146 @@
+{
+  "schema": 1,
+  "name": "Sacred Candle shortens Testament of Faith and Sacred Restraint (#1612)",
+  "contract": "Sacred Candle 300501 reduces Testament of Faith's 3 min cooldown by 60 sec and Sacred Restraint's 60 sec duration by 30 sec (flat COOLDOWN and DURATION).",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    },
+    {
+      "id": "talent",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 501606
+    },
+    {
+      "action": "learn",
+      "actor": "talent",
+      "spell": 501606
+    },
+    {
+      "action": "learn",
+      "actor": "talent",
+      "spell": 300501
+    },
+    {
+      "action": "assert",
+      "label": "Testament of Faith cooldown without the talent",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 501606,
+      "op": 11,
+      "base": 180000,
+      "equals": 180000
+    },
+    {
+      "action": "assert",
+      "label": "Testament of Faith cooldown with the talent",
+      "actor": "talent",
+      "metric": "spell_modifier",
+      "spell": 501606,
+      "op": 11,
+      "base": 180000,
+      "equals": 120000
+    },
+    {
+      "action": "assert",
+      "label": "Sacred Restraint duration without the talent",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 102208,
+      "op": 1,
+      "base": 60000,
+      "equals": 60000
+    },
+    {
+      "action": "assert",
+      "label": "Sacred Restraint duration with the talent",
+      "actor": "talent",
+      "metric": "spell_modifier",
+      "spell": 102208,
+      "op": 1,
+      "base": 60000,
+      "equals": 30000
+    },
+    {
+      "action": "set_power",
+      "actor": "control",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "set_power",
+      "actor": "talent",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "cast",
+      "actor": "control",
+      "spell": 501606
+    },
+    {
+      "action": "cast",
+      "actor": "talent",
+      "spell": 501606
+    },
+    {
+      "action": "assert",
+      "label": "Faith cooldown without the talent",
+      "actor": "control",
+      "metric": "cooldown_ms",
+      "spell": 501606,
+      "min": 178000,
+      "max": 180000,
+      "within_ms": 2000
+    },
+    {
+      "action": "assert",
+      "label": "Faith cooldown with the talent",
+      "actor": "talent",
+      "metric": "cooldown_ms",
+      "spell": 501606,
+      "min": 118000,
+      "max": 120000,
+      "within_ms": 2000
+    },
+    {
+      "action": "assert",
+      "label": "Sacred Restraint lasts 60 sec without the talent",
+      "actor": "control",
+      "metric": "aura_duration_ms",
+      "spell": 102208,
+      "caster": "control",
+      "min": 58000,
+      "max": 60000,
+      "within_ms": 2000
+    },
+    {
+      "action": "assert",
+      "label": "Sacred Restraint lasts 30 sec with the talent",
+      "actor": "talent",
+      "metric": "aura_duration_ms",
+      "spell": 102208,
+      "caster": "talent",
+      "min": 28000,
+      "max": 30000,
+      "within_ms": 2000
+    }
+  ]
+}

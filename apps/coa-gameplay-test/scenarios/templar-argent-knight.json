@@ -1,0 +1,180 @@
+{
+  "schema": 1,
+  "name": "Argent Knight: Tempest and Condemn +30% damage, 20% less damage taken (#1616)",
+  "contract": "Argent Knight 300512 increases Righteous Tempest and Condemn damage by 30% and makes Righteous Tempest reduce all damage taken by 20% while active.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 19,
+      "level": 80,
+      "melee_hit_rating": 10000,
+      "spell_hit_rating": 10000,
+      "expertise_rating": 10000
+    },
+    {
+      "id": "talent",
+      "race": 1,
+      "class": 19,
+      "level": 80,
+      "melee_hit_rating": 10000,
+      "spell_hit_rating": 10000,
+      "expertise_rating": 10000
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 807274
+    },
+    {
+      "action": "learn",
+      "actor": "talent",
+      "spell": 807274
+    },
+    {
+      "action": "learn",
+      "actor": "talent",
+      "spell": 300512
+    },
+    {
+      "action": "assert",
+      "label": "Righteous Tempest damage without the talent",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 570205,
+      "op": 0,
+      "base": 1000,
+      "equals": 1000
+    },
+    {
+      "action": "assert",
+      "label": "Righteous Tempest damage with the talent",
+      "actor": "talent",
+      "metric": "spell_modifier",
+      "spell": 570205,
+      "op": 0,
+      "base": 1000,
+      "equals": 1300
+    },
+    {
+      "action": "assert",
+      "label": "Condemn periodic damage without the talent",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 567541,
+      "op": 22,
+      "base": 1000,
+      "equals": 1000
+    },
+    {
+      "action": "assert",
+      "label": "Condemn periodic damage with the talent",
+      "actor": "talent",
+      "metric": "spell_modifier",
+      "spell": 567541,
+      "op": 22,
+      "base": 1000,
+      "equals": 1300
+    },
+    {
+      "action": "add_item",
+      "actor": "control",
+      "item": 2495
+    },
+    {
+      "action": "equip",
+      "actor": "control",
+      "item": 2495,
+      "slot": 15
+    },
+    {
+      "action": "add_item",
+      "actor": "talent",
+      "item": 2495
+    },
+    {
+      "action": "equip",
+      "actor": "talent",
+      "item": 2495,
+      "slot": 15
+    },
+    {
+      "action": "set_aura",
+      "actor": "control",
+      "spell": 704576,
+      "stacks": 1
+    },
+    {
+      "action": "set_aura",
+      "actor": "talent",
+      "spell": 704576,
+      "stacks": 1
+    },
+    {
+      "action": "set_power",
+      "actor": "control",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "set_power",
+      "actor": "talent",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "cast",
+      "actor": "control",
+      "spell": 807274
+    },
+    {
+      "action": "cast",
+      "actor": "talent",
+      "spell": 807274
+    },
+    {
+      "action": "assert",
+      "label": "Tempest active (control)",
+      "actor": "control",
+      "metric": "aura",
+      "spell": 807274,
+      "equals": 1,
+      "within_ms": 2000
+    },
+    {
+      "action": "assert",
+      "label": "Tempest active (talent)",
+      "actor": "talent",
+      "metric": "aura",
+      "spell": 807274,
+      "equals": 1,
+      "within_ms": 2000
+    },
+    {
+      "action": "assert",
+      "label": "No damage reduction without the talent",
+      "actor": "control",
+      "metric": "aura_amount",
+      "spell": 807274,
+      "effect": 1,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "20% damage reduction with the talent",
+      "actor": "talent",
+      "metric": "aura_amount",
+      "spell": 807274,
+      "effect": 1,
+      "equals": -20
+    }
+  ]
+}

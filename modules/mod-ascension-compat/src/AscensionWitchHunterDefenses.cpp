@@ -196,7 +196,7 @@ class aura_ascension_witch_hunter_lifecycle : public AuraScript
             Cast(GetCaster(), owner, 804073);
             owner->RemoveAurasByType(SPELL_AURA_MOD_STEALTH);
         }
-        if (id == 805751 && player)
+        if (id == 805751 && player && player->HasSpell(805767)) // Evasive
             player->CastCustomSpell(805766, SPELLVALUE_AURA_DURATION, GetAura()->GetDuration(), player,
                                     TRIGGERED_FULL_MASK);
         if (id == 504790 && player)
@@ -407,7 +407,7 @@ class witch_hunter_state : public UnitScript
             uint64(damage) + player->CountPctFromMaxHealth(35) >= player->GetHealth())
         {
             player->AddSpellCooldown(681173, 0, 120000);
-            SummonHounds(player, 3, sSpellMgr->GetSpellInfo(681172)->GetDuration(), attacker);
+            SummonHounds(player, 3, sSpellMgr->GetSpellInfo(681172)->GetDuration(), 681172, attacker);
             Reset(player, 500085);
         }
     }

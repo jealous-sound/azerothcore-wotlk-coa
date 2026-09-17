@@ -13,8 +13,15 @@ namespace
 {
 enum CacheItems : uint32
 {
-    AdventurerCache = 1397885
+    AdventurerSatchel = 1397884,
+    AdventurerCache = 1397885,
+    AdventurerRareCache = 1397886
 };
+
+bool IsAdventurerReward(uint32 entry)
+{
+    return entry == AdventurerSatchel || entry == AdventurerCache || entry == AdventurerRareCache;
+}
 
 enum RewardKind : uint8
 {
@@ -32,12 +39,48 @@ public:
 
     bool OnUse(Player* player, Item* item, SpellCastTargets const&) override
     {
-        if (item->GetEntry() != AdventurerCache)
+        if (!IsAdventurerReward(item->GetEntry()))
             return false;
         // A client with the original cached template sends an item-use spell request.
         player->SendEquipError(EQUIP_ERR_NONE, item, nullptr);
-        if (player->IsAlive() && !player->IsInCombat())
-            player->SendLoot(item->GetGUID(), LOOT_CORPSE);
+        if (!player->IsAlive() || player->IsInCombat())
+            return true;
+
+        // Ascension hands the reward straight to the bags: its cached item templates carry no
+        // ITEM_FLAG_HAS_LOOT, so opening a cache never showed a loot window.
+        Loot loot;
+        loot.containerGUID = item->GetGUID(); // the reward filter below recognises the cache through it
+        loot.FillLoot(item->GetEntry(), LootTemplates_Item, player, true, true);
+
+        std::vector<LootItem const*> rewards;
+        ItemPosCountVec reserved;
+        uint32 const slots = loot.GetMaxSlotInLootFor(player);
+        for (uint32 slot = 0; slot < slots; ++slot)
+        {
+            LootItem const* reward = loot.LootItemInSlot(slot, player);
+            if (!reward)
+                continue;
+            InventoryResult space =
+                player->CanStoreNewItem(NULL_BAG, NULL_SLOT, reserved, reward->itemid, reward->count);
+            if (space != EQUIP_ERR_OK)
+            {
+                // Leave the cache in the bags so it can be opened once there is room for its reward.
+                player->SendEquipError(space, nullptr, nullptr, reward->itemid);
+                return true;
+            }
+            rewards.push_back(reward);
+        }
+
+        uint32 count = 1;
+        player->DestroyItemCount(item, count, true);
+        for (LootItem const* reward : rewards)
+        {
+            ItemPosCountVec dest;
+            if (player->CanStoreNewItem(NULL_BAG, NULL_SLOT, dest, reward->itemid, reward->count) != EQUIP_ERR_OK)
+                continue;
+            if (Item* stored = player->StoreNewItem(dest, reward->itemid, true, reward->randomPropertyId))
+                player->SendNewItem(stored, reward->count, false, false, true);
+        }
         return true;
     }
 };
@@ -54,7 +97,7 @@ public:
         if (!player || &store != &LootTemplates_Item)
             return true;
         Item const* container = player->GetItemByGuid(loot.containerGUID);
-        if (!container || container->GetEntry() != AdventurerCache)
+        if (!container || !IsAdventurerReward(container->GetEntry()))
             return true;
 
         std::array<std::vector<LootStoreItem*>, RewardKindCount> rewards;

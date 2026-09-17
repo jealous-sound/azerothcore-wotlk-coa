@@ -49,6 +49,11 @@ void ApplyContracts(SpellInfo* info)
         info->DurationEntry = sSpellDurationStore.LookupEntry(8); // fifteen seconds
     if (id == 804904)
         info->Effects[2].SpellClassMask[0] = 0; // Tempest keeps this bonus on its own aura snapshot
+    // Templar's Might raises this per-stack bonus and names Blade of Faith with Lunge, Chastise and Scourgebane,
+    // but the client mask leaves out Blade of Faith's periodic damage.
+    if (Family(info, 0, 4194304) && info->Effects[1].ApplyAuraName == SPELL_AURA_MOD_DAMAGE_FROM_CASTER &&
+        info->Effects[1].SpellClassMask == flag96(8, 75497472, 0))
+        info->Effects[1].SpellClassMask[1] |= 2048;
     if (id == 707755)
         for (uint8 i = 0; i < MAX_SPELL_EFFECTS; ++i)
             dummy(i); // the recovered two-kind limit is implemented by GrantOath
@@ -77,6 +82,49 @@ void ApplyContracts(SpellInfo* info)
     }
     if (id == 801482)
         dummy(1); // Redemption follows natural expiry, not every five seconds
+    if (id == 300524 && info->Effects[1].ApplyAuraName == SPELL_AURA_ADD_PCT_MODIFIER &&
+        info->Effects[1].TargetA.GetTarget() == TARGET_UNIT_NEARBY_ENEMY)
+    {
+        // Focused's Blade of Faith bonus is a passive modifier on the Templar; a nearby-enemy target never exists.
+        info->Effects[1].TargetA = SpellImplicitTargetInfo(TARGET_UNIT_CASTER);
+        info->Effects[1].TargetB = SpellImplicitTargetInfo();
+    }
+    if ((id == 560650 || id == 561346) && info->Effects[0].ApplyAuraName == SPELL_AURA_MOD_CRIT_PCT &&
+        info->Effects[0].MiscValue == SPELLMOD_CRITICAL_CHANCE && info->Effects[0].SpellClassMask)
+    {
+        // Aggramar's Rage: Holy critical strike chance for the masked Holy abilities (Chastise, Scarlet Hammer,
+        // Blade of Faith). This core's crit aura ignores the mask and raised every crit chance instead.
+        info->Effects[0].ApplyAuraName = SPELL_AURA_ADD_FLAT_MODIFIER;
+    }
+    if (id == 520034 && info->Effects[0].ApplyAuraName == SPELL_AURA_MOD_DAMAGE_DONE_VERSUS_AURASTATE &&
+        info->Effects[0].MiscValue == AURA_STATE_HEALTH_ABOVE_75_PERCENT && !info->Effects[0].SpellClassMask)
+    {
+        // Pious Sweep's bonus against enemies above 75% health belongs to Chastise, not to all damage.
+        info->Effects[0].SpellClassMask = flag96(0, 67108864, 0);
+        info->Effects[0].MiscValueB = ASCENSION_CLASSMASK_AURASTATE_DAMAGE;
+    }
+    if (id == 705284 && info->Effects[0].ApplyAuraName == SPELL_AURA_ADD_PCT_MODIFIER &&
+        info->Effects[0].MiscValue == SPELLMOD_DAMAGE && !info->Effects[2].Effect)
+    {
+        // One-Punch Man: Oath Breakers also include Righteous Tempest's damage and Blade of Faith's periodic damage.
+        info->Effects[0].SpellClassMask[0] |= 2;
+        SpellEffectInfo& dot = info->Effects[2];
+        dot.Effect = SPELL_EFFECT_APPLY_AURA;
+        dot.ApplyAuraName = SPELL_AURA_ADD_PCT_MODIFIER;
+        dot.BasePoints = info->Effects[0].BasePoints;
+        dot.DieSides = info->Effects[0].DieSides;
+        dot.MiscValue = SPELLMOD_DOT;
+        dot.SpellClassMask = flag96(0, 2048, 0);
+        dot.TargetA = SpellImplicitTargetInfo(TARGET_UNIT_CASTER);
+        dot.TargetB = SpellImplicitTargetInfo();
+    }
+    if (id == 801481 && info->Effects[1].TriggerSpell == 801482)
+    {
+        // Glory lasts its full duration before granting Downfall; the client's ten damage-taken charges removed it
+        // early and skipped the chain.
+        info->ProcFlags = 0;
+        info->ProcCharges = 0;
+    }
     if (id == 712678 || id == 712437)
         for (uint8 i = 0; i < MAX_SPELL_EFFECTS; ++i)
             if (info->Effects[i].Effect)
@@ -140,13 +188,6 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[0].MiscValue = 0;
         info->Effects[1].Effect = 0;
     }
-    if (Named(info, 801165))
-    {
-        info->MaxCharges = 3;
-        info->ChargeRecoveryTime = 35000;
-        info->ChargeRecoveryKey = 801165;
-        info->ChargeCategoryId = 251;
-    }
     if (id == 527272)
     {
         // The existing classic charger display avoids an unavailable creature
@@ -167,6 +208,17 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[0].BasePoints = 64;
     if (id == 1397742)
         info->Effects[1].Effect = 0;
+    if (id == 524740 && info->Effects[1].TriggerSpell == 520842 &&
+        info->Effects[0].TargetB.GetTarget() == TARGET_UNIT_DEST_AREA_ENEMY)
+    {
+        // Norgannon's Wrath: the client SpellCustomAttr row carries Dragon's Wrath's pierce-absorbs-and-resistances
+        // bit; the debuff reaches every enemy in the blast; the blast scales with modifiers to Chastise.
+        info->AscensionIgnoreAbsorbAndResistance = true;
+        info->Effects[1].TargetA = info->Effects[0].TargetA;
+        info->Effects[1].TargetB = info->Effects[0].TargetB;
+        info->Effects[1].RadiusEntry = info->Effects[0].RadiusEntry;
+        info->SpellFamilyFlags[1] |= 67108864;
+    }
     if (id == 801450)
         info->AttributesEx3 |= SPELL_ATTR3_REQUIRES_OFF_HAND_WEAPON;
     for (uint32 sid : TemplarCopies)
@@ -179,7 +231,7 @@ void ApplyContracts(SpellInfo* info)
             info->ProcFlags = 0;
         }
     if (id == 527269 || id == 520695 || id == 803160 || id == 573020 || id == 680398 || id == 524619 ||
-        id == 92109 || id == 803149)
+        id == 92109 || id == 803149 || id == 524740 || id == 300524)
         info->_InitializeExplicitTargetMask();
 }
 } // namespace AscensionTemplar
@@ -190,8 +242,13 @@ using namespace AscensionTemplar;
 float Mitigation(Player* player, Unit* attacker, uint32 school)
 {
     float factor = 1.0f;
+    // Libram of Tenacity's own values (-30%, or -15% against players) include Fury of Aggramar's effectiveness.
     if ((school & SPELL_SCHOOL_MASK_NORMAL) && player->HasAura(801461))
-        factor *= attacker && attacker->GetCharmerOrOwnerPlayerOrPlayerItself() ? .85f : .7f;
+    {
+        bool versusPlayer = attacker && attacker->GetCharmerOrOwnerPlayerOrPlayerItself();
+        int32 reduction = Amount(801461, versusPlayer ? EFFECT_2 : EFFECT_1, player);
+        factor *= std::max(0.0f, 1.0f + float(reduction) / 100.0f);
+    }
     if ((school & SPELL_SCHOOL_MASK_MAGIC) && player->HasAura(801202) &&
         (player->HealthAbovePct(80) || player->HealthBelowPct(20)))
         factor *= .8f;
@@ -242,9 +299,17 @@ class templar_scaling : public UnitScript
     }
     void ModifyPeriodicDamageAurasTick(Unit* target, Unit* attacker, uint32& damage, SpellInfo const* info) override
     {
-        if (Player* player = Owner(target))
-            if (info && !info->HasAttribute(SPELL_ATTR4_IGNORE_DAMAGE_TAKEN_MODIFIERS))
-                damage = uint32(damage * Mitigation(player, attacker, info->SchoolMask));
+        Player* player = Owner(target);
+        if (!player || !info || info->HasAttribute(SPELL_ATTR4_IGNORE_DAMAGE_TAKEN_MODIFIERS))
+            return;
+        damage = uint32(damage * Mitigation(player, attacker, info->SchoolMask));
+        // Light's Ward: its helper's periodic damage taken effect (-15%) has no core handler. This hook also runs for
+        // periodic heals, which the ward must not reduce.
+        if (AuraEffect const* ward = player->GetAuraEffect(301283, EFFECT_1))
+            if ((ward->GetMiscValue() & info->SchoolMask) &&
+                (info->HasAura(SPELL_AURA_PERIODIC_DAMAGE) || info->HasAura(SPELL_AURA_PERIODIC_DAMAGE_PERCENT) ||
+                 info->HasAura(SPELL_AURA_PERIODIC_LEECH)))
+                damage = uint32(damage * std::max(0.0f, 1.0f + float(ward->GetAmount()) / 100.0f));
     }
 };
 } // namespace

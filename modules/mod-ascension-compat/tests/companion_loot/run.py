@@ -61,6 +61,8 @@ constexpr uint32 PLAYER_FLAGS_NO_PLAY_TIME=1;
 constexpr uint32 SKILL_SKINNING=393,UNIT_FLAG_SKINNABLE=1,UNIT_DYNFLAG_LOOTABLE=1;
 constexpr float INTERACTION_DISTANCE=5;
 enum InventoryResult{EQUIP_ERR_OK,EQUIP_ERR_INVENTORY_FULL};
+struct ItemPosCountVec{};
+constexpr uint8 NULL_BAG=0,NULL_SLOT=255;
 struct Player;struct Creature;
 struct Group{LootMethod method=GROUP_LOOT;ObjectGuid master{1};LootMethod GetLootMethod()const{return method;}
     ObjectGuid GetMasterLooterGuid()const{return master;}};
@@ -91,12 +93,12 @@ struct Creature
     ObjectGuid guid{3},owner{1};bool alive=false,inRange=true,los=true,reward=true;
     Player* recipient=nullptr;Group* group=nullptr;
     Loot loot;std::list<Creature*> nearby;
-    CreatureTemplate definition;uint32 flags=UNIT_FLAG_SKINNABLE;int32 level=20;
+    CreatureTemplate definition;uint32 entry=0,flags=UNIT_FLAG_SKINNABLE;int32 level=20;
     CreatureTemplate const* GetCreatureTemplate()const{return &definition;}
     bool IsCreature()const{return true;}Creature* ToCreature(){return this;}
     uint32 GetUnitFlags()const{return flags;}void RemoveUnitFlag(uint32 value){flags&=~value;}
     void SetDynamicFlag(uint32){}bool IsCritter()const{return false;}bool isElite()const{return false;}
-    int32 GetLevel()const{return level;}
+    int32 GetLevel()const{return level;}uint32 GetEntry()const{return entry;}
     void GetDeadCreatureListInGrid(std::list<Creature*>& out,float radius,bool deadOnly)const
     {assert((radius==40 || radius==20) && deadOnly);out=nearby;}
     ObjectGuid GetGUID()const{return guid;}ObjectGuid GetOwnerGUID()const{return owner;}
@@ -120,7 +122,7 @@ struct Player
     bool skinning=true,knowsSkinning=true;int32 skill=100;uint32 skillUps=0,skinGenerations=0;
     Map map;Session session{this};Session* m_session=&session;ObjectGuid lootGuid,m_companionLootGuid;
     Creature* current=nullptr;Group* group=nullptr;PermissionTypes permission=OWNER_PERMISSION;
-    std::vector<uint8> stored;
+    std::vector<uint8> stored;std::unordered_set<uint32> blocked;uint32 equipErrors=0;
     bool IsAlive()const{return alive;}bool IsInWorld()const{return inWorld;}
     bool HasPlayerFlag(uint32)const{return restricted;}
     bool HasSkill(uint32 id)const{return id==SKILL_SKINNING && skinning;}
@@ -134,10 +136,20 @@ struct Player
     ObjectGuid GetLootGUID()const{return lootGuid;}
     Map* GetMap(){return &map;}Group* GetGroup()const{return group;}bool HasPendingBind()const{return false;}
     bool HasQuestForItem(uint32,int,bool,bool*){return true;}
+    InventoryResult CanStoreNewItem(uint8,uint8,ItemPosCountVec&,uint32 itemId,uint32)const
+    {return (full || blocked.contains(itemId))?EQUIP_ERR_INVENTORY_FULL:EQUIP_ERR_OK;}
+    // Mirrors Loot::LootItemInSlot: slots past the normal items index the viewer's quest item list.
+    LootItem const& SlotItem(uint8 slot,Loot* l)const
+    {
+        if(slot<l->items.size())return l->items[slot];
+        return l->quest_items[l->quests.at(GetGUID())->at(slot-l->items.size()).index];
+    }
     void StoreLootItem(uint8 slot,Loot* l,InventoryResult& result)
     {
-        result=full?EQUIP_ERR_INVENTORY_FULL:EQUIP_ERR_OK;
-        if(!full){stored.push_back(slot);if(slot<l->items.size())l->items[slot].is_looted=true;}
+        LootItem const& item=SlotItem(slot,l);ItemPosCountVec dest;
+        result=CanStoreNewItem(NULL_BAG,NULL_SLOT,dest,item.itemid,item.count);
+        if(result==EQUIP_ERR_OK){stored.push_back(slot);if(slot<l->items.size())l->items[slot].is_looted=true;}
+        else ++equipErrors; // Native Player::StoreLootItem reports the failure with SendEquipError.
     }
     bool isAllowedToLoot(Creature const*);
     bool IsWithinLootDistance(Creature const*)const;
@@ -264,10 +276,32 @@ int main()
         cosmetics.ProcessCompanionLoot(&c.player,1);assert(c.player.session.moneyCalls==2);
         cosmetics.collection->ActiveAppearances[38]=0;
         cosmetics.ProcessCompanionLoot(&c.player,1000);assert(c.player.session.moneyCalls==2);}
+    // Lootbot 3000 drives auto-loot from its creature entry alone, and never skinning. This also
+    // keeps the mock Creature honest about the members ProcessCompanionLoot actually reads.
+    {Case c;Cosmetics cosmetics;c.pet.nearby={&c.corpse};c.pet.entry=44022;
+        cosmetics.ProcessCompanionLoot(&c.player,1);assert(c.player.stored.size()==3);
+        cosmetics.ProcessCompanionLoot(&c.player,1,true);assert(!c.player.skillUps);}
+    {Case c;Cosmetics cosmetics;c.pet.nearby={&c.corpse};c.pet.entry=44023;
+        cosmetics.ProcessCompanionLoot(&c.player,1);assert(c.player.stored.empty());}
     {Case c;c.collect();assert((c.player.stored==std::vector<uint8>{0,1,2}));assert(c.player.session.moneyCalls==1);
         assert(c.player.session.releases==1 && !c.player.IsWithinLootDistance(&c.corpse));}
     {Case c;c.player.full=true;c.collect();assert(c.player.stored.empty() && !c.corpse.loot.items[0].is_looted);
-        assert(c.corpse.loot.gold==0);}
+        assert(c.corpse.loot.gold==0 && !c.player.equipErrors);}
+    {Case c;Cosmetics cosmetics;c.pet.nearby={&c.corpse};c.player.full=true;
+        cosmetics.collection->ActiveAppearances[38]=47520;
+        cosmetics.collection->CollectedAppearances.insert(47520);
+        for(int tick=0;tick<3;++tick)cosmetics.ProcessCompanionLoot(&c.player,1000);
+        assert(c.player.stored.empty() && !c.player.equipErrors && c.player.session.moneyCalls==3);
+        c.player.full=false;cosmetics.ProcessCompanionLoot(&c.player,1000);
+        assert((c.player.stored==std::vector<uint8>{0,1,2}) && !c.player.equipErrors);}
+    // #335: quest items serialize after the normal ones, so the run must walk past a normal item it
+    // cannot store to reach slot 3 at all. item_template inserts positionally and maxcount precedes
+    // stackable, so 22580 (Crystallized Mana Essence) is maxcount 0 / stackable 20: it stacks to 20,
+    // it is not unlimited, and a full bag with no partial stack still leaves it on the corpse.
+    {Case c;c.corpse.loot.items[1].itemid=55;c.player.blocked.insert(55);
+        c.corpse.loot.quest_items.resize(1);c.corpse.loot.quest_items[0].itemid=22580;
+        QuestItemList quests{{0}};c.corpse.loot.quests[{1}]=&quests;
+        c.collect();assert((c.player.stored==std::vector<uint8>{0,2,3}) && !c.player.equipErrors);}
     for(int gate=0;gate<11;++gate)
     {
         Case c;
@@ -302,8 +336,8 @@ int main()
         subprocess.run([compiler, '/nologo', '/std:c++20', '/EHsc', '/W4', '/WX', '/utf-8',
                         str(cpp), '/Fe' + str(exe)], cwd=out, check=True, timeout=60)
         subprocess.run([str(exe)], cwd=out, check=True, timeout=15)
-    print('PASS: native loot permissions, skinning admission/skill-ups, '
-          'full-bag retry, wardrobe timers and scoped reach')
+    print('PASS: native loot permissions, skinning admission/skill-ups, silent full-bag retry, '
+          'partial-fit slot skipping, lootbot gating, wardrobe timers and scoped reach')
 
 
 if __name__ == '__main__':

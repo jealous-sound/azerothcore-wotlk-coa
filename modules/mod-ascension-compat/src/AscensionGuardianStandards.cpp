@@ -22,6 +22,7 @@ namespace
 {
 constexpr uint32 STANDARD_RECOVERY_HEAL = 500248;
 constexpr uint32 STANDARD_VALIANCE_DAMAGE = 800335;
+constexpr uint32 STANDARD_ACTIVE_MARKER = 808006;
 constexpr uint32 STANDARD_OWNER_CHECK = 1;
 constexpr uint32 STANDARD_OWNER_CHECK_MS = 500;
 std::mutex standardMutex;
@@ -125,11 +126,16 @@ struct npc_ascension_guardian_standard : ScriptedAI
         me->SetFaction(owner->GetFaction());
         me->SetLevel(owner->GetLevel());
         me->SetReactState(REACT_PASSIVE);
+        // A Standard is a banner, not a combatant: enemies cannot attack it and keep to its Guardian.
+        me->SetUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
         me->GetMotionMaster()->Clear();
         me->GetMotionMaster()->MoveIdle();
         // The native area-aura owner is the stationary standard, not the player.
         // Keep this caster GUID so range/cleanup and multiple owners stay native.
         me->CastSpell(me, contract->field, true);
+        // "Active Standards" is an owner area aura: carried by the standard, it marks its Guardian, and
+        // Reclaim Standards requires that marker (CasterAuraSpell) to be castable.
+        me->CastSpell(me, STANDARD_ACTIVE_MARKER, true);
         RefreshTalents(owner);
         events.ScheduleEvent(STANDARD_OWNER_CHECK, Milliseconds(STANDARD_OWNER_CHECK_MS));
     }

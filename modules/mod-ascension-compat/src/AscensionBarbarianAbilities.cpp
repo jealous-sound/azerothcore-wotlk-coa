@@ -89,7 +89,9 @@ class spell_ascension_barbarian_ability : public SpellScript
         uint32 id = GetSpellInfo()->Id;
         if (Whirl(id))
         {
-            if (player->GetWeaponForAttack(OFF_ATTACK, true))
+            // The cast resolves its target by GUID on the caster's map: skip a target it
+            // would not find there anymore, or the spell asserts.
+            if (player->GetWeaponForAttack(OFF_ATTACK, true) && ObjectAccessor::GetUnit(*player, target->GetGUID()))
             {
                 SpellCastTargets targets;
                 targets.SetUnitTarget(target);

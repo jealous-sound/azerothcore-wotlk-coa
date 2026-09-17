@@ -1,0 +1,419 @@
+{
+  "schema": 1,
+  "name": "Normal class and specialization tuning (#250)",
+  "contract": "Grant matching normal tuning only, keep copied native level scaling, repair missing auras, replace specialization tuning, and apply normal damage adjustments to creatures only. Damage metrics query native outgoing calculations; Epoch is cast normally.",
+  "timeout_ms": 60000,
+  "players": [
+    {
+      "id": "chrono",
+      "race": 1,
+      "class": 22,
+      "level": 60,
+      "spell_crit_rating": 100000
+    },
+    {
+      "id": "young",
+      "race": 1,
+      "class": 22,
+      "level": 10
+    },
+    {
+      "id": "storm",
+      "race": 1,
+      "class": 16,
+      "level": 60
+    },
+    {
+      "id": "mage",
+      "race": 1,
+      "class": 8,
+      "level": 60
+    },
+    {
+      "id": "ally",
+      "race": 1,
+      "class": 1,
+      "level": 60,
+      "melee_hit_rating": 10000,
+      "expertise_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "enemy",
+      "owner": "mage",
+      "entry": 36,
+      "level": 60,
+      "distance": 15
+    },
+    {
+      "id": "sparring",
+      "owner": "ally",
+      "entry": 36,
+      "level": 60,
+      "distance": 2
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "ms": 5000
+    },
+    {
+      "action": "assert",
+      "actor": "chrono",
+      "metric": "aura",
+      "spell": 887010,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "actor": "chrono",
+      "metric": "aura_amount",
+      "spell": 887010,
+      "effect": 2,
+      "equals": -20
+    },
+    {
+      "action": "assert",
+      "actor": "young",
+      "metric": "aura",
+      "spell": 887010,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "actor": "young",
+      "metric": "aura_amount",
+      "spell": 887010,
+      "effect": 2,
+      "equals": 0
+    },
+    {
+      "action": "set_level",
+      "actor": "young",
+      "value": 60
+    },
+    {
+      "action": "assert",
+      "actor": "young",
+      "metric": "aura_amount",
+      "spell": 887010,
+      "effect": 2,
+      "equals": -20
+    },
+    {
+      "action": "set_level",
+      "actor": "young",
+      "value": 10
+    },
+    {
+      "action": "assert",
+      "actor": "young",
+      "metric": "aura_amount",
+      "spell": 887010,
+      "effect": 2,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "mage",
+      "metric": "aura",
+      "spell": 887010,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "chrono",
+      "metric": "aura",
+      "spell": 887110,
+      "equals": 0
+    },
+    {
+      "action": "command",
+      "actor": "chrono",
+      "command": ".localspec 33"
+    },
+    {
+      "action": "assert",
+      "actor": "chrono",
+      "metric": "aura",
+      "spell": 887055,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "actor": "chrono",
+      "metric": "aura_amount",
+      "spell": 887055,
+      "effect": 0,
+      "equals": 13
+    },
+    {
+      "action": "command",
+      "actor": "chrono",
+      "command": ".localspec 31"
+    },
+    {
+      "action": "assert",
+      "actor": "chrono",
+      "metric": "aura",
+      "spell": 887055,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "chrono",
+      "metric": "aura",
+      "spell": 887054,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "actor": "chrono",
+      "metric": "aura_amount",
+      "spell": 887010,
+      "effect": 2,
+      "equals": -20,
+      "label": "Class tuning remains after specialization replacement"
+    },
+    {
+      "action": "set_aura",
+      "actor": "chrono",
+      "spell": 887010,
+      "stacks": 0
+    },
+    {
+      "action": "assert",
+      "actor": "chrono",
+      "metric": "aura",
+      "spell": 887010,
+      "equals": 1,
+      "within_ms": 1500
+    },
+    {
+      "action": "set_aura",
+      "actor": "chrono",
+      "spell": 887000,
+      "stacks": 1
+    },
+    {
+      "action": "login_hooks",
+      "actor": "chrono"
+    },
+    {
+      "action": "assert",
+      "actor": "chrono",
+      "metric": "aura",
+      "spell": 887000,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "chrono",
+      "metric": "aura",
+      "spell": 887054,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "actor": "storm",
+      "metric": "aura_amount",
+      "spell": 887004,
+      "effect": 0,
+      "equals": 36
+    },
+    {
+      "action": "snapshot",
+      "actor": "mage",
+      "metric": "spell_damage_done",
+      "target": "enemy",
+      "save_as": "spell_damage_done_enemy",
+      "spell": 686
+    },
+    {
+      "action": "snapshot",
+      "actor": "mage",
+      "metric": "spell_damage_done",
+      "target": "ally",
+      "save_as": "spell_damage_done_ally",
+      "spell": 686
+    },
+    {
+      "action": "snapshot",
+      "actor": "mage",
+      "metric": "melee_damage_done",
+      "target": "enemy",
+      "save_as": "melee_damage_done_enemy"
+    },
+    {
+      "action": "snapshot",
+      "actor": "mage",
+      "metric": "melee_damage_done",
+      "target": "ally",
+      "save_as": "melee_damage_done_ally"
+    },
+    {
+      "action": "set_aura",
+      "actor": "mage",
+      "spell": 887007,
+      "stacks": 1
+    },
+    {
+      "action": "assert",
+      "actor": "mage",
+      "metric": "spell_damage_done",
+      "target": "enemy",
+      "ratio_to": "spell_damage_done_enemy",
+      "min": 0.798,
+      "max": 0.802,
+      "spell": 686
+    },
+    {
+      "action": "assert",
+      "actor": "mage",
+      "metric": "spell_damage_done",
+      "target": "ally",
+      "ratio_to": "spell_damage_done_ally",
+      "min": 0.998,
+      "max": 1.002,
+      "spell": 686
+    },
+    {
+      "action": "assert",
+      "actor": "mage",
+      "metric": "melee_damage_done",
+      "target": "enemy",
+      "ratio_to": "melee_damage_done_enemy",
+      "min": 0.798,
+      "max": 0.802
+    },
+    {
+      "action": "assert",
+      "actor": "mage",
+      "metric": "melee_damage_done",
+      "target": "ally",
+      "ratio_to": "melee_damage_done_ally",
+      "min": 0.998,
+      "max": 1.002
+    },
+    {
+      "action": "snapshot",
+      "actor": "mage",
+      "metric": "spell_damage_taken",
+      "target": "enemy",
+      "save_as": "spell_damage_taken_enemy",
+      "spell": 686
+    },
+    {
+      "action": "snapshot",
+      "actor": "mage",
+      "metric": "spell_damage_taken",
+      "target": "ally",
+      "save_as": "spell_damage_taken_ally",
+      "spell": 686
+    },
+    {
+      "action": "snapshot",
+      "actor": "mage",
+      "metric": "melee_damage_taken",
+      "target": "enemy",
+      "save_as": "melee_damage_taken_enemy"
+    },
+    {
+      "action": "snapshot",
+      "actor": "mage",
+      "metric": "melee_damage_taken",
+      "target": "ally",
+      "save_as": "melee_damage_taken_ally"
+    },
+    {
+      "action": "set_aura",
+      "actor": "mage",
+      "spell": 887083,
+      "stacks": 1
+    },
+    {
+      "action": "assert",
+      "actor": "mage",
+      "metric": "spell_damage_taken",
+      "target": "enemy",
+      "ratio_to": "spell_damage_taken_enemy",
+      "min": 0.938,
+      "max": 0.942,
+      "spell": 686
+    },
+    {
+      "action": "assert",
+      "actor": "mage",
+      "metric": "spell_damage_taken",
+      "target": "ally",
+      "ratio_to": "spell_damage_taken_ally",
+      "min": 0.998,
+      "max": 1.002,
+      "spell": 686
+    },
+    {
+      "action": "assert",
+      "actor": "mage",
+      "metric": "melee_damage_taken",
+      "target": "enemy",
+      "ratio_to": "melee_damage_taken_enemy",
+      "min": 0.938,
+      "max": 0.942
+    },
+    {
+      "action": "assert",
+      "actor": "mage",
+      "metric": "melee_damage_taken",
+      "target": "ally",
+      "ratio_to": "melee_damage_taken_ally",
+      "min": 0.998,
+      "max": 1.002
+    },
+    {
+      "action": "unlearn",
+      "actor": "chrono",
+      "spell": 801270,
+      "label": "Remove automatically learned higher ranks so the report's rank 1 is active"
+    },
+    {
+      "action": "learn",
+      "actor": "chrono",
+      "spell": 801270
+    },
+    {
+      "action": "attack",
+      "actor": "ally",
+      "target": "sparring"
+    },
+    {
+      "action": "assert",
+      "actor": "ally",
+      "metric": "combat",
+      "equals": 1,
+      "within_ms": 2000,
+      "label": "Prevent out-of-combat health regeneration during the heal measurement"
+    },
+    {
+      "action": "set_health",
+      "actor": "ally",
+      "value": 100
+    },
+    {
+      "action": "cast",
+      "actor": "chrono",
+      "target": "ally",
+      "spell": 801270
+    },
+    {
+      "action": "assert",
+      "actor": "ally",
+      "metric": "health",
+      "min": 187,
+      "max": 198,
+      "within_ms": 3000,
+      "label": "Epoch rank 1 guaranteed critical heal includes the normal healing penalty"
+    }
+  ]
+}

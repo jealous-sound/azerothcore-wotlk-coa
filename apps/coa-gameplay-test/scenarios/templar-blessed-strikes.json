@@ -1,0 +1,128 @@
+{
+  "schema": 1,
+  "name": "Blessed Strikes reduces Oath Breaker Energy costs by 10 (#1066)",
+  "contract": "Blessed Strikes 704180 reduces the Energy cost of Oath Breakers by 10 (flat COST). Argent Blade is not a Breaker and keeps its cost.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    },
+    {
+      "id": "talent",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "talent",
+      "spell": 704180
+    },
+    {
+      "action": "assert",
+      "label": "Righteous Upheaval cost without the talent",
+      "actor": "control",
+      "metric": "spell_power_cost",
+      "spell": 501562,
+      "equals": 35
+    },
+    {
+      "action": "assert",
+      "label": "Righteous Upheaval cost with the talent",
+      "actor": "talent",
+      "metric": "spell_power_cost",
+      "spell": 501562,
+      "equals": 25
+    },
+    {
+      "action": "assert",
+      "label": "Blade of Faith cost without the talent",
+      "actor": "control",
+      "metric": "spell_power_cost",
+      "spell": 803880,
+      "equals": 35
+    },
+    {
+      "action": "assert",
+      "label": "Blade of Faith cost with the talent",
+      "actor": "talent",
+      "metric": "spell_power_cost",
+      "spell": 803880,
+      "equals": 25
+    },
+    {
+      "action": "assert",
+      "label": "Righteous Tempest cost without the talent",
+      "actor": "control",
+      "metric": "spell_power_cost",
+      "spell": 807274,
+      "equals": 30
+    },
+    {
+      "action": "assert",
+      "label": "Righteous Tempest cost with the talent",
+      "actor": "talent",
+      "metric": "spell_power_cost",
+      "spell": 807274,
+      "equals": 20
+    },
+    {
+      "action": "assert",
+      "label": "Chastise cost without the talent",
+      "actor": "control",
+      "metric": "spell_power_cost",
+      "spell": 803157,
+      "equals": 25
+    },
+    {
+      "action": "assert",
+      "label": "Chastise cost with the talent",
+      "actor": "talent",
+      "metric": "spell_power_cost",
+      "spell": 803157,
+      "equals": 15
+    },
+    {
+      "action": "assert",
+      "label": "Benediction cost without the talent",
+      "actor": "control",
+      "metric": "spell_power_cost",
+      "spell": 801448,
+      "equals": 20
+    },
+    {
+      "action": "assert",
+      "label": "Benediction cost with the talent",
+      "actor": "talent",
+      "metric": "spell_power_cost",
+      "spell": 801448,
+      "equals": 10
+    },
+    {
+      "action": "assert",
+      "label": "Argent Blade cost without the talent",
+      "actor": "control",
+      "metric": "spell_power_cost",
+      "spell": 807268,
+      "equals": 50
+    },
+    {
+      "action": "assert",
+      "label": "Argent Blade cost with the talent",
+      "actor": "talent",
+      "metric": "spell_power_cost",
+      "spell": 807268,
+      "equals": 50
+    }
+  ]
+}

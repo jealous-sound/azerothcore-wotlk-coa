@@ -1,0 +1,122 @@
+{
+  "schema": 1,
+  "name": "Solemn Soldier increases melee haste and expertise (#734)",
+  "contract": "Solemn Soldier increases melee haste by 5% and expertise by 5 (rank 1, 572546), or 10% and 10 (rank 2, 572555, previously reported as #757).",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    },
+    {
+      "id": "rank_one",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    },
+    {
+      "id": "rank_two",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "add_item",
+      "actor": "control",
+      "item": 2495
+    },
+    {
+      "action": "equip",
+      "actor": "control",
+      "item": 2495,
+      "slot": 15
+    },
+    {
+      "action": "add_item",
+      "actor": "rank_one",
+      "item": 2495
+    },
+    {
+      "action": "equip",
+      "actor": "rank_one",
+      "item": 2495,
+      "slot": 15
+    },
+    {
+      "action": "add_item",
+      "actor": "rank_two",
+      "item": 2495
+    },
+    {
+      "action": "equip",
+      "actor": "rank_two",
+      "item": 2495,
+      "slot": 15
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "attack_time_ms",
+      "save_as": "attack_time"
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "expertise",
+      "save_as": "expertise"
+    },
+    {
+      "action": "learn",
+      "actor": "rank_one",
+      "spell": 572546
+    },
+    {
+      "action": "learn",
+      "actor": "rank_two",
+      "spell": 572555
+    },
+    {
+      "action": "assert",
+      "label": "Rank 1 attack time",
+      "actor": "rank_one",
+      "metric": "attack_time_ms",
+      "ratio_to": "attack_time",
+      "min": 0.951,
+      "max": 0.954
+    },
+    {
+      "action": "assert",
+      "label": "Rank 2 attack time",
+      "actor": "rank_two",
+      "metric": "attack_time_ms",
+      "ratio_to": "attack_time",
+      "min": 0.908,
+      "max": 0.911
+    },
+    {
+      "action": "assert",
+      "label": "Rank 1 expertise",
+      "actor": "rank_one",
+      "metric": "expertise",
+      "relative_to": "expertise",
+      "equals": 5
+    },
+    {
+      "action": "assert",
+      "label": "Rank 2 expertise",
+      "actor": "rank_two",
+      "metric": "expertise",
+      "relative_to": "expertise",
+      "equals": 10
+    }
+  ]
+}

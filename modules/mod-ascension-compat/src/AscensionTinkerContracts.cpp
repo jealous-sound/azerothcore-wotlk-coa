@@ -27,6 +27,10 @@ void ApplyContracts(SpellInfo* info)
     if (!info || info->SpellFamilyName != 34)
         return;
     uint32 id = info->Id;
+    // Overcharged is a beacon-only one-use guard. The native exclusion field also applies it on hit.
+    if (info->ExcludeTargetAuraSpell == 560711 &&
+        (id == 801707 || (id >= 502573 && id <= 502581) || id == 574152 || id == 529288))
+        info->ExcludeTargetAuraSpell = 0;
     if (id == 707495)
     {
         // The former duplicate pet Synergy payload is now supplied by 707278.

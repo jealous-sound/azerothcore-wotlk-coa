@@ -20,3 +20,16 @@ The no-argument command retains broad SQL checks and resolves a locally availabl
 - `acore_auth` — accounts, realm list, IP/account bans, session keys. Shared across all realms.
 - `acore_characters` — per-character state: characters, inventory, in-progress quests, mail, guilds, arena teams, achievements. One per realm.
 - `acore_world` — static game content: creature/gameobject/item/quest templates, spawn lists, loot tables, SmartAI scripts, gossip, conditions. Read-mostly; rebuilt from SQL.
+
+## Verification and updater semantics
+
+- During authorized runtime validation, apply migrations through the normal server updater; do not manually
+  apply the same SQL as well. Verify affected rows and the migration's recorded name/hash.
+- `updates.state = PENDING` can describe an already applied pending-directory migration. Inspect its recorded
+  name/hash and the actual pending-file comparison rather than inferring execution status from that field alone.
+- Empty or truncated MySQL output does not prove that a query returned no rows. Metadata queries such as
+  `SHOW COLUMNS` must return meaningful output. Use existing query tooling, bound read retries, and never blindly
+  retry ambiguous writes or expose credentials in output.
+- Verify the rows and relationships affected by the change. Respawn timers and Wintergrasp state can advance
+  after restart without players; whole-database equality is not a useful routine assertion. Preserve character
+  state, inventory, spells, and collections while investigating relevant unexpected changes.

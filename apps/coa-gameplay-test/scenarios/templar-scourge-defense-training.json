@@ -1,0 +1,150 @@
+{
+  "schema": 1,
+  "name": "Scourge-Defense Training empowers Warrior of Dawn's next Argent Blade (#887)",
+  "contract": "Warrior of Dawn 561156 halves the next Argent Blade's cost. Scourge-Defense Training 520608 adds 50 to its damage effect and 20 to its critical strike effect (client data), so the next Argent Blade deals 50% more damage with 20% more critical strike chance.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    },
+    {
+      "id": "talent",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 807268
+    },
+    {
+      "action": "learn",
+      "actor": "talent",
+      "spell": 807268
+    },
+    {
+      "action": "learn",
+      "actor": "talent",
+      "spell": 520608
+    },
+    {
+      "action": "set_aura",
+      "actor": "control",
+      "spell": 561156,
+      "stacks": 1
+    },
+    {
+      "action": "set_aura",
+      "actor": "talent",
+      "spell": 561156,
+      "stacks": 1
+    },
+    {
+      "action": "assert",
+      "label": "No damage bonus without the talent",
+      "actor": "control",
+      "metric": "aura_amount",
+      "spell": 561156,
+      "effect": 1,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "Damage bonus with the talent",
+      "actor": "talent",
+      "metric": "aura_amount",
+      "spell": 561156,
+      "effect": 1,
+      "equals": 50
+    },
+    {
+      "action": "assert",
+      "label": "No crit bonus without the talent",
+      "actor": "control",
+      "metric": "aura_amount",
+      "spell": 561156,
+      "effect": 2,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "Crit bonus with the talent",
+      "actor": "talent",
+      "metric": "aura_amount",
+      "spell": 561156,
+      "effect": 2,
+      "equals": 20
+    },
+    {
+      "action": "assert",
+      "label": "Argent Blade damage without the talent",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 807268,
+      "op": 0,
+      "base": 1000,
+      "equals": 1000
+    },
+    {
+      "action": "assert",
+      "label": "Argent Blade damage with the talent",
+      "actor": "talent",
+      "metric": "spell_modifier",
+      "spell": 807268,
+      "op": 0,
+      "base": 1000,
+      "equals": 1500
+    },
+    {
+      "action": "assert",
+      "label": "Argent Blade crit chance without the talent",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 807268,
+      "op": 7,
+      "base": 0,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "Argent Blade crit chance with the talent",
+      "actor": "talent",
+      "metric": "spell_modifier",
+      "spell": 807268,
+      "op": 7,
+      "base": 0,
+      "equals": 20
+    },
+    {
+      "action": "assert",
+      "label": "Argent Blade cost without the talent",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 807268,
+      "op": 14,
+      "base": 50,
+      "equals": 25
+    },
+    {
+      "action": "assert",
+      "label": "Argent Blade cost with the talent",
+      "actor": "talent",
+      "metric": "spell_modifier",
+      "spell": 807268,
+      "op": 14,
+      "base": 50,
+      "equals": 25
+    }
+  ]
+}

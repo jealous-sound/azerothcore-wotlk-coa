@@ -17,9 +17,11 @@
 
 #include "DBCFileLoader.h"
 #include "Errors.h"
+#include <limits>
 #include <string.h>
 
-DBCFileLoader::DBCFileLoader() : recordSize(0), recordCount(0), fieldCount(0), stringSize(0), fieldsOffset(nullptr), data(nullptr), stringTable(nullptr) { }
+DBCFileLoader::DBCFileLoader() : recordSize(0), recordCount(0), fieldCount(0), stringSize(0), invalidStringCount(0),
+    fieldsOffset(nullptr), data(nullptr), stringTable(nullptr) { }
 
 bool DBCFileLoader::Load(char const* filename, char const* fmt)
 {
@@ -196,6 +198,10 @@ char* DBCFileLoader::AutoProduceData(char const* format, uint32& records, char**
     int32 i;
     uint32 recordsize = GetFormatRecordSize(format, &i);
 
+    // A row whose index is -1 cannot be looked up and would wrap the index table size to 0; CoA's
+    // WorldMapArea.dbc has such rows. It is stored but left out of the index table.
+    uint32 const unindexed = std::numeric_limits<uint32>::max();
+
     if (i >= 0)
     {
         uint32 maxi = 0;
@@ -203,7 +209,7 @@ char* DBCFileLoader::AutoProduceData(char const* format, uint32& records, char**
         for (uint32 y = 0; y < recordCount; ++y)
         {
             uint32 ind = getRecord(y).getUInt(i);
-            if (ind > maxi)
+            if (ind > maxi && ind != unindexed)
             {
                 maxi = ind;
             }
@@ -228,7 +234,10 @@ char* DBCFileLoader::AutoProduceData(char const* format, uint32& records, char**
     {
         if (i >= 0)
         {
-            indexTable[getRecord(y).getUInt(i)] = &dataTable[offset];
+            if (uint32 const ind = getRecord(y).getUInt(i); ind != unindexed)
+            {
+                indexTable[ind] = &dataTable[offset];
+            }
         }
         else
         {
@@ -280,8 +289,11 @@ char* DBCFileLoader::AutoProduceStrings(char const* format, char* dataTable)
         return nullptr;
     }
 
-    char* stringPool = new char[stringSize];
+    // The byte after the copied block stays empty for string fields that point outside it.
+    // CoA's client Spell.dbc ships such offsets in locale slots the client never reads.
+    char* stringPool = new char[stringSize + 1];
     memcpy(stringPool, stringTable, stringSize);
+    stringPool[stringSize] = '\0';
 
     uint32 offset = 0;
 
@@ -307,8 +319,14 @@ char* DBCFileLoader::AutoProduceStrings(char const* format, char* dataTable)
                     char** slot = (char**)(&dataTable[offset]);
                     if (!*slot || !** slot)
                     {
-                        char const* st = getRecord(y).getString(x);
-                        *slot = stringPool + (st - (char const*)stringTable);
+                        uint32 stringOffset = getRecord(y).getUInt(x);
+                        if (stringOffset >= stringSize)
+                        {
+                            stringOffset = stringSize;
+                            ++invalidStringCount;
+                        }
+
+                        *slot = stringPool + stringOffset;
                     }
                     offset += sizeof(char*);
                     break;

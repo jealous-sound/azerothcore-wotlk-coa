@@ -416,12 +416,21 @@ uint32 GlobalCooldownMgr::GetGlobalCooldown(SpellInfo const* spellInfo) const
     return (start + delay > now) ? (start + delay) - now : 0;
 }
 
-void GlobalCooldownMgr::AddGlobalCooldown(SpellInfo const* spellInfo, uint32 gcd)
+uint32 GlobalCooldownMgr::AddGlobalCooldown(SpellInfo const* spellInfo, uint32 gcd)
 {
-    m_GlobalCooldowns[spellInfo->StartRecoveryCategory] = GlobalCooldown(gcd, GameTime::GetGameTimeMS().count());
+    if (++m_lastGeneration == 0)
+        m_lastGeneration = 1;
+
+    m_GlobalCooldowns[spellInfo->StartRecoveryCategory] =
+        GlobalCooldown(gcd, GameTime::GetGameTimeMS().count(), m_lastGeneration);
+    return m_lastGeneration;
 }
 
-void GlobalCooldownMgr::CancelGlobalCooldown(SpellInfo const* spellInfo)
+void GlobalCooldownMgr::CancelGlobalCooldown(SpellInfo const* spellInfo, uint32 generation)
 {
-    m_GlobalCooldowns[spellInfo->StartRecoveryCategory].duration = 0;
+    GlobalCooldown& cooldown = m_GlobalCooldowns[spellInfo->StartRecoveryCategory];
+    if (generation && cooldown.generation != generation)
+        return;
+
+    cooldown.duration = 0;
 }

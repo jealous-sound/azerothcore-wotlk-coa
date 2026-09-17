@@ -17,7 +17,8 @@ enum ChronomancerMovement : uint32
     CloneAppearance = 45204,
     Rewind = 801294,
     RewindSlow = 572883,
-    Backtrack = 706973
+    Backtrack = 706973,
+    Displacement = 806727
 };
 
 bool CanRecordPosition(Unit* unit)
@@ -156,6 +157,28 @@ class aura_ascension_backtrack : public AuraScript
     }
 };
 
+class spell_ascension_displacement : public SpellScript
+{
+    PrepareSpellScript(spell_ascension_displacement);
+
+    void Displace(SpellEffIndex effIndex)
+    {
+        PreventHitDefaultEffect(effIndex);
+        Unit* caster = GetCaster();
+        Unit* target = GetHitUnit();
+        if (!caster || !target || target == caster)
+            return;
+        Position destination = caster->GetNearPosition(2.0f, 0.0f);
+        target->NearTeleportTo(destination, true);
+        target->RemoveMovementImpairingAuras(true);
+    }
+
+    void Register() override
+    {
+        OnEffectHitTarget += SpellEffectFn(spell_ascension_displacement::Displace, EFFECT_2, SPELL_EFFECT_DUMMY);
+    }
+};
+
 class chronomancer_movement_contracts : public GlobalScript
 {
 public:
@@ -164,10 +187,19 @@ public:
 
     void OnLoadSpellCustomAttr(SpellInfo* info) override
     {
-        if (info && info->Id == Backtrack && info->SpellFamilyName == 28)
+        if (!info || info->SpellFamilyName != 28)
+            return;
+        if (info->Id == Backtrack)
         {
             // The aura stores its own destination; the copied helper chain depended on a missing private rift AI.
             info->Effects[EFFECT_0].Effect = 0;
+            info->_InitializeExplicitTargetMask();
+        }
+        if (info->Id == Displacement)
+        {
+            // The authored row leaves this a placeholder marker effect; spell_ascension_displacement
+            // does the actual pull-and-cleanse.
+            info->Effects[EFFECT_2].Effect = SPELL_EFFECT_DUMMY;
             info->_InitializeExplicitTargetMask();
         }
     }
@@ -180,4 +212,5 @@ void AddSC_AscensionChronomancerMovement()
     RegisterCreatureAI(npc_ascension_infinite_clone);
     RegisterSpellScript(spell_ascension_rewind);
     RegisterSpellScript(aura_ascension_backtrack);
+    RegisterSpellScript(spell_ascension_displacement);
 }

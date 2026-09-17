@@ -13,6 +13,14 @@
 
 namespace AscensionNecromancer
 {
+namespace
+{
+enum RangeIndex : uint32
+{
+    SPELL_RANGE_THIRTY_YARDS = 4
+};
+}
+
 void ApplyContracts(SpellInfo* info)
 {
     if (!info)
@@ -50,6 +58,18 @@ void ApplyContracts(SpellInfo* info)
     for (auto const& row : NecromancerSummons)
         if (row.spell == id)
             info->Effects[row.effect].MiscValueB = 64;
+    // Keep an occupancy aura as the minion's buff only; its spell modifiers are not part of the rebuilt kit.
+    if (OccupancyCreature(id))
+        for (auto& effect : info->Effects)
+        {
+            if (effect.Effect == SPELL_EFFECT_APPLY_AREA_AURA_OWNER)
+            {
+                effect.ApplyAuraName = SPELL_AURA_DUMMY;
+                effect.SpellClassMask = flag96();
+            }
+            else
+                effect.Effect = 0;
+        }
     if (id == 805011 || id == 525004 || id == 805015)
     {
         info->DurationEntry = sSpellDurationStore.LookupEntry(21);
@@ -163,6 +183,11 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[1].ApplyAuraName = SPELL_AURA_MOD_THREAT;
         info->Effects[1].MiscValue = SPELL_SCHOOL_MASK_ALL;
     }
+    if (id == 500991)
+        // Grave March is baked with the "Anywhere" range (50000 yd); every other player-cast
+        // Command spell (Crypt Fiend, Banshee, Undead, Skeletal Warriors, ...) uses this same
+        // 30-yard range instead.
+        info->RangeEntry = sSpellRangeStore.LookupEntry(SPELL_RANGE_THIRTY_YARDS);
     if (id == 300580)
         for (uint8 i = 0; i < MAX_SPELL_EFFECTS; ++i)
             if (info->Effects[i].IsEffect())
@@ -294,6 +319,9 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[0].Effect = 0; // owner-controlled sacrifice already removed the selected minion
         info->Effects[1].TargetA = SpellImplicitTargetInfo(TARGET_UNIT_TARGET_ALLY);
         info->Effects[1].TargetB = SpellImplicitTargetInfo();
+        // the owner-controlled path casts this on the player, not the sacrificed minion, so the
+        // stale "must target a Necro Minion" requirement (805026) would otherwise block the heal
+        info->TargetAuraSpell = 0;
     }
     if (id == 801514)
     {

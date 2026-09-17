@@ -1,0 +1,145 @@
+{
+  "schema": 1,
+  "name": "Bells of Light increases Agility, Intellect and hit chance (#1176)",
+  "contract": "Bells of Light increases Agility, Intellect and hit chance by 3% (rank 1, 801204) or 6% (rank 2, 803842).",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    },
+    {
+      "id": "rank_one",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    },
+    {
+      "id": "rank_two",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "stat",
+      "save_as": "agility",
+      "stat": 1
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "stat",
+      "save_as": "intellect",
+      "stat": 3
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "melee_hit_chance",
+      "save_as": "melee_hit"
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "spell_hit_chance",
+      "save_as": "spell_hit"
+    },
+    {
+      "action": "learn",
+      "actor": "rank_one",
+      "spell": 801204
+    },
+    {
+      "action": "learn",
+      "actor": "rank_two",
+      "spell": 803842
+    },
+    {
+      "action": "assert",
+      "label": "Rank 1 Agility",
+      "actor": "rank_one",
+      "metric": "stat",
+      "stat": 1,
+      "ratio_to": "agility",
+      "min": 1.02,
+      "max": 1.04
+    },
+    {
+      "action": "assert",
+      "label": "Rank 2 Agility",
+      "actor": "rank_two",
+      "metric": "stat",
+      "stat": 1,
+      "ratio_to": "agility",
+      "min": 1.05,
+      "max": 1.07
+    },
+    {
+      "action": "assert",
+      "label": "Rank 1 Intellect",
+      "actor": "rank_one",
+      "metric": "stat",
+      "stat": 3,
+      "ratio_to": "intellect",
+      "min": 1.02,
+      "max": 1.04
+    },
+    {
+      "action": "assert",
+      "label": "Rank 2 Intellect",
+      "actor": "rank_two",
+      "metric": "stat",
+      "stat": 3,
+      "ratio_to": "intellect",
+      "min": 1.05,
+      "max": 1.07
+    },
+    {
+      "action": "assert",
+      "label": "Rank 1 melee hit",
+      "actor": "rank_one",
+      "metric": "melee_hit_chance",
+      "relative_to": "melee_hit",
+      "min": 2.99,
+      "max": 3.01
+    },
+    {
+      "action": "assert",
+      "label": "Rank 2 melee hit",
+      "actor": "rank_two",
+      "metric": "melee_hit_chance",
+      "relative_to": "melee_hit",
+      "min": 5.99,
+      "max": 6.01
+    },
+    {
+      "action": "assert",
+      "label": "Rank 1 spell hit",
+      "actor": "rank_one",
+      "metric": "spell_hit_chance",
+      "relative_to": "spell_hit",
+      "min": 2.99,
+      "max": 3.01
+    },
+    {
+      "action": "assert",
+      "label": "Rank 2 spell hit",
+      "actor": "rank_two",
+      "metric": "spell_hit_chance",
+      "relative_to": "spell_hit",
+      "min": 5.99,
+      "max": 6.01
+    }
+  ]
+}

@@ -1,0 +1,69 @@
+{
+  "schema": 1,
+  "name": "Banks are acquired: receiving the bank item grants the bank, and both routes share the ten-minute cooldown",
+  "contract": "A bank is not part of AscensionCompat.UnlockAllVanity - it is obtained, and the item is what obtains it. A character that has not received one does not know its summon spell and cannot open a placed chest. Handing the bank item to a character - what a shop or a grant does - records the account's own acquisition and grants the summon spell at once, with no relog. After that the item and the spell are the same act: either places the same vault and starts the same ten-minute cooldown, the value the vault's lifetime is matched to. Placing the vault, its despawn and the rule that anyone holding a bank may use a chest someone else placed are outside this harness's reach.",
+  "timeout_ms": 120000,
+  "players": [
+    { "id": "banker", "race": 1, "class": 1, "level": 80 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+    { "action": "console", "command": "server info" },
+    {
+      "action": "assert",
+      "label": "An unacquired Personal Bank grants no summon spell, even with everything unlocked",
+      "actor": "banker", "metric": "knows_spell", "spell": 100702, "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "An unacquired Realm Bank grants no summon spell either",
+      "actor": "banker", "metric": "knows_spell", "spell": 92078, "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "And neither bank item is in the bag yet",
+      "actor": "banker", "metric": "item_count", "item": 134985, "equals": 0
+    },
+    { "action": "add_item", "label": "Acquire the Personal Bank: the shop hands over the bank item", "actor": "banker", "item": 134985, "count": 1 },
+    {
+      "action": "assert",
+      "label": "The Personal Bank item is in the bag",
+      "actor": "banker", "metric": "item_count", "item": 134985, "equals": 1
+    },
+    {
+      "action": "assert",
+      "label": "Receiving the bank item acquires the bank and grants its spell with no relog",
+      "actor": "banker", "metric": "knows_spell", "spell": 100702, "equals": 1
+    },
+    {
+      "action": "assert",
+      "label": "The newly acquired bank starts off cooldown",
+      "actor": "banker", "metric": "cooldown_ms", "spell": 100702, "equals": 0
+    },
+    { "action": "use_item", "label": "Summon through the item, the bag route", "actor": "banker", "item": 134985, "spell": 100702 },
+    { "action": "wait", "label": "Let the vault summon land in the world", "ms": 3000 },
+    {
+      "action": "assert",
+      "label": "Using the item starts the ten-minute cooldown that the vault's lifetime matches",
+      "actor": "banker", "metric": "cooldown_ms", "spell": 100702, "min": 590000, "within_ms": 3000
+    },
+    {
+      "action": "assert",
+      "label": "The summon does not consume the item",
+      "actor": "banker", "metric": "item_count", "item": 134985, "equals": 1
+    },
+    { "action": "add_item", "label": "Acquire the Realm Bank the same way", "actor": "banker", "item": 1180097, "count": 1 },
+    {
+      "action": "assert",
+      "label": "The Realm Bank's spell follows its item",
+      "actor": "banker", "metric": "knows_spell", "spell": 92078, "equals": 1
+    },
+    { "action": "cast", "label": "Summon the Realm Bank from the spell alone, with no item in hand", "actor": "banker", "spell": 92078 },
+    { "action": "wait", "label": "Let the vault summon land in the world", "ms": 3000 },
+    {
+      "action": "assert",
+      "label": "Casting the spell starts the same ten-minute cooldown",
+      "actor": "banker", "metric": "cooldown_ms", "spell": 92078, "min": 590000, "within_ms": 3000
+    }
+  ]
+}

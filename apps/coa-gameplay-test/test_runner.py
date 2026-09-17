@@ -42,10 +42,29 @@ class RunnerTests(unittest.TestCase):
             lambda s: s.update(schema=True),
             lambda s: s.update(timeout_ms=float('inf')),
             lambda s: s['players'][0].update(level=True),
+            lambda s: s['steps'].append({'action': 'set_level', 'actor': 'caster', 'value': 0}),
+            lambda s: s['steps'].append({'action': 'set_level', 'actor': 'caster', 'value': 81}),
+            lambda s: s['steps'].append({'action': 'assert', 'actor': 'caster',
+                                         'metric': 'spell_damage_done', 'spell': 686, 'equals': 1000}),
+            lambda s: s['steps'].append({'action': 'assert', 'actor': 'caster',
+                                         'metric': 'spell_damage_done', 'target': 'target', 'equals': 1000}),
+            lambda s: s['steps'].append({'action': 'assert', 'actor': 'caster',
+                                         'metric': 'melee_damage_done', 'target': 'missing', 'equals': 1000}),
             lambda s: s['players'][0].update(race=0),
             lambda s: s['players'][0].update(ranged_hit_rating=-1),
             lambda s: s['players'][0].update(melee_hit_rating=-1),
             lambda s: s['players'][0].update(expertise_rating=True),
+            lambda s: s['players'][0].update(spell_crit_rating=-1),
+            lambda s: s['steps'].append({'action': 'who', 'actor': 'caster', 'class_mask': 2**32}),
+            lambda s: s['steps'].append({'action': 'who', 'actor': 'caster', 'target': 'target'}),
+            lambda s: s['steps'].append({'action': 'assert', 'actor': 'caster', 'metric': 'who_class', 'equals': 1}),
+            lambda s: s['steps'].append({'action': 'open_item', 'actor': 'caster'}),
+            lambda s: s['steps'].append({'action': 'prepare_quest', 'actor': 'caster', 'quest': 0}),
+            lambda s: s['steps'].append({'action': 'reward_quest', 'actor': 'caster', 'quest': 1518, 'choice': 6}),
+            lambda s: s['steps'].append({'action': 'assert', 'actor': 'caster', 'metric': 'quest_rewarded', 'equals': 1}),
+            lambda s: s['steps'].append({'action': 'login_hooks', 'actor': 'target'}),
+            lambda s: s['steps'].append({'action': 'collect_loot', 'actor': 'target'}),
+            lambda s: s['steps'].append({'action': 'assert', 'actor': 'target', 'metric': 'loot_count', 'equals': 1}),
             lambda s: s['creatures'][0].update(id='caster'),
             lambda s: s['steps'].append({'action': 'cast', 'actor': 'caster', 'spell': 116, 'target': 'missing'}),
             lambda s: s.update(location={'map': 33, 'x': 0, 'y': 0, 'z': 0, 'ignore_access': 1}),
@@ -58,6 +77,18 @@ class RunnerTests(unittest.TestCase):
             lambda s: s['steps'].append({'action': 'assert', 'actor': 'caster', 'metric': 'dynamic_object',
                                          'equals': 1}),
             lambda s: s['steps'].append({'action': 'cast_charm', 'actor': 'target', 'spell': 802176}),
+            lambda s: s['steps'].append({'action': 'gossip_hello', 'actor': 'caster', 'target': 'missing'}),
+            lambda s: s['steps'].append({'action': 'attack', 'actor': 'caster'}),
+            lambda s: s['steps'].append({'action': 'attack', 'actor': 'caster', 'target': 'missing'}),
+            lambda s: s['steps'].append({'action': 'gossip_select', 'actor': 'caster', 'option': -1}),
+            lambda s: s['steps'].append({'action': 'set_aura', 'actor': 'caster', 'spell': 803102, 'stacks': 256}),
+            lambda s: s['steps'].append({'action': 'set_aura', 'actor': 'target', 'spell': 803102, 'stacks': 1}),
+            lambda s: s['steps'].append({'action': 'assert', 'actor': 'caster', 'metric': 'spell_power_cost',
+                                         'equals': 0}),
+            lambda s: s['steps'].append({'action': 'assert', 'actor': 'caster', 'metric': 'health',
+                                         'ratio_to': 'missing', 'equals': 1}),
+            lambda s: s['steps'].append({'action': 'assert', 'actor': 'target', 'metric': 'gossip_options',
+                                         'equals': 1}),
             lambda s: s['steps'].append({'action': 'assert', 'actor': 'target', 'metric': 'health', 'equlas': 0}),
             lambda s: s['steps'].append({'action': 'assert', 'actor': 'target', 'metric': 'health',
                                          'equals': float('nan')}),
@@ -214,7 +245,8 @@ class RunnerTests(unittest.TestCase):
             script = directory / 'fake_server.py'
             script.write_text('from pathlib import Path\nimport json, sys, time\n' + code, encoding='utf-8')
             return run.run_process([sys.executable, str(script)], directory, directory / 'ready.json',
-                                   directory / 'result.json', '012345abcdef', startup_timeout, 3, environment)
+                                   directory / 'result.json', '012345abcdef', startup_timeout, 3,
+                                   environment=environment)
 
     def test_zero_exit_without_result_is_a_failure(self):
         with self.assertRaisesRegex(ValueError, 'without a result'):
@@ -301,6 +333,19 @@ class RunnerTests(unittest.TestCase):
                 run.stage_modules(source, destination, {'WorldDatabaseInfo'})
             self.assertFalse((destination / 'module.conf').exists())
 
+    def test_untracked_destination_configs_cannot_change_gameplay(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            source = directory / 'modules'
+            source.mkdir()
+            destination = directory / 'server-modules'
+            destination.mkdir()
+            existing = destination / 'extra.conf'
+            existing.write_text('Rate.XP.Kill = 5\n')
+            with self.assertRaisesRegex(ValueError, 'Unexpected server module config: extra.conf'):
+                run.stage_modules(source, destination, {'WorldDatabaseInfo'})
+            self.assertEqual(existing.read_text(), 'Rate.XP.Kill = 5\n')
+
     @unittest.skipIf(run.os.name == 'nt', 'Windows reads module configs relative to the working directory')
     def test_server_module_directory_is_required_outside_windows(self):
         scenario = str(Path(__file__).parent / 'scenarios' / 'frostbolt.json')
@@ -330,7 +375,8 @@ class RunnerTests(unittest.TestCase):
             args = SimpleNamespace(
                 worldserver=worldserver, config=config, mysql=mysql, mysqldump=mysqldump,
                 database_client_config=None, modules_config_dir=None,
-                server_modules_dir=directory / 'server-modules', output=output, startup_timeout=3)
+                server_modules_dir=directory / 'server-modules', output=output, startup_timeout=3,
+                fresh_databases=True, refresh_world=False, world_cache_dir=directory / 'cache')
             report = self.report()
             credential_dirs = []
             real_mkdtemp = tempfile.mkdtemp
@@ -342,7 +388,7 @@ class RunnerTests(unittest.TestCase):
 
             with patch.object(run.tempfile, 'mkdtemp', side_effect=recording_mkdtemp), \
                     patch.object(run.secrets, 'token_hex', return_value='012345abcdef'), \
-                    patch.object(run.Databases, 'prepare', lambda self: None), \
+                    patch.object(run.Databases, 'prepare', lambda self, **kw: None), \
                     patch.object(run.Databases, 'cleanup', lambda self: []), \
                     patch.object(run, 'run_process', return_value=(report, 0)):
                 code = run.execute(args, self.scenario)
@@ -375,6 +421,31 @@ class RunnerTests(unittest.TestCase):
         with self.assertRaises(KeyboardInterrupt):
             installed_handlers[0](run.signal.SIGTERM, None)
         self.assertEqual(run.signal.getsignal(run.signal.SIGTERM), previous_handler)
+
+    def test_ready_callback_releases_waiting_child_before_scenario(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            script = directory / 'fake_server.py'
+            script.write_text(
+                'from pathlib import Path\nimport os, time\n'
+                'assert "AC_UPDATES_ENABLE_DATABASES" not in os.environ\n'
+                'Path("ready.json").write_text(\'{"status":"ready","run_id":"012345abcdef"}\')\n'
+                'while not Path("start.json").exists():\n    time.sleep(0.01)\n'
+                f'Path("result.json").write_text({json.dumps(json.dumps(self.report()))})\n', encoding='utf-8')
+            observed = []
+
+            def release(record):
+                self.assertFalse((directory / 'result.json').exists())
+                observed.append(record['run_id'])
+                (directory / 'start.json').write_text('{}')
+
+            with patch.dict(run.os.environ, {'AC_UPDATES_ENABLE_DATABASES': '0'}):
+                report, returncode = run.run_process(
+                    [sys.executable, str(script)], directory, directory / 'ready.json', directory / 'result.json',
+                    '012345abcdef', 3, 3, on_ready=release,
+                    environment=run.server_environment({'Updates.EnableDatabases': 7}))
+            run.check_report(report, '012345abcdef', self.scenario, returncode)
+            self.assertEqual(observed, ['012345abcdef'])
 
 
 if __name__ == '__main__':

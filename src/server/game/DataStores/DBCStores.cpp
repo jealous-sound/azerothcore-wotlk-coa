@@ -22,10 +22,12 @@
 #include "Errors.h"
 #include "LFGMgr.h"
 #include "Log.h"
+#include "RaceMgr.h"
 #include "SharedDefines.h"
 #include "SpellMgr.h"
 #include "TransportMgr.h"
 #include "World.h"
+#include <algorithm>
 #include <map>
 
 typedef std::map<uint16, uint32> AreaFlagByAreaID;
@@ -34,11 +36,16 @@ typedef std::map<uint32, uint32> AreaFlagByMapID;
 typedef std::tuple<int16, int8, int32> WMOAreaTableKey;
 typedef std::map<WMOAreaTableKey, WMOAreaTableEntry const*> WMOAreaInfoByTripple;
 
+typedef std::multimap<uint32, CharSectionsEntry const*> CharSectionsMap;
+
 DBCStorage <AreaTableEntry> sAreaTableStore(AreaTableEntryfmt);
 DBCStorage <AreaGroupEntry> sAreaGroupStore(AreaGroupEntryfmt);
 DBCStorage <AreaPOIEntry> sAreaPOIStore(AreaPOIEntryfmt);
 
 static WMOAreaInfoByTripple sWMOAreaInfoByTripple;
+static AreaFlagByAreaID sAreaFlagByAreaID;
+// for instances without generated *.map files
+static AreaFlagByMapID  sAreaFlagByMapID;
 
 DBCStorage <AchievementEntry> sAchievementStore(Achievementfmt);
 DBCStorage <AchievementCategoryEntry> sAchievementCategoryStore(AchievementCategoryfmt);
@@ -49,6 +56,10 @@ DBCStorage <BattlemasterListEntry> sBattlemasterListStore(BattlemasterListEntryf
 DBCStorage <BarberShopStyleEntry> sBarberShopStyleStore(BarberShopStyleEntryfmt);
 DBCStorage <CharStartOutfitEntry> sCharStartOutfitStore(CharStartOutfitEntryfmt);
 std::map<uint32, CharStartOutfitEntry const*> sCharStartOutfitMap;
+
+DBCStorage <CharSectionsEntry> sCharSectionsStore(CharSectionsEntryfmt);
+CharSectionsMap sCharSectionMap;
+
 DBCStorage <CharTitlesEntry> sCharTitlesStore(CharTitlesEntryfmt);
 DBCStorage <ChatChannelsEntry> sChatChannelsStore(ChatChannelsEntryfmt);
 DBCStorage <ChrClassesEntry> sChrClassesStore(ChrClassesEntryfmt);
@@ -70,6 +81,10 @@ DBCStorage <DurabilityCostsEntry> sDurabilityCostsStore(DurabilityCostsfmt);
 
 DBCStorage <EmotesEntry> sEmotesStore(EmotesEntryfmt);
 DBCStorage <EmotesTextEntry> sEmotesTextStore(EmotesTextEntryfmt);
+
+typedef std::tuple<uint32, uint32, uint32> EmotesTextSoundKey;
+static std::map<EmotesTextSoundKey, EmotesTextSoundEntry const*> sEmotesTextSoundMap;
+DBCStorage <EmotesTextSoundEntry> sEmotesTextSoundStore(EmotesTextSoundEntryfmt);
 
 typedef std::map<uint32, SimpleFactionsList> FactionTeamMap;
 static FactionTeamMap sFactionTeamMap;
@@ -200,6 +215,7 @@ DBCStorage <WorldMapOverlayEntry> sWorldMapOverlayStore(WorldMapOverlayEntryfmt)
 typedef std::list<std::string> StoreProblemList;
 
 uint32 DBCFileCount = 0;
+static std::string sDBCPath;
 
 static bool LoadDBC_assert_print(uint32 fsize, uint32 rsize, std::string const& filename)
 {
@@ -234,6 +250,10 @@ inline void LoadDBC(uint32& availableDbcLocales, StoreProblemList& errors, DBCSt
             if (!storage.LoadStringsFrom(localizedName.c_str()))
                 availableDbcLocales &= ~(1 << i);             // mark as not available for speedup next checks
         }
+
+        if (uint32 invalidStrings = storage.GetInvalidStringCount())
+            LOG_WARN("dbc", "{}: {} strings point outside the string block; loaded as empty.",
+                dbcFilename, invalidStrings);
     }
 
     if (dbTable)
@@ -263,6 +283,7 @@ void LoadDBCStores(std::string const& dataPath)
     uint32 oldMSTime = getMSTime();
 
     std::string dbcPath = dataPath + "dbc/";
+    sDBCPath = dbcPath;
 
     StoreProblemList bad_dbc_files;
     uint32 availableDbcLocales = 0xFFFFFFFF;
@@ -280,6 +301,7 @@ void LoadDBCStores(std::string const& dataPath)
     LOAD_DBC(sBattlemasterListStore,                "BattlemasterList.dbc",                 "battlemasterlist_dbc");
     LOAD_DBC(sBarberShopStyleStore,                 "BarberShopStyle.dbc",                  "barbershopstyle_dbc");
     LOAD_DBC(sCharStartOutfitStore,                 "CharStartOutfit.dbc",                  "charstartoutfit_dbc");
+    LOAD_DBC(sCharSectionsStore,                    "CharSections.dbc",                     "charsections_dbc");
     LOAD_DBC(sCharTitlesStore,                      "CharTitles.dbc",                       "chartitles_dbc");
     LOAD_DBC(sChatChannelsStore,                    "ChatChannels.dbc",                     "chatchannels_dbc");
     LOAD_DBC(sChrClassesStore,                      "ChrClasses.dbc",                       "chrclasses_dbc");
@@ -299,6 +321,7 @@ void LoadDBCStores(std::string const& dataPath)
     LOAD_DBC(sDurabilityQualityStore,               "DurabilityQuality.dbc",                "durabilityquality_dbc");
     LOAD_DBC(sEmotesStore,                          "Emotes.dbc",                           "emotes_dbc");
     LOAD_DBC(sEmotesTextStore,                      "EmotesText.dbc",                       "emotestext_dbc");
+    LOAD_DBC(sEmotesTextSoundStore,                 "EmotesTextSound.dbc",                  "emotetextsound_dbc");
     LOAD_DBC(sFactionStore,                         "Faction.dbc",                          "faction_dbc");
     LOAD_DBC(sFactionTemplateStore,                 "FactionTemplate.dbc",                  "factiontemplate_dbc");
     LOAD_DBC(sGameObjectArtKitStore,                "GameObjectArtKit.dbc",                 "gameobjectartkit_dbc");
@@ -384,8 +407,25 @@ void LoadDBCStores(std::string const& dataPath)
 
 #undef LOAD_DBC
 
+    for (uint32 i = 0; i < sAreaTableStore.GetNumRows(); ++i)    // areaflag numbered from 0
+    {
+        if (AreaTableEntry const* area = sAreaTableStore.LookupEntry(i))
+        {
+            // fill AreaId->DBC records
+            sAreaFlagByAreaID.insert(AreaFlagByAreaID::value_type(uint16(area->ID), area->exploreFlag));
+
+            // fill MapId->DBC records ( skip sub zones and continents )
+            if (area->zone == 0 && area->mapid != 0 && area->mapid != 1 && area->mapid != 530)
+                sAreaFlagByMapID.insert(AreaFlagByMapID::value_type(area->mapid, area->exploreFlag));
+        }
+    }
+
     for (CharStartOutfitEntry const* outfit : sCharStartOutfitStore)
         sCharStartOutfitMap[outfit->Race | (outfit->Class << 8) | (outfit->Gender << 16)] = outfit;
+
+    for (CharSectionsEntry const* charSection : sCharSectionsStore)
+        if (charSection->Race && ((1 << (charSection->Race - 1)) & sRaceMgr->GetPlayableRaceMask()) != 0) //ignore Nonplayable races
+            sCharSectionMap.insert({ charSection->GenType | (charSection->Gender << 8) | (charSection->Race << 16), charSection });
 
     for (FactionEntry const* faction : sFactionStore)
     {
@@ -407,6 +447,9 @@ void LoadDBCStores(std::string const& dataPath)
         if (info->maxZ < info->minZ)
             std::swap(*(float*)(&info->maxZ), *(float*)(&info->minZ));
     }
+
+    for (EmotesTextSoundEntry const* emoteTextSound : sEmotesTextSoundStore)
+        sEmotesTextSoundMap[EmotesTextSoundKey(emoteTextSound->EmotesTextId, emoteTextSound->RaceId, emoteTextSound->SexId)] = emoteTextSound;
 
     // fill data
     for (MapDifficultyEntry const* entry : sMapDifficultyStore)
@@ -548,6 +591,10 @@ void LoadDBCStores(std::string const& dataPath)
     for (TaxiPathNodeEntry const* entry : sTaxiPathNodeStore)
         sTaxiPathNodesByPath[entry->path][entry->index] = entry;
 
+    // Paths are walked by position; drop unused node numbers (CoA's path 1984 starts at node 1).
+    for (TaxiPathNodeList& nodes : sTaxiPathNodesByPath)
+        nodes.erase(std::remove(nodes.begin(), nodes.end(), nullptr), nodes.end());
+
     // Initialize global taxinodes mask
     // include existed nodes that have at least single not spell base (scripted) path
     {
@@ -649,8 +696,25 @@ void LoadDBCStores(std::string const& dataPath)
         exit(1);
     }
 
+    // Rows only the CoA client set has. World content references them, and the SQL overlays no longer
+    // backfill any, so a stock or partially copied set would silently drop that content.
+    if (!sCurrencyTypesStore.LookupEntry(375250)          ||       // Rune of Ascension
+            !sCreatureDisplayInfoStore.LookupEntry(236827)  ||       // Blood Parasite
+            !sGameObjectDisplayInfoStore.LookupEntry(87226) ||       // Worldforged pickup
+            !sItemLimitCategoryStore.LookupEntry(2414)      ||
+            !sMapStore.LookupEntry(3690)                    )        // Brawler's Guild
+    {
+        LOG_ERROR("dbc", "DataDir does not hold the CoA client DBC set. Install it with apps/coa-dbc/client_dbc.py.");
+        exit(1);
+    }
+
     LOG_INFO("server.loading", ">> Initialized {} Data Stores in {} ms", DBCFileCount, GetMSTimeDiffToNow(oldMSTime));
     LOG_INFO("server.loading", " ");
+}
+
+std::string GetClientDBCPath(std::string_view fileName)
+{
+    return sDBCPath + std::string(fileName);
 }
 
 SimpleFactionsList const* GetFactionTeamList(uint32 faction)
@@ -848,6 +912,18 @@ CharStartOutfitEntry const* GetCharStartOutfitEntry(uint8 race, uint8 class_, ui
     return itr->second;
 }
 
+CharSectionsEntry const* GetCharSectionEntry(uint8 race, CharSectionType genType, uint8 gender, uint8 type, uint8 color)
+{
+    std::pair<CharSectionsMap::const_iterator, CharSectionsMap::const_iterator> eqr = sCharSectionMap.equal_range(uint32(genType) | uint32(gender << 8) | uint32(race << 16));
+    for (CharSectionsMap::const_iterator itr = eqr.first; itr != eqr.second; ++itr)
+    {
+        if (itr->second->Type == type && itr->second->Color == color)
+            return itr->second;
+    }
+
+    return nullptr;
+}
+
 /// Returns LFGDungeonEntry for a specific map and difficulty. Will return first found entry if multiple dungeons use the same map (such as Scarlet Monastery)
 LFGDungeonEntry const* GetLFGDungeon(uint32 mapId, Difficulty difficulty)
 {
@@ -913,6 +989,12 @@ SkillRaceClassInfoEntry const* GetSkillRaceClassInfo(uint32 skill, uint8 race, u
     return nullptr;
 }
 
+EmotesTextSoundEntry const* FindTextSoundEmoteFor(uint32 emote, uint32 race, uint32 gender)
+{
+    auto itr = sEmotesTextSoundMap.find(EmotesTextSoundKey(emote, race, gender));
+    return itr != sEmotesTextSoundMap.end() ? itr->second : nullptr;
+}
+
 std::vector<SkillLineAbilityEntry const*> const& GetSkillLineAbilitiesBySkillLine(uint32 skillLine)
 {
     auto it = sSkillLineAbilityIndexBySkillLine.find(skillLine);
@@ -922,4 +1004,41 @@ std::vector<SkillLineAbilityEntry const*> const& GetSkillLineAbilitiesBySkillLin
         return emptyVector;
     }
     return it->second;
+}
+
+uint32 GetAreaFlagByMapId(uint32 mapid)
+{
+    AreaFlagByMapID::iterator i = sAreaFlagByMapID.find(mapid);
+    if (i == sAreaFlagByMapID.end())
+        return 0;
+    return i->second;
+}
+
+int32 GetAreaFlagByAreaID(uint32 area_id)
+{
+    AreaFlagByAreaID::iterator i = sAreaFlagByAreaID.find(area_id);
+    if (i == sAreaFlagByAreaID.end())
+        return -1;
+
+    return i->second;
+}
+
+AreaTableEntry const* GetAreaEntryByAreaID(uint32 area_id)
+{
+    int32 areaflag = GetAreaFlagByAreaID(area_id);
+    if (areaflag < 0)
+        return nullptr;
+
+    return sAreaTableStore.LookupEntry(areaflag);
+}
+
+AreaTableEntry const* GetAreaEntryByAreaFlagAndMap(uint32 area_flag, uint32 map_id)
+{
+    if (area_flag)
+        return sAreaTableStore.LookupEntry(area_flag);
+
+    if (MapEntry const* mapEntry = sMapStore.LookupEntry(map_id))
+        return GetAreaEntryByAreaID(mapEntry->linked_zone);
+
+    return nullptr;
 }

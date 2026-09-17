@@ -74,7 +74,7 @@ void SpellMgr::LoadSpellInfoCorrections()
     });
     // Reclaim uses the owner's exact standard GUID in its script; the authored
     // entry-area target must not enumerate nearby unrelated creatures first.
-    ApplySpellFix({ 801504 }, [](SpellInfo* spellInfo)
+    ApplySpellFix({ 801504, 574339 }, [](SpellInfo* spellInfo)
     {
         if (spellInfo->SpellFamilyName != 24 || spellInfo->Effects[EFFECT_0].TriggerSpell != 801503)
             return;

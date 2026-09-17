@@ -1533,6 +1533,7 @@ public:
     [[nodiscard]] int32 GetTotalAuraModifierByMiscMask(AuraType auratype, uint32 misc_mask) const;
     [[nodiscard]] float GetTotalAuraMultiplierByMiscMask(AuraType auratype, uint32 misc_mask) const;
     [[nodiscard]] float GetHealthBasedDamageTakenMultiplier() const;
+    [[nodiscard]] float GetAscensionNormalTuningDamageMultiplier(Unit const* victim, uint32 schoolMask) const;
     [[nodiscard]] int32 GetMaxPositiveAuraModifierByMiscMask(AuraType auratype, uint32 misc_mask, AuraEffect const* except = nullptr) const;
     [[nodiscard]] int32 GetMaxNegativeAuraModifierByMiscMask(AuraType auratype, uint32 misc_mask) const;
 
@@ -1886,6 +1887,7 @@ public:
     // Reputations system
     ReputationRank GetReactionTo(Unit const* target, bool checkOriginalFaction = false) const;
     ReputationRank GetFactionReactionTo(FactionTemplateEntry const* factionTemplateEntry, Unit const* target) const;
+    static ReputationRank GetFactionReactionTo(FactionTemplateEntry const* factionTemplateEntry, FactionTemplateEntry const* targetFactionTemplateEntry);
 
     // Shared vision
     SharedVisionList const& GetSharedVisionList() { return m_sharedVision; }
@@ -1975,7 +1977,8 @@ public:
     [[nodiscard]] bool IsInFeralForm() const
     {
         ShapeshiftForm form = GetShapeshiftForm();
-        return form == FORM_CAT || form == FORM_BEAR || form == FORM_DIREBEAR || form == FORM_GHOSTWOLF; // Xinef: added shamans Ghost Wolf, should behave exactly like druid forms
+        return form == FORM_CAT || form == FORM_BEAR || form == FORM_DIREBEAR || form == FORM_GHOSTWOLF || // Xinef: added shamans Ghost Wolf, should behave exactly like druid forms
+               form == FORM_VENOMANCER_SPIDER || form == FORM_VENOMANCER_BEETLE; // Venomancer forms use the same natural-weapon combat model
     }
 
     // Unit transform
@@ -2044,6 +2047,7 @@ public:
     void SendComboPoints();
 
     void SendPlaySpellVisual(uint32 id);
+    void SendPlaySpellVisual(ObjectGuid guid, uint32 id);
     void SendPlaySpellImpact(ObjectGuid guid, uint32 id);
 
     void SendPetActionFeedback(uint8 msg) const;

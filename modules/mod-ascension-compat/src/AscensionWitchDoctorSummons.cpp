@@ -145,7 +145,9 @@ void Summon(Player* player, uint32 spell, Unit* target, Position const& location
         entry = NpcMarionette;
     if (!entry)
         return;
-    uint32 count = spell == CallSseratus ? 3 + (player->HasAura(SerpentHandler) ? 2 : 0) : spell == Marionette ? 5 : 1;
+    uint32 count = spell == CallSseratus ? 4 + (player->HasAura(SerpentHandler) ? 2 : 0) : spell == Marionette ? 5 : 1;
+    if (spell == Mimic)
+        count = uint32(std::max(1, info->Effects[EFFECT_2].CalcValue(player)));
     int32 duration = spell == SpiritLink ? sSpellMgr->GetSpellInfo(LinkTimer)->GetDuration() : info->GetDuration();
     player->ApplySpellMod(spell, SPELLMOD_DURATION, duration);
     if (spell == Marionette)
@@ -224,6 +226,11 @@ class npc_ascension_witch_doctor : public ScriptedAI
         }
         if (me->GetEntry() == NpcMarionette)
             _timer = 2000;
+        // The Cleansing Idol advertises a 3 second cleanse and repeats on that interval, but the
+        // default one-millisecond timer made it cleanse the instant it landed, so re-dropping it
+        // cleansed on demand. Wait out the first interval like the wards and the Marionette do.
+        if (me->GetEntry() == NpcCleanse)
+            _timer = 3000;
         if (me->GetEntry() == NpcSerpent || me->GetEntry() == NpcMassSerpent || me->GetEntry() == NpcViper)
             _timer = WardAttackInterval();
     }
@@ -238,6 +245,10 @@ class npc_ascension_witch_doctor : public ScriptedAI
             _spell = value;
         if (key == DataSource)
             _source = value;
+    }
+    uint32 GetData(uint32 key) const override
+    {
+        return key == DataSource ? _source : 0;
     }
     void SetGUID(ObjectGuid const& guid, int32 key) override
     {
@@ -483,6 +494,12 @@ class spell_ascension_witch_doctor_summon : public SpellScript
         if (_made)
             return;
         _made = true;
+        // Call of Sseratus triggers its summon on every tick of a short periodic aura (five ticks), while
+        // "Summon 4 Serpent Wards" describes one group: summon it on the first tick only.
+        if (GetSpell()->GetTriggeredByAuraSpellInfo() &&
+            GetSpell()->GetTriggeredByAuraSpellInfo()->Id == CallSseratusChannel &&
+            GetSpell()->GetTriggeredByAuraTickNumber() > 1)
+            return;
         Position position = GetExplTargetDest() ? GetExplTargetDest()->GetPosition() : player->GetPosition();
         Unit* target = GetExplTargetUnit();
         if ((GetSpellInfo()->Id == WrathWard || GetSpellInfo()->Id == SerpentMass) && target)
@@ -502,6 +519,44 @@ class spell_ascension_witch_doctor_summon : public SpellScript
         if (info->HasEffect(SPELL_EFFECT_SCRIPT_EFFECT))
             OnEffectHitTarget +=
                 SpellEffectFn(spell_ascension_witch_doctor_summon::Handle, EFFECT_ALL, SPELL_EFFECT_SCRIPT_EFFECT);
+    }
+};
+
+// Spiritual Recall's SPELL_EFFECT_DESTROY_ALL_TOTEMS only reads the native totem slots, but Wards, Idols and
+// Effigies are module summons tracked in DoctorState. Destroy those instead and refund the same share of their
+// mana cost that the native effect refunds for totems.
+class spell_ascension_witch_doctor_spiritual_recall : public SpellScript
+{
+    PrepareSpellScript(spell_ascension_witch_doctor_spiritual_recall);
+    void Handle(SpellEffIndex index)
+    {
+        PreventHitDefaultEffect(index);
+        Player* player = GetCaster() ? GetCaster()->ToPlayer() : nullptr;
+        if (!player || player->getClass() != CLASS_WITCH_DOCTOR)
+            return;
+        int32 mana = 0;
+        auto summons = State(player).summons;
+        for (ObjectGuid guid : summons)
+        {
+            Creature* summon = ObjectAccessor::GetCreature(*player, guid);
+            if (!summon || !summon->IsAlive() || summon->GetOwnerGUID() != player->GetGUID() ||
+                Slot(summon->GetEntry()) > EffigySlot)
+                continue;
+            if (summon->IsAIEnabled)
+                if (SpellInfo const* source = sSpellMgr->GetSpellInfo(summon->AI()->GetData(DataSource)))
+                    mana += int32(source->ManaCost) +
+                            int32(CalculatePct(player->GetCreateMana(), source->ManaCostPercentage));
+            summon->DespawnOrUnsummon();
+        }
+        PruneSummons(player);
+        ApplyPct(mana, GetEffectValue());
+        if (mana > 0)
+            player->EnergizeBySpell(player, GetSpellInfo()->Id, uint32(mana), POWER_MANA);
+    }
+    void Register() override
+    {
+        OnEffectHit += SpellEffectFn(spell_ascension_witch_doctor_spiritual_recall::Handle, EFFECT_0,
+                                     SPELL_EFFECT_DESTROY_ALL_TOTEMS);
     }
 };
 
@@ -575,6 +630,7 @@ void AddAscensionWitchDoctorSummonScripts()
 {
     RegisterCreatureAI(npc_ascension_witch_doctor);
     RegisterSpellScript(spell_ascension_witch_doctor_summon);
+    RegisterSpellScript(spell_ascension_witch_doctor_spiritual_recall);
     new witch_doctor_summon_events();
     new witch_doctor_magnet();
 }

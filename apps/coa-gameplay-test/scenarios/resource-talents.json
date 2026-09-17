@@ -1,0 +1,604 @@
+{
+  "schema": 1,
+  "name": "Resource talents grant their live-tree 1% bonuses (#84)",
+  "contract": "Live tree: 1% per resource point/stack; Superconductor counts Static depleted.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "fel",
+      "race": 1,
+      "class": 14,
+      "level": 60
+    },
+    {
+      "id": "blood",
+      "race": 1,
+      "class": 20,
+      "level": 60
+    },
+    {
+      "id": "cult",
+      "race": 1,
+      "class": 25,
+      "level": 60
+    },
+    {
+      "id": "venom",
+      "race": 1,
+      "class": 29,
+      "level": 60
+    },
+    {
+      "id": "venom_control",
+      "race": 1,
+      "class": 29,
+      "level": 60
+    },
+    {
+      "id": "storm",
+      "race": 1,
+      "class": 16,
+      "level": 60,
+      "spell_hit_rating": 10000,
+      "spell_crit_rating": 100000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "enemy",
+      "owner": "storm",
+      "entry": 36,
+      "level": 60,
+      "distance": 15
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "ms": 5000
+    },
+    {
+      "action": "set_aura",
+      "spell": 800058,
+      "stacks": 0,
+      "actor": "fel"
+    },
+    {
+      "action": "unlearn",
+      "spell": 301287,
+      "actor": "fel"
+    },
+    {
+      "action": "snapshot",
+      "metric": "cast_speed_multiplier",
+      "save_as": "normal_speed",
+      "actor": "fel"
+    },
+    {
+      "action": "set_aura",
+      "spell": 800058,
+      "stacks": 5,
+      "actor": "fel"
+    },
+    {
+      "action": "learn",
+      "spell": 301287,
+      "actor": "fel"
+    },
+    {
+      "action": "assert",
+      "metric": "aura_amount",
+      "spell": 301287,
+      "equals": 5,
+      "actor": "fel"
+    },
+    {
+      "action": "assert",
+      "metric": "cast_speed_multiplier",
+      "ratio_to": "normal_speed",
+      "min": 0.9523,
+      "max": 0.9525,
+      "actor": "fel"
+    },
+    {
+      "action": "set_aura",
+      "spell": 800058,
+      "stacks": 2,
+      "actor": "fel"
+    },
+    {
+      "action": "assert",
+      "metric": "aura_amount",
+      "spell": 301287,
+      "equals": 2,
+      "actor": "fel"
+    },
+    {
+      "action": "set_aura",
+      "spell": 800058,
+      "stacks": 0,
+      "actor": "fel"
+    },
+    {
+      "action": "assert",
+      "metric": "cast_speed_multiplier",
+      "ratio_to": "normal_speed",
+      "min": 0.9999,
+      "max": 1.0001,
+      "actor": "fel"
+    },
+    {
+      "action": "set_aura",
+      "spell": 800058,
+      "stacks": 3,
+      "actor": "fel"
+    },
+    {
+      "action": "unlearn",
+      "spell": 301287,
+      "actor": "fel"
+    },
+    {
+      "action": "assert",
+      "metric": "cast_speed_multiplier",
+      "ratio_to": "normal_speed",
+      "min": 0.9999,
+      "max": 1.0001,
+      "actor": "fel"
+    },
+    {
+      "action": "set_aura",
+      "spell": 706613,
+      "stacks": 0,
+      "actor": "blood"
+    },
+    {
+      "action": "unlearn",
+      "spell": 504252,
+      "actor": "blood"
+    },
+    {
+      "action": "snapshot",
+      "metric": "spell_crit_chance",
+      "save_as": "normal_crit",
+      "actor": "blood"
+    },
+    {
+      "action": "set_aura",
+      "spell": 706613,
+      "stacks": 4,
+      "actor": "blood"
+    },
+    {
+      "action": "learn",
+      "spell": 504252,
+      "actor": "blood"
+    },
+    {
+      "action": "assert",
+      "metric": "spell_crit_chance",
+      "relative_to": "normal_crit",
+      "min": 3.999,
+      "max": 4.001,
+      "actor": "blood"
+    },
+    {
+      "action": "set_aura",
+      "spell": 706613,
+      "stacks": 2,
+      "actor": "blood"
+    },
+    {
+      "action": "assert",
+      "metric": "spell_crit_chance",
+      "relative_to": "normal_crit",
+      "min": 1.999,
+      "max": 2.001,
+      "actor": "blood"
+    },
+    {
+      "action": "unlearn",
+      "spell": 504252,
+      "actor": "blood"
+    },
+    {
+      "action": "assert",
+      "metric": "spell_crit_chance",
+      "relative_to": "normal_crit",
+      "min": -0.001,
+      "max": 0.001,
+      "actor": "blood"
+    },
+    {
+      "action": "set_aura",
+      "spell": 500706,
+      "stacks": 30,
+      "actor": "cult"
+    },
+    {
+      "action": "unlearn",
+      "spell": 582307,
+      "actor": "cult"
+    },
+    {
+      "action": "set_aura",
+      "actor": "cult",
+      "spell": 500706,
+      "stacks": 30
+    },
+    {
+      "action": "snapshot",
+      "metric": "spell_power_cost",
+      "save_as": "normal_instant",
+      "spell": 801153,
+      "actor": "cult"
+    },
+    {
+      "action": "snapshot",
+      "metric": "spell_power_cost",
+      "save_as": "normal_cast",
+      "spell": 800413,
+      "actor": "cult"
+    },
+    {
+      "action": "learn",
+      "spell": 582307,
+      "actor": "cult"
+    },
+    {
+      "action": "assert",
+      "metric": "aura_amount",
+      "spell": 582307,
+      "equals": 1,
+      "actor": "cult"
+    },
+    {
+      "action": "set_aura",
+      "actor": "cult",
+      "spell": 500706,
+      "stacks": 30
+    },
+    {
+      "action": "assert",
+      "metric": "spell_power_cost",
+      "spell": 801153,
+      "ratio_to": "normal_instant",
+      "min": 0.699,
+      "max": 0.701,
+      "actor": "cult"
+    },
+    {
+      "action": "assert",
+      "metric": "spell_power_cost",
+      "spell": 800413,
+      "relative_to": "normal_cast",
+      "equals": 0,
+      "actor": "cult"
+    },
+    {
+      "action": "unlearn",
+      "spell": 582307,
+      "actor": "cult"
+    },
+    {
+      "action": "set_aura",
+      "actor": "cult",
+      "spell": 500706,
+      "stacks": 30
+    },
+    {
+      "action": "assert",
+      "metric": "spell_power_cost",
+      "spell": 801153,
+      "ratio_to": "normal_instant",
+      "equals": 1,
+      "actor": "cult"
+    },
+    {
+      "action": "unlearn",
+      "spell": 705967,
+      "actor": "venom_control"
+    },
+    {
+      "action": "learn",
+      "spell": 803183,
+      "actor": "venom_control"
+    },
+    {
+      "action": "cast",
+      "spell": 803183,
+      "actor": "venom_control"
+    },
+    {
+      "action": "assert",
+      "metric": "aura_stacks",
+      "spell": 803183,
+      "equals": 1,
+      "within_ms": 1000,
+      "actor": "venom_control"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "set_aura",
+      "spell": 805095,
+      "stacks": 0,
+      "actor": "venom_control"
+    },
+    {
+      "action": "learn",
+      "spell": 805102,
+      "actor": "venom_control"
+    },
+    {
+      "action": "set_health",
+      "value": 1000,
+      "actor": "venom_control"
+    },
+    {
+      "action": "snapshot",
+      "metric": "health_pct",
+      "save_as": "venom_control_health",
+      "actor": "venom_control"
+    },
+    {
+      "action": "cast",
+      "spell": 805102,
+      "actor": "venom_control"
+    },
+    {
+      "action": "assert",
+      "metric": "aura_stacks",
+      "spell": 805095,
+      "equals": 15,
+      "within_ms": 1000,
+      "actor": "venom_control"
+    },
+    {
+      "action": "assert",
+      "metric": "health_pct",
+      "relative_to": "venom_control_health",
+      "min": -0.1,
+      "max": 0.1,
+      "actor": "venom_control"
+    },
+    {
+      "action": "unlearn",
+      "spell": 705967,
+      "actor": "venom"
+    },
+    {
+      "action": "learn",
+      "spell": 803183,
+      "actor": "venom"
+    },
+    {
+      "action": "cast",
+      "spell": 803183,
+      "actor": "venom"
+    },
+    {
+      "action": "assert",
+      "metric": "aura_stacks",
+      "spell": 803183,
+      "equals": 1,
+      "within_ms": 1000,
+      "actor": "venom"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "set_aura",
+      "spell": 805095,
+      "stacks": 0,
+      "actor": "venom"
+    },
+    {
+      "action": "learn",
+      "spell": 705967,
+      "actor": "venom"
+    },
+    {
+      "action": "learn",
+      "spell": 805102,
+      "actor": "venom"
+    },
+    {
+      "action": "set_health",
+      "value": 1000,
+      "actor": "venom"
+    },
+    {
+      "action": "snapshot",
+      "metric": "health_pct",
+      "save_as": "venom_health",
+      "actor": "venom"
+    },
+    {
+      "action": "cast",
+      "spell": 805102,
+      "actor": "venom"
+    },
+    {
+      "action": "assert",
+      "metric": "aura_stacks",
+      "spell": 805095,
+      "equals": 15,
+      "within_ms": 1000,
+      "actor": "venom"
+    },
+    {
+      "action": "assert",
+      "metric": "health_pct",
+      "relative_to": "venom_health",
+      "min": 14.9,
+      "max": 15.1,
+      "actor": "venom"
+    },
+    {
+      "action": "unlearn",
+      "spell": 705646,
+      "actor": "storm"
+    },
+    {
+      "action": "learn",
+      "spell": 801847,
+      "actor": "storm"
+    },
+    {
+      "action": "set_aura",
+      "spell": 803102,
+      "stacks": 20,
+      "actor": "storm"
+    },
+    {
+      "action": "snapshot",
+      "metric": "max_health",
+      "save_as": "enemy_max_health",
+      "actor": "enemy"
+    },
+    {
+      "action": "snapshot",
+      "metric": "health",
+      "save_as": "before_arm",
+      "actor": "enemy"
+    },
+    {
+      "action": "cast",
+      "spell": 801847,
+      "target": "enemy",
+      "actor": "storm"
+    },
+    {
+      "action": "assert",
+      "metric": "aura_stacks",
+      "spell": 803102,
+      "equals": 0,
+      "within_ms": 6000,
+      "actor": "storm"
+    },
+    {
+      "action": "assert",
+      "metric": "health",
+      "relative_to": "before_arm",
+      "max": -1,
+      "within_ms": 1000,
+      "actor": "enemy"
+    },
+    {
+      "action": "snapshot",
+      "metric": "health",
+      "save_as": "base_arm_damage",
+      "relative_to": "before_arm",
+      "actor": "enemy"
+    },
+    {
+      "action": "wait",
+      "ms": 21000
+    },
+    {
+      "action": "learn",
+      "spell": 705646,
+      "actor": "storm"
+    },
+    {
+      "action": "set_aura",
+      "spell": 803102,
+      "stacks": 20,
+      "actor": "storm"
+    },
+    {
+      "action": "snapshot",
+      "metric": "health",
+      "save_as": "before_boosted_arm",
+      "actor": "enemy"
+    },
+    {
+      "action": "assert",
+      "metric": "max_health",
+      "relative_to": "enemy_max_health",
+      "equals": 0,
+      "actor": "enemy"
+    },
+    {
+      "action": "cast",
+      "spell": 801847,
+      "target": "enemy",
+      "actor": "storm"
+    },
+    {
+      "action": "assert",
+      "metric": "aura_stacks",
+      "spell": 803102,
+      "equals": 0,
+      "within_ms": 6000,
+      "actor": "storm"
+    },
+    {
+      "action": "assert",
+      "metric": "health",
+      "relative_to": "before_boosted_arm",
+      "ratio_to": "base_arm_damage",
+      "min": 1.10,
+      "max": 1.31,
+      "within_ms": 1000,
+      "actor": "enemy"
+    },
+    {
+      "action": "wait",
+      "ms": 21000
+    },
+    {
+      "action": "set_aura",
+      "spell": 803102,
+      "stacks": 20,
+      "actor": "storm"
+    },
+    {
+      "action": "set_aura",
+      "spell": 803790,
+      "stacks": 1,
+      "actor": "storm"
+    },
+    {
+      "action": "assert",
+      "metric": "max_health",
+      "relative_to": "enemy_max_health",
+      "equals": 0,
+      "actor": "enemy"
+    },
+    {
+      "action": "snapshot",
+      "metric": "health",
+      "save_as": "before_free_arm",
+      "actor": "enemy"
+    },
+    {
+      "action": "cast",
+      "spell": 801847,
+      "target": "enemy",
+      "actor": "storm"
+    },
+    {
+      "action": "assert",
+      "metric": "health",
+      "relative_to": "before_free_arm",
+      "ratio_to": "base_arm_damage",
+      "min": 0.91,
+      "max": 1.09,
+      "within_ms": 6000,
+      "actor": "enemy"
+    },
+    {
+      "action": "assert",
+      "metric": "aura_stacks",
+      "spell": 803102,
+      "equals": 20,
+      "actor": "storm"
+    }
+  ]
+}

@@ -18,7 +18,8 @@ def main():
     extract = runpy.run_path(str(ROOT / 'modules/mod-ascension-compat/tests/client_compat/run.py'))['method']
     service = extract((MODULE / 'AscensionCompat.cpp').read_text(), 'class AscensionResourceService')
     methods = [extract(service, signature) for signature in (
-        'static bool MatchesGainRule(', 'static bool ApplyGainRule(', 'static void ModifyAuraStacks(')]
+        'static bool SpellDealsDamage(', 'static bool MatchesGainRule(',
+        'static bool ApplyGainRule(', 'static void ModifyAuraStacks(')]
     # Exercise the production resource-gain loops; native power and spending have separate fixtures.
     cast = extract(service, 'void OnSpellCast(')
     methods.append(cast[:cast.index('        for (AscensionCompatData::NativePowerGainRule')] + '\n}')
@@ -45,7 +46,7 @@ def main():
         subprocess.run([compiler, '/nologo', '/std:c++20', '/EHsc', '/W4', '/WX', '/utf-8',
                         str(cpp), '/Fe' + str(exe)], cwd=out, check=True, timeout=60)
         subprocess.run([str(exe)], cwd=out, check=True, timeout=15)
-    print('PASS: resource-gain event loops, ranks, hostile/miss/trigger gates, per-cast/per-target grants and ward/caps')
+    print('PASS: resource-gain event loops, ranks, hostile/miss/trigger gates, per-cast/per-target grants,\n      ward/caps and mitigated-to-zero damaging hits')
 
 
 if __name__ == '__main__':

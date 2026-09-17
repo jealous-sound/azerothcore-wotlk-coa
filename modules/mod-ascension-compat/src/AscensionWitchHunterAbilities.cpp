@@ -2,7 +2,7 @@
 
 #include "AscensionWitchHunterCompletion.h"
 #include "Map.h"
-#include "MotionMaster.h"
+#include "MovementTypedefs.h"
 #include "ObjectAccessor.h"
 #include "Player.h"
 #include "Random.h"
@@ -203,7 +203,7 @@ class spell_ascension_witch_hunter_ability : public SpellScript
         }
         if (Heartseeking(GetSpellInfo()) && dealt)
             player->RewardRage(dealt, 0, true);
-        if (Family(GetSpellInfo(), 2, 8388608) && dealt && player->HasAura(560208) &&
+        if (Desecrate(GetSpellInfo()) && dealt && player->HasAura(560208) &&
             target->HasAura(680517, player->GetGUID()))
             player->CastCustomSpell(574335, SPELLVALUE_BASE_POINT0, int32(player->CountPctFromMaxHealth(1)), player,
                                     TRIGGERED_FULL_MASK);
@@ -249,7 +249,11 @@ class spell_ascension_witch_hunter_ability : public SpellScript
         SpellInfo const* info = GetSpellInfo();
         uint32 id = info->Id;
         Unit* target = GetExplTargetUnit();
-        if (GetSpell()->IsTriggered())
+        // Vault has SPELL_ATTR4_ALLOW_CAST_WHILE_CASTING, which adds TRIGGERED_IGNORE_CAST_IN_PROGRESS and
+        // TRIGGERED_CAST_DIRECTLY to the player's own cast, so IsTriggered() is true for it. Real triggered
+        // casts also carry TRIGGERED_IGNORE_GCD (see Spell::prepare).
+        bool const playerVault = id == 500085 && !GetSpell()->HasTriggeredCastFlag(TRIGGERED_IGNORE_GCD);
+        if (GetSpell()->IsTriggered() && !playerVault)
             return;
         auto talent = [&](uint32 passive, uint32 helper, Unit* recipient = nullptr)
         {
@@ -289,8 +293,16 @@ class spell_ascension_witch_hunter_ability : public SpellScript
             float distance = 10.0f * player->GetSpeedRate(MOVE_RUN);
             if (AuraEffect* extra = player->GetAuraEffect(789256, EFFECT_0))
                 distance += extra->GetAmount();
-            // Native jump packet/knockback keeps terrain and client movement acknowledgements intact.
-            player->GetMotionMaster()->MoveJumpTo(angle, distance * 1.6f, 5.0f);
+            // MotionMaster::MoveJumpTo returns immediately for players, so drive the vault with the
+            // native knockback packet the way SPELL_EFFECT_KNOCK_BACK does. A knockback travels
+            // speedXY * 2 * speedZ / gravity yards, and KnockbackFrom derives its direction from
+            // (caster - source), so aim it from a point one yard behind the requested heading.
+            float const speedZ = 5.0f;
+            float const speedXY = distance * float(Movement::gravity) / (2.0f * speedZ);
+            float const heading = player->GetOrientation() + angle;
+            player->KnockbackFrom(player->GetPositionX() - std::cos(heading),
+                                  player->GetPositionY() - std::sin(heading), speedXY, speedZ);
+            sScriptMgr->AnticheatSetUnderACKmount(player);
             talent(524812, 525054);
             talent(681156, 681155);
             player->RemoveAurasDueToSpell(500102);
@@ -347,7 +359,7 @@ class spell_ascension_witch_hunter_ability : public SpellScript
             if (_lightbringer && !roll_chance_i(25))
                 player->RemoveAurasDueToSpell(680539);
         }
-        if (Family(info, 2, 8388608))
+        if (Desecrate(info))
         {
             talent(560208, 680519);
             player->RemoveAurasDueToSpell(803166);
@@ -368,7 +380,7 @@ class spell_ascension_witch_hunter_ability : public SpellScript
         if (id == 802273)
         {
             if (player->HasAura(705450))
-                SummonHounds(player, 1, sSpellMgr->GetSpellInfo(803886)->GetDuration(), target);
+                SummonHounds(player, 1, sSpellMgr->GetSpellInfo(803886)->GetDuration(), 803886, target);
             CallHounds(player, target);
         }
         if (Family(info, 2, 8))
@@ -376,7 +388,7 @@ class spell_ascension_witch_hunter_ability : public SpellScript
             talent(705463, 680275);
             uint32 chance = player->HasAura(707891) ? 50 : player->HasAura(706365) ? 25 : 0;
             if (chance && roll_chance_i(chance))
-                SummonHounds(player, 1, sSpellMgr->GetSpellInfo(707890)->GetDuration(), target);
+                SummonHounds(player, 1, sSpellMgr->GetSpellInfo(707890)->GetDuration(), 707890, target);
         }
         if (Family(info, 2, 512) && id != 802826 && player->HasAura(680513))
         {

@@ -1,0 +1,90 @@
+{
+  "schema": 1,
+  "name": "Issue 3960: Bright Moon raises the Lunar Phase stack cap to 8",
+  "contract": "Knowing Bright Moon raises Lunar Phase's passive stack cap from 4 to 8. Without it, the periodic gain still caps at 4.",
+  "players": [
+    {
+      "id": "moonlit",
+      "race": 1,
+      "class": 26,
+      "level": 80
+    },
+    {
+      "id": "control",
+      "race": 1,
+      "class": 26,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "moonlit",
+      "spell": 800386
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 800386
+    },
+    {
+      "action": "learn",
+      "actor": "moonlit",
+      "spell": 801226
+    },
+    {
+      "action": "assert",
+      "actor": "moonlit",
+      "metric": "aura",
+      "spell": 524781,
+      "equals": 1,
+      "within_ms": 1000
+    },
+    {
+      "action": "assert",
+      "actor": "control",
+      "metric": "aura",
+      "spell": 524781,
+      "equals": 1,
+      "within_ms": 1000
+    },
+    {
+      "action": "assert",
+      "actor": "moonlit",
+      "metric": "spell_max_stacks",
+      "spell": 802985,
+      "equals": 8
+    },
+    {
+      "action": "assert",
+      "actor": "control",
+      "metric": "spell_max_stacks",
+      "spell": 802985,
+      "equals": 4
+    },
+    {
+      "action": "wait",
+      "ms": 33000
+    },
+    {
+      "action": "assert",
+      "actor": "control",
+      "metric": "aura_stacks",
+      "spell": 802985,
+      "equals": 4,
+      "within_ms": 4000
+    },
+    {
+      "action": "assert",
+      "actor": "moonlit",
+      "metric": "aura_stacks",
+      "spell": 802985,
+      "equals": 8,
+      "within_ms": 4000
+    }
+  ]
+}

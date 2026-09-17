@@ -31,7 +31,8 @@ char const* GetFileFormat(DBCFileLoader const& dbc, char const* format)
 }
 }
 
-DBCStorageBase::DBCStorageBase(char const* fmt) : _fieldCount(0), _fileFormat(fmt), _dataTable(nullptr), _indexTableSize(0)
+DBCStorageBase::DBCStorageBase(char const* fmt) : _fieldCount(0), _fileFormat(fmt), _dataTable(nullptr),
+    _indexTableSize(0), _invalidStringCount(0)
 {
 }
 
@@ -62,6 +63,8 @@ bool DBCStorageBase::Load(char const* path, char**& indexTable)
     if (char* stringBlock = dbc.AutoProduceStrings(fileFormat, _dataTable))
         _stringPool.push_back(stringBlock);
 
+    _invalidStringCount += dbc.GetInvalidStringCount();
+
     // error in dbc file at loading if nullptr
     return indexTable != nullptr;
 }
@@ -81,6 +84,8 @@ bool DBCStorageBase::LoadStringsFrom(char const* path, char** indexTable)
     // load strings from another locale dbc data
     if (char* stringBlock = dbc.AutoProduceStrings(GetFileFormat(dbc, _fileFormat), _dataTable))
         _stringPool.push_back(stringBlock);
+
+    _invalidStringCount += dbc.GetInvalidStringCount();
 
     return true;
 }

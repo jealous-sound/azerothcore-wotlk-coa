@@ -102,6 +102,15 @@ void ApplyContracts(SpellInfo* info)
         info->AttributesEx3 &= ~SPELL_ATTR3_REQUIRES_OFF_HAND_WEAPON;
     if (Heartseeking(info))
         info->Effects[EFFECT_2].TriggerSpell = 807316;
+    // Quickdraw hands its Rage to Darkslayer (Energize) 680235 through a DUMMY effect, which is
+    // scripted-only and never runs. Its sibling Darkslayer authors the identical payload as a trigger
+    // effect. Record and text conflict here: Darkslayer's and Sixfold Shot's descriptions name the Rage
+    // income, Quickdraw's omits it. The income is taken as authored because Sixfold Shot, the upgrade
+    // that replaces this same family mask, advertises and receives one, and because the ability was
+    // reported in game as spending Rage without ever paying any back. The amount is 680235's own
+    // authored 100-250 internal (10-25 Rage) and has not been observed live.
+    if (Quickdraw(info) && info->Effects[EFFECT_2].TriggerSpell == 680235)
+        info->Effects[EFFECT_2].Effect = SPELL_EFFECT_TRIGGER_SPELL;
     if (id == 503662)
         info->CasterAuraSpell = 0;
     if (id == 300872)
@@ -225,7 +234,7 @@ void ApplyContracts(SpellInfo* info)
             effect.TriggerSpell = 0;
             effect.TargetA = SpellImplicitTargetInfo(TARGET_UNIT_TARGET_ENEMY);
         }
-    if (Family(info, 2, 8388608) && info->Id != 681177 && info->Id != 681179)
+    if (Desecrate(info))
     {
         info->CasterAuraState = 0;
         info->CasterAuraSpell = 803166;
@@ -304,6 +313,24 @@ namespace
 {
 using namespace AscensionWitchHunter;
 
+// The Witch Hunter spends Rage - 216 of its family-21 records carry a Rage cost - but ChrClasses.dbc
+// gives class 15 Mana as its display power. Unit::DealDamage grants Rage for melee damage dealt and
+// for damage received only when HasActivePowerType(POWER_RAGE) is true, which asks the scripts first
+// and otherwise compares the display power, so the class gained Rage from its own abilities alone.
+class witch_hunter_resources : public PlayerScript
+{
+  public:
+    witch_hunter_resources()
+        : PlayerScript("witch_hunter_resources", {PLAYERHOOK_ON_PLAYER_HAS_ACTIVE_POWER_TYPE})
+    {
+    }
+
+    bool OnPlayerHasActivePowerType(Player const* player, Powers power) override
+    {
+        return player && player->getClass() == CLASS_WITCH_HUNTER && power == POWER_RAGE;
+    }
+};
+
 class witch_hunter_scaling : public UnitScript
 {
   public:
@@ -356,5 +383,6 @@ class spell_ascension_witch_hunter_copy : public SpellScript
 void AddAscensionWitchHunterCompletionScripts()
 {
     new witch_hunter_scaling();
+    new witch_hunter_resources();
     RegisterSpellScript(spell_ascension_witch_hunter_copy);
 }

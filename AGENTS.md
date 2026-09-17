@@ -28,8 +28,7 @@ Read the relevant sections when needed for the work. Do not read every guide or 
 - Subsystem-specific questions → the relevant section in `.agents/docs/systems/`
 - Ascension damage/healing, AP/RAP/SP coefficients, triggered spells or tooltip parity →
   `.agents/docs/systems/ascension-spell-parity.md`
-- Local SQL/binary/client deployment, MPQ synchronization or deployment-verifier tests →
-  `.agents/docs/systems/ascension-local-deployment.md`
+- Ascension race/class availability or character creation → `.agents/docs/systems/ascension-character-creation.md`
 - Capturing a lesson or adding/updating agent docs → `.agents/docs/README.md`
 
 ## Repository layout

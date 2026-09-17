@@ -21,7 +21,6 @@ def main():
         code += method(shared, "enum " + enum) + ";\n"
     code += r'''
 constexpr uint32 GOSSIP_ICON_TAXI=1, DEFAULT_GOSSIP_MESSAGE=1;
-using SpellEffIndex=uint32;
 struct Item {uint32 id=977028;uint32 GetEntry()const{return id;}uint32 GetGUID()const{return 42;}};
 struct Player
 {
@@ -57,16 +56,20 @@ int main()
     for (TeamId team : {TEAM_ALLIANCE,TEAM_HORDE}) for (uint32 level : {1u,8u})
     {
         Player p;p.team=team;p.level=level;PermitSpell spell{&p,&item};
-        assert(spell.Load() && spell.CheckCast()==SPELL_CAST_OK);spell.OpenMenu(0);
-        assert(p.shown==1 && p.menu.size()==3);
+        assert(spell.Load() && spell.CheckCast()==SPELL_CAST_OK);spell.OpenMenu();
+        assert(p.shown==1 && p.menu.size()==4);
         auto actions=p.menu;
+        bool starter=false;
+        for (uint32 action:actions)
+            starter=starter||Destinations[action].race==(team==TEAM_ALLIANCE?RACE_DRAENEI:RACE_BLOODELF);
+        assert(starter);  // The Draenei and Blood Elf starts are offered, not just the six vanilla ones.
         for (uint32 action:actions)
         {
             auto before=p.teleports;select.OnGossipSelect(&p,&item,SenderTravelPermit,action);
             assert(p.teleports==before+1 && p.destination==Destinations[action].race && p.menu.empty());
         }
         auto before=p.teleports;
-        select.OnGossipSelect(&p,&item,SenderTravelPermit,team==TEAM_ALLIANCE?3:0);
+        select.OnGossipSelect(&p,&item,SenderTravelPermit,team==TEAM_ALLIANCE?4:0);
         select.OnGossipSelect(&p,&item,SenderTravelPermit,99);
         select.OnGossipSelect(&p,&item,0,actions[0]);
         assert(p.teleports==before);
@@ -76,13 +79,13 @@ int main()
         select.OnGossipSelect(&p,&item,SenderTravelPermit,actions[0]);assert(p.teleports==before);
         p.combat=false;p.alive=false;assert(spell.CheckCast()==SPELL_FAILED_CASTER_DEAD);
     }
-    Player p;PermitSpell spell{&p,&item};manager.missing=RACE_HUMAN;spell.OpenMenu(0);
-    assert(p.menu.size()==2);select.OnGossipSelect(&p,&item,SenderTravelPermit,0);assert(!p.teleports);
+    Player p;PermitSpell spell{&p,&item};manager.missing=RACE_HUMAN;spell.OpenMenu();
+    assert(p.menu.size()==3);select.OnGossipSelect(&p,&item,SenderTravelPermit,0);assert(!p.teleports);
     item.id=1;assert(!spell.Load());select.OnGossipSelect(&p,&item,SenderTravelPermit,1);assert(!p.teleports);
-    spell.item=nullptr;assert(!spell.Load());spell.OpenMenu(0);
+    spell.item=nullptr;assert(!spell.Load());spell.OpenMenu();
 }
 '''
-    assert "OnCheckCast += SpellCheckCastFn" in source and "OnEffectHitTarget += SpellEffectFn" in source
+    assert "OnCheckCast += SpellCheckCastFn" in source and "AfterCast += SpellCastFn" in source
     assert "bool OnUse(" not in source  # Failed/cooling-down item casts never reach OpenMenu.
     compiler = shutil.which(os.environ.get("CXX", "g++"))
     assert compiler, "Set CXX to a C++17 compiler."

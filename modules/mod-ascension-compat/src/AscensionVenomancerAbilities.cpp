@@ -79,6 +79,8 @@ public:
             result = SPELL_FAILED_BAD_TARGETS;
         if (info->Id == 803525 && player->IsInCombat())
             result = SPELL_FAILED_AFFECTING_COMBAT;
+        if (info->Id == 804968 && !player->HasAura(Spider) && !player->HasAura(Beetle))
+            result = SPELL_FAILED_ONLY_SHAPESHIFT;
     }
     void OnSpellBeforeEffects(Spell* spell, Unit* caster, SpellInfo const* info) override
     {

@@ -15,6 +15,7 @@ namespace AscensionVenomancer
 {
 constexpr uint32 Brood = 804972;
 constexpr uint32 Exposed = 805095;
+constexpr uint32 CharmOfWarding = 705967;
 constexpr uint32 Spider = 800841;
 constexpr uint32 Beetle = 803183;
 constexpr uint32 Skulk = 800843;

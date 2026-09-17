@@ -139,8 +139,10 @@ class necromancer_casts : public AllSpellScript
         Unit* target = spell->m_targets.GetUnitTarget();
         if (player->HasAura(500730))
             result = SPELL_FAILED_CASTER_AURASTATE;
+        // Life Force is not the Necromancer's power bar, so "Not enough mana" would be wrong: the client reads this
+        // result as "You already control a summoned creature".
         if (Cost(player, id) && int32(Capacity(player)) - Used(player) < Cost(player, id))
-            result = SPELL_FAILED_NO_POWER;
+            result = SPELL_FAILED_ALREADY_HAVE_SUMMON;
         if (Command(info) && (player->HasAura(500983) || Minions(player).empty()))
             result = SPELL_FAILED_CANT_DO_THAT_RIGHT_NOW;
         if ((id == 500443 || id == 801938) && !player->HasAura(803782) && !Diseases(player, target))
@@ -204,7 +206,8 @@ class necromancer_casts : public AllSpellScript
         uint32 id = aura->GetId();
         if ((id == 803741 || id == 800706) && player->HasAura(302923))
             duration = duration * 125 / 100;
-        if (aura->GetUnitOwner() && aura->GetUnitOwner()->IsPlayer())
+        // Ground effects (dynamic object auras) come through this hook too: GetUnitOwner asserts on them.
+        if (aura->GetType() == UNIT_AURA_TYPE && aura->GetUnitOwner() && aura->GetUnitOwner()->IsPlayer())
         {
             if (id == 504845)
                 duration = std::min(duration, 8000);

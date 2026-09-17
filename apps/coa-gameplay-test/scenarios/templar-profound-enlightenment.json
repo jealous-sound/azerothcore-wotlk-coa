@@ -1,0 +1,154 @@
+{
+  "schema": 1,
+  "name": "Profound Enlightenment halves the remaining cooldown of Testaments (#1100)",
+  "contract": "Profound Enlightenment 680953 reduces the remaining cooldown of Testament of Fortitude, Testament of Faith (every rank) and Testament of Hope by 50%.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "templar",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    }
+  ],
+  "creatures": [
+    {
+      "id": "dummy",
+      "owner": "templar",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 3
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "templar",
+      "spell": 501606
+    },
+    {
+      "action": "learn",
+      "actor": "templar",
+      "spell": 500678
+    },
+    {
+      "action": "learn",
+      "actor": "templar",
+      "spell": 1397742
+    },
+    {
+      "action": "learn",
+      "actor": "templar",
+      "spell": 680953
+    },
+    {
+      "action": "set_power",
+      "actor": "templar",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "cast",
+      "actor": "templar",
+      "spell": 501606
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "templar",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "cast",
+      "actor": "templar",
+      "spell": 500678
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "templar",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "cast",
+      "actor": "templar",
+      "spell": 1397742
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "snapshot",
+      "actor": "templar",
+      "metric": "cooldown_ms",
+      "save_as": "faith",
+      "spell": 501606
+    },
+    {
+      "action": "snapshot",
+      "actor": "templar",
+      "metric": "cooldown_ms",
+      "save_as": "fortitude",
+      "spell": 500678
+    },
+    {
+      "action": "snapshot",
+      "actor": "templar",
+      "metric": "cooldown_ms",
+      "save_as": "hope",
+      "spell": 1397742
+    },
+    {
+      "action": "cast",
+      "actor": "templar",
+      "spell": 680953
+    },
+    {
+      "action": "assert",
+      "label": "Faith cooldown is halved",
+      "actor": "templar",
+      "metric": "cooldown_ms",
+      "spell": 501606,
+      "ratio_to": "faith",
+      "min": 0.48,
+      "max": 0.51,
+      "within_ms": 1000
+    },
+    {
+      "action": "assert",
+      "label": "Fortitude cooldown is halved",
+      "actor": "templar",
+      "metric": "cooldown_ms",
+      "spell": 500678,
+      "ratio_to": "fortitude",
+      "min": 0.48,
+      "max": 0.51,
+      "within_ms": 1000
+    },
+    {
+      "action": "assert",
+      "label": "Hope cooldown is halved",
+      "actor": "templar",
+      "metric": "cooldown_ms",
+      "spell": 1397742,
+      "ratio_to": "hope",
+      "min": 0.48,
+      "max": 0.51,
+      "within_ms": 1000
+    }
+  ]
+}

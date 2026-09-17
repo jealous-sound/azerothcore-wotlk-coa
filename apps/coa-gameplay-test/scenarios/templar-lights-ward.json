@@ -1,0 +1,119 @@
+{
+  "schema": 1,
+  "name": "Light's Ward: magic resistance from dodge rating and 15% less periodic damage (#1625)",
+  "contract": "Light's Ward 300529 increases all magic resistances by 10% of dodge rating and reduces periodic damage taken by 15% (helper 301283). Periodic healing received is not reduced. Defender's Code 60286 supplies 455 dodge rating.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    },
+    {
+      "id": "ward",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    }
+  ],
+  "creatures": [
+    {
+      "id": "dummy",
+      "owner": "control",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 3
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "set_aura",
+      "actor": "control",
+      "spell": 60286,
+      "stacks": 1
+    },
+    {
+      "action": "set_aura",
+      "actor": "ward",
+      "spell": 60286,
+      "stacks": 1
+    },
+    {
+      "action": "learn",
+      "actor": "ward",
+      "spell": 300529
+    },
+    {
+      "action": "assert",
+      "label": "Ward helper is active",
+      "actor": "ward",
+      "metric": "aura",
+      "spell": 301283,
+      "equals": 1,
+      "within_ms": 3000
+    },
+    {
+      "action": "wait",
+      "label": "Let the helper refresh with the new dodge rating",
+      "ms": 2500
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "combat_rating",
+      "save_as": "dodge",
+      "rating": 2
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "resistance",
+      "save_as": "arcane",
+      "school": 6
+    },
+    {
+      "action": "assert",
+      "label": "Magic resistance rises by 10% of dodge rating",
+      "actor": "ward",
+      "metric": "resistance",
+      "school": 6,
+      "relative_to": "arcane",
+      "min": 40,
+      "max": 50
+    },
+    {
+      "action": "assert",
+      "label": "Periodic damage is not reduced without the talent",
+      "actor": "control",
+      "metric": "script_periodic_damage_taken",
+      "target": "dummy",
+      "spell": 6727,
+      "equals": 1000
+    },
+    {
+      "action": "assert",
+      "label": "Periodic damage is reduced by 15%",
+      "actor": "ward",
+      "metric": "script_periodic_damage_taken",
+      "target": "dummy",
+      "spell": 6727,
+      "min": 849,
+      "max": 850
+    },
+    {
+      "action": "assert",
+      "label": "Periodic healing is not reduced",
+      "actor": "ward",
+      "metric": "script_periodic_damage_taken",
+      "target": "dummy",
+      "spell": 139,
+      "equals": 1000
+    }
+  ]
+}

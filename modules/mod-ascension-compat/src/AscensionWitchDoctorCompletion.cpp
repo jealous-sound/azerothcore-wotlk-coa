@@ -206,12 +206,25 @@ void ApplyContracts(SpellInfo* info)
     };
     if (id == Shadowhunter)
         dummy(EFFECT_1);
+    if ((id == ChosenOne || id == MojoHigh) &&
+        info->Effects[EFFECT_0].ApplyAuraName == SPELL_AURA_ADD_FLAT_MODIFIER &&
+        info->Effects[EFFECT_0].MiscValue == SPELLMOD_EFFECT3)
+        info->Effects[EFFECT_0].SpellClassMask = flag96(512, 0, 0); // Mimic Ward's summon count
+    // "Summon a mimic ward" - one, with Chosen One adding the second. The record's summon count reads
+    // as two once the core applies its base-point convention, so the ward always arrived doubled and
+    // Chosen One pushed it to three.
+    if (id == Mimic && info->Effects[EFFECT_2].Effect == SPELL_EFFECT_SUMMON)
+        info->Effects[EFFECT_2].BasePoints = 1;
     if (Family(info, 0, 4))
     {
         // Keep all victims in one cast, including rank coefficients and actual hit accounting.
         info->Effects[EFFECT_0].Effect = SPELL_EFFECT_SCHOOL_DAMAGE;
         info->Effects[EFFECT_0].TriggerSpell = 0;
     }
+    // Each Call of Sseratus summon also triggers The True Spirit's buff, talent or not. Summon() already grants
+    // it per ward when the talent is known.
+    if (id == CallSseratus && info->Effects[EFFECT_1].TriggerSpell == TrueSpiritReady)
+        info->Effects[EFFECT_1].Effect = 0;
     if (id == ShadowhunterCost)
         info->Effects[EFFECT_0].Effect = info->Effects[EFFECT_1].Effect = 0;
     if (id == Spirit)
@@ -349,6 +362,10 @@ void ApplyContracts(SpellInfo* info)
         periodic(EFFECT_1, 500);
     if (id == Mirage)
         info->Effects[EFFECT_1].Effect = 0; // exactly five Spirits from the successful cast
+    if (id == SenjinSwiftness)
+        info->Effects[EFFECT_1].SpellClassMask = flag96(0, 0, 1073741824); // was empty, so its -60s cooldown mod matched every WD spell instead of just Mirage
+    if (id == SenjinWisdom)
+        info->Effects[EFFECT_0].SpellClassMask = flag96(0, 0, 1073741824); // pointed at the wrong classmask word, so its +20s duration mod never matched Mirage
     if (id == RageBrewBuff)
         info->Effects[EFFECT_1].BasePoints = 14;
     if (id == Voice)

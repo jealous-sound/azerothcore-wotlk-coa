@@ -407,7 +407,9 @@ void WorldSession::HandleWhoOpcode(WorldPacket& recvData)
 
         // check if class matches classmask
         uint8 class_ = target.GetClass();
-        if (!(classmask & (1 << class_)))
+        // Keep the legacy wrapped bit for CoA class 32 without shifting a 32-bit value by 32.
+        uint32 classBit = class_ < 32 ? (1u << class_) : class_ == 32 ? 1u : 0u;
+        if (!(classmask & classBit))
         {
             continue;
         }

@@ -169,7 +169,6 @@ void WorldConfig::BuildConfigCache()
     SetConfigValue<uint32>(CONFIG_INTERVAL_DISCONNECT_TOLERANCE, "DisconnectToleranceInterval", 0);
     SetConfigValue<bool>(CONFIG_STATS_SAVE_ONLY_ON_LOGOUT, "PlayerSave.Stats.SaveOnlyOnLogout", true);
     SetConfigValue<uint32>(CONFIG_ADDITIONAL_SAVES, "PlayerSave.AdditionalSaves", 0);
-    SetConfigValue<bool>(CONFIG_VALIDATE_SKILL_LEARNED_BY_SPELLS, "ValidateSkillLearnedBySpells", true);
 
     SetConfigValue<uint32>(CONFIG_MIN_LEVEL_STAT_SAVE, "PlayerSave.Stats.MinLevel", 0, ConfigValueCache::Reloadable::Yes, [](uint32 const& value) { return value < MAX_LEVEL; }, "< MAX_LEVEL");
 
@@ -227,7 +226,9 @@ void WorldConfig::BuildConfigCache()
 
     SetConfigValue<uint32>(CONFIG_CHARACTER_CREATING_DISABLED_CLASSMASK, "CharacterCreating.Disabled.ClassMask", 0);
 
-    SetConfigValue<uint32>(CONFIG_CHARACTERS_PER_REALM, "CharactersPerRealm", 10, ConfigValueCache::Reloadable::Yes, [](uint32 const& value) { return value > 0 && value <= 10; }, "> 0 && <= 10");
+    // Up to 128: the Ascension character screen renders as many rows as the
+    // server reports, and every count that carries the value is a uint8.
+    SetConfigValue<uint32>(CONFIG_CHARACTERS_PER_REALM, "CharactersPerRealm", 10, ConfigValueCache::Reloadable::Yes, [](uint32 const& value) { return value > 0 && value <= 128; }, "> 0 && <= 128");
 
     // must be after CONFIG_CHARACTERS_PER_REALM
     SetConfigValue<uint32>(CONFIG_CHARACTERS_PER_ACCOUNT, "CharactersPerAccount", 50, ConfigValueCache::Reloadable::Yes, [this](uint32 const& value) { return value >= GetConfigValue<uint32>(CONFIG_CHARACTERS_PER_REALM); }, ">= CONFIG_CHARACTERS_PER_REALM");

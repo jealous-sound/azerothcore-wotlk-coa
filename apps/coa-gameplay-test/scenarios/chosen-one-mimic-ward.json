@@ -1,0 +1,256 @@
+{
+  "schema": 1,
+  "name": "Chosen One and Mojo High add independent Mimic Wards (#268)",
+  "contract": "Mimic Ward summons one ward without modifiers, two with either Chosen One or Mojo High, and three with both. Mojo High adds three seconds to the normal twelve-second duration. Removing both modifiers restores one ward.",
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 13,
+      "level": 80
+    },
+    {
+      "id": "chosen",
+      "race": 1,
+      "class": 13,
+      "level": 80
+    },
+    {
+      "id": "mojo",
+      "race": 1,
+      "class": 13,
+      "level": 80
+    },
+    {
+      "id": "both",
+      "race": 1,
+      "class": 13,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 707162
+    },
+    {
+      "action": "learn",
+      "actor": "chosen",
+      "spell": 707162
+    },
+    {
+      "action": "learn",
+      "actor": "chosen",
+      "spell": 503742
+    },
+    {
+      "action": "assert",
+      "actor": "chosen",
+      "metric": "aura",
+      "spell": 503742,
+      "equals": 1
+    },
+    {
+      "action": "learn",
+      "actor": "mojo",
+      "spell": 707162
+    },
+    {
+      "action": "learn",
+      "actor": "mojo",
+      "spell": 706488
+    },
+    {
+      "action": "assert",
+      "actor": "mojo",
+      "metric": "aura",
+      "spell": 706488,
+      "equals": 1
+    },
+    {
+      "action": "learn",
+      "actor": "both",
+      "spell": 707162
+    },
+    {
+      "action": "learn",
+      "actor": "both",
+      "spell": 503742
+    },
+    {
+      "action": "assert",
+      "actor": "both",
+      "metric": "aura",
+      "spell": 503742,
+      "equals": 1
+    },
+    {
+      "action": "learn",
+      "actor": "both",
+      "spell": 706488
+    },
+    {
+      "action": "assert",
+      "actor": "both",
+      "metric": "aura",
+      "spell": 706488,
+      "equals": 1
+    },
+    {
+      "action": "cast",
+      "actor": "control",
+      "spell": 707162
+    },
+    {
+      "action": "assert",
+      "actor": "control",
+      "metric": "owned_creature_count",
+      "entry": 300659,
+      "equals": 1,
+      "within_ms": 1000
+    },
+    {
+      "action": "cast",
+      "actor": "chosen",
+      "spell": 707162
+    },
+    {
+      "action": "assert",
+      "actor": "chosen",
+      "metric": "owned_creature_count",
+      "entry": 300659,
+      "equals": 2,
+      "within_ms": 1000
+    },
+    {
+      "action": "cast",
+      "actor": "mojo",
+      "spell": 707162
+    },
+    {
+      "action": "assert",
+      "actor": "mojo",
+      "metric": "owned_creature_count",
+      "entry": 300659,
+      "equals": 2,
+      "within_ms": 1000
+    },
+    {
+      "action": "cast",
+      "actor": "both",
+      "spell": 707162
+    },
+    {
+      "action": "assert",
+      "actor": "both",
+      "metric": "owned_creature_count",
+      "entry": 300659,
+      "equals": 3,
+      "within_ms": 1000
+    },
+    {
+      "action": "wait",
+      "ms": 12500
+    },
+    {
+      "action": "assert",
+      "actor": "control",
+      "metric": "owned_creature_count",
+      "entry": 300659,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "chosen",
+      "metric": "owned_creature_count",
+      "entry": 300659,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "mojo",
+      "metric": "owned_creature_count",
+      "entry": 300659,
+      "equals": 2
+    },
+    {
+      "action": "assert",
+      "actor": "both",
+      "metric": "owned_creature_count",
+      "entry": 300659,
+      "equals": 3
+    },
+    {
+      "action": "wait",
+      "ms": 3500
+    },
+    {
+      "action": "assert",
+      "actor": "mojo",
+      "metric": "owned_creature_count",
+      "entry": 300659,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "both",
+      "metric": "owned_creature_count",
+      "entry": 300659,
+      "equals": 0
+    },
+    {
+      "action": "unlearn",
+      "actor": "both",
+      "spell": 503742
+    },
+    {
+      "action": "assert",
+      "actor": "both",
+      "metric": "aura",
+      "spell": 503742,
+      "equals": 0
+    },
+    {
+      "action": "unlearn",
+      "actor": "both",
+      "spell": 706488
+    },
+    {
+      "action": "assert",
+      "actor": "both",
+      "metric": "aura",
+      "spell": 706488,
+      "equals": 0
+    },
+    {
+      "action": "wait",
+      "ms": 45000
+    },
+    {
+      "action": "cast",
+      "actor": "both",
+      "spell": 707162
+    },
+    {
+      "action": "assert",
+      "actor": "both",
+      "metric": "owned_creature_count",
+      "entry": 300659,
+      "equals": 1,
+      "within_ms": 1000
+    },
+    {
+      "action": "wait",
+      "ms": 13000
+    },
+    {
+      "action": "assert",
+      "actor": "both",
+      "metric": "owned_creature_count",
+      "entry": 300659,
+      "equals": 0
+    }
+  ],
+  "timeout_ms": 120000
+}

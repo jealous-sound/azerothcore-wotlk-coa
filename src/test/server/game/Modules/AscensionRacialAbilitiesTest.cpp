@@ -49,6 +49,20 @@ TEST(AscensionRacialAbilitiesTest, DraeneiCustomAbilitiesUseTheirAdditionalSkill
     EXPECT_FALSE(AscensionRacialAbilities::CanLearn(gift, RACE_HUMAN, CLASS_FLESHWARDEN));
 }
 
+TEST(AscensionRacialAbilitiesTest, DraeneiSunClericReceivesOnlyTheHybridGift)
+{
+    auto hybrid = RacialAbility(11760, 1024, 3909427200u);
+    hybrid.Spell = AscensionRacialAbilities::SPELL_GIFT_OF_THE_NAARU_HYBRID;
+    auto spellPower = RacialAbility(11760, 1024, 48267264u);
+    spellPower.Spell = 814280;
+    auto attackPower = RacialAbility(11760, 1024, 131072u);
+    attackPower.Spell = 814281;
+    EXPECT_TRUE(AscensionRacialAbilities::CanLearn(hybrid, RACE_DRAENEI, CLASS_SUN_CLERIC));
+    EXPECT_FALSE(AscensionRacialAbilities::CanLearn(spellPower, RACE_DRAENEI, CLASS_SUN_CLERIC));
+    EXPECT_FALSE(AscensionRacialAbilities::CanLearn(attackPower, RACE_DRAENEI, CLASS_SUN_CLERIC));
+    EXPECT_FALSE(AscensionRacialAbilities::CanLearn(hybrid, RACE_HUMAN, CLASS_SUN_CLERIC));
+}
+
 TEST(AscensionRacialAbilitiesTest, PreservesAuthoredResourceVariants)
 {
     auto manaTorrent = RacialAbility(SKILL_RACIAL_BLOODELF, 512, 2376105984u);

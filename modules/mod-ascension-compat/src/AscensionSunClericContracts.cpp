@@ -103,7 +103,18 @@ void ApplyContracts(SpellInfo* info)
             if (info->Effects[slot].Effect)
                 dummy(slot);
     if (id == 803238)
+    {
+        // Spell.dbc gives the Sun Ray marker no effect, so casting it applied no aura for Refresh to find.
+        aura(0, SPELL_AURA_DUMMY, 0, 0, TARGET_UNIT_CASTER);
         info->DurationEntry = sSpellDurationStore.LookupEntry(1);
+    }
+    if (id == 806118)
+    {
+        // Dawnfall's healing-received area names its allies in TargetA; the persistent area aura only
+        // searches allies from TargetB, so the effect fell back to enemies.
+        info->Effects[2].TargetA = SpellImplicitTargetInfo(TARGET_DEST_DEST);
+        info->Effects[2].TargetB = SpellImplicitTargetInfo(TARGET_UNIT_DEST_AREA_ALLY);
+    }
     if (id == 301242)
         info->Effects[0].SpellClassMask = flag96(0x8000, 0x40200, 0x4000);
     if (id == 680642)

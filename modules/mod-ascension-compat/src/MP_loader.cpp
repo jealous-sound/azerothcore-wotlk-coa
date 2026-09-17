@@ -12,6 +12,9 @@
 #include "AscensionRunemasterZenith.h"
 #include "AscensionRunemasterEchoes.h"
 #include "AscensionVenomancerVenoms.h"
+#include "AscensionVenomancerVenomProcs.h"
+#include "AscensionVenomancerVenomTalents.h"
+#include "AscensionVenomancerVenomPayloads.h"
 #include "AscensionTinkerCombatSymbiosis.h"
 
 void AddAscensionCompatScripts();
@@ -20,6 +23,7 @@ void AddSC_AscensionRulesets();
 void AddSC_AscensionThreatRedirect();
 void AddCoABugReportScripts();
 void AddCoAGameplayTestScripts();
+void AddSC_AscensionResourceTalents();
 void AddAscensionBarbarianCompletionScripts();
 void AddAscensionBarbarianEventScripts();
 void AddAscensionBarbarianAbilityScripts();
@@ -142,6 +146,8 @@ void AddSC_AscensionChronomancerTime();
 void AddSC_AscensionChronomancerMovement();
 void AddSC_AscensionAdventurerCache();
 void AddSC_AscensionBankVoucher();
+void AddSC_AscensionPersonalBank();
+void AddSC_AscensionWisdomball();
 void AddSC_AscensionBloodmageTalents();
 void AddSC_AscensionBloodmageVitality();
 void AddSC_AscensionReaperReflexes();
@@ -293,6 +299,8 @@ void Addmod_ascension_compatScripts()
     AddSC_AscensionChronomancerMovement();
     AddSC_AscensionAdventurerCache();
     AddSC_AscensionBankVoucher();
+    AddSC_AscensionPersonalBank();
+    AddSC_AscensionWisdomball();
     AddSC_AscensionBloodmageTalents();
     AddSC_AscensionBloodmageVitality();
     AddSC_AscensionReaperReflexes();
@@ -310,9 +318,13 @@ void Addmod_ascension_compatScripts()
     AddAscensionRunemasterZenithScripts();
     AddAscensionRunemasterEchoesScripts();
     AddAscensionVenomancerVenomScripts();
+    AddAscensionVenomancerVenomProcScripts();
+    AddAscensionVenomancerVenomTalentScripts();
+    AddAscensionVenomancerVenomPayloadScripts();
     AddAscensionTinkerCombatSymbiosisScripts();
     AddCoABugReportScripts();
     AddCoAGameplayTestScripts();
+    AddSC_AscensionResourceTalents();
     AddSC_AscensionRulesets();
     AddSC_AscensionThreatRedirect();
 }

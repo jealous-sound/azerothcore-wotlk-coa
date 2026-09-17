@@ -1,0 +1,176 @@
+{
+  "schema": 1,
+  "name": "Deep Meditation extends the Oath Chain and its first Oath by 5 sec (#1619)",
+  "contract": "The Oath Chain lasts 15 sec. Deep Meditation 300522 increases it by 5 sec (flat DURATION); the Oath granted with the new chain lasts as long as the chain.",
+  "timeout_ms": 120000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 19,
+      "level": 80,
+      "melee_hit_rating": 10000,
+      "spell_hit_rating": 10000,
+      "expertise_rating": 10000
+    },
+    {
+      "id": "meditative",
+      "race": 1,
+      "class": 19,
+      "level": 80,
+      "melee_hit_rating": 10000,
+      "spell_hit_rating": 10000,
+      "expertise_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "dummy_control",
+      "owner": "control",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 3
+    },
+    {
+      "id": "dummy_meditative",
+      "owner": "meditative",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 3
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 570233
+    },
+    {
+      "action": "learn",
+      "actor": "meditative",
+      "spell": 570233
+    },
+    {
+      "action": "learn",
+      "actor": "meditative",
+      "spell": 300522
+    },
+    {
+      "action": "add_item",
+      "actor": "control",
+      "item": 2495
+    },
+    {
+      "action": "equip",
+      "actor": "control",
+      "item": 2495,
+      "slot": 15
+    },
+    {
+      "action": "set_power",
+      "actor": "control",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "cast",
+      "actor": "control",
+      "spell": 570233,
+      "target": "dummy_control"
+    },
+    {
+      "action": "add_item",
+      "actor": "meditative",
+      "item": 2495
+    },
+    {
+      "action": "equip",
+      "actor": "meditative",
+      "item": 2495,
+      "slot": 15
+    },
+    {
+      "action": "set_power",
+      "actor": "meditative",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "cast",
+      "actor": "meditative",
+      "spell": 570233,
+      "target": "dummy_meditative"
+    },
+    {
+      "action": "assert",
+      "label": "Chain lasts 15 sec without the talent",
+      "actor": "control",
+      "metric": "aura_duration_ms",
+      "spell": 704576,
+      "min": 14000,
+      "max": 15000,
+      "within_ms": 1000
+    },
+    {
+      "action": "assert",
+      "label": "Oath lasts 15 sec without the talent",
+      "actor": "control",
+      "metric": "aura_duration_ms",
+      "spell": 804904,
+      "min": 14000,
+      "max": 15000
+    },
+    {
+      "action": "assert",
+      "label": "Chain lasts 20 sec with Deep Meditation",
+      "actor": "meditative",
+      "metric": "aura_duration_ms",
+      "spell": 704576,
+      "min": 19000,
+      "max": 20000,
+      "within_ms": 1000
+    },
+    {
+      "action": "assert",
+      "label": "First Oath lasts as long as the chain",
+      "actor": "meditative",
+      "metric": "aura_duration_ms",
+      "spell": 804904,
+      "min": 19000,
+      "max": 20000
+    },
+    {
+      "action": "wait",
+      "ms": 16000
+    },
+    {
+      "action": "assert",
+      "label": "Untalented chain and Oath have expired",
+      "actor": "control",
+      "metric": "aura",
+      "spell": 804904,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "Talented Oath is still active",
+      "actor": "meditative",
+      "metric": "aura",
+      "spell": 804904,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "label": "Talented chain is still active",
+      "actor": "meditative",
+      "metric": "aura",
+      "spell": 704576,
+      "equals": 1
+    }
+  ]
+}

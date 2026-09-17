@@ -1,0 +1,119 @@
+{
+  "schema": 1,
+  "name": "Glory lasts its full duration under damage and leads into Downfall and Redemption (#1029)",
+  "contract": "Glory 801481 increases attack speed by 30% for 5 sec; after the duration the Templar gains Downfall 801482 (5 sec), then Redemption 801483. Taking damage must not consume Glory early.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "glory",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "glory",
+      "spell": 801481
+    },
+    {
+      "action": "add_item",
+      "actor": "glory",
+      "item": 2495
+    },
+    {
+      "action": "equip",
+      "actor": "glory",
+      "item": 2495,
+      "slot": 15
+    },
+    {
+      "action": "snapshot",
+      "actor": "glory",
+      "metric": "attack_time_ms",
+      "save_as": "attack_time"
+    },
+    {
+      "action": "set_aura",
+      "label": "Take damage twice per second",
+      "actor": "glory",
+      "spell": 6727,
+      "stacks": 1
+    },
+    {
+      "action": "cast",
+      "actor": "glory",
+      "spell": 801481
+    },
+    {
+      "action": "assert",
+      "label": "Glory is active",
+      "actor": "glory",
+      "metric": "aura",
+      "spell": 801481,
+      "equals": 1,
+      "within_ms": 500
+    },
+    {
+      "action": "assert",
+      "label": "Glory has no charges to lose",
+      "actor": "glory",
+      "metric": "aura_charges",
+      "spell": 801481,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "Attack speed +30%",
+      "actor": "glory",
+      "metric": "attack_time_ms",
+      "ratio_to": "attack_time",
+      "min": 0.765,
+      "max": 0.773
+    },
+    {
+      "action": "wait",
+      "ms": 4300
+    },
+    {
+      "action": "assert",
+      "label": "Glory survives about nine damage events",
+      "actor": "glory",
+      "metric": "aura",
+      "spell": 801481,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "label": "Downfall follows Glory's duration",
+      "actor": "glory",
+      "metric": "aura",
+      "spell": 801482,
+      "equals": 1,
+      "within_ms": 1500
+    },
+    {
+      "action": "assert",
+      "label": "Glory has expired",
+      "actor": "glory",
+      "metric": "aura",
+      "spell": 801481,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "Redemption follows Downfall's duration",
+      "actor": "glory",
+      "metric": "aura",
+      "spell": 801483,
+      "equals": 1,
+      "within_ms": 6000
+    }
+  ]
+}

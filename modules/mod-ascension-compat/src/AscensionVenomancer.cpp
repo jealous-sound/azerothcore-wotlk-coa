@@ -255,6 +255,14 @@ void Expose(Player* player, uint32 stacks, bool molt)
         aura->SetStackAmount(after);
     else if (Aura* added = player->AddAura(Exposed, player))
         added->SetStackAmount(after);
+    uint32 applied = Count(player, Exposed);
+    if (applied > current && player->HasAura(CharmOfWarding))
+    {
+        SpellInfo const* talent = sSpellMgr->GetSpellInfo(CharmOfWarding);
+        HealInfo heal(player, player, player->CountPctFromMaxHealth((applied - current) * Amount(CharmOfWarding)),
+            talent, talent->GetSchoolMask());
+        player->HealBySpell(heal);
+    }
     if (!molt)
         player->EnergizeBySpell(player, 805100, Amount(805100), POWER_RAGE);
 }

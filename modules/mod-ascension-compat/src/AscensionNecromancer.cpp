@@ -323,7 +323,8 @@ class necromancer_sessions : public PlayerScript
     }
     void Reward(Player* player, Unit* killed)
     {
-        if (Owner(player) == player && killed && killed->GetCharmerOrOwnerPlayerOrPlayerItself() != player &&
+        // A pet or totem owned by a creature also lands here, with no player: Owner(nullptr) == nullptr.
+        if (player && Owner(player) == player && killed && killed->GetCharmerOrOwnerPlayerOrPlayerItself() != player &&
             player->isHonorOrXPTarget(killed) && player->HasAura(707562))
             Cast(player, player, 712434);
     }

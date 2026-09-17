@@ -1,0 +1,122 @@
+{
+  "schema": 1,
+  "name": "Liberty reduces Libram cooldowns by 30 sec (#1304)",
+  "contract": "Librams have a 3 min cooldown. Liberty 705266 reduces it by 30 sec (flat COOLDOWN) on every Libram.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    },
+    {
+      "id": "talent",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 801461
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 803893
+    },
+    {
+      "action": "learn",
+      "actor": "talent",
+      "spell": 801461
+    },
+    {
+      "action": "learn",
+      "actor": "talent",
+      "spell": 803893
+    },
+    {
+      "action": "learn",
+      "actor": "talent",
+      "spell": 705266
+    },
+    {
+      "action": "assert",
+      "label": "Libram of Tenacity cooldown without the talent",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 801461,
+      "op": 11,
+      "base": 180000,
+      "equals": 180000
+    },
+    {
+      "action": "assert",
+      "label": "Libram of Tenacity cooldown with the talent",
+      "actor": "talent",
+      "metric": "spell_modifier",
+      "spell": 801461,
+      "op": 11,
+      "base": 180000,
+      "equals": 150000
+    },
+    {
+      "action": "assert",
+      "label": "Libram of Consecration cooldown without the talent",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 803893,
+      "op": 11,
+      "base": 180000,
+      "equals": 180000
+    },
+    {
+      "action": "assert",
+      "label": "Libram of Consecration cooldown with the talent",
+      "actor": "talent",
+      "metric": "spell_modifier",
+      "spell": 803893,
+      "op": 11,
+      "base": 180000,
+      "equals": 150000
+    },
+    {
+      "action": "cast",
+      "actor": "control",
+      "spell": 801461
+    },
+    {
+      "action": "cast",
+      "actor": "talent",
+      "spell": 801461
+    },
+    {
+      "action": "assert",
+      "label": "Libram cooldown without the talent",
+      "actor": "control",
+      "metric": "cooldown_ms",
+      "spell": 801461,
+      "min": 178000,
+      "max": 180000,
+      "within_ms": 2000
+    },
+    {
+      "action": "assert",
+      "label": "Libram cooldown with the talent",
+      "actor": "talent",
+      "metric": "cooldown_ms",
+      "spell": 801461,
+      "min": 148000,
+      "max": 150000,
+      "within_ms": 2000
+    }
+  ]
+}

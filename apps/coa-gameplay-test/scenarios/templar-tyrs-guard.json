@@ -1,0 +1,102 @@
+{
+  "schema": 1,
+  "name": "Tyr's Guard summons a third Testament of Hope copy (#467)",
+  "contract": "Testament of Hope summons $s1 = 2 copies. Tyr's Guard 560649 adds +1 to that effect (flat EFFECT1), so the talented Templar gets 3 copies and the untalented one 2.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    },
+    {
+      "id": "guard",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 1397742
+    },
+    {
+      "action": "learn",
+      "actor": "guard",
+      "spell": 1397742
+    },
+    {
+      "action": "learn",
+      "actor": "guard",
+      "spell": 560649
+    },
+    {
+      "action": "assert",
+      "label": "Untalented summon count is two",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 1397742,
+      "op": 3,
+      "base": 2,
+      "equals": 2
+    },
+    {
+      "action": "assert",
+      "label": "Tyr's Guard adds one copy",
+      "actor": "guard",
+      "metric": "spell_modifier",
+      "spell": 1397742,
+      "op": 3,
+      "base": 2,
+      "equals": 3
+    },
+    {
+      "action": "set_power",
+      "actor": "control",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "set_power",
+      "actor": "guard",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "cast",
+      "actor": "control",
+      "spell": 1397742
+    },
+    {
+      "action": "cast",
+      "actor": "guard",
+      "spell": 1397742
+    },
+    {
+      "action": "assert",
+      "label": "Untalented cast summons two copies",
+      "actor": "control",
+      "metric": "owned_creature_count",
+      "entry": 50250,
+      "equals": 2,
+      "within_ms": 3000
+    },
+    {
+      "action": "assert",
+      "label": "Tyr's Guard cast summons three copies",
+      "actor": "guard",
+      "metric": "owned_creature_count",
+      "entry": 50250,
+      "equals": 3,
+      "within_ms": 3000
+    }
+  ]
+}

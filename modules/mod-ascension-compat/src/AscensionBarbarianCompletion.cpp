@@ -149,6 +149,9 @@ void ApplyContracts(SpellInfo* info)
         cost.SpellClassMask = flag96(65536, 0, 0);
         cost.TargetA = SpellImplicitTargetInfo(TARGET_UNIT_CASTER);
     }
+    if (id == 804337)
+        // The native DBC targets the ~1.5s global cooldown instead of ability cooldowns.
+        info->Effects[EFFECT_0].MiscValue = SPELLMOD_COOLDOWN;
 }
 }
 

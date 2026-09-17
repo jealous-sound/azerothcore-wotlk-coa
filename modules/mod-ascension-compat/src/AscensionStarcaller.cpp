@@ -65,6 +65,13 @@ uint32 Count(Unit const* unit, uint32 id)
     Aura const* aura = unit ? unit->GetAura(id) : nullptr;
     return aura ? aura->GetStackAmount() : 0;
 }
+uint32 MaxPhase(Player* player)
+{
+    // Bright Moon raises this cap via a SPELLMOD_MAX_AURA_STACKS modifier on 802985;
+    // consult the mod-adjusted value instead of hardcoding the DBC's base of 4.
+    SpellInfo const* info = sSpellMgr->GetSpellInfo(802985);
+    return info ? info->CalcMaxAuraStacks(player) : 4;
+}
 int32 Amount(uint32 id, uint8 slot, Unit* caster)
 {
     SpellInfo const* info = sSpellMgr->GetSpellInfo(id);
@@ -189,10 +196,11 @@ void GainPhase(Player* player, uint32 count)
 {
     if (!player || !player->IsAlive() || !player->HasAura(524781))
         return;
+    uint32 max = MaxPhase(player);
     uint32 before = Count(player, 802985);
     if (Aura* aura = player->AddAura(802985, player))
-        aura->SetStackAmount(std::min(4u, before + count));
-    if (Count(player, 802985) == 4 && !player->HasAura(704519))
+        aura->SetStackAmount(std::min(max, before + count));
+    if (Count(player, 802985) == max && !player->HasAura(704519))
         Cast(player, player, 704519);
 }
 void Stars(Player* player, Unit* target, uint32 count)
@@ -314,7 +322,7 @@ void Refresh(Player* player)
     scale(561096, player->HasAura(561022) && player->HasAura(805356), {3, 3});
     for (WeaponAttackType type : {BASE_ATTACK, OFF_ATTACK, RANGED_ATTACK})
         player->UpdateDamagePhysical(type);
-    if (Count(player, 802985) < 4)
+    if (Count(player, 802985) < MaxPhase(player))
         player->RemoveAurasDueToSpell(704519);
     if (!player->HasAura(300252))
         state.secondMoon = 0;

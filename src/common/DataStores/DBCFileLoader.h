@@ -92,6 +92,8 @@ public:
     [[nodiscard]] uint32 GetCols() const { return fieldCount; }
     [[nodiscard]] uint32 GetOffset(std::size_t id) const { return (fieldsOffset != nullptr && id < fieldCount) ? fieldsOffset[id] : 0; }
     [[nodiscard]] bool IsLoaded() const { return data != nullptr; }
+    // String fields AutoProduceStrings read as "" because they point outside the string block.
+    [[nodiscard]] uint32 GetInvalidStringCount() const { return invalidStringCount; }
     char* AutoProduceData(char const* fmt, uint32& count, char**& indexTable);
     char* AutoProduceStrings(char const* fmt, char* dataTable);
     static uint32 GetFormatRecordSize(char const* format, int32* index_pos = nullptr);
@@ -101,6 +103,7 @@ private:
     uint32 recordCount;
     uint32 fieldCount;
     uint32 stringSize;
+    uint32 invalidStringCount;
     uint32* fieldsOffset;
     unsigned char* data;
     unsigned char* stringTable;

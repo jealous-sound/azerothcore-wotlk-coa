@@ -1,0 +1,165 @@
+{
+  "schema": 1,
+  "name": "Static decay outside combat (#150)",
+  "contract": "Locally chosen rate: one Static per second after five seconds out of combat. Combat preserves Static; other classes are unaffected.",
+  "players": [
+    {
+      "id": "storm",
+      "race": 1,
+      "class": 16,
+      "level": 80
+    },
+    {
+      "id": "control",
+      "race": 1,
+      "class": 8,
+      "level": 80
+    }
+  ],
+  "creatures": [
+    {
+      "id": "target",
+      "owner": "storm",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 3
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "ms": 5000
+    },
+    {
+      "action": "assert",
+      "actor": "storm",
+      "metric": "combat",
+      "equals": 0
+    },
+    {
+      "action": "set_aura",
+      "actor": "storm",
+      "spell": 803102,
+      "stacks": 50
+    },
+    {
+      "action": "set_aura",
+      "actor": "control",
+      "spell": 803102,
+      "stacks": 50
+    },
+    {
+      "action": "wait",
+      "ms": 4000
+    },
+    {
+      "action": "assert",
+      "actor": "storm",
+      "metric": "aura_stacks",
+      "spell": 803102,
+      "equals": 50
+    },
+    {
+      "action": "wait",
+      "ms": 2500
+    },
+    {
+      "action": "assert",
+      "actor": "storm",
+      "metric": "aura_stacks",
+      "spell": 803102,
+      "equals": 49
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "assert",
+      "actor": "storm",
+      "metric": "aura_stacks",
+      "spell": 803102,
+      "equals": 47
+    },
+    {
+      "action": "assert",
+      "actor": "control",
+      "metric": "aura_stacks",
+      "spell": 803102,
+      "equals": 50
+    },
+    {
+      "action": "set_aura",
+      "actor": "storm",
+      "spell": 803102,
+      "stacks": 0
+    },
+    {
+      "action": "wait",
+      "ms": 200
+    },
+    {
+      "action": "set_aura",
+      "actor": "storm",
+      "spell": 803102,
+      "stacks": 1
+    },
+    {
+      "action": "wait",
+      "ms": 4000
+    },
+    {
+      "action": "assert",
+      "actor": "storm",
+      "metric": "aura_stacks",
+      "spell": 803102,
+      "equals": 1
+    },
+    {
+      "action": "wait",
+      "ms": 2500
+    },
+    {
+      "action": "assert",
+      "actor": "storm",
+      "metric": "aura",
+      "spell": 803102,
+      "equals": 0
+    },
+    {
+      "action": "attack",
+      "actor": "storm",
+      "target": "target"
+    },
+    {
+      "action": "assert",
+      "actor": "storm",
+      "metric": "combat",
+      "equals": 1,
+      "within_ms": 1000
+    },
+    {
+      "action": "set_aura",
+      "actor": "storm",
+      "spell": 803102,
+      "stacks": 10
+    },
+    {
+      "action": "wait",
+      "ms": 8000
+    },
+    {
+      "action": "assert",
+      "actor": "storm",
+      "metric": "combat",
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "actor": "storm",
+      "metric": "aura_stacks",
+      "spell": 803102,
+      "equals": 10
+    }
+  ]
+}

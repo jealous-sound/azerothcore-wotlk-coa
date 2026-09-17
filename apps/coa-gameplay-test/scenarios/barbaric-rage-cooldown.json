@@ -1,0 +1,127 @@
+{
+  "schema": 1,
+  "name": "Barbaric Rage: cooldown reduction applies to Outrage's ability cooldown, not the global cooldown (#3945)",
+  "contract": "Barbaric Rage (804337) is a native FLAT -500ms SPELLMOD_COOLDOWN modifier on Barbarian family abilities, auto-known by all Barbarians as a baseline class passive (not learned through training). Outrage (803499), whose own tooltip embeds Barbaric Rage's effect value, has a 90s RecoveryTime with no separate scaling, so a Barbarian with Barbaric Rage must see Outrage's post-cast cooldown reduced by ~500ms while an otherwise identical Barbarian who has explicitly unlearned Barbaric Rage must not. Outrage must be explicitly learned (it is not auto-known) and Outrage's own cast-check (barbarian_casts::OnSpellCheckCast) rejects the cast unless the caster is Enraged, so both actors first cast Unbridled Rage (801761, its own Category 948, distinct from Outrage's Category 949, so it cannot itself contaminate Outrage's cooldown) to enter that state before casting Outrage.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "raged",
+      "race": 1,
+      "class": 12,
+      "level": 80
+    },
+    {
+      "id": "plain",
+      "race": 1,
+      "class": 12,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "assert",
+      "label": "raged: Barbaric Rage is a baseline passive, already known before any setup",
+      "actor": "raged",
+      "metric": "knows_spell",
+      "spell": 804337,
+      "equals": 1
+    },
+    {
+      "action": "unlearn",
+      "actor": "plain",
+      "spell": 804337
+    },
+    {
+      "action": "assert",
+      "label": "plain: Barbaric Rage explicitly unlearned to form the control group",
+      "actor": "plain",
+      "metric": "knows_spell",
+      "spell": 804337,
+      "equals": 0
+    },
+    {
+      "action": "learn",
+      "actor": "raged",
+      "spell": 803499
+    },
+    {
+      "action": "cast",
+      "actor": "raged",
+      "spell": 801761
+    },
+    {
+      "action": "assert",
+      "label": "raged: Unbridled Rage applies (enters Enrage so Outrage can be cast)",
+      "actor": "raged",
+      "metric": "aura",
+      "spell": 801761,
+      "equals": 1,
+      "within_ms": 1000
+    },
+    {
+      "action": "cast",
+      "actor": "raged",
+      "spell": 803499
+    },
+    {
+      "action": "assert",
+      "label": "raged: Outrage applies",
+      "actor": "raged",
+      "metric": "aura",
+      "spell": 803499,
+      "equals": 1,
+      "within_ms": 1000
+    },
+    {
+      "action": "assert",
+      "label": "raged: Barbaric Rage shortens Outrage's cooldown by ~500ms",
+      "actor": "raged",
+      "metric": "cooldown_ms",
+      "spell": 803499,
+      "min": 88800,
+      "max": 89700
+    },
+    {
+      "action": "learn",
+      "actor": "plain",
+      "spell": 803499
+    },
+    {
+      "action": "cast",
+      "actor": "plain",
+      "spell": 801761
+    },
+    {
+      "action": "assert",
+      "label": "plain: Unbridled Rage applies (enters Enrage so Outrage can be cast)",
+      "actor": "plain",
+      "metric": "aura",
+      "spell": 801761,
+      "equals": 1,
+      "within_ms": 1000
+    },
+    {
+      "action": "cast",
+      "actor": "plain",
+      "spell": 803499
+    },
+    {
+      "action": "assert",
+      "label": "plain: Outrage applies",
+      "actor": "plain",
+      "metric": "aura",
+      "spell": 803499,
+      "equals": 1,
+      "within_ms": 1000
+    },
+    {
+      "action": "assert",
+      "label": "plain: without Barbaric Rage the raw 90s cooldown is unchanged",
+      "actor": "plain",
+      "metric": "cooldown_ms",
+      "spell": 803499,
+      "min": 89600,
+      "max": 90000
+    }
+  ]
+}

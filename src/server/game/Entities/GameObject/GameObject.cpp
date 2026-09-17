@@ -2771,6 +2771,12 @@ void GameObject::BuildValuesUpdate(uint8 updateType, ByteBuffer* data, Player* t
     bool forcedFlags = GetGoType() == GAMEOBJECT_TYPE_CHEST && GetGOInfo()->chest.groupLootRules && HasLootRecipient();
     bool targetIsGM = target->IsGameMaster() && target->GetSession()->IsGMAccount();
 
+    // Scripts may give this one viewer its own flags, see GameObjectAI::BuildClientFlags.
+    uint16 scriptDynFlags = 0;
+    uint32 scriptGoFlags = 0;
+    if (GameObjectAI* gameObjectAI = AI())
+        gameObjectAI->BuildClientFlags(target, scriptDynFlags, scriptGoFlags);
+
     ByteBuffer fieldBuffer;
 
     UpdateMask updateMask;
@@ -2785,7 +2791,8 @@ void GameObject::BuildValuesUpdate(uint8 updateType, ByteBuffer* data, Player* t
     {
         if (_fieldNotifyFlags & flags[index] ||
                 ((updateType == UPDATETYPE_VALUES ? _changesMask.GetBit(index) : m_uint32Values[index]) && (flags[index] & visibleFlag)) ||
-                (index == GAMEOBJECT_FLAGS && forcedFlags))
+                (index == GAMEOBJECT_FLAGS && forcedFlags) ||
+                (index == GAMEOBJECT_DYNAMIC && scriptDynFlags) || (index == GAMEOBJECT_FLAGS && scriptGoFlags))
         {
             updateMask.SetBit(index);
 
@@ -2840,6 +2847,8 @@ void GameObject::BuildValuesUpdate(uint8 updateType, ByteBuffer* data, Player* t
                         break;
                 }
 
+                dynFlags |= scriptDynFlags;
+
                 fieldBuffer << uint16(dynFlags);
                 fieldBuffer << int16(pathProgress);
             }
@@ -2850,6 +2859,8 @@ void GameObject::BuildValuesUpdate(uint8 updateType, ByteBuffer* data, Player* t
                 {
                     goFlags |= GO_FLAG_LOCKED | GO_FLAG_NOT_SELECTABLE;
                 }
+
+                goFlags |= scriptGoFlags;
 
                 fieldBuffer << goFlags;
             }

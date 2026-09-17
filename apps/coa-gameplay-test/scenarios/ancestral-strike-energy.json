@@ -1,0 +1,164 @@
+{
+  "schema": 1,
+  "name": "Ancestral Strike spends Energy and rejects insufficient Energy (#68)",
+  "contract": "Spell 801576 costs 35 Energy in the supplied Spell.dbc. With no cost-changing talents, successful casts must spend that Energy and damage an enemy; a cast at zero Energy must not damage it.",
+  "players": [
+    {
+      "id": "caster",
+      "race": 1,
+      "class": 12,
+      "level": 2,
+      "spell_hit_rating": 10000,
+      "melee_hit_rating": 10000,
+      "expertise_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "enemy",
+      "owner": "caster",
+      "entry": 36,
+      "level": 2,
+      "distance": 3
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "caster",
+      "spell": 201
+    },
+    {
+      "action": "add_item",
+      "actor": "caster",
+      "item": 25
+    },
+    {
+      "action": "equip",
+      "actor": "caster",
+      "item": 25,
+      "slot": 15
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "knows_spell",
+      "spell": 801576,
+      "equals": 1
+    },
+    {
+      "action": "set_power",
+      "actor": "caster",
+      "power": 3,
+      "value": 0
+    },
+    {
+      "action": "snapshot",
+      "actor": "enemy",
+      "metric": "health",
+      "save_as": "before_rejected"
+    },
+    {
+      "action": "cast",
+      "actor": "caster",
+      "spell": 801576,
+      "target": "enemy"
+    },
+    {
+      "action": "wait",
+      "ms": 200
+    },
+    {
+      "action": "assert",
+      "actor": "enemy",
+      "metric": "health",
+      "relative_to": "before_rejected",
+      "equals": 0,
+      "label": "Unaffordable strike causes no damage"
+    },
+    {
+      "action": "set_power",
+      "actor": "caster",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "snapshot",
+      "actor": "enemy",
+      "metric": "health",
+      "save_as": "before_hit_1"
+    },
+    {
+      "action": "cast",
+      "actor": "caster",
+      "spell": 801576,
+      "target": "enemy"
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "power",
+      "power": 3,
+      "min": 65,
+      "max": 69,
+      "within_ms": 300,
+      "label": "35 Energy cost with a small normal regeneration allowance"
+    },
+    {
+      "action": "assert",
+      "actor": "enemy",
+      "metric": "health",
+      "relative_to": "before_hit_1",
+      "max": -1,
+      "within_ms": 1000
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "caster",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "snapshot",
+      "actor": "enemy",
+      "metric": "health",
+      "save_as": "before_hit_2"
+    },
+    {
+      "action": "cast",
+      "actor": "caster",
+      "spell": 801576,
+      "target": "enemy"
+    },
+    {
+      "action": "assert",
+      "actor": "caster",
+      "metric": "power",
+      "power": 3,
+      "min": 65,
+      "max": 69,
+      "within_ms": 300,
+      "label": "35 Energy cost with a small normal regeneration allowance"
+    },
+    {
+      "action": "assert",
+      "actor": "enemy",
+      "metric": "health",
+      "relative_to": "before_hit_2",
+      "max": -1,
+      "within_ms": 1000
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    }
+  ]
+}

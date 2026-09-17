@@ -1,0 +1,74 @@
+#
+# Teleport tokens: usable from the spellbook collection and from an action bar button
+#
+# CoA teleport tokens (the Stone of Retreat collection, Arcane and Balance Tomes)
+# teach their teleport spell only when the item is used, and the matching Ascension
+# client does not let a player pick those spells up from its spellbook or collection
+# panel. This module makes the tokens usable where a player expects them:
+#
+#   * using a token casts the teleport that token unlocked, so a stone dragged from
+#     the collection onto an action bar button still teleports when clicked,
+#   * every teleport token spell a character knows is placed on a free action bar
+#     button, which the client shows, moves and removes like any other button,
+#   * a stone whose hub belongs to the other faction is refused, from the spellbook,
+#     from an action bar button, or by using the stone itself. Shared hubs (Dalaran,
+#     Shattrath, Booty Bay, instance terraces ...) stay usable by both sides.
+#
+# The module never creates or grants items; the stones live in the client's
+# collection UI and on the action bar only.
+#
+# A token is an item that teaches a spell through the LEARN_SPELL item trigger and
+# whose taught spell points at a fixed destination in `spell_target_position`.
+
+[worldserver]
+
+# Enable the module.
+TeleportActionBar.Enable = 1
+
+# Using a token (from an action bar item button) casts the teleport that token
+# unlocked, after the item has taught it. Disable to restore CoA's plain behavior,
+# where the item only teaches its spell and does nothing on later uses.
+TeleportActionBar.CastFromItem = 1
+
+# Refuse a token whose hub belongs to the other faction, so an Alliance character
+# cannot use a Horde stone and vice versa. The hub's side comes from the generated
+# table in the module (src/StoneFactionData.h): it is read from the NPCs standing at
+# each destination, and hubs that are shared by both sides are left open to both.
+TeleportActionBar.EnforceFaction = 1
+
+# Automatic placement is off: stones only reach a bar when the player drags them
+# there. Set these to 1 to have the module fill empty slots for known token spells.
+# Assign missing buttons when a character logs in.
+TeleportActionBar.OnLogin = 0
+
+# Assign a button as soon as a teleport token spell is learned (using a stone).
+TeleportActionBar.OnLearnSpell = 0
+
+# Assign missing buttons after a dual-spec switch, because action buttons are per spec.
+TeleportActionBar.OnSpecChange = 0
+
+# Convenience: also teach the teleport spell of every token item the character
+# carries, so stones that were never used also get a button. CoA learns these spells
+# from using the item, so this is off by default. Grants are batched (4 spells every
+# 250 ms) to keep the legacy client UI responsive.
+TeleportActionBar.LearnCarriedTokens = 0
+
+# Include token items stored in the bank when LearnCarriedTokens is enabled.
+TeleportActionBar.LearnCarriedTokensFromBank = 0
+
+# Maximum number of buttons placed per character. 0 means as many as the button
+# range below has free slots for.
+TeleportActionBar.MaxButtons = 24
+
+# Button slots the module may use, 0-143 (12 pages of 12). Only empty slots are ever
+# used, and a spell that already sits on a button in this range is left alone, so the
+# player's own layout is never overwritten. Lower LastButton to keep the main bar
+# clear, e.g. 12-35 for the two secondary bars.
+TeleportActionBar.FirstButton = 0
+TeleportActionBar.LastButton = 143
+
+# Restrict token items by name (`LIKE` pattern). Empty matches every item-taught
+# teleport, which includes the Arcane Tome and Balance Tome books and therefore also
+# adds character teleports such as Teleport: Stormwind. Set this to "" only if you
+# want those on the bars as well.
+TeleportActionBar.ItemNameFilter = "Stone of Retreat%"

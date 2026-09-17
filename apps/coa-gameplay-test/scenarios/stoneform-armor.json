@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "name": "CoA Stoneform grants its temporary armor bonus (#258)",
+  "contract": "Stoneform 1120594 triggers the copied 10% armor aura 1165116 for eight seconds.",
+  "players": [
+    {
+      "id": "dwarf",
+      "race": 3,
+      "class": 21,
+      "level": 8
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "ms": 5000
+    },
+    {
+      "action": "assert",
+      "actor": "dwarf",
+      "metric": "knows_spell",
+      "spell": 1120594,
+      "equals": 1
+    },
+    {
+      "action": "cast",
+      "actor": "dwarf",
+      "spell": 1120594
+    },
+    {
+      "action": "assert",
+      "actor": "dwarf",
+      "metric": "aura",
+      "spell": 1165116,
+      "equals": 1,
+      "within_ms": 500
+    },
+    {
+      "action": "assert",
+      "actor": "dwarf",
+      "metric": "aura_amount",
+      "spell": 1165116,
+      "effect": 0,
+      "equals": 10
+    },
+    {
+      "action": "assert",
+      "actor": "dwarf",
+      "metric": "aura_duration_ms",
+      "spell": 1165116,
+      "min": 7400,
+      "max": 8000
+    },
+    {
+      "action": "wait",
+      "ms": 8500
+    },
+    {
+      "action": "assert",
+      "actor": "dwarf",
+      "metric": "aura",
+      "spell": 1165116,
+      "equals": 0
+    }
+  ]
+}

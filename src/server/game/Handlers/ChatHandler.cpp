@@ -349,11 +349,15 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket& recvData)
             msg.erase(end, msg.end());
         }
 
-        // Validate hyperlinks
-        if (!ValidateHyperlinksAndMaybeKick(msg))
-        {
+        // mod_playerbots: its commands carry "Hfound:" links that the hyperlink validation rejects. Only skip the
+        // validation when the module is built, so servers without it keep validating every message.
+#ifdef MOD_PLAYERBOTS
+        bool const playerbotsHyperlink = msg.find("Hfound:") != std::string::npos;
+#else
+        bool const playerbotsHyperlink = false;
+#endif
+        if (!playerbotsHyperlink && !ValidateHyperlinksAndMaybeKick(msg))
             return;
-        }
     }
 
     else

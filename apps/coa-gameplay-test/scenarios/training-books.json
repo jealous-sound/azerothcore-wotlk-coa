@@ -1,0 +1,339 @@
+{
+  "schema": 1,
+  "name": "Training books restore eligible class abilities through gossip (#37)",
+  "contract": "Books are interactive; their training action restores missing eligible class abilities without teaching higher-level ranks or unselected abilities. Class abilities also remain automatic on login.",
+  "players": [
+    {
+      "id": "beginner",
+      "race": 4,
+      "class": 29,
+      "level": 1
+    },
+    {
+      "id": "veteran",
+      "race": 4,
+      "class": 29,
+      "level": 20
+    }
+  ],
+  "location": {
+    "map": 0,
+    "x": -8917.41,
+    "y": -115.853,
+    "z": 82.3711
+  },
+  "steps": [
+    {
+      "action": "assert",
+      "actor": "beginner",
+      "metric": "knows_spell",
+      "spell": 800869,
+      "equals": 1,
+      "label": "Class starter ability learned automatically"
+    },
+    {
+      "action": "assert",
+      "actor": "veteran",
+      "metric": "knows_spell",
+      "spell": 800869,
+      "equals": 1,
+      "label": "Class starter ability learned automatically"
+    },
+    {
+      "action": "learn",
+      "actor": "beginner",
+      "spell": 97930
+    },
+    {
+      "action": "cast",
+      "actor": "beginner",
+      "spell": 97930
+    },
+    {
+      "action": "assert",
+      "actor": "beginner",
+      "metric": "owned_creature_count",
+      "entry": 75115,
+      "equals": 1,
+      "within_ms": 5000
+    },
+    {
+      "action": "unlearn",
+      "actor": "beginner",
+      "spell": 800869
+    },
+    {
+      "action": "assert",
+      "actor": "beginner",
+      "metric": "knows_spell",
+      "spell": 800869,
+      "equals": 0
+    },
+    {
+      "action": "gossip_hello",
+      "actor": "beginner"
+    },
+    {
+      "action": "assert",
+      "actor": "beginner",
+      "metric": "gossip_options",
+      "equals": 1
+    },
+    {
+      "action": "gossip_select",
+      "actor": "beginner",
+      "option": 0
+    },
+    {
+      "action": "assert",
+      "actor": "beginner",
+      "metric": "knows_spell",
+      "spell": 800869,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "actor": "beginner",
+      "metric": "knows_spell",
+      "spell": 504714,
+      "equals": 0,
+      "label": "Higher-level rank stays unavailable"
+    },
+    {
+      "action": "gossip_hello",
+      "actor": "beginner"
+    },
+    {
+      "action": "gossip_select",
+      "actor": "beginner",
+      "option": 0
+    },
+    {
+      "action": "assert",
+      "actor": "beginner",
+      "metric": "knows_spell",
+      "spell": 800869,
+      "equals": 1,
+      "label": "Repeated training is harmless"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "learn",
+      "actor": "beginner",
+      "spell": 999315
+    },
+    {
+      "action": "cast",
+      "actor": "beginner",
+      "spell": 999315
+    },
+    {
+      "action": "assert",
+      "actor": "beginner",
+      "metric": "owned_creature_count",
+      "entry": 98598,
+      "equals": 1,
+      "within_ms": 5000
+    },
+    {
+      "action": "unlearn",
+      "actor": "beginner",
+      "spell": 800869
+    },
+    {
+      "action": "assert",
+      "actor": "beginner",
+      "metric": "knows_spell",
+      "spell": 800869,
+      "equals": 0
+    },
+    {
+      "action": "gossip_hello",
+      "actor": "beginner"
+    },
+    {
+      "action": "assert",
+      "actor": "beginner",
+      "metric": "gossip_options",
+      "equals": 1
+    },
+    {
+      "action": "gossip_select",
+      "actor": "beginner",
+      "option": 0
+    },
+    {
+      "action": "assert",
+      "actor": "beginner",
+      "metric": "knows_spell",
+      "spell": 800869,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "actor": "beginner",
+      "metric": "knows_spell",
+      "spell": 504714,
+      "equals": 0,
+      "label": "Higher-level rank stays unavailable"
+    },
+    {
+      "action": "gossip_hello",
+      "actor": "beginner"
+    },
+    {
+      "action": "gossip_select",
+      "actor": "beginner",
+      "option": 0
+    },
+    {
+      "action": "assert",
+      "actor": "beginner",
+      "metric": "knows_spell",
+      "spell": 800869,
+      "equals": 1,
+      "label": "Repeated training is harmless"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "learn",
+      "actor": "beginner",
+      "spell": 105307
+    },
+    {
+      "action": "cast",
+      "actor": "beginner",
+      "spell": 105307
+    },
+    {
+      "action": "assert",
+      "actor": "beginner",
+      "metric": "owned_creature_count",
+      "entry": 108587,
+      "equals": 1,
+      "within_ms": 5000
+    },
+    {
+      "action": "unlearn",
+      "actor": "beginner",
+      "spell": 800869
+    },
+    {
+      "action": "assert",
+      "actor": "beginner",
+      "metric": "knows_spell",
+      "spell": 800869,
+      "equals": 0
+    },
+    {
+      "action": "gossip_hello",
+      "actor": "beginner"
+    },
+    {
+      "action": "assert",
+      "actor": "beginner",
+      "metric": "gossip_options",
+      "equals": 1
+    },
+    {
+      "action": "gossip_select",
+      "actor": "beginner",
+      "option": 0
+    },
+    {
+      "action": "assert",
+      "actor": "beginner",
+      "metric": "knows_spell",
+      "spell": 800869,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "actor": "beginner",
+      "metric": "knows_spell",
+      "spell": 504714,
+      "equals": 0,
+      "label": "Higher-level rank stays unavailable"
+    },
+    {
+      "action": "gossip_hello",
+      "actor": "beginner"
+    },
+    {
+      "action": "gossip_select",
+      "actor": "beginner",
+      "option": 0
+    },
+    {
+      "action": "assert",
+      "actor": "beginner",
+      "metric": "knows_spell",
+      "spell": 800869,
+      "equals": 1,
+      "label": "Repeated training is harmless"
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "learn",
+      "actor": "veteran",
+      "spell": 97930
+    },
+    {
+      "action": "cast",
+      "actor": "veteran",
+      "spell": 97930
+    },
+    {
+      "action": "assert",
+      "actor": "veteran",
+      "metric": "owned_creature_count",
+      "entry": 75115,
+      "equals": 1,
+      "within_ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "veteran",
+      "spell": 504342
+    },
+    {
+      "action": "unlearn",
+      "actor": "veteran",
+      "spell": 504714
+    },
+    {
+      "action": "gossip_hello",
+      "actor": "veteran"
+    },
+    {
+      "action": "gossip_select",
+      "actor": "veteran",
+      "option": 0
+    },
+    {
+      "action": "assert",
+      "actor": "veteran",
+      "metric": "knows_spell",
+      "spell": 504714,
+      "equals": 1,
+      "label": "Owned ability receives its level-20 rank"
+    },
+    {
+      "action": "assert",
+      "actor": "veteran",
+      "metric": "knows_spell",
+      "spell": 504715,
+      "equals": 0,
+      "label": "Level-26 rank remains locked"
+    }
+  ]
+}

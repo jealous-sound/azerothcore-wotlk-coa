@@ -20,3 +20,11 @@ Then declare and call `AddSC_<name>()` from the regional loader (`Spells/spells_
 - A spell id missing from Wowhead is inconclusive — check the world DB's `spell_dbc` table (server-side spells) before concluding a sniffed id doesn't exist.
 
 Custom (non-upstream) scripts go in `src/server/scripts/Custom/` (gitignored).
+
+## Registration and command lifetimes
+
+- Register AuraScript callbacks against the spell's actual valid aura effects. An unconditional periodic handler
+  on a nonperiodic aura fails startup validation even if its body would do nothing. During registration, resolve
+  `m_scriptSpellId` through SpellMgr; a cast object may not exist yet.
+- `ChatCommandBuilder` stores a reference to its child command vector. Keep child tables alive, for example with
+  static storage; an inline temporary can compile but crash command initialization.

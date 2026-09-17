@@ -65,19 +65,9 @@
 #include "WorldSession.h"
 #include "WorldSessionMgr.h"
 
-class LoginQueryHolder : public CharacterDatabaseQueryHolder
+LoginQueryHolder::LoginQueryHolder(uint32 accountId, ObjectGuid guid) : m_accountId(accountId), m_guid(guid)
 {
-private:
-    uint32 m_accountId;
-    ObjectGuid m_guid;
-public:
-    LoginQueryHolder(uint32 accountId, ObjectGuid guid)
-        : m_accountId(accountId), m_guid(guid) { }
-
-    ObjectGuid GetGuid() const { return m_guid; }
-    uint32 GetAccountId() const { return m_accountId; }
-    bool Initialize();
-};
+}
 
 bool LoginQueryHolder::Initialize()
 {
@@ -289,7 +279,7 @@ void WorldSession::HandleCharCreateOpcode(WorldPacket& recvData)
              >> createInfo->FacialHair
              >> createInfo->OutfitId;
 
-    if (createInfo->Class == 10 && GetRemoteAddress() == "127.0.0.1" &&
+    if (createInfo->Class == 10 && IsAscensionCompatEnabled() &&
         sConfigMgr->GetOption<bool>("AscensionCompat.MapClass10ToWarrior", false))
     {
         LOG_INFO("module.ascension_compat",
@@ -429,7 +419,7 @@ void WorldSession::HandleCharCreateOpcode(WorldPacket& recvData)
             return;
         }
 
-        CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_SUM_CHARS);
+        CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_CHAR_CREATE_COUNTS);
         stmt->SetData(0, GetAccountId());
         queryCallback.SetNextQuery(CharacterDatabase.AsyncQuery(stmt));
     })
@@ -438,10 +428,22 @@ void WorldSession::HandleCharCreateOpcode(WorldPacket& recvData)
         if (result)
         {
             Field* fields = result->Fetch();
-            createInfo->CharCount = uint8(fields[0].Get<uint64>()); // SQL's COUNT() returns uint64 but it will always be less than uint8.Max
+            // Active count, which is what the realm list shows and what the
+            // realm limit is checked against; the stored total is only logged.
+            // Both columns must be integer typed: Field::Get<T>() reinterprets a
+            // prepared statement's raw buffer, and a SUM(CASE ...) is typed
+            // DECIMAL, which the binary protocol sends as text (so it would be
+            // read as the ASCII code of its first digit). COUNT(CASE ...) is a
+            // BIGINT and reads correctly.
+            createInfo->CharCount = uint8(fields[1].Get<uint64>());
+            uint8 const activeCharCount = createInfo->CharCount;
+            uint8 const storedCharCount = uint8(fields[0].Get<uint64>());
 
-            if (createInfo->CharCount >= sWorld->getIntConfig(CONFIG_CHARACTERS_PER_REALM))
+            if (activeCharCount >= sWorld->getIntConfig(CONFIG_CHARACTERS_PER_REALM))
             {
+                LOG_INFO("entities.player.character",
+                    "Account {} hit the realm character limit: {} active of {} allowed, {} stored",
+                    GetAccountId(), activeCharCount, sWorld->getIntConfig(CONFIG_CHARACTERS_PER_REALM), storedCharCount);
                 SendCharCreate(CHAR_CREATE_SERVER_LIMIT);
                 return;
             }
@@ -817,6 +819,7 @@ void WorldSession::HandlePlayerLoginOpcode(WorldPacket& recvData)
 
 void WorldSession::HandlePlayerLoginFromDB(LoginQueryHolder const& holder)
 {
+    m_playerLoading = true;
     ObjectGuid playerGuid = holder.GetGuid();
 
     Player* pCurrChar = new Player(this);
@@ -1243,9 +1246,7 @@ void WorldSession::HandlePlayerLoginToCharInWorld(Player* pCurrChar)
             if (spellMods.empty())
                 continue;
 
-            bool const useAscensionSpellModifierLayout =
-                GetRemoteAddress() == "127.0.0.1" &&
-                sConfigMgr->GetOption<bool>("AscensionCompat.Enable", false);
+            bool const useAscensionSpellModifierLayout = IsAscensionCompatEnabled();
 
             if (useAscensionSpellModifierLayout)
             {
