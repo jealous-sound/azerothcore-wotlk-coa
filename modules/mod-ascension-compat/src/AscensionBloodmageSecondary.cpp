@@ -31,7 +31,9 @@ enum BloodmageSecondarySpells : uint32
     SPELL_VAMPYRS_KISS_COPY = 504785,
     SPELL_BLACK_HEART = 680731,
     SPELL_NIGHT_HUNTER = 704659,
-    SPELL_BLOOD_FEAST_RESTORE = 706608
+    SPELL_BLOOD_FEAST_RESTORE = 706608,
+    SPELL_ROTCLAW = 804197,
+    SPELL_ROTCLAW_ENERGIZE = 805352 // Ravenous Strike (Energize): 30..70 internal, i.e. 3 to 7 Rage
 };
 
 bool RankOf(uint32 id, uint32 root)
@@ -122,6 +124,19 @@ public:
         {
             spell->SetScriptValue(SPELL_HEMOTURGY, 1);
             player->CastSpell(player, SPELL_HEMOTURGY, true);
+        }
+        // Rotclaw's description promises the income ("dealing ... Shadow damage, generating Rage and
+        // infecting their wounds"), but none of its three effects is an energize and no companion
+        // "Rotclaw (Energize)" record exists, unlike Ravenous Strike, Bloodmoon Blast, Sanguine Rupture
+        // and Lunge, which all carry effect 142 pointing at their own Energize spell. Unit::DealDamage
+        // only pays Rage for weapon damage, so the ability granted none. The amount is in no source -
+        // not Spell.dbc, not spell_proc/spell_linked_spell, not the 2026-09-13 exiles-db export - so the
+        // Rage is paid with Ravenous Strike's own Energize record rather than a new number, and once per
+        // cast: Rotclaw hits up to 25 enemies.
+        if (RankOf(id, SPELL_ROTCLAW) && !spell->GetScriptValue(SPELL_ROTCLAW_ENERGIZE))
+        {
+            spell->SetScriptValue(SPELL_ROTCLAW_ENERGIZE, 1);
+            player->CastSpell(player, SPELL_ROTCLAW_ENERGIZE, true);
         }
         if (!damage)
             return;
