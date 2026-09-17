@@ -67,6 +67,7 @@ SmartAI::SmartAI(Creature* c) : CreatureAI(c)
     mFollowArrivedAlive = 0;
     mFollowArrivedTimer = 0;
     mInvincibilityHpLevel = 0;
+    mInvincibilityHpPct = 0;
 
     mJustReset = false;
 
@@ -983,8 +984,13 @@ void SmartAI::DamageTaken(Unit* doneBy, uint32& damage, DamageEffectType damaget
         return;
 
     // Xinef: skip nodamage type (eg. instakill effect)
-    if (damagetype != NODAMAGE && mInvincibilityHpLevel && (damage >= me->GetHealth() - mInvincibilityHpLevel))
-        damage = me->GetHealth() - mInvincibilityHpLevel; // damage should not be nullified, because of player damage req.
+    uint32 const invincibilityHpLevel = mInvincibilityHpPct ?
+        me->CountPctFromMaxHealth(mInvincibilityHpPct) : mInvincibilityHpLevel;
+    // Damage should not be nullified above the floor, because of player damage req. A percentage floor can end above
+    // current health once maximum health grows.
+    if (damagetype != NODAMAGE && invincibilityHpLevel && (me->GetHealth() <= invincibilityHpLevel ||
+        damage >= me->GetHealth() - invincibilityHpLevel))
+        damage = me->GetHealth() > invincibilityHpLevel ? me->GetHealth() - invincibilityHpLevel : 0;
 }
 
 void SmartAI::HealReceived(Unit* doneBy, uint32& addhealth)
