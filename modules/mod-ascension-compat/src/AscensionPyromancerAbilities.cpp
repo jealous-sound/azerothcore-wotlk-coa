@@ -241,6 +241,10 @@ class pyromancer_spells : public AllSpellScript
             // Dragonfire's description restores Energize 6% Max Mana, which no DBC effect casts.
             if (Named(info, 500129))
                 Cast(player, player, 503648);
+            // Dormant's proc aura has no proc flags; its direct Fire damage return is applied once per cast.
+            if ((info->SchoolMask & SPELL_SCHOOL_MASK_FIRE) && player->HasAura(800128) &&
+                !spell->GetScriptValue(800128))
+                spell->SetScriptValue(800128, 1), Cast(player, player, 800129);
         }
         if (healing)
         {
