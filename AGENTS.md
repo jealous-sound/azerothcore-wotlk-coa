@@ -29,6 +29,9 @@ Read the relevant sections when needed for the work. Do not read every guide or 
 - Ascension damage/healing, AP/RAP/SP coefficients, triggered spells or tooltip parity →
   `.agents/docs/systems/ascension-spell-parity.md`
 - Ascension race/class availability or character creation → `.agents/docs/systems/ascension-character-creation.md`
+- CoA issue triage and fixing (GitHub issue queue to PRs) → `.agents/skills/coa-fix-issues/SKILL.md`
+- Community data sources (talent tooltips, creatures, spawns, loot missing from DBC/DB) →
+  `.agents/docs/systems/coa-community-references.md`
 - Capturing a lesson or adding/updating agent docs → `.agents/docs/README.md`
 
 ## Repository layout
