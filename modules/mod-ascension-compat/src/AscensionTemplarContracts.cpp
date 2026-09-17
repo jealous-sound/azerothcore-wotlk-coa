@@ -82,6 +82,13 @@ void ApplyContracts(SpellInfo* info)
     }
     if (id == 801482)
         dummy(1); // Redemption follows natural expiry, not every five seconds
+    if ((id == 560650 || id == 561346) && info->Effects[0].ApplyAuraName == SPELL_AURA_MOD_CRIT_PCT &&
+        info->Effects[0].MiscValue == SPELLMOD_CRITICAL_CHANCE && info->Effects[0].SpellClassMask)
+    {
+        // Aggramar's Rage: Holy critical strike chance for the masked Holy abilities (Chastise, Scarlet Hammer,
+        // Blade of Faith). This core's crit aura ignores the mask and raised every crit chance instead.
+        info->Effects[0].ApplyAuraName = SPELL_AURA_ADD_FLAT_MODIFIER;
+    }
     if (id == 520034 && info->Effects[0].ApplyAuraName == SPELL_AURA_MOD_DAMAGE_DONE_VERSUS_AURASTATE &&
         info->Effects[0].MiscValue == AURA_STATE_HEALTH_ABOVE_75_PERCENT && !info->Effects[0].SpellClassMask)
     {
