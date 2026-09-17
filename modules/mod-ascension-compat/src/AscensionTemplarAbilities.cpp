@@ -339,11 +339,26 @@ class spell_ascension_templar_ability : public SpellScript
         if (player && Named(GetSpellInfo(), 801448) && !player->HasAura(705287))
             PreventHitDefaultEffect(effect);
     }
+    // Profound Enlightenment: each effect reduces the remaining cooldown of the named Testament, every rank.
+    void Enlighten(SpellEffIndex effect)
+    {
+        SpellEffectInfo const& info = GetSpellInfo()->Effects[effect];
+        Player* player = Owner(GetCaster());
+        if (!player || info.Effect != 192)
+            return;
+        PreventHitDefaultEffect(effect);
+        for (auto const& pair : player->GetSpellMap())
+            if (player->HasSpell(pair.first) && Named(sSpellMgr->GetSpellInfo(pair.first), uint32(info.MiscValue)))
+                if (uint32 remaining = player->GetSpellCooldownDelay(pair.first))
+                    player->ModifySpellCooldown(pair.first, -int32(CalculatePct(remaining, GetEffectValue())));
+    }
     void Register() override
     {
         if (SpellInfo const* info = sSpellMgr->GetSpellInfo(m_scriptSpellId); Named(info, 801448))
             OnEffectLaunchTarget +=
                 SpellEffectFn(spell_ascension_templar_ability::Launch, EFFECT_0, SPELL_EFFECT_TRIGGER_SPELL);
+        if (m_scriptSpellId == 680953)
+            OnEffectHitTarget += SpellEffectFn(spell_ascension_templar_ability::Enlighten, EFFECT_ALL, SPELL_EFFECT_ANY);
     }
 };
 } // namespace
