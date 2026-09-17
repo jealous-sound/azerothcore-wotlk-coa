@@ -1,0 +1,152 @@
+{
+  "schema": 1,
+  "name": "Paladin Training: Righteous Lunge and Argent Blade +20% damage, -20% cost (#779)",
+  "contract": "Righteous Lunge costs 40 Energy and Argent Blade 50. Paladin Training 520009 increases their damage by 20% (SPELLMOD_DAMAGE) and reduces their Energy cost by 20% (SPELLMOD_COST): 32 and 40.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    },
+    {
+      "id": "talent",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    }
+  ],
+  "creatures": [
+    {
+      "id": "dummy",
+      "owner": "control",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 3
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 570233
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 807268
+    },
+    {
+      "action": "learn",
+      "actor": "talent",
+      "spell": 570233
+    },
+    {
+      "action": "learn",
+      "actor": "talent",
+      "spell": 807268
+    },
+    {
+      "action": "learn",
+      "actor": "talent",
+      "spell": 520009
+    },
+    {
+      "action": "assert",
+      "label": "Righteous Lunge cost without the talent",
+      "actor": "control",
+      "metric": "spell_power_cost",
+      "spell": 570233,
+      "equals": 40
+    },
+    {
+      "action": "assert",
+      "label": "Righteous Lunge cost with the talent",
+      "actor": "talent",
+      "metric": "spell_power_cost",
+      "spell": 570233,
+      "equals": 32
+    },
+    {
+      "action": "assert",
+      "label": "Argent Blade cost without the talent",
+      "actor": "control",
+      "metric": "spell_power_cost",
+      "spell": 807268,
+      "equals": 50
+    },
+    {
+      "action": "assert",
+      "label": "Argent Blade cost with the talent",
+      "actor": "talent",
+      "metric": "spell_power_cost",
+      "spell": 807268,
+      "equals": 40
+    },
+    {
+      "action": "assert",
+      "label": "Righteous Lunge damage without the talent",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 570233,
+      "op": 0,
+      "base": 1000,
+      "equals": 1000
+    },
+    {
+      "action": "assert",
+      "label": "Righteous Lunge damage with the talent",
+      "actor": "talent",
+      "metric": "spell_modifier",
+      "spell": 570233,
+      "op": 0,
+      "base": 1000,
+      "equals": 1200
+    },
+    {
+      "action": "assert",
+      "label": "Argent Blade damage without the talent",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 807268,
+      "op": 0,
+      "base": 1000,
+      "equals": 1000
+    },
+    {
+      "action": "assert",
+      "label": "Argent Blade damage with the talent",
+      "actor": "talent",
+      "metric": "spell_modifier",
+      "spell": 807268,
+      "op": 0,
+      "base": 1000,
+      "equals": 1200
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "melee_spell_damage_done",
+      "save_as": "lunge_base",
+      "spell": 570233,
+      "target": "dummy"
+    },
+    {
+      "action": "assert",
+      "label": "Weapon-strike damage path applies +20%",
+      "actor": "talent",
+      "metric": "melee_spell_damage_done",
+      "spell": 570233,
+      "target": "dummy",
+      "ratio_to": "lunge_base",
+      "min": 1.199,
+      "max": 1.201
+    }
+  ]
+}
