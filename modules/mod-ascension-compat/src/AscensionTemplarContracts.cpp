@@ -165,6 +165,17 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[0].BasePoints = 64;
     if (id == 1397742)
         info->Effects[1].Effect = 0;
+    if (id == 524740 && info->Effects[1].TriggerSpell == 520842 &&
+        info->Effects[0].TargetB.GetTarget() == TARGET_UNIT_DEST_AREA_ENEMY)
+    {
+        // Norgannon's Wrath: the client SpellCustomAttr row carries Dragon's Wrath's pierce-absorbs-and-resistances
+        // bit; the debuff reaches every enemy in the blast; the blast scales with modifiers to Chastise.
+        info->AscensionIgnoreAbsorbAndResistance = true;
+        info->Effects[1].TargetA = info->Effects[0].TargetA;
+        info->Effects[1].TargetB = info->Effects[0].TargetB;
+        info->Effects[1].RadiusEntry = info->Effects[0].RadiusEntry;
+        info->SpellFamilyFlags[1] |= 67108864;
+    }
     if (id == 801450)
         info->AttributesEx3 |= SPELL_ATTR3_REQUIRES_OFF_HAND_WEAPON;
     for (uint32 sid : TemplarCopies)
@@ -177,7 +188,7 @@ void ApplyContracts(SpellInfo* info)
             info->ProcFlags = 0;
         }
     if (id == 527269 || id == 520695 || id == 803160 || id == 573020 || id == 680398 || id == 524619 ||
-        id == 92109 || id == 803149)
+        id == 92109 || id == 803149 || id == 524740)
         info->_InitializeExplicitTargetMask();
 }
 } // namespace AscensionTemplar

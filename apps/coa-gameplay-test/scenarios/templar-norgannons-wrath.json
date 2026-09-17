@@ -1,0 +1,125 @@
+{
+  "schema": 1,
+  "name": "Norgannon's Wrath scales with AP and Holy SP, debuffs every enemy hit and uses Chastise modifiers (#931)",
+  "contract": "Norgannon's Wrath 524739 leaps, then its blast 524740 deals 1506 + 100% Holy spell power + 100% attack power Holy damage to up to 10 enemies within 5 yd, piercing absorbs and resistances, and applies 520842 (-10% damage and healing done for 5 sec) to each of them. It scales with modifiers to Chastise.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "wrath",
+      "race": 1,
+      "class": 19,
+      "level": 80,
+      "melee_hit_rating": 10000,
+      "spell_hit_rating": 10000,
+      "expertise_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "primary",
+      "owner": "wrath",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 10
+    },
+    {
+      "id": "nearby",
+      "owner": "wrath",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 12
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "wrath",
+      "spell": 524739
+    },
+    {
+      "action": "set_aura",
+      "actor": "wrath",
+      "spell": 805407,
+      "stacks": 1
+    },
+    {
+      "action": "assert",
+      "label": "Blast value includes attack power and Holy spell power",
+      "actor": "wrath",
+      "metric": "spell_effect_value",
+      "spell": 524740,
+      "min": 1507
+    },
+    {
+      "action": "assert",
+      "label": "A Chastise damage modifier reaches the blast",
+      "actor": "wrath",
+      "metric": "spell_modifier",
+      "spell": 524740,
+      "op": 0,
+      "base": 1000,
+      "equals": 1030
+    },
+    {
+      "action": "assert",
+      "label": "The same modifier reaches Chastise",
+      "actor": "wrath",
+      "metric": "spell_modifier",
+      "spell": 503141,
+      "op": 0,
+      "base": 1000,
+      "equals": 1030
+    },
+    {
+      "action": "set_power",
+      "actor": "wrath",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "cast",
+      "actor": "wrath",
+      "spell": 524739,
+      "target": "primary"
+    },
+    {
+      "action": "assert",
+      "label": "Primary target is debuffed",
+      "actor": "primary",
+      "metric": "aura",
+      "spell": 520842,
+      "caster": "wrath",
+      "equals": 1,
+      "within_ms": 4000
+    },
+    {
+      "action": "assert",
+      "label": "Nearby enemy is debuffed as well",
+      "actor": "nearby",
+      "metric": "aura",
+      "spell": 520842,
+      "caster": "wrath",
+      "equals": 1,
+      "within_ms": 1000
+    },
+    {
+      "action": "assert",
+      "label": "Primary target is damaged",
+      "actor": "primary",
+      "metric": "health",
+      "max": 999000
+    },
+    {
+      "action": "assert",
+      "label": "Nearby enemy is damaged",
+      "actor": "nearby",
+      "metric": "health",
+      "max": 999000
+    }
+  ]
+}
