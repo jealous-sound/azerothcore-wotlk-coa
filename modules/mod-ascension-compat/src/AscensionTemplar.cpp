@@ -299,6 +299,11 @@ class templar_player : public PlayerScript
                                state.copies.end());
             if (!player->IsAlive())
                 AscensionTemplar::ClearOaths(player);
+            // Devotion of Khaz'goroth's party and raid haste aura follows the learned talent aura.
+            if (player->HasAura(560096) && !player->HasAura(567572))
+                AscensionTemplar::Cast(player, player, 567572);
+            else if (!player->HasAura(560096) && player->HasAura(567572, player->GetGUID()))
+                player->RemoveAurasDueToSpell(567572, player->GetGUID());
         }
     }
     void OnPlayerLogout(Player* player) override

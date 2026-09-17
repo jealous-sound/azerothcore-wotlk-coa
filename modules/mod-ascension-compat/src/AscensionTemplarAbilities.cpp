@@ -352,6 +352,13 @@ class spell_ascension_templar_ability : public SpellScript
                 if (uint32 remaining = player->GetSpellCooldownDelay(pair.first))
                     player->ModifySpellCooldown(pair.first, -int32(CalculatePct(remaining, GetEffectValue())));
     }
+    // Devotion of Khaz'goroth: auto attacks reduce every Libram's cooldown, every rank, by the first effect's value.
+    void Devotion(SpellEffIndex effect)
+    {
+        PreventHitDefaultEffect(effect);
+        if (Player* player = Owner(GetCaster()); player && effect == EFFECT_0)
+            ReduceLibrams(player, std::abs(GetEffectValue()));
+    }
     void Register() override
     {
         if (SpellInfo const* info = sSpellMgr->GetSpellInfo(m_scriptSpellId); Named(info, 801448))
@@ -359,6 +366,9 @@ class spell_ascension_templar_ability : public SpellScript
                 SpellEffectFn(spell_ascension_templar_ability::Launch, EFFECT_0, SPELL_EFFECT_TRIGGER_SPELL);
         if (m_scriptSpellId == 680953)
             OnEffectHitTarget += SpellEffectFn(spell_ascension_templar_ability::Enlighten, EFFECT_ALL, SPELL_EFFECT_ANY);
+        if (m_scriptSpellId == 560097)
+            OnEffectHitTarget += SpellEffectFn(spell_ascension_templar_ability::Devotion, EFFECT_ALL,
+                                               SPELL_EFFECT_ASCENSION_MODIFY_COOLDOWN);
     }
 };
 } // namespace

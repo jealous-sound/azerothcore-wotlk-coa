@@ -1,0 +1,212 @@
+{
+  "schema": 1,
+  "name": "Devotion of Khaz'goroth: raid haste aura and auto attacks shorten every Libram cooldown (#1157)",
+  "contract": "Devotion of Khaz'goroth 560096 grants party and raid members 10% melee and ranged haste (567572) and makes auto attack damage reduce the cooldown of every Libram spell by 0.5 sec.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 19,
+      "level": 80,
+      "melee_hit_rating": 10000,
+      "spell_hit_rating": 10000,
+      "expertise_rating": 10000
+    },
+    {
+      "id": "devoted",
+      "race": 1,
+      "class": 19,
+      "level": 80,
+      "melee_hit_rating": 10000,
+      "spell_hit_rating": 10000,
+      "expertise_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "dummy_control",
+      "owner": "control",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 3
+    },
+    {
+      "id": "dummy_devoted",
+      "owner": "devoted",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 3
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "add_item",
+      "actor": "control",
+      "item": 2495
+    },
+    {
+      "action": "equip",
+      "actor": "control",
+      "item": 2495,
+      "slot": 15
+    },
+    {
+      "action": "add_item",
+      "actor": "devoted",
+      "item": 2495
+    },
+    {
+      "action": "equip",
+      "actor": "devoted",
+      "item": 2495,
+      "slot": 15
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "attack_time_ms",
+      "save_as": "attack_time"
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 803893
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 801461
+    },
+    {
+      "action": "learn",
+      "actor": "devoted",
+      "spell": 803893
+    },
+    {
+      "action": "learn",
+      "actor": "devoted",
+      "spell": 801461
+    },
+    {
+      "action": "learn",
+      "actor": "devoted",
+      "spell": 560096
+    },
+    {
+      "action": "assert",
+      "label": "Raid haste aura follows the talent",
+      "actor": "devoted",
+      "metric": "aura",
+      "spell": 567572,
+      "equals": 1,
+      "within_ms": 1000
+    },
+    {
+      "action": "assert",
+      "label": "No raid haste aura without the talent",
+      "actor": "control",
+      "metric": "aura",
+      "spell": 567572,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "Haste +10%",
+      "actor": "devoted",
+      "metric": "attack_time_ms",
+      "ratio_to": "attack_time",
+      "min": 0.906,
+      "max": 0.912
+    },
+    {
+      "action": "cast",
+      "actor": "control",
+      "spell": 803893
+    },
+    {
+      "action": "cast",
+      "actor": "devoted",
+      "spell": 803893
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "cast",
+      "actor": "control",
+      "spell": 801461
+    },
+    {
+      "action": "cast",
+      "actor": "devoted",
+      "spell": 801461
+    },
+    {
+      "action": "attack",
+      "actor": "control",
+      "target": "dummy_control"
+    },
+    {
+      "action": "attack",
+      "actor": "devoted",
+      "target": "dummy_devoted"
+    },
+    {
+      "action": "wait",
+      "ms": 8000
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "cooldown_ms",
+      "save_as": "consecration",
+      "spell": 803893
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "cooldown_ms",
+      "save_as": "tenacity",
+      "spell": 801461
+    },
+    {
+      "action": "assert",
+      "label": "Auto attacks shortened Libram of Consecration (rank 5)",
+      "actor": "devoted",
+      "metric": "cooldown_ms",
+      "spell": 803893,
+      "relative_to": "consecration",
+      "max": -900
+    },
+    {
+      "action": "assert",
+      "label": "Auto attacks shortened Libram of Tenacity",
+      "actor": "devoted",
+      "metric": "cooldown_ms",
+      "spell": 801461,
+      "relative_to": "tenacity",
+      "max": -900
+    },
+    {
+      "action": "unlearn",
+      "actor": "devoted",
+      "spell": 560096
+    },
+    {
+      "action": "assert",
+      "label": "Raid haste aura ends with the talent",
+      "actor": "devoted",
+      "metric": "aura",
+      "spell": 567572,
+      "equals": 0,
+      "within_ms": 1000
+    }
+  ]
+}
