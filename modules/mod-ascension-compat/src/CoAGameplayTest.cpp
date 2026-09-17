@@ -457,10 +457,48 @@ private:
             return unit->IsNonMeleeSpellCast(false);
         if (metric == "level")
             return unit->GetLevel();
+        if (metric == "stat")
+        {
+            uint32 stat = step.get<uint32>("stat");
+            Require(stat < MAX_STATS, "Invalid stat index");
+            return unit->GetStat(Stats(stat));
+        }
+        if (metric == "attack_power" || metric == "ranged_attack_power")
+            return unit->GetTotalAttackPowerValue(metric == "attack_power" ? BASE_ATTACK : RANGED_ATTACK);
+        if (metric == "armor")
+            return unit->GetArmor();
+        if (metric == "resistance")
+        {
+            uint32 school = step.get<uint32>("school");
+            Require(school > SPELL_SCHOOL_NORMAL && school < MAX_SPELL_SCHOOL, "Invalid resistance school");
+            return unit->GetResistance(SpellSchools(school));
+        }
+        if (metric == "attack_time_ms")
+        {
+            uint32 hand = step.get<uint32>("hand", BASE_ATTACK);
+            Require(hand < MAX_ATTACK, "Invalid attack hand");
+            // The update field holds the hasted swing time; GetAttackTime divides haste back out.
+            return unit->GetFloatValue(static_cast<uint16>(UNIT_FIELD_BASEATTACKTIME) + hand);
+        }
+        if (metric == "run_speed_rate")
+            return unit->GetSpeedRate(MOVE_RUN);
+        if (metric == "spell_damage_taken" || metric == "melee_damage_taken")
+        {
+            // Any unit can be the victim; `target` is the attacker. A melee `spell` selects a weapon strike.
+            Unit* attacker = GetUnit(step.get<std::string>("target"));
+            SpellInfo const* info = spell ? sSpellMgr->GetSpellInfo(spell) : nullptr;
+            Require(!spell || info != nullptr, "Unknown spell for incoming damage calculation");
+            if (metric == "melee_damage_taken")
+                return unit->MeleeDamageBonusTaken(attacker, 1000, BASE_ATTACK, info,
+                    info ? info->GetSchoolMask() : SPELL_SCHOOL_MASK_NORMAL);
+            Require(info != nullptr, "Incoming spell damage needs a spell");
+            return unit->SpellDamageBonusTaken(attacker, info, 1000, SPELL_DIRECT_DAMAGE);
+        }
         if (metric.rfind("aura", 0) == 0)
         {
             Require(metric == "aura" || metric == "aura_stacks" || metric == "aura_charges"
-                || metric == "aura_duration_ms" || metric == "aura_amount" || metric == "aura_positive",
+                || metric == "aura_duration_ms" || metric == "aura_amount" || metric == "aura_positive"
+                || metric == "aura_amplitude_ms" || metric == "aura_crit_chance" || metric == "aura_script_value",
                 "Unknown aura metric");
             Require(sSpellMgr->GetSpellInfo(spell) != nullptr, "Unknown aura spell");
             ObjectGuid caster;
@@ -482,12 +520,15 @@ private:
                 return aura->GetCharges();
             if (metric == "aura_duration_ms")
                 return aura->GetDuration();
-            if (metric == "aura_amount")
-            {
-                uint32 effect = step.get<uint32>("effect", 0);
-                Require(effect < MAX_SPELL_EFFECTS && aura->GetEffect(effect), "Aura effect does not exist");
-                return aura->GetEffect(effect)->GetAmount();
-            }
+            if (metric == "aura_script_value")
+                return double(aura->GetScriptValue(step.get<uint32>("key")));
+            uint32 effect = step.get<uint32>("effect", 0);
+            Require(effect < MAX_SPELL_EFFECTS && aura->GetEffect(effect), "Aura effect does not exist");
+            if (metric == "aura_amplitude_ms")
+                return aura->GetEffect(effect)->GetAmplitude();
+            if (metric == "aura_crit_chance")
+                return aura->GetEffect(effect)->GetCritChance();
+            return aura->GetEffect(effect)->GetAmount();
         }
         Player* player = unit->ToPlayer();
         Require(player != nullptr, "Metric requires a player: " + metric);
@@ -532,16 +573,96 @@ private:
         if (metric == "cast_speed_multiplier")
             return player->GetFloatValue(UNIT_MOD_CAST_SPEED);
         if (metric == "spell_crit_chance")
-            return player->GetFloatValue(PLAYER_SPELL_CRIT_PERCENTAGE1 + SPELL_SCHOOL_SHADOW);
-        if (metric == "spell_damage_taken" || metric == "melee_damage_taken")
         {
+            uint32 school = step.get<uint32>("school", SPELL_SCHOOL_SHADOW);
+            Require(school < MAX_SPELL_SCHOOL, "Invalid spell school");
+            return player->GetFloatValue(PLAYER_SPELL_CRIT_PERCENTAGE1 + school);
+        }
+        if (metric == "melee_crit_chance")
+            return player->GetFloatValue(PLAYER_CRIT_PERCENTAGE);
+        if (metric == "dodge_chance")
+            return player->GetFloatValue(PLAYER_DODGE_PERCENTAGE);
+        if (metric == "parry_chance")
+            return player->GetFloatValue(PLAYER_PARRY_PERCENTAGE);
+        if (metric == "expertise")
+            return player->GetUInt32Value(PLAYER_EXPERTISE);
+        if (metric == "melee_hit_chance")
+            return player->m_modMeleeHitChance;
+        if (metric == "spell_hit_chance")
+            return player->m_modSpellHitChance;
+        if (metric == "spell_power")
+        {
+            uint32 school = step.get<uint32>("school");
+            Require(school > SPELL_SCHOOL_NORMAL && school < MAX_SPELL_SCHOOL, "Invalid spell power school");
+            return player->SpellBaseDamageBonusDone(SpellSchoolMask(1 << school));
+        }
+        if (metric == "combat_rating")
+        {
+            uint32 rating = step.get<uint32>("rating");
+            Require(rating < MAX_COMBAT_RATING, "Invalid combat rating");
+            return player->GetUInt32Value(static_cast<uint16>(PLAYER_FIELD_COMBAT_RATING_1) + rating);
+        }
+        if (metric.rfind("script_", 0) == 0)
+        {
+            // Module damage-taken hooks with a fixed base of 1000 and `target` as the attacker.
             Unit* attacker = GetUnit(step.get<std::string>("target"));
-            if (metric == "melee_damage_taken")
-                return player->MeleeDamageBonusTaken(attacker, 1000, BASE_ATTACK);
-
             SpellInfo const* info = sSpellMgr->GetSpellInfo(spell);
-            Require(info != nullptr, "Unknown spell for incoming damage calculation");
-            return player->SpellDamageBonusTaken(attacker, info, 1000, SPELL_DIRECT_DAMAGE);
+            if (metric == "script_melee_damage_taken")
+            {
+                uint32 damage = 1000;
+                sScriptMgr->ModifyMeleeDamage(player, attacker, damage);
+                return damage;
+            }
+            Require(info != nullptr, "Unknown spell for scripted damage taken");
+            if (metric == "script_spell_damage_taken")
+            {
+                int32 damage = 1000;
+                sScriptMgr->ModifySpellDamageTaken(player, attacker, damage, info);
+                return damage;
+            }
+            Require(metric == "script_periodic_damage_taken", "Unknown scripted damage metric");
+            uint32 damage = 1000;
+            sScriptMgr->ModifyPeriodicDamageAurasTick(player, attacker, damage, info);
+            return damage;
+        }
+        if (metric == "spell_done_crit_chance" || metric == "melee_spell_damage_done")
+        {
+            Unit* target = GetUnit(step.get<std::string>("target"));
+            SpellInfo const* info = sSpellMgr->GetSpellInfo(spell);
+            Require(info != nullptr, "Unknown spell in metric");
+            if (metric == "spell_done_crit_chance")
+                return player->SpellDoneCritChance(target, info, info->GetSchoolMask(), BASE_ATTACK, false);
+            return player->MeleeDamageBonusDone(target, 1000, BASE_ATTACK, info, info->GetSchoolMask());
+        }
+        if (metric == "spell_modifier" || metric == "spell_cast_time_ms" || metric == "spell_max_range"
+            || metric == "spell_max_stacks" || metric == "spell_healing_done" || metric == "spell_effect_value")
+        {
+            SpellInfo const* info = sSpellMgr->GetSpellInfo(spell);
+            Require(info != nullptr, "Unknown spell in metric");
+            // Native modifier consumers without submitting a cast; the probe applies no charges.
+            if (metric == "spell_modifier")
+            {
+                uint32 op = step.get<uint32>("op");
+                Require(op < MAX_SPELLMOD, "Invalid spell modifier operation");
+                float value = step.get<float>("base");
+                player->ApplySpellMod(spell, SpellModOp(op), value);
+                return value;
+            }
+            if (metric == "spell_effect_value")
+            {
+                uint32 effect = step.get<uint32>("effect", EFFECT_0);
+                Require(effect < MAX_SPELL_EFFECTS && info->Effects[effect].IsEffect(), "Spell effect does not exist");
+                return info->Effects[effect].CalcValue(player);
+            }
+            if (metric == "spell_cast_time_ms")
+                return info->CalcCastTime(player);
+            if (metric == "spell_max_range")
+                return info->GetMaxRange(info->IsPositive(), player);
+            if (metric == "spell_max_stacks")
+                return info->CalcMaxAuraStacks(player);
+            if (metric == "spell_healing_done")
+                return player->SpellHealingBonusDone(GetUnit(step.get<std::string>("target")), info, 1000, HEAL,
+                    uint8(step.get<uint32>("effect", EFFECT_0)));
         }
         if (metric == "spell_damage_done" || metric == "melee_damage_done")
         {
@@ -716,6 +837,14 @@ private:
             return;
         }
         std::string id = step.get<std::string>("actor");
+        if (action == "set_health" && !_actors.count(id))
+        {
+            Unit* creature = GetUnit(id);
+            uint32 health = step.get<uint32>("value");
+            Require(health > 0 && health <= creature->GetMaxHealth(), "Health fixture outside valid range");
+            creature->SetHealth(health);
+            return;
+        }
         Player* player = GetPlayer(id);
         uint32 spell = step.get<uint32>("spell", 0);
         if (action == "learn" || action == "unlearn" || action == "cast" || action == "cast_charm")

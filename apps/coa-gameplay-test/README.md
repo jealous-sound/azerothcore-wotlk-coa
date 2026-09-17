@@ -182,10 +182,29 @@ omitted masks mean all. The custom-class scenario expects ordinary player RBAC, 
 `spell_crit_chance` observes the player's Shadow spell critical chance, in percentage points.
 `spell_damage_done` and `melee_damage_done` require `target` and query native outgoing damage calculations
 with a fixed base of 1000. The spell metric also requires `spell` and accepts `effect` (default 0); the melee metric uses a main-hand white hit.
-`spell_damage_taken` and `melee_damage_taken` query the corresponding incoming bonus calculations;
-`target` identifies the attacker. These queries do not execute attacks or include hit rolls, critical hits,
-armor/resistance mitigation, or proc effects.
+`spell_damage_taken` and `melee_damage_taken` query the corresponding incoming bonus calculations for any
+unit; `target` identifies the attacker, and `melee_damage_taken` optionally accepts a weapon-strike `spell`.
+These queries do not execute attacks or include hit rolls, critical hits, armor/resistance mitigation, or proc
+effects.
 `spell_power_cost` requires `spell` and queries its current native resource cost; it does not submit a cast.
+`spell_crit_chance` optionally accepts `school` (0..6, default Shadow). `melee_crit_chance`, `dodge_chance` and
+`parry_chance` read the player's percentage fields; `expertise` reads main-hand expertise; `combat_rating` requires
+`rating` (0..24, native `CombatRating`) and reads the rating value. `stat` requires `stat` (0..4), `resistance`
+requires `school` (1..6); `armor`, `attack_power`, `ranged_attack_power`, the hasted `attack_time_ms` (optional
+`hand`, 0..2) and `run_speed_rate` read the unit's current totals. `aura_amplitude_ms` reads an aura effect's
+periodic interval.
+Spell queries require `spell` and submit nothing: `spell_modifier` applies the player's native spell modifiers for
+`op` (`SpellModOp`) to the number `base`; `spell_effect_value` (optional `effect`) returns the effect's value as the
+player would cast it, including module base-value hooks; `spell_cast_time_ms`, `spell_max_range` and
+`spell_max_stacks` return the modified native values; `spell_healing_done` requires `target` and optional
+`effect`, with a fixed base of 1000.
+`melee_hit_chance`/`spell_hit_chance` read the player's hit modifiers and `spell_power` (`school` 1..6) its base
+spell damage bonus. `spell_done_crit_chance` and `melee_spell_damage_done` require `spell` and `target`: the native
+crit chance for that spell, and the weapon-spell damage bonus from a fixed base of 1000. `aura_crit_chance` reads a
+periodic aura effect's snapshotted crit chance; `aura_script_value` requires `key`. `script_melee_damage_taken`,
+`script_spell_damage_taken` and `script_periodic_damage_taken` require `target` as the attacker (and `spell` for
+the latter two) and return 1000 after the registered module damage-taken hooks. `set_health` also accepts a
+creature actor.
 `open_item` takes `actor` and `item` and submits the native container-open packet. `close_loot` takes `actor`
 and closes its current loot window. `collect_loot` takes `actor`, collects slot zero, verifies that its full rolled
 quantity reached inventory and records the item/count. It supports ordinary container loot, not quest-only slots.

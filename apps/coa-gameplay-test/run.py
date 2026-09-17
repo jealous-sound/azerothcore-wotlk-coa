@@ -34,9 +34,21 @@ METRICS = {
     'cast_speed_multiplier', 'spell_crit_chance', 'spell_power_cost', 'spell_damage_done', 'melee_damage_done',
     'who_count', 'who_class', 'loot_count', 'loot_entry', 'loot_received',
     'quest_rewarded', 'spell_damage_taken', 'melee_damage_taken',
+    'stat', 'attack_power', 'ranged_attack_power', 'armor', 'resistance', 'attack_time_ms', 'run_speed_rate',
+    'aura_amplitude_ms', 'melee_crit_chance', 'dodge_chance', 'parry_chance', 'expertise', 'combat_rating',
+    'spell_modifier', 'spell_cast_time_ms', 'spell_max_range', 'spell_max_stacks', 'spell_healing_done',
+    'aura_crit_chance', 'aura_script_value', 'melee_hit_chance', 'spell_hit_chance', 'spell_power',
+    'spell_done_crit_chance', 'melee_spell_damage_done', 'script_melee_damage_taken',
+    'script_spell_damage_taken', 'script_periodic_damage_taken', 'spell_effect_value',
+}
+PLAYER_STAT_METRICS = {
+    'melee_crit_chance', 'dodge_chance', 'parry_chance', 'expertise', 'combat_rating',
+    'spell_modifier', 'spell_cast_time_ms', 'spell_max_range', 'spell_max_stacks', 'spell_healing_done',
+    'melee_hit_chance', 'spell_hit_chance', 'spell_power', 'spell_done_crit_chance', 'melee_spell_damage_done',
+    'script_melee_damage_taken', 'script_spell_damage_taken', 'script_periodic_damage_taken', 'spell_effect_value',
 }
 METRIC_FIELDS = {'actor', 'metric', 'spell', 'power', 'caster', 'effect', 'item', 'entry',
-                 'relative_to', 'ratio_to', 'target', 'quest'}
+                 'relative_to', 'ratio_to', 'target', 'quest', 'stat', 'school', 'hand', 'rating', 'op', 'base', 'key'}
 ACTIONS = {
     'console': ({'command'}, {'command'}),
     'command': ({'actor', 'command'}, {'actor', 'command'}),
@@ -168,7 +180,7 @@ def validate(scenario):
                         f'{where}: player command must start with a dot')
         if 'actor' in step:
             require(step['actor'] in actor_ids, f'{where}: unknown actor')
-            require(action in {'snapshot', 'assert'} or step['actor'] in player_ids,
+            require(action in {'snapshot', 'assert', 'set_health'} or step['actor'] in player_ids,
                     f'{where}: action needs a player')
         for key in ('target', 'caster'):
             if key in step:
@@ -205,10 +217,30 @@ def validate(scenario):
             if metric.startswith('aura') or metric in {
                     'knows_spell', 'cooldown_ms', 'has_talent', 'pet_aura_stacks', 'charm_aura_stacks',
                     'dynamic_object', 'dynamic_object_duration_ms', 'spell_power_cost',
-                    'spell_damage_done', 'spell_damage_taken'}:
+                    'spell_damage_done', 'spell_damage_taken', 'spell_modifier', 'spell_cast_time_ms',
+                    'spell_max_range', 'spell_max_stacks', 'spell_healing_done', 'spell_done_crit_chance',
+                    'melee_spell_damage_done', 'script_spell_damage_taken', 'script_periodic_damage_taken',
+                    'spell_effect_value'}:
                 require('spell' in step, f'{where}: metric needs spell')
-            if metric in {'spell_damage_done', 'melee_damage_done', 'spell_damage_taken', 'melee_damage_taken'}:
+            if metric in {'spell_damage_done', 'melee_damage_done', 'spell_damage_taken', 'melee_damage_taken',
+                          'spell_healing_done', 'spell_done_crit_chance', 'melee_spell_damage_done'} \
+                    or metric.startswith('script_'):
                 require('target' in step, f'{where}: damage metric needs target')
+            if metric == 'stat':
+                number(step.get('stat'), f'{where}.stat', 0, 4, True)
+            if metric == 'aura_script_value':
+                number(step.get('key'), f'{where}.key', 0, 2**32 - 1, True)
+            if metric in {'resistance', 'spell_power'}:
+                number(step.get('school'), f'{where}.school', 1, 6, True)
+            if metric == 'combat_rating':
+                number(step.get('rating'), f'{where}.rating', 0, 24, True)
+            if metric == 'spell_modifier':
+                number(step.get('op'), f'{where}.op', 0, 31, True)
+                number(step.get('base'), f'{where}.base')
+            if 'hand' in step:
+                number(step['hand'], f'{where}.hand', 0, 2, True)
+            if 'school' in step and metric == 'spell_crit_chance':
+                number(step['school'], f'{where}.school', 0, 6, True)
             if metric == 'item_count':
                 require('item' in step, f'{where}: metric needs item')
             if metric == 'quest_rewarded':
@@ -223,9 +255,9 @@ def validate(scenario):
                           'charm_aura_stacks', 'controls_self', 'private_instance',
                           'dynamic_object', 'dynamic_object_duration_ms', 'gossip_options',
                           'cast_speed_multiplier', 'spell_crit_chance', 'spell_power_cost',
-                          'spell_damage_done', 'melee_damage_done', 'spell_damage_taken', 'melee_damage_taken',
+                          'spell_damage_done', 'melee_damage_done',
                           'who_count', 'who_class',
-                          'loot_count', 'loot_entry', 'loot_received', 'quest_rewarded'}:
+                          'loot_count', 'loot_entry', 'loot_received', 'quest_rewarded'} | PLAYER_STAT_METRICS:
                 require(step['actor'] in player_ids, f'{where}: metric needs a player')
             if 'relative_to' in step:
                 require(snapshots.get(step['relative_to']) == metric, f'{where}: missing or incompatible snapshot')
