@@ -1,0 +1,80 @@
+{
+  "schema": 1,
+  "name": "Graceful Fighter converts Agility to parry and Intellect to dodge rating (#994)",
+  "contract": "Graceful Fighter 705303 adds parry rating equal to 20% of Agility and dodge rating equal to 20% of Intellect.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    },
+    {
+      "id": "talent",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "combat_rating",
+      "save_as": "dodge",
+      "rating": 2
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "combat_rating",
+      "save_as": "parry",
+      "rating": 3
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "combat_rating",
+      "save_as": "hit",
+      "rating": 5
+    },
+    {
+      "action": "learn",
+      "actor": "talent",
+      "spell": 705303
+    },
+    {
+      "action": "assert",
+      "label": "Dodge rating rises",
+      "actor": "talent",
+      "metric": "combat_rating",
+      "rating": 2,
+      "relative_to": "dodge",
+      "min": 1
+    },
+    {
+      "action": "assert",
+      "label": "Parry rating rises",
+      "actor": "talent",
+      "metric": "combat_rating",
+      "rating": 3,
+      "relative_to": "parry",
+      "min": 1
+    },
+    {
+      "action": "assert",
+      "label": "Hit rating is unchanged",
+      "actor": "talent",
+      "metric": "combat_rating",
+      "rating": 5,
+      "relative_to": "hit",
+      "equals": 0
+    }
+  ]
+}
