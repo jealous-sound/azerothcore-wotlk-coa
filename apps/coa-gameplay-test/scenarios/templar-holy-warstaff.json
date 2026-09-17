@@ -1,0 +1,90 @@
+{
+  "schema": 1,
+  "name": "Holy Warstaff increases Reckoning damage by 20% (#1046)",
+  "contract": "Holy Warstaff 705307 increases Reckoning's damage by 20% (SPELLMOD_DAMAGE on every rank).",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    },
+    {
+      "id": "talent",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    }
+  ],
+  "creatures": [
+    {
+      "id": "dummy",
+      "owner": "control",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 3
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 572741
+    },
+    {
+      "action": "learn",
+      "actor": "talent",
+      "spell": 572741
+    },
+    {
+      "action": "learn",
+      "actor": "talent",
+      "spell": 705307
+    },
+    {
+      "action": "assert",
+      "label": "Reckoning damage without the talent",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 572741,
+      "op": 0,
+      "base": 1000,
+      "equals": 1000
+    },
+    {
+      "action": "assert",
+      "label": "Reckoning damage with the talent",
+      "actor": "talent",
+      "metric": "spell_modifier",
+      "spell": 572741,
+      "op": 0,
+      "base": 1000,
+      "equals": 1200
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "spell_damage_done",
+      "save_as": "reckoning_base",
+      "spell": 572741,
+      "target": "dummy"
+    },
+    {
+      "action": "assert",
+      "label": "Spell damage path applies +20%",
+      "actor": "talent",
+      "metric": "spell_damage_done",
+      "spell": 572741,
+      "target": "dummy",
+      "ratio_to": "reckoning_base",
+      "min": 1.199,
+      "max": 1.201
+    }
+  ]
+}
