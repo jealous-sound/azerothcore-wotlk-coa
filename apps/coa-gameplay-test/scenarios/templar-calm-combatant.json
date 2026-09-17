@@ -1,0 +1,80 @@
+{
+  "schema": 1,
+  "name": "Calm Combatant: Holy spell power from AP, armor penetration from Intellect (#977)",
+  "contract": "Calm Combatant 705281 adds 50% of attack power to Holy spell damage and 50% of Intellect as armor penetration rating.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    },
+    {
+      "id": "talent",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "spell_power",
+      "save_as": "holy",
+      "school": 1
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "spell_power",
+      "save_as": "fire",
+      "school": 2
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "combat_rating",
+      "save_as": "arp",
+      "rating": 24
+    },
+    {
+      "action": "learn",
+      "actor": "talent",
+      "spell": 705281
+    },
+    {
+      "action": "assert",
+      "label": "Holy spell power rises",
+      "actor": "talent",
+      "metric": "spell_power",
+      "school": 1,
+      "relative_to": "holy",
+      "min": 1
+    },
+    {
+      "action": "assert",
+      "label": "Fire spell power is unchanged",
+      "actor": "talent",
+      "metric": "spell_power",
+      "school": 2,
+      "relative_to": "fire",
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "Armor penetration rating rises",
+      "actor": "talent",
+      "metric": "combat_rating",
+      "rating": 24,
+      "relative_to": "arp",
+      "min": 1
+    }
+  ]
+}
