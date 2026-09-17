@@ -1,0 +1,202 @@
+{
+  "schema": 1,
+  "name": "Focused increases Blade of Faith and Righteous Tempest damage by 25% (#1621)",
+  "contract": "Focused 300524 increases the damage of Blade of Faith (periodic) and Righteous Tempest by 25%.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 19,
+      "level": 80,
+      "melee_hit_rating": 10000,
+      "spell_hit_rating": 10000,
+      "expertise_rating": 10000
+    },
+    {
+      "id": "focused",
+      "race": 1,
+      "class": 19,
+      "level": 80,
+      "melee_hit_rating": 10000,
+      "spell_hit_rating": 10000,
+      "expertise_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "dummy_control",
+      "owner": "control",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 3
+    },
+    {
+      "id": "dummy_focused",
+      "owner": "focused",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 3
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 803880
+    },
+    {
+      "action": "learn",
+      "actor": "focused",
+      "spell": 803880
+    },
+    {
+      "action": "learn",
+      "actor": "focused",
+      "spell": 300524
+    },
+    {
+      "action": "assert",
+      "label": "Both effects are on the Templar",
+      "actor": "focused",
+      "metric": "aura_amount",
+      "spell": 300524,
+      "effect": 1,
+      "equals": 25
+    },
+    {
+      "action": "assert",
+      "label": "Righteous Tempest damage without the talent",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 570205,
+      "op": 0,
+      "base": 1000,
+      "equals": 1000
+    },
+    {
+      "action": "assert",
+      "label": "Righteous Tempest damage +25%",
+      "actor": "focused",
+      "metric": "spell_modifier",
+      "spell": 570205,
+      "op": 0,
+      "base": 1000,
+      "equals": 1250
+    },
+    {
+      "action": "assert",
+      "label": "Blade of Faith periodic damage +25%",
+      "actor": "focused",
+      "metric": "spell_modifier",
+      "spell": 803880,
+      "op": 22,
+      "base": 1000,
+      "equals": 1250
+    },
+    {
+      "action": "add_item",
+      "actor": "control",
+      "item": 2495
+    },
+    {
+      "action": "equip",
+      "actor": "control",
+      "item": 2495,
+      "slot": 15
+    },
+    {
+      "action": "set_aura",
+      "actor": "control",
+      "spell": 704576,
+      "stacks": 1
+    },
+    {
+      "action": "set_power",
+      "actor": "control",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "cast",
+      "actor": "control",
+      "spell": 803880,
+      "target": "dummy_control"
+    },
+    {
+      "action": "assert",
+      "label": "Blade of Faith lands",
+      "actor": "dummy_control",
+      "metric": "aura",
+      "spell": 803880,
+      "caster": "control",
+      "equals": 1,
+      "within_ms": 2000
+    },
+    {
+      "action": "add_item",
+      "actor": "focused",
+      "item": 2495
+    },
+    {
+      "action": "equip",
+      "actor": "focused",
+      "item": 2495,
+      "slot": 15
+    },
+    {
+      "action": "set_aura",
+      "actor": "focused",
+      "spell": 704576,
+      "stacks": 1
+    },
+    {
+      "action": "set_power",
+      "actor": "focused",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "cast",
+      "actor": "focused",
+      "spell": 803880,
+      "target": "dummy_focused"
+    },
+    {
+      "action": "assert",
+      "label": "Blade of Faith lands",
+      "actor": "dummy_focused",
+      "metric": "aura",
+      "spell": 803880,
+      "caster": "focused",
+      "equals": 1,
+      "within_ms": 2000
+    },
+    {
+      "action": "snapshot",
+      "actor": "dummy_control",
+      "metric": "aura_amount",
+      "save_as": "tick",
+      "spell": 803880,
+      "caster": "control",
+      "effect": 0
+    },
+    {
+      "action": "assert",
+      "label": "Blade of Faith ticks 25% harder",
+      "actor": "dummy_focused",
+      "metric": "aura_amount",
+      "spell": 803880,
+      "caster": "focused",
+      "effect": 0,
+      "ratio_to": "tick",
+      "min": 1.23,
+      "max": 1.27
+    }
+  ]
+}

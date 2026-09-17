@@ -82,6 +82,13 @@ void ApplyContracts(SpellInfo* info)
     }
     if (id == 801482)
         dummy(1); // Redemption follows natural expiry, not every five seconds
+    if (id == 300524 && info->Effects[1].ApplyAuraName == SPELL_AURA_ADD_PCT_MODIFIER &&
+        info->Effects[1].TargetA.GetTarget() == TARGET_UNIT_NEARBY_ENEMY)
+    {
+        // Focused's Blade of Faith bonus is a passive modifier on the Templar; a nearby-enemy target never exists.
+        info->Effects[1].TargetA = SpellImplicitTargetInfo(TARGET_UNIT_CASTER);
+        info->Effects[1].TargetB = SpellImplicitTargetInfo();
+    }
     if ((id == 560650 || id == 561346) && info->Effects[0].ApplyAuraName == SPELL_AURA_MOD_CRIT_PCT &&
         info->Effects[0].MiscValue == SPELLMOD_CRITICAL_CHANCE && info->Effects[0].SpellClassMask)
     {
@@ -224,7 +231,7 @@ void ApplyContracts(SpellInfo* info)
             info->ProcFlags = 0;
         }
     if (id == 527269 || id == 520695 || id == 803160 || id == 573020 || id == 680398 || id == 524619 ||
-        id == 92109 || id == 803149 || id == 524740)
+        id == 92109 || id == 803149 || id == 524740 || id == 300524)
         info->_InitializeExplicitTargetMask();
 }
 } // namespace AscensionTemplar
