@@ -1,0 +1,128 @@
+{
+  "schema": 1,
+  "name": "Teachings of the Cathedral adds 3% crit to Oath: Condemn (#709)",
+  "contract": "Oath: Condemn 804922 grants 3% critical strike chance per stack. Teachings of the Cathedral 520032 adds 3 to that effect (flat EFFECT1), so one stack grants 6%.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    },
+    {
+      "id": "talent",
+      "race": 1,
+      "class": 19,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "talent",
+      "spell": 520032
+    },
+    {
+      "action": "add_item",
+      "actor": "control",
+      "item": 2495
+    },
+    {
+      "action": "equip",
+      "actor": "control",
+      "item": 2495,
+      "slot": 15
+    },
+    {
+      "action": "add_item",
+      "actor": "talent",
+      "item": 2495
+    },
+    {
+      "action": "equip",
+      "actor": "talent",
+      "item": 2495,
+      "slot": 15
+    },
+    {
+      "action": "set_aura",
+      "label": "Baseline crit aura computes crit chance",
+      "actor": "control",
+      "spell": 14139,
+      "stacks": 1
+    },
+    {
+      "action": "set_aura",
+      "label": "Baseline crit aura computes crit chance",
+      "actor": "talent",
+      "spell": 14139,
+      "stacks": 1
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "melee_crit_chance",
+      "save_as": "control_crit"
+    },
+    {
+      "action": "snapshot",
+      "actor": "talent",
+      "metric": "melee_crit_chance",
+      "save_as": "talent_crit"
+    },
+    {
+      "action": "set_aura",
+      "actor": "control",
+      "spell": 804922,
+      "stacks": 1
+    },
+    {
+      "action": "set_aura",
+      "actor": "talent",
+      "spell": 804922,
+      "stacks": 1
+    },
+    {
+      "action": "assert",
+      "label": "Oath: Condemn grants 3% without the talent",
+      "actor": "control",
+      "metric": "aura_amount",
+      "spell": 804922,
+      "effect": 0,
+      "equals": 3
+    },
+    {
+      "action": "assert",
+      "label": "Oath: Condemn grants 6% with the talent",
+      "actor": "talent",
+      "metric": "aura_amount",
+      "spell": 804922,
+      "effect": 0,
+      "equals": 6
+    },
+    {
+      "action": "assert",
+      "label": "Crit rises by 3 without the talent",
+      "actor": "control",
+      "metric": "melee_crit_chance",
+      "relative_to": "control_crit",
+      "min": 2.99,
+      "max": 3.01
+    },
+    {
+      "action": "assert",
+      "label": "Crit rises by 6 with the talent",
+      "actor": "talent",
+      "metric": "melee_crit_chance",
+      "relative_to": "talent_crit",
+      "min": 5.99,
+      "max": 6.01
+    }
+  ]
+}
