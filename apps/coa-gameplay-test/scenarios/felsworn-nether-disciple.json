@@ -1,0 +1,56 @@
+{
+  "schema": 1,
+  "name": "Nether Disciple grants its parry aura at the correct amount (#676)",
+  "contract": "Nether Disciple 560576 applies SPELL_AURA_MOD_PARRY_PERCENT (aura 47) with EffectBasePoints=3, DieSides=1, so its real applied amount is 3+1=4 (aura_amount). Player::UpdateParryPercentage() folds that amount into PLAYER_PARRY_PERCENTAGE alongside a flat +5 base and defense-skill terms that flip on once any parry aura is first applied, so the net parry_chance gain is at least the aura's own 4 and can be larger; the wide band below only rules out a zero (unconsumed) result.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 4,
+      "class": 14,
+      "level": 80
+    },
+    {
+      "id": "disciple",
+      "race": 4,
+      "class": 14,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "parry_chance",
+      "save_as": "base_parry"
+    },
+    {
+      "action": "learn",
+      "actor": "disciple",
+      "spell": 560576
+    },
+    {
+      "action": "assert",
+      "label": "Nether Disciple's own aura carries the real EffectBasePoints+1 amount",
+      "actor": "disciple",
+      "metric": "aura_amount",
+      "spell": 560576,
+      "effect": 0,
+      "equals": 4
+    },
+    {
+      "action": "assert",
+      "label": "Parry chance increases by at least the aura's own contribution",
+      "actor": "disciple",
+      "metric": "parry_chance",
+      "relative_to": "base_parry",
+      "min": 3.9,
+      "max": 9.5
+    }
+  ]
+}
