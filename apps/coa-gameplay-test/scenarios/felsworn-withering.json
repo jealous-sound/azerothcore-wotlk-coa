@@ -1,0 +1,101 @@
+{
+  "schema": 1,
+  "name": "Withering raises Fel Fireball damage while Felforged is active (#3129)",
+  "contract": "Withering 707416's flat aura (EffectBasePoints 29, die 1 => CalcValue 30) targets SPELLMOD_EFFECT2 (op12), which Unit::ApplyEffectModifiers routes to effect index 1 of whatever spell's CalcValue is being computed. Felforged's own effect index 1 (806104, EffectBasePoints -1, die 1 => CalcValue 0) is a SPELLMOD_DAMAGE percent SpellMod matching Fel Fireball's family20 flags; Withering's SpellMod matches Felforged's own SpellFamilyFlags (word1 bit22) and adds its flat 30 on top of Felforged's die-adjusted 0, making Felforged's own generated Fel Fireball damage modifier 30 (not the raw -1). So Felforged alone changes Fel Fireball damage by 0% (native CalcValue, not the tooltip's raw -1%), and Felforged plus Withering raises it by 30% (not 28%, which came from summing the raw, un-adjusted DBC base points -1+29). Fel Fireball rank 1 is spell 801312. Without Felforged up, Withering has no effect on Fel Fireball.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 14,
+      "level": 80
+    },
+    {
+      "id": "withering",
+      "race": 1,
+      "class": 14,
+      "level": 80
+    }
+  ],
+  "creatures": [
+    {
+      "id": "dummy_control",
+      "owner": "control",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 3
+    },
+    {
+      "id": "dummy_withering",
+      "owner": "withering",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 3
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "spell_damage_done",
+      "spell": 801312,
+      "target": "dummy_control",
+      "save_as": "baseline"
+    },
+    {
+      "action": "learn",
+      "actor": "withering",
+      "spell": 707416
+    },
+    {
+      "action": "assert",
+      "label": "Withering has no effect on Fel Fireball while Felforged is not up",
+      "actor": "withering",
+      "metric": "spell_damage_done",
+      "spell": 801312,
+      "target": "dummy_withering",
+      "ratio_to": "baseline",
+      "min": 0.999,
+      "max": 1.001
+    },
+    {
+      "action": "set_aura",
+      "actor": "control",
+      "spell": 806104,
+      "stacks": 1
+    },
+    {
+      "action": "set_aura",
+      "actor": "withering",
+      "spell": 806104,
+      "stacks": 1
+    },
+    {
+      "action": "assert",
+      "label": "Felforged alone has no effect on Fel Fireball damage (its own EffectBasePoints -1, die 1, resolves to CalcValue 0)",
+      "actor": "control",
+      "metric": "spell_damage_done",
+      "spell": 801312,
+      "target": "dummy_control",
+      "ratio_to": "baseline",
+      "min": 0.999,
+      "max": 1.001
+    },
+    {
+      "action": "assert",
+      "label": "Felforged plus Withering raises Fel Fireball damage by 30%",
+      "actor": "withering",
+      "metric": "spell_damage_done",
+      "spell": 801312,
+      "target": "dummy_withering",
+      "ratio_to": "baseline",
+      "min": 1.299,
+      "max": 1.301
+    }
+  ]
+}
