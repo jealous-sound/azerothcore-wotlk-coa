@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "name": "Threads of Eternity marks a target from Discordance damage (#3611)",
+  "contract": "Threads of Eternity 806209 applies aura 42 (proc trigger spell) on Thread of Eternity 572127, but Spell.dbc gives it ProcFlags 0 and no spell_proc row existed, so it never procced. With a spell_proc row gated on the magic class damage of Discordance (100% chance), a single Discordance hit should mark the target with 572127.",
+  "timeout_ms": 60000,
+  "players": [
+    {
+      "id": "chronomancer",
+      "race": 1,
+      "class": 22,
+      "level": 80,
+      "spell_hit_rating": 10000
+    }
+  ],
+  "creatures": [
+    { "id": "dummy", "owner": "chronomancer", "entry": 36, "health": 1000000, "distance": 3 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+    { "action": "learn", "actor": "chronomancer", "spell": 806209 },
+    { "action": "learn", "actor": "chronomancer", "spell": 503875 },
+    {
+      "action": "assert",
+      "label": "No Thread of Eternity mark before any cast",
+      "actor": "dummy",
+      "metric": "aura",
+      "spell": 572127,
+      "caster": "chronomancer",
+      "equals": 0
+    },
+    { "action": "cast", "actor": "chronomancer", "spell": 503875, "target": "dummy" },
+    {
+      "action": "assert",
+      "label": "Discordance's hit marks the target with Thread of Eternity",
+      "actor": "dummy",
+      "metric": "aura",
+      "spell": 572127,
+      "caster": "chronomancer",
+      "equals": 1,
+      "within_ms": 5000
+    }
+  ]
+}
