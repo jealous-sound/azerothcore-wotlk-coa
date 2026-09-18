@@ -1,0 +1,15 @@
+{
+ "schema": 1,
+ "name": "Bursting Impact raises off-hand damage by 25% (#2599)",
+ "contract": "Bursting Impact 705276 applies SPELL_AURA_MOD_OFFHAND_DAMAGE_PCT for 25, which the core's HandleModOffhandDamagePercent applies to off-hand weapon damage. The harness has no off-hand damage metric, so the proof is that the aura is applied with amount 25.",
+ "timeout_ms": 90000,
+ "players": [
+  { "id": "bursting", "race": 1, "class": 19, "level": 80 }
+ ],
+ "steps": [
+  { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+  { "action": "learn", "actor": "bursting", "spell": 705276 },
+  { "action": "assert", "label": "Bursting Impact is applied", "actor": "bursting", "metric": "aura", "spell": 705276, "equals": 1 },
+  { "action": "assert", "label": "Its off-hand bonus is 25", "actor": "bursting", "metric": "aura_amount", "spell": 705276, "effect": 0, "equals": 25 }
+ ]
+}
