@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "name": "Erode Armaments reduces enemy attack power from Wand attacks (#1949)",
+  "contract": "Erode Armaments 520386 applies aura 42 (proc trigger spell) on Erode Armaments 300157, but Spell.dbc gives it ProcFlags 0 and no spell_proc row existed, so it never procced. With a spell_proc row gated on the ranged class damage of Wand of Time or Artificer's Wand (100% chance), a single Artificer's Wand hit should apply the attack-power debuff to the target.",
+  "timeout_ms": 60000,
+  "players": [
+    {
+      "id": "chronomancer",
+      "race": 1,
+      "class": 22,
+      "level": 80,
+      "ranged_hit_rating": 10000
+    }
+  ],
+  "creatures": [
+    { "id": "dummy", "owner": "chronomancer", "entry": 36, "health": 1000000, "distance": 3 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+    { "action": "learn", "actor": "chronomancer", "spell": 520386 },
+    { "action": "learn", "actor": "chronomancer", "spell": 561064 },
+    {
+      "action": "assert",
+      "label": "No Erode Armaments debuff before any cast",
+      "actor": "dummy",
+      "metric": "aura",
+      "spell": 300157,
+      "caster": "chronomancer",
+      "equals": 0
+    },
+    { "action": "cast", "actor": "chronomancer", "spell": 561064, "target": "dummy" },
+    {
+      "action": "assert",
+      "label": "Artificer's Wand hit applies Erode Armaments",
+      "actor": "dummy",
+      "metric": "aura",
+      "spell": 300157,
+      "caster": "chronomancer",
+      "equals": 1,
+      "within_ms": 5000
+    }
+  ]
+}
