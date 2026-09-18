@@ -1,0 +1,72 @@
+{
+  "schema": 1,
+  "name": "Gul'dan's Prodigy lowers Fel Fireball's cost and cast time by 15% (#875)",
+  "contract": "Gul'dan's Prodigy 704378 effect 1 (misc=14, SPELLMOD_COST) and effect 2 (misc=10, SPELLMOD_CASTING_TIME) are both SPELL_AURA_ADD_PCT_MODIFIER with EffectBasePoints=-16, DieSides=1, so their real percentage is -16+1=-15 each. Their classmask (family 20, dword1 bit0) matches Fel Fireball (e.g. 801312) by SpellFamilyFlags. SpellInfo::CalcPowerCost and the cast-time calculation apply SPELLMOD_COST/SPELLMOD_CASTING_TIME generically, so Fel Fireball's cost and cast time both drop by 15%.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 4,
+      "class": 14,
+      "level": 80
+    },
+    {
+      "id": "prodigy",
+      "race": 4,
+      "class": 14,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "prodigy",
+      "spell": 704378
+    },
+    {
+      "action": "assert",
+      "label": "Fel Fireball cost without Gul'dan's Prodigy",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 801312,
+      "op": 14,
+      "base": 100,
+      "equals": 100
+    },
+    {
+      "action": "assert",
+      "label": "Fel Fireball cost with Gul'dan's Prodigy (-15%)",
+      "actor": "prodigy",
+      "metric": "spell_modifier",
+      "spell": 801312,
+      "op": 14,
+      "base": 100,
+      "equals": 85
+    },
+    {
+      "action": "assert",
+      "label": "Fel Fireball cast time without Gul'dan's Prodigy",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 801312,
+      "op": 10,
+      "base": 100,
+      "equals": 100
+    },
+    {
+      "action": "assert",
+      "label": "Fel Fireball cast time with Gul'dan's Prodigy (-15%)",
+      "actor": "prodigy",
+      "metric": "spell_modifier",
+      "spell": 801312,
+      "op": 10,
+      "base": 100,
+      "equals": 85
+    }
+  ]
+}
