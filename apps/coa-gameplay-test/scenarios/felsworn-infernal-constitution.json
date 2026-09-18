@@ -1,0 +1,65 @@
+{
+  "schema": 1,
+  "name": "Infernal Constitution increases max health by 9% and off-hand damage by 29% (#3500)",
+  "contract": "Infernal Constitution 805256 increases max health by a stored 9% (resolved 10% via the DieSides==1 +1 rule) via native SPELL_AURA_MOD_INCREASE_HEALTH_PERCENT (aura 133) and off-hand weapon damage by a stored 29% (resolved 30%) via native SPELL_AURA_MOD_OFFHAND_DAMAGE_PCT (aura 122). The harness has no per-hand outgoing-damage metric, so the off-hand effect is checked at the aura's own resolved value (the same handler is exercised end to end for #1967 Burning Legionnaire in this batch).",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 14,
+      "level": 80
+    },
+    {
+      "id": "infernal",
+      "race": 1,
+      "class": 14,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "max_health",
+      "save_as": "base_health"
+    },
+    {
+      "action": "learn",
+      "actor": "infernal",
+      "spell": 805256
+    },
+    {
+      "action": "assert",
+      "label": "Max health effect value +10%",
+      "actor": "infernal",
+      "metric": "aura_amount",
+      "spell": 805256,
+      "effect": 0,
+      "equals": 10
+    },
+    {
+      "action": "assert",
+      "label": "Off-hand damage effect value +30%",
+      "actor": "infernal",
+      "metric": "aura_amount",
+      "spell": 805256,
+      "effect": 1,
+      "equals": 30
+    },
+    {
+      "action": "assert",
+      "label": "Max health actually reads +10%",
+      "actor": "infernal",
+      "metric": "max_health",
+      "ratio_to": "base_health",
+      "min": 1.099,
+      "max": 1.101
+    }
+  ]
+}
