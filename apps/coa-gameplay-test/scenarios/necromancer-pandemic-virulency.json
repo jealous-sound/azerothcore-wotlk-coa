@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "name": "Necromancer Pandemic reduces Virulency cooldown from minion hits",
+  "contract": "Pandemic (entry 33759) is an aura-to-summons passive carried by the minions. Each minion hit takes 1s off Virulency's 60s cooldown, so 10s of Ghoul combat must remove clearly more than 10s.",
+  "timeout_ms": 120000,
+  "players": [ { "id": "n", "race": 5, "class": 23, "level": 80, "spell_hit_rating": 10000 } ],
+  "creatures": [ { "id": "dummy", "owner": "n", "entry": 36, "level": 10, "distance": 8, "health": 1000000 } ],
+  "location": { "map": 0, "x": -8917.41, "y": -115.853, "z": 82.3711, "o": 0 },
+  "steps": [
+    { "action": "wait", "ms": 3000 },
+    { "action": "learn", "actor": "n", "spell": 801938 },
+    { "action": "learn", "actor": "n", "spell": 500971 },
+    { "action": "command", "actor": "n", "command": ".localtalent 33759 1" },
+    { "action": "wait", "ms": 1500 },
+    { "action": "set_aura", "actor": "n", "spell": 803782, "stacks": 1 },
+    { "action": "cast", "actor": "n", "spell": 500971 },
+    { "action": "wait", "ms": 4000 },
+    { "action": "assert", "label": "Ghoul raised", "actor": "n", "metric": "owned_creature_count", "entry": 50073, "equals": 1 },
+    { "action": "cast", "actor": "n", "spell": 801938, "target": "dummy" },
+    { "action": "wait", "ms": 500 },
+    { "action": "assert", "label": "Virulency on cooldown", "actor": "n", "metric": "cooldown_ms", "spell": 801938, "min": 55000 },
+    { "action": "attack", "actor": "n", "target": "dummy" },
+    { "action": "wait", "ms": 10000 },
+    { "action": "assert", "label": "Minion hits reduced the cooldown beyond elapsed time", "actor": "n", "metric": "cooldown_ms", "spell": 801938, "max": 47000 }
+  ]
+}
