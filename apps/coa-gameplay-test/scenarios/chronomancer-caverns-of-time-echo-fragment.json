@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "name": "Caverns of Time generates an Echo Fragment from Discordance (#1943)",
+  "contract": "Caverns of Time 520166 applies aura 42 (proc trigger spell) on Echo Fragment 804455, but Spell.dbc gives it ProcFlags 0 and no spell_proc row existed, so it never procced. With a spell_proc row gated on the magic class damage of Discordance (100% chance), a single Discordance hit should generate one Echo Fragment.",
+  "timeout_ms": 60000,
+  "players": [
+    {
+      "id": "chronomancer",
+      "race": 1,
+      "class": 22,
+      "level": 80,
+      "spell_hit_rating": 10000
+    }
+  ],
+  "creatures": [
+    { "id": "dummy", "owner": "chronomancer", "entry": 36, "health": 1000000, "distance": 3 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+    { "action": "learn", "actor": "chronomancer", "spell": 520166 },
+    { "action": "learn", "actor": "chronomancer", "spell": 503875 },
+    {
+      "action": "assert",
+      "label": "No Echo Fragment before any cast",
+      "actor": "chronomancer",
+      "metric": "aura_stacks",
+      "spell": 804455,
+      "caster": "chronomancer",
+      "equals": 0
+    },
+    { "action": "cast", "actor": "chronomancer", "spell": 503875, "target": "dummy" },
+    {
+      "action": "assert",
+      "label": "Discordance's hit generates an Echo Fragment",
+      "actor": "chronomancer",
+      "metric": "aura_stacks",
+      "spell": 804455,
+      "caster": "chronomancer",
+      "equals": 1,
+      "within_ms": 5000
+    }
+  ]
+}
