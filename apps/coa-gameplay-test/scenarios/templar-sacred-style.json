@@ -1,0 +1,19 @@
+{
+ "schema": 1,
+ "name": "Sacred Style raises Holy healing done and received (#2601)",
+ "contract": "Sacred Style 705278 applies SPELL_AURA_MOD_HEALING_PCT and SPELL_AURA_MOD_HEALING_DONE_PERCENT for 8% on the Holy school. Testament of Faith rank 1 (801478) is a Holy heal, so a Templar with the talent heals for 8% more.",
+ "timeout_ms": 90000,
+ "players": [
+  { "id": "control", "race": 1, "class": 19, "level": 80 },
+  { "id": "stylish", "race": 1, "class": 19, "level": 80 },
+  { "id": "patient", "race": 1, "class": 19, "level": 80 }
+ ],
+ "steps": [
+  { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+  { "action": "learn", "actor": "control", "spell": 801478 },
+  { "action": "learn", "actor": "stylish", "spell": 801478 },
+  { "action": "learn", "actor": "stylish", "spell": 705278 },
+  { "action": "snapshot", "actor": "control", "metric": "spell_healing_done", "spell": 801478, "target": "patient", "save_as": "healing_base" },
+  { "action": "assert", "label": "Sacred Style heals 8% harder", "actor": "stylish", "metric": "spell_healing_done", "spell": 801478, "target": "patient", "ratio_to": "healing_base", "min": 1.07, "max": 1.09 }
+ ]
+}
