@@ -30,6 +30,7 @@ def main():
         return (ROOT / path).read_text(encoding="utf-8")
 
     summons = source("modules/mod-ascension-compat/src/AscensionTinkerSummons.cpp")
+    tinker = source("modules/mod-ascension-compat/src/AscensionTinker.cpp")
     unit = source("src/server/game/Entities/Unit/Unit.cpp")
     initialization = method(summons, "void IsSummonedBy(WorldObject* summoner)")
     # Keep the real owner/class guard and control registration. Scaling and motion
@@ -46,6 +47,9 @@ def main():
         ("ADMISSION", attack),
         ("TIMER", method(unit, "void Unit::resetAttackTimer(")),
         ("TURRET", method(summons, "bool Turret(")),
+        ("NOTIFY_ATTACK", method(tinker, "bool NotifyAttack(")),
+        ("NOTIFY_SPELL_ATTACK", method(tinker, "bool NotifySpellAttack(")),
+        ("OBSERVE_ATTACK", method(tinker, "void ObserveAttack(")),
         ("TARGET", method(summons, "Unit* TurretTarget(")),
         ("UPDATE", method(summons, "void UpdateTurret(")),
     ):

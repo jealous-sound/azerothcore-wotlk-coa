@@ -9,6 +9,7 @@
 
 using uint32 = std::uint32_t;
 using int32 = std::int32_t;
+using ObjectGuid = uint32;
 using WeaponAttackType = uint32;
 constexpr uint32 RANGED_ATTACK = 2, UNIT_STATE_CONTROLLED = 1, UNIT_STATE_CASTING = 2;
 constexpr uint32 SPELL_AURA_MOD_PACIFY = 3, SPELL_AURA_MOD_PACIFY_SILENCE = 4;
@@ -102,6 +103,9 @@ struct Creature : Unit
 
 struct SpellInfo
 {
+    uint32 SpellFamilyName = 34;
+    bool positive = false;
+    bool IsPositive() const { return positive; }
     float GetMaxRange(bool, Creature*) const { return 45; }
 } info;
 struct Manager
@@ -124,6 +128,17 @@ void Cast(Creature* caster, Unit* target, uint32 id)
 
 // ACTUAL_TURRET
 
+struct TinkerState
+{
+    ObjectGuid focus = 0, observedVictim = 0;
+    std::set<ObjectGuid> summons;
+} tinkerState;
+TinkerState& State(Player*) { return tinkerState; }
+
+// ACTUAL_NOTIFY_ATTACK
+// ACTUAL_NOTIFY_SPELL_ATTACK
+// ACTUAL_OBSERVE_ATTACK
+
 struct Device
 {
     Creature* me;
@@ -140,31 +155,40 @@ int main()
     currentOwner = &player;
     Creature turret;
     Device ai{&turret};
-    Unit unregistered, mobA, mobB;
+    Unit unregistered, mobA, mobB, mobC;
     mobA.guid = 2;
     mobA.x = 10;
     mobA.hostile = true;
     mobB.guid = 3;
     mobB.x = 20;
     mobB.hostile = true;
-    units = {{2, &mobA}, {3, &mobB}};
-    neighborhood = {&mobA, &mobB};
+    mobC.guid = 4;
+    mobC.x = 30;
+    mobC.hostile = true;
+    units = {{2, &mobA}, {3, &mobB}, {4, &mobC}};
+    neighborhood = {&mobA, &mobB, &mobC};
 
     // Nearby hostiles and selected targets are not attack evidence.
     player.selected = &mobA;
+    ObserveAttack(&player);
     assert(!ai.TurretTarget(&player));
 
     // A mob attacking the player first must not wake an idle turret.
     player.combat.insert(&mobA);
+    ObserveAttack(&player);
     assert(!ai.TurretTarget(&player));
 
-    // A deliberate player attack supplies the turret target.
+    ai.IsSummonedBy(&player);
+
+    // A deliberate player melee/ranged attack is observed from the player's actual victim.
     player.combat.clear();
     player.selected = nullptr;
     player.victim = &mobA;
+    ObserveAttack(&player);
     assert(ai.TurretTarget(&player) == &mobA);
+    unregistered.flags = UNIT_FLAG_NON_ATTACKABLE;
     assert(!turret.NativeAttackAdmission(&unregistered));
-    ai.IsSummonedBy(&player);
+    unregistered.flags = 0;
     ai.UpdateTurret(&player);
     assert(turret.facing == &mobA);
     if (turret.shots.size() != 1) // Reproduces #89 before the control flags are initialized.
@@ -187,39 +211,66 @@ int main()
     // An unrelated nearby hostile is ignored while the player attacks A.
     player.combat.insert(&mobB);
     player.selected = &mobB;
+    ObserveAttack(&player);
     assert(ai.TurretTarget(&player) == &mobA);
 
-    // Deliberately switching the player's attack to B wins over stale device focus.
-    ai.focus = mobA.guid;
-    player.victim = &mobB;
+    // Rocket Launcher and other explicit hostile Tinker spells notify the same focus path.
+    SpellInfo rocket;
+    rocket.SpellFamilyName = 34;
+    rocket.positive = false;
+    assert(NotifySpellAttack(&player, &rocket, &mobB));
+    assert(State(&player).focus == mobB.guid);
+    assert(ai.TurretTarget(&player) == &mobB);
     turret.m_attackTimer[RANGED_ATTACK] = 0;
     turret.m_modAttackSpeedPct[RANGED_ATTACK] = 0.5f;
     ai.UpdateTurret(&player);
     assert(turret.shots.size() == 2 && turret.facing == &mobB);
     assert(turret.m_attackTimer[RANGED_ATTACK] == 1000);
 
-    // A selected-but-not-attacked target is not a turret target.
+    // A stale melee victim cannot override the newer explicit spell target.
+    player.victim = &mobA;
+    ObserveAttack(&player);
+    assert(ai.TurretTarget(&player) == &mobB);
+
+    // A new deliberate melee/ranged attack replaces the spell target.
+    player.victim = &mobC;
+    ObserveAttack(&player);
+    assert(State(&player).focus == mobC.guid);
+    assert(ai.TurretTarget(&player) == &mobC);
+
+    // Selection and combat membership still do not create a target.
     player.victim = nullptr;
     player.selected = &mobA;
     player.combat.clear();
-    ai.focus = 0;
-    assert(!ai.TurretTarget(&player));
+    ObserveAttack(&player);
+    assert(State(&player).focus == mobC.guid);
+    assert(ai.TurretTarget(&player) == &mobC);
 
-    // Explicit player-initiated Tinker focus remains a valid target source.
-    player.selected = nullptr;
-    ai.focus = mobA.guid;
-    assert(ai.TurretTarget(&player) == &mobA);
+    // Positive or non-Tinker spells do not notify the attack focus.
+    SpellInfo positive;
+    positive.SpellFamilyName = 34;
+    positive.positive = true;
+    SpellInfo otherFamily;
+    otherFamily.SpellFamilyName = 1;
+    otherFamily.positive = false;
+    assert(!NotifySpellAttack(&player, &positive, &mobA));
+    assert(!NotifySpellAttack(&player, &otherFamily, &mobA));
+    assert(State(&player).focus == mobC.guid);
 
-    // Invalid explicit focus goes idle instead of falling back to nearby hostiles.
-    mobA.alive = false;
+    // An invalid most-recent explicit target goes idle instead of falling back to nearby hostiles.
+    assert(NotifySpellAttack(&player, &rocket, &mobB));
+    mobB.alive = false;
     assert(!ai.TurretTarget(&player));
-    mobA.alive = true;
-    mobA.visible = false;
+    mobB.alive = true;
+    mobB.x = 100;
     assert(!ai.TurretTarget(&player));
-    mobA.visible = true;
-    mobA.los = false;
+    mobB.x = 20;
+    mobB.visible = false;
     assert(!ai.TurretTarget(&player));
-    mobA.los = true;
+    mobB.visible = true;
+    mobB.los = false;
+    assert(!ai.TurretTarget(&player));
+    mobB.los = true;
 
     turret.m_attackTimer[RANGED_ATTACK] = 0;
     turret.pacified = true;
@@ -231,7 +282,8 @@ int main()
     assert(turret.shots.size() == 2);
     turret.state = 0;
     turret.upgraded = true;
-    ai.focus = mobA.guid;
+    player.victim = &mobA;
+    ObserveAttack(&player);
     ai.UpdateTurret(&player);
     assert((turret.shots.back() == std::pair<uint32, float>(706694, mobA.x)));
 

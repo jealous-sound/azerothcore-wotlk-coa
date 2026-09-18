@@ -40,6 +40,33 @@ TinkerState& State(Player* player)
     std::lock_guard<std::mutex> lock(stateMutex);
     return states[player->GetGUID()];
 }
+bool NotifyAttack(Player* player, Unit* target)
+{
+    if (!player || !target || !player->IsValidAttackTarget(target))
+        return false;
+    State(player).focus = target->GetGUID();
+    return true;
+}
+bool NotifySpellAttack(Player* player, SpellInfo const* spellInfo, Unit* target)
+{
+    if (!spellInfo || spellInfo->SpellFamilyName != 34 || spellInfo->IsPositive() || !NotifyAttack(player,target))
+        return false;
+    Unit* victim = player->GetVictim();
+    State(player).observedVictim = victim ? victim->GetGUID() : ObjectGuid();
+    return true;
+}
+void ObserveAttack(Player* player)
+{
+    if (!player)
+        return;
+    auto& state = State(player);
+    Unit* victim = player->GetVictim();
+    ObjectGuid victimGuid = victim ? victim->GetGUID() : ObjectGuid();
+    if (victimGuid == state.observedVictim)
+        return;
+    state.observedVictim = victimGuid;
+    NotifyAttack(player,victim);
+}
 bool Named(SpellInfo const* info, uint32 root)
 {
     return info && sSpellMgr->GetFirstSpellInChain(info->Id) == sSpellMgr->GetFirstSpellInChain(root);
@@ -325,6 +352,8 @@ public:
     void OnPlayerUpdate(Player* player, uint32 diff) override
     {
         using namespace AscensionTinker;
+        if (Owner(player) == player)
+            ObserveAttack(player);
         auto& state = State(player);
         state.timers.Update(diff);
         while (state.timers.ExecuteEvent()) { }
