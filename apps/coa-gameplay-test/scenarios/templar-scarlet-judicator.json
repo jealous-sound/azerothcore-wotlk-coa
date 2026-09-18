@@ -1,0 +1,18 @@
+{
+ "schema": 1,
+ "name": "Scarlet Judicator makes Divine Force strike additional enemies (#1982)",
+ "contract": "Scarlet Judicator 525024 is a flat SPELLMOD_JUMP_TARGETS passive of +2 on the Divine Force family mask. Divine Force rank 1 (806153) has no chain targets of its own, so the modified count is 2.",
+ "timeout_ms": 90000,
+ "players": [
+  { "id": "control", "race": 1, "class": 19, "level": 80 },
+  { "id": "judicator", "race": 1, "class": 19, "level": 80 }
+ ],
+ "steps": [
+  { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+  { "action": "learn", "actor": "control", "spell": 806153 },
+  { "action": "learn", "actor": "judicator", "spell": 806153 },
+  { "action": "learn", "actor": "judicator", "spell": 525024 },
+  { "action": "assert", "label": "Untalented Divine Force has no extra targets", "actor": "control", "metric": "spell_modifier", "spell": 806153, "op": 17, "base": 0, "equals": 0 },
+  { "action": "assert", "label": "Scarlet Judicator adds two targets", "actor": "judicator", "metric": "spell_modifier", "spell": 806153, "op": 17, "base": 0, "equals": 2 }
+ ]
+}
