@@ -1,0 +1,22 @@
+{
+ "schema": 1,
+ "name": "Grace of Aman'thul reduces Righteous Lunge and Sacred Swing costs (#1791)",
+ "contract": "Grace of Aman'thul 301059 is a flat SPELLMOD_COST passive: effect 1 (-5) covers Righteous Lunge, effect 2 (-10) covers Sacred Swing. Righteous Lunge rank 1 (801443) costs 40 Energy and Sacred Swing rank 1 (705293) costs 20, so the talented Templar pays 35 and 10.",
+ "timeout_ms": 90000,
+ "players": [
+  { "id": "control", "race": 1, "class": 19, "level": 80 },
+  { "id": "graced", "race": 1, "class": 19, "level": 80 }
+ ],
+ "steps": [
+  { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+  { "action": "learn", "actor": "control", "spell": 801443 },
+  { "action": "learn", "actor": "control", "spell": 705293 },
+  { "action": "learn", "actor": "graced", "spell": 801443 },
+  { "action": "learn", "actor": "graced", "spell": 705293 },
+  { "action": "learn", "actor": "graced", "spell": 301059 },
+  { "action": "assert", "label": "Untalented Righteous Lunge costs 40 Energy", "actor": "control", "metric": "spell_power_cost", "spell": 801443, "equals": 40 },
+  { "action": "assert", "label": "Untalented Sacred Swing costs 20 Energy", "actor": "control", "metric": "spell_power_cost", "spell": 705293, "equals": 20 },
+  { "action": "assert", "label": "Grace of Aman'thul takes 5 Energy off Righteous Lunge", "actor": "graced", "metric": "spell_power_cost", "spell": 801443, "equals": 35 },
+  { "action": "assert", "label": "Grace of Aman'thul takes 10 Energy off Sacred Swing", "actor": "graced", "metric": "spell_power_cost", "spell": 705293, "equals": 10 }
+ ]
+}
