@@ -1,0 +1,92 @@
+{
+  "schema": 1,
+  "name": "Chaos Soldier raises Azzinoth's Assault and Sargeron Smite crit chance (#1055)",
+  "contract": "Chaos Soldier 560057 adds a flat +5% SPELLMOD_CRITICAL_CHANCE by classmask to Azzinoth's Assault Mainhand (520262) and to Sargeron Smite Rank 1 (802060).",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 14,
+      "level": 80
+    },
+    {
+      "id": "soldier",
+      "race": 1,
+      "class": 14,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 520262
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 802060
+    },
+    {
+      "action": "learn",
+      "actor": "soldier",
+      "spell": 520262
+    },
+    {
+      "action": "learn",
+      "actor": "soldier",
+      "spell": 802060
+    },
+    {
+      "action": "learn",
+      "actor": "soldier",
+      "spell": 560057
+    },
+    {
+      "action": "assert",
+      "label": "Untalented: no crit bonus on Azzinoth's Assault",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 520262,
+      "op": 7,
+      "base": 0,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "Talented: +5% crit on Azzinoth's Assault",
+      "actor": "soldier",
+      "metric": "spell_modifier",
+      "spell": 520262,
+      "op": 7,
+      "base": 0,
+      "equals": 5
+    },
+    {
+      "action": "assert",
+      "label": "Untalented: no crit bonus on Sargeron Smite",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 802060,
+      "op": 7,
+      "base": 0,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "Talented: +5% crit on Sargeron Smite",
+      "actor": "soldier",
+      "metric": "spell_modifier",
+      "spell": 802060,
+      "op": 7,
+      "base": 0,
+      "equals": 5
+    }
+  ]
+}
