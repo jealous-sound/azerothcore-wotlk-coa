@@ -1,0 +1,21 @@
+{
+ "schema": 1,
+ "name": "Serendipity raises damage and cuts costs (#3906)",
+ "contract": "Serendipity 300929 applies a party area aura of SPELL_AURA_MOD_DAMAGE_PERCENT_DONE for 3% and, on the caster, SPELL_AURA_MOD_POWER_COST_SCHOOL_PCT for -5%. Righteous Lunge rank 1 (801443) costs 40 Energy, so the talented Templar pays 38. The harness has no group action, so only the caster's own share is measured.",
+ "timeout_ms": 90000,
+ "players": [
+  { "id": "control", "race": 1, "class": 19, "level": 80 },
+  { "id": "lucky", "race": 1, "class": 19, "level": 80 },
+  { "id": "victim", "race": 1, "class": 19, "level": 80 }
+ ],
+ "steps": [
+  { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+  { "action": "learn", "actor": "control", "spell": 801443 },
+  { "action": "learn", "actor": "lucky", "spell": 801443 },
+  { "action": "learn", "actor": "lucky", "spell": 300929 },
+  { "action": "assert", "label": "Untalented Righteous Lunge costs 40 Energy", "actor": "control", "metric": "spell_power_cost", "spell": 801443, "equals": 40 },
+  { "action": "assert", "label": "Serendipity cuts 5% of the cost", "actor": "lucky", "metric": "spell_power_cost", "spell": 801443, "equals": 38 },
+  { "action": "snapshot", "actor": "control", "metric": "spell_damage_done", "spell": 801443, "target": "victim", "save_as": "damage_base" },
+  { "action": "assert", "label": "Serendipity adds 3% damage done", "actor": "lucky", "metric": "spell_damage_done", "spell": 801443, "target": "victim", "ratio_to": "damage_base", "min": 1.02, "max": 1.04 }
+ ]
+}
