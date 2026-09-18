@@ -1,0 +1,22 @@
+{
+ "schema": 1,
+ "name": "Mark of Aggramar halves Testament Energy costs (#3459)",
+ "contract": "Mark of Aggramar 804928 is a -50% SPELLMOD_COST passive on the Testament family mask. Testament of Faith rank 1 (801478) costs 50 Energy and Testament of Fortitude (500678) costs 15, so the talented Templar pays 25 and 7.",
+ "timeout_ms": 90000,
+ "players": [
+  { "id": "control", "race": 1, "class": 19, "level": 80 },
+  { "id": "marked", "race": 1, "class": 19, "level": 80 }
+ ],
+ "steps": [
+  { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+  { "action": "learn", "actor": "control", "spell": 801478 },
+  { "action": "learn", "actor": "control", "spell": 500678 },
+  { "action": "learn", "actor": "marked", "spell": 801478 },
+  { "action": "learn", "actor": "marked", "spell": 500678 },
+  { "action": "learn", "actor": "marked", "spell": 804928 },
+  { "action": "assert", "label": "Untalented Testament of Faith costs 50 Energy", "actor": "control", "metric": "spell_power_cost", "spell": 801478, "equals": 50 },
+  { "action": "assert", "label": "Untalented Testament of Fortitude costs 15 Energy", "actor": "control", "metric": "spell_power_cost", "spell": 500678, "equals": 15 },
+  { "action": "assert", "label": "Mark of Aggramar halves Testament of Faith", "actor": "marked", "metric": "spell_power_cost", "spell": 801478, "equals": 25 },
+  { "action": "assert", "label": "Mark of Aggramar halves Testament of Fortitude", "actor": "marked", "metric": "spell_power_cost", "spell": 500678, "equals": 7 }
+ ]
+}
