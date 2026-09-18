@@ -31,9 +31,11 @@ struct Unit
         destCasts.push_back({px, py, pz, spell, triggered});
     }
 
-    // The pre-fix code path only ever reaches the free Cast() helper below, never a
-    // destination. GetAura is unused by this fixture (no aura is pre-applied).
-    Aura* GetAura(uint32, ObjectGuid) { return nullptr; }
+    // Simulates whether the DynamicObject from an earlier cast has already applied its
+    // aura to this unit (real application happens asynchronously via the object's own
+    // periodic area search, not synchronously inside CastSpell).
+    Aura* appliedAura = nullptr;
+    Aura* GetAura(uint32, ObjectGuid) { return appliedAura; }
 };
 
 // Mirrors AscensionTinker.cpp's Cast(): a plain unit-targeted, triggered cast with no
@@ -65,7 +67,10 @@ int main()
 
     uint32 entry = 50036; // Shield Beacon rank 1
 
+    // Tick 1: the ally has no application yet.
+    {
     // ACTUAL_BLOCK
+    }
 
     if (!g_unitTargetedCasts.empty())
     {
@@ -77,9 +82,11 @@ int main()
         return 1;
     }
 
-    if (me->destCasts.empty())
+    if (me->destCasts.size() != 1)
     {
-        std::fprintf(stderr, "FAIL: Shield Beacon helper was never cast with an explicit destination.\n");
+        std::fprintf(stderr,
+            "FAIL: expected exactly one destination-targeted cast on tick 1 (the ally had no "
+            "existing application), got %zu.\n", me->destCasts.size());
         return 1;
     }
 
@@ -103,7 +110,36 @@ int main()
         return 1;
     }
 
+    // Simulate the DynamicObject's own periodic area search having applied the aura by
+    // the next device tick, then run the exact same block again for tick 2.
+    Aura appliedAura;
+    ally->appliedAura = &appliedAura;
+
+    // Tick 2: the ally already has the aura applied.
+    {
+    // ACTUAL_BLOCK
+    }
+
+    if (me->destCasts.size() != 1)
+    {
+        std::fprintf(stderr,
+            "FAIL: Shield Beacon helper was (re)cast on tick 2 although the ally already had the "
+            "aura applied (%zu total destination casts). Each cast creates its own independent "
+            "DynObjAura, which does not replace an existing application from the same spell/caster, "
+            "so casting again stacks another +armor application on top instead of refreshing it.\n",
+            me->destCasts.size());
+        return 1;
+    }
+    if (appliedAura.duration != 2000)
+    {
+        std::fprintf(stderr,
+            "FAIL: the ally's existing aura was not refreshed to 2000ms on tick 2 (duration=%d); it "
+            "would expire and drop the buff instead of being kept alive.\n", appliedAura.duration);
+        return 1;
+    }
+
     std::printf("PASS: Shield Beacon helper 801256 is cast with an explicit destination at the "
-                "ally's position, matching its TARGET_DEST_DYNOBJ_ALLY effect target.\n");
+                "ally's position on first application, and is refreshed (not restacked) on later "
+                "ticks while the ally still has it.\n");
     return 0;
 }

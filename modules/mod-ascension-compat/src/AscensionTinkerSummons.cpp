@@ -478,12 +478,17 @@ struct npc_ascension_tinker_device : ScriptedAI
                         {
                             uint32 helper = entry == 50036 ? 801256 : entry == 51036 ? 803804 : entry == 53036 ?
                                 803805 : entry == 54036 ? 803806 : entry == 55036 ? 803807 : 803808;
-                            // Helper effect A is TARGET_DEST_DYNOBJ_ALLY: it needs an explicit destination or it
-                            // silently falls back to the caster's own position instead of the ally being buffed.
-                            if (me->IsInWorld())
-                                me->CastSpell(ally->GetPositionX(),ally->GetPositionY(),ally->GetPositionZ(),helper,true);
+                            // Each cast creates its own DynObjAura, which does not replace an existing
+                            // application of the same spell/caster (unlike a plain unit aura); casting on
+                            // every tick regardless would stack a fresh armor bonus on top of the one
+                            // already ticking. Only (re)cast while the ally has none, and just refresh the
+                            // duration of the one already applied. Helper effect A is TARGET_DEST_DYNOBJ_ALLY:
+                            // it needs an explicit destination or it silently falls back to the caster's own
+                            // position instead of the ally being buffed.
                             if (Aura* aura = ally->GetAura(helper,me->GetGUID()))
                                 aura->SetDuration(2000);
+                            else if (me->IsInWorld())
+                                me->CastSpell(ally->GetPositionX(),ally->GetPositionY(),ally->GetPositionZ(),helper,true);
                         }
                     }
                 if (entry == 50037)

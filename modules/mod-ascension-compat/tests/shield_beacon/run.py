@@ -1,8 +1,8 @@
-"""Regression for GitHub issue #4075: Tinker Shield Beacon granted no armor.
+"""Regression for GitHub issue #4075: Tinker Shield Beacon granted no armor (then stacked it).
 
-Two independent, compounding bugs. Both are exercised here by extracting the actual
-production blocks and compiling them against minimal native-shaped stubs. No server build,
-database service or installed files are used.
+Three compounding bugs, found across two rounds of in-game testing. All are exercised here by
+extracting the actual production blocks and compiling them against minimal native-shaped stubs.
+No server build, database service or installed files are used.
 
 1. AscensionTinkerSummons.cpp cast the armor helper (801256/803804-803808) through the plain
    unit-targeted Cast() helper. Those helpers use effect SPELL_EFFECT_PERSISTENT_AREA_AURA with
@@ -13,6 +13,10 @@ database service or installed files are used.
    spells are authored with TARGET_DEST_DYNOBJ_ALLY on TargetA only, so the periodic area search
    fell back to AnyAoETargetUnitInObjectRangeCheck, which requires an attackable (hostile) target
    and so never selects the friendly ally the ground effect is meant to buff.
+3. Once (1) and (2) landed, the device re-cast the helper on every ~1s AI tick regardless of
+   whether the ally already had it applied. Each cast creates its own independent DynObjAura,
+   which (unlike a plain unit aura) is not replaced by a later application of the same
+   spell/caster, so every tick stacked another full +armor application on top of the last one.
 """
 
 import argparse
@@ -26,7 +30,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[3]
 
 CAST_START = "uint32 helper = entry == 50036 ? 801256"
-CAST_END = "aura->SetDuration(2000);"
+CAST_END = "me->CastSpell(ally->GetPositionX(),ally->GetPositionY(),ally->GetPositionZ(),helper,true);"
 
 TARGET_START = "if (id == 801256 || id == 803804 || id == 803805 || id == 803806 || id == 803807 || id == 803808)"
 TARGET_END = "info->Effects[EFFECT_0].TargetB = SpellImplicitTargetInfo(TARGET_DEST_DYNOBJ_ALLY);\n    }"
