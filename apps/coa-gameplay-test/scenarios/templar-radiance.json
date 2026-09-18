@@ -1,0 +1,18 @@
+{
+ "schema": 1,
+ "name": "Radiance reduces Vindication's Energy cost (#3056)",
+ "contract": "Radiance 706318 is a flat SPELLMOD_COST passive of -5 on the Vindication family mask. Vindication rank 1 (801446) costs 35 Energy, so the talented Templar pays 30.",
+ "timeout_ms": 90000,
+ "players": [
+  { "id": "control", "race": 1, "class": 19, "level": 80 },
+  { "id": "radiant", "race": 1, "class": 19, "level": 80 }
+ ],
+ "steps": [
+  { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+  { "action": "learn", "actor": "control", "spell": 801446 },
+  { "action": "learn", "actor": "radiant", "spell": 801446 },
+  { "action": "learn", "actor": "radiant", "spell": 706318 },
+  { "action": "assert", "label": "Untalented Vindication costs 35 Energy", "actor": "control", "metric": "spell_power_cost", "spell": 801446, "equals": 35 },
+  { "action": "assert", "label": "Radiance takes 5 Energy off Vindication", "actor": "radiant", "metric": "spell_power_cost", "spell": 801446, "equals": 30 }
+ ]
+}
