@@ -1,0 +1,107 @@
+{
+  "schema": 1,
+  "name": "Burning Rage raises Sunder and Immolation Aura damage by 20% and lowers their cost by 20% (#3162)",
+  "contract": "Burning Rage 707907 increases the damage and reduces the cost of Sunder and Immolation Aura by 20% (EffectBasePoints 19/-21, DieSides 1, so SpellEffectInfo::CalcValue resolves 20/-20). Its SPELLMOD_DAMAGE effect (mask dword2 bits 9 and 31, i.e. flattened bits 73 and 95) correctly matches both Immolation (800208, the triggered spell that actually deals Immolation Aura's periodic damage) and Sunder's Explosion tick (712399); damage modifiers are authored against the damage-dealing spells, not the castables. Its SPELLMOD_COST effect (mask dword0 bit19 + dword2 bit11, i.e. flattened bits 19 and 75) matches the castables: Sunder's cast (705121) and Immolation Aura's cast (800207). There is no class-mask gap; all three assertions below hold natively.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 14,
+      "level": 80
+    },
+    {
+      "id": "burning",
+      "race": 1,
+      "class": 14,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 800207
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 705121
+    },
+    {
+      "action": "learn",
+      "actor": "burning",
+      "spell": 800207
+    },
+    {
+      "action": "learn",
+      "actor": "burning",
+      "spell": 705121
+    },
+    {
+      "action": "learn",
+      "actor": "burning",
+      "spell": 707907
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "spell_damage_done",
+      "spell": 800208,
+      "target": "control",
+      "save_as": "immolation_damage_base"
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "spell_power_cost",
+      "spell": 800207,
+      "save_as": "immolation_cost_base"
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "spell_damage_done",
+      "spell": 712399,
+      "target": "control",
+      "save_as": "sunder_explosion_base"
+    },
+    {
+      "action": "assert",
+      "label": "Immolation Aura periodic damage +20%",
+      "actor": "burning",
+      "metric": "spell_damage_done",
+      "spell": 800208,
+      "target": "control",
+      "ratio_to": "immolation_damage_base",
+      "min": 1.199,
+      "max": 1.201
+    },
+    {
+      "action": "assert",
+      "label": "Immolation Aura Energy cost -20%",
+      "actor": "burning",
+      "metric": "spell_power_cost",
+      "spell": 800207,
+      "ratio_to": "immolation_cost_base",
+      "min": 0.799,
+      "max": 0.801
+    },
+    {
+      "action": "assert",
+      "label": "Sunder Explosion damage +20%",
+      "actor": "burning",
+      "metric": "spell_damage_done",
+      "spell": 712399,
+      "target": "control",
+      "ratio_to": "sunder_explosion_base",
+      "min": 1.199,
+      "max": 1.201
+    }
+  ]
+}
