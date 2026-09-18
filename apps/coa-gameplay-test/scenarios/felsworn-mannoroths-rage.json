@@ -1,0 +1,82 @@
+{
+  "schema": 1,
+  "name": "Mannoroth's Rage cuts Burning Hatred's cooldown and cost (#1128)",
+  "contract": "Mannoroth's Rage 805255 adds a flat SPELLMOD_COOLDOWN of -60000 ms to Burning Hatred (805239, base 120000 ms) and an ADD_PCT_MODIFIER SPELLMOD_COST of -100%.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 14,
+      "level": 80
+    },
+    {
+      "id": "rage",
+      "race": 1,
+      "class": 14,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 805239
+    },
+    {
+      "action": "learn",
+      "actor": "rage",
+      "spell": 805239
+    },
+    {
+      "action": "learn",
+      "actor": "rage",
+      "spell": 805255
+    },
+    {
+      "action": "assert",
+      "label": "Untalented Burning Hatred cooldown",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 805239,
+      "op": 11,
+      "base": 120000,
+      "equals": 120000
+    },
+    {
+      "action": "assert",
+      "label": "Talented Burning Hatred cooldown -60 sec",
+      "actor": "rage",
+      "metric": "spell_modifier",
+      "spell": 805239,
+      "op": 11,
+      "base": 120000,
+      "equals": 60000
+    },
+    {
+      "action": "assert",
+      "label": "Untalented Burning Hatred cost unchanged",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 805239,
+      "op": 14,
+      "base": 1000,
+      "equals": 1000
+    },
+    {
+      "action": "assert",
+      "label": "Talented Burning Hatred cost fully refunded",
+      "actor": "rage",
+      "metric": "spell_modifier",
+      "spell": 805239,
+      "op": 14,
+      "base": 1000,
+      "equals": 0
+    }
+  ]
+}
