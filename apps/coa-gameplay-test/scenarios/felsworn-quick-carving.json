@@ -1,0 +1,73 @@
+{
+  "schema": 1,
+  "name": "Quick Carving shortens Carve's channel duration and tick period (#1221)",
+  "contract": "Quick Carving 520254 makes Carve (800206) channel 1000ms faster (EffectBasePoints -1001, die 1 => CalcValue -1000, flat SPELLMOD_DURATION, op1) and its tick period 40% shorter (EffectBasePoints -41, die 1 => CalcValue -40, SPELLMOD_ACTIVATION_TIME, op19), both native SpellMods matching Carve's family20 classMask3 bit21 flag.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 4,
+      "class": 14,
+      "level": 80
+    },
+    {
+      "id": "quick_carving",
+      "race": 4,
+      "class": 14,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "quick_carving",
+      "spell": 520254
+    },
+    {
+      "action": "assert",
+      "label": "Base Carve duration is unaffected",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 800206,
+      "op": 1,
+      "base": 2000,
+      "equals": 2000
+    },
+    {
+      "action": "assert",
+      "label": "Quick Carving shortens Carve's duration by 1000ms",
+      "actor": "quick_carving",
+      "metric": "spell_modifier",
+      "spell": 800206,
+      "op": 1,
+      "base": 2000,
+      "equals": 1000
+    },
+    {
+      "action": "assert",
+      "label": "Base Carve tick period is unaffected",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 800206,
+      "op": 19,
+      "base": 2499,
+      "equals": 2499
+    },
+    {
+      "action": "assert",
+      "label": "Quick Carving shortens Carve's tick period by 40%",
+      "actor": "quick_carving",
+      "metric": "spell_modifier",
+      "spell": 800206,
+      "op": 19,
+      "base": 2499,
+      "min": 1495,
+      "max": 1503
+    }
+  ]
+}
