@@ -359,6 +359,13 @@ class spell_ascension_templar_ability : public SpellScript
         if (Player* player = Owner(GetCaster()); player && effect == EFFECT_0)
             ReduceLibrams(player, std::abs(GetEffectValue()));
     }
+    // Absolution: the taunt is its own effect, but the movement speed its description promises lives in 520659,
+    // which nothing casts.
+    void Absolve()
+    {
+        if (Player* player = Owner(GetCaster()))
+            Cast(player, player, 520659);
+    }
     void Register() override
     {
         if (SpellInfo const* info = sSpellMgr->GetSpellInfo(m_scriptSpellId); Named(info, 801448))
@@ -369,6 +376,8 @@ class spell_ascension_templar_ability : public SpellScript
         if (m_scriptSpellId == 560097)
             OnEffectHitTarget += SpellEffectFn(spell_ascension_templar_ability::Devotion, EFFECT_ALL,
                                                SPELL_EFFECT_ASCENSION_MODIFY_COOLDOWN);
+        if (m_scriptSpellId == 800424)
+            AfterCast += SpellCastFn(spell_ascension_templar_ability::Absolve);
     }
 };
 } // namespace
