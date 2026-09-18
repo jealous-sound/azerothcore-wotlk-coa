@@ -1,0 +1,19 @@
+{
+ "schema": 1,
+ "name": "Light's Chosen converts Agility and Intellect (#1816)",
+ "contract": "Light's Chosen 301310 promises spell power from 50% of Agility, critical strike rating from 15% of Intellect, and spell penetration from 10% of Intellect. The first two are native stat auras. The third runs through a 5-second periodic trigger of 301369, whose own effect carries a fixed amount, so the talent's 10% of Intellect must reach it. A level 80 Templar has well over 20 Intellect, so the applied amount must exceed 2.",
+ "timeout_ms": 120000,
+ "players": [
+  { "id": "chosen", "race": 1, "class": 19, "level": 80 }
+ ],
+ "steps": [
+  { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+  { "action": "snapshot", "actor": "chosen", "metric": "spell_power", "school": 1, "save_as": "spellpower_base" },
+  { "action": "snapshot", "actor": "chosen", "metric": "spell_crit_chance", "school": 1, "save_as": "crit_base" },
+  { "action": "learn", "actor": "chosen", "spell": 301310 },
+  { "action": "assert", "label": "Agility feeds spell power", "actor": "chosen", "metric": "spell_power", "school": 1, "relative_to": "spellpower_base", "min": 1 },
+  { "action": "assert", "label": "Intellect feeds critical strike", "actor": "chosen", "metric": "spell_crit_chance", "school": 1, "relative_to": "crit_base", "min": 0.1 },
+  { "action": "assert", "label": "The periodic penetration aura is applied", "actor": "chosen", "metric": "aura", "spell": 301369, "equals": 1, "within_ms": 8000 },
+  { "action": "assert", "label": "Penetration is a tenth of Intellect, not a flat point", "actor": "chosen", "metric": "aura_amount", "spell": 301369, "effect": 0, "min": 2 }
+ ]
+}
