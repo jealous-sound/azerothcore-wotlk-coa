@@ -47,6 +47,15 @@ void ApplyContracts(SpellInfo* info)
         info->DurationEntry = sSpellDurationStore.LookupEntry(21);
         info->Attributes |= SPELL_ATTR0_DO_NOT_DISPLAY;
     }
+    if (id == 801256 || id == 803804 || id == 803805 || id == 803806 || id == 803807 || id == 803808)
+    {
+        // Shield Beacon's armor aura is authored with TARGET_DEST_DYNOBJ_ALLY on effect A only.
+        // DynObjAura::FillTargetMap only special-cases TARGET_DEST_DYNOBJ_ALLY/TARGET_UNIT_DEST_AREA_ALLY
+        // on TargetB; left at its authored TargetB (none), the periodic area search falls back to
+        // AnyAoETargetUnitInObjectRangeCheck, which requires an attackable (hostile) target, so the
+        // aura never reaches the ally it is meant to buff. Mirror TargetA onto TargetB.
+        info->Effects[EFFECT_0].TargetB = SpellImplicitTargetInfo(TARGET_DEST_DYNOBJ_ALLY);
+    }
     auto dummy = [info](uint8 slot)
     {
         info->Effects[slot].ApplyAuraName = SPELL_AURA_DUMMY;
