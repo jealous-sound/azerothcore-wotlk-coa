@@ -277,6 +277,10 @@ void ApplyContracts(SpellInfo* info)
     }
     if (id == 555742)
         info->AttributesEx2 |= SPELL_ATTR2_CANT_CRIT;
+    // "Damage caused may interrupt the effect": the disorient and its slow carry no damage interrupt
+    // flag, so no hit ever broke them. Both the placed cast and its self-centred version share the text.
+    if (id == 805235 || id == 807590)
+        info->AuraInterruptFlags |= AURA_INTERRUPT_FLAG_TAKE_DAMAGE;
     info->_InitializeExplicitTargetMask();
 }
 } // namespace AscensionFelsworn

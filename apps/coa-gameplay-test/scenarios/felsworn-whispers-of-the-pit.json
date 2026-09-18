@@ -1,0 +1,104 @@
+{
+  "schema": 1,
+  "name": "Whispers of the Pit's fear and slow break on damage (#854)",
+  "contract": "Whispers of the Pit 805235 (ground-targeted) and its trigger 807590 (self-centred, same tooltip): \"Unleash fel energy upon enemies ... fearing them and slowing their movement speed by -80% for 8 sec. Damage caused may interrupt the effect.\" On 805235, effect 0 is aura 7 (SPELL_AURA_MOD_FEAR, mechanic 5 MECHANIC_FEAR - a real fear, matching the tooltip) and effect 2 is aura 33 (SPELL_AURA_MOD_DECREASE_SPEED, DBC base -81 resolving to -80 because DieSides==1 adds 1 to EffectBasePoints). Both live on the same Aura instance, so removing it removes the fear and the slow together; the DBC gives no way to separate them. 805235's AuraInterruptFlags were 0x480000 (change-map/teleported bits only - bit 0x2, AURA_INTERRUPT_FLAG_TAKE_DAMAGE, was absent), so Unit::DealDamage's unconditional call to victim->RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_TAKE_DAMAGE, ...) (Unit.cpp ~line 1037/1040) never matched it and no hit ever broke the fear/slow. The fix, in AscensionFelsworn::ApplyContracts (AscensionFelswornContracts.cpp), adds AURA_INTERRUPT_FLAG_TAKE_DAMAGE to 805235 and 807590. This scenario applies the fixture aura directly (set_aura), since RemoveAurasWithInterruptFlags runs inside the damage path regardless of how the aura was applied, and drives an unrelated DoT tick (Rend, 772) to reach that path without needing a live cast pipeline or a second combatant.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "hexed",
+      "race": 4,
+      "class": 14,
+      "level": 80
+    },
+    {
+      "id": "undamaged",
+      "race": 4,
+      "class": 14,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "set_aura",
+      "label": "Apply the fear+slow to the target that will take damage",
+      "actor": "hexed",
+      "spell": 805235,
+      "stacks": 1
+    },
+    {
+      "action": "set_aura",
+      "label": "Apply the same fear+slow to a control target that will take none",
+      "actor": "undamaged",
+      "spell": 805235,
+      "stacks": 1
+    },
+    {
+      "action": "assert",
+      "label": "Fear+slow aura is present on the damaged target",
+      "actor": "hexed",
+      "metric": "aura",
+      "spell": 805235,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "label": "Fear+slow aura is present on the control target",
+      "actor": "undamaged",
+      "metric": "aura",
+      "spell": 805235,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "label": "Slow half reads -80% (DBC -81, DieSides 1 => BasePoints+1)",
+      "actor": "hexed",
+      "metric": "aura_amount",
+      "spell": 805235,
+      "effect": 2,
+      "equals": -80
+    },
+    {
+      "action": "set_aura",
+      "label": "Give the damaged target a plain periodic-damage tick (Rend) to reach Unit::DealDamage",
+      "actor": "hexed",
+      "spell": 772,
+      "stacks": 1
+    },
+    {
+      "action": "wait",
+      "label": "Let Rend's first 3-second tick land",
+      "ms": 4200
+    },
+    {
+      "action": "assert",
+      "label": "Damage removed the whole aura, including the fear half",
+      "actor": "hexed",
+      "metric": "aura",
+      "spell": 805235,
+      "equals": 0,
+      "within_ms": 2500
+    },
+    {
+      "action": "assert",
+      "label": "The slow half is gone too",
+      "actor": "hexed",
+      "metric": "aura_amount",
+      "spell": 805235,
+      "effect": 2,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "Without damage, the same aura survives the same window",
+      "actor": "undamaged",
+      "metric": "aura",
+      "spell": 805235,
+      "equals": 1
+    }
+  ]
+}
