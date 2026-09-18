@@ -1,0 +1,80 @@
+{
+  "schema": 1,
+  "name": "Glaiving raises Fury Unleashed's damage and lowers its Energy cost (#2015)",
+  "contract": "Glaiving 560578 adds a flat 49 (resolved 50 via the DieSides==1 +1 rule) to Fury Unleashed's damage sub-spell (555739, effect 0, base 149 resolved 150) via SPELLMOD_EFFECT1, and reduces Fury Unleashed's cast (555738, 60 Energy) cost via a -51 (resolved -50%) SPELLMOD_COST percentage modifier (aura 108 ADD_PCT_MODIFIER, not a flat op).",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 14,
+      "level": 80
+    },
+    {
+      "id": "glaiving",
+      "race": 1,
+      "class": 14,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 555738
+    },
+    {
+      "action": "learn",
+      "actor": "glaiving",
+      "spell": 555738
+    },
+    {
+      "action": "learn",
+      "actor": "glaiving",
+      "spell": 560578
+    },
+    {
+      "action": "assert",
+      "label": "Fury Unleashed damage base value without Glaiving",
+      "actor": "control",
+      "metric": "spell_effect_value",
+      "spell": 555739,
+      "effect": 0,
+      "equals": 150
+    },
+    {
+      "action": "assert",
+      "label": "Fury Unleashed damage base value with Glaiving",
+      "actor": "glaiving",
+      "metric": "spell_effect_value",
+      "spell": 555739,
+      "effect": 0,
+      "equals": 200
+    },
+    {
+      "action": "assert",
+      "label": "Fury Unleashed cost without Glaiving",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 555738,
+      "op": 14,
+      "base": 60,
+      "equals": 60
+    },
+    {
+      "action": "assert",
+      "label": "Fury Unleashed cost with Glaiving",
+      "actor": "glaiving",
+      "metric": "spell_modifier",
+      "spell": 555738,
+      "op": 14,
+      "base": 60,
+      "equals": 30
+    }
+  ]
+}
