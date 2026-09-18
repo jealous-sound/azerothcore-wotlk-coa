@@ -1,0 +1,86 @@
+{
+ "schema": 1,
+ "name": "Sturdy raises maximum health and Energy (#2224)",
+ "contract": "Sturdy applies SPELL_AURA_MOD_INCREASE_HEALTH_PERCENT and SPELL_AURA_MOD_INCREASE_ENERGY_PERCENT: rank 1 (681009) for 5% and rank 2 (681537) for 10%. Energy's maximum is 100, and the core's integer stat pipeline rounds the result down, so the ranges allow one point of rounding.",
+ "timeout_ms": 90000,
+ "players": [
+  {
+   "id": "sturdy",
+   "race": 1,
+   "class": 19,
+   "level": 80
+  }
+ ],
+ "steps": [
+  {
+   "action": "wait",
+   "label": "Let spawn AI and level scaling settle",
+   "ms": 5000
+  },
+  {
+   "action": "snapshot",
+   "actor": "sturdy",
+   "metric": "max_health",
+   "save_as": "health_base"
+  },
+  {
+   "action": "assert",
+   "label": "Energy starts at 100",
+   "actor": "sturdy",
+   "metric": "max_power",
+   "power": 3,
+   "equals": 100
+  },
+  {
+   "action": "learn",
+   "actor": "sturdy",
+   "spell": 681009
+  },
+  {
+   "action": "assert",
+   "label": "Rank 1 adds 5% health",
+   "actor": "sturdy",
+   "metric": "max_health",
+   "ratio_to": "health_base",
+   "min": 1.04,
+   "max": 1.06
+  },
+  {
+   "action": "assert",
+   "label": "Rank 1 adds 5 Energy",
+   "actor": "sturdy",
+   "metric": "max_power",
+   "power": 3,
+   "min": 104,
+   "max": 105
+  },
+  {
+   "action": "unlearn",
+   "actor": "sturdy",
+   "spell": 681009
+  },
+  {
+   "action": "learn",
+   "actor": "sturdy",
+   "spell": 681537
+  },
+  {
+   "action": "assert",
+   "label": "Rank 2 adds 10% health",
+   "actor": "sturdy",
+   "metric": "max_health",
+   "ratio_to": "health_base",
+   "min": 1.09,
+   "max": 1.11
+  },
+  {
+   "action": "assert",
+   "label": "Rank 2 adds 10 Energy",
+   "actor": "sturdy",
+   "metric": "max_power",
+   "power": 3,
+   "min": 109,
+   "max": 110
+  }
+ ]
+}
