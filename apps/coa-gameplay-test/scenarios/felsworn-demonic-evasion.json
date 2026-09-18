@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "name": "Demonic Evasion increases dodge chance (#1385)",
+  "contract": "Demonic Evasion 705108 increases dodge chance by 5%, via the native SPELL_AURA_MOD_DODGE_PERCENT handler (aura49) applied directly to the unit's dodge percentage. The DBC stores EffectBasePoints 4 with DieSides 1, so SpellEffectInfo::CalcValue resolves it to 5 (basePoints+1), one point above the tooltip's 4%.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 4,
+      "class": 14,
+      "level": 80
+    },
+    {
+      "id": "demonic_evasion",
+      "race": 4,
+      "class": 14,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "dodge_chance",
+      "save_as": "dodge_base"
+    },
+    {
+      "action": "learn",
+      "actor": "demonic_evasion",
+      "spell": 705108
+    },
+    {
+      "action": "assert",
+      "label": "Demonic Evasion adds 5% dodge chance (EffectBasePoints 4 + 1, DieSides 1)",
+      "actor": "demonic_evasion",
+      "metric": "dodge_chance",
+      "relative_to": "dodge_base",
+      "min": 4.99,
+      "max": 5.01
+    }
+  ]
+}
