@@ -1,0 +1,16 @@
+{
+ "schema": 1,
+ "name": "Oath Flow lengthens the Oath Chain (#2603)",
+ "contract": "Oath Chain 704576 lasts 15000 ms. Oath Flow 705283 is a +20% SPELLMOD_DURATION passive on its family mask, so the talented Templar's chain lasts 18000 ms.",
+ "timeout_ms": 90000,
+ "players": [
+  { "id": "control", "race": 1, "class": 19, "level": 80 },
+  { "id": "flowing", "race": 1, "class": 19, "level": 80 }
+ ],
+ "steps": [
+  { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+  { "action": "learn", "actor": "flowing", "spell": 705283 },
+  { "action": "assert", "label": "Untalented Oath Chain lasts 15 sec", "actor": "control", "metric": "spell_modifier", "spell": 704576, "op": 1, "base": 15000, "equals": 15000 },
+  { "action": "assert", "label": "Oath Flow adds 20%", "actor": "flowing", "metric": "spell_modifier", "spell": 704576, "op": 1, "base": 15000, "equals": 18000 }
+ ]
+}
