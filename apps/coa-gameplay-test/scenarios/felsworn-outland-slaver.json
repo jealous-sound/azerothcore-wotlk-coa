@@ -1,0 +1,112 @@
+{
+  "schema": 1,
+  "name": "Outland Slaver lowers Felrend and Fel Fireball cost and raises their damage (#809)",
+  "contract": "Outland Slaver 705123 effect 0 is SPELL_AURA_ADD_FLAT_MODIFIER (misc=14, SPELLMOD_COST) with EffectBasePoints=-4, DieSides=1 (real -3), and effect 1 is SPELL_AURA_ADD_PCT_MODIFIER (misc=0, SPELLMOD_DAMAGE) with EffectBasePoints=9, DieSides=1 (real +10%). Both share a classmask (family 20, dword1 bits 0+2) matching Fel Fireball (e.g. 801312) and Felrend (e.g. 800210) by SpellFamilyFlags. SpellInfo::CalcPowerCost and Unit::SpellDamageBonusDone apply SPELLMOD_COST/SPELLMOD_DAMAGE generically, so both spells' cost drops by 3 and damage rises by 10%.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 4,
+      "class": 14,
+      "level": 80
+    },
+    {
+      "id": "slaver",
+      "race": 4,
+      "class": 14,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "slaver",
+      "spell": 705123
+    },
+    {
+      "action": "assert",
+      "label": "Felrend cost without Outland Slaver",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 800210,
+      "op": 14,
+      "base": 100,
+      "equals": 100
+    },
+    {
+      "action": "assert",
+      "label": "Felrend cost with Outland Slaver (-3 flat)",
+      "actor": "slaver",
+      "metric": "spell_modifier",
+      "spell": 800210,
+      "op": 14,
+      "base": 100,
+      "equals": 97
+    },
+    {
+      "action": "assert",
+      "label": "Felrend damage without Outland Slaver",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 800210,
+      "op": 0,
+      "base": 100,
+      "equals": 100
+    },
+    {
+      "action": "assert",
+      "label": "Felrend damage with Outland Slaver (+10%)",
+      "actor": "slaver",
+      "metric": "spell_modifier",
+      "spell": 800210,
+      "op": 0,
+      "base": 100,
+      "equals": 110
+    },
+    {
+      "action": "assert",
+      "label": "Fel Fireball cost without Outland Slaver",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 801312,
+      "op": 14,
+      "base": 100,
+      "equals": 100
+    },
+    {
+      "action": "assert",
+      "label": "Fel Fireball cost with Outland Slaver (-3 flat)",
+      "actor": "slaver",
+      "metric": "spell_modifier",
+      "spell": 801312,
+      "op": 14,
+      "base": 100,
+      "equals": 97
+    },
+    {
+      "action": "assert",
+      "label": "Fel Fireball damage without Outland Slaver",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 801312,
+      "op": 0,
+      "base": 100,
+      "equals": 100
+    },
+    {
+      "action": "assert",
+      "label": "Fel Fireball damage with Outland Slaver (+10%)",
+      "actor": "slaver",
+      "metric": "spell_modifier",
+      "spell": 801312,
+      "op": 0,
+      "base": 100,
+      "equals": 110
+    }
+  ]
+}
