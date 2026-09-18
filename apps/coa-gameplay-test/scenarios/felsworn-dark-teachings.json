@@ -1,0 +1,60 @@
+{
+  "schema": 1,
+  "name": "Dark Teachings raises Man'ari Intuition's granted armor by 20% (#722)",
+  "contract": "Dark Teachings 520251 effect 1 is SPELL_AURA_ADD_PCT_MODIFIER (misc=8, SPELLMOD_ALL_EFFECTS) with EffectBasePoints=19, DieSides=1, so its real percentage is 19+1=20. Its classmask (family 20, dword0 bit9) matches Man'ari Intuition 523478, whose own effect 0 (SPELL_AURA_MOD_RESISTANCE, armor) has EffectBasePoints=64, DieSides=1, giving a real base of 65. The generic Unit::ApplyEffectModifiers/SpellInfo::IsAffectedBySpellMod pipeline (no family-20 special case) applies the +20% to every effect of every matching aura, so Man'ari Intuition's computed effect value becomes int32(65*1.20)=78.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 4,
+      "class": 14,
+      "level": 80
+    },
+    {
+      "id": "teachings",
+      "race": 4,
+      "class": 14,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 523478
+    },
+    {
+      "action": "learn",
+      "actor": "teachings",
+      "spell": 523478
+    },
+    {
+      "action": "learn",
+      "actor": "teachings",
+      "spell": 520251
+    },
+    {
+      "action": "assert",
+      "label": "Man'ari Intuition's armor value without Dark Teachings",
+      "actor": "control",
+      "metric": "spell_effect_value",
+      "spell": 523478,
+      "effect": 0,
+      "equals": 65
+    },
+    {
+      "action": "assert",
+      "label": "Man'ari Intuition's armor value with Dark Teachings (+20%)",
+      "actor": "teachings",
+      "metric": "spell_effect_value",
+      "spell": 523478,
+      "effect": 0,
+      "equals": 78
+    }
+  ]
+}
