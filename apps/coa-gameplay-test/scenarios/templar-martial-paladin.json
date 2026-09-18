@@ -1,0 +1,17 @@
+{
+ "schema": 1,
+ "name": "Martial Paladin raises Agility and hit chance (#2586)",
+ "contract": "Martial Paladin rank 2 (705251) applies SPELL_AURA_MOD_TOTAL_STAT_PERCENTAGE on Agility for 10% and SPELL_AURA_ASCENSION_MOD_HIT_CHANCE_ALL_PCT for 6 percentage points, as its description states.",
+ "timeout_ms": 90000,
+ "players": [
+  { "id": "martial", "race": 1, "class": 19, "level": 80 }
+ ],
+ "steps": [
+  { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+  { "action": "snapshot", "actor": "martial", "metric": "stat", "stat": 1, "save_as": "agility_base" },
+  { "action": "snapshot", "actor": "martial", "metric": "melee_hit_chance", "save_as": "hit_base" },
+  { "action": "learn", "actor": "martial", "spell": 705251 },
+  { "action": "assert", "label": "Agility rises by 10%", "actor": "martial", "metric": "stat", "stat": 1, "ratio_to": "agility_base", "min": 1.09, "max": 1.11 },
+  { "action": "assert", "label": "Hit chance rises by 6", "actor": "martial", "metric": "melee_hit_chance", "relative_to": "hit_base", "min": 5.9, "max": 6.1 }
+ ]
+}
