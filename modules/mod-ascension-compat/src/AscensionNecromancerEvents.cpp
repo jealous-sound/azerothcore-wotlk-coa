@@ -167,7 +167,8 @@ class aura_ascension_necromancer_event : public AuraScript
                     cost = std::max<uint8>(1, row.cost);
             if (Chance(player, 531128, cost))
                 Cast(player, player, 531129);
-            if (player->HasAura(560798))
+            // Pandemic is an aura-to-summons passive, so the Necromancer never carries it; the minion does.
+            if (actor->HasAura(560798, player->GetGUID()))
                 Reduce(player, 801938, std::abs(Amount(806322)));
             if (actor->GetEntry() == 50073 && Chance(player, 503740))
                 Cast(player, actor, 707014);
