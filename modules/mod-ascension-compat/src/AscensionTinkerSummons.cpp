@@ -207,6 +207,15 @@ struct npc_ascension_tinker_pet : PetAI
         if (player && Permanent(me->GetEntry()))
         {
             events.Update(diff);
+            if (!initialized)
+            {
+                // The pet spawns passive, so it would stand beside the Tinker and never fight. Start it defensive
+                // like any other summoned pet; a stance the player picks afterwards is kept.
+                if (me->HasReactState(REACT_PASSIVE))
+                    me->SetReactState(REACT_DEFENSIVE);
+                if (CharmInfo* charmInfo = me->GetCharmInfo())
+                    charmInfo->SetPlayerReactState(me->GetReactState());
+            }
             if (!initialized || events.ExecuteEvent())
             {
                 Scale(player,me,!initialized);

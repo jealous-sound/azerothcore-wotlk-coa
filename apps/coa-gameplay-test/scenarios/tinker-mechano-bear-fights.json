@@ -1,0 +1,86 @@
+{
+ "schema": 1,
+ "name": "Tinker: Mechano-Bear fights the Tinker's target",
+ "contract": "A summoned Mechano-Bear (build 803405) must join the fight: it spawns defensive rather than passive, so while the Tinker attacks a dummy the pair deals clearly more damage than the level 80 Tinker alone (about 170 in ten seconds without the pet).",
+ "timeout_ms": 90000,
+ "players": [
+  {
+   "id": "t",
+   "race": 1,
+   "class": 28,
+   "level": 80
+  }
+ ],
+ "creatures": [
+  {
+   "id": "d",
+   "owner": "t",
+   "entry": 299,
+   "level": 10,
+   "distance": 3
+  }
+ ],
+ "location": {
+  "map": 0,
+  "x": -8917.41,
+  "y": -115.853,
+  "z": 82.3711,
+  "o": 0
+ },
+ "steps": [
+  {
+   "action": "wait",
+   "ms": 3000
+  },
+  {
+   "action": "learn",
+   "spell": 803405,
+   "actor": "t"
+  },
+  {
+   "action": "cast",
+   "spell": 803405,
+   "actor": "t"
+  },
+  {
+   "action": "wait",
+   "ms": 8000
+  },
+  {
+   "action": "snapshot",
+   "save_as": "pet",
+   "metric": "pet_entry",
+   "actor": "t"
+  },
+  {
+   "action": "assert",
+   "label": "Mechano-Bear is summoned",
+   "actor": "t",
+   "metric": "pet_entry",
+   "equals": 60671
+  },
+  {
+   "action": "snapshot",
+   "actor": "d",
+   "metric": "health",
+   "save_as": "h0"
+  },
+  {
+   "action": "attack",
+   "actor": "t",
+   "target": "d"
+  },
+  {
+   "action": "wait",
+   "ms": 10000
+  },
+  {
+   "action": "assert",
+   "label": "Pet contributes damage",
+   "actor": "d",
+   "metric": "health",
+   "relative_to": "h0",
+   "max": -450
+  }
+ ]
+}
