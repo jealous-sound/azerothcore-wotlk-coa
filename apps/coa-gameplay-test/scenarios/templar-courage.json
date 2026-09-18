@@ -1,0 +1,18 @@
+{
+ "schema": 1,
+ "name": "Courage raises movement speed (#3156)",
+ "contract": "Courage applies SPELL_AURA_MOD_INCREASE_SPEED for 10% at rank 1 (707754) and 20% at rank 2 (712466), so the Templar's run speed rate rises accordingly.",
+ "timeout_ms": 90000,
+ "players": [
+  { "id": "brave", "race": 1, "class": 19, "level": 80 }
+ ],
+ "steps": [
+  { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+  { "action": "snapshot", "actor": "brave", "metric": "run_speed_rate", "save_as": "speed_base" },
+  { "action": "learn", "actor": "brave", "spell": 707754 },
+  { "action": "assert", "label": "Rank 1 adds 10% run speed", "actor": "brave", "metric": "run_speed_rate", "ratio_to": "speed_base", "min": 1.09, "max": 1.11 },
+  { "action": "unlearn", "actor": "brave", "spell": 707754 },
+  { "action": "learn", "actor": "brave", "spell": 712466 },
+  { "action": "assert", "label": "Rank 2 adds 20% run speed", "actor": "brave", "metric": "run_speed_rate", "ratio_to": "speed_base", "min": 1.19, "max": 1.21 }
+ ]
+}
