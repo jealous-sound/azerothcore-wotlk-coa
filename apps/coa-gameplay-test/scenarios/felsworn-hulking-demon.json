@@ -1,0 +1,62 @@
+{
+  "schema": 1,
+  "name": "Hulking Demon raises attack power from Stamina and hit rating from Agility (#940)",
+  "contract": "Hulking Demon 805246 effect 0 (SPELL_AURA_MOD_ATTACK_POWER_OF_STAT_PERCENT, misc=2 Stamina) and effect 1 (SPELL_AURA_MOD_RATING_FROM_STAT, misc=160 covers CR_HIT_MELEE bit 5 and CR_HIT_SPELL bit 7, miscb=1 Agility) are real unconditional handlers (HandleAuraModAttackPowerOfStatPercent, HandleModRatingFromStat) that operate on the caster's own stats with no classmask gating. The exact percentages depend on the caster's raw Stamina/Agility, which this harness has no query to read as an independent input, so this proves the handlers are consumed (a nonzero, correctly-signed change) rather than pinning the literal 30%/6% coefficients.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 4,
+      "class": 14,
+      "level": 80
+    },
+    {
+      "id": "hulking",
+      "race": 4,
+      "class": 14,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "attack_power",
+      "save_as": "base_ap"
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "combat_rating",
+      "rating": 5,
+      "save_as": "base_hit_rating"
+    },
+    {
+      "action": "learn",
+      "actor": "hulking",
+      "spell": 805246
+    },
+    {
+      "action": "assert",
+      "label": "Attack power rises from Stamina",
+      "actor": "hulking",
+      "metric": "attack_power",
+      "relative_to": "base_ap",
+      "min": 1
+    },
+    {
+      "action": "assert",
+      "label": "Melee hit rating rises from Agility",
+      "actor": "hulking",
+      "metric": "combat_rating",
+      "rating": 5,
+      "relative_to": "base_hit_rating",
+      "min": 1
+    }
+  ]
+}
