@@ -1,0 +1,58 @@
+{
+ "schema": 1,
+ "name": "Lightkeeper's burst scales with attack power (#2021)",
+ "contract": "Lightkeeper 560835 proc-triggers Lightbringer 561277, whose damage its description states as $561277m1 plus 22% of attack power. The helper carries a flat 100 and had no spell_bonus_data row, so SpellDamageBonusDone added no attack power term at all. Against a fixed base of 1000 the unmodified calculation returns 800 for a level 80 Templar; with the coefficient and about 445 attack power it must clear 850.",
+ "timeout_ms": 120000,
+ "players": [
+  {
+   "id": "keeper",
+   "race": 1,
+   "class": 19,
+   "level": 80
+  }
+ ],
+ "creatures": [
+  {
+   "id": "enemy",
+   "owner": "keeper",
+   "entry": 1601,
+   "level": 80
+  }
+ ],
+ "steps": [
+  {
+   "action": "wait",
+   "label": "Let spawn AI and level scaling settle",
+   "ms": 6000
+  },
+  {
+   "action": "learn",
+   "actor": "keeper",
+   "spell": 560835
+  },
+  {
+   "action": "assert",
+   "label": "Lightkeeper is applied",
+   "actor": "keeper",
+   "metric": "aura",
+   "spell": 560835,
+   "equals": 1
+  },
+  {
+   "action": "assert",
+   "label": "The Templar has attack power to scale with",
+   "actor": "keeper",
+   "metric": "attack_power",
+   "min": 100
+  },
+  {
+   "action": "assert",
+   "label": "The burst carries its attack-power coefficient",
+   "actor": "keeper",
+   "metric": "spell_damage_done",
+   "spell": 561277,
+   "target": "enemy",
+   "min": 850
+  }
+ ]
+}
