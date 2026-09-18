@@ -1,0 +1,92 @@
+{
+  "schema": 1,
+  "name": "Skull of Gul'dan raises max health and Energy by 25% (#1166)",
+  "contract": "Skull of Gul'dan 800225 applies a direct-handler aura increasing max health (HandleAuraModIncreaseHealthPercent) and max Energy (HandleAuraModIncreaseEnergyPercent) both by 25% for its duration.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "fel",
+      "race": 1,
+      "class": 14,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "snapshot",
+      "actor": "fel",
+      "metric": "max_health",
+      "save_as": "base_health"
+    },
+    {
+      "action": "snapshot",
+      "actor": "fel",
+      "metric": "max_power",
+      "power": 3,
+      "save_as": "base_energy"
+    },
+    {
+      "action": "learn",
+      "actor": "fel",
+      "spell": 800225
+    },
+    {
+      "action": "cast",
+      "actor": "fel",
+      "spell": 800225
+    },
+    {
+      "action": "assert",
+      "label": "Aura applies",
+      "actor": "fel",
+      "metric": "aura",
+      "spell": 800225,
+      "equals": 1,
+      "within_ms": 1000
+    },
+    {
+      "action": "assert",
+      "label": "Max health effect value +25%",
+      "actor": "fel",
+      "metric": "aura_amount",
+      "spell": 800225,
+      "effect": 0,
+      "equals": 25
+    },
+    {
+      "action": "assert",
+      "label": "Max Energy effect value +25%",
+      "actor": "fel",
+      "metric": "aura_amount",
+      "spell": 800225,
+      "effect": 1,
+      "equals": 25
+    },
+    {
+      "action": "assert",
+      "label": "Max health actually reads +25%",
+      "actor": "fel",
+      "metric": "max_health",
+      "ratio_to": "base_health",
+      "min": 1.249,
+      "max": 1.251,
+      "within_ms": 1000
+    },
+    {
+      "action": "assert",
+      "label": "Max Energy actually reads +25%",
+      "actor": "fel",
+      "metric": "max_power",
+      "power": 3,
+      "ratio_to": "base_energy",
+      "min": 1.249,
+      "max": 1.251,
+      "within_ms": 1000
+    }
+  ]
+}
