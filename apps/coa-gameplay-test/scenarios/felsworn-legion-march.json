@@ -1,0 +1,122 @@
+{
+  "schema": 1,
+  "name": "Legion March boosts Fel Torpedo/Chaos Rush range, crit and effect (#1000)",
+  "contract": "Legion March 805244 adds three flat modifiers by classmask: +10% crit to Fel Torpedo Damage (500761), +3 yd radius to Chaos Rush Jump (802028, base radius 10 yd), and +3 to Fel Torpedo's (500610) own effect-0 base value (12 -> 15).",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 14,
+      "level": 80
+    },
+    {
+      "id": "march",
+      "race": 1,
+      "class": 14,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 500761
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 802028
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 500610
+    },
+    {
+      "action": "learn",
+      "actor": "march",
+      "spell": 500761
+    },
+    {
+      "action": "learn",
+      "actor": "march",
+      "spell": 802028
+    },
+    {
+      "action": "learn",
+      "actor": "march",
+      "spell": 500610
+    },
+    {
+      "action": "learn",
+      "actor": "march",
+      "spell": 805244
+    },
+    {
+      "action": "assert",
+      "label": "Untalented: no crit bonus on Fel Torpedo Damage",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 500761,
+      "op": 7,
+      "base": 0,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "Talented: +10% crit on Fel Torpedo Damage",
+      "actor": "march",
+      "metric": "spell_modifier",
+      "spell": 500761,
+      "op": 7,
+      "base": 0,
+      "equals": 10
+    },
+    {
+      "action": "assert",
+      "label": "Untalented: Chaos Rush Jump keeps its 10 yd radius",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 802028,
+      "op": 6,
+      "base": 10,
+      "equals": 10
+    },
+    {
+      "action": "assert",
+      "label": "Talented: Chaos Rush Jump radius grows to 13 yd",
+      "actor": "march",
+      "metric": "spell_modifier",
+      "spell": 802028,
+      "op": 6,
+      "base": 10,
+      "equals": 13
+    },
+    {
+      "action": "assert",
+      "label": "Untalented: Fel Torpedo's own effect-0 base value unchanged",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 500610,
+      "op": 3,
+      "base": 12,
+      "equals": 12
+    },
+    {
+      "action": "assert",
+      "label": "Talented: Fel Torpedo's own effect-0 base value +3",
+      "actor": "march",
+      "metric": "spell_modifier",
+      "spell": 500610,
+      "op": 3,
+      "base": 12,
+      "equals": 15
+    }
+  ]
+}
