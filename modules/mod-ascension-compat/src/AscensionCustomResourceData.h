@@ -116,7 +116,7 @@ struct ResourceGainRule
 // These active abilities advertise resource generation in their tooltips, but
 // their public Spell.dbc records contain no effect that performs it. Ranges are
 // rank chains verified against the local Ascension spell dump.
-inline constexpr std::array<ResourceGainRule, 181> ResourceGainRules =
+inline constexpr std::array<ResourceGainRule, 183> ResourceGainRules =
 {{
     // Native helpers already supply Twin Slice, Fel Fireball, and Seeking Flame.
     // Fel Torpedo and the current Bane variants generate through their class scripts.
@@ -479,7 +479,15 @@ inline constexpr std::array<ResourceGainRule, 181> ResourceGainRules =
     {31, 681114, 681117, 680441, 2, ResourceMutation::AuraStacks,
         ResourceGainEvent::Cast, 92149},
     {31, 807432, 807432, 680441, 1, ResourceMutation::AuraStacks,
-        ResourceGainEvent::Cast, 92149}
+        ResourceGainEvent::Cast, 92149},
+
+    // Wand of Time's own tooltip advertises Echo Fragment generation once Echo Fragments (92120) is
+    // known, but its public Spell.dbc record has no effect that performs it. Rank 1 (520175) is a
+    // standalone id; ranks 2-7 (520702-520707) are one contiguous chain (spell_ranks).
+    {22, 520175, 520175, 804455, 1, ResourceMutation::AuraStacks,
+        ResourceGainEvent::EachSuccessfulDamagingHit, 92120},
+    {22, 520702, 520707, 804455, 1, ResourceMutation::AuraStacks,
+        ResourceGainEvent::EachSuccessfulDamagingHit, 92120}
 }};
 
 struct NativePowerGainRule

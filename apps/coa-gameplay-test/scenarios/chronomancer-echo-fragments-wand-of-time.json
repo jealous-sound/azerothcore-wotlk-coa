@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "name": "Echo Fragments: Wand of Time hits generate an Echo Fragment (#516)",
+  "contract": "Echo Fragments (92120) advertises 'Wand of Time now generates an Echo Fragment' but its own Spell.dbc record has no effect that performs it (DUMMY aura, no trigger spell). AscensionCustomResourceData.h had no ResourceGainRule for class 22 at all. Two new rows grant 804455 (Echo Fragment, aura-stack resource) on a successful damaging hit of Wand of Time (520175, and its rank chain 520702-520707), gated on knowing 92120.",
+  "timeout_ms": 60000,
+  "players": [
+    {
+      "id": "chronomancer",
+      "race": 1,
+      "class": 22,
+      "level": 80,
+      "ranged_hit_rating": 10000
+    }
+  ],
+  "creatures": [
+    { "id": "dummy", "owner": "chronomancer", "entry": 36, "health": 1000000, "distance": 3 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+    { "action": "learn", "actor": "chronomancer", "spell": 92120 },
+    { "action": "learn", "actor": "chronomancer", "spell": 520175 },
+    {
+      "action": "assert",
+      "label": "No Echo Fragment before any Wand of Time hit",
+      "actor": "chronomancer",
+      "metric": "aura_stacks",
+      "spell": 804455,
+      "caster": "chronomancer",
+      "equals": 0
+    },
+    { "action": "cast", "actor": "chronomancer", "spell": 520175, "target": "dummy" },
+    {
+      "action": "assert",
+      "label": "Wand of Time's hit generates an Echo Fragment",
+      "actor": "chronomancer",
+      "metric": "aura_stacks",
+      "spell": 804455,
+      "caster": "chronomancer",
+      "min": 1,
+      "within_ms": 5000
+    }
+  ]
+}
