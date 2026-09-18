@@ -1,0 +1,74 @@
+{
+  "schema": 1,
+  "name": "Embracing Evil lengthens Bane duration and cuts its Energy cost (#1331)",
+  "contract": "Embracing Evil increases the duration of Banes such as Bane of Chaos (704368) by 20% and reduces their Energy cost by 20%, via native SPELLMOD_DURATION (op1) and SPELLMOD_COST (op14) percent SpellMods matching the Banes' family20 classMask1 bit5 flag. The DBC stores EffectBasePoints 19 and -21 with DieSides 1, so SpellEffectInfo::CalcValue resolves them to 20 and -20 (basePoints+1), one point off the tooltip's 19%/21%. A third effect on a different classmask bit does not match the tooltipped Felfury refund and is a separate, unreported quirk not covered here.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 4,
+      "class": 14,
+      "level": 80
+    },
+    {
+      "id": "embracing_evil",
+      "race": 4,
+      "class": 14,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "embracing_evil",
+      "spell": 800352
+    },
+    {
+      "action": "assert",
+      "label": "Base Bane of Chaos duration is unaffected",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 704368,
+      "op": 1,
+      "base": 1000,
+      "equals": 1000
+    },
+    {
+      "action": "assert",
+      "label": "Embracing Evil lengthens Bane of Chaos duration by 20% (EffectBasePoints 19 + 1, DieSides 1)",
+      "actor": "embracing_evil",
+      "metric": "spell_modifier",
+      "spell": 704368,
+      "op": 1,
+      "base": 1000,
+      "min": 1199,
+      "max": 1201
+    },
+    {
+      "action": "assert",
+      "label": "Base Bane of Chaos cost is unaffected",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 704368,
+      "op": 14,
+      "base": 1000,
+      "equals": 1000
+    },
+    {
+      "action": "assert",
+      "label": "Embracing Evil cuts Bane of Chaos cost by 20% (EffectBasePoints -21 + 1, DieSides 1)",
+      "actor": "embracing_evil",
+      "metric": "spell_modifier",
+      "spell": 704368,
+      "op": 14,
+      "base": 1000,
+      "min": 799,
+      "max": 801
+    }
+  ]
+}
