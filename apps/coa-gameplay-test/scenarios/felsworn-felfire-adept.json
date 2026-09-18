@@ -1,0 +1,73 @@
+{
+  "schema": 1,
+  "name": "Felfire Adept increases Sargeron Smite's critical strike chance (#1240)",
+  "contract": "Felfire Adept increases Sargeron Smite's (802060) critical strike chance by 10% (rank 1, 560836) or 20% (rank 2, 561345), via a native SPELLMOD_CRITICAL_CHANCE (op7) flat SpellMod matching Sargeron Smite's family20 classMask2 bit11 flag. The DBC stores EffectBasePoints 9/19 with DieSides 1, so SpellEffectInfo::CalcValue resolves them to 10/20 (basePoints+1), one point above the tooltip's 9%/19%.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 4,
+      "class": 14,
+      "level": 80
+    },
+    {
+      "id": "rank_one",
+      "race": 4,
+      "class": 14,
+      "level": 80
+    },
+    {
+      "id": "rank_two",
+      "race": 4,
+      "class": 14,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "rank_one",
+      "spell": 560836
+    },
+    {
+      "action": "learn",
+      "actor": "rank_two",
+      "spell": 561345
+    },
+    {
+      "action": "assert",
+      "label": "Base Sargeron Smite crit chance is unaffected",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 802060,
+      "op": 7,
+      "base": 0,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "Rank 1 adds 10% crit chance (EffectBasePoints 9 + 1, DieSides 1)",
+      "actor": "rank_one",
+      "metric": "spell_modifier",
+      "spell": 802060,
+      "op": 7,
+      "base": 0,
+      "equals": 10
+    },
+    {
+      "action": "assert",
+      "label": "Rank 2 adds 20% crit chance (EffectBasePoints 19 + 1, DieSides 1)",
+      "actor": "rank_two",
+      "metric": "spell_modifier",
+      "spell": 802060,
+      "op": 7,
+      "base": 0,
+      "equals": 20
+    }
+  ]
+}
