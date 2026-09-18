@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "name": "Infernal Armor shortens Hateforged Barrier's cooldown (#1599)",
+  "contract": "Infernal Armor 300467 reduces Hateforged Barrier's (705129) cooldown by a stored -10001ms (resolved -10000ms via the DieSides==1 +1 rule) via a native SPELLMOD_COOLDOWN (op11) flat SpellMod matching Hateforged Barrier's family20 classMask1 bit26 flag.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 4,
+      "class": 14,
+      "level": 80
+    },
+    {
+      "id": "infernal_armor",
+      "race": 4,
+      "class": 14,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "infernal_armor",
+      "spell": 300467
+    },
+    {
+      "action": "assert",
+      "label": "Base Hateforged Barrier cooldown is unaffected",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 705129,
+      "op": 11,
+      "base": 0,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "Infernal Armor shortens Hateforged Barrier's cooldown by 10000ms",
+      "actor": "infernal_armor",
+      "metric": "spell_modifier",
+      "spell": 705129,
+      "op": 11,
+      "base": 0,
+      "equals": -10000
+    }
+  ]
+}
