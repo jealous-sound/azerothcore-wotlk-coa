@@ -281,6 +281,18 @@ void ApplyContracts(SpellInfo* info)
     // flag, so no hit ever broke them. Both the placed cast and its self-centred version share the text.
     if (id == 805235 || id == 807590)
         info->AuraInterruptFlags |= AURA_INTERRUPT_FLAG_TAKE_DAMAGE;
+    if (id == Unphased)
+    {
+        // Effect 1 as authored is aura 107 (ADD_FLAT_MODIFIER) with SPELLMOD_EFFECT1 selecting Inner
+        // Demon's (804216) effect 0 (aura 36, MOD_SHAPESHIFT) - a value nothing reads, so the tooltip's
+        // "reduces spell pushback ... while Inner Demon is active" (#919) is otherwise unimplemented.
+        // Retarget it at a real SPELL_AURA_REDUCE_PUSHBACK on the caster; felsworn_scaling below zeroes
+        // it while Inner Demon is inactive, and aura_ascension_felsworn_lifecycle
+        // (AscensionFelswornAuras.cpp) recalculates it whenever Inner Demon is applied or removed.
+        info->Effects[1].ApplyAuraName = SPELL_AURA_REDUCE_PUSHBACK;
+        info->Effects[1].MiscValue = 0;
+        info->Effects[1].SpellClassMask = flag96(0, 0, 0);
+    }
     info->_InitializeExplicitTargetMask();
 }
 } // namespace AscensionFelsworn

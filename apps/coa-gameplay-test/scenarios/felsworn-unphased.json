@@ -1,0 +1,94 @@
+{
+  "schema": 1,
+  "name": "Unphased increases spell penetration and reduces pushback while Inner Demon is active (#919)",
+  "contract": "Unphased 803645: \"Increases your spell penetration by 20, scaling with your level. In addition, reduces spell pushback suffered from damaging attacks by 50% while Inner Demon is active.\" Effect 0 (aura 123, SPELL_AURA_MOD_TARGET_RESISTANCE, misc 124) is unconditional and level-scaled (base -21, RealPointsPerLevel -1.0, BaseLevel/SpellLevel 20); at level 80 it computes to -80 regardless of Inner Demon. Effect 1 as authored is aura 107 (ADD_FLAT_MODIFIER, SPELLMOD_EFFECT1) selecting Inner Demon 804216's own effect 0 (aura 36, MOD_SHAPESHIFT) - a value nothing reads, so the pushback half was inert. It is retargeted to aura 149 (SPELL_AURA_REDUCE_PUSHBACK, base 49 + 1 = 50, no level scaling) and gated to zero while Inner Demon (804216) is inactive by felsworn_scaling::ModifySpellEffectBaseValue, recalculated whenever Inner Demon is applied or removed by aura_ascension_felsworn_lifecycle. The core reads SPELL_AURA_REDUCE_PUSHBACK in Spell::Delayed/Spell::DelayedChannel; this harness has no cast-delay metric, so the pushback half is proven via the raw aura_amount effect 1 toggling 0/50 with Inner Demon, not via an observed delay reduction.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "felsworn",
+      "race": 4,
+      "class": 14,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "felsworn",
+      "spell": 803645
+    },
+    {
+      "action": "assert",
+      "label": "Spell penetration is already active before Inner Demon (level-scaled, unconditional)",
+      "actor": "felsworn",
+      "metric": "aura_amount",
+      "spell": 803645,
+      "effect": 0,
+      "equals": -80
+    },
+    {
+      "action": "assert",
+      "label": "Pushback reduction is inert before Inner Demon",
+      "actor": "felsworn",
+      "metric": "aura_amount",
+      "spell": 803645,
+      "effect": 1,
+      "equals": 0
+    },
+    {
+      "action": "set_aura",
+      "label": "Enter Inner Demon",
+      "actor": "felsworn",
+      "spell": 804216,
+      "stacks": 1
+    },
+    {
+      "action": "assert",
+      "label": "Spell penetration is unaffected by entering Inner Demon",
+      "actor": "felsworn",
+      "metric": "aura_amount",
+      "spell": 803645,
+      "effect": 0,
+      "equals": -80
+    },
+    {
+      "action": "assert",
+      "label": "Pushback reduction activates at 50% while Inner Demon is active",
+      "actor": "felsworn",
+      "metric": "aura_amount",
+      "spell": 803645,
+      "effect": 1,
+      "equals": 50
+    },
+    {
+      "action": "set_aura",
+      "label": "Leave Inner Demon",
+      "actor": "felsworn",
+      "spell": 804216,
+      "stacks": 0
+    },
+    {
+      "action": "assert",
+      "label": "Pushback reduction drops back to inert once Inner Demon ends",
+      "actor": "felsworn",
+      "metric": "aura_amount",
+      "spell": 803645,
+      "effect": 1,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "Spell penetration still works after Inner Demon ends",
+      "actor": "felsworn",
+      "metric": "aura_amount",
+      "spell": 803645,
+      "effect": 0,
+      "equals": -80
+    }
+  ]
+}

@@ -15,7 +15,8 @@ namespace AscensionFelsworn
 enum FelswornSpells : uint32
 {
     BurningCommander = 92089,
-    MannorothFelfury = 801043
+    MannorothFelfury = 801043,
+    Unphased = 803645
 };
 
 struct Debt
@@ -66,6 +67,7 @@ bool Chance(Player* player, uint32 talent, uint32 cooldown = 0);
 void Reduce(Player* player, uint32 root, int32 milliseconds);
 void Replace(Player* player, uint32 root, uint32 replacement);
 void SpreadCripple(Player* player, Unit* target);
+void RefreshUnphased(Player* player);
 void Summon(Player* player, Position const& position, bool extended);
 void ApplyContracts(SpellInfo* info);
 } // namespace AscensionFelsworn
