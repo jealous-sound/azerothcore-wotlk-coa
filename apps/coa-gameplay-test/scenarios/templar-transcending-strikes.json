@@ -1,0 +1,23 @@
+{
+ "schema": 1,
+ "name": "Transcending Strikes shortens Divine Force's cooldown (#3810)",
+ "contract": "Transcending Strikes reaches Divine Force through helper 804918, an Ascension cooldown modifier of -30000 ms whose misc value names Divine Force rank 2 (807800). ModifyAscensionCooldown acts on that exact spell id and Divine Force has no spell_ranks chain, so a Templar holding rank 1 (806153) must still have its cooldown shortened for the talent to do what its description promises. The helper is learned as fixture setup and cast directly, because the session cast handler only accepts spells the character knows; the talent's own proc path is not exercised here.",
+ "timeout_ms": 120000,
+ "players": [
+  { "id": "templar", "race": 1, "class": 19, "level": 80 }
+ ],
+ "creatures": [
+  { "id": "enemy", "owner": "templar", "entry": 1601, "level": 80 }
+ ],
+ "steps": [
+  { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 6000 },
+  { "action": "learn", "actor": "templar", "spell": 806153 },
+  { "action": "learn", "actor": "templar", "spell": 804918 },
+  { "action": "set_power", "actor": "templar", "power": 3, "value": 100 },
+  { "action": "cast", "actor": "templar", "spell": 806153, "target": "enemy" },
+  { "action": "assert", "label": "Divine Force is on cooldown", "actor": "templar", "metric": "cooldown_ms", "spell": 806153, "min": 1000, "within_ms": 3000 },
+  { "action": "snapshot", "actor": "templar", "metric": "cooldown_ms", "spell": 806153, "save_as": "cooldown_before" },
+  { "action": "cast", "actor": "templar", "spell": 804918, "target": "templar" },
+  { "action": "assert", "label": "The helper shortens the owned rank's cooldown", "actor": "templar", "metric": "cooldown_ms", "spell": 806153, "relative_to": "cooldown_before", "max": -20000, "within_ms": 3000 }
+ ]
+}

@@ -366,6 +366,27 @@ class spell_ascension_templar_ability : public SpellScript
         if (Player* player = Owner(GetCaster()))
             Cast(player, player, 520659);
     }
+    // Transcending Strikes: the helper names one Divine Force rank, so the core's exact-id cooldown effect misses
+    // the rank the Templar owns. Apply it to every owned rank of the named ability instead.
+    void Transcend(SpellEffIndex effect)
+    {
+        SpellEffectInfo const& info = GetSpellInfo()->Effects[effect];
+        Player* player = Owner(GetCaster());
+        SpellInfo const* named = sSpellMgr->GetSpellInfo(uint32(info.MiscValue));
+        if (!player || !named)
+            return;
+        PreventHitDefaultEffect(effect);
+        int32 const delta = GetEffectValue();
+        for (auto const& pair : player->GetSpellMap())
+        {
+            SpellInfo const* owned = player->HasSpell(pair.first) ? sSpellMgr->GetSpellInfo(pair.first) : nullptr;
+            if (!owned || owned->SpellFamilyName != named->SpellFamilyName ||
+                !(owned->SpellFamilyFlags & named->SpellFamilyFlags))
+                continue;
+            if (player->GetSpellCooldownDelay(pair.first))
+                player->ModifySpellCooldown(pair.first, delta);
+        }
+    }
     void Register() override
     {
         if (SpellInfo const* info = sSpellMgr->GetSpellInfo(m_scriptSpellId); Named(info, 801448))
@@ -378,6 +399,9 @@ class spell_ascension_templar_ability : public SpellScript
                                                SPELL_EFFECT_ASCENSION_MODIFY_COOLDOWN);
         if (m_scriptSpellId == 800424)
             AfterCast += SpellCastFn(spell_ascension_templar_ability::Absolve);
+        if (m_scriptSpellId == 804918)
+            OnEffectHitTarget += SpellEffectFn(spell_ascension_templar_ability::Transcend, EFFECT_ALL,
+                                               SPELL_EFFECT_ASCENSION_MODIFY_COOLDOWN);
     }
 };
 } // namespace
