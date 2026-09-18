@@ -1,0 +1,135 @@
+{
+  "schema": 1,
+  "name": "Wrath of Sargeras increases Magic damage and spell hit chance (#1278)",
+  "contract": "Wrath of Sargeras increases Magic damage dealt by 3% and spell hit chance by 2 (EffectBasePoints 2/1, die 1 => CalcValue 3/2, rank 1, 806103), or by 6% and 4 (EffectBasePoints 5/3, die 1 => CalcValue 6/4, rank 2, 807902), via plain native MOD_DAMAGE_PERCENT_DONE and MOD_SPELL_HIT_CHANCE auras with no classMask, applying to any magic-school spell such as Frostbolt (116).",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 4,
+      "class": 14,
+      "level": 80
+    },
+    {
+      "id": "rank_one",
+      "race": 4,
+      "class": 14,
+      "level": 80
+    },
+    {
+      "id": "rank_two",
+      "race": 4,
+      "class": 14,
+      "level": 80
+    }
+  ],
+  "creatures": [
+    {
+      "id": "dummy_control",
+      "owner": "control",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 3
+    },
+    {
+      "id": "dummy_rank_one",
+      "owner": "rank_one",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 3
+    },
+    {
+      "id": "dummy_rank_two",
+      "owner": "rank_two",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 3
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 116
+    },
+    {
+      "action": "learn",
+      "actor": "rank_one",
+      "spell": 116
+    },
+    {
+      "action": "learn",
+      "actor": "rank_two",
+      "spell": 116
+    },
+    {
+      "action": "learn",
+      "actor": "rank_one",
+      "spell": 806103
+    },
+    {
+      "action": "learn",
+      "actor": "rank_two",
+      "spell": 807902
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "spell_damage_done",
+      "save_as": "dmg_base",
+      "spell": 116,
+      "target": "dummy_control"
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "spell_hit_chance",
+      "save_as": "hit_base"
+    },
+    {
+      "action": "assert",
+      "label": "Rank 1 Frostbolt damage rises ~3%",
+      "actor": "rank_one",
+      "metric": "spell_damage_done",
+      "spell": 116,
+      "target": "dummy_rank_one",
+      "ratio_to": "dmg_base",
+      "min": 1.029,
+      "max": 1.031
+    },
+    {
+      "action": "assert",
+      "label": "Rank 2 Frostbolt damage rises ~6%",
+      "actor": "rank_two",
+      "metric": "spell_damage_done",
+      "spell": 116,
+      "target": "dummy_rank_two",
+      "ratio_to": "dmg_base",
+      "min": 1.059,
+      "max": 1.061
+    },
+    {
+      "action": "assert",
+      "label": "Rank 1 spell hit chance rises ~2",
+      "actor": "rank_one",
+      "metric": "spell_hit_chance",
+      "relative_to": "hit_base",
+      "min": 1.99,
+      "max": 2.01
+    },
+    {
+      "action": "assert",
+      "label": "Rank 2 spell hit chance rises ~4",
+      "actor": "rank_two",
+      "metric": "spell_hit_chance",
+      "relative_to": "hit_base",
+      "min": 3.99,
+      "max": 4.01
+    }
+  ]
+}
