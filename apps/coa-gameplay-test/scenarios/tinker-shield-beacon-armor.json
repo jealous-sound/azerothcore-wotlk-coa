@@ -1,0 +1,74 @@
+{
+ "schema": 1,
+ "name": "Tinker Shield Beacon grants its armor (#4075)",
+ "contract": "A Tinker's Shield Beacon applies its armor aura to the Tinker standing near it, so armor rises above the unbuffed value.",
+ "timeout_ms": 60000,
+ "players": [
+  {
+   "id": "t",
+   "race": 1,
+   "class": 28,
+   "level": 15
+  }
+ ],
+ "location": {
+  "map": 0,
+  "x": -8917.41,
+  "y": -115.853,
+  "z": 82.3711,
+  "o": 0
+ },
+ "steps": [
+  {
+   "action": "wait",
+   "ms": 3000
+  },
+  {
+   "action": "learn",
+   "spell": 801799,
+   "actor": "t"
+  },
+  {
+   "action": "snapshot",
+   "save_as": "armor0",
+   "metric": "armor",
+   "actor": "t"
+  },
+  {
+   "action": "cast",
+   "spell": 801799,
+   "actor": "t"
+  },
+  {
+   "action": "wait",
+   "ms": 500
+  },
+  {
+   "action": "assert",
+   "label": "The beacon is out",
+   "metric": "owned_creature_count",
+   "actor": "t",
+   "entry": 50036,
+   "equals": 1,
+   "within_ms": 3000
+  },
+  {
+   "action": "assert",
+   "label": "The armor aura is applied to the Tinker",
+   "metric": "aura",
+   "spell": 801256,
+   "actor": "t",
+   "equals": 1,
+   "within_ms": 5000
+  },
+  {
+   "action": "assert",
+   "label": "Armor rises above the unbuffed value",
+   "metric": "armor",
+   "actor": "t",
+   "relative_to": "armor0",
+   "min": 150,
+   "within_ms": 3000
+  }
+ ]
+}
