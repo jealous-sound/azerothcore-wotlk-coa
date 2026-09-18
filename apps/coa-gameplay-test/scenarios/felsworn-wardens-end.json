@@ -1,0 +1,92 @@
+{
+  "schema": 1,
+  "name": "Warden's End shortens Manaburn and Illidan's Guile cooldowns by 21% (#2533)",
+  "contract": "Warden's End 705125 reduces the cooldown of Manaburn (805248, base 20000 ms) and Illidan's Guile (806109, base 300000 ms) by 20% (EffectBasePoints -21, die 1 => CalcValue -20, SPELLMOD_COOLDOWN).",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 14,
+      "level": 80
+    },
+    {
+      "id": "warden",
+      "race": 1,
+      "class": 14,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 805248
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 806109
+    },
+    {
+      "action": "learn",
+      "actor": "warden",
+      "spell": 805248
+    },
+    {
+      "action": "learn",
+      "actor": "warden",
+      "spell": 806109
+    },
+    {
+      "action": "learn",
+      "actor": "warden",
+      "spell": 705125
+    },
+    {
+      "action": "assert",
+      "label": "Manaburn cooldown without Warden's End",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 805248,
+      "op": 11,
+      "base": 20000,
+      "equals": 20000
+    },
+    {
+      "action": "assert",
+      "label": "Manaburn cooldown with Warden's End",
+      "actor": "warden",
+      "metric": "spell_modifier",
+      "spell": 805248,
+      "op": 11,
+      "base": 20000,
+      "equals": 16000
+    },
+    {
+      "action": "assert",
+      "label": "Illidan's Guile cooldown without Warden's End",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 806109,
+      "op": 11,
+      "base": 300000,
+      "equals": 300000
+    },
+    {
+      "action": "assert",
+      "label": "Illidan's Guile cooldown with Warden's End",
+      "actor": "warden",
+      "metric": "spell_modifier",
+      "spell": 806109,
+      "op": 11,
+      "base": 300000,
+      "equals": 240000
+    }
+  ]
+}
