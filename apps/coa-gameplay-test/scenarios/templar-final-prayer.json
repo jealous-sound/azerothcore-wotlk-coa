@@ -1,0 +1,20 @@
+{
+ "schema": 1,
+ "name": "Final Prayer doubles Testament healing (#2596)",
+ "contract": "Final Prayer 705268 doubles Testament healing two ways: a +100% SPELLMOD_EFFECT1 on Testament of Fortitude (500678), whose first effect restores 5% of maximum health per tick, and SPELL_AURA_MOD_HEALING_RECEIVED at +100% on the Testament of Faith mask. The core applies the second one in Unit::SpellHealingBonusTaken, and only when the healer is the unit that cast the aura, which matches the talent's wording 'healing done to you'. The harness measures the healing done by a caster, not the amount a victim receives, so that effect is proved by the applied aura amount.",
+ "timeout_ms": 90000,
+ "players": [
+  { "id": "control", "race": 1, "class": 19, "level": 80 },
+  { "id": "prayer", "race": 1, "class": 19, "level": 80 }
+ ],
+ "steps": [
+  { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+  { "action": "learn", "actor": "control", "spell": 500678 },
+  { "action": "learn", "actor": "prayer", "spell": 500678 },
+  { "action": "learn", "actor": "prayer", "spell": 705268 },
+  { "action": "assert", "label": "Untalented Testament of Fortitude restores 5%", "actor": "control", "metric": "spell_effect_value", "spell": 500678, "effect": 0, "equals": 5 },
+  { "action": "assert", "label": "Final Prayer doubles it to 10%", "actor": "prayer", "metric": "spell_effect_value", "spell": 500678, "effect": 0, "equals": 10 },
+  { "action": "assert", "label": "Final Prayer is applied", "actor": "prayer", "metric": "aura", "spell": 705268, "equals": 1 },
+  { "action": "assert", "label": "Its healing-received bonus is 100", "actor": "prayer", "metric": "aura_amount", "spell": 705268, "effect": 1, "equals": 100 }
+ ]
+}
