@@ -1,0 +1,103 @@
+{
+  "schema": 1,
+  "name": "Black Magic increases Ruin and Bane of Chaos damage by 10% or 20% (#1980)",
+  "contract": "Black Magic increases Ruin's direct damage (801895, SPELLMOD_DAMAGE) and Bane of Chaos's periodic damage (704368, SPELLMOD_DOT) by 10% (rank 1, 524950; EffectBasePoints 9, DieSides 1 -> CalcValue 10) or 20% (rank 2, 525079; EffectBasePoints 19 -> CalcValue 20), both consumed generically by Unit::SpellDamageBonusDone / Player::ApplySpellMod.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 14,
+      "level": 80
+    },
+    {
+      "id": "rank_one",
+      "race": 1,
+      "class": 14,
+      "level": 80
+    },
+    {
+      "id": "rank_two",
+      "race": 1,
+      "class": 14,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "spell_damage_done",
+      "spell": 801895,
+      "target": "control",
+      "save_as": "ruin_base"
+    },
+    {
+      "action": "learn",
+      "actor": "rank_one",
+      "spell": 524950
+    },
+    {
+      "action": "learn",
+      "actor": "rank_two",
+      "spell": 525079
+    },
+    {
+      "action": "assert",
+      "label": "Rank 1 Ruin damage +10%",
+      "actor": "rank_one",
+      "metric": "spell_damage_done",
+      "spell": 801895,
+      "target": "control",
+      "ratio_to": "ruin_base",
+      "min": 1.099,
+      "max": 1.101
+    },
+    {
+      "action": "assert",
+      "label": "Rank 2 Ruin damage +20%",
+      "actor": "rank_two",
+      "metric": "spell_damage_done",
+      "spell": 801895,
+      "target": "control",
+      "ratio_to": "ruin_base",
+      "min": 1.199,
+      "max": 1.201
+    },
+    {
+      "action": "assert",
+      "label": "Bane of Chaos DOT modifier unaffected without Black Magic",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 704368,
+      "op": 22,
+      "base": 1000,
+      "equals": 1000
+    },
+    {
+      "action": "assert",
+      "label": "Rank 1 Bane of Chaos DOT modifier +10%",
+      "actor": "rank_one",
+      "metric": "spell_modifier",
+      "spell": 704368,
+      "op": 22,
+      "base": 1000,
+      "equals": 1100
+    },
+    {
+      "action": "assert",
+      "label": "Rank 2 Bane of Chaos DOT modifier +20%",
+      "actor": "rank_two",
+      "metric": "spell_modifier",
+      "spell": 704368,
+      "op": 22,
+      "base": 1000,
+      "equals": 1200
+    }
+  ]
+}
