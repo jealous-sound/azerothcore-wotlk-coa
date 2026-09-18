@@ -9,6 +9,7 @@
 #include <map>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <unordered_map>
 #include <utility>
 
@@ -17,6 +18,7 @@ namespace AscensionCompatData
 std::vector<CoATalentEntry> CoATalentEntries;
 std::vector<CoASelectableFreeEntry> CoASelectableFreeEntries;
 std::vector<CoAAutomaticDependency> CoAAutomaticDependencies;
+std::vector<CoATalentBudget> CoATalentBudgets;
 
 namespace
 {
@@ -44,6 +46,16 @@ enum AdvancementField : uint32
     ADVANCEMENT_TAB          = 33,
 };
 
+// CharacterAdvancementEssence.dbc DWORDs: id, level, key, four match flags, the two cumulative point totals.
+enum EssenceField : uint32
+{
+    ESSENCE_LEVEL = 1,
+    ESSENCE_KEY   = 2,
+    ESSENCE_FLAGS = 3,
+    ESSENCE_AE    = 7,
+    ESSENCE_TE    = 8,
+};
+
 bool Contains(auto const& values, uint32 value)
 {
     return std::find(values.begin(), values.end(), value) != values.end();
@@ -65,19 +77,62 @@ struct Node
 };
 }
 
+bool GetCoATalentBudget(std::uint8_t classId, std::uint8_t level, std::uint32_t& ae, std::uint32_t& te)
+{
+    CoATalentBudget const* row = nullptr;
+    for (CoATalentBudget const& budget : CoATalentBudgets)
+    {
+        if (budget.ClassId != classId || budget.Level > level)
+            continue;
+        if (!row || budget.Level > row->Level)
+            row = &budget;
+    }
+    if (!row)
+        return false;
+
+    ae = row->AE;
+    te = row->TE;
+    return true;
+}
+
 bool LoadCoATalentData()
 {
     CoATalentEntries.clear();
     CoASelectableFreeEntries.clear();
     CoAAutomaticDependencies.clear();
+    CoATalentBudgets.clear();
 
-    ClientDBC classes, classTypes, tabTypes, specs, advancement;
+    ClientDBC classes, classTypes, tabTypes, specs, advancement, essence;
     if (!classes.Load(GetClientDBCPath("ChrClasses.dbc"), 56) ||
         !classTypes.Load(GetClientDBCPath("CharacterAdvancementClassTypes.dbc"), 5) ||
         !tabTypes.Load(GetClientDBCPath("CharacterAdvancementTabTypes.dbc"), 2) ||
         !specs.Load(GetClientDBCPath("ChrSpecs.dbc"), 29) ||
-        !advancement.Load(GetClientDBCPath("CharacterAdvancement.dbc"), ADVANCEMENT_TAB + 1))
+        !advancement.Load(GetClientDBCPath("CharacterAdvancement.dbc"), ADVANCEMENT_TAB + 1) ||
+        !essence.Load(GetClientDBCPath("CharacterAdvancementEssence.dbc"), ESSENCE_TE + 1))
         return false;
+
+    // The essence table holds one 80-level family per (key, flags). The client reads the family whose key is
+    // the character's class id with every flag clear; the custom classes are ids 12 to 32.
+    for (uint32 row = 0; row < essence.GetRecordCount(); ++row)
+    {
+        ClientDBC::Record record = essence.GetRecord(row);
+        uint32 const key = record.GetUInt32(ESSENCE_KEY);
+        uint32 const level = record.GetUInt32(ESSENCE_LEVEL);
+        if (key < 12 || key > 32 || !level || level > 255)
+            continue;
+        if (record.GetUInt32(ESSENCE_FLAGS) || record.GetUInt32(ESSENCE_FLAGS + 1) ||
+            record.GetUInt32(ESSENCE_FLAGS + 2) || record.GetUInt32(ESSENCE_FLAGS + 3))
+            continue;
+
+        CoATalentBudgets.push_back({ uint8(key), uint8(level),
+            uint8(std::min<uint32>(record.GetUInt32(ESSENCE_AE), 255)),
+            uint8(std::min<uint32>(record.GetUInt32(ESSENCE_TE), 255)) });
+    }
+    std::sort(CoATalentBudgets.begin(), CoATalentBudgets.end(),
+        [](CoATalentBudget const& left, CoATalentBudget const& right)
+        {
+            return std::tie(left.ClassId, left.Level) < std::tie(right.ClassId, right.Level);
+        });
 
     std::unordered_map<uint32, std::string> classTokens;
     for (uint32 row = 0; row < classes.GetRecordCount(); ++row)
@@ -215,8 +270,10 @@ bool LoadCoATalentData()
         CoAAutomaticDependencies.push_back(dependency);
     }
 
-    LOG_INFO("module.ascension_compat", "Loaded {} CoA talent entries ({} selectable free, {} automatic dependencies)",
-        CoATalentEntries.size(), CoASelectableFreeEntries.size(), CoAAutomaticDependencies.size());
+    LOG_INFO("module.ascension_compat",
+        "Loaded {} CoA talent entries ({} selectable free, {} automatic dependencies, {} budget rows)",
+        CoATalentEntries.size(), CoASelectableFreeEntries.size(), CoAAutomaticDependencies.size(),
+        CoATalentBudgets.size());
     return true;
 }
 }
