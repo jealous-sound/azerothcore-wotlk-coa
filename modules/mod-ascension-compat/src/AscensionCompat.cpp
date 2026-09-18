@@ -104,8 +104,12 @@ using namespace Acore::ChatCommands;
 
 namespace {
 constexpr uint16 CMSG_ANTICHEAT_ALERT = 0x051F;
-constexpr uint16 CMSG_VANITY_DELIVERY = 0x0523;
-constexpr uint16 CMSG_CREATURE_ASSET_QUERY_MULTIPLE = 0x061A;
+// The Character Advancement point purchase. Never observed on this realm: the patch-B
+// Lua shim overrides AddByEntryID/ApplyPendingBuild and sends ".localtalent" instead,
+// so the client never reaches the native send. Answering this opcode is what retires
+// that shim; until then it is listed only so the packet log names it correctly.
+constexpr uint16 CMSG_CUSTOM_ASCENSION_POINT_SPEND_REQUEST = 0x0523;
+constexpr uint16 CMSG_CREATURE_QUERY_BULK = 0x061A;
 constexpr uint16 CMSG_APPLY_APPEARANCES = 0x0697;
 constexpr uint16 SMSG_APPLY_APPEARANCES_RESULT = 0x0698;
 constexpr uint16 SMSG_APPEARANCE_COLLECTION_INFO = 0x0699;
@@ -131,10 +135,11 @@ constexpr uint16 CMSG_MISSILE_FIRE_POSITION = 0x09C7;
 // guild-vault object sends the ordinary CMSG_GUILD_BANKER_ACTIVATE, and the
 // server answers with SMSG_BANK_PERMISSIONS so the frame presents itself as the
 // character's own bank (purchasable tabs, depositable soulbound items) instead of
-// a guild's. The id comes from the client's own opcode table in Extensions.dll:
-// it is a contiguous array of name stubs indexed by id - 1, so
-// `id = index + 1`, which resolves every opcode seen in this realm's packet log
-// (0x0741 = CMSG_GOSSIP_CLOSE, 0x061B = CMSG_ITEM_QUERY_BULK, and the ids below).
+// a guild's. The id comes from the client's own opcode table in Extensions.dll: an
+// array of `mov eax, <name>; ret` stubs at file 0x2c3ea6, indexed by the pointer
+// array at file 0x2c6ef0, where the opcode id is the 0-based index into that array.
+// Decoded in .agents/plans/coa-cad-protocol/; it reproduces every opcode seen in this
+// realm's packet log exactly (0x0741 = CMSG_GOSSIP_CLOSE, 0x061B = CMSG_ITEM_QUERY_BULK).
 constexpr uint16 SMSG_BANK_PERMISSIONS = 0x0769;
 
 struct ExtensionOpcodeIdentity {
@@ -144,7 +149,7 @@ struct ExtensionOpcodeIdentity {
 
 constexpr ExtensionOpcodeIdentity EXTENSION_OPCODES[] = {
     {CMSG_ANTICHEAT_ALERT, "CMSG_ANTICHEAT_ALERT"},
-    {CMSG_VANITY_DELIVERY, "CMSG_VANITY_DELIVERY"},
+    {CMSG_CUSTOM_ASCENSION_POINT_SPEND_REQUEST, "CMSG_CUSTOM_ASCENSION_POINT_SPEND_REQUEST"},
     {0x053B, "CMSG_ASCENSIONGM_TICKET_LIST_REQUEST"},
     {0x0561, "CMSG_EXTENSION_INITIALIZED"},
     {0x05A1, "CMSG_CHALLENGE_QUERY_FAILURE"},
@@ -270,7 +275,6 @@ constexpr std::array<std::pair<uint32, uint32>, 1> REAPER_ONE_SOUL_CONSUMERS =
     {500361, 500361} // Sanguine Orb
 }};
 
-constexpr uint8 VANITY_DELIVERY_ACTION = 2;
 constexpr std::size_t APPEARANCE_CATEGORY_COUNT = 69;
 constexpr uint32 APPEARANCE_CATEGORY_AMMUNITION = 32;
 // The copied 3.3.5 client supports the 23-bit extended world-packet header.
@@ -3519,9 +3523,6 @@ private:
       case CMSG_SET_CAN_SEE_APPEARANCES:
         HandleSetAppearanceVisibility(player, packet);
         break;
-      case CMSG_VANITY_DELIVERY:
-        HandleVanityDelivery(player, packet);
-        break;
       default:
         break;
       }
@@ -3619,16 +3620,6 @@ private:
 
     RefreshVisibleItems(player);
     SendAppearanceVisibility(player, *state);
-  }
-
-  void HandleVanityDelivery(Player *player, WorldPacket &packet) {
-    uint8 action = 0;
-    uint32 itemId = 0;
-    packet >> action >> itemId;
-    if (action != VANITY_DELIVERY_ACTION)
-      return;
-
-    DeliverLocalVanityItem(player, itemId);
   }
 
   void SaveActiveAppearances(Player *player,
@@ -4313,7 +4304,7 @@ public:
     if (opcode == CMSG_ANTICHEAT_ALERT)
       return true;
 
-    if (opcode == CMSG_CREATURE_ASSET_QUERY_MULTIPLE)
+    if (opcode == CMSG_CREATURE_QUERY_BULK)
     {
         constexpr uint32 maxCreatureQueries = 256;
         if (!session || packet.size() < sizeof(uint32))
@@ -4356,8 +4347,7 @@ public:
       return false;
 
     if (opcode == CMSG_APPLY_APPEARANCES ||
-        opcode == CMSG_SET_CAN_SEE_APPEARANCES ||
-        opcode == CMSG_VANITY_DELIVERY) {
+        opcode == CMSG_SET_CAN_SEE_APPEARANCES) {
       AscensionCollectionService::Instance().QueueClientPacket(
           session->GetAccountId(), packet);
     }
