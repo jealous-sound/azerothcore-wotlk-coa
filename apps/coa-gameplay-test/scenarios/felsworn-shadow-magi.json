@@ -1,0 +1,92 @@
+{
+  "schema": 1,
+  "name": "Shadow Magi shortens Annihilation and Sunder cooldowns (#1036)",
+  "contract": "Shadow Magi 803905 adds flat SPELLMOD_COOLDOWN reductions by classmask: -15000 ms on Annihilation (803904, base 60000 ms) and -4000 ms on Sunder (705121, base 8000 ms).",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 14,
+      "level": 80
+    },
+    {
+      "id": "magi",
+      "race": 1,
+      "class": 14,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 803904
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 705121
+    },
+    {
+      "action": "learn",
+      "actor": "magi",
+      "spell": 803904
+    },
+    {
+      "action": "learn",
+      "actor": "magi",
+      "spell": 705121
+    },
+    {
+      "action": "learn",
+      "actor": "magi",
+      "spell": 803905
+    },
+    {
+      "action": "assert",
+      "label": "Untalented Annihilation cooldown",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 803904,
+      "op": 11,
+      "base": 60000,
+      "equals": 60000
+    },
+    {
+      "action": "assert",
+      "label": "Talented Annihilation cooldown -15 sec",
+      "actor": "magi",
+      "metric": "spell_modifier",
+      "spell": 803904,
+      "op": 11,
+      "base": 60000,
+      "equals": 45000
+    },
+    {
+      "action": "assert",
+      "label": "Untalented Sunder cooldown",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 705121,
+      "op": 11,
+      "base": 8000,
+      "equals": 8000
+    },
+    {
+      "action": "assert",
+      "label": "Talented Sunder cooldown -4 sec",
+      "actor": "magi",
+      "metric": "spell_modifier",
+      "spell": 705121,
+      "op": 11,
+      "base": 8000,
+      "equals": 4000
+    }
+  ]
+}
