@@ -1,0 +1,24 @@
+{
+ "schema": 1,
+ "name": "Holy Constitution raises damage against Undead (#3058)",
+ "contract": "Holy Constitution 706323 applies SPELL_AURA_MOD_DAMAGE_DONE_CREATURE with misc value 32 (Undead) and a level-scaled amount, plus SPELL_AURA_MOD_DEBUFF_RESISTANCE for 30% against disease. The core adds the creature bonus in Unit::MeleeDamageBonusDone, so it is measured on a weapon swing against an Undead target and must not reach the Humanoid control.",
+ "timeout_ms": 120000,
+ "players": [
+  { "id": "templar", "race": 1, "class": 19, "level": 80 }
+ ],
+ "creatures": [
+  { "id": "undead", "owner": "templar", "entry": 10404, "level": 80 },
+  { "id": "humanoid", "owner": "templar", "entry": 1601, "level": 80, "distance": 6 }
+ ],
+ "steps": [
+  { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 6000 },
+  { "action": "add_item", "actor": "templar", "item": 25 },
+  { "action": "equip", "actor": "templar", "item": 25, "slot": 15 },
+  { "action": "snapshot", "actor": "templar", "metric": "melee_damage_done", "target": "humanoid", "save_as": "humanoid_base" },
+  { "action": "snapshot", "actor": "templar", "metric": "melee_damage_done", "target": "undead", "save_as": "undead_base" },
+  { "action": "learn", "actor": "templar", "spell": 706323 },
+  { "action": "assert", "label": "The Humanoid control is unchanged", "actor": "templar", "metric": "melee_damage_done", "target": "humanoid", "relative_to": "humanoid_base", "max": 0.5 },
+  { "action": "assert", "label": "The Undead target takes the creature bonus", "actor": "templar", "metric": "melee_damage_done", "target": "undead", "relative_to": "undead_base", "min": 40 },
+  { "action": "assert", "label": "Disease resistance rises by 30", "actor": "templar", "metric": "aura_amount", "spell": 706323, "effect": 1, "equals": 30 }
+ ]
+}
