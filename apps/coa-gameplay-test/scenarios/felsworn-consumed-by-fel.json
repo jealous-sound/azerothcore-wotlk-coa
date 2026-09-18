@@ -1,0 +1,73 @@
+{
+  "schema": 1,
+  "name": "Consumed By Fel leaves Immolation's tick damage unchanged and speeds up its tick interval (#1604)",
+  "contract": "Consumed By Fel 300485 has two SPELLMOD_DAMAGE/SPELLMOD_ACTIVATION_TIME (op0/op19) percent SpellMods matching each spell's family20 classMask3 bits 9 and 11. The DAMAGE mod on Immolation (800208) stores EffectBasePoints -1 with DieSides 1, which SpellEffectInfo::CalcValue resolves to 0 (the -1 -> 0 rounding case), so it leaves Immolation's direct-damage tick unchanged (0%), not the '-1%' the tooltip implies. The ACTIVATION_TIME mod on Immolation Aura (800207) stores EffectBasePoints -26, DieSides 1 -> CalcValue -25, shortening its 3000ms tick interval by 25%, not 26%.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 4,
+      "class": 14,
+      "level": 80
+    },
+    {
+      "id": "consumed_by_fel",
+      "race": 4,
+      "class": 14,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "consumed_by_fel",
+      "spell": 300485
+    },
+    {
+      "action": "assert",
+      "label": "Base Immolation tick damage is unaffected",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 800208,
+      "op": 0,
+      "base": 1000,
+      "equals": 1000
+    },
+    {
+      "action": "assert",
+      "label": "Consumed By Fel's Immolation tick-damage modifier resolves to 0% (EffectBasePoints -1, DieSides 1 -> CalcValue 0)",
+      "actor": "consumed_by_fel",
+      "metric": "spell_modifier",
+      "spell": 800208,
+      "op": 0,
+      "base": 1000,
+      "equals": 1000
+    },
+    {
+      "action": "assert",
+      "label": "Base Immolation Aura tick interval is unaffected",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 800207,
+      "op": 19,
+      "base": 3000,
+      "equals": 3000
+    },
+    {
+      "action": "assert",
+      "label": "Consumed By Fel shortens Immolation Aura's tick interval by 25%",
+      "actor": "consumed_by_fel",
+      "metric": "spell_modifier",
+      "spell": 800207,
+      "op": 19,
+      "base": 3000,
+      "min": 2249,
+      "max": 2251
+    }
+  ]
+}
