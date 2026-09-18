@@ -1,0 +1,104 @@
+{
+  "schema": 1,
+  "name": "Unbound converts Agility into dodge, critical strike and hit rating (#2179)",
+  "contract": "Unbound 574153 adds dodge rating (mask bit 2), critical strike rating for melee/ranged/spell (mask bits 8-10) and hit rating for melee/ranged/spell (mask bits 5-7), each a percentage of Agility, via native SPELL_AURA_MOD_RATING_FROM_STAT (aura 220).",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 14,
+      "level": 80
+    },
+    {
+      "id": "unbound",
+      "race": 1,
+      "class": 14,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "snapshot",
+      "actor": "unbound",
+      "metric": "combat_rating",
+      "save_as": "dodge",
+      "rating": 2
+    },
+    {
+      "action": "snapshot",
+      "actor": "unbound",
+      "metric": "combat_rating",
+      "save_as": "parry",
+      "rating": 3
+    },
+    {
+      "action": "snapshot",
+      "actor": "unbound",
+      "metric": "combat_rating",
+      "save_as": "hit_melee",
+      "rating": 5
+    },
+    {
+      "action": "snapshot",
+      "actor": "unbound",
+      "metric": "combat_rating",
+      "save_as": "crit_melee",
+      "rating": 8
+    },
+    {
+      "action": "learn",
+      "actor": "unbound",
+      "spell": 574153
+    },
+    {
+      "action": "assert",
+      "label": "Dodge rating rises",
+      "actor": "unbound",
+      "metric": "combat_rating",
+      "rating": 2,
+      "relative_to": "dodge",
+      "min": 1
+    },
+    {
+      "action": "assert",
+      "label": "Melee hit rating rises",
+      "actor": "unbound",
+      "metric": "combat_rating",
+      "rating": 5,
+      "relative_to": "hit_melee",
+      "min": 1
+    },
+    {
+      "action": "assert",
+      "label": "Melee crit rating rises",
+      "actor": "unbound",
+      "metric": "combat_rating",
+      "rating": 8,
+      "relative_to": "crit_melee",
+      "min": 1
+    },
+    {
+      "action": "assert",
+      "label": "Parry rating is unchanged",
+      "actor": "unbound",
+      "metric": "combat_rating",
+      "rating": 3,
+      "relative_to": "parry",
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "Control never learned Unbound",
+      "actor": "control",
+      "metric": "combat_rating",
+      "rating": 2,
+      "equals": 0
+    }
+  ]
+}
