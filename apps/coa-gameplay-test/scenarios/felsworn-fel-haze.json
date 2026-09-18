@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "name": "Fel Haze grants Blood of Mannoroth full armor penetration (#788)",
+  "contract": "Fel Haze 803903 is SPELL_AURA_ADD_FLAT_MODIFIER (misc=3, SPELLMOD_EFFECT1) with EffectBasePoints=99, DieSides=1, real amount 99+1=100. Its classmask (family 20, dword0 bit21) matches Blood of Mannoroth 802075 by SpellFamilyFlags. Blood of Mannoroth's own effect 0 (SPELL_AURA_MOD_ARMOR_PENETRATION_PCT) has EffectBasePoints=-1, DieSides=1 (a zero-value filler, real amount 0), so the generic Unit::ApplyEffectModifiers path raises its computed value from 0 to 100 (full penetration) once Fel Haze is learned.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 4,
+      "class": 14,
+      "level": 80
+    },
+    {
+      "id": "haze",
+      "race": 4,
+      "class": 14,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "haze",
+      "spell": 803903
+    },
+    {
+      "action": "assert",
+      "label": "Blood of Mannoroth's armor penetration without Fel Haze",
+      "actor": "control",
+      "metric": "spell_effect_value",
+      "spell": 802075,
+      "effect": 0,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "Blood of Mannoroth's armor penetration with Fel Haze (full, +100)",
+      "actor": "haze",
+      "metric": "spell_effect_value",
+      "spell": 802075,
+      "effect": 0,
+      "equals": 100
+    }
+  ]
+}
