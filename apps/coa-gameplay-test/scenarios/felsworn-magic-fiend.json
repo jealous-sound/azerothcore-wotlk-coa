@@ -1,0 +1,62 @@
+{
+  "schema": 1,
+  "name": "Magic Fiend increases Consume Magic's steal count (#1147)",
+  "contract": "Consume Magic (800353) steals 1 beneficial effect by default (effect-0 base value). Magic Fiend 704613 adds a flat SPELLMOD_EFFECT1 of +1 by classmask, raising it to 2.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 14,
+      "level": 80
+    },
+    {
+      "id": "fiend",
+      "race": 1,
+      "class": 14,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 800353
+    },
+    {
+      "action": "learn",
+      "actor": "fiend",
+      "spell": 800353
+    },
+    {
+      "action": "learn",
+      "actor": "fiend",
+      "spell": 704613
+    },
+    {
+      "action": "assert",
+      "label": "Untalented: Consume Magic steals 1 effect",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 800353,
+      "op": 3,
+      "base": 1,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "label": "Talented: Consume Magic steals 2 effects",
+      "actor": "fiend",
+      "metric": "spell_modifier",
+      "spell": 800353,
+      "op": 3,
+      "base": 1,
+      "equals": 2
+    }
+  ]
+}
