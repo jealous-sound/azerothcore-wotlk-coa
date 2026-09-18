@@ -1,0 +1,98 @@
+{
+  "schema": 1,
+  "name": "Gul'dan's Gift raises Skull of Gul'dan's effectiveness and cooldown (#3417)",
+  "contract": "Gul'dan's Gift 804609 adds 49% (resolved 50% via the DieSides==1 +1 rule) to every effect of Skull of Gul'dan (800225, base 24% resolved 25% via the same rule) via SPELLMOD_ALL_EFFECTS, giving 25*1.5=37 (int truncation), and adds a flat 29999 ms (resolved 30000 ms) to its 90000 ms cooldown via SPELLMOD_COOLDOWN, giving 120000 ms.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 14,
+      "level": 80
+    },
+    {
+      "id": "gift",
+      "race": 1,
+      "class": 14,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 800225
+    },
+    {
+      "action": "learn",
+      "actor": "gift",
+      "spell": 800225
+    },
+    {
+      "action": "learn",
+      "actor": "gift",
+      "spell": 804609
+    },
+    {
+      "action": "assert",
+      "label": "Skull of Gul'dan max health effect without Gul'dan's Gift",
+      "actor": "control",
+      "metric": "spell_effect_value",
+      "spell": 800225,
+      "effect": 0,
+      "equals": 25
+    },
+    {
+      "action": "assert",
+      "label": "Skull of Gul'dan max health effect with Gul'dan's Gift",
+      "actor": "gift",
+      "metric": "spell_effect_value",
+      "spell": 800225,
+      "effect": 0,
+      "equals": 37
+    },
+    {
+      "action": "assert",
+      "label": "Skull of Gul'dan max Energy effect without Gul'dan's Gift",
+      "actor": "control",
+      "metric": "spell_effect_value",
+      "spell": 800225,
+      "effect": 1,
+      "equals": 25
+    },
+    {
+      "action": "assert",
+      "label": "Skull of Gul'dan max Energy effect with Gul'dan's Gift",
+      "actor": "gift",
+      "metric": "spell_effect_value",
+      "spell": 800225,
+      "effect": 1,
+      "equals": 37
+    },
+    {
+      "action": "assert",
+      "label": "Skull of Gul'dan cooldown without Gul'dan's Gift",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 800225,
+      "op": 11,
+      "base": 90000,
+      "equals": 90000
+    },
+    {
+      "action": "assert",
+      "label": "Skull of Gul'dan cooldown with Gul'dan's Gift",
+      "actor": "gift",
+      "metric": "spell_modifier",
+      "spell": 800225,
+      "op": 11,
+      "base": 90000,
+      "equals": 120000
+    }
+  ]
+}
