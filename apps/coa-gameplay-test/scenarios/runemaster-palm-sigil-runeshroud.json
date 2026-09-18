@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "name": "Issue 4017: Palm Sigil cannot be cast while in Runeshroud",
+  "contract": "Palm Sigil (805380/805381/805382) is natively gated by CasterAuraSpell=808089, a marker named 'Runeshroud or Waveforged' that nothing else grants. SyncRuneshroudOrWaveforged mirrors Runeshroud (500288) / Waveforged (705565) onto that marker.",
+  "timeout_ms": 90000,
+  "players": [
+    { "id": "runemaster", "race": 1, "class": 32, "level": 20 }
+  ],
+  "steps": [
+    { "action": "wait", "ms": 5000 },
+    { "action": "learn", "spell": 805380, "actor": "runemaster" },
+    {
+      "action": "assert",
+      "label": "no marker before Runeshroud",
+      "metric": "aura",
+      "spell": 808089,
+      "equals": 0,
+      "actor": "runemaster"
+    },
+    { "action": "cast", "spell": 805380, "actor": "runemaster" },
+    {
+      "action": "assert",
+      "label": "Palm Sigil fails without Runeshroud/Waveforged",
+      "metric": "aura",
+      "spell": 805380,
+      "equals": 0,
+      "within_ms": 1000,
+      "actor": "runemaster"
+    },
+    { "action": "set_aura", "spell": 500288, "stacks": 1, "actor": "runemaster" },
+    {
+      "action": "assert",
+      "label": "Runeshroud syncs the marker",
+      "metric": "aura",
+      "spell": 808089,
+      "equals": 1,
+      "within_ms": 1000,
+      "actor": "runemaster"
+    },
+    { "action": "cast", "spell": 805380, "actor": "runemaster" },
+    {
+      "action": "assert",
+      "label": "Palm Sigil succeeds while in Runeshroud",
+      "metric": "aura",
+      "spell": 805380,
+      "equals": 1,
+      "within_ms": 2000,
+      "actor": "runemaster"
+    },
+    { "action": "set_aura", "spell": 500288, "stacks": 0, "actor": "runemaster" },
+    {
+      "action": "assert",
+      "label": "marker clears when Runeshroud ends",
+      "metric": "aura",
+      "spell": 808089,
+      "equals": 0,
+      "within_ms": 1000,
+      "actor": "runemaster"
+    }
+  ]
+}
