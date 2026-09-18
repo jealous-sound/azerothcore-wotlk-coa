@@ -1,0 +1,21 @@
+{
+ "schema": 1,
+ "name": "Pious raises every primary attribute by 5% (#3066)",
+ "contract": "Pious 706431 applies SPELL_AURA_MOD_TOTAL_STAT_PERCENTAGE with misc value -1 (all stats) for 5%, so each of the Templar's five primary attributes rises by 5%.",
+ "timeout_ms": 90000,
+ "players": [
+  { "id": "pious", "race": 1, "class": 19, "level": 80 }
+ ],
+ "steps": [
+  { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+  { "action": "snapshot", "actor": "pious", "metric": "stat", "stat": 0, "save_as": "strength_base" },
+  { "action": "snapshot", "actor": "pious", "metric": "stat", "stat": 1, "save_as": "agility_base" },
+  { "action": "snapshot", "actor": "pious", "metric": "stat", "stat": 2, "save_as": "stamina_base" },
+  { "action": "snapshot", "actor": "pious", "metric": "stat", "stat": 3, "save_as": "intellect_base" },
+  { "action": "learn", "actor": "pious", "spell": 706431 },
+  { "action": "assert", "label": "Strength rises by 5%", "actor": "pious", "metric": "stat", "stat": 0, "ratio_to": "strength_base", "min": 1.04, "max": 1.06 },
+  { "action": "assert", "label": "Agility rises by 5%", "actor": "pious", "metric": "stat", "stat": 1, "ratio_to": "agility_base", "min": 1.04, "max": 1.06 },
+  { "action": "assert", "label": "Stamina rises by 5%", "actor": "pious", "metric": "stat", "stat": 2, "ratio_to": "stamina_base", "min": 1.04, "max": 1.06 },
+  { "action": "assert", "label": "Intellect rises by 5%", "actor": "pious", "metric": "stat", "stat": 3, "ratio_to": "intellect_base", "min": 1.04, "max": 1.06 }
+ ]
+}
