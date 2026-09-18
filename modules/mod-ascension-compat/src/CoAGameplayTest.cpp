@@ -798,6 +798,15 @@ private:
             return metric == "quest_status" ? double(player->GetQuestStatus(quest))
                 : double(player->CanTakeQuest(questTemplate, false));
         }
+        if (metric == "quest_objective_count")
+        {
+            // Progress on one objective (zero-based `index`, default 0) of a quest in the log.
+            uint16 slot = player->FindQuestSlot(step.get<uint32>("quest"));
+            Require(slot < MAX_QUEST_LOG_SIZE, "Quest is not in the quest log");
+            uint32 index = step.get<uint32>("index", 0);
+            Require(index < QUEST_OBJECTIVES_COUNT, "Invalid quest objective index");
+            return double(player->GetQuestSlotCounter(slot, index));
+        }
         if (metric == "dialog_status")
         {
             // The mark the client draws over a quest giver, as the server would send it.
@@ -962,8 +971,10 @@ private:
                             Require(player->AddItem(quest->RequiredItemId[index], quest->RequiredItemCount[index] - held),
                                 "Cannot grant quest objective item");
                     }
-                // Fixture setup skips objective gameplay; reward eligibility and delivery remain native.
-                player->CompleteQuest(quest->GetQuestId());
+                // Fixture setup skips objective gameplay unless `complete` is false; reward eligibility and delivery
+                // remain native.
+                if (step.get<bool>("complete", true))
+                    player->CompleteQuest(quest->GetQuestId());
             }
             else
             {

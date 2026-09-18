@@ -1,0 +1,181 @@
+{
+ "schema": 1,
+ "name": "Witch Hill: Risen Husk and Spirit deaths credit the quest",
+ "contract": "Each Risen Spirit or Risen Husk the player kills credits the Information Gathered objective of quest 11180 (the credit spell must be cast by the killer, not by the dying creature).",
+ "timeout_ms": 90000,
+ "players": [
+  {
+   "id": "p",
+   "race": 2,
+   "class": 1,
+   "level": 80,
+   "melee_hit_rating": 10000,
+   "expertise_rating": 10000
+  }
+ ],
+ "creatures": [
+  {
+   "id": "h0",
+   "owner": "p",
+   "entry": 23554,
+   "level": 30,
+   "distance": 3
+  },
+  {
+   "id": "h1",
+   "owner": "p",
+   "entry": 23555,
+   "level": 30,
+   "distance": 3
+  },
+  {
+   "id": "h2",
+   "owner": "p",
+   "entry": 23554,
+   "level": 30,
+   "distance": 3
+  },
+  {
+   "id": "h3",
+   "owner": "p",
+   "entry": 23555,
+   "level": 30,
+   "distance": 3
+  },
+  {
+   "id": "h4",
+   "owner": "p",
+   "entry": 23554,
+   "level": 30,
+   "distance": 3
+  },
+  {
+   "id": "h5",
+   "owner": "p",
+   "entry": 23555,
+   "level": 30,
+   "distance": 3
+  }
+ ],
+ "location": {
+  "map": 1,
+  "x": -2907.0,
+  "y": -3236.0,
+  "z": 34.0,
+  "o": 0
+ },
+ "steps": [
+  {
+   "action": "wait",
+   "ms": 3000
+  },
+  {
+   "action": "prepare_quest",
+   "actor": "p",
+   "quest": 11180,
+   "complete": false
+  },
+  {
+   "action": "assert",
+   "label": "Quest is in the log",
+   "actor": "p",
+   "metric": "quest_status",
+   "quest": 11180,
+   "equals": 3
+  },
+  {
+   "action": "set_health",
+   "actor": "h0",
+   "value": 1
+  },
+  {
+   "action": "attack",
+   "actor": "p",
+   "target": "h0"
+  },
+  {
+   "action": "wait",
+   "ms": 2500
+  },
+  {
+   "action": "set_health",
+   "actor": "h1",
+   "value": 1
+  },
+  {
+   "action": "attack",
+   "actor": "p",
+   "target": "h1"
+  },
+  {
+   "action": "wait",
+   "ms": 2500
+  },
+  {
+   "action": "set_health",
+   "actor": "h2",
+   "value": 1
+  },
+  {
+   "action": "attack",
+   "actor": "p",
+   "target": "h2"
+  },
+  {
+   "action": "wait",
+   "ms": 2500
+  },
+  {
+   "action": "set_health",
+   "actor": "h3",
+   "value": 1
+  },
+  {
+   "action": "attack",
+   "actor": "p",
+   "target": "h3"
+  },
+  {
+   "action": "wait",
+   "ms": 2500
+  },
+  {
+   "action": "set_health",
+   "actor": "h4",
+   "value": 1
+  },
+  {
+   "action": "attack",
+   "actor": "p",
+   "target": "h4"
+  },
+  {
+   "action": "wait",
+   "ms": 2500
+  },
+  {
+   "action": "set_health",
+   "actor": "h5",
+   "value": 1
+  },
+  {
+   "action": "attack",
+   "actor": "p",
+   "target": "h5"
+  },
+  {
+   "action": "wait",
+   "ms": 2500
+  },
+  {
+   "action": "assert",
+   "label": "Each kill counts towards the objective",
+   "actor": "p",
+   "metric": "quest_objective_count",
+   "quest": 11180,
+   "index": 0,
+   "equals": 6,
+   "within_ms": 3000
+  }
+ ]
+}
