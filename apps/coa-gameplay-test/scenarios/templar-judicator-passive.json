@@ -1,0 +1,19 @@
+{
+ "schema": 1,
+ "name": "Judicator raises parry and dodge (#3065)",
+ "contract": "Judicator 706359 applies SPELL_AURA_MOD_PARRY_PERCENT and SPELL_AURA_MOD_DODGE_PERCENT for 3 percentage points each. Dodge is compared against an identical control Templar; the parry field only exists for a character the server has already marked able to parry, so that effect is proved by the applied aura amount.",
+ "timeout_ms": 90000,
+ "players": [
+  { "id": "control", "race": 1, "class": 19, "level": 80 },
+  { "id": "judicator", "race": 1, "class": 19, "level": 80 }
+ ],
+ "steps": [
+  { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+  { "action": "learn", "actor": "judicator", "spell": 706359 },
+  { "action": "assert", "label": "Judicator is applied", "actor": "judicator", "metric": "aura", "spell": 706359, "equals": 1 },
+  { "action": "assert", "label": "Its parry bonus is 3", "actor": "judicator", "metric": "aura_amount", "spell": 706359, "effect": 0, "equals": 3 },
+  { "action": "assert", "label": "Its dodge bonus is 3", "actor": "judicator", "metric": "aura_amount", "spell": 706359, "effect": 1, "equals": 3 },
+  { "action": "snapshot", "actor": "control", "metric": "dodge_chance", "save_as": "dodge_control" },
+  { "action": "assert", "label": "Dodge rises by 3 against the control", "actor": "judicator", "metric": "dodge_chance", "relative_to": "dodge_control", "min": 2.9, "max": 3.1 }
+ ]
+}
