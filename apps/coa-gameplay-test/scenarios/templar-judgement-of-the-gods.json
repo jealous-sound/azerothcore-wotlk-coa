@@ -1,0 +1,18 @@
+{
+ "schema": 1,
+ "name": "Judgement of the Gods raises Titanstrike's critical chance (#1973)",
+ "contract": "Judgement of the Gods 524767 is a flat SPELLMOD_CRITICAL_CHANCE passive of +50 on the Titanstrike family mask, so Titanstrike rank 1 (806521) gains 50 percentage points of critical chance.",
+ "timeout_ms": 90000,
+ "players": [
+  { "id": "control", "race": 1, "class": 19, "level": 80 },
+  { "id": "judge", "race": 1, "class": 19, "level": 80 }
+ ],
+ "steps": [
+  { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+  { "action": "learn", "actor": "control", "spell": 806521 },
+  { "action": "learn", "actor": "judge", "spell": 806521 },
+  { "action": "learn", "actor": "judge", "spell": 524767 },
+  { "action": "assert", "label": "Untalented Titanstrike gets no critical bonus", "actor": "control", "metric": "spell_modifier", "spell": 806521, "op": 7, "base": 0, "equals": 0 },
+  { "action": "assert", "label": "Judgement of the Gods adds 50", "actor": "judge", "metric": "spell_modifier", "spell": 806521, "op": 7, "base": 0, "equals": 50 }
+ ]
+}
