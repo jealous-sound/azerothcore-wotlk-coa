@@ -1,0 +1,18 @@
+{
+ "schema": 1,
+ "name": "Titanfall doubles Titanstrike's leech (#1679)",
+ "contract": "Titanstrike rank 1 (806521) leeches health with an effect value multiplier of 1. Titanfall 300607 is a +100% SPELLMOD_VALUE_MULTIPLIER passive on the Titanstrike family mask, so the multiplier becomes 2 and the strike heals twice the damage dealt.",
+ "timeout_ms": 90000,
+ "players": [
+  { "id": "control", "race": 1, "class": 19, "level": 80 },
+  { "id": "titan", "race": 1, "class": 19, "level": 80 }
+ ],
+ "steps": [
+  { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+  { "action": "learn", "actor": "control", "spell": 806521 },
+  { "action": "learn", "actor": "titan", "spell": 806521 },
+  { "action": "learn", "actor": "titan", "spell": 300607 },
+  { "action": "assert", "label": "Untalented Titanstrike keeps its multiplier", "actor": "control", "metric": "spell_modifier", "spell": 806521, "op": 27, "base": 1, "equals": 1 },
+  { "action": "assert", "label": "Titanfall doubles the multiplier", "actor": "titan", "metric": "spell_modifier", "spell": 806521, "op": 27, "base": 1, "equals": 2 }
+ ]
+}
