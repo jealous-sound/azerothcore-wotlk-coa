@@ -1,0 +1,53 @@
+{
+  "schema": 1,
+  "name": "Eye of the Tyrant grants haste, attack power and Stamina (#1185)",
+  "contract": "Eye of the Tyrant 560549 is a raid-area aura (radius 287) granting +10% melee/ranged haste, plus a self aura for +4% attack power and +4% Stamina. All three are direct handlers; the caster always satisfies its own raid-area range/membership check.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "tyrant",
+      "race": 1,
+      "class": 14,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "tyrant",
+      "spell": 560549
+    },
+    {
+      "action": "assert",
+      "label": "Melee/ranged haste +10%",
+      "actor": "tyrant",
+      "metric": "aura_amount",
+      "spell": 560549,
+      "effect": 0,
+      "equals": 10
+    },
+    {
+      "action": "assert",
+      "label": "Attack power +4%",
+      "actor": "tyrant",
+      "metric": "aura_amount",
+      "spell": 560549,
+      "effect": 1,
+      "equals": 4
+    },
+    {
+      "action": "assert",
+      "label": "Stamina +4%",
+      "actor": "tyrant",
+      "metric": "aura_amount",
+      "spell": 560549,
+      "effect": 2,
+      "equals": 4
+    }
+  ]
+}
