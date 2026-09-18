@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "name": "Slice & Dice lowers Twin Slice's Energy cost by 5 (#743)",
+  "contract": "Slice & Dice 704361 effect 1 is SPELL_AURA_ADD_FLAT_MODIFIER (misc=14, SPELLMOD_COST) with EffectBasePoints=-6, DieSides=1, so its real amount is -6+1=-5. Its classmask (family 20, dword1 bit24) matches every Twin Slice rank (e.g. 801901) by SpellFamilyFlags, and SpellInfo::CalcPowerCost applies SPELLMOD_COST generically for any player spell, so Twin Slice's power cost drops by exactly 5.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 4,
+      "class": 14,
+      "level": 80
+    },
+    {
+      "id": "sliced",
+      "race": 4,
+      "class": 14,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "sliced",
+      "spell": 704361
+    },
+    {
+      "action": "assert",
+      "label": "Twin Slice cost without Slice & Dice",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 801901,
+      "op": 14,
+      "base": 100,
+      "equals": 100
+    },
+    {
+      "action": "assert",
+      "label": "Twin Slice cost with Slice & Dice (-5 flat)",
+      "actor": "sliced",
+      "metric": "spell_modifier",
+      "spell": 801901,
+      "op": 14,
+      "base": 100,
+      "equals": 95
+    }
+  ]
+}
