@@ -1,0 +1,53 @@
+{
+  "schema": 1,
+  "name": "Armaments of the Legion raises Hateforged Barrier's base absorb value (#1351)",
+  "contract": "Armaments of the Legion raises Hateforged Barrier's (705129) base absorb value by 10% (rank 1, 706266; EffectBasePoints 9, DieSides 1, so SpellEffectInfo::CalcValue resolves 10), via a native SPELLMOD_EFFECT1 (op3) percent SpellMod matching Hateforged Barrier's family20 classMask1 bit26 flag, before a separate aura317 shield multiplier and a defensive spell-hit-chance-taken aura further scale the cast shield.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 4,
+      "class": 14,
+      "level": 80
+    },
+    {
+      "id": "rank_one",
+      "race": 4,
+      "class": 14,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "rank_one",
+      "spell": 706266
+    },
+    {
+      "action": "assert",
+      "label": "Base Hateforged Barrier effect value is unaffected",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 705129,
+      "op": 3,
+      "base": 1000,
+      "equals": 1000
+    },
+    {
+      "action": "assert",
+      "label": "Rank 1 raises Hateforged Barrier's base effect value by 10%",
+      "actor": "rank_one",
+      "metric": "spell_modifier",
+      "spell": 705129,
+      "op": 3,
+      "base": 1000,
+      "min": 1099,
+      "max": 1101
+    }
+  ]
+}
