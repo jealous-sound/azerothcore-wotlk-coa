@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "name": "Casting Discordance unleashes Crystal Cannon (#1034)",
+  "contract": "Crystal Cannon 806204 applies aura 42 (proc trigger spell) on Crystal Cannon 704481 (the repeating wand-attack channel), but Spell.dbc gives it ProcFlags 0 and no spell_proc row existed, so it never procced. With a spell_proc row gated on the magic class damage of Discordance (100% chance), a single Discordance hit should apply the Crystal Cannon channel (704481) to the target.",
+  "timeout_ms": 60000,
+  "players": [
+    {
+      "id": "chronomancer",
+      "race": 1,
+      "class": 22,
+      "level": 80,
+      "spell_hit_rating": 10000
+    }
+  ],
+  "creatures": [
+    { "id": "dummy", "owner": "chronomancer", "entry": 36, "health": 1000000, "distance": 3 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+    { "action": "learn", "actor": "chronomancer", "spell": 806204 },
+    { "action": "learn", "actor": "chronomancer", "spell": 503875 },
+    {
+      "action": "assert",
+      "label": "No Crystal Cannon channel before any cast",
+      "actor": "dummy",
+      "metric": "aura",
+      "spell": 704481,
+      "caster": "chronomancer",
+      "equals": 0
+    },
+    { "action": "cast", "actor": "chronomancer", "spell": 503875, "target": "dummy" },
+    {
+      "action": "assert",
+      "label": "Discordance's hit unleashes the Crystal Cannon channel",
+      "actor": "dummy",
+      "metric": "aura",
+      "spell": 704481,
+      "caster": "chronomancer",
+      "equals": 1,
+      "within_ms": 5000
+    }
+  ]
+}
