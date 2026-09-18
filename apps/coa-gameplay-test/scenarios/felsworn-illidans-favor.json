@@ -1,0 +1,92 @@
+{
+  "schema": 1,
+  "name": "Illidan's Favor removes Manaburn/Felbane's cost and adds Manaburn jump targets (#896)",
+  "contract": "Illidan's Favor 520592 effect 0 is SPELL_AURA_ADD_FLAT_MODIFIER (misc=17, SPELLMOD_JUMP_TARGETS) with EffectBasePoints=4, DieSides=1 (real +5), classmask matching Manaburn 805248 by SpellFamilyFlags (dword0 bit24). Effect 1 is SPELL_AURA_ADD_PCT_MODIFIER (misc=14, SPELLMOD_COST) with EffectBasePoints=-101, DieSides=1 (real -100%), classmask additionally matching Felbane 525001 (dword1 bit13). Manaburn's single-target shape (ChainTarget=0, no SPELL_ATTR2_CHAIN_FROM_CASTER) is exactly what Spell::SelectImplicitChainTargets expects, so SPELLMOD_JUMP_TARGETS adds 5 targets; SpellInfo::CalcPowerCost's generic SPELLMOD_COST application zeroes both spells' cost.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 4,
+      "class": 14,
+      "level": 80
+    },
+    {
+      "id": "favor",
+      "race": 4,
+      "class": 14,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "favor",
+      "spell": 520592
+    },
+    {
+      "action": "assert",
+      "label": "Manaburn jump targets without Illidan's Favor",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 805248,
+      "op": 17,
+      "base": 1,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "label": "Manaburn jump targets with Illidan's Favor (+5)",
+      "actor": "favor",
+      "metric": "spell_modifier",
+      "spell": 805248,
+      "op": 17,
+      "base": 1,
+      "equals": 6
+    },
+    {
+      "action": "assert",
+      "label": "Manaburn cost without Illidan's Favor",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 805248,
+      "op": 14,
+      "base": 100,
+      "equals": 100
+    },
+    {
+      "action": "assert",
+      "label": "Manaburn cost with Illidan's Favor (removed)",
+      "actor": "favor",
+      "metric": "spell_modifier",
+      "spell": 805248,
+      "op": 14,
+      "base": 100,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "Felbane cost without Illidan's Favor",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 525001,
+      "op": 14,
+      "base": 100,
+      "equals": 100
+    },
+    {
+      "action": "assert",
+      "label": "Felbane cost with Illidan's Favor (removed)",
+      "actor": "favor",
+      "metric": "spell_modifier",
+      "spell": 525001,
+      "op": 14,
+      "base": 100,
+      "equals": 0
+    }
+  ]
+}
