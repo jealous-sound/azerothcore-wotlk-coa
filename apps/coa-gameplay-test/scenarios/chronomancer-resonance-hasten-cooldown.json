@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "name": "Resonance reduces Hasten's cooldown from Artificer's Wand or Crystal Cannon (#741)",
+  "contract": "Resonance 706079 applies aura 42 (proc trigger spell) on 570084 (a SPELL_EFFECT_ASCENSION_MODIFY_COOLDOWN effect that reduces Hasten 801304's cooldown by 1000ms), but Spell.dbc gives it ProcFlags 0 and no spell_proc row existed, so it never procced. With a spell_proc row gated on the ranged class damage of Artificer's Wand or Crystal Cannon (35% chance), Hasten's 90s cooldown drops by 1000ms per proc. Hasten's cooldown is large enough (90s) that a handful of near-instant Crystal Cannon casts cannot explain a >=1000ms drop through natural decay alone.",
+  "timeout_ms": 60000,
+  "players": [
+    {
+      "id": "chronomancer",
+      "race": 1,
+      "class": 22,
+      "level": 80,
+      "ranged_hit_rating": 10000
+    }
+  ],
+  "creatures": [
+    { "id": "dummy", "owner": "chronomancer", "entry": 36, "health": 1000000, "distance": 3 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+    { "action": "learn", "actor": "chronomancer", "spell": 706079 },
+    { "action": "learn", "actor": "chronomancer", "spell": 560134 },
+    { "action": "learn", "actor": "chronomancer", "spell": 801304 },
+    { "action": "cast", "actor": "chronomancer", "spell": 801304 },
+    { "action": "snapshot", "actor": "chronomancer", "metric": "cooldown_ms", "spell": 801304, "save_as": "before" },
+    { "action": "cast", "actor": "chronomancer", "spell": 560134, "target": "dummy" },
+    { "action": "cast", "actor": "chronomancer", "spell": 560134, "target": "dummy" },
+    { "action": "cast", "actor": "chronomancer", "spell": 560134, "target": "dummy" },
+    {
+      "action": "assert",
+      "label": "At least one of 3 Crystal Cannon hits (35% chance each) reduces Hasten's cooldown by at least 1s",
+      "actor": "chronomancer",
+      "metric": "cooldown_ms",
+      "spell": 801304,
+      "relative_to": "before",
+      "max": -700,
+      "within_ms": 3000
+    }
+  ]
+}
