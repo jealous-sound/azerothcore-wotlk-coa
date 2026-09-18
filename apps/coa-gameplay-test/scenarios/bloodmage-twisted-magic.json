@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "name": "Twisted Magic stacks a Shadow-damage-taken debuff on critical direct harmful casts (#1014)",
+  "contract": "Twisted Magic 704634 applies aura 42 (proc trigger spell) on Twisted Magic 504138, but Spell.dbc gives it ProcFlags 0 and no spell_proc row existed, so it never procced. With a spell_proc row gated on direct harmful damage done and critical hits, casting a crit-guaranteed damage spell should stack 504138 on the target. Casts Bloodbolt rank 578305 (module progression grants the level-52 rank 578304 up to level 52, and 578305 from level 60 on; a level-80 character owns only 578305 - casting 578304 gets no server response and zero damage). spell_crit_rating 100000 guarantees the crit deterministically instead of hoping for one.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "bloodmage",
+      "race": 1,
+      "class": 20,
+      "level": 80,
+      "spell_crit_rating": 100000,
+      "spell_hit_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "dummy",
+      "owner": "bloodmage",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 3
+    }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+    { "action": "learn", "actor": "bloodmage", "spell": 704634 },
+    { "action": "learn", "actor": "bloodmage", "spell": 578305 },
+    { "action": "set_power", "actor": "bloodmage", "power": 1, "value": 1000 },
+    {
+      "action": "assert",
+      "label": "No Twisted Magic debuff before any cast",
+      "actor": "dummy",
+      "metric": "aura",
+      "spell": 504138,
+      "caster": "bloodmage",
+      "equals": 0
+    },
+    { "action": "cast", "actor": "bloodmage", "spell": 578305, "target": "dummy" },
+    {
+      "action": "assert",
+      "label": "Twisted Magic applies after a critical direct hit",
+      "actor": "dummy",
+      "metric": "aura",
+      "spell": 504138,
+      "caster": "bloodmage",
+      "equals": 1,
+      "within_ms": 5000
+    },
+    { "action": "wait", "ms": 2000 },
+    { "action": "cast", "actor": "bloodmage", "spell": 578305, "target": "dummy" },
+    {
+      "action": "assert",
+      "label": "Twisted Magic stacks on a second critical hit",
+      "actor": "dummy",
+      "metric": "aura_stacks",
+      "spell": 504138,
+      "caster": "bloodmage",
+      "equals": 2,
+      "within_ms": 5000
+    }
+  ]
+}
