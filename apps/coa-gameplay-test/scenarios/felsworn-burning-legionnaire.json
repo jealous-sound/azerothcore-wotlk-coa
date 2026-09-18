@@ -1,0 +1,92 @@
+{
+  "schema": 1,
+  "name": "Burning Legionnaire lowers Sunder and Twin Slice Energy cost by 10 (#1967)",
+  "contract": "Burning Legionnaire 520885 reduces the Energy cost of Sunder and Twin Slice by a flat 10 (SPELLMOD_COST; EffectBasePoints -11, DieSides 1, so SpellEffectInfo::CalcValue resolves -10). Sunder's cast 705121 costs 30 Energy and Twin Slice's cast 801901 costs 45 Energy.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 14,
+      "level": 80
+    },
+    {
+      "id": "burning",
+      "race": 1,
+      "class": 14,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 705121
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 801901
+    },
+    {
+      "action": "learn",
+      "actor": "burning",
+      "spell": 705121
+    },
+    {
+      "action": "learn",
+      "actor": "burning",
+      "spell": 801901
+    },
+    {
+      "action": "learn",
+      "actor": "burning",
+      "spell": 520885
+    },
+    {
+      "action": "assert",
+      "label": "Sunder cost without Burning Legionnaire",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 705121,
+      "op": 14,
+      "base": 30,
+      "equals": 30
+    },
+    {
+      "action": "assert",
+      "label": "Sunder cost with Burning Legionnaire",
+      "actor": "burning",
+      "metric": "spell_modifier",
+      "spell": 705121,
+      "op": 14,
+      "base": 30,
+      "equals": 20
+    },
+    {
+      "action": "assert",
+      "label": "Twin Slice cost without Burning Legionnaire",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 801901,
+      "op": 14,
+      "base": 45,
+      "equals": 45
+    },
+    {
+      "action": "assert",
+      "label": "Twin Slice cost with Burning Legionnaire",
+      "actor": "burning",
+      "metric": "spell_modifier",
+      "spell": 801901,
+      "op": 14,
+      "base": 45,
+      "equals": 35
+    }
+  ]
+}
