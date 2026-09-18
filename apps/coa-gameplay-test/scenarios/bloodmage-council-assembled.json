@@ -1,0 +1,77 @@
+{
+  "schema": 1,
+  "name": "The Council Assembled reduces Malediction's cooldown on Valanar's Vengeance (#1145)",
+  "contract": "The Council Assembled 504103 applies aura 42 (proc trigger spell) on Council Assembled CD Reduc 505153 (a correctly-built SPELL_EFFECT_ASCENSION_MODIFY_COOLDOWN targeting Malediction 800776), but Spell.dbc gives it ProcFlags 0 and no spell_proc row existed, so it never procced. With a spell_proc row restricted to Valanar's Vengeance/Keleseth's Calamity (SpellFamilyMask 393216), casting Valanar's Vengeance should cut Malediction's remaining cooldown by ~5 sec. Effect 1 (Atherann's Anguish -25 Rage) already works natively and is not exercised here. Casts Valanar's Vengeance rank 572795: the module progression chain upgrades rank 1 (560315, granted from level 13) through five further ranks up to 572795 (from level 56); a level-80 character owns only 572795, and every rank in this chain (verified directly against Spell.dbc) carries the same SpellFamilyFlags (262144, 0, 0) already covered by this row's mask.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "bloodmage",
+      "race": 1,
+      "class": 20,
+      "level": 80,
+      "spell_hit_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "dummy",
+      "owner": "bloodmage",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 3
+    }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+    { "action": "learn", "actor": "bloodmage", "spell": 504103 },
+    { "action": "learn", "actor": "bloodmage", "spell": 572795 },
+    { "action": "learn", "actor": "bloodmage", "spell": 800776 },
+    { "action": "set_power", "actor": "bloodmage", "power": 1, "value": 1000 },
+    { "action": "cast", "actor": "bloodmage", "spell": 800776, "target": "dummy" },
+    {
+      "action": "assert",
+      "label": "Malediction is on cooldown",
+      "actor": "bloodmage",
+      "metric": "cooldown_ms",
+      "spell": 800776,
+      "min": 25000,
+      "within_ms": 2000
+    },
+    {
+      "action": "snapshot",
+      "label": "Malediction cooldown before Valanar's Vengeance",
+      "actor": "bloodmage",
+      "metric": "cooldown_ms",
+      "spell": 800776,
+      "save_as": "cd_before"
+    },
+    {
+      "action": "snapshot",
+      "label": "DIAGNOSTIC: target health before Valanar's Vengeance",
+      "actor": "dummy",
+      "metric": "health",
+      "save_as": "diag_hp_before_vv"
+    },
+    { "action": "cast", "actor": "bloodmage", "spell": 572795, "target": "dummy" },
+    { "action": "wait", "ms": 1000 },
+    {
+      "action": "assert",
+      "label": "DIAGNOSTIC: Valanar's Vengeance actually deals damage",
+      "actor": "dummy",
+      "metric": "health",
+      "relative_to": "diag_hp_before_vv",
+      "max": -1,
+      "within_ms": 3000
+    },
+    {
+      "action": "assert",
+      "label": "Malediction's cooldown drops by ~5 sec after Valanar's Vengeance",
+      "actor": "bloodmage",
+      "metric": "cooldown_ms",
+      "spell": 800776,
+      "relative_to": "cd_before",
+      "max": -4000,
+      "within_ms": 3000
+    }
+  ]
+}
