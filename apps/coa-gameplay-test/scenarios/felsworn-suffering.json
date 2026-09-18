@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "name": "Suffering extends Skull of Gul'dan's duration by 5 seconds (#961)",
+  "contract": "Suffering 807430 effect 0 is SPELL_AURA_ADD_FLAT_MODIFIER (misc=1, SPELLMOD_DURATION) with EffectBasePoints=4999, DieSides=1, so its real amount is 4999+1=5000 ms. Its classmask (family 20, dword2 bit6) matches Skull of Gul'dan 800225 by SpellFamilyFlags, and the generic SPELLMOD_DURATION application adds a flat 5000 ms to any matching spell's duration.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 4,
+      "class": 14,
+      "level": 80
+    },
+    {
+      "id": "suffering",
+      "race": 4,
+      "class": 14,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "suffering",
+      "spell": 807430
+    },
+    {
+      "action": "assert",
+      "label": "Skull of Gul'dan duration without Suffering",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 800225,
+      "op": 1,
+      "base": 20000,
+      "equals": 20000
+    },
+    {
+      "action": "assert",
+      "label": "Skull of Gul'dan duration with Suffering (+5000ms)",
+      "actor": "suffering",
+      "metric": "spell_modifier",
+      "spell": 800225,
+      "op": 1,
+      "base": 20000,
+      "equals": 25000
+    }
+  ]
+}
