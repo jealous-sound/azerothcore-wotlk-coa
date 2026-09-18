@@ -1,0 +1,67 @@
+{
+  "schema": 1,
+  "name": "Fel Monstrosity grants its Stamina/Agility/scale bonuses (#966)",
+  "contract": "Fel Monstrosity 500067 increases Stamina by 20% and Agility by 10% directly, and periodically (every ~10 sec, amplitude 9999) re-casts 500076, whose own effect adds Scale +10%.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "fel",
+      "race": 1,
+      "class": 14,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "fel",
+      "spell": 500067
+    },
+    {
+      "action": "assert",
+      "label": "Stamina +20% applies immediately",
+      "actor": "fel",
+      "metric": "aura_amount",
+      "spell": 500067,
+      "effect": 0,
+      "equals": 20
+    },
+    {
+      "action": "assert",
+      "label": "Agility +10% applies immediately",
+      "actor": "fel",
+      "metric": "aura_amount",
+      "spell": 500067,
+      "effect": 2,
+      "equals": 10
+    },
+    {
+      "action": "wait",
+      "label": "Let the periodic trigger (amplitude 9999 ms) fire once",
+      "ms": 10500
+    },
+    {
+      "action": "assert",
+      "label": "Periodic trigger re-applies the scale aura",
+      "actor": "fel",
+      "metric": "aura",
+      "spell": 500076,
+      "equals": 1,
+      "within_ms": 2000
+    },
+    {
+      "action": "assert",
+      "label": "Scale +10% from the triggered aura",
+      "actor": "fel",
+      "metric": "aura_amount",
+      "spell": 500076,
+      "effect": 1,
+      "equals": 10
+    }
+  ]
+}
