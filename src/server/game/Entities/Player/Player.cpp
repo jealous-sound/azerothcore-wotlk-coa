@@ -847,6 +847,10 @@ uint32 Player::EnvironmentalDamage(EnviromentalDamage type, uint32 damage)
     if (type != DAMAGE_FALL_TO_VOID && IsImmuneToEnvironmentalDamage())
         return 0;
 
+    // Allow scripts (e.g. mod-coa-challenges) to veto environmental damage.
+    if (!sScriptMgr->OnPlayerEnvironmentalDamage(this, type, damage))
+        return 0;
+
     // Absorb, resist some environmental damage type
     uint32 absorb = 0;
     uint32 resist = 0;
@@ -922,11 +926,22 @@ int32 Player::getMaxTimer(MirrorTimerType timer)
 
 void Player::HandleDrowning(uint32 time_diff)
 {
-    if (!m_MirrorTimerFlags)
+    // Scripts (mod-coa-challenges INVERTED_BREATH) can flip breathing: drown on
+    // land, recover underwater. An inverted player must be processed even on
+    // land, where m_MirrorTimerFlags is 0.
+    bool const inverted = sScriptMgr->OnPlayerBreathInverted(this);
+
+    if (!m_MirrorTimerFlags && !inverted)
         return;
 
-    // In water
-    if (m_MirrorTimerFlags & UNDERWATER_INWATER)
+    // Only the breath timer inverts its "in water" condition.
+    bool const underwaterNow = (m_MirrorTimerFlags & UNDERWATER_INWATER) != 0;
+    bool const underwaterLast = (m_MirrorTimerFlagsLast & UNDERWATER_INWATER) != 0;
+    bool const breathDrainsNow = inverted ? !underwaterNow : underwaterNow;
+    bool const breathDrainsLast = inverted ? !underwaterLast : underwaterLast;
+
+    // In water (or on land when inverted)
+    if (breathDrainsNow)
     {
         // Breath timer not activated - activate it
         if (m_MirrorTimer[BREATH_TIMER] == DISABLED_MIRROR_TIMER)
@@ -946,7 +961,7 @@ void Player::HandleDrowning(uint32 time_diff)
                 uint32 damage = GetMaxHealth() / 5 + urand(0, GetLevel() - 1);
                 EnvironmentalDamage(DAMAGE_DROWNING, damage);
             }
-            else if (!(m_MirrorTimerFlagsLast & UNDERWATER_INWATER))      // Update time in client if need
+            else if (!breathDrainsLast)                                   // Update time in client if need
                 SendMirrorTimer(BREATH_TIMER, getMaxTimer(BREATH_TIMER), m_MirrorTimer[BREATH_TIMER], -1);
         }
     }
@@ -957,7 +972,7 @@ void Player::HandleDrowning(uint32 time_diff)
         m_MirrorTimer[BREATH_TIMER] += 10 * time_diff;
         if (m_MirrorTimer[BREATH_TIMER] >= UnderWaterTime || !IsAlive())
             StopMirrorTimer(BREATH_TIMER);
-        else if (m_MirrorTimerFlagsLast & UNDERWATER_INWATER)
+        else if (breathDrainsLast)
             SendMirrorTimer(BREATH_TIMER, UnderWaterTime, m_MirrorTimer[BREATH_TIMER], 10);
     }
 
@@ -1941,6 +1956,9 @@ void Player::Regenerate(Powers power)
     if (HasAuraTypeWithMiscvalue(SPELL_AURA_PREVENT_REGENERATE_POWER, power + 1))
         return;
 
+    if (!sScriptMgr->OnPlayerCanRegenerate(this, int32(power)))
+        return;
+
     float addvalue = 0.0f;
 
     switch (power)
@@ -2065,6 +2083,9 @@ void Player::RegenerateHealth()
 {
     // Copied Resynchronization records use POWER_HEALTH for the health regeneration lock.
     if (HasAuraTypeWithMiscvalue(SPELL_AURA_PREVENT_REGENERATE_POWER, POWER_HEALTH))
+        return;
+
+    if (!sScriptMgr->OnPlayerCanRegenerate(this, POWER_HEALTH))
         return;
 
     uint32 curValue = GetHealth();

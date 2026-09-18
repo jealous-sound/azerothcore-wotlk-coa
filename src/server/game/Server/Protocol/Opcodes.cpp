@@ -1444,6 +1444,39 @@ void OpcodeTable::Initialize()
     // by internal calls (WorldSession::HandleTC9PrepareForRedirect), not by the client.
     /*0x51F*/ DEFINE_HANDLER(CMSG_ANTICHEAT_ALERT,                                                  STATUS_AUTHED,     PROCESS_THREADUNSAFE,   &WorldSession::HandleAnticheatAlert                     );
     /*0x520*/ DEFINE_SERVER_OPCODE_HANDLER(TC9_SMSG_READY_FOR_REDIRECT, STATUS_NEVER);
+    // -- CoA extension range (consumed by mod-coa-challenges via CanPacketReceive;
+    // -- Handle_NULL is the fallback when the module is disabled) --
+    /*0x592*/ DEFINE_HANDLER(CMSG_COA_START_CHALLENGE,                                               STATUS_LOGGEDIN,   PROCESS_INPLACE,        &WorldSession::Handle_NULL                              );
+    /*0x594*/ DEFINE_HANDLER(CMSG_COA_STOP_CHALLENGE,                                                STATUS_LOGGEDIN,   PROCESS_INPLACE,        &WorldSession::Handle_NULL                              );
+    /*0x5A1*/ DEFINE_HANDLER(CMSG_COA_QUERY_FAILURES,                                                STATUS_LOGGEDIN,   PROCESS_INPLACE,        &WorldSession::Handle_NULL                              );
+    /*0x5C6*/ DEFINE_HANDLER(CMSG_COA_QUERY_COMPLETIONS,                                             STATUS_LOGGEDIN,   PROCESS_INPLACE,        &WorldSession::Handle_NULL                              );
+    /*0x59C*/ DEFINE_HANDLER(CMSG_COA_SYNC_RESPONSE,                                                 STATUS_LOGGEDIN,   PROCESS_INPLACE,        &WorldSession::Handle_NULL                              );
+    /*0x5A7*/ DEFINE_HANDLER(CMSG_COA_SAVE_TRIAL,                                                    STATUS_LOGGEDIN,   PROCESS_INPLACE,        &WorldSession::Handle_NULL                              );
+    /*0x5A9*/ DEFINE_HANDLER(CMSG_COA_DELETE_TRIAL,                                                  STATUS_LOGGEDIN,   PROCESS_INPLACE,        &WorldSession::Handle_NULL                              );
+    /*0x5AB*/ DEFINE_HANDLER(CMSG_COA_QUERY_TRIALS,                                                  STATUS_LOGGEDIN,   PROCESS_INPLACE,        &WorldSession::Handle_NULL                              );
+    /*0x5AD*/ DEFINE_HANDLER(CMSG_COA_ACTIVATE_TRIAL,                                                STATUS_LOGGEDIN,   PROCESS_INPLACE,        &WorldSession::Handle_NULL                              );
+    /*0x5AF*/ DEFINE_HANDLER(CMSG_COA_DEACTIVATE_TRIAL,                                              STATUS_LOGGEDIN,   PROCESS_INPLACE,        &WorldSession::Handle_NULL                              );
+    /*0x5BF*/ DEFINE_HANDLER(CMSG_COA_RATE_TRIAL,                                                    STATUS_LOGGEDIN,   PROCESS_INPLACE,        &WorldSession::Handle_NULL                              );
+    /*0x5C9*/ DEFINE_HANDLER(CMSG_COA_QUERY_TRIAL_COMPLETIONS,                                       STATUS_LOGGEDIN,   PROCESS_INPLACE,        &WorldSession::Handle_NULL                              );
+    /*0x5A4*/ DEFINE_HANDLER(CMSG_COA_TOGGLE_GAME_MODE,                                              STATUS_LOGGEDIN,   PROCESS_INPLACE,        &WorldSession::Handle_NULL                              );
+
+    // Default every other extension slot to a safe NULL handler so an
+    // unregistered custom opcode can never null-dereference opcodeTable[].
+    for (uint32 i = 0x521; i < NUM_OPCODE_HANDLERS; ++i)
+    {
+        if (i == CMSG_COA_START_CHALLENGE || i == CMSG_COA_STOP_CHALLENGE
+            || i == CMSG_COA_QUERY_FAILURES || i == CMSG_COA_QUERY_COMPLETIONS
+            || i == CMSG_COA_SYNC_RESPONSE || i == CMSG_COA_SAVE_TRIAL
+            || i == CMSG_COA_DELETE_TRIAL || i == CMSG_COA_QUERY_TRIALS
+            || i == CMSG_COA_ACTIVATE_TRIAL || i == CMSG_COA_DEACTIVATE_TRIAL
+            || i == CMSG_COA_QUERY_TRIAL_COMPLETIONS
+            || i == CMSG_COA_TOGGLE_GAME_MODE)
+            continue;
+        ValidateAndSetClientOpcode<decltype(&WorldSession::Handle_NULL), &WorldSession::Handle_NULL>(
+            static_cast<OpcodeClient>(i), "UNKNOWN_EXTENSION_OPCODE", STATUS_NEVER, PROCESS_INPLACE);
+    }
+
+#undef DEFINE_HANDLER
 
 #undef DEFINE_HANDLER
 #undef DEFINE_SERVER_OPCODE_HANDLER

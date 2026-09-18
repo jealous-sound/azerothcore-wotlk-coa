@@ -627,6 +627,8 @@ void AchievementMgr::LoadFromDB(PreparedQueryResult achievementResult, PreparedQ
         do
         {
             Field* fields = achievementResult->Fetch();
+            // Custom achievement ids exceed uint16 (see mod-coa-challenges, which
+            // widens character_achievement.achievement to INT UNSIGNED).
             uint32 achievementid = fields[0].Get<uint32>();
 
             // must not happen: cleanup at server startup in sAchievementMgr->LoadCompletedAchievements()

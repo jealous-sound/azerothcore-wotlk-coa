@@ -4289,6 +4289,31 @@ public:
         return false;
     }
 
+    // -- Challenge / trial CMSGs (owner: mod-coa-challenges) ----------------
+    // Challenge-system CMSGs belong to mod-coa-challenges (late
+    // CanPacketReceive hook + core Handle_NULL fallback). Pass them through:
+    // this Early hook short-circuits the boolean-hook chain, so consuming
+    // them here would starve the challenge module of its own packets.
+    // Keep this list in sync with the COA CMSG block in Opcodes.h.
+    static constexpr std::array<uint32, 13> kChallengeCmsgs = {
+        CMSG_COA_START_CHALLENGE,          // 0x592 start challenge
+        CMSG_COA_STOP_CHALLENGE,           // 0x594 stop challenge
+        CMSG_COA_QUERY_FAILURES,           // 0x5A1 query challenge failures
+        CMSG_COA_SYNC_RESPONSE,            // 0x59C group sync response (u8 accept)
+        CMSG_COA_QUERY_COMPLETIONS,        // 0x5C6 query challenge completions
+        CMSG_COA_SAVE_TRIAL,               // 0x5A7 save custom trial
+        CMSG_COA_DELETE_TRIAL,             // 0x5A9 delete custom trial
+        CMSG_COA_QUERY_TRIALS,             // 0x5AB query custom-trial list
+        CMSG_COA_ACTIVATE_TRIAL,           // 0x5AD activate custom trial
+        CMSG_COA_DEACTIVATE_TRIAL,         // 0x5AF deactivate custom trial
+        CMSG_COA_RATE_TRIAL,               // 0x5BF rate/vote a trial (str + u8 + u8)
+        CMSG_COA_QUERY_TRIAL_COMPLETIONS,  // 0x5C9 query trial leaderboard (str)
+        CMSG_COA_TOGGLE_GAME_MODE,         // 0x5A4 toggle custom game mode
+    };
+    if (std::find(kChallengeCmsgs.begin(), kChallengeCmsgs.end(), opcode) !=
+        kChallengeCmsgs.end())
+      return true;
+
     if (QueueAscensionManastormPacket(session, packet))
       return false;
 

@@ -933,9 +933,34 @@ bool ScriptMgr::OnPlayerCanResurrect(Player* player)
     CALL_ENABLED_BOOLEAN_HOOKS(PlayerScript, PLAYERHOOK_CAN_RESURRECT, !script->OnPlayerCanResurrect(player));
 }
 
+bool ScriptMgr::OnPlayerCanEnterManastorm(Player* player)
+{
+    CALL_ENABLED_BOOLEAN_HOOKS(PlayerScript, PLAYERHOOK_CAN_ENTER_MANASTORM, !script->OnPlayerCanEnterManastorm(player));
+}
+
+bool ScriptMgr::OnPlayerEnvironmentalDamage(Player* player, uint32 type, uint32 damage)
+{
+    CALL_ENABLED_BOOLEAN_HOOKS(PlayerScript, PLAYERHOOK_ON_PLAYER_ENVIRONMENTAL_DAMAGE, !script->OnPlayerEnvironmentalDamage(player, type, damage));
+}
+
+bool ScriptMgr::OnPlayerBreathInverted(Player* player)
+{
+    CALL_ENABLED_BOOLEAN_HOOKS_WITH_DEFAULT_FALSE(PlayerScript, PLAYERHOOK_ON_PLAYER_BREATH_INVERTED, script->OnPlayerBreathInverted(player));
+}
+
 bool ScriptMgr::OnPlayerCanGiveLevel(Player* player, uint8 newLevel)
 {
     CALL_ENABLED_BOOLEAN_HOOKS(PlayerScript, PLAYERHOOK_ON_CAN_GIVE_LEVEL, !script->OnPlayerCanGiveLevel(player, newLevel));
+}
+
+bool ScriptMgr::OnPlayerCanRegenerate(Player* player, int32 power)
+{
+    CALL_ENABLED_BOOLEAN_HOOKS(PlayerScript, PLAYERHOOK_ON_CAN_REGENERATE, !script->OnPlayerCanRegenerate(player, power));
+}
+
+bool ScriptMgr::OnPlayerCanEnergize(Player* player, int32 power)
+{
+    CALL_ENABLED_BOOLEAN_HOOKS(PlayerScript, PLAYERHOOK_ON_CAN_ENERGIZE, !script->OnPlayerCanEnergize(player, power));
 }
 
 void ScriptMgr::OnPlayerSendListInventory(Player* player, ObjectGuid vendorGuid, uint32& vendorEntry)

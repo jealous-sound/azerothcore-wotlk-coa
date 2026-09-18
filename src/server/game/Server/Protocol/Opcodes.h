@@ -1340,7 +1340,68 @@ enum Opcodes : uint16
     SMSG_MULTIPLE_MOVES                             = 0x51E, // uncompressed version of SMSG_COMPRESSED_MOVES
     CMSG_ANTICHEAT_ALERT                            = 0x51F, // Ascension client: local anti-tamper/anti-debug alert, see WorldSession::HandleAnticheatAlert
     TC9_SMSG_READY_FOR_REDIRECT                     = 0x520,
-    NUM_MSG_TYPES                                   = 0x521
+    // -- CoA extension range (custom client; see mod-coa-challenges) --
+    SMSG_COA_CONFIG                                 = 0x58D,
+    SMSG_COA_CHALLENGE_ACTIVE_LIST                  = 0x596,
+    CMSG_COA_START_CHALLENGE                        = 0x592,
+    SMSG_COA_CHALLENGE_START_RESPONSE               = 0x593,
+    CMSG_COA_STOP_CHALLENGE                         = 0x594,
+    SMSG_COA_CHALLENGE_STOP_RESPONSE                = 0x595,
+    SMSG_COA_CHALLENGE_DEATH_UPDATE                 = 0x5A6,
+    SMSG_COA_CHALLENGE_FAILURE_LIST                 = 0x5A2,
+    SMSG_COA_CHALLENGE_FAILURE_ADDED                = 0x5A3,
+    CMSG_COA_QUERY_FAILURES                         = 0x5A1,
+    SMSG_COA_CHALLENGE_COMPLETED                    = 0x598,
+    SMSG_COA_CHALLENGE_COMPLETED_LIST               = 0x597,
+    SMSG_COA_CHALLENGE_CRITERIA_LIST                = 0x599,
+    SMSG_COA_CHALLENGE_CRITERIA_UPDATED             = 0x59A,
+    // Requirement definition (client criteria registry): one entry per
+    // tracked objective; supplies the type name + values the 0x59A handler
+    // resolves by typeIdx. Handler RVA 0x139CD0.
+    SMSG_COA_CHALLENGE_REQUIREMENT                  = 0x5B6,
+    SMSG_COA_CHALLENGE_SYNC_REQUEST                 = 0x59B,
+    CMSG_COA_SYNC_RESPONSE                          = 0x59C,
+    CMSG_COA_SAVE_TRIAL                             = 0x5A7,
+    SMSG_COA_TRIAL_SAVE_RESULT                      = 0x5A8,
+    CMSG_COA_DELETE_TRIAL                           = 0x5A9,
+    SMSG_COA_TRIAL_DELETE_RESULT                    = 0x5AA,
+    CMSG_COA_QUERY_TRIALS                           = 0x5AB,
+    SMSG_COA_TRIAL_DATA                             = 0x5AC,
+    // Active-trial update (str trialID; empty clears it). The client stores it
+    // in mgr+0xC and GetActiveTrial()/IsTrialActive/CanDeactivateTrial read it.
+    SMSG_COA_TRIAL_ACTIVE                           = 0x5B1,
+    SMSG_COA_TRIAL_ACTIVATE_RESULT                  = 0x5AE,
+    CMSG_COA_ACTIVATE_TRIAL                         = 0x5AD,
+    SMSG_COA_TRIAL_DEACTIVATE_RESULT                = 0x5B0,
+    CMSG_COA_DEACTIVATE_TRIAL                       = 0x5AF,
+    // 0x5BF is RateTrial (C_TrialCreator.RateTrial): str trialID, u8 up, u8 down.
+    // QueryTrialCompletions (C_TrialCreator.QueryTrialCompletions) is CMSG 0x5C9
+    // (str trialID) and is answered by SMSG 0x5CA.
+    CMSG_COA_RATE_TRIAL                             = 0x5BF,
+    CMSG_COA_QUERY_TRIAL_COMPLETIONS                = 0x5C9,
+    // 0x5CA is TRIAL_COMPLETION_LIST_CHANGED (str trialID, u32 count, count x
+    // 0x88 entry). 0x5CB is TRIAL_COMPLETION_ADDED (1 x 0x88 entry; the entry's
+    // first string is the trial key).
+    SMSG_COA_TRIAL_QUERY_RESULT                     = 0x5CA,
+    SMSG_COA_TRIAL_COMPLETION_ADDED                 = 0x5CB,
+    CMSG_COA_QUERY_COMPLETIONS                      = 0x5C6,
+    SMSG_COA_CHALLENGE_COMPLETION_LIST              = 0x5C7,
+    SMSG_COA_CHALLENGE_COMPLETION_ADDED             = 0x5C8,
+    // Gamemode (custom game modes: Ironman/Survivalist/Draft/...).
+    // 0x5A4 is the toggle CMSG; 0x5A5 the TOGGLE_GAME_MODE_RESULT string;
+    // 0x90B pushes the mode bitmask (fires the custom game-mode client event).
+    // 0x90B is outbound-only and above NUM_MSG_TYPES (client hash-dispatches it).
+    CMSG_COA_TOGGLE_GAME_MODE                       = 0x5A4,
+    SMSG_COA_GAME_MODE_TOGGLE_RESULT                = 0x5A5,
+    SMSG_COA_GAME_MODE_STATE                        = 0x90B,
+    SMSG_COA_CHALLENGE_RULE_BROKEN                  = 0x5BB,
+    // Spell Activation Overlay (the "proc glow" the client paints on the
+    // action button of the marked spell). Client handlers: 0x9B1 -> 0x10235A90
+    // (fires Lua SPELL_ACTIVATION_SHOW), 0x9B2 -> 0x10235840 (SPELL_ACTIVATION_HIDE).
+    // Outbound-only (above NUM_MSG_TYPES); the client hash-dispatches it.
+    SMSG_COA_SPELL_ACTIVATION_SHOW                  = 0x9B1,
+    SMSG_COA_SPELL_ACTIVATION_HIDE                  = 0x9B2,
+    NUM_MSG_TYPES                                   = 0x700
 };
 
 enum OpcodeMisc : uint16

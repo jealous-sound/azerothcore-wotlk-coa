@@ -1358,6 +1358,19 @@ namespace
                 maxLevel = std::max(maxLevel, uint32(member->GetLevel()));
                 minLevel = std::min(minLevel, uint32(member->GetLevel()));
             }
+            // Challenge rules (e.g. CHALLENGE_RULES_TYPE_NO_MANASTORM) can forbid
+            // entering the Manastorm. The rule logic lives in mod-coa-challenges;
+            // the check is exposed through this core PlayerScript hook.
+            for (Player* member : party)
+            {
+                if (!sScriptMgr->OnPlayerCanEnterManastorm(member))
+                {
+                    // The hook (mod-coa-challenges) already sends the chat
+                    // message; only the client result is sent here.
+                    SendResult(player, EnterResult, "ENTER_MANASTORM_UNKNOWN");
+                    return;
+                }
+            }
             uint8 const mode = uint8(std::min<std::size_t>(party.size() - 1, 3)
                 + (maxLevel >= std::max(60u, sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL)) ? 4 : 0));
             char const* error = nullptr;

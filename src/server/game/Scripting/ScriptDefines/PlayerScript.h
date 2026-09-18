@@ -226,6 +226,11 @@ enum PlayerHook
     PLAYERHOOK_ON_NORMALIZE_ACTION_BUTTON_SPELL,
     PLAYERHOOK_ON_SPELL_CHARGE_CONSUMED,
     PLAYERHOOK_ON_SPELL_COOLDOWN_CALCULATED,
+    PLAYERHOOK_CAN_ENTER_MANASTORM,
+    PLAYERHOOK_ON_PLAYER_ENVIRONMENTAL_DAMAGE,
+    PLAYERHOOK_ON_PLAYER_BREATH_INVERTED,
+    PLAYERHOOK_ON_CAN_REGENERATE,
+    PLAYERHOOK_ON_CAN_ENERGIZE,
     PLAYERHOOK_END
 };
 
@@ -827,6 +832,36 @@ public:
     virtual bool OnPlayerCanResurrect(Player* /*player*/) { return true; }
 
     /**
+     * @brief This hook is called before a player (or party member) enters the Manastorm.
+     *
+     * @param player Contains information about the Player
+     *
+     * @return true if player is allowed to enter the Manastorm
+     */
+    virtual bool OnPlayerCanEnterManastorm(Player* /*player*/) { return true; }
+
+    /**
+     * @brief This hook is called when a player is about to take environmental damage.
+     *
+     * @param player Contains information about the Player
+     * @param type The EnviromentalDamage type (DAMAGE_EXHAUSTED, DAMAGE_DROWNING, ...)
+     * @param damage The damage that will be applied
+     *
+     * @return true if the environmental damage should be applied
+     */
+    virtual bool OnPlayerEnvironmentalDamage(Player* /*player*/, uint32 /*type*/, uint32 /*damage*/) { return true; }
+
+    /**
+     * @brief Called by Player::HandleDrowning. Return true to invert breathing:
+     * the player drowns on land and recovers breath underwater.
+     *
+     * @param player Contains information about the Player
+     *
+     * @return true if the breathing mechanic should be inverted
+     */
+    virtual bool OnPlayerBreathInverted(Player* /*player*/) { return false; }
+
+    /**
      * @brief This hook is called, to cancel the normal level up flow
      *
      * @param player Contains information about the Player
@@ -835,6 +870,26 @@ public:
      * @return true if player is allowed to gain the new level
      */
     virtual bool OnPlayerCanGiveLevel(Player* /*player*/, uint8 /*newLevel*/) { return true; }
+
+    /**
+     * @brief Called before a natural regeneration tick is applied (health/power).
+     *
+     * @param player Contains information about the Player
+     * @param power The power being regenerated (Powers; POWER_HEALTH for health)
+     *
+     * @return true if the regeneration tick is allowed
+     */
+    [[nodiscard]] virtual bool OnPlayerCanRegenerate(Player* /*player*/, int32 /*power*/) { return true; }
+
+    /**
+     * @brief Called before a spell/item energize effect restores a power.
+     *
+     * @param player Contains information about the Player
+     * @param power The power being energized (Powers)
+     *
+     * @return true if the energize effect is allowed
+     */
+    [[nodiscard]] virtual bool OnPlayerCanEnergize(Player* /*player*/, int32 /*power*/) { return true; }
 
     /**
      * @brief This hook is called whenever a player interacts with a vendor, and is then shown the vendor list

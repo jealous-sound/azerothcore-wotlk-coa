@@ -126,5 +126,6 @@ __pycache__/
 #
 # ==================
 !/modules/mod-ascension-compat/
+!/modules/mod-coa-challenges/
 !/modules/mod-worldforged-pickups/
 !/modules/mod-teleport-actionbar/

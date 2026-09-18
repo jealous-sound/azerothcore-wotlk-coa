@@ -1,0 +1,340 @@
+########################################
+# mod-coa-challenges
+#
+# Challenges/trials bridge for AzerothCore WotLK (worldserver).
+# Reimplements the client C_Challenge system server-side: activation gates,
+# auras, lives, rules, objectives, completions, rewards and the Gamemodes tab.
+# See README.md for requirements, installation and the data flow.
+#
+# Notes:
+#   - Per-challenge definitions (name/icon/levels/auras/lives/rules/conditions/
+#     objectives/rewards) live in the WORLD database and are managed there
+#     (seeded by coa-analyze-export.ps1 -EmitSql; `.coa challenges reload`).
+#     This file only holds tunables.
+#   - Any key omitted from a customized .conf falls back to the code default
+#     shown below; missing keys are appended automatically on deploy.
+########################################
+
+
+############################################################################
+# Master switch & UI tabs
+############################################################################
+
+# Master switch. When disabled, no config batch is sent on login and the
+# challenge opcodes fall through to the core NULL handlers.
+# Default: 1
+CoAChallenges.Enable = 1
+
+# C_Config flag delivered in SMSG_COA_CONFIG (0x58D). Gates the Trials and
+# Challenges tabs of the client UI (patch-B.MPQ).
+# Default: 1
+CoAChallenges.ChallengeEnabled = 1
+
+# C_Config flag (0x58D) that gates the Custom Trials (Trial Creator) and the
+# Trial Builder (Trial Editor) tabs.
+# Default: 0
+CoAChallenges.ChallengeCreatorEnabled = 0
+
+
+############################################################################
+# Database schema
+############################################################################
+
+# Development fallback: (re)create the module tables at runtime on startup when
+# they are missing. The authoritative schema ships as versioned SQL under
+# data/sql/{db-characters,db-world}/, applied by the AzerothCore DB updater.
+# Leave at 0 in production.
+# Default: 0
+CoAChallenges.AutoCreateSchema = 0
+
+
+############################################################################
+# Game modes (Gamemodes tab)
+############################################################################
+# The mode bitmask is SERVER-driven: a trial whose RequiredGameMode matches a
+# mode (e.g. 61 -> Nightmare 0x100) turns that mode on while active and off
+# when it stops/fails/completes. State lives in coa_character_gamemode and is
+# pushed with SMSG 0x90B (mask = Enum.GameMode).
+
+# Enable the custom game modes subsystem.
+# Default: 1
+CoAChallenges.GameModes.Enable = 1
+
+# Allow players to toggle modes from the Gamemodes tab (CMSG 0x5A4). When 0
+# (default) the CONFIG_<MODE>_ENABLED flags are sent as 0 (rows locked) and
+# player toggles are ignored, so modes are purely trial-driven. When enabled,
+# a player toggle is remembered for the session and ORed into the trial-driven
+# mask, so a login/activate recompute does not clear it (it is not persisted
+# separately, so it is dropped on relog).
+# NOTE: enable only for testing.
+# Default: 0
+CoAChallenges.GameModes.PlayerToggle = 0
+
+# Rows hidden from the Gamemodes tab (client CONFIG_*_HIDDEN), sent in the
+# 0x58D batch. Comma-separated wire names: Ironman, Survivalist, Draft,
+# Resolute, WildCard, Felforged, Nightmare, BuildDraft, Crusader. Hidden rows
+# are presentation-only: a mode that is ACTIVE still shows on the client.
+# Empty = show all. Unknown names are ignored.
+# Default: Draft,Resolute,WildCard,Felforged,BuildDraft,Crusader
+CoAChallenges.GameModes.Hidden = Draft,Resolute,WildCard,Felforged,BuildDraft,Crusader
+
+
+############################################################################
+# Completion, failure & lifecycle
+############################################################################
+
+# Auto-complete active challenges whose tracked requirements are met when the
+# character is at MaxPlayerLevel (also runs on login). Set 0 to disable
+# (useful while testing lives/mechanics on a max-level character).
+# Default: 1
+CoAChallenges.CompleteAtLevelCap = 1
+
+# Reject Activate for a challenge with no rewards (code 2 = NO_REWARDS), using
+# the `coa_challenge_definition.noRewards` flag. Off by default: several
+# challenges legitimately have no rewards.
+# Default: 0
+CoAChallenges.EnforceNoRewards = 0
+
+# Reject Activate for already-failed challenges (code 12 = RULE_BROKEN). Set 0
+# to allow retests (also: DELETE FROM coa_challenge_failure).
+# Default: 1
+CoAChallenges.BlockFailedReactivate = 1
+
+# When 1, ANY failure locks the character out of every challenge/trial (not
+# just the one that failed): a failed character cannot start anything.
+# Default: 1
+CoAChallenges.BlockAllAfterFailure = 1
+
+# When 1, deactivating a challenge that has lives is a FREE cancel while the
+# character is still "pristine" (no objective progress, no deaths, activation
+# conditions unbroken) - lets a fresh character undo a wrong pick. Once any
+# progress is made, deactivating fails it.
+# Default: 1
+CoAChallenges.FreeCancelIfPristine = 1
+
+# Reject Activate for already-completed challenges. The client UI has no
+# "completed" button state, so the server refuses it. Set 0 to allow repeating
+# a completed trial.
+# Default: 1
+CoAChallenges.BlockCompletedReactivate = 1
+
+
+############################################################################
+# Rewards (delivered on completion, always by mail)
+############################################################################
+
+# Master switch for challenge/trial rewards. Data comes from the world DB
+# `coa_challenge_reward` table. Achievements are only granted when the id exists
+# in the server Achievement.dbc (custom achievements require the client
+# Achievement.dbc; missing ids are logged). See README.md (Rewards).
+# Default: 1
+CoAChallenges.GrantRewards = 1
+
+# Mail subject/body used for reward delivery. Plain text; the subject appears
+# in the mailbox list.
+# Defaults: Challenge Reward / Your challenge reward is enclosed.
+CoAChallenges.Reward.MailSubject = Challenge Reward
+CoAChallenges.Reward.MailBody = Your challenge reward is enclosed.
+
+
+############################################################################
+# Announcements & client state sync
+############################################################################
+
+# Realm-wide chat announcement on completion, using Name/Icon from the world DB
+# (coa_challenge_definition). Live format:
+#   <icon>[<TrialName>] <Player> has completed their Trial!
+# Default: 1
+CoAChallenges.AnnounceCompletion = 1
+
+# Send SMSG 0x5C8 on completion (client completion event/toast). Separate from
+# the chat line above.
+# Default: 1
+CoAChallenges.SendCompletionAdded = 1
+
+# Send SMSG 0x5CB when the last challenge of an active custom trial completes,
+# so open trial leaderboards update live. The completion row is always
+# recorded (CMSG 0x5C9 leaderboard source).
+# Default: 1
+CoAChallenges.SendTrialCompletionAdded = 1
+
+# Realm-wide failure announcement on death. Live format:
+#   <icon>[<TrialName>] <Player> (Level N) has been killed by [<Killer>].
+# Creature/player killers are clickable; special causes (Falling/Suicide/
+# mechanics) are plain red.
+# Default: 1
+CoAChallenges.AnnounceFailure = 1
+
+# Minimum level for failure announcements (official behavior was level 10).
+# Range: 1-255. Default: 10
+CoAChallenges.AnnounceFailureMinLevel = 10
+
+# Announce mechanic deaths (starved, missed objective, fell asleep). The
+# official server does NOT announce these; set 0 for that behavior.
+# Default: 1
+CoAChallenges.AnnounceMechanicFailures = 1
+
+# Push the SMSG 0x5A2 failure history on login (restores the client list).
+# Default: 1
+CoAChallenges.SendFailureList = 1
+
+# Push the completion history on login (restores the client completed list).
+# Default: 1
+CoAChallenges.SendCompletedList = 1
+
+# Drive the per-objective banner: SMSG 0x599 criteria list on login/activation
+# plus SMSG 0x59A update when a tracked objective completes. The client fires
+# CHALLENGE_CRITERIA_COMPLETED on the 0 -> nonzero progress transition. Set 0
+# if the criteria cache misbehaves while iterating on entry semantics.
+# Default: 1
+CoAChallenges.SendCriteria = 1
+
+# Send SMSG 0x5A6 DEATH_UPDATE when a player with an active challenge dies.
+# Default: 1
+CoAChallenges.RespondToDeath = 1
+
+
+############################################################################
+# Grouping
+############################################################################
+
+# Official grouping rule: players can only group with others in the exact same
+# challenge set (both with no challenge = free grouping). Server-side mechanic,
+# not encoded in the client definitions.
+# Default: 1
+CoAChallenges.RequireSameChallengeToGroup = 1
+
+# Group challenge sync (SMSG 0x59B / CMSG 0x59C). When 1, activating/stopping a
+# challenge sends the rest of the party a CHALLENGES_SYNC / _REMOVE popup;
+# accepting applies the same set to that member (opt-in) instead of the
+# immediate kick. Set 0 to keep the kick-only behavior.
+# Default: 1
+CoAChallenges.SyncChallengesWithGroup = 1
+
+
+############################################################################
+# Hunger / thirst (Survivalist; coa_challenge_definition.survivalist)
+############################################################################
+# Server-driven; observed live: thirst +1/10s, hunger +1/16s, eating/drinking
+# DECREASES, death at max. Displayed as stacks on separate meter auras. Only
+# flagged challenges tick (75, 185, 186, 188, 213). Eat/drink detection: any
+# MOD_REGEN (84, food) / MOD_POWER_REGEN (85, drink) aura, including custom
+# foraged items.
+
+# Meter spell ids shown while the counter is > 0.
+# Defaults: 93175 / 93176
+CoAChallenges.HungerFoodSpell = 93175
+CoAChallenges.HungerDrinkSpell = 93176
+
+# Seconds per point of thirst/hunger. Range: 1-3600.
+# Defaults: 10 / 16
+CoAChallenges.ThirstSecondsPerPoint = 10
+CoAChallenges.HungerSecondsPerPoint = 16
+
+# Restore per tick while the matching eat/drink aura is up. Range: 1-100.
+# Defaults: 1 / 1
+CoAChallenges.FoodRestore = 1
+CoAChallenges.DrinkRestore = 1
+
+# Milliseconds between restore ticks (drinking drops ~2x faster than eating).
+# Range: 1-10000. Defaults: 500 / 250
+CoAChallenges.FoodTickMs = 500
+CoAChallenges.DrinkTickMs = 250
+
+# Maximum hunger/thirst value (death at max). Range: 1-1000.
+# Default: 100
+CoAChallenges.HungerMax = 100
+
+
+############################################################################
+# Fatigue (Narcolepsy / FATIGUED_UNLESS_RESTED: 106/170/171/172/384/385/386)
+############################################################################
+# A native "fatigue" bar (mirror-timer type FATIGUE) that FILLS while the
+# player is OUTSIDE a rested area (inn); inside a rested area it resets to 0.
+# At FatigueMax the player falls asleep (dies). Persisted in
+# coa_character_fatigue.
+
+# Range: 1-1000. Default: 100
+CoAChallenges.FatigueMax = 100
+
+# Seconds for the full 0..FatigueMax range. Range: 1-86400.
+# Default: 420
+CoAChallenges.FatigueSecondsToFill = 420
+
+
+############################################################################
+# Professions (Artisan's / Survivalist's Guild)
+############################################################################
+
+# XP granted per profession skill point, as 1/PointsPerLevel of the XP needed
+# for the member's level. Shared with the whole party when
+# GROUP_PROFESSION_EXPERIENCE is present; crafted items multiply by
+# 1 + item quality (grey 1x .. epic 6x). Range: 1-1000.
+# Default: 50
+CoAChallenges.ProfessionXP.PointsPerLevel = 50
+
+
+############################################################################
+# Rules (CHALLENGE_RULES_TYPE_*) tunables
+############################################################################
+
+# Aura that marks a character as participating in the High Risk ruleset
+# (mod-ascension-compat SPELL_ASCENSION_HIGH_RISK). HIGH_RISK_ONLY challenges
+# require it to activate and fail if it is lost while active.
+# Default: 1004019
+CoAChallenges.HighRisk.Aura = 1004019
+
+
+############################################################################
+# Testing
+############################################################################
+
+# Milliseconds between `.coa e2e` test steps so the scenario is visible in the
+# client. 0 = no pause. Can also be passed inline:
+#   .coa e2e <player> <trialId> <milliseconds>
+# Default: 0
+CoAChallenges.TestStepMs = 0
+
+# `.coa ruletestall`: when 1, an implemented rule that has no behavioral gate
+# test fails the run (the coverage report is printed either way).
+# Default: 0
+CoAChallenges.TestStrictCoverage = 0
+
+
+############################################################################
+# Per-challenge definitions live in the WORLD database
+############################################################################
+# Definitions are realm/world data: `coa_challenge_definition`,
+# `coa_challenge_spell` (level-aware auras, level 0 = union) and
+# `coa_challenge_reward`, seeded by coa-analyze-export.ps1 -EmitSql and read
+# into a memory cache at startup and on `.coa challenges reload`. The module has
+# no generated-.conf fallback: if the tables are empty the boot logs an ERROR.
+#
+# Permadeath is EXPLICIT per-id only: hardcore/1-life is NOT permadeath (dying
+# just fails the challenge). Set `noResurrect` for challenges whose about says
+# "dead forever" (e.g. 188 starvation). Example:
+#   UPDATE coa_challenge_definition SET noResurrect = 1 WHERE id = 188;
+
+
+############################################################################
+# Spellbind Roulette (FAILABLE 173/174/175/387/388/389, MEGA 429/430,
+# plain SPELLBIND_ROULETTE 193)
+############################################################################
+# The server marks one of the player's known spells and the client paints the
+# "proc glow" (Spell Activation Overlay, SMSG 0x9B1) on that spell's action
+# button. Casting a FAILABLE mark kills the player + fails the challenge; a
+# plain mark blocks the cast. Tunables for the overlay visual:
+# Master switch (0 = off; mark is chat-only). Keep OFF until the 0x9B1 payload
+# is validated in-client: a malformed packet crashes the client on login.
+# Default: 0
+CoAChallenges.Spellbind.OverlayEnabled = 0
+# Default: Textures\SpellActivationOverlays\sudden_death
+CoAChallenges.Spellbind.OverlayTexture = Textures\SpellActivationOverlays\sudden_death
+# Default: 1
+CoAChallenges.Spellbind.OverlayType = 1
+# Default: 1.0
+CoAChallenges.Spellbind.OverlayScale = 1.0
+# Default: 255, 0, 0
+CoAChallenges.Spellbind.OverlayR = 255
+CoAChallenges.Spellbind.OverlayG = 0
+CoAChallenges.Spellbind.OverlayB = 0

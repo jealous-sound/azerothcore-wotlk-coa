@@ -8745,6 +8745,11 @@ void Unit::SendEnergizeSpellLog(Unit* victim, uint32 spellID, uint32 damage, Pow
 
 void Unit::EnergizeBySpell(Unit* victim, uint32 spellID, uint32 damage, Powers powerType)
 {
+    // NO_ENERGIZING (Inn-Sane family): nullify instant energize effects.
+    if (damage && victim->IsPlayer()
+        && !sScriptMgr->OnPlayerCanEnergize(victim->ToPlayer(), int32(powerType)))
+        damage = 0;
+
     victim->ModifyPower(powerType, damage, false);
 
     // Happiness is internal hunter pet state, not combat assistance — energizing it must not generate threat

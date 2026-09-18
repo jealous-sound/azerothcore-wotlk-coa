@@ -492,7 +492,12 @@ public: /* PlayerScript */
     void OnPlayerUpdateSkill(Player* player, uint32 skillId, uint32 value, uint32 max, uint32 step, uint32 newValue);
     void OnPlayerSetSkill(Player* player, uint32 skillId, uint32 value, uint32 max, uint32 step, uint32 newValue);
     bool OnPlayerCanResurrect(Player* player);
+    bool OnPlayerCanEnterManastorm(Player* player);
+    bool OnPlayerEnvironmentalDamage(Player* player, uint32 type, uint32 damage);
+    bool OnPlayerBreathInverted(Player* player);
     bool OnPlayerCanGiveLevel(Player* player, uint8 newLevel);
+    bool OnPlayerCanRegenerate(Player* player, int32 power);
+    bool OnPlayerCanEnergize(Player* player, int32 power);
     void OnPlayerSendListInventory(Player* player, ObjectGuid vendorGuid, uint32& vendorEntry);
     void OnPlayerGetReputationPriceDiscount(Player const* player, Creature const* creature, float& discount);
     void OnPlayerGetReputationPriceDiscount(Player const* player, FactionTemplateEntry const* factionTemplate, float& discount);
