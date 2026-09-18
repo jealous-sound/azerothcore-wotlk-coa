@@ -1,0 +1,69 @@
+{
+  "schema": 1,
+  "name": "Pit Lord's Strength adds an Annihilation charge and 3% physical damage (#1017)",
+  "contract": "Pit Lord's Strength 802076 adds a flat SPELLMOD_CHARGES of +1 to Annihilation (803904, base 5 proc charges) and a native, always-on physical damage-done aura (SPELL_AURA_MOD_DAMAGE_PERCENT_DONE, misc SPELL_SCHOOL_MASK_NORMAL, stored bp 2 resolved 3% via the DieSides==1 +1 rule). Unit::MeleeDamageBonusDone explicitly skips SPELL_AURA_MOD_DAMAGE_PERCENT_DONE whenever the queried damageSchoolMask includes SPELL_SCHOOL_MASK_NORMAL (its own comment: \"mods for SPELL_SCHOOL_MASK_NORMAL are already factored in base melee damage calculation\") because AuraEffect::HandleModDamagePercentDone already folds a physical-school aura into UNIT_MOD_DAMAGE_MAINHAND/OFFHAND/RANGED via UpdateAllDamagePctDoneMods(). The harness's melee_damage_done metric calls MeleeDamageBonusDone with the default (normal) school mask, so it structurally cannot observe this aura; it is checked at the aura's own resolved value instead.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "fel",
+      "race": 1,
+      "class": 14,
+      "level": 80
+    }
+  ],
+  "creatures": [
+    {
+      "id": "dummy",
+      "owner": "fel",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 3
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "fel",
+      "spell": 803904
+    },
+    {
+      "action": "assert",
+      "label": "Untalented: Annihilation keeps its base 5 charges",
+      "actor": "fel",
+      "metric": "spell_modifier",
+      "spell": 803904,
+      "op": 4,
+      "base": 5,
+      "equals": 5
+    },
+    {
+      "action": "learn",
+      "actor": "fel",
+      "spell": 802076
+    },
+    {
+      "action": "assert",
+      "label": "Talented: Annihilation gains a 6th charge",
+      "actor": "fel",
+      "metric": "spell_modifier",
+      "spell": 803904,
+      "op": 4,
+      "base": 5,
+      "equals": 6
+    },
+    {
+      "action": "assert",
+      "label": "Talented: physical damage-done aura resolves to +3% (melee_damage_done cannot observe a physical %-done aura on this core; see contract)",
+      "actor": "fel",
+      "metric": "aura_amount",
+      "spell": 802076,
+      "effect": 1,
+      "equals": 3
+    }
+  ]
+}
