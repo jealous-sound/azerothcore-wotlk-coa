@@ -1,0 +1,111 @@
+{
+  "schema": 1,
+  "name": "Demonborn increases Energy regeneration by 14% or 29% (#2525)",
+  "contract": "Demonborn adds 15% (rank 1, 705102) or 30% (rank 2, 707842) Energy regeneration via native SPELL_AURA_MOD_POWER_REGEN_PERCENT (aura 110), applied unconditionally with no class mask to resolve. The DBC stores EffectBasePoints 14/29 with DieSides 1, so SpellEffectInfo::CalcValue resolves them to 15/30 (basePoints+1), one point above the tooltip's 14%/29%.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 14,
+      "level": 80
+    },
+    {
+      "id": "rank_one",
+      "race": 1,
+      "class": 14,
+      "level": 80
+    },
+    {
+      "id": "rank_two",
+      "race": 1,
+      "class": 14,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "rank_one",
+      "spell": 705102
+    },
+    {
+      "action": "learn",
+      "actor": "rank_two",
+      "spell": 707842
+    },
+    {
+      "action": "assert",
+      "label": "Rank 1 aura amount is +15% (EffectBasePoints 14 + 1, DieSides 1)",
+      "actor": "rank_one",
+      "metric": "aura_amount",
+      "spell": 705102,
+      "effect": 0,
+      "equals": 15
+    },
+    {
+      "action": "assert",
+      "label": "Rank 2 aura amount is +30% (EffectBasePoints 29 + 1, DieSides 1)",
+      "actor": "rank_two",
+      "metric": "aura_amount",
+      "spell": 707842,
+      "effect": 0,
+      "equals": 30
+    },
+    {
+      "action": "set_power",
+      "actor": "control",
+      "power": 3,
+      "value": 0
+    },
+    {
+      "action": "set_power",
+      "actor": "rank_one",
+      "power": 3,
+      "value": 0
+    },
+    {
+      "action": "set_power",
+      "actor": "rank_two",
+      "power": 3,
+      "value": 0
+    },
+    {
+      "action": "wait",
+      "label": "Let Energy regenerate for a fixed window",
+      "ms": 5000
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "power",
+      "power": 3,
+      "save_as": "control_energy"
+    },
+    {
+      "action": "assert",
+      "label": "Rank 1 regenerates roughly 14% more Energy",
+      "actor": "rank_one",
+      "metric": "power",
+      "power": 3,
+      "ratio_to": "control_energy",
+      "min": 1.08,
+      "max": 1.20
+    },
+    {
+      "action": "assert",
+      "label": "Rank 2 regenerates roughly 29% more Energy",
+      "actor": "rank_two",
+      "metric": "power",
+      "power": 3,
+      "ratio_to": "control_energy",
+      "min": 1.22,
+      "max": 1.36
+    }
+  ]
+}
