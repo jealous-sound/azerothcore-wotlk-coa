@@ -1,0 +1,112 @@
+{
+  "schema": 1,
+  "name": "Spite increases Agility and dodge chance by 7%/2% or 14%/5% (#3176)",
+  "contract": "Spite increases Agility by 8% (rank 1, 800188) or 15% (rank 2, 803840) via native SPELL_AURA_MOD_TOTAL_STAT_PERCENTAGE (aura 137; EffectBasePoints 7/14, die 1 => CalcValue 8/15), and dodge chance by a flat 3 (rank 1) or 6 (rank 2) via native SPELL_AURA_MOD_DODGE_PERCENT (aura 49; EffectBasePoints 2/5, die 1 => CalcValue 3/6). Player::GetDodgeFromAgility (StatSystem.cpp) also feeds the extra Agility into dodge: SPELL_AURA_MOD_TOTAL_STAT_PERCENTAGE only scales the BASE_PCT group, so the whole Agility increase lands in bonus_agility (the uncapped, non-diminishing-formula term that UpdateDodgePercentage adds straight into the exposed dodge_chance stat), pushing total measured dodge chance slightly above the flat 3/6. The two effects are isolated below via spell_effect_value (the native CalcValue of Spite's own dodge effect) and confirmed live in-game via a lower-bound dodge_chance check.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 14,
+      "level": 80
+    },
+    {
+      "id": "rank_one",
+      "race": 1,
+      "class": 14,
+      "level": 80
+    },
+    {
+      "id": "rank_two",
+      "race": 1,
+      "class": 14,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "stat",
+      "save_as": "agility",
+      "stat": 1
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "dodge_chance",
+      "save_as": "dodge"
+    },
+    {
+      "action": "learn",
+      "actor": "rank_one",
+      "spell": 800188
+    },
+    {
+      "action": "learn",
+      "actor": "rank_two",
+      "spell": 803840
+    },
+    {
+      "action": "assert",
+      "label": "Rank 1 Agility +8%",
+      "actor": "rank_one",
+      "metric": "stat",
+      "stat": 1,
+      "ratio_to": "agility",
+      "min": 1.07,
+      "max": 1.09
+    },
+    {
+      "action": "assert",
+      "label": "Rank 2 Agility +15%",
+      "actor": "rank_two",
+      "metric": "stat",
+      "stat": 1,
+      "ratio_to": "agility",
+      "min": 1.14,
+      "max": 1.16
+    },
+    {
+      "action": "assert",
+      "label": "Rank 1 dodge effect's own native value is +3 (isolates the dodge aura from the Agility-fed contribution to total dodge chance)",
+      "actor": "rank_one",
+      "metric": "spell_effect_value",
+      "spell": 800188,
+      "effect": 1,
+      "equals": 3
+    },
+    {
+      "action": "assert",
+      "label": "Rank 2 dodge effect's own native value is +6 (isolates the dodge aura from the Agility-fed contribution to total dodge chance)",
+      "actor": "rank_two",
+      "metric": "spell_effect_value",
+      "spell": 803840,
+      "effect": 1,
+      "equals": 6
+    },
+    {
+      "action": "assert",
+      "label": "Rank 1 dodge chance rises ~3.31 points in-game (flat +3 aura plus the extra 8% Agility's own dodge contribution)",
+      "actor": "rank_one",
+      "metric": "dodge_chance",
+      "relative_to": "dodge",
+      "min": 3.3,
+      "max": 3.33
+    },
+    {
+      "action": "assert",
+      "label": "Rank 2 dodge chance rises by at least 6 points in-game (flat +6 aura; the extra 15% Agility can only add further dodge, never subtract)",
+      "actor": "rank_two",
+      "metric": "dodge_chance",
+      "relative_to": "dodge",
+      "min": 5.99,
+      "max": 7.5
+    }
+  ]
+}
