@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "name": "Reverse Engineering procs from periodic healing ticks (#1965)",
+  "contract": "Reverse Engineering 520875 applies aura 42 (proc trigger spell) twice, on 1257670 (Replenishment) and 520936 (a haste buff), but Spell.dbc gives it ProcFlags 0 and no spell_proc row existed, so it never procced. With a spell_proc row gated on the caster's own periodic damage/healing ticks (15% chance per tick, no family restriction), a single Accelerated Recovery cast (a 1-second-tick heal-over-time) gives many independent per-tick trials, so at least one should land within its duration.",
+  "timeout_ms": 60000,
+  "players": [
+    {
+      "id": "chronomancer",
+      "race": 1,
+      "class": 22,
+      "level": 80
+    }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+    { "action": "learn", "actor": "chronomancer", "spell": 520875 },
+    { "action": "learn", "actor": "chronomancer", "spell": 800857 },
+    {
+      "action": "assert",
+      "label": "No Reverse Engineering haste buff before any periodic tick",
+      "actor": "chronomancer",
+      "metric": "aura",
+      "spell": 520936,
+      "caster": "chronomancer",
+      "equals": 0
+    },
+    { "action": "cast", "actor": "chronomancer", "spell": 800857, "target": "chronomancer" },
+    {
+      "action": "assert",
+      "label": "At least one periodic heal tick (15% chance each, roughly one per second) procs the haste buff",
+      "actor": "chronomancer",
+      "metric": "aura",
+      "spell": 520936,
+      "caster": "chronomancer",
+      "min": 1,
+      "within_ms": 22000
+    }
+  ]
+}
