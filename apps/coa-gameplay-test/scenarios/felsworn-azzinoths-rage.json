@@ -1,0 +1,102 @@
+{
+  "schema": 1,
+  "name": "Azzinoth's Rage grants armor penetration and expertise per rank (#1073)",
+  "contract": "Azzinoth's Rage grants Armor Penetration % (aura 280) and Expertise (aura 240, HandleAuraModExpertise), both direct handlers: rank 1 (804611) 10%/4, rank 2 (807901) 20%/8, rank 3 (807914) 30%/12.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "rank_one",
+      "race": 1,
+      "class": 14,
+      "level": 80
+    },
+    {
+      "id": "rank_two",
+      "race": 1,
+      "class": 14,
+      "level": 80
+    },
+    {
+      "id": "rank_three",
+      "race": 1,
+      "class": 14,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "rank_one",
+      "spell": 804611
+    },
+    {
+      "action": "learn",
+      "actor": "rank_two",
+      "spell": 807901
+    },
+    {
+      "action": "learn",
+      "actor": "rank_three",
+      "spell": 807914
+    },
+    {
+      "action": "assert",
+      "label": "Rank 1 armor penetration +10%",
+      "actor": "rank_one",
+      "metric": "aura_amount",
+      "spell": 804611,
+      "effect": 0,
+      "equals": 10
+    },
+    {
+      "action": "assert",
+      "label": "Rank 1 expertise +4",
+      "actor": "rank_one",
+      "metric": "aura_amount",
+      "spell": 804611,
+      "effect": 1,
+      "equals": 4
+    },
+    {
+      "action": "assert",
+      "label": "Rank 2 armor penetration +20%",
+      "actor": "rank_two",
+      "metric": "aura_amount",
+      "spell": 807901,
+      "effect": 0,
+      "equals": 20
+    },
+    {
+      "action": "assert",
+      "label": "Rank 2 expertise +8",
+      "actor": "rank_two",
+      "metric": "aura_amount",
+      "spell": 807901,
+      "effect": 1,
+      "equals": 8
+    },
+    {
+      "action": "assert",
+      "label": "Rank 3 armor penetration +30%",
+      "actor": "rank_three",
+      "metric": "aura_amount",
+      "spell": 807914,
+      "effect": 0,
+      "equals": 30
+    },
+    {
+      "action": "assert",
+      "label": "Rank 3 expertise +12",
+      "actor": "rank_three",
+      "metric": "aura_amount",
+      "spell": 807914,
+      "effect": 1,
+      "equals": 12
+    }
+  ]
+}
