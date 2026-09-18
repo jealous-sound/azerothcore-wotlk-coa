@@ -1,0 +1,60 @@
+{
+  "schema": 1,
+  "name": "Pact Hunter increases Pact ability effects by 50% (#1203)",
+  "contract": "Pact Hunter 704612 adds an ADD_PCT_MODIFIER SPELLMOD_ALL_EFFECTS of +50% by classmask, applying to every effect of the Pact abilities (e.g. Vengeful Pact 800029), whose effect-1 damage shield base value is 4.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 14,
+      "level": 80
+    },
+    {
+      "id": "hunter",
+      "race": 1,
+      "class": 14,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 800029
+    },
+    {
+      "action": "learn",
+      "actor": "hunter",
+      "spell": 800029
+    },
+    {
+      "action": "learn",
+      "actor": "hunter",
+      "spell": 704612
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "spell_effect_value",
+      "spell": 800029,
+      "effect": 1,
+      "save_as": "pact_base"
+    },
+    {
+      "action": "assert",
+      "label": "Talented: Vengeful Pact's damage shield effect is +50% (4 -> 6)",
+      "actor": "hunter",
+      "metric": "spell_effect_value",
+      "spell": 800029,
+      "effect": 1,
+      "relative_to": "pact_base",
+      "equals": 2
+    }
+  ]
+}
