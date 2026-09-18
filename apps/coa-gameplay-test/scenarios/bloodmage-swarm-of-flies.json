@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "name": "Swarm of Flies lets Bloodbolt refresh Taldaram's Torment (#2334)",
+  "contract": "Swarm of Flies 704646 applies aura 42 (proc trigger spell) on Spread Taldarams 704647 (SPELL_EFFECT_ASCENSION_REFRESH_AURA on Taldaram's Torment 800772 and Blood Parasites 800988), but Spell.dbc gives it ProcFlags 0 and no spell_proc row existed, so it never procced. With a spell_proc row restricted to Bloodbolt (SpellFamilyMask1 131072), casting Bloodbolt should refresh Taldaram's Torment's remaining duration back up. Taldaram's Torment is cast as 800772 itself: SPELL_EFFECT_ASCENSION_REFRESH_AURA (Spell::EffectAscensionRefreshAura) looks up the target's aura by the effect's hardcoded MiscValue, so the DoT must be exactly spell 800772 regardless of caster level - confirmed obtainable and functional at level 80 (this scenario's own first assertion passes). Bloodbolt is cast as rank 578305: a level-80 character owns only that rank of its module progression chain (578304 is granted only up to level 52); casting 578304 gets no server response and zero damage, so the family-mask-matched proc never sees a damage event.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "bloodmage",
+      "race": 1,
+      "class": 20,
+      "level": 80,
+      "spell_hit_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "dummy",
+      "owner": "bloodmage",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 3
+    }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+    { "action": "learn", "actor": "bloodmage", "spell": 704646 },
+    { "action": "learn", "actor": "bloodmage", "spell": 800772 },
+    { "action": "learn", "actor": "bloodmage", "spell": 578305 },
+    { "action": "set_power", "actor": "bloodmage", "power": 1, "value": 1000 },
+    { "action": "cast", "actor": "bloodmage", "spell": 800772, "target": "dummy" },
+    {
+      "action": "assert",
+      "label": "Taldaram's Torment is applied",
+      "actor": "dummy",
+      "metric": "aura",
+      "spell": 800772,
+      "caster": "bloodmage",
+      "equals": 1,
+      "within_ms": 3000
+    },
+    { "action": "wait", "ms": 5000 },
+    {
+      "action": "snapshot",
+      "label": "Taldaram's Torment duration before Bloodbolt",
+      "actor": "dummy",
+      "metric": "aura_duration_ms",
+      "spell": 800772,
+      "caster": "bloodmage",
+      "save_as": "duration_before"
+    },
+    { "action": "cast", "actor": "bloodmage", "spell": 578305, "target": "dummy" },
+    {
+      "action": "assert",
+      "label": "Bloodbolt refreshes Taldaram's Torment's duration",
+      "actor": "dummy",
+      "metric": "aura_duration_ms",
+      "spell": 800772,
+      "caster": "bloodmage",
+      "relative_to": "duration_before",
+      "min": 4000,
+      "within_ms": 3000
+    }
+  ]
+}
