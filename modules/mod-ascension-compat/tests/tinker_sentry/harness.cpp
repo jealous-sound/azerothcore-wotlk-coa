@@ -12,6 +12,7 @@ using int32 = std::int32_t;
 using ObjectGuid = uint32;
 using WeaponAttackType = uint32;
 constexpr uint32 RANGED_ATTACK = 2, UNIT_STATE_CONTROLLED = 1, UNIT_STATE_CASTING = 2;
+constexpr uint32 CURRENT_AUTOREPEAT_SPELL = 3;
 constexpr uint32 SPELL_AURA_MOD_PACIFY = 3, SPELL_AURA_MOD_PACIFY_SILENCE = 4;
 constexpr uint32 UNIT_FLAG_PLAYER_CONTROLLED = 1, UNIT_FLAG_NON_ATTACKABLE = 2, UNIT_FLAG_TAXI_FLIGHT = 4;
 constexpr uint32 UNIT_FLAG_NOT_ATTACKABLE_1 = 8, UNIT_FLAG_NON_ATTACKABLE_2 = 16;
@@ -65,6 +66,7 @@ struct Player : Unit
     Player() { flags = UNIT_FLAG_PLAYER_CONTROLLED; guid = 1; }
     Unit* victim = nullptr;
     Unit* selected = nullptr;
+    struct Spell* autoRepeat = nullptr;
     std::set<Unit*> combat, m_Controlled;
     bool IsValidAttackTarget(Unit* target) const
     {
@@ -73,6 +75,7 @@ struct Player : Unit
     bool IsHostileTo(Unit* target) const { return target->hostile; }
     bool IsInCombatWith(Unit* target) const { return combat.contains(target); }
     Unit* GetVictim() const { return victim; }
+    Spell* GetCurrentSpell(uint32 type) const;
     Unit* GetSelectedUnit() const { return selected; }
     uint32 GetFaction() const { return 1; }
 };
@@ -105,9 +108,26 @@ struct SpellInfo
 {
     uint32 SpellFamilyName = 34;
     bool positive = false;
+    bool autoRepeatRanged = false;
     bool IsPositive() const { return positive; }
+    bool IsAutoRepeatRangedSpell() const { return autoRepeatRanged; }
     float GetMaxRange(bool, Creature*) const { return 45; }
 } info;
+struct SpellTargets
+{
+    Unit* unitTarget = nullptr;
+    Unit* GetUnitTarget() const { return unitTarget; }
+};
+struct Spell
+{
+    SpellInfo info;
+    SpellTargets m_targets;
+    SpellInfo const* GetSpellInfo() const { return &info; }
+};
+Spell* Player::GetCurrentSpell(uint32 type) const
+{
+    return type == CURRENT_AUTOREPEAT_SPELL ? autoRepeat : nullptr;
+}
 struct Manager
 {
     SpellInfo const* GetSpellInfo(uint32 id) const { assert(id == 706689); return &info; }
@@ -130,7 +150,7 @@ void Cast(Creature* caster, Unit* target, uint32 id)
 
 struct TinkerState
 {
-    ObjectGuid focus = 0, observedVictim = 0;
+    ObjectGuid focus = 0, observedVictim = 0, observedAutoRepeatTarget = 0;
     std::set<ObjectGuid> summons;
 } tinkerState;
 TinkerState& State(Player*) { return tinkerState; }
@@ -180,7 +200,7 @@ int main()
 
     ai.IsSummonedBy(&player);
 
-    // A deliberate player melee/ranged attack is observed from the player's actual victim.
+    // A deliberate player melee attack is observed from the player's actual victim.
     player.combat.clear();
     player.selected = nullptr;
     player.victim = &mobA;
@@ -232,7 +252,7 @@ int main()
     ObserveAttack(&player);
     assert(ai.TurretTarget(&player) == &mobB);
 
-    // A new deliberate melee/ranged attack replaces the spell target.
+    // A new deliberate melee attack replaces the spell target.
     player.victim = &mobC;
     ObserveAttack(&player);
     assert(State(&player).focus == mobC.guid);
@@ -242,6 +262,63 @@ int main()
     player.victim = nullptr;
     player.selected = &mobA;
     player.combat.clear();
+    ObserveAttack(&player);
+    assert(State(&player).focus == mobC.guid);
+    assert(ai.TurretTarget(&player) == &mobC);
+
+    // Start with no observed attack source, then exercise the native Auto Shot path with no melee victim.
+    tinkerState = {};
+    ai.IsSummonedBy(&player);
+    player.victim = nullptr;
+    player.selected = &mobA;
+    player.combat.clear();
+    player.autoRepeat = nullptr;
+    ObserveAttack(&player);
+    assert(!ai.TurretTarget(&player));
+
+    Spell autoShot;
+    autoShot.info.autoRepeatRanged = true;
+    autoShot.m_targets.unitTarget = &mobA;
+    player.autoRepeat = &autoShot;
+    ObserveAttack(&player);
+    assert(State(&player).focus == mobA.guid);
+    assert(ai.TurretTarget(&player) == &mobA);
+
+    // Changing the native auto-repeat target is a new ranged attack, even while GetVictim() is null.
+    autoShot.m_targets.unitTarget = &mobB;
+    ObserveAttack(&player);
+    assert(State(&player).focus == mobB.guid);
+    assert(ai.TurretTarget(&player) == &mobB);
+
+    // A newer native Auto Shot target wins over an older melee victim.
+    player.autoRepeat = nullptr;
+    autoShot.m_targets.unitTarget = nullptr;
+    player.victim = &mobA;
+    ObserveAttack(&player);
+    assert(State(&player).focus == mobA.guid);
+    player.victim = nullptr;
+    player.autoRepeat = &autoShot;
+    autoShot.m_targets.unitTarget = &mobB;
+    ObserveAttack(&player);
+    assert(State(&player).focus == mobB.guid);
+    assert(ai.TurretTarget(&player) == &mobB);
+
+    // A newer melee victim wins while the unchanged Auto Shot B remains active.
+    player.victim = &mobC;
+    ObserveAttack(&player);
+    assert(State(&player).focus == mobC.guid);
+    ObserveAttack(&player);
+    assert(State(&player).focus == mobC.guid);
+    assert(ai.TurretTarget(&player) == &mobC);
+
+    // An explicit spell target is newer than the prior auto-repeat source, and a new melee target wins after it.
+    player.autoRepeat = nullptr;
+    autoShot.m_targets.unitTarget = nullptr;
+    player.victim = nullptr;
+    ObserveAttack(&player);
+    assert(NotifySpellAttack(&player, &rocket, &mobB));
+    assert(State(&player).focus == mobB.guid);
+    player.victim = &mobC;
     ObserveAttack(&player);
     assert(State(&player).focus == mobC.guid);
     assert(ai.TurretTarget(&player) == &mobC);

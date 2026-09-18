@@ -24,7 +24,7 @@ struct TinkerState
     TaskScheduler scheduler;
     std::set<ObjectGuid> summons;
     std::set<ObjectGuid> moduleTargets;
-    ObjectGuid focus, observedVictim, reconstruction;
+    ObjectGuid focus, observedVictim, observedAutoRepeatTarget, reconstruction;
     uint32 module = 0;
     uint64 sequence = 0;
     bool event = false, refreshing = false;

@@ -62,10 +62,20 @@ void ObserveAttack(Player* player)
     auto& state = State(player);
     Unit* victim = player->GetVictim();
     ObjectGuid victimGuid = victim ? victim->GetGUID() : ObjectGuid();
-    if (victimGuid == state.observedVictim)
-        return;
-    state.observedVictim = victimGuid;
-    NotifyAttack(player,victim);
+    if (victimGuid != state.observedVictim)
+    {
+        state.observedVictim = victimGuid;
+        NotifyAttack(player,victim);
+    }
+    Spell* autoRepeat = player->GetCurrentSpell(CURRENT_AUTOREPEAT_SPELL);
+    Unit* rangedTarget = autoRepeat && autoRepeat->GetSpellInfo()->IsAutoRepeatRangedSpell() ?
+        autoRepeat->m_targets.GetUnitTarget() : nullptr;
+    ObjectGuid rangedGuid = rangedTarget ? rangedTarget->GetGUID() : ObjectGuid();
+    if (rangedGuid != state.observedAutoRepeatTarget)
+    {
+        state.observedAutoRepeatTarget = rangedGuid;
+        NotifyAttack(player,rangedTarget);
+    }
 }
 bool Named(SpellInfo const* info, uint32 root)
 {
