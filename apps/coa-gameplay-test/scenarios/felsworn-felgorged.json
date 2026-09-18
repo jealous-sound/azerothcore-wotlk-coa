@@ -1,0 +1,72 @@
+{
+  "schema": 1,
+  "name": "Felgorged reduces the Energy cost of Cripple and Consume Magic (#1312)",
+  "contract": "Felgorged reduces the Energy cost of Cripple (704371) and Consume Magic (800353) by 10, via a native SPELLMOD_COST (op14) flat SpellMod matching both spells' family20 classMask3 bits 0 and 13. The DBC stores EffectBasePoints -11 with DieSides 1, so SpellEffectInfo::CalcValue resolves it to -10 (basePoints+1), one point above the tooltip's 11.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "control",
+      "race": 4,
+      "class": 14,
+      "level": 80
+    },
+    {
+      "id": "felgorged",
+      "race": 4,
+      "class": 14,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "felgorged",
+      "spell": 560573
+    },
+    {
+      "action": "assert",
+      "label": "Base Cripple cost is unaffected",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 704371,
+      "op": 14,
+      "base": 100,
+      "equals": 100
+    },
+    {
+      "action": "assert",
+      "label": "Felgorged reduces Cripple cost by 10 (EffectBasePoints -11 + 1, DieSides 1)",
+      "actor": "felgorged",
+      "metric": "spell_modifier",
+      "spell": 704371,
+      "op": 14,
+      "base": 100,
+      "equals": 90
+    },
+    {
+      "action": "assert",
+      "label": "Base Consume Magic cost is unaffected",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 800353,
+      "op": 14,
+      "base": 100,
+      "equals": 100
+    },
+    {
+      "action": "assert",
+      "label": "Felgorged reduces Consume Magic cost by 10 (EffectBasePoints -11 + 1, DieSides 1)",
+      "actor": "felgorged",
+      "metric": "spell_modifier",
+      "spell": 800353,
+      "op": 14,
+      "base": 100,
+      "equals": 90
+    }
+  ]
+}
