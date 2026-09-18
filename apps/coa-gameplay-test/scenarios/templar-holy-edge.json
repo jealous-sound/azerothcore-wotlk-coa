@@ -1,0 +1,20 @@
+{
+ "schema": 1,
+ "name": "Holy Edge widens Scourgebane and Scarlet Hammer (#3055)",
+ "contract": "Holy Edge is a flat SPELLMOD_JUMP_TARGETS passive on the Scourgebane and Scarlet Hammer family mask: rank 1 (706312) adds 1 and rank 2 (707853) adds 2. Scourgebane's proc (801832) and Scarlet Hammer (807035) each declare one chain target, so the modified counts are 2 and 3.",
+ "timeout_ms": 90000,
+ "players": [
+  { "id": "control", "race": 1, "class": 19, "level": 80 },
+  { "id": "edge1", "race": 1, "class": 19, "level": 80 },
+  { "id": "edge2", "race": 1, "class": 19, "level": 80 }
+ ],
+ "steps": [
+  { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+  { "action": "learn", "actor": "edge1", "spell": 706312 },
+  { "action": "learn", "actor": "edge2", "spell": 707853 },
+  { "action": "assert", "label": "Untalented Scourgebane keeps one target", "actor": "control", "metric": "spell_modifier", "spell": 801832, "op": 17, "base": 1, "equals": 1 },
+  { "action": "assert", "label": "Holy Edge rank 1 adds one Scourgebane target", "actor": "edge1", "metric": "spell_modifier", "spell": 801832, "op": 17, "base": 1, "equals": 2 },
+  { "action": "assert", "label": "Holy Edge rank 2 adds two Scourgebane targets", "actor": "edge2", "metric": "spell_modifier", "spell": 801832, "op": 17, "base": 1, "equals": 3 },
+  { "action": "assert", "label": "Holy Edge rank 2 adds two Scarlet Hammer targets", "actor": "edge2", "metric": "spell_modifier", "spell": 807035, "op": 17, "base": 1, "equals": 3 }
+ ]
+}
