@@ -478,7 +478,10 @@ struct npc_ascension_tinker_device : ScriptedAI
                         {
                             uint32 helper = entry == 50036 ? 801256 : entry == 51036 ? 803804 : entry == 53036 ?
                                 803805 : entry == 54036 ? 803806 : entry == 55036 ? 803807 : 803808;
-                            Cast(me,ally,helper);
+                            // Helper effect A is TARGET_DEST_DYNOBJ_ALLY: it needs an explicit destination or it
+                            // silently falls back to the caster's own position instead of the ally being buffed.
+                            if (me->IsInWorld())
+                                me->CastSpell(ally->GetPositionX(),ally->GetPositionY(),ally->GetPositionZ(),helper,true);
                             if (Aura* aura = ally->GetAura(helper,me->GetGUID()))
                                 aura->SetDuration(2000);
                         }
