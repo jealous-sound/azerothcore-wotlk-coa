@@ -95,6 +95,34 @@
       "label": "Debuff applied"
     },
     {
+      "action": "snapshot",
+      "actor": "enemy0",
+      "metric": "health",
+      "save_as": "hp_hit"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "assert",
+      "actor": "enemy0",
+      "metric": "health",
+      "relative_to": "hp_hit",
+      "min": -1,
+      "max": 100000,
+      "label": "First leech tick waits a period"
+    },
+    {
+      "action": "assert",
+      "actor": "enemy0",
+      "metric": "health",
+      "relative_to": "hp_hit",
+      "max": -1,
+      "within_ms": 3000,
+      "label": "Leech ticks later"
+    },
+    {
       "action": "assert",
       "actor": "caster",
       "metric": "aura",

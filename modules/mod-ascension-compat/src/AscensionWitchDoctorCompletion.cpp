@@ -407,6 +407,9 @@ void ApplyContracts(SpellInfo* info)
     {
         info->Effects[EFFECT_1].Effect = 0;
         info->SpellFamilyFlags[1] |= 33554432; // inherits Hex modifiers without becoming the stored Hex
+        info->AttributesEx5 &= ~SPELL_ATTR5_EXTRA_INITIAL_PERIOD; // the leech starts one period after the hit
+        info->StartRecoveryTime = 0;
+        info->StartRecoveryCategory = 0; // off the global cooldown
     }
     if (id == HexfireWrath || id == Umbral)
     {
