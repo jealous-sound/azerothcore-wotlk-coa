@@ -23,7 +23,9 @@ enum BloodmageTalentSpells : uint32
     SPELL_SANGUINE_SCRIPTURE_BUFF = 504264,
     SPELL_CURSED_FORM_REQUIREMENT = 525031,
     SPELL_CURSED_FORM_REQUIREMENT_2 = 524861,
-    SPELL_BLOODMOON_POWER = 801961
+    SPELL_BLOODMOON_POWER = 801961,
+    SPELL_ETERNAL_CURSE = 800157,
+    SPELL_ETERNAL_CURSE_ARMOR = 804320
 };
 
 // Every creature Animated Blood can leave behind: worms, parasites and the rank 3 amalgam.
@@ -121,6 +123,9 @@ public:
             return;
         if (IsCursedForm(aura->GetId()))
             SyncCursedFormRequirement(player);
+        // "Armor contribution from items" is a hidden passive (804320) that nothing ever applied.
+        if (aura->GetId() == SPELL_ETERNAL_CURSE)
+            player->CastSpell(player, SPELL_ETERNAL_CURSE_ARMOR, true);
     }
 
     void OnAuraRemove(Unit* unit, AuraApplication* application, AuraRemoveMode mode) override
@@ -131,6 +136,8 @@ public:
         Aura* aura = application->GetBase();
         if (IsCursedForm(aura->GetId()))
             SyncCursedFormRequirement(player);
+        if (aura->GetId() == SPELL_ETERNAL_CURSE)
+            player->RemoveAurasDueToSpell(SPELL_ETERNAL_CURSE_ARMOR);
         if (!player->IsAlive() || !player->IsInWorld() || mode == AURA_REMOVE_BY_DEATH)
             return;
         if (aura->GetId() == SPELL_LIQUIFY && aura->GetCasterGUID() == player->GetGUID() &&
