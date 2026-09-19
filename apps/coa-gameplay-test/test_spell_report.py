@@ -122,6 +122,36 @@ def write_dbc(path, records):
     path.write_bytes(header + b''.join(records) + b'\0')
 
 
+def fixture_dbc_records():
+    return [
+        dbc_record(100, 20, 101, [(0, {'effect': 6, 'aura': 42, 'trigger': 101}), (1, {'effect': 6, 'aura': 4})]),
+        dbc_record(101, 0, 0, [(0, {'effect': 168, 'trigger': 300}), (2, {'effect': 6, 'aura': 354,
+                                                                         'trigger': 999})]),
+        dbc_record(200, 0, 0, [(0, {'effect': 6, 'aura': 112, 'misc': 20003}),
+                               (1, {'effect': 6, 'aura': 107, 'misc': 40})]),
+    ]
+
+
+def write_source(root, report):
+    names = {'handler': 'EffectSomething', 'null': 'EffectNULL', 'unused': 'EffectUnused'}
+    aura_names = {'handler': 'HandleSomething', 'null': 'HandleNULL', 'no_immediate': 'HandleNoImmediateEffect'}
+    effect_rows = ''.join(f'    &Spell::{names[kind]}, // {index}\n'
+                          for index, kind in enumerate(report['dispatch']['effects']))
+    aura_rows = ''.join(('    nullptr, // ' if kind == 'missing' else f'    &AuraEffect::{aura_names[kind]}, // ')
+                        + f'{index}\n' for index, kind in enumerate(report['dispatch']['auras']))
+    spells = root / 'src/server/game/Spells'
+    (spells / 'Auras').mkdir(parents=True)
+    (spells / 'SpellEffects.cpp').write_text(
+        'pEffect SpellEffects[TOTAL_SPELL_EFFECTS] =\n{\n' + effect_rows + '};\n', encoding='utf-8')
+    (spells / 'Auras/SpellAuraEffects.cpp').write_text(
+        'pAuraEffectHandler AuraEffectHandler[TOTAL_AURAS] =\n{\n' + aura_rows + '};\n', encoding='utf-8')
+    (spells / 'Auras/SpellAuraDefines.h').write_text(
+        'SPELL_AURA_DUMMY = 4,\nSPELL_AURA_PROC_TRIGGER_SPELL = 42,\n', encoding='utf-8')
+    (spells / 'SpellMgr.cpp').write_text(
+        '    isTriggerAura[SPELL_AURA_DUMMY] = true;\n'
+        '    isTriggerAura[SPELL_AURA_PROC_TRIGGER_SPELL] = true;\n', encoding='utf-8')
+
+
 class SpellReportTests(unittest.TestCase):
     def assert_invalid(self, report, text):
         with self.assertRaises(spell_report.ReportError) as raised:
@@ -170,13 +200,7 @@ class SpellReportTests(unittest.TestCase):
 
     def test_dbc_cross_check(self):
         report = fixture()
-        records = [
-            dbc_record(100, 20, 101, [(0, {'effect': 6, 'aura': 42, 'trigger': 101}), (1, {'effect': 6, 'aura': 4})]),
-            dbc_record(101, 0, 0, [(0, {'effect': 168, 'trigger': 300}), (2, {'effect': 6, 'aura': 354,
-                                                                             'trigger': 999})]),
-            dbc_record(200, 0, 0, [(0, {'effect': 6, 'aura': 112, 'misc': 20003}),
-                                   (1, {'effect': 6, 'aura': 107, 'misc': 40})]),
-        ]
+        records = fixture_dbc_records()
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'Spell.dbc'
             write_dbc(path, records)
@@ -190,25 +214,9 @@ class SpellReportTests(unittest.TestCase):
 
     def test_source_cross_check(self):
         report = fixture()
-        names = {'handler': 'EffectSomething', 'null': 'EffectNULL', 'unused': 'EffectUnused'}
-        aura_names = {'handler': 'HandleSomething', 'null': 'HandleNULL', 'no_immediate': 'HandleNoImmediateEffect'}
-        effect_rows = ''.join(f'    &Spell::{names[kind]}, // {index}\n'
-                              for index, kind in enumerate(report['dispatch']['effects']))
-        aura_rows = ''.join(('    nullptr, // ' if kind == 'missing' else f'    &AuraEffect::{aura_names[kind]}, // ')
-                            + f'{index}\n' for index, kind in enumerate(report['dispatch']['auras']))
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            spells = root / 'src/server/game/Spells'
-            (spells / 'Auras').mkdir(parents=True)
-            (spells / 'SpellEffects.cpp').write_text(
-                'pEffect SpellEffects[TOTAL_SPELL_EFFECTS] =\n{\n' + effect_rows + '};\n', encoding='utf-8')
-            (spells / 'Auras/SpellAuraEffects.cpp').write_text(
-                'pAuraEffectHandler AuraEffectHandler[TOTAL_AURAS] =\n{\n' + aura_rows + '};\n', encoding='utf-8')
-            (spells / 'Auras/SpellAuraDefines.h').write_text(
-                'SPELL_AURA_DUMMY = 4,\nSPELL_AURA_PROC_TRIGGER_SPELL = 42,\n', encoding='utf-8')
-            (spells / 'SpellMgr.cpp').write_text(
-                '    isTriggerAura[SPELL_AURA_DUMMY] = true;\n'
-                '    isTriggerAura[SPELL_AURA_PROC_TRIGGER_SPELL] = true;\n', encoding='utf-8')
+            write_source(root, report)
             spell_report.check_source(report, root)
             report['dispatch']['auras'][42] = 'handler'
             with self.assertRaises(spell_report.ReportError):
@@ -222,6 +230,47 @@ class SpellReportTests(unittest.TestCase):
         other['spells'][0]['name'] = 'Changed'
         with self.assertRaises(spell_report.ReportError):
             spell_report.check_same(report, other)
+
+    def test_runner_entry_point_checks_every_layer(self):
+        report = fixture()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            run_dir = root / 'run'
+            (run_dir / 'dbc').mkdir(parents=True)
+            write_source(root, report)
+            write_dbc(run_dir / 'dbc' / 'Spell.dbc', fixture_dbc_records())
+            path = run_dir / 'report.json'
+            path.write_text(json.dumps(report), encoding='utf-8')
+            repeat = copy.deepcopy(report)
+            repeat['generated_unix'] = report['generated_unix'] + 5
+            (run_dir / 'repeat.json').write_text(json.dumps(repeat), encoding='utf-8')
+            options = {'same_as': 'repeat.json', 'expect_roots': ['100:class_spell']}
+            context = {'run_dir': run_dir, 'data_dir': run_dir, 'source_root': root}
+            result = spell_report.check(path, options, context)
+            self.assertEqual(result['checks'], ['schema', 'references', 'summary_recomputed', 'expect_roots',
+                                                'source_tables', 'dbc', 'same_as'])
+            self.assertEqual(result['summary'], report['summary'])
+            self.assertEqual(result['dbc_absent_spells'], 1)
+            (run_dir / 'dbc' / 'Spell.dbc').unlink()
+            with self.assertRaisesRegex(spell_report.ReportError, 'Spell.dbc'):
+                spell_report.check(path, options, context)
+
+    def test_runner_entry_point_rejects_a_differing_repeat(self):
+        report = fixture()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            run_dir = root / 'run'
+            (run_dir / 'dbc').mkdir(parents=True)
+            write_source(root, report)
+            write_dbc(run_dir / 'dbc' / 'Spell.dbc', fixture_dbc_records())
+            path = run_dir / 'report.json'
+            path.write_text(json.dumps(report), encoding='utf-8')
+            differing = copy.deepcopy(report)
+            differing['spells'][0]['name'] = 'Changed'
+            (run_dir / 'repeat.json').write_text(json.dumps(differing), encoding='utf-8')
+            context = {'run_dir': run_dir, 'data_dir': run_dir, 'source_root': root}
+            with self.assertRaisesRegex(spell_report.ReportError, 'Reports differ'):
+                spell_report.check(path, {'same_as': 'repeat.json'}, context)
 
     def test_command_line_reports_errors(self):
         with tempfile.TemporaryDirectory() as directory:

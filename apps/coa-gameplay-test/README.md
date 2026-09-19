@@ -166,7 +166,8 @@ network login, and a static review alone cannot establish runtime parity between
 
 Start from [scenarios/frostbolt.json](scenarios/frostbolt.json). Schema version 1 accepts up to eight players,
 eight creatures and 10,000 sequential steps. Optional `timeout_ms` bounds setup plus execution (default 90s,
-maximum 10 minutes). Optional `contract` records the independently established expected behavior.
+maximum 10 minutes). Optional `contract` records the independently established expected behavior, and optional
+`artifacts` declares files the run exports for the runner to validate (see [Exported artifacts](#exported-artifacts)).
 The [talent and item scenario](scenarios/talent-and-items.json) exercises talent learning, passive removal,
 equipping a shirt and consuming a healing potion. It does not measure the talent's damage coefficient.
 The [Shadowblast scenario](scenarios/shadowblast-shadow-rage.json) reproduces a Shadow Rage pet-targeting crash
@@ -297,6 +298,32 @@ An optional `spell` restricts the count to creatures with that aura; `caster` ca
 ownership; `aura_amount` also accepts an effect index (0..2, default 0). Missing auras yield zero;
 check aura presence separately when zero is a valid effect amount. Permanent aura duration is -1.
 
+### Exported artifacts
+
+Some scenarios produce a file rather than an observable unit state. Assertions read live actors, not files, so the
+scenario declares each exported file in `artifacts` and the runner validates it once the scenario's own result is
+accepted. A missing file or a rejected one fails the run.
+
+```json
+"artifacts": [
+  {
+    "file": "effective-spell-report.json",
+    "checker": "spell_report",
+    "same_as": "effective-spell-report-repeat.json",
+    "expect_roots": ["801576:class_spell"]
+  }
+]
+```
+
+`file` is a plain name inside the run directory, written by a step of the same scenario; the runner's own
+files (`summary.json`, `result.json`, the generated config and log) cannot be declared. `checker` names a checker
+the runner knows; the remaining fields are that checker's options. The runner supplies the run directory, the
+server's `DataDir` and this source checkout itself, so a scenario never repeats paths the runner already resolved.
+
+`summary.json` records every artifact under `artifacts`: its size and SHA-256, the `checks` that ran, and the
+checker's own summary, with `artifact_seconds` alongside. A rejected artifact keeps its record with
+`"status": "failed"` and the checker's message, which is also the run's failure message.
+
 ## Effective spell report
 
 The server console command `coa spellreport <file>` (console only) writes a read-only JSON report of the spells
@@ -321,17 +348,15 @@ report once at startup. It reads the loaded server state: SpellInfo after correc
 
 C++ `CastSpell` literals, summon AI casts, global script hooks and core id switches are not visible to the report.
 The [effective spell report scenario](scenarios/effective-spell-report.json) writes two reports into the run
-directory. Validate them with:
+directory and declares the first as an artifact, so the runner validates them before the run can pass. The
+`spell_report` checker checks the schema and internal references, recomputes every summary count from the spell
+rows, requires the roots named in `expect_roots`, compares dispatch kinds against the handler tables in this
+checkout, compares raw values against the server's `Spell.dbc`, and finally compares the second export named by
+`same_as`. Spells found only in `spell_dbc` rows are reported as `dbc_absent_spells`, not compared. The validated
+summary is kept in `summary.json`.
 
-```powershell
-python apps/coa-gameplay-test/spell_report.py <run-dir>/effective-spell-report.json `
-  --same-as <run-dir>/effective-spell-report-repeat.json --dbc <DataDir>/dbc/Spell.dbc --source-root . `
-  --expect-root 801576:class_spell --expect-root 500059:class_skill_line --expect-root 804057:coa_talent
-```
-
-The validator checks the schema and references, then recomputes every summary count from the spell rows. It also
-checks raw values against Spell.dbc and dispatch kinds against the handler tables in the source. It prints the
-summary. Spells found only in `spell_dbc` rows are counted, not compared.
+To re-check a report saved from an earlier run, the same module runs standalone:
+`python apps/coa-gameplay-test/spell_report.py <report> --help` lists the checks as command-line options.
 
 ## Evidence boundaries
 

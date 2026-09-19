@@ -19,12 +19,20 @@ import sys
 import tempfile
 import time
 
+import spell_report
 from world_cache import WorldCache, input_fingerprint
 
 ROOT = Path(__file__).resolve().parents[2]
 CREATE_FLAGS = subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
 IDENTIFIER = re.compile(r'[A-Za-z_][A-Za-z0-9_]*\Z')
 ACTOR_ID = re.compile(r'[a-z][a-z0-9_]{0,31}\Z')
+ARTIFACT_FILE = re.compile(r'[A-Za-z0-9][A-Za-z0-9._-]{0,63}\Z')
+EXPECTED_ROOT = re.compile(r'[0-9]{1,9}(:[a-z_]{1,32})?\Z')
+# Files the runner itself owns in the run directory; a scenario cannot declare one as its own artifact.
+RESERVED_FILES = {'summary.json', 'result.json', 'ready.json', 'scenario.json', 'start.json',
+                  'worldserver.conf', 'worldserver.log'}
+# Scenario-declared checkers for files the run writes: name -> (module, options the scenario may pass).
+CHECKERS = {'spell_report': (spell_report, {'same_as', 'expect_roots'})}
 LOCAL_HOSTS = {'127.0.0.1', 'localhost', '::1'}
 METRICS = {
     'health', 'health_pct', 'max_health', 'power', 'max_power', 'alive', 'combat', 'casting', 'level',
@@ -127,7 +135,8 @@ def read_json(path):
 
 def validate(scenario):
     keys(scenario, {'schema', 'name', 'players', 'steps'},
-         {'schema', 'name', 'players', 'creatures', 'steps', 'timeout_ms', 'location', 'contract'}, 'scenario')
+         {'schema', 'name', 'players', 'creatures', 'steps', 'timeout_ms', 'location', 'contract', 'artifacts'},
+         'scenario')
     require(type(scenario['schema']) is int and scenario['schema'] == 1, 'Unsupported scenario schema')
     require(isinstance(scenario['name'], str) and scenario['name'].strip(), 'Scenario needs a name')
     number(scenario.get('timeout_ms', 90000), 'timeout_ms', 1, 600000, True)
@@ -311,6 +320,28 @@ def validate(scenario):
                     require(step.get('min', -math.inf) <= step['equals'] <= step.get('max', math.inf),
                             f'{where}: contradictory assertion')
     require(assertions > 0, 'Scenario must contain assertions')
+    artifacts = scenario.get('artifacts', [])
+    require(isinstance(artifacts, list) and len(artifacts) <= 8, 'Expected at most eight artifacts')
+    files = set()
+    for index, artifact in enumerate(artifacts):
+        where = f'artifact {index}'
+        keys(artifact, {'file', 'checker'}, {'file', 'checker', 'label', 'same_as', 'expect_roots'}, where)
+        require(artifact['checker'] in CHECKERS, f'{where}: unknown checker')
+        options = CHECKERS[artifact['checker']][1]
+        require(artifact.keys() - {'file', 'checker', 'label'} <= options,
+                f'{where}: options are not supported by its checker')
+        for key in ('file', 'same_as'):
+            if key in artifact:
+                name = artifact[key]
+                require(isinstance(name, str) and ARTIFACT_FILE.fullmatch(name), f'{where}: invalid {key}')
+                require(name not in RESERVED_FILES, f'{where}: {key} is a name the runner owns')
+                require(name not in files, f'{where}: duplicate file')
+                files.add(name)
+        if 'expect_roots' in artifact:
+            roots = artifact['expect_roots']
+            require(isinstance(roots, list) and 1 <= len(roots) <= 64, f'{where}: expected 1..64 expect_roots')
+            require(all(isinstance(root, str) and EXPECTED_ROOT.fullmatch(root) for root in roots),
+                    f'{where}: invalid expect_roots')
     return scenario
 
 
@@ -606,6 +637,32 @@ def check_report(report, run_id, scenario, returncode):
             require(record.get('status') == 'completed', 'An action did not complete')
 
 
+def check_artifacts(scenario, summary, output, data_dir):
+    """Validate the files the scenario exported, recording the evidence in the run summary."""
+    artifacts = scenario.get('artifacts', [])
+    if not artifacts:
+        return
+    started = time.monotonic()
+    records = summary.setdefault('artifacts', {})
+    context = {'run_dir': output, 'data_dir': data_dir, 'source_root': ROOT}
+    try:
+        for artifact in artifacts:
+            name = artifact['file']
+            path = output / name
+            require(path.is_file(), f'Artifact {name} was not written by the scenario')
+            record = {'checker': artifact['checker'], 'status': 'failed',
+                      'bytes': path.stat().st_size, 'sha256': sha256(path)}
+            records[name] = record
+            module = CHECKERS[artifact['checker']][0]
+            try:
+                record.update(module.check(path, artifact, context), status='passed')
+            except (ValueError, OSError) as error:
+                record['message'] = str(error)
+                raise ValueError(f'Artifact {name}: {error}') from error
+    finally:
+        summary['artifact_seconds'] = round(time.monotonic() - started, 3)
+
+
 def run_process(command, directory, ready_path, result_path, run_id, startup_timeout, timeout,
                 on_ready=None, environment=None):
     with (directory / 'worldserver.log').open('wb') as log:
@@ -733,6 +790,7 @@ def execute(args, scenario):
                                          on_ready=on_ready, environment=server_environment(overrides))
         summary['server_seconds'] = round(time.monotonic() - server_started, 3)
         check_report(report, run_id, scenario, returncode)
+        check_artifacts(scenario, summary, output, data_dir.resolve())
         summary.update(status='passed', assertions=int(report['assertions']))
     except ServerStillRunning as error:
         retain_databases = True

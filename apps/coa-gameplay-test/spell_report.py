@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Validate and summarize the effective spell report written by the `coa spellreport <file>` console command.
 
-Checks the schema and internal references, recomputes every summary count from the per-spell rows, and optionally
-cross-checks the report against independent sources:
+`run.py` calls `check()` on a scenario's declared artifacts; the command line validates a report kept from an
+earlier run. Both check the schema and internal references and recompute every summary count from the per-spell
+rows, then cross-check the report against independent sources:
 
 - `--dbc Spell.dbc`: raw values (effective values overlaid with the listed raw differences) must equal the
   3.3.5a Spell.dbc row read at its documented field offsets.
@@ -80,7 +81,7 @@ DBC_SLOT_OFFSETS = {
 DBC_CLASS_MASK = 122
 
 
-class ReportError(Exception):
+class ReportError(ValueError):
     pass
 
 
@@ -531,6 +532,29 @@ def format_summary(summary):
         lines.append(f'[{scope}] rewrites: {json.dumps(metrics["rewrites"], sort_keys=True)}; '
                      f'masking: {json.dumps(metrics["masking"], sort_keys=True)}')
     return '\n'.join(lines)
+
+
+def check(path, options, context):
+    """Validate one exported report for the gameplay runner and return the evidence it records."""
+    report = read_report(path)
+    summary = validate(report)
+    checks = ['schema', 'references', 'summary_recomputed']
+    result = {'schema': report['schema'], 'server': report['server'], 'checks': checks, 'summary': summary}
+    if options.get('expect_roots'):
+        check_expected_roots(report, options['expect_roots'])
+        checks.append('expect_roots')
+    source_root = Path(context['source_root'])
+    check_source(report, source_root)
+    checks.append('source_tables')
+    dbc = Path(context['data_dir']) / 'dbc' / 'Spell.dbc'
+    if not dbc.is_file():
+        raise ReportError(f'{dbc} is missing; the report cannot be checked against Spell.dbc')
+    result['dbc_absent_spells'] = check_dbc(report, dbc)
+    checks.append('dbc')
+    if options.get('same_as'):
+        check_same(report, read_report(Path(context['run_dir']) / options['same_as']))
+        checks.append('same_as')
+    return result
 
 
 def main(argv=None):

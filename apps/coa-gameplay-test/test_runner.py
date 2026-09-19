@@ -111,6 +111,16 @@ class RunnerTests(unittest.TestCase):
             lambda s: s.update(steps=[{'action': 'wait', 'ms': 1}]),
             lambda s: s['steps'].insert(0, {'action': 'assert', 'actor': 'target', 'metric': 'health',
                                            'relative_to': 'missing', 'equals': 0}),
+            lambda s: s.update(artifacts=[{'file': 'report.json', 'checker': 'unknown'}]),
+            lambda s: s.update(artifacts=[{'file': '../escape.json', 'checker': 'spell_report'}]),
+            lambda s: s.update(artifacts=[{'file': 'report.json', 'checker': 'spell_report', 'dbc': 'Spell.dbc'}]),
+            lambda s: s.update(artifacts=[{'file': 'report.json', 'checker': 'spell_report',
+                                           'same_as': 'report.json'}]),
+            lambda s: s.update(artifacts=[{'file': 'report.json', 'checker': 'spell_report',
+                                           'expect_roots': ['801576:Class Spell']}]),
+            lambda s: s.update(artifacts=[{'file': 'report.json', 'checker': 'spell_report', 'expect_roots': []}]),
+            lambda s: s.update(artifacts=[{'checker': 'spell_report'}]),
+            lambda s: s.update(artifacts=[{'file': 'summary.json', 'checker': 'spell_report'}]),
         ):
             scenario = copy.deepcopy(self.scenario)
             change(scenario)
@@ -144,6 +154,59 @@ class RunnerTests(unittest.TestCase):
                 run.check_report(candidate, report['run_id'], self.scenario, 0)
         with self.assertRaises(ValueError):
             run.check_report(report, report['run_id'], self.scenario, 1)
+
+    def artifact_scenario(self, **options):
+        return {'artifacts': [{'file': 'report.json', 'checker': 'stub', **options}]}
+
+    def check_artifacts(self, scenario, checker, summary=None):
+        summary = {} if summary is None else summary
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory)
+            (output / 'report.json').write_text('{}', encoding='utf-8')
+            with patch.dict(run.CHECKERS, {'stub': (SimpleNamespace(check=checker), {'same_as'})}):
+                run.check_artifacts(scenario, summary, output, output)
+        return summary
+
+    def test_declared_artifact_is_checked_and_recorded(self):
+        seen = {}
+
+        def checker(path, options, context):
+            seen.update(path=path, options=options, context=context, sha256=run.sha256(path))
+            return {'checks': ['schema'], 'summary': {'roots': 2}}
+
+        summary = self.check_artifacts(self.artifact_scenario(same_as='repeat.json'), checker)
+        record = summary['artifacts']['report.json']
+        self.assertEqual(record['status'], 'passed')
+        self.assertEqual(record['checks'], ['schema'])
+        self.assertEqual(record['summary'], {'roots': 2})
+        self.assertEqual(record['bytes'], 2)
+        self.assertEqual(record['sha256'], seen['sha256'])
+        self.assertEqual(seen['options']['same_as'], 'repeat.json')
+        self.assertEqual(seen['context']['source_root'], run.ROOT)
+        self.assertIn('artifact_seconds', summary)
+
+    def test_failing_checker_fails_the_run_and_keeps_its_message(self):
+        def checker(path, options, context):
+            raise ValueError('summary.roots: reported 3, recomputed 2')
+
+        summary = {}
+        with self.assertRaisesRegex(ValueError, 'Artifact report.json: summary.roots'):
+            self.check_artifacts(self.artifact_scenario(), checker, summary)
+        record = summary['artifacts']['report.json']
+        self.assertEqual(record['status'], 'failed')
+        self.assertEqual(record['message'], 'summary.roots: reported 3, recomputed 2')
+        self.assertIn('artifact_seconds', summary)
+
+    def test_unwritten_artifact_is_a_failure(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.dict(run.CHECKERS, {'stub': (SimpleNamespace(check=None), set())}):
+                with self.assertRaisesRegex(ValueError, 'was not written'):
+                    run.check_artifacts(self.artifact_scenario(), {}, Path(directory), Path(directory))
+
+    def test_scenarios_without_artifacts_record_nothing(self):
+        summary = {}
+        run.check_artifacts(self.scenario, summary, Path('.'), Path('.'))
+        self.assertEqual(summary, {})
 
     def test_only_local_valid_database_names_are_accepted(self):
         connection = run.Connection.parse('127.0.0.1;3306;user;secret;acore_world')
