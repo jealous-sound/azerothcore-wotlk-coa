@@ -2744,15 +2744,16 @@ void Unit::CalcHealAbsorb(HealInfo& healInfo)
         // Life For Power converts a fraction of every heal, not a finite twenty-point healing absorb.
         if ((*i)->GetId() == 705746 && healInfo.GetTarget()->getClass() == CLASS_NECROMANCER)
         {
-            int32 converted = CalculatePct(std::max(0, healing - absorbAmount), 20);
-            absorbAmount += converted;
             Unit* target = healInfo.GetTarget();
-            int64 shield = converted;
+            int32 stored = 0;
             if (AuraEffect const* old = target->GetAuraEffect(707194, EFFECT_0))
-                shield += std::max(0, old->GetAmount());
+                stored = std::max(0, old->GetAmount());
+            // The shield cannot grow past the Necromancer's maximum health; healing beyond that is not converted.
+            int32 room = std::max<int32>(0, int32(target->GetMaxHealth()) - stored);
+            int32 converted = std::min(CalculatePct(std::max(0, healing - absorbAmount), 20), room);
+            absorbAmount += converted;
             if (converted)
-                target->CastCustomSpell(707194, SPELLVALUE_BASE_POINT0,
-                    int32(std::min<int64>(shield, INT32_MAX)), target, true);
+                target->CastCustomSpell(707194, SPELLVALUE_BASE_POINT0, stored + converted, target, true);
             continue;
         }
 

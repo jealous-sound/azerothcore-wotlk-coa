@@ -1,0 +1,263 @@
+{
+ "schema": 1,
+ "name": "Necromancer: Life For Power shield is capped (#4172)",
+ "contract": "Life For Power (705746) converts 20% of healing taken into a shield (707194). The shield cannot grow past the Necromancer's maximum health.",
+ "timeout_ms": 120000,
+ "players": [
+  {
+   "id": "n",
+   "race": 5,
+   "class": 23,
+   "level": 60
+  }
+ ],
+ "steps": [
+  {
+   "action": "wait",
+   "ms": 3000
+  },
+  {
+   "action": "learn",
+   "spell": 25213,
+   "actor": "n"
+  },
+  {
+   "action": "set_aura",
+   "spell": 705746,
+   "stacks": 1,
+   "actor": "n"
+  },
+  {
+   "action": "snapshot",
+   "metric": "max_health",
+   "save_as": "mh",
+   "actor": "n"
+  },
+  {
+   "action": "set_power",
+   "power": 0,
+   "value": 2500,
+   "actor": "n"
+  },
+  {
+   "action": "cast",
+   "spell": 25213,
+   "actor": "n"
+  },
+  {
+   "action": "wait",
+   "ms": 3200
+  },
+  {
+   "action": "set_power",
+   "power": 0,
+   "value": 2500,
+   "actor": "n"
+  },
+  {
+   "action": "cast",
+   "spell": 25213,
+   "actor": "n"
+  },
+  {
+   "action": "wait",
+   "ms": 3200
+  },
+  {
+   "action": "set_power",
+   "power": 0,
+   "value": 2500,
+   "actor": "n"
+  },
+  {
+   "action": "cast",
+   "spell": 25213,
+   "actor": "n"
+  },
+  {
+   "action": "wait",
+   "ms": 3200
+  },
+  {
+   "action": "set_power",
+   "power": 0,
+   "value": 2500,
+   "actor": "n"
+  },
+  {
+   "action": "cast",
+   "spell": 25213,
+   "actor": "n"
+  },
+  {
+   "action": "wait",
+   "ms": 3200
+  },
+  {
+   "action": "set_power",
+   "power": 0,
+   "value": 2500,
+   "actor": "n"
+  },
+  {
+   "action": "cast",
+   "spell": 25213,
+   "actor": "n"
+  },
+  {
+   "action": "wait",
+   "ms": 3200
+  },
+  {
+   "action": "set_power",
+   "power": 0,
+   "value": 2500,
+   "actor": "n"
+  },
+  {
+   "action": "cast",
+   "spell": 25213,
+   "actor": "n"
+  },
+  {
+   "action": "wait",
+   "ms": 3200
+  },
+  {
+   "action": "set_power",
+   "power": 0,
+   "value": 2500,
+   "actor": "n"
+  },
+  {
+   "action": "cast",
+   "spell": 25213,
+   "actor": "n"
+  },
+  {
+   "action": "wait",
+   "ms": 3200
+  },
+  {
+   "action": "set_power",
+   "power": 0,
+   "value": 2500,
+   "actor": "n"
+  },
+  {
+   "action": "cast",
+   "spell": 25213,
+   "actor": "n"
+  },
+  {
+   "action": "wait",
+   "ms": 3200
+  },
+  {
+   "action": "set_power",
+   "power": 0,
+   "value": 2500,
+   "actor": "n"
+  },
+  {
+   "action": "cast",
+   "spell": 25213,
+   "actor": "n"
+  },
+  {
+   "action": "wait",
+   "ms": 3200
+  },
+  {
+   "action": "set_power",
+   "power": 0,
+   "value": 2500,
+   "actor": "n"
+  },
+  {
+   "action": "cast",
+   "spell": 25213,
+   "actor": "n"
+  },
+  {
+   "action": "wait",
+   "ms": 3200
+  },
+  {
+   "action": "set_power",
+   "power": 0,
+   "value": 2500,
+   "actor": "n"
+  },
+  {
+   "action": "cast",
+   "spell": 25213,
+   "actor": "n"
+  },
+  {
+   "action": "wait",
+   "ms": 3200
+  },
+  {
+   "action": "set_power",
+   "power": 0,
+   "value": 2500,
+   "actor": "n"
+  },
+  {
+   "action": "cast",
+   "spell": 25213,
+   "actor": "n"
+  },
+  {
+   "action": "wait",
+   "ms": 3200
+  },
+  {
+   "action": "set_power",
+   "power": 0,
+   "value": 2500,
+   "actor": "n"
+  },
+  {
+   "action": "cast",
+   "spell": 25213,
+   "actor": "n"
+  },
+  {
+   "action": "wait",
+   "ms": 3200
+  },
+  {
+   "action": "set_power",
+   "power": 0,
+   "value": 2500,
+   "actor": "n"
+  },
+  {
+   "action": "cast",
+   "spell": 25213,
+   "actor": "n"
+  },
+  {
+   "action": "wait",
+   "ms": 3200
+  },
+  {
+   "action": "assert",
+   "label": "shield exists",
+   "metric": "aura_amount",
+   "spell": 707194,
+   "min": 1000,
+   "actor": "n"
+  },
+  {
+   "action": "assert",
+   "label": "shield is capped at maximum health",
+   "metric": "aura_amount",
+   "spell": 707194,
+   "max": 1956,
+   "actor": "n"
+  }
+ ]
+}
