@@ -582,6 +582,14 @@ class npc_ascension_necromancer : public ScriptedAI
                         // Re-follow on this minion's own slot instead.
                         Regroup(player);
                 }
+                // A Skeletal Rogue slips back into stealth whenever it has nothing to fight, including while pacified.
+                // Its combat flag follows the owner's, so it is the lack of a victim and attackers that counts.
+                if (me->GetEntry() == 50078 && me->IsAlive() && !me->GetVictim() && me->getAttackers().empty() &&
+                    !me->HasAuraType(SPELL_AURA_MOD_STEALTH))
+                    if (Aura* stealth = me->AddAura(1784, me))
+                        // The follower must keep pace with its owner, so drop stealth's movement penalty.
+                        if (AuraEffect* slow = stealth->GetEffect(EFFECT_2))
+                            slow->ChangeAmount(0);
                 if (me->GetEntry() == 50132 && player->HasAura(500730) && me->IsWithinDistInMap(player, 3.0f))
                 {
                     State(player).shade = false;

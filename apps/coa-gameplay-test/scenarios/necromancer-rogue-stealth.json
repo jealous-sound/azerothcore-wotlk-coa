@@ -1,0 +1,90 @@
+{
+ "schema": 1,
+ "name": "Necromancer: Skeletal Rogue stealths when idle",
+ "contract": "A Skeletal Rogue (creature 50078) carries Stealth (1784) while it has nothing to fight, loses it when it fights, and regains it once Undead: Pacify (500983) stops the fight.",
+ "timeout_ms": 120000,
+ "players": [
+  {
+   "id": "n",
+   "race": 5,
+   "class": 23,
+   "level": 50
+  }
+ ],
+ "creatures": [
+  {
+   "id": "d",
+   "owner": "n",
+   "entry": 299,
+   "level": 1,
+   "distance": 4
+  }
+ ],
+ "location": {
+  "map": 0,
+  "x": -8917.41,
+  "y": -115.853,
+  "z": 82.3711,
+  "o": 0
+ },
+ "steps": [
+  {
+   "action": "wait",
+   "ms": 3000
+  },
+  {
+   "action": "learn",
+   "spell": 500969,
+   "actor": "n"
+  },
+  {
+   "action": "cast",
+   "spell": 500969,
+   "actor": "n"
+  },
+  {
+   "action": "wait",
+   "ms": 2000
+  },
+  {
+   "action": "assert",
+   "label": "Rogue stealths after being raised",
+   "actor": "n",
+   "metric": "owned_creature_count",
+   "entry": 50078,
+   "spell": 1784,
+   "equals": 1,
+   "within_ms": 6000
+  },
+  {
+   "action": "attack",
+   "actor": "n",
+   "target": "d"
+  },
+  {
+   "action": "assert",
+   "label": "Rogue leaves stealth to fight",
+   "actor": "n",
+   "metric": "owned_creature_count",
+   "entry": 50078,
+   "spell": 1784,
+   "equals": 0,
+   "within_ms": 10000
+  },
+  {
+   "action": "cast",
+   "spell": 500983,
+   "actor": "n"
+  },
+  {
+   "action": "assert",
+   "label": "Rogue stealths again once pacified",
+   "actor": "n",
+   "metric": "owned_creature_count",
+   "entry": 50078,
+   "spell": 1784,
+   "equals": 1,
+   "within_ms": 10000
+  }
+ ]
+}
