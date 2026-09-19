@@ -207,6 +207,10 @@ void ApplyContracts(SpellInfo* info)
     {
         info->Effects[0].ApplyAuraName = SPELL_AURA_SCHOOL_ABSORB;
         info->Effects[0].MiscValue = SPELL_SCHOOL_MASK_MAGIC;
+        // The raised minion carries the shield: the DBC targets the caster and has no duration.
+        info->Effects[0].TargetA = SpellImplicitTargetInfo(TARGET_UNIT_TARGET_ALLY);
+        info->Effects[0].TargetB = SpellImplicitTargetInfo(0);
+        info->DurationEntry = sSpellDurationStore.LookupEntry(9); // 30 seconds
     }
     if (id == 705746)
         info->Effects[0].ApplyAuraName = SPELL_AURA_SCHOOL_HEAL_ABSORB;
