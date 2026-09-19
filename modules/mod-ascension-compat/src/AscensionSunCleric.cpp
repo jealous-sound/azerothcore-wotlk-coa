@@ -332,7 +332,9 @@ void Refresh(Player* player)
                 state.blessed = ally->GetGUID();
                 break;
             }
-    bool healthy = player->IsAlive() && player->GetHealthPct() > 80;
+    // These helpers require caster aura state 28, and Unit::ModifyAuraState toggles their effects when it changes.
+    // Apply them only while the state is set, so a later state change cannot apply their effects a second time.
+    bool healthy = player->IsAlive() && player->HasAuraState(AURA_STATE_HEALTH_ABOVE_80_PERCENT);
     for (auto [talent, helper] : {std::pair(561328u, 561396u), std::pair(704585u, 707769u),
                                 std::pair(805267u, 807876u), std::pair(300314u, 301341u)})
         SetHelper(player, helper, healthy && player->HasAura(talent));

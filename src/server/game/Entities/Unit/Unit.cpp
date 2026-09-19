@@ -635,6 +635,7 @@ void Unit::Update(uint32 p_time)
     ModifyAuraState(AURA_STATE_HEALTHLESS_20_PERCENT, IsAlive() ? HealthBelowPct(20) : false);
     ModifyAuraState(AURA_STATE_HEALTHLESS_35_PERCENT, IsAlive() ? HealthBelowPct(35) : false);
     ModifyAuraState(AURA_STATE_HEALTH_ABOVE_75_PERCENT, IsAlive() ? HealthAbovePct(75) : false);
+    ModifyAuraState(AURA_STATE_HEALTH_ABOVE_80_PERCENT, IsAlive() ? HealthAbovePct(80) : false);
 
     UpdateSplineMovement(p_time);
     GetMotionMaster()->UpdateMotion(p_time);
@@ -3988,7 +3989,7 @@ bool Unit::HasAscensionConditionalCombatState(int32 state) const
             return maximum && health < maximum * 35;
         case AURA_STATE_HEALTH_ABOVE_75_PERCENT:
             return maximum && health > maximum * 75;
-        case ASCENSION_TARGET_HEALTH_ABOVE_80_PERCENT:
+        case AURA_STATE_HEALTH_ABOVE_80_PERCENT:
             return maximum && health > maximum * 80;
         case AURA_STATE_FROZEN:
             return HasAuraState(AURA_STATE_FROZEN);

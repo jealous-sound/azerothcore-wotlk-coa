@@ -451,11 +451,6 @@ enum AscensionConditionalCombatModifier
     ASCENSION_CONDITIONAL_IGNORE_ARMOR
 };
 
-enum AscensionConditionalTargetState
-{
-    ASCENSION_TARGET_HEALTH_ABOVE_80_PERCENT = 28
-};
-
 enum AuraObjectType
 {
     UNIT_AURA_TYPE,

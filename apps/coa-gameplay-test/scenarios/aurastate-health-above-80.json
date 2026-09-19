@@ -1,0 +1,450 @@
+{
+  "schema": 1,
+  "name": "Health above 80% aura state (28): First Blood and Pure Light",
+  "contract": "AuraStateType 28 is set while a living unit is above 80% health and cleared otherwise. First Blood (560906; Spell.dbc aura 303, MiscValue 28, 19+1 = 20%; tooltip 'Increases all damage dealt to enemies above 80% health by $s1%') adds 20% only against players and creatures above 80% health. Pure Light (301341; CasterAuraState 28, aura 79 9+1 = 10%; tooltip 'While above 80% health you now deal $s1% increased damage and healing') is active only while its owner is above 80% health, stays applied while suspended and resumes once. The Sun Cleric Pure Light talent (300314) keeps its helper only while the state is set. Damage metrics query native outgoing calculations relative to identical controls.",
+  "timeout_ms": 300000,
+  "location": {
+    "map": 0,
+    "x": -8917.41,
+    "y": -115.853,
+    "z": 82.3711,
+    "o": 0
+  },
+  "players": [
+    {
+      "id": "first_blood",
+      "race": 1,
+      "class": 12,
+      "level": 80
+    },
+    {
+      "id": "control",
+      "race": 1,
+      "class": 12,
+      "level": 80
+    },
+    {
+      "id": "victim",
+      "race": 1,
+      "class": 1,
+      "level": 80
+    },
+    {
+      "id": "hitter",
+      "race": 1,
+      "class": 1,
+      "level": 80,
+      "melee_hit_rating": 10000,
+      "expertise_rating": 10000
+    },
+    {
+      "id": "mage",
+      "race": 1,
+      "class": 8,
+      "level": 80
+    },
+    {
+      "id": "mage_control",
+      "race": 1,
+      "class": 8,
+      "level": 80
+    },
+    {
+      "id": "sun",
+      "race": 1,
+      "class": 27,
+      "level": 80
+    },
+    {
+      "id": "sun_control",
+      "race": 1,
+      "class": 27,
+      "level": 80
+    }
+  ],
+  "creatures": [
+    {
+      "id": "golem",
+      "owner": "hitter",
+      "entry": 36,
+      "level": 80,
+      "health": 2000,
+      "distance": 2
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI, local level scaling and health aura states settle",
+      "ms": 5000
+    },
+    {
+      "action": "snapshot",
+      "actor": "golem",
+      "metric": "max_health",
+      "save_as": "golem_max_health"
+    },
+    {
+      "action": "learn",
+      "actor": "first_blood",
+      "spell": 560906
+    },
+    {
+      "action": "assert",
+      "label": "First Blood passive is applied",
+      "actor": "first_blood",
+      "metric": "aura",
+      "spell": 560906,
+      "equals": 1
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "melee_damage_done",
+      "target": "golem",
+      "save_as": "control_vs_full_creature"
+    },
+    {
+      "action": "assert",
+      "label": "First Blood adds 20% against a creature above 80% health",
+      "actor": "first_blood",
+      "metric": "melee_damage_done",
+      "target": "golem",
+      "ratio_to": "control_vs_full_creature",
+      "min": 1.195,
+      "max": 1.205
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "melee_damage_done",
+      "target": "victim",
+      "save_as": "control_vs_full_player"
+    },
+    {
+      "action": "assert",
+      "label": "First Blood adds 20% against a player above 80% health",
+      "actor": "first_blood",
+      "metric": "melee_damage_done",
+      "target": "victim",
+      "ratio_to": "control_vs_full_player",
+      "min": 1.195,
+      "max": 1.205
+    },
+    {
+      "action": "set_health",
+      "actor": "victim",
+      "value": 1
+    },
+    {
+      "action": "assert",
+      "label": "Player target is below 80% health",
+      "actor": "victim",
+      "metric": "health_pct",
+      "max": 79
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "melee_damage_done",
+      "target": "victim",
+      "save_as": "control_vs_low_player"
+    },
+    {
+      "action": "assert",
+      "label": "The health-above-80% state clears on the wounded player",
+      "actor": "first_blood",
+      "metric": "melee_damage_done",
+      "target": "victim",
+      "ratio_to": "control_vs_low_player",
+      "min": 0.995,
+      "max": 1.005,
+      "within_ms": 2000
+    },
+    {
+      "action": "set_aura",
+      "actor": "mage",
+      "spell": 301341,
+      "stacks": 1
+    },
+    {
+      "action": "snapshot",
+      "actor": "mage_control",
+      "metric": "spell_damage_done",
+      "target": "golem",
+      "spell": 116,
+      "save_as": "mage_control_full"
+    },
+    {
+      "action": "assert",
+      "label": "Pure Light adds 10% while its owner is above 80% health",
+      "actor": "mage",
+      "metric": "spell_damage_done",
+      "target": "golem",
+      "spell": 116,
+      "ratio_to": "mage_control_full",
+      "min": 1.095,
+      "max": 1.105
+    },
+    {
+      "action": "set_health",
+      "actor": "mage",
+      "value": 1
+    },
+    {
+      "action": "snapshot",
+      "actor": "mage_control",
+      "metric": "spell_damage_done",
+      "target": "golem",
+      "spell": 116,
+      "save_as": "mage_control_low"
+    },
+    {
+      "action": "assert",
+      "label": "Pure Light's effects are suspended at 80% health or below",
+      "actor": "mage",
+      "metric": "spell_damage_done",
+      "target": "golem",
+      "spell": 116,
+      "ratio_to": "mage_control_low",
+      "min": 0.995,
+      "max": 1.005,
+      "within_ms": 2000
+    },
+    {
+      "action": "assert",
+      "label": "Pure Light remains applied while suspended",
+      "actor": "mage",
+      "metric": "aura",
+      "spell": 301341,
+      "equals": 1
+    },
+    {
+      "action": "set_level",
+      "label": "Level fixture restores full health",
+      "actor": "mage",
+      "value": 79
+    },
+    {
+      "action": "set_level",
+      "actor": "mage",
+      "value": 80
+    },
+    {
+      "action": "set_level",
+      "actor": "mage_control",
+      "value": 79
+    },
+    {
+      "action": "set_level",
+      "actor": "mage_control",
+      "value": 80
+    },
+    {
+      "action": "assert",
+      "label": "Owner is back above 80% health",
+      "actor": "mage",
+      "metric": "health_pct",
+      "min": 100
+    },
+    {
+      "action": "snapshot",
+      "actor": "mage_control",
+      "metric": "spell_damage_done",
+      "target": "golem",
+      "spell": 116,
+      "save_as": "mage_control_restored"
+    },
+    {
+      "action": "assert",
+      "label": "Pure Light resumes once, not twice, above 80% health",
+      "actor": "mage",
+      "metric": "spell_damage_done",
+      "target": "golem",
+      "spell": 116,
+      "ratio_to": "mage_control_restored",
+      "min": 1.095,
+      "max": 1.105,
+      "within_ms": 2000
+    },
+    {
+      "action": "assert",
+      "label": "The same Pure Light aura is still applied",
+      "actor": "mage",
+      "metric": "aura",
+      "spell": 301341,
+      "equals": 1
+    },
+    {
+      "action": "learn",
+      "actor": "sun",
+      "spell": 300314
+    },
+    {
+      "action": "assert",
+      "label": "Pure Light talent grants its helper above 80% health",
+      "actor": "sun",
+      "metric": "aura",
+      "spell": 301341,
+      "equals": 1,
+      "within_ms": 3000
+    },
+    {
+      "action": "snapshot",
+      "actor": "sun_control",
+      "metric": "spell_damage_done",
+      "target": "golem",
+      "spell": 116,
+      "save_as": "sun_control_full"
+    },
+    {
+      "action": "assert",
+      "label": "Sun Cleric Pure Light adds 10% above 80% health",
+      "actor": "sun",
+      "metric": "spell_damage_done",
+      "target": "golem",
+      "spell": 116,
+      "ratio_to": "sun_control_full",
+      "min": 1.095,
+      "max": 1.105
+    },
+    {
+      "action": "set_health",
+      "actor": "sun",
+      "value": 1
+    },
+    {
+      "action": "assert",
+      "label": "Pure Light helper is removed at 80% health or below",
+      "actor": "sun",
+      "metric": "aura",
+      "spell": 301341,
+      "equals": 0,
+      "within_ms": 3000
+    },
+    {
+      "action": "snapshot",
+      "actor": "sun_control",
+      "metric": "spell_damage_done",
+      "target": "golem",
+      "spell": 116,
+      "save_as": "sun_control_low"
+    },
+    {
+      "action": "assert",
+      "label": "No Pure Light bonus remains after the helper is removed",
+      "actor": "sun",
+      "metric": "spell_damage_done",
+      "target": "golem",
+      "spell": 116,
+      "ratio_to": "sun_control_low",
+      "min": 0.995,
+      "max": 1.005
+    },
+    {
+      "action": "set_level",
+      "label": "Level fixture restores full health",
+      "actor": "sun",
+      "value": 79
+    },
+    {
+      "action": "set_level",
+      "actor": "sun",
+      "value": 80
+    },
+    {
+      "action": "set_level",
+      "actor": "sun_control",
+      "value": 79
+    },
+    {
+      "action": "set_level",
+      "actor": "sun_control",
+      "value": 80
+    },
+    {
+      "action": "assert",
+      "label": "Pure Light helper returns above 80% health",
+      "actor": "sun",
+      "metric": "aura",
+      "spell": 301341,
+      "equals": 1,
+      "within_ms": 3000
+    },
+    {
+      "action": "snapshot",
+      "actor": "sun_control",
+      "metric": "spell_damage_done",
+      "target": "golem",
+      "spell": 116,
+      "save_as": "sun_control_restored"
+    },
+    {
+      "action": "assert",
+      "label": "Sun Cleric Pure Light applies once after health returns above 80%",
+      "actor": "sun",
+      "metric": "spell_damage_done",
+      "target": "golem",
+      "spell": 116,
+      "ratio_to": "sun_control_restored",
+      "min": 1.095,
+      "max": 1.105,
+      "within_ms": 2000
+    },
+    {
+      "action": "attack",
+      "actor": "hitter",
+      "target": "golem"
+    },
+    {
+      "action": "assert",
+      "label": "Hitter enters native melee combat",
+      "actor": "hitter",
+      "metric": "combat",
+      "equals": 1,
+      "within_ms": 5000
+    },
+    {
+      "action": "assert",
+      "label": "Creature drops below 80% health and stays alive",
+      "actor": "golem",
+      "metric": "health_pct",
+      "min": 1,
+      "max": 79,
+      "within_ms": 150000
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "melee_damage_done",
+      "target": "golem",
+      "save_as": "control_vs_low_creature"
+    },
+    {
+      "action": "assert",
+      "label": "The health-above-80% state clears on the wounded creature",
+      "actor": "first_blood",
+      "metric": "melee_damage_done",
+      "target": "golem",
+      "ratio_to": "control_vs_low_creature",
+      "min": 0.995,
+      "max": 1.005,
+      "within_ms": 2000
+    },
+    {
+      "action": "assert",
+      "label": "Creature is still alive when the state clears",
+      "actor": "golem",
+      "metric": "alive",
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "label": "Creature maximum health stays stable",
+      "actor": "golem",
+      "metric": "max_health",
+      "relative_to": "golem_max_health",
+      "equals": 0
+    }
+  ]
+}

@@ -1388,6 +1388,7 @@ enum AuraStateType
     //AURA_STATE_UNKNOWN21                  = 21,           //     | not used
     AURA_STATE_UNKNOWN22                    = 22,           // C  t| varius spells (63884, 50240)
     AURA_STATE_HEALTH_ABOVE_75_PERCENT      = 23,           // C   |
+    AURA_STATE_HEALTH_ABOVE_80_PERCENT      = 28,           // C T |
     // Computed from active harmful poisons, not a mutable field/debug state.
     AURA_STATE_ASCENSION_POISONED           = 32,           // SKIP
 };

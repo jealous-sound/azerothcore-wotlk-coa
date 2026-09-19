@@ -3379,6 +3379,7 @@ bool Player::_addSpell(uint32 spellId, uint8 addSpecMask, bool temporary, bool l
         {
             if (aura->GetSpellInfo()->CasterAuraState == AURA_STATE_HEALTHLESS_35_PERCENT ||
                     aura->GetSpellInfo()->CasterAuraState == AURA_STATE_HEALTH_ABOVE_75_PERCENT ||
+                    aura->GetSpellInfo()->CasterAuraState == AURA_STATE_HEALTH_ABOVE_80_PERCENT ||
                     aura->GetSpellInfo()->CasterAuraState == AURA_STATE_HEALTHLESS_20_PERCENT )
                 if (!HasAuraState((AuraStateType)aura->GetSpellInfo()->CasterAuraState))
                     aura->HandleAllEffects(aura->GetApplicationOfTarget(GetGUID()), AURA_EFFECT_HANDLE_REAL, false);
