@@ -1,0 +1,34 @@
+{
+  "schema": 1,
+  "name": "Sporadic Incantations adds 1 additional enemy struck by Flux Emitter (#674)",
+  "contract": "Sporadic Incantations 570061 carries a vestigial zero-value SPELL_AURA_HASTE_SPELLS (216) effect plus a real SPELL_AURA_ADD_FLAT_MODIFIER (107) effect with EffectMiscValue SPELLMOD_EFFECT1 (3) and EffectSpellClassMask word2 bit 0x8, the shared 'Continuum spell' identity tag also carried by Flux Emitter 804435 (SpellFamilyFlags word2 includes 131080 = 0x20008, bit 0x8 set). This raises Flux Emitter's own effect index 0 (its additional-enemies count, EffectBasePoints 2 -> 3) by 1 (EffectBasePoints 0 resolves to 1 with DieSides 1).",
+  "timeout_ms": 60000,
+  "players": [
+    { "id": "control", "race": 1, "class": 22, "level": 80 },
+    { "id": "talent", "race": 1, "class": 22, "level": 80 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+    { "action": "learn", "actor": "talent", "spell": 570061 },
+    {
+      "action": "assert",
+      "label": "Flux Emitter's target count unmodified without the talent",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 804435,
+      "op": 3,
+      "base": 0,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "Flux Emitter's target count gains 1 with the talent",
+      "actor": "talent",
+      "metric": "spell_modifier",
+      "spell": 804435,
+      "op": 3,
+      "base": 0,
+      "equals": 1
+    }
+  ]
+}
