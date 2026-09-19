@@ -16,6 +16,8 @@
 #include "DynamicObject.h"
 #include "GitRevision.h"
 #include "GossipDef.h"
+#include "Group.h"
+#include "GroupMgr.h"
 #include "Item.h"
 #include "ItemPackets.h"
 #include "Log.h"
@@ -95,6 +97,7 @@ struct Actor
     std::map<std::string, uint32> whoClasses;
     uint32 whoResponses = 0;
     uint32 lootReceived = 0;
+    uint32 meleeAttacks = 0;
     uint32 lastQuestWindow = 0; // the last quest window this session sent, by opcode
     std::unique_ptr<WorldSession> session;
     ObjectGuid guid;
@@ -265,6 +268,15 @@ private:
                 SEC_PLAYER, EXPANSION_WRATH_OF_THE_LICH_KING, 0, LOCALE_enUS, 0, false, false, 0);
             actor.session->SetSocketlessPacketObserver([&actor](WorldPacket const& packet)
             {
+                if (packet.GetOpcode() == SMSG_ATTACKERSTATEUPDATE)
+                {
+                    WorldPacket response(packet);
+                    uint32 hitInfo;
+                    ObjectGuid attacker;
+                    response >> hitInfo >> attacker.ReadAsPacked();
+                    if (attacker == actor.guid)
+                        ++actor.meleeAttacks;
+                }
                 // Which window a click is answered with is the part the client would draw, and
                 // the part a click that answers with the wrong one leaves looping. Record it.
                 if (packet.GetOpcode() == SMSG_QUESTGIVER_OFFER_REWARD ||
@@ -507,6 +519,8 @@ private:
             return unit->GetTotalAttackPowerValue(metric == "attack_power" ? BASE_ATTACK : RANGED_ATTACK);
         if (metric == "armor")
             return unit->GetArmor();
+        if (metric == "weapon_damage_min")
+            return unit->GetFloatValue(UNIT_FIELD_MINDAMAGE);
         if (metric == "resistance")
         {
             uint32 school = step.get<uint32>("school");
@@ -624,6 +638,37 @@ private:
             return player->GetFloatValue(PLAYER_DODGE_PERCENTAGE);
         if (metric == "parry_chance")
             return player->GetFloatValue(PLAYER_PARRY_PERCENTAGE);
+        if (metric == "block_chance")
+            return player->GetFloatValue(PLAYER_BLOCK_PERCENTAGE);
+        if (metric == "block_value")
+            return player->GetShieldBlockValue();
+        if (metric == "critical_block_chance")
+            return player->GetTotalAuraModifier(SPELL_AURA_MOD_BLOCK_CRIT_CHANCE);
+        if (metric == "melee_attack_count")
+            return _actors.at(step.get<std::string>("actor")).meleeAttacks;
+        if (metric == "aoe_damage_taken")
+        {
+            uint32 school = step.get<uint32>("school");
+            Require(school < MAX_SPELL_SCHOOL, "Invalid area damage school");
+            return player->CalculateAOEDamageReduction(1000, 1u << school, false);
+        }
+        if (metric == "reputation_gain")
+        {
+            uint32 faction = step.get<uint32>("id");
+            Require(sFactionStore.LookupEntry(faction) != nullptr, "Unknown reputation faction");
+            return player->CalculateReputationGain(REPUTATION_SOURCE_SPELL, player->GetLevel(), 1000, int32(faction));
+        }
+        if (metric == "spell_immune" || metric == "spell_effect_immune")
+        {
+            SpellInfo const* info = sSpellMgr->GetSpellInfo(spell);
+            Require(info != nullptr, "Unknown immunity probe spell");
+            Unit* caster = GetUnit(step.get<std::string>("target"));
+            if (metric == "spell_immune")
+                return player->IsImmunedToSpell(info, caster);
+            uint32 effect = step.get<uint32>("effect", EFFECT_0);
+            Require(effect < MAX_SPELL_EFFECTS && info->Effects[effect].IsEffect(), "Invalid immunity probe effect");
+            return player->IsImmunedToSpellEffect(info, effect, caster);
+        }
         if (metric == "expertise")
             return player->GetUInt32Value(PLAYER_EXPERTISE);
         if (metric == "melee_hit_chance")
@@ -665,13 +710,18 @@ private:
             sScriptMgr->ModifyPeriodicDamageAurasTick(player, attacker, damage, info);
             return damage;
         }
-        if (metric == "spell_done_crit_chance" || metric == "melee_spell_damage_done")
+        if (metric == "spell_done_crit_chance" || metric == "melee_spell_damage_done" ||
+            metric == "spell_critical_damage" || metric == "armor_reduced_damage")
         {
             Unit* target = GetUnit(step.get<std::string>("target"));
             SpellInfo const* info = sSpellMgr->GetSpellInfo(spell);
             Require(info != nullptr, "Unknown spell in metric");
             if (metric == "spell_done_crit_chance")
                 return player->SpellDoneCritChance(target, info, info->GetSchoolMask(), BASE_ATTACK, false);
+            if (metric == "spell_critical_damage")
+                return Unit::SpellCriticalDamageBonus(player, info, 1000, target);
+            if (metric == "armor_reduced_damage")
+                return Unit::CalcArmorReducedDamage(player, target, 1000, info);
             return player->MeleeDamageBonusDone(target, 1000, BASE_ATTACK, info, info->GetSchoolMask());
         }
         if (metric == "spell_modifier" || metric == "spell_cast_time_ms" || metric == "spell_max_range"
@@ -961,7 +1011,24 @@ private:
         uint32 spell = step.get<uint32>("spell", 0);
         if (action == "learn" || action == "unlearn" || action == "cast" || action == "cast_charm")
             Require(sSpellMgr->GetSpellInfo(spell) != nullptr, "Unknown spell: " + std::to_string(spell));
-        if (action == "command")
+        if (action == "group")
+        {
+            Player* member = GetPlayer(step.get<std::string>("target"));
+            Require(member != player && !member->GetGroup(), "Group fixture requires an ungrouped other player");
+            Group* group = player->GetGroup();
+            if (!group)
+            {
+                group = new Group();
+                if (!group->Create(player))
+                {
+                    delete group;
+                    throw std::runtime_error("Could not create fixture group");
+                }
+                sGroupMgr->AddGroup(group);
+            }
+            Require(group->AddMember(member), "Could not join fixture group");
+        }
+        else if (action == "command")
         {
             ChatHandler handler(player->GetSession());
             bool handled = handler.ParseCommands(step.get<std::string>("command"));

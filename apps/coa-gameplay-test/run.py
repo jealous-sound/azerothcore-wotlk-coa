@@ -40,18 +40,23 @@ METRICS = {
     'ball_offer_count', 'ball_offers_quest',
     'ball_carried_count', 'ball_carried_quest', 'ball_turn_in_count', 'ball_turn_in_quest',
     'gossip_text',
-    'stat', 'attack_power', 'ranged_attack_power', 'armor', 'resistance', 'attack_time_ms', 'run_speed_rate',
+    'stat', 'attack_power', 'ranged_attack_power', 'armor', 'weapon_damage_min', 'resistance',
+    'attack_time_ms', 'run_speed_rate',
     'aura_amplitude_ms', 'melee_crit_chance', 'dodge_chance', 'parry_chance', 'expertise', 'combat_rating',
     'spell_modifier', 'spell_cast_time_ms', 'spell_max_range', 'spell_max_stacks', 'spell_healing_done',
     'aura_crit_chance', 'aura_script_value', 'melee_hit_chance', 'spell_hit_chance', 'spell_power',
     'spell_done_crit_chance', 'melee_spell_damage_done', 'script_melee_damage_taken',
     'script_spell_damage_taken', 'script_periodic_damage_taken', 'spell_effect_value',
+    'block_chance', 'block_value', 'critical_block_chance', 'spell_critical_damage', 'armor_reduced_damage',
+    'aoe_damage_taken', 'reputation_gain', 'spell_immune', 'spell_effect_immune', 'melee_attack_count',
 }
 PLAYER_STAT_METRICS = {
     'melee_crit_chance', 'dodge_chance', 'parry_chance', 'expertise', 'combat_rating',
     'spell_modifier', 'spell_cast_time_ms', 'spell_max_range', 'spell_max_stacks', 'spell_healing_done',
     'melee_hit_chance', 'spell_hit_chance', 'spell_power', 'spell_done_crit_chance', 'melee_spell_damage_done',
     'script_melee_damage_taken', 'script_spell_damage_taken', 'script_periodic_damage_taken', 'spell_effect_value',
+    'block_chance', 'block_value', 'critical_block_chance', 'spell_critical_damage', 'armor_reduced_damage',
+    'aoe_damage_taken', 'reputation_gain', 'spell_immune', 'spell_effect_immune', 'melee_attack_count',
 }
 METRIC_FIELDS = {'actor', 'metric', 'spell', 'power', 'caster', 'effect', 'item', 'entry',
                  'relative_to', 'ratio_to', 'target', 'quest', 'id', 'stat', 'school', 'hand', 'rating', 'op',
@@ -67,6 +72,7 @@ ACTIONS = {
     'set_aura': ({'actor', 'spell', 'stacks'}, {'actor', 'spell', 'stacks'}),
     'cast': ({'actor', 'spell'}, {'actor', 'spell', 'target', 'destination'}),
     'attack': ({'actor', 'target'}, {'actor', 'target'}),
+    'group': ({'actor', 'target'}, {'actor', 'target'}),
     'cast_charm': ({'actor', 'spell'}, {'actor', 'spell', 'target'}),
     'gossip_hello': ({'actor'}, {'actor', 'target'}),
     'gossip_select': ({'actor', 'option'}, {'actor', 'option'}),
@@ -222,6 +228,9 @@ def validate(scenario):
                 number(step[key], f'{where}.{key}', 0, 2**32 - 1, True)
         if action == 'who' and 'target' in step:
             require(step['target'] in player_ids, f'{where}: Who name filter needs a player')
+        if action == 'group':
+            require(step['target'] in player_ids and step['target'] != step['actor'],
+                    f'{where}: group needs another player')
         for key in ('ms', 'within_ms'):
             if key in step:
                 number(step[key], f'{where}.{key}', 0, scenario.get('timeout_ms', 90000), True)
@@ -238,10 +247,12 @@ def validate(scenario):
                     'spell_damage_done', 'spell_damage_taken', 'spell_modifier', 'spell_cast_time_ms',
                     'spell_max_range', 'spell_max_stacks', 'spell_healing_done', 'spell_done_crit_chance',
                     'melee_spell_damage_done', 'script_spell_damage_taken', 'script_periodic_damage_taken',
-                    'spell_effect_value'}:
+                    'spell_effect_value', 'spell_critical_damage', 'armor_reduced_damage',
+                    'spell_immune', 'spell_effect_immune'}:
                 require('spell' in step, f'{where}: metric needs spell')
             if metric in {'spell_damage_done', 'melee_damage_done', 'spell_damage_taken', 'melee_damage_taken',
-                          'spell_healing_done', 'spell_done_crit_chance', 'melee_spell_damage_done'} \
+                          'spell_healing_done', 'spell_done_crit_chance', 'melee_spell_damage_done',
+                          'spell_critical_damage', 'armor_reduced_damage', 'spell_immune', 'spell_effect_immune'} \
                     or metric.startswith('script_'):
                 require('target' in step, f'{where}: damage metric needs target')
             if metric == 'stat':
@@ -252,6 +263,10 @@ def validate(scenario):
                 number(step.get('school'), f'{where}.school', 1, 6, True)
             if metric == 'combat_rating':
                 number(step.get('rating'), f'{where}.rating', 0, 24, True)
+            if metric == 'aoe_damage_taken':
+                number(step.get('school'), f'{where}.school', 0, 6, True)
+            if metric == 'reputation_gain':
+                require('id' in step, f'{where}: reputation metric needs faction id')
             if metric == 'spell_modifier':
                 number(step.get('op'), f'{where}.op', 0, 31, True)
                 number(step.get('base'), f'{where}.base')

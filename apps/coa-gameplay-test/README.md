@@ -205,6 +205,7 @@ before taking baselines; assert stable maximums and final levels when testing da
 | `reset_talents` | `actor`: reset active talents through normal removal, without a trainer fee. |
 | `cast` | `actor`, `spell`, optional `target` (self by default): normal session cast handler. |
 | `attack` | `actor`, `target`: native melee attack request; verify combat or damage with assertions. |
+| `group` | `actor`, `target`: fixture party; creates the actor's group if needed and adds an ungrouped player. |
 | `cast_charm` | Same fields: native pet-cast handler, with the charmed unit as the default target. |
 | `gossip_hello` | `actor`, optional `target`: native gossip handler; defaults to the actor's summoned companion. |
 | `gossip_select` | `actor`, zero-based `option`: select from the current menu through the session handler. |
@@ -256,6 +257,19 @@ effects.
 requires `school` (1..6); `armor`, `attack_power`, `ranged_attack_power`, the hasted `attack_time_ms` (optional
 `hand`, 0..2) and `run_speed_rate` read the unit's current totals. `aura_amplitude_ms` reads an aura effect's
 periodic interval.
+`block_chance` reads the player's percentage field; `block_value` reads native shield block value;
+`critical_block_chance` reads the total modifier used by the native critical block roll.
+`weapon_damage_min` reads the calculated main-hand minimum damage, including weapon-dependent passive bonuses.
+`spell_critical_damage` requires `spell` and `target` and calculates a critical hit from a fixed base of 1000,
+including native critical damage modifiers, without executing an attack or applying mitigation.
+`armor_reduced_damage` requires `spell` and `target` and applies native armor mitigation to a fixed base of
+1000, including the attacker's armor penetration; it does not execute an attack.
+`aoe_damage_taken` applies native area damage avoidance to 1000 damage for `school` (0..6).
+`reputation_gain` calculates a native spell reputation reward of 1000 for faction `id`, without granting it.
+`spell_immune` and `spell_effect_immune` query native immunity against `spell` from `target`; the latter
+accepts `effect` (default 0). These queries submit no attack.
+`melee_attack_count` counts the actor's native melee combat packets, including extra attacks and misses;
+it observes server output without testing delivery to a network client.
 Spell queries require `spell` and submit nothing: `spell_modifier` applies the player's native spell modifiers for
 `op` (`SpellModOp`) to the number `base`; `spell_effect_value` (optional `effect`) returns the effect's value as the
 player would cast it, including module base-value hooks; `spell_cast_time_ms`, `spell_max_range` and

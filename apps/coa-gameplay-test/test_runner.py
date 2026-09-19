@@ -40,6 +40,16 @@ class RunnerTests(unittest.TestCase):
     def test_malformed_scenarios_fail_before_starting_processes(self):
         for change in (
             lambda s: s.update(schema=True),
+            lambda s: s['steps'].append({'action': 'group', 'actor': 'caster', 'target': 'caster'}),
+            lambda s: s['steps'].append({'action': 'group', 'actor': 'caster', 'target': 'target'}),
+            lambda s: s['steps'].append({'action': 'assert', 'actor': 'caster',
+                                         'metric': 'spell_immune', 'spell': 116, 'equals': 0}),
+            lambda s: s['steps'].append({'action': 'assert', 'actor': 'caster',
+                                         'metric': 'spell_effect_immune', 'target': 'target', 'equals': 0}),
+            lambda s: s['steps'].append({'action': 'assert', 'actor': 'caster',
+                                         'metric': 'aoe_damage_taken', 'school': 7, 'equals': 1000}),
+            lambda s: s['steps'].append({'action': 'assert', 'actor': 'caster',
+                                         'metric': 'reputation_gain', 'equals': 1000}),
             lambda s: s.update(timeout_ms=float('inf')),
             lambda s: s['players'][0].update(level=True),
             lambda s: s['steps'].append({'action': 'set_level', 'actor': 'caster', 'value': 0}),
