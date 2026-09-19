@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "name": "Vampyr Lord applies its damage aura to an Animated Blood summon (#576)",
+  "contract": "Vampyr Lord 560259 uses SPELL_EFFECT_ASCENSION_APPLY_AURA_TO_SUMMONS (SpellEffects.cpp) which iterates the owner's controlled summons and applies the spell's own aura (effect 0, SPELL_AURA_MOD_DAMAGE_PERCENT_DONE = 79, +35%) to any live, owned, in-map summon (SpellAuras.cpp, case SPELL_EFFECT_ASCENSION_APPLY_AURA_TO_SUMMONS). Animated Blood is summoned by spell 573357 (rank 3 of the 573299 chain, the only rank a level-80 character owns per AscensionSpellProgressionData.h: 573356 at level 20, 573357 at level 30), which spawns creature 315301, one of the AscensionBloodmageTalents.cpp AnimatedBloodSummons entries. The harness has no way to read a dynamically-summoned pet's individual aura amount (only the player-scoped players/creatures actors support aura metrics), so this checks presence of the caster's own aura instance on the live summon via owned_creature_count's spell filter, learned vs unlearned, rather than the exact +35% magnitude.",
+  "timeout_ms": 90000,
+  "players": [
+    { "id": "caster", "race": 1, "class": 20, "level": 80, "spell_hit_rating": 10000 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let level scaling settle", "ms": 5000 },
+    { "action": "learn", "actor": "caster", "spell": 573357 },
+    { "action": "cast", "actor": "caster", "spell": 573357 },
+    {
+      "action": "assert", "label": "Animated Blood summon exists",
+      "actor": "caster", "metric": "owned_creature_count", "entry": 315301, "equals": 1, "within_ms": 5000
+    },
+    {
+      "action": "assert", "label": "Summon has no Vampyr Lord aura before it is learned",
+      "actor": "caster", "metric": "owned_creature_count", "entry": 315301, "spell": 560259, "caster": "caster", "equals": 0
+    },
+    { "action": "learn", "actor": "caster", "spell": 560259 },
+    {
+      "action": "assert", "label": "Summon gains the Vampyr Lord damage aura once learned",
+      "actor": "caster", "metric": "owned_creature_count", "entry": 315301, "spell": 560259, "caster": "caster", "equals": 1, "within_ms": 5000
+    },
+    { "action": "unlearn", "actor": "caster", "spell": 560259 },
+    {
+      "action": "assert", "label": "Summon loses the aura once Vampyr Lord is unlearned",
+      "actor": "caster", "metric": "owned_creature_count", "entry": 315301, "spell": 560259, "caster": "caster", "equals": 0, "within_ms": 5000
+    }
+  ]
+}
