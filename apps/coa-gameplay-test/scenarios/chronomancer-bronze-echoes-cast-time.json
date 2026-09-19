@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "name": "Bronze Echoes reduces Artificer's Wand cast time by 200ms (#1962)",
+  "contract": "Bronze Echoes 520800 carries SPELL_AURA_ADD_FLAT_MODIFIER (107) with EffectMiscValue SPELLMOD_CASTING_TIME (10) and EffectSpellClassMask word0 bit 0x20, matching Artificer's Wand's real castable rank 561284 (SpellFamilyFlags word0 32, CastingTimeIndex 5, a non-instant cast). EffectBasePoints -201 resolves to -200 with DieSides 1.",
+  "timeout_ms": 60000,
+  "players": [
+    { "id": "control", "race": 1, "class": 22, "level": 80 },
+    { "id": "talent", "race": 1, "class": 22, "level": 80 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+    { "action": "learn", "actor": "talent", "spell": 520800 },
+    {
+      "action": "snapshot",
+      "label": "Artificer's Wand cast time without the talent",
+      "actor": "control",
+      "metric": "spell_cast_time_ms",
+      "spell": 561284,
+      "save_as": "cast_time_base"
+    },
+    {
+      "action": "assert",
+      "label": "Artificer's Wand casts 200ms faster with the talent",
+      "actor": "talent",
+      "metric": "spell_cast_time_ms",
+      "spell": 561284,
+      "relative_to": "cast_time_base",
+      "equals": -200
+    }
+  ]
+}
