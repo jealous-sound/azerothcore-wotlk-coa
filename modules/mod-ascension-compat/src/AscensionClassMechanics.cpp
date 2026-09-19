@@ -1128,6 +1128,22 @@ void ApplyAscensionClassMechanics(SpellInfo* spellInfo)
     ApplyRangerOffensiveSpellContracts(spellInfo);
     ApplyRangerForestDwellerContract(spellInfo);
 
+    if (spellInfo->Id == 504144) // Bannerman
+    {
+        SpellEffectInfo& effect = spellInfo->Effects[EFFECT_0];
+        if (spellInfo->SpellFamilyName == uint32(CLASS_GUARDIAN) + 6 &&
+            effect.Effect == SPELL_EFFECT_APPLY_AURA &&
+            effect.ApplyAuraName == SPELL_AURA_ADD_FLAT_MODIFIER &&
+            effect.MiscValue == SPELLMOD_EFFECT3 && effect.SpellClassMask == flag96(0, 0, 0x00100000))
+        {
+            // The banner's old all-summon damage modifier cannot distinguish the
+            // initial Valiance pulse. Its owner-aware script consumes this amount.
+            effect.ApplyAuraName = SPELL_AURA_DUMMY;
+        }
+        else
+            LOG_ERROR("module.ascension_compat", "Skipped unexpected Bannerman record {}", spellInfo->Id);
+    }
+
     if (spellInfo->Id == SPELL_GUARDIAN_RAISE_SHIELD_ENERGIZE)
     {
         SpellEffectInfo& effect = spellInfo->Effects[EFFECT_0];

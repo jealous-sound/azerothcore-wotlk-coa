@@ -14,6 +14,7 @@
 #include "SpellMgr.h"
 #include "SpellScript.h"
 #include "TemporarySummon.h"
+#include "Util.h"
 #include <cmath>
 #include <map>
 #include <mutex>
@@ -22,6 +23,9 @@ namespace
 {
 constexpr uint32 STANDARD_RECOVERY_HEAL = 500248;
 constexpr uint32 STANDARD_VALIANCE_DAMAGE = 800335;
+constexpr uint32 BANNERMAN = 504144;
+constexpr uint32 BANNER_SWIFTNESS = 800704;
+constexpr uint32 BANNER_CONQUEST = 500264;
 constexpr uint32 STANDARD_ACTIVE_MARKER = 808006;
 constexpr uint32 STANDARD_OWNER_CHECK = 1;
 constexpr uint32 STANDARD_OWNER_CHECK_MS = 500;
@@ -282,6 +286,14 @@ class aura_ascension_guardian_valiance : public AuraScript
             return;
         int32 amount = effect->GetSpellInfo()->Effects[EFFECT_2].CalcValue(owner) +
             int32(owner->GetTotalAttackPowerValue(BASE_ATTACK) * 0.04f);
+        // The standard's first periodic update is its initial pulse. Only the
+        // owner's own banner enables Bannerman; later pulses keep normal damage.
+        if (effect->GetTickNumber() == 1 &&
+            (owner->HasAura(BANNER_SWIFTNESS, owner->GetGUID()) ||
+                owner->HasAura(BANNER_CONQUEST, owner->GetGUID())))
+            if (AuraEffect const* bannerman = owner->GetAuraEffect(BANNERMAN, EFFECT_0))
+                if (bannerman->GetAuraType() == SPELL_AURA_DUMMY)
+                    AddPct(amount, bannerman->GetAmount());
         GetCaster()->CastCustomSpell(GetCaster(), STANDARD_VALIANCE_DAMAGE, &amount, nullptr, nullptr,
             true, nullptr, effect, owner->GetGUID());
     }
