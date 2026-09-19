@@ -330,6 +330,30 @@ class aura_ascension_barbarian_bleed : public AuraScript
             EFFECT_0, SPELL_AURA_PERIODIC_DAMAGE);
     }
 };
+
+class barbarian_grisly_meal : public PlayerScript
+{
+public:
+    barbarian_grisly_meal() : PlayerScript("barbarian_grisly_meal",
+        {PLAYERHOOK_ON_PVP_KILL, PLAYERHOOK_ON_CREATURE_KILL}) { }
+
+    void OnPlayerPVPKill(Player* killer, Player* killed) override { Reward(killer, killed); }
+    void OnPlayerCreatureKill(Player* killer, Creature* killed) override { Reward(killer, killed); }
+
+private:
+    // Grisly Meal is only usable while its marker buff, granted by a kill that yields experience or honor, is up.
+    static void Reward(Player* player, Unit* killed)
+    {
+        if (player->getClass() != CLASS_BARBARIAN || !player->isHonorOrXPTarget(killed))
+            return;
+        for (uint32 rank : {804765u, 807946u, 807947u, 807948u})
+            if (player->HasSpell(rank))
+            {
+                player->CastSpell(player, 804755, true);
+                return;
+            }
+    }
+};
 }
 
 void AddAscensionBarbarianEventScripts()
@@ -337,4 +361,5 @@ void AddAscensionBarbarianEventScripts()
     RegisterSpellScript(aura_ascension_barbarian_event);
     RegisterSpellScript(spell_ascension_barbarian_conversion);
     RegisterSpellScript(aura_ascension_barbarian_bleed);
+    new barbarian_grisly_meal();
 }
