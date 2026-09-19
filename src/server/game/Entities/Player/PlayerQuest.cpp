@@ -591,6 +591,10 @@ void Player::AddQuest(Quest const* quest, Object* questGiver)
         UpdatePvPState();
     }
 
+    // The client caches quest queries per quest ID across characters, so refresh the per-player scaled level
+    if (LocalLevelScaling::QuestEnabled.load(std::memory_order_relaxed))
+        PlayerTalkClass->SendQuestQueryResponse(quest);
+
     SetQuestSlot(log_slot, quest_id, qtime);
 
     m_QuestStatusSave[quest_id] = true;

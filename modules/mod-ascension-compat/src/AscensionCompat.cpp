@@ -5622,6 +5622,26 @@ public:
       return false;
   }
 
+  // Quest templates are shared globally, so scaling is serialized per player. The client caches quest
+  // queries by quest ID across characters and sessions, so resend the accepted quests' data whenever
+  // the effective quest level can differ from what it cached; this keeps the quest log colours right
+  // without mutating the canonical template for anyone else.
+  static void RefreshScaledQuestQueries(Player *player) {
+    if (!LocalLevelScaling::QuestEnabled.load(std::memory_order_relaxed))
+      return;
+
+    for (auto const& [questId, status] : player->getQuestStatusMap())
+    {
+      if (status.Status != QUEST_STATUS_INCOMPLETE &&
+          status.Status != QUEST_STATUS_COMPLETE &&
+          status.Status != QUEST_STATUS_FAILED)
+        continue;
+
+      if (Quest const* quest = sObjectMgr->GetQuestTemplate(questId))
+        player->PlayerTalkClass->SendQuestQueryResponse(quest);
+    }
+  }
+
   void OnPlayerLogin(Player *player) override {
     if (ascensionCompatConfig.GetConfigValue<bool>(
             AscensionCompatConfig::ENABLED)) {
@@ -5630,6 +5650,7 @@ public:
       SynchronizeAscensionClassMechanics(player);
       AscensionResourceService::Instance().OnPlayerLogin(player);
       AscensionCollectionService::Instance().OnPlayerLogin(player);
+      RefreshScaledQuestQueries(player);
     }
   }
 
@@ -5641,24 +5662,7 @@ public:
       AscensionClassService::Instance().SynchronizeProficiencies(player);
       AscensionClassService::Instance().SendCharacterAdvancementKnownEntries(player);
 
-      // Quest templates are shared globally, so scaling is serialized per
-      // player. Refresh accepted quest query data when the player's effective
-      // quest level changes; this keeps the quest log in sync without mutating
-      // the canonical template for anyone else.
-      if (LocalLevelScaling::QuestEnabled.load(std::memory_order_relaxed))
-      {
-        for (auto const& [questId, status] : player->getQuestStatusMap())
-        {
-          if (status.Status != QUEST_STATUS_INCOMPLETE &&
-              status.Status != QUEST_STATUS_COMPLETE &&
-              status.Status != QUEST_STATUS_FAILED)
-            continue;
-
-          if (Quest const* quest = sObjectMgr->GetQuestTemplate(questId))
-            if (quest->GetQuestLevel() <= 0 || quest->GetQuestLevel() < player->GetLevel())
-              player->PlayerTalkClass->SendQuestQueryResponse(quest);
-        }
-      }
+      RefreshScaledQuestQueries(player);
     }
   }
 
