@@ -133,6 +133,49 @@ void Player::SendAttackSwingDeadTarget()
     SendDirectMessage(&data);
 }
 
+void Player::SendSpellActivationShow(uint32 spellId, std::string const& texture, uint32 type, float scale, uint32 r, uint32 g, uint32 b)
+{
+    WorldSession* session = GetSession();
+    if (!session || !spellId)
+        return;
+    
+    WorldPacket data(SMSG_COA_SPELL_ACTIVATION_SHOW, 96);
+    data << uint32(spellId);
+    
+    // The client string reader expects `u32 len` + `len` bytes including the NUL
+    data << uint32(texture.size() + 1);
+    data.append(texture.c_str(), texture.size() + 1);
+    
+    data << uint32(type);
+    data << float(scale);
+    data << uint32(r);
+    data << uint32(g);
+    data << uint32(b);
+    
+    session->SendPacket(&data);
+}
+
+void Player::SendSpellActivationHide(uint32 spellId)
+{
+    WorldSession* session = GetSession();
+    if (!session || !spellId)
+        return;
+        
+    WorldPacket data(SMSG_COA_SPELL_ACTIVATION_HIDE, 8);
+    data << uint32(spellId);
+    data << uint32(0);
+    
+    session->SendPacket(&data);
+}
+
+void Player::SendSpellActivationGlow(uint32 spellId, bool show)
+{
+    if (show)
+        SendSpellActivationShow(spellId);
+    else
+        SendSpellActivationHide(spellId);
+}
+
 void Player::SendAttackSwingCantAttack()
 {
     WorldPacket data(SMSG_ATTACKSWING_CANT_ATTACK, 0);
