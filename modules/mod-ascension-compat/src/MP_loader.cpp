@@ -162,6 +162,7 @@ void AddSC_AscensionVenomancerSerpentFang();
 void AddSC_AscensionSunClericBattleCleric();
 void AddSC_AscensionReaperTalents();
 void AddSC_AscensionReaperSecondary();
+void AddSC_AscensionReaperReliquary();
 void AddSC_AscensionPrimalistSecondary();
 void AddSC_AscensionRunemasterSecondary();
 void AddSC_AscensionRunemasterHurricane();
@@ -320,6 +321,7 @@ void Addmod_ascension_compatScripts()
     AddSC_AscensionSunClericBattleCleric();
     AddSC_AscensionReaperTalents();
     AddSC_AscensionReaperSecondary();
+    AddSC_AscensionReaperReliquary();
     AddSC_AscensionPrimalistSecondary();
     AddSC_AscensionRunemasterSecondary();
     AddSC_AscensionRunemasterHurricane();
