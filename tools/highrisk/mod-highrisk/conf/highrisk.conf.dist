@@ -1,0 +1,17 @@
+# Copy these settings into worldserver.conf. Install all dependencies first.
+# Disabled by default to avoid losses on an incomplete installation.
+HighRisk.Losses = 0
+HighRisk.GearChance = 50
+HighRisk.ResourceChance = 50
+HighRisk.GoldChance = 50
+Bloodforged.Enable = 0
+PvpPower.Enable = 0
+# Absolute path to data/bloodforged-reviewed.tsv after copying it to your server.
+Bloodforged.Catalogue = ""
+# Percent per eligible corpse: uncommon, rare, epic.
+# Independent rolls, no kill counter or guaranteed interval. Realm tuning.
+Bloodforged.Rates15 = "4.50 0.50 0.00"
+Bloodforged.Rates25 = "4.00 1.00 0.00"
+Bloodforged.Rates35 = "3.80 1.40 0.15"
+Bloodforged.Rates45 = "3.60 1.80 0.25"
+Bloodforged.Rates55 = "3.40 2.20 0.40"

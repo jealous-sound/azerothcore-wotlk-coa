@@ -52,6 +52,14 @@ into an empty world schema before the first worldserver startup.
 
 Detailed installation instructions are available [here](http://www.azerothcore.org/wiki/installation).
 
+## Optional High Risk package
+
+The [High Risk and Bloodforged package](../tools/highrisk/README.md) includes
+source code, reviewed item data, configuration and manual installation checks.
+It requires ALE/Eluna and an Ascension-compatible client. Merely checking out
+this branch does not enable losses or import items. Fel Commutation insurance
+is not implemented.
+
 ## Contributing
 
 AzerothCore can also serve as a learning resource for aspiring developers who want to understand how WoW servers work, how MMORPGs are structured, how game server emulators are created, or to improve their C++ and SQL knowledge.
