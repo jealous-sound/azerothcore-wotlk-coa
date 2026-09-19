@@ -17,10 +17,9 @@ namespace
 //
 // The curve is a level normaliser, not a stat coefficient: 0.0318 at level 1, 0.0939 at 10, 0.1982
 // at 20, 0.5184 at 40, and 0.9874 at CoA's level-60 cap, which it crosses at about 60.46. A server
-// that ignores it therefore pays the full level-60 amount at every level, which is invisible at the
-// cap and enormous while levelling - Templar's Scourgebane helper 801832 carries 261 base points, so
-// a level 13 character took the whole 261 where the client's own tooltip promises 261 * 0.1213 = 32
-// plus its attack power term.
+// that ignores it therefore pays the full level-60 amount at every level, so the error is invisible
+// at the cap and grows as the character's level falls - roughly five times the intended amount in
+// the teens and thirty at level 1.
 //
 // SpellInfo::CalcValue calls this hook after base points, dice and RealPointsPerLevel and before
 // combo points, effect modifiers and the creature-level multiplier, which is exactly where the

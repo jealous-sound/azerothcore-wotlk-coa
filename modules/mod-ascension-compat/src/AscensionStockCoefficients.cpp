@@ -12,9 +12,9 @@ namespace
 // never wired it up: it authors coefficients in tooltip formula text instead, and the shipped column
 // agrees with that text on 6.2% of the CoA effect slots carrying both. AzerothCore still reads it as
 // the default coefficient whenever spell_bonus_data holds no row (Unit::SpellDamageBonusDone and
-// Unit::SpellHealingBonusDone), so a 2008 value scales CoA content that never asked for it - Hodir's
-// Wrath rank 7 arrives with a 2.42 spell-power coefficient where its tooltip states $AP*0.40, and
-// Gravity Bomb and Obliteration Beam scale off a stat their tooltips never mention.
+// Unit::SpellHealingBonusDone), so a 2008 value scales CoA content that never asked for it. Of the
+// live CoA damaging and healing spells carrying one, none agreed with its own tooltip within 5%:
+// some run several times high, some low, and many scale off a stat their tooltip never mentions.
 //
 // Clearing the field makes spell_bonus_data the only coefficient channel for CoA content. Where a row
 // exists the damage and healing paths already overwrite the field's value with the row's, so this is a
