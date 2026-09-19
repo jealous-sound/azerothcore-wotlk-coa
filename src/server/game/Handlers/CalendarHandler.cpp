@@ -154,16 +154,21 @@ void WorldSession::HandleCalendarGetCalendar(WorldPacket& /*recvData*/)
     data.append(dataBuffer);
 
     /// @todo: Fix this, how we do know how many and what holidays to send?
-    data << uint32(sGameEventMgr->ModifiedHolidays.size());
+    // The count must equal the entries written below, or the client reads past the holiday block
+    std::vector<HolidaysEntry const*> holidays;
+    holidays.reserve(sGameEventMgr->ModifiedHolidays.size());
     for (uint32 entry : sGameEventMgr->ModifiedHolidays)
     {
         HolidaysEntry const* holiday = sHolidaysStore.LookupEntry(entry);
-
-        if (sDisableMgr->IsDisabledFor(DISABLE_TYPE_GAME_EVENT, sGameEventMgr->GetHolidayEventId(holiday->Id), nullptr))
-        {
+        if (!holiday || sDisableMgr->IsDisabledFor(DISABLE_TYPE_GAME_EVENT, sGameEventMgr->GetHolidayEventId(holiday->Id), nullptr))
             continue;
-        }
 
+        holidays.push_back(holiday);
+    }
+
+    data << uint32(holidays.size());
+    for (HolidaysEntry const* holiday : holidays)
+    {
         data << uint32(holiday->Id);                        // m_ID
         data << uint32(holiday->Region);                    // m_region, might be looping
         data << uint32(holiday->Looping);                   // m_looping, might be region
