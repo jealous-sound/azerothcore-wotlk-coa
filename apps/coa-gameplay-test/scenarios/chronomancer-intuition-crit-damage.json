@@ -1,0 +1,41 @@
+{
+  "schema": 1,
+  "name": "Intuition grants a 25% critical damage bonus aura on all schools (#3686)",
+  "contract": "Intuition 807589 carries SPELL_AURA_MOD_CRIT_DAMAGE_BONUS (163) with EffectMiscValue school mask 127 (all schools) and EffectBasePoints 24, resolving to 25 with DieSides 1. This aura type is consumed natively by Unit::SpellCriticalDamageBonus and Unit::MeleeDamageBonusDone via GetTotalAuraModifierByMiscMask(SPELL_AURA_MOD_CRIT_DAMAGE_BONUS, schoolMask) (Unit.cpp), generic core machinery not specific to this class.",
+  "timeout_ms": 60000,
+  "players": [
+    { "id": "control", "race": 1, "class": 22, "level": 80 },
+    { "id": "talent", "race": 1, "class": 22, "level": 80 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+    { "action": "learn", "actor": "talent", "spell": 807589 },
+    {
+      "action": "assert",
+      "label": "Intuition is not applied without learning it",
+      "actor": "control",
+      "metric": "aura",
+      "spell": 807589,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "Intuition self-applies its aura once learned",
+      "actor": "talent",
+      "metric": "aura",
+      "spell": 807589,
+      "caster": "talent",
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "label": "Intuition's critical damage bonus effect resolves to 25",
+      "actor": "talent",
+      "metric": "aura_amount",
+      "spell": 807589,
+      "caster": "talent",
+      "effect": 0,
+      "equals": 25
+    }
+  ]
+}
