@@ -91,6 +91,19 @@ uint32 FormationSlot(Player* player, Creature const* minion)
     }
     return slot;
 }
+// The buff a Champion gives its owner while it lives: an owner-area aura, so it ends with the Champion.
+uint32 ChampionAura(uint32 entry)
+{
+    switch (entry)
+    {
+    case 500482:
+        return 805050; // Gravebound: redirects damage taken to the Champion
+    case 500484:
+        return 807812; // Icebound: silence/interrupt immunity and reduced pushback
+    default:
+        return 0;
+    }
+}
 uint32 AttackSpell(uint32 entry)
 {
     switch (entry)
@@ -359,6 +372,8 @@ class npc_ascension_necromancer : public ScriptedAI
             player->AddAura(805290, me);
         if (uint32 occupancy = OccupancyAura(me->GetEntry()))
             me->CastSpell(me, occupancy, true);
+        if (uint32 champion = ChampionAura(me->GetEntry()))
+            me->CastSpell(me, champion, true);
         for (uint32 ward : {680388, 681460, 681529})
             if (Aura const* active = player->GetAura(ward))
                 if (Aura* copy = player->AddAura(ward, me))
