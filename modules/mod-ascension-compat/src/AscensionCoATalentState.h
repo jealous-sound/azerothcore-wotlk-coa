@@ -34,8 +34,9 @@ struct SpentPoints
 // What the known paid ranks cost. A rank spell that two entries share is charged once, to the lower entry id.
 SpentPoints Spent(std::vector<KnownEntry> const& known);
 
-// SMSG_CHARACTER_ADVANCEMENT_KNOWN_ENTRIES body: u32 count, then per entry u32 id, u32 rank and four fields the
-// client's record constructor zero-initializes (u32, u8, u32, u32). 21 bytes per record.
+// SMSG_CHARACTER_ADVANCEMENT_KNOWN_ENTRIES body: u32 count, then per entry u32 id, u32 rank and the four fields
+// the client's record carries, as the live realm sends them in the capture: u32 1, u8 0, u32 build timestamp,
+// u32 0. 21 bytes per record.
 std::vector<std::uint8_t> KnownEntriesPayload(std::vector<KnownEntry> const& known);
 
 // CMSG_CHARACTER_ADVANCEMENT_KNOWN_ENTRIES body, the same records as above: the client's complete known set, not

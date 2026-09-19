@@ -2,6 +2,7 @@
 #include "AscensionCoATalentState.h"
 #include <algorithm>
 #include <cstring>
+#include <ctime>
 #include <unordered_set>
 
 namespace AscensionCoATalentState
@@ -82,13 +83,22 @@ std::vector<std::uint8_t> KnownEntriesPayload(std::vector<KnownEntry> const& kno
     std::vector<std::uint8_t> out;
     out.reserve(sizeof(std::uint32_t) + known.size() * RECORD_SIZE);
     AppendUInt32(out, std::uint32_t(known.size()));
+    // The live realm's records carry 1 here -- 2 on its two automatic/implicit
+    // nodes -- a zero flag, one build timestamp shared by the batch, and a zero tail. Mirror that: the
+    // marker is 2 for entries in CoAAutomaticDependencies, 1 for everything else.
+    std::uint32_t const built = std::uint32_t(std::time(nullptr));
+    auto const& dependencies = AscensionCompatData::CoAAutomaticDependencies;
     for (KnownEntry const& item : known)
     {
+        auto dependency = std::lower_bound(dependencies.begin(), dependencies.end(), item.EntryId,
+            [](AscensionCompatData::CoAAutomaticDependency const& value, std::uint32_t id)
+            { return value.EntryId < id; });
+        bool const automatic = dependency != dependencies.end() && dependency->EntryId == item.EntryId;
         AppendUInt32(out, item.EntryId);
         AppendUInt32(out, item.Rank);
-        AppendUInt32(out, 0);
+        AppendUInt32(out, automatic ? 2 : 1);
         out.push_back(0);
-        AppendUInt32(out, 0);
+        AppendUInt32(out, built);
         AppendUInt32(out, 0);
     }
     return out;

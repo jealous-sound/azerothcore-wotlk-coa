@@ -28,8 +28,8 @@ state. The live pieces are `modules/mod-ascension-compat/src/AscensionCoATalentD
   over-budget character can always come back under it.
 - `.localtalent reset`: `ResetPaidTalents`, every paid rank of the class; automatic grants and the
   specialization stay.
-- `.localtalent sync`: the character-advancement state again (bridge message, and the native known entries
-  once the session's container exists), for a client whose listener loaded after the login push.
+- `.localtalent sync`: the character-advancement state again (bridge message and the native known entries),
+  for a client whose listener loaded after the login push.
 
 ## Stored builds
 
@@ -51,10 +51,17 @@ Opcodes and layouts come from the community measurements in `hertigservices/Asce
   per-character container the next packet needs, so it always goes first. The server sends slot 0 of 1; how a
   slot maps to a `ChrSpecs` id, and the CMSG of a native specialization switch, are unknown — the
   specialization id stays with `.localspec`.
-- `SMSG 0x0726` known entries: `u32 count`, then `u32 entryId, u32 rank, u32 0, u8 0, u32 0, u32 0` per record.
-  Always the complete set; the client diffs it, fires `ASCENSION_KNOWN_ENTRY_UPDATED/REMOVED` and answers
-  `C_CharacterAdvancement.IsKnownID` / `GetTalentRankByID` from it. Sent after the initial 0x0725 and again
-  after every `.localtalent`, `.localtalent reset`, `.localspec` and level change.
+- `SMSG 0x0726` known entries: `u32 count`, then `u32 entryId, u32 rank, u32 marker, u8 flag, u32 buildTime,
+  u32 0` per record, the values the live realm's capture carries. The marker is `2` on automatic/implicit
+  nodes and `1` elsewhere (every captured packet keeps one entry's marker stable; `31194` is in
+  `CoAAutomaticDependencies`). Always the complete set; the client diffs it, fires
+  `ASCENSION_KNOWN_ENTRY_UPDATED/REMOVED` and answers `C_CharacterAdvancement.IsKnownID` /
+  `GetTalentRankByID` from it. Verified live (2026-09-19): the container mirrors the server's set exactly -
+  a `.localtalent` rank change resends 0x0726 and the entry flips known/ranked in-game. The client
+  deserializer (`0x10166899`) reads the record into `key@+4, rank@+8, marker@+0xc, flag@+0x10` of a 0x20
+  struct; `IsKnownID`'s query (`0x10151480`) needs the node at `[obj+0x230]` to carry `[+0x10]==1` and a
+  rank at `[+0x14]` that is neither 0 nor `0x2c`. The initial 0x0725 and the set go out from `OnPlayerLogin`,
+  and the set again after every `.localtalent`, `.localtalent reset`, `.localspec` and level change.
 - `CMSG 0x0727` known-entries upload: same records, the client's complete wanted set after a native learn or
   unlearn (an unlearn is a smaller set, never a delta). It arrives on the network thread
   (`CanPacketReceiveEarly`), so it is queued by account and applied on the player's own update.
@@ -62,10 +69,28 @@ Opcodes and layouts come from the community measurements in `hertigservices/Asce
   progression pass hands back to omitted entries), selects the specialization when none is active (one per
   upload), then applies removals before additions through `SetTalentRank`; any failure refuses the whole
   upload, and 0x0726 always follows.
-- Timing: the client keys this state off its local player object, which does not exist during the loading
-  screen. `OnPlayerLogin` only queues the state; the first `CMSG_SET_ACTIVE_MOVER` of the session sends it
-  (`OnPlayerActiveMover`). The Ghost harness login never sends that packet: a test that needs the state calls
-  `bot.ActivateCharacterAdvancement(t)` after registering its packet hook.
+- Native purchase path, live-verified (2026-09-19): with the compat layers disabled, `AddByEntryID` /
+  `RemoveByEntryID` stage the pending build and `CanApplyPendingBuild` turns true, but `ApplyPendingBuild`
+  (`0x101742c0`) first runs a client-side validator (`0x10151df0`) and only an accepted build reaches
+  `push 0x727`. On this realm both a blind add and an owned-rank removal were refused there - no 0x0727 left
+  the client - so the native flow still needs the validator's missing input (the unpinned `0x0900` login push
+  is the prime candidate). The patch-B shim stays until that is resolved.
+- Reset cost data: `GetTalentEssenceCost` / `GetAbilityEssenceCost` answer only internal UI ids (entry ids
+  return nothing); the authoritative per-entry essence costs are the catalog's AE/TE columns.
+- `SMSG 0x0926` reset credits: one packet per `Enum.ResetCreditType` (`u8 type`, `u32 value`). The value is
+  the unlearn history of that kind, not a currency: `CharacterAdvancementCostUtil.lua` scales the reset gold
+  cost with it (`(abilityUnlearns + talentUnlearns) * …`), the way live bills repeated resets. The live
+  capture carries types 1-4 = 0,0,2,3 for its character. **The counters are per specialization**: the module
+  keeps them as `core.ascension_credits.<specId>` player settings (mirroring `core.ascension_build.<specId>`),
+  raises the active spec's `TalentUnlearn` when a paid rank is given up and its `TalentReset` on a full
+  `.localtalent reset`, and reports the active spec's four values at `OnPlayerLogin` and with every
+  known-entries resend — a specialization switch therefore shows that spec's own costs. Ability unlearn/reset
+  stay at their stored per-spec value until an ability-unlearn flow exists.
+- Timing: the state goes out from `OnPlayerLogin`, inside the login burst, the way the live realm sends it.
+  The live capture shows the block right after `CMSG_PLAYER_LOGIN`, before the
+  local player object and before the client's first `CMSG_SET_ACTIVE_MOVER`; the wait for that mover was the
+  community archive's workaround for its 5600-packet essence flood and is gone. The mover remains a fallback
+  for a session whose login path did not send the state (a reconnect into a character still in the world).
 - `ASC_LOCAL_CAD` bridge (from #4030): an addon-channel whisper from the character to itself, sent at
   `OnPlayerLogin` and again with every known-entries resend. Message
   `ASC_LOCAL_CAD<TAB>1:<specId>:<chunk>:<chunks>:<entry,rank;entry,rank...>`, payload chunked at 180 bytes,

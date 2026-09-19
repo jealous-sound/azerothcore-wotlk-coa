@@ -37,6 +37,27 @@ namespace
     constexpr uint16 SMSG_ASCENSION_CHARACTER_SELECTION_MAIL = 0x0770;
     constexpr uint16 SMSG_ASCENSION_CHARACTER_SELECTION_GAME_MODE = 0x0771;
 
+    // Realm-info cluster that the live server sends around the character list
+    // (verified against the 2026-09 live capture, wire order):
+    //   SMSG 0x09D0 (4 zero bytes) — flushes the client's pending selection
+    //                                state; registered unconditionally by
+    //                                Extensions.dll.
+    //   SMSG 0x09BC (57 bytes)     — realm parameters. Extensions.dll's handler
+    //                                (0x102FC6C0) parses this payload and copies
+    //                                the eight feature-gate bytes into
+    //                                DLL+0xBDB178..0xBDB17F, which is what lets
+    //                                the Character Advancement UI render trees at
+    //                                all; the realm name and rates land in the
+    //                                realm object at DLL+0xBDB138. Without this
+    //                                packet the custom feature set stays
+    //                                uninitialized.
+    //   SMSG 0x06E5 (9 zero bytes) — the live server also sends its
+    //                                chat-infraction notice here with the
+    //                                "no pending infractions" defaults.
+    constexpr uint16 SMSG_ASCENSION_SELECTION_RESET = 0x09D0;
+    constexpr uint16 SMSG_ASCENSION_REALM_INFO = 0x09BC;
+    constexpr uint16 SMSG_ASCENSION_CHAT_INFRACTION_UPDATE = 0x06E5;
+
     // Enum.CharacterSelect (SharedXML\Enum.lua, mirrored by the client): team ids
     // are the classic faction-group ids and the ruleset decides which banner the
     // character list draws next to the name.
@@ -110,6 +131,45 @@ namespace
             default:
                 return 0;
         }
+    }
+
+    // Realm parameters (SMSG 0x09BC), byte-for-byte the live layout: u32, u32,
+    // five floats, u32 (realm rates and two auction values, matching the
+    // AscensionCoAConfigData payloads), the eight feature-gate bytes the client
+    // copies into DLL+0xBDB178, the empty first string, the realm name (client
+    // caches it at realm-object +0x4C), one byte and the trailing u32. The 0x09D0
+    // reset precedes the cluster and 0x06E5 carries the live "no pending chat
+    // infraction" defaults (empty name, zeroed fields).
+    void SendAscensionRealmInfo(WorldSession* session)
+    {
+        WorldPacket reset(SMSG_ASCENSION_SELECTION_RESET, 4);
+        reset << uint32(0);
+        session->SendPacket(&reset);
+
+        WorldPacket realm(SMSG_ASCENSION_REALM_INFO, 64);
+        realm << uint32(20);        // live 0x14; client stores at realm-object +0x04
+        realm << uint32(0);         // ruleset 0 = classic (level cap 60)
+        realm << float(1.26f);      // RATE_XP_QUEST
+        realm << float(1.0f);
+        realm << float(1.0f);
+        realm << uint32(0);         // realm-object +0x18 = (value != 0)
+        realm << float(1.0f);
+        realm << float(0.0833f);    // RATE_AUCTION_DEPOSIT_VANITY
+        realm << uint32(200000);    // CONFIG_MAX_AUCTION_DEPOSIT_VANITY
+        uint8 const featureGates[8] = { 1, 0, 0, 0, 0, 0, 1, 0 };
+        realm.append(featureGates, 8);
+        realm << std::string();     // first string is empty on live as well
+        // Live sends the realm name here; this core never calls
+        // World::SetRealmName, so the option provides it (empty = empty field).
+        realm << sConfigMgr->GetOption<std::string>(
+            "AscensionCompat.RealmName", sWorld->GetRealmName());
+        realm << uint8(1);          // realm-object +0x48
+        realm << uint32(40);        // realm-object +0x64 (value as on live)
+        session->SendPacket(&realm);
+
+        WorldPacket infraction(SMSG_ASCENSION_CHAT_INFRACTION_UPDATE, 9);
+        infraction << uint32(0) << std::string() << uint32(0);
+        session->SendPacket(&infraction);
     }
 
     // Per-character extras, mirroring the live server: one SMSG 0x0771 (game
@@ -490,6 +550,11 @@ void SendAscensionCharacterListInfo(WorldSession* session)
 {
     if (!session || !CharacterSelectionEnabled())
         return;
+
+    // The realm cluster precedes the list on live; Extensions.dll uses it to
+    // initialize the realm object and to latch the feature gates the Character
+    // Advancement UI depends on.
+    SendAscensionRealmInfo(session);
 
     uint32 const accountId = session->GetAccountId();
     uint32 const maxActive = CharacterSelectionMaxActive();

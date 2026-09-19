@@ -119,6 +119,14 @@ int main(int, char** argv)
         std::vector<std::uint8_t> body = KnownEntriesPayload(known);
         Check(body.size() == 4 + 21 * known.size(), "known-entries body is u32 count plus 21 bytes per record");
         Check(body[0] == 2 && body[1] == 0 && body[2] == 0 && body[3] == 0, "count is little-endian");
+        std::uint8_t const* firstRecord = body.data() + 4;
+        Check(firstRecord[8] == 1 && firstRecord[9] == 0 && firstRecord[10] == 0 && firstRecord[11] == 0,
+              "record carries the known marker read from the live realm");
+        Check(firstRecord[12] == 0, "record flag is zero");
+        Check(firstRecord[13] || firstRecord[14] || firstRecord[15] || firstRecord[16],
+              "record carries the batch build timestamp");
+        Check(!firstRecord[17] && !firstRecord[18] && !firstRecord[19] && !firstRecord[20],
+              "record tail is zero");
         std::vector<KnownEntry> parsed;
         Check(ParseKnownEntriesUpload(body.data(), body.size(), parsed) && parsed.size() == 2 &&
                   parsed[0].EntryId == known[0].EntryId && parsed[0].Rank == known[0].Rank &&

@@ -18,6 +18,7 @@
 #include "AscensionClassMechanics.h"
 #include "AscensionClassMechanics19To25.h"
 #include "AscensionClassMechanics26To32.h"
+#include "AscensionCoAConfigData.h"
 #include "AscensionCoATalentData.h"
 #include "AscensionCoATalentState.h"
 #include "AscensionRunemasterEchoes.h"
@@ -71,6 +72,7 @@
 #include "LocalLevelScaling.h"
 #include "Log.h"
 #include "Map.h"
+#include "ObjectAccessor.h"
 #include "ObjectMgr.h"
 #include "Opcodes.h"
 #include "Player.h"
@@ -136,6 +138,23 @@ constexpr std::size_t VANITY_STORE_RECORD_DWORDS = 16;
 constexpr uint16 SMSG_CHARACTER_ADVANCEMENT_ACTIVE_SPEC = 0x0725;
 constexpr uint16 SMSG_CHARACTER_ADVANCEMENT_KNOWN_ENTRIES = 0x0726;
 constexpr uint16 CMSG_CHARACTER_ADVANCEMENT_KNOWN_ENTRIES = 0x0727;
+// The client reads a character's advancement through CMSG 0x06E1 (C_CharacterAdvancement.InspectUnit):
+// a u64 target GUID and nothing else. The answer, SMSG 0x06E2, leads with one of the CA_INSPECT_*
+// result strings; on CA_INSPECT_OK the target's GUID, active slot key (0-based), slot count and one
+// known set per slot follow, the same 21-byte records as the known-entries packet. The client's handler
+// fills its per-slot state from them and, when the GUID is the local player, rebuilds the working build
+// its talent trees read -- the only packet that refreshes that build during a session. A spec switch has
+// to send it: with 0x0725/0x0726 alone the trees keep showing the slot that was left until a reload.
+constexpr uint16 CMSG_CHARACTER_ADVANCEMENT_INSPECT = 0x06E1;
+constexpr uint16 SMSG_CHARACTER_ADVANCEMENT_INSPECT_RESULT = 0x06E2;
+// The client scales reset gold costs by per-character unlearn counters; it reads them through
+// CA_GetCreditAmount(type) with Enum.ResetCreditType. One packet per type: u8 type + u32 value.
+constexpr uint16 SMSG_CHARACTER_ADVANCEMENT_CREDITS = 0x0926;
+// The class registry the character-advancement window filters a class's tree entries with. Extensions.dll
+// keeps one registry object per class id and its entry predicate refuses every entry whose class has none,
+// so a realm that never sends this opens the window with empty trees even though the entry catalog itself
+// is local. One packet per ChrClassesRoles.dbc row, the row's eleven DWORDs verbatim, in the login burst.
+constexpr uint16 SMSG_PATCH_CHR_CLASSES_ROLES = 0x09D1;
 constexpr uint16 CMSG_MISSILE_FIRE_POSITION = 0x09C7;
 
 // The client carries a personal-bank mode on top of the guild vault window. It is
@@ -179,6 +198,10 @@ constexpr ExtensionOpcodeIdentity EXTENSION_OPCODES[] = {
     {SMSG_CHARACTER_ADVANCEMENT_ACTIVE_SPEC, "SMSG_CHARACTER_ADVANCEMENT_ACTIVE_SPEC"},
     {SMSG_CHARACTER_ADVANCEMENT_KNOWN_ENTRIES, "SMSG_CHARACTER_ADVANCEMENT_KNOWN_ENTRIES"},
     {CMSG_CHARACTER_ADVANCEMENT_KNOWN_ENTRIES, "CMSG_CHARACTER_ADVANCEMENT_KNOWN_ENTRIES"},
+    {CMSG_CHARACTER_ADVANCEMENT_INSPECT, "CMSG_CHARACTER_ADVANCEMENT_INSPECT"},
+    {SMSG_CHARACTER_ADVANCEMENT_INSPECT_RESULT, "SMSG_CHARACTER_ADVANCEMENT_INSPECT_RESULT"},
+    {SMSG_CHARACTER_ADVANCEMENT_CREDITS, "SMSG_CHARACTER_ADVANCEMENT_CREDITS"},
+    {SMSG_PATCH_CHR_CLASSES_ROLES, "SMSG_PATCH_CHR_CLASSES_ROLES"},
     {0x0741, "CMSG_GOSSIP_CLOSE"},
     {0x0745, "CMSG_PLAYER_POLL_LIST_REQUEST"},
     {SMSG_BANK_PERMISSIONS, "SMSG_BANK_PERMISSIONS"},
@@ -251,8 +274,32 @@ constexpr uint32 SPELL_REAPER_SCYTHE_RUSH_MARKER = 500377;
 constexpr uint32 SPELL_REAPER_HARVEST_TIME = 803995;
 constexpr char ASCENSION_LOCAL_RESOURCE_PREFIX[] = "ASC_LOCAL_RESOURCE";
 constexpr char ASCENSION_ACTIVE_SPEC_SETTING[] = "core.ascension_active_spec";
+// Per-spec unlearn history the client's reset-cost formulas scale with (Enum.ResetCreditType order):
+// one setting per specialization, "core.ascension_credits.<specId>", mirroring the stored builds.
+// Resetting or unlearning in one spec raises the price only for that spec, and the server reports the
+// active spec's four values.
+constexpr char ASCENSION_CREDITS_SETTING_PREFIX[] = "core.ascension_credits.";
+enum AscensionResetCreditType : uint8
+{
+    CREDIT_ABILITY_RESET = 1,
+    CREDIT_TALENT_RESET = 2,
+    CREDIT_ABILITY_UNLEARN = 3,
+    CREDIT_TALENT_UNLEARN = 4,
+};
 // A stored talent build per tree, "core.ascension_build.<spec>" with 0 for the class tree.
 constexpr char ASCENSION_TALENT_BUILD_SETTING_PREFIX[] = "core.ascension_build.";
+// Specification slots. A slot holds one build (class tree + its specialization tree) and the
+// specialization it runs; slot 1 is the character's original one, the rest unlock through the
+// Tomes of Specialization. The client switches by casting its spec-swap spell (SPEC_SWAP_SPELLS
+// in FrameXML Constants.lua) and the server answers with the advancement state.
+constexpr char ASCENSION_ACTIVE_SLOT_SETTING[] = "core.ascension_spec_slot.active";
+constexpr char ASCENSION_SLOT_SPEC_SETTING[] = "core.ascension_spec_slot.spec";
+constexpr char ASCENSION_SLOT_BUILD_SETTING_PREFIX[] = "core.ascension_spec_slot.build.";
+constexpr uint32 ASCENSION_SPEC_SWAP_SPELLS[] = {
+    979993, 979994, 979995, 979996, 979997, 979986, 979987, 979988, 84874, 84876,
+    84878,  84880,  84882,  84884,  84886,  84888,  84890,  84892,  84894, 84896,
+};
+constexpr uint32 ASCENSION_SPEC_SWAP_SPELL_COUNT = 20;
 
 enum CompanionLoot : uint32
 {
@@ -1252,10 +1299,18 @@ public:
         _activeSpecializations[player->GetGUID().GetCounter()] = specializationId;
     }
 
+    // Slot one has no tome: the client's specification list gates every row on its swap spell being
+    // known, and Tomes of Specialization only exist from slot two on. Grant it so the starting slot
+    // stays reachable, like on a live character.
+    if (!player->HasSpell(ASCENSION_SPEC_SWAP_SPELLS[0]))
+        player->addSpell(ASCENSION_SPEC_SWAP_SPELLS[0], SPEC_MASK_ALL, true);
+
     SynchronizeProgression(player);
     SynchronizeProficiencies(player);
     RepairStarterKit(player, false);
-    QueueCharacterAdvancementState(player);
+    SendCoAConfigs(player);
+    SendChrClassRoles(player);
+    SendCharacterAdvancementState(player);
     SendCharacterAdvancementBridge(player);
     SendLocalTalentState(player);
 
@@ -1338,45 +1393,184 @@ public:
     return AscensionCoATalentState::KnownEntries(player->getClass(), SpellbookOf(player));
   }
 
-  /// The client's character-advancement service keys its state off the local player object, which the
-  /// loading screen has not created yet while OnPlayerLogin runs: state sent then reaches no character.
-  /// CMSG_SET_ACTIVE_MOVER is the client saying that object now exists, so the state waits for the first one.
-  void QueueCharacterAdvancementState(Player* player)
-  {
-    std::lock_guard<std::mutex> lock(_stateLock);
-    _advancementPending.insert(player->GetGUID().GetCounter());
-    _advancementSent.erase(player->GetGUID().GetCounter());
-  }
-
+  /// The state goes out with the login burst (OnPlayerLogin), the way the live realm sends it: the live
+  /// capture shows the 0x0725/0x0726 block right after CMSG_PLAYER_LOGIN and before the client's first
+  /// CMSG_SET_ACTIVE_MOVER. Waiting for that mover was the community server's workaround
+  /// for its 5600-packet essence flood; the client does not need it.
+  ///
+  /// CMSG_SET_ACTIVE_MOVER stays as a fallback signal that the client's local player object is ready: a
+  /// reconnect into a character that never left the world does not run OnPlayerLogin.
   void OnPlayerActiveMover(Player* player)
   {
+    if (!IsAscensionCustomClass(player))
+      return;
+
     {
       std::lock_guard<std::mutex> lock(_stateLock);
-      if (!_advancementPending.erase(player->GetGUID().GetCounter()))
+      if (!_advancementSent.insert(player->GetGUID().GetCounter()).second)
         return;
-      _advancementSent.insert(player->GetGUID().GetCounter());
     }
     SendCharacterAdvancementState(player);
   }
 
+  /// The per-spec unlearn history the client's cost formulas read: each paid rank a player gives up and
+  /// each full talent reset raise the price of the next one for that specialization only, the way the
+  /// live realm bills it. The client caches the four values per session and prices whatever spec is
+  /// active, so the server reports the active spec's set (resent with every state update, which is what
+  /// makes a switch show the new spec's costs). Kept as per-spec player settings so they survive relogs;
+  /// the four types follow Enum.ResetCreditType.
+  static std::string CreditSetting(uint32 specializationId)
+  {
+    return std::string(ASCENSION_CREDITS_SETTING_PREFIX) + std::to_string(specializationId);
+  }
+
+  uint32 CreditCount(Player* player, uint8 type)
+  {
+    return player->GetPlayerSetting(CreditSetting(GetActiveSpecialization(player)), type).value;
+  }
+
+  void AddCreditHistory(Player* player, uint8 type)
+  {
+    std::string const setting = CreditSetting(GetActiveSpecialization(player));
+    player->UpdatePlayerSetting(setting, type, player->GetPlayerSetting(setting, type).value + 1);
+  }
+
+  /// The active specialization's four counters as one 0x0926 each (u8 type, u32 value). Types with no
+  /// server-side flow here (ability unlearn, ability reset) stay at their stored per-spec value, zero on
+  /// a specialization that never used them.
+  void SendCharacterAdvancementCredits(Player* player)
+  {
+    if (!player->GetSession())
+      return;
+
+    for (uint8 type = 1; type <= 4; ++type)
+    {
+      WorldPacket packet(SMSG_CHARACTER_ADVANCEMENT_CREDITS, 1 + sizeof(uint32));
+      packet << uint8(type) << uint32(CreditCount(player, type));
+      player->GetSession()->SendPacket(&packet);
+    }
+  }
+
+  /// The realm-wide configuration table (SMSG_COA_CONFIG). Extensions.dll keeps six sections and the
+  /// client's character-advancement gating reads several entries (the legacy-advancement switch, the
+  /// per-quality caps); the live realm sends the whole set with the login burst. Keys are length-prefixed
+  /// bytes without a terminator and every section leads with its entry count.
+  void SendCoAConfigs(Player* player)
+  {
+    if (!player->GetSession())
+      return;
+
+    WorldPacket packet(SMSG_COA_CONFIG);
+    auto putKey = [&packet](char const* key) {
+      uint32 const length = uint32(std::strlen(key));
+      packet << uint32(length);
+      packet.append(reinterpret_cast<uint8 const*>(key), length);
+    };
+
+    packet << uint32(AscensionCompatData::CoAConfigInts.size());
+    for (AscensionCompatData::CoAConfigScalar const& entry : AscensionCompatData::CoAConfigInts)
+    {
+      putKey(entry.Key);
+      packet << uint32(entry.Value);
+    }
+
+    packet << uint32(AscensionCompatData::CoAConfigBools.size());
+    for (AscensionCompatData::CoAConfigScalar const& entry : AscensionCompatData::CoAConfigBools)
+    {
+      putKey(entry.Key);
+      packet << uint8(entry.Value ? 1 : 0);
+    }
+
+    packet << uint32(AscensionCompatData::CoAConfigFloats.size());
+    for (AscensionCompatData::CoAConfigFloat const& entry : AscensionCompatData::CoAConfigFloats)
+    {
+      putKey(entry.Key);
+      packet << float(entry.Value);
+    }
+
+    packet << uint32(AscensionCompatData::CoAConfigRates.size());
+    for (AscensionCompatData::CoAConfigFloat const& entry : AscensionCompatData::CoAConfigRates)
+    {
+      putKey(entry.Key);
+      packet << float(entry.Value);
+    }
+
+    packet << uint32(AscensionCompatData::CoAConfigIntVectors.size());
+    for (AscensionCompatData::CoAConfigIntVector const& entry : AscensionCompatData::CoAConfigIntVectors)
+    {
+      putKey(entry.Key);
+      packet << uint32(entry.Values.size());
+      for (uint32 value : entry.Values)
+        packet << uint32(value);
+    }
+
+    packet << uint32(AscensionCompatData::CoAConfigFloatVectors.size());
+    for (AscensionCompatData::CoAConfigFloatVector const& entry : AscensionCompatData::CoAConfigFloatVectors)
+    {
+      putKey(entry.Key);
+      packet << uint32(entry.Values.size());
+      for (float value : entry.Values)
+        packet << float(value);
+    }
+
+    player->GetSession()->SendPacket(&packet);
+  }
+
+  /// The class registry rows (ChrClassesRoles.dbc) the client's advancement filter reads. The client stores
+  /// a packet's dwords in that class's registry object and its entry predicate then checks that object, so
+  /// the rows have to go out verbatim. Sent with the login burst, before the advancement state itself.
+  void SendChrClassRoles(Player* player)
+  {
+    if (!player->GetSession())
+      return;
+
+    for (AscensionCompatData::CoAChrClassRole const& role : AscensionCompatData::CoAChrClassRoles)
+    {
+      WorldPacket packet(SMSG_PATCH_CHR_CLASSES_ROLES, 11 * sizeof(uint32));
+      packet << uint32(role.ClassId);
+      for (uint32 value : role.Values)
+        packet << uint32(value);
+      player->GetSession()->SendPacket(&packet);
+    }
+  }
+
   /// The active specialization first: its handler builds the per-character container that the known-entries
-  /// handler refuses to fill without. The character's local specialization occupies the single slot 0, which
-  /// the client reports as specialization 1; the specialization id itself stays with the local UI.
+  /// handler refuses to fill without. The wire slot is 0-based (the client reports it as the slot index plus
+  /// one), while slots are counted from one everywhere else; the count is how many slots the character has.
+  /// Before the active-spec packet the live realm replays the known set cumulatively (the capture carries
+  /// growing sets of 1..N records), then the complete set once more after it; mirror that
+  /// because the client's editable build is grown by the replay, not rebuilt by the single complete set.
   void SendCharacterAdvancementState(Player* player)
   {
+    {
+      std::lock_guard<std::mutex> lock(_stateLock);
+      _advancementSent.insert(player->GetGUID().GetCounter());
+    }
+
+    std::vector<AscensionCoATalentState::KnownEntry> const known = KnownTalentEntries(player);
+    for (std::size_t count = 1; count <= known.size(); ++count)
+    {
+      std::vector<AscensionCoATalentState::KnownEntry> const prefix(known.begin(), known.begin() + count);
+      std::vector<uint8> const body = AscensionCoATalentState::KnownEntriesPayload(prefix);
+      WorldPacket replay(SMSG_CHARACTER_ADVANCEMENT_KNOWN_ENTRIES, body.size());
+      replay.append(body.data(), body.size());
+      player->GetSession()->SendPacket(&replay);
+    }
+
     WorldPacket packet(SMSG_CHARACTER_ADVANCEMENT_ACTIVE_SPEC, sizeof(uint32) * 2);
-    packet << uint32(0) << uint32(1);
+    packet << uint32(ActiveSpecSlot(player) - 1) << uint32(UnlockedSpecCount(player));
     player->GetSession()->SendPacket(&packet);
 
     uint32 const sent = SendKnownTalentEntries(player);
+    SendCharacterAdvancementCredits(player);
     LOG_INFO("module.ascension_compat",
              "Initialized Character Advancement for {} (class {}, level {}) with {} known entries",
              player->GetName(), uint32(player->getClass()), uint32(player->GetLevel()), sent);
   }
 
   /// After a talent change: the complete set again, which the client diffs against what it holds, and the
-  /// bridge snapshot for the local layer. The native packet waits for the initial state, whose container
-  /// the known-entries handler needs.
+  /// bridge snapshot for the local layer. The native packet waits for the initial state (already sent from
+  /// OnPlayerLogin in every ordinary session), whose container the known-entries handler needs.
   void SendCharacterAdvancementKnownEntries(Player* player)
   {
     SendCharacterAdvancementBridge(player);
@@ -1387,6 +1581,7 @@ public:
         return;
     }
     SendKnownTalentEntries(player);
+    SendCharacterAdvancementCredits(player);
   }
 
   /// The local Character Advancement layer in patch-B keeps the active specialization in a per-character
@@ -1484,6 +1679,99 @@ public:
     packet.append(body.data(), body.size());
     player->GetSession()->SendPacket(&packet);
     return uint32(known.size());
+  }
+
+  // --- Advancement inspection (0x06E1/0x06E2) ---------------------------------
+  //
+  // The working build the talent trees read only follows the server through this pair. The client asks
+  // with 0x06E1; the answer carries the CA_INSPECT_* result and, for an OK, the target's whole per-slot
+  // state, which its handler uses to rebuild that build when the target is the local player. Besides
+  // answering the client's own requests, a slot switch sends the self-inspection unprompted: the
+  // active-spec and known-entries packets alone leave the trees on the slot that was left.
+
+  /// The entries one slot would hold: the active slot answers with the live spellbook state; every other
+  /// slot with its stored picks over the automatic entries the slot's specialization always carries.
+  std::vector<AscensionCoATalentState::KnownEntry> SlotKnownEntries(Player* player, uint32 slot)
+  {
+    if (slot == ActiveSpecSlot(player))
+      return KnownTalentEntries(player);
+
+    uint32 const slotSpec = StoredSlotSpec(player, slot);
+    std::vector<AscensionCoATalentState::KnownEntry> known;
+
+    for (AscensionCoATalentState::KnownEntry const& live : KnownTalentEntries(player))
+    {
+      AscensionCompatData::CoATalentEntry const* entry = FindTalentEntry(live.EntryId);
+      if (!entry || entry->AECost || entry->TECost || GetSelectableFreeGroup(entry->EntryId))
+        continue;
+      if (entry->SpecId && entry->SpecId != slotSpec)
+        continue;
+      known.push_back(live);
+    }
+
+    if (PlayerSettingVector const* values = player->FindPlayerSettings(SlotBuildSetting(slot)))
+    {
+      std::size_t const count = values->empty() ? 0 : std::min<std::size_t>((*values)[0].value, values->size() - 1);
+      for (std::size_t index = 1; index <= count; ++index)
+      {
+        uint32 const pick = (*values)[index].value;
+        AscensionCompatData::CoATalentEntry const* entry = pick ? FindTalentEntry(pick / 10) : nullptr;
+        uint32 const rank = pick % 10;
+        if (!entry || entry->ClassId != player->getClass() || !rank || rank > entry->SpellCount)
+          continue;
+        if (entry->SpecId && entry->SpecId != slotSpec)
+          continue;
+        if (!entry->AECost && !entry->TECost && !GetSelectableFreeGroup(entry->EntryId))
+          continue;
+        known.push_back({ entry->EntryId, rank });
+      }
+    }
+
+    std::sort(known.begin(), known.end(),
+              [](AscensionCoATalentState::KnownEntry const& left, AscensionCoATalentState::KnownEntry const& right)
+              { return left.EntryId < right.EntryId; });
+    return known;
+  }
+
+  /// The inspection answer for one target: result string, target GUID, active slot key (0-based, as in
+  /// the active-spec packet), slot count, then one known set per slot in slot order.
+  void SendCharacterAdvancementInspectResult(Player* viewer, Player* target)
+  {
+    if (!viewer->GetSession())
+      return;
+
+    uint32 const slots = UnlockedSpecCount(target);
+    std::vector<std::vector<uint8>> slotBodies;
+    slotBodies.reserve(slots);
+    std::size_t size = sizeof("CA_INSPECT_OK") + sizeof(uint64) + sizeof(uint32) * 2;
+    for (uint32 slot = 1; slot <= slots; ++slot)
+    {
+      slotBodies.push_back(AscensionCoATalentState::KnownEntriesPayload(SlotKnownEntries(target, slot)));
+      size += slotBodies.back().size();
+    }
+
+    WorldPacket packet(SMSG_CHARACTER_ADVANCEMENT_INSPECT_RESULT, size);
+    static char const command[] = "CA_INSPECT_OK";
+    packet.append(reinterpret_cast<uint8 const*>(command), sizeof(command));
+    packet << uint64(target->GetGUID().GetRawValue());
+    packet << uint32(ActiveSpecSlot(target) - 1);
+    packet << uint32(slots);
+    for (std::vector<uint8> const& body : slotBodies)
+      packet.append(body.data(), body.size());
+    viewer->GetSession()->SendPacket(&packet);
+
+    LOG_INFO("module.ascension_compat", "Sent Character Advancement inspection of {} to {}: slot {} of {}",
+             target->GetName(), viewer->GetName(), ActiveSpecSlot(target) - 1, slots);
+  }
+
+  /// The failure form: only the result string, which the client's handler accepts on its own.
+  void SendCharacterAdvancementInspectFailure(Player* viewer, std::string const& result)
+  {
+    if (!viewer->GetSession())
+      return;
+    WorldPacket packet(SMSG_CHARACTER_ADVANCEMENT_INSPECT_RESULT, result.size() + 1);
+    packet.append(reinterpret_cast<uint8 const*>(result.c_str()), result.size() + 1);
+    viewer->GetSession()->SendPacket(&packet);
   }
 
   /// One owner for every rule a talent change obeys, whether it arrives as .localtalent or inside the client's
@@ -1602,6 +1890,10 @@ public:
 
     SynchronizeProgression(player);
 
+    // Giving up a rank is what the client's unlearn counter bills for; learning one changes nothing.
+    if (rank < currentRank)
+      AddCreditHistory(player, CREDIT_TALENT_UNLEARN);
+
     LOG_INFO("module.ascension_compat", "Set local CoA talent entry {} to rank {} for {} (class {})", entryId, rank,
              player->GetName(), uint32(player->getClass()));
     return true;
@@ -1625,6 +1917,8 @@ public:
     }
 
     SynchronizeProgression(player);
+    if (removed)
+      AddCreditHistory(player, CREDIT_TALENT_RESET);
     LOG_INFO("module.ascension_compat", "Reset {} paid CoA talent rank(s) for {} (class {})", removed,
              player->GetName(), uint32(player->getClass()));
     return removed;
@@ -1785,6 +2079,10 @@ public:
                   entry->EntryId, rank, error);
         return false;
       }
+
+    // An upload that selects a specialization teaches the slot in use about it, so a switch away and
+    // back restores the right tree.
+    player->UpdatePlayerSetting(ASCENSION_SLOT_SPEC_SETTING, ActiveSpecSlot(player), GetActiveSpecialization(player));
     return true;
   }
 
@@ -1805,6 +2103,63 @@ public:
     if (packet.size())
       body.assign(packet.contents(), packet.contents() + packet.size());
     queue.push_back(std::move(body));
+  }
+
+  /// The client's advancement-inspection requests (0x06E1), copied off the network thread for the
+  /// player's own update, the same way as the known-entries upload.
+  void QueueInspectRequest(uint32 accountId, WorldPacket const& packet)
+  {
+    if (packet.size() < sizeof(uint64))
+    {
+      LOG_WARN("module.ascension_compat", "Malformed Character Advancement inspect request payload={} bytes",
+               packet.size());
+      return;
+    }
+
+    std::lock_guard<std::mutex> lock(_stateLock);
+    std::deque<uint64>& queue = _pendingInspects[accountId];
+    if (queue.size() >= MAX_QUEUED_KNOWN_ENTRIES_UPLOADS)
+    {
+      LOG_WARN("module.ascension_compat", "Dropping Character Advancement inspect request for account {}: its queue is full",
+               accountId);
+      return;
+    }
+    queue.push_back(packet.read<uint64>(0));
+    LOG_INFO("module.ascension_compat", "Queued Character Advancement inspect request from account {} for GUID {}",
+             accountId, queue.back());
+  }
+
+  void ProcessInspectRequests(Player* player)
+  {
+    std::deque<uint64> requests;
+    {
+      std::lock_guard<std::mutex> lock(_stateLock);
+      auto itr = _pendingInspects.find(player->GetSession()->GetAccountId());
+      if (itr == _pendingInspects.end())
+        return;
+      requests = std::move(itr->second);
+      _pendingInspects.erase(itr);
+    }
+
+    if (!IsAscensionCustomClass(player))
+      return;
+    for (uint64 const requested : requests)
+    {
+      Player* target = ObjectAccessor::FindPlayer(ObjectGuid(requested));
+      if (!target)
+      {
+        SendCharacterAdvancementInspectFailure(player, "CA_INSPECT_TARGET_NOT_FOUND");
+        LOG_DEBUG("module.ascension_compat", "Character Advancement inspection from {} for unknown GUID {}",
+                  player->GetName(), requested);
+        continue;
+      }
+      if (!IsAscensionCustomClass(target))
+      {
+        SendCharacterAdvancementInspectFailure(player, "CA_INSPECT_UNKNOWN");
+        continue;
+      }
+      SendCharacterAdvancementInspectResult(player, target);
+    }
   }
 
   void ProcessKnownEntriesUploads(Player* player)
@@ -1943,6 +2298,181 @@ public:
     return restored;
   }
 
+  // --- Specification slots ----------------------------------------------------
+  //
+  // A slot keeps one build (the class tree and its specialization tree) and the specialization it
+  // runs. Leaving a slot writes both down; entering one clears every talent spell and puts the
+  // stored build back. The client switches by casting its spec-swap spell, so the server sees an
+  // ordinary spell cast and answers with the advancement state.
+
+  /// The character's active specification slot. Slots count from one, matching the client's
+  /// "Specialization I".."Specialization XX" list (its swap spell for slot N is SPEC_SWAP_SPELLS[N - 1]
+  /// and the UI reports it as the wire slot plus one); an unset setting means slot one.
+  static uint32 ActiveSpecSlot(Player* player)
+  {
+    uint32 const slot = player->GetPlayerSetting(ASCENSION_ACTIVE_SLOT_SETTING, 0).value;
+    return slot ? slot : 1;
+  }
+
+  static uint32 StoredSlotSpec(Player* player, uint32 slot)
+  {
+    return player->GetPlayerSetting(ASCENSION_SLOT_SPEC_SETTING, slot).value;
+  }
+
+  static std::string SlotBuildSetting(uint32 slot)
+  {
+    return std::string(ASCENSION_SLOT_BUILD_SETTING_PREFIX) + std::to_string(slot);
+  }
+
+  /// Every held pick of the class tree and of one specialization tree, as entryId * 10 + rank.
+  static std::vector<uint32> LiveSlotPicks(Player const* player, uint32 specializationId)
+  {
+    std::vector<uint32> picks;
+    for (AscensionCompatData::CoATalentEntry const& entry : AscensionCompatData::CoATalentEntries)
+    {
+      if (entry.ClassId != player->getClass() || (entry.SpecId && entry.SpecId != specializationId) ||
+          (!entry.AECost && !entry.TECost && !GetSelectableFreeGroup(entry.EntryId)))
+        continue;
+      if (uint32 const rank = AscensionCoATalentState::KnownRank(entry, SpellbookOf(player)))
+        picks.push_back(entry.EntryId * 10 + rank);
+    }
+    return picks;
+  }
+
+  /// Writes a slot's build (and the specialization it runs) over the previous record; a shorter
+  /// build zeroes the old tail.
+  static void StoreSlotBuild(Player* player, uint32 slot, uint32 specializationId)
+  {
+    std::vector<uint32> const picks = LiveSlotPicks(player, specializationId);
+    std::string const setting = SlotBuildSetting(slot);
+    std::size_t previous = 0;
+    if (PlayerSettingVector const* values = player->FindPlayerSettings(setting))
+      previous = values->size();
+
+    player->UpdatePlayerSetting(setting, 0, uint32(picks.size()));
+    for (std::size_t index = 0; index < picks.size(); ++index)
+      player->UpdatePlayerSetting(setting, uint32(index) + 1, picks[index]);
+    for (std::size_t index = picks.size() + 1; index < previous; ++index)
+      player->UpdatePlayerSetting(setting, uint32(index), 0);
+    player->UpdatePlayerSetting(ASCENSION_SLOT_SPEC_SETTING, slot, specializationId);
+  }
+
+  /// Puts a stored slot build back, each rank through the rules of a purchase, so a stored rank the
+  /// character can no longer afford is skipped rather than granted.
+  uint32 RestoreSlotBuild(Player* player, uint32 slot, uint32 specializationId)
+  {
+    uint32 restored = 0;
+    PlayerSettingVector const* values = player->FindPlayerSettings(SlotBuildSetting(slot));
+    if (!values || values->empty())
+      return restored;
+
+    std::size_t const count = std::min<std::size_t>((*values)[0].value, values->size() - 1);
+    for (std::size_t index = 1; index <= count; ++index)
+    {
+      uint32 const pick = (*values)[index].value;
+      AscensionCompatData::CoATalentEntry const* entry = pick ? FindTalentEntry(pick / 10) : nullptr;
+      uint32 const rank = pick % 10;
+      if (!entry || entry->ClassId != player->getClass() ||
+          (entry->SpecId && entry->SpecId != specializationId) || !rank || rank > entry->SpellCount)
+        continue;
+      if (AscensionCoATalentState::KnownRank(*entry, SpellbookOf(player)) >= rank)
+        continue;
+
+      std::string error;
+      if (SetTalentRank(player, *entry, rank, error))
+        ++restored;
+      else
+        LOG_INFO("module.ascension_compat", "Stored slot {} talent entry {} rank {} not restored for {}: {}",
+                 slot, entry->EntryId, rank, player->GetName(), error);
+    }
+    return restored;
+  }
+
+  /// How many slots the character has: the highest swap spell it knows, and never fewer than one.
+  static uint32 UnlockedSpecCount(Player const* player)
+  {
+    uint32 count = 1;
+    for (uint32 slot = 2; slot <= ASCENSION_SPEC_SWAP_SPELL_COUNT; ++slot)
+      if (player->HasSpell(ASCENSION_SPEC_SWAP_SPELLS[slot - 1]))
+        count = slot;
+    return count;
+  }
+
+  /// The client's spec-swap spell finished casting: move the character into that slot. Leaving a slot
+  /// writes its build down, entering one clears every talent spell and puts the stored build back.
+  bool SwitchSpecSlot(Player* player, uint32 targetSlot)
+  {
+    if (!IsAscensionCustomClass(player) || !targetSlot || targetSlot > ASCENSION_SPEC_SWAP_SPELL_COUNT)
+    {
+      LOG_INFO("module.ascension_compat", "Spec-swap refused: bad slot {} for {}", targetSlot,
+               player->GetName());
+      return false;
+    }
+    if (targetSlot > 1 && !player->HasSpell(ASCENSION_SPEC_SWAP_SPELLS[targetSlot - 1]))
+    {
+      LOG_INFO("module.ascension_compat", "Spec-swap refused: {} does not know spell {}", player->GetName(),
+               ASCENSION_SPEC_SWAP_SPELLS[targetSlot - 1]);
+      return false;
+    }
+
+    uint32 const currentSlot = ActiveSpecSlot(player);
+    if (currentSlot == targetSlot)
+    {
+      SendCharacterAdvancementState(player);
+      return true;
+    }
+
+    uint32 currentSpec = GetActiveSpecialization(player);
+    if (!currentSpec)
+      currentSpec = StoredSlotSpec(player, currentSlot);
+    if (currentSpec)
+      StoreSlotBuild(player, currentSlot, currentSpec);
+
+    uint32 const targetSpec = StoredSlotSpec(player, targetSlot);
+
+    // Like Player::ActivateSpec, dismiss the pet summoned under the old specialization.
+    if (Pet* pet = player->GetPet())
+      player->RemovePet(pet, PET_SAVE_NOT_IN_SLOT);
+
+    std::unordered_set<uint32> visitedSpellIds;
+    uint32 removed = 0;
+    for (AscensionCompatData::CoATalentEntry const& entry : AscensionCompatData::CoATalentEntries)
+    {
+      if (entry.ClassId != player->getClass())
+        continue;
+      for (uint32 spellId : entry.SpellIds)
+      {
+        if (!spellId || !visitedSpellIds.insert(spellId).second || !player->HasSpell(spellId))
+          continue;
+        player->removeSpell(spellId, SPEC_MASK_ALL, false);
+        ++removed;
+      }
+    }
+
+    {
+      std::lock_guard<std::mutex> lock(_stateLock);
+      _activeSpecializations[player->GetGUID().GetCounter()] = targetSpec;
+    }
+    player->UpdatePlayerSetting(ASCENSION_ACTIVE_SPEC_SETTING, 0, targetSpec);
+    player->UpdatePlayerSetting(ASCENSION_ACTIVE_SLOT_SETTING, 0, targetSlot);
+
+    uint32 const restored = targetSpec ? RestoreSlotBuild(player, targetSlot, targetSpec) : 0;
+    uint32 const granted = SynchronizeProgression(player);
+
+    SendCharacterAdvancementState(player);
+    // The active-spec and known-entries packets move the client's per-slot state, but only the
+    // inspection answer rebuilds the working build the talent trees read; without it they stay on the
+    // slot that was left until the next login or reload.
+    SendCharacterAdvancementInspectResult(player, player);
+
+    LOG_INFO("module.ascension_compat",
+             "Switched {} (class {}) from spec slot {} to {} (specialization {}): removed {} spell(s), "
+             "restored {} stored rank(s), granted {} automatic spell(s)",
+             player->GetName(), uint32(player->getClass()), currentSlot, targetSlot, targetSpec, removed,
+             restored, granted);
+    return true;
+  }
+
   bool SwitchSpecialization(Player *player, uint32 specializationId) {
     if (!IsAscensionCustomClass(player) || !specializationId)
       return false;
@@ -2044,9 +2574,9 @@ public:
     _tuningUpdates.erase(player->GetGUID());
     _activeSpecializations.erase(player->GetGUID().GetCounter());
     _proficiencySynchronizations.erase(player->GetGUID().GetCounter());
-    _advancementPending.erase(player->GetGUID().GetCounter());
     _advancementSent.erase(player->GetGUID().GetCounter());
     _pendingUploads.erase(player->GetSession()->GetAccountId());
+    _pendingInspects.erase(player->GetSession()->GetAccountId());
   }
 
     static uint32 GetSelectableFreeGroup(uint32 entryId)
@@ -2175,12 +2705,13 @@ private:
   std::unordered_map<ObjectGuid, uint32> _tuningUpdates;
   std::unordered_map<uint32, uint32> _activeSpecializations;
   std::unordered_set<uint32> _proficiencySynchronizations;
-  // Characters owed the character-advancement state, and those already holding it.
-  std::unordered_set<uint32> _advancementPending;
+  // Characters already holding the character-advancement state (set at login; the mover is a fallback).
   std::unordered_set<uint32> _advancementSent;
   // Known-entries uploads by account, copied off the network thread for the player's own update.
   static constexpr std::size_t MAX_QUEUED_KNOWN_ENTRIES_UPLOADS = 8;
   std::unordered_map<uint32, std::deque<std::vector<uint8>>> _pendingUploads;
+  // Advancement-inspection requests by account (u64 target GUIDs), same off-thread handover.
+  std::unordered_map<uint32, std::deque<uint64>> _pendingInspects;
 };
 
 class AscensionResourceService
@@ -4837,7 +5368,8 @@ public:
             !ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED))
             return true;
 
-        // The core keeps this packet; it only tells the module the client is out of its loading screen.
+        // The core keeps this packet; it is the fallback signal that the client's local player object
+        // exists, for a session whose login path did not send the character-advancement state.
         if (packet.GetOpcode() == CMSG_SET_ACTIVE_MOVER)
             AscensionClassService::Instance().OnPlayerActiveMover(session->GetPlayer());
 
@@ -4915,6 +5447,13 @@ public:
     {
       if (session)
         AscensionClassService::Instance().QueueKnownEntriesUpload(session->GetAccountId(), packet);
+      return false;
+    }
+
+    if (opcode == CMSG_CHARACTER_ADVANCEMENT_INSPECT)
+    {
+      if (session)
+        AscensionClassService::Instance().QueueInspectRequest(session->GetAccountId(), packet);
       return false;
     }
 
@@ -5731,6 +6270,7 @@ public:
     if (ascensionCompatConfig.GetConfigValue<bool>(
             AscensionCompatConfig::ENABLED)) {
       AscensionClassService::Instance().ProcessKnownEntriesUploads(player);
+      AscensionClassService::Instance().ProcessInspectRequests(player);
       AscensionClassService::Instance().UpdateClassTuning(player, diff);
       AscensionResourceService::Instance().OnPlayerUpdate(player, diff);
       AscensionCollectionService::Instance().OnPlayerUpdate(player, diff);
@@ -6766,6 +7306,62 @@ public:
   }
 };
 
+/// The client's spec-switch spells ("Specialization I" ... "Specialization XX", cast from the
+/// Character Advancement spec list). The cast itself is only a marker: the switch happens here,
+/// and the advancement state resent in response moves the client's UI to the new slot.
+class spell_ascension_spec_swap : public SpellScript
+{
+    PrepareSpellScript(spell_ascension_spec_swap);
+
+    bool IsSwapSpell()
+    {
+        for (uint32 slot = 1; slot <= ASCENSION_SPEC_SWAP_SPELL_COUNT; ++slot)
+            if (GetSpellInfo()->Id == ASCENSION_SPEC_SWAP_SPELLS[slot - 1])
+                return true;
+        return false;
+    }
+
+    SpellCastResult HandleCheckCast()
+    {
+        if (IsSwapSpell())
+            LOG_INFO("module.ascension_compat", "Spec-swap check cast: spell {} for {}",
+                     GetSpellInfo()->Id, GetCaster() ? GetCaster()->GetName() : "<no caster>");
+        return SPELL_CAST_OK;
+    }
+
+    void HandleBeforeCast()
+    {
+        if (IsSwapSpell())
+            LOG_INFO("module.ascension_compat", "Spec-swap before cast: spell {} for {}",
+                     GetSpellInfo()->Id, GetCaster() ? GetCaster()->GetName() : "<no caster>");
+    }
+
+    void HandleAfterCast()
+    {
+        Player* player = GetCaster() ? GetCaster()->ToPlayer() : nullptr;
+        if (!player)
+            return;
+
+        if (IsSwapSpell())
+            LOG_INFO("module.ascension_compat", "Spec-swap after cast: spell {} for {}", GetSpellInfo()->Id,
+                     player->GetName());
+
+        for (uint32 slot = 1; slot <= ASCENSION_SPEC_SWAP_SPELL_COUNT; ++slot)
+            if (GetSpellInfo()->Id == ASCENSION_SPEC_SWAP_SPELLS[slot - 1])
+            {
+                AscensionClassService::Instance().SwitchSpecSlot(player, slot);
+                return;
+            }
+    }
+
+    void Register() override
+    {
+        OnCheckCast += SpellCheckCastFn(spell_ascension_spec_swap::HandleCheckCast);
+        BeforeCast += SpellCastFn(spell_ascension_spec_swap::HandleBeforeCast);
+        AfterCast += SpellCastFn(spell_ascension_spec_swap::HandleAfterCast);
+    }
+};
+
 void AddAscensionCompatScripts() {
   new npc_ascension_training_book();
   RegisterSpellScript(spell_ascension_personal_bank);
@@ -6774,6 +7370,7 @@ void AddAscensionCompatScripts() {
   RegisterSpellScript(spell_ascension_jailers_bargain);
   RegisterSpellScript(spell_ascension_wildcard_mount);
   RegisterSpellScript(spell_ascension_legacy_quest_reward);
+  RegisterSpellScript(spell_ascension_spec_swap);
   new AscensionTradesmanScroll();
   new AscensionCompatServerScript();
   new AscensionCompatCommandScript();

@@ -58,6 +58,8 @@ CMakeLists.txt.user
 # Agents
 #
 .agents/plans/**
+# Internal opcode-inventory notes, not ready for sharing.
+.agents/docs/systems/ascension-opcodes.md
 
 #
 # Claude

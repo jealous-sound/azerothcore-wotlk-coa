@@ -50,6 +50,17 @@ extern std::vector<CoAAutomaticDependency> CoAAutomaticDependencies;
 // Sorted by ClassId, then Level.
 extern std::vector<CoATalentBudget> CoATalentBudgets;
 
+// ChrClassesRoles.dbc row: the per-class registry the client's character-advancement window filters that
+// class's tree entries with. Sent to the client verbatim, one packet per row. ClassId is the row's first
+// dword, Values the ten that follow.
+struct CoAChrClassRole
+{
+    std::uint32_t ClassId;
+    std::array<std::uint32_t, 10> Values;
+};
+
+extern std::vector<CoAChrClassRole> CoAChrClassRoles;
+
 // The class-tree (AE) and specialization-tree (TE) points a custom class holds at a level: the essence row of
 // that level, or of the highest lower level the table has. False when the table has no row for the class.
 bool GetCoATalentBudget(std::uint8_t classId, std::uint8_t level, std::uint32_t& ae, std::uint32_t& te);
