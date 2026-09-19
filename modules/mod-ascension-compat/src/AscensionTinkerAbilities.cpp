@@ -239,7 +239,7 @@ public:
         if (!player || !target || info->SpellFamilyName != 34 || miss != SPELL_MISS_NONE)
             return;
         // Repair player targets carrying the old permanent beacon marker; owned devices keep their guard.
-        if (healing && target->IsPlayer() && Any(info, {801707, 529288}))
+        if (target->IsPlayer())
             target->RemoveAurasDueToSpell(560711);
         if (damage && Named(info,801005) && player->HasAura(805314))
             if (Aura* tracer = target->GetAura(653247,player->GetGUID()); tracer && tracer->GetStackAmount() >= 10)
