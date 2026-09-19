@@ -118,6 +118,7 @@ void AddSC_AscensionTemplarEvents();
 void AddSC_AscensionTemplarAbilities();
 void AddSC_AscensionTemplarSummons();
 void AddSC_AscensionTemplarTemporaryLibramProcs();
+void AddSC_AscensionTemplarTithe();
 void AddAscensionTinkerAugmentationScripts();
 void AddAscensionTinkerAugmentationTalentScripts();
 void AddAscensionTinkerHackingScripts();
@@ -271,6 +272,7 @@ void Addmod_ascension_compatScripts()
     AddSC_AscensionTemplarAbilities();
     AddSC_AscensionTemplarSummons();
     AddSC_AscensionTemplarTemporaryLibramProcs();
+    AddSC_AscensionTemplarTithe();
     AddAscensionTinkerAugmentationScripts();
     AddAscensionTinkerAugmentationTalentScripts();
     AddAscensionTinkerHackingScripts();
