@@ -1,0 +1,51 @@
+{
+  "schema": 1,
+  "name": "Darkfallen's Embrace adds spell haste and range to Sanguine spells and Bloodbolt (#1998)",
+  "contract": "Darkfallen's Embrace's two ranks (560261 rank 1, 561348 rank 2) are self-cast (effect 0 target caster) with two effects: SPELL_AURA_HASTE_SPELLS (aura 216, unrestricted classmask - applies to all of the caster's own casts) with BasePoints 2/5 (real 3%/6%), and ADD_FLAT_MODIFIER (aura 107) MiscValue 5 (SPELLMOD_RANGE) BasePoints 4/9 (real +5/+10 yards) on classmask (33951874,663552,2097176), which a full 3-word OR enumeration confirmed matches only 16 named Bloodmage/Sanguine spells including Bloodbolt, no unrelated spell. AuraEffect::HandleModCastingSpeed (SpellAuraEffects.cpp) and the generic SPELLMOD_RANGE path (SpellInfo.cpp/Spell.cpp) consume these. Learning is a passive-flagged spell, so it auto-applies the self-aura; aura_amount reads the live haste percentage directly, and spell_max_range/spell_cast_time_ms are pure queries needing no ownership of Bloodbolt. 578305 (level 60) is the Bloodbolt rank a level-80 character owns.",
+  "timeout_ms": 90000,
+  "players": [
+    { "id": "caster", "race": 1, "class": 20, "level": 80 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let level scaling settle", "ms": 5000 },
+    {
+      "action": "snapshot", "label": "Bloodbolt max range before the talent",
+      "actor": "caster", "metric": "spell_max_range", "spell": 578305, "save_as": "range_before"
+    },
+    {
+      "action": "snapshot", "label": "Frostbolt cast time before the talent",
+      "actor": "caster", "metric": "spell_cast_time_ms", "spell": 116, "save_as": "cast_time_before"
+    },
+    { "action": "learn", "actor": "caster", "spell": 560261 },
+    {
+      "action": "assert", "label": "Rank 1 self-buff is present",
+      "actor": "caster", "metric": "aura", "spell": 560261, "caster": "caster", "equals": 1
+    },
+    {
+      "action": "assert", "label": "Rank 1 grants 3% spell haste",
+      "actor": "caster", "metric": "aura_amount", "spell": 560261, "effect": 0, "caster": "caster", "equals": 3
+    },
+    {
+      "action": "assert", "label": "Rank 1 adds 5 yards to Bloodbolt's range",
+      "actor": "caster", "metric": "spell_max_range", "spell": 578305, "relative_to": "range_before", "equals": 5
+    },
+    {
+      "action": "assert", "label": "Rank 1 speeds up cast time by roughly 3%",
+      "actor": "caster", "metric": "spell_cast_time_ms", "spell": 116, "ratio_to": "cast_time_before", "min": 0.96, "max": 0.98
+    },
+    { "action": "unlearn", "actor": "caster", "spell": 560261 },
+    { "action": "learn", "actor": "caster", "spell": 561348 },
+    {
+      "action": "assert", "label": "Rank 2 grants 6% spell haste",
+      "actor": "caster", "metric": "aura_amount", "spell": 561348, "effect": 0, "caster": "caster", "equals": 6
+    },
+    {
+      "action": "assert", "label": "Rank 2 adds 10 yards to Bloodbolt's range",
+      "actor": "caster", "metric": "spell_max_range", "spell": 578305, "relative_to": "range_before", "equals": 10
+    },
+    {
+      "action": "assert", "label": "Rank 2 speeds up cast time by roughly 6%",
+      "actor": "caster", "metric": "spell_cast_time_ms", "spell": 116, "ratio_to": "cast_time_before", "min": 0.93, "max": 0.95
+    }
+  ]
+}
