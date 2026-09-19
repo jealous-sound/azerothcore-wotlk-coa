@@ -32,6 +32,7 @@
 #include <map>
 #include <memory>
 #include <thread>
+#include <utility>
 
 namespace CoAChallenges
 {
@@ -1918,6 +1919,132 @@ namespace CoAChallenges
         ClearCharChallengeCache(guid);
 
         SendTestLine(player, "ruleaudit: {} IDs checked, {} divergence(s)", ids.size(), divergences);
+    }
+
+    // GM-only (`.coa cachetoctou <player>`): regression test for the cache TOCTOU. It forces the
+    // exact window (an invalidation landing between the DB load and the cache publish) and checks
+    // that the generation guard discards the stale snapshot. Each cache runs twice: guard OFF (the
+    // bug must appear) and ON (the bug must be gone). Requiring the OFF run to fail-as-expected is
+    // what makes a green run meaningful instead of vacuous.
+    bool Test_CacheToctou(Player* player)
+    {
+        if (!player)
+            return false;
+        uint32 guid = player->GetGUID().GetCounter();
+        bool ok = true;
+
+        auto contains = [](std::vector<std::pair<uint32, uint32>> const& v, uint32 id, uint32 lv)
+        {
+            return std::find(v.begin(), v.end(), std::make_pair(id, lv)) != v.end();
+        };
+
+        // --- char challenge cache: one probe row (id/level are arbitrary for the cache) ---
+        {
+            uint32 const probeId = 1;
+            uint32 const probeLevel = 7;
+
+            WaitCharacterQueueEmpty();
+            std::vector<uint32> original;
+            if (QueryResult r = CharacterDatabase.Query(
+                    "SELECT challengeId FROM coa_character_challenge WHERE guid = {}", guid))
+                do { original.push_back(r->Fetch()[0].Get<uint32>()); } while (r->NextRow());
+
+            auto arm = [&](std::shared_ptr<bool> fired)
+            {
+                CharacterDatabase.DirectExecute("DELETE FROM coa_character_challenge WHERE guid = {}", guid);
+                CharacterDatabase.DirectExecute(
+                    "INSERT INTO coa_character_challenge (guid, challengeId, level, deaths) VALUES ({}, {}, {}, 0)",
+                    guid, probeId, probeLevel);
+                ClearCharChallengeCache(guid);
+                *fired = false;
+                Test_SetCharChallengeLoadHook([fired, guid, probeId](uint32 g)
+                {
+                    if (*fired)
+                        return;
+                    *fired = true;
+                    // Invalidate inside the load -> publish window.
+                    CharacterDatabase.DirectExecute(
+                        "DELETE FROM coa_character_challenge WHERE guid = {} AND challengeId = {}", g, probeId);
+                    ClearCharChallengeCache(g);
+                });
+            };
+
+            std::shared_ptr<bool> fired = std::make_shared<bool>(false);
+
+            arm(fired);
+            Test_SetCacheGuard(0);
+            bool const staleOff = contains(CachedCharChallenges(guid), probeId, probeLevel);
+            SendTestLine(player, "  cachetoctou char guard=0: stale row kept={} (expected 1) -> {}",
+                staleOff ? 1 : 0, staleOff ? "PASS" : "FAIL");
+            ok = ok && staleOff;
+
+            arm(fired);
+            Test_SetCacheGuard(1);
+            bool const staleOn = contains(CachedCharChallenges(guid), probeId, probeLevel);
+            SendTestLine(player, "  cachetoctou char guard=1: stale row kept={} (expected 0) -> {}",
+                staleOn ? 1 : 0, staleOn ? "FAIL" : "PASS");
+            ok = ok && !staleOn;
+
+            Test_SetCharChallengeLoadHook(nullptr);
+            Test_SetCacheGuard(-1);
+
+            // Restore the pre-test active set (rows only; auras were untouched).
+            CharacterDatabase.DirectExecute("DELETE FROM coa_character_challenge WHERE guid = {}", guid);
+            for (uint32 id : original)
+                CharacterDatabase.DirectExecute(
+                    "INSERT INTO coa_character_challenge (guid, challengeId, level, deaths) VALUES ({}, {}, 1, 0)",
+                    guid, id);
+            ClearCharChallengeCache(guid);
+        }
+
+        // --- game mode mask cache ---
+        {
+            uint32 const probeA = 0x2;    // Ironman
+            uint32 const probeB = 0x100;  // Nightmare
+            uint32 const originalMask = LoadGameModeMask(guid);
+
+            auto arm = [&](std::shared_ptr<bool> fired)
+            {
+                CharacterDatabase.DirectExecute(
+                    "REPLACE INTO coa_character_gamemode (guid, gameMode) VALUES ({}, {})", guid, probeA);
+                ClearGameModeMaskCache(guid);
+                *fired = false;
+                Test_SetGameModeLoadHook([fired, guid, probeB](uint32 g)
+                {
+                    if (*fired)
+                        return;
+                    *fired = true;
+                    CharacterDatabase.DirectExecute(
+                        "REPLACE INTO coa_character_gamemode (guid, gameMode) VALUES ({}, {})", g, probeB);
+                    ClearGameModeMaskCache(g);
+                });
+            };
+
+            std::shared_ptr<bool> fired = std::make_shared<bool>(false);
+
+            arm(fired);
+            Test_SetCacheGuard(0);
+            uint32 const maskOff = CachedGameModeMask(guid);
+            SendTestLine(player, "  cachetoctou gamemode guard=0: mask=0x{:x} (expected 0x{:x}) -> {}",
+                maskOff, probeA, maskOff == probeA ? "PASS" : "FAIL");
+            ok = ok && (maskOff == probeA);
+
+            arm(fired);
+            Test_SetCacheGuard(1);
+            uint32 const maskOn = CachedGameModeMask(guid);
+            SendTestLine(player, "  cachetoctou gamemode guard=1: mask=0x{:x} (expected 0x{:x}) -> {}",
+                maskOn, probeB, maskOn == probeB ? "PASS" : "FAIL");
+            ok = ok && (maskOn == probeB);
+
+            Test_SetGameModeLoadHook(nullptr);
+            Test_SetCacheGuard(-1);
+
+            CharacterDatabase.DirectExecute(
+                "REPLACE INTO coa_character_gamemode (guid, gameMode) VALUES ({}, {})", guid, originalMask);
+            ClearGameModeMaskCache(guid);
+        }
+
+        return ok;
     }
 
     // GM-only (`.coa auditdefs <player>`): data-integrity sweep over EVERY

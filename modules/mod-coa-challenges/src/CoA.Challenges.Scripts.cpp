@@ -2207,6 +2207,7 @@ namespace CoAChallenges
                 { "ruletestparty", HandleCoARuleTestPartyCommand, SEC_ADMINISTRATOR, Console::Yes },
                 { "ruleaudit", HandleCoARuleAuditCommand, SEC_ADMINISTRATOR, Console::Yes },
                 { "auditdefs", HandleCoAAuditDefsCommand, SEC_ADMINISTRATOR, Console::Yes },
+                { "cachetoctou", HandleCoACacheToctouCommand, SEC_ADMINISTRATOR, Console::Yes },
                 { "gamemode",  HandleCoAGameModeCommand,  SEC_ADMINISTRATOR, Console::Yes },
                 { "sync",      HandleCoASyncCommand,       SEC_ADMINISTRATOR, Console::Yes },
                 { "fatigue",   HandleCoAFatigueCommand,   SEC_ADMINISTRATOR, Console::Yes },
@@ -2613,6 +2614,25 @@ namespace CoAChallenges
             }
             Test_AuditAllDefs(p);
             handler->PSendSysMessage("Definition audit finished for {} (check chat/log for divergences).", playerName);
+            return true;
+        }
+
+        // .coa cachetoctou <player>
+        // GM-only: deterministically forces the cache TOCTOU window (an invalidation
+        // between the DB load and the cache publish) and checks the generation guard,
+        // running each cache with the guard OFF (bug must appear) and ON (bug gone).
+        static bool HandleCoACacheToctouCommand(ChatHandler* handler, std::string playerName)
+        {
+            Player* p = ObjectAccessor::FindPlayerByName(playerName);
+            if (!p)
+            {
+                handler->SendErrorMessage("Player '{}' is not online.", playerName);
+                return false;
+            }
+            if (Test_CacheToctou(p))
+                handler->PSendSysMessage("CACHE TOCTOU PASS");
+            else
+                handler->SendErrorMessage("CACHE TOCTOU FAIL (see lines above)");
             return true;
         }
 
