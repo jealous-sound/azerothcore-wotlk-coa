@@ -5,1244 +5,1859 @@
 -- median ratio 1.024); the corrections land on the content meant to resist a group - elites median
 -- 1.333, bosses median 3.667, level 70-79 median 3.544.
 --
--- Only creatures the cache actually recorded are touched, and only where the value differs, so this
--- is a partial but per-creature sourced correction rather than a reconstruction of the whole table.
--- The base health curve these multiply stays AzerothCore's, because no client table carries CoA's.
+-- Only creatures the cache actually recorded are touched, so this is a partial but per-creature
+-- sourced correction rather than a reconstruction of the whole table. Every recorded creature is
+-- written, not just the ones that currently differ, so the file states the cache's contents and
+-- regenerates identically after it has been applied. The base health curve these multiply stays
+-- AzerothCore's, because no client table carries CoA's.
 --
--- 1233 creatures (1038 raised, 195 lowered),
--- from creaturecache SHA256 7E395E1DD5A8859CFA1CD13A9A34A0D2BAFAC821D5973E3023B3E15837B46356.
+-- 1845 creatures, 421 of them elite or boss; 4 rank-0 world triggers
+-- carrying a sentinel instead of a multiplier are skipped.
+-- From creaturecache SHA256 7E395E1DD5A8859CFA1CD13A9A34A0D2BAFAC821D5973E3023B3E15837B46356.
 START TRANSACTION;
-UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 46; -- Murloc Forager: 1 -> 0.98
-UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 94; -- Defias Cutpurse: 1 -> 1.056
-UPDATE `creature_template` SET `HealthModifier` = 1.1616 WHERE `entry` = 113; -- Stonetusk Boar: 1 -> 1.1616
-UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 118; -- Prowler: 1 -> 0.98
-UPDATE `creature_template` SET `HealthModifier` = 3.3792 WHERE `entry` = 193; -- Blue Dragonspawn: 3 -> 3.3792
-UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 299; -- Diseased Young Wolf: 1 -> 0.93
-UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 305; -- White Stallion: 1 -> 0.93
-UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 306; -- Palomino: 1 -> 0.93
-UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 307; -- Pinto: 1 -> 0.93
-UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 384; -- Katie Hunter: 1 -> 0.98
-UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 385; -- Horse: 1 -> 1.056
-UPDATE `creature_template` SET `HealthModifier` = 0.9 WHERE `entry` = 428; -- Dire Condor: 1 -> 0.9
-UPDATE `creature_template` SET `HealthModifier` = 3.332 WHERE `entry` = 448; -- Hogger: 3 -> 3.332
-UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 474; -- Defias Rogue Wizard: 1 -> 0.98
-UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 478; -- Riverpaw Outrunner: 1 -> 0.98
-UPDATE `creature_template` SET `HealthModifier` = 3.024 WHERE `entry` = 522; -- Mor'Ladim: 3 -> 3.024
-UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 525; -- Mangy Wolf: 1 -> 1.056
-UPDATE `creature_template` SET `HealthModifier` = 21.6 WHERE `entry` = 639; -- Edwin VanCleef: 8 -> 21.6
-UPDATE `creature_template` SET `HealthModifier` = 1.12 WHERE `entry` = 681; -- Young Stranglethorn Tiger: 1.1 -> 1.12
-UPDATE `creature_template` SET `HealthModifier` = 1.128 WHERE `entry` = 682; -- Stranglethorn Tiger: 1.1 -> 1.128
-UPDATE `creature_template` SET `HealthModifier` = 1.12 WHERE `entry` = 683; -- Young Panther: 1.1 -> 1.12
-UPDATE `creature_template` SET `HealthModifier` = 1.128 WHERE `entry` = 685; -- Stranglethorn Raptor: 1.1 -> 1.128
-UPDATE `creature_template` SET `HealthModifier` = 1.248 WHERE `entry` = 687; -- Jungle Stalker: 1.2 -> 1.248
-UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 704; -- Ragged Timber Wolf: 1 -> 0.93
-UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 705; -- Ragged Young Wolf: 1 -> 0.93
-UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 729; -- Sin'Dall: 1.15 -> 1.192
-UPDATE `creature_template` SET `HealthModifier` = 3.304 WHERE `entry` = 731; -- King Bangalash: 3.25 -> 3.304
-UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 732; -- Murloc Lurker: 1 -> 0.98
-UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 737; -- Kebok: 1.1 -> 1.136
-UPDATE `creature_template` SET `HealthModifier` = 0.564 WHERE `entry` = 740; -- Adolescent Whelp: 1.1 -> 0.564
-UPDATE `creature_template` SET `HealthModifier` = 0.592 WHERE `entry` = 741; -- Dreaming Whelp: 1.15 -> 0.592
-UPDATE `creature_template` SET `HealthModifier` = 4.57 WHERE `entry` = 745; -- Scalebane Captain: 1.2 -> 4.57
-UPDATE `creature_template` SET `HealthModifier` = 1.184 WHERE `entry` = 760; -- Lost One Muckdweller: 1.15 -> 1.184
-UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 764; -- Swampwalker: 1.15 -> 1.192
-UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 765; -- Swampwalker Elder: 1.15 -> 1.192
-UPDATE `creature_template` SET `HealthModifier` = 1.248 WHERE `entry` = 766; -- Tangled Horror: 1.2 -> 1.248
-UPDATE `creature_template` SET `HealthModifier` = 1.184 WHERE `entry` = 767; -- Swamp Jaguar: 1.15 -> 1.184
-UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 773; -- Krazek: 1.1 -> 1.136
-UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 798; -- Solomon: 1 -> 0.93
-UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 801; -- Eric: 1 -> 0.93
-UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 802; -- Jay: 1 -> 0.93
-UPDATE `creature_template` SET `HealthModifier` = 1.56 WHERE `entry` = 818; -- Mai'Zoth: 1.5 -> 1.56
-UPDATE `creature_template` SET `HealthModifier` = 1.2 WHERE `entry` = 822; -- Young Forest Bear: 1.25 -> 1.2
-UPDATE `creature_template` SET `HealthModifier` = 1.184 WHERE `entry` = 858; -- Sorrow Spinner: 1.15 -> 1.184
-UPDATE `creature_template` SET `HealthModifier` = 1.184 WHERE `entry` = 861; -- Stonard Scout: 1.15 -> 1.184
-UPDATE `creature_template` SET `HealthModifier` = 1.328 WHERE `entry` = 864; -- Stonard Orc: 1.25 -> 1.328
-UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 865; -- Stonard Wayfinder: 1.3 -> 1.376
-UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 866; -- Stonard Grunt: 1.3 -> 1.384
-UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 867; -- Stonard Cartographer: 1.3 -> 1.376
-UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 908; -- Flora Silverwind: 1.2 -> 1.256
-UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 980; -- Grimnal: 1.2 -> 1.264
-UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 981; -- Hartash: 1.2 -> 1.264
-UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 982; -- Thultash: 1.2 -> 1.264
-UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 983; -- Thultazor: 1.2 -> 1.264
-UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 984; -- Thralosh: 1.2 -> 1.264
-UPDATE `creature_template` SET `HealthModifier` = 1.328 WHERE `entry` = 989; -- Banalash: 1.25 -> 1.328
-UPDATE `creature_template` SET `HealthModifier` = 3.056 WHERE `entry` = 1060; -- Mogh the Undying: 3 -> 3.056
-UPDATE `creature_template` SET `HealthModifier` = 1.2 WHERE `entry` = 1068; -- Gorn: 1.15 -> 1.2
-UPDATE `creature_template` SET `HealthModifier` = 1.552 WHERE `entry` = 1081; -- Mire Lord: 1.5 -> 1.552
-UPDATE `creature_template` SET `HealthModifier` = 1.184 WHERE `entry` = 1084; -- Young Sawtooth Crocolisk: 1.15 -> 1.184
-UPDATE `creature_template` SET `HealthModifier` = 3.2 WHERE `entry` = 1210; -- Chok'sul: 3 -> 3.2
-UPDATE `creature_template` SET `HealthModifier` = 3.75 WHERE `entry` = 1225; -- Ol' Sooty: 1 -> 3.75
-UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 1250; -- Drake Lindgren: 1 -> 0.98
-UPDATE `creature_template` SET `HealthModifier` = 5.2 WHERE `entry` = 1364; -- Balgaras the Foul: 1 -> 5.2
-UPDATE `creature_template` SET `HealthModifier` = 1.12 WHERE `entry` = 1383; -- Snarl: 1.1 -> 1.12
-UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 1386; -- Rogvar: 1.3 -> 1.384
-UPDATE `creature_template` SET `HealthModifier` = 1.2 WHERE `entry` = 1407; -- Sranda: 1.15 -> 1.2
-UPDATE `creature_template` SET `HealthModifier` = 0.1 WHERE `entry` = 1412; -- Squirrel: 0.2 -> 0.1
-UPDATE `creature_template` SET `HealthModifier` = 0.64449 WHERE `entry` = 1420; -- Toad: 0.2 -> 0.64449
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 1442; -- Helgrum the Swift: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 1443; -- Fel'zerul: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 1488; -- Zanzil Zombie: 1.2 -> 1.256
-UPDATE `creature_template` SET `HealthModifier` = 6 WHERE `entry` = 1493; -- Mok'rash: 4 -> 6
-UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 1508; -- Young Scavenger: 1 -> 0.93
-UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 1509; -- Ragged Scavenger: 1 -> 0.93
-UPDATE `creature_template` SET `HealthModifier` = 0.837 WHERE `entry` = 1512; -- Duskbat: 1 -> 0.837
-UPDATE `creature_template` SET `HealthModifier` = 0.9504 WHERE `entry` = 1553; -- Greater Duskbat: 1 -> 0.9504
-UPDATE `creature_template` SET `HealthModifier` = 0.864 WHERE `entry` = 1554; -- Vampiric Duskbat: 1 -> 0.864
-UPDATE `creature_template` SET `HealthModifier` = 8.5 WHERE `entry` = 1559; -- King Mukla: 2 -> 8.5
-UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 1650; -- Terry Palin: 1 -> 0.98
-UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 1765; -- Worg: 1 -> 0.98
-UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 1766; -- Mottled Worg: 1 -> 0.98
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 1775; -- Zun'dartha: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 1.176 WHERE `entry` = 1778; -- Ferocious Grizzled Bear: 1.2 -> 1.176
-UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 1791; -- Slavering Ghoul: 1.3 -> 1.376
-UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 1793; -- Rotting Ghoul: 1.3 -> 1.384
-UPDATE `creature_template` SET `HealthModifier` = 1.36 WHERE `entry` = 1794; -- Soulless Ghoul: 1.3 -> 1.36
-UPDATE `creature_template` SET `HealthModifier` = 3.86 WHERE `entry` = 1805; -- Flesh Golem: 3 -> 3.86
-UPDATE `creature_template` SET `HealthModifier` = 1.576 WHERE `entry` = 1815; -- Diseased Black Bear: 1.5 -> 1.576
-UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 1817; -- Diseased Wolf: 1.3 -> 1.384
-UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 1821; -- Carrion Lurker: 1.3 -> 1.376
-UPDATE `creature_template` SET `HealthModifier` = 40 WHERE `entry` = 1853; -- Darkmaster Gandling: 20 -> 40
-UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 1975; -- Eastvale Lumberjack: 1 -> 1.056
-UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 2070; -- Moonstalker Runt: 1 -> 0.98
-UPDATE `creature_template` SET `HealthModifier` = 0.038 WHERE `entry` = 2110; -- Black Rat: 0.01 -> 0.038
-UPDATE `creature_template` SET `HealthModifier` = 8 WHERE `entry` = 2142; -- Watcher Callahan: 1.1 -> 8
-UPDATE `creature_template` SET `HealthModifier` = 1.0625 WHERE `entry` = 2156; -- Cracked Golem: 0.85 -> 1.0625
-UPDATE `creature_template` SET `HealthModifier` = 1.0625 WHERE `entry` = 2157; -- Stone Behemoth: 0.85 -> 1.0625
-UPDATE `creature_template` SET `HealthModifier` = 1.225 WHERE `entry` = 2163; -- Thistle Bear: 1.25 -> 1.225
-UPDATE `creature_template` SET `HealthModifier` = 2 WHERE `entry` = 2172; -- Strider Clutchmother: 1 -> 2
-UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 2176; -- Cursed Highborne: 1 -> 0.98
-UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 2177; -- Writhing Highborne: 1 -> 0.98
-UPDATE `creature_template` SET `HealthModifier` = 3.4 WHERE `entry` = 2257; -- Mug'thol: 1 -> 3.4
-UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 2321; -- Foreststrider Fledgling: 1 -> 0.98
-UPDATE `creature_template` SET `HealthModifier` = 1.232 WHERE `entry` = 2408; -- Snapjaw: 1.1 -> 1.232
-UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 2482; -- Zarena Cromwind: 1.2 -> 1.256
-UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 2486; -- Fin Fizracket: 1.2 -> 1.256
-UPDATE `creature_template` SET `HealthModifier` = 1.5204 WHERE `entry` = 2487; -- Fleet Master Seahorn: 1.35 -> 1.5204
-UPDATE `creature_template` SET `HealthModifier` = 1.128 WHERE `entry` = 2488; -- Deeg: 1.1 -> 1.128
-UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 2490; -- First Mate Crazz: 1.2 -> 1.256
-UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 2491; -- Whiskey Slim: 1.15 -> 1.192
-UPDATE `creature_template` SET `HealthModifier` = 1.248 WHERE `entry` = 2493; -- Dizzy One-Eye: 1.2 -> 1.248
-UPDATE `creature_template` SET `HealthModifier` = 1.2 WHERE `entry` = 2494; -- Privateer Bloads: 1.15 -> 1.2
-UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 2495; -- Drizzlik: 1.2 -> 1.264
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 2496; -- Baron Revilgaz: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 1.128 WHERE `entry` = 2498; -- Crank Fizzlebub: 1.1 -> 1.128
-UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 2500; -- Captain Hecklebury Smotts: 1.15 -> 1.192
-UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 2501; -- "Sea Wolf" MacKinley: 1.2 -> 1.256
-UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 2502; -- "Shaky" Phillipe: 1.2 -> 1.256
-UPDATE `creature_template` SET `HealthModifier` = 1.4432 WHERE `entry` = 2505; -- Saltwater Snapjaw: 1.25 -> 1.4432
-UPDATE `creature_template` SET `HealthModifier` = 1.328 WHERE `entry` = 2542; -- Catelyn the Blade: 1.25 -> 1.328
-UPDATE `creature_template` SET `HealthModifier` = 1.248 WHERE `entry` = 2544; -- Southern Sand Crawler: 1.2 -> 1.248
-UPDATE `creature_template` SET `HealthModifier` = 1.12 WHERE `entry` = 2559; -- Highland Strider: 1.1 -> 1.12
-UPDATE `creature_template` SET `HealthModifier` = 1.128 WHERE `entry` = 2560; -- Highland Thrasher: 1.1 -> 1.128
-UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 2594; -- Sprogger: 1.15 -> 1.192
-UPDATE `creature_template` SET `HealthModifier` = 7.2 WHERE `entry` = 2597; -- Lord Falconcrest: 1.5 -> 7.2
-UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 2622; -- Sly Garrett: 1.25 -> 1.312
-UPDATE `creature_template` SET `HealthModifier` = 3.088 WHERE `entry` = 2625; -- Viznik Goldgrubber: 3 -> 3.088
-UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 2626; -- Old Man Heming: 1.2 -> 1.256
-UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 2663; -- Narkk: 1.2 -> 1.256
-UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 2664; -- Kelsey Yance: 1.2 -> 1.256
-UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 2670; -- Xizk Goodstitch: 1.2 -> 1.256
-UPDATE `creature_template` SET `HealthModifier` = 1.184 WHERE `entry` = 2685; -- Mazk Snipeshot: 1.15 -> 1.184
-UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 2699; -- Rikqiz: 1.2 -> 1.256
-UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 2701; -- Dustbelcher Ogre: 1.15 -> 1.192
-UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 2715; -- Dustbelcher Brute: 1.15 -> 1.192
-UPDATE `creature_template` SET `HealthModifier` = 1.248 WHERE `entry` = 2716; -- Dustbelcher Wyrmhunter: 1.2 -> 1.248
-UPDATE `creature_template` SET `HealthModifier` = 1.248 WHERE `entry` = 2717; -- Dustbelcher Mauler: 1.2 -> 1.248
-UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 2718; -- Dustbelcher Shaman: 1.2 -> 1.256
-UPDATE `creature_template` SET `HealthModifier` = 1.184 WHERE `entry` = 2727; -- Crag Coyote: 1.15 -> 1.184
-UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 2728; -- Feral Crag Coyote: 1.15 -> 1.192
-UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 2729; -- Elder Crag Coyote: 1.15 -> 1.192
-UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 2732; -- Ridge Huntress: 1.15 -> 1.192
-UPDATE `creature_template` SET `HealthModifier` = 1.248 WHERE `entry` = 2734; -- Ridge Stalker Patriarch: 1.2 -> 1.248
-UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 2735; -- Lesser Rock Elemental: 1.15 -> 1.192
-UPDATE `creature_template` SET `HealthModifier` = 3.056 WHERE `entry` = 2745; -- Ambassador Infernus: 3 -> 3.056
-UPDATE `creature_template` SET `HealthModifier` = 42.4 WHERE `entry` = 2748; -- Archaedas: 15 -> 42.4
-UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 2817; -- Rigglefuzz: 1.15 -> 1.192
-UPDATE `creature_template` SET `HealthModifier` = 1.0728 WHERE `entry` = 2830; -- Buzzard: 1.15 -> 1.0728
-UPDATE `creature_template` SET `HealthModifier` = 1.1232 WHERE `entry` = 2831; -- Giant Buzzard: 1.2 -> 1.1232
-UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 2832; -- Nixxrax Fillamug: 1.15 -> 1.192
-UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 2834; -- Myizz Luckycatch: 1.2 -> 1.256
-UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 2836; -- Brikk Keencraft: 1.3 -> 1.384
-UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 2837; -- Jaxin Chong: 1.25 -> 1.312
-UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 2838; -- Crazk Sparks: 1.25 -> 1.312
-UPDATE `creature_template` SET `HealthModifier` = 1.248 WHERE `entry` = 2839; -- Haren Kanmae: 1.2 -> 1.248
-UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 2840; -- Kizz Bluntstrike: 1.2 -> 1.256
-UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 2842; -- Wigcik: 1.2 -> 1.256
-UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 2844; -- Hurklor: 1.25 -> 1.312
-UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 2845; -- Fargon Mortalak: 1.2 -> 1.256
-UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 2846; -- Blixrez Goodstitch: 1.2 -> 1.256
-UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 2847; -- Jansen Underwood: 1.25 -> 1.32
-UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 2848; -- Glyx Brewright: 1.2 -> 1.264
-UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 2849; -- Qixdi Goodstitch: 1.2 -> 1.256
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 2850; -- Broken Tooth: 1.2 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 22.5 WHERE `entry` = 2858; -- Gringer: 3 -> 22.5
-UPDATE `creature_template` SET `HealthModifier` = 22.5 WHERE `entry` = 2859; -- Gyll: 3 -> 22.5
-UPDATE `creature_template` SET `HealthModifier` = 22.5 WHERE `entry` = 2861; -- Gorrik: 3 -> 22.5
-UPDATE `creature_template` SET `HealthModifier` = 1.328 WHERE `entry` = 2888; -- Garek: 1.25 -> 1.328
-UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 2907; -- Dustbelcher Mystic: 1.15 -> 1.192
-UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 2908; -- Grawl: 1.2 -> 1.256
-UPDATE `creature_template` SET `HealthModifier` = 0.64449 WHERE `entry` = 2914; -- Snake: 0.2 -> 0.64449
-UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 2926; -- Silvermane Stalker: 1.25 -> 1.32
-UPDATE `creature_template` SET `HealthModifier` = 4.5 WHERE `entry` = 2931; -- Zaricotl: 3 -> 4.5
-UPDATE `creature_template` SET `HealthModifier` = 1.248 WHERE `entry` = 2944; -- Boss Tho'grun: 1.2 -> 1.248
-UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 2949; -- Palemane Tanner: 1 -> 1.056
-UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 2950; -- Palemane Skinner: 1 -> 1.056
-UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 2951; -- Palemane Poacher: 1 -> 1.056
-UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 2955; -- Plainstrider: 1 -> 0.93
-UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 2956; -- Adult Plainstrider: 1 -> 1.056
-UPDATE `creature_template` SET `HealthModifier` = 0.96 WHERE `entry` = 2957; -- Elder Plainstrider: 1 -> 0.96
-UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 2958; -- Prairie Wolf: 1 -> 1.056
-UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 2959; -- Prairie Stalker: 1 -> 1.056
-UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 2960; -- Prairie Wolf Alpha: 1 -> 0.98
-UPDATE `creature_template` SET `HealthModifier` = 1.023 WHERE `entry` = 2961; -- Mountain Cougar: 1 -> 1.023
-UPDATE `creature_template` SET `HealthModifier` = 0.96 WHERE `entry` = 2967; -- Galak Centaur: 1 -> 0.96
-UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 2968; -- Galak Outrunner: 1 -> 0.98
-UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 2969; -- Wiry Swoop: 1 -> 1.056
-UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 2970; -- Swoop: 1 -> 1.056
-UPDATE `creature_template` SET `HealthModifier` = 0.96 WHERE `entry` = 2971; -- Taloned Swoop: 1 -> 0.96
-UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 2975; -- Venture Co. Hireling: 1 -> 1.056
-UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 3035; -- Flatland Cougar: 1 -> 1.056
-UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 3098; -- Mottled Boar: 1 -> 0.93
-UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 3099; -- Dire Mottled Boar: 1 -> 1.056
-UPDATE `creature_template` SET `HealthModifier` = 0.96 WHERE `entry` = 3100; -- Elder Mottled Boar: 1 -> 0.96
-UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 3106; -- Pygmy Surf Crawler: 1 -> 1.056
-UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 3110; -- Dreadmaw Crocolisk: 1 -> 0.98
-UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 3121; -- Durotar Tiger: 1 -> 1.056
-UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 3122; -- Bloodtalon Taillasher: 1 -> 1.056
-UPDATE `creature_template` SET `HealthModifier` = 0.96 WHERE `entry` = 3123; -- Bloodtalon Scythemaw: 1 -> 0.96
-UPDATE `creature_template` SET `HealthModifier` = 1.023 WHERE `entry` = 3124; -- Scorpid Worker: 1 -> 1.023
-UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 3126; -- Armored Scorpid: 1 -> 1.056
-UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 3127; -- Venomtail Scorpid: 1 -> 0.98
-UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 3189; -- Kor'ghan: 1 -> 1.056
-UPDATE `creature_template` SET `HealthModifier` = 0.96 WHERE `entry` = 3190; -- Rhinag: 1 -> 0.96
-UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 3216; -- Neeru Fireblade: 1.15 -> 1.192
-UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 3225; -- Corrupted Mottled Boar: 1 -> 0.98
-UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 3226; -- Corrupted Scorpid: 1 -> 0.98
-UPDATE `creature_template` SET `HealthModifier` = 1.25 WHERE `entry` = 3234; -- Lost Barrens Kodo: 1 -> 1.25
-UPDATE `creature_template` SET `HealthModifier` = 1.275 WHERE `entry` = 3235; -- Greater Barrens Kodo: 1.02 -> 1.275
-UPDATE `creature_template` SET `HealthModifier` = 1.25 WHERE `entry` = 3236; -- Barrens Kodo: 1 -> 1.25
-UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 3237; -- Wooly Kodo: 1.05 -> 1.32
-UPDATE `creature_template` SET `HealthModifier` = 1.275 WHERE `entry` = 3238; -- Stormhide: 1.02 -> 1.275
-UPDATE `creature_template` SET `HealthModifier` = 1.275 WHERE `entry` = 3239; -- Thunderhead: 1.02 -> 1.275
-UPDATE `creature_template` SET `HealthModifier` = 1.25 WHERE `entry` = 3240; -- Stormsnout: 1 -> 1.25
-UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 3244; -- Greater Plainstrider: 1 -> 0.98
-UPDATE `creature_template` SET `HealthModifier` = 0.784 WHERE `entry` = 3254; -- Sunscale Lashtail: 0.8 -> 0.784
-UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 3265; -- Razormane Hunter: 1 -> 0.98
-UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 3267; -- Razormane Water Seeker: 1 -> 0.98
-UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 3268; -- Razormane Thornweaver: 1 -> 0.98
-UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 3292; -- Brewmaster Drohn: 1 -> 0.98
-UPDATE `creature_template` SET `HealthModifier` = 20 WHERE `entry` = 3296; -- Orgrimmar Grunt: 1.5 -> 20
-UPDATE `creature_template` SET `HealthModifier` = 3.064 WHERE `entry` = 3309; -- Karus: 3 -> 3.064
-UPDATE `creature_template` SET `HealthModifier` = 22.5 WHERE `entry` = 3310; -- Doras: 3 -> 22.5
-UPDATE `creature_template` SET `HealthModifier` = 1.328 WHERE `entry` = 3312; -- Olvia: 1.25 -> 1.328
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3313; -- Trak'gen: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3314; -- Urtharo: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3315; -- Tor'phan: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3316; -- Handor: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3317; -- Ollanus: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 3.064 WHERE `entry` = 3318; -- Koma: 3 -> 3.064
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3319; -- Sana: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 3.064 WHERE `entry` = 3320; -- Soran: 3 -> 3.064
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3321; -- Morgum: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.1256 WHERE `entry` = 3322; -- Kaja: 1.05 -> 1.1256
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3323; -- Horthus: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3329; -- Kor'jus: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3330; -- Muragus: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3331; -- Kareth: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 3332; -- Lumak: 1.1 -> 1.136
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3333; -- Shankys: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3334; -- Rekkul: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3335; -- Hagrus: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.05 WHERE `entry` = 3341; -- Gann Stonespire: 1 -> 1.05
-UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 3342; -- Shan'ti: 1.1 -> 1.136
-UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 3345; -- Godan: 1.1 -> 1.136
-UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 3346; -- Kithas: 1.1 -> 1.136
-UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 3347; -- Yelmak: 1.1 -> 1.136
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3348; -- Kor'geld: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3349; -- Ukra'nor: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3350; -- Asoran: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3351; -- Magenius: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 3355; -- Saru Steelfury: 1.2 -> 1.264
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3356; -- Sumi: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 3357; -- Makaru: 1.1 -> 1.136
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3358; -- Gorina: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3359; -- Kiro: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3360; -- Koru: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3361; -- Shoma: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 3362; -- Ogunaro Wolfrunner: 1.2 -> 1.264
-UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 3363; -- Magar: 1.1 -> 1.136
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3364; -- Borya: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 3365; -- Karolek: 1.1 -> 1.136
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3366; -- Tamar: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3367; -- Felika: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3368; -- Borstan: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3369; -- Gotri: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 3370; -- Urtrun Clanbringer: 1.2 -> 1.264
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3371; -- Tamaro: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3372; -- Sarlek: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 3373; -- Arnok: 1.1 -> 1.136
-UPDATE `creature_template` SET `HealthModifier` = 1.064 WHERE `entry` = 3378; -- Bael'dun Officer: 1.05 -> 1.064
-UPDATE `creature_template` SET `HealthModifier` = 1.1844 WHERE `entry` = 3387; -- Jorn Skyseer: 1.1 -> 1.1844
-UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 3399; -- Zamja: 1.1 -> 1.136
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3400; -- Xen'to: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 3402; -- Zando'zan: 1.1 -> 1.136
-UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 3404; -- Jandi: 1.1 -> 1.136
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3405; -- Zeal'aya: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3409; -- Zendo'jian: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3410; -- Jin'sora: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 3412; -- Nogg: 1.1 -> 1.136
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3413; -- Sovik: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3414; -- General Twinbraid: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 3415; -- Savannah Huntress: 1 -> 0.98
-UPDATE `creature_template` SET `HealthModifier` = 1.071 WHERE `entry` = 3418; -- Kirge Sternhorn: 1.02 -> 1.071
-UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 3429; -- Thork: 1.2 -> 1.256
-UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 3431; -- Grenthar: 1 -> 0.98
-UPDATE `creature_template` SET `HealthModifier` = 2.31e-07 WHERE `entry` = 3444; -- Dig Rat: 1 -> 2.31e-07
-UPDATE `creature_template` SET `HealthModifier` = 1.071 WHERE `entry` = 3448; -- Tonga Runetotem: 1.02 -> 1.071
-UPDATE `creature_template` SET `HealthModifier` = 1.275 WHERE `entry` = 3473; -- Owatanka: 1.02 -> 1.275
-UPDATE `creature_template` SET `HealthModifier` = 1.275 WHERE `entry` = 3474; -- Lakota'mani: 1.02 -> 1.275
-UPDATE `creature_template` SET `HealthModifier` = 1.12 WHERE `entry` = 3478; -- Traugh: 1.1 -> 1.12
-UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 3479; -- Nargal Deatheye: 1.1 -> 1.136
-UPDATE `creature_template` SET `HealthModifier` = 1.05 WHERE `entry` = 3480; -- Moorane Hearthgrain: 1 -> 1.05
-UPDATE `creature_template` SET `HealthModifier` = 1.071 WHERE `entry` = 3483; -- Jahan Hawkwing: 1.02 -> 1.071
-UPDATE `creature_template` SET `HealthModifier` = 1.05 WHERE `entry` = 3486; -- Halija Whitestrider: 1 -> 1.05
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3490; -- Hula'mahi: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 3.064 WHERE `entry` = 3496; -- Fuzruckle: 3 -> 3.064
-UPDATE `creature_template` SET `HealthModifier` = 1.344 WHERE `entry` = 3500; -- Tarhus: 1.2 -> 1.344
-UPDATE `creature_template` SET `HealthModifier` = 2.048 WHERE `entry` = 3501; -- Horde Guard: 2 -> 2.048
-UPDATE `creature_template` SET `HealthModifier` = 34 WHERE `entry` = 3502; -- Ratchet Bruiser: 2 -> 34
-UPDATE `creature_template` SET `HealthModifier` = 22.5 WHERE `entry` = 3615; -- Devrak: 3 -> 22.5
-UPDATE `creature_template` SET `HealthModifier` = 1.328 WHERE `entry` = 3621; -- Kurll: 1.25 -> 1.328
-UPDATE `creature_template` SET `HealthModifier` = 1.2 WHERE `entry` = 3622; -- Grokor: 1.15 -> 1.2
-UPDATE `creature_template` SET `HealthModifier` = 3.75 WHERE `entry` = 3630; -- Deviate Coiler: 1 -> 3.75
-UPDATE `creature_template` SET `HealthModifier` = 3.75 WHERE `entry` = 3631; -- Deviate Stinglash: 1 -> 3.75
-UPDATE `creature_template` SET `HealthModifier` = 3.75 WHERE `entry` = 3632; -- Deviate Creeper: 1 -> 3.75
-UPDATE `creature_template` SET `HealthModifier` = 3.75 WHERE `entry` = 3633; -- Deviate Slayer: 1 -> 3.75
-UPDATE `creature_template` SET `HealthModifier` = 3.75 WHERE `entry` = 3634; -- Deviate Stalker: 1 -> 3.75
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 3637; -- Deviate Guardian: 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 3.75 WHERE `entry` = 3638; -- Devouring Ectoplasm: 1 -> 3.75
-UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 3639; -- Sentinel Tysha Moonblade: 1 -> 0.98
-UPDATE `creature_template` SET `HealthModifier` = 3.75 WHERE `entry` = 3641; -- Deviate Lurker: 1 -> 3.75
-UPDATE `creature_template` SET `HealthModifier` = 22.56 WHERE `entry` = 3654; -- Mutanus the Devourer: 8 -> 22.56
-UPDATE `creature_template` SET `HealthModifier` = 4.125 WHERE `entry` = 3655; -- Mad Magglish: 1 -> 4.125
-UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 3659; -- Jorb: 1.15 -> 1.192
-UPDATE `creature_template` SET `HealthModifier` = 1.3188 WHERE `entry` = 3703; -- Krulmoo Fullmoon: 1.2 -> 1.3188
-UPDATE `creature_template` SET `HealthModifier` = 1.176 WHERE `entry` = 3704; -- Mahani: 1.1 -> 1.176
-UPDATE `creature_template` SET `HealthModifier` = 1.0752 WHERE `entry` = 3705; -- Gahroot: 1.02 -> 1.0752
-UPDATE `creature_template` SET `HealthModifier` = 1.1704 WHERE `entry` = 3771; -- Bleakheart Hellcaller: 1.05 -> 1.1704
-UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 3782; -- Shadethicket Stone Mover: 1.05 -> 1.056
-UPDATE `creature_template` SET `HealthModifier` = 1.064 WHERE `entry` = 3784; -- Shadethicket Bark Ripper: 1.05 -> 1.064
-UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 3797; -- Cenarion Protector: 1.05 -> 1.056
-UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 3810; -- Elder Ashenvale Bear: 1.3 -> 1.312
-UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 3811; -- Giant Ashenvale Bear: 1.3 -> 1.32
-UPDATE `creature_template` SET `HealthModifier` = 0.532 WHERE `entry` = 3815; -- Blink Dragon: 1.05 -> 0.532
-UPDATE `creature_template` SET `HealthModifier` = 1.064 WHERE `entry` = 3818; -- Elder Shadowhorn Stag: 1.05 -> 1.064
-UPDATE `creature_template` SET `HealthModifier` = 1.064 WHERE `entry` = 3825; -- Ghostpaw Alpha: 1.05 -> 1.064
-UPDATE `creature_template` SET `HealthModifier` = 0.216 WHERE `entry` = 3835; -- Biletoad: 0.2 -> 0.216
-UPDATE `creature_template` SET `HealthModifier` = 1.064 WHERE `entry` = 3847; -- Orendil Broadleaf: 1.05 -> 1.064
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 3861; -- Bleak Worg: 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 3862; -- Slavering Worg: 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 1.1256 WHERE `entry` = 3934; -- Innkeeper Boorand Plainswind: 1.05 -> 1.1256
-UPDATE `creature_template` SET `HealthModifier` = 1.024 WHERE `entry` = 3945; -- Caravaneer Ruzzgot: 1 -> 1.024
-UPDATE `creature_template` SET `HealthModifier` = 1.064 WHERE `entry` = 3962; -- Haljan Oakheart: 1.05 -> 1.064
-UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 3967; -- Aayndia Floralwind: 1.15 -> 1.192
-UPDATE `creature_template` SET `HealthModifier` = 16 WHERE `entry` = 3975; -- Herod: 8 -> 16
-UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 4031; -- Fledgling Chimaera: 1.05 -> 1.056
-UPDATE `creature_template` SET `HealthModifier` = 0.96 WHERE `entry` = 4043; -- Galthuk: 1 -> 0.96
-UPDATE `creature_template` SET `HealthModifier` = 2.31e-07 WHERE `entry` = 4075; -- Rat: 0.2 -> 2.31e-07
-UPDATE `creature_template` SET `HealthModifier` = 0.231 WHERE `entry` = 4076; -- Roach: 0.2 -> 0.231
-UPDATE `creature_template` SET `HealthModifier` = 1.064 WHERE `entry` = 4119; -- Elder Cloud Serpent: 1.05 -> 1.064
-UPDATE `creature_template` SET `HealthModifier` = 1.064 WHERE `entry` = 4124; -- Needles Cougar: 1.05 -> 1.064
-UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 4126; -- Crag Stalker: 1.05 -> 1.056
-UPDATE `creature_template` SET `HealthModifier` = 1.12 WHERE `entry` = 4142; -- Sparkleshell Tortoise: 1.1 -> 1.12
-UPDATE `creature_template` SET `HealthModifier` = 0.22 WHERE `entry` = 4166; -- Gazelle: 0.2 -> 0.22
-UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 4184; -- Geenia Sunshadow: 1.3 -> 1.376
-UPDATE `creature_template` SET `HealthModifier` = 1.064 WHERE `entry` = 4202; -- Gerenzo Wrenchwhistle: 1.05 -> 1.064
-UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 4271; -- Dire Wolf: 1 -> 0.98
-UPDATE `creature_template` SET `HealthModifier` = 21.28 WHERE `entry` = 4275; -- Archmage Arugal: 10 -> 21.28
-UPDATE `creature_template` SET `HealthModifier` = 0.33 WHERE `entry` = 4277; -- Eye of Kilrogg: 0.1 -> 0.33
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 4311; -- Holgar Stormaxe: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 3.81 WHERE `entry` = 4339; -- Brimgore: 3 -> 3.81
-UPDATE `creature_template` SET `HealthModifier` = 16 WHERE `entry` = 4421; -- Charlga Razorflank: 10 -> 16
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 4436; -- Razorfen Quilguard: 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 4484; -- Feero Ironhand: 1 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 4485; -- Belgrom Rockmaul: 1.1 -> 1.136
-UPDATE `creature_template` SET `HealthModifier` = 4.4 WHERE `entry` = 4512; -- Rotting Agam'ar: 3 -> 4.4
-UPDATE `creature_template` SET `HealthModifier` = 3.6 WHERE `entry` = 4538; -- Kraul Bat: 3 -> 3.6
-UPDATE `creature_template` SET `HealthModifier` = 16 WHERE `entry` = 4543; -- Bloodmage Thalnos: 8 -> 16
-UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 4544; -- Krueg Skullsplitter: 1.15 -> 1.192
-UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 4618; -- Martek the Exiled: 1.2 -> 1.256
-UPDATE `creature_template` SET `HealthModifier` = 34 WHERE `entry` = 4624; -- Booty Bay Bruiser: 2 -> 34
-UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 4631; -- Wharfmaster Lozgil: 1.1 -> 1.136
-UPDATE `creature_template` SET `HealthModifier` = 0.432 WHERE `entry` = 4688; -- Bonepaw Hyena: 0.4 -> 0.432
-UPDATE `creature_template` SET `HealthModifier` = 1.128 WHERE `entry` = 4697; -- Scorpashi Lasher: 1.1 -> 1.128
-UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 4732; -- Randal Hunter: 1 -> 0.98
-UPDATE `creature_template` SET `HealthModifier` = 1.328 WHERE `entry` = 4752; -- Kildar: 1.25 -> 1.328
-UPDATE `creature_template` SET `HealthModifier` = 0.1 WHERE `entry` = 4769; -- Hufftalon: 1 -> 0.1
-UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 4779; -- Brown Ram: 1 -> 0.93
-UPDATE `creature_template` SET `HealthModifier` = 4.4 WHERE `entry` = 4824; -- Aku'mai Fisher: 3 -> 4.4
-UPDATE `creature_template` SET `HealthModifier` = 27.36 WHERE `entry` = 4829; -- Aku'mai: 10 -> 27.36
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 4847; -- Shadowforge Relic Hunter: 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 4848; -- Shadowforge Darkcaster: 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 4849; -- Shadowforge Archaeologist: 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 4850; -- Stonevault Cave Lurker: 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 4851; -- Stonevault Rockchewer: 1.15 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 4852; -- Stonevault Oracle: 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 4853; -- Stonevault Geomancer: 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 14.136 WHERE `entry` = 4854; -- Grimlok: 5 -> 14.136
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 4855; -- Stonevault Brawler: 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 5 WHERE `entry` = 4857; -- Stone Keeper: 3 -> 5
-UPDATE `creature_template` SET `HealthModifier` = 5 WHERE `entry` = 4860; -- Stone Steward: 3 -> 5
-UPDATE `creature_template` SET `HealthModifier` = 3.6 WHERE `entry` = 4861; -- Shrike Bat: 3 -> 3.6
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 4863; -- Jadespine Basilisk: 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 5048; -- Deviate Adder: 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 5056; -- Deviate Dreadfang: 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 5188; -- Garyl: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 5195; -- Brown Riding Wolf: 1 -> 0.98
-UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 5198; -- Arctic Riding Wolf: 1 -> 0.98
-UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 5232; -- Gordunni Brute: 1.2 -> 1.256
-UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 5234; -- Gordunni Mauler: 1.2 -> 1.256
-UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 5236; -- Gordunni Shaman: 1.2 -> 1.256
-UPDATE `creature_template` SET `HealthModifier` = 1.248 WHERE `entry` = 5237; -- Gordunni Ogre Mage: 1.2 -> 1.248
-UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 5238; -- Gordunni Battlemaster: 1.25 -> 1.312
-UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 5239; -- Gordunni Mage-Lord: 1.25 -> 1.312
-UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 5240; -- Gordunni Warlock: 1.2 -> 1.256
-UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 5241; -- Gordunni Warlord: 1.25 -> 1.312
-UPDATE `creature_template` SET `HealthModifier` = 1.248 WHERE `entry` = 5249; -- Woodpaw Mongrel: 1.2 -> 1.248
-UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 5260; -- Groddoc Ape: 1.2 -> 1.256
-UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 5262; -- Groddoc Thunderer: 1.25 -> 1.32
-UPDATE `creature_template` SET `HealthModifier` = 1.248 WHERE `entry` = 5268; -- Ironfur Bear: 1.2 -> 1.248
-UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 5272; -- Grizzled Ironfur Bear: 1.2 -> 1.256
-UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 5274; -- Ironfur Patriarch: 1.25 -> 1.32
-UPDATE `creature_template` SET `HealthModifier` = 0.628 WHERE `entry` = 5278; -- Sprite Darter: 1.2 -> 0.628
-UPDATE `creature_template` SET `HealthModifier` = 1.248 WHERE `entry` = 5286; -- Longtooth Runner: 1.2 -> 1.248
-UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 5287; -- Longtooth Howler: 1.2 -> 1.256
-UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 5288; -- Rabid Longtooth: 1.25 -> 1.32
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 5291; -- Hakkari Frostwing: 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 5308; -- Rogue Vale Screecher: 1.25 -> 1.312
-UPDATE `creature_template` SET `HealthModifier` = 30.8 WHERE `entry` = 5317; -- Jademir Oracle: 25 -> 30.8
-UPDATE `creature_template` SET `HealthModifier` = 30.8 WHERE `entry` = 5319; -- Jademir Tree Warder: 25 -> 30.8
-UPDATE `creature_template` SET `HealthModifier` = 28 WHERE `entry` = 5320; -- Jademir Boughguard: 25 -> 28
-UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 5327; -- Coast Crawl Snapclaw: 1 -> 1.056
-UPDATE `creature_template` SET `HealthModifier` = 4.608 WHERE `entry` = 5359; -- Shore Strider: 3 -> 4.608
-UPDATE `creature_template` SET `HealthModifier` = 4.596 WHERE `entry` = 5360; -- Deep Strider: 3 -> 4.596
-UPDATE `creature_template` SET `HealthModifier` = 1.3356 WHERE `entry` = 5390; -- Sage Palerunner: 1.2 -> 1.3356
-UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 5394; -- Neeka Bloodscar: 1.2 -> 1.264
-UPDATE `creature_template` SET `HealthModifier` = 3.84 WHERE `entry` = 5401; -- Kazkaz the Unholy: 1.5 -> 3.84
-UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 5405; -- Pinto: 1 -> 0.93
-UPDATE `creature_template` SET `HealthModifier` = 1.2 WHERE `entry` = 5414; -- Apothecary Faustin: 1.15 -> 1.2
-UPDATE `creature_template` SET `HealthModifier` = 1.2 WHERE `entry` = 5416; -- Infiltrator Marksen: 1.15 -> 1.2
-UPDATE `creature_template` SET `HealthModifier` = 1.2 WHERE `entry` = 5418; -- Deathstalker Zraedus: 1.15 -> 1.2
-UPDATE `creature_template` SET `HealthModifier` = 1.1304 WHERE `entry` = 5429; -- Fire Roc: 1.2 -> 1.1304
-UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 5441; -- Hazzali Wasp: 1.25 -> 1.32
-UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 5462; -- Sea Spray: 1.25 -> 1.32
-UPDATE `creature_template` SET `HealthModifier` = 4.5 WHERE `entry` = 5470; -- Raging Dune Smasher: 3 -> 4.5
-UPDATE `creature_template` SET `HealthModifier` = 1.128 WHERE `entry` = 5476; -- Watcher Biggs: 1.1 -> 1.128
-UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 5477; -- Noboru the Cudgel: 1.15 -> 1.192
-UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 5546; -- Grunt Zuul: 1.3 -> 1.384
-UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 5547; -- Grunt Tharlak: 1.3 -> 1.384
-UPDATE `creature_template` SET `HealthModifier` = 1.2 WHERE `entry` = 5591; -- Dar: 1.15 -> 1.2
-UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 5597; -- Grunt Komak: 1.15 -> 1.192
-UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 5603; -- Grunt Mojka: 1.15 -> 1.192
-UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 5613; -- Doyo'da: 1 -> 0.98
-UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 5639; -- Craven Drok: 1.1 -> 1.136
-UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 5640; -- Keldran: 1.15 -> 1.192
-UPDATE `creature_template` SET `HealthModifier` = 38 WHERE `entry` = 5709; -- Shade of Eranikus: 13 -> 38
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 5755; -- Deviate Viper: 2.5 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 3.3528 WHERE `entry` = 5760; -- Lord Azrethoc: 3 -> 3.3528
-UPDATE `creature_template` SET `HealthModifier` = 1.064 WHERE `entry` = 5811; -- Kamari: 1.05 -> 1.064
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 5812; -- Tumi: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 5815; -- Kurgul: 1.2 -> 1.264
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 5816; -- Katis: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 5817; -- Shimra: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 3.75 WHERE `entry` = 5827; -- Brontus: 4 -> 3.75
-UPDATE `creature_template` SET `HealthModifier` = 5.55 WHERE `entry` = 5833; -- Margol the Rager: 1.2 -> 5.55
-UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 5839; -- Dark Iron Geologist: 1.2 -> 1.256
-UPDATE `creature_template` SET `HealthModifier` = 2 WHERE `entry` = 5842; -- Takk the Leaper: 3 -> 2
-UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 5844; -- Dark Iron Slaver: 1.25 -> 1.312
-UPDATE `creature_template` SET `HealthModifier` = 0.75 WHERE `entry` = 5847; -- Heggin Stonewhisker: 0.9 -> 0.75
-UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 5850; -- Blazing Elemental: 1.25 -> 1.312
-UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 5852; -- Inferno Elemental: 1.25 -> 1.32
-UPDATE `creature_template` SET `HealthModifier` = 1.64 WHERE `entry` = 5853; -- Tempered War Golem: 1.25 -> 1.64
-UPDATE `creature_template` SET `HealthModifier` = 1.452 WHERE `entry` = 5854; -- Heavy War Golem: 1.25 -> 1.452
-UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 5855; -- Magma Elemental: 1.25 -> 1.312
-UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 5856; -- Glassweb Spider: 1.2 -> 1.256
-UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 5857; -- Searing Lava Spider: 1.25 -> 1.312
-UPDATE `creature_template` SET `HealthModifier` = 1.2 WHERE `entry` = 5875; -- Gan'rul Bloodeye: 1.15 -> 1.2
-UPDATE `creature_template` SET `HealthModifier` = 1.2 WHERE `entry` = 5909; -- Cazul: 1.15 -> 1.2
-UPDATE `creature_template` SET `HealthModifier` = 1.0752 WHERE `entry` = 5944; -- Yonada: 1.02 -> 1.0752
-UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 5958; -- Thuul: 1.2 -> 1.264
-UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 5978; -- Dreadmaul Warlock: 1.3 -> 1.384
-UPDATE `creature_template` SET `HealthModifier` = 1.2312 WHERE `entry` = 5983; -- Bonepicker: 1.3 -> 1.2312
-UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 5984; -- Starving Snickerfang: 1.25 -> 1.312
-UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 5985; -- Snickerfang Hyena: 1.25 -> 1.32
-UPDATE `creature_template` SET `HealthModifier` = 1.36 WHERE `entry` = 5988; -- Scorpok Stinger: 1.3 -> 1.36
-UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 5990; -- Redstone Basilisk: 1.25 -> 1.32
-UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 5991; -- Redstone Crystalhide: 1.3 -> 1.376
-UPDATE `creature_template` SET `HealthModifier` = 1.54 WHERE `entry` = 5993; -- Helboar: 1.15 -> 1.54
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 5994; -- Zayus: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 5996; -- Nethergarde Miner: 1.25 -> 1.32
-UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 5998; -- Nethergarde Foreman: 1.25 -> 1.312
-UPDATE `creature_template` SET `HealthModifier` = 1.2456 WHERE `entry` = 6010; -- Felhound: 1.3 -> 1.2456
-UPDATE `creature_template` SET `HealthModifier` = 1.5224 WHERE `entry` = 6011; -- Felguard Sentry: 1.3 -> 1.5224
-UPDATE `creature_template` SET `HealthModifier` = 22.5 WHERE `entry` = 6026; -- Breyk: 3 -> 22.5
-UPDATE `creature_template` SET `HealthModifier` = 1.3936 WHERE `entry` = 6073; -- Searing Infernal: 1.05 -> 1.3936
-UPDATE `creature_template` SET `HealthModifier` = 1.2 WHERE `entry` = 6087; -- Astranaar Sentinel: 1.15 -> 1.2
-UPDATE `creature_template` SET `HealthModifier` = 1.1704 WHERE `entry` = 6115; -- Roaming Felguard: 1.05 -> 1.1704
-UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 6116; -- Highborne Apparition: 1.25 -> 1.312
-UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 6117; -- Highborne Lichling: 1.25 -> 1.312
-UPDATE `creature_template` SET `HealthModifier` = 1.4432 WHERE `entry` = 6125; -- Haldarr Satyr: 1.25 -> 1.4432
-UPDATE `creature_template` SET `HealthModifier` = 1.4432 WHERE `entry` = 6126; -- Haldarr Trickster: 1.25 -> 1.4432
-UPDATE `creature_template` SET `HealthModifier` = 1.4432 WHERE `entry` = 6127; -- Haldarr Felsworn: 1.25 -> 1.4432
-UPDATE `creature_template` SET `HealthModifier` = 3.388 WHERE `entry` = 6129; -- Draconic Magelord: 3 -> 3.388
-UPDATE `creature_template` SET `HealthModifier` = 3.232 WHERE `entry` = 6130; -- Blue Scalebane: 3.15 -> 3.232
-UPDATE `creature_template` SET `HealthModifier` = 3.388 WHERE `entry` = 6131; -- Draconic Mageweaver: 3 -> 3.388
-UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 6135; -- Arkkoran Clacker: 1.3 -> 1.384
-UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 6136; -- Arkkoran Muckdweller: 1.3 -> 1.384
-UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 6137; -- Arkkoran Pincer: 1.3 -> 1.384
-UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 6138; -- Arkkoran Oracle: 1.3 -> 1.384
-UPDATE `creature_template` SET `HealthModifier` = 5.004 WHERE `entry` = 6143; -- Servant of Arkkoroc: 3.25 -> 5.004
-UPDATE `creature_template` SET `HealthModifier` = 5.004 WHERE `entry` = 6144; -- Son of Arkkoroc: 3.25 -> 5.004
-UPDATE `creature_template` SET `HealthModifier` = 0.42 WHERE `entry` = 6145; -- School of Fish: 0.2 -> 0.42
-UPDATE `creature_template` SET `HealthModifier` = 4.632 WHERE `entry` = 6146; -- Cliff Breaker: 3 -> 4.632
-UPDATE `creature_template` SET `HealthModifier` = 4.62 WHERE `entry` = 6147; -- Cliff Thunderer: 3 -> 4.62
-UPDATE `creature_template` SET `HealthModifier` = 4.62 WHERE `entry` = 6148; -- Cliff Walker: 3 -> 4.62
-UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 6184; -- Timbermaw Pathfinder: 1.25 -> 1.312
-UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 6185; -- Timbermaw Warrior: 1.25 -> 1.32
-UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 6186; -- Timbermaw Totemic: 1.25 -> 1.32
-UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 6190; -- Spitelash Warrior: 1.25 -> 1.312
-UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 6193; -- Spitelash Screamer: 1.25 -> 1.32
-UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 6194; -- Spitelash Serpent Guard: 1.25 -> 1.32
-UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 6195; -- Spitelash Siren: 1.3 -> 1.376
-UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 6196; -- Spitelash Myrmidon: 1.3 -> 1.376
-UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 6244; -- Takar the Seer: 1.2 -> 1.264
-UPDATE `creature_template` SET `HealthModifier` = 1.2 WHERE `entry` = 6247; -- Doan Karhan: 1.15 -> 1.2
-UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 6348; -- Wavethrasher: 1.3 -> 1.376
-UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 6349; -- Great Wavethrasher: 1.3 -> 1.384
-UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 6350; -- Makrinni Razorclaw: 1.3 -> 1.384
-UPDATE `creature_template` SET `HealthModifier` = 1.5224 WHERE `entry` = 6352; -- Coralshell Lurker: 1.3 -> 1.5224
-UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 6370; -- Makrinni Scrabbler: 1.3 -> 1.376
-UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 6371; -- Storm Bay Warrior: 1.3 -> 1.376
-UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 6375; -- Thunderhead Hippogryph: 1.25 -> 1.312
-UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 6378; -- Thunderhead Skystormer: 1.3 -> 1.376
-UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 6379; -- Thunderhead Patriarch: 1.3 -> 1.376
-UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 6380; -- Thunderhead Consort: 1.3 -> 1.376
-UPDATE `creature_template` SET `HealthModifier` = 1.05 WHERE `entry` = 6387; -- Dranh: 1 -> 1.05
-UPDATE `creature_template` SET `HealthModifier` = 1.1256 WHERE `entry` = 6394; -- Ruga Ragetotem: 1.05 -> 1.1256
-UPDATE `creature_template` SET `HealthModifier` = 1.05 WHERE `entry` = 6466; -- Gamon: 1 -> 1.05
-UPDATE `creature_template` SET `HealthModifier` = 16 WHERE `entry` = 6487; -- Arcanist Doan: 9 -> 16
-UPDATE `creature_template` SET `HealthModifier` = 6.32812 WHERE `entry` = 6491; -- Spirit Healer: 1.35 -> 6.32812
-UPDATE `creature_template` SET `HealthModifier` = 4.0144 WHERE `entry` = 6498; -- Devilsaur: 3 -> 4.0144
-UPDATE `creature_template` SET `HealthModifier` = 4.0144 WHERE `entry` = 6499; -- Ironhide Devilsaur: 3 -> 4.0144
-UPDATE `creature_template` SET `HealthModifier` = 4.0144 WHERE `entry` = 6500; -- Tyrant Devilsaur: 3 -> 4.0144
-UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 6508; -- Venomhide Ravasaur: 1.3 -> 1.376
-UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 6551; -- Gorishi Wasp: 1.3 -> 1.376
-UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 6553; -- Gorishi Reaver: 1.3 -> 1.376
-UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 6555; -- Gorishi Tunneler: 1.3 -> 1.376
-UPDATE `creature_template` SET `HealthModifier` = 3.88 WHERE `entry` = 6560; -- Stone Guardian: 3 -> 3.88
-UPDATE `creature_template` SET `HealthModifier` = 39 WHERE `entry` = 6584; -- King Mosh: 20 -> 39
-UPDATE `creature_template` SET `HealthModifier` = 1.07415 WHERE `entry` = 6775; -- Antur Fallow: 1 -> 1.07415
-UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 6791; -- Innkeeper Wiley: 1.1 -> 1.136
-UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 6807; -- Innkeeper Skindle: 1.25 -> 1.312
-UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 6868; -- Jarkal Mossmeld: 1.1 -> 1.136
-UPDATE `creature_template` SET `HealthModifier` = 8.48 WHERE `entry` = 6906; -- Baelog: 3 -> 8.48
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 6907; -- Eric "The Swift": 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 8 WHERE `entry` = 6908; -- Olaf: 3.5 -> 8
-UPDATE `creature_template` SET `HealthModifier` = 10 WHERE `entry` = 6910; -- Revelosh: 3 -> 10
-UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 6912; -- Remains of a Paladin: 1.1 -> 1
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 6929; -- Innkeeper Gryshka: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 6930; -- Innkeeper Karakul: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 6986; -- Dran Droffers: 1.2 -> 1.264
-UPDATE `creature_template` SET `HealthModifier` = 1.2 WHERE `entry` = 6987; -- Malton Droffers: 1.15 -> 1.2
-UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 7010; -- Zilzibin Drumlore: 1.1 -> 1.136
-UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 7011; -- Earthen Rocksmasher: 1.2 -> 1
-UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 7012; -- Earthen Sculptor: 1.2 -> 1
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 7022; -- Venomlash Scorpid: 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 18 WHERE `entry` = 7023; -- Obsidian Sentinel: 5 -> 18
-UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 7026; -- Blackrock Sorcerer: 1.35 -> 1.44
-UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 7027; -- Blackrock Slayer: 1.35 -> 1.44
-UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 7028; -- Blackrock Warlock: 1.35 -> 1.44
-UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 7029; -- Blackrock Battlemaster: 1.35 -> 1.44
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 7030; -- Shadowforge Geologist: 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 4.246 WHERE `entry` = 7042; -- Flamescale Dragonspawn: 1.25 -> 4.246
-UPDATE `creature_template` SET `HealthModifier` = 4.257 WHERE `entry` = 7043; -- Flamescale Wyrmkin: 1.25 -> 4.257
-UPDATE `creature_template` SET `HealthModifier` = 0.692 WHERE `entry` = 7048; -- Scalding Broodling: 1.3 -> 0.692
-UPDATE `creature_template` SET `HealthModifier` = 3.096 WHERE `entry` = 7069; -- Condemned Monk: 3 -> 3.096
-UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 7076; -- Earthen Guardian: 0.25 -> 1
-UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 7077; -- Earthen Hallshaper: 0.25 -> 1
-UPDATE `creature_template` SET `HealthModifier` = 0.25 WHERE `entry` = 7078; -- Cleft Scorpid: 0.75 -> 0.25
-UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 7088; -- Thuwd: 1.1 -> 1.136
-UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 7092; -- Tainted Ooze: 1.3 -> 1.376
-UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 7132; -- Toxic Horror: 1.3 -> 1.384
-UPDATE `creature_template` SET `HealthModifier` = 5.083 WHERE `entry` = 7136; -- Infernal Sentry: 1.25 -> 5.083
-UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 7156; -- Deadwood Den Watcher: 1.3 -> 1.384
-UPDATE `creature_template` SET `HealthModifier` = 5.2 WHERE `entry` = 7172; -- Lore Keeper of Norgannon: 1.35 -> 5.2
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 7175; -- Stonevault Ambusher: 1 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 14.136 WHERE `entry` = 7206; -- Ancient Stone Keeper: 5 -> 14.136
-UPDATE `creature_template` SET `HealthModifier` = 28.264 WHERE `entry` = 7228; -- Ironaya: 10 -> 28.264
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 7230; -- Shayis Steelfury: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 7231; -- Kelgruk Bloodaxe: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 17.472 WHERE `entry` = 7267; -- Chief Ukorz Sandscalp: 7 -> 17.472
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 7268; -- Sandfury Guardian: 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 7290; -- Shadowforge Sharpshooter: 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 25.44 WHERE `entry` = 7291; -- Galgann Firehammer: 9 -> 25.44
-UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 7294; -- Shim'la: 1.1 -> 1.136
-UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 7309; -- Earthen Custodian: 0.25 -> 1
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 7320; -- Stonevault Mauler: 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 7321; -- Stonevault Flameweaver: 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 7327; -- Withered Warrior: 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 7328; -- Withered Reaver: 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 7329; -- Withered Quilguard: 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 7332; -- Withered Spearhide: 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 4.4 WHERE `entry` = 7334; -- Battle Boar Horror: 1.15 -> 4.4
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 7335; -- Death's Head Geomancer: 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 7337; -- Death's Head Necromancer: 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 7341; -- Skeletal Frostweaver: 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 7342; -- Skeletal Summoner: 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 7344; -- Splinterbone Warrior: 1.15 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 7345; -- Splinterbone Captain: 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 7346; -- Splinterbone Centurion: 1.15 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 7347; -- Boneflayer Ghoul: 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 7348; -- Thorn Eater Ghoul: 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 7352; -- Frozen Soul: 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 2 WHERE `entry` = 7353; -- Freezing Spirit: 3 -> 2
-UPDATE `creature_template` SET `HealthModifier` = 16 WHERE `entry` = 7354; -- Ragglesnout: 8 -> 16
-UPDATE `creature_template` SET `HealthModifier` = 16 WHERE `entry` = 7355; -- Tuten'kash: 8 -> 16
-UPDATE `creature_template` SET `HealthModifier` = 16 WHERE `entry` = 7358; -- Amnennar the Coldbringer: 8 -> 16
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 7363; -- Kum'isha the Collector: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 1.296 WHERE `entry` = 7376; -- Sky Shadow: 1.35 -> 1.296
-UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 7382; -- Orange Tabby Cat: 1 -> 0.93
-UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 7385; -- Bombay Cat: 1 -> 0.93
-UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 7389; -- Senegal: 1 -> 0.93
-UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 7390; -- Cockatiel: 1 -> 0.93
-UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 7395; -- Cockroach: 1 -> 0.93
-UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 7396; -- Earthen Stonebreaker: 1.2 -> 1
-UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 7397; -- Earthen Stonecarver: 1.2 -> 1
-UPDATE `creature_template` SET `HealthModifier` = 0.5 WHERE `entry` = 7405; -- Deadly Cleft Scorpid: 0.75 -> 0.5
-UPDATE `creature_template` SET `HealthModifier` = 1.328 WHERE `entry` = 7406; -- Oglethorpe Obnoticus: 1.25 -> 1.328
-UPDATE `creature_template` SET `HealthModifier` = 9.375 WHERE `entry` = 7428; -- Frostmaul Giant: 3 -> 9.375
-UPDATE `creature_template` SET `HealthModifier` = 10.875 WHERE `entry` = 7429; -- Frostmaul Preserver: 3 -> 10.875
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 7433; -- Frostsaber Huntress: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 3.088 WHERE `entry` = 7436; -- Cobalt Scalebane: 3 -> 3.088
-UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 7440; -- Winterfall Den Watcher: 1.35 -> 1.44
-UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 7441; -- Winterfall Totemic: 1.3 -> 1.384
-UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 7442; -- Winterfall Pathfinder: 1.3 -> 1.384
-UPDATE `creature_template` SET `HealthModifier` = 1.688 WHERE `entry` = 7443; -- Shardtooth Mauler: 1.6 -> 1.688
-UPDATE `creature_template` SET `HealthModifier` = 1.584 WHERE `entry` = 7444; -- Shardtooth Bear: 1.5 -> 1.584
-UPDATE `creature_template` SET `HealthModifier` = 1.696 WHERE `entry` = 7445; -- Elder Shardtooth: 1.6 -> 1.696
-UPDATE `creature_template` SET `HealthModifier` = 1.696 WHERE `entry` = 7446; -- Rabid Shardtooth: 1.6 -> 1.696
-UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 7447; -- Fledgling Chillwind: 1.3 -> 1.384
-UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 7448; -- Chillwind Chimaera: 1.35 -> 1.44
-UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 7449; -- Chillwind Ravager: 1.35 -> 1.44
-UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 7450; -- Ragged Owlbeast: 1.3 -> 1.384
-UPDATE `creature_template` SET `HealthModifier` = 1.432 WHERE `entry` = 7451; -- Raging Owlbeast: 1.35 -> 1.432
-UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 7452; -- Crazed Owlbeast: 1.35 -> 1.44
-UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 7453; -- Moontouched Owlbeast: 1.35 -> 1.44
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 7454; -- Berserk Owlbeast: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 1.088 WHERE `entry` = 7455; -- Winterspring Owl: 1 -> 1.088
-UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 7456; -- Winterspring Screecher: 1.35 -> 1.44
-UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 7457; -- Rogue Ice Thistle: 1.3 -> 1.384
-UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 7458; -- Ice Thistle Yeti: 1.35 -> 1.44
-UPDATE `creature_template` SET `HealthModifier` = 5.4 WHERE `entry` = 7461; -- Hederine Initiate: 6 -> 5.4
-UPDATE `creature_template` SET `HealthModifier` = 5.4 WHERE `entry` = 7462; -- Hederine Manastalker: 6 -> 5.4
-UPDATE `creature_template` SET `HealthModifier` = 6.6 WHERE `entry` = 7463; -- Hederine Slayer: 6 -> 6.6
-UPDATE `creature_template` SET `HealthModifier` = 1.328 WHERE `entry` = 7505; -- Bloodmage Drazial: 1.25 -> 1.328
-UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 7506; -- Bloodmage Lynnore: 1.3 -> 1.384
-UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 7523; -- Suffering Highborne: 1.3 -> 1.384
-UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 7524; -- Anguished Highborne: 1.35 -> 1.44
-UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 7562; -- Brown Snake: 1 -> 0.93
-UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 7565; -- Black Kingsnake: 1 -> 0.93
-UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 7567; -- Crimson Snake: 1 -> 0.93
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 7572; -- Fallen Hero of the Horde: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 1.76 WHERE `entry` = 7584; -- Wandering Forest Walker: 1.7 -> 1.76
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 7623; -- Dispatch Commander Ruag: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 7643; -- Bengor: 1.2 -> 1.264
-UPDATE `creature_template` SET `HealthModifier` = 10 WHERE `entry` = 7665; -- Grol the Destroyer: 8 -> 10
-UPDATE `creature_template` SET `HealthModifier` = 1.512 WHERE `entry` = 7668; -- Servant of Razelikh: 1.35 -> 1.512
-UPDATE `creature_template` SET `HealthModifier` = 1.1256 WHERE `entry` = 7714; -- Innkeeper Byula: 1.05 -> 1.1256
-UPDATE `creature_template` SET `HealthModifier` = 1.3188 WHERE `entry` = 7725; -- Grimtotem Raider: 1.2 -> 1.3188
-UPDATE `creature_template` SET `HealthModifier` = 1.3104 WHERE `entry` = 7726; -- Grimtotem Naturalist: 1.2 -> 1.3104
-UPDATE `creature_template` SET `HealthModifier` = 1.3188 WHERE `entry` = 7727; -- Grimtotem Shaman: 1.2 -> 1.3188
-UPDATE `creature_template` SET `HealthModifier` = 1.1256 WHERE `entry` = 7737; -- Innkeeper Greul: 1.05 -> 1.1256
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 7773; -- Marli Wishrunner: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 1.3944 WHERE `entry` = 7776; -- Talo Thornhoof: 1.25 -> 1.3944
-UPDATE `creature_template` SET `HealthModifier` = 1.2 WHERE `entry` = 7777; -- Rok Orhan: 1.15 -> 1.2
-UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 7790; -- Orokk Omosh: 1.2 -> 1.264
-UPDATE `creature_template` SET `HealthModifier` = 1.328 WHERE `entry` = 7792; -- Aturk the Anvil: 1.25 -> 1.328
-UPDATE `creature_template` SET `HealthModifier` = 1.4532 WHERE `entry` = 7793; -- Ox: 1.3 -> 1.4532
-UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 7794; -- McGavan: 1.3 -> 1.384
-UPDATE `creature_template` SET `HealthModifier` = 16 WHERE `entry` = 7800; -- Mekgineer Thermaplugg: 8 -> 16
-UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 7807; -- Homing Robot OOX-22/FE: 1.2 -> 1.256
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 7853; -- Scooty: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.2852 WHERE `entry` = 7854; -- Jangdor Swiftstrider: 1.15 -> 1.2852
-UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 7864; -- Lingering Highborne: 1.25 -> 1.32
-UPDATE `creature_template` SET `HealthModifier` = 1.328 WHERE `entry` = 7866; -- Peter Galen: 1.25 -> 1.328
-UPDATE `creature_template` SET `HealthModifier` = 1.328 WHERE `entry` = 7867; -- Thorkaf Dragoneye: 1.25 -> 1.328
-UPDATE `creature_template` SET `HealthModifier` = 3.4608 WHERE `entry` = 7875; -- Hadoken Swiftstrider: 3.2 -> 3.4608
-UPDATE `creature_template` SET `HealthModifier` = 2.08 WHERE `entry` = 7940; -- Darnall: 2 -> 2.08
-UPDATE `creature_template` SET `HealthModifier` = 2.2092 WHERE `entry` = 7975; -- Mulgore Protector: 2 -> 2.2092
-UPDATE `creature_template` SET `HealthModifier` = 4.697 WHERE `entry` = 7977; -- Gammerita: 1.15 -> 4.697
-UPDATE `creature_template` SET `HealthModifier` = 2.048 WHERE `entry` = 8015; -- Ashenvale Sentinel: 2 -> 2.048
-UPDATE `creature_template` SET `HealthModifier` = 23.625 WHERE `entry` = 8020; -- Shyn: 3 -> 23.625
-UPDATE `creature_template` SET `HealthModifier` = 1.328 WHERE `entry` = 8021; -- Orwin Gizzmick: 1.25 -> 1.328
-UPDATE `creature_template` SET `HealthModifier` = 1.328 WHERE `entry` = 8115; -- Witch Doctor Uzer'i: 1.25 -> 1.328
-UPDATE `creature_template` SET `HealthModifier` = 3.064 WHERE `entry` = 8119; -- Zikkel: 3 -> 3.064
-UPDATE `creature_template` SET `HealthModifier` = 1.3356 WHERE `entry` = 8143; -- Loorana: 1.2 -> 1.3356
-UPDATE `creature_template` SET `HealthModifier` = 1.344 WHERE `entry` = 8144; -- Kulleg Stonehorn: 1.2 -> 1.344
-UPDATE `creature_template` SET `HealthModifier` = 1.3356 WHERE `entry` = 8145; -- Sheendra Tallgrass: 1.2 -> 1.3356
-UPDATE `creature_template` SET `HealthModifier` = 1.3356 WHERE `entry` = 8146; -- Ruw: 1.2 -> 1.3356
-UPDATE `creature_template` SET `HealthModifier` = 2.1924 WHERE `entry` = 8147; -- Camp Mojache Brave: 2 -> 2.1924
-UPDATE `creature_template` SET `HealthModifier` = 2.088 WHERE `entry` = 8155; -- Kargath Grunt: 2 -> 2.088
-UPDATE `creature_template` SET `HealthModifier` = 1.3356 WHERE `entry` = 8158; -- Bronk: 1.2 -> 1.3356
-UPDATE `creature_template` SET `HealthModifier` = 1.3944 WHERE `entry` = 8159; -- Worb Strongstitch: 1.25 -> 1.3944
-UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 8176; -- Gharash: 1.2 -> 1.264
-UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 8177; -- Rartar: 1.2 -> 1.264
-UPDATE `creature_template` SET `HealthModifier` = 5 WHERE `entry` = 8300; -- Ravage: 1.3 -> 5
-UPDATE `creature_template` SET `HealthModifier` = 1.071 WHERE `entry` = 8307; -- Tarban Hearthgrain: 1.02 -> 1.071
-UPDATE `creature_template` SET `HealthModifier` = 1.328 WHERE `entry` = 8395; -- Sanath Lim-yo: 1.25 -> 1.328
-UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 8397; -- Sentinel Keldara Sunblade: 1.2 -> 1.256
-UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 8399; -- Nyrill: 1.15 -> 1.192
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 8404; -- Xan'tish: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.0752 WHERE `entry` = 8418; -- Falla Sagewind: 1.02 -> 1.0752
-UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 8477; -- Skeletal Servant: 0.25 -> 1
-UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 8521; -- Blighted Horror: 1.35 -> 1.44
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 8522; -- Plague Monstrosity: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 8524; -- Cursed Mage: 1.3 -> 1.384
-UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 8525; -- Scourge Warder: 1.35 -> 1.44
-UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 8526; -- Dark Caster: 1.35 -> 1.44
-UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 8527; -- Scourge Guard: 1.35 -> 1.44
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 8528; -- Dread Weaver: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 8529; -- Scourge Champion: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 8531; -- Gibbering Ghoul: 1.35 -> 1.44
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 8532; -- Diseased Flayer: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 1.432 WHERE `entry` = 8534; -- Putrid Gargoyle: 1.35 -> 1.432
-UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 8535; -- Putrid Shrieker: 1.35 -> 1.44
-UPDATE `creature_template` SET `HealthModifier` = 1.296 WHERE `entry` = 8538; -- Unseen Servant: 1.35 -> 1.296
-UPDATE `creature_template` SET `HealthModifier` = 1.296 WHERE `entry` = 8539; -- Eyeless Watcher: 1.35 -> 1.296
-UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 8541; -- Hate Shrieker: 1.35 -> 1.44
-UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 8542; -- Death Singer: 1.35 -> 1.44
-UPDATE `creature_template` SET `HealthModifier` = 1.8 WHERE `entry` = 8543; -- Stitched Horror: 1.35 -> 1.8
-UPDATE `creature_template` SET `HealthModifier` = 1.81 WHERE `entry` = 8545; -- Stitched Golem: 1.35 -> 1.81
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 8546; -- Dark Adept: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 8548; -- Vile Tutor: 1.35 -> 1.44
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 8550; -- Shadowmage: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 8551; -- Dark Summoner: 1.35 -> 1.44
-UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 8557; -- Crypt Horror: 1.35 -> 1.44
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 8558; -- Crypt Slayer: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 8560; -- Mossflayer Scout: 1.35 -> 1.44
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 8561; -- Mossflayer Shadowhunter: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 8562; -- Mossflayer Cannibal: 1.35 -> 1.44
-UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 8565; -- Pathstrider: 1.35 -> 1.44
-UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 8566; -- Dark Iron Lookout: 1.25 -> 1.32
-UPDATE `creature_template` SET `HealthModifier` = 16 WHERE `entry` = 8567; -- Glutton: 8 -> 16
-UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 8576; -- Ag'tor Bloodfist: 1.2 -> 1.264
-UPDATE `creature_template` SET `HealthModifier` = 2 WHERE `entry` = 8585; -- Frost Spectre: 1.15 -> 2
-UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 8586; -- Haggrum Bloodfist: 1.2 -> 1.264
-UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 8587; -- Jediga: 1.25 -> 1.32
-UPDATE `creature_template` SET `HealthModifier` = 1.5224 WHERE `entry` = 8596; -- Plaguehound Runt: 1.3 -> 1.5224
-UPDATE `creature_template` SET `HealthModifier` = 1.584 WHERE `entry` = 8597; -- Plaguehound: 1.35 -> 1.584
-UPDATE `creature_template` SET `HealthModifier` = 1.584 WHERE `entry` = 8598; -- Frenzied Plaguehound: 1.35 -> 1.584
-UPDATE `creature_template` SET `HealthModifier` = 1.2456 WHERE `entry` = 8600; -- Plaguebat: 1.3 -> 1.2456
-UPDATE `creature_template` SET `HealthModifier` = 1.2888 WHERE `entry` = 8601; -- Noxious Plaguebat: 1.35 -> 1.2888
-UPDATE `creature_template` SET `HealthModifier` = 1.296 WHERE `entry` = 8602; -- Monstrous Plaguebat: 1.35 -> 1.296
-UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 8603; -- Carrion Grub: 1.3 -> 1.384
-UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 8605; -- Carrion Devourer: 1.35 -> 1.44
-UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 8606; -- Living Decay: 1.35 -> 1.44
-UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 8607; -- Rotting Sludge: 1.3 -> 1.384
-UPDATE `creature_template` SET `HealthModifier` = 22.5 WHERE `entry` = 8610; -- Kroum: 3 -> 22.5
-UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 8637; -- Dark Iron Watchman: 1.2 -> 1.256
-UPDATE `creature_template` SET `HealthModifier` = 1.328 WHERE `entry` = 8659; -- Jes'rimon: 1.25 -> 1.328
-UPDATE `creature_template` SET `HealthModifier` = 1.4 WHERE `entry` = 8662; -- Idol Oven Fire Target: 1 -> 1.4
-UPDATE `creature_template` SET `HealthModifier` = 3.072 WHERE `entry` = 8673; -- Auctioneer Thathung: 3 -> 3.072
-UPDATE `creature_template` SET `HealthModifier` = 1.2384 WHERE `entry` = 8675; -- Felbeast: 1.3 -> 1.2384
-UPDATE `creature_template` SET `HealthModifier` = 19.8 WHERE `entry` = 8717; -- Felguard Elite: 18 -> 19.8
-UPDATE `creature_template` SET `HealthModifier` = 14.4 WHERE `entry` = 8718; -- Manahound: 16 -> 14.4
-UPDATE `creature_template` SET `HealthModifier` = 3.072 WHERE `entry` = 8724; -- Auctioneer Wabang: 3 -> 3.072
-UPDATE `creature_template` SET `HealthModifier` = 1.2 WHERE `entry` = 8738; -- Vazario Linkgrease: 1.15 -> 1.2
-UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 8759; -- Mosshoof Runner: 1.25 -> 1.312
-UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 8761; -- Mosshoof Courser: 1.3 -> 1.376
-UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 8762; -- Timberweb Recluse: 1.25 -> 1.32
-UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 8763; -- Mistwing Rogue: 1.25 -> 1.32
-UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 8764; -- Mistwing Ravager: 1.3 -> 1.376
-UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 8766; -- Forest Ooze: 1.3 -> 1.376
-UPDATE `creature_template` SET `HealthModifier` = 1.328 WHERE `entry` = 8816; -- Deathly Usher: 1.25 -> 1.328
-UPDATE `creature_template` SET `HealthModifier` = 1.624 WHERE `entry` = 8957; -- Angerclaw Grizzly: 1.55 -> 1.624
-UPDATE `creature_template` SET `HealthModifier` = 1.568 WHERE `entry` = 8958; -- Angerclaw Mauler: 1.5 -> 1.568
-UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 8959; -- Felpaw Wolf: 1.25 -> 1.32
-UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 8960; -- Felpaw Scavenger: 1.25 -> 1.32
-UPDATE `creature_template` SET `HealthModifier` = 30.24 WHERE `entry` = 9019; -- Emperor Dagran Thaurissan: 9 -> 30.24
-UPDATE `creature_template` SET `HealthModifier` = 40 WHERE `entry` = 9032; -- Hedrum the Creeper: 8.5 -> 40
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 9077; -- Warlord Goretooth: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 9078; -- Shadowmage Vivian Lagrave: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 9079; -- Hierophant Theodora Mulvadania: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 9080; -- Lexlort: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 1.5204 WHERE `entry` = 9081; -- Galamav the Marksman: 1.35 -> 1.5204
-UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 9082; -- Thal'trak Proudtusk: 1.3 -> 1.384
-UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 9083; -- Razal'blade: 1.3 -> 1.376
-UPDATE `creature_template` SET `HealthModifier` = 1.4448 WHERE `entry` = 9084; -- Thunderheart: 1.3 -> 1.4448
-UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 9085; -- Initiate Amakkar: 1.3 -> 1.376
-UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 9086; -- Grunt Gargal: 1.3 -> 1.376
-UPDATE `creature_template` SET `HealthModifier` = 0.4 WHERE `entry` = 9157; -- Bloodpetal Pest: 0.35 -> 0.4
-UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 9179; -- Jazzrik: 1.15 -> 1.192
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 9356; -- Innkeeper Shul'kar: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 3.088 WHERE `entry` = 9448; -- Scarlet Praetorian: 3 -> 3.088
-UPDATE `creature_template` SET `HealthModifier` = 3.088 WHERE `entry` = 9450; -- Scarlet Curate: 3 -> 3.088
-UPDATE `creature_template` SET `HealthModifier` = 3.088 WHERE `entry` = 9451; -- Scarlet Archmage: 3 -> 3.088
-UPDATE `creature_template` SET `HealthModifier` = 1.3944 WHERE `entry` = 9548; -- Cawind Trueaim: 1.25 -> 1.3944
-UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 9558; -- Grimble: 1.2 -> 1.264
-UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 9559; -- Grizzlowe: 1.2 -> 1.264
-UPDATE `creature_template` SET `HealthModifier` = 30 WHERE `entry` = 9568; -- Overlord Wyrmthalak: 11 -> 30
-UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 9695; -- Deathlash Scorpid: 1.3 -> 1.384
-UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 9698; -- Firetail Scorpid: 1.35 -> 1.44
-UPDATE `creature_template` SET `HealthModifier` = 0.305 WHERE `entry` = 9778; -- Flamekin Torcher: 0.4 -> 0.305
-UPDATE `creature_template` SET `HealthModifier` = 0.366 WHERE `entry` = 9779; -- Flamekin Rager: 0.4 -> 0.366
-UPDATE `creature_template` SET `HealthModifier` = 3.072 WHERE `entry` = 9856; -- Auctioneer Grimful: 3 -> 3.072
-UPDATE `creature_template` SET `HealthModifier` = 3.072 WHERE `entry` = 9857; -- Auctioneer Grizzlin: 3 -> 3.072
-UPDATE `creature_template` SET `HealthModifier` = 3.072 WHERE `entry` = 9858; -- Auctioneer Kresky: 3 -> 3.072
-UPDATE `creature_template` SET `HealthModifier` = 1.1256 WHERE `entry` = 9981; -- Sikwa: 1.05 -> 1.1256
-UPDATE `creature_template` SET `HealthModifier` = 1.1256 WHERE `entry` = 9983; -- Kelsuwa: 1.05 -> 1.1256
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 9986; -- Shyrka Wolfrunner: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 9987; -- Shoja'my: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 9988; -- Xon'cha: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 10049; -- Hekkru: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 10058; -- Greth: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 10063; -- Reggifuz: 1.1 -> 1.136
-UPDATE `creature_template` SET `HealthModifier` = 1.2 WHERE `entry` = 10088; -- Xao'tsu: 1.15 -> 1.2
-UPDATE `creature_template` SET `HealthModifier` = 5 WHERE `entry` = 10120; -- Vault Warder: 4 -> 5
-UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 10159; -- Young Moonkin: 1 -> 0.98
-UPDATE `creature_template` SET `HealthModifier` = 0.5 WHERE `entry` = 10161; -- Rookery Whelp: 1 -> 0.5
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 10300; -- Ranshalla: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 1.5204 WHERE `entry` = 10303; -- Storm Shadowhoof: 1.35 -> 1.5204
-UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 10305; -- Umi Rumplesnicker: 1.35 -> 1.44
-UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 10307; -- Witch Doctor Mau'ari: 1.3 -> 1.384
-UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 10361; -- Gruul Darkblade: 1.3 -> 1.376
-UPDATE `creature_template` SET `HealthModifier` = 23.625 WHERE `entry` = 10378; -- Omusa Thunderhorn: 3 -> 23.625
-UPDATE `creature_template` SET `HealthModifier` = 1.05 WHERE `entry` = 10380; -- Sanuye Runetotem: 1 -> 1.05
-UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 10387; -- Vengeful Phantom: 0.3 -> 1
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 10408; -- Rockwing Gargoyle: 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 10431; -- Gregor Greystone: 1.3 -> 1.384
-UPDATE `creature_template` SET `HealthModifier` = 34 WHERE `entry` = 10440; -- Baron Rivendare: 18 -> 34
-UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 10441; -- Plagued Rat: 0.3 -> 1
-UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 10468; -- Felnok Steelspring: 1.3 -> 1.384
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 10637; -- Malyfous Darkhammer: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 7.5 WHERE `entry` = 10662; -- Spellmaw: 6 -> 7.5
-UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 10684; -- Remorseful Highborne: 1.35 -> 1.44
-UPDATE `creature_template` SET `HealthModifier` = 0.22 WHERE `entry` = 10685; -- Swine: 0.2 -> 0.22
-UPDATE `creature_template` SET `HealthModifier` = 5.1 WHERE `entry` = 10802; -- Hitah'ya the Keeper: 1.5 -> 5.1
-UPDATE `creature_template` SET `HealthModifier` = 4.11 WHERE `entry` = 10806; -- Ursius: 1.25 -> 4.11
-UPDATE `creature_template` SET `HealthModifier` = 40 WHERE `entry` = 10813; -- Balnazzar: 12 -> 40
-UPDATE `creature_template` SET `HealthModifier` = 1.023 WHERE `entry` = 10880; -- Warcaller Gorlach: 1 -> 1.023
-UPDATE `creature_template` SET `HealthModifier` = 22.5 WHERE `entry` = 10897; -- Sindrayl: 3 -> 22.5
-UPDATE `creature_template` SET `HealthModifier` = 0.09 WHERE `entry` = 10928; -- Succubus Minion: 0.7 -> 0.09
-UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 10978; -- Legacki: 1.35 -> 1.44
-UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 11017; -- Roxxik: 1.25 -> 1.312
-UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 11033; -- Smokey LaRue: 1.3 -> 1.384
-UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 11035; -- Betina Bigglezink: 1.35 -> 1.44
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 11036; -- Leonid Barthalomew the Revered: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 11038; -- Caretaker Alen: 1.3 -> 1.376
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 11039; -- Duke Nicholas Zverenhoff: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 11055; -- Shadow Priestess Vandis: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 11063; -- Carlin Redpath: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 1.064 WHERE `entry` = 11066; -- Jhag: 1.05 -> 1.064
-UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 11073; -- Annora: 1.3 -> 1
-UPDATE `creature_template` SET `HealthModifier` = 1.4532 WHERE `entry` = 11098; -- Hahrana Ironhide: 1.3 -> 1.4532
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 11118; -- Innkeeper Vizzie: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 11119; -- Azzleby: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 11137; -- Xai'ander: 1.1 -> 1.136
-UPDATE `creature_template` SET `HealthModifier` = 22.5 WHERE `entry` = 11139; -- Yugrek: 3 -> 22.5
-UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 11176; -- Krathok Moltenfist: 1.3 -> 1.384
-UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 11177; -- Okothos Ironrager: 1.3 -> 1.376
-UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 11178; -- Borgosh Corebender: 1.3 -> 1.376
-UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 11182; -- Nixxrak: 1.3 -> 1.384
-UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 11183; -- Blixxrak: 1.3 -> 1.384
-UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 11184; -- Wixxrak: 1.3 -> 1.384
-UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 11185; -- Xizzer Fizzbolt: 1.35 -> 1.44
-UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 11186; -- Lunnix Sprocketslip: 1.3 -> 1.384
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 11187; -- Himmik: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 11188; -- Evie Whirlbrew: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 11189; -- Qia: 1.3 -> 1.376
-UPDATE `creature_template` SET `HealthModifier` = 34 WHERE `entry` = 11190; -- Everlook Bruiser: 2 -> 34
-UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 11191; -- Lilith the Lithe: 1.3 -> 1.384
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 11192; -- Kilram: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 11193; -- Seril Scourgebane: 1.35 -> 1.44
-UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 11276; -- Azshara Sentinel: 1.2 -> 1.256
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 11318; -- Ragefire Trogg: 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 11319; -- Ragefire Shaman: 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 11320; -- Earthborer: 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 11328; -- Eastvale Peasant: 1 -> 1.056
-UPDATE `creature_template` SET `HealthModifier` = 11.2219 WHERE `entry` = 11338; -- Hakkari Shadowcaster: 10 -> 11.2219
-UPDATE `creature_template` SET `HealthModifier` = 11.2219 WHERE `entry` = 11339; -- Hakkari Shadow Hunter: 10 -> 11.2219
-UPDATE `creature_template` SET `HealthModifier` = 11.2219 WHERE `entry` = 11340; -- Hakkari Blood Priest: 6 -> 11.2219
-UPDATE `creature_template` SET `HealthModifier` = 11.2219 WHERE `entry` = 11350; -- Gurubashi Axe Thrower: 7 -> 11.2219
-UPDATE `creature_template` SET `HealthModifier` = 11.2219 WHERE `entry` = 11351; -- Gurubashi Headhunter: 7 -> 11.2219
-UPDATE `creature_template` SET `HealthModifier` = 37.1925 WHERE `entry` = 11352; -- Gurubashi Berserker: 15 -> 37.1925
-UPDATE `creature_template` SET `HealthModifier` = 11.2219 WHERE `entry` = 11353; -- Gurubashi Blood Drinker: 6 -> 11.2219
-UPDATE `creature_template` SET `HealthModifier` = 11.2219 WHERE `entry` = 11356; -- Gurubashi Champion: 10 -> 11.2219
-UPDATE `creature_template` SET `HealthModifier` = 11.2219 WHERE `entry` = 11357; -- Son of Hakkar: 5 -> 11.2219
-UPDATE `creature_template` SET `HealthModifier` = 18.5963 WHERE `entry` = 11359; -- Soulflayer: 14 -> 18.5963
-UPDATE `creature_template` SET `HealthModifier` = 2.80547 WHERE `entry` = 11360; -- Zulian Cub: 1 -> 2.80547
-UPDATE `creature_template` SET `HealthModifier` = 11.2219 WHERE `entry` = 11361; -- Zulian Tiger: 3 -> 11.2219
-UPDATE `creature_template` SET `HealthModifier` = 1.40273 WHERE `entry` = 11368; -- Bloodseeker Bat: 1.75 -> 1.40273
-UPDATE `creature_template` SET `HealthModifier` = 11.2219 WHERE `entry` = 11370; -- Razzashi Broodwidow: 10 -> 11.2219
-UPDATE `creature_template` SET `HealthModifier` = 11.2219 WHERE `entry` = 11371; -- Razzashi Serpent: 5 -> 11.2219
-UPDATE `creature_template` SET `HealthModifier` = 11.2219 WHERE `entry` = 11372; -- Razzashi Adder: 5 -> 11.2219
-UPDATE `creature_template` SET `HealthModifier` = 13.5 WHERE `entry` = 11373; -- Razzashi Cobra: 5 -> 13.5
-UPDATE `creature_template` SET `HealthModifier` = 4.9875 WHERE `entry` = 11374; -- Hooktooth Frenzy: 3 -> 4.9875
-UPDATE `creature_template` SET `HealthModifier` = 4.15625 WHERE `entry` = 11387; -- Sandfury Speaker: 1 -> 4.15625
-UPDATE `creature_template` SET `HealthModifier` = 3.375 WHERE `entry` = 11388; -- Witherbark Speaker: 1 -> 3.375
-UPDATE `creature_template` SET `HealthModifier` = 3.375 WHERE `entry` = 11391; -- Vilebranch Speaker: 1 -> 3.375
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 11441; -- Gordok Brute: 5 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 11458; -- Petrified Treant: 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 11464; -- Warpwood Tangler: 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 11466; -- Highborne Summoner: 0.25 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 11469; -- Eldreth Seether: 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 11470; -- Eldreth Sorcerer: 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 11471; -- Eldreth Apparition: 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 11472; -- Eldreth Spirit: 3 -> 1
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 11473; -- Eldreth Spectre: 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 11475; -- Eldreth Phantasm: 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 11476; -- Skeletal Highborne: 1.3 -> 1
-UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 11477; -- Rotting Highborne: 1.3 -> 1
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 11480; -- Arcane Aberration: 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 11483; -- Mana Remnant: 3 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 11484; -- Residual Monstrosity: 6 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 26 WHERE `entry` = 11486; -- Prince Tortheldrin: 10 -> 26
-UPDATE `creature_template` SET `HealthModifier` = 22.104 WHERE `entry` = 11487; -- Magister Kalendris: 8.5 -> 22.104
-UPDATE `creature_template` SET `HealthModifier` = 18.2 WHERE `entry` = 11488; -- Illyanna Ravenoak: 7 -> 18.2
-UPDATE `creature_template` SET `HealthModifier` = 30 WHERE `entry` = 11489; -- Tendris Warpwood: 11 -> 30
-UPDATE `creature_template` SET `HealthModifier` = 36.4 WHERE `entry` = 11492; -- Alzzin the Wildshaper: 14 -> 36.4
-UPDATE `creature_template` SET `HealthModifier` = 31.2 WHERE `entry` = 11496; -- Immol'thar: 12 -> 31.2
-UPDATE `creature_template` SET `HealthModifier` = 23.4 WHERE `entry` = 11501; -- King Gordok: 9 -> 23.4
-UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 11516; -- Timbermaw Warder: 1.3 -> 1.384
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 11536; -- Quartermaster Miranda Breechlock: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 1.328 WHERE `entry` = 11546; -- Jack Sterling: 1.25 -> 1.328
-UPDATE `creature_template` SET `HealthModifier` = 1.3272 WHERE `entry` = 11548; -- Loh'atu: 1.2 -> 1.3272
-UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 11552; -- Timbermaw Mystic: 1.3 -> 1.376
-UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 11556; -- Salfa: 1.3 -> 1.384
-UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 11560; -- Magrami Spectre: 1.15 -> 1.192
-UPDATE `creature_template` SET `HealthModifier` = 1.328 WHERE `entry` = 11629; -- Jessica Redpath: 1.25 -> 1.328
-UPDATE `creature_template` SET `HealthModifier` = 1.064 WHERE `entry` = 11656; -- Warsong Peon: 1.05 -> 1.064
-UPDATE `creature_template` SET `HealthModifier` = 1.064 WHERE `entry` = 11680; -- Horde Scout: 1.05 -> 1.064
-UPDATE `creature_template` SET `HealthModifier` = 1.064 WHERE `entry` = 11681; -- Horde Deforester: 1.05 -> 1.064
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 11682; -- Warsong Grunt: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.064 WHERE `entry` = 11683; -- Warsong Shaman: 1.05 -> 1.064
-UPDATE `creature_template` SET `HealthModifier` = 1.064 WHERE `entry` = 11684; -- Warsong Shredder: 1.05 -> 1.064
-UPDATE `creature_template` SET `HealthModifier` = 3.75 WHERE `entry` = 11698; -- Hive'Ashi Stinger: 1.3 -> 3.75
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 11716; -- Celes Earthborne: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 3.87 WHERE `entry` = 11722; -- Hive'Ashi Defender: 1.3 -> 3.87
-UPDATE `creature_template` SET `HealthModifier` = 3.8 WHERE `entry` = 11724; -- Hive'Ashi Swarmer: 1.3 -> 3.8
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 11727; -- Hive'Zora Wasp: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 4.06 WHERE `entry` = 11728; -- Hive'Zora Reaver: 1.3 -> 4.06
-UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 11735; -- Stonelash Scorpid: 1.3 -> 1.384
-UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 11736; -- Stonelash Pincer: 1.35 -> 1.44
-UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 11737; -- Stonelash Flayer: 1.35 -> 1.44
-UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 11738; -- Sand Skitterer: 1.35 -> 1.44
-UPDATE `creature_template` SET `HealthModifier` = 3.87 WHERE `entry` = 11739; -- Rock Stalker: 1.35 -> 3.87
-UPDATE `creature_template` SET `HealthModifier` = 1.288 WHERE `entry` = 11740; -- Dredge Striker: 1.2 -> 1.288
-UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 11741; -- Dredge Crusher: 1.35 -> 1.44
-UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 11744; -- Dust Stormer: 1.35 -> 1.44
-UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 11745; -- Cyclone Warrior: 1.35 -> 1.44
-UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 11746; -- Desert Rumbler: 1.35 -> 1.44
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 11747; -- Desert Rager: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 11752; -- Blaise Montgomery: 1.25 -> 1.32
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 11753; -- Gogo: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 11754; -- Meggi Peppinrocker: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 11755; -- Harlo Wigglesworth: 1.3 -> 1.384
-UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 11757; -- Umaron Stragarelm: 1.2 -> 1.256
-UPDATE `creature_template` SET `HealthModifier` = 1.5204 WHERE `entry` = 11795; -- Mylentha Riverbend: 1.35 -> 1.5204
-UPDATE `creature_template` SET `HealthModifier` = 1.5204 WHERE `entry` = 11796; -- Bessany Plainswind: 1.35 -> 1.5204
-UPDATE `creature_template` SET `HealthModifier` = 1.5204 WHERE `entry` = 11797; -- Moren Riverbend: 1.35 -> 1.5204
-UPDATE `creature_template` SET `HealthModifier` = 39.27 WHERE `entry` = 11798; -- Bunthen Plainswind: 1.35 -> 39.27
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 11799; -- Tajarri: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 37.4 WHERE `entry` = 11800; -- Silva Fil'naveth: 1.35 -> 37.4
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 11801; -- Rabine Saturna: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 11802; -- Dendrite Starblaze: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 11818; -- Orik'ando: 1.2 -> 1.256
-UPDATE `creature_template` SET `HealthModifier` = 1.4532 WHERE `entry` = 11822; -- Moonglade Warden: 1.3 -> 1.4532
-UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 11829; -- Fahrak: 1.2 -> 1.256
-UPDATE `creature_template` SET `HealthModifier` = 11.2219 WHERE `entry` = 11830; -- Hakkari Priest: 7 -> 11.2219
-UPDATE `creature_template` SET `HealthModifier` = 11.2219 WHERE `entry` = 11831; -- Hakkari Witch Doctor: 10 -> 11.2219
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 11880; -- Twilight Avenger: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 11883; -- Twilight Master: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 5.49 WHERE `entry` = 11897; -- Duskwing: 1.5 -> 5.49
-UPDATE `creature_template` SET `HealthModifier` = 22.5 WHERE `entry` = 11901; -- Andruk: 3 -> 22.5
-UPDATE `creature_template` SET `HealthModifier` = 3.75 WHERE `entry` = 11921; -- Besseleth: 1 -> 3.75
-UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 11939; -- Umber: 1.3 -> 1.384
-UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 12019; -- Dargon: 1.3 -> 1.376
-UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 12021; -- Daeolyn Summerleaf: 1.3 -> 1.376
-UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 12022; -- Lorelae Wintersong: 1.3 -> 1.376
-UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 12024; -- Meliri: 1.3 -> 1.376
-UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 12025; -- Malvor: 1.3 -> 1.376
-UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 12026; -- My'lanna: 1.3 -> 1.376
-UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 12029; -- Narianna: 1.3 -> 1.376
-UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 12150; -- Riding Kodo (Purple): 1 -> 0.93
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 12196; -- Innkeeper Kaylisk: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 33.4 WHERE `entry` = 12201; -- Princess Theradras: 10 -> 33.4
-UPDATE `creature_template` SET `HealthModifier` = 0.9 WHERE `entry` = 12217; -- Corruptor: 0.75 -> 0.9
-UPDATE `creature_template` SET `HealthModifier` = 26.72 WHERE `entry` = 12225; -- Celebras the Cursed: 8 -> 26.72
-UPDATE `creature_template` SET `HealthModifier` = 25.048 WHERE `entry` = 12236; -- Lord Vyletongue: 7.5 -> 25.048
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 12248; -- Infiltrator Hameya: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 21.712 WHERE `entry` = 12258; -- Razorlash: 6.5 -> 21.712
-UPDATE `creature_template` SET `HealthModifier` = 0.22 WHERE `entry` = 12296; -- Sickly Gazelle: 0.2 -> 0.22
-UPDATE `creature_template` SET `HealthModifier` = 0.22 WHERE `entry` = 12298; -- Sickly Deer: 0.2 -> 0.22
-UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 12346; -- Emerald Riding Raptor: 1 -> 0.93
-UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 12349; -- Turquoise Riding Raptor: 1 -> 0.93
-UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 12350; -- Violet Riding Raptor: 1 -> 0.93
-UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 12351; -- Dire Riding Wolf: 1 -> 0.98
-UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 12353; -- Timber Riding Wolf: 1 -> 0.98
-UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 12358; -- Riding Striped Frostsaber: 1 -> 0.93
-UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 12375; -- Chestnut Mare: 1 -> 0.93
-UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 12376; -- Brown Horse: 1 -> 0.93
-UPDATE `creature_template` SET `HealthModifier` = 22 WHERE `entry` = 12396; -- Doomguard Commander: 20 -> 22
-UPDATE `creature_template` SET `HealthModifier` = 2 WHERE `entry` = 12431; -- Gorefang: 1 -> 2
-UPDATE `creature_template` SET `HealthModifier` = 96.25 WHERE `entry` = 12475; -- Emeraldon Tree Warder: 25 -> 96.25
-UPDATE `creature_template` SET `HealthModifier` = 22.5 WHERE `entry` = 12577; -- Jarrodenus: 3 -> 22.5
-UPDATE `creature_template` SET `HealthModifier` = 22.5 WHERE `entry` = 12616; -- Vhulgra: 3 -> 22.5
-UPDATE `creature_template` SET `HealthModifier` = 22.5 WHERE `entry` = 12617; -- Khaelyn Steelwing: 3 -> 22.5
-UPDATE `creature_template` SET `HealthModifier` = 22.5 WHERE `entry` = 12636; -- Georgia: 3 -> 22.5
-UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 12677; -- Shadumbra: 1.3 -> 1.312
-UPDATE `creature_template` SET `HealthModifier` = 1.1256 WHERE `entry` = 12696; -- Senani Thunderheart: 1.05 -> 1.1256
-UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 12719; -- Marukai: 1.1 -> 1.136
-UPDATE `creature_template` SET `HealthModifier` = 1.128 WHERE `entry` = 12720; -- Framnali: 1.1 -> 1.128
-UPDATE `creature_template` SET `HealthModifier` = 1.12 WHERE `entry` = 12721; -- Mitsuwa: 1.1 -> 1.12
-UPDATE `creature_template` SET `HealthModifier` = 1.128 WHERE `entry` = 12724; -- Pixel: 1.1 -> 1.128
-UPDATE `creature_template` SET `HealthModifier` = 22.5 WHERE `entry` = 12740; -- Faustron: 3 -> 22.5
-UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 12757; -- Karang Amakkar: 1.1 -> 1.136
-UPDATE `creature_template` SET `HealthModifier` = 2.1 WHERE `entry` = 12791; -- Chieftain Earthbind: 2 -> 2.1
-UPDATE `creature_template` SET `HealthModifier` = 2.088 WHERE `entry` = 12799; -- Sergeant Ba'sha: 2 -> 2.088
-UPDATE `creature_template` SET `HealthModifier` = 1.328 WHERE `entry` = 12807; -- Greshka: 1.25 -> 1.328
-UPDATE `creature_template` SET `HealthModifier` = 1.1172 WHERE `entry` = 12837; -- Yama Snowhoof: 1.05 -> 1.1172
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 12863; -- Warsong Runner: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 12864; -- Warsong Outrider: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 12877; -- Ertog Ragetusk: 1.1 -> 1.136
-UPDATE `creature_template` SET `HealthModifier` = 2.048 WHERE `entry` = 12903; -- Splintertree Guard: 2 -> 2.048
-UPDATE `creature_template` SET `HealthModifier` = 0.075 WHERE `entry` = 12922; -- Imp Minion: 0.36 -> 0.075
-UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 12941; -- Jase Farlane: 1.35 -> 1.44
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 12961; -- Kil'Hiwana: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 12962; -- Wik'Tar: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 3.22245 WHERE `entry` = 13321; -- Frog: 1 -> 3.22245
-UPDATE `creature_template` SET `HealthModifier` = 1.104 WHERE `entry` = 13842; -- Frostwolf Ambassador Rokhstrom: 1 -> 1.104
-UPDATE `creature_template` SET `HealthModifier` = 3.088 WHERE `entry` = 13917; -- Izzy Coppergrab: 3 -> 3.088
-UPDATE `creature_template` SET `HealthModifier` = 5.25 WHERE `entry` = 14182; -- Bounty Hunter Kolark: 1 -> 5.25
-UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 14301; -- Brinna Valanaar: 1.2 -> 1.264
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 14303; -- Petrified Guardian: 2.5 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 42.5 WHERE `entry` = 14304; -- Kor'kron Elite: 2 -> 42.5
-UPDATE `creature_template` SET `HealthModifier` = 8 WHERE `entry` = 14308; -- Ferra: 5 -> 8
-UPDATE `creature_template` SET `HealthModifier` = 20.8 WHERE `entry` = 14323; -- Guard Slip'kik: 8 -> 20.8
-UPDATE `creature_template` SET `HealthModifier` = 20.8 WHERE `entry` = 14326; -- Guard Mol'dar: 8 -> 20.8
-UPDATE `creature_template` SET `HealthModifier` = 19.5 WHERE `entry` = 14354; -- Pusillin: 6 -> 19.5
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 14369; -- Shen'dralar Zealot: 1 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 1.1508 WHERE `entry` = 14373; -- Sage Korolusk: 1 -> 1.1508
-UPDATE `creature_template` SET `HealthModifier` = 42.5 WHERE `entry` = 14375; -- Scout Stronghand: 4 -> 42.5
-UPDATE `creature_template` SET `HealthModifier` = 42.5 WHERE `entry` = 14377; -- Scout Tharr: 4 -> 42.5
-UPDATE `creature_template` SET `HealthModifier` = 0.33 WHERE `entry` = 14396; -- Eye of Immol'thar: 0.2 -> 0.33
-UPDATE `creature_template` SET `HealthModifier` = 2 WHERE `entry` = 14398; -- Eldreth Darter: 3 -> 2
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 14399; -- Arcane Torrent: 7 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 14400; -- Arcane Feedback: 0.8 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 1.104 WHERE `entry` = 14463; -- Daio the Decrepit: 1 -> 1.104
-UPDATE `creature_template` SET `HealthModifier` = 5.625 WHERE `entry` = 14491; -- Kurmokk: 1.2 -> 5.625
-UPDATE `creature_template` SET `HealthModifier` = 1.128 WHERE `entry` = 14498; -- Tosamina: 1.1 -> 1.128
-UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 14499; -- Horde Orphan: 1 -> 0.93
-UPDATE `creature_template` SET `HealthModifier` = 31.2 WHERE `entry` = 14506; -- Lord Hel'nurath: 12 -> 31.2
-UPDATE `creature_template` SET `HealthModifier` = 11.2219 WHERE `entry` = 14532; -- Razzashi Venombrood: 4 -> 11.2219
-UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 14539; -- Swift Timber Wolf: 1 -> 0.98
-UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 14540; -- Swift Brown Wolf: 1 -> 0.98
-UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 14541; -- Swift Gray Wolf: 1 -> 0.98
-UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 14559; -- Swift Palomino: 1 -> 0.93
-UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 14560; -- Swift White Steed: 1 -> 0.93
-UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 14561; -- Swift Brown Steed: 1 -> 0.93
-UPDATE `creature_template` SET `HealthModifier` = 1.875 WHERE `entry` = 14603; -- Zapped Shore Strider: 1.25 -> 1.875
-UPDATE `creature_template` SET `HealthModifier` = 7.5 WHERE `entry` = 14621; -- Overseer Maltorius: 1.5 -> 7.5
-UPDATE `creature_template` SET `HealthModifier` = 1.875 WHERE `entry` = 14639; -- Zapped Deep Strider: 1.25 -> 1.875
-UPDATE `creature_template` SET `HealthModifier` = 1.032 WHERE `entry` = 14726; -- Rashona Straglash: 1 -> 1.032
-UPDATE `creature_template` SET `HealthModifier` = 1.032 WHERE `entry` = 14727; -- Vehena: 1 -> 1.032
-UPDATE `creature_template` SET `HealthModifier` = 1.24 WHERE `entry` = 14742; -- Zap Farflinger: 1.15 -> 1.24
-UPDATE `creature_template` SET `HealthModifier` = 22.4438 WHERE `entry` = 14750; -- Gurubashi Bat Rider: 10 -> 22.4438
-UPDATE `creature_template` SET `HealthModifier` = 11.2219 WHERE `entry` = 14821; -- Razzashi Raptor: 5 -> 11.2219
-UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 14850; -- Gruk: 1 -> 0.93
-UPDATE `creature_template` SET `HealthModifier` = 2.048 WHERE `entry` = 14859; -- Guard Taruc: 2 -> 2.048
-UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 14873; -- Okla: 1 -> 0.93
-UPDATE `creature_template` SET `HealthModifier` = 3.104 WHERE `entry` = 14875; -- Molthor: 3 -> 3.104
-UPDATE `creature_template` SET `HealthModifier` = 3.104 WHERE `entry` = 14876; -- Zandalar Headshrinker: 3 -> 3.104
-UPDATE `creature_template` SET `HealthModifier` = 2.80547 WHERE `entry` = 14880; -- Razzashi Skitterer: 1.5 -> 2.80547
-UPDATE `creature_template` SET `HealthModifier` = 0.72 WHERE `entry` = 14881; -- Spider: 0.2 -> 0.72
-UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 14884; -- Parasitic Serpent: 0.1 -> 1
-UPDATE `creature_template` SET `HealthModifier` = 1.023 WHERE `entry` = 14901; -- Peon: 1 -> 1.023
-UPDATE `creature_template` SET `HealthModifier` = 3.104 WHERE `entry` = 14902; -- Jin'rokh the Breaker: 3 -> 3.104
-UPDATE `creature_template` SET `HealthModifier` = 3.104 WHERE `entry` = 14903; -- Al'tabim the All-Seeing: 3 -> 3.104
-UPDATE `creature_template` SET `HealthModifier` = 3.104 WHERE `entry` = 14904; -- Maywiki of Zuldazar: 3 -> 3.104
-UPDATE `creature_template` SET `HealthModifier` = 3.104 WHERE `entry` = 14905; -- Falthir the Sightless: 3 -> 3.104
-UPDATE `creature_template` SET `HealthModifier` = 3.104 WHERE `entry` = 14910; -- Exzhal: 3 -> 3.104
-UPDATE `creature_template` SET `HealthModifier` = 3.104 WHERE `entry` = 14911; -- Zandalar Enforcer: 3 -> 3.104
-UPDATE `creature_template` SET `HealthModifier` = 3.104 WHERE `entry` = 14912; -- Captured Hakkari Zealot: 3 -> 3.104
-UPDATE `creature_template` SET `HealthModifier` = 3.088 WHERE `entry` = 14921; -- Rin'wosho the Trader: 3 -> 3.088
-UPDATE `creature_template` SET `HealthModifier` = 13.5 WHERE `entry` = 14965; -- Frenzied Bloodseeker Bat: 2 -> 13.5
-UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 14994; -- Zandalarian Event Generator: 1 -> 0.93
-UPDATE `creature_template` SET `HealthModifier` = 3.375 WHERE `entry` = 15041; -- Spawn of Mar'li: 2 -> 3.375
-UPDATE `creature_template` SET `HealthModifier` = 6.5 WHERE `entry` = 15042; -- Zanza the Restless: 3 -> 6.5
-UPDATE `creature_template` SET `HealthModifier` = 11.2219 WHERE `entry` = 15043; -- Zulian Crocolisk: 3 -> 11.2219
-UPDATE `creature_template` SET `HealthModifier` = 0.75 WHERE `entry` = 15069; -- Heart of Hakkar: 1 -> 0.75
-UPDATE `creature_template` SET `HealthModifier` = 3.104 WHERE `entry` = 15070; -- Vinchaxa: 3 -> 3.104
-UPDATE `creature_template` SET `HealthModifier` = 3.088 WHERE `entry` = 15076; -- Zandalarian Emissary: 3 -> 3.088
-UPDATE `creature_template` SET `HealthModifier` = 3.104 WHERE `entry` = 15080; -- Servant of the Hand: 3 -> 3.104
-UPDATE `creature_template` SET `HealthModifier` = 5.40312 WHERE `entry` = 15111; -- Mad Servant: 5 -> 5.40312
-UPDATE `creature_template` SET `HealthModifier` = 6.5 WHERE `entry` = 15117; -- Chained Spirit: 1 -> 6.5
-UPDATE `creature_template` SET `HealthModifier` = 1.064 WHERE `entry` = 15131; -- Qeeju: 1 -> 1.064
-UPDATE `creature_template` SET `HealthModifier` = 1.088 WHERE `entry` = 15174; -- Calandrath: 1 -> 1.088
-UPDATE `creature_template` SET `HealthModifier` = 1.1508 WHERE `entry` = 15175; -- Khur Hornstriker: 1 -> 1.1508
-UPDATE `creature_template` SET `HealthModifier` = 1.1508 WHERE `entry` = 15176; -- Vargus: 1 -> 1.1508
-UPDATE `creature_template` SET `HealthModifier` = 22.5 WHERE `entry` = 15177; -- Cloud Skydancer: 3 -> 22.5
-UPDATE `creature_template` SET `HealthModifier` = 23.625 WHERE `entry` = 15178; -- Runk Windtamer: 3 -> 23.625
-UPDATE `creature_template` SET `HealthModifier` = 1.096 WHERE `entry` = 15179; -- Mishta: 1 -> 1.096
-UPDATE `creature_template` SET `HealthModifier` = 1.104 WHERE `entry` = 15180; -- Baristolth of the Shifting Sands: 1 -> 1.104
-UPDATE `creature_template` SET `HealthModifier` = 1.104 WHERE `entry` = 15183; -- Geologist Larksbane: 1 -> 1.104
-UPDATE `creature_template` SET `HealthModifier` = 1.25 WHERE `entry` = 15185; -- Brood of Nozdormu: 1 -> 1.25
-UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 15186; -- Murky: 1 -> 0.93
-UPDATE `creature_template` SET `HealthModifier` = 1.1424 WHERE `entry` = 15188; -- Cenarion Emissary Blackhoof: 1 -> 1.1424
-UPDATE `creature_template` SET `HealthModifier` = 1.088 WHERE `entry` = 15189; -- Beetix Ficklespragg: 1 -> 1.088
-UPDATE `creature_template` SET `HealthModifier` = 1.088 WHERE `entry` = 15190; -- Noggle Ficklespragg: 1 -> 1.088
-UPDATE `creature_template` SET `HealthModifier` = 1.1424 WHERE `entry` = 15191; -- Windcaller Proudhorn: 1 -> 1.1424
-UPDATE `creature_template` SET `HealthModifier` = 3.096 WHERE `entry` = 15196; -- Deathclasp: 3 -> 3.096
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 15213; -- Twilight Overlord: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 1.3692 WHERE `entry` = 15270; -- Huum Wildmane: 1.2 -> 1.3692
-UPDATE `creature_template` SET `HealthModifier` = 3.104 WHERE `entry` = 15282; -- Aurel Goldleaf: 3 -> 3.104
-UPDATE `creature_template` SET `HealthModifier` = 30.5 WHERE `entry` = 15286; -- Xil'xix: 1.3 -> 30.5
-UPDATE `creature_template` SET `HealthModifier` = 30.5 WHERE `entry` = 15288; -- Aluntir: 1.3 -> 30.5
-UPDATE `creature_template` SET `HealthModifier` = 30.5 WHERE `entry` = 15290; -- Arakis: 1.3 -> 30.5
-UPDATE `creature_template` SET `HealthModifier` = 1.1424 WHERE `entry` = 15306; -- Bor Wildmane: 1 -> 1.1424
-UPDATE `creature_template` SET `HealthModifier` = 6.32812 WHERE `entry` = 15384; -- OLDWorld Trigger (DO NOT DELETE): 1.35 -> 6.32812
-UPDATE `creature_template` SET `HealthModifier` = 1.088 WHERE `entry` = 15419; -- Kania: 1 -> 1.088
-UPDATE `creature_template` SET `HealthModifier` = 1.088 WHERE `entry` = 15498; -- Windcaller Yessendra: 1 -> 1.088
-UPDATE `creature_template` SET `HealthModifier` = 1.1424 WHERE `entry` = 15499; -- Warden Haro: 1 -> 1.1424
-UPDATE `creature_template` SET `HealthModifier` = 1.328 WHERE `entry` = 15677; -- Auctioneer Graves: 1.25 -> 1.328
-UPDATE `creature_template` SET `HealthModifier` = 1.104 WHERE `entry` = 15722; -- Squire Leoren Mal'derath: 1 -> 1.104
-UPDATE `creature_template` SET `HealthModifier` = 1.023 WHERE `entry` = 15801; -- GONG BOY DND DNR: 1 -> 1.023
-UPDATE `creature_template` SET `HealthModifier` = 2.104 WHERE `entry` = 16015; -- Vi'el: 2 -> 2.104
-UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 16032; -- Falrin Treeshaper: 2 -> 4
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 16043; -- Magma Lord Bokk: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 16069; -- Gurky: 1 -> 0.93
-UPDATE `creature_template` SET `HealthModifier` = 2.104 WHERE `entry` = 16123; -- Gremnik Rizzlesprang: 2 -> 2.104
-UPDATE `creature_template` SET `HealthModifier` = 52.5 WHERE `entry` = 16134; -- Rimblat Earthshatter: 50 -> 52.5
-UPDATE `creature_template` SET `HealthModifier` = 2.104 WHERE `entry` = 16212; -- Dispatch Commander Metz: 2 -> 2.104
-UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 16225; -- Pack Mule: 1 -> 0.93
-UPDATE `creature_template` SET `HealthModifier` = 37.4 WHERE `entry` = 16227; -- Bragok: 3 -> 37.4
-UPDATE `creature_template` SET `HealthModifier` = 1.128 WHERE `entry` = 16256; -- Jessica Chambers: 1.05 -> 1.128
-UPDATE `creature_template` SET `HealthModifier` = 3.096 WHERE `entry` = 16283; -- Packmaster Stonebruiser: 3 -> 3.096
-UPDATE `creature_template` SET `HealthModifier` = 3.112 WHERE `entry` = 16284; -- Argent Medic: 3.02 -> 3.112
-UPDATE `creature_template` SET `HealthModifier` = 2.088 WHERE `entry` = 16285; -- Argent Emissary: 2 -> 2.088
-UPDATE `creature_template` SET `HealthModifier` = 3.096 WHERE `entry` = 16376; -- Craftsman Wilhelm: 3 -> 3.096
-UPDATE `creature_template` SET `HealthModifier` = 88.1336 WHERE `entry` = 16384; -- Argent Dawn Initiate: 2 -> 88.1336
-UPDATE `creature_template` SET `HealthModifier` = 88.1336 WHERE `entry` = 16395; -- Argent Dawn Paladin: 2 -> 88.1336
-UPDATE `creature_template` SET `HealthModifier` = 1.088 WHERE `entry` = 16416; -- Bronn Fitzwrench: 1 -> 1.088
-UPDATE `creature_template` SET `HealthModifier` = 1.104 WHERE `entry` = 16543; -- Garon Hutchins: 1 -> 1.104
-UPDATE `creature_template` SET `HealthModifier` = 2.088 WHERE `entry` = 16786; -- Argent Quartermaster: 2 -> 2.088
-UPDATE `creature_template` SET `HealthModifier` = 1.088 WHERE `entry` = 17069; -- Emissary Whitebeard: 1 -> 1.088
-UPDATE `creature_template` SET `HealthModifier` = 1.088 WHERE `entry` = 17072; -- Emissary Gormok: 1 -> 1.088
-UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 17074; -- Cenarion Scout: 1 -> 0.93
-UPDATE `creature_template` SET `HealthModifier` = 1.088 WHERE `entry` = 17081; -- Scout Bloodfist: 1 -> 1.088
-UPDATE `creature_template` SET `HealthModifier` = 1.088 WHERE `entry` = 17082; -- Rifleman Torrig: 1 -> 1.088
-UPDATE `creature_template` SET `HealthModifier` = 1.064 WHERE `entry` = 17097; -- Advisor Sarophas: 1 -> 1.064
-UPDATE `creature_template` SET `HealthModifier` = 1.408 WHERE `entry` = 17109; -- Cersei Dusksinger: 1.35 -> 1.408
-UPDATE `creature_template` SET `HealthModifier` = 1.104 WHERE `entry` = 17249; -- Landro Longshot: 1 -> 1.104
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 17304; -- Overseer Gorthak: 1.05 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 17689; -- <TXT>Crown Guard Capture Quest Doodad: 1 -> 0.93
-UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 17795; -- Horde Tower Buffer: 1 -> 0.93
-UPDATE `creature_template` SET `HealthModifier` = 1.104 WHERE `entry` = 17878; -- Scourge Siege Engineer: 1 -> 1.104
-UPDATE `creature_template` SET `HealthModifier` = 1.12667 WHERE `entry` = 19858; -- "Lefty" Puddemup: 1 -> 1.12667
-UPDATE `creature_template` SET `HealthModifier` = 1.12667 WHERE `entry` = 19925; -- Miglik Blotstrom: 1 -> 1.12667
-UPDATE `creature_template` SET `HealthModifier` = 2.096 WHERE `entry` = 21045; -- Hired Bodyguard: 2 -> 2.096
-UPDATE `creature_template` SET `HealthModifier` = 1.12667 WHERE `entry` = 21235; -- "Backstab" Bindo Gearbomb: 1 -> 1.12667
-UPDATE `creature_template` SET `HealthModifier` = 34 WHERE `entry` = 23090; -- Troll Roof Stalker: 15 -> 34
-UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 23635; -- Krixx: 1.2 -> 1.264
-UPDATE `creature_template` SET `HealthModifier` = 1.05 WHERE `entry` = 25098; -- Bosun Thunderhorn: 1 -> 1.05
-UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 25109; -- Rocket Chicken: 1 -> 0.93
-UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 26537; -- Greeb Ramrocket: 1.2 -> 1.264
-UPDATE `creature_template` SET `HealthModifier` = 1.048 WHERE `entry` = 27705; -- Lorrin Foxfire: 1 -> 1.048
-UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 27816; -- Brew Vendor: 1 -> 1.072
-UPDATE `creature_template` SET `HealthModifier` = 1.024 WHERE `entry` = 29143; -- Bebri Coifcurl: 1 -> 1.024
-UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 34155; -- White Kodo: 1 -> 0.93
-UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 34765; -- Zelli Hotnozzle: 1.2 -> 1.264
-UPDATE `creature_template` SET `HealthModifier` = 1.4028 WHERE `entry` = 35068; -- Gotura Fourwinds: 1.25 -> 1.4028
-UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 37072; -- Rogg: 1.35 -> 1.448
-UPDATE `creature_template` SET `HealthModifier` = 0.0001 WHERE `entry` = 50036; -- Shield Beacon: 1 -> 0.0001
-UPDATE `creature_template` SET `HealthModifier` = 0.0001 WHERE `entry` = 50037; -- Restorative Beacon: 1 -> 0.0001
-UPDATE `creature_template` SET `HealthModifier` = 0.75 WHERE `entry` = 50045; -- Blast Mine: 1 -> 0.75
-UPDATE `creature_template` SET `HealthModifier` = 0.4 WHERE `entry` = 50046; -- Sentry Turret: 1 -> 0.4
-UPDATE `creature_template` SET `HealthModifier` = 0.25 WHERE `entry` = 50053; -- Standard of Recovery: 1 -> 0.25
-UPDATE `creature_template` SET `HealthModifier` = 0.25 WHERE `entry` = 50055; -- Standard of Rallying: 1 -> 0.25
-UPDATE `creature_template` SET `HealthModifier` = 0.25 WHERE `entry` = 50057; -- Standard of Valiance: 1 -> 0.25
-UPDATE `creature_template` SET `HealthModifier` = 1.4 WHERE `entry` = 50065; -- Lesser Skeletal Warrior: 1 -> 1.4
-UPDATE `creature_template` SET `HealthModifier` = 6.5 WHERE `entry` = 50068; -- Abomination: 1 -> 6.5
-UPDATE `creature_template` SET `HealthModifier` = 2 WHERE `entry` = 50071; -- Infinite Clone: 1 -> 2
-UPDATE `creature_template` SET `HealthModifier` = 2 WHERE `entry` = 50073; -- Ghoul: 1 -> 2
-UPDATE `creature_template` SET `HealthModifier` = 0.9 WHERE `entry` = 50078; -- Skeletal Rogue: 1 -> 0.9
-UPDATE `creature_template` SET `HealthModifier` = 0.2 WHERE `entry` = 50105; -- Serpent Ward: 1 -> 0.2
-UPDATE `creature_template` SET `HealthModifier` = 5 WHERE `entry` = 50115; -- Decaying Colossus: 1 -> 5
-UPDATE `creature_template` SET `HealthModifier` = 0.2 WHERE `entry` = 50120; -- Hexing Effigy: 1 -> 0.2
-UPDATE `creature_template` SET `HealthModifier` = 1.1 WHERE `entry` = 50124; -- Shadowhound: 1 -> 1.1
-UPDATE `creature_template` SET `HealthModifier` = 0.25 WHERE `entry` = 50153; -- Standard of Might: 1 -> 0.25
-UPDATE `creature_template` SET `HealthModifier` = 0.5 WHERE `entry` = 50171; -- Decoy: 1 -> 0.5
-UPDATE `creature_template` SET `HealthModifier` = 1.1 WHERE `entry` = 50224; -- Lesser Shadowhound: 1 -> 1.1
-UPDATE `creature_template` SET `HealthModifier` = 0.3 WHERE `entry` = 50258; -- Phoenix Egg: 1 -> 0.3
-UPDATE `creature_template` SET `HealthModifier` = 0.4 WHERE `entry` = 50261; -- Skeletal Smith: 1 -> 0.4
-UPDATE `creature_template` SET `HealthModifier` = 0.33 WHERE `entry` = 50301; -- Hellfire Imp: 1 -> 0.33
-UPDATE `creature_template` SET `HealthModifier` = 1.1 WHERE `entry` = 50309; -- Bone Wraith: 1 -> 1.1
-UPDATE `creature_template` SET `HealthModifier` = 1.25 WHERE `entry` = 50320; -- Tomb King: 1 -> 1.25
-UPDATE `creature_template` SET `HealthModifier` = 1.25 WHERE `entry` = 50375; -- Hellfire Abyssal: 1 -> 1.25
-UPDATE `creature_template` SET `HealthModifier` = 0.2 WHERE `entry` = 50587; -- Serpent Ward: 1 -> 0.2
-UPDATE `creature_template` SET `HealthModifier` = 0.75 WHERE `entry` = 50600; -- Shrapnel Mine: 1 -> 0.75
-UPDATE `creature_template` SET `HealthModifier` = 40 WHERE `entry` = 50959; -- Void Borne Core Hound: 1 -> 40
-UPDATE `creature_template` SET `HealthModifier` = 0.0001 WHERE `entry` = 51036; -- Shield Beacon: 1 -> 0.0001
-UPDATE `creature_template` SET `HealthModifier` = 0.1 WHERE `entry` = 51104; -- Sentry Ward: 1 -> 0.1
-UPDATE `creature_template` SET `HealthModifier` = 0.25 WHERE `entry` = 52121; -- Brood Trap: 1 -> 0.25
-UPDATE `creature_template` SET `HealthModifier` = 0.0001 WHERE `entry` = 53036; -- Shield Beacon: 1 -> 0.0001
-UPDATE `creature_template` SET `HealthModifier` = 0.0001 WHERE `entry` = 55036; -- Shield Beacon: 1 -> 0.0001
-UPDATE `creature_template` SET `HealthModifier` = 0.25 WHERE `entry` = 60057; -- Standard of Valiance: 1 -> 0.25
-UPDATE `creature_template` SET `HealthModifier` = 0.25 WHERE `entry` = 60058; -- Standard of Valiance: 1 -> 0.25
-UPDATE `creature_template` SET `HealthModifier` = 0.25 WHERE `entry` = 60060; -- Standard of Valiance: 1 -> 0.25
-UPDATE `creature_template` SET `HealthModifier` = 0.25 WHERE `entry` = 60062; -- Standard of Valiance: 1 -> 0.25
-UPDATE `creature_template` SET `HealthModifier` = 0.25 WHERE `entry` = 60065; -- Standard of Supremacy: 1 -> 0.25
-UPDATE `creature_template` SET `HealthModifier` = 0.65 WHERE `entry` = 60070; -- Clockwork Assistant: 1 -> 0.65
-UPDATE `creature_template` SET `HealthModifier` = 1.3 WHERE `entry` = 60671; -- Mechano-Bear: 1 -> 1.3
-UPDATE `creature_template` SET `HealthModifier` = 0.8 WHERE `entry` = 60672; -- Rusthound: 1 -> 0.8
-UPDATE `creature_template` SET `HealthModifier` = 1.25 WHERE `entry` = 73427; -- Harlequin's Book of Ascension: 1 -> 1.25
-UPDATE `creature_template` SET `HealthModifier` = 1.5 WHERE `entry` = 75115; -- Book of Ascension: 1 -> 1.5
-UPDATE `creature_template` SET `HealthModifier` = 0.5 WHERE `entry` = 75120; -- Greedy Demon: 1 -> 0.5
-UPDATE `creature_template` SET `HealthModifier` = 1.5 WHERE `entry` = 75137; -- Bloody Book of Ascension: 1 -> 1.5
-UPDATE `creature_template` SET `HealthModifier` = 0.8 WHERE `entry` = 79055; -- Lil' Chromaggus: 1 -> 0.8
-UPDATE `creature_template` SET `HealthModifier` = 3.125 WHERE `entry` = 80919; -- Cogsley: 1 -> 3.125
-UPDATE `creature_template` SET `HealthModifier` = 1.2 WHERE `entry` = 98500; -- Nightmarish Book of Ascension: 1 -> 1.2
-UPDATE `creature_template` SET `HealthModifier` = 1.25 WHERE `entry` = 108312; -- Destined Book of Ascension: 1 -> 1.25
-UPDATE `creature_template` SET `HealthModifier` = 1.25 WHERE `entry` = 108586; -- Warcraft Reborn Book of Ascension: 1 -> 1.25
-UPDATE `creature_template` SET `HealthModifier` = 1.25 WHERE `entry` = 108587; -- Book of Conquest: 1 -> 1.25
-UPDATE `creature_template` SET `HealthModifier` = 0.25 WHERE `entry` = 220871; -- Standard of Spellwarding: 1 -> 0.25
-UPDATE `creature_template` SET `HealthModifier` = 1.3 WHERE `entry` = 226012; -- Spider Bomb: 1 -> 1.3
-UPDATE `creature_template` SET `HealthModifier` = 1.3 WHERE `entry` = 226112; -- Firepot Drone: 1 -> 1.3
-UPDATE `creature_template` SET `HealthModifier` = 1.3 WHERE `entry` = 226312; -- Deathball: 1 -> 1.3
-UPDATE `creature_template` SET `HealthModifier` = 0.001 WHERE `entry` = 254862; -- Cleansing Idol: 1 -> 0.001
-UPDATE `creature_template` SET `HealthModifier` = 0.25 WHERE `entry` = 300659; -- Mimic Ward: 1 -> 0.25
-UPDATE `creature_template` SET `HealthModifier` = 15.9116 WHERE `entry` = 347770; -- Battle Turret X-13: 1 -> 15.9116
-UPDATE `creature_template` SET `HealthModifier` = 37.2 WHERE `entry` = 357310; -- Primal Flamesaber: 1 -> 37.2
-UPDATE `creature_template` SET `HealthModifier` = 0.0819 WHERE `entry` = 397771; -- Manifestation of Y'Shaarj: 1 -> 0.0819
-UPDATE `creature_template` SET `HealthModifier` = 0.75 WHERE `entry` = 454239; -- Dream Flower: 1 -> 0.75
-UPDATE `creature_template` SET `HealthModifier` = 2.52 WHERE `entry` = 457772; -- Battle Turret X-13: 1 -> 2.52
-UPDATE `creature_template` SET `HealthModifier` = 0.0001 WHERE `entry` = 500360; -- Replenishment Beacon: 1 -> 0.0001
-UPDATE `creature_template` SET `HealthModifier` = 0.0001 WHERE `entry` = 500361; -- Alarm Beacon: 1 -> 0.0001
-UPDATE `creature_template` SET `HealthModifier` = 10.5 WHERE `entry` = 500362; -- MY GREATEST INVENTION: 1 -> 10.5
-UPDATE `creature_template` SET `HealthModifier` = 0.5 WHERE `entry` = 500366; -- Repulsion Unit: 1 -> 0.5
-UPDATE `creature_template` SET `HealthModifier` = 0.1 WHERE `entry` = 500464; -- Eldritch Tentacle: 1 -> 0.1
-UPDATE `creature_template` SET `HealthModifier` = 0.9 WHERE `entry` = 500481; -- ZIGGI-6K: 1 -> 0.9
-UPDATE `creature_template` SET `HealthModifier` = 2.5 WHERE `entry` = 500482; -- Gravebound Champion: 1 -> 2.5
-UPDATE `creature_template` SET `HealthModifier` = 2.5 WHERE `entry` = 500483; -- Spellbound Champion: 1 -> 2.5
-UPDATE `creature_template` SET `HealthModifier` = 2.5 WHERE `entry` = 500484; -- Icebound Champion: 1 -> 2.5
-UPDATE `creature_template` SET `HealthModifier` = 1.3 WHERE `entry` = 500711; -- Clockwork Guardian: 1 -> 1.3
-UPDATE `creature_template` SET `HealthModifier` = 0.05 WHERE `entry` = 522106; -- Spirit Link Idol: 1 -> 0.05
-UPDATE `creature_template` SET `HealthModifier` = 0.25 WHERE `entry` = 523032; -- Zombie: 1 -> 0.25
-UPDATE `creature_template` SET `HealthModifier` = 1.4 WHERE `entry` = 542064; -- Tombstone: 1 -> 1.4
-UPDATE `creature_template` SET `HealthModifier` = 1.4 WHERE `entry` = 542065; -- Risen Ghoul: 1 -> 1.4
-UPDATE `creature_template` SET `HealthModifier` = 0.25 WHERE `entry` = 575091; -- Scourge Transporter: 1 -> 0.25
-UPDATE `creature_template` SET `HealthModifier` = 0.5 WHERE `entry` = 840000; -- Uncanny Likeness: 1 -> 0.5
-UPDATE `creature_template` SET `HealthModifier` = 0.05 WHERE `entry` = 999299; -- Scarab: 1 -> 0.05
+UPDATE `creature_template` SET `HealthModifier` = 0.0105875 WHERE `entry` = 1; -- Waypoint (Only GM can see it)
+UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 46; -- Murloc Forager
+UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 94; -- Defias Cutpurse
+UPDATE `creature_template` SET `HealthModifier` = 1.1616 WHERE `entry` = 113; -- Stonetusk Boar
+UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 118; -- Prowler
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 165; -- [UNUSED] Small Child
+UPDATE `creature_template` SET `HealthModifier` = 3.3792 WHERE `entry` = 193; -- Blue Dragonspawn
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 213; -- Starving Dire Wolf
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 294; -- Marshal Haggard
+UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 299; -- Diseased Young Wolf
+UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 305; -- White Stallion
+UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 306; -- Palomino
+UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 307; -- Pinto
+UPDATE `creature_template` SET `HealthModifier` = 3.008 WHERE `entry` = 334; -- Gath'Ilzogg
+UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 384; -- Katie Hunter
+UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 385; -- Horse
+UPDATE `creature_template` SET `HealthModifier` = 0.9 WHERE `entry` = 428; -- Dire Condor
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 434; -- Rabid Shadowhide Gnoll
+UPDATE `creature_template` SET `HealthModifier` = 3.332 WHERE `entry` = 448; -- Hogger
+UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 474; -- Defias Rogue Wizard
+UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 478; -- Riverpaw Outrunner
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 505; -- Greater Tarantula
+UPDATE `creature_template` SET `HealthModifier` = 3.024 WHERE `entry` = 522; -- Mor'Ladim
+UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 525; -- Mangy Wolf
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 539; -- Pygmy Venom Web Spider
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 565; -- Rabid Dire Wolf
+UPDATE `creature_template` SET `HealthModifier` = 0.01 WHERE `entry` = 620; -- Chicken
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 629; -- Rikki
+UPDATE `creature_template` SET `HealthModifier` = 21.6 WHERE `entry` = 639; -- Edwin VanCleef
+UPDATE `creature_template` SET `HealthModifier` = 1.12 WHERE `entry` = 681; -- Young Stranglethorn Tiger
+UPDATE `creature_template` SET `HealthModifier` = 1.128 WHERE `entry` = 682; -- Stranglethorn Tiger
+UPDATE `creature_template` SET `HealthModifier` = 1.12 WHERE `entry` = 683; -- Young Panther
+UPDATE `creature_template` SET `HealthModifier` = 1.128 WHERE `entry` = 685; -- Stranglethorn Raptor
+UPDATE `creature_template` SET `HealthModifier` = 1.248 WHERE `entry` = 687; -- Jungle Stalker
+UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 704; -- Ragged Timber Wolf
+UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 705; -- Ragged Young Wolf
+UPDATE `creature_template` SET `HealthModifier` = 0.01 WHERE `entry` = 721; -- Rabbit
+UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 729; -- Sin'Dall
+UPDATE `creature_template` SET `HealthModifier` = 3.304 WHERE `entry` = 731; -- King Bangalash
+UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 732; -- Murloc Lurker
+UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 737; -- Kebok
+UPDATE `creature_template` SET `HealthModifier` = 0.564 WHERE `entry` = 740; -- Adolescent Whelp
+UPDATE `creature_template` SET `HealthModifier` = 0.592 WHERE `entry` = 741; -- Dreaming Whelp
+UPDATE `creature_template` SET `HealthModifier` = 4.57 WHERE `entry` = 745; -- Scalebane Captain
+UPDATE `creature_template` SET `HealthModifier` = 1.184 WHERE `entry` = 760; -- Lost One Muckdweller
+UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 764; -- Swampwalker
+UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 765; -- Swampwalker Elder
+UPDATE `creature_template` SET `HealthModifier` = 1.248 WHERE `entry` = 766; -- Tangled Horror
+UPDATE `creature_template` SET `HealthModifier` = 1.184 WHERE `entry` = 767; -- Swamp Jaguar
+UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 773; -- Krazek
+UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 798; -- Solomon
+UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 801; -- Eric
+UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 802; -- Jay
+UPDATE `creature_template` SET `HealthModifier` = 1.56 WHERE `entry` = 818; -- Mai'Zoth
+UPDATE `creature_template` SET `HealthModifier` = 1.2 WHERE `entry` = 822; -- Young Forest Bear
+UPDATE `creature_template` SET `HealthModifier` = 1.184 WHERE `entry` = 858; -- Sorrow Spinner
+UPDATE `creature_template` SET `HealthModifier` = 1.184 WHERE `entry` = 861; -- Stonard Scout
+UPDATE `creature_template` SET `HealthModifier` = 1.328 WHERE `entry` = 864; -- Stonard Orc
+UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 865; -- Stonard Wayfinder
+UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 866; -- Stonard Grunt
+UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 867; -- Stonard Cartographer
+UPDATE `creature_template` SET `HealthModifier` = 0.0112 WHERE `entry` = 883; -- Deer
+UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 908; -- Flora Silverwind
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 923; -- Young Black Ravager
+UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 980; -- Grimnal
+UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 981; -- Hartash
+UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 982; -- Thultash
+UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 983; -- Thultazor
+UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 984; -- Thralosh
+UPDATE `creature_template` SET `HealthModifier` = 1.328 WHERE `entry` = 989; -- Banalash
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 1015; -- Highland Raptor
+UPDATE `creature_template` SET `HealthModifier` = 3.056 WHERE `entry` = 1060; -- Mogh the Undying
+UPDATE `creature_template` SET `HealthModifier` = 1.2 WHERE `entry` = 1068; -- Gorn
+UPDATE `creature_template` SET `HealthModifier` = 1.552 WHERE `entry` = 1081; -- Mire Lord
+UPDATE `creature_template` SET `HealthModifier` = 1.184 WHERE `entry` = 1084; -- Young Sawtooth Crocolisk
+UPDATE `creature_template` SET `HealthModifier` = 1.2 WHERE `entry` = 1188; -- Grizzled Black Bear
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 1198; -- Rallic Finn
+UPDATE `creature_template` SET `HealthModifier` = 3.2 WHERE `entry` = 1210; -- Chok'sul
+UPDATE `creature_template` SET `HealthModifier` = 3.75 WHERE `entry` = 1225; -- Ol' Sooty
+UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 1250; -- Drake Lindgren
+UPDATE `creature_template` SET `HealthModifier` = 5.2 WHERE `entry` = 1364; -- Balgaras the Foul
+UPDATE `creature_template` SET `HealthModifier` = 1.12 WHERE `entry` = 1383; -- Snarl
+UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 1386; -- Rogvar
+UPDATE `creature_template` SET `HealthModifier` = 1.2 WHERE `entry` = 1407; -- Sranda
+UPDATE `creature_template` SET `HealthModifier` = 0.1 WHERE `entry` = 1412; -- Squirrel
+UPDATE `creature_template` SET `HealthModifier` = 0.64449 WHERE `entry` = 1420; -- Toad
+UPDATE `creature_template` SET `HealthModifier` = 2 WHERE `entry` = 1423; -- Stormwind Guard
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 1442; -- Helgrum the Swift
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 1443; -- Fel'zerul
+UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 1488; -- Zanzil Zombie
+UPDATE `creature_template` SET `HealthModifier` = 6 WHERE `entry` = 1493; -- Mok'rash
+UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 1508; -- Young Scavenger
+UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 1509; -- Ragged Scavenger
+UPDATE `creature_template` SET `HealthModifier` = 0.837 WHERE `entry` = 1512; -- Duskbat
+UPDATE `creature_template` SET `HealthModifier` = 0.9504 WHERE `entry` = 1553; -- Greater Duskbat
+UPDATE `creature_template` SET `HealthModifier` = 0.864 WHERE `entry` = 1554; -- Vampiric Duskbat
+UPDATE `creature_template` SET `HealthModifier` = 8.5 WHERE `entry` = 1559; -- King Mukla
+UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 1650; -- Terry Palin
+UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 1765; -- Worg
+UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 1766; -- Mottled Worg
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 1775; -- Zun'dartha
+UPDATE `creature_template` SET `HealthModifier` = 1.176 WHERE `entry` = 1778; -- Ferocious Grizzled Bear
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 1780; -- Moss Stalker
+UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 1791; -- Slavering Ghoul
+UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 1793; -- Rotting Ghoul
+UPDATE `creature_template` SET `HealthModifier` = 1.36 WHERE `entry` = 1794; -- Soulless Ghoul
+UPDATE `creature_template` SET `HealthModifier` = 3.86 WHERE `entry` = 1805; -- Flesh Golem
+UPDATE `creature_template` SET `HealthModifier` = 1.576 WHERE `entry` = 1815; -- Diseased Black Bear
+UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 1817; -- Diseased Wolf
+UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 1821; -- Carrion Lurker
+UPDATE `creature_template` SET `HealthModifier` = 40 WHERE `entry` = 1853; -- Darkmaster Gandling
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 1938; -- Dalar Dawnweaver
+UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 1975; -- Eastvale Lumberjack
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 2069; -- Moonstalker
+UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 2070; -- Moonstalker Runt
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 2071; -- Moonstalker Matriarch
+UPDATE `creature_template` SET `HealthModifier` = 0.038 WHERE `entry` = 2110; -- Black Rat
+UPDATE `creature_template` SET `HealthModifier` = 8 WHERE `entry` = 2142; -- Watcher Callahan
+UPDATE `creature_template` SET `HealthModifier` = 1.0625 WHERE `entry` = 2156; -- Cracked Golem
+UPDATE `creature_template` SET `HealthModifier` = 1.0625 WHERE `entry` = 2157; -- Stone Behemoth
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 2158; -- Gravelflint Scout
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 2159; -- Gravelflint Bonesnapper
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 2160; -- Gravelflint Geomancer
+UPDATE `creature_template` SET `HealthModifier` = 1.225 WHERE `entry` = 2163; -- Thistle Bear
+UPDATE `creature_template` SET `HealthModifier` = 1.25 WHERE `entry` = 2164; -- Rabid Thistle Bear
+UPDATE `creature_template` SET `HealthModifier` = 1.25 WHERE `entry` = 2165; -- Grizzled Thistle Bear
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 2167; -- Blackwood Pathfinder
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 2168; -- Blackwood Warrior
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 2169; -- Blackwood Totemic
+UPDATE `creature_template` SET `HealthModifier` = 2 WHERE `entry` = 2172; -- Strider Clutchmother
+UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 2176; -- Cursed Highborne
+UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 2177; -- Writhing Highborne
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 2193; -- Vibrant Kelpfin
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 2237; -- Moonstalker Sire
+UPDATE `creature_template` SET `HealthModifier` = 3.4 WHERE `entry` = 2257; -- Mug'thol
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 2261; -- Syndicate Watchman
+UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 2321; -- Foreststrider Fledgling
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 2322; -- Foreststrider
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 2323; -- Giant Foreststrider
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 2324; -- Blackwood Windtalker
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 2338; -- Twilight Disciple
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 2339; -- Twilight Thug
+UPDATE `creature_template` SET `HealthModifier` = 1.3 WHERE `entry` = 2351; -- Gray Bear
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 2384; -- Starving Mountain Lion
+UPDATE `creature_template` SET `HealthModifier` = 1.232 WHERE `entry` = 2408; -- Snapjaw
+UPDATE `creature_template` SET `HealthModifier` = 0.0112 WHERE `entry` = 2442; -- Cow
+UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 2482; -- Zarena Cromwind
+UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 2486; -- Fin Fizracket
+UPDATE `creature_template` SET `HealthModifier` = 1.5204 WHERE `entry` = 2487; -- Fleet Master Seahorn
+UPDATE `creature_template` SET `HealthModifier` = 1.128 WHERE `entry` = 2488; -- Deeg
+UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 2490; -- First Mate Crazz
+UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 2491; -- Whiskey Slim
+UPDATE `creature_template` SET `HealthModifier` = 1.248 WHERE `entry` = 2493; -- Dizzy One-Eye
+UPDATE `creature_template` SET `HealthModifier` = 1.2 WHERE `entry` = 2494; -- Privateer Bloads
+UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 2495; -- Drizzlik
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 2496; -- Baron Revilgaz
+UPDATE `creature_template` SET `HealthModifier` = 1.128 WHERE `entry` = 2498; -- Crank Fizzlebub
+UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 2500; -- Captain Hecklebury Smotts
+UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 2501; -- "Sea Wolf" MacKinley
+UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 2502; -- "Shaky" Phillipe
+UPDATE `creature_template` SET `HealthModifier` = 1.4432 WHERE `entry` = 2505; -- Saltwater Snapjaw
+UPDATE `creature_template` SET `HealthModifier` = 1.328 WHERE `entry` = 2542; -- Catelyn the Blade
+UPDATE `creature_template` SET `HealthModifier` = 1.248 WHERE `entry` = 2544; -- Southern Sand Crawler
+UPDATE `creature_template` SET `HealthModifier` = 1.12 WHERE `entry` = 2559; -- Highland Strider
+UPDATE `creature_template` SET `HealthModifier` = 1.128 WHERE `entry` = 2560; -- Highland Thrasher
+UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 2594; -- Sprogger
+UPDATE `creature_template` SET `HealthModifier` = 7.2 WHERE `entry` = 2597; -- Lord Falconcrest
+UPDATE `creature_template` SET `HealthModifier` = 0.2 WHERE `entry` = 2620; -- Prairie Dog
+UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 2622; -- Sly Garrett
+UPDATE `creature_template` SET `HealthModifier` = 3.088 WHERE `entry` = 2625; -- Viznik Goldgrubber
+UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 2626; -- Old Man Heming
+UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 2663; -- Narkk
+UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 2664; -- Kelsey Yance
+UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 2670; -- Xizk Goodstitch
+UPDATE `creature_template` SET `HealthModifier` = 0.2 WHERE `entry` = 2671; -- Mechanical Squirrel
+UPDATE `creature_template` SET `HealthModifier` = 1.184 WHERE `entry` = 2685; -- Mazk Snipeshot
+UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 2699; -- Rikqiz
+UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 2701; -- Dustbelcher Ogre
+UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 2715; -- Dustbelcher Brute
+UPDATE `creature_template` SET `HealthModifier` = 1.248 WHERE `entry` = 2716; -- Dustbelcher Wyrmhunter
+UPDATE `creature_template` SET `HealthModifier` = 1.248 WHERE `entry` = 2717; -- Dustbelcher Mauler
+UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 2718; -- Dustbelcher Shaman
+UPDATE `creature_template` SET `HealthModifier` = 1.184 WHERE `entry` = 2727; -- Crag Coyote
+UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 2728; -- Feral Crag Coyote
+UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 2729; -- Elder Crag Coyote
+UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 2732; -- Ridge Huntress
+UPDATE `creature_template` SET `HealthModifier` = 1.248 WHERE `entry` = 2734; -- Ridge Stalker Patriarch
+UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 2735; -- Lesser Rock Elemental
+UPDATE `creature_template` SET `HealthModifier` = 3.056 WHERE `entry` = 2745; -- Ambassador Infernus
+UPDATE `creature_template` SET `HealthModifier` = 42.4 WHERE `entry` = 2748; -- Archaedas
+UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 2817; -- Rigglefuzz
+UPDATE `creature_template` SET `HealthModifier` = 1.0728 WHERE `entry` = 2830; -- Buzzard
+UPDATE `creature_template` SET `HealthModifier` = 1.1232 WHERE `entry` = 2831; -- Giant Buzzard
+UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 2832; -- Nixxrax Fillamug
+UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 2834; -- Myizz Luckycatch
+UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 2836; -- Brikk Keencraft
+UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 2837; -- Jaxin Chong
+UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 2838; -- Crazk Sparks
+UPDATE `creature_template` SET `HealthModifier` = 1.248 WHERE `entry` = 2839; -- Haren Kanmae
+UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 2840; -- Kizz Bluntstrike
+UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 2842; -- Wigcik
+UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 2844; -- Hurklor
+UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 2845; -- Fargon Mortalak
+UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 2846; -- Blixrez Goodstitch
+UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 2847; -- Jansen Underwood
+UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 2848; -- Glyx Brewright
+UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 2849; -- Qixdi Goodstitch
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 2850; -- Broken Tooth
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 2855; -- Snang
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 2857; -- Thund
+UPDATE `creature_template` SET `HealthModifier` = 22.5 WHERE `entry` = 2858; -- Gringer
+UPDATE `creature_template` SET `HealthModifier` = 22.5 WHERE `entry` = 2859; -- Gyll
+UPDATE `creature_template` SET `HealthModifier` = 22.5 WHERE `entry` = 2861; -- Gorrik
+UPDATE `creature_template` SET `HealthModifier` = 1.328 WHERE `entry` = 2888; -- Garek
+UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 2907; -- Dustbelcher Mystic
+UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 2908; -- Grawl
+UPDATE `creature_template` SET `HealthModifier` = 0.64449 WHERE `entry` = 2914; -- Snake
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 2917; -- Prospector Remtravel
+UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 2926; -- Silvermane Stalker
+UPDATE `creature_template` SET `HealthModifier` = 4.5 WHERE `entry` = 2931; -- Zaricotl
+UPDATE `creature_template` SET `HealthModifier` = 1.248 WHERE `entry` = 2944; -- Boss Tho'grun
+UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 2949; -- Palemane Tanner
+UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 2950; -- Palemane Skinner
+UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 2951; -- Palemane Poacher
+UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 2955; -- Plainstrider
+UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 2956; -- Adult Plainstrider
+UPDATE `creature_template` SET `HealthModifier` = 0.96 WHERE `entry` = 2957; -- Elder Plainstrider
+UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 2958; -- Prairie Wolf
+UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 2959; -- Prairie Stalker
+UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 2960; -- Prairie Wolf Alpha
+UPDATE `creature_template` SET `HealthModifier` = 1.023 WHERE `entry` = 2961; -- Mountain Cougar
+UPDATE `creature_template` SET `HealthModifier` = 0.96 WHERE `entry` = 2967; -- Galak Centaur
+UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 2968; -- Galak Outrunner
+UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 2969; -- Wiry Swoop
+UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 2970; -- Swoop
+UPDATE `creature_template` SET `HealthModifier` = 0.96 WHERE `entry` = 2971; -- Taloned Swoop
+UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 2975; -- Venture Co. Hireling
+UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 3035; -- Flatland Cougar
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3051; -- Supervisor Fizsprocket
+UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 3098; -- Mottled Boar
+UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 3099; -- Dire Mottled Boar
+UPDATE `creature_template` SET `HealthModifier` = 0.96 WHERE `entry` = 3100; -- Elder Mottled Boar
+UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 3106; -- Pygmy Surf Crawler
+UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 3110; -- Dreadmaw Crocolisk
+UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 3121; -- Durotar Tiger
+UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 3122; -- Bloodtalon Taillasher
+UPDATE `creature_template` SET `HealthModifier` = 0.96 WHERE `entry` = 3123; -- Bloodtalon Scythemaw
+UPDATE `creature_template` SET `HealthModifier` = 1.023 WHERE `entry` = 3124; -- Scorpid Worker
+UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 3126; -- Armored Scorpid
+UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 3127; -- Venomtail Scorpid
+UPDATE `creature_template` SET `HealthModifier` = 1.024 WHERE `entry` = 3134; -- Kzixx
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3144; -- Eitrigg
+UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 3189; -- Kor'ghan
+UPDATE `creature_template` SET `HealthModifier` = 0.96 WHERE `entry` = 3190; -- Rhinag
+UPDATE `creature_template` SET `HealthModifier` = 0.75 WHERE `entry` = 3203; -- Fizzle Darkstorm
+UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 3216; -- Neeru Fireblade
+UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 3225; -- Corrupted Mottled Boar
+UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 3226; -- Corrupted Scorpid
+UPDATE `creature_template` SET `HealthModifier` = 1.25 WHERE `entry` = 3234; -- Lost Barrens Kodo
+UPDATE `creature_template` SET `HealthModifier` = 1.275 WHERE `entry` = 3235; -- Greater Barrens Kodo
+UPDATE `creature_template` SET `HealthModifier` = 1.25 WHERE `entry` = 3236; -- Barrens Kodo
+UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 3237; -- Wooly Kodo
+UPDATE `creature_template` SET `HealthModifier` = 1.275 WHERE `entry` = 3238; -- Stormhide
+UPDATE `creature_template` SET `HealthModifier` = 1.275 WHERE `entry` = 3239; -- Thunderhead
+UPDATE `creature_template` SET `HealthModifier` = 1.25 WHERE `entry` = 3240; -- Stormsnout
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3242; -- Zhevra Runner
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3243; -- Savannah Highmane
+UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 3244; -- Greater Plainstrider
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3245; -- Ornery Plainstrider
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3246; -- Fleeting Plainstrider
+UPDATE `creature_template` SET `HealthModifier` = 0.8 WHERE `entry` = 3247; -- Thunderhawk Hatchling
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3248; -- Barrens Giraffe
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 3249; -- Greater Thunderhawk
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 3250; -- Silithid Creeper
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3251; -- Silithid Grub
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 3252; -- Silithid Swarmer
+UPDATE `creature_template` SET `HealthModifier` = 0.784 WHERE `entry` = 3254; -- Sunscale Lashtail
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3255; -- Sunscale Screecher
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3256; -- Sunscale Scytheclaw
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3257; -- Ishamuhale
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3258; -- Bristleback Hunter
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3260; -- Bristleback Water Seeker
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3261; -- Bristleback Thornweaver
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3263; -- Bristleback Geomancer
+UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 3265; -- Razormane Hunter
+UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 3267; -- Razormane Water Seeker
+UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 3268; -- Razormane Thornweaver
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3272; -- Kolkar Wrangler
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3273; -- Kolkar Stormer
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3274; -- Kolkar Pack Runner
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3275; -- Kolkar Marauder
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3283; -- Venture Co. Enforcer
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3286; -- Venture Co. Overseer
+UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 3292; -- Brewmaster Drohn
+UPDATE `creature_template` SET `HealthModifier` = 20 WHERE `entry` = 3296; -- Orgrimmar Grunt
+UPDATE `creature_template` SET `HealthModifier` = 0.01 WHERE `entry` = 3300; -- Adder
+UPDATE `creature_template` SET `HealthModifier` = 3.064 WHERE `entry` = 3309; -- Karus
+UPDATE `creature_template` SET `HealthModifier` = 22.5 WHERE `entry` = 3310; -- Doras
+UPDATE `creature_template` SET `HealthModifier` = 1.328 WHERE `entry` = 3312; -- Olvia
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3313; -- Trak'gen
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3314; -- Urtharo
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3315; -- Tor'phan
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3316; -- Handor
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3317; -- Ollanus
+UPDATE `creature_template` SET `HealthModifier` = 3.064 WHERE `entry` = 3318; -- Koma
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3319; -- Sana
+UPDATE `creature_template` SET `HealthModifier` = 3.064 WHERE `entry` = 3320; -- Soran
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3321; -- Morgum
+UPDATE `creature_template` SET `HealthModifier` = 1.1256 WHERE `entry` = 3322; -- Kaja
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3323; -- Horthus
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3329; -- Kor'jus
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3330; -- Muragus
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3331; -- Kareth
+UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 3332; -- Lumak
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3333; -- Shankys
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3334; -- Rekkul
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3335; -- Hagrus
+UPDATE `creature_template` SET `HealthModifier` = 20 WHERE `entry` = 3338; -- Sergra Darkthorn
+UPDATE `creature_template` SET `HealthModifier` = 1.024 WHERE `entry` = 3339; -- Captain Thalo'thas Brightsun
+UPDATE `creature_template` SET `HealthModifier` = 1.05 WHERE `entry` = 3341; -- Gann Stonespire
+UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 3342; -- Shan'ti
+UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 3345; -- Godan
+UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 3346; -- Kithas
+UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 3347; -- Yelmak
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3348; -- Kor'geld
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3349; -- Ukra'nor
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3350; -- Asoran
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3351; -- Magenius
+UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 3355; -- Saru Steelfury
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3356; -- Sumi
+UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 3357; -- Makaru
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3358; -- Gorina
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3359; -- Kiro
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3360; -- Koru
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3361; -- Shoma
+UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 3362; -- Ogunaro Wolfrunner
+UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 3363; -- Magar
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3364; -- Borya
+UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 3365; -- Karolek
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3366; -- Tamar
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3367; -- Felika
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3368; -- Borstan
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3369; -- Gotri
+UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 3370; -- Urtrun Clanbringer
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3371; -- Tamaro
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3372; -- Sarlek
+UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 3373; -- Arnok
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 3374; -- Bael'dun Excavator
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 3375; -- Bael'dun Foreman
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 3376; -- Bael'dun Soldier
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 3377; -- Bael'dun Rifleman
+UPDATE `creature_template` SET `HealthModifier` = 1.064 WHERE `entry` = 3378; -- Bael'dun Officer
+UPDATE `creature_template` SET `HealthModifier` = 1.1844 WHERE `entry` = 3387; -- Jorn Skyseer
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 3390; -- Apothecary Helbrim
+UPDATE `creature_template` SET `HealthModifier` = 1.05 WHERE `entry` = 3392; -- Prospector Khazgorm
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3396; -- Hezrul Bloodmark
+UPDATE `creature_template` SET `HealthModifier` = 0.85 WHERE `entry` = 3397; -- Kolkar Bloodcharger
+UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 3399; -- Zamja
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3400; -- Xen'to
+UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 3402; -- Zando'zan
+UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 3404; -- Jandi
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3405; -- Zeal'aya
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3409; -- Zendo'jian
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3410; -- Jin'sora
+UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 3412; -- Nogg
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3413; -- Sovik
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3414; -- General Twinbraid
+UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 3415; -- Savannah Huntress
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3416; -- Savannah Matriarch
+UPDATE `creature_template` SET `HealthModifier` = 1.071 WHERE `entry` = 3418; -- Kirge Sternhorn
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 3421; -- Feegly the Exiled
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 3424; -- Thunderhawk Cloudscraper
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3425; -- Savannah Prowler
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3426; -- Zhevra Charger
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3428; -- Korran
+UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 3429; -- Thork
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3430; -- Mangletooth
+UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 3431; -- Grenthar
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3432; -- Mankrik
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3433; -- Tatternack Steelforge
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 3434; -- Nak
+UPDATE `creature_template` SET `HealthModifier` = 1.024 WHERE `entry` = 3435; -- Lok Orcbane
+UPDATE `creature_template` SET `HealthModifier` = 2 WHERE `entry` = 3436; -- Kuz
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3442; -- Sputtervalve
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3443; -- Grub
+UPDATE `creature_template` SET `HealthModifier` = 2.31e-07 WHERE `entry` = 3444; -- Dig Rat
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3446; -- Mebok Mizzyrix
+UPDATE `creature_template` SET `HealthModifier` = 1.071 WHERE `entry` = 3448; -- Tonga Runetotem
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3449; -- Darsok Swiftdagger
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3453; -- Wharfmaster Dizzywig
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 3456; -- Razormane Pathfinder
+UPDATE `creature_template` SET `HealthModifier` = 0.9 WHERE `entry` = 3457; -- Razormane Stalker
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 3458; -- Razormane Seer
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 3459; -- Razormane Warfrenzy
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3461; -- Oasis Snapjaw
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3463; -- Wandering Barrens Giraffe
+UPDATE `creature_template` SET `HealthModifier` = 1.024 WHERE `entry` = 3464; -- Gazrog
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 3466; -- Zhevra Courser
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3471; -- Tinkerer Sniggles
+UPDATE `creature_template` SET `HealthModifier` = 1.024 WHERE `entry` = 3472; -- Washte Pawne
+UPDATE `creature_template` SET `HealthModifier` = 1.275 WHERE `entry` = 3473; -- Owatanka
+UPDATE `creature_template` SET `HealthModifier` = 1.275 WHERE `entry` = 3474; -- Lakota'mani
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3475; -- Echeyakee
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3477; -- Hraq
+UPDATE `creature_template` SET `HealthModifier` = 1.12 WHERE `entry` = 3478; -- Traugh
+UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 3479; -- Nargal Deatheye
+UPDATE `creature_template` SET `HealthModifier` = 1.05 WHERE `entry` = 3480; -- Moorane Hearthgrain
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3481; -- Barg
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3482; -- Tari'qa
+UPDATE `creature_template` SET `HealthModifier` = 1.071 WHERE `entry` = 3483; -- Jahan Hawkwing
+UPDATE `creature_template` SET `HealthModifier` = 1.024 WHERE `entry` = 3484; -- Kil'hala
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3485; -- Wrahk
+UPDATE `creature_template` SET `HealthModifier` = 1.05 WHERE `entry` = 3486; -- Halija Whitestrider
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 3487; -- Kalyimah Stormcloud
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3488; -- Uthrok
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3489; -- Zargh
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 3490; -- Hula'mahi
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 3491; -- Ironzar
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 3492; -- Vexspindle
+UPDATE `creature_template` SET `HealthModifier` = 1.024 WHERE `entry` = 3493; -- Grazlix
+UPDATE `creature_template` SET `HealthModifier` = 1.024 WHERE `entry` = 3494; -- Tinkerwiz
+UPDATE `creature_template` SET `HealthModifier` = 3.064 WHERE `entry` = 3496; -- Fuzruckle
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 3497; -- Kilxx
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 3498; -- Jazzik
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 3499; -- Ranik
+UPDATE `creature_template` SET `HealthModifier` = 1.344 WHERE `entry` = 3500; -- Tarhus
+UPDATE `creature_template` SET `HealthModifier` = 2.048 WHERE `entry` = 3501; -- Horde Guard
+UPDATE `creature_template` SET `HealthModifier` = 34 WHERE `entry` = 3502; -- Ratchet Bruiser
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 3572; -- Zizzek
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3584; -- Therylune
+UPDATE `creature_template` SET `HealthModifier` = 22.5 WHERE `entry` = 3615; -- Devrak
+UPDATE `creature_template` SET `HealthModifier` = 1.328 WHERE `entry` = 3621; -- Kurll
+UPDATE `creature_template` SET `HealthModifier` = 1.2 WHERE `entry` = 3622; -- Grokor
+UPDATE `creature_template` SET `HealthModifier` = 3.75 WHERE `entry` = 3630; -- Deviate Coiler
+UPDATE `creature_template` SET `HealthModifier` = 3.75 WHERE `entry` = 3631; -- Deviate Stinglash
+UPDATE `creature_template` SET `HealthModifier` = 3.75 WHERE `entry` = 3632; -- Deviate Creeper
+UPDATE `creature_template` SET `HealthModifier` = 3.75 WHERE `entry` = 3633; -- Deviate Slayer
+UPDATE `creature_template` SET `HealthModifier` = 3.75 WHERE `entry` = 3634; -- Deviate Stalker
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 3637; -- Deviate Guardian
+UPDATE `creature_template` SET `HealthModifier` = 3.75 WHERE `entry` = 3638; -- Devouring Ectoplasm
+UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 3639; -- Sentinel Tysha Moonblade
+UPDATE `creature_template` SET `HealthModifier` = 3.75 WHERE `entry` = 3641; -- Deviate Lurker
+UPDATE `creature_template` SET `HealthModifier` = 22.56 WHERE `entry` = 3654; -- Mutanus the Devourer
+UPDATE `creature_template` SET `HealthModifier` = 4.125 WHERE `entry` = 3655; -- Mad Magglish
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3658; -- Lizzarik
+UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 3659; -- Jorb
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3663; -- Delgren the Purifier
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3665; -- Crane Operator Bigglefuzz
+UPDATE `creature_template` SET `HealthModifier` = 1.5 WHERE `entry` = 3672; -- Boahn
+UPDATE `creature_template` SET `HealthModifier` = 0.2 WHERE `entry` = 3680; -- Serpentbloom Snake
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3695; -- Grimclaw
+UPDATE `creature_template` SET `HealthModifier` = 1.3188 WHERE `entry` = 3703; -- Krulmoo Fullmoon
+UPDATE `creature_template` SET `HealthModifier` = 1.176 WHERE `entry` = 3704; -- Mahani
+UPDATE `creature_template` SET `HealthModifier` = 1.0752 WHERE `entry` = 3705; -- Gahroot
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 3711; -- Wrathtail Myrmidon
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3712; -- Wrathtail Razortail
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3713; -- Wrathtail Wave Rider
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3715; -- Wrathtail Sea Witch
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3717; -- Wrathtail Sorceress
+UPDATE `creature_template` SET `HealthModifier` = 1.1704 WHERE `entry` = 3771; -- Bleakheart Hellcaller
+UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 3782; -- Shadethicket Stone Mover
+UPDATE `creature_template` SET `HealthModifier` = 1.064 WHERE `entry` = 3784; -- Shadethicket Bark Ripper
+UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 3797; -- Cenarion Protector
+UPDATE `creature_template` SET `HealthModifier` = 1.27 WHERE `entry` = 3809; -- Ashenvale Bear
+UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 3810; -- Elder Ashenvale Bear
+UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 3811; -- Giant Ashenvale Bear
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3812; -- Clattering Crawler
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 3814; -- Spined Crawler
+UPDATE `creature_template` SET `HealthModifier` = 0.532 WHERE `entry` = 3815; -- Blink Dragon
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3816; -- Wild Buck
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 3817; -- Shadowhorn Stag
+UPDATE `creature_template` SET `HealthModifier` = 1.064 WHERE `entry` = 3818; -- Elder Shadowhorn Stag
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 3819; -- Wildthorn Stalker
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 3820; -- Wildthorn Venomspitter
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3823; -- Ghostpaw Runner
+UPDATE `creature_template` SET `HealthModifier` = 1.064 WHERE `entry` = 3825; -- Ghostpaw Alpha
+UPDATE `creature_template` SET `HealthModifier` = 0.216 WHERE `entry` = 3835; -- Biletoad
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3844; -- Healing Ward IV
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3846; -- Talen
+UPDATE `creature_template` SET `HealthModifier` = 1.064 WHERE `entry` = 3847; -- Orendil Broadleaf
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 3861; -- Bleak Worg
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 3862; -- Slavering Worg
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 3902; -- Searing Totem II
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 3928; -- Rotting Slime
+UPDATE `creature_template` SET `HealthModifier` = 1.1256 WHERE `entry` = 3934; -- Innkeeper Boorand Plainswind
+UPDATE `creature_template` SET `HealthModifier` = 1.024 WHERE `entry` = 3945; -- Caravaneer Ruzzgot
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 3953; -- Tandaan Lightmane
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 3954; -- Dalria
+UPDATE `creature_template` SET `HealthModifier` = 1.064 WHERE `entry` = 3962; -- Haljan Oakheart
+UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 3967; -- Aayndia Floralwind
+UPDATE `creature_template` SET `HealthModifier` = 16 WHERE `entry` = 3975; -- Herod
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 4004; -- Windshear Overlord
+UPDATE `creature_template` SET `HealthModifier` = 0.75 WHERE `entry` = 4007; -- Deepmoss Venomspitter
+UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 4031; -- Fledgling Chimaera
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 4032; -- Young Chimaera
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 4036; -- Rogue Flame Spirit
+UPDATE `creature_template` SET `HealthModifier` = 0.96 WHERE `entry` = 4043; -- Galthuk
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 4054; -- Laughing Sister
+UPDATE `creature_template` SET `HealthModifier` = 2.31e-07 WHERE `entry` = 4075; -- Rat
+UPDATE `creature_template` SET `HealthModifier` = 0.231 WHERE `entry` = 4076; -- Roach
+UPDATE `creature_template` SET `HealthModifier` = 1.064 WHERE `entry` = 4119; -- Elder Cloud Serpent
+UPDATE `creature_template` SET `HealthModifier` = 1.064 WHERE `entry` = 4124; -- Needles Cougar
+UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 4126; -- Crag Stalker
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 4127; -- Hecklefang Hyena
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 4128; -- Hecklefang Stalker
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 4129; -- Hecklefang Snarler
+UPDATE `creature_template` SET `HealthModifier` = 1.12 WHERE `entry` = 4142; -- Sparkleshell Tortoise
+UPDATE `creature_template` SET `HealthModifier` = 0.22 WHERE `entry` = 4166; -- Gazelle
+UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 4184; -- Geenia Sunshadow
+UPDATE `creature_template` SET `HealthModifier` = 1.064 WHERE `entry` = 4202; -- Gerenzo Wrenchwhistle
+UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 4271; -- Dire Wolf
+UPDATE `creature_template` SET `HealthModifier` = 21.28 WHERE `entry` = 4275; -- Archmage Arugal
+UPDATE `creature_template` SET `HealthModifier` = 0.33 WHERE `entry` = 4277; -- Eye of Kilrogg
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 4311; -- Holgar Stormaxe
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 4316; -- Kolkar Packhound
+UPDATE `creature_template` SET `HealthModifier` = 3.81 WHERE `entry` = 4339; -- Brimgore
+UPDATE `creature_template` SET `HealthModifier` = 3 WHERE `entry` = 4374; -- Strashaz Hydra
+UPDATE `creature_template` SET `HealthModifier` = 16 WHERE `entry` = 4421; -- Charlga Razorflank
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 4436; -- Razorfen Quilguard
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 4484; -- Feero Ironhand
+UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 4485; -- Belgrom Rockmaul
+UPDATE `creature_template` SET `HealthModifier` = 4.4 WHERE `entry` = 4512; -- Rotting Agam'ar
+UPDATE `creature_template` SET `HealthModifier` = 3.6 WHERE `entry` = 4538; -- Kraul Bat
+UPDATE `creature_template` SET `HealthModifier` = 16 WHERE `entry` = 4543; -- Bloodmage Thalnos
+UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 4544; -- Krueg Skullsplitter
+UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 4618; -- Martek the Exiled
+UPDATE `creature_template` SET `HealthModifier` = 34 WHERE `entry` = 4624; -- Booty Bay Bruiser
+UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 4631; -- Wharfmaster Lozgil
+UPDATE `creature_template` SET `HealthModifier` = 0.432 WHERE `entry` = 4688; -- Bonepaw Hyena
+UPDATE `creature_template` SET `HealthModifier` = 1.128 WHERE `entry` = 4697; -- Scorpashi Lasher
+UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 4732; -- Randal Hunter
+UPDATE `creature_template` SET `HealthModifier` = 1.328 WHERE `entry` = 4752; -- Kildar
+UPDATE `creature_template` SET `HealthModifier` = 0.1 WHERE `entry` = 4769; -- Hufftalon
+UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 4779; -- Brown Ram
+UPDATE `creature_template` SET `HealthModifier` = 4.4 WHERE `entry` = 4824; -- Aku'mai Fisher
+UPDATE `creature_template` SET `HealthModifier` = 27.36 WHERE `entry` = 4829; -- Aku'mai
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 4847; -- Shadowforge Relic Hunter
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 4848; -- Shadowforge Darkcaster
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 4849; -- Shadowforge Archaeologist
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 4850; -- Stonevault Cave Lurker
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 4851; -- Stonevault Rockchewer
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 4852; -- Stonevault Oracle
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 4853; -- Stonevault Geomancer
+UPDATE `creature_template` SET `HealthModifier` = 14.136 WHERE `entry` = 4854; -- Grimlok
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 4855; -- Stonevault Brawler
+UPDATE `creature_template` SET `HealthModifier` = 5 WHERE `entry` = 4857; -- Stone Keeper
+UPDATE `creature_template` SET `HealthModifier` = 5 WHERE `entry` = 4860; -- Stone Steward
+UPDATE `creature_template` SET `HealthModifier` = 3.6 WHERE `entry` = 4861; -- Shrike Bat
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 4863; -- Jadespine Basilisk
+UPDATE `creature_template` SET `HealthModifier` = 2000 WHERE `entry` = 4949; -- Thrall
+UPDATE `creature_template` SET `HealthModifier` = 0.2 WHERE `entry` = 4953; -- Moccasin
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 5048; -- Deviate Adder
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 5056; -- Deviate Dreadfang
+UPDATE `creature_template` SET `HealthModifier` = 3 WHERE `entry` = 5185; -- Hammerhead Shark
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 5188; -- Garyl
+UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 5195; -- Brown Riding Wolf
+UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 5198; -- Arctic Riding Wolf
+UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 5232; -- Gordunni Brute
+UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 5234; -- Gordunni Mauler
+UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 5236; -- Gordunni Shaman
+UPDATE `creature_template` SET `HealthModifier` = 1.248 WHERE `entry` = 5237; -- Gordunni Ogre Mage
+UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 5238; -- Gordunni Battlemaster
+UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 5239; -- Gordunni Mage-Lord
+UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 5240; -- Gordunni Warlock
+UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 5241; -- Gordunni Warlord
+UPDATE `creature_template` SET `HealthModifier` = 1.248 WHERE `entry` = 5249; -- Woodpaw Mongrel
+UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 5260; -- Groddoc Ape
+UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 5262; -- Groddoc Thunderer
+UPDATE `creature_template` SET `HealthModifier` = 1.248 WHERE `entry` = 5268; -- Ironfur Bear
+UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 5272; -- Grizzled Ironfur Bear
+UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 5274; -- Ironfur Patriarch
+UPDATE `creature_template` SET `HealthModifier` = 0.628 WHERE `entry` = 5278; -- Sprite Darter
+UPDATE `creature_template` SET `HealthModifier` = 1.248 WHERE `entry` = 5286; -- Longtooth Runner
+UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 5287; -- Longtooth Howler
+UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 5288; -- Rabid Longtooth
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 5291; -- Hakkari Frostwing
+UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 5308; -- Rogue Vale Screecher
+UPDATE `creature_template` SET `HealthModifier` = 156.25 WHERE `entry` = 5312; -- Lethlas
+UPDATE `creature_template` SET `HealthModifier` = 30.8 WHERE `entry` = 5317; -- Jademir Oracle
+UPDATE `creature_template` SET `HealthModifier` = 30.8 WHERE `entry` = 5319; -- Jademir Tree Warder
+UPDATE `creature_template` SET `HealthModifier` = 28 WHERE `entry` = 5320; -- Jademir Boughguard
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 5324; -- Snowfluff Slumbertooth
+UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 5327; -- Coast Crawl Snapclaw
+UPDATE `creature_template` SET `HealthModifier` = 4.608 WHERE `entry` = 5359; -- Shore Strider
+UPDATE `creature_template` SET `HealthModifier` = 4.596 WHERE `entry` = 5360; -- Deep Strider
+UPDATE `creature_template` SET `HealthModifier` = 1.3356 WHERE `entry` = 5390; -- Sage Palerunner
+UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 5394; -- Neeka Bloodscar
+UPDATE `creature_template` SET `HealthModifier` = 3.84 WHERE `entry` = 5401; -- Kazkaz the Unholy
+UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 5405; -- Pinto
+UPDATE `creature_template` SET `HealthModifier` = 1.2 WHERE `entry` = 5414; -- Apothecary Faustin
+UPDATE `creature_template` SET `HealthModifier` = 1.2 WHERE `entry` = 5416; -- Infiltrator Marksen
+UPDATE `creature_template` SET `HealthModifier` = 1.2 WHERE `entry` = 5418; -- Deathstalker Zraedus
+UPDATE `creature_template` SET `HealthModifier` = 1.1304 WHERE `entry` = 5429; -- Fire Roc
+UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 5441; -- Hazzali Wasp
+UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 5462; -- Sea Spray
+UPDATE `creature_template` SET `HealthModifier` = 4.5 WHERE `entry` = 5470; -- Raging Dune Smasher
+UPDATE `creature_template` SET `HealthModifier` = 1.128 WHERE `entry` = 5476; -- Watcher Biggs
+UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 5477; -- Noboru the Cudgel
+UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 5546; -- Grunt Zuul
+UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 5547; -- Grunt Tharlak
+UPDATE `creature_template` SET `HealthModifier` = 1.2 WHERE `entry` = 5591; -- Dar
+UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 5597; -- Grunt Komak
+UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 5603; -- Grunt Mojka
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 5606; -- Goma
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 5609; -- Zazo
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 5610; -- Kozish
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 5611; -- Barkeep Morag
+UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 5613; -- Doyo'da
+UPDATE `creature_template` SET `HealthModifier` = 1.024 WHERE `entry` = 5614; -- Sarok
+UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 5639; -- Craven Drok
+UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 5640; -- Keldran
+UPDATE `creature_template` SET `HealthModifier` = 38 WHERE `entry` = 5709; -- Shade of Eranikus
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 5755; -- Deviate Viper
+UPDATE `creature_template` SET `HealthModifier` = 3.3528 WHERE `entry` = 5760; -- Lord Azrethoc
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 5766; -- Savannah Cub
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 5780; -- Cloned Ectoplasm
+UPDATE `creature_template` SET `HealthModifier` = 3 WHERE `entry` = 5797; -- Aean Swiftriver
+UPDATE `creature_template` SET `HealthModifier` = 3 WHERE `entry` = 5800; -- Marcus Bel
+UPDATE `creature_template` SET `HealthModifier` = 1.064 WHERE `entry` = 5811; -- Kamari
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 5812; -- Tumi
+UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 5815; -- Kurgul
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 5816; -- Katis
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 5817; -- Shimra
+UPDATE `creature_template` SET `HealthModifier` = 3.75 WHERE `entry` = 5827; -- Brontus
+UPDATE `creature_template` SET `HealthModifier` = 3 WHERE `entry` = 5828; -- Humar the Pridelord
+UPDATE `creature_template` SET `HealthModifier` = 5.55 WHERE `entry` = 5833; -- Margol the Rager
+UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 5839; -- Dark Iron Geologist
+UPDATE `creature_template` SET `HealthModifier` = 2 WHERE `entry` = 5842; -- Takk the Leaper
+UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 5844; -- Dark Iron Slaver
+UPDATE `creature_template` SET `HealthModifier` = 0.75 WHERE `entry` = 5847; -- Heggin Stonewhisker
+UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 5850; -- Blazing Elemental
+UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 5852; -- Inferno Elemental
+UPDATE `creature_template` SET `HealthModifier` = 1.64 WHERE `entry` = 5853; -- Tempered War Golem
+UPDATE `creature_template` SET `HealthModifier` = 1.452 WHERE `entry` = 5854; -- Heavy War Golem
+UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 5855; -- Magma Elemental
+UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 5856; -- Glassweb Spider
+UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 5857; -- Searing Lava Spider
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 5871; -- Larhka
+UPDATE `creature_template` SET `HealthModifier` = 1.2 WHERE `entry` = 5875; -- Gan'rul Bloodeye
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 5899; -- Brine
+UPDATE `creature_template` SET `HealthModifier` = 1.2 WHERE `entry` = 5909; -- Cazul
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 5910; -- Zankaja
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 5911; -- Grunt Logmar
+UPDATE `creature_template` SET `HealthModifier` = 0.05 WHERE `entry` = 5913; -- Tremor Totem
+UPDATE `creature_template` SET `HealthModifier` = 1.0752 WHERE `entry` = 5944; -- Yonada
+UPDATE `creature_template` SET `HealthModifier` = 0.2 WHERE `entry` = 5951; -- Hare
+UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 5958; -- Thuul
+UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 5978; -- Dreadmaul Warlock
+UPDATE `creature_template` SET `HealthModifier` = 1.2312 WHERE `entry` = 5983; -- Bonepicker
+UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 5984; -- Starving Snickerfang
+UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 5985; -- Snickerfang Hyena
+UPDATE `creature_template` SET `HealthModifier` = 1.36 WHERE `entry` = 5988; -- Scorpok Stinger
+UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 5990; -- Redstone Basilisk
+UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 5991; -- Redstone Crystalhide
+UPDATE `creature_template` SET `HealthModifier` = 1.54 WHERE `entry` = 5993; -- Helboar
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 5994; -- Zayus
+UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 5996; -- Nethergarde Miner
+UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 5998; -- Nethergarde Foreman
+UPDATE `creature_template` SET `HealthModifier` = 1.2456 WHERE `entry` = 6010; -- Felhound
+UPDATE `creature_template` SET `HealthModifier` = 1.5224 WHERE `entry` = 6011; -- Felguard Sentry
+UPDATE `creature_template` SET `HealthModifier` = 22.5 WHERE `entry` = 6026; -- Breyk
+UPDATE `creature_template` SET `HealthModifier` = 1.3936 WHERE `entry` = 6073; -- Searing Infernal
+UPDATE `creature_template` SET `HealthModifier` = 1.2 WHERE `entry` = 6087; -- Astranaar Sentinel
+UPDATE `creature_template` SET `HealthModifier` = 3200 WHERE `entry` = 6109; -- Azuregos
+UPDATE `creature_template` SET `HealthModifier` = 1.1704 WHERE `entry` = 6115; -- Roaming Felguard
+UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 6116; -- Highborne Apparition
+UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 6117; -- Highborne Lichling
+UPDATE `creature_template` SET `HealthModifier` = 1.4432 WHERE `entry` = 6125; -- Haldarr Satyr
+UPDATE `creature_template` SET `HealthModifier` = 1.4432 WHERE `entry` = 6126; -- Haldarr Trickster
+UPDATE `creature_template` SET `HealthModifier` = 1.4432 WHERE `entry` = 6127; -- Haldarr Felsworn
+UPDATE `creature_template` SET `HealthModifier` = 3.388 WHERE `entry` = 6129; -- Draconic Magelord
+UPDATE `creature_template` SET `HealthModifier` = 3.232 WHERE `entry` = 6130; -- Blue Scalebane
+UPDATE `creature_template` SET `HealthModifier` = 3.388 WHERE `entry` = 6131; -- Draconic Mageweaver
+UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 6135; -- Arkkoran Clacker
+UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 6136; -- Arkkoran Muckdweller
+UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 6137; -- Arkkoran Pincer
+UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 6138; -- Arkkoran Oracle
+UPDATE `creature_template` SET `HealthModifier` = 5.004 WHERE `entry` = 6143; -- Servant of Arkkoroc
+UPDATE `creature_template` SET `HealthModifier` = 5.004 WHERE `entry` = 6144; -- Son of Arkkoroc
+UPDATE `creature_template` SET `HealthModifier` = 0.42 WHERE `entry` = 6145; -- School of Fish
+UPDATE `creature_template` SET `HealthModifier` = 4.632 WHERE `entry` = 6146; -- Cliff Breaker
+UPDATE `creature_template` SET `HealthModifier` = 4.62 WHERE `entry` = 6147; -- Cliff Thunderer
+UPDATE `creature_template` SET `HealthModifier` = 4.62 WHERE `entry` = 6148; -- Cliff Walker
+UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 6184; -- Timbermaw Pathfinder
+UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 6185; -- Timbermaw Warrior
+UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 6186; -- Timbermaw Totemic
+UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 6190; -- Spitelash Warrior
+UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 6193; -- Spitelash Screamer
+UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 6194; -- Spitelash Serpent Guard
+UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 6195; -- Spitelash Siren
+UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 6196; -- Spitelash Myrmidon
+UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 6244; -- Takar the Seer
+UPDATE `creature_template` SET `HealthModifier` = 1.2 WHERE `entry` = 6247; -- Doan Karhan
+UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 6348; -- Wavethrasher
+UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 6349; -- Great Wavethrasher
+UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 6350; -- Makrinni Razorclaw
+UPDATE `creature_template` SET `HealthModifier` = 1.5224 WHERE `entry` = 6352; -- Coralshell Lurker
+UPDATE `creature_template` SET `HealthModifier` = 0.01 WHERE `entry` = 6368; -- Cat
+UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 6370; -- Makrinni Scrabbler
+UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 6371; -- Storm Bay Warrior
+UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 6375; -- Thunderhead Hippogryph
+UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 6378; -- Thunderhead Skystormer
+UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 6379; -- Thunderhead Patriarch
+UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 6380; -- Thunderhead Consort
+UPDATE `creature_template` SET `HealthModifier` = 1.05 WHERE `entry` = 6387; -- Dranh
+UPDATE `creature_template` SET `HealthModifier` = 1.1256 WHERE `entry` = 6394; -- Ruga Ragetotem
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 6446; -- Therzok
+UPDATE `creature_template` SET `HealthModifier` = 1.05 WHERE `entry` = 6466; -- Gamon
+UPDATE `creature_template` SET `HealthModifier` = 16 WHERE `entry` = 6487; -- Arcanist Doan
+UPDATE `creature_template` SET `HealthModifier` = 6.32812 WHERE `entry` = 6491; -- Spirit Healer
+UPDATE `creature_template` SET `HealthModifier` = 4.0144 WHERE `entry` = 6498; -- Devilsaur
+UPDATE `creature_template` SET `HealthModifier` = 4.0144 WHERE `entry` = 6499; -- Ironhide Devilsaur
+UPDATE `creature_template` SET `HealthModifier` = 4.0144 WHERE `entry` = 6500; -- Tyrant Devilsaur
+UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 6508; -- Venomhide Ravasaur
+UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 6551; -- Gorishi Wasp
+UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 6553; -- Gorishi Reaver
+UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 6555; -- Gorishi Tunneler
+UPDATE `creature_template` SET `HealthModifier` = 3.88 WHERE `entry` = 6560; -- Stone Guardian
+UPDATE `creature_template` SET `HealthModifier` = 39 WHERE `entry` = 6584; -- King Mosh
+UPDATE `creature_template` SET `HealthModifier` = 0.2 WHERE `entry` = 6653; -- Huge Toad
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 6668; -- Lord Cyrik Blackforge
+UPDATE `creature_template` SET `HealthModifier` = 1.07415 WHERE `entry` = 6775; -- Antur Fallow
+UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 6791; -- Innkeeper Wiley
+UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 6807; -- Innkeeper Skindle
+UPDATE `creature_template` SET `HealthModifier` = 0.5 WHERE `entry` = 6867; -- Tracking Hound
+UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 6868; -- Jarkal Mossmeld
+UPDATE `creature_template` SET `HealthModifier` = 8.48 WHERE `entry` = 6906; -- Baelog
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 6907; -- Eric "The Swift"
+UPDATE `creature_template` SET `HealthModifier` = 8 WHERE `entry` = 6908; -- Olaf
+UPDATE `creature_template` SET `HealthModifier` = 10 WHERE `entry` = 6910; -- Revelosh
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 6912; -- Remains of a Paladin
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 6929; -- Innkeeper Gryshka
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 6930; -- Innkeeper Karakul
+UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 6986; -- Dran Droffers
+UPDATE `creature_template` SET `HealthModifier` = 1.2 WHERE `entry` = 6987; -- Malton Droffers
+UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 7010; -- Zilzibin Drumlore
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 7011; -- Earthen Rocksmasher
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 7012; -- Earthen Sculptor
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 7022; -- Venomlash Scorpid
+UPDATE `creature_template` SET `HealthModifier` = 18 WHERE `entry` = 7023; -- Obsidian Sentinel
+UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 7026; -- Blackrock Sorcerer
+UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 7027; -- Blackrock Slayer
+UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 7028; -- Blackrock Warlock
+UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 7029; -- Blackrock Battlemaster
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 7030; -- Shadowforge Geologist
+UPDATE `creature_template` SET `HealthModifier` = 1.1 WHERE `entry` = 7032; -- Greater Obsidian Elemental
+UPDATE `creature_template` SET `HealthModifier` = 4.246 WHERE `entry` = 7042; -- Flamescale Dragonspawn
+UPDATE `creature_template` SET `HealthModifier` = 4.257 WHERE `entry` = 7043; -- Flamescale Wyrmkin
+UPDATE `creature_template` SET `HealthModifier` = 0.692 WHERE `entry` = 7048; -- Scalding Broodling
+UPDATE `creature_template` SET `HealthModifier` = 3.096 WHERE `entry` = 7069; -- Condemned Monk
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 7076; -- Earthen Guardian
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 7077; -- Earthen Hallshaper
+UPDATE `creature_template` SET `HealthModifier` = 0.25 WHERE `entry` = 7078; -- Cleft Scorpid
+UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 7088; -- Thuwd
+UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 7092; -- Tainted Ooze
+UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 7132; -- Toxic Horror
+UPDATE `creature_template` SET `HealthModifier` = 5.083 WHERE `entry` = 7136; -- Infernal Sentry
+UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 7156; -- Deadwood Den Watcher
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 7161; -- Wrenix the Wretched
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 7166; -- Wrenix's Gizmotronic Apparatus
+UPDATE `creature_template` SET `HealthModifier` = 5.2 WHERE `entry` = 7172; -- Lore Keeper of Norgannon
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 7175; -- Stonevault Ambusher
+UPDATE `creature_template` SET `HealthModifier` = 14.136 WHERE `entry` = 7206; -- Ancient Stone Keeper
+UPDATE `creature_template` SET `HealthModifier` = 28.264 WHERE `entry` = 7228; -- Ironaya
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 7230; -- Shayis Steelfury
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 7231; -- Kelgruk Bloodaxe
+UPDATE `creature_template` SET `HealthModifier` = 17.472 WHERE `entry` = 7267; -- Chief Ukorz Sandscalp
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 7268; -- Sandfury Guardian
+UPDATE `creature_template` SET `HealthModifier` = 3 WHERE `entry` = 7288; -- Grand Foreman Puzik Gallywix
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 7290; -- Shadowforge Sharpshooter
+UPDATE `creature_template` SET `HealthModifier` = 25.44 WHERE `entry` = 7291; -- Galgann Firehammer
+UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 7294; -- Shim'la
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 7309; -- Earthen Custodian
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 7320; -- Stonevault Mauler
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 7321; -- Stonevault Flameweaver
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 7327; -- Withered Warrior
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 7328; -- Withered Reaver
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 7329; -- Withered Quilguard
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 7332; -- Withered Spearhide
+UPDATE `creature_template` SET `HealthModifier` = 1.1 WHERE `entry` = 7333; -- Withered Battle Boar
+UPDATE `creature_template` SET `HealthModifier` = 4.4 WHERE `entry` = 7334; -- Battle Boar Horror
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 7335; -- Death's Head Geomancer
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 7337; -- Death's Head Necromancer
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 7341; -- Skeletal Frostweaver
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 7342; -- Skeletal Summoner
+UPDATE `creature_template` SET `HealthModifier` = 0.25 WHERE `entry` = 7343; -- Splinterbone Skeleton
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 7344; -- Splinterbone Warrior
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 7345; -- Splinterbone Captain
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 7346; -- Splinterbone Centurion
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 7347; -- Boneflayer Ghoul
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 7348; -- Thorn Eater Ghoul
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 7352; -- Frozen Soul
+UPDATE `creature_template` SET `HealthModifier` = 2 WHERE `entry` = 7353; -- Freezing Spirit
+UPDATE `creature_template` SET `HealthModifier` = 16 WHERE `entry` = 7354; -- Ragglesnout
+UPDATE `creature_template` SET `HealthModifier` = 16 WHERE `entry` = 7355; -- Tuten'kash
+UPDATE `creature_template` SET `HealthModifier` = 16 WHERE `entry` = 7358; -- Amnennar the Coldbringer
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 7363; -- Kum'isha the Collector
+UPDATE `creature_template` SET `HealthModifier` = 1.296 WHERE `entry` = 7376; -- Sky Shadow
+UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 7382; -- Orange Tabby Cat
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 7383; -- Black Tabby Cat
+UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 7385; -- Bombay Cat
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 7387; -- Green Wing Macaw
+UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 7389; -- Senegal
+UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 7390; -- Cockatiel
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 7394; -- Ancona Chicken
+UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 7395; -- Cockroach
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 7396; -- Earthen Stonebreaker
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 7397; -- Earthen Stonecarver
+UPDATE `creature_template` SET `HealthModifier` = 0.5 WHERE `entry` = 7405; -- Deadly Cleft Scorpid
+UPDATE `creature_template` SET `HealthModifier` = 1.328 WHERE `entry` = 7406; -- Oglethorpe Obnoticus
+UPDATE `creature_template` SET `HealthModifier` = 9.375 WHERE `entry` = 7428; -- Frostmaul Giant
+UPDATE `creature_template` SET `HealthModifier` = 10.875 WHERE `entry` = 7429; -- Frostmaul Preserver
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 7433; -- Frostsaber Huntress
+UPDATE `creature_template` SET `HealthModifier` = 3.088 WHERE `entry` = 7436; -- Cobalt Scalebane
+UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 7440; -- Winterfall Den Watcher
+UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 7441; -- Winterfall Totemic
+UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 7442; -- Winterfall Pathfinder
+UPDATE `creature_template` SET `HealthModifier` = 1.688 WHERE `entry` = 7443; -- Shardtooth Mauler
+UPDATE `creature_template` SET `HealthModifier` = 1.584 WHERE `entry` = 7444; -- Shardtooth Bear
+UPDATE `creature_template` SET `HealthModifier` = 1.696 WHERE `entry` = 7445; -- Elder Shardtooth
+UPDATE `creature_template` SET `HealthModifier` = 1.696 WHERE `entry` = 7446; -- Rabid Shardtooth
+UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 7447; -- Fledgling Chillwind
+UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 7448; -- Chillwind Chimaera
+UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 7449; -- Chillwind Ravager
+UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 7450; -- Ragged Owlbeast
+UPDATE `creature_template` SET `HealthModifier` = 1.432 WHERE `entry` = 7451; -- Raging Owlbeast
+UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 7452; -- Crazed Owlbeast
+UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 7453; -- Moontouched Owlbeast
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 7454; -- Berserk Owlbeast
+UPDATE `creature_template` SET `HealthModifier` = 1.088 WHERE `entry` = 7455; -- Winterspring Owl
+UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 7456; -- Winterspring Screecher
+UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 7457; -- Rogue Ice Thistle
+UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 7458; -- Ice Thistle Yeti
+UPDATE `creature_template` SET `HealthModifier` = 5.4 WHERE `entry` = 7461; -- Hederine Initiate
+UPDATE `creature_template` SET `HealthModifier` = 5.4 WHERE `entry` = 7462; -- Hederine Manastalker
+UPDATE `creature_template` SET `HealthModifier` = 6.6 WHERE `entry` = 7463; -- Hederine Slayer
+UPDATE `creature_template` SET `HealthModifier` = 1.328 WHERE `entry` = 7505; -- Bloodmage Drazial
+UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 7506; -- Bloodmage Lynnore
+UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 7523; -- Suffering Highborne
+UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 7524; -- Anguished Highborne
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 7560; -- Snowshoe Rabbit
+UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 7562; -- Brown Snake
+UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 7565; -- Black Kingsnake
+UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 7567; -- Crimson Snake
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 7572; -- Fallen Hero of the Horde
+UPDATE `creature_template` SET `HealthModifier` = 1.76 WHERE `entry` = 7584; -- Wandering Forest Walker
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 7623; -- Dispatch Commander Ruag
+UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 7643; -- Bengor
+UPDATE `creature_template` SET `HealthModifier` = 10 WHERE `entry` = 7665; -- Grol the Destroyer
+UPDATE `creature_template` SET `HealthModifier` = 6 WHERE `entry` = 7666; -- Archmage Allistarj
+UPDATE `creature_template` SET `HealthModifier` = 1.512 WHERE `entry` = 7668; -- Servant of Razelikh
+UPDATE `creature_template` SET `HealthModifier` = 1.1256 WHERE `entry` = 7714; -- Innkeeper Byula
+UPDATE `creature_template` SET `HealthModifier` = 1.3188 WHERE `entry` = 7725; -- Grimtotem Raider
+UPDATE `creature_template` SET `HealthModifier` = 1.3104 WHERE `entry` = 7726; -- Grimtotem Naturalist
+UPDATE `creature_template` SET `HealthModifier` = 1.3188 WHERE `entry` = 7727; -- Grimtotem Shaman
+UPDATE `creature_template` SET `HealthModifier` = 1.1256 WHERE `entry` = 7737; -- Innkeeper Greul
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 7773; -- Marli Wishrunner
+UPDATE `creature_template` SET `HealthModifier` = 1.3944 WHERE `entry` = 7776; -- Talo Thornhoof
+UPDATE `creature_template` SET `HealthModifier` = 1.2 WHERE `entry` = 7777; -- Rok Orhan
+UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 7790; -- Orokk Omosh
+UPDATE `creature_template` SET `HealthModifier` = 1.328 WHERE `entry` = 7792; -- Aturk the Anvil
+UPDATE `creature_template` SET `HealthModifier` = 1.4532 WHERE `entry` = 7793; -- Ox
+UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 7794; -- McGavan
+UPDATE `creature_template` SET `HealthModifier` = 16 WHERE `entry` = 7800; -- Mekgineer Thermaplugg
+UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 7807; -- Homing Robot OOX-22/FE
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 7853; -- Scooty
+UPDATE `creature_template` SET `HealthModifier` = 1.2852 WHERE `entry` = 7854; -- Jangdor Swiftstrider
+UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 7864; -- Lingering Highborne
+UPDATE `creature_template` SET `HealthModifier` = 1.328 WHERE `entry` = 7866; -- Peter Galen
+UPDATE `creature_template` SET `HealthModifier` = 1.328 WHERE `entry` = 7867; -- Thorkaf Dragoneye
+UPDATE `creature_template` SET `HealthModifier` = 3.4608 WHERE `entry` = 7875; -- Hadoken Swiftstrider
+UPDATE `creature_template` SET `HealthModifier` = 2.08 WHERE `entry` = 7940; -- Darnall
+UPDATE `creature_template` SET `HealthModifier` = 2.2092 WHERE `entry` = 7975; -- Mulgore Protector
+UPDATE `creature_template` SET `HealthModifier` = 4.697 WHERE `entry` = 7977; -- Gammerita
+UPDATE `creature_template` SET `HealthModifier` = 2.048 WHERE `entry` = 8015; -- Ashenvale Sentinel
+UPDATE `creature_template` SET `HealthModifier` = 23.625 WHERE `entry` = 8020; -- Shyn
+UPDATE `creature_template` SET `HealthModifier` = 1.328 WHERE `entry` = 8021; -- Orwin Gizzmick
+UPDATE `creature_template` SET `HealthModifier` = 1.328 WHERE `entry` = 8115; -- Witch Doctor Uzer'i
+UPDATE `creature_template` SET `HealthModifier` = 3.064 WHERE `entry` = 8119; -- Zikkel
+UPDATE `creature_template` SET `HealthModifier` = 3 WHERE `entry` = 8123; -- Rickle Goldgrubber
+UPDATE `creature_template` SET `HealthModifier` = 1.3356 WHERE `entry` = 8143; -- Loorana
+UPDATE `creature_template` SET `HealthModifier` = 1.344 WHERE `entry` = 8144; -- Kulleg Stonehorn
+UPDATE `creature_template` SET `HealthModifier` = 1.3356 WHERE `entry` = 8145; -- Sheendra Tallgrass
+UPDATE `creature_template` SET `HealthModifier` = 1.3356 WHERE `entry` = 8146; -- Ruw
+UPDATE `creature_template` SET `HealthModifier` = 2.1924 WHERE `entry` = 8147; -- Camp Mojache Brave
+UPDATE `creature_template` SET `HealthModifier` = 2.088 WHERE `entry` = 8155; -- Kargath Grunt
+UPDATE `creature_template` SET `HealthModifier` = 1.3356 WHERE `entry` = 8158; -- Bronk
+UPDATE `creature_template` SET `HealthModifier` = 1.3944 WHERE `entry` = 8159; -- Worb Strongstitch
+UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 8176; -- Gharash
+UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 8177; -- Rartar
+UPDATE `creature_template` SET `HealthModifier` = 5 WHERE `entry` = 8300; -- Ravage
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 8306; -- Duhng
+UPDATE `creature_template` SET `HealthModifier` = 1.071 WHERE `entry` = 8307; -- Tarban Hearthgrain
+UPDATE `creature_template` SET `HealthModifier` = 1.328 WHERE `entry` = 8395; -- Sanath Lim-yo
+UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 8397; -- Sentinel Keldara Sunblade
+UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 8399; -- Nyrill
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 8404; -- Xan'tish
+UPDATE `creature_template` SET `HealthModifier` = 1.0752 WHERE `entry` = 8418; -- Falla Sagewind
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 8477; -- Skeletal Servant
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 8496; -- Liv Rizzlefix
+UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 8521; -- Blighted Horror
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 8522; -- Plague Monstrosity
+UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 8524; -- Cursed Mage
+UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 8525; -- Scourge Warder
+UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 8526; -- Dark Caster
+UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 8527; -- Scourge Guard
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 8528; -- Dread Weaver
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 8529; -- Scourge Champion
+UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 8531; -- Gibbering Ghoul
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 8532; -- Diseased Flayer
+UPDATE `creature_template` SET `HealthModifier` = 1.432 WHERE `entry` = 8534; -- Putrid Gargoyle
+UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 8535; -- Putrid Shrieker
+UPDATE `creature_template` SET `HealthModifier` = 1.296 WHERE `entry` = 8538; -- Unseen Servant
+UPDATE `creature_template` SET `HealthModifier` = 1.296 WHERE `entry` = 8539; -- Eyeless Watcher
+UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 8541; -- Hate Shrieker
+UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 8542; -- Death Singer
+UPDATE `creature_template` SET `HealthModifier` = 1.8 WHERE `entry` = 8543; -- Stitched Horror
+UPDATE `creature_template` SET `HealthModifier` = 1.81 WHERE `entry` = 8545; -- Stitched Golem
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 8546; -- Dark Adept
+UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 8548; -- Vile Tutor
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 8550; -- Shadowmage
+UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 8551; -- Dark Summoner
+UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 8557; -- Crypt Horror
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 8558; -- Crypt Slayer
+UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 8560; -- Mossflayer Scout
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 8561; -- Mossflayer Shadowhunter
+UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 8562; -- Mossflayer Cannibal
+UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 8565; -- Pathstrider
+UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 8566; -- Dark Iron Lookout
+UPDATE `creature_template` SET `HealthModifier` = 16 WHERE `entry` = 8567; -- Glutton
+UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 8576; -- Ag'tor Bloodfist
+UPDATE `creature_template` SET `HealthModifier` = 2 WHERE `entry` = 8585; -- Frost Spectre
+UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 8586; -- Haggrum Bloodfist
+UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 8587; -- Jediga
+UPDATE `creature_template` SET `HealthModifier` = 1.5224 WHERE `entry` = 8596; -- Plaguehound Runt
+UPDATE `creature_template` SET `HealthModifier` = 1.584 WHERE `entry` = 8597; -- Plaguehound
+UPDATE `creature_template` SET `HealthModifier` = 1.584 WHERE `entry` = 8598; -- Frenzied Plaguehound
+UPDATE `creature_template` SET `HealthModifier` = 1.2456 WHERE `entry` = 8600; -- Plaguebat
+UPDATE `creature_template` SET `HealthModifier` = 1.2888 WHERE `entry` = 8601; -- Noxious Plaguebat
+UPDATE `creature_template` SET `HealthModifier` = 1.296 WHERE `entry` = 8602; -- Monstrous Plaguebat
+UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 8603; -- Carrion Grub
+UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 8605; -- Carrion Devourer
+UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 8606; -- Living Decay
+UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 8607; -- Rotting Sludge
+UPDATE `creature_template` SET `HealthModifier` = 22.5 WHERE `entry` = 8610; -- Kroum
+UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 8637; -- Dark Iron Watchman
+UPDATE `creature_template` SET `HealthModifier` = 1.328 WHERE `entry` = 8659; -- Jes'rimon
+UPDATE `creature_template` SET `HealthModifier` = 1.4 WHERE `entry` = 8662; -- Idol Oven Fire Target
+UPDATE `creature_template` SET `HealthModifier` = 3.072 WHERE `entry` = 8673; -- Auctioneer Thathung
+UPDATE `creature_template` SET `HealthModifier` = 1.2384 WHERE `entry` = 8675; -- Felbeast
+UPDATE `creature_template` SET `HealthModifier` = 19.8 WHERE `entry` = 8717; -- Felguard Elite
+UPDATE `creature_template` SET `HealthModifier` = 14.4 WHERE `entry` = 8718; -- Manahound
+UPDATE `creature_template` SET `HealthModifier` = 3.072 WHERE `entry` = 8724; -- Auctioneer Wabang
+UPDATE `creature_template` SET `HealthModifier` = 1.2 WHERE `entry` = 8738; -- Vazario Linkgrease
+UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 8759; -- Mosshoof Runner
+UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 8761; -- Mosshoof Courser
+UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 8762; -- Timberweb Recluse
+UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 8763; -- Mistwing Rogue
+UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 8764; -- Mistwing Ravager
+UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 8766; -- Forest Ooze
+UPDATE `creature_template` SET `HealthModifier` = 1.328 WHERE `entry` = 8816; -- Deathly Usher
+UPDATE `creature_template` SET `HealthModifier` = 1.624 WHERE `entry` = 8957; -- Angerclaw Grizzly
+UPDATE `creature_template` SET `HealthModifier` = 1.568 WHERE `entry` = 8958; -- Angerclaw Mauler
+UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 8959; -- Felpaw Wolf
+UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 8960; -- Felpaw Scavenger
+UPDATE `creature_template` SET `HealthModifier` = 30.24 WHERE `entry` = 9019; -- Emperor Dagran Thaurissan
+UPDATE `creature_template` SET `HealthModifier` = 40 WHERE `entry` = 9032; -- Hedrum the Creeper
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 9077; -- Warlord Goretooth
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 9078; -- Shadowmage Vivian Lagrave
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 9079; -- Hierophant Theodora Mulvadania
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 9080; -- Lexlort
+UPDATE `creature_template` SET `HealthModifier` = 1.5204 WHERE `entry` = 9081; -- Galamav the Marksman
+UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 9082; -- Thal'trak Proudtusk
+UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 9083; -- Razal'blade
+UPDATE `creature_template` SET `HealthModifier` = 1.4448 WHERE `entry` = 9084; -- Thunderheart
+UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 9085; -- Initiate Amakkar
+UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 9086; -- Grunt Gargal
+UPDATE `creature_template` SET `HealthModifier` = 0.4 WHERE `entry` = 9157; -- Bloodpetal Pest
+UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 9179; -- Jazzrik
+UPDATE `creature_template` SET `HealthModifier` = 1.02 WHERE `entry` = 9317; -- Rilli Greasygob
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 9336; -- Boss Copperplug
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 9356; -- Innkeeper Shul'kar
+UPDATE `creature_template` SET `HealthModifier` = 3.088 WHERE `entry` = 9448; -- Scarlet Praetorian
+UPDATE `creature_template` SET `HealthModifier` = 3.088 WHERE `entry` = 9450; -- Scarlet Curate
+UPDATE `creature_template` SET `HealthModifier` = 3.088 WHERE `entry` = 9451; -- Scarlet Archmage
+UPDATE `creature_template` SET `HealthModifier` = 8 WHERE `entry` = 9520; -- Grark Lorkrub
+UPDATE `creature_template` SET `HealthModifier` = 1.3944 WHERE `entry` = 9548; -- Cawind Trueaim
+UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 9558; -- Grimble
+UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 9559; -- Grizzlowe
+UPDATE `creature_template` SET `HealthModifier` = 30 WHERE `entry` = 9568; -- Overlord Wyrmthalak
+UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 9695; -- Deathlash Scorpid
+UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 9698; -- Firetail Scorpid
+UPDATE `creature_template` SET `HealthModifier` = 0.2 WHERE `entry` = 9699; -- Fire Beetle
+UPDATE `creature_template` SET `HealthModifier` = 0.2 WHERE `entry` = 9700; -- Lava Crab
+UPDATE `creature_template` SET `HealthModifier` = 0.305 WHERE `entry` = 9778; -- Flamekin Torcher
+UPDATE `creature_template` SET `HealthModifier` = 0.366 WHERE `entry` = 9779; -- Flamekin Rager
+UPDATE `creature_template` SET `HealthModifier` = 3.072 WHERE `entry` = 9856; -- Auctioneer Grimful
+UPDATE `creature_template` SET `HealthModifier` = 3.072 WHERE `entry` = 9857; -- Auctioneer Grizzlin
+UPDATE `creature_template` SET `HealthModifier` = 3.072 WHERE `entry` = 9858; -- Auctioneer Kresky
+UPDATE `creature_template` SET `HealthModifier` = 1.1256 WHERE `entry` = 9981; -- Sikwa
+UPDATE `creature_template` SET `HealthModifier` = 1.1256 WHERE `entry` = 9983; -- Kelsuwa
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 9986; -- Shyrka Wolfrunner
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 9987; -- Shoja'my
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 9988; -- Xon'cha
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 10049; -- Hekkru
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 10058; -- Greth
+UPDATE `creature_template` SET `HealthModifier` = 1.25 WHERE `entry` = 10060; -- Grimestack
+UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 10063; -- Reggifuz
+UPDATE `creature_template` SET `HealthModifier` = 1.2 WHERE `entry` = 10088; -- Xao'tsu
+UPDATE `creature_template` SET `HealthModifier` = 5 WHERE `entry` = 10120; -- Vault Warder
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 10157; -- Moonkin Oracle
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 10158; -- Moonkin
+UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 10159; -- Young Moonkin
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 10160; -- Raging Moonkin
+UPDATE `creature_template` SET `HealthModifier` = 0.5 WHERE `entry` = 10161; -- Rookery Whelp
+UPDATE `creature_template` SET `HealthModifier` = 520 WHERE `entry` = 10184; -- Onyxia
+UPDATE `creature_template` SET `HealthModifier` = 1.024 WHERE `entry` = 10266; -- Ug'thok
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 10300; -- Ranshalla
+UPDATE `creature_template` SET `HealthModifier` = 1.5204 WHERE `entry` = 10303; -- Storm Shadowhoof
+UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 10305; -- Umi Rumplesnicker
+UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 10307; -- Witch Doctor Mau'ari
+UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 10361; -- Gruul Darkblade
+UPDATE `creature_template` SET `HealthModifier` = 23.625 WHERE `entry` = 10378; -- Omusa Thunderhorn
+UPDATE `creature_template` SET `HealthModifier` = 1.05 WHERE `entry` = 10380; -- Sanuye Runetotem
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 10387; -- Vengeful Phantom
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 10408; -- Rockwing Gargoyle
+UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 10431; -- Gregor Greystone
+UPDATE `creature_template` SET `HealthModifier` = 34 WHERE `entry` = 10440; -- Baron Rivendare
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 10441; -- Plagued Rat
+UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 10468; -- Felnok Steelspring
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 10616; -- Supervisor Raelen
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 10637; -- Malyfous Darkhammer
+UPDATE `creature_template` SET `HealthModifier` = 7.5 WHERE `entry` = 10662; -- Spellmaw
+UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 10684; -- Remorseful Highborne
+UPDATE `creature_template` SET `HealthModifier` = 0.22 WHERE `entry` = 10685; -- Swine
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 10718; -- Shahram
+UPDATE `creature_template` SET `HealthModifier` = 5.1 WHERE `entry` = 10802; -- Hitah'ya the Keeper
+UPDATE `creature_template` SET `HealthModifier` = 4.11 WHERE `entry` = 10806; -- Ursius
+UPDATE `creature_template` SET `HealthModifier` = 40 WHERE `entry` = 10813; -- Balnazzar
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 10876; -- Undead Scarab
+UPDATE `creature_template` SET `HealthModifier` = 1.023 WHERE `entry` = 10880; -- Warcaller Gorlach
+UPDATE `creature_template` SET `HealthModifier` = 22.5 WHERE `entry` = 10897; -- Sindrayl
+UPDATE `creature_template` SET `HealthModifier` = 1.35 WHERE `entry` = 10918; -- Lorax
+UPDATE `creature_template` SET `HealthModifier` = 0.09 WHERE `entry` = 10928; -- Succubus Minion
+UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 10978; -- Legacki
+UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 11017; -- Roxxik
+UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 11033; -- Smokey LaRue
+UPDATE `creature_template` SET `HealthModifier` = 1.35 WHERE `entry` = 11034; -- Lord Maxwell Tyrosus
+UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 11035; -- Betina Bigglezink
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 11036; -- Leonid Barthalomew the Revered
+UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 11038; -- Caretaker Alen
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 11039; -- Duke Nicholas Zverenhoff
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 11055; -- Shadow Priestess Vandis
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 11063; -- Carlin Redpath
+UPDATE `creature_template` SET `HealthModifier` = 1.35 WHERE `entry` = 11064; -- Darrowshire Spirit
+UPDATE `creature_template` SET `HealthModifier` = 1.064 WHERE `entry` = 11066; -- Jhag
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 11073; -- Annora
+UPDATE `creature_template` SET `HealthModifier` = 1.4532 WHERE `entry` = 11098; -- Hahrana Ironhide
+UPDATE `creature_template` SET `HealthModifier` = 8 WHERE `entry` = 11102; -- Argent Rider
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 11118; -- Innkeeper Vizzie
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 11119; -- Azzleby
+UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 11137; -- Xai'ander
+UPDATE `creature_template` SET `HealthModifier` = 22.5 WHERE `entry` = 11139; -- Yugrek
+UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 11176; -- Krathok Moltenfist
+UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 11177; -- Okothos Ironrager
+UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 11178; -- Borgosh Corebender
+UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 11182; -- Nixxrak
+UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 11183; -- Blixxrak
+UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 11184; -- Wixxrak
+UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 11185; -- Xizzer Fizzbolt
+UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 11186; -- Lunnix Sprocketslip
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 11187; -- Himmik
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 11188; -- Evie Whirlbrew
+UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 11189; -- Qia
+UPDATE `creature_template` SET `HealthModifier` = 34 WHERE `entry` = 11190; -- Everlook Bruiser
+UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 11191; -- Lilith the Lithe
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 11192; -- Kilram
+UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 11193; -- Seril Scourgebane
+UPDATE `creature_template` SET `HealthModifier` = 0.75 WHERE `entry` = 11199; -- Crimson Cannon
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 11200; -- Summoned Skeleton
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 11218; -- Kerlonian Evershade
+UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 11276; -- Azshara Sentinel
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 11318; -- Ragefire Trogg
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 11319; -- Ragefire Shaman
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 11320; -- Earthborer
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 11326; -- Mini Diablo
+UPDATE `creature_template` SET `HealthModifier` = 1.056 WHERE `entry` = 11328; -- Eastvale Peasant
+UPDATE `creature_template` SET `HealthModifier` = 11.2219 WHERE `entry` = 11338; -- Hakkari Shadowcaster
+UPDATE `creature_template` SET `HealthModifier` = 11.2219 WHERE `entry` = 11339; -- Hakkari Shadow Hunter
+UPDATE `creature_template` SET `HealthModifier` = 11.2219 WHERE `entry` = 11340; -- Hakkari Blood Priest
+UPDATE `creature_template` SET `HealthModifier` = 11.2219 WHERE `entry` = 11350; -- Gurubashi Axe Thrower
+UPDATE `creature_template` SET `HealthModifier` = 11.2219 WHERE `entry` = 11351; -- Gurubashi Headhunter
+UPDATE `creature_template` SET `HealthModifier` = 37.1925 WHERE `entry` = 11352; -- Gurubashi Berserker
+UPDATE `creature_template` SET `HealthModifier` = 11.2219 WHERE `entry` = 11353; -- Gurubashi Blood Drinker
+UPDATE `creature_template` SET `HealthModifier` = 11.2219 WHERE `entry` = 11356; -- Gurubashi Champion
+UPDATE `creature_template` SET `HealthModifier` = 11.2219 WHERE `entry` = 11357; -- Son of Hakkar
+UPDATE `creature_template` SET `HealthModifier` = 18.5963 WHERE `entry` = 11359; -- Soulflayer
+UPDATE `creature_template` SET `HealthModifier` = 2.80547 WHERE `entry` = 11360; -- Zulian Cub
+UPDATE `creature_template` SET `HealthModifier` = 11.2219 WHERE `entry` = 11361; -- Zulian Tiger
+UPDATE `creature_template` SET `HealthModifier` = 1.40273 WHERE `entry` = 11368; -- Bloodseeker Bat
+UPDATE `creature_template` SET `HealthModifier` = 11.2219 WHERE `entry` = 11370; -- Razzashi Broodwidow
+UPDATE `creature_template` SET `HealthModifier` = 11.2219 WHERE `entry` = 11371; -- Razzashi Serpent
+UPDATE `creature_template` SET `HealthModifier` = 11.2219 WHERE `entry` = 11372; -- Razzashi Adder
+UPDATE `creature_template` SET `HealthModifier` = 13.5 WHERE `entry` = 11373; -- Razzashi Cobra
+UPDATE `creature_template` SET `HealthModifier` = 4.9875 WHERE `entry` = 11374; -- Hooktooth Frenzy
+UPDATE `creature_template` SET `HealthModifier` = 540 WHERE `entry` = 11380; -- Jin'do the Hexxer
+UPDATE `creature_template` SET `HealthModifier` = 540 WHERE `entry` = 11382; -- Bloodlord Mandokir
+UPDATE `creature_template` SET `HealthModifier` = 4.15625 WHERE `entry` = 11387; -- Sandfury Speaker
+UPDATE `creature_template` SET `HealthModifier` = 3.375 WHERE `entry` = 11388; -- Witherbark Speaker
+UPDATE `creature_template` SET `HealthModifier` = 3.375 WHERE `entry` = 11391; -- Vilebranch Speaker
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 11441; -- Gordok Brute
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 11458; -- Petrified Treant
+UPDATE `creature_template` SET `HealthModifier` = 6 WHERE `entry` = 11459; -- Ironbark Protector
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 11464; -- Warpwood Tangler
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 11466; -- Highborne Summoner
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 11469; -- Eldreth Seether
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 11470; -- Eldreth Sorcerer
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 11471; -- Eldreth Apparition
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 11472; -- Eldreth Spirit
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 11473; -- Eldreth Spectre
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 11475; -- Eldreth Phantasm
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 11476; -- Skeletal Highborne
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 11477; -- Rotting Highborne
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 11480; -- Arcane Aberration
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 11483; -- Mana Remnant
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 11484; -- Residual Monstrosity
+UPDATE `creature_template` SET `HealthModifier` = 26 WHERE `entry` = 11486; -- Prince Tortheldrin
+UPDATE `creature_template` SET `HealthModifier` = 22.104 WHERE `entry` = 11487; -- Magister Kalendris
+UPDATE `creature_template` SET `HealthModifier` = 18.2 WHERE `entry` = 11488; -- Illyanna Ravenoak
+UPDATE `creature_template` SET `HealthModifier` = 30 WHERE `entry` = 11489; -- Tendris Warpwood
+UPDATE `creature_template` SET `HealthModifier` = 36.4 WHERE `entry` = 11492; -- Alzzin the Wildshaper
+UPDATE `creature_template` SET `HealthModifier` = 31.2 WHERE `entry` = 11496; -- Immol'thar
+UPDATE `creature_template` SET `HealthModifier` = 23.4 WHERE `entry` = 11501; -- King Gordok
+UPDATE `creature_template` SET `HealthModifier` = 1825.2 WHERE `entry` = 11502; -- Ragnaros
+UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 11516; -- Timbermaw Warder
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 11536; -- Quartermaster Miranda Breechlock
+UPDATE `creature_template` SET `HealthModifier` = 1.328 WHERE `entry` = 11546; -- Jack Sterling
+UPDATE `creature_template` SET `HealthModifier` = 1.3272 WHERE `entry` = 11548; -- Loh'atu
+UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 11552; -- Timbermaw Mystic
+UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 11556; -- Salfa
+UPDATE `creature_template` SET `HealthModifier` = 1.192 WHERE `entry` = 11560; -- Magrami Spectre
+UPDATE `creature_template` SET `HealthModifier` = 1352 WHERE `entry` = 11583; -- Nefarian
+UPDATE `creature_template` SET `HealthModifier` = 1.328 WHERE `entry` = 11629; -- Jessica Redpath
+UPDATE `creature_template` SET `HealthModifier` = 1.064 WHERE `entry` = 11656; -- Warsong Peon
+UPDATE `creature_template` SET `HealthModifier` = 1.064 WHERE `entry` = 11680; -- Horde Scout
+UPDATE `creature_template` SET `HealthModifier` = 1.064 WHERE `entry` = 11681; -- Horde Deforester
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 11682; -- Warsong Grunt
+UPDATE `creature_template` SET `HealthModifier` = 1.064 WHERE `entry` = 11683; -- Warsong Shaman
+UPDATE `creature_template` SET `HealthModifier` = 1.064 WHERE `entry` = 11684; -- Warsong Shredder
+UPDATE `creature_template` SET `HealthModifier` = 3.75 WHERE `entry` = 11698; -- Hive'Ashi Stinger
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 11716; -- Celes Earthborne
+UPDATE `creature_template` SET `HealthModifier` = 3.87 WHERE `entry` = 11722; -- Hive'Ashi Defender
+UPDATE `creature_template` SET `HealthModifier` = 3.8 WHERE `entry` = 11724; -- Hive'Ashi Swarmer
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 11727; -- Hive'Zora Wasp
+UPDATE `creature_template` SET `HealthModifier` = 4.06 WHERE `entry` = 11728; -- Hive'Zora Reaver
+UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 11735; -- Stonelash Scorpid
+UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 11736; -- Stonelash Pincer
+UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 11737; -- Stonelash Flayer
+UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 11738; -- Sand Skitterer
+UPDATE `creature_template` SET `HealthModifier` = 3.87 WHERE `entry` = 11739; -- Rock Stalker
+UPDATE `creature_template` SET `HealthModifier` = 1.288 WHERE `entry` = 11740; -- Dredge Striker
+UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 11741; -- Dredge Crusher
+UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 11744; -- Dust Stormer
+UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 11745; -- Cyclone Warrior
+UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 11746; -- Desert Rumbler
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 11747; -- Desert Rager
+UPDATE `creature_template` SET `HealthModifier` = 1.32 WHERE `entry` = 11752; -- Blaise Montgomery
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 11753; -- Gogo
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 11754; -- Meggi Peppinrocker
+UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 11755; -- Harlo Wigglesworth
+UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 11757; -- Umaron Stragarelm
+UPDATE `creature_template` SET `HealthModifier` = 1.5204 WHERE `entry` = 11795; -- Mylentha Riverbend
+UPDATE `creature_template` SET `HealthModifier` = 1.5204 WHERE `entry` = 11796; -- Bessany Plainswind
+UPDATE `creature_template` SET `HealthModifier` = 1.5204 WHERE `entry` = 11797; -- Moren Riverbend
+UPDATE `creature_template` SET `HealthModifier` = 39.27 WHERE `entry` = 11798; -- Bunthen Plainswind
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 11799; -- Tajarri
+UPDATE `creature_template` SET `HealthModifier` = 37.4 WHERE `entry` = 11800; -- Silva Fil'naveth
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 11801; -- Rabine Saturna
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 11802; -- Dendrite Starblaze
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 11806; -- Sentinel Onaeya
+UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 11818; -- Orik'ando
+UPDATE `creature_template` SET `HealthModifier` = 1.4532 WHERE `entry` = 11822; -- Moonglade Warden
+UPDATE `creature_template` SET `HealthModifier` = 1.256 WHERE `entry` = 11829; -- Fahrak
+UPDATE `creature_template` SET `HealthModifier` = 11.2219 WHERE `entry` = 11830; -- Hakkari Priest
+UPDATE `creature_template` SET `HealthModifier` = 11.2219 WHERE `entry` = 11831; -- Hakkari Witch Doctor
+UPDATE `creature_template` SET `HealthModifier` = 35 WHERE `entry` = 11832; -- Keeper Remulos
+UPDATE `creature_template` SET `HealthModifier` = 1.25 WHERE `entry` = 11836; -- Captured Rabid Thistle Bear
+UPDATE `creature_template` SET `HealthModifier` = 7 WHERE `entry` = 11871; -- Grinning Dog
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 11880; -- Twilight Avenger
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 11883; -- Twilight Master
+UPDATE `creature_template` SET `HealthModifier` = 5.49 WHERE `entry` = 11897; -- Duskwing
+UPDATE `creature_template` SET `HealthModifier` = 22.5 WHERE `entry` = 11901; -- Andruk
+UPDATE `creature_template` SET `HealthModifier` = 3.75 WHERE `entry` = 11921; -- Besseleth
+UPDATE `creature_template` SET `HealthModifier` = 1.384 WHERE `entry` = 11939; -- Umber
+UPDATE `creature_template` SET `HealthModifier` = 702 WHERE `entry` = 11982; -- Magmadar
+UPDATE `creature_template` SET `HealthModifier` = 489.172 WHERE `entry` = 11983; -- Firemaw
+UPDATE `creature_template` SET `HealthModifier` = 702 WHERE `entry` = 11988; -- Golemagg the Incinerator
+UPDATE `creature_template` SET `HealthModifier` = 1111.76 WHERE `entry` = 12017; -- Broodlord Lashlayer
+UPDATE `creature_template` SET `HealthModifier` = 702 WHERE `entry` = 12018; -- Majordomo Executus
+UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 12019; -- Dargon
+UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 12021; -- Daeolyn Summerleaf
+UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 12022; -- Lorelae Wintersong
+UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 12024; -- Meliri
+UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 12025; -- Malvor
+UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 12026; -- My'lanna
+UPDATE `creature_template` SET `HealthModifier` = 1.376 WHERE `entry` = 12029; -- Narianna
+UPDATE `creature_template` SET `HealthModifier` = 702 WHERE `entry` = 12056; -- Baron Geddon
+UPDATE `creature_template` SET `HealthModifier` = 702 WHERE `entry` = 12057; -- Garr
+UPDATE `creature_template` SET `HealthModifier` = 351 WHERE `entry` = 12098; -- Sulfuron Harbinger
+UPDATE `creature_template` SET `HealthModifier` = 468 WHERE `entry` = 12118; -- Lucifron
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 12125; -- Mammoth Shark
+UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 12150; -- Riding Kodo (Purple)
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 12196; -- Innkeeper Kaylisk
+UPDATE `creature_template` SET `HealthModifier` = 33.4 WHERE `entry` = 12201; -- Princess Theradras
+UPDATE `creature_template` SET `HealthModifier` = 0.9 WHERE `entry` = 12217; -- Corruptor
+UPDATE `creature_template` SET `HealthModifier` = 26.72 WHERE `entry` = 12225; -- Celebras the Cursed
+UPDATE `creature_template` SET `HealthModifier` = 25.048 WHERE `entry` = 12236; -- Lord Vyletongue
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 12248; -- Infiltrator Hameya
+UPDATE `creature_template` SET `HealthModifier` = 21.712 WHERE `entry` = 12258; -- Razorlash
+UPDATE `creature_template` SET `HealthModifier` = 702 WHERE `entry` = 12259; -- Gehennas
+UPDATE `creature_template` SET `HealthModifier` = 1.35 WHERE `entry` = 12261; -- Infected Mossflayer
+UPDATE `creature_template` SET `HealthModifier` = 702 WHERE `entry` = 12264; -- Shazzrah
+UPDATE `creature_template` SET `HealthModifier` = 0.22 WHERE `entry` = 12296; -- Sickly Gazelle
+UPDATE `creature_template` SET `HealthModifier` = 0.22 WHERE `entry` = 12298; -- Sickly Deer
+UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 12346; -- Emerald Riding Raptor
+UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 12349; -- Turquoise Riding Raptor
+UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 12350; -- Violet Riding Raptor
+UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 12351; -- Dire Riding Wolf
+UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 12353; -- Timber Riding Wolf
+UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 12358; -- Riding Striped Frostsaber
+UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 12375; -- Chestnut Mare
+UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 12376; -- Brown Horse
+UPDATE `creature_template` SET `HealthModifier` = 22 WHERE `entry` = 12396; -- Doomguard Commander
+UPDATE `creature_template` SET `HealthModifier` = 3200 WHERE `entry` = 12397; -- Lord Kazzak
+UPDATE `creature_template` SET `HealthModifier` = 2 WHERE `entry` = 12431; -- Gorefang
+UPDATE `creature_template` SET `HealthModifier` = 452.436 WHERE `entry` = 12435; -- Razorgore the Untamed
+UPDATE `creature_template` SET `HealthModifier` = 96.25 WHERE `entry` = 12475; -- Emeraldon Tree Warder
+UPDATE `creature_template` SET `HealthModifier` = 156.25 WHERE `entry` = 12497; -- Dreamroarer
+UPDATE `creature_template` SET `HealthModifier` = 22.5 WHERE `entry` = 12577; -- Jarrodenus
+UPDATE `creature_template` SET `HealthModifier` = 22.5 WHERE `entry` = 12616; -- Vhulgra
+UPDATE `creature_template` SET `HealthModifier` = 22.5 WHERE `entry` = 12617; -- Khaelyn Steelwing
+UPDATE `creature_template` SET `HealthModifier` = 22.5 WHERE `entry` = 12636; -- Georgia
+UPDATE `creature_template` SET `HealthModifier` = 1.312 WHERE `entry` = 12677; -- Shadumbra
+UPDATE `creature_template` SET `HealthModifier` = 1.1256 WHERE `entry` = 12696; -- Senani Thunderheart
+UPDATE `creature_template` SET `HealthModifier` = 1.024 WHERE `entry` = 12717; -- Muglash
+UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 12719; -- Marukai
+UPDATE `creature_template` SET `HealthModifier` = 1.128 WHERE `entry` = 12720; -- Framnali
+UPDATE `creature_template` SET `HealthModifier` = 1.12 WHERE `entry` = 12721; -- Mitsuwa
+UPDATE `creature_template` SET `HealthModifier` = 1.128 WHERE `entry` = 12724; -- Pixel
+UPDATE `creature_template` SET `HealthModifier` = 1.024 WHERE `entry` = 12736; -- Je'neu Sancrea
+UPDATE `creature_template` SET `HealthModifier` = 22.5 WHERE `entry` = 12740; -- Faustron
+UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 12757; -- Karang Amakkar
+UPDATE `creature_template` SET `HealthModifier` = 2 WHERE `entry` = 12789; -- Blood Guard Hini'wana
+UPDATE `creature_template` SET `HealthModifier` = 2 WHERE `entry` = 12790; -- Advisor Willington
+UPDATE `creature_template` SET `HealthModifier` = 2.1 WHERE `entry` = 12791; -- Chieftain Earthbind
+UPDATE `creature_template` SET `HealthModifier` = 2 WHERE `entry` = 12794; -- Stone Guard Zarg
+UPDATE `creature_template` SET `HealthModifier` = 2 WHERE `entry` = 12797; -- Grunt Korf
+UPDATE `creature_template` SET `HealthModifier` = 2 WHERE `entry` = 12798; -- Grunt Bek'rah
+UPDATE `creature_template` SET `HealthModifier` = 2.088 WHERE `entry` = 12799; -- Sergeant Ba'sha
+UPDATE `creature_template` SET `HealthModifier` = 1.328 WHERE `entry` = 12807; -- Greshka
+UPDATE `creature_template` SET `HealthModifier` = 1.1172 WHERE `entry` = 12837; -- Yama Snowhoof
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 12863; -- Warsong Runner
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 12864; -- Warsong Outrider
+UPDATE `creature_template` SET `HealthModifier` = 1.136 WHERE `entry` = 12877; -- Ertog Ragetusk
+UPDATE `creature_template` SET `HealthModifier` = 2.048 WHERE `entry` = 12903; -- Splintertree Guard
+UPDATE `creature_template` SET `HealthModifier` = 0.075 WHERE `entry` = 12922; -- Imp Minion
+UPDATE `creature_template` SET `HealthModifier` = 1.44 WHERE `entry` = 12941; -- Jase Farlane
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 12961; -- Kil'Hiwana
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 12962; -- Wik'Tar
+UPDATE `creature_template` SET `HealthModifier` = 1733.3 WHERE `entry` = 13020; -- Vaelastrasz the Corrupt
+UPDATE `creature_template` SET `HealthModifier` = 3.22245 WHERE `entry` = 13321; -- Frog
+UPDATE `creature_template` SET `HealthModifier` = 1.104 WHERE `entry` = 13842; -- Frostwolf Ambassador Rokhstrom
+UPDATE `creature_template` SET `HealthModifier` = 3.088 WHERE `entry` = 13917; -- Izzy Coppergrab
+UPDATE `creature_template` SET `HealthModifier` = 904.872 WHERE `entry` = 14020; -- Chromaggus
+UPDATE `creature_template` SET `HealthModifier` = 5.25 WHERE `entry` = 14182; -- Bounty Hunter Kolark
+UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 14301; -- Brinna Valanaar
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 14303; -- Petrified Guardian
+UPDATE `creature_template` SET `HealthModifier` = 42.5 WHERE `entry` = 14304; -- Kor'kron Elite
+UPDATE `creature_template` SET `HealthModifier` = 8 WHERE `entry` = 14308; -- Ferra
+UPDATE `creature_template` SET `HealthModifier` = 20.8 WHERE `entry` = 14323; -- Guard Slip'kik
+UPDATE `creature_template` SET `HealthModifier` = 20.8 WHERE `entry` = 14326; -- Guard Mol'dar
+UPDATE `creature_template` SET `HealthModifier` = 19.5 WHERE `entry` = 14354; -- Pusillin
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 14358; -- Shen'dralar Ancient
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 14361; -- Shen'dralar Wisp
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 14364; -- Shen'dralar Spirit
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 14368; -- Lorekeeper Lydros
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 14369; -- Shen'dralar Zealot
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 14371; -- Shen'dralar Provisioner
+UPDATE `creature_template` SET `HealthModifier` = 1.1508 WHERE `entry` = 14373; -- Sage Korolusk
+UPDATE `creature_template` SET `HealthModifier` = 42.5 WHERE `entry` = 14375; -- Scout Stronghand
+UPDATE `creature_template` SET `HealthModifier` = 42.5 WHERE `entry` = 14377; -- Scout Tharr
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 14381; -- Lorekeeper Javon
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 14382; -- Lorekeeper Mykos
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 14383; -- Lorekeeper Kildrath
+UPDATE `creature_template` SET `HealthModifier` = 16 WHERE `entry` = 14392; -- Overlord Runthak
+UPDATE `creature_template` SET `HealthModifier` = 0.33 WHERE `entry` = 14396; -- Eye of Immol'thar
+UPDATE `creature_template` SET `HealthModifier` = 0.2 WHERE `entry` = 14397; -- Mana Burst
+UPDATE `creature_template` SET `HealthModifier` = 2 WHERE `entry` = 14398; -- Eldreth Darter
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 14399; -- Arcane Torrent
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 14400; -- Arcane Feedback
+UPDATE `creature_template` SET `HealthModifier` = 1.104 WHERE `entry` = 14463; -- Daio the Decrepit
+UPDATE `creature_template` SET `HealthModifier` = 3200 WHERE `entry` = 14471; -- Setis
+UPDATE `creature_template` SET `HealthModifier` = 5.625 WHERE `entry` = 14491; -- Kurmokk
+UPDATE `creature_template` SET `HealthModifier` = 1.128 WHERE `entry` = 14498; -- Tosamina
+UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 14499; -- Horde Orphan
+UPDATE `creature_template` SET `HealthModifier` = 31.2 WHERE `entry` = 14506; -- Lord Hel'nurath
+UPDATE `creature_template` SET `HealthModifier` = 540 WHERE `entry` = 14507; -- High Priest Venoxis
+UPDATE `creature_template` SET `HealthModifier` = 270 WHERE `entry` = 14509; -- High Priest Thekal
+UPDATE `creature_template` SET `HealthModifier` = 540 WHERE `entry` = 14510; -- High Priestess Mar'li
+UPDATE `creature_template` SET `HealthModifier` = 540 WHERE `entry` = 14515; -- High Priestess Arlokk
+UPDATE `creature_template` SET `HealthModifier` = 540 WHERE `entry` = 14517; -- High Priestess Jeklik
+UPDATE `creature_template` SET `HealthModifier` = 11.2219 WHERE `entry` = 14532; -- Razzashi Venombrood
+UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 14539; -- Swift Timber Wolf
+UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 14540; -- Swift Brown Wolf
+UPDATE `creature_template` SET `HealthModifier` = 0.98 WHERE `entry` = 14541; -- Swift Gray Wolf
+UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 14559; -- Swift Palomino
+UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 14560; -- Swift White Steed
+UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 14561; -- Swift Brown Steed
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 14566; -- Ancient Equine Spirit
+UPDATE `creature_template` SET `HealthModifier` = 1.875 WHERE `entry` = 14603; -- Zapped Shore Strider
+UPDATE `creature_template` SET `HealthModifier` = 7.5 WHERE `entry` = 14621; -- Overseer Maltorius
+UPDATE `creature_template` SET `HealthModifier` = 1.875 WHERE `entry` = 14639; -- Zapped Deep Strider
+UPDATE `creature_template` SET `HealthModifier` = 1050 WHERE `entry` = 14720; -- High Overlord Saurfang
+UPDATE `creature_template` SET `HealthModifier` = 1.032 WHERE `entry` = 14726; -- Rashona Straglash
+UPDATE `creature_template` SET `HealthModifier` = 1.032 WHERE `entry` = 14727; -- Vehena
+UPDATE `creature_template` SET `HealthModifier` = 1.24 WHERE `entry` = 14742; -- Zap Farflinger
+UPDATE `creature_template` SET `HealthModifier` = 22.4438 WHERE `entry` = 14750; -- Gurubashi Bat Rider
+UPDATE `creature_template` SET `HealthModifier` = 11.2219 WHERE `entry` = 14821; -- Razzashi Raptor
+UPDATE `creature_template` SET `HealthModifier` = 702 WHERE `entry` = 14834; -- Hakkar
+UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 14850; -- Gruk
+UPDATE `creature_template` SET `HealthModifier` = 2.048 WHERE `entry` = 14859; -- Guard Taruc
+UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 14873; -- Okla
+UPDATE `creature_template` SET `HealthModifier` = 3.104 WHERE `entry` = 14875; -- Molthor
+UPDATE `creature_template` SET `HealthModifier` = 3.104 WHERE `entry` = 14876; -- Zandalar Headshrinker
+UPDATE `creature_template` SET `HealthModifier` = 2.80547 WHERE `entry` = 14880; -- Razzashi Skitterer
+UPDATE `creature_template` SET `HealthModifier` = 0.72 WHERE `entry` = 14881; -- Spider
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 14884; -- Parasitic Serpent
+UPDATE `creature_template` SET `HealthModifier` = 1802 WHERE `entry` = 14890; -- Taerar
+UPDATE `creature_template` SET `HealthModifier` = 1.023 WHERE `entry` = 14901; -- Peon
+UPDATE `creature_template` SET `HealthModifier` = 3.104 WHERE `entry` = 14902; -- Jin'rokh the Breaker
+UPDATE `creature_template` SET `HealthModifier` = 3.104 WHERE `entry` = 14903; -- Al'tabim the All-Seeing
+UPDATE `creature_template` SET `HealthModifier` = 3.104 WHERE `entry` = 14904; -- Maywiki of Zuldazar
+UPDATE `creature_template` SET `HealthModifier` = 3.104 WHERE `entry` = 14905; -- Falthir the Sightless
+UPDATE `creature_template` SET `HealthModifier` = 3.104 WHERE `entry` = 14910; -- Exzhal
+UPDATE `creature_template` SET `HealthModifier` = 3.104 WHERE `entry` = 14911; -- Zandalar Enforcer
+UPDATE `creature_template` SET `HealthModifier` = 3.104 WHERE `entry` = 14912; -- Captured Hakkari Zealot
+UPDATE `creature_template` SET `HealthModifier` = 3.088 WHERE `entry` = 14921; -- Rin'wosho the Trader
+UPDATE `creature_template` SET `HealthModifier` = 13.5 WHERE `entry` = 14965; -- Frenzied Bloodseeker Bat
+UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 14994; -- Zandalarian Event Generator
+UPDATE `creature_template` SET `HealthModifier` = 3.375 WHERE `entry` = 15041; -- Spawn of Mar'li
+UPDATE `creature_template` SET `HealthModifier` = 6.5 WHERE `entry` = 15042; -- Zanza the Restless
+UPDATE `creature_template` SET `HealthModifier` = 11.2219 WHERE `entry` = 15043; -- Zulian Crocolisk
+UPDATE `creature_template` SET `HealthModifier` = 0.75 WHERE `entry` = 15069; -- Heart of Hakkar
+UPDATE `creature_template` SET `HealthModifier` = 3.104 WHERE `entry` = 15070; -- Vinchaxa
+UPDATE `creature_template` SET `HealthModifier` = 3.088 WHERE `entry` = 15076; -- Zandalarian Emissary
+UPDATE `creature_template` SET `HealthModifier` = 3.104 WHERE `entry` = 15080; -- Servant of the Hand
+UPDATE `creature_template` SET `HealthModifier` = 5.40312 WHERE `entry` = 15111; -- Mad Servant
+UPDATE `creature_template` SET `HealthModifier` = 6.5 WHERE `entry` = 15117; -- Chained Spirit
+UPDATE `creature_template` SET `HealthModifier` = 1.064 WHERE `entry` = 15131; -- Qeeju
+UPDATE `creature_template` SET `HealthModifier` = 1.088 WHERE `entry` = 15174; -- Calandrath
+UPDATE `creature_template` SET `HealthModifier` = 1.1508 WHERE `entry` = 15175; -- Khur Hornstriker
+UPDATE `creature_template` SET `HealthModifier` = 1.1508 WHERE `entry` = 15176; -- Vargus
+UPDATE `creature_template` SET `HealthModifier` = 22.5 WHERE `entry` = 15177; -- Cloud Skydancer
+UPDATE `creature_template` SET `HealthModifier` = 23.625 WHERE `entry` = 15178; -- Runk Windtamer
+UPDATE `creature_template` SET `HealthModifier` = 1.096 WHERE `entry` = 15179; -- Mishta
+UPDATE `creature_template` SET `HealthModifier` = 1.104 WHERE `entry` = 15180; -- Baristolth of the Shifting Sands
+UPDATE `creature_template` SET `HealthModifier` = 30 WHERE `entry` = 15181; -- Commander Mar'alith
+UPDATE `creature_template` SET `HealthModifier` = 8 WHERE `entry` = 15182; -- Vish Kozus
+UPDATE `creature_template` SET `HealthModifier` = 1.104 WHERE `entry` = 15183; -- Geologist Larksbane
+UPDATE `creature_template` SET `HealthModifier` = 8 WHERE `entry` = 15184; -- Cenarion Hold Infantry
+UPDATE `creature_template` SET `HealthModifier` = 1.25 WHERE `entry` = 15185; -- Brood of Nozdormu
+UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 15186; -- Murky
+UPDATE `creature_template` SET `HealthModifier` = 1.1424 WHERE `entry` = 15188; -- Cenarion Emissary Blackhoof
+UPDATE `creature_template` SET `HealthModifier` = 1.088 WHERE `entry` = 15189; -- Beetix Ficklespragg
+UPDATE `creature_template` SET `HealthModifier` = 1.088 WHERE `entry` = 15190; -- Noggle Ficklespragg
+UPDATE `creature_template` SET `HealthModifier` = 1.1424 WHERE `entry` = 15191; -- Windcaller Proudhorn
+UPDATE `creature_template` SET `HealthModifier` = 3.096 WHERE `entry` = 15196; -- Deathclasp
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 15213; -- Twilight Overlord
+UPDATE `creature_template` SET `HealthModifier` = 845 WHERE `entry` = 15263; -- The Prophet Skeram
+UPDATE `creature_template` SET `HealthModifier` = 1.3692 WHERE `entry` = 15270; -- Huum Wildmane
+UPDATE `creature_template` SET `HealthModifier` = 845 WHERE `entry` = 15275; -- Emperor Vek'nilash
+UPDATE `creature_template` SET `HealthModifier` = 3.104 WHERE `entry` = 15282; -- Aurel Goldleaf
+UPDATE `creature_template` SET `HealthModifier` = 30.5 WHERE `entry` = 15286; -- Xil'xix
+UPDATE `creature_template` SET `HealthModifier` = 30.5 WHERE `entry` = 15288; -- Aluntir
+UPDATE `creature_template` SET `HealthModifier` = 30.5 WHERE `entry` = 15290; -- Arakis
+UPDATE `creature_template` SET `HealthModifier` = 1352 WHERE `entry` = 15299; -- Viscidus
+UPDATE `creature_template` SET `HealthModifier` = 1.1424 WHERE `entry` = 15306; -- Bor Wildmane
+UPDATE `creature_template` SET `HealthModifier` = 845 WHERE `entry` = 15339; -- Ossirian the Unscarred
+UPDATE `creature_template` SET `HealthModifier` = 650 WHERE `entry` = 15340; -- Moam
+UPDATE `creature_template` SET `HealthModifier` = 325 WHERE `entry` = 15341; -- General Rajaxx
+UPDATE `creature_template` SET `HealthModifier` = 325 WHERE `entry` = 15348; -- Kurinnaxx
+UPDATE `creature_template` SET `HealthModifier` = 325 WHERE `entry` = 15369; -- Ayamiss the Hunter
+UPDATE `creature_template` SET `HealthModifier` = 650 WHERE `entry` = 15370; -- Buru the Gorger
+UPDATE `creature_template` SET `HealthModifier` = 6.32812 WHERE `entry` = 15384; -- OLDWorld Trigger (DO NOT DELETE)
+UPDATE `creature_template` SET `HealthModifier` = 1.088 WHERE `entry` = 15419; -- Kania
+UPDATE `creature_template` SET `HealthModifier` = 1802 WHERE `entry` = 15481; -- Spirit of Azuregos
+UPDATE `creature_template` SET `HealthModifier` = 1.088 WHERE `entry` = 15498; -- Windcaller Yessendra
+UPDATE `creature_template` SET `HealthModifier` = 1.1424 WHERE `entry` = 15499; -- Warden Haro
+UPDATE `creature_template` SET `HealthModifier` = 8 WHERE `entry` = 15500; -- Keyl Swiftclaw
+UPDATE `creature_template` SET `HealthModifier` = 676 WHERE `entry` = 15509; -- Princess Huhuran
+UPDATE `creature_template` SET `HealthModifier` = 338 WHERE `entry` = 15510; -- Fankriss the Unyielding
+UPDATE `creature_template` SET `HealthModifier` = 225.784 WHERE `entry` = 15511; -- Lord Kri
+UPDATE `creature_template` SET `HealthModifier` = 676 WHERE `entry` = 15516; -- Battleguard Sartura
+UPDATE `creature_template` SET `HealthModifier` = 676 WHERE `entry` = 15517; -- Ouro
+UPDATE `creature_template` SET `HealthModifier` = 8 WHERE `entry` = 15540; -- Windcaller Kaldon
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 15614; -- J.D. Shadesong
+UPDATE `creature_template` SET `HealthModifier` = 1.35 WHERE `entry` = 15631; -- Spotlight
+UPDATE `creature_template` SET `HealthModifier` = 1.328 WHERE `entry` = 15677; -- Auctioneer Graves
+UPDATE `creature_template` SET `HealthModifier` = 1.25 WHERE `entry` = 15681; -- Auctioneer O'reely
+UPDATE `creature_template` SET `HealthModifier` = 200 WHERE `entry` = 15687; -- Moroes
+UPDATE `creature_template` SET `HealthModifier` = 500 WHERE `entry` = 15688; -- Terestian Illhoof
+UPDATE `creature_template` SET `HealthModifier` = 500 WHERE `entry` = 15689; -- Netherspite
+UPDATE `creature_template` SET `HealthModifier` = 520 WHERE `entry` = 15690; -- Prince Malchezaar
+UPDATE `creature_template` SET `HealthModifier` = 1000 WHERE `entry` = 15691; -- The Curator
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 15693; -- Jonathan the Revelator
+UPDATE `creature_template` SET `HealthModifier` = 0.2 WHERE `entry` = 15720; -- Timbermaw Ancestor
+UPDATE `creature_template` SET `HealthModifier` = 1.104 WHERE `entry` = 15722; -- Squire Leoren Mal'derath
+UPDATE `creature_template` SET `HealthModifier` = 1757.6 WHERE `entry` = 15727; -- C'Thun
+UPDATE `creature_template` SET `HealthModifier` = 1.023 WHERE `entry` = 15801; -- GONG BOY DND DNR
+UPDATE `creature_template` SET `HealthModifier` = 1098.5 WHERE `entry` = 15928; -- Thaddius
+UPDATE `creature_template` SET `HealthModifier` = 1098.5 WHERE `entry` = 15931; -- Grobbulus
+UPDATE `creature_template` SET `HealthModifier` = 1098.5 WHERE `entry` = 15932; -- Gluth
+UPDATE `creature_template` SET `HealthModifier` = 1098.5 WHERE `entry` = 15936; -- Heigan the Unclean
+UPDATE `creature_template` SET `HealthModifier` = 1098.5 WHERE `entry` = 15952; -- Maexxna
+UPDATE `creature_template` SET `HealthModifier` = 1098.5 WHERE `entry` = 15953; -- Grand Widow Faerlina
+UPDATE `creature_template` SET `HealthModifier` = 1098.5 WHERE `entry` = 15954; -- Noth the Plaguebringer
+UPDATE `creature_template` SET `HealthModifier` = 1098.5 WHERE `entry` = 15956; -- Anub'Rekhan
+UPDATE `creature_template` SET `HealthModifier` = 1428.05 WHERE `entry` = 15989; -- Sapphiron
+UPDATE `creature_template` SET `HealthModifier` = 1428.05 WHERE `entry` = 15990; -- Kel'Thuzad
+UPDATE `creature_template` SET `HealthModifier` = 1098.5 WHERE `entry` = 16011; -- Loatheb
+UPDATE `creature_template` SET `HealthModifier` = 2.104 WHERE `entry` = 16015; -- Vi'el
+UPDATE `creature_template` SET `HealthModifier` = 1098.5 WHERE `entry` = 16028; -- Patchwerk
+UPDATE `creature_template` SET `HealthModifier` = 4 WHERE `entry` = 16032; -- Falrin Treeshaper
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 16043; -- Magma Lord Bokk
+UPDATE `creature_template` SET `HealthModifier` = 1098.5 WHERE `entry` = 16060; -- Gothik the Harvester
+UPDATE `creature_template` SET `HealthModifier` = 1098.5 WHERE `entry` = 16061; -- Instructor Razuvious
+UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 16069; -- Gurky
+UPDATE `creature_template` SET `HealthModifier` = 20 WHERE `entry` = 16091; -- Dirk Thunderwood
+UPDATE `creature_template` SET `HealthModifier` = 200 WHERE `entry` = 16112; -- Korfax, Champion of the Light
+UPDATE `creature_template` SET `HealthModifier` = 105 WHERE `entry` = 16113; -- Father Inigo Montoy
+UPDATE `creature_template` SET `HealthModifier` = 50 WHERE `entry` = 16114; -- Scarlet Commander Marjhan
+UPDATE `creature_template` SET `HealthModifier` = 100 WHERE `entry` = 16115; -- Commander Eligor Dawnbringer
+UPDATE `creature_template` SET `HealthModifier` = 65 WHERE `entry` = 16116; -- Archmage Angela Dosantos
+UPDATE `creature_template` SET `HealthModifier` = 2.104 WHERE `entry` = 16123; -- Gremnik Rizzlesprang
+UPDATE `creature_template` SET `HealthModifier` = 50 WHERE `entry` = 16131; -- Rohan the Assassin
+UPDATE `creature_template` SET `HealthModifier` = 50 WHERE `entry` = 16132; -- Huntsman Leopold
+UPDATE `creature_template` SET `HealthModifier` = 50 WHERE `entry` = 16133; -- Mataus the Wrathcaster
+UPDATE `creature_template` SET `HealthModifier` = 52.5 WHERE `entry` = 16134; -- Rimblat Earthshatter
+UPDATE `creature_template` SET `HealthModifier` = 50 WHERE `entry` = 16135; -- Rayne
+UPDATE `creature_template` SET `HealthModifier` = 250 WHERE `entry` = 16152; -- Attumen the Huntsman
+UPDATE `creature_template` SET `HealthModifier` = 2.104 WHERE `entry` = 16212; -- Dispatch Commander Metz
+UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 16225; -- Pack Mule
+UPDATE `creature_template` SET `HealthModifier` = 37.4 WHERE `entry` = 16227; -- Bragok
+UPDATE `creature_template` SET `HealthModifier` = 1.128 WHERE `entry` = 16256; -- Jessica Chambers
+UPDATE `creature_template` SET `HealthModifier` = 3.096 WHERE `entry` = 16283; -- Packmaster Stonebruiser
+UPDATE `creature_template` SET `HealthModifier` = 3.112 WHERE `entry` = 16284; -- Argent Medic
+UPDATE `creature_template` SET `HealthModifier` = 2.088 WHERE `entry` = 16285; -- Argent Emissary
+UPDATE `creature_template` SET `HealthModifier` = 3.096 WHERE `entry` = 16376; -- Craftsman Wilhelm
+UPDATE `creature_template` SET `HealthModifier` = 30 WHERE `entry` = 16378; -- Argent Sentry
+UPDATE `creature_template` SET `HealthModifier` = 88.1336 WHERE `entry` = 16384; -- Argent Dawn Initiate
+UPDATE `creature_template` SET `HealthModifier` = 88.1336 WHERE `entry` = 16395; -- Argent Dawn Paladin
+UPDATE `creature_template` SET `HealthModifier` = 1.088 WHERE `entry` = 16416; -- Bronn Fitzwrench
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 16418; -- Mupsi Shacklefridd
+UPDATE `creature_template` SET `HealthModifier` = 500 WHERE `entry` = 16457; -- Maiden of Virtue
+UPDATE `creature_template` SET `HealthModifier` = 500 WHERE `entry` = 16524; -- Shade of Aran
+UPDATE `creature_template` SET `HealthModifier` = 1.104 WHERE `entry` = 16543; -- Garon Hutchins
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 16549; -- Whiskers the Rat
+UPDATE `creature_template` SET `HealthModifier` = 2.088 WHERE `entry` = 16786; -- Argent Quartermaster
+UPDATE `creature_template` SET `HealthModifier` = 1.088 WHERE `entry` = 17069; -- Emissary Whitebeard
+UPDATE `creature_template` SET `HealthModifier` = 1.088 WHERE `entry` = 17072; -- Emissary Gormok
+UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 17074; -- Cenarion Scout
+UPDATE `creature_template` SET `HealthModifier` = 1.088 WHERE `entry` = 17081; -- Scout Bloodfist
+UPDATE `creature_template` SET `HealthModifier` = 1.088 WHERE `entry` = 17082; -- Rifleman Torrig
+UPDATE `creature_template` SET `HealthModifier` = 1.064 WHERE `entry` = 17097; -- Advisor Sarophas
+UPDATE `creature_template` SET `HealthModifier` = 1.408 WHERE `entry` = 17109; -- Cersei Dusksinger
+UPDATE `creature_template` SET `HealthModifier` = 400 WHERE `entry` = 17225; -- Nightbane
+UPDATE `creature_template` SET `HealthModifier` = 1.104 WHERE `entry` = 17249; -- Landro Longshot
+UPDATE `creature_template` SET `HealthModifier` = 650 WHERE `entry` = 17257; -- Magtheridon
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 17304; -- Overseer Gorthak
+UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 17689; -- <TXT>Crown Guard Capture Quest Doodad
+UPDATE `creature_template` SET `HealthModifier` = 845 WHERE `entry` = 17767; -- Rage Winterchill
+UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 17795; -- Horde Tower Buffer
+UPDATE `creature_template` SET `HealthModifier` = 845 WHERE `entry` = 17808; -- Anetheron
+UPDATE `creature_template` SET `HealthModifier` = 845 WHERE `entry` = 17842; -- Azgalor
+UPDATE `creature_template` SET `HealthModifier` = 1.104 WHERE `entry` = 17878; -- Scourge Siege Engineer
+UPDATE `creature_template` SET `HealthModifier` = 845 WHERE `entry` = 17888; -- Kaz'rogal
+UPDATE `creature_template` SET `HealthModifier` = 1208.35 WHERE `entry` = 17968; -- Archimonde
+UPDATE `creature_template` SET `HealthModifier` = 650 WHERE `entry` = 18805; -- High Astromancer Solarian
+UPDATE `creature_template` SET `HealthModifier` = 260 WHERE `entry` = 18831; -- High King Maulgar
+UPDATE `creature_template` SET `HealthModifier` = 520 WHERE `entry` = 19044; -- Gruul the Dragonkiller
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 19280; -- Red Hawkstrider
+UPDATE `creature_template` SET `HealthModifier` = 216.666 WHERE `entry` = 19514; -- Al'ar
+UPDATE `creature_template` SET `HealthModifier` = 650 WHERE `entry` = 19516; -- Void Reaver
+UPDATE `creature_template` SET `HealthModifier` = 845 WHERE `entry` = 19622; -- Kael'thas Sunstrider
+UPDATE `creature_template` SET `HealthModifier` = 2 WHERE `entry` = 19850; -- Councilor Arial D'Anastasis
+UPDATE `creature_template` SET `HealthModifier` = 1.12667 WHERE `entry` = 19858; -- "Lefty" Puddemup
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 19861; -- Bip Nigstrom
+UPDATE `creature_template` SET `HealthModifier` = 1.12667 WHERE `entry` = 19925; -- Miglik Blotstrom
+UPDATE `creature_template` SET `HealthModifier` = 2.096 WHERE `entry` = 21045; -- Hired Bodyguard
+UPDATE `creature_template` SET `HealthModifier` = 845 WHERE `entry` = 21212; -- Lady Vashj
+UPDATE `creature_template` SET `HealthModifier` = 650 WHERE `entry` = 21213; -- Morogrim Tidewalker
+UPDATE `creature_template` SET `HealthModifier` = 162.5 WHERE `entry` = 21214; -- Fathom-Lord Karathress
+UPDATE `creature_template` SET `HealthModifier` = 650 WHERE `entry` = 21215; -- Leotheras the Blind
+UPDATE `creature_template` SET `HealthModifier` = 650 WHERE `entry` = 21216; -- Hydross the Unstable
+UPDATE `creature_template` SET `HealthModifier` = 650 WHERE `entry` = 21217; -- The Lurker Below
+UPDATE `creature_template` SET `HealthModifier` = 1.12667 WHERE `entry` = 21235; -- "Backstab" Bindo Gearbomb
+UPDATE `creature_template` SET `HealthModifier` = 281.667 WHERE `entry` = 22841; -- Shade of Akama
+UPDATE `creature_template` SET `HealthModifier` = 845 WHERE `entry` = 22856; -- Reliquary of the Lost
+UPDATE `creature_template` SET `HealthModifier` = 845 WHERE `entry` = 22871; -- Teron Gorefiend
+UPDATE `creature_template` SET `HealthModifier` = 845 WHERE `entry` = 22887; -- High Warlord Naj'entus
+UPDATE `creature_template` SET `HealthModifier` = 8450 WHERE `entry` = 22898; -- Supremus
+UPDATE `creature_template` SET `HealthModifier` = 1098.5 WHERE `entry` = 22917; -- Illidan Stormrage
+UPDATE `creature_template` SET `HealthModifier` = 845 WHERE `entry` = 22947; -- Mother Shahraz
+UPDATE `creature_template` SET `HealthModifier` = 845 WHERE `entry` = 22948; -- Gurtogg Bloodboil
+UPDATE `creature_template` SET `HealthModifier` = 211.25 WHERE `entry` = 22949; -- Gathios the Shatterer
+UPDATE `creature_template` SET `HealthModifier` = 34 WHERE `entry` = 23090; -- Troll Roof Stalker
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 23198; -- Lucky
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 23234; -- Bananas
+UPDATE `creature_template` SET `HealthModifier` = 650 WHERE `entry` = 23574; -- Akil'zon
+UPDATE `creature_template` SET `HealthModifier` = 650 WHERE `entry` = 23576; -- Nalorakk
+UPDATE `creature_template` SET `HealthModifier` = 260 WHERE `entry` = 23577; -- Halazzi
+UPDATE `creature_template` SET `HealthModifier` = 650 WHERE `entry` = 23578; -- Jan'alai
+UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 23635; -- Krixx
+UPDATE `creature_template` SET `HealthModifier` = 845 WHERE `entry` = 23863; -- Zul'jin
+UPDATE `creature_template` SET `HealthModifier` = 650 WHERE `entry` = 24239; -- Hex Lord Malacrass
+UPDATE `creature_template` SET `HealthModifier` = 2197 WHERE `entry` = 24882; -- Brutallus
+UPDATE `creature_template` SET `HealthModifier` = 1098.5 WHERE `entry` = 24892; -- Sathrovarr the Corruptor
+UPDATE `creature_template` SET `HealthModifier` = 2197 WHERE `entry` = 25038; -- Felmyst
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 25078; -- Captain Krick Wrenchnozzle
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 25082; -- Engineer Torquespindle
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 25089; -- Galley Chief Steelbelly
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 25093; -- First Mate Masker
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 25094; -- Navigator Tah're
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 25096; -- Crewman Gearspinner
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 25097; -- Crewman Hammertink
+UPDATE `creature_template` SET `HealthModifier` = 1.05 WHERE `entry` = 25098; -- Bosun Thunderhorn
+UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 25109; -- Rocket Chicken
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 25111; -- Treasure
+UPDATE `creature_template` SET `HealthModifier` = 1098.5 WHERE `entry` = 25165; -- Lady Sacrolash
+UPDATE `creature_template` SET `HealthModifier` = 2856.1 WHERE `entry` = 25315; -- Kil'jaeden
+UPDATE `creature_template` SET `HealthModifier` = 0.75 WHERE `entry` = 25706; -- Scorchling
+UPDATE `creature_template` SET `HealthModifier` = 2197 WHERE `entry` = 25840; -- Entropius
+UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 26537; -- Greeb Ramrocket
+UPDATE `creature_template` SET `HealthModifier` = 1.048 WHERE `entry` = 27705; -- Lorrin Foxfire
+UPDATE `creature_template` SET `HealthModifier` = 1.072 WHERE `entry` = 27816; -- Brew Vendor
+UPDATE `creature_template` SET `HealthModifier` = 1300 WHERE `entry` = 28859; -- Malygos
+UPDATE `creature_template` SET `HealthModifier` = 1300 WHERE `entry` = 28860; -- Sartharion
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 28883; -- Frosty
+UPDATE `creature_template` SET `HealthModifier` = 1.024 WHERE `entry` = 29143; -- Bebri Coifcurl
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 29535; -- Alchemist Cinesra
+UPDATE `creature_template` SET `HealthModifier` = 0.2 WHERE `entry` = 29888; -- Herbalism Flower
+UPDATE `creature_template` SET `HealthModifier` = 50 WHERE `entry` = 30610; -- War-Hunter Molog
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 30611; -- Greela "The Grunt" Crankchain
+UPDATE `creature_template` SET `HealthModifier` = 1000 WHERE `entry` = 31125; -- Archavon the Stone Watcher
+UPDATE `creature_template` SET `HealthModifier` = 9.1 WHERE `entry` = 32104; -- Stormpike Shredder Unit (2)
+UPDATE `creature_template` SET `HealthModifier` = 600 WHERE `entry` = 32845; -- Hodir
+UPDATE `creature_template` SET `HealthModifier` = 1500 WHERE `entry` = 32865; -- Thorim
+UPDATE `creature_template` SET `HealthModifier` = 2500 WHERE `entry` = 32871; -- Algalon the Observer
+UPDATE `creature_template` SET `HealthModifier` = 300 WHERE `entry` = 32906; -- Freya
+UPDATE `creature_template` SET `HealthModifier` = 1100 WHERE `entry` = 32930; -- Kologarn
+UPDATE `creature_template` SET `HealthModifier` = 5000 WHERE `entry` = 33113; -- Flame Leviathan
+UPDATE `creature_template` SET `HealthModifier` = 1400 WHERE `entry` = 33118; -- Ignis the Furnace Master
+UPDATE `creature_template` SET `HealthModifier` = 900 WHERE `entry` = 33186; -- Razorscale
+UPDATE `creature_template` SET `HealthModifier` = 1650 WHERE `entry` = 33271; -- General Vezax
+UPDATE `creature_template` SET `HealthModifier` = 3155 WHERE `entry` = 33288; -- Yogg-Saron
+UPDATE `creature_template` SET `HealthModifier` = 1400 WHERE `entry` = 33293; -- XT-002 Deconstructor
+UPDATE `creature_template` SET `HealthModifier` = 300 WHERE `entry` = 33350; -- Mimiron
+UPDATE `creature_template` SET `HealthModifier` = 1200 WHERE `entry` = 33515; -- Auriaya
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 33578; -- Murkimus the Gladiator
+UPDATE `creature_template` SET `HealthModifier` = 1300 WHERE `entry` = 33993; -- Emalon the Storm Watcher
+UPDATE `creature_template` SET `HealthModifier` = 0.93 WHERE `entry` = 34155; -- White Kodo
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 34400; -- Bouncer
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 34403; -- Fringe
+UPDATE `creature_template` SET `HealthModifier` = 2000 WHERE `entry` = 34496; -- Eydis Darkbane
+UPDATE `creature_template` SET `HealthModifier` = 1500 WHERE `entry` = 34564; -- Anub'arak
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 34694; -- Grunty
+UPDATE `creature_template` SET `HealthModifier` = 1.264 WHERE `entry` = 34765; -- Zelli Hotnozzle
+UPDATE `creature_template` SET `HealthModifier` = 1450 WHERE `entry` = 34780; -- Lord Jaraxxus
+UPDATE `creature_template` SET `HealthModifier` = 950 WHERE `entry` = 34797; -- Icehowl
+UPDATE `creature_template` SET `HealthModifier` = 50 WHERE `entry` = 35008; -- Sawemba
+UPDATE `creature_template` SET `HealthModifier` = 1690 WHERE `entry` = 35013; -- Koralon the Flame Watcher
+UPDATE `creature_template` SET `HealthModifier` = 1.4028 WHERE `entry` = 35068; -- Gotura Fourwinds
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 35387; -- Leaping Hatchling
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 35395; -- Deviate Hatchling
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 36511; -- Spectral Tiger Cub
+UPDATE `creature_template` SET `HealthModifier` = 4375 WHERE `entry` = 36597; -- The Lich King
+UPDATE `creature_template` SET `HealthModifier` = 1700 WHERE `entry` = 36612; -- Lord Marrowgar
+UPDATE `creature_template` SET `HealthModifier` = 2900 WHERE `entry` = 36626; -- Festergut
+UPDATE `creature_template` SET `HealthModifier` = 2600 WHERE `entry` = 36627; -- Rotface
+UPDATE `creature_template` SET `HealthModifier` = 3000 WHERE `entry` = 36678; -- Professor Putricide
+UPDATE `creature_template` SET `HealthModifier` = 860.524 WHERE `entry` = 36789; -- Valithria Dreamwalker
+UPDATE `creature_template` SET `HealthModifier` = 3437.5 WHERE `entry` = 36853; -- Sindragosa
+UPDATE `creature_template` SET `HealthModifier` = 1000 WHERE `entry` = 36855; -- Lady Deathwhisper
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 36979; -- Lil' K.T.
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 36985; -- Hand of Hrestimorak
+UPDATE `creature_template` SET `HealthModifier` = 1.448 WHERE `entry` = 37072; -- Rogg
+UPDATE `creature_template` SET `HealthModifier` = 2250 WHERE `entry` = 37813; -- Deathbringer Saurfang
+UPDATE `creature_template` SET `HealthModifier` = 4261 WHERE `entry` = 37955; -- Blood-Queen Lana'thel
+UPDATE `creature_template` SET `HealthModifier` = 2197 WHERE `entry` = 38433; -- Toravon the Ice Watcher
+UPDATE `creature_template` SET `HealthModifier` = 3770 WHERE `entry` = 39863; -- Halion
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 40624; -- Celestial Dragon
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 41261; -- Cinder-Plumed Highland Gryphon
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 44022; -- Lootbot 3000
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 45896; -- Fungarian
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 46415; -- Crimson Swoglet
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 48982; -- Tiny Shale Spider
+UPDATE `creature_template` SET `HealthModifier` = 0.0001 WHERE `entry` = 50036; -- Shield Beacon
+UPDATE `creature_template` SET `HealthModifier` = 0.0001 WHERE `entry` = 50037; -- Restorative Beacon
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 50041; -- Solarite Geode
+UPDATE `creature_template` SET `HealthModifier` = 0.75 WHERE `entry` = 50045; -- Blast Mine
+UPDATE `creature_template` SET `HealthModifier` = 0.4 WHERE `entry` = 50046; -- Sentry Turret
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 50048; -- Scrapmaw
+UPDATE `creature_template` SET `HealthModifier` = 0.25 WHERE `entry` = 50053; -- Standard of Recovery
+UPDATE `creature_template` SET `HealthModifier` = 0.25 WHERE `entry` = 50055; -- Standard of Rallying
+UPDATE `creature_template` SET `HealthModifier` = 0.25 WHERE `entry` = 50057; -- Standard of Valiance
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 50063; -- Echo Rune
+UPDATE `creature_template` SET `HealthModifier` = 1.4 WHERE `entry` = 50065; -- Lesser Skeletal Warrior
+UPDATE `creature_template` SET `HealthModifier` = 6.5 WHERE `entry` = 50068; -- Abomination
+UPDATE `creature_template` SET `HealthModifier` = 2 WHERE `entry` = 50071; -- Infinite Clone
+UPDATE `creature_template` SET `HealthModifier` = 2 WHERE `entry` = 50073; -- Ghoul
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 50075; -- Skeletal Mage
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 50076; -- Skeletal Archer
+UPDATE `creature_template` SET `HealthModifier` = 0.9 WHERE `entry` = 50078; -- Skeletal Rogue
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 50096; -- Tentacle of Y'Shaarj
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 50104; -- Healing Ward
+UPDATE `creature_template` SET `HealthModifier` = 0.2 WHERE `entry` = 50105; -- Serpent Ward
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 50106; -- Spirit Idol
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 50108; -- Stasis Ward
+UPDATE `creature_template` SET `HealthModifier` = 5 WHERE `entry` = 50115; -- Decaying Colossus
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 50116; -- Serene Idol
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 50117; -- Dark Idol
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 50118; -- Swift Idol
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 50119; -- Shadow Effigy
+UPDATE `creature_template` SET `HealthModifier` = 0.2 WHERE `entry` = 50120; -- Hexing Effigy
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 50122; -- Graven Effigy
+UPDATE `creature_template` SET `HealthModifier` = 1.1 WHERE `entry` = 50124; -- Shadowhound
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 50129; -- Drakkari War Golem
+UPDATE `creature_template` SET `HealthModifier` = 0.25 WHERE `entry` = 50153; -- Standard of Might
+UPDATE `creature_template` SET `HealthModifier` = 0.5 WHERE `entry` = 50171; -- Decoy
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 50177; -- Frost Wyrm
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 50217; -- Cleansing Idol
+UPDATE `creature_template` SET `HealthModifier` = 1.1 WHERE `entry` = 50224; -- Lesser Shadowhound
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 50250; -- Testament of Hope
+UPDATE `creature_template` SET `HealthModifier` = 0.3 WHERE `entry` = 50258; -- Phoenix Egg
+UPDATE `creature_template` SET `HealthModifier` = 0.4 WHERE `entry` = 50261; -- Skeletal Smith
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 50264; -- War Falcon
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 50268; -- Dreadsteed Portal
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 50272; -- Tentacle of C'Thun
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 50300; -- Destructo-Bot
+UPDATE `creature_template` SET `HealthModifier` = 0.33 WHERE `entry` = 50301; -- Hellfire Imp
+UPDATE `creature_template` SET `HealthModifier` = 1.1 WHERE `entry` = 50309; -- Bone Wraith
+UPDATE `creature_template` SET `HealthModifier` = 1.25 WHERE `entry` = 50320; -- Tomb King
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 50323; -- Crypt Fiend
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 50331; -- Sun Gate
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 50359; -- Roaring Pyre
+UPDATE `creature_template` SET `HealthModifier` = 1.25 WHERE `entry` = 50375; -- Hellfire Abyssal
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 50385; -- Plaguefather
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 50393; -- War Falcon
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 50545; -- Magic Lamp
+UPDATE `creature_template` SET `HealthModifier` = 0.2 WHERE `entry` = 50587; -- Serpent Ward
+UPDATE `creature_template` SET `HealthModifier` = 0.75 WHERE `entry` = 50600; -- Shrapnel Mine
+UPDATE `creature_template` SET `HealthModifier` = 40 WHERE `entry` = 50959; -- Void Borne Core Hound
+UPDATE `creature_template` SET `HealthModifier` = 0.0001 WHERE `entry` = 51036; -- Shield Beacon
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 51065; -- Greater Skeletal Warrior
+UPDATE `creature_template` SET `HealthModifier` = 0.1 WHERE `entry` = 51104; -- Sentry Ward
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 51105; -- Viper Ward
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 51204; -- Oil Spill Pylon
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 51275; -- Rotting Frost Giant
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 51320; -- Fel Infernal
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 51335; -- Warpdagger
+UPDATE `creature_template` SET `HealthModifier` = 0.25 WHERE `entry` = 52121; -- Brood Trap
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 52809; -- Ash'adar, Harbinger of Dusk
+UPDATE `creature_template` SET `HealthModifier` = 0.0001 WHERE `entry` = 53036; -- Shield Beacon
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 54730; -- Gregarious Grell
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 54906; -- Baixue
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 54907; -- Cindara
+UPDATE `creature_template` SET `HealthModifier` = 0.0001 WHERE `entry` = 55036; -- Shield Beacon
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 55117; -- Jungle Idol
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 57500; -- Book of Artisans
+UPDATE `creature_template` SET `HealthModifier` = 0.25 WHERE `entry` = 60057; -- Standard of Valiance
+UPDATE `creature_template` SET `HealthModifier` = 0.25 WHERE `entry` = 60058; -- Standard of Valiance
+UPDATE `creature_template` SET `HealthModifier` = 0.25 WHERE `entry` = 60060; -- Standard of Valiance
+UPDATE `creature_template` SET `HealthModifier` = 0.25 WHERE `entry` = 60062; -- Standard of Valiance
+UPDATE `creature_template` SET `HealthModifier` = 0.25 WHERE `entry` = 60065; -- Standard of Supremacy
+UPDATE `creature_template` SET `HealthModifier` = 0.65 WHERE `entry` = 60070; -- Clockwork Assistant
+UPDATE `creature_template` SET `HealthModifier` = 1.3 WHERE `entry` = 60671; -- Mechano-Bear
+UPDATE `creature_template` SET `HealthModifier` = 0.8 WHERE `entry` = 60672; -- Rusthound
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 66984; -- Baneling
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 67332; -- Darkmoon Eye
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 67832; -- Corgi Pup
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 68666; -- Ashstone Core
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 70131; -- Wottle
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 70132; -- Dottle
+UPDATE `creature_template` SET `HealthModifier` = 1.25 WHERE `entry` = 73427; -- Harlequin's Book of Ascension
+UPDATE `creature_template` SET `HealthModifier` = 1.5 WHERE `entry` = 75115; -- Book of Ascension
+UPDATE `creature_template` SET `HealthModifier` = 0.5 WHERE `entry` = 75120; -- Greedy Demon
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 75136; -- Wild Book of Ascension
+UPDATE `creature_template` SET `HealthModifier` = 1.5 WHERE `entry` = 75137; -- Bloody Book of Ascension
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 79025; -- Wondrous Wisdomball
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 79026; -- Kleptomanic Demon
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 79027; -- Gimbly
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 79054; -- Prestigious Bloodforged Courser
+UPDATE `creature_template` SET `HealthModifier` = 0.8 WHERE `entry` = 79055; -- Lil' Chromaggus
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 80051; -- Lil' Al'ar
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 80054; -- Reborn Book of Ascension
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 80884; -- Lil' Hogger
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 80890; -- Challenger's Book of Ascension
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 80918; -- Celestial Treasure Keeper
+UPDATE `creature_template` SET `HealthModifier` = 3.125 WHERE `entry` = 80919; -- Cogsley
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 81031; -- Arfus
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 81035; -- Ruffin
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 81051; -- Baal
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 81057; -- Rustyroot Snooter
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 98495; -- Nightsaber Cub
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 98497; -- Chaotic Saber Cub
+UPDATE `creature_template` SET `HealthModifier` = 1.2 WHERE `entry` = 98500; -- Nightmarish Book of Ascension
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 98501; -- Necrotic Book of Ascension
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 98597; -- Crawling Claw
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 100011; -- Burns
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 100277; -- Prized Turkey
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 100398; -- Maldraxxian Corpsefly
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 100436; -- Untainted Grove Crawler
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 102103; -- Spiteful Apparition
+UPDATE `creature_template` SET `HealthModifier` = 1.25 WHERE `entry` = 108312; -- Destined Book of Ascension
+UPDATE `creature_template` SET `HealthModifier` = 1.25 WHERE `entry` = 108586; -- Warcraft Reborn Book of Ascension
+UPDATE `creature_template` SET `HealthModifier` = 1.25 WHERE `entry` = 108587; -- Book of Conquest
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 116016; -- Gentle Palamanther
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 116133; -- Swift Falcon
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 116818; -- Chibee
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 119925; -- Anu'relos
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 119926; -- Lumi'ara
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 123376; -- Periwinkle Calf
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 123379; -- Mudback Calf
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 125327; -- Rollingpaw Cub
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 125328; -- Teatuft Cub
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 125329; -- Brewthief Cub
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 131749; -- Whoopy
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 163810; -- Satiated Tick
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 163811; -- Tentacular Manifestation
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 170007; -- Vicious War Lion
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 207015; -- Godrifa, the Shieldmaiden
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 207115; -- Core Hound Pup
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 220053; -- Azure Cinderkin
+UPDATE `creature_template` SET `HealthModifier` = 0.25 WHERE `entry` = 220871; -- Standard of Spellwarding
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 223957; -- Gill'dan
+UPDATE `creature_template` SET `HealthModifier` = 1.3 WHERE `entry` = 226012; -- Spider Bomb
+UPDATE `creature_template` SET `HealthModifier` = 1.3 WHERE `entry` = 226112; -- Firepot Drone
+UPDATE `creature_template` SET `HealthModifier` = 1.3 WHERE `entry` = 226312; -- Deathball
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 250305; -- Spectral Scythe
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 254610; -- Joyous Kitten
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 254677; -- Friendly Sludgemonster
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 254678; -- Unbottled Oozeling
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 254817; -- Watcher of Tomes
+UPDATE `creature_template` SET `HealthModifier` = 0.001 WHERE `entry` = 254862; -- Cleansing Idol
+UPDATE `creature_template` SET `HealthModifier` = 0.25 WHERE `entry` = 300659; -- Mimic Ward
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 300661; -- Puppeteer's Grasp
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 310659; -- Spirit of Bwonsamdi
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 315301; -- Animated Blood
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 321266; -- Juvenile Dark Armored Storm Gryphon
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 325301; -- Blood Worm
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 335301; -- Blood Parasite
+UPDATE `creature_template` SET `HealthModifier` = 15.9116 WHERE `entry` = 347770; -- Battle Turret X-13
+UPDATE `creature_template` SET `HealthModifier` = 37.2 WHERE `entry` = 357310; -- Primal Flamesaber
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 357744; -- Gleamhoof Fawn
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 357746; -- Littlehoof Fawn
+UPDATE `creature_template` SET `HealthModifier` = 0.0819 WHERE `entry` = 397771; -- Manifestation of Y'Shaarj
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 453247; -- Rockling
+UPDATE `creature_template` SET `HealthModifier` = 0.75 WHERE `entry` = 454239; -- Dream Flower
+UPDATE `creature_template` SET `HealthModifier` = 2.52 WHERE `entry` = 457772; -- Battle Turret X-13
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 467073; -- Spider Bomb Factory
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 499459; -- Syd
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 499460; -- Soul of the Aspects
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 499487; -- Onyx Serpent Hatchling
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 499534; -- Witchwood Stag (Blue)
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 499592; -- Ancient Nest Guardian
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 499754; -- Wisper
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 499805; -- Springfur Alpaca
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 499892; -- Blackpaw
+UPDATE `creature_template` SET `HealthModifier` = 0.0001 WHERE `entry` = 500360; -- Replenishment Beacon
+UPDATE `creature_template` SET `HealthModifier` = 0.0001 WHERE `entry` = 500361; -- Alarm Beacon
+UPDATE `creature_template` SET `HealthModifier` = 10.5 WHERE `entry` = 500362; -- MY GREATEST INVENTION
+UPDATE `creature_template` SET `HealthModifier` = 0.5 WHERE `entry` = 500366; -- Repulsion Unit
+UPDATE `creature_template` SET `HealthModifier` = 0.1 WHERE `entry` = 500464; -- Eldritch Tentacle
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 500465; -- Tentacle of Yogg-Saron
+UPDATE `creature_template` SET `HealthModifier` = 0.9 WHERE `entry` = 500481; -- ZIGGI-6K
+UPDATE `creature_template` SET `HealthModifier` = 2.5 WHERE `entry` = 500482; -- Gravebound Champion
+UPDATE `creature_template` SET `HealthModifier` = 2.5 WHERE `entry` = 500483; -- Spellbound Champion
+UPDATE `creature_template` SET `HealthModifier` = 2.5 WHERE `entry` = 500484; -- Icebound Champion
+UPDATE `creature_template` SET `HealthModifier` = 1.3 WHERE `entry` = 500711; -- Clockwork Guardian
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 500941; -- Air Elemental
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 503030; -- Lesser Zombie
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 503031; -- Zombie
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 503032; -- Greater Zombie
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 503200; -- Bone Construct
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 506010; -- Caltrop
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 506011; -- Cauldron Hidden Periodic
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 506018; -- Mushroom
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 506051; -- Battery Recharge Station
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 506250; -- Shadow Trap
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 506251; -- Inquisitor's Trap
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 506252; -- Death Trap
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 506253; -- Scourge Trap
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 510100; -- Greater Imp
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 519908; -- "Baby Kodo"
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 519910; -- Night Web Spider Hatchling
+UPDATE `creature_template` SET `HealthModifier` = 0.05 WHERE `entry` = 522106; -- Spirit Link Idol
+UPDATE `creature_template` SET `HealthModifier` = 0.25 WHERE `entry` = 523032; -- Zombie
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 533030; -- Apocalyptic Skies
+UPDATE `creature_template` SET `HealthModifier` = 1.4 WHERE `entry` = 542064; -- Tombstone
+UPDATE `creature_template` SET `HealthModifier` = 1.4 WHERE `entry` = 542065; -- Risen Ghoul
+UPDATE `creature_template` SET `HealthModifier` = 0.25 WHERE `entry` = 575091; -- Scourge Transporter
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 599810; -- Farseer's Raging Tempest (Water)
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 599823; -- Garn Steelmaw
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 599827; -- Smoky Direwolf
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 599852; -- Soultwisted Deathwalker
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 642827; -- Silas Darkmoon
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 800008; -- Gormul, the Wrathful
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 800020; -- Astral Cloud Serpent
+UPDATE `creature_template` SET `HealthModifier` = 0.5 WHERE `entry` = 840000; -- Uncanny Likeness
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 988501; -- Unleashed Book of Ascension
+UPDATE `creature_template` SET `HealthModifier` = 0.05 WHERE `entry` = 999299; -- Scarab
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 1000007; -- Boastful Gruntling
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 1002087; -- Kahn
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 10111377; -- Treasure Keeper
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 10111378; -- Pit Lord's Eye
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 10500007; -- White Wind Eagle
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 11000013; -- Blinky
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 11000017; -- Cap'n Berry
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 11000020; -- Ingie
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 11000021; -- Carna
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 11000025; -- Shadow the Fox
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 11000045; -- Stella
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 11000046; -- Remornia
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 11000049; -- Tufted Flying Squirrel
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 11000051; -- Mocha
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 11000056; -- Green Pricklefury Hare
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 11000083; -- Gibgle, the Pursuer
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 11000090; -- Glrgky, the Pursuer
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 11000105; -- White Vulpine Familiar
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 11000110; -- Bloodthirsty Armored Direbat
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 11000122; -- Candy
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 11000157; -- Russet Dreamer
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 11000187; -- Lucky-Dee
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 11000203; -- Fuchsia Glimmerfly
+UPDATE `creature_template` SET `HealthModifier` = 1 WHERE `entry` = 11000205; -- Green Glimmerfly
 COMMIT;
