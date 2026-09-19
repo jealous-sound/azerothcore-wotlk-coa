@@ -29,11 +29,11 @@ bool Stationary(uint32 entry)
 {
     return entry == 50132 || entry == 542064 || entry == 575091;
 }
-// Skeletal Archer's Shoot (AttackSpell() 801516) already fires every 3s
-// regardless of range, so it never needed to close to melee.
+// Skeletal Archer's Shoot (AttackSpell() 801516) and Skeletal Mage's Frost bolt (801513) already fire
+// every 3s regardless of range, so neither needs to close to melee.
 bool Ranged(uint32 entry)
 {
-    return entry == 50076;
+    return entry == 50076 || entry == 50075;
 }
 // Only minions that actually follow the caster belong in the formation. 523032 charges 25 yd
 // away the moment it spawns and is skipped by the idle re-follow; 542065 is a corpse marker
