@@ -96,13 +96,11 @@ uint32 AttackSpell(uint32 entry)
     switch (entry)
     {
     case 50067:
-        return 707598;
+        return 805976; // Putrid Claw; Command: Gargoyle (707598) is cast on order only
     case 50075:
         return 801513;
     case 50076:
         return 801516;
-    case 500650:
-        return 822074;
     case 50177:
         return 801513;
     case 500483:
@@ -511,6 +509,9 @@ class npc_ascension_necromancer : public ScriptedAI
         case 523032:
             me->GetMotionMaster()->MoveCharge(target->GetPositionX(), target->GetPositionY(), target->GetPositionZ());
             Cast(me, me, 504022);
+            break;
+        case 50067:
+            Cast(me, target, 707598);
             break;
         case 50133:
         case 50303:
