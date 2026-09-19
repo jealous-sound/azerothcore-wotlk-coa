@@ -301,8 +301,11 @@ struct boss_hexlord_malacrass : public BossAI
                         siphonTrigger->SetUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
                         siphonTrigger->AI()->DoCast(target, SPELL_SIPHON_SOUL, true);
                         siphonTrigger->GetMotionMaster()->MoveFollow(me, 0.0f, 0.0f);
+                        // PlayerAbility only has rows for classes 0-11 (plus shadow priest); read custom classes
+                        // (12-32) through their legacy class instead of past the end of the table.
                         if (Player* player = target->ToPlayer())
-                            _currentClass = player->HasAura(AURA_SHADOW_FORM) ? uint8(ADDITIONAL_CLASS_SPRIEST) : player->getClass();
+                            _currentClass = player->HasAura(AURA_SHADOW_FORM) ? uint8(ADDITIONAL_CLASS_SPRIEST) :
+                                uint8(GetLegacyClassForCustomClass(Classes(player->getClass())));
 
                         ScheduleClassAbility();
                     }
