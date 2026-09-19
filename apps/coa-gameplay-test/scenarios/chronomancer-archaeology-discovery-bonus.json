@@ -1,0 +1,54 @@
+{
+  "schema": 1,
+  "name": "Archaeology adds 3% base mana and health to Discovery (#998)",
+  "contract": "Archaeology 560130 carries two SPELL_AURA_ADD_FLAT_MODIFIER (107) effects: EFFECT2 (SpellModOp 12) and EFFECT3 (SpellModOp 23), both with EffectSpellClassMask word0 bit 0x40, matching Discovery's stacking buff 704197 (SpellFamilyFlags word0 64). Each is EffectBasePoints 2, resolving to 3 with DieSides 1, adding 3 flat percentage points to Discovery's mana and health generation effects.",
+  "timeout_ms": 60000,
+  "players": [
+    { "id": "control", "race": 1, "class": 22, "level": 80 },
+    { "id": "talent", "race": 1, "class": 22, "level": 80 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+    { "action": "learn", "actor": "talent", "spell": 560130 },
+    {
+      "action": "assert",
+      "label": "Discovery mana effect unmodified without the talent",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 704197,
+      "op": 12,
+      "base": 0,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "Discovery mana effect gains 3 with the talent",
+      "actor": "talent",
+      "metric": "spell_modifier",
+      "spell": 704197,
+      "op": 12,
+      "base": 0,
+      "equals": 3
+    },
+    {
+      "action": "assert",
+      "label": "Discovery health effect unmodified without the talent",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 704197,
+      "op": 23,
+      "base": 0,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "Discovery health effect gains 3 with the talent",
+      "actor": "talent",
+      "metric": "spell_modifier",
+      "spell": 704197,
+      "op": 23,
+      "base": 0,
+      "equals": 3
+    }
+  ]
+}
