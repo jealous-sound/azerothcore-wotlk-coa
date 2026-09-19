@@ -52,7 +52,9 @@ Read that checkout's `AGENTS.md` and `apps/coa-gameplay-test/README.md` before t
 5. Inspect `summary.json`, `result.json` and relevant startup/runtime log errors. A pass requires the runner's
    zero exit code and completed assertions. Missing readiness, a crash, a partial result, a timeout or cleanup
    failure is a failed run. Diagnose infrastructure failures before interpreting gameplay outcomes. Use a
-   new run after a correction; preserve evidence of the failed attempt while investigating it.
+   new run after a correction; preserve evidence of the failed attempt while investigating it. A scenario
+   whose product is an exported artifact is not proven by the runner's assertions alone; validate the artifact
+   with its documented checker and report that result separately.
 
 6. Check `world_cache` in the summary: a retained, verified world is intentional. A scenario that writes world
    data discards that copy. Reuse needs the current startup-barrier binary; older builds require fresh mode.
