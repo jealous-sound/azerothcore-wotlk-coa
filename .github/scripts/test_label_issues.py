@@ -1,6 +1,8 @@
 import contextlib
 import io
 import os
+from pathlib import Path
+import re
 import sys
 import unittest
 from unittest.mock import patch
@@ -20,6 +22,52 @@ class LabelIssuesTests(unittest.TestCase):
     def test_classes_categories_and_null_body(self):
         labels = label_issues.determine_labels({"title": "Pyromancer C++ damage bug", "body": None})
         self.assertEqual(labels, ["Pyromancer", "CPP Edit", "Bug"])
+
+    def test_ingame_report_without_class_name(self):
+        issue = {
+            "title": "Melt Reality Damage",
+            "body": (
+                "Submitted from the in-game bug-report form.\n\n"
+                "#### Spell\nMelt Reality [ID: 806335]\n\n"
+                "#### Issue\nDamage is too high? 1629 Damage at level 11\n\n"
+                "### Classification\nCategory: 1\nSeverity: 0\n\n"
+                "### Server context\nClass ID: 22\nLevel: 11\nMap ID: 1\n"
+                "Position: 9652.4, 868.013, 1269.3\nCore revision: 7b66e4380261"
+            ),
+        }
+        self.assertEqual(label_issues.determine_labels(issue), ["Chronomancer", "Bug"])
+
+    def test_class_id_labels_match_server_definitions(self):
+        root = Path(__file__).resolve().parents[2]
+        source = (root / "src/server/shared/SharedDefines.h").read_text(encoding="utf-8")
+        classes = source.split("enum Classes\n{", 1)[1].split("};", 1)[0]
+        expected = {
+            int(class_id): title.strip()
+            for class_id, title in re.findall(r"CLASS_\w+\s*=\s*(\d+),?\s*// TITLE ([^\n]+)", classes)
+            if title.strip() in label_issues.CLASS_PATTERNS
+        }
+        self.assertEqual(set(expected.values()), set(label_issues.CLASS_PATTERNS))
+        self.assertEqual(label_issues.CLASS_ID_LABELS, expected)
+        for class_id, label in expected.items():
+            with self.subTest(class_id=class_id):
+                self.assertEqual(label_issues.determine_labels({"body": f"Class ID: {class_id}"}), [label])
+
+    def test_class_id_field_whitespace_and_line_endings(self):
+        body = "### Server context\r\n  class ID :\t22 \r\nLevel: 11\r\n"
+        self.assertEqual(label_issues.determine_labels({"body": body}), ["Chronomancer"])
+
+    def test_unrelated_and_invalid_ids_do_not_add_class_labels(self):
+        for body in (
+            "Spell ID: 22\nMap ID: 22\nLevel: 22", "Class ID: 999", "Class ID: 15",
+            "Class ID: 1", "Class ID: 2200", "Class ID: -22", "Class ID: 22.5",
+            "Class ID: 22abc", "Class ID: unknown", "No Class ID: 22",
+        ):
+            with self.subTest(body=body):
+                self.assertEqual(label_issues.determine_labels({"body": body}), [])
+
+    def test_class_name_and_id_do_not_duplicate_labels(self):
+        issue = {"title": "Chronomancer", "body": "Class ID: 22\nClass ID: 22"}
+        self.assertEqual(label_issues.determine_labels(issue), ["Chronomancer"])
 
     def test_cpp_boundaries(self):
         for text in ("C++", "C++ change required", "Fix requires C++.", "CPP", "C++ edit"):

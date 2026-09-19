@@ -67,6 +67,32 @@ CLASS_PATTERNS = {
 }
 
 
+# Class IDs and display names from src/server/shared/SharedDefines.h (enum Classes).
+# Include only classes with configured repository labels.
+CLASS_ID_LABELS = {
+    12: "Barbarian",
+    13: "Witch Doctor",
+    14: "Felsworn",
+    16: "Stormbringer",
+    17: "Knight of Xoroth",
+    18: "Guardian",
+    19: "Templar",
+    20: "Bloodmage",
+    21: "Ranger",
+    22: "Chronomancer",
+    23: "Necromancer",
+    24: "Pyromancer",
+    25: "Cultist",
+    26: "Starcaller",
+    27: "Sun Cleric",
+    28: "Tinker",
+    29: "Venomancer",
+    30: "Reaper",
+    31: "Primalist",
+    32: "Runemaster",
+}
+
+
 # General category labels.
 CATEGORY_PATTERNS = {
     "Class Fix": [
@@ -163,6 +189,16 @@ def determine_labels(issue):
     # -------------------------
     # Class detection
     # -------------------------
+
+    # CoABugReport emits this field without the class name.
+    for match in re.finditer(
+        r"^[ \t]*Class[ \t]+ID[ \t]*:[ \t]*([0-9]{1,3})[ \t]*\r?$",
+        body,
+        re.IGNORECASE | re.MULTILINE,
+    ):
+        label = CLASS_ID_LABELS.get(int(match.group(1)))
+        if label:
+            labels.append(label)
 
     for label, pattern in CLASS_PATTERNS.items():
         if re.search(pattern, text, re.IGNORECASE):
