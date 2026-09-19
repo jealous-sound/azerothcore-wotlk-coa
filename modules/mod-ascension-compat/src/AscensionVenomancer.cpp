@@ -256,7 +256,11 @@ void Expose(Player* player, uint32 stacks, bool molt)
     uint32 current = Count(player, Exposed);
     uint32 after = molt ? 15 : std::max(current, std::min(maximum, current + stacks));
     if (Aura* aura = player->GetAura(Exposed))
+    {
+        // Every application restarts the shared stack timer, even when the stacks are already capped.
+        aura->RefreshTimers();
         aura->SetStackAmount(after);
+    }
     else if (Aura* added = player->AddAura(Exposed, player))
         added->SetStackAmount(after);
     uint32 applied = Count(player, Exposed);
