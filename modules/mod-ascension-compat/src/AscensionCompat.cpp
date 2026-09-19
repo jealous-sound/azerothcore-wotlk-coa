@@ -326,6 +326,7 @@ enum class AscensionCompatConfig {
   MAX_RIDING_FROM_START,
   LEVEL_SCALING,
   QUEST_LEVEL_SCALING,
+  AUTO_PROGRESSION,
 
   NUM_CONFIGS,
 };
@@ -365,6 +366,8 @@ public:
                          "AscensionCompat.LevelScaling", true);
     SetConfigValue<bool>(AscensionCompatConfig::QUEST_LEVEL_SCALING,
                          "AscensionCompat.QuestLevelScaling", true);
+    SetConfigValue<bool>(AscensionCompatConfig::AUTO_PROGRESSION,
+                         "AscensionCompat.AutoProgression", false);
   }
 };
 
@@ -570,7 +573,10 @@ public:
     return instance;
   }
 
-  uint32 SynchronizeProgression(Player *player) {
+  /// @param explicitRequest true when the player asked for the abilities
+  ///        themselves - a Book of Ascension. Automatic progression can be
+  ///        switched off while an explicit request keeps working.
+  uint32 SynchronizeProgression(Player *player, bool explicitRequest = false) {
     if (!IsAscensionCustomClass(player))
       return 0;
 
@@ -639,15 +645,26 @@ public:
       LOG_INFO("module.ascension_compat", "Reconciled {} proven class grants for {} against live level {}",
           removed, player->GetName(), uint32(player->GetLevel()));
     uint32 learned = 0;
+    // AscensionCompat.AutoProgression is the automatic half of progression: the
+    // class abilities, rank upgrades and automatic talents this service hands
+    // out as a character levels. Switched off, nothing is granted here and the
+    // player has to ask for it, which is what the Books of Ascension are for;
+    // their request passes explicitRequest and keeps working. The reconcile
+    // pass above runs either way, so a build never keeps an ability it is no
+    // longer allowed to hold.
+    bool const automaticProgression =
+        explicitRequest || ascensionCompatConfig.GetConfigValue<bool>(
+                               AscensionCompatConfig::AUTO_PROGRESSION);
     // The live baseline sampled one race per class. Repair every race from its own DBC skill line.
     for (uint32 spellId : racialSpells)
-        if (!player->HasSpell(spellId) && sSpellMgr->GetSpellInfo(spellId))
+        if (automaticProgression && !player->HasSpell(spellId) && sSpellMgr->GetSpellInfo(spellId))
         {
             player->learnSpell(spellId, false);
             ++learned;
         }
     for (auto const& entry : AscensionLiveBaseline::Spells)
-      if (entry.ClassId == player->getClass() && (!entry.RaceId || entry.RaceId == player->getRace()) &&
+      if (automaticProgression && entry.ClassId == player->getClass() &&
+          (!entry.RaceId || entry.RaceId == player->getRace()) &&
           CanGrantAscensionRacialSpell(player, entry.SpellId) &&
           !player->HasSpell(entry.SpellId) && sSpellMgr->GetSpellInfo(entry.SpellId))
       {
@@ -656,7 +673,8 @@ public:
       }
     for (AscensionCompatData::ClassSpell const &progressionSpell :
          AscensionCompatData::ClassSpells) {
-      if (progressionSpell.ClassId != player->getClass() ||
+      if (!automaticProgression ||
+          progressionSpell.ClassId != player->getClass() ||
           progressionSpell.RequiredLevel > player->GetLevel() ||
           !CanGrantAscensionRacialSpell(player, progressionSpell.SpellId) ||
           player->HasSpell(progressionSpell.SpellId))
@@ -675,7 +693,8 @@ public:
     }
     if (player->getClass() == CLASS_DEMON_HUNTER)
       for (FelswornRiftGrant const& rift : FelswornHordeCapitalRifts)
-        if (rift.RequiredLevel <= player->GetLevel() && CanGrantAscensionRacialSpell(player, rift.SpellId) &&
+        if (automaticProgression && rift.RequiredLevel <= player->GetLevel() &&
+            CanGrantAscensionRacialSpell(player, rift.SpellId) &&
             !player->HasSpell(rift.SpellId) && sSpellMgr->GetSpellInfo(rift.SpellId))
         {
           player->learnSpell(rift.SpellId, false);
@@ -683,12 +702,14 @@ public:
         }
 
     ReconcileRunemasterFists(player, activeSpec);
-    learned += SynchronizeAutomaticTalents(player, GetActiveSpecialization(player));
+    if (automaticProgression)
+      learned += SynchronizeAutomaticTalents(player, GetActiveSpecialization(player));
     // Rank upgrades are conditional on already owning the root. They cannot
     // spend talent points, pick an unselected ability, or leak an old spec.
     for (AscensionProgression::Rank const& rank : AscensionProgression::Ranks)
     {
-        if (rank.ClassId != player->getClass() || rank.RequiredLevel > player->GetLevel() ||
+        if (!automaticProgression || rank.ClassId != player->getClass() ||
+            rank.RequiredLevel > player->GetLevel() ||
             !player->HasSpell(rank.FirstSpellId) || player->HasSpell(rank.SpellId))
             continue;
 
