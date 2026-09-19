@@ -1,11 +1,12 @@
 import contextlib
 import io
+import json
 import os
 from pathlib import Path
 import re
 import sys
 import unittest
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 import label_issues
 
@@ -147,11 +148,38 @@ class LabelIssuesTests(unittest.TestCase):
         gh.assert_not_called()
         self.assertIn("would add: Bug, Tested", self.output.getvalue())
 
-    def test_pull_requests_are_skipped(self):
-        with patch.object(label_issues, "get_issue", return_value={"pull_request": {"url": "fixture"}}):
-            with patch.object(label_issues, "update_issue") as update:
-                label_issues.label_issue("42")
-        update.assert_not_called()
+    def test_pull_request_class_scope_is_labeled(self):
+        issue = {
+            "title": "fix(CoA/Bloodmage): apply Eternal Curse item armor bonus",
+            "body": "Server-side only; not tested in a live client.",
+            "pull_request": {"url": "fixture"},
+            "labels": [],
+        }
+        with patch.object(label_issues, "get_issue", return_value=issue):
+            with patch.object(label_issues, "gh") as gh:
+                label_issues.label_issue("4212")
+        gh.assert_called_once_with(
+            "pr", "edit", "4212", "--add-label", "Bloodmage", "--repo", "owner/repo",
+        )
+
+    def test_pull_request_preview_does_not_write(self):
+        issue = {"title": "Bloodmage", "pull_request": {"url": "fixture"}, "labels": []}
+        with patch.object(label_issues, "get_issue", return_value=issue):
+            with patch.object(label_issues, "gh") as gh:
+                label_issues.label_issue("42", dry_run=True)
+        gh.assert_not_called()
+        self.assertIn("would add: Bloodmage", self.output.getvalue())
+
+    def test_pull_request_preserves_existing_status_and_labels(self):
+        issue = {
+            "pull_request": {"url": "fixture"},
+            "labels": [{"name": name} for name in ("DB", "Tested", "human-label")],
+        }
+        with patch.object(label_issues, "gh") as gh:
+            label_issues.update_issue("42", issue, ["Bloodmage", "Not Tested"])
+        gh.assert_called_once_with(
+            "pr", "edit", "42", "--add-label", "Bloodmage", "--repo", "owner/repo",
+        )
 
     def test_main_dry_run_reads_but_does_not_edit(self):
         with patch.dict(os.environ, {"ISSUE_NUMBER": "42", "DRY_RUN": "true"}):
@@ -177,9 +205,25 @@ class LabelIssuesTests(unittest.TestCase):
                         label_issues.main()
         gh.assert_called_once_with(
             "api", "--paginate", "repos/owner/repo/issues?state=all&per_page=100",
-            "--jq", ".[] | select(.pull_request == null) | .number",
+            "--jq", ".[].number",
         )
         self.assertEqual([call.args for call in label.call_args_list], [("42", True), ("43", True)])
+
+    def test_bulk_run_labels_both_issues_and_pull_requests(self):
+        issue = {"title": "Witch Hunter", "labels": []}
+        pr = {"title": "Bloodmage", "pull_request": {"url": "fixture"}, "labels": []}
+        responses = ["42\n43", json.dumps(issue), "", json.dumps(pr), ""]
+        with patch.dict(os.environ, {"ISSUE_NUMBER": "", "DRY_RUN": "false"}):
+            with patch.object(sys, "argv", ["label_issues.py", "--all"]):
+                with patch.object(label_issues, "gh", side_effect=responses) as gh:
+                    label_issues.main()
+        self.assertEqual(gh.call_args_list, [
+            call("api", "--paginate", "repos/owner/repo/issues?state=all&per_page=100", "--jq", ".[].number"),
+            call("api", "repos/owner/repo/issues/42"),
+            call("issue", "edit", "42", "--add-label", "Witch Hunter", "--repo", "owner/repo"),
+            call("api", "repos/owner/repo/issues/43"),
+            call("pr", "edit", "43", "--add-label", "Bloodmage", "--repo", "owner/repo"),
+        ])
 
     def test_github_failure_stops_the_run(self):
         with patch.object(label_issues.subprocess, "run") as run:

@@ -276,21 +276,18 @@ def update_issue(number, issue, desired_labels, dry_run=False):
     verb = "would add" if dry_run else "adding"
     print(f"#{number}: {verb}: {', '.join(to_add)}")
     if not dry_run:
-        gh("issue", "edit", str(number), "--add-label", ",".join(to_add), "--repo", REPO)
+        resource = "pr" if "pull_request" in issue else "issue"
+        gh(resource, "edit", str(number), "--add-label", ",".join(to_add), "--repo", REPO)
 
 
 def label_issue(number, dry_run=False):
     issue = get_issue(number)
-    if issue.get("pull_request"):
-        print(f"#{number} is a pull request. Skipping.")
-        return
-
     update_issue(number, issue, determine_labels(issue), dry_run)
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Add issue labels while preserving existing labels.")
-    parser.add_argument("--all", action="store_true", help="Process all open and closed issues.")
+    parser = argparse.ArgumentParser(description="Add issue and PR labels while preserving existing labels.")
+    parser.add_argument("--all", action="store_true", help="Process all open and closed issues and PRs.")
     parser.add_argument(
         "--dry-run", action="store_true", default=os.environ.get("DRY_RUN", "").lower() == "true",
         help="Print proposed additions without changing any labels.",
@@ -302,12 +299,12 @@ def main():
     if args.all and number:
         parser.error("Use either ISSUE_NUMBER or --all, not both.")
     if not args.all and not re.fullmatch(r"[1-9][0-9]*", number):
-        parser.error("ISSUE_NUMBER must be a positive issue number.")
+        parser.error("ISSUE_NUMBER must be a positive issue or PR number.")
 
     if args.all:
         numbers = gh(
             "api", "--paginate", f"repos/{REPO}/issues?state=all&per_page=100",
-            "--jq", ".[] | select(.pull_request == null) | .number",
+            "--jq", ".[].number",
         ).splitlines()
     else:
         numbers = [number]
