@@ -1,7 +1,7 @@
 {
  "schema": 1,
- "name": "Necromancer: Banshee does not cast Frost-Congealed Barbs (#4150)",
- "contract": "A Banshee does not fire the Crypt Fiend's Frost-Congealed Barbs on its own.",
+ "name": "Necromancer: Banshee channels Banshee Drain, not Frost-Congealed Barbs (#4150)",
+ "contract": "A Banshee opens its Banshee Drain channel (572211) on its target and does not fire the Crypt Fiend's Frost-Congealed Barbs on its own.",
  "timeout_ms": 120000,
  "players": [
   {
@@ -65,6 +65,15 @@
    "action": "attack",
    "actor": "n",
    "target": "d"
+  },
+  {
+   "action": "assert",
+   "label": "Banshee Drain channel on target",
+   "actor": "d",
+   "metric": "aura",
+   "spell": 572211,
+   "equals": 1,
+   "within_ms": 6000
   },
   {
    "action": "wait",

@@ -97,6 +97,8 @@ uint32 AttackSpell(uint32 entry)
     {
     case 50067:
         return 805976; // Putrid Claw; Command: Gargoyle (707598) is cast on order only
+    case 500650:
+        return 572211; // Banshee Drain, a 12s channel that burns the target's mana
     case 50075:
         return 801513;
     case 50076:
@@ -602,7 +604,8 @@ class npc_ascension_necromancer : public ScriptedAI
                         Cast(me, me, 802353);
                     if (Unit* victim = me->GetVictim())
                         if (uint32 ability = AttackSpell(me->GetEntry()))
-                            Cast(me, victim, ability);
+                            if (!me->GetCurrentSpell(CURRENT_CHANNELED_SPELL))
+                                Cast(me, victim, ability);
                 }
                 _events.ScheduleEvent(2, 3s);
             }
