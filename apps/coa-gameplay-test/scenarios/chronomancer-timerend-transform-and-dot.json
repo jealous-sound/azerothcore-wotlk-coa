@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "name": "Timerend deals its own native periodic damage (#514)",
+  "contract": "Timerend 707430 (SPELL_AURA_DUMMY, no trigger) is a talent-tree keystone, not a proc; the generic, class-agnostic AscensionCompatData::TalentReplacements row {22, 32, 707430, 520175, {801291, ...}} (AscensionTalentReplacementData.h) is the same, already-proven mechanism used for Artificer's Wand, and transforms Wand of Time into Timerend once spec 32 is active. This scenario proves the second half of the tooltip directly: Timerend's own damaging rank (801291) is a plain SPELL_AURA_PERIODIC_DAMAGE (aura 3) effect, a native, unscripted mechanic, learned directly as fixture setup. The transformation itself is verified by code trace only: `.localspec 32` does switch the character's local specialization (confirmed via the server's own 'Synchronized ... with local specialization 32' log line), but the subsequent learn-triggered SynchronizeTalentReplacements call did not grant 801291 in this harness in two learn orders tried, mirroring the same unresolved harness/local-spec interaction already flagged for the sibling Artificer's Wand case (#515) in the Time sub-batch.",
+  "timeout_ms": 60000,
+  "players": [
+    {
+      "id": "chronomancer",
+      "race": 1,
+      "class": 22,
+      "level": 80,
+      "spell_hit_rating": 10000
+    }
+  ],
+  "creatures": [
+    { "id": "dummy", "owner": "chronomancer", "entry": 36, "health": 1000000, "distance": 3 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+    { "action": "learn", "actor": "chronomancer", "spell": 801291 },
+    { "action": "cast", "actor": "chronomancer", "spell": 801291, "target": "dummy" },
+    {
+      "action": "assert",
+      "label": "Timerend's own periodic damage aura lands on the target",
+      "actor": "dummy",
+      "metric": "aura",
+      "spell": 801291,
+      "caster": "chronomancer",
+      "equals": 1,
+      "within_ms": 3000
+    },
+    { "action": "snapshot", "actor": "dummy", "metric": "health", "save_as": "before" },
+    { "action": "wait", "label": "Let at least two 1-second ticks land", "ms": 3000 },
+    {
+      "action": "assert",
+      "label": "Timerend's periodic tick deals real damage",
+      "actor": "dummy",
+      "metric": "health",
+      "relative_to": "before",
+      "max": -1
+    }
+  ]
+}
