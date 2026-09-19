@@ -87,6 +87,12 @@ void ApplyContracts(SpellInfo* info)
         info->InterruptFlags |= SPELL_INTERRUPT_FLAG_MOVEMENT;
         info->ChannelInterruptFlags |= AURA_INTERRUPT_FLAG_MOVE;
     }
+    // Darkflock and its ranks are an 8 second channel. The client records carry the channel-only
+    // ChannelInterruptFlags and SPELL_ATTR5_ALLOW_ACTION_DURING_CHANNEL (channel while moving) but lack
+    // the channel attribute itself, so the caster aura ran as an instant buff. The client still builds
+    // the tooltip from its own record and reads "Instant"; the cast bar follows MSG_CHANNEL_START.
+    if (Family(info, 0, 2) && info->HasAura(SPELL_AURA_PERIODIC_TRIGGER_SPELL_WITH_VALUE))
+        info->AttributesEx |= SPELL_ATTR1_IS_CHANNELED;
     if (id == 707535)
     {
         info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_MOD_SPELL_DAMAGE_OF_STAT_PERCENT;

@@ -320,6 +320,14 @@ filter. Tooltip links remain documentation, not unconditional spellbook grants.
 This closes the reviewed acquisition/trigger gaps, not every outstanding mechanic
 in the broader class-completion audits.
 
+Witch Hunter Darkflock is an eight-second channel. Its five client rows carry the
+channel-only interrupt flags and allow-action attribute but not the channel attribute,
+so the server marks them channeled and the client shows the channel bar. The client
+tooltip still reads "Instant" until it receives matching spell data. When preparing a
+requested client update, run `apps/coa-spells/darkflock_channel.py --input <Spell.dbc>
+--output <candidate-Spell.dbc>` against the selected CoA data. It edits only the five
+rows in a separate output and never packages or installs a client archive.
+
 ## Login and natural regeneration
 
 The copied client's `Extensions.dll` patches the ping timer at executable address
