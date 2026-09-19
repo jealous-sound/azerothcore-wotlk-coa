@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "name": "Blood Prince's Command sets Taldaram's Torment crit-for-caster to 100% (#577)",
+  "contract": "Blood Prince's Command 704641 carries ADD_FLAT_MODIFIER (aura 107), MiscValue 12 (SPELLMOD_EFFECT2), BasePoints 99 (real value 100, EffectDieSides=1), classmask (0,0,2097152) which matches exactly the 8 Taldaram's Torment ranks (800772, 802568-802573, 802580). SPELLMOD_EFFECT2 (SpellAuraEffects.cpp) targets effect index 1 of the matched spell, which on every Taldaram's Torment rank is SPELL_AURA_MOD_CRIT_CHANCE_FOR_CASTER (aura 308) with a baseline BasePoints of -1 (real value 0). spell_effect_value queries SpellEffectInfo::CalcValue directly, so it reflects the live spell modifier without needing to cast or even know the target spell. 802580 (level 56) is the Taldaram's Torment rank a level-80 character owns per AscensionSpellProgressionData.h.",
+  "timeout_ms": 90000,
+  "players": [
+    { "id": "caster", "race": 1, "class": 20, "level": 80 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let level scaling settle", "ms": 5000 },
+    {
+      "action": "assert", "label": "Torment's own crit-for-caster baseline is 0 before the talent",
+      "actor": "caster", "metric": "spell_effect_value", "spell": 802580, "effect": 1, "equals": 0
+    },
+    { "action": "learn", "actor": "caster", "spell": 704641 },
+    {
+      "action": "assert", "label": "Blood Prince's Command raises it to a guaranteed crit",
+      "actor": "caster", "metric": "spell_effect_value", "spell": 802580, "effect": 1, "equals": 100
+    },
+    { "action": "unlearn", "actor": "caster", "spell": 704641 },
+    {
+      "action": "assert", "label": "Unlearning removes the modifier",
+      "actor": "caster", "metric": "spell_effect_value", "spell": 802580, "effect": 1, "equals": 0
+    }
+  ]
+}
