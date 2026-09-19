@@ -71,7 +71,7 @@ struct Script
 {
     Player* caster; SpellInfo info;
     Player* GetCaster() { return caster; }
-    SpellInfo const* GetSpellInfo() const { return &info; }
+    SpellInfo const* GetSpellInfo() { return &info; }
 // METHODS
 };
 

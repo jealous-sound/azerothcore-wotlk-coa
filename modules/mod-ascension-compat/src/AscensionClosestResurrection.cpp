@@ -109,7 +109,7 @@ class spell_ascension_closest_resurrection : public SpellScript
 
     bool Load() override { return GetCaster()->ToPlayer() != nullptr; }
 
-    std::optional<Destination> FindDestination(Player* player) const
+    std::optional<Destination> FindDestination(Player* player)
     {
         return GetSpellInfo()->Id == SPELL_RESURRECT_CLOSEST_CITY ? FindClosestCity(player) : FindClosestTown(player);
     }
