@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "name": "Aether Compression applies its movement-casting aura on cast (#3389)",
+  "contract": "Aether Compression 804436 is an active Continuum spell (not a passive). Its effect 0 is SPELL_AURA_313 with EffectSpellClassMask word1 bit 0x20000 and word2 bit 0x400, matching Reverse Wound and Artificer's Wand's real castable rank 561284 (SpellFamilyFlags word0 32) respectively via the shared family. Unit::CanCastSpellWhileMoving consults this exact aura type via HasAuraTypeWithAffectMask('Copied aura 313 grants movement only to spells selected by its family mask', Unit.cpp), a native, already-wired mechanism. This scenario proves the aura applies to the caster on cast; the harness has no movement driver (per apps/coa-gameplay-test/README.md Evidence boundaries), so it cannot exercise the movement-permission behavior itself.",
+  "timeout_ms": 60000,
+  "players": [
+    { "id": "control", "race": 1, "class": 22, "level": 80 },
+    { "id": "talent", "race": 1, "class": 22, "level": 80 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+    { "action": "learn", "actor": "talent", "spell": 804436 },
+    { "action": "cast", "actor": "talent", "spell": 804436 },
+    {
+      "action": "assert",
+      "label": "Aether Compression's aura is not present without casting it",
+      "actor": "control",
+      "metric": "aura",
+      "spell": 804436,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "Aether Compression applies its own aura once cast",
+      "actor": "talent",
+      "metric": "aura",
+      "spell": 804436,
+      "caster": "talent",
+      "equals": 1,
+      "within_ms": 3000
+    }
+  ]
+}
