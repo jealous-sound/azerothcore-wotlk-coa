@@ -1,0 +1,381 @@
+{
+  "schema": 1,
+  "name": "Barbed Stinger grows while embedded, refunds its recovery on the throw and rips out on recast",
+  "contract": "Barbed Stinger 803196 (20 sec recovery, requires Beetle Form 803183) clears Exposed Flesh 805095 and embeds 803206 for 10 sec plus 1 sec per cleared stack (tooltip; 805095 effect 1 = 1000 ms per stack). 803206 triggers 803207 'Add stack' every 1000 ms, adding one stack of 680854 (+50% rip-out damage taken from the caster per stack, at most 15 stacks; live combat logs show doses up to 15). Its slot 2 triggers 803220 'Reset Effect', -19000 ms on 803196, so the tooltip's recast on the same target (rip-out 803208, which removes the stinger and its stacks) is reachable during the stinger's lifetime. The rip-out itself keeps the authored 20 sec recovery: the refund is the throw's (Empowered Exoskeleton 705981 shortens that recovery by 5 sec, and the older 803284 text taunted on rip-out, neither of which fits a 1 sec rip-out cycle). Rip-out damage therefore scales with stacks: 15 stacks against 1-2 stacks is 8.5 / 1.5-2.0 = 4.25-5.67 times, above 2 even with worst-case damage rolls and a critical strike on the smaller hit only.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "venom",
+      "race": 1,
+      "class": 29,
+      "level": 60,
+      "spell_hit_rating": 10000,
+      "melee_hit_rating": 10000,
+      "expertise_rating": 10000
+    },
+    {
+      "id": "venom_quick",
+      "race": 1,
+      "class": 29,
+      "level": 60,
+      "spell_hit_rating": 10000,
+      "melee_hit_rating": 10000,
+      "expertise_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "enemy",
+      "owner": "venom",
+      "entry": 36,
+      "level": 60,
+      "distance": 5
+    },
+    {
+      "id": "enemy_quick",
+      "owner": "venom_quick",
+      "entry": 36,
+      "level": 60,
+      "distance": 5
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "venom",
+      "spell": 803196
+    },
+    {
+      "action": "learn",
+      "actor": "venom_quick",
+      "spell": 803196
+    },
+    {
+      "action": "set_aura",
+      "actor": "venom",
+      "spell": 803183,
+      "stacks": 1
+    },
+    {
+      "action": "set_aura",
+      "actor": "venom_quick",
+      "spell": 803183,
+      "stacks": 1
+    },
+    {
+      "action": "set_aura",
+      "actor": "venom",
+      "spell": 805095,
+      "stacks": 10
+    },
+    {
+      "action": "assert",
+      "actor": "venom",
+      "metric": "aura",
+      "spell": 803183,
+      "equals": 1,
+      "label": "Beetle Form fixture"
+    },
+    {
+      "action": "assert",
+      "actor": "venom_quick",
+      "metric": "aura",
+      "spell": 803183,
+      "equals": 1,
+      "label": "Beetle Form fixture"
+    },
+    {
+      "action": "assert",
+      "actor": "venom",
+      "metric": "aura_stacks",
+      "spell": 805095,
+      "equals": 10,
+      "label": "Ten Exposed Flesh stacks to clear"
+    },
+    {
+      "action": "assert",
+      "actor": "venom",
+      "metric": "cooldown_ms",
+      "spell": 803196,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "venom_quick",
+      "metric": "cooldown_ms",
+      "spell": 803196,
+      "equals": 0
+    },
+    {
+      "action": "cast",
+      "actor": "venom",
+      "spell": 803196,
+      "target": "enemy",
+      "label": "Throw with ten Exposed Flesh stacks"
+    },
+    {
+      "action": "cast",
+      "actor": "venom_quick",
+      "spell": 803196,
+      "target": "enemy_quick",
+      "label": "Throw without Exposed Flesh"
+    },
+    {
+      "action": "assert",
+      "actor": "enemy",
+      "metric": "aura",
+      "spell": 803206,
+      "caster": "venom",
+      "equals": 1,
+      "within_ms": 1500,
+      "label": "Stinger embedded"
+    },
+    {
+      "action": "assert",
+      "actor": "enemy_quick",
+      "metric": "aura",
+      "spell": 803206,
+      "caster": "venom_quick",
+      "equals": 1,
+      "within_ms": 1500,
+      "label": "Stinger embedded"
+    },
+    {
+      "action": "assert",
+      "actor": "venom",
+      "metric": "cooldown_ms",
+      "spell": 803196,
+      "max": 1000,
+      "label": "803220 takes 19 of the 20 sec recovery off the throw"
+    },
+    {
+      "action": "assert",
+      "actor": "venom_quick",
+      "metric": "cooldown_ms",
+      "spell": 803196,
+      "max": 1000,
+      "label": "803220 takes 19 of the 20 sec recovery off the throw"
+    },
+    {
+      "action": "assert",
+      "actor": "enemy",
+      "metric": "aura_duration_ms",
+      "spell": 803206,
+      "caster": "venom",
+      "min": 17500,
+      "max": 20000,
+      "label": "10 sec plus 1 sec per cleared Exposed Flesh stack"
+    },
+    {
+      "action": "assert",
+      "actor": "enemy_quick",
+      "metric": "aura_duration_ms",
+      "spell": 803206,
+      "caster": "venom_quick",
+      "min": 7500,
+      "max": 10000,
+      "label": "10 sec without cleared stacks"
+    },
+    {
+      "action": "assert",
+      "actor": "venom",
+      "metric": "aura",
+      "spell": 805095,
+      "equals": 0,
+      "label": "Exposed Flesh cleared"
+    },
+    {
+      "action": "wait",
+      "ms": 1700
+    },
+    {
+      "action": "assert",
+      "actor": "enemy_quick",
+      "metric": "aura_stacks",
+      "spell": 680854,
+      "caster": "venom_quick",
+      "min": 1,
+      "max": 2,
+      "within_ms": 1000,
+      "label": "One stack per second while embedded"
+    },
+    {
+      "action": "assert",
+      "actor": "venom_quick",
+      "metric": "cooldown_ms",
+      "spell": 803196,
+      "equals": 0,
+      "label": "Recast available while the stinger is embedded"
+    },
+    {
+      "action": "snapshot",
+      "actor": "enemy_quick",
+      "metric": "health",
+      "save_as": "quick_before"
+    },
+    {
+      "action": "cast",
+      "actor": "venom_quick",
+      "spell": 803196,
+      "target": "enemy_quick",
+      "label": "Early rip-out"
+    },
+    {
+      "action": "assert",
+      "actor": "enemy_quick",
+      "metric": "aura",
+      "spell": 803206,
+      "caster": "venom_quick",
+      "equals": 0,
+      "within_ms": 1500,
+      "label": "Rip-out removes the stinger"
+    },
+    {
+      "action": "assert",
+      "actor": "enemy_quick",
+      "metric": "health",
+      "relative_to": "quick_before",
+      "max": -1,
+      "within_ms": 1000,
+      "label": "Rip-out deals damage"
+    },
+    {
+      "action": "snapshot",
+      "actor": "enemy_quick",
+      "metric": "health",
+      "relative_to": "quick_before",
+      "save_as": "quick_rip"
+    },
+    {
+      "action": "assert",
+      "actor": "enemy_quick",
+      "metric": "aura",
+      "spell": 680854,
+      "caster": "venom_quick",
+      "equals": 0,
+      "label": "Rip-out removes the stacks"
+    },
+    {
+      "action": "assert",
+      "actor": "venom_quick",
+      "metric": "cooldown_ms",
+      "spell": 803196,
+      "min": 18000,
+      "label": "Rip-out keeps the full 20 sec recovery"
+    },
+    {
+      "action": "assert",
+      "actor": "enemy",
+      "metric": "aura_stacks",
+      "spell": 680854,
+      "caster": "venom",
+      "equals": 15,
+      "within_ms": 16000,
+      "label": "Stacks grow to the 15-stack cap"
+    },
+    {
+      "action": "assert",
+      "actor": "enemy",
+      "metric": "aura_amount",
+      "spell": 680854,
+      "caster": "venom",
+      "effect": 0,
+      "equals": 750,
+      "label": "15 stacks of +50% rip-out damage taken"
+    },
+    {
+      "action": "assert",
+      "actor": "enemy",
+      "metric": "aura",
+      "spell": 803206,
+      "caster": "venom",
+      "equals": 1,
+      "label": "Extended stinger still embedded"
+    },
+    {
+      "action": "assert",
+      "actor": "venom",
+      "metric": "cooldown_ms",
+      "spell": 803196,
+      "equals": 0,
+      "label": "Recast available while the stinger is embedded"
+    },
+    {
+      "action": "snapshot",
+      "actor": "enemy",
+      "metric": "health",
+      "save_as": "slow_before"
+    },
+    {
+      "action": "cast",
+      "actor": "venom",
+      "spell": 803196,
+      "target": "enemy",
+      "label": "Late rip-out"
+    },
+    {
+      "action": "assert",
+      "actor": "enemy",
+      "metric": "aura",
+      "spell": 803206,
+      "caster": "venom",
+      "equals": 0,
+      "within_ms": 1500,
+      "label": "Rip-out removes the stinger"
+    },
+    {
+      "action": "assert",
+      "actor": "enemy",
+      "metric": "health",
+      "relative_to": "slow_before",
+      "max": -1,
+      "within_ms": 1000,
+      "label": "Rip-out deals damage"
+    },
+    {
+      "action": "assert",
+      "actor": "enemy",
+      "metric": "aura",
+      "spell": 680854,
+      "caster": "venom",
+      "equals": 0,
+      "label": "Rip-out removes the stacks"
+    },
+    {
+      "action": "assert",
+      "actor": "venom",
+      "metric": "cooldown_ms",
+      "spell": 803196,
+      "min": 18000,
+      "label": "Rip-out keeps the full 20 sec recovery"
+    },
+    {
+      "action": "assert",
+      "actor": "enemy",
+      "metric": "health",
+      "relative_to": "slow_before",
+      "ratio_to": "quick_rip",
+      "min": 2,
+      "max": 10,
+      "label": "Rip-out damage scales with the stacks grown while embedded"
+    },
+    {
+      "action": "assert",
+      "actor": "enemy",
+      "metric": "level",
+      "equals": 60,
+      "label": "Fixture level unchanged, so no level-based partial resists"
+    },
+    {
+      "action": "assert",
+      "actor": "enemy_quick",
+      "metric": "level",
+      "equals": 60,
+      "label": "Fixture level unchanged, so no level-based partial resists"
+    }
+  ]
+}

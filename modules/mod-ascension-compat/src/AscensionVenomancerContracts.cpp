@@ -73,11 +73,16 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[2].Effect = 0; // The owned hit resource row grants exactly one mark.
     if (id == 704264)
         dummy(0); // Owned summons receive Locust Swarm's damage and haste explicitly.
-    if (id == 803196 || id == 803192 || id == 800910 || id == 681056 || id == 681417 || id == 706453 ||
-        id == 707191 || id == 707658 || id == 803207)
+    if (id == 803192 || id == 800910 || id == 681056 || id == 681417 || id == 706453 || id == 707191 ||
+        id == 707658 || id == 803207)
         for (auto& effect : info->Effects)
             if (effect.Effect)
                 effect.Effect = SPELL_EFFECT_DUMMY;
+    if (id == 803196)
+        // Slot 1 is natively DUMMY. Slot 2 keeps its native trigger of 803220, the throw's 19 sec recovery
+        // refund that makes the rip-out recast reachable; spell_ascension_venomancer_ability withholds it
+        // from the rip-out itself.
+        info->Effects[0].Effect = SPELL_EFFECT_DUMMY;
     if (id == 800892)
     {
         info->Effects[1].Effect = SPELL_EFFECT_DUMMY;

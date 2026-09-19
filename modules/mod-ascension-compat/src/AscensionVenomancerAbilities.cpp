@@ -373,6 +373,16 @@ class spell_ascension_venomancer_ability : public SpellScript
             for (uint32 n = 0; n < 3; ++n)
                 Mushroom(player,target->GetNearPosition(float(n),n * 2.0943951f));
     }
+    void RefundRecovery(SpellEffIndex index)
+    {
+        // Barbed Stinger's native 803220 takes 19 sec off its 20 sec recovery so the thrown stinger can be
+        // ripped out. Launch runs before the delayed hit, so the rip-out is recognised by the stinger already
+        // embedded by this caster; that recast keeps its full recovery.
+        Player* player = Owner(GetCaster());
+        Unit* target = GetHitUnit();
+        if (player && target && target->GetAura(803206,player->GetGUID()))
+            PreventHitDefaultEffect(index);
+    }
     void After()
     {
         Player* player = Owner(GetCaster());
@@ -418,6 +428,9 @@ class spell_ascension_venomancer_ability : public SpellScript
             OnEffectHit += SpellEffectFn(spell_ascension_venomancer_ability::SkipSummon,EFFECT_ALL,SPELL_EFFECT_SUMMON);
             OnEffectHitTarget += SpellEffectFn(spell_ascension_venomancer_ability::SkipSummon,EFFECT_ALL,SPELL_EFFECT_SUMMON);
         }
+        if (m_scriptSpellId == 803196)
+            OnEffectLaunchTarget += SpellEffectFn(spell_ascension_venomancer_ability::RefundRecovery,EFFECT_2,
+                SPELL_EFFECT_TRIGGER_SPELL);
         AfterHit += SpellHitFn(spell_ascension_venomancer_ability::After);
     }
 };
