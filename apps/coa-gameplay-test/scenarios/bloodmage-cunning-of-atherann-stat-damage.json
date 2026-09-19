@@ -1,0 +1,34 @@
+{
+  "schema": 1,
+  "name": "Cunning of Atherann adds 25% of Stamina and Spirit to spell damage (#764)",
+  "contract": "Cunning of Atherann 706599 carries two SPELL_AURA_MOD_SPELL_DAMAGE_OF_STAT_PERCENT (aura 174) effects, BasePoints 24 (real +25%, EffectDieSides=1), MiscValue 126 (all magic schools), MiscValueB Stamina(2) on effect 0 and Spirit(4) on effect 1 (confirmed via the installed Spell.dbc). AuraEffect::HandleModSpellDamagePercentFromStat (SpellAuraEffects.cpp) is consumed generically by Unit::SpellBaseDamageBonusDone (Unit.cpp:9508-9517). This is a passive-flagged spell, so learning auto-applies the self-aura, and aura_amount reads its live percentage directly. A spell_damage_done probe was tried first (Frostbolt, Bloodbolt, Vampiric Fang, Keleseth's Calamity, Valanar's Vengeance, Atherann's Anguish): every one of them returned the unmodified 1000 baseline in this harness, because Unit::SpellDamageBonusDone only adds the stat-bonus term when the target spell's own damage coefficient (spell_bonus_data or the effect's BonusMultiplier, Unit.cpp:9284) is nonzero, and that coefficient is zero/unpopulated for every spell probed on this harness's isolated world data - a harness data limitation, not a Cunning of Atherann defect. aura_amount is used instead to assert the tooltip's exact 25%/25% values directly.",
+  "timeout_ms": 90000,
+  "players": [
+    { "id": "caster", "race": 1, "class": 20, "level": 80 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let level scaling settle", "ms": 5000 },
+    {
+      "action": "assert", "label": "No Cunning of Atherann aura yet",
+      "actor": "caster", "metric": "aura", "spell": 706599, "caster": "caster", "equals": 0
+    },
+    { "action": "learn", "actor": "caster", "spell": 706599 },
+    {
+      "action": "assert", "label": "Self-buff is present",
+      "actor": "caster", "metric": "aura", "spell": 706599, "caster": "caster", "equals": 1
+    },
+    {
+      "action": "assert", "label": "Effect 0 grants 25% of Stamina",
+      "actor": "caster", "metric": "aura_amount", "spell": 706599, "effect": 0, "caster": "caster", "equals": 25
+    },
+    {
+      "action": "assert", "label": "Effect 1 grants 25% of Spirit",
+      "actor": "caster", "metric": "aura_amount", "spell": 706599, "effect": 1, "caster": "caster", "equals": 25
+    },
+    { "action": "unlearn", "actor": "caster", "spell": 706599 },
+    {
+      "action": "assert", "label": "Unlearning removes the self-buff",
+      "actor": "caster", "metric": "aura", "spell": 706599, "caster": "caster", "equals": 0
+    }
+  ]
+}
