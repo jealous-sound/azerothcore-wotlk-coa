@@ -244,7 +244,50 @@ bool Summon(Player* player, uint32 spell, Unit* target, Position const& position
                 float angle = float(i) * 2.4f;
                 if (Follows(row.creature))
                     Formation(Followers(player), distance, angle);
-                player->MovePositionToFirstCollision(point, distance, angle);
+                bool const march = row.creature == 523032;
+                Position aim;
+                if (march)
+                {
+                    // March of the Dead is aimed at the cast target, the selected or attacked enemy or a ground point;
+                    // otherwise the nearest enemy within 30 yards. With none the charges walk straight ahead.
+                    Unit* enemy = target && player->IsValidAttackTarget(target) ? target : nullptr;
+                    if (!enemy)
+                        if (Unit* selected = player->GetSelectedUnit())
+                            if (player->IsValidAttackTarget(selected))
+                                enemy = selected;
+                    if (!enemy)
+                        enemy = player->GetVictim();
+                    if (!enemy)
+                    {
+                        float best = 30.0f;
+                        for (Unit* nearby : Nearby(player, best))
+                            if (player->IsValidAttackTarget(nearby) && player->GetExactDist(nearby) < best)
+                            {
+                                best = player->GetExactDist(nearby);
+                                enemy = nearby;
+                            }
+                    }
+                    if (enemy)
+                        aim = enemy->GetPosition();
+                    else if (player->GetExactDist2d(&position) > 3.0f)
+                        aim = position;
+                    else
+                    {
+                        aim = player->GetPosition();
+                        player->MovePositionToFirstCollision(aim, 25.0f, 0.0f);
+                    }
+                    // The charges start side by side in a line facing the aim point.
+                    float const heading = player->GetAbsoluteAngle(aim.GetPositionX(), aim.GetPositionY());
+                    point = player->GetPosition();
+                    point.SetOrientation(heading);
+                    player->MovePositionToFirstCollision(point, 2.0f, heading - player->GetOrientation());
+                    float const lateral = (float(i) - (row.count - 1) / 2.0f) * 1.0f;
+                    point.m_positionX += std::cos(heading + float(M_PI) / 2) * lateral;
+                    point.m_positionY += std::sin(heading + float(M_PI) / 2) * lateral;
+                    point.SetOrientation(heading);
+                }
+                else
+                    player->MovePositionToFirstCollision(point, distance, angle);
                 // Authored 61 is a non-pet guardian: native controlled-list cleanup and
                 // effect 190 work for the army.
                 auto properties = sSummonPropertiesStore.LookupEntry(stationary ? 64 : 61);
@@ -270,9 +313,9 @@ bool Summon(Player* player, uint32 spell, Unit* target, Position const& position
                 unit->GetMotionMaster()->Clear();
                 if (row.creature == 523032)
                 {
-                    Position end = point;
-                    unit->MovePositionToFirstCollision(end, 25.0f, 0.0f);
-                    unit->GetMotionMaster()->MovePoint(1, end);
+                    // The charges walk to the target and detonate on arrival (proximity check in the AI).
+                    unit->SetWalk(true);
+                    unit->GetMotionMaster()->MovePoint(1, aim);
                 }
                 else if (stationary)
                     unit->GetMotionMaster()->MoveIdle();
@@ -398,6 +441,12 @@ class npc_ascension_necromancer : public ScriptedAI
         if (key == 1)
             _target = guid;
     }
+    void MovementInform(uint32 type, uint32 id) override
+    {
+        // A Bone Charge detonates where its walk ends, even if the target died on the way.
+        if (me->GetEntry() == 523032 && type == POINT_MOTION_TYPE && id == 1)
+            _events.RescheduleEvent(3, 1ms);
+    }
     void SetData(uint32 key, uint32 value) override
     {
         if (key == 1)
@@ -406,8 +455,8 @@ class npc_ascension_necromancer : public ScriptedAI
     void AttackStart(Unit* target) override
     {
         Player* player = Owner(me);
-        if (player && !Stationary(me->GetEntry()) && !player->HasAura(500983) && target &&
-            player->IsValidAttackTarget(target))
+        if (player && !Stationary(me->GetEntry()) && me->GetEntry() != 523032 && !player->HasAura(500983) &&
+            target && player->IsValidAttackTarget(target))
             ScriptedAI::AttackStart(target);
     }
     // Put this minion back on its formation slot. Re-issue only when the slot moved, when
@@ -547,6 +596,11 @@ class npc_ascension_necromancer : public ScriptedAI
                 me->SetReactState(passive                   ? REACT_PASSIVE
                                   : player->HasAura(500982) ? REACT_AGGRESSIVE
                                                             : REACT_DEFENSIVE);
+                // A Bone Charge only walks to its target and detonates; it never picks a fight on its own.
+                if (me->GetEntry() == 523032)
+                {
+                    me->SetReactState(REACT_PASSIVE);
+                }
                 if (passive)
                 {
                     me->AttackStop();
