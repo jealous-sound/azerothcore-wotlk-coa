@@ -153,6 +153,23 @@ public:
     }
 };
 
+// Passive shapeshift auras survive Unit::RemoveAllAurasOnDeath, so a Bloodmage who died in a Cursed Form
+// (Eternal Curse) stayed shapeshifted as a ghost, and dropping the form then killed the ghost again.
+class bloodmage_cursed_form_death : public PlayerScript
+{
+public:
+    bloodmage_cursed_form_death() : PlayerScript("bloodmage_cursed_form_death", {PLAYERHOOK_ON_PLAYER_JUST_DIED}) { }
+
+    void OnPlayerJustDied(Player* player) override
+    {
+        if (!player || player->getClass() != CLASS_SON_OF_ARUGAL)
+            return;
+        for (uint32 form : CursedForms)
+            player->RemoveAurasDueToSpell(form);
+        SyncCursedFormRequirement(player);
+    }
+};
+
 class bloodmage_talent_contracts : public GlobalScript
 {
 public:
@@ -183,6 +200,7 @@ public:
 void AddSC_AscensionBloodmageTalents()
 {
     new bloodmage_talent_events();
+    new bloodmage_cursed_form_death();
     new bloodmage_talent_contracts();
     RegisterSpellScript(spell_ascension_animated_blood);
 }
