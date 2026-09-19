@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "name": "Artificer's Empowerment increases Spirit by 8% (#596)",
+  "contract": "Artificer's Empowerment 806167 carries SPELL_AURA_MOD_TOTAL_STAT_PERCENTAGE (137) with EffectMiscValue Stats::STAT_SPIRIT (4) and EffectBasePoints 7 (resolves to 8 with DieSides 1). AuraEffect::HandleModTotalPercentStat is native and recalculates Player::GetStat on apply.",
+  "timeout_ms": 60000,
+  "players": [
+    { "id": "control", "race": 1, "class": 22, "level": 80 },
+    { "id": "talent", "race": 1, "class": 22, "level": 80 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+    { "action": "learn", "actor": "talent", "spell": 806167 },
+    {
+      "action": "snapshot",
+      "label": "Baseline Spirit without the talent",
+      "actor": "control",
+      "metric": "stat",
+      "stat": 4,
+      "save_as": "spirit_base"
+    },
+    {
+      "action": "assert",
+      "label": "Spirit is 8% higher with the talent",
+      "actor": "talent",
+      "metric": "stat",
+      "stat": 4,
+      "ratio_to": "spirit_base",
+      "min": 1.07,
+      "max": 1.09
+    }
+  ]
+}
