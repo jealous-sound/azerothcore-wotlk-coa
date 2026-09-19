@@ -330,6 +330,7 @@ std::unordered_map<uint32, uint32> GameModeBaseSnapshot();
 uint32 PlayerToggleMaskFor(uint32 guid);
 void ClearPlayerToggleBit(uint32 guid, uint32 bit);
 uint32 LoadGameModeMask(uint32 guid);
+bool CacheGenerationGuardEnabled();
 std::vector<std::pair<uint32, uint32>> CachedCharChallenges(uint32 guid);
 void ClearCharChallengeCache(uint32 guid);
 uint32 CachedGameModeMask(uint32 guid);
