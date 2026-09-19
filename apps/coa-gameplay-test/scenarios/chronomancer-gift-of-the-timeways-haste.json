@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "name": "Casting Melt Reality grants Gift of the Timeways' haste buff (#533)",
+  "contract": "Gift of the Timeways 704487 applies aura 42 (proc trigger spell) on 503903 (periodic haste for Timerend/Unmake), but Spell.dbc gives it ProcFlags 0 and no spell_proc row existed, so it never procced. With a spell_proc row gated on the magic class damage of Melt Reality (100% chance), a single Melt Reality cast should grant the buff.",
+  "timeout_ms": 60000,
+  "players": [
+    {
+      "id": "chronomancer",
+      "race": 1,
+      "class": 22,
+      "level": 80,
+      "spell_hit_rating": 10000
+    }
+  ],
+  "creatures": [
+    { "id": "dummy", "owner": "chronomancer", "entry": 36, "health": 1000000, "distance": 3 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+    { "action": "learn", "actor": "chronomancer", "spell": 704487 },
+    { "action": "learn", "actor": "chronomancer", "spell": 806335 },
+    {
+      "action": "assert",
+      "label": "No Gift of the Timeways buff before any cast",
+      "actor": "chronomancer",
+      "metric": "aura",
+      "spell": 503903,
+      "caster": "chronomancer",
+      "equals": 0
+    },
+    { "action": "cast", "actor": "chronomancer", "spell": 806335, "target": "dummy" },
+    {
+      "action": "assert",
+      "label": "Melt Reality's cast grants the Gift of the Timeways haste buff",
+      "actor": "chronomancer",
+      "metric": "aura",
+      "spell": 503903,
+      "caster": "chronomancer",
+      "equals": 1,
+      "within_ms": 5000
+    }
+  ]
+}
