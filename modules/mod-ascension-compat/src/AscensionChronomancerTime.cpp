@@ -29,6 +29,7 @@ enum TimeSpells : uint32
     Sands = 804488,
     EndlessSandsTalent = 806338,
     EndlessSands = 806728,
+    ReverseWound = 801303,
     KeepAccelerating = 520042,
     KeepAcceleratingSpread = 520118,
     CadenceTalent = 560397,
@@ -213,6 +214,10 @@ public:
                 for (uint32 other : {RenewalAeon, ResilienceAeon, ProtectionAeon, OblivionAeon})
                     if (other != aeon)
                         player->RemoveAurasDueToSpell(other);
+        
+        if (IsRank(info->Id, ReverseWound))
+            player->RemoveAurasDueToSpell(EndlessSands);
+            
         if (!IsRank(info->Id, Epoch))
             return;
         Aura* sands = player->GetAura(Sands);
@@ -334,9 +339,34 @@ public:
 };
 }
 
+class aura_ascension_chronomancer_endless_sands : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_chronomancer_endless_sands);
+
+    void HandleEffectApply(AuraEffect const*, AuraEffectHandleModes)
+    {
+        if (Player* player = GetUnitOwner()->ToPlayer())
+            if (GetStackAmount() >= 5)
+                player->SendSpellActivationGlow(ReverseWound, true);
+    }
+
+    void HandleEffectRemove(AuraEffect const*, AuraEffectHandleModes)
+    {
+        if (Player* player = GetUnitOwner()->ToPlayer())
+            player->SendSpellActivationGlow(ReverseWound, false);
+    }
+
+    void Register() override
+    {
+        OnEffectApply += AuraEffectApplyFn(aura_ascension_chronomancer_endless_sands::HandleEffectApply, EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL_OR_REAPPLY_MASK);
+        OnEffectRemove += AuraEffectRemoveFn(aura_ascension_chronomancer_endless_sands::HandleEffectRemove, EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL_OR_REAPPLY_MASK);
+    }
+};
+
 void AddSC_AscensionChronomancerTime()
 {
     new chronomancer_time_casts();
     new chronomancer_time_contracts();
     RegisterSpellScript(aura_ascension_timeline_tether);
+    RegisterSpellScript(aura_ascension_chronomancer_endless_sands);
 }
