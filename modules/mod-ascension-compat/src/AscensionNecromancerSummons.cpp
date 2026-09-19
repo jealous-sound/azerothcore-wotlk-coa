@@ -702,10 +702,27 @@ class necromancer_minion_dismiss : public ServerScript
         return false;
     }
 };
+
+class npc_ascension_necromancer_script : public GenericCreatureScript<npc_ascension_necromancer>
+{
+public:
+    npc_ascension_necromancer_script() : GenericCreatureScript("npc_ascension_necromancer") {}
+
+    // The Skeletal Smith is a repairer. Its goods list is empty, which the gossip menu would drop as a broken
+    // vendor, so the click opens the vendor window directly and it offers only the repair buttons.
+    bool OnGossipHello(Player* player, Creature* creature) override
+    {
+        if (creature->GetEntry() != 50261)
+            return false;
+        player->PlayerTalkClass->ClearMenus();
+        player->GetSession()->SendListInventory(creature->GetGUID());
+        return true;
+    }
+};
 } // namespace
 void AddAscensionNecromancerSummonScripts()
 {
-    RegisterCreatureAI(npc_ascension_necromancer);
+    new npc_ascension_necromancer_script();
     RegisterSpellScript(spell_ascension_necromancer_summon);
     new necromancer_minion_dismiss();
 }
