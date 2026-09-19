@@ -86,3 +86,8 @@ AscensionCompat.LastExtensionOpcode = 2515
 # Startup-only: solo levels 10-59, three scenes, depths 1-15. Realm level cap is unchanged.
 # Enable only with the reviewed installation package; native gameplay acceptance is still required.
 Ascension.Manastorm.Enable = 0
+
+# Diagnostics only. Write the effective spell report once at startup: spells custom classes can obtain, their
+# trigger/linked closure, raw DBC versus effective SpellInfo slots, handler kinds, script bindings and proc data.
+# Empty disables it. The server console command "coa spellreport <file>" writes the same report on demand.
+AscensionCompat.SpellReport.StartupFile = ""

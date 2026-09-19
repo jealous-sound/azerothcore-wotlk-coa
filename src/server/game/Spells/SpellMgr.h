@@ -710,6 +710,8 @@ public:
     // Spell proc table
     [[nodiscard]] SpellProcEntry const* GetSpellProcEntry(uint32 spellId) const;
     bool CanSpellTriggerProcOnEvent(SpellProcEntry const& procEntry, ProcEventInfo& eventInfo) const;
+    // Aura types LoadSpellProcs can build proc data for; read-only, used by diagnostics.
+    [[nodiscard]] static bool IsTriggerAura(uint32 auraType);
 
     // Spell bonus data table
     [[nodiscard]] SpellBonusEntry const* GetSpellBonusData(uint32 spellId) const;

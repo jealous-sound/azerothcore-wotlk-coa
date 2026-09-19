@@ -26,6 +26,7 @@ void AddAscensionStockCoefficientScripts();
 void AddAscensionScalingBaseScripts();
 void AddCoABugReportScripts();
 void AddCoAGameplayTestScripts();
+void AddAscensionEffectiveSpellReportScripts();
 void AddSC_AscensionResourceTalents();
 void AddAscensionBarbarianCompletionScripts();
 void AddAscensionBarbarianEventScripts();
@@ -331,6 +332,7 @@ void Addmod_ascension_compatScripts()
     AddAscensionTinkerCombatSymbiosisScripts();
     AddCoABugReportScripts();
     AddCoAGameplayTestScripts();
+    AddAscensionEffectiveSpellReportScripts();
     AddSC_AscensionResourceTalents();
     AddSC_AscensionRulesets();
     AddSC_AscensionClosestResurrection();

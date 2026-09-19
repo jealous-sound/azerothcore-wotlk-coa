@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "name": "Effective spell report: console export of the primitives custom-class spells run",
+  "contract": "The console-only command writes a read-only report into the run directory after every SpellInfo correction, module contract and SQL load. Writing it leaves the fixture character unchanged. The declared artifact makes the runner validate the export before the run can pass: its schema and summary recomputation, raw slot values against the server's Spell.dbc at the documented 3.3.5a field offsets, dispatch kinds against the SpellEffects[]/AuraEffectHandler[] source tables, the named roots taken from independent data (ClassSpells 801576 Ancestral Strike; SkillLineAbility 500059 Excessive Power on Barbarian skill line 41; CoA talent entry 1374 spell 804057), and the second export as a determinism control.",
+  "timeout_ms": 180000,
+  "artifacts": [
+    {
+      "file": "effective-spell-report.json",
+      "checker": "spell_report",
+      "same_as": "effective-spell-report-repeat.json",
+      "expect_roots": ["801576:class_spell", "500059:class_skill_line", "804057:coa_talent"]
+    }
+  ],
+  "players": [
+    { "id": "barbarian", "race": 1, "class": 12, "level": 80 }
+  ],
+  "steps": [
+    { "action": "snapshot", "actor": "barbarian", "metric": "health", "save_as": "health_before" },
+    { "action": "snapshot", "actor": "barbarian", "metric": "max_health", "save_as": "max_health_before" },
+    {
+      "action": "console", "label": "Write the report into the run directory",
+      "command": "coa spellreport effective-spell-report.json"
+    },
+    {
+      "action": "console", "label": "Write a second report for the determinism control",
+      "command": "coa spellreport effective-spell-report-repeat.json"
+    },
+    {
+      "action": "assert", "label": "Reporting does not change the fixture's health", "actor": "barbarian",
+      "metric": "health", "relative_to": "health_before", "equals": 0
+    },
+    {
+      "action": "assert", "label": "Reporting does not change the fixture's maximum health", "actor": "barbarian",
+      "metric": "max_health", "relative_to": "max_health_before", "equals": 0
+    },
+    { "action": "assert", "actor": "barbarian", "metric": "level", "equals": 80 }
+  ]
+}

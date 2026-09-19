@@ -166,7 +166,8 @@ network login, and a static review alone cannot establish runtime parity between
 
 Start from [scenarios/frostbolt.json](scenarios/frostbolt.json). Schema version 1 accepts up to eight players,
 eight creatures and 10,000 sequential steps. Optional `timeout_ms` bounds setup plus execution (default 90s,
-maximum 10 minutes). Optional `contract` records the independently established expected behavior.
+maximum 10 minutes). Optional `contract` records the independently established expected behavior, and optional
+`artifacts` declares files the run exports for the runner to validate (see [Exported artifacts](#exported-artifacts)).
 The [talent and item scenario](scenarios/talent-and-items.json) exercises talent learning, passive removal,
 equipping a shirt and consuming a healing potion. It does not measure the talent's damage coefficient.
 The [Shadowblast scenario](scenarios/shadowblast-shadow-rage.json) reproduces a Shadow Rage pet-targeting crash
@@ -296,6 +297,66 @@ An optional `spell` restricts the count to creatures with that aura; `caster` ca
 `power`/`max_power` accept a numeric `power` (0..6). Aura metrics optionally accept `caster` to select
 ownership; `aura_amount` also accepts an effect index (0..2, default 0). Missing auras yield zero;
 check aura presence separately when zero is a valid effect amount. Permanent aura duration is -1.
+
+### Exported artifacts
+
+Some scenarios produce a file rather than an observable unit state. Assertions read live actors, not files, so the
+scenario declares each exported file in `artifacts` and the runner validates it once the scenario's own result is
+accepted. A missing file or a rejected one fails the run.
+
+```json
+"artifacts": [
+  {
+    "file": "effective-spell-report.json",
+    "checker": "spell_report",
+    "same_as": "effective-spell-report-repeat.json",
+    "expect_roots": ["801576:class_spell"]
+  }
+]
+```
+
+`file` is a plain name inside the run directory, written by a step of the same scenario; the runner's own
+files (`summary.json`, `result.json`, the generated config and log) cannot be declared. `checker` names a checker
+the runner knows; the remaining fields are that checker's options. The runner supplies the run directory, the
+server's `DataDir` and this source checkout itself, so a scenario never repeats paths the runner already resolved.
+
+`summary.json` records every artifact under `artifacts`: its size and SHA-256, the `checks` that ran, and the
+checker's own summary, with `artifact_seconds` alongside. A rejected artifact keeps its record with
+`"status": "failed"` and the checker's message, which is also the run's failure message.
+
+## Effective spell report
+
+The server console command `coa spellreport <file>` (console only) writes a read-only JSON report of the spells
+custom classes can obtain and the spells they reach. `AscensionCompat.SpellReport.StartupFile` writes the same
+report once at startup. It reads the loaded server state: SpellInfo after corrections and module contracts,
+`spell_proc`, `spell_bonus_data`, `spell_linked_spell` and `spell_script_names`.
+
+- Roots: module grant tables (class spells, live baseline spells/proficiencies, CoA talent and automatic entries,
+  progression ranks, taught abilities, talent replacements), racial and class skill lines, player-create spells,
+  DBC talents and `SPELL_EFFECT_LEARN_SPELL` targets. Each root records its sources. `grant` is false when only
+  skill lines provide the spell.
+- Closure, up to six edges: effective `TriggerSpell`; `MiscValue` spell ids on effects 164-198 and auras 317-366;
+  and positive `spell_linked_spell` runtime lookups. Raw DBC trigger/misc edges that a correction changed are also
+  followed. Spells reachable only through them are marked `"effective": false` and excluded from the counts.
+- Per spell and slot: effective values, and under `raw` the Spell.dbc values that differ. Also included: effect and
+  aura handler kinds (`handler`, `null`, `unused`, `no_immediate`, `missing` for a null table entry,
+  `out_of_range`), trigger-aura type, `spell_proc` entry, bonus data, bound scripts, rank chain, linked spells and
+  the roots that reach it.
+- Summary counts for all closure spells and for the `grant` scope: silent slots by primitive, dummy slots without
+  script bindings, proc auras (42/43/231) without proc data, rewrites and masking patterns, spellmod ops of 32 or
+  more, and aura 112 private selectors 20000-20017.
+
+C++ `CastSpell` literals, summon AI casts, global script hooks and core id switches are not visible to the report.
+The [effective spell report scenario](scenarios/effective-spell-report.json) writes two reports into the run
+directory and declares the first as an artifact, so the runner validates them before the run can pass. The
+`spell_report` checker checks the schema and internal references, recomputes every summary count from the spell
+rows, requires the roots named in `expect_roots`, compares dispatch kinds against the handler tables in this
+checkout, compares raw values against the server's `Spell.dbc`, and finally compares the second export named by
+`same_as`. Spells found only in `spell_dbc` rows are reported as `dbc_absent_spells`, not compared. The validated
+summary is kept in `summary.json`.
+
+To re-check a report saved from an earlier run, the same module runs standalone:
+`python apps/coa-gameplay-test/spell_report.py <report> --help` lists the checks as command-line options.
 
 ## Evidence boundaries
 

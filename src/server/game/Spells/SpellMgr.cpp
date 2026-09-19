@@ -2034,6 +2034,11 @@ bool InitTriggerAuraData()
     return true;
 }
 
+bool SpellMgr::IsTriggerAura(uint32 auraType)
+{
+    return auraType < TOTAL_AURAS && isTriggerAura[auraType];
+}
+
 void SpellMgr::LoadSpellProcs()
 {
     uint32 oldMSTime = getMSTime();
