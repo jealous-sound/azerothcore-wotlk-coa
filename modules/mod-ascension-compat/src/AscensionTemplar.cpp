@@ -153,27 +153,11 @@ void GrantOath(Player* player, uint32 oath)
         return;
     bool first = !chain;
     int32 duration = chain ? chain->GetDuration() : 15000;
-    if (!player->HasAura(oath))
-    {
-        std::vector<Aura*> active;
-        for (uint32 sid : oaths)
-            if (Aura* aura = player->GetAura(sid))
-                active.push_back(aura);
-        uint32 maximumKinds = player->HasAura(707755) ? 2 : 1;
-        if (active.size() >= maximumKinds)
-        {
-            auto oldest = std::min_element(active.begin(), active.end(), [](Aura* a, Aura* b) {
-                return a->GetScriptValue(704576) < b->GetScriptValue(704576);
-            });
-            (*oldest)->Remove();
-        }
-    }
+    // Every Oath kind is held alongside the others until the chain ends: Breakers consume "your Oaths" and
+    // Flaming Blade gains the Oaths of each Follow Up in the chain, so no kind displaces another.
     Cast(player, player, oath);
     if (Aura* aura = player->GetAura(oath))
-    {
         aura->SetDuration(duration);
-        aura->SetScriptValue(704576, ++State(player).sequence);
-    }
     Cast(player, player, 704576);
     if (Aura* aura = player->GetAura(704576))
     {

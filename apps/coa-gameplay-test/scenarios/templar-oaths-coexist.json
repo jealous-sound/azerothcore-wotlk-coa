@@ -1,0 +1,35 @@
+{
+ "schema": 1,
+ "name": "Templar Oaths coexist instead of replacing each other (#4152)",
+ "contract": "Righteous Lunge 570233 (rank 8) grants Oath: Righteous Lunge 804904, Condemn 567541 (rank 10) grants Oath: Condemn 804922 and Holy Cleave 573049 (rank 9) grants Oath: Holy Cleave 804903. A later Follow Up adds its Oath next to the ones already held; none is removed until the Oath Chain 704576 ends or a Breaker consumes them.",
+ "timeout_ms": 90000,
+ "players": [
+  { "id": "templar", "race": 1, "class": 19, "level": 80, "melee_hit_rating": 10000, "spell_hit_rating": 10000, "expertise_rating": 10000 }
+ ],
+ "creatures": [
+  { "id": "dummy", "owner": "templar", "entry": 36, "health": 1000000, "distance": 3 }
+ ],
+ "steps": [
+  { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+  { "action": "learn", "actor": "templar", "spell": 570233 },
+  { "action": "learn", "actor": "templar", "spell": 567541 },
+  { "action": "learn", "actor": "templar", "spell": 573049 },
+  { "action": "add_item", "actor": "templar", "item": 2495 },
+  { "action": "equip", "actor": "templar", "item": 2495, "slot": 15 },
+  { "action": "set_power", "actor": "templar", "power": 3, "value": 100 },
+  { "action": "cast", "actor": "templar", "spell": 570233, "target": "dummy" },
+  { "action": "assert", "label": "Righteous Lunge grants its Oath", "actor": "templar", "metric": "aura", "spell": 804904, "equals": 1, "within_ms": 2000 },
+  { "action": "assert", "label": "The Oath Chain starts", "actor": "templar", "metric": "aura", "spell": 704576, "equals": 1, "within_ms": 2000 },
+  { "action": "wait", "label": "Global cooldown", "ms": 1600 },
+  { "action": "set_power", "actor": "templar", "power": 3, "value": 100 },
+  { "action": "cast", "actor": "templar", "spell": 567541, "target": "dummy" },
+  { "action": "assert", "label": "Condemn grants its Oath", "actor": "templar", "metric": "aura", "spell": 804922, "equals": 1, "within_ms": 2000 },
+  { "action": "assert", "label": "Lunge's Oath survives Condemn", "actor": "templar", "metric": "aura", "spell": 804904, "equals": 1 },
+  { "action": "wait", "label": "Global cooldown", "ms": 1600 },
+  { "action": "set_power", "actor": "templar", "power": 3, "value": 100 },
+  { "action": "cast", "actor": "templar", "spell": 573049, "target": "dummy" },
+  { "action": "assert", "label": "Holy Cleave grants its Oath", "actor": "templar", "metric": "aura", "spell": 804903, "equals": 1, "within_ms": 2000 },
+  { "action": "assert", "label": "Lunge's Oath survives Holy Cleave", "actor": "templar", "metric": "aura", "spell": 804904, "equals": 1 },
+  { "action": "assert", "label": "Condemn's Oath survives Holy Cleave", "actor": "templar", "metric": "aura", "spell": 804922, "equals": 1 }
+ ]
+}
