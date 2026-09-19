@@ -108,8 +108,10 @@ namespace CoAChallenges
 
     // Test seam (`.coa cachetoctou`): runs between the DB load and the cache publish.
     std::function<void(uint32)> GameModeLoadHookForTest;
+    std::mutex GameModeHookMutex;
     void Test_SetGameModeLoadHook(std::function<void(uint32)> hook)
     {
+        std::lock_guard<std::mutex> lock(GameModeHookMutex);
         GameModeLoadHookForTest = std::move(hook);
     }
     // Bits the player enabled from the Gamemodes tab (only while
@@ -158,8 +160,17 @@ namespace CoAChallenges
             }
 
             uint32 mask = LoadGameModeMask(guid);
-            if (GameModeLoadHookForTest)
-                GameModeLoadHookForTest(guid);
+            {
+                // Copy the hook under its own mutex; invoke after unlocking so its Clear* call,
+                // which takes GameModeMaskMutex, cannot deadlock.
+                std::function<void(uint32)> hook;
+                {
+                    std::lock_guard<std::mutex> lock(GameModeHookMutex);
+                    hook = GameModeLoadHookForTest;
+                }
+                if (hook)
+                    hook(guid);
+            }
 
             std::lock_guard<std::mutex> lock(GameModeMaskMutex);
             // The stored mask changed while we were loading: the snapshot is stale, reload.

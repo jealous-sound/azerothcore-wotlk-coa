@@ -70,7 +70,7 @@ namespace CoAChallenges
 
     // Cache TOCTOU seam (implemented in Lifecycle.cpp / GameModes.cpp): lets the
     // regression test inject an invalidation between the DB load and the cache
-    // publish, and force the generation guard on/off independently of the .conf.
+    // publish, and force the generation guard off to exercise the pre-fix path.
     void Test_SetCacheGuard(int value);
     void Test_SetCharChallengeLoadHook(std::function<void(uint32)> hook);
     void Test_SetGameModeLoadHook(std::function<void(uint32)> hook);

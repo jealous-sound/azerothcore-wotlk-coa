@@ -1944,10 +1944,20 @@ namespace CoAChallenges
             uint32 const probeLevel = 7;
 
             WaitCharacterQueueEmpty();
-            std::vector<uint32> original;
+            // Full rows so the restore does not reset level/deaths/hunger/thirst/startTime.
+            struct Row { uint32 challengeId, level, deaths, hunger, thirst, startTime; };
+            std::vector<Row> original;
             if (QueryResult r = CharacterDatabase.Query(
-                    "SELECT challengeId FROM coa_character_challenge WHERE guid = {}", guid))
-                do { original.push_back(r->Fetch()[0].Get<uint32>()); } while (r->NextRow());
+                    "SELECT challengeId, level, deaths, hunger, thirst, startTime "
+                    "FROM coa_character_challenge WHERE guid = {}", guid))
+            {
+                do
+                {
+                    Field* f = r->Fetch();
+                    original.push_back(Row{ f[0].Get<uint32>(), f[1].Get<uint32>(), f[2].Get<uint32>(),
+                        f[3].Get<uint32>(), f[4].Get<uint32>(), f[5].Get<uint32>() });
+                } while (r->NextRow());
+            }
 
             auto arm = [&](std::shared_ptr<bool> fired)
             {
@@ -1959,6 +1969,8 @@ namespace CoAChallenges
                 *fired = false;
                 Test_SetCharChallengeLoadHook([fired, guid, probeId](uint32 g)
                 {
+                    if (g != guid)
+                        return;   // never touch another character's row from a shared hook
                     if (*fired)
                         return;
                     *fired = true;
@@ -1990,10 +2002,12 @@ namespace CoAChallenges
 
             // Restore the pre-test active set (rows only; auras were untouched).
             CharacterDatabase.DirectExecute("DELETE FROM coa_character_challenge WHERE guid = {}", guid);
-            for (uint32 id : original)
+            for (Row const& row : original)
                 CharacterDatabase.DirectExecute(
-                    "INSERT INTO coa_character_challenge (guid, challengeId, level, deaths) VALUES ({}, {}, 1, 0)",
-                    guid, id);
+                    "INSERT INTO coa_character_challenge "
+                    "(guid, challengeId, level, deaths, hunger, thirst, startTime) "
+                    "VALUES ({}, {}, {}, {}, {}, {}, {})",
+                    guid, row.challengeId, row.level, row.deaths, row.hunger, row.thirst, row.startTime);
             ClearCharChallengeCache(guid);
         }
 
@@ -2001,7 +2015,12 @@ namespace CoAChallenges
         {
             uint32 const probeA = 0x2;    // Ironman
             uint32 const probeB = 0x100;  // Nightmare
-            uint32 const originalMask = LoadGameModeMask(guid);
+            // Distinguish "no row" from "mask 0" so the restore does not fabricate a row, and let
+            // any queued write land before reading the original value.
+            WaitCharacterQueueEmpty();
+            bool const hadRow = (bool)CharacterDatabase.Query(
+                "SELECT 1 FROM coa_character_gamemode WHERE guid = {}", guid);
+            uint32 const originalMask = hadRow ? LoadGameModeMask(guid) : 0;
 
             auto arm = [&](std::shared_ptr<bool> fired)
             {
@@ -2011,6 +2030,8 @@ namespace CoAChallenges
                 *fired = false;
                 Test_SetGameModeLoadHook([fired, guid, probeB](uint32 g)
                 {
+                    if (g != guid)
+                        return;   // never touch another character's row from a shared hook
                     if (*fired)
                         return;
                     *fired = true;
@@ -2039,8 +2060,11 @@ namespace CoAChallenges
             Test_SetGameModeLoadHook(nullptr);
             Test_SetCacheGuard(-1);
 
-            CharacterDatabase.DirectExecute(
-                "REPLACE INTO coa_character_gamemode (guid, gameMode) VALUES ({}, {})", guid, originalMask);
+            if (hadRow)
+                CharacterDatabase.DirectExecute(
+                    "REPLACE INTO coa_character_gamemode (guid, gameMode) VALUES ({}, {})", guid, originalMask);
+            else
+                CharacterDatabase.DirectExecute("DELETE FROM coa_character_gamemode WHERE guid = {}", guid);
             ClearGameModeMaskCache(guid);
         }
 

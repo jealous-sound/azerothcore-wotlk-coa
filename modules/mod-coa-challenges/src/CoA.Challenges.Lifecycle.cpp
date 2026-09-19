@@ -630,11 +630,13 @@ namespace CoAChallenges
     // thread between the DB load and the cache publish, so a test can inject an invalidation
     // exactly in the TOCTOU window. Both are inert in production (empty hook, override -1).
     std::function<void(uint32)> CharChallengeLoadHookForTest;
-    static int CacheGuardOverrideForTest = -1;
+    std::mutex CharChallengeHookMutex;
+    static std::atomic<int> CacheGuardOverrideForTest{-1};
 
     void Test_SetCacheGuard(int value) { CacheGuardOverrideForTest = value; }
     void Test_SetCharChallengeLoadHook(std::function<void(uint32)> hook)
     {
+        std::lock_guard<std::mutex> lock(CharChallengeHookMutex);
         CharChallengeLoadHookForTest = std::move(hook);
     }
 
@@ -642,7 +644,7 @@ namespace CoAChallenges
     // pre-fix behavior (a blind publish that keeps the stale snapshot) can be exercised too.
     bool CacheGenerationGuardEnabled()
     {
-        return CacheGuardOverrideForTest != 0;
+        return CacheGuardOverrideForTest.load() != 0;
     }
 
     // The character's active challenges, kept in memory the way the game mode mask already is.
@@ -669,8 +671,18 @@ namespace CoAChallenges
             }
 
             std::vector<std::pair<uint32, uint32>> active = LoadCharChallenges(guid);
-            if (CharChallengeLoadHookForTest)
-                CharChallengeLoadHookForTest(guid);
+            {
+                // Copy the hook under its own mutex (the setter can run on the GM command thread
+                // while a map thread is here). Invoke it after unlocking so its Clear* call, which
+                // takes CharChallengeMutex, cannot deadlock.
+                std::function<void(uint32)> hook;
+                {
+                    std::lock_guard<std::mutex> lock(CharChallengeHookMutex);
+                    hook = CharChallengeLoadHookForTest;
+                }
+                if (hook)
+                    hook(guid);
+            }
 
             std::lock_guard<std::mutex> lock(CharChallengeMutex);
             // The row set changed while we were loading: the snapshot is stale, reload.
