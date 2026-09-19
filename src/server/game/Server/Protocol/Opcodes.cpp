@@ -1459,6 +1459,7 @@ void OpcodeTable::Initialize()
     /*0x5BF*/ DEFINE_HANDLER(CMSG_COA_RATE_TRIAL,                                                    STATUS_LOGGEDIN,   PROCESS_INPLACE,        &WorldSession::Handle_NULL                              );
     /*0x5C9*/ DEFINE_HANDLER(CMSG_COA_QUERY_TRIAL_COMPLETIONS,                                       STATUS_LOGGEDIN,   PROCESS_INPLACE,        &WorldSession::Handle_NULL                              );
     /*0x5A4*/ DEFINE_HANDLER(CMSG_COA_TOGGLE_GAME_MODE,                                              STATUS_LOGGEDIN,   PROCESS_INPLACE,        &WorldSession::Handle_NULL                              );
+    /*0x61F*/ DEFINE_HANDLER(CMSG_RESET_DUNGEONS,                                                   STATUS_LOGGEDIN,   PROCESS_THREADUNSAFE,   &WorldSession::HandleResetDungeonsOpcode                );
 
     // Default every other extension slot to a safe NULL handler so an
     // unregistered custom opcode can never null-dereference opcodeTable[].
@@ -1470,7 +1471,7 @@ void OpcodeTable::Initialize()
             || i == CMSG_COA_DELETE_TRIAL || i == CMSG_COA_QUERY_TRIALS
             || i == CMSG_COA_ACTIVATE_TRIAL || i == CMSG_COA_DEACTIVATE_TRIAL
             || i == CMSG_COA_QUERY_TRIAL_COMPLETIONS
-            || i == CMSG_COA_TOGGLE_GAME_MODE)
+            || i == CMSG_COA_TOGGLE_GAME_MODE || i == CMSG_RESET_DUNGEONS)
             continue;
         ValidateAndSetClientOpcode<decltype(&WorldSession::Handle_NULL), &WorldSession::Handle_NULL>(
             static_cast<OpcodeClient>(i), "UNKNOWN_EXTENSION_OPCODE", STATUS_NEVER, PROCESS_INPLACE);

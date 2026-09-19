@@ -1349,6 +1349,20 @@ void WorldSession::HandleResetInstancesOpcode(WorldPackets::Instance::ResetInsta
 {
     LOG_DEBUG("network", "WORLD: CMSG_RESET_INSTANCES");
 
+    ResetAllDungeons();
+}
+
+// The Ascension portrait menu's "Reset all Dungeons" calls ResetDungeons(), which sends this empty
+// extension opcode instead of CMSG_RESET_INSTANCES.
+void WorldSession::HandleResetDungeonsOpcode(WorldPacket& /*recvData*/)
+{
+    LOG_DEBUG("network", "WORLD: CMSG_RESET_DUNGEONS");
+
+    ResetAllDungeons();
+}
+
+void WorldSession::ResetAllDungeons()
+{
     if (Group* group = _player->GetGroup())
     {
         if (group->IsLeader(_player->GetGUID()))

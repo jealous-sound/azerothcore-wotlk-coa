@@ -4947,6 +4947,10 @@ public:
     if (opcode == CMSG_ANTICHEAT_ALERT)
       return true;
 
+    // The portrait menu's "Reset all Dungeons"; handled by the core.
+    if (opcode == CMSG_RESET_DUNGEONS)
+      return true;
+
     if (opcode == CMSG_CREATURE_QUERY_BULK)
     {
         constexpr uint32 maxCreatureQueries = 256;
