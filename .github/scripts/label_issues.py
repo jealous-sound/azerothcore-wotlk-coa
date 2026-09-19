@@ -38,6 +38,7 @@ MANAGED_LABELS = [
     "Tinker",
     "Venomancer",
     "Witch Doctor",
+    "Witch Hunter",
 ]
 
 
@@ -64,6 +65,7 @@ CLASS_PATTERNS = {
     "Tinker": r"\btinker\b",
     "Venomancer": r"\bvenomancer\b",
     "Witch Doctor": r"\bwitch\s+doctor\b",
+    "Witch Hunter": r"\bwitch\s+hunter\b",
 }
 
 
@@ -73,6 +75,7 @@ CLASS_ID_LABELS = {
     12: "Barbarian",
     13: "Witch Doctor",
     14: "Felsworn",
+    15: "Witch Hunter",
     16: "Stormbringer",
     17: "Knight of Xoroth",
     18: "Guardian",

@@ -44,10 +44,11 @@ class LabelIssuesTests(unittest.TestCase):
         expected = {
             int(class_id): title.strip()
             for class_id, title in re.findall(r"CLASS_\w+\s*=\s*(\d+),?\s*// TITLE ([^\n]+)", classes)
-            if title.strip() in label_issues.CLASS_PATTERNS
+            if 12 <= int(class_id) <= 32
         }
         self.assertEqual(set(expected.values()), set(label_issues.CLASS_PATTERNS))
         self.assertEqual(label_issues.CLASS_ID_LABELS, expected)
+        self.assertTrue(set(expected.values()).issubset(label_issues.MANAGED_LABELS))
         for class_id, label in expected.items():
             with self.subTest(class_id=class_id):
                 self.assertEqual(label_issues.determine_labels({"body": f"Class ID: {class_id}"}), [label])
@@ -56,9 +57,27 @@ class LabelIssuesTests(unittest.TestCase):
         body = "### Server context\r\n  class ID :\t22 \r\nLevel: 11\r\n"
         self.assertEqual(label_issues.determine_labels({"body": body}), ["Chronomancer"])
 
+    def test_witch_hunter_name_and_id(self):
+        for issue in (
+            {"title": "Witch Hunter"},
+            {"body": "witch hunter"},
+            {"body": "### Server context\nClass ID: 15\nLevel: 11"},
+            {"title": "Witch Hunter", "body": "Class ID: 15"},
+        ):
+            with self.subTest(issue=issue):
+                self.assertEqual(label_issues.determine_labels(issue), ["Witch Hunter"])
+
+    def test_witch_hunter_label_is_added_without_removing_existing_labels(self):
+        issue = {"body": "Class ID: 15", "labels": [{"name": "Bug"}]}
+        with patch.object(label_issues, "gh") as gh:
+            label_issues.update_issue("42", issue, label_issues.determine_labels(issue))
+        gh.assert_called_once_with(
+            "issue", "edit", "42", "--add-label", "Witch Hunter", "--repo", "owner/repo",
+        )
+
     def test_unrelated_and_invalid_ids_do_not_add_class_labels(self):
         for body in (
-            "Spell ID: 22\nMap ID: 22\nLevel: 22", "Class ID: 999", "Class ID: 15",
+            "Spell ID: 22\nMap ID: 22\nLevel: 22", "Class ID: 999", "Class ID: 33",
             "Class ID: 1", "Class ID: 2200", "Class ID: -22", "Class ID: 22.5",
             "Class ID: 22abc", "Class ID: unknown", "No Class ID: 22",
         ):
