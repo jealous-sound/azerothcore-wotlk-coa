@@ -1,0 +1,56 @@
+{
+  "schema": 1,
+  "name": "Hands of Time increases Accelerate/Decelerate effectiveness by 25% (#1975)",
+  "contract": "Hands of Time 524856 carries SPELL_AURA_ADD_PCT_MODIFIER (108) with EffectMiscValue SPELLMOD_ALL_EFFECTS (8) and EffectSpellClassMask word2 bit 0x40000000, matching both Accelerate 572633 and Decelerate 572632's SpellFamilyFlags word2 (1073741824). EffectBasePoints 24 resolves to 25 with DieSides 1.",
+  "timeout_ms": 60000,
+  "players": [
+    { "id": "control", "race": 1, "class": 22, "level": 80 },
+    { "id": "talent", "race": 1, "class": 22, "level": 80 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+    { "action": "learn", "actor": "talent", "spell": 524856 },
+    {
+      "action": "assert",
+      "label": "Accelerate effect unmodified without the talent",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 572633,
+      "op": 8,
+      "base": 100,
+      "equals": 100
+    },
+    {
+      "action": "assert",
+      "label": "Accelerate effect increased 25% with the talent",
+      "actor": "talent",
+      "metric": "spell_modifier",
+      "spell": 572633,
+      "op": 8,
+      "base": 100,
+      "min": 124.99,
+      "max": 125.01
+    },
+    {
+      "action": "assert",
+      "label": "Decelerate effect unmodified without the talent",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 572632,
+      "op": 8,
+      "base": 100,
+      "equals": 100
+    },
+    {
+      "action": "assert",
+      "label": "Decelerate effect increased 25% with the talent",
+      "actor": "talent",
+      "metric": "spell_modifier",
+      "spell": 572632,
+      "op": 8,
+      "base": 100,
+      "min": 124.99,
+      "max": 125.01
+    }
+  ]
+}
