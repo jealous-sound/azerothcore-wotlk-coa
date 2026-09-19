@@ -236,6 +236,8 @@ void ApplyContracts(SpellInfo* info)
     }
     if (id == 801747)
         dummy(0);
+    if (id == 704355 || (id >= 707399 && id <= 707402))
+        info->TargetAuraState = 0; // "Requires Frozen Target" is checked in OnSpellCheckCast so Permafrost counts too
     for (uint32 charge : {800979, 572777, 707176, 807856, 801747})
         if (id == charge)
             info->ProcCharges = info->ProcFlags = 0;
