@@ -6459,7 +6459,8 @@ class spell_ascension_local_mount : public SpellScript
         bool canFly = map == MAP_OUTLAND || (map == MAP_NORTHREND && player->HasSpell(SPELL_COLD_WEATHER_FLYING));
         AreaTableEntry const* area = sAreaTableStore.LookupEntry(player->GetAreaId());
         Battlefield* battlefield = sBattlefieldMgr->GetBattlefieldToZoneId(player->GetZoneId());
-        if ((area && (area->flags & AREA_FLAG_NO_FLY_ZONE)) || (battlefield && !battlefield->CanFlyIn()))
+        if ((area && (area->flags & AREA_FLAG_NO_FLY_ZONE)) || (battlefield && !battlefield->CanFlyIn()) ||
+            player->InBattleground())
             canFly = false;
 
         if (canFly && riding >= 225)
