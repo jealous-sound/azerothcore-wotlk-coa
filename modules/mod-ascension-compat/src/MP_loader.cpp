@@ -21,6 +21,7 @@ void AddAscensionCompatScripts();
 void AddAscensionTravelPermitScripts();
 void AddSC_AscensionRulesets();
 void AddSC_AscensionThreatRedirect();
+void AddAscensionStockCoefficientScripts();
 void AddCoABugReportScripts();
 void AddCoAGameplayTestScripts();
 void AddSC_AscensionResourceTalents();
@@ -168,6 +169,9 @@ void AddSC_AscensionRunemasterRiftClones();
 // additionally replace all '-' in the module folder name with '_' here
 void Addmod_ascension_compatScripts()
 {
+    // Registered first so every later OnLoadSpellCustomAttr pass, and every runtime guard that asserts a
+    // record carries no coefficient, reads the same cleared EffectBonusMultiplier.
+    AddAscensionStockCoefficientScripts();
     AddAscensionManastormScripts();
     AddSC_AscensionReaperDirge();
     AddAscensionTinkerOverloadScripts();

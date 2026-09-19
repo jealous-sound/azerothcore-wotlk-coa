@@ -47,6 +47,13 @@ that states them. Proc flags, chance and charges remain the `Spell.dbc` columns;
   spell-power scaling. SQL `ap_bonus`/`ap_dot_bonus` supply attack-power scaling separately.
   An existing SP coefficient does not implement an AP term. Zeroing a SQL SP coefficient changes
   behavior and requires its own justification; do not copy the Barbarian zero-SP policy globally.
+- `Spell.dbc`'s `EffectBonusMultiplier` (f229-231) is the stock 3.3.5a coefficient column and is not a
+  CoA source: CoA authors coefficients in `description`/`tooltip` formula text and left the column
+  untouched, where it agrees with that text on 6.2% of the CoA slots carrying both. Stock and Reborn
+  records keep genuine values. `AscensionStockCoefficients.cpp` clears the field at load for the CoA
+  custom-class spells listed in `AscensionStockCoefficientData.h` (regenerate with
+  `Tools/Generate-CoAStockCoefficients.py`), so for those spells `spell_bonus_data` is the only
+  spell-power/bonus-healing channel and a missing row means no coefficient, not a default one.
 - By default the damage path selects RAP only when `IsRangedWeaponSpell()` is true **and** `DmgClass`
   is not `SPELL_DAMAGE_CLASS_MELEE`. The default-false `UseRangedAttackPowerForDamage` runtime field
   can override only the two damage coefficient stat selectors. Its sole current exact metadata
