@@ -3445,6 +3445,14 @@ bool Player::_addSpell(uint32 spellId, uint8 addSpecMask, bool temporary, bool l
 
 bool Player::IsNeedCastPassiveSpellAtLearn(SpellInfo const* spellInfo) const
 {
+    // Passive casts skip CheckItems. Defer weapon/armor auras until a matching usable
+    // item is equipped; ApplyItemDependentAuras also handles inventory loading.
+    // Non-aura passives such as weapon and armor proficiencies must still be cast.
+    if (spellInfo->HasAnyAura() &&
+        (spellInfo->EquippedItemClass == ITEM_CLASS_WEAPON || spellInfo->EquippedItemClass == ITEM_CLASS_ARMOR) &&
+        !HasItemFitToSpellRequirements(spellInfo))
+        return false;
+
     // note: form passives activated with shapeshift spells be implemented by HandleShapeshiftBoosts instead of spell_learn_spell
     // talent dependent passives activated at form apply have proper stance data
     ShapeshiftForm form = GetShapeshiftForm();
@@ -7340,7 +7348,8 @@ void Player::ApplyItemDependentAuras(Item* item, bool apply)
     {
         for (auto [spellId, playerSpell]: GetSpellMap())
         {
-            if (playerSpell->State == PLAYERSPELL_REMOVED)
+            if (playerSpell->State == PLAYERSPELL_REMOVED || !playerSpell->Active ||
+                !playerSpell->IsInSpec(GetActiveSpec()))
                 continue;
 
             SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spellId);
