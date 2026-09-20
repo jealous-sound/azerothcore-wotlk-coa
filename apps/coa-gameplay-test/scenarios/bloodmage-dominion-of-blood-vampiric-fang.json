@@ -1,0 +1,105 @@
+{
+  "schema": 1,
+  "name": "Dominion of Blood raises Vampiric Fang's stolen health to 150% (#2212)",
+  "contract": "Vampiric Fang's tooltip is \"Steal ${$m1+0+$SP*0.34} health from an enemy\", but none of its eight ranks (804726, 504093-504097, 553271, 553272) carries a leech or heal effect: each is a plain SPELL_EFFECT_SCHOOL_DAMAGE plus an aura 271. The stolen share lives in a separate \"Vampiric Fang\" record, 572373, SpellFamilyFlags (0, 1073741824, 0), whose one effect is aura type 354 with BasePoints 99 + DieSides 1 = 100 and TriggerSpell 572374, a SPELL_EFFECT_HEAL on the caster with BasePoints 0. AuraEffectHandler[354] is nullptr, no Spell.dbc row applies 572373 and no acquisition route reaches it. Dominion of Blood 680716's tooltip is \"Your Vampiric Fang now heals you for an additional 50% of the damage dealt\", and its one effect is aura 107 with MiscValue 3 (SPELLMOD_EFFECT1) and BasePoints 49 + DieSides 1 = +50 over exactly 572373's class mask, so the share reads 100 without the talent and 150 with it. The deterministic discriminator is that modifier on 572373; the end-to-end discriminator is that a Vampiric Fang cast raises the caster's health at all, which it never did before. The caster is dropped to a low value first so the heal is not clipped by the health cap, and health is read while in combat, where out-of-combat regeneration does not run.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "caster",
+      "race": 1,
+      "class": 20,
+      "level": 80,
+      "spell_hit_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "victim",
+      "owner": "caster",
+      "entry": 36,
+      "level": 1,
+      "health": 1000000,
+      "distance": 3
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "assert",
+      "label": "The stolen share is the authored 100% before the talent",
+      "actor": "caster",
+      "metric": "spell_modifier",
+      "spell": 572373,
+      "op": 3,
+      "base": 100,
+      "equals": 100
+    },
+    {
+      "action": "learn",
+      "actor": "caster",
+      "spell": 553272
+    },
+    {
+      "action": "set_power",
+      "actor": "caster",
+      "power": 1,
+      "value": 1000
+    },
+    {
+      "action": "set_health",
+      "actor": "caster",
+      "label": "Leave room for the stolen health",
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "caster",
+      "metric": "health",
+      "save_as": "before_fang"
+    },
+    {
+      "action": "cast",
+      "actor": "caster",
+      "spell": 553272,
+      "target": "victim"
+    },
+    {
+      "action": "assert",
+      "label": "Vampiric Fang steals health back to the caster",
+      "actor": "caster",
+      "metric": "health",
+      "relative_to": "before_fang",
+      "min": 1,
+      "within_ms": 3000
+    },
+    {
+      "action": "learn",
+      "actor": "caster",
+      "spell": 680716
+    },
+    {
+      "action": "assert",
+      "label": "Dominion of Blood raises the stolen share to 150%",
+      "actor": "caster",
+      "metric": "spell_modifier",
+      "spell": 572373,
+      "op": 3,
+      "base": 100,
+      "equals": 150
+    },
+    {
+      "action": "assert",
+      "label": "Dominion of Blood does not touch Bloodbolt",
+      "actor": "caster",
+      "metric": "spell_modifier",
+      "spell": 578305,
+      "op": 3,
+      "base": 100,
+      "equals": 100
+    }
+  ]
+}

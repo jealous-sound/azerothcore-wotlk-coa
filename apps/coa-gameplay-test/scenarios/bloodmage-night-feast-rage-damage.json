@@ -1,0 +1,137 @@
+{
+  "schema": 1,
+  "name": "Night Feast scales Bloodbolt damage with Rage (#2051)",
+  "contract": "Night Feast 563736: 'Each point of Rage now increases the damage of Bloodbolt by 1%, but its Rage cost is increased by $/10;s2.' Effect 1 is aura 107 ADD_FLAT_MODIFIER, MiscValue 14 (SPELLMOD_COST), BasePoints 99 / DieSides 1 = 100 internal Rage units = the 10 displayed Rage the tooltip renders; it is delivered natively through SpellInfo::CalcPowerCost and is asserted here as a regression. Effect 0 is aura 112 (SPELL_AURA_OVERRIDE_CLASS_SCRIPTS) with MiscValue 563736 - the spell's own id, a private marker no core switch reads - BasePoints 0 / DieSides 1 = 1, i.e. the 1% per point, and class mask (0, 131072, 0) = Bloodbolt. Nothing read that marker, so the damage half did nothing. Rage is stored ten times the displayed value, so 1000 internal units is 100 displayed Rage and doubles the damage. Both casts are forced to critically strike (spell_crit_rating 100000, Bloodbolt is DmgClass 1) so the critical multiplier is constant between them, leaving only Bloodbolt's own BasePoints 330 / DieSides 12 roll, under one percent of the total, inside the assertion band. 578305 is the Bloodbolt rank a level-80 character owns.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "caster",
+      "race": 1,
+      "class": 20,
+      "level": 80,
+      "spell_hit_rating": 10000,
+      "spell_crit_rating": 100000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "enemy",
+      "owner": "caster",
+      "entry": 36,
+      "level": 80,
+      "health": 1000000,
+      "distance": 5
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "unlearn",
+      "actor": "caster",
+      "spell": 563736
+    },
+    {
+      "action": "learn",
+      "actor": "caster",
+      "spell": 578305
+    },
+    {
+      "action": "snapshot",
+      "label": "Bloodbolt Rage cost without Night Feast",
+      "actor": "caster",
+      "metric": "spell_power_cost",
+      "spell": 578305,
+      "save_as": "base_cost"
+    },
+    {
+      "action": "set_power",
+      "label": "Full Rage",
+      "actor": "caster",
+      "power": 1,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "label": "Enemy health before the unmodified cast",
+      "actor": "enemy",
+      "metric": "health",
+      "save_as": "before_base"
+    },
+    {
+      "action": "cast",
+      "actor": "caster",
+      "spell": 578305,
+      "target": "enemy"
+    },
+    {
+      "action": "assert",
+      "label": "The unmodified cast dealt damage",
+      "actor": "enemy",
+      "metric": "health",
+      "relative_to": "before_base",
+      "max": -1,
+      "within_ms": 3000
+    },
+    {
+      "action": "snapshot",
+      "label": "Unmodified Bloodbolt damage",
+      "actor": "enemy",
+      "metric": "health",
+      "relative_to": "before_base",
+      "save_as": "base_damage"
+    },
+    {
+      "action": "wait",
+      "ms": 3000
+    },
+    {
+      "action": "learn",
+      "actor": "caster",
+      "spell": 563736
+    },
+    {
+      "action": "assert",
+      "label": "Night Feast's Rage cost clause already worked (regression)",
+      "actor": "caster",
+      "metric": "spell_power_cost",
+      "spell": 578305,
+      "relative_to": "base_cost",
+      "equals": 100
+    },
+    {
+      "action": "set_power",
+      "label": "Full Rage again",
+      "actor": "caster",
+      "power": 1,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "label": "Enemy health before the boosted cast",
+      "actor": "enemy",
+      "metric": "health",
+      "save_as": "before_boosted"
+    },
+    {
+      "action": "cast",
+      "actor": "caster",
+      "spell": 578305,
+      "target": "enemy"
+    },
+    {
+      "action": "assert",
+      "label": "100 Rage doubles Bloodbolt's damage",
+      "actor": "enemy",
+      "metric": "health",
+      "relative_to": "before_boosted",
+      "ratio_to": "base_damage",
+      "min": 1.94,
+      "max": 2.06,
+      "within_ms": 3000
+    }
+  ]
+}
