@@ -27,7 +27,7 @@ IDENTIFIER = re.compile(r'[A-Za-z_][A-Za-z0-9_]*\Z')
 ACTOR_ID = re.compile(r'[a-z][a-z0-9_]{0,31}\Z')
 LOCAL_HOSTS = {'127.0.0.1', 'localhost', '::1'}
 METRICS = {
-    'moving', 'distance_2d', 'cast_remaining_ms', 'cast_pushback_ms',
+    'moving', 'forced_forward', 'distance_2d', 'cast_remaining_ms', 'cast_pushback_ms', 'melee_damage_count',
     'pet_power', 'pet_max_power', 'spell_energize_count', 'spell_energize_total',
     'health', 'health_pct', 'max_health', 'power', 'max_power', 'alive', 'combat', 'casting', 'level',
     'aura', 'aura_stacks', 'aura_charges', 'aura_duration_ms', 'aura_amount', 'aura_positive',
@@ -57,6 +57,7 @@ METRICS = {
     'pet_aura_amount', 'pet_aura_amplitude_ms', 'pet_max_health', 'pet_attack_power', 'pet_run_speed_rate',
 }
 PLAYER_STAT_METRICS = {
+    'melee_damage_count',
     'pet_power', 'pet_max_power', 'spell_energize_count', 'spell_energize_total',
     'melee_crit_chance', 'dodge_chance', 'parry_chance', 'expertise', 'combat_rating',
     'spell_modifier', 'spell_cast_time_ms', 'spell_max_range', 'spell_max_stacks', 'spell_healing_done',
@@ -72,6 +73,7 @@ METRIC_FIELDS = {'actor', 'metric', 'spell', 'power', 'caster', 'effect', 'item'
                  'relative_to', 'ratio_to', 'target', 'quest', 'id', 'stat', 'school', 'hand', 'rating', 'op',
                  'base', 'key', 'index', 'pet', 'critical', 'target_pet', 'periodic'}
 ACTIONS = {
+    'stop_attack': ({'actor'}, {'actor'}),
     'set_moving': ({'actor', 'enabled'}, {'actor', 'enabled'}),
     'console': ({'command'}, {'command'}),
     'command': ({'actor', 'command'}, {'actor', 'command'}),
@@ -277,7 +279,8 @@ def validate(scenario):
                 if key in step:
                     require(metric in {'spell_damage_count', 'spell_damage_total', 'spell_heal_count',
                                        'spell_heal_total', 'spell_effective_heal_total'}
-                            or (key == 'pet' and metric in {'spell_energize_count', 'spell_energize_total'}),
+                            or (key == 'pet' and metric in {'spell_energize_count', 'spell_energize_total',
+                                                           'armor_reduced_damage'}),
                             f'{where}: {key} only filters supported spell combat events')
                     require(type(step[key]) is bool, f'{where}: {key} must be boolean')
             if 'target_pet' in step:
@@ -307,7 +310,8 @@ def validate(scenario):
                 number(step.get('op'), f'{where}.op', 0, 31, True)
                 number(step.get('base'), f'{where}.base')
             if 'hand' in step:
-                number(step['hand'], f'{where}.hand', 0, 2, True)
+                maximum = 1 if metric in {'melee_attack_count', 'melee_damage_count'} else 2
+                number(step['hand'], f'{where}.hand', 0, maximum, True)
             if 'school' in step and metric == 'spell_crit_chance':
                 number(step['school'], f'{where}.school', 0, 6, True)
             if metric == 'item_count':

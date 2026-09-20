@@ -213,6 +213,7 @@ before taking baselines; assert stable maximums and final levels when testing da
 | `reset_talents` | `actor`: reset active talents through normal removal, without a trainer fee. |
 | `cast` | `actor`, `spell`, optional `target` (self by default): normal session cast handler. |
 | `attack` | `actor`, `target`: native melee attack request; optional `pet: true` sends the pet's attack command. Verify combat or damage with assertions. |
+| `stop_attack` | Player `actor`: native melee stop request. |
 | `pvp` | Player `actor`, boolean `enabled`: native PvP toggle request. Disabling retains the ordinary flag-removal timer. |
 | `set_moving` | Player `actor`, boolean `enabled`: fixture the native forward movement flag for cast restriction tests. |
 | `group` | `actor`, `target`: fixture party; creates the actor's group if needed and adds an ungrouped player. |
@@ -271,6 +272,7 @@ periodic interval.
 `block_chance` reads the player's percentage field; `block_value` reads native shield block value;
 `critical_block_chance` reads the total modifier used by the native critical block roll.
 `moving` reads the unit's native movement state. `distance_2d` requires `target` and measures horizontal center distance.
+`forced_forward` reads the server's force-movement flag; it does not simulate client movement or navigation.
 `cast_remaining_ms` requires `spell` and returns its active cast/channel timer, or zero when inactive.
 `cast_pushback_ms` reads the player's cumulative native cast-delay notifications, excluding elapsed cast time.
 `weapon_damage_min` reads the calculated minimum damage, including weapon-dependent passive bonuses;
@@ -278,15 +280,17 @@ optional `hand` selects main hand (0, default), off hand (1), or ranged (2).
 `spell_critical_damage` requires `spell` and `target` and calculates a critical hit from a fixed base of 1000,
 including native critical damage modifiers, without executing an attack or applying mitigation.
 `armor_reduced_damage` requires `spell` and `target` and applies native armor mitigation to a fixed base of
-1000, including the attacker's armor penetration; it does not execute an attack.
+1000, including the attacker's armor penetration; optional `pet: true` selects the player's current pet.
+It does not execute an attack.
 `spell_uses_armor` separately checks whether the native damage path applies armor to `spell` and `effect`
 (default 0), including spell school, armor bypass and bleed mechanics.
 `aoe_damage_taken` applies native area damage avoidance to 1000 damage for `school` (0..6).
 `reputation_gain` calculates a native spell reputation reward of 1000 for faction `id`, without granting it.
 `spell_immune` and `spell_effect_immune` query native immunity against `spell` from `target`; the latter
 accepts `effect` (default 0). These queries submit no attack.
-`melee_attack_count` counts the actor's native melee combat packets, including extra attacks and misses;
-it observes server output without testing delivery to a network client.
+`melee_attack_count` counts the actor's native melee combat packets, including extra attacks and misses.
+`melee_damage_count` counts only those dealing positive damage. Both accept `hand` (0 main hand, 1 off hand).
+These observations do not test delivery to a network client.
 `spell_damage_count` and `spell_damage_total` require `spell` and count positive direct or periodic spell
 damage events, or sum their post-mitigation damage, from the actor's native combat packets. Optional `target`
 filters the victim, `pet: true` selects the actor's current pet as caster, and `critical` filters critical or
@@ -330,7 +334,7 @@ or reload the character from the database. Use it to exercise a repair against d
 `pet_entry` measures the player's current guardian pet entry, or zero if absent. `pet_aura_stacks`
 requires `spell`, accepts `caster` for aura ownership, and returns zero if the pet or aura is absent.
 `pet_aura_amount` and `pet_aura_amplitude_ms` accept `effect` and read its amount or tick interval.
-`spell_energize_count` and `spell_energize_total` observe native instant energize logs, excluding
+`spell_energize_count` and `spell_energize_total` observe native instant and periodic energize logs, excluding
 ordinary regeneration. They require `spell`; optional `power`, `target`, `pet` and `target_pet` filter
 resource type, recipient and current pets. The total is the logged nominal gain before the resource cap.
 

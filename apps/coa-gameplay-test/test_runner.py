@@ -153,6 +153,23 @@ class RunnerTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             run.validate(self.scenario)
 
+    def test_pet_armor_and_melee_hand_observations(self):
+        self.scenario['steps'].extend([
+            {'action': 'stop_attack', 'actor': 'caster'},
+            {'action': 'assert', 'actor': 'caster', 'metric': 'armor_reduced_damage',
+             'pet': True, 'spell': 116, 'target': 'target', 'min': 0},
+            {'action': 'assert', 'actor': 'caster', 'metric': 'melee_attack_count', 'hand': 0, 'min': 0},
+            {'action': 'assert', 'actor': 'caster', 'metric': 'melee_damage_count', 'hand': 1, 'min': 0},
+            {'action': 'assert', 'actor': 'caster', 'metric': 'forced_forward', 'equals': 0},
+        ])
+        self.assertIs(run.validate(self.scenario), self.scenario)
+        for index, key, value in ((-5, 'actor', 'target'), (-4, 'pet', 1), (-3, 'hand', 2),
+                                   (-2, 'hand', 2), (-2, 'actor', 'target')):
+            invalid = copy.deepcopy(self.scenario)
+            invalid['steps'][index][key] = value
+            with self.assertRaises(ValueError):
+                run.validate(invalid)
+
     def test_malformed_scenarios_fail_before_starting_processes(self):
         for change in (
             lambda s: s.update(schema=True),

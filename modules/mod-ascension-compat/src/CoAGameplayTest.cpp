@@ -48,6 +48,7 @@
 #include <boost/bind/placeholders.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cmath>
 #include <filesystem>
@@ -142,7 +143,8 @@ struct Actor
     std::map<std::string, uint32> whoClasses;
     uint32 whoResponses = 0;
     uint32 lootReceived = 0;
-    uint32 meleeAttacks = 0;
+    std::array<uint32, 2> meleeAttacksByHand{};
+    std::array<uint32, 2> meleeDamageByHand{};
     uint64 castPushbackMs = 0;
     std::vector<SpellDamageEvent> spellDamage;
     std::vector<SpellHealEvent> spellHeals;
@@ -233,11 +235,20 @@ void ObserveSpellHealing(Actor& actor, WorldPacket const& packet)
 
 void ObserveSpellEnergize(Actor& actor, WorldPacket const& packet)
 {
-    if (packet.GetOpcode() != SMSG_SPELLENERGIZELOG)
+    if (packet.GetOpcode() != SMSG_SPELLENERGIZELOG && packet.GetOpcode() != SMSG_PERIODICAURALOG)
         return;
     WorldPacket response(packet);
     SpellEnergizeEvent event;
-    response >> event.target.ReadAsPacked() >> event.caster.ReadAsPacked() >> event.spell >> event.power >> event.amount;
+    response >> event.target.ReadAsPacked() >> event.caster.ReadAsPacked() >> event.spell;
+    if (packet.GetOpcode() == SMSG_PERIODICAURALOG)
+    {
+        uint32 count, aura;
+        response >> count >> aura;
+        Require(count == 1, "Expected one native periodic aura event");
+        if (aura != SPELL_AURA_OBS_MOD_POWER && aura != SPELL_AURA_PERIODIC_ENERGIZE)
+            return;
+    }
+    response >> event.power >> event.amount;
     Require(event.power < MAX_POWERS, "Invalid native energize power");
     actor.spellEnergizes.push_back(event);
 }
@@ -427,10 +438,16 @@ private:
                 {
                     WorldPacket response(packet);
                     uint32 hitInfo;
-                    ObjectGuid attacker;
-                    response >> hitInfo >> attacker.ReadAsPacked();
+                    uint32 damage;
+                    ObjectGuid attacker, victim;
+                    response >> hitInfo >> attacker.ReadAsPacked() >> victim.ReadAsPacked() >> damage;
                     if (attacker == actor.guid)
-                        ++actor.meleeAttacks;
+                    {
+                        uint8 hand = hitInfo & HITINFO_OFFHAND ? OFF_ATTACK : BASE_ATTACK;
+                        ++actor.meleeAttacksByHand[hand];
+                        if (damage)
+                            ++actor.meleeDamageByHand[hand];
+                    }
                 }
                 // Which window a click is answered with is the part the client would draw, and
                 // the part a click that answers with the wrong one leaves looping. Record it.
@@ -671,6 +688,8 @@ private:
             return unit->IsNonMeleeSpellCast(false);
         if (metric == "moving")
             return unit->isMoving();
+        if (metric == "forced_forward")
+            return unit->HasUnitFlag2(UNIT_FLAG2_FORCE_MOVEMENT);
         if (metric == "cast_pushback_ms")
         {
             Require(unit->IsPlayer(), "Cast pushback observation needs a player");
@@ -829,8 +848,17 @@ private:
             return player->GetShieldBlockValue();
         if (metric == "critical_block_chance")
             return player->GetTotalAuraModifier(SPELL_AURA_MOD_BLOCK_CRIT_CHANCE);
-        if (metric == "melee_attack_count")
-            return _actors.at(step.get<std::string>("actor")).meleeAttacks;
+        if (metric == "melee_attack_count" || metric == "melee_damage_count")
+        {
+            Actor const& actor = _actors.at(step.get<std::string>("actor"));
+            auto const& counts = metric == "melee_attack_count" ? actor.meleeAttacksByHand : actor.meleeDamageByHand;
+            if (auto hand = step.get_optional<uint32>("hand"))
+            {
+                Require(*hand < 2, "Melee hand must be main hand or off hand");
+                return counts[*hand];
+            }
+            return counts[BASE_ATTACK] + counts[OFF_ATTACK];
+        }
         if (metric == "spell_damage_count" || metric == "spell_damage_total")
         {
             ObjectGuid caster = step.get<bool>("pet", false) ? player->GetPetGUID() : player->GetGUID();
@@ -975,7 +1003,11 @@ private:
             if (metric == "spell_critical_damage")
                 return Unit::SpellCriticalDamageBonus(player, info, 1000, target);
             if (metric == "armor_reduced_damage")
-                return Unit::CalcArmorReducedDamage(player, target, 1000, info);
+            {
+                Unit* attacker = step.get<bool>("pet", false) ? static_cast<Unit*>(player->GetPet()) : player;
+                Require(attacker != nullptr, "Armor probe needs a current pet");
+                return Unit::CalcArmorReducedDamage(attacker, target, 1000, info);
+            }
             return player->MeleeDamageBonusDone(target, 1000, BASE_ATTACK, info, info->GetSchoolMask());
         }
         if (metric == "spell_modifier" || metric == "spell_cast_time_ms" || metric == "spell_max_range"
@@ -1307,6 +1339,11 @@ private:
                 player->AddUnitMovementFlag(MOVEMENTFLAG_FORWARD);
             else
                 player->RemoveUnitMovementFlag(MOVEMENTFLAG_FORWARD);
+        }
+        else if (action == "stop_attack")
+        {
+            WorldPacket packet(CMSG_ATTACKSTOP, 0);
+            player->GetSession()->HandleAttackStopOpcode(packet);
         }
         else if (action == "pvp")
         {
