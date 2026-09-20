@@ -776,6 +776,10 @@ private:
         }
         if (metric == "rooted")
             return unit->HasUnitState(UNIT_STATE_ROOT);
+        if (metric == "stealth_detection")
+            return unit->m_stealthDetect.GetValue(STEALTH_GENERAL);
+        if (metric == "can_detect")
+            return unit->CanSeeOrDetect(GetUnit(step.get<std::string>("target")));
         if (metric == "spell_healing_taken")
         {
             SpellInfo const* info = sSpellMgr->GetSpellInfo(spell);

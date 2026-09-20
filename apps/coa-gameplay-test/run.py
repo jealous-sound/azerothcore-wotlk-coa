@@ -41,6 +41,7 @@ METRICS = {
     'who_count', 'who_class', 'loot_count', 'loot_entry', 'loot_received',
     'quest_rewarded', 'spell_damage_taken', 'melee_damage_taken', 'spell_healing_taken',
     'spell_hit_bonus_taken', 'rooted', 'spell_cast_count',
+    'stealth_detection', 'can_detect',
     'quest_status', 'quest_takeable', 'quest_objective_count', 'dialog_status',
     'ball_offer_count', 'ball_offers_quest',
     'ball_carried_count', 'ball_carried_quest', 'ball_turn_in_count', 'ball_turn_in_quest',
@@ -308,7 +309,7 @@ def validate(scenario):
             if metric in {'spell_damage_done', 'melee_damage_done', 'spell_damage_taken', 'melee_damage_taken',
                           'spell_healing_done', 'spell_healing_taken', 'spell_done_crit_chance', 'melee_spell_damage_done',
                           'spell_critical_damage', 'armor_reduced_damage', 'spell_immune', 'spell_effect_immune',
-                          'distance_2d'} \
+                          'distance_2d', 'can_detect'} \
                     or metric.startswith('script_'):
                 require('target' in step, f'{where}: damage metric needs target')
             if metric == 'stat':

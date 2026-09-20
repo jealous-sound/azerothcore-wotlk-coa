@@ -403,3 +403,6 @@ so pair it with effect assertions. It does not test network delivery or client r
 `spell_hit_bonus_taken` reads the victim aura contribution to the native spell hit calculation for `spell`.
 `rooted` reads the unit's native root state. `spell_healing_taken` queries incoming healing from `target`
 with a base amount of 1000 and requires `spell`; `periodic: true` selects the native HoT path.
+
+`stealth_detection` reads native general stealth detection. `can_detect` requires `target` and invokes
+the observer's native `CanSeeOrDetect` check; neither metric covers client rendering.
