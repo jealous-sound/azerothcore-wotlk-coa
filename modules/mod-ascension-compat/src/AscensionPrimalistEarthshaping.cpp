@@ -19,6 +19,8 @@ constexpr uint32 SPELL_ERUPTION_MODIFIER = 680450;
 constexpr uint32 SPELL_ERUPTION = 802335;
 constexpr uint32 SPELL_MAGMA_GEODE = 803140;
 constexpr uint32 SPELL_BLESSING_OF_THERAZANE = 680439;
+constexpr uint32 SPELL_DREAM = 680452;
+constexpr uint32 SPELL_DREAM_BUFF = 578255;
 constexpr std::array<uint32, 3> EARTHSHAPING_HELPERS =
     {SPELL_STONESHARD_MODIFIER, SPELL_EARTHQUAKE_MODIFIER, SPELL_ERUPTION_MODIFIER};
 
@@ -148,6 +150,44 @@ class spell_ascension_primalist_therazane_update : public AuraScript
             EFFECT_0, SPELL_AURA_ADD_FLAT_MODIFIER, AURA_EFFECT_HANDLE_CHANGE_AMOUNT_MASK);
     }
 };
+
+class spell_ascension_primalist_earthshaping_gain : public SpellScript
+{
+    PrepareSpellScript(spell_ascension_primalist_earthshaping_gain);
+
+    bool Load() override
+    {
+        return IsEarthshapingOwner(GetCaster());
+    }
+
+    void Gain(SpellEffIndex index)
+    {
+        SpellEffectInfo const& effect = GetSpellInfo()->Effects[index];
+        if (GetHitUnit() == GetCaster() && effect.TriggerSpell == SPELL_EARTHSHAPING &&
+            effect.MiscValue > 0 && HandleAscensionPrimalistEarthshapingGain(GetCaster()->ToPlayer()))
+            PreventHitDefaultEffect(index);
+    }
+
+    void Register() override
+    {
+        OnEffectHitTarget += SpellEffectFn(spell_ascension_primalist_earthshaping_gain::Gain,
+            EFFECT_ALL, SPELL_EFFECT_ASCENSION_MODIFY_AURA_STACKS);
+    }
+};
+}
+
+bool HandleAscensionPrimalistEarthshapingGain(Player* player)
+{
+    if (!IsEarthshapingOwner(player) || !player->IsAlive() || !player->IsInWorld())
+        return false;
+
+    // Check the old count: reaching ten is not a gain made while already at ten.
+    // A gain attempted at the fifteen-stack cap still grants or refreshes Dream.
+    if (player->HasAura(SPELL_DREAM, player->GetGUID()))
+        if (Aura const* resource = player->GetAura(SPELL_EARTHSHAPING, player->GetGUID());
+            resource && resource->GetStackAmount() >= 10)
+            player->CastSpell(player, SPELL_DREAM_BUFF, TRIGGERED_FULL_MASK);
+    return false;
 }
 
 void ApplyAscensionPrimalistEarthshapingContracts(SpellInfo* spellInfo)
@@ -190,4 +230,5 @@ void AddSC_AscensionPrimalistEarthshaping()
 {
     RegisterSpellScript(spell_ascension_primalist_earthshaping);
     RegisterSpellScript(spell_ascension_primalist_therazane_update);
+    RegisterSpellScript(spell_ascension_primalist_earthshaping_gain);
 }

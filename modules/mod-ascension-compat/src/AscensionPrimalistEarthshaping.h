@@ -4,8 +4,10 @@
 #define ASCENSION_PRIMALIST_EARTHSHAPING_H
 
 class SpellInfo;
+class Player;
 
 void ApplyAscensionPrimalistEarthshapingContracts(SpellInfo* spellInfo);
+bool HandleAscensionPrimalistEarthshapingGain(Player* player);
 void AddSC_AscensionPrimalistEarthshaping();
 
 #endif

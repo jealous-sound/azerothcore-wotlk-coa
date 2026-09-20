@@ -2950,6 +2950,10 @@ private:
         if (AscensionSunCleric::Resource(player, spellId, amount))
             return;
 
+        if (spellId == SPELL_PRIMALIST_EARTHSHAPING && amount > 0 &&
+            HandleAscensionPrimalistEarthshapingGain(player))
+            return;
+
         if (spellId == 800058 && amount > 0)
             AscensionFelsworn::Generated(player, uint32(amount));
 

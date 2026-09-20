@@ -1,6 +1,7 @@
 /* Copyright (C) 2016+ AzerothCore, GNU AGPL v3. */
 
 #include "AscensionClassMechanics26To32.h"
+#include "AscensionPrimalistEarthshaping.h"
 #include "Player.h"
 #include "Random.h"
 #include "Spell.h"
@@ -142,6 +143,9 @@ void HandleAscensionClassMechanics26To32SuccessfulInterrupt(Spell* spell,
 {
     if (!spell || !player || player->getClass() != CLASS_WILDWALKER ||
         spell->GetSpellInfo()->Id != SPELL_PRIMALIST_CAVE_IN)
+        return;
+
+    if (HandleAscensionPrimalistEarthshapingGain(player))
         return;
 
     if (Aura* earthshaping = player->GetAura(SPELL_PRIMALIST_EARTHSHAPING))
