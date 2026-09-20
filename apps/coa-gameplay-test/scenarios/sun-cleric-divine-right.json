@@ -1,0 +1,45 @@
+{
+  "schema": 1,
+  "name": "Divine Right raises crit, parry and spell hit chance (#2204)",
+  "contract": "Divine Right rank 1 (680631) and rank 2 (681469) are SPELL_ATTR0_PASSIVE stat auras, all three of native, family-agnostic types. Effect 0 is SPELL_AURA_MOD_CRIT_PCT (290) with EffectBasePoints 1/3 resolving to +2/+4; AuraEffect::HandleAuraModCritPct (SpellAuraEffects.cpp) calls Player::UpdateAllWeaponDependentCritAuras and Player::UpdateAllSpellCritChances on apply, so this is read by melee_crit_chance directly (the parity doc records that this core ignores aura 290's misc value and class mask, i.e. it is a straight, unconditional bonus). Effect 1 is SPELL_AURA_MOD_PARRY_PERCENT (47) with EffectBasePoints 1/3 resolving to +2/+4. Effect 2 is SPELL_AURA_MOD_SPELL_HIT_CHANCE (55) with EffectBasePoints 4/9 resolving to +5/+10. None of the three effects need a script or a spell_script_names row.",
+  "timeout_ms": 60000,
+  "players": [
+    { "id": "rank1", "race": 1, "class": 27, "level": 80 },
+    { "id": "rank2", "race": 1, "class": 27, "level": 80 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+    { "action": "snapshot", "actor": "rank1", "metric": "melee_crit_chance", "save_as": "r1_crit_before" },
+    { "action": "snapshot", "actor": "rank1", "metric": "parry_chance", "save_as": "r1_parry_before" },
+    { "action": "snapshot", "actor": "rank1", "metric": "spell_hit_chance", "save_as": "r1_hit_before" },
+    { "action": "snapshot", "actor": "rank2", "metric": "melee_crit_chance", "save_as": "r2_crit_before" },
+    { "action": "snapshot", "actor": "rank2", "metric": "parry_chance", "save_as": "r2_parry_before" },
+    { "action": "snapshot", "actor": "rank2", "metric": "spell_hit_chance", "save_as": "r2_hit_before" },
+    { "action": "learn", "actor": "rank1", "spell": 680631 },
+    { "action": "learn", "actor": "rank2", "spell": 681469 },
+    {
+      "action": "assert", "label": "Rank 1 raises melee crit chance by 2",
+      "actor": "rank1", "metric": "melee_crit_chance", "relative_to": "r1_crit_before", "equals": 2
+    },
+    {
+      "action": "assert", "label": "Rank 1 raises parry chance by 2",
+      "actor": "rank1", "metric": "parry_chance", "relative_to": "r1_parry_before", "equals": 2
+    },
+    {
+      "action": "assert", "label": "Rank 1 raises spell hit chance by 5",
+      "actor": "rank1", "metric": "spell_hit_chance", "relative_to": "r1_hit_before", "equals": 5
+    },
+    {
+      "action": "assert", "label": "Rank 2 raises melee crit chance by 4",
+      "actor": "rank2", "metric": "melee_crit_chance", "relative_to": "r2_crit_before", "equals": 4
+    },
+    {
+      "action": "assert", "label": "Rank 2 raises parry chance by 4",
+      "actor": "rank2", "metric": "parry_chance", "relative_to": "r2_parry_before", "equals": 4
+    },
+    {
+      "action": "assert", "label": "Rank 2 raises spell hit chance by 10",
+      "actor": "rank2", "metric": "spell_hit_chance", "relative_to": "r2_hit_before", "equals": 10
+    }
+  ]
+}
