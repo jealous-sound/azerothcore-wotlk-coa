@@ -133,6 +133,7 @@ void AddSC_AscensionPrimalistSeismicResources();
 void AddSC_AscensionPrimalistGuidance();
 void AddSC_AscensionPrimalistBarrier();
 void AddSC_AscensionPrimalistGrove();
+void AddSC_AscensionPrimalistMountainFury();
 void AddSC_AscensionRunemasterTalents();
 void AddSC_AscensionRunemasterTravel();
 void AddSC_AscensionStormbringerTalents();
@@ -299,6 +300,7 @@ void Addmod_ascension_compatScripts()
     AddSC_AscensionPrimalistGuidance();
     AddSC_AscensionPrimalistBarrier();
     AddSC_AscensionPrimalistGrove();
+    AddSC_AscensionPrimalistMountainFury();
     AddSC_AscensionRunemasterTalents();
     AddSC_AscensionRunemasterTravel();
     AddSC_AscensionStormbringerTalents();
