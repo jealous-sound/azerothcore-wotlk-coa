@@ -1,0 +1,165 @@
+{
+  "schema": 1,
+  "name": "Primalist Geode helper: physical SP/AP scaling and caster-only Rage",
+  "timeout_ms": 90000,
+  "location": {
+    "map": 0,
+    "x": -9617.06,
+    "y": -288.949,
+    "z": 57.3053,
+    "o": 0
+  },
+  "players": [
+    {
+      "id": "primalist",
+      "race": 1,
+      "class": 31,
+      "level": 80,
+      "spell_hit_rating": 10000,
+      "melee_hit_rating": 10000,
+      "expertise_rating": 10000
+    },
+    {
+      "id": "enemy",
+      "race": 5,
+      "class": 1,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "pvp",
+      "actor": "primalist",
+      "enabled": true
+    },
+    {
+      "action": "pvp",
+      "actor": "enemy",
+      "enabled": true
+    },
+    {
+      "action": "teleport",
+      "actor": "enemy",
+      "map": 0,
+      "x": -9612.06,
+      "y": -288.949,
+      "z": 57.3053,
+      "o": 0
+    },
+    {
+      "action": "learn",
+      "actor": "primalist",
+      "spell": 804002
+    },
+    {
+      "action": "snapshot",
+      "actor": "primalist",
+      "metric": "spell_damage_done",
+      "spell": 804002,
+      "target": "enemy",
+      "save_as": "base_damage"
+    },
+    {
+      "action": "set_aura",
+      "actor": "primalist",
+      "spell": 18787,
+      "stacks": 1
+    },
+    {
+      "action": "assert",
+      "actor": "primalist",
+      "metric": "spell_damage_done",
+      "spell": 804002,
+      "target": "enemy",
+      "relative_to": "base_damage",
+      "label": "ap100",
+      "min": 8,
+      "max": 9
+    },
+    {
+      "action": "set_aura",
+      "actor": "primalist",
+      "spell": 18787,
+      "stacks": 0
+    },
+    {
+      "action": "add_item",
+      "actor": "primalist",
+      "item": 12930
+    },
+    {
+      "action": "equip",
+      "actor": "primalist",
+      "item": 12930,
+      "slot": 12
+    },
+    {
+      "action": "assert",
+      "actor": "primalist",
+      "metric": "spell_power",
+      "school": 3,
+      "equals": 23
+    },
+    {
+      "action": "assert",
+      "actor": "primalist",
+      "metric": "spell_damage_done",
+      "spell": 804002,
+      "target": "enemy",
+      "relative_to": "base_damage",
+      "label": "sp23",
+      "equals": 8
+    },
+    {
+      "action": "set_power",
+      "actor": "primalist",
+      "power": 1,
+      "value": 0
+    },
+    {
+      "action": "set_power",
+      "actor": "enemy",
+      "power": 1,
+      "value": 0
+    },
+    {
+      "action": "cast",
+      "actor": "primalist",
+      "spell": 804002,
+      "target": "enemy"
+    },
+    {
+      "action": "wait",
+      "ms": 1000
+    },
+    {
+      "action": "assert",
+      "actor": "primalist",
+      "metric": "spell_damage_count",
+      "spell": 804002,
+      "target": "enemy",
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "actor": "primalist",
+      "metric": "spell_energize_total",
+      "spell": 804099,
+      "power": 1,
+      "target": "primalist",
+      "label": "primalist_rage",
+      "equals": 50
+    },
+    {
+      "action": "assert",
+      "actor": "enemy",
+      "metric": "spell_energize_total",
+      "spell": 804099,
+      "power": 1,
+      "target": "enemy",
+      "label": "enemy_rage",
+      "equals": 0
+    }
+  ],
+  "contract": "Geode 804002 adds 34.9% generic Spell Power and 8.5% Attack Power; the physical hit grants five Rage (50 internal units) to its caster."
+}
