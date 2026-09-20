@@ -71,7 +71,8 @@ namespace
 {
 using Tree = boost::property_tree::ptree;
 using Clock = std::chrono::steady_clock;
-constexpr uint32 TestPhase = 1u << 30;
+// Creature level scaling reads the same mask to tell a fixture from a world creature.
+constexpr uint32 TestPhase = LocalLevelScaling::FixturePhaseMask;
 constexpr uint32 MaximumActors = 8;
 constexpr uint16 LevelScalingOpcode = 0x0667;
 
@@ -654,6 +655,11 @@ private:
                 Require(creature != nullptr, "Could not summon fixture creature: " + id);
                 _targets.emplace(id, Target{ creature->GetMapId(), creature->GetInstanceId(), creature->GetGUID() });
                 creature->SetPhaseMask(TestPhase, true);
+                // Creature level scaling rebuilds a creature through SelectLevel(), which discards the
+                // level and the maximum health set just below. A fixture keeps what its scenario
+                // declared unless that scenario is the one testing scaling.
+                if (definition.get<bool>("level_scaling", false))
+                    LocalLevelScaling::AllowFixtureScaling(creature->GetGUID().GetRawValue());
                 creature->SetReactState(REACT_PASSIVE);
                 creature->SetRegeneratingHealth(false);
                 creature->SetFaction(definition.get<uint32>("faction", 14));

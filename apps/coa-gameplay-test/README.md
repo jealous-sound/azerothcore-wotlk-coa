@@ -188,7 +188,8 @@ The [damage-led scaling scenario](scenarios/level-scaling-damage-engagement.json
 out-of-range attacker scales a fresh creature before a nonlethal or lethal opening hit, and that
 later damage leaves its combat level fixed. It requires `AscensionCompat.LevelScaling=1`,
 `AscensionCompat.LevelScalingMaxLift=5` and `MonsterSight=50`. The level-1 fixtures stand 80–85 yards
-away and must scale to level 6. One fixture has only one maximum HP to expose damage-before-scaling.
+away and must scale to level 6, so both declare `level_scaling`. One fixture has only one maximum HP to
+expose damage-before-scaling.
 Spell 705798 is learned as a fixture: its one damage and zero initial threat exercise damage-led
 engagement through the normal cast handler. This tests the damage path, not an Overload proc or pet AI.
 
@@ -206,8 +207,11 @@ Creatures require `id`, player `owner` and template `entry`. Optional `distance`
 (default 3 yards); `faction`, `level`, `health` default to 14, 80, 100000. They retain template data and AI,
 with passive reaction and health regeneration disabled. Pick a template whose scripts suit the experiment.
 Setup clears combat initiated by spawn-time AI before starting the scenario. Later combat follows normal rules.
-Creature AI and local level scaling can still change initial fixture levels and maximum health. Let them settle
-before taking baselines; assert stable maximums and final levels when testing damage coefficients.
+Local level scaling ignores fixtures, because it rebuilds a creature through `SelectLevel()` and would discard
+the declared `level` and `health`; optional `level_scaling` (default false) opts a fixture back into it, which
+only the damage-led scaling scenario above needs. Creature AI can still change initial fixture levels and
+maximum health. Let them settle before taking baselines; assert stable maximums and final levels when testing
+damage coefficients.
 
 | Action | Fields and behavior |
 | --- | --- |

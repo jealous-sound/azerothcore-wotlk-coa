@@ -6314,7 +6314,8 @@ bool CanScaleCreature(Creature const* creature)
   return LocalLevelScaling::CreatureEnabled.load(std::memory_order_relaxed) && creature &&
       !creature->GetMap()->IsScriptedPrivateInstance() &&
       !creature->IsPet() && !creature->IsTotem() && !creature->IsTrigger() && !creature->IsCritter() &&
-      creature->GetCreatureType() != CREATURE_TYPE_NON_COMBAT_PET && !creature->GetCharmerOrOwner();
+      creature->GetCreatureType() != CREATURE_TYPE_NON_COMBAT_PET && !creature->GetCharmerOrOwner() &&
+      !LocalLevelScaling::IsUnscaledFixture(creature->GetPhaseMask(), creature->GetGUID().GetRawValue());
 }
 }
 
@@ -6381,6 +6382,7 @@ public:
 
   void OnCreatureRemoveWorld(Creature* creature) override
   {
+    LocalLevelScaling::ForgetFixture(creature->GetGUID().GetRawValue());
     std::lock_guard<std::mutex> guard(g_levelScalingLock);
     g_levelScalingStates.erase(creature->GetGUID().GetRawValue());
     g_levelScalingPendingEngager.erase(creature->GetGUID().GetRawValue());

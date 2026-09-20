@@ -10,7 +10,9 @@
 #include <algorithm>
 #include <atomic>
 #include <cstdint>
+#include <mutex>
 #include <optional>
+#include <unordered_set>
 
 class Creature;
 class Player;
@@ -190,6 +192,42 @@ inline std::uint32_t RewardKeepPercent(std::uint32_t floorPercent, std::int32_t 
 
     std::uint32_t const sharePercent = std::uint32_t(questLevel) * 100 / effectiveLevel;
     return floorPercent + (100 - floorPercent) * sharePercent / 100;
+}
+
+// coa-gameplay-test summons every fixture creature into this phase, then gives it the level and the
+// maximum health its scenario declared. Creature scaling does not assign a level, it rebuilds the
+// creature through SelectLevel(), which recomputes maximum health from the template and throws that
+// declared state away. The lift cap made this visible: a fixture declared at level 80 on a level 11
+// template is rescaled down to level 16, and the hit the scenario was measuring kills it.
+//
+// A fixture is therefore left alone, unless its scenario asked for the opposite by declaring
+// "level_scaling": true on the creature - which only the scenario that tests scaling itself does.
+inline constexpr std::uint32_t FixturePhaseMask = 1u << 30;
+
+inline std::mutex ScalableFixtureLock;
+inline std::unordered_set<std::uint64_t> ScalableFixtures;
+
+inline void AllowFixtureScaling(std::uint64_t guid)
+{
+    std::lock_guard<std::mutex> guard(ScalableFixtureLock);
+    ScalableFixtures.insert(guid);
+}
+
+inline void ForgetFixture(std::uint64_t guid)
+{
+    std::lock_guard<std::mutex> guard(ScalableFixtureLock);
+    ScalableFixtures.erase(guid);
+}
+
+// The phase test alone answers for every creature in the live world, so the lock is never taken
+// outside a harness run.
+inline bool IsUnscaledFixture(std::uint32_t phaseMask, std::uint64_t guid)
+{
+    if (!(phaseMask & FixturePhaseMask))
+        return false;
+
+    std::lock_guard<std::mutex> guard(ScalableFixtureLock);
+    return ScalableFixtures.find(guid) == ScalableFixtures.end();
 }
 }
 

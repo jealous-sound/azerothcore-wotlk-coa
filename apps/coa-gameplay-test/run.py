@@ -173,7 +173,7 @@ def validate(scenario):
         number(player.get('expertise_rating', 0), 'expertise_rating', 0, 100000, True)
     for creature in creatures:
         keys(creature, {'id', 'owner', 'entry'},
-             {'id', 'owner', 'entry', 'distance', 'faction', 'level', 'health'}, 'creature')
+             {'id', 'owner', 'entry', 'distance', 'faction', 'level', 'health', 'level_scaling'}, 'creature')
         identity = creature['id']
         require(isinstance(identity, str) and ACTOR_ID.fullmatch(identity), 'Invalid creature id')
         require(identity not in actor_ids, 'Duplicate actor id')
@@ -183,6 +183,7 @@ def validate(scenario):
             number(creature.get(key, default), key, 1, 2**31 - 1, True)
         number(creature.get('level', 80), 'creature level', 1, 255, True)
         number(creature.get('distance', 3), 'distance', 0, 100)
+        require(isinstance(creature.get('level_scaling', False), bool), 'level_scaling must be a boolean')
     if 'location' in scenario:
         location = scenario['location']
         keys(location, {'map', 'x', 'y', 'z'}, {'map', 'x', 'y', 'z', 'o', 'ignore_access'}, 'location')
