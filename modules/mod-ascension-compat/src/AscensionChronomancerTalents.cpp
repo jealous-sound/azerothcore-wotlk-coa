@@ -29,7 +29,8 @@ enum ChronomancerTalentSpells : uint32
     SPELL_HASTY_STRIKE = 803706,
     SPELL_TIMEGUARD = 804441,
     SPELL_MARK_OF_ORDER_ADD_STACK = 806270,
-    SPELL_IDEAL_TIME_BUFF = 807210
+    SPELL_IDEAL_TIME_BUFF = 807210,
+    SPELL_NOZDORMUS_GAZE = 807691
 };
 
 // Timeguard's ">20% of their total health" clause lives only in the record's
@@ -235,6 +236,14 @@ void ApplyAscensionChronomancerTalentContracts(SpellInfo* info)
         // stack delta in MiscValueB instead, so Mark of Order 806269 never grows past its first
         // stack. Only the two fields disagree, so the record is read as authored.
         info->Effects[EFFECT_0].MiscValue = info->Effects[EFFECT_0].MiscValueB;
+    }
+    if (info->Id == SPELL_NOZDORMUS_GAZE)
+    {
+        // The tooltip's "regenerates $s1% less mana per tick" is Time Out!'s effect index 1, but
+        // this flat spellmod carries MiscValue 3 (SPELLMOD_EFFECT1), which
+        // Unit::ApplyEffectModifiers routes to effect index 0 - Time Out!'s damage reduction.
+        // Spell.dbc has no field that names the affected index apart from the modifier op itself.
+        info->Effects[EFFECT_0].MiscValue = SPELLMOD_EFFECT2;
     }
     if (info->Id == SPELL_IDEAL_TIME_BUFF)
     {
