@@ -14,7 +14,9 @@ enum GuidanceSpells : uint32
     SeismicGrasp = 807432,
     BoulderDash = 500692,
     PrimalConvergence = 800181,
-    Bearskin = 800094
+    Bearskin = 800094,
+    Rupturer = 706208,
+    TerrasurgeFirst = 681119
 };
 
 void ReduceRankCooldowns(Player* player, uint32 firstRank, int32 delta)
@@ -138,6 +140,33 @@ class spell_ascension_spiritbound_cooldowns : public SpellScript
             EFFECT_ALL, SPELL_EFFECT_ASCENSION_MODIFY_COOLDOWN);
     }
 };
+
+class spell_ascension_rupturer_lance : public SpellScript
+{
+    PrepareSpellScript(spell_ascension_rupturer_lance);
+
+    bool Validate(SpellInfo const*) override { return ValidateSpellInfo({Rupturer, TerrasurgeFirst}); }
+
+    bool Load() override
+    {
+        return GetCaster()->IsPlayer() && GetCaster()->getClass() == CLASS_WILDWALKER;
+    }
+
+    void Reduce(SpellEffIndex index)
+    {
+        PreventHitDefaultEffect(index);
+        // The beam always triggers its helper, but the cooldown benefit requires Rupturer.
+        // Preserve the helper's separate removal of the Lithic Lance readiness aura.
+        if (GetCaster()->HasAura(Rupturer))
+            ReduceRankCooldowns(GetHitPlayer(), TerrasurgeFirst, GetEffectValue());
+    }
+
+    void Register() override
+    {
+        OnEffectHitTarget += SpellEffectFn(spell_ascension_rupturer_lance::Reduce,
+            EFFECT_0, SPELL_EFFECT_ASCENSION_MODIFY_COOLDOWN);
+    }
+};
 }
 
 void AddSC_AscensionPrimalistGuidance()
@@ -146,4 +175,5 @@ void AddSC_AscensionPrimalistGuidance()
     RegisterSpellScript(spell_ascension_protector_of_the_grove);
     RegisterSpellScript(spell_ascension_thanes_guidance);
     RegisterSpellScript(spell_ascension_spiritbound_cooldowns);
+    RegisterSpellScript(spell_ascension_rupturer_lance);
 }
