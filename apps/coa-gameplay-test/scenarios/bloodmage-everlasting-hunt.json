@@ -1,0 +1,115 @@
+{
+  "schema": 1,
+  "name": "Everlasting Hunt shortens Veinburst when a Blood Shard deals damage (#3426)",
+  "contract": "Everlasting Hunt 804686 reads 'Damage dealt by Blood Shards now reduces the cooldown of Veinburst and Reave by $/1000;802497S2 sec'. Its single effect is aura 42 (proc trigger spell) on Everlasting Hunt 802497, two SPELL_EFFECT_ASCENSION_MODIFY_COOLDOWN effects with BasePoints -1501 (-1500 ms) on MiscValue 504260 (Veinburst) and 800490 (Reave). Spell.dbc gives 804686 ProcFlags 0 and no spell_proc row existed, so SpellMgr::LoadSpellProcs skipped it. Veinburst is cast as rank 504820, the top of its spell_ranks chain 504260-504820, and has CategoryRecoveryTime 15000. Blood Shard 504115 (SpellFamilyFlags (0, 2, 0), the mask the new row uses) is cast directly as a fixture: in the shipped data the only launchers of Blood Shards are 505357-505364, which nothing reaches because their entry points 506639/506640/505368 are SPELL_EFFECT_DUMMY records with no case in Spell::EffectDummy and no spell_script_names row. A control pair of adjacent steps first proves that an idle step pair decays the cooldown by less than 900 ms, so only the proc can produce the 1400 ms drop asserted afterwards.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "bloodmage",
+      "race": 1,
+      "class": 20,
+      "level": 80,
+      "spell_hit_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "dummy",
+      "owner": "bloodmage",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 3
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "bloodmage",
+      "spell": 804686
+    },
+    {
+      "action": "learn",
+      "actor": "bloodmage",
+      "spell": 504820
+    },
+    {
+      "action": "learn",
+      "actor": "bloodmage",
+      "spell": 504115
+    },
+    {
+      "action": "set_power",
+      "actor": "bloodmage",
+      "power": 1,
+      "value": 1000
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: the Everlasting Hunt passive is active",
+      "actor": "bloodmage",
+      "metric": "aura",
+      "spell": 804686,
+      "equals": 1
+    },
+    {
+      "action": "cast",
+      "actor": "bloodmage",
+      "spell": 504820,
+      "target": "dummy"
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: Veinburst is on its 15 sec category cooldown",
+      "actor": "bloodmage",
+      "metric": "cooldown_ms",
+      "spell": 504820,
+      "min": 10000,
+      "within_ms": 5000
+    },
+    {
+      "action": "snapshot",
+      "label": "CONTROL: cooldown before an idle step pair",
+      "actor": "bloodmage",
+      "metric": "cooldown_ms",
+      "spell": 504820,
+      "save_as": "cd_control"
+    },
+    {
+      "action": "assert",
+      "label": "CONTROL: adjacent steps decay the cooldown by less than 900 ms",
+      "actor": "bloodmage",
+      "metric": "cooldown_ms",
+      "spell": 504820,
+      "relative_to": "cd_control",
+      "min": -900
+    },
+    {
+      "action": "snapshot",
+      "label": "Veinburst cooldown before the Blood Shard",
+      "actor": "bloodmage",
+      "metric": "cooldown_ms",
+      "spell": 504820,
+      "save_as": "cd_before"
+    },
+    {
+      "action": "cast",
+      "actor": "bloodmage",
+      "spell": 504115,
+      "target": "dummy"
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING: Blood Shard damage cuts Veinburst's cooldown by at least 1400 ms",
+      "actor": "bloodmage",
+      "metric": "cooldown_ms",
+      "spell": 504820,
+      "relative_to": "cd_before",
+      "max": -1400
+    }
+  ]
+}
