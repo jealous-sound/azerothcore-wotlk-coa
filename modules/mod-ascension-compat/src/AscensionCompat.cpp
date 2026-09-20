@@ -76,6 +76,7 @@
 #include "Player.h"
 #include "QuestDef.h"
 #include "Random.h"
+#include "Realm.h"
 #include "ScriptMgr.h"
 #include "ScriptedGossip.h"
 #include "Spell.h"
@@ -137,6 +138,36 @@ constexpr uint16 SMSG_CHARACTER_ADVANCEMENT_ACTIVE_SPEC = 0x0725;
 constexpr uint16 SMSG_CHARACTER_ADVANCEMENT_KNOWN_ENTRIES = 0x0726;
 constexpr uint16 CMSG_CHARACTER_ADVANCEMENT_KNOWN_ENTRIES = 0x0727;
 constexpr uint16 CMSG_MISSILE_FIRE_POSITION = 0x09C7;
+
+// The PATCH family fills client tables at runtime. The vanity collection does
+// NOT need it: the client reads that catalogue from its own DBC and only
+// discards it while no realm type applies. The number is recorded here because
+// it was hard to find and belongs to the family.
+constexpr uint16 SMSG_PATCH_VANITY_COLLECTION = 0x0573;
+
+// Without this packet the client knows of no realm type, and with no realm
+// type it drops EVERY vanity row while building its catalogue. That is why the
+// collection window stays empty however the ownership list is sent.
+//
+// Payload order, read out of the handler at 0x102FC6C0 (registered at
+// 0x102FC5E0). Offsets are into the client's realm service:
+//   uint32  RealmId          -> +0x04 (GetRealmId)
+//   uint32  Expansion        -> +0x08 (GetRealmExpansion)
+//   float   x3               -> +0x0C, +0x10, +0x14
+//   uint32                   -> +0x18
+//   float   x2               -> +0x1C, +0x20
+//   uint32                   -> +0x24
+//   uint8   x8               -> +0x40..+0x47
+//                               0 IsLive, 1 IsSeasonal, 2 IsLeague, 3 IsPTR,
+//                               4 IsDevelopment, 5 IsProduction; 6 and 7 have
+//                               no Lua getter
+//   String  (NUL)            -> +0x28
+//   String  (NUL)            -> +0x4C
+//   uint8
+//   uint32                   OPTIONAL: the handler checks whether any bytes
+//                            are left and takes 0 when none are
+constexpr uint16 SMSG_REALM_INFO = 0x09BC;
+
 
 // The client carries a personal-bank mode on top of the guild vault window. It is
 // switched on by this packet, not by the item's spell: clicking the summoned
@@ -321,6 +352,7 @@ enum class AscensionCompatConfig {
   UNLOCK_LOCAL_APPEARANCE_CATALOG,
   APPEARANCE_CATALOG_PER_CATEGORY,
   UNLOCK_ALL_VANITY,
+  REALM_TYPE,
   ALLOW_LEARNED_SPELL_DELIVERY,
   LEARN_OWNED_COMPANIONS,
   MAX_RIDING_FROM_START,
@@ -355,6 +387,10 @@ public:
         "AscensionCompat.AppearanceCatalogPerCategory", 500);
     SetConfigValue<bool>(AscensionCompatConfig::UNLOCK_ALL_VANITY,
                          "AscensionCompat.UnlockAllVanity", true);
+    // live, seasonal, league, ptr or development. The client discards its
+    // whole vanity catalogue while none of them applies.
+    SetConfigValue<std::string>(AscensionCompatConfig::REALM_TYPE,
+                                "AscensionCompat.RealmType", "live");
     SetConfigValue<bool>(AscensionCompatConfig::ALLOW_LEARNED_SPELL_DELIVERY,
                          "AscensionCompat.AllowLearnedSpellDelivery", true);
     SetConfigValue<bool>(AscensionCompatConfig::LEARN_OWNED_COMPANIONS,
@@ -3324,6 +3360,9 @@ public:
     SendActiveAppearances(player, *state);
     SendOutfitCollection(player);
     SendAppearanceVisibility(player, *state);
+    // BEFORE the collection: with no realm type known the client builds an
+    // empty catalogue and keeps it until it is initialised again.
+    SendRealmInfo(player);
     SendVanityCollection(player, *state);
     SendOwnedVanityStoreRecords(player, *state);
     RefreshVisibleItems(player);
@@ -3832,7 +3871,11 @@ public:
         return;
       }
 
-      player->StoreNewItem(destinations, itemId, true);
+      // Without SendNewItem the delivery is silent: the item is in the bag,
+      // but the client is never told, so nothing moves on screen and the
+      // player reasonably concludes the button is broken.
+      if (Item* delivered = player->StoreNewItem(destinations, itemId, true))
+        player->SendNewItem(delivered, 1, true, false);
 
       // A bank is also owned as a spell, so the spell comes with the item rather than at the next
       // login.
@@ -4309,6 +4352,43 @@ private:
     player->GetSession()->SendPacket(&packet);
   }
 
+public:
+  /// Tells the client what kind of realm it is connected to.
+  ///
+  /// Only one of the five types is set. Setting all of them would be
+  /// convenient and wrong: the same getters are read in many other places.
+  void SendRealmInfo(Player *player) {
+    std::string const art = ascensionCompatConfig.GetConfigValue<std::string>(
+        AscensionCompatConfig::REALM_TYPE);
+
+    uint8 flags[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+    if (art == "seasonal")         flags[1] = 1;
+    else if (art == "league")      flags[2] = 1;
+    else if (art == "ptr")         flags[3] = 1;
+    else if (art == "development") flags[4] = 1;
+    else                           flags[0] = 1;   // live
+
+    WorldPacket p(SMSG_REALM_INFO, 64);
+    p << static_cast<uint32>(realm.Id.Realm);
+    p << static_cast<uint32>(EXPANSION_WRATH_OF_THE_LICH_KING);
+    p << 0.0f << 0.0f << 0.0f;
+    p << static_cast<uint32>(0);
+    p << 0.0f << 0.0f;
+    p << static_cast<uint32>(0);
+    for (uint8 f : flags)
+      p << f;
+    p << sWorld->GetRealmName();
+    p << "";
+    p << static_cast<uint8>(0);
+    // The trailing uint32 is optional; the handler takes 0 when none follows.
+
+    player->GetSession()->SendPacket(&p);
+
+    LOG_INFO("module.ascension_compat",
+             "Realm info sent to {}: type {}, realm {}.", player->GetName(), art, realm.Id.Realm);
+  }
+
+private:
   void SendOutfitCollection(Player *player)
   {
     // The 0x069D handler clears/rebuilds the client's saved-outfit map and,
@@ -4372,10 +4452,20 @@ private:
   /// from the same catalogue rows the ownership list is built from.
   void SendOwnedVanityStoreRecords(Player *player,
                                    PlayerCollectionState const &state) {
+    // DIAGNOSE (19.09.2026): UnlockAllVanity hat bisher nur die Besitzliste
+    // aufgeblaeht, nicht die Store-Records - der Client bekam 10764 Ids, aber
+    // nur 15 Datensaetze. Wenn das Fenster seine Eintraege aus den RECORDS
+    // zieht, erklaert das, warum es leer bleibt. Also hier dieselbe Regel.
+    bool const unlockAll = ascensionCompatConfig.GetConfigValue<bool>(
+        AscensionCompatConfig::UNLOCK_ALL_VANITY);
+
     std::vector<uint32> itemIds;
-    for (uint32 itemId : state.OwnedVanityItems)
-      if (_vanityItems.contains(itemId))
-        itemIds.push_back(itemId);
+    if (unlockAll)
+      itemIds = _allVanityItemIds;
+    else
+      for (uint32 itemId : state.OwnedVanityItems)
+        if (_vanityItems.contains(itemId))
+          itemIds.push_back(itemId);
 
     std::sort(itemIds.begin(), itemIds.end());
     itemIds.erase(std::unique(itemIds.begin(), itemIds.end()), itemIds.end());

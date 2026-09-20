@@ -86,3 +86,12 @@ AscensionCompat.LastExtensionOpcode = 2515
 # Startup-only: solo levels 10-59, three scenes, depths 1-15. Realm level cap is unchanged.
 # Enable only with the reviewed installation package; native gameplay acceptance is still required.
 Ascension.Manastorm.Enable = 0
+
+# What kind of realm the client is told it is on: live, seasonal, league, ptr
+# or development. Exactly one is sent.
+#
+# This is not cosmetic. The client builds its vanity catalogue only from rows
+# that match an active realm type, so with none set the Vanity Collection stays
+# empty no matter what the account owns.
+# Default: live
+AscensionCompat.RealmType = "live"
