@@ -1,0 +1,102 @@
+{
+  "schema": 1,
+  "name": "Sun Disc grants a raid-wide 6% healing-taken aura and boosts Illumination healing by 20% (#1028)",
+  "contract": "Sun Disc 560547 is family 33, Attributes 65600 (SPELL_ATTR0_PASSIVE) with EquippedItemClass -1; Stances 134217728 is gated by Player::IsNeedCastPassiveSpellAtLearn, but AttributesEx2 1074266112 carries SPELL_ATTR2_ALLOW_WHILE_NOT_SHAPESHIFTED (bit 0x80000), so it still self-applies on learn for an unshapeshifted caster. Effect 0 is SPELL_EFFECT_APPLY_AREA_AURA_RAID (65) on TARGET_UNIT_CASTER with ApplyAuraName SPELL_AURA_MOD_HEALING_PCT (118), EffectBasePoints 5 + DieSides 1 = 6; Unit::SpellHealingBonusTaken folds this into the receiver's incoming-healing multiplier, and Spell::EffectApplyAreaAura spreads the same aura instance to nearby raid members, so this is not \"no server-side implementation\". Effect 1 is SPELL_AURA_ADD_PCT_MODIFIER (108) with EffectMiscValue 0 (SPELLMOD_DAMAGE) and EffectSpellClassMask word1 512 (0x200), matching Illumination 500143's own SpellFamilyFlags word1 512; EffectBasePoints 19 + DieSides 1 = 20. Unit::SpellHealingBonusDone applies modOwner->ApplySpellMod(id, SPELLMOD_DAMAGE, heal) unconditionally at the end of the function. spell_healing_done queries SpellHealingBonusDone directly with a fixed base of 1000 and no cast submitted, so with no other modifiers a fresh talent fixture resolves to exactly 1200.",
+  "timeout_ms": 60000,
+  "location": {
+    "map": 0,
+    "x": -8949.95,
+    "y": -132.493,
+    "z": 83.5312,
+    "o": 0
+  },
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 27,
+      "level": 80
+    },
+    {
+      "id": "talent",
+      "race": 1,
+      "class": 27,
+      "level": 80
+    },
+    {
+      "id": "ally",
+      "race": 1,
+      "class": 27,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "group",
+      "actor": "talent",
+      "target": "ally"
+    },
+    {
+      "action": "learn",
+      "actor": "talent",
+      "spell": 560547
+    },
+    {
+      "action": "wait",
+      "ms": 500
+    },
+    {
+      "action": "assert",
+      "label": "Talent self-applies the raid aura",
+      "actor": "talent",
+      "metric": "aura",
+      "spell": 560547,
+      "caster": "talent",
+      "equals": 1,
+      "within_ms": 3000
+    },
+    {
+      "action": "assert",
+      "label": "The nearby grouped ally receives the same aura",
+      "actor": "ally",
+      "metric": "aura",
+      "spell": 560547,
+      "caster": "talent",
+      "equals": 1,
+      "within_ms": 3000
+    },
+    {
+      "action": "assert",
+      "label": "The ally's spread aura carries exactly 6%",
+      "actor": "ally",
+      "metric": "aura_amount",
+      "spell": 560547,
+      "caster": "talent",
+      "effect": 0,
+      "equals": 6
+    },
+    {
+      "action": "assert",
+      "label": "Control's Illumination healing is the plain fixed base",
+      "actor": "control",
+      "metric": "spell_healing_done",
+      "spell": 500143,
+      "target": "ally",
+      "equals": 1000
+    },
+    {
+      "action": "assert",
+      "label": "Talent's Illumination healing is boosted by exactly 20%",
+      "actor": "talent",
+      "metric": "spell_healing_done",
+      "spell": 500143,
+      "target": "ally",
+      "equals": 1200
+    }
+  ]
+}
