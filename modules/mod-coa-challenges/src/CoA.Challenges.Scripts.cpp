@@ -2913,7 +2913,11 @@ namespace CoAChallenges
             Player* pl = caster->ToPlayer();
 
             // Spellbind Roulette: casting the marked spell fails the challenge
-            // (FAILABLE variants) or is blocked (plain).
+            // (FAILABLE variants) or is blocked (plain). Only the player's own
+            // (non-triggered) casts count: a buff/proc that re-triggers the
+            // marked ability has no separate cast to punish, so it must not
+            // consume the mark nor fail the trial.
+            if (!spell->IsTriggered() && !spell->GetTriggeredByAuraSpellInfo())
             {
                 SpellbindMark mark;
                 // Peek only: the mark is consumed in the failable branch (death

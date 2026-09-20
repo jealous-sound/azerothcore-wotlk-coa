@@ -1168,6 +1168,37 @@ namespace CoAChallenges
         return activeAfterCast && dead && failed;
     }
 
+    // C4 regression (#4234): a buff/proc that re-triggers the marked spell must
+    // not fail the trial. Only the player's own (non-triggered) casts count.
+    bool Test_SpellbindTriggeredDoesNotFail(Player* player)
+    {
+        uint32 cid = RuleTestFindChallenge("CHALLENGE_RULES_TYPE_FAILABLE_SPELLBIND_ROULETTE");
+        if (!cid)
+            return false;
+        TrackSpellbind(player, cid);
+        Test_SpellbindTick(player, 30000);
+        uint32 mark = 0; bool failable = false;
+        if (!Test_SpellbindMark(player, mark, failable) || !mark || !failable)
+        {
+            SendTestLine(player, "  triggered roulette: no mark -> SKIP");
+            return true;
+        }
+        // Triggered (proc) cast of the marked spell: must neither be blocked nor
+        // queue the fail+death pending kill.
+        bool const triggeredBlocked = Test_SpellCheckCastBlocked(player, mark, /*triggered=*/true);
+        Test_SpellbindProcessPending(player);               // would kill if queued
+        bool const alive = player->IsAlive();
+        bool const active = RuleTestChallengeActive(player, cid);
+        uint32 after = 0; bool afterFailable = false;
+        bool const markKept = Test_SpellbindMark(player, after, afterFailable) && after == mark;
+        // `triggeredBlocked` is informational only: CheckCast can return non-OK
+        // for unrelated reasons (target/cooldown) on a synthetic Spell, while the
+        // guard's effect is that no pending kill was queued and the mark survived.
+        SendTestLine(player, "  triggered roulette: triggerCastBlocked={} alive={} active={} markKept={}",
+            triggeredBlocked, alive, active, markKept);
+        return alive && active && markKept;
+    }
+
     // Rules the module actually enforces (kept in sync with the enforcement
     // sites in CoA.Challenges.Scripts.cpp). Used to (a) report declared rules
     // that are NOT implemented and (b) report implemented rules with no gate
@@ -1556,6 +1587,8 @@ namespace CoAChallenges
             return Test_SpellbindCoexistingSurvives(p); });
         RUN("CHALLENGE_RULES_TYPE_FAILABLE_SPELLBIND_ROULETTE", [](Player* p) {
             return Test_SpellbindFailableKillsOnNextTick(p); });
+        RUN("CHALLENGE_RULES_TYPE_FAILABLE_SPELLBIND_ROULETTE", [](Player* p) {
+            return Test_SpellbindTriggeredDoesNotFail(p); });
 
         // ---- 12. Environment / breath / profession (single-player) ----
         RUN("CHALLENGE_RULES_TYPE_FAILABLE_NO_FALLING", [](Player* p) {

@@ -259,16 +259,17 @@ namespace CoAChallenges
         return it == LastKiller.end() ? std::string() : it->second.name;
     }
 
-    // Test helper: does a plain cast of `spellId` get blocked by the player's
-    // rules (drives the real OnSpellCheckCast dispatcher)?
-    bool Test_SpellCheckCastBlocked(Player* player, uint32 spellId)
+    // Test helper: does a cast of `spellId` get blocked by the player's rules
+    // (drives the real OnSpellCheckCast dispatcher)? `triggered` models a
+    // buff/proc re-trigger (TRIGGERED_FULL_MASK) rather than the player's own cast.
+    bool Test_SpellCheckCastBlocked(Player* player, uint32 spellId, bool triggered)
     {
         if (!player)
             return false;
         SpellInfo const* info = sSpellMgr->GetSpellInfo(spellId);
         if (!info)
             return false;
-        Spell spell(player, info, TRIGGERED_NONE);
+        Spell spell(player, info, triggered ? TRIGGERED_FULL_MASK : TRIGGERED_NONE);
         return spell.CheckCast(true) != SPELL_CAST_OK;
     }
 
