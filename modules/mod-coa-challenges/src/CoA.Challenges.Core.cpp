@@ -308,10 +308,14 @@ namespace CoAChallenges
             ? Acore::StringFormat("{}[{}]|r", TRIAL_COLOR, fail.displayName)
             : Acore::StringFormat("{}{}|r", TRIAL_COLOR, ChallengeBracket(fail.challengeID, fail.level));
 
-        msg += Acore::StringFormat("{} {} (Level {}) has been killed by ",
-            bracket, PlayerNameLink(player), player->GetLevel());
+        // A rule failure (e.g. FAILABLE_NO_KILL_BEASTS) is not a death: the
+        // player failed the trial by slaying a forbidden creature.
+        bool const slaying = (fail.killerKind == KillerKind::Rule);
+        msg += Acore::StringFormat("{} {} (Level {}) {} ",
+            bracket, PlayerNameLink(player), player->GetLevel(),
+            slaying ? "has failed the challenge by slaying" : "has been killed by");
 
-        if (fail.killerKind == KillerKind::Creature)
+        if (fail.killerKind == KillerKind::Creature || fail.killerKind == KillerKind::Rule)
             msg += Acore::StringFormat("{}|Hcreature:{}|h[{}]|h|r.",
                 KILLER_COLOR, fail.killerEntry, fail.killerName);
         else if (fail.killerKind == KillerKind::Player)

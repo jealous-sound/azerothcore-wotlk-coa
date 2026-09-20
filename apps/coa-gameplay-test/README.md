@@ -175,6 +175,10 @@ The [Shadow Effigy scenario](scenarios/shadow-effigy.json) checks combat casts, 
 nearby-enemy debuffs, replacement by another effigy and timed despawn.
 The [Dusk Blade scenario](scenarios/dusk-blade.json) checks dual-wield damage, Rage spending and healing
 the wounded caster across repeated melee casts.
+The [Who scenarios](scenarios/who-lists-bots.json) check both sides of `Who.ShowBots`: bot sessions are listed
+like players with the shipped `Who.ShowBots=1`, and the [hidden case](scenarios/who-hides-bots.json) requires
+`Who.ShowBots=0` in the source config, where the same roster leaves only the two real players in the response
+and a name search for a bot returns nothing.
 The [resource talents scenario](scenarios/resource-talents.json) checks the live-tree 1% resource bonuses.
 Arm of Thorim rolls 133–144 base damage at the fixture level, so two independent rolls need ratio ranges
 of 1.10–1.31 with its 20% bonus and 0.91–1.09 without it (including integer rounding). Charged Conduit
@@ -188,7 +192,9 @@ away and must scale to level 6. One fixture has only one maximum HP to expose da
 Spell 705798 is learned as a fixture: its one damage and zero initial threat exercise damage-led
 engagement through the normal cast handler. This tests the damage path, not an Overload proc or pet AI.
 
-Players require `id`, numeric `race` and `class`; `level` defaults to 80. Optional `spell_hit_rating`,
+Players require `id`, numeric `race` and `class`; `level` defaults to 80. Optional `bot` logs the actor in on a
+session flagged as a bot, the way playerbots flags the sessions it creates, so a scenario can check what the
+server does differently for them. Optional `spell_hit_rating`,
 `spell_crit_rating`, `ranged_hit_rating`, `melee_hit_rating` and `expertise_rating` add fixture ratings through
 normal calculations, useful for preventing misses, dodges and parries in deterministic tests.
 Characters are created and loaded through the existing character creation, enumeration and login

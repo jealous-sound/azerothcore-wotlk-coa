@@ -115,6 +115,7 @@ class aura_ascension_barbarian_event : public AuraScript
             case 707764: return !outgoing && Direct(event);
             case 705240: return outgoing && Direct(event) && (event.GetSchoolMask() & SPELL_SCHOOL_MASK_NORMAL);
             case 804745: return outgoing && Direct(event) && Family(info, 1, 64);
+            case 804746: return outgoing && Direct(event) && (sid == 500919 || (sid >= 504912 && sid <= 504916));
             case 520539: return outgoing && Melee(event);
             case 805997: return outgoing && Direct(event) && critical && Spear(info);
             case 805893: return outgoing && Direct(event) && sid == 255846;
@@ -191,6 +192,7 @@ class aura_ascension_barbarian_event : public AuraScript
             case 300499: Bleed(owner, other, 783054, damage, 30); break;
             case 705240: cast(706393); break;
             case 804745: cast(570739, false); break;
+            case 804746: cast(560916); break;
             case 520539:
                 owner->CastCustomSpell(524675, SPELLVALUE_BASE_POINT0, int32(damage / 10), owner, TRIGGERED_FULL_MASK);
                 cast(524684);

@@ -533,7 +533,10 @@ void PlayerMenu::SendQuestQueryResponse(Quest const* quest) const
 
     data << uint32(quest->GetQuestId());                    // quest id
     data << uint32(quest->GetQuestMethod());                // Accepted values: 0, 1 or 2. 0 == IsAutoComplete() (skip objectives/details)
-    data << uint32(_session->GetPlayer()->GetQuestLevel(quest)); // per-player level; template remains immutable
+    int32 const questLevel = _session->GetPlayer()->GetQuestLevel(quest);
+    LOG_DEBUG("entities.player.quest", "SMSG_QUEST_QUERY_RESPONSE quest {} template level {} sent level {} player level {} min level {}",
+        quest->GetQuestId(), quest->GetQuestLevel(), questLevel, _session->GetPlayer()->GetLevel(), quest->GetMinLevel());
+    data << uint32(questLevel);                             // per-player level; template remains immutable
     data << uint32(quest->GetMinLevel());                   // min level
     data << uint32(quest->GetZoneOrSort());                 // zone or sort to display in quest log
 

@@ -22,6 +22,7 @@
 #include "GroupMgr.h"
 #include "Item.h"
 #include "ItemPackets.h"
+#include "NPCPackets.h"
 #include "Log.h"
 #include "Map.h"
 #include "MapMgr.h"
@@ -41,6 +42,10 @@
 #include "WorldPacket.h"
 #include "WorldSession.h"
 #include "WhoListCacheMgr.h"
+
+// The Books of Ascension live in their own module; the driver only needs to ask it what a
+// player's window would contain (see spellbook_api.h).
+#include "../../mod-spellbook/src/spellbook_api.h"
 // BOOST_BIND_NO_PLACEHOLDERS (deps/boost) stops boost/bind/bind.hpp from including
 // placeholders.hpp, but the Boost.PropertyTree JSON parser uses boost::placeholders (e.g. Boost 1.83).
 #include <boost/bind/placeholders.hpp>
@@ -53,6 +58,7 @@
 #include <limits>
 #include <map>
 #include <memory>
+#include <set>
 #include <stdexcept>
 #include <utility>
 
@@ -144,6 +150,18 @@ struct Actor
     std::string account;
     std::string name;
     std::map<std::string, uint32> whoClasses;
+    std::map<uint32, uint32> learnedAlerts;
+    std::map<uint32, uint32> buySucceeded;
+    std::map<uint32, uint32> buyFailed;
+    std::set<uint32> announced;
+    std::map<uint32, uint32> notifyRows; // rows of the client's spell attribute table, by spell
+    std::map<uint32, uint32> notifiedAt; // spell -> the ordinal of the row push for it
+    uint32 notifyRowTotal = 0;
+    uint32 buysNotNotified = 0; // a granted purchase whose own row push never came first
+    uint32 packetOrdinal = 0;   // every packet this session has sent, in order
+    uint32 buysGranted = 0;
+    uint32 buysUnannounced = 0;
+    uint32 buysMisannounced = 0;
     uint32 whoResponses = 0;
     uint32 lootReceived = 0;
     uint32 meleeAttacks = 0;
@@ -314,8 +332,11 @@ private:
             uint32 accountId = AccountMgr::GetId(actor.account);
             if (!accountId)
                 return;
+            // "bot": true marks the session the way playerbots marks its own, so a scenario can
+            // check what the server does differently for a bot.
             actor.session = std::make_unique<WorldSession>(accountId, std::string(actor.account), 0, nullptr,
-                SEC_PLAYER, EXPANSION_WRATH_OF_THE_LICH_KING, 0, LOCALE_enUS, 0, false, false, 0);
+                SEC_PLAYER, EXPANSION_WRATH_OF_THE_LICH_KING, 0, LOCALE_enUS, 0, false, false, 0,
+                actor.definition.get<bool>("bot", false));
             actor.session->SetSocketlessPacketObserver([&actor](WorldPacket const& packet)
             {
                 if (packet.GetOpcode() == SMSG_ATTACKERSTATEUPDATE)
@@ -327,12 +348,75 @@ private:
                     if (attacker == actor.guid)
                         ++actor.meleeAttacks;
                 }
+
+                ++actor.packetOrdinal;
+
+                // The announcement the client draws the alert from: the book sends the row of
+                // the client's own spell attribute table for the spell, with the bit its learn
+                // handler tests. The row carries the table's row id first and the spell id
+                // second, which is what this reads. Recorded by ordinal so a purchase can be
+                // judged on whether its row arrived *before* the learn it belongs to.
+                if (packet.GetOpcode() == Spellbook::SMSG_PATCH_SPELL_CUSTOM_ATTR)
+                {
+                    WorldPacket row(packet);
+                    uint32 rowId = 0;
+                    uint32 marked = 0;
+                    row >> rowId >> marked;
+                    ++actor.notifyRows[marked];
+                    ++actor.notifyRowTotal;
+                    actor.notifiedAt.emplace(marked, actor.packetOrdinal);
+                }
+
                 // Which window a click is answered with is the part the client would draw, and
                 // the part a click that answers with the wrong one leaves looping. Record it.
                 if (packet.GetOpcode() == SMSG_QUESTGIVER_OFFER_REWARD ||
                     packet.GetOpcode() == SMSG_QUESTGIVER_REQUEST_ITEMS ||
                     packet.GetOpcode() == SMSG_QUESTGIVER_QUEST_DETAILS)
                     actor.lastQuestWindow = packet.GetOpcode();
+
+                // SMSG_LEARNED_SPELL is what drives the client's "New Spell Learned!" alert
+                // and its sound, so a scenario can assert that acquiring an ability announced
+                // itself however it was powered.
+                if (packet.GetOpcode() == SMSG_LEARNED_SPELL)
+                {
+                    WorldPacket announcement(packet);
+                    uint32 announced = 0;
+                    announcement >> announced;
+                    ++actor.learnedAlerts[announced];
+                    actor.announced.insert(announced);
+                }
+
+                // Which of the two answers a purchase got: the book module and the core both
+                // reply with this pair.
+                if (packet.GetOpcode() == SMSG_TRAINER_BUY_SUCCEEDED ||
+                    packet.GetOpcode() == SMSG_TRAINER_BUY_FAILED)
+                {
+                    WorldPacket answer(packet);
+                    ObjectGuid trainer;
+                    uint32 bought = 0;
+                    answer >> trainer >> bought;
+                    if (packet.GetOpcode() == SMSG_TRAINER_BUY_SUCCEEDED)
+                    {
+                        ++actor.buySucceeded[bought];
+                        ++actor.buysGranted;
+                        // Nothing this session sent can announce a spell that was learned
+                        // before the row for it, so a push that arrived later (or never)
+                        // marked nothing at all.
+                        auto const notified = actor.notifiedAt.find(bought);
+                        if (notified == actor.notifiedAt.end() || notified->second > actor.packetOrdinal)
+                            ++actor.buysNotNotified;
+                        // The grant is answered after the learn, so an announcement for this
+                        // spell that never arrived by now never will.
+                        if (!actor.announced.count(bought))
+                            ++actor.buysUnannounced;
+                        // Each row is bought once, so an announced count other than one is a
+                        // purchase the client was told about zero times or twice.
+                        if (actor.learnedAlerts[bought] != 1)
+                            ++actor.buysMisannounced;
+                    }
+                    else
+                        ++actor.buyFailed[bought];
+                }
 
                 if (packet.GetOpcode() != SMSG_WHO)
                     return;
@@ -643,13 +727,50 @@ private:
         }
         Player* player = unit->ToPlayer();
         Require(player != nullptr, "Metric requires a player: " + metric);
-        if (metric == "knows_spell" || metric == "cooldown_ms" || metric == "has_talent"
-            || metric == "temporary_spell_replacement")
+        if (metric == "knows_spell" || metric == "cooldown_ms" || metric == "has_talent" ||
+            metric == "spellbook_offers_spell" || metric == "spellbook_covers_spell" ||
+            metric == "temporary_spell_replacement")
             Require(sSpellMgr->GetSpellInfo(spell) != nullptr, "Unknown spell in metric");
         if (metric == "knows_spell")
             return player->HasSpell(spell);
         if (metric == "temporary_spell_replacement")
             return player->GetTemporarySpellReplacement(spell);
+        if (metric == "spellbook_rows")
+            return Spellbook::RowCount(player);
+        if (metric == "spellbook_offers_spell")
+            return Spellbook::OffersSpell(player, spell) ? 1 : 0;
+        if (metric == "spellbook_covers_spell")
+            return Spellbook::CoversSpell(player, spell) ? 1 : 0;
+        if (metric == "spellbook_buys_granted" || metric == "spellbook_unannounced_buys" ||
+            metric == "spellbook_misannounced_buys" || metric == "spellbook_notify_rows" ||
+            metric == "spellbook_unnotified_buys" || metric == "spellbook_notified_spells")
+        {
+            Actor const& actor = _actors.at(step.get<std::string>("actor"));
+            if (metric == "spellbook_buys_granted")
+                return double(actor.buysGranted);
+            if (metric == "spellbook_notify_rows")
+                return double(actor.notifyRowTotal);
+            if (metric == "spellbook_notified_spells")
+                return double(actor.notifyRows.size());
+            if (metric == "spellbook_unnotified_buys")
+                return double(actor.buysNotNotified);
+            return double(metric == "spellbook_unannounced_buys" ? actor.buysUnannounced
+                                                                : actor.buysMisannounced);
+        }
+        if (metric == "spellbook_buy_succeeded" || metric == "spellbook_buy_failed")
+        {
+            auto const& counts = metric == "spellbook_buy_succeeded"
+                ? _actors.at(step.get<std::string>("actor")).buySucceeded
+                : _actors.at(step.get<std::string>("actor")).buyFailed;
+            auto const found = counts.find(spell);
+            return found == counts.end() ? 0.0 : double(found->second);
+        }
+        if (metric == "spellbook_learned_alerts")
+        {
+            auto const& alerts = _actors.at(step.get<std::string>("actor")).learnedAlerts;
+            auto const found = alerts.find(spell);
+            return found == alerts.end() ? 0.0 : double(found->second);
+        }
         if (metric == "quest_rewarded")
         {
             uint32 quest = step.get<uint32>("quest");
@@ -1247,6 +1368,27 @@ private:
         }
         else if (action == "unlearn")
             player->removeSpell(spell, player->GetActiveSpecMask(), false);
+        else if (action == "trainer_buy")
+        {
+            // Replays the client's purchase through the same gate WorldSession::Update uses: the
+            // book module's CanPacketReceive consumes it, and only an unconsumed packet reaches
+            // the core's handler.
+            Unit* trainer = step.get_optional<std::string>("target")
+                ? GetUnit(step.get<std::string>("target")) : nullptr;
+            ObjectGuid guid = trainer ? trainer->GetGUID() : player->GetCritterGUID();
+            Require(!guid.IsEmpty(), "Trainer purchase needs a trainer");
+            Require(spell != 0, "Trainer purchase needs a spell");
+
+            WorldPacket packet(CMSG_TRAINER_BUY_SPELL, 12);
+            packet << guid << int32(spell);
+            if (sScriptMgr->CanPacketReceive(player->GetSession(), packet))
+            {
+                WorldPacket purchase(packet);
+                WorldPackets::NPC::TrainerBuySpell request(std::move(purchase));
+                request.Read();
+                player->GetSession()->HandleTrainerBuySpellOpcode(request);
+            }
+        }
         else if (action == "talent")
         {
             uint32 rank = step.get<uint32>("rank");

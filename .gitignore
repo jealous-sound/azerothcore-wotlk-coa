@@ -130,3 +130,5 @@ __pycache__/
 !/modules/mod-worldforged-pickups/
 !/modules/mod-teleport-actionbar/
 !/modules/mod-portablemail/
+!/modules/mod-craftsmans-codex/
+!/modules/mod-spellbook/

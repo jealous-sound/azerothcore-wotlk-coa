@@ -69,9 +69,9 @@
       "actor": "enemy",
       "metric": "health",
       "relative_to": "b",
-      "max": -1800,
+      "max": -300,
       "within_ms": 7000,
-      "label": "Three Soul Bolts land over the five seconds"
+      "label": "The first Soul Bolt lands on an enemy in front of the caster"
     }
   ]
 }
