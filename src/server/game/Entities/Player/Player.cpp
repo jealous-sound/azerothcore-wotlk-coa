@@ -2512,14 +2512,27 @@ void Player::GiveXP(uint32 xp, Unit* victim, float group_rate, bool isLFGReward)
     if (HasPlayerFlag(PLAYER_FLAGS_PARTIAL_PLAY_TIME))
         xp = std::max(1u, xp / 2);
 
-    uint32 bonus_xp = 0;
+    uint32 curXP = GetUInt32Value(PLAYER_XP);
+    uint32 nextLvlXP = GetUInt32Value(PLAYER_NEXT_LEVEL_XP);
+    uint32 bonusLimit = xp;
     bool recruitAFriend = GetsRecruitAFriendBonus(true);
-
-    // RaF does NOT stack with rested experience
     if (recruitAFriend)
-        bonus_xp = 2 * xp; // xp + bonus_xp must add up to 3 * xp for RaF; calculation for quests done client-side
-    else
-        bonus_xp = victim ? GetXPRestBonus(xp) : 0; // XP resting bonus
+        bonusLimit = 2 * xp;
+
+    if (levelCap < maxLevel)
+    {
+        // Budget all XP up to the script cap, including its nearly full bar, before
+        // consuming rested XP or reporting the gain. Base XP uses the budget first.
+        uint64 capacity = nextLvlXP;
+        for (uint32 targetLevel = level + 1; targetLevel <= levelCap; ++targetLevel)
+            capacity += sObjectMgr->GetXPForLevel(static_cast<uint8>(targetLevel));
+        uint64 const room = capacity > uint64(curXP) + 1 ? capacity - curXP - 1 : 0;
+        xp = static_cast<uint32>(std::min<uint64>(xp, room));
+        bonusLimit = static_cast<uint32>(std::min<uint64>(bonusLimit, room - xp));
+    }
+
+    // RaF does NOT stack with rested experience. Only spend the rested bonus that fits.
+    uint32 bonus_xp = recruitAFriend ? bonusLimit : (victim ? GetXPRestBonus(bonusLimit) : 0);
 
     // hooks and multipliers can modify the xp with a zero or negative value
     // check again before sending invalid xp to the client
@@ -2528,9 +2541,7 @@ void Player::GiveXP(uint32 xp, Unit* victim, float group_rate, bool isLFGReward)
 
     SendLogXPGain(xp, victim, bonus_xp, recruitAFriend, group_rate);
 
-    uint32 curXP = GetUInt32Value(PLAYER_XP);
-    uint32 nextLvlXP = GetUInt32Value(PLAYER_NEXT_LEVEL_XP);
-    uint32 newXP = curXP + xp + bonus_xp;
+    uint64 newXP = uint64(curXP) + xp + bonus_xp;
 
     while (newXP >= nextLvlXP && level < levelCap)
     {
@@ -2542,13 +2553,11 @@ void Player::GiveXP(uint32 xp, Unit* victim, float group_rate, bool isLFGReward)
         nextLvlXP = GetUInt32Value(PLAYER_NEXT_LEVEL_XP);
     }
 
-    // At the (script) cap the bar holds one point short of the next level rather
-    // than overflowing past it. maxLevel always allows one more level (it is the
-    // world cap), so this only bites on the script cap below it.
+    // Keep the script cap as a final guard if a level-change hook changed the XP threshold.
     if (level >= levelCap && nextLvlXP && newXP >= nextLvlXP)
         newXP = nextLvlXP - 1;
 
-    SetUInt32Value(PLAYER_XP, newXP);
+    SetUInt32Value(PLAYER_XP, static_cast<uint32>(newXP));
 }
 
 // Update player to next level
