@@ -86,3 +86,20 @@ AscensionCompat.LastExtensionOpcode = 2515
 # Startup-only: solo levels 10-59, three scenes, depths 1-15. Realm level cap is unchanged.
 # Enable only with the reviewed installation package; native gameplay acceptance is still required.
 Ascension.Manastorm.Enable = 0
+
+#
+#    AscensionCompat.LevelScalingMaxLift
+#        Description: How many levels above its own a creature may be lifted by
+#                     LevelScaling. Without a cap, a level 30 player crossing a
+#                     starting zone lifts every creature around to 27, and the
+#                     low level bots fighting them are killed by creatures that
+#                     were never theirs.
+#                     A creature has a single level, broadcast to every client:
+#                     it cannot be 27 for a player and 2 for a bot. Bounding the
+#                     lift is the only compromise between keeping content
+#                     relevant and keeping the world playable for whoever is
+#                     already in it.
+#                     0 disables the cap and restores the original behaviour.
+#        Default:     5
+
+AscensionCompat.LevelScalingMaxLift = 5
