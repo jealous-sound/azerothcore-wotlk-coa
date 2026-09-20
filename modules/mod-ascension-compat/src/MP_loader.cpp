@@ -129,6 +129,7 @@ void AddSC_AscensionPrimalistWeapons();
 void AddSC_AscensionPrimalistTalents();
 void AddSC_AscensionPrimalistBones();
 void AddSC_AscensionPrimalistBoons();
+void AddSC_AscensionPrimalistBarrier();
 void AddSC_AscensionRunemasterTalents();
 void AddSC_AscensionRunemasterTravel();
 void AddSC_AscensionStormbringerTalents();
@@ -291,6 +292,7 @@ void Addmod_ascension_compatScripts()
     AddSC_AscensionPrimalistTalents();
     AddSC_AscensionPrimalistBones();
     AddSC_AscensionPrimalistBoons();
+    AddSC_AscensionPrimalistBarrier();
     AddSC_AscensionRunemasterTalents();
     AddSC_AscensionRunemasterTravel();
     AddSC_AscensionStormbringerTalents();
