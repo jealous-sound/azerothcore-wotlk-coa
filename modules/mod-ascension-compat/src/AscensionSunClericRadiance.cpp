@@ -7,7 +7,6 @@
 #include "SpellAuras.h"
 #include "SpellMgr.h"
 #include "SpellScript.h"
-#include <algorithm>
 namespace
 {
 using namespace AscensionSunCleric;
@@ -37,9 +36,25 @@ class aura_ascension_champion_of_the_sun_arrival : public AuraScript
         Aura* aura = GetAura();
         if (!player || !aura || !player->HasAura(CHAMPIONS_ARRIVAL))
             return;
-        int32 duration = aura->GetDuration() + CHAMPIONS_ARRIVAL_EXTRA_MS;
-        aura->SetDuration(duration);
-        aura->SetMaxDuration(std::max(aura->GetMaxDuration(), duration));
+        // This hook is registered on AURA_EFFECT_HANDLE_REAL_OR_REAPPLY_MASK so it can re-extend
+        // the aura on a live refresh (Unit::_TryStackingOrRefreshingExistingAura ->
+        // Aura::ModStackAmount -> RefreshTimers() resets GetMaxDuration() to the spell's own
+        // unmodified value before calling SetStackAmount(), which is what re-fires this hook on a
+        // recast). But REAL and REAPPLY can also both fire for a single logical application with
+        // no RefreshTimers() in between: Aura::SetStackAmount() unconditionally re-triggers every
+        // effect's ChangeAmount(.., onStackOrReapply=true) even when the stack count did not
+        // change, which is exactly what happens right after Aura::_ApplyForTarget's own REAL
+        // apply when a caller creates the aura and then calls SetStackAmount() with its already-
+        // current stack count (the coa-gameplay-test harness's `set_aura` fixture does this).
+        // Incrementally adding onto GetDuration()/GetMaxDuration() each time this fires double-
+        // counted the +5000ms in that case (25000 -> 35000 instead of 30000). Compare against the
+        // spell's own unmodified GetSpellInfo()->GetMaxDuration() (never itself mutated) instead,
+        // so a second entry with no intervening reset is a no-op.
+        int32 extended = aura->GetSpellInfo()->GetMaxDuration() + CHAMPIONS_ARRIVAL_EXTRA_MS;
+        if (aura->GetMaxDuration() == extended)
+            return;
+        aura->SetMaxDuration(extended);
+        aura->SetDuration(extended);
     }
 
     void Register() override
