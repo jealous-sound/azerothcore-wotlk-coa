@@ -25,7 +25,10 @@ enum PrimalistSecondarySpells : uint32
     SPELL_EMBRACE_DISORIENT = 706200,
     SPELL_GAZE = 805919,
     SPELL_GAZE_SLOW = 572908,
-    SPELL_SAVAGE_FRENZY = 806549
+    SPELL_SAVAGE_FRENZY = 806549,
+    SPELL_TOTEM_WARRIOR = 704099,
+    SPELL_TOTEM_WARRIOR_HIT = 555732,
+    SPELL_BOON_OF_THE_BEAR = 500939
 };
 
 class primalist_secondary_auras : public UnitScript
@@ -58,6 +61,44 @@ public:
         if (aura->GetId() == SPELL_EARTHS_EMBRACE && mode == AURA_REMOVE_BY_EXPIRE &&
             player->IsAlive() && player->IsInWorld() && player->HasAura(SPELL_EMBRACED_BY_EARTH, player->GetGUID()))
             player->CastSpell(player, SPELL_EMBRACE_DISORIENT, true);
+    }
+};
+
+class spell_ascension_totem_warrior : public SpellScript
+{
+    PrepareSpellScript(spell_ascension_totem_warrior);
+
+    bool Validate(SpellInfo const*) override
+    {
+        return ValidateSpellInfo({SPELL_TOTEM_WARRIOR, SPELL_TOTEM_WARRIOR_HIT, SPELL_BOON_OF_THE_BEAR});
+    }
+
+    bool Load() override
+    {
+        return GetCaster()->IsPlayer() && GetCaster()->getClass() == CLASS_WILDWALKER;
+    }
+
+    void Repeat()
+    {
+        Unit* owner = GetCaster();
+        Unit* victim = GetHitUnit();
+        if (!victim || !victim->IsAlive() || owner->IsFriendlyTo(victim) || GetHitDamage() <= 0 ||
+            !owner->HasAura(SPELL_BOON_OF_THE_BEAR, owner->GetGUID()))
+            return;
+
+        if (AuraEffect const* talent = owner->GetAuraEffect(SPELL_TOTEM_WARRIOR, EFFECT_0, owner->GetGUID()))
+        {
+            // Observe each completed weapon hit, including the triggered offhand, after mitigation and crits.
+            int32 amount = int32(int64(GetHitDamage()) * std::clamp(talent->GetAmount(), 0, 100) / 100);
+            if (amount)
+                owner->CastCustomSpell(SPELL_TOTEM_WARRIOR_HIT, SPELLVALUE_BASE_POINT0, amount, victim,
+                    TRIGGERED_FULL_MASK, nullptr, talent);
+        }
+    }
+
+    void Register() override
+    {
+        AfterHit += SpellHitFn(spell_ascension_totem_warrior::Repeat);
     }
 };
 
@@ -251,7 +292,7 @@ public:
                     effect.TargetB = SpellImplicitTargetInfo(TARGET_UNIT_CASTER);
             info->_InitializeExplicitTargetMask();
         }
-        if (info->Id == SPELL_VOLCANIC_BLAST)
+        if (info->Id == SPELL_VOLCANIC_BLAST || info->Id == SPELL_TOTEM_WARRIOR_HIT)
         {
             info->AttributesEx2 |= SPELL_ATTR2_CANT_CRIT;
             info->AttributesEx3 |= SPELL_ATTR3_IGNORE_CASTER_MODIFIERS;
@@ -306,6 +347,7 @@ void AddSC_AscensionPrimalistSecondary()
     new primalist_volcanic_targets();
     new primalist_secondary_metadata();
     RegisterSpellScript(aura_ascension_volcanic_blast);
+    RegisterSpellScript(spell_ascension_totem_warrior);
     RegisterSpellScript(aura_ascension_natures_blessing);
     RegisterSpellScript(aura_ascension_hammer_of_life);
     RegisterSpellScript(spell_ascension_gaze_of_theradras);
