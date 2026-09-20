@@ -1,23 +1,12 @@
--- Five Bloodmage passives whose tooltip fires when a named ability lands on a target. Each carries an
+-- Four Bloodmage passives whose tooltip fires when a named ability lands on a target. Each carries an
 -- aura 42 (SPELL_AURA_PROC_TRIGGER_SPELL) effect on a correctly-built trigger spell, but Spell.dbc gives
 -- every one of these records ProcFlags 0 and no `spell_proc` row existed, so SpellMgr::LoadSpellProcs
 -- skipped them ("Skip if no proc flags in DBC") and Aura::GetProcEffectMask returned a zero mask.
 -- Same reasoning and shape as rev_20260918_32_bloodmage_council_assembled_proc.
 --
--- All five use `SpellPhaseMask` 2 (PROC_SPELL_PHASE_HIT), because every one of these trigger spells needs
+-- All four use `SpellPhaseMask` 2 (PROC_SPELL_PHASE_HIT), because every one of these trigger spells needs
 -- the ability's own victim: at CAST phase Spell::cast passes no victim, and a trigger whose TargetA is 6
 -- (TARGET_UNIT_TARGET_ENEMY) would be cast with a null target. `Chance` is each record's ProcChance (100).
---
--- 804686 Everlasting Hunt: "Damage dealt by Blood Shards now reduces the cooldown of Veinburst and Reave
--- by $/1000;802497S2 sec." Aura 42 on Everlasting Hunt 802497, two SPELL_EFFECT_ASCENSION_MODIFY_COOLDOWN
--- effects with BasePoints -1501 (-1500 ms) and MiscValue 504260 (Veinburst) and 800490 (Reave) - exactly
--- the two spells the tooltip names. Proc source: the Blood Shard damage spells 504115 "Blood Shard" and
--- 505365 "Bloodmage Gore Barrage Damage" are the only family-26 records carrying SpellFamilyFlags
--- (0, 2, 0), hence SpellFamilyMask1 2. AttributesMask 2 (PROC_ATTR_TRIGGERED_CAN_PROC) is required here
--- and only here: Blood Shards are launched by the helper spells 505357-505364 ("Blood Shard Trigger
--- Attack 1-8", SPELL_EFFECT_TRIGGER_MISSILE with TriggerSpell 504115), so the damage always arrives as a
--- triggered cast, and Aura::GetProcEffectMask otherwise rejects triggered spells (504115 does not carry
--- SPELL_ATTR3_NOT_A_PROC).
 --
 -- 680733 Bloodcraft: "Your damage dealt by Darkfallen Lament now applies Bloodcraft to affected enemies,
 -- reducing damage dealt by $524182s1% for $524182d, stacking $524182u times." Aura 42 on Bloodcraft
@@ -49,16 +38,15 @@
 -- only family-26 record carrying SpellFamilyFlags (16777216, 0, 0); it has DmgClass NONE and is harmful,
 -- so ProcFlags 4096 = DONE_SPELL_NONE_DMG_CLASS_NEG.
 --
--- `SpellTypeMask` is 1 (PROC_SPELL_TYPE_DAMAGE) where the tooltip says "damage dealt by" (804686, 680733)
+-- `SpellTypeMask` is 1 (PROC_SPELL_TYPE_DAMAGE) where the tooltip says "damage dealt by" (680733)
 -- and 0 elsewhere: Taldaram's Torment, Corrupted Blood and Lunge are applied/used, and a spell that only
 -- applies an aura reaches the proc system with PROC_SPELL_TYPE_NO_DMG_HEAL. `HitMask` stays 0, which for a
 -- DONE proc already defaults to NORMAL | CRITICAL | ABSORB (SpellMgr::CanSpellTriggerProcOnEvent); BLOCK
 -- and FULL_BLOCK are deliberately left out because a fully blocked hit deals no damage. AttributesMask is
--- 0 on the other four rows: no helper spell was found that casts Darkfallen Lament, Taldaram's Torment or
+-- 0 on all four rows: no helper spell was found that casts Darkfallen Lament, Taldaram's Torment or
 -- Lunge as a triggered effect of something else. SchoolMask is 0 (no tooltip states a school).
-DELETE FROM `spell_proc` WHERE `SpellId` IN (804686, 680733, 802315, 704692, 704653);
+DELETE FROM `spell_proc` WHERE `SpellId` IN (680733, 802315, 704692, 704653);
 INSERT INTO `spell_proc` (`SpellId`, `SchoolMask`, `SpellFamilyName`, `SpellFamilyMask0`, `SpellFamilyMask1`, `SpellFamilyMask2`, `ProcFlags`, `SpellTypeMask`, `SpellPhaseMask`, `HitMask`, `AttributesMask`, `DisableEffectsMask`, `ProcsPerMinute`, `Chance`, `Cooldown`, `Charges`) VALUES
-(804686, 0, 26, 0, 2, 0, 69972, 1, 2, 0, 2, 0, 0, 100, 0, 0),
 (680733, 0, 26, 0, 0, 4096, 69972, 1, 2, 0, 0, 0, 0, 100, 0, 0),
 (802315, 0, 26, 0, 0, 2097152, 65536, 0, 2, 0, 0, 0, 0, 100, 0, 0),
 (704692, 0, 26, 0, 0, 2097152, 65536, 0, 2, 0, 0, 0, 0, 100, 0, 0),

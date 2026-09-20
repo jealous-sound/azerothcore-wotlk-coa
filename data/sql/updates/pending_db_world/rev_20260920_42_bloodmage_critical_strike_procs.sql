@@ -1,11 +1,11 @@
--- Four Bloodmage passives whose tooltip fires on the caster's own critical strikes, with no ability named.
+-- Three Bloodmage passives whose tooltip fires on the caster's own critical strikes, with no ability named.
 -- Each carries an aura 42 (SPELL_AURA_PROC_TRIGGER_SPELL) effect on a correctly-built trigger spell, but
 -- Spell.dbc gives every one of these records ProcFlags 0 and no `spell_proc` row existed, so
 -- SpellMgr::LoadSpellProcs skipped them ("Skip if no proc flags in DBC") and Aura::GetProcEffectMask
 -- returned a zero mask. Same reasoning and shape as rev_20260918_30_bloodmage_twisted_magic_proc, which
 -- fixes the same defect for the same kind of "critical strikes" tooltip.
 --
--- Shared columns. `SpellFamilyName`/`SpellFamilyMask` are 0 on all four rows: none of these tooltips names
+-- Shared columns. `SpellFamilyName`/`SpellFamilyMask` are 0 on all three rows: none of these tooltips names
 -- an ability, so nothing restricts which spell may crit. `SpellPhaseMask` 2 (PROC_SPELL_PHASE_HIT) and
 -- `HitMask` 2 (PROC_HIT_CRITICAL) are the literal reading of "critical strikes"; a crit is only known at
 -- hit time. `SpellTypeMask` 1 (PROC_SPELL_TYPE_DAMAGE) keeps healing crits out. `Chance` is each record's
@@ -29,14 +29,8 @@
 -- (SPELL_EFFECT_APPLY_AREA_AURA_RAID, MOD_CRIT_PCT, BasePoints 4 -> +5%, radius index 12, TargetA 1). The
 -- aura-42 effect's own BasePoints 49 is dead data: AuraEffect::HandleProcTriggerSpellAuraProc ignores the
 -- amount entirely and the +5% comes from 582766.
--- 706247 Darkcasting: "Critical strikes with abilities now spawn a Blood Orb near you for $707434d."
--- Aura 42 on Blood Orb 707434, a stock SPELL_EFFECT_SUMMON of creature 315303 (MiscValueB 61, TargetA 18,
--- radius index 193, duration index 8). This row alone uses ProcFlags 69904 rather than 69972: the tooltip
--- says "with abilities", so DONE_MELEE_AUTO_ATTACK 0x4 and DONE_RANGED_AUTO_ATTACK 0x40 are dropped and
--- only the four spell-cast classes remain (0x10 | 0x100 | 0x1000 | 0x10000).
-DELETE FROM `spell_proc` WHERE `SpellId` IN (804599, 706656, 680684, 706247);
+DELETE FROM `spell_proc` WHERE `SpellId` IN (804599, 706656, 680684);
 INSERT INTO `spell_proc` (`SpellId`, `SchoolMask`, `SpellFamilyName`, `SpellFamilyMask0`, `SpellFamilyMask1`, `SpellFamilyMask2`, `ProcFlags`, `SpellTypeMask`, `SpellPhaseMask`, `HitMask`, `AttributesMask`, `DisableEffectsMask`, `ProcsPerMinute`, `Chance`, `Cooldown`, `Charges`) VALUES
 (804599, 0, 0, 0, 0, 0, 69972, 1, 2, 2, 0, 0, 0, 100, 0, 0),
 (706656, 0, 0, 0, 0, 0, 69972, 1, 2, 2, 0, 0, 0, 100, 0, 0),
-(680684, 0, 0, 0, 0, 0, 69972, 1, 2, 2, 0, 0, 0, 100, 0, 0),
-(706247, 0, 0, 0, 0, 0, 69904, 1, 2, 2, 0, 0, 0, 100, 0, 0);
+(680684, 0, 0, 0, 0, 0, 69972, 1, 2, 2, 0, 0, 0, 100, 0, 0);

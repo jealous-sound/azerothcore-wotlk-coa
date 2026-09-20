@@ -37,8 +37,6 @@ enum BloodmageTalentSpells : uint32
     SPELL_COAGULATION_DISPEL = 504102,
     SPELL_DARK_MARK = 705731,
     SPELL_DARK_MARK_AURA = 707375,
-    SPELL_DARK_FRENZY = 704644,
-    SPELL_DARK_FRENZY_IN_FORM = 804845,
     SPELL_TERRORIZER = 806210,
     SPELL_ENDURING = 300585,
     SPELL_ADRENALINE_BOOST = 680675,
@@ -139,19 +137,6 @@ void SyncCursedFormRequirement(Player* player)
         else if (player->IsInWorld() && player->IsAlive() && !player->HasAura(marker, player->GetGUID()))
             player->CastSpell(player, marker, true);
     }
-
-    // Dark Frenzy's second clause: "while a Cursed Form is active, your global cooldowns are reduced by
-    // $804845s3%". 804845 holds that modifier, but the only Spell.dbc row that triggers it is the
-    // unobtainable Cursed Form record 804699, so the talent has to carry it itself. The percentage stays
-    // 804845's own effect 2; nothing is redeclared here.
-    // 704644 is a raid area aura, so match its caster: a raid-mate who only receives the haste is not
-    // the talent's owner and does not get the global cooldown reduction.
-    bool const frenzy = active && player->HasAura(SPELL_DARK_FRENZY, player->GetGUID());
-    if (!frenzy)
-        player->RemoveAurasDueToSpell(SPELL_DARK_FRENZY_IN_FORM, player->GetGUID());
-    else if (player->IsInWorld() && player->IsAlive() &&
-        !player->HasAura(SPELL_DARK_FRENZY_IN_FORM, player->GetGUID()))
-        player->CastSpell(player, SPELL_DARK_FRENZY_IN_FORM, true);
 }
 
 // Reviewed conversions of the private Ascension selectors these five talents ship on aura 112.
@@ -274,7 +259,7 @@ public:
         Player* player = unit ? unit->ToPlayer() : nullptr;
         if (!player || player->getClass() != CLASS_SON_OF_ARUGAL || !aura)
             return;
-        if (IsCursedForm(aura->GetId()) || aura->GetId() == SPELL_DARK_FRENZY)
+        if (IsCursedForm(aura->GetId()))
             SyncCursedFormRequirement(player);
         if (IsCursedForm(aura->GetId()))
             UpdateCursedFormWeapons(player, true);
@@ -323,7 +308,7 @@ public:
         if (!player || player->getClass() != CLASS_SON_OF_ARUGAL || !application)
             return;
         Aura* aura = application->GetBase();
-        if (IsCursedForm(aura->GetId()) || aura->GetId() == SPELL_DARK_FRENZY)
+        if (IsCursedForm(aura->GetId()))
             SyncCursedFormRequirement(player);
         if (IsCursedForm(aura->GetId()) && !HasCursedForm(player, aura))
             UpdateCursedFormWeapons(player, false);
