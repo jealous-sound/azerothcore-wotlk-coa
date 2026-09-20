@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "name": "Wand Expert grants ranged attack power and hit rating from Spirit (#2180)",
+  "contract": "Wand Expert 574308 carries SPELL_AURA_MOD_RANGED_ATTACK_POWER_OF_STAT_PERCENT (212, EffectMiscValue Stats::STAT_SPIRIT 4, EffectBasePoints 99 -> 100%) and SPELL_AURA_MOD_RATING_FROM_STAT (220, EffectMiscValue 224 = CR_HIT_MELEE|CR_HIT_RANGED|CR_HIT_SPELL bits, EffectMiscValueB Stats::STAT_SPIRIT 4, EffectBasePoints 4 -> 5%). Both handlers (AuraEffect::HandleAuraModRangedAttackPowerOfStatPercent, AuraEffect::HandleModRatingFromStat) are native and recalculate on apply.",
+  "timeout_ms": 60000,
+  "players": [
+    { "id": "control", "race": 1, "class": 22, "level": 80 },
+    { "id": "talent", "race": 1, "class": 22, "level": 80 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+    { "action": "learn", "actor": "talent", "spell": 574308 },
+    {
+      "action": "snapshot",
+      "label": "Baseline ranged attack power without the talent",
+      "actor": "control",
+      "metric": "ranged_attack_power",
+      "save_as": "rap_base"
+    },
+    {
+      "action": "assert",
+      "label": "Ranged attack power rises with the talent",
+      "actor": "talent",
+      "metric": "ranged_attack_power",
+      "relative_to": "rap_base",
+      "min": 1
+    },
+    {
+      "action": "snapshot",
+      "label": "Baseline ranged hit rating without the talent",
+      "actor": "control",
+      "metric": "combat_rating",
+      "rating": 6,
+      "save_as": "hit_base"
+    },
+    {
+      "action": "assert",
+      "label": "Ranged hit rating rises with the talent",
+      "actor": "talent",
+      "metric": "combat_rating",
+      "rating": 6,
+      "relative_to": "hit_base",
+      "min": 1
+    }
+  ]
+}

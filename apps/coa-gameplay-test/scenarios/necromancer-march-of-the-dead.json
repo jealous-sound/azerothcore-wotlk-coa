@@ -1,0 +1,91 @@
+{
+ "schema": 1,
+ "name": "Necromancer: March of the Dead charges walk to the target and explode (#4164)",
+ "contract": "March of the Dead raises six Bone Charges that walk toward the enemy, wherever it stands relative to the caster, and detonate for damage on arrival.",
+ "timeout_ms": 120000,
+ "players": [
+  {
+   "id": "n",
+   "race": 5,
+   "class": 23,
+   "level": 60
+  }
+ ],
+ "creatures": [
+  {
+   "id": "d",
+   "owner": "n",
+   "entry": 299,
+   "level": 60,
+   "distance": 12
+  }
+ ],
+ "location": {
+  "map": 0,
+  "x": -8917.41,
+  "y": -115.853,
+  "z": 82.3711,
+  "o": 3.14159
+ },
+ "steps": [
+  {
+   "action": "wait",
+   "ms": 3000
+  },
+  {
+   "action": "learn",
+   "spell": 707007,
+   "actor": "n"
+  },
+  {
+   "action": "snapshot",
+   "actor": "d",
+   "metric": "health",
+   "save_as": "h0"
+  },
+  {
+   "action": "cast",
+   "spell": 707007,
+   "actor": "n",
+   "target": "d"
+  },
+  {
+   "action": "assert",
+   "label": "six charges raised",
+   "actor": "n",
+   "metric": "owned_creature_count",
+   "entry": 523032,
+   "min": 1,
+   "within_ms": 8000
+  },
+  {
+   "action": "wait",
+   "ms": 1000
+  },
+  {
+   "action": "assert",
+   "label": "charges are still walking after 1s",
+   "actor": "n",
+   "metric": "owned_creature_count",
+   "entry": 523032,
+   "min": 1
+  },
+  {
+   "action": "assert",
+   "label": "charges detonated on arrival",
+   "actor": "n",
+   "metric": "owned_creature_count",
+   "entry": 523032,
+   "equals": 0,
+   "within_ms": 15000
+  },
+  {
+   "action": "assert",
+   "label": "target took explosion damage",
+   "actor": "d",
+   "metric": "health",
+   "relative_to": "h0",
+   "max": -1
+  }
+ ]
+}

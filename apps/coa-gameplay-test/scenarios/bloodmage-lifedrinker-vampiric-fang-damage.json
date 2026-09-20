@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "name": "Lifedrinker raises Vampiric Fang's damage by 25% (#1309)",
+  "contract": "Lifedrinker 802576 carries ADD_PCT_MODIFIER (aura 108), MiscValue 0 (SPELLMOD_DAMAGE), BasePoints 24 (real +25%, EffectDieSides=1), classmask (0,524288,0) which matches exactly the 8 direct-damage Vampiric Fang ranks (504093-504097, 553271-553272, 804726), no remainder outside that set. Unit::SpellDamageBonusDone (Unit.cpp) consumes SPELLMOD_DAMAGE generically via Unit::ApplySpellMod. spell_modifier queries this without casting or owning the target spell. 553272 (level 60) is the rank a level-80 character owns.",
+  "timeout_ms": 90000,
+  "players": [
+    { "id": "caster", "race": 1, "class": 20, "level": 80 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let level scaling settle", "ms": 5000 },
+    {
+      "action": "assert", "label": "No damage bonus on Vampiric Fang before Lifedrinker",
+      "actor": "caster", "metric": "spell_modifier", "spell": 553272, "op": 0, "base": 1000, "equals": 1000
+    },
+    { "action": "learn", "actor": "caster", "spell": 802576 },
+    {
+      "action": "assert", "label": "Lifedrinker adds 25% damage to Vampiric Fang",
+      "actor": "caster", "metric": "spell_modifier", "spell": 553272, "op": 0, "base": 1000, "equals": 1250
+    },
+    {
+      "action": "assert", "label": "Lifedrinker does not touch an unrelated Bloodmage spell",
+      "actor": "caster", "metric": "spell_modifier", "spell": 578305, "op": 0, "base": 1000, "equals": 1000
+    },
+    { "action": "unlearn", "actor": "caster", "spell": 802576 },
+    {
+      "action": "assert", "label": "Unlearning removes the modifier",
+      "actor": "caster", "metric": "spell_modifier", "spell": 553272, "op": 0, "base": 1000, "equals": 1000
+    }
+  ]
+}

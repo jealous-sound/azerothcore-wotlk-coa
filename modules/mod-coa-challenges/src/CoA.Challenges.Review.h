@@ -65,7 +65,7 @@ namespace CoAChallenges
     // Cause of death for the failure broadcast, resolved when known.
     // Creature/Player get a clickable link; Environment/Self/Mechanic are
     // literal red labels (Falling/Suicide/Starved/...).
-    enum class KillerKind : uint8 { Unknown, Creature, Player, Environment, Self, Mechanic };
+    enum class KillerKind : uint8 { Unknown, Creature, Player, Environment, Self, Mechanic, Rule };
 
     // Failure broadcast. FailChallenge records the failure here for every cause
     // (death, shared fate, group leave). OnPlayerJustDied runs before
@@ -330,6 +330,7 @@ std::unordered_map<uint32, uint32> GameModeBaseSnapshot();
 uint32 PlayerToggleMaskFor(uint32 guid);
 void ClearPlayerToggleBit(uint32 guid, uint32 bit);
 uint32 LoadGameModeMask(uint32 guid);
+bool CacheGenerationGuardEnabled();
 std::vector<std::pair<uint32, uint32>> CachedCharChallenges(uint32 guid);
 void ClearCharChallengeCache(uint32 guid);
 uint32 CachedGameModeMask(uint32 guid);
@@ -480,6 +481,8 @@ uint32 ActivateChallenge(Player* player, uint32 challengeID, uint32 level);
 void DeactivateChallenge(Player* player, uint32 challengeID);
 bool RuleListContains(std::string const& list, std::string const& rule);
 bool PlayerHasRule(Player* player, char const* rule);
+void LoadChallengesEnabled();
+bool ChallengesEnabled();
 uint32 ActiveChallengeWithRule(Player* player, char const* rule, uint32& level);
 std::set<uint32> ActiveChallenges(uint32 guid);
 void SetConditionFlag(uint32 guid, char const* flag);
@@ -495,7 +498,12 @@ uint32 NextGatedLevel(Player* player);
 void MarkObjectives(Player* player, char const* type, uint32 eventValue);
 std::string ObjectiveFailLabel(std::string const& type);
 bool CheckObjectiveLevels(Player* player);
-void FailChallenge(Player* player, uint32 challengeID, uint32 level, uint32 deaths, ObjectGuid const& killerSource = ObjectGuid::Empty);
+// killerSource is the guid whose death carries the killer info. causeKind (with
+// causeEntry/causeName) lets a rule failure name its own cause (e.g. the beast a
+// FAILABLE_NO_KILL_BEASTS trial forbids) instead of "killed by Unknown".
+void FailChallenge(Player* player, uint32 challengeID, uint32 level, uint32 deaths,
+    ObjectGuid const& killerSource = ObjectGuid::Empty,
+    KillerKind causeKind = KillerKind::Unknown, uint32 causeEntry = 0, std::string causeName = "");
 void FailSharedFate(Player* dead, uint32 challengeID);
 void FailSharedFateHolders(Group* group, Player* extra);
 void HandlePlayerDeath(Player* player);

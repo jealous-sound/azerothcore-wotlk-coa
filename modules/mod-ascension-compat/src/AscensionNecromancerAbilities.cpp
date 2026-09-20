@@ -149,6 +149,9 @@ class necromancer_casts : public AllSpellScript
             result = SPELL_FAILED_TARGET_AURASTATE;
         if (id == 803781 && (!player->HasAura(803782) || State(player).diseases.empty()))
             result = SPELL_FAILED_CASTER_AURASTATE;
+        if ((id == 704355 || (id >= 707399 && id <= 707402)) && target && !target->HasAuraState(AURA_STATE_FROZEN) &&
+            !player->HasAura(801747))
+            result = SPELL_FAILED_TARGET_AURASTATE;
         if (id == 802121 && Minions(player).empty())
             result = SPELL_FAILED_NO_PET;
         if (id == 807098)

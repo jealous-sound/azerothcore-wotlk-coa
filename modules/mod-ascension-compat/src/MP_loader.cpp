@@ -20,6 +20,7 @@
 void AddAscensionCompatScripts();
 void AddAscensionTravelPermitScripts();
 void AddSC_AscensionRulesets();
+void AddSC_AscensionClosestResurrection();
 void AddSC_AscensionThreatRedirect();
 void AddAscensionStockCoefficientScripts();
 void AddAscensionScalingBaseScripts();
@@ -117,6 +118,7 @@ void AddSC_AscensionTemplarEvents();
 void AddSC_AscensionTemplarAbilities();
 void AddSC_AscensionTemplarSummons();
 void AddSC_AscensionTemplarTemporaryLibramProcs();
+void AddSC_AscensionTemplarTithe();
 void AddAscensionTinkerAugmentationScripts();
 void AddAscensionTinkerAugmentationTalentScripts();
 void AddAscensionTinkerHackingScripts();
@@ -148,6 +150,7 @@ void AddSC_AscensionChronomancerTime();
 void AddSC_AscensionChronomancerMovement();
 void AddSC_AscensionAdventurerCache();
 void AddSC_AscensionBankVoucher();
+void AddSC_AscensionFeatherOfAncients();
 void AddSC_AscensionPersonalBank();
 void AddSC_AscensionWisdomball();
 void AddSC_AscensionBloodmageTalents();
@@ -160,6 +163,7 @@ void AddSC_AscensionVenomancerSerpentFang();
 void AddSC_AscensionSunClericBattleCleric();
 void AddSC_AscensionReaperTalents();
 void AddSC_AscensionReaperSecondary();
+void AddSC_AscensionReaperReliquary();
 void AddSC_AscensionPrimalistSecondary();
 void AddSC_AscensionRunemasterSecondary();
 void AddSC_AscensionRunemasterHurricane();
@@ -270,6 +274,7 @@ void Addmod_ascension_compatScripts()
     AddSC_AscensionTemplarAbilities();
     AddSC_AscensionTemplarSummons();
     AddSC_AscensionTemplarTemporaryLibramProcs();
+    AddSC_AscensionTemplarTithe();
     AddAscensionTinkerAugmentationScripts();
     AddAscensionTinkerAugmentationTalentScripts();
     AddAscensionTinkerHackingScripts();
@@ -305,6 +310,7 @@ void Addmod_ascension_compatScripts()
     AddSC_AscensionChronomancerMovement();
     AddSC_AscensionAdventurerCache();
     AddSC_AscensionBankVoucher();
+    AddSC_AscensionFeatherOfAncients();
     AddSC_AscensionPersonalBank();
     AddSC_AscensionWisdomball();
     AddSC_AscensionBloodmageTalents();
@@ -317,6 +323,7 @@ void Addmod_ascension_compatScripts()
     AddSC_AscensionSunClericBattleCleric();
     AddSC_AscensionReaperTalents();
     AddSC_AscensionReaperSecondary();
+    AddSC_AscensionReaperReliquary();
     AddSC_AscensionPrimalistSecondary();
     AddSC_AscensionRunemasterSecondary();
     AddSC_AscensionRunemasterHurricane();
@@ -332,5 +339,6 @@ void Addmod_ascension_compatScripts()
     AddCoAGameplayTestScripts();
     AddSC_AscensionResourceTalents();
     AddSC_AscensionRulesets();
+    AddSC_AscensionClosestResurrection();
     AddSC_AscensionThreatRedirect();
 }

@@ -744,7 +744,8 @@ void AuraEffect::CalculatePeriodic(Unit* caster, bool create, bool load)
         // possibly we should not reset periodic timers only when aura is triggered by proc
         // or maybe there's a spell attribute somewhere
         bool resetPeriodicTimer = create
-                                  || ((GetAuraType() != SPELL_AURA_PERIODIC_DAMAGE) && (GetAuraType() != SPELL_AURA_PERIODIC_DAMAGE_PERCENT));
+                                  || ((GetAuraType() != SPELL_AURA_PERIODIC_DAMAGE) && (GetAuraType() != SPELL_AURA_PERIODIC_DAMAGE_PERCENT) &&
+                                      (GetAuraType() != SPELL_AURA_PERIODIC_LEECH));
 
         if (resetPeriodicTimer)
         {

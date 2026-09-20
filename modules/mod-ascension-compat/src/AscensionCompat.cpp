@@ -330,6 +330,8 @@ constexpr uint32 APPEARANCE_LOGIN_RESYNC_DELAY_MS = 3000;
 constexpr std::size_t MAX_QUEUED_EXTENSION_PACKETS = 64;
 constexpr uint32 VANITY_CATEGORY_MOUNTS = 0x04000000;
 constexpr uint32 VANITY_CATEGORY_COMPANIONS = 0x08000000;
+constexpr uint32 ITEM_WONDROUS_WISDOMBALL = 101169;
+constexpr uint32 ITEM_FIX_O_TRON_5000 = 97330;
 constexpr std::size_t COMPANION_SPELLS_PER_BATCH = 4;
 constexpr uint32 COMPANION_SPELL_BATCH_INTERVAL_MS = 200;
 
@@ -357,6 +359,7 @@ enum class AscensionCompatConfig {
   MAX_RIDING_FROM_START,
   LEVEL_SCALING,
   QUEST_LEVEL_SCALING,
+  AUTO_PROGRESSION,
 
   NUM_CONFIGS,
 };
@@ -400,6 +403,8 @@ public:
                          "AscensionCompat.LevelScaling", true);
     SetConfigValue<bool>(AscensionCompatConfig::QUEST_LEVEL_SCALING,
                          "AscensionCompat.QuestLevelScaling", true);
+    SetConfigValue<bool>(AscensionCompatConfig::AUTO_PROGRESSION,
+                         "AscensionCompat.AutoProgression", false);
   }
 };
 
@@ -605,7 +610,11 @@ public:
     return instance;
   }
 
-  uint32 SynchronizeProgression(Player *player) {
+  /// @param explicitRequest true when the player asked for the abilities
+  ///        themselves - the gossip option that restores them. Automatic
+  ///        progression can be switched off while an explicit request keeps
+  ///        working.
+  uint32 SynchronizeProgression(Player *player, bool explicitRequest = false) {
     if (!IsAscensionCustomClass(player))
       return 0;
 
@@ -674,15 +683,26 @@ public:
       LOG_INFO("module.ascension_compat", "Reconciled {} proven class grants for {} against live level {}",
           removed, player->GetName(), uint32(player->GetLevel()));
     uint32 learned = 0;
+    // AscensionCompat.AutoProgression is the automatic half of progression: the
+    // class abilities, rank upgrades and automatic talents this service hands
+    // out as a character levels. Switched off, nothing is granted here and the
+    // player earns them another way - the Books of Ascension sell the ranks, and
+    // the gossip option that restores a character's abilities passes
+    // explicitRequest and keeps working. The reconcile pass above runs either
+    // way, so a build never keeps an ability it is no longer allowed to hold.
+    bool const automaticProgression =
+        explicitRequest || ascensionCompatConfig.GetConfigValue<bool>(
+                               AscensionCompatConfig::AUTO_PROGRESSION);
     // The live baseline sampled one race per class. Repair every race from its own DBC skill line.
     for (uint32 spellId : racialSpells)
-        if (!player->HasSpell(spellId) && sSpellMgr->GetSpellInfo(spellId))
+        if (automaticProgression && !player->HasSpell(spellId) && sSpellMgr->GetSpellInfo(spellId))
         {
             player->learnSpell(spellId, false);
             ++learned;
         }
     for (auto const& entry : AscensionLiveBaseline::Spells)
-      if (entry.ClassId == player->getClass() && (!entry.RaceId || entry.RaceId == player->getRace()) &&
+      if (automaticProgression && entry.ClassId == player->getClass() &&
+          (!entry.RaceId || entry.RaceId == player->getRace()) &&
           CanGrantAscensionRacialSpell(player, entry.SpellId) &&
           !player->HasSpell(entry.SpellId) && sSpellMgr->GetSpellInfo(entry.SpellId))
       {
@@ -691,7 +711,8 @@ public:
       }
     for (AscensionCompatData::ClassSpell const &progressionSpell :
          AscensionCompatData::ClassSpells) {
-      if (progressionSpell.ClassId != player->getClass() ||
+      if (!automaticProgression ||
+          progressionSpell.ClassId != player->getClass() ||
           progressionSpell.RequiredLevel > player->GetLevel() ||
           !CanGrantAscensionRacialSpell(player, progressionSpell.SpellId) ||
           player->HasSpell(progressionSpell.SpellId))
@@ -710,7 +731,8 @@ public:
     }
     if (player->getClass() == CLASS_DEMON_HUNTER)
       for (FelswornRiftGrant const& rift : FelswornHordeCapitalRifts)
-        if (rift.RequiredLevel <= player->GetLevel() && CanGrantAscensionRacialSpell(player, rift.SpellId) &&
+        if (automaticProgression && rift.RequiredLevel <= player->GetLevel() &&
+            CanGrantAscensionRacialSpell(player, rift.SpellId) &&
             !player->HasSpell(rift.SpellId) && sSpellMgr->GetSpellInfo(rift.SpellId))
         {
           player->learnSpell(rift.SpellId, false);
@@ -718,12 +740,14 @@ public:
         }
 
     ReconcileRunemasterFists(player, activeSpec);
-    learned += SynchronizeAutomaticTalents(player, GetActiveSpecialization(player));
+    if (automaticProgression)
+      learned += SynchronizeAutomaticTalents(player, GetActiveSpecialization(player));
     // Rank upgrades are conditional on already owning the root. They cannot
     // spend talent points, pick an unselected ability, or leak an old spec.
     for (AscensionProgression::Rank const& rank : AscensionProgression::Ranks)
     {
-        if (rank.ClassId != player->getClass() || rank.RequiredLevel > player->GetLevel() ||
+        if (!automaticProgression || rank.ClassId != player->getClass() ||
+            rank.RequiredLevel > player->GetLevel() ||
             !player->HasSpell(rank.FirstSpellId) || player->HasSpell(rank.SpellId))
             continue;
 
@@ -3639,8 +3663,12 @@ public:
         bool const unlockAll = ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::UNLOCK_ALL_VANITY);
         for (auto const& [itemId, vanity] : _vanityItems)
         {
-            if (!(vanity.CategoryMask & (VANITY_CATEGORY_MOUNTS | VANITY_CATEGORY_COMPANIONS)) ||
-                (!unlockAll && !state.OwnedVanityItems.contains(itemId)) ||
+            // The Wondrous Wisdomball and the Fix-o-Tron 5000 are filed under the utility category, so they are
+            // named here; teaching every companion item would show the client's Companions spellbook tab.
+            bool const utilityCompanion = itemId == ITEM_WONDROUS_WISDOMBALL || itemId == ITEM_FIX_O_TRON_5000;
+            if (!(vanity.CategoryMask & (VANITY_CATEGORY_MOUNTS | VANITY_CATEGORY_COMPANIONS)) && !utilityCompanion)
+                continue;
+            if ((!unlockAll && !state.OwnedVanityItems.contains(itemId)) ||
                 std::binary_search(AscensionCollectibles::SigilSpells.begin(),
                     AscensionCollectibles::SigilSpells.end(), vanity.LearnedSpell) ||
                 !vanity.LearnedSpell || player->HasSpell(vanity.LearnedSpell) ||
@@ -5036,6 +5064,10 @@ public:
     if (opcode == CMSG_ANTICHEAT_ALERT)
       return true;
 
+    // The portrait menu's "Reset all Dungeons"; handled by the core.
+    if (opcode == CMSG_RESET_DUNGEONS)
+      return true;
+
     if (opcode == CMSG_CREATURE_QUERY_BULK)
     {
         constexpr uint32 maxCreatureQueries = 256;
@@ -5705,6 +5737,26 @@ public:
       return false;
   }
 
+  // Quest templates are shared globally, so scaling is serialized per player. The client caches quest
+  // queries by quest ID across characters and sessions, so resend the accepted quests' data whenever
+  // the effective quest level can differ from what it cached; this keeps the quest log colours right
+  // without mutating the canonical template for anyone else.
+  static void RefreshScaledQuestQueries(Player *player) {
+    if (!LocalLevelScaling::QuestEnabled.load(std::memory_order_relaxed))
+      return;
+
+    for (auto const& [questId, status] : player->getQuestStatusMap())
+    {
+      if (status.Status != QUEST_STATUS_INCOMPLETE &&
+          status.Status != QUEST_STATUS_COMPLETE &&
+          status.Status != QUEST_STATUS_FAILED)
+        continue;
+
+      if (Quest const* quest = sObjectMgr->GetQuestTemplate(questId))
+        player->PlayerTalkClass->SendQuestQueryResponse(quest);
+    }
+  }
+
   void OnPlayerLogin(Player *player) override {
     if (ascensionCompatConfig.GetConfigValue<bool>(
             AscensionCompatConfig::ENABLED)) {
@@ -5713,6 +5765,7 @@ public:
       SynchronizeAscensionClassMechanics(player);
       AscensionResourceService::Instance().OnPlayerLogin(player);
       AscensionCollectionService::Instance().OnPlayerLogin(player);
+      RefreshScaledQuestQueries(player);
     }
   }
 
@@ -5724,24 +5777,7 @@ public:
       AscensionClassService::Instance().SynchronizeProficiencies(player);
       AscensionClassService::Instance().SendCharacterAdvancementKnownEntries(player);
 
-      // Quest templates are shared globally, so scaling is serialized per
-      // player. Refresh accepted quest query data when the player's effective
-      // quest level changes; this keeps the quest log in sync without mutating
-      // the canonical template for anyone else.
-      if (LocalLevelScaling::QuestEnabled.load(std::memory_order_relaxed))
-      {
-        for (auto const& [questId, status] : player->getQuestStatusMap())
-        {
-          if (status.Status != QUEST_STATUS_INCOMPLETE &&
-              status.Status != QUEST_STATUS_COMPLETE &&
-              status.Status != QUEST_STATUS_FAILED)
-            continue;
-
-          if (Quest const* quest = sObjectMgr->GetQuestTemplate(questId))
-            if (quest->GetQuestLevel() <= 0 || quest->GetQuestLevel() < player->GetLevel())
-              player->PlayerTalkClass->SendQuestQueryResponse(quest);
-        }
-      }
+      RefreshScaledQuestQueries(player);
     }
   }
 
@@ -6144,6 +6180,36 @@ public:
     }
 };
 
+namespace
+{
+// Shared with AscensionCompatLevelScalingEngageScript below: both need the same per-creature
+// "Original" (pre-scaling) level, since re-deriving it from the live level would let repeated
+// scaling ratchet upward across unrelated encounters instead of tracking the template baseline.
+struct LevelScalingState
+{
+  uint8 Original;
+  uint32 Timer;
+};
+
+std::mutex g_levelScalingLock;
+std::unordered_map<uint64, LevelScalingState> g_levelScalingStates;
+
+// A player who pulls a creature into combat purely through a pet, guardian, or trap can stay
+// outside CanScaleCreature()'s sight-range check the whole time. AscensionCompatLevelScalingEngageScript
+// stashes that player's level here, keyed by creature GUID, right before forcing one SelectLevel()
+// call as combat starts; DesiredLevel() below consumes it so the engaging player still counts even
+// though they were never physically in range.
+std::unordered_map<uint64, uint8> g_levelScalingPendingEngager;
+
+bool CanScaleCreature(Creature const* creature)
+{
+  return LocalLevelScaling::CreatureEnabled.load(std::memory_order_relaxed) && creature &&
+      !creature->GetMap()->IsScriptedPrivateInstance() &&
+      !creature->IsPet() && !creature->IsTotem() && !creature->IsTrigger() && !creature->IsCritter() &&
+      creature->GetCreatureType() != CREATURE_TYPE_NON_COMBAT_PET && !creature->GetCharmerOrOwner();
+}
+}
+
 class AscensionCompatLevelScalingScript : public AllCreatureScript
 {
 public:
@@ -6153,14 +6219,14 @@ public:
   void OnBeforeCreatureSelectLevel(CreatureTemplate const* /*creatureTemplate*/,
                                    Creature* creature, uint8& level) override
   {
-    if (!CanScale(creature))
+    if (!CanScaleCreature(creature))
       return;
 
     uint64 guid = creature->GetGUID().GetRawValue();
     uint8 original = level;
     {
-      std::lock_guard<std::mutex> guard(_lock);
-      auto [itr, inserted] = _states.try_emplace(guid, State{level, 1000});
+      std::lock_guard<std::mutex> guard(g_levelScalingLock);
+      auto [itr, inserted] = g_levelScalingStates.try_emplace(guid, LevelScalingState{level, 1000});
       original = itr->second.Original;
       if (inserted)
         itr->second.Original = level;
@@ -6171,15 +6237,16 @@ public:
 
   void OnAllCreatureUpdate(Creature* creature, uint32 diff) override
   {
-    if (!CanScale(creature) || creature->IsInCombat() || !creature->IsAlive() ||
+    if (!CanScaleCreature(creature) || creature->IsInCombat() || !creature->IsAlive() ||
         creature->GetHealth() != creature->GetMaxHealth())
       return;
 
     uint64 guid = creature->GetGUID().GetRawValue();
     uint8 original;
     {
-      std::lock_guard<std::mutex> guard(_lock);
-      State& state = _states.try_emplace(guid, State{creature->GetLevel(), 1000}).first->second;
+      std::lock_guard<std::mutex> guard(g_levelScalingLock);
+      LevelScalingState& state =
+          g_levelScalingStates.try_emplace(guid, LevelScalingState{creature->GetLevel(), 1000}).first->second;
       if (state.Timer > diff)
       {
         state.Timer -= diff;
@@ -6206,23 +6273,9 @@ public:
 
   void OnCreatureRemoveWorld(Creature* creature) override
   {
-    std::lock_guard<std::mutex> guard(_lock);
-    _states.erase(creature->GetGUID().GetRawValue());
-  }
-
-private:
-  struct State
-  {
-    uint8 Original;
-    uint32 Timer;
-  };
-
-  static bool CanScale(Creature const* creature)
-  {
-    return LocalLevelScaling::CreatureEnabled.load(std::memory_order_relaxed) && creature &&
-        !creature->GetMap()->IsScriptedPrivateInstance() &&
-        !creature->IsPet() && !creature->IsTotem() && !creature->IsTrigger() && !creature->IsCritter() &&
-        creature->GetCreatureType() != CREATURE_TYPE_NON_COMBAT_PET && !creature->GetCharmerOrOwner();
+    std::lock_guard<std::mutex> guard(g_levelScalingLock);
+    g_levelScalingStates.erase(creature->GetGUID().GetRawValue());
+    g_levelScalingPendingEngager.erase(creature->GetGUID().GetRawValue());
   }
 
   static uint8 DesiredLevel(Creature const* creature, uint8 original)
@@ -6231,23 +6284,115 @@ private:
     if (!map)
       return original;
 
+    // On se regle sur le joueur le PLUS PROCHE, et non sur le plus haut niveau
+    // a la ronde.
+    //
+    // POURQUOI CE CHANGEMENT
+    // La boucle d'origine prenait le maximum sur tous les joueurs a portee de
+    // vue. Sur un serveur ou les joueurs presents ont des niveaux voisins,
+    // c'est le bon choix : le contenu reste pertinent pour le groupe. Avec une
+    // population de bots, l'hypothese tombe. Un joueur de niveau 30 traversant
+    // une zone de depart hissait toute creature a portee au niveau 27, y
+    // compris celles que des bots de niveau 1 etaient en train de combattre a
+    // quarante metres de la. Ils se faisaient tuer par des creatures qui
+    // n'etaient pas les leurs.
+    //
+    // POURQUOI PAS « CELUI QUI ATTAQUE »
+    // Ce serait la regle juste, mais elle est irrealisable : une creature n'a
+    // qu'un seul niveau, diffuse a tous les clients. Le meme loup ne peut pas
+    // etre de niveau 1 pour un bot et de niveau 27 pour un joueur. Le plus
+    // proche en est l'approximation fidele : c'est lui qui va l'engager.
+    //
+    // Le reglage ne s'applique de toute facon qu'a une creature hors combat,
+    // vivante et au maximum de ses points de vie (voir OnAllCreatureUpdate) :
+    // un combat en cours ne change jamais de niveau sous les pieds de
+    // personne.
+    // A zero cap restores the original maximum across all eligible players.
+    bool const useNearestPlayer = LocalLevelScaling::CreatureMaxLift.load(std::memory_order_relaxed) != 0;
     uint8 desired = original;
     float range = creature->GetSightRange();
+    float meilleure = -1.0f;
     for (auto const& reference : map->GetPlayers())
     {
-      Player* player = reference.GetSource();
-      if (!player || !player->IsAlive() || player->IsGameMaster() ||
-          !creature->InSamePhase(player) || !creature->IsWithinDistInMap(player, range) ||
-          !player->IsValidAttackTarget(creature))
-        continue;
-      desired = std::max(desired, LocalLevelScaling::ScaleCreatureLevel(original, player->GetLevel(),
-          LocalLevelScaling::CreatureOffset.load(std::memory_order_relaxed)));
+        Player* player = reference.GetSource();
+        if (!player || !player->IsAlive() || player->IsGameMaster() ||
+            !creature->InSamePhase(player) || !creature->IsWithinDistInMap(player, range) ||
+            !player->IsValidAttackTarget(creature))
+            continue;
+        float distance = creature->GetExactDist(player);
+        if (useNearestPlayer && meilleure >= 0.0f && distance >= meilleure)
+            continue;
+        meilleure = distance;
+        uint8 const scaledLevel = LocalLevelScaling::ScaleCreatureLevel(original, player->GetLevel(),
+            LocalLevelScaling::CreatureOffset.load(std::memory_order_relaxed));
+        desired = useNearestPlayer ? scaledLevel : std::max(desired, scaledLevel);
+    }
+
+    // A player who pulled this creature into combat purely through a pet, guardian, or trap can stay
+    // outside GetSightRange() the whole time -- outside the loop above entirely. This is exactly the
+    // "whoever engages it" case the nearest-player heuristic above is approximating; when it is known
+    // for certain (AscensionCompatLevelScalingEngageScript stashes it here right as combat starts), it
+    // overrides the heuristic in nearest-player mode instead of merely competing with it via max().
+    std::lock_guard<std::mutex> guard(g_levelScalingLock);
+    if (auto itr = g_levelScalingPendingEngager.find(creature->GetGUID().GetRawValue());
+        itr != g_levelScalingPendingEngager.end())
+    {
+      uint8 const scaledLevel = LocalLevelScaling::ScaleCreatureLevel(original, itr->second,
+          LocalLevelScaling::CreatureOffset.load(std::memory_order_relaxed));
+      desired = useNearestPlayer ? scaledLevel : std::max(desired, scaledLevel);
+      g_levelScalingPendingEngager.erase(itr);
     }
     return desired;
   }
+};
 
-  std::mutex _lock;
-  std::unordered_map<uint64, State> _states;
+// Credit an out-of-range owner when combat starts, including damage that creates the first threat entry.
+class AscensionCompatLevelScalingEngageScript : public UnitScript
+{
+public:
+    AscensionCompatLevelScalingEngageScript()
+        : UnitScript("AscensionCompatLevelScalingEngageScript", true,
+            {UNITHOOK_ON_UNIT_ENTER_COMBAT, UNITHOOK_ON_DAMAGE}) { }
+
+    void OnUnitEnterCombat(Unit* unit, Unit* victim) override
+    {
+        ScaleForEngager(unit ? unit->ToCreature() : nullptr, victim);
+    }
+
+    void OnDamage(Unit* attacker, Unit* victim, uint32& damage) override
+    {
+        Creature* creature = victim ? victim->ToCreature() : nullptr;
+        // Spell hits can set the combat flag before damage, but create their first threat entry only
+        // after reducing health. OnUnitEnterCombat then runs too late (or never runs for a lethal hit).
+        // IsEngaged, rather than IsInCombat, distinguishes those hits from an already established fight.
+        if (damage && attacker != victim && creature && !creature->IsEngaged())
+            ScaleForEngager(creature, attacker);
+    }
+
+private:
+    static void ScaleForEngager(Creature* creature, Unit* engager)
+    {
+        if (!CanScaleCreature(creature) || !engager || !creature->IsAlive() ||
+            creature->GetHealth() != creature->GetMaxHealth())
+            return;
+
+        Player* player = engager->GetCharmerOrOwnerPlayerOrPlayerItself();
+        if (!player || !player->IsAlive() || player->IsGameMaster())
+            return;
+
+        {
+            std::lock_guard<std::mutex> guard(g_levelScalingLock);
+            g_levelScalingPendingEngager[creature->GetGUID().GetRawValue()] = player->GetLevel();
+        }
+
+        creature->SelectLevel();
+        if (CreatureTemplate const* creatureTemplate = creature->GetCreatureTemplate())
+        {
+            CreatureBaseStats const* stats = sObjectMgr->GetCreatureBaseStats(
+                creature->GetLevel(), creatureTemplate->unit_class);
+            creature->SetStatFlatModifier(UNIT_MOD_ARMOR, BASE_VALUE, stats->GenerateArmor(creatureTemplate));
+        }
+    }
 };
 
 class AscensionCompatWorldScript : public WorldScript {
@@ -6264,6 +6409,12 @@ public:
         AscensionCompatConfig::LEVEL_SCALING), std::memory_order_relaxed);
     LocalLevelScaling::QuestEnabled.store(enabled && ascensionCompatConfig.GetConfigValue<bool>(
         AscensionCompatConfig::QUEST_LEVEL_SCALING), std::memory_order_relaxed);
+
+    // Lu directement plutot que via l'enumeration du module : cela evite de
+    // toucher a sa table de reglages, et la valeur est rechargeable a chaud.
+    uint32 lift = sConfigMgr->GetOption<uint32>("AscensionCompat.LevelScalingMaxLift", 5);
+    LocalLevelScaling::CreatureMaxLift.store(
+        static_cast<std::uint8_t>(std::min<uint32>(lift, 255)), std::memory_order_relaxed);
   }
 
   void OnLoadCustomDatabaseTable() override {
@@ -6542,7 +6693,8 @@ class spell_ascension_local_mount : public SpellScript
         bool canFly = map == MAP_OUTLAND || (map == MAP_NORTHREND && player->HasSpell(SPELL_COLD_WEATHER_FLYING));
         AreaTableEntry const* area = sAreaTableStore.LookupEntry(player->GetAreaId());
         Battlefield* battlefield = sBattlefieldMgr->GetBattlefieldToZoneId(player->GetZoneId());
-        if ((area && (area->flags & AREA_FLAG_NO_FLY_ZONE)) || (battlefield && !battlefield->CanFlyIn()))
+        if ((area && (area->flags & AREA_FLAG_NO_FLY_ZONE)) || (battlefield && !battlefield->CanFlyIn()) ||
+            player->InBattleground())
             canFly = false;
 
         if (canFly && riding >= 225)
@@ -6644,7 +6796,9 @@ public:
             !IsAscensionCustomClass(player))
             return true;
 
-        if (!AscensionClassService::Instance().SynchronizeProgression(player))
+        // The player is asking for these abilities themselves, so this keeps
+        // working while automatic progression is switched off.
+        if (!AscensionClassService::Instance().SynchronizeProgression(player, true))
             ChatHandler(player->GetSession()).SendSysMessage("Your available class abilities are already up to date.");
         return true;
     }
@@ -6871,6 +7025,7 @@ void AddAscensionCompatScripts() {
   new AscensionCompatUnitScript();
   new AscensionCompatChangelogScript();
   new AscensionCompatLevelScalingScript();
+  new AscensionCompatLevelScalingEngageScript();
   new AscensionCompatWorldScript();
   new AscensionCompatAllCreatureScript();
 }

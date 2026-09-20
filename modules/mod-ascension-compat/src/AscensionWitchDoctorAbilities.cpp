@@ -16,6 +16,7 @@
 namespace
 {
 using namespace AscensionWitchDoctor;
+constexpr uint32 BuffSnapshotKey = 0; // script-value key marking that the proc buffs were recorded
 void RefreshOwnedHex(Player* player, Unit* target)
 {
     if (Aura* hex = OwnedHex(player, target))
@@ -33,12 +34,13 @@ class witch_doctor_casts : public AllSpellScript
     {
     }
 
-    void OnSpellPrepare(Spell* spell, Unit* caster, SpellInfo const* /*info*/) override
+    // Records which proc buffs were up when the cast began. An instant spell is cast from inside Spell::prepare,
+    // before the prepare hook runs, so the first cast check takes the snapshot as well.
+    static void SnapshotBuffs(Spell* spell, Unit* caster)
     {
-        if (spell->IsTriggered())
+        if (spell->IsTriggered() || spell->GetScriptValue(BuffSnapshotKey))
             return;
-        if (Player* player = Owner(caster); player == caster)
-            spell->SetScriptValue(IngredientMarker, IngredientMask(player));
+        spell->SetScriptValue(BuffSnapshotKey, 1);
         for (uint32 id : {MojoFree, SenjinBuff, PriceReady, DambalaReady, TrueSpiritReady, OverflowBuff, VolleyReady,
                           UmbralReady, HexfireReady, MojoThistle, MojoFish, MojoShrooms})
             if (caster->HasAura(id))
@@ -50,8 +52,18 @@ class witch_doctor_casts : public AllSpellScript
         }
     }
 
+    void OnSpellPrepare(Spell* spell, Unit* caster, SpellInfo const* /*info*/) override
+    {
+        if (spell->IsTriggered())
+            return;
+        if (Player* player = Owner(caster); player == caster)
+            spell->SetScriptValue(IngredientMarker, IngredientMask(player));
+        SnapshotBuffs(spell, caster);
+    }
+
     void OnSpellCheckCast(Spell* spell, bool /*strict*/, SpellCastResult& result) override
     {
+        SnapshotBuffs(spell, spell->GetCaster());
         Player* player = Owner(spell->GetCaster());
         if (!player || spell->GetCaster() != player || spell->IsTriggered() || result != SPELL_CAST_OK)
             return;
@@ -61,8 +73,10 @@ class witch_doctor_casts : public AllSpellScript
             result = SPELL_FAILED_CANT_DO_THAT_RIGHT_NOW;
         if ((IsPotion(info) || IsSplash(info)) && State(player).ingredients.empty())
             result = SPELL_FAILED_CASTER_AURASTATE;
-        if ((id == Umbral && !player->HasAura(UmbralReady)) || (id == HexfireWrath && !player->HasAura(HexfireReady)) ||
-            (id == Volley && !player->HasAura(VolleyReady) &&
+        // A cast that began while the proc was up completes even if the buff runs out during the cast time.
+        if ((id == Umbral && !player->HasAura(UmbralReady) && !spell->GetScriptValue(UmbralReady)) ||
+            (id == HexfireWrath && !player->HasAura(HexfireReady)) ||
+            (id == Volley && !player->HasAura(VolleyReady) && !spell->GetScriptValue(VolleyReady) &&
              !(player->HasAura(Gift) && HasSummon(player, NpcMimic))) ||
             (id == Tiki && (!player->HasAura(TikiTalent) || (!player->HasAura(Crystal) && !player->HasAura(Beast)))) ||
             (id == ViperWard && !player->HasAura(ViperTalent)) ||
@@ -335,20 +349,21 @@ class witch_doctor_casts : public AllSpellScript
         }
         if (Family(info, 1, 131072) && player->HasAura(SplashOnEm))
             Reduce(player, Beam, 2000);
-        if (Family(info, 0, 536870912) || id == Frenzy)
+        if (id == Frenzy)
         {
             player->RemoveAurasDueToSpell(Spirit);
             SyncSpirits(player);
-            if (id != Frenzy)
+        }
+        else if (Family(info, 0, 536870912))
+        {
+            // Spirit Eclipse only unleashes the Spirits; Frenzied Spirits is the one that consumes them.
+            if (count == 5 && player->HasAura(PriceToPay))
             {
-                if (count == 5 && player->HasAura(PriceToPay))
-                {
-                    Reduce(player, Glaive, INT32_MAX);
-                    Cast(player, player, PriceReady);
-                }
-                if (player->HasAura(Dambala))
-                    Cast(player, player, DambalaReady);
+                Reduce(player, Glaive, INT32_MAX);
+                Cast(player, player, PriceReady);
             }
+            if (player->HasAura(Dambala))
+                Cast(player, player, DambalaReady);
         }
         if (id == Mirage)
             GainSpirit(player, 5);

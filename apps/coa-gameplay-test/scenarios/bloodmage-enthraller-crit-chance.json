@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "name": "Enthraller adds 10% crit chance to Keleseth's Calamity and Valanar's Vengeance (#586)",
+  "contract": "Enthraller 706619 carries ADD_FLAT_MODIFIER (aura 107), MiscValue 7 (SPELLMOD_CRITICAL_CHANCE), BasePoints 9 (real value 10, EffectDieSides=1), classmask (393216,0,0), which matches exactly 13 spells in family 26: the Keleseth's Calamity ranks (560249, 561175-561179) and the Valanar's Vengeance ranks (560315, 561027-561029, 572793-572795), no remainder. spell_modifier applies the player's live spell modifiers to a supplied base number for a given SpellModOp without submitting a cast, so this needs no ownership of the target spells. 561179 and 572795 are the ranks a level-80 character owns per AscensionSpellProgressionData.h (levels 58 and 56).",
+  "timeout_ms": 90000,
+  "players": [
+    { "id": "caster", "race": 1, "class": 20, "level": 80 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let level scaling settle", "ms": 5000 },
+    {
+      "action": "assert", "label": "No crit bonus on Keleseth's Calamity before Enthraller",
+      "actor": "caster", "metric": "spell_modifier", "spell": 561179, "op": 7, "base": 0, "equals": 0
+    },
+    {
+      "action": "assert", "label": "No crit bonus on Valanar's Vengeance before Enthraller",
+      "actor": "caster", "metric": "spell_modifier", "spell": 572795, "op": 7, "base": 0, "equals": 0
+    },
+    { "action": "learn", "actor": "caster", "spell": 706619 },
+    {
+      "action": "assert", "label": "Enthraller adds 10 crit percentage points to Keleseth's Calamity",
+      "actor": "caster", "metric": "spell_modifier", "spell": 561179, "op": 7, "base": 0, "equals": 10
+    },
+    {
+      "action": "assert", "label": "Enthraller adds 10 crit percentage points to Valanar's Vengeance",
+      "actor": "caster", "metric": "spell_modifier", "spell": 572795, "op": 7, "base": 0, "equals": 10
+    },
+    {
+      "action": "assert", "label": "Enthraller does not touch an unrelated Bloodmage spell",
+      "actor": "caster", "metric": "spell_modifier", "spell": 578305, "op": 7, "base": 0, "equals": 0
+    }
+  ]
+}

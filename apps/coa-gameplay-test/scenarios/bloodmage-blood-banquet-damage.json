@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "name": "Blood Banquet raises Valanar's Vengeance and Taldaram's Torment damage (#981)",
+  "contract": "Blood Banquet's two ranks (560250 rank 1, 561347 rank 2) carry ADD_PCT_MODIFIER (aura 108) on two effects: MiscValue 22 (SPELLMOD_DOT) and MiscValue 0 (SPELLMOD_DAMAGE), classmask (262144,0,2097152) on both effects and both ranks. Word0 bit (262144) matches exactly the 7 Valanar's Vengeance ranks; word2 bit (2097152) matches exactly the 8 Taldaram's Torment ranks. BasePoints are 14 (real 15%) on rank 1 and 29 (real 30%) on rank 2, matching the tooltip exactly. Unit::SpellDamageBonusDone/Unit::ApplySpellMod (Unit.cpp) consumes SPELLMOD_DAMAGE and SPELLMOD_DOT generically. spell_modifier queries this without casting or owning the target spells. 572795 and 802580 are the Valanar's Vengeance / Taldaram's Torment ranks a level-80 character owns.",
+  "timeout_ms": 90000,
+  "players": [
+    { "id": "caster", "race": 1, "class": 20, "level": 80 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let level scaling settle", "ms": 5000 },
+    {
+      "action": "assert", "label": "No damage bonus on Valanar's Vengeance before Blood Banquet",
+      "actor": "caster", "metric": "spell_modifier", "spell": 572795, "op": 0, "base": 1000, "equals": 1000
+    },
+    {
+      "action": "assert", "label": "No DoT bonus on Taldaram's Torment before Blood Banquet",
+      "actor": "caster", "metric": "spell_modifier", "spell": 802580, "op": 22, "base": 1000, "equals": 1000
+    },
+    { "action": "learn", "actor": "caster", "spell": 560250 },
+    {
+      "action": "assert", "label": "Rank 1 adds 15% direct damage to Valanar's Vengeance",
+      "actor": "caster", "metric": "spell_modifier", "spell": 572795, "op": 0, "base": 1000, "equals": 1150
+    },
+    {
+      "action": "assert", "label": "Rank 1 adds 15% DoT damage to Taldaram's Torment",
+      "actor": "caster", "metric": "spell_modifier", "spell": 802580, "op": 22, "base": 1000, "equals": 1150
+    },
+    { "action": "unlearn", "actor": "caster", "spell": 560250 },
+    { "action": "learn", "actor": "caster", "spell": 561347 },
+    {
+      "action": "assert", "label": "Rank 2 adds 30% direct damage to Valanar's Vengeance",
+      "actor": "caster", "metric": "spell_modifier", "spell": 572795, "op": 0, "base": 1000, "equals": 1300
+    },
+    {
+      "action": "assert", "label": "Rank 2 adds 30% DoT damage to Taldaram's Torment",
+      "actor": "caster", "metric": "spell_modifier", "spell": 802580, "op": 22, "base": 1000, "equals": 1300
+    }
+  ]
+}

@@ -56,7 +56,7 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[1].SpellClassMask[1] |= 2048;
     if (id == 707755)
         for (uint8 i = 0; i < MAX_SPELL_EFFECTS; ++i)
-            dummy(i); // the recovered two-kind limit is implemented by GrantOath
+            dummy(i); // unacquirable legacy passive; its stats live on Graceful Fighter 705303
     if (id == 300513)
         info->Effects[2].ApplyAuraName = SPELL_AURA_PREVENTS_FLEEING;
     if (id == 707111)

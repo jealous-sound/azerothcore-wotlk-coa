@@ -1,0 +1,92 @@
+{
+ "schema": 1,
+ "name": "Necromancer: Banshee channels Banshee Drain, not Frost-Congealed Barbs (#4150)",
+ "contract": "A Banshee opens its Banshee Drain channel (572211) on its target and does not fire the Crypt Fiend's Frost-Congealed Barbs on its own.",
+ "timeout_ms": 120000,
+ "players": [
+  {
+   "id": "n",
+   "race": 5,
+   "class": 23,
+   "level": 60
+  }
+ ],
+ "creatures": [
+  {
+   "id": "d",
+   "owner": "n",
+   "entry": 299,
+   "level": 60,
+   "distance": 4
+  }
+ ],
+ "location": {
+  "map": 0,
+  "x": -8917.41,
+  "y": -115.853,
+  "z": 82.3711,
+  "o": 0
+ },
+ "steps": [
+  {
+   "action": "wait",
+   "ms": 3000
+  },
+  {
+   "action": "learn",
+   "spell": 504861,
+   "actor": "n"
+  },
+  {
+   "action": "cast",
+   "spell": 504861,
+   "actor": "n"
+  },
+  {
+   "action": "assert",
+   "label": "minion raised",
+   "actor": "n",
+   "metric": "owned_creature_count",
+   "entry": 500650,
+   "equals": 1,
+   "within_ms": 8000
+  },
+  {
+   "action": "wait",
+   "ms": 2000
+  },
+  {
+   "action": "snapshot",
+   "actor": "d",
+   "metric": "health",
+   "save_as": "h0"
+  },
+  {
+   "action": "attack",
+   "actor": "n",
+   "target": "d"
+  },
+  {
+   "action": "assert",
+   "label": "Banshee Drain channel on target",
+   "actor": "d",
+   "metric": "aura",
+   "spell": 572211,
+   "equals": 1,
+   "within_ms": 6000
+  },
+  {
+   "action": "wait",
+   "ms": 10000
+  },
+  {
+   "action": "assert",
+   "label": "damage taken without a Command",
+   "actor": "d",
+   "metric": "health",
+   "relative_to": "h0",
+   "min": -1500,
+   "max": 0
+  }
+ ]
+}

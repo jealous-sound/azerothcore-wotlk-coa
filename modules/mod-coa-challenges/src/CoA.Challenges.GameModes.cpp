@@ -101,6 +101,19 @@ namespace CoAChallenges
     // often) can OR the mode's rules without a DB query each call.
     std::mutex GameModeMaskMutex;
     std::unordered_map<uint32, uint32> GameModeMaskCache;
+    // TOCTOU guard, same scheme as CharChallengeGeneration (CoA.Challenges.Lifecycle.cpp): a single
+    // monotonic counter bumped under GameModeMaskMutex on every invalidation (save or clear), so an
+    // in-flight load that started before the bump does not publish a stale mask.
+    static uint64 GameModeMaskGeneration = 0;
+
+    // Test seam (`.coa cachetoctou`): runs between the DB load and the cache publish.
+    std::function<void(uint32)> GameModeLoadHookForTest;
+    std::mutex GameModeHookMutex;
+    void Test_SetGameModeLoadHook(std::function<void(uint32)> hook)
+    {
+        std::lock_guard<std::mutex> lock(GameModeHookMutex);
+        GameModeLoadHookForTest = std::move(hook);
+    }
     // Bits the player enabled from the Gamemodes tab (only while
     // GameModes.PlayerToggle is on). RecomputeRequiredGameModes ORs these in so a
     // trial-driven recompute does not silently clear a player-toggled mode.
@@ -132,16 +145,40 @@ namespace CoAChallenges
 
     uint32 CachedGameModeMask(uint32 guid)
     {
+        for (;;)
         {
+            uint64 generation = 0;
+            bool guard = false;
+            {
+                std::lock_guard<std::mutex> lock(GameModeMaskMutex);
+                auto it = GameModeMaskCache.find(guid);
+                if (it != GameModeMaskCache.end())
+                    return it->second;
+                guard = CacheGenerationGuardEnabled();
+                if (guard)
+                    generation = GameModeMaskGeneration;
+            }
+
+            uint32 mask = LoadGameModeMask(guid);
+            {
+                // Copy the hook under its own mutex; invoke after unlocking so its Clear* call,
+                // which takes GameModeMaskMutex, cannot deadlock.
+                std::function<void(uint32)> hook;
+                {
+                    std::lock_guard<std::mutex> lock(GameModeHookMutex);
+                    hook = GameModeLoadHookForTest;
+                }
+                if (hook)
+                    hook(guid);
+            }
+
             std::lock_guard<std::mutex> lock(GameModeMaskMutex);
-            auto it = GameModeMaskCache.find(guid);
-            if (it != GameModeMaskCache.end())
-                return it->second;
+            // The stored mask changed while we were loading: the snapshot is stale, reload.
+            if (guard && GameModeMaskGeneration != generation)
+                continue;
+            GameModeMaskCache[guid] = mask;
+            return mask;
         }
-        uint32 mask = LoadGameModeMask(guid);
-        std::lock_guard<std::mutex> lock(GameModeMaskMutex);
-        GameModeMaskCache[guid] = mask;
-        return mask;
     }
 
     void ClearGameModeMaskCache(uint32 guid)
@@ -149,6 +186,7 @@ namespace CoAChallenges
         std::lock_guard<std::mutex> lock(GameModeMaskMutex);
         GameModeMaskCache.erase(guid);
         PlayerToggleMask.erase(guid);
+        ++GameModeMaskGeneration;
     }
 
     // Apply/remove the base challenge's aura for the bits that changed. The
@@ -197,6 +235,8 @@ namespace CoAChallenges
             "REPLACE INTO coa_character_gamemode (guid, gameMode) VALUES ({}, {})", guid, mask);
         std::lock_guard<std::mutex> lock(GameModeMaskMutex);
         GameModeMaskCache[guid] = mask;
+        // Drop any in-flight load: it read the pre-write mask and must not overwrite this one.
+        ++GameModeMaskGeneration;
     }
 
     // NOTE: pass the mask explicitly after a toggle — SaveGameModeMask uses the

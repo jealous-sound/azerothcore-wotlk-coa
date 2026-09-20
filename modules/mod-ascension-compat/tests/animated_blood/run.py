@@ -65,6 +65,16 @@ def main():
         assert db.execute('SELECT ModelID FROM creaturedisplayinfo_dbc WHERE ID=?', (display,)).fetchone() == (model,)
         assert db.execute('SELECT COUNT(*) FROM creaturemodeldata_dbc WHERE ID=?', (model,)).fetchone() == (1,)
         assert db.execute('SELECT COUNT(*) FROM creature_model_info WHERE DisplayID=?', (display,)).fetchone() == (1,)
+    # #4290: the amalgam's client display scale (4) is cancelled by DisplayScale, so it renders at the
+    # model's native height instead of about 12 yards.
+    scale_sql = ROOT / 'data/sql/updates/pending_db_world/rev_20260920_01_animated_blood_amalgam_scale.sql'
+    db.executescript(scale_sql.read_text())
+    db.executescript(scale_sql.read_text())
+    display_scales = dict(db.execute('SELECT CreatureID,DisplayScale FROM creature_template_model'))
+    assert display_scales == {315301: 0.25, 325301: 1, 335301: 1}
+    box = struct.unpack_from('<6f', struct.pack('<6I', *models[10899][16:22]))
+    rendered = (box[5] - box[2]) * struct.unpack('<f', struct.pack('<I', displays[93307][4]))[0] * display_scales[315301]
+    assert rendered < 4  # A bus-sized amalgam was 12.4 yards.
     source = (ROOT / 'modules/mod-ascension-compat/src/AscensionBloodmageTalents.cpp').read_text()
     assert 'OnEffectLaunch +=' in extract(source, 'class spell_ascension_animated_blood')
     assert spells[712417][86:92] == (18, 0, 0, 72, 0, 0)  # Destination-only helper runs at LAUNCH.

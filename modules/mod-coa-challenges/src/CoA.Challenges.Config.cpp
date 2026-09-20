@@ -265,7 +265,7 @@ namespace CoAChallenges
 
     void SendConfigBatch(Player* player)
     {
-        if (!sConfigMgr->GetOption<bool>("CoAChallenges.Enable", true))
+        if (!ChallengesEnabled())
             return;
 
         WorldSession* session = player->GetSession();

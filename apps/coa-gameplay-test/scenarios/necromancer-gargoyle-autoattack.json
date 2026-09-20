@@ -1,0 +1,83 @@
+{
+ "schema": 1,
+ "name": "Necromancer: Raised Gargoyle attacks with Putrid Claw (#4156)",
+ "contract": "Without a Command a Raised Gargoyle only auto-attacks and uses Putrid Claw; Command: Gargoyle is cast on order only.",
+ "timeout_ms": 120000,
+ "players": [
+  {
+   "id": "n",
+   "race": 5,
+   "class": 23,
+   "level": 60
+  }
+ ],
+ "creatures": [
+  {
+   "id": "d",
+   "owner": "n",
+   "entry": 299,
+   "level": 60,
+   "distance": 4
+  }
+ ],
+ "location": {
+  "map": 0,
+  "x": -8917.41,
+  "y": -115.853,
+  "z": 82.3711,
+  "o": 0
+ },
+ "steps": [
+  {
+   "action": "wait",
+   "ms": 3000
+  },
+  {
+   "action": "learn",
+   "spell": 500329,
+   "actor": "n"
+  },
+  {
+   "action": "cast",
+   "spell": 500329,
+   "actor": "n"
+  },
+  {
+   "action": "assert",
+   "label": "minion raised",
+   "actor": "n",
+   "metric": "owned_creature_count",
+   "entry": 50067,
+   "equals": 1,
+   "within_ms": 8000
+  },
+  {
+   "action": "wait",
+   "ms": 2000
+  },
+  {
+   "action": "snapshot",
+   "actor": "d",
+   "metric": "health",
+   "save_as": "h0"
+  },
+  {
+   "action": "attack",
+   "actor": "n",
+   "target": "d"
+  },
+  {
+   "action": "wait",
+   "ms": 10000
+  },
+  {
+   "action": "assert",
+   "label": "damage taken without a Command",
+   "actor": "d",
+   "metric": "health",
+   "relative_to": "h0",
+   "min": -2200,
+   "max": 0
+  }
+ ]
+}

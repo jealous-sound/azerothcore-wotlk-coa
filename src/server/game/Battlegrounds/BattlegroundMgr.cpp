@@ -445,7 +445,21 @@ bool BattlegroundMgr::CreateBattleground(BattlegroundTemplate const* bgTemplate)
         AddBattleground(bg);
     }
 
-    bg->SetMapId(bgTemplate->BattlemasterEntry->mapid[0]);
+    uint32 mapId = bgTemplate->BattlemasterEntry->mapid[0];
+    if (bgTemplate->Id == BATTLEGROUND_RB)
+    {
+        // The random battleground's first map (1280 in the client's BattlemasterList) has no PvPDifficulty
+        // brackets, so no level resolved a bracket and every join was silently dropped. Use the first listed
+        // map that does have them.
+        for (int32 candidate : bgTemplate->BattlemasterEntry->mapid)
+            if (candidate != -1 && GetBattlegroundBracketById(candidate, BG_BRACKET_ID_FIRST))
+            {
+                mapId = candidate;
+                break;
+            }
+    }
+
+    bg->SetMapId(mapId);
     bg->SetName(bgTemplate->BattlemasterEntry->name[sWorld->GetDefaultDbcLocale()]);
     bg->SetArenaorBGType(bgTemplate->IsArena());
     bg->SetMinPlayersPerTeam(bgTemplate->MinPlayersPerTeam);

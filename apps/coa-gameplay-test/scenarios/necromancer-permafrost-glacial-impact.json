@@ -1,0 +1,92 @@
+{
+ "schema": 1,
+ "name": "Necromancer: a Permafrost proc lets Glacial Impact hit an unfrozen target (#4181)",
+ "contract": "While the Permafrost buff is active the target counts as frozen, so Glacial Impact can be cast and deals damage.",
+ "timeout_ms": 90000,
+ "players": [
+  {
+   "id": "n",
+   "race": 5,
+   "class": 23,
+   "level": 60
+  }
+ ],
+ "creatures": [
+  {
+   "id": "d",
+   "owner": "n",
+   "entry": 299,
+   "level": 60,
+   "distance": 12
+  }
+ ],
+ "location": {
+  "map": 0,
+  "x": -8917.41,
+  "y": -115.853,
+  "z": 82.3711,
+  "o": 0
+ },
+ "steps": [
+  {
+   "action": "wait",
+   "ms": 3000
+  },
+  {
+   "action": "learn",
+   "spell": 704355,
+   "actor": "n"
+  },
+  {
+   "action": "snapshot",
+   "actor": "d",
+   "metric": "health",
+   "save_as": "h_before"
+  },
+  {
+   "action": "cast",
+   "spell": 704355,
+   "actor": "n",
+   "target": "d"
+  },
+  {
+   "action": "wait",
+   "ms": 3000
+  },
+  {
+   "action": "assert",
+   "label": "Glacial Impact is refused on an unfrozen target without Permafrost",
+   "actor": "d",
+   "metric": "health",
+   "relative_to": "h_before",
+   "equals": 0
+  },
+  {
+   "action": "set_aura",
+   "actor": "n",
+   "spell": 801747,
+   "stacks": 1
+  },
+  {
+   "action": "snapshot",
+   "actor": "d",
+   "metric": "health",
+   "save_as": "h0"
+  },
+  {
+   "action": "cast",
+   "spell": 704355,
+   "actor": "n",
+   "target": "d"
+  },
+  {
+   "action": "assert",
+   "label": "Glacial Impact hit the unfrozen target under Permafrost",
+   "actor": "d",
+   "metric": "health",
+   "relative_to": "h0",
+   "max": -1,
+   "within_ms": 8000
+  }
+ ]
+}

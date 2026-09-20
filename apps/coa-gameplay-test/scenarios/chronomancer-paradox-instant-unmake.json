@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "name": "Casting Melt Reality grants Paradox's free-and-instant buff (#569)",
+  "contract": "Paradox 680946 applies aura 42 (proc trigger spell) on 680947 (ADD_PCT_MODIFIER SPELLMOD_CASTING_TIME and SPELLMOD_COST at -100%, class-masked to Unmake and Reverse Wound), but Spell.dbc gives it ProcFlags 0 and no spell_proc row existed, so it never procced. With a spell_proc row gated on the magic class damage of Melt Reality (100% chance), a single Melt Reality cast should grant the buff.",
+  "timeout_ms": 60000,
+  "players": [
+    {
+      "id": "chronomancer",
+      "race": 1,
+      "class": 22,
+      "level": 80,
+      "spell_hit_rating": 10000
+    }
+  ],
+  "creatures": [
+    { "id": "dummy", "owner": "chronomancer", "entry": 36, "health": 1000000, "distance": 3 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+    { "action": "learn", "actor": "chronomancer", "spell": 680946 },
+    { "action": "learn", "actor": "chronomancer", "spell": 806335 },
+    {
+      "action": "assert",
+      "label": "No Paradox buff before any cast",
+      "actor": "chronomancer",
+      "metric": "aura",
+      "spell": 680947,
+      "caster": "chronomancer",
+      "equals": 0
+    },
+    { "action": "cast", "actor": "chronomancer", "spell": 806335, "target": "dummy" },
+    {
+      "action": "assert",
+      "label": "Melt Reality's cast grants the Paradox buff",
+      "actor": "chronomancer",
+      "metric": "aura",
+      "spell": 680947,
+      "caster": "chronomancer",
+      "equals": 1,
+      "within_ms": 5000
+    }
+  ]
+}

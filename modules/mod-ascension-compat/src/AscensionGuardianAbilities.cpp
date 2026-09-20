@@ -219,10 +219,58 @@ class aura_ascension_guardian_advance : public AuraScript
             EFFECT_1, SPELL_AURA_FORCE_MOVE_FORWARD, AURA_EFFECT_HANDLE_REAL);
     }
 };
+
+class aura_ascension_guardian_hold_the_line : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_guardian_hold_the_line);
+
+    void SetExtraImmunities(bool apply)
+    {
+        Unit* target = GetTarget();
+        // The active record already covers grip, disorient and ordinary knockback.
+        // Its unused SLS record contains these two missing incapacitate mechanics.
+        target->ApplySpellImmune(GetId(), IMMUNITY_MECHANIC, MECHANIC_KNOCKOUT, apply);
+        target->ApplySpellImmune(GetId(), IMMUNITY_MECHANIC, MECHANIC_SAPPED, apply);
+        target->ApplySpellImmune(GetId(), IMMUNITY_EFFECT, SPELL_EFFECT_KNOCK_BACK_DEST, apply);
+    }
+
+    void Apply(AuraEffect const* /*effect*/, AuraEffectHandleModes /*mode*/)
+    {
+        SetExtraImmunities(true);
+        if (GetSpellInfo()->HasAttribute(SPELL_ATTR1_IMMUNITY_PURGES_EFFECT))
+            GetTarget()->RemoveAurasWithMechanic((1ULL << MECHANIC_KNOCKOUT) | (1ULL << MECHANIC_SAPPED),
+                AURA_REMOVE_BY_DEFAULT, GetId());
+    }
+
+    void Remove(AuraEffect const* /*effect*/, AuraEffectHandleModes /*mode*/)
+    {
+        Unit* target = GetTarget();
+        // Another Guardian may still be protecting this recipient. This effect has
+        // already been unregistered, so only remaining applications can retain immunity.
+        auto const& effects = target->GetAuraEffectsByType(SPELL_AURA_EFFECT_IMMUNITY);
+        bool protectedByAnother = std::any_of(effects.begin(), effects.end(), [this, target](AuraEffect const* other)
+        {
+            if (other->GetId() != GetId() || other->GetBase() == GetAura())
+                return false;
+            AuraApplication const* application = other->GetBase()->GetApplicationOfTarget(target->GetGUID());
+            return application && application->IsActive(other->GetEffIndex());
+        });
+        SetExtraImmunities(protectedByAnother);
+    }
+
+    void Register() override
+    {
+        AfterEffectApply += AuraEffectApplyFn(aura_ascension_guardian_hold_the_line::Apply,
+            EFFECT_1, SPELL_AURA_EFFECT_IMMUNITY, AURA_EFFECT_HANDLE_REAL);
+        AfterEffectRemove += AuraEffectRemoveFn(aura_ascension_guardian_hold_the_line::Remove,
+            EFFECT_1, SPELL_AURA_EFFECT_IMMUNITY, AURA_EFFECT_HANDLE_REAL);
+    }
+};
 }
 
 void AddAscensionGuardianAbilityScripts()
 {
     RegisterSpellScript(spell_ascension_guardian_ability);
     RegisterSpellScript(aura_ascension_guardian_advance);
+    RegisterSpellScript(aura_ascension_guardian_hold_the_line);
 }

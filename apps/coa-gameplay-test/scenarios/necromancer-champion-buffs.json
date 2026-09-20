@@ -1,0 +1,21 @@
+{
+ "schema": 1,
+ "name": "Necromancer: Gravebound and Icebound Champions buff their owner",
+ "contract": "While a Champion lives its owner carries its buff: Gravebound Champion (805049) gives the damage-redirect aura 805050, Icebound Champion (807813) gives the silence/interrupt immunity aura 807812.",
+ "timeout_ms": 90000,
+ "players": [
+  { "id": "grave", "race": 5, "class": 23, "level": 50 },
+  { "id": "ice", "race": 5, "class": 23, "level": 50 }
+ ],
+ "location": { "map": 0, "x": -8917.41, "y": -115.853, "z": 82.3711, "o": 0 },
+ "steps": [
+  { "action": "wait", "ms": 3000 },
+  { "action": "learn", "spell": 805049, "actor": "grave" },
+  { "action": "learn", "spell": 807813, "actor": "ice" },
+  { "action": "cast", "spell": 805049, "actor": "grave" },
+  { "action": "cast", "spell": 807813, "actor": "ice" },
+  { "action": "wait", "ms": 3000 },
+  { "action": "assert", "label": "Gravebound Champion buffs its owner", "actor": "grave", "metric": "aura", "spell": 805050, "equals": 1, "within_ms": 5000 },
+  { "action": "assert", "label": "Icebound Champion buffs its owner", "actor": "ice", "metric": "aura", "spell": 807812, "equals": 1, "within_ms": 5000 }
+ ]
+}

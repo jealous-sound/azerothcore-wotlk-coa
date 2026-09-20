@@ -23,7 +23,9 @@ enum BloodmageTalentSpells : uint32
     SPELL_SANGUINE_SCRIPTURE_BUFF = 504264,
     SPELL_CURSED_FORM_REQUIREMENT = 525031,
     SPELL_CURSED_FORM_REQUIREMENT_2 = 524861,
-    SPELL_BLOODMOON_POWER = 801961
+    SPELL_BLOODMOON_POWER = 801961,
+    SPELL_ETERNAL_CURSE = 800157,
+    SPELL_ETERNAL_CURSE_ARMOR = 804320
 };
 
 // Every creature Animated Blood can leave behind: worms, parasites and the rank 3 amalgam.
@@ -35,6 +37,32 @@ constexpr uint32 CursedForms[] = {562572, 562720, 680692, 800157, 801076};
 bool IsCursedForm(uint32 id)
 {
     return std::find(std::begin(CursedForms), std::end(CursedForms), id) != std::end(CursedForms);
+}
+
+constexpr uint8 CursedFormWeaponSlots[] = {EQUIPMENT_SLOT_MAINHAND, EQUIPMENT_SLOT_OFFHAND, EQUIPMENT_SLOT_RANGED};
+
+bool HasCursedForm(Player const* player, Aura const* ignored = nullptr)
+{
+    for (uint32 form : CursedForms)
+        if (Aura const* aura = player->GetAura(form, player->GetGUID()); aura && aura != ignored)
+            return true;
+    return false;
+}
+
+void ClearVisibleWeapon(Player* player, uint8 slot)
+{
+    player->SetUInt32Value(PLAYER_VISIBLE_ITEM_1_ENTRYID + slot * 2, 0);
+    player->SetUInt32Value(PLAYER_VISIBLE_ITEM_1_ENCHANTMENT + slot * 2, 0);
+}
+
+// The worgen model of Cursed Form fights with claws, so the weapons are only hidden, not disarmed.
+void UpdateCursedFormWeapons(Player* player, bool hidden)
+{
+    for (uint8 slot : CursedFormWeaponSlots)
+        if (hidden)
+            ClearVisibleWeapon(player, slot);
+        else
+            player->SetVisibleItemSlot(slot, player->GetItemByPos(INVENTORY_SLOT_BAG_0, slot));
 }
 
 // Cursed Form abilities gate their cast on a CasterAuraSpell marker that nothing in Spell.dbc ever
@@ -120,7 +148,13 @@ public:
         if (!player || player->getClass() != CLASS_SON_OF_ARUGAL || !aura)
             return;
         if (IsCursedForm(aura->GetId()))
+        {
             SyncCursedFormRequirement(player);
+            UpdateCursedFormWeapons(player, true);
+        }
+        // "Armor contribution from items" is a hidden passive (804320) that nothing ever applied.
+        if (aura->GetId() == SPELL_ETERNAL_CURSE)
+            player->CastSpell(player, SPELL_ETERNAL_CURSE_ARMOR, true);
     }
 
     void OnAuraRemove(Unit* unit, AuraApplication* application, AuraRemoveMode mode) override
@@ -130,7 +164,13 @@ public:
             return;
         Aura* aura = application->GetBase();
         if (IsCursedForm(aura->GetId()))
+        {
             SyncCursedFormRequirement(player);
+            if (!HasCursedForm(player, aura))
+                UpdateCursedFormWeapons(player, false);
+        }
+        if (aura->GetId() == SPELL_ETERNAL_CURSE)
+            player->RemoveAurasDueToSpell(SPELL_ETERNAL_CURSE_ARMOR);
         if (!player->IsAlive() || !player->IsInWorld() || mode == AURA_REMOVE_BY_DEATH)
             return;
         if (aura->GetId() == SPELL_LIQUIFY && aura->GetCasterGUID() == player->GetGUID() &&
@@ -150,6 +190,41 @@ public:
         if (aura->GetId() == SPELL_ACCURSED_FORM && aura->GetCasterGUID() == player->GetGUID() &&
             player->HasAura(SPELL_SANGUINE_SCRIPTURE))
             player->CastSpell(player, SPELL_SANGUINE_SCRIPTURE_BUFF, true);
+    }
+};
+
+// Passive shapeshift auras survive Unit::RemoveAllAurasOnDeath, so a Bloodmage who died in a Cursed Form
+// (Eternal Curse) stayed shapeshifted as a ghost, and dropping the form then killed the ghost again.
+class bloodmage_cursed_form_death : public PlayerScript
+{
+public:
+    bloodmage_cursed_form_death() : PlayerScript("bloodmage_cursed_form_death", {PLAYERHOOK_ON_PLAYER_JUST_DIED}) { }
+
+    void OnPlayerJustDied(Player* player) override
+    {
+        if (!player || player->getClass() != CLASS_SON_OF_ARUGAL)
+            return;
+        for (uint32 form : CursedForms)
+            player->RemoveAurasDueToSpell(form);
+        SyncCursedFormRequirement(player);
+    }
+};
+
+// Equipping or swapping a weapon rewrites the visible item fields, which would show it again.
+class bloodmage_cursed_form_weapons : public PlayerScript
+{
+public:
+    bloodmage_cursed_form_weapons() : PlayerScript("bloodmage_cursed_form_weapons",
+        {PLAYERHOOK_ON_AFTER_SET_VISIBLE_ITEM_SLOT}) { }
+
+    void OnPlayerAfterSetVisibleItemSlot(Player* player, uint8 slot, Item* /*item*/) override
+    {
+        if (!player || player->getClass() != CLASS_SON_OF_ARUGAL)
+            return;
+        if (std::find(std::begin(CursedFormWeaponSlots), std::end(CursedFormWeaponSlots), slot) ==
+            std::end(CursedFormWeaponSlots) || !HasCursedForm(player))
+            return;
+        ClearVisibleWeapon(player, slot);
     }
 };
 
@@ -183,6 +258,8 @@ public:
 void AddSC_AscensionBloodmageTalents()
 {
     new bloodmage_talent_events();
+    new bloodmage_cursed_form_death();
+    new bloodmage_cursed_form_weapons();
     new bloodmage_talent_contracts();
     RegisterSpellScript(spell_ascension_animated_blood);
 }

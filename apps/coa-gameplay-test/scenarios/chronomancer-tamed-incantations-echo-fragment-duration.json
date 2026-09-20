@@ -1,0 +1,34 @@
+{
+  "schema": 1,
+  "name": "Tamed Incantations increases Echo Fragment's own duration-modifier effect by 500ms (#565)",
+  "contract": "Tamed Incantations 706077 carries a vestigial zero-value SPELL_AURA_MOD_CRIT_PCT (290) effect plus a real SPELL_AURA_ADD_FLAT_MODIFIER (107) effect with EffectMiscValue SPELLMOD_EFFECT2 (12) and EffectSpellClassMask word0 bit 0x10, matching Echo Fragment 804455's own SpellFamilyFlags word0 (16). Echo Fragment's own effect index 1 is itself SPELLMOD_DURATION (op 1) scoped to Continuum spells (5000ms per stack); Tamed Incantations raises that per-stack value by 500 (EffectBasePoints 499 resolves to 500 with DieSides 1), which is how 'increases Continuum spell duration per Echo Fragment' is implemented, since AuraEffect::CalculateAmount multiplies every effect's amount by the aura's current stack count (SpellAuraEffects.cpp).",
+  "timeout_ms": 60000,
+  "players": [
+    { "id": "control", "race": 1, "class": 22, "level": 80 },
+    { "id": "talent", "race": 1, "class": 22, "level": 80 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+    { "action": "learn", "actor": "talent", "spell": 706077 },
+    {
+      "action": "assert",
+      "label": "Echo Fragment's duration effect unmodified without the talent",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 804455,
+      "op": 12,
+      "base": 0,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "Echo Fragment's duration effect gains 500 with the talent",
+      "actor": "talent",
+      "metric": "spell_modifier",
+      "spell": 804455,
+      "op": 12,
+      "base": 0,
+      "equals": 500
+    }
+  ]
+}

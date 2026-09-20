@@ -442,10 +442,11 @@ void DestroyBankItem(CharacterDatabaseTransaction trans, OpenBank& bank, uint8 t
 {
     bank.Items[tab][slot] = nullptr;
     StoreSlot(trans, bank, tab, slot, nullptr);
+    // Item::SaveToDB deletes an ITEM_REMOVED item itself, and ~Object aborts on an item still in the
+    // world: leave the world first, and never touch the item afterwards.
+    item->RemoveFromWorld();
     item->FSetState(ITEM_REMOVED);
     item->SaveToDB(trans);
-    item->RemoveFromWorld();
-    delete item;
 }
 
 [[nodiscard]] uint32 ItemCount(OpenBank const& bank)

@@ -5,6 +5,8 @@
 #include "ObjectMgr.h"
 #include "Player.h"
 #include "ScriptMgr.h"
+#include "WorldPacket.h"
+#include "WorldSession.h"
 #include <algorithm>
 #include <array>
 #include <vector>
@@ -32,56 +34,88 @@ enum RewardKind : uint8
     RewardKindCount
 };
 
+// Ascension hands the reward straight to the bags: its cached item templates carry no
+// ITEM_FLAG_HAS_LOOT, so opening a cache never showed a loot window.
+void OpenCache(Player* player, Item* item)
+{
+    player->SendEquipError(EQUIP_ERR_NONE, item, nullptr); // releases the item the client greyed out
+    if (!player->IsAlive() || player->IsInCombat())
+        return;
+
+    Loot loot;
+    loot.containerGUID = item->GetGUID(); // the reward filter below recognises the cache through it
+    loot.FillLoot(item->GetEntry(), LootTemplates_Item, player, true, true);
+
+    std::vector<LootItem const*> rewards;
+    ItemPosCountVec reserved;
+    uint32 const slots = loot.GetMaxSlotInLootFor(player);
+    for (uint32 slot = 0; slot < slots; ++slot)
+    {
+        LootItem const* reward = loot.LootItemInSlot(slot, player);
+        if (!reward)
+            continue;
+        InventoryResult space =
+            player->CanStoreNewItem(NULL_BAG, NULL_SLOT, reserved, reward->itemid, reward->count);
+        if (space != EQUIP_ERR_OK)
+        {
+            // Leave the cache in the bags so it can be opened once there is room for its reward.
+            player->SendEquipError(space, nullptr, nullptr, reward->itemid);
+            return;
+        }
+        rewards.push_back(reward);
+    }
+
+    uint32 count = 1;
+    player->DestroyItemCount(item, count, true);
+    for (LootItem const* reward : rewards)
+    {
+        ItemPosCountVec dest;
+        if (player->CanStoreNewItem(NULL_BAG, NULL_SLOT, dest, reward->itemid, reward->count) != EQUIP_ERR_OK)
+            continue;
+        if (Item* stored = player->StoreNewItem(dest, reward->itemid, true, reward->randomPropertyId))
+            player->SendNewItem(stored, reward->count, false, false, true);
+    }
+}
+
 class item_ascension_adventurer_cache : public ItemScript
 {
 public:
     item_ascension_adventurer_cache() : ItemScript("item_ascension_adventurer_cache") { }
 
+    // A client holding the Ascension item template sends an item-use spell request.
     bool OnUse(Player* player, Item* item, SpellCastTargets const&) override
     {
         if (!IsAdventurerReward(item->GetEntry()))
             return false;
-        // A client with the original cached template sends an item-use spell request.
-        player->SendEquipError(EQUIP_ERR_NONE, item, nullptr);
-        if (!player->IsAlive() || player->IsInCombat())
+        OpenCache(player, item);
+        return true;
+    }
+};
+
+// Until #389 this world gave the caches ITEM_FLAG_HAS_LOOT, and a client that queried one back then keeps
+// that template in its item cache: it opens the cache as a container (CMSG_OPEN_ITEM) instead of using it.
+// The core refuses to open an item without the flag, and the client, still waiting for the loot window,
+// then ignores every corpse until relog (#4209).
+class adventurer_cache_open : public ServerScript
+{
+public:
+    adventurer_cache_open() : ServerScript("adventurer_cache_open", {SERVERHOOK_CAN_PACKET_RECEIVE}) { }
+
+    bool CanPacketReceive(WorldSession* session, WorldPacket const& packet) override
+    {
+        if (packet.GetOpcode() != CMSG_OPEN_ITEM || packet.size() < 2)
+            return true;
+        Player* player = session ? session->GetPlayer() : nullptr;
+        if (!player || player->m_mover != player)
+            return true;
+        Item* item = player->GetItemByPos(packet.read<uint8>(0), packet.read<uint8>(1));
+        if (!item || !IsAdventurerReward(item->GetEntry()))
             return true;
 
-        // Ascension hands the reward straight to the bags: its cached item templates carry no
-        // ITEM_FLAG_HAS_LOOT, so opening a cache never showed a loot window.
-        Loot loot;
-        loot.containerGUID = item->GetGUID(); // the reward filter below recognises the cache through it
-        loot.FillLoot(item->GetEntry(), LootTemplates_Item, player, true, true);
-
-        std::vector<LootItem const*> rewards;
-        ItemPosCountVec reserved;
-        uint32 const slots = loot.GetMaxSlotInLootFor(player);
-        for (uint32 slot = 0; slot < slots; ++slot)
-        {
-            LootItem const* reward = loot.LootItemInSlot(slot, player);
-            if (!reward)
-                continue;
-            InventoryResult space =
-                player->CanStoreNewItem(NULL_BAG, NULL_SLOT, reserved, reward->itemid, reward->count);
-            if (space != EQUIP_ERR_OK)
-            {
-                // Leave the cache in the bags so it can be opened once there is room for its reward.
-                player->SendEquipError(space, nullptr, nullptr, reward->itemid);
-                return true;
-            }
-            rewards.push_back(reward);
-        }
-
-        uint32 count = 1;
-        player->DestroyItemCount(item, count, true);
-        for (LootItem const* reward : rewards)
-        {
-            ItemPosCountVec dest;
-            if (player->CanStoreNewItem(NULL_BAG, NULL_SLOT, dest, reward->itemid, reward->count) != EQUIP_ERR_OK)
-                continue;
-            if (Item* stored = player->StoreNewItem(dest, reward->itemid, true, reward->randomPropertyId))
-                player->SendNewItem(stored, reward->count, false, false, true);
-        }
-        return true;
+        ObjectGuid const cache = item->GetGUID();
+        OpenCache(player, item);
+        player->SendLootRelease(cache);
+        return false;
     }
 };
 
@@ -154,5 +188,6 @@ public:
 void AddSC_AscensionAdventurerCache()
 {
     new item_ascension_adventurer_cache();
+    new adventurer_cache_open();
     new adventurer_cache_loot();
 }

@@ -8,8 +8,8 @@ Local additions:
   * ".xp" lets a player pick their own rate (1, 3, 5, 7 or the per-band curve) or go
     back to the realm's rate. A game master sets the realm value with ".xp realm ...",
     which stays the default for every character without a personal choice.
-  * an optional reminder about ".xp", broadcast to the realm when someone logs in and
-    then every Dynamic.XP.Reminder.Interval minutes.
+  * an optional reminder about ".xp", told to a player when they log in and broadcast to
+    the realm every Dynamic.XP.Reminder.Interval minutes.
 */
 
 #include "Chat.h"
@@ -58,7 +58,6 @@ namespace
     std::atomic<int32> g_realmPresetCache{-1};
 
     /// Set when a player logs in; the broadcast itself happens on the world thread.
-    std::atomic<bool> g_loginReminderPending{false};
 
     /// Milliseconds since the last periodic reminder. World thread only.
     uint32 g_sinceReminder = 0;
@@ -260,10 +259,10 @@ public:
 
     void OnPlayerLogin(Player* player) override
     {
-        // The broadcast is made on the world thread, once this player is in the session
-        // list, so it reaches everybody online including them.
-        if (ReminderEnabled())
-            g_loginReminderPending.store(true);
+        // Told to the player who just arrived, not broadcast to the realm: a realm with bots logs
+        // characters in and out constantly, and each login announced to everybody filled the chat.
+        if (ReminderEnabled() && !player->GetSession()->IsBot())
+            ChatHandler(player->GetSession()).SendSysMessage(ReminderText().c_str());
 
         if (!sConfigMgr->GetOption<bool>("Dynamic.XP.Rate.Announce", false))
             return;
@@ -293,9 +292,6 @@ public:
 
     void OnUpdate(uint32 diff) override
     {
-        if (g_loginReminderPending.exchange(false))
-            BroadcastReminder();
-
         uint32 const minutes = sConfigMgr->GetOption<uint32>(REMINDER_INTERVAL_KEY, 40);
         if (!minutes)
             return;

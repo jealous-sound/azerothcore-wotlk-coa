@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "name": "Hematoma raises Bloodbolt's self-heal multiplier (#1933)",
+  "contract": "Hematoma's two ranks (504758 rank 1, 504896 rank 2) carry ADD_PCT_MODIFIER (aura 108), MiscValue 27 (SPELLMOD_VALUE_MULTIPLIER), classmask (0,131072,0) which matches exactly the 8 Bloodbolt ranks (578304, 578305, 804685, 806928-806932), no remainder. BasePoints are 19 (real +20%) on rank 1 and 39 (real +40%) on rank 2, matching the tooltip exactly. SpellEffectInfo::CalcValueMultiplier (SpellInfo.cpp) applies SPELLMOD_VALUE_MULTIPLIER generically; Spell.cpp consumes it as Bloodbolt's own healMultiplier for its SPELL_EFFECT_HEALTH_LEECH effect. spell_modifier queries this directly against a 1.0 baseline multiplier without casting or owning the target spell. 578305 (level 60) is the rank a level-80 character owns.",
+  "timeout_ms": 90000,
+  "players": [
+    { "id": "caster", "race": 1, "class": 20, "level": 80 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let level scaling settle", "ms": 5000 },
+    {
+      "action": "assert", "label": "No heal multiplier bonus before Hematoma",
+      "actor": "caster", "metric": "spell_modifier", "spell": 578305, "op": 27, "base": 1.0, "equals": 1.0
+    },
+    { "action": "learn", "actor": "caster", "spell": 504758 },
+    {
+      "action": "assert", "label": "Rank 1 raises Bloodbolt's self-heal multiplier to 1.20",
+      "actor": "caster", "metric": "spell_modifier", "spell": 578305, "op": 27, "base": 1.0, "min": 1.199, "max": 1.201
+    },
+    { "action": "unlearn", "actor": "caster", "spell": 504758 },
+    { "action": "learn", "actor": "caster", "spell": 504896 },
+    {
+      "action": "assert", "label": "Rank 2 raises Bloodbolt's self-heal multiplier to 1.40",
+      "actor": "caster", "metric": "spell_modifier", "spell": 578305, "op": 27, "base": 1.0, "min": 1.399, "max": 1.401
+    }
+  ]
+}

@@ -207,6 +207,10 @@ void ApplyContracts(SpellInfo* info)
     {
         info->Effects[0].ApplyAuraName = SPELL_AURA_SCHOOL_ABSORB;
         info->Effects[0].MiscValue = SPELL_SCHOOL_MASK_MAGIC;
+        // The raised minion carries the shield: the DBC targets the caster and has no duration.
+        info->Effects[0].TargetA = SpellImplicitTargetInfo(TARGET_UNIT_TARGET_ALLY);
+        info->Effects[0].TargetB = SpellImplicitTargetInfo(0);
+        info->DurationEntry = sSpellDurationStore.LookupEntry(9); // 30 seconds
     }
     if (id == 705746)
         info->Effects[0].ApplyAuraName = SPELL_AURA_SCHOOL_HEAL_ABSORB;
@@ -236,6 +240,8 @@ void ApplyContracts(SpellInfo* info)
     }
     if (id == 801747)
         dummy(0);
+    if (id == 704355 || (id >= 707399 && id <= 707402))
+        info->TargetAuraState = 0; // "Requires Frozen Target" is checked in OnSpellCheckCast so Permafrost counts too
     for (uint32 charge : {800979, 572777, 707176, 807856, 801747})
         if (id == charge)
             info->ProcCharges = info->ProcFlags = 0;

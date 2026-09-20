@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "name": "Dark Presence grants the caster spell haste (#3908)",
+  "contract": "Dark Presence 300957 has two effects: effect 0 is APPLY_AREA_AURA_RAID (SPELL_EFFECT_APPLY_AREA_AURA_RAID, effect 65) with SPELL_AURA_HASTE_SPELLS (aura 216) BasePoints 2 (real 3%), and effect 1 is a plain APPLY_AURA with the same aura/value applied directly to the caster ('In addition, increases your spell haste by 3%' in the tooltip). SpellAuras.cpp's generic area-aura target list always includes the aura owner for the raid/party case, so the caster receives both effect 0 (through the raid AoE, which includes its own source) and effect 1 (the explicit personal bonus) - two separate 3% SPELL_AURA_HASTE_SPELLS instances that compound multiplicatively (1/1.03/1.03 =~ 0.9426), matching the tooltip's own 'in addition' wording. The harness has no action to form a party/raid, so the raid-wide propagation to OTHER members and its spell_group 2000182 non-stacking rule (SpellMgr.cpp, cross-checked against data/sql/updates/pending_db_world/rev_20260908_05_guardian_completion.sql) are not independently re-exercised here - only the code read in the verification pass covers them. Learning is a passive-flagged spell, so it auto-applies the self-aura; aura_amount and spell_cast_time_ms are read/queried directly.",
+  "timeout_ms": 90000,
+  "players": [
+    { "id": "caster", "race": 1, "class": 20, "level": 80 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let level scaling settle", "ms": 5000 },
+    {
+      "action": "snapshot", "label": "Frostbolt cast time before Dark Presence",
+      "actor": "caster", "metric": "spell_cast_time_ms", "spell": 116, "save_as": "cast_time_before"
+    },
+    {
+      "action": "assert", "label": "No Dark Presence aura yet",
+      "actor": "caster", "metric": "aura", "spell": 300957, "caster": "caster", "equals": 0
+    },
+    { "action": "learn", "actor": "caster", "spell": 300957 },
+    {
+      "action": "assert", "label": "Dark Presence self-buff is present",
+      "actor": "caster", "metric": "aura", "spell": 300957, "caster": "caster", "equals": 1
+    },
+    {
+      "action": "assert", "label": "Effect 0 (raid AoE, which includes the caster) grants 3% spell haste",
+      "actor": "caster", "metric": "aura_amount", "spell": 300957, "effect": 0, "caster": "caster", "equals": 3
+    },
+    {
+      "action": "assert", "label": "Effect 1 grants a further 3% spell haste directly to the caster",
+      "actor": "caster", "metric": "aura_amount", "spell": 300957, "effect": 1, "caster": "caster", "equals": 3
+    },
+    {
+      "action": "assert", "label": "Both effects compound to roughly a 5.7% faster cast time",
+      "actor": "caster", "metric": "spell_cast_time_ms", "spell": 116, "ratio_to": "cast_time_before", "min": 0.93, "max": 0.95
+    },
+    { "action": "unlearn", "actor": "caster", "spell": 300957 },
+    {
+      "action": "assert", "label": "Unlearning removes the self-buff",
+      "actor": "caster", "metric": "aura", "spell": 300957, "caster": "caster", "equals": 0
+    }
+  ]
+}

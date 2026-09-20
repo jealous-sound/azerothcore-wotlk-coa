@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "name": "Infinity Stone increases spell critical strike chance (#3903)",
+  "contract": "Infinity Stone 300873 is a raid-wide passive: effect 0 (SPELL_EFFECT_APPLY_AREA_AURA_RAID, SPELL_AURA_MOD_CRIT_PCT/290, EffectBasePoints 2 -> 3%) and effect 1 (SPELL_AURA_ASCENSION_MOD_CRIT_CHANCE/350, self-targeted, EffectBasePoints 2 -> 3%). Player::UpdateSpellCritChance sums SPELL_AURA_MOD_CRIT_PCT into the cached per-school crit percentage (StatSystem.cpp); Unit::SpellCritChanceDone separately adds SPELL_AURA_ASCENSION_MOD_CRIT_CHANCE by school mask at cast time. This scenario proves the raid-aura component (290) moves the cached stat that both the client tooltip and spell_crit_chance read; the personal component (350) is verified by code trace since no scenario metric reads Unit::SpellCritChanceDone's total directly.",
+  "timeout_ms": 60000,
+  "players": [
+    { "id": "control", "race": 1, "class": 22, "level": 80 },
+    { "id": "talent", "race": 1, "class": 22, "level": 80 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+    { "action": "learn", "actor": "talent", "spell": 300873 },
+    {
+      "action": "snapshot",
+      "label": "Baseline spell critical chance without the talent",
+      "actor": "control",
+      "metric": "spell_crit_chance",
+      "save_as": "crit_base"
+    },
+    {
+      "action": "assert",
+      "label": "Spell critical chance rises with the talent",
+      "actor": "talent",
+      "metric": "spell_crit_chance",
+      "relative_to": "crit_base",
+      "min": 1
+    }
+  ]
+}

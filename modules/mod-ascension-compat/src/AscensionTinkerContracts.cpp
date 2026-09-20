@@ -27,9 +27,9 @@ void ApplyContracts(SpellInfo* info)
     if (!info || info->SpellFamilyName != 34)
         return;
     uint32 id = info->Id;
-    // Overcharged is a beacon-only one-use guard. The native exclusion field also applies it on hit.
-    if (info->ExcludeTargetAuraSpell == 560711 &&
-        (id == 801707 || (id >= 502573 && id <= 502581) || id == 574152 || id == 529288))
+    // Overcharged is a beacon-only one-use guard. The native exclusion field also applies it on hit, and it has
+    // no duration, so any spell keeping the field leaves it stuck on the player it hits.
+    if (info->ExcludeTargetAuraSpell == 560711)
         info->ExcludeTargetAuraSpell = 0;
     if (id == 707495)
     {

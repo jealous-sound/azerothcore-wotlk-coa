@@ -18,7 +18,8 @@ enum ChronomancerMovement : uint32
     Rewind = 801294,
     RewindSlow = 572883,
     Backtrack = 706973,
-    Displacement = 806727
+    Displacement = 806727,
+    WavesOfTimeKnockback = 802600
 };
 
 bool CanRecordPosition(Unit* unit)
@@ -179,6 +180,30 @@ class spell_ascension_displacement : public SpellScript
     }
 };
 
+// "Blast enemies in a frontal cone with time fractals, knocking them back slightly. The knockback
+// repeats 1 additional time after 2 sec." Only the repeat ships: effect 0 is a one-shot
+// SPELL_EFFECT_ASCENSION_TRIGGER_SPELL_DELAYED casting 802600 on the caster at 2000 ms, and
+// effect 1's trigger 65633 is Arcane Cast Visual, a SPELL_EFFECT_DUMMY with no handler anywhere.
+// The first knockback is the same cast without the delay. 802600 selects the cone itself
+// (TargetA 24, radius index 13), so it is cast once on the caster, exactly as the delayed half
+// does - repointing effect 1's trigger instead would cast it once per cone target.
+class spell_ascension_waves_of_time : public SpellScript
+{
+    PrepareSpellScript(spell_ascension_waves_of_time);
+
+    void Knock()
+    {
+        Unit* caster = GetCaster();
+        if (caster)
+            caster->CastSpell(caster, WavesOfTimeKnockback, true);
+    }
+
+    void Register() override
+    {
+        AfterCast += SpellCastFn(spell_ascension_waves_of_time::Knock);
+    }
+};
+
 class chronomancer_movement_contracts : public GlobalScript
 {
 public:
@@ -213,4 +238,5 @@ void AddSC_AscensionChronomancerMovement()
     RegisterSpellScript(spell_ascension_rewind);
     RegisterSpellScript(aura_ascension_backtrack);
     RegisterSpellScript(spell_ascension_displacement);
+    RegisterSpellScript(spell_ascension_waves_of_time);
 }

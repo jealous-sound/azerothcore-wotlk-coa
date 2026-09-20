@@ -925,7 +925,7 @@ namespace CoAChallenges
         // permadeath challenge (Player::ResurrectPlayer early-returns on false).
         bool OnPlayerCanResurrect(Player* player) override
         {
-            if (!sConfigMgr->GetOption<bool>("CoAChallenges.Enable", true))
+            if (!ChallengesEnabled())
                 return true;
             return !HasPermaDeathFailure(player);
         }
@@ -1027,7 +1027,7 @@ namespace CoAChallenges
         // lava/fire contact.
         bool OnPlayerEnvironmentalDamage(Player* player, uint32 type, uint32 damage) override
         {
-            if (!player || !sConfigMgr->GetOption<bool>("CoAChallenges.Enable", true))
+            if (!player || !ChallengesEnabled())
                 return true;
 
             // Only a lethal hit names the death; a non-lethal scratch must not
@@ -1709,7 +1709,8 @@ namespace CoAChallenges
             LOG_INFO("module.coa_challenges",
                 "{}: {} killed creature {} (type {}), failing challenge {}",
                 rule, player->GetName(), killed->GetEntry(), uint32(killed->GetCreatureType()), cid);
-            FailChallenge(player, cid, level, deaths);
+            FailChallenge(player, cid, level, deaths, ObjectGuid::Empty,
+                KillerKind::Rule, killed->GetEntry(), killed->GetName());
         }
 
         void OnPlayerCreatureKill(Player* player, Creature* killed) override
@@ -1841,7 +1842,13 @@ namespace CoAChallenges
     class CoAChallengesWorld : public WorldScript
     {
     public:
-        CoAChallengesWorld() : WorldScript("CoAChallengesWorld", { WORLDHOOK_ON_UPDATE, WORLDHOOK_ON_STARTUP }) { }
+        CoAChallengesWorld() : WorldScript("CoAChallengesWorld",
+            { WORLDHOOK_ON_UPDATE, WORLDHOOK_ON_STARTUP, WORLDHOOK_ON_AFTER_CONFIG_LOAD }) { }
+
+        void OnAfterConfigLoad(bool /*reload*/) override
+        {
+            LoadChallengesEnabled();
+        }
 
         void OnStartup() override
         {
@@ -1974,7 +1981,7 @@ namespace CoAChallenges
                 Player* player = session ? session->GetPlayer() : nullptr;
                 std::string who = player ? player->GetName() : "<none>";
 
-                if (!sConfigMgr->GetOption<bool>("CoAChallenges.Enable", true))
+                if (!ChallengesEnabled())
                     return true;
 
                 // Debug level, and no full hex dump: this branch is reached for
@@ -2207,6 +2214,7 @@ namespace CoAChallenges
                 { "ruletestparty", HandleCoARuleTestPartyCommand, SEC_ADMINISTRATOR, Console::Yes },
                 { "ruleaudit", HandleCoARuleAuditCommand, SEC_ADMINISTRATOR, Console::Yes },
                 { "auditdefs", HandleCoAAuditDefsCommand, SEC_ADMINISTRATOR, Console::Yes },
+                { "cachetoctou", HandleCoACacheToctouCommand, SEC_ADMINISTRATOR, Console::Yes },
                 { "gamemode",  HandleCoAGameModeCommand,  SEC_ADMINISTRATOR, Console::Yes },
                 { "sync",      HandleCoASyncCommand,       SEC_ADMINISTRATOR, Console::Yes },
                 { "fatigue",   HandleCoAFatigueCommand,   SEC_ADMINISTRATOR, Console::Yes },
@@ -2613,6 +2621,25 @@ namespace CoAChallenges
             }
             Test_AuditAllDefs(p);
             handler->PSendSysMessage("Definition audit finished for {} (check chat/log for divergences).", playerName);
+            return true;
+        }
+
+        // .coa cachetoctou <player>
+        // GM-only: deterministically forces the cache TOCTOU window (an invalidation
+        // between the DB load and the cache publish) and checks the generation guard,
+        // running each cache with the guard OFF (bug must appear) and ON (bug gone).
+        static bool HandleCoACacheToctouCommand(ChatHandler* handler, std::string playerName)
+        {
+            Player* p = ObjectAccessor::FindPlayerByName(playerName);
+            if (!p)
+            {
+                handler->SendErrorMessage("Player '{}' is not online.", playerName);
+                return false;
+            }
+            if (Test_CacheToctou(p))
+                handler->PSendSysMessage("CACHE TOCTOU PASS");
+            else
+                handler->SendErrorMessage("CACHE TOCTOU FAIL (see lines above)");
             return true;
         }
 

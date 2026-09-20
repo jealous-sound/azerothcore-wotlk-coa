@@ -77,6 +77,12 @@ AscensionCompat.LevelScaling = 1
 # Quests already above the player remain higher. Shared quest templates are immutable.
 AscensionCompat.QuestLevelScaling = 1
 
+# Automatic progression: hand out the class abilities, rank upgrades and automatic
+# talents for the character's class and level as they level up. Set to 0 to stop that
+# and let the player ask instead - a Book of Ascension grants them, so a realm that
+# wants the books to be the way abilities are earned runs with this off. Reloadable.
+AscensionCompat.AutoProgression = 0
+
 # Extension range derived from the installed client's opcode dispatch table.
 # Keep these values decimal because ConfigMgr numeric values are parsed as decimal.
 AscensionCompat.FirstExtensionOpcode = 1311
@@ -95,3 +101,20 @@ Ascension.Manastorm.Enable = 0
 # empty no matter what the account owns.
 # Default: live
 AscensionCompat.RealmType = "live"
+
+#
+#    AscensionCompat.LevelScalingMaxLift
+#        Description: How many levels above its own a creature may be lifted by
+#                     LevelScaling. Without a cap, a level 30 player crossing a
+#                     starting zone lifts every creature around to 27, and the
+#                     low level bots fighting them are killed by creatures that
+#                     were never theirs.
+#                     A creature has a single level, broadcast to every client:
+#                     it cannot be 27 for a player and 2 for a bot. Bounding the
+#                     lift is the only compromise between keeping content
+#                     relevant and keeping the world playable for whoever is
+#                     already in it.
+#                     0 disables the cap and restores the original behaviour.
+#        Default:     5
+
+AscensionCompat.LevelScalingMaxLift = 5

@@ -1,0 +1,20 @@
+{
+ "schema": 1,
+ "name": "Tinker: heals do not leave Overcharged stuck on the target",
+ "contract": "Overcharged (560711) is a one-use guard kept by beacons. Emergency Heal (802684) must not leave it on the Tinker it heals, or later heals are rejected.",
+ "timeout_ms": 60000,
+ "players": [
+  { "id": "t", "race": 1, "class": 28, "level": 20 }
+ ],
+ "location": { "map": 0, "x": -8917.41, "y": -115.853, "z": 82.3711, "o": 0 },
+ "steps": [
+  { "action": "wait", "ms": 3000 },
+  { "action": "learn", "spell": 802684, "actor": "t" },
+  { "action": "set_health", "actor": "t", "value": 50 },
+  { "action": "cast", "spell": 802684, "actor": "t" },
+  { "action": "wait", "ms": 4000 },
+  { "action": "snapshot", "save_as": "cd", "metric": "cooldown_ms", "spell": 802684, "actor": "t" },
+  { "action": "assert", "label": "Emergency Heal executed", "actor": "t", "metric": "health", "min": 51 },
+  { "action": "assert", "label": "Overcharged is not left on the Tinker", "actor": "t", "metric": "aura", "spell": 560711, "equals": 0 }
+ ]
+}

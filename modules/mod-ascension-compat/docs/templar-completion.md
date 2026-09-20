@@ -23,9 +23,11 @@ the Scourgebane identity for Eonar. These temporary bonuses do not join the main
 
 Completed player casts of Lunge, Cleave, Condemn and Vindication/Divine Fury grant the corresponding
 Oath. The chain lasts 15 seconds without refresh from subsequent generators and stops at ten grants.
-The local interpretation of the recovered two-Oath passive is a limit of one distinct Oath kind,
-or two with 707755; a new kind replaces the oldest held kind. Stacks of a retained kind can accumulate
-to ten. This interpretation is a reconstruction choice, not an independently verified server rule.
+Every Oath kind is held alongside the others until the chain ends, and each kind's stacks can accumulate
+to ten (#4152). The earlier one-kind limit, raised to two by legacy passive 707755, is gone: no player can
+acquire 707755, so everyone was capped at one kind and Condemn removed Lunge's Oath. The current texts treat
+Oaths as a set — Breakers consume "your Oaths" and Flaming Blade gains the Oaths of each Follow Up in the
+chain — and only Graceful Fighter's stale aura tooltip still reads "up to 2 Oaths".
 
 Breakers consume the chain unless Keeping the Oath is active. Chain expiry clears the Oaths and the
 Zealotry contribution to Upheaval. Aggramar refreshes owned Blade of Faith at ten chain stacks.

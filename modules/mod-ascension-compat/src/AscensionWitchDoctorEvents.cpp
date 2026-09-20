@@ -89,7 +89,8 @@ class aura_ascension_witch_doctor_event : public AuraScript
             case Hexplosion:
                 return damage && critical;
             case UmbralTalent:
-                return damage &&
+                // The glaive itself is a ranged hit; letting it proc would refill the buff it just consumed.
+                return damage && (!info || info->Id != Umbral) &&
                        (event.GetTypeMask() &
                         (PROC_FLAG_DONE_RANGED_AUTO_ATTACK | PROC_FLAG_DONE_SPELL_RANGED_DMG_CLASS)) &&
                        roll_chance_f(GetSpellInfo()->ProcChance + player->GetRatingBonusValue(CR_CRIT_RANGED));

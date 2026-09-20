@@ -115,6 +115,7 @@ class aura_ascension_barbarian_event : public AuraScript
             case 707764: return !outgoing && Direct(event);
             case 705240: return outgoing && Direct(event) && (event.GetSchoolMask() & SPELL_SCHOOL_MASK_NORMAL);
             case 804745: return outgoing && Direct(event) && Family(info, 1, 64);
+            case 804746: return outgoing && Direct(event) && (sid == 500919 || (sid >= 504912 && sid <= 504916));
             case 520539: return outgoing && Melee(event);
             case 805997: return outgoing && Direct(event) && critical && Spear(info);
             case 805893: return outgoing && Direct(event) && sid == 255846;
@@ -191,6 +192,7 @@ class aura_ascension_barbarian_event : public AuraScript
             case 300499: Bleed(owner, other, 783054, damage, 30); break;
             case 705240: cast(706393); break;
             case 804745: cast(570739, false); break;
+            case 804746: cast(560916); break;
             case 520539:
                 owner->CastCustomSpell(524675, SPELLVALUE_BASE_POINT0, int32(damage / 10), owner, TRIGGERED_FULL_MASK);
                 cast(524684);
@@ -330,6 +332,30 @@ class aura_ascension_barbarian_bleed : public AuraScript
             EFFECT_0, SPELL_AURA_PERIODIC_DAMAGE);
     }
 };
+
+class barbarian_grisly_meal : public PlayerScript
+{
+public:
+    barbarian_grisly_meal() : PlayerScript("barbarian_grisly_meal",
+        {PLAYERHOOK_ON_PVP_KILL, PLAYERHOOK_ON_CREATURE_KILL}) { }
+
+    void OnPlayerPVPKill(Player* killer, Player* killed) override { Reward(killer, killed); }
+    void OnPlayerCreatureKill(Player* killer, Creature* killed) override { Reward(killer, killed); }
+
+private:
+    // Grisly Meal is only usable while its marker buff, granted by a kill that yields experience or honor, is up.
+    static void Reward(Player* player, Unit* killed)
+    {
+        if (player->getClass() != CLASS_BARBARIAN || !player->isHonorOrXPTarget(killed))
+            return;
+        for (uint32 rank : {804765u, 807946u, 807947u, 807948u})
+            if (player->HasSpell(rank))
+            {
+                player->CastSpell(player, 804755, true);
+                return;
+            }
+    }
+};
 }
 
 void AddAscensionBarbarianEventScripts()
@@ -337,4 +363,5 @@ void AddAscensionBarbarianEventScripts()
     RegisterSpellScript(aura_ascension_barbarian_event);
     RegisterSpellScript(spell_ascension_barbarian_conversion);
     RegisterSpellScript(aura_ascension_barbarian_bleed);
+    new barbarian_grisly_meal();
 }

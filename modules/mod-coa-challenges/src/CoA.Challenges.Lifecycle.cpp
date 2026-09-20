@@ -2,6 +2,8 @@
 // Mechanical split of review-CoAChallenges.cpp; no logic changes.
 #include "CoA.Challenges.Review.h"
 
+#include <atomic>
+
 namespace CoAChallenges
 {
 
@@ -602,6 +604,14 @@ namespace CoAChallenges
     // PlayerHasRule is called from the combat hooks and must not reach the database.
     std::mutex CharChallengeMutex;
     std::unordered_map<uint32, std::vector<std::pair<uint32, uint32>>> CharChallengeCache;
+    // Bumped under CharChallengeMutex on every invalidation. A load that started before the bump
+    // must not publish its now-stale snapshot (time-of-check to time-of-use): without it, a Clear
+    // issued while the entry is still absent is a no-op and the late insert would resurrect an
+    // invalidated row set. A single monotonic counter (not a per-guid map) keeps no per-character
+    // state alive; the only cost is that a clear on any character also invalidates other in-flight
+    // loads, which merely forces an extra reload on the cold path. Scope is in-process and covers
+    // writes made through this module, not direct SQL/external writes.
+    static uint64 CharChallengeGeneration = 0;
 
     std::vector<std::pair<uint32, uint32>> LoadCharChallenges(uint32 guid)
     {
@@ -618,6 +628,27 @@ namespace CoAChallenges
         return active;
     }
 
+    // Test seam (`.coa cachetoctou`, see CoAChallengeTests.cpp). The hook runs on the calling
+    // thread between the DB load and the cache publish, so a test can inject an invalidation
+    // exactly in the TOCTOU window. Both are inert in production (empty hook, override -1).
+    std::function<void(uint32)> CharChallengeLoadHookForTest;
+    std::mutex CharChallengeHookMutex;
+    static std::atomic<int> CacheGuardOverrideForTest{-1};
+
+    void Test_SetCacheGuard(int value) { CacheGuardOverrideForTest = value; }
+    void Test_SetCharChallengeLoadHook(std::function<void(uint32)> hook)
+    {
+        std::lock_guard<std::mutex> lock(CharChallengeHookMutex);
+        CharChallengeLoadHookForTest = std::move(hook);
+    }
+
+    // Always on in production. Only the `.coa cachetoctou` regression test overrides it, so the
+    // pre-fix behavior (a blind publish that keeps the stale snapshot) can be exercised too.
+    bool CacheGenerationGuardEnabled()
+    {
+        return CacheGuardOverrideForTest.load() != 0;
+    }
+
     // The character's active challenges, kept in memory the way the game mode mask already is.
     // PlayerHasRule runs from the combat hooks - every hit, every heal, every melee roll - and
     // asking the database there put a synchronous query on the map threads: measured at 18 000
@@ -627,16 +658,41 @@ namespace CoAChallenges
     // thread can rehash under the caller, which is the failure #4021 had to fix elsewhere.
     std::vector<std::pair<uint32, uint32>> CachedCharChallenges(uint32 guid)
     {
+        for (;;)
         {
+            uint64 generation = 0;
+            bool guard = false;
+            {
+                std::lock_guard<std::mutex> lock(CharChallengeMutex);
+                auto it = CharChallengeCache.find(guid);
+                if (it != CharChallengeCache.end())
+                    return it->second;
+                guard = CacheGenerationGuardEnabled();
+                if (guard)
+                    generation = CharChallengeGeneration;
+            }
+
+            std::vector<std::pair<uint32, uint32>> active = LoadCharChallenges(guid);
+            {
+                // Copy the hook under its own mutex (the setter can run on the GM command thread
+                // while a map thread is here). Invoke it after unlocking so its Clear* call, which
+                // takes CharChallengeMutex, cannot deadlock.
+                std::function<void(uint32)> hook;
+                {
+                    std::lock_guard<std::mutex> lock(CharChallengeHookMutex);
+                    hook = CharChallengeLoadHookForTest;
+                }
+                if (hook)
+                    hook(guid);
+            }
+
             std::lock_guard<std::mutex> lock(CharChallengeMutex);
-            auto it = CharChallengeCache.find(guid);
-            if (it != CharChallengeCache.end())
-                return it->second;
+            // The row set changed while we were loading: the snapshot is stale, reload.
+            if (guard && CharChallengeGeneration != generation)
+                continue;
+            CharChallengeCache[guid] = active;
+            return active;
         }
-        std::vector<std::pair<uint32, uint32>> active = LoadCharChallenges(guid);
-        std::lock_guard<std::mutex> lock(CharChallengeMutex);
-        CharChallengeCache[guid] = active;
-        return active;
     }
 
     // Called wherever the module adds or removes a row of coa_character_challenge, and at logout.
@@ -644,13 +700,29 @@ namespace CoAChallenges
     {
         std::lock_guard<std::mutex> lock(CharChallengeMutex);
         CharChallengeCache.erase(guid);
+        ++CharChallengeGeneration;
+    }
+
+    // CoAChallenges.Enable is read when the configuration loads, not on every call: the combat hooks
+    // reach it on every hit, and each read of a setting the realm's configuration does not define
+    // logs a warning - millions of lines an hour on a realm shipped without mod-coa-challenges.conf.
+    std::atomic<bool> ChallengesEnabledSetting{true};
+
+    void LoadChallengesEnabled()
+    {
+        ChallengesEnabledSetting = sConfigMgr->GetOption<bool>("CoAChallenges.Enable", true);
+    }
+
+    bool ChallengesEnabled()
+    {
+        return ChallengesEnabledSetting.load(std::memory_order_relaxed);
     }
 
     bool PlayerHasRule(Player* player, char const* rule)
     {
         // The combat hooks read the rules through here, and they are registered whatever the
         // setting says: without this an operator who turns the module off still pays for it.
-        if (!player || !sConfigMgr->GetOption<bool>("CoAChallenges.Enable", true))
+        if (!player || !ChallengesEnabled())
             return false;
         uint32 guid = player->GetGUID().GetCounter();
 
@@ -1256,7 +1328,7 @@ namespace CoAChallenges
     // killerSource: guid whose death carries the killer for the broadcast
     // (defaults to the failing player; shared fate passes the member who died).
     void FailChallenge(Player* player, uint32 challengeID, uint32 level, uint32 deaths,
-        ObjectGuid const& killerSource)
+        ObjectGuid const& killerSource, KillerKind causeKind, uint32 causeEntry, std::string causeName)
     {
         uint32 guid = player->GetGUID().GetCounter();
         // Capture the active custom-trial identity (if any) BEFORE any teardown,
@@ -1308,13 +1380,22 @@ namespace CoAChallenges
         // after OnPlayerKilledByCreature / OnPlayerPVPKill may have filled in
         // the killer).
         {
-            uint32 sourceGuid = (killerSource.IsEmpty() ? player->GetGUID() : killerSource).GetCounter();
             PendingFail pending;
             pending.challengeID = challengeID;
             pending.level = level;
             pending.displayName = trialDisplayName;
             pending.displayIcon = trialDisplayIcon;
+            if (causeKind != KillerKind::Unknown)
             {
+                // Rule failure (e.g. slaying a forbidden beast): name the cause
+                // directly; the player did not die, so there is no LastKiller.
+                pending.killerKind = causeKind;
+                pending.killerEntry = causeEntry;
+                pending.killerName = causeName;
+            }
+            else
+            {
+                uint32 sourceGuid = (killerSource.IsEmpty() ? player->GetGUID() : killerSource).GetCounter();
                 std::lock_guard<std::mutex> lock(LastKillerMutex);
                 auto it = LastKiller.find(sourceGuid);
                 if (it != LastKiller.end())
@@ -1375,7 +1456,7 @@ namespace CoAChallenges
     // the member already removed from `group` (nullptr for a disband).
     void FailSharedFateHolders(Group* group, Player* extra)
     {
-        if (!sConfigMgr->GetOption<bool>("CoAChallenges.Enable", true))
+        if (!ChallengesEnabled())
             return;
 
         std::vector<std::pair<Player*, uint32>> targets;
@@ -1423,7 +1504,7 @@ namespace CoAChallenges
 
     void HandlePlayerDeath(Player* player)
     {
-        if (!sConfigMgr->GetOption<bool>("CoAChallenges.Enable", true))
+        if (!ChallengesEnabled())
             return;
         if (!sConfigMgr->GetOption<bool>("CoAChallenges.RespondToDeath", true))
             return;

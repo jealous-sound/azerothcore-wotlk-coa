@@ -175,12 +175,26 @@ The [Shadow Effigy scenario](scenarios/shadow-effigy.json) checks combat casts, 
 nearby-enemy debuffs, replacement by another effigy and timed despawn.
 The [Dusk Blade scenario](scenarios/dusk-blade.json) checks dual-wield damage, Rage spending and healing
 the wounded caster across repeated melee casts.
+The [Who scenarios](scenarios/who-lists-bots.json) check both sides of `Who.ShowBots`: bot sessions are listed
+like players with the shipped `Who.ShowBots=1`, and the [hidden case](scenarios/who-hides-bots.json) requires
+`Who.ShowBots=0` in the source config, where the same roster leaves only the two real players in the response
+and a name search for a bot returns nothing.
 The [resource talents scenario](scenarios/resource-talents.json) checks the live-tree 1% resource bonuses.
 Arm of Thorim rolls 133–144 base damage at the fixture level, so two independent rolls need ratio ranges
 of 1.10–1.31 with its 20% bonus and 0.91–1.09 without it (including integer rounding). Charged Conduit
 preserves Static and must leave the talent without a depletion bonus.
 
-Players require `id`, numeric `race` and `class`; `level` defaults to 80. Optional `spell_hit_rating`,
+The [damage-led scaling scenario](scenarios/level-scaling-damage-engagement.json) checks that an
+out-of-range attacker scales a fresh creature before a nonlethal or lethal opening hit, and that
+later damage leaves its combat level fixed. It requires `AscensionCompat.LevelScaling=1`,
+`AscensionCompat.LevelScalingMaxLift=5` and `MonsterSight=50`. The level-1 fixtures stand 80–85 yards
+away and must scale to level 6. One fixture has only one maximum HP to expose damage-before-scaling.
+Spell 705798 is learned as a fixture: its one damage and zero initial threat exercise damage-led
+engagement through the normal cast handler. This tests the damage path, not an Overload proc or pet AI.
+
+Players require `id`, numeric `race` and `class`; `level` defaults to 80. Optional `bot` logs the actor in on a
+session flagged as a bot, the way playerbots flags the sessions it creates, so a scenario can check what the
+server does differently for them. Optional `spell_hit_rating`,
 `spell_crit_rating`, `ranged_hit_rating`, `melee_hit_rating` and `expertise_rating` add fixture ratings through
 normal calculations, useful for preventing misses, dodges and parries in deterministic tests.
 Characters are created and loaded through the existing character creation, enumeration and login
@@ -205,13 +219,15 @@ before taking baselines; assert stable maximums and final levels when testing da
 | `reset_talents` | `actor`: reset active talents through normal removal, without a trainer fee. |
 | `cast` | `actor`, `spell`, optional `target` (self by default): normal session cast handler. |
 | `attack` | `actor`, `target`: native melee attack request; verify combat or damage with assertions. |
+| `group` | `actor`, `target`: fixture party; creates the actor's group if needed and adds an ungrouped player. |
 | `cast_charm` | Same fields: native pet-cast handler, with the charmed unit as the default target. |
 | `gossip_hello` | `actor`, optional `target`: native gossip handler; defaults to the actor's summoned companion. |
 | `gossip_select` | `actor`, zero-based `option`: select from the current menu through the session handler. |
 | `who` | `actor`, optional name-filter `target`, `class_mask`, `race_mask`: submit a native Who query. |
 | `add_item` | `actor`, `item`, optional `count` (default 1): grant fixture inventory. |
 | `equip` | `actor`, `item`, `slot` (0..18): equip an owned item through the session handler. |
-| `use_item` | `actor`, `item`, `spell`, optional `target`: normal item-use handler. |
+| `use_item` | `actor`, `item`, `spell`, optional `target` and `destination`: normal item-use handler. |
+| `use_gameobject` | `actor`, `entry`: native use request for the actor's single nearby owned gameobject. |
 | `set_level` | `actor`, `value` (1..80): fixture level change through native `GiveLevel`, including level-change hooks. |
 | `set_health`, `set_power` | `actor`, `value` within native maximums; `set_power` accepts `power` (default 0). |
 | `wait` | `ms`: let the real world continue updating. |
@@ -228,11 +244,12 @@ a previously named snapshot of the same metric; it is available on snapshots and
 `cast` accepts an optional `destination` with `x`, `y`, `z` to send an explicit ground target.
 
 Metrics: `health`, `max_health`, `power`, `max_power`, `alive`, `combat`, `casting`, `level`, `quest_objective_count` (needs `quest`, optional `index`), `knows_spell`,
-`has_talent`, `talent_points`, `cooldown_ms`, `item_count`, `bank_bag_slots`, `aura`, `aura_stacks`, `aura_charges`,
+`has_talent`, `talent_points`, `cooldown_ms`, `item_count`, `carried_item_count`, `bank_bag_slots`, `aura`, `aura_stacks`, `aura_charges`,
 `aura_duration_ms`, `aura_amount`, `pet_entry`, `pet_aura_stacks`, `owned_creature_count`,
 `charm_entry`, `charm_aura_stacks`, `controls_self`, `private_instance`, `dynamic_object`,
-`dynamic_object_duration_ms`.
+`dynamic_object_duration_ms`, `distance`, `spell_proc_count`, `temporary_spell_replacement`.
 Boolean metrics use 0/1. Spell/aura metrics require `spell`; `item_count` requires `item`.
+`carried_item_count` sums the stack counts of equipped items (bags included), the backpack and the bags' contents.
 `aura_positive` reads the applied aura's beneficial flag; check `aura` separately to distinguish absence from a debuff.
 `gossip_options` counts the player's current server-side gossip options; it does not verify client rendering.
 `who_count` counts players in the actor's last native Who response; `who_class` requires a player `target`
@@ -255,6 +272,27 @@ effects.
 requires `school` (1..6); `armor`, `attack_power`, `ranged_attack_power`, the hasted `attack_time_ms` (optional
 `hand`, 0..2) and `run_speed_rate` read the unit's current totals. `aura_amplitude_ms` reads an aura effect's
 periodic interval.
+`block_chance` reads the player's percentage field; `block_value` reads native shield block value;
+`critical_block_chance` reads the total modifier used by the native critical block roll.
+`weapon_damage_min` reads the calculated main-hand minimum damage, including weapon-dependent passive bonuses.
+`spell_critical_damage` requires `spell` and `target` and calculates a critical hit from a fixed base of 1000,
+including native critical damage modifiers, without executing an attack or applying mitigation.
+`armor_reduced_damage` requires `spell` and `target` and applies native armor mitigation to a fixed base of
+1000, including the attacker's armor penetration; it does not execute an attack.
+`aoe_damage_taken` applies native area damage avoidance to 1000 damage for `school` (0..6).
+`reputation_gain` calculates a native spell reputation reward of 1000 for faction `id`, without granting it.
+`spell_immune` and `spell_effect_immune` query native immunity against `spell` from `target`; the latter
+accepts `effect` (default 0). These queries submit no attack.
+`melee_attack_count` counts the actor's native melee combat packets, including extra attacks and misses;
+it observes server output without testing delivery to a network client.
+`distance` requires `target` and measures the native two-dimensional distance, in yards, between the actor and
+that target. It reads position and nothing else, so displacement from a knockback, pull or teleport shows up as
+the difference between two observations; take a `snapshot` first and assert `relative_to` it. Height is excluded.
+`spell_proc_count` requires `spell` and counts the procs of that spell's aura on the actor since the scenario
+started. What is counted is each spell the proc cast while the aura was named as its trigger, which is the one
+place the server records both the proc and its owner; an aura whose proc does not cast anything counts zero.
+Use it for a proc whose chance is below 100%, where a single roll proves nothing: cast the trigger often enough
+that the false-failure probability is acceptable, and assert a `min` on the count.
 Spell queries require `spell` and submit nothing: `spell_modifier` applies the player's native spell modifiers for
 `op` (`SpellModOp`) to the number `base`; `spell_effect_value` (optional `effect`) returns the effect's value as the
 player would cast it, including module base-value hooks; `spell_cast_time_ms`, `spell_max_range` and
@@ -267,7 +305,8 @@ periodic aura effect's snapshotted crit chance; `aura_script_value` requires `ke
 `script_spell_damage_taken` and `script_periodic_damage_taken` require `target` as the attacker (and `spell` for
 the latter two) and return 1000 after the registered module damage-taken hooks. `set_health` also accepts a
 creature actor.
-`open_item` takes `actor` and `item` and submits the native container-open packet. `close_loot` takes `actor`
+`open_item` takes `actor` and `item` and submits the native container-open packet, offering it to the
+packet hooks first as `WorldSession::Update` does. `close_loot` takes `actor`
 and closes its current loot window. `collect_loot` takes `actor`, collects slot zero, verifies that its full rolled
 quantity reached inventory and records the item/count. It supports ordinary container loot, not quest-only slots.
 `loot_count` and `loot_entry` report the actor's current uncollected item slots and first entry; `loot_received`
@@ -279,6 +318,10 @@ reward eligibility and invokes native reward delivery. These actions do not test
 `restore_quest_spells` takes `actor` and invokes the native restoration of spells from rewarded quests.
 `login_hooks` takes `actor` and replays registered player-login hooks on the current character; it does not reconnect
 or reload the character from the database. Use it to exercise a repair against deliberately seeded fixture state.
+`temporary_spell_replacement` requires `spell` and returns the spell ID currently standing in for it on the
+player's bars. `Player::GetTemporarySpellReplacement` returns the queried spell itself when nothing replaces
+it, so the unreplaced reading is that spell's own ID, never zero. It reads server-side state, not what the
+client draws.
 `has_talent` requires the talent rank's spell ID; passive talents are separate from the learned spellbook.
 `talent_points` measures unspent points in the active specialization.
 `bank_bag_slots` measures the player's unlocked standard bank bag slots (0..7).
@@ -293,6 +336,14 @@ Player commands retain normal permission and gameplay checks; verify their effec
 `owned_creature_count` requires a player and `entry`. It counts living creatures of that entry owned by
 the player, in the same phase and within 100 yards, including summons outside the guardian-pet slot.
 An optional `spell` restricts the count to creatures with that aura; `caster` can select its aura owner.
+`owned_gameobject_count` requires a player and `entry`. It counts their summoned gameobjects of that entry
+in the same phase and within 100 yards. `gameobject_remaining_ms` uses the same lookup and requires exactly
+one object when present; it returns the remaining lifetime with one-second precision, zero when absent,
+or -1 for an object without an expiry. Moving out of range is not proof of despawn.
+`at_homebind` checks that the player is on their homebind map and within five yards of its position.
+`use_gameobject` keeps normal interaction-distance and usability checks. It does not inspect a rendered UI.
+The [portable gadgets scenario](scenarios/portable-gadgets.json) checks item summons, lifetimes, portal
+teleports and expiry. It requires `mod-portablemail`; mailbox and altar client interfaces are not tested.
 `power`/`max_power` accept a numeric `power` (0..6). Aura metrics optionally accept `caster` to select
 ownership; `aura_amount` also accepts an effect index (0..2, default 0). Missing auras yield zero;
 check aura presence separately when zero is a valid effect amount. Permanent aura duration is -1.

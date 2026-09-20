@@ -16,6 +16,7 @@ namespace
 enum ChronomancerSecondarySpells : uint32
 {
     SPELL_MELT_REALITY = 806335,
+    SPELL_MIND_MELT = 572851,
     SPELL_MELT_COPY_VALUE = 504727,
     SPELL_MELT_COPY = 807570,
     SPELL_DESYNCHRONIZATION = 561310,
@@ -70,6 +71,42 @@ public:
                     player->CastCustomSpell(SPELL_MELT_COPY, SPELLVALUE_BASE_POINT0,
                         int32(std::min<uint64>(amount, std::numeric_limits<int32>::max())), target, true);
             }
+    }
+};
+
+class chronomancer_mind_melt_taken : public UnitScript
+{
+public:
+    chronomancer_mind_melt_taken() : UnitScript("chronomancer_mind_melt_taken", true,
+        {UNITHOOK_MODIFY_PERIODIC_DAMAGE_AURAS_TICK}) { }
+
+    // End of Time 704490 raises Mind Melt's first effect from 0 to 6 through SPELLMOD_EFFECT1, and
+    // AuraEffect::CalculateAmount already multiplies that amount by the stack count. That effect is
+    // aura 214, which this core maps to AuraEffect::HandleNULL, so nothing reads it. Deliver the
+    // talent's "increases the target's periodic damage taken from you by $s1% per stack" here, the
+    // way Templar's Light's Ward delivers its own periodic damage taken clause.
+    void ModifyPeriodicDamageAurasTick(Unit* target, Unit* attacker, uint32& damage,
+        SpellInfo const* info) override
+    {
+        if (!target || !attacker || !damage || !info ||
+            info->HasAttribute(SPELL_ATTR4_IGNORE_DAMAGE_TAKEN_MODIFIERS))
+            return;
+        // This hook also reports periodic healing, which a damage taken clause must not increase.
+        if (!info->HasAura(SPELL_AURA_PERIODIC_DAMAGE) && !info->HasAura(SPELL_AURA_PERIODIC_DAMAGE_PERCENT) &&
+            !info->HasAura(SPELL_AURA_PERIODIC_LEECH))
+            return;
+        // "from you": only the Chronomancer who applied this Mind Melt benefits from it.
+        AuraEffect const* melt = target->GetAuraEffect(SPELL_MIND_MELT, EFFECT_0, attacker->GetGUID());
+        if (!melt || melt->GetAmount() <= 0)
+            return;
+        // EffectMiscValue 127 selects every school; honour the authored mask instead of assuming it.
+        if (int32 const schoolMask = melt->GetMiscValue();
+            schoolMask && !(uint32(schoolMask) & uint32(info->GetSchoolMask())))
+            return;
+        // Integer arithmetic keeps whole percentages exact; clamp so a large tick cannot wrap.
+        uint64 const bonus = uint64(damage) * uint64(melt->GetAmount()) / 100;
+        damage = uint32(std::min<uint64>(uint64(damage) + bonus,
+            std::numeric_limits<uint32>::max()));
     }
 };
 
@@ -267,6 +304,7 @@ public:
 void AddSC_AscensionChronomancerSecondary()
 {
     new chronomancer_melt_periodic();
+    new chronomancer_mind_melt_taken();
     new chronomancer_secondary_casts();
     new chronomancer_secondary_metadata();
     RegisterSpellScript(spell_ascension_melt_copy);

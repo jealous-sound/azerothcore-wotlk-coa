@@ -1,0 +1,99 @@
+{
+  "schema": 1,
+  "name": "Grisly Meal marker buff is granted by a kill (#4231)",
+  "contract": "A Barbarian who knows Grisly Meal gains its marker buff (804755) after killing an enemy that yields experience, then can cast Grisly Meal out of combat. A different class killing the same enemy does not gain the buff.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "b",
+      "race": 1,
+      "class": 12,
+      "level": 20
+    },
+    {
+      "id": "c",
+      "race": 1,
+      "class": 1,
+      "level": 20
+    }
+  ],
+  "creatures": [
+    {
+      "id": "e",
+      "owner": "b",
+      "entry": 36,
+      "level": 10,
+      "distance": 3
+    },
+    {
+      "id": "f",
+      "owner": "c",
+      "entry": 36,
+      "level": 10,
+      "distance": 3
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "ms": 3000
+    },
+    {
+      "action": "learn",
+      "actor": "b",
+      "spell": 804765
+    },
+    {
+      "action": "assert",
+      "actor": "b",
+      "metric": "aura",
+      "spell": 804755,
+      "equals": 0
+    },
+    {
+      "action": "attack",
+      "actor": "b",
+      "target": "e"
+    },
+    {
+      "action": "attack",
+      "actor": "c",
+      "target": "f"
+    },
+    {
+      "action": "assert",
+      "actor": "b",
+      "metric": "aura",
+      "spell": 804755,
+      "equals": 1,
+      "within_ms": 60000
+    },
+    {
+      "action": "assert",
+      "actor": "c",
+      "metric": "aura",
+      "spell": 804755,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "b",
+      "metric": "combat",
+      "equals": 0,
+      "within_ms": 15000
+    },
+    {
+      "action": "cast",
+      "actor": "b",
+      "spell": 804765
+    },
+    {
+      "action": "assert",
+      "actor": "b",
+      "metric": "aura",
+      "spell": 804765,
+      "equals": 1,
+      "within_ms": 3000
+    }
+  ]
+}

@@ -121,6 +121,14 @@ namespace CoAChallenges
     {
         uint32 guid = player->GetGUID().GetCounter();
 
+        // Runs for every player on every update: leave before the config reads below, which
+        // each look the key up in the process environment, for the many without a hunger challenge.
+        {
+            std::lock_guard<std::mutex> lock(HungerMutex);
+            if (HungerGuids.find(guid) == HungerGuids.end())
+                return;
+        }
+
         uint32 foodSpell = HungerFoodSpell();
         uint32 drinkSpell = HungerDrinkSpell();
         uint32 maxV = sConfigMgr->GetOption<uint32>("CoAChallenges.HungerMax", 100);

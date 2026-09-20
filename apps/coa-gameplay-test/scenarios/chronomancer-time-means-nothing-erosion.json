@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "name": "Chromatic Shard damage applies Time Means Nothing's spell-damage-taken debuff (#652)",
+  "contract": "Time Means Nothing 572357 applies aura 42 (proc trigger spell) on 572405 (MOD_DAMAGE_PERCENT_TAKEN, +10%, all magic schools), but Spell.dbc gives it ProcFlags 0 and no spell_proc row existed, so it never procced. Effects 0 (a spellmod) and 2 (MOD_DAMAGE_PERCENT_DONE, the +3% magic damage clause) are already native and untouched. With a spell_proc row gated on the magic class damage of Chromatic Shard (100% chance), a single Chromatic Shard hit should apply 572405 to the target.",
+  "timeout_ms": 60000,
+  "players": [
+    {
+      "id": "chronomancer",
+      "race": 1,
+      "class": 22,
+      "level": 80,
+      "spell_hit_rating": 10000
+    }
+  ],
+  "creatures": [
+    { "id": "dummy", "owner": "chronomancer", "entry": 36, "health": 1000000, "distance": 3 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+    { "action": "learn", "actor": "chronomancer", "spell": 572357 },
+    { "action": "learn", "actor": "chronomancer", "spell": 801292 },
+    {
+      "action": "assert",
+      "label": "No Time Means Nothing debuff before any cast",
+      "actor": "dummy",
+      "metric": "aura",
+      "spell": 572405,
+      "caster": "chronomancer",
+      "equals": 0
+    },
+    { "action": "cast", "actor": "chronomancer", "spell": 801292, "target": "dummy" },
+    {
+      "action": "assert",
+      "label": "Chromatic Shard's hit applies the spell-damage-taken debuff",
+      "actor": "dummy",
+      "metric": "aura",
+      "spell": 572405,
+      "caster": "chronomancer",
+      "equals": 1,
+      "within_ms": 5000
+    }
+  ]
+}

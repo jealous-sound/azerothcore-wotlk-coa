@@ -1,0 +1,49 @@
+{
+  "schema": 1,
+  "name": "Fearmonger raises Taldaram's Torment's tick rate and cost by 30% (#1033)",
+  "contract": "Fearmonger 501132 carries two ADD_PCT_MODIFIER (aura 108) effects on classmask (0,0,2097152), the same 8-rank Taldaram's Torment mask as #577/#981: MiscValue 19 (SPELLMOD_ACTIVATION_TIME) BasePoints -31 (real -30%) and MiscValue 14 (SPELLMOD_COST) BasePoints 29 (real +30%). AuraEffect::CalculatePeriodic (SpellAuraEffects.cpp) applies SPELLMOD_ACTIVATION_TIME to the periodic amplitude only at aura-application time, so recasting Torment on the same, still-active target only refreshes its duration rather than recomputing the tick rate; two separate dummies (one cast before, one after learning Fearmonger) isolate a fresh application each, with a wait between the two casts to clear the caster's global cooldown. SpellInfo::CalcPowerCost applies SPELLMOD_COST generically and needs only a query. 802580 (level 56) is the rank a level-80 character owns.",
+  "timeout_ms": 90000,
+  "players": [
+    { "id": "caster", "race": 1, "class": 20, "level": 80, "spell_hit_rating": 10000 }
+  ],
+  "creatures": [
+    { "id": "dummy_baseline", "owner": "caster", "entry": 36, "level": 80, "health": 1000000, "distance": 3 },
+    { "id": "dummy_boosted", "owner": "caster", "entry": 36, "level": 80, "health": 1000000, "distance": 6 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+    { "action": "learn", "actor": "caster", "spell": 802580 },
+    {
+      "action": "snapshot", "label": "Baseline power cost",
+      "actor": "caster", "metric": "spell_power_cost", "spell": 802580, "save_as": "cost_before"
+    },
+    { "action": "cast", "actor": "caster", "spell": 802580, "target": "dummy_baseline" },
+    {
+      "action": "assert", "label": "Torment is applied to the baseline dummy",
+      "actor": "dummy_baseline", "metric": "aura", "spell": 802580, "caster": "caster", "equals": 1, "within_ms": 3000
+    },
+    {
+      "action": "assert", "label": "Baseline tick period is 3000ms",
+      "actor": "dummy_baseline", "metric": "aura_amplitude_ms", "spell": 802580, "effect": 0, "caster": "caster", "equals": 3000
+    },
+    { "action": "learn", "actor": "caster", "spell": 501132 },
+    {
+      "action": "assert", "label": "Fearmonger raises the power cost by ~30%",
+      "actor": "caster", "metric": "spell_power_cost", "spell": 802580, "ratio_to": "cost_before", "min": 1.25, "max": 1.35
+    },
+    { "action": "wait", "label": "Clear the global cooldown from the first cast", "ms": 2000 },
+    { "action": "cast", "actor": "caster", "spell": 802580, "target": "dummy_boosted" },
+    {
+      "action": "assert", "label": "Torment is applied to the boosted dummy",
+      "actor": "dummy_boosted", "metric": "aura", "spell": 802580, "caster": "caster", "equals": 1, "within_ms": 3000
+    },
+    {
+      "action": "assert", "label": "Fearmonger speeds up a fresh application's tick rate to 2100ms",
+      "actor": "dummy_boosted", "metric": "aura_amplitude_ms", "spell": 802580, "effect": 0, "caster": "caster", "equals": 2100
+    },
+    {
+      "action": "assert", "label": "The already-active baseline dummy keeps its original tick rate",
+      "actor": "dummy_baseline", "metric": "aura_amplitude_ms", "spell": 802580, "effect": 0, "caster": "caster", "equals": 3000
+    }
+  ]
+}

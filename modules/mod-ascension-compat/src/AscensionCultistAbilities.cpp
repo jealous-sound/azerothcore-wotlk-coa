@@ -331,6 +331,40 @@ class spell_ascension_cultist_resource : public SpellScript
         OnEffectHitTarget += SpellEffectFn(spell_ascension_cultist_resource::Effect, EFFECT_ALL, SPELL_EFFECT_ANY);
     }
 };
+class spell_ascension_cultist_sanity_tap : public SpellScript
+{
+    PrepareSpellScript(spell_ascension_cultist_sanity_tap);
+    // The client effect restores a percentage of maximum mana; Sanity Tap restores it from the missing mana.
+    void Effect(SpellEffIndex index)
+    {
+        PreventHitDefaultEffect(index);
+        Unit* caster = GetCaster();
+        Unit* target = GetHitUnit();
+        SpellInfo const* info = GetSpellInfo();
+        int32 misc = info->Effects[index].MiscValue;
+        if (!caster || !target || !target->IsAlive() || misc < 0 || misc >= int32(MAX_POWERS))
+            return;
+        if (target->HasUnitState(UNIT_STATE_ISOLATED))
+        {
+            caster->SendSpellDamageImmune(target, info->Id);
+            return;
+        }
+        Powers power = Powers(misc);
+        if (target->IsPlayer() && !target->CanReceivePowerFromSpell(power) &&
+            !info->HasAttribute(SPELL_ATTR7_ONLY_IN_SPELLBOOK_UNTIL_LEARNED))
+            return;
+        uint32 maxPower = target->GetMaxPower(power);
+        uint32 currentPower = target->GetPower(power);
+        if (currentPower >= maxPower)
+            return;
+        caster->EnergizeBySpell(target, info->Id, CalculatePct(maxPower - currentPower, GetEffectValue()), power);
+    }
+    void Register() override
+    {
+        OnEffectHitTarget += SpellEffectFn(spell_ascension_cultist_sanity_tap::Effect, EFFECT_1,
+            SPELL_EFFECT_ENERGIZE_PCT);
+    }
+};
 class spell_ascension_cultist_ability : public SpellScript
 {
     PrepareSpellScript(spell_ascension_cultist_ability);
@@ -422,6 +456,7 @@ void AddSC_AscensionCultistAbilities()
 {
     new cultist_spells();
     RegisterSpellScript(spell_ascension_cultist_resource);
+    RegisterSpellScript(spell_ascension_cultist_sanity_tap);
     RegisterSpellScript(spell_ascension_cultist_ability);
     RegisterSpellScript(spell_ascension_cultist_shield);
 }

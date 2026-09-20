@@ -1,0 +1,56 @@
+{
+  "schema": 1,
+  "name": "Hyperwand increases Shatter Echo damage and critical damage by 30% (#2957)",
+  "contract": "Hyperwand 706071 carries two modifier effects targeting Shatter Echo 804503 (SpellFamilyFlags word2 20, bit 0x10 shared with both effects' EffectSpellClassMask word2 bit 0x10): effect 0 is SPELL_AURA_ADD_PCT_MODIFIER (108) on SPELLMOD_DAMAGE (0), effect 1 is the same aura type on SPELLMOD_CRIT_DAMAGE_BONUS (15). Both have EffectBasePoints 29, resolving to 30 with DieSides 1.",
+  "timeout_ms": 60000,
+  "players": [
+    { "id": "control", "race": 1, "class": 22, "level": 80 },
+    { "id": "talent", "race": 1, "class": 22, "level": 80 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+    { "action": "learn", "actor": "talent", "spell": 706071 },
+    {
+      "action": "assert",
+      "label": "Shatter Echo damage unmodified without the talent",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 804503,
+      "op": 0,
+      "base": 100,
+      "equals": 100
+    },
+    {
+      "action": "assert",
+      "label": "Shatter Echo damage increased 30% with the talent",
+      "actor": "talent",
+      "metric": "spell_modifier",
+      "spell": 804503,
+      "op": 0,
+      "base": 100,
+      "min": 129.99,
+      "max": 130.01
+    },
+    {
+      "action": "assert",
+      "label": "Shatter Echo critical damage unmodified without the talent",
+      "actor": "control",
+      "metric": "spell_modifier",
+      "spell": 804503,
+      "op": 15,
+      "base": 100,
+      "equals": 100
+    },
+    {
+      "action": "assert",
+      "label": "Shatter Echo critical damage increased 30% with the talent",
+      "actor": "talent",
+      "metric": "spell_modifier",
+      "spell": 804503,
+      "op": 15,
+      "base": 100,
+      "min": 129.99,
+      "max": 130.01
+    }
+  ]
+}
