@@ -137,6 +137,7 @@ void AddSC_AscensionPrimalistMountainFury();
 void AddSC_AscensionPrimalistBoulder();
 void AddSC_AscensionPrimalistUrsoc();
 void AddSC_AscensionPrimalistTorn();
+void AddSC_AscensionPrimalistRexxarMight();
 void AddSC_AscensionPrimalistMineralization();
 void AddSC_AscensionPrimalistTremor();
 void AddSC_AscensionPrimalistVitality();
@@ -312,6 +313,7 @@ void Addmod_ascension_compatScripts()
     AddSC_AscensionPrimalistBoulder();
     AddSC_AscensionPrimalistUrsoc();
     AddSC_AscensionPrimalistTorn();
+    AddSC_AscensionPrimalistRexxarMight();
     AddSC_AscensionPrimalistMineralization();
     AddSC_AscensionPrimalistTremor();
     AddSC_AscensionPrimalistVitality();
