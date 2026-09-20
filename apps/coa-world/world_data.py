@@ -88,7 +88,7 @@ class MySQL:
         if database.lower().endswith(("_auth", "_characters")):
             raise ValueError("Select a world database, not an account or character database")
         options = ["--defaults-extra-file=" + str(defaults_file.resolve())] if defaults_file else ["--no-defaults"]
-        self.command = [str(executable), *options, "--no-login-paths", *extra_args, "--batch", "--raw",
+        self.command = [str(executable), *options, *extra_args, "--batch", "--raw",
                         "--skip-column-names", "--default-character-set=utf8mb4", "--max-allowed-packet=1GB",
                         "--connect-timeout=10", "--init-command=SET time_zone='+00:00', max_execution_time=300000",
                         "--database=" + database]
