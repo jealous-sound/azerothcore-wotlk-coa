@@ -135,6 +135,7 @@ void AddSC_AscensionPrimalistBarrier();
 void AddSC_AscensionPrimalistGrove();
 void AddSC_AscensionPrimalistMountainFury();
 void AddSC_AscensionPrimalistBoulder();
+void AddSC_AscensionPrimalistUrsoc();
 void AddSC_AscensionPrimalistVitality();
 void AddSC_AscensionPrimalistMagmatism();
 void AddSC_AscensionPrimalistGeomancy();
@@ -306,6 +307,7 @@ void Addmod_ascension_compatScripts()
     AddSC_AscensionPrimalistGrove();
     AddSC_AscensionPrimalistMountainFury();
     AddSC_AscensionPrimalistBoulder();
+    AddSC_AscensionPrimalistUrsoc();
     AddSC_AscensionPrimalistVitality();
     AddSC_AscensionPrimalistMagmatism();
     AddSC_AscensionPrimalistGeomancy();
