@@ -1,0 +1,139 @@
+{
+  "schema": 1,
+  "name": "Crimson Scion makes the next Sanguine Mend instant after direct damage (#606)",
+  "contract": "Crimson Scion 806424's single effect is SPELL_AURA_PROC_TRIGGER_SPELL (aura 42) on Crimson Scion 806425, a native aura 108 SPELL_AURA_ADD_PCT_MODIFIER with MiscValue 10 (SPELLMOD_CASTING_TIME), BasePoints -101 and EffectSpellClassMask (524288, 0, 0) - the nine Sanguine Mend ranks. Spell.dbc gives 806424 ProcFlags 0 and no spell_proc row existed, so the aura was inert. The tooltip is 'Direct damage dealt now has a $h% chance to make your next Sanguine Mend within $806425d instant cast' and the record's own ProcChance is 10, which this scenario does not change. Aortic Assault rank 807785 supplies the events: its effect 0 is aura 227 with Amplitude 500 over a 3 s channel (DurationIndex 27), each tick casting Aortic Assault 806502, a direct SPELL_EFFECT_SCHOOL_DAMAGE with DmgClass 2, TargetA 54 (cone) and SPELL_ATTR3_NOT_A_PROC so the triggered cast still raises proc events. Eight dummies stand two to nine yards in front of the caster so the cone covers as many as possible. KNOWN STATISTICAL LIMIT: 806425 lasts only 10 s (DurationIndex 1), so the assertion can only see procs from the last few seconds. If the cone reaches all eight dummies the channel produces about 48 events and the residual false-failure chance is around 0.6%; if it reaches only one, the chance rises to about 50%. Either way this is above the 0.1% bar this repository's scenarios aim for. Treat a single failure as inconclusive and re-run; a build without the fix fails every time.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "bloodmage",
+      "race": 1,
+      "class": 20,
+      "level": 80,
+      "spell_hit_rating": 10000,
+      "melee_hit_rating": 10000,
+      "expertise_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "dummy1",
+      "owner": "bloodmage",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 2
+    },
+    {
+      "id": "dummy2",
+      "owner": "bloodmage",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 3
+    },
+    {
+      "id": "dummy3",
+      "owner": "bloodmage",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 4
+    },
+    {
+      "id": "dummy4",
+      "owner": "bloodmage",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 5
+    },
+    {
+      "id": "dummy5",
+      "owner": "bloodmage",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 6
+    },
+    {
+      "id": "dummy6",
+      "owner": "bloodmage",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 7
+    },
+    {
+      "id": "dummy7",
+      "owner": "bloodmage",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 8
+    },
+    {
+      "id": "dummy8",
+      "owner": "bloodmage",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 9
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "bloodmage",
+      "spell": 807785
+    },
+    {
+      "action": "learn",
+      "actor": "bloodmage",
+      "spell": 504086
+    },
+    {
+      "action": "learn",
+      "actor": "bloodmage",
+      "spell": 806424
+    },
+    {
+      "action": "set_power",
+      "actor": "bloodmage",
+      "power": 1,
+      "value": 1000
+    },
+    {
+      "action": "assert",
+      "label": "Sanguine Mend has its normal cast time",
+      "actor": "bloodmage",
+      "metric": "spell_cast_time_ms",
+      "spell": 504086,
+      "min": 2000
+    },
+    {
+      "action": "cast",
+      "actor": "bloodmage",
+      "spell": 807785,
+      "target": "dummy1"
+    },
+    {
+      "action": "wait",
+      "label": "Let the three-second channel finish",
+      "ms": 3500
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING: direct damage granted the instant-cast buff",
+      "actor": "bloodmage",
+      "metric": "aura",
+      "spell": 806425,
+      "equals": 1,
+      "within_ms": 2000
+    },
+    {
+      "action": "assert",
+      "label": "and Sanguine Mend is now instant",
+      "actor": "bloodmage",
+      "metric": "spell_cast_time_ms",
+      "spell": 504086,
+      "equals": 0
+    }
+  ]
+}
