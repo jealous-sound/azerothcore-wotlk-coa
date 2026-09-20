@@ -4,7 +4,6 @@
 #include "Log.h"
 #include "Player.h"
 #include "ScriptMgr.h"
-#include "Spell.h"
 #include "SpellAuraEffects.h"
 #include "SpellAuras.h"
 #include "SpellScript.h"
@@ -51,8 +50,6 @@ enum BloodmageTalentSpells : uint32
     SPELL_BLOODSURGE = 553267,
     SPELL_BLOODCHASER = 523721,
     SPELL_BLOOD_BOND_REWARD = 505325,
-    SPELL_CURSED_GROUND = 561195,
-    SPELL_CURSED_GROUND_BLEED = 561303,
     SPELL_GORE_TOME = 807788,
     SPELL_GORE_TOME_WINDOW = 808014,
     SPELL_ONE_MANS_CURSE = 680661,
@@ -659,64 +656,6 @@ class aura_ascension_bloodmage_blood_bond : public AuraScript
     }
 };
 
-// Cursed Ground (561195): "Increases the cast time of Sanguine Rupture by $/1000;S1 sec, but now when you
-// strike at least 5 enemies it causes them to bleed out, dealing an additional $561303o1 Shadow damage
-// over $561303d." Effect 0 (aura 107 SPELLMOD_CASTING_TIME, BasePoints 1999, EffectSpellClassMask
-// (0, 0, 2147483648)) is native and already works. Effect 1 is SPELL_AURA_PROC_TRIGGER_SPELL on Cursed
-// Ground 561205, whose own single effect is an aura 4 dummy with no handler and no `spell_script_names`
-// row - it carries nothing but the client tooltip, which names the real bleed, Cursed Ground 561303
-// (aura 3 SPELL_AURA_PERIODIC_DAMAGE, BasePoints 86, RealPointsPerLevel 1.02, Amplitude 500, Mechanic 15,
-// TargetA 6 = enemy). "At least 5 enemies in one cast" is not expressible in any `spell_proc` column, so
-// the count is taken here. Spell::HandleLaunchPhase runs DoAllEffectOnLaunchTarget - and therefore this
-// hook - for every target before the first target is hit, so the total is complete by hit time, the same
-// ordering AscensionBloodmageSecondary.cpp already relies on for Reave.
-// The ranks are selected by SpellFamilyFlags word 2 bit 31, exactly the class mask Cursed Ground's own
-// native effect uses; the two odd Sanguine Rupture records 800775 and 802496 carry (0, 2097152, 0) and are
-// outside that mask, so they are outside this clause too, just as they are outside the cast-time half.
-constexpr uint64 CursedGroundTargetThreshold = 5;
-
-Player* CursedGroundCaster(Spell* spell)
-{
-    Unit* caster = spell ? spell->GetCaster() : nullptr;
-    Player* player = caster ? caster->ToPlayer() : nullptr;
-    if (!player || player->getClass() != CLASS_SON_OF_ARUGAL || spell->IsTriggered())
-        return nullptr;
-    SpellInfo const* info = spell->GetSpellInfo();
-    if (!info || info->SpellFamilyName != 26 || !(info->SpellFamilyFlags[2] & 0x80000000u))
-        return nullptr;
-    return player->HasAura(SPELL_CURSED_GROUND, player->GetGUID()) ? player : nullptr;
-}
-
-class bloodmage_cursed_ground : public AllSpellScript
-{
-public:
-    bloodmage_cursed_ground() : AllSpellScript("bloodmage_cursed_ground",
-        {ALLSPELLHOOK_ON_CALCULATED_TARGET, ALLSPELLHOOK_ON_HIT_RESULT}) { }
-
-    void OnSpellCalculatedTarget(Spell* spell, Unit* target, TargetInfo& hit) override
-    {
-        Player* player = CursedGroundCaster(spell);
-        if (!player || !target || target == player || hit.missCondition != SPELL_MISS_NONE ||
-            player->IsFriendlyTo(target))
-            return;
-        // One entry per unit in the cast's target list, so a plain counter is already distinct.
-        spell->SetScriptValue(SPELL_CURSED_GROUND, spell->GetScriptValue(SPELL_CURSED_GROUND) + 1);
-    }
-
-    void OnSpellHitResult(Spell* spell, Unit* target, uint8 miss, uint32, uint32, bool) override
-    {
-        Player* player = CursedGroundCaster(spell);
-        if (!player || !target || miss != SPELL_MISS_NONE || target == player ||
-            player->IsFriendlyTo(target) ||
-            spell->GetScriptValue(SPELL_CURSED_GROUND) < CursedGroundTargetThreshold)
-            return;
-        // Sanguine Rupture's own effects are SPELL_EFFECT_TRIGGER_SPELL_WITH_VALUE (142) on 800775 and
-        // SPELL_EFFECT_TRIGGER_SPELL (64) on 561304, so the parent cast reports zero damage per target;
-        // the landed hit, not a damage amount, is what "strike" means here.
-        player->CastSpell(target, SPELL_CURSED_GROUND_BLEED, true);
-    }
-};
-
 class bloodmage_talent_contracts : public GlobalScript
 {
 public:
@@ -799,5 +738,4 @@ void AddSC_AscensionBloodmageTalents()
     RegisterSpellScript(aura_ascension_bloodmage_cursed_blood);
     RegisterSpellScript(aura_ascension_bloodmage_essence_harvester);
     RegisterSpellScript(aura_ascension_bloodmage_blood_bond);
-    new bloodmage_cursed_ground();
 }
