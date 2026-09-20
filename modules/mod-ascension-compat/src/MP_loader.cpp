@@ -141,6 +141,7 @@ void AddSC_AscensionPrimalistVerdantChase();
 void AddSC_AscensionPrimalistQuakingThane();
 void AddSC_AscensionPrimalistTremors();
 void AddSC_AscensionPrimalistFaePresence();
+void AddSC_AscensionPrimalistBramblepatch();
 void AddSC_AscensionPrimalistEarthmotherRoar();
 void AddSC_AscensionPrimalistRushHunt();
 void AddSC_AscensionPrimalistCrushingEarth();
@@ -339,6 +340,7 @@ void Addmod_ascension_compatScripts()
     AddSC_AscensionPrimalistQuakingThane();
     AddSC_AscensionPrimalistTremors();
     AddSC_AscensionPrimalistFaePresence();
+    AddSC_AscensionPrimalistBramblepatch();
     AddSC_AscensionPrimalistEarthmotherRoar();
     AddSC_AscensionPrimalistRushHunt();
     AddSC_AscensionPrimalistCrushingEarth();
