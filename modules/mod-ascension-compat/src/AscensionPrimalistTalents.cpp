@@ -59,6 +59,42 @@ public:
     }
 };
 
+class aura_ascension_natural_efficiency : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_natural_efficiency);
+
+    bool Validate(SpellInfo const*) override { return ValidateSpellInfo({707806}); }
+    bool Load() override { return Primalist(GetUnitOwner()) != nullptr; }
+
+    bool Check(ProcEventInfo& event)
+    {
+        Unit* caster = event.GetActor();
+        SpellInfo const* info = event.GetSpellInfo();
+        if (!caster || caster == GetTarget() || !info || !GetTarget()->IsAlive() ||
+            !(event.GetHitMask() & (PROC_HIT_NORMAL | PROC_HIT_CRITICAL)))
+            return false;
+        AuraApplication const* application = GetTarget()->GetAuraApplication(info->Id, caster->GetGUID());
+        if (!application || application->GetRemoveMode() || application->IsPositive())
+            return false;
+        // Filter the existing native proc by effects actually applied to the victim.
+        // An immune control effect can still leave a slow or another secondary aura.
+        Aura* aura = application->GetBase();
+        for (uint8 i = 0; i < MAX_SPELL_EFFECTS; ++i)
+            if (application->GetEffectMask() & (1 << i))
+                if (AuraEffect const* effect = aura->GetEffect(i))
+                    if (effect->GetAuraType() == SPELL_AURA_MOD_ROOT ||
+                        effect->GetAuraType() == SPELL_AURA_MOD_STUN ||
+                        effect->GetAuraType() == SPELL_AURA_MOD_CONFUSE)
+                        return true;
+        return false;
+    }
+
+    void Register() override
+    {
+        DoCheckProc += AuraCheckProcFn(aura_ascension_natural_efficiency::Check);
+    }
+};
+
 class primalist_talent_casts : public AllSpellScript
 {
 public:
@@ -175,6 +211,7 @@ void AddSC_AscensionPrimalistTalents()
 {
     new primalist_talent_events();
     new primalist_talent_casts();
+    RegisterSpellScript(aura_ascension_natural_efficiency);
     RegisterSpellScript(spell_ascension_throat_clamp);
     RegisterSpellScript(aura_ascension_primal_shred_critical);
 }
