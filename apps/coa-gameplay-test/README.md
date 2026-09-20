@@ -208,7 +208,7 @@ before taking baselines; assert stable maximums and final levels when testing da
 | `console` | `command`: execute one console command on the test server; capture its output. |
 | `command` | `actor`, `command` beginning with `.`: execute with the player's normal permissions. |
 | `learn`, `unlearn` | `actor`, `spell`: configure learned spells/passives through player APIs. |
-| `set_aura` | `actor`, `spell`, `stacks`: fixture aura state, within its stack limit; zero removes it. |
+| `set_aura` | `actor`, `spell`, `stacks`: fixture aura state, within its stack limit; zero removes it. Optional `pet: true` selects the actor's current pet. |
 | `talent` | `actor`, `talent`, zero-based `rank`: learn with normal point/prerequisite checks. |
 | `reset_talents` | `actor`: reset active talents through normal removal, without a trainer fee. |
 | `cast` | `actor`, `spell`, optional `target` (self by default): normal session cast handler. |
@@ -268,7 +268,8 @@ requires `school` (1..6); `armor`, `attack_power`, `ranged_attack_power`, the ha
 periodic interval.
 `block_chance` reads the player's percentage field; `block_value` reads native shield block value;
 `critical_block_chance` reads the total modifier used by the native critical block roll.
-`weapon_damage_min` reads the calculated main-hand minimum damage, including weapon-dependent passive bonuses.
+`weapon_damage_min` reads the calculated minimum damage, including weapon-dependent passive bonuses;
+optional `hand` selects main hand (0, default), off hand (1), or ranged (2).
 `spell_critical_damage` requires `spell` and `target` and calculates a critical hit from a fixed base of 1000,
 including native critical damage modifiers, without executing an attack or applying mitigation.
 `armor_reduced_damage` requires `spell` and `target` and applies native armor mitigation to a fixed base of
@@ -279,6 +280,13 @@ including native critical damage modifiers, without executing an attack or apply
 accepts `effect` (default 0). These queries submit no attack.
 `melee_attack_count` counts the actor's native melee combat packets, including extra attacks and misses;
 it observes server output without testing delivery to a network client.
+`spell_damage_count` and `spell_damage_total` require `spell` and count positive direct or periodic spell
+damage events, or sum their post-mitigation damage, from the actor's native combat packets. Optional `target`
+filters the victim, `pet: true` selects the actor's current pet as caster, and `critical` filters critical or
+noncritical hits. Values accumulate throughout the scenario; use snapshots and `relative_to` around a cast.
+They exclude zero damage, melee swing packets, and healing, and do not test network delivery.
+The result's optional `cast_failures` array records native `SMSG_CAST_FAILED` spell IDs, cast counters and
+numeric `SpellCastResult` reasons. These diagnose a rejected submission; effect assertions still establish success.
 Spell queries require `spell` and submit nothing: `spell_modifier` applies the player's native spell modifiers for
 `op` (`SpellModOp`) to the number `base`; `spell_effect_value` (optional `effect`) returns the effect's value as the
 player would cast it, including module base-value hooks; `spell_cast_time_ms`, `spell_max_range` and

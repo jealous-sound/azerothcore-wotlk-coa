@@ -54,6 +54,7 @@
 #include <map>
 #include <memory>
 #include <stdexcept>
+#include <vector>
 
 namespace
 {
@@ -103,6 +104,15 @@ enum class ActorStage
     Ready
 };
 
+struct SpellDamageEvent
+{
+    ObjectGuid caster;
+    ObjectGuid target;
+    uint32 spell = 0;
+    uint32 damage = 0;
+    bool critical = false;
+};
+
 struct Actor
 {
     Tree definition;
@@ -112,6 +122,8 @@ struct Actor
     uint32 whoResponses = 0;
     uint32 lootReceived = 0;
     uint32 meleeAttacks = 0;
+    std::vector<SpellDamageEvent> spellDamage;
+    Tree castFailures;
     uint32 lastQuestWindow = 0; // the last quest window this session sent, by opcode
     std::unique_ptr<WorldSession> session;
     ObjectGuid guid;
@@ -124,6 +136,50 @@ struct Target
     uint32 instance;
     ObjectGuid guid;
 };
+
+void ObserveSpellDamage(Actor& actor, WorldPacket const& packet)
+{
+    if (packet.GetOpcode() != SMSG_SPELLNONMELEEDAMAGELOG && packet.GetOpcode() != SMSG_PERIODICAURALOG)
+        return;
+
+    WorldPacket response(packet);
+    SpellDamageEvent event;
+    response >> event.target.ReadAsPacked() >> event.caster.ReadAsPacked() >> event.spell;
+    if (packet.GetOpcode() == SMSG_SPELLNONMELEEDAMAGELOG)
+    {
+        // Unit::SendSpellNonMeleeDamageLog: damage, overkill, school, absorb,
+        // resist, physical-log flag, unused flag, block, hit info.
+        response >> event.damage;
+        response.read_skip<uint32>();
+        response.read_skip<uint8>();
+        response.read_skip<uint32>();
+        response.read_skip<uint32>();
+        response.read_skip<uint8>();
+        response.read_skip<uint8>();
+        response.read_skip<uint32>();
+        uint32 hitInfo;
+        response >> hitInfo;
+        event.critical = (hitInfo & SPELL_HIT_TYPE_CRIT) != 0;
+    }
+    else
+    {
+        uint32 count, aura;
+        response >> count >> aura;
+        Require(count == 1, "Expected one native periodic aura event");
+        if (aura != SPELL_AURA_PERIODIC_DAMAGE && aura != SPELL_AURA_PERIODIC_DAMAGE_PERCENT)
+            return;
+        response >> event.damage;
+        response.read_skip<uint32>(); // overkill
+        response.read_skip<uint32>(); // school
+        response.read_skip<uint32>(); // absorb
+        response.read_skip<uint32>(); // resist
+        uint8 critical;
+        response >> critical;
+        event.critical = critical != 0;
+    }
+    if (event.damage)
+        actor.spellDamage.push_back(event);
+}
 
 // Sessions are owned here, outside the network session manager. Character creation,
 // enumeration, DB loading and spell/item use run through the existing session handlers.
@@ -282,6 +338,19 @@ private:
                 SEC_PLAYER, EXPANSION_WRATH_OF_THE_LICH_KING, 0, LOCALE_enUS, 0, false, false, 0);
             actor.session->SetSocketlessPacketObserver([&actor](WorldPacket const& packet)
             {
+                ObserveSpellDamage(actor, packet);
+                if (packet.GetOpcode() == SMSG_CAST_FAILED)
+                {
+                    WorldPacket response(packet);
+                    uint8 count, reason;
+                    uint32 spell;
+                    response >> count >> spell >> reason;
+                    Tree failure;
+                    failure.put("cast_count", uint32(count));
+                    failure.put("spell", spell);
+                    failure.put("reason", uint32(reason));
+                    actor.castFailures.push_back({"", failure});
+                }
                 if (packet.GetOpcode() == SMSG_ATTACKERSTATEUPDATE)
                 {
                     WorldPacket response(packet);
@@ -534,7 +603,13 @@ private:
         if (metric == "armor")
             return unit->GetArmor();
         if (metric == "weapon_damage_min")
-            return unit->GetFloatValue(UNIT_FIELD_MINDAMAGE);
+        {
+            uint32 hand = step.get<uint32>("hand", BASE_ATTACK);
+            Require(hand < MAX_ATTACK, "Invalid weapon damage hand");
+            uint16 field = hand == BASE_ATTACK ? UNIT_FIELD_MINDAMAGE :
+                (hand == OFF_ATTACK ? UNIT_FIELD_MINOFFHANDDAMAGE : UNIT_FIELD_MINRANGEDDAMAGE);
+            return unit->GetFloatValue(field);
+        }
         if (metric == "resistance")
         {
             uint32 school = step.get<uint32>("school");
@@ -660,6 +735,20 @@ private:
             return player->GetTotalAuraModifier(SPELL_AURA_MOD_BLOCK_CRIT_CHANCE);
         if (metric == "melee_attack_count")
             return _actors.at(step.get<std::string>("actor")).meleeAttacks;
+        if (metric == "spell_damage_count" || metric == "spell_damage_total")
+        {
+            ObjectGuid caster = step.get<bool>("pet", false) ? player->GetPetGUID() : player->GetGUID();
+            ObjectGuid target;
+            if (auto id = step.get_optional<std::string>("target"))
+                target = GetUnit(*id)->GetGUID();
+            auto critical = step.get_optional<bool>("critical");
+            uint64 value = 0;
+            for (SpellDamageEvent const& event : _actors.at(step.get<std::string>("actor")).spellDamage)
+                if (caster && event.caster == caster && event.spell == spell &&
+                    (!target || event.target == target) && (!critical || event.critical == *critical))
+                    value += metric == "spell_damage_count" ? 1 : event.damage;
+            return double(value);
+        }
         if (metric == "aoe_damage_taken")
         {
             uint32 school = step.get<uint32>("school");
@@ -1178,18 +1267,22 @@ private:
         }
         else if (action == "set_aura")
         {
+            Unit* recipient = player;
+            if (step.get<bool>("pet", false))
+                recipient = player->GetGuardianPet();
+            Require(recipient != nullptr, "Pet aura fixture requires a current pet");
             SpellInfo const* info = sSpellMgr->GetSpellInfo(spell);
             Require(info != nullptr, "Unknown fixture aura");
             uint32 stacks = step.get<uint32>("stacks");
-            Require(stacks <= std::max<uint32>(1, info->CalcMaxAuraStacks(player)),
+            Require(stacks <= std::max<uint32>(1, info->CalcMaxAuraStacks(recipient)),
                 "Fixture aura exceeds its stack limit");
             if (!stacks)
-                player->RemoveAurasDueToSpell(spell);
+                recipient->RemoveAurasDueToSpell(spell);
             else
             {
-                Aura* aura = player->GetAura(spell);
+                Aura* aura = recipient->GetAura(spell);
                 if (!aura)
-                    aura = player->AddAura(spell, player);
+                    aura = recipient->AddAura(spell, recipient);
                 Require(aura != nullptr, "Could not apply fixture aura");
                 aura->SetStackAmount(uint8(stacks));
             }
@@ -1437,6 +1530,16 @@ private:
         _finished = true;
         if (!passed)
             LOG_ERROR("module.gameplay_test", "Scenario failed at step {}: {}", _completed, message);
+        Tree failures;
+        for (auto const& [id, actor] : _actors)
+            for (auto const& entry : actor.castFailures)
+            {
+                Tree failure = entry.second;
+                failure.put("actor", id);
+                failures.push_back({"", failure});
+            }
+        if (!failures.empty())
+            _report.add_child("cast_failures", failures);
         // Normal logout tears down auras, summons, map membership and script state before maps unload.
         for (auto const& [id, target] : _targets)
             if (Map* map = sMapMgr->FindMap(target.map, target.instance))

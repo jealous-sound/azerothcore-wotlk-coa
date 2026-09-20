@@ -37,6 +37,26 @@ class RunnerTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertIs(run.validate(scenario), scenario)
 
+    def test_spell_damage_observation_filters(self):
+        step = {'action': 'assert', 'actor': 'caster', 'metric': 'spell_damage_count',
+                'spell': 116, 'target': 'target', 'pet': True, 'critical': False, 'equals': 0}
+        self.scenario['steps'].append(step)
+        self.assertIs(run.validate(self.scenario), self.scenario)
+        for change in ({'pet': 1}, {'critical': 'false'}, {'actor': 'target'}, {'spell': None},
+                       {'metric': 'health'}):
+            scenario = copy.deepcopy(self.scenario)
+            scenario['steps'][-1].update(change)
+            with self.subTest(change=change), self.assertRaises(ValueError):
+                run.validate(scenario)
+
+    def test_pet_aura_fixture(self):
+        self.scenario['steps'].append({'action': 'set_aura', 'actor': 'caster',
+                                       'spell': 82888, 'stacks': 1, 'pet': True})
+        self.assertIs(run.validate(self.scenario), self.scenario)
+        self.scenario['steps'][-1]['pet'] = 'true'
+        with self.assertRaises(ValueError):
+            run.validate(self.scenario)
+
     def test_malformed_scenarios_fail_before_starting_processes(self):
         for change in (
             lambda s: s.update(schema=True),
