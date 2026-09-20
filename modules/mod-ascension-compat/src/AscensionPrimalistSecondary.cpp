@@ -93,6 +93,50 @@ class aura_ascension_volcanic_blast : public AuraScript
     }
 };
 
+class aura_ascension_natures_blessing : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_natures_blessing);
+
+    bool Validate(SpellInfo const* info) override
+    {
+        return info->SpellFamilyName == 37 && info->Effects[EFFECT_0].ApplyAuraName == 354 &&
+            info->Effects[EFFECT_0].TriggerSpell == 807561 && ValidateSpellInfo({807561});
+    }
+
+    bool Load() override
+    {
+        return GetUnitOwner()->IsPlayer() && GetUnitOwner()->getClass() == CLASS_WILDWALKER;
+    }
+
+    bool Check(ProcEventInfo& event)
+    {
+        SpellInfo const* info = event.GetSpellInfo();
+        HealInfo const* heal = event.GetHealInfo();
+        Unit* target = event.GetActionTarget();
+        bool seismicWave = info && (info->Id == 805462 || (info->Id >= 572873 && info->Id <= 572878));
+        return seismicWave && event.GetActor() == GetTarget() && target && target->IsAlive() &&
+            GetTarget()->IsFriendlyTo(target) && heal && heal->GetHeal();
+    }
+
+    void Proc(AuraEffect const* effect, ProcEventInfo& event)
+    {
+        PreventDefaultAction();
+        // As with native Living Seed, use the completed heal (including its crit),
+        // before overhealing. The tooltip specifies 20% on each of three ticks.
+        uint64 amount = uint64(event.GetHealInfo()->GetHeal()) * std::clamp(effect->GetAmount(), 0, 100) / 100;
+        if (amount)
+            GetTarget()->CastCustomSpell(807561, SPELLVALUE_BASE_POINT0,
+                int32(std::min<uint64>(amount, std::numeric_limits<int32>::max())),
+                event.GetActionTarget(), TRIGGERED_FULL_MASK, nullptr, effect);
+    }
+
+    void Register() override
+    {
+        DoCheckProc += AuraCheckProcFn(aura_ascension_natures_blessing::Check);
+        OnEffectProc += AuraEffectProcFn(aura_ascension_natures_blessing::Proc, EFFECT_0, AuraType(354));
+    }
+};
+
 // Hammer of Life (803973): melee attacks and abilities heal nearby allies and damage nearby enemies for $s1% of the
 // damage dealt. Both helpers use effect 0's percentage, as the tooltip does; effect 2's own 30% is not described.
 // The helpers pick their targets (up to 3 each, around the caster) from their own Spell.dbc records.
@@ -251,6 +295,7 @@ void AddSC_AscensionPrimalistSecondary()
     new primalist_volcanic_targets();
     new primalist_secondary_metadata();
     RegisterSpellScript(aura_ascension_volcanic_blast);
+    RegisterSpellScript(aura_ascension_natures_blessing);
     RegisterSpellScript(aura_ascension_hammer_of_life);
     RegisterSpellScript(spell_ascension_gaze_of_theradras);
 }
