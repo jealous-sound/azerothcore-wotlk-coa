@@ -24,7 +24,8 @@ enum PrimalistSecondarySpells : uint32
     SPELL_EMBRACED_BY_EARTH = 561037,
     SPELL_EMBRACE_DISORIENT = 706200,
     SPELL_GAZE = 805919,
-    SPELL_GAZE_SLOW = 572908
+    SPELL_GAZE_SLOW = 572908,
+    SPELL_SAVAGE_FRENZY = 806549
 };
 
 class primalist_secondary_auras : public UnitScript
@@ -240,6 +241,16 @@ public:
     {
         if (info->SpellFamilyName != 37)
             return;
+        if (info->Id == SPELL_SAVAGE_FRENZY)
+        {
+            // The active description grants all three bonuses to both owner
+            // and pet. Keep target A so native pet-presence checks still apply.
+            for (SpellEffectInfo& effect : info->Effects)
+                if (effect.IsAura() && effect.TargetA.GetTarget() == TARGET_UNIT_PET &&
+                    effect.TargetB.GetTarget() == 0)
+                    effect.TargetB = SpellImplicitTargetInfo(TARGET_UNIT_CASTER);
+            info->_InitializeExplicitTargetMask();
+        }
         if (info->Id == SPELL_VOLCANIC_BLAST)
         {
             info->AttributesEx2 |= SPELL_ATTR2_CANT_CRIT;

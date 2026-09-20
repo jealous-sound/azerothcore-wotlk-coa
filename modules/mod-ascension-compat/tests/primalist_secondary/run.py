@@ -21,7 +21,14 @@ using SpellMissInfo=uint32;
 constexpr uint32 CLASS_WILDWALKER=31, EFFECT_1=1, AURA_REMOVE_BY_EXPIRE=3,
     PROC_HIT_CRITICAL=2, SPELL_SCHOOL_MASK_NATURE=8, SPELL_ATTR2_CANT_CRIT=1,
     SPELL_ATTR3_IGNORE_CASTER_MODIFIERS=2, SPELL_ATTR4_IGNORE_DAMAGE_TAKEN_MODIFIERS=4,
-    SPELL_AURA_MOD_MAX_AFFECTED_TARGETS=277, AURA_INTERRUPT_FLAG_TAKE_DAMAGE=2;
+    SPELL_AURA_MOD_MAX_AFFECTED_TARGETS=277, AURA_INTERRUPT_FLAG_TAKE_DAMAGE=2,
+    TARGET_UNIT_PET=5, TARGET_UNIT_CASTER=1;
+struct SpellImplicitTargetInfo
+{
+    uint32 target=0;
+    explicit SpellImplicitTargetInfo(uint32 value=0) : target(value) {}
+    uint32 GetTarget() const { return target; }
+};
 struct Unit;''', 1)
     code = code.replace('struct Effect\n', '''uint32 AttributesEx2=0, AttributesEx3=0, AttributesEx4=0,
         AuraInterruptFlags=0, ProcCharges=0;
@@ -29,6 +36,11 @@ struct Unit;''', 1)
     struct Effect
 ''')
     code = code.replace('int32 value=0;', 'int32 value=0; float BonusMultiplier=1.0f;')
+    code = code.replace('uint32 ApplyAuraName=42;', '''uint32 ApplyAuraName=42;
+        SpellImplicitTargetInfo TargetA, TargetB;
+        bool IsAura() const { return true; }''')
+    code = code.replace('} Effects[3];', '} Effects[3];\n    void _InitializeExplicitTargetMask() {}')
+    code = code.replace('struct SpellMgr', 'using SpellEffectInfo=SpellInfo::Effect;\nstruct SpellMgr', 1)
     code = code.replace('struct AuraEffect {};',
                         'struct AuraEffect { int32 amount=20; int32 GetAmount() const { return amount; } };')
     code = code.replace('uint32 guid=1;', '''Unit* victim=nullptr;
