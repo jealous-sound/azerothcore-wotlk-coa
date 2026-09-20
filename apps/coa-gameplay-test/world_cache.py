@@ -19,6 +19,15 @@ def digest(value):
     return hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()
 
 
+def read_identity(database, statement):
+    """Retry only empty responses to these read-only identity queries; never retry a write."""
+    for _ in range(3):
+        value = database.sql('world', statement)
+        if value:
+            return value
+    raise ValueError('World cache identity query returned no data after three reads')
+
+
 def write_json(path, value):
     temporary = path.with_suffix('.tmp')
     temporary.write_text(json.dumps(value, indent=2) + '\n', encoding='utf-8')
@@ -84,7 +93,9 @@ class WorldCache:
         source = database.connections['world']
         self.source = source.database
         # Include server identity so a different MySQL instance on the same port cannot inherit ownership.
-        server = database.sql('world', 'SELECT @@server_uuid;')
+        server = read_identity(database, 'SELECT @@server_uuid;')
+        require(re.fullmatch(r'[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}', server),
+                'World cache server identity is not a complete MySQL UUID')
         self.identity = digest([source.host, source.port, source.database, server])
         self.directory = root / self.identity[:24]
         self.path = self.directory / 'world.json'
@@ -114,7 +125,7 @@ class WorldCache:
 
     def verify_owner(self):
         require(self.name != self.source, 'Source and cached world must differ')
-        token = self.database.sql('world', f'SELECT token FROM `{self.name}`.`{OWNER_TABLE}`;')
+        token = read_identity(self.database, f'SELECT token FROM `{self.name}`.`{OWNER_TABLE}`;')
         require(token == self.metadata['token'], 'World cache ownership mismatch; refusing to reuse or drop it')
 
     def save(self):
