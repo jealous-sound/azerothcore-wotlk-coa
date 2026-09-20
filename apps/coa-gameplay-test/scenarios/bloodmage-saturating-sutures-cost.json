@@ -1,0 +1,142 @@
+{
+  "schema": 1,
+  "name": "Saturating Sutures makes periodic damage refund the next Sanguine Mend (#1912)",
+  "contract": "Saturating Sutures 504098's single effect is SPELL_AURA_PROC_TRIGGER_SPELL (aura 42) on Saturating Sutures 504137, a native aura 108 SPELL_AURA_ADD_PCT_MODIFIER with MiscValue 14 (SPELLMOD_COST), BasePoints -101 and EffectSpellClassMask (524288, 0, 0) - exactly the nine Sanguine Mend ranks. Spell.dbc gives 504098 ProcFlags 0 and no spell_proc row existed, so the aura was inert. The tooltip is 'Your periodic damage and healing has a $h% chance to reduce the cost of your next Sanguine Mend by $504137s1%' and the record's own ProcChance is 15. Crimson Tide is cast as rank 504134, the rank a level-80 character owns per AscensionSpellProgressionData.h. Its single effect is aura 3 SPELL_AURA_PERIODIC_DAMAGE with Amplitude 3000, DurationIndex 8 (15 s) and MaxAffectedTargets 10, so one cast against eight dummies produces 5 ticks x 8 targets = 40 separate PROC_FLAG_DONE_PERIODIC events, and two casts 15 s apart produce about 80. At 15% per event, the chance that none of roughly 80 events procs is 0.85^80, under one in 400000, so no statistical test is needed and the real proc chance is left untouched. 504137 lasts 8 s (DurationIndex 31) and every further proc refreshes it, so it is still up at the assertion.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "bloodmage",
+      "race": 1,
+      "class": 20,
+      "level": 80,
+      "spell_hit_rating": 10000,
+      "melee_hit_rating": 10000,
+      "expertise_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "dummy1",
+      "owner": "bloodmage",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 4
+    },
+    {
+      "id": "dummy2",
+      "owner": "bloodmage",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 5
+    },
+    {
+      "id": "dummy3",
+      "owner": "bloodmage",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 6
+    },
+    {
+      "id": "dummy4",
+      "owner": "bloodmage",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 7
+    },
+    {
+      "id": "dummy5",
+      "owner": "bloodmage",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 8
+    },
+    {
+      "id": "dummy6",
+      "owner": "bloodmage",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 9
+    },
+    {
+      "id": "dummy7",
+      "owner": "bloodmage",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 10
+    },
+    {
+      "id": "dummy8",
+      "owner": "bloodmage",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 11
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "bloodmage",
+      "spell": 504134
+    },
+    {
+      "action": "learn",
+      "actor": "bloodmage",
+      "spell": 504086
+    },
+    {
+      "action": "learn",
+      "actor": "bloodmage",
+      "spell": 504098
+    },
+    {
+      "action": "set_power",
+      "actor": "bloodmage",
+      "power": 1,
+      "value": 1000
+    },
+    {
+      "action": "assert",
+      "label": "No cost reduction before any tick",
+      "actor": "bloodmage",
+      "metric": "aura",
+      "spell": 504137,
+      "equals": 0
+    },
+    {
+      "action": "cast",
+      "actor": "bloodmage",
+      "spell": 504134,
+      "target": "dummy1"
+    },
+    {
+      "action": "wait",
+      "label": "Five ticks on every dummy in range",
+      "ms": 15000
+    },
+    {
+      "action": "cast",
+      "actor": "bloodmage",
+      "spell": 504134,
+      "target": "dummy1"
+    },
+    {
+      "action": "wait",
+      "label": "Five more ticks",
+      "ms": 14000
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING: periodic damage granted the Sanguine Mend discount",
+      "actor": "bloodmage",
+      "metric": "aura",
+      "spell": 504137,
+      "equals": 1,
+      "within_ms": 3000
+    }
+  ]
+}
