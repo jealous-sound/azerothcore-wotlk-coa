@@ -11,7 +11,10 @@ namespace
 {
 enum GuidanceSpells : uint32
 {
-    SeismicGrasp = 807432
+    SeismicGrasp = 807432,
+    BoulderDash = 500692,
+    PrimalConvergence = 800181,
+    Bearskin = 800094
 };
 
 void ReduceRankCooldowns(Player* player, uint32 firstRank, int32 delta)
@@ -32,6 +35,58 @@ void ReduceRankCooldowns(Player* player, uint32 firstRank, int32 delta)
             player->ModifySpellCooldown(spell, delta);
     }
 }
+
+class aura_ascension_primalist_direct_damage : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_primalist_direct_damage);
+
+    bool Load() override
+    {
+        return GetUnitOwner()->IsPlayer() && GetUnitOwner()->getClass() == CLASS_WILDWALKER;
+    }
+
+    bool Check(ProcEventInfo& event)
+    {
+        Unit* owner = GetTarget();
+        Unit* victim = event.GetActionTarget();
+        DamageInfo const* damage = event.GetDamageInfo();
+        return owner->IsAlive() && event.GetActor() == owner && victim && victim != owner &&
+            !owner->IsFriendlyTo(victim) && damage && damage->GetDamage() &&
+            damage->GetDamageType() != DOT;
+    }
+
+    void Register() override
+    {
+        DoCheckProc += AuraCheckProcFn(aura_ascension_primalist_direct_damage::Check);
+    }
+};
+
+class spell_ascension_protector_of_the_grove : public SpellScript
+{
+    PrepareSpellScript(spell_ascension_protector_of_the_grove);
+
+    bool Validate(SpellInfo const*) override { return ValidateSpellInfo({BoulderDash, PrimalConvergence, Bearskin}); }
+
+    bool Load() override
+    {
+        return GetCaster()->IsPlayer() && GetCaster()->getClass() == CLASS_WILDWALKER;
+    }
+
+    void Reduce(SpellEffIndex index)
+    {
+        PreventHitDefaultEffect(index);
+        // The visible talent takes one second from effect zero for all three cooldowns.
+        // The copied helper's other slots still contain obsolete half-second values.
+        int32 delta = GetSpellInfo()->Effects[EFFECT_0].CalcValue(GetCaster());
+        ReduceRankCooldowns(GetHitPlayer(), GetSpellInfo()->Effects[index].MiscValue, delta);
+    }
+
+    void Register() override
+    {
+        OnEffectHitTarget += SpellEffectFn(spell_ascension_protector_of_the_grove::Reduce,
+            EFFECT_ALL, SPELL_EFFECT_ASCENSION_MODIFY_COOLDOWN);
+    }
+};
 
 class spell_ascension_thanes_guidance : public SpellScript
 {
@@ -87,6 +142,8 @@ class spell_ascension_spiritbound_cooldowns : public SpellScript
 
 void AddSC_AscensionPrimalistGuidance()
 {
+    RegisterSpellScript(aura_ascension_primalist_direct_damage);
+    RegisterSpellScript(spell_ascension_protector_of_the_grove);
     RegisterSpellScript(spell_ascension_thanes_guidance);
     RegisterSpellScript(spell_ascension_spiritbound_cooldowns);
 }
