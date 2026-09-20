@@ -27,7 +27,8 @@ enum ChronomancerTalentSpells : uint32
     SPELL_HASTEN = 801304,
     SPELL_HASTEN_STRIKE_SOURCE = 803382,
     SPELL_HASTY_STRIKE = 803706,
-    SPELL_TIMEGUARD = 804441
+    SPELL_TIMEGUARD = 804441,
+    SPELL_IDEAL_TIME_BUFF = 807210
 };
 
 // Timeguard's ">20% of their total health" clause lives only in the record's
@@ -225,6 +226,13 @@ void ApplyAscensionChronomancerTalentContracts(SpellInfo* info)
         info->Effects[EFFECT_1].Effect = 0;
         info->Effects[EFFECT_2].Effect = 0;
         info->_InitializeExplicitTargetMask();
+    }
+    if (info->Id == SPELL_IDEAL_TIME_BUFF)
+    {
+        // "Your next ability" needs a charge to spend: both consumers, Player::RemoveSpellMods and
+        // Aura::PrepareProcToTrigger, act only while the owning aura IsUsingCharges(), which is
+        // false for the record's ProcCharges 0. No other Spell.dbc field expresses "one use".
+        info->ProcCharges = 1;
     }
     if (info->Id != SPELL_SHIMMER)
         return;
