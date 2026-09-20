@@ -177,6 +177,17 @@ class aura_ascension_witch_doctor_lifecycle : public AuraScript
     }
     void Apply(AuraEffect const* effect, AuraEffectHandleModes /*mode*/)
     {
+        // Hex of Malice: "Periodic damage dealt by this effect can critically strike". The core only lets a
+        // periodic tick crit when an aura says so, so give the tick the caster's spell crit chance.
+        if (IsHex(GetSpellInfo()) && effect->GetAuraType() == SPELL_AURA_PERIODIC_DAMAGE)
+            if (Unit* caster = GetCaster())
+                if (AuraEffect* periodic = GetEffect(effect->GetEffIndex()))
+                {
+                    SpellInfo const* info = GetSpellInfo();
+                    float chance = caster->SpellDoneCritChance(nullptr, info, info->GetSchoolMask(), BASE_ATTACK, true);
+                    periodic->SetCritChance(GetTarget()->SpellTakenCritChance(caster, info, info->GetSchoolMask(),
+                        chance, BASE_ATTACK, true));
+                }
         if (!First(effect))
             return;
         uint32 id = GetId();
