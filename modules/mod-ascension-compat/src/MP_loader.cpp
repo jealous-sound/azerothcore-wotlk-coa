@@ -125,6 +125,7 @@ void AddAscensionTinkerHackingScripts();
 void AddSC_AscensionPrimalistEarthshaping();
 void AddSC_AscensionPrimalistHeavyEarth();
 void AddSC_AscensionPrimalistEarthshaker();
+void AddSC_AscensionPrimalistRunningInstinct();
 void AddSC_AscensionPrimalistPowerHammer();
 void AddSC_AscensionPrimalistEarthmotherRoar();
 void AddSC_AscensionPrimalistRushHunt();
@@ -308,6 +309,7 @@ void Addmod_ascension_compatScripts()
     AddSC_AscensionPrimalistEarthshaping();
     AddSC_AscensionPrimalistHeavyEarth();
     AddSC_AscensionPrimalistEarthshaker();
+    AddSC_AscensionPrimalistRunningInstinct();
     AddSC_AscensionPrimalistPowerHammer();
     AddSC_AscensionPrimalistEarthmotherRoar();
     AddSC_AscensionPrimalistRushHunt();
