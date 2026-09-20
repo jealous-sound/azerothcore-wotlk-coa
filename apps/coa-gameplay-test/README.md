@@ -224,7 +224,7 @@ before taking baselines; assert stable maximums and final levels when testing da
 | `use_item` | `actor`, `item`, `spell`, optional `target` and `destination`: normal item-use handler. |
 | `use_gameobject` | `actor`, `entry`: native use request for the actor's single nearby owned gameobject. |
 | `set_level` | `actor`, `value` (1..80): fixture level change through native `GiveLevel`, including level-change hooks. |
-| `set_health`, `set_power` | `actor`, `value` within native maximums; `set_power` accepts `power` (default 0). |
+| `set_health`, `set_power` | `actor`, `value` within native maximums; `set_power` accepts `power` (default 0). Optional `pet: true` selects the player's current pet. |
 | `wait` | `ms`: let the real world continue updating. |
 | `snapshot` | `actor`, `metric`, `save_as`: remember a numeric observation. |
 | `assert` | `actor`, `metric`, `equals` and/or `min`/`max`: check an observation. |
@@ -325,6 +325,10 @@ or reload the character from the database. Use it to exercise a repair against d
 `pet_entry` measures the player's current guardian pet entry, or zero if absent. `pet_aura_stacks`
 requires `spell`, accepts `caster` for aura ownership, and returns zero if the pet or aura is absent.
 `pet_aura_amount` and `pet_aura_amplitude_ms` accept `effect` and read its amount or tick interval.
+`spell_energize_count` and `spell_energize_total` observe native instant energize logs, excluding
+ordinary regeneration. They require `spell`; optional `power`, `target`, `pet` and `target_pet` filter
+resource type, recipient and current pets. The total is the logged nominal gain before the resource cap.
+
 `pet_max_health`, `pet_attack_power` and `pet_run_speed_rate` read the current pet's totals and require a present pet.
 `charm_entry` and `charm_aura_stacks` observe the player's charmed unit in the same way.
 `controls_self` checks that the player's movement controller is their own character.
@@ -343,7 +347,8 @@ or -1 for an object without an expiry. Moving out of range is not proof of despa
 `use_gameobject` keeps normal interaction-distance and usability checks. It does not inspect a rendered UI.
 The [portable gadgets scenario](scenarios/portable-gadgets.json) checks item summons, lifetimes, portal
 teleports and expiry. It requires `mod-portablemail`; mailbox and altar client interfaces are not tested.
-`power`/`max_power` accept a numeric `power` (0..6). Aura metrics optionally accept `caster` to select
+`power`/`max_power` and `pet_power`/`pet_max_power` accept a numeric `power` (0..6).
+The pet queries require a player with a current pet. Aura metrics optionally accept `caster` to select
 ownership; `aura_amount` also accepts an effect index (0..2, default 0). Missing auras yield zero;
 check aura presence separately when zero is a valid effect amount. Permanent aura duration is -1.
 

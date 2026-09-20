@@ -27,6 +27,7 @@ IDENTIFIER = re.compile(r'[A-Za-z_][A-Za-z0-9_]*\Z')
 ACTOR_ID = re.compile(r'[a-z][a-z0-9_]{0,31}\Z')
 LOCAL_HOSTS = {'127.0.0.1', 'localhost', '::1'}
 METRICS = {
+    'pet_power', 'pet_max_power', 'spell_energize_count', 'spell_energize_total',
     'health', 'health_pct', 'max_health', 'power', 'max_power', 'alive', 'combat', 'casting', 'level',
     'aura', 'aura_stacks', 'aura_charges', 'aura_duration_ms', 'aura_amount', 'aura_positive',
     'knows_spell', 'has_talent', 'talent_points', 'cooldown_ms', 'item_count', 'carried_item_count', 'bank_bag_slots',
@@ -55,6 +56,7 @@ METRICS = {
     'pet_aura_amount', 'pet_aura_amplitude_ms', 'pet_max_health', 'pet_attack_power', 'pet_run_speed_rate',
 }
 PLAYER_STAT_METRICS = {
+    'pet_power', 'pet_max_power', 'spell_energize_count', 'spell_energize_total',
     'melee_crit_chance', 'dodge_chance', 'parry_chance', 'expertise', 'combat_rating',
     'spell_modifier', 'spell_cast_time_ms', 'spell_max_range', 'spell_max_stacks', 'spell_healing_done',
     'melee_hit_chance', 'spell_hit_chance', 'spell_power', 'spell_done_crit_chance', 'melee_spell_damage_done',
@@ -100,7 +102,7 @@ ACTIONS = {
     'use_gameobject': ({'actor', 'entry'}, {'actor', 'entry'}),
     'set_level': ({'actor', 'value'}, {'actor', 'value'}),
     'set_health': ({'actor', 'value'}, {'actor', 'value', 'pet'}),
-    'set_power': ({'actor', 'value'}, {'actor', 'value', 'power'}),
+    'set_power': ({'actor', 'value'}, {'actor', 'value', 'power', 'pet'}),
     'teleport': ({'actor', 'map', 'x', 'y', 'z'}, {'actor', 'map', 'x', 'y', 'z', 'o'}),
     'quest_accept': ({'actor', 'quest', 'entry'}, {'actor', 'quest', 'entry'}),
     'quest_open': ({'actor', 'quest', 'entry'}, {'actor', 'quest', 'entry'}),
@@ -232,7 +234,7 @@ def validate(scenario):
                 number(step[key], f'{where}.{key}', 0, maximum, True)
         if 'stacks' in step:
             number(step['stacks'], f'{where}.stacks', 0, 255, True)
-        if action in ('set_aura', 'attack', 'set_health') and 'pet' in step:
+        if action in ('set_aura', 'attack', 'set_health', 'set_power') and 'pet' in step:
             require(type(step['pet']) is bool, f'{where}: pet must be boolean')
             require(step['actor'] in player_ids, f'{where}: pet fixture needs a player')
         if action == 'pvp':
@@ -264,17 +266,19 @@ def validate(scenario):
                     'spell_effect_value', 'spell_critical_damage', 'armor_reduced_damage',
                     'spell_immune', 'spell_effect_immune', 'spell_damage_count', 'spell_damage_total',
                     'spell_uses_armor', 'pet_aura_amount', 'pet_aura_amplitude_ms', 'spell_heal_count', 'spell_heal_total',
-                    'spell_effective_heal_total'}:
+                    'spell_effective_heal_total', 'spell_energize_count', 'spell_energize_total'}:
                 require('spell' in step, f'{where}: metric needs spell')
             for key in ('pet', 'critical'):
                 if key in step:
                     require(metric in {'spell_damage_count', 'spell_damage_total', 'spell_heal_count',
-                                       'spell_heal_total', 'spell_effective_heal_total'},
-                            f'{where}: {key} only filters spell combat events')
+                                       'spell_heal_total', 'spell_effective_heal_total'}
+                            or (key == 'pet' and metric in {'spell_energize_count', 'spell_energize_total'}),
+                            f'{where}: {key} only filters supported spell combat events')
                     require(type(step[key]) is bool, f'{where}: {key} must be boolean')
             if 'target_pet' in step:
-                require(metric in {'spell_heal_count', 'spell_heal_total', 'spell_effective_heal_total'}
-                        and step.get('target') in player_ids, f'{where}: target_pet needs a healing target player')
+                require(metric in {'spell_heal_count', 'spell_heal_total', 'spell_effective_heal_total',
+                                   'spell_energize_count', 'spell_energize_total'}
+                        and step.get('target') in player_ids, f'{where}: target_pet needs a healing or energize target player')
                 require(type(step['target_pet']) is bool, f'{where}: target_pet must be boolean')
             if metric in {'spell_damage_done', 'melee_damage_done', 'spell_damage_taken', 'melee_damage_taken',
                           'spell_healing_done', 'spell_done_crit_chance', 'melee_spell_damage_done',

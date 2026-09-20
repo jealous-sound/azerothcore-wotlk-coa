@@ -93,6 +93,31 @@ class RunnerTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             run.validate(self.scenario)
 
+    def test_pet_power_fixture_and_observation(self):
+        self.scenario['steps'].extend([
+            {'action': 'set_power', 'actor': 'caster', 'value': 0, 'power': 2, 'pet': True},
+            {'action': 'assert', 'actor': 'caster', 'metric': 'pet_power', 'power': 2, 'equals': 0},
+        ])
+        self.assertIs(run.validate(self.scenario), self.scenario)
+        for index, key, value in ((-2, 'pet', 1), (-1, 'actor', 'target'), (-1, 'power', 7)):
+            invalid = copy.deepcopy(self.scenario)
+            invalid['steps'][index][key] = value
+            with self.assertRaises(ValueError):
+                run.validate(invalid)
+
+    def test_energize_observation_filters(self):
+        self.scenario['steps'].append({
+            'action': 'assert', 'actor': 'caster', 'metric': 'spell_energize_total',
+            'spell': 803348, 'power': 2, 'target': 'caster', 'target_pet': True, 'equals': 10,
+        })
+        self.assertIs(run.validate(self.scenario), self.scenario)
+        for change in ({'critical': True}, {'pet': 1}, {'target_pet': 1}, {'spell': None},
+                       {'target': 'target'}, {'actor': 'target'}, {'power': 7}):
+            invalid = copy.deepcopy(self.scenario)
+            invalid['steps'][-1].update(change)
+            with self.assertRaises(ValueError):
+                run.validate(invalid)
+
     def test_malformed_scenarios_fail_before_starting_processes(self):
         for change in (
             lambda s: s.update(schema=True),

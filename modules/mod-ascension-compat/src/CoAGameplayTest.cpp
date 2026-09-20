@@ -125,6 +125,15 @@ struct SpellHealEvent
     bool critical = false;
 };
 
+struct SpellEnergizeEvent
+{
+    ObjectGuid caster;
+    ObjectGuid target;
+    uint32 spell = 0;
+    uint32 power = 0;
+    uint32 amount = 0;
+};
+
 struct Actor
 {
     Tree definition;
@@ -136,6 +145,7 @@ struct Actor
     uint32 meleeAttacks = 0;
     std::vector<SpellDamageEvent> spellDamage;
     std::vector<SpellHealEvent> spellHeals;
+    std::vector<SpellEnergizeEvent> spellEnergizes;
     Tree castFailures;
     uint32 lastQuestWindow = 0; // the last quest window this session sent, by opcode
     std::unique_ptr<WorldSession> session;
@@ -218,6 +228,17 @@ void ObserveSpellHealing(Actor& actor, WorldPacket const& packet)
     Require(event.overheal <= event.heal, "Native overhealing exceeds healing");
     if (event.heal)
         actor.spellHeals.push_back(event);
+}
+
+void ObserveSpellEnergize(Actor& actor, WorldPacket const& packet)
+{
+    if (packet.GetOpcode() != SMSG_SPELLENERGIZELOG)
+        return;
+    WorldPacket response(packet);
+    SpellEnergizeEvent event;
+    response >> event.target.ReadAsPacked() >> event.caster.ReadAsPacked() >> event.spell >> event.power >> event.amount;
+    Require(event.power < MAX_POWERS, "Invalid native energize power");
+    actor.spellEnergizes.push_back(event);
 }
 
 // Sessions are owned here, outside the network session manager. Character creation,
@@ -379,6 +400,7 @@ private:
             {
                 ObserveSpellDamage(actor, packet);
                 ObserveSpellHealing(actor, packet);
+                ObserveSpellEnergize(actor, packet);
                 if (packet.GetOpcode() == SMSG_CAST_FAILED)
                 {
                     WorldPacket response(packet);
@@ -618,11 +640,18 @@ private:
             return unit->GetHealthPct();
         if (metric == "max_health")
             return unit->GetMaxHealth();
-        if (metric == "power" || metric == "max_power")
+        if (metric == "power" || metric == "max_power" || metric == "pet_power" || metric == "pet_max_power")
         {
+            if (metric == "pet_power" || metric == "pet_max_power")
+            {
+                Require(unit->IsPlayer(), "Pet power query needs a player");
+                unit = unit->ToPlayer()->GetPet();
+                Require(unit != nullptr, "Pet power query needs a current pet");
+            }
             uint32 power = step.get<uint32>("power", POWER_MANA);
             Require(power < MAX_POWERS, "Invalid power index");
-            return metric == "power" ? unit->GetPower(Powers(power)) : unit->GetMaxPower(Powers(power));
+            return metric == "power" || metric == "pet_power" ?
+                unit->GetPower(Powers(power)) : unit->GetMaxPower(Powers(power));
         }
         if (metric == "alive")
             return unit->IsAlive();
@@ -811,6 +840,29 @@ private:
                     (!target || event.target == target) && (!critical || event.critical == *critical))
                     value += metric == "spell_heal_count" ? 1 :
                         event.heal - (metric == "spell_effective_heal_total" ? event.overheal : 0);
+            return double(value);
+        }
+        if (metric == "spell_energize_count" || metric == "spell_energize_total")
+        {
+            ObjectGuid caster = step.get<bool>("pet", false) ? player->GetPetGUID() : player->GetGUID();
+            ObjectGuid target;
+            if (auto id = step.get_optional<std::string>("target"))
+            {
+                Unit* victim = GetUnit(*id);
+                if (step.get<bool>("target_pet", false))
+                {
+                    Player* owner = victim->ToPlayer();
+                    Require(owner && owner->GetPet(), "Energize target needs a current pet");
+                    victim = owner->GetPet();
+                }
+                target = victim->GetGUID();
+            }
+            auto power = step.get_optional<uint32>("power");
+            uint64 value = 0;
+            for (SpellEnergizeEvent const& event : _actors.at(step.get<std::string>("actor")).spellEnergizes)
+                if (caster && event.caster == caster && event.spell == spell &&
+                    (!target || event.target == target) && (!power || event.power == *power))
+                    value += metric == "spell_energize_count" ? 1 : event.amount;
             return double(value);
         }
         if (metric == "aoe_damage_taken")
@@ -1514,11 +1566,17 @@ private:
         }
         else if (action == "set_power")
         {
+            Unit* target = player;
+            if (step.get<bool>("pet", false))
+            {
+                target = player->GetPet();
+                Require(target != nullptr, "Power fixture needs a current pet");
+            }
             uint32 power = step.get<uint32>("power", POWER_MANA);
             Require(power < MAX_POWERS, "Invalid power index");
             uint32 value = step.get<uint32>("value");
-            Require(value <= player->GetMaxPower(Powers(power)), "Power fixture exceeds maximum");
-            player->SetPower(Powers(power), value);
+            Require(value <= target->GetMaxPower(Powers(power)), "Power fixture exceeds maximum");
+            target->SetPower(Powers(power), value);
         }
         else if (action == "teleport")
         {
