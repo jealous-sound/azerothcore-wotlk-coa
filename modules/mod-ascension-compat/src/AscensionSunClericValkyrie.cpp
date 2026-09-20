@@ -8,6 +8,8 @@ enum ValkyrieSpells : uint32
 {
     SPELL_ARBITER_OF_GRACE = 301313,
     SPELL_GLORIOUS_EXECUTION_MANA_PASSIVE = 807451,
+    SPELL_ARBITER_OF_LIGHT = 302914,
+    SPELL_GAVEL_OF_LIGHT_PASSIVE = 707521,
 };
 
 class sun_cleric_valkyrie_metadata : public GlobalScript
@@ -35,6 +37,16 @@ public:
         // (802566) lands with damage.
         if (info->Id == SPELL_ARBITER_OF_GRACE)
             info->Effects[EFFECT_0].BasePoints = 14;
+        // Arbiter of Light (#1834): the same defect, targeting the Gavel of Light passive
+        // (707521, matched natively: EffectSpellClassMask word 0 = 0x200000 against 707521's
+        // own SpellFamilyFlags word 0 = 0x200000, the only family-33 spell carrying that bit).
+        // EffectBasePoints_1 was -1 (resolves to 0); corrected to 99 so the modifier resolves to
+        // +100, matching "your Gavel of Light now restores an additional 100% health equal to
+        // the damage dealt". Read by the already-existing AscensionSunClericAbilities.cpp
+        // OnSpellHitResult handler via Amount(707521) whenever Gavel of Light rank 1 (800611)
+        // lands with damage.
+        if (info->Id == SPELL_ARBITER_OF_LIGHT)
+            info->Effects[EFFECT_0].BasePoints = 99;
     }
 };
 }
