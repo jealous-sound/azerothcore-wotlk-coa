@@ -10204,7 +10204,12 @@ uint32 Unit::SpellHealingBonusTaken(Unit* caster, SpellInfo const* spellProto, u
     if (minval)
         AddPct(TakenTotalMod, minval);
 
-    float maxval = float(GetMaxPositiveAuraModifier(SPELL_AURA_MOD_HEALING_PCT));
+    float maxval = float(GetMaxPositiveAuraModifier(SPELL_AURA_MOD_HEALING_PCT,
+        [this, caster](AuraEffect const* effect)
+        {
+            // Nature's Call rank two explicitly increases healing received from others.
+            return caster != this || effect->GetId() != 707807 || effect->GetSpellInfo()->SpellFamilyName != 37;
+        }));
     if (maxval)
         AddPct(TakenTotalMod, maxval);
 
