@@ -57,6 +57,27 @@ class RunnerTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             run.validate(self.scenario)
 
+    def test_pet_spell_calculations(self):
+        for metric in ('spell_effect_value', 'spell_damage_done'):
+            with self.subTest(metric=metric):
+                scenario = copy.deepcopy(self.scenario)
+                scenario['steps'].append({'action': 'assert', 'actor': 'caster', 'metric': metric,
+                                          'spell': 116, 'target': 'target', 'pet': True, 'min': 0})
+                self.assertIs(run.validate(scenario), scenario)
+                for change in ({'pet': 1}, {'actor': 'target'}, {'critical': True}):
+                    invalid = copy.deepcopy(scenario)
+                    invalid['steps'][-1].update(change)
+                    with self.assertRaises(ValueError):
+                        run.validate(invalid)
+
+    def test_unlearn_all_specs_fixture(self):
+        self.scenario['steps'].append({'action': 'unlearn', 'actor': 'caster',
+                                       'spell': 116, 'all_specs': True})
+        self.assertIs(run.validate(self.scenario), self.scenario)
+        self.scenario['steps'][-1]['all_specs'] = 1
+        with self.assertRaises(ValueError):
+            run.validate(self.scenario)
+
     def test_healing_observation_targets(self):
         self.scenario['steps'].append({'action': 'assert', 'actor': 'caster', 'metric': 'spell_heal_total',
                                        'spell': 997800, 'target': 'caster', 'target_pet': True, 'equals': 0})
@@ -82,6 +103,21 @@ class RunnerTests(unittest.TestCase):
         ])
         self.assertIs(run.validate(self.scenario), self.scenario)
         self.scenario['steps'][-1]['enabled'] = 1
+        with self.assertRaises(ValueError):
+            run.validate(self.scenario)
+
+    def test_explicit_health_maximum_and_spell_cooldown_fixtures(self):
+        self.scenario['steps'].extend([
+            {'action': 'set_health', 'actor': 'caster', 'value': 3500, 'maximum': 10000},
+            {'action': 'reset_cooldown', 'actor': 'caster', 'spell': 116},
+        ])
+        self.assertIs(run.validate(self.scenario), self.scenario)
+        for change in ({'value': 10001}, {'maximum': 0}, {'maximum': True}, {'actor': 'target'}):
+            scenario = copy.deepcopy(self.scenario)
+            scenario['steps'][-2].update(change)
+            with self.subTest(change=change), self.assertRaises(ValueError):
+                run.validate(scenario)
+        del self.scenario['steps'][-1]['spell']
         with self.assertRaises(ValueError):
             run.validate(self.scenario)
 

@@ -671,6 +671,8 @@ private:
             return unit->GetHealthPct();
         if (metric == "max_health")
             return unit->GetMaxHealth();
+        if (metric == "display_id")
+            return unit->GetDisplayId();
         if (metric == "power" || metric == "max_power" || metric == "pet_power" || metric == "pet_max_power")
         {
             if (metric == "pet_power" || metric == "pet_max_power")
@@ -794,7 +796,8 @@ private:
         }
         Player* player = unit->ToPlayer();
         Require(player != nullptr, "Metric requires a player: " + metric);
-        if (metric == "knows_spell" || metric == "cooldown_ms" || metric == "has_talent")
+        if (metric == "knows_spell" || metric == "cooldown_ms" || metric == "global_cooldown_ms" ||
+            metric == "has_talent")
             Require(sSpellMgr->GetSpellInfo(spell) != nullptr, "Unknown spell in metric");
         if (metric == "knows_spell")
             return player->HasSpell(spell);
@@ -1032,7 +1035,9 @@ private:
             {
                 uint32 effect = step.get<uint32>("effect", EFFECT_0);
                 Require(effect < MAX_SPELL_EFFECTS && info->Effects[effect].IsEffect(), "Spell effect does not exist");
-                return info->Effects[effect].CalcValue(player);
+                Unit* caster = step.get<bool>("pet", false) ? static_cast<Unit*>(player->GetPet()) : player;
+                Require(caster != nullptr, "Spell effect query needs a present pet");
+                return info->Effects[effect].CalcValue(caster);
             }
             if (metric == "spell_cast_time_ms")
                 return info->CalcCastTime(player);
@@ -1053,7 +1058,9 @@ private:
 
             SpellInfo const* info = sSpellMgr->GetSpellInfo(spell);
             Require(info != nullptr, "Unknown spell for damage calculation");
-            return player->SpellDamageBonusDone(target, info, 1000,
+            Unit* caster = step.get<bool>("pet", false) ? static_cast<Unit*>(player->GetPet()) : player;
+            Require(caster != nullptr, "Spell damage query needs a present pet");
+            return caster->SpellDamageBonusDone(target, info, 1000,
                 step.get<bool>("periodic", false) ? DOT : SPELL_DIRECT_DAMAGE,
                 uint8(step.get<uint32>("effect", EFFECT_0)));
         }
@@ -1159,6 +1166,8 @@ private:
         }
         if (metric == "cooldown_ms")
             return player->GetSpellCooldownDelay(spell);
+        if (metric == "global_cooldown_ms")
+            return player->GetGlobalCooldownMgr().GetGlobalCooldown(sSpellMgr->GetSpellInfo(spell));
         if (metric == "item_count")
         {
             uint32 item = step.get<uint32>("item");
@@ -1532,7 +1541,8 @@ private:
             Require(player->HasSpell(spell), "Spell learning failed");
         }
         else if (action == "unlearn")
-            player->removeSpell(spell, player->GetActiveSpecMask(), false);
+            player->removeSpell(spell, step.get<bool>("all_specs", false) ? SPEC_MASK_ALL :
+                player->GetActiveSpecMask(), false);
         else if (action == "talent")
         {
             uint32 rank = step.get<uint32>("rank");
@@ -1630,6 +1640,12 @@ private:
             Require(level >= 1 && level <= 80, "Invalid fixture level");
             player->GiveLevel(uint8(level));
         }
+        else if (action == "reset_cooldown")
+        {
+            uint32 spell = step.get<uint32>("spell");
+            Require(sSpellMgr->GetSpellInfo(spell) != nullptr, "Unknown cooldown fixture spell");
+            player->RemoveSpellCooldown(spell, true);
+        }
         else if (action == "set_health")
         {
             Unit* target = player;
@@ -1639,6 +1655,12 @@ private:
                 Require(target != nullptr, "Health fixture needs a current pet");
             }
             uint32 health = step.get<uint32>("value");
+            if (auto maximum = step.get_optional<uint32>("maximum"))
+            {
+                Require(*maximum > 0 && *maximum <= INT32_MAX && health <= *maximum,
+                    "Invalid maximum health fixture");
+                target->SetMaxHealth(*maximum);
+            }
             Require(health > 0 && health <= target->GetMaxHealth(), "Health fixture outside valid range");
             target->SetHealth(health);
         }

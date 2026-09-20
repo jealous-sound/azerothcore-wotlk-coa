@@ -207,7 +207,7 @@ before taking baselines; assert stable maximums and final levels when testing da
 | --- | --- |
 | `console` | `command`: execute one console command on the test server; capture its output. |
 | `command` | `actor`, `command` beginning with `.`: execute with the player's normal permissions. |
-| `learn`, `unlearn` | `actor`, `spell`: configure learned spells/passives through player APIs. |
+| `learn`, `unlearn` | `actor`, `spell`: configure learned spells/passives through player APIs. `unlearn` accepts `all_specs: true` to remove the fixture grant from every specialization before testing a lower weapon rank. |
 | `set_aura` | `actor`, `spell`, `stacks`: fixture aura state, within its stack limit; zero removes it. Optional `pet: true` selects the actor's current pet. |
 | `talent` | `actor`, `talent`, zero-based `rank`: learn with normal point/prerequisite checks. |
 | `reset_talents` | `actor`: reset active talents through normal removal, without a trainer fee. |
@@ -227,9 +227,13 @@ before taking baselines; assert stable maximums and final levels when testing da
 | `use_gameobject` | `actor`, `entry`: native use request for the actor's single nearby owned gameobject. |
 | `set_level` | `actor`, `value` (1..80): fixture level change through native `GiveLevel`, including level-change hooks. |
 | `set_health`, `set_power` | `actor`, `value` within native maximums; `set_power` accepts `power` (default 0). Optional `pet: true` selects the player's current pet. |
+| `reset_cooldown` | Player `actor`, `spell`: reset that native spell cooldown between independent cases. |
 | `wait` | `ms`: let the real world continue updating. |
 | `snapshot` | `actor`, `metric`, `save_as`: remember a numeric observation. |
 | `assert` | `actor`, `metric`, `equals` and/or `min`/`max`: check an observation. |
+
+`set_health` also accepts an explicit `maximum` for a player or their pet, using native `SetMaxHealth`.
+This fixture supports exact health-percentage boundaries without granting GM permissions.
 
 Every step accepts a descriptive `label`. Assertions optionally accept `within_ms`: poll until the expected
 state appears, failing at the deadline. This means "eventually", not "remains true throughout the window".
@@ -308,6 +312,7 @@ player would cast it, including module base-value hooks; `spell_cast_time_ms`, `
 `spell_max_stacks` return the modified native values; `spell_healing_done` requires `target` and optional
 `effect`, with a fixed base of 1000. `spell_healing_done` and `spell_damage_done` accept `periodic: true`
 to query the native periodic coefficient path instead of direct healing/damage.
+`spell_effect_value` and `spell_damage_done` accept `pet: true` to calculate using the player's current pet.
 `melee_hit_chance`/`spell_hit_chance` read the player's hit modifiers and `spell_power` (`school` 1..6) its base
 spell damage bonus. `spell_done_crit_chance` and `melee_spell_damage_done` require `spell` and `target`: the native
 crit chance for that spell, and the weapon-spell damage bonus from a fixed base of 1000. `aura_crit_chance` reads a
@@ -344,6 +349,8 @@ resource type, recipient and current pets. The total is the logged nominal gain 
 `private_instance` checks membership in a scripted private map such as Manastorm.
 `dynamic_object` checks for the player's ground effect with the specified `spell`.
 `dynamic_object_duration_ms` measures its remaining duration, or zero when absent.
+`display_id` reads the unit's selected server display ID; it does not verify client rendering or animations.
+`global_cooldown_ms` requires `spell` and reads the remaining native global cooldown for its recovery category.
 Player commands retain normal permission and gameplay checks; verify their effects with assertions.
 `owned_creature_count` requires a player and `entry`. It counts living creatures of that entry owned by
 the player, in the same phase and within 100 yards, including summons outside the guardian-pet slot.

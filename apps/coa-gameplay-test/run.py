@@ -31,7 +31,8 @@ METRICS = {
     'pet_power', 'pet_max_power', 'spell_energize_count', 'spell_energize_total',
     'health', 'health_pct', 'max_health', 'power', 'max_power', 'alive', 'combat', 'casting', 'level',
     'aura', 'aura_stacks', 'aura_charges', 'aura_duration_ms', 'aura_amount', 'aura_positive',
-    'knows_spell', 'has_talent', 'talent_points', 'cooldown_ms', 'item_count', 'carried_item_count', 'bank_bag_slots',
+    'knows_spell', 'has_talent', 'talent_points', 'cooldown_ms', 'global_cooldown_ms',
+    'item_count', 'carried_item_count', 'bank_bag_slots',
     'taxi_node', 'pet_entry', 'pet_aura_stacks', 'owned_creature_count',
     'charm_entry', 'charm_aura_stacks', 'controls_self', 'private_instance',
     'dynamic_object', 'dynamic_object_duration_ms', 'gossip_options',
@@ -44,7 +45,7 @@ METRICS = {
     'ball_carried_count', 'ball_carried_quest', 'ball_turn_in_count', 'ball_turn_in_quest',
     'gossip_text',
     'stat', 'attack_power', 'ranged_attack_power', 'armor', 'weapon_damage_min', 'resistance',
-    'attack_time_ms', 'run_speed_rate',
+    'attack_time_ms', 'run_speed_rate', 'display_id',
     'aura_amplitude_ms', 'melee_crit_chance', 'dodge_chance', 'parry_chance', 'expertise', 'combat_rating',
     'spell_modifier', 'spell_cast_time_ms', 'spell_max_range', 'spell_max_stacks', 'spell_healing_done',
     'aura_crit_chance', 'aura_script_value', 'melee_hit_chance', 'spell_hit_chance', 'spell_power',
@@ -57,6 +58,7 @@ METRICS = {
     'pet_aura_amount', 'pet_aura_amplitude_ms', 'pet_max_health', 'pet_attack_power', 'pet_run_speed_rate',
 }
 PLAYER_STAT_METRICS = {
+    'global_cooldown_ms',
     'melee_damage_count',
     'pet_power', 'pet_max_power', 'spell_energize_count', 'spell_energize_total',
     'melee_crit_chance', 'dodge_chance', 'parry_chance', 'expertise', 'combat_rating',
@@ -81,7 +83,7 @@ ACTIONS = {
     'snapshot': ({'actor', 'metric', 'save_as'}, METRIC_FIELDS | {'save_as'}),
     'assert': ({'actor', 'metric'}, METRIC_FIELDS | {'equals', 'min', 'max', 'within_ms'}),
     'learn': ({'actor', 'spell'}, {'actor', 'spell'}),
-    'unlearn': ({'actor', 'spell'}, {'actor', 'spell'}),
+    'unlearn': ({'actor', 'spell'}, {'actor', 'spell', 'all_specs'}),
     'set_aura': ({'actor', 'spell', 'stacks'}, {'actor', 'spell', 'stacks', 'pet'}),
     'cast': ({'actor', 'spell'}, {'actor', 'spell', 'target', 'destination'}),
     'attack': ({'actor', 'target'}, {'actor', 'target', 'pet'}),
@@ -105,7 +107,8 @@ ACTIONS = {
     'use_item': ({'actor', 'item', 'spell'}, {'actor', 'item', 'spell', 'target', 'destination'}),
     'use_gameobject': ({'actor', 'entry'}, {'actor', 'entry'}),
     'set_level': ({'actor', 'value'}, {'actor', 'value'}),
-    'set_health': ({'actor', 'value'}, {'actor', 'value', 'pet'}),
+    'set_health': ({'actor', 'value'}, {'actor', 'value', 'pet', 'maximum'}),
+    'reset_cooldown': ({'actor', 'spell'}, {'actor', 'spell'}),
     'set_power': ({'actor', 'value'}, {'actor', 'value', 'power', 'pet'}),
     'teleport': ({'actor', 'map', 'x', 'y', 'z'}, {'actor', 'map', 'x', 'y', 'z', 'o'}),
     'quest_accept': ({'actor', 'quest', 'entry'}, {'actor', 'quest', 'entry'}),
@@ -243,6 +246,8 @@ def validate(scenario):
             require(step['actor'] in player_ids, f'{where}: pet fixture needs a player')
         if action in {'pvp', 'set_moving'}:
             require(type(step['enabled']) is bool, f'{where}: enabled must be boolean')
+        if 'all_specs' in step:
+            require(type(step['all_specs']) is bool, f'{where}: all_specs must be boolean')
         for key in ('race_mask', 'class_mask'):
             if key in step:
                 number(step[key], f'{where}.{key}', 0, 2**32 - 1, True)
@@ -258,6 +263,10 @@ def validate(scenario):
             number(step['value'], f'{where}.value', 1, 80, True)
         if 'value' in step:
             number(step['value'], f'{where}.value', 1 if action == 'set_health' else 0, 2**31 - 1, True)
+        if action == 'set_health' and 'maximum' in step:
+            require(step['actor'] in player_ids, f'{where}: maximum health fixture needs a player or their pet')
+            number(step['maximum'], f'{where}.maximum', 1, 2**31 - 1, True)
+            require(step['value'] <= step['maximum'], f'{where}: health exceeds fixture maximum')
         if action in {'snapshot', 'assert'}:
             metric = step['metric']
             if 'periodic' in step:
@@ -265,7 +274,8 @@ def validate(scenario):
                         f'{where}: periodic requires a damage/healing calculation and a boolean')
             require(metric in METRICS, f'{where}: unknown metric')
             if metric.startswith('aura') or metric in {
-                    'knows_spell', 'cooldown_ms', 'cast_remaining_ms', 'has_talent', 'pet_aura_stacks', 'charm_aura_stacks',
+                    'knows_spell', 'cooldown_ms', 'global_cooldown_ms', 'cast_remaining_ms', 'has_talent',
+                    'pet_aura_stacks', 'charm_aura_stacks',
                     'dynamic_object', 'dynamic_object_duration_ms', 'spell_power_cost',
                     'spell_damage_done', 'spell_damage_taken', 'spell_modifier', 'spell_cast_time_ms',
                     'spell_max_range', 'spell_max_stacks', 'spell_healing_done', 'spell_done_crit_chance',
@@ -280,7 +290,8 @@ def validate(scenario):
                     require(metric in {'spell_damage_count', 'spell_damage_total', 'spell_heal_count',
                                        'spell_heal_total', 'spell_effective_heal_total'}
                             or (key == 'pet' and metric in {'spell_energize_count', 'spell_energize_total',
-                                                           'armor_reduced_damage'}),
+                                                           'armor_reduced_damage', 'spell_effect_value',
+                                                           'spell_damage_done'}),
                             f'{where}: {key} only filters supported spell combat events')
                     require(type(step[key]) is bool, f'{where}: {key} must be boolean')
             if 'target_pet' in step:
