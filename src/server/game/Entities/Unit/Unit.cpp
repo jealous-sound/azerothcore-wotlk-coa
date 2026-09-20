@@ -9342,6 +9342,13 @@ uint32 Unit::SpellDamageBonusDone(Unit* victim, SpellInfo const* spellProto, uin
     if (Player* modOwner = GetSpellModOwner())
         modOwner->ApplySpellMod(spellProto->Id, damagetype == DOT ? SPELLMOD_DOT : SPELLMOD_DAMAGE, tmpDamage);
 
+    // Elemental Berserker's copied mask covers the repeated area helper only. Include the
+    // original Smash area, including its AP term, without increasing the primary weapon strike.
+    if (spellProto->SpellFamilyName == 37 && effIndex == EFFECT_1 && damagetype != DOT &&
+        sSpellMgr->GetFirstSpellInChain(spellProto->Id) == 800178)
+        if (AuraEffect const* berserker = GetAuraEffect(706338, EFFECT_0, GetGUID()))
+            AddPct(tmpDamage, berserker->GetAmount());
+
     return uint32(std::max(tmpDamage, 0.0f));
 }
 
