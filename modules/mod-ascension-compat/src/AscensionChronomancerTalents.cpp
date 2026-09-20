@@ -28,6 +28,7 @@ enum ChronomancerTalentSpells : uint32
     SPELL_HASTEN_STRIKE_SOURCE = 803382,
     SPELL_HASTY_STRIKE = 803706,
     SPELL_TIMEGUARD = 804441,
+    SPELL_MARK_OF_ORDER_ADD_STACK = 806270,
     SPELL_IDEAL_TIME_BUFF = 807210
 };
 
@@ -226,6 +227,14 @@ void ApplyAscensionChronomancerTalentContracts(SpellInfo* info)
         info->Effects[EFFECT_1].Effect = 0;
         info->Effects[EFFECT_2].Effect = 0;
         info->_InitializeExplicitTargetMask();
+    }
+    if (info->Id == SPELL_MARK_OF_ORDER_ADD_STACK)
+    {
+        // "Add stack" is effect 175, whose delta Spell::EffectAscensionModifyAuraStacks reads from
+        // MiscValue; ModifyAscensionAuraStacks then returns on a zero delta. This record puts its
+        // stack delta in MiscValueB instead, so Mark of Order 806269 never grows past its first
+        // stack. Only the two fields disagree, so the record is read as authored.
+        info->Effects[EFFECT_0].MiscValue = info->Effects[EFFECT_0].MiscValueB;
     }
     if (info->Id == SPELL_IDEAL_TIME_BUFF)
     {
