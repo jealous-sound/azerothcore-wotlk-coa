@@ -1256,7 +1256,7 @@ namespace CoAChallenges
     // killerSource: guid whose death carries the killer for the broadcast
     // (defaults to the failing player; shared fate passes the member who died).
     void FailChallenge(Player* player, uint32 challengeID, uint32 level, uint32 deaths,
-        ObjectGuid const& killerSource)
+        ObjectGuid const& killerSource, KillerKind causeKind, uint32 causeEntry, std::string causeName)
     {
         uint32 guid = player->GetGUID().GetCounter();
         // Capture the active custom-trial identity (if any) BEFORE any teardown,
@@ -1308,13 +1308,22 @@ namespace CoAChallenges
         // after OnPlayerKilledByCreature / OnPlayerPVPKill may have filled in
         // the killer).
         {
-            uint32 sourceGuid = (killerSource.IsEmpty() ? player->GetGUID() : killerSource).GetCounter();
             PendingFail pending;
             pending.challengeID = challengeID;
             pending.level = level;
             pending.displayName = trialDisplayName;
             pending.displayIcon = trialDisplayIcon;
+            if (causeKind != KillerKind::Unknown)
             {
+                // Rule failure (e.g. slaying a forbidden beast): name the cause
+                // directly; the player did not die, so there is no LastKiller.
+                pending.killerKind = causeKind;
+                pending.killerEntry = causeEntry;
+                pending.killerName = causeName;
+            }
+            else
+            {
+                uint32 sourceGuid = (killerSource.IsEmpty() ? player->GetGUID() : killerSource).GetCounter();
                 std::lock_guard<std::mutex> lock(LastKillerMutex);
                 auto it = LastKiller.find(sourceGuid);
                 if (it != LastKiller.end())

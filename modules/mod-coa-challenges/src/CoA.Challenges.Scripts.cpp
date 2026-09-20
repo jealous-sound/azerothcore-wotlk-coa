@@ -1709,7 +1709,8 @@ namespace CoAChallenges
             LOG_INFO("module.coa_challenges",
                 "{}: {} killed creature {} (type {}), failing challenge {}",
                 rule, player->GetName(), killed->GetEntry(), uint32(killed->GetCreatureType()), cid);
-            FailChallenge(player, cid, level, deaths);
+            FailChallenge(player, cid, level, deaths, ObjectGuid::Empty,
+                KillerKind::Rule, killed->GetEntry(), killed->GetName());
         }
 
         void OnPlayerCreatureKill(Player* player, Creature* killed) override
