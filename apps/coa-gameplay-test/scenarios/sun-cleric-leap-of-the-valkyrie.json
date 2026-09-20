@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "name": "Sun Cleric: Leap of the Valkyrie already leaps and slows, and rank 2 already shortens Sun Stride (#1561)",
+  "contract": "Rank 1 (300320) is a passive Proc Trigger Spell (aura 42) aura with ProcFlags 0, so SpellMgr::LoadSpellProcs never generates a proc entry for it and the aura itself never fires. But Valkyrie Spear (800656, the base ability the tooltip names) already carries a native, unconditional SPELL_EFFECT_TRIGGER_SPELL (Effect index 1 = 64) triggering 805582 on every cast, regardless of any learned talent; 805582 itself is SPELL_EFFECT_JUMP_DEST (leap to target) plus an APPLY_AURA SPELL_AURA_MOD_DECREASE_SPEED (BasePoints -81, DieSides 1, resolving to -80 per SpellEffectInfo::CalcBaseValue's -1 convention) for the DurationIndex-39 window: exactly 'leap to your target and slow their movement speed by 80% for 2 sec'. The talent's own broken proc is therefore redundant, not blocking. Rank 2 (301295) is ADD_FLAT_MODIFIER (aura 107), MiscValue 11 = SPELLMOD_COOLDOWN, EffectSpellClassMask word 3 = 0x800000; Sun Stride (680700) carries that same bit in its own SpellFamilyFlags word 3, so SpellInfo::IsAffectedBySpellMod's generic family-33 path (falls through the family-33 named-root switch, which does not list 301295, to the plain flag96 AND) admits it without any extra routing. BasePoints -4001 resolves to -4000, matching 'Reduces the cooldown of Sun Stride by 4 sec' on a 24000ms RecoveryTime. Native only, no server code needed for either rank.",
+  "timeout_ms": 60000,
+  "players": [
+    { "id": "caster", "race": 1, "class": 27, "level": 80 }
+  ],
+  "creatures": [
+    { "id": "target", "owner": "caster", "entry": 36, "level": 80, "health": 100000, "distance": 25 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+    { "action": "learn", "label": "Base ability fixture, not the audited talent", "actor": "caster", "spell": 800656 },
+    { "action": "snapshot", "actor": "caster", "metric": "distance", "target": "target", "save_as": "distance_before" },
+    { "action": "cast", "label": "Cast Valkyrie Spear without ever learning 300320", "actor": "caster", "spell": 800656, "target": "target" },
+    {
+      "action": "assert", "label": "Base ability already leaps the caster to melee range",
+      "actor": "caster", "metric": "distance", "target": "target", "relative_to": "distance_before", "max": -15, "within_ms": 3000
+    },
+    {
+      "action": "assert", "label": "Base ability already applies the 80% slow (805582) with no talent learned",
+      "actor": "target", "metric": "aura", "spell": 805582, "caster": "caster", "equals": 1, "within_ms": 3000
+    },
+    { "action": "wait", "label": "Let the 2 sec slow expire before the repeat check", "ms": 3000 },
+    { "action": "learn", "label": "Learn the (broken but harmless) rank 1 talent", "actor": "caster", "spell": 300320 },
+    { "action": "snapshot", "actor": "caster", "metric": "distance", "target": "target", "save_as": "distance_before_2" },
+    { "action": "cast", "label": "Re-cast with the talent learned: identical behavior, no duplication", "actor": "caster", "spell": 800656, "target": "target" },
+    {
+      "action": "assert", "label": "Still leaps once talented", "actor": "caster",
+      "metric": "distance", "target": "target", "relative_to": "distance_before_2", "max": -15, "within_ms": 3000
+    },
+    {
+      "action": "assert", "label": "Still slows once talented", "actor": "target",
+      "metric": "aura", "spell": 805582, "caster": "caster", "equals": 1, "within_ms": 3000
+    },
+    {
+      "action": "snapshot", "label": "Sun Stride cooldown modifier before rank 2",
+      "actor": "caster", "metric": "spell_modifier", "spell": 680700, "op": 11, "base": 24000, "save_as": "sun_stride_cd_before"
+    },
+    { "action": "learn", "label": "Rank 2: Reduces the cooldown of Sun Stride by 4 sec", "actor": "caster", "spell": 301295 },
+    {
+      "action": "assert", "label": "Sun Stride's cooldown modifier drops by 4000ms",
+      "actor": "caster", "metric": "spell_modifier", "spell": 680700, "op": 11, "base": 24000,
+      "relative_to": "sun_stride_cd_before", "equals": -4000
+    }
+  ]
+}
