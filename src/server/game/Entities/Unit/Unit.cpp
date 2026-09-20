@@ -9249,7 +9249,16 @@ uint32 Unit::SpellDamageBonusDone(Unit* victim, SpellInfo const* spellProto, uin
         spellPowerSchool == SPELL_SCHOOL_MASK_NORMAL && spellProto->DmgClass == SPELL_DAMAGE_CLASS_MAGIC &&
         effIndex == EFFECT_0 && spellProto->Effects[EFFECT_0].Effect == SPELL_EFFECT_SCHOOL_DAMAGE)
         spellPowerSchool = SPELL_SCHOOL_MASK_NATURE;
-    DoneAdvertisedBenefit += SpellBaseDamageBonusDone(spellPowerSchool);
+    if (spellProto->Id == 803140 && spellProto->SpellFamilyName == 37 &&
+        spellPowerSchool == (SPELL_SCHOOL_MASK_FIRE | SPELL_SCHOOL_MASK_NATURE) &&
+        spellProto->DmgClass == SPELL_DAMAGE_CLASS_MAGIC && effIndex == EFFECT_0 &&
+        spellProto->Effects[EFFECT_0].Effect == SPELL_EFFECT_SCHOOL_DAMAGE)
+        // Eruption uses the higher school bonus, not their sum. Leave the
+        // damage school unchanged for native resistance and damage modifiers.
+        DoneAdvertisedBenefit += std::max(SpellBaseDamageBonusDone(SPELL_SCHOOL_MASK_FIRE),
+            SpellBaseDamageBonusDone(SPELL_SCHOOL_MASK_NATURE));
+    else
+        DoneAdvertisedBenefit += SpellBaseDamageBonusDone(spellPowerSchool);
 
     // Check for table values
     float coeff = spellProto->Effects[effIndex].BonusMultiplier;

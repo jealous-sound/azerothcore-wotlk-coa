@@ -16,6 +16,8 @@ constexpr uint32 SPELL_EARTHSHAPING = 680441;
 constexpr uint32 SPELL_STONESHARD_MODIFIER = 680846;
 constexpr uint32 SPELL_EARTHQUAKE_MODIFIER = 532562;
 constexpr uint32 SPELL_ERUPTION_MODIFIER = 680450;
+constexpr uint32 SPELL_ERUPTION = 802335;
+constexpr uint32 SPELL_MAGMA_GEODE = 803140;
 constexpr uint32 SPELL_BLESSING_OF_THERAZANE = 680439;
 constexpr std::array<uint32, 3> EARTHSHAPING_HELPERS =
     {SPELL_STONESHARD_MODIFIER, SPELL_EARTHQUAKE_MODIFIER, SPELL_ERUPTION_MODIFIER};
@@ -92,7 +94,7 @@ class spell_ascension_primalist_earthshaping : public AuraScript
 
     bool Load() override
     {
-        return IsEarthshapingOwner(GetTarget()) && GetCasterGUID() == GetTarget()->GetGUID();
+        return IsEarthshapingOwner(GetUnitOwner()) && GetCasterGUID() == GetUnitOwner()->GetGUID();
     }
 
     void Apply(AuraEffect const*, AuraEffectHandleModes)
@@ -156,6 +158,22 @@ void ApplyAscensionPrimalistEarthshapingContracts(SpellInfo* spellInfo)
     for (uint32 spellId : EARTHSHAPING_HELPERS)
         if (spellInfo->Id == spellId && spellInfo->StackAmount == 15)
             spellInfo->AttributesCu |= SPELL_ATTR0_CU_AURA_CANNOT_BE_SAVED;
+
+    // Eruption's visible description specifies Firestorm damage and the higher
+    // of Fire/Nature power. The native multi-school mask also selects resistance.
+    if (spellInfo->Id == SPELL_MAGMA_GEODE && spellInfo->SchoolMask == SPELL_SCHOOL_MASK_FIRE &&
+        spellInfo->Effects[EFFECT_0].Effect == SPELL_EFFECT_SCHOOL_DAMAGE)
+        spellInfo->SchoolMask = SPELL_SCHOOL_MASK_FIRE | SPELL_SCHOOL_MASK_NATURE;
+
+    if (spellInfo->Id == SPELL_ERUPTION)
+    {
+        SpellEffectInfo& bonus = spellInfo->Effects[EFFECT_2];
+        // This leftover self modifier adds 40% beyond the visible per-stone
+        // formula. Keep the periodic trigger and native duration/haste handling.
+        if (bonus.IsAura(SPELL_AURA_ADD_PCT_MODIFIER) && bonus.MiscValue == SPELLMOD_DAMAGE &&
+            bonus.BasePoints == 39 && bonus.SpellClassMask == flag96(0, 0, 128))
+            bonus.ApplyAuraName = SPELL_AURA_DUMMY;
+    }
 
     if (spellInfo->Id != SPELL_STONESHARD_MODIFIER)
         return;
