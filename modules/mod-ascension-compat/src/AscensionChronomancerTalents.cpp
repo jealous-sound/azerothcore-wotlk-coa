@@ -3,7 +3,10 @@
 #include "Player.h"
 #include "ScriptMgr.h"
 #include "Spell.h"
+#include "SpellMgr.h"
 #include "SpellScript.h"
+#include <algorithm>
+#include <limits>
 
 namespace
 {
@@ -17,7 +20,11 @@ enum ChronomancerTalentSpells : uint32
     SPELL_AEON_OBLIVION = 806293,
     SPELL_DIMENSIONAL_DIVERGENCE = 802790,
     SPELL_DIVERGENCE_SLOW = 803301,
-    SPELL_DIVERGENCE_SPEED = 803703
+    SPELL_DIVERGENCE_SPEED = 803703,
+    SPELL_UNMAKER_OF_REALITIES = 706107,
+    SPELL_HASTEN = 801304,
+    SPELL_HASTEN_STRIKE_SOURCE = 803382,
+    SPELL_HASTY_STRIKE = 803706
 };
 
 bool IsAeonActivation(uint32 id)
@@ -83,6 +90,58 @@ class spell_ascension_dimensional_divergence : public SpellScript
     }
 };
 
+// Unmaker of Realities (706107) is a bare SPELL_AURA_DUMMY. The extra strike it promises is described by
+// the unobtainable Hasten variant 803382 (ProcChance 25, Effect[0] CalcValue 30) whose aura 354 has no
+// handler here, so the mechanic is attached to the Hasten players actually learn, 801304. The chance
+// lives in 801304's `spell_proc` row; this script owns the gate and the forwarded amount.
+class spell_ascension_unmaker_of_realities : public AuraScript
+{
+    PrepareAuraScript(spell_ascension_unmaker_of_realities);
+
+    bool Validate(SpellInfo const*) override
+    {
+        return ValidateSpellInfo({SPELL_HASTEN_STRIKE_SOURCE, SPELL_HASTY_STRIKE});
+    }
+
+    bool CheckProc(ProcEventInfo& eventInfo)
+    {
+        // The talent belongs to the Chronomancer who cast Hasten, not to the ally carrying it.
+        Player* caster = GetCaster() ? GetCaster()->ToPlayer() : nullptr;
+        if (!caster || caster->getClass() != CLASS_CHRONOMANCER || !caster->HasSpell(SPELL_UNMAKER_OF_REALITIES))
+            return false;
+        DamageInfo* damage = eventInfo.GetDamageInfo();
+        if (!damage || !damage->GetDamage() || !eventInfo.GetActionTarget())
+            return false;
+        // The extra strike is itself a damaging cast by the buff holder: never let it feed its own proc.
+        SpellInfo const* procSpell = eventInfo.GetSpellInfo();
+        return !procSpell || procSpell->Id != SPELL_HASTY_STRIKE;
+    }
+
+    void HandleProc(ProcEventInfo& eventInfo)
+    {
+        Unit* striker = GetTarget();
+        Unit* victim = eventInfo.GetActionTarget();
+        DamageInfo* damage = eventInfo.GetDamageInfo();
+        SpellInfo const* source = sSpellMgr->GetSpellInfo(SPELL_HASTEN_STRIKE_SOURCE);
+        if (!striker || !victim || !damage || !source)
+            return;
+        int32 percent = std::clamp(source->Effects[EFFECT_0].CalcValue(), 0, 100);
+        uint64 amount = uint64(damage->GetDamage()) * uint64(percent) / 100;
+        if (!amount)
+            return;
+        // Hasty Strike forwards the amount unchanged: it cannot crit, ignores caster modifiers and
+        // ignores damage-taken modifiers, and its DieSides of 1 cancels SetSpellValue's subtraction.
+        striker->CastCustomSpell(SPELL_HASTY_STRIKE, SPELLVALUE_BASE_POINT0,
+            int32(std::min<uint64>(amount, uint64(std::numeric_limits<int32>::max()))), victim, true);
+    }
+
+    void Register() override
+    {
+        DoCheckProc += AuraCheckProcFn(spell_ascension_unmaker_of_realities::CheckProc);
+        OnProc += AuraProcFn(spell_ascension_unmaker_of_realities::HandleProc);
+    }
+};
+
 class chronomancer_talent_casts : public AllSpellScript
 {
 public:
@@ -122,4 +181,5 @@ void AddSC_AscensionChronomancerTalents()
 {
     new chronomancer_talent_casts();
     RegisterSpellScript(spell_ascension_dimensional_divergence);
+    RegisterSpellScript(spell_ascension_unmaker_of_realities);
 }
