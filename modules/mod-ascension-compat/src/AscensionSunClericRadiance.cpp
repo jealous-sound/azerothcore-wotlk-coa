@@ -49,6 +49,27 @@ class aura_ascension_champion_of_the_sun_arrival : public AuraScript
     }
 };
 } // namespace
+void ApplyAscensionSunClericRadianceContracts(SpellInfo* info)
+{
+    if (!info)
+        return;
+
+    // #2446 Harmonious Bells (704917): tooltip promises "Your Mercy now affects 4 additional
+    // allies near the primary target." Effect 0 is SPELL_AURA_ADD_FLAT_MODIFIER /
+    // SPELLMOD_JUMP_TARGETS (17) with EffectSpellClassMask (0x20, 0, 0), correctly matching
+    // Mercy's (504848) own SpellFamilyFlags_1 0x20 -- Spell::SelectImplicitChainTargets adds this
+    // modifier's raw value straight onto Mercy's own ChainTarget before searching secondary
+    // targets, so the talent's own contribution to the extra-target count equals the modifier's
+    // real value regardless of Mercy's baseline. Shipped EffectBasePoints_1 is 4; with
+    // EffectDieSides_1 1, SpellEffectInfo::CalcValue resolves that to a real value of 5
+    // (basePoints + 1) -- one more than the quoted "4 additional". The class's own convention for
+    // this exact wording is a 1:1 match (Radiant Cascade's native ChainTarget 4 is worded "jumps
+    // to up to 4 additional allies"; Everglow's own +2 modifier on Radiant Cascade matches its
+    // "2 additional allies" exactly), so this is a shipped off-by-one, not a different design.
+    // Patch it down by one so CalcValue returns exactly 4.
+    if (info->Id == 704917)
+        info->Effects[EFFECT_0].BasePoints -= 1;
+}
 void AddSC_AscensionSunClericRadiance()
 {
     RegisterSpellScript(aura_ascension_champion_of_the_sun_arrival);
