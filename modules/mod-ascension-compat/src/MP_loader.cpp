@@ -144,6 +144,7 @@ void AddSC_AscensionPrimalistTotem();
 void AddSC_AscensionPrimalistHeavyHanded();
 void AddSC_AscensionPrimalistTremor();
 void AddSC_AscensionPrimalistPulverize();
+void AddSC_AscensionPrimalistStoneTosser();
 void AddSC_AscensionPrimalistVitality();
 void AddSC_AscensionPrimalistMagmatism();
 void AddSC_AscensionPrimalistGeomancy();
@@ -324,6 +325,7 @@ void Addmod_ascension_compatScripts()
     AddSC_AscensionPrimalistHeavyHanded();
     AddSC_AscensionPrimalistTremor();
     AddSC_AscensionPrimalistPulverize();
+    AddSC_AscensionPrimalistStoneTosser();
     AddSC_AscensionPrimalistVitality();
     AddSC_AscensionPrimalistMagmatism();
     AddSC_AscensionPrimalistGeomancy();
