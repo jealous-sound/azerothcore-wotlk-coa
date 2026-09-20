@@ -213,6 +213,7 @@ before taking baselines; assert stable maximums and final levels when testing da
 | `reset_talents` | `actor`: reset active talents through normal removal, without a trainer fee. |
 | `cast` | `actor`, `spell`, optional `target` (self by default): normal session cast handler. |
 | `attack` | `actor`, `target`: native melee attack request; optional `pet: true` sends the pet's attack command. Verify combat or damage with assertions. |
+| `pvp` | Player `actor`, boolean `enabled`: native PvP toggle request. Disabling retains the ordinary flag-removal timer. |
 | `group` | `actor`, `target`: fixture party; creates the actor's group if needed and adds an ungrouped player. |
 | `cast_charm` | Same fields: native pet-cast handler, with the charmed unit as the default target. |
 | `gossip_hello` | `actor`, optional `target`: native gossip handler; defaults to the actor's summoned companion. |
@@ -287,6 +288,10 @@ damage events, or sum their post-mitigation damage, from the actor's native comb
 filters the victim, `pet: true` selects the actor's current pet as caster, and `critical` filters critical or
 noncritical hits. Values accumulate throughout the scenario; use snapshots and `relative_to` around a cast.
 They exclude zero damage, melee swing packets, and healing, and do not test network delivery.
+`spell_heal_count`, `spell_heal_total` and `spell_effective_heal_total` similarly observe native direct and
+periodic healing logs, counting positive heals, summing healing including overhealing, or summing effective
+healing. They accept the same caster/critical filters; `target_pet: true` selects the current pet of a player
+`target`. Absorbed healing is excluded. These metrics avoid confusing normal regeneration with spell healing.
 The result's optional `cast_failures` array records native `SMSG_CAST_FAILED` spell IDs, cast counters and
 numeric `SpellCastResult` reasons. These diagnose a rejected submission; effect assertions still establish success.
 Spell queries require `spell` and submit nothing: `spell_modifier` applies the player's native spell modifiers for
@@ -300,7 +305,7 @@ crit chance for that spell, and the weapon-spell damage bonus from a fixed base 
 periodic aura effect's snapshotted crit chance; `aura_script_value` requires `key`. `script_melee_damage_taken`,
 `script_spell_damage_taken` and `script_periodic_damage_taken` require `target` as the attacker (and `spell` for
 the latter two) and return 1000 after the registered module damage-taken hooks. `set_health` also accepts a
-creature actor.
+creature actor, or `pet: true` with a player actor to set its current pet's health.
 `open_item` takes `actor` and `item` and submits the native container-open packet, offering it to the
 packet hooks first as `WorldSession::Update` does. `close_loot` takes `actor`
 and closes its current loot window. `collect_loot` takes `actor`, collects slot zero, verifies that its full rolled
@@ -319,6 +324,8 @@ or reload the character from the database. Use it to exercise a repair against d
 `bank_bag_slots` measures the player's unlocked standard bank bag slots (0..7).
 `pet_entry` measures the player's current guardian pet entry, or zero if absent. `pet_aura_stacks`
 requires `spell`, accepts `caster` for aura ownership, and returns zero if the pet or aura is absent.
+`pet_aura_amount` and `pet_aura_amplitude_ms` accept `effect` and read its amount or tick interval.
+`pet_max_health`, `pet_attack_power` and `pet_run_speed_rate` read the current pet's totals and require a present pet.
 `charm_entry` and `charm_aura_stacks` observe the player's charmed unit in the same way.
 `controls_self` checks that the player's movement controller is their own character.
 `private_instance` checks membership in a scripted private map such as Manastorm.

@@ -115,6 +115,16 @@ struct SpellDamageEvent
     bool critical = false;
 };
 
+struct SpellHealEvent
+{
+    ObjectGuid caster;
+    ObjectGuid target;
+    uint32 spell = 0;
+    uint32 heal = 0;
+    uint32 overheal = 0;
+    bool critical = false;
+};
+
 struct Actor
 {
     Tree definition;
@@ -125,6 +135,7 @@ struct Actor
     uint32 lootReceived = 0;
     uint32 meleeAttacks = 0;
     std::vector<SpellDamageEvent> spellDamage;
+    std::vector<SpellHealEvent> spellHeals;
     Tree castFailures;
     uint32 lastQuestWindow = 0; // the last quest window this session sent, by opcode
     std::unique_ptr<WorldSession> session;
@@ -181,6 +192,32 @@ void ObserveSpellDamage(Actor& actor, WorldPacket const& packet)
     }
     if (event.damage)
         actor.spellDamage.push_back(event);
+}
+
+void ObserveSpellHealing(Actor& actor, WorldPacket const& packet)
+{
+    if (packet.GetOpcode() != SMSG_SPELLHEALLOG && packet.GetOpcode() != SMSG_PERIODICAURALOG)
+        return;
+
+    WorldPacket response(packet);
+    SpellHealEvent event;
+    response >> event.target.ReadAsPacked() >> event.caster.ReadAsPacked() >> event.spell;
+    if (packet.GetOpcode() == SMSG_PERIODICAURALOG)
+    {
+        uint32 count, aura;
+        response >> count >> aura;
+        Require(count == 1, "Expected one native periodic aura event");
+        if (aura != SPELL_AURA_PERIODIC_HEAL && aura != SPELL_AURA_OBS_MOD_HEALTH)
+            return;
+    }
+    response >> event.heal >> event.overheal;
+    response.read_skip<uint32>(); // absorb; both log formats already exclude it from healing
+    uint8 critical;
+    response >> critical;
+    event.critical = critical != 0;
+    Require(event.overheal <= event.heal, "Native overhealing exceeds healing");
+    if (event.heal)
+        actor.spellHeals.push_back(event);
 }
 
 // Sessions are owned here, outside the network session manager. Character creation,
@@ -341,6 +378,7 @@ private:
             actor.session->SetSocketlessPacketObserver([&actor](WorldPacket const& packet)
             {
                 ObserveSpellDamage(actor, packet);
+                ObserveSpellHealing(actor, packet);
                 if (packet.GetOpcode() == SMSG_CAST_FAILED)
                 {
                     WorldPacket response(packet);
@@ -751,6 +789,30 @@ private:
                     value += metric == "spell_damage_count" ? 1 : event.damage;
             return double(value);
         }
+        if (metric == "spell_heal_count" || metric == "spell_heal_total" || metric == "spell_effective_heal_total")
+        {
+            ObjectGuid caster = step.get<bool>("pet", false) ? player->GetPetGUID() : player->GetGUID();
+            ObjectGuid target;
+            if (auto id = step.get_optional<std::string>("target"))
+            {
+                Unit* victim = GetUnit(*id);
+                if (step.get<bool>("target_pet", false))
+                {
+                    Player* owner = victim->ToPlayer();
+                    Require(owner && owner->GetPet(), "Healing target needs a current pet");
+                    victim = owner->GetPet();
+                }
+                target = victim->GetGUID();
+            }
+            auto critical = step.get_optional<bool>("critical");
+            uint64 value = 0;
+            for (SpellHealEvent const& event : _actors.at(step.get<std::string>("actor")).spellHeals)
+                if (caster && event.caster == caster && event.spell == spell &&
+                    (!target || event.target == target) && (!critical || event.critical == *critical))
+                    value += metric == "spell_heal_count" ? 1 :
+                        event.heal - (metric == "spell_effective_heal_total" ? event.overheal : 0);
+            return double(value);
+        }
         if (metric == "aoe_damage_taken")
         {
             uint32 school = step.get<uint32>("school");
@@ -949,16 +1011,33 @@ private:
                     && player->InSamePhase(creature) && (!spell || creature->GetAura(spell, caster));
             });
         }
-        if (metric == "pet_entry" || metric == "pet_aura_stacks")
+        if (metric == "pet_entry" || metric == "pet_aura_stacks" || metric == "pet_aura_amount" || metric == "pet_aura_amplitude_ms" ||
+            metric == "pet_max_health" || metric == "pet_attack_power" || metric == "pet_run_speed_rate")
         {
             Guardian* pet = player->GetGuardianPet();
             if (metric == "pet_entry")
                 return pet ? pet->GetEntry() : 0;
+            if (!pet && (metric == "pet_aura_stacks" || metric == "pet_aura_amount" || metric == "pet_aura_amplitude_ms"))
+                return 0;
+            Require(pet != nullptr, "Metric needs a current pet");
+            if (metric == "pet_max_health")
+                return pet->GetMaxHealth();
+            if (metric == "pet_attack_power")
+                return pet->GetTotalAttackPowerValue(BASE_ATTACK);
+            if (metric == "pet_run_speed_rate")
+                return pet->GetSpeedRate(MOVE_RUN);
             Require(sSpellMgr->GetSpellInfo(spell) != nullptr, "Unknown pet aura spell");
             ObjectGuid caster;
             if (auto id = step.get_optional<std::string>("caster"))
                 caster = GetUnit(*id)->GetGUID();
             Aura* aura = pet ? pet->GetAura(spell, caster) : nullptr;
+            if ((metric == "pet_aura_amount" || metric == "pet_aura_amplitude_ms") && aura)
+            {
+                uint32 effect = step.get<uint32>("effect", 0);
+                Require(effect < MAX_SPELL_EFFECTS && aura->GetEffect(effect), "Pet aura effect does not exist");
+                return metric == "pet_aura_amount" ? aura->GetEffect(effect)->GetAmount() :
+                    aura->GetEffect(effect)->GetAmplitude();
+            }
             return aura ? aura->GetStackAmount() : 0;
         }
         if (metric == "cooldown_ms")
@@ -1140,7 +1219,16 @@ private:
         uint32 spell = step.get<uint32>("spell", 0);
         if (action == "learn" || action == "unlearn" || action == "cast" || action == "cast_charm")
             Require(sSpellMgr->GetSpellInfo(spell) != nullptr, "Unknown spell: " + std::to_string(spell));
-        if (action == "group")
+        if (action == "pvp")
+        {
+            bool enabled = step.get<bool>("enabled");
+            WorldPacket packet(CMSG_TOGGLE_PVP, 1);
+            packet << enabled;
+            player->GetSession()->HandleTogglePvP(packet);
+            Require(!enabled || player->IsPvP(), "Native PvP enable request did not flag the player");
+            record.put("pvp_active", player->IsPvP());
+        }
+        else if (action == "group")
         {
             Player* member = GetPlayer(step.get<std::string>("target"));
             Require(member != player && !member->GetGroup(), "Group fixture requires an ungrouped other player");
@@ -1341,6 +1429,12 @@ private:
             record.put("spell_active", caster->IsPlayer() ? caster->ToPlayer()->HasActiveSpell(spell) :
                 caster->HasSpell(spell));
             record.put("line_of_sight", caster->IsWithinLOSInMap(target));
+            record.put("target_visible", caster->CanSeeOrDetect(target));
+            record.put("target_friendly", caster->IsFriendlyTo(target));
+            record.put("caster_faction", caster->GetFaction());
+            record.put("target_faction", target->GetFaction());
+            if (SpellInfo const* info = sSpellMgr->GetSpellInfo(spell))
+                record.put("target_check", uint32(info->CheckTarget(caster, target, false)));
             WorldPacket packet(action == "cast" ? CMSG_CAST_SPELL :
                 action == "cast_charm" ? CMSG_PET_CAST_SPELL : CMSG_USE_ITEM, 64);
             if (action == "cast" || action == "cast_charm")
@@ -1408,9 +1502,15 @@ private:
         }
         else if (action == "set_health")
         {
+            Unit* target = player;
+            if (step.get<bool>("pet", false))
+            {
+                target = player->GetPet();
+                Require(target != nullptr, "Health fixture needs a current pet");
+            }
             uint32 health = step.get<uint32>("value");
-            Require(health > 0 && health <= player->GetMaxHealth(), "Health fixture outside valid range");
-            player->SetHealth(health);
+            Require(health > 0 && health <= target->GetMaxHealth(), "Health fixture outside valid range");
+            target->SetHealth(health);
         }
         else if (action == "set_power")
         {

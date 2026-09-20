@@ -51,6 +51,8 @@ METRICS = {
     'block_chance', 'block_value', 'critical_block_chance', 'spell_critical_damage', 'armor_reduced_damage',
     'aoe_damage_taken', 'reputation_gain', 'spell_immune', 'spell_effect_immune', 'melee_attack_count',
     'spell_damage_count', 'spell_damage_total', 'spell_uses_armor',
+    'spell_heal_count', 'spell_heal_total', 'spell_effective_heal_total',
+    'pet_aura_amount', 'pet_aura_amplitude_ms', 'pet_max_health', 'pet_attack_power', 'pet_run_speed_rate',
 }
 PLAYER_STAT_METRICS = {
     'melee_crit_chance', 'dodge_chance', 'parry_chance', 'expertise', 'combat_rating',
@@ -60,10 +62,12 @@ PLAYER_STAT_METRICS = {
     'block_chance', 'block_value', 'critical_block_chance', 'spell_critical_damage', 'armor_reduced_damage',
     'aoe_damage_taken', 'reputation_gain', 'spell_immune', 'spell_effect_immune', 'melee_attack_count',
     'spell_damage_count', 'spell_damage_total', 'spell_uses_armor',
+    'spell_heal_count', 'spell_heal_total', 'spell_effective_heal_total',
+    'pet_aura_amount', 'pet_aura_amplitude_ms', 'pet_max_health', 'pet_attack_power', 'pet_run_speed_rate',
 }
 METRIC_FIELDS = {'actor', 'metric', 'spell', 'power', 'caster', 'effect', 'item', 'entry',
                  'relative_to', 'ratio_to', 'target', 'quest', 'id', 'stat', 'school', 'hand', 'rating', 'op',
-                 'base', 'key', 'index', 'pet', 'critical'}
+                 'base', 'key', 'index', 'pet', 'critical', 'target_pet'}
 ACTIONS = {
     'console': ({'command'}, {'command'}),
     'command': ({'actor', 'command'}, {'actor', 'command'}),
@@ -75,6 +79,7 @@ ACTIONS = {
     'set_aura': ({'actor', 'spell', 'stacks'}, {'actor', 'spell', 'stacks', 'pet'}),
     'cast': ({'actor', 'spell'}, {'actor', 'spell', 'target', 'destination'}),
     'attack': ({'actor', 'target'}, {'actor', 'target', 'pet'}),
+    'pvp': ({'actor', 'enabled'}, {'actor', 'enabled'}),
     'group': ({'actor', 'target'}, {'actor', 'target'}),
     'cast_charm': ({'actor', 'spell'}, {'actor', 'spell', 'target'}),
     'gossip_hello': ({'actor'}, {'actor', 'target'}),
@@ -94,7 +99,7 @@ ACTIONS = {
     'use_item': ({'actor', 'item', 'spell'}, {'actor', 'item', 'spell', 'target', 'destination'}),
     'use_gameobject': ({'actor', 'entry'}, {'actor', 'entry'}),
     'set_level': ({'actor', 'value'}, {'actor', 'value'}),
-    'set_health': ({'actor', 'value'}, {'actor', 'value'}),
+    'set_health': ({'actor', 'value'}, {'actor', 'value', 'pet'}),
     'set_power': ({'actor', 'value'}, {'actor', 'value', 'power'}),
     'teleport': ({'actor', 'map', 'x', 'y', 'z'}, {'actor', 'map', 'x', 'y', 'z', 'o'}),
     'quest_accept': ({'actor', 'quest', 'entry'}, {'actor', 'quest', 'entry'}),
@@ -227,8 +232,11 @@ def validate(scenario):
                 number(step[key], f'{where}.{key}', 0, maximum, True)
         if 'stacks' in step:
             number(step['stacks'], f'{where}.stacks', 0, 255, True)
-        if action in ('set_aura', 'attack') and 'pet' in step:
+        if action in ('set_aura', 'attack', 'set_health') and 'pet' in step:
             require(type(step['pet']) is bool, f'{where}: pet must be boolean')
+            require(step['actor'] in player_ids, f'{where}: pet fixture needs a player')
+        if action == 'pvp':
+            require(type(step['enabled']) is bool, f'{where}: enabled must be boolean')
         for key in ('race_mask', 'class_mask'):
             if key in step:
                 number(step[key], f'{where}.{key}', 0, 2**32 - 1, True)
@@ -255,13 +263,19 @@ def validate(scenario):
                     'melee_spell_damage_done', 'script_spell_damage_taken', 'script_periodic_damage_taken',
                     'spell_effect_value', 'spell_critical_damage', 'armor_reduced_damage',
                     'spell_immune', 'spell_effect_immune', 'spell_damage_count', 'spell_damage_total',
-                    'spell_uses_armor'}:
+                    'spell_uses_armor', 'pet_aura_amount', 'pet_aura_amplitude_ms', 'spell_heal_count', 'spell_heal_total',
+                    'spell_effective_heal_total'}:
                 require('spell' in step, f'{where}: metric needs spell')
             for key in ('pet', 'critical'):
                 if key in step:
-                    require(metric in {'spell_damage_count', 'spell_damage_total'},
-                            f'{where}: {key} only filters spell damage events')
+                    require(metric in {'spell_damage_count', 'spell_damage_total', 'spell_heal_count',
+                                       'spell_heal_total', 'spell_effective_heal_total'},
+                            f'{where}: {key} only filters spell combat events')
                     require(type(step[key]) is bool, f'{where}: {key} must be boolean')
+            if 'target_pet' in step:
+                require(metric in {'spell_heal_count', 'spell_heal_total', 'spell_effective_heal_total'}
+                        and step.get('target') in player_ids, f'{where}: target_pet needs a healing target player')
+                require(type(step['target_pet']) is bool, f'{where}: target_pet must be boolean')
             if metric in {'spell_damage_done', 'melee_damage_done', 'spell_damage_taken', 'melee_damage_taken',
                           'spell_healing_done', 'spell_done_crit_chance', 'melee_spell_damage_done',
                           'spell_critical_damage', 'armor_reduced_damage', 'spell_immune', 'spell_effect_immune'} \
