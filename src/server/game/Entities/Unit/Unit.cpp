@@ -4084,22 +4084,23 @@ int32 Unit::GetAscensionConditionalCombatModifier(Unit const* victim, SpellInfo 
             return false;
 
         int32 condition = effect->GetMiscValueB();
-        if (getClass() == CLASS_NECROMANCER && !creature)
+        if (getClass() == CLASS_NECROMANCER && !creature && condition == AURA_STATE_FROZEN)
         {
-            if (condition == AURA_STATE_FROZEN)
-            {
-                Spell const* cast = ToPlayer()->m_spellModTakingSpell;
-                Aura const* periodic = spellInfo ? victim->GetAura(spellInfo->Id, GetGUID()) : nullptr;
-                if (HasAura(801747) || (cast && cast->GetScriptValue(801747)) ||
-                    (periodic && periodic->GetScriptValue(801747)))
-                    return true;
-            }
-            if (condition == 31) // reviewed Fiend selector: a disease owned by this caster
-                for (auto const& [key, application] : victim->GetAppliedAuras())
-                    if (Aura const* aura = application->GetBase(); aura->GetCasterGUID() == GetGUID() &&
-                        aura->GetSpellInfo()->SpellFamilyName == 29 && aura->GetSpellInfo()->Dispel == DISPEL_DISEASE)
-                        return true;
+            Spell const* cast = ToPlayer()->m_spellModTakingSpell;
+            Aura const* periodic = spellInfo ? victim->GetAura(spellInfo->Id, GetGUID()) : nullptr;
+            if (HasAura(801747) || (cast && cast->GetScriptValue(801747)) ||
+                (periodic && periodic->GetScriptValue(801747)))
+                return true;
         }
+        // Reviewed disease selector: a disease of the caster's own family on the victim. The Necromancer's
+        // Fiend contract and the Bloodmage's Blood Plague both express "against Diseased targets" as 31.
+        if (!creature && condition == 31 &&
+            (getClass() == CLASS_NECROMANCER || getClass() == CLASS_SON_OF_ARUGAL))
+            for (auto const& [key, application] : victim->GetAppliedAuras())
+                if (Aura const* aura = application->GetBase(); aura->GetCasterGUID() == GetGUID() &&
+                    aura->GetSpellInfo()->SpellFamilyName == uint32(getClass()) + 6 &&
+                    aura->GetSpellInfo()->Dispel == DISPEL_DISEASE)
+                    return true;
         return creature ? condition > 0 && (victim->GetCreatureTypeMask() & uint32(condition)) :
             victim->HasAscensionConditionalCombatState(condition);
     });
@@ -8837,6 +8838,8 @@ float Unit::SpellPctDamageModsDone(Unit* victim, SpellInfo const* spellProto, Da
     uint32 creatureTypeMask = victim->GetCreatureTypeMask();
     DoneTotalMod *= GetTotalAuraMultiplier(SPELL_AURA_MOD_DAMAGE_DONE_VERSUS, [creatureTypeMask, spellProto, damagetype, this](AuraEffect const* aurEff)
     {
+        if (aurEff->GetMiscValueB() == ASCENSION_CLASSMASK_CREATURE_DAMAGE && !aurEff->IsAffectedOnSpell(spellProto))
+            return false;
         return creatureTypeMask & aurEff->GetMiscValue() && spellProto->ValidateAttribute6SpellDamageMods(this, aurEff, damagetype == DOT);
     });
 
@@ -10744,6 +10747,9 @@ uint32 Unit::MeleeDamageBonusDone(Unit* victim, uint32 pdamage, WeaponAttackType
 
     DoneTotalMod *= GetTotalAuraMultiplier(SPELL_AURA_MOD_DAMAGE_DONE_VERSUS, [creatureTypeMask, spellProto, this](AuraEffect const* aurEff)
     {
+        if (aurEff->GetMiscValueB() == ASCENSION_CLASSMASK_CREATURE_DAMAGE &&
+            (!spellProto || !aurEff->IsAffectedOnSpell(spellProto)))
+            return false;
         return (creatureTypeMask & aurEff->GetMiscValue() && (!spellProto || spellProto->ValidateAttribute6SpellDamageMods(this, aurEff, false)));
     });
 

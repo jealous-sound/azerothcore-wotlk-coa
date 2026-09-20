@@ -1,0 +1,137 @@
+{
+  "schema": 1,
+  "name": "Cursed Ground bleeds the victims of a five-target Sanguine Rupture (#2041)",
+  "contract": "Cursed Ground 561195 has two effects. Effect 0 (aura 107 SPELL_AURA_ADD_FLAT_MODIFIER, MiscValue 10 = SPELLMOD_CASTING_TIME, BasePoints 1999, EffectSpellClassMask (0, 0, 2147483648)) is native and already works. Effect 1 is SPELL_AURA_PROC_TRIGGER_SPELL (aura 42) on Cursed Ground 561205, whose own single effect is an aura 4 dummy with no handler and no spell_script_names row, so it carries nothing but the client tooltip. The bleed the tooltip names is Cursed Ground 561303 (aura 3 SPELL_AURA_PERIODIC_DAMAGE, BasePoints 86, RealPointsPerLevel 1.02, Amplitude 500, Mechanic 15, TargetA 6 = enemy). The condition - 'when you strike at least 5 enemies' in one cast - has no spell_proc column, so it is implemented in AscensionBloodmageTalents.cpp. Sanguine Rupture is cast as rank 572907, the rank a level-80 character owns per AscensionSpellProgressionData.h; its SpellFamilyFlags (0, 0, 2147483648) are the same class mask the talent's own native effect uses, and its two effects are TargetA 22 / TargetB 15 (destination area enemy) with radius index 14, so one cast strikes every dummy in range. Six dummies are spawned so the five-target threshold is crossed with one to spare. No proc chance is involved: the record's ProcChance is 100 and the condition is deterministic.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "bloodmage",
+      "race": 1,
+      "class": 20,
+      "level": 80,
+      "spell_hit_rating": 10000,
+      "melee_hit_rating": 10000,
+      "expertise_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "dummy1",
+      "owner": "bloodmage",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 2
+    },
+    {
+      "id": "dummy2",
+      "owner": "bloodmage",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 3
+    },
+    {
+      "id": "dummy3",
+      "owner": "bloodmage",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 4
+    },
+    {
+      "id": "dummy4",
+      "owner": "bloodmage",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 5
+    },
+    {
+      "id": "dummy5",
+      "owner": "bloodmage",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 6
+    },
+    {
+      "id": "dummy6",
+      "owner": "bloodmage",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 7
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "bloodmage",
+      "spell": 572907
+    },
+    {
+      "action": "set_power",
+      "actor": "bloodmage",
+      "power": 1,
+      "value": 1000
+    },
+    {
+      "action": "cast",
+      "actor": "bloodmage",
+      "spell": 572907,
+      "target": "dummy1"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "assert",
+      "label": "Without the talent a six-target Rupture leaves no bleed",
+      "actor": "dummy1",
+      "metric": "aura",
+      "spell": 561303,
+      "caster": "bloodmage",
+      "equals": 0
+    },
+    {
+      "action": "learn",
+      "actor": "bloodmage",
+      "spell": 561195
+    },
+    {
+      "action": "assert",
+      "label": "The native cast-time half is in effect",
+      "actor": "bloodmage",
+      "metric": "spell_cast_time_ms",
+      "spell": 572907,
+      "min": 1500
+    },
+    {
+      "action": "cast",
+      "actor": "bloodmage",
+      "spell": 572907,
+      "target": "dummy1"
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING: striking six enemies at once applies Cursed Ground",
+      "actor": "dummy1",
+      "metric": "aura",
+      "spell": 561303,
+      "caster": "bloodmage",
+      "equals": 1,
+      "within_ms": 3000
+    },
+    {
+      "action": "assert",
+      "label": "and it lands on every enemy struck, not only the first",
+      "actor": "dummy5",
+      "metric": "aura",
+      "spell": 561303,
+      "caster": "bloodmage",
+      "equals": 1,
+      "within_ms": 3000
+    }
+  ]
+}

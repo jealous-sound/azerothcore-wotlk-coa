@@ -1,0 +1,128 @@
+{
+  "schema": 1,
+  "name": "Blood Bond pays the Bloodmage when the bonded ally is hit (#1930)",
+  "contract": "Blood Bond 504627 has two effects. Effect 1 (aura 23 SPELL_AURA_PERIODIC_TRIGGER_SPELL on 505169, the out-of-combat +30% movement speed) is native and already works. Effect 0 is SPELL_AURA_PROC_TRIGGER_SPELL (aura 42) on Blood Bond 505325, a SPELL_EFFECT_ENERGIZE of MiscValue 1 (Rage) BasePoints 9 plus SPELL_EFFECT_ASCENSION_RESTORE_BASE_HEALTH_PCT BasePoints 2, both TargetA 1 (caster). Spell.dbc gives 504627 ProcFlags 0 and no spell_proc row existed, so the aura was inert. The tooltip is 'causing direct damage taken by the ally to generate $/10;505325s1 Rage and ${$505325m2+$505325ppl2}% base health' - for the Bloodmage, not for the ally - but effect 0's TargetA is 57, so the aura lives on the ally and the default proc path would hand the Rage to the ally; the AuraScript redirects the cast to the aura's caster. The Bloodmage does nothing while the ally tanks, and an idle character has no other in-combat Rage source, so any increase comes from Blood Bond. NOT covered: the tooltip's third clause, 'redirect $s3% of their threat generated to you', has no effect slot on 504627 at all, so it is neither implemented nor asserted here. Harness constraint: fixture creatures are forced REACT_PASSIVE twice during setup (CoAGameplayTest.cpp) and CreatureAI::UpdateVictim never selects a victim for a passive creature, so a fixture can never strike a player, and the harness has no player-versus-player combat either. The only incoming damage available is therefore from creatures the fixture itself summons, which are ordinary spawns and not subject to the fixture's forced passivity. Scholomance Dark Summoner 11582 is used for that: its SmartAI casts Summon Risen Lackey 17618 on itself 2-5 s after engaging and again every 5-7 s, the self-targeted shape the harness can drive, and the Risen Lackeys then attack normally. QA Test +10000 HP/MP 10040 at 20 stacks raises maximum health by about 200000 so nobody in this scenario can be killed by them.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "bloodmage",
+      "race": 1,
+      "class": 20,
+      "level": 80,
+      "spell_hit_rating": 10000,
+      "melee_hit_rating": 10000,
+      "expertise_rating": 10000
+    },
+    {
+      "id": "ally",
+      "race": 1,
+      "class": 20,
+      "level": 80,
+      "spell_hit_rating": 10000,
+      "melee_hit_rating": 10000,
+      "expertise_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "summoner",
+      "owner": "ally",
+      "entry": 11582,
+      "faction": 14,
+      "level": 80,
+      "health": 1000000,
+      "distance": 3
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "group",
+      "actor": "bloodmage",
+      "target": "ally"
+    },
+    {
+      "action": "learn",
+      "actor": "bloodmage",
+      "spell": 504627
+    },
+    {
+      "action": "set_power",
+      "actor": "bloodmage",
+      "power": 1,
+      "value": 1000
+    },
+    {
+      "action": "set_aura",
+      "actor": "ally",
+      "spell": 10040,
+      "stacks": 20
+    },
+    {
+      "action": "assert",
+      "label": "The ally cannot be killed by the adds",
+      "actor": "ally",
+      "metric": "max_health",
+      "min": 200000,
+      "within_ms": 3000
+    },
+    {
+      "action": "cast",
+      "actor": "bloodmage",
+      "spell": 504627,
+      "target": "ally"
+    },
+    {
+      "action": "assert",
+      "label": "The bond is on the ally",
+      "actor": "ally",
+      "metric": "aura",
+      "spell": 504627,
+      "caster": "bloodmage",
+      "equals": 1,
+      "within_ms": 3000
+    },
+    {
+      "action": "set_power",
+      "actor": "bloodmage",
+      "power": 1,
+      "value": 0,
+      "label": "Start the Bloodmage at zero Rage"
+    },
+    {
+      "action": "snapshot",
+      "label": "Rage before the ally is hit",
+      "actor": "bloodmage",
+      "metric": "power",
+      "power": 1,
+      "save_as": "rage_before"
+    },
+    {
+      "action": "attack",
+      "actor": "ally",
+      "target": "summoner"
+    },
+    {
+      "action": "assert",
+      "label": "The fixture caster is engaged and summoning",
+      "actor": "summoner",
+      "metric": "combat",
+      "equals": 1,
+      "within_ms": 10000
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING: damage taken by the ally pays the Bloodmage, not the ally",
+      "actor": "bloodmage",
+      "metric": "power",
+      "power": 1,
+      "relative_to": "rage_before",
+      "min": 1,
+      "within_ms": 40000
+    }
+  ]
+}

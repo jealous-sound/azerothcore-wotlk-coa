@@ -413,6 +413,14 @@ enum AscensionAuraStateDamageScope
     ASCENSION_CLASSMASK_AURASTATE_DAMAGE = 20007
 };
 
+// Same arrangement for native aura 168: the selector kept in MiscValueB asks
+// SPELL_AURA_MOD_DAMAGE_DONE_VERSUS to honour the effect's class mask, which
+// the stock creature-type bonus ignores.
+enum AscensionCreatureTypeDamageScope
+{
+    ASCENSION_CLASSMASK_CREATURE_DAMAGE = 20014
+};
+
 // Local conversions of reviewed coefficient modifiers. Keep private client
 // spellmod indices out of the native player's fixed-size modifier arrays.
 enum AscensionAttackPowerCoefficientScript
