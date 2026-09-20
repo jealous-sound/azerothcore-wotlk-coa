@@ -6231,40 +6231,53 @@ public:
   }
 };
 
-// A pet, guardian, or trap can pull a creature into combat from well outside its sight range while
-// the owning player stays put; OnAllCreatureUpdate's in-combat/full-health guard then freezes
-// whatever level the last periodic scan saw, so a wide leash buys a permanently low-scaled kill.
-// Re-run the scaling scan right as combat starts, crediting the engaging unit's controlling player
-// regardless of distance, before that freeze takes hold.
+// Credit an out-of-range owner when combat starts, including damage that creates the first threat entry.
 class AscensionCompatLevelScalingEngageScript : public UnitScript
 {
 public:
-  AscensionCompatLevelScalingEngageScript()
-      : UnitScript("AscensionCompatLevelScalingEngageScript", true, {UNITHOOK_ON_UNIT_ENTER_COMBAT}) {}
+    AscensionCompatLevelScalingEngageScript()
+        : UnitScript("AscensionCompatLevelScalingEngageScript", true,
+            {UNITHOOK_ON_UNIT_ENTER_COMBAT, UNITHOOK_ON_DAMAGE}) { }
 
-  void OnUnitEnterCombat(Unit* unit, Unit* victim) override
-  {
-    Creature* creature = unit ? unit->ToCreature() : nullptr;
-    if (!CanScaleCreature(creature) || !victim || creature->GetHealth() != creature->GetMaxHealth())
-      return;
-
-    Player* player = victim->GetCharmerOrOwnerPlayerOrPlayerItself();
-    if (!player || !player->IsAlive() || player->IsGameMaster())
-      return;
-
+    void OnUnitEnterCombat(Unit* unit, Unit* victim) override
     {
-      std::lock_guard<std::mutex> guard(g_levelScalingLock);
-      g_levelScalingPendingEngager[creature->GetGUID().GetRawValue()] = player->GetLevel();
+        ScaleForEngager(unit ? unit->ToCreature() : nullptr, victim);
     }
 
-    creature->SelectLevel();
-    if (CreatureTemplate const* creatureTemplate = creature->GetCreatureTemplate())
+    void OnDamage(Unit* attacker, Unit* victim, uint32& damage) override
     {
-      CreatureBaseStats const* stats = sObjectMgr->GetCreatureBaseStats(
-          creature->GetLevel(), creatureTemplate->unit_class);
-      creature->SetStatFlatModifier(UNIT_MOD_ARMOR, BASE_VALUE, stats->GenerateArmor(creatureTemplate));
+        Creature* creature = victim ? victim->ToCreature() : nullptr;
+        // Spell hits can set the combat flag before damage, but create their first threat entry only
+        // after reducing health. OnUnitEnterCombat then runs too late (or never runs for a lethal hit).
+        // IsEngaged, rather than IsInCombat, distinguishes those hits from an already established fight.
+        if (damage && attacker != victim && creature && !creature->IsEngaged())
+            ScaleForEngager(creature, attacker);
     }
-  }
+
+private:
+    static void ScaleForEngager(Creature* creature, Unit* engager)
+    {
+        if (!CanScaleCreature(creature) || !engager || !creature->IsAlive() ||
+            creature->GetHealth() != creature->GetMaxHealth())
+            return;
+
+        Player* player = engager->GetCharmerOrOwnerPlayerOrPlayerItself();
+        if (!player || !player->IsAlive() || player->IsGameMaster())
+            return;
+
+        {
+            std::lock_guard<std::mutex> guard(g_levelScalingLock);
+            g_levelScalingPendingEngager[creature->GetGUID().GetRawValue()] = player->GetLevel();
+        }
+
+        creature->SelectLevel();
+        if (CreatureTemplate const* creatureTemplate = creature->GetCreatureTemplate())
+        {
+            CreatureBaseStats const* stats = sObjectMgr->GetCreatureBaseStats(
+                creature->GetLevel(), creatureTemplate->unit_class);
+            creature->SetStatFlatModifier(UNIT_MOD_ARMOR, BASE_VALUE, stats->GenerateArmor(creatureTemplate));
+        }
+    }
 };
 
 class AscensionCompatWorldScript : public WorldScript {

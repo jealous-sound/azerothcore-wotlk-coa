@@ -180,6 +180,14 @@ Arm of Thorim rolls 133–144 base damage at the fixture level, so two independe
 of 1.10–1.31 with its 20% bonus and 0.91–1.09 without it (including integer rounding). Charged Conduit
 preserves Static and must leave the talent without a depletion bonus.
 
+The [damage-led scaling scenario](scenarios/level-scaling-damage-engagement.json) checks that an
+out-of-range attacker scales a fresh creature before a nonlethal or lethal opening hit, and that
+later damage leaves its combat level fixed. It requires `AscensionCompat.LevelScaling=1`,
+`AscensionCompat.LevelScalingMaxLift=5` and `MonsterSight=50`. The level-1 fixtures stand 80–85 yards
+away and must scale to level 6. One fixture has only one maximum HP to expose damage-before-scaling.
+Spell 705798 is learned as a fixture: its one damage and zero initial threat exercise damage-led
+engagement through the normal cast handler. This tests the damage path, not an Overload proc or pet AI.
+
 Players require `id`, numeric `race` and `class`; `level` defaults to 80. Optional `spell_hit_rating`,
 `spell_crit_rating`, `ranged_hit_rating`, `melee_hit_rating` and `expertise_rating` add fixture ratings through
 normal calculations, useful for preventing misses, dodges and parries in deterministic tests.
