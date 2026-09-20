@@ -9,6 +9,8 @@
 #include "SpellMgr.h"
 #include "SpellScript.h"
 
+#include <algorithm>
+
 namespace
 {
 enum PrimalistAbilitySpells : uint32
@@ -134,6 +136,39 @@ class spell_ascension_throat_clamp : public SpellScript
         OnEffectHitTarget += SpellEffectFn(spell_ascension_throat_clamp::Handle, EFFECT_0, SPELL_EFFECT_DUMMY);
     }
 };
+
+class aura_ascension_primal_shred_critical : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_primal_shred_critical);
+
+    bool Load() override
+    {
+        Pet* pet = GetCaster() ? GetCaster()->ToPet() : nullptr;
+        return pet && Primalist(pet->GetOwner()) && GetSpellInfo()->SpellFamilyName == 37 &&
+            GetSpellInfo()->SpellFamilyFlags == flag96(0, 0, 32) &&
+            GetSpellInfo()->DmgClass == SPELL_DAMAGE_CLASS_MELEE;
+    }
+
+    void Snapshot(AuraEffect const*, AuraEffectHandleModes)
+    {
+        Unit* pet = GetCaster();
+        if (!pet)
+            return;
+        SpellInfo const* info = GetSpellInfo();
+        // Legacy of Rexxar explicitly procs from Primal Shred critical strikes.
+        // Native periodic crit admission only checks the owner's aura 286 and
+        // samples the owner's crit. This pet-cast bleed needs the pet's chance.
+        float chance = pet->SpellDoneCritChance(GetTarget(), info, info->GetSchoolMask(), BASE_ATTACK, true);
+        chance = GetTarget()->SpellTakenCritChance(pet, info, info->GetSchoolMask(), chance, BASE_ATTACK, true);
+        GetEffect(EFFECT_0)->SetCritChance(std::max(0.0f, chance));
+    }
+
+    void Register() override
+    {
+        AfterEffectApply += AuraEffectApplyFn(aura_ascension_primal_shred_critical::Snapshot,
+            EFFECT_0, SPELL_AURA_PERIODIC_DAMAGE, AURA_EFFECT_HANDLE_REAL_OR_REAPPLY_MASK);
+    }
+};
 }
 
 void AddSC_AscensionPrimalistTalents()
@@ -141,4 +176,5 @@ void AddSC_AscensionPrimalistTalents()
     new primalist_talent_events();
     new primalist_talent_casts();
     RegisterSpellScript(spell_ascension_throat_clamp);
+    RegisterSpellScript(aura_ascension_primal_shred_critical);
 }
