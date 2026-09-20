@@ -1,0 +1,87 @@
+{
+  "schema": 1,
+  "name": "Sacrificial Rite afflicts attackers with Cursed Blood (#3188)",
+  "contract": "Sacrificial Rite 800785 reads, among other clauses, 'While active, attackers are afflicted with Cursed Blood. Can only occur once per sec'. Effects 0 and 2 are the haste clause (MOD_MELEE_RANGED_HASTE and HASTE_SPELLS, BasePoints 19 -> +20%) and already work natively. Effect 1 is aura 42 (proc trigger spell) on Cursed Blood 573250 (MOD_HEALING_PCT -40, a nested aura 42 on 806163, MOD_DAMAGE_PERCENT_TAKEN, Mechanic 15, TargetA 6), but Spell.dbc gives 800785 ProcFlags 0 and no spell_proc row existed, so SpellMgr::LoadSpellProcs skipped the record and no attacker was ever cursed. This is a TAKEN proc, so the scenario needs a unit that actually swings at the Bloodmage: the hostile faction-14 Harvest Golem is engaged first and then retaliates. AuraEffect::HandleProcTriggerSpellAuraProc casts the trigger at eventInfo.GetActor() when the aura's owner is not the actor, so Cursed Blood must land on the attacking creature. 800785 has ExcludeCasterAuraSpell 802877, so no Cursed Form marker is fixtured.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "bloodmage",
+      "race": 1,
+      "class": 20,
+      "level": 80,
+      "spell_hit_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "dummy",
+      "owner": "bloodmage",
+      "entry": 36,
+      "health": 300000,
+      "distance": 3
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "bloodmage",
+      "spell": 800785
+    },
+    {
+      "action": "set_power",
+      "actor": "bloodmage",
+      "power": 1,
+      "value": 1000
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: Sacrificial Rite is known",
+      "actor": "bloodmage",
+      "metric": "knows_spell",
+      "spell": 800785,
+      "equals": 1
+    },
+    {
+      "action": "cast",
+      "actor": "bloodmage",
+      "spell": 800785
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: Sacrificial Rite is active",
+      "actor": "bloodmage",
+      "metric": "aura",
+      "spell": 800785,
+      "equals": 1,
+      "within_ms": 5000
+    },
+    {
+      "action": "attack",
+      "actor": "bloodmage",
+      "target": "dummy"
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: the creature is engaged",
+      "actor": "bloodmage",
+      "metric": "combat",
+      "equals": 1,
+      "within_ms": 5000
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING: the attacking creature is afflicted with Cursed Blood 573250",
+      "actor": "dummy",
+      "metric": "aura",
+      "spell": 573250,
+      "caster": "bloodmage",
+      "equals": 1,
+      "within_ms": 20000
+    }
+  ]
+}

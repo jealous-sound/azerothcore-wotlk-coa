@@ -1,0 +1,98 @@
+{
+  "schema": 1,
+  "name": "Thick Pelt arms from damage taken, not from the Bloodmage's own swings (#2325)",
+  "contract": "Thick Pelt 704626 reads 'Physical damage taken now reduces the Physical damage taken from the next attack within $556233d by ${($556233m1+$AP*0.2)}'. Its single effect is aura 42 (proc trigger spell) on Thick Pelt 556233 (MOD_DAMAGE_TAKEN, MiscValue 1 = physical, BasePoints -16 -> -15, ProcCharges 1, TargetA 1). Unlike the rest of this batch, Spell.dbc does give 704626 a proc flag - and it is the wrong one: ProcFlags 0x4 is PROC_FLAG_DONE_MELEE_AUTO_ATTACK, so the generated entry arms the buff on the Bloodmage's own outgoing swings. 556233 itself carries ProcFlags 0x2a8, the TAKEN melee/ranged set that matches the tooltip. The scenario needs both a neutral faction-7 punching bag that never strikes back and a hostile faction-14 creature that does. NOTE: this scenario covers only the proc condition. The tooltip's $AP*0.2 term is not delivered by anything (556233 has BasePoints -16 with EffectRealPointsPerLevel 0, no spell_bonus_data row, and its own text states $AP*0.25), so the issue is not fully settled and the amount is not asserted here.",
+  "timeout_ms": 120000,
+  "players": [
+    {
+      "id": "bloodmage",
+      "race": 1,
+      "class": 20,
+      "level": 80,
+      "spell_hit_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "bag",
+      "owner": "bloodmage",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 3,
+      "faction": 7
+    },
+    {
+      "id": "brute",
+      "owner": "bloodmage",
+      "entry": 36,
+      "health": 300000,
+      "distance": 8
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "bloodmage",
+      "spell": 704626
+    },
+    {
+      "action": "set_power",
+      "actor": "bloodmage",
+      "power": 1,
+      "value": 1000
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: the Thick Pelt passive is active",
+      "actor": "bloodmage",
+      "metric": "aura",
+      "spell": 704626,
+      "equals": 1
+    },
+    {
+      "action": "attack",
+      "actor": "bloodmage",
+      "target": "bag"
+    },
+    {
+      "action": "wait",
+      "label": "Swing at the neutral bag long enough for several auto attacks to land",
+      "ms": 15000
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING: the Bloodmage's own swings do not arm Thick Pelt 556233",
+      "actor": "bloodmage",
+      "metric": "aura",
+      "spell": 556233,
+      "equals": 0
+    },
+    {
+      "action": "attack",
+      "actor": "bloodmage",
+      "target": "brute"
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: the hostile creature is engaged",
+      "actor": "bloodmage",
+      "metric": "combat",
+      "equals": 1,
+      "within_ms": 5000
+    },
+    {
+      "action": "assert",
+      "label": "Physical damage taken arms Thick Pelt 556233",
+      "actor": "bloodmage",
+      "metric": "aura",
+      "spell": 556233,
+      "equals": 1,
+      "within_ms": 30000
+    }
+  ]
+}
