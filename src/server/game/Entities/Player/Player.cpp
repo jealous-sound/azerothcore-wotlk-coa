@@ -2498,6 +2498,12 @@ void Player::GiveXP(uint32 xp, Unit* victim, float group_rate, bool isLFGReward)
         if (GetSession()->IsTrialAccount())
             maxLevel = std::min(maxLevel, trialLevelCap);
 
+    // Script level cap (e.g. COA_NO_LEVEL_PAST_REQUIREMENTS holding the player
+    // below the next objective level). Applied here, after all XP multipliers
+    // and regardless of hook order, so a large gain cannot cross it.
+    if (uint8 scriptMaxLevel = sScriptMgr->GetMaxAllowedLevel(this))
+        maxLevel = std::min(maxLevel, uint32(scriptMaxLevel));
+
     if (level >= maxLevel)
         return;
 
