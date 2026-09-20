@@ -228,6 +228,7 @@ before taking baselines; assert stable maximums and final levels when testing da
 | `set_level` | `actor`, `value` (1..80): fixture level change through native `GiveLevel`, including level-change hooks. |
 | `set_health`, `set_power` | `actor`, `value` within native maximums; `set_power` accepts `power` (default 0). Optional `pet: true` selects the player's current pet. |
 | `reset_cooldown` | Player `actor`, `spell`: reset that native spell cooldown between independent cases. |
+| `restore_charges` | Player `actor`, `spell`: restore the native charge pool between independent cases. Separate from ordinary cooldowns. |
 | `wait` | `ms`: let the real world continue updating. |
 | `snapshot` | `actor`, `metric`, `save_as`: remember a numeric observation. |
 | `assert` | `actor`, `metric`, `equals` and/or `min`/`max`: check an observation. |
@@ -239,6 +240,9 @@ Every step accepts a descriptive `label`. Assertions optionally accept `within_m
 state appears, failing at the deadline. This means "eventually", not "remains true throughout the window".
 Equipment changes obey combat restrictions. Prepare gear before starting combat, including combat caused
 by other nearby fixture actors. Rejected equipment actions include native inventory error codes in the result.
+
+`spell_charges` requires a player's `spell` and reads its currently available native charges. Charge tests
+must assert consumption and recovery after normal casts; restoring fixture charges does not prove recovery.
 For absence checks, wait through the relevant cast/proc window first, then assert. `relative_to` subtracts
 a previously named snapshot of the same metric; it is available on snapshots and assertions.
 `ratio_to` then divides by a nonzero snapshot of the same metric, for comparisons such as boosted/base damage.

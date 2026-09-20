@@ -796,7 +796,8 @@ private:
         }
         Player* player = unit->ToPlayer();
         Require(player != nullptr, "Metric requires a player: " + metric);
-        if (metric == "knows_spell" || metric == "cooldown_ms" || metric == "global_cooldown_ms" ||
+        if (metric == "knows_spell" || metric == "cooldown_ms" || metric == "spell_charges" ||
+            metric == "global_cooldown_ms" ||
             metric == "has_talent")
             Require(sSpellMgr->GetSpellInfo(spell) != nullptr, "Unknown spell in metric");
         if (metric == "knows_spell")
@@ -1166,6 +1167,8 @@ private:
         }
         if (metric == "cooldown_ms")
             return player->GetSpellCooldownDelay(spell);
+        if (metric == "spell_charges")
+            return player->GetSpellCharges(sSpellMgr->GetSpellInfo(spell)).Available;
         if (metric == "global_cooldown_ms")
             return player->GetGlobalCooldownMgr().GetGlobalCooldown(sSpellMgr->GetSpellInfo(spell));
         if (metric == "item_count")
@@ -1645,6 +1648,13 @@ private:
             uint32 spell = step.get<uint32>("spell");
             Require(sSpellMgr->GetSpellInfo(spell) != nullptr, "Unknown cooldown fixture spell");
             player->RemoveSpellCooldown(spell, true);
+        }
+        else if (action == "restore_charges")
+        {
+            uint32 spell = step.get<uint32>("spell");
+            SpellInfo const* info = sSpellMgr->GetSpellInfo(spell);
+            Require(info && info->MaxCharges, "Charge fixture needs a spell with native charges");
+            player->RestoreSpellCharge(spell, info->MaxCharges);
         }
         else if (action == "set_health")
         {
