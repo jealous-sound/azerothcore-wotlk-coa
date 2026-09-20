@@ -1,0 +1,178 @@
+{
+  "schema": 1,
+  "name": "Fang Over Fang resets Reave when Bloodfang Bite is cast (#578)",
+  "contract": "Fang Over Fang 504116's single effect is SPELL_AURA_PROC_TRIGGER_SPELL (aura 42) on Fang Over Fang 504117, a single SPELL_EFFECT_ASCENSION_RESET_COOLDOWN with MiscValue 800490 = Reave and MiscValueB 1. Spell.dbc gives 504116 ProcFlags 0 and no spell_proc row existed, so the aura was inert. The tooltip is 'Casting Bloodfang Bite now has a $h% chance to reset the cooldown of Reave' and the record's own ProcChance is 20, which this scenario does not change. Reave's cooldown is purely a category cooldown (every rank has RecoveryTime 0, Category 752, CategoryRecoveryTime 15000), and 504117's MiscValueB 1 makes Spell::EffectAscensionResetCooldown clear that category as well, so the owned rank 802469 comes off cooldown too. Bloodfang Bite is cast as rank 572551 and needs a Cursed Form for its CasterAuraSpell 525031, which Eternal Curse supplies through the module's marker sync. KNOWN STATISTICAL LIMIT: Reave's cooldown is 15 s and Bloodfang Bite costs a 1.5 s global cooldown, so at most nine casts fit inside one cooldown window. At 20% per cast the chance that a correctly fixed build still fails this assertion is 0.8^9, about 13%. That is above the 0.1% bar this repository's scenarios aim for, and no arrangement of the harness's actions raises the event count inside a 15 s window. Treat a single failure as inconclusive and re-run; a build without the fix fails every time.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "bloodmage",
+      "race": 1,
+      "class": 20,
+      "level": 80,
+      "spell_hit_rating": 10000,
+      "melee_hit_rating": 10000,
+      "expertise_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "dummy1",
+      "owner": "bloodmage",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 3
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "bloodmage",
+      "spell": 802469
+    },
+    {
+      "action": "learn",
+      "actor": "bloodmage",
+      "spell": 572551
+    },
+    {
+      "action": "learn",
+      "actor": "bloodmage",
+      "spell": 504116
+    },
+    {
+      "action": "set_power",
+      "actor": "bloodmage",
+      "power": 1,
+      "value": 1000
+    },
+    {
+      "action": "set_aura",
+      "actor": "bloodmage",
+      "spell": 800157,
+      "stacks": 1,
+      "label": "Eternal Curse 800157: the Cursed Form Bloodfang Bite's CasterAuraSpell 525031 needs"
+    },
+    {
+      "action": "cast",
+      "actor": "bloodmage",
+      "spell": 802469,
+      "target": "dummy1"
+    },
+    {
+      "action": "wait",
+      "ms": 500
+    },
+    {
+      "action": "assert",
+      "label": "Reave is on its category cooldown",
+      "actor": "bloodmage",
+      "metric": "cooldown_ms",
+      "spell": 802469,
+      "min": 12000,
+      "within_ms": 3000
+    },
+    {
+      "action": "cast",
+      "actor": "bloodmage",
+      "spell": 572551,
+      "target": "dummy1"
+    },
+    {
+      "action": "wait",
+      "ms": 1550
+    },
+    {
+      "action": "cast",
+      "actor": "bloodmage",
+      "spell": 572551,
+      "target": "dummy1"
+    },
+    {
+      "action": "wait",
+      "ms": 1550
+    },
+    {
+      "action": "cast",
+      "actor": "bloodmage",
+      "spell": 572551,
+      "target": "dummy1"
+    },
+    {
+      "action": "wait",
+      "ms": 1550
+    },
+    {
+      "action": "cast",
+      "actor": "bloodmage",
+      "spell": 572551,
+      "target": "dummy1"
+    },
+    {
+      "action": "wait",
+      "ms": 1550
+    },
+    {
+      "action": "cast",
+      "actor": "bloodmage",
+      "spell": 572551,
+      "target": "dummy1"
+    },
+    {
+      "action": "wait",
+      "ms": 1550
+    },
+    {
+      "action": "cast",
+      "actor": "bloodmage",
+      "spell": 572551,
+      "target": "dummy1"
+    },
+    {
+      "action": "wait",
+      "ms": 1550
+    },
+    {
+      "action": "cast",
+      "actor": "bloodmage",
+      "spell": 572551,
+      "target": "dummy1"
+    },
+    {
+      "action": "wait",
+      "ms": 1550
+    },
+    {
+      "action": "cast",
+      "actor": "bloodmage",
+      "spell": 572551,
+      "target": "dummy1"
+    },
+    {
+      "action": "wait",
+      "ms": 1550
+    },
+    {
+      "action": "cast",
+      "actor": "bloodmage",
+      "spell": 572551,
+      "target": "dummy1"
+    },
+    {
+      "action": "wait",
+      "ms": 1550
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING: one of the nine Bloodfang Bites reset Reave before its 15 s elapsed",
+      "actor": "bloodmage",
+      "metric": "cooldown_ms",
+      "spell": 802469,
+      "equals": 0
+    }
+  ]
+}
