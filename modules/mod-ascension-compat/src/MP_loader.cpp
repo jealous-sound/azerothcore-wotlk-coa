@@ -130,6 +130,7 @@ void AddSC_AscensionPrimalistRideWave();
 void AddSC_AscensionPrimalistPowerHammer();
 void AddSC_AscensionPrimalistEmeraldWill();
 void AddSC_AscensionPrimalistTotemicEchoes();
+void AddSC_AscensionPrimalistWildCarnage();
 void AddSC_AscensionPrimalistEarthmotherRoar();
 void AddSC_AscensionPrimalistRushHunt();
 void AddSC_AscensionPrimalistCrushingEarth();
@@ -317,6 +318,7 @@ void Addmod_ascension_compatScripts()
     AddSC_AscensionPrimalistPowerHammer();
     AddSC_AscensionPrimalistEmeraldWill();
     AddSC_AscensionPrimalistTotemicEchoes();
+    AddSC_AscensionPrimalistWildCarnage();
     AddSC_AscensionPrimalistEarthmotherRoar();
     AddSC_AscensionPrimalistRushHunt();
     AddSC_AscensionPrimalistCrushingEarth();
