@@ -20,6 +20,20 @@
     { "action": "learn", "actor": "vindicator2_vow", "spell": 707773 },
     { "action": "learn", "actor": "vindicator2_vow", "spell": 807749 },
     {
+      "action": "set_aura",
+      "label": "Vow of the Valkyr is not a passive/DO_NOT_DISPLAY-stance spell (Attributes 0x01010000), so learning it never auto-casts it -- raise its own aura directly, the same fixture pattern sun-cleric-champions-arrival.json uses for Champion of the Sun",
+      "actor": "vindicator_vow",
+      "spell": 807749,
+      "stacks": 1
+    },
+    {
+      "action": "set_aura",
+      "label": "Same fixture for rank 2's actor",
+      "actor": "vindicator2_vow",
+      "spell": 807749,
+      "stacks": 1
+    },
+    {
       "action": "snapshot",
       "label": "Baseline mitigated damage against the dummy's armor",
       "actor": "control",
