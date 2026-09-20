@@ -124,6 +124,7 @@ void AddAscensionTinkerAugmentationTalentScripts();
 void AddAscensionTinkerHackingScripts();
 void AddSC_AscensionPrimalistEarthshaping();
 void AddSC_AscensionPrimalistHeavyEarth();
+void AddSC_AscensionPrimalistEarthshaker();
 void AddSC_AscensionPrimalistRushHunt();
 void AddSC_AscensionPrimalistCrushingEarth();
 void AddSC_AscensionVenomancerCatalyst();
@@ -304,6 +305,7 @@ void Addmod_ascension_compatScripts()
     AddAscensionTinkerHackingScripts();
     AddSC_AscensionPrimalistEarthshaping();
     AddSC_AscensionPrimalistHeavyEarth();
+    AddSC_AscensionPrimalistEarthshaker();
     AddSC_AscensionPrimalistRushHunt();
     AddSC_AscensionPrimalistCrushingEarth();
     AddAscensionRunemasterGlyphScripts();
