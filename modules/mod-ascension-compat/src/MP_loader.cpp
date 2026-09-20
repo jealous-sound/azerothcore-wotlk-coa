@@ -140,6 +140,7 @@ void AddSC_AscensionPrimalistTorn();
 void AddSC_AscensionPrimalistRexxarMight();
 void AddSC_AscensionPrimalistMineralization();
 void AddSC_AscensionPrimalistLifeSpirit();
+void AddSC_AscensionPrimalistTotem();
 void AddSC_AscensionPrimalistTremor();
 void AddSC_AscensionPrimalistPulverize();
 void AddSC_AscensionPrimalistVitality();
@@ -318,6 +319,7 @@ void Addmod_ascension_compatScripts()
     AddSC_AscensionPrimalistRexxarMight();
     AddSC_AscensionPrimalistMineralization();
     AddSC_AscensionPrimalistLifeSpirit();
+    AddSC_AscensionPrimalistTotem();
     AddSC_AscensionPrimalistTremor();
     AddSC_AscensionPrimalistPulverize();
     AddSC_AscensionPrimalistVitality();
