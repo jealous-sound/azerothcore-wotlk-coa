@@ -45,7 +45,8 @@ def main():
             p_value = check_probability(successes, 100, .1)
             print(f'{phase}: {successes}/100 procs, exact binomial p={p_value:.5f}')
         assert values['magic_procs'] == 0
-        assert values['six_tick_damage'] == 264, values['six_tick_damage']
+        # Player baseline aura 552011 reduces each 44-point tick by 10% before logging.
+        assert values['six_tick_damage'] == 6 * (44 * 90 // 100), values['six_tick_damage']
         assert all(values['break_initial_'+str(i)] == 1 for i in range(30))
         breaks = sum(values['break_after_'+str(i)] == 0 for i in range(30))
         p_value = check_probability(breaks, 30, .4)
@@ -55,9 +56,12 @@ def main():
         assert all(value in (0, 3) for value in trials), trials
         successes = sum(value == 3 for value in trials)
         p_value = check_probability(successes, 100, .2)
-        assert 22 <= values['spell_power_gain'] <= 24
-        assert 20 <= values['nature_power_gain'] <= 22
-        assert 27 <= values['attack_power_gain'] <= 29
+        # The Mountain fixture keeps the authored class -15% normal-monster tuning.
+        # Check the tooltip coefficients after that independent target modifier.
+        for key, expected in [('spell_power_gain', 72 * .325 * .85),
+                              ('nature_power_gain', 66 * .325 * .85),
+                              ('attack_power_gain', 100 * .278 * .85)]:
+            assert abs(values[key]-expected) <= 1, (key, values[key], expected)
         assert 1.48 <= values['mountain_damage'] / values['base_damage'] <= 1.52
         print(f'{successes}/100 three-hammer procs, exact binomial p={p_value:.5f}; coefficients/modifiers passed')
     elif mode == 'bloody':
