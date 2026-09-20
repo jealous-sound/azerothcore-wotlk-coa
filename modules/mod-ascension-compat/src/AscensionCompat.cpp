@@ -1910,14 +1910,16 @@ public:
     return picks;
   }
 
-  /// The client drops the buttons of the talent spells a specialization switch removes, so the spells
-  /// that leave the bar are remembered as (button, spell) pairs and put back when they return.
-  static constexpr char const* BAR_SETTING = "core.ascension_bar";
+  /// Talent-button layouts belong to the specialization being left, just like its build.
+  static std::string BarSetting(uint32 specializationId)
+  {
+    return "core.ascension_bar." + std::to_string(specializationId);
+  }
 
-  static std::vector<std::pair<uint8, uint32>> StoredBar(Player const* player)
+  static std::vector<std::pair<uint8, uint32>> StoredBar(Player const* player, uint32 specializationId)
   {
     std::vector<std::pair<uint8, uint32>> bar;
-    PlayerSettingVector const* values = player->FindPlayerSettings(BAR_SETTING);
+    PlayerSettingVector const* values = player->FindPlayerSettings(BarSetting(specializationId));
     if (!values || values->empty())
       return bar;
 
@@ -1929,53 +1931,53 @@ public:
     return bar;
   }
 
-  static void StoreBar(Player* player, std::vector<std::pair<uint8, uint32>> const& bar)
+  static void StoreBar(Player* player, uint32 specializationId,
+                       std::vector<std::pair<uint8, uint32>> const& bar)
   {
+    std::string const setting = BarSetting(specializationId);
     std::size_t previous = 0;
-    if (PlayerSettingVector const* values = player->FindPlayerSettings(BAR_SETTING))
+    if (PlayerSettingVector const* values = player->FindPlayerSettings(setting))
       previous = values->size();
 
-    player->UpdatePlayerSetting(BAR_SETTING, 0, uint32(bar.size()));
+    player->UpdatePlayerSetting(setting, 0, uint32(bar.size()));
     for (std::size_t index = 0; index < bar.size(); ++index)
     {
-      player->UpdatePlayerSetting(BAR_SETTING, uint32(2 * index + 1), bar[index].first);
-      player->UpdatePlayerSetting(BAR_SETTING, uint32(2 * index + 2), bar[index].second);
+      player->UpdatePlayerSetting(setting, uint32(2 * index + 1), bar[index].first);
+      player->UpdatePlayerSetting(setting, uint32(2 * index + 2), bar[index].second);
     }
     for (std::size_t index = 2 * bar.size() + 1; index < previous; ++index)
-      player->UpdatePlayerSetting(BAR_SETTING, uint32(index), 0);
+      player->UpdatePlayerSetting(setting, uint32(index), 0);
   }
 
-  /// Remembers the buttons that hold one of the spells about to be removed.
-  static void RememberBarButtons(Player* player, std::unordered_set<uint32> const& spells)
+  /// Snapshot the current layout, including intentional deletions, then clear outgoing talent buttons.
+  static void RememberBarButtons(Player* player, uint32 specializationId,
+                                 std::unordered_set<uint32> const& spells)
   {
-    std::vector<std::pair<uint8, uint32>> bar = StoredBar(player);
+    std::vector<std::pair<uint8, uint32>> bar;
     for (uint8 button = 0; button < MAX_ACTION_BUTTONS; ++button)
     {
       ActionButton const* action = player->GetActionButton(button);
       if (!action || action->GetType() != ACTION_BUTTON_SPELL || !spells.contains(action->GetAction()))
         continue;
 
-      std::erase_if(bar, [button](auto const& pair) { return pair.first == button; });
       bar.emplace_back(button, action->GetAction());
+      player->removeActionButton(button);
     }
-    StoreBar(player, bar);
+    StoreBar(player, specializationId, bar);
   }
 
-  /// Puts remembered spells back on the buttons the client emptied, once the spells are known again.
-  static void RestoreBarButtons(Player* player)
+  static void RestoreBarButtons(Player* player, uint32 specializationId, uint32 previousSpecialization)
   {
-    std::vector<std::pair<uint8, uint32>> bar = StoredBar(player);
-    bool restored = false;
-    std::erase_if(bar, [&](auto const& pair) {
-      if (!player->HasSpell(pair.second))
-        return false;
-      if (!player->GetActionButton(pair.first))
-        restored |= player->addActionButton(pair.first, pair.second, ACTION_BUTTON_SPELL) != nullptr;
-      return true;
-    });
-    if (restored)
-      player->SendInitialActionButtons();
-    StoreBar(player, bar);
+    // A never-visited specialization inherits shared talent buttons. An explicitly empty saved
+    // layout stays empty. Existing non-talent buttons always take precedence over remembered ones.
+    uint32 const source = player->FindPlayerSettings(BarSetting(specializationId))
+        ? specializationId : previousSpecialization;
+    for (auto const& [button, spell] : StoredBar(player, source))
+      if (player->HasSpell(spell) && !player->GetActionButton(button))
+        player->addActionButton(button, spell, ACTION_BUTTON_SPELL);
+
+    // Pair the pre-unlearn clear with a complete resend, even when no talent button was restored.
+    player->SendInitialActionButtons();
   }
 
   /// Writes down the class tree and the tree of the specialization being left.
@@ -2060,7 +2062,10 @@ public:
           for (uint32 spellId : entry.SpellIds)
             if (spellId && player->HasSpell(spellId))
               talentSpells.insert(spellId);
-      RememberBarButtons(player, talentSpells);
+      // Use the native spec-swap protocol: clear the client before unlearning spells, then
+      // resend the complete layout after restoring the destination build.
+      player->SendActionButtons(2);
+      RememberBarButtons(player, previousSpecialization, talentSpells);
     }
     for (AscensionCompatData::CoATalentEntry const &entry :
          AscensionCompatData::CoATalentEntries) {
@@ -2085,7 +2090,7 @@ public:
 
     uint32 const restored = RestoreBuilds(player, specializationId);
     uint32 granted = SynchronizeProgression(player);
-    RestoreBarButtons(player);
+    RestoreBarButtons(player, specializationId, previousSpecialization);
     ChatHandler(player->GetSession())
         .PSendSysMessage(
             "Activated specialization {}. Stored the build of specialization {}, removed {} old talent "
