@@ -173,6 +173,24 @@ class spell_ascension_throat_clamp : public SpellScript
     }
 };
 
+class aura_ascension_earthmaker : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_earthmaker);
+
+    bool Check(ProcEventInfo& event)
+    {
+        Player* owner = Primalist(GetTarget());
+        DamageInfo const* damage = event.GetDamageInfo();
+        return owner && owner->IsAlive() && event.GetActor() == owner && damage && damage->GetDamage() &&
+            event.GetActionTarget() && !owner->IsFriendlyTo(event.GetActionTarget());
+    }
+
+    void Register() override
+    {
+        DoCheckProc += AuraCheckProcFn(aura_ascension_earthmaker::Check);
+    }
+};
+
 class aura_ascension_primal_shred_critical : public AuraScript
 {
     PrepareAuraScript(aura_ascension_primal_shred_critical);
@@ -214,4 +232,5 @@ void AddSC_AscensionPrimalistTalents()
     RegisterSpellScript(aura_ascension_natural_efficiency);
     RegisterSpellScript(spell_ascension_throat_clamp);
     RegisterSpellScript(aura_ascension_primal_shred_critical);
+    RegisterSpellScript(aura_ascension_earthmaker);
 }
