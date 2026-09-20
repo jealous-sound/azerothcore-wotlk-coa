@@ -57,6 +57,14 @@ class RunnerTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             run.validate(self.scenario)
 
+    def test_native_pet_attack(self):
+        self.scenario['steps'].append({'action': 'attack', 'actor': 'caster',
+                                       'target': 'target', 'pet': True})
+        self.assertIs(run.validate(self.scenario), self.scenario)
+        self.scenario['steps'][-1]['pet'] = 1
+        with self.assertRaises(ValueError):
+            run.validate(self.scenario)
+
     def test_malformed_scenarios_fail_before_starting_processes(self):
         for change in (
             lambda s: s.update(schema=True),

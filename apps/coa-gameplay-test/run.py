@@ -74,7 +74,7 @@ ACTIONS = {
     'unlearn': ({'actor', 'spell'}, {'actor', 'spell'}),
     'set_aura': ({'actor', 'spell', 'stacks'}, {'actor', 'spell', 'stacks', 'pet'}),
     'cast': ({'actor', 'spell'}, {'actor', 'spell', 'target', 'destination'}),
-    'attack': ({'actor', 'target'}, {'actor', 'target'}),
+    'attack': ({'actor', 'target'}, {'actor', 'target', 'pet'}),
     'group': ({'actor', 'target'}, {'actor', 'target'}),
     'cast_charm': ({'actor', 'spell'}, {'actor', 'spell', 'target'}),
     'gossip_hello': ({'actor'}, {'actor', 'target'}),
@@ -227,7 +227,7 @@ def validate(scenario):
                 number(step[key], f'{where}.{key}', 0, maximum, True)
         if 'stacks' in step:
             number(step['stacks'], f'{where}.stacks', 0, 255, True)
-        if action == 'set_aura' and 'pet' in step:
+        if action in ('set_aura', 'attack') and 'pet' in step:
             require(type(step['pet']) is bool, f'{where}: pet must be boolean')
         for key in ('race_mask', 'class_mask'):
             if key in step:

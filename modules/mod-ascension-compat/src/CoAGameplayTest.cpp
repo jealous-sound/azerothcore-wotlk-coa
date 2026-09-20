@@ -8,6 +8,7 @@
 #include "AsyncCallbackProcessor.h"
 #include "Bag.h"
 #include "CharacterCache.h"
+#include "CharmInfo.h"
 #include "Chat.h"
 #include "Config.h"
 #include "Creature.h"
@@ -28,6 +29,7 @@
 #include "ObjectAccessor.h"
 #include "ObjectMgr.h"
 #include "Opcodes.h"
+#include "Pet.h"
 #include "Player.h"
 #include "QuestDef.h"
 #include "QueryCallback.h"
@@ -1261,9 +1263,20 @@ private:
         {
             Unit* target = GetUnit(step.get<std::string>("target"));
             Require(player->IsValidAttackTarget(target), "Invalid melee attack target");
-            WorldPacket packet(CMSG_ATTACKSWING, 8);
-            packet << target->GetGUID();
-            player->GetSession()->HandleAttackSwingOpcode(packet);
+            if (step.get<bool>("pet", false))
+            {
+                Pet* pet = player->GetPet();
+                Require(pet != nullptr, "Pet attack requires a current pet");
+                WorldPacket packet(CMSG_PET_ACTION, 20);
+                packet << pet->GetGUID() << uint32(COMMAND_ATTACK | (uint32(ACT_COMMAND) << 24)) << target->GetGUID();
+                player->GetSession()->HandlePetAction(packet);
+            }
+            else
+            {
+                WorldPacket packet(CMSG_ATTACKSWING, 8);
+                packet << target->GetGUID();
+                player->GetSession()->HandleAttackSwingOpcode(packet);
+            }
         }
         else if (action == "set_aura")
         {
@@ -1317,7 +1330,8 @@ private:
             if (auto destination = step.get_child_optional("destination"))
                 targets.SetDst(destination->get<float>("x"), destination->get<float>("y"),
                     destination->get<float>("z"), caster->GetOrientation());
-            record.put("spell_active", caster->HasSpell(spell));
+            record.put("spell_active", caster->IsPlayer() ? caster->ToPlayer()->HasActiveSpell(spell) :
+                caster->HasSpell(spell));
             record.put("line_of_sight", caster->IsWithinLOSInMap(target));
             WorldPacket packet(action == "cast" ? CMSG_CAST_SPELL :
                 action == "cast_charm" ? CMSG_PET_CAST_SPELL : CMSG_USE_ITEM, 64);
