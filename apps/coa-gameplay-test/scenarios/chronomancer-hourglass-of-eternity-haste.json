@@ -1,0 +1,328 @@
+{
+  "schema": 1,
+  "name": "Periodic damage grants Hourglass of Eternity's haste (#1294)",
+  "contract": "Hourglass of Eternity 806337 applies aura 42 (proc trigger spell) on 504726, a 5 s self-buff of aura 216 (SPELL_AURA_HASTE_SPELLS, BasePoints 24 = +25%) that is native in AuraEffect::HandleModCastingSpeed, but Spell.dbc gives 806337 ProcFlags 0, so SpellMgr::LoadSpellProcs generated no entry and Aura::GetProcEffectMask returned 0 for every tick. Its tooltip is \"Periodic damage dealt now has a $h% chance to grant you 25% increased haste for 5 sec\", with $h = the record's own ProcChance of 5. ACHIEVED FALSE-FAILURE PROBABILITY: 5.4%. The buff lives only 5000 ms (duration index 28), so a trial only counts if it happens while the assertion is polling; ticks produced by earlier steps have expired by then. The scenario therefore opens as many concurrent DoTs as the harness allows and then polls: eight Decomposition DoTs (Amplitude 4000, duration index 86 = 21000 ms) give 27 ticks inside the window, Melt Reality (Amplitude 4000, duration index 325 = 36000 ms) gives 6, Timerend (Amplitude 1000, duration index 32 = 6000 ms) gives 5, three self-cast DoT fixtures on the caster give 15 and a final Unmake (Amplitude 250, duration index 36 = 1000 ms) gives 4, for 57 independent trials: 0.95^57 = 0.054. That is above the 1% the batch aims for and cannot be improved inside this harness - eight creatures is the maximum, Melt Reality and Timerend carry 30 s and 20 s cooldowns, Unmake's 1000 ms DoT cannot overlap its own 1500 ms cast, and there is no haste fixture - so a failure of this scenario should be re-run once before it is believed. The real 5% chance is not lowered.",
+  "timeout_ms": 120000,
+  "players": [
+    {
+      "id": "chronomancer",
+      "race": 1,
+      "class": 22,
+      "level": 80,
+      "spell_hit_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "dummy1",
+      "owner": "chronomancer",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 3
+    },
+    {
+      "id": "dummy2",
+      "owner": "chronomancer",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 5
+    },
+    {
+      "id": "dummy3",
+      "owner": "chronomancer",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 7
+    },
+    {
+      "id": "dummy4",
+      "owner": "chronomancer",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 9
+    },
+    {
+      "id": "dummy5",
+      "owner": "chronomancer",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 11
+    },
+    {
+      "id": "dummy6",
+      "owner": "chronomancer",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 13
+    },
+    {
+      "id": "dummy7",
+      "owner": "chronomancer",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 15
+    },
+    {
+      "id": "dummy8",
+      "owner": "chronomancer",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 17
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "chronomancer",
+      "spell": 806337
+    },
+    {
+      "action": "learn",
+      "actor": "chronomancer",
+      "spell": 800856
+    },
+    {
+      "action": "learn",
+      "actor": "chronomancer",
+      "spell": 806335
+    },
+    {
+      "action": "learn",
+      "actor": "chronomancer",
+      "spell": 801291
+    },
+    {
+      "action": "learn",
+      "actor": "chronomancer",
+      "spell": 804418
+    },
+    {
+      "action": "assert",
+      "label": "No Hourglass haste buff before any periodic damage",
+      "actor": "chronomancer",
+      "metric": "aura",
+      "spell": 504726,
+      "caster": "chronomancer",
+      "equals": 0
+    },
+    {
+      "action": "set_power",
+      "actor": "chronomancer",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "cast",
+      "label": "Melt Reality: nine ticks over 36 s",
+      "actor": "chronomancer",
+      "spell": 806335,
+      "target": "dummy1"
+    },
+    {
+      "action": "wait",
+      "ms": 2700
+    },
+    {
+      "action": "set_power",
+      "actor": "chronomancer",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "cast",
+      "label": "Decomposition on dummy 1",
+      "actor": "chronomancer",
+      "spell": 800856,
+      "target": "dummy1"
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "chronomancer",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "cast",
+      "label": "Decomposition on dummy 2",
+      "actor": "chronomancer",
+      "spell": 800856,
+      "target": "dummy2"
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "chronomancer",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "cast",
+      "label": "Decomposition on dummy 3",
+      "actor": "chronomancer",
+      "spell": 800856,
+      "target": "dummy3"
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "chronomancer",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "cast",
+      "label": "Decomposition on dummy 4",
+      "actor": "chronomancer",
+      "spell": 800856,
+      "target": "dummy4"
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "chronomancer",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "cast",
+      "label": "Decomposition on dummy 5",
+      "actor": "chronomancer",
+      "spell": 800856,
+      "target": "dummy5"
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "chronomancer",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "cast",
+      "label": "Decomposition on dummy 6",
+      "actor": "chronomancer",
+      "spell": 800856,
+      "target": "dummy6"
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "chronomancer",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "cast",
+      "label": "Decomposition on dummy 7",
+      "actor": "chronomancer",
+      "spell": 800856,
+      "target": "dummy7"
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "chronomancer",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "cast",
+      "label": "Decomposition on dummy 8",
+      "actor": "chronomancer",
+      "spell": 800856,
+      "target": "dummy8"
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "chronomancer",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "cast",
+      "label": "Timerend: six one-second ticks",
+      "actor": "chronomancer",
+      "spell": 801291,
+      "target": "dummy2"
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_aura",
+      "label": "Self-cast Decomposition adds five more ticks the player deals",
+      "actor": "chronomancer",
+      "spell": 800856,
+      "stacks": 1
+    },
+    {
+      "action": "set_aura",
+      "label": "Self-cast Timerend adds six more ticks the player deals",
+      "actor": "chronomancer",
+      "spell": 801291,
+      "stacks": 1
+    },
+    {
+      "action": "set_aura",
+      "label": "Self-cast Unmake adds four more ticks the player deals",
+      "actor": "chronomancer",
+      "spell": 804418,
+      "stacks": 1
+    },
+    {
+      "action": "set_power",
+      "actor": "chronomancer",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "cast",
+      "label": "Unmake resolves inside the polling window",
+      "actor": "chronomancer",
+      "spell": 804418,
+      "target": "dummy3"
+    },
+    {
+      "action": "assert",
+      "label": "A periodic tick grants the Hourglass of Eternity haste buff",
+      "actor": "chronomancer",
+      "metric": "aura",
+      "spell": 504726,
+      "caster": "chronomancer",
+      "equals": 1,
+      "within_ms": 30000
+    }
+  ]
+}
