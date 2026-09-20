@@ -108,6 +108,12 @@ enum class ActorStage
     Ready
 };
 
+struct SpellCastEvent
+{
+    ObjectGuid caster;
+    uint32 spell = 0;
+};
+
 struct SpellDamageEvent
 {
     ObjectGuid caster;
@@ -147,6 +153,7 @@ struct Actor
     std::array<uint32, 2> meleeAttacksByHand{};
     std::array<uint32, 2> meleeDamageByHand{};
     uint64 castPushbackMs = 0;
+    std::vector<SpellCastEvent> spellCasts;
     std::vector<SpellDamageEvent> spellDamage;
     std::vector<SpellHealEvent> spellHeals;
     std::vector<SpellEnergizeEvent> spellEnergizes;
@@ -163,6 +170,19 @@ struct Target
     uint32 instance;
     ObjectGuid guid;
 };
+
+void ObserveSpellCasts(Actor& actor, WorldPacket const& packet)
+{
+    if (packet.GetOpcode() != SMSG_SPELL_GO)
+        return;
+    WorldPacket response(packet);
+    ObjectGuid itemOrCaster;
+    SpellCastEvent event;
+    response >> itemOrCaster.ReadAsPacked() >> event.caster.ReadAsPacked();
+    response.read_skip<uint8>(); // cast counter
+    response >> event.spell;
+    actor.spellCasts.push_back(event);
+}
 
 void ObserveSpellDamage(Actor& actor, WorldPacket const& packet)
 {
@@ -414,6 +434,7 @@ private:
                 SEC_PLAYER, EXPANSION_WRATH_OF_THE_LICH_KING, 0, LOCALE_enUS, 0, false, false, 0);
             actor.session->SetSocketlessPacketObserver([&actor](WorldPacket const& packet)
             {
+                ObserveSpellCasts(actor, packet);
                 ObserveSpellDamage(actor, packet);
                 ObserveSpellHealing(actor, packet);
                 ObserveSpellEnergize(actor, packet);
@@ -746,6 +767,33 @@ private:
         }
         if (metric == "run_speed_rate")
             return unit->GetSpeedRate(MOVE_RUN);
+        if (metric == "spell_hit_bonus_taken")
+        {
+            SpellInfo const* info = sSpellMgr->GetSpellInfo(spell);
+            Require(info != nullptr, "Incoming hit modifier needs a known spell");
+            return unit->GetTotalAuraModifierByMiscMask(SPELL_AURA_MOD_ATTACKER_SPELL_HIT_CHANCE,
+                info->GetSchoolMask());
+        }
+        if (metric == "rooted")
+            return unit->HasUnitState(UNIT_STATE_ROOT);
+        if (metric == "spell_healing_taken")
+        {
+            SpellInfo const* info = sSpellMgr->GetSpellInfo(spell);
+            Require(info != nullptr, "Incoming healing needs a known spell");
+            return unit->SpellHealingBonusTaken(GetUnit(step.get<std::string>("target")), info, 1000,
+                step.get<bool>("periodic", false) ? DOT : HEAL);
+        }
+        if (metric == "spell_cast_count")
+        {
+            Require(unit->IsPlayer(), "Cast packets need a player observer");
+            Unit* caster = step.get<bool>("pet", false) ? static_cast<Unit*>(unit->ToPlayer()->GetPet()) : unit;
+            Require(caster != nullptr, "Cast query needs a present pet");
+            uint32 count = 0;
+            for (SpellCastEvent const& event : _actors.at(step.get<std::string>("actor")).spellCasts)
+                if (event.caster == caster->GetGUID() && event.spell == spell)
+                    ++count;
+            return count;
+        }
         if (metric == "spell_damage_taken" || metric == "melee_damage_taken")
         {
             // Any unit can be the victim; `target` is the attacker. A melee `spell` selects a weapon strike.

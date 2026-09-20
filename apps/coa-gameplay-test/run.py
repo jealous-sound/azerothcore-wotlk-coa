@@ -39,7 +39,8 @@ METRICS = {
     'owned_gameobject_count', 'gameobject_remaining_ms', 'at_homebind',
     'cast_speed_multiplier', 'spell_crit_chance', 'spell_power_cost', 'spell_damage_done', 'melee_damage_done',
     'who_count', 'who_class', 'loot_count', 'loot_entry', 'loot_received',
-    'quest_rewarded', 'spell_damage_taken', 'melee_damage_taken',
+    'quest_rewarded', 'spell_damage_taken', 'melee_damage_taken', 'spell_healing_taken',
+    'spell_hit_bonus_taken', 'rooted', 'spell_cast_count',
     'quest_status', 'quest_takeable', 'quest_objective_count', 'dialog_status',
     'ball_offer_count', 'ball_offers_quest',
     'ball_carried_count', 'ball_carried_quest', 'ball_turn_in_count', 'ball_turn_in_quest',
@@ -58,6 +59,7 @@ METRICS = {
     'pet_aura_amount', 'pet_aura_amplitude_ms', 'pet_max_health', 'pet_attack_power', 'pet_run_speed_rate',
 }
 PLAYER_STAT_METRICS = {
+    'spell_cast_count',
     'global_cooldown_ms',
     'melee_damage_count',
     'pet_power', 'pet_max_power', 'spell_energize_count', 'spell_energize_total',
@@ -271,14 +273,16 @@ def validate(scenario):
         if action in {'snapshot', 'assert'}:
             metric = step['metric']
             if 'periodic' in step:
-                require(metric in {'spell_damage_done', 'spell_healing_done'} and type(step['periodic']) is bool,
+                require(metric in {'spell_damage_done', 'spell_healing_done', 'spell_healing_taken'}
+                        and type(step['periodic']) is bool,
                         f'{where}: periodic requires a damage/healing calculation and a boolean')
             require(metric in METRICS, f'{where}: unknown metric')
             if metric.startswith('aura') or metric in {
                     'knows_spell', 'cooldown_ms', 'global_cooldown_ms', 'spell_charges', 'cast_remaining_ms', 'has_talent',
                     'pet_aura_stacks', 'charm_aura_stacks',
                     'dynamic_object', 'dynamic_object_duration_ms', 'spell_power_cost',
-                    'spell_damage_done', 'spell_damage_taken', 'spell_modifier', 'spell_cast_time_ms',
+                    'spell_damage_done', 'spell_damage_taken', 'spell_healing_taken', 'spell_hit_bonus_taken',
+                    'spell_cast_count', 'spell_modifier', 'spell_cast_time_ms',
                     'spell_max_range', 'spell_max_stacks', 'spell_healing_done', 'spell_done_crit_chance',
                     'melee_spell_damage_done', 'script_spell_damage_taken', 'script_periodic_damage_taken',
                     'spell_effect_value', 'spell_critical_damage', 'armor_reduced_damage',
@@ -290,7 +294,8 @@ def validate(scenario):
                 if key in step:
                     require(metric in {'spell_damage_count', 'spell_damage_total', 'spell_heal_count',
                                        'spell_heal_total', 'spell_effective_heal_total'}
-                            or (key == 'pet' and metric in {'spell_energize_count', 'spell_energize_total',
+                            or (key == 'pet' and metric in {'spell_cast_count', 'spell_energize_count',
+                                                           'spell_energize_total',
                                                            'armor_reduced_damage', 'spell_effect_value',
                                                            'spell_damage_done'}),
                             f'{where}: {key} only filters supported spell combat events')
@@ -301,7 +306,7 @@ def validate(scenario):
                         and step.get('target') in player_ids, f'{where}: target_pet needs a healing or energize target player')
                 require(type(step['target_pet']) is bool, f'{where}: target_pet must be boolean')
             if metric in {'spell_damage_done', 'melee_damage_done', 'spell_damage_taken', 'melee_damage_taken',
-                          'spell_healing_done', 'spell_done_crit_chance', 'melee_spell_damage_done',
+                          'spell_healing_done', 'spell_healing_taken', 'spell_done_crit_chance', 'melee_spell_damage_done',
                           'spell_critical_damage', 'armor_reduced_damage', 'spell_immune', 'spell_effect_immune',
                           'distance_2d'} \
                     or metric.startswith('script_'):

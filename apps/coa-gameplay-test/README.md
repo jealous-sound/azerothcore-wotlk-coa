@@ -396,3 +396,10 @@ python apps/codestyle/codestyle-cpp.py --files modules/mod-ascension-compat/src/
 Runner checks cover invalid scenarios, incorrect/partial results, owned-process timeouts, isolation,
 partial-clone cleanup, cache reuse/invalidation, ownership and exclusive leases. They do not substitute for
 building and running the native scenario.
+
+`spell_cast_count` counts the actor's native `SMSG_SPELL_GO` packets for `spell`; optional `pet: true`
+selects the current pet. Invisible triggered spells may omit this packet. A cast count proves dispatch,
+so pair it with effect assertions. It does not test network delivery or client rendering.
+`spell_hit_bonus_taken` reads the victim aura contribution to the native spell hit calculation for `spell`.
+`rooted` reads the unit's native root state. `spell_healing_taken` queries incoming healing from `target`
+with a base amount of 1000 and requires `spell`; `periodic: true` selects the native HoT path.
