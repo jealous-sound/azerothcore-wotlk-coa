@@ -6213,12 +6213,18 @@ public:
         desired = useNearestPlayer ? scaledLevel : std::max(desired, scaledLevel);
     }
 
+    // A player who pulled this creature into combat purely through a pet, guardian, or trap can stay
+    // outside GetSightRange() the whole time -- outside the loop above entirely. This is exactly the
+    // "whoever engages it" case the nearest-player heuristic above is approximating; when it is known
+    // for certain (AscensionCompatLevelScalingEngageScript stashes it here right as combat starts), it
+    // overrides the heuristic in nearest-player mode instead of merely competing with it via max().
     std::lock_guard<std::mutex> guard(g_levelScalingLock);
     if (auto itr = g_levelScalingPendingEngager.find(creature->GetGUID().GetRawValue());
         itr != g_levelScalingPendingEngager.end())
     {
-      desired = std::max(desired, LocalLevelScaling::ScaleCreatureLevel(original, itr->second,
-          LocalLevelScaling::CreatureOffset.load(std::memory_order_relaxed)));
+      uint8 const scaledLevel = LocalLevelScaling::ScaleCreatureLevel(original, itr->second,
+          LocalLevelScaling::CreatureOffset.load(std::memory_order_relaxed));
+      desired = useNearestPlayer ? scaledLevel : std::max(desired, scaledLevel);
       g_levelScalingPendingEngager.erase(itr);
     }
     return desired;
