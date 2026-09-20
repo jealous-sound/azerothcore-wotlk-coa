@@ -1,0 +1,357 @@
+{
+  "schema": 1,
+  "name": "Damage during Incarnation of Chaos locks in a Time Loop (#3684)",
+  "contract": "Pure Chaos 807569 applies aura 42 (proc trigger spell) on Time Loop 807571, which is fully native (aura 23 re-casting Chromatic Shard free of cost every 1000 ms, aura 33, and aura 263 SPELL_AURA_ALLOW_ONLY_ABILITY class-masked to Chromatic Shard), but Spell.dbc gives 807569 ProcFlags 0, so SpellMgr::LoadSpellProcs generated no entry and Aura::GetProcEffectMask returned 0 for every event. Its tooltip is \"While Incarnation of Chaos is active, all damage dealt now has a $h% chance to lock yourself in a time loop for 3 sec\", with $h = the record's own ProcChance of 10; the \"while Incarnation of Chaos is active\" clause is the new conditions row, which the first assertion checks by dealing periodic damage with no Incarnation up. ACHIEVED FALSE-FAILURE PROBABILITY: 0.87%. Trials must all fall inside Incarnation of Chaos's window - duration index 8 = 15000 ms, extended to 18000 ms by Chaos Fusion 807578's native aura 107 SPELLMOD_DURATION, and its own cooldown is 180000 ms so there is no second window - and Time Loop's trace lasts only 3000 ms (duration index 27), so only ticks raised while the assertion is polling count. Eight Decomposition DoTs (Amplitude 4000) give 23 ticks in that window, Timerend (Amplitude 1000) gives 5, three self-cast DoT fixtures on the caster give 13 and a final Unmake (Amplitude 250) gives 4: 45 independent trials, 0.9^45 = 0.0087. Melee auto-attack is started as well and raises PROC_FLAG_DONE_MELEE_AUTO_ATTACK events that the row also matches, but those swings are not counted in that figure, so the real probability is better. The real 10% chance is not lowered.",
+  "timeout_ms": 120000,
+  "players": [
+    {
+      "id": "chronomancer",
+      "race": 1,
+      "class": 22,
+      "level": 80,
+      "spell_hit_rating": 10000,
+      "melee_hit_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "dummy1",
+      "owner": "chronomancer",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 3
+    },
+    {
+      "id": "dummy2",
+      "owner": "chronomancer",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 5
+    },
+    {
+      "id": "dummy3",
+      "owner": "chronomancer",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 7
+    },
+    {
+      "id": "dummy4",
+      "owner": "chronomancer",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 9
+    },
+    {
+      "id": "dummy5",
+      "owner": "chronomancer",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 11
+    },
+    {
+      "id": "dummy6",
+      "owner": "chronomancer",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 13
+    },
+    {
+      "id": "dummy7",
+      "owner": "chronomancer",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 15
+    },
+    {
+      "id": "dummy8",
+      "owner": "chronomancer",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 17
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "chronomancer",
+      "spell": 807569
+    },
+    {
+      "action": "learn",
+      "actor": "chronomancer",
+      "spell": 570067
+    },
+    {
+      "action": "learn",
+      "actor": "chronomancer",
+      "spell": 807578
+    },
+    {
+      "action": "learn",
+      "actor": "chronomancer",
+      "spell": 800856
+    },
+    {
+      "action": "learn",
+      "actor": "chronomancer",
+      "spell": 801291
+    },
+    {
+      "action": "learn",
+      "actor": "chronomancer",
+      "spell": 804418
+    },
+    {
+      "action": "set_power",
+      "actor": "chronomancer",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "cast",
+      "label": "Negative control: damage without Incarnation of Chaos",
+      "actor": "chronomancer",
+      "spell": 800856,
+      "target": "dummy1"
+    },
+    {
+      "action": "wait",
+      "label": "Let the control DoT tick twice",
+      "ms": 9000
+    },
+    {
+      "action": "assert",
+      "label": "The conditions gate holds: no Time Loop without Incarnation of Chaos",
+      "actor": "chronomancer",
+      "metric": "aura",
+      "spell": 807571,
+      "caster": "chronomancer",
+      "equals": 0
+    },
+    {
+      "action": "set_power",
+      "actor": "chronomancer",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "cast",
+      "label": "Decomposition on dummy 1",
+      "actor": "chronomancer",
+      "spell": 800856,
+      "target": "dummy1"
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "chronomancer",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "cast",
+      "label": "Decomposition on dummy 2",
+      "actor": "chronomancer",
+      "spell": 800856,
+      "target": "dummy2"
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "chronomancer",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "cast",
+      "label": "Decomposition on dummy 3",
+      "actor": "chronomancer",
+      "spell": 800856,
+      "target": "dummy3"
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "chronomancer",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "cast",
+      "label": "Decomposition on dummy 4",
+      "actor": "chronomancer",
+      "spell": 800856,
+      "target": "dummy4"
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "chronomancer",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "cast",
+      "label": "Decomposition on dummy 5",
+      "actor": "chronomancer",
+      "spell": 800856,
+      "target": "dummy5"
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "chronomancer",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "cast",
+      "label": "Decomposition on dummy 6",
+      "actor": "chronomancer",
+      "spell": 800856,
+      "target": "dummy6"
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "chronomancer",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "cast",
+      "label": "Decomposition on dummy 7",
+      "actor": "chronomancer",
+      "spell": 800856,
+      "target": "dummy7"
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "chronomancer",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "cast",
+      "label": "Decomposition on dummy 8",
+      "actor": "chronomancer",
+      "spell": 800856,
+      "target": "dummy8"
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "chronomancer",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "cast",
+      "label": "Incarnation of Chaos opens the gate",
+      "actor": "chronomancer",
+      "spell": 570067
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "chronomancer",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "cast",
+      "label": "Timerend: six one-second ticks",
+      "actor": "chronomancer",
+      "spell": 801291,
+      "target": "dummy2"
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_aura",
+      "label": "Self-cast Decomposition adds ticks the player deals",
+      "actor": "chronomancer",
+      "spell": 800856,
+      "stacks": 1
+    },
+    {
+      "action": "set_aura",
+      "label": "Self-cast Timerend adds ticks the player deals",
+      "actor": "chronomancer",
+      "spell": 801291,
+      "stacks": 1
+    },
+    {
+      "action": "set_aura",
+      "label": "Self-cast Unmake adds ticks the player deals",
+      "actor": "chronomancer",
+      "spell": 804418,
+      "stacks": 1
+    },
+    {
+      "action": "attack",
+      "label": "Auto-attack adds further damage events",
+      "actor": "chronomancer",
+      "target": "dummy1"
+    },
+    {
+      "action": "set_power",
+      "actor": "chronomancer",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "cast",
+      "label": "Unmake resolves inside the polling window",
+      "actor": "chronomancer",
+      "spell": 804418,
+      "target": "dummy3"
+    },
+    {
+      "action": "assert",
+      "label": "Damage dealt during Incarnation of Chaos locks the caster in a Time Loop",
+      "actor": "chronomancer",
+      "metric": "aura",
+      "spell": 807571,
+      "caster": "chronomancer",
+      "equals": 1,
+      "within_ms": 15000
+    }
+  ]
+}
