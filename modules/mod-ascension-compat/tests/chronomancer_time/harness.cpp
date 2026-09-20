@@ -3,6 +3,8 @@
 #include <cassert>
 #include <cmath>
 #include <cstdint>
+#include <cstring>
+#include <string>
 #include <initializer_list>
 #include <list>
 #include <map>
@@ -20,6 +22,11 @@ enum
     EFFECT_2 = 2,
     SPELLMOD_DURATION = 1,
     SPELL_AURA_DUMMY = 4,
+    SPELL_AURA_ADD_PCT_MODIFIER = 108,
+    AURA_EFFECT_HANDLE_REAL = 1,
+    AURA_EFFECT_HANDLE_REAPPLY = 32,
+    AURA_EFFECT_HANDLE_REAL_OR_REAPPLY_MASK = 33,
+    SMSG_COA_SPELL_ACTIVATION_OVERLAY_UPDATE = 0x6F6,
     SPELL_AURA_OBS_MOD_POWER = 21,
     SPELLVALUE_BASE_POINT0 = 0,
     TRIGGERED_FULL_MASK = 1,
@@ -73,6 +80,36 @@ struct SpellInfo
         return rank;
     }
 };
+using AuraEffectHandleModes = int;
+struct WorldPacket
+{
+    uint32 opcode;
+    std::vector<uint8> bytes;
+    WorldPacket(uint32 value, std::size_t) : opcode(value) { }
+    template <class T> WorldPacket& operator<<(T value)
+    {
+        auto data = reinterpret_cast<uint8 const*>(&value);
+        bytes.insert(bytes.end(), data, data + sizeof(value));
+        return *this;
+    }
+    void append(char const* data, std::size_t size)
+    {
+        bytes.insert(bytes.end(), data, data + size);
+    }
+    uint32 Word(std::size_t index) const
+    {
+        uint32 value;
+        std::memcpy(&value, bytes.data() + index * 4, sizeof(value));
+        return value;
+    }
+};
+struct WorldSession
+{
+    bool compat = true;
+    std::vector<WorldPacket> packets;
+    bool IsAscensionCompatEnabled() const { return compat; }
+    void SendPacket(WorldPacket const* packet) { packets.push_back(*packet); }
+};
 struct Manager
 {
     std::map<uint32, SpellInfo> infos;
@@ -81,6 +118,13 @@ struct Manager
     {
         auto i = infos.find(id);
         return i == infos.end() ? nullptr : &i->second;
+    }
+    uint32 GetNextSpellInChain(uint32 id) const
+    {
+        for (auto const& [next, root] : roots)
+            if (root == GetFirstSpellInChain(id) && infos.at(next).rank == infos.at(id).rank + 1)
+                return next;
+        return 0;
     }
     uint32 GetFirstSpellInChain(uint32 id) const
     {
@@ -223,6 +267,14 @@ struct Unit
 };
 struct Player : Unit
 {
+    WorldSession fixtureSession;
+    WorldSession* GetSession() { return &fixtureSession; }
+    void SendSpellActivationGlow(uint32 overlayId, uint32 auraId, uint32 spellId, uint8 stacks, bool show);
+    bool HasActiveSpell(uint32 id) const
+    {
+        auto itr = known.find(id);
+        return itr != known.end() && itr->second != 0;
+    }
     uint32 cls = 22;
     std::map<uint32, int> known;
     std::map<uint32, int32> cooldowns;
@@ -435,8 +487,15 @@ struct ProcEventInfo
 struct AuraEffect
 {
 };
+struct EffectBinding
+{
+    uint32 index, aura;
+    int mode;
+};
 struct Hook
 {
+    EffectBinding binding{};
+    void operator+=(EffectBinding value) { binding = value; }
     void operator+=(int)
     {
     }
@@ -444,8 +503,15 @@ struct Hook
 struct AuraScript
 {
     Unit *fixtureTarget = nullptr;
+    Aura* fixtureAura = nullptr;
+    uint8 GetStackAmount() const { return fixtureAura->GetStackAmount(); }
+    virtual bool Validate(SpellInfo const*) { return true; }
+    bool ValidateSpellInfo(std::initializer_list<uint32> ids)
+    {
+        return std::all_of(ids.begin(), ids.end(), [](uint32 id) { return manager.GetSpellInfo(id) != nullptr; });
+    }
     bool prevented = false;
-    Hook DoCheckProc, OnEffectProc;
+    Hook DoCheckProc, OnEffectProc, AfterEffectApply, AfterEffectRemove;
     virtual void Register()
     {
     }
@@ -471,3 +537,6 @@ struct GlobalScript
 #define AuraCheckProcFn(...) 0
 #define AuraEffectProcFn(...) 0
 #define RegisterSpellScript(...)
+
+#define AuraEffectApplyFn(handler, index, aura, mode) EffectBinding{index, aura, mode}
+#define AuraEffectRemoveFn(handler, index, aura, mode) EffectBinding{index, aura, mode}

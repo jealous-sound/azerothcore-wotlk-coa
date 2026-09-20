@@ -76,11 +76,27 @@ def main():
     source = (ROOT / 'modules/mod-ascension-compat/src/AscensionChronomancerTime.cpp').read_text()
     spells, durations, radii = rows('Spell'), rows('SpellDuration'), rows('SpellRadius')
     check_summons(rows)
+    endless = spells[806728]
+    assert endless[49] == 5 and signed(durations[endless[40]][1]) == 15000
+    assert endless[71] == 6 and endless[95] == 108 and endless[110] == 10
+    assert signed(endless[80]) + signed(endless[74]) == -20
+    binding_sql = (ROOT / 'data/sql/updates/pending_db_world/'
+                   'rev_20260919_00_chronomancer_endless_sands_script.sql').read_text()
+    db = sqlite3.connect(':memory:')
+    db.execute('CREATE TABLE spell_script_names (spell_id INTEGER, ScriptName TEXT)')
+    db.execute("INSERT INTO spell_script_names VALUES (806728, 'unrelated_script')")
+    db.executescript(binding_sql)
+    db.executescript(binding_sql)
+    assert set(db.execute('SELECT * FROM spell_script_names')) == {
+        (806728, 'unrelated_script'), (806728, 'aura_ascension_chronomancer_endless_sands')}
+    opcode_source = (ROOT / 'src/server/game/Server/Protocol/Opcodes.h').read_text()
+    assert re.search(r'SMSG_COA_SPELL_ACTIVATION_OVERLAY_UPDATE\s*=\s*0x6F6', opcode_source)
+
     ids = set(map(int, re.findall(r'^    \w+ = (\d+)', source, re.M))) | {574310, 574362}
     archive = zipfile.ZipFile(ROOT / 'data/coa-world/coa-world-20260912.zip')
     rank_sql = archive.read(next(p for p in archive.namelist() if p.rsplit('/', 1)[-1] == 'spell_ranks.sql')).decode()
     ranks = [tuple(map(int, row)) for row in re.findall(r'\((\d+),(\d+),(\d+)\)', rank_sql)]
-    ranks = [row for row in ranks if row[0] in (801270, 800857, 804491, 572633)]
+    ranks = [row for row in ranks if row[0] in (801270, 800857, 804491, 572633, 801303)]
     ids.update(row[1] for row in ranks)
     init = ['void InitData(){']
     for sid in sorted(ids):
@@ -101,6 +117,8 @@ def main():
     code = (HERE / 'harness.cpp').read_text() + re.sub(r'^#include.*\n', '', source, flags=re.M)
     # Exercise the native percentage tick calculation selected by the metadata correction.
     extract = runpy.run_path(str(HERE.parent / 'client_compat/run.py'))['method']
+    code += extract((ROOT / 'src/server/game/Entities/Player/PlayerMisc.cpp').read_text(),
+                    'void Player::SendSpellActivationGlow(')
     native = extract((ROOT / 'src/server/game/Spells/Auras/SpellAuraEffects.cpp').read_text(),
                      'void AuraEffect::HandleObsModPowerAuraTick(')
     calculation = re.search(r'uint32 amount = .*?;', native).group()
@@ -116,7 +134,7 @@ def main():
         subprocess.run([compiler, '/nologo', '/std:c++20', '/EHsc', '/W4', '/WX', '/utf-8',
                         str(cpp), '/Fe' + str(exe)], cwd=out, check=True, timeout=60)
         subprocess.run([str(exe)], cwd=out, check=True, timeout=15)
-    print('PASS: Epoch/Aeons, copied amounts, stacks, rank-aware Recovery extensions, echoes and periodic cooldowns')
+    print('PASS: native overlay packets, Endless Sands thresholds/removal/ranks, Epoch/Aeons and Time regressions')
 
 
 if __name__ == '__main__':
