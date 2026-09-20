@@ -45,7 +45,9 @@ enum TimeSpells : uint32
     Decelerate = 572632,
     TimeOut = 802229,
     TimeOutRankTwo = 803896,
-    TimeOutRankThree = 803897
+    TimeOutRankThree = 803897,
+    TimeOutStasis = 802228,
+    ExpeditingTime = 706055
 };
 
 Player* Chronomancer(Unit* caster)
@@ -298,6 +300,23 @@ void ApplyTimeContracts(SpellInfo* info)
         info->StackAmount = 5;
     if (info->Id == TimeOut || info->Id == TimeOutRankTwo || info->Id == TimeOutRankThree)
         info->Effects[EFFECT_1].ApplyAuraName = SPELL_AURA_OBS_MOD_POWER;
+    if (info->Id == ExpeditingTime)
+    {
+        // "Reduces the channel time of your Time Out! by 40%". The time the player is actually held
+        // is the stasis 802228, which the ranks' own tooltip cites as $802228d and which carries the
+        // stun; the ranks only carry the mana regeneration. The talent's class mask (32768, 0, 0)
+        // reaches the ranks but not the stasis, whose family flags are (0, 2, 0), so today the talent
+        // shortens the regeneration while leaving the stun at its full six seconds. Widen the talent's
+        // own mask rather than the stasis' flags: 802228 is the only family-28 record carrying that
+        // bit, so no other modifier inherits it. Both effects are widened together, which keeps the
+        // periodic interval scaling with the duration. The bit is read from the stasis' own record so
+        // the two stay in step if a client update moves it.
+        if (SpellInfo const* stasis = sSpellMgr->GetSpellInfo(TimeOutStasis))
+        {
+            info->Effects[EFFECT_0].SpellClassMask |= stasis->SpellFamilyFlags;
+            info->Effects[EFFECT_1].SpellClassMask |= stasis->SpellFamilyFlags;
+        }
+    }
     for (uint32 id : {RenewalAeon, ResilienceAeon, ProtectionAeon, KeepAccelerating, CadenceTalent,
         OrderlyTalent, EndlessSandsTalent, EpicRecovery, TimelineTether})
         if (info->Id == id)
