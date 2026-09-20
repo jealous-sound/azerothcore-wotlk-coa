@@ -52,6 +52,7 @@
 #include <chrono>
 #include <cmath>
 #include <filesystem>
+#include <fstream>
 #include <list>
 #include <limits>
 #include <map>
@@ -334,10 +335,13 @@ public:
             if (!_startFile.empty())
             {
                 Require(Elapsed(_started) < 600000, "Runner did not release the startup barrier");
-                if (!std::filesystem::exists(_startFile))
+                // On Windows the atomic rename can be visible before the new file is readable.
+                // Keep waiting within the existing deadline; never release without a valid run ID.
+                std::ifstream startStream(_startFile);
+                if (!startStream.is_open())
                     return;
                 Tree start;
-                boost::property_tree::read_json(_startFile, start);
+                boost::property_tree::read_json(startStream, start);
                 Require(start.get<std::string>("run_id") == _runId, "Start file belongs to another run");
                 _startFile.clear();
                 _started = Clock::now();

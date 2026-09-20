@@ -76,7 +76,10 @@ def world_fingerprint(database, name):
         require(table in expected and checksum.isdecimal(), 'World checksum unavailable; use --fresh-databases')
         values[table.split('.', 1)[1]] = checksum
     require(len(values) == len(tables), 'Incomplete world checksums')
-    definitions = database.sql('world', '\n'.join(f'SHOW CREATE TABLE `{name}`.`{table}`;' for table in tables))
+    for _ in range(3):
+        definitions = database.sql('world', '\n'.join(f'SHOW CREATE TABLE `{name}`.`{table}`;' for table in tables))
+        if len(definitions.splitlines()) == len(tables):
+            break
     require(len(definitions.splitlines()) == len(tables), 'Incomplete world table definitions')
     programs = database.sql('world',
                             f"SELECT (SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA='{name}')"

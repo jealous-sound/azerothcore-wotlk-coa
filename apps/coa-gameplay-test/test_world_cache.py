@@ -318,6 +318,19 @@ class FingerprintTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'excludes triggers/routines/events'):
                 world_fingerprint(database, 'world')
 
+    def test_incomplete_definitions_are_retried_but_never_used_as_a_fingerprint(self):
+        database = SimpleNamespace(sql=None)
+        prefix = ['spells\tBASE TABLE', 'world.spells\t123']
+        definitions = 'spells\tCREATE TABLE spells (...)'
+        with patch.object(database, 'sql', side_effect=prefix + [definitions, '0']):
+            expected = world_fingerprint(database, 'world')
+        with patch.object(database, 'sql', side_effect=prefix + ['', definitions, '0']):
+            self.assertEqual(world_fingerprint(database, 'world'), expected)
+        with patch.object(database, 'sql', side_effect=prefix + ['', '', '']) as query:
+            with self.assertRaisesRegex(ValueError, 'Incomplete world table definitions'):
+                world_fingerprint(database, 'world')
+        self.assertEqual(query.call_count, 5)
+
 
 if __name__ == '__main__':
     unittest.main()
