@@ -2286,9 +2286,9 @@ uint32 Unit::CalcArmorReducedDamage(Unit const* attacker, Unit const* victim, co
             armor = std::floor(AddPct(armor, -ignoreArmorPct));
 
         // Apply Player CR_ARMOR_PENETRATION rating and buffs from stances\specializations etc.
+        float bonusPct = 0;
         if (attacker->IsPlayer())
         {
-            float bonusPct = 0;
             bonusPct += attacker->GetTotalAuraModifier(SPELL_AURA_MOD_ARMOR_PENETRATION_PCT, [spellInfo,attacker](AuraEffect const* aurEff)
             {
                 if (aurEff->GetSpellInfo()->EquippedItemClass == -1)
@@ -2305,7 +2305,21 @@ uint32 Unit::CalcArmorReducedDamage(Unit const* attacker, Unit const* victim, co
                 }
                 return false;
             });
+            bonusPct += attacker->ToPlayer()->GetRatingBonusValue(CR_ARMOR_PENETRATION);
+        }
+        else if (attacker->IsPet())
+        {
+            Pet const* pet = static_cast<Pet const*>(attacker);
+            constexpr uint32 PrimalistSharpenedClawsPet = 572125;
+            if (Player const* owner = pet->GetOwner(); owner && owner->getClass() == CLASS_WILDWALKER)
+                if (AuraEffect const* claws = pet->GetAuraEffect(PrimalistSharpenedClawsPet, EFFECT_1, owner->GetGUID()))
+                    // Use the pet's own stacks with the same native cap as the player's buff.
+                    // The owner's rating and armor-penetration aura are not inherited again.
+                    bonusPct = claws->GetAmount();
+        }
 
+        if (attacker->IsPlayer() || bonusPct)
+        {
             float maxArmorPen = 0;
             if (victim->GetLevel() < 60)
                 maxArmorPen = float(400 + 85 * victim->GetLevel());
@@ -2315,7 +2329,7 @@ uint32 Unit::CalcArmorReducedDamage(Unit const* attacker, Unit const* victim, co
             // Cap armor penetration to this number
             maxArmorPen = std::min((armor + maxArmorPen) / 3, armor);
             // Figure out how much armor do we ignore
-            float armorPen = CalculatePct(maxArmorPen, bonusPct + attacker->ToPlayer()->GetRatingBonusValue(CR_ARMOR_PENETRATION));
+            float armorPen = CalculatePct(maxArmorPen, bonusPct);
             // Got the value, apply it
             armor -= std::min(armorPen, maxArmorPen);
         }
