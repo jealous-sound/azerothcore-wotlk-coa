@@ -895,7 +895,14 @@ void Player::UpdateParryPercentage()
     m_realParry = 0.0f;
     // Starcaller learns Parry, unlike its general Druid stat fallback.
     // Use the Hunter parry curve for both its cap and diminishing coefficient.
+    // Sun Cleric's March of the Valkyr (#756) grants SPELL_AURA_MOD_PARRY_PERCENT too, but its
+    // general Priest stat fallback has a zero parry cap, which keeps the gate below closed and
+    // PLAYER_PARRY_PERCENTAGE pinned at 0 regardless of the aura. Use the Paladin/Warrior/DK
+    // curve: Sun Cleric already has its own Strength-scaling melee attack power formula
+    // (StatSystem.cpp, GetTotalStatValue AP block: "STAT_STRENGTH * 2.0f - 10.0f") in that same
+    // Strength-based melee family, unlike the Agility-based Hunter family Starcaller borrows.
     Classes const parryClass = getClass() == CLASS_STARCALLER ? CLASS_HUNTER :
+        getClass() == CLASS_SUN_CLERIC ? CLASS_PALADIN :
         GetLegacyClassForCustomClass(Classes(getClass()));
     uint32 const pclass = parryClass - 1;
     if (CanParry() && parry_cap[pclass] > 0.0f)
