@@ -3,6 +3,8 @@
 #include "Player.h"
 #include "ScriptMgr.h"
 #include "Spell.h"
+#include "SpellAuraEffects.h"
+#include "SpellAuras.h"
 #include "SpellMgr.h"
 #include "SpellScript.h"
 #include <algorithm>
@@ -24,8 +26,13 @@ enum ChronomancerTalentSpells : uint32
     SPELL_UNMAKER_OF_REALITIES = 706107,
     SPELL_HASTEN = 801304,
     SPELL_HASTEN_STRIKE_SOURCE = 803382,
-    SPELL_HASTY_STRIKE = 803706
+    SPELL_HASTY_STRIKE = 803706,
+    SPELL_TIMEGUARD = 804441
 };
+
+// Timeguard's ">20% of their total health" clause lives only in the record's
+// description text; no Spell.dbc field carries it.
+constexpr uint32 TimeguardHeavyHitPercent = 20;
 
 bool IsAeonActivation(uint32 id)
 {
@@ -142,6 +149,56 @@ class spell_ascension_unmaker_of_realities : public AuraScript
     }
 };
 
+// Timeguard (804441) ships a two-point absorb placeholder plus two SPELL_AURA_DUMMY effects carrying the
+// threshold (effect 1, CalcValue 35) and the reduction (effect 2, CalcValue 50) its description states.
+// Spend one of the record's three ProcCharges per qualifying instance and nothing on the rest.
+class spell_ascension_timeguard : public AuraScript
+{
+    PrepareAuraScript(spell_ascension_timeguard);
+
+    void Amount(AuraEffect const*, int32& amount, bool& recalculate)
+    {
+        // -1 is the core's unbounded sentinel: Unit::CalcAbsorbResist leaves the effect to the script
+        // and never drains it, so the shield lasts for the charges rather than for two points.
+        amount = -1;
+        recalculate = false;
+    }
+
+    void Absorb(AuraEffect*, DamageInfo& damage, uint32& amount)
+    {
+        amount = 0;
+        Unit* target = GetTarget();
+        AuraEffect const* threshold = GetEffect(EFFECT_1);
+        AuraEffect const* reduction = GetEffect(EFFECT_2);
+        if (!target || !threshold || !reduction)
+            return;
+        if (damage.GetDamageType() != DIRECT_DAMAGE && damage.GetDamageType() != SPELL_DIRECT_DAMAGE)
+            return;
+        uint64 incoming = damage.GetDamage();
+        uint64 maxHealth = target->GetMaxHealth();
+        if (!incoming || !maxHealth)
+            return;
+        // Either clause of the description admits the instance: more than a fifth of the target's total
+        // health, or enough to leave it under the effect-1 percent.
+        uint64 floorHealth = maxHealth * uint64(std::clamp(threshold->GetAmount(), 0, 100)) / 100;
+        bool heavy = incoming * 100 > maxHealth * uint64(TimeguardHeavyHitPercent);
+        bool lethal = uint64(target->GetHealth()) < incoming + floorHealth;
+        if (!heavy && !lethal)
+            return;
+        amount = uint32(std::min<uint64>(incoming * uint64(std::clamp(reduction->GetAmount(), 0, 100)) / 100,
+            uint64(std::numeric_limits<int32>::max())));
+        if (amount)
+            GetAura()->DropCharge();
+    }
+
+    void Register() override
+    {
+        DoEffectCalcAmount += AuraEffectCalcAmountFn(spell_ascension_timeguard::Amount,
+            EFFECT_0, SPELL_AURA_SCHOOL_ABSORB);
+        OnEffectAbsorb += AuraEffectAbsorbFn(spell_ascension_timeguard::Absorb, EFFECT_0);
+    }
+};
+
 class chronomancer_talent_casts : public AllSpellScript
 {
 public:
@@ -182,4 +239,5 @@ void AddSC_AscensionChronomancerTalents()
     new chronomancer_talent_casts();
     RegisterSpellScript(spell_ascension_dimensional_divergence);
     RegisterSpellScript(spell_ascension_unmaker_of_realities);
+    RegisterSpellScript(spell_ascension_timeguard);
 }
