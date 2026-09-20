@@ -9255,14 +9255,18 @@ uint32 Unit::SpellDamageBonusDone(Unit* victim, SpellInfo const* spellProto, uin
     }
 
     // Done fixed damage bonus auras
-    // Geode Barrage's stones deal physical damage, but every active rank's
-    // tooltip scales them with Nature spell power. Keep physical mitigation
-    // and the normal coefficient/modifier path; only select the promised stat.
+    // These physical Primalist effects explicitly scale with Nature spell power.
+    // Keep physical mitigation and the normal coefficient/modifier path.
     SpellSchoolMask spellPowerSchool = spellProto->GetSchoolMask();
-    if (spellProto->Id == 803138 && spellProto->SpellFamilyName == 37 &&
+    if (spellProto->SpellFamilyName == 37 &&
         spellPowerSchool == SPELL_SCHOOL_MASK_NORMAL && spellProto->DmgClass == SPELL_DAMAGE_CLASS_MAGIC &&
         effIndex == EFFECT_0 && spellProto->Effects[EFFECT_0].Effect == SPELL_EFFECT_SCHOOL_DAMAGE)
-        spellPowerSchool = SPELL_SCHOOL_MASK_NATURE;
+    {
+        uint32 firstRank = spellProto->GetFirstRankSpell()->Id;
+        if (spellProto->Id == 803138 || spellProto->Id == 681251 ||
+            firstRank == 680448 || firstRank == 680442 || firstRank == 681119)
+            spellPowerSchool = SPELL_SCHOOL_MASK_NATURE;
+    }
     if (spellProto->Id == 803140 && spellProto->SpellFamilyName == 37 &&
         spellPowerSchool == (SPELL_SCHOOL_MASK_FIRE | SPELL_SCHOOL_MASK_NATURE) &&
         spellProto->DmgClass == SPELL_DAMAGE_CLASS_MAGIC && effIndex == EFFECT_0 &&
