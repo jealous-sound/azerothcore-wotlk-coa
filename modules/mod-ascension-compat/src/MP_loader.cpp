@@ -132,6 +132,7 @@ void AddSC_AscensionPrimalistEmeraldWill();
 void AddSC_AscensionPrimalistTotemicEchoes();
 void AddSC_AscensionPrimalistWildCarnage();
 void AddSC_AscensionPrimalistPendant();
+void AddSC_AscensionPrimalistThorns();
 void AddSC_AscensionPrimalistBloodyClaws();
 void AddSC_AscensionPrimalistJudgement();
 void AddSC_AscensionPrimalistShattering();
@@ -326,6 +327,7 @@ void Addmod_ascension_compatScripts()
     AddSC_AscensionPrimalistTotemicEchoes();
     AddSC_AscensionPrimalistWildCarnage();
     AddSC_AscensionPrimalistPendant();
+    AddSC_AscensionPrimalistThorns();
     AddSC_AscensionPrimalistBloodyClaws();
     AddSC_AscensionPrimalistJudgement();
     AddSC_AscensionPrimalistShattering();
