@@ -776,6 +776,14 @@ private:
         }
         if (metric == "expertise")
             return player->GetUInt32Value(PLAYER_EXPERTISE);
+        if (metric == "spell_uses_armor")
+        {
+            SpellInfo const* info = sSpellMgr->GetSpellInfo(spell);
+            Require(info != nullptr, "Unknown spell in armor eligibility probe");
+            uint32 effect = step.get<uint32>("effect", EFFECT_0);
+            Require(effect < MAX_SPELL_EFFECTS && info->Effects[effect].IsEffect(), "Invalid armor probe effect");
+            return Unit::IsDamageReducedByArmor(info->GetSchoolMask(), info, uint8(effect));
+        }
         if (metric == "melee_hit_chance")
             return player->m_modMeleeHitChance;
         if (metric == "spell_hit_chance")

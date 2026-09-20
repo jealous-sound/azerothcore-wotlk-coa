@@ -50,7 +50,7 @@ METRICS = {
     'script_spell_damage_taken', 'script_periodic_damage_taken', 'spell_effect_value',
     'block_chance', 'block_value', 'critical_block_chance', 'spell_critical_damage', 'armor_reduced_damage',
     'aoe_damage_taken', 'reputation_gain', 'spell_immune', 'spell_effect_immune', 'melee_attack_count',
-    'spell_damage_count', 'spell_damage_total',
+    'spell_damage_count', 'spell_damage_total', 'spell_uses_armor',
 }
 PLAYER_STAT_METRICS = {
     'melee_crit_chance', 'dodge_chance', 'parry_chance', 'expertise', 'combat_rating',
@@ -59,7 +59,7 @@ PLAYER_STAT_METRICS = {
     'script_melee_damage_taken', 'script_spell_damage_taken', 'script_periodic_damage_taken', 'spell_effect_value',
     'block_chance', 'block_value', 'critical_block_chance', 'spell_critical_damage', 'armor_reduced_damage',
     'aoe_damage_taken', 'reputation_gain', 'spell_immune', 'spell_effect_immune', 'melee_attack_count',
-    'spell_damage_count', 'spell_damage_total',
+    'spell_damage_count', 'spell_damage_total', 'spell_uses_armor',
 }
 METRIC_FIELDS = {'actor', 'metric', 'spell', 'power', 'caster', 'effect', 'item', 'entry',
                  'relative_to', 'ratio_to', 'target', 'quest', 'id', 'stat', 'school', 'hand', 'rating', 'op',
@@ -254,7 +254,8 @@ def validate(scenario):
                     'spell_max_range', 'spell_max_stacks', 'spell_healing_done', 'spell_done_crit_chance',
                     'melee_spell_damage_done', 'script_spell_damage_taken', 'script_periodic_damage_taken',
                     'spell_effect_value', 'spell_critical_damage', 'armor_reduced_damage',
-                    'spell_immune', 'spell_effect_immune', 'spell_damage_count', 'spell_damage_total'}:
+                    'spell_immune', 'spell_effect_immune', 'spell_damage_count', 'spell_damage_total',
+                    'spell_uses_armor'}:
                 require('spell' in step, f'{where}: metric needs spell')
             for key in ('pet', 'critical'):
                 if key in step:

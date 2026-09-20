@@ -274,6 +274,8 @@ optional `hand` selects main hand (0, default), off hand (1), or ranged (2).
 including native critical damage modifiers, without executing an attack or applying mitigation.
 `armor_reduced_damage` requires `spell` and `target` and applies native armor mitigation to a fixed base of
 1000, including the attacker's armor penetration; it does not execute an attack.
+`spell_uses_armor` separately checks whether the native damage path applies armor to `spell` and `effect`
+(default 0), including spell school, armor bypass and bleed mechanics.
 `aoe_damage_taken` applies native area damage avoidance to 1000 damage for `school` (0..6).
 `reputation_gain` calculates a native spell reputation reward of 1000 for faction `id`, without granting it.
 `spell_immune` and `spell_effect_immune` query native immunity against `spell` from `target`; the latter
