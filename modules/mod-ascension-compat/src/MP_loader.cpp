@@ -133,6 +133,7 @@ void AddSC_AscensionPrimalistTotemicEchoes();
 void AddSC_AscensionPrimalistWildCarnage();
 void AddSC_AscensionPrimalistShattering();
 void AddSC_AscensionPrimalistPrecision();
+void AddSC_AscensionPrimalistVerdantChase();
 void AddSC_AscensionPrimalistEarthmotherRoar();
 void AddSC_AscensionPrimalistRushHunt();
 void AddSC_AscensionPrimalistCrushingEarth();
@@ -323,6 +324,7 @@ void Addmod_ascension_compatScripts()
     AddSC_AscensionPrimalistWildCarnage();
     AddSC_AscensionPrimalistShattering();
     AddSC_AscensionPrimalistPrecision();
+    AddSC_AscensionPrimalistVerdantChase();
     AddSC_AscensionPrimalistEarthmotherRoar();
     AddSC_AscensionPrimalistRushHunt();
     AddSC_AscensionPrimalistCrushingEarth();
