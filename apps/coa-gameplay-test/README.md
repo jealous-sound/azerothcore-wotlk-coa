@@ -298,7 +298,8 @@ Spell queries require `spell` and submit nothing: `spell_modifier` applies the p
 `op` (`SpellModOp`) to the number `base`; `spell_effect_value` (optional `effect`) returns the effect's value as the
 player would cast it, including module base-value hooks; `spell_cast_time_ms`, `spell_max_range` and
 `spell_max_stacks` return the modified native values; `spell_healing_done` requires `target` and optional
-`effect`, with a fixed base of 1000.
+`effect`, with a fixed base of 1000. `spell_healing_done` and `spell_damage_done` accept `periodic: true`
+to query the native periodic coefficient path instead of direct healing/damage.
 `melee_hit_chance`/`spell_hit_chance` read the player's hit modifiers and `spell_power` (`school` 1..6) its base
 spell damage bonus. `spell_done_crit_chance` and `melee_spell_damage_done` require `spell` and `target`: the native
 crit chance for that spell, and the weapon-spell damage bonus from a fixed base of 1000. `aura_crit_chance` reads a

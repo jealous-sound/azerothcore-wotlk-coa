@@ -69,7 +69,7 @@ PLAYER_STAT_METRICS = {
 }
 METRIC_FIELDS = {'actor', 'metric', 'spell', 'power', 'caster', 'effect', 'item', 'entry',
                  'relative_to', 'ratio_to', 'target', 'quest', 'id', 'stat', 'school', 'hand', 'rating', 'op',
-                 'base', 'key', 'index', 'pet', 'critical', 'target_pet'}
+                 'base', 'key', 'index', 'pet', 'critical', 'target_pet', 'periodic'}
 ACTIONS = {
     'console': ({'command'}, {'command'}),
     'command': ({'actor', 'command'}, {'actor', 'command'}),
@@ -256,6 +256,9 @@ def validate(scenario):
             number(step['value'], f'{where}.value', 1 if action == 'set_health' else 0, 2**31 - 1, True)
         if action in {'snapshot', 'assert'}:
             metric = step['metric']
+            if 'periodic' in step:
+                require(metric in {'spell_damage_done', 'spell_healing_done'} and type(step['periodic']) is bool,
+                        f'{where}: periodic requires a damage/healing calculation and a boolean')
             require(metric in METRICS, f'{where}: unknown metric')
             if metric.startswith('aura') or metric in {
                     'knows_spell', 'cooldown_ms', 'has_talent', 'pet_aura_stacks', 'charm_aura_stacks',

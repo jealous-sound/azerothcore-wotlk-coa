@@ -118,6 +118,18 @@ class RunnerTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 run.validate(invalid)
 
+    def test_periodic_calculation_queries(self):
+        for metric in ('spell_damage_done', 'spell_healing_done'):
+            scenario = copy.deepcopy(self.scenario)
+            scenario['steps'].append({'action': 'snapshot', 'actor': 'caster', 'metric': metric,
+                                      'spell': 116, 'target': 'target', 'periodic': True, 'save_as': 'tick'})
+            self.assertIs(run.validate(scenario), scenario)
+            for change in ({'periodic': 1}, {'metric': 'spell_damage_total'}):
+                invalid = copy.deepcopy(scenario)
+                invalid['steps'][-1].update(change)
+                with self.assertRaises(ValueError):
+                    run.validate(invalid)
+
     def test_malformed_scenarios_fail_before_starting_processes(self):
         for change in (
             lambda s: s.update(schema=True),

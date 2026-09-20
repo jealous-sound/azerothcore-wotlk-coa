@@ -978,7 +978,8 @@ private:
             if (metric == "spell_max_stacks")
                 return info->CalcMaxAuraStacks(player);
             if (metric == "spell_healing_done")
-                return player->SpellHealingBonusDone(GetUnit(step.get<std::string>("target")), info, 1000, HEAL,
+                return player->SpellHealingBonusDone(GetUnit(step.get<std::string>("target")), info, 1000,
+                    step.get<bool>("periodic", false) ? DOT : HEAL,
                     uint8(step.get<uint32>("effect", EFFECT_0)));
         }
         if (metric == "spell_damage_done" || metric == "melee_damage_done")
@@ -989,7 +990,8 @@ private:
 
             SpellInfo const* info = sSpellMgr->GetSpellInfo(spell);
             Require(info != nullptr, "Unknown spell for damage calculation");
-            return player->SpellDamageBonusDone(target, info, 1000, SPELL_DIRECT_DAMAGE,
+            return player->SpellDamageBonusDone(target, info, 1000,
+                step.get<bool>("periodic", false) ? DOT : SPELL_DIRECT_DAMAGE,
                 uint8(step.get<uint32>("effect", EFFECT_0)));
         }
         if (metric == "spell_power_cost")
