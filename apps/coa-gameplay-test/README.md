@@ -241,7 +241,7 @@ Metrics: `health`, `max_health`, `power`, `max_power`, `alive`, `combat`, `casti
 `has_talent`, `talent_points`, `cooldown_ms`, `item_count`, `carried_item_count`, `bank_bag_slots`, `aura`, `aura_stacks`, `aura_charges`,
 `aura_duration_ms`, `aura_amount`, `pet_entry`, `pet_aura_stacks`, `owned_creature_count`,
 `charm_entry`, `charm_aura_stacks`, `controls_self`, `private_instance`, `dynamic_object`,
-`dynamic_object_duration_ms`.
+`dynamic_object_duration_ms`, `distance`, `spell_proc_count`, `temporary_spell_replacement`.
 Boolean metrics use 0/1. Spell/aura metrics require `spell`; `item_count` requires `item`.
 `carried_item_count` sums the stack counts of equipped items (bags included), the backpack and the bags' contents.
 `aura_positive` reads the applied aura's beneficial flag; check `aura` separately to distinguish absence from a debuff.
@@ -279,6 +279,14 @@ including native critical damage modifiers, without executing an attack or apply
 accepts `effect` (default 0). These queries submit no attack.
 `melee_attack_count` counts the actor's native melee combat packets, including extra attacks and misses;
 it observes server output without testing delivery to a network client.
+`distance` requires `target` and measures the native two-dimensional distance, in yards, between the actor and
+that target. It reads position and nothing else, so displacement from a knockback, pull or teleport shows up as
+the difference between two observations; take a `snapshot` first and assert `relative_to` it. Height is excluded.
+`spell_proc_count` requires `spell` and counts the procs of that spell's aura on the actor since the scenario
+started. What is counted is each spell the proc cast while the aura was named as its trigger, which is the one
+place the server records both the proc and its owner; an aura whose proc does not cast anything counts zero.
+Use it for a proc whose chance is below 100%, where a single roll proves nothing: cast the trigger often enough
+that the false-failure probability is acceptable, and assert a `min` on the count.
 Spell queries require `spell` and submit nothing: `spell_modifier` applies the player's native spell modifiers for
 `op` (`SpellModOp`) to the number `base`; `spell_effect_value` (optional `effect`) returns the effect's value as the
 player would cast it, including module base-value hooks; `spell_cast_time_ms`, `spell_max_range` and
@@ -304,6 +312,10 @@ reward eligibility and invokes native reward delivery. These actions do not test
 `restore_quest_spells` takes `actor` and invokes the native restoration of spells from rewarded quests.
 `login_hooks` takes `actor` and replays registered player-login hooks on the current character; it does not reconnect
 or reload the character from the database. Use it to exercise a repair against deliberately seeded fixture state.
+`temporary_spell_replacement` requires `spell` and returns the spell ID currently standing in for it on the
+player's bars. `Player::GetTemporarySpellReplacement` returns the queried spell itself when nothing replaces
+it, so the unreplaced reading is that spell's own ID, never zero. It reads server-side state, not what the
+client draws.
 `has_talent` requires the talent rank's spell ID; passive talents are separate from the learned spellbook.
 `talent_points` measures unspent points in the active specialization.
 `bank_bag_slots` measures the player's unlocked standard bank bag slots (0..7).

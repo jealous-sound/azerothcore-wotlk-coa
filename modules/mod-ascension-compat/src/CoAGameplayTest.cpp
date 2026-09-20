@@ -54,6 +54,7 @@
 #include <map>
 #include <memory>
 #include <stdexcept>
+#include <utility>
 
 namespace
 {
@@ -92,6 +93,40 @@ uint64 Elapsed(Clock::time_point start)
 {
     return std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now() - start).count();
 }
+
+// A proc below 100% leaves no state to read: the only honest observation is how often it fired
+// over many rolls. The count is kept per unit carrying the proc aura and per that aura's own
+// spell, and is fed from the one native point that names both - a cast whose triggering aura
+// Spell::prepare recorded. Counting is off unless a scenario is running, so nothing accumulates
+// on an ordinary server.
+class ProcCounter
+{
+public:
+    static void Begin()
+    {
+        _counts.clear();
+        _enabled = true;
+    }
+
+    static void Record(ObjectGuid unit, uint32 spell)
+    {
+        if (_enabled)
+            ++_counts[{ unit, spell }];
+    }
+
+    static uint32 Count(ObjectGuid unit, uint32 spell)
+    {
+        auto itr = _counts.find({ unit, spell });
+        return itr == _counts.end() ? 0 : itr->second;
+    }
+
+private:
+    static bool _enabled;
+    static std::map<std::pair<ObjectGuid, uint32>, uint32> _counts;
+};
+
+bool ProcCounter::_enabled = false;
+std::map<std::pair<ObjectGuid, uint32>, uint32> ProcCounter::_counts;
 
 enum class ActorStage
 {
@@ -141,6 +176,7 @@ public:
 
         _enabled = true;
         _started = Clock::now();
+        ProcCounter::Begin();
         try
         {
             _runId = sConfigMgr->GetOption<std::string>("CoAGameplayTest.RunId", "");
@@ -550,6 +586,13 @@ private:
         }
         if (metric == "run_speed_rate")
             return unit->GetSpeedRate(MOVE_RUN);
+        if (metric == "distance")
+            return unit->GetExactDist2d(GetUnit(step.get<std::string>("target")));
+        if (metric == "spell_proc_count")
+        {
+            Require(sSpellMgr->GetSpellInfo(spell) != nullptr, "Unknown spell in metric");
+            return ProcCounter::Count(unit->GetGUID(), spell);
+        }
         if (metric == "spell_damage_taken" || metric == "melee_damage_taken")
         {
             // Any unit can be the victim; `target` is the attacker. A melee `spell` selects a weapon strike.
@@ -600,10 +643,13 @@ private:
         }
         Player* player = unit->ToPlayer();
         Require(player != nullptr, "Metric requires a player: " + metric);
-        if (metric == "knows_spell" || metric == "cooldown_ms" || metric == "has_talent")
+        if (metric == "knows_spell" || metric == "cooldown_ms" || metric == "has_talent"
+            || metric == "temporary_spell_replacement")
             Require(sSpellMgr->GetSpellInfo(spell) != nullptr, "Unknown spell in metric");
         if (metric == "knows_spell")
             return player->HasSpell(spell);
+        if (metric == "temporary_spell_replacement")
+            return player->GetTemporarySpellReplacement(spell);
         if (metric == "quest_rewarded")
         {
             uint32 quest = step.get<uint32>("quest");
@@ -1488,9 +1534,27 @@ private:
     std::map<std::string, double> _snapshots;
     QueryCallbackProcessor _queries;
 };
+
+// Where a proc becomes observable: Spell::cast, with the aura Spell::prepare recorded as the
+// caster of this cast still attached. Aura 42 procs reach it through
+// AuraEffect::HandleProcTriggerSpellAuraProc, whose trigger caster is the unit the aura sits on.
+class CoAGameplayTestProcCounter final : public AllSpellScript
+{
+public:
+    CoAGameplayTestProcCounter() : AllSpellScript("CoAGameplayTestProcCounter", { ALLSPELLHOOK_ON_CAST }) { }
+
+    void OnSpellCast(Spell* spell, Unit* caster, SpellInfo const* /*info*/, bool /*skipCheck*/) override
+    {
+        if (!caster || !spell)
+            return;
+        if (SpellInfo const* triggeredBy = spell->GetTriggeredByAuraSpellInfo())
+            ProcCounter::Record(caster->GetGUID(), triggeredBy->Id);
+    }
+};
 }
 
 void AddCoAGameplayTestScripts()
 {
     new CoAGameplayTest();
+    new CoAGameplayTestProcCounter();
 }
