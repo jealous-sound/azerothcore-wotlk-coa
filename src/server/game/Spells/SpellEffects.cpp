@@ -3006,6 +3006,8 @@ void Spell::EffectDispel(SpellEffIndex effIndex)
     m_caster->SendMessageToSet(&dataSuccess, true);
 
     // On success dispel
+    sScriptMgr->OnSpellSuccessfulDispel(this, unitTarget, effIndex, uint32(success_list.size()));
+
     if (m_spellInfo->SpellFamilyName == 31 && m_spellInfo->Id == 520151 &&
         m_caster->IsPlayer() && m_caster->getClass() == CLASS_CULTIST)
         m_caster->CastSpell(m_caster, 520152, true);

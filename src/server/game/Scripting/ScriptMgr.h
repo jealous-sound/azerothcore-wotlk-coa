@@ -685,6 +685,7 @@ public: /* SpellSC */
     void OnSpellSuccessfulInterrupt(Spell* spell, Unit* target);
     void OnSpellInterruptDuration(Spell* spell, Unit* target, int32& duration);
     void OnSpellSuccessfulSteal(Spell* spell, Unit* target, uint32 count);
+    void OnSpellSuccessfulDispel(Spell* spell, Unit* target, SpellEffIndex effect, uint32 count);
     void OnSpellCritChance(Spell* spell, Unit* target, float& chance);
 
 public: /* GameEventScript */
