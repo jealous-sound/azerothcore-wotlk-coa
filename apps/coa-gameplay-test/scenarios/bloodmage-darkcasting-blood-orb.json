@@ -1,0 +1,80 @@
+{
+  "schema": 1,
+  "name": "Darkcasting spawns a Blood Orb on a critical strike (#3042)",
+  "contract": "Darkcasting 706247 reads 'Critical strikes with abilities now spawn a Blood Orb near you for $707434d'. Its single effect is aura 42 (proc trigger spell) on Blood Orb 707434, a stock SPELL_EFFECT_SUMMON of creature 315303 (MiscValueB 61, TargetA 18, radius index 193, duration index 8). Spell.dbc gives 706247 ProcFlags 0 and no spell_proc row existed, so SpellMgr::LoadSpellProcs skipped it and no orb was ever summoned. 706247's AuraDescription describes a different effect entirely (Sanguine Rupture and Claw Sweep cooldowns); the Description and the single effect agree with each other and are what this scenario holds the spell to. Bloodbolt is cast as rank 578305 (the rank a level-80 character owns; 578304 is only granted up to level 52 and gets no server response) and spell_crit_rating 100000 makes the critical strike deterministic instead of hoping for one.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "bloodmage",
+      "race": 1,
+      "class": 20,
+      "level": 80,
+      "spell_hit_rating": 10000,
+      "spell_crit_rating": 100000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "dummy",
+      "owner": "bloodmage",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 3
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "bloodmage",
+      "spell": 706247
+    },
+    {
+      "action": "learn",
+      "actor": "bloodmage",
+      "spell": 578305
+    },
+    {
+      "action": "set_power",
+      "actor": "bloodmage",
+      "power": 1,
+      "value": 1000
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: the Darkcasting passive is active",
+      "actor": "bloodmage",
+      "metric": "aura",
+      "spell": 706247,
+      "equals": 1
+    },
+    {
+      "action": "snapshot",
+      "label": "Blood Orbs owned before the cast",
+      "actor": "bloodmage",
+      "metric": "owned_creature_count",
+      "entry": 315303,
+      "save_as": "orbs_before"
+    },
+    {
+      "action": "cast",
+      "actor": "bloodmage",
+      "spell": 578305,
+      "target": "dummy"
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING: a critical Bloodbolt spawns a Blood Orb 315303",
+      "actor": "bloodmage",
+      "metric": "owned_creature_count",
+      "entry": 315303,
+      "relative_to": "orbs_before",
+      "min": 1,
+      "within_ms": 5000
+    }
+  ]
+}
