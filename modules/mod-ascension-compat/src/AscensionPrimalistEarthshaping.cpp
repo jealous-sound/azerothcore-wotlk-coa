@@ -21,6 +21,7 @@ constexpr uint32 SPELL_MAGMA_GEODE = 803140;
 constexpr uint32 SPELL_BLESSING_OF_THERAZANE = 680439;
 constexpr uint32 SPELL_DREAM = 680452;
 constexpr uint32 SPELL_DREAM_BUFF = 578255;
+constexpr uint32 SPELL_HEAVY_EARTH = 560142;
 constexpr std::array<uint32, 3> EARTHSHAPING_HELPERS =
     {SPELL_STONESHARD_MODIFIER, SPELL_EARTHQUAKE_MODIFIER, SPELL_ERUPTION_MODIFIER};
 
@@ -180,6 +181,9 @@ bool HandleAscensionPrimalistEarthshapingGain(Player* player)
 {
     if (!IsEarthshapingOwner(player) || !player->IsAlive() || !player->IsInWorld())
         return false;
+
+    if (player->HasAura(SPELL_HEAVY_EARTH, player->GetGUID()))
+        return true;
 
     // Check the old count: reaching ten is not a gain made while already at ten.
     // A gain attempted at the fifteen-stack cap still grants or refreshes Dream.
