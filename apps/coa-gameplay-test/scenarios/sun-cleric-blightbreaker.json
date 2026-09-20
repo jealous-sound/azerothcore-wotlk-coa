@@ -1,0 +1,53 @@
+{
+  "schema": 1,
+  "name": "Blightbreaker doubles Mercy's tick rate and mana cost (#733)",
+  "contract": "Blightbreaker 707433 carries two ADD_PCT_MODIFIER (aura 108) effects, both classmask (32,0,0) in family 33: effect 0 MiscValue 19 (SPELLMOD_ACTIVATION_TIME), EffectBasePoints -51 -> CalcValue -50 (DieSides 1); effect 1 MiscValue 14 (SPELLMOD_COST), EffectBasePoints 99 -> CalcValue 100. Mercy 504848 is SpellFamilyFlags_1 32 in family 33, matching that classmask exactly (707433 is absent from the family-33 override switch in SpellInfo::IsAffectedBySpellMod at SpellInfo.cpp:1500, so plain classmask matching applies); its own periodic-trigger effect (aura 23, EffectAmplitude_1 3000 ms, ManaCostPercentage 21) is what the two modifiers act on. AuraEffect::CalculatePeriodic (SpellAuraEffects.cpp:718) applies SPELLMOD_ACTIVATION_TIME to the amplitude at aura-apply time (3000ms * (1-0.50) = 1500ms), and SpellInfo::CalcPowerCost (SpellInfo.cpp:3065) applies SPELLMOD_COST to the mana cost through the same Player::ApplySpellMod path (cost * (1+1.00) = double). Both effects are engine-native SpellMod paths (AuraEffect::HandleNoImmediateEffect for auras 107/108, implemented in AuraEffect::CalculateSpellMod) with no dedicated handler required; Blightbreaker only needs to be learned (Attributes 192 includes SPELL_ATTR0_PASSIVE 0x40, and Player::addSpell auto-casts passive spells on learn) for its SpellModifier to register.",
+  "timeout_ms": 90000,
+  "players": [
+    { "id": "control", "race": 1, "class": 27, "level": 80 },
+    { "id": "test", "race": 1, "class": 27, "level": 80 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+    { "action": "learn", "actor": "control", "spell": 504848 },
+    { "action": "learn", "actor": "test", "spell": 504848 },
+    { "action": "learn", "actor": "test", "spell": 707433 },
+    { "action": "cast", "label": "Control casts Mercy on itself", "actor": "control", "spell": 504848, "target": "control" },
+    {
+      "action": "snapshot",
+      "label": "Mercy's base tick rate without Blightbreaker",
+      "actor": "control",
+      "metric": "aura_amplitude_ms",
+      "spell": 504848,
+      "save_as": "mercy_amplitude_base"
+    },
+    {
+      "action": "snapshot",
+      "label": "Mercy's base mana cost without Blightbreaker",
+      "actor": "control",
+      "metric": "spell_power_cost",
+      "spell": 504848,
+      "save_as": "mercy_cost_base"
+    },
+    { "action": "cast", "label": "Test casts Mercy on itself with Blightbreaker known", "actor": "test", "spell": 504848, "target": "test" },
+    {
+      "action": "assert",
+      "label": "Blightbreaker halves Mercy's tick interval (doubles its tick rate)",
+      "actor": "test",
+      "metric": "aura_amplitude_ms",
+      "spell": 504848,
+      "relative_to": "mercy_amplitude_base",
+      "equals": -1500
+    },
+    {
+      "action": "assert",
+      "label": "Blightbreaker doubles Mercy's mana cost",
+      "actor": "test",
+      "metric": "spell_power_cost",
+      "spell": 504848,
+      "ratio_to": "mercy_cost_base",
+      "min": 1.999,
+      "max": 2.001
+    }
+  ]
+}
