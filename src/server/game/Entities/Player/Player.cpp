@@ -2499,10 +2499,12 @@ void Player::GiveXP(uint32 xp, Unit* victim, float group_rate, bool isLFGReward)
             maxLevel = std::min(maxLevel, trialLevelCap);
 
     // Script level cap (e.g. COA_NO_LEVEL_PAST_REQUIREMENTS holding the player
-    // below the next objective level). Applied here, after all XP multipliers
-    // and regardless of hook order, so a large gain cannot cross it.
+    // below the next objective level). It caps the LEVEL-UP only, not the XP:
+    // the bar still fills up to one point short of the gate (the live "99%"),
+    // while no amount of XP can cross it, regardless of multipliers/hook order.
+    uint32 levelCap = maxLevel;
     if (uint8 scriptMaxLevel = sScriptMgr->GetMaxAllowedLevel(this))
-        maxLevel = std::min(maxLevel, uint32(scriptMaxLevel));
+        levelCap = std::min(levelCap, uint32(scriptMaxLevel));
 
     if (level >= maxLevel)
         return;
@@ -2530,16 +2532,21 @@ void Player::GiveXP(uint32 xp, Unit* victim, float group_rate, bool isLFGReward)
     uint32 nextLvlXP = GetUInt32Value(PLAYER_NEXT_LEVEL_XP);
     uint32 newXP = curXP + xp + bonus_xp;
 
-    while (newXP >= nextLvlXP && level < maxLevel)
+    while (newXP >= nextLvlXP && level < levelCap)
     {
         newXP -= nextLvlXP;
 
-        if (level < maxLevel)
-            GiveLevel(level + 1);
+        GiveLevel(level + 1);
 
         level = GetLevel();
         nextLvlXP = GetUInt32Value(PLAYER_NEXT_LEVEL_XP);
     }
+
+    // At the (script) cap the bar holds one point short of the next level rather
+    // than overflowing past it. maxLevel always allows one more level (it is the
+    // world cap), so this only bites on the script cap below it.
+    if (level >= levelCap && nextLvlXP && newXP >= nextLvlXP)
+        newXP = nextLvlXP - 1;
 
     SetUInt32Value(PLAYER_XP, newXP);
 }
