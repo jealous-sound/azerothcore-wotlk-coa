@@ -300,6 +300,8 @@ constexpr uint32 APPEARANCE_LOGIN_RESYNC_DELAY_MS = 3000;
 constexpr std::size_t MAX_QUEUED_EXTENSION_PACKETS = 64;
 constexpr uint32 VANITY_CATEGORY_MOUNTS = 0x04000000;
 constexpr uint32 VANITY_CATEGORY_COMPANIONS = 0x08000000;
+constexpr uint32 ITEM_WONDROUS_WISDOMBALL = 101169;
+constexpr uint32 ITEM_FIX_O_TRON_5000 = 97330;
 constexpr std::size_t COMPANION_SPELLS_PER_BATCH = 4;
 constexpr uint32 COMPANION_SPELL_BATCH_INTERVAL_MS = 200;
 
@@ -3601,12 +3603,10 @@ public:
         bool const unlockAll = ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::UNLOCK_ALL_VANITY);
         for (auto const& [itemId, vanity] : _vanityItems)
         {
-            // Some companions are filed under another catalogue category (the Wondrous Wisdomball and the
-            // Fix-o-Tron 5000 sit under utility), so the item's own class is checked as well.
-            ItemTemplate const* item = sObjectMgr->GetItemTemplate(itemId);
-            bool const companionItem = item && item->Class == ITEM_CLASS_MISC &&
-                item->SubClass == ITEM_SUBCLASS_JUNK_PET;
-            if (!(vanity.CategoryMask & (VANITY_CATEGORY_MOUNTS | VANITY_CATEGORY_COMPANIONS)) && !companionItem)
+            // The Wondrous Wisdomball and the Fix-o-Tron 5000 are filed under the utility category, so they are
+            // named here; teaching every companion item would show the client's Companions spellbook tab.
+            bool const utilityCompanion = itemId == ITEM_WONDROUS_WISDOMBALL || itemId == ITEM_FIX_O_TRON_5000;
+            if (!(vanity.CategoryMask & (VANITY_CATEGORY_MOUNTS | VANITY_CATEGORY_COMPANIONS)) && !utilityCompanion)
                 continue;
             if ((!unlockAll && !state.OwnedVanityItems.contains(itemId)) ||
                 std::binary_search(AscensionCollectibles::SigilSpells.begin(),
