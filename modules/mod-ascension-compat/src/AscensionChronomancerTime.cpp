@@ -47,7 +47,9 @@ enum TimeSpells : uint32
     TimeOutRankTwo = 803896,
     TimeOutRankThree = 803897,
     TimeOutStasis = 802228,
-    ExpeditingTime = 706055
+    ExpeditingTime = 706055,
+    BorrowedTime = 680373,
+    BorrowedTimeHeal = 680374
 };
 
 Player* Chronomancer(Unit* caster)
@@ -290,6 +292,40 @@ class aura_ascension_timeline_tether : public AuraScript
     }
 };
 
+class aura_ascension_borrowed_time : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_borrowed_time);
+
+    bool Validate(SpellInfo const*) override { return ValidateSpellInfo({BorrowedTimeHeal}); }
+
+    bool CheckProc(ProcEventInfo& event)
+    {
+        DamageInfo* damage = event.GetDamageInfo();
+        // "Taking Physical damage": only damage this Chronomancer received, and only the normal school.
+        return Chronomancer(GetTarget()) && damage && damage->GetVictim() == GetTarget() &&
+            damage->GetDamage() && (damage->GetSchoolMask() & SPELL_SCHOOL_MASK_NORMAL);
+    }
+
+    void Restore(AuraEffect const* effect, ProcEventInfo& event)
+    {
+        PreventDefaultAction();
+        Unit* player = GetTarget();
+        // 680374 carries SPELL_ATTR3_IGNORE_CASTER_MODIFIERS and SPELL_ATTR4_IGNORE_DAMAGE_TAKEN_MODIFIERS
+        // and a zero bonus multiplier, so the forwarded amount is the heal, never rescaled by spell power.
+        uint64 amount = uint64(event.GetDamageInfo()->GetDamage()) * uint64(std::max(0, effect->GetAmount())) / 100;
+        if (amount)
+            player->CastCustomSpell(BorrowedTimeHeal, SPELLVALUE_BASE_POINT0,
+                int32(std::min<uint64>(amount, INT32_MAX)), player, true);
+    }
+
+    void Register() override
+    {
+        DoCheckProc += AuraCheckProcFn(aura_ascension_borrowed_time::CheckProc);
+        OnEffectProc += AuraEffectProcFn(aura_ascension_borrowed_time::Restore,
+            EFFECT_0, SPELL_AURA_DUMMY);
+    }
+};
+
 void ApplyTimeContracts(SpellInfo* info)
 {
     if (!info || info->SpellFamilyName != 28)
@@ -317,8 +353,13 @@ void ApplyTimeContracts(SpellInfo* info)
             info->Effects[EFFECT_1].SpellClassMask |= stasis->SpellFamilyFlags;
         }
     }
+    // Borrowed Time's authored aura type is 354, which this core has no handler for
+    // (SpellAuraEffects.cpp's table holds "//354 unknown Ascension aura" and the dispatcher substitutes
+    // HandleNoImmediateEffect), so applying it is a no-op and nothing ever reads its amount. Its trigger
+    // 680374 is a zero-base SPELL_EFFECT_HEAL, so the default proc action would heal nothing; the script
+    // below supplies the base point instead, which is why the trigger is cleared here as well.
     for (uint32 id : {RenewalAeon, ResilienceAeon, ProtectionAeon, KeepAccelerating, CadenceTalent,
-        OrderlyTalent, EndlessSandsTalent, EpicRecovery, TimelineTether})
+        OrderlyTalent, EndlessSandsTalent, EpicRecovery, TimelineTether, BorrowedTime})
         if (info->Id == id)
         {
             info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_DUMMY;
@@ -358,4 +399,5 @@ void AddSC_AscensionChronomancerTime()
     new chronomancer_time_casts();
     new chronomancer_time_contracts();
     RegisterSpellScript(aura_ascension_timeline_tether);
+    RegisterSpellScript(aura_ascension_borrowed_time);
 }
