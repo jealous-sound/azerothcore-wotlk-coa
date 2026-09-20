@@ -143,6 +143,7 @@ struct Actor
     uint32 whoResponses = 0;
     uint32 lootReceived = 0;
     uint32 meleeAttacks = 0;
+    uint64 castPushbackMs = 0;
     std::vector<SpellDamageEvent> spellDamage;
     std::vector<SpellHealEvent> spellHeals;
     std::vector<SpellEnergizeEvent> spellEnergizes;
@@ -401,6 +402,15 @@ private:
                 ObserveSpellDamage(actor, packet);
                 ObserveSpellHealing(actor, packet);
                 ObserveSpellEnergize(actor, packet);
+                if (packet.GetOpcode() == SMSG_SPELL_DELAYED)
+                {
+                    WorldPacket response(packet);
+                    ObjectGuid caster;
+                    uint32 delay;
+                    response >> caster.ReadAsPacked() >> delay;
+                    if (caster == actor.guid)
+                        actor.castPushbackMs += delay;
+                }
                 if (packet.GetOpcode() == SMSG_CAST_FAILED)
                 {
                     WorldPacket response(packet);
@@ -659,6 +669,23 @@ private:
             return unit->IsInCombat();
         if (metric == "casting")
             return unit->IsNonMeleeSpellCast(false);
+        if (metric == "moving")
+            return unit->isMoving();
+        if (metric == "cast_pushback_ms")
+        {
+            Require(unit->IsPlayer(), "Cast pushback observation needs a player");
+            return double(_actors.at(step.get<std::string>("actor")).castPushbackMs);
+        }
+        if (metric == "distance_2d")
+            return unit->GetExactDist2d(GetUnit(step.get<std::string>("target")));
+        if (metric == "cast_remaining_ms")
+        {
+            for (CurrentSpellTypes type : {CURRENT_GENERIC_SPELL, CURRENT_CHANNELED_SPELL})
+                if (Spell* current = unit->GetCurrentSpell(type))
+                    if (current->GetSpellInfo()->Id == spell && current->getState() != SPELL_STATE_FINISHED)
+                        return std::max(0, current->GetCastTimeRemaining());
+            return 0;
+        }
         if (metric == "level")
             return unit->GetLevel();
         if (metric == "stat")
@@ -1273,7 +1300,15 @@ private:
         uint32 spell = step.get<uint32>("spell", 0);
         if (action == "learn" || action == "unlearn" || action == "cast" || action == "cast_charm")
             Require(sSpellMgr->GetSpellInfo(spell) != nullptr, "Unknown spell: " + std::to_string(spell));
-        if (action == "pvp")
+        if (action == "set_moving")
+        {
+            // Fixture state for native cast admission and interruption checks.
+            if (step.get<bool>("enabled"))
+                player->AddUnitMovementFlag(MOVEMENTFLAG_FORWARD);
+            else
+                player->RemoveUnitMovementFlag(MOVEMENTFLAG_FORWARD);
+        }
+        else if (action == "pvp")
         {
             bool enabled = step.get<bool>("enabled");
             WorldPacket packet(CMSG_TOGGLE_PVP, 1);

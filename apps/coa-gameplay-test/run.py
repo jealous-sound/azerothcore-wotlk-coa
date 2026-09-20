@@ -27,6 +27,7 @@ IDENTIFIER = re.compile(r'[A-Za-z_][A-Za-z0-9_]*\Z')
 ACTOR_ID = re.compile(r'[a-z][a-z0-9_]{0,31}\Z')
 LOCAL_HOSTS = {'127.0.0.1', 'localhost', '::1'}
 METRICS = {
+    'moving', 'distance_2d', 'cast_remaining_ms', 'cast_pushback_ms',
     'pet_power', 'pet_max_power', 'spell_energize_count', 'spell_energize_total',
     'health', 'health_pct', 'max_health', 'power', 'max_power', 'alive', 'combat', 'casting', 'level',
     'aura', 'aura_stacks', 'aura_charges', 'aura_duration_ms', 'aura_amount', 'aura_positive',
@@ -71,6 +72,7 @@ METRIC_FIELDS = {'actor', 'metric', 'spell', 'power', 'caster', 'effect', 'item'
                  'relative_to', 'ratio_to', 'target', 'quest', 'id', 'stat', 'school', 'hand', 'rating', 'op',
                  'base', 'key', 'index', 'pet', 'critical', 'target_pet', 'periodic'}
 ACTIONS = {
+    'set_moving': ({'actor', 'enabled'}, {'actor', 'enabled'}),
     'console': ({'command'}, {'command'}),
     'command': ({'actor', 'command'}, {'actor', 'command'}),
     'wait': ({'ms'}, {'ms'}),
@@ -237,7 +239,7 @@ def validate(scenario):
         if action in ('set_aura', 'attack', 'set_health', 'set_power') and 'pet' in step:
             require(type(step['pet']) is bool, f'{where}: pet must be boolean')
             require(step['actor'] in player_ids, f'{where}: pet fixture needs a player')
-        if action == 'pvp':
+        if action in {'pvp', 'set_moving'}:
             require(type(step['enabled']) is bool, f'{where}: enabled must be boolean')
         for key in ('race_mask', 'class_mask'):
             if key in step:
@@ -261,7 +263,7 @@ def validate(scenario):
                         f'{where}: periodic requires a damage/healing calculation and a boolean')
             require(metric in METRICS, f'{where}: unknown metric')
             if metric.startswith('aura') or metric in {
-                    'knows_spell', 'cooldown_ms', 'has_talent', 'pet_aura_stacks', 'charm_aura_stacks',
+                    'knows_spell', 'cooldown_ms', 'cast_remaining_ms', 'has_talent', 'pet_aura_stacks', 'charm_aura_stacks',
                     'dynamic_object', 'dynamic_object_duration_ms', 'spell_power_cost',
                     'spell_damage_done', 'spell_damage_taken', 'spell_modifier', 'spell_cast_time_ms',
                     'spell_max_range', 'spell_max_stacks', 'spell_healing_done', 'spell_done_crit_chance',
@@ -285,7 +287,8 @@ def validate(scenario):
                 require(type(step['target_pet']) is bool, f'{where}: target_pet must be boolean')
             if metric in {'spell_damage_done', 'melee_damage_done', 'spell_damage_taken', 'melee_damage_taken',
                           'spell_healing_done', 'spell_done_crit_chance', 'melee_spell_damage_done',
-                          'spell_critical_damage', 'armor_reduced_damage', 'spell_immune', 'spell_effect_immune'} \
+                          'spell_critical_damage', 'armor_reduced_damage', 'spell_immune', 'spell_effect_immune',
+                          'distance_2d'} \
                     or metric.startswith('script_'):
                 require('target' in step, f'{where}: damage metric needs target')
             if metric == 'stat':
@@ -331,7 +334,7 @@ def validate(scenario):
             if metric == 'gossip_text':
                 require('id' in step, f'{where}: metric needs text id')
             if metric in {'knows_spell', 'has_talent', 'talent_points', 'cooldown_ms', 'item_count',
-                          'carried_item_count', 'bank_bag_slots', 'taxi_node',
+                          'carried_item_count', 'bank_bag_slots', 'taxi_node', 'cast_pushback_ms',
                           'pet_entry', 'pet_aura_stacks', 'owned_creature_count', 'charm_entry',
                           'charm_aura_stacks', 'controls_self', 'private_instance',
                           'dynamic_object', 'dynamic_object_duration_ms', 'gossip_options',

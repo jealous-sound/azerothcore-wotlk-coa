@@ -130,6 +130,29 @@ class RunnerTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     run.validate(invalid)
 
+    def test_movement_and_cast_observations(self):
+        self.scenario['steps'].extend([
+            {'action': 'set_moving', 'actor': 'caster', 'enabled': True},
+            {'action': 'assert', 'actor': 'caster', 'metric': 'moving', 'equals': 1},
+            {'action': 'assert', 'actor': 'target', 'metric': 'distance_2d', 'target': 'caster', 'min': 0},
+            {'action': 'assert', 'actor': 'caster', 'metric': 'cast_remaining_ms', 'spell': 116, 'min': 0},
+        ])
+        self.assertIs(run.validate(self.scenario), self.scenario)
+        for index, key, value in ((-4, 'enabled', 1), (-4, 'actor', 'target'),
+                                   (-2, 'target', 'missing'), (-1, 'spell', None)):
+            invalid = copy.deepcopy(self.scenario)
+            invalid['steps'][index][key] = value
+            with self.assertRaises(ValueError):
+                run.validate(invalid)
+
+    def test_cast_pushback_observation_requires_player(self):
+        self.scenario['steps'].append(
+            {'action': 'assert', 'actor': 'caster', 'metric': 'cast_pushback_ms', 'equals': 0})
+        self.assertIs(run.validate(self.scenario), self.scenario)
+        self.scenario['steps'][-1]['actor'] = 'target'
+        with self.assertRaises(ValueError):
+            run.validate(self.scenario)
+
     def test_malformed_scenarios_fail_before_starting_processes(self):
         for change in (
             lambda s: s.update(schema=True),

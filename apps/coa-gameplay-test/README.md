@@ -214,6 +214,7 @@ before taking baselines; assert stable maximums and final levels when testing da
 | `cast` | `actor`, `spell`, optional `target` (self by default): normal session cast handler. |
 | `attack` | `actor`, `target`: native melee attack request; optional `pet: true` sends the pet's attack command. Verify combat or damage with assertions. |
 | `pvp` | Player `actor`, boolean `enabled`: native PvP toggle request. Disabling retains the ordinary flag-removal timer. |
+| `set_moving` | Player `actor`, boolean `enabled`: fixture the native forward movement flag for cast restriction tests. |
 | `group` | `actor`, `target`: fixture party; creates the actor's group if needed and adds an ungrouped player. |
 | `cast_charm` | Same fields: native pet-cast handler, with the charmed unit as the default target. |
 | `gossip_hello` | `actor`, optional `target`: native gossip handler; defaults to the actor's summoned companion. |
@@ -269,6 +270,9 @@ requires `school` (1..6); `armor`, `attack_power`, `ranged_attack_power`, the ha
 periodic interval.
 `block_chance` reads the player's percentage field; `block_value` reads native shield block value;
 `critical_block_chance` reads the total modifier used by the native critical block roll.
+`moving` reads the unit's native movement state. `distance_2d` requires `target` and measures horizontal center distance.
+`cast_remaining_ms` requires `spell` and returns its active cast/channel timer, or zero when inactive.
+`cast_pushback_ms` reads the player's cumulative native cast-delay notifications, excluding elapsed cast time.
 `weapon_damage_min` reads the calculated minimum damage, including weapon-dependent passive bonuses;
 optional `hand` selects main hand (0, default), off hand (1), or ranged (2).
 `spell_critical_damage` requires `spell` and `target` and calculates a critical hit from a fixed base of 1000,
