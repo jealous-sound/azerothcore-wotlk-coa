@@ -1,0 +1,91 @@
+{
+  "schema": 1,
+  "name": "Bloodmage: Dark Curse raises weapon and spell critical strike chance (#1996)",
+  "contract": "Dark Curse 704649 (3%) and 560252 (6%): \"Increases critical strike chance by $s1%.\" Each has a single effect, aura 290 SPELL_AURA_MOD_CRIT_PCT, MiscValue 0 and an empty EffectSpellClassMask, handled by AuraEffect::HandleAuraModCritPct (SpellAuraEffects.cpp:355), which for a player runs both UpdateAllWeaponDependentCritAuras and UpdateAllSpellCritChances - exactly the unqualified \"critical strike chance\" the tooltip promises. This core ignores aura 290's misc value and class mask (.agents/docs/systems/ascension-spell-parity.md:333), which does not bite here because both records carry zero for both. No source or SQL change is involved.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "b",
+      "race": 1,
+      "class": 20,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "ms": 3000
+    },
+    {
+      "action": "snapshot",
+      "actor": "b",
+      "metric": "spell_crit_chance",
+      "save_as": "spell_crit_base"
+    },
+    {
+      "action": "snapshot",
+      "actor": "b",
+      "metric": "melee_crit_chance",
+      "save_as": "melee_crit_base"
+    },
+    {
+      "action": "learn",
+      "actor": "b",
+      "spell": 704649
+    },
+    {
+      "action": "assert",
+      "actor": "b",
+      "metric": "aura",
+      "spell": 704649,
+      "equals": 1,
+      "within_ms": 3000
+    },
+    {
+      "action": "assert",
+      "label": "Rank 1 adds 3 points of Shadow spell critical strike",
+      "actor": "b",
+      "metric": "spell_crit_chance",
+      "relative_to": "spell_crit_base",
+      "min": 2.9,
+      "max": 3.1
+    },
+    {
+      "action": "assert",
+      "label": "Rank 1 adds 3 points of melee critical strike",
+      "actor": "b",
+      "metric": "melee_crit_chance",
+      "relative_to": "melee_crit_base",
+      "min": 2.9,
+      "max": 3.1
+    },
+    {
+      "action": "unlearn",
+      "actor": "b",
+      "spell": 704649
+    },
+    {
+      "action": "learn",
+      "actor": "b",
+      "spell": 560252
+    },
+    {
+      "action": "assert",
+      "label": "Rank 2 adds 6 points of Shadow spell critical strike",
+      "actor": "b",
+      "metric": "spell_crit_chance",
+      "relative_to": "spell_crit_base",
+      "min": 5.9,
+      "max": 6.1
+    },
+    {
+      "action": "assert",
+      "label": "Rank 2 adds 6 points of melee critical strike",
+      "actor": "b",
+      "metric": "melee_crit_chance",
+      "relative_to": "melee_crit_base",
+      "min": 5.9,
+      "max": 6.1
+    }
+  ]
+}
