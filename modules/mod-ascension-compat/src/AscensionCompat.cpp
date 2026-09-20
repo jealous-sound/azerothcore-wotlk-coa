@@ -168,7 +168,6 @@ constexpr uint16 SMSG_PATCH_VANITY_COLLECTION = 0x0573;
 //                            are left and takes 0 when none are
 constexpr uint16 SMSG_REALM_INFO = 0x09BC;
 
-
 // The client carries a personal-bank mode on top of the guild vault window. It is
 // switched on by this packet, not by the item's spell: clicking the summoned
 // guild-vault object sends the ordinary CMSG_GUILD_BANKER_ACTIVATE, and the
