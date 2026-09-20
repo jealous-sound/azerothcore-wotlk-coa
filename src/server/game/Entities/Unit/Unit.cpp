@@ -9241,7 +9241,15 @@ uint32 Unit::SpellDamageBonusDone(Unit* victim, SpellInfo const* spellProto, uin
     }
 
     // Done fixed damage bonus auras
-    DoneAdvertisedBenefit += SpellBaseDamageBonusDone(spellProto->GetSchoolMask());
+    // Geode Barrage's stones deal physical damage, but every active rank's
+    // tooltip scales them with Nature spell power. Keep physical mitigation
+    // and the normal coefficient/modifier path; only select the promised stat.
+    SpellSchoolMask spellPowerSchool = spellProto->GetSchoolMask();
+    if (spellProto->Id == 803138 && spellProto->SpellFamilyName == 37 &&
+        spellPowerSchool == SPELL_SCHOOL_MASK_NORMAL && spellProto->DmgClass == SPELL_DAMAGE_CLASS_MAGIC &&
+        effIndex == EFFECT_0 && spellProto->Effects[EFFECT_0].Effect == SPELL_EFFECT_SCHOOL_DAMAGE)
+        spellPowerSchool = SPELL_SCHOOL_MASK_NATURE;
+    DoneAdvertisedBenefit += SpellBaseDamageBonusDone(spellPowerSchool);
 
     // Check for table values
     float coeff = spellProto->Effects[effIndex].BonusMultiplier;
