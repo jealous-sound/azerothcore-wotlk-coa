@@ -81,6 +81,11 @@ void LoadRandomEnchantmentsTable()
     }
 }
 
+bool HasItemEnchantTemplate(int32 entry)
+{
+    return RandomItemEnch.find(entry) != RandomItemEnch.end();
+}
+
 uint32 GetItemEnchantMod(int32 entry)
 {
     if (!entry)

@@ -3777,7 +3777,9 @@ void ObjectMgr::LoadItemTemplates()
             if (itemTemplate.RandomProperty == -1)
                 itemTemplate.RandomProperty = 0;
 
-            else if (!sItemRandomPropertiesStore.LookupEntry(GetItemEnchantMod(itemTemplate.RandomProperty)))
+            // CoA items may name an ItemRandomProperties row directly instead of an enchantment group
+            else if (!(!HasItemEnchantTemplate(itemTemplate.RandomProperty) && sItemRandomPropertiesStore.LookupEntry(itemTemplate.RandomProperty)) &&
+                !sItemRandomPropertiesStore.LookupEntry(GetItemEnchantMod(itemTemplate.RandomProperty)))
             {
                 LOG_ERROR("sql.sql", "Item (Entry: {}) has unknown (wrong or not listed in `item_enchantment_template`) RandomProperty ({})", entry, itemTemplate.RandomProperty);
                 itemTemplate.RandomProperty = 0;
