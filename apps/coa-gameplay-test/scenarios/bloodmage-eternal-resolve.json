@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "Eternal Resolve raises melee speed, maximum health and healing received by 50% (#3250)",
-  "contract": "Eternal Resolve 801962 ships three SPELL_EFFECT_APPLY_AURA effects in Spell.dbc, all with BasePoints 49 + DieSides 1 = 50%: aura 138 SPELL_AURA_MOD_MELEE_HASTE (AuraEffect::HandleModMeleeSpeedPct), aura 133 SPELL_AURA_MOD_INCREASE_HEALTH_PERCENT (HandleAuraModIncreaseHealthPercent) and aura 118 SPELL_AURA_MOD_HEALING_PCT with MiscValue 127, live in Unit::SpellHealingBonusTaken through GetMaxPositiveAuraModifier. Duration index 9 is 30000 ms and RecoveryTime is 180000. attack_time_ms reads the hasted swing time, so 50% melee haste divides it by 1.5. The harness exposes no healing-taken metric, so the third clause is locked through the applied aura effect's amount; note that aura 118 is consumed with GetMaxPositiveAuraModifier, i.e. the strongest such aura wins rather than summing, so Bloody Sacrifice (#2832) is deliberately kept out of this scenario. 801962 carries CasterAuraSpell 524861, one of the two Cursed Form markers AscensionBloodmageTalents.cpp mirrors onto the real form state, so the caster is given that marker as a fixture.",
+  "contract": "Eternal Resolve 801962 ships three SPELL_EFFECT_APPLY_AURA effects in Spell.dbc, all with BasePoints 49 + DieSides 1 = 50%: aura 138 SPELL_AURA_MOD_MELEE_HASTE (AuraEffect::HandleModMeleeSpeedPct), aura 133 SPELL_AURA_MOD_INCREASE_HEALTH_PERCENT (HandleAuraModIncreaseHealthPercent) and aura 118 SPELL_AURA_MOD_HEALING_PCT with MiscValue 127, live in Unit::SpellHealingBonusTaken through GetMaxPositiveAuraModifier. Duration index 9 is 30000 ms and RecoveryTime is 180000. attack_time_ms reads the hasted swing time, so 50% melee haste divides it by 1.5. The harness exposes no healing-taken metric, so the third clause is locked through the applied aura effect's amount; note that aura 118 is consumed with GetMaxPositiveAuraModifier, i.e. the strongest such aura wins rather than summing, so Bloody Sacrifice (#2832) is deliberately kept out of this scenario. 801962 carries CasterAuraSpell 524861, one of the two Cursed Form markers AscensionBloodmageTalents.cpp mirrors onto the real form state, so the caster is given that marker as a fixture. 801962 is not passive (Attributes 0x0), so WorldSession::HandleCastSpellOpcode (SpellHandler.cpp:460) discards the cast unless the caster holds the spell (HasActiveSpell); the scenario learns it before casting.",
   "timeout_ms": 90000,
   "players": [
     { "id": "caster", "race": 1, "class": 20, "level": 80 }
@@ -11,6 +11,7 @@
     { "action": "set_aura", "actor": "caster", "spell": 524861, "stacks": 1 },
     { "action": "snapshot", "actor": "caster", "metric": "attack_time_ms", "hand": 0, "save_as": "swing_before" },
     { "action": "snapshot", "actor": "caster", "metric": "max_health", "save_as": "health_before" },
+    { "action": "learn", "label": "Know the ability before casting it", "actor": "caster", "spell": 801962 },
     { "action": "set_power", "actor": "caster", "power": 1, "value": 1000 },
     { "action": "cast", "actor": "caster", "spell": 801962 },
     {

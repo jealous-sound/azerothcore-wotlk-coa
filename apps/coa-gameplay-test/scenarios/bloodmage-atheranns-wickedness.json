@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "Bloodmage: Atherann's Wickedness raises Shadow damage, hit chance and Atherann's Anguish (#2332)",
-  "contract": "Atherann's Wickedness 704642 (rank 1) and 707865 (rank 2): \"Increases your Shadow damage dealt by $s1% and increases your hit chance by $s2%.\" Effect 0 is aura 79 SPELL_AURA_MOD_DAMAGE_PERCENT_DONE with MiscValue 32 = Shadow, amount 4 / 8, handled by AuraEffect::HandleModDamagePercentDone (SpellAuraEffects.cpp:144). Effect 1 is aura 333 ASCENSION_MOD_HIT_CHANCE_ALL_PCT, amount 3 / 6, handled by AuraEffect::HandleAscensionModHitChanceAll (SpellAuraEffects.cpp:398) and consumed in StatSystem.cpp at 998/1004/1010 for melee, ranged and spell hit. 704643: \"Increases the damage of Atherann's Anguish by $s1%\" - one aura 108 effect, MiscValue 0 = SPELLMOD_DAMAGE, amount 20, EffectSpellClassMask [0, 65536, 0], which over SpellFamilyName 26 selects exactly one record, Atherann's Anguish 500448. The damage probe is Bloodmoon Blast 500125, SchoolMask 32 = Shadow. Confirmed natively in .agents/plans/bloodmage-sanguine/verify-native.md:319-340; this is its regression scenario.",
+  "contract": "Atherann's Wickedness 704642 (rank 1) and 707865 (rank 2): \"Increases your Shadow damage dealt by $s1% and increases your hit chance by $s2%.\" Effect 0 is aura 79 SPELL_AURA_MOD_DAMAGE_PERCENT_DONE with MiscValue 32 = Shadow, amount 4 / 8, handled by AuraEffect::HandleModDamagePercentDone (SpellAuraEffects.cpp:144). Effect 1 is aura 333 ASCENSION_MOD_HIT_CHANCE_ALL_PCT, amount 3 / 6, handled by AuraEffect::HandleAscensionModHitChanceAll (SpellAuraEffects.cpp:398) and consumed in StatSystem.cpp at 998/1004/1010 for melee, ranged and spell hit. 704643: \"Increases the damage of Atherann's Anguish by $s1%\" - one aura 108 effect, MiscValue 0 = SPELLMOD_DAMAGE, amount 20, EffectSpellClassMask [0, 65536, 0], which over SpellFamilyName 26 selects exactly one record, Atherann's Anguish 500448. The damage probe is Bloodmoon Blast 500125, SchoolMask 32 = Shadow. Confirmed natively in .agents/plans/bloodmage-sanguine/verify-native.md:319-340; this is its regression scenario. NOT COVERED HERE: the delivered +20% on 500448. 704643 is the one of the three records that is not passive - Attributes 0x180 is SPELL_ATTR0_DO_NOT_DISPLAY | SPELL_ATTR0_DO_NOT_LOG with no SPELL_ATTR0_PASSIVE 0x40, and Stances is 0 - so Player::addSpell (Player.cpp:3363) does not self-cast it at learn and no spell in this repository grants it either. Fixturing the aura does not work around that: its DurationIndex is 0, SpellDuration.dbc has no row 0, so SpellInfo::GetDuration returns 0, Aura::IsExpired is immediately true and Unit::_UpdateSpells (Unit.cpp:4245) removes the aura on the next world tick - before the harness runs the following step, since it executes one step per OnUpdate. With no applied aura there is no SPELLMOD_DAMAGE entry in Player::m_spellMods, so the spell_modifier metric can never see the 20%. This scenario therefore locks the shipped magnitude of the record only; the applied modifier needs a Ghost e2e test on a character that has actually been granted 704643 in game, comparing Atherann's Anguish combat-log damage with and without it.",
   "timeout_ms": 90000,
   "players": [
     {
@@ -49,7 +49,7 @@
     },
     {
       "action": "assert",
-      "label": "Atherann's Anguish carries no damage modifier yet",
+      "label": "Nothing in this fixture modifies Atherann's Anguish",
       "actor": "b",
       "metric": "spell_modifier",
       "spell": 500448,
@@ -106,13 +106,12 @@
     },
     {
       "action": "assert",
-      "label": "Atherann's Anguish deals 20% more damage",
+      "label": "704643 ships the 20% Atherann's Anguish modifier",
       "actor": "b",
-      "metric": "spell_modifier",
-      "spell": 500448,
-      "op": 0,
-      "base": 1000,
-      "equals": 1200
+      "metric": "spell_effect_value",
+      "spell": 704643,
+      "effect": 0,
+      "equals": 20
     },
     {
       "action": "unlearn",

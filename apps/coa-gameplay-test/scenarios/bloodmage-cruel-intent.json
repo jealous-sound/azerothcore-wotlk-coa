@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "Cruel Intent adds three auto attacks to Lunge (#2336)",
-  "contract": "Cruel Intent 704653 reads 'When you Lunge at an enemy you now strike them 3 times with auto attacks'. Its single effect is aura 42 (proc trigger spell) on Dark Intent 707599, a stock SPELL_EFFECT_ADD_EXTRA_ATTACKS with BasePoints 2, i.e. 3 extra attacks - which matches this tooltip rather than 707599's own stale '5 times' text. Spell.dbc gives 704653 ProcFlags 0 and no spell_proc row existed, so SpellMgr::LoadSpellProcs skipped it and Lunge produced no extra swings. Lunge 500126 is the only family-26 record with SpellFamilyFlags (16777216, 0, 0), the mask the new row uses; it has CasterAuraSpell 525031, one of the two Cursed Form markers, fixtured here with set_aura. The measurement is melee_attack_count, which counts extra attacks and misses. The bot is already auto-attacking and its unarmed attack time is asserted first, so in the 2500 ms window after Lunge at most two ordinary swings can land; three or more attacks therefore require the extra attacks.",
+  "contract": "Cruel Intent 704653 reads 'When you Lunge at an enemy you now strike them 3 times with auto attacks'. Its single effect is aura 42 (proc trigger spell) on Dark Intent 707599, a stock SPELL_EFFECT_ADD_EXTRA_ATTACKS with BasePoints 2, i.e. 3 extra attacks - which matches this tooltip rather than 707599's own stale '5 times' text. Spell.dbc gives 704653 ProcFlags 0 and no spell_proc row existed, so SpellMgr::LoadSpellProcs skipped it and Lunge produced no extra swings. Lunge 500126 is the only family-26 record with SpellFamilyFlags (16777216, 0, 0), the mask the new row uses; it has CasterAuraSpell 525031, one of the two Cursed Form markers, fixtured here with set_aura. The measurement is melee_attack_count, which counts extra attacks and misses. The bot is already auto-attacking and its unarmed attack time is asserted first, so in the 2500 ms window after Lunge at most two ordinary swings can land; three or more attacks therefore require the extra attacks. The dummy stands 12 yards away, matching bloodmage-dark-intent-lunge-heal.json, because Lunge has RangeIndex 54 and SpellRange.dbc row 54 is MinRangeHostile 5.0 / MinRangeFriend 5.0 / MaxRange 30.0: inside 5 yards Spell::CheckRange (Spell.cpp:7243) returns SPELL_FAILED_TOO_CLOSE and the leap never happens. At 12 yards the caster is out of melee range until the leap lands it behind the target (effect 0 is SPELL_EFFECT_JUMP_DEST with TargetA 65), so the swings counted in the window are the extra attacks plus at most one ordinary swing.",
   "timeout_ms": 90000,
   "players": [
     {
@@ -18,7 +18,7 @@
       "owner": "bloodmage",
       "entry": 36,
       "health": 1000000,
-      "distance": 3,
+      "distance": 12,
       "faction": 7
     }
   ],

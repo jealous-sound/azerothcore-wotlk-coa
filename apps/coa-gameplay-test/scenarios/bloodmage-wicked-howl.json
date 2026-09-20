@@ -11,6 +11,7 @@
     { "action": "set_aura", "actor": "caster", "spell": 525031, "stacks": 1 },
     { "action": "snapshot", "actor": "caster", "metric": "max_health", "save_as": "health_before" },
     { "action": "set_power", "actor": "caster", "power": 1, "value": 1000 },
+    { "action": "learn", "label": "Fixture: know the howl", "actor": "caster", "spell": 804207 },
     { "action": "cast", "actor": "caster", "spell": 804207 },
     {
       "action": "assert", "label": "Maximum health rises by 30%",

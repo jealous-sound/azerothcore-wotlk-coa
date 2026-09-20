@@ -17,6 +17,7 @@
     },
     { "action": "set_aura", "actor": "caster", "spell": 525031, "stacks": 1 },
     { "action": "set_power", "actor": "caster", "power": 1, "value": 1000 },
+    { "action": "learn", "label": "Fixture: know the howl", "actor": "caster", "spell": 806177 },
     { "action": "cast", "actor": "caster", "spell": 806177 },
     {
       "action": "assert", "label": "The howl reaches the grouped ally",

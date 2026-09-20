@@ -45,6 +45,11 @@
       "equals": 5,
       "within_ms": 3000
     },
+    {
+      "action": "wait",
+      "label": "Let Malediction's 1500 ms global cooldown (category 133) lapse",
+      "ms": 2000
+    },
     { "action": "cast", "actor": "bloodmage", "spell": 572795, "target": "dummy" },
     {
       "action": "assert",
