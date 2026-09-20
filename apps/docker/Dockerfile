@@ -184,6 +184,9 @@ ENV AC_DISABLE_INTERACTIVE=1
 ENV AC_CLOSE_IDLE_CONNECTIONS=0
 
 COPY --chown=$DOCKER_USER:$DOCKER_USER \
+    modules modules
+
+COPY --chown=$DOCKER_USER:$DOCKER_USER \
      --from=build \
      /azerothcore/env/dist/bin/worldserver /azerothcore/env/dist/bin/worldserver
 
