@@ -141,6 +141,7 @@ void AddSC_AscensionPrimalistRexxarMight();
 void AddSC_AscensionPrimalistMineralization();
 void AddSC_AscensionPrimalistLifeSpirit();
 void AddSC_AscensionPrimalistTremor();
+void AddSC_AscensionPrimalistPulverize();
 void AddSC_AscensionPrimalistVitality();
 void AddSC_AscensionPrimalistMagmatism();
 void AddSC_AscensionPrimalistGeomancy();
@@ -318,6 +319,7 @@ void Addmod_ascension_compatScripts()
     AddSC_AscensionPrimalistMineralization();
     AddSC_AscensionPrimalistLifeSpirit();
     AddSC_AscensionPrimalistTremor();
+    AddSC_AscensionPrimalistPulverize();
     AddSC_AscensionPrimalistVitality();
     AddSC_AscensionPrimalistMagmatism();
     AddSC_AscensionPrimalistGeomancy();
