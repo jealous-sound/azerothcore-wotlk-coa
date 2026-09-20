@@ -4,6 +4,7 @@
 #include "Player.h"
 #include "ScriptMgr.h"
 #include "Spell.h"
+#include "SpellAuraEffects.h"
 #include "SpellMgr.h"
 #include "SpellScript.h"
 
@@ -15,10 +16,48 @@ enum GeomancySpells : uint32
 {
     Rockslide = 560154,
     RockslideHelper = 560155,
-    StoneshardFirst = 680448
+    StoneshardFirst = 680448,
+    TectonicResonance = 707173,
+    EarthquakeSlow = 520696
 };
 
 constexpr TriggerCastFlags RepeatCastFlags = TriggerCastFlags(TRIGGERED_FULL_MASK & ~TRIGGERED_DISALLOW_PROC_EVENTS);
+
+class primalist_geomancy_metadata : public GlobalScript
+{
+public:
+    primalist_geomancy_metadata() : GlobalScript("primalist_geomancy_metadata",
+        {GLOBALHOOK_ON_LOAD_SPELL_CUSTOM_ATTR}) { }
+
+    void OnLoadSpellCustomAttr(SpellInfo* info) override
+    {
+        if (info->SpellFamilyName == 37 && info->Id == TectonicResonance &&
+            info->Effects[EFFECT_2].ApplyAuraName == SPELL_AURA_ADD_FLAT_MODIFIER)
+            // Earthquake and its slow share a family mask: the copied effect also subtracts 30 damage.
+            info->Effects[EFFECT_2].ApplyAuraName = SPELL_AURA_DUMMY;
+    }
+};
+
+class aura_ascension_tectonic_resonance_slow : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_tectonic_resonance_slow);
+
+    bool Validate(SpellInfo const*) override { return ValidateSpellInfo({TectonicResonance, EarthquakeSlow}); }
+
+    void Calculate(AuraEffect const*, int32& amount, bool& /*canRecalculate*/)
+    {
+        Unit* caster = GetCaster();
+        if (caster && caster->IsPlayer() && caster->getClass() == CLASS_WILDWALKER)
+            if (AuraEffect const* talent = caster->GetAuraEffect(TectonicResonance, EFFECT_2))
+                amount += talent->GetAmount();
+    }
+
+    void Register() override
+    {
+        DoEffectCalcAmount += AuraEffectCalcAmountFn(aura_ascension_tectonic_resonance_slow::Calculate,
+            EFFECT_0, SPELL_AURA_MOD_DECREASE_SPEED);
+    }
+};
 
 class aura_ascension_rockslide : public AuraScript
 {
@@ -70,5 +109,7 @@ class aura_ascension_rockslide : public AuraScript
 
 void AddSC_AscensionPrimalistGeomancy()
 {
+    new primalist_geomancy_metadata();
+    RegisterSpellScript(aura_ascension_tectonic_resonance_slow);
     RegisterSpellScript(aura_ascension_rockslide);
 }
