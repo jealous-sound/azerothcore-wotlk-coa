@@ -1,0 +1,34 @@
+{
+  "schema": 1,
+  "name": "Sun Cleric: Solar Conduit already boosts Dawn's own embedded Dawnsear cast-time cut (#1562)",
+  "contract": "Dawn (807440) already carries, on its own effect index 1, an ADD_PCT_MODIFIER (aura 108) with MiscValue 10 = SPELLMOD_CASTING_TIME and EffectSpellClassMask word 1 = 0x2, which Dawnsear (500146) matches in its own SpellFamilyFlags word 1 (0x2) via the generic family-33 flag96 AND. That embedded modifier's own BasePoints (-1) resolves to 0 (a deliberate no-op baseline) while Dawn's aura is present but nothing has boosted it. Solar Conduit (300321) is ADD_FLAT_MODIFIER (aura 107), MiscValue 12 = SPELLMOD_EFFECT2 (Blizzard's 1-based 'Effect2' name for zero-based effect index 1), EffectSpellClassMask word 0 = 0x40, matching Dawn's own SpellFamilyFlags word 0 (0x40) -- so Solar Conduit's flat modifier raises effect index 1's stored value on Dawn itself (SpellEffectInfo::CalcValue -> Unit::ApplyEffectModifiers applies SPELLMOD_EFFECT2 for index 1) from 0 to -20 (BasePoints -21 resolves to -20) precisely while Dawn's own aura is present, i.e. 'while Dawn is active'. That -20 is then what Dawn's own effect hands to Dawnsear's cast time. This is a two-level native SpellMod chain, both links independently confirmed by classMask/family-flag overlap; no server code needed.",
+  "timeout_ms": 30000,
+  "players": [
+    { "id": "caster", "race": 1, "class": 27, "level": 80 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let level scaling settle", "ms": 3000 },
+    {
+      "action": "assert", "label": "Dawn's own embedded modifier is a no-op with nothing to boost it",
+      "actor": "caster", "metric": "spell_effect_value", "spell": 807440, "effect": 1, "equals": 0
+    },
+    {
+      "action": "snapshot", "label": "Dawnsear cast time before Dawn or the talent",
+      "actor": "caster", "metric": "spell_cast_time_ms", "spell": 500146, "save_as": "cast_time_base"
+    },
+    { "action": "learn", "label": "Reduces the cast time of Dawnsear by 20% while Dawn is active", "actor": "caster", "spell": 300321 },
+    {
+      "action": "assert", "label": "Learning the talent alone changes nothing while Dawn is not up",
+      "actor": "caster", "metric": "spell_cast_time_ms", "spell": 500146, "relative_to": "cast_time_base", "equals": 0
+    },
+    { "action": "set_aura", "label": "Fixture: Dawn becomes active", "actor": "caster", "spell": 807440, "stacks": 1 },
+    {
+      "action": "assert", "label": "Solar Conduit now boosts Dawn's own embedded modifier to -20",
+      "actor": "caster", "metric": "spell_effect_value", "spell": 807440, "effect": 1, "equals": -20
+    },
+    {
+      "action": "assert", "label": "Dawnsear now casts at 80% of its base cast time (20% faster) while Dawn is active",
+      "actor": "caster", "metric": "spell_cast_time_ms", "spell": 500146, "ratio_to": "cast_time_base", "equals": 0.8
+    }
+  ]
+}
