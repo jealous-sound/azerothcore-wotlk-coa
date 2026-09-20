@@ -6,6 +6,8 @@
 #include "SpellAuras.h"
 #include "SpellScript.h"
 
+#include <algorithm>
+
 namespace
 {
 enum BarrierSpells : uint32
@@ -73,10 +75,67 @@ public:
         }
     }
 };
+
+class aura_ascension_fury_of_earthmother : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_fury_of_earthmother);
+
+    bool Check(ProcEventInfo& event)
+    {
+        Unit* owner = GetTarget();
+        DamageInfo const* damage = event.GetDamageInfo();
+        return owner->IsPlayer() && owner->getClass() == CLASS_WILDWALKER && owner->IsAlive() &&
+            event.GetActor() == owner && damage && damage->GetDamage() &&
+            owner->HasAura(RockBarrier, owner->GetGUID());
+    }
+
+    void Register() override
+    {
+        DoCheckProc += AuraCheckProcFn(aura_ascension_fury_of_earthmother::Check);
+    }
+};
+
+class spell_ascension_fury_of_earthmother_charge : public SpellScript
+{
+    PrepareSpellScript(spell_ascension_fury_of_earthmother_charge);
+
+    bool Load() override
+    {
+        return GetCaster()->IsPlayer() && GetCaster()->getClass() == CLASS_WILDWALKER;
+    }
+
+    void Restore()
+    {
+        Unit* owner = GetHitUnit();
+        if (!owner || owner != GetCaster())
+            return;
+        Aura* barrier = owner->GetAura(RockBarrier, owner->GetGUID());
+        if (!barrier)
+            return;
+        // The active talent promises one charge. Copied effect 171 is unsupported;
+        // its base points also encode two, so use the visible contract explicitly.
+        if (barrier->GetCharges() < 255)
+            barrier->SetCharges(barrier->GetCharges() + 1);
+        // Native effect 177 has already extended the visible aura by one second.
+        // Keep Earthmother's Protection alive for the same extended lifetime.
+        if (Aura* helper = owner->GetAura(BarrierModifiers, owner->GetGUID()))
+        {
+            helper->SetMaxDuration(std::max(helper->GetMaxDuration(), barrier->GetDuration()));
+            helper->SetDuration(barrier->GetDuration());
+        }
+    }
+
+    void Register() override
+    {
+        AfterHit += SpellHitFn(spell_ascension_fury_of_earthmother_charge::Restore);
+    }
+};
 }
 
 void AddSC_AscensionPrimalistBarrier()
 {
     RegisterSpellScript(aura_ascension_earthmother_protection_link);
+    RegisterSpellScript(aura_ascension_fury_of_earthmother);
+    RegisterSpellScript(spell_ascension_fury_of_earthmother_charge);
     new primalist_barrier_metadata();
 }
