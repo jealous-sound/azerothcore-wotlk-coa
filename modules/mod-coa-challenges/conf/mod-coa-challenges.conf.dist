@@ -320,10 +320,11 @@ CoAChallenges.TestStrictCoverage = 0
 # Spellbind Roulette (FAILABLE 173/174/175/387/388/389, MEGA 429/430,
 # plain SPELLBIND_ROULETTE 193)
 ############################################################################
-# The server marks one of the player's known spells and the client paints the
-# "proc glow" (Spell Activation Overlay, SMSG 0x9B1) on that spell's action
-# button. Casting a FAILABLE mark kills the player + fails the challenge; a
-# plain mark blocks the cast. Tunables for the overlay visual:
+# The server marks one of the player's known spells. When enabled, SMSG 0x9B1
+# displays a proc graphic around the screen's center; it does not set action-button glow.
+# The spell ID identifies the graphic for removal with SMSG 0x9B2.
+# Casting a FAILABLE mark kills the player + fails the challenge; a plain mark
+# blocks the cast. Tunables for the overlay visual:
 # Master switch (0 = off; mark is chat-only). Keep OFF until the 0x9B1 payload
 # is validated in-client: a malformed packet crashes the client on login.
 # Default: 0

@@ -2059,9 +2059,12 @@ public:
     void SendLogXPGain(uint32 GivenXP, Unit* victim, uint32 BonusXP, bool recruitAFriend = false, float group_rate = 1.0f);
 
     // notifiers
-    void SendSpellActivationShow(uint32 spellId, std::string const& texture = "", uint32 type = 0, float scale = 1.0f, uint32 r = 255, uint32 g = 255, uint32 b = 255);
+    // Legacy screen overlays; an empty texture does not enable action-button glows.
+    void SendSpellActivationShow(uint32 spellId, std::string const& texture = "", uint32 type = 0,
+        float scale = 1.0f, uint32 r = 255, uint32 g = 255, uint32 b = 255);
     void SendSpellActivationHide(uint32 spellId);
-    void SendSpellActivationGlow(uint32 spellId, bool show);
+    // overlayId is the reserved DBC row ID, distinct from the aura and action spell IDs.
+    void SendSpellActivationGlow(uint32 overlayId, uint32 auraId, uint32 spellId, uint8 stacks, bool show);
     void SendAttackSwingCantAttack();
     void SendAttackSwingCancelAttack();
     void SendAttackSwingDeadTarget();

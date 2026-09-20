@@ -416,9 +416,9 @@ namespace CoAChallenges
         SpellbindProcessPending(player);
     }
 
-    // Spell Activation Overlay: the client paints the "proc glow" on the action
-    // button of a spell via SMSG 0x9B1 and clears it via 0x9B2. Used to mark the
-    // Spellbind Roulette forbidden spell. The SHOW payload was decoded from the
+    // Legacy screen overlay used to mark the Spellbind Roulette forbidden spell.
+    // 0x9B1/0x9B2 do not update C_SpellActivationOverlay.IsSpellOverlayed or native button glows.
+    // The SHOW payload was decoded from the
     // client handler (0x10235A90 -> Lua SPELL_ACTIVATION_SHOW, "%u%s%s%f%u%u%u"):
     //   u32 spellId, str texture, u32 type, float scale, u32 r, u32 g, u32 b
     // Values are conf-tunable so the visual can be iterated without a rebuild.

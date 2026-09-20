@@ -32,6 +32,88 @@ int main()
     player.Add(EndlessSandsTalent, &player);
     hooks.OnSpellCast(&epoch, &player, epoch.GetSpellInfo(), false);
     assert(player.HasAura(EndlessSands));
+    // The actual sender must update a DBC row (0x6F6), with raw strings at byte 56.
+    player.known = {{ReverseWound, 0}, {572628, 1}};
+    aura_ascension_chronomancer_endless_sands glow;
+    glow.fixtureTarget = &player;
+    glow.fixtureAura = player.GetAura(EndlessSands);
+    glow.Register();
+    assert(glow.Validate(manager.GetSpellInfo(EndlessSands)));
+    auto binding = glow.AfterEffectApply.binding;
+    assert(binding.index == EFFECT_0 && binding.aura == manager.GetSpellInfo(EndlessSands)->Effects[0].ApplyAuraName);
+    assert(binding.mode == AURA_EFFECT_HANDLE_REAL_OR_REAPPLY_MASK);
+    assert(glow.AfterEffectRemove.binding.mode == AURA_EFFECT_HANDLE_REAL);
+    auto checkPacket = [&](bool show)
+    {
+        auto const& packet = player.fixtureSession.packets.back();
+        assert(packet.opcode == 0x6F6);
+        assert(packet.Word(0) == 700 && packet.Word(1) == EndlessSands && packet.Word(2) == 0);
+        for (int field = 3; field <= 6; ++field)
+            assert(packet.Word(field) == 0x3F800000); // native float RGB and scale, all 1.0
+        assert(packet.Word(7) == 572628); // the rank actually on the action bar
+        assert(packet.Word(8) == 0 && packet.Word(9) == 0 && packet.Word(10) == 0);
+        assert(packet.Word(11) == 5 && packet.Word(12) == 3 && packet.Word(13) == 0);
+        assert(packet.bytes[56] == 0);
+        std::string trigger(reinterpret_cast<char const*>(packet.bytes.data() + 57));
+        assert(trigger == (show ? "TRIGGER_TYPE_STACKS" : "TRIGGER_TYPE_NONE"));
+        assert(packet.bytes.size() == 58 + trigger.size());
+    };
+    glow.HandleEffectApply(nullptr, AURA_EFFECT_HANDLE_REAL);
+    checkPacket(false);
+    for (int stack = 2; stack <= 5; ++stack)
+    {
+        player.GetAura(EndlessSands)->SetDuration(1000);
+        hooks.OnSpellCast(&epoch, &player, epoch.GetSpellInfo(), false);
+        assert(player.GetAura(EndlessSands)->GetStackAmount() == stack);
+        assert(player.GetAura(EndlessSands)->GetDuration() == 15000);
+        glow.HandleEffectApply(nullptr, AURA_EFFECT_HANDLE_REAPPLY);
+        assert(player.fixtureSession.packets.size() == (stack == 5 ? 2u : 1u));
+    }
+    checkPacket(true);
+    hooks.OnSpellCast(&epoch, &player, epoch.GetSpellInfo(), false);
+    glow.HandleEffectApply(nullptr, AURA_EFFECT_HANDLE_REAPPLY);
+    assert(player.GetAura(EndlessSands)->GetStackAmount() == 5);
+    assert(player.GetAura(EndlessSands)->GetDuration() == 15000);
+    assert(player.fixtureSession.packets.size() == 2); // refresh does not flicker hide/show
+
+    // Stack reductions cross the threshold without removing the aura.
+    glow.fixtureAura->stacks = 4;
+    glow.HandleEffectApply(nullptr, AURA_EFFECT_HANDLE_REAPPLY);
+    checkPacket(false);
+    glow.fixtureAura->stacks = 5;
+    glow.HandleEffectApply(nullptr, AURA_EFFECT_HANDLE_REAPPLY);
+    checkPacket(true);
+
+    // All Reverse Wound ranks consume the buff; any real removal clears the same row.
+    for (auto const& [id, root] : manager.roots)
+        if (root == ReverseWound)
+        {
+            player.Add(EndlessSands, &player)->stacks = 5;
+            glow.HandleEffectApply(nullptr, AURA_EFFECT_HANDLE_REAL);
+            Spell reverse(&player, manager.GetSpellInfo(id), 0);
+            hooks.OnSpellCast(&reverse, &player, reverse.GetSpellInfo(), false);
+            assert(!player.HasAura(EndlessSands));
+            glow.HandleEffectRemove(nullptr, AURA_EFFECT_HANDLE_REAL);
+            checkPacket(false);
+        }
+    // External aura removal uses the same real-removal callback, independent of the removal reason.
+    player.Add(EndlessSands, &player)->stacks = 5;
+    glow.HandleEffectApply(nullptr, AURA_EFFECT_HANDLE_REAL);
+    checkPacket(true);
+    player.RemoveAurasDueToSpell(EndlessSands);
+    glow.HandleEffectRemove(nullptr, AURA_EFFECT_HANDLE_REAL);
+    checkPacket(false);
+    auto packetCount = player.fixtureSession.packets.size();
+    player.fixtureSession.compat = false;
+    player.SendSpellActivationGlow(700, EndlessSands, ReverseWound, 5, true);
+    assert(player.fixtureSession.packets.size() == packetCount);
+    player.fixtureSession.compat = true;
+    player.RemoveAurasDueToSpell(EndlessSandsTalent);
+    hooks.OnSpellCast(&epoch, &player, epoch.GetSpellInfo(), false);
+    assert(!player.HasAura(EndlessSands));
+    // Restore the baseline stack setup used by the remaining Time regression cases.
+    player.RemoveAurasDueToSpell(Sands);
+    player.Add(Sands, &player);
     for (uint32 aeon : {RenewalAeon, ResilienceAeon, ProtectionAeon, OblivionAeon})
     {
         for (uint32 other : {RenewalAeon, ResilienceAeon, ProtectionAeon, OblivionAeon})

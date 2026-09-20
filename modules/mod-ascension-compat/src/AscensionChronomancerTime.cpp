@@ -214,10 +214,11 @@ public:
                 for (uint32 other : {RenewalAeon, ResilienceAeon, ProtectionAeon, OblivionAeon})
                     if (other != aeon)
                         player->RemoveAurasDueToSpell(other);
-        
+
+        // This hook runs after a successful cast, after its cast-time modifier has been used.
         if (IsRank(info->Id, ReverseWound))
             player->RemoveAurasDueToSpell(EndlessSands);
-            
+
         if (!IsRank(info->Id, Epoch))
             return;
         Aura* sands = player->GetAura(Sands);
@@ -343,23 +344,52 @@ class aura_ascension_chronomancer_endless_sands : public AuraScript
 {
     PrepareAuraScript(aura_ascension_chronomancer_endless_sands);
 
+    enum : uint32
+    {
+        EndlessSandsOverlay = 700, // SpellActivationOverlays.dbc, not a spell ID
+        EndlessSandsRequiredStacks = 5
+    };
+
+    bool _initialized = false;
+    bool _glowing = false;
+
+    bool Validate(SpellInfo const*) override
+    {
+        return ValidateSpellInfo({EndlessSands, ReverseWound});
+    }
+
     void HandleEffectApply(AuraEffect const*, AuraEffectHandleModes)
     {
-        if (Player* player = GetUnitOwner()->ToPlayer())
-            if (GetStackAmount() >= 5)
-                player->SendSpellActivationGlow(ReverseWound, true);
+        if (Player* player = GetTarget()->ToPlayer())
+        {
+            bool const show = GetStackAmount() >= EndlessSandsRequiredStacks;
+            if (!_initialized || show != _glowing)
+            {
+                player->SendSpellActivationGlow(EndlessSandsOverlay, EndlessSands, ReverseWound,
+                    EndlessSandsRequiredStacks, show);
+                _initialized = true;
+                _glowing = show;
+            }
+        }
     }
 
     void HandleEffectRemove(AuraEffect const*, AuraEffectHandleModes)
     {
-        if (Player* player = GetUnitOwner()->ToPlayer())
-            player->SendSpellActivationGlow(ReverseWound, false);
+        if (Player* player = GetTarget()->ToPlayer())
+            if (_glowing)
+                player->SendSpellActivationGlow(EndlessSandsOverlay, EndlessSands, ReverseWound,
+                    EndlessSandsRequiredStacks, false);
+        _glowing = false;
     }
 
     void Register() override
     {
-        OnEffectApply += AuraEffectApplyFn(aura_ascension_chronomancer_endless_sands::HandleEffectApply, EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL_OR_REAPPLY_MASK);
-        OnEffectRemove += AuraEffectRemoveFn(aura_ascension_chronomancer_endless_sands::HandleEffectRemove, EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL_OR_REAPPLY_MASK);
+        AfterEffectApply += AuraEffectApplyFn(aura_ascension_chronomancer_endless_sands::HandleEffectApply,
+            EFFECT_0, SPELL_AURA_ADD_PCT_MODIFIER, AURA_EFFECT_HANDLE_REAL_OR_REAPPLY_MASK);
+        // REAPPLY also removes/reapplies the spell modifier while changing stacks or refreshing duration.
+        // Only real removal should clear the glow here; the apply hook handles crossing below five stacks.
+        AfterEffectRemove += AuraEffectRemoveFn(aura_ascension_chronomancer_endless_sands::HandleEffectRemove,
+            EFFECT_0, SPELL_AURA_ADD_PCT_MODIFIER, AURA_EFFECT_HANDLE_REAL);
     }
 };
 

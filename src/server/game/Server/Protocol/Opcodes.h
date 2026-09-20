@@ -1397,10 +1397,15 @@ enum Opcodes : uint16
     SMSG_COA_CHALLENGE_RULE_BROKEN                  = 0x5BB,
     // Portrait menu "Reset all Dungeons" (Lua ResetDungeons(), empty payload).
     CMSG_RESET_DUNGEONS                             = 0x61F,
-    // Spell Activation Overlay (the "proc glow" the client paints on the
-    // action button of the marked spell). Client handlers: 0x9B1 -> 0x10235A90
-    // (fires Lua SPELL_ACTIVATION_SHOW), 0x9B2 -> 0x10235840 (SPELL_ACTIVATION_HIDE).
-    // Outbound-only (above NUM_MSG_TYPES); the client hash-dispatches it.
+    // Spell activation rules for action-button glows and on-screen proc alerts.
+    // Adds or replaces an in-memory SpellActivationOverlays.dbc row; the client evaluates its trigger.
+    // Extensions.dll handler RVA: 0x1E3430.
+    SMSG_COA_SPELL_ACTIVATION_OVERLAY_UPDATE        = 0x6F6,
+
+    // Show/hide on-screen proc graphics. These packets do not change action-button glow state.
+    // Extensions.dll handler RVAs: 0x235A90 (fires Lua SPELL_ACTIVATION_SHOW),
+    // 0x235840 (fires Lua SPELL_ACTIVATION_HIDE).
+    // Both are outbound-only, above NUM_MSG_TYPES; the client hash-dispatches them.
     SMSG_COA_SPELL_ACTIVATION_SHOW                  = 0x9B1,
     SMSG_COA_SPELL_ACTIVATION_HIDE                  = 0x9B2,
     NUM_MSG_TYPES                                   = 0x700

@@ -22,6 +22,7 @@
 #include "Player.h"
 #include "RBAC.h"
 #include "ScriptMgr.h"
+#include "SpellMgr.h"
 #include "WorldSession.h"
 
 /*********************************************************/
@@ -133,47 +134,74 @@ void Player::SendAttackSwingDeadTarget()
     SendDirectMessage(&data);
 }
 
-void Player::SendSpellActivationShow(uint32 spellId, std::string const& texture, uint32 type, float scale, uint32 r, uint32 g, uint32 b)
+void Player::SendSpellActivationShow(uint32 spellId, std::string const& texture, uint32 type, float scale,
+    uint32 r, uint32 g, uint32 b)
 {
     WorldSession* session = GetSession();
-    if (!session || !spellId)
+    if (!session || !session->IsAscensionCompatEnabled() || !spellId)
         return;
-    
+
     WorldPacket data(SMSG_COA_SPELL_ACTIVATION_SHOW, 96);
     data << uint32(spellId);
-    
+
     // The client string reader expects `u32 len` + `len` bytes including the NUL
     data << uint32(texture.size() + 1);
     data.append(texture.c_str(), texture.size() + 1);
-    
+
     data << uint32(type);
     data << float(scale);
     data << uint32(r);
     data << uint32(g);
     data << uint32(b);
-    
+
     session->SendPacket(&data);
 }
 
 void Player::SendSpellActivationHide(uint32 spellId)
 {
     WorldSession* session = GetSession();
-    if (!session || !spellId)
+    if (!session || !session->IsAscensionCompatEnabled() || !spellId)
         return;
-        
+
     WorldPacket data(SMSG_COA_SPELL_ACTIVATION_HIDE, 8);
     data << uint32(spellId);
     data << uint32(0);
-    
+
     session->SendPacket(&data);
 }
 
-void Player::SendSpellActivationGlow(uint32 spellId, bool show)
+void Player::SendSpellActivationGlow(uint32 overlayId, uint32 auraId, uint32 spellId, uint8 stacks, bool show)
 {
+    WorldSession* session = GetSession();
+    if (!session || !session->IsAscensionCompatEnabled() || !overlayId || !auraId || !spellId || !stacks)
+        return;
+
+    // Bind the current learned rank even when the client's rank-equivalence table is incomplete.
+    for (uint32 rank = sSpellMgr->GetFirstSpellInChain(spellId); rank;
+        rank = sSpellMgr->GetNextSpellInChain(rank))
+        if (HasActiveSpell(rank))
+            spellId = rank;
+
+    // Extensions.dll 0x101E3430 reads a 56-byte row, then two raw NUL-terminated strings.
+    // String-offset slots in the row are replaced by pointers to the trailing texture/trigger strings.
+    WorldPacket data(SMSG_COA_SPELL_ACTIVATION_OVERLAY_UPDATE, 80);
+    data << uint32(overlayId) << uint32(auraId) << uint32(0); // ID, trigger aura, texture offset
+    data << float(1.0f) << float(1.0f) << float(1.0f) << float(1.0f); // RGB, scale
+    data << uint32(spellId) << uint32(0) << uint32(0); // action spell, screen location, trigger offset
+    data << uint32(0) << uint32(stacks) << uint32(3) << uint32(0); // sound, stacks, >=, reserved
+    data << uint8(0); // no screen texture
     if (show)
-        SendSpellActivationShow(spellId);
+    {
+        // Retain an aura condition so disconnects/character switches cannot leave an unconditional glow.
+        static constexpr char trigger[] = "TRIGGER_TYPE_STACKS";
+        data.append(trigger, sizeof(trigger));
+    }
     else
-        SendSpellActivationHide(spellId);
+    {
+        static constexpr char trigger[] = "TRIGGER_TYPE_NONE";
+        data.append(trigger, sizeof(trigger));
+    }
+    session->SendPacket(&data);
 }
 
 void Player::SendAttackSwingCantAttack()
