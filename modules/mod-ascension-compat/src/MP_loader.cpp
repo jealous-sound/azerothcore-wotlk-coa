@@ -157,6 +157,7 @@ void AddSC_AscensionPrimalistRipsAndTears();
 void AddSC_AscensionPrimalistMountainAvatar();
 void AddSC_AscensionPrimalistRylaksBlessing();
 void AddSC_AscensionPrimalistWildheart();
+void AddSC_AscensionPrimalistSacredGrove();
 void AddSC_AscensionPrimalistEarthmotherRoar();
 void AddSC_AscensionPrimalistRushHunt();
 void AddSC_AscensionPrimalistCrushingEarth();
@@ -371,6 +372,7 @@ void Addmod_ascension_compatScripts()
     AddSC_AscensionPrimalistMountainAvatar();
     AddSC_AscensionPrimalistRylaksBlessing();
     AddSC_AscensionPrimalistWildheart();
+    AddSC_AscensionPrimalistSacredGrove();
     AddSC_AscensionPrimalistEarthmotherRoar();
     AddSC_AscensionPrimalistRushHunt();
     AddSC_AscensionPrimalistCrushingEarth();
