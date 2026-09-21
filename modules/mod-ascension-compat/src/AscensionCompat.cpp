@@ -107,7 +107,6 @@
 using namespace Acore::ChatCommands;
 
 namespace {
-constexpr uint32 SPELL_REAPER_HARVESTER = 92145;
 constexpr uint16 CMSG_ANTICHEAT_ALERT = 0x051F;
 // The Character Advancement point purchase. Never observed on this realm: the patch-B
 // Lua shim overrides AddByEntryID/ApplyPendingBuild and sends ".localtalent" instead,
@@ -688,8 +687,8 @@ public:
           removed, player->GetName(), uint32(player->GetLevel()));
     uint32 learned = 0;
     // AscensionCompat.AutoProgression is the automatic half of progression: the
-    // class abilities, rank upgrades and automatic talents this service hands
-    // out as a character levels. Switched off, nothing is granted here and the
+    // class abilities and rank upgrades this service hands out as a character
+    // levels. Switched off, none of those is granted here and the
     // player earns them another way - the Books of Ascension sell the ranks, and
     // the gossip option that restores a character's abilities passes
     // explicitRequest and keeps working. The reconcile pass above runs either
@@ -744,22 +743,10 @@ public:
         }
 
     ReconcileRunemasterFists(player, activeSpec);
-    // Harvester is Reaping's identity passive. Its Blood Harvest heal only works while it is known, so it is
-    // granted with the specialization even when automatic progression is off.
-    if (!automaticProgression && player->getClass() == CLASS_REAPER && !player->HasSpell(SPELL_REAPER_HARVESTER) &&
-        sSpellMgr->GetSpellInfo(SPELL_REAPER_HARVESTER))
-    {
-      auto const& entries = AscensionCompatData::CoATalentEntries;
-      auto harvester = std::find_if(entries.begin(), entries.end(), [](auto const& entry)
-          { return entry.SpellCount && entry.SpellIds[0] == SPELL_REAPER_HARVESTER; });
-      if (harvester != entries.end() && CanGrantAutomaticEntry(player, *harvester, activeSpec))
-      {
-        player->learnSpell(SPELL_REAPER_HARVESTER, false);
-        ++learned;
-      }
-    }
-    if (automaticProgression)
-      learned += SynchronizeAutomaticTalents(player, GetActiveSpecialization(player));
+    // Automatic talents are not gated: the books never sell a tree's free nodes (the specialization
+    // identity, its free first row), so without this grant a specialization tree stays locked behind a
+    // node nobody can obtain (#4436).
+    learned += SynchronizeAutomaticTalents(player, GetActiveSpecialization(player));
     // Rank upgrades are conditional on already owning the root. They cannot
     // spend talent points, pick an unselected ability, or leak an old spec.
     for (AscensionProgression::Rank const& rank : AscensionProgression::Ranks)

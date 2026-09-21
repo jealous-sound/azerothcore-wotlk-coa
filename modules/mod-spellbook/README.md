@@ -41,8 +41,9 @@ restored to this realm's trainer data at all.
   rank up twice in chat.
 - **Automatic delivery off.** The books are how a character earns abilities, so this change ships
   `AscensionCompat.AutoProgression = 0` (config file and code default) in `mod-ascension-compat`:
-  the class spells, rank upgrades and automatic talents that module handed out on level up are no
-  longer granted automatically. It only ever subtracts - the reconcile pass, talent replacements,
+  the class spells and rank upgrades that module handed out on level up are no longer granted
+  automatically. A talent tree's free nodes (the specialization identity and its free first row) are
+  still granted: the books never sell them, and without them the tree stays locked (#4436). It only ever subtracts - the reconcile pass, talent replacements,
   taught abilities and the runemaster passes are untouched, and the gossip option that restores a
   character's abilities on request still grants them.
 

@@ -84,10 +84,11 @@ AscensionCompat.LevelScaling = 1
 # Quests already above the player remain higher. Shared quest templates are immutable.
 AscensionCompat.QuestLevelScaling = 1
 
-# Automatic progression: hand out the class abilities, rank upgrades and automatic
-# talents for the character's class and level as they level up. Set to 0 to stop that
+# Automatic progression: hand out the class abilities and rank upgrades for the
+# character's class and level as they level up. Set to 0 to stop that
 # and let the player ask instead - a Book of Ascension grants them, so a realm that
-# wants the books to be the way abilities are earned runs with this off. Reloadable.
+# wants the books to be the way abilities are earned runs with this off. A talent
+# tree's free nodes are granted either way: the books do not sell them. Reloadable.
 AscensionCompat.AutoProgression = 0
 
 # Extension range derived from the installed client's opcode dispatch table.
