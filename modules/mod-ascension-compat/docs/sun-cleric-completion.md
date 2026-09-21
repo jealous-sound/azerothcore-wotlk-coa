@@ -102,3 +102,130 @@ pending Pyromancer, Cultist and Sun Cleric source/SQL together. Preserve the
 preceding class implementations when integrating these changes. A linked build,
 SQL application, restart and live combat, group, movement, relog and UI acceptance
 are separate steps. Client test launches require explicit authorization.
+
+
+# Sun Cleric second audit round — 2026-09-21
+
+A later, separate wave of 125 open reports against the same class (103 spell-audit reports of the
+form `Sun Cleric: "Name" (Spell ID: N) - Spell Script / Aura Handler Not Implemented`, 16 of the
+same shape carrying two ranks, and 6 free-form player reports). Its spell identities barely overlap
+the 2026-09-10 package above: that package's 158 findings are a different set, and nothing here
+supersedes it.
+
+Outcome: 8 fixed, 55 already correct on this core and closed by a new regression
+scenario, 53 not obtainable, 9 left open.
+
+## Why an absence means something for this class
+
+`~/CoaServer/reference/coa-obtainable --class 27` reports the strongest calibration shape the tool
+has: the live-client `CharacterAdvancement` capture holds every one of the 219 spells this class is
+already known to acquire, and 5 more the shipped table lacks. For class 27, and only because of
+that calibration, a spell the capture does not hold was not acquirable. The 5 extras are a real gap
+in this fork and belong in their own report, not here.
+
+These are local source decisions measured against community captures, not evidence of parity with
+the original backend. A later finding that one of the spells below is acquirable should reopen its
+report.
+
+## The 53 reports closed against the data, with no source change
+
+| Issue | Spell | Spell ID(s) |
+|---|---|---|
+| #1559 | Solar Crusader | 300317 |
+| #1560 | Path To Glory | 300319 |
+| #1566 | Concentrated Light | 300326 |
+| #1567 | Blessings - Level 15 Passive | 300330 |
+| #1569 | Sintorcher | 300332 |
+| #1570 | Beatification | 300333 |
+| #1572 | Battle Cleric | 300346 |
+| #1575 | Devout Blessing | 300356 |
+| #1576 | Luminescent Lances | 300358 |
+| #1577 | Ascended Barrage | 300359 |
+| #1578 | Piety Sun Cleric Passive Hidden2 | 300362 |
+| #1580 | Struck by the Sun | 300372 |
+| #1862 | Sunshine | 500142 |
+| #2066 | Flash | 500144 |
+| #2130 | Warrior's Light | 800610 |
+| #2131 | Gleaming Vigil | 800621 |
+| #2275 | Bursting Bulwark | 704392 |
+| #2311 | Seeker of Sinners | 704567 |
+| #2439 | Luminous Light | 704900 |
+| #2440 | Vitality | 704901 |
+| #2441 | Divine Fire | 704904 |
+| #2443 | Placeholder | 704907 |
+| #2444 | Guarded By The Light | 704912 |
+| #2445 | Solar Incandescence | 704913, 704914 |
+| #2447 | Sun Screen | 704918 |
+| #2448 | Controlled Fury | 704921 |
+| #2449 | Lord Commander | 704923 |
+| #2450 | Bulwark of the Sun | 704924 |
+| #2451 | Bastion of Vengeance | 704925, 704927 |
+| #2453 | Last Wish | 704940 |
+| #2454 | Luminary Mendicant | 704943 |
+| #2455 | Angelic Touch | 704944 |
+| #2456 | Rapid Execution | 704946 |
+| #2458 | Wrathful Sun | 704948 |
+| #2459 | Solstice | 704949, 704950 |
+| #3048 | Wake | 706261 |
+| #3199 | Battle Priest | 801180 |
+| #3343 | Burning Light | 804030 |
+| #3347 | Wind Tunnel | 804050 |
+| #3349 | Cyclonean Protection | 804067 |
+| #3368 | Guidance: Touch of Light | 804251 |
+| #3421 | Scalding Light | 804624 |
+| #3536 | Celestial Protection | 805584 |
+| #3542 | Blade of The Sun | 805632 |
+| #3590 | Ancient Etchings | 806022 |
+| #3592 | Sins of the Father | 806061 |
+| #3597 | Deliverance | 806114 |
+| #3598 | Sunlight Refraction | 806122 |
+| #3604 | Freeze Ray | 806160 |
+| #3606 | Solar Avenger | 806196 |
+| #3644 | Sunfury | 806475 |
+| #3854 | Angel's Calling | 805641 |
+| #3872 | No Shade | 704902 |
+
+## The 8 real defects
+
+| Issue | Spell | Spell ID(s) |
+|---|---|---|
+| #756 | March of the Valkyr | 560534 |
+| #1574 | Blazing Chariot | 300350 |
+| #1818 | Arbiter of Grace | 301313 |
+| #1834 | Arbiter of Light | 302914 |
+| #1910 | Grace | 504070 |
+| #2442 | Champion's Arrival | 704905 |
+| #2446 | Harmonious Bells | 704917 |
+| #2452 | Vindicator | 704938, 707773 |
+
+## Reports closed by a test rather than a source change
+
+55 reports describe a mechanic the core already delivers natively — through spell modifiers,
+stat auras or a generic engine path — so the audit's "no occurrence of the spell ID in the source"
+finding was true and irrelevant. Each keeps its tooltip contract pinned by a committed scenario
+under `apps/coa-gameplay-test/scenarios/sun-cleric-*.json` rather than by new code.
+
+## Left open
+
+| Issue | Spell | Spell ID(s) |
+|---|---|---|
+| #171 | Sun Cleric Valkerie Spec - Valkerie Tree |  |
+| #323 | SUN CLERIC SULAR POWER |  |
+| #708 | Burn The Heretics | 560857 |
+| #733 | Blightbreaker | 707433 |
+| #1505 | Sun Cleric Dawn -> Radiant Conversion Do |  |
+| #1511 | Sun Cleric Vow of Light has no effect |  |
+| #1562 | Solar Conduit | 300321 |
+| #3110 | The Chosen King | 707079 |
+| #4071 | Vow of Dawn animations (Sun Cleric) |  |
+
+- **#733 Blightbreaker** and **#1562 Solar Conduit** were first closed as already correct and the
+  closure was withdrawn when their scenarios failed on a live worldserver. For #1562 the cause is
+  known: `aura_ascension_sun_cleric_lifecycle::Calculate` pins Dawn's effect-1 amount to 1, a value
+  `ActivateDawn` reuses as the Sunrise/Sunset school-choice flag, so Solar Conduit's
+  `SPELLMOD_EFFECT2` boost lands and is overwritten before any cast reads it. Fixing it means moving
+  that flag off the effect amount, which is wider than this batch.
+- **#323** (Solar Power resource display) and **#171** (empty Valkyrie talent tab) are client-side:
+  no server metric exists for either.
+- **#708**, **#3110**, **#1505**, **#1511** and **#4071** each have a tooltip clause with no
+  server-side mechanism to carry it; the measurable halves are covered by scenarios.
