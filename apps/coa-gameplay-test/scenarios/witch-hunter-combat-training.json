@@ -1,0 +1,88 @@
+{
+  "schema": 1,
+  "name": "Combat Training raises physical damage and parry chance by 3% (#825)",
+  "contract": "Combat Training 680529 (installed Spell.dbc) is a passive family-21 spell with effect 0 SPELL_AURA_MOD_DAMAGE_PERCENT_DONE (79, misc 1 = Physical) base 2 die 1 -> +3% and effect 1 SPELL_AURA_MOD_PARRY_PERCENT (47) base 2 die 1 -> +3%; the Description reads 'Increases your Physical damage dealt and parry chance by 3%.' Physical damage is read with the native melee outgoing-damage query from a fixed 1000 base, so the modifier is a plain 1.03 factor. Player::UpdateParryPercentage adds the aura amount to the parry field, but a class that could not parry before also gets the flat 5% base once its first parry aura flips CanParry (same reason the Nether Disciple scenario uses a band), so the parry gain is asserted as at least the aura's own 3 with a ceiling that covers that flip.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "wh",
+      "race": 1,
+      "class": 15,
+      "level": 60
+    }
+  ],
+  "creatures": [
+    {
+      "id": "mob",
+      "owner": "wh",
+      "entry": 36,
+      "level": 60,
+      "distance": 3
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "snapshot",
+      "actor": "wh",
+      "metric": "melee_damage_done",
+      "save_as": "melee_base",
+      "label": "Melee damage from a fixed 1000 before the talent",
+      "target": "mob"
+    },
+    {
+      "action": "snapshot",
+      "actor": "wh",
+      "metric": "parry_chance",
+      "save_as": "parry_base",
+      "label": "Parry chance before the talent"
+    },
+    {
+      "action": "learn",
+      "actor": "wh",
+      "spell": 680529,
+      "label": "Learn Combat Training rank 1"
+    },
+    {
+      "action": "assert",
+      "label": "Effect 0 is +3% physical damage",
+      "actor": "wh",
+      "metric": "aura_amount",
+      "spell": 680529,
+      "effect": 0,
+      "equals": 3
+    },
+    {
+      "action": "assert",
+      "label": "Effect 1 is +3% parry",
+      "actor": "wh",
+      "metric": "aura_amount",
+      "spell": 680529,
+      "effect": 1,
+      "equals": 3
+    },
+    {
+      "action": "assert",
+      "label": "Physical damage dealt rises by 3%",
+      "actor": "wh",
+      "metric": "melee_damage_done",
+      "target": "mob",
+      "ratio_to": "melee_base",
+      "min": 1.029,
+      "max": 1.031
+    },
+    {
+      "action": "assert",
+      "label": "Parry chance rises by at least the 3% the aura grants",
+      "actor": "wh",
+      "metric": "parry_chance",
+      "relative_to": "parry_base",
+      "min": 2.99,
+      "max": 9.0
+    }
+  ]
+}
