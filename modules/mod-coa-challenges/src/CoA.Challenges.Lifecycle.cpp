@@ -851,13 +851,44 @@ namespace CoAChallenges
         return nullptr;
     }
 
-    // Broken when any facet flag is present; `message` names exactly what the
-    // character did before the trial.
-    bool OutsideInteractionBroken(std::set<std::string> const& flags, std::string& message)
+    // Every facet OUTSIDE_INTERACTION aggregates (the trailing entry is the
+    // legacy aggregate flag, kept for rows written before the per-facet split).
+    std::vector<char const*> AllOutsideFacets()
+    {
+        return { "OUTSIDE_MAIL", "OUTSIDE_TRADE", "OUTSIDE_AH", "OUTSIDE_VENDOR",
+                 "OUTSIDE_GUILD_BANK", "OUTSIDE_INTERACTION" };
+    }
+
+    // Facet flags a given condition type checks (empty = not an outside type).
+    // The per-service types are aliases over the same persistent flags the
+    // aggregate uses, so declaring one of them must not fail closed.
+    std::vector<char const*> OutsideFacetsForType(std::string const& type)
+    {
+        if (type == "CHALLENGE_CONDITIONS_TYPE_OUTSIDE_INTERACTION")
+            return AllOutsideFacets();
+        if (type == "CHALLENGE_CONDITIONS_TYPE_TAKE_MAIL_MONEY_OR_ITEM")
+            return { "OUTSIDE_MAIL" };
+        if (type == "CHALLENGE_CONDITIONS_TYPE_AUCTIONHOUSE_INTERACTION")
+            return { "OUTSIDE_AH" };
+        if (type == "CHALLENGE_CONDITIONS_TYPE_ACCEPT_TRADE")
+            return { "OUTSIDE_TRADE" };
+        if (type == "CHALLENGE_CONDITIONS_TYPE_VENDOR_INTERACTION")
+            return { "OUTSIDE_VENDOR" };
+        if (type == "CHALLENGE_CONDITIONS_TYPE_WITHDRAW_GUILD_BANK_MONEY_OR_ITEM")
+            return { "OUTSIDE_GUILD_BANK" };
+        return {};
+    }
+
+    // Broken when any of `allowed` facet flags is present; `message` names
+    // exactly what the character did before the trial.
+    bool OutsideInteractionBroken(std::set<std::string> const& flags,
+        std::vector<char const*> const& allowed, std::string& message)
     {
         std::string list;
-        for (std::string const& f : flags)
+        for (char const* f : allowed)
         {
+            if (!flags.count(f))
+                continue;
             char const* label = OutsideFacetLabel(f);
             if (!label)
                 continue;
@@ -891,6 +922,7 @@ namespace CoAChallenges
         std::vector<ConditionState> out;
         std::string conds = ChallengeConditions(challengeID);
         uint32 guid = player->GetGUID().GetCounter();
+        bool hasOutside = false;
         size_t start = 0;
         while (!conds.empty() && start <= conds.size())
         {
@@ -969,18 +1001,20 @@ namespace CoAChallenges
                 s.detail = "requires level 1, current " + std::to_string(player->GetLevel());
                 s.message = "You have already gained experience; this trial must be started at level 1.";
             }
-            else if (type == "CHALLENGE_CONDITIONS_TYPE_OUTSIDE_INTERACTION"
-                || type == "CHALLENGE_CONDITIONS_TYPE_TAKE_MAIL_MONEY_OR_ITEM")
+            else if (auto facets = OutsideFacetsForType(type); !facets.empty())
             {
-                // Implicit global gate (#4205 family); TAKE_MAIL is an alias.
+                // OUTSIDE_INTERACTION and its per-service aliases (mail, trade,
+                // auction house, vendor, guild bank) share the same persistent
+                // facet flags; declaring one of them must not fail closed.
                 std::string message;
-                bool const outside = OutsideInteractionBroken(ConditionFlags(guid), message);
-                s.label = (type == "CHALLENGE_CONDITIONS_TYPE_TAKE_MAIL_MONEY_OR_ITEM")
-                    ? "TAKE_MAIL_MONEY_OR_ITEM" : "OUTSIDE_INTERACTION";
+                bool const outside = OutsideInteractionBroken(ConditionFlags(guid), facets, message);
+                s.label = type.substr(std::string("CHALLENGE_CONDITIONS_TYPE_").size());
                 s.broken = outside;
                 s.detail = outside ? "INTERACTED" : "clean";
                 if (outside)
                     s.message = message;
+                if (type == "CHALLENGE_CONDITIONS_TYPE_OUTSIDE_INTERACTION")
+                    hasOutside = true;
             }
             else
             {
@@ -1005,11 +1039,11 @@ namespace CoAChallenges
         // the client surfaces it via a dedicated activation reason code and no
         // trial declares it per-trial, so inject it for every non-prestige
         // trial. The other interaction types are facets of this single flag.
-        if (OutsideInteractionGateEnabled() && IsTrialChallenge(challengeID)
+        if (!hasOutside && OutsideInteractionGateEnabled() && IsTrialChallenge(challengeID)
             && !IsPrestigeChallenge(challengeID))
         {
             std::string message;
-            bool const outside = OutsideInteractionBroken(ConditionFlags(guid), message);
+            bool const outside = OutsideInteractionBroken(ConditionFlags(guid), AllOutsideFacets(), message);
             ConditionState s;
             s.label = "OUTSIDE_INTERACTION";
             s.broken = outside;
