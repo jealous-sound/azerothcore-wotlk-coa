@@ -3,9 +3,9 @@
 The Tinker class audit contains 139 findings: 117 implemented or extended,
 21 retained native mechanisms, and one unresolved coefficient. This records
 the original source audit, with that question open. Its later package delivery is recorded
-in `CoA-Repack/RELEASE.json`; that delivery does not establish gameplay parity.
+in the repack's `RELEASE.json`; that delivery does not establish gameplay parity.
 The integration corrections below form the `tinker-20260911` patch. Installation status,
-binary identity and rollback information are recorded in `CoA-Repack/RELEASE.json`.
+binary identity and rollback information are recorded in the repack's `RELEASE.json`.
 
 ## Integration corrections
 

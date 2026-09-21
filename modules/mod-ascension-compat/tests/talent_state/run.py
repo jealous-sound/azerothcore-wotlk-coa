@@ -22,6 +22,7 @@ MAIN = r"""
 #include "AscensionCoATalentData.h"
 #include "AscensionCoATalentState.h"
 #include "DBCStores.h"
+#include <algorithm>
 #include <cstdio>
 #include <set>
 
@@ -115,10 +116,26 @@ int main(int, char** argv)
         else
             Check(false, "catalog still shares spell 503748 between entries 7131 and 12264");
 
+        // The shared automatic-entry rule: paid entries and other classes never qualify.
+        Check(!IsAutomaticEntryAvailable(*three, three->ClassId, three->SpecId, 80,
+                  [](CoATalentEntry const&) { return true; }),
+              "a paid entry is never an automatic grant");
+        Check(!IsAutomaticEntryAvailable(*three, std::uint8_t(three->ClassId + 1), three->SpecId, 80,
+                  [](CoATalentEntry const&) { return true; }),
+              "another class's entry is never an automatic grant");
+
         // Wire form.
         std::vector<std::uint8_t> body = KnownEntriesPayload(known);
         Check(body.size() == 4 + 21 * known.size(), "known-entries body is u32 count plus 21 bytes per record");
         Check(body[0] == 2 && body[1] == 0 && body[2] == 0 && body[3] == 0, "count is little-endian");
+        std::uint8_t const* firstRecord = body.data() + 4;
+        Check(firstRecord[8] == 1 && firstRecord[9] == 0 && firstRecord[10] == 0 && firstRecord[11] == 0,
+              "record carries the known marker read from the live realm");
+        Check(firstRecord[12] == 0, "record flag is zero");
+        Check(firstRecord[13] || firstRecord[14] || firstRecord[15] || firstRecord[16],
+              "record carries the batch build timestamp");
+        Check(!firstRecord[17] && !firstRecord[18] && !firstRecord[19] && !firstRecord[20],
+              "record tail is zero");
         std::vector<KnownEntry> parsed;
         Check(ParseKnownEntriesUpload(body.data(), body.size(), parsed) && parsed.size() == 2 &&
                   parsed[0].EntryId == known[0].EntryId && parsed[0].Rank == known[0].Rank &&
@@ -131,6 +148,69 @@ int main(int, char** argv)
         Check(ParseKnownEntriesUpload(empty, 4, parsed) && parsed.empty(), "count zero is an empty set");
         Check(!ParseKnownEntriesUpload(empty, 3, parsed), "less than a count is refused");
         Check(KnownEntriesPayload({}).size() == 4, "an empty set is a bare zero count");
+    }
+
+    // Automatic entries derived for a build rather than read from a spellbook: a gated entry appears
+    // once its requirement is granted at that level, and never at level one.
+    CoAAutomaticDependency const* chain = nullptr;
+    CoATalentEntry const* chainRequired = nullptr;
+    for (CoAAutomaticDependency const& candidate : CoAAutomaticDependencies)
+    {
+        CoATalentEntry const* candidateEntry = Find(candidate.EntryId);
+        CoATalentEntry const* requiredEntry =
+            candidate.RequiredEntryIds[0] ? Find(candidate.RequiredEntryIds[0]) : nullptr;
+        bool const requiredGated = requiredEntry &&
+            std::any_of(CoAAutomaticDependencies.begin(), CoAAutomaticDependencies.end(),
+                [&candidate](CoAAutomaticDependency const& row)
+                { return row.EntryId == candidate.RequiredEntryIds[0]; });
+        if (candidateEntry && requiredEntry && !candidateEntry->AECost && !candidateEntry->TECost &&
+            candidateEntry->SpellCount && candidateEntry->SpecId == requiredEntry->SpecId &&
+            candidateEntry->RequiredLevel <= requiredEntry->RequiredLevel && !requiredEntry->AECost &&
+            !requiredEntry->TECost && requiredEntry->SpellCount && requiredEntry->RequiredLevel > 2 &&
+            !candidate.RequiredEntryIds[1] && !requiredGated)
+        {
+            chain = &candidate;
+            chainRequired = requiredEntry;
+            break;
+        }
+    }
+    Check(chain != nullptr, "a dependency-gated automatic entry exists");
+    if (chain && chainRequired)
+    {
+        CoATalentEntry const* gated = Find(chain->EntryId);
+        std::uint32_t const requirementLevel = chainRequired->RequiredLevel;
+        auto mentions = [](std::vector<KnownEntry> const& entries, std::uint32_t entryId)
+        {
+            return std::any_of(entries.begin(), entries.end(),
+                [entryId](KnownEntry const& entry) { return entry.EntryId == entryId; });
+        };
+
+        Check(AutomaticEntries(gated->ClassId, gated->SpecId, 1, {}).empty(),
+              "level one derives no automatic entries");
+        std::vector<KnownEntry> below =
+            AutomaticEntries(gated->ClassId, gated->SpecId, std::uint8_t(requirementLevel - 1), {});
+        Check(!mentions(below, chainRequired->EntryId) && !mentions(below, gated->EntryId),
+              "below its requirement's level neither the requirement nor the gated entry is derived");
+        std::vector<KnownEntry> above =
+            AutomaticEntries(gated->ClassId, gated->SpecId, std::uint8_t(requirementLevel), {});
+        Check(mentions(above, chainRequired->EntryId) && mentions(above, gated->EntryId),
+              "a requirement granted at its own level derives the gated entry");
+        Check(!mentions(AutomaticEntries(gated->ClassId, gated->SpecId, std::uint8_t(requirementLevel),
+                                         { { chainRequired->EntryId, 1 } }),
+                        chainRequired->EntryId),
+              "an entry the build already holds is not reported as a derived grant");
+        Check(!mentions(AutomaticEntries(gated->ClassId, 0, std::uint8_t(requirementLevel), {}), gated->EntryId),
+              "another specialization's tree is not derived for the class tree");
+        Check(std::is_sorted(above.begin(), above.end(),
+                  [](KnownEntry const& left, KnownEntry const& right) { return left.EntryId < right.EntryId; }),
+              "derived automatic entries are sorted by entry id");
+        Check(std::all_of(above.begin(), above.end(),
+                  [](KnownEntry const& entry)
+                  {
+                      CoATalentEntry const* found = Find(entry.EntryId);
+                      return found && !found->AECost && !found->TECost && entry.Rank >= 1;
+                  }),
+              "derived automatic entries are cost-free and ranked");
     }
 
     return failures ? 1 : 0;

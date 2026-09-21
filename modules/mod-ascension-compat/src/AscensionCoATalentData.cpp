@@ -19,6 +19,7 @@ std::vector<CoATalentEntry> CoATalentEntries;
 std::vector<CoASelectableFreeEntry> CoASelectableFreeEntries;
 std::vector<CoAAutomaticDependency> CoAAutomaticDependencies;
 std::vector<CoATalentBudget> CoATalentBudgets;
+std::vector<CoAChrClassRole> CoAChrClassRoles;
 
 namespace
 {
@@ -110,6 +111,26 @@ bool LoadCoATalentData()
         !advancement.Load(GetClientDBCPath("CharacterAdvancement.dbc"), ADVANCEMENT_TAB + 1) ||
         !essence.Load(GetClientDBCPath("CharacterAdvancementEssence.dbc"), ESSENCE_TE + 1))
         return false;
+
+    // The per-class registry rows the client's advancement filter reads; the login burst sends them back
+    // verbatim. Optional: without the table the catalog still loads, only the client's trees stay empty.
+    CoAChrClassRoles.clear();
+    ClientDBC classRoles;
+    if (classRoles.Load(GetClientDBCPath("ChrClassesRoles.dbc"), 11))
+    {
+        for (uint32 row = 0; row < classRoles.GetRecordCount(); ++row)
+        {
+            ClientDBC::Record record = classRoles.GetRecord(row);
+            CoAChrClassRole role{};
+            role.ClassId = record.GetUInt32(0);
+            for (std::size_t column = 0; column < role.Values.size(); ++column)
+                role.Values[column] = record.GetUInt32(uint32(column) + 1);
+            CoAChrClassRoles.push_back(role);
+        }
+    }
+    else
+        LOG_ERROR("module.ascension_compat",
+            "ChrClassesRoles.dbc is unavailable; the client's advancement class registry stays unsent");
 
     // The essence table holds one 80-level family per (key, flags). The client reads the family whose key is
     // the character's class id with every flag clear; the custom classes are ids 12 to 32.

@@ -21,6 +21,12 @@ class WorldPacket;
 //   SMSG 0x0770 CHARACTER_SELECTION_MAIL      (per character: list index, hasMail, hasStoreMail)
 //   SMSG 0x0771 CHARACTER_SELECTION_GAME_MODE (per character: list index, active/enabled modes,
 //                                              team, mercenary, ruleset -> banner icon)
+//   SMSG 0x09D0 (SMSG_CHARACTER_CUSTOMIZATION_UNLOCKS) / 0x09BC / 0x06E5
+//                              realm-info cluster sent with the character list:
+//                              0x09BC carries the realm parameters and the
+//                              eight feature-gate bytes that Extensions.dll
+//                              copies into DLL+0xBDB178 (required for the
+//                              Character Advancement UI to render at all).
 // The four counts of SMSG 0x075E are max, total, active and inactive, in that
 // order: the client derives its create gate from them (it offers a new
 // character while active < max).
