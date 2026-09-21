@@ -68,8 +68,16 @@ class pyromancer_spells : public AllSpellScript
   public:
     pyromancer_spells()
         : AllSpellScript("pyromancer_spells", {ALLSPELLHOOK_ON_BEFORE_EFFECTS, ALLSPELLHOOK_ON_CAST,
-                                               ALLSPELLHOOK_ON_HIT_RESULT, ALLSPELLHOOK_ON_CRIT_CHANCE})
+                                               ALLSPELLHOOK_ON_HIT_RESULT, ALLSPELLHOOK_ON_CRIT_CHANCE,
+                                               ALLSPELLHOOK_ON_INTERRUPT_DURATION})
     {
+    }
+    void OnSpellInterruptDuration(Spell* spell, Unit*, int32& duration) override
+    {
+        // Constant Burning: its SPELLMOD_DURATION effect is never applied to Spellburn's lockout by the core.
+        Player* player = Owner(spell->GetCaster());
+        if (player && Named(spell->GetSpellInfo(), 800808) && player->HasAura(707126))
+            duration += Amount(707126, 1);
     }
     void OnSpellBeforeEffects(Spell* spell, Unit* caster, SpellInfo const* info) override
     {
