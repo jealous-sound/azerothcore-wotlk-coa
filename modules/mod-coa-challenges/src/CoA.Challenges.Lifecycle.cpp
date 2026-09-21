@@ -917,6 +917,22 @@ namespace CoAChallenges
         return free;
     }
 
+    // Number of primary professions the character has. Secondary skills
+    // (Cooking/Fishing/First Aid/Riding) are not counted.
+    uint32 PrimaryProfessionCount(Player* player)
+    {
+        static uint32 const kPrimaryProfessions[] = {
+            SKILL_ALCHEMY, SKILL_BLACKSMITHING, SKILL_ENCHANTING, SKILL_ENGINEERING,
+            SKILL_HERBALISM, SKILL_INSCRIPTION, SKILL_JEWELCRAFTING, SKILL_LEATHERWORKING,
+            SKILL_MINING, SKILL_SKINNING, SKILL_TAILORING,
+        };
+        uint32 count = 0;
+        for (uint32 skill : kPrimaryProfessions)
+            if (player->HasSkill(skill))
+                ++count;
+        return count;
+    }
+
     std::vector<ConditionState> EvaluateConditions(Player* player, uint32 challengeID)
     {
         std::vector<ConditionState> out;
@@ -973,6 +989,17 @@ namespace CoAChallenges
                 s.detail = "requires " + std::to_string(v1) + ", current " + std::to_string(f);
                 s.message = "You need at least " + std::to_string(v1)
                     + " free inventory slots (you have " + std::to_string(f) + ").";
+            }
+            else if (type == "CHALLENGE_CONDITIONS_TYPE_HAVE_TWO_PRIMARY_PROFESSIONS")
+            {
+                // Normal form is "Cannot Have Two Primary Professions": broken
+                // when the character already has two or more.
+                uint32 const n = PrimaryProfessionCount(player);
+                s.label = "HAVE_TWO_PRIMARY_PROFESSIONS";
+                s.broken = (n >= 2);
+                s.detail = "primary professions: " + std::to_string(n);
+                s.message = "You cannot have two primary professions (you have "
+                    + std::to_string(n) + ").";
             }
             else if (type == "CHALLENGE_CONDITIONS_TYPE_LOOT_INTERACTION")
             {
