@@ -8,6 +8,7 @@
 #include "SpellAuras.h"
 #include "SpellMgr.h"
 #include <algorithm>
+#include <cmath>
 namespace AscensionPyromancer
 {
 void ApplyContracts(SpellInfo* info)
@@ -229,6 +230,26 @@ class pyromancer_scaling : public UnitScript
             value *= 1 + State(player).ignis * Amount(680382) / 100.0f;
         value = std::clamp(value, float(INT32_MIN / 2), float(INT32_MAX / 2));
     }
+    // Cataclysmic Power: Flare Bolt deals more for each of the caster's Blaze, Ignite, Scorched and Infernus on the
+    // target. The DBC carries this as an aura 271 in each DoT's second effect, but the module reuses those slots.
+    static float Cataclysmic(Player* player, Unit* target)
+    {
+        uint32 rank = 0;
+        for (uint32 id : {807912, 807882, 804617})
+            if (!rank && player->HasAura(id))
+                rank = id;
+        if (!rank)
+            return 1;
+        uint32 count = 0;
+        for (auto const& pair : target->GetAppliedAuras())
+        {
+            Aura const* aura = pair.second->GetBase();
+            if (aura->GetCasterGUID() == player->GetGUID() &&
+                Any(aura->GetSpellInfo(), {805500, 800791, 680962, 706874}))
+                ++count;
+        }
+        return std::pow(1 + Amount(rank, 0, player) / 100.0f, count);
+    }
     float Factor(Unit* target, Unit* caster, SpellInfo const* info)
     {
         Player* player = Owner(caster);
@@ -241,6 +262,8 @@ class pyromancer_scaling : public UnitScript
             factor *= 1 + Amount(706238) / 100.0f;
         if (Named(info, 800792) && player->HasAura(520884))
             factor *= 1 + Burning(player, target) * .15f;
+        if (Named(info, 800790))
+            factor *= Cataclysmic(player, target);
         return factor;
     }
     void ModifySpellDamageTaken(Unit* target, Unit* caster, int32& damage, SpellInfo const* info) override
