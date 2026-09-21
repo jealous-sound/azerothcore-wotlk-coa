@@ -110,6 +110,11 @@ void ApplyContracts(SpellInfo* info)
         ConvertCreatureTypeDamage(info, EFFECT_1);
     if (id == 804026) // Silver Bolts, "doubled against Undead or Demons"
         ConvertCreatureTypeDamage(info, EFFECT_0);
+    // Decimate hands its aura 280 (armor penetration percent) to the Shadow Hounds, but Unit::CalcArmorReducedDamage
+    // reads that aura only for players. Aura 338 is read for any attacker, and its 100% removes all of the target's
+    // armor, which is the "ignore Armor" the text promises.
+    if (id == 804194 && info->Effects[EFFECT_1].ApplyAuraName == SPELL_AURA_MOD_ARMOR_PENETRATION_PCT)
+        info->Effects[EFFECT_1].ApplyAuraName = SPELL_AURA_ASCENSION_MOD_IGNORE_ARMOR_PCT;
     if (id == 707535)
     {
         info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_MOD_SPELL_DAMAGE_OF_STAT_PERCENT;
