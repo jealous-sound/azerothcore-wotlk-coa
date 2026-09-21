@@ -116,6 +116,9 @@ class aura_ascension_tinker_event : public AuraScript
         switch (GetId())
         {
             case 92138: return damage && !periodic && fire && player->IsValidAttackTarget(target);
+            // War Crimes names Explosive and Tracer Augmentation damage as its only sources. Its own flags
+            // cover every direct Tinker hit instead, and exclude the triggered and periodic ways those two land.
+            case 707239: return damage && Any(info,{653238,653247}) && Chance(player,707239);
             case 704107: return damage && Named(info,805351);
             case 705846: return healing && periodic && Named(info,801809);
             case 806629: return damage && !periodic &&
@@ -170,6 +173,7 @@ class aura_ascension_tinker_event : public AuraScript
                     player->RestoreSpellCharge(500600);
                 break;
             }
+            case 707239: Cast(player,target,Napalm); break;
             case 704107: Cast(player,target,653254); break;
             case 705846:
                 for (Unit* ally : Allies(player,target,Radius(705847),sSpellMgr->GetSpellInfo(705847)->MaxAffectedTargets))
