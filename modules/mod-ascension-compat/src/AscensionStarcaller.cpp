@@ -189,8 +189,13 @@ void Replace(Player* player, uint32 root, uint32 replacement)
 bool Chance(Player* player, uint32 id, uint32 cooldown, float bonus)
 {
     SpellInfo const* info = sSpellMgr->GetSpellInfo(id);
-    if (!player->HasAura(id) || !info || State(player).timers.HasTimeUntilEvent(id) ||
-        !roll_chance_f(std::clamp(float(info->ProcChance) + bonus, 0.0f, 100.0f)))
+    if (!player->HasAura(id) || !info || State(player).timers.HasTimeUntilEvent(id))
+        return false;
+    // Talents such as Highest Order and Aspect Mastery raise this record's chance through
+    // SPELLMOD_CHANCE_OF_SUCCESS, the way the native proc roll (Aura::CalcProcChance) reads it.
+    float chance = float(info->ProcChance) + bonus;
+    player->ApplySpellMod(id, SPELLMOD_CHANCE_OF_SUCCESS, chance);
+    if (!roll_chance_f(std::clamp(chance, 0.0f, 100.0f)))
         return false;
     if (cooldown)
         State(player).timers.ScheduleEvent(id, Milliseconds(cooldown));
