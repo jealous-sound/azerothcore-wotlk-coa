@@ -539,37 +539,6 @@ class aura_ascension_waves_of_blood : public AuraScript
     }
 };
 
-// Thirst (92112), the class's Level 10 Passive: "Spells that cost health now grant Thirst."
-// Effect 0 is SPELL_AURA_PROC_TRIGGER_SPELL (aura 42) on Thirst 706613, the Blood thirst resource the UI
-// already reads (AscensionCustomResourceData.h:58); effect 1 is aura 149 SPELL_AURA_REDUCE_PUSHBACK and is
-// native. Spell.dbc gives 92112 ProcFlags 0 and no `spell_proc` row existed, so SpellMgr::LoadSpellProcs
-// generated no entry ("Skip if no proc flags in DBC"), SpellMgr::GetSpellProcEntry returned nullptr and
-// Aura::GetProcEffectMask returned 0 - and nothing else in the shipped data, the resource gain rules or this
-// module ever cast 706613, so the resource could never be earned.
-// The companion `spell_proc` row carries the cast event, the family-26 restriction and
-// PROC_ATTR_REQ_MANA_COST ("has a cost"). The one condition no column expresses is *which* resource that
-// cost is paid from, which is the only reason this script exists: POWER_HEALTH is how
-// SpellInfo::CalcPowerCost identifies a health-cost record, the same test bloodmage_vitality_casts uses.
-class aura_ascension_bloodmage_thirst : public AuraScript
-{
-    PrepareAuraScript(aura_ascension_bloodmage_thirst);
-
-    bool Validate(SpellInfo const*) override { return ValidateSpellInfo({SPELL_BLOOD_THIRST}); }
-
-    bool Check(ProcEventInfo& event)
-    {
-        Unit* player = GetTarget();
-        SpellInfo const* info = event.GetSpellInfo();
-        return player->IsPlayer() && player->getClass() == CLASS_SON_OF_ARUGAL && player->IsAlive() &&
-            event.GetActor() == player && info && info->PowerType == POWER_HEALTH;
-    }
-
-    void Register() override
-    {
-        DoCheckProc += AuraCheckProcFn(aura_ascension_bloodmage_thirst::Check);
-    }
-};
-
 // Hemal Excision (803681): "Cut into an ally's vital essence, siphoning all curse effects from them. You
 // may reactivate this ability again within $803734d to place these curse effects on an enemy."
 //
@@ -750,7 +719,6 @@ void AddSC_AscensionBloodmageSecondary()
     RegisterSpellScript(aura_ascension_bloodmage_thirst_for_blood);
     RegisterSpellScript(spell_ascension_dark_essence);
     RegisterSpellScript(aura_ascension_waves_of_blood);
-    RegisterSpellScript(aura_ascension_bloodmage_thirst);
     RegisterSpellScript(spell_ascension_bloodmage_hemal_excision);
     RegisterSpellScript(aura_ascension_bloodmage_hemal_excision);
     RegisterSpellScript(spell_ascension_bloodmage_excision);
