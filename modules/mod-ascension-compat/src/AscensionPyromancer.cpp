@@ -132,7 +132,9 @@ void Flames(Player* player, uint32 count)
     uint32 stacks = old ? old->GetStackAmount() : 0;
     if (Aura* aura = player->AddAura(FlamecastingAura, player))
     {
-        aura->SetStackAmount(std::min<uint32>(player->HasAura(704809) ? 10 : 5, stacks + count));
+        // Invocation of Flames, Brilliance and Flames of Focus raise the cap through SPELLMOD_MAX_AURA_STACKS,
+        // which SetStackAmount does not consult, so the native limit is read here.
+        aura->SetStackAmount(std::min<uint32>(aura->GetSpellInfo()->CalcMaxAuraStacks(player), stacks + count));
         if (remaining >= 0)
             aura->SetDuration(remaining);
     }
