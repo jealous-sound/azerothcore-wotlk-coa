@@ -47,5 +47,9 @@ elif mode == 'sacred-grove-cap':
     assert len(recipients) == 13 and all(value in [0, 1] for value in recipients)
     assert sum(recipients) == 12, values
     print('Sacred Grove: exactly twelve of thirteen eligible recipients')
+elif mode == 'dreamslip':
+    expected = int(values['max_mana'] * .02) * 30
+    assert values['total_mana_recovery'] - values['recovery_mana'] == expected, (values, expected)
+    print('Dreamslip: thirty recoveries of two percent maximum Mana')
 else:
     raise ValueError(mode)
