@@ -158,10 +158,19 @@ class pyromancer_spells : public AllSpellScript
                 Cast(player, player, 803712);
         }
         if (Named(info, 802174))
+        {
+            // Expediting Power adds its amount to the reduction of Aspect's Blessing.
+            uint32 const extra = player->HasAura(704814) ? uint32(std::max(0, Amount(704814))) : 0;
             for (auto const& pair : player->GetSpellMap())
                 if (player->HasSpell(pair.first))
-                    player->ModifySpellCooldown(pair.first,
-                                                -int32(CalculatePct(player->GetSpellCooldownDelay(pair.first), 5)));
+                {
+                    uint32 percent = 5;
+                    if (extra && Named(sSpellMgr->GetSpellInfo(pair.first), 802168))
+                        percent += extra;
+                    uint32 const delay = player->GetSpellCooldownDelay(pair.first);
+                    player->ModifySpellCooldown(pair.first, -int32(CalculatePct(delay, percent)));
+                }
+        }
         if (spell->GetScriptValue(524707))
             Reduce(player, 803950, INT32_MAX);
         Finish(player, spell);
