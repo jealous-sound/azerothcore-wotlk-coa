@@ -55,7 +55,7 @@ METRICS = {
     'script_spell_damage_taken', 'script_periodic_damage_taken', 'script_heal_received', 'spell_effect_value',
     'block_chance', 'block_value', 'critical_block_chance', 'spell_critical_damage', 'armor_reduced_damage',
     'aoe_damage_taken', 'reputation_gain', 'spell_immune', 'spell_effect_immune', 'melee_attack_count',
-    'distance', 'spell_proc_count', 'temporary_spell_replacement',
+    'distance', 'spell_proc_count', 'spell_cast_count', 'temporary_spell_replacement',
 }
 PLAYER_STAT_METRICS = {
     'melee_crit_chance', 'dodge_chance', 'parry_chance', 'expertise', 'combat_rating',
@@ -157,7 +157,7 @@ def validate(scenario):
     for player in players:
         keys(player, {'id', 'race', 'class'},
              {'id', 'race', 'class', 'level', 'bot', 'spell_hit_rating', 'spell_crit_rating',
-              'ranged_hit_rating', 'melee_hit_rating', 'expertise_rating'}, 'player')
+              'melee_crit_rating', 'ranged_hit_rating', 'melee_hit_rating', 'expertise_rating'}, 'player')
         identity = player['id']
         require(isinstance(identity, str) and ACTOR_ID.fullmatch(identity), 'Invalid player id')
         require(identity not in actor_ids, 'Duplicate actor id')
@@ -169,6 +169,7 @@ def validate(scenario):
         require(type(player.get('bot', False)) is bool, 'bot must be boolean')
         number(player.get('spell_hit_rating', 0), 'spell_hit_rating', 0, 100000, True)
         number(player.get('spell_crit_rating', 0), 'spell_crit_rating', 0, 100000, True)
+        number(player.get('melee_crit_rating', 0), 'melee_crit_rating', 0, 100000, True)
         number(player.get('ranged_hit_rating', 0), 'ranged_hit_rating', 0, 100000, True)
         number(player.get('melee_hit_rating', 0), 'melee_hit_rating', 0, 100000, True)
         number(player.get('expertise_rating', 0), 'expertise_rating', 0, 100000, True)
@@ -268,7 +269,7 @@ def validate(scenario):
                     'spell_max_range', 'spell_max_stacks', 'spell_healing_done', 'spell_done_crit_chance',
                     'melee_spell_damage_done', 'script_spell_damage_taken', 'script_periodic_damage_taken',
                     'script_heal_received', 'spell_effect_value', 'spell_critical_damage', 'armor_reduced_damage',
-                    'spell_immune', 'spell_effect_immune', 'spell_proc_count',
+                    'spell_immune', 'spell_effect_immune', 'spell_proc_count', 'spell_cast_count',
                     'temporary_spell_replacement'}:
                 require('spell' in step, f'{where}: metric needs spell')
                 require('caster' not in step or 'spell' in step, f'{where}: aura caster filter needs spell')
@@ -278,7 +279,7 @@ def validate(scenario):
                     or metric.startswith('script_'):
                 require('target' in step, f'{where}: damage metric needs target')
             if metric == 'distance':
-                require('target' in step, f'{where}: distance metric needs target')
+                require('target' in step, f'{where}: {metric} metric needs target')
             if metric == 'stat':
                 number(step.get('stat'), f'{where}.stat', 0, 4, True)
             if metric == 'aura_script_value':
