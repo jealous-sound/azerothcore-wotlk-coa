@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "Gameplay fixture regeneration isolation",
-  "contract": "Disabling ordinary regeneration affects only the configured actor: health, Mana and Rage remain fixed while a default actor regenerates and loses Rage. An ordinary heal still spends Mana and heals the configured actor.",
+  "contract": "A configured actor does not naturally regenerate health, Mana or Rage, while an ordinary control does. A normal Primalist heal still heals and spends Rage.",
   "players": [
     {
       "id": "primalist",
@@ -109,18 +109,18 @@
     {
       "action": "learn",
       "actor": "primalist",
-      "spell": 2050
+      "spell": 800135
     },
     {
       "action": "cast",
       "actor": "primalist",
-      "spell": 2050
+      "spell": 800135
     },
     {
       "action": "assert",
       "actor": "primalist",
       "metric": "spell_heal_count",
-      "spell": 2050,
+      "spell": 800135,
       "min": 1,
       "within_ms": 3000
     },
@@ -134,8 +134,8 @@
       "action": "assert",
       "actor": "primalist",
       "metric": "power",
-      "power": 0,
-      "max": 999
+      "power": 1,
+      "max": 399
     }
   ]
 }
