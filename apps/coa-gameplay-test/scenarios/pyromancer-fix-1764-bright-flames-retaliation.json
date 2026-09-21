@@ -91,13 +91,13 @@
       "action": "set_power",
       "actor": "pyro",
       "power": 0,
-      "value": 20000
+      "value": 1000
     },
     {
       "action": "set_power",
       "actor": "enemy",
       "power": 0,
-      "value": 20000
+      "value": 1000
     },
     {
       "action": "reset_cooldown",
@@ -197,13 +197,13 @@
       "action": "set_power",
       "actor": "pyro",
       "power": 0,
-      "value": 20000
+      "value": 1000
     },
     {
       "action": "set_power",
       "actor": "enemy",
       "power": 0,
-      "value": 20000
+      "value": 1000
     },
     {
       "action": "reset_cooldown",
@@ -310,13 +310,13 @@
       "action": "set_power",
       "actor": "pyro",
       "power": 0,
-      "value": 20000
+      "value": 1000
     },
     {
       "action": "set_power",
       "actor": "enemy",
       "power": 0,
-      "value": 20000
+      "value": 1000
     },
     {
       "action": "reset_cooldown",
