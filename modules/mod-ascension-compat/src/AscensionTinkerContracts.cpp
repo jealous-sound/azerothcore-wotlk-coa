@@ -148,6 +148,15 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[0].MiscValue = SPELL_SCHOOL_MASK_NORMAL;
         info->DurationEntry = sSpellDurationStore.LookupEntry(21);
     }
+    // Nano-Repair Tech's periodic heal regenerates the Tinker and the pet in one triggered cast. A
+    // TARGET_UNIT_PET on TargetA makes the native pet-presence check reject the whole cast while no guardian
+    // pet exists, which also drops the caster's own share; a Tinker running devices but no permanent pet
+    // therefore received nothing. The same pet is selected from TargetB, which that check does not read.
+    if (id == 681516 && info->Effects[EFFECT_1].TargetA.GetTarget() == TARGET_UNIT_PET)
+    {
+        info->Effects[EFFECT_1].TargetA = SpellImplicitTargetInfo();
+        info->Effects[EFFECT_1].TargetB = SpellImplicitTargetInfo(TARGET_UNIT_PET);
+    }
     if (id == 801744)
         for (auto& effect : info->Effects)
             if (effect.Effect)
