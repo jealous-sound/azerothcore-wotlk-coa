@@ -1,0 +1,139 @@
+{
+  "schema": 1,
+  "name": "Sin Eater adds 5 charges to Torchlight (#2201)",
+  "contract": "Sin Eater 680542 (installed Spell.dbc) is a passive family-21 spell with one effect: SPELL_AURA_ADD_FLAT_MODIFIER (107), misc 4 = SPELLMOD_CHARGES, base 4 die 1 -> +5, SpellClassMask[0] 0x80000. Torchlight 503662 is family 21 with SpellFamilyFlags[0] 0x80000, so the modifier applies to it. Its charge pool is the spell_proc row Charges = 5 in data/sql/updates/pending_db_world/rev_20260907_15_witch_hunter_torchlight.sql, read by Aura::CalcMaxCharges, which passes it through ApplySpellMod(SPELLMOD_CHARGES). The Description reads 'Increases the amount of next attacks that grant Flames of Sin through Torchlight by 5.' A control and a holder each cast Torchlight on their own dummy; the applied aura must hold 5 and 10 charges, and the native modifier query must give the same 5 -> 10. Whether the extra attacks then grant Flames of Sin is the existing Torchlight script's job and is not asserted here.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "ctl",
+      "race": 1,
+      "class": 15,
+      "level": 60,
+      "spell_hit_rating": 10000,
+      "ranged_hit_rating": 10000,
+      "melee_hit_rating": 10000
+    },
+    {
+      "id": "sin",
+      "race": 1,
+      "class": 15,
+      "level": 60,
+      "spell_hit_rating": 10000,
+      "ranged_hit_rating": 10000,
+      "melee_hit_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "mobc",
+      "owner": "ctl",
+      "entry": 36,
+      "level": 60,
+      "distance": 3
+    },
+    {
+      "id": "mobs",
+      "owner": "sin",
+      "entry": 36,
+      "level": 60,
+      "distance": 3
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "ctl",
+      "spell": 503662,
+      "label": "Learn Torchlight (control)"
+    },
+    {
+      "action": "learn",
+      "actor": "sin",
+      "spell": 503662,
+      "label": "Learn Torchlight (Sin Eater holder)"
+    },
+    {
+      "action": "learn",
+      "actor": "sin",
+      "spell": 680542,
+      "label": "Learn Sin Eater"
+    },
+    {
+      "action": "assert",
+      "label": "Control: the charge modifier leaves Torchlight's 5 charges",
+      "actor": "ctl",
+      "metric": "spell_modifier",
+      "spell": 503662,
+      "op": 4,
+      "base": 5,
+      "equals": 5
+    },
+    {
+      "action": "assert",
+      "label": "Sin Eater adds 5 charges to Torchlight",
+      "actor": "sin",
+      "metric": "spell_modifier",
+      "spell": 503662,
+      "op": 4,
+      "base": 5,
+      "equals": 10
+    },
+    {
+      "action": "cast",
+      "actor": "ctl",
+      "spell": 503662,
+      "target": "mobc",
+      "label": "Control casts Torchlight"
+    },
+    {
+      "action": "cast",
+      "actor": "sin",
+      "spell": 503662,
+      "target": "mobs",
+      "label": "Sin Eater holder casts Torchlight"
+    },
+    {
+      "action": "assert",
+      "label": "Control's target carries Torchlight",
+      "actor": "mobc",
+      "metric": "aura",
+      "spell": 503662,
+      "caster": "ctl",
+      "equals": 1,
+      "within_ms": 3000
+    },
+    {
+      "action": "assert",
+      "label": "Holder's target carries Torchlight",
+      "actor": "mobs",
+      "metric": "aura",
+      "spell": 503662,
+      "caster": "sin",
+      "equals": 1,
+      "within_ms": 3000
+    },
+    {
+      "action": "assert",
+      "label": "Torchlight starts with its 5 charges",
+      "actor": "mobc",
+      "metric": "aura_charges",
+      "spell": 503662,
+      "caster": "ctl",
+      "equals": 5
+    },
+    {
+      "action": "assert",
+      "label": "With Sin Eater Torchlight starts with 10 charges",
+      "actor": "mobs",
+      "metric": "aura_charges",
+      "spell": 503662,
+      "caster": "sin",
+      "equals": 10
+    }
+  ]
+}
