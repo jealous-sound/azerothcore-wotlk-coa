@@ -182,6 +182,8 @@ class pyromancer_spells : public AllSpellScript
         }
         if (Derived(info))
             return;
+        if (id == 804076)
+            Cast(player, target, 300985); // Meteor's disorient, the carrier of Dark Iron Legacy's damage taken bonus.
         bool old = State(player).event;
         State(player).event = true;
         if (damage)
