@@ -174,7 +174,7 @@ namespace CoAChallenges
     // rested area (inn); at max the player falls asleep (dies). Driven entirely
     // server-side (not an aura meter). Only challenges whose Rules list carries
     // CHALLENGE_RULES_TYPE_FATIGUED_UNLESS_RESTED are tracked.
-    struct FatigueState { uint32 challengeId = 0; int32 fatigue = 0; uint32 ms = 0; bool resting = true; };
+    struct FatigueState { uint32 challengeId = 0; int32 fatigue = 0; uint32 ms = 0; bool resting = true; uint32 graceMs = 0; };
 
     struct ConditionState { std::string label; bool broken = false; std::string detail; };
 

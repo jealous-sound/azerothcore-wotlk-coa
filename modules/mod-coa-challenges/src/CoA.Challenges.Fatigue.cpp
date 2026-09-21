@@ -197,10 +197,17 @@ namespace CoAChallenges
 
         uint32 maxV = FatigueMax();
         uint32 perPointMs = std::max<uint32>(1, FatigueFillSeconds() * 1000 / maxV);
-        // Starter zones are sanctuaries (no inn): treated as safe, like a rest area.
-        bool rested = player->HasPlayerFlag(PLAYER_FLAGS_RESTING) || player->IsInSanctuary();
+        // Safe area = rested (inn/city) or a starter-zone sanctuary.
+        bool const safeNow = player->HasPlayerFlag(PLAYER_FLAGS_RESTING) || player->IsInSanctuary();
+        // Grace before the bar returns after LEAVING a safe area, so standing at
+        // the inn/rest boundary does not flicker it. Entering a safe area applies
+        // immediately (delaying the reset could kill the player at the doorstep).
+        // ponytail: per-state timer, no timestamp needed.
+        uint32 const graceMs =
+            sConfigMgr->GetOption<uint32>("CoAChallenges.Fatigue.SafeGraceSeconds", 1) * 1000;
 
         int32 fatigue = 0;
+        bool rested = safeNow;
         bool changed = false, died = false;
         {
             std::lock_guard<std::mutex> lock(FatigueMutex);
@@ -208,11 +215,21 @@ namespace CoAChallenges
             if (it == FatigueStates.end())
                 return;
             FatigueState& s = it->second;
-            if (rested != s.resting)   // transition in/out of a rested area
+            if (safeNow == s.resting)
+                s.graceMs = 0;
+            else if (safeNow)
             {
-                s.resting = rested;
+                s.resting = true;
+                s.graceMs = 0;
                 changed = true;
             }
+            else if ((s.graceMs += diff) >= graceMs)
+            {
+                s.resting = false;
+                s.graceMs = 0;
+                changed = true;
+            }
+            rested = s.resting;
             if (rested)
             {
                 // Safe area (inn/city/starter sanctuary): the bar is off and the

@@ -262,6 +262,11 @@ CoAChallenges.FatigueMax = 100
 # Default: 420
 CoAChallenges.FatigueSecondsToFill = 420
 
+# Grace (seconds) before the bar returns after LEAVING a safe area, so standing
+# at the inn/rest boundary does not flicker it. Entering a safe area resets
+# immediately (no grace). Range: 0-60. Default: 1
+CoAChallenges.Fatigue.SafeGraceSeconds = 1
+
 
 ############################################################################
 # Professions (Artisan's / Survivalist's Guild)
