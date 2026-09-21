@@ -24,6 +24,23 @@ if mode in ['douse', 'sacred-grove']:
     if mode == 'sacred-grove' and 'ally_max_mana' in values:
         assert values['mana_recovery'] == int((values['ally_max_mana'] - 1000) * .03)
     print(mode, 'native AP coefficient and zero additional SP coefficient verified')
+elif mode == 'stone-skin':
+    assert values['active_parry'] == values['base_parry'] > 0
+    assert 0 < values['rating_parry'] - values['active_parry'] < 100
+    controls = {680448, 800178, 803140, 403, 302590}
+    for key, baseline in values.items():
+        if not key.startswith('base_') or key in ['base_parry', 'base_rating']:
+            continue
+        suffix = key.removeprefix('base_')
+        spell = int(suffix.split('_')[0])
+        assert baseline > 0
+        for phase in ['active', 'rating']:
+            bonus = 0 if spell in controls else values[phase + '_parry'] / 100
+            expected = baseline * (1 + bonus)
+            assert abs(values[phase + '_' + suffix] - expected) <= 2, (phase, key, values, expected)
+        assert values['removed_' + suffix] == baseline, (key, values)
+    print('Stone Skin: displayed parry gives the same damage percentage; direct/periodic families, controls and removal verified')
+    print('Observed parry percentages:', values['active_parry'], values['rating_parry'])
 elif mode == 'wildheart':
     expected = int((values['max_mana'] - 1000 + values['wildheart_cost']) * .05)
     assert values['mana_recovery'] == expected, (values, expected)

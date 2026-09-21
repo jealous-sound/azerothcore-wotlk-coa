@@ -8824,6 +8824,12 @@ float Unit::SpellPctDamageModsDone(Unit* victim, SpellInfo const* spellProto, Da
     if (AuraEffect const* drums = GetAuraEffect(570759, EFFECT_0))
         AddPct(DoneTotalMod, drums->GetAmount());
 
+    // Stone Skin: displayed parry percentage grants the same percentage of Geode/Seismic damage.
+    if (Player const* player = ToPlayer(); player && player->getClass() == CLASS_WILDWALKER &&
+        spellProto->SpellFamilyName == 37 &&
+        (spellProto->SpellFamilyFlags & flag96(4176, 4194592, 263168)) && HasAura(806583))
+        AddPct(DoneTotalMod, player->GetFloatValue(PLAYER_PARRY_PERCENTAGE));
+
     DoneTotalMod *= GetTotalAuraMultiplier(SPELL_AURA_MOD_DAMAGE_PERCENT_DONE, [spellProto, this, damagetype](AuraEffect const* aurEff)
     {
         // prevent apply mods from weapon specific case to non weapon specific spells (Example: thunder clap and two-handed weapon specialization)
