@@ -891,6 +891,48 @@ namespace CoAChallenges
         return PlayerHasRule(player, "CHALLENGE_RULES_TYPE_NO_OUTSIDE_INTERACTION");
     }
 
+    // ---- OUTSIDE_INTERACTION activation gate (implicit, #4205 family) -----
+    // Any outside service interaction (mail/trade/AH/vendor/guild bank) taints
+    // the character, so a non-prestige trial can no longer be started. One
+    // persistent flag; the in-memory set avoids a DB write per vendor click.
+    // ponytail: personal bank has no core hook, so it is not tracked yet.
+    std::mutex OutsideMutex;
+    std::unordered_set<std::string> OutsideMarked;
+
+    void MarkOutsideInteraction(Player* player, char const* facet)
+    {
+        if (!player || !facet || !ChallengesEnabled() || !OutsideInteractionGateEnabled() || IsPrestiged(player))
+            return;
+        uint32 const guid = player->GetGUID().GetCounter();
+        if (HasActiveTrial(guid))   // condition gates activation only
+            return;
+        std::string const key = std::to_string(guid) + ":" + facet;
+        {
+            std::lock_guard<std::mutex> lock(OutsideMutex);
+            if (!OutsideMarked.insert(key).second)
+                return;
+        }
+        // Already permanently blocked (a failure under BlockAllAfterFailure):
+        // the flag can never matter, so don't write it. Checked after the dedup
+        // so the DB query runs at most once per facet per session.
+        if (ActivationPermanentlyBlocked(guid))
+            return;
+        SetConditionFlag(guid, facet);
+    }
+
+    void UntrackOutsideInteraction(uint32 guid)
+    {
+        std::lock_guard<std::mutex> lock(OutsideMutex);
+        std::string const prefix = std::to_string(guid) + ":";
+        for (auto it = OutsideMarked.begin(); it != OutsideMarked.end();)
+        {
+            if (it->compare(0, prefix.size(), prefix) == 0)
+                it = OutsideMarked.erase(it);
+            else
+                ++it;
+        }
+    }
+
     // ---- NO_GROUP_FOR_DUNGEONS ("Solitary Struggle") ----------------------
     // You cannot group with other players while inside a dungeon.
     bool GroupForDungeonsBlocked(Player* player, Player* other)
@@ -904,10 +946,51 @@ namespace CoAChallenges
         return false;
     }
 
+    // ---- Mailbox (#4205) ---------------------------------------------------
+    // Pre-trial: taking non-store items/currency from the mailbox taints the
+    // character so a non-prestige trial cannot be started (facet of
+    // OUTSIDE_INTERACTION). During the trial: the NO_MAIL rule forbids both
+    // sending and receiving mail. Store items / reward caches are exempt.
+    bool IsMailExemptItem(uint32 entry)
+    {
+        if (!entry)
+            return false;
+        return CoAParse::ListContains(
+            sConfigMgr->GetOption<std::string>("CoAChallenges.MailExemptItems", "1397884;1397885;1397886"),
+            std::to_string(entry));
+    }
+
+    // NO_MAIL / NO_OUTSIDE_INTERACTION (rules) forbid RECEIVING mail during the
+    // trial, mirroring OnPlayerCanSendMail for the sending side.
+    bool MailTakeForbidden(Player* player)
+    {
+        if (player && (PlayerHasRule(player, "CHALLENGE_RULES_TYPE_NO_MAIL")
+            || NoOutsideInteraction(player)))
+        {
+            NotifyPlayer(player, "Your challenge forbids receiving mail.");
+            return true;
+        }
+        return false;
+    }
+
+    // Mail is a facet of the OUTSIDE_INTERACTION condition: taking a non-exempt
+    // item/currency (entry 0 = money) taints the character for the next trial
+    // activation. Store items / reward caches are exempt.
+    void MarkMailTaken(Player* player, uint32 itemEntry)
+    {
+        if (!player || !ChallengesEnabled())
+            return;
+        if (IsMailExemptItem(itemEntry))   // store items / reward caches: exempt
+            return;
+        if (IsPrestiged(player))           // prestige uses the mailbox normally
+            return;
+        MarkOutsideInteraction(player, "OUTSIDE_MAIL");
+    }
+
     class CoAChallengesPlayer : public PlayerScript
     {
     public:
-        CoAChallengesPlayer() : PlayerScript("CoAChallengesPlayer", { PLAYERHOOK_ON_SEND_INITIAL_PACKETS_BEFORE_ADD_TO_MAP, PLAYERHOOK_ON_PLAYER_JUST_DIED, PLAYERHOOK_ON_PLAYER_RESURRECT, PLAYERHOOK_CAN_RESURRECT, PLAYERHOOK_CAN_SEND_MAIL, PLAYERHOOK_CAN_JOIN_LFG, PLAYERHOOK_CAN_JOIN_IN_BATTLEGROUND_QUEUE, PLAYERHOOK_CAN_JOIN_IN_ARENA_QUEUE, PLAYERHOOK_CAN_INIT_TRADE, PLAYERHOOK_CAN_PLACE_AUCTION_BID, PLAYERHOOK_ON_BEFORE_SEND_LOOT, PLAYERHOOK_ON_LEVEL_CHANGED, PLAYERHOOK_ON_CREATURE_KILL, PLAYERHOOK_ON_CREATURE_KILLED_BY_PET, PLAYERHOOK_ON_PLAYER_KILLED_BY_CREATURE, PLAYERHOOK_ON_PVP_KILL, PLAYERHOOK_ON_LOOT_ITEM, PLAYERHOOK_ON_PLAYER_COMPLETE_QUEST, PLAYERHOOK_ON_UPDATE, PLAYERHOOK_ON_LOGOUT, PLAYERHOOK_CAN_GROUP_INVITE, PLAYERHOOK_CAN_GROUP_ACCEPT, PLAYERHOOK_ON_UPDATE_CRAFTING_SKILL, PLAYERHOOK_ON_UPDATE_GATHERING_SKILL, PLAYERHOOK_ON_BEFORE_QUEST_COMPLETE, PLAYERHOOK_ON_QUEST_COMPUTE_EXP, PLAYERHOOK_ON_GIVE_EXP, PLAYERHOOK_ON_GET_MAX_ALLOWED_LEVEL, PLAYERHOOK_CAN_LEARN_TALENT, PLAYERHOOK_CAN_USE_ITEM, PLAYERHOOK_CAN_ENTER_MAP, PLAYERHOOK_CAN_EQUIP_ITEM, PLAYERHOOK_CAN_ENTER_MANASTORM, PLAYERHOOK_ON_PLAYER_ENVIRONMENTAL_DAMAGE, PLAYERHOOK_ON_PLAYER_BREATH_INVERTED, PLAYERHOOK_ON_BEFORE_BUY_ITEM_FROM_VENDOR, PLAYERHOOK_CAN_SELL_ITEM, PLAYERHOOK_ON_CAN_UPDATE_SKILL, PLAYERHOOK_ON_UPDATE_SKILL, PLAYERHOOK_ON_PLAYER_PVP_FLAG_CHANGE, PLAYERHOOK_ON_CAN_REGENERATE, PLAYERHOOK_ON_CAN_ENERGIZE, PLAYERHOOK_ON_CAN_GIVE_LEVEL, PLAYERHOOK_ON_BEFORE_TELEPORT }) { }
+        CoAChallengesPlayer() : PlayerScript("CoAChallengesPlayer", { PLAYERHOOK_ON_SEND_INITIAL_PACKETS_BEFORE_ADD_TO_MAP, PLAYERHOOK_ON_PLAYER_JUST_DIED, PLAYERHOOK_ON_PLAYER_RESURRECT, PLAYERHOOK_CAN_RESURRECT, PLAYERHOOK_CAN_SEND_MAIL, PLAYERHOOK_CAN_TAKE_MAIL_ITEM, PLAYERHOOK_CAN_TAKE_MAIL_MONEY, PLAYERHOOK_CAN_JOIN_LFG, PLAYERHOOK_CAN_JOIN_IN_BATTLEGROUND_QUEUE, PLAYERHOOK_CAN_JOIN_IN_ARENA_QUEUE, PLAYERHOOK_CAN_INIT_TRADE, PLAYERHOOK_CAN_PLACE_AUCTION_BID, PLAYERHOOK_ON_BEFORE_SEND_LOOT, PLAYERHOOK_ON_LEVEL_CHANGED, PLAYERHOOK_ON_CREATURE_KILL, PLAYERHOOK_ON_CREATURE_KILLED_BY_PET, PLAYERHOOK_ON_PLAYER_KILLED_BY_CREATURE, PLAYERHOOK_ON_PVP_KILL, PLAYERHOOK_ON_LOOT_ITEM, PLAYERHOOK_ON_PLAYER_COMPLETE_QUEST, PLAYERHOOK_ON_UPDATE, PLAYERHOOK_ON_LOGOUT, PLAYERHOOK_CAN_GROUP_INVITE, PLAYERHOOK_CAN_GROUP_ACCEPT, PLAYERHOOK_ON_UPDATE_CRAFTING_SKILL, PLAYERHOOK_ON_UPDATE_GATHERING_SKILL, PLAYERHOOK_ON_BEFORE_QUEST_COMPLETE, PLAYERHOOK_ON_QUEST_COMPUTE_EXP, PLAYERHOOK_ON_GIVE_EXP, PLAYERHOOK_ON_GET_MAX_ALLOWED_LEVEL, PLAYERHOOK_CAN_LEARN_TALENT, PLAYERHOOK_CAN_USE_ITEM, PLAYERHOOK_CAN_ENTER_MAP, PLAYERHOOK_CAN_EQUIP_ITEM, PLAYERHOOK_CAN_ENTER_MANASTORM, PLAYERHOOK_ON_PLAYER_ENVIRONMENTAL_DAMAGE, PLAYERHOOK_ON_PLAYER_BREATH_INVERTED, PLAYERHOOK_ON_BEFORE_BUY_ITEM_FROM_VENDOR, PLAYERHOOK_CAN_SELL_ITEM, PLAYERHOOK_ON_CAN_UPDATE_SKILL, PLAYERHOOK_ON_UPDATE_SKILL, PLAYERHOOK_ON_PLAYER_PVP_FLAG_CHANGE, PLAYERHOOK_ON_CAN_REGENERATE, PLAYERHOOK_ON_CAN_ENERGIZE, PLAYERHOOK_ON_CAN_GIVE_LEVEL, PLAYERHOOK_ON_BEFORE_TELEPORT, PLAYERHOOK_ON_DELETE_FROM_DB }) { }
 
         // Runs on BOTH login paths (full + re-login-to-in-world; see
         // CharacterHandler.cpp:901 and :1215). Batch is idempotent.
@@ -1058,6 +1141,26 @@ namespace CoAChallenges
             return true;
         }
 
+        // ---- Mailbox (#4205) ----
+        // NO_MAIL (rule) forbids receiving during the trial; otherwise taking a
+        // non-exempt item/currency taints the character for future trials
+        // (OUTSIDE_INTERACTION facet, pre-activation only).
+        bool OnPlayerCanTakeMailItem(Player* player, Item* item) override
+        {
+            if (MailTakeForbidden(player))
+                return false;
+            MarkMailTaken(player, item ? item->GetEntry() : 0);
+            return true;
+        }
+
+        bool OnPlayerCanTakeMailMoney(Player* player, uint32 /*money*/) override
+        {
+            if (MailTakeForbidden(player))
+                return false;
+            MarkMailTaken(player, 0);
+            return true;
+        }
+
         // ---- Rules enforcement (server-side; client UI is cosmetic) ----
         bool OnPlayerCanSendMail(Player* player, ObjectGuid /*receiverGuid*/, ObjectGuid /*mailbox*/,
             std::string& /*subject*/, std::string& /*body*/, uint32 /*money*/, uint32 /*COD*/, Item* /*item*/) override
@@ -1090,6 +1193,7 @@ namespace CoAChallenges
 
         bool OnPlayerCanPlaceAuctionBid(Player* player, AuctionEntry* /*auction*/) override
         {
+            MarkOutsideInteraction(player, "OUTSIDE_AH");
             return !PlayerHasRule(player, "CHALLENGE_RULES_TYPE_NO_AUCTIONHOUSE")
                 && !NoOutsideInteraction(player);
         }
@@ -1098,6 +1202,8 @@ namespace CoAChallenges
         {
             if (!player || !target)
                 return true;
+            MarkOutsideInteraction(player, "OUTSIDE_TRADE");
+            MarkOutsideInteraction(target, "OUTSIDE_TRADE");
             if (PlayerHasRule(player, "CHALLENGE_RULES_TYPE_NO_TRADE")
                 || PlayerHasRule(target, "CHALLENGE_RULES_TYPE_NO_TRADE")
                 || NoOutsideInteraction(player)
@@ -1497,6 +1603,7 @@ namespace CoAChallenges
         {
             if (!player || item == 0)
                 return;
+            MarkOutsideInteraction(player, "OUTSIDE_VENDOR");
             ItemTemplate const* proto = sObjectMgr->GetItemTemplate(item);
             Creature* vendor = player->GetNPCIfCanInteractWith(vendorguid, UNIT_NPC_FLAG_VENDOR);
 
@@ -1523,6 +1630,7 @@ namespace CoAChallenges
         // NO_VENDORS: also block selling to a vendor.
         bool OnPlayerCanSellItem(Player* player, Item* /*item*/, Creature* /*creature*/) override
         {
+            MarkOutsideInteraction(player, "OUTSIDE_VENDOR");
             if (player && (PlayerHasRule(player, "CHALLENGE_RULES_TYPE_NO_VENDORS")
                 || NoOutsideInteraction(player)))
             {
@@ -1636,7 +1744,9 @@ namespace CoAChallenges
         // ---- Activation-condition tracking (persistent, once broken stays) ----
         void OnPlayerBeforeSendLoot(Player* player, ObjectGuid /*lootGuid*/, Loot* /*loot*/) override
         {
-            SetConditionFlag(player->GetGUID().GetCounter(), "LOOTED");
+            uint32 const guid = player->GetGUID().GetCounter();
+            if (!HasActiveTrial(guid))   // condition gates activation only
+                SetConditionFlag(guid, "LOOTED");
         }
 
         void OnPlayerLevelChanged(Player* player, uint8 /*oldLevel*/) override
@@ -1835,6 +1945,7 @@ namespace CoAChallenges
             UntrackHighRisk(player);
             UntrackLootedItems(player->GetGUID().GetCounter());
             UntrackBandage(player);
+            UntrackOutsideInteraction(player->GetGUID().GetCounter());
             ClearGameModeMaskCache(player->GetGUID().GetCounter());
             ClearCharChallengeCache(player->GetGUID().GetCounter());
             // Not reset elsewhere; a stale craft multiplier / killer label would
@@ -1847,6 +1958,23 @@ namespace CoAChallenges
                 std::lock_guard<std::mutex> lock(LastKillerMutex);
                 LastKiller.erase(player->GetGUID().GetCounter());
             }
+        }
+
+        // Character deletion: drop every character-scoped coa_* row in the same
+        // transaction the core commits for the delete (Player::DeleteFromDB ->
+        // OnPlayerDeleteFromDB), so nothing is orphaned. Keep this list in sync
+        // with ResetCoaCharacterState.
+        void OnPlayerDeleteFromDB(CharacterDatabaseTransaction trans, uint32 guid) override
+        {
+            static char const* const kCharTables[] = {
+                "coa_character_challenge", "coa_character_objective", "coa_challenge_completion",
+                "coa_challenge_failure", "coa_character_condition", "coa_character_gamemode",
+                "coa_character_gamemode_lives", "coa_character_survival", "coa_character_fatigue",
+                "coa_character_looted_item", "coa_custom_trial", "coa_custom_trial_active",
+                "coa_custom_trial_entry", "coa_custom_trial_vote", "coa_custom_trial_completion",
+            };
+            for (char const* table : kCharTables)
+                trans->Append("DELETE FROM {} WHERE guid = {}", table, guid);
         }
     };
 
@@ -2767,6 +2895,7 @@ namespace CoAChallenges
         bool CanSendAuctionHello(WorldSession const* session, ObjectGuid /*guid*/, Creature* /*creature*/) override
         {
             Player* player = session ? session->GetPlayer() : nullptr;
+            MarkOutsideInteraction(player, "OUTSIDE_AH");
             if (PlayerHasRule(player, "CHALLENGE_RULES_TYPE_NO_AUCTIONHOUSE")
                 || NoOutsideInteraction(player))
             {
@@ -2782,7 +2911,7 @@ namespace CoAChallenges
     class CoAChallengesGuild : public GuildScript
     {
     public:
-        CoAChallengesGuild() : GuildScript("CoAChallengesGuild", { GUILDHOOK_CAN_GUILD_SEND_BANK_LIST }) { }
+        CoAChallengesGuild() : GuildScript("CoAChallengesGuild", { GUILDHOOK_CAN_GUILD_SEND_BANK_LIST, GUILDHOOK_ON_ITEM_MOVE, GUILDHOOK_ON_MEMBER_WITDRAW_MONEY }) { }
 
         bool CanGuildSendBankList(Guild const* /*guild*/, WorldSession* session, uint8 /*tabId*/, bool /*sendAllSlots*/) override
         {
@@ -2795,6 +2924,20 @@ namespace CoAChallenges
                 return false;
             }
             return true;
+        }
+
+        // OUTSIDE_INTERACTION gate: withdrawing items/money from the guild bank
+        // is an outside interaction.
+        void OnItemMove(Guild* /*guild*/, Player* player, Item* /*pItem*/, bool isSrcBank, uint8 /*srcContainer*/,
+            uint8 /*srcSlotId*/, bool /*isDestBank*/, uint8 /*destContainer*/, uint8 /*destSlotId*/) override
+        {
+            if (isSrcBank)
+                MarkOutsideInteraction(player, "OUTSIDE_GUILD_BANK");
+        }
+
+        void OnMemberWitdrawMoney(Guild* /*guild*/, Player* player, uint32& /*amount*/, bool /*isRepair*/) override
+        {
+            MarkOutsideInteraction(player, "OUTSIDE_GUILD_BANK");
         }
     };
     // GroupScript: leaving/disbanding a group fails SharedFate (Duo/Trio)

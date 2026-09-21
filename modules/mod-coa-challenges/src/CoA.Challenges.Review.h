@@ -176,7 +176,7 @@ namespace CoAChallenges
     // CHALLENGE_RULES_TYPE_FATIGUED_UNLESS_RESTED are tracked.
     struct FatigueState { uint32 challengeId = 0; int32 fatigue = 0; uint32 ms = 0; bool resting = true; uint32 graceMs = 0; };
 
-    struct ConditionState { std::string label; bool broken = false; std::string detail; };
+    struct ConditionState { std::string label; bool broken = false; std::string detail; std::string message; };
 
     // Group challenge sync (SMSG 0x59B / CMSG 0x59C). The client's 0x59B
     // handler stores the {challengeID, level} pairs as "pending" and fires
@@ -457,6 +457,7 @@ void SendChallengeSyncToGroup(Player* actor, uint32 timeoutMs, bool remove,
 bool ChallengeRequiresParty(uint32 challengeID);
 bool HasFailure(uint32 guid, uint32 challengeID);
 bool HasAnyFailure(uint32 guid);
+bool ActivationPermanentlyBlocked(uint32 guid);
 bool HasCompletion(uint32 guid, uint32 challengeID);
 bool HasCompletionLevel(uint32 guid, uint32 challengeID, uint32 level);
 void SendDeathUpdate(Player* player, uint32 challengeID, uint32 level, uint32 deaths);
@@ -483,8 +484,10 @@ bool RuleListContains(std::string const& list, std::string const& rule);
 bool PlayerHasRule(Player* player, char const* rule);
 void LoadChallengesEnabled();
 bool ChallengesEnabled();
+bool OutsideInteractionGateEnabled();
 uint32 ActiveChallengeWithRule(Player* player, char const* rule, uint32& level);
 std::set<uint32> ActiveChallenges(uint32 guid);
+bool HasActiveTrial(uint32 guid);
 void SetConditionFlag(uint32 guid, char const* flag);
 bool HasConditionFlag(uint32 guid, char const* flag);
 uint32 FreeInventorySlots(Player* player);

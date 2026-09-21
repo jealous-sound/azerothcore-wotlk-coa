@@ -1353,6 +1353,10 @@ namespace CoAChallenges
             "CHALLENGE_CONDITIONS_TYPE_LOOT_INTERACTION",
             "CHALLENGE_CONDITIONS_TYPE_LEVEL_UP",
             "CHALLENGE_CONDITIONS_TYPE_CANNOT_HAVE_GAINED_EXPERIENCE",
+            // Implicit global gates (#4205 family), injected for non-prestige
+            // trials rather than declared in the client data.
+            "CHALLENGE_CONDITIONS_TYPE_TAKE_MAIL_MONEY_OR_ITEM",
+            "CHALLENGE_CONDITIONS_TYPE_OUTSIDE_INTERACTION",
         };
         return kConds;
     }

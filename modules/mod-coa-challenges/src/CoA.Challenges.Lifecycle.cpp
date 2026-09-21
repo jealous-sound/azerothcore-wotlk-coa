@@ -25,6 +25,15 @@ namespace CoAChallenges
         return false;
     }
 
+    // True when the character can never activate another challenge anyway (a
+    // recorded failure under BlockAllAfterFailure), so recording a condition
+    // flag would be pointless.
+    bool ActivationPermanentlyBlocked(uint32 guid)
+    {
+        return sConfigMgr->GetOption<bool>("CoAChallenges.BlockAllAfterFailure", true)
+            && HasAnyFailure(guid);
+    }
+
     bool HasCompletion(uint32 guid, uint32 challengeID)
     {
         if (QueryResult r = CharacterDatabase.Query(
@@ -718,6 +727,13 @@ namespace CoAChallenges
         return ChallengesEnabledSetting.load(std::memory_order_relaxed);
     }
 
+    // Implicit global activation gate (#4205 family): OUTSIDE_INTERACTION.
+    // Default on; lets an operator disable the whole gate without a rebuild.
+    bool OutsideInteractionGateEnabled()
+    {
+        return sConfigMgr->GetOption<bool>("CoAChallenges.OutsideInteractionGate", true);
+    }
+
     bool PlayerHasRule(Player* player, char const* rule)
     {
         // The combat hooks read the rules through here, and they are registered whatever the
@@ -775,6 +791,17 @@ namespace CoAChallenges
         return out;
     }
 
+    // True while the player holds a trial. Activation conditions act only up to
+    // the trial being activated; interactions during the trial must not taint
+    // the next activation (rules cover the "during" window instead).
+    bool HasActiveTrial(uint32 guid)
+    {
+        for (auto const& [cid, unusedLevel] : CachedCharChallenges(guid))
+            if (IsTrialChallenge(cid))
+                return true;
+        return false;
+    }
+
     // ---- Activation conditions -------------------------------------------
     // Per-challenge conditions are generated into CoAChallenges.Conditions.<id>
     // as "TYPE:V1/V2/V3;...". A condition is false by default and becomes
@@ -799,6 +826,51 @@ namespace CoAChallenges
             guid, eflag);
     }
 
+    // Every condition flag for a character, in one query.
+    std::set<std::string> ConditionFlags(uint32 guid)
+    {
+        std::set<std::string> out;
+        if (QueryResult r = CharacterDatabase.Query(
+                "SELECT flag FROM coa_character_condition WHERE guid = {}", guid))
+        {
+            do { out.insert(r->Fetch()[0].Get<std::string>()); } while (r->NextRow());
+        }
+        return out;
+    }
+
+    // Human label for an OUTSIDE_INTERACTION facet flag (nullptr = not one).
+    // OUTSIDE_INTERACTION is the legacy aggregate flag (kept for old rows).
+    char const* OutsideFacetLabel(std::string const& flag)
+    {
+        if (flag == "OUTSIDE_MAIL")        return "taken items or money from the mailbox";
+        if (flag == "OUTSIDE_TRADE")       return "traded with another player";
+        if (flag == "OUTSIDE_AH")          return "used the auction house";
+        if (flag == "OUTSIDE_VENDOR")      return "used a vendor";
+        if (flag == "OUTSIDE_GUILD_BANK")  return "withdrawn from the guild bank";
+        if (flag == "OUTSIDE_INTERACTION") return "interacted with the outside world";
+        return nullptr;
+    }
+
+    // Broken when any facet flag is present; `message` names exactly what the
+    // character did before the trial.
+    bool OutsideInteractionBroken(std::set<std::string> const& flags, std::string& message)
+    {
+        std::string list;
+        for (std::string const& f : flags)
+        {
+            char const* label = OutsideFacetLabel(f);
+            if (!label)
+                continue;
+            if (!list.empty())
+                list += ", ";
+            list += label;
+        }
+        if (list.empty())
+            return false;
+        message = "You have already " + list + " before starting this trial.";
+        return true;
+    }
+
     uint32 FreeInventorySlots(Player* player)
     {
         if (!player)
@@ -818,12 +890,9 @@ namespace CoAChallenges
     {
         std::vector<ConditionState> out;
         std::string conds = ChallengeConditions(challengeID);
-        if (conds.empty())
-            return out;
-
         uint32 guid = player->GetGUID().GetCounter();
         size_t start = 0;
-        while (start <= conds.size())
+        while (!conds.empty() && start <= conds.size())
         {
             size_t end = conds.find(';', start);
             if (end == std::string::npos)
@@ -853,11 +922,15 @@ namespace CoAChallenges
                     s.detail = s.broken
                         ? "requires solo, current group of " + std::to_string(g)
                         : "solo";
+                    s.message = "This trial must be started solo (you are in a group of "
+                        + std::to_string(g) + ").";
                 }
                 else
                 {
                     s.broken = (g != v1);
                     s.detail = "requires " + std::to_string(v1) + ", current " + std::to_string(g);
+                    s.message = "This trial requires a group of " + std::to_string(v1)
+                        + " (you have " + std::to_string(g) + ").";
                 }
             }
             else if (type == "CHALLENGE_CONDITIONS_TYPE_HAVE_FREE_INVENTORY_SLOTS")
@@ -866,6 +939,8 @@ namespace CoAChallenges
                 s.label = "HAVE_FREE_INVENTORY_SLOTS";
                 s.broken = (f < v1);
                 s.detail = "requires " + std::to_string(v1) + ", current " + std::to_string(f);
+                s.message = "You need at least " + std::to_string(v1)
+                    + " free inventory slots (you have " + std::to_string(f) + ").";
             }
             else if (type == "CHALLENGE_CONDITIONS_TYPE_LOOT_INTERACTION")
             {
@@ -873,6 +948,7 @@ namespace CoAChallenges
                 s.label = "LOOT_INTERACTION";
                 s.broken = looted;
                 s.detail = looted ? "LOOTED" : "clean";
+                s.message = "You have already looted something; this trial must be started before any loot interaction.";
             }
             else if (type == "CHALLENGE_CONDITIONS_TYPE_LEVEL_UP")
             {
@@ -882,6 +958,7 @@ namespace CoAChallenges
                 s.label = "LEVEL_UP";
                 s.broken = leveled;
                 s.detail = "requires level 1, current " + std::to_string(player->GetLevel());
+                s.message = "You have already gained experience; this trial must be started at level 1.";
             }
             else if (type == "CHALLENGE_CONDITIONS_TYPE_CANNOT_HAVE_GAINED_EXPERIENCE")
             {
@@ -890,6 +967,20 @@ namespace CoAChallenges
                 s.label = "CANNOT_HAVE_GAINED_EXPERIENCE";
                 s.broken = leveled;
                 s.detail = "requires level 1, current " + std::to_string(player->GetLevel());
+                s.message = "You have already gained experience; this trial must be started at level 1.";
+            }
+            else if (type == "CHALLENGE_CONDITIONS_TYPE_OUTSIDE_INTERACTION"
+                || type == "CHALLENGE_CONDITIONS_TYPE_TAKE_MAIL_MONEY_OR_ITEM")
+            {
+                // Implicit global gate (#4205 family); TAKE_MAIL is an alias.
+                std::string message;
+                bool const outside = OutsideInteractionBroken(ConditionFlags(guid), message);
+                s.label = (type == "CHALLENGE_CONDITIONS_TYPE_TAKE_MAIL_MONEY_OR_ITEM")
+                    ? "TAKE_MAIL_MONEY_OR_ITEM" : "OUTSIDE_INTERACTION";
+                s.broken = outside;
+                s.detail = outside ? "INTERACTED" : "clean";
+                if (outside)
+                    s.message = message;
             }
             else
             {
@@ -898,6 +989,7 @@ namespace CoAChallenges
                 s.label = type;
                 s.broken = true;
                 s.detail = "unhandled condition type";
+                s.message = "This trial has an unsupported activation requirement and cannot be started.";
                 LOG_WARN("module.coa_challenges",
                     "Unhandled activation condition type '{}' (challenge {}) -> blocked",
                     type, challengeID);
@@ -908,6 +1000,24 @@ namespace CoAChallenges
                 break;
             start = end + 1;
         }
+
+        // OUTSIDE_INTERACTION is the one always-implicit gate (#4205 family):
+        // the client surfaces it via a dedicated activation reason code and no
+        // trial declares it per-trial, so inject it for every non-prestige
+        // trial. The other interaction types are facets of this single flag.
+        if (OutsideInteractionGateEnabled() && IsTrialChallenge(challengeID)
+            && !IsPrestigeChallenge(challengeID))
+        {
+            std::string message;
+            bool const outside = OutsideInteractionBroken(ConditionFlags(guid), message);
+            ConditionState s;
+            s.label = "OUTSIDE_INTERACTION";
+            s.broken = outside;
+            s.detail = outside ? "INTERACTED" : "clean";
+            if (outside)
+                s.message = message;
+            out.push_back(s);
+        }
         return out;
     }
 
@@ -916,7 +1026,7 @@ namespace CoAChallenges
     {
         for (ConditionState const& s : EvaluateConditions(player, challengeID))
             if (s.broken)
-                return s.label + " (" + s.detail + ")";
+                return s.message.empty() ? (s.label + " (" + s.detail + ")") : s.message;
         return "";
     }
 

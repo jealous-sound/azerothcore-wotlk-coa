@@ -136,6 +136,8 @@ enum PlayerHook
     PLAYERHOOK_CAN_GROUP_ACCEPT,
     PLAYERHOOK_CAN_SELL_ITEM,
     PLAYERHOOK_CAN_SEND_MAIL,
+    PLAYERHOOK_CAN_TAKE_MAIL_ITEM,
+    PLAYERHOOK_CAN_TAKE_MAIL_MONEY,
     PLAYERHOOK_PETITION_BUY,
     PLAYERHOOK_PETITION_SHOW_LIST,
     PLAYERHOOK_ON_REWARD_KILL_REWARDER,
@@ -544,6 +546,10 @@ public:
     [[nodiscard]] virtual bool OnPlayerCanSellItem(Player* /*player*/, Item* /*item*/, Creature* /*creature*/) { return true; }
 
     [[nodiscard]] virtual bool OnPlayerCanSendMail(Player* /*player*/, ObjectGuid /*receiverGuid*/, ObjectGuid /*mailbox*/, std::string& /*subject*/, std::string& /*body*/, uint32 /*money*/, uint32 /*COD*/, Item* /*item*/) { return true; }
+
+    [[nodiscard]] virtual bool OnPlayerCanTakeMailItem(Player* /*player*/, Item* /*item*/) { return true; }
+
+    [[nodiscard]] virtual bool OnPlayerCanTakeMailMoney(Player* /*player*/, uint32 /*money*/) { return true; }
 
     virtual void OnPlayerPetitionBuy(Player* /*player*/, Creature* /*creature*/, uint32& /*charterid*/, uint32& /*cost*/, uint32& /*type*/) { }
 

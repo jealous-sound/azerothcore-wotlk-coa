@@ -557,6 +557,11 @@ void WorldSession::HandleMailTakeItem(WorldPacket& recvData)
     }
 
     Item* it = player->GetMItem(itemLowGuid);
+    if (!sScriptMgr->OnPlayerCanTakeMailItem(player, it))
+    {
+        player->SendMailResult(mailId, MAIL_ITEM_TAKEN, MAIL_ERR_INTERNAL_ERROR);
+        return;
+    }
 
     ItemPosCountVec dest;
     uint8 msg = _player->CanStoreItem(NULL_BAG, NULL_SLOT, dest, it, false);
@@ -642,6 +647,12 @@ void WorldSession::HandleMailTakeMoney(WorldPacket& recvData)
 
     Mail* m = player->GetMail(mailId);
     if (!m || m->state == MAIL_STATE_DELETED || m->deliver_time > GameTime::GetGameTime().count())
+    {
+        player->SendMailResult(mailId, MAIL_MONEY_TAKEN, MAIL_ERR_INTERNAL_ERROR);
+        return;
+    }
+
+    if (!sScriptMgr->OnPlayerCanTakeMailMoney(player, m->money))
     {
         player->SendMailResult(mailId, MAIL_MONEY_TAKEN, MAIL_ERR_INTERNAL_ERROR);
         return;

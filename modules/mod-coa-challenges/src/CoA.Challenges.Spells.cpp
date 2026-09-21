@@ -304,8 +304,10 @@ namespace CoAChallenges
         // Stacks are capped by the client's aura model (255), not by the literal
         // 100: with HungerMax > 100 the meter must keep tracking the real value.
         player->SetAuraStack(spell, player, (uint32)std::min(value, 255));
+        // Per-change meter updates are very chatty (one per hunger/thirst tick
+        // per player); keep them at DEBUG so they don't flood Server.log.
         if (Aura* aura = player->GetAura(spell))
-            LOG_INFO("module.coa_challenges", "Meter aura {} on {}: stacks={}",
+            LOG_DEBUG("module.coa_challenges", "Meter aura {} on {}: stacks={}",
                 spell, player->GetName(), (uint32)aura->GetStackAmount());
         else
             LOG_WARN("module.coa_challenges", "Meter aura {} failed to apply on {}",

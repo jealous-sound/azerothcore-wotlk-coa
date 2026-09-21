@@ -547,6 +547,16 @@ bool ScriptMgr::OnPlayerCanSendMail(Player* player, ObjectGuid receiverGuid, Obj
     CALL_ENABLED_BOOLEAN_HOOKS(PlayerScript, PLAYERHOOK_CAN_SEND_MAIL, !script->OnPlayerCanSendMail(player, receiverGuid, mailbox, subject, body, money, COD, item));
 }
 
+bool ScriptMgr::OnPlayerCanTakeMailItem(Player* player, Item* item)
+{
+    CALL_ENABLED_BOOLEAN_HOOKS(PlayerScript, PLAYERHOOK_CAN_TAKE_MAIL_ITEM, !script->OnPlayerCanTakeMailItem(player, item));
+}
+
+bool ScriptMgr::OnPlayerCanTakeMailMoney(Player* player, uint32 money)
+{
+    CALL_ENABLED_BOOLEAN_HOOKS(PlayerScript, PLAYERHOOK_CAN_TAKE_MAIL_MONEY, !script->OnPlayerCanTakeMailMoney(player, money));
+}
+
 bool ScriptMgr::OnPlayerCanSendErrorAlreadyLooted(Player* player)
 {
     CALL_ENABLED_BOOLEAN_HOOKS(PlayerScript, PLAYERHOOK_CAN_SEND_ERROR_ALREADY_LOOTED, !script->OnPlayerCanSendErrorAlreadyLooted(player));
