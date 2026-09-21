@@ -25,7 +25,10 @@ enum StormbringerTalentSpells : uint32
     SPELL_CHARGED_CONDUIT = 803790,
     SPELL_ELECTROCUTIONER_PASSIVE = 500068,
     SPELL_ELECTROCUTIONER_TALENT = 92096,
-    SPELL_ELECTROCUTIONER = 804592
+    SPELL_ELECTROCUTIONER = 804592,
+    SPELL_DISCHARGE = 805288,
+    SPELL_ALTERED_COURSE = 707053,
+    SPELL_ALTERED_COURSE_BUFF = 707219
 };
 
 // The passive's tooltip gives a base chance (92096 carries 5%) and says it grows with
@@ -51,6 +54,13 @@ public:
             // The active spell has a zero-radius dummy. Its separate native
             // helper supplies the ten-yard area and authored knockback speeds.
             player->CastSpell(player, SPELL_CLOUDBURST_KNOCKBACK, true);
+
+        if (player && player->getClass() == CLASS_STORMBRINGER && info->SpellFamilyName == 22 &&
+            sSpellMgr->GetFirstSpellInChain(info->Id) == SPELL_DISCHARGE && !spell->IsTriggered() &&
+            player->HasSpell(SPELL_ALTERED_COURSE))
+            // Altered Course's own effect is a zero-proc-flag Proc Trigger Spell dummy, so it
+            // never fires natively; the cast event is supplied here instead.
+            player->CastSpell(player, SPELL_ALTERED_COURSE_BUFF, true);
     }
 
     void OnSpellHitResult(Spell* spell, Unit* target, uint8 miss, uint32 damage, uint32, bool) override
