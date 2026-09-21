@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "Pyromancer Burning Crescendo shortens the Phoenix Egg tick (#3511)",
-  "contract": "Burning Crescendo 805378 reads \"Increases the tick rate of your Phoenix Egg by $/1000;s1 sec.\" Its effect is aura 107 SPELLMOD_ACTIVATION_TIME (misc 19) BasePoints -2001 (value -2000 ms) on class mask C 0x40000000, which matches Phoenix Egg 712290, a periodic trigger effect with a 5000 ms amplitude that the module never casts. The egg's heals (707110) are cast by the creature AI on a timer that was hard-coded to 5000 ms and ignored the modifier. Two Pyromancers cast Phoenix Egg at the same moment at the same spot, only one knowing Burning Crescendo, so both eggs heal the same allies and only the tick period differs (a single player casting twice is confounded: the first egg is still alive and its own tick also follows the talent). Over the same 11 s window 5 s ticks fall at 5 and 10 s (2 ticks), 3 s ticks at 3, 6 and 9 s (3 ticks; the next would be 12 s), so the talented count is 3/2 = 1.5 times the control's (bounds 1.3 to 1.7 for start-up jitter). The number of allies healed per tick is the same for both and cancels out of the ratio. Before the fix both counts are equal (ratio 1.0).",
+  "contract": "Burning Crescendo 805378 reads \"Increases the tick rate of your Phoenix Egg by $/1000;s1 sec.\" Its effect is aura 107 SPELLMOD_ACTIVATION_TIME (misc 19) BasePoints -2001 (value -2000 ms) on class mask C 0x40000000, which matches Phoenix Egg 712290, a periodic trigger effect with a 5000 ms amplitude that the module never casts. The egg's heals (707110) are cast by the creature AI on a timer that was hard-coded to 5000 ms and ignored the modifier. Two Pyromancers cast Phoenix Egg at the same moment at the same spot, only one knowing Burning Crescendo, so both eggs heal the same allies and only the tick period differs (a single player casting twice is confounded: the first egg is still alive and its own tick also follows the talent). Both eggs start about 1 to 2 s after the cast (measured on slot 3: with a 5 s tick the first heal landed between 6 and 7 s after the cast, with a 3 s tick between 4 and 5 s), so heals are counted over a 15 s window from the cast, which leaves at least 1 s of margin on both sides of the tick boundaries. With a start offset c between 1 and 2 s, 5 s ticks fall at c+5 and c+10 (2 ticks; the next at c+15 is after the window) and 3 s ticks at c+3, c+6, c+9 and c+12 (4 ticks; the next at c+15 is after the window), so the talented count is 4/2 = 2 times the control's (bounds 1.7 to 2.3). Each tick casts the heal the same number of times for both eggs (2 per tick on slot 3), which cancels out of the ratio. Before the fix both counts are equal (ratio 1.0).",
   "timeout_ms": 90000,
   "players": [
     {
@@ -91,8 +91,8 @@
     },
     {
       "action": "wait",
-      "ms": 11000,
-      "label": "Same 11 s window for both eggs"
+      "ms": 15000,
+      "label": "Same 15 s window for both eggs"
     },
     {
       "action": "snapshot",
@@ -113,14 +113,14 @@
     },
     {
       "action": "assert",
-      "label": "3 s ticks (3, 6, 9 s) against 5 s ticks (5, 10 s) give 3/2 = 1.5 times as many heals",
+      "label": "3 s ticks against 5 s ticks give 4/2 = 2 times as many heals over 15 s",
       "actor": "talent",
       "metric": "spell_cast_count",
       "spell": 707110,
       "relative_to": "talent_start",
       "ratio_to": "control_heals",
-      "min": 1.3,
-      "max": 1.7
+      "min": 1.7,
+      "max": 2.3
     }
   ]
 }
