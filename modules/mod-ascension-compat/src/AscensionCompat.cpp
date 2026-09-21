@@ -2588,8 +2588,11 @@ public:
         for (AscensionCompatData::ResourceCostRule const& rule :
              AscensionCompatData::ResourceCostRules)
         {
-            if (!Matches(player, resolvedSpellId, rule.ClassId, rule.FirstSpellId,
-                    rule.LastSpellId))
+            // A talent-replaced spell's own rank ID is tried first, so a replacement authored with a
+            // different cost (e.g. Torrential Wrath vs. Call Lightning) is not shadowed by the
+            // original's rule; only a replacement without its own entry falls back to the original's.
+            if (!Matches(player, spellId, rule.ClassId, rule.FirstSpellId, rule.LastSpellId) &&
+                !Matches(player, resolvedSpellId, rule.ClassId, rule.FirstSpellId, rule.LastSpellId))
                 continue;
 
             if (GetAuraStacks(player, rule.ResourceSpellId) < rule.Amount)
@@ -2652,8 +2655,8 @@ public:
         for (AscensionCompatData::ResourceCostRule const& rule :
              AscensionCompatData::ResourceCostRules)
         {
-            if (!Matches(player, resolvedSpellId, rule.ClassId, rule.FirstSpellId,
-                    rule.LastSpellId))
+            if (!Matches(player, spellId, rule.ClassId, rule.FirstSpellId, rule.LastSpellId) &&
+                !Matches(player, resolvedSpellId, rule.ClassId, rule.FirstSpellId, rule.LastSpellId))
                 continue;
 
             if (rule.ClassId == CLASS_STORMBRINGER && rule.ResourceSpellId == SPELL_STORMBRINGER_STATIC &&
