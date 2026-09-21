@@ -346,8 +346,11 @@ class starcaller_scaling : public UnitScript
         if (!player || !target || Derived(info))
             return 1;
         if (player->GetDistance(target) > 30)
-            if (Aura* aura = player->GetAuraOfRankedSpell(704769))
-                return 1 + Amount(aura->GetId(), 1) / 100.0f;
+            // The talent's ranks are not chained in spell_ranks and SetTalentRank leaves only the chosen rank
+            // learned, so GetAuraOfRankedSpell(704769) never finds rank 2: look both ranks up by id.
+            for (uint32 rank : {704770u, 704769u})
+                if (player->HasAura(rank))
+                    return 1 + Amount(rank, 1) / 100.0f;
         return 1;
     }
     void ModifySpellDamageTaken(Unit* target, Unit* caster, int32& damage, SpellInfo const* info) override
