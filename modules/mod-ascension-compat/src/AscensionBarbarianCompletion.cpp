@@ -152,6 +152,26 @@ void ApplyContracts(SpellInfo* info)
     if (id == 804337)
         // The native DBC targets the ~1.5s global cooldown instead of ability cooldowns.
         info->Effects[EFFECT_0].MiscValue = SPELLMOD_COOLDOWN;
+    // SpellInfo::_IsPositiveEffect() treats every effect as negative once the spell carries this
+    // attribute, even the harmless self-only marker effect (unrelated to the enemy debuff, which
+    // stays correctly negative via its own APPLY_AREA_AURA_ENEMY rule regardless of this flag).
+    // SpellMgr bakes that verdict into AttributesCu's NEGATIVE_EFFn bits at load time, before this
+    // correction runs, so clearing the raw attribute alone doesn't reach AuraApplication::_InitFlags
+    // (which reads the cached bit) - the cache itself needs the same correction, same as the
+    // existing precedent in AscensionXorothContracts.cpp for the identical situation. That forced-
+    // negative self effect is why the client never recognizes the caster as carrying the aura, so
+    // the stance button never lights up the way Spirit of Conflict/War/Bloodshed (which never had
+    // this attribute) already do.
+    if (id == 707775)
+    {
+        info->Attributes &= ~SPELL_ATTR0_AURA_IS_DEBUFF;
+        info->AttributesCu &= ~SPELL_ATTR0_CU_NEGATIVE_EFF1;
+    }
+    if (id == 707763)
+    {
+        info->Attributes &= ~SPELL_ATTR0_AURA_IS_DEBUFF;
+        info->AttributesCu &= ~SPELL_ATTR0_CU_NEGATIVE_EFF2;
+    }
 }
 }
 
@@ -205,14 +225,18 @@ class aura_ascension_barbarian_lifecycle : public AuraScript
                 if (helper)
                     caster->CastSpell(GetTarget(), helper, true);
             }
+        // The Spirits radiate their effect 0 onto nearby enemies (SPELL_EFFECT_APPLY_AREA_AURA_ENEMY),
+        // so GetTarget() below is never the caster for them; enforce "one Spirit at a time" off the
+        // caster directly, or it never runs (the caster is excluded from its own area-enemy search).
+        if (Spirit(GetId()))
+            if (Player* caster = Owner(GetCaster()))
+                for (uint32 spirit : { 707763, 707764, 707775, 712467, 712468 })
+                    if (spirit != GetId())
+                        caster->RemoveAurasDueToSpell(spirit);
         Player* player = Owner(GetTarget());
         if (!player)
             return;
         uint32 id = GetId();
-        if (Spirit(id))
-            for (uint32 spirit : { 707763, 707764, 707775, 712467, 712468 })
-                if (spirit != id)
-                    player->RemoveAurasDueToSpell(spirit);
         if (id == 801761 && player->HasAura(707410))
             player->CastSpell(player, 521240, true);
         if (id == 707410)
