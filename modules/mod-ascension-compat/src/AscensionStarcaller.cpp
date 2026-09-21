@@ -235,6 +235,10 @@ bool Consume(Player* player, Unit* target)
     stars->ModStackAmount(-1);
     Cast(player, target, 804995);
     float effectiveness = (player->HasAura(807659) ? 1.5f : 1) * (player->HasAura(805524) ? 1.5f : 1);
+    // Celestial Shot: "Increases the effectiveness of consuming Scattered Stars by $s2%". Its damage half is the native
+    // EFFECT1 modifier on 804995; mana and cooldown reduction are computed here, so the tooltip value is applied here.
+    if (player->HasAura(574348))
+        effectiveness *= 1.0f + Amount(574348, 1, player) / 100.0f;
     Mana(player, uint32(player->GetMaxPower(POWER_MANA) * .08f * effectiveness * (player->HasAura(574360) ? 2 : 1)));
     for (uint32 helper : {804994, 504024, 706573})
         if (SpellInfo const* info = sSpellMgr->GetSpellInfo(helper))
