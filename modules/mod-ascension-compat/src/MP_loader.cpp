@@ -159,6 +159,7 @@ void AddSC_AscensionPrimalistRylaksBlessing();
 void AddSC_AscensionPrimalistWildheart();
 void AddSC_AscensionPrimalistDreamslip();
 void AddSC_AscensionPrimalistDouse();
+void AddSC_AscensionPrimalistNeptulonWrath();
 void AddSC_AscensionPrimalistSacredGrove();
 void AddSC_AscensionPrimalistAncientWar();
 void AddSC_AscensionPrimalistEarthmotherRoar();
@@ -377,6 +378,7 @@ void Addmod_ascension_compatScripts()
     AddSC_AscensionPrimalistWildheart();
     AddSC_AscensionPrimalistDreamslip();
     AddSC_AscensionPrimalistDouse();
+    AddSC_AscensionPrimalistNeptulonWrath();
     AddSC_AscensionPrimalistSacredGrove();
     AddSC_AscensionPrimalistAncientWar();
     AddSC_AscensionPrimalistEarthmotherRoar();

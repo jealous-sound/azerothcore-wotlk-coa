@@ -36,12 +36,18 @@ elif mode == 'ancient-war':
         assert values[phase + 'heal'] == values[phase + 'copy'] == expected, (phase, values, expected)
         print(phase, hit, 'damage;', expected, 'per Hammer recipient')
 elif mode == 'neptulon-wrath':
+    assert values['crash_available_mana'] >= values['crash_mana_cost'] > 0
     expected = int(values['caster_ap'] * .35)
     assert expected > 0 and values['caster_ap'] != values['ally_ap']
+    # The native triggered helper retains the original aura caster's damage credit and PvE modifiers.
+    # Its fixed-base query has no AP/SP coefficient; allow one point for its integer quantization.
+    assert values['target_damage_taken'] == 1000
+    assert values['target_resistance_3'] == values['target_resistance_4'] == 0
+    scaled = int(expected * values['primalist_damage_done'] / 1000)
     for actor in ['primalist', 'ally']:
         assert values[actor + '_amount'] == expected, (actor, values, expected)
-        assert values[actor + '_hit'] in [expected, expected * 1.5, int(expected * 1.5)], (actor, values)
-    print('Neptulon Wrath:', expected, 'snapshotted damage per direct hit for both players')
+        assert min(abs(values[actor + '_hit'] - hit) for hit in [scaled, int(scaled * 1.5)]) <= 1, (actor, values)
+    print('Neptulon Wrath:', expected, 'snapshotted base damage for both players; native PvE modifiers verified')
 elif mode == 'sacred-grove-cap':
     recipients = [value for key, value in values.items() if key.startswith('recipient_')]
     assert len(recipients) == 13 and all(value in [0, 1] for value in recipients)
