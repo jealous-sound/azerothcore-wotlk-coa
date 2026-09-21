@@ -505,7 +505,7 @@ struct NativePowerGainRule
 // Rage and Runic Power are represented internally in tenths. These Reaper
 // abilities describe fixed gains, but their public DBC records omit the
 // energize effect that Ascension's private server applies.
-inline constexpr std::array<NativePowerGainRule, 18> NativePowerGainRules =
+inline constexpr std::array<NativePowerGainRule, 21> NativePowerGainRules =
 {{
     {19, 0, 0, 3, 10, ResourceGainEvent::PeriodicDamageTick, 301253},
     {23, 704355, 704355, 6, 200,
@@ -534,6 +534,20 @@ inline constexpr std::array<NativePowerGainRule, 18> NativePowerGainRules =
     {30, 801624, 801624, 6, 200,
         ResourceGainEvent::FirstSuccessfulHostileTarget},
     {30, 802422, 802428, 6, 200,
+        ResourceGainEvent::FirstSuccessfulHostileTarget},
+    // Doomrend's tooltip promises "generates Runic Power" the same way
+    // Soulrend's does, with no amount and no public energize effect (its own
+    // DBC effects are only school damage, weapon-percent damage and the
+    // 560361 healing-absorb trigger). It shares Soulrend's rend-and-mark
+    // shape, so it keeps the same 150-tenth placeholder pending a confirmed
+    // live value. The chain is non-contiguous (800172 is rank 1, 567531-
+    // 567532 are ranks 6-7), matching the split already used for its Reaped
+    // Soul crit rule below.
+    {30, 800172, 800172, 6, 150,
+        ResourceGainEvent::FirstSuccessfulHostileTarget},
+    {30, 502668, 502671, 6, 150,
+        ResourceGainEvent::FirstSuccessfulHostileTarget},
+    {30, 567531, 567532, 6, 150,
         ResourceGainEvent::FirstSuccessfulHostileTarget},
     // Primalist visible descriptions and energize helpers use internal tenths.
     {31, 503258, 503264, 1, 200},
