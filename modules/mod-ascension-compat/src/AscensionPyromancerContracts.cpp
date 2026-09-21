@@ -207,9 +207,20 @@ class pyromancer_scaling : public UnitScript
             return;
         for (auto const& row : PyromancerCoefficients)
             if (row.spell == info->Id && row.effect == index)
-                value += row.sp * std::max(0, player->SpellBaseDamageBonusDone(SPELL_SCHOOL_MASK_FIRE)) +
+            {
+                float sp = row.sp;
+                if (Named(info, 803950))
+                {
+                    // Lava Shard's coefficient lives in this base value, so the stock bonus code never sees
+                    // Searing Flames' BONUS_MULTIPLIER modifier; run it here on the coefficient (in percent).
+                    float percent = sp * 100;
+                    player->ApplySpellMod(info->Id, SPELLMOD_BONUS_MULTIPLIER, percent);
+                    sp = percent / 100;
+                }
+                value += sp * std::max(0, player->SpellBaseDamageBonusDone(SPELL_SCHOOL_MASK_FIRE)) +
                          row.spirit * player->GetStat(STAT_SPIRIT) +
                          row.healing * std::max(0, player->SpellBaseHealingBonusDone(SPELL_SCHOOL_MASK_FIRE));
+            }
         if ((info->Id == 680370 || info->Id == 680371) && !index)
             value *= 1 + State(player).ignis * Amount(680382) / 100.0f;
         value = std::clamp(value, float(INT32_MIN / 2), float(INT32_MAX / 2));
