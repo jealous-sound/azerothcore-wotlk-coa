@@ -83,7 +83,8 @@ void ApplyContracts(SpellInfo* info)
     if (id == 802985)
     {
         dummy(0);
-        dummy(1);
+        // Effect 1 keeps its DBC SPELL_AURA_MOD_RANGED_HASTE with a base of 0: Rapid Cycle's EFFECT2 flat
+        // modifier (300249) is the only source of the per-stack ranged haste.
         info->StackAmount = 4;
     }
     if (id == 804716)
