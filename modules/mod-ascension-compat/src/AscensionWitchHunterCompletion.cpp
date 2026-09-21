@@ -6,6 +6,7 @@
 #include "DBCStores.h"
 #include "GridNotifiers.h"
 #include "GridNotifiersImpl.h"
+#include "Log.h"
 #include "Pet.h"
 #include "Player.h"
 #include "ScriptMgr.h"
@@ -77,6 +78,24 @@ void ClearReplacement(Player* player, uint32 word, uint32 mask)
             player->SetTemporarySpellReplacement(id, 0);
 }
 
+// Silver Bullets and Silver Bolts ship their creature-type bonus as a raw aura 112 record: the private 20014
+// selector in MiscValue and the creature-type mask in MiscValueB. Nothing reads aura 112 with that selector,
+// while native aura 168 honours the effect's class mask when the selector sits in MiscValueB. The record is
+// checked against its reviewed shape and converted in place, as the Bloodmage talents do; no amount, class
+// mask or creature-type mask is redeclared.
+void ConvertCreatureTypeDamage(SpellInfo* info, uint8 index)
+{
+    SpellEffectInfo& effect = info->Effects[index];
+    if (effect.Effect != SPELL_EFFECT_APPLY_AURA || effect.ApplyAuraName != SPELL_AURA_OVERRIDE_CLASS_SCRIPTS ||
+        effect.MiscValue != ASCENSION_CLASSMASK_CREATURE_DAMAGE || effect.MiscValueB <= 0 || !effect.SpellClassMask)
+    {
+        LOG_ERROR("module.ascension_compat", "Skipped unexpected Witch Hunter creature damage record {}", info->Id);
+        return;
+    }
+    effect.ApplyAuraName = SPELL_AURA_MOD_DAMAGE_DONE_VERSUS;
+    std::swap(effect.MiscValue, effect.MiscValueB);
+}
+
 void ApplyContracts(SpellInfo* info)
 {
     if (!info || info->SpellFamilyName != 21)
@@ -87,6 +106,8 @@ void ApplyContracts(SpellInfo* info)
         info->InterruptFlags |= SPELL_INTERRUPT_FLAG_MOVEMENT;
         info->ChannelInterruptFlags |= AURA_INTERRUPT_FLAG_MOVE;
     }
+    if (id == 574149 || id == 574163) // Silver Bullets, "additional ... against Undead"
+        ConvertCreatureTypeDamage(info, EFFECT_1);
     if (id == 707535)
     {
         info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_MOD_SPELL_DAMAGE_OF_STAT_PERCENT;
