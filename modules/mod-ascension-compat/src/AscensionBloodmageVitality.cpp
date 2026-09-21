@@ -14,8 +14,6 @@ namespace
 {
 using namespace AscensionBloodmage;
 constexpr uint32 VitalityCost = 10;
-// Hemoglobe's healing tick. Its parent 524907 triggers it every 1.5 s through aura 23.
-constexpr uint32 Hemopulse = 524906;
 
 bool IsBloodmage(Player const* player)
 {
@@ -106,19 +104,10 @@ public:
     void ModifySpellEffectBaseValue(Unit const* caster, SpellInfo const* info, uint8 index, float& value) override
     {
         if (!caster || !caster->IsPlayer() || caster->getClass() != CLASS_SON_OF_ARUGAL ||
-            info->SpellFamilyName != 26 || index != EFFECT_0 ||
+            info->Id != VitalityHeal || info->SpellFamilyName != 26 || index != EFFECT_0 ||
             info->Effects[EFFECT_0].Effect != SPELL_EFFECT_HEAL)
             return;
-        double amount = double(value);
-        if (info->Id == VitalityHeal)
-            amount += caster->GetStat(STAT_SPIRIT) * 0.5;
-        // Hemoglobe promises "$524906m1 + $524906ppl1 + $bh*0.1125 + $SPI*0.45 + $STA*0.35" a tick. The flat
-        // and per-level terms are the record's own base points; the bonus-healing term is the spell_bonus_data
-        // row; Spirit and Stamina appear nowhere in Spell.dbc and belong here, like Sanguine Mend's Spirit.
-        else if (info->Id == Hemopulse)
-            amount += caster->GetStat(STAT_SPIRIT) * 0.45 + caster->GetStat(STAT_STAMINA) * 0.35;
-        else
-            return;
+        double amount = double(value) + caster->GetStat(STAT_SPIRIT) * 0.5;
         if (std::isfinite(amount) && amount >= 0 &&
             double(float(amount)) <= std::numeric_limits<int32>::max())
             value = float(amount);

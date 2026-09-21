@@ -45,7 +45,6 @@ enum BloodmageSecondarySpells : uint32
     SPELL_ANEURYSM = 806099,
     SPELL_ANEURYSM_HEAL = 520860, // Aneurysm's own 5% maximum-health SPELL_EFFECT_HEAL_PCT helper
     SPELL_KILLER_INSTINCT = 704690,
-    SPELL_NIGHT_FEAST = 563736,
     SPELL_THIRST_FOR_BLOOD = 570023,
     SPELL_SATED = 570024,
     SPELL_RAVENOUS = 570025,
@@ -99,9 +98,8 @@ class bloodmage_secondary_casts : public AllSpellScript
 {
 public:
     bloodmage_secondary_casts() : AllSpellScript("bloodmage_secondary_casts",
-        {ALLSPELLHOOK_ON_CAST, ALLSPELLHOOK_ON_PREPARE, ALLSPELLHOOK_ON_CALCULATED_TARGET,
-            ALLSPELLHOOK_ON_CRIT_CHANCE, ALLSPELLHOOK_ON_HIT_RESULT,
-            ALLSPELLHOOK_ON_SUCCESSFUL_INTERRUPT}) { }
+        {ALLSPELLHOOK_ON_CAST, ALLSPELLHOOK_ON_CALCULATED_TARGET, ALLSPELLHOOK_ON_CRIT_CHANCE,
+            ALLSPELLHOOK_ON_HIT_RESULT, ALLSPELLHOOK_ON_SUCCESSFUL_INTERRUPT}) { }
 
     // Aneurysm's school lockout is native (effect 68 plus its own 4 s duration), but its second clause -
     // "Successfully interrupting an enemy heals you for $520860s1% of your maximum health" - had no caster:
@@ -115,18 +113,6 @@ public:
             return;
         spell->SetScriptValue(SPELL_ANEURYSM_HEAL, 1);
         player->CastSpell(player, SPELL_ANEURYSM_HEAL, true);
-    }
-
-    void OnSpellPrepare(Spell* spell, Unit*, SpellInfo const* info) override
-    {
-        Player* player = Bloodmage(spell);
-        if (!player || spell->IsTriggered())
-            return;
-        // Night Feast reads the Rage the caster holds when the cast starts: Spell::_cast pays the
-        // (increased) cost before the launch phase calculates damage, so the amount is kept here.
-        if (AuraEffect const* feast = player->GetAuraEffect(SPELL_NIGHT_FEAST, EFFECT_0))
-            if (feast->IsAffectedOnSpell(info))
-                spell->SetScriptValue(SPELL_NIGHT_FEAST, player->GetPower(POWER_RAGE));
     }
 
     void OnSpellCast(Spell* spell, Unit*, SpellInfo const* info, bool) override
@@ -175,16 +161,6 @@ public:
         if (!player || !target || hit.damage <= 0 || hit.missCondition != SPELL_MISS_NONE)
             return;
         uint32 id = spell->GetSpellInfo()->Id;
-        // Night Feast: "Each point of Rage now increases the damage of Bloodbolt by 1%". Effect 0 is a
-        // private override-class-script marker carrying that percentage and Bloodbolt's class mask;
-        // effect 1's SPELLMOD_COST half already works natively and is left alone.
-        if (uint64 rage = spell->GetScriptValue(SPELL_NIGHT_FEAST))
-            if (AuraEffect const* feast = player->GetAuraEffect(SPELL_NIGHT_FEAST, EFFECT_0))
-            {
-                float multiplier = 1.0f + float(rage) * feast->GetAmount() / 1000.0f;
-                hit.damage = uint32(hit.damage * multiplier);
-                hit.damageBeforeTakenMods = uint32(hit.damageBeforeTakenMods * multiplier);
-            }
         if (RankOf(id, SPELL_VEINBURST) && target->HasAuraState(AURA_STATE_BLEEDING))
         {
             hit.damage = uint32(hit.damage * 1.25f);
