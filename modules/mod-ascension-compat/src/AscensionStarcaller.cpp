@@ -209,7 +209,7 @@ void GainPhase(Player* player, uint32 count)
     uint32 before = Count(player, 802985);
     if (Aura* aura = player->AddAura(802985, player))
         aura->SetStackAmount(std::min(max, before + count));
-    if (Count(player, 802985) == max && !player->HasAura(704519))
+    if (Count(player, 802985) >= LunarPhaseThreshold && !player->HasAura(704519))
         Cast(player, player, 704519);
 }
 void Stars(Player* player, Unit* target, uint32 count)
@@ -335,7 +335,7 @@ void Refresh(Player* player)
     scale(561096, player->HasAura(561022) && player->HasAura(805356), {3, 3});
     for (WeaponAttackType type : {BASE_ATTACK, OFF_ATTACK, RANGED_ATTACK})
         player->UpdateDamagePhysical(type);
-    if (Count(player, 802985) < MaxPhase(player))
+    if (Count(player, 802985) < LunarPhaseThreshold)
         player->RemoveAurasDueToSpell(704519);
     if (!player->HasAura(300252))
         state.secondMoon = 0;

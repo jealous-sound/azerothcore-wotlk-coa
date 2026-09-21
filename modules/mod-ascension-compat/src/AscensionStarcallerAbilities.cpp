@@ -133,7 +133,7 @@ class starcaller_spells : public AllSpellScript
         if (!player || result != SPELL_CAST_OK || (spell->IsTriggered() && !IsLunarEclipseActivation(spell)))
             return;
         uint32 id = spell->GetSpellInfo()->Id;
-        if (id == 800386 && (Count(player, 802985) < MaxPhase(player) || player->HasAura(800386)))
+        if (id == 800386 && (Count(player, 802985) < LunarPhaseThreshold || player->HasAura(800386)))
             result = SPELL_FAILED_CASTER_AURASTATE;
         if ((id == 801125 && !player->HasAura(802681)) || (id == 802682 && !player->HasAura(572319)))
             result = SPELL_FAILED_CASTER_AURASTATE;
@@ -158,8 +158,11 @@ class starcaller_spells : public AllSpellScript
         Snapshot(player, spell);
         if (IsLunarEclipseActivation(spell))
         {
-            player->RemoveAurasDueToSpell(802985);
-            player->RemoveAurasDueToSpell(704519);
+            // Spend exactly the threshold; stacks gained beyond it (Bright Moon) stay.
+            if (Aura* phase = player->GetAura(802985))
+                phase->ModStackAmount(-int32(LunarPhaseThreshold));
+            if (Count(player, 802985) < LunarPhaseThreshold)
+                player->RemoveAurasDueToSpell(704519);
         }
         if (Named(info, 801132) && player->HasAura(520482))
             ExtraTargets(player, spell, 1);
