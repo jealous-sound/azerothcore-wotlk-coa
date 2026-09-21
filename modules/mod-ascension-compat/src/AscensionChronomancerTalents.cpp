@@ -3,7 +3,12 @@
 #include "Player.h"
 #include "ScriptMgr.h"
 #include "Spell.h"
+#include "SpellAuraEffects.h"
+#include "SpellAuras.h"
+#include "SpellMgr.h"
 #include "SpellScript.h"
+#include <algorithm>
+#include <limits>
 
 namespace
 {
@@ -17,8 +22,20 @@ enum ChronomancerTalentSpells : uint32
     SPELL_AEON_OBLIVION = 806293,
     SPELL_DIMENSIONAL_DIVERGENCE = 802790,
     SPELL_DIVERGENCE_SLOW = 803301,
-    SPELL_DIVERGENCE_SPEED = 803703
+    SPELL_DIVERGENCE_SPEED = 803703,
+    SPELL_UNMAKER_OF_REALITIES = 706107,
+    SPELL_HASTEN = 801304,
+    SPELL_HASTEN_STRIKE_SOURCE = 803382,
+    SPELL_HASTY_STRIKE = 803706,
+    SPELL_TIMEGUARD = 804441,
+    SPELL_MARK_OF_ORDER_ADD_STACK = 806270,
+    SPELL_IDEAL_TIME_BUFF = 807210,
+    SPELL_NOZDORMUS_GAZE = 807691
 };
+
+// Timeguard's ">20% of their total health" clause lives only in the record's
+// description text; no Spell.dbc field carries it.
+constexpr uint32 TimeguardHeavyHitPercent = 20;
 
 bool IsAeonActivation(uint32 id)
 {
@@ -83,6 +100,108 @@ class spell_ascension_dimensional_divergence : public SpellScript
     }
 };
 
+// Unmaker of Realities (706107) is a bare SPELL_AURA_DUMMY. The extra strike it promises is described by
+// the unobtainable Hasten variant 803382 (ProcChance 25, Effect[0] CalcValue 30) whose aura 354 has no
+// handler here, so the mechanic is attached to the Hasten players actually learn, 801304. The chance
+// lives in 801304's `spell_proc` row; this script owns the gate and the forwarded amount.
+class spell_ascension_unmaker_of_realities : public AuraScript
+{
+    PrepareAuraScript(spell_ascension_unmaker_of_realities);
+
+    bool Validate(SpellInfo const*) override
+    {
+        return ValidateSpellInfo({SPELL_HASTEN_STRIKE_SOURCE, SPELL_HASTY_STRIKE});
+    }
+
+    bool CheckProc(ProcEventInfo& eventInfo)
+    {
+        // The talent belongs to the Chronomancer who cast Hasten, not to the ally carrying it.
+        Player* caster = GetCaster() ? GetCaster()->ToPlayer() : nullptr;
+        if (!caster || caster->getClass() != CLASS_CHRONOMANCER || !caster->HasSpell(SPELL_UNMAKER_OF_REALITIES))
+            return false;
+        DamageInfo* damage = eventInfo.GetDamageInfo();
+        if (!damage || !damage->GetDamage() || !eventInfo.GetActionTarget())
+            return false;
+        // The extra strike is itself a damaging cast by the buff holder: never let it feed its own proc.
+        SpellInfo const* procSpell = eventInfo.GetSpellInfo();
+        return !procSpell || procSpell->Id != SPELL_HASTY_STRIKE;
+    }
+
+    void HandleProc(ProcEventInfo& eventInfo)
+    {
+        Unit* striker = GetTarget();
+        Unit* victim = eventInfo.GetActionTarget();
+        DamageInfo* damage = eventInfo.GetDamageInfo();
+        SpellInfo const* source = sSpellMgr->GetSpellInfo(SPELL_HASTEN_STRIKE_SOURCE);
+        if (!striker || !victim || !damage || !source)
+            return;
+        int32 percent = std::clamp(source->Effects[EFFECT_0].CalcValue(), 0, 100);
+        uint64 amount = uint64(damage->GetDamage()) * uint64(percent) / 100;
+        if (!amount)
+            return;
+        // Hasty Strike forwards the amount unchanged: it cannot crit, ignores caster modifiers and
+        // ignores damage-taken modifiers, and its DieSides of 1 cancels SetSpellValue's subtraction.
+        striker->CastCustomSpell(SPELL_HASTY_STRIKE, SPELLVALUE_BASE_POINT0,
+            int32(std::min<uint64>(amount, uint64(std::numeric_limits<int32>::max()))), victim, true);
+    }
+
+    void Register() override
+    {
+        DoCheckProc += AuraCheckProcFn(spell_ascension_unmaker_of_realities::CheckProc);
+        OnProc += AuraProcFn(spell_ascension_unmaker_of_realities::HandleProc);
+    }
+};
+
+// Timeguard (804441) ships a two-point absorb placeholder plus two SPELL_AURA_DUMMY effects carrying the
+// threshold (effect 1, CalcValue 35) and the reduction (effect 2, CalcValue 50) its description states.
+// Spend one of the record's three ProcCharges per qualifying instance and nothing on the rest.
+class spell_ascension_timeguard : public AuraScript
+{
+    PrepareAuraScript(spell_ascension_timeguard);
+
+    void Amount(AuraEffect const*, int32& amount, bool& recalculate)
+    {
+        // -1 is the core's unbounded sentinel: Unit::CalcAbsorbResist leaves the effect to the script
+        // and never drains it, so the shield lasts for the charges rather than for two points.
+        amount = -1;
+        recalculate = false;
+    }
+
+    void Absorb(AuraEffect*, DamageInfo& damage, uint32& amount)
+    {
+        amount = 0;
+        Unit* target = GetTarget();
+        AuraEffect const* threshold = GetEffect(EFFECT_1);
+        AuraEffect const* reduction = GetEffect(EFFECT_2);
+        if (!target || !threshold || !reduction)
+            return;
+        if (damage.GetDamageType() != DIRECT_DAMAGE && damage.GetDamageType() != SPELL_DIRECT_DAMAGE)
+            return;
+        uint64 incoming = damage.GetDamage();
+        uint64 maxHealth = target->GetMaxHealth();
+        if (!incoming || !maxHealth)
+            return;
+        // Either clause of the description admits the instance: more than a fifth of the target's total
+        // health, or enough to leave it under the effect-1 percent.
+        uint64 floorHealth = maxHealth * uint64(std::clamp(threshold->GetAmount(), 0, 100)) / 100;
+        bool heavy = incoming * 100 > maxHealth * uint64(TimeguardHeavyHitPercent);
+        bool lethal = uint64(target->GetHealth()) < incoming + floorHealth;
+        if (!heavy && !lethal)
+            return;
+        amount = uint32(std::min<uint64>(incoming * uint64(std::clamp(reduction->GetAmount(), 0, 100)) / 100,
+            uint64(std::numeric_limits<int32>::max())));
+        if (amount)
+            GetAura()->DropCharge();
+    }
+
+    void Register() override
+    {
+        DoEffectCalcAmount += AuraEffectCalcAmountFn(spell_ascension_timeguard::Amount,
+            EFFECT_0, SPELL_AURA_SCHOOL_ABSORB);
+        OnEffectAbsorb += AuraEffectAbsorbFn(spell_ascension_timeguard::Absorb, EFFECT_0);
+    }
+};
+
 class chronomancer_talent_casts : public AllSpellScript
 {
 public:
@@ -110,6 +229,29 @@ void ApplyAscensionChronomancerTalentContracts(SpellInfo* info)
         info->Effects[EFFECT_2].Effect = 0;
         info->_InitializeExplicitTargetMask();
     }
+    if (info->Id == SPELL_MARK_OF_ORDER_ADD_STACK)
+    {
+        // "Add stack" is effect 175, whose delta Spell::EffectAscensionModifyAuraStacks reads from
+        // MiscValue; ModifyAscensionAuraStacks then returns on a zero delta. This record puts its
+        // stack delta in MiscValueB instead, so Mark of Order 806269 never grows past its first
+        // stack. Only the two fields disagree, so the record is read as authored.
+        info->Effects[EFFECT_0].MiscValue = info->Effects[EFFECT_0].MiscValueB;
+    }
+    if (info->Id == SPELL_NOZDORMUS_GAZE)
+    {
+        // The tooltip's "regenerates $s1% less mana per tick" is Time Out!'s effect index 1, but
+        // this flat spellmod carries MiscValue 3 (SPELLMOD_EFFECT1), which
+        // Unit::ApplyEffectModifiers routes to effect index 0 - Time Out!'s damage reduction.
+        // Spell.dbc has no field that names the affected index apart from the modifier op itself.
+        info->Effects[EFFECT_0].MiscValue = SPELLMOD_EFFECT2;
+    }
+    if (info->Id == SPELL_IDEAL_TIME_BUFF)
+    {
+        // "Your next ability" needs a charge to spend: both consumers, Player::RemoveSpellMods and
+        // Aura::PrepareProcToTrigger, act only while the owning aura IsUsingCharges(), which is
+        // false for the record's ProcCharges 0. No other Spell.dbc field expresses "one use".
+        info->ProcCharges = 1;
+    }
     if (info->Id != SPELL_SHIMMER)
         return;
     // The talent promises the same percentage for damage and healing. Retain
@@ -122,4 +264,6 @@ void AddSC_AscensionChronomancerTalents()
 {
     new chronomancer_talent_casts();
     RegisterSpellScript(spell_ascension_dimensional_divergence);
+    RegisterSpellScript(spell_ascension_unmaker_of_realities);
+    RegisterSpellScript(spell_ascension_timeguard);
 }

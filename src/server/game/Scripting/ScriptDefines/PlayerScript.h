@@ -231,6 +231,7 @@ enum PlayerHook
     PLAYERHOOK_ON_PLAYER_BREATH_INVERTED,
     PLAYERHOOK_ON_CAN_REGENERATE,
     PLAYERHOOK_ON_CAN_ENERGIZE,
+    PLAYERHOOK_ON_GET_MAX_ALLOWED_LEVEL,
     PLAYERHOOK_END
 };
 
@@ -304,6 +305,13 @@ public:
 
     // Called when a player gains XP (before anything is given)
     virtual void OnPlayerGiveXP(Player* /*player*/, uint32& /*amount*/, Unit* /*victim*/, uint8 /*xpSource*/) { }
+
+    // Level-up cap for Player::GiveXP. 0 = no restriction; a script returns the
+    // highest level the player may reach right now (e.g. gate-1 for
+    // NO_LEVEL_PAST_REQUIREMENTS). Unlike OnPlayerGiveXP this is enforced after
+    // every multiplier (rate, RaF, rested, favored, other hook order), so it
+    // cannot be bypassed by a large XP gain.
+    virtual uint8 OnPlayerGetMaxAllowedLevel(Player* /*player*/) { return 0; }
 
     // Called when a player's reputation changes (before it is actually changed)
     virtual bool OnPlayerReputationChange(Player* /*player*/, uint32 /*factionID*/, int32& /*standing*/, bool /*incremental*/) { return true; }

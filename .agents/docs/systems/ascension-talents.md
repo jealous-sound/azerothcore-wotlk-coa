@@ -18,6 +18,33 @@ state. The live pieces are `modules/mod-ascension-compat/src/AscensionCoATalentD
   1 point per rank; automatic entries (both costs 0, not a selectable free group) are granted by
   `SynchronizeProgression`, never bought.
 
+## Specialization names: internal token vs displayed name
+
+`ChrSpecs.dbc` carries **two** name columns and they are not interchangeable:
+
+- field 2 — the internal token (`DISPLACEMENT`, `FIREARMS`, `MOONBOW`…), matching
+  `CharacterAdvancementTabTypes.dbc` field 1. This is the join key: `LoadCoATalentData` maps a
+  `CharacterAdvancement` row's tab to a spec through (`ChrClasses` token, tab token), all uppercased.
+- field 29 — the name the client displays. **The core never reads it**: `LoadCoATalentData` loads
+  `ChrSpecs.dbc` with 29 fields, so index 29 is out of range by one, and the field is also absent from the
+  talent wire form.
+
+For **36 of the 101 specs** the two differ, so the internal token is not a safe label for a spec in an issue,
+a PR description or a report. The Chronomancer is the trap, because its three names are also offset against
+each other:
+
+| Spec id | Internal token | Displayed | Skill line |
+|---|---|---|---|
+| 31 | `DISPLACEMENT` | Time | 81 `Time` |
+| 32 | `DUALITY` | Infinite | 79 `Infinite` |
+| 33 | `TIME` | Artificer | 80 `Artificer` |
+
+An audit grouped by internal token therefore files the Artificer wand talents under a heading reading "Time",
+which a player reads as wrong data (PR #4324). Tab 87 `Class` is the shared class tree and belongs to no spec.
+
+When naming a spec for a human, read field 29 (or `SkillLine.dbc`, which uses the displayed names); when
+joining tables, use field 2.
+
 ## Commands (the shipped client's channel)
 
 - `.localspec <specId>`: `SwitchSpecialization`. A different specialization removes every class talent spell,

@@ -220,6 +220,7 @@ void WorldConfig::BuildConfigCache()
     SetConfigValue<uint32>(CONFIG_CHARTER_COST_ARENA_5v5, "ArenaTeam.CharterCost.5v5", 2000000);
 
     SetConfigValue<uint32>(CONFIG_MAX_WHO_LIST_RETURN, "MaxWhoListReturns", 49);
+    SetConfigValue<bool>(CONFIG_WHO_LIST_SHOW_BOTS, "Who.ShowBots", true);
 
     SetConfigValue<uint32>(CONFIG_CHARACTER_CREATING_DISABLED, "CharacterCreating.Disabled", 0);
     SetConfigValue<uint32>(CONFIG_CHARACTER_CREATING_DISABLED_RACEMASK, "CharacterCreating.Disabled.RaceMask", 0);

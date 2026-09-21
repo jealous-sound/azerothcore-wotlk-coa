@@ -142,6 +142,16 @@ void ScriptMgr::OnPlayerGiveXP(Player* player, uint32& amount, Unit* victim, uin
     CALL_ENABLED_HOOKS(PlayerScript, PLAYERHOOK_ON_GIVE_EXP, script->OnPlayerGiveXP(player, amount, victim, xpSource));
 }
 
+uint8 ScriptMgr::GetMaxAllowedLevel(Player* player)
+{
+    uint8 cap = 0;
+    CALL_ENABLED_HOOKS(PlayerScript, PLAYERHOOK_ON_GET_MAX_ALLOWED_LEVEL,
+        uint8 const scriptCap = script->OnPlayerGetMaxAllowedLevel(player);
+        if (scriptCap && (!cap || scriptCap < cap))
+            cap = scriptCap;);
+    return cap;
+}
+
 bool ScriptMgr::OnPlayerReputationChange(Player* player, uint32 factionID, int32& standing, bool incremental)
 {
     CALL_ENABLED_BOOLEAN_HOOKS(PlayerScript, PLAYERHOOK_ON_REPUTATION_CHANGE, !script->OnPlayerReputationChange(player, factionID, standing, incremental));

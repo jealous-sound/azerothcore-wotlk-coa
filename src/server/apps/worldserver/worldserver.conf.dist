@@ -1125,6 +1125,18 @@ ShowBanInWorld = 0
 MaxWhoListReturns = 49
 
 #
+#    Who.ShowBots
+#        Description: Whether bot characters appear in the /who list and in its counts.
+#                     Their sessions are the server's own, so a realm populated by playerbots
+#                     can leave the list to the players who are actually connected.
+#                     Everything else about a bot is unchanged: it is still seen in the world,
+#                     in chat, in groups and in the friends list.
+#        Default:     1 - (Enabled, bots are listed)
+#                     0 - (Disabled, only real players are listed)
+
+Who.ShowBots = 1
+
+#
 #    PreventAFKLogout
 #        Description: Prevent players AFK from being logged out
 #        Default:     0 - (Disabled)

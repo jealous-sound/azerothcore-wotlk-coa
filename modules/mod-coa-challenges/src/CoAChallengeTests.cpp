@@ -1010,6 +1010,29 @@ namespace CoAChallenges
             return 0;
         }
 
+        // First spell that summons a NON-companion creature (combat pet/minion/
+        // totem), used to assert NO_PETS_OR_MINIONS still blocks those.
+        uint32 RuleTestCombatSummonSpell()
+        {
+            uint32 const count = sSpellMgr->GetSpellInfoStoreSize();
+            for (uint32 id = 1; id < count; ++id)
+            {
+                SpellInfo const* si = sSpellMgr->GetSpellInfo(id);
+                if (!si)
+                    continue;
+                for (uint8 e = 0; e < MAX_SPELL_EFFECTS; ++e)
+                {
+                    if (si->Effects[e].Effect != SPELL_EFFECT_SUMMON)
+                        continue;
+                    CreatureTemplate const* ct =
+                        sObjectMgr->GetCreatureTemplate(uint32(si->Effects[e].MiscValue));
+                    if (ct && ct->type != CREATURE_TYPE_NON_COMBAT_PET && ct->type != CREATURE_TYPE_CRITTER)
+                        return id;
+                }
+            }
+            return 0;
+        }
+
         // First player-castable spell whose max range clearly exceeds melee
         // (CAST_RANGE_LIMITED_TO_MELEE).
         uint32 RuleTestRangedSpell()
@@ -1166,6 +1189,37 @@ namespace CoAChallenges
         SendTestLine(player, "  failable roulette: castActive={} afterTick(dead={} failed={})",
             activeAfterCast, dead, failed);
         return activeAfterCast && dead && failed;
+    }
+
+    // C4 regression (#4234): a buff/proc that re-triggers the marked spell must
+    // not fail the trial. Only the player's own (non-triggered) casts count.
+    bool Test_SpellbindTriggeredDoesNotFail(Player* player)
+    {
+        uint32 cid = RuleTestFindChallenge("CHALLENGE_RULES_TYPE_FAILABLE_SPELLBIND_ROULETTE");
+        if (!cid)
+            return false;
+        TrackSpellbind(player, cid);
+        Test_SpellbindTick(player, 30000);
+        uint32 mark = 0; bool failable = false;
+        if (!Test_SpellbindMark(player, mark, failable) || !mark || !failable)
+        {
+            SendTestLine(player, "  triggered roulette: no mark -> SKIP");
+            return true;
+        }
+        // Triggered (proc) cast of the marked spell: must neither be blocked nor
+        // queue the fail+death pending kill.
+        bool const triggeredBlocked = Test_SpellCheckCastBlocked(player, mark, /*triggered=*/true);
+        Test_SpellbindProcessPending(player);               // would kill if queued
+        bool const alive = player->IsAlive();
+        bool const active = RuleTestChallengeActive(player, cid);
+        uint32 after = 0; bool afterFailable = false;
+        bool const markKept = Test_SpellbindMark(player, after, afterFailable) && after == mark;
+        // `triggeredBlocked` is informational only: CheckCast can return non-OK
+        // for unrelated reasons (target/cooldown) on a synthetic Spell, while the
+        // guard's effect is that no pending kill was queued and the mark survived.
+        SendTestLine(player, "  triggered roulette: triggerCastBlocked={} alive={} active={} markKept={}",
+            triggeredBlocked, alive, active, markKept);
+        return alive && active && markKept;
     }
 
     // Rules the module actually enforces (kept in sync with the enforcement
@@ -1395,8 +1449,12 @@ namespace CoAChallenges
             uint32 spell = RuleTestCompanionSpell();
             return spell ? Test_SpellCheckCastBlocked(p, spell) : true; });
         RUN("CHALLENGE_RULES_TYPE_NO_PETS_OR_MINIONS", [](Player* p) {
-            uint32 spell = RuleTestCompanionSpell();
-            return spell ? Test_SpellCheckCastBlocked(p, spell) : true; });
+            // Vanity (non-combat) companions are allowed; combat summons are not.
+            uint32 const companionSpell = RuleTestCompanionSpell();
+            bool const companionAllowed = companionSpell ? !Test_SpellCheckCastBlocked(p, companionSpell) : true;
+            uint32 const combatSpell = RuleTestCombatSummonSpell();
+            bool const combatBlocked = combatSpell ? Test_SpellCheckCastBlocked(p, combatSpell) : true;
+            return companionAllowed && combatBlocked; });
         RUN("CHALLENGE_RULES_TYPE_NO_MANASTORM", [](Player* p) {
             return !sScriptMgr->OnPlayerCanEnterManastorm(p); });
 
@@ -1556,6 +1614,8 @@ namespace CoAChallenges
             return Test_SpellbindCoexistingSurvives(p); });
         RUN("CHALLENGE_RULES_TYPE_FAILABLE_SPELLBIND_ROULETTE", [](Player* p) {
             return Test_SpellbindFailableKillsOnNextTick(p); });
+        RUN("CHALLENGE_RULES_TYPE_FAILABLE_SPELLBIND_ROULETTE", [](Player* p) {
+            return Test_SpellbindTriggeredDoesNotFail(p); });
 
         // ---- 12. Environment / breath / profession (single-player) ----
         RUN("CHALLENGE_RULES_TYPE_FAILABLE_NO_FALLING", [](Player* p) {

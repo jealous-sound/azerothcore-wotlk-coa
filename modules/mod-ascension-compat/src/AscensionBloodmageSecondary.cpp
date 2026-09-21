@@ -33,8 +33,22 @@ enum BloodmageSecondarySpells : uint32
     SPELL_NIGHT_HUNTER = 704659,
     SPELL_BLOOD_FEAST_RESTORE = 706608,
     SPELL_ROTCLAW = 804197,
-    SPELL_ROTCLAW_ENERGIZE = 805352 // Ravenous Strike (Energize): 30..70 internal, i.e. 3 to 7 Rage
+    SPELL_ROTCLAW_ENERGIZE = 805352, // Ravenous Strike (Energize): 30..70 internal, i.e. 3 to 7 Rage
+    SPELL_BLOOD_THIRST = 706613,
+    SPELL_INSATIABLE = 706621,
+    SPELL_INSATIABLE_STACK = 706663,
+    SPELL_VAMPIRIC_FANG = 804726,
+    SPELL_VAMPIRIC_FANG_SCALAR = 680753 // Thirst SLS: EFFECT_2 carries the damage percent per Thirst stack
 };
+
+// Every Vampiric Fang rank: the base strike plus its learned ranks.
+constexpr uint32 VampiricFangRanks[] = {804726, 504093, 504094, 504095, 504096, 504097, 553271, 553272};
+
+bool IsVampiricFang(uint32 id)
+{
+    return std::find(std::begin(VampiricFangRanks), std::end(VampiricFangRanks), id) !=
+        std::end(VampiricFangRanks);
+}
 
 bool RankOf(uint32 id, uint32 root)
 {
@@ -107,6 +121,29 @@ public:
             // Reave has one victim. Snapshot its conditions before the initial hit changes health.
             spell->SetScriptValue(SPELL_REAVE, conditions);
         }
+        if (IsVampiricFang(id))
+        {
+            // Vampiric Fang promises bonus damage per Thirst stack. The scalar
+            // lives on Thirst SLS (680753) EFFECT_2; fixed values read straight
+            // off BasePoints, rolled ones add the engine's +1.
+            int32 pctPerStack = 0;
+            if (SpellInfo const* scalar = sSpellMgr->GetSpellInfo(SPELL_VAMPIRIC_FANG_SCALAR))
+                pctPerStack = scalar->Effects[EFFECT_2].BasePoints +
+                    (scalar->Effects[EFFECT_2].DieSides ? 1 : 0);
+            uint32 stacks = 0;
+            if (Aura const* thirst = player->GetAura(SPELL_BLOOD_THIRST))
+                stacks = thirst->GetStackAmount();
+            if (stacks && pctPerStack > 0)
+            {
+                // Custom basepoints pass through native float arithmetic before returning to int32.
+                uint32 maximum =
+                    uint32(std::nextafter(float(std::numeric_limits<int32>::max()), 0.0f));
+                double mult = 1.0 + double(stacks) * double(pctPerStack) / 100.0;
+                hit.damage = uint32(std::min(double(hit.damage) * mult, double(maximum)));
+                hit.damageBeforeTakenMods =
+                    uint32(std::min(double(hit.damageBeforeTakenMods) * mult, double(maximum)));
+            }
+        }
     }
 
     void OnSpellHitResult(Spell* spell, Unit* target, uint8 miss, uint32 damage, uint32, bool) override
@@ -137,6 +174,18 @@ public:
         {
             spell->SetScriptValue(SPELL_ROTCLAW_ENERGIZE, 1);
             player->CastSpell(player, SPELL_ROTCLAW_ENERGIZE, true);
+        }
+        // Vampiric Fang expends Thirst: steal health equal to the damage dealt,
+        // then clear Thirst and Insatiable. Runs once per cast on the first
+        // successful hostile hit.
+        if (IsVampiricFang(id) && !spell->GetScriptValue(SPELL_VAMPIRIC_FANG))
+        {
+            spell->SetScriptValue(SPELL_VAMPIRIC_FANG, 1);
+            if (damage)
+                Unit::DealHeal(player, player, damage);
+            player->RemoveAurasDueToSpell(SPELL_BLOOD_THIRST);
+            player->RemoveAurasDueToSpell(SPELL_INSATIABLE);
+            player->RemoveAurasDueToSpell(SPELL_INSATIABLE_STACK);
         }
         if (!damage)
             return;

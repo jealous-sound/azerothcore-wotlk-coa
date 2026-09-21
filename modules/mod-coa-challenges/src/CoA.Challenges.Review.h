@@ -65,7 +65,7 @@ namespace CoAChallenges
     // Cause of death for the failure broadcast, resolved when known.
     // Creature/Player get a clickable link; Environment/Self/Mechanic are
     // literal red labels (Falling/Suicide/Starved/...).
-    enum class KillerKind : uint8 { Unknown, Creature, Player, Environment, Self, Mechanic };
+    enum class KillerKind : uint8 { Unknown, Creature, Player, Environment, Self, Mechanic, Rule };
 
     // Failure broadcast. FailChallenge records the failure here for every cause
     // (death, shared fate, group leave). OnPlayerJustDied runs before
@@ -498,7 +498,12 @@ uint32 NextGatedLevel(Player* player);
 void MarkObjectives(Player* player, char const* type, uint32 eventValue);
 std::string ObjectiveFailLabel(std::string const& type);
 bool CheckObjectiveLevels(Player* player);
-void FailChallenge(Player* player, uint32 challengeID, uint32 level, uint32 deaths, ObjectGuid const& killerSource = ObjectGuid::Empty);
+// killerSource is the guid whose death carries the killer info. causeKind (with
+// causeEntry/causeName) lets a rule failure name its own cause (e.g. the beast a
+// FAILABLE_NO_KILL_BEASTS trial forbids) instead of "killed by Unknown".
+void FailChallenge(Player* player, uint32 challengeID, uint32 level, uint32 deaths,
+    ObjectGuid const& killerSource = ObjectGuid::Empty,
+    KillerKind causeKind = KillerKind::Unknown, uint32 causeEntry = 0, std::string causeName = "");
 void FailSharedFate(Player* dead, uint32 challengeID);
 void FailSharedFateHolders(Group* group, Player* extra);
 void HandlePlayerDeath(Player* player);
