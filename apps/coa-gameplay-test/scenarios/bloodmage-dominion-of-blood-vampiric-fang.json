@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "Dominion of Blood raises Vampiric Fang's stolen health to 150% (#2212)",
-  "contract": "Vampiric Fang's tooltip is \"Steal ${$m1+0+$SP*0.34} health from an enemy\", but none of its eight ranks (804726, 504093-504097, 553271, 553272) carries a leech or heal effect: each is a plain SPELL_EFFECT_SCHOOL_DAMAGE plus an aura 271. The stolen share lives in a separate \"Vampiric Fang\" record, 572373, SpellFamilyFlags (0, 1073741824, 0), whose one effect is aura type 354 with BasePoints 99 + DieSides 1 = 100 and TriggerSpell 572374, a SPELL_EFFECT_HEAL on the caster with BasePoints 0. AuraEffectHandler[354] is nullptr, no Spell.dbc row applies 572373 and no acquisition route reaches it. Dominion of Blood 680716's tooltip is \"Your Vampiric Fang now heals you for an additional 50% of the damage dealt\", and its one effect is aura 107 with MiscValue 3 (SPELLMOD_EFFECT1) and BasePoints 49 + DieSides 1 = +50 over exactly 572373's class mask, so the share reads 100 without the talent and 150 with it. The deterministic discriminator is that modifier on 572373; the end-to-end discriminator is that a Vampiric Fang cast raises the caster's health at all, which it never did before. The caster is dropped to a low value first so the heal is not clipped by the health cap, and health is read while in combat, where out-of-combat regeneration does not run.",
+  "contract": "Vampiric Fang's tooltip is \"Steal ${$m1+0+$SP*0.34} health from an enemy\", and Dominion of Blood 680716's is \"Your Vampiric Fang now heals you for an additional 50% of the damage dealt\". None of Vampiric Fang's eight ranks (804726, 504093-504097, 553271, 553272) carries a leech or heal effect: each is a plain SPELL_EFFECT_SCHOOL_DAMAGE plus an aura 271, TargetA 6 (TARGET_UNIT_TARGET_ENEMY) with no chain and no radius, so one cast lands on exactly one enemy. The stolen share lives in a separate \"Vampiric Fang\" record, 572373, SpellFamilyFlags (0, 1073741824, 0), whose one effect is aura type 354 with BasePoints 99 + DieSides 1 = an authored 100 and TriggerSpell 572374, a SPELL_EFFECT_HEAL on the caster with BasePoints 0 and BonusMultiplier 0 (and no spell_bonus_data row, so Unit::SpellHealingBonusDone adds no spell-power coefficient to it). 680716's one effect is aura 107 with MiscValue 3 (SPELLMOD_EFFECT1) and BasePoints 49 + DieSides 1 = +50 over exactly 572373's class mask, so SpellEffectInfo::CalcValue reads 100 without the talent and 150 with it. The expected behaviour is therefore: a landed Vampiric Fang heals its caster for the damage it dealt, and for one and a half times that damage while Dominion of Blood is known. The two ratio assertions divide the caster's health gain by the victim's health loss from the same cast, so they hold whatever the rank rolls and whether or not the hit crits; the victim's loss is negative, so the expected ratios are -1.0 and -1.5. Both are discriminating: a tree that pays only the flat steal reads -1.0 in the boosted leg, and a tree that pays the steal twice reads -2.0 in the control leg. The fixture creature is forced REACT_PASSIVE and never swings back, and every measurement is taken while in combat, where Player::RegenerateHealth does not run, so nothing but the cast moves the caster's health. The caster is dropped to 1000 health before each measured cast so the heal is not clipped by the health cap. 553272 is the rank a level-80 character owns; its 8 sec CategoryRecoveryTime is waited out between the two legs.",
   "timeout_ms": 90000,
   "players": [
     {
@@ -19,7 +19,7 @@
       "entry": 36,
       "level": 1,
       "health": 1000000,
-      "distance": 3
+      "distance": 25
     }
   ],
   "steps": [
@@ -30,7 +30,7 @@
     },
     {
       "action": "assert",
-      "label": "The stolen share is the authored 100% before the talent",
+      "label": "SETUP: the stolen share is the authored 100% before the talent",
       "actor": "caster",
       "metric": "spell_modifier",
       "spell": 572373,
@@ -50,16 +50,64 @@
       "value": 1000
     },
     {
-      "action": "set_health",
+      "action": "cast",
+      "label": "Opening cast: enter combat so health regeneration stops",
       "actor": "caster",
+      "spell": 553272,
+      "target": "victim"
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: the caster is in combat, so health regeneration is off",
+      "actor": "caster",
+      "metric": "combat",
+      "equals": 1,
+      "within_ms": 9000
+    },
+    {
+      "action": "wait",
+      "label": "Let Vampiric Fang's own 8 sec CategoryRecoveryTime expire",
+      "ms": 9000
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: Vampiric Fang is off cooldown",
+      "actor": "caster",
+      "metric": "cooldown_ms",
+      "spell": 553272,
+      "max": 0,
+      "within_ms": 5000
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: combat still holds before the control leg",
+      "actor": "caster",
+      "metric": "combat",
+      "equals": 1
+    },
+    {
+      "action": "set_power",
+      "actor": "caster",
+      "power": 1,
+      "value": 1000
+    },
+    {
+      "action": "set_health",
       "label": "Leave room for the stolen health",
+      "actor": "caster",
       "value": 1000
     },
     {
       "action": "snapshot",
       "actor": "caster",
       "metric": "health",
-      "save_as": "before_fang"
+      "save_as": "control_health"
+    },
+    {
+      "action": "snapshot",
+      "actor": "victim",
+      "metric": "health",
+      "save_as": "control_victim"
     },
     {
       "action": "cast",
@@ -68,13 +116,42 @@
       "target": "victim"
     },
     {
+      "action": "wait",
+      "label": "Let the instant cast land and its heal resolve",
+      "ms": 2000
+    },
+    {
       "action": "assert",
-      "label": "Vampiric Fang steals health back to the caster",
+      "label": "SETUP: combat still holds, so no regeneration enters the control measurement",
+      "actor": "caster",
+      "metric": "combat",
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: the control cast dealt damage",
+      "actor": "victim",
+      "metric": "health",
+      "relative_to": "control_victim",
+      "max": -1
+    },
+    {
+      "action": "snapshot",
+      "label": "The control cast's damage, as the victim's health loss",
+      "actor": "victim",
+      "metric": "health",
+      "relative_to": "control_victim",
+      "save_as": "control_damage"
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING: without the talent the steal is the damage dealt, paid once",
       "actor": "caster",
       "metric": "health",
-      "relative_to": "before_fang",
-      "min": 1,
-      "within_ms": 3000
+      "relative_to": "control_health",
+      "ratio_to": "control_damage",
+      "min": -1.05,
+      "max": -0.95
     },
     {
       "action": "learn",
@@ -83,13 +160,14 @@
     },
     {
       "action": "assert",
-      "label": "Dominion of Blood raises the stolen share to 150%",
+      "label": "SETUP: Dominion of Blood raises the authored share to 150%",
       "actor": "caster",
       "metric": "spell_modifier",
       "spell": 572373,
       "op": 3,
       "base": 100,
-      "equals": 150
+      "equals": 150,
+      "within_ms": 5000
     },
     {
       "action": "assert",
@@ -100,6 +178,95 @@
       "op": 3,
       "base": 100,
       "equals": 100
+    },
+    {
+      "action": "wait",
+      "label": "Finish out the 8 sec CategoryRecoveryTime started by the control cast",
+      "ms": 7000
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: Vampiric Fang is off cooldown for the boosted leg",
+      "actor": "caster",
+      "metric": "cooldown_ms",
+      "spell": 553272,
+      "max": 0,
+      "within_ms": 5000
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: combat still holds before the boosted leg",
+      "actor": "caster",
+      "metric": "combat",
+      "equals": 1
+    },
+    {
+      "action": "set_power",
+      "actor": "caster",
+      "power": 1,
+      "value": 1000
+    },
+    {
+      "action": "set_health",
+      "label": "Leave room for the larger stolen health",
+      "actor": "caster",
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "caster",
+      "metric": "health",
+      "save_as": "boosted_health"
+    },
+    {
+      "action": "snapshot",
+      "actor": "victim",
+      "metric": "health",
+      "save_as": "boosted_victim"
+    },
+    {
+      "action": "cast",
+      "actor": "caster",
+      "spell": 553272,
+      "target": "victim"
+    },
+    {
+      "action": "wait",
+      "label": "Let the instant cast land and its heal resolve",
+      "ms": 2000
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: combat still holds, so no regeneration enters the boosted measurement",
+      "actor": "caster",
+      "metric": "combat",
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: the boosted cast dealt damage",
+      "actor": "victim",
+      "metric": "health",
+      "relative_to": "boosted_victim",
+      "max": -1
+    },
+    {
+      "action": "snapshot",
+      "label": "The boosted cast's damage, as the victim's health loss",
+      "actor": "victim",
+      "metric": "health",
+      "relative_to": "boosted_victim",
+      "save_as": "boosted_damage"
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING: Dominion of Blood raises the steal to 150% of the damage dealt",
+      "actor": "caster",
+      "metric": "health",
+      "relative_to": "boosted_health",
+      "ratio_to": "boosted_damage",
+      "min": -1.58,
+      "max": -1.42
     }
   ]
 }

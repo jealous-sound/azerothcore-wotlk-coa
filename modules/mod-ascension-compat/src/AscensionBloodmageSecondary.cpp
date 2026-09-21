@@ -279,25 +279,34 @@ public:
             if (conditions & 4)
                 CopyDamage(player, target, SPELL_REAVE_BACK, damage);
         }
-        // Vampiric Fang promises "Steal ${$m1+0+$SP*0.34} health from an enemy", but none of its eight
-        // ranks (804726, 504093-504097, 553271, 553272) has a leech or heal effect: each is a plain
-        // SPELL_EFFECT_SCHOOL_DAMAGE plus an aura 271. The stolen share lives in a separate "Vampiric
+        // Dominion of Blood (680716): "Your Vampiric Fang now heals you for an additional 50% of the
+        // damage dealt." The base steal is already paid above, by the flat Unit::DealHeal of the damage
+        // dealt, so only the increase is owed here.
+        //
+        // That increase has no other path. The share Vampiric Fang steals lives in a separate "Vampiric
         // Fang" record, 572373, whose single effect is aura type 354 with amount 100 (BasePoints 99 +
         // DieSides 1) naming TriggerSpell 572374, a SPELL_EFFECT_HEAL on the caster with BasePoints 0.
+        // 680716 is aura 107 with MiscValue 3 (SPELLMOD_EFFECT1) and BasePoints 49 + DieSides 1 = +50
+        // over EffectSpellClassMask (0, 1073741824, 0), which is exactly 572373's own SpellFamilyFlags.
         // AuraEffectHandler[354] is nullptr, no Spell.dbc row applies 572373 and no acquisition route
-        // reaches it, so the heal never happened. Dominion of Blood (680716) is aura 107 with MiscValue 3
-        // (SPELLMOD_EFFECT1) and +50 over EffectSpellClassMask (0, 1073741824, 0), which is 572373's own
-        // SpellFamilyFlags - "Your Vampiric Fang now heals you for an additional 50% of the damage dealt".
-        // SpellEffectInfo::CalcValue runs Unit::ApplyEffectModifiers, so the share reads 100 without the
-        // talent and 150 with it; no number is declared here.
+        // reaches it, and Unit::DealHeal takes no SpellInfo and runs no Unit::ApplyEffectModifiers, so
+        // nothing read that modifier. SpellEffectInfo::CalcValue does run it, so the share reads its
+        // authored 100 without the talent and 150 with it; the difference over the authored amount is
+        // what 572374 pays, leaving the total at the damage dealt without the talent and one and a half
+        // times it with the talent. No number is declared here.
         if (RankOf(id, SPELL_VAMPIRIC_FANG))
             if (SpellInfo const* share = sSpellMgr->GetSpellInfo(SPELL_VAMPIRIC_FANG_SHARE))
-                if (int32 percent = share->Effects[EFFECT_0].CalcValue(player); percent > 0)
+            {
+                SpellEffectInfo const& effect = share->Effects[EFFECT_0];
+                // Fixed values read straight off BasePoints, rolled ones add the engine's +1.
+                int32 authored = effect.BasePoints + (effect.DieSides ? 1 : 0);
+                if (int32 increase = effect.CalcValue(player) - authored; increase > 0)
                 {
-                    uint64 heal = uint64(damage) * uint64(percent) / 100;
+                    uint64 heal = uint64(damage) * uint64(increase) / 100;
                     CopyDamage(player, player, SPELL_VAMPIRIC_FANG_HEAL,
                         uint32(std::min<uint64>(heal, std::numeric_limits<uint32>::max())));
                 }
+            }
     }
 };
 
