@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "Bright Flames raises Inferno Barrier's retaliation damage (#1764)",
-  "contract": "#1764: Bright Flames 300759 (rank 1) and 301351 (rank 2): effect 2 is ADD_PCT_MODIFIER (aura 108) on SPELLMOD_DAMAGE (misc 0), base 14 -> +15% and 29 -> +30%, class mask {0, 0, 0x400} = Inferno Barrier (504380, 535650, 535651, 582762-582764; SpellFamilyFlags {0, 0, 1024}); tooltip: increases the damage it deals by $s2% (Spell.dbc served file). The module turns the barrier's PROC_TRIGGER_DAMAGE into a dummy and deals the retaliation itself as Lucifron's Rage 524623 (family 30, empty flags) with an amount computed from effect 2 and Spirit, so the SPELLMOD_DAMAGE modifier matched neither 524623 nor that amount. The fix runs the caster's SPELLMOD_DAMAGE modifiers for the barrier rank on the amount. A second Pyromancer (Orc, PvP flagged) hits the barriered Pyromancer with Flare Bolt 800790; the barrier retaliates with one Lucifron's Rage. The damage total of 524623 is measured with no talent (control), with rank 1 and with rank 2, and compared as ratios (1.15 and 1.30 expected, truncation of the integer amount allows the wide bounds, a resolved amount of at least 4 keeps rank 2 above 1.15). Ratios need no assumption on Spirit. Fails before the fix (ratio 1.00). Not covered: the absorb half (aura 317) which already worked.",
+  "contract": "#1764: Bright Flames 300759 (rank 1) and 301351 (rank 2): effect 2 is ADD_PCT_MODIFIER (aura 108) on SPELLMOD_DAMAGE (misc 0), base 14 -> +15% and 29 -> +30%, class mask {0, 0, 0x400} = Inferno Barrier (504380, 535650, 535651, 582762-582764; SpellFamilyFlags {0, 0, 1024}); tooltip: increases the damage it deals by $s2% (Spell.dbc served file). The module turns the barrier's PROC_TRIGGER_DAMAGE into a dummy and deals the retaliation itself as Lucifron's Rage 524623 (family 30, empty flags) with an amount computed from effect 2 and Spirit, so the SPELLMOD_DAMAGE modifier matched neither 524623 nor that amount. The fix runs the caster's SPELLMOD_DAMAGE modifiers for the barrier rank on the amount. A second Pyromancer (Orc, PvP flagged) hits the barriered Pyromancer with Flare Bolt 800790; the barrier retaliates with one Lucifron's Rage. The damage total of 524623 is measured with no talent (control), with rank 1 and with rank 2, and compared as ratios over non-critical hits only. Lucifron's Rage 524623 is a spell that can critically hit (crit chance 6.39% measured with spell_done_crit_chance), which raised one rank 2 sample to 51 in an earlier run. Only the barrier's amount scales: Retaliation = Effect 2 of 504380 (Spell.dbc base 3, die sides 1, value 4) + Spirit * 0.1, truncated to an integer, plus a spell-power part S of 524623 that Bright Flames does not touch. With Spirit 186 the amount is 22.6, so a +15% modifier gives 25 and +30% gives 29 (integer truncation), and the control total 36 measured on the server gives S = 14: rank 1 = (25+14)/36 = 1.083 (bounds 1.06..1.11), rank 2 = (29+14)/36 = 1.194 (bounds 1.15..1.23); unfixed 1.0, rank 2 mis-scaled as +15% 1.083. Fails before the fix (ratio 1.00). Not covered: the absorb half (aura 317) which already worked.",
   "timeout_ms": 180000,
   "players": [
     {
@@ -129,7 +129,8 @@
       "metric": "spell_damage_total",
       "spell": 524623,
       "target": "enemy",
-      "save_as": "b_control"
+      "save_as": "b_control",
+      "critical": false
     },
     {
       "action": "snapshot",
@@ -168,7 +169,8 @@
       "spell": 524623,
       "target": "enemy",
       "relative_to": "b_control",
-      "save_as": "ctrl"
+      "save_as": "ctrl",
+      "critical": false
     },
     {
       "action": "learn",
@@ -235,7 +237,8 @@
       "metric": "spell_damage_total",
       "spell": 524623,
       "target": "enemy",
-      "save_as": "b_rank1"
+      "save_as": "b_rank1",
+      "critical": false
     },
     {
       "action": "snapshot",
@@ -275,8 +278,9 @@
       "target": "enemy",
       "relative_to": "b_rank1",
       "ratio_to": "ctrl",
-      "min": 1.05,
-      "max": 1.25
+      "min": 1.06,
+      "max": 1.11,
+      "critical": false
     },
     {
       "action": "unlearn",
@@ -348,7 +352,8 @@
       "metric": "spell_damage_total",
       "spell": 524623,
       "target": "enemy",
-      "save_as": "b_rank2"
+      "save_as": "b_rank2",
+      "critical": false
     },
     {
       "action": "snapshot",
@@ -389,7 +394,8 @@
       "relative_to": "b_rank2",
       "ratio_to": "ctrl",
       "min": 1.15,
-      "max": 1.4
+      "max": 1.23,
+      "critical": false
     }
   ]
 }
