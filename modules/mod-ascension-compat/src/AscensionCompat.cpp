@@ -107,6 +107,7 @@
 using namespace Acore::ChatCommands;
 
 namespace {
+constexpr uint32 SPELL_NECROMANCER_CRYPT_PLAGUE = 92121;
 constexpr uint16 CMSG_ANTICHEAT_ALERT = 0x051F;
 // The Character Advancement point purchase. Never observed on this realm: the patch-B
 // Lua shim overrides AddByEntryID/ApplyPendingBuild and sends ".localtalent" instead,
@@ -743,6 +744,20 @@ public:
         }
 
     ReconcileRunemasterFists(player, activeSpec);
+    // Crypt Plague is Death's identity passive. Crypt Swarm only applies the plague while it is known, so it is
+    // granted with the specialization even when automatic progression is off.
+    if (!automaticProgression && player->getClass() == CLASS_NECROMANCER &&
+        !player->HasSpell(SPELL_NECROMANCER_CRYPT_PLAGUE) && sSpellMgr->GetSpellInfo(SPELL_NECROMANCER_CRYPT_PLAGUE))
+    {
+      auto const& entries = AscensionCompatData::CoATalentEntries;
+      auto plague = std::find_if(entries.begin(), entries.end(), [](auto const& entry)
+          { return entry.SpellCount && entry.SpellIds[0] == SPELL_NECROMANCER_CRYPT_PLAGUE; });
+      if (plague != entries.end() && CanGrantAutomaticEntry(player, *plague, activeSpec))
+      {
+        player->learnSpell(SPELL_NECROMANCER_CRYPT_PLAGUE, false);
+        ++learned;
+      }
+    }
     if (automaticProgression)
       learned += SynchronizeAutomaticTalents(player, GetActiveSpecialization(player));
     // Rank upgrades are conditional on already owning the root. They cannot

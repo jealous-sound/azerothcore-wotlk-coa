@@ -1,0 +1,95 @@
+{
+  "schema": 1,
+  "name": "Necromancer Death specialization applies Crypt Plague with Crypt Swarm",
+  "contract": "Crypt Plague (92121) is Death's identity passive. A Death Necromancer must know it, so that Crypt Swarm (800343) applies the Crypt Plague disease (570131) to its target.",
+  "timeout_ms": 120000,
+  "players": [
+    {
+      "id": "n",
+      "race": 5,
+      "class": 23,
+      "level": 60,
+      "spell_hit_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "dummy",
+      "owner": "n",
+      "entry": 36,
+      "level": 10,
+      "distance": 8,
+      "health": 1000000
+    }
+  ],
+  "location": {
+    "map": 0,
+    "x": -8917.41,
+    "y": -115.853,
+    "z": 82.3711,
+    "o": 0
+  },
+  "steps": [
+    {
+      "action": "wait",
+      "ms": 3000
+    },
+    {
+      "action": "command",
+      "actor": "n",
+      "command": ".localspec 34"
+    },
+    {
+      "action": "wait",
+      "ms": 1000
+    },
+    {
+      "action": "learn",
+      "actor": "n",
+      "spell": 800343
+    },
+    {
+      "action": "assert",
+      "label": "Crypt Plague is known",
+      "actor": "n",
+      "metric": "knows_spell",
+      "spell": 92121,
+      "equals": 1
+    },
+    {
+      "action": "cast",
+      "actor": "n",
+      "spell": 800343,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 3000
+    },
+    {
+      "action": "assert",
+      "label": "Crypt Swarm dealt damage",
+      "actor": "n",
+      "metric": "spell_damage_count",
+      "spell": 800343,
+      "min": 1
+    },
+    {
+      "action": "assert",
+      "label": "Crypt Plague granted its owner buff",
+      "actor": "n",
+      "metric": "aura",
+      "spell": 573131,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "label": "Crypt Plague damages the target",
+      "actor": "n",
+      "metric": "spell_damage_count",
+      "spell": 570131,
+      "min": 1,
+      "within_ms": 8000
+    }
+  ]
+}
