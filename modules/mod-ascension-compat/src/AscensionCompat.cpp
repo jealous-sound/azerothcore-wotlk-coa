@@ -407,7 +407,7 @@ public:
     SetConfigValue<bool>(AscensionCompatConfig::QUEST_LEVEL_SCALING,
                          "AscensionCompat.QuestLevelScaling", true);
     SetConfigValue<bool>(AscensionCompatConfig::AUTO_PROGRESSION,
-                         "AscensionCompat.AutoProgression", false);
+                         "AscensionCompat.AutoProgression", true);
   }
 };
 
