@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "Flesh Foundry's critical strikes cut Fleshcraft's cooldown (#604)",
-  "contract": "Flesh Foundry 704633 has three effects. Effect 1 (aura 220 SPELL_AURA_MOD_RATING_FROM_STAT, MiscValue 1792, MiscValueB 4 = Spirit) is native and already works. Effects 0 and 2 are both aura 42, on 504253 (SPELL_EFFECT_ASCENSION_MODIFY_COOLDOWN, BasePoints -4001, MiscValue 801952 = Fleshcraft) and on 504412 (SPELL_EFFECT_ASCENSION_MODIFY_AURA_DURATION, BasePoints -4001, MiscValue 532125 = Sated). Spell.dbc gives 704633 ProcFlags 0 and no spell_proc row existed, so neither fired. The tooltip is 'Your critical strikes now reduce the cooldown of Fleshcraft ... by $/1000;504253s1 sec' at ProcChance 100, i.e. -4000 ms per critical strike. Fleshcraft 801952 has RecoveryTime 300000 and CategoryRecoveryTime 300000, so one cast leaves five minutes of headroom. The assertion window is one global cooldown plus 500 ms, at most about 2.5 s of natural decay, well inside the -4000 ms threshold. Crit Test Buff 503747 (aura 290, +100 percentage points) removes the crit roll. The Sated half of the talent is not exercised here.",
+  "contract": "Flesh Foundry 704633 has three effects. Effect 1 (aura 220 SPELL_AURA_MOD_RATING_FROM_STAT, MiscValue 1792, MiscValueB 4 = Spirit) is native and already works. Effects 0 and 2 are both aura 42, on 504253 (SPELL_EFFECT_ASCENSION_MODIFY_COOLDOWN, BasePoints -4001, MiscValue 801952 = Fleshcraft) and on 504412 (SPELL_EFFECT_ASCENSION_MODIFY_AURA_DURATION, BasePoints -4001, MiscValue 532125 = Sated). Spell.dbc gives 704633 ProcFlags 0 and no spell_proc row existed, so neither fired. The tooltip is 'Your critical strikes now reduce the cooldown of Fleshcraft ... by $/1000;504253s1 sec' at ProcChance 100, i.e. -4000 ms per critical strike. Fleshcraft 801952 has RecoveryTime 300000 and CategoryRecoveryTime 300000, so one cast leaves five minutes of headroom. Fleshcraft 801952 and Bloodbolt 578305 both carry StartRecoveryCategory 133 with StartRecoveryTime 1500 and GlobalCooldownMgr::HasGlobalCooldown keys on that category, so a Bloodbolt submitted in the same tick as Fleshcraft is refused by Spell::CheckCast with SPELL_FAILED_NOT_READY; the 2000 ms wait clears that global cooldown (Spell::TriggerGlobalCooldown clamps it to 1000-1500 ms) and the snapshot is taken after it. The measurement window is then 500 ms plus at most 3000 ms of polling, so natural decay can account for at most -3500 ms, inside the -4000 ms threshold. Crit Test Buff 503747 (aura 290, +100 percentage points) removes the crit roll. The Sated half of the talent is not exercised here.",
   "timeout_ms": 90000,
   "players": [
     {
@@ -77,6 +77,11 @@
       "spell": 801952,
       "min": 290000,
       "within_ms": 3000
+    },
+    {
+      "action": "wait",
+      "label": "Clear the global cooldown Fleshcraft started, which Bloodbolt shares",
+      "ms": 2000
     },
     {
       "action": "snapshot",
