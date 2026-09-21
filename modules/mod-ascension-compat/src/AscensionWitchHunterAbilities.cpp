@@ -337,7 +337,10 @@ class spell_ascension_witch_hunter_ability : public SpellScript
             talent(582310, 804304);
             if (_bounty)
                 player->RemoveAurasDueToSpell(504478);
-            if (_boltDash)
+            // The buff's charge is consumed by the Bolt natively (Dead and Gone adds a second one), so only
+            // an exhausted buff pays out its Dash
+            Aura const* boltDash = player->GetAura(520670);
+            if (_boltDash && (!boltDash || !boltDash->IsUsingCharges()))
             {
                 player->RemoveAurasDueToSpell(520670);
                 Cast(player, player, 524602);

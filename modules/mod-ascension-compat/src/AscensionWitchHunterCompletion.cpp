@@ -261,8 +261,8 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[EFFECT_0].TargetA = SpellImplicitTargetInfo(TARGET_UNIT_DEST_AREA_ALLY);
     if (id == 500102)
         info->Effects[EFFECT_1].Effect = 0;
-    if (id == 520670 || id == 504713)
-        info->ProcCharges = 0;
+    if (id == 504713)
+        info->ProcCharges = 0; // Bolt and Dash (520670) keeps its DBC charge, which Dead and Gone's charges mod extends
     if (id == 504790)
     {
         info->Effects[EFFECT_2].ApplyAuraName = SPELL_AURA_ASCENSION_MOD_CRIT_CHANCE;
