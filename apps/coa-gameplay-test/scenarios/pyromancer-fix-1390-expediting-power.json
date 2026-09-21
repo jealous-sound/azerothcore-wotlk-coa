@@ -25,7 +25,9 @@
       "min": 40000
     },
     { "action": "wait", "label": "Let the global cooldown clear", "ms": 2000 },
+    { "action": "set_aura", "actor": "control", "spell": 807533, "stacks": 2 },
     { "action": "cast", "actor": "control", "spell": 802174 },
+    { "action": "set_aura", "actor": "talent", "spell": 807533, "stacks": 2 },
     { "action": "cast", "actor": "talent", "spell": 802174 },
     { "action": "wait", "ms": 500 },
     {

@@ -76,6 +76,12 @@
       "label": "Let the global cooldown expire"
     },
     {
+      "action": "set_aura",
+      "actor": "p",
+      "spell": 807533,
+      "stacks": 2
+    },
+    {
       "action": "cast",
       "actor": "p",
       "spell": 802174,
@@ -98,6 +104,12 @@
       "action": "set_power",
       "actor": "p",
       "value": 3000
+    },
+    {
+      "action": "set_aura",
+      "actor": "p",
+      "spell": 807533,
+      "stacks": 2
     },
     {
       "action": "cast",
