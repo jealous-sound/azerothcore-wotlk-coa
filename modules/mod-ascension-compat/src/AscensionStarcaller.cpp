@@ -307,6 +307,17 @@ void Refresh(Player* player)
     state.refreshing = true;
     if (player->HasSpell(800386) && !player->HasAura(524781))
         Cast(player, player, 524781);
+    // Celestial Mind 707638 shortens the driver's period through SPELLMOD_ACTIVATION_TIME, which the core reads
+    // only when the periodic effect is built. A talent learned while the driver runs would leave the old period.
+    if (Aura* driver = player->GetAura(524781))
+        if (SpellInfo const* info = sSpellMgr->GetSpellInfo(524781))
+            if (AuraEffect* effect = driver->GetEffect(EFFECT_0))
+            {
+                int32 period = info->Effects[EFFECT_0].Amplitude;
+                player->ApplySpellMod(524781, SPELLMOD_ACTIVATION_TIME, period);
+                if (period != effect->GetAmplitude())
+                    driver->RefreshTimers();
+            }
     player->RemoveAurasDueToSpell(706301);
     auto scale = [player](uint32 id, bool active, std::initializer_list<int32> amounts) {
         if (!active)
