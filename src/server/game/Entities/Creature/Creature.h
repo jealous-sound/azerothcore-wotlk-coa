@@ -64,6 +64,14 @@ public:
     bool Create(ObjectGuid::LowType guidlow, Map* map, uint32 phaseMask, uint32 Entry, uint32 vehId, float x, float y, float z, float ang, CreatureData const* data = nullptr);
     bool LoadCreaturesAddon(bool reload = false);
     void SelectLevel(bool changelevel = true);
+
+    /// The level-dependent pass Creature::UpdateEntry runs after SelectLevel, exposed for the
+    /// features that change a creature's level at runtime outside it. SelectLevel alone sizes
+    /// health, mana, base damage and the attack-power modifier, but the fields that are read back -
+    /// attack power, the damage range the client draws, armour and the resistances - are only
+    /// written by UpdateAllStats. A scaling path that calls SelectLevel by itself therefore leaves
+    /// the creature hitting for its old level. See the definition.
+    void RefreshLevelDependantStats();
     void LoadEquipment(int8 id = 1, bool force = false);
 
     [[nodiscard]] ObjectGuid::LowType GetSpawnId() const { return m_spawnId; }

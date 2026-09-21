@@ -1451,6 +1451,13 @@ public:
 
     int32 GetQuestLevel(Quest const* quest) const;
 
+    /// Re-sends the query data for every quest in the log. The client caches a quest's data by
+    /// quest id, across characters and sessions, so its copy of the level and of the rewards stands
+    /// until it is told again - which is what makes a quest picked up under one open-world scaling
+    /// choice keep showing that choice's numbers after the character changes it. Called when the
+    /// choice changes and when the effective level moves (login, level-up).
+    void RefreshQuestLogQueries();
+
     void PrepareQuestMenu(ObjectGuid guid);
     void SendPreparedQuest(ObjectGuid guid);
     [[nodiscard]] bool IsActiveQuest(uint32 quest_id) const;

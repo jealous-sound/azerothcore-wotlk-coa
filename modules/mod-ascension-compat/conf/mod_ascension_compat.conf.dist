@@ -71,6 +71,13 @@ AscensionCompat.RulesetLoginDefault = 1
 # Local solo scaling. A creature below the player-minus-three floor is raised
 # with stock AzerothCore stat curves. Creatures one or two levels below, equal,
 # or higher stay unchanged. Friendly NPCs, pets, critters and triggers are not mobs.
+#
+# A module that gives each character their own version of a creature owns this
+# answer while it is enabled, and this path stands aside for as long as it is:
+# raising the object is a change every client is told about, so it cannot be one
+# character's alone. Nothing needs to change here either way, the takeover is
+# logged at config load, and switching that module off hands this path back
+# exactly as it was.
 AscensionCompat.LevelScaling = 1
 
 # Lower-level quests report the player's level and use the matching QuestXP row.

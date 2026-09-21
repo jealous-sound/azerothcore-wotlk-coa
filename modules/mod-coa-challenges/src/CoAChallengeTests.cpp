@@ -1010,6 +1010,29 @@ namespace CoAChallenges
             return 0;
         }
 
+        // First spell that summons a NON-companion creature (combat pet/minion/
+        // totem), used to assert NO_PETS_OR_MINIONS still blocks those.
+        uint32 RuleTestCombatSummonSpell()
+        {
+            uint32 const count = sSpellMgr->GetSpellInfoStoreSize();
+            for (uint32 id = 1; id < count; ++id)
+            {
+                SpellInfo const* si = sSpellMgr->GetSpellInfo(id);
+                if (!si)
+                    continue;
+                for (uint8 e = 0; e < MAX_SPELL_EFFECTS; ++e)
+                {
+                    if (si->Effects[e].Effect != SPELL_EFFECT_SUMMON)
+                        continue;
+                    CreatureTemplate const* ct =
+                        sObjectMgr->GetCreatureTemplate(uint32(si->Effects[e].MiscValue));
+                    if (ct && ct->type != CREATURE_TYPE_NON_COMBAT_PET && ct->type != CREATURE_TYPE_CRITTER)
+                        return id;
+                }
+            }
+            return 0;
+        }
+
         // First player-castable spell whose max range clearly exceeds melee
         // (CAST_RANGE_LIMITED_TO_MELEE).
         uint32 RuleTestRangedSpell()
@@ -1426,8 +1449,12 @@ namespace CoAChallenges
             uint32 spell = RuleTestCompanionSpell();
             return spell ? Test_SpellCheckCastBlocked(p, spell) : true; });
         RUN("CHALLENGE_RULES_TYPE_NO_PETS_OR_MINIONS", [](Player* p) {
-            uint32 spell = RuleTestCompanionSpell();
-            return spell ? Test_SpellCheckCastBlocked(p, spell) : true; });
+            // Vanity (non-combat) companions are allowed; combat summons are not.
+            uint32 const companionSpell = RuleTestCompanionSpell();
+            bool const companionAllowed = companionSpell ? !Test_SpellCheckCastBlocked(p, companionSpell) : true;
+            uint32 const combatSpell = RuleTestCombatSummonSpell();
+            bool const combatBlocked = combatSpell ? Test_SpellCheckCastBlocked(p, combatSpell) : true;
+            return companionAllowed && combatBlocked; });
         RUN("CHALLENGE_RULES_TYPE_NO_MANASTORM", [](Player* p) {
             return !sScriptMgr->OnPlayerCanEnterManastorm(p); });
 

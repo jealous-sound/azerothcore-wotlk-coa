@@ -15,6 +15,41 @@ int main()
         {17, 520005, 520005, 500906, 1, false, false},
     };
     ResourceService service;
+    // Health cost, rather than a tooltip-derived allowlist, controls Sanguine's income.
+    for (uint32 id : {500125u, 572332u, 800774u, 572907u, 560249u, 560315u, 681304u, 504263u})
+    {
+        Player player;
+        player.cls = CLASS_SON_OF_ARUGAL;
+        Spell spell{&player, {id}};
+        spell.info.SpellFamilyName = 26;
+        spell.info.PowerType = POWER_HEALTH;
+        spell.powerCost = 100;
+        service.OnSpellCast(&spell);
+        assert(player.Count(SPELL_BLOODMAGE_THIRST) == 0);
+        player.AddAura(SPELL_BLOODMAGE_THIRST_PASSIVE, &player);
+        spell.triggered = true;
+        service.OnSpellCast(&spell);
+        assert(player.Count(SPELL_BLOODMAGE_THIRST) == 0);
+        spell.triggered = false;
+        spell.powerCost = 0;
+        service.OnSpellCast(&spell);
+        assert(player.Count(SPELL_BLOODMAGE_THIRST) == 0);
+        spell.powerCost = 100;
+        spell.info.PowerType = 1; // Rage does not qualify.
+        service.OnSpellCast(&spell);
+        assert(player.Count(SPELL_BLOODMAGE_THIRST) == 0);
+        spell.info.PowerType = POWER_HEALTH;
+        player.cls = 14;
+        service.OnSpellCast(&spell);
+        assert(player.Count(SPELL_BLOODMAGE_THIRST) == 0);
+        player.cls = CLASS_SON_OF_ARUGAL;
+        for (uint32 casts = 1; casts <= 12; ++casts)
+        {
+            service.OnSpellCast(&spell);
+            assert(player.Count(SPELL_BLOODMAGE_THIRST) == int32(std::min(casts, 10u)));
+        }
+    }
+
     for (Case const& test : cases)
         for (uint32 id = test.first; id <= test.last; ++id)
         {

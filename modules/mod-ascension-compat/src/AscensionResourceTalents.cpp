@@ -15,6 +15,8 @@ enum ResourceTalentSpells : uint32
     Felfury = 800058,
     RecklessAbandon = 504252,
     Thirst = 706613,
+    Insatiable = 706621,
+    InsatiablePenalty = 706663,
     DeepSecrets = 582307,
     CharmOfWarding = 705967,
     Superconductor = 705646,
@@ -87,6 +89,11 @@ class aura_ascension_resource_talent_refresh : public AuraScript
 {
     PrepareAuraScript(aura_ascension_resource_talent_refresh);
 
+    bool Validate(SpellInfo const* info) override
+    {
+        return info->Id != Thirst || ValidateSpellInfo({Insatiable, InsatiablePenalty});
+    }
+
     void Refresh(uint32 stacks)
     {
         Unit* owner = GetTarget();
@@ -103,11 +110,25 @@ class aura_ascension_resource_talent_refresh : public AuraScript
     void Apply(AuraEffect const* /*effect*/, AuraEffectHandleModes /*mode*/)
     {
         Refresh(GetStackAmount());
+        Unit* owner = GetTarget();
+        // Do not refresh an existing Insatiable: further gains at the cap must
+        // not postpone its native periodic damage penalty.
+        if (GetId() == Thirst && owner->IsPlayer() && owner->getClass() == CLASS_SON_OF_ARUGAL &&
+            GetStackAmount() >= GetSpellInfo()->CalcMaxAuraStacks(owner) &&
+            !owner->HasAura(Insatiable, owner->GetGUID()))
+            owner->CastSpell(owner, Insatiable, true);
     }
 
     void Remove(AuraEffect const* /*effect*/, AuraEffectHandleModes /*mode*/)
     {
         Refresh(0);
+        Unit* owner = GetTarget();
+        if (GetId() == Thirst && owner->IsPlayer() && owner->getClass() == CLASS_SON_OF_ARUGAL)
+        {
+            // Insatiable lasts until Thirst ends, including consumption, expiry and death.
+            owner->RemoveAurasDueToSpell(Insatiable, owner->GetGUID());
+            owner->RemoveAurasDueToSpell(InsatiablePenalty, owner->GetGUID());
+        }
     }
 
     void Register() override

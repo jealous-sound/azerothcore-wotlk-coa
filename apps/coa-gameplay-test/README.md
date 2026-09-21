@@ -348,6 +348,31 @@ teleports and expiry. It requires `mod-portablemail`; mailbox and altar client i
 ownership; `aura_amount` also accepts an effect index (0..2, default 0). Missing auras yield zero;
 check aura presence separately when zero is a valid effect amount. Permanent aura duration is -1.
 
+### Destiny Weaver regressions
+
+`scenarios/destiny-weaver-scaling.json` checks deferred scaling choices, armor debuffs, creature values
+updates after level changes, fractional damage accumulation, and ordinary damage with scaling off.
+It requires `DestinyWeaver.Enable=1`, `DestinyWeaver.LevelScaling=1`, `DestinyWeaver.Scaling.Offset=3`,
+and `AscensionCompat.QuestLevelScaling=1`. Spell 705798 supplies one base damage without critical hits;
+Faerie Fire (770) supplies a 5% armor reduction. Spell 705798 uses melee hit resolution, so the fixture
+sets melee hit and expertise as well as spell hit. Template 1501 has HealthModifier 0.93: the level-1
+fixture's real pool remains 40 HP while its level-57 view has 2,590 HP. Ten one-damage hits cannot remove
+a whole real HP; 67 remove one.
+
+`scenarios/destiny-weaver-quest-fallback.json` requires a separate run with `DestinyWeaver.Enable=0`
+and `AscensionCompat.QuestLevelScaling=1`. Quest 7 must still scale to the player's level and award XP.
+
+The `level_scaling_packet` action takes a player `actor` and `value` (0 or 1). It sends the existing
+four-byte request through the early packet hook on a worker, verifies that player state has not changed
+before a player update, then leaves subsequent assertions to verify the queued choice took effect.
+It tests dispatch and deferral, not a real socket, packet delivery, or every possible concurrent schedule.
+
+`view_level` takes a player `actor` and unit `target` and queries the target-relative combat level.
+`sent_level` and `sent_max_health` use the same fields and observe values-only object updates emitted to
+the socketless session. They return zero until the corresponding field has been observed; they do not
+force updates or inspect client rendering. `quest_level` and `quest_xp` take a player `actor` and `quest`
+and query the native quest level and XP calculations without awarding a reward.
+
 ## Evidence boundaries
 
 The test owns socketless sessions outside the network session manager. Map updates and normal spell/item

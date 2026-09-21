@@ -2824,7 +2824,9 @@ namespace CoAChallenges
     // True when the spell (or a spell it triggers, up to depth 2) summons/tames
     // a pet or minion. Covers summons hidden behind a trigger, e.g.
     // "Harness Animal Spirit" -> "Tame Beast" (SPELL_EFFECT_TAMECREATURE).
-    static bool SpellIsPetSummon(SpellInfo const* info, int depth)
+    // `companion` is set when the summoned creature is a non-combat pet/critter
+    // (a vanity companion), which the NO_PETS_OR_MINIONS rule must not block.
+    static bool SpellIsPetSummon(SpellInfo const* info, int depth, bool& companion)
     {
         if (!info || depth > 2)
             return false;
@@ -2834,6 +2836,10 @@ namespace CoAChallenges
             {
                 case SPELL_EFFECT_SUMMON:
                 case SPELL_EFFECT_SUMMON_PET:
+                    if (CreatureTemplate const* ct = sObjectMgr->GetCreatureTemplate(uint32(info->Effects[i].MiscValue)))
+                        if (ct->type == CREATURE_TYPE_NON_COMBAT_PET || ct->type == CREATURE_TYPE_CRITTER)
+                            companion = true;
+                    return true;
                 case SPELL_EFFECT_TAMECREATURE:
                 case SPELL_EFFECT_CREATE_TAMED_PET:
                     return true;
@@ -2842,7 +2848,7 @@ namespace CoAChallenges
             }
             if (uint32 trig = info->Effects[i].TriggerSpell)
                 if (SpellInfo const* ti = sSpellMgr->GetSpellInfo(trig))
-                    if (SpellIsPetSummon(ti, depth + 1))
+                    if (SpellIsPetSummon(ti, depth + 1, companion))
                         return true;
         }
         return false;
@@ -2882,7 +2888,7 @@ namespace CoAChallenges
                     case SPELL_EFFECT_SUMMON:       // 28: guardians/minions
                         summons = true;
                         if (CreatureTemplate const* ct = sObjectMgr->GetCreatureTemplate(uint32(info->Effects[i].MiscValue)))
-                            if (ct->type == CREATURE_TYPE_NON_COMBAT_PET)
+                            if (ct->type == CREATURE_TYPE_NON_COMBAT_PET || ct->type == CREATURE_TYPE_CRITTER)
                                 companion = true;
                         break;
                     case SPELL_EFFECT_SKILL_STEP:   // 44: learn a profession rank
@@ -2898,7 +2904,7 @@ namespace CoAChallenges
                 }
             }
             // Also catch pets/tames hidden behind a triggered spell.
-            if (!summons && SpellIsPetSummon(info, 0))
+            if (!summons && SpellIsPetSummon(info, 0, companion))
                 summons = true;
             if (!professionSpell)
             {
@@ -3020,7 +3026,9 @@ namespace CoAChallenges
                 res = SPELL_FAILED_CANT_DO_THAT_RIGHT_NOW;
                 return;
             }
-            if (PlayerHasRule(pl, "CHALLENGE_RULES_TYPE_NO_PETS_OR_MINIONS"))
+            // NO_PETS_OR_MINIONS refers to combat pets/summons (incl. totems): the
+            // non-combat (vanity) companions are explicitly allowed, as on Ascension.
+            if (!companion && PlayerHasRule(pl, "CHALLENGE_RULES_TYPE_NO_PETS_OR_MINIONS"))
             {
                 NotifyPlayer(pl, "Your challenge forbids pets and minions.");
                 res = SPELL_FAILED_CANT_DO_THAT_RIGHT_NOW;

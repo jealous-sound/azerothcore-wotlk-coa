@@ -24,6 +24,7 @@
 #include "ItemPackets.h"
 #include "NPCPackets.h"
 #include "Log.h"
+#include "LocalLevelScaling.h"
 #include "Map.h"
 #include "MapMgr.h"
 #include "ObjectAccessor.h"
@@ -38,6 +39,8 @@
 #include "SpellAuras.h"
 #include "SpellMgr.h"
 #include "TemporarySummon.h"
+#include "UpdateData.h"
+#include "UpdateFields.h"
 #include "World.h"
 #include "WorldPacket.h"
 #include "WorldSession.h"
@@ -54,6 +57,7 @@
 #include <chrono>
 #include <cmath>
 #include <filesystem>
+#include <future>
 #include <list>
 #include <limits>
 #include <map>
@@ -61,6 +65,7 @@
 #include <set>
 #include <stdexcept>
 #include <utility>
+#include <vector>
 
 namespace
 {
@@ -68,6 +73,7 @@ using Tree = boost::property_tree::ptree;
 using Clock = std::chrono::steady_clock;
 constexpr uint32 TestPhase = 1u << 30;
 constexpr uint32 MaximumActors = 8;
+constexpr uint16 LevelScalingOpcode = 0x0667;
 
 void Require(bool condition, std::string const& message)
 {
@@ -165,6 +171,7 @@ struct Actor
     uint32 whoResponses = 0;
     uint32 lootReceived = 0;
     uint32 meleeAttacks = 0;
+    std::map<uint64, std::map<uint16, uint32>> unitValues;
     uint32 lastQuestWindow = 0; // the last quest window this session sent, by opcode
     std::unique_ptr<WorldSession> session;
     ObjectGuid guid;
@@ -177,6 +184,49 @@ struct Target
     uint32 instance;
     ObjectGuid guid;
 };
+
+// Observe ordinary values-only packets. Creation/movement blocks have a different variable
+// layout; ignore the rest of that packet and let subsequent values updates supply observations.
+void ObserveUnitValues(Actor& actor, WorldPacket const& packet)
+{
+    if (packet.GetOpcode() != SMSG_UPDATE_OBJECT)
+        return;
+    WorldPacket response(packet);
+    uint32 count;
+    response >> count;
+    for (uint32 block = 0; block < count; ++block)
+    {
+        uint8 type;
+        response >> type;
+        if (type == UPDATETYPE_OUT_OF_RANGE_OBJECTS)
+        {
+            uint32 removed;
+            response >> removed;
+            for (uint32 index = 0; index < removed; ++index)
+            {
+                ObjectGuid guid;
+                response >> guid.ReadAsPacked();
+                actor.unitValues.erase(guid.GetRawValue());
+            }
+            continue;
+        }
+        if (type != UPDATETYPE_VALUES)
+            return;
+        ObjectGuid guid;
+        uint8 blocks;
+        response >> guid.ReadAsPacked() >> blocks;
+        std::vector<uint32> masks(blocks);
+        for (uint32& mask : masks)
+            response >> mask;
+        for (uint16 index = 0; index < uint16(blocks) * 32; ++index)
+            if (masks[index / 32] & (1u << (index % 32)))
+            {
+                uint32 value;
+                response >> value;
+                actor.unitValues[guid.GetRawValue()][index] = value;
+            }
+    }
+}
 
 // Sessions are owned here, outside the network session manager. Character creation,
 // enumeration, DB loading and spell/item use run through the existing session handlers.
@@ -339,6 +389,7 @@ private:
                 actor.definition.get<bool>("bot", false));
             actor.session->SetSocketlessPacketObserver([&actor](WorldPacket const& packet)
             {
+                ObserveUnitValues(actor, packet);
                 if (packet.GetOpcode() == SMSG_ATTACKERSTATEUPDATE)
                 {
                     WorldPacket response(packet);
@@ -643,6 +694,25 @@ private:
             return unit->IsNonMeleeSpellCast(false);
         if (metric == "level")
             return unit->GetLevel();
+        if (metric == "view_level")
+            return GetUnit(step.get<std::string>("target"))->getLevelForTarget(unit);
+        if (metric == "sent_level" || metric == "sent_max_health")
+        {
+            Actor& actor = _actors.at(step.get<std::string>("actor"));
+            uint64 guid = GetUnit(step.get<std::string>("target"))->GetGUID().GetRawValue();
+            uint16 field = metric == "sent_level" ? UNIT_FIELD_LEVEL : UNIT_FIELD_MAXHEALTH;
+            auto itr = actor.unitValues.find(guid);
+            if (itr == actor.unitValues.end() || !itr->second.count(field))
+                return 0;
+            return itr->second.at(field);
+        }
+        if (metric == "quest_level" || metric == "quest_xp")
+        {
+            Player* player = unit->ToPlayer();
+            Quest const* quest = sObjectMgr->GetQuestTemplate(step.get<uint32>("quest"));
+            Require(player && quest, "Quest metric needs a player and an existing quest");
+            return metric == "quest_level" ? player->GetQuestLevel(quest) : player->CalculateQuestRewardXP(quest);
+        }
         if (metric == "stat")
         {
             uint32 stat = step.get<uint32>("stat");
@@ -1128,6 +1198,24 @@ private:
         {
             if (Elapsed(_stepTime) < step.get<uint32>("ms"))
                 return;
+        }
+        else if (action == "level_scaling_packet")
+        {
+            Player* player = GetPlayer(step.get<std::string>("actor"));
+            bool const before = LocalLevelScaling::ScalingChoiceEnabled(player);
+            WorldSession* session = player->GetSession();
+            uint32 value = step.get<uint32>("value");
+            // Exercise the early hook on a worker, as WorldSocket does. Joining here prevents
+            // concurrent map updates in the fixture, so an immediate mutation is deterministic.
+            bool const consumed = std::async(std::launch::async, [session, value]
+            {
+                WorldPacket request(LevelScalingOpcode, sizeof(uint32));
+                request << value;
+                return !sScriptMgr->CanPacketReceiveEarly(session, request);
+            }).get();
+            Require(consumed, "Scaling packet was not consumed");
+            Require(LocalLevelScaling::ScalingChoiceEnabled(player) == before,
+                "Early packet hook changed player state before the player update");
         }
         else if (action == "snapshot" || action == "assert")
         {

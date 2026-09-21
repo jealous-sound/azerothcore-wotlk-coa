@@ -27,6 +27,7 @@ IDENTIFIER = re.compile(r'[A-Za-z_][A-Za-z0-9_]*\Z')
 ACTOR_ID = re.compile(r'[a-z][a-z0-9_]{0,31}\Z')
 LOCAL_HOSTS = {'127.0.0.1', 'localhost', '::1'}
 METRICS = {
+    'view_level', 'sent_level', 'sent_max_health', 'quest_level', 'quest_xp',
     'health', 'health_pct', 'max_health', 'power', 'max_power', 'alive', 'combat', 'casting', 'level',
     'aura', 'aura_stacks', 'aura_charges', 'aura_duration_ms', 'aura_amount', 'aura_positive',
     'knows_spell', 'has_talent', 'talent_points', 'cooldown_ms', 'item_count', 'carried_item_count', 'bank_bag_slots',
@@ -68,6 +69,7 @@ METRIC_FIELDS = {'actor', 'metric', 'spell', 'power', 'caster', 'effect', 'item'
                  'relative_to', 'ratio_to', 'target', 'quest', 'id', 'stat', 'school', 'hand', 'rating', 'op',
                  'base', 'key', 'index'}
 ACTIONS = {
+    'level_scaling_packet': ({'actor', 'value'}, {'actor', 'value'}),
     'console': ({'command'}, {'command'}),
     'command': ({'actor', 'command'}, {'actor', 'command'}),
     'wait': ({'ms'}, {'ms'}),
@@ -245,11 +247,19 @@ def validate(scenario):
                 number(step[key], f'{where}.{key}', 0, scenario.get('timeout_ms', 90000), True)
         if action == 'set_level':
             number(step['value'], f'{where}.value', 1, 80, True)
+        if action == 'level_scaling_packet':
+            number(step['value'], f'{where}.value', 0, 1, True)
         if 'value' in step:
             number(step['value'], f'{where}.value', 1 if action == 'set_health' else 0, 2**31 - 1, True)
         if action in {'snapshot', 'assert'}:
             metric = step['metric']
             require(metric in METRICS, f'{where}: unknown metric')
+            if metric in {'view_level', 'sent_level', 'sent_max_health'}:
+                require(step['actor'] in player_ids and 'target' in step,
+                        f'{where}: view metric needs a player and target')
+            if metric in {'quest_level', 'quest_xp'}:
+                require(step['actor'] in player_ids and 'quest' in step,
+                        f'{where}: quest metric needs a player and quest')
             if metric.startswith('aura') or metric in {
                     'knows_spell', 'cooldown_ms', 'has_talent', 'pet_aura_stacks', 'charm_aura_stacks',
                     'dynamic_object', 'dynamic_object_duration_ms', 'spell_power_cost',

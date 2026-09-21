@@ -104,8 +104,11 @@ void KillRewarder::_InitGroupData()
                         }
                         // 2.4. _maxNotGrayMember - maximum level of alive group member within reward distance,
                         //      for whom victim is not gray;
+                        // Gray is decided per member: with open-world scaling the victim stands at a
+                        // different level for each of them, so one member's scaled kill can be another
+                        // member's gray kill. Without a view this is the object's own level.
                         uint32 grayLevel = Acore::XP::GetGrayLevel(lvl);
-                        if (_victim->GetLevel() > grayLevel && (!_maxNotGrayMember || _maxNotGrayMemberLevel < lvl))
+                        if (_victim->getLevelForTarget(member) > grayLevel && (!_maxNotGrayMember || _maxNotGrayMemberLevel < lvl))
                         {
                             _maxNotGrayMember = member;
                             _maxNotGrayMemberLevel = lvl;
@@ -171,7 +174,7 @@ void KillRewarder::_RewardXP(Player* player, float rate)
         {
             uint8 const referenceLevel = _group ? _maxLevel : player->GetLevel();
             uint8 const highestLevel = creature->GetHighestPlayerAttackerLevel();
-            if (highestLevel > referenceLevel && creature->GetLevel() <= Acore::XP::GetGrayLevel(highestLevel))
+            if (highestLevel > referenceLevel && creature->getLevelForTarget(player) <= Acore::XP::GetGrayLevel(highestLevel))
                 xp = xp / 2 + 1;
         }
 
