@@ -29,12 +29,11 @@ restored to this realm's trainer data at all.
   That bit is what makes the client show *New Spell Learned* and play its sound: a rank up of an
   ability whose row lacks it - or a spell the table has no row for - is otherwise silent, which is
   the way a purchase used to succeed with no popup at all.
-- **Automatic delivery.** `AscensionCompat.AutoProgression` ships as `1` (config file and code
-  default) in `mod-ascension-compat`, so the class spells, rank upgrades and automatic talents,
-  including a specialization's identity passive such as Reaper's Harvester, are granted as a
-  character levels. A realm that wants the books to be the only way abilities are earned sets it
-  to `0`: nothing is then granted automatically, while the reconcile pass, talent replacements,
-  taught abilities and the runemaster passes are untouched and the gossip option that restores a
+- **Automatic delivery off.** The books are how a character earns abilities, so this change ships
+  `AscensionCompat.AutoProgression = 0` (config file and code default) in `mod-ascension-compat`:
+  the class spells, rank upgrades and automatic talents that module handed out on level up are no
+  longer granted automatically. It only ever subtracts - the reconcile pass, talent replacements,
+  taught abilities and the runemaster passes are untouched, and the gossip option that restores a
   character's abilities on request still grants them.
 
 ## The data

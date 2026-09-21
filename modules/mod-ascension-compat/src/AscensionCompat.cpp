@@ -107,6 +107,7 @@
 using namespace Acore::ChatCommands;
 
 namespace {
+constexpr uint32 SPELL_REAPER_HARVESTER = 92145;
 constexpr uint16 CMSG_ANTICHEAT_ALERT = 0x051F;
 // The Character Advancement point purchase. Never observed on this realm: the patch-B
 // Lua shim overrides AddByEntryID/ApplyPendingBuild and sends ".localtalent" instead,
@@ -407,7 +408,7 @@ public:
     SetConfigValue<bool>(AscensionCompatConfig::QUEST_LEVEL_SCALING,
                          "AscensionCompat.QuestLevelScaling", true);
     SetConfigValue<bool>(AscensionCompatConfig::AUTO_PROGRESSION,
-                         "AscensionCompat.AutoProgression", true);
+                         "AscensionCompat.AutoProgression", false);
   }
 };
 
@@ -743,6 +744,20 @@ public:
         }
 
     ReconcileRunemasterFists(player, activeSpec);
+    // Harvester is Reaping's identity passive. Its Blood Harvest heal only works while it is known, so it is
+    // granted with the specialization even when automatic progression is off.
+    if (!automaticProgression && player->getClass() == CLASS_REAPER && !player->HasSpell(SPELL_REAPER_HARVESTER) &&
+        sSpellMgr->GetSpellInfo(SPELL_REAPER_HARVESTER))
+    {
+      auto const& entries = AscensionCompatData::CoATalentEntries;
+      auto harvester = std::find_if(entries.begin(), entries.end(), [](auto const& entry)
+          { return entry.SpellCount && entry.SpellIds[0] == SPELL_REAPER_HARVESTER; });
+      if (harvester != entries.end() && CanGrantAutomaticEntry(player, *harvester, activeSpec))
+      {
+        player->learnSpell(SPELL_REAPER_HARVESTER, false);
+        ++learned;
+      }
+    }
     if (automaticProgression)
       learned += SynchronizeAutomaticTalents(player, GetActiveSpecialization(player));
     // Rank upgrades are conditional on already owning the root. They cannot

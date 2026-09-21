@@ -88,7 +88,7 @@ AscensionCompat.QuestLevelScaling = 1
 # talents for the character's class and level as they level up. Set to 0 to stop that
 # and let the player ask instead - a Book of Ascension grants them, so a realm that
 # wants the books to be the way abilities are earned runs with this off. Reloadable.
-AscensionCompat.AutoProgression = 1
+AscensionCompat.AutoProgression = 0
 
 # Extension range derived from the installed client's opcode dispatch table.
 # Keep these values decimal because ConfigMgr numeric values are parsed as decimal.
