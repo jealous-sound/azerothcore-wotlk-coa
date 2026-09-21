@@ -191,6 +191,9 @@ engagement through the normal cast handler. This tests the damage path, not an O
 Players require `id`, numeric `race` and `class`; `level` defaults to 80. Optional `spell_hit_rating`,
 `spell_crit_rating`, `ranged_hit_rating`, `melee_hit_rating` and `expertise_rating` add fixture ratings through
 normal calculations, useful for preventing misses, dodges and parries in deterministic tests.
+Optional `allow_regeneration: false` suppresses only that fixture player's ordinary health/power regeneration
+through the native regeneration hook. Spell costs, healing, energize effects and combat remain enabled.
+It defaults to true and has no effect on other players or on a disabled harness.
 Characters are created and loaded through the existing character creation, enumeration and login
 handlers with ordinary player security. Optional `location` supplies `map`, `x`, `y`, `z`, `o` for a fixture
 teleport. `location.ignore_access` optionally bypasses entry requirements for a fixture (for example a solo

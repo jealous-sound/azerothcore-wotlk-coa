@@ -57,6 +57,7 @@
 #include <limits>
 #include <map>
 #include <memory>
+#include <set>
 #include <stdexcept>
 #include <vector>
 
@@ -64,6 +65,21 @@ namespace
 {
 using Tree = boost::property_tree::ptree;
 using Clock = std::chrono::steady_clock;
+
+// Only populated by an explicitly configured actor in the isolated gameplay harness.
+std::set<ObjectGuid> NoRegenerationActors;
+
+class CoAGameplayTestRegeneration final : public PlayerScript
+{
+public:
+    CoAGameplayTestRegeneration() : PlayerScript("CoAGameplayTestRegeneration",
+        {PLAYERHOOK_ON_CAN_REGENERATE}) { }
+
+    bool OnPlayerCanRegenerate(Player* player, int32) override
+    {
+        return !NoRegenerationActors.contains(player->GetGUID());
+    }
+};
 constexpr uint32 TestPhase = 1u << 30;
 constexpr uint32 MaximumActors = 8;
 
@@ -569,6 +585,8 @@ private:
                 player->ApplyRatingMod(CR_HIT_MELEE, *hitRating, true);
             if (auto expertise = actor.definition.get_optional<int32>("expertise_rating"))
                 player->ApplyRatingMod(CR_EXPERTISE, *expertise, true);
+            if (!actor.definition.get<bool>("allow_regeneration", true))
+                NoRegenerationActors.insert(player->GetGUID());
             player->SetHealth(player->GetMaxHealth());
             for (uint8 power = 0; power < MAX_POWERS; ++power)
                 player->SetPower(Powers(power), player->GetMaxPower(Powers(power)));
@@ -1891,6 +1909,7 @@ private:
             if (actor.session && actor.session->GetPlayer())
                 actor.session->LogoutPlayer(false);
         _actors.clear();
+        NoRegenerationActors.clear();
         _report.put("status", passed ? "passed" : "failed");
         _report.put("message", message);
         _report.put("elapsed_ms", Elapsed(_started));
@@ -1938,4 +1957,5 @@ private:
 void AddCoAGameplayTestScripts()
 {
     new CoAGameplayTest();
+    new CoAGameplayTestRegeneration();
 }
