@@ -285,9 +285,7 @@ void ApplyContracts(SpellInfo* info)
         info->AttributesCu |= SPELL_ATTR0_CU_IGNORE_ARMOR;
     }
     if (id == 807198)
-        info->Effects[EFFECT_1].Effect = 0;
-    if (id == 807231)
-        info->Effects[EFFECT_0].Effect = 0;
+        info->Effects[EFFECT_1].Effect = 0; // night grants the authored Agility only
     if (id == 804185)
         for (SpellEffectInfo& effect : info->Effects)
             if (effect.IsAura())

@@ -13,6 +13,7 @@
 #include "AllCreatureScript.h"
 #include "AllSpellScript.h"
 #include "AscensionChangelogCompat.h"
+#include "AscensionCompatOpcodes.h"
 #include "AscensionCharacterSelection.h"
 #include "AscensionManastorm.h"
 #include "AscensionClassMechanics.h"
@@ -76,6 +77,7 @@
 #include "Player.h"
 #include "QuestDef.h"
 #include "Random.h"
+#include "Realm.h"
 #include "ScriptMgr.h"
 #include "ScriptedGossip.h"
 #include "Spell.h"
@@ -137,6 +139,35 @@ constexpr uint16 SMSG_CHARACTER_ADVANCEMENT_ACTIVE_SPEC = 0x0725;
 constexpr uint16 SMSG_CHARACTER_ADVANCEMENT_KNOWN_ENTRIES = 0x0726;
 constexpr uint16 CMSG_CHARACTER_ADVANCEMENT_KNOWN_ENTRIES = 0x0727;
 constexpr uint16 CMSG_MISSILE_FIRE_POSITION = 0x09C7;
+
+// The PATCH family fills client tables at runtime. The vanity collection does
+// NOT need it: the client reads that catalogue from its own DBC and only
+// discards it while no realm type applies. The number is recorded here because
+// it was hard to find and belongs to the family.
+constexpr uint16 SMSG_PATCH_VANITY_COLLECTION = 0x0573;
+
+// Without this packet the client knows of no realm type, and with no realm
+// type it drops EVERY vanity row while building its catalogue. That is why the
+// collection window stays empty however the ownership list is sent.
+//
+// Payload order, read out of the handler at 0x102FC6C0 (registered at
+// 0x102FC5E0). Offsets are into the client's realm service:
+//   uint32  RealmId          -> +0x04 (GetRealmId)
+//   uint32  Expansion        -> +0x08 (GetRealmExpansion)
+//   float   x3               -> +0x0C, +0x10, +0x14
+//   uint32                   -> +0x18
+//   float   x2               -> +0x1C, +0x20
+//   uint32                   -> +0x24
+//   uint8   x8               -> +0x40..+0x47
+//                               0 IsLive, 1 IsSeasonal, 2 IsLeague, 3 IsPTR,
+//                               4 IsDevelopment, 5 IsProduction; 6 and 7 have
+//                               no Lua getter
+//   String  (NUL)            -> +0x28
+//   String  (NUL)            -> +0x4C
+//   uint8
+//   uint32                   OPTIONAL: the handler checks whether any bytes
+//                            are left and takes 0 when none are
+constexpr uint16 SMSG_REALM_INFO = 0x09BC;
 
 // The client carries a personal-bank mode on top of the guild vault window. It is
 // switched on by this packet, not by the item's spell: clicking the summoned
@@ -234,6 +265,8 @@ constexpr uint32 SPELL_PYROMANCER_EMBER = 807533;
 constexpr uint32 SPELL_PRIMALIST_EARTHSHAPING = 680441;
 constexpr uint32 SPELL_STORMBRINGER_STATIC = 803102;
 constexpr uint32 SPELL_STORMBRINGER_CHARGED_CONDUIT = 803790;
+constexpr uint32 SPELL_BLOODMAGE_THIRST_PASSIVE = 92112;
+constexpr uint32 SPELL_BLOODMAGE_THIRST = 706613;
 constexpr uint32 SPELL_REAPER_REAPED_SOUL = 500363;
 constexpr uint32 SPELL_REAPER_SOUL_INFUSION = 803031;
 // Removes Reaped Souls, Soul Infusion and Soul Fragments; Soul Infusion's own proc trigger points to it.
@@ -300,6 +333,8 @@ constexpr uint32 APPEARANCE_LOGIN_RESYNC_DELAY_MS = 3000;
 constexpr std::size_t MAX_QUEUED_EXTENSION_PACKETS = 64;
 constexpr uint32 VANITY_CATEGORY_MOUNTS = 0x04000000;
 constexpr uint32 VANITY_CATEGORY_COMPANIONS = 0x08000000;
+constexpr uint32 ITEM_WONDROUS_WISDOMBALL = 101169;
+constexpr uint32 ITEM_FIX_O_TRON_5000 = 97330;
 constexpr std::size_t COMPANION_SPELLS_PER_BATCH = 4;
 constexpr uint32 COMPANION_SPELL_BATCH_INTERVAL_MS = 200;
 
@@ -321,11 +356,13 @@ enum class AscensionCompatConfig {
   UNLOCK_LOCAL_APPEARANCE_CATALOG,
   APPEARANCE_CATALOG_PER_CATEGORY,
   UNLOCK_ALL_VANITY,
+  REALM_TYPE,
   ALLOW_LEARNED_SPELL_DELIVERY,
   LEARN_OWNED_COMPANIONS,
   MAX_RIDING_FROM_START,
   LEVEL_SCALING,
   QUEST_LEVEL_SCALING,
+  AUTO_PROGRESSION,
 
   NUM_CONFIGS,
 };
@@ -355,6 +392,10 @@ public:
         "AscensionCompat.AppearanceCatalogPerCategory", 500);
     SetConfigValue<bool>(AscensionCompatConfig::UNLOCK_ALL_VANITY,
                          "AscensionCompat.UnlockAllVanity", true);
+    // live, seasonal, league, ptr or development. The client discards its
+    // whole vanity catalogue while none of them applies.
+    SetConfigValue<std::string>(AscensionCompatConfig::REALM_TYPE,
+                                "AscensionCompat.RealmType", "live");
     SetConfigValue<bool>(AscensionCompatConfig::ALLOW_LEARNED_SPELL_DELIVERY,
                          "AscensionCompat.AllowLearnedSpellDelivery", true);
     SetConfigValue<bool>(AscensionCompatConfig::LEARN_OWNED_COMPANIONS,
@@ -365,6 +406,8 @@ public:
                          "AscensionCompat.LevelScaling", true);
     SetConfigValue<bool>(AscensionCompatConfig::QUEST_LEVEL_SCALING,
                          "AscensionCompat.QuestLevelScaling", true);
+    SetConfigValue<bool>(AscensionCompatConfig::AUTO_PROGRESSION,
+                         "AscensionCompat.AutoProgression", false);
   }
 };
 
@@ -570,7 +613,11 @@ public:
     return instance;
   }
 
-  uint32 SynchronizeProgression(Player *player) {
+  /// @param explicitRequest true when the player asked for the abilities
+  ///        themselves - the gossip option that restores them. Automatic
+  ///        progression can be switched off while an explicit request keeps
+  ///        working.
+  uint32 SynchronizeProgression(Player *player, bool explicitRequest = false) {
     if (!IsAscensionCustomClass(player))
       return 0;
 
@@ -639,15 +686,26 @@ public:
       LOG_INFO("module.ascension_compat", "Reconciled {} proven class grants for {} against live level {}",
           removed, player->GetName(), uint32(player->GetLevel()));
     uint32 learned = 0;
+    // AscensionCompat.AutoProgression is the automatic half of progression: the
+    // class abilities, rank upgrades and automatic talents this service hands
+    // out as a character levels. Switched off, nothing is granted here and the
+    // player earns them another way - the Books of Ascension sell the ranks, and
+    // the gossip option that restores a character's abilities passes
+    // explicitRequest and keeps working. The reconcile pass above runs either
+    // way, so a build never keeps an ability it is no longer allowed to hold.
+    bool const automaticProgression =
+        explicitRequest || ascensionCompatConfig.GetConfigValue<bool>(
+                               AscensionCompatConfig::AUTO_PROGRESSION);
     // The live baseline sampled one race per class. Repair every race from its own DBC skill line.
     for (uint32 spellId : racialSpells)
-        if (!player->HasSpell(spellId) && sSpellMgr->GetSpellInfo(spellId))
+        if (automaticProgression && !player->HasSpell(spellId) && sSpellMgr->GetSpellInfo(spellId))
         {
             player->learnSpell(spellId, false);
             ++learned;
         }
     for (auto const& entry : AscensionLiveBaseline::Spells)
-      if (entry.ClassId == player->getClass() && (!entry.RaceId || entry.RaceId == player->getRace()) &&
+      if (automaticProgression && entry.ClassId == player->getClass() &&
+          (!entry.RaceId || entry.RaceId == player->getRace()) &&
           CanGrantAscensionRacialSpell(player, entry.SpellId) &&
           !player->HasSpell(entry.SpellId) && sSpellMgr->GetSpellInfo(entry.SpellId))
       {
@@ -656,7 +714,8 @@ public:
       }
     for (AscensionCompatData::ClassSpell const &progressionSpell :
          AscensionCompatData::ClassSpells) {
-      if (progressionSpell.ClassId != player->getClass() ||
+      if (!automaticProgression ||
+          progressionSpell.ClassId != player->getClass() ||
           progressionSpell.RequiredLevel > player->GetLevel() ||
           !CanGrantAscensionRacialSpell(player, progressionSpell.SpellId) ||
           player->HasSpell(progressionSpell.SpellId))
@@ -675,7 +734,8 @@ public:
     }
     if (player->getClass() == CLASS_DEMON_HUNTER)
       for (FelswornRiftGrant const& rift : FelswornHordeCapitalRifts)
-        if (rift.RequiredLevel <= player->GetLevel() && CanGrantAscensionRacialSpell(player, rift.SpellId) &&
+        if (automaticProgression && rift.RequiredLevel <= player->GetLevel() &&
+            CanGrantAscensionRacialSpell(player, rift.SpellId) &&
             !player->HasSpell(rift.SpellId) && sSpellMgr->GetSpellInfo(rift.SpellId))
         {
           player->learnSpell(rift.SpellId, false);
@@ -683,12 +743,14 @@ public:
         }
 
     ReconcileRunemasterFists(player, activeSpec);
-    learned += SynchronizeAutomaticTalents(player, GetActiveSpecialization(player));
+    if (automaticProgression)
+      learned += SynchronizeAutomaticTalents(player, GetActiveSpecialization(player));
     // Rank upgrades are conditional on already owning the root. They cannot
     // spend talent points, pick an unselected ability, or leak an old spec.
     for (AscensionProgression::Rank const& rank : AscensionProgression::Ranks)
     {
-        if (rank.ClassId != player->getClass() || rank.RequiredLevel > player->GetLevel() ||
+        if (!automaticProgression || rank.ClassId != player->getClass() ||
+            rank.RequiredLevel > player->GetLevel() ||
             !player->HasSpell(rank.FirstSpellId) || player->HasSpell(rank.SpellId))
             continue;
 
@@ -1910,6 +1972,76 @@ public:
     return picks;
   }
 
+  /// Talent-button layouts belong to the specialization being left, just like its build.
+  static std::string BarSetting(uint32 specializationId)
+  {
+    return "core.ascension_bar." + std::to_string(specializationId);
+  }
+
+  static std::vector<std::pair<uint8, uint32>> StoredBar(Player const* player, uint32 specializationId)
+  {
+    std::vector<std::pair<uint8, uint32>> bar;
+    PlayerSettingVector const* values = player->FindPlayerSettings(BarSetting(specializationId));
+    if (!values || values->empty())
+      return bar;
+
+    std::size_t const count = std::min<std::size_t>((*values)[0].value, (values->size() - 1) / 2);
+    for (std::size_t index = 0; index < count; ++index)
+      if (uint32 const button = (*values)[2 * index + 1].value; button < MAX_ACTION_BUTTONS)
+        if (uint32 const spell = (*values)[2 * index + 2].value)
+          bar.emplace_back(uint8(button), spell);
+    return bar;
+  }
+
+  static void StoreBar(Player* player, uint32 specializationId,
+                       std::vector<std::pair<uint8, uint32>> const& bar)
+  {
+    std::string const setting = BarSetting(specializationId);
+    std::size_t previous = 0;
+    if (PlayerSettingVector const* values = player->FindPlayerSettings(setting))
+      previous = values->size();
+
+    player->UpdatePlayerSetting(setting, 0, uint32(bar.size()));
+    for (std::size_t index = 0; index < bar.size(); ++index)
+    {
+      player->UpdatePlayerSetting(setting, uint32(2 * index + 1), bar[index].first);
+      player->UpdatePlayerSetting(setting, uint32(2 * index + 2), bar[index].second);
+    }
+    for (std::size_t index = 2 * bar.size() + 1; index < previous; ++index)
+      player->UpdatePlayerSetting(setting, uint32(index), 0);
+  }
+
+  /// Snapshot the current layout, including intentional deletions, then clear outgoing talent buttons.
+  static void RememberBarButtons(Player* player, uint32 specializationId,
+                                 std::unordered_set<uint32> const& spells)
+  {
+    std::vector<std::pair<uint8, uint32>> bar;
+    for (uint8 button = 0; button < MAX_ACTION_BUTTONS; ++button)
+    {
+      ActionButton const* action = player->GetActionButton(button);
+      if (!action || action->GetType() != ACTION_BUTTON_SPELL || !spells.contains(action->GetAction()))
+        continue;
+
+      bar.emplace_back(button, action->GetAction());
+      player->removeActionButton(button);
+    }
+    StoreBar(player, specializationId, bar);
+  }
+
+  static void RestoreBarButtons(Player* player, uint32 specializationId, uint32 previousSpecialization)
+  {
+    // A never-visited specialization inherits shared talent buttons. An explicitly empty saved
+    // layout stays empty. Existing non-talent buttons always take precedence over remembered ones.
+    uint32 const source = player->FindPlayerSettings(BarSetting(specializationId))
+        ? specializationId : previousSpecialization;
+    for (auto const& [button, spell] : StoredBar(player, source))
+      if (player->HasSpell(spell) && !player->GetActionButton(button))
+        player->addActionButton(button, spell, ACTION_BUTTON_SPELL);
+
+    // Pair the pre-unlearn clear with a complete resend, even when no talent button was restored.
+    player->SendInitialActionButtons();
+  }
+
   /// Writes down the class tree and the tree of the specialization being left.
   void StoreBuilds(Player* player, uint32 specializationId)
   {
@@ -1985,6 +2117,18 @@ public:
 
     std::unordered_set<uint32> visitedSpellIds;
     uint32 removed = 0;
+    {
+      std::unordered_set<uint32> talentSpells;
+      for (AscensionCompatData::CoATalentEntry const& entry : AscensionCompatData::CoATalentEntries)
+        if (entry.ClassId == player->getClass())
+          for (uint32 spellId : entry.SpellIds)
+            if (spellId && player->HasSpell(spellId))
+              talentSpells.insert(spellId);
+      // Use the native spec-swap protocol: clear the client before unlearning spells, then
+      // resend the complete layout after restoring the destination build.
+      player->SendActionButtons(2);
+      RememberBarButtons(player, previousSpecialization, talentSpells);
+    }
     for (AscensionCompatData::CoATalentEntry const &entry :
          AscensionCompatData::CoATalentEntries) {
       if (entry.ClassId != player->getClass())
@@ -2008,6 +2152,7 @@ public:
 
     uint32 const restored = RestoreBuilds(player, specializationId);
     uint32 granted = SynchronizeProgression(player);
+    RestoreBarButtons(player, specializationId, previousSpecialization);
     ChatHandler(player->GetSession())
         .PSendSysMessage(
             "Activated specialization {}. Stored the build of specialization {}, removed {} old talent "
@@ -2225,6 +2370,7 @@ public:
         }
 
         validateResourceSpell(SPELL_REAPER_GENERATE_SOUL);
+        validateResourceSpell(SPELL_BLOODMAGE_THIRST_PASSIVE);
 
         for (AscensionCompatData::ResourceGainRule const& rule :
              AscensionCompatData::ResourceGainRules)
@@ -2458,6 +2604,15 @@ public:
 
         SpellInfo const* spellInfo = spell->GetSpellInfo();
         uint32 spellId = spellInfo->Id;
+
+        // CharacterAdvancement entry 4025 grants 92112, not the old 500107 passive.
+        // Its contract covers every health-cost spell, including utility spells and
+        // talent ranks without the conditional Thirst sentence in their tooltip.
+        // This hook runs after a successful cast; triggered children are excluded above.
+        if (player->getClass() == CLASS_SON_OF_ARUGAL && spellInfo->SpellFamilyName == 26 &&
+            spellInfo->PowerType == POWER_HEALTH && spell->GetPowerCost() > 0 &&
+            player->HasAura(SPELL_BLOODMAGE_THIRST_PASSIVE))
+            ModifyAuraStacks(player, SPELL_BLOODMAGE_THIRST, 1);
 
         for (AscensionCompatData::ResourceGainRule const& rule :
              AscensionCompatData::ResourceGainRules)
@@ -3328,6 +3483,9 @@ public:
     SendActiveAppearances(player, *state);
     SendOutfitCollection(player);
     SendAppearanceVisibility(player, *state);
+    // BEFORE the collection: with no realm type known the client builds an
+    // empty catalogue and keeps it until it is initialised again.
+    SendRealmInfo(player);
     SendVanityCollection(player, *state);
     SendOwnedVanityStoreRecords(player, *state);
     RefreshVisibleItems(player);
@@ -3605,12 +3763,10 @@ public:
         bool const unlockAll = ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::UNLOCK_ALL_VANITY);
         for (auto const& [itemId, vanity] : _vanityItems)
         {
-            // Some companions are filed under another catalogue category (the Wondrous Wisdomball and the
-            // Fix-o-Tron 5000 sit under utility), so the item's own class is checked as well.
-            ItemTemplate const* item = sObjectMgr->GetItemTemplate(itemId);
-            bool const companionItem = item && item->Class == ITEM_CLASS_MISC &&
-                item->SubClass == ITEM_SUBCLASS_JUNK_PET;
-            if (!(vanity.CategoryMask & (VANITY_CATEGORY_MOUNTS | VANITY_CATEGORY_COMPANIONS)) && !companionItem)
+            // The Wondrous Wisdomball and the Fix-o-Tron 5000 are filed under the utility category, so they are
+            // named here; teaching every companion item would show the client's Companions spellbook tab.
+            bool const utilityCompanion = itemId == ITEM_WONDROUS_WISDOMBALL || itemId == ITEM_FIX_O_TRON_5000;
+            if (!(vanity.CategoryMask & (VANITY_CATEGORY_MOUNTS | VANITY_CATEGORY_COMPANIONS)) && !utilityCompanion)
                 continue;
             if ((!unlockAll && !state.OwnedVanityItems.contains(itemId)) ||
                 std::binary_search(AscensionCollectibles::SigilSpells.begin(),
@@ -3842,7 +3998,11 @@ public:
         return;
       }
 
-      player->StoreNewItem(destinations, itemId, true);
+      // Without SendNewItem the delivery is silent: the item is in the bag,
+      // but the client is never told, so nothing moves on screen and the
+      // player reasonably concludes the button is broken.
+      if (Item* delivered = player->StoreNewItem(destinations, itemId, true))
+        player->SendNewItem(delivered, 1, true, false);
 
       // A bank is also owned as a spell, so the spell comes with the item rather than at the next
       // login.
@@ -4319,6 +4479,43 @@ private:
     player->GetSession()->SendPacket(&packet);
   }
 
+public:
+  /// Tells the client what kind of realm it is connected to.
+  ///
+  /// Only one of the five types is set. Setting all of them would be
+  /// convenient and wrong: the same getters are read in many other places.
+  void SendRealmInfo(Player *player) {
+    std::string const art = ascensionCompatConfig.GetConfigValue<std::string>(
+        AscensionCompatConfig::REALM_TYPE);
+
+    uint8 flags[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+    if (art == "seasonal")         flags[1] = 1;
+    else if (art == "league")      flags[2] = 1;
+    else if (art == "ptr")         flags[3] = 1;
+    else if (art == "development") flags[4] = 1;
+    else                           flags[0] = 1;   // live
+
+    WorldPacket p(SMSG_REALM_INFO, 64);
+    p << static_cast<uint32>(realm.Id.Realm);
+    p << static_cast<uint32>(EXPANSION_WRATH_OF_THE_LICH_KING);
+    p << 0.0f << 0.0f << 0.0f;
+    p << static_cast<uint32>(0);
+    p << 0.0f << 0.0f;
+    p << static_cast<uint32>(0);
+    for (uint8 f : flags)
+      p << f;
+    p << sWorld->GetRealmName();
+    p << "";
+    p << static_cast<uint8>(0);
+    // The trailing uint32 is optional; the handler takes 0 when none follows.
+
+    player->GetSession()->SendPacket(&p);
+
+    LOG_INFO("module.ascension_compat",
+             "Realm info sent to {}: type {}, realm {}.", player->GetName(), art, realm.Id.Realm);
+  }
+
+private:
   void SendOutfitCollection(Player *player)
   {
     // The 0x069D handler clears/rebuilds the client's saved-outfit map and,
@@ -4382,10 +4579,20 @@ private:
   /// from the same catalogue rows the ownership list is built from.
   void SendOwnedVanityStoreRecords(Player *player,
                                    PlayerCollectionState const &state) {
+    // DIAGNOSE (19.09.2026): UnlockAllVanity hat bisher nur die Besitzliste
+    // aufgeblaeht, nicht die Store-Records - der Client bekam 10764 Ids, aber
+    // nur 15 Datensaetze. Wenn das Fenster seine Eintraege aus den RECORDS
+    // zieht, erklaert das, warum es leer bleibt. Also hier dieselbe Regel.
+    bool const unlockAll = ascensionCompatConfig.GetConfigValue<bool>(
+        AscensionCompatConfig::UNLOCK_ALL_VANITY);
+
     std::vector<uint32> itemIds;
-    for (uint32 itemId : state.OwnedVanityItems)
-      if (_vanityItems.contains(itemId))
-        itemIds.push_back(itemId);
+    if (unlockAll)
+      itemIds = _allVanityItemIds;
+    else
+      for (uint32 itemId : state.OwnedVanityItems)
+        if (_vanityItems.contains(itemId))
+          itemIds.push_back(itemId);
 
     std::sort(itemIds.begin(), itemIds.end());
     itemIds.erase(std::unique(itemIds.begin(), itemIds.end()), itemIds.end());
@@ -5049,6 +5256,11 @@ public:
 
       return false;
     }
+
+    // An opcode another module claimed is that module's to handle. This consumer is
+    // registered first, so absorbing it here would mean the owner never sees it.
+    if (AscensionCompatOpcodes::Dispatch(session, packet))
+      return false;
 
     if (ascensionCompatConfig.GetConfigValue<bool>(
             AscensionCompatConfig::LOG_CONSUMED_PACKETS)) {
@@ -6096,6 +6308,13 @@ std::unordered_map<uint64, uint8> g_levelScalingPendingEngager;
 
 bool CanScaleCreature(Creature const* creature)
 {
+  // A module that scales per character (each viewer's own level, sent only to that viewer) owns the
+  // answer while it is on: this path lifts the creature object itself, which every client is told
+  // about, so the two would disagree and a character who never asked for scaling would see a raised
+  // world anyway. Read live, so either model can take over on a config reload.
+  if (LocalLevelScaling::CreatureScalingOwnedPerViewer.load(std::memory_order_relaxed))
+    return false;
+
   return LocalLevelScaling::CreatureEnabled.load(std::memory_order_relaxed) && creature &&
       !creature->GetMap()->IsScriptedPrivateInstance() &&
       !creature->IsPet() && !creature->IsTotem() && !creature->IsTrigger() && !creature->IsCritter() &&
@@ -6689,7 +6908,9 @@ public:
             !IsAscensionCustomClass(player))
             return true;
 
-        if (!AscensionClassService::Instance().SynchronizeProgression(player))
+        // The player is asking for these abilities themselves, so this keeps
+        // working while automatic progression is switched off.
+        if (!AscensionClassService::Instance().SynchronizeProgression(player, true))
             ChatHandler(player->GetSession()).SendSysMessage("Your available class abilities are already up to date.");
         return true;
     }

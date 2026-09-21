@@ -197,9 +197,9 @@ void Quest::LoadQuestTemplateAddon(Field* fields)
     }
 }
 
-uint32 Quest::XPValue(uint8 playerLevel) const
+uint32 Quest::XPValue(uint8 playerLevel, bool levelScaling) const
 {
-    int32 quest_level = LocalLevelScaling::QuestEnabled.load(std::memory_order_relaxed) ?
+    int32 quest_level = levelScaling && LocalLevelScaling::QuestEnabled.load(std::memory_order_relaxed) ?
         LocalLevelScaling::ScaleQuestLevel(Level, playerLevel) : (Level == -1 ? playerLevel : Level);
     QuestXPEntry const* xpentry = sQuestXPStore.LookupEntry(quest_level);
     if (!xpentry)
@@ -235,10 +235,54 @@ uint32 Quest::XPValue(uint8 playerLevel) const
         xp = 50 * ((xp + 25) / 50);
     }
 
+    // Optional discount on experience, off by default: levelling through content far below the
+    // character is what the scaling system exists to allow. See QuestXpKeepSharePercent.
+    uint32 const xpFloor = LocalLevelScaling::QuestXpKeepSharePercent.load(std::memory_order_relaxed);
+    if (uint32 const keep = LocalLevelScaling::RewardKeepPercent(xpFloor, Level, uint8(quest_level));
+        keep < 100)
+    {
+        xp = xp * keep / 100;
+    }
+
     return xp;
 }
 
-int32 Quest::GetRewOrReqMoney(uint8 playerLevel) const
+/// The tier of the realm's per-level money table (QuestMoneyReward, the client's own values) this
+/// quest's reward was authored from.
+///
+/// AzerothCore expects the quest data to name that tier in RewardMoneyDifficulty. This realm's data
+/// carries the client's "money at max level" in that column instead, which is never a usable index,
+/// so the tier has to be recovered from the reward itself: for 97% of the quests that pay money,
+/// RewardMoney is exactly a value of that table at the quest's own level. Matching it back is what
+/// lets the money follow the level a quest is actually being played at.
+int8 Quest::FindMoneyTier() const
+{
+    if (RewardMoney <= 0 || Level <= 0)
+        return -1;
+
+    int8 bestTier = -1;
+    uint32 bestGap = 0;
+    for (uint8 tier = 1; tier < MAX_QUEST_MONEY_REWARDS; ++tier)
+    {
+        uint32 const value = sObjectMgr->GetQuestMoneyReward(uint8(Level), tier);
+        if (!value)
+            continue;
+
+        uint32 const reward = uint32(RewardMoney);
+        uint32 const gap = value > reward ? value - reward : reward - value;
+        if (bestTier < 0 || gap < bestGap)
+        {
+            bestTier = int8(tier);
+            bestGap = gap;
+            if (!gap)
+                break;                                  // the authored value is exactly this tier
+        }
+    }
+
+    return bestTier;
+}
+
+int32 Quest::GetRewOrReqMoney(uint8 playerLevel, bool levelScaling) const
 {
     int32 rewardedMoney = RewardMoney;
     if (rewardedMoney < 0)
@@ -246,25 +290,65 @@ int32 Quest::GetRewOrReqMoney(uint8 playerLevel) const
         return rewardedMoney;
     }
 
-    if (playerLevel && RewardMoneyDifficulty)
+    if (playerLevel)
     {
-        if (uint32 questRewardedMoney = sObjectMgr->GetQuestMoneyReward(playerLevel, RewardMoneyDifficulty))
+        if (RewardMoneyDifficulty && RewardMoneyDifficulty < MAX_QUEST_MONEY_REWARDS)
         {
-            rewardedMoney = questRewardedMoney;
+            // Stock AzerothCore: the quest data names a real tier of the per-level table.
+            if (uint32 questRewardedMoney = sObjectMgr->GetQuestMoneyReward(playerLevel, RewardMoneyDifficulty))
+            {
+                rewardedMoney = questRewardedMoney;
+            }
+        }
+        else if (levelScaling && LocalLevelScaling::QuestEnabled.load(std::memory_order_relaxed))
+        {
+            // A scaled quest pays what its own tier pays at the level it is being played at, so the
+            // money follows the same effective level the experience does - discounted by how much of
+            // the level range the quest actually spans (QuestMoneyKeepSharePercent).
+            //
+            // The point of scaling is that no zone is dead: playing content far below your level has
+            // to be worth doing. But the reward class (the tier) says nothing about level - the median
+            // tier is the same in every level band, so a level 10 quest and a level 45 quest of the
+            // same class are indistinguishable to the table. Carried at full strength across a large
+            // gap, a rich low level quest would pay exactly what a rich level-appropriate one pays,
+            // while being trivial to complete. The discount keeps the class premium meaningful but
+            // never free: old content is always worth a solid fraction of what it would be worth at
+            // your level, and never more than it.
+            //
+            // Unscaled - or played below the quest's own level, where scaling leaves the level alone -
+            // the ratio is one and the authored value stands untouched.
+            if (int8 const tier = FindMoneyTier(); tier > 0)
+            {
+                uint8 const ownLevel = uint8(std::min<int32>(Level, UINT8_MAX));
+                uint8 const effectiveLevel = LocalLevelScaling::ScaleQuestLevel(Level, playerLevel);
+                uint32 const base = sObjectMgr->GetQuestMoneyReward(ownLevel, uint8(tier));
+                uint32 const target = sObjectMgr->GetQuestMoneyReward(effectiveLevel, uint8(tier));
+                if (base && target)
+                {
+                    uint32 const moneyFloor =
+                        LocalLevelScaling::QuestMoneyKeepSharePercent.load(std::memory_order_relaxed);
+                    uint32 const keepPercent =
+                        LocalLevelScaling::RewardKeepPercent(moneyFloor, Level, effectiveLevel);
+                    uint64 const lifted = uint64(uint32(rewardedMoney)) * target * keepPercent /
+                        (uint64(base) * 100);
+                    if (lifted > uint32(rewardedMoney))
+                        rewardedMoney = int32(std::min<uint64>(lifted, UINT32_MAX));
+                }
+            }
         }
     }
 
     return static_cast<int32>(rewardedMoney * sWorld->getRate(RATE_REWARD_QUEST_MONEY));
 }
 
-uint32 Quest::GetRewMoneyMaxLevel() const
+uint32 Quest::GetRewMoneyMaxLevel(bool levelScaling) const
 {
     uint32 rewMoney = 0;
 
     if (HasFlag(QUEST_FLAGS_NO_MONEY_FROM_XP))
         return rewMoney;
 
-    rewMoney = (XPValue(sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL)) * (6 * COPPER));
+    rewMoney = (XPValue(sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL), levelScaling) * (6 * COPPER));
     // https://wowpedia.fandom.com/wiki/Quest?oldid=1035002 Formula is XP gained * 6c
     return static_cast<int32>(rewMoney * sWorld->getRate(RATE_REWARD_BONUS_MONEY));
 }

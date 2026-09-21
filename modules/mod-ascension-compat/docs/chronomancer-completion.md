@@ -1,8 +1,9 @@
 # Chronomancer reconstruction policy — 2026-09-19
 
-This note records which Chronomancer audit reports describe spells no player can acquire, so they can be closed
-with their evidence instead of being carried as open work. It makes no claim of parity with the official
-Ascension backend.
+This note records what the Chronomancer audit settled without a server change: reports describing spells no
+player can acquire, a report whose contract already holds, and clauses the shipped client records do not
+deliver. Each can be closed with its evidence instead of being carried as open work. It makes no claim of
+parity with the official Ascension backend.
 
 ## Why an absence means something for this class
 
@@ -138,3 +139,130 @@ These snapshots are community captures, not the live server. If a spell below is
 a trainer, a quest, a client build carrying a `CharacterAdvancement` row for it — that finding wins over this
 note and the report should be reopened. The reverse case, spells the capture offers that this fork's
 `CharacterAdvancement.dbc` lacks, is a real gap and belongs in its own report.
+
+## Reports closed by a test rather than a source change
+
+One report of the audit needed no source change, because the contract it asks about already holds. It is
+recorded here because nothing else carries its closure.
+
+| Issue | Spell | Id | What proves it |
+|---|---|---|---|
+| #1183 | Time Beacon | 574310, 574362 | `apps/coa-gameplay-test/scenarios/chronomancer-time-beacon-durations.json` |
+
+The gameplay scenario carries the closure because the module unit test that previously carried it,
+`tests/chronomancer_time/cases.cpp:47-62`, cannot run on Linux: its `run.py` builds through MSVC's `cl.exe`.
+That test still covers the same contract on Windows. It loops `{0u, 574310u, 574362u}`, applying one beacon at
+a time and removing both between iterations, and asserts Aeon of Renewal's applied duration at 3000 / 7000 /
+11000 ms and Aeon of Protection's at that duration plus 5000 ms. The `7000 - 3000 = 4000` and
+`11000 - 3000 = 8000` steps are exactly the two ranks' `SPELLMOD_DURATION` amounts (aura 107,
+`EffectMiscValue` 1, `EffectSpellClassMask [0,0,32768]`), so both the scenario and the test discriminate the
+talent.
+
+## Clauses the shipped data does not deliver
+
+Cases found during the 2026-09-19 Chronomancer audit where a tooltip promises more than the client records
+carry, or where a clause resolves to a no-op. None is open work: a clause with no carrier cannot be scripted
+without inventing the missing intent, and several need a decision before anything is written. Each line names
+the decisive field.
+
+- **#894 Infinite Horizon 560528** — effect 1 is `SPELLMOD_BONUS_MULTIPLIER` +20% masked to Timerend and
+  Unmake, but `Unit::SpellDamageBonusDone` applies that op only when the effect's `EffectBonusMultiplier` is
+  nonzero. Unmake 503784 carries 0.0624; every Timerend rank carries 0.0, and the one that carried 0.1
+  (801291) is zeroed by `AscensionStockCoefficients.cpp`. The Timerend half is dead. 560528 also has no
+  `spell_group` / `spell_group_stack_rules` row, so "does not stack with similar effects" is unenforced.
+- **#786 Black Hole 707557, 707743** — aura 112 `SPELL_AURA_OVERRIDE_CLASS_SCRIPTS`, `EffectMiscValue` 20007,
+  `EffectMiscValueB` 26. No module converts it to the native aura 303, and `enum AuraStateType` has no state
+  26, so even a converted effect would test permanently false. The mask `[0,33554944,0]` also omits Chromatic
+  Shard, which the tooltip names.
+- **#1987 Timeblender 555737** — the crit half works; "gives it an additional charge" has no carrier.
+  `SpellCharges.dbc` holds exactly one row for the Fabric of Time family, `(572378, 328)`, and none of the
+  obtainable ranks (570177/570178/570179, 572361/572362/572363, 806299) has one.
+- **#570 Warpstriker 707556** — effect 0 is aura 235 `SPELL_AURA_MOD_DISPEL_RESIST` 15, which
+  `Aura::CalcDispelChance` reads off the unit carrying the dispelled aura and only for an offensive dispel.
+  It protects auras on the Chronomancer, not auras the Chronomancer placed elsewhere; the caster-side lever
+  (`SPELLMOD_RESIST_DISPEL_CHANCE`, op 28) is absent from the record.
+- **#3627 Temporal Anomaly 806315** — aura 69 `SPELL_AURA_SCHOOL_ABSORB`, `EffectBasePoints` 49,
+  `EffectMiscValueB` 50, `EffectTriggerSpell` 0. `Unit::CalcAbsorbResist` treats the amount as a flat pool,
+  never reads `MiscValueB`, never accumulates and never heals at expiry, so what ships is a ~50-point absorb.
+- **#3729 Waves of Time 801277** — effect 1's `EffectTriggerSpell` 65633 is Arcane Cast Visual, a
+  `SPELL_EFFECT_DUMMY` with no handler, so the only displacement is the delayed 802600 at t+2 s. The record's
+  `AuraDescription` also names a movement-speed slow it has no aura effect for.
+- **#3202 Gravity Bomb 801282** — the parent's `$RAP*0.3` term has no carrier: `DmgClass` 1,
+  `EquippedItemClass` -1 and no `SPELL_ATTR0_USES_RANGED_SLOT`, so `Unit::SpellDamageBonusDone`'s stat
+  selector would read melee attack power, which is not the same stat.
+- **#916 Shifting Chaos 706059** — its only effect is `Aura=354`, left `nullptr` in the handler table and
+  absent from `isTriggerAura[]`; ~250 Ascension spells across every class use it. The same gap kills #807
+  Chaotic Time's "Melt Reality replicates an additional 20%" clause, whose mask resolves to 504727, itself an
+  aura-354 record.
+- **#534 Destabilize Time 680971** — effect 0 is aura 42 with `EffectTriggerSpell` **0**, and
+  `AuraEffect::HandleProcTriggerSpellAuraProc` returns on a null trigger. Every number in the tooltip lives in
+  570761, which nothing casts.
+- **#3395 Roll Back 804490** — its single `SPELL_EFFECT_SCRIPT_EFFECT` falls through
+  `Spell::EffectScriptEffect`, which handles only `SPELLFAMILY_GENERIC` and `SPELLFAMILY_ROGUE`, and no module
+  script registers on the id.
+- **#1071 Unstable Chronoglass 503836** — `SPELL_EFFECT_SUMMON` with `EffectMiscValue` 506015, and creature
+  506015 exists neither in `data/sql/` nor in the repack's world dump.
+- **#765 Incarnation of Chaos 570067** — its Description promises resetting Chromatic Shard's cooldown and a
+  free next cast; its three effects do none of it. 504723 is the record that does exactly that, and nothing in
+  `Spell.dbc` triggers it.
+- **#3662 Ideal Time 807210** — `ProcCharges` 0 is repaired to 1 at load, but charges are spent only by
+  `Player::RemoveSpellMods` (which needs the spellmod registered on a real cast) or by
+  `Aura::PrepareProcToTrigger` (which needs a `spell_proc` row). Until such a row exists the buff still lasts
+  its full 10 s instead of one ability.
+- **#2164 Null Orbs** — periodic damage cannot crit without `SPELL_AURA_ABILITY_PERIODIC_CRIT`
+  (`AuraEffect::CalcPeriodicCritChance` returns 0 otherwise). The only family-28 carrier is the passive
+  Impeccable Timing 560949, so the clause is dead for any Chronomancer who has not taken it.
+- **#1349 Mass Babify 520855** — the tooltip states an 8 s cap against players. `MECHANIC_POLYMORPH` maps to
+  `DIMINISHING_DISORIENT` and `SpellMgr::GetDiminishingReturnsLimitDuration` has no family-28 case, so the cap
+  is the default 10 s.
+- **#1979 Cheating Time, #3608 Time Is A Circle** — both promise "cannot be extended beyond maximum
+  duration", but `Spell::EffectAscensionRefreshAura` raises the cap and `Spell::EffectAscensionModifyAuraDuration`
+  never caps at all. 524962 also omits Singularity Core 804438 from the Continuum spells it extends, although
+  804438 carries the same word2 `0x8` Continuum tag as the three it names.
+- **#1106 The Vast Infinite 706083** — the tooltip splits incoming damage evenly amongst all allies, up to
+  100% of their total health, and heals it back at the end. Effect 0 is aura 69 `SPELL_AURA_SCHOOL_ABSORB`
+  with `EffectBasePoints` 25 and `EffectMiscValueB` 100, which `Unit::CalcAbsorbResist` reads as a flat ~25
+  shield; damage splitting in this core is a different aura, 300 `SPELL_AURA_SHARE_DAMAGE_PCT` in
+  `Unit::DealDamage`. The cap and the end-of-duration heal have no carrier, and effect 1 is an unscripted
+  `SPELL_AURA_DUMMY`.
+- **#3152 Overcorrection 707657** — the tooltip promises a heal-over-time on the caster; the single effect is
+  `APPLY_AURA` with `Aura=354`, `EffectBasePoints` 5 and `EffectTriggerSpell` 561231, and aura 354 is
+  `nullptr` in the handler table. The HoT 561231 itself is ready (`SPELL_AURA_PERIODIC_HEAL`, 1000 ms
+  amplitude, 5000 ms duration).
+- **#829 Infinite Keeper 806312** — the tooltip triggers the effect when Unmake hits an enemy affected by
+  *your* Timerend. The record has no `spell_proc` row, and the caster half of the clause cannot be expressed
+  in data: `conditions` / `CONDITION_AURA` is satisfied by any caster's Timerend.
+- **#449 Buy Time 520188** — the stasis package (520185, 520186 and its delayed 520205) is entirely native and
+  correct; only "casting Unmake on a target will remove this effect" has no carrier. No Unmake rank has a
+  `spell_linked_spell` or a `spell_script_names` row, no module script touches 520185/520186/520188, and
+  `Unit::GetDispellableAuraList` only lets a spell with `SPELL_ATTR0_NO_IMMUNITIES` remove a
+  `MECHANIC_BANISH` aura.
+- **#1163 Rapid Acceleration 570149** — the tooltip adds 15% bonus-healing scaling to Accelerated Recovery and
+  an instant heal for 15% of the total periodic effect. Effect 0 is `SPELL_AURA_ADD_PCT_MODIFIER` with
+  `EffectMiscValue` 40 while `MAX_SPELLMOD` is 32, so `AuraEffect::CalculateSpellMod` and
+  `Player::AddSpellMod` both discard it; effect 1 is an unscripted `SPELL_AURA_DUMMY`.
+- **Singularity Core 804438** (surfaced by #2984, out of its scope) — the tooltip says "Empower your **Wand
+  attacks**", but its aura-42 effect has an empty `EffectSpellClassMask`, so the entry
+  `SpellMgr::LoadSpellProcs` generates has
+  `SpellFamilyName` 0 and fires on any ranged-damage-class hit. Its `ProcFlags 0x4001c0` also contains
+  `PROC_FLAG_TAKEN_RANGED_AUTO_ATTACK`, firing off damage the Chronomancer receives.
+- **Improved Reverse Wound 706052** — `Effect[1]` is `Aura=4` (`SPELL_AURA_DUMMY`) with `EffectMiscValue` 11
+  and `EffectBasePoints` -5001, the shape of a -5 s cooldown modifier written on aura 4 instead of 107, so
+  nothing consumes it. #543 names 706053 only.
+
+### Stale client text
+
+Records whose displayed text describes something their own effects do not, with no server consequence:
+
+- **Rippling Power 806300, 807893** — the `AuraDescription` promises the 560401 / 560402 mana-threshold
+  bonuses; neither record has an acquisition row or any reference in `src/`, `modules/` or `data/sql/`, and
+  both passives carry `SPELL_ATTR0_DO_NOT_DISPLAY`.
+- **Procrastination 520854** — the `AuraDescription` names Buy Time, while the class mask reaches Timeguard
+  only; Buy Time 520188's family bit (word2 268435456) is not in the mask.
+- **Timeless 706131** — the `AuraDescription` says haste; the single effect is `SPELLMOD_EFFECT2` on Endless
+  Sands' mana-cost effect.
+- **Timeblender 555737** — the `AuraDescription` describes Reverse Wound refreshing Accelerated Recovery; the
+  single effect is `SPELLMOD_CRITICAL_CHANCE`.
+- **Waves of Time 801277, Shatter Echo 680374** — both carry an `AuraDescription` for an aura effect the
+  record does not have; **524944** names "Empower Wand: Artillery" where its `EffectMiscValue` is 804435 Flux
+  Emitter.

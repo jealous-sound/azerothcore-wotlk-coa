@@ -11,6 +11,10 @@ using uint32 = std::uint32_t;
 using int32 = std::int32_t;
 constexpr uint8 SPELL_MISS_NONE = 0;
 constexpr uint32 SPELL_PRIMALIST_EARTHSHAPING = 680441;
+constexpr uint32 SPELL_BLOODMAGE_THIRST_PASSIVE = 92112;
+constexpr uint32 SPELL_BLOODMAGE_THIRST = 706613;
+constexpr uint8 CLASS_SON_OF_ARUGAL = 20;
+constexpr uint32 POWER_HEALTH = uint32(-2);
 bool roll_chance_i(uint32) { return true; }
 struct Player;
 using AuraRemoveMode = int;
@@ -28,6 +32,8 @@ struct SpellInfo
     int32 StackAmount = 100;
     // Zero is SPELL_EFFECT_NONE, so a spell nobody gave effects to is not a damaging one.
     std::array<uint32, 3> Effects = {};
+    uint32 SpellFamilyName = 0;
+    uint32 PowerType = 0;
     int32 CalcMaxAuraStacks(Player*) const { return StackAmount; }
     bool HasAttribute(int) const { return false; }
     bool HasEffect(SpellEffects effect) const
@@ -77,7 +83,7 @@ struct Player
         assert(target == this);
         Aura& aura = auras[id];
         aura.m_stackAmount = 1;
-        aura.info.StackAmount = id == 800058 || id == 500906 ? 6 : 100;
+        aura.info.StackAmount = id == 800058 || id == 500906 ? 6 : id == SPELL_BLOODMAGE_THIRST ? 10 : 100;
         return &aura;
     }
     void CastSpell(Player* target, uint32 id, bool triggered)
@@ -105,9 +111,11 @@ struct Spell
     SpellInfo info;
     bool triggered = false;
     uint32 events = 0;
+    int32 powerCost = 0;
     Player* GetCaster() const { return owner; }
     SpellInfo const* GetSpellInfo() const { return &info; }
     bool IsTriggered() const { return triggered; }
+    int32 GetPowerCost() const { return powerCost; }
     bool TryMarkScriptEventHandled(uint8 event)
     {
         uint32 mask = 1u << event;

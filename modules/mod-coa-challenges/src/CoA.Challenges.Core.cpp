@@ -259,16 +259,17 @@ namespace CoAChallenges
         return it == LastKiller.end() ? std::string() : it->second.name;
     }
 
-    // Test helper: does a plain cast of `spellId` get blocked by the player's
-    // rules (drives the real OnSpellCheckCast dispatcher)?
-    bool Test_SpellCheckCastBlocked(Player* player, uint32 spellId)
+    // Test helper: does a cast of `spellId` get blocked by the player's rules
+    // (drives the real OnSpellCheckCast dispatcher)? `triggered` models a
+    // buff/proc re-trigger (TRIGGERED_FULL_MASK) rather than the player's own cast.
+    bool Test_SpellCheckCastBlocked(Player* player, uint32 spellId, bool triggered)
     {
         if (!player)
             return false;
         SpellInfo const* info = sSpellMgr->GetSpellInfo(spellId);
         if (!info)
             return false;
-        Spell spell(player, info, TRIGGERED_NONE);
+        Spell spell(player, info, triggered ? TRIGGERED_FULL_MASK : TRIGGERED_NONE);
         return spell.CheckCast(true) != SPELL_CAST_OK;
     }
 
@@ -308,10 +309,14 @@ namespace CoAChallenges
             ? Acore::StringFormat("{}[{}]|r", TRIAL_COLOR, fail.displayName)
             : Acore::StringFormat("{}{}|r", TRIAL_COLOR, ChallengeBracket(fail.challengeID, fail.level));
 
-        msg += Acore::StringFormat("{} {} (Level {}) has been killed by ",
-            bracket, PlayerNameLink(player), player->GetLevel());
+        // A rule failure (e.g. FAILABLE_NO_KILL_BEASTS) is not a death: the
+        // player failed the trial by slaying a forbidden creature.
+        bool const slaying = (fail.killerKind == KillerKind::Rule);
+        msg += Acore::StringFormat("{} {} (Level {}) {} ",
+            bracket, PlayerNameLink(player), player->GetLevel(),
+            slaying ? "has failed the challenge by slaying" : "has been killed by");
 
-        if (fail.killerKind == KillerKind::Creature)
+        if (fail.killerKind == KillerKind::Creature || fail.killerKind == KillerKind::Rule)
             msg += Acore::StringFormat("{}|Hcreature:{}|h[{}]|h|r.",
                 KILLER_COLOR, fail.killerEntry, fail.killerName);
         else if (fail.killerKind == KillerKind::Player)

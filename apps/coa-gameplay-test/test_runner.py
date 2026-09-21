@@ -208,6 +208,14 @@ class RunnerTests(unittest.TestCase):
 
     def test_malformed_scenarios_fail_before_starting_processes(self):
         for change in (
+            lambda s: s['steps'].append({'action': 'level_scaling_packet', 'actor': 'caster', 'value': 2}),
+            lambda s: s['steps'].append({'action': 'level_scaling_packet', 'actor': 'target', 'value': 1}),
+            lambda s: s['steps'].append({'action': 'assert', 'actor': 'caster',
+                                         'metric': 'sent_level', 'equals': 57}),
+            lambda s: s['steps'].append({'action': 'assert', 'actor': 'target',
+                                         'target': 'caster', 'metric': 'view_level', 'equals': 57}),
+            lambda s: s['steps'].append({'action': 'assert', 'actor': 'caster',
+                                         'metric': 'quest_xp', 'equals': 1}),
             lambda s: s.update(schema=True),
             lambda s: s['steps'].append({'action': 'use_gameobject', 'actor': 'caster'}),
             lambda s: s['steps'].append({'action': 'use_gameobject', 'actor': 'target', 'entry': 1903510}),

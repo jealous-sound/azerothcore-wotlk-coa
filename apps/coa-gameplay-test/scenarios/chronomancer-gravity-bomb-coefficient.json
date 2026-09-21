@@ -1,0 +1,106 @@
+{
+  "schema": 1,
+  "name": "Gravity Bomb's explosion scales with spell power (#3202)",
+  "contract": "Gravity Bomb 801281 states its explosion as ${($801282m1+$801282ppl1+$SP*1.2+$RAP*0.3)}. The explosion is the child 801282, a single SPELL_EFFECT_SCHOOL_DAMAGE whose EffectBonusMultiplier is 0.0 and which had no spell_bonus_data row, no rank chain and no script, so Unit::SpellDamageBonusDone added no coefficient at all. With direct_bonus 1.2 and a fixture +2000 spell damage from Drink Fel Infusion 44505 (aura 13 SPELL_AURA_MOD_DAMAGE_DONE, EffectMiscValue 127, EffectBasePoints 1999, die 1), the harness's fixed 1000 base must become 1000 + 2000*1.2 = 3400, or 2920 if Unit::CalculateLevelPenalty applies; without the row it stays exactly 1000. The tooltip's $RAP*0.3 term is NOT implemented: 801282 is DmgClass 1 with EquippedItemClass -1 and no SPELL_ATTR0_USES_RANGED_SLOT, so a plain ap_bonus would read melee attack power, and choosing between that and the UseRangedAttackPowerForDamage opt-in is a design decision. The delayed explosion and the 15 yd pull run on native handlers (aura 23 periodic triggers at EffectAmplitude 5999 and 5499 inside a DurationIndex 32 = 6000 ms aura) and are only regression-checked here.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "chronomancer",
+      "race": 1,
+      "class": 22,
+      "level": 80,
+      "spell_hit_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "dummy",
+      "owner": "chronomancer",
+      "entry": 36,
+      "level": 80,
+      "health": 1000000,
+      "distance": 3
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 6000
+    },
+    {
+      "action": "learn",
+      "actor": "chronomancer",
+      "spell": 801281
+    },
+    {
+      "action": "assert",
+      "label": "With no spell power the fixed 1000 base is unchanged",
+      "actor": "chronomancer",
+      "metric": "spell_damage_done",
+      "spell": 801282,
+      "effect": 0,
+      "target": "dummy",
+      "equals": 1000
+    },
+    {
+      "action": "set_aura",
+      "actor": "chronomancer",
+      "spell": 44505,
+      "stacks": 1
+    },
+    {
+      "action": "assert",
+      "label": "The fixture grants at least 2000 spell damage",
+      "actor": "chronomancer",
+      "metric": "spell_power",
+      "school": 5,
+      "min": 2000
+    },
+    {
+      "action": "assert",
+      "label": "The explosion now carries its 120% spell power coefficient",
+      "actor": "chronomancer",
+      "metric": "spell_damage_done",
+      "spell": 801282,
+      "effect": 0,
+      "target": "dummy",
+      "min": 2500
+    },
+    {
+      "action": "snapshot",
+      "actor": "dummy",
+      "metric": "health",
+      "save_as": "before_bomb"
+    },
+    {
+      "action": "cast",
+      "actor": "chronomancer",
+      "spell": 801281,
+      "target": "dummy"
+    },
+    {
+      "action": "assert",
+      "label": "The bomb is planted on the target",
+      "actor": "dummy",
+      "metric": "aura",
+      "spell": 801281,
+      "caster": "chronomancer",
+      "equals": 1,
+      "within_ms": 3000
+    },
+    {
+      "action": "wait",
+      "label": "Let the 6 second delay and the explosion resolve",
+      "ms": 8000
+    },
+    {
+      "action": "assert",
+      "label": "The delayed explosion damages the bomb's target",
+      "actor": "dummy",
+      "metric": "health",
+      "relative_to": "before_bomb",
+      "max": -1
+    }
+  ]
+}

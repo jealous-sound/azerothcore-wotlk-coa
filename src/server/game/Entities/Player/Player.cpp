@@ -2498,20 +2498,41 @@ void Player::GiveXP(uint32 xp, Unit* victim, float group_rate, bool isLFGReward)
         if (GetSession()->IsTrialAccount())
             maxLevel = std::min(maxLevel, trialLevelCap);
 
+    // Script level cap (e.g. COA_NO_LEVEL_PAST_REQUIREMENTS holding the player
+    // below the next objective level). It caps the LEVEL-UP only, not the XP:
+    // the bar still fills up to one point short of the gate (the live "99%"),
+    // while no amount of XP can cross it, regardless of multipliers/hook order.
+    uint32 levelCap = maxLevel;
+    if (uint8 scriptMaxLevel = sScriptMgr->GetMaxAllowedLevel(this))
+        levelCap = std::min(levelCap, uint32(scriptMaxLevel));
+
     if (level >= maxLevel)
         return;
 
     if (HasPlayerFlag(PLAYER_FLAGS_PARTIAL_PLAY_TIME))
         xp = std::max(1u, xp / 2);
 
-    uint32 bonus_xp = 0;
+    uint32 curXP = GetUInt32Value(PLAYER_XP);
+    uint32 nextLvlXP = GetUInt32Value(PLAYER_NEXT_LEVEL_XP);
+    uint32 bonusLimit = xp;
     bool recruitAFriend = GetsRecruitAFriendBonus(true);
-
-    // RaF does NOT stack with rested experience
     if (recruitAFriend)
-        bonus_xp = 2 * xp; // xp + bonus_xp must add up to 3 * xp for RaF; calculation for quests done client-side
-    else
-        bonus_xp = victim ? GetXPRestBonus(xp) : 0; // XP resting bonus
+        bonusLimit = 2 * xp;
+
+    if (levelCap < maxLevel)
+    {
+        // Budget all XP up to the script cap, including its nearly full bar, before
+        // consuming rested XP or reporting the gain. Base XP uses the budget first.
+        uint64 capacity = nextLvlXP;
+        for (uint32 targetLevel = level + 1; targetLevel <= levelCap; ++targetLevel)
+            capacity += sObjectMgr->GetXPForLevel(static_cast<uint8>(targetLevel));
+        uint64 const room = capacity > uint64(curXP) + 1 ? capacity - curXP - 1 : 0;
+        xp = static_cast<uint32>(std::min<uint64>(xp, room));
+        bonusLimit = static_cast<uint32>(std::min<uint64>(bonusLimit, room - xp));
+    }
+
+    // RaF does NOT stack with rested experience. Only spend the rested bonus that fits.
+    uint32 bonus_xp = recruitAFriend ? bonusLimit : (victim ? GetXPRestBonus(bonusLimit) : 0);
 
     // hooks and multipliers can modify the xp with a zero or negative value
     // check again before sending invalid xp to the client
@@ -2520,22 +2541,23 @@ void Player::GiveXP(uint32 xp, Unit* victim, float group_rate, bool isLFGReward)
 
     SendLogXPGain(xp, victim, bonus_xp, recruitAFriend, group_rate);
 
-    uint32 curXP = GetUInt32Value(PLAYER_XP);
-    uint32 nextLvlXP = GetUInt32Value(PLAYER_NEXT_LEVEL_XP);
-    uint32 newXP = curXP + xp + bonus_xp;
+    uint64 newXP = uint64(curXP) + xp + bonus_xp;
 
-    while (newXP >= nextLvlXP && level < maxLevel)
+    while (newXP >= nextLvlXP && level < levelCap)
     {
         newXP -= nextLvlXP;
 
-        if (level < maxLevel)
-            GiveLevel(level + 1);
+        GiveLevel(level + 1);
 
         level = GetLevel();
         nextLvlXP = GetUInt32Value(PLAYER_NEXT_LEVEL_XP);
     }
 
-    SetUInt32Value(PLAYER_XP, newXP);
+    // Keep the script cap as a final guard if a level-change hook changed the XP threshold.
+    if (level >= levelCap && nextLvlXP && newXP >= nextLvlXP)
+        newXP = nextLvlXP - 1;
+
+    SetUInt32Value(PLAYER_XP, static_cast<uint32>(newXP));
 }
 
 // Update player to next level
@@ -6217,7 +6239,7 @@ void Player::RewardReputation(Unit* victim)
 
     if (Rep->RepFaction1 && (!Rep->TeamDependent || teamId == TEAM_ALLIANCE))
     {
-        float donerep1 = CalculateReputationGain(REPUTATION_SOURCE_KILL, victim->GetLevel(), static_cast<float>(Rep->RepValue1), ChampioningFaction ? ChampioningFaction : Rep->RepFaction1);
+        float donerep1 = CalculateReputationGain(REPUTATION_SOURCE_KILL, victim->getLevelForTarget(this), static_cast<float>(Rep->RepValue1), ChampioningFaction ? ChampioningFaction : Rep->RepFaction1);
         sScriptMgr->OnPlayerGiveReputation(this, Rep->RepFaction1, donerep1, REPUTATION_SOURCE_KILL);
 
         FactionEntry const* factionEntry1 = sFactionStore.LookupEntry(ChampioningFaction ? ChampioningFaction : Rep->RepFaction1);
@@ -6229,7 +6251,7 @@ void Player::RewardReputation(Unit* victim)
 
     if (Rep->RepFaction2 && (!Rep->TeamDependent || teamId == TEAM_HORDE))
     {
-        float donerep2 = CalculateReputationGain(REPUTATION_SOURCE_KILL, victim->GetLevel(), static_cast<float>(Rep->RepValue2), ChampioningFaction ? ChampioningFaction : Rep->RepFaction2);
+        float donerep2 = CalculateReputationGain(REPUTATION_SOURCE_KILL, victim->getLevelForTarget(this), static_cast<float>(Rep->RepValue2), ChampioningFaction ? ChampioningFaction : Rep->RepFaction2);
         sScriptMgr->OnPlayerGiveReputation(this, Rep->RepFaction2, donerep2, REPUTATION_SOURCE_KILL);
 
         FactionEntry const* factionEntry2 = sFactionStore.LookupEntry(ChampioningFaction ? ChampioningFaction : Rep->RepFaction2);
@@ -13254,7 +13276,10 @@ uint32 Player::GetResurrectionSpellId()
 // Used in triggers for check "Only to targets that grant experience or honor" req
 bool Player::isHonorOrXPTarget(Unit* victim) const
 {
-    uint8 v_level = victim->GetLevel();
+    // The level this character is fighting, not the object's own: a scaled creature is above their
+    // gray level, so the abilities and scripts that ask "only to targets that grant experience or
+    // honor" have to see the version they are actually killing.
+    uint8 v_level = victim->getLevelForTarget(this);
     uint8 k_grey  = Acore::XP::GetGrayLevel(GetLevel());
 
     // Victim level less gray level

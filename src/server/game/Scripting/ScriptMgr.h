@@ -336,6 +336,7 @@ public: /* PlayerScript */
     void OnPlayerBeforeLootMoney(Player* player, Loot* loot);
     void OnPlayerBeforeSendLoot(Player* player, ObjectGuid lootGuid, Loot* loot);
     void OnPlayerGiveXP(Player* player, uint32& amount, Unit* victim, uint8 xpSource);
+    uint8 GetMaxAllowedLevel(Player* player);
     bool OnPlayerReputationChange(Player* player, uint32 factionID, int32& standing, bool incremental);
     void OnPlayerReputationRankChange(Player* player, uint32 factionID, ReputationRank newRank, ReputationRank oldRank, bool increased);
     void OnPlayerGiveReputation(Player* player, int32 factionID, float& amount, ReputationSource repSource);

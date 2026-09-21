@@ -23,7 +23,9 @@
 #include "GroupMgr.h"
 #include "Item.h"
 #include "ItemPackets.h"
+#include "NPCPackets.h"
 #include "Log.h"
+#include "LocalLevelScaling.h"
 #include "Map.h"
 #include "MapMgr.h"
 #include "ObjectAccessor.h"
@@ -39,10 +41,16 @@
 #include "SpellAuras.h"
 #include "SpellMgr.h"
 #include "TemporarySummon.h"
+#include "UpdateData.h"
+#include "UpdateFields.h"
 #include "World.h"
 #include "WorldPacket.h"
 #include "WorldSession.h"
 #include "WhoListCacheMgr.h"
+
+// The Books of Ascension live in their own module; the driver only needs to ask it what a
+// player's window would contain (see spellbook_api.h).
+#include "../../mod-spellbook/src/spellbook_api.h"
 // BOOST_BIND_NO_PLACEHOLDERS (deps/boost) stops boost/bind/bind.hpp from including
 // placeholders.hpp, but the Boost.PropertyTree JSON parser uses boost::placeholders (e.g. Boost 1.83).
 #include <boost/bind/placeholders.hpp>
@@ -53,12 +61,14 @@
 #include <cmath>
 #include <filesystem>
 #include <fstream>
+#include <future>
 #include <list>
 #include <limits>
 #include <map>
 #include <memory>
 #include <set>
 #include <stdexcept>
+#include <utility>
 #include <vector>
 
 namespace
@@ -82,6 +92,7 @@ public:
 };
 constexpr uint32 TestPhase = 1u << 30;
 constexpr uint32 MaximumActors = 8;
+constexpr uint16 LevelScalingOpcode = 0x0667;
 
 void Require(bool condition, std::string const& message)
 {
@@ -113,6 +124,40 @@ uint64 Elapsed(Clock::time_point start)
 {
     return std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now() - start).count();
 }
+
+// A proc below 100% leaves no state to read: the only honest observation is how often it fired
+// over many rolls. The count is kept per unit carrying the proc aura and per that aura's own
+// spell, and is fed from the one native point that names both - a cast whose triggering aura
+// Spell::prepare recorded. Counting is off unless a scenario is running, so nothing accumulates
+// on an ordinary server.
+class ProcCounter
+{
+public:
+    static void Begin()
+    {
+        _counts.clear();
+        _enabled = true;
+    }
+
+    static void Record(ObjectGuid unit, uint32 spell)
+    {
+        if (_enabled)
+            ++_counts[{ unit, spell }];
+    }
+
+    static uint32 Count(ObjectGuid unit, uint32 spell)
+    {
+        auto itr = _counts.find({ unit, spell });
+        return itr == _counts.end() ? 0 : itr->second;
+    }
+
+private:
+    static bool _enabled;
+    static std::map<std::pair<ObjectGuid, uint32>, uint32> _counts;
+};
+
+bool ProcCounter::_enabled = false;
+std::map<std::pair<ObjectGuid, uint32>, uint32> ProcCounter::_counts;
 
 enum class ActorStage
 {
@@ -164,6 +209,18 @@ struct Actor
     std::string account;
     std::string name;
     std::map<std::string, uint32> whoClasses;
+    std::map<uint32, uint32> learnedAlerts;
+    std::map<uint32, uint32> buySucceeded;
+    std::map<uint32, uint32> buyFailed;
+    std::set<uint32> announced;
+    std::map<uint32, uint32> notifyRows; // rows of the client's spell attribute table, by spell
+    std::map<uint32, uint32> notifiedAt; // spell -> the ordinal of the row push for it
+    uint32 notifyRowTotal = 0;
+    uint32 buysNotNotified = 0; // a granted purchase whose own row push never came first
+    uint32 packetOrdinal = 0;   // every packet this session has sent, in order
+    uint32 buysGranted = 0;
+    uint32 buysUnannounced = 0;
+    uint32 buysMisannounced = 0;
     uint32 whoResponses = 0;
     uint32 lootReceived = 0;
     std::array<uint32, 2> meleeAttacksByHand{};
@@ -174,6 +231,7 @@ struct Actor
     std::vector<SpellHealEvent> spellHeals;
     std::vector<SpellEnergizeEvent> spellEnergizes;
     Tree castFailures;
+    std::map<uint64, std::map<uint16, uint32>> unitValues;
     uint32 lastQuestWindow = 0; // the last quest window this session sent, by opcode
     std::unique_ptr<WorldSession> session;
     ObjectGuid guid;
@@ -290,6 +348,49 @@ void ObserveSpellEnergize(Actor& actor, WorldPacket const& packet)
     actor.spellEnergizes.push_back(event);
 }
 
+// Observe ordinary values-only packets. Creation/movement blocks have a different variable
+// layout; ignore the rest of that packet and let subsequent values updates supply observations.
+void ObserveUnitValues(Actor& actor, WorldPacket const& packet)
+{
+    if (packet.GetOpcode() != SMSG_UPDATE_OBJECT)
+        return;
+    WorldPacket response(packet);
+    uint32 count;
+    response >> count;
+    for (uint32 block = 0; block < count; ++block)
+    {
+        uint8 type;
+        response >> type;
+        if (type == UPDATETYPE_OUT_OF_RANGE_OBJECTS)
+        {
+            uint32 removed;
+            response >> removed;
+            for (uint32 index = 0; index < removed; ++index)
+            {
+                ObjectGuid guid;
+                response >> guid.ReadAsPacked();
+                actor.unitValues.erase(guid.GetRawValue());
+            }
+            continue;
+        }
+        if (type != UPDATETYPE_VALUES)
+            return;
+        ObjectGuid guid;
+        uint8 blocks;
+        response >> guid.ReadAsPacked() >> blocks;
+        std::vector<uint32> masks(blocks);
+        for (uint32& mask : masks)
+            response >> mask;
+        for (uint16 index = 0; index < uint16(blocks) * 32; ++index)
+            if (masks[index / 32] & (1u << (index % 32)))
+            {
+                uint32 value;
+                response >> value;
+                actor.unitValues[guid.GetRawValue()][index] = value;
+            }
+    }
+}
+
 // Sessions are owned here, outside the network session manager. Character creation,
 // enumeration, DB loading and spell/item use run through the existing session handlers.
 // No socket/authentication, client rendering or packet-delivery coverage is implied.
@@ -306,6 +407,7 @@ public:
 
         _enabled = true;
         _started = Clock::now();
+        ProcCounter::Begin();
         try
         {
             _runId = sConfigMgr->GetOption<std::string>("CoAGameplayTest.RunId", "");
@@ -446,8 +548,11 @@ private:
             uint32 accountId = AccountMgr::GetId(actor.account);
             if (!accountId)
                 return;
+            // "bot": true marks the session the way playerbots marks its own, so a scenario can
+            // check what the server does differently for a bot.
             actor.session = std::make_unique<WorldSession>(accountId, std::string(actor.account), 0, nullptr,
-                SEC_PLAYER, EXPANSION_WRATH_OF_THE_LICH_KING, 0, LOCALE_enUS, 0, false, false, 0);
+                SEC_PLAYER, EXPANSION_WRATH_OF_THE_LICH_KING, 0, LOCALE_enUS, 0, false, false, 0,
+                actor.definition.get<bool>("bot", false));
             actor.session->SetSocketlessPacketObserver([&actor](WorldPacket const& packet)
             {
                 ObserveSpellCasts(actor, packet);
@@ -475,6 +580,7 @@ private:
                     failure.put("reason", uint32(reason));
                     actor.castFailures.push_back({"", failure});
                 }
+                ObserveUnitValues(actor, packet);
                 if (packet.GetOpcode() == SMSG_ATTACKERSTATEUPDATE)
                 {
                     WorldPacket response(packet);
@@ -490,12 +596,75 @@ private:
                             ++actor.meleeDamageByHand[hand];
                     }
                 }
+
+                ++actor.packetOrdinal;
+
+                // The announcement the client draws the alert from: the book sends the row of
+                // the client's own spell attribute table for the spell, with the bit its learn
+                // handler tests. The row carries the table's row id first and the spell id
+                // second, which is what this reads. Recorded by ordinal so a purchase can be
+                // judged on whether its row arrived *before* the learn it belongs to.
+                if (packet.GetOpcode() == Spellbook::SMSG_PATCH_SPELL_CUSTOM_ATTR)
+                {
+                    WorldPacket row(packet);
+                    uint32 rowId = 0;
+                    uint32 marked = 0;
+                    row >> rowId >> marked;
+                    ++actor.notifyRows[marked];
+                    ++actor.notifyRowTotal;
+                    actor.notifiedAt.emplace(marked, actor.packetOrdinal);
+                }
+
                 // Which window a click is answered with is the part the client would draw, and
                 // the part a click that answers with the wrong one leaves looping. Record it.
                 if (packet.GetOpcode() == SMSG_QUESTGIVER_OFFER_REWARD ||
                     packet.GetOpcode() == SMSG_QUESTGIVER_REQUEST_ITEMS ||
                     packet.GetOpcode() == SMSG_QUESTGIVER_QUEST_DETAILS)
                     actor.lastQuestWindow = packet.GetOpcode();
+
+                // SMSG_LEARNED_SPELL is what drives the client's "New Spell Learned!" alert
+                // and its sound, so a scenario can assert that acquiring an ability announced
+                // itself however it was powered.
+                if (packet.GetOpcode() == SMSG_LEARNED_SPELL)
+                {
+                    WorldPacket announcement(packet);
+                    uint32 announced = 0;
+                    announcement >> announced;
+                    ++actor.learnedAlerts[announced];
+                    actor.announced.insert(announced);
+                }
+
+                // Which of the two answers a purchase got: the book module and the core both
+                // reply with this pair.
+                if (packet.GetOpcode() == SMSG_TRAINER_BUY_SUCCEEDED ||
+                    packet.GetOpcode() == SMSG_TRAINER_BUY_FAILED)
+                {
+                    WorldPacket answer(packet);
+                    ObjectGuid trainer;
+                    uint32 bought = 0;
+                    answer >> trainer >> bought;
+                    if (packet.GetOpcode() == SMSG_TRAINER_BUY_SUCCEEDED)
+                    {
+                        ++actor.buySucceeded[bought];
+                        ++actor.buysGranted;
+                        // Nothing this session sent can announce a spell that was learned
+                        // before the row for it, so a push that arrived later (or never)
+                        // marked nothing at all.
+                        auto const notified = actor.notifiedAt.find(bought);
+                        if (notified == actor.notifiedAt.end() || notified->second > actor.packetOrdinal)
+                            ++actor.buysNotNotified;
+                        // The grant is answered after the learn, so an announcement for this
+                        // spell that never arrived by now never will.
+                        if (!actor.announced.count(bought))
+                            ++actor.buysUnannounced;
+                        // Each row is bought once, so an announced count other than one is a
+                        // purchase the client was told about zero times or twice.
+                        if (actor.learnedAlerts[bought] != 1)
+                            ++actor.buysMisannounced;
+                    }
+                    else
+                        ++actor.buyFailed[bought];
+                }
 
                 if (packet.GetOpcode() != SMSG_WHO)
                     return;
@@ -752,6 +921,25 @@ private:
         }
         if (metric == "level")
             return unit->GetLevel();
+        if (metric == "view_level")
+            return GetUnit(step.get<std::string>("target"))->getLevelForTarget(unit);
+        if (metric == "sent_level" || metric == "sent_max_health")
+        {
+            Actor& actor = _actors.at(step.get<std::string>("actor"));
+            uint64 guid = GetUnit(step.get<std::string>("target"))->GetGUID().GetRawValue();
+            uint16 field = metric == "sent_level" ? UNIT_FIELD_LEVEL : UNIT_FIELD_MAXHEALTH;
+            auto itr = actor.unitValues.find(guid);
+            if (itr == actor.unitValues.end() || !itr->second.count(field))
+                return 0;
+            return itr->second.at(field);
+        }
+        if (metric == "quest_level" || metric == "quest_xp")
+        {
+            Player* player = unit->ToPlayer();
+            Quest const* quest = sObjectMgr->GetQuestTemplate(step.get<uint32>("quest"));
+            Require(player && quest, "Quest metric needs a player and an existing quest");
+            return metric == "quest_level" ? player->GetQuestLevel(quest) : player->CalculateQuestRewardXP(quest);
+        }
         if (metric == "stat")
         {
             uint32 stat = step.get<uint32>("stat");
@@ -816,6 +1004,13 @@ private:
                     ++count;
             return count;
         }
+        if (metric == "distance")
+            return unit->GetExactDist2d(GetUnit(step.get<std::string>("target")));
+        if (metric == "spell_proc_count")
+        {
+            Require(sSpellMgr->GetSpellInfo(spell) != nullptr, "Unknown spell in metric");
+            return ProcCounter::Count(unit->GetGUID(), spell);
+        }
         if (metric == "spell_damage_taken" || metric == "melee_damage_taken")
         {
             // Any unit can be the victim; `target` is the attacker. A melee `spell` selects a weapon strike.
@@ -867,11 +1062,50 @@ private:
         Player* player = unit->ToPlayer();
         Require(player != nullptr, "Metric requires a player: " + metric);
         if (metric == "knows_spell" || metric == "cooldown_ms" || metric == "spell_charges" ||
-            metric == "global_cooldown_ms" ||
-            metric == "has_talent")
+            metric == "global_cooldown_ms" || metric == "has_talent" ||
+            metric == "spellbook_offers_spell" || metric == "spellbook_covers_spell" ||
+            metric == "temporary_spell_replacement")
             Require(sSpellMgr->GetSpellInfo(spell) != nullptr, "Unknown spell in metric");
         if (metric == "knows_spell")
             return player->HasSpell(spell);
+        if (metric == "temporary_spell_replacement")
+            return player->GetTemporarySpellReplacement(spell);
+        if (metric == "spellbook_rows")
+            return Spellbook::RowCount(player);
+        if (metric == "spellbook_offers_spell")
+            return Spellbook::OffersSpell(player, spell) ? 1 : 0;
+        if (metric == "spellbook_covers_spell")
+            return Spellbook::CoversSpell(player, spell) ? 1 : 0;
+        if (metric == "spellbook_buys_granted" || metric == "spellbook_unannounced_buys" ||
+            metric == "spellbook_misannounced_buys" || metric == "spellbook_notify_rows" ||
+            metric == "spellbook_unnotified_buys" || metric == "spellbook_notified_spells")
+        {
+            Actor const& actor = _actors.at(step.get<std::string>("actor"));
+            if (metric == "spellbook_buys_granted")
+                return double(actor.buysGranted);
+            if (metric == "spellbook_notify_rows")
+                return double(actor.notifyRowTotal);
+            if (metric == "spellbook_notified_spells")
+                return double(actor.notifyRows.size());
+            if (metric == "spellbook_unnotified_buys")
+                return double(actor.buysNotNotified);
+            return double(metric == "spellbook_unannounced_buys" ? actor.buysUnannounced
+                                                                : actor.buysMisannounced);
+        }
+        if (metric == "spellbook_buy_succeeded" || metric == "spellbook_buy_failed")
+        {
+            auto const& counts = metric == "spellbook_buy_succeeded"
+                ? _actors.at(step.get<std::string>("actor")).buySucceeded
+                : _actors.at(step.get<std::string>("actor")).buyFailed;
+            auto const found = counts.find(spell);
+            return found == counts.end() ? 0.0 : double(found->second);
+        }
+        if (metric == "spellbook_learned_alerts")
+        {
+            auto const& alerts = _actors.at(step.get<std::string>("actor")).learnedAlerts;
+            auto const found = alerts.find(spell);
+            return found == alerts.end() ? 0.0 : double(found->second);
+        }
         if (metric == "quest_rewarded")
         {
             uint32 quest = step.get<uint32>("quest");
@@ -1339,6 +1573,24 @@ private:
             if (Elapsed(_stepTime) < step.get<uint32>("ms"))
                 return;
         }
+        else if (action == "level_scaling_packet")
+        {
+            Player* player = GetPlayer(step.get<std::string>("actor"));
+            bool const before = LocalLevelScaling::ScalingChoiceEnabled(player);
+            WorldSession* session = player->GetSession();
+            uint32 value = step.get<uint32>("value");
+            // Exercise the early hook on a worker, as WorldSocket does. Joining here prevents
+            // concurrent map updates in the fixture, so an immediate mutation is deterministic.
+            bool const consumed = std::async(std::launch::async, [session, value]
+            {
+                WorldPacket request(LevelScalingOpcode, sizeof(uint32));
+                request << value;
+                return !sScriptMgr->CanPacketReceiveEarly(session, request);
+            }).get();
+            Require(consumed, "Scaling packet was not consumed");
+            Require(LocalLevelScaling::ScalingChoiceEnabled(player) == before,
+                "Early packet hook changed player state before the player update");
+        }
         else if (action == "snapshot" || action == "assert")
         {
             double actual = Measure(step);
@@ -1616,6 +1868,27 @@ private:
         else if (action == "unlearn")
             player->removeSpell(spell, step.get<bool>("all_specs", false) ? SPEC_MASK_ALL :
                 player->GetActiveSpecMask(), false);
+        else if (action == "trainer_buy")
+        {
+            // Replays the client's purchase through the same gate WorldSession::Update uses: the
+            // book module's CanPacketReceive consumes it, and only an unconsumed packet reaches
+            // the core's handler.
+            Unit* trainer = step.get_optional<std::string>("target")
+                ? GetUnit(step.get<std::string>("target")) : nullptr;
+            ObjectGuid guid = trainer ? trainer->GetGUID() : player->GetCritterGUID();
+            Require(!guid.IsEmpty(), "Trainer purchase needs a trainer");
+            Require(spell != 0, "Trainer purchase needs a spell");
+
+            WorldPacket packet(CMSG_TRAINER_BUY_SPELL, 12);
+            packet << guid << int32(spell);
+            if (sScriptMgr->CanPacketReceive(player->GetSession(), packet))
+            {
+                WorldPacket purchase(packet);
+                WorldPackets::NPC::TrainerBuySpell request(std::move(purchase));
+                request.Read();
+                player->GetSession()->HandleTrainerBuySpellOpcode(request);
+            }
+        }
         else if (action == "talent")
         {
             uint32 rank = step.get<uint32>("rank");
@@ -1952,10 +2225,28 @@ private:
     std::map<std::string, double> _snapshots;
     QueryCallbackProcessor _queries;
 };
+
+// Where a proc becomes observable: Spell::cast, with the aura Spell::prepare recorded as the
+// caster of this cast still attached. Aura 42 procs reach it through
+// AuraEffect::HandleProcTriggerSpellAuraProc, whose trigger caster is the unit the aura sits on.
+class CoAGameplayTestProcCounter final : public AllSpellScript
+{
+public:
+    CoAGameplayTestProcCounter() : AllSpellScript("CoAGameplayTestProcCounter", { ALLSPELLHOOK_ON_CAST }) { }
+
+    void OnSpellCast(Spell* spell, Unit* caster, SpellInfo const* /*info*/, bool /*skipCheck*/) override
+    {
+        if (!caster || !spell)
+            return;
+        if (SpellInfo const* triggeredBy = spell->GetTriggeredByAuraSpellInfo())
+            ProcCounter::Record(caster->GetGUID(), triggeredBy->Id);
+    }
+};
 }
 
 void AddCoAGameplayTestScripts()
 {
     new CoAGameplayTest();
     new CoAGameplayTestRegeneration();
+    new CoAGameplayTestProcCounter();
 }

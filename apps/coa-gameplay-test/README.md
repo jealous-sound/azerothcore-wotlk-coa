@@ -175,6 +175,10 @@ The [Shadow Effigy scenario](scenarios/shadow-effigy.json) checks combat casts, 
 nearby-enemy debuffs, replacement by another effigy and timed despawn.
 The [Dusk Blade scenario](scenarios/dusk-blade.json) checks dual-wield damage, Rage spending and healing
 the wounded caster across repeated melee casts.
+The [Who scenarios](scenarios/who-lists-bots.json) check both sides of `Who.ShowBots`: bot sessions are listed
+like players with the shipped `Who.ShowBots=1`, and the [hidden case](scenarios/who-hides-bots.json) requires
+`Who.ShowBots=0` in the source config, where the same roster leaves only the two real players in the response
+and a name search for a bot returns nothing.
 The [resource talents scenario](scenarios/resource-talents.json) checks the live-tree 1% resource bonuses.
 Arm of Thorim rolls 133–144 base damage at the fixture level, so two independent rolls need ratio ranges
 of 1.10–1.31 with its 20% bonus and 0.91–1.09 without it (including integer rounding). Charged Conduit
@@ -188,7 +192,9 @@ away and must scale to level 6. One fixture has only one maximum HP to expose da
 Spell 705798 is learned as a fixture: its one damage and zero initial threat exercise damage-led
 engagement through the normal cast handler. This tests the damage path, not an Overload proc or pet AI.
 
-Players require `id`, numeric `race` and `class`; `level` defaults to 80. Optional `spell_hit_rating`,
+Players require `id`, numeric `race` and `class`; `level` defaults to 80. Optional `bot` logs the actor in on a
+session flagged as a bot, the way playerbots flags the sessions it creates, so a scenario can check what the
+server does differently for them. Optional `spell_hit_rating`,
 `spell_crit_rating`, `ranged_hit_rating`, `melee_hit_rating` and `expertise_rating` add fixture ratings through
 normal calculations, useful for preventing misses, dodges and parries in deterministic tests.
 Optional `allow_regeneration: false` suppresses only that fixture player's ordinary health/power regeneration
@@ -255,7 +261,7 @@ Metrics: `health`, `max_health`, `power`, `max_power`, `alive`, `combat`, `casti
 `has_talent`, `talent_points`, `cooldown_ms`, `item_count`, `carried_item_count`, `bank_bag_slots`, `aura`, `aura_stacks`, `aura_charges`,
 `aura_duration_ms`, `aura_amount`, `pet_entry`, `pet_aura_stacks`, `owned_creature_count`,
 `charm_entry`, `charm_aura_stacks`, `controls_self`, `private_instance`, `dynamic_object`,
-`dynamic_object_duration_ms`.
+`dynamic_object_duration_ms`, `distance`, `spell_proc_count`, `temporary_spell_replacement`.
 Boolean metrics use 0/1. Spell/aura metrics require `spell`; `item_count` requires `item`.
 `carried_item_count` sums the stack counts of equipped items (bags included), the backpack and the bags' contents.
 `aura_positive` reads the applied aura's beneficial flag; check `aura` separately to distinguish absence from a debuff.
@@ -313,6 +319,14 @@ healing. They accept the same caster/critical filters; `target_pet: true` select
 `target`. Absorbed healing is excluded. These metrics avoid confusing normal regeneration with spell healing.
 The result's optional `cast_failures` array records native `SMSG_CAST_FAILED` spell IDs, cast counters and
 numeric `SpellCastResult` reasons. These diagnose a rejected submission; effect assertions still establish success.
+`distance` requires `target` and measures the native two-dimensional distance, in yards, between the actor and
+that target. It reads position and nothing else, so displacement from a knockback, pull or teleport shows up as
+the difference between two observations; take a `snapshot` first and assert `relative_to` it. Height is excluded.
+`spell_proc_count` requires `spell` and counts the procs of that spell's aura on the actor since the scenario
+started. What is counted is each spell the proc cast while the aura was named as its trigger, which is the one
+place the server records both the proc and its owner; an aura whose proc does not cast anything counts zero.
+Use it for a proc whose chance is below 100%, where a single roll proves nothing: cast the trigger often enough
+that the false-failure probability is acceptable, and assert a `min` on the count.
 Spell queries require `spell` and submit nothing: `spell_modifier` applies the player's native spell modifiers for
 `op` (`SpellModOp`) to the number `base`; `spell_effect_value` (optional `effect`) returns the effect's value as the
 player would cast it, including module base-value hooks; `spell_cast_time_ms`, `spell_max_range` and
@@ -340,6 +354,10 @@ reward eligibility and invokes native reward delivery. These actions do not test
 `restore_quest_spells` takes `actor` and invokes the native restoration of spells from rewarded quests.
 `login_hooks` takes `actor` and replays registered player-login hooks on the current character; it does not reconnect
 or reload the character from the database. Use it to exercise a repair against deliberately seeded fixture state.
+`temporary_spell_replacement` requires `spell` and returns the spell ID currently standing in for it on the
+player's bars. `Player::GetTemporarySpellReplacement` returns the queried spell itself when nothing replaces
+it, so the unreplaced reading is that spell's own ID, never zero. It reads server-side state, not what the
+client draws.
 `has_talent` requires the talent rank's spell ID; passive talents are separate from the learned spellbook.
 `talent_points` measures unspent points in the active specialization.
 `bank_bag_slots` measures the player's unlocked standard bank bag slots (0..7).
@@ -374,6 +392,31 @@ teleports and expiry. It requires `mod-portablemail`; mailbox and altar client i
 The pet queries require a player with a current pet. Aura metrics optionally accept `caster` to select
 ownership; `aura_amount` also accepts an effect index (0..2, default 0). Missing auras yield zero;
 check aura presence separately when zero is a valid effect amount. Permanent aura duration is -1.
+
+### Destiny Weaver regressions
+
+`scenarios/destiny-weaver-scaling.json` checks deferred scaling choices, armor debuffs, creature values
+updates after level changes, fractional damage accumulation, and ordinary damage with scaling off.
+It requires `DestinyWeaver.Enable=1`, `DestinyWeaver.LevelScaling=1`, `DestinyWeaver.Scaling.Offset=3`,
+and `AscensionCompat.QuestLevelScaling=1`. Spell 705798 supplies one base damage without critical hits;
+Faerie Fire (770) supplies a 5% armor reduction. Spell 705798 uses melee hit resolution, so the fixture
+sets melee hit and expertise as well as spell hit. Template 1501 has HealthModifier 0.93: the level-1
+fixture's real pool remains 40 HP while its level-57 view has 2,590 HP. Ten one-damage hits cannot remove
+a whole real HP; 67 remove one.
+
+`scenarios/destiny-weaver-quest-fallback.json` requires a separate run with `DestinyWeaver.Enable=0`
+and `AscensionCompat.QuestLevelScaling=1`. Quest 7 must still scale to the player's level and award XP.
+
+The `level_scaling_packet` action takes a player `actor` and `value` (0 or 1). It sends the existing
+four-byte request through the early packet hook on a worker, verifies that player state has not changed
+before a player update, then leaves subsequent assertions to verify the queued choice took effect.
+It tests dispatch and deferral, not a real socket, packet delivery, or every possible concurrent schedule.
+
+`view_level` takes a player `actor` and unit `target` and queries the target-relative combat level.
+`sent_level` and `sent_max_health` use the same fields and observe values-only object updates emitted to
+the socketless session. They return zero until the corresponding field has been observed; they do not
+force updates or inspect client rendering. `quest_level` and `quest_xp` take a player `actor` and `quest`
+and query the native quest level and XP calculations without awarding a reward.
 
 ## Evidence boundaries
 
