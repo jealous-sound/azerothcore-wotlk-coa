@@ -120,9 +120,13 @@ class aura_ascension_pyromancer_event : public AuraScript
         Unit* target =
             e.GetActionTarget() == GetTarget() && e.GetActor() != GetTarget() ? e.GetActor() : e.GetActionTarget();
         if (Named(GetSpellInfo(), 504380))
-            Copy(player, target, 524623,
-                 uint32(std::clamp(GetSpellInfo()->Effects[1].CalcValue(player) + player->GetStat(STAT_SPIRIT) * .1f,
-                                   0.0f, float(INT32_MAX / 2))));
+        {
+            float retaliation = GetSpellInfo()->Effects[1].CalcValue(player) + player->GetStat(STAT_SPIRIT) * .1f;
+            // 524623 ignores caster modifiers (it also carries Retaliation), so apply the barrier rank's own
+            // damage modifiers (Bright Flames) to the amount here.
+            player->ApplySpellMod(id, SPELLMOD_DAMAGE, retaliation);
+            Copy(player, target, 524623, uint32(std::clamp(retaliation, 0.0f, float(INT32_MAX / 2))));
+        }
         switch (id)
         {
         case 300755:

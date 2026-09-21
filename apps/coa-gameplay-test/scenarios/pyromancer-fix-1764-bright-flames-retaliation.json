@@ -1,0 +1,395 @@
+{
+  "schema": 1,
+  "name": "Bright Flames raises Inferno Barrier's retaliation damage (#1764)",
+  "contract": "#1764: Bright Flames 300759 (rank 1) and 301351 (rank 2): effect 2 is ADD_PCT_MODIFIER (aura 108) on SPELLMOD_DAMAGE (misc 0), base 14 -> +15% and 29 -> +30%, class mask {0, 0, 0x400} = Inferno Barrier (504380, 535650, 535651, 582762-582764; SpellFamilyFlags {0, 0, 1024}); tooltip: increases the damage it deals by $s2% (Spell.dbc served file). The module turns the barrier's PROC_TRIGGER_DAMAGE into a dummy and deals the retaliation itself as Lucifron's Rage 524623 (family 30, empty flags) with an amount computed from effect 2 and Spirit, so the SPELLMOD_DAMAGE modifier matched neither 524623 nor that amount. The fix runs the caster's SPELLMOD_DAMAGE modifiers for the barrier rank on the amount. A second Pyromancer (Orc, PvP flagged) hits the barriered Pyromancer with Flare Bolt 800790; the barrier retaliates with one Lucifron's Rage. The damage total of 524623 is measured with no talent (control), with rank 1 and with rank 2, and compared as ratios (1.15 and 1.30 expected, truncation of the integer amount allows the wide bounds, a resolved amount of at least 4 keeps rank 2 above 1.15). Ratios need no assumption on Spirit. Fails before the fix (ratio 1.00). Not covered: the absorb half (aura 317) which already worked.",
+  "timeout_ms": 180000,
+  "players": [
+    {
+      "id": "pyro",
+      "race": 1,
+      "class": 24,
+      "level": 80,
+      "spell_hit_rating": 10000
+    },
+    {
+      "id": "enemy",
+      "race": 2,
+      "class": 24,
+      "level": 80,
+      "spell_hit_rating": 10000
+    }
+  ],
+  "location": {
+    "map": 0,
+    "x": -9617.06,
+    "y": -288.949,
+    "z": 57.3053,
+    "o": 0
+  },
+  "steps": [
+    {
+      "action": "teleport",
+      "actor": "enemy",
+      "map": 0,
+      "x": -9614.06,
+      "y": -288.949,
+      "z": 57.3053,
+      "o": 3.14159
+    },
+    {
+      "action": "pvp",
+      "actor": "pyro",
+      "enabled": true
+    },
+    {
+      "action": "pvp",
+      "actor": "enemy",
+      "enabled": true
+    },
+    {
+      "action": "learn",
+      "actor": "pyro",
+      "spell": 504380
+    },
+    {
+      "action": "learn",
+      "actor": "enemy",
+      "spell": 800790
+    },
+    {
+      "action": "wait",
+      "label": "Let level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "assert",
+      "label": "Spirit is high enough for the Retaliation amount to resolve a 15% step",
+      "actor": "pyro",
+      "metric": "stat",
+      "stat": 4,
+      "min": 60
+    },
+    {
+      "action": "set_aura",
+      "actor": "pyro",
+      "spell": 504380,
+      "stacks": 0
+    },
+    {
+      "action": "set_health",
+      "actor": "enemy",
+      "maximum": 100000,
+      "value": 100000
+    },
+    {
+      "action": "set_health",
+      "actor": "pyro",
+      "maximum": 100000,
+      "value": 100000
+    },
+    {
+      "action": "set_power",
+      "actor": "pyro",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "set_power",
+      "actor": "enemy",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "pyro",
+      "spell": 504380
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "enemy",
+      "spell": 800790
+    },
+    {
+      "action": "cast",
+      "actor": "pyro",
+      "spell": 504380
+    },
+    {
+      "action": "assert",
+      "label": "control: Inferno Barrier is up",
+      "actor": "pyro",
+      "metric": "aura",
+      "spell": 504380,
+      "equals": 1,
+      "within_ms": 3000
+    },
+    {
+      "action": "snapshot",
+      "actor": "pyro",
+      "metric": "spell_damage_total",
+      "spell": 524623,
+      "target": "enemy",
+      "save_as": "b_control"
+    },
+    {
+      "action": "snapshot",
+      "actor": "pyro",
+      "metric": "spell_damage_count",
+      "spell": 524623,
+      "target": "enemy",
+      "save_as": "c_control"
+    },
+    {
+      "action": "cast",
+      "actor": "enemy",
+      "spell": 800790,
+      "target": "pyro"
+    },
+    {
+      "action": "assert",
+      "label": "control: the barrier retaliates exactly once through Lucifron's Rage",
+      "actor": "pyro",
+      "metric": "spell_damage_count",
+      "spell": 524623,
+      "target": "enemy",
+      "relative_to": "c_control",
+      "equals": 1,
+      "within_ms": 6000
+    },
+    {
+      "action": "wait",
+      "ms": 500
+    },
+    {
+      "action": "snapshot",
+      "label": "control: Retaliation damage without Bright Flames",
+      "actor": "pyro",
+      "metric": "spell_damage_total",
+      "spell": 524623,
+      "target": "enemy",
+      "relative_to": "b_control",
+      "save_as": "ctrl"
+    },
+    {
+      "action": "learn",
+      "actor": "pyro",
+      "spell": 300759
+    },
+    {
+      "action": "set_aura",
+      "actor": "pyro",
+      "spell": 504380,
+      "stacks": 0
+    },
+    {
+      "action": "set_health",
+      "actor": "enemy",
+      "maximum": 100000,
+      "value": 100000
+    },
+    {
+      "action": "set_health",
+      "actor": "pyro",
+      "maximum": 100000,
+      "value": 100000
+    },
+    {
+      "action": "set_power",
+      "actor": "pyro",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "set_power",
+      "actor": "enemy",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "pyro",
+      "spell": 504380
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "enemy",
+      "spell": 800790
+    },
+    {
+      "action": "cast",
+      "actor": "pyro",
+      "spell": 504380
+    },
+    {
+      "action": "assert",
+      "label": "rank1: Inferno Barrier is up",
+      "actor": "pyro",
+      "metric": "aura",
+      "spell": 504380,
+      "equals": 1,
+      "within_ms": 3000
+    },
+    {
+      "action": "snapshot",
+      "actor": "pyro",
+      "metric": "spell_damage_total",
+      "spell": 524623,
+      "target": "enemy",
+      "save_as": "b_rank1"
+    },
+    {
+      "action": "snapshot",
+      "actor": "pyro",
+      "metric": "spell_damage_count",
+      "spell": 524623,
+      "target": "enemy",
+      "save_as": "c_rank1"
+    },
+    {
+      "action": "cast",
+      "actor": "enemy",
+      "spell": 800790,
+      "target": "pyro"
+    },
+    {
+      "action": "assert",
+      "label": "rank1: the barrier retaliates exactly once through Lucifron's Rage",
+      "actor": "pyro",
+      "metric": "spell_damage_count",
+      "spell": 524623,
+      "target": "enemy",
+      "relative_to": "c_rank1",
+      "equals": 1,
+      "within_ms": 6000
+    },
+    {
+      "action": "wait",
+      "ms": 500
+    },
+    {
+      "action": "assert",
+      "label": "rank1: Retaliation damage against the control",
+      "actor": "pyro",
+      "metric": "spell_damage_total",
+      "spell": 524623,
+      "target": "enemy",
+      "relative_to": "b_rank1",
+      "ratio_to": "ctrl",
+      "min": 1.05,
+      "max": 1.25
+    },
+    {
+      "action": "unlearn",
+      "actor": "pyro",
+      "spell": 300759
+    },
+    {
+      "action": "learn",
+      "actor": "pyro",
+      "spell": 301351
+    },
+    {
+      "action": "set_aura",
+      "actor": "pyro",
+      "spell": 504380,
+      "stacks": 0
+    },
+    {
+      "action": "set_health",
+      "actor": "enemy",
+      "maximum": 100000,
+      "value": 100000
+    },
+    {
+      "action": "set_health",
+      "actor": "pyro",
+      "maximum": 100000,
+      "value": 100000
+    },
+    {
+      "action": "set_power",
+      "actor": "pyro",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "set_power",
+      "actor": "enemy",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "pyro",
+      "spell": 504380
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "enemy",
+      "spell": 800790
+    },
+    {
+      "action": "cast",
+      "actor": "pyro",
+      "spell": 504380
+    },
+    {
+      "action": "assert",
+      "label": "rank2: Inferno Barrier is up",
+      "actor": "pyro",
+      "metric": "aura",
+      "spell": 504380,
+      "equals": 1,
+      "within_ms": 3000
+    },
+    {
+      "action": "snapshot",
+      "actor": "pyro",
+      "metric": "spell_damage_total",
+      "spell": 524623,
+      "target": "enemy",
+      "save_as": "b_rank2"
+    },
+    {
+      "action": "snapshot",
+      "actor": "pyro",
+      "metric": "spell_damage_count",
+      "spell": 524623,
+      "target": "enemy",
+      "save_as": "c_rank2"
+    },
+    {
+      "action": "cast",
+      "actor": "enemy",
+      "spell": 800790,
+      "target": "pyro"
+    },
+    {
+      "action": "assert",
+      "label": "rank2: the barrier retaliates exactly once through Lucifron's Rage",
+      "actor": "pyro",
+      "metric": "spell_damage_count",
+      "spell": 524623,
+      "target": "enemy",
+      "relative_to": "c_rank2",
+      "equals": 1,
+      "within_ms": 6000
+    },
+    {
+      "action": "wait",
+      "ms": 500
+    },
+    {
+      "action": "assert",
+      "label": "rank2: Retaliation damage against the control",
+      "actor": "pyro",
+      "metric": "spell_damage_total",
+      "spell": 524623,
+      "target": "enemy",
+      "relative_to": "b_rank2",
+      "ratio_to": "ctrl",
+      "min": 1.15,
+      "max": 1.4
+    }
+  ]
+}
