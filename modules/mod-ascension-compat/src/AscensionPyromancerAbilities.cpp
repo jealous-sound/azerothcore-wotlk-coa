@@ -56,7 +56,8 @@ void Finish(Player* player, Spell* spell)
         if (uint64 generation = spell->GetScriptValue(id))
             if (Aura* aura = player->GetAura(id); aura && generation == aura->GetScriptValue(802168))
             {
-                if (id == 524707 && aura->GetCharges() > 1)
+                // Flames of Fate gives Aspect's Blessing extra charges through SPELLMOD_CHARGES.
+                if ((id == 524707 || id == 802168) && aura->GetCharges() > 1)
                     aura->SetCharges(aura->GetCharges() - 1);
                 else
                     aura->Remove();
