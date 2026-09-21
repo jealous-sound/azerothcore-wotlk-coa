@@ -76,9 +76,11 @@ void ApplyContracts(SpellInfo* info)
     if (id == 800386)
     {
         mod(0, SPELL_AURA_ADD_PCT_MODIFIER, -100, SPELLMOD_CASTING_TIME, flag96(537133056, 8, 0));
-        // Silverstream doubles its native cost before the stock cost modifiers finish.
-        mod(1, SPELL_AURA_ADD_PCT_MODIFIER, 100, SPELLMOD_COST, flag96(536870912, 0, 0));
-        dummy(2);
+        // Effect 1 stays the DBC's SPELLMOD_JUMP_TARGETS carrier: Moonwell Acuity's EFFECT2 flat modifier
+        // (680809) raises its base of 0 to the three chained Moonwell Splash targets.
+        // Silverstream doubles its native cost before the stock cost modifiers finish. It takes the
+        // slot 2 dummy, which nothing reads.
+        mod(2, SPELL_AURA_ADD_PCT_MODIFIER, 100, SPELLMOD_COST, flag96(536870912, 0, 0));
     }
     if (id == 802985)
     {
