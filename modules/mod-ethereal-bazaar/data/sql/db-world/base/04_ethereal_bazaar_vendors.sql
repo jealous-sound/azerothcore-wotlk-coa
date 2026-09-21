@@ -55,6 +55,11 @@ SELECT 900010, 0, `entry`, 0, 0, 3015
   FROM `item_template`
  WHERE `name` LIKE 'Stone of Retreat%';
 
+-- The Ethereal Cache of Wares, always the first row of the rotating list.
+DELETE FROM `npc_vendor` WHERE `entry` = 900007 AND `item` = 969029;
+INSERT INTO `npc_vendor` (`entry`,`slot`,`item`,`maxcount`,`incrtime`,`ExtendedCost`)
+VALUES (900007,0,969029,0,0,2990);   -- 250 tokens
+
 -- Lost caches: one per vanity category, 100 tokens each.
 INSERT INTO `npc_vendor` (`entry`,`slot`,`item`,`maxcount`,`incrtime`,`ExtendedCost`) VALUES
 (900009,0,8950001,0,0,2983),  -- Lost Weapon Cache

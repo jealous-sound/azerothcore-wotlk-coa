@@ -53,7 +53,6 @@ class aura_ascension_mountain_threshold : public AuraScript
         uint8 current = GetStackAmount();
         bool crossed = _previous < 5 && current >= 5;
         _previous = current;
-        // REAL also runs when saved auras load. Loading five stacks is not a gain.
         Unit* owner = GetTarget();
         if (mode == AURA_EFFECT_HANDLE_REAL || !crossed || !owner->IsPlayer() ||
             owner->getClass() != CLASS_WILDWALKER || !owner->IsAlive() ||
@@ -76,7 +75,6 @@ public:
 
     void OnLoadSpellCustomAttr(SpellInfo* info) override
     {
-        // Old trigger granted Mountain on the first stack without its talent.
         if (info->Id == EarthsRage && info->SpellFamilyName == 37)
             info->Effects[EFFECT_2].Effect = 0;
     }

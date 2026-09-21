@@ -3,6 +3,129 @@
 Execute repeatable scenarios inside a real worldserver, using its loaded DBCs, SQL, scripts, maps and updates.
 The runtime component is `modules/mod-ascension-compat/src/CoAGameplayTest.cpp`; it is disabled by default.
 
+## Find and verify a mechanic
+
+The searchable catalog derives spell IDs, classes, assertions, metrics and contracts from the scenarios.
+`checks.json` binds the existing numerical result checkers to their exact scenario definitions and mode arguments.
+Use the [agent DBC viewer](../coa-dbc/README.md#agent-retrieval-coa-dbc-viewer) to inspect source data first.
+The [mechanic map](../coa-mechanics/README.md) connects spells and quests to ranks/acquisition, expected behavior
+and reviewed execution paths. `catalog.py --quest ID` and `workflow.py --quest ID` select quest investigations.
+
+```sh
+python apps/coa-gameplay-test/catalog.py --spell 1257670
+python apps/coa-gameplay-test/catalog.py --query 'replenishment'
+python apps/coa-gameplay-test/workflow.py --spell 1257670
+python apps/coa-gameplay-test/catalog.py --check
+```
+
+`workflow.py` returns candidate scenarios and an investigation sequence in JSON. It does not infer that a
+report is a defect or create a PR. Establish expectations independently, select a metric that observes the
+behavior, reproduce it, then classify the result as a defect, already working, an incorrect test or unresolved.
+Use the existing issue-to-PR workflow when that scope is requested.
+
+`run.py run` now combines native execution with every registered numerical check for an exact catalog
+scenario. Checks requiring companion scenarios (currently the two Rockslide selection cases) run both cases
+automatically. With `--output`, their directories live under that output. `verification.json` is written in
+the first case's result directory, includes executable/scenario/checker identities, and controls the final exit code.
+`NATIVE STAGE COMPLETE` is intermediate progress; only `VERIFICATION PASSED` means the combined checks passed.
+Native failures also produce a failed combined outcome, with required checks marked `blocked` when their
+native evidence is unavailable. A failure stops further native runs because cleanup may have failed. If native
+setup fails before creating a result directory, the combined outcome is printed to standard output.
+
+For example, the existing Primalist conversion script has two registered modes:
+
+| Scenario | Required checker | Mode argument |
+| --- | --- | --- |
+| `primalist-everlasting-rage` | `check_primalist_native_conversions.py` | `everlasting` |
+| `primalist-king-mountain` | `check_primalist_native_conversions.py` | `king` |
+
+Run the scenario once with the usual isolated-runner options; there is no separate checker command to remember:
+
+```sh
+python apps/coa-gameplay-test/run.py run apps/coa-gameplay-test/scenarios/primalist-everlasting-rage.json \
+  --worldserver /path/to/worldserver \
+  --config /path/to/worldserver.conf \
+  --mysql /path/to/mysql \
+  --mysqldump /path/to/mysqldump \
+  --server-modules-dir /path/to/compiled-conf-dir/modules
+```
+
+The default command rejects modified/exploratory definitions absent from the catalog. Use `--native-only`
+explicitly for those experiments; its exit code covers native execution only and produces no combined pass.
+Native success alone cannot pass a failed, missing or timed-out required numerical check.
+
+For new spell or quest regressions, save the reusable definition under `scenarios/`. Express direct assertions
+in that definition and add any extra numerical checker to `checks.json`, listing scenario IDs in its expected
+argument order, followed by mode arguments in `args`. Shared checks can list multiple scenarios; the runner
+selects their companions transitively. Registry validation runs before native execution and in CI, and rejects
+missing files, duplicate bindings and any `check_*.py` script left unregistered. Scenarios with no extra checker
+still receive combined verification of native completion, assertions and cleanup.
+
+Recheck existing result bundles without starting a server:
+
+```sh
+python apps/coa-gameplay-test/verification.py .cache/coa-gameplay-tests/RUN
+python apps/coa-gameplay-test/verification.py path/to/rockslide-first path/to/rockslide-highest
+python -B apps/coa-gameplay-test/test_verification.py
+```
+
+Rechecks require the exact current scenario definition, its recorded hash, matching native step/run identity,
+passing native assertions and cleanup, all companion results, and matching companion executable hashes.
+They do not establish that old results cover current source, database, config or client changes. The registry
+ensures checkers run; it does not prove every expected mechanic has an adequate scenario or independent contract.
+
+## Prevent recurring mistakes
+
+Run the fast source checks for the working diff, including staged and untracked files:
+
+```sh
+python -B tools/check_source.py --base HEAD
+python -B tools/check_source.py --base origin/main --plan
+```
+
+The JSON outcome lists the selected checks, failures and timings. `--all` runs every fast suite. SQL boundaries
+and new C++/Python comments in CoA-owned code are always checked; changed module sources select loader registration
+checks; gameplay tooling/scenario changes
+select scenario validation, combined-verification tests, and runner/cache ownership and cleanup tests. Reviewed
+execution-path changes also check mechanic-map references. Documentation-only changes skip these test suites.
+CI uses the same selection for pull requests and retains the repository publication checks. Main-branch and
+manual runs perform a full audit; SQL-boundary exceptions are reviewed on the pull request. The existing compiled
+client-compatibility harness runs only for relevant changes or a full audit. The local command never builds or
+starts a server.
+
+CoA-owned code uses names, structure and tests to express intent. The comment check covers
+`modules/mod-ascension-compat/`, `apps/coa-dbc/`, `apps/coa-gameplay-test/`, `apps/coa-mechanics/`, `tools/`
+and `.github/scripts/`. It rejects explanatory comments and docstrings on added lines, while preserving legal
+headers, recognized tool directives and native test-generator markers. Strings and runtime CLI help remain data.
+`python -B tools/check_comments.py --all` also checks unchanged C++ and Python files in those directories.
+Upstream source, dependencies, SQL and configuration documentation remain outside this check.
+
+The loader check requires each CoA `AddSC_*`, `AddAscension*Scripts` and `AddCoA*Scripts` definition to have
+exactly one call from the module's flat loader, and each call to have exactly one definition. It ignores comments
+and string literals. It does not prove SQL bindings, hook reachability, or gameplay behavior; those require data
+inspection and behavioral tests. The checker intentionally reports an unsupported conditional loader for review.
+
+For behavior, choose the existing scenario that observes the changed mechanic and run it through `run.py run`:
+
+- **Duplicated calculations:** `bloodmage-dominion-of-blood-vampiric-fang` compares healing with the same cast's
+  damage; doubled healing fails the ratio. `ascension-replenishment` checks exact amounts for different recipient
+  pools. For a new coefficient change, vary AP/RAP/SP independently and check the final affected hit or tick.
+- **Wrong ownership:** `primalist-sharpened-claws` includes a wrong-caster pet control;
+  `wisdomball-dungeon-quests` checks the interacting player's quest state without changing the summoner's state.
+- **Rank replacement:** `pyromancer-fix-4104-ascension-rank-supersede` and `runemaster-tattoo-rank-supersede`
+  verify that a superseded rank cannot apply its aura, the current rank can, and the lower aura stays absent
+  while the higher aura is active. A stat-stacking change also
+  needs its effective stat/damage assertion; checking only the learned spell list is insufficient.
+- **Cleanup:** `primalist-protectors-hand` verifies armor returns after removing all sources;
+  `primalist-sharpened-claws` covers expiry and unlearning. Runner/cache tests separately cover database ownership,
+  collisions, leases, failed audits and unstopped processes; infrastructure cleanup is part of combined verification.
+
+Keep expectations independent of implementation. Use distinguishable players/stats, positive and negative
+controls, and bounded final values; a broad “damage increased” assertion can miss double scaling. The fast tests
+inject doubled amounts, wrong-recipient values and retained auras into synthetic recorded results to prove those
+errors cannot pass verification. These checks validate the verifier, not current worldserver behavior. Source
+patterns cannot reliably establish these gameplay rules, and passing source checks is never a gameplay pass.
+
 ## Run
 
 Python 3.11+, MySQL 8 client tools, a local MySQL server and a worldserver built with the runtime component
@@ -107,11 +230,12 @@ Results default to `.cache/coa-gameplay-tests/<run-id>/`:
 - `scenario.json`: exact scenario used.
 - `worldserver.log`: process output, including startup and script errors.
 - `result.json`: server version, actual values and step outcomes.
-- `summary.json`: overall result, binary/scenario SHA-256 and any cleanup failure.
+- `summary.json`: native-stage result, binary/scenario SHA-256 and any cleanup failure.
+- `verification.json`: combined native and registered numerical verification for catalog scenarios.
 
-Exit code zero requires every expected assertion and step to complete, matching run identity, a clean server
-exit and successful cleanup/cache audit. A submitted cast alone is never a pass. Numeric fields in the server's
-property-tree JSON are strings; the Python runner converts and rechecks assertion values.
+Combined exit code zero requires every expected assertion and step to complete, matching run identity, a clean server
+exit, successful cleanup/cache audit and every registered numerical check. A submitted cast alone is never a pass.
+Numeric fields in the server's property-tree JSON are strings; the Python runner converts and rechecks assertion values.
 
 ### Linux (Docker)
 
@@ -221,6 +345,7 @@ damage coefficients.
 | `console` | `command`: execute one console command on the test server; capture its output. |
 | `command` | `actor`, `command` beginning with `.`: execute with the player's normal permissions. |
 | `learn`, `unlearn` | `actor`, `spell`: configure learned spells/passives through player APIs. `unlearn` accepts `all_specs: true` to remove the fixture grant from every specialization before testing a lower weapon rank. |
+| `money` | `actor`, `copper`: fixture purse, so a priced trainer row can be bought on a character that starts with none. |
 | `set_aura` | `actor`, `spell`, `stacks`: fixture aura state, within its stack limit; zero removes it. Optional `pet: true` selects the actor's current pet. |
 | `talent` | `actor`, `talent`, zero-based `rank`: learn with normal point/prerequisite checks. |
 | `reset_talents` | `actor`: reset active talents through normal removal, without a trainer fee. |
@@ -232,6 +357,8 @@ damage coefficients.
 | `group` | `actor`, `target`: fixture party; creates the actor's group if needed and adds an ungrouped player. |
 | `cast_charm` | Same fields: native pet-cast handler, with the charmed unit as the default target. |
 | `gossip_hello` | `actor`, optional `target`: native gossip handler; defaults to the actor's summoned companion. |
+| `banker_activate` | `actor`, optional `target`, or optional `owner` + `entry`: native banker click (`CMSG_BANKER_ACTIVATE`); defaults to the actor's summoned companion, and `owner` aims it at a companion another actor summoned, walking up to it first. |
+| `area_trigger` | `actor`, `id`: native area-trigger packet, as the client sends on walking into one; inn triggers are what set the rested flag. |
 | `gossip_select` | `actor`, zero-based `option`: select from the current menu through the session handler. |
 | `who` | `actor`, optional name-filter `target`, `class_mask`, `race_mask`: submit a native Who query. |
 | `add_item` | `actor`, `item`, optional `count` (default 1): grant fixture inventory. |
@@ -265,11 +392,17 @@ Metrics: `health`, `max_health`, `power`, `max_power`, `alive`, `combat`, `casti
 `has_talent`, `talent_points`, `cooldown_ms`, `item_count`, `carried_item_count`, `bank_bag_slots`, `aura`, `aura_stacks`, `aura_charges`,
 `aura_duration_ms`, `aura_amount`, `pet_entry`, `pet_aura_stacks`, `owned_creature_count`,
 `charm_entry`, `charm_aura_stacks`, `controls_self`, `private_instance`, `dynamic_object`,
-`dynamic_object_duration_ms`, `distance`, `spell_proc_count`, `spell_cast_count`, `temporary_spell_replacement`.
+`dynamic_object_duration_ms`, `distance`, `spell_proc_count`, `spell_cast_count`, `temporary_spell_replacement`,
+`bank_shows`, `system_messages`, `cast_failure`, `pet_is_banker`, `pet_display`, `pet_scale`.
 Boolean metrics use 0/1. Spell/aura metrics require `spell`; `item_count` requires `item`.
 `carried_item_count` sums the stack counts of equipped items (bags included), the backpack and the bags' contents.
 `aura_positive` reads the applied aura's beneficial flag; check `aura` separately to distinguish absence from a debuff.
 `gossip_options` counts the player's current server-side gossip options; it does not verify client rendering.
+`trainer_list_packets` counts the trainer windows the session has been sent, `trainer_window_rows` is the row
+count of the last one, and `trainer_window_state` requires `spell` and returns the state byte that window gave
+the spell's row (`0` available, `1` unavailable, `2` known), or `-1` when the window does not hold that row.
+They read what a client draws and gates **Train** on, so a window that stopped selling a spell is distinct
+from one that still offers it.
 `who_count` counts players in the actor's last native Who response; `who_class` requires a player `target`
 and returns that player's class ID, or zero if absent. These inspect packets from socketless test sessions,
 not client packet delivery. Masks use native Who bits (`1 << classID`, `1 << raceID`), with class 32 in bit zero;
@@ -369,7 +502,15 @@ client draws.
 `has_talent` requires the talent rank's spell ID; passive talents are separate from the learned spellbook.
 `talent_points` measures unspent points in the active specialization.
 `bank_bag_slots` measures the player's unlocked standard bank bag slots (0..7).
-`pet_entry` measures the player's current guardian pet entry, or zero if absent. `pet_aura_stacks`
+`pet_entry` measures the player's current guardian pet entry, or the entry of the companion it summoned
+(a minipet, which never occupies the guardian slot), or zero if absent; `pet_display`, `pet_scale`
+and `pet_is_banker` read the same unit.
+`bank_shows` counts the native bank windows the actor's session has been sent, which is what a
+banker click is answered with. `system_messages` counts the chat lines the session has been sent.
+`cast_failure` requires `spell` and reports the reason the client was told the last submitted cast of
+that spell was refused, or zero if it was not refused since (the record is cleared when the scenario
+submits that spell again).
+`pet_aura_stacks`
 requires `spell`, accepts `caster` for aura ownership, and returns zero if the pet or aura is absent.
 `pet_aura_amount` and `pet_aura_amplitude_ms` accept `effect` and read its amount or tick interval.
 `spell_energize_count` and `spell_energize_total` observe native instant and periodic energize logs, excluding
@@ -385,9 +526,9 @@ resource type, recipient and current pets. The total is the logged nominal gain 
 `display_id` reads the unit's selected server display ID; it does not verify client rendering or animations.
 `global_cooldown_ms` requires `spell` and reads the remaining native global cooldown for its recovery category.
 Player commands retain normal permission and gameplay checks; verify their effects with assertions.
-`owned_creature_count` requires a player and `entry`. It counts living creatures of that entry owned by
+`owned_creature_count` requires a player and `entry`. It counts living creatures of that entry owned, created or summoned by
 the player, in the same phase and within 100 yards, including summons outside the guardian-pet slot.
-An optional `spell` restricts the count to creatures with that aura; `caster` can select its aura owner.
+An optional `spell` restricts the count to creatures with that aura; `caster` can select its aura owner. `min_distance` keeps creatures at least that many yards from the player (2D), and `owner_display: true` those wearing the player's display.
 `owned_gameobject_count` requires a player and `entry`. It counts their summoned gameobjects of that entry
 in the same phase and within 100 yards. `gameobject_remaining_ms` uses the same lookup and requires exactly
 one object when present; it returns the remaining lifetime with one-second precision, zero when absent,
@@ -427,6 +568,15 @@ force updates or inspect client rendering. `quest_level` and `quest_xp` take a p
 and query the native quest level and XP calculations without awarding a reward.
 
 ## Evidence boundaries
+
+### Optional character names
+
+`scenarios/optional-character-names.json` creates a single-word character, two characters sharing its
+first name, and a 25-character full name through normal creation and login handlers. Player fixtures
+accept an optional `name`. `player_name` compares the loaded name with the supplied `name` (0/1);
+`name_lookup` checks online and character-cache resolution against the actor (0/1). Who assertions
+inspect native response packets. These checks require the corresponding server build and SQL update;
+they do not validate native client input, rendering, or transport.
 
 The test owns socketless sessions outside the network session manager. Map updates and normal spell/item
 handlers execute; character database loading and login hooks execute. Authentication, transport encryption,

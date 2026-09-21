@@ -34,8 +34,6 @@ void SyncFalconstrike(Player* player)
     uint32 replacement = 0;
     if (ready)
     {
-        // The talent is available at ten; the copied first helper's SpellLevel is eleven.
-        // SpellLevel selects later ranks, without delaying the level-ten talent's first rank.
         replacement = Falconstrikes.front();
         for (uint32 rank : Falconstrikes)
             if (SpellInfo const* info = sSpellMgr->GetSpellInfo(rank); info && info->SpellLevel <= player->GetLevel())
@@ -85,13 +83,12 @@ public:
         {
             player->CastSpell(player, SPELL_FALCONSTRIKE_COUNTER, true);
             Aura const* counter = player->GetAura(SPELL_FALCONSTRIKE_COUNTER, player->GetGUID());
-            // Prepare the fifth shot after four completed Quick Shots, not after the fifth.
             if (counter && uint32(counter->GetStackAmount()) + 1 >= counter->GetSpellInfo()->CalcMaxAuraStacks(player))
             {
                 int32 remaining = counter->GetDuration();
                 player->CastSpell(player, SPELL_FALCONSTRIKE_READY, true);
                 if (Aura* aura = player->GetAura(SPELL_FALCONSTRIKE_READY, player->GetGUID()))
-                    aura->SetDuration(remaining); // Retain the counter's fifteen-second window.
+                    aura->SetDuration(remaining);
                 player->RemoveAurasDueToSpell(SPELL_FALCONSTRIKE_COUNTER, player->GetGUID());
             }
         }

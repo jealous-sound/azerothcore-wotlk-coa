@@ -1,4 +1,3 @@
-"""Exercise Primalist secondary trigger ownership, thresholds and native spell metadata."""
 import os
 from pathlib import Path
 import runpy
@@ -65,8 +64,6 @@ struct SpellScript
 #define BeforeSpellHitFn(...) 0
 '''
     full_source = (ROOT / 'modules/mod-ascension-compat/src/AscensionPrimalistSecondary.cpp').read_text()
-    # Only compile the callbacks covered by this bounded harness. Nature's
-    # Blessing is exercised by its native, multi-target healing scenario.
     declarations = ['enum PrimalistSecondarySpells', 'class primalist_secondary_auras',
                     'class aura_ascension_volcanic_blast', 'class aura_ascension_hammer_of_life',
                     'class primalist_volcanic_targets', 'class spell_ascension_gaze_of_theradras',

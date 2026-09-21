@@ -1,4 +1,4 @@
-"""Check reviewed talent grants and native temporary spell ownership without a server.
+CLI_DESCRIPTION = """Check reviewed talent grants and native temporary spell ownership without a server.
 
 Extracts the actual service, callbacks and Player spell-map/save code. Skill,
 achievement, aura, rank and packet APIs are bounded dependencies; this is not a
@@ -71,7 +71,6 @@ def check_data(header, catalog, replacement_header, dbc, trainer):
         wanted.update([parent, original, *(spell for spell, _ in ranks)])
     rows = {row[0]: row for row in struct.iter_unpack("<234I", raw[20:strings_at]) if row[0] in wanted}
 
-    # The utilities are the authored Witch Hunter pet resurrection and dismissal spells.
     assert rows[801343][71] == 56 and rows[801343][110] == 50124
     assert rows[578118][208] == 21 and rows[578118][71] == 109
     assert rows[680263][208] == 21 and rows[680263][71] == 102
@@ -92,8 +91,6 @@ def check_data(header, catalog, replacement_header, dbc, trainer):
         root = rows[ranks[0][0]]
         description = text(rows[parent][170])
         assert f"@s:{root[0]}:0@" in description and text(rows[original][136]) in description, parent
-        # Artificer's Wand's passive retains copied Ranger family 27. Its actual
-        # Chronomancer ownership is established by the talent catalog above.
         assert rows[parent][208] == (27 if parent == 804478 else root[208]), parent
         for spell, level in ranks:
             row = rows[spell]
@@ -102,7 +99,7 @@ def check_data(header, catalog, replacement_header, dbc, trainer):
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument("--source-ref", help="Read production source from a local Git ref for a negative control.")
     parser.add_argument("--service-ref", help="Use an older class service with current policy to test missing routing.")
     parser.add_argument("--dbc-dir", type=Path)
@@ -126,8 +123,6 @@ def main():
     player = source("src/server/game/Entities/Player/Player.cpp")
     player_header = source("src/server/game/Entities/Player/Player.h")
     storage = source("src/server/game/Entities/Player/PlayerStorage.cpp")
-    # Stop after the real ownership transitions, before unrelated aura, skill and
-    # rank APIs. The targets are ordinary unranked spells. Keep actual callbacks.
     add = method(player, "bool Player::_addSpell(")
     add = add[:add.index("    // pussywizard: return if spell not in current spec")] + "    return true;\n}"
     remove = method(player, "void Player::removeSpell(")
@@ -136,8 +131,6 @@ def main():
     replacement_service = "\n".join(method(service, signature) for signature in (
         "bool AffectsTalentReplacements(", "uint32 SynchronizeTalentReplacements(")) if (
             "uint32 SynchronizeTalentReplacements(" in service) else (
-                # The historical service has no replacement feature. These no-op
-                # adapters only let the new regression call the absent interface.
                 "bool AffectsTalentReplacements(uint32) const { return false; }\n"
                 "uint32 SynchronizeTalentReplacements(Player*) { return 0; }")
     harness = (HERE / "harness.cpp").read_text(encoding="utf-8")

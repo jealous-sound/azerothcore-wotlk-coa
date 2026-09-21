@@ -1,0 +1,314 @@
+{
+  "schema": 1,
+  "name": "Fleeing creature honours the low-health movement speed penalty",
+  "contract": "Unit::UpdateSpeed reduces a non-boss, non-pet, snare-vulnerable creature's run speed by 1.66% for each percent of maximum health below 30, so a creature at 1% health runs at 52% of its current rate. A creature whose flee spline is already in flight must move at that reduced speed, not at the speed captured when the spline was launched. One area fear puts two identical creatures into FleeingMovementGenerator; the scenario waits until the runner has actually started travelling before it measures, because a leg launched after the drop would pick up the new speed on its own and prove nothing. The runner's own displacement over the 250ms before the drop is the speed reference, so the check does not depend on which heading the flee roll produced. The control creature is never touched and is recorded, not asserted, because displacement from a stationary caster depends on that heading. The CoA Psychic Scream aura lasts 6000ms, which bounds the measured sequence.",
+  "timeout_ms": 240000,
+  "location": {
+    "map": 1,
+    "x": 16226.2,
+    "y": 16257.0,
+    "z": 13.2022,
+    "o": 1.65007
+  },
+  "players": [
+    {
+      "id": "caster",
+      "race": 1,
+      "class": 8,
+      "level": 80,
+      "spell_hit_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "control",
+      "owner": "caster",
+      "entry": 87,
+      "level": 80,
+      "health": 100000,
+      "distance": 3
+    },
+    {
+      "id": "runner",
+      "owner": "caster",
+      "entry": 87,
+      "level": 80,
+      "health": 100000,
+      "distance": 5
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "assert",
+      "label": "Control keeps its declared maximum health",
+      "actor": "control",
+      "metric": "max_health",
+      "equals": 100000
+    },
+    {
+      "action": "assert",
+      "label": "Control keeps its declared level",
+      "actor": "control",
+      "metric": "level",
+      "equals": 80
+    },
+    {
+      "action": "assert",
+      "label": "Runner keeps its declared maximum health",
+      "actor": "runner",
+      "metric": "max_health",
+      "equals": 100000
+    },
+    {
+      "action": "assert",
+      "label": "Runner keeps its declared level",
+      "actor": "runner",
+      "metric": "level",
+      "equals": 80
+    },
+    {
+      "action": "learn",
+      "actor": "caster",
+      "spell": 8122
+    },
+    {
+      "action": "snapshot",
+      "actor": "runner",
+      "metric": "distance",
+      "target": "caster",
+      "save_as": "runner_spawn"
+    },
+    {
+      "action": "cast",
+      "actor": "caster",
+      "spell": 8122
+    },
+    {
+      "action": "assert",
+      "label": "Area fear reached the runner",
+      "actor": "runner",
+      "metric": "aura",
+      "spell": 8122,
+      "caster": "caster",
+      "equals": 1,
+      "within_ms": 8000
+    },
+    {
+      "action": "assert",
+      "label": "Area fear reached the control",
+      "actor": "control",
+      "metric": "aura",
+      "spell": 8122,
+      "caster": "caster",
+      "equals": 1,
+      "within_ms": 8000
+    },
+    {
+      "action": "assert",
+      "label": "OBSERVED fear duration when it lands",
+      "actor": "runner",
+      "metric": "aura_duration_ms",
+      "spell": 8122,
+      "caster": "caster",
+      "min": 0.0
+    },
+    {
+      "action": "assert",
+      "label": "Wait until the runner's flee spline is actually in flight",
+      "actor": "runner",
+      "metric": "distance",
+      "target": "caster",
+      "relative_to": "runner_spawn",
+      "min": 0.5,
+      "within_ms": 4000
+    },
+    {
+      "action": "snapshot",
+      "actor": "runner",
+      "metric": "run_speed_rate",
+      "save_as": "runner_rate_fleeing"
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "run_speed_rate",
+      "save_as": "control_rate_fleeing"
+    },
+    {
+      "action": "assert",
+      "label": "OBSERVED fleeing run speed rate",
+      "actor": "runner",
+      "metric": "run_speed_rate",
+      "min": 0.0
+    },
+    {
+      "action": "snapshot",
+      "actor": "runner",
+      "metric": "distance",
+      "target": "caster",
+      "save_as": "runner_d0"
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "distance",
+      "target": "caster",
+      "save_as": "control_d0"
+    },
+    {
+      "action": "wait",
+      "label": "Reference window: runner in flight at full health",
+      "ms": 250
+    },
+    {
+      "action": "snapshot",
+      "actor": "runner",
+      "metric": "distance",
+      "target": "caster",
+      "relative_to": "runner_d0",
+      "save_as": "runner_ref_delta"
+    },
+    {
+      "action": "assert",
+      "label": "Runner was travelling at full flee speed before the drop",
+      "actor": "runner",
+      "metric": "distance",
+      "target": "caster",
+      "relative_to": "runner_d0",
+      "min": 1.2
+    },
+    {
+      "action": "assert",
+      "label": "OBSERVED control displacement over the reference 250ms",
+      "actor": "control",
+      "metric": "distance",
+      "target": "caster",
+      "relative_to": "control_d0",
+      "min": -1000.0
+    },
+    {
+      "action": "snapshot",
+      "actor": "runner",
+      "metric": "distance",
+      "target": "caster",
+      "save_as": "runner_d1"
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "distance",
+      "target": "caster",
+      "save_as": "control_d1"
+    },
+    {
+      "action": "set_health",
+      "label": "Drop only the runner to 1% of maximum health",
+      "actor": "runner",
+      "value": 1000
+    },
+    {
+      "action": "assert",
+      "label": "Runner run speed rate drops to 52% of its fleeing rate",
+      "actor": "runner",
+      "metric": "run_speed_rate",
+      "ratio_to": "runner_rate_fleeing",
+      "min": 0.515,
+      "max": 0.525
+    },
+    {
+      "action": "assert",
+      "label": "Control run speed rate is unchanged",
+      "actor": "control",
+      "metric": "run_speed_rate",
+      "ratio_to": "control_rate_fleeing",
+      "min": 0.995,
+      "max": 1.005
+    },
+    {
+      "action": "wait",
+      "label": "First measured window after the health drop",
+      "ms": 600
+    },
+    {
+      "action": "assert",
+      "label": "Runner 600ms displacement is at most 1.7x its 250ms full-speed reference",
+      "actor": "runner",
+      "metric": "distance",
+      "target": "caster",
+      "relative_to": "runner_d1",
+      "ratio_to": "runner_ref_delta",
+      "max": 1.7
+    },
+    {
+      "action": "assert",
+      "label": "Runner 600ms displacement is under 4.2 yards",
+      "actor": "runner",
+      "metric": "distance",
+      "target": "caster",
+      "relative_to": "runner_d1",
+      "min": 0.8,
+      "max": 4.2
+    },
+    {
+      "action": "assert",
+      "label": "OBSERVED control displacement over the same 600ms",
+      "actor": "control",
+      "metric": "distance",
+      "target": "caster",
+      "relative_to": "control_d1",
+      "min": -1000.0
+    },
+    {
+      "action": "snapshot",
+      "actor": "runner",
+      "metric": "distance",
+      "target": "caster",
+      "save_as": "runner_d2"
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "distance",
+      "target": "caster",
+      "save_as": "control_d2"
+    },
+    {
+      "action": "wait",
+      "label": "Second measured window after the health drop",
+      "ms": 600
+    },
+    {
+      "action": "assert",
+      "label": "Runner stays slowed in the second 600ms window",
+      "actor": "runner",
+      "metric": "distance",
+      "target": "caster",
+      "relative_to": "runner_d2",
+      "min": 0.8,
+      "max": 4.2
+    },
+    {
+      "action": "assert",
+      "label": "OBSERVED control displacement over the second 600ms",
+      "actor": "control",
+      "metric": "distance",
+      "target": "caster",
+      "relative_to": "control_d2",
+      "min": -1000.0
+    },
+    {
+      "action": "assert",
+      "label": "Runner is still fleeing",
+      "actor": "runner",
+      "metric": "aura",
+      "spell": 8122,
+      "caster": "caster",
+      "equals": 1
+    }
+  ]
+}

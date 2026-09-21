@@ -211,7 +211,9 @@ bool normalizePlayerName(std::string& name)
     if (name.empty())
         return false;
 
-    if (name.find(" ") != std::string::npos)
+    std::size_t separator = name.find(' ');
+    if (separator != std::string::npos &&
+        (separator == 0 || separator + 1 == name.size() || name.find(' ', separator + 1) != std::string::npos))
         return false;
 
     std::wstring tmp;
@@ -221,6 +223,10 @@ bool normalizePlayerName(std::string& name)
     wstrToLower(tmp);
     if (!tmp.empty())
         tmp[0] = wcharToUpper(tmp[0]);
+
+    std::size_t wideSeparator = tmp.find(L' ');
+    if (wideSeparator != std::wstring::npos)
+        tmp[wideSeparator + 1] = wcharToUpper(tmp[wideSeparator + 1]);
 
     if (!WStrToUtf8(tmp, name))
         return false;
@@ -9289,7 +9295,7 @@ uint8 ObjectMgr::CheckPlayerName(std::string_view name, bool create)
         return CHAR_NAME_INVALID_CHARACTER;
 
     // Check for too long name
-    if (wname.size() > MAX_PLAYER_NAME)
+    if (wname.size() > MAX_PLAYER_NAME || name.size() > MAX_PLAYER_NAME_BYTES)
         return CHAR_NAME_TOO_LONG;
 
     // Check for too short name
@@ -9297,9 +9303,25 @@ uint8 ObjectMgr::CheckPlayerName(std::string_view name, bool create)
     if (wname.size() < minName)
         return CHAR_NAME_TOO_SHORT;
 
+    std::size_t separator = wname.find(L' ');
+    if (separator != std::wstring::npos &&
+        (separator == 0 || separator + 1 == wname.size() ||
+            wname.find(L' ', separator + 1) != std::wstring::npos))
+        return CHAR_NAME_INVALID_SPACE;
+
+    std::size_t firstLength = separator == std::wstring::npos ? wname.size() : separator;
+    std::size_t secondLength = separator == std::wstring::npos ? 0 : wname.size() - separator - 1;
+    if (firstLength > MAX_PLAYER_NAME_PART || secondLength > MAX_PLAYER_NAME_PART)
+        return CHAR_NAME_TOO_LONG;
+    if (firstLength < minName || (secondLength && secondLength < minName))
+        return CHAR_NAME_TOO_SHORT;
+
     // Check for mixed languages
     uint32 strictMask = sWorld->getIntConfig(CONFIG_STRICT_PLAYER_NAMES);
-    if (!isValidString(wname, strictMask, false, create))
+    std::wstring letters = wname;
+    if (separator != std::wstring::npos)
+        letters.erase(separator, 1);
+    if (!isValidString(letters, strictMask, false, create))
         return CHAR_NAME_MIXED_LANGUAGES;
 
     // Check for three consecutive letters
@@ -9315,6 +9337,22 @@ uint8 ObjectMgr::CheckPlayerName(std::string_view name, bool create)
     // Check Profanity Name
     if (sObjectMgr->IsProfanityName(name))
         return CHAR_NAME_PROFANE;
+
+    // Neither component nor inserting a space may bypass the name filters.
+    std::size_t byteSeparator = name.find(' ');
+    if (byteSeparator != std::string_view::npos)
+    {
+        std::string joined(name);
+        joined.erase(byteSeparator, 1);
+        for (std::string_view candidate : {name.substr(0, byteSeparator), name.substr(byteSeparator + 1),
+            std::string_view(joined)})
+        {
+            if (sObjectMgr->IsReservedName(candidate))
+                return CHAR_NAME_RESERVED;
+            if (sObjectMgr->IsProfanityName(candidate))
+                return CHAR_NAME_PROFANE;
+        }
+    }
 
     return CHAR_NAME_SUCCESS;
 }
@@ -9656,6 +9694,24 @@ void ObjectMgr::ChangeFishingBaseSkillLevel(uint32 entry, int32 skill)
 
 bool ObjectMgr::CheckDeclinedNames(std::wstring w_ownname, DeclinedName const& names)
 {
+    // Validate both words independently, including unchanged surnames.
+    std::size_t separator = w_ownname.find(L' ');
+    if (separator != std::wstring::npos)
+    {
+        DeclinedName firstNames;
+        DeclinedName secondNames;
+        for (uint8 i = 0; i < MAX_DECLINED_NAME_CASES; ++i)
+        {
+            std::size_t split = names.name[i].find(' ');
+            if (split == std::string::npos || names.name[i].find(' ', split + 1) != std::string::npos)
+                return false;
+            firstNames.name[i] = names.name[i].substr(0, split);
+            secondNames.name[i] = names.name[i].substr(split + 1);
+        }
+        return CheckDeclinedNames(w_ownname.substr(0, separator), firstNames) &&
+            CheckDeclinedNames(w_ownname.substr(separator + 1), secondNames);
+    }
+
     // get main part of the name
     std::wstring mainpart = GetMainPartOfName(w_ownname, 0);
     // prepare flags
@@ -9667,6 +9723,9 @@ bool ObjectMgr::CheckDeclinedNames(std::wstring w_ownname, DeclinedName const& n
     {
         std::wstring wname;
         if (!Utf8toWStr(names.name[i], wname))
+            return false;
+
+        if (wname.empty() || wname.size() > 15 || wname.find(L' ') != std::wstring::npos)
             return false;
 
         if (mainpart != GetMainPartOfName(wname, i + 1))

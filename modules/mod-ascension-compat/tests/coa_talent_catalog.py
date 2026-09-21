@@ -1,10 +1,3 @@
-"""Compile the module's CoA talent loader and print the catalog it reads from a client DBC directory.
-
-The output uses the layout of the former generated AscensionCoATalentData.h, so tests can parse it:
-`CoATalentEntries =` rows `{EntryId, ClassId, SpecId, SpellCount, AE, TE, Level, {{spell, spell, spell}}},`,
-`CoASelectableFreeEntries =` rows `{EntryId, GroupId},` and `CoAAutomaticDependencies =` rows `{EntryId, {{a, b}}},`.
-"""
-
 import os
 from pathlib import Path
 import shutil

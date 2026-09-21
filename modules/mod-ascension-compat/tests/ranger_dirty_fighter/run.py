@@ -1,4 +1,3 @@
-"""Exercise Dirty Fighter callbacks with the shared native spell-replacement fixture."""
 import os
 from pathlib import Path
 import re

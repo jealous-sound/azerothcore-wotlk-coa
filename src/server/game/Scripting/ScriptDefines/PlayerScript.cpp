@@ -27,6 +27,11 @@ void ScriptMgr::OnPlayerBeforeDurabilityRepair(Player* player, ObjectGuid npcGUI
     CALL_ENABLED_HOOKS(PlayerScript, PLAYERHOOK_ON_BEFORE_DURABILITY_REPAIR, script->OnPlayerBeforeDurabilityRepair(player, npcGUID, itemGUID, discountMod, guildBank));
 }
 
+bool ScriptMgr::OnPlayerBankerActivate(Player* player, ObjectGuid banker)
+{
+    CALL_ENABLED_BOOLEAN_HOOKS(PlayerScript, PLAYERHOOK_ON_BANKER_ACTIVATE, !script->OnPlayerBankerActivate(player, banker));
+}
+
 void ScriptMgr::OnPlayerGossipSelect(Player* player, uint32 menu_id, uint32 sender, uint32 action)
 {
     CALL_ENABLED_HOOKS(PlayerScript, PLAYERHOOK_ON_GOSSIP_SELECT, script->OnPlayerGossipSelect(player, menu_id, sender, action));

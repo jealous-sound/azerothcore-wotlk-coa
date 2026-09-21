@@ -1,4 +1,3 @@
-// CoA talent state derived from a character's spellbook, and its wire form.
 #include "AscensionCoATalentState.h"
 #include <algorithm>
 #include <cstring>

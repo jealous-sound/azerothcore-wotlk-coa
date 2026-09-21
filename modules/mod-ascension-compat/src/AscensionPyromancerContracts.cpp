@@ -8,6 +8,7 @@
 #include "SpellAuras.h"
 #include "SpellMgr.h"
 #include <algorithm>
+#include <cmath>
 namespace AscensionPyromancer
 {
 void ApplyContracts(SpellInfo* info)
@@ -67,13 +68,13 @@ void ApplyContracts(SpellInfo* info)
     if (Named(info, 802174))
         info->Effects[1].Effect = info->Effects[2].Effect = 0;
     if (Named(info, 805500))
-        dummy(1), dummy(2); // Persist next-Blaze critical snapshots in the existing zero-valued slots.
+        dummy(1), dummy(2);
     if (Any(info, {800791, 706874}))
-        dummy(1); // Persist Stoke's consumed extension budget through normal aura saves.
+        dummy(1);
     if (id == 520927)
         dummy(1);
     if (id == 524707)
-        info->ProcCharges = 3; // Saved native charges; only Finish consumes them, with no proc row.
+        info->ProcCharges = 3;
     if (id == 680962 || id == 807403 || id == 520826)
         for (uint8 slot = 1; slot < MAX_SPELL_EFFECTS; ++slot)
         {
@@ -95,6 +96,8 @@ void ApplyContracts(SpellInfo* info)
     }
     if (id == 807402)
         info->Effects[1].Effect = 0;
+    if (id == 680842)
+        info->ExcludeTargetAuraSpell = 681265;
     if (id == 807768)
         info->Effects[0].Effect = SPELL_EFFECT_DUMMY;
     if (id == 802120 || id == 680369)
@@ -104,9 +107,10 @@ void ApplyContracts(SpellInfo* info)
     }
     if (id == 573220)
     {
-        // Transform uses a creature template, not a display ID.
         info->Effects[1].MiscValue = 21362;
     }
+    if (id == 704853)
+        info->Effects[0].ApplyAuraName = SPELL_AURA_ADD_FLAT_MODIFIER;
     if (id == 706650)
         dummy(0), info->Effects[0].BasePoints = 29;
     if (id == 706238)
@@ -114,7 +118,7 @@ void ApplyContracts(SpellInfo* info)
     if (id == 706877 || id == 706889 || id == 300751)
         dummy(0);
     if (id == 805474)
-        dummy(0); // Target's caster-owned modifier is evaluated at heal time.
+        dummy(0);
     if (id == 807542)
     {
         mod(0, SPELL_AURA_ADD_PCT_MODIFIER, 0, SPELLMOD_CASTING_TIME, flag96(2097152, 0, 0));
@@ -129,10 +133,10 @@ void ApplyContracts(SpellInfo* info)
     if (id == 520823)
     {
         info->Effects[1].Effect = 0;
-        mod(2, SPELL_AURA_ADD_PCT_MODIFIER, -100, SPELLMOD_COST, flag96(134217728, 0, 8192));
+        mod(1, SPELL_AURA_ADD_PCT_MODIFIER, -100, SPELLMOD_COST, flag96(134217728, 0, 8192));
     }
     if (id == 680387)
-        dummy(1); // Retaliation scales from the owner's Spirit/SP once.
+        dummy(1);
     if (id == 807944)
         for (uint8 i = 0; i < 2; ++i)
         {
@@ -145,7 +149,7 @@ void ApplyContracts(SpellInfo* info)
     if (id == 680372)
         info->Effects[2].Effect = 0;
     if (id == 803380)
-        info->Effects[0].Effect = 0; // Obsolete Overheat remover points to absent legacy ID 802565.
+        info->Effects[0].Effect = 0;
     if (id == 706893)
         mod(1, SPELL_AURA_ADD_FLAT_MODIFIER, -500, SPELLMOD_DURATION, flag96(0, 0, 8388608));
     if (id == 807224)
@@ -186,7 +190,7 @@ void ApplyContracts(SpellInfo* info)
     }
     info->_InitializeExplicitTargetMask();
 }
-} // namespace AscensionPyromancer
+}
 namespace
 {
 using namespace AscensionPyromancer;
@@ -207,12 +211,39 @@ class pyromancer_scaling : public UnitScript
             return;
         for (auto const& row : PyromancerCoefficients)
             if (row.spell == info->Id && row.effect == index)
-                value += row.sp * std::max(0, player->SpellBaseDamageBonusDone(SPELL_SCHOOL_MASK_FIRE)) +
+            {
+                float sp = row.sp;
+                if (Named(info, 803950))
+                {
+                    float percent = sp * 100;
+                    player->ApplySpellMod(info->Id, SPELLMOD_BONUS_MULTIPLIER, percent);
+                    sp = percent / 100;
+                }
+                value += sp * std::max(0, player->SpellBaseDamageBonusDone(SPELL_SCHOOL_MASK_FIRE)) +
                          row.spirit * player->GetStat(STAT_SPIRIT) +
                          row.healing * std::max(0, player->SpellBaseHealingBonusDone(SPELL_SCHOOL_MASK_FIRE));
+            }
         if ((info->Id == 680370 || info->Id == 680371) && !index)
             value *= 1 + State(player).ignis * Amount(680382) / 100.0f;
         value = std::clamp(value, float(INT32_MIN / 2), float(INT32_MAX / 2));
+    }
+    static float Cataclysmic(Player* player, Unit* target)
+    {
+        uint32 rank = 0;
+        for (uint32 id : {807912, 807882, 804617})
+            if (!rank && player->HasAura(id))
+                rank = id;
+        if (!rank)
+            return 1;
+        uint32 count = 0;
+        for (auto const& pair : target->GetAppliedAuras())
+        {
+            Aura const* aura = pair.second->GetBase();
+            if (aura->GetCasterGUID() == player->GetGUID() &&
+                Any(aura->GetSpellInfo(), {805500, 800791, 680962, 706874}))
+                ++count;
+        }
+        return std::pow(1 + Amount(rank, 0, player) / 100.0f, count);
     }
     float Factor(Unit* target, Unit* caster, SpellInfo const* info)
     {
@@ -226,6 +257,8 @@ class pyromancer_scaling : public UnitScript
             factor *= 1 + Amount(706238) / 100.0f;
         if (Named(info, 800792) && player->HasAura(520884))
             factor *= 1 + Burning(player, target) * .15f;
+        if (Named(info, 800790))
+            factor *= Cataclysmic(player, target);
         return factor;
     }
     void ModifySpellDamageTaken(Unit* target, Unit* caster, int32& damage, SpellInfo const* info) override
@@ -260,7 +293,7 @@ class pyromancer_scaling : public UnitScript
         }
     }
 };
-} // namespace
+}
 void AddSC_AscensionPyromancerContracts()
 {
     new pyromancer_scaling();

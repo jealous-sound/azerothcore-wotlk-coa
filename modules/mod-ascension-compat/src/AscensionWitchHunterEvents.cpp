@@ -104,8 +104,6 @@ class aura_ascension_witch_hunter_event : public AuraScript
         bool autoRanged = event.GetTypeMask() & PROC_FLAG_DONE_RANGED_AUTO_ATTACK;
         switch (id)
         {
-            // Only the Houndmaster talent that teaches Quickdraw arms its readiness buff. The dodge, parry
-            // and incoming-critical states this passive also carries belong to every Witch Hunter.
             case 681181:
                 return (!outgoing && avoid) ||
                        (critical && ((!outgoing && Direct(event) && (event.GetSchoolMask() & 126)) ||
@@ -436,7 +434,7 @@ class aura_ascension_witch_hunter_event : public AuraScript
         OnProc += AuraProcFn(aura_ascension_witch_hunter_event::Proc);
     }
 };
-} // namespace
+}
 
 void AddAscensionWitchHunterEventScripts()
 {

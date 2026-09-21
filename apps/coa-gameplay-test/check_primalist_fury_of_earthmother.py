@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check the advertised 15% proc rate separately for Geodes and Geode Barrage stones."""
+CLI_DESCRIPTION = """Check the advertised 15% proc rate separately for Geodes and Geode Barrage stones."""
 
 import argparse
 import json
@@ -37,6 +37,6 @@ def check(directory):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument('result_directory', type=Path)
     check(parser.parse_args().result_directory)

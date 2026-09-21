@@ -7,7 +7,6 @@
 class WorldSession;
 class WorldPacket;
 
-// Called only by the existing early extension sink. Copies bounded requests with a login token.
 bool QueueAscensionManastormPacket(WorldSession* session, WorldPacket const& packet);
 void AddAscensionManastormScripts();
 

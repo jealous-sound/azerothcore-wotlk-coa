@@ -49,7 +49,6 @@ struct npc_ascension_infinite_clone : ScriptedAI
         mana = player->GetPower(POWER_MANA);
         recorded = true;
         me->SetReactState(REACT_PASSIVE);
-        // SummonGuardian requests MoveFollow after this callback; its native guard honors this flag.
         me->SetUnitFlag(UNIT_FLAG_DISABLE_MOVE);
         player->CastSpell(me, CloneAppearance, true);
 
@@ -105,7 +104,6 @@ class spell_ascension_rewind : public SpellScript
         Position origin = ai->origin;
         uint32 health = std::min(ai->health, player->GetMaxHealth());
         uint32 mana = std::min(ai->mana, player->GetMaxPower(POWER_MANA));
-        // The slow belongs at the departure point. The native third effect retains the speed buff.
         player->CastSpell(player, RewindSlow, true);
         clone->ToTempSummon()->UnSummon();
         player->NearTeleportTo(origin, true);
@@ -180,13 +178,6 @@ class spell_ascension_displacement : public SpellScript
     }
 };
 
-// "Blast enemies in a frontal cone with time fractals, knocking them back slightly. The knockback
-// repeats 1 additional time after 2 sec." Only the repeat ships: effect 0 is a one-shot
-// SPELL_EFFECT_ASCENSION_TRIGGER_SPELL_DELAYED casting 802600 on the caster at 2000 ms, and
-// effect 1's trigger 65633 is Arcane Cast Visual, a SPELL_EFFECT_DUMMY with no handler anywhere.
-// The first knockback is the same cast without the delay. 802600 selects the cone itself
-// (TargetA 24, radius index 13), so it is cast once on the caster, exactly as the delayed half
-// does - repointing effect 1's trigger instead would cast it once per cone target.
 class spell_ascension_waves_of_time : public SpellScript
 {
     PrepareSpellScript(spell_ascension_waves_of_time);
@@ -216,14 +207,11 @@ public:
             return;
         if (info->Id == Backtrack)
         {
-            // The aura stores its own destination; the copied helper chain depended on a missing private rift AI.
             info->Effects[EFFECT_0].Effect = 0;
             info->_InitializeExplicitTargetMask();
         }
         if (info->Id == Displacement)
         {
-            // The authored row leaves this a placeholder marker effect; spell_ascension_displacement
-            // does the actual pull-and-cleanse.
             info->Effects[EFFECT_2].Effect = SPELL_EFFECT_DUMMY;
             info->_InitializeExplicitTargetMask();
         }

@@ -14,15 +14,12 @@
 
 namespace
 {
-// CoA is Classic content: only the Azeroth feathers are handled. The TBC and Northrend ones (977026, 977027)
-// teach regions this realm does not use.
 enum FeatherOfAncients : uint32
 {
     FeatherAzerothLegacy = 134989,
     FeatherAzeroth = 977025
 };
 
-// A flight master stands within a few yards of its node (Nesingwary Base Camp is the farthest, 11 yards).
 constexpr float FlightMasterReach = 40.0f;
 
 bool InMask(TaxiMask const& mask, uint32 node)
@@ -30,9 +27,6 @@ bool InMask(TaxiMask const& mask, uint32 node)
     return mask[(node - 1) / 32] & (1 << ((node - 1) % 32));
 }
 
-// The flight masters' own nodes, per team. Faction masks alone also hold quest and scripted flight nodes
-// (their mount is set, and a node without outgoing paths passes the core's check), which no flight
-// master serves: a node counts when it is a path origin and a flight master is spawned next to it.
 std::array<std::vector<uint32>, 2> const& FlightMasterNodes()
 {
     static std::array<std::vector<uint32>, 2> const nodes = []
@@ -86,7 +80,6 @@ public:
         if (item->GetEntry() != FeatherAzerothLegacy && item->GetEntry() != FeatherAzeroth)
             return false;
 
-        // Finish the client's item request before consuming its inventory object.
         player->SendEquipError(EQUIP_ERR_NONE, item, nullptr);
 
         TeamId team = player->GetTeamId();
@@ -96,8 +89,6 @@ public:
         uint32 learned = 0;
         for (uint32 node : FlightMasterNodes()[team])
         {
-            // Kalimdor and the Eastern Kingdoms, plus the Silvermoon, Tranquillien, Exodar and Blood Watch
-            // nodes that sit on map 530: the core's own old-continent mask.
             if (!InMask(sOldContinentsNodesMask, node) || !player->m_taxi.SetTaximaskNode(node))
                 continue;
             sScriptMgr->OnPlayerLearnTaxiNode(player, node);
@@ -113,8 +104,6 @@ public:
         uint32 count = 1;
         player->DestroyItemCount(item, count, true);
 
-        // The template's two charge-consuming casts would share the deleted item (#401), and the unlock
-        // spell 979610 has no effect of its own: learn the paths here instead of casting either.
         WorldPacket discovered(SMSG_NEW_TAXI_PATH, 0);
         player->SendDirectMessage(&discovered);
         return true;

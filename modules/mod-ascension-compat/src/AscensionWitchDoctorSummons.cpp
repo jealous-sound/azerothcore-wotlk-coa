@@ -184,11 +184,13 @@ void Summon(Player* player, uint32 spell, Unit* target, Position const& location
             Cast(player, player, GolemHaste);
     }
 }
-} // namespace AscensionWitchDoctor
+}
 
 namespace
 {
 using namespace AscensionWitchDoctor;
+constexpr uint32 NpcHauntVisage = 840000;
+constexpr float HauntRunDistance = 25.0f;
 class npc_ascension_witch_doctor : public ScriptedAI
 {
   public:
@@ -205,6 +207,22 @@ class npc_ascension_witch_doctor : public ScriptedAI
     void IsSummonedBy(WorldObject* summoner) override
     {
         Player* player = summoner ? summoner->ToPlayer() : nullptr;
+        if (player && player->getClass() == CLASS_REAPER && me->GetEntry() == NpcHauntVisage)
+        {
+            _owner = player->GetGUID();
+            me->SetOwnerGUID(_owner);
+            me->SetCreatorGUID(_owner);
+            me->SetFaction(player->GetFaction());
+            me->SetLevel(player->GetLevel());
+            me->SetDisplayId(player->GetDisplayId());
+            me->SetReactState(REACT_PASSIVE);
+            me->SetCombatMovement(false);
+            me->SetWalk(false);
+            float angle = player->GetExactDist2d(me) > 0.5f ? player->GetAbsoluteAngle(me) : player->GetOrientation();
+            me->GetMotionMaster()->MovePoint(1, me->GetNearPosition(HauntRunDistance,
+                Position::NormalizeOrientation(angle - me->GetOrientation())), FORCED_MOVEMENT_RUN);
+            return;
+        }
         if (!player || player->getClass() != CLASS_WITCH_DOCTOR)
             return;
         _owner = player->GetGUID();
@@ -226,9 +244,6 @@ class npc_ascension_witch_doctor : public ScriptedAI
         }
         if (me->GetEntry() == NpcMarionette)
             _timer = 2000;
-        // The Cleansing Idol advertises a 3 second cleanse and repeats on that interval, but the
-        // default one-millisecond timer made it cleanse the instant it landed, so re-dropping it
-        // cleansed on demand. Wait out the first interval like the wards and the Marionette do.
         if (me->GetEntry() == NpcCleanse)
             _timer = 3000;
         if (me->GetEntry() == NpcSerpent || me->GetEntry() == NpcMassSerpent || me->GetEntry() == NpcViper)
@@ -314,7 +329,6 @@ class npc_ascension_witch_doctor : public ScriptedAI
             ally->SetHealth(amount);
             assigned += amount;
         }
-        // Redistribute integer rounding without creating or deleting health.
         for (Unit* ally : allies)
         {
             if (assigned < health && ally->GetHealth() < ally->GetMaxHealth())
@@ -352,6 +366,8 @@ class npc_ascension_witch_doctor : public ScriptedAI
             me->DespawnOrUnsummon();
             return;
         }
+        if (me->GetEntry() == NpcHauntVisage)
+            return;
         _age += diff;
         if (me->GetEntry() == NpcFool)
         {
@@ -494,8 +510,6 @@ class spell_ascension_witch_doctor_summon : public SpellScript
         if (_made)
             return;
         _made = true;
-        // Call of Sseratus triggers its summon on every tick of a short periodic aura (five ticks), while
-        // "Summon 4 Serpent Wards" describes one group: summon it on the first tick only.
         if (GetSpell()->GetTriggeredByAuraSpellInfo() &&
             GetSpell()->GetTriggeredByAuraSpellInfo()->Id == CallSseratusChannel &&
             GetSpell()->GetTriggeredByAuraTickNumber() > 1)
@@ -522,9 +536,6 @@ class spell_ascension_witch_doctor_summon : public SpellScript
     }
 };
 
-// Spiritual Recall's SPELL_EFFECT_DESTROY_ALL_TOTEMS only reads the native totem slots, but Wards, Idols and
-// Effigies are module summons tracked in DoctorState. Destroy those instead and refund the same share of their
-// mana cost that the native effect refunds for totems.
 class spell_ascension_witch_doctor_spiritual_recall : public SpellScript
 {
     PrepareSpellScript(spell_ascension_witch_doctor_spiritual_recall);
@@ -580,7 +591,7 @@ class witch_doctor_summon_events : public AllSpellScript
 {
   public:
     witch_doctor_summon_events() : AllSpellScript("witch_doctor_summon_events", {ALLSPELLHOOK_ON_CAST}) {}
-    void OnSpellCast(Spell* spell, Unit* caster, SpellInfo const* info, bool /*skip*/) override
+    void OnSpellCast(Spell* spell, Unit* caster, SpellInfo const* info, bool) override
     {
         if (spell->IsTriggered() || info->IsPositive())
             return;
@@ -595,7 +606,6 @@ class witch_doctor_summon_events : public AllSpellScript
                         ward->DespawnOrUnsummon();
                         break;
                     }
-        // Mixed utility/encounter effects must never hitch a ride with a damage effect.
         if (!CanMirrorSpell(info))
             return;
         for (Unit* unit : Nearby(caster, 40.0f))
@@ -625,7 +635,7 @@ class witch_doctor_magnet : public UnitScript
         return nullptr;
     }
 };
-} // namespace
+}
 void AddAscensionWitchDoctorSummonScripts()
 {
     RegisterCreatureAI(npc_ascension_witch_doctor);

@@ -177,7 +177,6 @@ class xoroth_casts : public AllSpellScript
     }
     void OnSpellBeforeEffects(Spell* spell, Unit* caster, SpellInfo const* info) override
     {
-        // Deflection consumes exactly one recipient's Sigil after native target resolution.
         for (TargetInfo& target : *spell->GetUniqueTargetInfo())
             if (target.missCondition == SPELL_MISS_DEFLECT)
                 if (Unit* unit = ObjectAccessor::GetUnit(*caster, target.targetGUID))
@@ -395,7 +394,7 @@ class xoroth_casts : public AllSpellScript
             {
                 if (fire >= 4 && player->HasAura(805706) && target)
                     if (Aura* apocalypse = target->GetAura(560817, player->GetGUID()))
-                        apocalypse->SetDuration(apocalypse->GetMaxDuration()); // Claws of Hell.
+                        apocalypse->SetDuration(apocalypse->GetMaxDuration());
                 if (player->HasAura(520008) && fire >= 4)
                     Gain(player, 1);
                 if (player->HasAura(704973) && fire == 6 && (Named(info, 800168) || id == 803334))
@@ -521,7 +520,7 @@ class spell_ascension_xoroth_ability : public SpellScript
         if (Named(GetSpellInfo(), 500904) && index == EFFECT_2)
         {
             if (GetSpellInfo()->Effects[index].Effect == SPELL_EFFECT_TRIGGER_SPELL_WITH_VALUE)
-                return; // native forwarding is preserved and tested, including die-side encoding
+                return;
         }
         if (index != EFFECT_0)
             return;
@@ -555,7 +554,7 @@ class spell_ascension_xoroth_ability : public SpellScript
         OnEffectHitTarget += SpellEffectFn(spell_ascension_xoroth_ability::Effect, EFFECT_ALL, SPELL_EFFECT_ANY);
     }
 };
-} // namespace
+}
 void AddSC_AscensionXorothAbilities()
 {
     new xoroth_casts();

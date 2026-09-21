@@ -52,4 +52,4 @@ private:
 
 #define sAscensionPresets AscensionCreaturePresetMgr::Instance()
 
-#endif // AZEROTHCORE_ASCENSION_CREATURE_PRESET_H
+#endif

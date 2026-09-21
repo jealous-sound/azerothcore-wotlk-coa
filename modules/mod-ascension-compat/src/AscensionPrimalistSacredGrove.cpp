@@ -54,7 +54,6 @@ public:
                     effect.Effect = SPELL_EFFECT_ENERGIZE;
                 effect.TargetA = SpellImplicitTargetInfo(TARGET_UNIT_TARGET_ALLY);
             }
-            // The active Grove description promises missing Mana as well as health and Rage.
             info->AttributesEx2 |= SPELL_ATTR2_CANT_CRIT;
         }
     }
@@ -68,8 +67,6 @@ class aura_ascension_sacred_grove : public AuraScript
 
     bool Check(Unit* target)
     {
-        // Native area updates create each application before considering the next target.
-        // Existing recipients keep their slot; leaving the ground frees it for the next update.
         return GetAura()->GetApplicationOfTarget(target->GetGUID()) ||
             GetAura()->GetApplicationMap().size() < GetSpellInfo()->MaxAffectedTargets;
     }

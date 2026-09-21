@@ -1,4 +1,3 @@
-"""Check Greater Imp spell migration and authored attack pacing/scaling."""
 import argparse
 import json
 import os
@@ -34,7 +33,7 @@ def main():
     assert (slap[29], slap[41], slap[204], slap[46]) == (3000, 0, 3, 2)
     assert slap[71:74] == (2, 177, 0) and slap[111] == 630933 and slap[81] + 1 == 2000
     assert (firebolt[28], firebolt[29], firebolt[42], firebolt[204]) == (1, 0, 0, 0)
-    assert firebolt[117] == 578318  # Temporary imps retain the original triggered helper.
+    assert firebolt[117] == 578318
     pool = blob[20 + count * size:]
     desc = pool[slap[170]:pool.find(b'\0', slap[170])].decode()
     assert '$m1*$<scalingbp>+$AP*0.3+$SP*0.6' in desc
@@ -52,7 +51,7 @@ def main():
     db.executescript(sql)
     assert db.execute('SELECT direct_bonus,ap_bonus FROM spell_bonus_data WHERE entry=630930').fetchone() == (.6, .3)
     assert db.execute('SELECT comments FROM spell_bonus_data WHERE entry=800444').fetchone() == ('temporary imp',)
-    assert not re.search(r'\{630930,', source('AscensionXorothData.h'))  # No second custom coefficient.
+    assert not re.search(r'\{630930,', source('AscensionXorothData.h'))
 
     pet_block = extract(source('AscensionXoroth.cpp'),
                         'if (Pet* pet = player->GetPet(); pet && pet->GetEntry() == 510100)')

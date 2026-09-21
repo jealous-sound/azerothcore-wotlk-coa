@@ -120,9 +120,11 @@ class aura_ascension_pyromancer_event : public AuraScript
         Unit* target =
             e.GetActionTarget() == GetTarget() && e.GetActor() != GetTarget() ? e.GetActor() : e.GetActionTarget();
         if (Named(GetSpellInfo(), 504380))
-            Copy(player, target, 524623,
-                 uint32(std::clamp(GetSpellInfo()->Effects[1].CalcValue(player) + player->GetStat(STAT_SPIRIT) * .1f,
-                                   0.0f, float(INT32_MAX / 2))));
+        {
+            float retaliation = GetSpellInfo()->Effects[1].CalcValue(player) + player->GetStat(STAT_SPIRIT) * .1f;
+            player->ApplySpellMod(id, SPELLMOD_DAMAGE, retaliation);
+            Copy(player, target, 524623, uint32(std::clamp(retaliation, 0.0f, float(INT32_MAX / 2))));
+        }
         switch (id)
         {
         case 300755:
@@ -229,7 +231,7 @@ class aura_ascension_pyromancer_event : public AuraScript
         OnProc += AuraProcFn(aura_ascension_pyromancer_event::Proc);
     }
 };
-} // namespace
+}
 void AddSC_AscensionPyromancerEvents()
 {
     RegisterSpellScript(aura_ascension_pyromancer_event);

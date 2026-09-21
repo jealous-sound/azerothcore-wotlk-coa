@@ -202,7 +202,6 @@ class aura_ascension_xoroth_event : public AuraScript
             Cast(GetTarget(), target, 803255);
             break;
         case 802602: {
-            // Refresh the six-stack DoT while retaining each contributing hit's actual value.
             auto info = sSpellMgr->GetSpellInfo(802608);
             uint32 ticks = std::max(1, info->GetDuration() / int32(info->Effects[0].Amplitude));
             uint32 values[6] = {damage / 10 / ticks};
@@ -234,7 +233,7 @@ class aura_ascension_xoroth_event : public AuraScript
         OnProc += AuraProcFn(aura_ascension_xoroth_event::Proc);
     }
 };
-} // namespace
+}
 void AddSC_AscensionXorothEvents()
 {
     RegisterSpellScript(aura_ascension_xoroth_event);

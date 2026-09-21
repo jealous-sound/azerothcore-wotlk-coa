@@ -46,7 +46,7 @@ int main()
     assert(decoy && decoy->position == enemy.position && decoy->position != player.position);
     assert(player.teleportDestination == cast.fixtureDestination && decoy->motion.idle);
     assert(player.GetTemporarySpellReplacement(SPELL_OUTMANEUVER) == SPELL_DECOY_STRIKE);
-    decoy->ai->UpdateAI(1000); assert(!decoy->removed); // Initial teleport awaits acknowledgement.
+    decoy->ai->UpdateAI(1000); assert(!decoy->removed);
     player.teleporting = false; player.position = cast.fixtureDestination;
     enemy.position = {80, 0, 0, 0};
     assert(ManeuverTarget(&player) == &enemy && decoy->position.x == 40);
@@ -68,13 +68,13 @@ int main()
     hit.info = &strike.info; assert(!mark.Check(hit)); hit.info = nullptr;
     spell_ascension_decoy_strike finish; finish.caster = &player; finish.Record();
     enemy.alive = false; enemy.RemoveAurasDueToSpell(SPELL_OUTMANEUVER, player.guid);
-    assert(player.GetAura(SPELL_DECOY_WINDOW, player.guid)); // A lethal strike still returns.
+    assert(player.GetAura(SPELL_DECOY_WINDOW, player.guid));
     finish.Return();
     assert(player.teleportDestination.x == 40 && decoy->removed && !player.spells.contains(SPELL_DECOY_STRIKE));
     assert(!player.GetAura(SPELL_DECOY_WINDOW, player.guid));
     auto teleports = player.teleports; finish.Return(); assert(player.teleports == teleports);
     decoy = start(); player.teleporting = false;
-    enemy.RemoveAurasDueToSpell(SPELL_OUTMANEUVER, player.guid); // Dispel or expiry.
+    enemy.RemoveAurasDueToSpell(SPELL_OUTMANEUVER, player.guid);
     assert(decoy->removed && !player.GetAura(SPELL_DECOY_WINDOW, player.guid));
     decoy = start(); player.teleporting = false;
     player.RemoveAurasDueToSpell(SPELL_DECOY_WINDOW, player.guid);

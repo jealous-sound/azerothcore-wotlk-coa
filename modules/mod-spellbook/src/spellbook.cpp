@@ -17,7 +17,16 @@
  *  * Purchases are answered here too. The core resolves trainers per creature entry
  *    (sObjectMgr->GetTrainer(npc->GetEntry())), which cannot serve a list that depends on who
  *    is looking, and Trainer::TeachSpell runs the same class/race filter that would refuse
- *    every one of these spells.
+ *    every one of these spells. Because the row set is the server's, a purchase re-publishes
+ *    it: the rank just bought turns "used" and the rank above it turns trainable, in the same
+ *    window. The re-sent window carries the same rows in the same order as the one on screen -
+ *    a held rank stays in the list rather than leaving it - so the client's own restore of its
+ *    selection and scroll position lands on the row the player was on and nothing moves.
+ *
+ *    A purchase is also announced exactly once, by the core: an ability the character did not
+ *    have arrives as SMSG_LEARNED_SPELL, and a rank up as SMSG_SUPERCEDED_SPELL, which the
+ *    client announces itself. The window sends no learned-spell packet of its own, or a rank
+ *    up would show its line twice.
  *
  * The list itself is what automatic progression would have granted: class progression spells,
  * rank upgrades gated on their first rank, and the automatic talent entries. No ability is
@@ -35,7 +44,9 @@
 #include "WorldSession.h"
 
 #include <algorithm>
+#include <map>
 #include <string>
+#include <utility>
 #include <vector>
 
 // The progression tables this module serves live with the compat layer that generated them.
@@ -244,9 +255,48 @@ namespace
             if (entry.ClassId == classId)
                 add(entry.SpellId, entry.RequiredLevel, 0);
 
-        // Ranks keep their first rank as the requirement, which is what lets the window show
-        // a rank the character has not started as unavailable instead of missing.
-        //
+        // Each ladder's ranks, in the order the data gives them, so every row can require the
+        // rank directly under it. That is the requirement the original trainer window published
+        // - the captured offer list carries "Witchblight (Rank 2)" on the rank-3 row - and the
+        // one the client checks against the character. Pointing every rank at the ladder's first
+        // rank instead reads fine on the bare state byte, but breaks on screen: the character's
+        // first rank is superseded as soon as the second is bought, so the client greys every row
+        // above it for a requirement the character no longer holds.
+        std::map<uint32, std::vector<std::pair<uint8, uint32>>> ladders;   // root -> (level, spell)
+        for (auto const &entry : AscensionProgression::Ranks)
+        {
+            if (entry.ClassId != classId)
+                continue;
+
+            auto &members = ladders[entry.FirstSpellId];
+            if (members.empty())
+                if (SpellInfo const *first = sSpellMgr->GetSpellInfo(entry.FirstSpellId))
+                    members.emplace_back(uint8(std::min<uint32>(first->BaseLevel, 255)),
+                                         entry.FirstSpellId);
+
+            members.emplace_back(entry.RequiredLevel, entry.SpellId);
+        }
+
+        // The rank under \p spellId in its ladder, at the level its row is gated at. A ladder
+        // this window knows nothing about falls back to the root, and the root needs no rank
+        // under it.
+        auto rankBelow = [&ladders](uint32 root, uint8 level, uint32 spellId) -> uint32
+        {
+            auto const found = ladders.find(root);
+            if (found != ladders.end())
+            {
+                uint32 below = 0;
+                for (auto const &member : found->second)
+                    if (member.second != spellId && member.first < level)
+                        below = member.second;
+
+                if (below)
+                    return below;
+            }
+
+            return spellId != root ? root : 0;
+        };
+
         // The first rank is offered as well: it is the class's base ability, and for 199 of
         // them the generated class data carries no level at all, so without this the window
         // hides whole abilities. Spell.dbc's BaseLevel is where those levels come from - it
@@ -263,7 +313,8 @@ namespace
                 if (first->BaseLevel >= 1 && first->BaseLevel <= MAX_LEVEL)
                     add(entry.FirstSpellId, uint8(first->BaseLevel), 0);
 
-            add(entry.SpellId, entry.RequiredLevel, entry.FirstSpellId);
+            add(entry.SpellId, entry.RequiredLevel,
+                rankBelow(entry.FirstSpellId, entry.RequiredLevel, entry.SpellId));
         }
 
         for (auto const &entry : AscensionCompatData::CoATalentEntries)
@@ -278,7 +329,8 @@ namespace
         // Pyromancer's Echo of Nozdormu, the Ranger's Bushcraft kit. See SpellbookOfferData.h.
         for (SpellbookOfferData::Offer const &offer : SpellbookOfferData::Offers)
             if (offer.ClassId == classId)
-                add(offer.SpellId, offer.RequiredLevel, offer.FirstSpellId);
+                add(offer.SpellId, offer.RequiredLevel,
+                    rankBelow(offer.FirstSpellId, offer.RequiredLevel, offer.SpellId));
 
         // Class trainer rows the realm's own NPCTrainer.dbc teaches under this class's tab
         // name, that no other source sells: the top ranks of ladders the captured window only
@@ -286,7 +338,8 @@ namespace
         // tiers, the Venomancer's fourth form). See SpellbookTrainerData.h.
         for (SpellbookTrainerData::Offer const &offer : SpellbookTrainerData::Offers)
             if (offer.ClassId == classId)
-                add(offer.SpellId, offer.RequiredLevel, offer.FirstSpellId);
+                add(offer.SpellId, offer.RequiredLevel,
+                    rankBelow(offer.FirstSpellId, offer.RequiredLevel, offer.SpellId));
 
         // Upgrades of abilities this window already sells that the realm's generated
         // progression data never resolved - the client's own rank ladders carry them, and
@@ -297,18 +350,52 @@ namespace
             if (rank.ClassId == classId)
                 add(rank.SpellId, rank.RequiredLevel, rank.RequiredSpellId);
 
+        // The ladder the rows themselves carry: a row requires the rank under it, so the row
+        // that requires this one is the rank above it. A rank the character already holds above
+        // this one is not a purchase the window can sell - Player::addSpell only moves it into
+        // the active spec and announces nothing for it, while the rank it pulls in is announced
+        // instead, which showed the player a chat line for a rank they did not buy. The core's
+        // chain check cannot see a ladder it has no chain rows for, so the rows' own links
+        // answer as well.
+        std::map<uint32, uint32> rankAbove;
+        for (Row const &row : rows)
+            if (row.RequiredAbility && !rankAbove.count(row.RequiredAbility))
+                rankAbove[row.RequiredAbility] = row.SpellId;
+
+        auto holdsRankAbove = [player, &rankAbove](uint32 spellId)
+        {
+            uint32 higher = spellId;
+            for (std::size_t hops = 0; hops < 16; ++hops)
+            {
+                auto const found = rankAbove.find(higher);
+                if (found == rankAbove.end())
+                    return false;
+
+                higher = found->second;
+                if (player->HasSpell(higher))
+                    return true;
+            }
+
+            return false;
+        };
+
         std::vector<Row> view;
         view.reserve(rows.size());
         for (Row &row : rows)
         {
-            // Already held, in this rank or a higher one: the book has nothing to teach here,
-            // and a row that cannot be bought is worse than no row at all.
-            if (windowView && HasRankOrBetter(player, row.SpellId))
-                continue;
-
-            if (player->GetLevel() < row.RequiredLevel)
-                row.State = RowState::Unavailable;
-            else if (row.RequiredAbility && !player->HasSpell(row.RequiredAbility))
+            // Already held, in this rank or a higher one: the book has nothing left to teach
+            // here, and the row stays in the list as the trainer window's "used" row - the way
+            // a stock trainer greys the row it just sold. Dropping it instead would renumber
+            // every row below it on each purchase, and a client restores its selection and its
+            // scroll position by row number, so the list would move under the player.
+            if (HasRankOrBetter(player, row.SpellId) || holdsRankAbove(row.SpellId))
+                row.State = RowState::Known;
+            // A rank whose prerequisite is missing, or whose level is above the character, is
+            // unavailable - exactly as the original window showed it - and the requirement the
+            // row carries is what the client draws under it. A purchase re-sends the window so
+            // the row it unlocked turns available; see HandlePurchase.
+            else if (player->GetLevel() < row.RequiredLevel ||
+                     (row.RequiredAbility && !player->HasSpell(row.RequiredAbility)))
                 row.State = RowState::Unavailable;
             else
                 row.State = RowState::Available;
@@ -438,17 +525,6 @@ namespace
         return false;
     }
 
-    /// The client's own "New Spell Learned!" announcement. Sent by hand for a purchase the core
-    /// answered with SMSG_SUPERCEDED_SPELL, which the client handles silently, so buying from a
-    /// book always shows the alert and plays its sound however the ability is powered.
-    void SendLearnedAlert(Player *player, uint32 spellId)
-    {
-        WorldPacket data(SMSG_LEARNED_SPELL, 6);
-        data << uint32(spellId);
-        data << uint16(0);
-        player->SendDirectMessage(&data);
-    }
-
     /// A purchase from the window. Returns true when the packet belonged to a book, whether
     /// or not the ability was granted.
     bool HandlePurchase(Player *player, WorldPacket const &packet)
@@ -475,9 +551,9 @@ namespace
             [wanted](Row const &row) { return row.SpellId == wanted; });
 
         // Only what this player was shown can be bought, so the window is the only way in.
-        // A row the window no longer holds is either one the tree grants - it never was the
-        // book's - or one the character has learned since the window was drawn. Both are
-        // answered so the client is never left waiting on a purchase nothing will handle.
+        // A row the window does not hold is a spell the tree grants, which never was the book's;
+        // a row it holds as "used" is one the character already has. Both are answered, so the
+        // client is never left waiting on a purchase nothing will handle.
         if (found == rows.end())
         {
             if (IsTreeSpell(uint32(player->getClass()), wanted) ||
@@ -499,8 +575,9 @@ namespace
             failed << book->GetGUID() << uint32(wanted)
                    << uint32(AsUnderlyingType(BuyResult::NotEnoughSkill));
             player->SendDirectMessage(&failed);
-            LOG_INFO("module.spellbook", "{} was refused {} from book {}: state {}", player->GetName(),
-                     wanted, book->GetEntry(), AsUnderlyingType(found->State));
+            LOG_INFO("module.spellbook", "{} was refused {} from book {}: state {}, requires {}",
+                     player->GetName(), wanted, book->GetEntry(), AsUnderlyingType(found->State),
+                     found->RequiredAbility ? std::to_string(found->RequiredAbility) : "nothing");
             return true;
         }
 
@@ -530,21 +607,32 @@ namespace
         // already in place when the learned-spell packet arrives behind it.
         SpellbookNotify::Push(player, wanted);
 
+        // Nothing is announced from here. The core sends SMSG_LEARNED_SPELL for a grant that did
+        // not supersede anything, and answers an upgrade with SMSG_SUPERCEDED_SPELL, which the
+        // client announces itself. Adding a learned-spell packet on top of that cue announced
+        // every rank-up twice.
         player->learnSpell(wanted, false);
-        if (supersedes && player->HasSpell(wanted))
-            SendLearnedAlert(player, wanted);
 
         WorldPacket succeeded(SMSG_TRAINER_BUY_SUCCEEDED);
         succeeded << book->GetGUID() << uint32(wanted);
         player->SendDirectMessage(&succeeded);
 
-        // The one line that says whether the client was told: the core announces an ability it
-        // added, the book announces a rank the core answered with SMSG_SUPERCEDED_SPELL, and a
-        // purchase the core refused outright is learned by nobody and must announce nothing.
+        // The row set belongs to the server, so the window on screen is stale the moment this is
+        // learned: the rank just bought has to turn "used" and the rank above it has to turn
+        // trainable. The re-sent window holds the same rows in the same order as the one on
+        // screen, so the client's own restore of the row it had selected lands on that row again
+        // and the list does not move under the player.
+        SendTrainerWindow(player, book, BuildRows(player));
+
+        // The one line that says which of the two announcements the client got: an upgrade is
+        // answered with SMSG_SUPERCEDED_SPELL, which the client announces on its own, and an
+        // ability the core added is announced with SMSG_LEARNED_SPELL by the core. A purchase
+        // the core refused outright is learned by nobody and must announce nothing.
         LOG_INFO("module.spellbook", "{} trained {} from book {} (class {}) for {} copper: {}",
                  player->GetName(), wanted, book->GetEntry(), uint32(player->getClass()), price,
                  !player->HasSpell(wanted) ? "nothing learned"
-                     : (supersedes ? "announced by the book" : "announced by the core"));
+                     : (supersedes ? "superseded the rank below, which the client announces"
+                                   : "announced by the core"));
         return true;
     }
 

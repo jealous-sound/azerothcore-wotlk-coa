@@ -65,8 +65,6 @@ class aura_ascension_rexxar_ready : public AuraScript
     void ApplyBleed(AuraEffect const*, ProcEventInfo& event)
     {
         PreventDefaultAction();
-        // The ready aura was cast by the owner. Its default trigger would carry that original
-        // caster into the bleed, losing the pet's damage modifiers and pet combat-log credit.
         GetTarget()->CastSpell(event.GetActionTarget(), RexxarBleed, TRIGGERED_FULL_MASK);
     }
 
@@ -94,8 +92,6 @@ public:
         if (!owner || owner->getClass() != CLASS_WILDWALKER)
             return;
 
-        // The player's active talent specifies their AP. Add it to the native level-scaled base
-        // before the pet's damage modifiers; SQL disables a second coefficient on the pet's own AP.
         double amount = double(value) + 0.15 * std::max(0.0f, owner->GetTotalAttackPowerValue(BASE_ATTACK));
         value = float(std::clamp(amount, 0.0, double(std::numeric_limits<int32>::max()) - 128.0));
     }

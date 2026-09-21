@@ -1,4 +1,4 @@
-"""Regress Might of Utgarde against the existing Barbarian completion fixture."""
+CLI_DESCRIPTION = """Regress Might of Utgarde against the existing Barbarian completion fixture."""
 import argparse
 import importlib.util
 from pathlib import Path
@@ -69,7 +69,7 @@ int main()
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument("--workspace-tools", type=Path, default=ROOT.parent / "tools")
     parser.add_argument("--source-ref", help="Use earlier Barbarian events for a negative control")
     parser.add_argument("--spell-dbc", type=Path)

@@ -31,8 +31,6 @@ public:
         if (!heal)
             return;
         spell->SetScriptValue(SPELL_SERPENTS_FANG_HEAL, 1);
-        // Use the struck enemy's position, including killing blows. Native area selection applies
-        // the five-ally cap and Lifemender's additional targets, with the existing healing coefficient.
         SpellCastTargets targets;
         targets.SetDst(target->GetPosition());
         player->CastSpell(targets, heal, nullptr, TRIGGERED_FULL_MASK);
@@ -49,7 +47,6 @@ public:
     {
         if (info->Id == SPELL_SERPENTS_FANG_HEAL && info->SpellFamilyName == 35)
         {
-            // A destination keeps the healing valid after the hostile unit dies from the damage hit.
             info->Effects[EFFECT_0].TargetA = SpellImplicitTargetInfo(TARGET_DEST_DEST);
             info->_InitializeExplicitTargetMask();
         }

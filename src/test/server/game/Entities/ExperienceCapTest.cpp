@@ -15,8 +15,8 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "IntegrationTestFixture.h"
 #include "ScriptDefines/PlayerScript.h"
+#include "IntegrationTestFixture.h"
 
 namespace
 {
@@ -39,7 +39,7 @@ protected:
         static auto* script = new ExperienceCapScript();
         (void)script;
         ExperienceCapScript::Cap = 19;
-        ON_CALL(*_worldMock, getIntConfig(CONFIG_MAX_PLAYER_LEVEL)).WillByDefault(Return(80));
+        ON_CALL(*GetWorldMock(), getIntConfig(CONFIG_MAX_PLAYER_LEVEL)).WillByDefault(Return(80));
         player = CreateTestPlayer(1);
         player->SetLevel(19);
         player->SetMaxHealth(100);

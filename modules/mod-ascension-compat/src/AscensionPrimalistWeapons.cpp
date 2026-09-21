@@ -77,8 +77,6 @@ class aura_ascension_primal_weapon : public AuraScript
     void Apply(AuraEffect const*, AuraEffectHandleModes)
     {
         Player* player = GetTarget()->ToPlayer();
-        // Saved imbues may load before CAD confirms the spec. Keep a valid
-        // weapon/parent combination until that confirmation arrives.
         if (!player || SelectPrimalWeapon(player, true) != GetId())
         {
             GetAura()->Remove();
@@ -148,15 +146,12 @@ void ApplyAscensionPrimalistWeaponsContract(SpellInfo* info)
 {
     if (info->Id != SPELL_PRIMAL_WEAPONS || info->SpellFamilyName != 37)
         return;
-    // Restore the captured selector using its existing identity. Its old dummy
-    // passive becomes the active button; the two helpers are never learned.
-    // apps/coa-spells/primal_weapons.py supplies the matching client DBC edit.
     info->Attributes = 0;
     info->AttributesEx2 = 0;
     info->AuraInterruptFlags = 0;
     info->DurationEntry = nullptr;
     info->PowerType = POWER_MANA;
-    info->ManaCostPercentage = 15; // Both captured weapon imbues use 15% base mana.
+    info->ManaCostPercentage = 15;
     info->Effects[EFFECT_0].Effect = SPELL_EFFECT_DUMMY;
     info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_NONE;
     info->Effects[EFFECT_0].BasePoints = 0;

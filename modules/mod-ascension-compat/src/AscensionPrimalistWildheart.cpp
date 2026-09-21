@@ -52,7 +52,6 @@ bool DealsDamage(SpellInfo const* info, std::set<uint32>& visited)
             default:
                 break;
         }
-        // Follow effects executed by the ability, not conditional procs on a beneficial buff.
         if (effect.TriggerSpell && (effect.Effect == SPELL_EFFECT_TRIGGER_SPELL ||
             effect.Effect == SPELL_EFFECT_TRIGGER_SPELL_WITH_VALUE ||
             effect.Effect == SPELL_EFFECT_TRIGGER_MISSILE ||

@@ -1,4 +1,4 @@
-"""Exercise the actual restored selector and aura callbacks with bounded game APIs.
+CLI_DESCRIPTION = """Exercise the actual restored selector and aura callbacks with bounded game APIs.
 
 Checks the pending SQL and matching client DBC transformation in memory. Native
 combat, inventory, aura dispatch and packet transport are not simulated servers.
@@ -76,7 +76,7 @@ def check_data(path):
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument("--spell-dbc", type=Path)
     args = parser.parse_args()
     check_data(args.spell_dbc)

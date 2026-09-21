@@ -232,6 +232,7 @@ enum PlayerHook
     PLAYERHOOK_ON_CAN_REGENERATE,
     PLAYERHOOK_ON_CAN_ENERGIZE,
     PLAYERHOOK_ON_GET_MAX_ALLOWED_LEVEL,
+    PLAYERHOOK_ON_BANKER_ACTIVATE,
     PLAYERHOOK_END
 };
 
@@ -488,6 +489,12 @@ public:
 
     // Before durability repair action, you can even modify the discount value
     virtual void OnPlayerBeforeDurabilityRepair(Player* /*player*/, ObjectGuid /*npcGUID*/, ObjectGuid /*itemGUID*/, float&/*discountMod*/, uint8 /*guildBank*/) { }
+
+    // Before a banker click is resolved. Returning false withholds the native bank window, for a
+    // banker the script answers itself. The click is answered before the core's own interaction
+    // checks - which is why the script is given the clicked GUID rather than a resolved creature,
+    // and why it does its own reach check before it speaks.
+    [[nodiscard]] virtual bool OnPlayerBankerActivate(Player* /*player*/, ObjectGuid /*banker*/) { return true; }
 
     //Before buying something from any vendor
     virtual void OnPlayerBeforeBuyItemFromVendor(Player* /*player*/, ObjectGuid /*vendorguid*/, uint32 /*vendorslot*/, uint32& /*item*/, uint8 /*count*/, uint8 /*bag*/, uint8 /*slot*/) { };

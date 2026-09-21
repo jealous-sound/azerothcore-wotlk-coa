@@ -283,7 +283,7 @@ class aura_ascension_felsworn_event : public AuraScript
         OnProc += AuraProcFn(aura_ascension_felsworn_event::Proc);
     }
 };
-} // namespace
+}
 void AddSC_AscensionFelswornEvents()
 {
     RegisterSpellScript(aura_ascension_felsworn_event);

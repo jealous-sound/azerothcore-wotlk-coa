@@ -29,20 +29,20 @@ int main()
     world[player.guid] = &player; world[other.guid] = &other;
     std::vector<uint32> ranks{803108, 503099, 503100, 503101, 503102, 503103, 503104, 503105};
     for (uint32 id : ranks) { player.spells[id] = false; manager.roots[id] = 803108; }
-    manager.roots[800000] = 802036; // Another rank of Skullpiercer.
+    manager.roots[800000] = 802036;
     ranger_dirty_fighter_casts events;
     auto hit = [&](uint32 id, bool critical = true, uint8 miss = 0, bool triggered = false)
     {
         Spell spell; spell.caster = &player; spell.info.Id = id; spell.info.SpellFamilyName = 27; spell.triggered = triggered;
         events.OnSpellHitResult(&spell, &enemy, miss, 100, 0, critical);
-        events.OnSpellHitResult(&spell, &enemy, miss, 100, 0, critical); // Repeated notification must not count twice.
+        events.OnSpellHitResult(&spell, &enemy, miss, 100, 0, critical);
     };
     hit(802036); assert(!player.HasAura(684329));
     player.AddAura(806978, &player);
     hit(802036, false); hit(802036, true, 1); hit(802036, true, 0, true); hit(42);
     assert(!player.HasAura(684329));
     hit(802036); assert(player.GetAura(684329, player.guid)->GetStackAmount() == 1);
-    player.RemoveAurasDueToSpell(684329, player.guid); // The 30-second pairing window expired.
+    player.RemoveAurasDueToSpell(684329, player.guid);
     hit(800000); assert(player.GetAura(684329, player.guid)->GetStackAmount() == 1);
     hit(503105); assert(!player.HasAura(684329) && player.HasAura(681787));
     for (uint32 id : ranks) assert(player.GetTemporarySpellReplacement(id) == 681235);
@@ -55,7 +55,6 @@ int main()
     for (uint32 id : ranks) assert(player.GetTemporarySpellReplacement(id) == id);
     assert(!events.CanPrepare(&punch, nullptr, nullptr));
     events.OnSpellCheckCast(&punch, false, result); assert(result == SPELL_FAILED_CASTER_AURASTATE);
-    // Permanent helper ownership survives a ready window, and foreign auras are retained.
     player.spells[681235] = false;
     hit(803108); hit(802036);
     other.AddAura(681787, &player);

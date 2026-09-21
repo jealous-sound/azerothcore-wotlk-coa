@@ -60,7 +60,6 @@ class spell_ascension_witch_hunter_torch_stacks : public AuraScript
         {
             uint8 maximum = buff->GetSpellInfo()->CalcMaxAuraStacks(caster);
             if (buff->GetStackAmount() < maximum)
-                // ModStackAmount would refresh the timer, including at the cap.
                 buff->SetStackAmount(uint8(buff->GetStackAmount() + 1));
         }
         else

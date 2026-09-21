@@ -32,8 +32,6 @@ public:
     {
         Player* player = PrimalistCaster(spell);
         if (player && info->GetFirstRankSpell()->Id == SeismicCrash)
-            // One grant per cast across the player rank chain.
-            // Periodic damage never grants again.
             player->CastSpell(player, CrashRage, true);
     }
 
@@ -43,8 +41,6 @@ public:
         if (!player || !target || target == player || player->IsFriendlyTo(target) || miss != SPELL_MISS_NONE ||
             spell->GetSpellInfo()->GetFirstRankSpell()->Id != SeismicSpike)
             return;
-        // The native hit callback visits each successfully struck target once.
-        // Both helpers calculate their amount through Seismically Efficient's modifiers.
         player->CastSpell(player, SpikeRage, true);
     }
 };

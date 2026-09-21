@@ -39,8 +39,6 @@ class aura_ascension_guardian_favor_gain : public AuraScript
         if (oldStacks >= 20 && (event.GetTypeMask() & PROC_FLAG_DONE_MELEE_AUTO_ATTACK) &&
             event.GetDamageInfo() && event.GetActionTarget() && event.GetActionTarget()->IsAlive())
         {
-            // Spend the old pool before this strike's critical grant. Keeping
-            // both operations on one passive avoids aura iteration order races.
             owner->RemoveAurasDueToSpell(707821);
             CustomSpellValues values;
             values.AddSpellMod(SPELLVALUE_MELEE_ATTACK_TYPE, event.GetDamageInfo()->GetAttackType());

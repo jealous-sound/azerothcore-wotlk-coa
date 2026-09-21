@@ -94,9 +94,6 @@ struct ProbeCreateInfo : CharacterCreateInfo
     }
 };
 
-// The session never enters WorldSessionMgr, and the player never enters a map
-// or ObjectAccessor. Clear its owner before the session destructor can log out
-// and save a player. The normal unit cleanup removes passive auras/events.
 struct ProbePlayerDeleter
 {
     WorldSession* Session;
@@ -131,9 +128,6 @@ enum class ClosureEvent
 
 bool SafeAura(uint32 aura)
 {
-    // Reviewed native stat/proficiency handlers, not a blanket acceptance of
-    // APPEARANCE/DUMMY/SHAPESHIFT/vehicle/script auras. Periodic and proc typed
-    // children are inventoried as deferred because this probe never ticks.
     switch (aura)
     {
         case SPELL_AURA_MOD_STEALTH_DETECT:
@@ -180,7 +174,6 @@ bool SafeEffect(uint32 effect)
         case SPELL_EFFECT_BLOCK:
         case SPELL_EFFECT_WEAPON:
         case SPELL_EFFECT_DEFENSE:
-        // Both native table entries dispatch to the empty EffectUnused body.
         case SPELL_EFFECT_SPELL_DEFENSE:
         case SPELL_EFFECT_DETECT:
         case SPELL_EFFECT_LANGUAGE:
@@ -195,8 +188,6 @@ bool SafeEffect(uint32 effect)
         case SPELL_EFFECT_LEARN_SPELL:
             return true;
         default:
-            // Includes summons, scripts/dummy dispatch, teleports, quests,
-            // honor/reputation, achievements, mail and unreviewed custom ops.
             return false;
     }
 }
@@ -250,8 +241,6 @@ Preflight CheckPassiveClosure(AscensionFreshCharacterExpectations::Case const& e
             skills.pop_front();
             if (!result.Skills.insert(id).second)
                 continue;
-            // Conservative superset of LearnSkillRewardedSpells: include all
-            // matching skill rewards, even ones above the captured skill rank.
             for (auto const* ability : GetSkillLineAbilitiesBySkillLine(id))
             {
                 if (ability->AcquireMethod != SKILL_LINE_ABILITY_LEARNED_ON_SKILL_LEARN &&
@@ -309,16 +298,10 @@ Preflight CheckPassiveClosure(AscensionFreshCharacterExpectations::Case const& e
         for (uint8 index = 0; index < MAX_SPELL_EFFECTS; ++index)
         {
             auto const& effect = spell->Effects[index];
-            // Wisp Spirit's generic dummy has no native special case. Its only
-            // fallthrough is empty DB ScriptsStart (verified below); unitTarget
-            // is the player, so no creature/item OnDummyEffect is dispatched.
             bool const wispDummy = id == 20585 && spell->SpellFamilyName == SPELLFAMILY_GENERIC && index == 0 &&
                 effect.Effect == SPELL_EFFECT_DUMMY && effect.BasePoints == 0 && effect.DieSides == 0 &&
                 effect.MiscValue == 0 && !effect.TriggerSpell && effect.TargetA.GetTarget() == TARGET_UNIT_CASTER &&
                 !effect.TargetB.GetTarget() && !spell->Effects[1].Effect && !spell->Effects[2].Effect;
-            // Necromancy's metadata dummy reaches no native ID/family case in
-            // HandleAuraDummy or HandleAuraSpecificMods. Its periodic helper is
-            // deferred, not executed by this no-update creation probe.
             bool const necromancyDummy = id == 804360 && spell->SpellFamilyName == 29 && index == 2 &&
                 effect.Effect == SPELL_EFFECT_APPLY_AURA && effect.ApplyAuraName == SPELL_AURA_DUMMY &&
                 effect.BasePoints == -21 && effect.DieSides == 1 && effect.MiscValue == 5 && !effect.TriggerSpell &&
@@ -331,9 +314,6 @@ Preflight CheckPassiveClosure(AscensionFreshCharacterExpectations::Case const& e
                 result.Blockers.push_back("unreviewed executed aura " + std::to_string(id) + ":" + std::to_string(effect.ApplyAuraName));
             if (effect.TriggerSpell)
             {
-                // Native passive casts use TRIGGERED_FULL_MASK, suppressing
-                // procs. AuraEffect::CalculatePeriodic only sets timers, even
-                // EXTRA_INITIAL_PERIOD; PeriodicTick runs in Update, never here.
                 bool const deferred = effect.ApplyAuraName == SPELL_AURA_PROC_TRIGGER_SPELL ||
                     effect.ApplyAuraName == SPELL_AURA_PERIODIC_TRIGGER_SPELL;
                 spells.emplace_back(effect.TriggerSpell, deferred ? ClosureEvent::Deferred :
@@ -475,8 +455,6 @@ bool WritePlayer(std::ostream& output, Player& player, AscensionFreshCharacterEx
     WriteIds(output, hiddenNativeRewards);
     output << ",\"unexplained_extra_spells\":";
     WriteIds(output, unexplainedExtraSpells);
-    // These are labels only, never implicit policy exceptions. Honorless has a
-    // trade flag but is not a crafted-item recipe; Waterskin is a recipe.
     output << ",\"extra_spell_labels\":{\"native_honorless_service\":" << bool(extraSpells.count(2479))
            << ",\"bushcraft_recipe\":" << bool(extraSpells.count(802808))
            << ",\"visible_dual_wield_duplicate\":" << bool(extraSpells.count(370094))
@@ -506,8 +484,6 @@ bool WritePlayer(std::ostream& output, Player& player, AscensionFreshCharacterEx
             bool const scaledWeapon = std::any_of(AscensionCompatData::ProficiencyDefinitions.begin(),
                 AscensionCompatData::ProficiencyDefinitions.end(), [id](auto const& row)
                 { return row.SkillId == id && row.ScalesWithLevel; });
-            // Unarmed keeps the native growing cap, not the captured display
-            // cap of one. The probe requires AlwaysMaxSkillForLevel disabled.
             bool const nativeUnarmed = id == SKILL_UNARMED;
             uint16 const policyMaximum = scaledWeapon || nativeUnarmed ?
                 player.GetMaxSkillValueForLevel() : captured->Maximum;
@@ -711,8 +687,6 @@ bool HandleAscensionFreshCharacterCheck(ChatHandler* handler) try
             continue;
         }
 
-        // SEC_PLAYER preserves ordinary equip/skill validation. Permission 8
-        // suppresses only achievements, including realm-first and mailed rewards.
         WorldSession session(ReservedAccount, "AscensionFreshCheck", 0, nullptr,
             SEC_PLAYER, 2, 0, LOCALE_enUS, 0, false, false, 0);
         session.InitRBACDataForTest();
@@ -726,7 +700,6 @@ bool HandleAscensionFreshCharacterCheck(ChatHandler* handler) try
             continue;
         }
         std::unique_ptr<Player, ProbePlayerDeleter> player(new Player(&session), ProbePlayerDeleter{&session});
-        // Match CharacterHandler: the unsaved player is not session-attached.
         player->GetMotionMaster()->Initialize();
         ProbeCreateInfo createInfo(expected);
         bool const success = player->Create(FirstReservedGuid + expected.ClassId - 12, &createInfo);

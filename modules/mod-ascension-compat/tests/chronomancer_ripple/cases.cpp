@@ -35,7 +35,7 @@ int main()
     resilience.fixtureTarget = &ally;
     resilience.fixtureAura = caster.AddAura(Resilience, &ally);
     resilience.Absorb(nullptr, hit, absorbed); assert(absorbed == 300);
-    absorbed = 120; // Native absorb bypass has reduced the actual deferred amount.
+    absorbed = 120;
     resilience.Store(nullptr, hit, absorbed);
     Aura* saved = ally.GetAura(StaggerDebt, ally.GetGUID());
     assert(saved->GetEffect(EFFECT_1)->GetAmount() == 120 && saved->GetEffect(EFFECT_2)->GetAmount() == 5);
@@ -49,7 +49,6 @@ int main()
     hit.fixtureSchool = SPELL_SCHOOL_MASK_NORMAL; caster.fixtureRange = false;
     resilience.Absorb(nullptr, hit, absorbed); assert(absorbed == 0);
     caster.fixtureRange = true;
-    // A fresh script instance resumes from saved ordinary aura effect amounts.
     aura_ascension_ripple_debt debt;
     debt.fixtureTarget = &ally; debt.fixtureAura = saved;
     debt.Tick(nullptr);
@@ -60,7 +59,6 @@ int main()
     assert(ally.fixturePayments.back() == 24 && saved->GetEffect(EFFECT_1)->GetAmount() == 72);
     absorbed = 31; resilience.Store(nullptr, hit, absorbed);
     assert(saved->GetEffect(EFFECT_1)->GetAmount() == 103 && saved->GetEffect(EFFECT_2)->GetAmount() == 5);
-    // Channel removal stops protection and pulses, but never discards the outstanding debt.
     channel->Remove(); ripple.Stop(nullptr, AURA_EFFECT_HANDLE_REAL);
     assert(!caster.HasAura(Renewal) && !caster.HasAura(Resilience));
     protection.Absorb(nullptr, hit, absorbed); assert(absorbed == 0);
@@ -69,7 +67,6 @@ int main()
     for (uint32 tick = 0; tick < 5; ++tick) loaded.Tick(nullptr);
     uint32 total = 0; for (uint32 value : ally.fixturePayments) total += value;
     assert(total == 151 && saved->GetEffect(EFFECT_1)->GetAmount() == 0);
-    // Explicit cancellation cannot erase debt; death does not cause another payment.
     saved->GetEffect(EFFECT_1)->SetAmount(101);
     loaded.fixtureApplication.fixtureMode = AURA_REMOVE_BY_CANCEL;
     loaded.End(nullptr, AURA_EFFECT_HANDLE_REAL);
@@ -78,7 +75,6 @@ int main()
     loaded.fixtureApplication.fixtureMode = AURA_REMOVE_BY_DEATH;
     loaded.End(nullptr, AURA_EFFECT_HANDLE_REAL);
     assert(saved->GetEffect(EFFECT_1)->GetAmount() == 50);
-    // End of Time triggers only at natural expiry and uses the native release once.
     chronomancer_expiry_events expiry;
     Aura* clasp = caster.AddAura(Clasp, &enemy);
     AuraApplication app; app.fixtureAura = clasp;
@@ -90,7 +86,6 @@ int main()
     assert(caster.fixtureCasts.empty());
     expiry.OnAuraRemove(&enemy, &app, AURA_REMOVE_BY_EXPIRE);
     assert(caster.fixtureCasts.size() == 1 && std::get<1>(caster.fixtureCasts[0]) == EndOfTimeRelease);
-    // Metadata retains native area selection and gives debt saved, non-proc fields.
     chronomancer_ripple_metadata metadata;
     SpellInfo info; info.Id = Clasp; info.Effects[2].Effect = SPELL_EFFECT_APPLY_AURA;
     metadata.OnLoadSpellCustomAttr(&info); assert(info.Effects[2].Effect == 0);

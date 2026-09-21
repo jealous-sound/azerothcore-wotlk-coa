@@ -14,7 +14,6 @@ int main()
         events.OnSpellBeforeEffects(&spell, &player, &info);
         events.OnSpellCast(&spell, &player, &info, false);
     };
-    // Actual TakePower: failed/cancelled casts never call it; cheat and item paths pay nothing.
     info.PowerType = POWER_HEALTH;
     spell.m_powerCost = 30;
     for (bool bypass : {true, false})
@@ -62,7 +61,6 @@ int main()
     player.casts.clear(); finish(); finish();
     assert(!player.HasAura(PooledVitality) && player.casts.size() == 1);
     assert(std::get<1>(player.casts[0]) == VitalityHeal);
-    // The finished cast retains its instant/empowered snapshot after spending its visible aura.
     castTime = 2000;
     player.ApplySpellMod(info.Id, SPELLMOD_CASTING_TIME, castTime, &spell);
     assert(castTime == 0);
@@ -82,7 +80,6 @@ int main()
     assert(!spell.GetScriptValue(PooledVitalityTalent)); player.cls = CLASS_SON_OF_ARUGAL;
     ready(); player.auras.erase(PooledVitalityTalent); prepare();
     assert(!spell.GetScriptValue(PooledVitalityTalent)); player.auras[PooledVitalityTalent] = {};
-    // Exercise every native modifier and all three explicit template instantiations.
     for (uint32 id : {504129u, 801952u, 804195u, 573299u, 705734u})
     {
         info.Id = id; manager.rows[id] = info; ready(); prepare();
@@ -94,7 +91,6 @@ int main()
         assert(radius == (id == 504129 ? 15.0f : 10.0f));
         int32 duration = 12000, summons = 2, cooldown = 180000;
         player.ApplySpellMod(id, SPELLMOD_DURATION, duration, &spell);
-        // Native CalcValue uses the currently executing spell when no explicit spell is supplied.
         player.m_spellModTakingSpell = &spell;
         player.ApplySpellMod(id, SPELLMOD_EFFECT1, summons);
         player.m_spellModTakingSpell = nullptr;
@@ -108,7 +104,6 @@ int main()
     assert(GetEmpowerment(504086) == Mend && GetEmpowerment(504282) == CrimsonTide);
     assert(GetEmpowerment(572898) == Heartbreak && GetEmpowerment(806932) == Bloodbolt);
     assert(GetEmpowerment(573357) == AnimatedBlood && GetEmpowerment(573328) == None);
-    // Scoping, preserved base/rank amount and a distinct Spirit term.
     bloodmage_vitality_scaling scaling;
     SpellInfo helper; helper.Id = VitalityHeal; helper.Effects[0].Effect = SPELL_EFFECT_HEAL;
     float base = 123;
@@ -117,7 +112,6 @@ int main()
     helper.Id = 42;
     scaling.ModifySpellEffectBaseValue(&player, &helper, 0, base);
     assert(base == 273);
-    // Hit-stage handling retains native damage/healing calculations and target identity.
     Unit ally, enemy, secondary;
     spell_ascension_bloodmage_empowered hit;
     hit.spell = &spell; hit.hit = &enemy; hit.initial = &enemy; hit.damage = 70;
@@ -127,7 +121,7 @@ int main()
     hit.ModifyHit(); assert(hit.damage == 70);
     info.Id = 801952; ready(); prepare();
     hit.hit = &ally; hit.heal = 500; hit.ModifyHit();
-    assert(hit.heal == 750); // Extra caster-health term, independently run through native bonuses.
+    assert(hit.heal == 750);
     info.Id = 520314; info.Effects[1].TriggerSpell = HeartbreakBuff;
     spell.values.clear(); hit.effectValue = 95; player.casts.clear();
     hit.HeartbreakPower(EFFECT_1); assert(hit.prevented && player.casts.empty());

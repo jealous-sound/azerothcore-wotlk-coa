@@ -45,7 +45,6 @@ void SyncReplacements(Player* player)
             else if (player->HasAura(Shadowhunter) || player->HasAura(ArrowTalent))
             {
                 child = Arrow;
-                // Temporary abilities are not in automatic learned-rank progression.
                 for (uint32 next = sSpellMgr->GetNextSpellInChain(child); next;
                      next = sSpellMgr->GetNextSpellInChain(child))
                 {
@@ -80,7 +79,7 @@ void SyncReplacements(Player* player)
         player->SetTemporarySpellReplacement(id, child);
     }
 }
-} // namespace AscensionWitchDoctor
+}
 
 namespace
 {
@@ -175,10 +174,8 @@ class aura_ascension_witch_doctor_lifecycle : public AuraScript
                 if (player->HasAura(VoodooMind))
                     amplitude = amplitude * 100 / (100 + 10 * Spirits(player));
     }
-    void Apply(AuraEffect const* effect, AuraEffectHandleModes /*mode*/)
+    void Apply(AuraEffect const* effect, AuraEffectHandleModes)
     {
-        // Hex of Malice: "Periodic damage dealt by this effect can critically strike". The core only lets a
-        // periodic tick crit when an aura says so, so give the tick the caster's spell crit chance.
         if (IsHex(GetSpellInfo()) && effect->GetAuraType() == SPELL_AURA_PERIODIC_DAMAGE)
             if (Unit* caster = GetCaster())
                 if (AuraEffect* periodic = GetEffect(effect->GetEffIndex()))
@@ -348,7 +345,7 @@ class aura_ascension_witch_doctor_lifecycle : public AuraScript
             }
         }
     }
-    void Absorb(AuraEffect* /*effect*/, DamageInfo& damage, uint32& absorb)
+    void Absorb(AuraEffect*, DamageInfo& damage, uint32& absorb)
     {
         if (GetId() == WarGolem)
         {
@@ -365,7 +362,7 @@ class aura_ascension_witch_doctor_lifecycle : public AuraScript
         for (uint8 i = 0; i < _debt.size(); ++i)
             _debt[(_payment + i) % _debt.size()] += absorb / _debt.size() + (i < absorb % _debt.size());
     }
-    void Removed(AuraEffect const* effect, AuraEffectHandleModes /*mode*/)
+    void Removed(AuraEffect const* effect, AuraEffectHandleModes)
     {
         if (!First(effect))
             return;
@@ -479,7 +476,7 @@ class witch_doctor_update : public UnitScript
             player->RemoveAurasDueToSpell(BeamCost);
     }
 };
-} // namespace
+}
 void AddAscensionWitchDoctorAuraScripts()
 {
     RegisterSpellScript(aura_ascension_witch_doctor_lifecycle);

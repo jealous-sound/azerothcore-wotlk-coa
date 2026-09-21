@@ -627,6 +627,8 @@ int32 AuraEffect::CalculateAmount(Unit* caster)
 
     GetBase()->CallScriptEffectCalcAmountHandlers(this, amount, m_canBeRecalculated);
 
+    sScriptMgr->OnAfterAuraEffectCalculateAmount(this, caster, amount);
+
     // Aura 317's healing clauses use independent healing-taken auras in the
     // copied data. This channel modifies only the completed absorb capacity.
     if (amount > 0 && GetBase()->GetType() == UNIT_AURA_TYPE &&

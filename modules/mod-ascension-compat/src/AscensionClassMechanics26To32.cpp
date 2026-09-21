@@ -32,16 +32,12 @@ constexpr std::uint32_t SPELL_PRIMALIST_EARTHSHAPING = 680441;
 bool IsSuccessfulOffensiveHit(Player const* player, Unit const* target,
     std::uint8_t missInfo)
 {
-    // IsValidAttackTarget rejects some already-dead units. Killing blows are
-    // still damage events and must generate the same resources as other hits.
     return player && target && player != target &&
         missInfo == SPELL_MISS_NONE && !player->IsFriendlyTo(target);
 }
 
 bool IsRangedWeaponAttack(SpellInfo const* spellInfo)
 {
-    // Match Spell's attack-type construction without an invented public
-    // GetAttackType API. This includes Auto Shot and wand auto-repeat casts.
     return (spellInfo->DmgClass == SPELL_DAMAGE_CLASS_RANGED &&
         spellInfo->IsRangedWeaponSpell()) ||
         spellInfo->HasAttribute(SPELL_ATTR2_AUTO_REPEAT);
@@ -69,9 +65,6 @@ void HandleAscensionClassMechanics26To32Hit(Spell* spell, Player* player,
             if (damage && spellId == SPELL_SUN_CLERIC_SOLAR_FLARE &&
                 player->HasAura(SPELL_SUN_CLERIC_SUNS_HOPE))
             {
-                // Solar Flare is normally a triggered child. Both authored
-                // Sun's Hope proc auras have ProcFlags=0, so supply the event,
-                // not another resource amount in the central gain table.
                 player->CastSpell(player,
                     SPELL_SUN_CLERIC_GAIN_SOLAR_POWER, true);
                 player->CastSpell(target,
@@ -80,9 +73,6 @@ void HandleAscensionClassMechanics26To32Hit(Spell* spell, Player* player,
 
             if (IsSolarNova(spellId))
             {
-                // "For each target struck": include a landed fully absorbed
-                // hit. Do not deduplicate the cast. The native helper reduces
-                // each named cooldown by 1000 ms.
                 player->CastSpell(player,
                     SPELL_SUN_CLERIC_SOLAR_NOVA_COOLDOWN, true);
             }
@@ -94,8 +84,6 @@ void HandleAscensionClassMechanics26To32Hit(Spell* spell, Player* player,
                 IsRangedWeaponAttack(spell->GetSpellInfo()) &&
                 roll_chance_i(TINKER_COGMASTER_CHANCE))
             {
-                // The authored helper has effect 175, delta 3, aura 801816.
-                // Never also add a +3 row to ResourceGainRules.
                 player->CastSpell(player, SPELL_TINKER_COGMASTER_SCRAP, true);
             }
             break;
@@ -105,29 +93,14 @@ void HandleAscensionClassMechanics26To32Hit(Spell* spell, Player* player,
             if (damage && spellId == SPELL_REAPER_DIRGE_HIT && critical &&
                 player->HasAura(SPELL_REAPER_SOUL_GENERATOR))
             {
-                // Dirge's parent launches two effect-142 children. Only a
-                // child critical strike satisfies the talent. Its own DBC
-                // fragment grant remains intact and is not duplicated here.
                 player->ModifyPower(POWER_RUNIC_POWER,
                     REAPER_SOUL_GENERATOR_RUNIC_POWER);
             }
 
             if (spellId == SPELL_REAPER_SCYTHE_RUSH && !spell->IsTriggered())
             {
-                // 500359 is a bare charge: its 500372 -> 805689 -> 805339 ->
-                // 500377 chain was server-side and is absent from every public
-                // record. AddAura keeps only 805689's unit-owned effect, the
-                // one second MOD_ROOT, and deliberately replays neither its
-                // second SPELL_EFFECT_CHARGE nor its own trigger of 805339,
-                // which would re-issue the movement and gate the energize
-                // behind a second melee hit roll.
                 player->AddAura(SPELL_REAPER_SCYTHE_RUSH_ROOT, target);
 
-                // 805339 energizes the caster for 150 internal tenths, the 15
-                // Runic Power both branches of the visible formula promise,
-                // through the native path that logs SPELL_ENERGIZE, and its
-                // third effect applies the 20 second 500377 marker. Live's
-                // second energize per cast is unexplained and is not copied.
                 player->CastSpell(target,
                     SPELL_REAPER_SCYTHE_RUSH_ENERGIZE, true);
             }
@@ -150,8 +123,6 @@ void HandleAscensionClassMechanics26To32SuccessfulInterrupt(Spell* spell,
 
     if (Aura* earthshaping = player->GetAura(SPELL_PRIMALIST_EARTHSHAPING))
     {
-        // Earthshaping explicitly forbids duration refresh on stack gain.
-        // ModStackAmount refreshes native timers; restore the remaining time.
         std::int32_t remaining = earthshaping->GetDuration();
         earthshaping->ModStackAmount(1);
         earthshaping->SetDuration(remaining);

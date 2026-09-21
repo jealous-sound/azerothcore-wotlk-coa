@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check Protector's three cooldown reductions against an unrelated elapsed-time control."""
+CLI_DESCRIPTION = """Check Protector's three cooldown reductions against an unrelated elapsed-time control."""
 
 import argparse
 import json
@@ -25,6 +25,6 @@ def check(directory):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument('result_directory', type=Path)
     check(parser.parse_args().result_directory)

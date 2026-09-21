@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run gameplay scenarios in a dedicated worldserver with disposable local databases."""
+CLI_DESCRIPTION = """Run gameplay scenarios in a dedicated worldserver with disposable local databases."""
 
 import argparse
 import configparser
@@ -33,8 +33,8 @@ METRICS = {
     'health', 'health_pct', 'max_health', 'power', 'max_power', 'alive', 'combat', 'casting', 'level',
     'aura', 'aura_stacks', 'aura_charges', 'aura_duration_ms', 'aura_amount', 'aura_positive',
     'knows_spell', 'has_talent', 'talent_points', 'cooldown_ms', 'global_cooldown_ms', 'spell_charges',
-    'item_count', 'carried_item_count', 'bank_bag_slots',
-    'taxi_node', 'pet_entry', 'pet_aura_stacks', 'owned_creature_count',
+    'item_count', 'carried_item_count', 'bank_bag_slots', 'bank_shows', 'system_messages',
+    'taxi_node', 'pet_entry', 'pet_aura_stacks', 'pet_is_banker', 'pet_display', 'pet_scale', 'owned_creature_count',
     'charm_entry', 'charm_aura_stacks', 'controls_self', 'private_instance',
     'dynamic_object', 'dynamic_object_duration_ms', 'gossip_options',
     'owned_gameobject_count', 'gameobject_remaining_ms', 'at_homebind',
@@ -42,10 +42,15 @@ METRICS = {
     'spellbook_buy_succeeded', 'spellbook_buy_failed',
     'spellbook_buys_granted', 'spellbook_unannounced_buys', 'spellbook_misannounced_buys',
     'spellbook_notify_rows', 'spellbook_notified_spells', 'spellbook_unnotified_buys',
+    'trainer_list_packets', 'trainer_window_rows', 'trainer_window_state', 'trainer_window_ability',
+    'spellbook_superseded_packets', 'spellbook_superseded_for',
+    'spellbook_cues_in_last_buy', 'spellbook_last_buy_cued',
+    'spellbook_silent_buys', 'spellbook_multi_announced_buys',
     'cast_speed_multiplier', 'spell_crit_chance', 'spell_power_cost', 'spell_damage_done', 'melee_damage_done',
-    'who_count', 'who_class', 'loot_count', 'loot_entry', 'loot_received',
+    'who_count', 'who_class', 'player_name', 'name_lookup', 'loot_count', 'loot_entry', 'loot_received',
+    'loot_gold', 'loot_bloodforged', 'nearby_gameobject_count', 'nearby_creature_count', 'carried_money',
     'quest_rewarded', 'spell_damage_taken', 'melee_damage_taken', 'spell_healing_taken',
-    'spell_hit_bonus_taken', 'rooted', 'spell_cast_count', 'spell_go_count',
+    'spell_hit_bonus_taken', 'rooted', 'spell_cast_count', 'spell_go_count', 'cast_failure',
     'stealth_detection', 'can_detect',
     'quest_status', 'quest_takeable', 'quest_objective_count', 'dialog_status',
     'ball_offer_count', 'ball_offers_quest',
@@ -83,7 +88,8 @@ PLAYER_STAT_METRICS = {
 }
 METRIC_FIELDS = {'actor', 'metric', 'spell', 'power', 'caster', 'effect', 'item', 'entry',
                  'relative_to', 'ratio_to', 'target', 'quest', 'id', 'stat', 'school', 'hand', 'rating', 'op',
-                 'base', 'key', 'index', 'pet', 'critical', 'target_pet', 'periodic'}
+                 'base', 'key', 'index', 'pet', 'critical', 'target_pet', 'periodic', 'name',
+                 'min_distance', 'owner_display'}
 ACTIONS = {
     'stop_attack': ({'actor'}, {'actor'}),
     'set_moving': ({'actor', 'enabled'}, {'actor', 'enabled'}),
@@ -95,6 +101,7 @@ ACTIONS = {
     'assert': ({'actor', 'metric'}, METRIC_FIELDS | {'equals', 'min', 'max', 'within_ms'}),
     'learn': ({'actor', 'spell'}, {'actor', 'spell'}),
     'unlearn': ({'actor', 'spell'}, {'actor', 'spell', 'all_specs'}),
+    'money': ({'actor', 'copper'}, {'actor', 'copper'}),
     'set_aura': ({'actor', 'spell', 'stacks'}, {'actor', 'spell', 'stacks', 'pet'}),
     'cast': ({'actor', 'spell'}, {'actor', 'spell', 'target', 'destination'}),
     'attack': ({'actor', 'target'}, {'actor', 'target', 'pet'}),
@@ -102,12 +109,22 @@ ACTIONS = {
     'group': ({'actor', 'target'}, {'actor', 'target'}),
     'cast_charm': ({'actor', 'spell'}, {'actor', 'spell', 'target'}),
     'gossip_hello': ({'actor'}, {'actor', 'target'}),
+    'banker_activate': ({'actor'}, {'actor', 'target', 'owner', 'entry'}),
+    'area_trigger': ({'actor', 'id'}, {'actor', 'id'}),
     'trainer_buy': ({'actor', 'spell'}, {'actor', 'spell', 'target'}),
     'gossip_select': ({'actor', 'option'}, {'actor', 'option'}),
     'who': ({'actor'}, {'actor', 'target', 'race_mask', 'class_mask'}),
     'open_item': ({'actor', 'item'}, {'actor', 'item'}),
     'collect_loot': ({'actor'}, {'actor'}),
     'close_loot': ({'actor'}, {'actor'}),
+    'set_money': ({'actor', 'value'}, {'actor', 'value'}),
+    'set_phase': ({'actor'}, {'actor', 'value'}),
+    'use_nearby_gameobject': ({'actor', 'entry'}, {'actor', 'entry'}),
+    'attack_nearby': ({'actor', 'entry'}, {'actor', 'entry', 'kill'}),
+    'loot_nearby': ({'actor', 'entry'}, {'actor', 'entry'}),
+    'loot_creature': ({'actor', 'target'}, {'actor', 'target'}),
+    'loot_slot': ({'actor'}, {'actor', 'slot'}),
+    'loot_money': ({'actor'}, {'actor'}),
     'prepare_quest': ({'actor', 'quest'}, {'actor', 'quest', 'complete'}),
     'reward_quest': ({'actor', 'quest'}, {'actor', 'quest', 'choice'}),
     'restore_quest_spells': ({'actor'}, {'actor'}),
@@ -178,12 +195,15 @@ def validate(scenario):
         keys(player, {'id', 'race', 'class'},
              {'id', 'race', 'class', 'level', 'bot', 'spell_hit_rating', 'spell_crit_rating',
               'melee_crit_rating', 'ranged_hit_rating', 'melee_hit_rating', 'expertise_rating',
-              'allow_regeneration'}, 'player')
+              'allow_regeneration', 'name'}, 'player')
         identity = player['id']
         require(isinstance(identity, str) and ACTOR_ID.fullmatch(identity), 'Invalid player id')
         require(identity not in actor_ids, 'Duplicate actor id')
         actor_ids.add(identity)
         player_ids.add(identity)
+        if 'name' in player:
+            require(isinstance(player['name'], str) and 1 <= len(player['name']) <= 25
+                    and len(player['name'].encode('utf-8')) <= 47, 'Invalid fixture character name')
         for key in ('race', 'class'):
             number(player[key], key, 1, 255, True)
         number(player.get('level', 80), 'level', 1, 255, True)
@@ -277,6 +297,8 @@ def validate(scenario):
         for key in ('ms', 'within_ms'):
             if key in step:
                 number(step[key], f'{where}.{key}', 0, scenario.get('timeout_ms', 90000), True)
+        if action == 'money':
+            number(step['copper'], f'{where}.copper', 1, 2**31 - 1, True)
         if action == 'set_level':
             number(step['value'], f'{where}.value', 1, 80, True)
         if action == 'level_scaling_packet':
@@ -294,6 +316,11 @@ def validate(scenario):
                         and type(step['periodic']) is bool,
                         f'{where}: periodic requires a damage/healing calculation and a boolean')
             require(metric in METRICS, f'{where}: unknown metric')
+            if metric in {'player_name', 'name_lookup'}:
+                require(step['actor'] in player_ids and isinstance(step.get('name'), str)
+                        and bool(step['name']), f'{where}: name metric needs a player and name')
+            elif 'name' in step:
+                require(False, f'{where}: name only applies to name metrics')
             if metric in {'view_level', 'sent_level', 'sent_max_health'}:
                 require(step['actor'] in player_ids and 'target' in step,
                         f'{where}: view metric needs a player and target')
@@ -312,7 +339,8 @@ def validate(scenario):
                     'spell_immune', 'spell_effect_immune', 'spell_damage_count', 'spell_damage_total',
                     'spell_uses_armor', 'pet_aura_amount', 'pet_aura_amplitude_ms', 'spell_heal_count', 'spell_heal_total',
                     'spell_effective_heal_total', 'spell_energize_count', 'spell_energize_total',
-                    'spell_proc_count', 'temporary_spell_replacement'}:
+                    'spell_proc_count', 'temporary_spell_replacement', 'cast_failure',
+                    'trainer_window_state', 'trainer_window_ability', 'spellbook_superseded_for'}:
                 require('spell' in step, f'{where}: metric needs spell')
             for key in ('pet', 'critical'):
                 if key in step:
@@ -367,7 +395,7 @@ def validate(scenario):
                 require('entry' in step, f'{where}: metric needs creature entry')
                 require('caster' not in step or 'spell' in step, f'{where}: aura caster filter needs spell')
             if metric in {'spellbook_offers_spell', 'spellbook_learned_alerts',
-                          'spellbook_buy_succeeded', 'spellbook_buy_failed'}:
+                          'spellbook_buy_succeeded', 'spellbook_buy_failed', 'cast_failure'}:
                 require('spell' in step, f'{where}: metric needs spell')
             if metric in {'owned_gameobject_count', 'gameobject_remaining_ms'}:
                 require('entry' in step, f'{where}: metric needs gameobject entry')
@@ -385,16 +413,23 @@ def validate(scenario):
                 require('id' in step, f'{where}: metric needs text id')
             if metric in {'knows_spell', 'has_talent', 'talent_points', 'cooldown_ms', 'spell_charges', 'item_count',
                           'carried_item_count', 'bank_bag_slots', 'taxi_node', 'cast_pushback_ms',
-                          'pet_entry', 'pet_aura_stacks', 'owned_creature_count', 'charm_entry',
+                          'bank_shows', 'system_messages', 'cast_failure',
+                          'pet_entry', 'pet_aura_stacks', 'pet_is_banker', 'pet_display', 'pet_scale',
+                          'owned_creature_count', 'charm_entry',
                           'charm_aura_stacks', 'controls_self', 'private_instance',
                           'dynamic_object', 'dynamic_object_duration_ms', 'gossip_options',
                           'owned_gameobject_count', 'gameobject_remaining_ms', 'at_homebind',
                           'spellbook_rows', 'spellbook_offers_spell', 'spellbook_covers_spell',
                           'spellbook_learned_alerts', 'spellbook_buy_succeeded', 'spellbook_buy_failed',
                           'spellbook_buys_granted', 'spellbook_unannounced_buys',
-                          'spellbook_misannounced_buys',
+                          'spellbook_misannounced_buys', 'spellbook_silent_buys',
+                          'spellbook_multi_announced_buys',
                           'spellbook_notify_rows', 'spellbook_notified_spells',
                           'spellbook_unnotified_buys',
+                          'trainer_list_packets', 'trainer_window_rows', 'trainer_window_state',
+                          'trainer_window_ability', 'spellbook_superseded_packets',
+                          'spellbook_superseded_for',
+                          'spellbook_cues_in_last_buy', 'spellbook_last_buy_cued',
                           'cast_speed_multiplier', 'spell_crit_chance', 'spell_power_cost',
                           'spell_damage_done', 'melee_damage_done',
                           'who_count', 'who_class',
@@ -445,7 +480,6 @@ def read_config(path):
 
 
 def env_var_name(key):
-    """Mirror IniKeyToEnvVarKey in src/common/Configuration/Config.cpp."""
     result = []
     for index, char in enumerate(key):
         if char in ' .-':
@@ -462,14 +496,12 @@ def env_var_name(key):
 
 
 def server_environment(overrides, environment=None):
-    """Keep inherited settings except variables that would replace generated harness values."""
     blocked = {env_var_name(key) for key in overrides}
     source = os.environ if environment is None else environment
     return {name: value for name, value in source.items() if name not in blocked}
 
 
 def source_setting(config, key, default=None, environment=None):
-    """Read a source value as the server does: an AC_* environment variable replaces the file value."""
     source = os.environ if environment is None else environment
     value = source.get(env_var_name(key), config.get(key, default))
     require(value is not None, f'Missing source setting: {key}')
@@ -503,7 +535,6 @@ def cnf_quote(value):
 
 
 def database_credentials(connections, path):
-    """Read optional existing admin credentials without changing the source endpoint or schema."""
     parser = configparser.ConfigParser(interpolation=None)
     try:
         parser.read_string(path.read_text(encoding='utf-8-sig'))
@@ -548,7 +579,6 @@ class Databases:
                 require(self.names[role] != connection.database, 'Source and test database must differ')
                 path = directory / f'{role}-client.cnf'
                 self.option_files[role] = path
-                # Never put credentials in process arguments or test reports.
                 content = '[client]\n' + '\n'.join(f'{key}={cnf_quote(str(value))}' for key, value in {
                     'host': connection.host, 'port': connection.port, 'user': connection.user,
                     'password': connection.password, 'protocol': 'TCP', 'default-character-set': 'utf8mb4',
@@ -584,7 +614,6 @@ class Databases:
         elif tables:
             arguments.append('--no-create-info')
         arguments.extend([connection.database, *tables])
-        # Stream the snapshot, keeping the world database out of Python memory.
         with tempfile.TemporaryFile() as errors:
             source = subprocess.Popen(arguments, stdout=subprocess.PIPE, stderr=errors, creationflags=CREATE_FLAGS)
             target = None
@@ -608,7 +637,6 @@ class Databases:
     def prepare(self, roles=('auth', 'characters', 'world')):
         for role in roles:
             name = self.names[role]
-            # CREATE without IF NOT EXISTS fails closed on collisions; only our creations are dropped.
             self.sql(role, f'CREATE DATABASE `{name}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;')
             self.created.append(role)
             print(f'Preparing isolated {role} database...', flush=True)
@@ -618,7 +646,6 @@ class Databases:
                 if role == 'auth':
                     tables += ['rbac_permissions', 'rbac_linked_permissions', 'rbac_default_permissions', 'realmlist']
                 else:
-                    # Required realm metadata: ArenaSeasonMgr asserts if this table is empty.
                     tables += ['active_arena_season']
                 self.copy(role, tables=tables)
 
@@ -664,9 +691,7 @@ def check_no_reserved_overrides(path, reserved):
 
 
 def stage_modules(source, destination, reserved):
-    """Copy module configs into the directory the worldserver reads, never replacing existing files."""
     if destination.exists():
-        # Pre-existing files in the destination are never copied, but they must not silently win either.
         for path in sorted(destination.glob('*.conf')):
             check_no_reserved_overrides(path, reserved)
             require((source / path.name).is_file(),
@@ -743,7 +768,8 @@ def run_process(command, directory, ready_path, result_path, run_id, startup_tim
                 else:
                     require(now - ready_at < timeout, 'Gameplay scenario/shutdown timed out')
                 time.sleep(0.1)
-            require(result_path.exists(), 'Worldserver exited without a result; check the build and server log')
+            require(result_path.exists(), f'Worldserver exited with code {process.returncode} without a result; '
+                    'check the build and server log')
             report = read_json(result_path)
             if report.get('status') == 'passed':
                 require(on_ready is None or ready_at is not None, 'Startup barrier was not observed')
@@ -787,13 +813,12 @@ def execute(args, scenario):
     run_id = secrets.token_hex(6)
     output = (args.output or ROOT / '.cache' / 'coa-gameplay-tests' / run_id).resolve()
     output.mkdir(parents=True, exist_ok=False)
+    args.result_directory = output
     result_path = output / 'result.json'
     ready_path = output / 'ready.json'
     scenario_path = output / 'scenario.json'
     scenario_path.write_text(json.dumps(scenario, indent=2) + '\n', encoding='utf-8')
     print(f'Run {run_id}: {output}', flush=True)
-    # Credential-bearing files (option files, generated config) never live under `output`: on the Docker
-    # service that directory is a host bind mount, and on all platforms it is the disposable result directory.
     credentials_dir = Path(tempfile.mkdtemp(prefix='coa-gameplay-test-'))
     generated_config = credentials_dir / 'worldserver.conf'
     module_configs = []
@@ -834,7 +859,6 @@ def execute(args, scenario):
             'CoAGameplayTest.ReadyFile': ready_path.as_posix(),
             'CoAGameplayTest.ResultFile': result_path.as_posix(),
         }
-        # Windows worldservers read configs/modules relative to their working directory, the output directory.
         module_target = args.server_modules_dir or output / 'configs' / 'modules'
         module_configs = stage_modules(module_source, module_target, set(overrides))
         summary['module_config_sha256'] = {path.name: sha256(path) for path in module_configs}
@@ -870,24 +894,18 @@ def execute(args, scenario):
         shutil.rmtree(credentials_dir, ignore_errors=True)
         summary['total_seconds'] = round(time.monotonic() - started, 3)
         (output / 'summary.json').write_text(json.dumps(summary, indent=2) + '\n', encoding='utf-8')
-    print(f"{summary['status'].upper()}: {scenario['name']}\nResults: {output}")
+    stage = 'COMPLETE' if summary['status'] == 'passed' else 'FAILED'
+    print(f"NATIVE STAGE {stage}: {scenario['name']}\nResults: {output}")
     if 'message' in summary:
         print(summary['message'])
     return 0 if summary['status'] == 'passed' else 1
 
 
 def _raise_keyboard_interrupt(signum, frame):
-    """SIGTERM handler: route the ordinary Compose/`docker stop` signal through the existing interrupt cleanup."""
     raise KeyboardInterrupt
 
 
-def main(argv=None):
-    parser = argparse.ArgumentParser(description=__doc__)
-    subparsers = parser.add_subparsers(dest='command', required=True)
-    check = subparsers.add_parser('validate', help='Validate a scenario without starting a server')
-    check.add_argument('scenario', type=Path)
-    run = subparsers.add_parser('run', help='Prepare isolated test DBs, run a scenario, and clean up')
-    run.add_argument('scenario', type=Path)
+def add_run_arguments(run):
     run.add_argument('--worldserver', type=Path, required=True)
     run.add_argument('--config', type=Path, required=True, help='Source worldserver config; never changed')
     run.add_argument('--mysql', type=Path, required=True)
@@ -898,12 +916,24 @@ def main(argv=None):
     run.add_argument('--server-modules-dir', type=Path,
                      help='Directory the worldserver reads module configs from; required outside Windows')
     run.add_argument('--output', type=Path, help='New directory for logs and results')
+    run.add_argument('--native-only', action='store_true',
+                     help='Exploratory execution only; explicitly skip combined verification')
     run.add_argument('--startup-timeout', type=float, default=600)
     mode = run.add_mutually_exclusive_group()
     mode.add_argument('--fresh-databases', action='store_true', help='Use disposable copies without the world cache')
     mode.add_argument('--refresh-world', action='store_true', help='Replace the owned world cache before this run')
     run.add_argument('--world-cache-dir', type=Path, default=ROOT / '.cache/coa-gameplay-tests/world-cache',
                      help='Local cache metadata/lease directory; database ownership is verified separately')
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
+    subparsers = parser.add_subparsers(dest='command', required=True)
+    check = subparsers.add_parser('validate', help='Validate a scenario without starting a server')
+    check.add_argument('scenario', type=Path)
+    run = subparsers.add_parser('run', help='Prepare isolated test DBs, run a scenario, and clean up')
+    run.add_argument('scenario', type=Path)
+    add_run_arguments(run)
     args = parser.parse_args(argv)
     previous_sigterm_handler = None
     sigterm_installed = False
@@ -918,7 +948,8 @@ def main(argv=None):
         if hasattr(signal, 'SIGTERM'):
             previous_sigterm_handler = signal.signal(signal.SIGTERM, _raise_keyboard_interrupt)
             sigterm_installed = True
-        return execute(args, scenario)
+        from workflow import run_registered
+        return run_registered(args, scenario, execute)
     except (ValueError, OSError, KeyError, TypeError) as error:
         print(f'ERROR: {error}', file=sys.stderr)
         return 1

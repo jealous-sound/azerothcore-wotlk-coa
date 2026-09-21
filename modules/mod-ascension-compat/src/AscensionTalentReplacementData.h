@@ -22,14 +22,9 @@ struct TalentReplacement
     std::array<ReplacementRank, 9> Ranks;
 };
 
-// Explicit transformation clauses from the class audits. The parent unlocks the
-// base replacement; higher ranks use the captured class trainer's level gates.
-// Only ranks whose outstanding requirement was the missing root are included.
-// Transient procs and equipment-dependent selectors need separate policies.
 inline constexpr std::array<TalentReplacement, 13> TalentReplacements =
 {{
-    { 17, 18, 570727, 801059, {{ { 802581, 0 } }} }, // Flames of Xoroth -> Warbringer
-    // Tempest Calling: Conjure Storm -> Updraft; Call Lightning -> Aeroblast.
+    { 17, 18, 570727, 801059, {{ { 802581, 0 } }} },
     { 16, 13, 707615, 800227, {{
         { 802354, 0 }, { 570161, 18 }, { 570162, 26 }, { 570163, 34 },
         { 570164, 42 }, { 570165, 50 }, { 570166, 58 }
@@ -38,7 +33,6 @@ inline constexpr std::array<TalentReplacement, 13> TalentReplacements =
         { 801839, 0 }, { 501450, 20 }, { 501451, 30 }, { 501452, 38 },
         { 501453, 46 }, { 501454, 54 }, { 501455, 58 }
     }} },
-    // Tempest Sovereign: Shock -> Brine; Call Lightning -> Torrential Wrath.
     { 16, 14, 560020, 804020, {{
         { 807105, 0 }, { 807106, 20 }, { 807107, 24 }, { 807108, 34 },
         { 807109, 44 }, { 807110, 54 }, { 807111, 58 }
@@ -47,12 +41,10 @@ inline constexpr std::array<TalentReplacement, 13> TalentReplacements =
         { 804017, 0 }, { 503352, 16 }, { 503353, 22 }, { 503354, 28 }, { 503355, 34 },
         { 503356, 40 }, { 503357, 46 }, { 503358, 52 }, { 503359, 58 }
     }} },
-    { 16, 13, 704222, 526362, {{ { 704201, 0 } }} }, // Whirlpool -> Raging Zephyr
-    // Blood Curse's three specialization forms.
-    { 20, 25, 505188, 562720, {{ { 680692, 0 } }} }, // Sanguine Essence
-    { 20, 26, 504728, 562720, {{ { 801076, 0 } }} }, // Transgression
-    { 20, 27, 504710, 562720, {{ { 562572, 0 } }} }, // Accursed Form
-    // Wand of Time -> Timerend; Unmake -> Artificer's Wand.
+    { 16, 13, 704222, 526362, {{ { 704201, 0 } }} },
+    { 20, 25, 505188, 562720, {{ { 680692, 0 } }} },
+    { 20, 26, 504728, 562720, {{ { 801076, 0 } }} },
+    { 20, 27, 504710, 562720, {{ { 562572, 0 } }} },
     { 22, 32, 707430, 520175, {{
         { 801291, 0 }, { 501831, 14 }, { 501832, 22 }, { 501833, 30 },
         { 501834, 38 }, { 501835, 46 }, { 572578, 52 }
@@ -60,8 +52,8 @@ inline constexpr std::array<TalentReplacement, 13> TalentReplacements =
     { 22, 33, 804478, 804418, {{
         { 561284, 0 }, { 561354, 22 }, { 561355, 32 }, { 561356, 42 }, { 561357, 52 }
     }} },
-    { 30, 56, 805708, 500376, {{ { 572382, 0 } }} }, // Murder -> Shudder Scythe
-    { 30, 56, 504269, 803985, {{ { 807234, 0 } }} }  // Ghost Claw -> Wraith Claw
+    { 30, 56, 805708, 500376, {{ { 572382, 0 } }} },
+    { 30, 56, 504269, 803985, {{ { 807234, 0 } }} }
 }};
 }
 

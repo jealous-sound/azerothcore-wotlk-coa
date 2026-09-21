@@ -1,4 +1,3 @@
-// CoA talent catalog: the custom classes' CharacterAdvancement.dbc nodes, loaded at startup.
 #ifndef ASCENSION_COA_TALENT_DATA_H
 #define ASCENSION_COA_TALENT_DATA_H
 
@@ -32,8 +31,6 @@ struct CoAAutomaticDependency
     std::array<std::uint32_t, 2> RequiredEntryIds;
 };
 
-// CharacterAdvancementEssence.dbc row of a custom class: the points its class tree (AE) and its
-// specialization tree (TE) hold at a level, cumulative.
 struct CoATalentBudget
 {
     std::uint8_t ClassId;
@@ -42,20 +39,13 @@ struct CoATalentBudget
     std::uint8_t TE;
 };
 
-// Sorted by EntryId.
 extern std::vector<CoATalentEntry> CoATalentEntries;
 extern std::vector<CoASelectableFreeEntry> CoASelectableFreeEntries;
-// Sorted by EntryId.
 extern std::vector<CoAAutomaticDependency> CoAAutomaticDependencies;
-// Sorted by ClassId, then Level.
 extern std::vector<CoATalentBudget> CoATalentBudgets;
 
-// The class-tree (AE) and specialization-tree (TE) points a custom class holds at a level: the essence row of
-// that level, or of the highest lower level the table has. False when the table has no row for the class.
 bool GetCoATalentBudget(std::uint8_t classId, std::uint8_t level, std::uint32_t& ae, std::uint32_t& te);
 
-// Reads CharacterAdvancement.dbc with its class type, tab type, ChrClasses, ChrSpecs and essence tables.
-// Returns false and leaves the catalog empty when a table cannot be read.
 bool LoadCoATalentData();
 }
 

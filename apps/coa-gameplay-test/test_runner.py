@@ -1,5 +1,3 @@
-"""Behavioral checks for scenario validation, process failures and database ownership."""
-
 import copy
 import io
 import json
@@ -14,6 +12,20 @@ import run
 
 
 class RunnerTests(unittest.TestCase):
+    def test_optional_character_names(self):
+        scenario = run.read_json(Path(__file__).parent / 'scenarios' / 'optional-character-names.json')
+        self.assertIs(run.validate(scenario), scenario)
+        for invalid in ('x' * 26, '\u0410' * 24):
+            candidate = copy.deepcopy(scenario)
+            candidate['players'][0]['name'] = invalid
+            with self.assertRaises(ValueError):
+                run.validate(candidate)
+        for field, value in [('name', None), ('actor', 'absent')]:
+            candidate = copy.deepcopy(scenario)
+            candidate['steps'][0][field] = value
+            with self.assertRaises(ValueError):
+                run.validate(candidate)
+
     def setUp(self):
         self.scenario = run.read_json(Path(__file__).parent / 'scenarios' / 'frostbolt.json')
 
@@ -636,7 +648,8 @@ class RunnerTests(unittest.TestCase):
             installed_handlers.append(run.signal.getsignal(run.signal.SIGTERM))
             return 0
 
-        with patch.object(run, 'execute', side_effect=fake_execute):
+        with patch.object(run, 'execute', side_effect=fake_execute), \
+                patch('workflow.run_registered', side_effect=lambda args, scenario, execute: execute(args, scenario)):
             code = run.main(arguments)
         self.assertEqual(code, 0)
         self.assertEqual(len(installed_handlers), 1)

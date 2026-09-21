@@ -48,8 +48,6 @@ public:
 
     void OnSpellCheckCast(Spell* spell, bool, SpellCastResult& result) override
     {
-        // A cast prepared with an instant/free benefit cannot finish with stacks
-        // that expired or were spent by a different cast during its cast time.
         if (spell->GetScriptValue(PooledVitalityTalent) && !CanEmpower(spell->GetCaster()->ToPlayer()))
             result = SPELL_FAILED_CASTER_AURASTATE;
     }
@@ -87,7 +85,6 @@ public:
             spell->GetScriptValue(PooledVitalityTalent) != Mend || spell->GetScriptValue(MendSelfHeal))
             return;
         spell->SetScriptValue(MendSelfHeal, 1);
-        // Custom basepoints pass through native float arithmetic before returning to int32.
         uint32 maximum = uint32(std::nextafter(float(std::numeric_limits<int32>::max()), 0.0f));
         int32 amount = int32(std::min(healing / 2, maximum));
         if (amount)
@@ -121,9 +118,6 @@ void SetHealthPct(Unit* unit, float pct)
     unit->SetHealth(std::min<uint32>(maximum, std::max<uint32>(1, uint32(health + 0.5))));
 }
 
-// Transfusion's only effect is a SPELL_EFFECT_SCRIPT_EFFECT, and Spell::EffectScriptEffect has no
-// family-26 entry, so the cast spent its cost and cooldown and moved no health. The empowered
-// cooldown reduction is separate and already works through Empowerment::Transfusion.
 class spell_ascension_bloodmage_transfusion : public SpellScript
 {
     PrepareSpellScript(spell_ascension_bloodmage_transfusion);
@@ -138,8 +132,6 @@ class spell_ascension_bloodmage_transfusion : public SpellScript
             return;
         float casterPct = caster->GetHealthPct();
         float targetPct = target->GetHealthPct();
-        // The swap only exchanges the pair, so its minimum is the same before and after it. The effect's
-        // own value (40) raises that one member, not both, per "the lower health percentage of the two".
         float lower = std::min(casterPct, targetPct);
         float raised = std::max(lower, float(GetEffectValue()));
         SetHealthPct(caster, targetPct > lower ? targetPct : raised);
@@ -173,8 +165,6 @@ class spell_ascension_bloodmage_empowered : public SpellScript
     {
         if (GetSpellInfo()->Effects[index].TriggerSpell != HeartbreakBuff)
             return;
-        // Native effect 142 otherwise grants the empowered buff unconditionally,
-        // and its old enemy selector gives the party buff the wrong anchor.
         PreventHitDefaultEffect(index);
         if (!Empowered(Heartbreak) || _heartbreak)
             return;
@@ -208,15 +198,6 @@ class spell_ascension_bloodmage_empowered : public SpellScript
         OnHit += SpellHitFn(spell_ascension_bloodmage_empowered::ModifyHit);
     }
 };
-// Eternal Presence (560001): "Increases the attack power of party and raid members by $s1%. Does not stack
-// with similar effects. / In addition, you now gain attack power equal to $s3% of the damage taken for
-// $560010d. Can only occur once every 10 sec." Effects 0 and 1 (SPELL_EFFECT_APPLY_AREA_AURA_RAID, auras 166
-// and 167, 5% each) are native and keep the spell_group 2000180 stack rule; nothing here touches them.
-// Effect 2 is the private aura 354, which has no handler in AuraEffectHandler (SpellAuraEffects.cpp:419) and
-// no core consumer, and the record carries ProcFlags 0, so its TriggerSpell 560010 was never cast. That
-// helper's own effect is a flat +5 attack power, so the 15% share of the damage taken is forwarded as a
-// custom base point; the taken-damage proc flag and the 10 second internal cooldown the tooltip states come
-// from the companion spell_proc row. The amount is read from the effect, so a future rank still applies.
 constexpr uint32 EternalPresenceBuff = 560010;
 
 class aura_ascension_eternal_presence : public AuraScript
@@ -250,16 +231,6 @@ class aura_ascension_eternal_presence : public AuraScript
     }
 };
 
-// Endure the Curse (681190): "Reduce all damage taken by $s2% for $d. While active, taking damage that would
-// reduce your health below 10% will instantly heal you for $681189s1% of your maximum health. Can only occur
-// once." Effect 1 (aura 87, -30%, MiscValue 127) is native. Effect 0 is a SPELL_AURA_SCHOOL_ABSORB whose
-// Spell.dbc amount is 0 (BasePoints -1, DieSides 1) over the same all-school mask, and with no script
-// Unit::CalcAbsorbResist subtracts the nothing it absorbed and removes the whole aura on the first point of
-// damage of any school (Unit.cpp:2515-2523), taking the reduction the spell exists for with it. Declaring the
-// absorb infinite keeps the effect out of that branch - the shape aura_ascension_templar_stagger already uses
-// - while the handler still absorbs nothing, so the spell mitigates for its full duration. 681189
-// (SPELL_EFFECT_HEAL_PCT, 30% of maximum health) is a real record that nothing referenced; it is cast from
-// the same handler, at most once per application, with its own value rather than a repeated number.
 constexpr uint32 EndureTheCurseHeal = 681189;
 
 class aura_ascension_endure_the_curse : public AuraScript
@@ -277,12 +248,10 @@ class aura_ascension_endure_the_curse : public AuraScript
 
     void Absorb(AuraEffect*, DamageInfo& damage, uint32& absorb)
     {
-        // The tooltip promises no shield: this effect only carries the lethal-damage clause.
         absorb = 0;
         Unit* target = GetTarget();
         if (_healed || !target->IsAlive() || !damage.GetDamage())
             return;
-        // The handler runs before the damage is applied, so the health here is the health before the hit.
         if (uint64(target->GetHealth()) >= uint64(damage.GetDamage()) + target->CountPctFromMaxHealth(10))
             return;
         _healed = true;

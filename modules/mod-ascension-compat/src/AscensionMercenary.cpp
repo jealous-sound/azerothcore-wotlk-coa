@@ -21,7 +21,6 @@ enum MercenarySpells : uint32
 constexpr uint8 MERCENARY_MIN_LEVEL = 20;
 constexpr int32 MERCENARY_CRIMINAL_DURATION = 8 * MINUTE * IN_MILLISECONDS;
 
-// War Mode is the shared marker 1004119; the PvE set adds 9931032 on top of it.
 bool IsPvPRuleset(Unit const* unit)
 {
     return unit->HasAura(SPELL_HIGH_RISK) || (unit->HasAura(SPELL_WAR_MODE) && !unit->HasAura(SPELL_PVE));
@@ -39,14 +38,12 @@ class spell_ascension_mercenary : public SpellScript
         if (!player || player->GetLevel() < MERCENARY_MIN_LEVEL)
             return SPELL_FAILED_LEVEL_REQUIREMENT;
 
-        // The description grants the status only while a PvP ruleset is active.
         return IsPvPRuleset(player) ? SPELL_CAST_OK : SPELL_FAILED_NOT_HERE;
     }
 
     void Register() override { OnCheckCast += SpellCheckCastFn(spell_ascension_mercenary::CheckCast); }
 };
 
-// For the Alliance! / For the Horde! end the mercenary status, and only in a rested area.
 class spell_ascension_mercenary_loyalty : public SpellScript
 {
     PrepareSpellScript(spell_ascension_mercenary_loyalty);
@@ -77,7 +74,6 @@ class ascension_mercenary_reaction : public UnitScript
 public:
     ascension_mercenary_reaction() : UnitScript("ascension_mercenary_reaction", true, {UNITHOOK_IF_NORMAL_REACTION}) { }
 
-    // A mercenary is hostile to every player in a PvP ruleset, its own faction included, and to other mercenaries.
     bool IfNormalReaction(Unit const* unit, Unit const* target, ReputationRank& reaction) override
     {
         if (!unit || !target)
@@ -110,9 +106,8 @@ public:
 
     void OnPlayerLogin(Player* player) override { LearnSpells(player); }
 
-    void OnPlayerLevelChanged(Player* player, uint8 /*oldLevel*/) override { LearnSpells(player); }
+    void OnPlayerLevelChanged(Player* player, uint8) override { LearnSpells(player); }
 
-    // Killing a player of one's own faction marks the mercenary as a criminal for eight minutes.
     void OnPlayerPVPKill(Player* killer, Player* killed) override
     {
         if (!killer || !killed || !killer->HasAura(SPELL_MERCENARY) || killer->GetTeamId() != killed->GetTeamId())
@@ -132,7 +127,6 @@ private:
         if (!player || player->GetLevel() < MERCENARY_MIN_LEVEL)
             return;
 
-        // CastSpellByID from the spellbook requires the ability to be known on the server.
         uint32 const loyalty = player->GetTeamId() == TEAM_ALLIANCE ? SPELL_FOR_THE_ALLIANCE : SPELL_FOR_THE_HORDE;
         for (uint32 id : {uint32(SPELL_MERCENARY), loyalty})
             if (!player->HasSpell(id))

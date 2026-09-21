@@ -30,6 +30,6 @@
     { "action": "assert", "actor": "c15", "metric": "knows_spell", "spell": 800162, "equals": 1, "label": "800162 was learned" },
     { "action": "assert", "actor": "c15", "metric": "spellbook_learned_alerts", "spell": 800162, "equals": 1, "label": "800162 announced itself" },
 
-    { "action": "assert", "actor": "c15", "metric": "spellbook_misannounced_buys", "equals": 0, "label": "no purchase went unannounced" }
+    { "action": "assert", "actor": "c15", "metric": "spellbook_misannounced_buys", "equals": 0, "label": "no purchase was announced more than once" }
   ]
 }

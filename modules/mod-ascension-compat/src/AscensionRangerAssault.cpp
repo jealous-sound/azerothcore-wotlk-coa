@@ -32,7 +32,7 @@ class spell_ascension_ranger_assault : public SpellScript
         return caster && caster->IsPlayer() && caster->ToPlayer()->getClass() == CLASS_RANGER;
     }
 
-    void ScaleWeaponDamage(SpellEffIndex /*effIndex*/)
+    void ScaleWeaponDamage(SpellEffIndex)
     {
         if (_scaled)
             return;
@@ -43,10 +43,6 @@ class spell_ascension_ranger_assault : public SpellScript
         if (!weapon || weapon->GetTemplate()->SubClass != ITEM_SUBCLASS_WEAPON_DAGGER)
             return;
 
-        // Change only the weapon component, before native per-effect modifiers
-        // and target damage calculations. EffectWeaponDmg recalculates this
-        // value, so SetEffectValue at LAUNCH_TARGET would have no effect.
-        // The separate flat damage and explicit AP coefficient stay unscaled.
         int64 const percent = (int64(GetSpellValue()->EffectBasePoints[EFFECT_2]) + 1) * 7 / 4;
         GetSpell()->SetSpellValue(SPELLVALUE_BASE_POINT2, int32(std::clamp<int64>(percent, 0, std::numeric_limits<int32>::max())));
     }

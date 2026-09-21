@@ -50,7 +50,6 @@ class spell_ascension_barbarian_ability : public SpellScript
         _line.clear();
         for (WorldObject* object : targets)
             _line.push_back(object->GetGUID());
-        // Snapshot the landing point; later target movement cannot move the explosion.
         float range = GetSpellInfo()->Effects[EFFECT_0].CalcRadius(caster);
         _endpoint = targets.empty() ? caster->GetNearPosition(range, 0.0f) : targets.back()->GetPosition();
         _hasEndpoint = true;
@@ -63,8 +62,6 @@ class spell_ascension_barbarian_ability : public SpellScript
         auto itr = std::find(_line.begin(), _line.end(), GetHitUnit()->GetGUID());
         if (itr != _line.end())
         {
-            // Missed or immune targets do not weaken the spear. Count the native
-            // successful hit selections in distance order, not GUID dispatch order.
             auto const* hits = GetSpell()->GetUniqueTargetInfo();
             auto preceding = std::count_if(_line.begin(), itr, [&](ObjectGuid guid)
             {
@@ -73,7 +70,6 @@ class spell_ascension_barbarian_ability : public SpellScript
                     return hit.targetGUID == guid && hit.missCondition == SPELL_MISS_NONE && (hit.effectMask & 5);
                 });
             });
-            // Local reconstruction: lose 10% per intervening hit, with a 10% floor.
             float multiplier = std::max(0.1f, 1.0f - 0.1f * float(preceding));
             SetHitDamage(int32(GetHitDamage() * multiplier));
         }
@@ -89,8 +85,6 @@ class spell_ascension_barbarian_ability : public SpellScript
         uint32 id = GetSpellInfo()->Id;
         if (Whirl(id))
         {
-            // The cast resolves its target by GUID on the caster's map: skip a target it
-            // would not find there anymore, or the spell asserts.
             if (player->GetWeaponForAttack(OFF_ATTACK, true) && ObjectAccessor::GetUnit(*player, target->GetGUID()))
             {
                 SpellCastTargets targets;
@@ -98,8 +92,6 @@ class spell_ascension_barbarian_ability : public SpellScript
                 CustomSpellValues values;
                 values.AddSpellMod(SPELLVALUE_MELEE_ATTACK_TYPE, OFF_ATTACK);
                 values.AddSpellMod(SPELLVALUE_BASE_POINT0, GetSpellInfo()->Effects[EFFECT_0].CalcValue(player));
-                // The flat rank term is applied once, by the main hand. The authored
-                // off-hand helper's old extra +20 and repeated fixed bonus are removed.
                 values.AddSpellMod(SPELLVALUE_BASE_POINT1, 0);
                 player->CastSpell(targets, sSpellMgr->GetSpellInfo(805232), &values, TRIGGERED_FULL_MASK);
             }

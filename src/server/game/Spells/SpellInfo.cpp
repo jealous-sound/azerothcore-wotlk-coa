@@ -1250,6 +1250,11 @@ bool SpellInfo::ComputeIsStackableWithRanks() const
     if (SpellName[0] && std::string_view(SpellName[0]).starts_with(RunicTattoos))
         return false;
 
+    // Pyromancer Ascensions (Executus, Ragnaros) are stance-bar spells whose ranks replace each other.
+    constexpr std::string_view Ascensions = "Ascension of ";
+    if (SpellName[0] && std::string_view(SpellName[0]).starts_with(Ascensions))
+        return false;
+
     if (IsPassive())
         return false;
     if (PowerType != POWER_MANA && PowerType != POWER_HEALTH)
@@ -1473,8 +1478,11 @@ bool SpellInfo::IsAffectedBySpellMod(SpellModifier const* mod) const
         mod->spellId == 705780 && mod->op == SPELLMOD_JUMP_TARGETS && mod->type == SPELLMOD_FLAT &&
         mod->mask == flag96(128, 0, 0);
 
+    bool const bloodFueledAbsorb = Id == 560361 && mod->spellId == 705416 && mod->op == SPELLMOD_EFFECT1 &&
+        mod->type == SPELLMOD_PCT;
+
     // xinef: dont check duration mod
-    if (mod->op != SPELLMOD_DURATION && !bandageGunTargets)
+    if (mod->op != SPELLMOD_DURATION && !bandageGunTargets && !bloodFueledAbsorb)
         if (!IsAffectedBySpellMods())
             return false;
 

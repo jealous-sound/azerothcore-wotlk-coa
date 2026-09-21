@@ -65,18 +65,15 @@ class aura_ascension_templar_lifecycle : public AuraScript
             amount = player->HasAura(705287) ? int32(player->GetStat(STAT_AGILITY) + player->GetStat(STAT_STAMINA)) : 0;
         if (id == 705299 && index == 0)
             amount -= int32(.1f * player->GetStat(STAT_STAMINA));
-        // Light's Chosen: the triggered helper carries a flat point, so forward the talent's percentage of Intellect.
         if (id == 301369 && index == 0)
             if (AuraEffect const* source = player->GetAuraEffect(301310, EFFECT_2))
                 amount = int32(source->GetAmount() * player->GetStat(STAT_INTELLECT) / 100.f);
         if (id == 803237)
-            recalculate = false; // amount is the remaining, persisted debt
+            recalculate = false;
         if (id == 801205 && index == 1 && player->HasAura(807004))
             GetAura()->SetScriptValue(807004, 1);
         if (Named(GetSpellInfo(), 805409) && index == 0)
         {
-            // Tempest ticks after the Oaths are consumed, so it keeps their Breaker bonus: each Oath's third effect,
-            // 30% per stack including Radiant Blade and Combat Training.
             int32 bonus = 0;
             for (uint32 oath : {804904, 804922, 804924, 805332})
                 if (AuraEffect const* breaker = player->GetAuraEffect(oath, EFFECT_2))
@@ -105,7 +102,7 @@ class aura_ascension_templar_lifecycle : public AuraScript
         }
         if (id == 527272)
         {
-            GetTarget()->Mount(14584); // native classic Charger, no external model dependency
+            GetTarget()->Mount(14584);
             return;
         }
         if (id == 300513)
@@ -187,8 +184,6 @@ class aura_ascension_templar_lifecycle : public AuraScript
                 GetAura()->Remove();
                 return;
             }
-            // Allies provide the center; the Templar remains the damage/scaling
-            // owner.
             for (Unit* enemy : Nearby(GetTarget(), 5.0f))
                 if (player->IsValidAttackTarget(enemy))
                 {
@@ -218,7 +213,7 @@ class aura_ascension_templar_lifecycle : public AuraScript
         if (id == 706583 && effect->GetAmount() <= 0 &&
             GetTargetApplication()->GetRemoveMode() == AURA_REMOVE_BY_ENEMY_SPELL &&
             player->IsAlive() && player->HasAura(804930))
-            Cast(player, player, 801546); // Armor of Faith: only an exhausted Staffguard shield.
+            Cast(player, player, 801546);
         if (id == 704576 && !State(player).oath)
             ClearOaths(player);
         if (id == 801482 && GetTargetApplication()->GetRemoveMode() == AURA_REMOVE_BY_EXPIRE && player->IsAlive())
@@ -241,7 +236,7 @@ class aura_ascension_templar_lifecycle : public AuraScript
                                                 AURA_EFFECT_HANDLE_REAL);
     }
 };
-} // namespace
+}
 void AddSC_AscensionTemplarAuras()
 {
     RegisterSpellScript(aura_ascension_templar_stagger);

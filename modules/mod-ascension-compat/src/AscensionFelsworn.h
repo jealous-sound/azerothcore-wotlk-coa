@@ -70,5 +70,5 @@ void SpreadCripple(Player* player, Unit* target);
 void RefreshUnphased(Player* player);
 void Summon(Player* player, Position const& position, bool extended);
 void ApplyContracts(SpellInfo* info);
-} // namespace AscensionFelsworn
+}
 #endif

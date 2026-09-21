@@ -18,7 +18,6 @@ public:
         if (info->Id == RideTheWaveSpeed && info->SpellFamilyName == 37 &&
             info->Effects[EFFECT_0].IsAura(SPELL_AURA_MOD_INCREASE_SPEED))
         {
-            // The heal proc already selects an affected ally. Do not expand it into a second area cast.
             info->Effects[EFFECT_0].TargetA = SpellImplicitTargetInfo(TARGET_UNIT_TARGET_ALLY);
             info->Effects[EFFECT_0].TargetB = SpellImplicitTargetInfo(0);
         }

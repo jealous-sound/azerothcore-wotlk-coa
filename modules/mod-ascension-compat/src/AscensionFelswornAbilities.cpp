@@ -76,7 +76,6 @@ class felsworn_casts : public AllSpellScript
     }
     void OnSpellBeforeEffects(Spell* spell, Unit* caster, SpellInfo const* info) override
     {
-        // Native reflection processing keeps the original spell, rank, crit and combat log.
         if (!Triggered(spell) && !info->IsPositive() && info->DmgClass == SPELL_DAMAGE_CLASS_MAGIC &&
             !info->HasAttribute(SPELL_ATTR1_NO_REFLECTION))
             if (Aura* bane = caster->GetAura(525001); bane && Owner(bane->GetCaster()))
@@ -195,7 +194,7 @@ class felsworn_casts : public AllSpellScript
                 {
                     uint64 count = std::min<uint64>(30, aura->GetScriptValue(712483) + 1);
                     aura->SetScriptValue(712483, count);
-                    aura->SetStackAmount(std::max<uint64>(1, count)); // don't refresh its deadline
+                    aura->SetStackAmount(std::max<uint64>(1, count));
                 }
         Player* player = Owner(caster);
         if (!player || info->SpellFamilyName != 20 || Triggered(spell))
@@ -326,7 +325,7 @@ class felsworn_casts : public AllSpellScript
         if (Twin(info) && Direct(info))
         {
             if (crit && player->HasAura(801892))
-                Gain(player, 1); // the wrapper has no damage; the critical helper owns this event
+                Gain(player, 1);
             if (Aura* aura = player->GetAura(807163))
             {
                 Gain(player, 1);
@@ -431,7 +430,7 @@ class spell_ascension_felsworn_ability : public SpellScript
             OnEffectHitTarget += SpellEffectFn(spell_ascension_felsworn_ability::Hit, EFFECT_0, SPELL_EFFECT_DUMMY);
     }
 };
-} // namespace
+}
 void AddSC_AscensionFelswornAbilities()
 {
     new felsworn_casts();

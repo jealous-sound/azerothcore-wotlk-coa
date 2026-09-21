@@ -54,8 +54,6 @@ class spell_ascension_runemaster_brand : public SpellScript
         if (!target || target == caster || caster->IsFriendlyTo(target) || !_marked.insert(target->GetGUID()).second)
             return;
 
-        // Reapplication uses native aura charge and duration refresh. Leyborn's
-        // existing CHARGES modifier supplies two extra uses to this one-use mark.
         caster->CastSpell(target, SPELL_RUNIC_BRAND_MARK, TRIGGERED_FULL_MASK);
     }
 
@@ -95,16 +93,13 @@ class spell_ascension_runemaster_brand_runeblade : public SpellScript
         PreventHitDefaultEffect(effIndex);
     }
 
-    void SpendMarkOnSuccessfulHit(SpellEffIndex /*effIndex*/)
+    void SpendMarkOnSuccessfulHit(SpellEffIndex)
     {
         Unit* caster = GetCaster();
         Unit* target = GetHitUnit();
         if (!target || target == caster || caster->IsFriendlyTo(target) || !_processed.insert(target->GetGUID()).second)
             return;
 
-        // Instant mixed-effect spells can reach HIT_TARGET before the native
-        // damage-immunity check. Match its caster/piercing/friendly semantics;
-        // mark ownership still belongs to this spell's immediate caster.
         Unit* damageCaster = GetOriginalCaster();
         if (target->IsImmunedToDamage(damageCaster ? damageCaster : caster, GetSpellInfo()))
             return;
@@ -113,9 +108,6 @@ class spell_ascension_runemaster_brand_runeblade : public SpellScript
         if (!mark || !mark->IsUsingCharges() || !mark->GetCharges())
             return;
 
-        // HIT_TARGET is after miss and effect-immunity validation, but before
-        // health damage can remove the mark on death. A fully absorbed hit is
-        // still a successful Runeblade. Spend now; explode after native damage.
         mark->ModCharges(-1);
         _pending.insert(target->GetGUID());
     }
@@ -126,8 +118,6 @@ class spell_ascension_runemaster_brand_runeblade : public SpellScript
         if (!target || !_pending.erase(target->GetGUID()))
             return;
 
-        // A killing hit still explodes at the impact position. Explicit ground
-        // targeting does not require the now-dead primary target to be alive.
         GetCaster()->CastSpell(target->GetPositionX(), target->GetPositionY(), target->GetPositionZ(),
             SPELL_RUNIC_EXPLOSION, true);
     }
@@ -165,8 +155,6 @@ void ApplyAscensionRunemasterBrandContracts(SpellInfo* info)
         info->SchoolMask == SPELL_SCHOOL_MASK_FIRE && info->SpellFamilyFlags == flag96(0, 32, 0) &&
         !info->Effects[EFFECT_1].Effect && !info->Effects[EFFECT_2].Effect)
     {
-        // The current visible mark promises Spellfire; the hidden helper still
-        // carries its older Fire school and description.
         info->SchoolMask = SPELL_SCHOOL_MASK_FIRE | SPELL_SCHOOL_MASK_ARCANE;
         effect.TargetA = SpellImplicitTargetInfo(TARGET_DEST_DEST);
         info->_InitializeExplicitTargetMask();

@@ -1,4 +1,3 @@
-// Generated native checkpoint flags; difficulty 0 and 2.
 #ifndef ASCENSION_MANASTORM_CHECKPOINTS_H
 #define ASCENSION_MANASTORM_CHECKPOINTS_H
 #include <array>

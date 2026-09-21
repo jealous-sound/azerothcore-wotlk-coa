@@ -60,7 +60,6 @@ public:
         if (aura->GetId() == Clasp && caster && caster->IsPlayer() && caster->getClass() == CLASS_CHRONOMANCER &&
             caster->IsAlive() && caster->IsInWorld() && caster->HasAura(EndOfTime) &&
             caster->GetMap() == target->GetMap() && caster->InSamePhase(target) && caster->IsValidAttackTarget(target))
-            // The release already triggers the Spike. Casting both would double its damage.
             caster->CastSpell(target, EndOfTimeRelease, true);
     }
 };
@@ -194,7 +193,6 @@ class aura_ascension_ripple_resilience : public AuraScript
 
     void Store(AuraEffect*, DamageInfo&, uint32& amount)
     {
-        // AFTER_ABSORB receives the actual deferred amount, after bypass and caps.
         Unit* target = GetTarget();
         if (amount)
             if (Aura* debt = target->GetAura(StaggerDebt, target->GetGUID()))
@@ -203,7 +201,7 @@ class aura_ascension_ripple_resilience : public AuraScript
                 bank->SetAmount(int32(std::min<uint64>(uint64(std::max(0, bank->GetAmount())) + amount,
                     std::numeric_limits<int32>::max())));
                 debt->GetEffect(EFFECT_2)->SetAmount(5);
-                debt->SetDuration(debt->GetMaxDuration()); // Preserve the already scheduled periodic tick.
+                debt->SetDuration(debt->GetMaxDuration());
             }
     }
 
@@ -236,8 +234,6 @@ class aura_ascension_ripple_debt : public AuraScript
         counter->SetAmount(int32(ticks - 1));
         if (payment)
         {
-            // This debt already passed mitigation. Do not run armor, absorption
-            // or resilience again, and never qualify it as a new direct hit.
             uint32 dealt = Unit::DealDamage(target, target, payment, nullptr, DOT, SPELL_SCHOOL_MASK_NORMAL,
                 GetSpellInfo(), false);
             target->SendSpellNonMeleeDamageLog(target, GetSpellInfo(), dealt, SPELL_SCHOOL_MASK_NORMAL,
@@ -291,7 +287,7 @@ public:
         if (info->SpellFamilyName != 28)
             return;
         if (info->Id == Clasp)
-            info->Effects[EFFECT_2].Effect = 0; // The old four-second periodic trigger ignored talent and removal mode.
+            info->Effects[EFFECT_2].Effect = 0;
         if (info->Id == Protection)
         {
             SpellEffectInfo& cleanup = info->Effects[EFFECT_1];

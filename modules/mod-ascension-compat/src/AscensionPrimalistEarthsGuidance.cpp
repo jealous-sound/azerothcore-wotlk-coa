@@ -39,7 +39,6 @@ class aura_ascension_earths_guidance : public AuraScript
         int32 delta = sSpellMgr->GetSpellInfo(EarthsGuidanceCooldown)->Effects[EFFECT_0].CalcValue(player);
         if (delta >= 0)
             return;
-        // The old three-slot helper predates Wave, Tremor and Grasp. Include every active Seismic rank.
         std::vector<uint32> cooldowns;
         for (auto const& [id, cooldown] : player->GetSpellCooldownMap())
             if (SpellInfo const* info = sSpellMgr->GetSpellInfo(id); info && info->SpellFamilyName == 37 &&

@@ -1,4 +1,4 @@
-"""Regress Manuscription's cast lifecycle and native Chapter data."""
+CLI_DESCRIPTION = """Regress Manuscription's cast lifecycle and native Chapter data."""
 import argparse
 import importlib.util
 from pathlib import Path
@@ -140,7 +140,7 @@ int main()
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument("--workspace-tools", type=Path, default=ROOT.parent / "tools")
     parser.add_argument("--spell-dbc", type=Path)
     args = parser.parse_args()

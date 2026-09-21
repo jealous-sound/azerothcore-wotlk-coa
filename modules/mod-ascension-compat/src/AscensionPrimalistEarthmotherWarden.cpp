@@ -18,7 +18,7 @@ public:
         if (info->Id == EarthmotherWarden && info->SpellFamilyName == 37 &&
             info->Effects[EFFECT_0].IsAura(SPELL_AURA_ADD_FLAT_MODIFIER) &&
             info->Effects[EFFECT_0].MiscValue == SPELLMOD_COOLDOWN)
-            info->Effects[EFFECT_0].SpellClassMask[0] |= 64; // Include Seismic Tremor with the other Seismic spells.
+            info->Effects[EFFECT_0].SpellClassMask[0] |= 64;
     }
 };
 }

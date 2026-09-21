@@ -24,7 +24,7 @@ public:
     GuardianLanding(Player* owner, Position const& destination) : _owner(owner->GetGUID()),
         _map(owner->GetMapId()), _instance(owner->GetInstanceId()), _destination(destination) { }
 
-    bool Execute(uint64 time, uint32 /*diff*/) override
+    bool Execute(uint64 time, uint32) override
     {
         Player* player = ObjectAccessor::FindPlayer(_owner);
         if (!player || !player->IsAlive() || !player->IsInWorld() || player->GetMapId() != _map ||
@@ -194,14 +194,14 @@ class aura_ascension_guardian_advance : public AuraScript
 {
     PrepareAuraScript(aura_ascension_guardian_advance);
 
-    void Apply(AuraEffect const* /*effect*/, AuraEffectHandleModes /*mode*/)
+    void Apply(AuraEffect const*, AuraEffectHandleModes)
     {
         GetTarget()->ApplySpellImmune(GetId(), IMMUNITY_MECHANIC, MECHANIC_ROOT, true);
         GetTarget()->ApplySpellImmune(GetId(), IMMUNITY_MECHANIC, MECHANIC_SNARE, true);
         GetTarget()->RemoveAurasWithMechanic((1 << MECHANIC_ROOT) | (1 << MECHANIC_SNARE), AURA_REMOVE_BY_DEFAULT);
     }
 
-    void Removed(AuraEffect const* effect, AuraEffectHandleModes /*mode*/)
+    void Removed(AuraEffect const* effect, AuraEffectHandleModes)
     {
         Unit* owner = GetTarget();
         owner->ApplySpellImmune(GetId(), IMMUNITY_MECHANIC, MECHANIC_ROOT, false);
@@ -227,14 +227,12 @@ class aura_ascension_guardian_hold_the_line : public AuraScript
     void SetExtraImmunities(bool apply)
     {
         Unit* target = GetTarget();
-        // The active record already covers grip, disorient and ordinary knockback.
-        // Its unused SLS record contains these two missing incapacitate mechanics.
         target->ApplySpellImmune(GetId(), IMMUNITY_MECHANIC, MECHANIC_KNOCKOUT, apply);
         target->ApplySpellImmune(GetId(), IMMUNITY_MECHANIC, MECHANIC_SAPPED, apply);
         target->ApplySpellImmune(GetId(), IMMUNITY_EFFECT, SPELL_EFFECT_KNOCK_BACK_DEST, apply);
     }
 
-    void Apply(AuraEffect const* /*effect*/, AuraEffectHandleModes /*mode*/)
+    void Apply(AuraEffect const*, AuraEffectHandleModes)
     {
         SetExtraImmunities(true);
         if (GetSpellInfo()->HasAttribute(SPELL_ATTR1_IMMUNITY_PURGES_EFFECT))
@@ -242,11 +240,9 @@ class aura_ascension_guardian_hold_the_line : public AuraScript
                 AURA_REMOVE_BY_DEFAULT, GetId());
     }
 
-    void Remove(AuraEffect const* /*effect*/, AuraEffectHandleModes /*mode*/)
+    void Remove(AuraEffect const*, AuraEffectHandleModes)
     {
         Unit* target = GetTarget();
-        // Another Guardian may still be protecting this recipient. This effect has
-        // already been unregistered, so only remaining applications can retain immunity.
         auto const& effects = target->GetAuraEffectsByType(SPELL_AURA_EFFECT_IMMUNITY);
         bool protectedByAnother = std::any_of(effects.begin(), effects.end(), [this, target](AuraEffect const* other)
         {

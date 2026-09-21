@@ -46,8 +46,6 @@ void ApplyAscensionReaperDeathwindContracts(SpellInfo* spellInfo)
 
         if (spellInfo->SpellLevel == rank.SpellLevel && spellInfo->BaseLevel == rank.SpellLevel &&
             spellInfo->MaxLevel == rank.MaxLevel)
-            // Keep native rank levels and dice. The current visible formula
-            // explicitly promises 4% SP; legacy level penalties must not reduce it.
             spellInfo->IgnoreSpellLevelPenalty = true;
         return;
     }

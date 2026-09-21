@@ -1,4 +1,3 @@
-// The runner inserts production delivery, item queue and scaling functions into this fixture.
 #include "AscensionManastormRules.h"
 #include <array>
 #include <cassert>

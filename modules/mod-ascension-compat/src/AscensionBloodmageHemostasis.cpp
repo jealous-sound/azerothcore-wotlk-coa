@@ -48,7 +48,6 @@ class aura_ascension_hemostasis : public AuraScript
         if (Aura* window = player->AddAura(SPELL_HEMOSTASIS_READY, player))
         {
             window->SetScriptValue(SPELL_HEMOSTASIS, GetTarget()->GetGUID().GetRawValue());
-            // Preserve any independent permanent or other-spec ownership of the helper.
             if (player->GetSpellMap().find(SPELL_BLOOD_BURST) == player->GetSpellMap().end())
                 player->learnSpell(SPELL_BLOOD_BURST, true);
             player->SetTemporarySpellReplacement(SPELL_HEMOSTASIS, SPELL_BLOOD_BURST);
@@ -107,8 +106,6 @@ public:
         Unit* victim = HemostasisTarget(HemostasisCaster(spell->GetCaster()));
         if (!victim)
             return false;
-        // InitExplicitTargets already ran. Retarget before native range/LOS checks,
-        // even if the player selected another unit or cleared their selection.
         spell->m_targets.SetUnitTarget(victim);
         return true;
     }
@@ -130,7 +127,6 @@ class spell_ascension_blood_burst : public SpellScript
     void Release(SpellEffIndex index)
     {
         PreventHitDefaultEffect(index);
-        // Native effect 164 removes every caster's copy of the named aura.
         if (Unit* victim = GetHitUnit())
             victim->RemoveAurasDueToSpell(SPELL_HEMOSTASIS, GetCaster()->GetGUID());
     }
@@ -150,7 +146,6 @@ public:
     {
         if (info && info->Id == SPELL_HEMOSTASIS_READY && info->SpellFamilyName == 26)
         {
-            // The four-second replacement and its target GUID are transient.
             info->AttributesCu |= SPELL_ATTR0_CU_AURA_CANNOT_BE_SAVED;
             info->AttributesCu &= ~SPELL_ATTR0_CU_FORCE_AURA_SAVING;
         }

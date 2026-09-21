@@ -41,10 +41,17 @@ void PhoenixCommand(Player* player, Unit* target, bool dive)
             phoenix->AI()->DoAction(dive ? 1 : 2);
         }
 }
-} // namespace AscensionPyromancer
+}
 namespace
 {
 using namespace AscensionPyromancer;
+Milliseconds PhoenixPeriod(Player* player)
+{
+    SpellInfo const* info = sSpellMgr->GetSpellInfo(712290);
+    int32 period = info ? info->Effects[EFFECT_0].Amplitude : 5000;
+    player->ApplySpellMod(712290, SPELLMOD_ACTIVATION_TIME, period);
+    return Milliseconds(std::max(period, 1));
+}
 struct npc_ascension_pyromancer_summon : public ScriptedAI
 {
     explicit npc_ascension_pyromancer_summon(Creature* creature) : ScriptedAI(creature) {}
@@ -79,7 +86,7 @@ struct npc_ascension_pyromancer_summon : public ScriptedAI
         }
         if (me->GetEntry() == 50359)
             me->CastSpell(me, 704279, true);
-        timers.ScheduleEvent(1, me->GetEntry() == 50258 ? 5000ms : 200ms);
+        timers.ScheduleEvent(1, me->GetEntry() == 50258 ? PhoenixPeriod(player) : 200ms);
     }
     void SetGUID(ObjectGuid const& guid, int32 = 0) override { command = guid; }
     void DoAction(int32 action) override
@@ -182,10 +189,17 @@ struct npc_ascension_pyromancer_summon : public ScriptedAI
                 }
             occupants.swap(current);
         }
-        timers.ScheduleEvent(1, me->GetEntry() == 52258 ? 200ms : dormant ? 2000ms : 5000ms);
+        Milliseconds next = 5000ms;
+        if (me->GetEntry() == 52258)
+            next = 200ms;
+        else if (dormant)
+            next = 2000ms;
+        else if (me->GetEntry() == 50258)
+            next = PhoenixPeriod(player);
+        timers.ScheduleEvent(1, next);
     }
 };
-} // namespace
+}
 void AddSC_AscensionPyromancerSummons()
 {
     RegisterCreatureAI(npc_ascension_pyromancer_summon);

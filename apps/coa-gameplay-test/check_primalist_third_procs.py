@@ -1,4 +1,3 @@
-"""Independent checks for Primalist copied amounts and repeated native proc trials."""
 import json
 import math
 import sys
@@ -45,7 +44,6 @@ def main():
             p_value = check_probability(successes, 100, .1)
             print(f'{phase}: {successes}/100 procs, exact binomial p={p_value:.5f}')
         assert values['magic_procs'] == 0
-        # Player baseline aura 552011 reduces each 44-point tick by 10% before logging.
         assert values['six_tick_damage'] == 6 * (44 * 90 // 100), values['six_tick_damage']
         assert all(values['break_initial_'+str(i)] == 1 for i in range(30))
         breaks = sum(values['break_after_'+str(i)] == 0 for i in range(30))
@@ -56,8 +54,6 @@ def main():
         assert all(value in (0, 3) for value in trials), trials
         successes = sum(value == 3 for value in trials)
         p_value = check_probability(successes, 100, .2)
-        # The Mountain fixture keeps the authored class -15% normal-monster tuning.
-        # Check the tooltip coefficients after that independent target modifier.
         for key, expected in [('spell_power_gain', 72 * .325 * .85),
                               ('nature_power_gain', 66 * .325 * .85),
                               ('attack_power_gain', 100 * .278 * .85)]:

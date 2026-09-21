@@ -24,9 +24,6 @@ struct Destination
     uint8 race;
 };
 
-// One entry per distinct starting area; the race is only the `playercreateinfo` key the coordinates are
-// read from. Gnome and Troll are deliberately absent: they share the Dun Morogh and Durotar starts with
-// Dwarf and Orc, so listing them would offer the same two spots twice.
 constexpr std::array<Destination, 8> Destinations =
 {{
     {"Elwynn Forest", TEAM_ALLIANCE, RACE_HUMAN},
@@ -75,19 +72,12 @@ class spell_ascension_travel_permit : public SpellScript
             if (Destinations[i].team == player->GetTeamId() &&
                 sObjectMgr->GetPlayerInfo(Destinations[i].race, player->getClass()))
                 AddGossipItemFor(player, GOSSIP_ICON_TAXI, Destinations[i].name, SenderTravelPermit, i);
-        // The native item cast has already passed its cooldown checks and started the five-minute cooldown.
         SendGossipMenuFor(player, DEFAULT_GOSSIP_MESSAGE, item->GetGUID());
     }
 
     void Register() override
     {
         OnCheckCast += SpellCheckCastFn(spell_ascension_travel_permit::CheckCast);
-        // AfterCast rather than an effect handler. 1001088 is an Ascension client spell: its effect
-        // layout and implicit targets live in the client DBC set, so nothing in this repository can
-        // confirm which effect index or target a handler would have to be bound to. AfterCast needs
-        // none of that -- Spell::cast() calls it once for every cast that got through, whatever the
-        // effects are, and after they have all been handled, so the menu is the last thing sent. The
-        // gates are unchanged: a cast rejected by CheckCast or by the item cooldown never reaches it.
         AfterCast += SpellCastFn(spell_ascension_travel_permit::OpenMenu);
     }
 };

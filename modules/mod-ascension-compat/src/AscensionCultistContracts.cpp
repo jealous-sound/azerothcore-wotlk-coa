@@ -58,21 +58,20 @@ void ApplyContracts(SpellInfo* info)
         }
     if (id == 570263 || id == 500748 || id == 301983 || id == 520450 || id == 520497)
     {
-        // These include a fresh authored healing amount and may critically heal once.
         info->AttributesEx2 &= ~SPELL_ATTR2_CANT_CRIT;
         info->AscensionInheritsResolvedAmount = id == 520450 || id == 520497;
     }
     if (id == 807083)
-        info->Effects[1].Effect = 0; // Rift zone is created once by the parent cast.
+        info->Effects[1].Effect = 0;
     if (id == 301983 || id == 806175)
         info->Effects[1].Effect = 0;
     if (id == 502133)
     {
-        dummy(0); // The owned copy adds the second target after a successful primary hit.
+        dummy(0);
         info->Effects[1].ApplyAuraName = SPELL_AURA_ADD_PCT_MODIFIER;
     }
     if (id == 705106 || id == 705107)
-        dummy(0); // Active Shock helpers are selected explicitly, without the obsolete masks.
+        dummy(0);
     if (id == 802046)
         info->SchoolMask = SPELL_SCHOOL_MASK_NORMAL;
     if (id == 680556)
@@ -118,17 +117,17 @@ void ApplyContracts(SpellInfo* info)
         aura(2, SPELL_AURA_MOD_CRIT_DAMAGE_BONUS, 0, SPELL_SCHOOL_MASK_ALL, TARGET_UNIT_CASTER);
     if (id == 520326)
     {
-        dummy(2); // One scoped damage/healing-done multiplier, not native healing received.
+        dummy(2);
         info->Effects[0].MiscValue = 250042;
     }
     if (id == 681088)
     {
         dummy(0);
-        dummy(2); // Base-only bonus precedes the separate stat coefficient below.
+        dummy(2);
     }
     for (uint32 infusion : CultistInfusions)
         if (id == infusion)
-            info->AuraInterruptFlags = 0; // Consume in the actual-damage proc, after healing.
+            info->AuraInterruptFlags = 0;
     if (Named(info, 500714))
         info->Effects[1].Effect = SPELL_EFFECT_DUMMY;
     if (id == BlackBlood)
@@ -137,7 +136,7 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[0].TargetB = SpellImplicitTargetInfo();
     }
     if (id == 802048)
-        dummy(0); // Owned tentacles only, evaluated by the coefficient path.
+        dummy(0);
     if (id == 574147)
     {
         aura(0, SPELL_AURA_MOD_HEALING_DONE, 0, SPELL_SCHOOL_MASK_ALL, TARGET_UNIT_CASTER);
@@ -176,7 +175,10 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[1].Effect = 0;
     }
     if (id == 520333)
-        info->Effects[1].Effect = 0; // Eyes of Eternity is gated and centered on the healed ally.
+    {
+        info->Effects[EFFECT_1].Effect = 0;
+        info->Effects[EFFECT_2].Effect = 0;
+    }
     if (id == 680576)
     {
         info->Effects[1].ApplyAuraName = SPELL_AURA_MOD_DECREASE_SPEED;
@@ -205,11 +207,11 @@ void ApplyContracts(SpellInfo* info)
     if (id == 807124)
         info->Effects[1].ApplyAuraName = SPELL_AURA_PERIODIC_DUMMY;
     if (id == 806769)
-        info->Effects[0].Effect = 0; // Active Herald lifetime owns the temporary form and immunities.
+        info->Effects[0].Effect = 0;
     if (id == 502133 || id == 301186 || id == 561288 || id == 806250 || id == 301259)
         info->ProcFlags = info->ProcCharges = 0;
     if (id == 301259)
-        dummy(0); // Consumed once, after both Split Mind shields have used the same snapshot.
+        dummy(0);
     if (id == 520388)
         info->ProcCharges = 5;
     if (id == 600327)
@@ -247,7 +249,7 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[1].Effect = SPELL_EFFECT_DUMMY;
     info->_InitializeExplicitTargetMask();
 }
-} // namespace AscensionCultist
+}
 namespace
 {
 using namespace AscensionCultist;
@@ -265,7 +267,6 @@ public:
             return;
         if (info->Id == CthunDamage && index == EFFECT_0 && caster->GetEntry() == CthunTentacle)
         {
-            // The active summon references SpellDescriptionVariables row 182 for the base damage.
             double const level = player->GetLevel();
             value *= float(0.0267291844060354 + 0.0048541098014737 * level +
                 0.0001859597762293 * level * level);
@@ -303,7 +304,7 @@ public:
         if (!healing && Any(info, {808043, 808044, 808045}) && player->HasAura(705107))
             factor *= 1 + Amount(705107) / 100.0f;
         if (!healing && caster != player && State(player).summons.count(caster->GetGUID()) && player->HasAura(802048))
-            (void)target; // Summon bonus is already part of its owner-stat snapshot above.
+            (void)target;
         return factor;
     }
     void ModifySpellDamageTaken(Unit* target, Unit* caster, int32& damage, SpellInfo const* info) override
@@ -313,7 +314,7 @@ public:
     void ModifyPeriodicDamageAurasTick(Unit* target, Unit* caster, uint32& damage, SpellInfo const* info) override
     {
         if (info && info->HasAura(SPELL_AURA_PERIODIC_HEAL))
-            return; // Native HoTs visit both this hook and ModifyHealReceived.
+            return;
         damage = uint32(damage * Factor(target, caster, info, false));
     }
     void ModifyHealReceived(Unit* target, Unit* caster, uint32& amount, SpellInfo const* info) override

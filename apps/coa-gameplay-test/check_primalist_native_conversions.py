@@ -1,4 +1,3 @@
-"""Check native Primalist duration and rating/stat conversion results."""
 import json
 import sys
 from pathlib import Path

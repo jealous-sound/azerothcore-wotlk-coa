@@ -1,4 +1,4 @@
-"""Test #88's Templar callbacks using the existing workspace completion fixture.
+CLI_DESCRIPTION = """Test #88's Templar callbacks using the existing workspace completion fixture.
 
 All generated test files stay in a temporary directory. Historical completion
 reports and their hash checks are not rewritten or used as acceptance evidence.
@@ -86,7 +86,7 @@ int main()
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument("--workspace-tools", type=Path, default=ROOT.parent / "tools")
     parser.add_argument("--source-ref", help="Use older Templar source as a negative control")
     parser.add_argument("--spell-dbc", type=Path)

@@ -25,7 +25,6 @@ public:
     {
         if (info->Id == SmashArea && info->SpellFamilyName == 37)
         {
-            // The copied helper selects a destination but never selects the enemies around it.
             info->Effects[EFFECT_0].TargetA = SpellImplicitTargetInfo(TARGET_DEST_DEST);
             info->Effects[EFFECT_0].TargetB = SpellImplicitTargetInfo(TARGET_UNIT_DEST_AREA_ENEMY);
         }
@@ -48,16 +47,12 @@ public:
             spell->GetScriptValue(Pulverize))
             return;
 
-        // Only the primary critical strike repeats the area portion. Secondary targets and the
-        // helper cannot recurse. Carry the cast rank's area base, leaving its 35% AP and each
-        // victim's mitigation to the normal bonus/damage path.
         spell->SetScriptValue(Pulverize, 1);
         int32 base = spell->CalculateSpellDamage(EFFECT_1, target);
         CustomSpellValues values;
         values.AddSpellMod(SPELLVALUE_BASE_POINT0, base);
         SpellCastTargets targets;
         targets.SetDst(target->GetPosition());
-        // A killing primary hit must still repeat around its position.
         caster->CastSpell(targets, sSpellMgr->GetSpellInfo(SmashArea), &values, TRIGGERED_FULL_MASK);
     }
 };

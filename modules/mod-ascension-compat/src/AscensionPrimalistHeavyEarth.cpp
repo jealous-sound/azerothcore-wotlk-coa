@@ -46,8 +46,6 @@ class spell_ascension_heavy_earth : public SpellScript
         if (!resource || !resource->GetStackAmount())
             return;
 
-        // Terrasurge's launch damage has already captured its Earthshaping multiplier.
-        // Add only the reward aura: the copied spell's other effects remove just one stack.
         uint8 stacks = resource->GetStackAmount();
         Aura* reward = owner->AddAura(HeavyEarthBuff, owner);
         if (!reward)
@@ -114,7 +112,6 @@ public:
     void OnLoadSpellCustomAttr(SpellInfo* info) override
     {
         if (info->Id == HeavyEarthDamage && info->SpellFamilyName == 37)
-            // The percentage copies completed damage, including coefficients and target modifiers.
             info->AscensionInheritsResolvedAmount = true;
     }
 };

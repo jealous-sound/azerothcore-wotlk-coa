@@ -43,7 +43,7 @@ uint32 AttunedChapter(Player* player)
         if (uint32 chapter = TattooChapter(aura->GetId()))
         {
             if (selected && selected != chapter)
-                return 0; // Preserve Transcribing if several conflicting tattoo schools are active.
+                return 0;
             selected = chapter;
         }
     }
@@ -102,8 +102,6 @@ public:
         Player* player = caster ? caster->ToPlayer() : nullptr;
         if (!player || player->getClass() != CLASS_SPIRIT_MAGE || info->SpellFamilyName != 38 || spell->IsTriggered())
             return;
-        // Complete casts spend once, including misses. Delayed projectiles retain
-        // their selected helper after the final charge removes the aura.
         if (uint32 selected = uint32(spell->GetScriptValue(SELECTED_CHAPTER)))
             if (Aura* aura = player->GetAura(selected, player->GetGUID()))
                 aura->DropCharge();
@@ -129,7 +127,7 @@ public:
         if (uint32 helper = uint32(spell->GetScriptValue(TRANSCRIBING)))
         {
             spell->SetScriptValue(CHAPTER_FIRED, 1);
-            player->CastSpell(target, helper, true); // Retain native chaining, target cap and per-jump falloff.
+            player->CastSpell(target, helper, true);
         }
     }
 };
@@ -143,7 +141,7 @@ void ApplyAscensionManuscriptionContracts(SpellInfo* info)
     {
         info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_DUMMY;
         info->Effects[EFFECT_1].ApplyAuraName = SPELL_AURA_DUMMY;
-        info->Effects[EFFECT_2].Effect = 0; // The obsolete SLS cannot choose a second Chapter.
+        info->Effects[EFFECT_2].Effect = 0;
         info->ProcFlags = 0;
     }
     for (Chapter const& chapter : Chapters)
@@ -151,7 +149,7 @@ void ApplyAscensionManuscriptionContracts(SpellInfo* info)
         {
             info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_DUMMY;
             info->ProcFlags = 0;
-            info->ProcCharges = 10; // Native saved charges; only completed direct casts consume them.
+            info->ProcCharges = 10;
         }
 }
 

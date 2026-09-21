@@ -15,7 +15,6 @@ namespace
 using AscensionChangelog::Change;
 using AscensionChangelog::Field;
 
-// SpellEffectInfo::IsEffect() treats zero as disabled; SpellEffects has no NONE enumerator.
 constexpr uint32 DisabledSpellEffect = 0;
 
 int32 ReadChangeValue(SpellInfo const* spellInfo, Change const& change)
@@ -88,13 +87,9 @@ void ApplyChange(SpellInfo* spellInfo, Change const& change)
             spellInfo->DurationEntry = sSpellDurationStore.LookupEntry(change.DurationEntry);
             break;
         case Field::InitialPeriodicTick:
-            // Let the normal aura scheduler do the initial tick. A separate cast
-            // here would double-proc damage and could reset its periodic cadence.
             spellInfo->AttributesEx5 |= SPELL_ATTR5_EXTRA_INITIAL_PERIOD;
             break;
         case Field::ForceMoveForward:
-            // Twilight Frenzy keeps its speed aura and periodic attacks. Removing
-            // only the forced-forward slot permits normal player-controlled movement.
             spellInfo->Effects[change.EffectIndex].Effect = DisabledSpellEffect;
             spellInfo->Effects[change.EffectIndex].ApplyAuraName = SPELL_AURA_NONE;
             spellInfo->_InitializeExplicitTargetMask();
@@ -116,8 +111,6 @@ void ApplyAscensionChangelogSpellChanges(SpellInfo* spellInfo)
     auto last = std::upper_bound(first, changes.end(), spellInfo->Id,
         [](uint32 id, Change const& change) { return id < change.SpellId; });
 
-    // Validate every change on the original record before modifying any field.
-    // An unexpected DBC/DB/core override must not leave a partially patched spell.
     for (auto it = first; it != last; ++it)
     {
         if (!ValidateChange(spellInfo, *it))

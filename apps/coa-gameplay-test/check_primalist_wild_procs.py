@@ -1,4 +1,3 @@
-"""Independent checks for probabilistic procs and native multi-target damage results."""
 import json
 import math
 import sys

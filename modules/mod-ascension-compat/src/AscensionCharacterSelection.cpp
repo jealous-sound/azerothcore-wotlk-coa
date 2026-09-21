@@ -20,13 +20,6 @@
 
 namespace
 {
-    // Extensions.dll 2026-07 build: opcodes confirmed from the client senders
-    // (push 0x72E in RequestActivate @0x10191540, push 0x72F in RequestDeactivate
-    // @0x10191650, push 0x772 in SetCharacterSelectionSortOrder) and the client's
-    // opcode name table (SMSG_CHARACTER_LIST_INFO @0x075E, ..._SORT_ORDER @0x076F,
-    // ..._MAIL @0x0770, ..._GAME_MODE @0x0771, CMSG_..._SET_SORT_ORDER @0x0772).
-    // The character-selection session has no Player object, so requests are
-    // validated against the account id.
     constexpr uint16 CMSG_ASCENSION_CHARACTER_ACTIVATE = 0x072E;
     constexpr uint16 CMSG_ASCENSION_CHARACTER_DEACTIVATE = 0x072F;
     constexpr uint16 CMSG_ASCENSION_CHARACTER_SORT_ORDER = 0x0772;
@@ -37,19 +30,13 @@ namespace
     constexpr uint16 SMSG_ASCENSION_CHARACTER_SELECTION_MAIL = 0x0770;
     constexpr uint16 SMSG_ASCENSION_CHARACTER_SELECTION_GAME_MODE = 0x0771;
 
-    // Enum.CharacterSelect (SharedXML\Enum.lua, mirrored by the client): team ids
-    // are the classic faction-group ids and the ruleset decides which banner the
-    // character list draws next to the name.
     constexpr uint32 CHARACTER_SELECTION_FACTION_ALLIANCE = 469;
     constexpr uint32 CHARACTER_SELECTION_FACTION_HORDE = 67;
     constexpr uint8 CHARACTER_SELECTION_RULESET_NONE = 0;
     constexpr uint8 CHARACTER_SELECTION_RULESET_HIGH_RISK = 1;
 
-    // Rulesets are persisted as auras on the character (AscensionRulesets.cpp).
     constexpr uint32 SPELL_ASCENSION_HIGH_RISK = 1004019;
 
-    // Result codes are matched verbatim by the client string tables
-    // (Extensions.dll VA 0x10B38B38 for activate, 0x10B38A1C for deactivate).
     constexpr char ACTIVATE_CHARACTER_OK[] = "ACTIVATE_CHARACTER_OK";
     constexpr char ACTIVATE_CHARACTER_NOT_FOUND[] = "ACTIVATE_CHARACTER_NOT_FOUND";
     constexpr char ACTIVATE_CHARACTER_NOT_OWNED[] = "ACTIVATE_CHARACTER_NOT_OWNED";
@@ -65,7 +52,6 @@ namespace
     constexpr char DEACTIVATE_CHARACTER_ONLINE[] = "DEACTIVATE_CHARACTER_ONLINE";
     constexpr char DEACTIVATE_CHARACTER_FAILED[] = "DEACTIVATE_CHARACTER_FAILED";
 
-    // The client clamps the reported character-list maximum to 0x80 entries.
     constexpr uint32 CHARACTER_LIST_MAXIMUM = 128;
     constexpr std::size_t SORT_ORDER_PAYLOAD_MAXIMUM = 1023;
 
@@ -81,12 +67,6 @@ namespace
         return std::clamp(maximum, uint32(1), CHARACTER_LIST_MAXIMUM);
     }
 
-    // Challenge modes as the client renders them (Enum.GameMode in
-    // SharedXML\Enum.lua): Random 0x01, Ironman 0x02, Survivalist 0x04,
-    // Draft 0x08, Resolute 0x20, WildCard 0x40, Felforged 0x80, Nightmare
-    // 0x100, FreepickRarities 0x400, BuildDraft 0x800, Crusader 0x1000.
-    // This fork does not persist per-character challenge modes yet, so the
-    // client is told "no modes" and simply leaves the mode line empty.
     uint32 CharacterSelectionActiveGameModes()
     {
         return 0;
@@ -97,8 +77,6 @@ namespace
         return 0;
     }
 
-    // The client compares this against Enum.CharacterSelect.Faction
-    // (Alliance = 469, Horde = 67, Other = 0) to pick the banner icon.
     uint32 CharacterSelectionTeamId(uint8 race)
     {
         switch (Player::TeamIdForRace(race))
@@ -112,41 +90,23 @@ namespace
         }
     }
 
-    // Per-character extras, mirroring the live server: one SMSG 0x0771 (game
-    // mode) and one SMSG 0x0770 (mail) per character, sent before SMSG 0x075E.
-    //
-    // The leading u32 is not the guid but the character's 1-based position in the
-    // character list: CharacterSelect.lua resolves each row through
-    // GetCharIDFromIndex() (translationTable, built from 1..GetNumCharacters())
-    // and passes that value to GetCharacterSelectionGameModeData(),
-    // Extensions.dll hashes it straight into its per-character table. Inactive
-    // characters are absent from that list (CHAR_SEL_ENUM filters them), so only
-    // active characters get an entry and they are numbered consecutively.
-    //
-    // isMercenary: the client's own name for the byte after teamId
-    // (CharacterSelect.lua reads it from GetCharacterSelectionGameModeData, and
-    // Extensions.dll keeps it at struct +0x18 and hands it back as a boolean).
-    // Its UI never uses it: that read is the only mercenary reference in the
-    // shipped interface, neither client binary nor the server data has a
-    // mercenary system, and the live capture has 0 for every character. Whether
-    // it means own-faction PvP is unconfirmed, so 0 is sent.
     void SendCharacterSelectionPerCharacter(WorldSession* session, uint32 listIndex, uint8 race,
         bool highRisk, bool hasMail)
     {
         WorldPacket gameMode(SMSG_ASCENSION_CHARACTER_SELECTION_GAME_MODE, 18);
         gameMode << listIndex
-                 << CharacterSelectionActiveGameModes()      // activeGameModes
-                 << CharacterSelectionEnabledGameModes()     // enabledGameModes
-                 << CharacterSelectionTeamId(race)           // teamId (banner)
-                 << uint8(0)                                 // isMercenary
+                 << CharacterSelectionActiveGameModes()
+                 << CharacterSelectionEnabledGameModes()
+                 << CharacterSelectionTeamId(race)
+                 << uint8(0)
                  << uint8(highRisk ? CHARACTER_SELECTION_RULESET_HIGH_RISK
                                    : CHARACTER_SELECTION_RULESET_NONE);
         session->SendPacket(&gameMode);
 
         WorldPacket mail(SMSG_ASCENSION_CHARACTER_SELECTION_MAIL, 6);
         mail << listIndex
-             << uint8(hasMail ? 1 : 0)                       // hasMail
-             << uint8(0);                                    // hasStoreMail (not tracked by this fork)
+             << uint8(hasMail ? 1 : 0)
+             << uint8(0);
         session->SendPacket(&mail);
     }
 
@@ -157,9 +117,6 @@ namespace
         session->SendPacket(&packet);
     }
 
-    // Character state shared by activate and deactivate: owning account, the
-    // persisted online flag, the effective active flag (missing row = active)
-    // and how many characters of that account are currently active.
     std::string BuildCharacterStateQuery(uint32 charGuid)
     {
         return Acore::StringFormat(
@@ -226,8 +183,6 @@ namespace
 
                     SendResult(session, SMSG_ASCENSION_CHARACTER_ACTIVATE_RESULT, ACTIVATE_CHARACTER_OK);
 
-                    // The auth-side realm count follows active characters (the
-                    // realm list shows it), so it has to learn about the change.
                     sWorld->UpdateRealmCharCount(accountId);
 
                     LOG_INFO("module.ascension_compat",
@@ -283,8 +238,6 @@ namespace
 
                     SendResult(session, SMSG_ASCENSION_CHARACTER_DEACTIVATE_RESULT, DEACTIVATE_CHARACTER_OK);
 
-                    // Parking a character frees a realm slot, and the realm list
-                    // count has to follow.
                     sWorld->UpdateRealmCharCount(accountId);
 
                     LOG_INFO("module.ascension_compat",
@@ -292,19 +245,12 @@ namespace
                 }));
     }
 
-    // CMSG 0x0772 carries an opaque, space-separated sort table ("1 2 3 ...").
-    // The client composes it from its own list positions, so the server only
-    // stores and later echoes the payload through SMSG 0x076F.
     void HandleSortOrderRequest(WorldSession* session, WorldPacket const& packet)
     {
-        // operator>> advances the read cursor, so read from a copy of the const packet.
         WorldPacket readable = packet;
         std::string payload;
         readable >> payload;
 
-        // The client always sends a full table (the reset button re-sends
-        // "1 2 3 ..."), so an empty payload is malformed and must not clobber
-        // a stored order.
         if (payload.empty())
         {
             LOG_DEBUG("module.ascension_compat",
@@ -334,17 +280,8 @@ namespace
             session->GetAccountId(), payload.size());
     }
 
-    // Wire layout of one SMSG 0x075E entry (Extensions.dll parser RVA 190EE0):
-    // u32 guid, u8 active, u8 online, u8 level, u8 race, u8 class, u8 gender,
-    // u32 zoneId, cstring name. The header holds four counts, read into the
-    // list object at +4, +8, +0xC and +0x10 in packet order and returned by
-    // C_CharacterList.GetCounts() as max, total, active and inactive; the
-    // inactive one is what HasInactiveCharacters() tests. The client fires
-    // CHARACTER_LIST_UPDATED when the packet arrives.
     void HandleCharacterListQuery(WorldSession* session, uint32 maxActive, QueryResult result)
     {
-        // Per-character data for SMSG 0x0770 / 0x0771, sent after the sort order
-        // and before the list itself (the order the live server uses).
         struct CharacterSelectionExtra
         {
             uint32 index;
@@ -361,20 +298,9 @@ namespace
         uint32 listIndex = 0;
         std::string sortOrder;
 
-        // Four counts, in the order CharacterSelect.lua receives them from
-        // C_CharacterList.GetCounts(): max, total, active, inactive. The max is
-        // clamped to 128 by Extensions.dll, and the client's create gate is
-        // "active < max" (CharacterSelect_CanCreateCharacter), so this header is
-        // what decides whether a character can be created at all: with the max at
-        // the active limit, creating needs a free active slot. DEFAULT_MAX_
-        // CHARACTERS_PER_REALM = 10 in the client Lua is only the fallback it uses
-        // when the header reports a max of 0.
         WorldPacket info(SMSG_ASCENSION_CHARACTER_LIST_INFO, 256);
         info << maxActive << uint32(0) << uint32(0) << uint32(0);
 
-        // Query layout: 0 guid, 1 name, 2 online, 3 level, 4 race, 5 class,
-        // 6 gender, 7 zone, 8 active, 9 stored sort order, 10 high-risk aura,
-        // 11 unread mail.
         if (result && result->GetRowCount() != 0)
         {
             do
@@ -391,40 +317,28 @@ namespace
                 uint32 const guid = fields[0].Get<uint32>();
                 uint8 const race = fields[4].Get<uint8>();
 
-                // Extras are keyed by list position, and CHAR_SEL_ENUM drops
-                // inactive characters from that list, so they must not consume
-                // one (their rows never ask for game-mode or mail data).
                 if (active != 0)
                 {
                     extras.push_back({ ++listIndex, race,
                         fields[10].Get<uint64>() != 0, fields[11].Get<uint64>() != 0 });
                 }
 
-                info << guid                                                       // guid
-                     << active                                                     // active
-                     << uint8(fields[2].Get<uint8>() != 0 ? 1 : 0)                 // online
-                     << fields[3].Get<uint8>()                                    // level
-                     << race                                                      // race
-                     << fields[5].Get<uint8>()                                    // class
-                     << fields[6].Get<uint8>()                                    // gender
-                     << fields[7].Get<uint32>()                                   // zone
-                     << fields[1].Get<std::string>();                             // name (cstring)
+                info << guid
+                     << active
+                     << uint8(fields[2].Get<uint8>() != 0 ? 1 : 0)
+                     << fields[3].Get<uint8>()
+                     << race
+                     << fields[5].Get<uint8>()
+                     << fields[6].Get<uint8>()
+                     << fields[7].Get<uint32>()
+                     << fields[1].Get<std::string>();
             } while (result->NextRow());
         }
 
-        // Second count is the whole list, third the active count, fourth the
-        // parked count. Lua reads the third one for the create gate and the
-        // fourth one for HasInactiveCharacters(), so both have to stay accurate.
         info.put<uint32>(4, total);
         info.put<uint32>(8, activeCount);
         info.put<uint32>(12, total - activeCount);
 
-        // CharacterSelect.lua only enables reordering when its sort order is
-        // set (canSort = true after GetCharacterSelectionSortOrder() returns a
-        // table), and it can only send one once reordering is possible. So the
-        // packet is always answered: the stored order, or the identity table
-        // the client itself produces when the order is reset ("1 2 3 ...",
-        // padded to the display maximum it reports in the list header).
         if (sortOrder.empty())
         {
             for (uint32 i = 1; i <= maxActive; ++i)
@@ -446,11 +360,6 @@ namespace
         }
 
         session->SendPacket(&info);
-
-        // NOTE: no list-flags packet anymore. The live capture contains no
-        // SMSG 0x0767, the client's opcode table assigns 0x0768 to something
-        // else entirely, and C_CharacterList.HasInactiveCharacters() reads the
-        // inactive count out of the list header above rather than from a flag.
 
         LOG_DEBUG("module.ascension_compat",
             "Sent Ascension character list for account {}: max={}, total={}, active={}, inactive={}, extras={}, sort order={} bytes",
@@ -494,11 +403,6 @@ void SendAscensionCharacterListInfo(WorldSession* session)
     uint32 const accountId = session->GetAccountId();
     uint32 const maxActive = CharacterSelectionMaxActive();
 
-    // Mirrors the core enum filter: inactive characters are excluded from
-    // SMSG_CHAR_ENUM but still listed here with active = 0. Active characters
-    // come first, each group in enum order (COALESCE(c.order, c.guid)): the
-    // client takes the entries after the active count to be the inactive ones,
-    // and it resolves a row by its position among the active characters.
     std::string const query = Acore::StringFormat(
         "SELECT `c`.`guid`, `c`.`name`, `c`.`online`, `c`.`level`, `c`.`race`, `c`.`class`, `c`.`gender`, `c`.`zone`, "
         "COALESCE(`s`.`active` <> 0, 1), "

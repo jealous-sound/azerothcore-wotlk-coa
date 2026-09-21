@@ -21,6 +21,9 @@ void AddAscensionCompatScripts();
 void AddAscensionTravelPermitScripts();
 void AddSC_AscensionRulesets();
 void AddSC_AscensionMercenary();
+void AddSC_AscensionHighRisk();
+void AddSC_AscensionBloodforged();
+void AddSC_AscensionPvpPower();
 void AddSC_AscensionRestingBuff();
 void AddSC_AscensionClosestResurrection();
 void AddSC_AscensionThreatRedirect();
@@ -238,13 +241,8 @@ void AddSC_AscensionRunemasterSecondary();
 void AddSC_AscensionRunemasterHurricane();
 void AddSC_AscensionRunemasterRiftClones();
 
-// Add all
-// cf. the naming convention https://github.com/azerothcore/azerothcore-wotlk/blob/master/doc/changelog/master.md#how-to-upgrade-4
-// additionally replace all '-' in the module folder name with '_' here
 void Addmod_ascension_compatScripts()
 {
-    // Registered first so every later OnLoadSpellCustomAttr pass, and every runtime guard that asserts a
-    // record carries no coefficient, reads the same cleared EffectBonusMultiplier.
     AddAscensionStockCoefficientScripts();
     AddAscensionScalingBaseScripts();
     AddAscensionManastormScripts();
@@ -476,6 +474,9 @@ void Addmod_ascension_compatScripts()
     AddSC_AscensionResourceTalents();
     AddSC_AscensionRulesets();
     AddSC_AscensionMercenary();
+    AddSC_AscensionHighRisk();
+    AddSC_AscensionBloodforged();
+    AddSC_AscensionPvpPower();
     AddSC_AscensionRestingBuff();
     AddSC_AscensionClosestResurrection();
     AddSC_AscensionThreatRedirect();

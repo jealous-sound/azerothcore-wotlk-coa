@@ -130,7 +130,6 @@ void Store(Player* player, Ledger const& ledger)
 bool Read(Player* player, Ledger& ledger, uint64 now, bool synchronize = true)
 {
     SpellInfo const* info = sSpellMgr->GetSpellInfo(ECHOES_ZENITH);
-    // FindPlayerSettings returns a borrowed synchronous view; never retain it.
     PlayerSettingVector const* pool = player->FindPlayerSettings(POOL_KEY);
     bool const storedPool = player->HasStoredSpellCharges(info);
     if (pool && !storedPool)
@@ -193,8 +192,6 @@ void SendCooldownProjection(Player* player, bool variant)
         return;
     uint64 const now = Now();
     Ledger ledger;
-    // Presentation is a pure read: it cannot initialize, migrate, spend or
-    // overwrite saved gameplay state or either native cooldown-map entry.
     if (!Read(player, ledger, now, false))
         return;
     uint64 until = variant ? std::max(ledger.VariantOrdinaryUntil, OrdinarySpellEnd(player, id, now)) :
@@ -257,7 +254,6 @@ void Synchronize(Player* player, Runtime& runtime)
     if (owned)
     {
         Ledger ledger;
-        // Invalid saved data blocks casts, but cannot destroy ownership/buttons.
         Read(player, ledger, Now());
     }
 
@@ -267,9 +263,6 @@ void Synchronize(Player* player, Runtime& runtime)
         auto found = player->GetSpellMap().find(ECHOES_ZENITH);
         if (found == player->GetSpellMap().end())
         {
-            // Native OnPlayerForgotSpell precedes its final removed-spell
-            // packet. Regranting that same ID inside the callback would have
-            // the later packet erase the replacement from the client again.
             if (runtime.WasVariant)
                 runtime.Pending = true;
             else
@@ -280,8 +273,6 @@ void Synchronize(Player* player, Runtime& runtime)
         else if (found->second->State == PLAYERSPELL_TEMPORARY)
             found->second->specMask |= player->GetActiveSpecMask();
 
-        // A permanent record owned only in another native spec cannot be made
-        // temporary in this one with PlayerSpell's single shared State field.
         variant = CurrentSpell(player, ECHOES_ZENITH) != nullptr;
     }
 
@@ -379,7 +370,7 @@ public:
             Synchronize(player, runtime);
     }
 
-    void OnPlayerAfterSpecSlotChanged(Player* player, uint8 /*newSlot*/) override
+    void OnPlayerAfterSpecSlotChanged(Player* player, uint8) override
     {
         if (!IsRunemaster(player))
             return;
@@ -400,8 +391,6 @@ public:
         Runtime const* runtime = player->CustomData.Get<Runtime>(RUNTIME_KEY);
         bool const variant = loading && runtime && WantsVariant(player, *runtime) &&
             player->HasActiveSpell(ECHOES_ZENITH);
-        // Saving changes only a local SQL value. Loading occurs before native
-        // addActionButton and also handles late asynchronous dual-spec loads.
         action = variant ? ECHOES_ZENITH : ZENITH;
     }
 
@@ -433,9 +422,6 @@ public:
     void OnPlayerSpellCooldownCalculated(Player* player, SpellInfo const* info, Spell* spell,
         uint32 recovery) override
     {
-        // A positive native SPELL_AURA_MOD_COOLDOWN can add an ordinary
-        // cooldown even to the variant's zero-RecoveryTime metadata. Preserve
-        // that separate observed debt without spending another charge.
         if (info->Id == ECHOES_ZENITH && recovery && OrdinaryObservation(player, spell) &&
             spell->TryMarkScriptEventHandled(ECHOES_ORDINARY_EVENT))
         {

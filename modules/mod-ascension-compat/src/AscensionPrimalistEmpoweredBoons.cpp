@@ -78,7 +78,6 @@ public:
     {
         if (info->Id != EmpoweredHawk || info->SpellFamilyName != 37)
             return;
-        // Calculate the missing-resource amount before the ordinary heal/energize pipeline.
         if (info->Effects[EFFECT_0].Effect == SPELL_EFFECT_ENERGIZE_PCT &&
             info->Effects[EFFECT_0].MiscValueB == 1)
             info->Effects[EFFECT_0].Effect = SPELL_EFFECT_ENERGIZE;
@@ -117,7 +116,6 @@ class spell_ascension_empowered_wolf : public SpellScript
     void Cleanse(SpellEffIndex index)
     {
         PreventHitDefaultEffect(index);
-        // One removal total, rather than all roots followed by all snares.
         if (index != EFFECT_0)
             return;
         Unit* target = GetHitUnit();

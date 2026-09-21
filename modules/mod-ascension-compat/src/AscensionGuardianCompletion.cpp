@@ -147,7 +147,7 @@ class aura_ascension_guardian_lifecycle : public AuraScript
         }
     }
 
-    void Apply(AuraEffect const* effect, AuraEffectHandleModes /*mode*/)
+    void Apply(AuraEffect const* effect, AuraEffectHandleModes)
     {
         for (uint8 i = 0; i < effect->GetEffIndex(); ++i)
             if (GetEffect(i))
@@ -177,7 +177,7 @@ class aura_ascension_guardian_lifecycle : public AuraScript
         }
     }
 
-    void Removed(AuraEffect const* effect, AuraEffectHandleModes /*mode*/)
+    void Removed(AuraEffect const* effect, AuraEffectHandleModes)
     {
         for (uint8 i = 0; i < effect->GetEffIndex(); ++i)
             if (GetEffect(i))
@@ -253,7 +253,7 @@ void AscensionGuardian::ApplyContracts(SpellInfo* info)
     if (id == 803738)
         for (auto& effect : info->Effects)
             if (effect.Effect == SPELL_EFFECT_TITAN_GRIP)
-                effect.Effect = 0; // The exact mace-and-shield permission is checked by Player.
+                effect.Effect = 0;
     if (id == 706807 || id == 705379 || id == 524694 || id == 804891 || id == 801778)
         if (info->Effects[EFFECT_0].ApplyAuraName == 354)
             info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_DUMMY;
@@ -265,10 +265,8 @@ void AscensionGuardian::ApplyContracts(SpellInfo* info)
         info->AttributesCu |= SPELL_ATTR0_CU_IGNORE_ARMOR;
     }
     if (id == 705377)
-        info->ProcFlags = 0; // Honorable Demeanor belongs to the existing block callback.
+        info->ProcFlags = 0;
     if (id == 500673)
-        // Advance's recast carries the Battle/Defensive Stance mask (forms 17/18), which a Guardian never has;
-        // spell_ascension_guardian_ability::Check already limits the recast to a running Advance.
         info->Stances = 0;
     if (id == 524610 && info->Effects[EFFECT_1].TriggerSpell == 524609)
         info->Effects[EFFECT_1].Effect = 0;
@@ -298,13 +296,12 @@ void AscensionGuardian::ApplyContracts(SpellInfo* info)
     if (id == 503634)
     {
         info->ExcludeTargetAuraSpell = 573255;
-        // Apply exhaustion after the recipient actually receives the buff.
         info->Effects[EFFECT_1].Effect = 0;
     }
     if (id == 803721)
         info->Effects[EFFECT_1].BasePoints = 1;
     if (id == 803524)
-        info->Effects[EFFECT_1].Effect = 0; // The owner's haste is already on Hero's March.
+        info->Effects[EFFECT_1].Effect = 0;
     if (id == 504145 && !info->ProcFlags)
         info->ProcCharges = 1;
     if (id == 802874)

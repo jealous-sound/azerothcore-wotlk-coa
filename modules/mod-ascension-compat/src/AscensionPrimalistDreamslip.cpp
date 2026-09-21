@@ -24,7 +24,6 @@ public:
         if (info->Id == Dreamslip && info->SpellFamilyName == 37 &&
             info->Effects[EFFECT_1].IsAura(SPELL_AURA_PERIODIC_TRIGGER_SPELL) &&
             info->Effects[EFFECT_1].TriggerSpell == RapidRegeneration)
-            // The same effect owns the native action lock and its scripted periodic recovery.
             info->Effects[EFFECT_1].ApplyAuraName = SPELL_AURA_MOD_PACIFY_SILENCE;
     }
 };
@@ -44,7 +43,6 @@ class aura_ascension_dreamslip : public AuraScript
     void Recover(AuraEffect const* effect)
     {
         PreventDefaultAction();
-        // The recipient is in another phase. The copied recovery helper targets its own caster.
         GetTarget()->CastSpell(GetTarget(), RapidRegeneration, TRIGGERED_FULL_MASK, nullptr, effect);
     }
 

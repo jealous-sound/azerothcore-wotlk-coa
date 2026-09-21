@@ -47,7 +47,6 @@ public:
         if (info->Id == JudgementDamage && info->SpellFamilyName == 37 &&
             info->Effects[EFFECT_1].IsAura(SPELL_AURA_MOD_DAMAGE_PERCENT_TAKEN))
         {
-            // The active talent describes three damage hits, not this legacy vulnerability debuff.
             info->Effects[EFFECT_1].Effect = 0;
             info->Effects[EFFECT_1].ApplyAuraName = SPELL_AURA_NONE;
             info->Effects[EFFECT_1].TargetA = SpellImplicitTargetInfo(0);
@@ -68,8 +67,6 @@ public:
         if (!player || player->getClass() != CLASS_WILDWALKER ||
             spell->GetSpellInfo()->Id != JudgementDamage || hit.damage <= 0)
             return;
-        // Inherit damage modifiers only. Giving the helper Mountain Hammer's family flag
-        // would also activate unrelated on-Mountain-Hammer talents and modifiers.
         player->ApplySpellMod(MountainHammer, SPELLMOD_DAMAGE, hit.damage);
         player->ApplySpellMod(MountainHammer, SPELLMOD_DAMAGE, hit.damageBeforeTakenMods);
     }

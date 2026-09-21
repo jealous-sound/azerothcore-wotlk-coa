@@ -1,4 +1,4 @@
-"""Compile the actual Brand damage callback against creature-type and spell-family boundaries."""
+CLI_DESCRIPTION = """Compile the actual Brand damage callback against creature-type and spell-family boundaries."""
 import argparse
 import importlib.util
 from pathlib import Path
@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[4]
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument('--before', help='Use older ability callbacks as a negative control')
     args = parser.parse_args()
     spec = importlib.util.spec_from_file_location('witch_fixture', ROOT.parent / 'tools/Test-WitchHunterCompletion.py')
@@ -79,7 +79,7 @@ int main()
             if r[0] in {570757, 807682, *range(807705, 807711)}}
     assert rows[570757][80] + rows[570757][74] == 100 and rows[570757][113] == 36
     for sid in (807682, *range(807705, 807711)):
-        assert rows[sid][116] == 807683  # All Brand ranks use the same released payload.
+        assert rows[sid][116] == 807683
     print('PASS: Brand ranks, Undead/Demon bonus, class/family/spell boundaries and miss/self exclusions')
 
 
