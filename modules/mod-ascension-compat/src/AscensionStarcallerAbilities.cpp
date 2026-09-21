@@ -437,6 +437,8 @@ class spell_ascension_starcaller_ability : public SpellScript
             PreventHitDefaultEffect(index);
         if (Named(GetSpellInfo(), 801132) && index == EFFECT_1 && !player->HasAura(560662))
             PreventHitDefaultEffect(index);
+        if (id == 801401 && index == EFFECT_1 && !player->HasAura(560896))
+            PreventHitDefaultEffect(index);
     }
     void Hit(SpellEffIndex index)
     {

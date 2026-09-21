@@ -111,8 +111,8 @@ void ApplyContracts(SpellInfo* info)
                 e.TargetA = SpellImplicitTargetInfo(TARGET_UNIT_TARGET_ALLY);
                 e.TargetB = SpellImplicitTargetInfo();
             }
-    if (id == 801401)
-        info->Effects[1].Effect = 0;
+    // Effect 1 of 801401 stays: its base of 0 healing taken is raised by Tear Drops (560896) and gated on the
+    // talent by spell_ascension_starcaller_ability.
     if (id == 92133)
         info->Effects[0].BasePoints = 7;
     if (id == 92132 || id == 574349)
