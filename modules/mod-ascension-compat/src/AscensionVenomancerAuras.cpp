@@ -305,7 +305,8 @@ class aura_ascension_venomancer_lifecycle : public AuraScript
         if (Named(GetSpellInfo(),800902) && slot == 1)
         {
             PreventDefaultAction();
-            if (!GetAura()->GetScriptValue(803529))
+            // Book of Shadra seeks on every 6 sec tick; otherwise only once, at the end of the duration.
+            if (player->HasAura(705957) || !GetAura()->GetScriptValue(803529))
             {
                 GetAura()->SetScriptValue(803529,1);
                 auto allies = Allies(player,target,Radius(803529));
