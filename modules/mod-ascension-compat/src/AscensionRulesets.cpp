@@ -14,7 +14,8 @@ enum RulesetSpells : uint32
     SPELL_SELECT_PVE = 84422,
     SPELL_HIGH_RISK = 1004019,
     SPELL_WAR_MODE = 1004119,
-    SPELL_PVE = 9931032
+    SPELL_PVE = 9931032,
+    SPELL_MERCENARY = 9930874
 };
 
 // Applies the aura set a selection spell stands for, without running its cast requirements.
@@ -23,6 +24,8 @@ void ApplyRuleset(Player* player, uint32 selectionId)
     player->RemoveAurasDueToSpell(SPELL_HIGH_RISK);
     player->RemoveAurasDueToSpell(SPELL_WAR_MODE);
     player->RemoveAurasDueToSpell(SPELL_PVE);
+    // Mercenary status only exists on top of a PvP ruleset, and a new choice ends it.
+    player->RemoveAurasDueToSpell(SPELL_MERCENARY);
     if (selectionId == SPELL_SELECT_HIGH_RISK)
         player->CastSpell(player, SPELL_HIGH_RISK, true);
     else
