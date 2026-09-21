@@ -87,6 +87,13 @@ void ApplyContracts(SpellInfo* info)
         // slot 2 dummy, which nothing reads.
         mod(2, SPELL_AURA_ADD_PCT_MODIFIER, 100, SPELLMOD_COST, flag96(536870912, 0, 0));
     }
+    if (id == 503583)
+    {
+        // Moonlight Ripple's cost line targeted the unused helper 807032 (Spell.dbc mask word 2 0x10000000),
+        // but Aegis cost is StarcallerCosts above and never reads it. Cut the Aegis spells' cost
+        // (SpellFamilyFlags word 1 0x10000000) by the tooltip's 10% directly.
+        mod(1, SPELL_AURA_ADD_PCT_MODIFIER, -10, SPELLMOD_COST, flag96(0, 268435456, 0));
+    }
     if (id == 802985)
     {
         dummy(0);
