@@ -379,6 +379,22 @@ class spell_ascension_witch_hunter_ability : public SpellScript
                 player->RemoveAurasDueToSpell(680498);
             }
         }
+        if (id == 805738)
+        {
+            // Rearmament's text resets every Trap. That clause is effect 1, an Ascension effect the core has no
+            // handler for, whose class mask names the traps: reset the known spells that mask matches.
+            flag96 const traps = info->Effects[EFFECT_1].SpellClassMask;
+            for (auto const& [known, state] : player->GetSpellMap())
+                if (state->State != PLAYERSPELL_REMOVED)
+                    if (SpellInfo const* trap = sSpellMgr->GetSpellInfo(known))
+                        if (trap->SpellFamilyName == 21 && (trap->SpellFamilyFlags & traps))
+                        {
+                            Reset(player, known);
+                            // The traps also carry a category cooldown (Spell.dbc CategoryRecoveryTime 60000)
+                            if (uint32 category = trap->GetCategory())
+                                player->RemoveCategoryCooldown(category);
+                        }
+        }
         if (id == 680498)
             Cast(player, player, 680505);
         if (Family(info, 1, 16384))
