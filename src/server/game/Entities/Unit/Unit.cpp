@@ -2757,6 +2757,8 @@ void Unit::CalcAbsorbResist(DamageInfo& dmgInfo, bool Splited)
 
 void Unit::CalcHealAbsorb(HealInfo& healInfo)
 {
+    sScriptMgr->OnBeforeHealAbsorb(healInfo);
+
     if (!healInfo.GetHeal())
         return;
 

@@ -46,6 +46,8 @@ enum UnitHook
     UNITHOOK_ON_UNIT_EXIT_COMBAT,
     UNITHOOK_ON_UNIT_DEATH,
     UNITHOOK_ON_UNIT_SET_SHAPESHIFT_FORM,
+    UNITHOOK_ON_BEFORE_HEAL_ABSORB,
+    UNITHOOK_ON_AFTER_AURA_EFFECT_CALCULATE_AMOUNT,
     UNITHOOK_ON_SEND_AURA_UPDATE,
     UNITHOOK_MODIFY_SPELL_EFFECT_BASE_VALUE,
     UNITHOOK_CAN_UNIT_ATTACK,
@@ -55,6 +57,8 @@ enum UnitHook
 
 enum ReputationRank : uint8;
 class ByteBuffer;
+class HealInfo;
+class AuraEffect;
 struct BuildValuesCachePosPointers;
 
 class UnitScript : public ScriptObject
@@ -65,6 +69,13 @@ protected:
 public:
     // Called when a unit deals healing to another unit
     virtual void OnHeal(Unit* /*healer*/, Unit* /*reciever*/, uint32& /*gain*/) { }
+
+    // Runs once for direct and periodic healing, before absorbs and overhealing.
+    virtual void OnBeforeHealAbsorb(HealInfo& /*healInfo*/) { }
+
+    // Runs after spell-specific calculations and before applying aura stacks.
+    virtual void OnAfterAuraEffectCalculateAmount(AuraEffect const* /*effect*/, Unit* /*caster*/,
+        int32& /*amount*/) { }
 
     // Called when a unit deals damage to another unit
     virtual void OnDamage(Unit* /*attacker*/, Unit* /*victim*/, uint32& /*damage*/) { }

@@ -125,3 +125,63 @@ AscensionCompat.RealmType = "live"
 #        Default:     5
 
 AscensionCompat.LevelScalingMaxLift = 5
+
+###################################################################################################
+# HIGH-RISK PACKAGE
+#
+#    HighRisk.Losses
+#        Description: Deaths in the open world while under the High-Risk ruleset (aura 1004019) move
+#                     tradeable equipment, bag resources and gold into a persistent chest that any
+#                     living High-Risk player nearby can recover. Kill XP is unchanged: the ruleset
+#                     aura already carries the native bonus.
+#        Default:     0 - (Disabled)
+#                     1 - (Enabled)
+
+HighRisk.Losses = 0
+
+#    HighRisk.GearChance
+#    HighRisk.ResourceChance
+#    HighRisk.GoldChance
+#        Description: Percent chance, per eligible death, that each category is lost. Realm tuning,
+#                     not verified Ascension rates. If every roll misses, one available category is
+#                     still chosen so an eligible death never silently produces no chest.
+#        Default:     50
+
+HighRisk.GearChance = 50
+HighRisk.ResourceChance = 50
+HighRisk.GoldChance = 50
+
+#    PvpPower.Enable
+#        Description: Item spells named "PvP Power (+N)" scale damage and healing at level 60, capped at
+#                     495 points. Damage +0.05% per point against players (and against uncontrolled
+#                     creatures for a High-Risk attacker in the open world); creature damage received
+#                     there -0.05% per point; healing and shields +0.02% per point in War Mode,
+#                     High-Risk open world and battlegrounds.
+#        Default:     0 - (Disabled)
+#                     1 - (Enabled)
+
+PvpPower.Enable = 0
+
+#    Bloodforged.Enable
+#        Description: Adds one independent Bloodforged roll to eligible open-world creature corpses
+#                     for High-Risk players from level 15, drawn from the reviewed catalogue in
+#                     coa_bloodforged_catalogue. Requires PvpPower.Enable.
+#        Default:     0 - (Disabled)
+#                     1 - (Enabled)
+
+Bloodforged.Enable = 0
+
+#    Bloodforged.Rates15
+#    Bloodforged.Rates25
+#    Bloodforged.Rates35
+#    Bloodforged.Rates45
+#    Bloodforged.Rates55
+#        Description: Percent per eligible corpse for the level band starting at that level, as three
+#                     values: uncommon, rare, epic. Independent rolls, one quality per roll.
+#        Default:     "4.50 0.50 0.00", "4.00 1.00 0.00", "3.80 1.40 0.15", "3.60 1.80 0.25", "3.40 2.20 0.40"
+
+Bloodforged.Rates15 = "4.50 0.50 0.00"
+Bloodforged.Rates25 = "4.00 1.00 0.00"
+Bloodforged.Rates35 = "3.80 1.40 0.15"
+Bloodforged.Rates45 = "3.60 1.80 0.25"
+Bloodforged.Rates55 = "3.40 2.20 0.40"
