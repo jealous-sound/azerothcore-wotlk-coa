@@ -96,6 +96,8 @@ void ApplyContracts(SpellInfo* info)
     }
     if (id == 807402)
         info->Effects[1].Effect = 0;
+    if (id == 680842)
+        info->ExcludeTargetAuraSpell = 681265; // Circle of Fire: Debuff; the DBC only names it as caster exclusion.
     if (id == 807768)
         info->Effects[0].Effect = SPELL_EFFECT_DUMMY;
     if (id == 802120 || id == 680369)
