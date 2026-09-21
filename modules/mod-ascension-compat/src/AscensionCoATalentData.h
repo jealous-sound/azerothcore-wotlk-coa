@@ -18,6 +18,9 @@ struct CoATalentEntry
     std::uint8_t TECost;
     std::uint8_t RequiredLevel;
     std::array<std::uint32_t, 3> SpellIds;
+    // ChrSpecs' Level 10 Passive: must not wait for AscensionCompat.AutoProgression,
+    // only for the specialization and level (see LoadCoATalentData).
+    bool Identity;
 };
 
 struct CoASelectableFreeEntry

@@ -743,8 +743,7 @@ public:
         }
 
     ReconcileRunemasterFists(player, activeSpec);
-    if (automaticProgression)
-      learned += SynchronizeAutomaticTalents(player, GetActiveSpecialization(player));
+    learned += SynchronizeAutomaticTalents(player, GetActiveSpecialization(player), automaticProgression);
     // Rank upgrades are conditional on already owning the root. They cannot
     // spend talent points, pick an unselected ability, or leak an old spec.
     for (AscensionProgression::Rank const& rank : AscensionProgression::Ranks)
@@ -2284,7 +2283,10 @@ public:
     }
 
 private:
-    static uint32 SynchronizeAutomaticTalents(Player* player, uint32 specializationId)
+    // Every zero-cost automatic entry is granted when automaticProgression is on; when it's off, only
+    // ChrSpecs' identity passives are - AscensionCoATalentData.h's Identity flag, a Level 10 Passive
+    // that "must not wait for a purchased class ability" even with the convenience toggle disabled.
+    static uint32 SynchronizeAutomaticTalents(Player* player, uint32 specializationId, bool automaticProgression)
     {
         // At level one the observed spellbook, not empty implicit/CAD responses,
         // defines the baseline. Higher-level dependency-gated talents remain native.
@@ -2298,6 +2300,8 @@ private:
             changed = false;
             for (auto const& entry : AscensionCompatData::CoATalentEntries)
             {
+                if (!automaticProgression && !entry.Identity)
+                    continue;
                 if (!CanGrantAutomaticEntry(player, entry, specializationId))
                     continue;
 

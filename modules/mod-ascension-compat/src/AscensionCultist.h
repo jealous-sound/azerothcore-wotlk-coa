@@ -30,7 +30,7 @@ struct CultistState
     Position dashPrevious;
     uint32 dashMs = 0, shockInsanity = 0;
     uint64 sequence = 0;
-    bool event = false, refreshing = false;
+    bool event = false, refreshing = false, heraldActive = false;
 };
 Player* Owner(Unit const* unit);
 CultistState& State(Player* player);
