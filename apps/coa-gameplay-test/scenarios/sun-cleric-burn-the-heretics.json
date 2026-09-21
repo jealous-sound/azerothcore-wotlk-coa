@@ -153,13 +153,13 @@
     },
     {
       "action": "assert",
-      "label": "Talent gains exactly +10% healing below 35% health",
+      "label": "Talent gains exactly +10% healing below 35% health: 10% of the 800 healing baseline this fixture reads, not of the 1000 damage baseline",
       "actor": "talent",
       "metric": "spell_healing_done",
       "spell": 500143,
       "target": "dummy",
       "relative_to": "talent_heal_high",
-      "equals": 100,
+      "equals": 80,
       "within_ms": 2000
     }
   ]
