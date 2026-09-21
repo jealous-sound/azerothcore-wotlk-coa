@@ -378,7 +378,12 @@ class starcaller_scaling : public UnitScript
         float factor = 1;
         if (player->HasAura(801989) && target->GetHealthPct() < 20)
             factor *= 1.3f;
-        if (Aura* aura = player->GetAuraOfRankedSpell(704756))
+        // Lunar Blessing has two rank spells (704756, 704757); a talent rank change leaves only the chosen
+        // rank learned and no spell_ranks chain links them, so both roots are tried explicitly.
+        Aura* aura = player->GetAura(704757);
+        if (!aura)
+            aura = player->GetAura(704756);
+        if (aura)
             for (auto const& pair : target->GetAppliedAuras())
                 if (pair.second->GetBase()->GetSpellInfo()->Dispel == DISPEL_POISON ||
                     pair.second->GetBase()->GetSpellInfo()->Dispel == DISPEL_DISEASE)

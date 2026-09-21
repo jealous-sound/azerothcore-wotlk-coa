@@ -52,7 +52,7 @@ METRICS = {
     'spell_modifier', 'spell_cast_time_ms', 'spell_max_range', 'spell_max_stacks', 'spell_healing_done',
     'aura_crit_chance', 'aura_script_value', 'melee_hit_chance', 'spell_hit_chance', 'spell_power',
     'spell_done_crit_chance', 'melee_spell_damage_done', 'script_melee_damage_taken',
-    'script_spell_damage_taken', 'script_periodic_damage_taken', 'spell_effect_value',
+    'script_spell_damage_taken', 'script_periodic_damage_taken', 'script_heal_received', 'spell_effect_value',
     'block_chance', 'block_value', 'critical_block_chance', 'spell_critical_damage', 'armor_reduced_damage',
     'aoe_damage_taken', 'reputation_gain', 'spell_immune', 'spell_effect_immune', 'melee_attack_count',
     'distance', 'spell_proc_count', 'temporary_spell_replacement',
@@ -61,7 +61,8 @@ PLAYER_STAT_METRICS = {
     'melee_crit_chance', 'dodge_chance', 'parry_chance', 'expertise', 'combat_rating',
     'spell_modifier', 'spell_cast_time_ms', 'spell_max_range', 'spell_max_stacks', 'spell_healing_done',
     'melee_hit_chance', 'spell_hit_chance', 'spell_power', 'spell_done_crit_chance', 'melee_spell_damage_done',
-    'script_melee_damage_taken', 'script_spell_damage_taken', 'script_periodic_damage_taken', 'spell_effect_value',
+    'script_melee_damage_taken', 'script_spell_damage_taken', 'script_periodic_damage_taken',
+    'script_heal_received', 'spell_effect_value',
     'block_chance', 'block_value', 'critical_block_chance', 'spell_critical_damage', 'armor_reduced_damage',
     'aoe_damage_taken', 'reputation_gain', 'spell_immune', 'spell_effect_immune', 'melee_attack_count',
 }
@@ -266,7 +267,7 @@ def validate(scenario):
                     'spell_damage_done', 'spell_damage_taken', 'spell_modifier', 'spell_cast_time_ms',
                     'spell_max_range', 'spell_max_stacks', 'spell_healing_done', 'spell_done_crit_chance',
                     'melee_spell_damage_done', 'script_spell_damage_taken', 'script_periodic_damage_taken',
-                    'spell_effect_value', 'spell_critical_damage', 'armor_reduced_damage',
+                    'script_heal_received', 'spell_effect_value', 'spell_critical_damage', 'armor_reduced_damage',
                     'spell_immune', 'spell_effect_immune', 'spell_proc_count',
                     'temporary_spell_replacement'}:
                 require('spell' in step, f'{where}: metric needs spell')

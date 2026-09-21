@@ -979,6 +979,13 @@ private:
                 sScriptMgr->ModifySpellDamageTaken(player, attacker, damage, info);
                 return damage;
             }
+            if (metric == "script_heal_received")
+            {
+                // Same (target, healer) order as the periodic heal path in AuraEffect::HandlePeriodicHealAurasTick.
+                uint32 heal = 1000;
+                sScriptMgr->ModifyHealReceived(player, attacker, heal, info);
+                return heal;
+            }
             Require(metric == "script_periodic_damage_taken", "Unknown scripted damage metric");
             uint32 damage = 1000;
             sScriptMgr->ModifyPeriodicDamageAurasTick(player, attacker, damage, info);

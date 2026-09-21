@@ -306,7 +306,9 @@ spell damage bonus. `spell_done_crit_chance` and `melee_spell_damage_done` requi
 crit chance for that spell, and the weapon-spell damage bonus from a fixed base of 1000. `aura_crit_chance` reads a
 periodic aura effect's snapshotted crit chance; `aura_script_value` requires `key`. `script_melee_damage_taken`,
 `script_spell_damage_taken` and `script_periodic_damage_taken` require `target` as the attacker (and `spell` for
-the latter two) and return 1000 after the registered module damage-taken hooks. `set_health` also accepts a
+the latter two) and return 1000 after the registered module damage-taken hooks. `script_heal_received` requires
+`spell` and `target` as the healer and returns 1000 after the registered heal-received hooks, with the actor as recipient.
+`set_health` also accepts a
 creature actor.
 `open_item` takes `actor` and `item` and submits the native container-open packet, offering it to the
 packet hooks first as `WorldSession::Update` does. `close_loot` takes `actor`
