@@ -1684,10 +1684,17 @@ private:
                 caster = GetUnit(*id)->GetGUID();
             std::list<Creature*> creatures;
             player->GetCreatureListWithEntryInGrid(creatures, entry, 100.0f);
-            return std::count_if(creatures.begin(), creatures.end(), [player, spell, caster](Creature* creature)
+            float const minDistance = step.get<float>("min_distance", 0.0f);
+            bool const ownerDisplay = step.get<bool>("owner_display", false);
+            return std::count_if(creatures.begin(), creatures.end(),
+                [player, spell, caster, minDistance, ownerDisplay](Creature* creature)
             {
-                return creature->IsAlive() && creature->GetOwnerGUID() == player->GetGUID()
-                    && player->InSamePhase(creature) && (!spell || creature->GetAura(spell, caster));
+                return creature->IsAlive() && (creature->GetOwnerGUID() == player->GetGUID() ||
+                        creature->GetCreatorGUID() == player->GetGUID() ||
+                        (creature->ToTempSummon() && creature->ToTempSummon()->GetSummonerGUID() == player->GetGUID()))
+                    && player->InSamePhase(creature) && (!spell || creature->GetAura(spell, caster))
+                    && player->GetExactDist2d(creature) >= minDistance
+                    && (!ownerDisplay || creature->GetDisplayId() == player->GetDisplayId());
             });
         }
         if (metric == "bank_shows")

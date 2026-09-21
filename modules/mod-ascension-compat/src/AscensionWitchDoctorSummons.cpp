@@ -189,6 +189,9 @@ void Summon(Player* player, uint32 spell, Unit* target, Position const& location
 namespace
 {
 using namespace AscensionWitchDoctor;
+// Uncanny Likeness is also the visage of Reaper's Haunt (573425), which is not a Witch Doctor summon.
+constexpr uint32 NpcHauntVisage = 840000;
+constexpr float HauntRunDistance = 25.0f;
 class npc_ascension_witch_doctor : public ScriptedAI
 {
   public:
@@ -205,6 +208,23 @@ class npc_ascension_witch_doctor : public ScriptedAI
     void IsSummonedBy(WorldObject* summoner) override
     {
         Player* player = summoner ? summoner->ToPlayer() : nullptr;
+        if (player && player->getClass() == CLASS_REAPER && me->GetEntry() == NpcHauntVisage)
+        {
+            // A copy of the Reaper that runs away from them until the summon expires.
+            _owner = player->GetGUID();
+            me->SetOwnerGUID(_owner);
+            me->SetCreatorGUID(_owner);
+            me->SetFaction(player->GetFaction());
+            me->SetLevel(player->GetLevel());
+            me->SetDisplayId(player->GetDisplayId());
+            me->SetReactState(REACT_PASSIVE);
+            me->SetCombatMovement(false);
+            me->SetWalk(false);
+            float angle = player->GetExactDist2d(me) > 0.5f ? player->GetAbsoluteAngle(me) : player->GetOrientation();
+            me->GetMotionMaster()->MovePoint(1, me->GetNearPosition(HauntRunDistance,
+                Position::NormalizeOrientation(angle - me->GetOrientation())), FORCED_MOVEMENT_RUN);
+            return;
+        }
         if (!player || player->getClass() != CLASS_WITCH_DOCTOR)
             return;
         _owner = player->GetGUID();
@@ -352,6 +372,8 @@ class npc_ascension_witch_doctor : public ScriptedAI
             me->DespawnOrUnsummon();
             return;
         }
+        if (me->GetEntry() == NpcHauntVisage)
+            return; // The Reaper's visage only runs; its movement was started when it was summoned.
         _age += diff;
         if (me->GetEntry() == NpcFool)
         {

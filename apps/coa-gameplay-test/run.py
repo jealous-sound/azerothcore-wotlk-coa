@@ -88,7 +88,8 @@ PLAYER_STAT_METRICS = {
 }
 METRIC_FIELDS = {'actor', 'metric', 'spell', 'power', 'caster', 'effect', 'item', 'entry',
                  'relative_to', 'ratio_to', 'target', 'quest', 'id', 'stat', 'school', 'hand', 'rating', 'op',
-                 'base', 'key', 'index', 'pet', 'critical', 'target_pet', 'periodic', 'name'}
+                 'base', 'key', 'index', 'pet', 'critical', 'target_pet', 'periodic', 'name',
+                 'min_distance', 'owner_display'}
 ACTIONS = {
     'stop_attack': ({'actor'}, {'actor'}),
     'set_moving': ({'actor', 'enabled'}, {'actor', 'enabled'}),

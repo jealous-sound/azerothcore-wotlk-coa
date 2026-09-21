@@ -402,9 +402,9 @@ resource type, recipient and current pets. The total is the logged nominal gain 
 `display_id` reads the unit's selected server display ID; it does not verify client rendering or animations.
 `global_cooldown_ms` requires `spell` and reads the remaining native global cooldown for its recovery category.
 Player commands retain normal permission and gameplay checks; verify their effects with assertions.
-`owned_creature_count` requires a player and `entry`. It counts living creatures of that entry owned by
+`owned_creature_count` requires a player and `entry`. It counts living creatures of that entry owned, created or summoned by
 the player, in the same phase and within 100 yards, including summons outside the guardian-pet slot.
-An optional `spell` restricts the count to creatures with that aura; `caster` can select its aura owner.
+An optional `spell` restricts the count to creatures with that aura; `caster` can select its aura owner. `min_distance` keeps creatures at least that many yards from the player (2D), and `owner_display: true` those wearing the player's display.
 `owned_gameobject_count` requires a player and `entry`. It counts their summoned gameobjects of that entry
 in the same phase and within 100 yards. `gameobject_remaining_ms` uses the same lookup and requires exactly
 one object when present; it returns the remaining lifetime with one-second precision, zero when absent,
