@@ -847,6 +847,8 @@ namespace CoAChallenges
         if (flag == "OUTSIDE_AH")          return "used the auction house";
         if (flag == "OUTSIDE_VENDOR")      return "used a vendor";
         if (flag == "OUTSIDE_GUILD_BANK")  return "withdrawn from the guild bank";
+        if (flag == "OUTSIDE_BANK")        return "withdrawn from your bank";
+        if (flag == "OUTSIDE_REALM_BANK")  return "withdrawn from your realm bank";
         if (flag == "OUTSIDE_INTERACTION") return "interacted with the outside world";
         return nullptr;
     }
@@ -856,7 +858,8 @@ namespace CoAChallenges
     std::vector<char const*> AllOutsideFacets()
     {
         return { "OUTSIDE_MAIL", "OUTSIDE_TRADE", "OUTSIDE_AH", "OUTSIDE_VENDOR",
-                 "OUTSIDE_GUILD_BANK", "OUTSIDE_INTERACTION" };
+                 "OUTSIDE_GUILD_BANK", "OUTSIDE_BANK", "OUTSIDE_REALM_BANK",
+                 "OUTSIDE_INTERACTION" };
     }
 
     // Facet flags a given condition type checks (empty = not an outside type).
@@ -876,6 +879,10 @@ namespace CoAChallenges
             return { "OUTSIDE_VENDOR" };
         if (type == "CHALLENGE_CONDITIONS_TYPE_WITHDRAW_GUILD_BANK_MONEY_OR_ITEM")
             return { "OUTSIDE_GUILD_BANK" };
+        if (type == "CHALLENGE_CONDITIONS_TYPE_WITHDRAW_BANK_MONEY_OR_ITEM")
+            return { "OUTSIDE_BANK" };
+        if (type == "CHALLENGE_CONDITIONS_TYPE_WITHDRAW_REALM_BANK_MONEY_OR_ITEM")
+            return { "OUTSIDE_REALM_BANK" };
         return {};
     }
 

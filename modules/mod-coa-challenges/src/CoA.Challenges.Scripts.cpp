@@ -1,6 +1,7 @@
 // mod-coa-challenges (review split): CoA.Challenges.Scripts.cpp
 // Mechanical split of review-CoAChallenges.cpp; no logic changes.
 #include "CoA.Challenges.Review.h"
+#include "AscensionPersonalBank.h"
 #include "RBAC.h"
 #include "Random.h"
 
@@ -1969,11 +1970,18 @@ namespace CoAChallenges
             LoadChallengesEnabled();
         }
 
-        void OnStartup() override
-        {
-            EnsureTables();
-            LoadChallengeDefinitions();
-        }
+            void OnStartup() override
+            {
+                EnsureTables();
+                LoadChallengeDefinitions();
+                // Personal / realm bank withdrawals feed the OUTSIDE_INTERACTION
+                // gate. mod-ascension-compat owns those banks, so it calls back here.
+                AscensionPersonalBank::SetWithdrawHook([](Player* player, uint8 kind)
+                {
+                    MarkOutsideInteraction(player, kind == AscensionPersonalBank::REALM
+                        ? "OUTSIDE_REALM_BANK" : "OUTSIDE_BANK");
+                });
+            }
 
         void OnUpdate(uint32 diff) override
         {
