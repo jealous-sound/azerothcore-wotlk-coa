@@ -990,7 +990,7 @@ namespace CoAChallenges
     class CoAChallengesPlayer : public PlayerScript
     {
     public:
-        CoAChallengesPlayer() : PlayerScript("CoAChallengesPlayer", { PLAYERHOOK_ON_SEND_INITIAL_PACKETS_BEFORE_ADD_TO_MAP, PLAYERHOOK_ON_PLAYER_JUST_DIED, PLAYERHOOK_ON_PLAYER_RESURRECT, PLAYERHOOK_CAN_RESURRECT, PLAYERHOOK_CAN_SEND_MAIL, PLAYERHOOK_CAN_TAKE_MAIL_ITEM, PLAYERHOOK_CAN_TAKE_MAIL_MONEY, PLAYERHOOK_CAN_JOIN_LFG, PLAYERHOOK_CAN_JOIN_IN_BATTLEGROUND_QUEUE, PLAYERHOOK_CAN_JOIN_IN_ARENA_QUEUE, PLAYERHOOK_CAN_INIT_TRADE, PLAYERHOOK_CAN_PLACE_AUCTION_BID, PLAYERHOOK_ON_BEFORE_SEND_LOOT, PLAYERHOOK_ON_LEVEL_CHANGED, PLAYERHOOK_ON_CREATURE_KILL, PLAYERHOOK_ON_CREATURE_KILLED_BY_PET, PLAYERHOOK_ON_PLAYER_KILLED_BY_CREATURE, PLAYERHOOK_ON_PVP_KILL, PLAYERHOOK_ON_LOOT_ITEM, PLAYERHOOK_ON_PLAYER_COMPLETE_QUEST, PLAYERHOOK_ON_UPDATE, PLAYERHOOK_ON_LOGOUT, PLAYERHOOK_CAN_GROUP_INVITE, PLAYERHOOK_CAN_GROUP_ACCEPT, PLAYERHOOK_ON_UPDATE_CRAFTING_SKILL, PLAYERHOOK_ON_UPDATE_GATHERING_SKILL, PLAYERHOOK_ON_BEFORE_QUEST_COMPLETE, PLAYERHOOK_ON_QUEST_COMPUTE_EXP, PLAYERHOOK_ON_GIVE_EXP, PLAYERHOOK_ON_GET_MAX_ALLOWED_LEVEL, PLAYERHOOK_CAN_LEARN_TALENT, PLAYERHOOK_CAN_USE_ITEM, PLAYERHOOK_CAN_ENTER_MAP, PLAYERHOOK_CAN_EQUIP_ITEM, PLAYERHOOK_CAN_ENTER_MANASTORM, PLAYERHOOK_ON_PLAYER_ENVIRONMENTAL_DAMAGE, PLAYERHOOK_ON_PLAYER_BREATH_INVERTED, PLAYERHOOK_ON_BEFORE_BUY_ITEM_FROM_VENDOR, PLAYERHOOK_CAN_SELL_ITEM, PLAYERHOOK_ON_CAN_UPDATE_SKILL, PLAYERHOOK_ON_UPDATE_SKILL, PLAYERHOOK_ON_PLAYER_PVP_FLAG_CHANGE, PLAYERHOOK_ON_CAN_REGENERATE, PLAYERHOOK_ON_CAN_ENERGIZE, PLAYERHOOK_ON_CAN_GIVE_LEVEL, PLAYERHOOK_ON_BEFORE_TELEPORT, PLAYERHOOK_ON_DELETE_FROM_DB }) { }
+        CoAChallengesPlayer() : PlayerScript("CoAChallengesPlayer", { PLAYERHOOK_ON_SEND_INITIAL_PACKETS_BEFORE_ADD_TO_MAP, PLAYERHOOK_ON_PLAYER_JUST_DIED, PLAYERHOOK_ON_PLAYER_RESURRECT, PLAYERHOOK_CAN_RESURRECT, PLAYERHOOK_CAN_SEND_MAIL, PLAYERHOOK_CAN_JOIN_LFG, PLAYERHOOK_CAN_JOIN_IN_BATTLEGROUND_QUEUE, PLAYERHOOK_CAN_JOIN_IN_ARENA_QUEUE, PLAYERHOOK_CAN_INIT_TRADE, PLAYERHOOK_CAN_PLACE_AUCTION_BID, PLAYERHOOK_ON_BEFORE_SEND_LOOT, PLAYERHOOK_ON_LEVEL_CHANGED, PLAYERHOOK_ON_CREATURE_KILL, PLAYERHOOK_ON_CREATURE_KILLED_BY_PET, PLAYERHOOK_ON_PLAYER_KILLED_BY_CREATURE, PLAYERHOOK_ON_PVP_KILL, PLAYERHOOK_ON_LOOT_ITEM, PLAYERHOOK_ON_PLAYER_COMPLETE_QUEST, PLAYERHOOK_ON_UPDATE, PLAYERHOOK_ON_LOGOUT, PLAYERHOOK_CAN_GROUP_INVITE, PLAYERHOOK_CAN_GROUP_ACCEPT, PLAYERHOOK_ON_UPDATE_CRAFTING_SKILL, PLAYERHOOK_ON_UPDATE_GATHERING_SKILL, PLAYERHOOK_ON_BEFORE_QUEST_COMPLETE, PLAYERHOOK_ON_QUEST_COMPUTE_EXP, PLAYERHOOK_ON_GIVE_EXP, PLAYERHOOK_ON_GET_MAX_ALLOWED_LEVEL, PLAYERHOOK_CAN_LEARN_TALENT, PLAYERHOOK_CAN_USE_ITEM, PLAYERHOOK_CAN_ENTER_MAP, PLAYERHOOK_CAN_EQUIP_ITEM, PLAYERHOOK_CAN_ENTER_MANASTORM, PLAYERHOOK_ON_PLAYER_ENVIRONMENTAL_DAMAGE, PLAYERHOOK_ON_PLAYER_BREATH_INVERTED, PLAYERHOOK_ON_BEFORE_BUY_ITEM_FROM_VENDOR, PLAYERHOOK_CAN_SELL_ITEM, PLAYERHOOK_ON_CAN_UPDATE_SKILL, PLAYERHOOK_ON_UPDATE_SKILL, PLAYERHOOK_ON_PLAYER_PVP_FLAG_CHANGE, PLAYERHOOK_ON_CAN_REGENERATE, PLAYERHOOK_ON_CAN_ENERGIZE, PLAYERHOOK_ON_CAN_GIVE_LEVEL, PLAYERHOOK_ON_BEFORE_TELEPORT, PLAYERHOOK_ON_DELETE_FROM_DB }) { }
 
         // Runs on BOTH login paths (full + re-login-to-in-world; see
         // CharacterHandler.cpp:901 and :1215). Batch is idempotent.
@@ -1138,26 +1138,6 @@ namespace CoAChallenges
                 FailForEnvRule(player, "CHALLENGE_RULES_TYPE_FLOOR_IS_LAVA", type,
                     "The floor is lava! Your challenge has failed.");
 
-            return true;
-        }
-
-        // ---- Mailbox (#4205) ----
-        // NO_MAIL (rule) forbids receiving during the trial; otherwise taking a
-        // non-exempt item/currency taints the character for future trials
-        // (OUTSIDE_INTERACTION facet, pre-activation only).
-        bool OnPlayerCanTakeMailItem(Player* player, Item* item) override
-        {
-            if (MailTakeForbidden(player))
-                return false;
-            MarkMailTaken(player, item ? item->GetEntry() : 0);
-            return true;
-        }
-
-        bool OnPlayerCanTakeMailMoney(Player* player, uint32 /*money*/) override
-        {
-            if (MailTakeForbidden(player))
-                return false;
-            MarkMailTaken(player, 0);
             return true;
         }
 
@@ -2031,6 +2011,40 @@ namespace CoAChallenges
             }
 
             Player* player = session ? session->GetPlayer() : nullptr;
+
+            // Mail take (#4205). Handled here (not via a core hook) so the whole
+            // rule stays in the module, like the other opcodes below.
+            // - NO_MAIL / NO_OUTSIDE_INTERACTION forbid RECEIVING during a trial.
+            // - Otherwise taking a non-exempt item/currency taints the character
+            //   for the next trial activation (OUTSIDE_INTERACTION facet).
+            // Payload: mailbox ObjectGuid (8) then mailId (u32); take-item adds
+            // the item low guid (u32).
+            if (opcode == CMSG_MAIL_TAKE_ITEM && packet.size() >= 16)
+            {
+                if (MailTakeForbidden(player))
+                {
+                    if (player)
+                        player->SendMailResult(packet.read<uint32>(8), MAIL_ITEM_TAKEN, MAIL_ERR_INTERNAL_ERROR);
+                    return false;
+                }
+                if (player)
+                {
+                    Item* item = player->GetMItem(packet.read<uint32>(12));
+                    MarkMailTaken(player, item ? item->GetEntry() : 0);
+                }
+                return true;
+            }
+            if (opcode == CMSG_MAIL_TAKE_MONEY && packet.size() >= 12)
+            {
+                if (MailTakeForbidden(player))
+                {
+                    if (player)
+                        player->SendMailResult(packet.read<uint32>(8), MAIL_MONEY_TAKEN, MAIL_ERR_INTERNAL_ERROR);
+                    return false;
+                }
+                MarkMailTaken(player, 0);
+                return true;
+            }
 
             // NO_VENDOR_BUYBACK / NO_VENDORS / NO_OUTSIDE_INTERACTION: no vendor buyback.
             if (opcode == CMSG_BUYBACK_ITEM)
