@@ -37,6 +37,8 @@ bool Select(uint32 id, SpellInfo const* info)
         return false;
     }
 }
+// Spell script value holding the charges Aspect's Blessing had when the cast started.
+constexpr uint32 ChargesKey = 1802168;
 void Snapshot(Player* player, Spell* spell)
 {
     if (spell->IsTriggered())
@@ -48,6 +50,8 @@ void Snapshot(Player* player, Spell* spell)
                 if (!aura->GetScriptValue(802168))
                     aura->SetScriptValue(802168, ++State(player).sequence);
                 spell->SetScriptValue(id, aura->GetScriptValue(802168));
+                if (id == 802168 && !spell->GetScriptValue(ChargesKey))
+                    spell->SetScriptValue(ChargesKey, aura->GetCharges());
             }
 }
 void Finish(Player* player, Spell* spell)
@@ -56,8 +60,18 @@ void Finish(Player* player, Spell* spell)
         if (uint64 generation = spell->GetScriptValue(id))
             if (Aura* aura = player->GetAura(id); aura && generation == aura->GetScriptValue(802168))
             {
-                // Flames of Fate gives Aspect's Blessing extra charges through SPELLMOD_CHARGES.
-                if ((id == 524707 || id == 802168) && aura->GetCharges() > 1)
+                // Flames of Fate gives Aspect's Blessing extra charges through SPELLMOD_CHARGES. Once it has
+                // charges the core also drops one for the applied mod, so spend exactly one from the cast-start count.
+                if (id == 802168 && aura->IsUsingCharges())
+                {
+                    spell->m_appliedMods.erase(aura);
+                    uint32 const start = uint32(spell->GetScriptValue(ChargesKey));
+                    if (start > 1)
+                        aura->SetCharges(start - 1);
+                    else
+                        aura->Remove();
+                }
+                else if ((id == 524707 || id == 802168) && aura->GetCharges() > 1)
                     aura->SetCharges(aura->GetCharges() - 1);
                 else
                     aura->Remove();
