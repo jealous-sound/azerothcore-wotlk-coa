@@ -1,4 +1,4 @@
-"""Test Jungle Secrets with production callbacks and the existing completion fixture."""
+CLI_DESCRIPTION = """Test Jungle Secrets with production callbacks and the existing completion fixture."""
 import argparse
 import importlib.util
 from pathlib import Path
@@ -146,7 +146,7 @@ int main()
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument("--workspace-tools", type=Path, default=ROOT.parent / "tools")
     parser.add_argument("--source-ref", help="Use older Witch Doctor callbacks and contracts as a negative control")
     parser.add_argument("--spell-dbc", type=Path)

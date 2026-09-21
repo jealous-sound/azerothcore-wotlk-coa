@@ -1,4 +1,3 @@
-"""Execute Stormbringer cost rules and native stack spending with Charged Conduit."""
 import os
 from pathlib import Path
 import re
@@ -37,7 +36,6 @@ constexpr int SPELL_CAST_OK=0, SPELL_FAILED_CASTER_AURASTATE=1, SPELL_FAILED_NO_
 """
     code += extract(core, "void ModifyAscensionAuraStacks(") + "\n"
     cast = extract(service, "void OnSpellCast(")
-    # Retain production entry gates and the entire cost dispatch; gain dispatch is tested separately.
     cast = cast[:cast.index("        for (AscensionCompatData::ResourceGainRule")] + cast[
         cast.index("        for (AscensionCompatData::ResourceCostRule"):cast.index("        ConsumeReaperSouls")] + "}"
     code += "struct ResourceService {\n" + "\n".join(extract(service, signature) for signature in (

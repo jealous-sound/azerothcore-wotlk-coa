@@ -18,7 +18,6 @@ public:
         if (info->Id == WildCarnageBuff && info->SpellFamilyName == 37 &&
             info->Effects[EFFECT_0].IsAura(SPELL_AURA_ADD_FLAT_MODIFIER) &&
             info->Effects[EFFECT_0].MiscValue == SPELLMOD_JUMP_TARGETS)
-            // Wildclaw already has one chain target: four additional targets make five in total.
             info->Effects[EFFECT_0].BasePoints = 3;
     }
 };

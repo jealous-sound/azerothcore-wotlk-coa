@@ -1,4 +1,3 @@
-"""Verify the actual cache hooks and migration against the shipped world baseline."""
 import csv
 import os
 from pathlib import Path

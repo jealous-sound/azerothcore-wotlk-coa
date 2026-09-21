@@ -1,5 +1,3 @@
-"""Behavioral checks for scenario validation, process failures and database ownership."""
-
 import copy
 import io
 import json
@@ -650,7 +648,8 @@ class RunnerTests(unittest.TestCase):
             installed_handlers.append(run.signal.getsignal(run.signal.SIGTERM))
             return 0
 
-        with patch.object(run, 'execute', side_effect=fake_execute):
+        with patch.object(run, 'execute', side_effect=fake_execute), \
+                patch('workflow.run_registered', side_effect=lambda args, scenario, execute: execute(args, scenario)):
             code = run.main(arguments)
         self.assertEqual(code, 0)
         self.assertEqual(len(installed_handlers), 1)

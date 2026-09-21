@@ -22,7 +22,6 @@ public:
         if (item->GetEntry() != OrnateBankVoucher)
             return false;
 
-        // Finish the client's item request before consuming its inventory object.
         player->SendEquipError(EQUIP_ERR_NONE, item, nullptr);
         constexpr uint8 bankSlots = BANK_SLOT_BAG_END - BANK_SLOT_BAG_START;
         if (!player->IsAlive() || player->IsInCombat() || player->GetBankBagSlotCount() >= bankSlots)
@@ -33,8 +32,6 @@ public:
         uint32 count = 1;
         player->DestroyItemCount(item, count, true);
 
-        // The template's two charge-consuming casts would share the deleted item.
-        // Cast the cosmetic separately, without a cast-item pointer.
         player->CastSpell(player, UnlockVisual, true);
         return true;
     }

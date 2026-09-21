@@ -27,8 +27,6 @@ void ApplyContracts(SpellInfo* info)
         return;
     if (info->Id == 552011)
     {
-        // Shared PvP mitigation is evaluated alongside resilience, never as
-        // wildcard Mage spell modifiers.
         info->Effects[0].ApplyAuraName = info->Effects[1].ApplyAuraName = SPELL_AURA_DUMMY;
         return;
     }
@@ -47,8 +45,6 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[index].Amplitude = interval;
         info->Effects[index].TriggerSpell = 0;
     };
-    // Private event types have a single actual-result router on the caster and
-    // each owned minion.
     for (SpellEffectInfo& effect : info->Effects)
         if (effect.ApplyAuraName == 42 || effect.ApplyAuraName == 354)
         {
@@ -58,7 +54,6 @@ void ApplyContracts(SpellInfo* info)
     for (auto const& row : NecromancerSummons)
         if (row.spell == id)
             info->Effects[row.effect].MiscValueB = 64;
-    // Keep an occupancy aura as the minion's buff only; its spell modifiers are not part of the rebuilt kit.
     if (OccupancyCreature(id))
         for (auto& effect : info->Effects)
         {
@@ -103,8 +98,7 @@ void ApplyContracts(SpellInfo* info)
     for (uint32 legacy : {805013, 805014, 805018, 805268, 805269, 805270, 805271, 805602, 805608, 500494, 500524})
         if (id == legacy)
             for (auto& effect : info->Effects)
-                effect.Effect = 0; // resource state is reconstructed from living GUIDs,
-                                   // never delayed blind refunds
+                effect.Effect = 0;
     if (id == 804360)
         dummy(0);
     if (id == 573223)
@@ -119,7 +113,7 @@ void ApplyContracts(SpellInfo* info)
     if (id == 561318)
         info->Effects[0].ValueMultiplier = 1.0f;
     if (id == 573131)
-        info->DurationEntry = sSpellDurationStore.LookupEntry(1); // finite, refreshable ten-second army buff
+        info->DurationEntry = sSpellDurationStore.LookupEntry(1);
     if (id == 807098)
     {
         info->Effects[0].Effect = SPELL_EFFECT_DUMMY;
@@ -184,9 +178,6 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[1].MiscValue = SPELL_SCHOOL_MASK_ALL;
     }
     if (id == 500991)
-        // Grave March is baked with the "Anywhere" range (50000 yd); every other player-cast
-        // Command spell (Crypt Fiend, Banshee, Undead, Skeletal Warriors, ...) uses this same
-        // 30-yard range instead.
         info->RangeEntry = sSpellRangeStore.LookupEntry(SPELL_RANGE_THIRTY_YARDS);
     if (id == 300580)
         for (uint8 i = 0; i < MAX_SPELL_EFFECTS; ++i)
@@ -200,17 +191,16 @@ void ApplyContracts(SpellInfo* info)
     if (id == 681529)
         info->Effects[2].Effect = SPELL_EFFECT_APPLY_AURA;
     if (id == 500981)
-        info->Effects[2].Effect = 0; // immunity helper is attached and removed with the form
+        info->Effects[2].Effect = 0;
     if (id == 804371)
         info->Effects[0].MiscValue = 444914;
     if (id == 505224)
     {
         info->Effects[0].ApplyAuraName = SPELL_AURA_SCHOOL_ABSORB;
         info->Effects[0].MiscValue = SPELL_SCHOOL_MASK_MAGIC;
-        // The raised minion carries the shield: the DBC targets the caster and has no duration.
         info->Effects[0].TargetA = SpellImplicitTargetInfo(TARGET_UNIT_TARGET_ALLY);
         info->Effects[0].TargetB = SpellImplicitTargetInfo(0);
-        info->DurationEntry = sSpellDurationStore.LookupEntry(9); // 30 seconds
+        info->DurationEntry = sSpellDurationStore.LookupEntry(9);
     }
     if (id == 705746)
         info->Effects[0].ApplyAuraName = SPELL_AURA_SCHOOL_HEAL_ABSORB;
@@ -228,8 +218,7 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[1].ApplyAuraName = SPELL_AURA_MOD_STUN;
     }
     if (id == 801728)
-        dummy(1); // actual Frost-only stacking vulnerability is applied below, not
-                  // family-mask wildcard aura 271
+        dummy(1);
     if (id == 800979)
         info->Effects[1].SpellClassMask = flag96(0, 64, 0);
     if (id == 572777)
@@ -241,7 +230,7 @@ void ApplyContracts(SpellInfo* info)
     if (id == 801747)
         dummy(0);
     if (id == 704355 || (id >= 707399 && id <= 707402))
-        info->TargetAuraState = 0; // "Requires Frozen Target" is checked in OnSpellCheckCast so Permafrost counts too
+        info->TargetAuraState = 0;
     for (uint32 charge : {800979, 572777, 707176, 807856, 801747})
         if (id == charge)
             info->ProcCharges = info->ProcFlags = 0;
@@ -281,16 +270,15 @@ void ApplyContracts(SpellInfo* info)
     if (id == 504845)
         info->Effects[1].Effect = 0;
     if (id == 800043)
-        info->Effects[1].Effect = info->Effects[2].Effect = 0; // one owned hook movement, no additional native pull
+        info->Effects[1].Effect = info->Effects[2].Effect = 0;
     if (id == 500933)
         info->Effects[1].Effect = 0;
     if (id == 500729)
-        info->Effects[0].Effect = 0; // the visible Shade spell owns transformation,
-                                     // without a missing shapeshift row
+        info->Effects[0].Effect = 0;
     if (id == 803782)
         info->DurationEntry = sSpellDurationStore.LookupEntry(1);
     if (id == 801938)
-        info->Effects[1].Effect = 0; // Infest marker belongs to the caster's copied-disease snapshot
+        info->Effects[1].Effect = 0;
     if (id == 707133)
     {
         dummy(0);
@@ -312,7 +300,7 @@ void ApplyContracts(SpellInfo* info)
     if (id == 500267)
         info->Effects[1].Effect = 0;
     if (id == 500307)
-        info->Effects[0].Effect = 0; // refund amount is calculated once on full Blight expiration
+        info->Effects[0].Effect = 0;
     if ((id >= 533236 && id <= 533239) || Family(info, 2, 67108864) || id == 802121)
     {
         info->Effects[0].Effect = SPELL_EFFECT_DUMMY;
@@ -322,11 +310,9 @@ void ApplyContracts(SpellInfo* info)
     }
     if (id == 805031)
     {
-        info->Effects[0].Effect = 0; // owner-controlled sacrifice already removed the selected minion
+        info->Effects[0].Effect = 0;
         info->Effects[1].TargetA = SpellImplicitTargetInfo(TARGET_UNIT_TARGET_ALLY);
         info->Effects[1].TargetB = SpellImplicitTargetInfo();
-        // the owner-controlled path casts this on the player, not the sacrificed minion, so the
-        // stale "must target a Necro Minion" requirement (805026) would otherwise block the heal
         info->TargetAuraSpell = 0;
     }
     if (id == 801514)
@@ -350,7 +336,7 @@ void ApplyContracts(SpellInfo* info)
             info->Effects[0].TargetB = SpellImplicitTargetInfo();
         }
 }
-} // namespace AscensionNecromancer
+}
 
 namespace
 {
@@ -375,7 +361,7 @@ float Factor(Player* player, Unit* target, SpellInfo const* info, bool periodic)
     if (info->Id == 800343 && player->HasAura(704723))
         factor *= 1.0f + player->GetAuraCount(706504) * 0.1f;
     if (periodic && Named(info, 500968))
-        factor *= 2.0f - target->GetHealthPct() / 100.0f; // missing-health curve is a documented local choice
+        factor *= 2.0f - target->GetHealthPct() / 100.0f;
     if (info->Id == 533240 && player->HasAura(503738))
         factor *= 1.25f;
     if (info->Id == 803779 && player->HasAura(561164))
@@ -437,10 +423,10 @@ class necromancer_scaling : public UnitScript
             if (info && info->SpellFamilyName == 29 && !info->HasAttribute(SPELL_ATTR4_IGNORE_DAMAGE_TAKEN_MODIFIERS))
                 damage = uint32(damage * Factor(player, target, info, true));
     }
-    void OnBeforeRollMeleeOutcomeAgainst(Unit const* attacker, Unit const* /*victim*/, WeaponAttackType /*attack*/,
-                                         int32& /*maxSkill*/, int32& /*victimMaxSkill*/, int32& /*skill*/,
-                                         int32& /*defense*/, int32& crit, int32& /*miss*/, int32& dodge, int32& parry,
-                                         int32& /*block*/) override
+    void OnBeforeRollMeleeOutcomeAgainst(Unit const* attacker, Unit const*, WeaponAttackType,
+                                         int32&, int32&, int32&,
+                                         int32&, int32& crit, int32&, int32& dodge, int32& parry,
+                                         int32&) override
     {
         Player* player = Owner(attacker);
         if (!player || !IsMinion(player, attacker))
@@ -448,14 +434,12 @@ class necromancer_scaling : public UnitScript
         crit += int32(std::max(0.0f, player->GetFloatValue(PLAYER_CRIT_PERCENTAGE) - 5.0f) * 100);
         if (player->HasAura(561138))
             crit = 10000;
-        // One percent inherited hit offsets one percent dodge/parry in the local
-        // reconstruction.
         int32 expertise = int32(std::max(0.0f, player->m_modMeleeHitChance) * 100);
         dodge = std::max(0, dodge - expertise);
         parry = std::max(0, parry - expertise);
     }
 };
-} // namespace
+}
 void AddAscensionNecromancerContractScripts()
 {
     new necromancer_scaling();

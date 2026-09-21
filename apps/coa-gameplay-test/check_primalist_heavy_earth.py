@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check Heavy Earth's percentage of completed native Barrage damage."""
+CLI_DESCRIPTION = """Check Heavy Earth's percentage of completed native Barrage damage."""
 
 import argparse
 import json
@@ -23,7 +23,7 @@ def check(directory, prefix=''):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument('result_directory', type=Path)
     parser.add_argument('--prefix', default='')
     args = parser.parse_args()

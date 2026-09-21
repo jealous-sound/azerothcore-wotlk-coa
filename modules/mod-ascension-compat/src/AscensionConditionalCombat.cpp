@@ -45,8 +45,6 @@ void ApplyAscensionConditionalCombatContracts(SpellInfo* spellInfo)
             if (!HasExpectedEvilDoersLegacy(spellInfo))
                 continue;
 
-            // The level passive is always present. Its guarantee checks the
-            // enemy's health when Stake hits; there is no unconditional +10%.
             spellInfo->TargetAuraState = 0;
             spellInfo->Effects[EFFECT_0].Effect = 0;
         }

@@ -111,7 +111,7 @@ void ExitParasite(Player* player)
     player->removeSpell(803537,SPEC_MASK_ALL,true);
     state.parasiteExit = false;
 }
-} // namespace AscensionVenomancer
+}
 namespace
 {
 using namespace AscensionVenomancer;
@@ -145,7 +145,7 @@ struct npc_ascension_venomancer_summon : public ScriptedAI
         me->UpdateDamagePhysical(BASE_ATTACK);
         State(player).summons.insert(me->GetGUID());
         if (me->GetEntry() == MushroomEntry)
-            Cast(me,me,31690); // Native Underbog mushroom visual on its invisible carrier.
+            Cast(me,me,31690);
         timers.ScheduleEvent(me->GetEntry() == MushroomEntry ? Detonate : Pulse,
             me->GetEntry() == MushroomEntry ? 2000ms : 200ms);
     }

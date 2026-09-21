@@ -1,4 +1,3 @@
-"""Run the Closest Town / Closest City resurrection callbacks and their SQL binding without a server."""
 import os
 from pathlib import Path
 import runpy
@@ -210,15 +209,14 @@ def compile_and_run(code):
 
 
 def check_client_spells(path):
-    """When a client Spell.dbc is supplied, both spells must be dummy effects castable while dead."""
     raw = Path(path).read_bytes()
     count = struct.unpack_from("<I", raw, 4)[0]
     wanted = {84423, 84433}
     rows = {r[0]: r for r in struct.iter_unpack("<234I", raw[20:20 + count * 936]) if r[0] in wanted}
     assert set(rows) == wanted
     for row in rows.values():
-        assert row[71] == 3            # SPELL_EFFECT_DUMMY in EFFECT_0, as the script registers.
-        assert row[4] & 0x800000       # SPELL_ATTR0_ALLOW_CAST_WHILE_DEAD
+        assert row[71] == 3
+        assert row[4] & 0x800000
 
 
 def main():
@@ -227,7 +225,7 @@ def main():
     assert "OnEffectHit += SpellEffectFn(spell_ascension_closest_resurrection::Resurrect, EFFECT_0, SPELL_EFFECT_DUMMY)" in source
     assert "PLAYERHOOK_ON_LOGIN" in source and "learnSpell(spellId, false)" in source
     loader = (ROOT / "modules/mod-ascension-compat/src/MP_loader.cpp").read_text(encoding="utf-8")
-    assert loader.count("AddSC_AscensionClosestResurrection();") == 2  # Declared and called.
+    assert loader.count("AddSC_AscensionClosestResurrection();") == 2
     compile_and_run(build_harness(source))
     if os.environ.get("COA_CLIENT_DBC"):
         check_client_spells(os.environ["COA_CLIENT_DBC"])

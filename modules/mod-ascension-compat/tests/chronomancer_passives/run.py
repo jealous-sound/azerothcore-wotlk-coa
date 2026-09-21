@@ -1,4 +1,4 @@
-"""Exercise Shimmering Shard's actual completed-cast hook and native helper contract."""
+CLI_DESCRIPTION = """Exercise Shimmering Shard's actual completed-cast hook and native helper contract."""
 import argparse
 import importlib.util
 from pathlib import Path
@@ -119,7 +119,7 @@ int main()
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument("--workspace-tools", type=Path, default=ROOT.parent / "tools")
     parser.add_argument("--spell-dbc", type=Path)
     args = parser.parse_args()
@@ -181,7 +181,6 @@ def main():
         assert rows[806303][71:73] == (6, 6) and rows[806303][95:97] == (79, 136)
         assert rows[806303][80] + rows[806303][74] == 4
         assert rows[806303][40] == 18 and rows[806303][49] == 3
-        # Displacement already supplies a native pull and both mechanic dispels.
         assert rows[806727][71:74] == (124, 108, 108)
         assert rows[806727][86:89] == (57, 57, 57) and rows[806727][111:113] == (7, 11)
         assert rows[802790][71:74] == (3, 5, 5) and rows[802790][86] == 25

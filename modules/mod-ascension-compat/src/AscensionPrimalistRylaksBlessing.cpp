@@ -31,7 +31,6 @@ class aura_ascension_rylaks_blessing : public AuraScript
 
     void Remove(AuraEffect const*, AuraEffectHandleModes)
     {
-        // Effect 190 keeps the timed holder on the owner and applies its bonuses only to the pet.
         GetTarget()->RemoveAurasDueToSpell(RylaksBlessingBuff, GetCasterGUID());
     }
 

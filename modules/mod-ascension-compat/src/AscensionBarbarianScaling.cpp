@@ -33,15 +33,10 @@ void PrepareAscensionBarbarianScaling(Spell* spell)
         sSpellMgr->GetSpellBonusData(info->Id))
         return;
 
-    // This child is CLASS_NONE with no ranged equipment mask: the native SQL
-    // AP coefficient would select melee AP. Preserve its hit/crit/target flags
-    // and add explicit RAP to the already forwarded rank value before effects.
     double bonus = player->GetTotalAttackPowerValue(RANGED_ATTACK) * BERSERKER_RUSH_RAP_COEFFICIENT;
     if (!std::isfinite(bonus) || bonus < 0 || bonus > std::numeric_limits<int32>::max())
         return;
 
-    // SetSpellValue expects a calculated amount and subtracts DieSides' +1.
-    // Cancel only that encoding adjustment; do not reroll or discard rank BP.
     int64 value = int64(spell->GetSpellValue()->EffectBasePoints[EFFECT_0]) + 1 + int32(bonus);
     if (value < std::numeric_limits<int32>::min() || value > std::numeric_limits<int32>::max() ||
         !spell->TryMarkScriptEventHandled(BARBARIAN_RUSH_SCALING_EVENT))

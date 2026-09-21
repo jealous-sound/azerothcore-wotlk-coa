@@ -109,15 +109,11 @@ void HandleAscensionClassMechanics12To17Hit(Spell* spell, Player* player,
     {
         case CLASS_BARBARIAN:
         {
-            // Thirst for Battle: 25% maximum Energy on a successful Smash hit.
             if (player->HasAura(SPELL_BARBARIAN_THIRST_FOR_BATTLE) && IsSpellInRanges(spellId, BARBARIAN_SMASH))
                 player->CastSpell(player, SPELL_BARBARIAN_THIRST_ENERGIZE, true);
 
             if (IsSpellInRanges(spellId, BARBARIAN_HEADHUNTERS_SPEAR))
             {
-                // Every successful spear hit restores the advertised 30% of
-                // maximum Energy. Giant Tosser adds another 15% only beyond
-                // its explicit 20-yard boundary.
                 player->CastSpell(player,
                     SPELL_BARBARIAN_HEADHUNTER_ENERGIZE, true);
                 if (player->HasAura(SPELL_BARBARIAN_GIANT_TOSSER) &&
@@ -133,8 +129,6 @@ void HandleAscensionClassMechanics12To17Hit(Spell* spell, Player* player,
                 (IsSpellInRanges(spellId, BARBARIAN_ANCESTRAL_STRIKE) ||
                     IsSpellInRanges(spellId, BARBARIAN_BRUTAL_SWING)))
             {
-                // The copied 560915 helper restores 20, contradicting the
-                // current live tooltip's 10; use the exact native amount.
                 player->ModifyPower(POWER_ENERGY,
                     BARBARIAN_RELENTLESS_ENERGY);
             }
@@ -157,8 +151,6 @@ void HandleAscensionClassMechanics12To17Hit(Spell* spell, Player* player,
         {
             if (spellId == SPELL_FELSWORN_TYRANTS_GAZE)
             {
-                // The tooltip says "an enemy" and the active is an AoE: heal
-                // and generate once for every enemy actually damaged.
                 player->CastSpell(player,
                     SPELL_FELSWORN_TYRANTS_GAZE_HEAL, true);
             }

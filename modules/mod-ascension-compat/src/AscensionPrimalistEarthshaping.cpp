@@ -55,8 +55,6 @@ void SynchronizeEarthshapingHelpers(Unit* owner, bool remove)
             helper = owner->AddAura(spellId, owner);
         if (helper)
         {
-            // SetStackAmount also recalculates Blessing's effect-2 modifier.
-            // The visible aura alone owns expiry, including no-refresh gains.
             helper->SetStackAmount(main->GetStackAmount());
             helper->SetDuration(-1);
         }
@@ -76,8 +74,6 @@ bool ValidateEarthshapingHelpers()
             helper->HasAttribute(SPELL_ATTR0_CU_FORCE_AURA_SAVING))
             return false;
 
-    // Refuse the old wildcard damage modifier if the metadata correction was
-    // not installed. Every other effect keeps its native calculation path.
     return stoneshard->Effects[EFFECT_0].IsAura(SPELL_AURA_DUMMY) &&
         stoneshard->Effects[EFFECT_1].IsAura(SPELL_AURA_ADD_PCT_MODIFIER) &&
         stoneshard->Effects[EFFECT_1].SpellClassMask == flag96(0, 512, 0) &&
@@ -191,14 +187,11 @@ bool HandleAscensionPrimalistEarthshapingGain(Player* player)
     if (player->HasAura(SPELL_HEAVY_EARTH, player->GetGUID()))
         return true;
 
-    // Check the old count: reaching ten is not a gain made while already at ten.
-    // A gain attempted at the fifteen-stack cap still grants or refreshes Dream.
     if (player->HasAura(SPELL_DREAM, player->GetGUID()))
         if (Aura const* resource = player->GetAura(SPELL_EARTHSHAPING, player->GetGUID());
             resource && resource->GetStackAmount() >= 10)
             player->CastSpell(player, SPELL_DREAM_BUFF, TRIGGERED_FULL_MASK);
 
-    // Cataclysm rolls only for a resource gain, not an attempt at the stack cap.
     if (Aura const* talent = player->GetAura(SPELL_CATACLYSM, player->GetGUID()))
     {
         Aura const* resource = player->GetAura(SPELL_EARTHSHAPING, player->GetGUID());
@@ -230,8 +223,6 @@ void ApplyAscensionPrimalistEarthshapingContracts(SpellInfo* spellInfo)
         if (spellInfo->Id == spellId && spellInfo->StackAmount == 15)
             spellInfo->AttributesCu |= SPELL_ATTR0_CU_AURA_CANNOT_BE_SAVED;
 
-    // Eruption's visible description specifies Firestorm damage and the higher
-    // of Fire/Nature power. The native multi-school mask also selects resistance.
     if (spellInfo->Id == SPELL_MAGMA_GEODE && spellInfo->SchoolMask == SPELL_SCHOOL_MASK_FIRE &&
         spellInfo->Effects[EFFECT_0].Effect == SPELL_EFFECT_SCHOOL_DAMAGE)
         spellInfo->SchoolMask = SPELL_SCHOOL_MASK_FIRE | SPELL_SCHOOL_MASK_NATURE;
@@ -239,8 +230,6 @@ void ApplyAscensionPrimalistEarthshapingContracts(SpellInfo* spellInfo)
     if (spellInfo->Id == SPELL_ERUPTION)
     {
         SpellEffectInfo& bonus = spellInfo->Effects[EFFECT_2];
-        // This leftover self modifier adds 40% beyond the visible per-stone
-        // formula. Keep the periodic trigger and native duration/haste handling.
         if (bonus.IsAura(SPELL_AURA_ADD_PCT_MODIFIER) && bonus.MiscValue == SPELLMOD_DAMAGE &&
             bonus.BasePoints == 39 && bonus.SpellClassMask == flag96(0, 0, 128))
             bonus.ApplyAuraName = SPELL_AURA_DUMMY;

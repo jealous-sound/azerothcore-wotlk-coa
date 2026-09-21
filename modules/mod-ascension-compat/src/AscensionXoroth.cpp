@@ -22,7 +22,7 @@ namespace
 {
 std::unordered_map<ObjectGuid, std::unique_ptr<XorothState>> states;
 std::mutex stateMutex;
-} // namespace
+}
 Player* Owner(Unit const* unit)
 {
     Player* player = unit ? const_cast<Unit*>(unit)->ToPlayer() : nullptr;
@@ -31,9 +31,6 @@ Player* Owner(Unit const* unit)
 XorothState& State(Player* player)
 {
     std::lock_guard<std::mutex> lock(stateMutex);
-    // The map is locked for the lookup only: the caller then reads and writes the state with no
-    // lock held. Kept by pointer, the state itself never moves, so an insert for another player
-    // rehashing the map cannot leave that caller writing into freed memory.
     return *states.try_emplace(player->GetGUID(), std::make_unique<XorothState>()).first->second;
 }
 bool Named(SpellInfo const* info, uint32 root)
@@ -211,7 +208,6 @@ void Refresh(Player* player)
     {
         if (!pet->HasAura(520662))
             Cast(player, pet, 520662);
-        // Firebolt is the free triggered attack of temporary Hellfire Imps, not a permanent pet ability.
         if (pet->HasSpell(800444))
         {
             pet->ToggleAutocast(sSpellMgr->GetSpellInfo(800444), false);
@@ -309,7 +305,7 @@ void Spread(Player* player, Unit* target)
             break;
     }
 }
-} // namespace AscensionXoroth
+}
 namespace
 {
 class xoroth_player : public PlayerScript
@@ -361,7 +357,7 @@ class xoroth_player : public PlayerScript
         states.erase(player->GetGUID());
     }
 };
-} // namespace
+}
 void AddSC_AscensionXoroth()
 {
     new xoroth_player();

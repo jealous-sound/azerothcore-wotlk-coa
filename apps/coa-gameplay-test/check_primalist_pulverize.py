@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check Pulverize repeats the rank's area amount after native mitigation."""
+CLI_DESCRIPTION = """Check Pulverize repeats the rank's area amount after native mitigation."""
 
 import argparse
 import json
@@ -24,6 +24,6 @@ def check(directory):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument('result_directory', type=Path)
     check(parser.parse_args().result_directory)

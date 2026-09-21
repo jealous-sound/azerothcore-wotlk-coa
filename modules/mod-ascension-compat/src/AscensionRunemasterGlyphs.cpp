@@ -70,8 +70,6 @@ void GenerateGlyph(Unit* caster)
     if (!caster->HasAura(SPELL_FROST_GLYPH_PASSIVE))
         return;
 
-    // Evaluate the previously active carriers before granting anything. Each
-    // cast grants one glyph, and never replaces another glyph's remaining time.
     uint32 glyph = SPELL_FROST_GLYPH;
     if (caster->HasAura(SPELL_ARCANE_GLYPH_PASSIVE) && caster->HasAura(SPELL_FLAME_GLYPH, caster->GetGUID()))
         glyph = SPELL_ARCANE_GLYPH;
@@ -139,8 +137,6 @@ class spell_ascension_runemaster_glyph_cast : public SpellScript
                 caster->RemoveAurasDueToSpell(carriers[i], caster->GetGUID());
         }
 
-        // Keep Overload active through native target selection and calculation:
-        // it supplies Arcane damage, Flame chain targets and Arcane Student crit.
         for (std::size_t i = 0; i < carriers.size(); ++i)
             if (active[i])
             {
@@ -182,7 +178,6 @@ class spell_ascension_runemaster_glyph_payload : public SpellScript
         Unit* caster = GetCaster();
         _overloaded = caster->HasAura(SPELL_GLYPHIC_OVERLOAD, caster->GetGUID());
         double const level = caster->GetLevel();
-        // SpellDescriptionVariables182, referenced by each current glyph carrier.
         double const scale = 0.0267291844060354 + 0.0048541098014737 * level +
             0.0001859597762293 * level * level;
         for (uint8 i = EFFECT_0; i < MAX_SPELL_EFFECTS; ++i)
@@ -193,8 +188,6 @@ class spell_ascension_runemaster_glyph_payload : public SpellScript
                 GetSpellValue()->EffectBasePoints[i] != effect.BasePoints)
                 continue;
 
-            // Set the raw base before CalcValue applies native effect modifiers;
-            // both direct and periodic SP terms stay in spell_bonus_data.
             GetSpell()->SetSpellValue(SpellValueMod(SPELLVALUE_BASE_POINT0 + i),
                 int32(double(effect.BasePoints + 1) * scale));
         }
@@ -220,8 +213,6 @@ class spell_ascension_runemaster_glyph_payload : public SpellScript
 
     void PreventRepeatedFlameChains(std::list<WorldObject*>& targets)
     {
-        // The direct Flame hit already selected its two additional enemies.
-        // Its attached DoT must not independently chain from each of those hits.
         if (GetSpellInfo()->Id == SPELL_OVERLOADED_FLAME)
             targets.clear();
     }
@@ -260,7 +251,7 @@ class spell_ascension_runemaster_overloaded_frost : public AuraScript
         return IsRunemaster(GetCaster());
     }
 
-    void AfterRootExpires(AuraEffect const* /*effect*/, AuraEffectHandleModes /*mode*/)
+    void AfterRootExpires(AuraEffect const*, AuraEffectHandleModes)
     {
         if (GetTargetApplication()->GetRemoveMode() != AURA_REMOVE_BY_EXPIRE)
             return;
@@ -289,8 +280,6 @@ void ApplyAscensionRunemasterGlyphContracts(SpellInfo* info)
             legacyCrit.IsAura(SPELL_AURA_ADD_FLAT_MODIFIER) && legacyCrit.MiscValue == SPELLMOD_CRITICAL_CHANCE &&
             legacyCrit.BasePoints == 2 && legacyCrit.DieSides == 1 && !legacyCrit.SpellClassMask)
         {
-            // This identity unlocks the Arcane glyph. The copied legacy Air
-            // damage and zero-mask class-wide crit modifiers are not its contract.
             legacyDamage.ApplyAuraName = SPELL_AURA_DUMMY;
             legacyCrit.ApplyAuraName = SPELL_AURA_DUMMY;
         }

@@ -37,9 +37,6 @@ void ApplyAscensionGuardianResourceContracts(SpellInfo* info)
 
     AscensionGuardian::ApplyContracts(info);
 
-    // Native spell modifiers consume charges once per affected successful cast,
-    // including delayed missiles. Do not add a spell_proc row for these auras:
-    // Player::RemoveSpellMods delegates charge ownership when one is present.
     if (info->Id == 802303 && info->Effects[EFFECT_0].IsAura(SPELL_AURA_ADD_PCT_MODIFIER) &&
         info->Effects[EFFECT_0].MiscValue == SPELLMOD_DAMAGE && !info->ProcFlags)
     {
@@ -54,14 +51,12 @@ void ApplyAscensionGuardianResourceContracts(SpellInfo* info)
     if ((info->Id == 572820 || info->Id == 552780 || info->Id == 583027 || info->Id == 524615) &&
         !info->ProcFlags &&
         info->Effects[EFFECT_0].IsAura(SPELL_AURA_ADD_PCT_MODIFIER))
-        info->ProcCharges = 1; // Harrowing Melody / Pied Piper: the next matching cast.
+        info->ProcCharges = 1;
 
     if (info->Id == 807728 && info->Effects[EFFECT_0].IsAura(SPELL_AURA_ADD_FLAT_MODIFIER) &&
         info->Effects[EFFECT_0].MiscValue == SPELLMOD_EFFECT1 &&
         info->Effects[EFFECT_0].SpellClassMask == flag96(0, 4097, 0))
     {
-        // This helper is present only with Footman's Calling and Tower/Line.
-        // Use the same -10% on both formations, preserving its separate threat aura.
         info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_MOD_DAMAGE_PERCENT_TAKEN;
         info->Effects[EFFECT_0].MiscValue = SPELL_SCHOOL_MASK_ALL;
         info->Effects[EFFECT_0].SpellClassMask = flag96();
@@ -70,24 +65,24 @@ void ApplyAscensionGuardianResourceContracts(SpellInfo* info)
     if ((info->Id == 802286 || (info->Id >= 802734 && info->Id <= 802738)) &&
         info->Effects[EFFECT_1].Effect == SPELL_EFFECT_TRIGGER_SPELL &&
         info->Effects[EFFECT_1].TriggerSpell == 504721)
-        info->Effects[EFFECT_1].Effect = 0; // Champion grants this conditionally below.
+        info->Effects[EFFECT_1].Effect = 0;
 
     if (info->Id == 504383 && info->Effects[EFFECT_1].IsAura(SPELL_AURA_ADD_FLAT_MODIFIER) &&
         info->Effects[EFFECT_1].MiscValue == SPELLMOD_CRITICAL_CHANCE &&
         info->Effects[EFFECT_1].BasePoints == 24 && info->Effects[EFFECT_1].DieSides == 1)
-        info->Effects[EFFECT_1].BasePoints = -26; // With Honor: -25 percentage points.
+        info->Effects[EFFECT_1].BasePoints = -26;
 
     if (info->Id == 504383 && info->Effects[EFFECT_0].IsAura(SPELL_AURA_ADD_FLAT_MODIFIER) &&
         info->Effects[EFFECT_0].MiscValue == SPELLMOD_COOLDOWN &&
         info->Effects[EFFECT_0].BasePoints == -4001 && info->Effects[EFFECT_0].DieSides == 1 &&
         info->Effects[EFFECT_0].SpellClassMask == flag96())
-        info->Effects[EFFECT_0].SpellClassMask = flag96(256, 268435584, 0); // With Honor: -4s on Ram, all ranks.
+        info->Effects[EFFECT_0].SpellClassMask = flag96(256, 268435584, 0);
 
     if ((info->Id == 504730 || info->Id == 504883) &&
         info->Effects[EFFECT_0].IsAura(SPELL_AURA_ADD_PCT_MODIFIER) &&
         info->Effects[EFFECT_0].MiscValue == SPELLMOD_CRIT_DAMAGE_BONUS &&
         info->Effects[EFFECT_0].SpellClassMask == flag96(0, 1074790400, 0))
-        info->Effects[EFFECT_0].SpellClassMask[2] |= 2048; // Centurion Strike, all six ranks.
+        info->Effects[EFFECT_0].SpellClassMask[2] |= 2048;
 
     if (info->Id == 803417 && info->Effects[EFFECT_2].IsAura(SPELL_AURA_MOD_DAMAGE_PERCENT_TAKEN) &&
         info->Effects[EFFECT_2].MiscValue == SPELL_SCHOOL_MASK_MAGIC)
@@ -105,8 +100,6 @@ void HandleAscensionGuardianResourceCast(Spell* spell)
     uint32 id = spell->GetSpellInfo()->Id;
     if (id == 572612)
     {
-        // Sound of War is itself a triggered AoE. These are per-cast grants,
-        // independent of how many enemies it hits.
         if (player->HasAura(504782))
             player->CastSpell(player, 505198, true);
         SpellInfo const* source = spell->GetTriggeredByAuraSpellInfo();

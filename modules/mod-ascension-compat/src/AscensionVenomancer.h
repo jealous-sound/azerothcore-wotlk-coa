@@ -70,5 +70,5 @@ void Mushroom(Player* player, Position const& position, float coefficient = .25f
 void Summon(Player* player, Unit* target, uint32 spell, Position const* position = nullptr);
 void ExitParasite(Player* player);
 void ApplyContracts(SpellInfo* info);
-} // namespace AscensionVenomancer
+}
 #endif

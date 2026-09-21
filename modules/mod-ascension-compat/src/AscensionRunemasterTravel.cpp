@@ -81,7 +81,6 @@ void ClearTravel(Player* player, uint32 spell)
 {
     ObjectGuid guid = MarkerGuid(player->GetGUID(), spell);
     Creature* marker = FindMarker(player, spell);
-    // Remove ownership before aura/spell callbacks can re-enter this function.
     ForgetMarker(player->GetGUID(), spell, guid);
     player->SetTemporarySpellReplacement(spell, 0);
     player->removeSpell(ReturnSpell(spell), SPEC_MASK_ALL, true);
@@ -127,9 +126,6 @@ bool StartTravel(Player* player, uint32 spell)
     player->ApplySpellMod(info->Id, SPELLMOD_DURATION, duration);
     if (duration <= 0)
         return false;
-    // SummonProperties 61 forces a Guardian to follow after IsSummonedBy. Let
-    // the owning aura control this marker's lifetime so a late map update cannot
-    // expire a second, independent timer before Echo's return callback executes.
     TempSummon* marker = player->SummonCreature(TravelEntry(spell), player->GetPosition(),
         TEMPSUMMON_MANUAL_DESPAWN);
     if (!marker)
@@ -141,8 +137,6 @@ bool StartTravel(Player* player, uint32 spell)
         travelMarkers[{player->GetGUID(), spell}] = marker->GetGUID();
     }
     uint32 child = ReturnSpell(spell);
-    // Native temporary learning is not saved and must not resurrect a pending
-    // deletion or replace independently owned permanent/other-spec spell records.
     if (player->GetSpellMap().find(child) == player->GetSpellMap().end())
         player->learnSpell(child, true);
     player->SetTemporarySpellReplacement(spell, child);
@@ -156,8 +150,6 @@ bool StartTravel(Player* player, uint32 spell)
         player->CastSpell(player, SPELL_WARP_READY, true);
         marker->CastSpell(marker, SPELL_WARP_VISUAL, true);
         Position destination = player->GetFirstCollisionPosition(30.0f, 0.0f);
-        // Native run speed plus the captured +200% travel aura. The straight
-        // segment ends at the first collision; no pathfinding around obstacles.
         marker->GetMotionMaster()->MovePoint(POINT_WARP_DESTINATION, destination,
             FORCED_MOVEMENT_RUN, 0.0f, false);
     }
@@ -262,8 +254,6 @@ class spell_ascension_runemaster_return : public SpellScript
     {
         Player* player = GetCaster()->ToPlayer();
         uint32 spell = GetSpellInfo()->Id == SPELL_ECHO_RETURN ? SPELL_ECHO_RUNE : SPELL_WARPDAGGER;
-        // Expiration has already consumed the marker and teleported before
-        // casting its native heal. A client cast must still own a live marker.
         if (spell == SPELL_ECHO_RUNE && GetSpell()->IsTriggered() && player &&
             player->getClass() == CLASS_SPIRIT_MAGE && player->IsAlive() && player->IsInWorld())
             return SPELL_CAST_OK;
@@ -365,17 +355,15 @@ void ApplyAscensionRunemasterTravelContracts(SpellInfo* info)
     if (info->SpellFamilyName != 38)
         return;
     if (info->Id == SPELL_ECHO_RETURN)
-        info->Effects[EFFECT_1].Effect = 0; // Retired Echoes of Eternity's unconditional Warpdagger reset.
+        info->Effects[EFFECT_1].Effect = 0;
     if (info->Id == SPELL_WARP)
     {
         info->Effects[EFFECT_0].Effect = SPELL_EFFECT_DUMMY;
-        info->Effects[EFFECT_1].Effect = 0; // Owned cleanup belongs to the successful return, not any cast.
+        info->Effects[EFFECT_1].Effect = 0;
         info->Effects[EFFECT_2].Effect = 0;
     }
     if (info->Id == SPELL_WARP_DAMAGE)
     {
-        // Player near-teleports wait for an acknowledgement. Select enemies at
-        // the authoritative arrival destination, not the caster's old position.
         info->Effects[EFFECT_0].TargetA = SpellImplicitTargetInfo(TARGET_DEST_DEST);
         info->Effects[EFFECT_0].TargetB = SpellImplicitTargetInfo(TARGET_UNIT_DEST_AREA_ENEMY);
         info->_InitializeExplicitTargetMask();

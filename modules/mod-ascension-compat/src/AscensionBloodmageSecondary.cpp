@@ -36,14 +36,14 @@ enum BloodmageSecondarySpells : uint32
     SPELL_NIGHT_HUNTER = 704659,
     SPELL_BLOOD_FEAST_RESTORE = 706608,
     SPELL_ROTCLAW = 804197,
-    SPELL_ROTCLAW_ENERGIZE = 805352, // Ravenous Strike (Energize): 30..70 internal, i.e. 3 to 7 Rage
+    SPELL_ROTCLAW_ENERGIZE = 805352,
     SPELL_BLOOD_THIRST = 706613,
     SPELL_INSATIABLE = 706621,
     SPELL_INSATIABLE_STACK = 706663,
     SPELL_VAMPIRIC_FANG = 804726,
-    SPELL_VAMPIRIC_FANG_SCALAR = 680753, // Thirst SLS: EFFECT_2 carries the damage percent per Thirst stack
+    SPELL_VAMPIRIC_FANG_SCALAR = 680753,
     SPELL_ANEURYSM = 806099,
-    SPELL_ANEURYSM_HEAL = 520860, // Aneurysm's own 5% maximum-health SPELL_EFFECT_HEAL_PCT helper
+    SPELL_ANEURYSM_HEAL = 520860,
     SPELL_KILLER_INSTINCT = 704690,
     SPELL_THIRST_FOR_BLOOD = 570023,
     SPELL_SATED = 570024,
@@ -53,11 +53,10 @@ enum BloodmageSecondarySpells : uint32
     SPELL_BLOOD_RITUALS = 706623,
     SPELL_CURSED_FORM_REQUIREMENT = 525031,
     SPELL_CURSED_FORM_REQUIREMENT_2 = 524861,
-    SPELL_VAMPIRIC_FANG_SHARE = 572373, // the aura-354 record that names the leeched share
-    SPELL_VAMPIRIC_FANG_HEAL = 572374   // its TriggerSpell, a plain SPELL_EFFECT_HEAL on the caster
+    SPELL_VAMPIRIC_FANG_SHARE = 572373,
+    SPELL_VAMPIRIC_FANG_HEAL = 572374
 };
 
-// Every Vampiric Fang rank: the base strike plus its learned ranks.
 constexpr uint32 VampiricFangRanks[] = {804726, 504093, 504094, 504095, 504096, 504097, 553271, 553272};
 
 bool IsVampiricFang(uint32 id)
@@ -66,7 +65,6 @@ bool IsVampiricFang(uint32 id)
         std::end(VampiricFangRanks);
 }
 
-// Cursed Form abilities are exactly the records the kit gates on one of its two "Cursed Form" markers.
 bool IsCursedFormAbility(SpellInfo const* info)
 {
     return info->CasterAuraSpell == SPELL_CURSED_FORM_REQUIREMENT ||
@@ -89,7 +87,6 @@ void CopyDamage(Player* player, Unit* target, uint32 id, uint32 damage)
 {
     if (!damage)
         return;
-    // Custom basepoints pass through native float arithmetic before conversion back to int32.
     uint32 maximum = uint32(std::nextafter(float(std::numeric_limits<int32>::max()), 0.0f));
     player->CastCustomSpell(id, SPELLVALUE_BASE_POINT0, int32(std::min(damage, maximum)), target, true);
 }
@@ -101,10 +98,6 @@ public:
         {ALLSPELLHOOK_ON_CAST, ALLSPELLHOOK_ON_CALCULATED_TARGET, ALLSPELLHOOK_ON_CRIT_CHANCE,
             ALLSPELLHOOK_ON_HIT_RESULT, ALLSPELLHOOK_ON_SUCCESSFUL_INTERRUPT}) { }
 
-    // Aneurysm's school lockout is native (effect 68 plus its own 4 s duration), but its second clause -
-    // "Successfully interrupting an enemy heals you for $520860s1% of your maximum health" - had no caster:
-    // 520860 exists as a SPELL_EFFECT_HEAL_PCT of 5% on the caster and nothing ever cast it.
-    // Spell::EffectInterruptCast raises this hook only when an interrupt actually landed.
     void OnSpellSuccessfulInterrupt(Spell* spell, Unit*) override
     {
         Player* player = Bloodmage(spell);
@@ -120,8 +113,6 @@ public:
         Player* player = Bloodmage(spell);
         if (!player || spell->IsTriggered())
             return;
-        // Dark Essence: "Casting Cursed Form abilities or Bloodbolt will now heal allies affected by
-        // Blood Rituals". Every number lives in 681036, which only the unobtainable 806945 ever cast.
         if (player->HasAura(SPELL_DARK_ESSENCE) && (IsCursedFormAbility(info) ||
             AscensionBloodmage::GetEmpowerment(info->Id) == AscensionBloodmage::Bloodbolt))
             player->CastSpell(player, SPELL_DARK_ESSENCE_HEAL, true);
@@ -145,10 +136,6 @@ public:
         if (target && RankOf(spell->GetSpellInfo()->Id, SPELL_HEMOBURST) &&
             target->HasAuraState(AURA_STATE_BLEEDING))
             chance = 100;
-        // Killer Instinct: "Each point of Rage now increases the critical strike chance of Veinburst and
-        // Reave by $/1000;S1%, up to a maximum of 50%." Its own effect 0 holds the per-point amount in
-        // thousandths, the cap in MiscValueB and the two abilities in its class mask. Rage is stored ten
-        // times the displayed value, so amount/1000 per displayed point is amount/10000 per stored unit.
         if (AuraEffect const* instinct = player->GetAuraEffect(SPELL_KILLER_INSTINCT, EFFECT_0))
             if (instinct->IsAffectedOnSpell(spell->GetSpellInfo()))
                 chance += std::min(float(player->GetPower(POWER_RAGE)) * instinct->GetAmount() / 10000.0f,
@@ -173,14 +160,10 @@ public:
                 conditions |= 2;
             if (!target->HasInArc(float(M_PI), player))
                 conditions |= 4;
-            // Reave has one victim. Snapshot its conditions before the initial hit changes health.
             spell->SetScriptValue(SPELL_REAVE, conditions);
         }
         if (IsVampiricFang(id))
         {
-            // Vampiric Fang promises bonus damage per Thirst stack. The scalar
-            // lives on Thirst SLS (680753) EFFECT_2; fixed values read straight
-            // off BasePoints, rolled ones add the engine's +1.
             int32 pctPerStack = 0;
             if (SpellInfo const* scalar = sSpellMgr->GetSpellInfo(SPELL_VAMPIRIC_FANG_SCALAR))
                 pctPerStack = scalar->Effects[EFFECT_2].BasePoints +
@@ -190,7 +173,6 @@ public:
                 stacks = thirst->GetStackAmount();
             if (stacks && pctPerStack > 0)
             {
-                // Custom basepoints pass through native float arithmetic before returning to int32.
                 uint32 maximum =
                     uint32(std::nextafter(float(std::numeric_limits<int32>::max()), 0.0f));
                 double mult = 1.0 + double(stacks) * double(pctPerStack) / 100.0;
@@ -208,7 +190,6 @@ public:
             return;
         uint32 id = spell->GetSpellInfo()->Id;
         if (target == player && (id == SPELL_CURSED_FORM || id == SPELL_ACCURSED_FORM))
-            // Native duration modifiers have already extended this application.
             player->RemoveAurasDueToSpell(SPELL_HEMOTURGY);
         if (target == player || player->IsFriendlyTo(target))
             return;
@@ -217,22 +198,11 @@ public:
             spell->SetScriptValue(SPELL_HEMOTURGY, 1);
             player->CastSpell(player, SPELL_HEMOTURGY, true);
         }
-        // Rotclaw's description promises the income ("dealing ... Shadow damage, generating Rage and
-        // infecting their wounds"), but none of its three effects is an energize and no companion
-        // "Rotclaw (Energize)" record exists, unlike Ravenous Strike, Bloodmoon Blast, Sanguine Rupture
-        // and Lunge, which all carry effect 142 pointing at their own Energize spell. Unit::DealDamage
-        // only pays Rage for weapon damage, so the ability granted none. The amount is in no source -
-        // not Spell.dbc, not spell_proc/spell_linked_spell, not the 2026-09-13 exiles-db export - so the
-        // Rage is paid with Ravenous Strike's own Energize record rather than a new number, and once per
-        // cast: Rotclaw hits up to 25 enemies.
         if (RankOf(id, SPELL_ROTCLAW) && !spell->GetScriptValue(SPELL_ROTCLAW_ENERGIZE))
         {
             spell->SetScriptValue(SPELL_ROTCLAW_ENERGIZE, 1);
             player->CastSpell(player, SPELL_ROTCLAW_ENERGIZE, true);
         }
-        // Vampiric Fang expends Thirst: steal health equal to the damage dealt,
-        // then clear Thirst and Insatiable. Runs once per cast on the first
-        // successful hostile hit.
         if (IsVampiricFang(id) && !spell->GetScriptValue(SPELL_VAMPIRIC_FANG))
         {
             spell->SetScriptValue(SPELL_VAMPIRIC_FANG, 1);
@@ -255,26 +225,10 @@ public:
             if (conditions & 4)
                 CopyDamage(player, target, SPELL_REAVE_BACK, damage);
         }
-        // Dominion of Blood (680716): "Your Vampiric Fang now heals you for an additional 50% of the
-        // damage dealt." The base steal is already paid above, by the flat Unit::DealHeal of the damage
-        // dealt, so only the increase is owed here.
-        //
-        // That increase has no other path. The share Vampiric Fang steals lives in a separate "Vampiric
-        // Fang" record, 572373, whose single effect is aura type 354 with amount 100 (BasePoints 99 +
-        // DieSides 1) naming TriggerSpell 572374, a SPELL_EFFECT_HEAL on the caster with BasePoints 0.
-        // 680716 is aura 107 with MiscValue 3 (SPELLMOD_EFFECT1) and BasePoints 49 + DieSides 1 = +50
-        // over EffectSpellClassMask (0, 1073741824, 0), which is exactly 572373's own SpellFamilyFlags.
-        // AuraEffectHandler[354] is nullptr, no Spell.dbc row applies 572373 and no acquisition route
-        // reaches it, and Unit::DealHeal takes no SpellInfo and runs no Unit::ApplyEffectModifiers, so
-        // nothing read that modifier. SpellEffectInfo::CalcValue does run it, so the share reads its
-        // authored 100 without the talent and 150 with it; the difference over the authored amount is
-        // what 572374 pays, leaving the total at the damage dealt without the talent and one and a half
-        // times it with the talent. No number is declared here.
         if (RankOf(id, SPELL_VAMPIRIC_FANG))
             if (SpellInfo const* share = sSpellMgr->GetSpellInfo(SPELL_VAMPIRIC_FANG_SHARE))
             {
                 SpellEffectInfo const& effect = share->Effects[EFFECT_0];
-                // Fixed values read straight off BasePoints, rolled ones add the engine's +1.
                 int32 authored = effect.BasePoints + (effect.DieSides ? 1 : 0);
                 if (int32 increase = effect.CalcValue(player) - authored; increase > 0)
                 {
@@ -296,8 +250,6 @@ public:
     {
         if (!target || !target->IsAlive() || !damage)
             return;
-        // The active curse copies all periodic damage to its victim, including allied casters' ticks.
-        // Collect owner GUIDs before casting, since a copy can kill the target and remove its auras.
         std::vector<ObjectGuid> owners;
         for (auto const& pair : target->GetAppliedAuras())
         {
@@ -313,7 +265,6 @@ public:
                     player->IsValidAttackTarget(target))
                 {
                     CopyDamage(player, target, SPELL_VAMPYRS_KISS_COPY, damage / 4);
-                    // Black Heart: Vampyr's Kiss also regenerates 20% of maximum Rage when it copies damage.
                     if (player->HasAura(SPELL_BLACK_HEART))
                         player->ModifyPower(POWER_RAGE, int32(player->GetMaxPower(POWER_RAGE)) / 5);
                 }
@@ -339,27 +290,19 @@ public:
             info->AscensionInheritsResolvedAmount = true;
             info->Effects[EFFECT_0].BonusMultiplier = 0.0f;
         }
-        // Thirst for Blood's two markers ship TriggerSpell 570025/570024 and Amplitude 500 on aura 4,
-        // which never ticks and forwards nothing. Aura 226 is the periodic dummy the record's own half
-        // second re-evaluation needs; the tier thresholds and amounts stay in its own text and payloads.
         if (info->Id == SPELL_THIRST_FOR_BLOOD &&
             info->Effects[EFFECT_0].ApplyAuraName == SPELL_AURA_DUMMY && info->Effects[EFFECT_0].Amplitude)
             info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_PERIODIC_DUMMY;
     }
 };
 
-// Thirst for Blood: "Between 1-5 stacks of Thirst: Spell haste increased by $570024s1%. Between 6-10
-// stacks of Thirst: The bonus damage dealt by spell critical strikes is increased by $570025s1%."
-// Both payloads exist and are well formed; nothing ever applied them. 570025 already drops 570024
-// through its own SPELL_EFFECT_REMOVE_AURA, so the two tiers stay mutually exclusive by the record's
-// own design.
 class aura_ascension_bloodmage_thirst_for_blood : public AuraScript
 {
     PrepareAuraScript(aura_ascension_bloodmage_thirst_for_blood);
 
     bool Validate(SpellInfo const*) override { return ValidateSpellInfo({SPELL_SATED, SPELL_RAVENOUS}); }
 
-    void Evaluate(AuraEffect const* /*effect*/)
+    void Evaluate(AuraEffect const*)
     {
         Player* player = GetTarget() ? GetTarget()->ToPlayer() : nullptr;
         if (!player || player->getClass() != CLASS_SON_OF_ARUGAL || !player->IsAlive())
@@ -372,7 +315,6 @@ class aura_ascension_bloodmage_thirst_for_blood : public AuraScript
                 player->RemoveAurasDueToSpell(id, player->GetGUID());
         if (!wanted)
             return;
-        // Both payloads carry a finite duration; the periodic re-evaluation keeps the active tier alive.
         if (Aura* tier = player->GetAura(wanted, player->GetGUID()))
             tier->RefreshDuration();
         else
@@ -386,8 +328,6 @@ class aura_ascension_bloodmage_thirst_for_blood : public AuraScript
     }
 };
 
-// Dark Essence's helper heals every nearby ally; the talent promises only "allies affected by Blood
-// Rituals", so the area selection is narrowed to the units that carry 706623.
 class spell_ascension_dark_essence : public SpellScript
 {
     PrepareSpellScript(spell_ascension_dark_essence);
@@ -415,7 +355,6 @@ class spell_ascension_blood_feast_corpses : public SpellScript
     void Select(std::list<WorldObject*>& targets)
     {
         Unit* caster = GetCaster();
-        // Filter before the native three-target cap so living units cannot take corpse slots.
         targets.remove_if([caster](WorldObject* object)
         {
             Unit* target = object ? object->ToUnit() : nullptr;
@@ -451,10 +390,6 @@ class spell_ascension_blood_feast_drain : public SpellScript
     }
 };
 
-// Blood Craving's Rage tick is SPELL_EFFECT_ENERGIZE_PCT, and Spell::EffectEnergizePct pays a percentage of
-// *maximum* power, while the record's Description and AuraDescription both promise a percentage of *missing*
-// Rage. No native effect expresses that and the handler ignores MiscValueB, so the same percentage is paid
-// here against the missing amount instead. The percentage itself stays the record's own effect value.
 class spell_ascension_bloodmage_blood_craving : public SpellScript
 {
     PrepareSpellScript(spell_ascension_bloodmage_blood_craving);
@@ -484,12 +419,6 @@ class spell_ascension_bloodmage_blood_craving : public SpellScript
             EFFECT_1, SPELL_EFFECT_ENERGIZE_PCT);
     }
 };
-// Waves of Blood (681427): "Each tick of Crimson Tide now has a $681427h% chance to heal a nearby ally for
-// $681427s1% of the damage dealt." The record's single effect is the private aura 354, which has no handler
-// in AuraEffectHandler (SpellAuraEffects.cpp:419) and no core consumer, and Spell.dbc gives it ProcFlags 0,
-// so nothing ever reached its TriggerSpell 807652. The proc flags, the Crimson Tide restriction and the 10%
-// chance come from the companion spell_proc row; the heal ships with BasePoints 0 and BonusMultiplier 0, so
-// the 25% share of the tick has to be forwarded as a custom base point.
 constexpr uint32 WavesOfBloodHeal = 807652;
 
 class aura_ascension_waves_of_blood : public AuraScript
@@ -512,7 +441,6 @@ class aura_ascension_waves_of_blood : public AuraScript
         uint64 amount = uint64(event.GetDamageInfo()->GetDamage()) * std::clamp(effect->GetAmount(), 0, 100) / 100;
         if (!amount)
             return;
-        // 807652 picks the single nearby ally itself, from its own 40 yard TARGET_UNIT_DEST_AREA_ALLY record.
         GetTarget()->CastCustomSpell(WavesOfBloodHeal, SPELLVALUE_BASE_POINT0,
             int32(std::min<uint64>(amount, std::numeric_limits<int32>::max())), GetTarget(), TRIGGERED_FULL_MASK);
     }
@@ -524,26 +452,6 @@ class aura_ascension_waves_of_blood : public AuraScript
     }
 };
 
-// Hemal Excision (803681): "Cut into an ally's vital essence, siphoning all curse effects from them. You
-// may reactivate this ability again within $803734d to place these curse effects on an enemy."
-//
-// The siphoning half is native: effect 0 is 38 SPELL_EFFECT_DISPEL with MiscValue 2 (DISPEL_CURSE),
-// BasePoints 19 -> 20 dispels, TargetA 21 (TARGET_UNIT_TARGET_ALLY). Spell::EffectDispel keeps no record
-// of what it removed, so the siphoned set is captured here, before and after the native effect runs.
-//
-// The re-activation half has records of its own that nothing referenced. 803734 "Hemal Excision" is the
-// window: DurationIndex 1 = 10000 ms, a single SPELL_AURA_DUMMY on the caster, AuraDescription "You may
-// reactivate Hemal Excision to place all siphoned curses on an enemy". 803733 "Excision" is the
-// re-activation itself: "Apply all siphoned curses onto an enemy", CastingTimeIndex 1 (instant),
-// RecoveryTime 0, RangeIndex 4 (30 yds), ManaCostPercentage 5, effect 0 = 3 SPELL_EFFECT_DUMMY on
-// TargetA 6 (TARGET_UNIT_TARGET_ENEMY) and effect 1 = 164 SPELL_EFFECT_REMOVE_AURA with TriggerSpell
-// 803734 on the caster. So the shipped data models the re-activation as a second, cooldown-free spell
-// rather than a second cast of 803681, and Hemal Excision's own 90 s RecoveryTime is never bypassed,
-// reset or shortened: it starts on the first cast and keeps running through the window.
-//
-// The window swaps the button through the fork's own temporary-replacement machinery, the same way
-// AscensionRangerFalconstrike swaps Quick Shot for Falconstrike, so "reactivate this ability" reaches
-// 803733 from the client's point of view.
 constexpr uint32 SPELL_HEMAL_EXCISION = 803681;
 constexpr uint32 SPELL_EXCISION = 803733;
 constexpr uint32 SPELL_HEMAL_EXCISION_WINDOW = 803734;
@@ -556,8 +464,6 @@ struct SiphonedCurse
     uint8 stacks;
 };
 
-// Siphoned curses live only for the 10 s window: 803734's removal clears the owner's entry, whether the
-// window was spent on an enemy or simply expired.
 std::unordered_map<ObjectGuid, std::vector<SiphonedCurse>> siphonedCurses;
 
 class spell_ascension_bloodmage_hemal_excision : public SpellScript
@@ -566,9 +472,6 @@ class spell_ascension_bloodmage_hemal_excision : public SpellScript
 
     bool Validate(SpellInfo const*) override { return ValidateSpellInfo({SPELL_HEMAL_EXCISION_WINDOW}); }
 
-    // Spell::EffectDispel picks its victims from Unit::GetDispellableAuraList and rolls
-    // Aura::CalcDispelChance for each, so the only reliable record of what it actually took is the
-    // difference between the dispellable set before the effect and the auras still there afterwards.
     void Capture(SpellMissInfo missInfo)
     {
         _candidates.clear();
@@ -662,8 +565,6 @@ class spell_ascension_bloodmage_excision : public SpellScript
             SPELL_CAST_OK : SPELL_FAILED_CANT_DO_THAT_RIGHT_NOW;
     }
 
-    // The curses are re-applied by the Bloodmage, not by whoever cursed the ally: the tooltip has the
-    // Bloodmage placing them. Each one keeps the remaining duration and stack count it had on the ally.
     void Place(SpellEffIndex)
     {
         Player* player = GetCaster() ? GetCaster()->ToPlayer() : nullptr;

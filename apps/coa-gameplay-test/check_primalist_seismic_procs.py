@@ -1,4 +1,3 @@
-"""Independent native checks for Primalist Seismic proc rates and stat conversions."""
 import json
 import sys
 from pathlib import Path

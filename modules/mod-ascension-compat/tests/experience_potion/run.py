@@ -1,4 +1,4 @@
-"""Exercise the potion's actual duration hooks without building the server."""
+CLI_DESCRIPTION = """Exercise the potion's actual duration hooks without building the server."""
 
 import argparse
 import os
@@ -16,7 +16,7 @@ method = runpy.run_path(str(HERE.parent / "client_compat/run.py"))["method"]
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument("--before", action="store_true", help="Exercise the native refresh without the new hooks.")
     args = parser.parse_args()
     source = ROOT.joinpath("modules/mod-ascension-compat/src/AscensionCompat.cpp").read_text(encoding="utf-8")

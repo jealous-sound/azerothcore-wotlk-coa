@@ -16,7 +16,7 @@
 namespace
 {
 using namespace AscensionWitchDoctor;
-constexpr uint32 BuffSnapshotKey = 0; // script-value key marking that the proc buffs were recorded
+constexpr uint32 BuffSnapshotKey = 0;
 void RefreshOwnedHex(Player* player, Unit* target)
 {
     if (Aura* hex = OwnedHex(player, target))
@@ -34,8 +34,6 @@ class witch_doctor_casts : public AllSpellScript
     {
     }
 
-    // Records which proc buffs were up when the cast began. An instant spell is cast from inside Spell::prepare,
-    // before the prepare hook runs, so the first cast check takes the snapshot as well.
     static void SnapshotBuffs(Spell* spell, Unit* caster)
     {
         if (spell->IsTriggered() || spell->GetScriptValue(BuffSnapshotKey))
@@ -52,7 +50,7 @@ class witch_doctor_casts : public AllSpellScript
         }
     }
 
-    void OnSpellPrepare(Spell* spell, Unit* caster, SpellInfo const* /*info*/) override
+    void OnSpellPrepare(Spell* spell, Unit* caster, SpellInfo const*) override
     {
         if (spell->IsTriggered())
             return;
@@ -61,7 +59,7 @@ class witch_doctor_casts : public AllSpellScript
         SnapshotBuffs(spell, caster);
     }
 
-    void OnSpellCheckCast(Spell* spell, bool /*strict*/, SpellCastResult& result) override
+    void OnSpellCheckCast(Spell* spell, bool, SpellCastResult& result) override
     {
         SnapshotBuffs(spell, spell->GetCaster());
         Player* player = Owner(spell->GetCaster());
@@ -73,7 +71,6 @@ class witch_doctor_casts : public AllSpellScript
             result = SPELL_FAILED_CANT_DO_THAT_RIGHT_NOW;
         if ((IsPotion(info) || IsSplash(info)) && State(player).ingredients.empty())
             result = SPELL_FAILED_CASTER_AURASTATE;
-        // A cast that began while the proc was up completes even if the buff runs out during the cast time.
         if ((id == Umbral && !player->HasAura(UmbralReady) && !spell->GetScriptValue(UmbralReady)) ||
             (id == HexfireWrath && !player->HasAura(HexfireReady)) ||
             (id == Volley && !player->HasAura(VolleyReady) && !spell->GetScriptValue(VolleyReady) &&
@@ -181,11 +178,9 @@ class witch_doctor_casts : public AllSpellScript
     }
 
     void OnSpellHitResult(Spell* spell, Unit* target, uint8 miss, uint32 damage, uint32 healing,
-                          bool /*critical*/) override
+                          bool) override
     {
         Unit* caster = spell->GetCaster();
-        // Keep next-cast leech on the applied aura after the charge or buff expires.
-        // A later unbuffed application replaces this snapshot; a miss leaves the old aura intact.
         if (target && miss == SPELL_MISS_NONE && !spell->IsTriggered() && !spell->GetSpellInfo()->IsPositive())
             if (Aura* aura = target->GetAura(spell->GetSpellInfo()->Id, caster->GetGUID()))
             {
@@ -254,7 +249,6 @@ class witch_doctor_casts : public AllSpellScript
             Copy(player, target, GuileDamage, uint64(damage) * Amount(Guile, EFFECT_1) / 100);
         if (damage && IsJuju(info))
         {
-            // The visible contract permits any Witch Doctor's Hex; thread copies remain owner scoped.
             bool hexed = false;
             for (auto const& [key, app] : target->GetAppliedAuras())
                 hexed |= IsHex(app->GetBase()->GetSpellInfo());
@@ -300,7 +294,7 @@ class witch_doctor_casts : public AllSpellScript
             player->RemoveAurasDueToSpell(Mirage);
     }
 
-    void OnSpellCast(Spell* spell, Unit* caster, SpellInfo const* info, bool /*skip*/) override
+    void OnSpellCast(Spell* spell, Unit* caster, SpellInfo const* info, bool) override
     {
         if (!spell->IsTriggered() && !info->IsPositive() && spell->GetScriptValue(ConcoctionsBuff))
             if (Aura* buff = caster->GetAura(ConcoctionsBuff))
@@ -356,7 +350,6 @@ class witch_doctor_casts : public AllSpellScript
         }
         else if (Family(info, 0, 536870912))
         {
-            // Spirit Eclipse only unleashes the Spirits; Frenzied Spirits is the one that consumes them.
             if (count == 5 && player->HasAura(PriceToPay))
             {
                 Reduce(player, Glaive, INT32_MAX);
@@ -410,7 +403,7 @@ class witch_doctor_casts : public AllSpellScript
         SyncReplacements(player);
     }
 };
-} // namespace
+}
 void AddAscensionWitchDoctorAbilityScripts()
 {
     new witch_doctor_casts();

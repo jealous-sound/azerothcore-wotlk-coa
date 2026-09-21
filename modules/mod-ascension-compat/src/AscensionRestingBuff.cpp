@@ -7,8 +7,6 @@
 
 namespace
 {
-// "Rest" (spell_nature_sleep): heals 2% of health and power every 2 seconds. Ascension applies it for as long as a
-// player eats or drinks, so the client's Rest spell has to be cast by the server.
 constexpr uint32 SPELL_REST = 818011;
 
 bool IsFoodOrDrink(SpellInfo const* info)
@@ -47,7 +45,6 @@ public:
         if (!player || !application || !IsFoodOrDrink(application->GetBase()->GetSpellInfo()))
             return;
 
-        // The aura being removed is still on the unit during this hook, so look for a different one.
         for (auto const& [id, other] : player->GetAppliedAuras())
             if (other != application && IsFoodOrDrink(other->GetBase()->GetSpellInfo()))
                 return;

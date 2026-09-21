@@ -41,8 +41,6 @@ class spell_ascension_ranger_light_arrows : public SpellScript
 
     void Damage()
     {
-        // All native base/AP terms have been calculated; retain subsequent crit,
-        // armor, absorption and resistance. Distance was captured at cast launch.
         if (_bonus && GetHitDamage() > 0)
             SetHitDamage(int32(std::min<int64>(int64(GetHitDamage()) * (int64(100) + _bonus) / 100,
                 std::numeric_limits<int32>::max())));
@@ -70,7 +68,6 @@ class spell_ascension_ranger_knockout : public SpellScript
 
     void Register() override
     {
-        // Effect 0 has already made the victim execute the native bleed/poison cleanser.
         OnEffectHitTarget += SpellEffectFn(spell_ascension_ranger_knockout::Incapacitate, EFFECT_1, SPELL_EFFECT_DUMMY);
     }
 };

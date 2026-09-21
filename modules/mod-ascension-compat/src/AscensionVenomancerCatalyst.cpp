@@ -66,8 +66,6 @@ void ApplyAscensionVenomancerCatalystContract(SpellInfo* spellInfo)
         return;
 
     SpellEffectInfo& effect = spellInfo->Effects[EFFECT_0];
-    // The parent explicitly displays this amount divided by ten: 15 Rage.
-    // Effect 137 would instead restore 150% of maximum Rage.
     if (effect.Effect == SPELL_EFFECT_ENERGIZE_PCT || effect.Effect == SPELL_EFFECT_ENERGIZE)
         effect.Effect = SPELL_EFFECT_ENERGIZE;
 }

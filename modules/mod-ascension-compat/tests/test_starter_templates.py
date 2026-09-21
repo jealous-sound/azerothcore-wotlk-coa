@@ -1,5 +1,3 @@
-"""Execute the starter migration in memory; only temporary-table syntax is adapted for SQLite."""
-
 from pathlib import Path
 import re
 import sqlite3
@@ -29,7 +27,6 @@ class StarterTemplates(unittest.TestCase):
     def setUp(self):
         self.db = sqlite3.connect(":memory:")
         self.addCleanup(self.db.close)
-        # Retain the real schema's columns/defaults, with SQLite storage types.
         schema = BASE.read_text(encoding="utf-8").split("CREATE TABLE `item_template` (", 1)[1]
         columns = []
         for name, definition in re.findall(r"^  `([^`]+)` (.+),?$", schema.split(") ENGINE", 1)[0], re.M):

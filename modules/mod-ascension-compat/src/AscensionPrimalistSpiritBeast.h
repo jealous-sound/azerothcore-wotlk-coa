@@ -6,7 +6,6 @@
 class Player;
 class SpellInfo;
 
-// Implemented by Compat, which owns confirmed CAD specialization state.
 bool IsAscensionPrimalistTameEligible(Player const* player);
 bool HasAscensionPrimalistHunterPetContext(Player const* player);
 void ApplyAscensionPrimalistSpiritBeastContract(SpellInfo* spellInfo);

@@ -79,7 +79,7 @@ struct npc_ascension_power_sphere : ScriptedAI
         if (!me->IsWithinDistInMap(target, CONTACT_DISTANCE))
             return;
 
-        spent = true; // The explosion cannot produce another sphere through its own hit callback.
+        spent = true;
         SpellInfo const* info = sSpellMgr->GetSpellInfo(SPELL_POWER_SPHERE);
         if (info)
         {
@@ -136,7 +136,6 @@ public:
             sSummonPropertiesStore.LookupEntry(SUMMON_PROPERTIES_SPHERE), 0, owner, SPELL_SPHERES_OF_POWER);
         if (summon)
         {
-            // Guardian initialization finishes its automatic follow before this call.
             summon->AI()->SetGUID(target->GetGUID());
         }
     }
@@ -152,8 +151,6 @@ public:
     {
         if (info && info->Id == SPELL_POWER_SPHERE && info->SpellFamilyName == 22)
         {
-            // Snapshot the higher Arcane/Nature power once, retaining ordinary
-            // outgoing percentages, target mitigation and native area selection.
             info->Effects[EFFECT_0].BonusMultiplier = 0.0f;
         }
     }

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check independent Bash proc samples from scenarios/primalist-bash.json.
+CLI_DESCRIPTION = """Check independent Bash proc samples from scenarios/primalist-bash.json.
 
 Usage: python apps/coa-gameplay-test/check_primalist_bash.py <run-directory>
 The native run must pass first. Each sample needs at least 250 auto-attacks;
@@ -39,5 +39,5 @@ def check(directory):
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
-        raise SystemExit(__doc__)
+        raise SystemExit(CLI_DESCRIPTION)
     check(Path(sys.argv[1]))

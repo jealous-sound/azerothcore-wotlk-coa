@@ -1,4 +1,3 @@
-"""Exercise the three redirect lifecycles with the native threat registration methods."""
 import os
 from pathlib import Path
 import re

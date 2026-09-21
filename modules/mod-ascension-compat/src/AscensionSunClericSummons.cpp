@@ -88,7 +88,7 @@ void Valkyr(Player* player, Unit* target, bool dawn, bool fulfillment)
             });
         });
 }
-} // namespace AscensionSunCleric
+}
 namespace
 {
 using namespace AscensionSunCleric;

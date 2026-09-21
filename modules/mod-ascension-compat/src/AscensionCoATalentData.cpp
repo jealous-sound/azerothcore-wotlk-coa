@@ -22,22 +22,19 @@ std::vector<CoATalentBudget> CoATalentBudgets;
 
 namespace
 {
-// CharacterAdvancementTabTypes row of the tree every specialization of a class shares.
-constexpr uint32 CLASS_TAB = 87;
+constexpr uint32 SHARED_CLASS_TAB_ID = 87;
+constexpr uint32 ADVANCEMENT_REQUIRED_COUNT = 3;
+constexpr uint32 ADVANCEMENT_RANK_COUNT = 5;
 
-// ChrSpecs names each specialization's identity passive, a Level 10 Passive that must not wait for a purchased
-// class ability. Infernus and Corrupting Whispers do not state Level 10 Passive and keep their authored gates.
-constexpr std::array<uint32, 2> IDENTITY_PASSIVE_EXCLUSIONS = { 4037, 4041 };
+constexpr std::array<uint32, 2> IDENTITY_PASSIVES_KEEPING_AUTHORED_GATES = { 4037, 4041 };
 
-// Barbarian's zero-cost grouped alternatives are choices the player makes, not automatic level grants.
-constexpr std::array<uint32, 8> BARBARIAN_FREE_CHOICES = { 9172, 9861, 11172, 11257, 12112, 13111, 30764, 34257 };
+constexpr std::array<uint32, 8> BARBARIAN_MANUAL_FREE_CHOICES = { 9172, 9861, 11172, 11257, 12112, 13111, 30764, 34257 };
 
-// CharacterAdvancement.dbc DWORDs; the record's byte fields start after these.
-enum AdvancementField : uint32
+enum AdvancementDwordField : uint32
 {
     ADVANCEMENT_ID           = 0,
-    ADVANCEMENT_REQUIRED     = 2,  // 3 entry IDs
-    ADVANCEMENT_SPELLS       = 5,  // 5 rank spells
+    ADVANCEMENT_REQUIRED     = 2,
+    ADVANCEMENT_SPELLS       = 5,
     ADVANCEMENT_AE_COST      = 14,
     ADVANCEMENT_TE_COST      = 15,
     ADVANCEMENT_LEVEL        = 26,
@@ -46,8 +43,7 @@ enum AdvancementField : uint32
     ADVANCEMENT_TAB          = 33,
 };
 
-// CharacterAdvancementEssence.dbc DWORDs: id, level, key, four match flags, the two cumulative point totals.
-enum EssenceField : uint32
+enum EssenceDwordField : uint32
 {
     ESSENCE_LEVEL = 1,
     ESSENCE_KEY   = 2,
@@ -74,6 +70,12 @@ struct Node
     std::vector<uint32> Required;
     uint32 Group;
     bool ClassTab;
+};
+
+struct AdvancementClassType
+{
+    uint32 ClassId;
+    bool IsCustomClass;
 };
 }
 
@@ -111,8 +113,6 @@ bool LoadCoATalentData()
         !essence.Load(GetClientDBCPath("CharacterAdvancementEssence.dbc"), ESSENCE_TE + 1))
         return false;
 
-    // The essence table holds one 80-level family per (key, flags). The client reads the family whose key is
-    // the character's class id with every flag clear; the custom classes are ids 12 to 32.
     for (uint32 row = 0; row < essence.GetRecordCount(); ++row)
     {
         ClientDBC::Record record = essence.GetRecord(row);
@@ -138,7 +138,7 @@ bool LoadCoATalentData()
     for (uint32 row = 0; row < classes.GetRecordCount(); ++row)
         classTokens[classes.GetRecord(row).GetUInt32(0)] = std::string(classes.GetRecord(row).GetString(55));
 
-    std::unordered_map<uint32, std::pair<uint32, bool>> classTypeById; // class ID, custom class
+    std::unordered_map<uint32, AdvancementClassType> classTypeById;
     for (uint32 row = 0; row < classTypes.GetRecordCount(); ++row)
     {
         ClientDBC::Record record = classTypes.GetRecord(row);
@@ -166,14 +166,14 @@ bool LoadCoATalentData()
         ClientDBC::Record record = advancement.GetRecord(row);
         uint32 const entryId = record.GetUInt32(ADVANCEMENT_ID);
         auto classType = classTypeById.find(record.GetUInt32(ADVANCEMENT_CLASS_TYPE));
-        if (classType == classTypeById.end() || !classType->second.second ||
-            classType->second.first < 12 || classType->second.first > 32)
+        if (classType == classTypeById.end() || !classType->second.IsCustomClass ||
+            classType->second.ClassId < 12 || classType->second.ClassId > 32)
             continue;
 
-        uint32 const classId = classType->second.first;
+        uint32 const classId = classType->second.ClassId;
         uint32 const tab = record.GetUInt32(ADVANCEMENT_TAB);
         uint32 specId = 0;
-        if (tab != CLASS_TAB)
+        if (tab != SHARED_CLASS_TAB_ID)
         {
             auto spec = specByClassAndTab.find({ classTokens[classId], tabTokens[tab] });
             if (spec == specByClassAndTab.end())
@@ -189,10 +189,10 @@ bool LoadCoATalentData()
         node.Entry.TECost = uint8(record.GetUInt32(ADVANCEMENT_TE_COST));
         node.Entry.RequiredLevel = uint8(record.GetUInt32(ADVANCEMENT_LEVEL));
         node.Group = record.GetUInt32(ADVANCEMENT_GROUP);
-        node.ClassTab = tab == CLASS_TAB;
+        node.ClassTab = tab == SHARED_CLASS_TAB_ID;
 
         bool tooManyRanks = false;
-        for (uint32 field = ADVANCEMENT_SPELLS; field < ADVANCEMENT_SPELLS + 5; ++field)
+        for (uint32 field = ADVANCEMENT_SPELLS; field < ADVANCEMENT_SPELLS + ADVANCEMENT_RANK_COUNT; ++field)
         {
             uint32 const spellId = record.GetUInt32(field);
             if (!spellId)
@@ -211,13 +211,13 @@ bool LoadCoATalentData()
             continue;
         }
 
-        for (uint32 field = ADVANCEMENT_REQUIRED; field < ADVANCEMENT_REQUIRED + 3; ++field)
+        for (uint32 field = ADVANCEMENT_REQUIRED; field < ADVANCEMENT_REQUIRED + ADVANCEMENT_REQUIRED_COUNT; ++field)
             if (uint32 requiredId = record.GetUInt32(field))
                 node.Required.push_back(requiredId);
 
         auto identity = identitySpecByEntry.find(entryId);
         if (identity != identitySpecByEntry.end() && identity->second == specId &&
-            !Contains(IDENTITY_PASSIVE_EXCLUSIONS, entryId))
+            !Contains(IDENTITY_PASSIVES_KEEPING_AUTHORED_GATES, entryId))
         {
             node.Entry.RequiredLevel = 10;
             node.Required.clear();
@@ -238,20 +238,19 @@ bool LoadCoATalentData()
     for (Node const& node : nodes)
     {
         CoATalentEntries.push_back(node.Entry);
-        if (Contains(BARBARIAN_FREE_CHOICES, node.Entry.EntryId))
+        if (Contains(BARBARIAN_MANUAL_FREE_CHOICES, node.Entry.EntryId))
             CoASelectableFreeEntries.push_back({ node.Entry.EntryId, node.Group });
 
         if (node.Entry.AECost || node.Entry.TECost || node.Required.empty())
             continue;
 
-        // A free specialization node never waits for a purchased node of the shared class tree.
         std::vector<uint32> required;
         for (uint32 requiredId : node.Required)
         {
             auto requiredNode = nodeById.find(requiredId);
             bool const paidClassNode = requiredNode != nodeById.end() && requiredNode->second->ClassTab &&
                 (requiredNode->second->Entry.AECost || requiredNode->second->Entry.TECost);
-            if (!(node.Entry.SpecId && !Contains(BARBARIAN_FREE_CHOICES, node.Entry.EntryId) && paidClassNode))
+            if (!(node.Entry.SpecId && !Contains(BARBARIAN_MANUAL_FREE_CHOICES, node.Entry.EntryId) && paidClassNode))
                 required.push_back(requiredId);
         }
 

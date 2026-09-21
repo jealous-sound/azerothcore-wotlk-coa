@@ -9,7 +9,6 @@ class Player;
 class Spell;
 class Unit;
 
-// Called after native damage resolution, never from launch or AfterHit damage.
 void HandleAscensionReaperSoulStrikeHit(Spell* spell, Player* player,
     Unit* target, uint8 missInfo);
 

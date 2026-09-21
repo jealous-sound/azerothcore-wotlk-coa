@@ -32,7 +32,6 @@ class aura_ascension_cultist_lifecycle : public AuraScript
     void ScaleHerald(AuraEffect const*, AuraEffectHandleModes)
     {
         constexpr uint32 HeraldDisplay = 28844;
-        // This display carries a 4x boss scale in CreatureDisplayInfo.dbc.
         if (GetTarget()->GetDisplayId() == HeraldDisplay && GetTarget()->getTransForm() == Herald)
             GetTarget()->SetObjectScale(0.25f);
     }
@@ -202,7 +201,7 @@ class aura_ascension_cultist_lifecycle : public AuraScript
     {
         if (GetId() == 800965 && GetTarget()->GetEntry() == 50298)
         {
-            PreventDefaultAction(); // The ritual AI alone counts ten active, consenting participants.
+            PreventDefaultAction();
             return;
         }
         Player* player = Owner(GetCaster());
@@ -270,7 +269,7 @@ class aura_ascension_cultist_lifecycle : public AuraScript
         int64 recorded = int64(GetEffect(EFFECT_2)->GetAmount()) + covered;
         GetEffect(EFFECT_2)->SetAmount(int32(std::min<int64>(INT32_MAX, recorded)));
         if (covered == budget)
-            effect->SetAmount(amount); // The native removal after this absorb settles the finite budget.
+            effect->SetAmount(amount);
     }
     void AfterAbsorb(AuraEffect*, DamageInfo& damage, uint32& amount)
     {

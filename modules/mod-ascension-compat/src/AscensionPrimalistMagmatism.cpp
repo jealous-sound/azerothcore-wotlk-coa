@@ -26,8 +26,6 @@ public:
             effect.BasePoints != 29 || effect.DieSides != 1 || effect.SpellClassMask != flag96(0, 0, 128))
             return;
 
-        // The copied condition selector is not a WotLK AuraState. Use the tooltip's strict >75%
-        // native health state and retain the Magma Geode family mask on the damage modifier.
         effect.ApplyAuraName = SPELL_AURA_MOD_DAMAGE_DONE_VERSUS_AURASTATE;
         effect.MiscValue = AURA_STATE_HEALTH_ABOVE_75_PERCENT;
         effect.MiscValueB = ASCENSION_CLASSMASK_AURASTATE_DAMAGE;

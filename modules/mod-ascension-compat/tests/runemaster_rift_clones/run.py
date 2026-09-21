@@ -1,4 +1,3 @@
-"""Exercise Rift Clone summon count, owner lifetime, movement and owner AP scaling."""
 from pathlib import Path
 import runpy
 import struct
@@ -139,8 +138,8 @@ int main()
     rows = {r[0]: r for r in struct.iter_unpack('<234I', raw[20:20+count*936]) if r[0] in ids}
     assert rows[707464][80] + rows[707464][74] == 10 and rows[707464][40] == 28
     assert rows[707465][95] == 23 and rows[707465][116] == 707466 and rows[707465][98] == 999
-    assert rows[707466][86] == 22 and rows[707466][89] == 15  # Native pulse centered on clone, no explicit unit.
-    assert rows[707466][92] == 14  # Legacy 8 yards is normalized to the current talent's 5 yards.
+    assert rows[707466][86] == 22 and rows[707466][89] == 15
+    assert rows[707466][92] == 14
     raw = (ROOT.parent / 'runtime/server/data/dbc/SpellRadius.dbc').read_bytes()
     count = struct.unpack_from('<I', raw, 4)[0]
     radius = {r[0]: r[1:] for r in struct.iter_unpack('<I3f', raw[20:20+count*16])}

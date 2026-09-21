@@ -103,8 +103,6 @@ class spell_ascension_runemaster_zenith : public SpellScript
 
     bool Load() override
     {
-        // Successful triggered copies use the same application contract. Native
-        // cast flags still own Zenith's self-aura exclusion and charge behavior.
         return IsRunemasterPlayer(GetCaster()) && HasRunelordContract();
     }
 
@@ -114,8 +112,6 @@ class spell_ascension_runemaster_zenith : public SpellScript
             return;
         _captured = true;
 
-        // InitExplicitTargets strips the enemy target from this self spell,
-        // but preserves its original GUID. Capture selection only as fallback.
         Unit* target = GetSpell()->GetOriginalTarget();
         if (!target || target == GetCaster())
             target = GetCaster()->ToPlayer()->GetSelectedUnit();
@@ -123,7 +119,7 @@ class spell_ascension_runemaster_zenith : public SpellScript
             _target = target->GetGUID();
     }
 
-    void ObserveSelfEffect(SpellEffIndex /*effIndex*/)
+    void ObserveSelfEffect(SpellEffIndex)
     {
         _selfEffectHit = GetHitUnit() == GetCaster();
     }
@@ -133,8 +129,6 @@ class spell_ascension_runemaster_zenith : public SpellScript
         if (!_selfEffectHit || GetHitUnit() != GetCaster())
             return;
 
-        // The effect hook runs before default application. Confirm afterward,
-        // using this cast's aura rather than a preexisting HasAura result.
         Aura* aura = GetHitAura();
         if (!aura || aura->GetId() != GetSpellInfo()->Id ||
             aura->GetCasterGUID() != GetSpell()->GetOriginalCasterGUID())
@@ -157,8 +151,6 @@ class spell_ascension_runemaster_zenith : public SpellScript
         ObjectGuid const original = GetSpell()->GetOriginalCasterGUID();
         caster->CastSpell(caster, SPELL_RUNELORD_BUFF, TRIGGERED_FULL_MASK, nullptr, source, original);
 
-        // Damage has an independent hostile target. No target, miss or immunity
-        // must undo the self buff. Native prepare still checks range and LOS.
         Unit* target = ObjectAccessor::GetUnit(*caster, _target);
         if (!target || target == caster)
             return;
@@ -168,8 +160,6 @@ class spell_ascension_runemaster_zenith : public SpellScript
             damage->CheckTarget(caster, target, false) != SPELL_CAST_OK)
             return;
 
-        // Match native aura-proc iteration if the passive disappears during its
-        // first child. Never retain the first effect pointer across that cast.
         source = caster->GetAuraEffect(SPELL_RUNELORD_PASSIVE, EFFECT_1, caster->GetGUID());
         if (source)
             caster->CastSpell(target, damage, TRIGGERED_FULL_MASK, nullptr, source, original);
@@ -211,9 +201,6 @@ class spell_ascension_runemaster_runelord_damage : public SpellScript
             return;
         _scaled = true;
 
-        // Copied m1 selects the minimum, not the old 900..916 range. Scale the
-        // raw 900 before CalcValue applies independent effect modifiers. The
-        // native SQL coefficient supplies AP once after that calculation.
         double const level = GetCaster()->GetLevel();
         double const factor = 0.0267291844060354 + 0.0048541098014737 * level +
             0.0001859597762293 * level * level;

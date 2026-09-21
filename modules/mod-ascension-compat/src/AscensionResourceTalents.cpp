@@ -26,10 +26,19 @@ enum ResourceTalentSpells : uint32
     Replenishment = 1257670
 };
 
-uint32 Stacks(Unit const* unit, uint32 id)
+constexpr int32 ResourceTalentPercentPerStack = 1;
+
+uint32 GetResourceAuraStackCount(Unit const* unit, uint32 id)
 {
     Aura const* aura = unit ? unit->GetAura(id) : nullptr;
     return aura ? aura->GetStackAmount() : 0;
+}
+
+void NormalizeReplenishmentToRecipientMaxMana(SpellInfo& spell)
+{
+    if (spell.Effects[EFFECT_0].ApplyAuraName == SPELL_AURA_PERIODIC_ENERGIZE &&
+        spell.Effects[EFFECT_0].MiscValue == POWER_MANA)
+        spell.Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_OBS_MOD_POWER;
 }
 
 class resource_talent_contracts : public GlobalScript
@@ -43,18 +52,14 @@ public:
         switch (info->Id)
         {
             case Replenishment:
-                // The shared CoA helper promises 5% of each recipient's maximum Mana, not five Mana.
-                if (info->Effects[EFFECT_0].ApplyAuraName == SPELL_AURA_PERIODIC_ENERGIZE &&
-                    info->Effects[EFFECT_0].MiscValue == POWER_MANA)
-                    info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_OBS_MOD_POWER;
+                NormalizeReplenishmentToRecipientMaxMana(*info);
                 return;
             case Felheart:
             case RecklessAbandon:
             case DeepSecrets:
             case CharmOfWarding:
             case Superconductor:
-                // The live talent-tree descriptions specify 1%; normalize the marker before adding its behavior.
-                info->Effects[EFFECT_0].BasePoints = 1;
+                info->Effects[EFFECT_0].BasePoints = ResourceTalentPercentPerStack;
                 info->Effects[EFFECT_0].DieSides = 0;
                 info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_DUMMY;
                 break;
@@ -77,12 +82,13 @@ class aura_ascension_resource_talent : public AuraScript
 {
     PrepareAuraScript(aura_ascension_resource_talent);
 
-    void Calculate(AuraEffect const* /*effect*/, int32& amount, bool& /*canRecalculate*/)
+    void Calculate(AuraEffect const*, int32& amount, bool&)
     {
         Unit* owner = GetUnitOwner();
         bool felsworn = GetId() == Felheart && owner->IsPlayer() && owner->getClass() == CLASS_DEMON_HUNTER;
         bool bloodmage = GetId() == RecklessAbandon && owner->IsPlayer() && owner->getClass() == CLASS_SON_OF_ARUGAL;
-        amount *= felsworn ? Stacks(owner, Felfury) : bloodmage ? Stacks(owner, Thirst) : 0;
+        amount *= felsworn ? GetResourceAuraStackCount(owner, Felfury) :
+            bloodmage ? GetResourceAuraStackCount(owner, Thirst) : 0;
     }
 
     void Register() override
@@ -101,7 +107,7 @@ class aura_ascension_resource_talent_refresh : public AuraScript
         return info->Id != Thirst || ValidateSpellInfo({Insatiable, InsatiablePenalty});
     }
 
-    void Refresh(uint32 stacks)
+    void RefreshTalentBonusForResourceStacks(uint32 stacks)
     {
         Unit* owner = GetTarget();
         if (!owner->IsPlayer() || (GetId() == Felfury ? owner->getClass() != CLASS_DEMON_HUNTER :
@@ -114,25 +120,26 @@ class aura_ascension_resource_talent_refresh : public AuraScript
                     effect->ChangeAmount(int32(stacks) * aura->GetSpellInfo()->Effects[index].CalcValue(owner));
     }
 
-    void Apply(AuraEffect const* /*effect*/, AuraEffectHandleModes /*mode*/)
+    void ApplyInsatiableWithoutResettingPenaltyTimer(Unit* owner)
     {
-        Refresh(GetStackAmount());
-        Unit* owner = GetTarget();
-        // Do not refresh an existing Insatiable: further gains at the cap must
-        // not postpone its native periodic damage penalty.
         if (GetId() == Thirst && owner->IsPlayer() && owner->getClass() == CLASS_SON_OF_ARUGAL &&
             GetStackAmount() >= GetSpellInfo()->CalcMaxAuraStacks(owner) &&
             !owner->HasAura(Insatiable, owner->GetGUID()))
             owner->CastSpell(owner, Insatiable, true);
     }
 
-    void Remove(AuraEffect const* /*effect*/, AuraEffectHandleModes /*mode*/)
+    void Apply(AuraEffect const*, AuraEffectHandleModes)
     {
-        Refresh(0);
+        RefreshTalentBonusForResourceStacks(GetStackAmount());
+        ApplyInsatiableWithoutResettingPenaltyTimer(GetTarget());
+    }
+
+    void Remove(AuraEffect const*, AuraEffectHandleModes)
+    {
+        RefreshTalentBonusForResourceStacks(0);
         Unit* owner = GetTarget();
         if (GetId() == Thirst && owner->IsPlayer() && owner->getClass() == CLASS_SON_OF_ARUGAL)
         {
-            // Insatiable lasts until Thirst ends, including consumption, expiry and death.
             owner->RemoveAurasDueToSpell(Insatiable, owner->GetGUID());
             owner->RemoveAurasDueToSpell(InsatiablePenalty, owner->GetGUID());
         }
@@ -153,17 +160,16 @@ public:
     stormbringer_superconductor() : AllSpellScript("stormbringer_superconductor",
         {ALLSPELLHOOK_ON_CALCULATED_TARGET}) { }
 
-    void OnSpellCalculatedTarget(Spell* spell, Unit* /*target*/, TargetInfo& result) override
+    void OnSpellCalculatedTarget(Spell* spell, Unit*, TargetInfo& result) override
     {
         Unit* caster = spell->GetCaster();
         if (!caster->IsPlayer() || caster->getClass() != CLASS_STORMBRINGER || spell->IsTriggered() ||
             sSpellMgr->GetFirstSpellInChain(spell->GetSpellInfo()->Id) != ArmOfThorim ||
             caster->HasAura(ChargedConduit))
             return;
-        // Launch damage is calculated before the resource service depletes Static at successful cast completion.
         if (AuraEffect const* talent = caster->GetAuraEffect(Superconductor, EFFECT_0))
         {
-            float multiplier = 1.0f + Stacks(caster, Static) * talent->GetAmount() / 100.0f;
+            float multiplier = 1.0f + GetResourceAuraStackCount(caster, Static) * talent->GetAmount() / 100.0f;
             result.damage = uint32(result.damage * multiplier);
             result.damageBeforeTakenMods = uint32(result.damageBeforeTakenMods * multiplier);
         }

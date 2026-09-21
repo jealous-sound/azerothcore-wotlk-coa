@@ -22,8 +22,6 @@ public:
             info->Effects[EFFECT_0].ApplyAuraName != SPELL_AURA_PERIODIC_DAMAGE)
             return;
 
-        // The active talent promises this scaled base over the entire bleed, not on each tick.
-        // Divide before native damage modifiers; the separate level multiplier commutes with this division.
         if (uint32 ticks = info->GetMaxTicks())
             value /= float(ticks);
     }

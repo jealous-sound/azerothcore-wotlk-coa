@@ -35,7 +35,6 @@ bool Derived(SpellInfo const* info);
 bool Burning(Unit const* unit);
 uint32 Count(Unit const* unit, uint32 id);
 uint32 MaxPhase(Player* player);
-// Lunar Phase stacks Lunar Eclipse needs and spends; Bright Moon raises only the cap (MaxPhase).
 constexpr uint32 LunarPhaseThreshold = 4;
 int32 Amount(uint32 id, uint8 slot = 0, Unit* caster = nullptr);
 void Cast(Unit* caster, Unit* target, uint32 id);
@@ -58,5 +57,5 @@ void Replace(Player* player, uint32 root, uint32 replacement);
 void MarkedHeal(Player* player);
 void Aspect(Player* player, Unit* target, uint32 damage, bool forced = false);
 void ApplyContracts(SpellInfo* info);
-} // namespace AscensionStarcaller
+}
 #endif

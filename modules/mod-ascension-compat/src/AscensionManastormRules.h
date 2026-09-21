@@ -21,8 +21,6 @@ namespace Ascension::Manastorm
 
     inline float PartyStatMultiplier(std::uint32_t players)
     {
-        // mod-autobalance's default five-player curve: inflection 0.5, floor 0, ceiling 1.
-        // See trickerer/mod-autobalance at 3020acda28a23b532ff9b7515dc4de41a4ef0be8.
         float const count = float(std::clamp(players, 1u, 5u));
         return (std::tanh((count - 2.5f) / 1.5f) + 1.0f) / (std::tanh(2.5f / 1.5f) + 1.0f);
     }

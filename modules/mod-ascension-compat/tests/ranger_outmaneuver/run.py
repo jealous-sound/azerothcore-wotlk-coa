@@ -1,4 +1,3 @@
-"""Exercise Outmaneuver with the native temporary button functions and bounded maps."""
 import os
 from pathlib import Path
 import re

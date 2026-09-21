@@ -61,9 +61,6 @@ void SummonHounds(Player* player, uint32 count, uint32 duration, uint32 spellId,
 {
     if (!player || !player->IsInWorld() || !player->IsAlive())
         return;
-    // Entry 61 is the non-pet guardian both Unleash ranks already name in MiscValueB. It makes the hound a
-    // real controlled minion (owner and creator GUID, player-controlled flag, owner level set before the
-    // spawn-time aggro sweep) while leaving the permanent Shadowhound's guardian-pet slot alone.
     SummonPropertiesEntry const* properties = sSummonPropertiesStore.LookupEntry(61);
     if (!properties)
         return;
@@ -93,7 +90,7 @@ void CallHounds(Player* player, Unit* target)
                 hound->AI()->DoAction(ACTION_CALLED_LEAP);
             }
 }
-} // namespace AscensionWitchHunter
+}
 
 namespace
 {
@@ -154,18 +151,12 @@ class HoundActions
                 _me->SetBaseWeaponDamage(BASE_ATTACK, MINDAMAGE, damage * 0.9f);
                 _me->SetBaseWeaponDamage(BASE_ATTACK, MAXDAMAGE, damage * 1.1f);
                 _me->UpdateDamagePhysical(BASE_ATTACK);
-                // Rampaging Frenzy resolves TARGET_UNIT_CASTER, so casting it at the hound lands it on the
-                // Witch Hunter instead. Apply it directly, which keeps the player as the aura's caster for
-                // the cleave payload and leaves the native pet force-cast path untouched.
                 if (owner->HasAura(570726) && !_me->HasAura(562027))
                     owner->AddAura(562027, _me);
                 if (!owner->HasAura(570726))
                     _me->RemoveAurasDueToSpell(562027);
                 if (_me->GetEntry() == 50224 && !_me->GetVictim())
                 {
-                    // A caster Witch Hunter never sets GetVictim(), so fall back to whoever is already
-                    // fighting the owner. Both fallbacks require existing combat, so the hounds still do
-                    // not pull anything on their own.
                     Unit* target = owner->GetVictim();
                     if (!target && !owner->getAttackers().empty())
                         target = *owner->getAttackers().begin();
@@ -256,8 +247,6 @@ struct npc_ascension_witch_hunter_hound : ScriptedAI
         }
         me->SetOwnerGUID(owner->GetGUID());
         me->SetFaction(owner->GetFaction());
-        // Never leave the hound at the template level: a level-1 summon widens every nearby creature's
-        // aggro radius to the 45-yard cap during the spawn-time relocation sweep.
         me->SetLevel(owner->GetLevel());
         me->SetReactState(REACT_DEFENSIVE);
         me->SetMaxHealth(std::max(1u, owner->CountPctFromMaxHealth(20)));
@@ -276,12 +265,6 @@ struct npc_ascension_witch_hunter_hound : ScriptedAI
         if (action == ACTION_CALLED_LEAP)
             actions.Leap();
     }
-    // Deliberately no OwnerAttacked/OwnerAttackedBy override. Now that the hound is in the owner's
-    // m_Controlled set those hooks are live, and the CreatureAI defaults already route both through
-    // OnOwnerCombatInteraction: it keeps a living victim and validates a new one with CanStartAttack.
-    // AttackStart() cannot be called unguarded here, because Unit::Attack runs no faction check and
-    // Spell::cast forwards the unit target of every harmful-class spell the owner casts - including
-    // friendly ones such as the permanent Shadowhound that Scent of Magic (800528) buffs.
     void UpdateAI(uint32 diff) override
     {
         actions.Update(diff);
@@ -295,9 +278,9 @@ struct npc_ascension_witch_hunter_field : ScriptedAI
     explicit npc_ascension_witch_hunter_field(Creature* creature) : ScriptedAI(creature) {}
     EventMap events;
     ObjectGuid ownerGuid;
-    void AttackStart(Unit* /*target*/) override {}
-    void MoveInLineOfSight(Unit* /*target*/) override {}
-    void EnterEvadeMode(EvadeReason /*why*/) override {}
+    void AttackStart(Unit*) override {}
+    void MoveInLineOfSight(Unit*) override {}
+    void EnterEvadeMode(EvadeReason) override {}
 
     void IsSummonedBy(WorldObject* summoner) override
     {
@@ -347,7 +330,6 @@ struct npc_ascension_witch_hunter_field : ScriptedAI
         }
         if (entry == 506010)
         {
-            // A caltrop is used up by the enemies that step on it, like the Witch Hunter traps below.
             bool triggered = false;
             for (Unit* enemy : Nearby(me, 3.0f))
                 if (owner->IsValidAttackTarget(enemy))
@@ -418,8 +400,6 @@ class spell_ascension_witch_hunter_summon : public SpellScript
             position = *destination;
         if (effect.MiscValue == 506010)
         {
-            // Caltrops (BasePoints 11) and Renegade's Vault drop (BasePoints 5) scatter that many small caltrops
-            // over the effect radius instead of a single one.
             float const radius = effect.CalcRadius(player);
             for (int32 i = std::max(1, effect.CalcValue(player)); i > 0; --i)
                 player->SummonCreature(effect.MiscValue, player->GetRandomPoint(position, radius),
@@ -448,7 +428,7 @@ class spell_ascension_witch_hunter_smoke : public SpellScript
         AfterCast += SpellCastFn(spell_ascension_witch_hunter_smoke::After);
     }
 };
-} // namespace
+}
 
 void AddAscensionWitchHunterSummonScripts()
 {

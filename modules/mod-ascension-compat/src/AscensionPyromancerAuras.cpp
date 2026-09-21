@@ -83,7 +83,7 @@ class aura_ascension_pyromancer_lifecycle : public AuraScript
         if (player && Any(GetSpellInfo(), {680962, 807403, 520826}) && effect->GetEffIndex() != EFFECT_0)
         {
             amount = 0;
-            recalculate = false; // Remaining amount and tick count survive native aura saves.
+            recalculate = false;
         }
     }
     void HealArea(Player* player, uint32 id)
@@ -222,7 +222,7 @@ class aura_ascension_pyromancer_phoenix : public AuraScript
         OnEffectAbsorb += AuraEffectAbsorbFn(aura_ascension_pyromancer_phoenix::Absorb, EFFECT_0);
     }
 };
-} // namespace
+}
 void AddSC_AscensionPyromancerAuras()
 {
     RegisterSpellScript(aura_ascension_pyromancer_lifecycle);

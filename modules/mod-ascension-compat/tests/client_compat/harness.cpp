@@ -20,7 +20,6 @@ void Check(bool value, char const* name)
 }
 }
 
-// The database boundary deliberately supplies one explicit-ID overlay.
 DBCDatabaseLoader::DBCDatabaseLoader(char const*, char const* format, std::vector<char*>& pool)
     : _sqlTableName(nullptr), _dbcFormat(format), _sqlIndexPos(0), _recordSize(4), _stringPool(pool) { }
 char* DBCDatabaseLoader::Load(uint32& records, char**& index)
@@ -77,7 +76,6 @@ bool VerifyFile(DBCStorage<T>& store, std::string const& path)
 
 void TestDBC(std::string const& folder, bool installed)
 {
-    // Globals are loaded once. Additional installed-file checks use separate stores.
     if (installed)
     {
         DBCStorage<GtOCTRegenHPEntry> hp("df");
@@ -124,7 +122,6 @@ void TestDBC(std::string const& folder, bool installed)
     Check(!invalid.Load((folder + "/invalid.dbc").c_str()), "invalid float record size is rejected");
 }
 
-// Control arrival times while executing the unchanged native ping handler.
 struct TestClock
 {
     using duration = std::chrono::steady_clock::duration;

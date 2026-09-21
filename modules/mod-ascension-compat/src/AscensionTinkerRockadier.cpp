@@ -25,8 +25,6 @@ constexpr std::array<uint32, 7> SCRAP_SHOT_RANKS = {500549, 500556, 500557, 5005
 
 bool CanCopyRockadierDamage(uint32 damage)
 {
-    // Native CalcValue converts through float before returning int32. Check
-    // that rounded value too, so a large positive hit cannot become negative.
     return damage && double(float(damage)) <= double(std::numeric_limits<int32>::max());
 }
 
@@ -65,7 +63,6 @@ bool IsRockadierAura(SpellInfo const* spellInfo)
 
 void NormalizeRockadierCharges(SpellInfo* spellInfo)
 {
-    // Player::_LoadAuras preserves saved charges only for charged SpellInfo.
     if (IsRockadierAura(spellInfo) && !spellInfo->ProcCharges)
         spellInfo->ProcCharges = 6;
 }
@@ -109,17 +106,12 @@ class aura_ascension_tinker_rockadier : public AuraScript
         if (!player || player->getClass() != CLASS_TINKER || GetCasterGUID() != player->GetGUID())
             return false;
 
-        // This hook runs after constructor defaults and before saved state is
-        // loaded. Fresh auras defer their snapshot until application; login
-        // restores the remaining positive charges before that same callback.
         GetAura()->SetCharges(0);
         return true;
     }
 
-    void InitializeCharges(AuraEffect const* /*effect*/, AuraEffectHandleModes mode)
+    void InitializeCharges(AuraEffect const*, AuraEffectHandleModes mode)
     {
-        // Saved positive charges survive login. A new application or a real
-        // recast snapshots Rocket Barrage once; later talent changes do not refill it.
         if ((mode & AURA_EFFECT_HANDLE_REAPPLY) || !GetAura()->GetCharges())
             GetAura()->SetCharges(GetTarget()->HasAura(SPELL_ROCKET_BARRAGE) ? 10 : 6);
     }
@@ -137,9 +129,6 @@ class aura_ascension_tinker_rockadier : public AuraScript
             GetAura()->IsExpired())
             return false;
 
-        // Native events hold the live mutable Spell behind a const view. Only
-        // its existing event marker changes, preventing additional target hits
-        // from spending another charge for this same empowered attack.
         return const_cast<Spell*>(spell)->TryMarkScriptEventHandled(ROCKADIER_ATTACK_EVENT);
     }
 
@@ -150,9 +139,6 @@ class aura_ascension_tinker_rockadier : public AuraScript
         if (!damage || !damage->GetVictim() || !CanCopyRockadierDamage(damage->GetDamage()))
             return;
 
-        // DamageInfo already includes the original hit's critical result and
-        // mitigation. The existing helper supplies its own native targeting,
-        // critical chance and recipient defenses, without a second done bonus.
         GetTarget()->CastCustomSpell(SPELL_ROCKADIER_DAMAGE, SPELLVALUE_BASE_POINT0,
             int32(damage->GetDamage()), damage->GetVictim(), true, nullptr, effect);
     }

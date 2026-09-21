@@ -1,4 +1,4 @@
-"""Exercise Ripple lifecycle, expiry trigger, channel shields and saved stagger accounting."""
+CLI_DESCRIPTION = """Exercise Ripple lifecycle, expiry trigger, channel shields and saved stagger accounting."""
 import argparse
 import importlib.util
 from pathlib import Path
@@ -12,7 +12,7 @@ HERE = Path(__file__).parent
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument("--workspace-tools", type=Path, default=ROOT.parent / "tools")
     parser.add_argument("--spell-dbc", type=Path)
     args = parser.parse_args()

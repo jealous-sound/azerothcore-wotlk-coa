@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check Bestial Wrath's exact native energize amounts, independently of regeneration."""
+CLI_DESCRIPTION = """Check Bestial Wrath's exact native energize amounts, independently of regeneration."""
 
 import argparse
 import json
@@ -28,7 +28,7 @@ def check(directory):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument('result_directory', type=Path)
     args = parser.parse_args()
     check(args.result_directory)

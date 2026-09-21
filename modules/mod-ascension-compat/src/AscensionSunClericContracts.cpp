@@ -67,11 +67,8 @@ void ApplyContracts(SpellInfo* info)
                 info->Effects[0].Effect = SPELL_EFFECT_SCHOOL_DAMAGE;
         }
     if (id == 807994)
-        info->AttributesEx2 &= ~SPELL_ATTR2_CANT_CRIT; // Holy Form may crit and trigger Redeemer once.
+        info->AttributesEx2 &= ~SPELL_ATTR2_CANT_CRIT;
     if (id == 300350)
-        // Blazing Chariot: Attributes lack SPELL_ATTR0_PASSIVE despite the client's "Passive" rank
-        // label, so SpellInfo::IsPassive() is false and Player::addSpell's auto-cast-on-learn branch
-        // never fires -- the modifier aura was never actually applied by any known means.
         info->Attributes |= SPELL_ATTR0_PASSIVE;
     if (id == 807058)
         info->Effects[0].TargetA = SpellImplicitTargetInfo(TARGET_UNIT_TARGET_ENEMY);
@@ -109,14 +106,11 @@ void ApplyContracts(SpellInfo* info)
                 dummy(slot);
     if (id == 803238)
     {
-        // Spell.dbc gives the Sun Ray marker no effect, so casting it applied no aura for Refresh to find.
         aura(0, SPELL_AURA_DUMMY, 0, 0, TARGET_UNIT_CASTER);
         info->DurationEntry = sSpellDurationStore.LookupEntry(1);
     }
     if (id == 806118)
     {
-        // Dawnfall's healing-received area names its allies in TargetA; the persistent area aura only
-        // searches allies from TargetB, so the effect fell back to enemies.
         info->Effects[2].TargetA = SpellImplicitTargetInfo(TARGET_DEST_DEST);
         info->Effects[2].TargetB = SpellImplicitTargetInfo(TARGET_UNIT_DEST_AREA_ALLY);
     }
@@ -185,7 +179,7 @@ void ApplyContracts(SpellInfo* info)
     }
     if (id == 704909)
     {
-        dummy(1); // Its native aura modifies critical damage, while the description specifies chance.
+        dummy(1);
         aura(2, SPELL_AURA_MOD_HEALING_DONE_PERCENT, info->Effects[0].CalcValue(), 0, TARGET_UNIT_CASTER);
     }
     if (id == 807080)
@@ -204,7 +198,7 @@ void ApplyContracts(SpellInfo* info)
         info->AscensionInheritsResolvedAmount = true;
     }
     if (Named(info, 500141))
-        info->Effects[0].ChainTarget = 5; // Primary plus four additional allies from the active description.
+        info->Effects[0].ChainTarget = 5;
     if (Named(info, 800231))
         for (auto& effect : info->Effects)
             if (effect.Effect == 168)
@@ -257,7 +251,7 @@ void ApplyContracts(SpellInfo* info)
         }
     info->_InitializeExplicitTargetMask();
 }
-} // namespace AscensionSunCleric
+}
 namespace
 {
 using namespace AscensionSunCleric;
@@ -282,14 +276,13 @@ public:
                          row.stamina * player->GetStat(STAT_STAMINA) + row.intellect * player->GetStat(STAT_INTELLECT) +
                          row.strength * player->GetStat(STAT_STRENGTH);
         if (Named(info, 500154) && !index && player->HasAura(680656))
-            value += .25f * player->GetTotalAttackPowerValue(BASE_ATTACK); // Explicit local AP policy.
+            value += .25f * player->GetTotalAttackPowerValue(BASE_ATTACK);
         if (Named(info, 800654) && !index)
             value += player->GetShieldBlockValue();
         if (info->Id == 807064 && !index)
             value *= 1 + State(player).sunchargeStacks * .25f;
         if (idIsJustice(info) && index == 1)
         {
-            // Both authored hand hits scale from Fire spell power even when the main hand is Physical.
             value += .2f * (player->SpellBaseDamageBonusDone(SPELL_SCHOOL_MASK_FIRE) -
                             player->SpellBaseDamageBonusDone(info->GetSchoolMask()));
         }

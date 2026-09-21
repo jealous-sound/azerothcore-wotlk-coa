@@ -101,8 +101,6 @@ class spell_ascension_reaper_dirge_weapons : public SpellScript
         values.AddSpellMod(SPELLVALUE_BASE_POINT2, GetEffectValue());
         values.AddSpellMod(SPELLVALUE_MELEE_ATTACK_TYPE, effIndex == EFFECT_0 ? BASE_ATTACK : OFF_ATTACK);
 
-        // Match native E142 value, cooldown, trigger flags and attribution.
-        // Each existing child retains its own hit, crit and fragment trigger.
         if (helper->CategoryRecoveryTime && GetSpellInfo()->GetCategory() == helper->GetCategory())
             player->RemoveSpellCooldown(helper->Id);
 
@@ -149,8 +147,6 @@ class spell_ascension_reaper_dirge_dagger : public SpellScript
 
         if (Item* weapon = GetCaster()->ToPlayer()->GetWeaponForAttack(hand, true))
         {
-            // Keep fractional percentages until the native integer weapon step.
-            // The default hand marker leaves legacy/direct helper casts alone.
             float multiplier = weapon->GetTemplate()->SubClass == ITEM_SUBCLASS_WEAPON_DAGGER ? 1.85f : 1.0f;
             GetSpell()->SetScriptWeaponDamageMultiplier(multiplier);
         }

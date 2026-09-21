@@ -15,7 +15,6 @@ int main()
         {17, 520005, 520005, 500906, 1, false, false},
     };
     ResourceService service;
-    // Health cost, rather than a tooltip-derived allowlist, controls Sanguine's income.
     for (uint32 id : {500125u, 572332u, 800774u, 572907u, 560249u, 560315u, 681304u, 504263u})
     {
         Player player;
@@ -35,7 +34,7 @@ int main()
         service.OnSpellCast(&spell);
         assert(player.Count(SPELL_BLOODMAGE_THIRST) == 0);
         spell.powerCost = 100;
-        spell.info.PowerType = 1; // Rage does not qualify.
+        spell.info.PowerType = 1;
         service.OnSpellCast(&spell);
         assert(player.Count(SPELL_BLOODMAGE_THIRST) == 0);
         spell.info.PowerType = POWER_HEALTH;
@@ -70,7 +69,7 @@ int main()
             if (test.each)
             {
                 service.OnSpellHitResult(&spell, &enemy, 0, 0, false);
-                assert(player.Count(test.resource) == 0); // Gaze requires actual damage.
+                assert(player.Count(test.resource) == 0);
             }
             service.OnSpellHitResult(&spell, &enemy, 0, 100, false);
             assert(player.Count(test.resource) == (test.cast ? 0 : test.amount));
@@ -79,7 +78,6 @@ int main()
             service.OnSpellHitResult(&spell, &enemy, 0, 100, true);
             assert(player.Count(test.resource) == test.amount * (test.each ? 2 : 1));
 
-            // Existing native aura caps remain in force across distinct casts.
             int32 cap = test.resource == 803102 ? 100 : 6;
             player.AddAura(test.resource, &player)->m_stackAmount = cap - 1;
             Spell next{&player, {id}};
@@ -103,7 +101,6 @@ int main()
                 assert(player.Count(803102) == 0);
             }
         }
-    // Baseline native/helper paths must not gain a second grant from this table.
     struct Control { uint8 cls; uint32 id; };
     for (auto const& test : std::vector<Control>{
         {14, 801901}, {14, 501257}, {14, 547210}, {14, 801312}, {14, 501281},
@@ -118,12 +115,6 @@ int main()
         service.OnSpellCast(&spell);
         assert(player.Count(800058) == 0 && player.Count(803102) == 0 && player.Count(500906) == 0);
     }
-    // A damaging spell whose damage the target swallowed whole still generates.
-    //
-    // OnSpellHitResult is handed what survived the target's mitigation, and
-    // npc_training_dummy::DamageTaken sets that to zero on every hit, so a Reaper checking a
-    // rotation on a dummy built no Soul Fragments at all. Reap 573302-573303 is
-    // FirstSuccessfulDamagingHit against Soul Fragment 805077.
     {
         constexpr uint32 REAP = 573303;
         constexpr uint32 SOUL_FRAGMENT = 805077;
@@ -138,24 +129,19 @@ int main()
         Player player, enemy;
         player.cls = 30;
 
-        // The case the helper exists for: it landed, the spell deals damage, the figure is zero.
         reap(player, enemy, SPELL_MISS_NONE, 0, SPELL_EFFECT_NORMALIZED_WEAPON_DMG);
         assert(player.Count(SOUL_FRAGMENT) == 1);
 
-        // A miss is still a miss, whatever the spell would have dealt.
         reap(player, enemy, 1, 0, SPELL_EFFECT_NORMALIZED_WEAPON_DMG);
         assert(player.Count(SOUL_FRAGMENT) == 1);
 
-        // A spell with no damaging effect gains nothing from a zero figure,
         player.auras.clear();
         reap(player, enemy, SPELL_MISS_NONE, 0, 0);
         assert(player.Count(SOUL_FRAGMENT) == 0);
 
-        // while the path that always worked, a real damage figure, is untouched.
         reap(player, enemy, SPELL_MISS_NONE, 100, 0);
         assert(player.Count(SOUL_FRAGMENT) == 1);
 
-        // Every effect the helper asks about counts, and only on a hostile target.
         for (uint32 effect : {SPELL_EFFECT_SCHOOL_DAMAGE, SPELL_EFFECT_WEAPON_DAMAGE_NOSCHOOL,
                               SPELL_EFFECT_WEAPON_PERCENT_DAMAGE, SPELL_EFFECT_WEAPON_DAMAGE,
                               SPELL_EFFECT_NORMALIZED_WEAPON_DMG})

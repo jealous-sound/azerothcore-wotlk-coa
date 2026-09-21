@@ -37,7 +37,6 @@ bool Select(uint32 id, SpellInfo const* info)
         return false;
     }
 }
-// Spell script value holding the charges Aspect's Blessing had when the cast started.
 constexpr uint32 ChargesKey = 1802168;
 void Snapshot(Player* player, Spell* spell)
 {
@@ -60,8 +59,6 @@ void Finish(Player* player, Spell* spell)
         if (uint64 generation = spell->GetScriptValue(id))
             if (Aura* aura = player->GetAura(id); aura && generation == aura->GetScriptValue(802168))
             {
-                // Flames of Fate gives Aspect's Blessing extra charges through SPELLMOD_CHARGES. Once it has
-                // charges the core also drops one for the applied mod, so spend exactly one from the cast-start count.
                 if (id == 802168 && aura->IsUsingCharges())
                 {
                     spell->m_appliedMods.erase(aura);
@@ -88,7 +85,6 @@ class pyromancer_spells : public AllSpellScript
     }
     void OnSpellInterruptDuration(Spell* spell, Unit*, int32& duration) override
     {
-        // Constant Burning: its SPELLMOD_DURATION effect is never applied to Spellburn's lockout by the core.
         Player* player = Owner(spell->GetCaster());
         if (player && Named(spell->GetSpellInfo(), 800808) && player->HasAura(707126))
             duration += Amount(707126, 1);
@@ -181,7 +177,6 @@ class pyromancer_spells : public AllSpellScript
         }
         if (Named(info, 802174))
         {
-            // Expediting Power adds its amount to the reduction of Aspect's Blessing.
             uint32 const extra = player->HasAura(704814) ? uint32(std::max(0, Amount(704814))) : 0;
             for (auto const& pair : player->GetSpellMap())
                 if (player->HasSpell(pair.first))
@@ -214,7 +209,7 @@ class pyromancer_spells : public AllSpellScript
         if (Derived(info))
             return;
         if (id == 804076)
-            Cast(player, target, 300985); // Meteor's disorient, the carrier of Dark Iron Legacy's damage taken bonus.
+            Cast(player, target, 300985);
         bool old = State(player).event;
         State(player).event = true;
         if (damage)
@@ -272,10 +267,8 @@ class pyromancer_spells : public AllSpellScript
             }
             if (Named(info, 806611) && player->HasAura(807319) && !spell->GetScriptValue(807319))
                 spell->SetScriptValue(807319, 1), Reduce(player, 806611, std::abs(Amount(807349)));
-            // Dragonfire's description restores Energize 6% Max Mana, which no DBC effect casts.
             if (Named(info, 500129))
                 Cast(player, player, 503648);
-            // Dormant's proc aura has no proc flags; its direct Fire damage return is applied once per cast.
             if ((info->SchoolMask & SPELL_SCHOOL_MASK_FIRE) && player->HasAura(800128) &&
                 !spell->GetScriptValue(800128))
                 spell->SetScriptValue(800128, 1), Cast(player, player, 800129);
@@ -358,7 +351,7 @@ class spell_ascension_pyromancer_resource : public SpellScript
             Flames(player, std::max(0, effect.MiscValue));
         }
         if (GetSpellInfo()->Id == 572381 && index == EFFECT_1)
-            PreventHitDefaultEffect(index); // The stack operation already applies the five stacks.
+            PreventHitDefaultEffect(index);
         if (effect.Effect == 175 && (effect.TriggerSpell == HeatAura || effect.TriggerSpell == EmberAura))
         {
             PreventHitDefaultEffect(index);
@@ -460,7 +453,7 @@ class spell_ascension_pyromancer_ability : public SpellScript
         OnEffectHitTarget += SpellEffectFn(spell_ascension_pyromancer_ability::Effect, EFFECT_ALL, SPELL_EFFECT_ANY);
     }
 };
-} // namespace
+}
 void AddSC_AscensionPyromancerAbilities()
 {
     new pyromancer_spells();

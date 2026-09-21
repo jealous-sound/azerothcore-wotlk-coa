@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check Rockslide's 15% recursive repeats at the first and highest Stoneshard ranks."""
+CLI_DESCRIPTION = """Check Rockslide's 15% recursive repeats at the first and highest Stoneshard ranks."""
 
 import argparse
 import json
@@ -21,8 +21,6 @@ def check(directories):
             raise ValueError('Missing original casts')
         recursive_windows += sum(values[f'talented_{i}_hits'] >= 3 for i in range(originals))
 
-        # Each original ends a geometric chain with probability .85. With a fixed
-        # number of originals, the extra-cast count has a negative-binomial law.
         def probability(k):
             return math.exp(math.lgamma(originals + k) - math.lgamma(originals) - math.lgamma(k + 1)
                             + originals * math.log(.85) + k * math.log(.15))
@@ -39,6 +37,6 @@ def check(directories):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument('result_directories', type=Path, nargs=2)
     check(parser.parse_args().result_directories)

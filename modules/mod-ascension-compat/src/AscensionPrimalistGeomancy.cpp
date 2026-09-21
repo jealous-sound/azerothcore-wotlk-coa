@@ -33,7 +33,6 @@ public:
     {
         if (info->SpellFamilyName == 37 && info->Id == TectonicResonance &&
             info->Effects[EFFECT_2].ApplyAuraName == SPELL_AURA_ADD_FLAT_MODIFIER)
-            // Earthquake and its slow share a family mask: the copied effect also subtracts 30 damage.
             info->Effects[EFFECT_2].ApplyAuraName = SPELL_AURA_DUMMY;
     }
 };
@@ -44,7 +43,7 @@ class aura_ascension_tectonic_resonance_slow : public AuraScript
 
     bool Validate(SpellInfo const*) override { return ValidateSpellInfo({TectonicResonance, EarthquakeSlow}); }
 
-    void Calculate(AuraEffect const*, int32& amount, bool& /*canRecalculate*/)
+    void Calculate(AuraEffect const*, int32& amount, bool&)
     {
         Unit* caster = GetCaster();
         if (caster && caster->IsPlayer() && caster->getClass() == CLASS_WILDWALKER)
@@ -86,7 +85,6 @@ class aura_ascension_rockslide : public AuraScript
         ObjectGuid victimGuid = source->m_targets.GetUnitTarget()->GetGUID();
         uint32 spell = source->GetSpellInfo()->Id;
         int32 delay = sSpellMgr->GetSpellInfo(RockslideHelper)->Effects[EFFECT_0].CalcValue(owner);
-        // The copied helper fixes the repeat to rank one. Keep its delay but repeat the actual cast rank.
         owner->m_Events.AddEventAtOffset([ownerGuid, victimGuid, spell]()
         {
             Player* player = ObjectAccessor::FindPlayer(ownerGuid);
@@ -94,7 +92,6 @@ class aura_ascension_rockslide : public AuraScript
                 return;
             Unit* victim = ObjectAccessor::GetUnit(*player, victimGuid);
             if (victim && victim->IsAlive() && player->IsValidAttackTarget(victim))
-                // The tooltip explicitly permits another Rockslide roll from this delayed repeat.
                 player->CastSpell(victim, spell, RepeatCastFlags);
         }, Milliseconds(std::max(1, delay)));
     }

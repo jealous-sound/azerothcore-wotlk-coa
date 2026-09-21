@@ -71,7 +71,6 @@ public:
 
     void OnAfterConfigLoad(bool reload) override
     {
-        // Item templates are only available after the initial world load.
         if (reload)
             Load();
     }
@@ -148,8 +147,6 @@ private:
             LOG_ERROR("server.loading", "Bloodforged disabled: empty or incomplete catalogue");
             return;
         }
-        // Keep nearby gear tiers, using the highest verified item level available
-        // for that quality. Sparse green records must not silently disable drops.
         for (unsigned level = 15; level <= 60; ++level)
             for (auto& pool : next->pools[level])
             {
@@ -161,8 +158,6 @@ private:
                     return !InGearTier(sObjectMgr->GetItemTemplate(entry)->ItemLevel, level, highest);
                 });
             }
-        // The shipped reviewed catalogue has no eligible epics before level 40.
-        // Empty pools never borrow another quality or inflate its drop chance.
         for (unsigned level = 15; level <= 60; ++level)
             if (next->pools[level][0].empty() || next->pools[level][1].empty())
             {
@@ -196,8 +191,6 @@ public:
             || creature->GetCreatureType() == CREATURE_TYPE_CRITTER)
             return;
 
-        // Respect the core's tap and group recipient. Never use the killing blow
-        // to steal a roll from the player/group that owns the corpse.
         Player* eligibleOwner = EligiblePlayer(owner, creature) ? owner : nullptr;
         if (!eligibleOwner)
             if (Group* group = owner->GetGroup())
@@ -222,8 +215,6 @@ public:
         uint32 entry = pool[urand(0, pool.size() - 1)];
         LootStoreItem item(entry, 0, 100.0f, false, LOOT_MODE_DEFAULT, 0, 1, 1);
         item.conditions = { &riskCondition, &levelCondition };
-        // Run before the core assigns per-player loot and group roll rights.
-        // Aura conditions remain enforced when another player opens the corpse.
         loot->AddItem(item);
     }
 };

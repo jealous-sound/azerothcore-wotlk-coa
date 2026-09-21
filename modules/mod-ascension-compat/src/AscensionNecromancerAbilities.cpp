@@ -24,15 +24,13 @@ void CorpseExplosion(Player* player, Unit* center)
                 corpse->GetCreatureType() != CREATURE_TYPE_ELEMENTAL && center->IsWithinLOSInMap(corpse))
             {
                 auto targets = Nearby(corpse, 10.0f);
-                // Map-thread claim precedes damage/procs; a second explosion cannot
-                // reuse the same body.
                 corpse->RemoveCorpse();
                 for (Unit* target : targets)
                     if (player->IsValidAttackTarget(target))
                         Copy(player, target, 533240, std::max(1, Amount(KnownRank(player, 533236), 0, player)));
             }
 }
-} // namespace AscensionNecromancer
+}
 namespace
 {
 using namespace AscensionNecromancer;
@@ -52,8 +50,6 @@ void Virulency(Player* player, Unit* target)
     auto& state = State(player);
     if (player->HasAura(803782) && !state.diseases.empty())
     {
-        // Copy the original application snapshots even if the source enemy has
-        // since died or left range.
         for (auto const& saved : state.diseases)
             if (Aura* copy = player->AddAura(saved.spell, target))
             {
@@ -113,8 +109,8 @@ class necromancer_casts : public AllSpellScript
                            ALLSPELLHOOK_ON_CALCULATED_TARGET, ALLSPELLHOOK_ON_HIT_RESULT})
     {
     }
-    void OnSpellHitResult(Spell* spell, Unit* target, uint8 miss, uint32 /*damage*/, uint32 /*healing*/,
-                          bool /*critical*/) override
+    void OnSpellHitResult(Spell* spell, Unit* target, uint8 miss, uint32, uint32,
+                          bool) override
     {
         Player* player = Owner(spell->GetCaster());
         if (!player || player != spell->GetCaster() || !target || miss != SPELL_MISS_NONE || spell->IsTriggered())
@@ -129,7 +125,7 @@ class necromancer_casts : public AllSpellScript
             }
         }
     }
-    void OnSpellCheckCast(Spell* spell, bool /*strict*/, SpellCastResult& result) override
+    void OnSpellCheckCast(Spell* spell, bool, SpellCastResult& result) override
     {
         Player* player = Owner(spell->GetCaster());
         if (!player || player != spell->GetCaster() || spell->IsTriggered() || result != SPELL_CAST_OK)
@@ -139,8 +135,6 @@ class necromancer_casts : public AllSpellScript
         Unit* target = spell->m_targets.GetUnitTarget();
         if (player->HasAura(500730))
             result = SPELL_FAILED_CASTER_AURASTATE;
-        // Life Force is not the Necromancer's power bar, so "Not enough mana" would be wrong: the client reads this
-        // result as "You already control a summoned creature".
         if (Cost(player, id) && int32(Capacity(player)) - Used(player) < Cost(player, id))
             result = SPELL_FAILED_ALREADY_HAVE_SUMMON;
         if (Command(info) && (player->HasAura(500983) || Minions(player).empty()))
@@ -209,7 +203,6 @@ class necromancer_casts : public AllSpellScript
         uint32 id = aura->GetId();
         if ((id == 803741 || id == 800706) && player->HasAura(302923))
             duration = duration * 125 / 100;
-        // Ground effects (dynamic object auras) come through this hook too: GetUnitOwner asserts on them.
         if (aura->GetType() == UNIT_AURA_TYPE && aura->GetUnitOwner() && aura->GetUnitOwner()->IsPlayer())
         {
             if (id == 504845)
@@ -225,7 +218,7 @@ class necromancer_casts : public AllSpellScript
             Cast(player, target, 803677);
         }
     }
-    void OnSpellCast(Spell* spell, Unit* caster, SpellInfo const* info, bool /*skip*/) override
+    void OnSpellCast(Spell* spell, Unit* caster, SpellInfo const* info, bool) override
     {
         Player* player = Owner(caster);
         if (!player || player != caster || spell->IsTriggered())
@@ -352,8 +345,7 @@ class spell_ascension_necromancer_ability : public SpellScript
             return;
         uint32 id = GetSpellInfo()->Id;
         if (id == 805031 || id == 801545 || id == 525388)
-            return; // their native payloads are selected by the bounded owner target
-                    // filters below
+            return;
         PreventHitDefaultEffect(index);
         if (_handled)
             return;
@@ -430,7 +422,6 @@ class spell_ascension_necromancer_ability : public SpellScript
     void Register() override
     {
         OnEffectHitTarget += SpellEffectFn(spell_ascension_necromancer_ability::Hit, EFFECT_ALL, SPELL_EFFECT_ANY);
-        // Validation registers scripts before a cast object exists.
         for (auto const& effect : sSpellMgr->GetSpellInfo(m_scriptSpellId)->Effects)
             if (effect.TargetA.GetTarget() == TARGET_UNIT_SRC_AREA_ALLY ||
                 effect.TargetB.GetTarget() == TARGET_UNIT_SRC_AREA_ALLY)
@@ -441,7 +432,7 @@ class spell_ascension_necromancer_ability : public SpellScript
             }
     }
 };
-} // namespace
+}
 void AddAscensionNecromancerAbilityScripts()
 {
     new necromancer_casts();

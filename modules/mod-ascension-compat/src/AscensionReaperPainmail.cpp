@@ -81,19 +81,13 @@ void HandleAscensionReaperPainmailHit(Spell* spell, Player* player,
         !IsPainmailAttack(spell->GetSpellInfo()) || !HasPainmailContract())
         return;
 
-    // The visible damage event is reconstructed once per resolved hostile
-    // target, including triggered copies. Native callbacks aggregate a
-    // weapon spell's effects before reaching this point.
     if (Aura* aura = player->GetAura(SPELL_PAINMAIL, player->GetGUID()))
     {
         uint8 maximum = aura->GetSpellInfo()->CalcMaxAuraStacks(player);
         if (aura->GetStackAmount() < maximum)
             aura->SetStackAmount(aura->GetStackAmount() + 1);
-        // SetStackAmount recalculates both native expiry payloads without
-        // resetting duration, periodic timers or tick counters.
         return;
     }
 
-    // Preserve native cast failures and aura immunity on initial application.
     player->CastSpell(player, SPELL_PAINMAIL, TRIGGERED_FULL_MASK);
 }

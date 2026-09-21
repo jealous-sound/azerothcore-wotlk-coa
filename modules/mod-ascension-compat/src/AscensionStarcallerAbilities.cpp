@@ -17,7 +17,6 @@ using namespace AscensionStarcaller;
 constexpr uint32 selected[] = {800386, 680821, 503780, 561046, 801243, 707425, 504630, 504631, 680713, 802681, 572319};
 bool IsLunarEclipseActivation(Spell const* spell)
 {
-    // The constructor adds these flags for ALLOW_CAST_WHILE_CASTING even to a normal player cast.
     constexpr uint32 allowedFlags = TRIGGERED_IGNORE_CAST_IN_PROGRESS | TRIGGERED_CAST_DIRECTLY;
     return spell->GetSpellInfo()->Id == 800386 && !(uint32(spell->GetTriggeredCastFlags()) & ~allowedFlags);
 }
@@ -158,7 +157,6 @@ class starcaller_spells : public AllSpellScript
         Snapshot(player, spell);
         if (IsLunarEclipseActivation(spell))
         {
-            // Spend exactly the threshold; stacks gained beyond it (Bright Moon) stay.
             if (Aura* phase = player->GetAura(802985))
                 phase->ModStackAmount(-int32(LunarPhaseThreshold));
             if (Count(player, 802985) < LunarPhaseThreshold)
@@ -242,7 +240,6 @@ class starcaller_spells : public AllSpellScript
         uint32 id = info->Id;
         bool old = State(player).event;
         State(player).event = true;
-        // This callback runs after damage; killing blows still restore the caster's mana.
         if (player != target && !player->IsFriendlyTo(target))
         {
             if (id == 800507 && damage && player->HasAura(503584))
@@ -466,7 +463,7 @@ class spell_ascension_starcaller_ability : public SpellScript
         OnEffectHitTarget += SpellEffectFn(spell_ascension_starcaller_ability::Hit, EFFECT_ALL, SPELL_EFFECT_ANY);
     }
 };
-} // namespace
+}
 void AddSC_AscensionStarcallerAbilities()
 {
     new starcaller_spells();

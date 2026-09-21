@@ -46,8 +46,6 @@ class spell_ascension_witch_hunter_torchlight_mark : public AuraScript
             (eventInfo.GetTypeMask() & PROC_FLAG_TAKEN_PERIODIC))
             return false;
 
-        // The marking hit and the resulting Flames copy are not subsequent
-        // attacks. Reject them before native proc preparation spends a charge.
         for (SpellInfo const* source : {eventInfo.GetSpellInfo(), damage->GetSpellInfo()})
             if (source && (source->Id == SPELL_TORCHLIGHT_MARK || source->Id == SPELL_TORCHLIGHT_FLAMES_DAMAGE))
                 return false;

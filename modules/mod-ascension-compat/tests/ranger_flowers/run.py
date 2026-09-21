@@ -1,4 +1,4 @@
-"""Exercise green flower creation, critical/cast triggers, pickup selection and Highlander."""
+CLI_DESCRIPTION = """Exercise green flower creation, critical/cast triggers, pickup selection and Highlander."""
 import argparse
 import importlib.util
 from pathlib import Path
@@ -126,7 +126,7 @@ def make_harness(native, source_path, ai_name):
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument("--workspace-tools", type=Path, default=ROOT.parent / "tools")
     parser.add_argument("--spell-dbc", type=Path)
     args = parser.parse_args()

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check Earthmother's Binding redirects 30% of the actual incoming hit, rounded down."""
+CLI_DESCRIPTION = """Check Earthmother's Binding redirects 30% of the actual incoming hit, rounded down."""
 
 import argparse
 import json
@@ -20,6 +20,6 @@ def check(directory):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument('result_directory', type=Path)
     check(parser.parse_args().result_directory)

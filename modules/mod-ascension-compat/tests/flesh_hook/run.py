@@ -1,4 +1,3 @@
-"""Exercise Flesh Hook metadata with the native hit-result and range checks."""
 import argparse
 import os
 from pathlib import Path
@@ -31,7 +30,7 @@ def main():
     for parent in parents:
         assert rows[parent][71:74] == (2, 183, 30) and rows[parent][117] == 800605
     helper = rows[800605]
-    assert helper[71:74] == (6, 145, 68) and helper[3] == 6  # Preserve the grip mechanic.
+    assert helper[71:74] == (6, 145, 68) and helper[3] == 6
     blob = (args.dbc_dir / 'SpellRange.dbc').read_bytes()
     count, _, size = struct.unpack_from('<3I', blob, 4)
     ranges = {struct.unpack_from('<I', blob, 20 + i * size)[0]:
@@ -124,7 +123,6 @@ struct Spell
     Unit* GetCaster(){return m_caster;}SpellCastResult CheckRange(bool);
 };
 '''
-    # CheckRange uses Player for the optional spellmod owner.
     code = code.replace('Unit* GetSpellModOwner()', 'Player* GetSpellModOwner()')
     unit = (ROOT / 'src/server/game/Entities/Unit/Unit.cpp').read_text()
     spell = (ROOT / 'src/server/game/Spells/Spell.cpp').read_text()

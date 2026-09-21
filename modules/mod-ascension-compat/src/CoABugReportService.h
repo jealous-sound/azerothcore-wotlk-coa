@@ -36,8 +36,6 @@ namespace CoABugReport
         return !text.empty() && result.ec == std::errc() && result.ptr == text.data() + text.size();
     }
 
-    // World-thread service. No network, database, credentials or retained Player pointers.
-    // Files are private to the administrator and relay; clients supply only a validated request ID.
     class Service
     {
     public:
@@ -57,7 +55,6 @@ namespace CoABugReport
             if (!ValidId(id))
                 return {};
 
-            // Bound disk/status requests too, including clients bypassing the addon's pacing.
             std::erase_if(_traffic, [now](auto const& pair) { return now > pair.second.second + 10; });
             if (!_traffic.contains(account) && _traffic.size() >= 4096)
                 return {};
@@ -74,7 +71,6 @@ namespace CoABugReport
 
             try
             {
-                // Bound idle partial uploads and cooldown accounting independently of relogging.
                 std::erase_if(_uploads, [now](auto const& pair) { return now > pair.second.updated + 120; });
                 std::erase_if(_lastSubmit, [now, this](auto const& pair)
                 {
@@ -143,7 +139,6 @@ namespace CoABugReport
                 if (upload.payload.size() != upload.expected || !ValidPayload(upload.payload))
                     return failure("invalid");
 
-                // Publish a complete file in one rename. The relay ignores .part files.
                 auto const temporary = _directory / (key + ".part");
                 {
                     std::ofstream output(temporary, std::ios::binary | std::ios::trunc);

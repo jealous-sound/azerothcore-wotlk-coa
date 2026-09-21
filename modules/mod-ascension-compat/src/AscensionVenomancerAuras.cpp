@@ -65,15 +65,9 @@ class aura_ascension_venomancer_lifecycle : public AuraScript
         if (id == Skulk)
         {
             Cast(player,player,800906);
-            // Native DBC data gates several Skulk-only abilities behind CasterAuraSpell = 520890
-            // ("Skulking"), a permanent marker aura nothing else ever grants. Without this, the
-            // game client itself blocks the cast before it reaches the server.
             Cast(player,player,520890);
         }
         if (id == Spider || id == Beetle)
-            // Hive Instinct (804968) is gated behind CasterAuraSpell = 803184 ("Beetle or Spider
-            // Form"), a synthetic marker aura nothing else ever grants. Without this, the game
-            // client itself blocks the cast before it reaches the server.
             Cast(player,player,803184);
         if (id == 806154)
         {

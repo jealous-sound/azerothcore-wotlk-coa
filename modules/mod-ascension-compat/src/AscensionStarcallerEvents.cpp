@@ -273,7 +273,7 @@ class aura_ascension_starcaller_event : public AuraScript
         OnProc += AuraProcFn(aura_ascension_starcaller_event::Proc);
     }
 };
-} // namespace
+}
 void AddSC_AscensionStarcallerEvents()
 {
     RegisterSpellScript(aura_ascension_starcaller_event);

@@ -39,9 +39,6 @@ Player* Owner(Unit const* unit)
 TinkerState& State(Player* player)
 {
     std::lock_guard<std::mutex> lock(stateMutex);
-    // The map is locked for the lookup only: the caller then reads and writes the state with no
-    // lock held. Kept by pointer, the state itself never moves, so an insert for another player
-    // rehashing the map cannot leave that caller writing into freed memory.
     return *states.try_emplace(player->GetGUID(), std::make_unique<TinkerState>()).first->second;
 }
 bool NotifyAttack(Player* player, Unit* target)
@@ -328,9 +325,6 @@ void Refresh(Player* player)
     bool mine = false;
     for (Creature* device : Devices(player))
         mine |= device->GetEntry() == 50045 || device->GetEntry() == 50600;
-    // Bomb Ready (500354) is an owner area aura the mine itself carries, see
-    // npc_ascension_tinker_device::IsSummonedBy. Casting it from the Tinker can never apply it - the
-    // area aura only reaches the aura owner's own owner - and revoking it here would strip the mine's.
     if (mine && !player->HasSpell(801798))
         player->learnSpell(801798,true);
     else if (!mine)
@@ -338,7 +332,7 @@ void Refresh(Player* player)
     bool gear = player->HasAura(681245);
     if (Spell* channel = player->GetCurrentSpell(CURRENT_CHANNELED_SPELL); channel &&
         channel->GetSpellInfo()->Id == 504594 && channel->getState() != SPELL_STATE_FINISHED)
-        gear = true; // Unlearning now would remove the channel aura before its four ticks finish.
+        gear = true;
     for (auto [root,replacement,enabled] : {std::tuple(500549u,500213u,mech),
         std::tuple(504527u,504594u,gear)})
     {
@@ -356,7 +350,7 @@ void Refresh(Player* player)
         player->RemoveAurasDueToSpell(653282);
     state.refreshing = false;
 }
-} // namespace AscensionTinker
+}
 namespace
 {
 class tinker_player : public PlayerScript

@@ -37,8 +37,6 @@ public:
         if (!player || !player->IsAlive() || !damage || damage < player->GetHealth() ||
             !player->HasAura(560157) || player->HasSpellCooldown(560157))
             return;
-        // DealDamage reaches this hook after mitigation and absorption. Mark the
-        // native saved cooldown before casting the heal, including any nested events.
         player->AddSpellCooldown(560157, 0, 120000);
         damage = 0;
         player->CastSpell(player, 560179, true);
@@ -53,7 +51,6 @@ public:
         Aura* aura = application->GetBase();
         if (aura->GetCasterGUID() != player->GetGUID())
             return;
-        // Only the visible defenses, not their separately removed SLS helpers.
         if (aura->GetId() == 680421 || aura->GetId() == 800094 || aura->GetId() == 503630)
             player->CastSpell(player, 503716, true);
     }
@@ -76,8 +73,6 @@ class aura_ascension_natural_efficiency : public AuraScript
         AuraApplication const* application = GetTarget()->GetAuraApplication(info->Id, caster->GetGUID());
         if (!application || application->GetRemoveMode() || application->IsPositive())
             return false;
-        // Filter the existing native proc by effects actually applied to the victim.
-        // An immune control effect can still leave a slow or another secondary aura.
         Aura* aura = application->GetBase();
         for (uint8 i = 0; i < MAX_SPELL_EFFECTS; ++i)
             if (application->GetEffectMask() & (1 << i))
@@ -109,8 +104,6 @@ public:
             info->SpellFamilyName != 37 || info->Id != SPELL_GEODE_BARRAGE_DAMAGE ||
             spell->GetScriptValue(SPELL_GEODE_BARRAGE_RAGE))
             return;
-        // Each channel tick casts this damage helper. Its authored energize
-        // companion rolls 30-80 internal Rage (3-8 visible Rage) per successful stone.
         spell->SetScriptValue(SPELL_GEODE_BARRAGE_RAGE, 1);
         player->CastSpell(player, SPELL_GEODE_BARRAGE_RAGE, true);
     }
@@ -163,7 +156,7 @@ class spell_ascension_throat_clamp : public SpellScript
         Player* player = Primalist(GetCaster());
         Unit* target = GetHitUnit();
         if (CheckThroatClamp(player, target) == SPELL_CAST_OK)
-            player->GetPet()->CastSpell(target, 500811, false); // Native dash, interrupt and school lockout.
+            player->GetPet()->CastSpell(target, 500811, false);
     }
 
     void Register() override
@@ -209,9 +202,6 @@ class aura_ascension_primal_shred_critical : public AuraScript
         if (!pet)
             return;
         SpellInfo const* info = GetSpellInfo();
-        // Legacy of Rexxar explicitly procs from Primal Shred critical strikes.
-        // Native periodic crit admission only checks the owner's aura 286 and
-        // samples the owner's crit. This pet-cast bleed needs the pet's chance.
         float chance = pet->SpellDoneCritChance(GetTarget(), info, info->GetSchoolMask(), BASE_ATTACK, true);
         chance = GetTarget()->SpellTakenCritChance(pet, info, info->GetSchoolMask(), chance, BASE_ATTACK, true);
         GetEffect(EFFECT_0)->SetCritChance(std::max(0.0f, chance));

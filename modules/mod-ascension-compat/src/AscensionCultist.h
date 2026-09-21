@@ -59,5 +59,5 @@ void Command(Player* player, Unit* target, bool blast = false);
 void StartDash(Player* player);
 void UpdateDash(Player* player, uint32 diff);
 void ApplyContracts(SpellInfo* info);
-} // namespace AscensionCultist
+}
 #endif

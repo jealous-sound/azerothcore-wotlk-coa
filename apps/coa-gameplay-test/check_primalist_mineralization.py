@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify Mineralization's healing multiplier below and above its proc threshold."""
+CLI_DESCRIPTION = """Verify Mineralization's healing multiplier below and above its proc threshold."""
 
 import argparse
 import json
@@ -15,8 +15,6 @@ def check(directory):
     baseline = values['baseline_heal']
     if baseline <= 0:
         raise ValueError('Missing positive baseline heal')
-    # Native CAST procs run after launch-time healing calculation. The triggering heal
-    # grants the aura; subsequent heals receive the bonus even above 35% health.
     if abs(values['own_heal'] - baseline) > 2:
         raise ValueError('The initial self-heal must retain its pre-proc calculation')
     for key in ('low_heal', 'above_heal', 'own_followup'):
@@ -27,6 +25,6 @@ def check(directory):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument('result_directory', type=Path)
     check(parser.parse_args().result_directory)

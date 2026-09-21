@@ -24,7 +24,7 @@ namespace
 {
 std::unordered_map<ObjectGuid, std::unique_ptr<FelswornState>> states;
 std::mutex stateMutex;
-} // namespace
+}
 Player* Owner(Unit const* unit)
 {
     Player* player = unit ? const_cast<Unit*>(unit)->ToPlayer() : nullptr;
@@ -33,9 +33,6 @@ Player* Owner(Unit const* unit)
 FelswornState& State(Player* player)
 {
     std::lock_guard<std::mutex> lock(stateMutex);
-    // The map is locked for the lookup only: the caller then reads and writes the state with no
-    // lock held. Kept by pointer, the state itself never moves, so an insert for another player
-    // rehashing the map cannot leave that caller writing into freed memory.
     return *states.try_emplace(player->GetGUID(), std::make_unique<FelswornState>()).first->second;
 }
 bool Named(SpellInfo const* info, uint32 root)
@@ -124,7 +121,6 @@ bool Inner(Unit const* player)
 }
 bool Triggered(Spell const* spell)
 {
-    // SPELL_ATTR4_ALLOW_CAST_WHILE_CASTING adds these flags to direct player casts (Inner Demon among them).
     constexpr uint32 castWhileCasting = TRIGGERED_IGNORE_CAST_IN_PROGRESS | TRIGGERED_CAST_DIRECTLY;
     return spell->HasTriggeredCastFlag(TriggerCastFlags(TRIGGERED_FULL_MASK & ~castWhileCasting));
 }
@@ -268,15 +264,10 @@ void Refresh(Player* player)
 }
 void RefreshUnphased(Player* player)
 {
-    // Unphased's pushback half is only in force while Inner Demon is active. The module sets the
-    // amount itself at every known state change (learn, login, Inner Demon entry and exit) because
-    // ModifySpellEffectBaseValue is not consulted for this effect when the aura's amount is built.
     AuraEffect* pushback = player->GetAuraEffect(Unphased, EFFECT_1);
     if (!pushback)
         return;
     int32 const full = pushback->GetSpellInfo()->Effects[EFFECT_1].CalcValue(player);
-    // Native recalculation runs on ordinary stat updates and would restore the ungated value, so the
-    // amount written here has to be the one that stands until the next state change.
     pushback->SetCanBeRecalculated(false);
     pushback->ChangeAmount(Inner(player) ? full : 0);
 }
@@ -308,7 +299,7 @@ void SpreadCripple(Player* player, Unit* target)
         }
     }
 }
-} // namespace AscensionFelsworn
+}
 
 namespace
 {
@@ -323,12 +314,6 @@ class felsworn_player : public PlayerScript
     void OnPlayerLearnSpell(Player* player, uint32 spellId) override
     {
         using namespace AscensionFelsworn;
-        // Unphased (803645) has no spell_script_names row of its own, so unlike 520252/520253 it
-        // never gets an AfterEffectApply pass on its own aura. Its pushback-reduction half (effect 1,
-        // gated by felsworn_scaling::ModifySpellEffectBaseValue in AscensionFelswornContracts.cpp) is
-        // otherwise left at its raw, ungated value from whichever cast first creates it (bootstrap
-        // grant on level-up or an explicit learn). Force a recalculation right after learning so it
-        // starts correctly zeroed unless Inner Demon is already active.
         if (spellId != Unphased || !Owner(player))
             return;
         RefreshUnphased(player);
@@ -336,13 +321,6 @@ class felsworn_player : public PlayerScript
     void OnPlayerLogin(Player* player) override
     {
         using namespace AscensionFelsworn;
-        // Unphased is passive, so Aura::CanBeSaved() is false (SpellAuras.cpp) and it is never
-        // written to character_aura: every login recreates it fresh via
-        // Player::_LoadSpells -> addSpell -> CastSpell, the exact same construction path where the
-        // base-value gate above does not stick. _LoadSpells calls addSpell directly, not
-        // Player::learnSpell, so OnPlayerLearnSpell above never fires here. Recalculate once at
-        // login so an existing character does not read the raw, ungated value until Inner Demon is
-        // next toggled.
         if (!Owner(player))
             return;
         RefreshUnphased(player);
@@ -393,7 +371,7 @@ class felsworn_player : public PlayerScript
     void OnPlayerBeforeLogout(Player* player) override
     {
         if (AscensionFelsworn::Owner(player))
-            AscensionFelsworn::SettleDebt(player); // before native SaveToDB, so logout cannot erase deferred damage
+            AscensionFelsworn::SettleDebt(player);
     }
     void OnPlayerLogout(Player* player) override
     {
@@ -407,7 +385,7 @@ class felsworn_player : public PlayerScript
         states.erase(player->GetGUID());
     }
 };
-} // namespace
+}
 void AddSC_AscensionFelsworn()
 {
     new felsworn_player();

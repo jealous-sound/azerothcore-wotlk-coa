@@ -1,4 +1,3 @@
-"""Compile actual loot-view serialization and companion collection against bounded API fixtures."""
 import os
 from pathlib import Path
 import runpy
@@ -171,7 +170,6 @@ auto sSpellMgr=&manager;
 '''
     code += method(header, 'struct LootView\n{') + ';\n'
     code += method(loot, 'ByteBuffer& operator<<(ByteBuffer& b, LootItem const& li)')
-    # Native LootView already converts its enum to uint8 implicitly. Keep warnings strict for new code.
     code += '\n#pragma warning(push)\n#pragma warning(disable:4244)\n'
     code += method(loot, 'ByteBuffer& operator<<(ByteBuffer& b, LootView const& lv)')
     code += '\n#pragma warning(pop)\n'

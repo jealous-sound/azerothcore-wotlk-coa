@@ -1,4 +1,3 @@
-"""Verify captured appearance rows, preservation, conflict rejection and idempotence."""
 import gzip
 import json
 from pathlib import Path
@@ -31,7 +30,6 @@ def main():
         assert after[:len(before)] == before and new_strings[:len(strings)] == strings
         assert {row[0] for row in after} == {row[0] for row in before} | ids
         assert tool['transform'](result, table) == result
-        # A collision must fail rather than replace an existing user's record.
         broken = bytearray(result)
         index = next(i for i, row in enumerate(after) if row[0] == expected[0][0])
         offset = 20 + index * width * 4 + 4

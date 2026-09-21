@@ -104,10 +104,6 @@ class spell_ascension_tinker_augmentation : public SpellScript
         if (!gun || !augmentation)
             return;
 
-        // Use the native temporary-enchant lifecycle. Replacing this gun's old
-        // temporary enchant removes its item-owned aura and timer first; other
-        // slots and other weapons are untouched. Broken guns can be enchanted,
-        // while native ApplyEnchantment defers their stats until repaired.
         player->ApplyEnchantment(gun, TEMP_ENCHANTMENT_SLOT, false);
         gun->SetEnchantment(TEMP_ENCHANTMENT_SLOT, augmentation->EnchantmentId,
             AUGMENTATION_DURATION_MS, 0, player->GetGUID());
@@ -134,11 +130,11 @@ float GetAugmentationRangedCoefficient(SpellInfo const* spellInfo)
 
     switch (spellInfo->Id)
     {
-        case 653268: // Piercing Augmentation
+        case 653268:
             return 0.11f;
-        case 653276: // Magic Augmentation
+        case 653276:
             return 0.045f;
-        case 653238: // Explosive Augmentation
+        case 653238:
             return 0.1f;
         default:
             return 0.0f;
@@ -157,7 +153,6 @@ bool UsesAugmentationBaseScaling(SpellInfo const* spellInfo)
 
 double AugmentationBaseMultiplier(uint8 level)
 {
-    // Copied patch-S SpellDescriptionVariables.dbc, row 182 ($scalingbp).
     return 0.0267291844060354 + 0.0048541098014737 * level + 0.0001859597762293 * level * level;
 }
 
@@ -182,14 +177,12 @@ class spell_ascension_tinker_augmentation_damage : public SpellScript
         if (GetSpell()->GetSpellValue()->EffectBasePoints[EFFECT_0] != effect.BasePoints)
             return;
 
-        // Scale only the authored base before native effect modifiers. Keep
-        // independent flat talent bonuses and any forwarded override intact.
         double value = (double(effect.BasePoints) + 1.0) * AugmentationBaseMultiplier(player->GetLevel());
         if (value >= std::numeric_limits<int32>::min() && value <= std::numeric_limits<int32>::max())
             GetSpell()->SetSpellValue(SPELLVALUE_BASE_POINT0, int32(value));
     }
 
-    void AddRangedPower(SpellEffIndex /*effIndex*/)
+    void AddRangedPower(SpellEffIndex)
     {
         Unit* caster = GetOriginalCaster();
         Player* player = caster ? caster->ToPlayer() : nullptr;
@@ -201,10 +194,6 @@ class spell_ascension_tinker_augmentation_damage : public SpellScript
             !bonus || bonus->ap_bonus != 0.0f)
             return;
 
-        // These helpers' metadata selects melee AP in the native SQL path.
-        // Add explicit RAP before the normal damage calculation, retaining
-        // rank/level base values, target AP bonuses and subsequent modifiers.
-        // The separate SQL rows supply only their authored spell-power terms.
         float attackPower = player->GetTotalAttackPowerValue(RANGED_ATTACK) +
             target->GetTotalAuraModifier(SPELL_AURA_RANGED_ATTACK_POWER_ATTACKER_BONUS);
         double amount = double(coefficient * attackPower);
@@ -274,7 +263,7 @@ class spell_ascension_tinker_tracer : public SpellScript
             GetSpell()->SetSpellValue(SPELLVALUE_BASE_POINT2, int32(value));
     }
 
-    void CaptureTimer(SpellMissInfo /*missInfo*/)
+    void CaptureTimer(SpellMissInfo)
     {
         _remaining = 0;
         Unit* caster = GetOriginalCaster();
@@ -323,7 +312,7 @@ class aura_ascension_tinker_tracer : public AuraScript
         return IsTracerMark(spellInfo) && ValidateSpellInfo({SPELL_TRACER_REVEAL});
     }
 
-    void Reveal(AuraEffect const* effect, AuraEffectHandleModes /*mode*/)
+    void Reveal(AuraEffect const* effect, AuraEffectHandleModes)
     {
         Unit* caster = GetCaster();
         Player* player = caster ? caster->ToPlayer() : nullptr;
@@ -331,10 +320,8 @@ class aura_ascension_tinker_tracer : public AuraScript
             caster->CastSpell(GetTarget(), SPELL_TRACER_REVEAL, true, nullptr, effect);
     }
 
-    void OneExplosion(AuraEffect const* /*effect*/)
+    void OneExplosion(AuraEffect const*)
     {
-        // Refreshing a stack resets native tick counters. Preserve the one
-        // explosion contract even for a hit during the last millisecond.
         if (_exploded)
             PreventDefaultAction();
         _exploded = true;

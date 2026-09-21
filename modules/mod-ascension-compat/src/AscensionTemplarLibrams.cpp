@@ -56,8 +56,6 @@ void ApplyAscensionTemplarLibramContracts(SpellInfo* spellInfo)
         healing.BasePoints != 24 || healing.MiscValue != 127 || healing.MiscValueB != STAT_AGILITY)
         return;
 
-    // Fervor grants 30% Agility as spell power. Native aura 175 reads its
-    // stat index from MiscValue; the copied school mask selects a quest field.
     healing.MiscValue = STAT_AGILITY;
     healing.BasePoints = 29;
 }

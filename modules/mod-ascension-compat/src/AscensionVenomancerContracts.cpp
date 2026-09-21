@@ -50,7 +50,7 @@ void ApplyContracts(SpellInfo* info)
         {
             info->AttributesEx2 |= SPELL_ATTR2_CANT_CRIT;
             info->AttributesEx3 |= SPELL_ATTR3_IGNORE_CASTER_MODIFIERS;
-            if (id != 504869) // Sepsis stores nominal future ticks; target mitigation is still applied on release.
+            if (id != 504869)
             {
                 info->AttributesEx4 |= SPELL_ATTR4_IGNORE_DAMAGE_TAKEN_MODIFIERS;
                 info->AttributesCu |= SPELL_ATTR0_CU_IGNORE_ARMOR;
@@ -61,7 +61,7 @@ void ApplyContracts(SpellInfo* info)
             info->Effects[0].TargetB = SpellImplicitTargetInfo();
         }
     if (id == 504796 || id == 504803)
-        info->Effects[1].Effect = 0; // Explicit self-heal follows both damage and healing copies.
+        info->Effects[1].Effect = 0;
     if (id == Brood)
         for (uint8 slot = 0; slot < MAX_SPELL_EFFECTS; ++slot)
             dummy(slot);
@@ -70,9 +70,9 @@ void ApplyContracts(SpellInfo* info)
     if (id == 805102)
         info->Effects[0].Effect = SPELL_EFFECT_DUMMY;
     if (id == 504705)
-        info->Effects[2].Effect = 0; // The owned hit resource row grants exactly one mark.
+        info->Effects[2].Effect = 0;
     if (id == 704264)
-        dummy(0); // Owned summons receive Locust Swarm's damage and haste explicitly.
+        dummy(0);
     if (id == 803196 || id == 803192 || id == 800910 || id == 681056 || id == 681417 || id == 706453 ||
         id == 707191 || id == 707658 || id == 803207)
         for (auto& effect : info->Effects)
@@ -91,8 +91,6 @@ void ApplyContracts(SpellInfo* info)
     }
     if (Named(info,804983))
     {
-        // The parent owns the ten-second timer and its saved one-shot flag.
-        // Restoring it must not create a fresh independent helper timer.
         info->Effects[2].ApplyAuraName = SPELL_AURA_PERIODIC_DUMMY;
         info->Effects[2].Amplitude = 10000;
         info->Effects[2].TriggerSpell = 0;
@@ -104,25 +102,20 @@ void ApplyContracts(SpellInfo* info)
         dummy(2);
     }
     if (id == 803216)
-        // SPELL_AURA_230 (HandleAuraModIncreaseMaxHealth, "Blood Pact/Commanding Shout") preserves the
-        // health percentage across this swing; SPELL_AURA_MOD_INCREASE_HEALTH instead deducts the raw
-        // bonus from current HP on removal, so leaving Beetle Form silently ate whatever damage was taken.
         info->Effects[1].ApplyAuraName = SPELL_AURA_230;
     if (id == 805139)
     {
         info->CasterAuraSpell = Beetle;
-        dummy(1); // Summons are controlled by Spider Lord's reviewed cast/auto-attack events.
+        dummy(1);
     }
     if (id == 804968)
-        // Spider/Beetle are plain auras, not real shapeshift forms, so the native Stances
-        // requirement can never be met; venomancer_spells::OnSpellCheckCast enforces the OR instead.
         info->Stances = 0;
     if (id == 680800)
-        dummy(0); // Empty cooldown selector would otherwise affect every class spell.
+        dummy(0);
     if (id == 706035)
         dummy(1);
     if (id == 631226)
-        dummy(1); // Exactly two additional enemies are selected by the spell instance.
+        dummy(1);
     if (id == 504737)
     {
         info->Effects[0].Effect = 0;
@@ -135,7 +128,7 @@ void ApplyContracts(SpellInfo* info)
     if (id == 806602)
     {
         dummy(0);
-        dummy(1); // Finite cast snapshot owns duration and tick-rate changes, including delayed applications.
+        dummy(1);
     }
     if (id == 706032)
         info->Effects[1].Effect = 0;
@@ -297,7 +290,7 @@ void ApplyContracts(SpellInfo* info)
             if (effect.Effect == 177)
                 effect.Effect = SPELL_EFFECT_DUMMY;
     if (id == 800848)
-        info->StackAmount = 3; // Existing aura stores uses until expiry; cooldown is adjusted per cast.
+        info->StackAmount = 3;
     if (id == 706014)
         for (uint8 slot = 0; slot < MAX_SPELL_EFFECTS; ++slot)
             dummy(slot);
@@ -324,11 +317,10 @@ void ApplyContracts(SpellInfo* info)
     if (id == 503989 || (id >= 503990 && id <= 503994))
         info->StackAmount = 0;
     if (id == 706037)
-        // "Increases your critical strike chance with Shadow and Nature spells and abilities by 1%."
         aura(2, SPELL_AURA_MOD_SPELL_CRIT_CHANCE_SCHOOL, 1, SPELL_SCHOOL_MASK_SHADOW | SPELL_SCHOOL_MASK_NATURE);
     info->_InitializeExplicitTargetMask();
 }
-} // namespace AscensionVenomancer
+}
 namespace
 {
 using namespace AscensionVenomancer;
@@ -362,7 +354,7 @@ public:
                 auto school = row.school ? SpellSchoolMask(row.school) : info->GetSchoolMask();
                 float sp = row.sp, healing = row.healing;
                 if (Named(info,706962) && player->HasAura(706038))
-                    sp *= 1 + Amount(706038) / 100.0f; // Local relative coefficient interpretation.
+                    sp *= 1 + Amount(706038) / 100.0f;
                 if (Named(info,800946))
                     if (AuraEffect const* talent = player->GetAuraEffectOfRankedSpell(560194,EFFECT_1))
                         sp *= 1 + talent->GetAmount() / 100.0f;

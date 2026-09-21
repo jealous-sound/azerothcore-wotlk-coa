@@ -19,9 +19,6 @@ void ApplyAscensionWitchHunterTargetingContracts(SpellInfo* spellInfo)
         spellInfo->Effects[EFFECT_2].Effect)
         return;
 
-    // The visible contract includes enemies near the judged target. Its exact
-    // radius is not copied: five yards is local policy, using the same native
-    // target-centered pattern as Smite Evil (802005), not an official measurement.
     SpellRadiusEntry const* radius = sSpellRadiusStore.LookupEntry(8);
     if (!radius || radius->RadiusMin != 5.0f || radius->RadiusPerLevel != 0.0f || radius->RadiusMax != 5.0f)
         return;
@@ -29,6 +26,5 @@ void ApplyAscensionWitchHunterTargetingContracts(SpellInfo* spellInfo)
     effect.TargetA = SpellImplicitTargetInfo(TARGET_DEST_TARGET_ENEMY);
     effect.TargetB = SpellImplicitTargetInfo(TARGET_UNIT_DEST_AREA_ENEMY);
     effect.RadiusEntry = radius;
-    // This module hook runs after the native target-mask initialization.
     spellInfo->_InitializeExplicitTargetMask();
 }

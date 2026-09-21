@@ -237,7 +237,7 @@ class aura_ascension_starcaller_absorb : public AuraScript
         OnEffectAbsorb += AuraEffectAbsorbFn(aura_ascension_starcaller_absorb::Absorb, EFFECT_ALL);
     }
 };
-} // namespace
+}
 void AddSC_AscensionStarcallerAuras()
 {
     RegisterSpellScript(aura_ascension_starcaller_lifecycle);

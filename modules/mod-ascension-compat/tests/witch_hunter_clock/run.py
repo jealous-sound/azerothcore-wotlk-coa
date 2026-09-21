@@ -1,4 +1,4 @@
-"""Compare the actual Witch Hunter night rule with the native packed realm clock."""
+CLI_DESCRIPTION = """Compare the actual Witch Hunter night rule with the native packed realm clock."""
 
 import argparse
 import os
@@ -15,7 +15,7 @@ method = runpy.run_path(str(HERE.parent / "client_compat/run.py"))["method"]
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument("--source-ref", help="Read the pre-fix Night function from a local Git ref.")
     args = parser.parse_args()
     path = "modules/mod-ascension-compat/src/AscensionWitchHunterDefenses.cpp"

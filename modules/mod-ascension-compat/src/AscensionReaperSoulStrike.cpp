@@ -67,9 +67,6 @@ void HandleAscensionReaperSoulStrikeHit(Spell* spell, Player* player,
         !spell->TryMarkScriptEventHandled(SOUL_STRIKE_HEAL_EVENT))
         return;
 
-    // These distinct metadata contexts preserve Harvester's Scythe and
-    // Lifestealer effect-1 spell modifiers. Neither legacy helper is cast:
-    // private aura 354 has no native proc, and effect 136 heals MAX health.
     uint32 leechPercent = uint32(std::max(0, leech->Effects[EFFECT_0].CalcValue(player)));
     uint32 missingPercent = uint32(std::max(0, missing->Effects[EFFECT_0].CalcValue(player)));
     uint32 missingHealth = player->GetMaxHealth() - std::min(player->GetHealth(), player->GetMaxHealth());
@@ -77,9 +74,6 @@ void HandleAscensionReaperSoulStrikeHit(Spell* spell, Player* player,
         uint64(missingHealth) * missingPercent / 100;
     amount = std::min(amount, uint64(std::numeric_limits<int32>::max()));
 
-    // One heal uses the same missing-health snapshot for both terms. Native
-    // healing taken, absorption, overheal and logs run once; no second crit or
-    // spell-power bonus is added to the already resolved weapon damage.
     if (amount)
         player->CastCustomSpell(SPELL_SOUL_STRIKE_HEAL, SPELLVALUE_BASE_POINT0,
             int32(amount), player, TRIGGERED_FULL_MASK);

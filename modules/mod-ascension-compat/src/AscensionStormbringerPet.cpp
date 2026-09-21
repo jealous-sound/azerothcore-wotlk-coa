@@ -65,8 +65,6 @@ public:
             player->RemovePet(pet, PET_SAVE_NOT_IN_SLOT);
             return;
         }
-        // Pet loading is asynchronous. Apply the captured owner-to-pet passive only
-        // after native spell/aura loading, including restoration after a resummon.
         if (player->IsAlive() && pet->IsAlive() && player->IsInWorld() && pet->IsInWorld() &&
             player->GetMap() == pet->GetMap() && player->InSamePhase(pet) &&
             (!pet->HasAura(SPELL_AIR_ELEMENTAL_PASSIVE, player->GetGUID()) ||
@@ -100,13 +98,9 @@ class aura_ascension_air_invigoration : public AuraScript
     {
         PreventDefaultAction();
         GetTarget()->CastSpell(GetTarget(), SPELL_GENERATE_INVIGORATION, true);
-        // This aura already receives each successful owned-pet damage event at 100% chance.
-        // The companion Aurat record retains the authored chance and empowered Gale helper.
         Player* owner = AirElementalOwner(GetTarget());
         if (owner && GetTarget()->HasAura(SPELL_FLURRY_READY, GetTarget()->GetGUID()))
         {
-            // The pet's existing successful-damage proc supplies the missing
-            // "next instance of damage" event for Flurry's zero-flag aura.
             GetTarget()->RemoveAurasDueToSpell(SPELL_FLURRY_READY, GetTarget()->GetGUID());
             int32 amount = sSpellMgr->GetSpellInfo(SPELL_FLURRY_DOT)->Effects[EFFECT_0].CalcValue(owner) +
                 int32(owner->SpellBaseDamageBonusDone(SPELL_SCHOOL_MASK_NATURE) * 0.2f);
@@ -118,7 +112,7 @@ class aura_ascension_air_invigoration : public AuraScript
         {
             owner->CastSpell(owner, SPELL_AURAT_GALE, true);
             if (Aura* empowerment = owner->GetAura(SPELL_AURAT_GALE, owner->GetGUID()))
-                empowerment->SetCharges(1); // Native spell modifiers consume one charge for the whole Gale cast.
+                empowerment->SetCharges(1);
         }
     }
 
@@ -145,8 +139,6 @@ class spell_ascension_air_invigoration_duration : public SpellScript
 
     void RestoreDuration()
     {
-        // ModStackAmount refreshes native timers, including at the ten-stack cap.
-        // Preserve this aura's original expiry for every source of additional stacks.
         if (remaining > 0)
             if (Aura* aura = GetCaster()->GetAura(SPELL_INVIGORATION, GetCaster()->GetGUID()))
                 aura->SetDuration(remaining);
@@ -172,8 +164,6 @@ public:
             info->Effects[EFFECT_1].BasePoints = info->Effects[EFFECT_1].CalcBaseValue(2);
         if (info && info->Id == SPELL_FLURRY_DOT && info->SpellFamilyName == 22)
         {
-            // The proc snapshots the owner's Nature power. Keep native pet
-            // percentage and target modifiers without adding the pet's SP again.
             info->Effects[EFFECT_0].BonusMultiplier = 0.0f;
         }
     }

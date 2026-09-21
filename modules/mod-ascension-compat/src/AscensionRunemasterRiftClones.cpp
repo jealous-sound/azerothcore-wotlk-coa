@@ -125,7 +125,7 @@ public:
         if (info->Id == SPELL_RIFT_EXPLOSION && info->SpellFamilyName == 38)
         {
             info->Effects[EFFECT_0].BonusMultiplier = 0.0f;
-            info->Effects[EFFECT_0].RadiusEntry = sSpellRadiusStore.LookupEntry(8); // Current talent: five yards.
+            info->Effects[EFFECT_0].RadiusEntry = sSpellRadiusStore.LookupEntry(8);
         }
     }
 };

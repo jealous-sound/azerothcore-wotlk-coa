@@ -86,8 +86,6 @@ public:
         double const level = player->GetLevel();
         double const curve = 0.0267291844060354 + 0.0048541098014737 * level +
             0.0001859597762293 * level * level;
-        // Native PPL and one random roll already ran. Scale only that raw base,
-        // before combo/effect modifiers and periodic SP/BH snapshot calculations.
         double const adjusted = double(value) * curve / (info->Id == 630869 ? 3.0 : 1.0);
         if (!std::isfinite(adjusted))
             return;

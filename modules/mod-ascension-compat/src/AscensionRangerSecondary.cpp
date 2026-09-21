@@ -62,7 +62,6 @@ public:
         if (caster->IsPlayer() && caster->getClass() == CLASS_RANGER && info->SpellFamilyName == 27 &&
             !spell->IsTriggered() && sSpellMgr->GetFirstSpellInChain(info->Id) == 804712)
             if (Aura const* advantage = caster->GetAura(804329, caster->GetGUID()))
-                // The projectile must retain the resource count from launch.
                 spell->SetScriptValue(801935, 2000 * advantage->GetStackAmount());
     }
 
@@ -90,8 +89,6 @@ public:
         if (spell->GetSpellInfo()->Id != 803105 || !target->IsAlive() ||
             !target->HasAuraState(AURA_STATE_BLEEDING) || spell->GetScriptValue(803106))
             return;
-        // Each of the channel's four native weapon strikes owns its own bonus.
-        // A fully absorbed strike still landed; misses cannot trigger the bonus.
         spell->SetScriptValue(803106, 1);
         player->CastSpell(target, 803106, true);
     }
@@ -108,15 +105,12 @@ public:
         if (!info || info->SpellFamilyName != 27)
             return;
         if (info->Id == 560805)
-            // The native negative exclusion applies Branded on a landed hit and
-            // rejects another brand until its independent 90-second timer ends.
             info->ExcludeTargetAuraSpell = 570167;
         if (info->Id == 801935)
             info->UseRangedAttackPowerForDamage = true;
         for (uint32 id : AdvantageCompanions)
             if (info->Id == id)
             {
-                // Recreated from the resource itself, including its saved stack count.
                 info->AttributesCu &= ~SPELL_ATTR0_CU_FORCE_AURA_SAVING;
                 info->AttributesCu |= SPELL_ATTR0_CU_AURA_CANNOT_BE_SAVED;
             }

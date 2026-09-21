@@ -63,8 +63,6 @@ class aura_ascension_threat_redirect : public AuraScript
 
     void OnRemove(AuraEffect const*, AuraEffectHandleModes)
     {
-        // As with native Misdirection, keep the existing recipient only while
-        // the follow-up aura owns the redirect's remaining lifetime.
         if (GetTargetApplication()->GetRemoveMode() != AURA_REMOVE_BY_DEFAULT ||
             !GetTarget()->HasAura(RedirectSpell(GetId(), true)))
             GetTarget()->GetThreatMgr().UnregisterRedirectThreat(GetId());
@@ -104,7 +102,6 @@ public:
     {
         if (!RedirectSpell(info->Id, false))
             return;
-        // The native threat recipient registry is transient and cannot be restored from a saved aura.
         info->AttributesCu &= ~SPELL_ATTR0_CU_FORCE_AURA_SAVING;
         info->AttributesCu |= SPELL_ATTR0_CU_AURA_CANNOT_BE_SAVED;
     }

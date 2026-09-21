@@ -38,8 +38,6 @@ class spell_ascension_primal_totem : public SpellScript
         if (!destination || duration <= 0)
             return;
 
-        // The copied summon properties create a following Guardian. This stationary raid totem
-        // uses a timed summon instead, preserving the player's pet and ordinary elemental totem slots.
         if (TempSummon* totem = owner->SummonCreature(PrimalTotem, *destination,
             TEMPSUMMON_TIMED_DESPAWN, uint32(duration)))
         {

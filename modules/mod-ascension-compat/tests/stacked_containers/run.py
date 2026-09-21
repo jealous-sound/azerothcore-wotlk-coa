@@ -1,4 +1,4 @@
-"""Exercise the native item loot-release branch without a server build."""
+CLI_DESCRIPTION = """Exercise the native item loot-release branch without a server build."""
 
 import argparse
 import os
@@ -15,7 +15,7 @@ method = runpy.run_path(str(HERE.parent / "client_compat/run.py"))["method"]
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument("--source-ref", help="Read the loot-release branch from a local Git ref.")
     args = parser.parse_args()
     path = "src/server/game/Handlers/LootHandler.cpp"

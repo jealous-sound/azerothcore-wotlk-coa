@@ -1,4 +1,3 @@
-"""Execute Bloodmage conditional damage, resource refunds, form charges and periodic-copy callbacks."""
 import os
 from pathlib import Path
 import re

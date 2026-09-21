@@ -18,8 +18,6 @@ void ApplyAscensionRunemasterDamageModifierContracts(SpellInfo* info)
     if (info->Id == 807172 && damage.BasePoints == 19 && damage.SpellClassMask == flag96(0, 4096, 262144) &&
         !info->Effects[EFFECT_1].Effect)
     {
-        // E142 forwards effect amounts before DAMAGE modifiers. Admit the one
-        // current family38/flag32 child so native damage scaling runs once.
         damage.SpellClassMask = flag96(32, 4096, 262144);
     }
     else if (info->Id == 807379 && damage.BasePoints == 29 && damage.SpellClassMask == flag96(134348800, 4096, 0))
