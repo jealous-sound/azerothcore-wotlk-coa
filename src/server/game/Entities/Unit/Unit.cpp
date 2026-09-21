@@ -9266,7 +9266,7 @@ uint32 Unit::SpellDamageBonusDone(Unit* victim, SpellInfo const* spellProto, uin
         uint32 firstRank = spellProto->GetFirstRankSpell()->Id;
         if (spellProto->Id == PrimalistJudgementDamage ||
             (spellProto->DmgClass == SPELL_DAMAGE_CLASS_MAGIC &&
-                (spellProto->Id == 803138 || spellProto->Id == 681251 ||
+                (spellProto->Id == 803138 || spellProto->Id == 681251 || spellProto->Id == 302590 ||
                     firstRank == 680448 || firstRank == 680442 || firstRank == 681119)))
             spellPowerSchool = SPELL_SCHOOL_MASK_NATURE;
     }
