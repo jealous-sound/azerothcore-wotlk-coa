@@ -145,6 +145,7 @@ void AddSC_AscensionPrimalistFaePresence();
 void AddSC_AscensionPrimalistEarthsGuidance();
 void AddSC_AscensionPrimalistBramblepatch();
 void AddSC_AscensionPrimalistEmpoweredBoons();
+void AddSC_AscensionPrimalistPhysicalCrit();
 void AddSC_AscensionPrimalistEarthmotherRoar();
 void AddSC_AscensionPrimalistRushHunt();
 void AddSC_AscensionPrimalistCrushingEarth();
@@ -347,6 +348,7 @@ void Addmod_ascension_compatScripts()
     AddSC_AscensionPrimalistEarthsGuidance();
     AddSC_AscensionPrimalistBramblepatch();
     AddSC_AscensionPrimalistEmpoweredBoons();
+    AddSC_AscensionPrimalistPhysicalCrit();
     AddSC_AscensionPrimalistEarthmotherRoar();
     AddSC_AscensionPrimalistRushHunt();
     AddSC_AscensionPrimalistCrushingEarth();
