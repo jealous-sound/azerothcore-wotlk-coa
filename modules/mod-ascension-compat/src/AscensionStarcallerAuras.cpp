@@ -47,6 +47,8 @@ class aura_ascension_starcaller_lifecycle : public AuraScript
             return;
         if (id == 500206)
             Cast(player, player, 800393);
+        if (id == 800393)
+            Cast(player, player, 800391);
         if (id == 704772)
         {
             player->RemoveAurasByType(SPELL_AURA_MOD_DECREASE_SPEED);
@@ -106,6 +108,8 @@ class aura_ascension_starcaller_lifecycle : public AuraScript
             return;
         if (id == 500206)
             player->RemoveAurasDueToSpell(800393), player->RemoveAurasDueToSpell(800394);
+        if (id == 800393)
+            player->RemoveAurasDueToSpell(800391);
         if (id == 680822)
             player->RemoveAurasDueToSpell(680847);
         if (id == 704772 && player->GetMountID() == 9991)

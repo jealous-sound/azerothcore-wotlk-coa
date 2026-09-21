@@ -138,6 +138,14 @@ void ApplyContracts(SpellInfo* info)
     }
     if (id == 800393 || id == 800394)
         dummy(2);
+    if (id == 800394)
+    {
+        // Full Cycle 704343 lowers effect 1 of New Moon by 10 through a flat EFFECT2 mod. Effect 1 is a percent
+        // EFFECT1 mod aimed at the client-side cost helper 704518, which this core never applies because Hand of
+        // Elune's cost is the contract percentage above. Aim the same percent mod at Hand of Elune's own cost.
+        info->Effects[1].MiscValue = SPELLMOD_COST;
+        info->Effects[1].SpellClassMask = flag96(0, 0x40000, 0);
+    }
     if (id == 680822)
     {
         // Native transform 22989 resolves Maiev's creature template (display 20628).
