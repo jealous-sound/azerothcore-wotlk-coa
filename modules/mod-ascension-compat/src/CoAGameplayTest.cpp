@@ -1341,6 +1341,8 @@ private:
                 }
                 sGroupMgr->AddGroup(group);
             }
+            if (group->IsFull() && !group->isRaidGroup())
+                group->ConvertToRaid();
             Require(group->AddMember(member), "Could not join fixture group");
         }
         else if (action == "command")

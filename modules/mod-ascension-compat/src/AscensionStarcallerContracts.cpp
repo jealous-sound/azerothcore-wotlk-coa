@@ -120,6 +120,10 @@ void ApplyContracts(SpellInfo* info)
             }
     // Effect 1 of 801401 stays: its base of 0 healing taken is raised by Tear Drops (560896) and gated on the
     // talent by spell_ascension_starcaller_ability.
+    // Elune's Presence: tooltip is "all party or raid members within 40 yds"; Spell.dbc MaxAffectedTargets 5
+    // would RandomResize the raid area list to 5 in Spell::SelectImplicitAreaTargets.
+    if (id == 680774)
+        info->MaxAffectedTargets = 0;
     if (id == 92133)
         info->Effects[0].BasePoints = 7;
     if (id == 92132 || id == 574349)
