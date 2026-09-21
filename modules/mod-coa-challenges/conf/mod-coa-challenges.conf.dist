@@ -249,15 +249,16 @@ CoAChallenges.HungerMax = 100
 ############################################################################
 # Fatigue (Narcolepsy / FATIGUED_UNLESS_RESTED: 106/170/171/172/384/385/386)
 ############################################################################
-# A native "fatigue" bar (mirror-timer type FATIGUE) that FILLS while the
-# player is OUTSIDE a rested area (inn); inside a rested area it resets to 0.
-# At FatigueMax the player falls asleep (dies). Persisted in
-# coa_character_fatigue.
+# A native "fatigue" bar (mirror-timer type FATIGUE) that starts FULL and
+# DRAINS while the player is OUTSIDE a safe area. Safe areas are rested areas
+# (inns, cities) plus sanctuaries (starter zones): there the bar is hidden and
+# the counter resets to full. When it reaches 0 the player falls asleep (dies).
+# Persisted in coa_character_fatigue.
 
 # Range: 1-1000. Default: 100
 CoAChallenges.FatigueMax = 100
 
-# Seconds for the full 0..FatigueMax range. Range: 1-86400.
+# Seconds for the full FatigueMax..0 range (max to empty). Range: 1-86400.
 # Default: 420
 CoAChallenges.FatigueSecondsToFill = 420
 
