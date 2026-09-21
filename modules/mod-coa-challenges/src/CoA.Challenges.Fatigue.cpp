@@ -213,22 +213,22 @@ namespace CoAChallenges
                 s.resting = rested;
                 changed = true;
             }
-            s.ms += diff;
             if (rested)
             {
-                // Refill toward full while in a safe area (inn/city/starter sanctuary).
-                while (s.ms >= perPointMs && s.fatigue < (int32)maxV)
+                // Safe area (inn/city/starter sanctuary): the bar is off and the
+                // counter resets to full, so leaving the safe area starts a fresh
+                // drain (mirrors the original, which cleared the counter on rest).
+                if (s.fatigue != (int32)maxV)
                 {
-                    s.ms -= perPointMs;
-                    s.fatigue += 1;
+                    s.fatigue = (int32)maxV;
                     changed = true;
                 }
-                if (s.fatigue >= (int32)maxV)
-                    s.ms = 0;
+                s.ms = 0;
             }
             else
             {
                 // Drain toward empty; reaching 0 means falling asleep (death).
+                s.ms += diff;
                 while (s.ms >= perPointMs && s.fatigue > 0)
                 {
                     s.ms -= perPointMs;
@@ -262,6 +262,7 @@ namespace CoAChallenges
 
         if (rested)
         {
+            PersistFatigue(guid, cid, fatigue);
             StopFatigueBar(player);
         }
         else
