@@ -1215,13 +1215,66 @@ private:
             return player->PlayerTalkClass->GetGossipMenu().GetMenuItemCount();
         if (metric == "loot_received")
             return _actors.at(step.get<std::string>("actor")).lootReceived;
-        if (metric == "loot_count" || metric == "loot_entry")
+        if (metric == "nearby_gameobject_count")
         {
-            Item* container = player->GetItemByGuid(player->GetLootGUID());
-            if (!container)
+            std::list<GameObject*> objects;
+            player->GetGameObjectListWithEntryInGrid(objects, step.get<uint32>("entry"), 20.0f);
+            objects.remove_if([player](GameObject* object)
+            {
+                return !object->IsInWorld() || !player->InSamePhase(object);
+            });
+            return objects.size();
+        }
+        if (metric == "loot_bloodforged")
+        {
+            Loot* window = nullptr;
+            ObjectGuid const lootGuid = player->GetLootGUID();
+            if (lootGuid.IsCreature())
+                if (Creature* creature = player->GetMap()->GetCreature(lootGuid))
+                    window = &creature->loot;
+            if (!window)
                 return 0;
             uint32 count = 0;
-            for (LootItem const& item : container->loot.items)
+            for (LootItem const& item : window->items)
+                if (ItemTemplate const* itemTemplate = sObjectMgr->GetItemTemplate(item.itemid))
+                    if (!item.is_looted && itemTemplate->Name1.rfind("Bloodforged", 0) == 0)
+                        ++count;
+            return count;
+        }
+        if (metric == "nearby_creature_count")
+        {
+            std::list<Creature*> creatures;
+            player->GetCreatureListWithEntryInGrid(creatures, step.get<uint32>("entry"), 60.0f);
+            return std::count_if(creatures.begin(), creatures.end(),
+                [](Creature* creature) { return creature->IsInWorld() && creature->IsAlive(); });
+        }
+        if (metric == "carried_money")
+            return player->GetMoney();
+        if (metric == "loot_count" || metric == "loot_entry" || metric == "loot_gold")
+        {
+            Loot* window = nullptr;
+            ObjectGuid const lootGuid = player->GetLootGUID();
+            if (lootGuid.IsItem())
+            {
+                if (Item* container = player->GetItemByGuid(lootGuid))
+                    window = &container->loot;
+            }
+            else if (lootGuid.IsGameObject())
+            {
+                if (GameObject* object = player->GetMap()->GetGameObject(lootGuid))
+                    window = &object->loot;
+            }
+            else if (lootGuid.IsCreature())
+            {
+                if (Creature* creature = player->GetMap()->GetCreature(lootGuid))
+                    window = &creature->loot;
+            }
+            if (!window)
+                return 0;
+            if (metric == "loot_gold")
+                return window->gold;
+            uint32 count = 0;
+            for (LootItem const& item : window->items)
                 if (!item.is_looted)
                 {
                     if (metric == "loot_entry")
@@ -1893,6 +1946,82 @@ private:
             // WorldSession::Update offers every packet to the packet hooks before its handler.
             if (sScriptMgr->CanPacketReceive(player->GetSession(), request))
                 player->GetSession()->HandleOpenItemOpcode(request);
+        }
+        else if (action == "set_phase")
+            player->SetPhaseMask(step.get<uint32>("value", TestPhase), true);
+        else if (action == "set_money")
+            player->SetMoney(step.get<uint32>("value"));
+        else if (action == "use_nearby_gameobject")
+        {
+            // A world object nobody owns, such as a High-Risk loss chest, offered to the packet hooks first.
+            std::list<GameObject*> objects;
+            player->GetGameObjectListWithEntryInGrid(objects, step.get<uint32>("entry"), 20.0f);
+            objects.remove_if([player](GameObject* object)
+            {
+                return !object->IsInWorld() || !player->InSamePhase(object);
+            });
+            Require(objects.size() == 1, "Nearby gameobject use needs exactly one object");
+            WorldPacket packet(CMSG_GAMEOBJ_USE, 8);
+            packet << objects.front()->GetGUID();
+            if (sScriptMgr->CanPacketReceive(player->GetSession(), packet))
+                player->GetSession()->HandleGameObjectUseOpcode(packet);
+        }
+        else if (action == "attack_nearby" || action == "loot_nearby")
+        {
+            // A naturally spawned creature, addressed by template entry: a fixture summon has no spawn id.
+            std::list<Creature*> creatures;
+            player->GetCreatureListWithEntryInGrid(creatures, step.get<uint32>("entry"), 40.0f);
+            size_t found = creatures.size();
+            creatures.remove_if([player, &action](Creature* creature)
+            {
+                return !creature->IsInWorld() || (action == "attack_nearby") != creature->IsAlive();
+            });
+            Require(!creatures.empty(), "No matching nearby creature among " + std::to_string(found));
+            WorldPacket packet(action == "attack_nearby" ? CMSG_ATTACKSWING : CMSG_LOOT, 8);
+            packet << creatures.front()->GetGUID();
+            if (action == "attack_nearby")
+            {
+                Require(player->IsValidAttackTarget(creatures.front()), "Invalid melee attack target");
+                if (step.get<bool>("kill", false))
+                {
+                    // Melee range and weapon damage are not what such a scenario measures: the killing blow is.
+                    Unit::DealDamage(player, creatures.front(), creatures.front()->GetMaxHealth() * 100u, nullptr, DIRECT_DAMAGE,
+                        SPELL_SCHOOL_MASK_NORMAL);
+                    Require(!creatures.front()->IsAlive(),
+                        "Killing blow did not kill, health left " + std::to_string(creatures.front()->GetHealth()));
+                }
+                else
+                    player->GetSession()->HandleAttackSwingOpcode(packet);
+            }
+            else
+            {
+                // Looting needs interaction range, which the natural spawn's own position provides.
+                player->UpdatePosition(creatures.front()->GetPositionX(), creatures.front()->GetPositionY(),
+                    creatures.front()->GetPositionZ(), player->GetOrientation(), true);
+                if (sScriptMgr->CanPacketReceive(player->GetSession(), packet))
+                    player->GetSession()->HandleLootOpcode(packet);
+            }
+        }
+        else if (action == "loot_creature")
+        {
+            Unit* target = GetUnit(step.get<std::string>("target"));
+            WorldPacket packet(CMSG_LOOT, 8);
+            packet << target->GetGUID();
+            if (sScriptMgr->CanPacketReceive(player->GetSession(), packet))
+                player->GetSession()->HandleLootOpcode(packet);
+        }
+        else if (action == "loot_slot")
+        {
+            WorldPacket packet(CMSG_AUTOSTORE_LOOT_ITEM, 1);
+            packet << uint8(step.get<uint32>("slot", 0));
+            if (sScriptMgr->CanPacketReceive(player->GetSession(), packet))
+                player->GetSession()->HandleAutostoreLootItemOpcode(packet);
+        }
+        else if (action == "loot_money")
+        {
+            WorldPacket packet(CMSG_LOOT_MONEY, 0);
+            if (sScriptMgr->CanPacketReceive(player->GetSession(), packet))
+                player->GetSession()->HandleLootMoneyOpcode(packet);
         }
         else if (action == "close_loot")
         {
