@@ -2584,10 +2584,11 @@ public:
             }
         }
 
+        uint32 const resolvedSpellId = ResolveTalentReplacementSpellId(player, spellId);
         for (AscensionCompatData::ResourceCostRule const& rule :
              AscensionCompatData::ResourceCostRules)
         {
-            if (!Matches(player, spellId, rule.ClassId, rule.FirstSpellId,
+            if (!Matches(player, resolvedSpellId, rule.ClassId, rule.FirstSpellId,
                     rule.LastSpellId))
                 continue;
 
@@ -2608,6 +2609,7 @@ public:
 
         SpellInfo const* spellInfo = spell->GetSpellInfo();
         uint32 spellId = spellInfo->Id;
+        uint32 const resolvedSpellId = ResolveTalentReplacementSpellId(player, spellId);
 
         // CharacterAdvancement entry 4025 grants 92112, not the old 500107 passive.
         // Its contract covers every health-cost spell, including utility spells and
@@ -2621,7 +2623,7 @@ public:
         for (AscensionCompatData::ResourceGainRule const& rule :
              AscensionCompatData::ResourceGainRules)
         {
-            if (!MatchesGainRule(player, spellId, rule) ||
+            if (!MatchesGainRule(player, resolvedSpellId, rule) ||
                 rule.Event != AscensionCompatData::ResourceGainEvent::Cast ||
                 (rule.RequiredAuraSpellId &&
                     !player->HasAura(rule.RequiredAuraSpellId)) ||
@@ -2635,7 +2637,7 @@ public:
         for (AscensionCompatData::NativePowerGainRule const& rule :
              AscensionCompatData::NativePowerGainRules)
         {
-            if (!MatchesNativePowerRule(player, spellId, rule) ||
+            if (!MatchesNativePowerRule(player, resolvedSpellId, rule) ||
                 rule.Event != AscensionCompatData::ResourceGainEvent::Cast ||
                 (rule.RequiredAuraSpellId &&
                     !player->HasAura(rule.RequiredAuraSpellId)) ||
@@ -2650,7 +2652,7 @@ public:
         for (AscensionCompatData::ResourceCostRule const& rule :
              AscensionCompatData::ResourceCostRules)
         {
-            if (!Matches(player, spellId, rule.ClassId, rule.FirstSpellId,
+            if (!Matches(player, resolvedSpellId, rule.ClassId, rule.FirstSpellId,
                     rule.LastSpellId))
                 continue;
 
@@ -2715,13 +2717,14 @@ public:
         bool hostile = target != player && !player->IsFriendlyTo(target);
         bool damaging = damage > 0 || SpellDealsDamage(spell->GetSpellInfo());
         uint32 spellId = spell->GetSpellInfo()->Id;
+        uint32 const resolvedSpellId = ResolveTalentReplacementSpellId(player, spellId);
         std::array<int8, 9> firstEventState = {};
         bool changed = false;
 
         for (AscensionCompatData::ResourceGainRule const& rule :
              AscensionCompatData::ResourceGainRules)
         {
-            if (!MatchesGainRule(player, spellId, rule) ||
+            if (!MatchesGainRule(player, resolvedSpellId, rule) ||
                 rule.Event == AscensionCompatData::ResourceGainEvent::Cast ||
                 rule.Event ==
                     AscensionCompatData::ResourceGainEvent::PeriodicDamageTick ||
@@ -2782,7 +2785,7 @@ public:
         for (AscensionCompatData::NativePowerGainRule const& rule :
              AscensionCompatData::NativePowerGainRules)
         {
-            if (!MatchesNativePowerRule(player, spellId, rule) ||
+            if (!MatchesNativePowerRule(player, resolvedSpellId, rule) ||
                 rule.Event == AscensionCompatData::ResourceGainEvent::Cast ||
                 rule.Event ==
                     AscensionCompatData::ResourceGainEvent::PeriodicDamageTick ||
@@ -2861,12 +2864,13 @@ public:
             return;
 
         bool changed = false;
+        uint32 const resolvedSpellId = ResolveTalentReplacementSpellId(player, spellInfo->Id);
         for (AscensionCompatData::ResourceGainRule const& rule :
              AscensionCompatData::ResourceGainRules)
         {
             if (rule.Event !=
                     AscensionCompatData::ResourceGainEvent::PeriodicDamageTick ||
-                !MatchesGainRule(player, spellInfo->Id, rule) ||
+                !MatchesGainRule(player, resolvedSpellId, rule) ||
                 (rule.RequiredAuraSpellId &&
                     !player->HasAura(rule.RequiredAuraSpellId)) ||
                 (rule.ForbiddenAuraSpellId &&
@@ -2881,7 +2885,7 @@ public:
         {
             if (rule.Event !=
                     AscensionCompatData::ResourceGainEvent::PeriodicDamageTick ||
-                !MatchesNativePowerRule(player, spellInfo->Id, rule) ||
+                !MatchesNativePowerRule(player, resolvedSpellId, rule) ||
                 (rule.RequiredAuraSpellId &&
                     !player->HasAura(rule.RequiredAuraSpellId)) ||
                 (rule.ForbiddenAuraSpellId &&
@@ -3059,6 +3063,23 @@ private:
     {
         return player->getClass() == classId && spellId >= firstSpellId &&
                spellId <= lastSpellId;
+    }
+
+    // Resource rules are authored against a talent's original spell (e.g. Call Lightning), but a
+    // player with the replacing talent (e.g. Torrential Wrath) casts one of its own rank spell IDs
+    // instead - SetTemporarySpellReplacement only changes the client's icon and name, not what the
+    // cast packet carries. Resolve back to the original ID so the rule tables still recognize it.
+    static uint32 ResolveTalentReplacementSpellId(Player const* player, uint32 spellId)
+    {
+        for (AscensionCompatData::TalentReplacement const& entry : AscensionCompatData::TalentReplacements)
+        {
+            if (entry.ClassId != player->getClass())
+                continue;
+            for (AscensionCompatData::ReplacementRank const& rank : entry.Ranks)
+                if (rank.SpellId == spellId)
+                    return entry.OriginalSpellId;
+        }
+        return spellId;
     }
 
     static bool MatchesGainRule(Player const* player, uint32 spellId,
