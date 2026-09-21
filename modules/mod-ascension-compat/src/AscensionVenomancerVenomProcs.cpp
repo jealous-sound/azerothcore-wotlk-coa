@@ -99,8 +99,6 @@ Unit* SelectEnemy(Player* owner, Spell const* source, SpellInfo const* helper)
     if (IsEnemy(owner, explicitTarget, helper))
         return explicitTarget;
 
-    // Local reconstruction for casts with no hostile primary: one uniform
-    // target from this cast's selected units. Read synchronously; keep no pointer.
     Unit* chosen = nullptr;
     uint32 eligible = 0;
     for (TargetInfo const& entry : *source->GetUniqueTargetInfo())
@@ -153,7 +151,6 @@ class aura_ascension_venomancer_venom_proc : public AuraScript
             targets.SetUnitTarget(owner);
         else if (entry->Helper == 630869)
         {
-            // Preserve native ally/radius/random-cap selection around this center.
             if (Unit* center = source->m_targets.GetUnitTarget())
                 targets.SetDst(*center);
             else if (source->m_targets.HasDst())

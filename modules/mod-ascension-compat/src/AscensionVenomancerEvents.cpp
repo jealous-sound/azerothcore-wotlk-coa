@@ -219,7 +219,6 @@ class aura_ascension_venomancer_event : public AuraScript
                         !State(player).timers.HasTimeUntilEvent(705961 + school))
                     {
                         State(player).timers.ScheduleEvent(705961 + school,30s);
-                        // Separate authored helpers preserve independent school durations.
                         constexpr uint32 helpers[] = {0,503990,503989,503992,503996,503993,503997};
                         Cast(player,player,helpers[school]);
                     }

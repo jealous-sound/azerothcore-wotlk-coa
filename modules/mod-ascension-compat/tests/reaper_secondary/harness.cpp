@@ -185,7 +185,7 @@ int main()
     hits.OnSpellHitResult(&spell,&enemy,0,101,0,false);
     assert(player.casts.back().id==520419 && player.casts.back().amount==75);
     spell.info.Id=803742; hits.OnSpellHitResult(&spell,&enemy,0,0,0,false);
-    assert(player.casts.back().id==803942); // Absorbed hits still root.
+    assert(player.casts.back().id==803942);
     auto size=player.casts.size(); enemy.alive=false;
     hits.OnSpellHitResult(&spell,&enemy,0,100,0,false); assert(player.casts.size()==size);
     spell.info.Id=801328; spell.triggered=false;

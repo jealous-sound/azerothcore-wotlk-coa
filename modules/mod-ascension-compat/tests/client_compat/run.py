@@ -1,4 +1,4 @@
-"""Run native DBC loading and ping regressions without a server or database.
+CLI_DESCRIPTION = """Run native DBC loading and ping regressions without a server or database.
 
 Uses the real DBC storage/loader and Player regeneration/WorldSocket ping methods.
 Only database overlays, sessions, configuration and the clock are isolated.
@@ -28,7 +28,7 @@ def method(source, signature):
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument('--dbc-dir', type=Path)
     parser.add_argument('--source-ref', help='Read changed production code from a local Git ref for regression checks.')
     args = parser.parse_args()
@@ -79,7 +79,6 @@ using int32 = std::int32_t;
 ''', encoding='utf-8')
         (out / 'DBCStore.cpp').write_text(source('src/server/shared/DataStores/DBCStore.cpp'), encoding='utf-8')
         (out / 'harness.cpp').write_text(harness, encoding='utf-8')
-        # Implicit row IDs, including valid zero mana coefficients for non-mana classes.
         for name, ratio in [('gtOCTRegenHP.dbc', 0.25), ('gtRegenHPPerSpt.dbc', 0.5),
                             ('gtRegenMPPerSpt.dbc', 0.01)]:
             values = [0.0 if name == 'gtRegenMPPerSpt.dbc' and i // 100 == 11 else ratio
@@ -87,7 +86,6 @@ using int32 = std::int32_t;
             (out / name).write_bytes(struct.pack('<4s4I', b'WDBC', 3200, 1, 4, 0)
                                     + struct.pack('<3200f', *values))
         (out / 'indexed.dbc').write_bytes(struct.pack('<4s4IIfIf', b'WDBC', 2, 2, 8, 0, 2, 1.5, 7, 2.5))
-        # Do not mistake a malformed, padded record for an implicit-index float table.
         (out / 'invalid.dbc').write_bytes(struct.pack('<4s4I2f', b'WDBC', 1, 1, 8, 0, 1.0, 2.0))
         includes = [out, ROOT / 'src/server/shared/DataStores', ROOT / 'src/common/DataStores', ROOT / 'src/common']
         sources = [out / 'harness.cpp', out / 'DBCStore.cpp', ROOT / 'src/common/DataStores/DBCFileLoader.cpp']

@@ -64,24 +64,22 @@ inline bool Lichfrost(SpellInfo const* info)
 {
     return Family(info, 2, 134217728);
 }
-// Each Life Force minion puts "A <minion> is currently occupying N Life Force." on its Necromancer, an owner
-// area aura the minion carries; cancelling it dismisses that minion.
 struct MinionOccupancy
 {
     uint32 creature;
     uint32 aura;
 };
 constexpr MinionOccupancy MinionOccupancies[] = {
-    {50065, 805016},  // Lesser Skeletal Warrior
-    {50067, 805028},  // Raised Gargoyle
-    {50068, 805017},  // Abomination
-    {50073, 805019},  // Ghoul
-    {50075, 805020},  // Skeletal Mage
-    {50078, 805021},  // Skeletal Rogue
-    {50115, 805022},  // Decaying Colossus
-    {50323, 800034},  // Crypt Fiend
-    {51065, 807927},  // Greater Skeletal Warrior
-    {500650, 807840}, // Banshee
+    {50065, 805016},
+    {50067, 805028},
+    {50068, 805017},
+    {50073, 805019},
+    {50075, 805020},
+    {50078, 805021},
+    {50115, 805022},
+    {50323, 800034},
+    {51065, 807927},
+    {500650, 807840},
 };
 inline uint32 OccupancyAura(uint32 creature)
 {
@@ -128,5 +126,5 @@ void ExtendWorms(Player* player, Unit* target, int32 milliseconds);
 void Spread(Player* player, Unit* source, bool refresh, bool allDiseases = true, uint32 limit = 0);
 void CorpseExplosion(Player* player, Unit* center);
 void ApplyContracts(SpellInfo* info);
-} // namespace AscensionNecromancer
+}
 #endif

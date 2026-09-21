@@ -1,4 +1,4 @@
-"""Check actual Air Elemental ownership/procs and native Invigoration stacking."""
+CLI_DESCRIPTION = """Check actual Air Elemental ownership/procs and native Invigoration stacking."""
 import argparse
 import importlib.util
 from pathlib import Path
@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[4]
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument("--workspace-tools", type=Path, default=ROOT.parent / "tools")
     parser.add_argument("--spell-dbc", type=Path)
     parser.add_argument("--before", help="Use this Git revision's pet script as a regression negative control")
@@ -81,11 +81,11 @@ def main():
         assert rows[804022][71] == 65 and rows[804022][95] == 216
         assert rows[712431][208] == rows[712488][208] == rows[500019][208] == 22
         assert rows[712488][35] == 15 and rows[712488][117] == 500019
-        assert rows[500019][95] == 108 and rows[500019][110] == 0  # Percent DAMAGE modifier.
+        assert rows[500019][95] == 108 and rows[500019][110] == 0
         assert rows[500019][80] + rows[500019][74] == 200
-        assert rows[500019][123] & rows[804036][210] == 131072  # Gale receives the modifier.
+        assert rows[500019][123] & rows[804036][210] == 131072
         assert rows[707543][71] == 140 and rows[707543][86] == 5 and rows[707543][116] == 807465
-        assert rows[807465][86] == 1 and rows[807465][34] == 0  # Native force-cast makes the pet cast on itself.
+        assert rows[807465][86] == 1 and rows[807465][34] == 0
         assert rows[807555][208] == 22 and rows[807555][95] == 3 and rows[807555][98] == 3000
         assert rows[807555][80] + rows[807555][74] == 59 and rows[807555][40] == 86
         assert rows[807464][95:97] == (22, 87) and rows[807464][110:112] == (126, 126)

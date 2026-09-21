@@ -1,4 +1,4 @@
-"""Exercise the actual Zephyr summon, lifetime, pull guards and captured data."""
+CLI_DESCRIPTION = """Exercise the actual Zephyr summon, lifetime, pull guards and captured data."""
 import argparse
 import importlib.util
 from pathlib import Path
@@ -144,7 +144,7 @@ def load(name, path):
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument("--workspace-tools", type=Path, default=ROOT.parent / "tools")
     parser.add_argument("--spell-dbc", type=Path)
     args = parser.parse_args()

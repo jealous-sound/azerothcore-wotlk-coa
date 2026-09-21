@@ -52,7 +52,6 @@ namespace
         {
             if (type != CHAT_MSG_WHISPER || language != LANG_ADDON || !message.starts_with(CoABugReport::Prefix))
                 return true;
-            // Consume this protocol even when disabled or misaddressed; never forward report text to another player.
             if (receiver != player || message.size() > 255)
                 return false;
             std::string response = "H|0";

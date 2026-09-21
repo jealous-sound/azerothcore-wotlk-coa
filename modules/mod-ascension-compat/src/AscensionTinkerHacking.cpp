@@ -56,8 +56,6 @@ class aura_ascension_tinker_hacking : public AuraScript
             (modifier->targetSpellId && modifier->targetSpellId != SPELL_PIERCING_PASSIVE))
             return;
 
-        // Retain native amounts, ownership and passive recalculation. The same
-        // family bit on damage helpers does not make them armor/penetration buffs.
         modifier->targetSpellId = SPELL_PIERCING_PASSIVE;
     }
 

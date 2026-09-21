@@ -1,4 +1,3 @@
-// Generated permanent Manastorm gadgets. Prices are explicit local balance.
 #ifndef ASCENSION_MANASTORM_GADGETS_H
 #define ASCENSION_MANASTORM_GADGETS_H
 #include <array>

@@ -207,7 +207,6 @@ class aura_ascension_arcane_palm_sigil : public AuraScript
         PreventDefaultAction();
         Unit* player = GetTarget();
         uint64 amount = uint64(event.GetDamageInfo()->GetDamage()) * std::clamp(effect->GetAmount(), 0, 100) / 100;
-        // Consume before the nested silence or damage spell can trigger another copy.
         GetAura()->Remove();
         player->CastCustomSpell(SPELL_ARCANE_SIGIL_DOT, SPELLVALUE_BASE_POINT0,
             int32(std::min<uint64>(amount, std::numeric_limits<int32>::max())),
@@ -222,9 +221,6 @@ class aura_ascension_arcane_palm_sigil : public AuraScript
     }
 };
 
-// Fire Engraving (equip spell of enchant 1000): direct damage has a 30% chance to apply Firebrand. The
-// proc flags come from spell_proc; this script only keeps the existing Firebrand's duration, since
-// "Additional applications do not refresh its duration".
 class aura_ascension_runemaster_fire_engraving : public AuraScript
 {
     PrepareAuraScript(aura_ascension_runemaster_fire_engraving);
@@ -239,7 +235,7 @@ class aura_ascension_runemaster_fire_engraving : public AuraScript
             damage->GetDamageType() != DOT;
     }
 
-    void Proc(AuraEffect const* /*effect*/, ProcEventInfo& event)
+    void Proc(AuraEffect const*, ProcEventInfo& event)
     {
         PreventDefaultAction();
         Unit* player = GetTarget();
@@ -262,12 +258,11 @@ class aura_ascension_runemaster_fire_engraving : public AuraScript
     }
 };
 
-// Firebrand: "When this effect expires, it explodes, dealing ... Fire damage per stack."
 class aura_ascension_runemaster_firebrand : public AuraScript
 {
     PrepareAuraScript(aura_ascension_runemaster_firebrand);
 
-    void Explode(AuraEffect const* /*effect*/, AuraEffectHandleModes /*mode*/)
+    void Explode(AuraEffect const*, AuraEffectHandleModes)
     {
         Unit* caster = GetCaster();
         Unit* target = GetTarget();

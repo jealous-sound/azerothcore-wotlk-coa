@@ -21,7 +21,7 @@ public:
         if (info->Id == GroveTender && info->SpellFamilyName == 37 &&
             info->Effects[EFFECT_0].IsAura(SPELL_AURA_ADD_PCT_MODIFIER) &&
             info->Effects[EFFECT_0].MiscValue == SPELLMOD_COOLDOWN)
-            info->Effects[EFFECT_0].SpellClassMask[0] |= 64; // Include the later Seismic Tremor family.
+            info->Effects[EFFECT_0].SpellClassMask[0] |= 64;
     }
 };
 

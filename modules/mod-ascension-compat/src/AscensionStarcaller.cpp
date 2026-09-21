@@ -19,7 +19,7 @@ namespace
 {
 std::unordered_map<ObjectGuid, std::unique_ptr<StarcallerState>> states;
 std::mutex stateMutex;
-} // namespace
+}
 Player* Owner(Unit const* unit)
 {
     Player* player = unit ? const_cast<Unit*>(unit)->ToPlayer() : nullptr;
@@ -28,9 +28,6 @@ Player* Owner(Unit const* unit)
 StarcallerState& State(Player* player)
 {
     std::lock_guard<std::mutex> lock(stateMutex);
-    // The map is locked for the lookup only: the caller then reads and writes the state with no
-    // lock held. Kept by pointer, the state itself never moves, so an insert for another player
-    // rehashing the map cannot leave that caller writing into freed memory.
     return *states.try_emplace(player->GetGUID(), std::make_unique<StarcallerState>()).first->second;
 }
 bool Named(SpellInfo const* info, uint32 root)
@@ -71,8 +68,6 @@ uint32 Count(Unit const* unit, uint32 id)
 }
 uint32 MaxPhase(Player* player)
 {
-    // Bright Moon raises this cap via a SPELLMOD_MAX_AURA_STACKS modifier on 802985;
-    // consult the mod-adjusted value instead of hardcoding the DBC's base of 4.
     SpellInfo const* info = sSpellMgr->GetSpellInfo(802985);
     return info ? info->CalcMaxAuraStacks(player) : 4;
 }
@@ -109,14 +104,14 @@ bool DelayDamage(Player* player, uint32 amount)
     if (!aura)
         return false;
     State(player).stagger += amount;
-    aura->SetDuration(aura->GetMaxDuration()); // Preserve the already scheduled next tick.
+    aura->SetDuration(aura->GetMaxDuration());
     return true;
 }
 void PayDelayedDamage(Player* player, uint32 ticks)
 {
     auto& state = State(player);
     uint64 payment = (state.stagger + std::max(1u, ticks) - 1) / std::max(1u, ticks);
-    state.stagger -= payment; // Reserve before damage or removal callbacks can re-enter.
+    state.stagger -= payment;
     SpellInfo const* info = sSpellMgr->GetSpellInfo(954791);
     while (payment && player->IsAlive())
     {
@@ -191,8 +186,6 @@ bool Chance(Player* player, uint32 id, uint32 cooldown, float bonus)
     SpellInfo const* info = sSpellMgr->GetSpellInfo(id);
     if (!player->HasAura(id) || !info || State(player).timers.HasTimeUntilEvent(id))
         return false;
-    // Talents such as Highest Order and Aspect Mastery raise this record's chance through
-    // SPELLMOD_CHANCE_OF_SUCCESS, the way the native proc roll (Aura::CalcProcChance) reads it.
     float chance = float(info->ProcChance) + bonus;
     player->ApplySpellMod(id, SPELLMOD_CHANCE_OF_SUCCESS, chance);
     if (!roll_chance_f(std::clamp(chance, 0.0f, 100.0f)))
@@ -217,7 +210,7 @@ void Stars(Player* player, Unit* target, uint32 count)
     if (!player || !target || !player->IsValidAttackTarget(target))
         return;
     for (uint32 i = 0; i < std::min(32u, count); ++i)
-        Cast(player, target, 804378); // Native stack cap retains the caster's stack-capacity modifiers.
+        Cast(player, target, 804378);
 }
 void StartConsume(Player* player, Unit* target)
 {
@@ -231,12 +224,9 @@ bool Consume(Player* player, Unit* target)
     Aura* stars = target->GetAura(804378, player->GetGUID());
     if (!stars || !stars->GetStackAmount())
         return false;
-    // Reserve before the triggered hit: a miss still consumes this exact star, never another caster's.
     stars->ModStackAmount(-1);
     Cast(player, target, 804995);
     float effectiveness = (player->HasAura(807659) ? 1.5f : 1) * (player->HasAura(805524) ? 1.5f : 1);
-    // Celestial Shot: "Increases the effectiveness of consuming Scattered Stars by $s2%". Its damage half is the native
-    // EFFECT1 modifier on 804995; mana and cooldown reduction are computed here, so the tooltip value is applied here.
     if (player->HasAura(574348))
         effectiveness *= 1.0f + Amount(574348, 1, player) / 100.0f;
     Mana(player, uint32(player->GetMaxPower(POWER_MANA) * .08f * effectiveness * (player->HasAura(574360) ? 2 : 1)));
@@ -307,8 +297,6 @@ void Refresh(Player* player)
     state.refreshing = true;
     if (player->HasSpell(800386) && !player->HasAura(524781))
         Cast(player, player, 524781);
-    // Celestial Mind 707638 shortens the driver's period through SPELLMOD_ACTIVATION_TIME, which the core reads
-    // only when the periodic effect is built. A talent learned while the driver runs would leave the old period.
     if (Aura* driver = player->GetAura(524781))
         if (SpellInfo const* info = sSpellMgr->GetSpellInfo(524781))
             if (AuraEffect* effect = driver->GetEffect(EFFECT_0))
@@ -339,7 +327,6 @@ void Refresh(Player* player)
     };
     uint32 mana = player->GetPower(POWER_MANA);
     scale(100250, player->HasAura(92132), {int32(player->GetMaxPower(POWER_MANA) / 10)});
-    // Local reconstruction: ratings 0.5%, block value 2% of current mana.
     scale(801148, player->HasAura(574349), {int32(mana / 200), int32(mana / 200), int32(mana / 50)});
     scale(680790, player->HasAura(680789) && player->GetHealthPct() < 35, {-10});
     scale(706436, player->HasAura(704787) && player->GetHealthPct() < 50, {10, 10});
@@ -358,7 +345,7 @@ void Refresh(Player* player)
         state.chargeReady = false;
     state.refreshing = false;
 }
-} // namespace AscensionStarcaller
+}
 namespace
 {
 class starcaller_player : public PlayerScript
@@ -410,7 +397,7 @@ class starcaller_player : public PlayerScript
         }
     }
 };
-} // namespace
+}
 void AddSC_AscensionStarcaller()
 {
     new starcaller_player();

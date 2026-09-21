@@ -107,8 +107,6 @@ uint8 CountOwnVenoms(Player* player)
 
 void ClearOwnVenoms(Player* player)
 {
-    // Remove by identity, never by an iterator into a container changed by
-    // native callbacks. Each callback may already have removed another ID.
     ObjectGuid const owner = player->GetGUID();
     for (VenomDefinition const& venom : VENOMS)
         player->RemoveAurasDueToSpell(venom.SpellId, owner);
@@ -132,8 +130,6 @@ class spell_ascension_venomancer_venom_selection : public SpellScript
             OwnActiveVenom(player, GetSpellInfo()->Id))
             return SPELL_CAST_OK;
 
-        // The descriptions specify two unique choices, but no displacement
-        // order. Reject a third choice while preserving the selected pair.
         return CountOwnVenoms(player) < MAX_UNIQUE_VENOMS ? SPELL_CAST_OK : SPELL_FAILED_CANT_DO_THAT_RIGHT_NOW;
     }
 
@@ -152,16 +148,13 @@ class aura_ascension_venomancer_venom_selection : public AuraScript
         return IsVenomActivation(spellInfo);
     }
 
-    void CheckApplication(AuraEffect const* /*effect*/, AuraEffectHandleModes /*mode*/)
+    void CheckApplication(AuraEffect const*, AuraEffectHandleModes)
     {
         Player* player = Venomancer(GetTarget());
         if (!player || GetCasterGUID() != player->GetGUID() || !player->IsInWorld() ||
             GetAura()->IsRemoved() || !IsVenomActivation(GetSpellInfo()))
             return;
 
-        // Pre-world saved rows must all load before login reconciles the set.
-        // Online direct AddAura bypasses CheckCast, so reject just this new
-        // third aura. Native removal can reenter callbacks; do not use it again.
         if (CountOwnVenoms(player) > MAX_UNIQUE_VENOMS)
             GetAura()->Remove();
     }
@@ -189,7 +182,7 @@ class spell_ascension_venomancer_remove_venoms : public SpellScript
             PreventHitDefaultEffect(index);
     }
 
-    void Clear(SpellEffIndex /*index*/)
+    void Clear(SpellEffIndex)
     {
         Player* player = Venomancer(GetCaster());
         if (player && GetOriginalCaster() == player && GetHitUnit() == player && IsRemoveVenoms(GetSpellInfo()))
@@ -218,8 +211,6 @@ public:
 
     void OnPlayerLogin(Player* player) override
     {
-        // Explicit local repair of an already-invalid saved set. Never keep
-        // an arbitrary pair based on database row order. Valid sets are intact.
         if (Venomancer(player) && CountOwnVenoms(player) > MAX_UNIQUE_VENOMS)
             ClearOwnVenoms(player);
     }

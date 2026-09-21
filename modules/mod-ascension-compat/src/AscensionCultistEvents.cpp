@@ -47,7 +47,7 @@ class aura_ascension_cultist_event : public AuraScript
             switch (id)
             {
                 case 300278: return avoided && Chance(player, id);
-                case 706182: return avoided; // Existing native block resource path is retained separately.
+                case 706182: return avoided;
                 case 800463: return (avoided || (damage && damage->GetAbsorb())) && Chance(player, id);
                 case 802043: return avoided;
                 case 560715: return dealt && player->GetHealthPct() < 35 && Chance(player, id, 120000);

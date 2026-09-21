@@ -1,4 +1,3 @@
-"""Exercise current Reaper secondary effects against the production hook implementations."""
 import os
 from pathlib import Path
 import re

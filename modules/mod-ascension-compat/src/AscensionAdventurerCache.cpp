@@ -34,16 +34,14 @@ enum RewardKind : uint8
     RewardKindCount
 };
 
-// Ascension hands the reward straight to the bags: its cached item templates carry no
-// ITEM_FLAG_HAS_LOOT, so opening a cache never showed a loot window.
 void OpenCache(Player* player, Item* item)
 {
-    player->SendEquipError(EQUIP_ERR_NONE, item, nullptr); // releases the item the client greyed out
+    player->SendEquipError(EQUIP_ERR_NONE, item, nullptr);
     if (!player->IsAlive() || player->IsInCombat())
         return;
 
     Loot loot;
-    loot.containerGUID = item->GetGUID(); // the reward filter below recognises the cache through it
+    loot.containerGUID = item->GetGUID();
     loot.FillLoot(item->GetEntry(), LootTemplates_Item, player, true, true);
 
     std::vector<LootItem const*> rewards;
@@ -58,7 +56,6 @@ void OpenCache(Player* player, Item* item)
             player->CanStoreNewItem(NULL_BAG, NULL_SLOT, reserved, reward->itemid, reward->count);
         if (space != EQUIP_ERR_OK)
         {
-            // Leave the cache in the bags so it can be opened once there is room for its reward.
             player->SendEquipError(space, nullptr, nullptr, reward->itemid);
             return;
         }
@@ -82,7 +79,6 @@ class item_ascension_adventurer_cache : public ItemScript
 public:
     item_ascension_adventurer_cache() : ItemScript("item_ascension_adventurer_cache") { }
 
-    // A client holding the Ascension item template sends an item-use spell request.
     bool OnUse(Player* player, Item* item, SpellCastTargets const&) override
     {
         if (!IsAdventurerReward(item->GetEntry()))
@@ -92,10 +88,6 @@ public:
     }
 };
 
-// Until #389 this world gave the caches ITEM_FLAG_HAS_LOOT, and a client that queried one back then keeps
-// that template in its item cache: it opens the cache as a container (CMSG_OPEN_ITEM) instead of using it.
-// The core refuses to open an item without the flag, and the client, still waiting for the loot window,
-// then ignores every corpse until relog (#4209).
 class adventurer_cache_open : public ServerScript
 {
 public:
@@ -153,7 +145,6 @@ public:
             else
                 continue;
 
-            // Materials have no use-level requirement. Their item level identifies the gathering tier.
             uint32 level = kind == Material ? item->ItemLevel : item->RequiredLevel;
             uint32 ceiling = player->GetLevel() + (kind == Material ? 5 : 0);
             if (level > ceiling || (kind != Material && player->CanUseItem(item) != EQUIP_ERR_OK) ||

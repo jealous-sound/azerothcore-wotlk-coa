@@ -69,8 +69,6 @@ SpellCastResult CheckHarnessTarget(Player* player, Unit* unitTarget)
         return SPELL_FAILED_DONT_REPORT;
     }
 
-    // Same target and stable restrictions as native spell_hun_tame_beast.
-    // Repeat at the selected helper hit to cover changes during the channel.
     if (target->GetLevel() > player->GetLevel())
     {
         player->SendTameFailure(PET_TAME_TOO_HIGHLEVEL);
@@ -145,8 +143,6 @@ class spell_ascension_primalist_harness_tame : public SpellScript
     void ValidateTame(SpellEffIndex effIndex)
     {
         SpellInfo const* trigger = GetSpell()->GetTriggeredByAuraSpellInfo();
-        // Natural channel completion clears the live channel GUID before the
-        // aura's last tick. Use the native stored channel target, not that GUID.
         if (!trigger || trigger->Id != SPELL_HARNESS_ANIMAL_SPIRIT ||
             GetSpell()->GetTriggeredByAuraTickNumber() != 1 ||
             CheckHarnessTarget(GetCaster()->ToPlayer(), GetHitUnit()) != SPELL_CAST_OK)
@@ -171,8 +167,6 @@ bool HasAscensionPrimalistHunterPetContext(Player const* player)
     if (!stable)
         return false;
 
-    // Native ownership survives respec and login before CAD confirmation.
-    // No mutation or CreatedBySpell restriction: normal recall changes that ID.
     if (stable->CurrentPet && stable->CurrentPet->Type == HUNTER_PET)
         return true;
     for (auto const& pet : stable->StabledPets)

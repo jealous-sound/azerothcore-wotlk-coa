@@ -1,4 +1,3 @@
-"""Check native critical-hit filtering and remaining cooldown recovery."""
 import json
 import sys
 from pathlib import Path

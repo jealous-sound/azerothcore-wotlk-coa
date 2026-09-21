@@ -1,4 +1,3 @@
-"""Exercise the real Hemostasis callbacks and native temporary replacement packets."""
 import os
 from pathlib import Path
 import re

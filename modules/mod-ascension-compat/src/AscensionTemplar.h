@@ -55,5 +55,5 @@ void SpreadCondemn(Player* player, Unit* target);
 uint32 HopeCount(Player* player);
 bool DivineSteed(Unit const* unit);
 void ApplyContracts(SpellInfo* info);
-} // namespace AscensionTemplar
+}
 #endif

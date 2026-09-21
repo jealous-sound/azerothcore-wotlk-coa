@@ -37,8 +37,6 @@ class aura_ascension_battle_cleric : public AuraScript
             helper = player->AddAura(SPELL_BATTLE_CLERIC_EFFECTS, player);
         if (helper)
         {
-            // Follow Paragon's lifetime, including extensions. AddAura avoids the helper's legacy
-            // one-time cooldown reduction; the talent's native modifier handles that before casting.
             helper->SetMaxDuration(-1);
             helper->SetDuration(-1);
         }
@@ -76,7 +74,7 @@ public:
             cooldown.BasePoints = -240000;
             cooldown.DieSides = 0;
             cooldown.MiscValue = SPELLMOD_COOLDOWN;
-            cooldown.SpellClassMask = flag96(0, 0, 8388608); // Paragon only.
+            cooldown.SpellClassMask = flag96(0, 0, 8388608);
             cooldown.TargetA = SpellImplicitTargetInfo(TARGET_UNIT_CASTER);
             info->_InitializeExplicitTargetMask();
         }

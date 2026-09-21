@@ -1,4 +1,3 @@
-// Real service/hooks and native ownership transitions; bounded metadata and I/O.
 #include <algorithm>
 #include <array>
 #include <cassert>
@@ -168,7 +167,7 @@ struct Player
 };
 bool IsAscensionCustomClass(Player const* player) { return IsAscensionClass(player->getClass()); }
 void SynchronizeAscensionRunemasterEchoes(Player*, uint32) { }
-void RemoveAscensionPrimalistWeapons(Player*) { } // Exercised by primal_weapons/run.py.
+void RemoveAscensionPrimalistWeapons(Player*) { }
 
 struct AscensionClassService
 {
@@ -220,7 +219,7 @@ void CheckReplacements()
         player.level = 10;
         service._activeSpecializations[1] = entry.SpecId;
         player.learnSpell(parent);
-        assert(!player.HasSpell(base)); // A replacement must not grant an unlearned original ability.
+        assert(!player.HasSpell(base));
         player.learnSpell(original);
         if (!player.HasSpell(base) || player.GetTemporarySpellReplacement(original) != base)
         {
@@ -235,14 +234,14 @@ void CheckReplacements()
         {
             if (!rank.SpellId || !rank.RequiredLevel)
                 continue;
-            assert(!service.AffectsTalentReplacements(rank.SpellId)); // No synchronous child recursion.
+            assert(!service.AffectsTalentReplacements(rank.SpellId));
             player.level = rank.RequiredLevel - 1;
             service.SynchronizeTalentReplacements(&player);
             assert(player.GetTemporarySpellReplacement(original) == previous);
             player.level = rank.RequiredLevel;
             service.SynchronizeTalentReplacements(&player);
             assert(player.GetTemporarySpellReplacement(original) == rank.SpellId);
-            assert(!player.HasSpell(previous)); // Superseded temporary rank must not linger.
+            assert(!player.HasSpell(previous));
             previous = rank.SpellId;
         }
         uint32 const highest = previous;
@@ -291,7 +290,7 @@ void CheckReplacements()
         player.removeSpell(base, SPEC_MASK_ALL, true);
         player.Put(base);
         player.removeSpell(parent, SPEC_MASK_ALL, false);
-        assert(player.HasSpell(base)); // Permanent child survives.
+        assert(player.HasSpell(base));
 
         Player otherSpec;
         otherSpec.cls = entry.ClassId;
@@ -314,7 +313,6 @@ void CheckReplacements()
         service.SynchronizeTalentReplacements(&relog);
         assert(relog.GetTemporarySpellReplacement(original) == base);
 
-        // An original's higher native rank receives the same current-level replacement.
         uint32 const originalRank = original + 10000000;
         manager.records[originalRank].Id = originalRank;
         manager.roots[originalRank] = original;
@@ -324,8 +322,6 @@ void CheckReplacements()
         assert(!relog.m_temporarySpellReplacements.contains(originalRank));
         assert(relog.GetTemporarySpellReplacement(original) == base);
     }
-    // All three Blood Curse parents can persist during a spec switch. Only the
-    // confirmed spec may select a form, independently of table iteration order.
     Player blood;
     blood.cls = 20;
     blood.Put(562720);
@@ -346,8 +342,6 @@ void CheckReplacements()
 int main()
 {
     auto& service = AscensionClassService::Instance();
-    // Independent regression expectations: absent grant rows must fail, even if
-    // all existing grants still behave correctly.
     std::array<AscensionCompatData::TaughtAbility, 13> expected = {{
         {12, 3, 0, 804729, 804834}, {13, 6, 0, 561069, 801662}, {16, 13, 10, 92097, 804019},
         {15, 11, 0, 801343, 578118}, {15, 11, 0, 801343, 680263},
@@ -391,7 +385,7 @@ int main()
     assert(!eternal.CanDualWield() && eternal.offhandChecks == 2);
     eternal.Put(674, PLAYERSPELL_UNCHANGED, 2);
     service.SynchronizeTaughtAbilities(&eternal);
-    assert(eternal.CanDualWield()); // Independent ownership in the now active native spec.
+    assert(eternal.CanDualWield());
     service._activeSpecializations[1] = 0;
     service.SynchronizeTaughtAbilities(&eternal);
     assert(eternal.CanDualWield() && eternal.offhandChecks == 2);
@@ -402,7 +396,7 @@ int main()
         player.cls = entry.ClassId;
         service._activeSpecializations.clear();
         player.learnSpell(entry.ParentSpellId);
-        assert(!player.HasSpell(entry.SpellId)); // Wait for confirmed specialization on login.
+        assert(!player.HasSpell(entry.SpellId));
         service._activeSpecializations[1] = entry.SpecId;
         service.SynchronizeTaughtAbilities(&player);
         assert(player.HasSpell(entry.SpellId));
@@ -412,7 +406,7 @@ int main()
         Transaction save;
         player._SaveSpells(&save);
         for (auto const& statement : save.statements)
-            assert(statement.data[1] != entry.SpellId); // Grant must never become permanent in character_spell.
+            assert(statement.data[1] != entry.SpellId);
         player.removeSpell(entry.ParentSpellId, SPEC_MASK_ALL, false);
         assert(!player.HasSpell(entry.SpellId));
         player.learnSpell(entry.ParentSpellId);
@@ -451,7 +445,7 @@ int main()
         service.SynchronizeTaughtAbilities(&player);
         assert(player.HasSpell(entry.SpellId));
         player.removeSpell(entry.SpellId, SPEC_MASK_ALL, true);
-        player.Put(entry.SpellId); // Independent permanent ownership survives losing the talent.
+        player.Put(entry.SpellId);
         player.removeSpell(entry.ParentSpellId, SPEC_MASK_ALL, false);
         assert(player.HasSpell(entry.SpellId) && player.m_spells.at(entry.SpellId)->State != PLAYERSPELL_TEMPORARY);
 
@@ -471,8 +465,6 @@ int main()
         }
     }
 
-    // Tooltip children are not automatically granted. Primal Weapons is restored
-    // as the selector itself; its equipment-dependent buffs must not be learned.
     for (uint32 parent : {537218u, 300728u, 504088u, 806302u, 520925u})
         assert(!service.AffectsTaughtAbilities(parent));
     CheckReplacements();

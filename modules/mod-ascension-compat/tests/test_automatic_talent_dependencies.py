@@ -1,4 +1,4 @@
-"""Check spec progression data; optionally exercise the matching client rank function.
+CLI_DESCRIPTION = """Check spec progression data; optionally exercise the matching client rank function.
 
 --dbc-dir is the client DBC set the server loads; the module's talent loader is compiled to read it.
 Use --client-addon-dir to check generated Lua and CharacterAdvancementStateCompat.lua
@@ -17,7 +17,6 @@ MODULE = Path(__file__).resolve().parents[1]
 CLIENT_ADDON = None
 DBC_DIR = None
 CATALOG = None
-# Reported automatic nodes and the spec-tree roots they must still require.
 SPEC_ROOTS = {
     3997: 4031, 4037: 0, 4041: 0, 4505: 4006, 4525: 4025, 7750: 9905,
     12086: 4006, 12201: 4053, 12645: 4005, 12646: 4005, 12853: 4033,
@@ -136,8 +135,8 @@ class ClientAutomaticRanks(unittest.TestCase):
         self.assertEqual(self.rank(entry), 0)
         self.vm.globals().testLevel = 10
         self.assertEqual(self.rank(entry), 1)
-        self.assertIsNone(self.rank(self.prepare(9172)))  # Selectable free Barbarian talent.
-        self.assertIsNone(self.rank(self.prepare(7229)))  # Paid Hive Instinct remains a choice.
+        self.assertIsNone(self.rank(self.prepare(9172)))
+        self.assertIsNone(self.rank(self.prepare(7229)))
 
 
 class ClientSpecializationTabs(unittest.TestCase):
@@ -215,7 +214,7 @@ class ClientSpecializationTabs(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument("--client-addon-dir", type=Path)
     parser.add_argument("--dbc-dir", type=Path)
     args, remaining = parser.parse_known_args()

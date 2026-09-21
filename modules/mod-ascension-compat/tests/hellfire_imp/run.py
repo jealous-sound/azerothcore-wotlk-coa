@@ -1,4 +1,4 @@
-"""Check Hellfire Imp initialization against the native neutral-target and immunity checks."""
+CLI_DESCRIPTION = """Check Hellfire Imp initialization against the native neutral-target and immunity checks."""
 import argparse
 import os
 from pathlib import Path
@@ -63,7 +63,7 @@ int main()
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument("--source-ref", help="Use older Imp initialization as a negative control.")
     args = parser.parse_args()
     path = "modules/mod-ascension-compat/src/AscensionXorothSummons.cpp"
@@ -74,7 +74,6 @@ def main():
     unit = (ROOT / "src/server/game/Entities/Unit/Unit.cpp").read_text(encoding="utf-8")
     attack = method(unit, "bool Unit::_IsValidAttackTarget(")
     attack = attack[attack.index("    // check flags"):attack.index("    // PvP, PvC, CvP case")]
-    # Reuse the small unit fixture already covering these exact native checks for Sentry.
     harness = (HERE.parent / "tinker_sentry/harness.cpp").read_text(encoding="utf-8")
     harness = harness[:harness.index("// ACTUAL_TIMER")].replace("// ACTUAL_ADMISSION", attack)
     harness += CASES.replace("// ACTUAL_IMP", imp)

@@ -149,8 +149,6 @@ int32 OverloadDamage(uint32 damage, int32 percent)
         return 0;
 
     uint64 const amount = uint64(damage) * uint32(percent) / 100;
-    // Native CalcValue passes the custom base through float. Reject values
-    // that would round beyond its signed result, without refunding the proc.
     if (!amount || double(float(amount)) > double(std::numeric_limits<int32>::max()))
         return 0;
 
@@ -176,8 +174,6 @@ class aura_ascension_tinker_overload : public AuraScript
 
     bool Load() override
     {
-        // Keep the check attached for other owners too: rejecting Load would
-        // leave native E0 eligible without our owner/source proc guard.
         return GetUnitOwner() != nullptr;
     }
 
@@ -205,9 +201,6 @@ class aura_ascension_tinker_overload : public AuraScript
         if (!amount)
             return;
 
-        // E0 has already consumed Mechanical Arm after native chance calculation.
-        // Each existing child keeps its authored hit/defense rules; this is a
-        // forwarded share of resolved damage, not guaranteed additional HP loss.
         GetTarget()->CastCustomSpell(effect->GetSpellInfo()->Effects[effect->GetEffIndex()].TriggerSpell,
             SPELLVALUE_BASE_POINT0, amount, damage->GetVictim(), true, nullptr, effect, GetTarget()->GetGUID());
     }
@@ -247,7 +240,7 @@ class aura_ascension_tinker_extender : public AuraScript
             !spell->IsTriggered() && IsExtenderCast(spell->GetSpellInfo()) && !GetAura()->IsExpired();
     }
 
-    void RemoveArm(AuraEffect const* /*effect*/, AuraEffectHandleModes /*mode*/)
+    void RemoveArm(AuraEffect const*, AuraEffectHandleModes)
     {
         if (IsSelfOwnedTinker(GetTarget(), GetCasterGUID()))
             GetTarget()->RemoveAurasDueToSpell(SPELL_MECHANICAL_ARM, GetCasterGUID());
@@ -268,8 +261,6 @@ public:
 
     void OnPlayerLogin(Player* player) override
     {
-        // Spell/talent loading precedes saved auras. Defer the orphan check to
-        // completed login so a valid saved ten-second Arm keeps its stacks/time.
         if (player && player->getClass() == CLASS_TINKER &&
             (!player->HasSpell(SPELL_EXTENDER) || !player->HasAura(SPELL_EXTENDER, player->GetGUID())))
             player->RemoveAurasDueToSpell(SPELL_MECHANICAL_ARM, player->GetGUID());

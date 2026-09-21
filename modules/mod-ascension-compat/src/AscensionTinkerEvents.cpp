@@ -77,7 +77,7 @@ void DeviceEvent(Player* player, Creature* device, Unit* target, SpellInfo const
         (!info || info->Id != 806781) && roll_chance_i(sSpellMgr->GetSpellInfo(806780)->ProcChance))
         Cast(device,target,806781);
 }
-} // namespace AscensionTinker
+}
 namespace
 {
 using namespace AscensionTinker;
@@ -116,8 +116,6 @@ class aura_ascension_tinker_event : public AuraScript
         switch (GetId())
         {
             case 92138: return damage && !periodic && fire && player->IsValidAttackTarget(target);
-            // War Crimes names Explosive and Tracer Augmentation damage as its only sources. Its own flags
-            // cover every direct Tinker hit instead, and exclude the triggered and periodic ways those two land.
             case 707239: return damage && Any(info,{653238,653247}) && Chance(player,707239);
             case 704107: return damage && Named(info,805351);
             case 705846: return healing && periodic && Named(info,801809);

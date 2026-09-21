@@ -225,7 +225,7 @@ int main()
     assert(pet.HasAura(806010, owner.guid) && pet.HasAura(806020, pet.guid));
     pet.auras.erase(806020);
     lifecycle.OnPlayerUpdate(&owner, 1);
-    assert(owner.casts.size() == 2); // Native resummon/load repair, without stacking on every update.
+    assert(owner.casts.size() == 2);
     aura_ascension_air_invigoration proc;
     proc.target = &pet;
     DamageInfo damage;
@@ -240,7 +240,7 @@ int main()
     assert(fixtureRolls == 1 && owner.casts.back() == 500019);
     assert(owner.GetAura(500019, owner.guid)->charges == 1);
     owner.GetAura(500019, owner.guid)->charges = 0;
-    proc.Invigorate(nullptr, event); // Another proc refreshes a single charge; it never accumulates charges.
+    proc.Invigorate(nullptr, event);
     assert(owner.GetAura(500019, owner.guid)->charges == 1);
     owner.auras.erase(500019);
     fixtureRoll = 15;
@@ -251,10 +251,10 @@ int main()
     proc.Invigorate(nullptr, event);
     assert(fixtureRolls == 3 && !owner.HasAura(500019, owner.guid));
     enemy.alive = false;
-    assert(proc.CheckProc(event)); // Killing blows still dealt damage.
+    assert(proc.CheckProc(event));
     enemy.alive = true;
     damage.damage = 0;
-    assert(!proc.CheckProc(event)); // Misses and fully absorbed hits grant nothing.
+    assert(!proc.CheckProc(event));
     damage.damage = 30;
     event.actor = &owner;
     assert(!proc.CheckProc(event));
@@ -284,7 +284,7 @@ int main()
         script.caster = &pet;
         assert(script.Load());
         script.SnapshotDuration();
-        aura->ModStackAmount(1); // Actual native stacking refreshes the timer, even at cap.
+        aura->ModStackAmount(1);
         assert(aura->duration == 15000);
         script.RestoreDuration();
         assert(aura->duration == 2300 && aura->m_stackAmount == (stack == 10 ? 10 : stack + 1));
@@ -304,7 +304,7 @@ int main()
     assert(!pet.HasAura(807465,pet.guid));
     proc.Invigorate(nullptr,event);assert(pet.flurries.size()==1);
     pet.auras[807465].caster=owner.guid;
-    proc.Invigorate(nullptr,event);assert(pet.flurries.size()==1); // An unrelated caster's aura is not the pet's command.
+    proc.Invigorate(nullptr,event);assert(pet.flurries.size()==1);
     SpellInfo flurryInfo;
     stormbringer_pet_contracts contracts;
     contracts.OnLoadSpellCustomAttr(&flurryInfo);

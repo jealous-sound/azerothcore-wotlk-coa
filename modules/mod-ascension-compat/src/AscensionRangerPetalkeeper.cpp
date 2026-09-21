@@ -184,9 +184,9 @@ public:
         if (!player || player->getClass() != CLASS_RANGER || info->SpellFamilyName != 27 || spell->IsTriggered() ||
             !player->IsAlive() || !player->IsInWorld() || !player->HasAura(SPELL_PETALKEEPER))
             return;
-        if (info->SpellFamilyFlags[2] & 8192) // Woodland Arrow, all ranks.
+        if (info->SpellFamilyFlags[2] & 8192)
             player->CastSpell(player, SPELL_RED_FLOWER, true);
-        if (info->SpellFamilyFlags[2] & 1) // Ranger horns, excluding their triggered extension helpers.
+        if (info->SpellFamilyFlags[2] & 1)
             for (ObjectGuid guid : RedFlowerGuids(player->GetGUID()))
             {
                 Creature* flower = player->GetMap()->GetCreature(guid);
@@ -195,7 +195,6 @@ public:
                 Aura const* petals = flower->GetAura(SPELL_PETALS, player->GetGUID());
                 if (!petals || uint32(petals->GetStackAmount()) < petals->GetSpellInfo()->CalcMaxAuraStacks(player))
                     continue;
-                // Remove from the registry before casting; each flower bursts only once.
                 ForgetRedFlower(player->GetGUID(), guid);
                 flower->CastSpell(flower, SPELL_RED_DREAM, true);
                 flower->DespawnOrUnsummon();
@@ -214,7 +213,6 @@ class aura_ascension_ranger_red_dream : public AuraScript
         Unit* recipient = GetTarget();
         DamageInfo const* damage = event.GetDamageInfo();
         Unit* victim = event.GetActionTarget();
-        // This independently timed buff can outlive the flower that granted it.
         return recipient->IsAlive() && event.GetActor() == recipient && victim && victim != recipient &&
             !recipient->IsFriendlyTo(victim) && damage && damage->GetDamage() &&
             (damage->GetDamageType() == DIRECT_DAMAGE || damage->GetDamageType() == SPELL_DIRECT_DAMAGE);
@@ -223,7 +221,6 @@ class aura_ascension_ranger_red_dream : public AuraScript
     void Heal(AuraEffect const* effect, ProcEventInfo& event)
     {
         PreventDefaultAction();
-        // The active Petals description resolves the amount through 521451s1.
         uint64 amount = uint64(event.GetDamageInfo()->GetDamage()) * std::clamp(effect->GetAmount(), 0, 100) / 100;
         if (amount && double(float(amount)) <= double(std::numeric_limits<int32>::max()))
             GetTarget()->CastCustomSpell(SPELL_RED_DREAM_HEAL, SPELLVALUE_BASE_POINT0,

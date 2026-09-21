@@ -108,10 +108,6 @@ using namespace Acore::ChatCommands;
 
 namespace {
 constexpr uint16 CMSG_ANTICHEAT_ALERT = 0x051F;
-// The Character Advancement point purchase. Never observed on this realm: the patch-B
-// Lua shim overrides AddByEntryID/ApplyPendingBuild and sends ".localtalent" instead,
-// so the client never reaches the native send. Answering this opcode is what retires
-// that shim; until then it is listed only so the packet log names it correctly.
 constexpr uint16 CMSG_CUSTOM_ASCENSION_POINT_SPEND_REQUEST = 0x0523;
 constexpr uint16 CMSG_CREATURE_QUERY_BULK = 0x061A;
 constexpr uint16 CMSG_APPLY_APPEARANCES = 0x0697;
@@ -125,60 +121,17 @@ constexpr uint16 CMSG_SET_CAN_SEE_APPEARANCES = 0x06A3;
 constexpr uint16 SMSG_VANITY_COLLECTION_INFO = 0x06F7;
 constexpr uint16 SMSG_VANITY_COLLECTION_ADDED = 0x06F8;
 
-// A store record, as the client's own handler reads it for this opcode: a result code, a count,
-// and that many fixed records. One record is the catalogue row's first sixteen columns, costs
-// included. The module sends them alongside the ownership list; nothing on this realm acts on
-// what comes back.
 constexpr uint16 SMSG_QUERY_CUSTOM_STORE_RESULT = 0x06BA;
 constexpr std::size_t VANITY_STORE_RECORD_DWORDS = 16;
-// The client's character-advancement service (Extensions.dll). The active-specialization packet also
-// bootstraps the per-character state on its first arrival, so it always goes out before the known-entries
-// packet, whose handler otherwise stores nothing. The client answers a native learn or unlearn with the
-// upload of its complete known set.
 constexpr uint16 SMSG_CHARACTER_ADVANCEMENT_ACTIVE_SPEC = 0x0725;
 constexpr uint16 SMSG_CHARACTER_ADVANCEMENT_KNOWN_ENTRIES = 0x0726;
 constexpr uint16 CMSG_CHARACTER_ADVANCEMENT_KNOWN_ENTRIES = 0x0727;
 constexpr uint16 CMSG_MISSILE_FIRE_POSITION = 0x09C7;
 
-// The PATCH family fills client tables at runtime. The vanity collection does
-// NOT need it: the client reads that catalogue from its own DBC and only
-// discards it while no realm type applies. The number is recorded here because
-// it was hard to find and belongs to the family.
 constexpr uint16 SMSG_PATCH_VANITY_COLLECTION = 0x0573;
 
-// Without this packet the client knows of no realm type, and with no realm
-// type it drops EVERY vanity row while building its catalogue. That is why the
-// collection window stays empty however the ownership list is sent.
-//
-// Payload order, read out of the handler at 0x102FC6C0 (registered at
-// 0x102FC5E0). Offsets are into the client's realm service:
-//   uint32  RealmId          -> +0x04 (GetRealmId)
-//   uint32  Expansion        -> +0x08 (GetRealmExpansion)
-//   float   x3               -> +0x0C, +0x10, +0x14
-//   uint32                   -> +0x18
-//   float   x2               -> +0x1C, +0x20
-//   uint32                   -> +0x24
-//   uint8   x8               -> +0x40..+0x47
-//                               0 IsLive, 1 IsSeasonal, 2 IsLeague, 3 IsPTR,
-//                               4 IsDevelopment, 5 IsProduction; 6 and 7 have
-//                               no Lua getter
-//   String  (NUL)            -> +0x28
-//   String  (NUL)            -> +0x4C
-//   uint8
-//   uint32                   OPTIONAL: the handler checks whether any bytes
-//                            are left and takes 0 when none are
 constexpr uint16 SMSG_REALM_INFO = 0x09BC;
 
-// The client carries a personal-bank mode on top of the guild vault window. It is
-// switched on by this packet, not by the item's spell: clicking the summoned
-// guild-vault object sends the ordinary CMSG_GUILD_BANKER_ACTIVATE, and the
-// server answers with SMSG_BANK_PERMISSIONS so the frame presents itself as the
-// character's own bank (purchasable tabs, depositable soulbound items) instead of
-// a guild's. The id comes from the client's own opcode table in Extensions.dll: an
-// array of `mov eax, <name>; ret` stubs at file 0x2c3ea6, indexed by the pointer
-// array at file 0x2c6ef0, where the opcode id is the 0-based index into that array.
-// Decoded in .agents/plans/coa-cad-protocol/; it reproduces every opcode seen in this
-// realm's packet log exactly (0x0741 = CMSG_GOSSIP_CLOSE, 0x061B = CMSG_ITEM_QUERY_BULK).
 constexpr uint16 SMSG_BANK_PERMISSIONS = 0x0769;
 
 struct ExtensionOpcodeIdentity {
@@ -224,15 +177,8 @@ constexpr ExtensionOpcodeIdentity EXTENSION_OPCODES[] = {
   return nullptr;
 }
 
-/// First bytes of a packet, for protocol work: the compatibility log has to be
-/// able to say what an unknown extension packet carried, not just how long it was.
 [[nodiscard]] std::string DescribePacketPayload(WorldPacket const &packet,
                                                 std::size_t limit = 64) {
-  // ByteBuffer::contents() throws ByteBufferException on an empty buffer - the
-  // core relies on that (WorldSocket's addon-info read says so). A log line must
-  // never be the reason a packet kills the process, so read the size first and
-  // keep the call guarded: an empty extension packet is now described as empty
-  // instead of throwing out of the network thread.
   std::size_t const size = packet.size();
   if (!size)
     return "";
@@ -269,22 +215,14 @@ constexpr uint32 SPELL_BLOODMAGE_THIRST_PASSIVE = 92112;
 constexpr uint32 SPELL_BLOODMAGE_THIRST = 706613;
 constexpr uint32 SPELL_REAPER_REAPED_SOUL = 500363;
 constexpr uint32 SPELL_REAPER_SOUL_INFUSION = 803031;
-// Removes Reaped Souls, Soul Infusion and Soul Fragments; Soul Infusion's own proc trigger points to it.
 constexpr uint32 SPELL_REAPER_SOUL_INFUSION_REMOVER = 561290;
 constexpr uint32 SPELL_REAPER_SOUL_FRAGMENT = 805077;
 constexpr uint32 SPELL_REAPER_GENERATE_SOUL = 805078;
 constexpr uint32 SPELL_REAPER_SCYTHE_RUSH = 500359;
-// The 20 second per-target marker Scythe Rush's hit adapter applies through helper 805339.
 constexpr uint32 SPELL_REAPER_SCYTHE_RUSH_MARKER = 500377;
-// Harvest Time. Its tooltip promises "a $s2% [chance] to not consume" Soul Infusion, and the
-// effect behind that line is SPELL_AURA_ADD_FLAT_MODIFIER with SPELLMOD_CHANCE_OF_SUCCESS -50
-// restricted to SpellFamilyName 36. This core only reads that modifier for proc and hit chance,
-// never for a resource cost, so nothing implemented the line and the window spent Soul Infusion
-// at the usual rate.
 constexpr uint32 SPELL_REAPER_HARVEST_TIME = 803995;
 constexpr char ASCENSION_LOCAL_RESOURCE_PREFIX[] = "ASC_LOCAL_RESOURCE";
 constexpr char ASCENSION_ACTIVE_SPEC_SETTING[] = "core.ascension_active_spec";
-// A stored talent build per tree, "core.ascension_build.<spec>" with 0 for the class tree.
 constexpr char ASCENSION_TALENT_BUILD_SETTING_PREFIX[] = "core.ascension_build.";
 
 enum CompanionLoot : uint32
@@ -302,29 +240,20 @@ constexpr uint8 REAPER_SOUL_FRAGMENT_COST = 3;
 
 constexpr std::array<uint32, 12> REAPER_ALL_SOUL_CONSUMERS =
 {{
-    500483, // Tormented Souls
-    500484, // Spectral Scythe
-    500576, // Spectral Scythe (Soul Infusion variant)
-    500631, // Reliquary of the Lost
-    // Soulrend ranks. Every rank requires Soul Infusion (casterAuraSpell 803031)
-    // and retained live logs removed the caster's Reaped Souls and Soul
-    // Infusion within 0.5 s of the cast in 278 of 285 casts; the exceptions
-    // include logged misses, which live refunded (2026-07-31 changelog).
-    // Consumption here happens on cast like the other consumers.
+    500483,
+    500484,
+    500576,
+    500631,
     572341, 572342, 573316, 573317, 573318, 573319, 573321, 573322
 }};
 
 constexpr std::array<std::pair<uint32, uint32>, 1> REAPER_ONE_SOUL_CONSUMERS =
 {{
-    // Lament's datamined rank IDs are absent from the live local Spell.dbc.
-    {500361, 500361} // Sanguine Orb
+    {500361, 500361}
 }};
 
 constexpr std::size_t APPEARANCE_CATEGORY_COUNT = 69;
 constexpr uint32 APPEARANCE_CATEGORY_AMMUNITION = 32;
-// The copied 3.3.5 client supports the 23-bit extended world-packet header.
-// Bound this snapshot to 512 KiB of entries (1 MiB in its native vector), not
-// the former, incorrect 64 KiB transport assumption. The full local catalog fits.
 constexpr std::size_t MAX_APPEARANCE_SNAPSHOT_ENTRIES = 65536;
 constexpr std::size_t APPEARANCE_ADDS_PER_BATCH = 16;
 constexpr uint32 APPEARANCE_ADD_BATCH_INTERVAL_MS = 100;
@@ -392,8 +321,6 @@ public:
         "AscensionCompat.AppearanceCatalogPerCategory", 500);
     SetConfigValue<bool>(AscensionCompatConfig::UNLOCK_ALL_VANITY,
                          "AscensionCompat.UnlockAllVanity", true);
-    // live, seasonal, league, ptr or development. The client discards its
-    // whole vanity catalogue while none of them applies.
     SetConfigValue<std::string>(AscensionCompatConfig::REALM_TYPE,
                                 "AscensionCompat.RealmType", "live");
     SetConfigValue<bool>(AscensionCompatConfig::ALLOW_LEARNED_SPELL_DELIVERY,
@@ -426,8 +353,6 @@ struct VanityInfo {
   uint32 LearnedSpell = 0;
   uint32 Flags = 0;
   uint32 CategoryMask = 0;
-  /// The catalogue row's first sixteen columns, which is the shape of one store record: the item
-  /// id, its flags, its group and the three costs.
   std::array<uint32, VANITY_STORE_RECORD_DWORDS> StoreRecord{};
 };
 
@@ -536,8 +461,6 @@ void RemoveLegacyQuestSpells(Player* player)
     if (!IsAscensionCustomClass(player))
         return;
 
-    // Only repair the known class-quest grants, with evidence of the corresponding rewarded quest.
-    // Do not infer ownership from absence in the generated custom-class spell catalogs.
     for (uint32 questId : player->getRewardedQuests())
         if (Quest const* quest = sObjectMgr->GetQuestTemplate(questId))
             if (LegacyQuestReward const* reward = GetLegacyQuestReward(quest->GetRewSpellCast()))
@@ -576,16 +499,13 @@ struct FelswornRiftGrant
     uint8 RequiredLevel;
 };
 
-// The generated class grants only hold the Alliance capital Fel Rifts (Stormwind 26, Ironforge 30, Darnassus 36).
-// These are their Horde counterparts, at their Spell.dbc SpellLevel.
 constexpr std::array<FelswornRiftGrant, 3> FelswornHordeCapitalRifts =
 {{
-    {535598, 26}, // Orgrimmar
-    {535599, 30}, // Thunder Bluff
-    {535600, 36}  // Undercity
+    {535598, 26},
+    {535599, 30},
+    {535600, 36}
 }};
 
-// SkillLineAbility.dbc gives the Alliance capital rifts RaceMask 1101 and the Horde ones RaceMask 690.
 constexpr std::array<uint32, 6> FelswornCapitalRifts = {535595, 535596, 535597, 535598, 535599, 535600};
 
 bool CanGrantAscensionRacialSpell(Player const* player, uint32 spellId)
@@ -613,17 +533,10 @@ public:
     return instance;
   }
 
-  /// @param explicitRequest true when the player asked for the abilities
-  ///        themselves - the gossip option that restores them. Automatic
-  ///        progression can be switched off while an explicit request keeps
-  ///        working.
   uint32 SynchronizeProgression(Player *player, bool explicitRequest = false) {
     if (!IsAscensionCustomClass(player))
       return 0;
 
-    // Explicitly authorized 2026-09-03: reconcile only generator-owned class
-    // grants. Do not scan arbitrary quest, collection or purchased spells for
-    // absence from a level-one snapshot. Valid selected talents are independent.
     uint32 const activeSpec = GetActiveSpecialization(player);
     AscensionClassTuning::Synchronize(player, activeSpec, true);
     auto const racialSpells = GetAscensionRacialSpells(player);
@@ -644,9 +557,6 @@ public:
     {
       if (!CanGrantAscensionRacialSpell(player, spellId))
         return false;
-      // Older local talent choices were persisted only as learned spell IDs.
-      // A colliding paid talent therefore remains protected until the client
-      // supplies its selection, rather than treating catalog absence as proof.
       bool const observed = std::any_of(AscensionLiveBaseline::Spells.begin(), AscensionLiveBaseline::Spells.end(),
           [player, spellId](auto const& entry)
           { return entry.ClassId == player->getClass() && entry.SpellId == spellId && (!entry.RaceId || entry.RaceId == player->getRace()); });
@@ -686,17 +596,9 @@ public:
       LOG_INFO("module.ascension_compat", "Reconciled {} proven class grants for {} against live level {}",
           removed, player->GetName(), uint32(player->GetLevel()));
     uint32 learned = 0;
-    // AscensionCompat.AutoProgression is the automatic half of progression: the
-    // class abilities and rank upgrades this service hands out as a character
-    // levels. Switched off, none of those is granted here and the
-    // player earns them another way - the Books of Ascension sell the ranks, and
-    // the gossip option that restores a character's abilities passes
-    // explicitRequest and keeps working. The reconcile pass above runs either
-    // way, so a build never keeps an ability it is no longer allowed to hold.
     bool const automaticProgression =
         explicitRequest || ascensionCompatConfig.GetConfigValue<bool>(
                                AscensionCompatConfig::AUTO_PROGRESSION);
-    // The live baseline sampled one race per class. Repair every race from its own DBC skill line.
     for (uint32 spellId : racialSpells)
         if (automaticProgression && !player->HasSpell(spellId) && sSpellMgr->GetSpellInfo(spellId))
         {
@@ -743,12 +645,7 @@ public:
         }
 
     ReconcileRunemasterFists(player, activeSpec);
-    // Automatic talents are not gated: the books never sell a tree's free nodes (the specialization
-    // identity, its free first row), so without this grant a specialization tree stays locked behind a
-    // node nobody can obtain (#4436).
     learned += SynchronizeAutomaticTalents(player, GetActiveSpecialization(player));
-    // Rank upgrades are conditional on already owning the root. They cannot
-    // spend talent points, pick an unselected ability, or leak an old spec.
     for (AscensionProgression::Rank const& rank : AscensionProgression::Ranks)
     {
         if (!automaticProgression || rank.ClassId != player->getClass() ||
@@ -800,8 +697,6 @@ public:
             if (entry.ClassId != player->getClass())
                 continue;
 
-            // Wait for CAD's confirmed specialization after login. A persisted
-            // parent alone must not teach an ability from the previous spec.
             bool const allowed = specializationId == entry.SpecId &&
                 player->GetLevel() >= entry.RequiredLevel && player->HasSpell(entry.ParentSpellId);
             if (!allowed)
@@ -810,9 +705,6 @@ public:
                 continue;
             }
 
-            // Preserve independent permanent ownership, other native specs and
-            // pending deletion records. Native _addSpell would resurrect a
-            // tombstone as CHANGED even when requested as temporary.
             auto const& spells = player->GetSpellMap();
             if (spells.find(entry.SpellId) != spells.end() || !sSpellMgr->GetSpellInfo(entry.SpellId))
                 continue;
@@ -823,11 +715,6 @@ public:
         }
         if (!beforeMap && player->getClass() == CLASS_SON_OF_ARUGAL)
         {
-            // Native spec changes reconcile this flag, but removing a temporary
-            // spell during a CAD refund does not. Preserve independently owned 674.
-            // The before-map pass leaves this to the OnPlayerLogin one: the saved
-            // inventory has already been validated by then, and unequipping an
-            // offhand before the player is in the world is a separate contract.
             bool const dualWield = player->HasSpell(674);
             if (player->CanDualWield() != dualWield)
             {
@@ -877,8 +764,6 @@ public:
             {
                 if (sSpellMgr->GetFirstSpellInChain(id) != entry.OriginalSpellId)
                     continue;
-                // Several mutually exclusive specs can transform the same root.
-                // An ineligible row must not erase another row's valid choice.
                 replacements.try_emplace(id, 0);
                 if (replacement && player->HasActiveSpell(id))
                     replacements[id] = replacement;
@@ -890,7 +775,6 @@ public:
         {
             if (replacement)
                 desired.insert(replacement);
-            // Restore the old button before its temporary spell disappears.
             if (player->GetTemporarySpellReplacement(id) != replacement)
                 player->SetTemporarySpellReplacement(id, 0);
         }
@@ -899,8 +783,6 @@ public:
         {
             if (desired.count(id))
                 continue;
-            // Native removal recursively removes higher ranks. A lower rank may
-            // need to remain while a desired higher rank is still owned.
             bool const neededByHigherRank = std::any_of(desired.begin(), desired.end(), [id](uint32 rank)
             {
                 return sSpellMgr->GetFirstSpellInChain(id) == sSpellMgr->GetFirstSpellInChain(rank) &&
@@ -913,8 +795,6 @@ public:
         uint32 learned = 0;
         for (uint32 id : desired)
         {
-            // Preserve permanent/other-spec ownership and pending deletions, as
-            // with ordinary taught abilities. Child IDs cannot re-enter this hook.
             if (player->GetSpellMap().find(id) == player->GetSpellMap().end())
             {
                 player->learnSpell(id, true);
@@ -1009,7 +889,6 @@ public:
         continue;
       }
 
-      // Bounded to the known proficiency catalog, not arbitrary learned spells.
       if (player->HasSpell(definition.SpellId))
       {
         player->removeSpell(definition.SpellId, SPEC_MASK_ALL, false);
@@ -1019,8 +898,6 @@ public:
         player->SetSkill(definition.SkillId, 0, 0, 0);
     }
 
-    // Defense and Unarmed are intrinsic combat skills, absent from the equipment proficiency catalog.
-    // Keep their current value and cap in step with the weapon skills on login and every level change.
     for (uint16 skill : std::array<uint16, 2>{SKILL_DEFENSE, SKILL_UNARMED})
       if (player->HasSkill(skill))
       {
@@ -1049,8 +926,6 @@ public:
     if (!IsAscensionCustomClass(player) || player->IsInWorld())
       return false;
 
-    // Called only inside Player::Create, never while loading an existing player.
-    // Hidden proficiency spells are separate from the visible spellbook roots.
     for (uint32 spellId : GetAscensionRacialSpells(player))
     {
       if (!sSpellMgr->GetSpellInfo(spellId))
@@ -1064,7 +939,6 @@ public:
         continue;
       if (!CanGrantAscensionRacialSpell(player, entry.SpellId))
       {
-        // Earlier creation SQL also classified Gemcutting as a class-wide grant.
         if (player->HasSpell(entry.SpellId))
           player->removeSpell(entry.SpellId, SPEC_MASK_ALL, false);
         continue;
@@ -1087,13 +961,9 @@ public:
         continue;
       if (!sSkillLineStore.LookupEntry(entry.SkillId))
         return false;
-      // Weapon display ranks need a separate compatibility review: preserve
-      // native level-scaled combat skill for now, and record this deviation.
       bool const weapon = std::any_of(AscensionCompatData::ProficiencyDefinitions.begin(),
           AscensionCompatData::ProficiencyDefinitions.end(), [&entry](auto const& definition)
           { return definition.SkillId == entry.SkillId && definition.ScalesWithLevel; });
-      // Unlike our explicitly maximized weapon proficiencies, Unarmed keeps
-      // native current/cap (normally 1/5 here). A max of 1 prevents future growth.
       if (entry.SkillId == SKILL_UNARMED)
         continue;
       uint16 const maximum = weapon ? player->GetMaxSkillValueForLevel() : entry.Maximum;
@@ -1103,9 +973,6 @@ public:
     return true;
   }
 
-  // Creation-only entry point. The caller must abort Player::Create on false
-  // and skip both legacy starter placement and the later bag auto-equip pass.
-  // Login/repair paths deliberately never call this function.
   bool InitializeLiveStarterKit(Player* player)
   {
     if (!IsAscensionCustomClass(player) || player->IsInWorld())
@@ -1116,8 +983,6 @@ public:
     if (player->GetPlayerSetting(liveSetting, 0).value == liveStarterRevision)
       return true;
 
-    // Do not replace, relocate, delete, or top up any pre-existing inventory.
-    // An empty, newly constructed Player is the only supported input.
     for (uint8 slot = EQUIPMENT_SLOT_START; slot < INVENTORY_SLOT_ITEM_END; ++slot)
       if (player->GetItemByPos(INVENTORY_SLOT_BAG_0, slot))
       {
@@ -1170,8 +1035,6 @@ public:
     if (!entries)
       return false;
 
-    // The generated order is equipment first (main hand before off hand), then
-    // backpack positions. Equal item IDs in different slots remain distinct.
     for (AscensionCompatData::LiveStarterItem const& entry : AscensionCompatData::LiveStarterItems)
     {
       if (entry.ClassId != player->getClass())
@@ -1200,8 +1063,6 @@ public:
       }
     }
 
-    // Saved with the initial character transaction, not after the create
-    // callback. This also prevents the legacy login repair from adding old gear.
     player->UpdatePlayerSetting(liveSetting, 0, liveStarterRevision);
     player->UpdatePlayerSetting("core.ascension_starter", 0, 1);
     return true;
@@ -1216,8 +1077,6 @@ public:
     if (!kit)
       return false;
 
-    // A hearthstone or one surviving starter item does not prove the kit is
-    // complete. Repair each character once; never replace gear already worn.
     constexpr uint32 starterRevision = 1;
     char const* const setting = "core.ascension_starter";
     if (!force && player->GetPlayerSetting(setting, 0).value >= starterRevision)
@@ -1323,23 +1182,11 @@ public:
     SendCharacterAdvancementBridge(player);
     SendLocalTalentState(player);
 
-    // Taught abilities (e.g. Eternal Curse 800157, AscensionTaughtAbilityData.h)
-    // are temporary spells and are never saved to character_spell, so
-    // Player::_LoadActions - which runs inside Player::LoadFromDB, before both
-    // PrepareTaughtAbilitiesBeforeMap and this hook - found them unknown and
-    // pruned their action bar slots for this login. Now that the grant has
-    // landed, reload the saved bar the same way Player::ActivateSpec does after
-    // a spec switch, so a still-eligible taught ability does not appear to fall
-    // off the action bar on every relog.
     CharacterDatabasePreparedStatement* actionsStmt =
         CharacterDatabase.GetPreparedStatement(CHAR_SEL_CHARACTER_ACTIONS_SPEC);
     actionsStmt->SetData(0, player->GetGUID().GetRawValue());
     actionsStmt->SetData(1, player->GetActiveSpec());
 
-    // That statement is prepared on asynchronous connections only, so a
-    // synchronous Query() asserts on a null MySQLPreparedStatement. The player
-    // can also leave before the response arrives, which is why the session -
-    // which owns this callback - resolves them instead of a captured pointer.
     WorldSession* session = player->GetSession();
     session->GetQueryProcessor().AddCallback(CharacterDatabase.AsyncQuery(actionsStmt)
         .WithPreparedCallback([session](PreparedQueryResult result)
@@ -1349,20 +1196,8 @@ public:
         }));
   }
 
-  /// Grant the taught abilities before the client's spell list goes out, the same
-  /// place and for the same reason the collection service prepares owned companions.
-  ///
-  /// They are granted as temporary spells, so they are never saved and have to be
-  /// granted again on every login. Doing that from OnPlayerLogin means the player is
-  /// already in the world, where Player::_addSpell announces the grant, and the client
-  /// reports learning them again on each relog although nothing changed. Outside the
-  /// world no such packet is sent and the replaced snapshot carries them instead.
-  ///
-  /// The OnPlayerLogin pass stays as it is: it skips whatever is already owned, and it
-  /// still covers a parent that is only granted once that later pass has run.
   void PrepareTaughtAbilitiesBeforeMap(Player* player)
   {
-    // This hook also runs on ordinary map changes, where the spellbook is already live.
     if (!IsAscensionCustomClass(player) || player->IsInWorld() ||
         !player->GetSession()->PlayerLoading())
       return;
@@ -1396,15 +1231,11 @@ public:
     return [player](uint32 spellId) { return player->HasSpell(spellId); };
   }
 
-  /// The catalog entries the character holds, at the rank its spellbook proves.
   static std::vector<AscensionCoATalentState::KnownEntry> KnownTalentEntries(Player const* player)
   {
     return AscensionCoATalentState::KnownEntries(player->getClass(), SpellbookOf(player));
   }
 
-  /// The client's character-advancement service keys its state off the local player object, which the
-  /// loading screen has not created yet while OnPlayerLogin runs: state sent then reaches no character.
-  /// CMSG_SET_ACTIVE_MOVER is the client saying that object now exists, so the state waits for the first one.
   void QueueCharacterAdvancementState(Player* player)
   {
     std::lock_guard<std::mutex> lock(_stateLock);
@@ -1423,9 +1254,6 @@ public:
     SendCharacterAdvancementState(player);
   }
 
-  /// The active specialization first: its handler builds the per-character container that the known-entries
-  /// handler refuses to fill without. The character's local specialization occupies the single slot 0, which
-  /// the client reports as specialization 1; the specialization id itself stays with the local UI.
   void SendCharacterAdvancementState(Player* player)
   {
     WorldPacket packet(SMSG_CHARACTER_ADVANCEMENT_ACTIVE_SPEC, sizeof(uint32) * 2);
@@ -1438,9 +1266,6 @@ public:
              player->GetName(), uint32(player->getClass()), uint32(player->GetLevel()), sent);
   }
 
-  /// After a talent change: the complete set again, which the client diffs against what it holds, and the
-  /// bridge snapshot for the local layer. The native packet waits for the initial state, whose container
-  /// the known-entries handler needs.
   void SendCharacterAdvancementKnownEntries(Player* player)
   {
     SendCharacterAdvancementBridge(player);
@@ -1453,13 +1278,6 @@ public:
     SendKnownTalentEntries(player);
   }
 
-  /// The local Character Advancement layer in patch-B keeps the active specialization in a per-character
-  /// SavedVariable and rebuilds paid ranks from the spellbook, which cannot see hidden rank spells. The
-  /// server knows both, so it sends both as an addon-channel whisper from the character to itself, the
-  /// transport of the Runemaster Echoes bridge: the client delivers it to Lua as CHAT_MSG_ADDON and no one
-  /// else sees it. One chat packet carries a bounded payload, so the ranks are chunked; the sequence is
-  /// one-based and every chunk repeats the total, so a client that missed one knows its picture is
-  /// incomplete rather than reading a short list as missing ranks. Format and client half from #4030.
   void SendCharacterAdvancementBridge(Player* player)
   {
     if (!player->GetSession())
@@ -1502,12 +1320,6 @@ public:
               player->GetName(), specializationId, uint32(ranks.size()), uint32(chunks.size()));
   }
 
-  /// The same state in the three-message form the #4031 client half reads: ASC_LOCAL_SPEC (the active
-  /// specialization), ASC_LOCAL_RECORDS (whether a record exists per tree: here the server always has one,
-  /// an empty list meaning an empty tree) and ASC_LOCAL_TALENTS, one message of "entry:rank" pairs that the
-  /// client adopts whole, so it is never split. Automatic entries are left out: that client skips them, and
-  /// the message stays short. Either client half keeps working; one of the two forms retires with the client
-  /// patch that ships.
   void SendLocalTalentState(Player* player)
   {
     if (!player->GetSession())
@@ -1550,8 +1362,6 @@ public:
     return uint32(known.size());
   }
 
-  /// One owner for every rule a talent change obeys, whether it arrives as .localtalent or inside the client's
-  /// known-entries upload. False with the reason when the change is refused; the spellbook is then unchanged.
   bool SetTalentRank(Player* player, AscensionCompatData::CoATalentEntry const& entry, uint32 rank,
                      std::string& error, bool checkBudget = true)
   {
@@ -1599,8 +1409,6 @@ public:
 
     if (automaticallyGranted)
     {
-      // A UI synchronization request cannot bypass automatic prerequisites.
-      // Automatic ranks are immutable; paid talent choices remain below.
       bool const grantable = rank == 0 || CanGrantAutomaticEntry(player, entry, activeSpecialization);
       SynchronizeProgression(player);
       if (!grantable)
@@ -1618,9 +1426,6 @@ public:
       return false;
     }
 
-    // A rank above the one the spellbook proves costs points the tree may not have left. Removals and lower
-    // ranks always go through, so an over-budget character can always come back under it.
-    // A known-entries upload prices its whole set before applying it and skips this check per entry.
     uint32 const currentRank = AscensionCoATalentState::KnownRank(entry, SpellbookOf(player));
     if (checkBudget && rank > currentRank && (entry.AECost || entry.TECost))
     {
@@ -1647,8 +1452,6 @@ public:
 
     if (rank > 0 && freeChoiceGroup)
     {
-      // An explicit player selection resolves a group. Login must not choose
-      // between alternatives previously double-granted by the old free rule.
       for (auto const& other : AscensionCompatData::CoATalentEntries)
         if (other.ClassId == player->getClass() && other.SpecId == entry.SpecId && other.EntryId != entryId &&
             GetSelectableFreeGroup(other.EntryId) == freeChoiceGroup)
@@ -1671,8 +1474,6 @@ public:
     return true;
   }
 
-  /// Reset Trees on the server: every paid rank of the class goes, automatic grants and the specialization
-  /// stay, and the progression pass restores whatever the remaining state entitles the character to.
   uint32 ResetPaidTalents(Player* player)
   {
     uint32 removed = 0;
@@ -1694,7 +1495,6 @@ public:
     return removed;
   }
 
-  /// The character's point budget, refused rather than assumed when the essence table has no row.
   bool TalentBudget(Player const* player, uint32& classBudget, uint32& specializationBudget, std::string& error)
   {
     if (AscensionCompatData::GetCoATalentBudget(player->getClass(), player->GetLevel(), classBudget,
@@ -1708,9 +1508,6 @@ public:
     return false;
   }
 
-  /// The rank the progression pass hands an entry back after its spells are removed: the highest rank whose
-  /// spell is also a class grant at the character's level. Such an entry stays held whatever the client
-  /// uploads, so an upload is priced with it.
   static uint32 PersistentRank(Player const* player, AscensionCompatData::CoATalentEntry const& entry)
   {
     uint32 rank = 0;
@@ -1729,16 +1526,11 @@ public:
     return rank;
   }
 
-  /// The client's complete known set after a native learn or unlearn. Automatic entries are the server's to
-  /// grant and are ignored; every paid or free-choice entry is checked and the state the set leads to is priced
-  /// before any change lands, so a refused upload changes nothing. The resend of the server's state that
-  /// follows either outcome puts the client right.
   bool ApplyKnownEntriesUpload(Player* player, std::vector<AscensionCoATalentState::KnownEntry> const& upload,
                                std::string& error)
   {
     uint32 activeSpecialization = GetActiveSpecialization(player);
     uint32 uploadedSpecialization = 0;
-    // A repeated entry keeps its last record, as the client's own store would.
     std::unordered_map<uint32, uint32> wanted;
     for (AscensionCoATalentState::KnownEntry const& item : upload)
     {
@@ -1770,8 +1562,6 @@ public:
                                       entry->EntryId, item.Rank);
           return false;
         }
-        // Without an active specialization the upload selects one, as the first .localtalent does; it
-        // cannot select two.
         if (entry->SpecId && activeSpecialization && entry->SpecId != activeSpecialization)
         {
           error = Acore::StringFormat(
@@ -1793,8 +1583,6 @@ public:
       wanted[entry->EntryId] = item.Rank;
     }
 
-    // Price the state the upload leads to: its own ranks, and for every other paid entry the rank the
-    // progression pass hands back once the upload has removed it.
     std::vector<AscensionCoATalentState::KnownEntry> priced;
     for (AscensionCompatData::CoATalentEntry const& entry : AscensionCompatData::CoATalentEntries)
     {
@@ -1826,7 +1614,6 @@ public:
       return false;
     }
 
-    // Removals first, so a swap never holds both talents at once.
     std::vector<std::pair<AscensionCompatData::CoATalentEntry const*, uint32>> changes;
     for (AscensionCompatData::CoATalentEntry const& entry : AscensionCompatData::CoATalentEntries)
     {
@@ -1843,7 +1630,6 @@ public:
     for (auto const& [entry, rank] : changes)
       if (!SetTalentRank(player, *entry, rank, error, false))
       {
-        // Every rule was checked above; the state resend covers whatever changed before this.
         LOG_ERROR("module.ascension_compat",
                   "Known-entries upload for {} failed after validation at entry {} rank {}: {}", player->GetName(),
                   entry->EntryId, rank, error);
@@ -1852,8 +1638,6 @@ public:
     return true;
   }
 
-  /// CanPacketReceiveEarly runs on the network thread, so the upload is copied and waits for the player's
-  /// own update before it touches the spellbook. Keyed by account: the player may be gone by then.
   void QueueKnownEntriesUpload(uint32 accountId, WorldPacket const& packet)
   {
     std::lock_guard<std::mutex> lock(_stateLock);
@@ -1916,21 +1700,11 @@ public:
     return itr == _activeSpecializations.end() ? 0 : itr->second;
   }
 
-  // --- Stored builds ----------------------------------------------------------
-  //
-  // Ascension keeps a build per specialization and swaps between them. Here a switch removes every
-  // talent spell, so the build being left is written down first and the build of the specialization
-  // being entered is put back afterwards: the class tree, which every specialization shares, and the
-  // specialization's own tree. The spellbook stays the truth while a specialization is active; the
-  // record is only read when one is entered. Player setting "core.ascension_build.<spec>" (0 for the
-  // class tree): index 0 holds the count, then entryId * 10 + rank per pick (from #4031).
-
   static std::string BuildSetting(uint32 specializationId)
   {
     return std::string(ASCENSION_TALENT_BUILD_SETTING_PREFIX) + std::to_string(specializationId);
   }
 
-  /// The paid and free-choice ranks the spellbook holds on one tree, as entryId * 10 + rank.
   static std::vector<uint32> LivePicks(Player const* player, uint32 specializationId)
   {
     std::vector<uint32> picks;
@@ -1945,7 +1719,6 @@ public:
     return picks;
   }
 
-  /// Writes a tree's picks over the previous record; a shorter build zeroes the old tail.
   static void StoreBuild(Player* player, uint32 specializationId, std::vector<uint32> const& picks)
   {
     std::string const setting = BuildSetting(specializationId);
@@ -1974,7 +1747,6 @@ public:
     return picks;
   }
 
-  /// Talent-button layouts belong to the specialization being left, just like its build.
   static std::string BarSetting(uint32 specializationId)
   {
     return "core.ascension_bar." + std::to_string(specializationId);
@@ -2013,7 +1785,6 @@ public:
       player->UpdatePlayerSetting(setting, uint32(index), 0);
   }
 
-  /// Snapshot the current layout, including intentional deletions, then clear outgoing talent buttons.
   static void RememberBarButtons(Player* player, uint32 specializationId,
                                  std::unordered_set<uint32> const& spells)
   {
@@ -2032,27 +1803,21 @@ public:
 
   static void RestoreBarButtons(Player* player, uint32 specializationId, uint32 previousSpecialization)
   {
-    // A never-visited specialization inherits shared talent buttons. An explicitly empty saved
-    // layout stays empty. Existing non-talent buttons always take precedence over remembered ones.
     uint32 const source = player->FindPlayerSettings(BarSetting(specializationId))
         ? specializationId : previousSpecialization;
     for (auto const& [button, spell] : StoredBar(player, source))
       if (player->HasSpell(spell) && !player->GetActionButton(button))
         player->addActionButton(button, spell, ACTION_BUTTON_SPELL);
 
-    // Pair the pre-unlearn clear with a complete resend, even when no talent button was restored.
     player->SendInitialActionButtons();
   }
 
-  /// Writes down the class tree and the tree of the specialization being left.
   void StoreBuilds(Player* player, uint32 specializationId)
   {
     StoreBuild(player, 0, LivePicks(player, 0));
     StoreBuild(player, specializationId, LivePicks(player, specializationId));
   }
 
-  /// Puts back the class tree and the entered specialization's tree, each rank through the rules of a
-  /// purchase, so a stored rank the character can no longer afford is skipped rather than granted.
   uint32 RestoreBuilds(Player* player, uint32 specializationId)
   {
     uint32 restored = 0;
@@ -2110,10 +1875,8 @@ public:
       return true;
     }
 
-    // The build being left survives only as a record: write it before its spells go.
     StoreBuilds(player, previousSpecialization);
 
-    // Like Player::ActivateSpec, dismiss the pet summoned under the old specialization.
     if (Pet* pet = player->GetPet())
       player->RemovePet(pet, PET_SAVE_NOT_IN_SLOT);
 
@@ -2126,8 +1889,6 @@ public:
           for (uint32 spellId : entry.SpellIds)
             if (spellId && player->HasSpell(spellId))
               talentSpells.insert(spellId);
-      // Use the native spec-swap protocol: clear the client before unlearning spells, then
-      // resend the complete layout after restoring the destination build.
       player->SendActionButtons(2);
       RememberBarButtons(player, previousSpecialization, talentSpells);
     }
@@ -2244,7 +2005,6 @@ public:
 
     static void ReconcileRunemasterFists(Player* player, uint32 specializationId)
     {
-        // An unconfirmed custom specialization cannot disprove a saved identity.
         if (!player || player->getClass() != CLASS_SPIRIT_MAGE || !specializationId)
             return;
 
@@ -2279,8 +2039,6 @@ public:
             dependency->RequiredEntryIds != std::array<uint32, 2>{29521, 0})
             return;
 
-        // Preserve native HasSpell eligibility, including an inactive Zenith or
-        // a temporary prerequisite. Acquisition still uses normal progression.
         if (!CanGrantAutomaticEntry(player, *fists, specializationId) && player->HasSpell(92153))
             player->removeSpell(92153, player->GetActiveSpecMask(), false);
     }
@@ -2288,13 +2046,10 @@ public:
 private:
     static uint32 SynchronizeAutomaticTalents(Player* player, uint32 specializationId)
     {
-        // At level one the observed spellbook, not empty implicit/CAD responses,
-        // defines the baseline. Higher-level dependency-gated talents remain native.
         if (player->GetLevel() == 1)
             return 0;
         uint32 learned = 0;
         bool changed = true;
-        // Resolve dependencies even when their entry IDs sort after their children.
         for (std::size_t pass = 0; changed && pass < AscensionCompatData::CoATalentEntries.size(); ++pass)
         {
             changed = false;
@@ -2315,17 +2070,12 @@ private:
         return learned;
     }
 
-  // One service for every player, and player updates run on several map threads at once: every
-  // access to the three containers below goes through this lock. Without it a concurrent insert
-  // corrupts the hash table and a later lookup loops forever, which stops the whole world.
   mutable std::mutex _stateLock;
   std::unordered_map<ObjectGuid, uint32> _tuningUpdates;
   std::unordered_map<uint32, uint32> _activeSpecializations;
   std::unordered_set<uint32> _proficiencySynchronizations;
-  // Characters owed the character-advancement state, and those already holding it.
   std::unordered_set<uint32> _advancementPending;
   std::unordered_set<uint32> _advancementSent;
-  // Known-entries uploads by account, copied off the network thread for the player's own update.
   static constexpr std::size_t MAX_QUEUED_KNOWN_ENTRIES_UPLOADS = 8;
   std::unordered_map<uint32, std::deque<std::vector<uint8>>> _pendingUploads;
 };
@@ -2536,9 +2286,6 @@ public:
             player->getClass() != CLASS_REAPER)
             return true;
 
-        // Soul Fragment schedules this helper after every gained fragment.
-        // Ascension's private dummy handler only lets the helper continue at
-        // three stacks; without this gate every fragment becomes a full soul.
         return GetAuraStacks(player, SPELL_REAPER_SOUL_FRAGMENT) >=
                REAPER_SOUL_FRAGMENT_COST;
     }
@@ -2558,21 +2305,12 @@ public:
             spellInfo->SpellFamilyName == uint32(CLASS_RANGER) + 6 &&
             spellInfo->CasterAuraSpell == 804329 && !player->HasAura(804329))
         {
-            // The copied Ranger records carry the correct Advantage contract,
-            // but the proprietary realm also enforced it before the normal
-            // cast pipeline. Keep a compatibility-side guard so every rank and
-            // talent consumer follows the same requirement.
             result = SPELL_FAILED_CASTER_AURASTATE;
             return;
         }
 
         if (player->getClass() == CLASS_REAPER && spellId == SPELL_REAPER_SCYTHE_RUSH)
         {
-            // "Cannot be used on the same target more than once every 20 sec."
-            // 500359's own ExcludeTargetAuraSpell is empty, and the native
-            // field would also ignore the aura's caster, locking every other
-            // Reaper out of a target one of them has already rushed. Keep the
-            // marker's own per-caster scope instead.
             Unit* target = spell->m_targets.GetUnitTarget();
             if (target && target->HasAura(SPELL_REAPER_SCYTHE_RUSH_MARKER,
                     player->GetGUID()))
@@ -2607,10 +2345,6 @@ public:
         SpellInfo const* spellInfo = spell->GetSpellInfo();
         uint32 spellId = spellInfo->Id;
 
-        // CharacterAdvancement entry 4025 grants 92112, not the old 500107 passive.
-        // Its contract covers every health-cost spell, including utility spells and
-        // talent ranks without the conditional Thirst sentence in their tooltip.
-        // This hook runs after a successful cast; triggered children are excluded above.
         if (player->getClass() == CLASS_SON_OF_ARUGAL && spellInfo->SpellFamilyName == 26 &&
             spellInfo->PowerType == POWER_HEALTH && spell->GetPowerCost() > 0 &&
             player->HasAura(SPELL_BLOODMAGE_THIRST_PASSIVE))
@@ -2680,13 +2414,6 @@ public:
         SendClientState(player, false);
     }
 
-    // Whether this spell is one that deals damage at all.
-    //
-    // The damage figure this hook receives is what survived the target's mitigation, and a training
-    // dummy zeroes it outright - npc_training_dummy::DamageTaken sets damage = 0 on every hit. So a
-    // Reaper checking a rotation on a dummy generated no Soul Fragments and no Runic Power from Reap
-    // or Wraithblade, while the same casts worked on a real target. Resource generation is a
-    // property of the ability, not of what the target did with the damage, so read it off the spell.
     static bool SpellDealsDamage(SpellInfo const* spellInfo)
     {
         return spellInfo &&
@@ -2708,8 +2435,6 @@ public:
             return;
 
         bool successful = missInfo == SPELL_MISS_NONE;
-        // This hook runs after damage. Keep killing blows and neutral/yellow
-        // enemies eligible without accepting friendly or self targets.
         bool hostile = target != player && !player->IsFriendlyTo(target);
         bool damaging = damage > 0 || SpellDealsDamage(spell->GetSpellInfo());
         uint32 spellId = spell->GetSpellInfo()->Id;
@@ -3015,8 +2740,6 @@ private:
         uint32 maximumRunicPower = std::max<int32>(
             0, player->GetMaxPower(POWER_RUNIC_POWER));
 
-        // A packed comparison key keeps the per-tick synchronization silent
-        // unless the authoritative server-side resource state changed.
         uint64 packedState = uint64(souls) |
             (uint64(fragments) << 8) |
             (uint64(infused ? 1 : 0) << 16) |
@@ -3038,9 +2761,6 @@ private:
         message += ":" + std::to_string(maximumRunicPower);
 
         WorldPacket packet;
-        // Use the GUID overload explicitly.  The WorldObject overload turns
-        // messages sent by a GM account into SMSG_GM_MESSAGECHAT, which does
-        // not reach Lua as CHAT_MSG_ADDON on this client.
         ChatHandler::BuildChatPacket(packet, CHAT_MSG_WHISPER, LANG_ADDON,
             player->GetGUID(), player->GetGUID(), message, 0,
             player->GetName(), player->GetName(), 0, false);
@@ -3133,19 +2853,12 @@ private:
                 aura->ModStackAmount(amount - 1);
     }
 
-    // Harvest Time's tooltip is specific: it is about Soul Infusion, the buff its own effect names.
-    // Only a spell that requires Soul Infusion (CasterAuraSpell 803031) is therefore exempt. An
-    // ability paid for with Reaped Souls alone still pays - Sanguine Orb (500361) and Tormented
-    // Souls (500483) both carry CasterAuraSpell 500363, Reaped Soul, so an unscoped exemption made
-    // them free for a Reaper holding a single soul and no infusion at all.
     static bool HarvestTimePreserves(Player const* player, SpellInfo const* spellInfo)
     {
         return spellInfo->CasterAuraSpell == SPELL_REAPER_SOUL_INFUSION &&
             player->HasAura(SPELL_REAPER_HARVEST_TIME);
     }
 
-    // True when the spell had at least one target other than the caster and every such target
-    // missed, dodged or parried it. Neutral creatures count: hostility is not required to attack.
     static bool WasAvoidedByEveryTarget(Player const* player, Spell* spell)
     {
         bool external = false;
@@ -3170,9 +2883,6 @@ private:
 
         SpellInfo const* spellInfo = spell->GetSpellInfo();
 
-        // Harvest Time preserves the cost outright rather than rolling for it. An eight second
-        // window a Reaper can plan a rotation around is what the ability is for; a coin flip per
-        // cast is not something the player can act on.
         if (HarvestTimePreserves(player, spellInfo))
             return;
 
@@ -3186,9 +2896,6 @@ private:
             return;
         }
 
-        // Abilities that require Soul Infusion consume it together with the souls that granted it.
-        // The 2026-07-31 changelog refunds the cost when the spell misses, is dodged or parried;
-        // target results are already rolled when this runs, so an avoided cast keeps everything.
         if (spellInfo->CasterAuraSpell == SPELL_REAPER_SOUL_INFUSION &&
             player->HasAura(SPELL_REAPER_SOUL_INFUSION) &&
             !WasAvoidedByEveryTarget(player, spell))
@@ -3218,8 +2925,6 @@ private:
             return;
         }
 
-        // Preserve Static for five seconds out of combat, then lose one per second.
-        // The rate is a local tuning choice; the archived changelog only establishes the grace period.
         constexpr uint32 graceMs = 5000;
         constexpr uint32 intervalMs = 1000;
         uint32& timer = _staticDecayTimers[guid];
@@ -3303,13 +3008,12 @@ public:
 
     static uint32 ResolveCosmeticSpell(uint32 appearance, uint32 display, uint32 alternate)
     {
-        // These three catalog entries have no usable spell in the supplied client data.
         if (appearance == 2992 || appearance == 51444 || appearance == 52428)
             return 0;
         if (appearance == 2714)
-            display = 985235; // Noir Clockwork Steam Engine
+            display = 985235;
         if (appearance == 42965)
-            display = 935566; // Scribe's Noble Parchment Pouch
+            display = 935566;
         if (!sSpellMgr->GetSpellInfo(display))
             display = alternate;
 
@@ -3325,7 +3029,6 @@ public:
                 display = effect.TriggerSpell;
                 continue;
             }
-            // Follow cosmetic wrappers without casting their gameplay effects or implicit targets.
             if (effect.IsAura() && (effect.ApplyAuraName == SPELL_AURA_DUMMY ||
                 effect.ApplyAuraName == SPELL_AURA_MOD_SCALE ||
                 (display == 1985213 && effect.ApplyAuraName == SPELL_AURA_PROC_TRIGGER_SPELL)))
@@ -3379,7 +3082,6 @@ public:
         _itemAppearances[itemId] = appearanceId;
     }
 
-    // The core's ItemSet store keeps ten items; CoA sets list up to seventeen (DWORDs 18-34).
     ClientDBC itemSets;
     bool itemSetsLoaded = itemSets.Load(GetClientDBCPath("ItemSet.dbc"), 35);
     for (uint32 row = 0; row < itemSets.GetRecordCount(); ++row) {
@@ -3406,12 +3108,8 @@ public:
         continue;
 
       VanityInfo info{
-          // f44 is an empty locale column. The physical
-          // record has 77 DWORDs; f76 is LearnedSpell.
           record.GetUInt32(76), record.GetUInt32(12), record.GetUInt32(2)};
 
-      // The same row is what the client stores as a vanity store record,
-      // so the packet is built from it rather than from a second table.
       for (uint32 field = 0; field < VANITY_STORE_RECORD_DWORDS; ++field)
         info.StoreRecord[field] = record.GetUInt32(field);
 
@@ -3485,13 +3183,10 @@ public:
     SendActiveAppearances(player, *state);
     SendOutfitCollection(player);
     SendAppearanceVisibility(player, *state);
-    // BEFORE the collection: with no realm type known the client builds an
-    // empty catalogue and keeps it until it is initialised again.
     SendRealmInfo(player);
     SendVanityCollection(player, *state);
     SendOwnedVanityStoreRecords(player, *state);
     RefreshVisibleItems(player);
-    // Reconcile any aura saved by an older session against the authoritative wardrobe selection.
     for (auto const& [id, appearance] : _appearances)
         if (appearance.CosmeticSpell)
             player->RemoveAurasDueToSpell(appearance.CosmeticSpell, player->GetGUID());
@@ -3560,8 +3255,6 @@ public:
         bool const hasAppearance = state->ActiveAppearances[category] == appearance &&
             state->CollectedAppearances.contains(appearance);
 
-        // Lootbot 3000 grants auto-loot when summoned without requiring the appearance collected.
-        // It does not provide skinning.
         bool isLootbot = false;
         if (!skin && !hasAppearance)
         {
@@ -3600,8 +3293,6 @@ public:
         if (!ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::MAX_RIDING_FROM_START))
             return;
 
-        // Permanent riding ranks, not profession/weapon skills or talent grants.
-        // Learning the ranks also activates the client's riding spellbook entries.
         for (uint32 spellId : {SPELL_RIDING_APPRENTICE, SPELL_RIDING_JOURNEYMAN,
             SPELL_RIDING_EXPERT, SPELL_RIDING_ARTISAN, SPELL_COLD_WEATHER_FLYING})
             if (sSpellMgr->GetSpellInfo(spellId) && !player->HasSpell(spellId))
@@ -3610,9 +3301,6 @@ public:
         player->SetSkill(SKILL_RIDING, 4, 300, 300);
     }
 
-    // This hook runs after the normal spellbook snapshot but before AddToMap.
-    // Replace that snapshot once if necessary; learnSpell does not emit a
-    // separate learned-spell packet while the player is outside the world.
     void PrepareOwnedCompanionsBeforeMap(Player* player)
     {
         if (!_clientDataLoaded || player->IsInWorld() || !player->GetSession()->PlayerLoading() ||
@@ -3630,9 +3318,6 @@ public:
             if (!player->HasSpell(spellId))
                 continue;
 
-            // The grant lands inside the login window, so Player::_addSpell records it as PLAYERSPELL_UNCHANGED
-            // and Player::_SaveSpells skips it. Without a character_spell row the next login validates the saved
-            // action buttons before this hook runs, so mount and companion buttons are dropped and deleted.
             player->MarkSpellForSave(spellId);
             ++learned;
         }
@@ -3645,9 +3330,6 @@ public:
         }
     }
 
-    /// The bank items this repack ships - the two Personal Bank entries, the Celestial and the
-    /// Realm Bank. Their first spell is the summon that places the vault, so the spell is read
-    /// from the item template instead of being written out a second time here.
     static constexpr std::array<uint32, 4> BankVanityItems = { 110000, 134985, 509892, 1180097 };
 
     [[nodiscard]] static bool IsBankVanityItem(uint32 itemId)
@@ -3655,14 +3337,6 @@ public:
         return std::find(BankVanityItems.begin(), BankVanityItems.end(), itemId) != BankVanityItems.end();
     }
 
-    /// Has this character acquired that bank?
-    ///
-    /// A bank is earned rather than part of the unlock-everything placeholder. Acquiring one -
-    /// the purchase on the live realm - writes the account's own collection row, and the character
-    /// then also holds it as the summon spell or as the item in a bag. Either way of holding it
-    /// counts, so a bank granted by hand (the spell learned, or the item handed over) behaves
-    /// exactly like one bought, and AscensionCompat.UnlockAllVanity is deliberately never
-    /// consulted here.
     [[nodiscard]] bool OwnsBankVanityItem(Player* player, PlayerCollectionState const& state, uint32 itemId) const
     {
         if (state.OwnedVanityItems.contains(itemId) || player->HasItemCount(itemId))
@@ -3682,11 +3356,6 @@ public:
         return false;
     }
 
-    /// The summon spells of the banks this character owns, for every one not already learned.
-    ///
-    /// Learning the spell is the other half of owning a bank: the spell places the same vault the
-    /// item does, so a character who has one can summon it without carrying the item, and it is
-    /// what the placed-chest entitlement reads.
     std::vector<uint32> GetMissingBankSpells(Player* player, PlayerCollectionState const& state) const
     {
         std::vector<uint32> spells;
@@ -3715,8 +3384,6 @@ public:
         return spells;
     }
 
-    /// Learns an owned bank's summon spell. Used both on the way into the world and at the moment
-    /// a bank item reaches a character.
     void LearnOwnedBankSpells(Player* player, PlayerCollectionState const& state, bool beforeMap) const
     {
         std::size_t learned = 0;
@@ -3730,8 +3397,6 @@ public:
         if (!learned)
             return;
 
-        // Outside the world the learned-spell snapshot has not been sent yet, so it has to be
-        // replaced once; in the world learnSpell emits its own learned-spell packet.
         if (beforeMap)
             player->SendInitialSpells();
 
@@ -3739,16 +3404,11 @@ public:
                  learned, player->GetName());
     }
 
-    /// Same place the companion spells are prepared, and for the same reason: the client's spell
-    /// list has not been sent yet, so a grant here needs no batching or UI thaw.
     void PrepareOwnedBankSpellsBeforeMap(Player* player)
     {
         if (!_clientDataLoaded || player->IsInWorld() || !player->GetSession()->PlayerLoading())
             return;
 
-        // The account's own list is what says a bank was acquired, so it is always read - this
-        // grant, unlike the mount and companion ones, does not follow the unlock-everything
-        // placeholder.
         PlayerCollectionState state;
         state.AccountId = player->GetSession()->GetAccountId();
         LoadPlayerState(player, state);
@@ -3765,8 +3425,6 @@ public:
         bool const unlockAll = ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::UNLOCK_ALL_VANITY);
         for (auto const& [itemId, vanity] : _vanityItems)
         {
-            // The Wondrous Wisdomball and the Fix-o-Tron 5000 are filed under the utility category, so they are
-            // named here; teaching every companion item would show the client's Companions spellbook tab.
             bool const utilityCompanion = itemId == ITEM_WONDROUS_WISDOMBALL || itemId == ITEM_FIX_O_TRON_5000;
             if (!(vanity.CategoryMask & (VANITY_CATEGORY_MOUNTS | VANITY_CATEGORY_COMPANIONS)) && !utilityCompanion)
                 continue;
@@ -3787,7 +3445,6 @@ public:
 
     void QueueOwnedCompanionSpells(Player* player, PlayerCollectionState& state) const
     {
-        // Retain bounded late synchronization for any grant not prepared at login.
         state.PendingCompanionSpells = GetMissingOwnedCompanionSpells(player, state);
         state.CompanionSpellTimer = 5000;
         if (!state.PendingCompanionSpells.empty())
@@ -3807,8 +3464,6 @@ public:
             return;
         }
 
-        // Never catch up by draining the whole list after a slow server tick.
-        // Each learned spell emits client events; a bulk grant can freeze its UI.
         state->CompanionSpellTimer = COMPANION_SPELL_BATCH_INTERVAL_MS;
         std::size_t const end = std::min(state->NextCompanionSpell + COMPANION_SPELLS_PER_BATCH,
             state->PendingCompanionSpells.size());
@@ -3967,8 +3622,6 @@ public:
     bool unlockAll = ascensionCompatConfig.GetConfigValue<bool>(
         AscensionCompatConfig::UNLOCK_ALL_VANITY);
 
-    // A bank has to be acquired before it can be delivered, even while the placeholder unlocks
-    // everything else: the item is what an acquisition hands out, not a way to obtain the bank.
     bool const entitled =
         IsBankVanityItem(itemId)
             ? OwnsBankVanityItem(player, *state, itemId)
@@ -4000,14 +3653,9 @@ public:
         return;
       }
 
-      // Without SendNewItem the delivery is silent: the item is in the bag,
-      // but the client is never told, so nothing moves on screen and the
-      // player reasonably concludes the button is broken.
       if (Item* delivered = player->StoreNewItem(destinations, itemId, true))
         player->SendNewItem(delivered, 1, true, false);
 
-      // A bank is also owned as a spell, so the spell comes with the item rather than at the next
-      // login.
       if (IsBankVanityItem(itemId))
         LearnOwnedBankSpells(player, *state, false);
 
@@ -4064,9 +3712,6 @@ private:
       return;
     }
 
-    // A future catalog exceeding our explicit native allocation bound still
-    // uses the throttled fallback. Do not split 0x0699 across packets: each
-    // native snapshot replaces the previous collection instead of appending.
     uint32 perCategory = ascensionCompatConfig.GetConfigValue<uint32>(
         AscensionCompatConfig::APPEARANCE_CATALOG_PER_CATEGORY);
     std::array<uint32, APPEARANCE_CATEGORY_COUNT> categoryCounts{};
@@ -4290,11 +3935,6 @@ private:
       }
     }
 
-    // Banks are acquired rather than covered by the placeholder, so their account record is
-    // written whatever UnlockAllVanity says. This is the record a purchase leaves, and it is what
-    // the login grant and the placed-chest entitlement both read - which makes the bank item
-    // itself the thing that "learns" the bank: handing 134985, 509892 or 1180097 to a character
-    // is the acquisition, and the spell follows immediately rather than at the next login.
     if (IsBankVanityItem(itemId) && state.OwnedVanityItems.insert(itemId).second)
     {
       CharacterDatabase.Execute(
@@ -4482,10 +4122,6 @@ private:
   }
 
 public:
-  /// Tells the client what kind of realm it is connected to.
-  ///
-  /// Only one of the five types is set. Setting all of them would be
-  /// convenient and wrong: the same getters are read in many other places.
   void SendRealmInfo(Player *player) {
     std::string const art = ascensionCompatConfig.GetConfigValue<std::string>(
         AscensionCompatConfig::REALM_TYPE);
@@ -4495,7 +4131,7 @@ public:
     else if (art == "league")      flags[2] = 1;
     else if (art == "ptr")         flags[3] = 1;
     else if (art == "development") flags[4] = 1;
-    else                           flags[0] = 1;   // live
+    else                           flags[0] = 1;
 
     WorldPacket p(SMSG_REALM_INFO, 64);
     p << static_cast<uint32>(realm.Id.Realm);
@@ -4509,7 +4145,6 @@ public:
     p << sWorld->GetRealmName();
     p << "";
     p << static_cast<uint8>(0);
-    // The trailing uint32 is optional; the handler takes 0 when none follows.
 
     player->GetSession()->SendPacket(&p);
 
@@ -4520,12 +4155,6 @@ public:
 private:
   void SendOutfitCollection(Player *player)
   {
-    // The 0x069D handler clears/rebuilds the client's saved-outfit map and,
-    // importantly, finalizes the filtered appearance cache by firing
-    // VIEWABLE_APPEARANCES_RESET.  The local server does not persist named
-    // outfits yet, but it must still send an empty snapshot after collection
-    // and active-appearance data or the Wardrobe remains on its pre-login
-    // empty page despite showing correct collected/total counts.
     WorldPacket packet(SMSG_APPEARANCE_OUTFIT_INFO, sizeof(uint32));
     packet << static_cast<uint32>(0);
     player->GetSession()->SendPacket(&packet);
@@ -4548,9 +4177,6 @@ private:
     {
       vanityItems = _allVanityItemIds;
 
-      // The banks are the exception to the placeholder: each is acquired on its own, so the client
-      // is told the account owns a bank only when it really does - nobody is offered a bank the
-      // account never acquired.
       vanityItems.erase(
           std::remove_if(vanityItems.begin(), vanityItems.end(),
                          [](uint32 itemId) { return IsBankVanityItem(itemId); }),
@@ -4575,16 +4201,8 @@ private:
     player->GetSession()->SendPacket(&packet);
   }
 
-  /// Hands the client the store records for the vanity items the account owns.
-  ///
-  /// Sent with the ownership list, so the two agree about what the account owns. The records come
-  /// from the same catalogue rows the ownership list is built from.
   void SendOwnedVanityStoreRecords(Player *player,
                                    PlayerCollectionState const &state) {
-    // DIAGNOSE (19.09.2026): UnlockAllVanity hat bisher nur die Besitzliste
-    // aufgeblaeht, nicht die Store-Records - der Client bekam 10764 Ids, aber
-    // nur 15 Datensaetze. Wenn das Fenster seine Eintraege aus den RECORDS
-    // zieht, erklaert das, warum es leer bleibt. Also hier dieselbe Regel.
     bool const unlockAll = ascensionCompatConfig.GetConfigValue<bool>(
         AscensionCompatConfig::UNLOCK_ALL_VANITY);
 
@@ -4652,7 +4270,6 @@ private:
             if (!player->HasAura(spell, player->GetGUID()))
                 if (Aura* aura = player->AddAura(spell, player))
                 {
-                    // A selected wardrobe cosmetic lasts until removed, including finite source effects.
                     aura->SetMaxDuration(-1);
                     aura->SetDuration(-1);
                 }
@@ -4738,42 +4355,21 @@ bool SendCollectionCreatureQueryResponse(WorldSession* session, uint32 creatureI
     if (!session || !model)
         return false;
 
-    // Normal WotLK creature-query wire layout, mirrored from QueryHandler.
-    // This provides preview metadata only; it does not spawn a creature or
-    // invent combat stats/loot for an Ascension NPC absent from the world DB.
     WorldPacket response(SMSG_CREATURE_QUERY_RESPONSE, 100);
     response << creatureId << std::string(model->Name);
     for (uint8 i = 0; i < 5; ++i)
-        response << uint8(0); // name2/3/4, title, icon
+        response << uint8(0);
     response << uint32(0) << uint32(CREATURE_TYPE_CRITTER) << uint32(0);
-    response << uint32(0) << uint32(0) << uint32(0); // rank, kill credits
+    response << uint32(0) << uint32(0) << uint32(0);
     response << model->DisplayId << uint32(0) << uint32(0) << uint32(0);
     response << float(1.0f) << float(1.0f) << uint8(0);
     for (uint8 i = 0; i < 6; ++i)
-        response << uint32(0); // quest items
-    response << uint32(0); // movementId
+        response << uint32(0);
+    response << uint32(0);
     session->SendPacket(&response);
     return true;
 }
 
-// ---------------------------------------------------------------------------
-// Personal bank, Celestial Personal Bank and Realm Bank.
-//
-// The three items are ordinary spell items (100702, 93416, 92078) whose spell
-// carries a dummy effect - the client shows "Summons your personal bank" and the
-// server is expected to do the rest. What it has to do is what the client was
-// patched for: the item summons a guild vault object (gameobject type 34), and
-// clicking that vault sends the ordinary CMSG_GUILD_BANKER_ACTIVATE. The client's
-// Blizzard_GuildBankUI.lua then waits for SMSG_BANK_PERMISSIONS, whose payload
-// its BANK_PERMISSIONS_PAYLOAD hook reads as GetBankPermissions() ->
-// (isPersonalBank, isRealmBank), and switches the vault frame to the
-// PERSONAL_BANK/REALM_BANK presentation: character-owned tabs, tab purchases,
-// and soulbound items allowed in.
-//
-// The stock core answers that activate with ERR_GUILD_PLAYER_NOT_IN_GUILD for a
-// character with no guild, so this module answers it instead - but only for the
-// vaults its own summon spells placed, which are remembered here for as long as
-// they live. Every other guild vault keeps the core's own handler untouched.
 enum PersonalBankKind : uint8
 {
     PERSONAL_BANK_PERSONAL = 0,
@@ -4787,39 +4383,17 @@ enum PersonalBankSpell : uint32
     SPELL_REALM_BANK = 92078
 };
 
-// The objects CoA itself uses for this feature, captured from its client as type
-// 34 (the type the client opens a bank frame for): "Personal Belongings",
-// "Celestial Personal Belongings" and "Realm Belongings". Two entries exist per
-// faction, and their display ids are chests - 138006 alliancechest_01, 138007
-// hordechest_01, and 8691 ul_chest_cosmic for the Celestial one. They are absent
-// from this world database, so the module ships them (see this module's
-// 2026_09_16_01_ascension_bank_objects.sql).
 enum PersonalBankObject : uint32
 {
-    BANK_OBJECT_PERSONAL_ALLIANCE = 475001, // "Personal Belongings"
-    BANK_OBJECT_PERSONAL_HORDE = 475002,    // "Personal Belongings"
-    BANK_OBJECT_CELESTIAL = 80782,          // "Celestial Personal Belongings"
-    BANK_OBJECT_REALM_ALLIANCE = 80159,     // "Realm Belongings"
-    BANK_OBJECT_REALM_HORDE = 80160         // "Realm Belongings"
+    BANK_OBJECT_PERSONAL_ALLIANCE = 475001,
+    BANK_OBJECT_PERSONAL_HORDE = 475002,
+    BANK_OBJECT_CELESTIAL = 80782,
+    BANK_OBJECT_REALM_ALLIANCE = 80159,
+    BANK_OBJECT_REALM_HORDE = 80160
 };
 
-// How long a summoned vault stays in the world, and it is meant to match the items' own
-// cooldown (item_template.spellcooldown_1 = 600000 ms): summon it, use it for ten minutes,
-// and by the time the vault is gone the item is ready again.
-//
-// The unit is SECONDS, not milliseconds. `WorldObject::SummonGameObject` hands this straight to
-// `GameObject::SetRespawnTime`, which does `m_respawnTime = GameTime::GetGameTime() + respawn`,
-// and that second count is in seconds - so the old value of 5 * 60 * 1000 was read as 300000
-// seconds, three and a half days, and a vault only ever went away when the worldserver did.
-//
-// The timer belongs to the map object, not to the session: nothing tears a summoned object down
-// when its summoner logs out (the only removals are `GameObject::Delete` itself, spell cleanup
-// and duels), so the ten minutes keep running while the character is offline and the vault
-// despawns on its own whether or not they are there to see it.
 constexpr uint32 BANK_VAULT_DURATION = 10 * 60;
 
-/// The object the item summons: Celestial has its own, Realm and Personal bank
-/// differ only by the caster's faction.
 [[nodiscard]] uint32 BankObjectEntry(uint32 spellId, TeamId team)
 {
     bool const alliance = team == TEAM_ALLIANCE;
@@ -4840,17 +4414,9 @@ std::unordered_map<ObjectGuid::LowType, PersonalBankVault> personalBankVaults;
 
 void SendBankPermissions(Player* player, uint8 kind)
 {
-    // Two flags, read in this order by the client's GetBankPermissions().
     AscensionPersonalBank::SendKindHint(player, uint8(kind));
 }
 
-/// Whether this character owns the bank a placed vault stands for.
-///
-/// A bank is acquired, not part of the unlock-everything placeholder, so what counts is holding
-/// it: the summon spell (what acquiring one grants) or the item itself in a bag (what handing the
-/// bank item to a character gives them). AscensionCompat.UnlockAllVanity is deliberately not
-/// consulted - nobody gets a bank from it. The Celestial item is its own object but a personal
-/// bank underneath, so both personal entries count for the personal kind.
 [[nodiscard]] bool OwnsPlacedBank(Player* player, uint8 kind)
 {
     static std::array<PersonalBankSpell, 2> const personalSpells =
@@ -4871,7 +4437,6 @@ void SendBankPermissions(Player* player, uint8 kind)
     return false;
 }
 
-/// True when the packet was one of our own vaults and has been answered here.
 bool HandlePersonalBankActivate(Player* player, WorldPacket const& packet)
 {
     ObjectGuid banker;
@@ -4886,8 +4451,6 @@ bool HandlePersonalBankActivate(Player* player, WorldPacket const& packet)
     }
     catch (...)
     {
-        // A malformed activate is the core's problem to answer, with its own
-        // error handling - never an exception out of the network thread here.
         return false;
     }
 
@@ -4895,11 +4458,6 @@ bool HandlePersonalBankActivate(Player* player, WorldPacket const& packet)
     if (itr == personalBankVaults.end())
         return false;
 
-    // A placed bank belongs to whoever walks up to it, which is how CoA's own did it: the vault
-    // only says *which* bank it is (its object entry), and the storage behind it is always the
-    // interacting character's own - their personal bank, or the single realm-wide one. Someone
-    // else's chest therefore opens your bank, not theirs. What entitles you to it is owning the
-    // bank, not having placed this particular chest; the summoner is kept only for the record.
     if (!OwnsPlacedBank(player, itr->second.Kind))
     {
         ChatHandler(player->GetSession())
@@ -4913,8 +4471,6 @@ bool HandlePersonalBankActivate(Player* player, WorldPacket const& packet)
         return true;
     }
 
-    // The kind decides which bank this is; the storage behind it is the module's own
-    // (AscensionPersonalBank.cpp), which sends the rights and the tab list itself.
     SendBankPermissions(player, itr->second.Kind);
     AscensionPersonalBank::Opened(player, itr->second.Kind, banker);
 
@@ -4925,25 +4481,10 @@ bool HandlePersonalBankActivate(Player* player, WorldPacket const& packet)
     return true;
 }
 
-/// Height to summon the bank at: the caster's feet, snapped to a step within half a yard.
-///
-/// The map alone cannot be trusted for this. Measured in the inn where the bank kept landing
-/// wrong, the caster's feet read 56.3-56.6 across nine summons while the surface under the
-/// spot two yards ahead came back anywhere between 56.0 and 58.1 - that is the hillside the
-/// building is cut into, not the floor the player is standing on, which is why every summon
-/// landed somewhere different. A wider allowance let the hill set the height; a probe that
-/// starts above the surface (which is what `WorldObject::GetMapHeight` does, since it adds
-/// the object's collision height and Z_OFFSET_FIND_HEIGHT to the Z it is handed) makes it
-/// worse, because `Map::GetHeight` then returns whichever surface is nearer the probe.
-///
-/// So the feet are the reference: probe just above them, and only move the bank when a surface
-/// turns up within half a yard - a step, a kerb, a slight slope, which is the most it should
-/// ever differ from where the caster is standing. Anything further away is another level of
-/// the world (a roof, a cellar, the ground below a balcony) and is ignored.
 static float GroundHeightBeneath(Map* map, float x, float y, float feetZ)
 {
-    constexpr float PROBE_ABOVE_FEET = 0.3f;    // just above the floor the caster stands on
-    constexpr float STEP = 0.5f;                // a step away, either direction
+    constexpr float PROBE_ABOVE_FEET = 0.3f;
+    constexpr float STEP = 0.5f;
 
     float const height = map->GetHeight(x, y, feetZ + PROBE_ABOVE_FEET, true, STEP);
     if (height > INVALID_HEIGHT && height <= feetZ + STEP && height >= feetZ - STEP)
@@ -4952,7 +4493,6 @@ static float GroundHeightBeneath(Map* map, float x, float y, float feetZ)
     return feetZ;
 }
 
-/// Puts the vault the item "summons" in front of the caster.
 class spell_ascension_personal_bank : public SpellScript
 {
     PrepareSpellScript(spell_ascension_personal_bank);
@@ -4972,24 +4512,8 @@ class spell_ascension_personal_bank : public SpellScript
         float x, y, z;
         player->GetClosePoint(x, y, z, player->GetCombatReach(), 2.0f);
 
-        // GetClosePoint only places the spot beside the caster: GetNearPoint ends with
-        // `z = GetPositionZ()`, so the bank would keep the caster's height even where the
-        // ground beside them is a step lower or higher. Ground it on the surface they are
-        // standing on (see GroundHeightBeneath for why the probe starts at their feet).
         z = GroundHeightBeneath(player->GetMap(), x, y, player->GetPositionZ());
 
-        // Summoned through the map rather than through the caster, and that is the whole point:
-        // `WorldObject::SummonGameObject` files the object under its summoner (`Unit::AddGameObject`),
-        // and `Unit::RemoveFromWorld` - which is what a logout runs - calls `RemoveAllGameObjects`
-        // and deletes every object filed there. A vault summoned by the player therefore vanished the
-        // moment they left the world. A map summon has no owner at all, so nothing tears it down
-        // early, and the core still gives it exactly the timed life below: `Map::SummonGameObject`
-        // marks it temporary (`SetSpellId(1)` + respawn time), and at expiry `GameObject::Update`
-        // sees a summoned object whose timer has run out and deletes it.
-        //
-        // The phase mask is copied from the caster afterwards, because a map summon is created in
-        // PHASEMASK_NORMAL - without this the vault would be invisible to anyone standing in a
-        // phase of their own.
         GameObject* vault = player->GetMap()->SummonGameObject(
             entry, x, y, z, player->GetOrientation(), 0.0f, 0.0f, 0.0f,
             0.0f, BANK_VAULT_DURATION, true);
@@ -5006,10 +4530,6 @@ class spell_ascension_personal_bank : public SpellScript
 
         personalBankVaults[vault->GetGUID().GetCounter()] = {player->GetGUID(), kind};
 
-        // Wait the same ten minutes as the vault just placed. The cooldown that a bank item shows
-        // comes from the item (`item_template.spellcooldown_1` = 600000 ms) and lives on no spell,
-        // so without this, casting the spell on its own would place a vault per keypress. Both
-        // routes are the same act: same spell, same vault, same wait.
         player->AddSpellCooldown(GetSpellInfo()->Id, 0, BANK_VAULT_DURATION * IN_MILLISECONDS, true);
 
         LOG_INFO("module.ascension_compat",
@@ -5045,8 +4565,6 @@ public:
                 if (HandlePersonalBankActivate(player, packet))
                     return false;
             }
-            // While one of our windows is open the client's bank conversation belongs to
-            // the personal bank, so none of it may reach the core's guild handling.
             else if (AscensionPersonalBank::IsOpen(player) &&
                      AscensionPersonalBank::HandlePacket(player, packet))
                 return false;
@@ -5056,7 +4574,6 @@ public:
             !ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED))
             return true;
 
-        // The core keeps this packet; it only tells the module the client is out of its loading screen.
         if (packet.GetOpcode() == CMSG_SET_ACTIVE_MOVER)
             AscensionClassService::Instance().OnPlayerActiveMover(session->GetPlayer());
 
@@ -5106,8 +4623,6 @@ public:
             return true;
 
         uint32 const entry = packet.read<uint32>(0);
-        // Existing world creatures retain the normal authoritative query handler.
-        // Only missing, evidence-backed collection preview entries get a reply.
         if (sObjectMgr->GetCreatureTemplate(entry))
             return true;
 
@@ -5129,7 +4644,6 @@ public:
 
     uint32 opcode = packet.GetOpcode();
 
-    // This hook runs on the network thread: the upload waits for the player's own update.
     if (opcode == CMSG_CHARACTER_ADVANCEMENT_KNOWN_ENTRIES)
     {
       if (session)
@@ -5137,9 +4651,6 @@ public:
       return false;
     }
 
-    // Ascension character-selection protocol: activate/deactivate and the
-    // account sort order arrive on the character screen (STATUS_AUTHED, no
-    // Player object) and are account-scoped.
     if (IsAscensionCharacterSelectionOpcode(static_cast<uint16>(opcode)))
     {
       if (HandleAscensionCharacterSelectionPacket(session, packet))
@@ -5147,8 +4658,6 @@ public:
     }
     else if (opcode == CMSG_CHAR_ENUM)
     {
-      // The core still answers SMSG_CHAR_ENUM (and records the account's
-      // legit characters); the Ascension list details follow in own packets.
       SendAscensionCharacterListInfo(session);
     }
 
@@ -5160,13 +4669,9 @@ public:
     if (opcode < firstOpcode || opcode > lastOpcode)
       return true;
 
-    // The Ascension client's anti-tamper layer reports local detections here.
-    // Leave the packet to the core's CMSG_ANTICHEAT_ALERT handler instead of
-    // consuming it during protocol discovery.
     if (opcode == CMSG_ANTICHEAT_ALERT)
       return true;
 
-    // The portrait menu's "Reset all Dungeons"; handled by the core.
     if (opcode == CMSG_RESET_DUNGEONS)
       return true;
 
@@ -5209,26 +4714,20 @@ public:
         return false;
     }
 
-    // -- Challenge / trial CMSGs (owner: mod-coa-challenges) ----------------
-    // Challenge-system CMSGs belong to mod-coa-challenges (late
-    // CanPacketReceive hook + core Handle_NULL fallback). Pass them through:
-    // this Early hook short-circuits the boolean-hook chain, so consuming
-    // them here would starve the challenge module of its own packets.
-    // Keep this list in sync with the COA CMSG block in Opcodes.h.
     static constexpr std::array<uint32, 13> kChallengeCmsgs = {
-        CMSG_COA_START_CHALLENGE,          // 0x592 start challenge
-        CMSG_COA_STOP_CHALLENGE,           // 0x594 stop challenge
-        CMSG_COA_QUERY_FAILURES,           // 0x5A1 query challenge failures
-        CMSG_COA_SYNC_RESPONSE,            // 0x59C group sync response (u8 accept)
-        CMSG_COA_QUERY_COMPLETIONS,        // 0x5C6 query challenge completions
-        CMSG_COA_SAVE_TRIAL,               // 0x5A7 save custom trial
-        CMSG_COA_DELETE_TRIAL,             // 0x5A9 delete custom trial
-        CMSG_COA_QUERY_TRIALS,             // 0x5AB query custom-trial list
-        CMSG_COA_ACTIVATE_TRIAL,           // 0x5AD activate custom trial
-        CMSG_COA_DEACTIVATE_TRIAL,         // 0x5AF deactivate custom trial
-        CMSG_COA_RATE_TRIAL,               // 0x5BF rate/vote a trial (str + u8 + u8)
-        CMSG_COA_QUERY_TRIAL_COMPLETIONS,  // 0x5C9 query trial leaderboard (str)
-        CMSG_COA_TOGGLE_GAME_MODE,         // 0x5A4 toggle custom game mode
+        CMSG_COA_START_CHALLENGE,
+        CMSG_COA_STOP_CHALLENGE,
+        CMSG_COA_QUERY_FAILURES,
+        CMSG_COA_SYNC_RESPONSE,
+        CMSG_COA_QUERY_COMPLETIONS,
+        CMSG_COA_SAVE_TRIAL,
+        CMSG_COA_DELETE_TRIAL,
+        CMSG_COA_QUERY_TRIALS,
+        CMSG_COA_ACTIVATE_TRIAL,
+        CMSG_COA_DEACTIVATE_TRIAL,
+        CMSG_COA_RATE_TRIAL,
+        CMSG_COA_QUERY_TRIAL_COMPLETIONS,
+        CMSG_COA_TOGGLE_GAME_MODE,
     };
     if (std::find(kChallengeCmsgs.begin(), kChallengeCmsgs.end(), opcode) !=
         kChallengeCmsgs.end())
@@ -5243,9 +4742,6 @@ public:
           session->GetAccountId(), packet);
     }
 
-    // Ascension sends this after the regular CMSG_CAST_SPELL packet to carry
-    // client projectile rendering coordinates. AzerothCore has already handled
-    // the actual cast, so no server-side action is required for local play.
     if (opcode == CMSG_MISSILE_FIRE_POSITION)
     {
       if (ascensionCompatConfig.GetConfigValue<bool>(
@@ -5259,8 +4755,6 @@ public:
       return false;
     }
 
-    // An opcode another module claimed is that module's to handle. This consumer is
-    // registered first, so absorbing it here would mean the owner never sees it.
     if (AscensionCompatOpcodes::Dispatch(session, packet))
       return false;
 
@@ -5304,7 +4798,6 @@ public:
          Console::No},
         {"localvanity", HandleLocalVanityCommand, SEC_PLAYER, Console::No},
         {"localtalent", localTalentCommandTable},
-        // The #4031 client half asks for the state under this name.
         {"localspecstate", HandleLocalTalentSyncCommand, SEC_PLAYER, Console::No},
         {"localspec", HandleLocalSpecCommand, SEC_PLAYER, Console::No},
         {"localresource", HandleLocalResourceCommand, SEC_PLAYER,
@@ -5313,11 +4806,8 @@ public:
         {"spellcharges", spellChargesCommandTable},
         {"localclassrepair", HandleLocalClassRepairCommand, SEC_PLAYER,
          Console::No},
-        // Protocol work only: send one extension packet by id so the matching
-        // client build can be asked what it does with it.
         {"extprobe", HandleExtensionProbeCommand, SEC_ADMINISTRATOR,
          Console::No},
-        // Placement work only: what the bank summon sees under it here.
         {"bankground", HandleBankGroundCommand, SEC_ADMINISTRATOR, Console::No}};
     return commandTable;
   }
@@ -5332,7 +4822,6 @@ public:
     return 0xFFFFFFFFu;
   }
 
-  /// "0x0769", "0769" or a name from ExtensionOpcodeName's table.
   static bool ParseExtensionOpcode(std::string const &text, uint32 &opcode) {
     std::string body = text;
     if (body.rfind("0x", 0) == 0 || body.rfind("0X", 0) == 0)
@@ -5362,7 +4851,6 @@ public:
     return false;
   }
 
-  /// "01 00 00" or "010000" -> {1, 0, 0}.
   static bool ParseHexBytes(std::string const &text, std::vector<uint8> &out) {
     std::string digits;
     for (char c : text) {
@@ -5423,8 +4911,6 @@ public:
     return true;
   }
 
-  /// Reports every height the bank summon's grounding looks at, so a spot that
-  /// places the bank wrong can be measured instead of guessed at.
   static bool HandleBankGroundCommand(ChatHandler *handler) {
     Player *player = handler->GetPlayer();
     if (!player)
@@ -5505,7 +4991,6 @@ public:
     return true;
   }
 
-  /// The state again, for a client whose listener loaded after the login push.
   static bool HandleLocalTalentSyncCommand(ChatHandler* handler)
   {
     Player* player = handler->GetPlayer();
@@ -5581,7 +5066,6 @@ public:
     return true;
   }
 
-  // Debug helpers for the native client charge UI (SMSG_SET/SEND_SPELL_CHARGES).
   static bool HandleSpellChargesResetCommand(ChatHandler* handler)
   {
     Player* player = handler->GetPlayer();
@@ -5622,15 +5106,21 @@ public:
     uint32 displayId = displayIdOpt ? *displayIdOpt : 0;
     CreatureDisplayPreset const* preset = nullptr;
 
-    if (displayId != 0) {
+    if (displayId != 0)
+    {
       preset = sAscensionPresets->GetPreset(entry, displayId);
-    } else if (Player* targetPlayer = target->ToPlayer()) {
+    }
+    else if (Player* targetPlayer = target->ToPlayer())
+    {
       preset = sAscensionPresets->GetPresetByGender(entry, targetPlayer->getGender());
-    } else {
+    }
+    else
+    {
       preset = sAscensionPresets->GetPreset(entry);
     }
 
-    if (!preset) {
+    if (!preset)
+    {
       handler->PSendSysMessage("No creature display preset found for entry %u.", entry);
       return false;
     }
@@ -5668,22 +5158,32 @@ public:
       return false;
 
     sAscensionPresets->ClearActivePresetOverride(target->GetGUID());
-    if (Player* player = target->ToPlayer()) {
+    if (Player* player = target->ToPlayer())
+    {
       player->RemoveUnitFlag2(UNIT_FLAG2_MIRROR_IMAGE);
       player->InitDisplayIds();
-    } else if (Creature* creature = target->ToCreature()) {
-      if (CreatureTemplate const* cinfo = creature->GetCreatureTemplate()) {
-        if (CreatureModel const* model = ObjectMgr::ChooseDisplayId(cinfo, creature->GetCreatureData())) {
+    }
+    else if (Creature* creature = target->ToCreature())
+    {
+      if (CreatureTemplate const* cinfo = creature->GetCreatureTemplate())
+      {
+        if (CreatureModel const* model = ObjectMgr::ChooseDisplayId(cinfo, creature->GetCreatureData()))
+        {
           creature->SetDisplayId(model->CreatureDisplayID, model->DisplayScale);
           creature->SetNativeDisplayId(model->CreatureDisplayID);
         }
       }
-      if (sAscensionPresets->HasPreset(creature->GetEntry())) {
+      if (sAscensionPresets->HasPreset(creature->GetEntry()))
+      {
         creature->SetUnitFlag2(UNIT_FLAG2_MIRROR_IMAGE);
-      } else {
+      }
+      else
+      {
         creature->RemoveUnitFlag2(UNIT_FLAG2_MIRROR_IMAGE);
       }
-    } else {
+    }
+    else
+    {
       target->RemoveUnitFlag2(UNIT_FLAG2_MIRROR_IMAGE);
       target->DeMorph();
     }
@@ -5694,8 +5194,6 @@ public:
 };
 
 class AscensionCompatPlayerScript : public PlayerScript {
-    // One script instance serves every player, and players on different maps update on
-    // different map threads: every access to the pending list goes through this lock.
     std::mutex _pendingEquipmentLock;
     std::unordered_map<ObjectGuid, std::vector<ObjectGuid>> _pendingEquipment;
 
@@ -5708,7 +5206,6 @@ class AscensionCompatPlayerScript : public PlayerScript {
             if (itr == _pendingEquipment.end())
                 return;
 
-            // Finish the acquisition before moving items; its caller still uses the original bag positions.
             items = std::move(itr->second);
             _pendingEquipment.erase(itr);
         }
@@ -5724,7 +5221,6 @@ class AscensionCompatPlayerScript : public PlayerScript {
                 !Player::IsEquipmentPos(dest) || player->GetItemByPos(dest))
                 continue;
 
-            // An empty main hand must not cause an occupied off hand to be unequipped.
             Item* offhand = player->GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_OFFHAND);
             ItemTemplate const* proto = item->GetTemplate();
             if (uint8(dest) == EQUIPMENT_SLOT_MAINHAND && proto->InventoryType == INVTYPE_2HWEAPON &&
@@ -5755,7 +5251,6 @@ public:
     void OnPlayerGetAmmoDisplay(Player* player, SpellInfo const* spellInfo,
         uint32& displayId, uint32& inventoryType) override
     {
-        // Only ranged auto-attacks. Authored missiles on abilities, thrown weapons and wands stay native.
         if (!player || !spellInfo || !spellInfo->IsAutoRepeatRangedSpell())
             return;
 
@@ -5776,14 +5271,14 @@ public:
         }
     }
 
-    void OnPlayerAfterUpdateAttackPowerAndDamage(Player* player, float& /*level*/, float& /*baseAttackPower*/,
-        float& modifier, float& /*multiplier*/, bool ranged) override
+    void OnPlayerAfterUpdateAttackPowerAndDamage(Player* player, float&, float&,
+        float& modifier, float&, bool ranged) override
     {
         if (ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED))
             HandleAscensionBarbarianAttackPower(player, modifier, ranged);
     }
 
-    void OnPlayerSendInitialPacketsBeforeAddToMap(Player* player, WorldPacket& /*data*/) override
+    void OnPlayerSendInitialPacketsBeforeAddToMap(Player* player, WorldPacket&) override
     {
         if (ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED))
         {
@@ -5811,12 +5306,6 @@ public:
           slot != EQUIPMENT_SLOT_OFFHAND || player->getClass() != CLASS_SON_OF_ARUGAL)
           return true;
 
-      // SynchronizeTaughtAbilities grants Dual Wield (674) from OnPlayerLogin, which runs only
-      // after inventory is already loaded, so CanDualWield() is still false here even when the
-      // player legitimately dual-wielded last session; the saved offhand item would otherwise
-      // be rejected and get mailed back on every login. Only paper over that one not-yet-synced
-      // flag: SynchronizeTaughtAbilities's own AutoUnequipOffhandIfNeed() unequips it again
-      // moments later in the same login if the player is no longer eligible.
       uint8 result = player->CanEquipItem(slot, dest, item, false, false);
       if (result == EQUIP_ERR_OK || player->CanDualWield())
       {
@@ -5824,9 +5313,6 @@ public:
           return false;
       }
 
-      // A one-hand weapon is refused before the dual wield check (EQUIP_ERR_ITEM_CANT_BE_EQUIPPED:
-      // FindEquipSlot offers the offhand only with dual wield), an offhand weapon at it
-      // (EQUIP_ERR_CANT_DUAL_WIELD). Re-check with the flag the login sync is about to restore.
       player->SetCanDualWield(true);
       uint16 dualWieldDest = 0;
       uint8 const dualWieldResult = player->CanEquipItem(slot, dualWieldDest, item, false, false);
@@ -5837,17 +5323,11 @@ public:
           return false;
       }
 
-      // Keep the flag: the zone update that adds the player to the map also calls
-      // AutoUnequipOffhandIfNeed(), before OnPlayerLogin runs the taught ability sync.
       dest = dualWieldDest;
       err = EQUIP_ERR_OK;
       return false;
   }
 
-  // Quest templates are shared globally, so scaling is serialized per player. The client caches quest
-  // queries by quest ID across characters and sessions, so resend the accepted quests' data whenever
-  // the effective quest level can differ from what it cached; this keeps the quest log colours right
-  // without mutating the canonical template for anyone else.
   static void RefreshScaledQuestQueries(Player *player) {
     if (!LocalLevelScaling::QuestEnabled.load(std::memory_order_relaxed))
       return;
@@ -5876,7 +5356,7 @@ public:
     }
   }
 
-  void OnPlayerLevelChanged(Player *player, uint8 /*oldLevel*/) override {
+  void OnPlayerLevelChanged(Player *player, uint8) override {
     if (ascensionCompatConfig.GetConfigValue<bool>(
             AscensionCompatConfig::ENABLED))
     {
@@ -5937,7 +5417,7 @@ public:
       AscensionClassService::Instance().SynchronizeProficiencies(player);
   }
 
-    void OnPlayerAfterSpecSlotChanged(Player* player, uint8 /*newSlot*/) override
+    void OnPlayerAfterSpecSlotChanged(Player* player, uint8) override
     {
         if (ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED))
         {
@@ -5967,7 +5447,8 @@ public:
       AscensionResourceService::Instance().OnPlayerUpdate(player, diff);
       AscensionCollectionService::Instance().OnPlayerUpdate(player, diff);
       EquipNewItems(player);
-      if (sAscensionPresets->GetActivePresetOverride(player->GetGUID())) {
+      if (sAscensionPresets->GetActivePresetOverride(player->GetGUID()))
+      {
         if (!player->HasUnitFlag2(UNIT_FLAG2_MIRROR_IMAGE))
           player->SetUnitFlag2(UNIT_FLAG2_MIRROR_IMAGE);
       }
@@ -5979,13 +5460,13 @@ public:
     AscensionCollectionService::Instance().OnVisibleItemSet(player, slot, item);
   }
 
-  void OnPlayerEquip(Player *player, Item *item, uint8 /*bag*/, uint8 /*slot*/,
-                     bool /*update*/) override {
+  void OnPlayerEquip(Player *player, Item *item, uint8, uint8,
+                     bool) override {
     AscensionCollectionService::Instance().OnItemObtained(player, item);
   }
 
   void OnPlayerStoreNewItem(Player *player, Item *item,
-                            uint32 /*count*/) override {
+                            uint32) override {
     AscensionCollectionService::Instance().OnItemObtained(player, item);
     if (item && player->IsInWorld() && player->getClass() >= CLASS_BARBARIAN &&
         player->getClass() <= CLASS_SPIRIT_MAGE &&
@@ -5997,7 +5478,7 @@ public:
   }
 
   void OnPlayerCreateItem(Player *player, Item *item,
-                           uint32 /*count*/) override {
+                           uint32) override {
     AscensionCollectionService::Instance().OnItemObtained(player, item);
   }
 
@@ -6045,7 +5526,7 @@ public:
     {
     }
 
-    void OnSpellCheckCast(Spell* spell, bool /*strict*/,
+    void OnSpellCheckCast(Spell* spell, bool,
         SpellCastResult& result) override
     {
         if (ascensionCompatConfig.GetConfigValue<bool>(
@@ -6054,8 +5535,8 @@ public:
     }
 
     [[nodiscard]] bool CanPrepare(Spell* spell,
-        SpellCastTargets const* /*targets*/,
-        AuraEffect const* /*triggeredByAura*/) override
+        SpellCastTargets const*,
+        AuraEffect const*) override
     {
         if (!ascensionCompatConfig.GetConfigValue<bool>(
                 AscensionCompatConfig::ENABLED))
@@ -6065,8 +5546,8 @@ public:
             AscensionResourceService::Instance().CanPrepare(spell);
     }
 
-    void OnSpellCast(Spell* spell, Unit* /*caster*/,
-        SpellInfo const* /*spellInfo*/, bool /*skipCheck*/) override
+    void OnSpellCast(Spell* spell, Unit*,
+        SpellInfo const*, bool) override
     {
         if (ascensionCompatConfig.GetConfigValue<bool>(
                 AscensionCompatConfig::ENABLED))
@@ -6076,8 +5557,8 @@ public:
         }
     }
 
-    void OnSpellBeforeEffects(Spell* spell, Unit* /*caster*/,
-        SpellInfo const* /*spellInfo*/) override
+    void OnSpellBeforeEffects(Spell* spell, Unit*,
+        SpellInfo const*) override
     {
         if (ascensionCompatConfig.GetConfigValue<bool>(
                 AscensionCompatConfig::ENABLED))
@@ -6117,7 +5598,7 @@ public:
         }
     }
 
-    void OnSpellSuccessfulInterrupt(Spell* spell, Unit* /*target*/) override
+    void OnSpellSuccessfulInterrupt(Spell* spell, Unit*) override
     {
         if (!ascensionCompatConfig.GetConfigValue<bool>(
                 AscensionCompatConfig::ENABLED) || !spell)
@@ -6145,7 +5626,7 @@ public:
             SendAscensionAuraAmounts(target, receiver, application, remove);
     }
 
-  void OnBlock(Unit *victim, Unit * /*attacker*/) override {
+  void OnBlock(Unit *victim, Unit *) override {
     if (!ascensionCompatConfig.GetConfigValue<bool>(
             AscensionCompatConfig::ENABLED) ||
         !victim || !victim->IsPlayer())
@@ -6194,18 +5675,17 @@ void ApplyAscensionExperienceContracts(SpellInfo* info)
 
     switch (info->Id)
     {
-        case 57353: // Heirloom Experience Bonus +10%
+        case 57353:
         case 71354:
-        case 157353: // Heirloom Experience Bonus +20%
-        case 818046: // Potion of Experience
+        case 157353:
+        case 818046:
         case 819046:
-            // Copied source tags 2/8 select quest XP. Native aura 200 only modifies kill XP.
             for (SpellEffectInfo& effect : info->Effects)
                 if (effect.ApplyAuraName == SPELL_AURA_MOD_XP_PCT &&
                     (effect.MiscValue == 2 || effect.MiscValue == 8))
                     effect.ApplyAuraName = SPELL_AURA_MOD_XP_QUEST_PCT;
             break;
-        case 818059: // Aura of Experience: 50% for kills and quests, shared with the party.
+        case 818059:
         {
             SpellEffectInfo& kills = info->Effects[EFFECT_1];
             SpellEffectInfo& quests = info->Effects[EFFECT_2];
@@ -6242,19 +5722,12 @@ public:
             ApplyAscensionExperienceContracts(spellInfo);
             switch (spellInfo->Id)
             {
-                // Cosmetic visual spells whose legacy aura type was left empty in the client DBC.
                 case 83328: case 83329: case 83330: case 83331: case 83332:
                 case 83334: case 83335: case 83336: case 103921:
                     if (spellInfo->Effects[EFFECT_0].Effect == SPELL_EFFECT_APPLY_AURA &&
                         spellInfo->Effects[EFFECT_0].ApplyAuraName == SPELL_AURA_NONE)
                         spellInfo->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_DUMMY;
                     break;
-                // Shadowlands "mawhorsespikes" ground horses imported with a mounted-flight effect that the
-                // other fourteen mounts of the same import block (91611-91614, 91620-91629) do not carry.
-                // The client records leave SPELL_ATTR4_ONLY_FLYING_AREAS clear, so SpellInfo::CheckLocation
-                // never runs the continent gate and AuraEffect::HandleAuraModIncreaseFlightSpeed grants
-                // CAN_FLY anywhere, including Azeroth at level 1 with no riding skill. Drop the flight
-                // effect so these mounts match their ground-only siblings.
                 case 91616: case 91617: case 91618: case 91619:
                     if (spellInfo->Effects[EFFECT_0].ApplyAuraName == SPELL_AURA_MOUNTED &&
                         spellInfo->Effects[EFFECT_1].ApplyAuraName == SPELL_AURA_MOD_INCREASE_MOUNTED_SPEED &&
@@ -6289,9 +5762,6 @@ public:
 
 namespace
 {
-// Shared with AscensionCompatLevelScalingEngageScript below: both need the same per-creature
-// "Original" (pre-scaling) level, since re-deriving it from the live level would let repeated
-// scaling ratchet upward across unrelated encounters instead of tracking the template baseline.
 struct LevelScalingState
 {
   uint8 Original;
@@ -6301,19 +5771,10 @@ struct LevelScalingState
 std::mutex g_levelScalingLock;
 std::unordered_map<uint64, LevelScalingState> g_levelScalingStates;
 
-// A player who pulls a creature into combat purely through a pet, guardian, or trap can stay
-// outside CanScaleCreature()'s sight-range check the whole time. AscensionCompatLevelScalingEngageScript
-// stashes that player's level here, keyed by creature GUID, right before forcing one SelectLevel()
-// call as combat starts; DesiredLevel() below consumes it so the engaging player still counts even
-// though they were never physically in range.
 std::unordered_map<uint64, uint8> g_levelScalingPendingEngager;
 
 bool CanScaleCreature(Creature const* creature)
 {
-  // A module that scales per character (each viewer's own level, sent only to that viewer) owns the
-  // answer while it is on: this path lifts the creature object itself, which every client is told
-  // about, so the two would disagree and a character who never asked for scaling would see a raised
-  // world anyway. Read live, so either model can take over on a config reload.
   if (LocalLevelScaling::CreatureScalingOwnedPerViewer.load(std::memory_order_relaxed))
     return false;
 
@@ -6331,7 +5792,7 @@ public:
   AscensionCompatLevelScalingScript()
       : AllCreatureScript("AscensionCompatLevelScalingScript") {}
 
-  void OnBeforeCreatureSelectLevel(CreatureTemplate const* /*creatureTemplate*/,
+  void OnBeforeCreatureSelectLevel(CreatureTemplate const*,
                                    Creature* creature, uint8& level) override
   {
     if (!CanScaleCreature(creature))
@@ -6374,9 +5835,6 @@ public:
     if (DesiredLevel(creature, original) == creature->GetLevel())
       return;
 
-    // SelectLevel reuses stock health, mana, attack-power and damage curves. It
-    // runs only while full and out of combat, so an active fight never heals or
-    // changes level underneath the player.
     creature->SelectLevel();
     if (CreatureTemplate const* creatureTemplate = creature->GetCreatureTemplate())
     {
@@ -6400,30 +5858,6 @@ public:
     if (!map)
       return original;
 
-    // On se regle sur le joueur le PLUS PROCHE, et non sur le plus haut niveau
-    // a la ronde.
-    //
-    // POURQUOI CE CHANGEMENT
-    // La boucle d'origine prenait le maximum sur tous les joueurs a portee de
-    // vue. Sur un serveur ou les joueurs presents ont des niveaux voisins,
-    // c'est le bon choix : le contenu reste pertinent pour le groupe. Avec une
-    // population de bots, l'hypothese tombe. Un joueur de niveau 30 traversant
-    // une zone de depart hissait toute creature a portee au niveau 27, y
-    // compris celles que des bots de niveau 1 etaient en train de combattre a
-    // quarante metres de la. Ils se faisaient tuer par des creatures qui
-    // n'etaient pas les leurs.
-    //
-    // POURQUOI PAS « CELUI QUI ATTAQUE »
-    // Ce serait la regle juste, mais elle est irrealisable : une creature n'a
-    // qu'un seul niveau, diffuse a tous les clients. Le meme loup ne peut pas
-    // etre de niveau 1 pour un bot et de niveau 27 pour un joueur. Le plus
-    // proche en est l'approximation fidele : c'est lui qui va l'engager.
-    //
-    // Le reglage ne s'applique de toute facon qu'a une creature hors combat,
-    // vivante et au maximum de ses points de vie (voir OnAllCreatureUpdate) :
-    // un combat en cours ne change jamais de niveau sous les pieds de
-    // personne.
-    // A zero cap restores the original maximum across all eligible players.
     bool const useNearestPlayer = LocalLevelScaling::CreatureMaxLift.load(std::memory_order_relaxed) != 0;
     uint8 desired = original;
     float range = creature->GetSightRange();
@@ -6444,11 +5878,6 @@ public:
         desired = useNearestPlayer ? scaledLevel : std::max(desired, scaledLevel);
     }
 
-    // A player who pulled this creature into combat purely through a pet, guardian, or trap can stay
-    // outside GetSightRange() the whole time -- outside the loop above entirely. This is exactly the
-    // "whoever engages it" case the nearest-player heuristic above is approximating; when it is known
-    // for certain (AscensionCompatLevelScalingEngageScript stashes it here right as combat starts), it
-    // overrides the heuristic in nearest-player mode instead of merely competing with it via max().
     std::lock_guard<std::mutex> guard(g_levelScalingLock);
     if (auto itr = g_levelScalingPendingEngager.find(creature->GetGUID().GetRawValue());
         itr != g_levelScalingPendingEngager.end())
@@ -6462,7 +5891,6 @@ public:
   }
 };
 
-// Credit an out-of-range owner when combat starts, including damage that creates the first threat entry.
 class AscensionCompatLevelScalingEngageScript : public UnitScript
 {
 public:
@@ -6478,9 +5906,6 @@ public:
     void OnDamage(Unit* attacker, Unit* victim, uint32& damage) override
     {
         Creature* creature = victim ? victim->ToCreature() : nullptr;
-        // Spell hits can set the combat flag before damage, but create their first threat entry only
-        // after reducing health. OnUnitEnterCombat then runs too late (or never runs for a lethal hit).
-        // IsEngaged, rather than IsInCombat, distinguishes those hits from an already established fight.
         if (damage && attacker != victim && creature && !creature->IsEngaged())
             ScaleForEngager(creature, attacker);
     }
@@ -6526,8 +5951,6 @@ public:
     LocalLevelScaling::QuestEnabled.store(enabled && ascensionCompatConfig.GetConfigValue<bool>(
         AscensionCompatConfig::QUEST_LEVEL_SCALING), std::memory_order_relaxed);
 
-    // Lu directement plutot que via l'enumeration du module : cela evite de
-    // toucher a sa table de reglages, et la valeur est rechargeable a chaud.
     uint32 lift = sConfigMgr->GetOption<uint32>("AscensionCompat.LevelScalingMaxLift", 5);
     LocalLevelScaling::CreatureMaxLift.store(
         static_cast<std::uint8_t>(std::min<uint32>(lift, 255)), std::memory_order_relaxed);
@@ -6561,37 +5984,12 @@ public:
   }
 };
 
-// Tradesman's Scroll.
-//
-// Ascension's scroll opens a gossip listing fifteen professions and sets the
-// chosen one to its maximum skill. Captured from the live realm, its text reads:
-//
-//   "Select a Profession from the list below to receive Max Skill Level in it.
-//    You will still need to train the recipes from items and trainers."
-//
-// and the item itself says "Maxes out a Profession of your choice. You will need
-// to learn the profession as well." Both halves matter: the scroll raises the
-// skill VALUE, it does not grant the skill and it does not teach any recipe.
-// A player who has not learned the profession gets told so rather than silently
-// gaining nothing.
-//
-// The option list is exactly the fifteen the live scroll offered, in the order
-// it offered them -- note that it includes Lockpicking, which the Book of
-// Artisans does not train, and excludes Jewelcrafting, Inscription and
-// Bushcraft, which it does.
-//
-// This is an ItemScript rather than a creature: the scroll has no companion NPC
-// (unlike the Books, which summon one), and ItemScript exposes both OnUse and
-// OnGossipSelect, so the whole interaction lives on the item.
-
 struct ScrollProfession
 {
     uint32 skillId;
     char const* name;
 };
 
-// Order and membership taken from the captured gossip, not from a profession
-// enum -- the scroll's list is its own thing.
 constexpr ScrollProfession kProfessions[] = {
     { 171, "Alchemy" },        { 164, "Blacksmithing" }, { 333, "Enchanting" },
     { 202, "Engineering" },    { 165, "Leatherworking" }, { 197, "Tailoring" },
@@ -6600,15 +5998,15 @@ constexpr ScrollProfession kProfessions[] = {
     { 633, "Lockpicking" },    { 732, "Woodcutting" },   { 757, "Woodworking" },
 };
 
-constexpr uint32 kGossipTextId = 1;      // generic; the options carry the meaning
-constexpr uint32 kSenderScroll = 0xA5C0; // distinctive, so stray gossip cannot match
+constexpr uint32 kGossipTextId = 1;
+constexpr uint32 kSenderScroll = 0xA5C0;
 
 class AscensionTradesmanScroll : public ItemScript
 {
 public:
     AscensionTradesmanScroll() : ItemScript("ascension_tradesman_scroll") { }
 
-    bool OnUse(Player* player, Item* item, SpellCastTargets const& /*targets*/) override
+    bool OnUse(Player* player, Item* item, SpellCastTargets const&) override
     {
         if (!player || !item)
             return false;
@@ -6617,9 +6015,6 @@ public:
         for (uint32 i = 0; i < std::extent<decltype(kProfessions)>::value; ++i)
         {
             ScrollProfession const& prof = kProfessions[i];
-            // Show what the player will actually get. A profession they have
-            // not learned is still listed -- the live scroll listed all fifteen
-            // regardless -- but the label says so up front.
             std::string label = prof.name;
             if (!player->HasSkill(prof.skillId))
                 label += " (not learned)";
@@ -6630,7 +6025,6 @@ public:
         }
 
         SendGossipMenuFor(player, kGossipTextId, item->GetGUID());
-        // true suppresses the item's own on-use spell: the gossip is the effect.
         return true;
     }
 
@@ -6646,8 +6040,6 @@ public:
 
         ScrollProfession const& prof = kProfessions[action];
 
-        // The scroll raises a skill; it never grants one. Learning the
-        // profession is a separate step, exactly as the item text says.
         if (!player->HasSkill(prof.skillId))
         {
             ChatHandler(player->GetSession()).PSendSysMessage(
@@ -6666,9 +6058,6 @@ public:
             return;
         }
 
-        // Raise to the cap the player's current rank allows -- an Apprentice is
-        // maxed at 75, not 450. Advancing further still means learning the next
-        // rank from a trainer, which is what "Max Skill Level" meant on live.
         player->SetSkill(prof.skillId, player->GetSkillStep(prof.skillId), cap, cap);
         ChatHandler(player->GetSession()).PSendSysMessage(
             "{} raised to {}.", prof.name, cap);
@@ -6677,7 +6066,6 @@ public:
                   "Tradesman's Scroll: player {} set {} to {}",
                   player->GetName(), prof.name, cap);
 
-        // Consume one scroll, matching a single-use consumable.
         player->DestroyItemCount(item->GetEntry(), 1, true);
     }
 };
@@ -6722,13 +6110,6 @@ class spell_ascension_legacy_quest_reward : public SpellScript
     }
 };
 
-// Ascension mount buttons frequently cast a wrapper, not the riding aura.
-// Resolve only validated catalog wrappers, using the same zone/riding rules
-// as AzerothCore's spell_gen_mount and the matching client spell variants.
-// Jailer's Bargain promises "a shield that absorbs damage equal to 30% of your maximum health",
-// but its SPELL_AURA_SCHOOL_ABSORB effect carries EffectBasePoints 0 and no scaling, so the aura
-// landed at a single point of absorption and popped on the first hit. The DBC cannot express a
-// percentage of the caster's maximum health, so compute it here.
 class spell_ascension_jailers_bargain : public AuraScript
 {
     PrepareAuraScript(spell_ascension_jailers_bargain);
@@ -6741,13 +6122,11 @@ class spell_ascension_jailers_bargain : public AuraScript
             GetUnitOwner() && GetUnitOwner()->IsPlayer();
     }
 
-    void CalculateAmount(AuraEffect const* /*effect*/, int32& amount, bool& canBeRecalculated)
+    void CalculateAmount(AuraEffect const*, int32& amount, bool& canBeRecalculated)
     {
         if (Unit* owner = GetUnitOwner())
             amount = int32(owner->GetMaxHealth() * AbsorbPercent / 100);
 
-        // Fixed at cast, like every other percentage-of-health shield: a health buff landing
-        // mid-duration must not resize what is already absorbing.
         canBeRecalculated = false;
     }
 
@@ -6786,7 +6165,6 @@ class spell_ascension_local_mount : public SpellScript
 
     bool Load() override
     {
-        // Validate runs on the registration instance; bind this cast instance too.
         return ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED) &&
             GetCaster()->IsPlayer() && Validate(GetSpellInfo());
     }
@@ -6844,9 +6222,6 @@ class spell_ascension_local_mount : public SpellScript
     }
 };
 
-// Wildcard Mount (91944) is a plain SPELL_EFFECT_DUMMY spell with no built-in behavior of its own;
-// summon a random mount the player already owns, then let spell_ascension_local_mount above resolve
-// the correct speed/flying variant for it.
 class spell_ascension_wildcard_mount : public SpellScript
 {
     PrepareSpellScript(spell_ascension_wildcard_mount);
@@ -6903,7 +6278,7 @@ public:
         return true;
     }
 
-    bool OnGossipSelect(Player* player, Creature* /*creature*/, uint32 sender, uint32 action) override
+    bool OnGossipSelect(Player* player, Creature*, uint32 sender, uint32 action) override
     {
         ClearGossipMenuFor(player);
         CloseGossipMenuFor(player);
@@ -6912,8 +6287,6 @@ public:
             !IsAscensionCustomClass(player))
             return true;
 
-        // The player is asking for these abilities themselves, so this keeps
-        // working while automatic progression is switched off.
         if (!AscensionClassService::Instance().SynchronizeProgression(player, true))
             ChatHandler(player->GetSession()).SendSysMessage("Your available class abilities are already up to date.");
         return true;
@@ -6945,7 +6318,6 @@ class spell_ascension_experience_potion : public SpellScript
         if (_remaining > 0)
             if (Aura* aura = GetHitAura())
             {
-                // Each potion adds its normal duration to the unexpired time from previous potions.
                 int32 const duration = int32(std::min<int64>(int64(aura->GetDuration()) + _remaining,
                     std::numeric_limits<int32>::max()));
                 aura->SetMaxDuration(duration);
@@ -6960,7 +6332,7 @@ class spell_ascension_experience_potion : public SpellScript
     }
 };
 
-} // namespace
+}
 
 bool IsAscensionPrimalistTameEligible(Player const* player)
 {
@@ -6985,7 +6357,6 @@ uint32 GetAscensionActiveSpecialization(Player const* player)
     if (uint32 const active = AscensionClassService::Instance().GetActiveSpecialization(player))
         return active;
 
-    // GetPlayerSetting is not const but only reads the cached settings.
     return const_cast<Player*>(player)->GetPlayerSetting(ASCENSION_ACTIVE_SPEC_SETTING, 0).value;
 }
 
@@ -7022,7 +6393,6 @@ bool SetAscensionTalentRank(Player* player, uint32 entryId, uint32 rank)
         rank > entry->SpellCount)
         return false;
 
-    // Automatic entries belong to SynchronizeProgression, never to a purchase.
     uint32 const freeChoiceGroup = AscensionClassService::GetSelectableFreeGroup(entryId);
     if (entry->AECost == 0 && entry->TECost == 0 && !freeChoiceGroup)
         return false;
@@ -7034,8 +6404,6 @@ bool SetAscensionTalentRank(Player* player, uint32 entryId, uint32 rank)
     if (rank > 0 && (!selectedSpellId || !sSpellMgr->GetSpellInfo(selectedSpellId)))
         return false;
 
-    // Same resolution as ".local talent": a selection clears the other options of its free group,
-    // then every rank of the entry, before learning the chosen rank.
     if (rank > 0 && freeChoiceGroup)
         for (auto const& other : AscensionCompatData::CoATalentEntries)
             if (other.ClassId == player->getClass() && other.SpecId == entry->SpecId && other.EntryId != entryId &&
@@ -7070,7 +6438,6 @@ std::vector<AscensionClassAbility> GetAscensionClassAbilities(uint8 classId)
         if (grant.ClassId == classId)
             abilities.push_back({ grant.SpellId, grant.SpellId, 0, grant.RequiredLevel });
 
-    // Each rank of a Character Advancement entry; remember which specialization grants it for the ranks below.
     std::unordered_map<uint32, uint16> specializationOf;
     for (auto const& entry : AscensionCompatData::CoATalentEntries)
     {
@@ -7087,7 +6454,6 @@ std::vector<AscensionClassAbility> GetAscensionClassAbilities(uint8 classId)
         }
     }
 
-    // Higher ranks the progression teaches with level.
     for (auto const& rank : AscensionProgression::Ranks)
     {
         if (rank.ClassId != classId)
@@ -7109,16 +6475,19 @@ public:
   void OnCreatureAddWorld(Creature* creature) override {
     if (!creature || !ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED))
       return;
-    if (sAscensionPresets->HasPreset(creature->GetEntry())) {
+    if (sAscensionPresets->HasPreset(creature->GetEntry()))
+    {
       creature->SetUnitFlag2(UNIT_FLAG2_MIRROR_IMAGE);
     }
   }
 
-  void OnAllCreatureUpdate(Creature* creature, uint32 /*diff*/) override {
+  void OnAllCreatureUpdate(Creature* creature, uint32) override {
     if (!creature || !ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED))
       return;
-    if (sAscensionPresets->HasPreset(creature->GetEntry())) {
-      if (!creature->HasUnitFlag2(UNIT_FLAG2_MIRROR_IMAGE)) {
+    if (sAscensionPresets->HasPreset(creature->GetEntry()))
+    {
+      if (!creature->HasUnitFlag2(UNIT_FLAG2_MIRROR_IMAGE))
+      {
         creature->SetUnitFlag2(UNIT_FLAG2_MIRROR_IMAGE);
       }
     }

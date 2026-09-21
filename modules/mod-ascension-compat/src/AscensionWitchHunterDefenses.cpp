@@ -59,7 +59,7 @@ class aura_ascension_witch_hunter_lifecycle : public AuraScript
             recalculate = false;
         }
         if (GetId() == 562225 && effect->GetEffIndex() == EFFECT_1)
-            amount = Night() ? 100 : 0; // local rule for the authored "significant" detection bonus
+            amount = Night() ? 100 : 0;
     }
 
     void Periodic(AuraEffect const* effect, bool& periodic, int32& amplitude)
@@ -136,10 +136,10 @@ class aura_ascension_witch_hunter_lifecycle : public AuraScript
                 }
         }
         if (Family(GetSpellInfo(), 2, 4))
-            Cast(owner, owner, 681086); // once per scheduled March tick, even with no victims
+            Cast(owner, owner, 681086);
     }
 
-    void Absorb(AuraEffect* /*effect*/, DamageInfo& damage, uint32& absorb)
+    void Absorb(AuraEffect*, DamageInfo& damage, uint32& absorb)
     {
         if (GetId() != 807733 && GetId() != 680492)
             return;
@@ -160,7 +160,6 @@ class aura_ascension_witch_hunter_lifecycle : public AuraScript
             Player* player = Owner(owner);
             if (!player || damage.GetDamage() < owner->GetHealth() || player->HasSpellCooldown(680492))
                 return;
-            // Resolve the fatal blow before the percent heal, including a one-shot from full health.
             absorb = damage.GetDamage();
             owner->SetHealth(1);
             player->AddSpellCooldown(680492, 0, 120000);
@@ -168,7 +167,7 @@ class aura_ascension_witch_hunter_lifecycle : public AuraScript
         }
     }
 
-    void Apply(AuraEffect const* effect, AuraEffectHandleModes /*mode*/)
+    void Apply(AuraEffect const* effect, AuraEffectHandleModes)
     {
         if (!First(effect))
             return;
@@ -196,7 +195,7 @@ class aura_ascension_witch_hunter_lifecycle : public AuraScript
             Cast(GetCaster(), owner, 804073);
             owner->RemoveAurasByType(SPELL_AURA_MOD_STEALTH);
         }
-        if (id == 805751 && player && player->HasSpell(805767)) // Evasive
+        if (id == 805751 && player && player->HasSpell(805767))
             player->CastCustomSpell(805766, SPELLVALUE_AURA_DURATION, GetAura()->GetDuration(), player,
                                     TRIGGERED_FULL_MASK);
         if (id == 504790 && player)
@@ -226,7 +225,7 @@ class aura_ascension_witch_hunter_lifecycle : public AuraScript
             player->ModifyAuraState(AURA_STATE_DEFENSE, true);
     }
 
-    void Removed(AuraEffect const* effect, AuraEffectHandleModes /*mode*/)
+    void Removed(AuraEffect const* effect, AuraEffectHandleModes)
     {
         if (!First(effect))
             return;
@@ -239,7 +238,7 @@ class aura_ascension_witch_hunter_lifecycle : public AuraScript
             for (uint64 amount : _debt)
                 debt += amount;
             _debt = {};
-            Pay(debt); // removing the stance cannot erase damage already owed
+            Pay(debt);
         }
         if (id == 804068)
             owner->RemoveAurasDueToSpell(804073, GetCasterGUID());
@@ -315,10 +314,10 @@ class aura_ascension_witch_hunter_lifecycle : public AuraScript
                                        PROC_FLAG_DONE_SPELL_MAGIC_DMG_CLASS_NEG | PROC_FLAG_DONE_PERIODIC));
     }
 
-    void Proc(ProcEventInfo& /*event*/)
+    void Proc(ProcEventInfo&)
     {
         PreventDefaultAction();
-        Remove(); // Witchblight's first outgoing damage attempt consumes its miss guarantee
+        Remove();
     }
 
     void Register() override
@@ -361,11 +360,10 @@ class witch_hunter_state : public UnitScript
 
     bool CanUnitAttack(Unit const* attacker, Unit const* target, SpellInfo const* spell) override
     {
-        // Ground-targeted area damage can enter smoke; direct attacks cannot cross its boundary.
         return (spell && spell->IsAffectingArea()) || !InSmoke(attacker, target);
     }
 
-    void OnUnitUpdate(Unit* unit, uint32 /*diff*/) override
+    void OnUnitUpdate(Unit* unit, uint32) override
     {
         Player* player = Owner(unit);
         if (!player || !player->IsInWorld() || !player->IsAlive())
@@ -391,7 +389,6 @@ class witch_hunter_state : public UnitScript
     {
         if (!damage)
             return;
-        // Periodic damage bypasses normal hit rolls. It still consumes the one-damage miss guarantee.
         if (attacker)
             for (auto const& [key, application] : attacker->GetAppliedAuras())
                 if (Family(application->GetBase()->GetSpellInfo(), 1, 16384))
@@ -446,7 +443,7 @@ class witch_hunter_state : public UnitScript
         return true;
     }
 };
-} // namespace
+}
 
 void AddAscensionWitchHunterDefenseScripts()
 {

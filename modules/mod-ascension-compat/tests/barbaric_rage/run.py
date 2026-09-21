@@ -1,4 +1,4 @@
-"""Regress Barbaric Rage's cooldown contract: ability cooldowns, not the shared global cooldown (#3945)."""
+CLI_DESCRIPTION = """Regress Barbaric Rage's cooldown contract: ability cooldowns, not the shared global cooldown (#3945)."""
 import argparse
 from pathlib import Path
 import os
@@ -9,7 +9,6 @@ ROOT = Path(__file__).resolve().parents[4]
 
 
 def extract_if_body(source, needle):
-    """Extract an `if (...)` and either its brace-balanced block or its single statement."""
     start = source.index(needle)
     after_cond = source.index(")", start) + 1
     brace = source.index("{", after_cond)
@@ -25,7 +24,7 @@ def extract_if_body(source, needle):
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument("--source-ref", help="Use an earlier ApplyContracts as a negative control")
     args = parser.parse_args()
     path = "modules/mod-ascension-compat/src/AscensionBarbarianCompletion.cpp"

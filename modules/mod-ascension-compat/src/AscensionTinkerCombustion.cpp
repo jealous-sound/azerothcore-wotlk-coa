@@ -41,7 +41,5 @@ void ApplyAscensionTinkerCombustionContracts(SpellInfo* spellInfo)
             return;
     }
 
-    // Preserve native hit, equipment, rank values and per-target modifiers.
-    // Only the damage coefficient's AP source differs from the native default.
     spellInfo->UseRangedAttackPowerForDamage = true;
 }

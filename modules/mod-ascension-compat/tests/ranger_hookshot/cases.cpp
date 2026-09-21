@@ -30,7 +30,7 @@ int main()
         assert(HookTarget(&player) == &enemy && player.spells.at(803852));
         assert(player.GetTemporarySpellReplacement(rank) == 803852);
         assert(player.session.packets.back() == std::vector<uint32>({rank, 803852}));
-        enemy.bleeding = false; // The wound only has to be present when the hook lands.
+        enemy.bleeding = false;
         for (Unit* selected : {static_cast<Unit*>(nullptr), &second, static_cast<Unit*>(&player)})
         {
             followup.m_targets.unit = selected;
@@ -52,7 +52,7 @@ int main()
     enemy.bleeding = true; latch.fixtureInfo.Id = 800360; latch.Latch(1);
     latch.fixtureInfo.Id = 802398; latch.fixtureTarget = &second; second.bleeding = true; latch.Latch(1);
     assert(player.GetTemporarySpellReplacement(800360) == 800360 && HookTarget(&player) == &second);
-    player.RemoveAurasDueToSpell(803857, player.guid); // Native expiry/cancel/death removal invokes this callback.
+    player.RemoveAurasDueToSpell(803857, player.guid);
     assert(!player.spells.contains(803852));
     player.spells[803852] = false; latch.Latch(1);
     other.AddAura(803857, &player);

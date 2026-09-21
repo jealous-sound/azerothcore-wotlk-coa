@@ -116,7 +116,7 @@ void CheckAura(SpellInfo info)
     Unit owner;
     Aura aura{&info, &owner};
     AuraApplication app{&aura};
-    assert(aura.CanBeSaved() && aura.IsDeathPersistent()); // Current DBC can persist natively.
+    assert(aura.CanBeSaved() && aura.IsDeathPersistent());
     info.AttributesEx3 &= ~SPELL_ATTR3_ALLOW_AURA_WHILE_DEAD;
     owner.m_appliedAuras.emplace(1, &app);
     owner.m_ownedAuras.emplace(1, &aura);
@@ -135,14 +135,12 @@ int main()
     ruleset_player_spells login;
     player.known.insert(84421);
     player.known.insert(123);
-    player.auras.insert(123); // The login default leaves unrelated auras alone.
+    player.auras.insert(123);
     login.OnPlayerLogin(&player);
     assert((player.known == std::set<uint32>{123, 84420, 84421, 84422}) && player.learns == 2);
-    // A character created without any ruleset aura falls back to PvE instead of Ruleset.None.
     assert((player.auras == std::set<uint32>{123, 1004119, 9931032}));
     login.OnPlayerLogin(&player);
     assert(player.learns == 2 && (player.auras == std::set<uint32>{123, 1004119, 9931032}));
-    // Any ruleset already on the character is kept, including High-Risk and War Mode.
     for (auto const& kept : {std::set<uint32>{1004019}, std::set<uint32>{1004119},
                              std::set<uint32>{1004119, 9931032}})
     {
@@ -150,13 +148,11 @@ int main()
         login.OnPlayerLogin(&player);
         assert(player.auras == kept);
     }
-    // The config gate suppresses only the default; the selection spells are still learned.
     configMgrStub.rulesetLoginDefault = false;
     Player gated;
     login.OnPlayerLogin(&gated);
     assert((gated.known == std::set<uint32>{84420, 84421, 84422}) && gated.learns == 3 && gated.auras.empty());
     configMgrStub.rulesetLoginDefault = true;
-    // A character evicted from an instance is out of the world at login; the default waits for the next one.
     Player evicted;
     evicted.inWorld = false;
     login.OnPlayerLogin(&evicted);
@@ -179,7 +175,7 @@ int main()
         {
             (void)previous;
             player.auras = auras;
-            player.auras.insert(123); // Switching preserves unrelated auras.
+            player.auras.insert(123);
             info.Id = selected;
             script.Select(0);
             auto wanted = expected;

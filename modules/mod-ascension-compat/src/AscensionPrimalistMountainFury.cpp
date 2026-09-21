@@ -31,11 +31,9 @@ public:
             return;
         if (info->Id == MountainFuryCone &&
             info->Effects[EFFECT_0].TargetA.GetTarget() == TARGET_UNIT_CONE_ENEMY_54)
-            // Native cone selection reads the effect radius, not the spell's cast range.
-            info->Effects[EFFECT_0].RadiusEntry = sSpellRadiusStore.LookupEntry(13); // 10 yards.
+            info->Effects[EFFECT_0].RadiusEntry = sSpellRadiusStore.LookupEntry(13);
         if (info->Id == MountainFury && info->Effects[EFFECT_1].TriggerSpell == MountainFuryDefense)
         {
-            // Defense belongs to each pulled enemy; this separate timer granted it even in an empty area.
             info->Effects[EFFECT_1].Effect = 0;
             info->_InitializeExplicitTargetMask();
         }
@@ -54,7 +52,6 @@ public:
             info->SpellFamilyName != 37 || info->Id != MountainFuryHit || index != EFFECT_1 ||
             info->Effects[index].Effect != SPELL_EFFECT_SCHOOL_DAMAGE)
             return;
-        // SP and AP use spell_bonus_data; Stamina is part of the hit's base value before native bonuses.
         value = std::clamp(value + caster->GetStat(STAT_STAMINA) * 1.25f,
             -float(std::numeric_limits<int32>::max() / 2), float(std::numeric_limits<int32>::max() / 2));
     }
@@ -82,7 +79,6 @@ class spell_ascension_mountain_fury_pull : public SpellScript
 
     void Register() override
     {
-        // This hook only runs for admitted pull effects, before the following damage can kill the target.
         OnEffectHitTarget += SpellEffectFn(spell_ascension_mountain_fury_pull::Defend,
             EFFECT_0, SPELL_EFFECT_PULL_TOWARDS_DEST);
     }

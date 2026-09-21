@@ -55,7 +55,7 @@ class spell_ascension_witch_hunter_dark_tonic : public SpellScript
         return IsWitchHunter(GetCaster());
     }
 
-    void ScaleHealing(SpellEffIndex /*index*/)
+    void ScaleHealing(SpellEffIndex)
     {
         if (_scaled)
             return;
@@ -65,9 +65,6 @@ class spell_ascension_witch_hunter_dark_tonic : public SpellScript
         if (!std::isfinite(bonus) || bonus < 0 || bonus > std::numeric_limits<int32>::max())
             return;
 
-        // Change the raw base before LAUNCH_TARGET rolls and applies effect
-        // modifiers. Alchemical Research then scales base + Stamina together,
-        // once. Keep native rank dice, level scaling and healing modifiers.
         int64 base = int64(GetSpellValue()->EffectBasePoints[EFFECT_0]) + int32(bonus);
         int64 maximum = int64(std::numeric_limits<int32>::max()) - GetSpellInfo()->Effects[EFFECT_0].DieSides;
         base = std::clamp<int64>(base, 0, maximum);
@@ -106,8 +103,6 @@ class spell_ascension_witch_hunter_vampiric_tonic : public AuraScript
     {
         Unit* caster = GetCaster();
         DamageInfo const* damage = eventInfo.GetDamageInfo();
-        // Physical damage already includes armor, block and absorb resolution.
-        // Credit only this character's damage, including physical periodic ticks.
         return caster && caster->IsAlive() && damage && damage->GetDamage() &&
             eventInfo.GetActor() == caster && damage->GetAttacker() == caster &&
             damage->GetVictim() != caster && damage->GetSchoolMask() == SPELL_SCHOOL_MASK_NORMAL;
@@ -157,8 +152,6 @@ class spell_ascension_witch_hunter_holy_water_tonic : public SpellScript
 
     void ApplySelfBuff()
     {
-        // One buff per completed cast, even when the enemy area is empty or
-        // resisted. Native target filtering still limits the enemy effect.
         GetCaster()->CastSpell(GetCaster(), SPELL_HOLY_WATER_TONIC_BUFF, TRIGGERED_FULL_MASK);
     }
 
@@ -179,15 +172,12 @@ void ApplyAscensionWitchHunterTonicContracts(SpellInfo* spellInfo)
     if (spellInfo->Id == SPELL_VAMPIRIC_TONIC && effect.IsAura(AuraType(354)) &&
         effect.TriggerSpell == SPELL_VAMPIRIC_TONIC_HEAL && effect.BasePoints == 39 && effect.DieSides == 1 &&
         effect.TargetA.GetTarget() == TARGET_UNIT_CASTER && !effect.TargetB.GetTarget())
-        // Only this reviewed private aura is converted; the script owns its proc.
         effect.ApplyAuraName = SPELL_AURA_DUMMY;
 
     if (spellInfo->Id == SPELL_HOLY_WATER_TONIC_BUFF && spellInfo->TargetCreatureType == TONIC_CREATURE_TYPES &&
         effect.IsAura(SPELL_AURA_MOD_DAMAGE_DONE_VERSUS) && effect.MiscValue == TONIC_CREATURE_TYPES &&
         effect.TargetA.GetTarget() == TARGET_UNIT_CASTER && !effect.TargetB.GetTarget() &&
         !spellInfo->Effects[EFFECT_1].Effect && !spellInfo->Effects[EFFECT_2].Effect)
-        // The enemy mask was copied onto a self buff, excluding humanoid casters.
-        // Keep the actual damage-vs-creature mask on its aura effect.
         spellInfo->TargetCreatureType = 0;
 }
 

@@ -27,9 +27,7 @@ public:
             return;
         if (info->Id == BoulderImmunity)
         {
-            // Native immunity-set 1733 covers movement impairment, loss of control and knockback.
             info->Effects[EFFECT_2].MiscValue = 1733;
-            // Disorientation and slows are covered by the set; retain room for disarm and silence.
             info->Effects[EFFECT_0].MiscValue = MECHANIC_DISARM;
             info->Effects[EFFECT_1].ApplyAuraName = SPELL_AURA_MECHANIC_IMMUNITY;
             info->Effects[EFFECT_1].MiscValue = MECHANIC_SILENCE;
@@ -38,12 +36,10 @@ public:
         }
         else if (info->Id == BoulderPacify)
         {
-            // The first helper already covers Sap; this native aura also stops autoattacks.
             info->Effects[EFFECT_2].ApplyAuraName = SPELL_AURA_MOD_PACIFY;
             info->Effects[EFFECT_2].MiscValue = 0;
         }
         if (info->Id == BoulderImmunity || info->Id == BoulderPacify || info->Id == BoulderDamage)
-            // These short helpers are owned by the parent aura and must not survive it across logout.
             info->AttributesCu |= SPELL_ATTR0_CU_AURA_CANNOT_BE_SAVED;
     }
 };
@@ -54,12 +50,11 @@ public:
     primalist_boulder_cast_lock() : AllSpellScript("primalist_boulder_cast_lock",
         {ALLSPELLHOOK_ON_SPELL_CHECK_CAST}) { }
 
-    void OnSpellCheckCast(Spell* spell, bool /*strict*/, SpellCastResult& result) override
+    void OnSpellCheckCast(Spell* spell, bool, SpellCastResult& result) override
     {
         Unit* caster = spell->GetCaster();
         if (caster->IsPlayer() && caster->getClass() == CLASS_WILDWALKER && !spell->IsTriggered() &&
             caster->HasAura(BoulderDash, caster->GetGUID()))
-            // The copied allow-only-ability aura exempts next-melee-swing spells and arrives on the first tick.
             result = SPELL_FAILED_SPELL_IN_PROGRESS;
     }
 };

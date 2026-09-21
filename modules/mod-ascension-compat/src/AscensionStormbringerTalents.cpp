@@ -28,8 +28,6 @@ enum StormbringerTalentSpells : uint32
     SPELL_ELECTROCUTIONER = 804592
 };
 
-// The passive's tooltip gives a base chance (92096 carries 5%) and says it grows with
-// Static. No public record has the rate, so each Static adds a fifth of a percent.
 uint32 ElectrocutionerChance(Player const* player)
 {
     SpellInfo const* talent = sSpellMgr->GetSpellInfo(SPELL_ELECTROCUTIONER_TALENT);
@@ -48,8 +46,6 @@ public:
         Player* player = caster ? caster->ToPlayer() : nullptr;
         if (player && player->getClass() == CLASS_STORMBRINGER && info->SpellFamilyName == 22 &&
             info->Id == SPELL_CLOUDBURST && !spell->IsTriggered())
-            // The active spell has a zero-radius dummy. Its separate native
-            // helper supplies the ten-yard area and authored knockback speeds.
             player->CastSpell(player, SPELL_CLOUDBURST_KNOCKBACK, true);
     }
 
@@ -61,7 +57,6 @@ public:
             !target || target == player || player->IsFriendlyTo(target) || miss != SPELL_MISS_NONE)
             return;
 
-        // Neither passive carries proc flags, so the spell-damage event is supplied here.
         if (damage && !spell->IsTriggered() &&
             (player->HasSpell(SPELL_ELECTROCUTIONER_PASSIVE) || player->HasSpell(SPELL_ELECTROCUTIONER_TALENT)) &&
             roll_chance_i(ElectrocutionerChance(player)))
@@ -71,8 +66,6 @@ public:
         if (!repeat && (spell->IsTriggered() || sSpellMgr->GetFirstSpellInChain(info->Id) != SPELL_SHOCK))
             return;
 
-        // Two native half-second ticks each copy ten percent of the resolved hit.
-        // The damage-over-time component does not require Call Lightning.
         if (damage && !spell->GetScriptValue(SPELL_SHOCK_DOT))
         {
             spell->SetScriptValue(SPELL_SHOCK_DOT, 1);
@@ -106,10 +99,8 @@ public:
             info->Effects[EFFECT_0].BonusMultiplier = 0.0f;
         }
         if (info->Id == SPELL_PERPETUAL_SHOCK)
-            // The hit callback supplies the learned-spell gate and one 20-Static grant.
             info->Effects[EFFECT_1].Effect = 0;
         if (info->Id == SPELL_CHARGED_CONDUIT)
-            // Keep the charges until this ten-second buff ends.
             info->Effects[EFFECT_2].Effect = 0;
     }
 };
@@ -122,8 +113,6 @@ class aura_ascension_barometric_pressure : public AuraScript
 
     void Apply(AuraEffect const*, AuraEffectHandleModes)
     {
-        // Only the owner's dummy effect may start the companion area aura.
-        // Starting it on each hostile recipient would create extra area sources.
         if (GetCaster() && GetCaster() == GetTarget())
             GetCaster()->AddAura(SPELL_BAROMETRIC_SLOW, GetTarget());
     }

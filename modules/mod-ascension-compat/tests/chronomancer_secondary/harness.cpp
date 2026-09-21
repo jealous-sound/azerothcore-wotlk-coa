@@ -104,7 +104,6 @@ struct Unit
     { assert(key == 0 && triggered); casts.push_back({id, target, amount, 0}); }
 };
 using WorldObject = Unit;
-// Native regeneration dependencies. Deliberately retain every additive source after percentage regeneration.
 constexpr int32 POWER_HEALTH = -2, POWER_MANA = 0;
 constexpr uint32 SPELL_AURA_PREVENT_REGENERATE_POWER = 294, SPELL_AURA_MOD_HEALTH_REGEN_PERCENT = 88,
     SPELL_AURA_MOD_REGEN = 84, SPELL_AURA_MOD_REGEN_DURING_COMBAT = 116,
@@ -271,7 +270,7 @@ int main()
     heal.effective = 0; assert(!ahead.Check(event)); heal.effective = 100;
     event.actor = &ally; assert(!ahead.Check(event)); event.actor = &player;
     player.AddAura(592009, &player)->stacks = 9;
-    player.RemoveAurasDueToSpell(592009, 1); // Native fifteen-second counter expiry starts a fresh sequence.
+    player.RemoveAurasDueToSpell(592009, 1);
     ahead.Count(nullptr, event); assert(player.GetAura(592009, 1)->stacks == 1);
     ahead.Clear(nullptr, 1); assert(!player.GetAura(592009, 1) && !player.GetAura(592010, 1));
     aura_ascension_ripple_release ripple; ripple.fixtureCaster = ripple.fixtureTarget = &player;

@@ -1,4 +1,3 @@
-"""Validate cross-metric Primalist contracts from native gameplay observations."""
 import json
 import sys
 from pathlib import Path
@@ -56,8 +55,6 @@ elif mode == 'neptulon-wrath':
     assert values['crash_available_mana'] >= values['crash_mana_cost'] > 0
     expected = int(values['caster_ap'] * .35)
     assert expected > 0 and values['caster_ap'] != values['ally_ap']
-    # The native triggered helper retains the original aura caster's damage credit and PvE modifiers.
-    # Its fixed-base query has no AP/SP coefficient; allow one point for its integer quantization.
     assert values['target_damage_taken'] == 1000
     assert values['target_resistance_3'] == values['target_resistance_4'] == 0
     scaled = int(expected * values['primalist_damage_done'] / 1000)

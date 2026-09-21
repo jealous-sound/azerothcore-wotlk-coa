@@ -1,4 +1,3 @@
-"""Exercise native equip/retention checks with Burning Commander and ordinary Titan's Grip."""
 import argparse
 import os
 from pathlib import Path
@@ -52,7 +51,6 @@ def main():
     retain = retain[:retain.index('ItemPosCountVec off_dest;')]
     code += retain + 'removed=true;}\n'
     code += (HERE / 'cases.cpp').read_text()
-    # The native 155 effect must not recreate the warrior-only cached flag and penalty for this passive.
     contracts = read('modules/mod-ascension-compat/src/AscensionFelswornContracts.cpp', False)
     commander = extract(contracts, 'if (id == BurningCommander)')
     assert 'periodic(1, 3000);' in commander and 'info->Effects[EFFECT_2].Effect = 0;' in commander

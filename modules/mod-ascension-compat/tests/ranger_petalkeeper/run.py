@@ -1,4 +1,4 @@
-"""Check actual Petalkeeper callbacks, independent red flowers and Red Dream healing."""
+CLI_DESCRIPTION = """Check actual Petalkeeper callbacks, independent red flowers and Red Dream healing."""
 import argparse
 import importlib.util
 from pathlib import Path
@@ -17,7 +17,7 @@ def load(name, path):
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument("--workspace-tools", type=Path, default=ROOT.parent / "tools")
     parser.add_argument("--spell-dbc", type=Path)
     args = parser.parse_args()

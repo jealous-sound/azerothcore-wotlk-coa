@@ -63,7 +63,7 @@ class starcaller_resources : public PlayerScript
             }
     }
 };
-} // namespace
+}
 void AddSC_AscensionStarcallerMechanics()
 {
     new starcaller_reflect();

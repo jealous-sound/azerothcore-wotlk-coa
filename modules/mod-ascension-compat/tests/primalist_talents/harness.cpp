@@ -135,7 +135,7 @@ int main()
     for (uint32 tick = 0; tick < 3; ++tick)
     {
         stone.values.clear();
-        geode.OnSpellHitResult(&stone, &enemy, 1, 0, 0, false); // A failed tick grants nothing.
+        geode.OnSpellHitResult(&stone, &enemy, 1, 0, 0, false);
         geode.OnSpellHitResult(&stone, &player, 0, 10, 0, false);
         enemy.friendly = true;
         geode.OnSpellHitResult(&stone, &enemy, 0, 10, 0, false);
@@ -212,7 +212,7 @@ int main()
     app.aura.caster = 42;
     events.OnAuraRemove(&player, &app, AURA_REMOVE_BY_EXPIRE);
     app.aura.caster = player.guid;
-    app.aura.id = 680427; // Removing a companion SLS cannot grant a duplicate.
+    app.aura.id = 680427;
     events.OnAuraRemove(&player, &app, AURA_REMOVE_BY_EXPIRE);
     assert(player.casts.empty());
 

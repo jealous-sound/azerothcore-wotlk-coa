@@ -5,7 +5,6 @@
 
 namespace HighRisk
 {
-// Realm tuning, not recovered Ascension probabilities.
 constexpr unsigned MinimumLevel = 15;
 constexpr unsigned MaximumLevel = 60;
 constexpr unsigned ChestEntry = 994300;

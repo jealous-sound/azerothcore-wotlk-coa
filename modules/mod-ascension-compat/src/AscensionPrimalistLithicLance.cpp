@@ -94,15 +94,12 @@ class spell_ascension_lithic_lance : public SpellScript
 
     void Consume()
     {
-        // OnCast follows the final cast checks and precedes the Earthshaping gain.
-        // A failed cast keeps its window, and a new proc from this Lance remains available.
         GetCaster()->RemoveAurasDueToSpell(LithicLanceReady, GetCaster()->GetGUID());
     }
 
     void Rage()
     {
         if (GetHitDamage() > 0)
-            // Geode's helper rolls 3-8 Rage in effect 1; Lance promises exactly twenty.
             GetCaster()->EnergizeBySpell(GetCaster(), LithicLance, 200, POWER_RAGE);
     }
 
@@ -123,7 +120,6 @@ public:
     {
         if (info->SpellFamilyName == 37 && (info->Id == LanceEarthshaping || info->Id == LanceCooldown) &&
             info->Effects[EFFECT_1].TriggerSpell == LithicLanceReady)
-            // Consume once on the successful cast, not after each newly generated stack.
             info->Effects[EFFECT_1].Effect = 0;
         if (info->Id == LanceEarthshaping && info->SpellFamilyName == 37 &&
             info->Effects[EFFECT_0].Effect == SPELL_EFFECT_ASCENSION_MODIFY_AURA_STACKS &&

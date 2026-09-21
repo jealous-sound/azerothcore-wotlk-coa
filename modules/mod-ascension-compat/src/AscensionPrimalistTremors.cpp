@@ -40,7 +40,6 @@ public:
         if (info->Id == TremorsFreeCast && info->SpellFamilyName == 37 &&
             info->Effects[EFFECT_0].IsAura(SPELL_AURA_ADD_PCT_MODIFIER) &&
             info->Effects[EFFECT_0].MiscValue == SPELLMOD_COST)
-            // The buff's tooltip names Seismic abilities; Tremor was missing from the older mask.
             info->Effects[EFFECT_0].SpellClassMask[0] |= 64;
     }
 };

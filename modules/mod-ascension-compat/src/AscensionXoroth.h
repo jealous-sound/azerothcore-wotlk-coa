@@ -59,5 +59,5 @@ void Unleash(Player* player, Unit* center, float strength = 1, bool pet = false)
 void Summon(Player* player, uint32 entry, Position const& position, uint32 duration);
 void Spread(Player* player, Unit* target);
 void ApplyContracts(SpellInfo* info);
-} // namespace AscensionXoroth
+}
 #endif

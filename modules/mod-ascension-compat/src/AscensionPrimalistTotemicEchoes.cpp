@@ -35,7 +35,6 @@ class aura_ascension_totemic_echoes : public AuraScript
             if (caster->HasSpell(rank))
                 highest = rank;
         if (highest)
-            // The native proc row rejects triggered casts, so the free echo cannot schedule another echo.
             caster->CastSpell(target, highest, TRIGGERED_FULL_MASK);
     }
 

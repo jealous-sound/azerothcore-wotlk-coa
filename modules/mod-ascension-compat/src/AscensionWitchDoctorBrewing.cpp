@@ -87,7 +87,6 @@ void PotionEffects(Player* player, Unit* target, bool splash, uint32 mojo, uint3
 {
     if (!target || !target->IsAlive() || !player->IsFriendlyTo(target))
         return;
-    // A single cast snapshots its Mojo enhancement; every selected recipient gets that enhancement.
     uint32 bit = 1;
     for (uint32 ingredient : {Shrooms, Fish, Bones, Thistle})
     {
@@ -106,7 +105,7 @@ void PotionEffects(Player* player, Unit* target, bool splash, uint32 mojo, uint3
     if (mojo)
         Cast(player, target, mojo == MojoFish ? FishBones : mojo == MojoShrooms ? FrogShrooms : JungleThistle);
 }
-} // namespace AscensionWitchDoctor
+}
 
 namespace
 {
@@ -117,7 +116,7 @@ class aura_ascension_witch_doctor_beam : public AuraScript
     std::vector<ObjectGuid> _branches;
     uint32 _ticks = 0;
 
-    void Apply(AuraEffect const* /*effect*/, AuraEffectHandleModes /*mode*/)
+    void Apply(AuraEffect const*, AuraEffectHandleModes)
     {
         if (Player* player = Owner(GetCaster()))
         {
@@ -202,7 +201,6 @@ class aura_ascension_witch_doctor_beam : public AuraScript
             if (Unit* target = ObjectAccessor::GetUnit(*player, guid))
             {
                 Heal(player, target, std::max(0, effect->GetAmount()));
-                // New branches heal immediately, then grow on the next pulse. Eight distinct allies is the local cap.
                 if (_branches.size() < 8)
                     for (Unit* ally : Allies(player, target, 15.0f))
                         if (std::find(_branches.begin(), _branches.end(), ally->GetGUID()) == _branches.end() &&
@@ -214,7 +212,7 @@ class aura_ascension_witch_doctor_beam : public AuraScript
                         }
             }
     }
-    void Removed(AuraEffect const* /*effect*/, AuraEffectHandleModes /*mode*/)
+    void Removed(AuraEffect const*, AuraEffectHandleModes)
     {
         if (Player* player = Owner(GetCaster()))
             player->RemoveAurasDueToSpell(BeamCost);
@@ -229,7 +227,7 @@ class aura_ascension_witch_doctor_beam : public AuraScript
                                                 SPELL_AURA_PERIODIC_DUMMY, AURA_EFFECT_HANDLE_REAL);
     }
 };
-} // namespace
+}
 void AddAscensionWitchDoctorBrewingScripts()
 {
     RegisterSpellScript(aura_ascension_witch_doctor_beam);

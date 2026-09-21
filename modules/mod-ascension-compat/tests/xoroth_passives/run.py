@@ -1,4 +1,4 @@
-"""Regress the two #88 Xoroth passives using the existing completion fixture."""
+CLI_DESCRIPTION = """Regress the two #88 Xoroth passives using the existing completion fixture."""
 import argparse
 import importlib.util
 from pathlib import Path
@@ -135,7 +135,7 @@ int main()
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument("--workspace-tools", type=Path, default=ROOT.parent / "tools")
     parser.add_argument("--source-ref", help="Use earlier Xoroth casts for a negative control")
     parser.add_argument("--spell-dbc", type=Path)
@@ -158,8 +158,6 @@ def main():
     production += "struct Death { Creature* me; ObjectGuid owner; "
     production += fixture.t.fn(fixture.src("Summons"), "JustDied").replace(" override", "") + "};"
     code = fixture.fixture().replace("/*PRODUCTION*/", production).replace("/*CASES*/", CASES)
-    # This fixture previously extracted only narrower callbacks. The completed
-    # cast also references unrelated pet and delayed-Sever APIs; bind them inertly.
     code, player_count = re.subn(r"struct Player\s*:\s*Unit\s*\{",
         "using Pet = Unit; struct Player:Unit { Pet* GetPet() { return nullptr; } bool HasActiveSpell(uint32 id) const {return HasSpell(id);}", code)
     code, scheduler_count = re.subn(r"struct TaskScheduler\s*\{",

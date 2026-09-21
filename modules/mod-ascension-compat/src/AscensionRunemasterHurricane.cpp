@@ -47,11 +47,10 @@ public:
         aura->SetScriptValue(SPELL_HURRICANE, target->GetGUID().GetRawValue());
         if (Aura* dodge = caster->AddAura(SPELL_HURRICANE_DODGE, caster))
         {
-            // Aura-only application avoids the obsolete helper's interrupt-cast effect.
             dodge->SetMaxDuration(-1);
             dodge->SetDuration(-1);
         }
-        StrikeHurricane(caster, aura); // One immediate hit, followed by four (or six) 500 ms ticks.
+        StrikeHurricane(caster, aura);
     }
 };
 
@@ -99,10 +98,8 @@ class spell_ascension_hurricane_damage : public SpellScript
     void Scale()
     {
         double level = GetCaster()->GetLevel();
-        // SpellDescriptionVariables 182, shared with the current glyph damage helpers.
         double scale = 0.0267291844060354 + 0.0048541098014737 * level +
             0.0001859597762293 * level * level;
-        // Scale the authored raw amount; native CalcValue will apply effect modifiers once afterward.
         GetSpell()->SetSpellValue(SPELLVALUE_BASE_POINT2,
             int32((GetSpellInfo()->Effects[EFFECT_2].BasePoints + 1) * scale));
     }
@@ -131,7 +128,6 @@ public:
         if (info->SpellFamilyName != 38)
             return;
         if (info->Id == SPELL_HURRICANE)
-            // Initialize the target and first strike after the owning aura has been created.
             info->AttributesEx5 &= ~SPELL_ATTR5_EXTRA_INITIAL_PERIOD;
         if (info->Id == SPELL_HURRICANE || info->Id == SPELL_HURRICANE_DODGE || info->Id == SPELL_WAVEFORGED_READY)
         {

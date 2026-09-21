@@ -34,11 +34,11 @@ uint32 GetFlameGrantForAbility(SpellInfo const* spellInfo)
 
     switch (spellInfo->GetFirstRankSpell()->Id)
     {
-        case 680537: // Stake
+        case 680537:
             return 803710;
-        case 802019: // Purifier's Edge
+        case 802019:
             return 802845;
-        case 802140: // Fiery Judgement
+        case 802140:
             return 803503;
         default:
             return 0;
@@ -96,8 +96,6 @@ class spell_ascension_witch_hunter_flame_duration : public SpellScript
 
     void PreventReapplication(SpellEffIndex index)
     {
-        // The template first reapplies a 100ms aura. That would discard any
-        // accumulated duration before its following extension effect executes.
         PreventHitDefaultEffect(index);
     }
 
@@ -160,8 +158,6 @@ class spell_ascension_witch_hunter_flames_of_sin : public AuraScript
         if (!CheckProc(eventInfo))
             return;
 
-        // This active aura can be extended indefinitely. Do not retain a
-        // snapshot of a Tonic or talent that has since been removed.
         GetAura()->GetEffect(EFFECT_0)->RecalculateAmount();
         uint64 amount = uint64(eventInfo.GetDamageInfo()->GetDamage()) * uint32(std::max(0, effect->GetAmount())) / 100;
         amount = std::min(amount, uint64(std::numeric_limits<int32>::max()));
@@ -204,9 +200,6 @@ class spell_ascension_witch_hunter_flame_damage : public SpellScript
 
         int64 forwarded = int64(GetSpellValue()->EffectBasePoints[EFFECT_0]) + 1;
         uint32 amount = uint32(std::clamp(forwarded, int64(0), int64(std::numeric_limits<int32>::max())));
-        // The source attack already included caster damage modifiers. Keep
-        // target selection (including Flourish), mitigation and proc delivery
-        // native while avoiding a second caster/SP contribution to this copy.
         amount = target->SpellDamageBonusTaken(GetCaster(), GetSpellInfo(), amount, SPELL_DIRECT_DAMAGE);
         int64 combined = int64(GetHitDamage()) + amount;
         SetHitDamage(int32(std::clamp(combined, int64(0), int64(std::numeric_limits<int32>::max()))));
@@ -265,8 +258,6 @@ void ApplyAscensionWitchHunterFlameContracts(SpellInfo* spellInfo)
         spellInfo->Effects[EFFECT_1].IsAura(SPELL_AURA_PERIODIC_TRIGGER_SPELL) && spellInfo->Effects[EFFECT_1].TriggerSpell == 680227)
     {
         spellInfo->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_DUMMY;
-        // This unacquired Knight of the Flame helper is from the retired spec.
-        // Extending the current aura must not silently grant its free crit buff.
         spellInfo->Effects[EFFECT_1].Effect = 0;
         spellInfo->Effects[EFFECT_1].ApplyAuraName = SPELL_AURA_NONE;
         spellInfo->Effects[EFFECT_1].Amplitude = 0;

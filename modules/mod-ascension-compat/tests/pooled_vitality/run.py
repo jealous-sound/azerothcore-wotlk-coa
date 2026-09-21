@@ -1,4 +1,4 @@
-"""Exercise Pooled Vitality with actual payment, spell-modifier and module code."""
+CLI_DESCRIPTION = """Exercise Pooled Vitality with actual payment, spell-modifier and module code."""
 import argparse
 import importlib.util
 from pathlib import Path
@@ -12,7 +12,7 @@ HERE = Path(__file__).parent
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument("--workspace-tools", type=Path, default=ROOT.parent / "tools")
     parser.add_argument("--spell-dbc", type=Path)
     args = parser.parse_args()
@@ -34,7 +34,6 @@ def main():
     header = (ROOT / "src/server/game/Spells/AscensionPooledVitality.h").read_text()
     code += re.sub(r'^#include.*\n', '', header, flags=re.M)
     player = (ROOT / "src/server/game/Entities/Player/Player.cpp").read_text()
-    # The unchanged native template intentionally truncates its final float result for integer instantiations.
     code += "\n#pragma warning(push)\n#pragma warning(disable: 4244)\ntemplate<class T>\n"
     code += native.extractor.extract(player, r"(?m)^void Player::ApplySpellMod\(")
     code += "\n#pragma warning(pop)\n"

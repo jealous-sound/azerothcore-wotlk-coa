@@ -7,7 +7,6 @@
 
 namespace PvpPower
 {
-// Original client: Constants.lua and item equip spells named "PvP Power (+N)".
 constexpr unsigned Cap = 495;
 
 constexpr unsigned SpellPower(unsigned spell)

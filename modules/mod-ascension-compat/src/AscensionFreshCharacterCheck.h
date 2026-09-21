@@ -9,8 +9,6 @@
 
 class ChatHandler;
 
-// Console/RA only. Requires no authenticated game sessions and a guarded DB
-// snapshot around invocation. Creates no persistent characters or accounts.
 bool HandleAscensionFreshCharacterCheck(ChatHandler* handler);
 
 #endif

@@ -30,6 +30,15 @@ VALUES
 (8950008,15,0,'Lost Curio Cache',61898,6,0,1,0,0,0,0,1,3,60034,0,30000,'A tabard, shirt, backpack or illusion that used to be sold for Donation Points. One of 67 possible items.',1,'item_ethereal_lost_cache'),
 (8950009,15,0,'Lost Toy Cache',61898,6,0,1,0,0,0,0,1,3,60034,0,30000,'A toy that used to be sold for Donation Points and has no other source left. One of 20 possible items.',1,'item_ethereal_lost_cache');
 
+-- The Ethereal Cache of Wares. Ascension's own entry; only the script, the use
+-- spell and the description are set here, the rest of the row stays theirs.
+UPDATE `item_template`
+   SET `ScriptName` = 'item_ethereal_cache_of_wares',
+       `Description` = 'One random item out of everything Tiraxis has ever carried. Most of it is junk. Some of it is not.',
+       `spellid_1` = 60034, `spelltrigger_1` = 0, `spellcooldown_1` = 30000,
+       `Flags` = `Flags` & ~4
+ WHERE `entry` = 969029;
+
 DELETE FROM `ethereal_bazaar_cache_pool`;
 INSERT INTO `ethereal_bazaar_cache_pool` (`cache_item`,`reward_item`) VALUES
 (8950001,10435),

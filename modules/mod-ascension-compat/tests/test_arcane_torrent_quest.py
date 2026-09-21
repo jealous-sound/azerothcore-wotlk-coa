@@ -1,4 +1,4 @@
-"""Exercise the Thirst Unending migration against existing SmartAI data in memory."""
+CLI_DESCRIPTION = """Exercise the Thirst Unending migration against existing SmartAI data in memory."""
 
 import argparse
 from pathlib import Path
@@ -14,7 +14,7 @@ SPELLS = tuple(range(814286, 814293))
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument("--before", action="store_true", help="Reproduce missing credit without the migration.")
     parser.add_argument("--spell-dbc", type=Path)
     args = parser.parse_args()
@@ -27,7 +27,6 @@ def main():
                + ",PRIMARY KEY(entryorguid,source_type,id,link))")
     db.executescript("INSERT INTO smart_scripts VALUES " + ",".join(rows).replace("\\'", "''") + ";")
     original = db.execute("SELECT * FROM smart_scripts ORDER BY entryorguid,id").fetchall()
-    # Preserve other creatures and a different script source for the same entry.
     for entry, source_type in ((99999, 0), (15274, 9)):
         row = list(original[0])
         row[0], row[1] = entry, source_type
@@ -56,9 +55,9 @@ def main():
         assert magic == b"WDBC" and fields == 234 and size == 936
         spells = {row[0]: row for row in struct.iter_unpack("<234I", raw[20:20 + count * size])}
         for spell in SPELLS:
-            assert spells[spell][71] == 6 and spells[spell][95] == 27  # Area silence produces the spell-hit event.
+            assert spells[spell][71] == 6 and spells[spell][95] == 27
             assert spells[spell][86] == 22 and spells[spell][89] == 15
-        assert spells[61314][71] == 134 and spells[61314][110] == 15468  # KILL_CREDIT2.
+        assert spells[61314][71] == 134 and spells[61314][110] == 15468
     print("PASS: 28 CoA quest-credit matches, preserved stock/combat rows, scoped replacement and idempotence")
 
 

@@ -147,7 +147,7 @@ int main()
     resource.Clear(nullptr, 1);
     for (uint32 id : AdvantageCompanions) assert(!player.GetAura(id, player.guid));
     assert(player.GetAura(801429, other.guid)->GetStackAmount() == 4);
-    resource.fixtureStacks = 5; // Initial application of a saved five-stack resource.
+    resource.fixtureStacks = 5;
     resource.Sync(nullptr, 1);
     for (uint32 id : AdvantageCompanions) assert(player.GetAura(id, player.guid)->GetStackAmount() == 5);
     resource.fixtureCaster = &other; assert(!resource.Load());
@@ -180,7 +180,7 @@ int main()
             spell.markers.clear(); player.flares.clear();
             if (stacks) player.AddAura(804329, &player)->SetStackAmount(stacks);
             hits.OnSpellBeforeEffects(&spell, &player, &spell.info);
-            player.RemoveAurasDueToSpell(804329, player.guid); // Spent while the projectile travels.
+            player.RemoveAurasDueToSpell(804329, player.guid);
             hits.OnSpellHitResult(&spell, &enemy, 1, 100, 0, false); assert(player.flares.empty());
             hits.OnSpellHitResult(&spell, &enemy, 0, 100, 0, false);
             hits.OnSpellHitResult(&spell, &enemy, 0, 100, 0, false);

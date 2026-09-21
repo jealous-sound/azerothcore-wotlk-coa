@@ -1,4 +1,4 @@
-"""Exercise actual ward callbacks with bounded aura reapplication and caster targeting.
+CLI_DESCRIPTION = """Exercise actual ward callbacks with bounded aura reapplication and caster targeting.
 
 Reuses the workspace Necromancer fixture. Compiles only an isolated test executable,
 without building the server or changing installed data. --source-ref reproduces #108.
@@ -18,7 +18,7 @@ HERE = Path(__file__).parent
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument("--workspace-tools", type=Path, default=ROOT.parent / "tools")
     parser.add_argument("--source-ref")
     parser.add_argument("--spell-dbc", type=Path)
@@ -36,7 +36,6 @@ def main():
     production = "\n".join(re.findall(r"enum \w+\s*\{[^}]+\};", source))
     production += "\nstruct Lifecycle : Context { int32 _cost = 0; bool _expired = false;\n"
     production += "\n".join(fixture.fn(source, name) for name in ("First", "Apply", "Removed")) + "\n};\n"
-    # The fixture below models these native contracts, including reentrant refresh callbacks.
     spell = (fixture.CORE / "Spells/Spell.cpp").read_text(encoding="utf-8")
     target_selection = fixture.fn(spell, "Spell::SelectImplicitCasterObjectTargets")
     assert re.search(r"case TARGET_UNIT_CASTER:\s*target = m_caster;", target_selection)
@@ -64,7 +63,6 @@ def main():
         if path.name != "NecromancerCompletionHarness.cpp":
             return code
         code = "#include <iostream>\n#include <stdexcept>\n" + code
-        # Replace the old fixture's non-reentrant cast/aura transport, not production code.
         for pattern, replacement in (
             (r" Aura\* AddAura\(uint32 id,Unit\* target\)[^\n]+", " Aura* AddAura(uint32 id, Unit* target);"),
             (r" void CastSpell\(Unit\* t,uint32 id,bool\)[^\n]+", " void CastSpell(Unit* t, uint32 id, bool);"),

@@ -1,4 +1,4 @@
-"""Check actual racial grant predicates and Draenei rescue spell admission without a server build."""
+CLI_DESCRIPTION = """Check actual racial grant predicates and Draenei rescue spell admission without a server build."""
 
 import argparse
 import os
@@ -17,7 +17,7 @@ method = runpy.run_path(str(HERE.parent / "client_compat/run.py"))["method"]
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument("--source-ref", help="Use the pre-fix source from a local Git ref.")
     parser.add_argument("--dbc-dir", type=Path)
     args = parser.parse_args()
@@ -95,7 +95,6 @@ struct Survivor
         magic, count, fields, size, _ = struct.unpack_from("<4s4I", raw)
         assert magic == b"WDBC" and fields == 234 and size == 936
         spells = {row[0]: row for row in struct.iter_unpack("<234I", raw[20:20 + count * size])}
-        # Real racial rows must grant exactly one Torrent to the formerly excluded Witch Hunter.
         torrents = [row for row in rows if row[1] == 756 and row[2] in (28730, *range(814286, 814293))]
         code += "uint32 witchHunterTorrents=0;\n"
         for row in torrents:
@@ -105,10 +104,10 @@ struct Survivor
             code += "{++witchHunterTorrents;assert(torrent.Spell==28730);}}\n"
         code += "assert(witchHunterTorrents==1);\n"
         assert spells[28730][117] == 828730
-        assert spells[828730][71:74] == (30, 30, 137)  # Energy, Rage and percent Mana restoration.
+        assert spells[828730][71:74] == (30, 30, 137)
         assert spells[828730][110:113] == (3, 1, 0)
         for spell_id in (814280, 814281, 814282):
-            assert spells[spell_id][95] == 8  # Actual Gift variants are periodic heals.
+            assert spells[spell_id][95] == 8
             assert not spells[spell_id][211] & 0x80000000
     code += "}\n"
 

@@ -33,7 +33,7 @@ int main()
     assert(!player.HasAura(573248));
     assert(player.GetAura(573338, player.guid)->duration == 15000);
     assert(player.GetTemporarySpellReplacement(500074) == 806345 && player.spells.at(806345) == 1);
-    assert(ability.CheckReady() == SPELL_CAST_OK); // Level-ten talent works despite copied SpellLevel eleven.
+    assert(ability.CheckReady() == SPELL_CAST_OK);
     info.SpellFamilyFlags[1] = 4194304;
     casts.OnSpellCast(&spell, &player, &info, false);
     assert(!player.HasAura(573338) && !player.HasActiveSpell(806345));
@@ -44,7 +44,7 @@ int main()
     casts.OnSpellCast(&spell, &player, &info, false);
     assert(player.GetAura(573338, player.guid)->duration == 60000);
     assert(player.GetTemporarySpellReplacement(500074) == 806345);
-    player.auras.erase(573338); // Native timed aura expiry.
+    player.auras.erase(573338);
     lifecycle.OnPlayerUpdate(&player, 1);
     assert(player.GetTemporarySpellReplacement(500074) == 500074 && !player.HasActiveSpell(806345));
     for (std::size_t i = 0; i < Falconstrikes.size(); ++i)
@@ -52,7 +52,7 @@ int main()
         player.level = levels[i];
         casts.OnSpellCast(&spell, &player, &info, false);
         assert(player.GetTemporarySpellReplacement(500074) == Falconstrikes[i]);
-        assert(player.spells.size() == 2); // The previous temporary rank is removed.
+        assert(player.spells.size() == 2);
     }
     player.level = 10;
     lifecycle.OnPlayerUpdate(&player, 1);
@@ -61,7 +61,7 @@ int main()
     player.auras.erase(573060);
     lifecycle.OnPlayerUpdate(&player, 1);
     assert(!player.HasAura(573338) && player.GetTemporarySpellReplacement(500074) == 500074);
-    assert(player.spells.at(806345) == 0); // Independently learned spell ownership is preserved.
+    assert(player.spells.at(806345) == 0);
     player.auras[573060] = {573060, player.guid};
     player.spells[806345] = -1;
     casts.OnSpellCast(&spell, &player, &info, false);
@@ -79,7 +79,6 @@ int main()
     casts.OnSpellCast(&spell, &player, &info, false);
     assert(player.casts.size() == count && ability.CheckReady() != SPELL_CAST_OK);
     player.cls = CLASS_RANGER;
-    // The actual shared resource matcher selects the intended amount once per rank.
     for (uint32 rank : Falconstrikes)
     {
         int amount = 0;

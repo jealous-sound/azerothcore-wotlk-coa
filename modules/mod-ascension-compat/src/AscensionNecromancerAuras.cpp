@@ -40,7 +40,7 @@ class aura_ascension_necromancer_lifecycle : public AuraScript
                 return false;
         return true;
     }
-    void Calculate(AuraEffect const* effect, int32& amount, bool& /*recalculate*/)
+    void Calculate(AuraEffect const* effect, int32& amount, bool&)
     {
         Player* player = Owner(GetCaster());
         if (!player)
@@ -73,13 +73,12 @@ class aura_ascension_necromancer_lifecycle : public AuraScript
             interval = 2000;
         }
     }
-    void Apply(AuraEffect const* effect, AuraEffectHandleModes /*mode*/)
+    void Apply(AuraEffect const* effect, AuraEffectHandleModes)
     {
         Player* player = Owner(GetCaster());
         if (!player)
             return;
         uint32 id = GetId();
-        // Assault and Protect start with summon-only effects, which never apply to the player.
         if (GetTarget() == player &&
             (id == SPELL_UNDEAD_ASSAULT || id == SPELL_UNDEAD_PACIFY || id == SPELL_UNDEAD_PROTECT))
         {
@@ -113,7 +112,6 @@ class aura_ascension_necromancer_lifecycle : public AuraScript
                     for (Creature* minion : Minions(player))
                         minion->RemoveAurasDueToSpell(ward, player->GetGUID());
                 }
-            // Ward spells target the caster; recasting them on minions reapplies this aura recursively.
             for (Creature* minion : Minions(player))
                 if (Aura* ward = player->AddAura(id, minion))
                     ward->SetDuration(GetDuration());
@@ -155,8 +153,7 @@ class aura_ascension_necromancer_lifecycle : public AuraScript
             player->EnergizeBySpell(player, id, drained / 2, POWER_RUNIC_POWER);
         }
         if (Named(GetSpellInfo(), 500217) && effect->GetEffIndex() == 1)
-            PreventDefaultAction(); // the burst/refund occurs only after full natural
-                                    // expiration
+            PreventDefaultAction();
         if (id == 561138 && effect->GetEffIndex() == 0)
         {
             PreventDefaultAction();
@@ -165,8 +162,7 @@ class aura_ascension_necromancer_lifecycle : public AuraScript
         }
         if (id == 704676 && player->HasAura(500981))
             for (uint32 champion : {805049, 807811, 807813})
-                Reduce(player, champion, 5000); // recovered effect 192 removes five
-                                                // seconds every five seconds
+                Reduce(player, champion, 5000);
         if (id == 301207 && effect->GetEffIndex() == 1)
         {
             PreventDefaultAction();
@@ -195,7 +191,7 @@ class aura_ascension_necromancer_lifecycle : public AuraScript
                     minion->RemoveAurasDueToSpell(525388, player->GetGUID());
         }
     }
-    void Removed(AuraEffect const* effect, AuraEffectHandleModes /*mode*/)
+    void Removed(AuraEffect const* effect, AuraEffectHandleModes)
     {
         Player* player = Owner(GetCaster());
         if (!player || !First(effect))
@@ -236,7 +232,7 @@ class aura_ascension_necromancer_lifecycle : public AuraScript
                     minion->RemoveAurasDueToSpell(id, player->GetGUID());
         }
     }
-    void Dispel(DispelInfo* /*dispel*/)
+    void Dispel(DispelInfo*)
     {
         if (Player* player = Owner(GetCaster()))
             if (Named(GetSpellInfo(), 801945))
@@ -258,7 +254,7 @@ class aura_ascension_necromancer_lifecycle : public AuraScript
             AfterDispel += AuraDispelFn(aura_ascension_necromancer_lifecycle::Dispel);
     }
 };
-} // namespace
+}
 void AddAscensionNecromancerAuraScripts()
 {
     RegisterSpellScript(aura_ascension_necromancer_lifecycle);

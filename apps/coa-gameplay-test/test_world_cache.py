@@ -1,5 +1,3 @@
-"""Cache ownership, invalidation and startup-barrier behavior without a MySQL service."""
-
 import copy
 import json
 from pathlib import Path
@@ -217,7 +215,6 @@ class WorldCacheTests(unittest.TestCase):
         self.assertTrue(first.lock.exists())
         with self.assertRaisesRegex(ValueError, 'leased'):
             self.cache().prepare(refresh=True)
-        # The fixture's simulated child has stopped; normal cleanup can now run.
         first.finish()
 
     def test_copy_rejects_concurrent_source_changes(self):

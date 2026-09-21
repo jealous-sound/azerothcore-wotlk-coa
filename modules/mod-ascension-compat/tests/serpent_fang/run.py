@@ -1,4 +1,3 @@
-"""Exercise Serpent's Fang heal dispatch at the actual struck enemy's location."""
 import os
 from pathlib import Path
 import re

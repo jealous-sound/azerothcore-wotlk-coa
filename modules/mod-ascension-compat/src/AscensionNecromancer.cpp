@@ -24,7 +24,7 @@ namespace
 {
 std::unordered_map<ObjectGuid, std::unique_ptr<NecromancerState>> states;
 std::mutex stateMutex;
-} // namespace
+}
 Player* Owner(Unit const* unit)
 {
     Player* player = unit ? unit->GetCharmerOrOwnerPlayerOrPlayerItself() : nullptr;
@@ -33,9 +33,6 @@ Player* Owner(Unit const* unit)
 NecromancerState& State(Player* player)
 {
     std::lock_guard<std::mutex> lock(stateMutex);
-    // The map is locked for the lookup only: the caller then reads and writes the state with no
-    // lock held. Kept by pointer, the state itself never moves, so an insert for another player
-    // rehashing the map cannot leave that caller writing into freed memory.
     return *states.try_emplace(player->GetGUID(), std::make_unique<NecromancerState>()).first->second;
 }
 void Forget(Player* player)
@@ -84,7 +81,7 @@ uint8 Cost(Player* player, uint32 spell)
     {
     case 500329:
     case 500335:
-    case 803139: // Legacy permanent Abomination uses the same occupancy.
+    case 803139:
     case 500989:
         return 3;
     case 500331:
@@ -184,8 +181,6 @@ void Sync(Player* player)
     state.syncing = true;
     uint8 capacity = Capacity(player);
     int32 free = std::max(0, int32(capacity) - Used(player));
-    // The permanent event aura also carries the authoritative capacity to the UI;
-    // the visual aura carries only the currently unoccupied Life Force.
     if (Aura* total = player->GetAura(805011) ? player->GetAura(805011) : player->AddAura(805011, player))
         if (total->GetStackAmount() != std::max<uint8>(1, capacity))
             total->SetStackAmount(std::max<uint8>(1, capacity));
@@ -256,8 +251,6 @@ void Plague(Player* player, Unit* target, uint8 stacks)
         return;
     if (Aura* aura = target->GetAura(570131, player->GetGUID()))
     {
-        // SetStackAmount recalculates damage, but unlike ModStackAmount never
-        // refreshes the duration/tick.
         aura->SetStackAmount(
             uint8(std::min<uint32>(aura->GetSpellInfo()->StackAmount, uint32(aura->GetStackAmount()) + stacks)));
     }
@@ -308,7 +301,7 @@ void Spread(Player* player, Unit* source, bool refresh, bool allDiseases, uint32
             break;
     }
 }
-} // namespace AscensionNecromancer
+}
 
 namespace
 {
@@ -327,7 +320,6 @@ class necromancer_sessions : public PlayerScript
     }
     void Reward(Player* player, Unit* killed)
     {
-        // A pet or totem owned by a creature also lands here, with no player: Owner(nullptr) == nullptr.
         if (player && Owner(player) == player && killed && killed->GetCharmerOrOwnerPlayerOrPlayerItself() != player &&
             player->isHonorOrXPTarget(killed) && player->HasAura(707562))
             Cast(player, player, 712434);
@@ -352,7 +344,7 @@ class necromancer_lifecycle : public UnitScript
         : UnitScript("necromancer_lifecycle", true, {UNITHOOK_ON_UNIT_UPDATE, UNITHOOK_ON_UNIT_DEATH})
     {
     }
-    void OnUnitDeath(Unit* unit, Unit* /*killer*/) override
+    void OnUnitDeath(Unit* unit, Unit*) override
     {
         Player* player = Owner(unit);
         if (player == unit)
@@ -386,7 +378,7 @@ class necromancer_lifecycle : public UnitScript
         }
     }
 };
-} // namespace
+}
 void AddAscensionNecromancerScripts()
 {
     new necromancer_sessions();

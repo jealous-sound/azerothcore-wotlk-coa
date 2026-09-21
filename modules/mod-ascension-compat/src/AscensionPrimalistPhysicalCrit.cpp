@@ -22,8 +22,6 @@ public:
             info->GetSchoolMask() != SPELL_SCHOOL_MASK_NORMAL || !info->IsCritCapable() ||
             info->HasAttribute(SPELL_ATTR2_CANT_CRIT))
             return;
-        // Like Seismic periodic criticals, physical Primalist spells use Nature spell critical chance.
-        // Keep their physical hit, armor, target modifiers and resilience calculations.
         chance += caster->SpellDoneCritChance(target, info, SPELL_SCHOOL_MASK_NATURE, BASE_ATTACK, false) -
             caster->SpellDoneCritChance(target, info, info->GetSchoolMask(), BASE_ATTACK, false);
     }

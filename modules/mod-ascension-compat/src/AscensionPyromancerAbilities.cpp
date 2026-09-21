@@ -37,6 +37,7 @@ bool Select(uint32 id, SpellInfo const* info)
         return false;
     }
 }
+constexpr uint32 ChargesKey = 1802168;
 void Snapshot(Player* player, Spell* spell)
 {
     if (spell->IsTriggered())
@@ -48,6 +49,8 @@ void Snapshot(Player* player, Spell* spell)
                 if (!aura->GetScriptValue(802168))
                     aura->SetScriptValue(802168, ++State(player).sequence);
                 spell->SetScriptValue(id, aura->GetScriptValue(802168));
+                if (id == 802168 && !spell->GetScriptValue(ChargesKey))
+                    spell->SetScriptValue(ChargesKey, aura->GetCharges());
             }
 }
 void Finish(Player* player, Spell* spell)
@@ -56,7 +59,16 @@ void Finish(Player* player, Spell* spell)
         if (uint64 generation = spell->GetScriptValue(id))
             if (Aura* aura = player->GetAura(id); aura && generation == aura->GetScriptValue(802168))
             {
-                if (id == 524707 && aura->GetCharges() > 1)
+                if (id == 802168 && aura->IsUsingCharges())
+                {
+                    spell->m_appliedMods.erase(aura);
+                    uint32 const start = uint32(spell->GetScriptValue(ChargesKey));
+                    if (start > 1)
+                        aura->SetCharges(start - 1);
+                    else
+                        aura->Remove();
+                }
+                else if ((id == 524707 || id == 802168) && aura->GetCharges() > 1)
                     aura->SetCharges(aura->GetCharges() - 1);
                 else
                     aura->Remove();
@@ -67,8 +79,15 @@ class pyromancer_spells : public AllSpellScript
   public:
     pyromancer_spells()
         : AllSpellScript("pyromancer_spells", {ALLSPELLHOOK_ON_BEFORE_EFFECTS, ALLSPELLHOOK_ON_CAST,
-                                               ALLSPELLHOOK_ON_HIT_RESULT, ALLSPELLHOOK_ON_CRIT_CHANCE})
+                                               ALLSPELLHOOK_ON_HIT_RESULT, ALLSPELLHOOK_ON_CRIT_CHANCE,
+                                               ALLSPELLHOOK_ON_INTERRUPT_DURATION})
     {
+    }
+    void OnSpellInterruptDuration(Spell* spell, Unit*, int32& duration) override
+    {
+        Player* player = Owner(spell->GetCaster());
+        if (player && Named(spell->GetSpellInfo(), 800808) && player->HasAura(707126))
+            duration += Amount(707126, 1);
     }
     void OnSpellBeforeEffects(Spell* spell, Unit* caster, SpellInfo const* info) override
     {
@@ -157,10 +176,18 @@ class pyromancer_spells : public AllSpellScript
                 Cast(player, player, 803712);
         }
         if (Named(info, 802174))
+        {
+            uint32 const extra = player->HasAura(704814) ? uint32(std::max(0, Amount(704814))) : 0;
             for (auto const& pair : player->GetSpellMap())
                 if (player->HasSpell(pair.first))
-                    player->ModifySpellCooldown(pair.first,
-                                                -int32(CalculatePct(player->GetSpellCooldownDelay(pair.first), 5)));
+                {
+                    uint32 percent = 5;
+                    if (extra && Named(sSpellMgr->GetSpellInfo(pair.first), 802168))
+                        percent += extra;
+                    uint32 const delay = player->GetSpellCooldownDelay(pair.first);
+                    player->ModifySpellCooldown(pair.first, -int32(CalculatePct(delay, percent)));
+                }
+        }
         if (spell->GetScriptValue(524707))
             Reduce(player, 803950, INT32_MAX);
         Finish(player, spell);
@@ -181,6 +208,8 @@ class pyromancer_spells : public AllSpellScript
         }
         if (Derived(info))
             return;
+        if (id == 804076)
+            Cast(player, target, 300985);
         bool old = State(player).event;
         State(player).event = true;
         if (damage)
@@ -238,10 +267,8 @@ class pyromancer_spells : public AllSpellScript
             }
             if (Named(info, 806611) && player->HasAura(807319) && !spell->GetScriptValue(807319))
                 spell->SetScriptValue(807319, 1), Reduce(player, 806611, std::abs(Amount(807349)));
-            // Dragonfire's description restores Energize 6% Max Mana, which no DBC effect casts.
             if (Named(info, 500129))
                 Cast(player, player, 503648);
-            // Dormant's proc aura has no proc flags; its direct Fire damage return is applied once per cast.
             if ((info->SchoolMask & SPELL_SCHOOL_MASK_FIRE) && player->HasAura(800128) &&
                 !spell->GetScriptValue(800128))
                 spell->SetScriptValue(800128, 1), Cast(player, player, 800129);
@@ -324,7 +351,7 @@ class spell_ascension_pyromancer_resource : public SpellScript
             Flames(player, std::max(0, effect.MiscValue));
         }
         if (GetSpellInfo()->Id == 572381 && index == EFFECT_1)
-            PreventHitDefaultEffect(index); // The stack operation already applies the five stacks.
+            PreventHitDefaultEffect(index);
         if (effect.Effect == 175 && (effect.TriggerSpell == HeatAura || effect.TriggerSpell == EmberAura))
         {
             PreventHitDefaultEffect(index);
@@ -426,7 +453,7 @@ class spell_ascension_pyromancer_ability : public SpellScript
         OnEffectHitTarget += SpellEffectFn(spell_ascension_pyromancer_ability::Effect, EFFECT_ALL, SPELL_EFFECT_ANY);
     }
 };
-} // namespace
+}
 void AddSC_AscensionPyromancerAbilities()
 {
     new pyromancer_spells();

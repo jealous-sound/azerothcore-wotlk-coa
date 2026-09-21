@@ -1,4 +1,3 @@
-"""Compile actual Manastorm methods with an isolated transaction backend (no server/database)."""
 from pathlib import Path
 import os
 import shutil

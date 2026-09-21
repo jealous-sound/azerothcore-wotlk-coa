@@ -1,4 +1,3 @@
-"""Run the ruleset callbacks and native aura saving/death filters without a server."""
 import os
 from pathlib import Path
 import re
@@ -29,9 +28,6 @@ def main():
     native += method((ROOT / 'src/server/game/Entities/Unit/Unit.cpp').read_text(),
                      'void Unit::RemoveAllAurasOnDeath()')
     code = code.replace('// NATIVE', native)
-    # The login default reads "no ruleset aura" as "this character never chose one". That only holds while a
-    # periodic (non-logout) save keeps permanent auras: _SaveAuras deletes every stored row first, so skipping
-    # them there would lose the choice whenever the realm stops without a clean logout.
     saving = method((ROOT / 'src/server/game/Entities/Player/PlayerStorage.cpp').read_text(),
                     'void Player::_SaveAuras(')
     assert '!aura->IsPermanent()' in saving
@@ -42,7 +38,7 @@ def main():
     assert set(rows) == ids
     for sid in (84420, 84421, 84422):
         assert rows[sid][71:74] == (3, 0, 0) and rows[sid][86] == 1
-        assert rows[sid][29:31] == (1500, 1500)  # The selection script leaves DBC cooldowns alone.
+        assert rows[sid][29:31] == (1500, 1500)
     for sid in (1004019, 1004119, 9931032):
         row = rows[sid]
         assert row[40] == 21 and not (row[4] & 0x40) and not (row[5] & (4 | 64))

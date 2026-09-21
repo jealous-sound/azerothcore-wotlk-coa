@@ -18,8 +18,6 @@ public:
         if (info->Id == FaeDust && info->SpellFamilyName == 37 &&
             info->Effects[EFFECT_0].IsAura(SPELL_AURA_MOD_STEALTH_DETECT) &&
             info->Effects[EFFECT_0].MiscValue == 10)
-            // This client index exceeds the native two-entry stealth array.
-            // Keep the native Fae Presence amount/reagent modifiers, applying detection to ordinary stealth.
             info->Effects[EFFECT_0].MiscValue = STEALTH_GENERAL;
     }
 };

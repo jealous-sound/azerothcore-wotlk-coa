@@ -135,7 +135,7 @@ class templar_casts : public AllSpellScript
             if (player->HasAura(passive))
                 Cast(player, player, child);
         };
-        if (Named(info, 805421)) // Sacred Resistance: all Reckoning ranks, once per completed cast.
+        if (Named(info, 805421))
             talent(301309, 680870);
         Unit* target = spell->m_targets.GetUnitTarget();
         if (Family(info, 2, 1) || info->Id == 500689)
@@ -339,7 +339,6 @@ class spell_ascension_templar_ability : public SpellScript
         if (player && Named(GetSpellInfo(), 801448) && !player->HasAura(705287))
             PreventHitDefaultEffect(effect);
     }
-    // Profound Enlightenment: each effect reduces the remaining cooldown of the named Testament, every rank.
     void Enlighten(SpellEffIndex effect)
     {
         SpellEffectInfo const& info = GetSpellInfo()->Effects[effect];
@@ -352,22 +351,17 @@ class spell_ascension_templar_ability : public SpellScript
                 if (uint32 remaining = player->GetSpellCooldownDelay(pair.first))
                     player->ModifySpellCooldown(pair.first, -int32(CalculatePct(remaining, GetEffectValue())));
     }
-    // Devotion of Khaz'goroth: auto attacks reduce every Libram's cooldown, every rank, by the first effect's value.
     void Devotion(SpellEffIndex effect)
     {
         PreventHitDefaultEffect(effect);
         if (Player* player = Owner(GetCaster()); player && effect == EFFECT_0)
             ReduceLibrams(player, std::abs(GetEffectValue()));
     }
-    // Absolution: the taunt is its own effect, but the movement speed its description promises lives in 520659,
-    // which nothing casts.
     void Absolve()
     {
         if (Player* player = Owner(GetCaster()))
             Cast(player, player, 520659);
     }
-    // Transcending Strikes: the helper names one Divine Force rank, so the core's exact-id cooldown effect misses
-    // the rank the Templar owns. Apply it to every owned rank of the named ability instead.
     void Transcend(SpellEffIndex effect)
     {
         SpellEffectInfo const& info = GetSpellInfo()->Effects[effect];
@@ -404,7 +398,7 @@ class spell_ascension_templar_ability : public SpellScript
                                                SPELL_EFFECT_ASCENSION_MODIFY_COOLDOWN);
     }
 };
-} // namespace
+}
 void AddSC_AscensionTemplarAbilities()
 {
     new templar_casts();

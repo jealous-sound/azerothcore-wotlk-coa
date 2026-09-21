@@ -23,7 +23,7 @@ void Summon(Player* player, Position const& position, bool extended)
     if (TempSummon* unit = player->GetMap()->SummonCreature(51320, position, properties, duration, player, 572163))
         unit->SetTempSummonType(TEMPSUMMON_TIMED_DESPAWN);
 }
-} // namespace AscensionFelsworn
+}
 namespace
 {
 using namespace AscensionFelsworn;
@@ -111,7 +111,7 @@ class go_ascension_felsworn_rift : public GameObjectScript
         return true;
     }
 };
-} // namespace
+}
 void AddSC_AscensionFelswornSummons()
 {
     RegisterCreatureAI(npc_ascension_felsworn_infernal);

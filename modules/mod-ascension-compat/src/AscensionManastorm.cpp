@@ -158,7 +158,6 @@ namespace
 
         void Configure()
         {
-            // Startup only: disabling a live run halfway through must not discard its return location.
             enabled.store(sConfigMgr->GetOption<bool>("Ascension.Manastorm.Enable", false));
         }
 
@@ -183,8 +182,6 @@ namespace
                 if (!valid(scene.entrance) || !valid(scene.boss)
                     || !std::all_of(scene.guards.begin(), scene.guards.end(), valid))
                     continue;
-                // Connect the room through visible, walkable segments. Guards behind a bend
-                // are allowed; closed walls, cliffs and isolated platforms are excluded.
                 std::vector<Spawn> points = {scene.entrance, scene.boss};
                 for (Spawn const& guard : scene.guards)
                     if (guard.entry)
@@ -318,7 +315,6 @@ namespace
                     uint8 const mode = fields[0].Get<uint8>();
                     uint32 const depth = fields[1].Get<uint32>();
                     if (mode == 255 && !depth)
-                        // The always-present sentinel distinguishes an empty journal from a failed read.
                         run.databaseReady = true;
                     else if (mode < run.progress.size() && depth)
                         run.progress[mode].push_back(depth);
@@ -344,7 +340,6 @@ namespace
                     player->ClearScriptedPrivateInstance();
                 }
             }
-            // SaveToDB stored the outside position; a server crash never recreates a half-finished scene.
             ClearUtilities(player);
             run.encounter = std::make_shared<Encounter>();
             run.needsTransfer = false;
@@ -491,7 +486,6 @@ namespace
             if (run.encounter->phase == Phase::Committing && run.commitReady && !player->IsBeingTeleported()
                 && !OwnsScene(player, run))
             {
-                // An external teleport must not strand the journal callback in a departed instance.
                 if (!run.commitSucceeded)
                     ChatHandler(player->GetSession()).SendSysMessage(
                         "Manastorm could not save this clear. No reward was issued.");
@@ -638,7 +632,7 @@ namespace
             player->SaveToDB(false, false);
         }
 
-        void UpdateInstance(InstanceMap* map, uint32 /*diff*/)
+        void UpdateInstance(InstanceMap* map, uint32)
         {
             Player* player = FindOwner(map);
             if (!player || !player->IsInWorld())
@@ -954,7 +948,6 @@ namespace
                 return;
             player->DestroyItemCount(currency, price, true);
             player->SendNewItem(item, count, true, false);
-            // The inventory purchase uses the same native character transaction as ordinary vendors.
             player->SaveToDB(false, false);
         }
 
@@ -1035,7 +1028,6 @@ namespace
                         ReloadXP(guid, itr->second);
                     if (!success)
                     {
-                        // The durable voucher remains. Reload the persisted character before retrying.
                         itr->second.databaseReady = false;
                         LOG_ERROR("module.ascension_compat", "Manastorm XP save failed for {}; relog required", guid.ToString());
                     }
@@ -1054,8 +1046,6 @@ namespace
 
         static void AppendCacheStack(Player* player, Item* stack, CharacterDatabaseTransaction transaction)
         {
-            // Serialize the future stack using native item fields, then restore live state until COMMIT.
-            // SaveToDB clears the queue index; remove/reinsert explicitly so the old queue has no stale entry.
             uint32 const count = stack->GetCount();
             ItemUpdateState const state = stack->GetState();
             bool const queued = stack->IsInUpdateQueue();
@@ -1075,7 +1065,6 @@ namespace
             auto* statement = CharacterDatabase.GetPreparedStatement(CHAR_SEL_MANASTORM_CACHES);
             statement->SetData(0, player->GetGUID().GetCounter());
             PreparedQueryResult result = CharacterDatabase.Query(statement);
-            // A sentinel distinguishes an empty queue from a failed read. Process at most three items per tick.
             if (!result)
                 return;
             bool found = false;
@@ -1112,7 +1101,6 @@ namespace
                 uint16 const position = positions.front().pos;
                 uint8 const bagSlot = uint8(position >> 8);
                 Bag* bag = bagSlot == INVENTORY_SLOT_BAG_0 ? nullptr : player->GetBagByPos(bagSlot);
-                // Do not attach a durable reward to a bag that has not yet been saved.
                 if (bagSlot != INVENTORY_SLOT_BAG_0 && (!bag || !HasStoredItem(player, bag)))
                     return;
                 Item* stack = player->GetItemByPos(position);
@@ -1137,8 +1125,6 @@ namespace
                 claim->SetData(0, itemGuid);
                 claim->SetData(1, player->GetGUID().GetCounter());
                 transaction->Append(claim);
-                // Wait for this small inventory transaction on the player's map thread. The slot cannot
-                // change while waiting, and a failed commit leaves both the live bag and reward intact.
                 if (!CharacterDatabase.AsyncCommitTransaction(transaction).m_future.get())
                 {
                     LOG_ERROR("module.ascension_compat", "Manastorm cache delivery failed for {}; reward retained",
@@ -1358,15 +1344,10 @@ namespace
                 maxLevel = std::max(maxLevel, uint32(member->GetLevel()));
                 minLevel = std::min(minLevel, uint32(member->GetLevel()));
             }
-            // Challenge rules (e.g. CHALLENGE_RULES_TYPE_NO_MANASTORM) can forbid
-            // entering the Manastorm. The rule logic lives in mod-coa-challenges;
-            // the check is exposed through this core PlayerScript hook.
             for (Player* member : party)
             {
                 if (!sScriptMgr->OnPlayerCanEnterManastorm(member))
                 {
-                    // The hook (mod-coa-challenges) already sends the chat
-                    // message; only the client result is sent here.
                     SendResult(player, EnterResult, "ENTER_MANASTORM_UNKNOWN");
                     return;
                 }
@@ -1529,7 +1510,6 @@ namespace
             creature->SetLootMode(0);
             float const scale = DepthStatMultiplier(run.encounter->depth);
             float const party = PartyStatMultiplier(uint32(run.encounter->members.size()));
-            // Retain the established five-player baseline, then apply AutoBalance's player-count curve.
             float const groupHealth = 4.2f * party;
             uint32 const health = uint32(std::min(500000000.0f,
                 (140 + 35 * run.encounter->level) * scale * (boss ? 4.0f : 1.0f) * groupHealth));
@@ -1548,7 +1528,6 @@ namespace
             if (run.encounter->depth >= 6)
             {
                 constexpr std::array<uint32, 3> affixes = {UnrelentingSpeed, Leeching, TribalFury};
-                // Only the boss carries the nearby-allies emitter; do not multiply emitters on each guard.
                 uint32 const affix = affixes[(run.encounter->depth - 6) % affixes.size()];
                 if (affix != TribalFury || boss)
                     creature->AddAura(affix, creature);
@@ -1659,7 +1638,6 @@ namespace
                 transaction->Append(attachment);
                 reward->items.push_back(std::move(item));
             }
-            // Native mail persistence, with in-memory publication postponed until COMMIT succeeds.
             auto* statement = CharacterDatabase.GetPreparedStatement(CHAR_INS_MAIL);
             statement->SetData(0, mail->messageID);
             statement->SetData(1, mail->messageType);
@@ -1679,7 +1657,6 @@ namespace
             ObjectGuid const guid = player->GetGUID();
             uint32 const instanceId = run.encounter->instanceId;
             uint32 const depth = run.encounter->depth;
-            // Snapshot XP bonuses before saving the reward; delivery may happen after the buffs expire.
             bool const recruitAFriend = player->GetsRecruitAFriendBonus(true);
             float const xpMultiplier = player->GetTotalAuraMultiplier(SPELL_AURA_MOD_XP_PCT,
                 [recruitAFriend](AuraEffect const* effect)
@@ -1794,7 +1771,7 @@ namespace
         void FailRun(Player* player, Run& run)
         {
             if (run.encounter->phase == Phase::Committing)
-                return; // Preserve the pending durable completion until its outcome is known.
+                return;
             if (run.encounter->phase != Phase::Failed)
             {
                 WorldPacket failed(Fail, 0);
@@ -1909,7 +1886,6 @@ namespace
         }
         bool OnPlayerBeforeCriteriaProgress(Player* player, AchievementCriteriaEntry const* criteria) override
         {
-            // LoadFromDB updates criteria before SetMap, including ordinary character logins.
             Map const* map = player->FindMap();
             return !map || !map->IsScriptedPrivateInstance()
                 || criteria->requiredType != ACHIEVEMENT_CRITERIA_TYPE_KILL_CREATURE;
@@ -1986,7 +1962,6 @@ namespace
                         eligible.push_back(entry);
                         bestLevel = std::max(bestLevel, item->RequiredLevel);
                     }
-            // Prefer gear close to the opener's level, retaining neutral slots for every class.
             std::erase_if(eligible, [bestLevel](LootStoreItem const* entry)
             {
                 return sObjectMgr->GetItemTemplate(entry->itemid)->RequiredLevel + 5 < bestLevel;
@@ -1994,7 +1969,6 @@ namespace
             if (!eligible.empty())
                 loot.AddItem(*eligible[urand(0, uint32(eligible.size() - 1))]);
             else
-                // An unusually restricted character still gets a real tradable dungeon item.
                 loot.AddItem(**std::next(entries.begin(), urand(0, uint32(entries.size() - 1))));
             return false;
         }
@@ -2053,7 +2027,6 @@ namespace
         ManastormCommands() : CommandScript("AscensionManastormCommands") { }
         ChatCommandTable GetCommands() const override
         {
-            // ChatCommandBuilder retains a reference to its child table.
             static ChatCommandTable const manastormCommands = {
                 {"enter", EnterCommand, SEC_PLAYER, Console::No},
                 {"leave", LeaveCommand, SEC_PLAYER, Console::No},

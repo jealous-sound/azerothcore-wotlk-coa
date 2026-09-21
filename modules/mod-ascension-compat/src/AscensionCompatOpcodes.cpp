@@ -3,9 +3,6 @@
  * https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-AGPL3
  */
 
-// The claim registry behind AscensionCompatOpcodes.h. Its own file so the registry lives at
-// global scope: AscensionCompat.cpp keeps most of its helpers inside one anonymous namespace, and
-// a namespace defined there would be a different namespace from the one modules include.
 #include "AscensionCompatOpcodes.h"
 
 #include "WorldPacket.h"
@@ -18,8 +15,6 @@ namespace AscensionCompatOpcodes
 {
     namespace
     {
-        /// One entry per opcode a module owns. Filled during startup, before the world accepts
-        /// connections, and read-only afterwards, so lookups need no lock.
         std::vector<std::pair<uint16, Handler>>& ClaimedOpcodes()
         {
             static std::vector<std::pair<uint16, Handler>> claimed;

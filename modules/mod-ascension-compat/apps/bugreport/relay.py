@@ -1,10 +1,11 @@
-"""Deliver in-game reports through the configured CoA Railway service. Standard library only.
+
+from __future__ import annotations
+
+CLI_DESCRIPTION = """Deliver in-game reports through the configured CoA Railway service. Standard library only.
 
 Dry-run is the default. --send uses the bundled report-service URL and intake key.
 Never run two instances against the same spool; the CLI enforces an OS file lock.
 """
-
-from __future__ import annotations
 
 import argparse
 from contextlib import contextmanager
@@ -21,7 +22,6 @@ import urllib.request
 REPOSITORY = "jealous-sound/azerothcore-wotlk-coa"
 SERVICE_URL = "https://coa-bug-report.up.railway.app"
 API = SERVICE_URL + "/v1/reports"
-# Distribution credential for this narrow intake API; this is not a GitHub token.
 DEFAULT_API_KEY = "coa_zRatxUHShOn-HEkoreKGME6sd3DdMG7eKTTKlj2JCK4"
 WEB = f"https://github.com/{REPOSITORY}/issues/"
 KEY = re.compile(r"[1-9][0-9]{0,9}-[0-9a-f]{16,48}")
@@ -31,7 +31,6 @@ MAX_RESPONSE = 64 * 1024
 
 class DeliveryError(Exception):
     def __init__(self, kind: str, delay: int = 300):
-        # Only fixed local codes, never API bodies, credentials or report content.
         super().__init__(kind)
         self.kind = kind
         self.delay = delay
@@ -129,8 +128,6 @@ def read_report(path: Path):
     digest = hashlib.sha256(raw).hexdigest()
     report_id = hashlib.sha256((path.stem + ":" + digest).encode("ascii")).hexdigest()
     marker = f"<!-- coa-report:{report_id} -->"
-    # Keep the original content stable for Railway's exact-content duplicate filter.
-    # The service adds its introduction and neutralizes mentions exactly once.
     return digest, marker, title, body
 
 
@@ -159,7 +156,6 @@ class Relay:
             number INTEGER, attempted REAL NOT NULL DEFAULT 0, next_try REAL NOT NULL DEFAULT 0
         )""")
         self.database.execute("CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value REAL NOT NULL)")
-        # The OS lock excludes a currently active POST from another worker.
         self.database.execute("UPDATE deliveries SET state='uncertain' WHERE state='posting'")
         self.database.commit()
 
@@ -187,7 +183,6 @@ class Relay:
                 (key, digest, marker))
         row = self.database.execute("SELECT * FROM deliveries WHERE key=?", (key,)).fetchone()
         if row["digest"] != digest:
-            # Never replace an existing delivery or publish edited content under the same ID.
             write_status(self.root, key, "failed")
             return "changed"
         if row["state"] in ("created", "failed", "uncertain"):
@@ -203,7 +198,6 @@ class Relay:
         with self.database:
             self.database.execute("INSERT OR REPLACE INTO settings VALUES('next_network',?)", (self.clock() + 5,))
 
-        # A crash after this point needs review: Railway's duplicate cache can reset on deploy.
         with self.database:
             self.database.execute("UPDATE deliveries SET state='posting', attempted=? WHERE key=?", (self.clock(), key))
         try:
@@ -224,7 +218,6 @@ class Relay:
 @contextmanager
 def worker_lock(root: Path):
     with (root / "relay.lock").open("a+b") as lock:
-        # Windows denies reads of another process's locked byte as well as lock acquisition.
         lock.seek(0, os.SEEK_END)
         if lock.tell() == 0:
             lock.write(b"0")
@@ -250,7 +243,7 @@ def worker_lock(root: Path):
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument("--spool", type=Path, required=True)
     parser.add_argument("--once", action="store_true", help="Process one pass, then exit.")
     modes = parser.add_mutually_exclusive_group()
@@ -289,6 +282,5 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         raise SystemExit(0)
     except (OSError, ValueError, RuntimeError, sqlite3.Error) as error:
-        # Do not dump report bodies, the environment, HTTP headers or arbitrary exception text.
         print(f"Relay stopped ({type(error).__name__}). Check configuration, permissions and the delivery journal.")
         raise SystemExit(1)

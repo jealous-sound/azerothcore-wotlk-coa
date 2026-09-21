@@ -9,10 +9,6 @@ class Spell;
 class Unit;
 struct TargetInfo;
 
-// Reviewed tooltip contracts for Barbarian through Knight of Xoroth.  These
-// entry points intentionally stay separate from AscensionClassMechanics.cpp so
-// the group audit can be integrated without overlapping the Guardian/Ranger
-// implementation.
 void HandleAscensionClassMechanics12To17CalculatedTarget(Spell* spell,
     Player* player, Unit* target, TargetInfo& targetInfo);
 void HandleAscensionClassMechanics12To17Hit(Spell* spell, Player* player,

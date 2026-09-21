@@ -1,4 +1,4 @@
-"""Test Runemaster aura transitions using the bounded talent fixture."""
+CLI_DESCRIPTION = """Test Runemaster aura transitions using the bounded talent fixture."""
 import argparse
 import importlib.util
 from pathlib import Path
@@ -99,7 +99,7 @@ int main()
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument("--workspace-tools", type=Path, default=ROOT.parent / "tools")
     parser.add_argument("--spell-dbc", type=Path)
     args = parser.parse_args()

@@ -1,4 +1,3 @@
-"""Exercise Hurricane's target lifetime, 5/7 strikes, level scaling and Waveforged exit."""
 from pathlib import Path
 import runpy
 import struct

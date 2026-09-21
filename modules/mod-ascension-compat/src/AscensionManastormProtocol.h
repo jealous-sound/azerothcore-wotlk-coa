@@ -10,7 +10,6 @@
 
 namespace Ascension::Manastorm
 {
-    // Extensions.dll SHA256 0f8d847b...c11. Names resolved through RVA 2C7AF0 jump table.
     enum Opcode : std::uint16_t
     {
         Enter = 0x651, EnterResult = 0x652, ProgressUpdate = 0x65D,
@@ -41,7 +40,6 @@ namespace Ascension::Manastorm
     void WriteActive(Buffer& packet, std::uint32_t depth, std::uint32_t scene, std::uint8_t type,
         std::uint32_t caches = 0, float chance = 0, std::uint32_t item = 0)
     {
-        // RVA 2A1E90: two DWORDs, NUL-terminated type, DWORD caches, float chance, DWORD item.
         packet << depth << scene << Types.at(type) << caches << chance << item;
     }
 }

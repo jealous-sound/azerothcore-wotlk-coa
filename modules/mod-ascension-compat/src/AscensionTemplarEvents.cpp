@@ -56,8 +56,6 @@ class aura_ascension_templar_event : public AuraScript
                    event.GetDamageInfo()->GetAttackType() == OFF_ATTACK;
         case 92111:
         case 520007: {
-            // Scourgebane's 20% chance. Pure Focus raises it through a modifier on the flagged 520007 identity,
-            // which also applies to the current 92111 identity.
             float chance = 20.0f;
             player->ApplySpellMod(520007, SPELLMOD_CHANCE_OF_SUCCESS, chance);
             return damage && !periodic && !Named(info, 804929) && (id != 520007 || !player->HasAura(92111)) &&
@@ -225,7 +223,7 @@ class aura_ascension_templar_event : public AuraScript
         OnProc += AuraProcFn(aura_ascension_templar_event::Proc);
     }
 };
-} // namespace
+}
 void AddSC_AscensionTemplarEvents()
 {
     RegisterSpellScript(aura_ascension_templar_event);

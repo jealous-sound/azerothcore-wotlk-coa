@@ -38,7 +38,6 @@ struct ExpectedSpell
     std::array<ExpectedEffect, 3> Effects;
 };
 
-// Generated from the reviewed current acquisition and complete effect contracts.
 constexpr std::array<ExpectedSpell, 9> ExpectedSpells = {{
     {560280, 19, 0, 101, 0, 0, 0, 0, 1, 0, 4, {320, 1024, 4, 268435456, 0, 0, 0, 0},
         {{{6, 175, 39, 1, 127, 4, 1, 0, 0.0f, 0},
@@ -136,7 +135,5 @@ void ApplyAscensionHealingStatSelectorContracts(SpellInfo* spellInfo)
             return;
     }
 
-    // Only these acquired records use the copied school-mask encoding here.
-    // Native aura 175 requires the visible source stat in MiscValue.
     spellInfo->Effects[expected->HealingEffect].MiscValue = expected->HealingStat;
 }

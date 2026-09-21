@@ -1,4 +1,3 @@
-"""Run Ranger companion/bleed callbacks and the native Quills target-count path."""
 import importlib.util
 import os
 from pathlib import Path
@@ -22,7 +21,6 @@ def target_counts():
     mask = rows[801429][125:128]
     assert all(rows[sid][210] & mask[1] for sid in ids)
     definitions = 'struct Fixture { SpellInfo spell; SpellEffIndex index; uint32 bonus; std::vector<uint32> targets; };\n'
-    # One through five resource stacks exercise the actual target-limit implementation.
     definitions += 'std::array<Fixture, 5> fixtures = {{\n' + ',\n'.join(
         '{' + fixture.cpp_spell(rows[801429], reader) + ',EFFECT_1,' + str(stacks) + ',{' +
         ','.join(map(str, ids)) + '}}' for stacks in range(1, 6)) + '\n}};\n'

@@ -1,4 +1,3 @@
-// Aura transport for the existing Necromancer fixture; callbacks and army selection are actual source.
 namespace
 {
 uint32 depth = 0;
@@ -52,7 +51,6 @@ Aura* Unit::AddAura(uint32 id, Unit* target)
 
 void Unit::CastSpell(Unit* target, uint32 id, bool)
 {
-    // All three wards use TARGET_UNIT_CASTER even when a minion is the explicit target.
     if (manager.GetSpellInfo(id)->Effects[0].TargetA.GetTarget() == TARGET_UNIT_CASTER)
         target = this;
     casts.push_back({id, target->guid, 0});
@@ -104,7 +102,6 @@ void CheckWards()
         if (count > 1)
             army.push_back({second.guid, 500970, 1});
 
-        // Starting with Bone Ward reproduces the report; every switch exercises shared ward handling.
         for (uint32 id : {681529, 680388, 681460, 681529})
         {
             auraApplications = 0;
@@ -120,7 +117,6 @@ void CheckWards()
                     if (previous != id)
                         assert(!owner.HasAura(previous) && !minion->HasAura(previous));
             }
-            // Refresh uses the same callback and must not recursively cast or accumulate stacks.
             auraApplications = 0;
             owner.CastSpell(&owner, id, true);
             assert(auraApplications == count + 1 && owner.GetAura(id)->GetStackAmount() == 1);
@@ -129,7 +125,6 @@ void CheckWards()
             for (Creature* minion : Minions(&owner))
                 assert(minion->GetAura(id)->GetDuration() == 4321);
         }
-        // A foreign caster's ward on a recipient survives owner-scoped cleanup.
         if (count > 0)
             other.AddAura(681529, &first);
         owner.RemoveAurasDueToSpell(681529);

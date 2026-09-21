@@ -1,4 +1,4 @@
-"""Exercise real proficiency synchronization across level changes and repeated logins."""
+CLI_DESCRIPTION = """Exercise real proficiency synchronization across level changes and repeated logins."""
 import argparse
 import os
 from pathlib import Path
@@ -13,7 +13,7 @@ method = runpy.run_path(str(HERE.parent / "client_compat/run.py"))["method"]
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument("--source-ref")
     args = parser.parse_args()
     path = "modules/mod-ascension-compat/src/AscensionCompat.cpp"
@@ -87,7 +87,6 @@ int main()
     assert(!missing.HasSkill(SKILL_UNARMED));
 }
 '''
-    # The tested callback serves both repair/login and the actual level-change hook.
     assert "SynchronizeProficiencies(player);" in method(source, "void OnPlayerLevelChanged(")
     compiler = str(Path(os.environ["VCToolsInstallDir"]) / "bin/Hostx64/x64/cl.exe")
     with tempfile.TemporaryDirectory(prefix="coa-combat-skills-") as directory:

@@ -1,4 +1,3 @@
-"""Exercise Runemaster secondary procs, charge events and conditional tattoo companions."""
 import os
 from pathlib import Path
 import re

@@ -88,7 +88,6 @@ class spell_ascension_totem_warrior : public SpellScript
 
         if (AuraEffect const* talent = owner->GetAuraEffect(SPELL_TOTEM_WARRIOR, EFFECT_0, owner->GetGUID()))
         {
-            // Observe each completed weapon hit, including the triggered offhand, after mitigation and crits.
             int32 amount = int32(int64(GetHitDamage()) * std::clamp(talent->GetAmount(), 0, 100) / 100);
             if (amount)
                 owner->CastCustomSpell(SPELL_TOTEM_WARRIOR_HIT, SPELLVALUE_BASE_POINT0, amount, victim,
@@ -163,8 +162,6 @@ class aura_ascension_natures_blessing : public AuraScript
     void Proc(AuraEffect const* effect, ProcEventInfo& event)
     {
         PreventDefaultAction();
-        // As with native Living Seed, use the completed heal (including its crit),
-        // before overhealing. The tooltip specifies 20% on each of three ticks.
         uint64 amount = uint64(event.GetHealInfo()->GetHeal()) * std::clamp(effect->GetAmount(), 0, 100) / 100;
         if (amount)
             GetTarget()->CastCustomSpell(807561, SPELLVALUE_BASE_POINT0,
@@ -179,9 +176,6 @@ class aura_ascension_natures_blessing : public AuraScript
     }
 };
 
-// Hammer of Life (803973): melee attacks and abilities heal nearby allies and damage nearby enemies for $s1% of the
-// damage dealt. Both helpers use effect 0's percentage, as the tooltip does; effect 2's own 30% is not described.
-// The helpers pick their targets (up to 3 each, around the caster) from their own Spell.dbc records.
 class aura_ascension_hammer_of_life : public AuraScript
 {
     PrepareAuraScript(aura_ascension_hammer_of_life);
@@ -209,7 +203,7 @@ class aura_ascension_hammer_of_life : public AuraScript
             TRIGGERED_FULL_MASK);
     }
 
-    void IgnoreSecondTrigger(AuraEffect const* /*effect*/, ProcEventInfo& /*event*/)
+    void IgnoreSecondTrigger(AuraEffect const*, ProcEventInfo&)
     {
         PreventDefaultAction();
     }
@@ -235,7 +229,6 @@ public:
             !target || target == player || player->IsFriendlyTo(target) ||
             !player->HasAura(SPELL_CRACKING_EARTH, player->GetGUID()))
             return;
-        // The native result callback visits each unique target once, after all its effects.
         uint64 count = spell->GetScriptValue(SPELL_CRACKING_STACK) + 1;
         spell->SetScriptValue(SPELL_CRACKING_STACK, count);
         if (count == 5)
@@ -284,8 +277,6 @@ public:
             return;
         if (info->Id == SPELL_SAVAGE_FRENZY)
         {
-            // The active description grants all three bonuses to both owner
-            // and pet. Keep target A so native pet-presence checks still apply.
             for (SpellEffectInfo& effect : info->Effects)
                 if (effect.IsAura() && effect.TargetA.GetTarget() == TARGET_UNIT_PET &&
                     effect.TargetB.GetTarget() == 0)
@@ -306,12 +297,11 @@ public:
             info->ProcFlags = 0;
         }
         if (info->Id == SPELL_CRACKING_STACK)
-            // E2 supplies native chain jumps. E1 is the separate area target-cap modifier.
             info->Effects[EFFECT_1].ApplyAuraName = SPELL_AURA_MOD_MAX_AFFECTED_TARGETS;
         if (info->Id == SPELL_EMBRACE_DISORIENT)
             info->AuraInterruptFlags |= AURA_INTERRUPT_FLAG_TAKE_DAMAGE;
         if (info->Id == SPELL_GAZE_SLOW)
-            info->ProcCharges = 1; // Native proc data spends this on the next melee/ranged swing, including misses.
+            info->ProcCharges = 1;
         if (info->Id == SPELL_ANCIENT_SLOW || info->Id == SPELL_CRACKING_STACK || info->Id == SPELL_GAZE_SLOW)
         {
             info->AttributesCu &= ~SPELL_ATTR0_CU_FORCE_AURA_SAVING;
@@ -320,11 +310,6 @@ public:
     }
 };
 
-// The Primalist spends Rage - 123 of its family-37 records carry a Rage cost, Seismic Smash among
-// them - but ChrClasses.dbc gives class 31 Mana as its display power. Unit::DealDamage grants Rage for
-// melee damage dealt and for damage received only when HasActivePowerType(POWER_RAGE) holds, and that
-// helper asks the player scripts first, otherwise comparing the display power, so auto attacks built
-// no Rage at all.
 class primalist_resources : public PlayerScript
 {
 public:

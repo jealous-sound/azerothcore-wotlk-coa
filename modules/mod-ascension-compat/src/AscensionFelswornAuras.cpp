@@ -35,7 +35,7 @@ class aura_ascension_felsworn_lifecycle : public AuraScript
         if (GetId() == 807163 && effect->GetEffIndex() == EFFECT_0)
             amount = 30;
         if (GetId() == 807424 && effect->GetEffIndex() == EFFECT_1)
-            amount = 0; // extra targets are selected explicitly once
+            amount = 0;
     }
     void Apply(AuraEffect const* effect, AuraEffectHandleModes)
     {
@@ -66,7 +66,11 @@ class aura_ascension_felsworn_lifecycle : public AuraScript
             if (id == sid)
                 GetAura()->SetScriptValue(800058, ++State(player).sequence);
         if (id == 803904)
-            GetAura()->SetScriptValue(id, 5);
+        {
+            uint32 charges = 5;
+            player->ApplySpellMod(id, SPELLMOD_CHARGES, charges);
+            GetAura()->SetScriptValue(id, charges);
+        }
         if (id == 807163)
             GetAura()->SetScriptValue(id, 10);
         if (id == 800206)
@@ -80,8 +84,6 @@ class aura_ascension_felsworn_lifecycle : public AuraScript
             for (uint32 talent : {520252, 520253})
                 if (AuraEffect* hide = player->GetAuraEffect(talent, EFFECT_0))
                     hide->ChangeAmount(hide->CalculateAmount(player));
-            // Unphased's pushback-reduction half (effect 1) is only correct while Inner Demon is
-            // active; force it to re-evaluate felsworn_scaling::ModifySpellEffectBaseValue now.
             RefreshUnphased(player);
             player->UpdateArmor();
         }
@@ -183,7 +185,6 @@ class aura_ascension_felsworn_lifecycle : public AuraScript
         if (id == 712483 && mode == AURA_REMOVE_BY_EXPIRE && GetTarget()->IsAlive())
         {
             uint64 count = GetAura()->GetScriptValue(id);
-            // The finite aura owns the base damage; the direct child receives its total once.
             Copy(
                 player, GetTarget(), 807554,
                 uint32(std::min<uint64>(INT32_MAX, count * std::max(0, GetSpellInfo()->Effects[0].CalcValue(player)))));
@@ -197,8 +198,6 @@ class aura_ascension_felsworn_lifecycle : public AuraScript
             for (uint32 talent : {520252, 520253})
                 if (AuraEffect* hide = player->GetAuraEffect(talent, EFFECT_0))
                     hide->ChangeAmount(hide->CalculateAmount(player));
-            // Mirrors Apply(): Unphased's pushback reduction must drop back to zero the moment
-            // Inner Demon ends.
             RefreshUnphased(player);
             player->UpdateArmor();
         }
@@ -330,7 +329,7 @@ class aura_ascension_felsworn_resolve : public AuraScript
         OnEffectAbsorb += AuraEffectAbsorbFn(aura_ascension_felsworn_resolve::Absorb, EFFECT_1);
     }
 };
-} // namespace
+}
 void AddSC_AscensionFelswornAuras()
 {
     RegisterSpellScript(aura_ascension_felsworn_lifecycle);

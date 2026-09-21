@@ -1,4 +1,4 @@
-"""Compile the actual central gain dispatch and mutation methods for issue #77."""
+CLI_DESCRIPTION = """Compile the actual central gain dispatch and mutation methods for issue #77."""
 import argparse
 import os
 from pathlib import Path
@@ -13,7 +13,7 @@ MODULE = ROOT / 'modules/mod-ascension-compat/src'
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument('--before', help='Use this Git revision of the resource table as a negative control')
     parser.add_argument('--dbc-dir', type=Path, default=ROOT.parent / 'runtime/server/data/dbc',
                         help='Client DBC directory used to verify native resource caps')
@@ -23,7 +23,6 @@ def main():
     methods = [extract(service, signature) for signature in (
         'static bool SpellDealsDamage(', 'static bool MatchesGainRule(',
         'static bool ApplyGainRule(', 'static void ModifyAuraStacks(')]
-    # Exercise the production resource-gain loops; native power and spending have separate fixtures.
     cast = extract(service, 'void OnSpellCast(')
     methods.append(cast[:cast.index('        for (AscensionCompatData::NativePowerGainRule')] + '\n}')
     hit = extract(service, 'void OnSpellHitResult(')

@@ -1,4 +1,3 @@
-"""Check actual Chronomancer callbacks against copied DBC and native rank data."""
 import argparse
 import os
 from pathlib import Path
@@ -18,7 +17,6 @@ SQL = ROOT / 'data/sql/updates/pending_db_world/rev_1789370063248101100.sql'
 def check_summons(rows):
     sql = SQL.read_text()
     db = sqlite3.connect(':memory:')
-    # Only the columns touched by this migration are needed for preservation and replay checks.
     schemas = {}
     for table, columns in re.findall(r'INSERT INTO `(\w+)`\s*\((.*?)\)', sql, re.S):
         schemas.setdefault(table, set()).update(re.findall(r'`(\w+)`', columns))
@@ -45,12 +43,11 @@ def check_summons(rows):
     assert db.execute('SELECT type,data0,data1,data6,data7 FROM gameobject_template WHERE entry=194109').fetchone() == (
         18, 2, 1200007, 1, 1)
     assert db.execute('SELECT type,data0 FROM gameobject_template WHERE entry=194112').fetchone() == (23, 1)
-    assert 23598 in spells  # Native meeting-stone summon used by the completed hourglass.
+    assert 23598 in spells
     assert db.execute('SELECT ProcFlags,SpellTypeMask,SpellPhaseMask,Chance,Cooldown FROM spell_proc').fetchone() == (
         262144, 3, 2, 100, 0)
     bonuses = db.execute('SELECT direct_bonus,dot_bonus,ap_bonus,ap_dot_bonus FROM spell_bonus_data')
     assert set(bonuses) == {(0, 0, 0, 0)}
-    # Guarded template inserts must preserve an installation's existing content, including custom appearance.
     db.execute("UPDATE creature_template SET name='existing clone' WHERE entry=50071")
     db.execute('UPDATE creature_template_model SET CreatureDisplayID=123 WHERE CreatureID=50071')
     db.execute("UPDATE gameobject_template SET name='existing object'")
@@ -99,7 +96,6 @@ def main():
     init.extend(f'manager.roots[{sid}]={root};manager.infos[{sid}].rank={rank};' for root, sid, rank in ranks)
     init.append('}')
     code = (HERE / 'harness.cpp').read_text() + re.sub(r'^#include.*\n', '', source, flags=re.M)
-    # Exercise the native percentage tick calculation selected by the metadata correction.
     extract = runpy.run_path(str(HERE.parent / 'client_compat/run.py'))['method']
     native = extract((ROOT / 'src/server/game/Spells/Auras/SpellAuraEffects.cpp').read_text(),
                      'void AuraEffect::HandleObsModPowerAuraTick(')

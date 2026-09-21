@@ -9,9 +9,6 @@ class Spell;
 class SpellInfo;
 class Unit;
 
-// Exact contracts kept separate from the shared class-mechanics dispatcher.
-// ResourceGainRules, NativePowerGainRules, and their event hooks remain owned
-// by AscensionResourceService and must not be duplicated here.
 void ApplyAscensionClassMechanics19To25(SpellInfo* spellInfo);
 [[nodiscard]] bool CanPrepareAscensionClassMechanics19To25(Spell* spell);
 void HandleAscensionClassMechanics19To25Hit(Spell* spell, Player* player,

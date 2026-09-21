@@ -304,7 +304,7 @@ template <class T> struct UnitListSearcher
     {
     }
 };
-} // namespace Acore
+}
 namespace Cell
 {
 template <class T> void VisitObjects(Unit *, T &search, float radius)
@@ -313,7 +313,7 @@ template <class T> void VisitObjects(Unit *, T &search, float radius)
         if (search.center->GetDistance(unit) <= radius)
             search.targets.push_back(unit);
 }
-} // namespace Cell
+}
 struct SpellCastTargets
 {
     Unit *unit = nullptr;

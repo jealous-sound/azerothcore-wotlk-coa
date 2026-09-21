@@ -17,8 +17,6 @@ public:
     {
         if (info->Id != GroveGuardianAllies || info->SpellFamilyName != 37)
             return;
-        // DynObjAura selects friends through target B. The copied ally helper
-        // specified only target A, so it healed and accelerated hostile units.
         for (SpellEffectInfo& effect : info->Effects)
             if (effect.Effect == SPELL_EFFECT_PERSISTENT_AREA_AURA &&
                 effect.TargetA.GetTarget() == TARGET_UNIT_DEST_AREA_ALLY && effect.TargetB.GetTarget() == 0)

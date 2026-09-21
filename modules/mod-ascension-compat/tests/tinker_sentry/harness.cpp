@@ -188,19 +188,16 @@ int main()
     units = {{2, &mobA}, {3, &mobB}, {4, &mobC}};
     neighborhood = {&mobA, &mobB, &mobC};
 
-    // Nearby hostiles and selected targets are not attack evidence.
     player.selected = &mobA;
     ObserveAttack(&player);
     assert(!ai.TurretTarget(&player));
 
-    // A mob attacking the player first must not wake an idle turret.
     player.combat.insert(&mobA);
     ObserveAttack(&player);
     assert(!ai.TurretTarget(&player));
 
     ai.IsSummonedBy(&player);
 
-    // A deliberate player melee attack is observed from the player's actual victim.
     player.combat.clear();
     player.selected = nullptr;
     player.victim = &mobA;
@@ -211,7 +208,7 @@ int main()
     unregistered.flags = 0;
     ai.UpdateTurret(&player);
     assert(turret.facing == &mobA);
-    if (turret.shots.size() != 1) // Reproduces #89 before the control flags are initialized.
+    if (turret.shots.size() != 1)
         return 89;
     assert(turret.m_ControlledByPlayer && turret.pvp == player.pvp);
     assert(player.m_Controlled.contains(&turret));
@@ -228,13 +225,11 @@ int main()
     assert(!turret.NativeAttackAdmission(&mobA));
     mobA.flags = 0;
 
-    // An unrelated nearby hostile is ignored while the player attacks A.
     player.combat.insert(&mobB);
     player.selected = &mobB;
     ObserveAttack(&player);
     assert(ai.TurretTarget(&player) == &mobA);
 
-    // Rocket Launcher and other explicit hostile Tinker spells notify the same focus path.
     SpellInfo rocket;
     rocket.SpellFamilyName = 34;
     rocket.positive = false;
@@ -247,18 +242,15 @@ int main()
     assert(turret.shots.size() == 2 && turret.facing == &mobB);
     assert(turret.m_attackTimer[RANGED_ATTACK] == 1000);
 
-    // A stale melee victim cannot override the newer explicit spell target.
     player.victim = &mobA;
     ObserveAttack(&player);
     assert(ai.TurretTarget(&player) == &mobB);
 
-    // A new deliberate melee attack replaces the spell target.
     player.victim = &mobC;
     ObserveAttack(&player);
     assert(State(&player).focus == mobC.guid);
     assert(ai.TurretTarget(&player) == &mobC);
 
-    // Selection and combat membership still do not create a target.
     player.victim = nullptr;
     player.selected = &mobA;
     player.combat.clear();
@@ -266,7 +258,6 @@ int main()
     assert(State(&player).focus == mobC.guid);
     assert(ai.TurretTarget(&player) == &mobC);
 
-    // Start with no observed attack source, then exercise the native Auto Shot path with no melee victim.
     tinkerState = {};
     ai.IsSummonedBy(&player);
     player.victim = nullptr;
@@ -284,13 +275,11 @@ int main()
     assert(State(&player).focus == mobA.guid);
     assert(ai.TurretTarget(&player) == &mobA);
 
-    // Changing the native auto-repeat target is a new ranged attack, even while GetVictim() is null.
     autoShot.m_targets.unitTarget = &mobB;
     ObserveAttack(&player);
     assert(State(&player).focus == mobB.guid);
     assert(ai.TurretTarget(&player) == &mobB);
 
-    // A newer native Auto Shot target wins over an older melee victim.
     player.autoRepeat = nullptr;
     autoShot.m_targets.unitTarget = nullptr;
     player.victim = &mobA;
@@ -303,7 +292,6 @@ int main()
     assert(State(&player).focus == mobB.guid);
     assert(ai.TurretTarget(&player) == &mobB);
 
-    // A newer melee victim wins while the unchanged Auto Shot B remains active.
     player.victim = &mobC;
     ObserveAttack(&player);
     assert(State(&player).focus == mobC.guid);
@@ -311,7 +299,6 @@ int main()
     assert(State(&player).focus == mobC.guid);
     assert(ai.TurretTarget(&player) == &mobC);
 
-    // An explicit spell target is newer than the prior auto-repeat source, and a new melee target wins after it.
     player.autoRepeat = nullptr;
     autoShot.m_targets.unitTarget = nullptr;
     player.victim = nullptr;
@@ -323,7 +310,6 @@ int main()
     assert(State(&player).focus == mobC.guid);
     assert(ai.TurretTarget(&player) == &mobC);
 
-    // Positive or non-Tinker spells do not notify the attack focus.
     SpellInfo positive;
     positive.SpellFamilyName = 34;
     positive.positive = true;
@@ -334,7 +320,6 @@ int main()
     assert(!NotifySpellAttack(&player, &otherFamily, &mobA));
     assert(State(&player).focus == mobC.guid);
 
-    // An invalid most-recent explicit target goes idle instead of falling back to nearby hostiles.
     assert(NotifySpellAttack(&player, &rocket, &mobB));
     mobB.alive = false;
     assert(!ai.TurretTarget(&player));

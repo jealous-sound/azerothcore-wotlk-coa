@@ -73,7 +73,6 @@ class spell_ascension_soul_capture : public SpellScript
     {
         Unit* caster = GetCaster();
         Unit* corpse = ObjectAccessor::GetUnit(*caster, _corpse);
-        // Recheck at impact: another cast can consume the same corpse after CheckCast.
         if (!Eligible(corpse) || !caster->AddAura(SPELL_SOUL_CAPTURED, corpse))
         {
             PreventHitDefaultEffect(index);
@@ -129,7 +128,6 @@ class aura_ascension_harvester : public AuraScript
     }
 };
 
-// The Jailer's Call: attacks against enemies below 20% health trigger its extra Shadow damage.
 class aura_ascension_jailers_call : public AuraScript
 {
     PrepareAuraScript(aura_ascension_jailers_call);
@@ -184,8 +182,6 @@ bool HandleAscensionReaperResource(Player* player, uint32 spellId, int32 amount)
     else if (amount > 0)
         if (Aura* created = player->AddAura(spellId, player); created && amount > 1)
             created->ModStackAmount(amount - 1);
-    // Re-resolve: spending the last stack removes the aura. A capped award,
-    // loss, load or refresh is not a newly harvested soul.
     aura = player->GetAura(spellId, player->GetGUID());
     if (aura && aura->GetStackAmount() > previous && player->IsAlive() && player->HasAura(SPELL_SOUL_SPLINTERS))
         player->CastSpell(player, SPELL_SOUL_SPLINTER, true);

@@ -34,8 +34,6 @@ class aura_ascension_crushing_earth : public AuraScript
         Player* player = GetTarget()->ToPlayer();
         if (!player->IsInWorld() || !player->IsAlive())
             return;
-        // The active specialization promises half the rating, not the derived penetration percentage.
-        // Its hidden helper still has zero base points and an older one-for-one description.
         int32 amount = int32(player->GetUInt32Value(PLAYER_FIELD_COMBAT_RATING_1 + CR_ARMOR_PENETRATION) / 2);
         player->CastCustomSpell(CrushingEarthPower, SPELLVALUE_BASE_POINT0, amount, player,
             TRIGGERED_FULL_MASK, nullptr, effect);

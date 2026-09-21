@@ -106,7 +106,7 @@ TempSummon* Map::SummonCreature(uint32 entry,Position const& position,SummonProp
     auto summon=std::make_unique<TempSummon>();summon->owner=owner;summon->map=this;summon->x=position.x;
     summon->guid={100+uint32(creatures.size())};objects[summon->guid]=summon.get();
     auto ai=std::make_unique<npc_ascension_power_sphere>(summon.get());summon->ai=ai.get();ai->IsSummonedBy(owner);
-    summon->motion.target=owner; // Native Guardian follow occurs after IsSummonedBy.
+    summon->motion.target=owner;
     owner->minions.push_back(summon.get());TempSummon* result=summon.get();
     scripts.push_back(std::move(ai));creatures.push_back(std::move(summon));return result;
 }

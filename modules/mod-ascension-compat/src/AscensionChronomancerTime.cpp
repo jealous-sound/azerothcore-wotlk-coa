@@ -278,7 +278,6 @@ class aura_ascension_timeline_tether : public AuraScript
     {
         PreventDefaultAction();
         Player* player = GetTarget()->ToPlayer();
-        // The copied helper names only rank one. Apply its delta to every learned Fortify rank.
         for (auto const& [id, state] : player->GetSpellMap())
             if (player->HasSpell(id) && IsRank(id, Fortify))
                 player->ModifySpellCooldown(id, Amount(TetherCooldown));
@@ -301,7 +300,6 @@ class aura_ascension_borrowed_time : public AuraScript
     bool CheckProc(ProcEventInfo& event)
     {
         DamageInfo* damage = event.GetDamageInfo();
-        // "Taking Physical damage": only damage this Chronomancer received, and only the normal school.
         return Chronomancer(GetTarget()) && damage && damage->GetVictim() == GetTarget() &&
             damage->GetDamage() && (damage->GetSchoolMask() & SPELL_SCHOOL_MASK_NORMAL);
     }
@@ -310,8 +308,6 @@ class aura_ascension_borrowed_time : public AuraScript
     {
         PreventDefaultAction();
         Unit* player = GetTarget();
-        // 680374 carries SPELL_ATTR3_IGNORE_CASTER_MODIFIERS and SPELL_ATTR4_IGNORE_DAMAGE_TAKEN_MODIFIERS
-        // and a zero bonus multiplier, so the forwarded amount is the heal, never rescaled by spell power.
         uint64 amount = uint64(event.GetDamageInfo()->GetDamage()) * uint64(std::max(0, effect->GetAmount())) / 100;
         if (amount)
             player->CastCustomSpell(BorrowedTimeHeal, SPELLVALUE_BASE_POINT0,
@@ -338,26 +334,12 @@ void ApplyTimeContracts(SpellInfo* info)
         info->Effects[EFFECT_1].ApplyAuraName = SPELL_AURA_OBS_MOD_POWER;
     if (info->Id == ExpeditingTime)
     {
-        // "Reduces the channel time of your Time Out! by 40%". The time the player is actually held
-        // is the stasis 802228, which the ranks' own tooltip cites as $802228d and which carries the
-        // stun; the ranks only carry the mana regeneration. The talent's class mask (32768, 0, 0)
-        // reaches the ranks but not the stasis, whose family flags are (0, 2, 0), so today the talent
-        // shortens the regeneration while leaving the stun at its full six seconds. Widen the talent's
-        // own mask rather than the stasis' flags: 802228 is the only family-28 record carrying that
-        // bit, so no other modifier inherits it. Both effects are widened together, which keeps the
-        // periodic interval scaling with the duration. The bit is read from the stasis' own record so
-        // the two stay in step if a client update moves it.
         if (SpellInfo const* stasis = sSpellMgr->GetSpellInfo(TimeOutStasis))
         {
             info->Effects[EFFECT_0].SpellClassMask |= stasis->SpellFamilyFlags;
             info->Effects[EFFECT_1].SpellClassMask |= stasis->SpellFamilyFlags;
         }
     }
-    // Borrowed Time's authored aura type is 354, which this core has no handler for
-    // (SpellAuraEffects.cpp's table holds "//354 unknown Ascension aura" and the dispatcher substitutes
-    // HandleNoImmediateEffect), so applying it is a no-op and nothing ever reads its amount. Its trigger
-    // 680374 is a zero-base SPELL_EFFECT_HEAL, so the default proc action would heal nothing; the script
-    // below supplies the base point instead, which is why the trigger is cleared here as well.
     for (uint32 id : {RenewalAeon, ResilienceAeon, ProtectionAeon, KeepAccelerating, CadenceTalent,
         OrderlyTalent, EndlessSandsTalent, EpicRecovery, TimelineTether, BorrowedTime})
         if (info->Id == id)
@@ -372,7 +354,6 @@ void ApplyTimeContracts(SpellInfo* info)
     }
     if (info->Id == Renewal || info->Id == Protection || info->Id == Oblivion)
     {
-        // These copy an already modified Epoch heal. The periodic heal cannot critically hit again.
         info->AttributesEx2 |= SPELL_ATTR2_CANT_CRIT;
         info->AttributesEx3 |= SPELL_ATTR3_IGNORE_CASTER_MODIFIERS;
         info->AttributesEx4 |= SPELL_ATTR4_IGNORE_DAMAGE_TAKEN_MODIFIERS;

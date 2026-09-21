@@ -1,4 +1,3 @@
-"""Actual cache-delivery/queue methods and comparison with the pinned AutoBalance curve."""
 from pathlib import Path
 import argparse
 import hashlib

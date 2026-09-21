@@ -36,7 +36,7 @@ struct npc_ascension_templar_hope : public ScriptedAI
         me->SetAttackTime(BASE_ATTACK, player->GetAttackTime(BASE_ATTACK));
         me->UpdateDamagePhysical(BASE_ATTACK);
         player->CastSpell(me, 49889,
-                          true); // native clone-caster aura also supplies mirror-image equipment
+                          true);
         State(player).copies.push_back(me->GetGUID());
         me->SetReactState(REACT_DEFENSIVE);
         if (Unit* target = player->GetSelectedUnit(); target && player->IsValidAttackTarget(target))
@@ -63,7 +63,7 @@ struct npc_ascension_templar_hope : public ScriptedAI
             DoMeleeAttackIfReady();
     }
 };
-} // namespace
+}
 void AddSC_AscensionTemplarSummons()
 {
     RegisterCreatureAI(npc_ascension_templar_hope);

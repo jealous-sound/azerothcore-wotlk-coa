@@ -7,10 +7,6 @@
 
 namespace
 {
-// Spell data has no server script for this, but it does hold the three "Attack N Reaper Skull Bolt" spells
-// (500618-500620): missiles aimed at a cone of enemies in front of the caster (radius 15 yd) that trigger
-// Soul Bolt (500627), one per Reaped Soul. The tooltip has them launch "forward over 5 seconds"; the 2.5 s
-// spacing is a local choice.
 constexpr uint32 SPELL_ATTACK_BOLTS[] = {500618, 500619, 500620};
 constexpr uint32 BOLT_INTERVAL_MS = 2500;
 
@@ -19,7 +15,7 @@ class ReliquaryBolts : public BasicEvent
 public:
     ReliquaryBolts(Unit* caster, uint32 index) : _caster(caster), _index(index) { }
 
-    bool Execute(uint64 /*time*/, uint32 /*diff*/) override
+    bool Execute(uint64, uint32) override
     {
         if (!_caster->IsAlive())
             return true;

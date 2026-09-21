@@ -1,4 +1,3 @@
-"""Exercise Battle Cleric talent/form ownership and the native cooldown modifier contract."""
 import os
 from pathlib import Path
 import re

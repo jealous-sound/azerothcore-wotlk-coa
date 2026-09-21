@@ -176,7 +176,6 @@ struct Player : Unit
     bool teleporting = false, flight = false, transport = false, vehicle = false, failSummon = false;
     uint32 summons = 0, teleports = 0, removals = 0;
     Position teleportDestination, damageDestination, collisionDestination{30, 0, 0, 0};
-    // -1 is a pending deletion; 0 is permanent; 1 is native temporary ownership.
     std::map<uint32, int> spells;
     std::map<uint32, uint32> m_temporarySpellReplacements;
     std::vector<std::unique_ptr<TempSummon>> creatures;
@@ -215,7 +214,7 @@ struct Player : Unit
         assert(casting);
         ++teleports;
         teleportDestination = destination;
-        teleporting = true; // Position remains unchanged until the client acknowledges.
+        teleporting = true;
     }
     using Unit::CastSpell;
     void CastSpell(float x, float y, float z, uint32 id, bool triggered)
@@ -315,20 +314,20 @@ int main()
     runemaster_travel_lifecycle lifecycle;
     runemaster_travel_auras auras;
     lifecycle.OnPlayerUpdate(&player, 1);
-    assert(player.removals == 0); // Native no-replacement sentinel is the original spell, not zero.
+    assert(player.removals == 0);
     spell_ascension_runemaster_travel cast;
     cast.caster = &player;
     cast.info.Id = 500270;
     assert(cast.CheckTravel() == SPELL_CAST_OK);
     cast.SummonEcho(0);
-    cast.SummonDagger(0); // Different native hit phases cannot create a second marker.
+    cast.SummonDagger(0);
     auto rune = FindMarker(&player, 500270);
     assert(rune && player.summons == 1 && rune->motion.idle && rune->createdBy == 500270);
     assert(rune->duration == 0 && rune->faction == 123 && rune->level == 40 && rune->react == REACT_PASSIVE);
     assert(player.GetTemporarySpellReplacement(500270) == 500272 && player.spells.at(500272) == 1);
-    player.auras[500270] = {500270, player.guid}; // Native aura applies after the summon hit phase.
+    player.auras[500270] = {500270, player.guid};
     rune->ai->UpdateAI(25000);
-    assert(!rune->removed); // Only the aura's callback owns expiry, even after a late map update.
+    assert(!rune->removed);
     player.position = {40, 50, 60, 2};
     spell_ascension_runemaster_return recall;
     recall.caster = &player;
@@ -340,9 +339,9 @@ int main()
     assert(!player.spells.contains(500272) && !player.auras.contains(500270));
     assert(player.GetTemporarySpellReplacement(500270) == 500270);
     recall.Echo(0);
-    assert(recall.prevented && player.teleports == 1); // A repeated/delayed callback cannot heal for free.
+    assert(recall.prevented && player.teleports == 1);
     player.teleporting = false;
-    player.spells[500272] = 0; // Independent permanent ownership is preserved.
+    player.spells[500272] = 0;
     assert(StartTravel(&player, 500270));
     player.auras[500270] = {500270, player.guid};
     AuraApplication expiration{{500270, player.guid}};
@@ -350,7 +349,7 @@ int main()
     auras.OnAuraRemove(&player, &expiration, AURA_REMOVE_BY_EXPIRE);
     assert(player.teleports == 2 && player.casts.back() == 500272 && player.spells.at(500272) == 0);
     recall.fixtureSpell.triggered = true;
-    assert(recall.CheckReturn() == SPELL_CAST_OK); // The expiration heal survives pending teleport acknowledgement.
+    assert(recall.CheckReturn() == SPELL_CAST_OK);
     recall.prevented = false;
     recall.Echo(0);
     assert(!recall.prevented && player.teleports == 2);
@@ -375,12 +374,12 @@ int main()
     assert(dagger && dagger->entry == 51335 && dagger->casts.back() == 500588);
     assert(dagger->motion.destination == player.collisionDestination && !dagger->motion.path);
     assert(dagger->motion.forced == FORCED_MOVEMENT_RUN && player.auras.contains(500289));
-    dagger->position = {17, 0, 0, 1}; // Reactivate while it is still travelling, not at the planned endpoint.
+    dagger->position = {17, 0, 0, 1};
     recall.info.Id = 500587;
     player.los = false;
     assert(recall.CheckReturn() != SPELL_CAST_OK);
     lifecycle.OnPlayerUpdate(&player, 1);
-    assert(FindMarker(&player, 500287) == dagger); // Walking behind a wall doesn't destroy a valid dagger.
+    assert(FindMarker(&player, 500287) == dagger);
     player.los = true;
     assert(recall.CheckReturn() == SPELL_CAST_OK);
     recall.Warp(0);
@@ -399,7 +398,7 @@ int main()
     player.failSummon = false;
     assert(StartTravel(&player, 500287));
     auto next = FindMarker(&player, 500287);
-    dagger->ai.reset(); // Destruction of the old AI must not erase the new marker.
+    dagger->ai.reset();
     assert(FindMarker(&player, 500287) == next);
     next->ownerGuid = {99};
     lifecycle.OnPlayerUpdate(&player, 1);

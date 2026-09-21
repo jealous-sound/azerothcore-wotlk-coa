@@ -40,9 +40,15 @@ constexpr uint32 BAZAAR_VENDOR_LOST_CACHES = 900009;
 // mixed into the convenience list the player would hunt for a potion between
 // a hundred and sixty place names.
 constexpr uint32 BAZAAR_VENDOR_STONES = 900010;
-// Erbstuecke sind keine Kosmetik: eigener Punkt, damit sie die Convenience-
-// Liste nicht ueberdecken.
+// Heirlooms are gear, not cosmetics. They get their own entry so they do not
+// bury the convenience list.
 constexpr uint32 BAZAAR_VENDOR_HEIRLOOMS = 900011;
+
+// Ascension's own "Ethereal Cache of Wares". It is sold from the first row of
+// the rotating list and holds one random item out of the whole bazaar pool.
+// The entry is theirs, not ours: display 61898 matches the other caches, it
+// carries no loot flag, and nothing else in the world references it.
+constexpr uint32 BAZAAR_CACHE_OF_WARES = 969029;
 
 // Item 975001, "Bazaar Token". The client already carries ItemExtendedCost
 // rows that charge it, which is why the ordinary vendor frame can do this at

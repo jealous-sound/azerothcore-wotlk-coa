@@ -59,8 +59,6 @@ void ApplyAscensionClassMechanics19To25(SpellInfo* spellInfo)
             effect.ApplyAuraName == SPELL_AURA_PROC_TRIGGER_SPELL &&
             effect.TriggerSpell == SPELL_CHRONOMANCER_INFINITE_SHIELD_HEAL)
         {
-            // The current live node explicitly says ten charges. This does
-            // not invent the still-private damage/proc/one-target policy.
             spellInfo->ProcCharges = INFINITE_SHIELD_CHARGES;
         }
         else
@@ -82,8 +80,6 @@ void ApplyAscensionClassMechanics19To25(SpellInfo* spellInfo)
             (effect.Amplitude == 2500 ||
                 effect.Amplitude == PARADOX_CANNON_PERIOD_MS))
         {
-            // The native trigger already grants one fragment. Only its
-            // copied 2.5-second interval disagrees with the live 3-second text.
             effect.Amplitude = PARADOX_CANNON_PERIOD_MS;
         }
         else
@@ -105,9 +101,6 @@ bool CanPrepareAscensionClassMechanics19To25(Spell* spell)
     if (player && player->getClass() == CLASS_RANGER && info->SpellFamilyName == uint32(CLASS_RANGER) + 6 &&
         info->Id == SPELL_RANGER_FOREST_DWELLER_HEAL && info->Effects[EFFECT_0].Effect == SPELL_EFFECT_HEAL_PCT)
     {
-        // The passive's periodic trigger otherwise heals even outside Elude.
-        // Onslaught explicitly grants Elude's benefits without stealth. Use
-        // CanPrepare because triggered casts bypass CasterAuraSpell checks.
         return player->HasAura(SPELL_RANGER_FOREST_DWELLER) &&
             (player->HasAura(SPELL_RANGER_ELUDE) || player->HasAura(SPELL_RANGER_ONSLAUGHT));
     }
@@ -122,10 +115,6 @@ bool CanPrepareAscensionClassMechanics19To25(Spell* spell)
         effect.TriggerSpell != SPELL_PYROMANCER_ADD_FIVE_HEAT)
         return true;
 
-    // Cleansing Flames' native tick already triggers +10 Heat. Its second
-    // authored helper is the +5 talent bonus, not an unconditional extra gain.
-    // This check intentionally includes triggered spells: native triggered
-    // casts ignore CasterAuraSpell, while CanPrepare still runs for them.
     return player->HasAura(SPELL_PYROMANCER_UNFATHOMABLY_HOT);
 }
 
@@ -140,8 +129,5 @@ void HandleAscensionClassMechanics19To25Hit(Spell* spell, Player* player,
         player->IsFriendlyTo(target))
         return;
 
-    // One call per successfully damaged enemy, including a killing blow.
-    // IsValidAttackTarget would incorrectly reject a target after it died;
-    // IsHostileTo would exclude otherwise attackable neutral creatures.
     player->CastSpell(player, SPELL_TEMPLAR_RECKONING_ENERGY, true);
 }

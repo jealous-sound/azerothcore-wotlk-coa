@@ -1,5 +1,3 @@
-# The runtime gameplay harness uses the header-only Boost.PropertyTree JSON reader.
-# Component-based Boost installations (including vcpkg) may omit these headers.
 ModuleNameToVariable("mod-ascension-compat" COA_COMPAT_LINKAGE)
 if(NOT "${${COA_COMPAT_LINKAGE}}" STREQUAL "disabled")
   get_target_property(COA_BOOST_INCLUDE_DIRS boost INTERFACE_INCLUDE_DIRECTORIES)

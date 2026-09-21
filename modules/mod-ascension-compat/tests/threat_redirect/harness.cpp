@@ -97,7 +97,7 @@ int main()
         assert(!pending.CheckProc(event));
         event.actor = &owner;
         event.damage = nullptr;
-        assert(!pending.CheckProc(event)); // Healing cannot start the four-second window.
+        assert(!pending.CheckProc(event));
         event.damage = &damage;
         damage.amount = 0;
         assert(!pending.CheckProc(event));
@@ -126,7 +126,7 @@ int main()
         owner.canCast = false;
         pending.Activate(&effect, event);
         pending.OnRemove(&effect, 1);
-        assert(!owner.threat._redirectRegistry.contains(parent)); // Failed helper cannot leak the redirect.
+        assert(!owner.threat._redirectRegistry.contains(parent));
         threat_redirect_metadata metadata;
         for (uint32 sid : {parent, child})
         {

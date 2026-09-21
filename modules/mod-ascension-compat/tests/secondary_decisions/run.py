@@ -1,4 +1,4 @@
-"""Execute the approved Warpath and Vampiric Pools metadata with the existing native fixture."""
+CLI_DESCRIPTION = """Execute the approved Warpath and Vampiric Pools metadata with the existing native fixture."""
 import argparse
 import importlib.util
 from pathlib import Path
@@ -55,7 +55,7 @@ int main()
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument('--workspace-tools', type=Path, default=ROOT.parent / 'tools')
     parser.add_argument('--spell-dbc', type=Path, required=True)
     args = parser.parse_args()

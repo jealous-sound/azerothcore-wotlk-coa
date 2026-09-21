@@ -7,7 +7,7 @@ int main()
     enemy.guid = {3};
     owner.cls = other.cls = CLASS_RANGER;
     owner.map = other.map = enemy.map = &map;
-    other.summons = 100; // The real map assigns globally unique summon GUIDs.
+    other.summons = 100;
     owner.auras[520925] = {520925, owner.guid};
     other.auras[520925] = {520925, other.guid};
     enemy.friendly = false;
@@ -58,7 +58,7 @@ int main()
     assert(!foreign->HasAura(521220));
     info.SpellFamilyFlags[2] = 1;
     casts.OnSpellCast(&spell, &owner, &info, false);
-    assert(!first->removed && !second->removed); // Nine is not fully charged.
+    assert(!first->removed && !second->removed);
     second->samePhase = false;
     proc.AddPetals(nullptr, event);
     assert(first->GetAura(521220, owner.guid)->stacks == 10);
@@ -72,16 +72,15 @@ int main()
     assert(first->removed && first->casts == std::vector<uint32>{521451});
     assert(!second->removed && !foreign->removed && RedFlowerGuids(owner.guid).size() == 1);
     casts.OnSpellCast(&spell, &owner, &info, false);
-    assert(first->casts.size() == 1); // A repeated horn cannot burst an already consumed flower.
+    assert(first->casts.size() == 1);
     first->ai.reset();
-    assert(RedFlowerGuids(owner.guid).size() == 1); // Old destructor preserves the other summon.
+    assert(RedFlowerGuids(owner.guid).size() == 1);
     owner.auras.erase(520925);
     second->ai->UpdateAI(500);
     assert(second->removed && RedFlowerGuids(owner.guid).empty() && !foreign->removed);
     other.inWorld = false;
     foreign->ai->UpdateAI(500);
     assert(foreign->removed && RedFlowerGuids(other.guid).empty());
-    // Red Dream outlives the flower; only direct damage by its recipient heals them.
     aura_ascension_ranger_red_dream dream;
     dream.target = &owner;
     event.actor = &owner;
@@ -112,5 +111,5 @@ int main()
     effect.amount = 100;
     damage.amount = 0xFFFFFFFF;
     dream.Heal(&effect, event);
-    assert(owner.heals.size() == count); // No zero heal or unsafe native float-to-int conversion.
+    assert(owner.heals.size() == count);
 }

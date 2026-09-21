@@ -1,4 +1,4 @@
-"""Exercise the real Vampiric Pools exit callback and its native leech data."""
+CLI_DESCRIPTION = """Exercise the real Vampiric Pools exit callback and its native leech data."""
 import argparse
 import importlib.util
 from pathlib import Path
@@ -64,7 +64,7 @@ int main()
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument("--workspace-tools", type=Path, default=ROOT.parent / "tools")
     parser.add_argument("--spell-dbc", type=Path)
     args = parser.parse_args()
@@ -82,7 +82,6 @@ def main():
     code = code.replace("// NATIVE_ENUMS", "\n".join(enums))
     code = code.replace("constexpr uint32 CLASS_WILDWALKER = 31, ", "constexpr uint32 ")
     source = (ROOT / "modules/mod-ascension-compat/src/AscensionBloodmageTalents.cpp").read_text()
-    # Animated Blood has its own fixture; this one exercises the exit-event class.
     code += native.extractor.extract(source, r"enum BloodmageTalentSpells\b") + ";\n"
     code += native.extractor.extract(source, r"class bloodmage_talent_events\b") + ";\n" + CASES
     with tempfile.TemporaryDirectory(prefix="coa-bloodmage-passives-") as directory:

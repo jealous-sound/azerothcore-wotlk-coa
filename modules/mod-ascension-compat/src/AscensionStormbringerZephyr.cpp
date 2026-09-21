@@ -95,7 +95,6 @@ class spell_ascension_raging_zephyr : public SpellScript
         player->ApplySpellMod(SPELL_RAGING_ZEPHYR, SPELLMOD_DURATION, duration);
         if (!destination || duration <= 0 || !player->HasActiveSpell(SPELL_RAGING_ZEPHYR))
             return;
-        // Each charge creates an independent, stationary tornado; native Guardians follow the owner.
         TempSummon* zephyr = player->SummonCreature(NPC_RAGING_ZEPHYR, *destination,
             TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, uint32(duration));
         if (!zephyr)
@@ -104,8 +103,6 @@ class spell_ascension_raging_zephyr : public SpellScript
         zephyr->CastSpell(zephyr, SPELL_ZEPHYR_PERIODIC, true);
         if (Aura* aura = zephyr->GetAura(SPELL_ZEPHYR_PERIODIC, zephyr->GetGUID()))
         {
-            // The copied helper lasts eight seconds; the active summon promises twelve.
-            // Preserve native periodic timing, root and school immunity for the summon lifetime.
             aura->SetMaxDuration(duration);
             aura->SetDuration(duration);
         }
@@ -158,9 +155,9 @@ public:
         if (info->SpellFamilyName != 22)
             return;
         if (info->Id == SPELL_RAGING_ZEPHYR)
-            info->Effects[EFFECT_1].Effect = 0; // Inert copied area dummy; the tornado owns the periodic aura.
+            info->Effects[EFFECT_1].Effect = 0;
         if (info->Id == SPELL_ZEPHYR_PULL)
-            info->Effects[EFFECT_1].Effect = 0; // Stale self-kill otherwise destroys the tornado on its first pulse.
+            info->Effects[EFFECT_1].Effect = 0;
     }
 };
 }

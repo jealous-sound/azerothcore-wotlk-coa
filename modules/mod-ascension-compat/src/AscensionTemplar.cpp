@@ -24,7 +24,7 @@ namespace
 std::unordered_map<ObjectGuid, std::unique_ptr<TemplarState>> states;
 std::mutex stateMutex;
 constexpr uint32 oaths[] = {804903, 804904, 804922, 804924, 805332};
-} // namespace
+}
 Player* Owner(Unit const* unit)
 {
     Player* player = unit ? const_cast<Unit*>(unit)->ToPlayer() : nullptr;
@@ -33,9 +33,6 @@ Player* Owner(Unit const* unit)
 TemplarState& State(Player* player)
 {
     std::lock_guard<std::mutex> lock(stateMutex);
-    // The map is locked for the lookup only: the caller then reads and writes the state with no
-    // lock held. Kept by pointer, the state itself never moves, so an insert for another player
-    // rehashing the map cannot leave that caller writing into freed memory.
     return *states.try_emplace(player->GetGUID(), std::make_unique<TemplarState>()).first->second;
 }
 bool Named(SpellInfo const* info, uint32 root)
@@ -153,8 +150,6 @@ void GrantOath(Player* player, uint32 oath)
         return;
     bool first = !chain;
     int32 duration = chain ? chain->GetDuration() : 15000;
-    // Every Oath kind is held alongside the others until the chain ends: Breakers consume "your Oaths" and
-    // Flaming Blade gains the Oaths of each Follow Up in the chain, so no kind displaces another.
     Cast(player, player, oath);
     if (Aura* aura = player->GetAura(oath))
         aura->SetDuration(duration);
@@ -162,7 +157,6 @@ void GrantOath(Player* player, uint32 oath)
     if (Aura* aura = player->GetAura(704576))
     {
         aura->SetDuration(first ? aura->GetMaxDuration() : duration);
-        // The first Oath lasts as long as the new chain, including Deep Meditation and Oath Flow.
         if (Aura* granted = first ? player->GetAura(oath) : nullptr)
             granted->SetDuration(aura->GetDuration());
     }
@@ -186,7 +180,7 @@ void Delay(Player* player, uint32 amount)
     if (aura && aura->GetEffect(EFFECT_0))
     {
         aura->GetEffect(EFFECT_0)->ChangeAmount(int32(std::min<uint64>(INT32_MAX, uint64(std::max(0, old)) + amount)));
-        aura->SetDuration(aura->GetMaxDuration()); // keep the already scheduled next tick
+        aura->SetDuration(aura->GetMaxDuration());
     }
 }
 void ReduceDebt(Player* player, uint32 percent, bool oneTick)
@@ -266,7 +260,7 @@ bool DivineSteed(Unit const* unit)
     Aura const* aura = unit ? unit->GetAura(527272) : nullptr;
     return aura && unit->IsMounted() && unit->GetMountID() == 14584 && Owner(aura->GetCaster());
 }
-} // namespace AscensionTemplar
+}
 
 namespace
 {
@@ -292,7 +286,6 @@ class templar_player : public PlayerScript
                                state.copies.end());
             if (!player->IsAlive())
                 AscensionTemplar::ClearOaths(player);
-            // Devotion of Khaz'goroth's party and raid haste aura follows the learned talent aura.
             if (player->HasAura(560096) && !player->HasAura(567572))
                 AscensionTemplar::Cast(player, player, 567572);
             else if (!player->HasAura(560096) && player->HasAura(567572, player->GetGUID()))
@@ -311,7 +304,7 @@ class templar_player : public PlayerScript
         states.erase(player->GetGUID());
     }
 };
-} // namespace
+}
 void AddSC_AscensionTemplar()
 {
     new templar_player();

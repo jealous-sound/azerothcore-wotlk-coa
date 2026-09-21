@@ -49,7 +49,6 @@ public:
     {
         if (!target || !target->IsInWorld() || !damage)
             return;
-        // Allied periodic damage also contributes. Snapshot owners before a copy can remove another mark.
         std::vector<ObjectGuid> owners;
         for (auto const& pair : target->GetAppliedAuras())
         {
@@ -80,30 +79,21 @@ public:
     chronomancer_mind_melt_taken() : UnitScript("chronomancer_mind_melt_taken", true,
         {UNITHOOK_MODIFY_PERIODIC_DAMAGE_AURAS_TICK}) { }
 
-    // End of Time 704490 raises Mind Melt's first effect from 0 to 6 through SPELLMOD_EFFECT1, and
-    // AuraEffect::CalculateAmount already multiplies that amount by the stack count. That effect is
-    // aura 214, which this core maps to AuraEffect::HandleNULL, so nothing reads it. Deliver the
-    // talent's "increases the target's periodic damage taken from you by $s1% per stack" here, the
-    // way Templar's Light's Ward delivers its own periodic damage taken clause.
     void ModifyPeriodicDamageAurasTick(Unit* target, Unit* attacker, uint32& damage,
         SpellInfo const* info) override
     {
         if (!target || !attacker || !damage || !info ||
             info->HasAttribute(SPELL_ATTR4_IGNORE_DAMAGE_TAKEN_MODIFIERS))
             return;
-        // This hook also reports periodic healing, which a damage taken clause must not increase.
         if (!info->HasAura(SPELL_AURA_PERIODIC_DAMAGE) && !info->HasAura(SPELL_AURA_PERIODIC_DAMAGE_PERCENT) &&
             !info->HasAura(SPELL_AURA_PERIODIC_LEECH))
             return;
-        // "from you": only the Chronomancer who applied this Mind Melt benefits from it.
         AuraEffect const* melt = target->GetAuraEffect(SPELL_MIND_MELT, EFFECT_0, attacker->GetGUID());
         if (!melt || melt->GetAmount() <= 0)
             return;
-        // EffectMiscValue 127 selects every school; honour the authored mask instead of assuming it.
         if (int32 const schoolMask = melt->GetMiscValue();
             schoolMask && !(uint32(schoolMask) & uint32(info->GetSchoolMask())))
             return;
-        // Integer arithmetic keeps whole percentages exact; clamp so a large tick cannot wrap.
         uint64 const bonus = uint64(damage) * uint64(melt->GetAmount()) / 100;
         damage = uint32(std::min<uint64>(uint64(damage) + bonus,
             std::numeric_limits<uint32>::max()));
@@ -213,7 +203,6 @@ class aura_ascension_ripple_release : public AuraScript
         AuraEffect const* timer = GetEffect(EFFECT_1);
         if (SecondaryChronomancer(player) && player == GetCaster() && timer && timer->GetTickNumber() >= 6 &&
             GetTargetApplication()->GetRemoveMode() != AURA_REMOVE_BY_DEATH)
-            // Six native 250 ms ticks meet the minimum. Their authored spell modifier scales this heal.
             player->CastSpell(player, SPELL_RIPPLE_HEAL, true);
         player->RemoveAurasDueToSpell(SPELL_RIPPLE_CHARGE, player->GetGUID());
     }
@@ -271,7 +260,6 @@ public:
     void OnSpellCast(Spell* spell, Unit* caster, SpellInfo const* info, bool) override
     {
         if (SecondaryChronomancer(caster) && !spell->IsTriggered() && info->Id == SPELL_ARC_COLLISION)
-            // Arc Collision is immediate: every target has received its duration before this callback.
             caster->RemoveAurasDueToSpell(SPELL_ECHO_FRAGMENT, caster->GetGUID());
     }
 };

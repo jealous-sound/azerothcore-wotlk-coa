@@ -68,7 +68,6 @@ bool OpenWorld(Player const* player)
     return player->GetMap() && !player->GetMap()->Instanceable();
 }
 
-// Reads a stored item instance in the column order Item::LoadFromDB expects.
 std::string SelectItemInstance(uint64 chestId, uint8 slot)
 {
     return Acore::StringFormat(
@@ -86,9 +85,6 @@ bool InHighRisk(Player const* player)
 
 void Commit(CharacterDatabaseTransaction transaction)
 {
-    // Do not expose the chest or acknowledge a claim before its inventory and
-    // escrow changes have committed together. On database failure, stop before
-    // later character saves can persist an inventory inconsistent with escrow.
     auto result = CharacterDatabase.AsyncCommitTransaction(transaction);
     if (!result.m_future.get())
         ABORT("High Risk inventory transaction failed; refusing to continue");
@@ -148,8 +144,6 @@ void Spawn(Map* map, Chest& chest)
     if (chest.object && map->GetGameObject(chest.object))
         return;
 
-    // Keep distant deposits in the database rather than holding entire world
-    // grids active indefinitely. Recreate the object when someone returns.
     bool nearby = false;
     for (auto const& reference : map->GetPlayers())
         if (Player* player = reference.GetSource())
@@ -376,9 +370,6 @@ void Drop(Player* player)
     if (roll_chance_f(resourceChance.load()))
         choose(resources);
     uint32 gold = roll_chance_f(goldChance.load()) ? GoldLoss(player->GetMoney(), urand(1, 5)) : 0;
-    // An eligible death must not silently produce no chest just because every
-    // category roll missed. Choose one available category without bypassing
-    // item protections or a category explicitly disabled in the configuration.
     if (losses.empty() && !gold)
     {
         std::vector<unsigned> available;
@@ -460,7 +451,7 @@ class RiskWorld final : public WorldScript
 public:
     RiskWorld() : WorldScript("highrisk_world", {WORLDHOOK_ON_STARTUP, WORLDHOOK_ON_AFTER_CONFIG_LOAD}) { }
 
-    void OnAfterConfigLoad(bool /*reload*/) override
+    void OnAfterConfigLoad(bool) override
     {
         enabled = sConfigMgr->GetOption<bool>("HighRisk.Losses", false);
         gearChance = std::clamp(sConfigMgr->GetOption<float>("HighRisk.GearChance", 50.0f), 0.0f, 100.0f);
@@ -534,8 +525,6 @@ public:
 
     void OnPlayerLogin(Player* player) override
     {
-        // Refresh the old lockless template retained in the client's WDB cache.
-        // Reuse the native serializer, including localized names and lock data.
         if (player->GetSession()->IsBot())
             return;
         WorldPacket query(CMSG_GAMEOBJECT_QUERY, 12);

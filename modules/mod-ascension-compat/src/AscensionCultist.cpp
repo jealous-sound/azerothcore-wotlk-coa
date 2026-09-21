@@ -35,9 +35,6 @@ Player* Owner(Unit const* unit)
 CultistState& State(Player* player)
 {
     std::lock_guard<std::mutex> lock(stateMutex);
-    // The map is locked for the lookup only: the caller then reads and writes the state with no
-    // lock held. Kept by pointer, the state itself never moves, so an insert for another player
-    // rehashing the map cannot leave that caller writing into freed memory.
     return *states.try_emplace(player->GetGUID(), std::make_unique<CultistState>()).first->second;
 }
 bool Named(SpellInfo const* info, uint32 root)
@@ -283,7 +280,7 @@ void Accumulate(Player* player, Unit* target, uint32 id, uint32 total)
             tick->SetPeriodicTimer(next);
     }
 }
-} // namespace AscensionCultist
+}
 namespace
 {
 class cultist_player : public PlayerScript

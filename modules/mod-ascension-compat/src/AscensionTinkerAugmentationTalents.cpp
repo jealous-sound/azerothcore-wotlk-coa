@@ -65,7 +65,7 @@ class aura_ascension_tinker_augmentor : public AuraScript
             spellInfo->Effects[EFFECT_0].ApplyAuraName == SPELL_AURA_MOD_RANGED_HASTE;
     }
 
-    void CalculateHaste(AuraEffect const* /*effect*/, int32& amount, bool& canBeRecalculated)
+    void CalculateHaste(AuraEffect const*, int32& amount, bool& canBeRecalculated)
     {
         Unit* owner = GetUnitOwner();
         Player* player = owner ? owner->ToPlayer() : nullptr;
@@ -106,7 +106,7 @@ public:
             Refresh(unit, aura->GetId());
     }
 
-    void OnAuraRemove(Unit* unit, AuraApplication* application, AuraRemoveMode /*mode*/) override
+    void OnAuraRemove(Unit* unit, AuraApplication* application, AuraRemoveMode) override
     {
         if (application)
             Refresh(unit, application->GetBase()->GetId());
@@ -224,8 +224,6 @@ class aura_ascension_tinker_cybernetic : public AuraScript
             heal->GetTarget()->GetMaxHealth() < 10)
             return;
 
-        // A new effective heal replaces/refreshes the native shield. The
-        // description does not grant accumulation of earlier shield capacity.
         GetTarget()->CastCustomSpell(SPELL_CYBERNETIC_SHIELD, SPELLVALUE_BASE_POINT0, int32(amount),
             heal->GetTarget(), true, nullptr, effect);
     }
@@ -248,12 +246,10 @@ class aura_ascension_tinker_cybernetic_shield : public AuraScript
             spellInfo->Effects[EFFECT_0].MiscValue == 127;
     }
 
-    void LimitCapacity(AuraEffect const* /*effect*/, AuraEffectHandleModes /*mode*/)
+    void LimitCapacity(AuraEffect const*, AuraEffectHandleModes)
     {
         if (AuraEffect* effect = GetEffect(EFFECT_0))
         {
-            // CalculateAmount has already applied absorb-capacity modifiers.
-            // Enforce the authored recipient-health ceiling on the result.
             int32 limit = int32(std::min<uint64>(uint64(GetTarget()->GetMaxHealth()) / 10,
                 uint64(std::numeric_limits<int32>::max())));
             effect->ChangeAmount(std::clamp(effect->GetAmount(), 0, limit));
