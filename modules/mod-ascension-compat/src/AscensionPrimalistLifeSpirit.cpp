@@ -14,6 +14,8 @@ enum LifeSpiritEntries : uint32
 {
     SpiritOfLife = 840002,
     PrimordialSummon = 572853,
+    EternallyChosen = 802888,
+    ChosenSummon = 572826,
     LesserSpiritCharge = 572830
 };
 
@@ -23,7 +25,8 @@ class spell_ascension_primordial_spirit : public SpellScript
 
     bool Validate(SpellInfo const* info) override
     {
-        return info->Id == PrimordialSummon && ValidateSpellInfo({LesserSpiritCharge});
+        return (info->Id == PrimordialSummon || info->Id == ChosenSummon) &&
+            ValidateSpellInfo({LesserSpiritCharge});
     }
 
     bool Load() override
@@ -42,23 +45,49 @@ class spell_ascension_primordial_spirit : public SpellScript
 
         // A plain timed summon avoids the Guardian path's forced Follow after initialization,
         // which would replace the immediate charge movement. No persistent pet slot is used.
-        if (TempSummon* spirit = owner->SummonCreature(SpiritOfLife, *destination,
-            TEMPSUMMON_TIMED_DESPAWN, uint32(duration)))
+        for (int32 i = 0; i < std::clamp(GetEffectValue(), 1, 2); ++i)
         {
-            spirit->SetOwnerGUID(owner->GetGUID());
-            spirit->SetFaction(owner->GetFaction());
-            spirit->SetLevel(owner->GetLevel());
-            spirit->SetReactState(REACT_PASSIVE);
-            spirit->SetUInt32Value(UNIT_CREATED_BY_SPELL, PrimordialSummon);
-            // Native nearby-ally selection, charge, heal and destination-area damage stay together.
-            spirit->CastSpell(nullptr, LesserSpiritCharge, TRIGGERED_FULL_MASK, nullptr, nullptr, owner->GetGUID());
+            if (TempSummon* spirit = owner->SummonCreature(SpiritOfLife, *destination,
+                TEMPSUMMON_TIMED_DESPAWN, uint32(duration)))
+            {
+                spirit->SetOwnerGUID(owner->GetGUID());
+                spirit->SetFaction(owner->GetFaction());
+                spirit->SetLevel(owner->GetLevel());
+                spirit->SetReactState(REACT_PASSIVE);
+                spirit->SetUInt32Value(UNIT_CREATED_BY_SPELL, GetSpellInfo()->Id);
+                // Native nearby-ally selection, charge, heal and destination-area damage stay together.
+                spirit->CastSpell(nullptr, LesserSpiritCharge, TRIGGERED_FULL_MASK, nullptr, nullptr, owner->GetGUID());
+            }
         }
+    }
+
+    void IgnoreLegacyCooldown(SpellEffIndex index)
+    {
+        // The active talent promises two spirits, not a Primal Rush cooldown reduction.
+        PreventHitDefaultEffect(index);
     }
 
     void Register() override
     {
         OnEffectHit += SpellEffectFn(spell_ascension_primordial_spirit::Summon, EFFECT_0, SPELL_EFFECT_SUMMON);
+        if (m_scriptSpellId == ChosenSummon)
+            OnEffectHitTarget += SpellEffectFn(spell_ascension_primordial_spirit::IgnoreLegacyCooldown,
+                EFFECT_1, SPELL_EFFECT_ASCENSION_MODIFY_COOLDOWN);
     }
+};
+
+class aura_ascension_eternally_chosen : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_eternally_chosen);
+
+    bool Check(ProcEventInfo& event)
+    {
+        Unit* owner = GetTarget();
+        return owner->IsPlayer() && owner->getClass() == CLASS_WILDWALKER && owner->IsAlive() &&
+            GetCaster() == owner && event.GetActor() == owner;
+    }
+
+    void Register() override { DoCheckProc += AuraCheckProcFn(aura_ascension_eternally_chosen::Check); }
 };
 
 class primalist_life_spirit_scaling : public UnitScript
@@ -111,5 +140,6 @@ void AddSC_AscensionPrimalistLifeSpirit()
 {
     new primalist_life_spirit_scaling();
     RegisterSpellScript(spell_ascension_primordial_spirit);
+    RegisterSpellScript(aura_ascension_eternally_chosen);
     RegisterSpellScript(spell_ascension_lesser_spirit_charge);
 }
