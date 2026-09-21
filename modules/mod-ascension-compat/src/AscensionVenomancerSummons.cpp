@@ -57,6 +57,8 @@ void Summon(Player* player, Unit* target, uint32 spell, Position const* position
         spell == 803525 ? BroodTrapEntry : SpiderlingEntry;
     uint32 duration = spell == 807611 ? 15000 : uint32(std::max(1,sSpellMgr->GetSpellInfo(spell)->GetDuration()));
     uint32 count = spell == 807611 ? 2 : spell == 807702 ? uint32(std::max(1,Amount(807702))) : 1;
+    if (spell == 504344 && player->HasAura(681054))
+        count += uint32(std::max(0,Amount(681054)));
     for (uint32 n = 0; n < count; ++n)
     {
         TempSummon* summon = player->GetMap()->SummonCreature(entry,pos,sSummonPropertiesStore.LookupEntry(61),duration,player);
