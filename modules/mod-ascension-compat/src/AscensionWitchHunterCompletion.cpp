@@ -108,6 +108,8 @@ void ApplyContracts(SpellInfo* info)
     }
     if (id == 574149 || id == 574163) // Silver Bullets, "additional ... against Undead"
         ConvertCreatureTypeDamage(info, EFFECT_1);
+    if (id == 804026) // Silver Bolts, "doubled against Undead or Demons"
+        ConvertCreatureTypeDamage(info, EFFECT_0);
     if (id == 707535)
     {
         info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_MOD_SPELL_DAMAGE_OF_STAT_PERCENT;
