@@ -197,6 +197,10 @@ void Refresh(Player* player)
     if (state.refreshing || !player->IsInWorld())
         return;
     state.refreshing = true;
+    bool const heraldActive = player->HasAura(Herald);
+    if (state.heraldActive && !heraldActive)
+        Resource(player, Insanity, -100, true);
+    state.heraldActive = heraldActive;
     if (state.covenant.IsEmpty())
         for (Unit* ally : Nearby(player, 100))
             if (ally->HasAura(500751, player->GetGUID()))

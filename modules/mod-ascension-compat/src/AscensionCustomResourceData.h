@@ -505,7 +505,7 @@ struct NativePowerGainRule
 // Rage and Runic Power are represented internally in tenths. These Reaper
 // abilities describe fixed gains, but their public DBC records omit the
 // energize effect that Ascension's private server applies.
-inline constexpr std::array<NativePowerGainRule, 18> NativePowerGainRules =
+inline constexpr std::array<NativePowerGainRule, 21> NativePowerGainRules =
 {{
     {19, 0, 0, 3, 10, ResourceGainEvent::PeriodicDamageTick, 301253},
     {23, 704355, 704355, 6, 200,
@@ -535,6 +535,20 @@ inline constexpr std::array<NativePowerGainRule, 18> NativePowerGainRules =
         ResourceGainEvent::FirstSuccessfulHostileTarget},
     {30, 802422, 802428, 6, 200,
         ResourceGainEvent::FirstSuccessfulHostileTarget},
+    // Doomrend's tooltip promises "generates Runic Power" the same way
+    // Soulrend's does, with no amount and no public energize effect (its own
+    // DBC effects are only school damage, weapon-percent damage and the
+    // 560361 healing-absorb trigger). It shares Soulrend's rend-and-mark
+    // shape, so it keeps the same 150-tenth placeholder pending a confirmed
+    // live value. The chain is non-contiguous (800172 is rank 1, 567531-
+    // 567532 are ranks 6-7), matching the split already used for its Reaped
+    // Soul crit rule below.
+    {30, 800172, 800172, 6, 150,
+        ResourceGainEvent::FirstSuccessfulHostileTarget},
+    {30, 502668, 502671, 6, 150,
+        ResourceGainEvent::FirstSuccessfulHostileTarget},
+    {30, 567531, 567532, 6, 150,
+        ResourceGainEvent::FirstSuccessfulHostileTarget},
     // Primalist visible descriptions and energize helpers use internal tenths.
     {31, 503258, 503264, 1, 200},
     {31, 803981, 803981, 1, 200},
@@ -562,7 +576,7 @@ struct ResourceCostRule
 // Rules marked None still receive a local power check, but their public DBC
 // effect already performs the spend. Fixed and All replace private-server
 // consumption that is absent from the public DBC.
-inline constexpr std::array<ResourceCostRule, 59> ResourceCostRules =
+inline constexpr std::array<ResourceCostRule, 68> ResourceCostRules =
 {{
     {14, 801904, 801904, 800058, 2, ResourceConsumption::Fixed,
         705137, 30},
@@ -584,6 +598,17 @@ inline constexpr std::array<ResourceCostRule, 59> ResourceCostRules =
     {16, 500039, 500039, 803102, 40, ResourceConsumption::Fixed},
     {16, 501442, 501449, 803102, 40, ResourceConsumption::Fixed},
     {16, 500041, 500041, 803102, 25, ResourceConsumption::Fixed},
+    // Tempest Sovereign's Torrential Wrath (Call Lightning's replacement, see
+    // AscensionTalentReplacementData.h) costs less than the base ability it replaces.
+    {16, 804017, 804017, 803102, 40, ResourceConsumption::Fixed},
+    {16, 503352, 503352, 803102, 40, ResourceConsumption::Fixed},
+    {16, 503353, 503353, 803102, 40, ResourceConsumption::Fixed},
+    {16, 503354, 503354, 803102, 40, ResourceConsumption::Fixed},
+    {16, 503355, 503355, 803102, 40, ResourceConsumption::Fixed},
+    {16, 503356, 503356, 803102, 40, ResourceConsumption::Fixed},
+    {16, 503357, 503357, 803102, 40, ResourceConsumption::Fixed},
+    {16, 503358, 503358, 803102, 40, ResourceConsumption::Fixed},
+    {16, 503359, 503359, 803102, 40, ResourceConsumption::Fixed},
     {16, 500040, 500040, 803102, 50, ResourceConsumption::Fixed},
     {16, 501388, 501399, 803102, 50, ResourceConsumption::Fixed},
     {16, 800227, 800227, 803102, 50, ResourceConsumption::Fixed},

@@ -135,7 +135,10 @@ struct npc_ascension_cultist_summon : public ScriptedAI
         if (me->GetEntry() == 500465)
             Cast(me, me, 802045);
         if (me->GetEntry() == HallucinationEntry)
-            player->CastSpell(me, 49889, true);
+            // Must land an actual SPELL_AURA_CLONE_CASTER on me: the client's mirror-image
+            // data request (SMSG_MIRRORIMAGE_DATA) is only answered when HasCloneCasterAura()
+            // is true, so a raw SetDisplayId/UNIT_FLAG2_MIRROR_IMAGE poke renders invisible.
+            player->AddAura(49889, me);
         if (me->GetEntry() == 397771)
         {
             me->SetBaseWeaponDamage(BASE_ATTACK, MINDAMAGE, player->GetFloatValue(UNIT_FIELD_MINDAMAGE) * .3f);

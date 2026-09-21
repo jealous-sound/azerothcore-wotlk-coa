@@ -49,6 +49,14 @@ else
     touch "$CONF"
 fi
 
+# Same for each module's own config: activate its "dist" file if the conf doesn't already exist
+if [[ -d "$CONF_DIR/modules" ]]; then
+    for dist in "$CONF_DIR"/modules/*.conf.dist; do
+        [[ -e "$dist" ]] || continue
+        cp -vn "$dist" "${dist%.dist}"
+    done
+fi
+
 echo "Starting $ACORE_COMPONENT..."
 
 exec "$@"

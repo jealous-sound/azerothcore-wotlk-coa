@@ -38,7 +38,10 @@ enum BloodmageSecondarySpells : uint32
     SPELL_INSATIABLE = 706621,
     SPELL_INSATIABLE_STACK = 706663,
     SPELL_VAMPIRIC_FANG = 804726,
-    SPELL_VAMPIRIC_FANG_SCALAR = 680753 // Thirst SLS: EFFECT_2 carries the damage percent per Thirst stack
+    SPELL_VAMPIRIC_FANG_SCALAR = 680753, // Thirst SLS: EFFECT_2 carries the damage percent per Thirst stack
+    SPELL_BLOODMOON_BLAST = 500125,
+    SPELL_BLOOD_RITUALS = 706623,
+    SPELL_BLOOD_RITUALS_HEAL = 704119 // "Blood Rituals Heal Proc Source" (704118) triggers this
 };
 
 // Every Vampiric Fang rank: the base strike plus its learned ranks.
@@ -81,7 +84,17 @@ public:
     void OnSpellCast(Spell* spell, Unit*, SpellInfo const* info, bool) override
     {
         Player* player = Bloodmage(spell);
-        if (!player || spell->IsTriggered() || !player->HasAura(SPELL_NIGHT_HUNTER))
+        if (!player || spell->IsTriggered())
+            return;
+
+        if (player->HasAura(SPELL_BLOOD_RITUALS) &&
+            sSpellMgr->GetFirstSpellInChain(info->Id) == SPELL_BLOODMOON_BLAST)
+            // Blood Rituals' heal is a Proc Trigger Spell dummy (704118, "Blood Rituals Heal
+            // Proc Source") with zero proc flags, so it never fires natively; the cast event
+            // is supplied here instead.
+            player->CastSpell(player, SPELL_BLOOD_RITUALS_HEAL, true);
+
+        if (!player->HasAura(SPELL_NIGHT_HUNTER))
             return;
         if (RankOf(info->Id, SPELL_VEINBURST))
         {

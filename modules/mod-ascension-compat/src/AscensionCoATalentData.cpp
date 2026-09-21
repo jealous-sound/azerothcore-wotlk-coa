@@ -221,6 +221,7 @@ bool LoadCoATalentData()
         {
             node.Entry.RequiredLevel = 10;
             node.Required.clear();
+            node.Entry.Identity = true;
         }
 
         nodes.push_back(std::move(node));
