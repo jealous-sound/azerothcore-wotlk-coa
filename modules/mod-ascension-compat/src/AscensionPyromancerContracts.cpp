@@ -107,6 +107,8 @@ void ApplyContracts(SpellInfo* info)
         // Transform uses a creature template, not a display ID.
         info->Effects[1].MiscValue = 21362;
     }
+    if (id == 704853) // Touched by Fire rank 2: flat like rank 1, since a PCT modifier skips these zero coefficients.
+        info->Effects[0].ApplyAuraName = SPELL_AURA_ADD_FLAT_MODIFIER;
     if (id == 706650)
         dummy(0), info->Effects[0].BasePoints = 29;
     if (id == 706238)
