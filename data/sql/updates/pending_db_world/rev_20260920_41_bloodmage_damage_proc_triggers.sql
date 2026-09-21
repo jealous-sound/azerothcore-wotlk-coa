@@ -1,10 +1,10 @@
--- Four Bloodmage passives whose tooltip fires when a named ability lands on a target. Each carries an
+-- Three Bloodmage passives whose tooltip fires when a named ability lands on a target. Each carries an
 -- aura 42 (SPELL_AURA_PROC_TRIGGER_SPELL) effect on a correctly-built trigger spell, but Spell.dbc gives
 -- every one of these records ProcFlags 0 and no `spell_proc` row existed, so SpellMgr::LoadSpellProcs
 -- skipped them ("Skip if no proc flags in DBC") and Aura::GetProcEffectMask returned a zero mask.
 -- Same reasoning and shape as rev_20260918_32_bloodmage_council_assembled_proc.
 --
--- All four use `SpellPhaseMask` 2 (PROC_SPELL_PHASE_HIT), because every one of these trigger spells needs
+-- All three use `SpellPhaseMask` 2 (PROC_SPELL_PHASE_HIT), because every one of these trigger spells needs
 -- the ability's own victim: at CAST phase Spell::cast passes no victim, and a trigger whose TargetA is 6
 -- (TARGET_UNIT_TARGET_ENEMY) would be cast with a null target. `Chance` is each record's ProcChance (100).
 --
@@ -32,25 +32,18 @@
 -- ConditionSourceInfo(actor, actionTarget), and ConditionTarget 1 selects the action target. Distinct
 -- ElseGroup values make the two creature types an OR.
 --
--- 704653 Cruel Intent: "When you Lunge at an enemy you now strike them 3 times with auto attacks." Aura 42
--- on Dark Intent 707599, a stock SPELL_EFFECT_ADD_EXTRA_ATTACKS with BasePoints 2 -> 3 extra attacks
--- (which matches this tooltip's "3 times", not 707599's own stale "5 times" text). Lunge 500126 is the
--- only family-26 record carrying SpellFamilyFlags (16777216, 0, 0); it has DmgClass NONE and is harmful,
--- so ProcFlags 4096 = DONE_SPELL_NONE_DMG_CLASS_NEG.
---
 -- `SpellTypeMask` is 1 (PROC_SPELL_TYPE_DAMAGE) where the tooltip says "damage dealt by" (680733)
--- and 0 elsewhere: Taldaram's Torment, Corrupted Blood and Lunge are applied/used, and a spell that only
+-- and 0 elsewhere: Taldaram's Torment and Corrupted Blood are applied/used, and a spell that only
 -- applies an aura reaches the proc system with PROC_SPELL_TYPE_NO_DMG_HEAL. `HitMask` stays 0, which for a
 -- DONE proc already defaults to NORMAL | CRITICAL | ABSORB (SpellMgr::CanSpellTriggerProcOnEvent); BLOCK
 -- and FULL_BLOCK are deliberately left out because a fully blocked hit deals no damage. AttributesMask is
--- 0 on all four rows: no helper spell was found that casts Darkfallen Lament, Taldaram's Torment or
--- Lunge as a triggered effect of something else. SchoolMask is 0 (no tooltip states a school).
-DELETE FROM `spell_proc` WHERE `SpellId` IN (680733, 802315, 704692, 704653);
+-- 0 on all three rows: no helper spell was found that casts Darkfallen Lament or Taldaram's Torment as a
+-- triggered effect of something else. SchoolMask is 0 (no tooltip states a school).
+DELETE FROM `spell_proc` WHERE `SpellId` IN (680733, 802315, 704692);
 INSERT INTO `spell_proc` (`SpellId`, `SchoolMask`, `SpellFamilyName`, `SpellFamilyMask0`, `SpellFamilyMask1`, `SpellFamilyMask2`, `ProcFlags`, `SpellTypeMask`, `SpellPhaseMask`, `HitMask`, `AttributesMask`, `DisableEffectsMask`, `ProcsPerMinute`, `Chance`, `Cooldown`, `Charges`) VALUES
 (680733, 0, 26, 0, 0, 4096, 69972, 1, 2, 0, 0, 0, 0, 100, 0, 0),
 (802315, 0, 26, 0, 0, 2097152, 65536, 0, 2, 0, 0, 0, 0, 100, 0, 0),
-(704692, 0, 26, 0, 0, 2097152, 65536, 0, 2, 0, 0, 0, 0, 100, 0, 0),
-(704653, 0, 26, 16777216, 0, 0, 4096, 0, 2, 0, 0, 0, 0, 100, 0, 0);
+(704692, 0, 26, 0, 0, 2097152, 65536, 0, 2, 0, 0, 0, 0, 100, 0, 0);
 
 -- Corrupted Blood's "on a Humanoid or Beast" gate. CONDITION_SOURCE_TYPE_SPELL_PROC = 24,
 -- CONDITION_CREATURE_TYPE = 24, CREATURE_TYPE_BEAST = 1, CREATURE_TYPE_HUMANOID = 7
