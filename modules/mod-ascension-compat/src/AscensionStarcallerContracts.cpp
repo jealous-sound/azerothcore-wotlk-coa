@@ -71,6 +71,11 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[0].TriggerSpell = 0;
         dummy(1);
     }
+    // Night Hunter 801146 (ADD_FLAT_MODIFIER COOLDOWN, mask 0/0x40/0) only matches the mount aura spells 704772 and
+    // 707752. Huntress Saber 524643 owns the 180 s cooldown but has SpellFamilyFlags 0/0/0, so the modifier never
+    // selected it. No other family 32 aura mask uses word1 bit 0x40.
+    if (id == 524643)
+        info->SpellFamilyFlags[1] |= 0x40;
     if (id == 706301)
         dummy(0);
     if (id == 800386)
