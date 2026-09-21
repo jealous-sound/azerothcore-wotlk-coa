@@ -101,6 +101,10 @@ void ApplyContracts(SpellInfo* info)
         aura(1,SPELL_AURA_MOD_RATING,3,224);
         dummy(2);
     }
+    if (id == 804993)
+        // Empowered Exoskeleton: the +5 yd is a SPELLMOD_RANGE, but Chitin Rush has range 0 and travels its
+        // effect radius (CHARGE_DEST, 20 yd), which only SPELLMOD_RADIUS moves (SpellEffectInfo::CalcRadius).
+        info->Effects[1].MiscValue = SPELLMOD_RADIUS;
     if (id == 803216)
         info->Effects[1].ApplyAuraName = SPELL_AURA_230;
     if (id == 805139)
