@@ -147,6 +147,7 @@ void AddSC_AscensionPrimalistEarthsGuidance();
 void AddSC_AscensionPrimalistGroveTender();
 void AddSC_AscensionPrimalistBramblepatch();
 void AddSC_AscensionPrimalistPrimalStrikes();
+void AddSC_AscensionPrimalistLithicLance();
 void AddSC_AscensionPrimalistEmpoweredBoons();
 void AddSC_AscensionPrimalistEarthmotherWarden();
 void AddSC_AscensionPrimalistDruidTraining();
@@ -360,6 +361,7 @@ void Addmod_ascension_compatScripts()
     AddSC_AscensionPrimalistGroveTender();
     AddSC_AscensionPrimalistBramblepatch();
     AddSC_AscensionPrimalistPrimalStrikes();
+    AddSC_AscensionPrimalistLithicLance();
     AddSC_AscensionPrimalistEmpoweredBoons();
     AddSC_AscensionPrimalistEarthmotherWarden();
     AddSC_AscensionPrimalistDruidTraining();

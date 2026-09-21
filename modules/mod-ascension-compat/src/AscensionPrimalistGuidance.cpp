@@ -156,7 +156,7 @@ class spell_ascension_rupturer_lance : public SpellScript
     {
         PreventHitDefaultEffect(index);
         // The beam always triggers its helper, but the cooldown benefit requires Rupturer.
-        // Preserve the helper's separate removal of the Lithic Lance readiness aura.
+        // Lithic Lance consumes its readiness window before generating new Earthshaping.
         if (GetCaster()->HasAura(Rupturer))
             ReduceRankCooldowns(GetHitPlayer(), TerrasurgeFirst, GetEffectValue());
     }

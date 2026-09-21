@@ -24,6 +24,8 @@ constexpr uint32 SPELL_DREAM = 680452;
 constexpr uint32 SPELL_DREAM_BUFF = 578255;
 constexpr uint32 SPELL_HEAVY_EARTH = 560142;
 constexpr uint32 SPELL_CATACLYSM = 680444;
+constexpr uint32 SPELL_LITHIC_LANCE = 706159;
+constexpr uint32 SPELL_LITHIC_LANCE_READY = 807048;
 constexpr uint32 SPELL_SEISMIC_RESET = 680445;
 constexpr uint32 SPELL_GRASP_RESET = 681380;
 constexpr std::array<uint32, 3> EARTHSHAPING_HELPERS =
@@ -207,6 +209,14 @@ bool HandleAscensionPrimalistEarthshapingGain(Player* player)
             player->CastSpell(player, SPELL_SEISMIC_RESET, TRIGGERED_FULL_MASK);
             player->CastSpell(player, SPELL_GRASP_RESET, TRIGGERED_FULL_MASK);
         }
+    }
+    if (Aura const* talent = player->GetAura(SPELL_LITHIC_LANCE, player->GetGUID()))
+    {
+        Aura const* resource = player->GetAura(SPELL_EARTHSHAPING, player->GetGUID());
+        SpellInfo const* resourceInfo = sSpellMgr->GetSpellInfo(SPELL_EARTHSHAPING);
+        if (resourceInfo && (!resource || resource->GetStackAmount() < resourceInfo->CalcMaxAuraStacks(player)) &&
+            roll_chance_f(talent->GetSpellInfo()->ProcChance))
+            player->CastSpell(player, SPELL_LITHIC_LANCE_READY, TRIGGERED_FULL_MASK);
     }
     return false;
 }
