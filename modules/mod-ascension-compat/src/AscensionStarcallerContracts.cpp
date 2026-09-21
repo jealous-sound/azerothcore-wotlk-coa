@@ -231,6 +231,12 @@ void ApplyContracts(SpellInfo* info)
         // stack in ApplyAbilities). Effect 1 is the native SPELLMOD_RANGE the tooltip promises, so it
         // has to stay a real modifier or ranged abilities keep their unmodified range.
         dummy(0);
+    if (id == 524638)
+        // Ishnu-alah: "Moon Arrow restores an additional $s1% of your maximum mana". The shipped modifier
+        // is SPELLMOD_EFFECT3, which lands on Moon Arrow's third effect, the flat-mana helper 804155
+        // (SPELL_EFFECT_ENERGIZE), so it adds mana points. The percent helper 804096
+        // (SPELL_EFFECT_ENERGIZE_PCT) is fed by Moon Arrow's second effect, i.e. SPELLMOD_EFFECT2.
+        info->Effects[0].MiscValue = SPELLMOD_EFFECT2;
     if (id == 807195)
         info->AuraInterruptFlags |= AURA_INTERRUPT_FLAG_TAKE_DAMAGE;
     if (id == 570231)
