@@ -220,6 +220,13 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[1].ApplyAuraName = SPELL_AURA_MOD_CRIT_PCT;
         info->Effects[2].ApplyAuraName = SPELL_AURA_ASCENSION_MOD_HIT_CHANCE_ALL_PCT;
     }
+    // Flak Guns authors its "increased critical damage" half as a flat modifier, but the consumer of
+    // SPELLMOD_CRIT_DAMAGE_BONUS applies it to the absolute critical bonus, so the flat form added 15 raw
+    // damage instead of scaling the bonus by 15%. Only the second effect is rewritten; the first one is a
+    // critical strike chance modifier, which is already consumed as percentage points.
+    if (id == 520686 && info->Effects[EFFECT_1].ApplyAuraName == SPELL_AURA_ADD_FLAT_MODIFIER &&
+        info->Effects[EFFECT_1].MiscValue == SPELLMOD_CRIT_DAMAGE_BONUS)
+        info->Effects[EFFECT_1].ApplyAuraName = SPELL_AURA_ADD_PCT_MODIFIER;
     if (id == 560742)
     {
         info->Effects[1].ApplyAuraName = SPELL_AURA_MOD_HIT_CHANCE;
