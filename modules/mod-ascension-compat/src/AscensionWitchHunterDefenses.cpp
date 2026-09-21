@@ -60,6 +60,11 @@ class aura_ascension_witch_hunter_lifecycle : public AuraScript
         }
         if (GetId() == 562225 && effect->GetEffIndex() == EFFECT_1)
             amount = Night() ? 100 : 0; // local rule for the authored "significant" detection bonus
+        if (Family(GetSpellInfo(), 2, 4) && effect->GetEffIndex() == EFFECT_0)
+            // March's damage is the amount of a periodic trigger, which the core never runs through the DOT mods
+            if (Unit* caster = GetCaster())
+                if (Player* modOwner = caster->GetSpellModOwner())
+                    modOwner->ApplySpellMod(GetId(), SPELLMOD_DOT, amount);
     }
 
     void Periodic(AuraEffect const* effect, bool& periodic, int32& amplitude)
@@ -332,6 +337,9 @@ class aura_ascension_witch_hunter_lifecycle : public AuraScript
         if (m_scriptSpellId == 562225)
             DoEffectCalcAmount += AuraEffectCalcAmountFn(aura_ascension_witch_hunter_lifecycle::Calculate, EFFECT_1,
                                                          SPELL_AURA_MOD_STEALTH_DETECT);
+        if (Family(sSpellMgr->GetSpellInfo(m_scriptSpellId), 2, 4))
+            DoEffectCalcAmount += AuraEffectCalcAmountFn(aura_ascension_witch_hunter_lifecycle::Calculate, EFFECT_0,
+                                                         SPELL_AURA_PERIODIC_TRIGGER_SPELL_WITH_VALUE);
         DoEffectCalcPeriodic +=
             AuraEffectCalcPeriodicFn(aura_ascension_witch_hunter_lifecycle::Periodic, EFFECT_ALL, SPELL_AURA_ANY);
         OnEffectPeriodic +=
