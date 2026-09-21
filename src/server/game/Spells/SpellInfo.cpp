@@ -1473,7 +1473,6 @@ bool SpellInfo::IsAffectedBySpellMod(SpellModifier const* mod) const
         mod->spellId == 705780 && mod->op == SPELLMOD_JUMP_TARGETS && mod->type == SPELLMOD_FLAT &&
         mod->mask == flag96(128, 0, 0);
 
-    // Doomrend's heal absorb (560361) ignores caster modifiers, but Blood Fueled raises its amount.
     bool const bloodFueledAbsorb = Id == 560361 && mod->spellId == 705416 && mod->op == SPELLMOD_EFFECT1 &&
         mod->type == SPELLMOD_PCT;
 
