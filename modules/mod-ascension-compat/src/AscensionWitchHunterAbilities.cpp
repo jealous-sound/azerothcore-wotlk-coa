@@ -194,7 +194,10 @@ class spell_ascension_witch_hunter_ability : public SpellScript
             ++_hits;
         if (Dusk(GetSpellInfo()) || id == 803502 || Noctis(GetSpellInfo()))
         {
-            uint32 percent = Noctis(GetSpellInfo()) ? 50 : 25;
+            // The tooltips read the heal percent from the passive (${$574336m1}), so follow it rather than a literal
+            SpellInfo const* passive = sSpellMgr->GetSpellInfo(Noctis(GetSpellInfo()) ? 574336 : 574334);
+            uint32 percent = passive ? std::max(passive->Effects[EFFECT_0].CalcValue(), 0) :
+                                       (Noctis(GetSpellInfo()) ? 100 : 25);
             if (dealt)
                 player->CastCustomSpell(Noctis(GetSpellInfo()) ? 574337 : 574335, SPELLVALUE_BASE_POINT0,
                                         int32(dealt * uint64(percent) / 100), player, TRIGGERED_FULL_MASK);
