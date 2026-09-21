@@ -2,6 +2,7 @@
 
 #include "AscensionPrimalistEarthshaping.h"
 #include "Player.h"
+#include "Random.h"
 #include "ScriptMgr.h"
 #include "SpellAuraEffects.h"
 #include "SpellAuras.h"
@@ -22,6 +23,9 @@ constexpr uint32 SPELL_BLESSING_OF_THERAZANE = 680439;
 constexpr uint32 SPELL_DREAM = 680452;
 constexpr uint32 SPELL_DREAM_BUFF = 578255;
 constexpr uint32 SPELL_HEAVY_EARTH = 560142;
+constexpr uint32 SPELL_CATACLYSM = 680444;
+constexpr uint32 SPELL_SEISMIC_RESET = 680445;
+constexpr uint32 SPELL_GRASP_RESET = 681380;
 constexpr std::array<uint32, 3> EARTHSHAPING_HELPERS =
     {SPELL_STONESHARD_MODIFIER, SPELL_EARTHQUAKE_MODIFIER, SPELL_ERUPTION_MODIFIER};
 
@@ -191,6 +195,19 @@ bool HandleAscensionPrimalistEarthshapingGain(Player* player)
         if (Aura const* resource = player->GetAura(SPELL_EARTHSHAPING, player->GetGUID());
             resource && resource->GetStackAmount() >= 10)
             player->CastSpell(player, SPELL_DREAM_BUFF, TRIGGERED_FULL_MASK);
+
+    // Cataclysm rolls only for a resource gain, not an attempt at the stack cap.
+    if (Aura const* talent = player->GetAura(SPELL_CATACLYSM, player->GetGUID()))
+    {
+        Aura const* resource = player->GetAura(SPELL_EARTHSHAPING, player->GetGUID());
+        SpellInfo const* resourceInfo = sSpellMgr->GetSpellInfo(SPELL_EARTHSHAPING);
+        if (resourceInfo && (!resource || resource->GetStackAmount() < resourceInfo->CalcMaxAuraStacks(player)) &&
+            roll_chance_f(talent->GetSpellInfo()->ProcChance))
+        {
+            player->CastSpell(player, SPELL_SEISMIC_RESET, TRIGGERED_FULL_MASK);
+            player->CastSpell(player, SPELL_GRASP_RESET, TRIGGERED_FULL_MASK);
+        }
+    }
     return false;
 }
 
