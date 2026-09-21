@@ -90,7 +90,8 @@ public:
         return !NoRegenerationActors.contains(player->GetGUID());
     }
 };
-constexpr uint32 TestPhase = 1u << 30;
+// Creature level scaling reads the same mask to tell a fixture from a world creature.
+constexpr uint32 TestPhase = LocalLevelScaling::FixturePhaseMask;
 constexpr uint32 MaximumActors = 8;
 constexpr uint16 LevelScalingOpcode = 0x0667;
 
@@ -136,6 +137,7 @@ public:
     static void Begin()
     {
         _counts.clear();
+        _casts.clear();
         _enabled = true;
     }
 
@@ -151,13 +153,28 @@ public:
         return itr == _counts.end() ? 0 : itr->second;
     }
 
+    // Every cast a unit completes, triggered or not, keyed by the cast spell itself.
+    static void RecordCast(ObjectGuid unit, uint32 spell)
+    {
+        if (_enabled)
+            ++_casts[{ unit, spell }];
+    }
+
+    static uint32 CastCount(ObjectGuid unit, uint32 spell)
+    {
+        auto itr = _casts.find({ unit, spell });
+        return itr == _casts.end() ? 0 : itr->second;
+    }
+
 private:
     static bool _enabled;
     static std::map<std::pair<ObjectGuid, uint32>, uint32> _counts;
+    static std::map<std::pair<ObjectGuid, uint32>, uint32> _casts;
 };
 
 bool ProcCounter::_enabled = false;
 std::map<std::pair<ObjectGuid, uint32>, uint32> ProcCounter::_counts;
+std::map<std::pair<ObjectGuid, uint32>, uint32> ProcCounter::_casts;
 
 enum class ActorStage
 {
@@ -748,6 +765,8 @@ private:
                 player->ApplyRatingMod(CR_HIT_SPELL, *hitRating, true);
             if (auto critRating = actor.definition.get_optional<int32>("spell_crit_rating"))
                 player->ApplyRatingMod(CR_CRIT_SPELL, *critRating, true);
+            if (auto critRating = actor.definition.get_optional<int32>("melee_crit_rating"))
+                player->ApplyRatingMod(CR_CRIT_MELEE, *critRating, true);
             if (auto hitRating = actor.definition.get_optional<int32>("ranged_hit_rating"))
                 player->ApplyRatingMod(CR_HIT_RANGED, *hitRating, true);
             if (auto hitRating = actor.definition.get_optional<int32>("melee_hit_rating"))
@@ -853,6 +872,11 @@ private:
                 Require(creature != nullptr, "Could not summon fixture creature: " + id);
                 _targets.emplace(id, Target{ creature->GetMapId(), creature->GetInstanceId(), creature->GetGUID() });
                 creature->SetPhaseMask(TestPhase, true);
+                // Creature level scaling rebuilds a creature through SelectLevel(), which discards the
+                // level and the maximum health set just below. A fixture keeps what its scenario
+                // declared unless that scenario is the one testing scaling.
+                if (definition.get<bool>("level_scaling", false))
+                    LocalLevelScaling::AllowFixtureScaling(creature->GetGUID().GetRawValue());
                 creature->SetReactState(REACT_PASSIVE);
                 creature->SetRegeneratingHealth(false);
                 creature->SetFaction(definition.get<uint32>("faction", 14));
@@ -993,7 +1017,7 @@ private:
             return unit->SpellHealingBonusTaken(GetUnit(step.get<std::string>("target")), info, 1000,
                 step.get<bool>("periodic", false) ? DOT : HEAL);
         }
-        if (metric == "spell_cast_count")
+        if (metric == "spell_go_count")
         {
             Require(unit->IsPlayer(), "Cast packets need a player observer");
             Unit* caster = step.get<bool>("pet", false) ? static_cast<Unit*>(unit->ToPlayer()->GetPet()) : unit;
@@ -1006,6 +1030,11 @@ private:
         }
         if (metric == "distance")
             return unit->GetExactDist2d(GetUnit(step.get<std::string>("target")));
+        if (metric == "spell_cast_count")
+        {
+            Require(sSpellMgr->GetSpellInfo(spell) != nullptr, "Unknown spell in metric");
+            return ProcCounter::CastCount(unit->GetGUID(), spell);
+        }
         if (metric == "spell_proc_count")
         {
             Require(sSpellMgr->GetSpellInfo(spell) != nullptr, "Unknown spell in metric");
@@ -1298,6 +1327,13 @@ private:
                 int32 damage = 1000;
                 sScriptMgr->ModifySpellDamageTaken(player, attacker, damage, info);
                 return damage;
+            }
+            if (metric == "script_heal_received")
+            {
+                // Same (target, healer) order as the periodic heal path in AuraEffect::HandlePeriodicHealAurasTick.
+                uint32 heal = 1000;
+                sScriptMgr->ModifyHealReceived(player, attacker, heal, info);
+                return heal;
             }
             Require(metric == "script_periodic_damage_taken", "Unknown scripted damage metric");
             uint32 damage = 1000;
@@ -1707,6 +1743,8 @@ private:
                 }
                 sGroupMgr->AddGroup(group);
             }
+            if (group->IsFull() && !group->isRaidGroup())
+                group->ConvertToRaid();
             Require(group->AddMember(member), "Could not join fixture group");
         }
         else if (action == "command")
@@ -2234,10 +2272,12 @@ class CoAGameplayTestProcCounter final : public AllSpellScript
 public:
     CoAGameplayTestProcCounter() : AllSpellScript("CoAGameplayTestProcCounter", { ALLSPELLHOOK_ON_CAST }) { }
 
-    void OnSpellCast(Spell* spell, Unit* caster, SpellInfo const* /*info*/, bool /*skipCheck*/) override
+    void OnSpellCast(Spell* spell, Unit* caster, SpellInfo const* info, bool /*skipCheck*/) override
     {
         if (!caster || !spell)
             return;
+        if (info)
+            ProcCounter::RecordCast(caster->GetGUID(), info->Id);
         if (SpellInfo const* triggeredBy = spell->GetTriggeredByAuraSpellInfo())
             ProcCounter::Record(caster->GetGUID(), triggeredBy->Id);
     }

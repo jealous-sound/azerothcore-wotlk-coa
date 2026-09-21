@@ -188,14 +188,15 @@ The [damage-led scaling scenario](scenarios/level-scaling-damage-engagement.json
 out-of-range attacker scales a fresh creature before a nonlethal or lethal opening hit, and that
 later damage leaves its combat level fixed. It requires `AscensionCompat.LevelScaling=1`,
 `AscensionCompat.LevelScalingMaxLift=5` and `MonsterSight=50`. The level-1 fixtures stand 80–85 yards
-away and must scale to level 6. One fixture has only one maximum HP to expose damage-before-scaling.
+away and must scale to level 6, so both declare `level_scaling`. One fixture has only one maximum HP to
+expose damage-before-scaling.
 Spell 705798 is learned as a fixture: its one damage and zero initial threat exercise damage-led
 engagement through the normal cast handler. This tests the damage path, not an Overload proc or pet AI.
 
 Players require `id`, numeric `race` and `class`; `level` defaults to 80. Optional `bot` logs the actor in on a
 session flagged as a bot, the way playerbots flags the sessions it creates, so a scenario can check what the
 server does differently for them. Optional `spell_hit_rating`,
-`spell_crit_rating`, `ranged_hit_rating`, `melee_hit_rating` and `expertise_rating` add fixture ratings through
+`spell_crit_rating`, `melee_crit_rating`, `ranged_hit_rating`, `melee_hit_rating` and `expertise_rating` add fixture ratings through
 normal calculations, useful for preventing misses, dodges and parries in deterministic tests.
 Optional `allow_regeneration: false` suppresses only that fixture player's ordinary health/power regeneration
 through the native regeneration hook. Spell costs, healing, energize effects and combat remain enabled.
@@ -209,8 +210,11 @@ Creatures require `id`, player `owner` and template `entry`. Optional `distance`
 (default 3 yards); `faction`, `level`, `health` default to 14, 80, 100000. They retain template data and AI,
 with passive reaction and health regeneration disabled. Pick a template whose scripts suit the experiment.
 Setup clears combat initiated by spawn-time AI before starting the scenario. Later combat follows normal rules.
-Creature AI and local level scaling can still change initial fixture levels and maximum health. Let them settle
-before taking baselines; assert stable maximums and final levels when testing damage coefficients.
+Local level scaling ignores fixtures, because it rebuilds a creature through `SelectLevel()` and would discard
+the declared `level` and `health`; optional `level_scaling` (default false) opts a fixture back into it, which
+only the damage-led scaling scenario above needs. Creature AI can still change initial fixture levels and
+maximum health. Let them settle before taking baselines; assert stable maximums and final levels when testing
+damage coefficients.
 
 | Action | Fields and behavior |
 | --- | --- |
@@ -261,7 +265,7 @@ Metrics: `health`, `max_health`, `power`, `max_power`, `alive`, `combat`, `casti
 `has_talent`, `talent_points`, `cooldown_ms`, `item_count`, `carried_item_count`, `bank_bag_slots`, `aura`, `aura_stacks`, `aura_charges`,
 `aura_duration_ms`, `aura_amount`, `pet_entry`, `pet_aura_stacks`, `owned_creature_count`,
 `charm_entry`, `charm_aura_stacks`, `controls_self`, `private_instance`, `dynamic_object`,
-`dynamic_object_duration_ms`, `distance`, `spell_proc_count`, `temporary_spell_replacement`.
+`dynamic_object_duration_ms`, `distance`, `spell_proc_count`, `spell_cast_count`, `temporary_spell_replacement`.
 Boolean metrics use 0/1. Spell/aura metrics require `spell`; `item_count` requires `item`.
 `carried_item_count` sums the stack counts of equipped items (bags included), the backpack and the bags' contents.
 `aura_positive` reads the applied aura's beneficial flag; check `aura` separately to distinguish absence from a debuff.
@@ -327,6 +331,9 @@ started. What is counted is each spell the proc cast while the aura was named as
 place the server records both the proc and its owner; an aura whose proc does not cast anything counts zero.
 Use it for a proc whose chance is below 100%, where a single roll proves nothing: cast the trigger often enough
 that the false-failure probability is acceptable, and assert a `min` on the count.
+`spell_cast_count` requires `spell` and counts the casts of that exact spell the actor completed since the scenario
+started, triggered casts included. Use it where a script casts the effect directly, so no aura is named as the trigger
+and `spell_proc_count` reads zero.
 Spell queries require `spell` and submit nothing: `spell_modifier` applies the player's native spell modifiers for
 `op` (`SpellModOp`) to the number `base`; `spell_effect_value` (optional `effect`) returns the effect's value as the
 player would cast it, including module base-value hooks; `spell_cast_time_ms`, `spell_max_range` and
@@ -339,8 +346,9 @@ spell damage bonus. `spell_done_crit_chance` and `melee_spell_damage_done` requi
 crit chance for that spell, and the weapon-spell damage bonus from a fixed base of 1000. `aura_crit_chance` reads a
 periodic aura effect's snapshotted crit chance; `aura_script_value` requires `key`. `script_melee_damage_taken`,
 `script_spell_damage_taken` and `script_periodic_damage_taken` require `target` as the attacker (and `spell` for
-the latter two) and return 1000 after the registered module damage-taken hooks. `set_health` also accepts a
-creature actor, or `pet: true` with a player actor to set its current pet's health.
+the latter two) and return 1000 after the registered module damage-taken hooks. `script_heal_received` requires
+`spell` and `target` as the healer and returns 1000 after the registered heal-received hooks, with the actor as recipient.
+`set_health` also accepts a creature actor, or `pet: true` with a player actor to set its current pet's health.
 `open_item` takes `actor` and `item` and submits the native container-open packet, offering it to the
 packet hooks first as `WorldSession::Update` does. `close_loot` takes `actor`
 and closes its current loot window. `collect_loot` takes `actor`, collects slot zero, verifies that its full rolled
@@ -443,7 +451,7 @@ Runner checks cover invalid scenarios, incorrect/partial results, owned-process 
 partial-clone cleanup, cache reuse/invalidation, ownership and exclusive leases. They do not substitute for
 building and running the native scenario.
 
-`spell_cast_count` counts the actor's native `SMSG_SPELL_GO` packets for `spell`; optional `pet: true`
+`spell_go_count` counts the actor's native `SMSG_SPELL_GO` packets for `spell`; optional `pet: true`
 selects the current pet. Invisible triggered spells may omit this packet. A cast count proves dispatch,
 so pair it with effect assertions. It does not test network delivery or client rendering.
 `spell_hit_bonus_taken` reads the victim aura contribution to the native spell hit calculation for `spell`.

@@ -156,7 +156,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 504784,
       "save_as": "dealt_before"
     },
@@ -5863,7 +5863,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 504784,
       "relative_to": "dealt_before",
       "save_as": "dealt_procs"
@@ -5875,7 +5875,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 504784,
       "save_as": "taken_before"
     },
@@ -11582,7 +11582,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 504784,
       "relative_to": "taken_before",
       "save_as": "taken_procs"
@@ -11594,7 +11594,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 504784,
       "save_as": "magic_before"
     },
@@ -12741,7 +12741,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 504784,
       "relative_to": "magic_before",
       "save_as": "magic_procs"
@@ -14367,7 +14367,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 504784,
       "save_as": "removed_before"
     },
@@ -14395,7 +14395,7 @@
     {
       "action": "assert",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 504784,
       "relative_to": "removed_before",
       "equals": 0

@@ -71,19 +71,34 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[0].TriggerSpell = 0;
         dummy(1);
     }
+    // Night Hunter 801146 (ADD_FLAT_MODIFIER COOLDOWN, mask 0/0x40/0) only matches the mount aura spells 704772 and
+    // 707752. Huntress Saber 524643 owns the 180 s cooldown but has SpellFamilyFlags 0/0/0, so the modifier never
+    // selected it. No other family 32 aura mask uses word1 bit 0x40.
+    if (id == 524643)
+        info->SpellFamilyFlags[1] |= 0x40;
     if (id == 706301)
         dummy(0);
     if (id == 800386)
     {
         mod(0, SPELL_AURA_ADD_PCT_MODIFIER, -100, SPELLMOD_CASTING_TIME, flag96(537133056, 8, 0));
-        // Silverstream doubles its native cost before the stock cost modifiers finish.
-        mod(1, SPELL_AURA_ADD_PCT_MODIFIER, 100, SPELLMOD_COST, flag96(536870912, 0, 0));
-        dummy(2);
+        // Effect 1 stays the DBC's SPELLMOD_JUMP_TARGETS carrier: Moonwell Acuity's EFFECT2 flat modifier
+        // (680809) raises its base of 0 to the three chained Moonwell Splash targets.
+        // Silverstream doubles its native cost before the stock cost modifiers finish. It takes the
+        // slot 2 dummy, which nothing reads.
+        mod(2, SPELL_AURA_ADD_PCT_MODIFIER, 100, SPELLMOD_COST, flag96(536870912, 0, 0));
+    }
+    if (id == 503583)
+    {
+        // Moonlight Ripple's cost line targeted the unused helper 807032 (Spell.dbc mask word 2 0x10000000),
+        // but Aegis cost is StarcallerCosts above and never reads it. Cut the Aegis spells' cost
+        // (SpellFamilyFlags word 1 0x10000000) by the tooltip's 10% directly.
+        mod(1, SPELL_AURA_ADD_PCT_MODIFIER, -10, SPELLMOD_COST, flag96(0, 268435456, 0));
     }
     if (id == 802985)
     {
         dummy(0);
-        dummy(1);
+        // Effect 1 keeps its DBC SPELL_AURA_MOD_RANGED_HASTE with a base of 0: Rapid Cycle's EFFECT2 flat
+        // modifier (300249) is the only source of the per-stack ranged haste.
         info->StackAmount = 4;
     }
     if (id == 804716)
@@ -110,8 +125,12 @@ void ApplyContracts(SpellInfo* info)
                 e.TargetA = SpellImplicitTargetInfo(TARGET_UNIT_TARGET_ALLY);
                 e.TargetB = SpellImplicitTargetInfo();
             }
-    if (id == 801401)
-        info->Effects[1].Effect = 0;
+    // Effect 1 of 801401 stays: its base of 0 healing taken is raised by Tear Drops (560896) and gated on the
+    // talent by spell_ascension_starcaller_ability.
+    // Elune's Presence: tooltip is "all party or raid members within 40 yds"; Spell.dbc MaxAffectedTargets 5
+    // would RandomResize the raid area list to 5 in Spell::SelectImplicitAreaTargets.
+    if (id == 680774)
+        info->MaxAffectedTargets = 0;
     if (id == 92133)
         info->Effects[0].BasePoints = 7;
     if (id == 92132 || id == 574349)
@@ -130,6 +149,14 @@ void ApplyContracts(SpellInfo* info)
     }
     if (id == 800393 || id == 800394)
         dummy(2);
+    if (id == 800394)
+    {
+        // Full Cycle 704343 lowers effect 1 of New Moon by 10 through a flat EFFECT2 mod. Effect 1 is a percent
+        // EFFECT1 mod aimed at the client-side cost helper 704518, which this core never applies because Hand of
+        // Elune's cost is the contract percentage above. Aim the same percent mod at Hand of Elune's own cost.
+        info->Effects[1].MiscValue = SPELLMOD_COST;
+        info->Effects[1].SpellClassMask = flag96(0, 0x40000, 0);
+    }
     if (id == 680822)
     {
         // Native transform 22989 resolves Maiev's creature template (display 20628).
@@ -228,6 +255,12 @@ void ApplyContracts(SpellInfo* info)
         // stack in ApplyAbilities). Effect 1 is the native SPELLMOD_RANGE the tooltip promises, so it
         // has to stay a real modifier or ranged abilities keep their unmodified range.
         dummy(0);
+    if (id == 524638)
+        // Ishnu-alah: "Moon Arrow restores an additional $s1% of your maximum mana". The shipped modifier
+        // is SPELLMOD_EFFECT3, which lands on Moon Arrow's third effect, the flat-mana helper 804155
+        // (SPELL_EFFECT_ENERGIZE), so it adds mana points. The percent helper 804096
+        // (SPELL_EFFECT_ENERGIZE_PCT) is fed by Moon Arrow's second effect, i.e. SPELLMOD_EFFECT2.
+        info->Effects[0].MiscValue = SPELLMOD_EFFECT2;
     if (id == 807195)
         info->AuraInterruptFlags |= AURA_INTERRUPT_FLAG_TAKE_DAMAGE;
     if (id == 570231)
@@ -337,8 +370,11 @@ class starcaller_scaling : public UnitScript
         if (!player || !target || Derived(info))
             return 1;
         if (player->GetDistance(target) > 30)
-            if (Aura* aura = player->GetAuraOfRankedSpell(704769))
-                return 1 + Amount(aura->GetId(), 1) / 100.0f;
+            // The talent's ranks are not chained in spell_ranks and SetTalentRank leaves only the chosen rank
+            // learned, so GetAuraOfRankedSpell(704769) never finds rank 2: look both ranks up by id.
+            for (uint32 rank : {704770u, 704769u})
+                if (player->HasAura(rank))
+                    return 1 + Amount(rank, 1) / 100.0f;
         return 1;
     }
     void ModifySpellDamageTaken(Unit* target, Unit* caster, int32& damage, SpellInfo const* info) override
@@ -361,7 +397,12 @@ class starcaller_scaling : public UnitScript
         float factor = 1;
         if (player->HasAura(801989) && target->GetHealthPct() < 20)
             factor *= 1.3f;
-        if (Aura* aura = player->GetAuraOfRankedSpell(704756))
+        // Lunar Blessing has two rank spells (704756, 704757); a talent rank change leaves only the chosen
+        // rank learned and no spell_ranks chain links them, so both roots are tried explicitly.
+        Aura* aura = player->GetAura(704757);
+        if (!aura)
+            aura = player->GetAura(704756);
+        if (aura)
             for (auto const& pair : target->GetAppliedAuras())
                 if (pair.second->GetBase()->GetSpellInfo()->Dispel == DISPEL_POISON ||
                     pair.second->GetBase()->GetSpellInfo()->Dispel == DISPEL_DISEASE)

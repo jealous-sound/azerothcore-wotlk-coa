@@ -1,0 +1,78 @@
+{
+  "schema": 1,
+  "name": "Thick Pelt no longer arms from the Bloodmage's own swings (#2325)",
+  "contract": "Thick Pelt 704626 reads 'Physical damage taken now reduces the Physical damage taken from the next attack within $556233d by ${($556233m1+$AP*0.2)}'. Its single effect is aura 42 (proc trigger spell) on Thick Pelt 556233 (MOD_DAMAGE_TAKEN, MiscValue 1 = physical, BasePoints -16 -> -15, ProcCharges 1, TargetA 1). Unlike the rest of this batch, Spell.dbc does give 704626 a proc flag - and it is the wrong one: ProcFlags 0x4 is PROC_FLAG_DONE_MELEE_AUTO_ATTACK, so the generated entry armed the buff on the Bloodmage's own outgoing swings. 556233 itself carries ProcFlags 0x2a8, the TAKEN melee/ranged set that matches the tooltip. This scenario proves the negative half only: after the fix the Bloodmage's own auto attacks must no longer arm 556233. NOT PROVABLE HERE - the positive half. CoAGameplayTest.cpp forces every fixture creature to REACT_PASSIVE at creation and again after CombatStop, and CreatureAI::UpdateVictim takes the passive branch for a creature in combat and calls me->AttackStop() (src/server/game/AI/CreatureAI.cpp:372-379); CreatureAI::AttackedBy is an empty stub (src/server/game/AI/CreatureAI.h:180, the real body is commented out at CreatureAI.cpp:317). A fixture creature therefore never swings back, whatever its faction, so no TAKEN-proc contract can be observed in this harness. A Ghost e2e test would have to: put a class-20 character with Thick Pelt 704626 in melee range of an ordinary world mob (not a harness fixture), let the mob land at least one physical auto attack on the character, and check that aura 556233 is on the character within its duration. NOTE: even with the proc condition corrected, #2325 is not settled - the tooltip's $AP*0.2 term is delivered by nothing (556233 has BasePoints -16 with EffectRealPointsPerLevel 0, no spell_bonus_data row, and its own text states $AP*0.25), and the amount is not asserted here.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "bloodmage",
+      "race": 1,
+      "class": 20,
+      "level": 80,
+      "spell_hit_rating": 10000,
+      "melee_hit_rating": 10000,
+      "expertise_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "bag",
+      "owner": "bloodmage",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 3,
+      "faction": 7
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "bloodmage",
+      "spell": 704626
+    },
+    {
+      "action": "set_power",
+      "actor": "bloodmage",
+      "power": 1,
+      "value": 1000
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: the Thick Pelt passive is active",
+      "actor": "bloodmage",
+      "metric": "aura",
+      "spell": 704626,
+      "equals": 1
+    },
+    {
+      "action": "attack",
+      "actor": "bloodmage",
+      "target": "bag"
+    },
+    {
+      "action": "wait",
+      "label": "Swing at the neutral bag long enough for several auto attacks to land",
+      "ms": 15000
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: the Bloodmage really did swing, so the next assertion is not vacuous",
+      "actor": "bloodmage",
+      "metric": "melee_attack_count",
+      "min": 2
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING: the Bloodmage's own swings do not arm Thick Pelt 556233",
+      "actor": "bloodmage",
+      "metric": "aura",
+      "spell": 556233,
+      "equals": 0
+    }
+  ]
+}

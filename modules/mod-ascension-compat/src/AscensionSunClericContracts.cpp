@@ -68,6 +68,11 @@ void ApplyContracts(SpellInfo* info)
         }
     if (id == 807994)
         info->AttributesEx2 &= ~SPELL_ATTR2_CANT_CRIT; // Holy Form may crit and trigger Redeemer once.
+    if (id == 300350)
+        // Blazing Chariot: Attributes lack SPELL_ATTR0_PASSIVE despite the client's "Passive" rank
+        // label, so SpellInfo::IsPassive() is false and Player::addSpell's auto-cast-on-learn branch
+        // never fires -- the modifier aura was never actually applied by any known means.
+        info->Attributes |= SPELL_ATTR0_PASSIVE;
     if (id == 807058)
         info->Effects[0].TargetA = SpellImplicitTargetInfo(TARGET_UNIT_TARGET_ENEMY);
     if (id == 704911)

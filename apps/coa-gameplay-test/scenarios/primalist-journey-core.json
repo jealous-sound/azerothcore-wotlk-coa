@@ -214,7 +214,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "baseline_0_before"
     },
@@ -247,7 +247,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "baseline_0_before",
       "save_as": "baseline_0_proc"
@@ -259,7 +259,7 @@
     {
       "action": "assert",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "baseline_0_before",
       "equals": 0
@@ -353,7 +353,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_0_before"
     },
@@ -386,7 +386,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_0_before",
       "save_as": "talented_0_proc"
@@ -423,7 +423,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_1_before"
     },
@@ -456,7 +456,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_1_before",
       "save_as": "talented_1_proc"
@@ -493,7 +493,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_2_before"
     },
@@ -526,7 +526,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_2_before",
       "save_as": "talented_2_proc"
@@ -563,7 +563,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_3_before"
     },
@@ -596,7 +596,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_3_before",
       "save_as": "talented_3_proc"
@@ -633,7 +633,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_4_before"
     },
@@ -666,7 +666,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_4_before",
       "save_as": "talented_4_proc"
@@ -703,7 +703,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_5_before"
     },
@@ -736,7 +736,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_5_before",
       "save_as": "talented_5_proc"
@@ -773,7 +773,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_6_before"
     },
@@ -806,7 +806,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_6_before",
       "save_as": "talented_6_proc"
@@ -843,7 +843,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_7_before"
     },
@@ -876,7 +876,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_7_before",
       "save_as": "talented_7_proc"
@@ -913,7 +913,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_8_before"
     },
@@ -946,7 +946,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_8_before",
       "save_as": "talented_8_proc"
@@ -983,7 +983,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_9_before"
     },
@@ -1016,7 +1016,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_9_before",
       "save_as": "talented_9_proc"
@@ -1053,7 +1053,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_10_before"
     },
@@ -1086,7 +1086,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_10_before",
       "save_as": "talented_10_proc"
@@ -1123,7 +1123,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_11_before"
     },
@@ -1156,7 +1156,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_11_before",
       "save_as": "talented_11_proc"
@@ -1193,7 +1193,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_12_before"
     },
@@ -1226,7 +1226,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_12_before",
       "save_as": "talented_12_proc"
@@ -1263,7 +1263,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_13_before"
     },
@@ -1296,7 +1296,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_13_before",
       "save_as": "talented_13_proc"
@@ -1333,7 +1333,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_14_before"
     },
@@ -1366,7 +1366,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_14_before",
       "save_as": "talented_14_proc"
@@ -1403,7 +1403,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_15_before"
     },
@@ -1436,7 +1436,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_15_before",
       "save_as": "talented_15_proc"
@@ -1473,7 +1473,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_16_before"
     },
@@ -1506,7 +1506,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_16_before",
       "save_as": "talented_16_proc"
@@ -1543,7 +1543,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_17_before"
     },
@@ -1576,7 +1576,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_17_before",
       "save_as": "talented_17_proc"
@@ -1613,7 +1613,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_18_before"
     },
@@ -1646,7 +1646,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_18_before",
       "save_as": "talented_18_proc"
@@ -1683,7 +1683,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_19_before"
     },
@@ -1716,7 +1716,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_19_before",
       "save_as": "talented_19_proc"
@@ -1753,7 +1753,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_20_before"
     },
@@ -1786,7 +1786,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_20_before",
       "save_as": "talented_20_proc"
@@ -1823,7 +1823,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_21_before"
     },
@@ -1856,7 +1856,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_21_before",
       "save_as": "talented_21_proc"
@@ -1893,7 +1893,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_22_before"
     },
@@ -1926,7 +1926,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_22_before",
       "save_as": "talented_22_proc"
@@ -1963,7 +1963,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_23_before"
     },
@@ -1996,7 +1996,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_23_before",
       "save_as": "talented_23_proc"
@@ -2033,7 +2033,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_24_before"
     },
@@ -2066,7 +2066,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_24_before",
       "save_as": "talented_24_proc"
@@ -2103,7 +2103,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_25_before"
     },
@@ -2136,7 +2136,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_25_before",
       "save_as": "talented_25_proc"
@@ -2173,7 +2173,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_26_before"
     },
@@ -2206,7 +2206,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_26_before",
       "save_as": "talented_26_proc"
@@ -2243,7 +2243,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_27_before"
     },
@@ -2276,7 +2276,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_27_before",
       "save_as": "talented_27_proc"
@@ -2313,7 +2313,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_28_before"
     },
@@ -2346,7 +2346,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_28_before",
       "save_as": "talented_28_proc"
@@ -2383,7 +2383,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_29_before"
     },
@@ -2416,7 +2416,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_29_before",
       "save_as": "talented_29_proc"
@@ -2453,7 +2453,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_30_before"
     },
@@ -2486,7 +2486,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_30_before",
       "save_as": "talented_30_proc"
@@ -2523,7 +2523,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_31_before"
     },
@@ -2556,7 +2556,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_31_before",
       "save_as": "talented_31_proc"
@@ -2593,7 +2593,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_32_before"
     },
@@ -2626,7 +2626,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_32_before",
       "save_as": "talented_32_proc"
@@ -2663,7 +2663,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_33_before"
     },
@@ -2696,7 +2696,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_33_before",
       "save_as": "talented_33_proc"
@@ -2733,7 +2733,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_34_before"
     },
@@ -2766,7 +2766,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_34_before",
       "save_as": "talented_34_proc"
@@ -2803,7 +2803,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_35_before"
     },
@@ -2836,7 +2836,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_35_before",
       "save_as": "talented_35_proc"
@@ -2873,7 +2873,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_36_before"
     },
@@ -2906,7 +2906,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_36_before",
       "save_as": "talented_36_proc"
@@ -2943,7 +2943,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_37_before"
     },
@@ -2976,7 +2976,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_37_before",
       "save_as": "talented_37_proc"
@@ -3013,7 +3013,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_38_before"
     },
@@ -3046,7 +3046,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_38_before",
       "save_as": "talented_38_proc"
@@ -3083,7 +3083,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_39_before"
     },
@@ -3116,7 +3116,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_39_before",
       "save_as": "talented_39_proc"
@@ -3153,7 +3153,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_40_before"
     },
@@ -3186,7 +3186,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_40_before",
       "save_as": "talented_40_proc"
@@ -3223,7 +3223,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_41_before"
     },
@@ -3256,7 +3256,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_41_before",
       "save_as": "talented_41_proc"
@@ -3293,7 +3293,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_42_before"
     },
@@ -3326,7 +3326,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_42_before",
       "save_as": "talented_42_proc"
@@ -3363,7 +3363,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_43_before"
     },
@@ -3396,7 +3396,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_43_before",
       "save_as": "talented_43_proc"
@@ -3433,7 +3433,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_44_before"
     },
@@ -3466,7 +3466,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_44_before",
       "save_as": "talented_44_proc"
@@ -3503,7 +3503,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_45_before"
     },
@@ -3536,7 +3536,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_45_before",
       "save_as": "talented_45_proc"
@@ -3573,7 +3573,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_46_before"
     },
@@ -3606,7 +3606,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_46_before",
       "save_as": "talented_46_proc"
@@ -3643,7 +3643,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_47_before"
     },
@@ -3676,7 +3676,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_47_before",
       "save_as": "talented_47_proc"
@@ -3713,7 +3713,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_48_before"
     },
@@ -3746,7 +3746,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_48_before",
       "save_as": "talented_48_proc"
@@ -3783,7 +3783,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_49_before"
     },
@@ -3816,7 +3816,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_49_before",
       "save_as": "talented_49_proc"
@@ -3888,7 +3888,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_50_before"
     },
@@ -3921,7 +3921,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_50_before",
       "save_as": "talented_50_proc"
@@ -3958,7 +3958,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_51_before"
     },
@@ -3991,7 +3991,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_51_before",
       "save_as": "talented_51_proc"
@@ -4028,7 +4028,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_52_before"
     },
@@ -4061,7 +4061,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_52_before",
       "save_as": "talented_52_proc"
@@ -4098,7 +4098,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_53_before"
     },
@@ -4131,7 +4131,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_53_before",
       "save_as": "talented_53_proc"
@@ -4168,7 +4168,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_54_before"
     },
@@ -4201,7 +4201,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_54_before",
       "save_as": "talented_54_proc"
@@ -4238,7 +4238,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_55_before"
     },
@@ -4271,7 +4271,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_55_before",
       "save_as": "talented_55_proc"
@@ -4308,7 +4308,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_56_before"
     },
@@ -4341,7 +4341,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_56_before",
       "save_as": "talented_56_proc"
@@ -4378,7 +4378,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_57_before"
     },
@@ -4411,7 +4411,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_57_before",
       "save_as": "talented_57_proc"
@@ -4448,7 +4448,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_58_before"
     },
@@ -4481,7 +4481,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_58_before",
       "save_as": "talented_58_proc"
@@ -4518,7 +4518,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_59_before"
     },
@@ -4551,7 +4551,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_59_before",
       "save_as": "talented_59_proc"
@@ -4588,7 +4588,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_60_before"
     },
@@ -4621,7 +4621,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_60_before",
       "save_as": "talented_60_proc"
@@ -4658,7 +4658,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_61_before"
     },
@@ -4691,7 +4691,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_61_before",
       "save_as": "talented_61_proc"
@@ -4728,7 +4728,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_62_before"
     },
@@ -4761,7 +4761,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_62_before",
       "save_as": "talented_62_proc"
@@ -4798,7 +4798,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_63_before"
     },
@@ -4831,7 +4831,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_63_before",
       "save_as": "talented_63_proc"
@@ -4868,7 +4868,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_64_before"
     },
@@ -4901,7 +4901,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_64_before",
       "save_as": "talented_64_proc"
@@ -4938,7 +4938,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_65_before"
     },
@@ -4971,7 +4971,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_65_before",
       "save_as": "talented_65_proc"
@@ -5008,7 +5008,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_66_before"
     },
@@ -5041,7 +5041,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_66_before",
       "save_as": "talented_66_proc"
@@ -5078,7 +5078,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_67_before"
     },
@@ -5111,7 +5111,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_67_before",
       "save_as": "talented_67_proc"
@@ -5148,7 +5148,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_68_before"
     },
@@ -5181,7 +5181,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_68_before",
       "save_as": "talented_68_proc"
@@ -5218,7 +5218,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_69_before"
     },
@@ -5251,7 +5251,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_69_before",
       "save_as": "talented_69_proc"
@@ -5288,7 +5288,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_70_before"
     },
@@ -5321,7 +5321,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_70_before",
       "save_as": "talented_70_proc"
@@ -5358,7 +5358,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_71_before"
     },
@@ -5391,7 +5391,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_71_before",
       "save_as": "talented_71_proc"
@@ -5428,7 +5428,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_72_before"
     },
@@ -5461,7 +5461,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_72_before",
       "save_as": "talented_72_proc"
@@ -5498,7 +5498,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_73_before"
     },
@@ -5531,7 +5531,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_73_before",
       "save_as": "talented_73_proc"
@@ -5568,7 +5568,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_74_before"
     },
@@ -5601,7 +5601,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_74_before",
       "save_as": "talented_74_proc"
@@ -5638,7 +5638,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_75_before"
     },
@@ -5671,7 +5671,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_75_before",
       "save_as": "talented_75_proc"
@@ -5708,7 +5708,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_76_before"
     },
@@ -5741,7 +5741,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_76_before",
       "save_as": "talented_76_proc"
@@ -5778,7 +5778,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_77_before"
     },
@@ -5811,7 +5811,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_77_before",
       "save_as": "talented_77_proc"
@@ -5848,7 +5848,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_78_before"
     },
@@ -5881,7 +5881,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_78_before",
       "save_as": "talented_78_proc"
@@ -5918,7 +5918,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_79_before"
     },
@@ -5951,7 +5951,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_79_before",
       "save_as": "talented_79_proc"
@@ -5988,7 +5988,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_80_before"
     },
@@ -6021,7 +6021,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_80_before",
       "save_as": "talented_80_proc"
@@ -6058,7 +6058,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_81_before"
     },
@@ -6091,7 +6091,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_81_before",
       "save_as": "talented_81_proc"
@@ -6128,7 +6128,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_82_before"
     },
@@ -6161,7 +6161,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_82_before",
       "save_as": "talented_82_proc"
@@ -6198,7 +6198,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_83_before"
     },
@@ -6231,7 +6231,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_83_before",
       "save_as": "talented_83_proc"
@@ -6268,7 +6268,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_84_before"
     },
@@ -6301,7 +6301,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_84_before",
       "save_as": "talented_84_proc"
@@ -6338,7 +6338,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_85_before"
     },
@@ -6371,7 +6371,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_85_before",
       "save_as": "talented_85_proc"
@@ -6408,7 +6408,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_86_before"
     },
@@ -6441,7 +6441,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_86_before",
       "save_as": "talented_86_proc"
@@ -6478,7 +6478,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_87_before"
     },
@@ -6511,7 +6511,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_87_before",
       "save_as": "talented_87_proc"
@@ -6548,7 +6548,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_88_before"
     },
@@ -6581,7 +6581,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_88_before",
       "save_as": "talented_88_proc"
@@ -6618,7 +6618,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_89_before"
     },
@@ -6651,7 +6651,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_89_before",
       "save_as": "talented_89_proc"
@@ -6688,7 +6688,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_90_before"
     },
@@ -6721,7 +6721,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_90_before",
       "save_as": "talented_90_proc"
@@ -6758,7 +6758,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_91_before"
     },
@@ -6791,7 +6791,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_91_before",
       "save_as": "talented_91_proc"
@@ -6828,7 +6828,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_92_before"
     },
@@ -6861,7 +6861,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_92_before",
       "save_as": "talented_92_proc"
@@ -6898,7 +6898,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_93_before"
     },
@@ -6931,7 +6931,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_93_before",
       "save_as": "talented_93_proc"
@@ -6968,7 +6968,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_94_before"
     },
@@ -7001,7 +7001,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_94_before",
       "save_as": "talented_94_proc"
@@ -7038,7 +7038,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_95_before"
     },
@@ -7071,7 +7071,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_95_before",
       "save_as": "talented_95_proc"
@@ -7108,7 +7108,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_96_before"
     },
@@ -7141,7 +7141,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_96_before",
       "save_as": "talented_96_proc"
@@ -7178,7 +7178,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_97_before"
     },
@@ -7211,7 +7211,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_97_before",
       "save_as": "talented_97_proc"
@@ -7248,7 +7248,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_98_before"
     },
@@ -7281,7 +7281,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_98_before",
       "save_as": "talented_98_proc"
@@ -7318,7 +7318,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "talented_99_before"
     },
@@ -7351,7 +7351,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "talented_99_before",
       "save_as": "talented_99_proc"
@@ -7449,7 +7449,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "removed_0_before"
     },
@@ -7482,7 +7482,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "removed_0_before",
       "save_as": "removed_0_proc"
@@ -7494,7 +7494,7 @@
     {
       "action": "assert",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "removed_0_before",
       "equals": 0
@@ -7555,7 +7555,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "periodic_0_before"
     },
@@ -7575,7 +7575,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "periodic_0_before",
       "save_as": "periodic_0_procs"
@@ -7622,7 +7622,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "periodic_1_before"
     },
@@ -7642,7 +7642,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "periodic_1_before",
       "save_as": "periodic_1_procs"
@@ -7689,7 +7689,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "periodic_2_before"
     },
@@ -7709,7 +7709,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "periodic_2_before",
       "save_as": "periodic_2_procs"
@@ -7756,7 +7756,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "save_as": "periodic_3_before"
     },
@@ -7776,7 +7776,7 @@
     {
       "action": "snapshot",
       "actor": "primalist",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 302534,
       "relative_to": "periodic_3_before",
       "save_as": "periodic_3_procs"

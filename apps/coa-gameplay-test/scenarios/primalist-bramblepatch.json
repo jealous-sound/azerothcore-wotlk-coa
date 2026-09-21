@@ -210,7 +210,7 @@
     {
       "action": "snapshot",
       "actor": "enemy",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 500696,
       "save_as": "blocked"
     },
@@ -226,7 +226,7 @@
     {
       "action": "assert",
       "actor": "enemy",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 500696,
       "relative_to": "blocked",
       "equals": 0
@@ -259,7 +259,7 @@
     {
       "action": "assert",
       "actor": "enemy",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 500696,
       "relative_to": "blocked",
       "equals": 1,

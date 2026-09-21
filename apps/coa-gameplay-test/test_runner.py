@@ -49,6 +49,28 @@ class RunnerTests(unittest.TestCase):
             with self.subTest(change=change), self.assertRaises(ValueError):
                 run.validate(scenario)
 
+    def test_completed_cast_and_packet_count_metrics(self):
+        for metric, actor, extra in [('spell_cast_count', 'caster', {}),
+                                     ('spell_cast_count', 'target', {}),
+                                     ('spell_go_count', 'caster', {}),
+                                     ('spell_go_count', 'caster', {'pet': True})]:
+            with self.subTest(metric=metric, actor=actor, extra=extra):
+                scenario = copy.deepcopy(self.scenario)
+                scenario['steps'].append({'action': 'assert', 'actor': actor, 'metric': metric,
+                                          'spell': 116, 'equals': 0, **extra})
+                self.assertIs(run.validate(scenario), scenario)
+                del scenario['steps'][-1]['spell']
+                with self.assertRaises(ValueError):
+                    run.validate(scenario)
+        for metric, actor, extra in [('spell_go_count', 'target', {}),
+                                     ('spell_cast_count', 'caster', {'pet': True}),
+                                     ('spell_go_count', 'caster', {'pet': 1})]:
+            scenario = copy.deepcopy(self.scenario)
+            scenario['steps'].append({'action': 'assert', 'actor': actor, 'metric': metric,
+                                      'spell': 116, 'equals': 0, **extra})
+            with self.subTest(metric=metric, actor=actor, extra=extra), self.assertRaises(ValueError):
+                run.validate(scenario)
+
     def test_pet_aura_fixture(self):
         self.scenario['steps'].append({'action': 'set_aura', 'actor': 'caster',
                                        'spell': 82888, 'stacks': 1, 'pet': True})
@@ -250,6 +272,9 @@ class RunnerTests(unittest.TestCase):
             lambda s: s['players'][0].update(race=0),
             lambda s: s['players'][0].update(ranged_hit_rating=-1),
             lambda s: s['players'][0].update(melee_hit_rating=-1),
+            lambda s: s['players'][0].update(melee_crit_rating=-1),
+            lambda s: s['steps'].append({'action': 'assert', 'actor': 'caster',
+                                         'metric': 'spell_cast_count', 'equals': 1}),
             lambda s: s['players'][0].update(expertise_rating=True),
             lambda s: s['players'][0].update(allow_regeneration=0),
             lambda s: s['players'][0].update(spell_crit_rating=-1),

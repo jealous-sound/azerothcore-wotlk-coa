@@ -340,7 +340,7 @@
     {
       "action": "assert",
       "actor": "ally",
-      "metric": "spell_cast_count",
+      "metric": "spell_go_count",
       "spell": 800135,
       "equals": 0
     },
