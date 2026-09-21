@@ -43,7 +43,7 @@ METRICS = {
     'spellbook_buys_granted', 'spellbook_unannounced_buys', 'spellbook_misannounced_buys',
     'spellbook_notify_rows', 'spellbook_notified_spells', 'spellbook_unnotified_buys',
     'cast_speed_multiplier', 'spell_crit_chance', 'spell_power_cost', 'spell_damage_done', 'melee_damage_done',
-    'who_count', 'who_class', 'loot_count', 'loot_entry', 'loot_received',
+    'who_count', 'who_class', 'player_name', 'name_lookup', 'loot_count', 'loot_entry', 'loot_received',
     'quest_rewarded', 'spell_damage_taken', 'melee_damage_taken', 'spell_healing_taken',
     'spell_hit_bonus_taken', 'rooted', 'spell_cast_count', 'spell_go_count',
     'stealth_detection', 'can_detect',
@@ -83,7 +83,7 @@ PLAYER_STAT_METRICS = {
 }
 METRIC_FIELDS = {'actor', 'metric', 'spell', 'power', 'caster', 'effect', 'item', 'entry',
                  'relative_to', 'ratio_to', 'target', 'quest', 'id', 'stat', 'school', 'hand', 'rating', 'op',
-                 'base', 'key', 'index', 'pet', 'critical', 'target_pet', 'periodic'}
+                 'base', 'key', 'index', 'pet', 'critical', 'target_pet', 'periodic', 'name'}
 ACTIONS = {
     'stop_attack': ({'actor'}, {'actor'}),
     'set_moving': ({'actor', 'enabled'}, {'actor', 'enabled'}),
@@ -178,12 +178,15 @@ def validate(scenario):
         keys(player, {'id', 'race', 'class'},
              {'id', 'race', 'class', 'level', 'bot', 'spell_hit_rating', 'spell_crit_rating',
               'melee_crit_rating', 'ranged_hit_rating', 'melee_hit_rating', 'expertise_rating',
-              'allow_regeneration'}, 'player')
+              'allow_regeneration', 'name'}, 'player')
         identity = player['id']
         require(isinstance(identity, str) and ACTOR_ID.fullmatch(identity), 'Invalid player id')
         require(identity not in actor_ids, 'Duplicate actor id')
         actor_ids.add(identity)
         player_ids.add(identity)
+        if 'name' in player:
+            require(isinstance(player['name'], str) and 1 <= len(player['name']) <= 25
+                    and len(player['name'].encode('utf-8')) <= 47, 'Invalid fixture character name')
         for key in ('race', 'class'):
             number(player[key], key, 1, 255, True)
         number(player.get('level', 80), 'level', 1, 255, True)
@@ -294,6 +297,11 @@ def validate(scenario):
                         and type(step['periodic']) is bool,
                         f'{where}: periodic requires a damage/healing calculation and a boolean')
             require(metric in METRICS, f'{where}: unknown metric')
+            if metric in {'player_name', 'name_lookup'}:
+                require(step['actor'] in player_ids and isinstance(step.get('name'), str)
+                        and bool(step['name']), f'{where}: name metric needs a player and name')
+            elif 'name' in step:
+                require(False, f'{where}: name only applies to name metrics')
             if metric in {'view_level', 'sent_level', 'sent_max_health'}:
                 require(step['actor'] in player_ids and 'target' in step,
                         f'{where}: view metric needs a player and target')

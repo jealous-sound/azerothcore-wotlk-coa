@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "name": "Optional second names: creation, loading, lookup, Who and commands",
+  "contract": "Single names and distinct full names with the same first word coexist. Creation and login preserve both words, and full-name lookups resolve the intended character.",
+  "timeout_ms": 90000,
+  "players": [
+    { "id": "single", "name": "nAMEPROBE", "race": 1, "class": 8, "level": 20 },
+    { "id": "first", "name": "nAMEPROBE aSHVALE", "race": 1, "class": 8, "level": 20 },
+    { "id": "second", "name": "Nameprobe Frost", "race": 1, "class": 8, "level": 20 },
+    { "id": "long", "name": "Abcdefghijkl Mnopqrstuvwx", "race": 1, "class": 8, "level": 20 }
+  ],
+  "steps": [
+    { "action": "assert", "actor": "single", "metric": "player_name", "name": "Nameprobe", "equals": 1 },
+    { "action": "assert", "actor": "first", "metric": "player_name", "name": "Nameprobe Ashvale", "equals": 1 },
+    { "action": "assert", "actor": "second", "metric": "player_name", "name": "Nameprobe Frost", "equals": 1 },
+    { "action": "assert", "actor": "long", "metric": "player_name", "name": "Abcdefghijkl Mnopqrstuvwx", "equals": 1 },
+    { "action": "assert", "actor": "single", "metric": "name_lookup", "name": "NAMEPROBE", "equals": 1 },
+    { "action": "assert", "actor": "first", "metric": "name_lookup", "name": "nameprobe ASHVALE", "equals": 1 },
+    { "action": "assert", "actor": "first", "metric": "name_lookup", "name": "Nameprobe Frost", "equals": 0 },
+    { "action": "assert", "actor": "second", "metric": "name_lookup", "name": "NAMEPROBE frost", "equals": 1 },
+    { "action": "assert", "actor": "long", "metric": "name_lookup", "name": "abcdefghijkl mnopqrstuvwx", "equals": 1 },
+    { "action": "wait", "ms": 5000 },
+    { "action": "who", "actor": "single", "target": "first" },
+    { "action": "assert", "actor": "single", "metric": "who_count", "equals": 1 },
+    { "action": "assert", "actor": "single", "metric": "who_class", "target": "first", "equals": 8 },
+    { "action": "assert", "actor": "single", "metric": "who_class", "target": "second", "equals": 0 },
+    { "action": "console", "command": "character level \"Nameprobe Ashvale\" 21" },
+    { "action": "assert", "actor": "first", "metric": "level", "equals": 21 },
+    { "action": "assert", "actor": "second", "metric": "level", "equals": 20 },
+    { "action": "assert", "actor": "single", "metric": "level", "equals": 20 },
+    { "action": "console", "command": "character level Nameprobe 22" },
+    { "action": "assert", "actor": "single", "metric": "level", "equals": 22 },
+    { "action": "assert", "actor": "first", "metric": "level", "equals": 21 }
+  ]
+}

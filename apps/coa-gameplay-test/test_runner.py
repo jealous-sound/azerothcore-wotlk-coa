@@ -14,6 +14,20 @@ import run
 
 
 class RunnerTests(unittest.TestCase):
+    def test_optional_character_names(self):
+        scenario = run.read_json(Path(__file__).parent / 'scenarios' / 'optional-character-names.json')
+        self.assertIs(run.validate(scenario), scenario)
+        for invalid in ('x' * 26, '\u0410' * 24):
+            candidate = copy.deepcopy(scenario)
+            candidate['players'][0]['name'] = invalid
+            with self.assertRaises(ValueError):
+                run.validate(candidate)
+        for field, value in [('name', None), ('actor', 'absent')]:
+            candidate = copy.deepcopy(scenario)
+            candidate['steps'][0][field] = value
+            with self.assertRaises(ValueError):
+                run.validate(candidate)
+
     def setUp(self):
         self.scenario = run.read_json(Path(__file__).parent / 'scenarios' / 'frostbolt.json')
 

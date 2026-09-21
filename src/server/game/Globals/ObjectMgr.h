@@ -684,8 +684,10 @@ enum SkillRangeType
 
 SkillRangeType GetSkillRangeType(SkillRaceClassInfoEntry const* rcEntry);
 
-#define MAX_PLAYER_NAME          12                         // max allowed by client name length
-#define MAX_INTERNAL_PLAYER_NAME 15                         // max server internal player name length (> MAX_PLAYER_NAME for support declined names)
+#define MAX_PLAYER_NAME_PART     12
+#define MAX_PLAYER_NAME          25                         // two 12-letter words and one space
+#define MAX_PLAYER_NAME_BYTES    47                         // native client has a 48-byte name buffer
+#define MAX_INTERNAL_PLAYER_NAME 31                         // two declined 15-letter words and one space
 #define MAX_PET_NAME             12                         // max allowed by client name length
 #define MAX_CHARTER_NAME         24                         // max allowed by client name length
 #define MAX_CHANNEL_NAME         50                         // pussywizard

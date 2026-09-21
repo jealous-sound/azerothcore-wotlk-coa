@@ -428,6 +428,15 @@ and query the native quest level and XP calculations without awarding a reward.
 
 ## Evidence boundaries
 
+### Optional character names
+
+`scenarios/optional-character-names.json` creates a single-word character, two characters sharing its
+first name, and a 25-character full name through normal creation and login handlers. Player fixtures
+accept an optional `name`. `player_name` compares the loaded name with the supplied `name` (0/1);
+`name_lookup` checks online and character-cache resolution against the actor (0/1). Who assertions
+inspect native response packets. These checks require the corresponding server build and SQL update;
+they do not validate native client input, rendering, or transport.
+
 The test owns socketless sessions outside the network session manager. Map updates and normal spell/item
 handlers execute; character database loading and login hooks execute. Authentication, transport encryption,
 network session discovery, actual client packets, rendering, tooltips and UI input are outside this mode's

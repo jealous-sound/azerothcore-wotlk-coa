@@ -460,8 +460,10 @@ public:
                 auto& actor = _actors[id];
                 actor.definition = entry.second;
                 actor.account = "CT" + _runId + std::to_string(index);
-                // Character names contain letters only and are unique inside the fresh test database.
-                actor.name = "Harness" + std::string(1, char('a' + index++));
+                actor.name = entry.second.get<std::string>("name", "Harness" + std::string(1, char('a' + index++)));
+                Require(normalizePlayerName(actor.name), "Invalid fixture character name");
+                for (auto const& [otherId, other] : _actors)
+                    Require(otherId == id || other.name != actor.name, "Duplicate fixture character name");
                 Require(AccountMgr::GetId(actor.account) == 0, "Test account already exists");
                 Require(sAccountMgr->CreateAccount(actor.account, _runId) == AOR_OK, "Account creation failed");
             }
@@ -707,7 +709,7 @@ private:
             uint32 playerClass = actor.definition.get<uint32>("class");
             Require(race > 0 && race <= 255 && playerClass > 0 && playerClass <= 255,
                 "Race/class must fit the character creation packet");
-            create << actor.name << uint8(race) << uint8(playerClass);
+            create << actor.definition.get<std::string>("name", actor.name) << uint8(race) << uint8(playerClass);
             for (uint8 i = 0; i < 7; ++i)
                 create << uint8(0); // gender, skin, face, hair style/color, facial hair, outfit
             actor.session->HandleCharCreateOpcode(create);
@@ -897,6 +899,14 @@ private:
         Unit* unit = GetUnit(step.get<std::string>("actor"));
         std::string metric = step.get<std::string>("metric");
         uint32 spell = step.get<uint32>("spell", 0);
+        if (metric == "player_name")
+            return unit->GetName() == step.get<std::string>("name") ? 1.0 : 0.0;
+        if (metric == "name_lookup")
+        {
+            std::string name = step.get<std::string>("name");
+            return normalizePlayerName(name) && ObjectAccessor::FindPlayerByName(name) == unit &&
+                sCharacterCache->GetCharacterGuidByName(name) == unit->GetGUID() ? 1.0 : 0.0;
+        }
         if (metric == "health")
             return unit->GetHealth();
         if (metric == "health_pct")

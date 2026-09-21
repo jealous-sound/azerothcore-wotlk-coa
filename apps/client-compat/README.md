@@ -56,3 +56,8 @@ The same separate-output and pinned-input guards apply. The resulting EXE has SH
 This creates a candidate without installing or launching it. The client folder must be writable
 by its user. An explicitly elevated launcher or a Windows compatibility setting can still launch
 the game with administrator privileges.
+
+## Optional second character names
+
+The [character-name UI generator](character-names/README.md) prepares the creation, rename, mail and
+chat changes for the server's optional two-word names. It targets the current native v4 client pair.
