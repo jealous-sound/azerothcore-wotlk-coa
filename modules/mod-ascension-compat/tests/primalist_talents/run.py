@@ -2,7 +2,6 @@
 import argparse
 import importlib.util
 from pathlib import Path
-import re
 import sqlite3
 import struct
 import tempfile
@@ -25,8 +24,19 @@ def main():
                        ("src/server/game/Spells/Auras/SpellAuraDefines.h", "AuraRemoveMode"),
                        ("src/server/shared/SharedDefines.h", "SpellCastResult")]:
         enums.append(native.extractor.extract((ROOT / path).read_text(), r"enum " + name + r"\b") + ";")
-    source = (ROOT / "modules/mod-ascension-compat/src/AscensionPrimalistTalents.cpp").read_text()
-    source = re.sub(r"^#include.*\n", "", source, flags=re.M)
+    full_source = (ROOT / "modules/mod-ascension-compat/src/AscensionPrimalistTalents.cpp").read_text()
+    # Keep these bounded callback tests independent of other scripts in the same
+    # translation unit. The added proc/aura scripts have native gameplay scenarios.
+    declarations = [
+        (r"enum PrimalistAbilitySpells\b", ";"),
+        (r"Player\* Primalist\(", ""),
+        (r"class primalist_talent_events\b", ";"),
+        (r"class primalist_talent_casts\b", ";"),
+        (r"SpellCastResult CheckThroatClamp\(", ""),
+        (r"class spell_ascension_throat_clamp\b", ";"),
+    ]
+    source = "\n".join(native.extractor.extract(full_source, pattern) + suffix
+                       for pattern, suffix in declarations)
     source = source.replace(": public SpellScript\n{", ": public SpellScript\n{\npublic:")
     code = (HERE / "harness.cpp").read_text().replace("// NATIVE_ENUMS", "\n".join(enums))
     code = code.replace("// ACTUAL_SOURCE", source)

@@ -22,7 +22,8 @@ enum ResourceTalentSpells : uint32
     Superconductor = 705646,
     Static = 803102,
     ArmOfThorim = 801847,
-    ChargedConduit = 803790
+    ChargedConduit = 803790,
+    Replenishment = 1257670
 };
 
 uint32 Stacks(Unit const* unit, uint32 id)
@@ -41,6 +42,12 @@ public:
     {
         switch (info->Id)
         {
+            case Replenishment:
+                // The shared CoA helper promises 5% of each recipient's maximum Mana, not five Mana.
+                if (info->Effects[EFFECT_0].ApplyAuraName == SPELL_AURA_PERIODIC_ENERGIZE &&
+                    info->Effects[EFFECT_0].MiscValue == POWER_MANA)
+                    info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_OBS_MOD_POWER;
+                return;
             case Felheart:
             case RecklessAbandon:
             case DeepSecrets:

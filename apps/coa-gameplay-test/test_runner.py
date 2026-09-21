@@ -37,6 +37,197 @@ class RunnerTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertIs(run.validate(scenario), scenario)
 
+    def test_spell_damage_observation_filters(self):
+        step = {'action': 'assert', 'actor': 'caster', 'metric': 'spell_damage_count',
+                'spell': 116, 'target': 'target', 'pet': True, 'critical': False, 'equals': 0}
+        self.scenario['steps'].append(step)
+        self.assertIs(run.validate(self.scenario), self.scenario)
+        for change in ({'pet': 1}, {'critical': 'false'}, {'actor': 'target'}, {'spell': None},
+                       {'metric': 'health'}):
+            scenario = copy.deepcopy(self.scenario)
+            scenario['steps'][-1].update(change)
+            with self.subTest(change=change), self.assertRaises(ValueError):
+                run.validate(scenario)
+
+    def test_completed_cast_and_packet_count_metrics(self):
+        for metric, actor, extra in [('spell_cast_count', 'caster', {}),
+                                     ('spell_cast_count', 'target', {}),
+                                     ('spell_go_count', 'caster', {}),
+                                     ('spell_go_count', 'caster', {'pet': True})]:
+            with self.subTest(metric=metric, actor=actor, extra=extra):
+                scenario = copy.deepcopy(self.scenario)
+                scenario['steps'].append({'action': 'assert', 'actor': actor, 'metric': metric,
+                                          'spell': 116, 'equals': 0, **extra})
+                self.assertIs(run.validate(scenario), scenario)
+                del scenario['steps'][-1]['spell']
+                with self.assertRaises(ValueError):
+                    run.validate(scenario)
+        for metric, actor, extra in [('spell_go_count', 'target', {}),
+                                     ('spell_cast_count', 'caster', {'pet': True}),
+                                     ('spell_go_count', 'caster', {'pet': 1})]:
+            scenario = copy.deepcopy(self.scenario)
+            scenario['steps'].append({'action': 'assert', 'actor': actor, 'metric': metric,
+                                      'spell': 116, 'equals': 0, **extra})
+            with self.subTest(metric=metric, actor=actor, extra=extra), self.assertRaises(ValueError):
+                run.validate(scenario)
+
+    def test_pet_aura_fixture(self):
+        self.scenario['steps'].append({'action': 'set_aura', 'actor': 'caster',
+                                       'spell': 82888, 'stacks': 1, 'pet': True})
+        self.assertIs(run.validate(self.scenario), self.scenario)
+        self.scenario['steps'][-1]['pet'] = 'true'
+        with self.assertRaises(ValueError):
+            run.validate(self.scenario)
+
+    def test_pet_spell_calculations(self):
+        for metric in ('spell_effect_value', 'spell_damage_done'):
+            with self.subTest(metric=metric):
+                scenario = copy.deepcopy(self.scenario)
+                scenario['steps'].append({'action': 'assert', 'actor': 'caster', 'metric': metric,
+                                          'spell': 116, 'target': 'target', 'pet': True, 'min': 0})
+                self.assertIs(run.validate(scenario), scenario)
+                for change in ({'pet': 1}, {'actor': 'target'}, {'critical': True}):
+                    invalid = copy.deepcopy(scenario)
+                    invalid['steps'][-1].update(change)
+                    with self.assertRaises(ValueError):
+                        run.validate(invalid)
+
+    def test_unlearn_all_specs_fixture(self):
+        self.scenario['steps'].append({'action': 'unlearn', 'actor': 'caster',
+                                       'spell': 116, 'all_specs': True})
+        self.assertIs(run.validate(self.scenario), self.scenario)
+        self.scenario['steps'][-1]['all_specs'] = 1
+        with self.assertRaises(ValueError):
+            run.validate(self.scenario)
+
+    def test_healing_observation_targets(self):
+        self.scenario['steps'].append({'action': 'assert', 'actor': 'caster', 'metric': 'spell_heal_total',
+                                       'spell': 997800, 'target': 'caster', 'target_pet': True, 'equals': 0})
+        self.assertIs(run.validate(self.scenario), self.scenario)
+        for change in ({'target_pet': 1}, {'target': 'target'}, {'metric': 'health'}, {'actor': 'target'}):
+            scenario = copy.deepcopy(self.scenario)
+            scenario['steps'][-1].update(change)
+            with self.subTest(change=change), self.assertRaises(ValueError):
+                run.validate(scenario)
+
+    def test_pet_aura_amount_needs_spell(self):
+        self.scenario['steps'].append({'action': 'assert', 'actor': 'caster', 'metric': 'pet_aura_amount',
+                                       'spell': 500939, 'effect': 1, 'equals': 5})
+        self.assertIs(run.validate(self.scenario), self.scenario)
+        del self.scenario['steps'][-1]['spell']
+        with self.assertRaises(ValueError):
+            run.validate(self.scenario)
+
+    def test_pet_health_and_native_pvp(self):
+        self.scenario['steps'].extend([
+            {'action': 'set_health', 'actor': 'caster', 'value': 100, 'pet': True},
+            {'action': 'pvp', 'actor': 'caster', 'enabled': True},
+        ])
+        self.assertIs(run.validate(self.scenario), self.scenario)
+        self.scenario['steps'][-1]['enabled'] = 1
+        with self.assertRaises(ValueError):
+            run.validate(self.scenario)
+
+    def test_explicit_health_maximum_and_spell_cooldown_fixtures(self):
+        self.scenario['steps'].extend([
+            {'action': 'set_health', 'actor': 'caster', 'value': 3500, 'maximum': 10000},
+            {'action': 'reset_cooldown', 'actor': 'caster', 'spell': 116},
+        ])
+        self.assertIs(run.validate(self.scenario), self.scenario)
+        for change in ({'value': 10001}, {'maximum': 0}, {'maximum': True}, {'actor': 'target'}):
+            scenario = copy.deepcopy(self.scenario)
+            scenario['steps'][-2].update(change)
+            with self.subTest(change=change), self.assertRaises(ValueError):
+                run.validate(scenario)
+        del self.scenario['steps'][-1]['spell']
+        with self.assertRaises(ValueError):
+            run.validate(self.scenario)
+
+    def test_native_pet_attack(self):
+        self.scenario['steps'].append({'action': 'attack', 'actor': 'caster',
+                                       'target': 'target', 'pet': True})
+        self.assertIs(run.validate(self.scenario), self.scenario)
+        self.scenario['steps'][-1]['pet'] = 1
+        with self.assertRaises(ValueError):
+            run.validate(self.scenario)
+
+    def test_pet_power_fixture_and_observation(self):
+        self.scenario['steps'].extend([
+            {'action': 'set_power', 'actor': 'caster', 'value': 0, 'power': 2, 'pet': True},
+            {'action': 'assert', 'actor': 'caster', 'metric': 'pet_power', 'power': 2, 'equals': 0},
+        ])
+        self.assertIs(run.validate(self.scenario), self.scenario)
+        for index, key, value in ((-2, 'pet', 1), (-1, 'actor', 'target'), (-1, 'power', 7)):
+            invalid = copy.deepcopy(self.scenario)
+            invalid['steps'][index][key] = value
+            with self.assertRaises(ValueError):
+                run.validate(invalid)
+
+    def test_energize_observation_filters(self):
+        self.scenario['steps'].append({
+            'action': 'assert', 'actor': 'caster', 'metric': 'spell_energize_total',
+            'spell': 803348, 'power': 2, 'target': 'caster', 'target_pet': True, 'equals': 10,
+        })
+        self.assertIs(run.validate(self.scenario), self.scenario)
+        for change in ({'critical': True}, {'pet': 1}, {'target_pet': 1}, {'spell': None},
+                       {'target': 'target'}, {'actor': 'target'}, {'power': 7}):
+            invalid = copy.deepcopy(self.scenario)
+            invalid['steps'][-1].update(change)
+            with self.assertRaises(ValueError):
+                run.validate(invalid)
+
+    def test_periodic_calculation_queries(self):
+        for metric in ('spell_damage_done', 'spell_healing_done'):
+            scenario = copy.deepcopy(self.scenario)
+            scenario['steps'].append({'action': 'snapshot', 'actor': 'caster', 'metric': metric,
+                                      'spell': 116, 'target': 'target', 'periodic': True, 'save_as': 'tick'})
+            self.assertIs(run.validate(scenario), scenario)
+            for change in ({'periodic': 1}, {'metric': 'spell_damage_total'}):
+                invalid = copy.deepcopy(scenario)
+                invalid['steps'][-1].update(change)
+                with self.assertRaises(ValueError):
+                    run.validate(invalid)
+
+    def test_movement_and_cast_observations(self):
+        self.scenario['steps'].extend([
+            {'action': 'set_moving', 'actor': 'caster', 'enabled': True},
+            {'action': 'assert', 'actor': 'caster', 'metric': 'moving', 'equals': 1},
+            {'action': 'assert', 'actor': 'target', 'metric': 'distance_2d', 'target': 'caster', 'min': 0},
+            {'action': 'assert', 'actor': 'caster', 'metric': 'cast_remaining_ms', 'spell': 116, 'min': 0},
+        ])
+        self.assertIs(run.validate(self.scenario), self.scenario)
+        for index, key, value in ((-4, 'enabled', 1), (-4, 'actor', 'target'),
+                                   (-2, 'target', 'missing'), (-1, 'spell', None)):
+            invalid = copy.deepcopy(self.scenario)
+            invalid['steps'][index][key] = value
+            with self.assertRaises(ValueError):
+                run.validate(invalid)
+
+    def test_cast_pushback_observation_requires_player(self):
+        self.scenario['steps'].append(
+            {'action': 'assert', 'actor': 'caster', 'metric': 'cast_pushback_ms', 'equals': 0})
+        self.assertIs(run.validate(self.scenario), self.scenario)
+        self.scenario['steps'][-1]['actor'] = 'target'
+        with self.assertRaises(ValueError):
+            run.validate(self.scenario)
+
+    def test_pet_armor_and_melee_hand_observations(self):
+        self.scenario['steps'].extend([
+            {'action': 'stop_attack', 'actor': 'caster'},
+            {'action': 'assert', 'actor': 'caster', 'metric': 'armor_reduced_damage',
+             'pet': True, 'spell': 116, 'target': 'target', 'min': 0},
+            {'action': 'assert', 'actor': 'caster', 'metric': 'melee_attack_count', 'hand': 0, 'min': 0},
+            {'action': 'assert', 'actor': 'caster', 'metric': 'melee_damage_count', 'hand': 1, 'min': 0},
+            {'action': 'assert', 'actor': 'caster', 'metric': 'forced_forward', 'equals': 0},
+        ])
+        self.assertIs(run.validate(self.scenario), self.scenario)
+        for index, key, value in ((-5, 'actor', 'target'), (-4, 'pet', 1), (-3, 'hand', 2),
+                                   (-2, 'hand', 2), (-2, 'actor', 'target')):
+            invalid = copy.deepcopy(self.scenario)
+            invalid['steps'][index][key] = value
+            with self.assertRaises(ValueError):
+                run.validate(invalid)
+
     def test_malformed_scenarios_fail_before_starting_processes(self):
         for change in (
             lambda s: s['steps'].append({'action': 'level_scaling_packet', 'actor': 'caster', 'value': 2}),
@@ -81,7 +272,11 @@ class RunnerTests(unittest.TestCase):
             lambda s: s['players'][0].update(race=0),
             lambda s: s['players'][0].update(ranged_hit_rating=-1),
             lambda s: s['players'][0].update(melee_hit_rating=-1),
+            lambda s: s['players'][0].update(melee_crit_rating=-1),
+            lambda s: s['steps'].append({'action': 'assert', 'actor': 'caster',
+                                         'metric': 'spell_cast_count', 'equals': 1}),
             lambda s: s['players'][0].update(expertise_rating=True),
+            lambda s: s['players'][0].update(allow_regeneration=0),
             lambda s: s['players'][0].update(spell_crit_rating=-1),
             lambda s: s['steps'].append({'action': 'who', 'actor': 'caster', 'class_mask': 2**32}),
             lambda s: s['steps'].append({'action': 'who', 'actor': 'caster', 'target': 'target'}),

@@ -1,7 +1,6 @@
 """Exercise Primalist secondary trigger ownership, thresholds and native spell metadata."""
 import os
 from pathlib import Path
-import re
 import runpy
 import struct
 import subprocess
@@ -22,7 +21,14 @@ using SpellMissInfo=uint32;
 constexpr uint32 CLASS_WILDWALKER=31, EFFECT_1=1, AURA_REMOVE_BY_EXPIRE=3,
     PROC_HIT_CRITICAL=2, SPELL_SCHOOL_MASK_NATURE=8, SPELL_ATTR2_CANT_CRIT=1,
     SPELL_ATTR3_IGNORE_CASTER_MODIFIERS=2, SPELL_ATTR4_IGNORE_DAMAGE_TAKEN_MODIFIERS=4,
-    SPELL_AURA_MOD_MAX_AFFECTED_TARGETS=277, AURA_INTERRUPT_FLAG_TAKE_DAMAGE=2;
+    SPELL_AURA_MOD_MAX_AFFECTED_TARGETS=277, AURA_INTERRUPT_FLAG_TAKE_DAMAGE=2,
+    TARGET_UNIT_PET=5, TARGET_UNIT_CASTER=1;
+struct SpellImplicitTargetInfo
+{
+    uint32 target=0;
+    explicit SpellImplicitTargetInfo(uint32 value=0) : target(value) {}
+    uint32 GetTarget() const { return target; }
+};
 struct Unit;''', 1)
     code = code.replace('struct Effect\n', '''uint32 AttributesEx2=0, AttributesEx3=0, AttributesEx4=0,
         AuraInterruptFlags=0, ProcCharges=0;
@@ -30,6 +36,11 @@ struct Unit;''', 1)
     struct Effect
 ''')
     code = code.replace('int32 value=0;', 'int32 value=0; float BonusMultiplier=1.0f;')
+    code = code.replace('uint32 ApplyAuraName=42;', '''uint32 ApplyAuraName=42;
+        SpellImplicitTargetInfo TargetA, TargetB;
+        bool IsAura() const { return true; }''')
+    code = code.replace('} Effects[3];', '} Effects[3];\n    void _InitializeExplicitTargetMask() {}')
+    code = code.replace('struct SpellMgr', 'using SpellEffectInfo=SpellInfo::Effect;\nstruct SpellMgr', 1)
     code = code.replace('struct AuraEffect {};',
                         'struct AuraEffect { int32 amount=20; int32 GetAmount() const { return amount; } };')
     code = code.replace('uint32 guid=1;', '''Unit* victim=nullptr;
@@ -53,8 +64,14 @@ struct SpellScript
 #define SpellHitFn(...) 0
 #define BeforeSpellHitFn(...) 0
 '''
-    source = (ROOT / 'modules/mod-ascension-compat/src/AscensionPrimalistSecondary.cpp').read_text()
-    source = re.sub(r'^#include.*\n', '', source, flags=re.M)
+    full_source = (ROOT / 'modules/mod-ascension-compat/src/AscensionPrimalistSecondary.cpp').read_text()
+    # Only compile the callbacks covered by this bounded harness. Nature's
+    # Blessing is exercised by its native, multi-target healing scenario.
+    declarations = ['enum PrimalistSecondarySpells', 'class primalist_secondary_auras',
+                    'class aura_ascension_volcanic_blast', 'class aura_ascension_hammer_of_life',
+                    'class primalist_volcanic_targets', 'class spell_ascension_gaze_of_theradras',
+                    'class primalist_secondary_metadata']
+    source = '\n'.join(method(full_source, declaration) + ';' for declaration in declarations)
     for base in ['AuraScript', 'SpellScript']:
         source = source.replace(f': public {base}\n{{', f': public {base}\n{{\npublic:')
     code += source + r'''

@@ -188,15 +188,19 @@ The [damage-led scaling scenario](scenarios/level-scaling-damage-engagement.json
 out-of-range attacker scales a fresh creature before a nonlethal or lethal opening hit, and that
 later damage leaves its combat level fixed. It requires `AscensionCompat.LevelScaling=1`,
 `AscensionCompat.LevelScalingMaxLift=5` and `MonsterSight=50`. The level-1 fixtures stand 80–85 yards
-away and must scale to level 6. One fixture has only one maximum HP to expose damage-before-scaling.
+away and must scale to level 6, so both declare `level_scaling`. One fixture has only one maximum HP to
+expose damage-before-scaling.
 Spell 705798 is learned as a fixture: its one damage and zero initial threat exercise damage-led
 engagement through the normal cast handler. This tests the damage path, not an Overload proc or pet AI.
 
 Players require `id`, numeric `race` and `class`; `level` defaults to 80. Optional `bot` logs the actor in on a
 session flagged as a bot, the way playerbots flags the sessions it creates, so a scenario can check what the
 server does differently for them. Optional `spell_hit_rating`,
-`spell_crit_rating`, `ranged_hit_rating`, `melee_hit_rating` and `expertise_rating` add fixture ratings through
+`spell_crit_rating`, `melee_crit_rating`, `ranged_hit_rating`, `melee_hit_rating` and `expertise_rating` add fixture ratings through
 normal calculations, useful for preventing misses, dodges and parries in deterministic tests.
+Optional `allow_regeneration: false` suppresses only that fixture player's ordinary health/power regeneration
+through the native regeneration hook. Spell costs, healing, energize effects and combat remain enabled.
+It defaults to true and has no effect on other players or on a disabled harness.
 Characters are created and loaded through the existing character creation, enumeration and login
 handlers with ordinary player security. Optional `location` supplies `map`, `x`, `y`, `z`, `o` for a fixture
 teleport. `location.ignore_access` optionally bypasses entry requirements for a fixture (for example a solo
@@ -206,19 +210,25 @@ Creatures require `id`, player `owner` and template `entry`. Optional `distance`
 (default 3 yards); `faction`, `level`, `health` default to 14, 80, 100000. They retain template data and AI,
 with passive reaction and health regeneration disabled. Pick a template whose scripts suit the experiment.
 Setup clears combat initiated by spawn-time AI before starting the scenario. Later combat follows normal rules.
-Creature AI and local level scaling can still change initial fixture levels and maximum health. Let them settle
-before taking baselines; assert stable maximums and final levels when testing damage coefficients.
+Local level scaling ignores fixtures, because it rebuilds a creature through `SelectLevel()` and would discard
+the declared `level` and `health`; optional `level_scaling` (default false) opts a fixture back into it, which
+only the damage-led scaling scenario above needs. Creature AI can still change initial fixture levels and
+maximum health. Let them settle before taking baselines; assert stable maximums and final levels when testing
+damage coefficients.
 
 | Action | Fields and behavior |
 | --- | --- |
 | `console` | `command`: execute one console command on the test server; capture its output. |
 | `command` | `actor`, `command` beginning with `.`: execute with the player's normal permissions. |
-| `learn`, `unlearn` | `actor`, `spell`: configure learned spells/passives through player APIs. |
-| `set_aura` | `actor`, `spell`, `stacks`: fixture aura state, within its stack limit; zero removes it. |
+| `learn`, `unlearn` | `actor`, `spell`: configure learned spells/passives through player APIs. `unlearn` accepts `all_specs: true` to remove the fixture grant from every specialization before testing a lower weapon rank. |
+| `set_aura` | `actor`, `spell`, `stacks`: fixture aura state, within its stack limit; zero removes it. Optional `pet: true` selects the actor's current pet. |
 | `talent` | `actor`, `talent`, zero-based `rank`: learn with normal point/prerequisite checks. |
 | `reset_talents` | `actor`: reset active talents through normal removal, without a trainer fee. |
 | `cast` | `actor`, `spell`, optional `target` (self by default): normal session cast handler. |
-| `attack` | `actor`, `target`: native melee attack request; verify combat or damage with assertions. |
+| `attack` | `actor`, `target`: native melee attack request; optional `pet: true` sends the pet's attack command. Verify combat or damage with assertions. |
+| `stop_attack` | Player `actor`: native melee stop request. |
+| `pvp` | Player `actor`, boolean `enabled`: native PvP toggle request. Disabling retains the ordinary flag-removal timer. |
+| `set_moving` | Player `actor`, boolean `enabled`: fixture the native forward movement flag for cast restriction tests. |
 | `group` | `actor`, `target`: fixture party; creates the actor's group if needed and adds an ungrouped player. |
 | `cast_charm` | Same fields: native pet-cast handler, with the charmed unit as the default target. |
 | `gossip_hello` | `actor`, optional `target`: native gossip handler; defaults to the actor's summoned companion. |
@@ -229,15 +239,23 @@ before taking baselines; assert stable maximums and final levels when testing da
 | `use_item` | `actor`, `item`, `spell`, optional `target` and `destination`: normal item-use handler. |
 | `use_gameobject` | `actor`, `entry`: native use request for the actor's single nearby owned gameobject. |
 | `set_level` | `actor`, `value` (1..80): fixture level change through native `GiveLevel`, including level-change hooks. |
-| `set_health`, `set_power` | `actor`, `value` within native maximums; `set_power` accepts `power` (default 0). |
+| `set_health`, `set_power` | `actor`, `value` within native maximums; `set_power` accepts `power` (default 0). Optional `pet: true` selects the player's current pet. |
+| `reset_cooldown` | Player `actor`, `spell`: reset that native spell cooldown between independent cases. |
+| `restore_charges` | Player `actor`, `spell`: restore the native charge pool between independent cases. Separate from ordinary cooldowns. |
 | `wait` | `ms`: let the real world continue updating. |
 | `snapshot` | `actor`, `metric`, `save_as`: remember a numeric observation. |
 | `assert` | `actor`, `metric`, `equals` and/or `min`/`max`: check an observation. |
+
+`set_health` also accepts an explicit `maximum` for a player or their pet, using native `SetMaxHealth`.
+This fixture supports exact health-percentage boundaries without granting GM permissions.
 
 Every step accepts a descriptive `label`. Assertions optionally accept `within_ms`: poll until the expected
 state appears, failing at the deadline. This means "eventually", not "remains true throughout the window".
 Equipment changes obey combat restrictions. Prepare gear before starting combat, including combat caused
 by other nearby fixture actors. Rejected equipment actions include native inventory error codes in the result.
+
+`spell_charges` requires a player's `spell` and reads its currently available native charges. Charge tests
+must assert consumption and recovery after normal casts; restoring fixture charges does not prove recovery.
 For absence checks, wait through the relevant cast/proc window first, then assert. `relative_to` subtracts
 a previously named snapshot of the same metric; it is available on snapshots and assertions.
 `ratio_to` then divides by a nonzero snapshot of the same metric, for comparisons such as boosted/base damage.
@@ -247,7 +265,7 @@ Metrics: `health`, `max_health`, `power`, `max_power`, `alive`, `combat`, `casti
 `has_talent`, `talent_points`, `cooldown_ms`, `item_count`, `carried_item_count`, `bank_bag_slots`, `aura`, `aura_stacks`, `aura_charges`,
 `aura_duration_ms`, `aura_amount`, `pet_entry`, `pet_aura_stacks`, `owned_creature_count`,
 `charm_entry`, `charm_aura_stacks`, `controls_self`, `private_instance`, `dynamic_object`,
-`dynamic_object_duration_ms`, `distance`, `spell_proc_count`, `temporary_spell_replacement`.
+`dynamic_object_duration_ms`, `distance`, `spell_proc_count`, `spell_cast_count`, `temporary_spell_replacement`.
 Boolean metrics use 0/1. Spell/aura metrics require `spell`; `item_count` requires `item`.
 `carried_item_count` sums the stack counts of equipped items (bags included), the backpack and the bags' contents.
 `aura_positive` reads the applied aura's beneficial flag; check `aura` separately to distinguish absence from a debuff.
@@ -274,17 +292,37 @@ requires `school` (1..6); `armor`, `attack_power`, `ranged_attack_power`, the ha
 periodic interval.
 `block_chance` reads the player's percentage field; `block_value` reads native shield block value;
 `critical_block_chance` reads the total modifier used by the native critical block roll.
-`weapon_damage_min` reads the calculated main-hand minimum damage, including weapon-dependent passive bonuses.
+`moving` reads the unit's native movement state. `distance_2d` requires `target` and measures horizontal center distance.
+`forced_forward` reads the server's force-movement flag; it does not simulate client movement or navigation.
+`cast_remaining_ms` requires `spell` and returns its active cast/channel timer, or zero when inactive.
+`cast_pushback_ms` reads the player's cumulative native cast-delay notifications, excluding elapsed cast time.
+`weapon_damage_min` reads the calculated minimum damage, including weapon-dependent passive bonuses;
+optional `hand` selects main hand (0, default), off hand (1), or ranged (2).
 `spell_critical_damage` requires `spell` and `target` and calculates a critical hit from a fixed base of 1000,
 including native critical damage modifiers, without executing an attack or applying mitigation.
 `armor_reduced_damage` requires `spell` and `target` and applies native armor mitigation to a fixed base of
-1000, including the attacker's armor penetration; it does not execute an attack.
+1000, including the attacker's armor penetration; optional `pet: true` selects the player's current pet.
+It does not execute an attack.
+`spell_uses_armor` separately checks whether the native damage path applies armor to `spell` and `effect`
+(default 0), including spell school, armor bypass and bleed mechanics.
 `aoe_damage_taken` applies native area damage avoidance to 1000 damage for `school` (0..6).
 `reputation_gain` calculates a native spell reputation reward of 1000 for faction `id`, without granting it.
 `spell_immune` and `spell_effect_immune` query native immunity against `spell` from `target`; the latter
 accepts `effect` (default 0). These queries submit no attack.
-`melee_attack_count` counts the actor's native melee combat packets, including extra attacks and misses;
-it observes server output without testing delivery to a network client.
+`melee_attack_count` counts the actor's native melee combat packets, including extra attacks and misses.
+`melee_damage_count` counts only those dealing positive damage. Both accept `hand` (0 main hand, 1 off hand).
+These observations do not test delivery to a network client.
+`spell_damage_count` and `spell_damage_total` require `spell` and count positive direct or periodic spell
+damage events, or sum their post-mitigation damage, from the actor's native combat packets. Optional `target`
+filters the victim, `pet: true` selects the actor's current pet as caster, and `critical` filters critical or
+noncritical hits. Values accumulate throughout the scenario; use snapshots and `relative_to` around a cast.
+They exclude zero damage, melee swing packets, and healing, and do not test network delivery.
+`spell_heal_count`, `spell_heal_total` and `spell_effective_heal_total` similarly observe native direct and
+periodic healing logs, counting positive heals, summing healing including overhealing, or summing effective
+healing. They accept the same caster/critical filters; `target_pet: true` selects the current pet of a player
+`target`. Absorbed healing is excluded. These metrics avoid confusing normal regeneration with spell healing.
+The result's optional `cast_failures` array records native `SMSG_CAST_FAILED` spell IDs, cast counters and
+numeric `SpellCastResult` reasons. These diagnose a rejected submission; effect assertions still establish success.
 `distance` requires `target` and measures the native two-dimensional distance, in yards, between the actor and
 that target. It reads position and nothing else, so displacement from a knockback, pull or teleport shows up as
 the difference between two observations; take a `snapshot` first and assert `relative_to` it. Height is excluded.
@@ -293,18 +331,24 @@ started. What is counted is each spell the proc cast while the aura was named as
 place the server records both the proc and its owner; an aura whose proc does not cast anything counts zero.
 Use it for a proc whose chance is below 100%, where a single roll proves nothing: cast the trigger often enough
 that the false-failure probability is acceptable, and assert a `min` on the count.
+`spell_cast_count` requires `spell` and counts the casts of that exact spell the actor completed since the scenario
+started, triggered casts included. Use it where a script casts the effect directly, so no aura is named as the trigger
+and `spell_proc_count` reads zero.
 Spell queries require `spell` and submit nothing: `spell_modifier` applies the player's native spell modifiers for
 `op` (`SpellModOp`) to the number `base`; `spell_effect_value` (optional `effect`) returns the effect's value as the
 player would cast it, including module base-value hooks; `spell_cast_time_ms`, `spell_max_range` and
 `spell_max_stacks` return the modified native values; `spell_healing_done` requires `target` and optional
-`effect`, with a fixed base of 1000.
+`effect`, with a fixed base of 1000. `spell_healing_done` and `spell_damage_done` accept `periodic: true`
+to query the native periodic coefficient path instead of direct healing/damage.
+`spell_effect_value` and `spell_damage_done` accept `pet: true` to calculate using the player's current pet.
 `melee_hit_chance`/`spell_hit_chance` read the player's hit modifiers and `spell_power` (`school` 1..6) its base
 spell damage bonus. `spell_done_crit_chance` and `melee_spell_damage_done` require `spell` and `target`: the native
 crit chance for that spell, and the weapon-spell damage bonus from a fixed base of 1000. `aura_crit_chance` reads a
 periodic aura effect's snapshotted crit chance; `aura_script_value` requires `key`. `script_melee_damage_taken`,
 `script_spell_damage_taken` and `script_periodic_damage_taken` require `target` as the attacker (and `spell` for
-the latter two) and return 1000 after the registered module damage-taken hooks. `set_health` also accepts a
-creature actor.
+the latter two) and return 1000 after the registered module damage-taken hooks. `script_heal_received` requires
+`spell` and `target` as the healer and returns 1000 after the registered heal-received hooks, with the actor as recipient.
+`set_health` also accepts a creature actor, or `pet: true` with a player actor to set its current pet's health.
 `open_item` takes `actor` and `item` and submits the native container-open packet, offering it to the
 packet hooks first as `WorldSession::Update` does. `close_loot` takes `actor`
 and closes its current loot window. `collect_loot` takes `actor`, collects slot zero, verifies that its full rolled
@@ -327,11 +371,19 @@ client draws.
 `bank_bag_slots` measures the player's unlocked standard bank bag slots (0..7).
 `pet_entry` measures the player's current guardian pet entry, or zero if absent. `pet_aura_stacks`
 requires `spell`, accepts `caster` for aura ownership, and returns zero if the pet or aura is absent.
+`pet_aura_amount` and `pet_aura_amplitude_ms` accept `effect` and read its amount or tick interval.
+`spell_energize_count` and `spell_energize_total` observe native instant and periodic energize logs, excluding
+ordinary regeneration. They require `spell`; optional `power`, `target`, `pet` and `target_pet` filter
+resource type, recipient and current pets. The total is the logged nominal gain before the resource cap.
+
+`pet_max_health`, `pet_attack_power` and `pet_run_speed_rate` read the current pet's totals and require a present pet.
 `charm_entry` and `charm_aura_stacks` observe the player's charmed unit in the same way.
 `controls_self` checks that the player's movement controller is their own character.
 `private_instance` checks membership in a scripted private map such as Manastorm.
 `dynamic_object` checks for the player's ground effect with the specified `spell`.
 `dynamic_object_duration_ms` measures its remaining duration, or zero when absent.
+`display_id` reads the unit's selected server display ID; it does not verify client rendering or animations.
+`global_cooldown_ms` requires `spell` and reads the remaining native global cooldown for its recovery category.
 Player commands retain normal permission and gameplay checks; verify their effects with assertions.
 `owned_creature_count` requires a player and `entry`. It counts living creatures of that entry owned by
 the player, in the same phase and within 100 yards, including summons outside the guardian-pet slot.
@@ -344,7 +396,8 @@ or -1 for an object without an expiry. Moving out of range is not proof of despa
 `use_gameobject` keeps normal interaction-distance and usability checks. It does not inspect a rendered UI.
 The [portable gadgets scenario](scenarios/portable-gadgets.json) checks item summons, lifetimes, portal
 teleports and expiry. It requires `mod-portablemail`; mailbox and altar client interfaces are not tested.
-`power`/`max_power` accept a numeric `power` (0..6). Aura metrics optionally accept `caster` to select
+`power`/`max_power` and `pet_power`/`pet_max_power` accept a numeric `power` (0..6).
+The pet queries require a player with a current pet. Aura metrics optionally accept `caster` to select
 ownership; `aura_amount` also accepts an effect index (0..2, default 0). Missing auras yield zero;
 check aura presence separately when zero is a valid effect amount. Permanent aura duration is -1.
 
@@ -397,3 +450,13 @@ python apps/codestyle/codestyle-cpp.py --files modules/mod-ascension-compat/src/
 Runner checks cover invalid scenarios, incorrect/partial results, owned-process timeouts, isolation,
 partial-clone cleanup, cache reuse/invalidation, ownership and exclusive leases. They do not substitute for
 building and running the native scenario.
+
+`spell_go_count` counts the actor's native `SMSG_SPELL_GO` packets for `spell`; optional `pet: true`
+selects the current pet. Invisible triggered spells may omit this packet. A cast count proves dispatch,
+so pair it with effect assertions. It does not test network delivery or client rendering.
+`spell_hit_bonus_taken` reads the victim aura contribution to the native spell hit calculation for `spell`.
+`rooted` reads the unit's native root state. `spell_healing_taken` queries incoming healing from `target`
+with a base amount of 1000 and requires `spell`; `periodic: true` selects the native HoT path.
+
+`stealth_detection` reads native general stealth detection. `can_detect` requires `target` and invokes
+the observer's native `CanSeeOrDetect` check; neither metric covers client rendering.

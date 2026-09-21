@@ -189,8 +189,13 @@ void Replace(Player* player, uint32 root, uint32 replacement)
 bool Chance(Player* player, uint32 id, uint32 cooldown, float bonus)
 {
     SpellInfo const* info = sSpellMgr->GetSpellInfo(id);
-    if (!player->HasAura(id) || !info || State(player).timers.HasTimeUntilEvent(id) ||
-        !roll_chance_f(std::clamp(float(info->ProcChance) + bonus, 0.0f, 100.0f)))
+    if (!player->HasAura(id) || !info || State(player).timers.HasTimeUntilEvent(id))
+        return false;
+    // Talents such as Highest Order and Aspect Mastery raise this record's chance through
+    // SPELLMOD_CHANCE_OF_SUCCESS, the way the native proc roll (Aura::CalcProcChance) reads it.
+    float chance = float(info->ProcChance) + bonus;
+    player->ApplySpellMod(id, SPELLMOD_CHANCE_OF_SUCCESS, chance);
+    if (!roll_chance_f(std::clamp(chance, 0.0f, 100.0f)))
         return false;
     if (cooldown)
         State(player).timers.ScheduleEvent(id, Milliseconds(cooldown));
@@ -204,7 +209,7 @@ void GainPhase(Player* player, uint32 count)
     uint32 before = Count(player, 802985);
     if (Aura* aura = player->AddAura(802985, player))
         aura->SetStackAmount(std::min(max, before + count));
-    if (Count(player, 802985) == max && !player->HasAura(704519))
+    if (Count(player, 802985) >= LunarPhaseThreshold && !player->HasAura(704519))
         Cast(player, player, 704519);
 }
 void Stars(Player* player, Unit* target, uint32 count)
@@ -230,6 +235,10 @@ bool Consume(Player* player, Unit* target)
     stars->ModStackAmount(-1);
     Cast(player, target, 804995);
     float effectiveness = (player->HasAura(807659) ? 1.5f : 1) * (player->HasAura(805524) ? 1.5f : 1);
+    // Celestial Shot: "Increases the effectiveness of consuming Scattered Stars by $s2%". Its damage half is the native
+    // EFFECT1 modifier on 804995; mana and cooldown reduction are computed here, so the tooltip value is applied here.
+    if (player->HasAura(574348))
+        effectiveness *= 1.0f + Amount(574348, 1, player) / 100.0f;
     Mana(player, uint32(player->GetMaxPower(POWER_MANA) * .08f * effectiveness * (player->HasAura(574360) ? 2 : 1)));
     for (uint32 helper : {804994, 504024, 706573})
         if (SpellInfo const* info = sSpellMgr->GetSpellInfo(helper))
@@ -298,6 +307,17 @@ void Refresh(Player* player)
     state.refreshing = true;
     if (player->HasSpell(800386) && !player->HasAura(524781))
         Cast(player, player, 524781);
+    // Celestial Mind 707638 shortens the driver's period through SPELLMOD_ACTIVATION_TIME, which the core reads
+    // only when the periodic effect is built. A talent learned while the driver runs would leave the old period.
+    if (Aura* driver = player->GetAura(524781))
+        if (SpellInfo const* info = sSpellMgr->GetSpellInfo(524781))
+            if (AuraEffect* effect = driver->GetEffect(EFFECT_0))
+            {
+                int32 period = info->Effects[EFFECT_0].Amplitude;
+                player->ApplySpellMod(524781, SPELLMOD_ACTIVATION_TIME, period);
+                if (period != effect->GetAmplitude())
+                    driver->RefreshTimers();
+            }
     player->RemoveAurasDueToSpell(706301);
     auto scale = [player](uint32 id, bool active, std::initializer_list<int32> amounts) {
         if (!active)
@@ -326,7 +346,7 @@ void Refresh(Player* player)
     scale(561096, player->HasAura(561022) && player->HasAura(805356), {3, 3});
     for (WeaponAttackType type : {BASE_ATTACK, OFF_ATTACK, RANGED_ATTACK})
         player->UpdateDamagePhysical(type);
-    if (Count(player, 802985) < MaxPhase(player))
+    if (Count(player, 802985) < LunarPhaseThreshold)
         player->RemoveAurasDueToSpell(704519);
     if (!player->HasAura(300252))
         state.secondMoon = 0;

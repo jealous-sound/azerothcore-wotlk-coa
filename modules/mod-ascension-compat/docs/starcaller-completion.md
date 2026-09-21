@@ -110,3 +110,129 @@ linked build and matching Necromancer/Templar UI dependencies. Final startup
 reported no new unique errors. SQL03–10 were applied and are immutable. Combat,
 movement, group behavior and rendered UI acceptance remain separate from build,
 native callback tests and startup validation.
+
+## Why an absence means something for this class
+
+The fork is a reconstruction, so its own database cannot settle "could a player acquire this?": a missing
+acquisition row is also what lost server data looks like. Each outside source is therefore calibrated against the
+spells this class is already known to acquire, with `~/CoaServer/reference/coa-obtainable` (community snapshots,
+never the live server). For class 26 the tool reports:
+
+```
+class 26 (STARCALLER): shipped table 207; live-client capture covers 207 of 207, extra in capture 0, identical true;
+                       calculator covers 192 of 207; class_spell covers 32 of 207
+```
+
+The `CharacterAdvancement` set harvested through the live client and the shipped table hold **the same 207
+spells, in both directions**. The acquisition table is complete for this class, which is what makes an absence from
+it evidence rather than a gap. The displayed specializations are Moon Priest, Sentinel, Warden and Moon Guard
+(`ChrSpecs` field 29).
+
+## The reports closed as not obtainable
+
+65 reports describe spells no player can acquire. For every spell below the tool prints
+`advancement=none`, `module_grant=False`, `trigger_reachable=False`, `live_capture=False`, `calculator=False`,
+`server_class_spell=False` and `server_trainer=False`. Where a skill line lists the spell, it does so with
+`acquire = 0`: a client record with no acquisition path. No server change is warranted, since there is nothing to
+script for a spell no character can hold or trigger. The ids in the coefficient-clearing list of
+`AscensionStockCoefficientData.h` (for example 800363, 800366, 800373, 801139, 801969, 801974) are a coefficient
+table, not a grant path.
+
+### No Character Advancement entry
+
+| Issue | Spell | Spell id | Note |
+|---|---|---|---|
+| #557 | Lunar Conquest | 704791 | skill line Moon Guard, acquire 0 |
+| #558 | Moon Priest | 801973 | skill line Moon Priest, acquire 0 |
+| #559 | Lunar Blades | 801997 | skill line Moon Guard, acquire 0 |
+| #1520 | Tideturner | 300238 | skill line Moon Priest, acquire 0 |
+| #1521 | Elemental Extension | 300239 | skill line Moon Priest, acquire 0 |
+| #1523 | Rejuvenating Arrows | 300244 | skill line Sentinel, acquire 0 |
+| #1524 | Extinguisher | 300245 | skill line Moon Priest, acquire 0 |
+| #1525 | Starlight Arrows | 300247 | skill line Sentinel, acquire 0 |
+| #1526 | Burdening Starlight | 300248 | skill line Sentinel, acquire 0 |
+| #1530 | Astral Knowledge | 300257 | skill line Moon Priest, acquire 0 |
+| #1534 | Moon Touch | 300261 | skill line Moon Priest, acquire 0 |
+| #1787 | Cosmic Ripple | 300993 | skill line Sentinel, acquire 0 |
+| #1864 | Mana-Charged | 500204 | skill line Moon Guard, acquire 0 |
+| #2109 | Torn Flesh | 800363 | not on any skill line |
+| #2110 | Flow of Water | 800365 | skill line Moon Priest, acquire 0 |
+| #2111 | Slipstream | 800366 | skill line Moon Priest, acquire 0 |
+| #2113 | Torrent | 800371 | skill line Moon Priest, acquire 0 |
+| #2114 | Pond | 800373 | skill line Moon Priest, acquire 0 |
+| #2115 | Geyser | 800374 | skill line Moon Priest, acquire 0 |
+| #2116 | Aegis of Neptulon | 800375 | skill line Moon Priest, acquire 0 |
+| #2117 | Silvercurrent | 800376 | skill line Moon Priest, acquire 0 |
+| #2118 | Surge | 800379 | skill line Moon Priest, acquire 0 |
+| #2119 | Tide Lash | 800380 | skill line Moon Priest, acquire 0 |
+| #2120 | Deluge | 800381 | skill line Moon Priest, acquire 0 |
+| #2121 | Moonwater Blessing | 800382 | skill line Moon Priest, acquire 0 |
+| #2125 | Astral Flare | 800499 | skill line Sentinel, acquire 0 |
+| #2380 | Arrows of Starlight | 704733 | skill line Sentinel, acquire 0 |
+| #2380 | Arrows of Starlight | 704734 | skill line Sentinel, acquire 0 |
+| #2381 | True Aim | 704735 | skill line Sentinel, acquire 0 |
+| #2382 | Wrath of Vashj | 704742 | skill line Moon Priest, acquire 0 |
+| #2383 | Bathe | 704744 | skill line Moon Priest, acquire 0 |
+| #2384 | Improved Torrent | 704746 | skill line Moon Priest, acquire 0 |
+| #2385 | Liquid Space | 704752 | skill line Moon Priest, acquire 0 |
+| #2386 | Bubble Blower | 704754 | skill line Moon Priest, acquire 0 |
+| #2387 | Effervescence | 704758 | skill line Moon Priest, acquire 0 |
+| #2389 | Shark Attack | 704760 | skill line Moon Priest, acquire 0 |
+| #2394 | Bright Moon | 704779 | not on any skill line; the obtainable Bright Moon is 801226 (issue 754) |
+| #2395 | Starslip | 704780 | skill line Moon Guard, acquire 0 |
+| #2396 | Endless Sky | 704782 | skill line Moon Guard, acquire 0 |
+| #2402 | Magic Mark | 704797 | skill line Warden, acquire 0 |
+| #3039 | Elune's Warding | 706227 | skill line Moon Guard, acquire 0 |
+| #3039 | Elune's Warding | 706228 | skill line Moon Guard, acquire 0; triggered only by 706227 |
+| #3046 | Moonwell Blessing | 706252 | skill line Moon Priest, acquire 0 |
+| #3197 | Guarded by the Moon | 801142 | skill line Moon Guard, acquire 0 |
+| #3253 | Celestial Knight (Healing) | 801970 | skill line Moon Guard, acquire 0 |
+| #3254 | Lunar Resplendence | 801974 | skill line Moon Priest, acquire 0 |
+| #3256 | Moonwell Dipped Arrows | 801991 | skill line Sentinel, acquire 0 |
+| #3257 | Cosmic Duality | 801998 | skill line Sentinel, acquire 0 |
+| #3372 | Moon Guard | 804287 | skill line Moon Guard, acquire 0 |
+| #3380 | Choking Water | 804387 | skill line Moon Priest, acquire 0 |
+| #3381 | Starsweeper | 804389 | skill line Moon Guard, acquire 0 |
+| #3439 | Siren's Song | 804738 | skill line Moon Priest, acquire 0 |
+| #3517 | Starfury | 805435 | skill line Sentinel, acquire 0 |
+| #3518 | Starlord's Mandate | 805438 | skill line Moon Guard, acquire 0 |
+| #3527 | Alignment | 805507 | skill line Sentinel, acquire 0 |
+| #3528 | Celestial Knight | 805521 | skill line Moon Guard, acquire 0 |
+| #3529 | Astral Quickness | 805522 | skill line Sentinel, acquire 0 |
+| #3531 | Moonsteel Weapons | 805540 | skill line Moon Guard, acquire 0 |
+| #3532 | Celestial Armor | 805544 | skill line Moon Guard, acquire 0 |
+| #3533 | Cosmic Vengeance | 805545 | skill line Moon Guard, acquire 0 |
+| #3535 | Huntress Shot - Mana Cost % | 805553 | skill line Sentinel, acquire 0 |
+| #3749 | Starlight | 801131 | skill line Sentinel, acquire 0 |
+| #3750 | Lunar Focus | 801139 | skill line Sentinel, acquire 0 |
+| #3771 | Vengeance of Elune | 801969 | skill line Moon Guard, acquire 0 |
+| #3827 | Halt | 805432 | skill line Warden, acquire 0 |
+| #3831 | Rain of Comets | 805520 | skill line Sentinel, acquire 0 |
+| #3886 | Bubble Buddy | 704747 | skill line Moon Priest, acquire 0 |
+
+Issue #2017 (Starcrash) also names 704767, which is not acquirable (advancement none, absent from the calibrated
+capture, listed only on the Sentinel skill line); its two obtainable ranks, 560721 and 704766, are a different
+matter and are not part of this table.
+
+## Boundaries
+
+These snapshots are community captures, not the live server. If a spell above is later shown to be acquirable, by a
+trainer, a quest, or a client build carrying a `CharacterAdvancement` row for it, that finding wins over this note
+and the report should be reopened. The reverse case, spells the capture offers that this fork's
+`CharacterAdvancement.dbc` lacks, is a real gap and belongs in its own report. The chain Vengeance of Elune 801969,
+Celestial Knight 805521 and Cosmic Vengeance 805545 cross-reference each other in their tooltips; the whole chain is
+unobtainable, not one link.
+
+## Clauses the shipped data does not deliver
+
+Cases where the fix is not in the server. Neither is open server work.
+
+- **#136 Warden talent tree shows no icons** — the server data is complete: `CharacterAdvancement.dbc` holds 40
+  entries on tab 89 (Hydromancy, `ChrSpecs` 45) with 43 rank spells, all present in `Spell.dbc` with their
+  `SpellIcon` rows. The client Lua table `ASCENSION_LOCAL_COA_TALENT_TAB_ALIASES` (`CoATalentNodeData.lua`, client
+  patch only) lacks `Starcaller = { Hydromancy = "Warden" }`, so the frame's tab name matches no dataset key. This
+  repository has no reference to that table. Tracked by #424; #1445 is a duplicate.
+- **#4007 Aspect buff tooltips overflow the frame** — 574360 Aspect of the Moonwell and 800510 Aspect of the Stars
+  carry the client-extension marker `@s:804378:0@` in their description and tooltip, which the client expands into
+  the Scattered Stars tooltip block. Tooltip text is client-side `Spell.dbc`; the worldserver sends only aura ids,
+  so no server field can reflow the unwrapped block in the buff-frame renderer.

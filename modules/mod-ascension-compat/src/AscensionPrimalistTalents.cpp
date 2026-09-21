@@ -9,6 +9,8 @@
 #include "SpellMgr.h"
 #include "SpellScript.h"
 
+#include <algorithm>
+
 namespace
 {
 enum PrimalistAbilitySpells : uint32
@@ -54,6 +56,42 @@ public:
         // Only the visible defenses, not their separately removed SLS helpers.
         if (aura->GetId() == 680421 || aura->GetId() == 800094 || aura->GetId() == 503630)
             player->CastSpell(player, 503716, true);
+    }
+};
+
+class aura_ascension_natural_efficiency : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_natural_efficiency);
+
+    bool Validate(SpellInfo const*) override { return ValidateSpellInfo({707806}); }
+    bool Load() override { return Primalist(GetUnitOwner()) != nullptr; }
+
+    bool Check(ProcEventInfo& event)
+    {
+        Unit* caster = event.GetActor();
+        SpellInfo const* info = event.GetSpellInfo();
+        if (!caster || caster == GetTarget() || !info || !GetTarget()->IsAlive() ||
+            !(event.GetHitMask() & (PROC_HIT_NORMAL | PROC_HIT_CRITICAL)))
+            return false;
+        AuraApplication const* application = GetTarget()->GetAuraApplication(info->Id, caster->GetGUID());
+        if (!application || application->GetRemoveMode() || application->IsPositive())
+            return false;
+        // Filter the existing native proc by effects actually applied to the victim.
+        // An immune control effect can still leave a slow or another secondary aura.
+        Aura* aura = application->GetBase();
+        for (uint8 i = 0; i < MAX_SPELL_EFFECTS; ++i)
+            if (application->GetEffectMask() & (1 << i))
+                if (AuraEffect const* effect = aura->GetEffect(i))
+                    if (effect->GetAuraType() == SPELL_AURA_MOD_ROOT ||
+                        effect->GetAuraType() == SPELL_AURA_MOD_STUN ||
+                        effect->GetAuraType() == SPELL_AURA_MOD_CONFUSE)
+                        return true;
+        return false;
+    }
+
+    void Register() override
+    {
+        DoCheckProc += AuraCheckProcFn(aura_ascension_natural_efficiency::Check);
     }
 };
 
@@ -134,11 +172,65 @@ class spell_ascension_throat_clamp : public SpellScript
         OnEffectHitTarget += SpellEffectFn(spell_ascension_throat_clamp::Handle, EFFECT_0, SPELL_EFFECT_DUMMY);
     }
 };
+
+class aura_ascension_earthmaker : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_earthmaker);
+
+    bool Check(ProcEventInfo& event)
+    {
+        Player* owner = Primalist(GetTarget());
+        DamageInfo const* damage = event.GetDamageInfo();
+        return owner && owner->IsAlive() && event.GetActor() == owner && damage && damage->GetDamage() &&
+            event.GetActionTarget() && !owner->IsFriendlyTo(event.GetActionTarget());
+    }
+
+    void Register() override
+    {
+        DoCheckProc += AuraCheckProcFn(aura_ascension_earthmaker::Check);
+    }
+};
+
+class aura_ascension_primal_shred_critical : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_primal_shred_critical);
+
+    bool Load() override
+    {
+        Pet* pet = GetCaster() ? GetCaster()->ToPet() : nullptr;
+        return pet && Primalist(pet->GetOwner()) && GetSpellInfo()->SpellFamilyName == 37 &&
+            GetSpellInfo()->SpellFamilyFlags == flag96(0, 0, 32) &&
+            GetSpellInfo()->DmgClass == SPELL_DAMAGE_CLASS_MELEE;
+    }
+
+    void Snapshot(AuraEffect const*, AuraEffectHandleModes)
+    {
+        Unit* pet = GetCaster();
+        if (!pet)
+            return;
+        SpellInfo const* info = GetSpellInfo();
+        // Legacy of Rexxar explicitly procs from Primal Shred critical strikes.
+        // Native periodic crit admission only checks the owner's aura 286 and
+        // samples the owner's crit. This pet-cast bleed needs the pet's chance.
+        float chance = pet->SpellDoneCritChance(GetTarget(), info, info->GetSchoolMask(), BASE_ATTACK, true);
+        chance = GetTarget()->SpellTakenCritChance(pet, info, info->GetSchoolMask(), chance, BASE_ATTACK, true);
+        GetEffect(EFFECT_0)->SetCritChance(std::max(0.0f, chance));
+    }
+
+    void Register() override
+    {
+        AfterEffectApply += AuraEffectApplyFn(aura_ascension_primal_shred_critical::Snapshot,
+            EFFECT_0, SPELL_AURA_PERIODIC_DAMAGE, AURA_EFFECT_HANDLE_REAL_OR_REAPPLY_MASK);
+    }
+};
 }
 
 void AddSC_AscensionPrimalistTalents()
 {
     new primalist_talent_events();
     new primalist_talent_casts();
+    RegisterSpellScript(aura_ascension_natural_efficiency);
     RegisterSpellScript(spell_ascension_throat_clamp);
+    RegisterSpellScript(aura_ascension_primal_shred_critical);
+    RegisterSpellScript(aura_ascension_earthmaker);
 }

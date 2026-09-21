@@ -1,0 +1,190 @@
+{
+  "schema": 1,
+  "name": "Cursed Ground lengthens Sanguine Rupture, whose bleed is already native (#2041)",
+  "contract": "Cursed Ground 561195 has two effects. Effect 0 is aura 107 SPELL_AURA_ADD_FLAT_MODIFIER with MiscValue 10 = SPELLMOD_CASTING_TIME, BasePoints 1999 + DieSides 1 = +2000 ms, over EffectSpellClassMask (0, 0, 2147483648) - family-26 word 2 bit 31, which is exactly Sanguine Rupture 572907's SpellFamilyFlags. 572907's own CastingTimeIndex 1 is SpellCastTimes.dbc row 1 = 0 ms, so the talent turns an instant cast into a 2000 ms cast; Player::ApplySpellMod carries an explicit carve-out for a positive flat SPELLMOD_CASTING_TIME on a zero base, and 572907 is DmgClass 1, so the result is scaled by UNIT_MOD_CAST_SPEED, which is 1.0 on an ungeared fixture. This is the only clause the talent owns. Effect 1 is aura 42 SPELL_AURA_PROC_TRIGGER_SPELL on Cursed Ground 561205 with ProcFlags 0 on the record and no spell_proc row anywhere in data/sql, so it can never fire, and 561205 is itself an aura 4 SPELL_AURA_DUMMY with no handler and no spell_script_names row - a tooltip carrier. The bleed the tooltip names is delivered natively with no talent at all: 572907 effect 1 is SPELL_EFFECT_TRIGGER_SPELL (64) on Cursed Ground 561304 with TargetA 22 = TARGET_SRC_CASTER and TargetB 15 = TARGET_UNIT_SRC_AREA_ENEMY at radius index 14 = 8.0 yd - the same target list as its damage effect 0 - and 561304 effect 0 is another SPELL_EFFECT_TRIGGER_SPELL on Cursed Ground 561303 at TargetA 6 = TARGET_UNIT_TARGET_ENEMY. So every non-missed enemy within 8 yd receives 561303, whatever the target count. 561303 is aura 3 SPELL_AURA_PERIODIC_DAMAGE, Amplitude 500, DurationIndex 39 = SpellDuration.dbc 2000 ms (4 ticks), Mechanic 15 Bleed, StackAmount 0 so it is not stackable. The tooltip's 'when you strike at least 5 enemies' gate exists in no Spell.dbc field, no spell_proc, spell_linked_spell, spell_custom_attr or spell_script_names row and no core code, so this scenario deliberately asserts no such gate. Six dummies are spawned at 2-7 yd, all inside the 8.0 yd radius, so one cast strikes them all. No proc chance is involved: every step of the chain is a deterministic trigger effect.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "bloodmage",
+      "race": 1,
+      "class": 20,
+      "level": 80,
+      "spell_hit_rating": 10000,
+      "melee_hit_rating": 10000,
+      "expertise_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "dummy1",
+      "owner": "bloodmage",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 2
+    },
+    {
+      "id": "dummy2",
+      "owner": "bloodmage",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 3
+    },
+    {
+      "id": "dummy3",
+      "owner": "bloodmage",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 4
+    },
+    {
+      "id": "dummy4",
+      "owner": "bloodmage",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 5
+    },
+    {
+      "id": "dummy5",
+      "owner": "bloodmage",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 6
+    },
+    {
+      "id": "dummy6",
+      "owner": "bloodmage",
+      "entry": 36,
+      "health": 1000000,
+      "distance": 7
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "bloodmage",
+      "spell": 572907
+    },
+    {
+      "action": "set_power",
+      "actor": "bloodmage",
+      "power": 1,
+      "value": 1000
+    },
+    {
+      "action": "assert",
+      "label": "Baseline: without the talent Sanguine Rupture is instant (SpellCastTimes.dbc row 1 = 0 ms)",
+      "actor": "bloodmage",
+      "metric": "spell_cast_time_ms",
+      "spell": 572907,
+      "equals": 0
+    },
+    {
+      "action": "cast",
+      "actor": "bloodmage",
+      "spell": 572907,
+      "target": "dummy1"
+    },
+    {
+      "action": "assert",
+      "label": "Native: the shipped chain bleeds the target with no talent (572907 -> 561304 -> 561303)",
+      "actor": "dummy1",
+      "metric": "aura",
+      "spell": 561303,
+      "caster": "bloodmage",
+      "equals": 1,
+      "within_ms": 2000
+    },
+    {
+      "action": "assert",
+      "label": "and every enemy inside the 8.0 yd radius, not only the spell's target",
+      "actor": "dummy5",
+      "metric": "aura",
+      "spell": 561303,
+      "caster": "bloodmage",
+      "equals": 1,
+      "within_ms": 2000
+    },
+    {
+      "action": "assert",
+      "label": "561303 has StackAmount 0, so it carries exactly one stack",
+      "actor": "dummy1",
+      "metric": "aura_stacks",
+      "spell": 561303,
+      "caster": "bloodmage",
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "label": "and it never runs longer than SpellDuration.dbc row 39 = 2000 ms",
+      "actor": "dummy1",
+      "metric": "aura_duration_ms",
+      "spell": 561303,
+      "caster": "bloodmage",
+      "max": 2000
+    },
+    {
+      "action": "wait",
+      "label": "Wait past the 2000 ms bleed window",
+      "ms": 2500
+    },
+    {
+      "action": "assert",
+      "label": "The bleed has expired, so the next cast measures a fresh application",
+      "actor": "dummy1",
+      "metric": "aura",
+      "spell": 561303,
+      "caster": "bloodmage",
+      "equals": 0
+    },
+    {
+      "action": "learn",
+      "actor": "bloodmage",
+      "spell": 561195
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING: the talent's only clause - Sanguine Rupture now takes 2000 ms to cast",
+      "actor": "bloodmage",
+      "metric": "spell_cast_time_ms",
+      "spell": 572907,
+      "min": 2000,
+      "max": 2000
+    },
+    {
+      "action": "set_power",
+      "actor": "bloodmage",
+      "power": 1,
+      "value": 1000
+    },
+    {
+      "action": "cast",
+      "actor": "bloodmage",
+      "spell": 572907,
+      "target": "dummy1"
+    },
+    {
+      "action": "assert",
+      "label": "With the talent the same native bleed lands, unchanged",
+      "actor": "dummy1",
+      "metric": "aura",
+      "spell": 561303,
+      "caster": "bloodmage",
+      "equals": 1,
+      "within_ms": 5000
+    },
+    {
+      "action": "assert",
+      "label": "and it is still a single stack - the talent must not apply 561303 a second time",
+      "actor": "dummy1",
+      "metric": "aura_stacks",
+      "spell": 561303,
+      "caster": "bloodmage",
+      "equals": 1
+    }
+  ]
+}

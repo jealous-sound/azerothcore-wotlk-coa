@@ -148,6 +148,15 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[0].MiscValue = SPELL_SCHOOL_MASK_NORMAL;
         info->DurationEntry = sSpellDurationStore.LookupEntry(21);
     }
+    // Nano-Repair Tech's periodic heal regenerates the Tinker and the pet in one triggered cast. A
+    // TARGET_UNIT_PET on TargetA makes the native pet-presence check reject the whole cast while no guardian
+    // pet exists, which also drops the caster's own share; a Tinker running devices but no permanent pet
+    // therefore received nothing. The same pet is selected from TargetB, which that check does not read.
+    if (id == 681516 && info->Effects[EFFECT_1].TargetA.GetTarget() == TARGET_UNIT_PET)
+    {
+        info->Effects[EFFECT_1].TargetA = SpellImplicitTargetInfo();
+        info->Effects[EFFECT_1].TargetB = SpellImplicitTargetInfo(TARGET_UNIT_PET);
+    }
     if (id == 801744)
         for (auto& effect : info->Effects)
             if (effect.Effect)
@@ -211,6 +220,13 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[1].ApplyAuraName = SPELL_AURA_MOD_CRIT_PCT;
         info->Effects[2].ApplyAuraName = SPELL_AURA_ASCENSION_MOD_HIT_CHANCE_ALL_PCT;
     }
+    // Flak Guns authors its "increased critical damage" half as a flat modifier, but the consumer of
+    // SPELLMOD_CRIT_DAMAGE_BONUS applies it to the absolute critical bonus, so the flat form added 15 raw
+    // damage instead of scaling the bonus by 15%. Only the second effect is rewritten; the first one is a
+    // critical strike chance modifier, which is already consumed as percentage points.
+    if (id == 520686 && info->Effects[EFFECT_1].ApplyAuraName == SPELL_AURA_ADD_FLAT_MODIFIER &&
+        info->Effects[EFFECT_1].MiscValue == SPELLMOD_CRIT_DAMAGE_BONUS)
+        info->Effects[EFFECT_1].ApplyAuraName = SPELL_AURA_ADD_PCT_MODIFIER;
     if (id == 560742)
     {
         info->Effects[1].ApplyAuraName = SPELL_AURA_MOD_HIT_CHANCE;

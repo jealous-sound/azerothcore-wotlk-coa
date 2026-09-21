@@ -505,7 +505,7 @@ struct NativePowerGainRule
 // Rage and Runic Power are represented internally in tenths. These Reaper
 // abilities describe fixed gains, but their public DBC records omit the
 // energize effect that Ascension's private server applies.
-inline constexpr std::array<NativePowerGainRule, 18> NativePowerGainRules =
+inline constexpr std::array<NativePowerGainRule, 13> NativePowerGainRules =
 {{
     {19, 0, 0, 3, 10, ResourceGainEvent::PeriodicDamageTick, 301253},
     {23, 704355, 704355, 6, 200,
@@ -535,12 +535,8 @@ inline constexpr std::array<NativePowerGainRule, 18> NativePowerGainRules =
         ResourceGainEvent::FirstSuccessfulHostileTarget},
     {30, 802422, 802428, 6, 200,
         ResourceGainEvent::FirstSuccessfulHostileTarget},
-    // Primalist visible descriptions and energize helpers use internal tenths.
-    {31, 503258, 503264, 1, 200},
-    {31, 803981, 803981, 1, 200},
-    {31, 560171, 560175, 1, 40, ResourceGainEvent::EachSuccessfulHostileTarget},
-    {31, 582532, 582532, 1, 40, ResourceGainEvent::EachSuccessfulHostileTarget},
-    {31, 804433, 804433, 1, 40, ResourceGainEvent::EachSuccessfulHostileTarget},
+    // Seismic Spike/Crash use their authored energize helpers in
+    // AscensionPrimalistSeismicResources so talent modifiers apply without a second fixed grant.
     {31, 680442, 680442, 1, 10, ResourceGainEvent::EachSuccessfulDamagingHit},
     {31, 681114, 681117, 1, 10, ResourceGainEvent::EachSuccessfulDamagingHit},
     {31, 680442, 680442, 1, 10, ResourceGainEvent::PeriodicDamageTick},

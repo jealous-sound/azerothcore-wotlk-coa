@@ -2301,9 +2301,9 @@ uint32 Unit::CalcArmorReducedDamage(Unit const* attacker, Unit const* victim, co
             armor = std::floor(AddPct(armor, -ignoreArmorPct));
 
         // Apply Player CR_ARMOR_PENETRATION rating and buffs from stances\specializations etc.
+        float bonusPct = 0;
         if (attacker->IsPlayer())
         {
-            float bonusPct = 0;
             bonusPct += attacker->GetTotalAuraModifier(SPELL_AURA_MOD_ARMOR_PENETRATION_PCT, [spellInfo,attacker](AuraEffect const* aurEff)
             {
                 if (aurEff->GetSpellInfo()->EquippedItemClass == -1)
@@ -2320,7 +2320,21 @@ uint32 Unit::CalcArmorReducedDamage(Unit const* attacker, Unit const* victim, co
                 }
                 return false;
             });
+            bonusPct += attacker->ToPlayer()->GetRatingBonusValue(CR_ARMOR_PENETRATION);
+        }
+        else if (attacker->IsPet())
+        {
+            Pet const* pet = static_cast<Pet const*>(attacker);
+            constexpr uint32 PrimalistSharpenedClawsPet = 572125;
+            if (Player const* owner = pet->GetOwner(); owner && owner->getClass() == CLASS_WILDWALKER)
+                if (AuraEffect const* claws = pet->GetAuraEffect(PrimalistSharpenedClawsPet, EFFECT_1, owner->GetGUID()))
+                    // Use the pet's own stacks with the same native cap as the player's buff.
+                    // The owner's rating and armor-penetration aura are not inherited again.
+                    bonusPct = claws->GetAmount();
+        }
 
+        if (attacker->IsPlayer() || bonusPct)
+        {
             float maxArmorPen = 0;
             if (victim->GetLevel() < 60)
                 maxArmorPen = float(400 + 85 * victim->GetLevel());
@@ -2330,7 +2344,7 @@ uint32 Unit::CalcArmorReducedDamage(Unit const* attacker, Unit const* victim, co
             // Cap armor penetration to this number
             maxArmorPen = std::min((armor + maxArmorPen) / 3, armor);
             // Figure out how much armor do we ignore
-            float armorPen = CalculatePct(maxArmorPen, bonusPct + attacker->ToPlayer()->GetRatingBonusValue(CR_ARMOR_PENETRATION));
+            float armorPen = CalculatePct(maxArmorPen, bonusPct);
             // Got the value, apply it
             armor -= std::min(armorPen, maxArmorPen);
         }
@@ -4084,22 +4098,23 @@ int32 Unit::GetAscensionConditionalCombatModifier(Unit const* victim, SpellInfo 
             return false;
 
         int32 condition = effect->GetMiscValueB();
-        if (getClass() == CLASS_NECROMANCER && !creature)
+        if (getClass() == CLASS_NECROMANCER && !creature && condition == AURA_STATE_FROZEN)
         {
-            if (condition == AURA_STATE_FROZEN)
-            {
-                Spell const* cast = ToPlayer()->m_spellModTakingSpell;
-                Aura const* periodic = spellInfo ? victim->GetAura(spellInfo->Id, GetGUID()) : nullptr;
-                if (HasAura(801747) || (cast && cast->GetScriptValue(801747)) ||
-                    (periodic && periodic->GetScriptValue(801747)))
-                    return true;
-            }
-            if (condition == 31) // reviewed Fiend selector: a disease owned by this caster
-                for (auto const& [key, application] : victim->GetAppliedAuras())
-                    if (Aura const* aura = application->GetBase(); aura->GetCasterGUID() == GetGUID() &&
-                        aura->GetSpellInfo()->SpellFamilyName == 29 && aura->GetSpellInfo()->Dispel == DISPEL_DISEASE)
-                        return true;
+            Spell const* cast = ToPlayer()->m_spellModTakingSpell;
+            Aura const* periodic = spellInfo ? victim->GetAura(spellInfo->Id, GetGUID()) : nullptr;
+            if (HasAura(801747) || (cast && cast->GetScriptValue(801747)) ||
+                (periodic && periodic->GetScriptValue(801747)))
+                return true;
         }
+        // Reviewed disease selector: a disease of the caster's own family on the victim. The Necromancer's
+        // Fiend contract and the Bloodmage's Blood Plague both express "against Diseased targets" as 31.
+        if (!creature && condition == 31 &&
+            (getClass() == CLASS_NECROMANCER || getClass() == CLASS_SON_OF_ARUGAL))
+            for (auto const& [key, application] : victim->GetAppliedAuras())
+                if (Aura const* aura = application->GetBase(); aura->GetCasterGUID() == GetGUID() &&
+                    aura->GetSpellInfo()->SpellFamilyName == uint32(getClass()) + 6 &&
+                    aura->GetSpellInfo()->Dispel == DISPEL_DISEASE)
+                    return true;
         return creature ? condition > 0 && (victim->GetCreatureTypeMask() & uint32(condition)) :
             victim->HasAscensionConditionalCombatState(condition);
     });
@@ -8810,6 +8825,12 @@ float Unit::SpellPctDamageModsDone(Unit* victim, SpellInfo const* spellProto, Da
     if (AuraEffect const* drums = GetAuraEffect(570759, EFFECT_0))
         AddPct(DoneTotalMod, drums->GetAmount());
 
+    // Stone Skin: displayed parry percentage grants the same percentage of Geode/Seismic damage.
+    if (Player const* player = ToPlayer(); player && player->getClass() == CLASS_WILDWALKER &&
+        spellProto->SpellFamilyName == 37 &&
+        (spellProto->SpellFamilyFlags & flag96(4176, 4194592, 263168)) && HasAura(806583))
+        AddPct(DoneTotalMod, player->GetFloatValue(PLAYER_PARRY_PERCENTAGE));
+
     DoneTotalMod *= GetTotalAuraMultiplier(SPELL_AURA_MOD_DAMAGE_PERCENT_DONE, [spellProto, this, damagetype](AuraEffect const* aurEff)
     {
         // prevent apply mods from weapon specific case to non weapon specific spells (Example: thunder clap and two-handed weapon specialization)
@@ -8837,6 +8858,8 @@ float Unit::SpellPctDamageModsDone(Unit* victim, SpellInfo const* spellProto, Da
     uint32 creatureTypeMask = victim->GetCreatureTypeMask();
     DoneTotalMod *= GetTotalAuraMultiplier(SPELL_AURA_MOD_DAMAGE_DONE_VERSUS, [creatureTypeMask, spellProto, damagetype, this](AuraEffect const* aurEff)
     {
+        if (aurEff->GetMiscValueB() == ASCENSION_CLASSMASK_CREATURE_DAMAGE && !aurEff->IsAffectedOnSpell(spellProto))
+            return false;
         return creatureTypeMask & aurEff->GetMiscValue() && spellProto->ValidateAttribute6SpellDamageMods(this, aurEff, damagetype == DOT);
     });
 
@@ -9256,7 +9279,31 @@ uint32 Unit::SpellDamageBonusDone(Unit* victim, SpellInfo const* spellProto, uin
     }
 
     // Done fixed damage bonus auras
-    DoneAdvertisedBenefit += SpellBaseDamageBonusDone(spellProto->GetSchoolMask());
+    // These physical Primalist effects explicitly scale with Nature spell power.
+    // Keep physical mitigation and the normal coefficient/modifier path.
+    SpellSchoolMask spellPowerSchool = spellProto->GetSchoolMask();
+    if (spellProto->SpellFamilyName == 37 &&
+        spellPowerSchool == SPELL_SCHOOL_MASK_NORMAL && effIndex == EFFECT_0 &&
+        spellProto->Effects[EFFECT_0].Effect == SPELL_EFFECT_SCHOOL_DAMAGE)
+    {
+        constexpr uint32 PrimalistJudgementDamage = 520468;
+        uint32 firstRank = spellProto->GetFirstRankSpell()->Id;
+        if (spellProto->Id == PrimalistJudgementDamage ||
+            (spellProto->DmgClass == SPELL_DAMAGE_CLASS_MAGIC &&
+                (spellProto->Id == 803138 || spellProto->Id == 681251 || spellProto->Id == 302590 ||
+                    firstRank == 680448 || firstRank == 680442 || firstRank == 681119)))
+            spellPowerSchool = SPELL_SCHOOL_MASK_NATURE;
+    }
+    if (spellProto->Id == 803140 && spellProto->SpellFamilyName == 37 &&
+        spellPowerSchool == (SPELL_SCHOOL_MASK_FIRE | SPELL_SCHOOL_MASK_NATURE) &&
+        spellProto->DmgClass == SPELL_DAMAGE_CLASS_MAGIC && effIndex == EFFECT_0 &&
+        spellProto->Effects[EFFECT_0].Effect == SPELL_EFFECT_SCHOOL_DAMAGE)
+        // Eruption uses the higher school bonus, not their sum. Leave the
+        // damage school unchanged for native resistance and damage modifiers.
+        DoneAdvertisedBenefit += std::max(SpellBaseDamageBonusDone(SPELL_SCHOOL_MASK_FIRE),
+            SpellBaseDamageBonusDone(SPELL_SCHOOL_MASK_NATURE));
+    else
+        DoneAdvertisedBenefit += SpellBaseDamageBonusDone(spellPowerSchool);
 
     // Check for table values
     float coeff = spellProto->Effects[effIndex].BonusMultiplier;
@@ -9318,6 +9365,13 @@ uint32 Unit::SpellDamageBonusDone(Unit* victim, SpellInfo const* spellProto, uin
     // apply spellmod to Done damage (flat and pct)
     if (Player* modOwner = GetSpellModOwner())
         modOwner->ApplySpellMod(spellProto->Id, damagetype == DOT ? SPELLMOD_DOT : SPELLMOD_DAMAGE, tmpDamage);
+
+    // Elemental Berserker's copied mask covers the repeated area helper only. Include the
+    // original Smash area, including its AP term, without increasing the primary weapon strike.
+    if (spellProto->SpellFamilyName == 37 && effIndex == EFFECT_1 && damagetype != DOT &&
+        sSpellMgr->GetFirstSpellInChain(spellProto->Id) == 800178)
+        if (AuraEffect const* berserker = GetAuraEffect(706338, EFFECT_0, GetGUID()))
+            AddPct(tmpDamage, berserker->GetAmount());
 
     return uint32(std::max(tmpDamage, 0.0f));
 }
@@ -10181,7 +10235,12 @@ uint32 Unit::SpellHealingBonusTaken(Unit* caster, SpellInfo const* spellProto, u
     if (minval)
         AddPct(TakenTotalMod, minval);
 
-    float maxval = float(GetMaxPositiveAuraModifier(SPELL_AURA_MOD_HEALING_PCT));
+    float maxval = float(GetMaxPositiveAuraModifier(SPELL_AURA_MOD_HEALING_PCT,
+        [this, caster](AuraEffect const* effect)
+        {
+            // Nature's Call rank two explicitly increases healing received from others.
+            return caster != this || effect->GetId() != 707807 || effect->GetSpellInfo()->SpellFamilyName != 37;
+        }));
     if (maxval)
         AddPct(TakenTotalMod, maxval);
 
@@ -10744,6 +10803,9 @@ uint32 Unit::MeleeDamageBonusDone(Unit* victim, uint32 pdamage, WeaponAttackType
 
     DoneTotalMod *= GetTotalAuraMultiplier(SPELL_AURA_MOD_DAMAGE_DONE_VERSUS, [creatureTypeMask, spellProto, this](AuraEffect const* aurEff)
     {
+        if (aurEff->GetMiscValueB() == ASCENSION_CLASSMASK_CREATURE_DAMAGE &&
+            (!spellProto || !aurEff->IsAffectedOnSpell(spellProto)))
+            return false;
         return (creatureTypeMask & aurEff->GetMiscValue() && (!spellProto || spellProto->ValidateAttribute6SpellDamageMods(this, aurEff, false)));
     });
 

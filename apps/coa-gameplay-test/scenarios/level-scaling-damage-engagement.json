@@ -28,7 +28,8 @@
       "entry": 1501,
       "level": 1,
       "health": 10000,
-      "distance": 80
+      "distance": 80,
+      "level_scaling": true
     },
     {
       "id": "lethal",
@@ -36,7 +37,8 @@
       "entry": 1501,
       "level": 1,
       "health": 1,
-      "distance": 85
+      "distance": 85,
+      "level_scaling": true
     }
   ],
   "steps": [

@@ -1,0 +1,639 @@
+{
+  "schema": 1,
+  "name": "Primalist Geode Barrage: physical damage with Nature spell power",
+  "contract": "Three physical stones each add 36% Nature spell power and 9% attack power before armor mitigation.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "primalist",
+      "race": 1,
+      "class": 31,
+      "level": 22,
+      "spell_hit_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "bear",
+      "owner": "primalist",
+      "entry": 1188,
+      "level": 19,
+      "health": 100000,
+      "distance": 12
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "primalist",
+      "spell": 502771
+    },
+    {
+      "action": "cast",
+      "actor": "primalist",
+      "spell": 502771,
+      "target": "bear",
+      "label": "Settle first-combat creature scaling"
+    },
+    {
+      "action": "wait",
+      "ms": 4000
+    },
+    {
+      "action": "assert",
+      "actor": "bear",
+      "metric": "level",
+      "min": 18,
+      "max": 19
+    },
+    {
+      "action": "snapshot",
+      "actor": "bear",
+      "metric": "max_health",
+      "save_as": "bear_maximum"
+    },
+    {
+      "action": "snapshot",
+      "actor": "bear",
+      "metric": "armor",
+      "save_as": "bear_armor"
+    },
+    {
+      "action": "snapshot",
+      "actor": "primalist",
+      "metric": "attack_power",
+      "save_as": "base_ap"
+    },
+    {
+      "action": "assert",
+      "actor": "primalist",
+      "metric": "spell_power",
+      "school": 3,
+      "equals": 0
+    },
+    {
+      "action": "snapshot",
+      "actor": "primalist",
+      "metric": "spell_damage_done",
+      "spell": 803138,
+      "target": "bear",
+      "save_as": "base_geode"
+    },
+    {
+      "action": "snapshot",
+      "actor": "primalist",
+      "metric": "spell_damage_done",
+      "spell": 500693,
+      "target": "bear",
+      "save_as": "base_boulder"
+    },
+    {
+      "action": "snapshot",
+      "actor": "primalist",
+      "metric": "armor_reduced_damage",
+      "spell": 803138,
+      "target": "bear",
+      "save_as": "physical_mitigation"
+    },
+    {
+      "action": "assert",
+      "actor": "primalist",
+      "metric": "armor_reduced_damage",
+      "spell": 803138,
+      "target": "bear",
+      "max": 999
+    },
+    {
+      "action": "set_health",
+      "actor": "bear",
+      "value": 400
+    },
+    {
+      "action": "snapshot",
+      "actor": "bear",
+      "metric": "health",
+      "save_as": "bare_health"
+    },
+    {
+      "action": "snapshot",
+      "actor": "primalist",
+      "metric": "spell_damage_count",
+      "spell": 803138,
+      "target": "bear",
+      "save_as": "bare_count"
+    },
+    {
+      "action": "snapshot",
+      "actor": "primalist",
+      "metric": "spell_damage_total",
+      "spell": 803138,
+      "target": "bear",
+      "save_as": "bare_total"
+    },
+    {
+      "action": "cast",
+      "actor": "primalist",
+      "spell": 502771,
+      "target": "bear",
+      "label": "bare"
+    },
+    {
+      "action": "wait",
+      "ms": 4000
+    },
+    {
+      "action": "assert",
+      "actor": "primalist",
+      "metric": "spell_damage_count",
+      "spell": 803138,
+      "target": "bear",
+      "relative_to": "bare_count",
+      "equals": 3
+    },
+    {
+      "action": "snapshot",
+      "actor": "primalist",
+      "metric": "spell_damage_total",
+      "spell": 803138,
+      "target": "bear",
+      "relative_to": "bare_total",
+      "save_as": "bare_damage"
+    },
+    {
+      "action": "assert",
+      "actor": "primalist",
+      "metric": "spell_damage_total",
+      "spell": 803138,
+      "target": "bear",
+      "relative_to": "bare_total",
+      "min": 1
+    },
+    {
+      "action": "assert",
+      "actor": "bear",
+      "metric": "max_health",
+      "relative_to": "bear_maximum",
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "bear",
+      "metric": "armor",
+      "relative_to": "bear_armor",
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "bear",
+      "metric": "health",
+      "relative_to": "bare_health",
+      "max": -1
+    },
+    {
+      "action": "set_aura",
+      "actor": "primalist",
+      "spell": 26395,
+      "stacks": 1
+    },
+    {
+      "action": "assert",
+      "actor": "primalist",
+      "metric": "spell_power",
+      "school": 3,
+      "equals": 72
+    },
+    {
+      "action": "assert",
+      "actor": "primalist",
+      "metric": "attack_power",
+      "relative_to": "base_ap",
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "primalist",
+      "metric": "spell_damage_done",
+      "spell": 803138,
+      "target": "bear",
+      "relative_to": "base_geode",
+      "min": 24,
+      "max": 25,
+      "label": "36% Nature spell power once per stone, with normal PvE tuning"
+    },
+    {
+      "action": "assert",
+      "actor": "primalist",
+      "metric": "spell_damage_done",
+      "spell": 500693,
+      "target": "bear",
+      "relative_to": "base_boulder",
+      "min": 69,
+      "max": 70,
+      "label": "Existing Boulder Dash spell-power coefficient remains intact"
+    },
+    {
+      "action": "assert",
+      "actor": "primalist",
+      "metric": "armor_reduced_damage",
+      "spell": 803138,
+      "target": "bear",
+      "relative_to": "physical_mitigation",
+      "equals": 0
+    },
+    {
+      "action": "set_health",
+      "actor": "bear",
+      "value": 400
+    },
+    {
+      "action": "snapshot",
+      "actor": "bear",
+      "metric": "health",
+      "save_as": "spellpower72_health"
+    },
+    {
+      "action": "snapshot",
+      "actor": "primalist",
+      "metric": "spell_damage_count",
+      "spell": 803138,
+      "target": "bear",
+      "save_as": "spellpower72_count"
+    },
+    {
+      "action": "snapshot",
+      "actor": "primalist",
+      "metric": "spell_damage_total",
+      "spell": 803138,
+      "target": "bear",
+      "save_as": "spellpower72_total"
+    },
+    {
+      "action": "cast",
+      "actor": "primalist",
+      "spell": 502771,
+      "target": "bear",
+      "label": "spellpower72"
+    },
+    {
+      "action": "wait",
+      "ms": 4000
+    },
+    {
+      "action": "assert",
+      "actor": "primalist",
+      "metric": "spell_damage_count",
+      "spell": 803138,
+      "target": "bear",
+      "relative_to": "spellpower72_count",
+      "equals": 3
+    },
+    {
+      "action": "snapshot",
+      "actor": "primalist",
+      "metric": "spell_damage_total",
+      "spell": 803138,
+      "target": "bear",
+      "relative_to": "spellpower72_total",
+      "save_as": "spellpower72_damage"
+    },
+    {
+      "action": "assert",
+      "actor": "primalist",
+      "metric": "spell_damage_total",
+      "spell": 803138,
+      "target": "bear",
+      "relative_to": "spellpower72_total",
+      "min": 185,
+      "max": 225
+    },
+    {
+      "action": "assert",
+      "actor": "bear",
+      "metric": "max_health",
+      "relative_to": "bear_maximum",
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "bear",
+      "metric": "armor",
+      "relative_to": "bear_armor",
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "bear",
+      "metric": "health",
+      "relative_to": "spellpower72_health",
+      "max": -1
+    },
+    {
+      "action": "set_aura",
+      "actor": "primalist",
+      "spell": 26395,
+      "stacks": 0
+    },
+    {
+      "action": "assert",
+      "actor": "primalist",
+      "metric": "spell_damage_done",
+      "spell": 803138,
+      "target": "bear",
+      "relative_to": "base_geode",
+      "equals": 0
+    },
+    {
+      "action": "set_health",
+      "actor": "bear",
+      "value": 400
+    },
+    {
+      "action": "snapshot",
+      "actor": "bear",
+      "metric": "health",
+      "save_as": "removed_health"
+    },
+    {
+      "action": "snapshot",
+      "actor": "primalist",
+      "metric": "spell_damage_count",
+      "spell": 803138,
+      "target": "bear",
+      "save_as": "removed_count"
+    },
+    {
+      "action": "snapshot",
+      "actor": "primalist",
+      "metric": "spell_damage_total",
+      "spell": 803138,
+      "target": "bear",
+      "save_as": "removed_total"
+    },
+    {
+      "action": "cast",
+      "actor": "primalist",
+      "spell": 502771,
+      "target": "bear",
+      "label": "removed"
+    },
+    {
+      "action": "wait",
+      "ms": 4000
+    },
+    {
+      "action": "assert",
+      "actor": "primalist",
+      "metric": "spell_damage_count",
+      "spell": 803138,
+      "target": "bear",
+      "relative_to": "removed_count",
+      "equals": 3
+    },
+    {
+      "action": "snapshot",
+      "actor": "primalist",
+      "metric": "spell_damage_total",
+      "spell": 803138,
+      "target": "bear",
+      "relative_to": "removed_total",
+      "save_as": "removed_damage"
+    },
+    {
+      "action": "assert",
+      "actor": "primalist",
+      "metric": "spell_damage_total",
+      "spell": 803138,
+      "target": "bear",
+      "relative_to": "removed_total",
+      "min": 1
+    },
+    {
+      "action": "assert",
+      "actor": "bear",
+      "metric": "max_health",
+      "relative_to": "bear_maximum",
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "bear",
+      "metric": "armor",
+      "relative_to": "bear_armor",
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "bear",
+      "metric": "health",
+      "relative_to": "removed_health",
+      "max": -1
+    },
+    {
+      "action": "set_aura",
+      "actor": "primalist",
+      "spell": 9361,
+      "stacks": 1
+    },
+    {
+      "action": "assert",
+      "actor": "primalist",
+      "metric": "spell_power",
+      "school": 3,
+      "equals": 21
+    },
+    {
+      "action": "assert",
+      "actor": "primalist",
+      "metric": "spell_damage_done",
+      "spell": 803138,
+      "target": "bear",
+      "relative_to": "base_geode",
+      "min": 6,
+      "max": 7,
+      "label": "Nature-only spell power contributes to physical Geode damage"
+    },
+    {
+      "action": "set_aura",
+      "actor": "primalist",
+      "spell": 9361,
+      "stacks": 0
+    },
+    {
+      "action": "set_aura",
+      "actor": "primalist",
+      "spell": 9298,
+      "stacks": 1
+    },
+    {
+      "action": "assert",
+      "actor": "primalist",
+      "metric": "spell_power",
+      "school": 2,
+      "equals": 21
+    },
+    {
+      "action": "assert",
+      "actor": "primalist",
+      "metric": "spell_power",
+      "school": 3,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "primalist",
+      "metric": "spell_damage_done",
+      "spell": 803138,
+      "target": "bear",
+      "relative_to": "base_geode",
+      "equals": 0,
+      "label": "Fire-only spell power does not contribute"
+    },
+    {
+      "action": "set_aura",
+      "actor": "primalist",
+      "spell": 9298,
+      "stacks": 0
+    },
+    {
+      "action": "set_aura",
+      "actor": "primalist",
+      "spell": 18787,
+      "stacks": 1
+    },
+    {
+      "action": "assert",
+      "actor": "primalist",
+      "metric": "attack_power",
+      "relative_to": "base_ap",
+      "equals": 100
+    },
+    {
+      "action": "assert",
+      "actor": "primalist",
+      "metric": "spell_power",
+      "school": 3,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "primalist",
+      "metric": "spell_damage_done",
+      "spell": 803138,
+      "target": "bear",
+      "relative_to": "base_geode",
+      "min": 8,
+      "max": 9,
+      "label": "9% attack power is independent of spell power"
+    },
+    {
+      "action": "set_aura",
+      "actor": "primalist",
+      "spell": 18787,
+      "stacks": 0
+    },
+    {
+      "action": "assert",
+      "actor": "primalist",
+      "metric": "spell_damage_done",
+      "spell": 803138,
+      "target": "bear",
+      "relative_to": "base_geode",
+      "equals": 0
+    },
+    {
+      "action": "learn",
+      "actor": "primalist",
+      "spell": 500402
+    },
+    {
+      "action": "set_health",
+      "actor": "bear",
+      "value": 400
+    },
+    {
+      "action": "snapshot",
+      "actor": "bear",
+      "metric": "health",
+      "save_as": "first_rank_health"
+    },
+    {
+      "action": "snapshot",
+      "actor": "primalist",
+      "metric": "spell_damage_count",
+      "spell": 803138,
+      "target": "bear",
+      "save_as": "first_rank_count"
+    },
+    {
+      "action": "snapshot",
+      "actor": "primalist",
+      "metric": "spell_damage_total",
+      "spell": 803138,
+      "target": "bear",
+      "save_as": "first_rank_total"
+    },
+    {
+      "action": "cast",
+      "actor": "primalist",
+      "spell": 500402,
+      "target": "bear",
+      "label": "first_rank"
+    },
+    {
+      "action": "wait",
+      "ms": 4000
+    },
+    {
+      "action": "assert",
+      "actor": "primalist",
+      "metric": "spell_damage_count",
+      "spell": 803138,
+      "target": "bear",
+      "relative_to": "first_rank_count",
+      "equals": 3
+    },
+    {
+      "action": "snapshot",
+      "actor": "primalist",
+      "metric": "spell_damage_total",
+      "spell": 803138,
+      "target": "bear",
+      "relative_to": "first_rank_total",
+      "save_as": "first_rank_damage"
+    },
+    {
+      "action": "assert",
+      "actor": "primalist",
+      "metric": "spell_damage_total",
+      "spell": 803138,
+      "target": "bear",
+      "relative_to": "first_rank_total",
+      "min": 1
+    },
+    {
+      "action": "assert",
+      "actor": "bear",
+      "metric": "max_health",
+      "relative_to": "bear_maximum",
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "bear",
+      "metric": "armor",
+      "relative_to": "bear_armor",
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "bear",
+      "metric": "health",
+      "relative_to": "first_rank_health",
+      "max": -1
+    }
+  ]
+}

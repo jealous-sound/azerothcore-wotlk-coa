@@ -364,6 +364,10 @@ bool SpellEffectInfo::IsEffect(SpellEffects effectName) const
 
 uint32 SpellEffectInfo::GetItemArmorSubclassMask() const
 {
+    if (_spellInfo && _spellInfo->SpellFamilyName == 37 &&
+        (_spellInfo->Id == 706161 || _spellInfo->Id == 707808))
+        return EffectIndex == EFFECT_2 && IsAura(SPELL_AURA_MOD_BASE_RESISTANCE_PCT) &&
+            MiscValue == SPELL_SCHOOL_MASK_NORMAL && MiscValueB == 24 ? 24 : 0;
     if (_spellInfo && _spellInfo->SpellFamilyName == 35 &&
         (_spellInfo->Id == 706955 || _spellInfo->Id == 707872))
         return EffectIndex == EFFECT_0 && IsAura(SPELL_AURA_MOD_BASE_RESISTANCE_PCT) &&

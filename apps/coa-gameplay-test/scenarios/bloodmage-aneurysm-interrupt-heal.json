@@ -1,0 +1,82 @@
+{
+  "schema": 1,
+  "name": "A successful Aneurysm interrupt heals the Bloodmage for 5% of maximum health (#3713)",
+  "contract": "Spell.dbc gives Aneurysm 806099 DurationIndex 35 (4000 ms school lockout), RecoveryTime 24000, Mechanic 26 (MECHANIC_INTERRUPT), RangeIndex 4 (30 yds), PowerType -2 with ManaCostPercentage 10, and a single effect 68 (SPELL_EFFECT_INTERRUPT_CAST) with TargetA 6. Its tooltip adds 'Successfully interrupting an enemy heals you for $520860s1% of your maximum health'. 520860 exists as a single SPELL_EFFECT_HEAL_PCT of 5% on the caster and nothing in the source or the world DB ever cast it, while Spell::EffectInterruptCast already raises OnSpellSuccessfulInterrupt only when an interrupt actually landed. Fixture: Scholomance Dark Summoner 11582 runs SmartAI with an in-combat event that casts Summon Risen Lackey 17618 on itself (4000 ms cast, PreventionType SPELL_PREVENTION_TYPE_SILENCE, InterruptFlags 0x9) 2-5 sec after engaging and again every 5-7 sec. Self-targeted is required because harness creatures are forced REACT_PASSIVE (CoAGameplayTest.cpp), so they never acquire a victim and SmartAI actions aimed at one never resolve; the same passivity means the fixture never strikes back, so no melee noise reaches the measurement. QA Test +10000 HP/MP 10040 at 20 stacks raises maximum health by about 200000 without touching create health, so Aneurysm's own cost (10% of create health, a few hundred) is negligible against the 5% heal, and health is then set to 50000 so the heal is not clipped by the cap. The contract is therefore a clearly positive health-percentage step across the interrupt, where the unhealed behaviour can only lose the cast's own health cost. The opening wait is 26000 ms rather than a short settle because the same creature also runs an out-of-combat SmartAI event (smart_scripts entry 11582 id 0, SMART_EVENT_UPDATE_OOC, initial 1000-20000 ms) casting Summon Frail Skeleton 16531 on itself, a 5000 ms cast whose PreventionType is SPELL_PREVENTION_TYPE_NONE and which Spell::EffectInterruptCast therefore never interrupts, while the harness's casting metric is Unit::IsNonMeleeSpellCast(false) and cannot tell the two casts apart. 20000 + 5000 bounds that cast, so 26000 ms clears it, and SmartScript::UpdateTimer freezes the out-of-combat timer while the creature is engaged, so it cannot recur once the attack lands; the only cast the mid-cast gate can then catch is Summon Risen Lackey 17618. timeout_ms is 120000 to cover the wait.",
+  "timeout_ms": 120000,
+  "players": [
+    {
+      "id": "bloodmage",
+      "race": 1,
+      "class": 20,
+      "level": 80,
+      "spell_hit_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "summoner",
+      "owner": "bloodmage",
+      "entry": 11582,
+      "faction": 14,
+      "level": 80,
+      "health": 1000000,
+      "distance": 3
+    }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let the out-of-combat Summon Frail Skeleton cast finish", "ms": 26000 },
+    { "action": "learn", "actor": "bloodmage", "spell": 806099 },
+    { "action": "set_aura", "actor": "bloodmage", "spell": 10040, "stacks": 20 },
+    {
+      "action": "assert",
+      "label": "The maximum-health fixture landed",
+      "actor": "bloodmage",
+      "metric": "max_health",
+      "min": 200000,
+      "within_ms": 3000
+    },
+    { "action": "set_health", "actor": "bloodmage", "value": 50000 },
+    { "action": "attack", "actor": "bloodmage", "target": "summoner" },
+    {
+      "action": "assert",
+      "label": "The fixture caster is engaged",
+      "actor": "summoner",
+      "metric": "combat",
+      "equals": 1,
+      "within_ms": 10000
+    },
+    {
+      "action": "assert",
+      "label": "The fixture caster is mid-cast",
+      "actor": "summoner",
+      "metric": "casting",
+      "equals": 1,
+      "within_ms": 25000
+    },
+    {
+      "action": "snapshot",
+      "label": "Health percentage just before the interrupt",
+      "actor": "bloodmage",
+      "metric": "health_pct",
+      "save_as": "hp_before_interrupt"
+    },
+    { "action": "cast", "actor": "bloodmage", "spell": 806099, "target": "summoner" },
+    {
+      "action": "assert",
+      "label": "Regression guard: the native interrupt stopped the cast",
+      "actor": "summoner",
+      "metric": "casting",
+      "equals": 0,
+      "within_ms": 2000
+    },
+    {
+      "action": "assert",
+      "label": "The interrupt heals the Bloodmage for 5% of maximum health",
+      "actor": "bloodmage",
+      "metric": "health_pct",
+      "relative_to": "hp_before_interrupt",
+      "min": 2,
+      "within_ms": 2000
+    }
+  ]
+}

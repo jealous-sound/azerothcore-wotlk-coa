@@ -44,6 +44,7 @@ enum AllSpellHook
     ALLSPELLHOOK_ON_SUCCESSFUL_STEAL,
     ALLSPELLHOOK_ON_CRIT_CHANCE,
     ALLSPELLHOOK_ON_INTERRUPT_DURATION,
+    ALLSPELLHOOK_ON_SUCCESSFUL_DISPEL,
     ALLSPELLHOOK_END
 };
 
@@ -132,6 +133,10 @@ public:
 
     // A completed native beneficial-aura steal, after its success list was applied.
     virtual void OnSpellSuccessfulSteal(Spell* /*spell*/, Unit* /*target*/, uint32 /*count*/) { }
+
+    // One native dispel effect completed, after its successful removals were applied.
+    virtual void OnSpellSuccessfulDispel(Spell* /*spell*/, Unit* /*target*/, SpellEffIndex /*effect*/,
+        uint32 /*count*/) { }
 
     // After caster critical chance, before target resistance and the single native roll.
     virtual void OnSpellCritChance(Spell* /*spell*/, Unit* /*target*/, float& /*chance*/) { }
