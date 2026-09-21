@@ -66,7 +66,12 @@ class aura_ascension_felsworn_lifecycle : public AuraScript
             if (id == sid)
                 GetAura()->SetScriptValue(800058, ++State(player).sequence);
         if (id == 803904)
-            GetAura()->SetScriptValue(id, 5);
+        {
+            // Base 5 attacks plus Pit Lord's Strength's SPELLMOD_CHARGES, which the script counter never read.
+            uint32 charges = 5;
+            player->ApplySpellMod(id, SPELLMOD_CHARGES, charges);
+            GetAura()->SetScriptValue(id, charges);
+        }
         if (id == 807163)
             GetAura()->SetScriptValue(id, 10);
         if (id == 800206)
