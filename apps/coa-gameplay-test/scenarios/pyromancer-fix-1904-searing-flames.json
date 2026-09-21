@@ -27,6 +27,15 @@
       "save_as": "v0"
     },
     {
+      "action": "snapshot",
+      "label": "Higher Lava Shard rank's effect value with no spell power (its own base points)",
+      "actor": "caster",
+      "metric": "spell_effect_value",
+      "spell": 503239,
+      "effect": 0,
+      "save_as": "v0_rank"
+    },
+    {
       "action": "set_aura",
       "actor": "caster",
       "spell": 44505,
@@ -49,6 +58,16 @@
       "effect": 0,
       "relative_to": "v0",
       "save_as": "d1"
+    },
+    {
+      "action": "snapshot",
+      "label": "Spell power added to the higher rank's value before Searing Flames",
+      "actor": "caster",
+      "metric": "spell_effect_value",
+      "spell": 503239,
+      "effect": 0,
+      "relative_to": "v0_rank",
+      "save_as": "d1_rank"
     },
     {
       "action": "assert",
@@ -84,8 +103,8 @@
       "metric": "spell_effect_value",
       "spell": 503239,
       "effect": 0,
-      "relative_to": "v0",
-      "ratio_to": "d1",
+      "relative_to": "v0_rank",
+      "ratio_to": "d1_rank",
       "min": 1.29,
       "max": 1.31
     }
