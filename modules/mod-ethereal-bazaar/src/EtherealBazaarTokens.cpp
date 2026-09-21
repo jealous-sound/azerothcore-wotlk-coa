@@ -73,6 +73,14 @@ namespace
         if (!amount)
             return;
 
+        ItemTemplate const* proto = sObjectMgr->GetItemTemplate(BAZAAR_TOKEN_ITEM);
+        if (!proto)
+        {
+            LOG_ERROR("module.bazaar", "Ethereal Bazaar: Token item {} not found in item_template! Cannot grant tokens.",
+                      BAZAAR_TOKEN_ITEM);
+            return;
+        }
+
         // A full bag must not swallow the reward. Mail is the only honest
         // fallback: the player keeps what they earned and notices it.
         ItemPosCountVec dest;
@@ -89,15 +97,24 @@ namespace
             if (item && sConfigMgr->GetOption<bool>("EtherealBazaar.Tokens.Announce", false))
                 player->SendNewItem(item, amount, true, false);
         }
-        else if (Item* item = Item::CreateItem(BAZAAR_TOKEN_ITEM, amount, player))
+        else if (check == EQUIP_ERR_INVENTORY_FULL || check == EQUIP_ERR_CANT_CARRY_MORE_OF_THIS)
         {
-            CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
-            item->SaveToDB(trans);
-            MailDraft("Bazaar Tokens",
-                      "Your bags were full, so Tiraxis had these sent on.")
-                .AddItem(item)
-                .SendMailTo(trans, MailReceiver(player), MailSender(MAIL_CREATURE, BAZAAR_NPC_TIRAXIS));
-            CharacterDatabase.CommitTransaction(trans);
+            if (Item* item = Item::CreateItem(BAZAAR_TOKEN_ITEM, amount, player))
+            {
+                CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
+                item->SaveToDB(trans);
+                MailDraft("Bazaar Tokens",
+                          "Your bags were full, so Tiraxis had these sent on.")
+                    .AddItem(item)
+                    .SendMailTo(trans, MailReceiver(player), MailSender(MAIL_CREATURE, BAZAAR_NPC_TIRAXIS));
+                CharacterDatabase.CommitTransaction(trans);
+            }
+        }
+        else
+        {
+            LOG_DEBUG("module.bazaar", "Ethereal Bazaar: Could not store token(s) for {}: error {}",
+                      player->GetName(), uint32(check));
+            return;
         }
 
         LOG_DEBUG("module.bazaar", "Ethereal Bazaar: {} earned {} token(s) from {}.",
