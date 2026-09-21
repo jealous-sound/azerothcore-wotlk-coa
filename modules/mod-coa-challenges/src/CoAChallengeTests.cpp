@@ -572,9 +572,10 @@ namespace CoAChallenges
     }
 
     // ---- Fatigue visual runner (Narcolepsy) ------------------------------
-    // Fills the native fatigue bar to max; the module then sleeps (kills) the
+    // Drains the native fatigue bar to 0; the module then sleeps (kills) the
     // char with a "Fell Asleep" cause. Asserts the death, the challenge failure
-    // and the recorded broadcast cause.
+    // and the recorded broadcast cause. The character must be outside a
+    // sanctuary (starter zones/rest areas are treated as safe).
     struct FatigueRun
     {
         std::string playerName;
@@ -606,7 +607,7 @@ namespace CoAChallenges
                     if (player->GetLevel() < 10)
                         player->GiveLevel(10);   // above AnnounceFailureMinLevel
                 }
-                BroadcastTestLine(players, "E2E fatigue {}: filling bar to max", run->challengeId);
+                BroadcastTestLine(players, "E2E fatigue {}: draining bar to 0", run->challengeId);
                 run->phase = FatigueRun::Fill;
                 break;
             }
@@ -614,9 +615,11 @@ namespace CoAChallenges
             {
                 for (Player* player : players)
                 {
-                    player->RemovePlayerFlag(PLAYER_FLAGS_RESTING);  // else the bar resets
-                    bool ok = Test_SetFatigue(player, 1000);   // clamps to FatigueMax
-                    BroadcastTestLine(players, "  [{}] fatigue -> max: {}",
+                    player->RemovePlayerFlag(PLAYER_FLAGS_RESTING);
+                    // `fatigue` is remaining-time now: empty it so the next update
+                    // is at 0 and the player falls asleep (no drain wait).
+                    bool ok = Test_SetFatigue(player, 0);
+                    BroadcastTestLine(players, "  [{}] fatigue -> 0 (sleep): {}",
                         player->GetName(), ok ? "ok" : "FAILED (no fatigue challenge)");
                     if (!ok)
                         run->pass = false;
