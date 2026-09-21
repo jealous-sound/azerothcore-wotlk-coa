@@ -1,11 +1,17 @@
 {
   "schema": 1,
   "name": "Pyromancer Burning Crescendo shortens the Phoenix Egg tick (#3511)",
-  "contract": "Burning Crescendo 805378 reads \"Increases the tick rate of your Phoenix Egg by $/1000;s1 sec.\" Its effect is aura 107 SPELLMOD_ACTIVATION_TIME (misc 19) BasePoints -2001 (value -2000 ms) on class mask C 0x40000000, which matches Phoenix Egg 712290, a periodic trigger effect with a 5000 ms amplitude that the module never casts. The egg's heals (707110) are cast by the creature AI on a timer that was hard-coded to 5000 ms and ignored the modifier. Two identical 11 s windows, each starting at a Phoenix Egg cast, count the player's completed 707110 casts: 5 s ticks fall at 5 and 10 s, 3 s ticks at 3, 6 and 9 s, so the second window must hold 3/2 = 1.5 times the first (bounds 1.3 to 1.7 for start-up jitter); before the fix both windows hold the same count and the ratio is 1.0. The absolute count per tick depends on how many allies the heal reaches and cancels out of the ratio.",
+  "contract": "Burning Crescendo 805378 reads \"Increases the tick rate of your Phoenix Egg by $/1000;s1 sec.\" Its effect is aura 107 SPELLMOD_ACTIVATION_TIME (misc 19) BasePoints -2001 (value -2000 ms) on class mask C 0x40000000, which matches Phoenix Egg 712290, a periodic trigger effect with a 5000 ms amplitude that the module never casts. The egg's heals (707110) are cast by the creature AI on a timer that was hard-coded to 5000 ms and ignored the modifier. Two Pyromancers cast Phoenix Egg at the same moment at the same spot, only one knowing Burning Crescendo, so both eggs heal the same allies and only the tick period differs (a single player casting twice is confounded: the first egg is still alive and its own tick also follows the talent). Over the same 11 s window 5 s ticks fall at 5 and 10 s (2 ticks), 3 s ticks at 3, 6 and 9 s (3 ticks; the next would be 12 s), so the talented count is 3/2 = 1.5 times the control's (bounds 1.3 to 1.7 for start-up jitter). The number of allies healed per tick is the same for both and cancels out of the ratio. Before the fix both counts are equal (ratio 1.0).",
   "timeout_ms": 90000,
   "players": [
     {
-      "id": "p",
+      "id": "control",
+      "race": 1,
+      "class": 24,
+      "level": 80
+    },
+    {
+      "id": "talent",
       "race": 1,
       "class": 24,
       "level": 80
@@ -26,78 +32,56 @@
     },
     {
       "action": "learn",
-      "actor": "p",
+      "actor": "control",
       "spell": 800796
     },
     {
-      "action": "set_power",
-      "actor": "p",
-      "value": 3000
-    },
-    {
-      "action": "snapshot",
-      "actor": "p",
-      "metric": "spell_cast_count",
-      "spell": 707110,
-      "save_as": "start1"
-    },
-    {
-      "action": "cast",
-      "actor": "p",
-      "spell": 800796,
-      "destination": {
-        "x": -8915.41,
-        "y": -115.853,
-        "z": 82.3711
-      }
-    },
-    {
-      "action": "wait",
-      "ms": 11000,
-      "label": "Window one: 11 s of the egg without Burning Crescendo"
-    },
-    {
-      "action": "snapshot",
-      "actor": "p",
-      "metric": "spell_cast_count",
-      "spell": 707110,
-      "relative_to": "start1",
-      "save_as": "heals1"
-    },
-    {
-      "action": "assert",
-      "label": "The egg heals at least once in the base window",
-      "actor": "p",
-      "metric": "spell_cast_count",
-      "spell": 707110,
-      "relative_to": "start1",
-      "min": 1
+      "action": "learn",
+      "actor": "talent",
+      "spell": 800796
     },
     {
       "action": "learn",
-      "actor": "p",
+      "actor": "talent",
       "spell": 805378
     },
     {
       "action": "set_power",
-      "actor": "p",
+      "actor": "control",
       "value": 3000
     },
     {
-      "action": "wait",
-      "ms": 2500,
-      "label": "Let the global cooldown expire"
+      "action": "set_power",
+      "actor": "talent",
+      "value": 3000
     },
     {
       "action": "snapshot",
-      "actor": "p",
+      "actor": "control",
       "metric": "spell_cast_count",
       "spell": 707110,
-      "save_as": "start2"
+      "save_as": "control_start"
+    },
+    {
+      "action": "snapshot",
+      "actor": "talent",
+      "metric": "spell_cast_count",
+      "spell": 707110,
+      "save_as": "talent_start"
     },
     {
       "action": "cast",
-      "actor": "p",
+      "actor": "control",
+      "spell": 800796,
+      "destination": {
+        "x": -8915.41,
+        "y": -115.853,
+        "z": 82.3711
+      }
+    },
+    {
+      "action": "cast",
+      "actor": "talent",
       "spell": 800796,
       "destination": {
         "x": -8915.41,
@@ -108,16 +92,33 @@
     {
       "action": "wait",
       "ms": 11000,
-      "label": "Window two: the same 11 s with Burning Crescendo"
+      "label": "Same 11 s window for both eggs"
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "spell_cast_count",
+      "spell": 707110,
+      "relative_to": "control_start",
+      "save_as": "control_heals"
+    },
+    {
+      "action": "assert",
+      "label": "The control's egg heals at least once in the window",
+      "actor": "control",
+      "metric": "spell_cast_count",
+      "spell": 707110,
+      "relative_to": "control_start",
+      "min": 1
     },
     {
       "action": "assert",
       "label": "3 s ticks (3, 6, 9 s) against 5 s ticks (5, 10 s) give 3/2 = 1.5 times as many heals",
-      "actor": "p",
+      "actor": "talent",
       "metric": "spell_cast_count",
       "spell": 707110,
-      "relative_to": "start2",
-      "ratio_to": "heals1",
+      "relative_to": "talent_start",
+      "ratio_to": "control_heals",
       "min": 1.3,
       "max": 1.7
     }
