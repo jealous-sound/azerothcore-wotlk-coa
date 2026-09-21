@@ -909,6 +909,12 @@ void AuraEffect::ApplySpellMod(Unit* target, bool apply)
     if (!m_spellmod || !target->IsPlayer())
         return;
 
+    // Bramblepatch supplies Grove Tender's cooldown amount only on its caster's own ground.
+    // ApplySpellMod precedes aura application hooks, and a dynamic aura is shared by its recipients.
+    if (GetId() == 807120 && GetEffIndex() == EFFECT_1 && GetSpellInfo()->SpellFamilyName == 37 &&
+        GetCasterGUID() != target->GetGUID())
+        return;
+
     target->ToPlayer()->AddSpellMod(m_spellmod, apply);
 
     // Auras with charges do not mod amount of passive auras

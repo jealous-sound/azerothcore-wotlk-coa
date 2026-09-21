@@ -144,6 +144,7 @@ void AddSC_AscensionPrimalistTremors();
 void AddSC_AscensionPrimalistCataclysm();
 void AddSC_AscensionPrimalistFaePresence();
 void AddSC_AscensionPrimalistEarthsGuidance();
+void AddSC_AscensionPrimalistGroveTender();
 void AddSC_AscensionPrimalistBramblepatch();
 void AddSC_AscensionPrimalistPrimalStrikes();
 void AddSC_AscensionPrimalistEmpoweredBoons();
@@ -354,6 +355,7 @@ void Addmod_ascension_compatScripts()
     AddSC_AscensionPrimalistCataclysm();
     AddSC_AscensionPrimalistFaePresence();
     AddSC_AscensionPrimalistEarthsGuidance();
+    AddSC_AscensionPrimalistGroveTender();
     AddSC_AscensionPrimalistBramblepatch();
     AddSC_AscensionPrimalistPrimalStrikes();
     AddSC_AscensionPrimalistEmpoweredBoons();
