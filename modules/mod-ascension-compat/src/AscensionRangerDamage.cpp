@@ -1,6 +1,7 @@
 /* Copyright (C) 2016+ AzerothCore, GNU AGPL v3. */
 
 #include "AscensionRangerDamage.h"
+#include "Log.h"
 #include "Player.h"
 #include "ScriptMgr.h"
 #include "Spell.h"
@@ -16,6 +17,9 @@ namespace
 constexpr uint32 SPELL_RANGER_RUSTY_SHIV = 561315;
 constexpr uint32 SPELL_RANGER_RUSTY_SHIV_DAMAGE = 681459;
 constexpr uint32 RANGER_SPELL_FAMILY = 27;
+constexpr uint32 SPELL_RANGER_WILD_STRIKE_OFF_HAND = 560962;
+// The copied helper payload: BasePoints 318 with DieSides 1 resolves to +319.
+constexpr int32 WILD_STRIKE_OFF_HAND_COPIED_BASE_POINTS = 318;
 // CoA changelog 71878 raises the accumulated share from 10% to 20%.
 constexpr uint32 RUSTY_SHIV_DAMAGE_DIVISOR = 5;
 
@@ -160,11 +164,42 @@ class spell_ascension_ranger_rusty_shiv_damage : public SpellScript
             EFFECT_0, SPELL_EFFECT_SCHOOL_DAMAGE);
     }
 };
+
+void ApplyWildStrikeOffHandContract(SpellInfo* spellInfo)
+{
+    if (spellInfo->Id != SPELL_RANGER_WILD_STRIKE_OFF_HAND ||
+        spellInfo->SpellFamilyName != RANGER_SPELL_FAMILY)
+        return;
+
+    SpellEffectInfo& offHand = spellInfo->Effects[EFFECT_0];
+    bool const copied = offHand.Effect == SPELL_EFFECT_NORMALIZED_WEAPON_DMG &&
+        offHand.BasePoints == WILD_STRIKE_OFF_HAND_COPIED_BASE_POINTS && offHand.DieSides == 1;
+    if (copied && !spellInfo->Effects[EFFECT_1].IsEffect() && !spellInfo->Effects[EFFECT_2].IsEffect())
+    {
+        // All twelve Wild Strike ranks (800083 and 501724-501734) trigger this one
+        // shared helper, and its single slot is NORMALIZED_WEAPON_DMG. Spell::EffectWeaponDmg
+        // accumulates such a slot's value into fixed_bonus, so the copied payload added a
+        // flat +319 to the off-hand hit at every rank and every level -- +159 after the
+        // native off-hand factor, which dwarfs a levelling weapon's own damage. The visible
+        // parent promises only "additional Weapon Damage with your off-hand weapon" and this
+        // helper carries no weapon-percent slot, so normalized weapon damage on its own is
+        // the whole contract. Keep the slot; remove only the flat term.
+        offHand.BasePoints = 0;
+        offHand.DieSides = 0;
+    }
+    else
+        LOG_ERROR("module.ascension_compat", "Skipped unexpected Wild Strike off-hand record {}", spellInfo->Id);
+}
 }
 
 void ApplyAscensionRangerDamageContracts(SpellInfo* spellInfo)
 {
-    if (!spellInfo || spellInfo->Id != SPELL_RANGER_RUSTY_SHIV ||
+    if (!spellInfo)
+        return;
+
+    ApplyWildStrikeOffHandContract(spellInfo);
+
+    if (spellInfo->Id != SPELL_RANGER_RUSTY_SHIV ||
         spellInfo->SpellFamilyName != RANGER_SPELL_FAMILY)
         return;
 
