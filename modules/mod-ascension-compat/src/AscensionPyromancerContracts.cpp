@@ -128,8 +128,10 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[1].SpellClassMask = flag96(0, 0, 2048);
     if (id == 520823)
     {
+        // The free-cast clause takes the freed effect 2 slot; effect 3 stays the DBC damage modifier
+        // (0% until Blackflight Resurgence's EFFECT3 modifier raises it).
         info->Effects[1].Effect = 0;
-        mod(2, SPELL_AURA_ADD_PCT_MODIFIER, -100, SPELLMOD_COST, flag96(134217728, 0, 8192));
+        mod(1, SPELL_AURA_ADD_PCT_MODIFIER, -100, SPELLMOD_COST, flag96(134217728, 0, 8192));
     }
     if (id == 680387)
         dummy(1); // Retaliation scales from the owner's Spirit/SP once.
