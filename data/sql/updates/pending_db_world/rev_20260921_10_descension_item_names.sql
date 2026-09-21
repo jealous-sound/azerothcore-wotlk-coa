@@ -26,7 +26,7 @@ UPDATE `item_template` SET `name` = 'Boots of Descension' WHERE `entry` = 97291;
 UPDATE `item_template` SET `name` = 'Flames of Descension' WHERE `entry` = 97300;   -- Flames of Ascension
 UPDATE `item_template` SET `name` = 'Cache of Descension' WHERE `entry` = 97314;   -- Cache of Ascension
 UPDATE `item_template` SET `name` = 'Vestments of Descension' WHERE `entry` = 97317;   -- Vestments of Ascension
-UPDATE `item_template` SET `name` = 'Challenger's Book of Descension' WHERE `entry` = 97765;   -- Challenger's Book of Ascension
+UPDATE `item_template` SET `name` = 'Challenger''s Book of Descension' WHERE `entry` = 97765;   -- Challenger's Book of Ascension
 UPDATE `item_template` SET `name` = 'Cache of Descension' WHERE `entry` = 98006;   -- Cache of Ascension
 UPDATE `item_template` SET `name` = 'Cache of Descension' WHERE `entry` = 98007;   -- Cache of Ascension
 UPDATE `item_template` SET `name` = 'Nightmarish Book of Descension' WHERE `entry` = 98450;   -- Nightmarish Book of Ascension
@@ -40,13 +40,13 @@ UPDATE `item_template` SET `name` = 'Wild Book of Descension' WHERE `entry` = 10
 UPDATE `item_template` SET `name` = 'Mark of Descension' WHERE `entry` = 111381;   -- Mark of Ascension
 UPDATE `item_template` SET `name` = 'Descension Appearance 132707' WHERE `entry` = 132707;   -- Ascension Appearance 132707
 UPDATE `item_template` SET `name` = 'Descension Appearance 132719' WHERE `entry` = 132719;   -- Ascension Appearance 132719
-UPDATE `item_template` SET `name` = 'Harlequin's Book of Descension' WHERE `entry` = 229980;   -- Harlequin's Book of Ascension
+UPDATE `item_template` SET `name` = 'Harlequin''s Book of Descension' WHERE `entry` = 229980;   -- Harlequin's Book of Ascension
 UPDATE `item_template` SET `name` = 'Destined Book of Descension' WHERE `entry` = 253331;   -- Destined Book of Ascension
 UPDATE `item_template` SET `name` = 'Descension Music Box' WHERE `entry` = 332190;   -- Ascension Music Box
 UPDATE `item_template` SET `name` = 'Rune of Descension' WHERE `entry` = 375250;   -- Rune of Ascension
 UPDATE `item_template` SET `name` = 'Warcraft Reborn Book of Descension' WHERE `entry` = 393610;   -- Warcraft Reborn Book of Ascension
 UPDATE `item_template` SET `name` = 'Challenge Reward: Mark of Descension' WHERE `entry` = 414045;   -- Challenge Reward: Mark of Ascension
-UPDATE `item_template` SET `name` = 'Beginner's Book of Descension' WHERE `entry` = 414200;   -- Beginner's Book of Ascension
+UPDATE `item_template` SET `name` = 'Beginner''s Book of Descension' WHERE `entry` = 414200;   -- Beginner's Book of Ascension
 UPDATE `item_template` SET `name` = 'Bloodforged Book of Descension' WHERE `entry` = 499920;   -- Bloodforged Book of Ascension
 UPDATE `item_template` SET `name` = 'Book of Descension' WHERE `entry` = 499992;   -- Book of Ascension
 UPDATE `item_template` SET `name` = 'Rune of Descension Pouch (12,500)' WHERE `entry` = 509872;   -- Rune of Ascension Pouch (12,500)
@@ -70,7 +70,7 @@ UPDATE `item_template` SET `name` = 'Tabard of Blessed Descension' WHERE `entry`
 UPDATE `item_template` SET `name` = 'Reborn Book of Descension' WHERE `entry` = 637848;   -- Reborn Book of Ascension
 UPDATE `item_template` SET `name` = 'Descension Survival Guide' WHERE `entry` = 777991;   -- Ascension Survival Guide
 UPDATE `item_template` SET `name` = 'Boss Blitz Rune of Descension Pouch (200,000)' WHERE `entry` = 800902;   -- Boss Blitz Rune of Ascension Pouch (200,000)
-UPDATE `item_template` SET `name` = 'Conqueror's Tabard of Descension' WHERE `entry` = 1175624;   -- Conqueror's Tabard of Ascension
+UPDATE `item_template` SET `name` = 'Conqueror''s Tabard of Descension' WHERE `entry` = 1175624;   -- Conqueror's Tabard of Ascension
 UPDATE `item_template` SET `name` = 'Unleashed Elemental Book of Descension' WHERE `entry` = 1777357;   -- Unleashed Elemental Book of Ascension
 UPDATE `item_template` SET `name` = 'Unleashed Book of Descension' WHERE `entry` = 1777359;   -- Unleashed Book of Ascension
 UPDATE `item_template` SET `name` = 'Tabard of Fanatical Descension' WHERE `entry` = 2073850;   -- Tabard of Fanatical Ascension
