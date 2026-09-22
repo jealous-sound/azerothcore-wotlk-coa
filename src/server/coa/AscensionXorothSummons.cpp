@@ -195,6 +195,9 @@ class spell_ascension_xoroth_sacrificial_circle : public SpellScript
             return;
         imp->CastCustomSpell(706753, SPELLVALUE_BASE_POINT0, int32(imp->CountPctFromMaxHealth(25)), player,
                              TRIGGERED_FULL_MASK);
+        if (player->HasAura(706758))
+            player->CastCustomSpell(706759, SPELLVALUE_BASE_POINT2, int32(imp->CountPctFromMaxHealth(15)), player,
+                                    TRIGGERED_FULL_MASK);
     }
     void Register() override
     {

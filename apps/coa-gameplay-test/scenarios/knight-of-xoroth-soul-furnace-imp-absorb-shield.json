@@ -1,0 +1,62 @@
+{
+  "schema": 1,
+  "name": "Soul Furnace grants a damage absorption shield from sacrificed imps (#656)",
+  "contract": "Soul Furnace 706758 reads 'Sacrificial Circle now grants you a damage absorption shield equal to 15% of the total health of each destroyed imp for 10 sec' (bindmysoul.com/conquest/talents.normalized.json, fetchedAt 2026-07-22T23:10:31.369Z; matches the client's own moa_description). The decoded Spell.dbc capture shows 706758 is a native SPELLMOD_DURATION (aura 107, MiscValue 1) flat modifier of BasePoints 9999 (+1 = 10000 ms = the tooltip's 10 sec), SpellClassMask (2097152,0,0) matching the Sacrificial Circle family (706753/805677/706759 all carry dword0 bit 21 = 2097152). 706759 ('Soul Furnace', a hidden helper) already carries the intended absorb effect at EFFECT_2: aura 69 (SPELL_AURA_SCHOOL_ABSORB), MiscValue 127 (all schools), TargetA 1 (caster), BasePoints -1 (=0 baseline via the DieSides-1 encoding) and duration_ms 0 - by design a harmless no-op until both the amount and (via the matching classmask) the duration are supplied. The gap is that the actual sacrifice hook, spell_ascension_xoroth_sacrificial_circle::Sacrifice (AscensionXorothSummons.cpp), replaces Sacrificial Circle's entire native SPELL_EFFECT_TRIGGER_SPELL chain (805677 -> 706752 -> 706759) with a direct imp->CastCustomSpell(706753, ...) heal, so the native 706759 absorb trigger is never reached at all - Soul Furnace's own SPELLMOD_DURATION record was therefore always inert. The fix adds a second, parallel player->CastCustomSpell(706759, SPELLVALUE_BASE_POINT2, imp->CountPctFromMaxHealth(15), player, ...) call at the same hook, gated on player->HasAura(706758), letting Soul Furnace's own native SPELLMOD_DURATION apply the correct 10 sec duration automatically (its classmask matches 706759's family exactly) while the script supplies the missing 15%-of-imp-health amount, mirroring the existing 25%-of-imp-health heal one line above. Sacrificial Circle's own imp scaling (AscensionXorothSummons.cpp Scale()) sets a freshly summoned imp's maximum health to exactly 25% of the owner's own maximum health with no other active modifier in this fixture, so with the knight's maximum health pinned to 1,000,000 the imp's maximum health is exactly 250,000 and the expected shield is exactly 37,500 (15% of 250,000).",
+  "timeout_ms": 120000,
+  "players": [
+    {
+      "id": "knight",
+      "race": 1,
+      "class": 17,
+      "level": 60
+    }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+    { "action": "set_health", "actor": "knight", "value": 1000000, "maximum": 1000000, "label": "Pin maximum health so the imp's scaled health is deterministic" },
+    { "action": "learn", "actor": "knight", "spell": 524897, "label": "Learn Implosion, which summons a Hellfire Imp" },
+    { "action": "cast", "actor": "knight", "spell": 524897, "label": "Summon the first imp, without Soul Furnace known" },
+    {
+      "action": "assert", "label": "SETUP: the first imp is owned and alive",
+      "actor": "knight", "metric": "owned_creature_count", "entry": 50301, "min": 1, "within_ms": 5000
+    },
+    { "action": "cast", "actor": "knight", "spell": 805677, "target": "knight", "label": "Sacrifice the first imp without the talent" },
+    {
+      "action": "assert", "label": "SETUP: the first imp was actually sacrificed",
+      "actor": "knight", "metric": "owned_creature_count", "entry": 50301, "equals": 0, "within_ms": 5000
+    },
+    {
+      "action": "assert", "label": "SETUP: no absorb shield without Soul Furnace",
+      "actor": "knight", "metric": "aura", "spell": 706759, "equals": 0
+    },
+    { "action": "reset_cooldown", "actor": "knight", "spell": 524897 },
+    { "action": "reset_cooldown", "actor": "knight", "spell": 805677 },
+    { "action": "learn", "actor": "knight", "spell": 706758 },
+    {
+      "action": "assert", "label": "SETUP: Soul Furnace is now known",
+      "actor": "knight", "metric": "knows_spell", "spell": 706758, "equals": 1
+    },
+    { "action": "cast", "actor": "knight", "spell": 524897, "label": "Summon the second imp, with Soul Furnace known" },
+    {
+      "action": "assert", "label": "SETUP: the second imp is owned and alive",
+      "actor": "knight", "metric": "owned_creature_count", "entry": 50301, "min": 1, "within_ms": 5000
+    },
+    { "action": "cast", "actor": "knight", "spell": 805677, "target": "knight", "label": "Sacrifice the second imp with the talent" },
+    {
+      "action": "assert", "label": "SETUP: the second imp was actually sacrificed",
+      "actor": "knight", "metric": "owned_creature_count", "entry": 50301, "equals": 0, "within_ms": 5000
+    },
+    {
+      "action": "assert", "label": "CONTRACT: the absorb shield is granted",
+      "actor": "knight", "metric": "aura", "spell": 706759, "equals": 1, "within_ms": 3000
+    },
+    {
+      "action": "assert", "label": "CONTRACT: the shield absorbs 15% of the imp's maximum health (37,500)",
+      "actor": "knight", "metric": "aura_amount", "spell": 706759, "effect": 2, "min": 37450, "max": 37550
+    },
+    {
+      "action": "assert", "label": "CONTRACT: the shield lasts about 10 seconds",
+      "actor": "knight", "metric": "aura_duration_ms", "spell": 706759, "min": 7000, "max": 10000
+    }
+  ]
+}
