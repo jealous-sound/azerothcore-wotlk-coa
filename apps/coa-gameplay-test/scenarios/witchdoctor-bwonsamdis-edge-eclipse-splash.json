@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "name": "Witch Doctor: Bwonsamdi's Edge raises Spirit Eclipse's explosion damage (#1363)",
+  "contract": "Regression for #1363: Bwonsamdi's Edge (712435) carries ADD_PCT_MODIFIER (aura 108), EffectMiscValue 0 (SPELLMOD_DAMAGE), classmask word1 bit 3 (8), matching exactly the SpellFamilyFlags[1]=8 of Spirit Eclipse Explosion (802712, SpellFamilyName 19). EffectBasePoints[0]=39 -> real 40%. Unit::SpellDamageBonusDone (src/server/game/Entities/Unit/Unit.cpp) applies modOwner->ApplySpellMod(spellProto->Id, SPELLMOD_DAMAGE, tmpDamage) generically for every direct-damage cast, and SpellInfo::IsAffectedBySpellMod (src/server/game/Spells/SpellInfo.cpp) has no family-19 carve-out that would block it, so this is a plain core-native spellmod delivery with no module code gap. spell_modifier queries this directly against the raw spell id, without casting or learning Eclipse itself.",
+  "timeout_ms": 90000,
+  "players": [
+    { "id": "caster", "race": 1, "class": 13, "level": 80 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let level scaling settle", "ms": 5000 },
+    {
+      "action": "assert", "label": "No damage bonus on Spirit Eclipse Explosion before Bwonsamdi's Edge",
+      "actor": "caster", "metric": "spell_modifier", "spell": 802712, "op": 0, "base": 1000, "equals": 1000
+    },
+    { "action": "learn", "actor": "caster", "spell": 712435 },
+    {
+      "action": "assert", "label": "Bwonsamdi's Edge adds 40% damage to Spirit Eclipse Explosion",
+      "actor": "caster", "metric": "spell_modifier", "spell": 802712, "op": 0, "base": 1000, "equals": 1400
+    },
+    { "action": "unlearn", "actor": "caster", "spell": 712435 },
+    {
+      "action": "assert", "label": "Damage bonus reverts once Bwonsamdi's Edge is unlearned",
+      "actor": "caster", "metric": "spell_modifier", "spell": 802712, "op": 0, "base": 1000, "equals": 1000
+    }
+  ]
+}
