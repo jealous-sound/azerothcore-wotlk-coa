@@ -494,6 +494,15 @@ void ApplyContracts(SpellInfo* info)
         // AscensionXoroth::Gain()'s ApplySpellMod(500906, SPELLMOD_MAX_AURA_STACKS, ...), the
         // same pattern as Necromancer's Capacity() (AscensionNecromancer.cpp) - actually matches.
         info->Effects[EFFECT_0].SpellClassMask = flag96(0, 16, 0);
+    if (id == 520290)
+        // Murderous Might: its own baked SPELLMOD_DAMAGE classmask (dword1 bit0, dword2 bits
+        // 2/25) only overlaps 3 of the 11 Demonfire-spending root spells in
+        // AscensionXoroth::Spender() - Skulltaker (800168), Melt (803334) and Warbringer
+        // (802581) - and Hellstorm (802342) carries no family flags at all, so no classmask can
+        // ever cover it. Null the native effect and read its value directly via Amount() in
+        // Factor() below, covering every spender uniformly - the same read-by-value pattern used
+        // for Speed Demon (707232) above.
+        info->Effects[EFFECT_0].Effect = 0;
     info->_InitializeExplicitTargetMask();
 }
 }
@@ -592,6 +601,8 @@ class xoroth_scaling : public UnitScript
         }
         if (!pet && Sever(info) && player->HasAura(300375) && target->HasAuraState(AuraStateType(30), info, player))
             factor *= 1 + Amount(300375) / 100.0f;
+        if (!pet && Spender(info) && player->HasAura(520290))
+            factor *= 1 + Amount(520290) / 100.0f;
         if (info->Id == 806219 && target->GetCreatureType() == CREATURE_TYPE_HUMANOID)
             factor *= 1 + Amount(704987, 1) / 100.0f;
         return factor;
