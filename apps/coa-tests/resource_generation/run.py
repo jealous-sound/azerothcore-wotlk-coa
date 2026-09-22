@@ -11,6 +11,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from source_paths import git_source  # noqa: E402
+from client_data import dbc_dir  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 MODULE = ROOT / 'src/server/coa'
@@ -19,7 +20,7 @@ MODULE = ROOT / 'src/server/coa'
 def main():
     parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument('--before', help='Use this Git revision of the resource table as a negative control')
-    parser.add_argument('--dbc-dir', type=Path, default=ROOT.parent / 'runtime/server/data/dbc',
+    parser.add_argument('--dbc-dir', type=Path,
                         help='Client DBC directory used to verify native resource caps')
     args = parser.parse_args()
     extract = runpy.run_path(str(ROOT / 'apps/coa-tests/client_compat/run.py'))['method']
@@ -37,7 +38,7 @@ def main():
     code = header + Path(__file__).with_name('harness.cpp').read_text()
     code = code.replace('// NATIVE_STACK', extract(
         (ROOT / 'src/server/game/Spells/Auras/SpellAuras.cpp').read_text(), 'bool Aura::ModStackAmount('))
-    raw = (args.dbc_dir / 'Spell.dbc').read_bytes()
+    raw = ((args.dbc_dir or dbc_dir()) / 'Spell.dbc').read_bytes()
     count = struct.unpack_from('<I', raw, 4)[0]
     resources = {r[0]: r[49] for r in struct.iter_unpack('<234I', raw[20:20 + count * 936])
                  if r[0] in {800058, 803102, 500906, 706613}}

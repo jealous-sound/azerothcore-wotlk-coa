@@ -1,6 +1,10 @@
 from pathlib import Path
 import runpy
 import struct
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from client_data import dbc_dir  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
@@ -132,7 +136,7 @@ int main()
     assert(info.Effects[0].RadiusEntry->RadiusMin==5.0f);
 }
 ''')
-    raw = (ROOT.parent / 'runtime/server/data/dbc/Spell.dbc').read_bytes()
+    raw = (dbc_dir() / 'Spell.dbc').read_bytes()
     count = struct.unpack_from('<I', raw, 4)[0]
     ids = {707464, 707465, 707466}
     rows = {r[0]: r for r in struct.iter_unpack('<234I', raw[20:20+count*936]) if r[0] in ids}
@@ -140,7 +144,7 @@ int main()
     assert rows[707465][95] == 23 and rows[707465][116] == 707466 and rows[707465][98] == 999
     assert rows[707466][86] == 22 and rows[707466][89] == 15
     assert rows[707466][92] == 14
-    raw = (ROOT.parent / 'runtime/server/data/dbc/SpellRadius.dbc').read_bytes()
+    raw = (dbc_dir() / 'SpellRadius.dbc').read_bytes()
     count = struct.unpack_from('<I', raw, 4)[0]
     radius = {r[0]: r[1:] for r in struct.iter_unpack('<I3f', raw[20:20+count*16])}
     assert radius[8] == (5.0, 0.0, 5.0)

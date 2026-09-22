@@ -6,6 +6,10 @@ import sqlite3
 import struct
 import subprocess
 import tempfile
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from client_data import dbc_dir  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 HERE = Path(__file__).resolve().parent
@@ -31,7 +35,7 @@ def main():
     saving = method((ROOT / 'src/server/game/Entities/Player/PlayerStorage.cpp').read_text(),
                     'void Player::_SaveAuras(')
     assert '!aura->IsPermanent()' in saving
-    raw = (ROOT.parent / 'runtime/server/data/dbc/Spell.dbc').read_bytes()
+    raw = (dbc_dir() / 'Spell.dbc').read_bytes()
     count = struct.unpack_from('<I', raw, 4)[0]
     ids = {84420, 84421, 84422, 1004019, 1004119, 9931032}
     rows = {r[0]: r for r in struct.iter_unpack('<234I', raw[20:20 + count * 936]) if r[0] in ids}

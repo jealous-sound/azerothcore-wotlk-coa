@@ -2,6 +2,10 @@ import importlib.util
 from pathlib import Path
 import struct
 import tempfile
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from client_data import dbc_dir  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 
@@ -48,7 +52,7 @@ int main()
     with tempfile.TemporaryDirectory(prefix='coa-starfire-secondary-') as directory:
         fixture.native.OUT = Path(directory)
         fixture.Tests().cpp('referenced-flat-damage', production, cases)
-    raw = (ROOT.parent / 'runtime/server/data/dbc/Spell.dbc').read_bytes()
+    raw = (dbc_dir() / 'Spell.dbc').read_bytes()
     count = struct.unpack_from('<I', raw, 4)[0]
     ids = {801977,801978,804463,804464,804465,804466,804467,804468,804469}
     rows = {r[0]:r for r in struct.iter_unpack('<234I', raw[20:20+count*936]) if r[0] in ids}

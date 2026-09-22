@@ -17,5 +17,7 @@ Tests (Google Test, in `src/test/`): configure `-DBUILD_TESTING=ON`, then `ctest
 
 - Adding a module `.cpp` can require reconfiguring the existing CMake build to refresh source discovery.
   A successful incremental build does not prove the new file was compiled. Reconfigure when discovery is needed.
+- CoA client DBCs belong in the worldserver `DataDir/dbc` (`env/dist/data/dbc` for the default `acore.sh` install).
+  CoA tests in `apps/coa-tests/` read the same directory, or `COA_DBC_DIR` when set.
 - Server readiness does not exercise character loading or gameplay. For lifecycle fixes, use a focused regression
   for the failing callback and relevant map states; report real login and in-game acceptance separately.

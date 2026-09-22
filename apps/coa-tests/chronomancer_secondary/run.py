@@ -5,6 +5,10 @@ import runpy
 import struct
 import subprocess
 import tempfile
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from client_data import dbc_dir  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 HERE = Path(__file__).resolve().parent
@@ -32,7 +36,7 @@ def main():
         subprocess.run([str(compiler), '/nologo', '/std:c++20', '/EHsc', '/W4', '/WX', '/utf-8',
                         str(cpp), '/Fe' + str(exe)], cwd=out, check=True, timeout=60)
         subprocess.run([str(exe)], cwd=out, check=True, timeout=15)
-    raw = (ROOT.parent / 'runtime/server/data/dbc/Spell.dbc').read_bytes()
+    raw = (dbc_dir() / 'Spell.dbc').read_bytes()
     count = struct.unpack_from('<I', raw, 4)[0]
     ids = {806335,503895,503896,503897,503898,503899,572835,504727,807570,561310,561388,
            560948,592009,592010,806296,806297,806298,804455,524853,807711}

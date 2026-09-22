@@ -1,6 +1,10 @@
 from pathlib import Path
 import runpy
 import struct
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from client_data import dbc_dir  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
@@ -126,7 +130,7 @@ int main()
     assert(info.AttributesCu&SPELL_ATTR0_CU_AURA_CANNOT_BE_SAVED);
 }
 ''')
-    raw = (ROOT.parent / 'runtime/server/data/dbc/Spell.dbc').read_bytes()
+    raw = (dbc_dir() / 'Spell.dbc').read_bytes()
     count = struct.unpack_from('<I', raw, 4)[0]
     ids = {645435, 645437, 645440, 706672, 500469}
     rows = {r[0]: r for r in struct.iter_unpack('<234I', raw[20:20+count*936]) if r[0] in ids}

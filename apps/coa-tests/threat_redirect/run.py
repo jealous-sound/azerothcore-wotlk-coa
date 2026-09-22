@@ -6,6 +6,10 @@ import sqlite3
 import struct
 import subprocess
 import tempfile
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from client_data import dbc_dir  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 HERE = Path(__file__).resolve().parent
@@ -25,7 +29,7 @@ def main():
     native = (ROOT / 'src/server/game/Combat/ThreatManager.cpp').read_text()
     code = code.replace('// NATIVE', method(native, 'void ThreatManager::RegisterRedirectThreat(') +
                         method(native, 'void ThreatManager::UnregisterRedirectThreat(uint32 spellId)'))
-    raw = (ROOT.parent / 'runtime/server/data/dbc/Spell.dbc').read_bytes()
+    raw = (dbc_dir() / 'Spell.dbc').read_bytes()
     count = struct.unpack_from('<I', raw, 4)[0]
     parents = (574356, 534605, 534480)
     children = (574357, 535214, 535097)
@@ -37,7 +41,7 @@ def main():
         assert row[80] + row[74] == 100 and row[86:88] == (57, 1) and row[40] == 9
     for sid in children:
         assert rows[sid][71:74] == (6, 0, 0) and rows[sid][95] == 4 and rows[sid][40] == 35
-    raw = (ROOT.parent / 'runtime/server/data/dbc/SpellDuration.dbc').read_bytes()
+    raw = (dbc_dir() / 'SpellDuration.dbc').read_bytes()
     count = struct.unpack_from('<I', raw, 4)[0]
     durations = {r[0]: r[1] for r in struct.iter_unpack('<4i', raw[20:20 + count * 16])}
     assert durations[9] == 30000 and durations[35] == 4000
