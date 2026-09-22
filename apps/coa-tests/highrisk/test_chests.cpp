@@ -1,4 +1,4 @@
-#include "../../src/AscensionHighRiskPolicy.h"
+#include "../../../src/server/coa/AscensionHighRiskPolicy.h"
 #include <cassert>
 #include <limits>
 

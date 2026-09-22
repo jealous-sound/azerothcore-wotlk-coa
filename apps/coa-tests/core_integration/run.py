@@ -23,6 +23,7 @@ Player owner;
 int main()
 {
     using namespace CoASpellbook;
+    assert(!Available());
     assert(RowCount(&owner) == -1);
     assert(OffersSpell(&owner, 123) == -1);
     assert(CoversSpell(&owner, 123) == -1);
@@ -31,12 +32,14 @@ int main()
         [](Player* player, std::uint32_t spell) { assert(player == &owner); return spell == 123; },
         [](Player* player, std::uint32_t spell) { assert(player == &owner); return spell == 456; }
     });
+    assert(Available());
     assert(RowCount(&owner) == 7);
     assert(OffersSpell(&owner, 123) == 1);
     assert(OffersSpell(&owner, 456) == 0);
     assert(CoversSpell(&owner, 456) == 1);
     assert(CoversSpell(&owner, 123) == 0);
     SetProvider({});
+    assert(!Available());
     assert(RowCount(&owner) == -1);
     assert(OffersSpell(&owner, 123) == -1);
     assert(CoversSpell(&owner, 456) == -1);

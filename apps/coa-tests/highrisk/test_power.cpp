@@ -1,4 +1,4 @@
-#include "../../src/AscensionPvpPowerPolicy.h"
+#include "../../../src/server/coa/AscensionPvpPowerPolicy.h"
 #include <cassert>
 #include <iostream>
 

@@ -19,6 +19,16 @@ if(NOT COA_PROPERTY_TREE_INCLUDE_DIR)
     "or provide a complete Boost installation.")
 endif()
 
+set(COA_CONFIG_FILE_LIST "")
 foreach(COA_CONFIG coa_bugreport.conf.dist mod_ascension_compat.conf.dist)
   CopyModuleConfig("${CMAKE_CURRENT_SOURCE_DIR}/conf/${COA_CONFIG}" coa)
+  string(REGEX REPLACE "\\.dist$" "" COA_CONFIG_FILE ${COA_CONFIG})
+  string(APPEND COA_CONFIG_FILE_LIST "${COA_CONFIG_FILE},")
 endforeach()
+
+set(COA_SQL_DIRECTORY mod-ascension-compat)
+set_property(GLOBAL PROPERTY COA_SQL_DIRECTORY ${COA_SQL_DIRECTORY})
+target_compile_options(coa-interface
+  INTERFACE
+    -DCOA_CONFIG_FILE_LIST=$<1:"${COA_CONFIG_FILE_LIST}">
+    -DCOA_DATABASE_MODULE_LIST=$<1:"${COA_SQL_DIRECTORY},">)

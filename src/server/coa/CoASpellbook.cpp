@@ -10,6 +10,11 @@ void CoASpellbook::SetProvider(Provider provider)
     SpellbookProvider = provider;
 }
 
+bool CoASpellbook::Available()
+{
+    return SpellbookProvider.RowCount && SpellbookProvider.OffersSpell && SpellbookProvider.CoversSpell;
+}
+
 double CoASpellbook::RowCount(Player* player)
 {
     return SpellbookProvider.RowCount ? double(SpellbookProvider.RowCount(player)) : -1.0;

@@ -116,7 +116,8 @@ bool StartDB()
 
     DatabaseLoader loader =
         modules.empty() ? DatabaseLoader("dbimport") :
-        (modules == "all") ? DatabaseLoader("dbimport", DatabaseLoader::DATABASE_MASK_ALL, AC_MODULES_LIST) :
+        (modules == "all") ?
+            DatabaseLoader("dbimport", DatabaseLoader::DATABASE_MASK_ALL, COA_DATABASE_MODULE_LIST AC_MODULES_LIST) :
         DatabaseLoader("dbimport", DatabaseLoader::DATABASE_MASK_ALL, modules);
 
     loader

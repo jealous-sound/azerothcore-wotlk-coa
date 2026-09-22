@@ -13,6 +13,13 @@
 # Make the script module list available in the current scope
 GetModuleSourceList(MODULES_MODULE_LIST)
 
+# CoA is built from src/server/coa; its former module directory only keeps historical SQL,
+# so a stale src/ left there by an old checkout must not turn it back into a module
+get_property(COA_SQL_DIRECTORY GLOBAL PROPERTY COA_SQL_DIRECTORY)
+if (COA_SQL_DIRECTORY)
+  list(REMOVE_ITEM MODULES_MODULE_LIST ${COA_SQL_DIRECTORY})
+endif()
+
 # Make the native install offset available in this scope
 GetInstallOffset(INSTALL_OFFSET)
 

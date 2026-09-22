@@ -1190,6 +1190,8 @@ private:
         }
         if (metric == "temporary_spell_replacement")
             return player->GetTemporarySpellReplacement(spell);
+        if (metric == "spellbook_rows" || metric == "spellbook_offers_spell" || metric == "spellbook_covers_spell")
+            Require(CoASpellbook::Available(), "Spellbook metrics require mod-spellbook");
         if (metric == "spellbook_rows")
             return CoASpellbook::RowCount(player);
         if (metric == "spellbook_offers_spell")

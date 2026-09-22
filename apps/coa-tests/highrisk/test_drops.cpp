@@ -1,4 +1,4 @@
-#include "../../src/AscensionBloodforgedPolicy.h"
+#include "../../../src/server/coa/AscensionBloodforgedPolicy.h"
 #include <cassert>
 #include <iostream>
 

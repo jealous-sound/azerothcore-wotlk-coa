@@ -17,6 +17,7 @@ namespace CoASpellbook
     };
 
     void SetProvider(Provider provider);
+    bool Available();
     double RowCount(Player* player);
     double OffersSpell(Player* player, std::uint32_t spellId);
     double CoversSpell(Player* player, std::uint32_t spellId);

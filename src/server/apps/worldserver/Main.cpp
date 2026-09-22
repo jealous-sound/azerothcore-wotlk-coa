@@ -182,8 +182,7 @@ int main(int argc, char** argv)
 #endif
 
     // Add file and args in config
-    sConfigMgr->Configure(configFile.generic_string(), {argv, argv + argc},
-        "coa_bugreport.conf,mod_ascension_compat.conf," CONFIG_FILE_LIST);
+    sConfigMgr->Configure(configFile.generic_string(), {argv, argv + argc}, COA_CONFIG_FILE_LIST CONFIG_FILE_LIST);
 
     if (!sConfigMgr->LoadAppConfigs())
         return 1;
@@ -444,7 +443,7 @@ bool StartDB()
 
     // Load databases
     DatabaseLoader loader("server.worldserver", DatabaseLoader::DATABASE_MASK_ALL,
-        "mod-ascension-compat," AC_MODULES_LIST);
+        COA_DATABASE_MODULE_LIST AC_MODULES_LIST);
     loader
         .AddDatabase(LoginDatabase, "Login")
         .AddDatabase(CharacterDatabase, "Character")
