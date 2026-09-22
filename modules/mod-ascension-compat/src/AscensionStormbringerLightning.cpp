@@ -21,8 +21,8 @@ enum StormbringerLightningSpells : uint32
     SPELL_SPARKS_CRIT_DEBUFF = 706729,
     SPELL_THUNDER_WAVE = 705692,
     SPELL_THUNDER_WAVE_STRIKE = 707220,
-    SPELL_FORKED_LIGHTNING = 501438,
-    SPELL_ARM_OF_THORIM = 501433,
+    SPELL_FORKED_LIGHTNING_FIRST_RANK = 801851,
+    SPELL_ARM_OF_THORIM_FIRST_RANK = 801847,
     SPELL_CALL_LIGHTNING = 500040,
     SPELL_ELECTROCUTE = 501421
 };
@@ -52,7 +52,7 @@ public:
 private:
     void MarkFluxArc(Player* owner, Unit* target, uint32 source) const
     {
-        if ((source != SPELL_FORKED_LIGHTNING && source != SPELL_ARM_OF_THORIM) ||
+        if ((source != SPELL_FORKED_LIGHTNING_FIRST_RANK && source != SPELL_ARM_OF_THORIM_FIRST_RANK) ||
             !owner->HasAura(SPELL_FLUX_ARC))
             return;
         owner->CastSpell(target, SPELL_FLUX_ARC_MARK, true);
@@ -73,7 +73,7 @@ private:
 
     void ApplySparks(Player* owner, Unit* target, uint32 source) const
     {
-        if ((source != SPELL_ELECTROCUTE && source != SPELL_ARM_OF_THORIM) ||
+        if ((source != SPELL_ELECTROCUTE && source != SPELL_ARM_OF_THORIM_FIRST_RANK) ||
             !owner->HasAura(SPELL_SPARKS))
             return;
         owner->CastSpell(target, SPELL_SPARKS_CRIT_DEBUFF, true);
@@ -82,7 +82,7 @@ private:
     void StrikeThunderWave(Spell* spell, Player* owner, Unit* target, uint32 source) const
     {
         SpellInfo const* talent = sSpellMgr->GetSpellInfo(SPELL_THUNDER_WAVE);
-        if (source != SPELL_FORKED_LIGHTNING || spell->IsTriggered() || !talent ||
+        if (source != SPELL_FORKED_LIGHTNING_FIRST_RANK || spell->IsTriggered() || !talent ||
             !owner->HasAura(SPELL_THUNDER_WAVE) || spell->GetScriptValue(SPELL_THUNDER_WAVE) ||
             !roll_chance_i(int32(talent->ProcChance)))
             return;
