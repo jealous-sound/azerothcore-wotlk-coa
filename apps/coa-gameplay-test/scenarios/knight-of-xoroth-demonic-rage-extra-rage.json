@@ -1,0 +1,51 @@
+{
+  "schema": 1,
+  "name": "Demonic Rage grants 1 extra Rage per Demon's Blood stack generated (#856)",
+  "contract": "Demonic Rage 524922 reads 'Generating Demon's Blood stacks now generates 1 additional Rage' (bindmysoul.com/conquest/talents.normalized.json, fetchedAt 2026-07-22T23:10:31.369Z; matches the client's own moa_description: '$/10;s1' = 10/10 = 1). AscensionXoroth::Gain(Player*, uint32) (AscensionXoroth.cpp) is the single central Demon's Blood (500906) stack-gain function, called from every proc/ability path that awards a stack. The fix adds player->EnergizeBySpell(player, 524922, 10, POWER_RAGE) (internal Rage is stored at x10 of the displayed value, matching Unit::RewardRage's own uint32(addRage * 10) convention) at the end of Gain(), gated on player->HasAura(524922). EnergizeBySpell logs a native SendEnergizeSpellLog entry attributed to spell 524922, observable via spell_energize_count/spell_energize_total filtered by that spell and power=1 (Rage) - a signal with zero baseline noise, unlike raw Rage totals which are also driven by Unit::RewardRage's unrelated 'Rage from damage taken/dealt' native mechanic on every melee exchange (a raw ModifyPower call was rejected for the test-observability reason alone). Demonfire Retaliation 573034 ('Grants you a 30% chance to generate a stack of Demonfire when attacked', ProcChance 30 in the installed Spell.dbc) is used as the Gain() trigger via aura_ascension_xoroth_event::Check/Proc (AscensionXorothEvents.cpp case 573034), the same 'damage taken' proc mechanism the existing Brimstone's Blood scenario (#1587) already exercises through mutual combat with a weak, high-health training dummy. 48 damage-taken trials at 30% yield an expected 14.4 successful Gain() calls; the test requires only 5 or more energize logs for spell 524922 in the talented window, a loose floor chosen for robustness against proc variance, while the untalented window (Demonic Rage not yet known) must log exactly zero even though the same 573034 procs are firing Gain() calls throughout it, proving the HasAura(524922) gate.",
+  "timeout_ms": 400000,
+  "players": [
+    { "id": "knight", "race": 1, "class": 17, "level": 60 }
+  ],
+  "creatures": [
+    { "id": "dummy", "owner": "knight", "entry": 36, "level": 60, "health": 5000000, "distance": 3 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+    { "action": "set_health", "actor": "knight", "value": 500000, "maximum": 500000, "label": "Give the knight enough of a health buffer to survive the whole combat window" },
+    { "action": "learn", "actor": "knight", "spell": 573034, "label": "Ensure Demonfire Retaliation is known, so Demon's Blood stacks are actively being generated" },
+    {
+      "action": "assert", "label": "SETUP: Demonic Rage is not yet known",
+      "actor": "knight", "metric": "knows_spell", "spell": 524922, "equals": 0
+    },
+    { "action": "snapshot", "actor": "knight", "metric": "spell_energize_count", "spell": 524922, "power": 1, "save_as": "energize_before_baseline" },
+    { "action": "attack", "actor": "knight", "target": "dummy", "label": "Start mutual combat without the talent" },
+    { "action": "wait", "label": "Let ~48 damage-taken trials resolve at the 30% Demon's Blood chance", "ms": 150000 },
+    { "action": "stop_attack", "actor": "knight" },
+    {
+      "action": "assert", "label": "SETUP: combat actually generated Demon's Blood stacks",
+      "actor": "knight", "metric": "aura_stacks", "spell": 500906, "min": 1
+    },
+    {
+      "action": "assert", "label": "CONTRACT (baseline): without the talent, generating Demon's Blood stacks never energizes Rage via 524922",
+      "actor": "knight", "metric": "spell_energize_count", "spell": 524922, "power": 1, "relative_to": "energize_before_baseline", "equals": 0
+    },
+    { "action": "learn", "actor": "knight", "spell": 524922 },
+    {
+      "action": "assert", "label": "SETUP: Demonic Rage is now known",
+      "actor": "knight", "metric": "knows_spell", "spell": 524922, "equals": 1
+    },
+    { "action": "snapshot", "actor": "knight", "metric": "spell_energize_count", "spell": 524922, "power": 1, "save_as": "energize_before_talent" },
+    { "action": "snapshot", "actor": "knight", "metric": "spell_energize_total", "spell": 524922, "power": 1, "save_as": "energize_total_before_talent" },
+    { "action": "attack", "actor": "knight", "target": "dummy", "label": "Resume mutual combat with the talent known" },
+    { "action": "wait", "label": "Let ~48 more damage-taken trials resolve at the 30% Demon's Blood chance", "ms": 150000 },
+    { "action": "stop_attack", "actor": "knight" },
+    {
+      "action": "assert", "label": "CONTRACT: the talented window energizes Rage via 524922 on generated Demon's Blood stacks",
+      "actor": "knight", "metric": "spell_energize_count", "spell": 524922, "power": 1, "relative_to": "energize_before_talent", "min": 5
+    },
+    {
+      "action": "assert", "label": "CONTRACT: each logged energize grants exactly 1 Rage (10 internal units)",
+      "actor": "knight", "metric": "spell_energize_total", "spell": 524922, "power": 1, "relative_to": "energize_total_before_talent", "min": 50
+    }
+  ]
+}
