@@ -29,6 +29,7 @@ LOCAL_HOSTS = {'127.0.0.1', 'localhost', '::1'}
 METRICS = {
     'moving', 'forced_forward', 'distance_2d', 'cast_remaining_ms', 'cast_pushback_ms', 'melee_damage_count',
     'pet_power', 'pet_max_power', 'spell_energize_count', 'spell_energize_total',
+    'xp', 'next_level_xp', 'skill_value',
     'view_level', 'sent_level', 'sent_max_health', 'quest_level', 'quest_xp',
     'health', 'health_pct', 'max_health', 'power', 'max_power', 'alive', 'combat', 'casting', 'level',
     'aura', 'aura_stacks', 'aura_charges', 'aura_duration_ms', 'aura_amount', 'aura_positive',
@@ -89,7 +90,7 @@ PLAYER_STAT_METRICS = {
 METRIC_FIELDS = {'actor', 'metric', 'spell', 'power', 'caster', 'effect', 'item', 'entry', 'button',
                  'relative_to', 'ratio_to', 'target', 'quest', 'id', 'stat', 'school', 'hand', 'rating', 'op',
                  'base', 'key', 'index', 'pet', 'critical', 'target_pet', 'periodic', 'name',
-                 'min_distance', 'owner_display'}
+                 'min_distance', 'owner_display', 'skill'}
 ACTIONS = {
     'stop_attack': ({'actor'}, {'actor'}),
     'set_moving': ({'actor', 'enabled'}, {'actor', 'enabled'}),
@@ -137,6 +138,9 @@ ACTIONS = {
     'equip': ({'actor', 'item', 'slot'}, {'actor', 'item', 'slot'}),
     'use_item': ({'actor', 'item', 'spell'}, {'actor', 'item', 'spell', 'target', 'destination'}),
     'use_gameobject': ({'actor', 'entry'}, {'actor', 'entry'}),
+    'set_skill': ({'actor', 'skill', 'value', 'maximum'}, {'actor', 'skill', 'value', 'maximum'}),
+    'gather_skill': ({'actor', 'skill', 'required'}, {'actor', 'skill', 'required'}),
+    'set_xp_enabled': ({'actor', 'enabled'}, {'actor', 'enabled'}),
     'set_level': ({'actor', 'value'}, {'actor', 'value'}),
     'set_health': ({'actor', 'value'}, {'actor', 'value', 'pet', 'maximum'}),
     'reset_cooldown': ({'actor', 'spell'}, {'actor', 'spell'}),
@@ -299,6 +303,16 @@ def validate(scenario):
         for key in ('ms', 'within_ms'):
             if key in step:
                 number(step[key], f'{where}.{key}', 0, scenario.get('timeout_ms', 90000), True)
+        if action in {'set_skill', 'gather_skill'}:
+            number(step['skill'], f'{where}.skill', 1, 65535, True)
+        if action == 'set_skill':
+            number(step['maximum'], f'{where}.maximum', 1, 450, True)
+            number(step['value'], f'{where}.value', 0, step['maximum'], True)
+        if action == 'gather_skill':
+            require(step['skill'] in {182, 186, 393, 633, 773, 755}, f'{where}: unsupported gathering skill')
+            number(step['required'], f'{where}.required', 0, 450, True)
+        if action == 'set_xp_enabled':
+            require(type(step['enabled']) is bool, f'{where}: enabled must be boolean')
         if action == 'money':
             number(step['copper'], f'{where}.copper', 1, 2**31 - 1, True)
         if action == 'set_level':
@@ -318,6 +332,10 @@ def validate(scenario):
                         and type(step['periodic']) is bool,
                         f'{where}: periodic requires a damage/healing calculation and a boolean')
             require(metric in METRICS, f'{where}: unknown metric')
+            if metric in {'xp', 'next_level_xp', 'skill_value'}:
+                require(step['actor'] in player_ids, f'{where}: XP/skill metric needs a player')
+                if metric == 'skill_value':
+                    number(step.get('skill'), f'{where}.skill', 1, 65535, True)
             if metric in {'player_name', 'name_lookup'}:
                 require(step['actor'] in player_ids and isinstance(step.get('name'), str)
                         and bool(step['name']), f'{where}: name metric needs a player and name')

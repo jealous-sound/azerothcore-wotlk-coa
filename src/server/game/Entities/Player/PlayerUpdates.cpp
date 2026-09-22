@@ -40,6 +40,7 @@
 #include "WeatherMgr.h"
 #include "WorldState.h"
 #include "WorldStatePackets.h"
+#include <limits>
 
 /// @todo: this import is not necessary for compilation and marked as unused by the IDE
 //  however, for some reasons removing it would cause a damn linking issue
@@ -800,6 +801,46 @@ inline int SkillGainChance(uint32 SkillValue, uint32 GrayLevel,
     return sWorld->getIntConfig(CONFIG_SKILL_CHANCE_ORANGE) * 10;
 }
 
+void Player::RewardProfessionXP(uint32 skillId, uint32 current, uint32 gray, uint32 green, uint32 yellow,
+    bool disenchanting)
+{
+    if (!IsInWorld() || !GetPureSkillValue(skillId) || !sScriptMgr->OnPlayerCanUpdateSkill(this, skillId))
+        return;
+
+    ServerConfigs profession;
+    switch (skillId)
+    {
+        case SKILL_MINING: profession = RATE_XP_PROFESSION_MINING; break;
+        case SKILL_HERBALISM: profession = RATE_XP_PROFESSION_HERBALISM; break;
+        case SKILL_SKINNING: profession = RATE_XP_PROFESSION_SKINNING; break;
+        case SKILL_FISHING: profession = RATE_XP_PROFESSION_FISHING; break;
+        case SKILL_BLACKSMITHING: profession = RATE_XP_PROFESSION_BLACKSMITHING; break;
+        case SKILL_JEWELCRAFTING: profession = RATE_XP_PROFESSION_JEWELCRAFTING; break;
+        case SKILL_ALCHEMY: profession = RATE_XP_PROFESSION_ALCHEMY; break;
+        case SKILL_LEATHERWORKING: profession = RATE_XP_PROFESSION_LEATHERWORKING; break;
+        case SKILL_FIRST_AID: profession = RATE_XP_PROFESSION_FIRST_AID; break;
+        case SKILL_COOKING: profession = RATE_XP_PROFESSION_COOKING; break;
+        case SKILL_ENGINEERING: profession = RATE_XP_PROFESSION_ENGINEERING; break;
+        case SKILL_TAILORING: profession = RATE_XP_PROFESSION_TAILORING; break;
+        case SKILL_LOCKPICKING: profession = RATE_XP_PROFESSION_LOCKPICKING; break;
+        case SKILL_INSCRIPTION: profession = RATE_XP_PROFESSION_INSCRIPTION; break;
+        case SKILL_ENCHANTING:
+            profession = disenchanting ? RATE_XP_PROFESSION_DISENCHANTING : RATE_XP_PROFESSION_ENCHANTING;
+            break;
+        default: return;
+    }
+
+    ServerConfigs const difficulty = current >= gray ? RATE_XP_PROFESSION_GRAY
+        : current >= green ? RATE_XP_PROFESSION_GREEN
+        : current >= yellow ? RATE_XP_PROFESSION_YELLOW : RATE_XP_PROFESSION_ORANGE;
+    double const reward = double(sObjectMgr->GetXPForLevel(GetLevel()))
+        * sWorld->getRate(RATE_XP_PROFESSION_BASE_FRACTION) * sWorld->getRate(RATE_XP_PROFESSION)
+        * sWorld->getRate(profession) * sWorld->getRate(difficulty);
+    uint32 xp = static_cast<uint32>(std::min(reward, double(std::numeric_limits<uint32>::max())));
+    sScriptMgr->OnPlayerGiveXP(this, xp, nullptr, XPSOURCE_PROFESSION);
+    GiveXP(xp, nullptr);
+}
+
 bool Player::UpdateGatherSkill(uint32 SkillId, uint32 SkillValue,
                                uint32 RedLevel, uint32 Multiplicator)
 {
@@ -810,6 +851,8 @@ bool Player::UpdateGatherSkill(uint32 SkillId, uint32 SkillValue,
     uint32 gathering_skill_gain =
         sWorld->getIntConfig(CONFIG_SKILL_GAIN_GATHERING);
     sScriptMgr->OnPlayerUpdateGatheringSkill(this, SkillId, SkillValue, RedLevel + 100, RedLevel + 50, RedLevel + 25, gathering_skill_gain);
+
+    RewardProfessionXP(SkillId, SkillValue, RedLevel + 100, RedLevel + 50, RedLevel + 25);
 
     // For skinning and Mining chance decrease with level. 1-74 - no decrease,
     // 75-149 - 2 times, 225-299 - 8 times
@@ -888,6 +931,12 @@ bool Player::UpdateCraftSkill(uint32 spellid)
             uint32 craft_skill_gain =
                 sWorld->getIntConfig(CONFIG_SKILL_GAIN_CRAFTING);
             sScriptMgr->OnPlayerUpdateCraftingSkill(this, _spell_idx->second, SkillValue, craft_skill_gain);
+
+            RewardProfessionXP(_spell_idx->second->SkillLine, SkillValue,
+                _spell_idx->second->TrivialSkillLineRankHigh,
+                (_spell_idx->second->TrivialSkillLineRankHigh + _spell_idx->second->TrivialSkillLineRankLow) / 2,
+                _spell_idx->second->TrivialSkillLineRankLow,
+                spellInfo && spellInfo->HasEffect(SPELL_EFFECT_DISENCHANT));
 
             return UpdateSkillPro(
                 _spell_idx->second->SkillLine,

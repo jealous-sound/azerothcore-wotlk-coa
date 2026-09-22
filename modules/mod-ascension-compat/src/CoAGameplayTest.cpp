@@ -976,6 +976,14 @@ private:
                         return std::max(0, current->GetCastTimeRemaining());
             return 0;
         }
+        if (metric == "xp" || metric == "next_level_xp" || metric == "skill_value")
+        {
+            Player* player = unit->ToPlayer();
+            Require(player != nullptr, "XP/skill metric needs a player");
+            if (metric == "skill_value")
+                return player->GetPureSkillValue(step.get<uint32>("skill"));
+            return player->GetUInt32Value(metric == "xp" ? PLAYER_XP : PLAYER_NEXT_LEVEL_XP);
+        }
         if (metric == "level")
             return unit->GetLevel();
         if (metric == "view_level")
@@ -2279,6 +2287,24 @@ private:
                     + std::to_string(player->IsInCombat()) + ", casting "
                     + std::to_string(player->IsNonMeleeSpellCast(false)));
             }
+        }
+        else if (action == "set_skill")
+        {
+            uint32 const skill = step.get<uint32>("skill");
+            Require(sSkillLineStore.LookupEntry(skill) != nullptr, "Unknown fixture skill");
+            player->SetSkill(skill, 1, step.get<uint16>("value"), step.get<uint16>("maximum"));
+        }
+        else if (action == "gather_skill")
+        {
+            uint32 const skill = step.get<uint32>("skill");
+            player->UpdateGatherSkill(skill, player->GetPureSkillValue(skill), step.get<uint32>("required"));
+        }
+        else if (action == "set_xp_enabled")
+        {
+            if (step.get<bool>("enabled"))
+                player->RemovePlayerFlag(PLAYER_FLAGS_NO_XP_GAIN);
+            else
+                player->SetPlayerFlag(PLAYER_FLAGS_NO_XP_GAIN);
         }
         else if (action == "set_level")
         {

@@ -131,7 +131,7 @@ patterns cannot reliably establish these gameplay rules, and passing source chec
 Python 3.11+, MySQL 8 client tools, a local MySQL server and a worldserver built with the runtime component
 are required. The commands below run the runner directly (Windows example); Docker installations on Linux use
 the [Compose test service](#linux-docker), which provides all of them.
-Follow the repository's build authorization rules. Adding the new source requires CMake
+Build a matching test executable when needed. Adding the new source requires CMake
 reconfiguration before building; running an older binary will fail the readiness check.
 The module requires Boost.PropertyTree headers. Component-based vcpkg installations need
 `boost-property-tree` for the same triplet as the existing Boost libraries. CMake checks this dependency.
@@ -249,7 +249,7 @@ Its database environment variables override any stale connections in `worldserve
 If another Compose override changes the live schema names, mirror those names in this service's
 `AC_*_DATABASE_INFO` variables while retaining the loopback endpoint. Build the worldserver image from the same
 checkout first, with the runtime module and cache startup barrier; rebuild the test image after it. A mounted
-source checkout does not update the compiled server. Build authorization is still required.
+source checkout does not update the compiled server. Prefer rebuilding only the required test targets.
 
 ```bash
 mkdir -p .cache/coa-gameplay-tests
@@ -365,6 +365,9 @@ damage coefficients.
 | `equip` | `actor`, `item`, `slot` (0..18): equip an owned item through the session handler. |
 | `use_item` | `actor`, `item`, `spell`, optional `target` and `destination`: normal item-use handler. |
 | `use_gameobject` | `actor`, `entry`: native use request for the actor's single nearby owned gameobject. |
+| `set_skill` | `actor`, `skill`, `value`, `maximum`: fixture a native profession skill. |
+| `gather_skill` | `actor`, gathering `skill`, `required`: native gathering XP and skill-up attempt. |
+| `set_xp_enabled` | `actor`, boolean `enabled`: fixture the native XP-lock flag. |
 | `set_level` | `actor`, `value` (1..80): fixture level change through native `GiveLevel`, including level-change hooks. |
 | `set_health`, `set_power` | `actor`, `value` within native maximums; `set_power` accepts `power` (default 0). Optional `pet: true` selects the player's current pet. |
 | `reset_cooldown` | Player `actor`, `spell`: reset that native spell cooldown between independent cases. |
@@ -375,6 +378,11 @@ damage coefficients.
 
 `set_health` also accepts an explicit `maximum` for a player or their pet, using native `SetMaxHealth`.
 This fixture supports exact health-percentage boundaries without granting GM permissions.
+
+`gather_skill` calls `UpdateGatherSkill`; it does not harvest a node or prove loot delivery.
+
+`xp` and `next_level_xp` read the player's XP fields; `skill_value` requires `skill` and reads pure skill.
+XP-delta assertions must also keep the level stable, or crossing a level would wrap the XP bar.
 
 Every step accepts a descriptive `label`. Assertions optionally accept `within_ms`: poll until the expected
 state appears, failing at the deadline. This means "eventually", not "remains true throughout the window".

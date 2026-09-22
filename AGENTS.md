@@ -4,15 +4,15 @@ AzerothCore is a C++ MMORPG server emulator for World of Warcraft 3.3.5a (WotLK)
 
 ## Agent rules
 
-- **Do not configure or build unless explicitly asked.** Builds are slow and rarely needed for code changes.
+- Configure and build when needed to implement or verify the requested work; prefer focused incremental targets.
 - **Never edit SQL files outside `data/sql/updates/pending_db_*/` unless explicitly requested.** `data/sql/base/`, `data/sql/archive/`, and `data/sql/updates/db_*/` are immutable.
 - Formatting follows `.editorconfig`: UTF-8, LF, max 120 cols, trailing newline, no trailing whitespace; 4-space indent for C++ (tabs forbidden), 2-space for JSON/YAML/sh/ts/js.
 - Keep ordinary plans and results in the conversation. If a planning document is requested or necessary,
   use `.agents/plans/<task-slug>/` (gitignored); no per-task document is required.
 - Use existing tools and the smallest relevant checks. Routine edits need no source snapshots, backup folders,
   receipts, or standalone reports. Preserve unique untracked work and use Git diffs for tracked files.
-- A source-only task ends with the requested change and relevant checks. Builds, deployment, and in-game
-  acceptance are separate scopes. Repeat passing checks only after changes or a specific unresolved concern.
+- A source-only task ends with the requested change and relevant checks. Deployment and in-game acceptance
+  are separate scopes. Repeat passing checks only after changes or a specific unresolved concern.
 - In CoA-owned code, express intent through names, structure and tests; do not add explanatory comments or
   docstrings. Preserve legal notices, tool directives and test generator markers. Scope is
   `modules/mod-ascension-compat/`, `apps/coa-{dbc,gameplay-test,mechanics}/`, `tools/` and `.github/scripts/`.
@@ -30,7 +30,7 @@ Follow this sequence within the task's authorized scope:
   or **uncertain expectation**. Correct a faulty test; preserve evidence of working behavior; keep unresolved
   expectations explicit. Apply a gameplay fix only to an established defect.
 - Seek a focused reproduction and a regression that fails before the fix and passes after it. State when runtime
-  reproduction is unavailable; this does not expand build permission or block completing authorized source work.
+  reproduction is unavailable; explain the missing prerequisites and complete independent source checks.
   Use the combined scenario verification and scoped source checks where relevant. Report their actual scope.
 - Review the final diff. Continue to a PR when publication is part of the requested workflow; a local edit alone
   does not authorize a push or PR. Use the issue-to-PR skill for an explicitly requested issue queue workflow.
@@ -42,7 +42,7 @@ Follow this sequence within the task's authorized scope:
 
 Read the relevant sections when needed for the work. Do not read every guide or turn examples into extra tasks.
 
-- Authorized CMake configuration/build or native test setup → `.agents/docs/build.md`
+- CMake configuration/build or native test setup → `.agents/docs/build.md`
 - Writing or modifying C++ → `.agents/docs/cpp-guidelines.md`
   - Script work (under `src/server/scripts/`) → also `.agents/docs/cpp-scripts.md`
 - Creating or modifying SQL → `.agents/docs/sql-guidelines.md`

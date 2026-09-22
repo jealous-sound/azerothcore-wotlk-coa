@@ -1434,9 +1434,13 @@ namespace CoAChallenges
             }
             else if (PlayerHasRule(player, "CHALLENGE_RULES_TYPE_NO_EXPERIENCE_EXCEPT_PROFESSIONS"))
             {
-                // Profession skill gain does not use GiveXP, so block all XP.
-                amount = 0;
+                if (xpSource != XPSOURCE_PROFESSION_SKILL)
+                    amount = 0;
             }
+
+            if ((xpSource == XPSOURCE_PROFESSION || xpSource == XPSOURCE_PROFESSION_SKILL)
+                && PlayerHasRule(player, "CHALLENGE_RULES_TYPE_NO_PROFESSION_EXPERIENCE"))
+                amount = 0;
 
             // NO_KILL_CREDIT_UNLESS_AT_DISADVANTAGE ("Punching Up" / Overwhelming
             // Odds): only monsters above the player's level grant kill credit.

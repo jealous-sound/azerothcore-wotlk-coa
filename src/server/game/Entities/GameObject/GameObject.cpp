@@ -1775,6 +1775,9 @@ void GameObject::Use(Unit* user)
                             // but you will likely cause junk in areas that require a high fishing skill (not yet implemented)
                             if (chance >= roll)
                             {
+                                uint32 const requiredSkill = std::max(0, zoneSkill);
+                                player->RewardProfessionXP(SKILL_FISHING, skill, requiredSkill + 100,
+                                    requiredSkill + 50, requiredSkill + 25);
                                 // Keep the bobber owned while loot is open, but clear the
                                 // spell id so finishing the fishing channel does not delete it.
                                 SetSpellId(0); // prevent removing unintended auras at Unit::RemoveGameObject

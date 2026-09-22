@@ -12,6 +12,22 @@ import run
 
 
 class RunnerTests(unittest.TestCase):
+    def test_profession_fixture_validation(self):
+        scenario = run.read_json(Path(__file__).parent / 'scenarios' / 'profession-xp.json')
+        self.assertIs(run.validate(scenario), scenario)
+        for step in (
+            {'action': 'set_skill', 'actor': 'gatherer', 'skill': 186, 'value': 76, 'maximum': 75},
+            {'action': 'gather_skill', 'actor': 'gatherer', 'skill': 171, 'required': 1},
+            {'action': 'gather_skill', 'actor': 'gatherer', 'skill': 186, 'required': -1},
+            {'action': 'set_xp_enabled', 'actor': 'gatherer', 'enabled': 1},
+            {'action': 'assert', 'actor': 'gatherer', 'metric': 'skill_value', 'equals': 0},
+            {'action': 'assert', 'actor': 'gatherer', 'metric': 'health', 'ratio_to': 'level_xp', 'equals': 1},
+        ):
+            invalid = copy.deepcopy(scenario)
+            invalid['steps'].append(step)
+            with self.subTest(step=step), self.assertRaises(ValueError):
+                run.validate(invalid)
+
     def test_optional_character_names(self):
         scenario = run.read_json(Path(__file__).parent / 'scenarios' / 'optional-character-names.json')
         self.assertIs(run.validate(scenario), scenario)
