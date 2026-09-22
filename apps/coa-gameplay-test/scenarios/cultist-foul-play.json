@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "name": "Foul Play's flat-modifier mechanism reaches a Corrupting Whispers classmask record natively (#1035)",
+  "contract": "PARTIAL PROOF -- Refs #1035, not Fixes: this scenario proves the delivery MECHANISM is native, not that the exact tooltip percentage lands on whatever spell the Cultist casts as 'Corrupting Whispers'. Foul Play 706921 (Spell.dbc, read for this scenario) is a single SPELL_EFFECT_APPLY_AURA effect, aura 107 SPELL_AURA_ADD_FLAT_MODIFIER, EffectMiscValue 3 (SPELLMOD_EFFECT1), BasePoints 4 DieSides 1 (+5), EffectSpellClassMask word 0 bit 19 (524288), target caster. Spell.dbc has three records literally named 'Corrupting Whispers' (SpellFamilyName 31 in all three): 706725 has SpellFamilyFlags word 0 = 524288, an exact match; 707092 has word 0 = 33554432, a different bit, no match; 805606 has SpellFamilyFlags (0,0,0) -- no match on its own family flags (its nonzero field is its own effect's EffectSpellClassMask, a different word position). 706725 is not in SpellInfo::IsAffectedBySpellMod's family-31 special-routing switch, so it falls through to the generic IsAffected(family, classmask) check exercised directly by the spell_modifier assertion below (SPELLMOD_EFFECT1, op 3) -- this proves the native spellmod machinery matches 706725's own classmask and would apply Foul Play's +5 to whatever spell executes as 706725. What is NOT established here: 706725 is referenced only as an EffectTriggerSpell[1] target from 520051, 706726 and 805606 (coa-dbc-viewer map, 'incoming' relationships) and no SkillLineAbility/talent acquisition row was found for it independently -- it may be a triggered helper rather than the spell the Cultist directly casts, and the mechanism's classmask matching against a triggered spell's own SpellInfo is standard AzerothCore behavior but was not traced further within this scenario's scope. grep confirms zero occurrences of 706921 in modules/mod-ascension-compat/src or src/server/game, matching only that no per-spell script exists; the native aura/spellmod path needs none.",
+  "timeout_ms": 60000,
+  "players": [
+    { "id": "cultist", "race": 1, "class": 25, "level": 20 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let level scaling settle", "ms": 3000 },
+
+    { "action": "assert", "label": "BASELINE: Corrupting Whispers 706725's SPELLMOD_EFFECT1 modifier is untouched", "actor": "cultist",
+      "metric": "spell_modifier", "spell": 706725, "op": 3, "base": 100, "min": 99.99, "max": 100.01 },
+    { "action": "assert", "label": "BASELINE control: the non-matching 707092 record is never affected", "actor": "cultist",
+      "metric": "spell_modifier", "spell": 707092, "op": 3, "base": 100, "min": 99.99, "max": 100.01 },
+
+    { "action": "learn", "actor": "cultist", "spell": 706921 },
+    { "action": "assert", "label": "Learning the passive applies its own self-aura", "actor": "cultist", "metric": "aura", "spell": 706921, "equals": 1, "within_ms": 3000 },
+    { "action": "assert", "label": "Effect 0 carries the authored +5 flat SPELLMOD_EFFECT1", "actor": "cultist", "metric": "aura_amount", "spell": 706921, "effect": 0, "equals": 5 },
+
+    { "action": "assert", "label": "MECHANISM: Foul Play's classmask match reaches 706725 through the native spellmod system", "actor": "cultist",
+      "metric": "spell_modifier", "spell": 706725, "op": 3, "base": 100, "min": 104.99, "max": 105.01 },
+    { "action": "assert", "label": "CONTROL: the non-matching 707092 record still ignores the modifier", "actor": "cultist",
+      "metric": "spell_modifier", "spell": 707092, "op": 3, "base": 100, "min": 99.99, "max": 100.01 },
+    { "action": "assert", "label": "CONTROL: the zero-classmask 805606 record still ignores the modifier", "actor": "cultist",
+      "metric": "spell_modifier", "spell": 805606, "op": 3, "base": 100, "min": 99.99, "max": 100.01 },
+
+    { "action": "unlearn", "actor": "cultist", "spell": 706921 },
+    { "action": "assert", "label": "Unlearning removes the self-aura", "actor": "cultist", "metric": "aura", "spell": 706921, "equals": 0, "within_ms": 3000 },
+    { "action": "assert", "label": "706725's modifier returns to baseline", "actor": "cultist",
+      "metric": "spell_modifier", "spell": 706725, "op": 3, "base": 100, "min": 99.99, "max": 100.01 }
+  ]
+}
