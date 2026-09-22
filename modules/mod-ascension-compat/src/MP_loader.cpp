@@ -203,6 +203,7 @@ void AddSC_AscensionRunemasterTravel();
 void AddSC_AscensionStormbringerLightning();
 void AddSC_AscensionStormbringerTalents();
 void AddSC_AscensionStormbringerThunderOrb();
+void AddSC_AscensionStormbringerMysticThunder();
 void AddSC_AscensionStormbringerWindGate();
 void AddSC_AscensionStormbringerZephyr();
 void AddSC_AscensionStormbringerDrown();
@@ -437,6 +438,7 @@ void Addmod_ascension_compatScripts()
     AddSC_AscensionStormbringerLightning();
     AddSC_AscensionStormbringerTalents();
     AddSC_AscensionStormbringerThunderOrb();
+    AddSC_AscensionStormbringerMysticThunder();
     AddSC_AscensionStormbringerWindGate();
     AddSC_AscensionStormbringerZephyr();
     AddSC_AscensionStormbringerDrown();
