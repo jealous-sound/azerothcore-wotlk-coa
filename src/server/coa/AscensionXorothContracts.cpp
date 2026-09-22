@@ -514,6 +514,20 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[EFFECT_0].Effect = 0;
     if (id == 300387)
         info->Effects[EFFECT_0].Effect = 0;
+    if (id == 300390)
+    {
+        SpellEffectInfo& e = info->Effects[EFFECT_0];
+        e.Effect = SPELL_EFFECT_APPLY_AURA;
+        e.ApplyAuraName = SPELL_AURA_ADD_FLAT_MODIFIER;
+        e.BasePoints = -100;
+        e.DieSides = 0;
+        e.MiscValue = SPELLMOD_COST;
+        e.SpellClassMask = flag96(0, 8389376, 4);
+        e.TargetA = SpellImplicitTargetInfo(TARGET_UNIT_CASTER);
+        e.TargetB = SpellImplicitTargetInfo();
+        info->Effects[EFFECT_1].Effect = 0;
+        info->Effects[EFFECT_2].Effect = 0;
+    }
     info->_InitializeExplicitTargetMask();
 }
 }
