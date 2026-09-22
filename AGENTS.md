@@ -90,7 +90,7 @@ External modules live in `modules/`, each with its sources in `src/`. Disable on
 (for example `-DMODULE_MOD_SPELLBOOK=disabled`). See `modules/how_to_make_a_module.md`.
 
 In this fork, CoA is a required server component in `src/server/coa/`, with focused tests in
-`apps/coa-tests/`. `modules/mod-ascension-compat/data/sql/` retains historical migration paths only.
+`apps/coa-tests/`. `modules/mod-ascension/data/sql/` keeps its historical SQL migrations only.
 `origin` is the CoA fork; `upstream` is the original AzerothCore
 repository. Fetching upstream is separate from reviewing, merging, building or deploying its changes.
 

@@ -16,8 +16,9 @@ its source files carry AzerothCore's standard license header. The component's
 history before the move is reachable with `git log --follow`; keep its license
 headers and upstream attribution.
 
-Historical SQL remains at `modules/mod-ascension-compat/data/sql/` so applied
-migration paths and hashes remain stable. That directory is not a buildable
+Historical SQL lives in `modules/mod-ascension/data/sql/` (formerly
+`modules/mod-ascension-compat/`). The database updater tracks applied migrations
+by file name and hash, and both are unchanged. That directory is not a buildable
 module. New migrations belong in `data/sql/updates/pending_db_*/`.
 
 This is an independent reconstruction; source presence does not establish

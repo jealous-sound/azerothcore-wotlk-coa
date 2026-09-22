@@ -24,7 +24,7 @@ def apply_updates(mysql):
     recorded = {row[0]: (row[1], row[2]) for row in mysql.query("SELECT name,hash,state FROM updates;")}
     released = [(p, "RELEASED") for p in sorted((ROOT / "data/sql/updates/db_world").glob("*.sql"))]
     pending = [(p, "PENDING") for p in (ROOT / "data/sql/updates/pending_db_world").glob("*.sql")]
-    modules = [(p, "MODULE") for p in (ROOT / "modules/mod-ascension-compat/data/sql/db-world").glob("*.sql")]
+    modules = [(p, "MODULE") for p in (ROOT / "modules/mod-ascension/data/sql/db-world").glob("*.sql")]
     applied = []
     for path, state in released + sorted(pending + modules, key=lambda entry: entry[0].name):
         checksum = native_sql_hash(path.read_bytes()).upper()

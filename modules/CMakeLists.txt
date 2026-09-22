@@ -13,12 +13,10 @@
 # Make the script module list available in the current scope
 GetModuleSourceList(MODULES_MODULE_LIST)
 
-# CoA is built from src/server/coa; its former module directory only keeps historical SQL,
-# so a stale src/ left there by an old checkout must not turn it back into a module
+# CoA is built from src/server/coa; its SQL directory and its former module directory
+# are not modules, even when an old checkout left a stale src/ in either of them
 get_property(COA_SQL_DIRECTORY GLOBAL PROPERTY COA_SQL_DIRECTORY)
-if (COA_SQL_DIRECTORY)
-  list(REMOVE_ITEM MODULES_MODULE_LIST ${COA_SQL_DIRECTORY})
-endif()
+list(REMOVE_ITEM MODULES_MODULE_LIST ${COA_SQL_DIRECTORY} mod-ascension-compat)
 
 # Make the native install offset available in this scope
 GetInstallOffset(INSTALL_OFFSET)

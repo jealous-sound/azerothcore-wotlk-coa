@@ -26,7 +26,7 @@ foreach(COA_CONFIG coa_bugreport.conf.dist mod_ascension_compat.conf.dist)
   string(APPEND COA_CONFIG_FILE_LIST "${COA_CONFIG_FILE},")
 endforeach()
 
-set(COA_SQL_DIRECTORY mod-ascension-compat)
+set(COA_SQL_DIRECTORY mod-ascension)
 set_property(GLOBAL PROPERTY COA_SQL_DIRECTORY ${COA_SQL_DIRECTORY})
 target_compile_options(coa-interface
   INTERFACE
