@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "Stormbringer: Critical Circuit refunds Static on critical Static spenders (#3667)",
-  "contract": "Critical Circuit 807314 is a permanent passive (DurationIndex 21) whose Effect[0] is SPELL_EFFECT_APPLY_AURA with EffectApplyAuraName[0] = 42 SPELL_AURA_PROC_TRIGGER_SPELL and EffectTriggerSpell[0] = 804084 'Add 10 Static', whose Effect[1] is 175 SPELL_EFFECT_ASCENSION_MODIFY_AURA_STACKS with EffectMiscValue[1] = 10 on trigger spell 803102 Static, targeted at TARGET_UNIT_CASTER. Its DBC ProcFlags are 0 and it had no spell_proc row, so Aura::GetProcEffectMask returned 0 on every event and the refund never happened. The set of 'Static spenders' is not expressible in DBC terms - the class-16 rows of AscensionCompatData::ResourceCostRules share no SpellFamilyFlags bit - so the predicate reads that table directly. Call Lightning 500040 is a spender: {16, 500040, 500040, 803102, 50, ResourceConsumption::Fixed}, SpellFamilyName 22, SchoolMask 8 Nature, DmgClass 1 magic, TARGET_UNIT_TARGET_ENEMY, CastTime 1500 ms, no RecoveryTime or CategoryRecoveryTime, and it appears in no class-16 ResourceGainRules row, so its only Static movement is the 50-point cost taken at cast. Shock 804020 is the negative control on a second Stormbringer: same family, school, damage class and target type, but no class-16 cost rule at all, so a critical Shock must earn no refund. That control character deliberately never learns Call Lightning, because the Shock branch of stormbringer_talent_casts grants Static (804086) only to a Stormbringer who knows 500040. Static 803102 has DBC StackAmount 100, so both baselines stay under that ceiling and a wrongly granted refund would be visible rather than clamped. spell_crit_rating 100000 is the fixture's way of forcing the critical branch. The fix reads player->HasAura(807314) rather than any DBC proc data, so the fixture asserts that aura is actually present (807314 has DBC StackAmount 0, a non-stacking presence aura) before the discriminating cast instead of trusting learn's auto-cast-on-learn path silently.",
+  "contract": "Critical Circuit 807314 is a permanent passive (DurationIndex 21) whose Effect[0] is SPELL_EFFECT_APPLY_AURA with EffectApplyAuraName[0] = 42 SPELL_AURA_PROC_TRIGGER_SPELL and EffectTriggerSpell[0] = 804084 'Add 10 Static', whose Effect[1] is 175 SPELL_EFFECT_ASCENSION_MODIFY_AURA_STACKS with EffectMiscValue[1] = 10 on trigger spell 803102 Static, targeted at TARGET_UNIT_CASTER. Its DBC ProcFlags are 0 and it had no spell_proc row, so Aura::GetProcEffectMask returned 0 on every event and the refund never happened. The set of 'Static spenders' is not expressible in DBC terms - the class-16 rows of AscensionCompatData::ResourceCostRules share no SpellFamilyFlags bit - so the predicate reads that table directly. Call Lightning 500040 is a spender: {16, 500040, 500040, 803102, 50, ResourceConsumption::Fixed}, SpellFamilyName 22, SchoolMask 8 Nature, DmgClass 1 magic, TARGET_UNIT_TARGET_ENEMY, CastTime 1500 ms, no RecoveryTime or CategoryRecoveryTime, and it appears in no class-16 ResourceGainRules row, so its only Static movement is the 50-point cost taken at cast. Shock 804020 is the negative control on a second Stormbringer: same family, school, damage class and target type, but no class-16 cost rule at all, so a critical Shock must earn no refund. The Shock branch of stormbringer_talent_casts grants 20 Static (804086) to any Stormbringer who knows Call Lightning 500040, which the class-16 starting kit already provides, so the control's critical Shock adds that flat 20 and any Critical Circuit refund would show on top of it. Static 803102 has DBC StackAmount 100, which Aura::ModStackAmount clamps every increase to. The refund is cast from ALLSPELLHOOK_ON_HIT_RESULT, which Spell::cast runs inside handle_immediate, while the 50-point cost is taken from ALLSPELLHOOK_ON_CAST, which Spell::cast runs after it, so on a Speed 0 spender the refund lands before the cost is deducted. A fixture that starts the spender at the 100 ceiling therefore loses the refund to the clamp and reads 50 whether or not the refund fired. Both Static baselines stay far enough below the ceiling that the refund is visible rather than clamped. spell_crit_rating 100000 is the fixture's way of forcing the critical branch. The fix reads player->HasAura(807314) rather than any DBC proc data, so both characters apply that aura directly (807314 has DBC StackAmount 0, a non-stacking presence aura) instead of trusting learn's auto-cast-on-learn path silently, and the control then fails the refund on SpendsStatic alone.",
   "timeout_ms": 120000,
   "players": [
     {
@@ -59,18 +59,18 @@
     },
     {
       "action": "set_aura",
-      "label": "SETUP: 100 Static, the aura's DBC StackAmount",
+      "label": "SETUP: 80 Static, below the 100 stack cap so no refund can be clamped",
       "actor": "cc",
       "spell": 803102,
-      "stacks": 100
+      "stacks": 80
     },
     {
       "action": "assert",
-      "label": "SETUP: the Stormbringer holds 100 Static",
+      "label": "SETUP: the Stormbringer holds 80 Static",
       "actor": "cc",
       "metric": "aura_stacks",
       "spell": 803102,
-      "equals": 100
+      "equals": 80
     },
     {
       "action": "cast",
@@ -85,11 +85,11 @@
     },
     {
       "action": "assert",
-      "label": "BASELINE: the cost rule takes 50, leaving 100 - 50 = 50 Static and no refund",
+      "label": "BASELINE: the cost rule takes 50, leaving 80 - 50 = 30 Static and no refund",
       "actor": "cc",
       "metric": "aura_stacks",
       "spell": 803102,
-      "equals": 50
+      "equals": 30
     },
     {
       "action": "learn",
@@ -113,10 +113,10 @@
     },
     {
       "action": "set_aura",
-      "label": "SETUP: back to 100 Static",
+      "label": "SETUP: back to 80 Static",
       "actor": "cc",
       "spell": 803102,
-      "stacks": 100
+      "stacks": 80
     },
     {
       "action": "cast",
@@ -131,11 +131,11 @@
     },
     {
       "action": "assert",
-      "label": "DISCRIMINATING: 100 - 50 cost + 10 refund (804084 EffectMiscValue[1]) = 60 Static",
+      "label": "DISCRIMINATING: 80 - 50 cost + 10 refund (804084 EffectMiscValue[1]) = 40 Static",
       "actor": "cc",
       "metric": "aura_stacks",
       "spell": 803102,
-      "equals": 60
+      "equals": 40
     },
     {
       "action": "learn",
@@ -149,7 +149,14 @@
     },
     {
       "action": "set_aura",
-      "label": "SETUP: 50 Static on the control, low enough that a wrong +10 shows under the 100 ceiling",
+      "label": "SETUP: guarantee the Critical Circuit passive is active on the control too, so its refund fails on SpendsStatic alone",
+      "actor": "ctrl",
+      "spell": 807314,
+      "stacks": 1
+    },
+    {
+      "action": "set_aura",
+      "label": "SETUP: 50 Static on the control, low enough that Shock's native 20 and a wrong +10 both stay under the 100 ceiling",
       "actor": "ctrl",
       "spell": 803102,
       "stacks": 50
@@ -167,11 +174,11 @@
     },
     {
       "action": "assert",
-      "label": "DISCRIMINATING: a critical strike with a non-spender earns no refund, so Static stays at 50",
+      "label": "DISCRIMINATING: a critical strike with a non-spender earns no refund, so Static is 50 + Shock's native 20 = 70, not 80",
       "actor": "ctrl",
       "metric": "aura_stacks",
       "spell": 803102,
-      "equals": 50
+      "equals": 70
     }
   ]
 }
