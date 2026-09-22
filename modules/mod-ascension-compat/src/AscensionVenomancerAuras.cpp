@@ -305,14 +305,17 @@ class aura_ascension_venomancer_lifecycle : public AuraScript
         if (Named(GetSpellInfo(),800902) && slot == 1)
         {
             PreventDefaultAction();
-            // Book of Shadra seeks on every 6 sec tick; otherwise only once, at the end of the duration.
-            if (player->HasAura(705957) || !GetAura()->GetScriptValue(803529))
+            constexpr uint32 BookOfShadra = 705957;
+            constexpr uint32 GreenSalveSeekHeal = 803529;
+            bool seekEveryTick = player->HasAura(BookOfShadra);
+            if (seekEveryTick || !GetAura()->GetScriptValue(GreenSalveSeekHeal))
             {
-                GetAura()->SetScriptValue(803529,1);
-                auto allies = Allies(player,target,Radius(803529));
+                GetAura()->SetScriptValue(GreenSalveSeekHeal,1);
+                auto allies = Allies(player,target,Radius(GreenSalveSeekHeal));
                 allies.remove(target);
                 if (!allies.empty())
-                    player->CastCustomSpell(803529,SPELLVALUE_BASE_POINT0,effect->GetAmount(),allies.front(),true);
+                    player->CastCustomSpell(GreenSalveSeekHeal,SPELLVALUE_BASE_POINT0,
+                        effect->GetAmount(),allies.front(),true);
             }
         }
         if (Named(GetSpellInfo(),706962) && slot == 1)
