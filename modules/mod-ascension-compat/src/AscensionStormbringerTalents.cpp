@@ -11,6 +11,7 @@
 #include "SpellMgr.h"
 #include "SpellScript.h"
 #include <list>
+#include <vector>
 
 namespace
 {
@@ -64,6 +65,24 @@ uint32 TalentProcChance(uint32 talent)
 {
     SpellInfo const* info = sSpellMgr->GetSpellInfo(talent);
     return info ? info->ProcChance : 0;
+}
+
+void ReduceRankCooldowns(Player* player, uint32 firstRank, int32 delta)
+{
+    if (!player || delta >= 0)
+        return;
+    std::vector<uint32> cooldowns;
+    for (auto const& entry : player->GetSpellCooldownMap())
+        if (sSpellMgr->GetFirstSpellInChain(entry.first) == firstRank)
+            cooldowns.push_back(entry.first);
+    for (uint32 spell : cooldowns)
+    {
+        uint32 remaining = player->GetSpellCooldownDelay(spell);
+        if (uint64(-int64(delta)) >= remaining)
+            player->RemoveSpellCooldown(spell, true);
+        else
+            player->ModifySpellCooldown(spell, delta);
+    }
 }
 
 uint32 StaticScaledChance(Player const* player, uint32 talent)
@@ -252,6 +271,28 @@ public:
     }
 };
 
+class spell_ascension_stormbringer_cooldown_reduction : public SpellScript
+{
+    PrepareSpellScript(spell_ascension_stormbringer_cooldown_reduction);
+
+    bool Load() override
+    {
+        return GetCaster()->IsPlayer() && GetCaster()->getClass() == CLASS_STORMBRINGER;
+    }
+
+    void Reduce(SpellEffIndex index)
+    {
+        PreventHitDefaultEffect(index);
+        ReduceRankCooldowns(GetHitPlayer(), uint32(GetSpellInfo()->Effects[index].MiscValue), GetEffectValue());
+    }
+
+    void Register() override
+    {
+        OnEffectHitTarget += SpellEffectFn(spell_ascension_stormbringer_cooldown_reduction::Reduce,
+            EFFECT_ALL, SPELL_EFFECT_ASCENSION_MODIFY_COOLDOWN);
+    }
+};
+
 class aura_ascension_barometric_pressure : public AuraScript
 {
     PrepareAuraScript(aura_ascension_barometric_pressure);
@@ -405,6 +446,7 @@ void AddSC_AscensionStormbringerTalents()
     new stormbringer_talent_casts();
     new stormbringer_pulse_conversion();
     new stormbringer_resource_contracts();
+    RegisterSpellScript(spell_ascension_stormbringer_cooldown_reduction);
     RegisterSpellScript(aura_ascension_barometric_pressure);
     RegisterSpellScript(aura_ascension_electrical_charge);
     RegisterSpellScript(aura_ascension_charged_conduit);
