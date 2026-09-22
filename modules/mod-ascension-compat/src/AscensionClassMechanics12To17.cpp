@@ -25,6 +25,16 @@ constexpr float BARBARIAN_GIANT_TOSSER_MINIMUM_DISTANCE = 20.0f;
 constexpr std::uint32_t SPELL_FELSWORN_TYRANTS_GAZE = 805240;
 constexpr std::uint32_t SPELL_FELSWORN_TYRANTS_GAZE_HEAL = 805241;
 
+constexpr std::uint32_t SPELL_STORMBRINGER_STATIC_ELECTRICITY = 524954;
+constexpr std::uint32_t NPC_STORMBRINGER_ELECTRIFIED_WATER = 310603;
+constexpr std::uint32_t STORMBRINGER_ELECTRIFIED_WATER_DURATION = 20000;
+
+constexpr std::array<SpellRange, 2> STORMBRINGER_TORRENTIAL_WRATH =
+{{
+    {503352, 503360},
+    {804017, 804017}
+}};
+
 constexpr std::array<SpellRange, 2> BARBARIAN_ANCESTRAL_STRIKE =
 {{
     {801576, 801576},
@@ -153,6 +163,19 @@ void HandleAscensionClassMechanics12To17Hit(Spell* spell, Player* player,
             {
                 player->CastSpell(player,
                     SPELL_FELSWORN_TYRANTS_GAZE_HEAL, true);
+            }
+            break;
+        }
+        case CLASS_STORMBRINGER:
+        {
+            if (critical && player->HasAura(SPELL_STORMBRINGER_STATIC_ELECTRICITY) &&
+                IsSpellInRanges(spellId, STORMBRINGER_TORRENTIAL_WRATH) &&
+                !spell->GetScriptValue(SPELL_STORMBRINGER_STATIC_ELECTRICITY))
+            {
+                spell->SetScriptValue(SPELL_STORMBRINGER_STATIC_ELECTRICITY, 1);
+                player->SummonCreature(NPC_STORMBRINGER_ELECTRIFIED_WATER,
+                    player->GetPosition(), TEMPSUMMON_TIMED_DESPAWN,
+                    STORMBRINGER_ELECTRIFIED_WATER_DURATION);
             }
             break;
         }
