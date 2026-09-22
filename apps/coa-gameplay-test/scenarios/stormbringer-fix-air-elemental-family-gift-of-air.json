@@ -61,6 +61,7 @@
     { "action": "learn", "actor": "s", "spell": 804035 },
     { "action": "set_aura", "actor": "s", "spell": 803102, "stacks": 100 },
     { "action": "set_aura", "actor": "s", "spell": 681016, "stacks": 1 },
+    { "action": "wait", "label": "Let the shared GCD (StartRecoveryCategory 133, 1000-1500 ms) clear before the next cast", "ms": 1701 },
     { "action": "cast", "actor": "s", "spell": 804035 },
     { "action": "assert", "label": "SETUP: Tailwind (804035) is up on the Stormbringer",
       "actor": "s", "metric": "aura", "spell": 804035, "equals": 1, "within_ms": 4000 },
