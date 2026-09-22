@@ -94,8 +94,8 @@ client-compatibility harness runs only for relevant changes or a full audit. The
 starts a server.
 
 CoA-owned code uses names, structure and tests to express intent. The comment check covers
-`src/server/coa/`, `apps/coa-tests/`, `apps/coa-bugreport/`, `apps/coa-dbc/`, `apps/coa-gameplay-test/`, `apps/coa-mechanics/`, `tools/`
-and `.github/scripts/`. It rejects explanatory comments and docstrings on added lines, while preserving legal
+`src/server/coa/`, `apps/coa-tests/`, `apps/coa-bugreport/`, `apps/coa-dbc/`, `apps/coa-gameplay-test/`,
+`apps/coa-mechanics/`, `tools/` and `.github/scripts/`. It rejects explanatory comments and docstrings on added lines, while preserving legal
 headers, recognized tool directives and native test-generator markers. Strings and runtime CLI help remain data.
 `python -B tools/check_comments.py --all` also checks unchanged C++ and Python files in those directories.
 Upstream source, dependencies, SQL and configuration documentation remain outside this check.
@@ -133,7 +133,7 @@ are required. The commands below run the runner directly (Windows example); Dock
 the [Compose test service](#linux-docker), which provides all of them.
 Build a matching test executable when needed. Adding the new source requires CMake
 reconfiguration before building; running an older binary will fail the readiness check.
-The module requires Boost.PropertyTree headers. Component-based vcpkg installations need
+The CoA server component requires Boost.PropertyTree headers. Component-based vcpkg installations need
 `boost-property-tree` for the same triplet as the existing Boost libraries. CMake checks this dependency.
 
 ```powershell
@@ -248,7 +248,7 @@ SQL updates), the live `DOCKER_VOL_ETC` configs are read-only sources, and `DOCK
 Its database environment variables override any stale connections in `worldserver.conf` or the environment file.
 If another Compose override changes the live schema names, mirror those names in this service's
 `AC_*_DATABASE_INFO` variables while retaining the loopback endpoint. Build the worldserver image from the same
-checkout first, with the runtime module and cache startup barrier; rebuild the test image after it. A mounted
+checkout first, with CoA and the cache startup barrier; rebuild the test image after it. A mounted
 source checkout does not update the compiled server. Prefer rebuilding only the required test targets.
 
 ```bash

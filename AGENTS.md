@@ -86,8 +86,9 @@ Read the relevant sections when needed for the work. Do not read every guide or 
 
 ## Modules
 
-External modules live in `modules/`, each with its sources in `src/`. Disable one with `-DMODULE_<NAME>=disabled`
-(for example `-DMODULE_MOD_SPELLBOOK=disabled`). See `modules/how_to_make_a_module.md`.
+External modules live in `modules/`, each with its sources in `src/`. Disable one with
+`-DMODULE_<DIRECTORY>=disabled`, the directory name in upper case with its hyphens (for example
+`-DMODULE_MOD-SPELLBOOK=disabled`). See `modules/how_to_make_a_module.md`.
 
 In this fork, CoA is a required server component in `src/server/coa/`, with focused tests in
 `apps/coa-tests/`. `modules/mod-ascension/data/sql/` keeps its historical SQL migrations only.

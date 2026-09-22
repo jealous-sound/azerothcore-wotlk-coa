@@ -17,8 +17,8 @@ realm needs from the rest of it, and what a reviewer should look at.
 | `src/server/game/Miscellaneous/LocalLevelScaling.h` | the shared rules: `CreatureEnabled`, `QuestEnabled`, `CreatureOffset{3}`, `ScaleCreatureLevel()`, `ScaleQuestLevel()` |
 | `src/server/game/Entities/Player/PlayerQuest.cpp:45` | `Player::GetQuestLevel` asks `ScaleQuestLevel(quest->GetQuestLevel(), GetLevel())` |
 | `src/server/game/Quests/QuestDef.cpp:202` | `Quest::XPValue` prices a quest at its scaled level |
-| `src/server/coa/AscensionCompat.cpp` (`AscensionCompatLevelScalingScript`, from line ~6064) | the creature half: lift the **object** |
-| `AscensionCompat.cpp:365-367` | config: `AscensionCompat.LevelScaling`, `AscensionCompat.QuestLevelScaling` |
+| `src/server/coa/AscensionCompat.cpp` (`AscensionCompatLevelScalingScript`, from line 5794) | the creature half: lift the **object** |
+| `AscensionCompat.cpp:335-337` | config: `AscensionCompat.LevelScaling`, `AscensionCompat.QuestLevelScaling` |
 
 The creature half in one paragraph, because everything else is a comparison with it: on
 `OnBeforeCreatureSelectLevel` the authored level is remembered in a per-guid map; on

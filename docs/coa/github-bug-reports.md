@@ -6,8 +6,9 @@ The existing Ascension Help UI submits local-realm reports to
 
 The local relay forwards reports to `https://coa-bug-report.up.railway.app/v1/reports`.
 The GitHub token stays in Railway. The distributed relay includes the separately
-configured intake API key, which grants access only to this report endpoint.
-The module remains disabled in its default configuration; deployment must enable it.
+configured intake API key, which grants access only to this report endpoint. The key
+ships in this public repository (`apps/coa-bugreport/relay.py`), so treat it as public.
+The feature is off by default (`CoABugReport.Enable = 0`); deployment must enable it.
 
 ## Player experience
 
@@ -75,7 +76,7 @@ chat hook; keep the spool on a local disk, not a network share.
 3. Install `coa_bugreport.conf` from the dist template into the server's module config
    directory. Set `CoABugReport.Enable = 1` and `CoABugReport.SpoolDirectory` to the
    absolute directory above. These settings are read at startup, not on config reload.
-4. Deploy the private `jealous-sound/coa-bug-report` service on Railway with
+4. Deploy the `jealous-sound/coa-bug-report` service on Railway with
    `GITHUB_TOKEN` and `REPORT_API_KEY`. The GitHub credential needs issue creation
    access to the fixed target repository and stays in Railway's environment.
    Set the same intake key in the distributed relay, or override its bundled value

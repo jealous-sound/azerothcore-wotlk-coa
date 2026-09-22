@@ -8,7 +8,7 @@ per-character system adds, and of what a port has to carry.
 
 ## Part 1 — Open World Scaling
 
-### Server, in modules
+### Server, in CoA and modules
 
 | file | what it holds |
 |---|---|
@@ -18,7 +18,7 @@ per-character system adds, and of what a port has to carry.
 | `modules/mod-destiny-weaver/src/destiny_weaver_xp.cpp` | Experience Bonus Control — the bonus experience sources (potions, auras, recruit-a-friend) stripped for a character who asked for the base rate |
 | `modules/mod-destiny-weaver/conf/destiny_weaver.conf.dist` | the keys below, with their defaults |
 | `src/server/coa/AscensionCompat.cpp` | includes `LocalLevelScaling.h`; hosts the realm-wide fallback lift that must stay **off** while this module owns scaling |
-| `modules/mod-destiny-weaver/src/destiny_weaver.h` | `CMSG_SET_LEVEL_SCALING = 0x0667`, claimed from the compat module's client-opcode dispatch (`AscensionCompatOpcodes::Claim`), so a client can toggle scaling without a menu |
+| `modules/mod-destiny-weaver/src/destiny_weaver.h` | `CMSG_SET_LEVEL_SCALING = 0x0667`, claimed from CoA's client-opcode dispatch (`AscensionCompatOpcodes::Claim`), so a client can toggle scaling without a menu |
 | `src/server/coa/AscensionCompatOpcodes.h` | the client-opcode dispatch and the atlas ids it agrees with |
 | `docs/coa/level-scaling.md` | the implementation reference (formulas, group rules, notifications, the hook-dispatch trap) |
 | `docs/coa/level-scaling-vs-main.md` | the comparison against `main`, the answer on their fixes, the multi-player and notification audits |
@@ -96,7 +96,7 @@ are the only ones with observed evidence:
 | **Tav'ral** (Orgrimmar) | 449350 | 9000012 | 1 (Kalimdor) | `1621.807, -4385.907, 12.541` | `1.1034` | 1478 (TrollMale) |
 | **Galrin Olemar** (Stormwind) | 449357 | 9000020 | 0 (Eastern Kingdoms) | `-8818.58, 671.774, 95.425` | `5.2` | 49 (HumanMale) |
 
-### Server, in modules
+### Server, in CoA and modules
 
 | file | what it holds |
 |---|---|
@@ -109,7 +109,7 @@ are the only ones with observed evidence:
 
 ### Server, the SQL that carries the data
 
-All under `src/azerothcore-wotlk-coa/data/sql/updates/pending_db_world/`, applied by the world
+All under `data/sql/updates/pending_db_world/`, applied by the world
 database updater on startup:
 
 | file | tables it writes |
@@ -142,7 +142,7 @@ database updater on startup:
 | `creature_model_info` | the bounding radius / combat reach for the display ids |
 | `creature` | the two spawns above; the other thirteen were deleted as invented |
 | `npc_text` | **30520** — the greeting the menu opens with (`Greetings, Hero. I offer two services to customize your adventure: …`); text 19175 points new characters at the Weaver |
-| `creaturedisplayinfo_dbc` / `creaturedisplayinfoextra_dbc` | the display and bake rows the stream sends; the extra table is empty in the database because the compat module builds the bake from the preset at runtime |
+| `creaturedisplayinfo_dbc` / `creaturedisplayinfoextra_dbc` | the display and bake rows the stream sends; the extra table is empty in the database because CoA builds the bake from the preset at runtime |
 
 ### Client
 

@@ -1,6 +1,9 @@
 # CoA server component
 
-CoA is a required server component of this AzerothCore fork. Its implementation
+CoA is the compatibility layer between AzerothCore and the Ascension 3.3.5a client:
+protocol adapters, account-wide collections, character advancement, custom classes
+and resources, and class corrections. It is a required server component of this
+AzerothCore fork. Its implementation
 is built by `src/server/coa/CMakeLists.txt`, independently of optional modules,
 and registered by `AddCoAScripts()` during worldserver script initialization.
 Class scripts continue to use the normal script APIs.
@@ -11,10 +14,11 @@ filenames and `etc/modules/` location are retained for existing deployments.
 Runtime configuration is supplied by `src/server/coa/conf/mod_ascension_compat.conf.dist`,
 not by committing live local credentials.
 
-CoA is licensed like the rest of this AzerothCore fork (see the root `LICENSE`);
-its source files carry AzerothCore's standard license header. The component's
-history before the move is reachable with `git log --follow`; keep its license
-headers and upstream attribution.
+This fork, CoA included, is licensed under the root `LICENSE` (GNU GPL v2), like
+AzerothCore. Most CoA source files still carry the short "GNU AGPL v3" notice from
+AzerothCore's module template; changing those notices needs the agreement of the
+code's contributors. The component's history before the move is reachable with
+`git log --follow`; keep its license notices and upstream attribution.
 
 Historical SQL lives in `modules/mod-ascension/data/sql/` (formerly
 `modules/mod-ascension-compat/`). The database updater tracks applied migrations
@@ -26,18 +30,18 @@ complete official gameplay parity. The canceled Retail/native-class experiment
 is absent.
 
 Canonical client files, generated candidates, runtime databases and deployment
-evidence remain in sibling workspace directories and are not part of this
-server repository. Use the corresponding generators in the workspace `tools`
-directory and preserve applied SQL hashes.
+evidence are kept outside this repository. Preserve applied SQL hashes.
 Do not run historical installers or clear client caches to compensate for a
 protocol, data or process problem.
 
 ## Client DBCs
 
-The worldserver reads the CoA client's DBC files from `<DataDir>/dbc`; for the default
-`acore.sh` install that is `env/dist/data/dbc`. Building the server does not need them,
-but running it and the CoA tests in `apps/coa-tests/` that read client data do. Put the
-extracted files there, or set `COA_DBC_DIR` when the tests should read another directory.
+The CoA client's DBC files belong in `env/dist/data/dbc`. The worldserver reads them
+from `<DataDir>/dbc`: the Docker setup already uses `env/dist/data`, and for a local
+`acore.sh` install set `DataDir` in `worldserver.conf` to that directory (its default
+`"."` is the directory the worldserver runs from). Building the server does not need
+them; running it and the CoA tests in `apps/coa-tests/` that read client data do. Set
+`COA_DBC_DIR` when the tests should read another directory.
 [`apps/coa-dbc`](../../apps/coa-dbc/README.md) extracts and checks them.
 
 ## World database installation
