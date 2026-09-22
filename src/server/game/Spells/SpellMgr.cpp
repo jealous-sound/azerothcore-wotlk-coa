@@ -796,7 +796,7 @@ void SpellMgr::GetSetOfSpellsInSpellGroup(SpellGroup group_id, std::set<uint32>&
 bool SpellMgr::IsEffectInSameEffectStackGroup(SpellInfo const* spellInfo, uint8 effectIndex, SpellGroup group) const
 {
     // CoA raid groups must not swallow a talent's separate personal effect.
-    return (group < 2000180 || group > 2000183 || spellInfo->Effects[effectIndex].IsAreaAuraEffect()) &&
+    return (group < 2000180 || group > 2000184 || spellInfo->Effects[effectIndex].IsAreaAuraEffect()) &&
         IsSpellMemberOfSpellGroup(spellInfo->GetFirstRankSpell()->Id, group);
 }
 
@@ -809,7 +809,7 @@ bool SpellMgr::AddSameEffectStackRuleSpellGroups(SpellInfo const* spellInfo, uin
         for (auto itr = spellGroupBounds.first; itr != spellGroupBounds.second; ++itr)
         {
             SpellGroup group = itr->second;
-            if ((group >= 2000180 && group <= 2000183) != dedicatedRaidGroup)
+            if ((group >= 2000180 && group <= 2000184) != dedicatedRaidGroup)
                 continue;
             auto found = mSpellSameEffectStack.find(group);
             if (found != mSpellSameEffectStack.end() && IsEffectInSameEffectStackGroup(spellInfo, effectIndex, group))
@@ -1874,6 +1874,7 @@ void SpellMgr::LoadSpellGroupStackRules()
             case 2000181: auraTypes = { SPELL_AURA_MOD_CRIT_PCT, SPELL_AURA_MOD_WEAPON_CRIT_PERCENT, SPELL_AURA_MOD_SPELL_CRIT_CHANCE }; break;
             case 2000182: auraTypes = { SPELL_AURA_MOD_MELEE_RANGED_HASTE, SPELL_AURA_HASTE_SPELLS }; break;
             case 2000183: auraTypes = { SPELL_AURA_ASCENSION_MOD_HIT_CHANCE_ALL_PCT, SPELL_AURA_MOD_HIT_CHANCE, SPELL_AURA_MOD_SPELL_HIT_CHANCE }; break;
+            case 2000184: auraTypes = { SPELL_AURA_MOD_DAMAGE_PERCENT_DONE }; break;
             default: break;
         }
         // Infer the effect for the existing native groups.
