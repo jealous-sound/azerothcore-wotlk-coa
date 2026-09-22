@@ -1,7 +1,7 @@
 /* Copyright (C) 2016+ AzerothCore, GNU AGPL v3. */
 #include "Creature.h"
+#include "MotionMaster.h"
 #include "ObjectAccessor.h"
-#include "PetAI.h"
 #include "Player.h"
 #include "ScriptMgr.h"
 #include "ScriptedCreature.h"
@@ -14,6 +14,7 @@ namespace
 {
 enum ElectrifiedWatersSpells : uint32
 {
+    SPELL_STATIC_ELECTRICITY = 524954,
     SPELL_ELECTRIFIED_WATERS = 573436,
     SPELL_ELECTRIFIED_REFUND = 573442
 };
@@ -31,6 +32,12 @@ bool DrowningByCaster(Unit* victim, ObjectGuid caster)
         if (victim->GetAura(rank, caster))
             return true;
     return false;
+}
+
+bool SummonsElectrifiedWater(Player* owner)
+{
+    return owner->getClass() == CLASS_STORMBRINGER &&
+        (owner->HasAura(SPELL_ELECTRIFIED_WATERS) || owner->HasAura(SPELL_STATIC_ELECTRICITY));
 }
 
 class aura_ascension_electrified_waters : public AuraScript
@@ -57,17 +64,41 @@ class aura_ascension_electrified_waters : public AuraScript
     }
 };
 
-struct npc_ascension_electrified_water_elemental : PetAI
+struct npc_ascension_electrified_water_elemental : ScriptedAI
 {
-    explicit npc_ascension_electrified_water_elemental(Creature* creature) : PetAI(creature) { }
+    explicit npc_ascension_electrified_water_elemental(Creature* creature) : ScriptedAI(creature) { }
+
+    bool dissipated = false;
+
+    void AttackStart(Unit*) override { }
+    void MoveInLineOfSight(Unit*) override { }
+    void EnterEvadeMode(EvadeReason) override { }
+
+    void IsSummonedBy(WorldObject* summoner) override
+    {
+        Player* owner = summoner ? summoner->ToPlayer() : nullptr;
+        if (!owner || !SummonsElectrifiedWater(owner))
+        {
+            me->DespawnOrUnsummon();
+            return;
+        }
+
+        me->SetOwnerGUID(owner->GetGUID());
+        me->SetFaction(owner->GetFaction());
+        me->SetLevel(owner->GetLevel());
+        me->SetReactState(REACT_PASSIVE);
+        me->GetMotionMaster()->Clear();
+        me->GetMotionMaster()->MoveIdle();
+    }
 
     void OnDespawn() override
     {
-        if (me->GetEntry() != NPC_ELECTRIFIED_WATER_ELEMENTAL)
+        if (dissipated || me->GetEntry() != NPC_ELECTRIFIED_WATER_ELEMENTAL)
             return;
+
+        dissipated = true;
         Player* owner = ObjectAccessor::GetPlayer(*me, me->GetOwnerGUID());
-        if (owner && owner->IsInWorld() && owner->getClass() == CLASS_STORMBRINGER &&
-            owner->HasAura(SPELL_ELECTRIFIED_WATERS))
+        if (owner && owner->IsInWorld() && owner->IsAlive() && SummonsElectrifiedWater(owner))
             owner->CastSpell(owner, SPELL_ELECTRIFIED_REFUND, true);
     }
 };

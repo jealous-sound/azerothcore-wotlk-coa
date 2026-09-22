@@ -26,14 +26,21 @@ INSERT INTO `spell_script_names` (`spell_id`, `ScriptName`) VALUES
 -- 310603 for the 20000 ms of SpellDuration 18. That creature had no template, so even a firing
 -- proc would have summoned nothing.
 --
+-- Static Electricity (524954 -> 573451, #1692) carries EffectTriggerSpell 573438 as well, so both
+-- talents summon this one entry and this file is its single definition.
+--
 -- Faction, unit class, creature type and family follow the Stormbringer's own Air Elemental
--- (500941). The script name carries the second tooltip clause: when the elemental dissipates it
--- casts 573442, whose SPELL_EFFECT_ASCENSION_MODIFY_COOLDOWN refunds 2000 ms of Drown.
+-- (500941). The level band is the summoner's level: Guardian::InitStats overrides it with the
+-- owner's level on the proc path, and the creature script sets the owner's level on the Static
+-- Electricity path, so 80 is only what an untouched row would show.
+--
+-- The script name carries the second tooltip clause, which both talents state: when the elemental
+-- dissipates it casts 573442, whose SPELL_EFFECT_ASCENSION_MODIFY_COOLDOWN refunds 2000 ms of Drown.
 INSERT INTO `creature_template`
   (`entry`, `name`, `minlevel`, `maxlevel`, `faction`, `unit_class`, `type`, `family`, `AIName`,
    `MovementType`, `ScriptName`)
 VALUES
-  (310603, 'Electrified Water Elemental', 1, 1, 35, 2, 4, 0, '', 0,
+  (310603, 'Electrified Water Elemental', 80, 80, 35, 2, 4, 0, '', 0,
    'npc_ascension_electrified_water_elemental')
 ON DUPLICATE KEY UPDATE
   `name` = VALUES(`name`), `minlevel` = VALUES(`minlevel`), `maxlevel` = VALUES(`maxlevel`),
