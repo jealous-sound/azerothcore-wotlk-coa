@@ -52,7 +52,8 @@ def inspect(sources):
                        'message': 'Loader is not a flat list of registrations; update the checker for this structure'})
     calls = defaultdict(list)
     for match in CALL.finditer(body):
-        calls[match[1]].append({'path': 'CoAScriptLoader.cpp', 'line': loader.count('\n', 0, start + match.start()) + 1})
+        line = loader.count('\n', 0, start + match.start()) + 1
+        calls[match[1]].append({'path': 'CoAScriptLoader.cpp', 'line': line})
     for name in sorted(definitions.keys() | calls.keys()):
         defined, called = definitions.get(name, []), calls.get(name, [])
         if len(defined) != 1 or len(called) != 1:

@@ -4,7 +4,6 @@ import importlib.util
 from pathlib import Path
 import sqlite3
 import struct
-import subprocess
 import tempfile
 import sys
 

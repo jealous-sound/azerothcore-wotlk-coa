@@ -44,7 +44,8 @@ def main():
                          'float Unit::GetTotalAuraMultiplier(AuraType auraType,')
     xp_value = extract(source('src/server/game/Quests/QuestDef.cpp'), 'uint32 Quest::XPValue')
     kills = source('src/server/game/Entities/Player/KillRewarder.cpp')
-    kills = kills[kills.index('bool const recruitAFriend'):kills.index('sScriptMgr->OnPlayerGiveXP')]
+    start = kills.index('bool const recruitAFriend')
+    kills = kills[start:kills.index('sScriptMgr->OnPlayerGiveXP', start)]
     manastorm = source('src/server/coa/AscensionManastorm.cpp')
     snapshot = manastorm[manastorm.index('bool const recruitAFriend'):]
     snapshot = snapshot[:snapshot.index('uint32 const xp')]

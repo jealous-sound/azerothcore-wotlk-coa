@@ -40,7 +40,8 @@ def main():
     initialization = initialization[:initialization.index("        me->SetReactState")] + "}"
     initialization = initialization.replace(" override", "")
     attack = method(unit, "bool Unit::_IsValidAttackTarget(")
-    attack = attack[attack.index("    if (target->HasUnitFlag(UNIT_FLAG_NON_ATTACKABLE"):attack.index("    ReputationRank repThisToTarget")]
+    start = attack.index("    if (target->HasUnitFlag(UNIT_FLAG_NON_ATTACKABLE")
+    attack = attack[start:attack.index("    ReputationRank repThisToTarget", start)]
     harness = (HERE / "harness.cpp").read_text(encoding="utf-8")
     for marker, code in (
         ("INITIALIZATION", initialization),

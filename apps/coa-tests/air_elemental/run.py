@@ -5,7 +5,6 @@ from pathlib import Path
 import re
 import sqlite3
 import struct
-import subprocess
 import tempfile
 import sys
 

@@ -45,7 +45,8 @@ class RegistrationTests(unittest.TestCase):
                             '"AddSC_Example();";', 'R"tag(AddSC_Example();)tag";']:
             with self.subTest(replacement=replacement):
                 sources = dict(self.sources)
-                sources['CoAScriptLoader.cpp'] = sources['CoAScriptLoader.cpp'].replace('    AddSC_Example();', replacement)
+                loader = sources['CoAScriptLoader.cpp']
+                sources['CoAScriptLoader.cpp'] = loader.replace('    AddSC_Example();', replacement)
                 self.assertEqual(inspect(sources)['status'], 'failed')
 
     def test_fake_definitions_in_literals_and_comments_are_ignored(self):

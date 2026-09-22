@@ -13,7 +13,6 @@ import unittest
 from coa_talent_catalog import catalog_text
 
 
-MODULE = Path(__file__).resolve().parents[2] / 'src/server/coa'
 CLIENT_ADDON = None
 DBC_DIR = None
 CATALOG = None

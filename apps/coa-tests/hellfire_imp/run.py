@@ -77,7 +77,8 @@ def main():
     imp = method(initialization, "if (me->GetEntry() == 50301)")
     unit = (ROOT / "src/server/game/Entities/Unit/Unit.cpp").read_text(encoding="utf-8")
     attack = method(unit, "bool Unit::_IsValidAttackTarget(")
-    attack = attack[attack.index("    if (target->HasUnitFlag(UNIT_FLAG_NON_ATTACKABLE"):attack.index("    ReputationRank repThisToTarget")]
+    start = attack.index("    if (target->HasUnitFlag(UNIT_FLAG_NON_ATTACKABLE")
+    attack = attack[start:attack.index("    ReputationRank repThisToTarget", start)]
     harness = (HERE.parent / "tinker_sentry/harness.cpp").read_text(encoding="utf-8")
     harness = harness[:harness.index("// ACTUAL_TIMER")].replace("// ACTUAL_ADMISSION", attack)
     harness += CASES.replace("// ACTUAL_IMP", imp)

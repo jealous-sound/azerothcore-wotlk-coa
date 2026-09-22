@@ -50,6 +50,11 @@ class SourceSelectionTests(unittest.TestCase):
                      'src/server/coa/nested/Example.cpp']:
             self.assertEqual(check_source.select([path])['checks'], ['registrations'])
 
+    def test_native_spell_layout_sources_select_dbc_and_mechanic_checks(self):
+        for path in ['src/server/shared/DataStores/DBCStructure.h', 'src/server/shared/DataStores/DBCfmt.h']:
+            with self.subTest(path=path):
+                self.assertTrue({'dbc', 'mechanics'} <= set(check_source.select([path])['checks']))
+
     def test_reviewed_execution_sources_select_map_integrity_checks(self):
         path = 'src/server/game/Handlers/QuestHandler.cpp'
         result = check_source.select([path], mechanic_sources=[path])

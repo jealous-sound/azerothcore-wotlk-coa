@@ -9,7 +9,6 @@ import importlib.util
 from pathlib import Path
 import re
 import struct
-import subprocess
 import tempfile
 import sys
 

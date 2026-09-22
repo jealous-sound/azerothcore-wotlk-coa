@@ -14,11 +14,11 @@
       "execution": [
         {
           "stage": "registration",
-          "interpretation": "The module loader registers the resource talent hooks.",
+          "interpretation": "The CoA script loader registers the resource talent hooks.",
           "source": {
             "path": "src/server/coa/CoAScriptLoader.cpp",
             "anchor": "    AddSC_AscensionResourceTalents();",
-            "reviewed_sha256": "43667ad384e22d7732efdf784a1a4167886849fcbe66aa0524306fb4bbc99981"
+            "reviewed_sha256": "23635e3fc02e9c76b8a74c330327e3e1b8cda0d509ba5d93dcd258655db0dcfc"
           }
         },
         {

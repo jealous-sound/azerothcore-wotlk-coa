@@ -21,6 +21,7 @@ DBC = 'apps/coa-dbc/'
 MECHANICS = 'apps/coa-mechanics/'
 COA = 'src/server/coa/'
 COA_TESTS = 'apps/coa-tests/'
+NATIVE_DBC = 'src/server/shared/DataStores/'
 CONTROL_FILES = {'tools/check_source.py', 'tools/test_source.py', '.github/workflows/quality.yml'}
 SUITES = {
     'source-tools': {
@@ -37,11 +38,13 @@ SUITES = {
         'commands': [['.github/scripts/test_label_issues.py']],
     },
     'dbc': {
-        'paths': [DBC + '*.py', DBC + 'coa-dbc-viewer', DBC + 'viewer.html', DBC + 'spell-layout.json'],
+        'paths': [DBC + '*.py', DBC + 'coa-dbc-viewer', DBC + 'viewer.html', DBC + 'spell-layout.json',
+                  NATIVE_DBC + 'DBCStructure.h', NATIVE_DBC + 'DBCfmt.h'],
         'commands': [[DBC + 'test_client_dbc.py'], [DBC + 'test_inspector.py'], [DBC + 'test_capture_sql.py']],
     },
     'mechanics': {
-        'paths': [MECHANICS + '*.py', MECHANICS + '*.json', DBC + '*.py', DBC + 'spell-layout.json', GAMEPLAY + '*.py', GAMEPLAY + '*.json'],
+        'paths': [MECHANICS + '*.py', MECHANICS + '*.json', DBC + '*.py', DBC + 'spell-layout.json',
+                  NATIVE_DBC + 'DBCStructure.h', NATIVE_DBC + 'DBCfmt.h', GAMEPLAY + '*.py', GAMEPLAY + '*.json'],
         'commands': [[MECHANICS + 'test_mechanic_map.py'], [MECHANICS + 'mechanic_map.py', 'check']],
     },
     'gameplay': {
