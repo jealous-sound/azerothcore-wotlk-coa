@@ -52,6 +52,7 @@ enum DoctorSpells : uint32
     HexfireReady = 503626,
     HexfireAdept = 704500,
     BadJuju = 802087,
+    PuppeteersGrasp = 707209,
     MarkOfMalice = 802926,
     Shadowflare = 801669,
     ShadowflareHit = 802704,

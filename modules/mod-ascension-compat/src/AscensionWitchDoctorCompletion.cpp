@@ -207,6 +207,8 @@ void ApplyContracts(SpellInfo* info)
     };
     if (id == Shadowhunter)
         dummy(EFFECT_1);
+    if (id == PuppeteersGrasp)
+        dummy(EFFECT_0);
     if ((id == ChosenOne || id == MojoHigh) &&
         info->Effects[EFFECT_0].ApplyAuraName == SPELL_AURA_ADD_FLAT_MODIFIER &&
         info->Effects[EFFECT_0].MiscValue == SPELLMOD_EFFECT3)
