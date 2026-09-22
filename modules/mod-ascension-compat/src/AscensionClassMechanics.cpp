@@ -24,6 +24,7 @@
 #include "AscensionVenomancer.h"
 #include "AscensionTinker.h"
 #include "AscensionSunCleric.h"
+#include "AscensionStormbringer.h"
 #include "AscensionSunClericRadiance.h"
 #include "AscensionConditionalCombat.h"
 #include "AscensionRunemasterGlyphs.h"
@@ -1083,6 +1084,7 @@ void ApplyAscensionClassMechanics(SpellInfo* spellInfo)
     AscensionVenomancer::ApplyContracts(spellInfo);
     AscensionTinker::ApplyContracts(spellInfo);
     AscensionSunCleric::ApplyContracts(spellInfo);
+    AscensionStormbringer::ApplyContracts(spellInfo);
     ApplyAscensionConditionalCombatContracts(spellInfo);
     ApplyAscensionRunemasterGlyphContracts(spellInfo);
     ApplyAscensionRunemasterBrandContracts(spellInfo);
