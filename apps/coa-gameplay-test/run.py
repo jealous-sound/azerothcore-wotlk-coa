@@ -35,7 +35,8 @@ METRICS = {
     'aura', 'aura_stacks', 'aura_charges', 'aura_duration_ms', 'aura_amount', 'aura_positive',
     'knows_spell', 'has_talent', 'talent_points', 'cooldown_ms', 'global_cooldown_ms', 'spell_charges',
     'action_button', 'item_count', 'carried_item_count', 'bank_bag_slots', 'bank_shows', 'system_messages',
-    'taxi_node', 'pet_entry', 'pet_aura_stacks', 'pet_is_banker', 'pet_display', 'pet_scale', 'owned_creature_count',
+    'taxi_node', 'pet_entry', 'pet_aura_stacks', 'pet_aura_duration_ms', 'pet_is_banker', 'pet_display',
+    'pet_scale', 'owned_creature_count',
     'charm_entry', 'charm_aura_stacks', 'controls_self', 'private_instance',
     'dynamic_object', 'dynamic_object_duration_ms', 'gossip_options',
     'owned_gameobject_count', 'gameobject_remaining_ms', 'at_homebind',
@@ -85,7 +86,8 @@ PLAYER_STAT_METRICS = {
     'aoe_damage_taken', 'reputation_gain', 'spell_immune', 'spell_effect_immune', 'melee_attack_count',
     'spell_damage_count', 'spell_damage_total', 'spell_uses_armor',
     'spell_heal_count', 'spell_heal_total', 'spell_effective_heal_total',
-    'pet_aura_amount', 'pet_aura_amplitude_ms', 'pet_max_health', 'pet_attack_power', 'pet_run_speed_rate',
+    'pet_aura_amount', 'pet_aura_amplitude_ms', 'pet_aura_duration_ms', 'pet_max_health', 'pet_attack_power',
+    'pet_run_speed_rate',
 }
 METRIC_FIELDS = {'actor', 'metric', 'spell', 'power', 'caster', 'effect', 'item', 'entry', 'button',
                  'relative_to', 'ratio_to', 'target', 'quest', 'id', 'stat', 'school', 'hand', 'rating', 'op',
@@ -349,7 +351,7 @@ def validate(scenario):
                         f'{where}: quest metric needs a player and quest')
             if metric.startswith('aura') or metric in {
                     'knows_spell', 'cooldown_ms', 'global_cooldown_ms', 'spell_charges', 'cast_remaining_ms', 'has_talent',
-                    'pet_aura_stacks', 'charm_aura_stacks',
+                    'pet_aura_stacks', 'pet_aura_duration_ms', 'charm_aura_stacks',
                     'dynamic_object', 'dynamic_object_duration_ms', 'spell_power_cost',
                     'spell_damage_done', 'spell_damage_taken', 'spell_healing_taken', 'spell_hit_bonus_taken',
                     'spell_cast_count', 'spell_go_count', 'spell_modifier', 'spell_cast_time_ms',

@@ -521,6 +521,7 @@ submits that spell again).
 `pet_aura_stacks`
 requires `spell`, accepts `caster` for aura ownership, and returns zero if the pet or aura is absent.
 `pet_aura_amount` and `pet_aura_amplitude_ms` accept `effect` and read its amount or tick interval.
+`pet_aura_duration_ms` reads the same pet aura's remaining duration, and returns zero if the pet or aura is absent.
 `spell_energize_count` and `spell_energize_total` observe native instant and periodic energize logs, excluding
 ordinary regeneration. They require `spell`; optional `power`, `target`, `pet` and `target_pet` filter
 resource type, recipient and current pets. The total is the logged nominal gain before the resource cap.

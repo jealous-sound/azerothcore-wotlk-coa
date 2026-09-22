@@ -1625,9 +1625,10 @@ private:
             auto const found = reasons.find(spell);
             return found == reasons.end() ? 0.0 : double(found->second);
         }
-        if (metric == "pet_entry" || metric == "pet_aura_stacks" || metric == "pet_aura_amount" || metric == "pet_aura_amplitude_ms" ||
-            metric == "pet_max_health" || metric == "pet_attack_power" || metric == "pet_run_speed_rate" ||
-            metric == "pet_is_banker" || metric == "pet_display" || metric == "pet_scale")
+        if (metric == "pet_entry" || metric == "pet_aura_stacks" || metric == "pet_aura_amount" ||
+            metric == "pet_aura_amplitude_ms" || metric == "pet_aura_duration_ms" || metric == "pet_max_health" ||
+            metric == "pet_attack_power" || metric == "pet_run_speed_rate" || metric == "pet_is_banker" ||
+            metric == "pet_display" || metric == "pet_scale")
         {
             Creature* pet = player->GetGuardianPet();
             if (!pet)
@@ -1642,7 +1643,8 @@ private:
                 return pet ? pet->GetDisplayId() : 0;
             if (metric == "pet_scale")
                 return pet ? double(pet->GetObjectScale()) : 0.0;
-            if (!pet && (metric == "pet_aura_stacks" || metric == "pet_aura_amount" || metric == "pet_aura_amplitude_ms"))
+            if (!pet && (metric == "pet_aura_stacks" || metric == "pet_aura_amount" ||
+                metric == "pet_aura_amplitude_ms" || metric == "pet_aura_duration_ms"))
                 return 0;
             Require(pet != nullptr, "Metric needs a current pet");
             if (metric == "pet_max_health")
@@ -1663,6 +1665,8 @@ private:
                 return metric == "pet_aura_amount" ? aura->GetEffect(effect)->GetAmount() :
                     aura->GetEffect(effect)->GetAmplitude();
             }
+            if (metric == "pet_aura_duration_ms")
+                return aura ? aura->GetDuration() : 0;
             return aura ? aura->GetStackAmount() : 0;
         }
         if (metric == "cooldown_ms")

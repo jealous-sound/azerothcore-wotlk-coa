@@ -213,6 +213,8 @@ constexpr uint32 SPELL_PYROMANCER_EMBER = 807533;
 constexpr uint32 SPELL_PRIMALIST_EARTHSHAPING = 680441;
 constexpr uint32 SPELL_STORMBRINGER_STATIC = 803102;
 constexpr uint32 SPELL_STORMBRINGER_CHARGED_CONDUIT = 803790;
+constexpr uint32 SPELL_STORMBRINGER_WRATH_OF_ALAKIR = 300834;
+constexpr uint32 SPELL_STORMBRINGER_UNSHACKLE_EXTENSION = 300835;
 constexpr uint32 SPELL_BLOODMAGE_THIRST_PASSIVE = 92112;
 constexpr uint32 SPELL_BLOODMAGE_THIRST = 706613;
 constexpr uint32 SPELL_REAPER_REAPED_SOUL = 500363;
@@ -2402,11 +2404,13 @@ public:
                 AscensionCompatData::ResourceConsumption::Fixed)
             {
                 ModifyAuraStacks(player, rule.ResourceSpellId, -rule.Amount);
+                ExtendUnshackleOnStaticDepleted(player, rule);
             }
             else if (rule.Consumption ==
                      AscensionCompatData::ResourceConsumption::All)
             {
                 player->RemoveAurasDueToSpell(rule.ResourceSpellId);
+                ExtendUnshackleOnStaticDepleted(player, rule);
             }
             break;
         }
@@ -2876,6 +2880,17 @@ private:
             external = true;
         }
         return external;
+    }
+
+    static void ExtendUnshackleOnStaticDepleted(Player* player,
+        AscensionCompatData::ResourceCostRule const& rule)
+    {
+        if (rule.ClassId != CLASS_STORMBRINGER ||
+            rule.ResourceSpellId != SPELL_STORMBRINGER_STATIC ||
+            !player->HasSpell(SPELL_STORMBRINGER_WRATH_OF_ALAKIR))
+            return;
+
+        player->CastSpell(player, SPELL_STORMBRINGER_UNSHACKLE_EXTENSION, true);
     }
 
     static void ConsumeReaperSouls(Player* player, Spell* spell)
