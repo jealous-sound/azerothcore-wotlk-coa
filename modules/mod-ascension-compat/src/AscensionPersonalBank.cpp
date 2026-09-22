@@ -61,10 +61,6 @@ constexpr uint8 BANK_SLOTS = GUILD_BANK_MAX_SLOTS;
 constexpr uint8 OWNER_CHARACTER = 0;
 constexpr uint8 OWNER_REALM = 1;
 
-// Optional observer fired on every withdrawal (item out of the bank, or money taken out).
-// Another module (mod-coa-challenges) sets it to gate trial activation on bank use.
-std::function<void(Player*, uint8)> g_withdrawHook;
-
 /// The row a bank lives in.
 ///
 /// The character's own bank is keyed by that character. The realm bank is keyed by the account,
@@ -934,9 +930,8 @@ void HandleSwapItems(Player* player, OpenBank& bank, WorldPacket const& packet)
                 WithdrawToPlayer(player, bank, uint8(swap.BankTab), uint8(swap.BankSlot),
                                  swap.ContainerSlot, swap.ContainerItemSlot,
                                  uint32(std::max<int32>(0, swap.StackCount)), swap.AutoStore);
-                if (g_withdrawHook)
-                    g_withdrawHook(player, bank.OwnerKind == OWNER_REALM
-                        ? AscensionPersonalBank::REALM : AscensionPersonalBank::PERSONAL);
+                sScriptMgr->OnPlayerBankWithdraw(player, bank.OwnerKind == OWNER_REALM
+                    ? AscensionPersonalBank::REALM : AscensionPersonalBank::PERSONAL);
             }
             else
                 DepositToBank(player, bank, swap.ContainerSlot, swap.ContainerItemSlot,
@@ -975,9 +970,8 @@ void HandleWithdrawMoney(Player* player, OpenBank& bank, WorldPacket const& pack
             StoreMoney(bank);
             SendTabChanged(player, bank, 0);
             LogBankEvent(bank, GUILD_BANK_LOG_WITHDRAW_MONEY, 0, player, withdraw.Money, 0);
-            if (g_withdrawHook)
-                g_withdrawHook(player, bank.OwnerKind == OWNER_REALM
-                    ? AscensionPersonalBank::REALM : AscensionPersonalBank::PERSONAL);
+            sScriptMgr->OnPlayerBankWithdraw(player, bank.OwnerKind == OWNER_REALM
+                ? AscensionPersonalBank::REALM : AscensionPersonalBank::PERSONAL);
         });
 }
 
@@ -1139,11 +1133,6 @@ void HandleWithdrawAllowanceQuery(Player* player, OpenBank& /*bank*/, WorldPacke
 
 namespace AscensionPersonalBank
 {
-    void SetWithdrawHook(std::function<void(Player*, uint8 kind)> hook)
-    {
-        g_withdrawHook = std::move(hook);
-    }
-
     void SendKindHint(Player* player, uint8 kind)
 {
     // Two flags, read in this order by the client's GetBankPermissions().

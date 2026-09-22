@@ -953,6 +953,11 @@ bool ScriptMgr::OnPlayerCanEnterManastorm(Player* player)
     CALL_ENABLED_BOOLEAN_HOOKS(PlayerScript, PLAYERHOOK_CAN_ENTER_MANASTORM, !script->OnPlayerCanEnterManastorm(player));
 }
 
+void ScriptMgr::OnPlayerBankWithdraw(Player* player, uint8 kind)
+{
+    CALL_ENABLED_HOOKS(PlayerScript, PLAYERHOOK_ON_BANK_WITHDRAW, script->OnPlayerBankWithdraw(player, kind));
+}
+
 bool ScriptMgr::OnPlayerEnvironmentalDamage(Player* player, uint32 type, uint32 damage)
 {
     CALL_ENABLED_BOOLEAN_HOOKS(PlayerScript, PLAYERHOOK_ON_PLAYER_ENVIRONMENTAL_DAMAGE, !script->OnPlayerEnvironmentalDamage(player, type, damage));

@@ -233,6 +233,7 @@ enum PlayerHook
     PLAYERHOOK_ON_CAN_ENERGIZE,
     PLAYERHOOK_ON_GET_MAX_ALLOWED_LEVEL,
     PLAYERHOOK_ON_BANKER_ACTIVATE,
+    PLAYERHOOK_ON_BANK_WITHDRAW,
     PLAYERHOOK_END
 };
 
@@ -854,6 +855,10 @@ public:
      * @return true if player is allowed to enter the Manastorm
      */
     virtual bool OnPlayerCanEnterManastorm(Player* /*player*/) { return true; }
+
+    // Called when a player withdraws from a bank the Ascension personal/realm bank items
+    // open (an item moved out, or money taken out). `kind`: 0 = personal, 1 = realm.
+    virtual void OnPlayerBankWithdraw(Player* /*player*/, uint8 /*kind*/) { }
 
     /**
      * @brief This hook is called when a player is about to take environmental damage.

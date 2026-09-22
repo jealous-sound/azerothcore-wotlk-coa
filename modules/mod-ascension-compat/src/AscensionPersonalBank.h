@@ -5,8 +5,6 @@
 #include "Define.h"
 #include "ObjectGuid.h"
 
-#include <functional>
-
 class Player;
 class WorldPacket;
 
@@ -43,11 +41,6 @@ namespace AscensionPersonalBank
     /// realm-wide one, which is the only difference between the two vouchers. Returns false
     /// when that bank already owns every tab.
     bool AddTab(Player* player, uint8 kind);
-
-    /// Registers an observer fired on every withdrawal: an item moved out of the bank, or
-    /// money taken out. `kind` is PERSONAL or REALM. Lets other systems (e.g.
-    /// mod-coa-challenges' OUTSIDE_INTERACTION gate) react without owning the bank.
-    void SetWithdrawHook(std::function<void(Player*, uint8 kind)> hook);
 
     /// Tells the frame which bank it is looking at, which is what puts it in its personal
     /// presentation. The frame's BANK_PERMISSIONS_PAYLOAD hook also re-selects its first tab
