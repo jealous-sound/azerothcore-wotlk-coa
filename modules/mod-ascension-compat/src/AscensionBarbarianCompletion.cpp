@@ -291,7 +291,18 @@ class barbarian_casts : public AllSpellScript
 {
 public:
     barbarian_casts() : AllSpellScript("barbarian_casts", { ALLSPELLHOOK_ON_CAST, ALLSPELLHOOK_ON_CALCULATED_TARGET,
-        ALLSPELLHOOK_ON_SUCCESSFUL_INTERRUPT, ALLSPELLHOOK_ON_SPELL_CHECK_CAST, ALLSPELLHOOK_ON_BEFORE_EFFECTS }) { }
+        ALLSPELLHOOK_ON_SUCCESSFUL_INTERRUPT, ALLSPELLHOOK_ON_SPELL_CHECK_CAST, ALLSPELLHOOK_ON_BEFORE_EFFECTS,
+        ALLSPELLHOOK_ON_CALC_MAX_DURATION }) { }
+
+    void OnCalcMaxDuration(Aura const* aura, int32& duration) override
+    {
+        // 705170 (Unrelenting rank 2) ships with DurationIndex 0 (no DBC duration
+        // entry) but, unlike rank 1, isn't SPELL_ATTR0_PASSIVE, so the engine's own
+        // passive/no-duration-entry fallback in Aura::CalcMaxDuration never applies,
+        // and every aura it grants is created with 0ms and expires immediately.
+        if (aura && aura->GetId() == 705170)
+            duration = -1;
+    }
 
     void OnSpellBeforeEffects(Spell* spell, Unit* caster, SpellInfo const* info) override
     {
