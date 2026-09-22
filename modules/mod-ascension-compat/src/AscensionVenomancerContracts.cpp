@@ -105,6 +105,10 @@ void ApplyContracts(SpellInfo* info)
         // Empowered Exoskeleton: the +5 yd is a SPELLMOD_RANGE, but Chitin Rush has range 0 and travels its
         // effect radius (CHARGE_DEST, 20 yd), which only SPELLMOD_RADIUS moves (SpellEffectInfo::CalcRadius).
         info->Effects[1].MiscValue = SPELLMOD_RADIUS;
+    if (id == 705977 || id == 705989)
+        // Stinging Chitin / Rapid Injection: the shipped DBC leaves these learn-granted passives without
+        // SPELL_ATTR0_PASSIVE, so Player::_addSpell never auto-casts them (Player.cpp IsPassive() gate).
+        info->Attributes |= SPELL_ATTR0_PASSIVE;
     if (id == 803216)
         info->Effects[1].ApplyAuraName = SPELL_AURA_230;
     if (id == 805139)

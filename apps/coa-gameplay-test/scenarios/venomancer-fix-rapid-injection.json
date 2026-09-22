@@ -71,6 +71,15 @@
     },
     {
       "action": "assert",
+      "label": "DIAGNOSTIC: Rapid Injection is applied as a passive aura after learn",
+      "actor": "v",
+      "metric": "aura",
+      "spell": 705989,
+      "within_ms": 3000,
+      "equals": 1
+    },
+    {
+      "action": "assert",
       "label": "Rapid Injection shortens the Wicked Poison tick to 1050 ms",
       "actor": "v",
       "metric": "spell_modifier",
