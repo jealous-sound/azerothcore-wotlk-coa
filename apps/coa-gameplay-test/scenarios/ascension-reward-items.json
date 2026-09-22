@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "name": "Rune of Ascension Pouch payout",
+  "contract": "A Rune of Ascension Pouch is consumed once and pays the amount its own name states into the Currency tab (Rune of Ascension, item 375250). The click that opens it is the one a client sends for an item that has loot: CMSG_OPEN_ITEM, not CMSG_USE_ITEM, and no loot window may appear for it.",
+  "players": [
+    { "id": "opener", "race": 1, "class": 1, "level": 80 }
+  ],
+  "steps": [
+    { "action": "wait", "ms": 5000 },
+
+    { "action": "add_item", "actor": "opener", "item": 509896 },
+    { "action": "assert", "actor": "opener", "metric": "item_count", "item": 509896, "equals": 1 },
+    { "action": "assert", "actor": "opener", "metric": "token_count", "item": 375250, "equals": 0 },
+    { "action": "open_item", "actor": "opener", "item": 509896 },
+    { "action": "assert", "label": "the pouch is spent", "actor": "opener",
+      "metric": "item_count", "item": 509896, "equals": 0, "within_ms": 2000 },
+    { "action": "assert", "label": "52,000 runes reach the Currency tab", "actor": "opener",
+      "metric": "token_count", "item": 375250, "equals": 52000, "within_ms": 2000 },
+
+    { "action": "add_item", "actor": "opener", "item": 509872 },
+    { "action": "open_item", "actor": "opener", "item": 509872 },
+    { "action": "assert", "label": "a second pouch pays its own amount on top", "actor": "opener",
+      "metric": "item_count", "item": 509872, "equals": 0, "within_ms": 2000 },
+    { "action": "assert", "label": "the amounts add up (12,500 + 52,000)", "actor": "opener",
+      "metric": "token_count", "item": 375250, "equals": 64500, "within_ms": 2000 },
+
+    { "action": "add_item", "actor": "opener", "item": 509897 },
+    { "action": "open_item", "actor": "opener", "item": 509897 },
+    { "action": "assert", "label": "the largest ladder rung is read from its own name", "actor": "opener",
+      "metric": "token_count", "item": 375250, "equals": 129500, "within_ms": 2000 }
+  ]
+}
