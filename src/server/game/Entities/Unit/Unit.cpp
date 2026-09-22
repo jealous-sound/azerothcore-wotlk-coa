@@ -5800,7 +5800,7 @@ bool Unit::HasManastormMovementGrace() const
     return false;
 }
 
-void Unit::RemoveAurasWithInterruptFlags(uint32 flag, uint32 except, bool isAutoshot /*= false*/)
+void Unit::RemoveAurasWithInterruptFlags(uint32 flag, uint32 except, bool isAutoshot /*= false*/, SpellInfo const* bySpell /*= nullptr*/)
 {
     if (!(m_interruptMask & flag))
         return;
@@ -5830,7 +5830,8 @@ void Unit::RemoveAurasWithInterruptFlags(uint32 flag, uint32 except, bool isAuto
     {
         uint32 const channelFlags = HasManastormMovementGrace() || CanCastSpellWhileMoving(spell->GetSpellInfo())
             ? flag & ~(AURA_INTERRUPT_FLAG_MOVE | AURA_INTERRUPT_FLAG_TURNING) : flag;
-        if (spell->getState() == SPELL_STATE_CASTING && (spell->m_spellInfo->ChannelInterruptFlags & channelFlags) && spell->m_spellInfo->Id != except)
+        if (spell->getState() == SPELL_STATE_CASTING && (spell->m_spellInfo->ChannelInterruptFlags & channelFlags) && spell->m_spellInfo->Id != except &&
+            !(bySpell && CanCastDuringChannel(bySpell)))
         {
             // Do not interrupt if auto shot
             if (!(isAutoshot && spell->m_spellInfo->HasAttribute(SPELL_ATTR2_DO_NOT_RESET_COMBAT_TIMERS)))

@@ -3701,8 +3701,8 @@ SpellCastResult Spell::prepare(SpellCastTargets const* targets, AuraEffect const
                 exceptSpellId = m_spellInfo->Id;
             }
 
-            m_caster->RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_CAST, exceptSpellId, m_spellInfo->Id == 75);
-            m_caster->RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_SPELL_ATTACK, exceptSpellId, m_spellInfo->Id == 75);
+            m_caster->RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_CAST, exceptSpellId, m_spellInfo->Id == 75, m_spellInfo);
+            m_caster->RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_SPELL_ATTACK, exceptSpellId, m_spellInfo->Id == 75, m_spellInfo);
         }
 
         m_caster->SetCurrentCastedSpell(this);
