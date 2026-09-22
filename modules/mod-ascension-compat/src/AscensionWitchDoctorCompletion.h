@@ -55,6 +55,7 @@ enum DoctorSpells : uint32
     MarkOfMalice = 802926,
     Shadowflare = 801669,
     ShadowflareHit = 802704,
+    OverflowingJuju = 707405,
     DarkIncantation = 525377,
     Puppets = 500015,
     PuppetHit = 801797,

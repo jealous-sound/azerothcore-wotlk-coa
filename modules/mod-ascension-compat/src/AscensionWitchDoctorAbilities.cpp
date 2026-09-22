@@ -403,8 +403,29 @@ class witch_doctor_casts : public AllSpellScript
         SyncReplacements(player);
     }
 };
+
+class witch_doctor_spell_contracts : public GlobalScript
+{
+  public:
+    witch_doctor_spell_contracts()
+        : GlobalScript("witch_doctor_spell_contracts", {GLOBALHOOK_ON_LOAD_SPELL_CUSTOM_ATTR})
+    {
+    }
+
+    void OnLoadSpellCustomAttr(SpellInfo* info) override
+    {
+        if (!info || info->Id != OverflowingJuju)
+            return;
+
+        if (info->Effects[EFFECT_0].ApplyAuraName == SPELL_AURA_ADD_PCT_MODIFIER &&
+            info->Effects[EFFECT_0].MiscValue == SPELLMOD_BONUS_MULTIPLIER &&
+            info->Effects[EFFECT_0].SpellClassMask == flag96(4, 33792, 0))
+            info->Effects[EFFECT_0].SpellClassMask = flag96(4 | 1024, 33792, 0);
+    }
+};
 }
 void AddAscensionWitchDoctorAbilityScripts()
 {
     new witch_doctor_casts();
+    new witch_doctor_spell_contracts();
 }
