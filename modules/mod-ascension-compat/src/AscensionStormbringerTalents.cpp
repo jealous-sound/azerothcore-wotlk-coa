@@ -43,7 +43,10 @@ enum StormbringerTalentSpells : uint32
     SPELL_VOLT = 500928,
     SPELL_FORKED_LIGHTNING = 801851,
     SPELL_NEVER_STRIKES_TWICE = 804828,
-    SPELL_ELECTROCUTE = 801844
+    SPELL_ELECTROCUTE = 801844,
+    SPELL_STORMBREAKER = 705669,
+    SPELL_PULSE_CONVERSION = 707619,
+    SPELL_PULSE_CONVERSION_HEAL = 504830
 };
 
 constexpr int32 ASCENSION_SPELLMOD_BONUS_MULTIPLIER = 41;
@@ -180,6 +183,30 @@ public:
             spell->SetScriptValue(SPELL_STATIC, 1);
             player->CastSpell(player, SPELL_GENERATE_STATIC_20, true);
         }
+    }
+};
+
+class stormbringer_pulse_conversion : public AllSpellScript
+{
+public:
+    stormbringer_pulse_conversion() : AllSpellScript("stormbringer_pulse_conversion",
+        {ALLSPELLHOOK_ON_SUCCESSFUL_DISPEL}) { }
+
+    void OnSpellSuccessfulDispel(Spell* spell, Unit* target, SpellEffIndex effect, uint32 count) override
+    {
+        Unit* caster = spell->GetCaster();
+        SpellInfo const* info = spell->GetSpellInfo();
+        if (!count || !target || !caster->IsPlayer() || caster->getClass() != CLASS_STORMBRINGER ||
+            info->Id != SPELL_STORMBREAKER || info->SpellFamilyName != 22 ||
+            info->Effects[effect].MiscValue != DISPEL_MAGIC ||
+            !caster->HasAura(SPELL_PULSE_CONVERSION, caster->GetGUID()))
+            return;
+        SpellInfo const* heal = sSpellMgr->GetSpellInfo(SPELL_PULSE_CONVERSION_HEAL);
+        if (!heal)
+            return;
+        int32 amount = int32(caster->CountPctFromMaxHealth(heal->Effects[EFFECT_0].CalcValue()));
+        caster->CastCustomSpell(SPELL_PULSE_CONVERSION_HEAL, SPELLVALUE_BASE_POINT0, amount, caster,
+            TRIGGERED_FULL_MASK);
     }
 };
 
@@ -347,6 +374,7 @@ class aura_ascension_charged_conduit : public AuraScript
 void AddSC_AscensionStormbringerTalents()
 {
     new stormbringer_talent_casts();
+    new stormbringer_pulse_conversion();
     new stormbringer_resource_contracts();
     RegisterSpellScript(aura_ascension_barometric_pressure);
     RegisterSpellScript(aura_ascension_electrical_charge);
