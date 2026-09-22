@@ -25,6 +25,7 @@
     { "action": "assert", "label": "BASELINE: Drown is on its 60000 ms category cooldown",
       "actor": "storm", "metric": "cooldown_ms", "spell": 806407, "min": 50000, "within_ms": 3000 },
     { "action": "wait", "ms": 1701 },
+    { "action": "set_aura", "actor": "storm", "spell": 803102, "stacks": 100 },
     { "action": "cast", "actor": "storm", "spell": 503359, "target": "dummy" },
     { "action": "assert", "label": "SETUP: Torrential Wrath lands as a critical strike",
       "actor": "storm", "metric": "spell_damage_count", "spell": 503359, "critical": true, "equals": 1, "within_ms": 8000 },
