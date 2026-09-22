@@ -37,6 +37,7 @@ enum AirElementalEntries : uint32
 enum StormbringerSpellFamily : uint32
 {
     SPELL_FAMILY_STORMBRINGER = 22,
+    FAMILY_MASK_GALE = 0x4000,
     FAMILY_MASK_KISS_OF_THE_CLOUDS = 0x100000
 };
 
@@ -62,6 +63,13 @@ Pet* EmpoweredAirElemental(Player* owner)
     Pet* pet = owner ? owner->GetPet() : nullptr;
     return pet && pet->GetEntry() == NPC_AIR_ELEMENTAL && pet->IsAlive() && pet->IsInWorld() &&
         owner->IsInMap(pet) && owner->InSamePhase(pet) ? pet : nullptr;
+}
+
+Pet* EchoingAirElemental(Player* owner, Unit* victim)
+{
+    Pet* pet = EmpoweredAirElemental(owner);
+    return pet && victim && pet->IsInMap(victim) && pet->InSamePhase(victim) &&
+        pet->IsValidAttackTarget(victim) ? pet : nullptr;
 }
 
 class stormbringer_pet_lifecycle : public PlayerScript
@@ -152,6 +160,39 @@ class aura_ascension_air_invigoration : public AuraScript
         DoCheckProc += AuraCheckProcFn(aura_ascension_air_invigoration::CheckProc);
         OnEffectProc += AuraEffectProcFn(aura_ascension_air_invigoration::Invigorate,
             EFFECT_0, SPELL_AURA_PROC_TRIGGER_SPELL);
+    }
+};
+
+class aura_ascension_enveloping_winds : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_enveloping_winds);
+
+    static bool IsGale(SpellInfo const* info)
+    {
+        return info && info->SpellFamilyName == SPELL_FAMILY_STORMBRINGER &&
+            (info->SpellFamilyFlags[0] & FAMILY_MASK_GALE);
+    }
+
+    bool CheckProc(ProcEventInfo& event)
+    {
+        return IsGale(event.GetSpellInfo()) &&
+            EchoingAirElemental(StormbringerProcActor(GetTarget(), event), event.GetActionTarget()) != nullptr;
+    }
+
+    void EchoGale(AuraEffect const*, ProcEventInfo& event)
+    {
+        PreventDefaultAction();
+        SpellInfo const* gale = event.GetSpellInfo();
+        Unit* victim = event.GetActionTarget();
+        Pet* pet = EchoingAirElemental(StormbringerProcActor(GetTarget(), event), victim);
+        if (IsGale(gale) && pet)
+            pet->CastSpell(victim, gale->Id, true);
+    }
+
+    void Register() override
+    {
+        DoCheckProc += AuraCheckProcFn(aura_ascension_enveloping_winds::CheckProc);
+        OnEffectProc += AuraEffectProcFn(aura_ascension_enveloping_winds::EchoGale, EFFECT_0, SPELL_AURA_DUMMY);
     }
 };
 
@@ -256,6 +297,7 @@ void AddSC_AscensionStormbringerPet()
     new stormbringer_pet_lifecycle();
     new stormbringer_pet_contracts();
     RegisterSpellScript(aura_ascension_air_invigoration);
+    RegisterSpellScript(aura_ascension_enveloping_winds);
     RegisterSpellScript(aura_ascension_gift_of_air);
     RegisterSpellScript(spell_ascension_air_invigoration_duration);
 }
