@@ -53,7 +53,8 @@ enum StormbringerTalentSpells : uint32
     SPELL_STORM_BARRIER = 707204,
     SPELL_LIGHTNING_CAGE_BARRIER = 560032,
     SPELL_THORIMS_GIFT = 570173,
-    SPELL_THORIMS_GIFT_PATCH = 570174
+    SPELL_THORIMS_GIFT_PATCH = 570174,
+    SPELL_HURRICANES_BUFF = 570129
 };
 
 constexpr int32 ASCENSION_SPELLMOD_BONUS_MULTIPLIER = 41;
@@ -276,6 +277,10 @@ public:
             info->ProcFlags = PROC_FLAG_NONE;
             info->ProcCharges = 1;
         }
+        if (info->Id == SPELL_HURRICANES_BUFF &&
+            info->Effects[EFFECT_0].ApplyAuraName == SPELL_AURA_MOD_DAMAGE_PERCENT_DONE &&
+            !info->Effects[EFFECT_0].MiscValue)
+            info->Effects[EFFECT_0].MiscValue = SPELL_SCHOOL_MASK_ALL;
     }
 };
 
