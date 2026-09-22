@@ -10,6 +10,8 @@
 #include "SpellAuras.h"
 #include "SpellMgr.h"
 #include "SpellScript.h"
+#include <algorithm>
+#include <limits>
 #include <list>
 #include <vector>
 
@@ -49,7 +51,9 @@ enum StormbringerTalentSpells : uint32
     SPELL_PULSE_CONVERSION = 707619,
     SPELL_PULSE_CONVERSION_HEAL = 504830,
     SPELL_STORM_BARRIER = 707204,
-    SPELL_LIGHTNING_CAGE_BARRIER = 560032
+    SPELL_LIGHTNING_CAGE_BARRIER = 560032,
+    SPELL_THORIMS_GIFT = 570173,
+    SPELL_THORIMS_GIFT_PATCH = 570174
 };
 
 constexpr int32 ASCENSION_SPELLMOD_BONUS_MULTIPLIER = 41;
@@ -249,6 +253,8 @@ public:
             info->AscensionInheritsResolvedAmount = true;
             info->Effects[EFFECT_0].BonusMultiplier = 0.0f;
         }
+        if (info->Id == SPELL_THORIMS_GIFT_PATCH)
+            info->AscensionInheritsResolvedAmount = true;
         if (info->Id == SPELL_PERPETUAL_SHOCK)
             info->Effects[EFFECT_1].Effect = 0;
         if (info->Id == SPELL_CHARGED_CONDUIT)
@@ -397,6 +403,47 @@ class aura_ascension_dark_skies : public AuraScript
     }
 };
 
+class aura_ascension_thorims_gift : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_thorims_gift);
+
+    bool Validate(SpellInfo const* info) override
+    {
+        return info->Id == SPELL_THORIMS_GIFT &&
+            info->Effects[EFFECT_0].TriggerSpell == SPELL_THORIMS_GIFT_PATCH &&
+            ValidateSpellInfo({SPELL_THORIMS_GIFT_PATCH});
+    }
+
+    bool Load() override
+    {
+        return GetUnitOwner()->IsPlayer() && GetUnitOwner()->getClass() == CLASS_STORMBRINGER;
+    }
+
+    bool Check(ProcEventInfo& event)
+    {
+        DamageInfo const* damage = event.GetDamageInfo();
+        Unit* victim = event.GetActionTarget();
+        return event.GetActor() == GetTarget() && victim && victim != GetTarget() &&
+            !GetTarget()->IsFriendlyTo(victim) && damage && damage->GetDamage();
+    }
+
+    void Proc(AuraEffect const* effect, ProcEventInfo& event)
+    {
+        PreventDefaultAction();
+        uint64 amount = uint64(event.GetDamageInfo()->GetDamage()) * std::clamp(effect->GetAmount(), 0, 100) / 100;
+        if (amount)
+            GetTarget()->CastCustomSpell(SPELL_THORIMS_GIFT_PATCH, SPELLVALUE_BASE_POINT0,
+                int32(std::min<uint64>(amount, std::numeric_limits<int32>::max())),
+                event.GetActionTarget(), TRIGGERED_FULL_MASK);
+    }
+
+    void Register() override
+    {
+        DoCheckProc += AuraCheckProcFn(aura_ascension_thorims_gift::Check);
+        OnEffectProc += AuraEffectProcFn(aura_ascension_thorims_gift::Proc, EFFECT_0, AuraType(354));
+    }
+};
+
 class aura_ascension_charged_conduit : public AuraScript
 {
     PrepareAuraScript(aura_ascension_charged_conduit);
@@ -513,6 +560,7 @@ void AddSC_AscensionStormbringerTalents()
     RegisterSpellScript(spell_ascension_stormbringer_cooldown_reduction);
     RegisterSpellScript(aura_ascension_barometric_pressure);
     RegisterSpellScript(aura_ascension_electrical_charge);
+    RegisterSpellScript(aura_ascension_thorims_gift);
     RegisterSpellScript(aura_ascension_charged_conduit);
     RegisterSpellScript(aura_ascension_dark_skies);
     RegisterSpellScript(aura_ascension_stormcloak);
