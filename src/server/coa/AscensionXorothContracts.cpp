@@ -287,6 +287,31 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[EFFECT_1].Effect = 0;
         info->Effects[EFFECT_2].Effect = 0;
     }
+    if (id == 704999)
+    {
+        // Combusting Blade: flat +5% Intellect, plus a private SPELLMOD_COST flat modifier that
+        // reduces Infernal Strike's Rage cost by 5. The classmask reuses the same combined Infernal
+        // Strike/Shieldgore family bits already patched onto Fiend (680197) above, so the discount
+        // survives the Shieldgore replacement exactly like that existing damage bonus does.
+        SpellEffectInfo& intellect = info->Effects[EFFECT_0];
+        intellect.Effect = SPELL_EFFECT_APPLY_AURA;
+        intellect.ApplyAuraName = SPELL_AURA_MOD_PERCENT_STAT;
+        intellect.BasePoints = 5;
+        intellect.DieSides = 0;
+        intellect.MiscValue = STAT_INTELLECT;
+        intellect.TargetA = SpellImplicitTargetInfo(TARGET_UNIT_CASTER);
+        intellect.TargetB = SpellImplicitTargetInfo();
+        SpellEffectInfo& cost = info->Effects[EFFECT_1];
+        cost.Effect = SPELL_EFFECT_APPLY_AURA;
+        cost.ApplyAuraName = SPELL_AURA_ADD_FLAT_MODIFIER;
+        cost.BasePoints = -5;
+        cost.DieSides = 0;
+        cost.MiscValue = SPELLMOD_COST;
+        cost.SpellClassMask = flag96(0, 768, 0);
+        cost.TargetA = SpellImplicitTargetInfo(TARGET_UNIT_CASTER);
+        cost.TargetB = SpellImplicitTargetInfo();
+        info->Effects[EFFECT_2].Effect = 0;
+    }
     info->_InitializeExplicitTargetMask();
 }
 }
