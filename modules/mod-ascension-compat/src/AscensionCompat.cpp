@@ -20,6 +20,8 @@
 #include "AscensionClassMechanics19To25.h"
 #include "AscensionClassMechanics26To32.h"
 #include "AscensionCoATalentData.h"
+#include "AscensionCoAConfig.h"
+#include "WorldSessionMgr.h"
 #include "AscensionCoATalentState.h"
 #include "AscensionRunemasterEchoes.h"
 #include "AscensionCollectionModelData.h"
@@ -5347,6 +5349,7 @@ public:
   void OnPlayerLogin(Player *player) override {
     if (ascensionCompatConfig.GetConfigValue<bool>(
             AscensionCompatConfig::ENABLED)) {
+      SendAscensionCoAXpConfig(player->GetSession());
       AscensionClassService::Instance().OnPlayerLogin(player);
       RemoveLegacyQuestSpells(player);
       SynchronizeAscensionClassMechanics(player);
@@ -5940,7 +5943,7 @@ class AscensionCompatWorldScript : public WorldScript {
 public:
   AscensionCompatWorldScript()
       : WorldScript("AscensionCompatWorldScript",
-                    {WORLDHOOK_ON_BEFORE_CONFIG_LOAD, WORLDHOOK_ON_STARTUP,
+                    {WORLDHOOK_ON_BEFORE_CONFIG_LOAD, WORLDHOOK_ON_AFTER_CONFIG_LOAD, WORLDHOOK_ON_STARTUP,
                      WORLDHOOK_ON_LOAD_CUSTOM_DATABASE_TABLE}) {}
 
   void OnBeforeConfigLoad(bool reload) override {
@@ -5954,6 +5957,15 @@ public:
     uint32 lift = sConfigMgr->GetOption<uint32>("AscensionCompat.LevelScalingMaxLift", 5);
     LocalLevelScaling::CreatureMaxLift.store(
         static_cast<std::uint8_t>(std::min<uint32>(lift, 255)), std::memory_order_relaxed);
+  }
+
+  void OnAfterConfigLoad(bool reload) override {
+    if (!reload || !ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED))
+      return;
+
+    for (auto const& [accountId, session] : sWorldSessionMgr->GetAllSessions())
+      if (session && session->GetPlayer() && session->GetPlayer()->IsInWorld())
+        SendAscensionCoAXpConfig(session);
   }
 
   void OnLoadCustomDatabaseTable() override {
