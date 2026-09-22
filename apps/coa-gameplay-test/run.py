@@ -35,6 +35,8 @@ METRICS = {
     'aura', 'aura_stacks', 'aura_charges', 'aura_duration_ms', 'aura_amount', 'aura_positive',
     'knows_spell', 'has_talent', 'talent_points', 'cooldown_ms', 'global_cooldown_ms', 'spell_charges',
     'action_button', 'item_count', 'carried_item_count', 'bank_bag_slots', 'bank_shows', 'system_messages',
+    'system_message_contains', 'challenge_start_responses', 'challenge_start_code',
+    'owned_creature_scale', 'unit_scale', 'token_count', 'item_sell_price', 'creature_model_scale', 'creature_model_display',
     'taxi_node', 'pet_entry', 'pet_aura_stacks', 'pet_is_banker', 'pet_display', 'pet_scale', 'owned_creature_count',
     'charm_entry', 'charm_aura_stacks', 'controls_self', 'private_instance',
     'dynamic_object', 'dynamic_object_duration_ms', 'gossip_options',
@@ -90,7 +92,7 @@ PLAYER_STAT_METRICS = {
 METRIC_FIELDS = {'actor', 'metric', 'spell', 'power', 'caster', 'effect', 'item', 'entry', 'button',
                  'relative_to', 'ratio_to', 'target', 'quest', 'id', 'stat', 'school', 'hand', 'rating', 'op',
                  'base', 'key', 'index', 'pet', 'critical', 'target_pet', 'periodic', 'name',
-                 'min_distance', 'owner_display', 'skill'}
+                 'min_distance', 'owner_display', 'skill', 'text'}
 ACTIONS = {
     'stop_attack': ({'actor'}, {'actor'}),
     'set_moving': ({'actor', 'enabled'}, {'actor', 'enabled'}),
@@ -113,6 +115,7 @@ ACTIONS = {
     'cast_charm': ({'actor', 'spell'}, {'actor', 'spell', 'target'}),
     'gossip_hello': ({'actor'}, {'actor', 'target'}),
     'banker_activate': ({'actor'}, {'actor', 'target', 'owner', 'entry'}),
+    'start_challenge': ({'actor', 'challenge', 'level'}, {'actor', 'challenge', 'level'}),
     'area_trigger': ({'actor', 'id'}, {'actor', 'id'}),
     'trainer_buy': ({'actor', 'spell'}, {'actor', 'spell', 'target'}),
     'gossip_select': ({'actor', 'option'}, {'actor', 'option'}),
@@ -276,7 +279,7 @@ def validate(scenario):
             for key in ('x', 'y', 'z', 'o'):
                 if key in step:
                     number(step[key], f'{where}.{key}', -17000, 17000)
-        for key in ('spell', 'item', 'talent', 'count', 'entry', 'quest', 'id'):
+        for key in ('spell', 'item', 'talent', 'count', 'entry', 'quest', 'id', 'challenge', 'level'):
             if key in step:
                 number(step[key], f'{where}.{key}', 1, 2**31 - 1, True)
         for key, maximum in (('rank', 4), ('effect', 2), ('slot', 18), ('power', 6), ('choice', 5),
@@ -414,6 +417,11 @@ def validate(scenario):
             if metric == 'owned_creature_count':
                 require('entry' in step, f'{where}: metric needs creature entry')
                 require('caster' not in step or 'spell' in step, f'{where}: aura caster filter needs spell')
+            if metric == 'owned_creature_scale':
+                require('entry' in step, f'{where}: metric needs creature entry')
+            if metric == 'system_message_contains':
+                require(isinstance(step.get('text'), str) and step['text'].strip(),
+                        f'{where}: metric needs the text to look for')
             if metric in {'spellbook_offers_spell', 'spellbook_learned_alerts',
                           'spellbook_buy_succeeded', 'spellbook_buy_failed', 'cast_failure'}:
                 require('spell' in step, f'{where}: metric needs spell')
@@ -433,7 +441,8 @@ def validate(scenario):
                 require('id' in step, f'{where}: metric needs text id')
             if metric in {'knows_spell', 'has_talent', 'talent_points', 'cooldown_ms', 'spell_charges', 'action_button', 'item_count',
                           'carried_item_count', 'bank_bag_slots', 'taxi_node', 'cast_pushback_ms',
-                          'bank_shows', 'system_messages', 'cast_failure',
+                          'bank_shows', 'system_messages', 'system_message_contains',
+                          'challenge_start_responses', 'challenge_start_code', 'owned_creature_scale', 'cast_failure',
                           'pet_entry', 'pet_aura_stacks', 'pet_is_banker', 'pet_display', 'pet_scale',
                           'owned_creature_count', 'charm_entry',
                           'charm_aura_stacks', 'controls_self', 'private_instance',

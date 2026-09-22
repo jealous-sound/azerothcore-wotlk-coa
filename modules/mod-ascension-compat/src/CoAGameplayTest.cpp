@@ -252,6 +252,9 @@ struct Actor
     std::map<uint32, uint8> castFailureReason;
     uint32 bankShows = 0;
     uint32 systemMessages = 0;
+    std::vector<std::string> systemMessageTexts;
+    uint32 challengeStartResponses = 0;
+    uint32 challengeStartLastCode = 0;
     std::map<uint64, std::map<uint16, uint32>> unitValues;
     uint32 lastQuestWindow = 0;
     std::unique_ptr<WorldSession> session;
@@ -593,7 +596,35 @@ private:
                 }
 
                 if (packet.GetOpcode() == SMSG_MESSAGECHAT)
+                {
                     ++actor.systemMessages;
+                    WorldPacket chat(packet);
+                    uint8 chatType = 0;
+                    chat >> chatType;
+                    if (chatType == CHAT_MSG_SYSTEM)
+                    {
+                        int32 language;
+                        uint32 flags;
+                        uint32 length;
+                        ObjectGuid sender, receiver;
+                        chat >> language >> sender >> flags >> receiver >> length;
+                        std::string text;
+                        if (length > 1)
+                        {
+                            text.resize(length - 1);
+                            chat.read(reinterpret_cast<uint8*>(text.data()), text.size());
+                        }
+                        actor.systemMessageTexts.push_back(text);
+                    }
+                }
+                if (packet.GetOpcode() == SMSG_COA_CHALLENGE_START_RESPONSE)
+                {
+                    ++actor.challengeStartResponses;
+                    WorldPacket response(packet);
+                    uint32 challengeId = 0, level = 0, code = 0;
+                    response >> challengeId >> level >> code;
+                    actor.challengeStartLastCode = code;
+                }
                 if (packet.GetOpcode() == SMSG_SHOW_BANK)
                     ++actor.bankShows;
                 ObserveUnitValues(actor, packet);
@@ -938,6 +969,8 @@ private:
             return unit->GetMaxHealth();
         if (metric == "display_id")
             return unit->GetDisplayId();
+        if (metric == "unit_scale")
+            return double(unit->GetObjectScale());
         if (metric == "power" || metric == "max_power" || metric == "pet_power" || metric == "pet_max_power")
         {
             if (metric == "pet_power" || metric == "pet_max_power")
@@ -1615,10 +1648,29 @@ private:
                     && (!ownerDisplay || creature->GetDisplayId() == player->GetDisplayId());
             });
         }
+        if (metric == "owned_creature_scale")
+        {
+            uint32 entry = step.get<uint32>("entry");
+            Require(sObjectMgr->GetCreatureTemplate(entry) != nullptr, "Unknown creature entry in metric");
+            if (Creature* creature = GetOwnedCreature(player, entry))
+                return double(creature->GetObjectScale());
+            return 0.0;
+        }
         if (metric == "bank_shows")
             return double(_actors.at(step.get<std::string>("actor")).bankShows);
         if (metric == "system_messages")
             return double(_actors.at(step.get<std::string>("actor")).systemMessages);
+        if (metric == "challenge_start_responses")
+            return double(_actors.at(step.get<std::string>("actor")).challengeStartResponses);
+        if (metric == "challenge_start_code")
+            return double(_actors.at(step.get<std::string>("actor")).challengeStartLastCode);
+        if (metric == "system_message_contains")
+        {
+            std::string const needle = step.get<std::string>("text");
+            auto const& lines = _actors.at(step.get<std::string>("actor")).systemMessageTexts;
+            return std::any_of(lines.begin(), lines.end(), [&needle](std::string const& line)
+                { return line.find(needle) != std::string::npos; }) ? 1.0 : 0.0;
+        }
         if (metric == "cast_failure")
         {
             auto const& reasons = _actors.at(step.get<std::string>("actor")).castFailureReason;
@@ -1676,6 +1728,34 @@ private:
             uint32 item = step.get<uint32>("item");
             Require(sObjectMgr->GetItemTemplate(item) != nullptr, "Unknown item in metric");
             return player->GetItemCount(item);
+        }
+        if (metric == "token_count")
+        {
+            uint32 item = step.get<uint32>("item");
+            Require(sObjectMgr->GetItemTemplate(item) != nullptr, "Unknown item in metric");
+            uint32 count = 0;
+            for (uint8 slot = CURRENCYTOKEN_SLOT_START; slot < CURRENCYTOKEN_SLOT_END; ++slot)
+                if (Item* token = player->GetItemByPos(INVENTORY_SLOT_BAG_0, slot))
+                    if (token->GetEntry() == item)
+                        count += token->GetCount();
+            return count;
+        }
+        if (metric == "item_sell_price")
+        {
+            uint32 item = step.get<uint32>("item");
+            ItemTemplate const* proto = sObjectMgr->GetItemTemplate(item);
+            Require(proto != nullptr, "Unknown item in metric");
+            return proto->SellPrice;
+        }
+        if (metric == "creature_model_scale" || metric == "creature_model_display")
+        {
+            uint32 entry = step.get<uint32>("entry");
+            CreatureTemplate const* proto = sObjectMgr->GetCreatureTemplate(entry);
+            Require(proto != nullptr, "Unknown creature template in metric");
+            CreatureModel const* model = ObjectMgr::ChooseDisplayId(proto);
+            Require(model != nullptr, "Creature template has no model");
+            return metric == "creature_model_scale" ? double(model->DisplayScale)
+                                                     : double(model->CreatureDisplayID);
         }
         if (metric == "carried_item_count")
         {
@@ -2077,6 +2157,13 @@ private:
             WorldPacket packet(CMSG_BANKER_ACTIVATE, 8);
             packet << guid;
             player->GetSession()->HandleBankerActivateOpcode(packet);
+        }
+        else if (action == "start_challenge")
+        {
+            WorldPacket packet(CMSG_COA_START_CHALLENGE, 8);
+            packet << uint32(step.get<uint32>("challenge")) << uint32(step.get<uint32>("level"));
+            sScriptMgr->CanPacketReceive(player->GetSession(), packet);
+            record.put("result", "submitted; verify the answer with assertions");
         }
         else if (action == "gossip_hello")
         {
