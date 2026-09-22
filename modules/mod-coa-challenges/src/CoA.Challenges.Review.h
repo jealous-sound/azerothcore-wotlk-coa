@@ -176,7 +176,7 @@ namespace CoAChallenges
     // CHALLENGE_RULES_TYPE_FATIGUED_UNLESS_RESTED are tracked.
     struct FatigueState { uint32 challengeId = 0; int32 fatigue = 0; uint32 ms = 0; bool resting = true; uint32 graceMs = 0; };
 
-    struct ConditionState { std::string label; bool broken = false; std::string detail; };
+    struct ConditionState { std::string label; bool broken = false; std::string detail; std::string message; };
 
     // Group challenge sync (SMSG 0x59B / CMSG 0x59C). The client's 0x59B
     // handler stores the {challengeID, level} pairs as "pending" and fires
@@ -457,6 +457,7 @@ void SendChallengeSyncToGroup(Player* actor, uint32 timeoutMs, bool remove,
 bool ChallengeRequiresParty(uint32 challengeID);
 bool HasFailure(uint32 guid, uint32 challengeID);
 bool HasAnyFailure(uint32 guid);
+bool ActivationPermanentlyBlocked(uint32 guid);
 bool HasCompletion(uint32 guid, uint32 challengeID);
 bool HasCompletionLevel(uint32 guid, uint32 challengeID, uint32 level);
 void SendDeathUpdate(Player* player, uint32 challengeID, uint32 level, uint32 deaths);
@@ -483,12 +484,16 @@ bool RuleListContains(std::string const& list, std::string const& rule);
 bool PlayerHasRule(Player* player, char const* rule);
 void LoadChallengesEnabled();
 bool ChallengesEnabled();
+bool OutsideInteractionGateEnabled();
 uint32 ActiveChallengeWithRule(Player* player, char const* rule, uint32& level);
 std::set<uint32> ActiveChallenges(uint32 guid);
+bool HasActiveTrial(uint32 guid);
 void SetConditionFlag(uint32 guid, char const* flag);
 bool HasConditionFlag(uint32 guid, char const* flag);
 uint32 FreeInventorySlots(Player* player);
 std::vector<ConditionState> EvaluateConditions(Player* player, uint32 challengeID);
+std::vector<ConditionState> EvaluateConditionsFor(Player* player, uint32 challengeID,
+    std::string const& conds, bool injectOutside);
 std::string CheckActivationConditions(Player* player, uint32 challengeID);
 bool IsPristine(Player* player, uint32 challengeID);
 bool RequirementsMet(uint32 guid, uint32 challengeID);
@@ -505,7 +510,7 @@ void FailChallenge(Player* player, uint32 challengeID, uint32 level, uint32 deat
     ObjectGuid const& killerSource = ObjectGuid::Empty,
     KillerKind causeKind = KillerKind::Unknown, uint32 causeEntry = 0, std::string causeName = "");
 void FailSharedFate(Player* dead, uint32 challengeID);
-void FailSharedFateHolders(Group* group, Player* extra);
+void FailSharedFateHolders(Group* group, ObjectGuid extraGuid);
 void HandlePlayerDeath(Player* player);
 uint32 CraftedItemRarity(SkillLineAbilityEntry const* ability);
 void GrantProfessionXP(Player* member, uint32 rarityMult);

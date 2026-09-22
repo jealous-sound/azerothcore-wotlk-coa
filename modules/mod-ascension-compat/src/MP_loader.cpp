@@ -236,6 +236,7 @@ void AddSC_AscensionPrimalistMountain();
 void AddSC_AscensionChronomancerRipple();
 void AddSC_AscensionChronomancerSecondary();
 void AddSC_AscensionVenomancerSerpentFang();
+void AddSC_AscensionVenomancerWasp();
 void AddSC_AscensionSunClericBattleCleric();
 void AddSC_AscensionReaperTalents();
 void AddSC_AscensionReaperSecondary();
@@ -462,6 +463,7 @@ void Addmod_ascension_compatScripts()
     AddSC_AscensionChronomancerRipple();
     AddSC_AscensionChronomancerSecondary();
     AddSC_AscensionVenomancerSerpentFang();
+    AddSC_AscensionVenomancerWasp();
     AddSC_AscensionSunClericBattleCleric();
     AddSC_AscensionReaperTalents();
     AddSC_AscensionReaperSecondary();

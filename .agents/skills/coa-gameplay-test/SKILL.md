@@ -38,10 +38,9 @@ Read that checkout's `AGENTS.md` and `apps/coa-gameplay-test/README.md` before t
    the candidate build's source and freshness; do not assume an installed binary includes current edits.
    If normal credentials cannot create schemas, use `--database-client-config` with an authorized existing
    MySQL `[client]` file on the same endpoint (see README). Do not change existing account grants.
-3. Follow existing build authorization. The repository requires an explicit request before configuring or
-   building. If a suitable executable is unavailable, finish the scenario and source checks, then explain
-   the exact build needed and request authorization. A requested runtime run permits the runner's isolated
-   database copies and owned test process; it does not authorize replacing the installed server.
+3. Configure or build a matching test executable when needed, following `.agents/docs/build.md`. Prefer an
+   existing incremental build. A requested runtime run permits the runner's isolated database copies and
+   owned test process; it does not authorize replacing the installed server.
 4. Run `python apps/coa-gameplay-test/run.py run <scenario> --worldserver <exe> --config <conf>
    --mysql <mysql> --mysqldump <mysqldump>`. Invoke as one shell command with properly quoted arguments.
    The runner reuses its owned world copy by default, with fresh accounts/characters on each run. It checks

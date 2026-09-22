@@ -101,6 +101,13 @@ void ApplyContracts(SpellInfo* info)
         aura(1,SPELL_AURA_MOD_RATING,3,224);
         dummy(2);
     }
+    constexpr uint32 EmpoweredExoskeleton = 804993;
+    constexpr uint32 StingingChitin = 705977;
+    constexpr uint32 RapidInjection = 705989;
+    if (id == EmpoweredExoskeleton)
+        info->Effects[1].MiscValue = SPELLMOD_RADIUS;
+    if (id == StingingChitin || id == RapidInjection)
+        info->Attributes |= SPELL_ATTR0_PASSIVE;
     if (id == 803216)
         info->Effects[1].ApplyAuraName = SPELL_AURA_230;
     if (id == 805139)

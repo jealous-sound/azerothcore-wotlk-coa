@@ -782,9 +782,13 @@ void HandleSwapItems(Player* player, OpenBank& bank, WorldPacket const& packet)
             }
 
             if (swap.ToSlot)
+            {
                 WithdrawToPlayer(player, bank, uint8(swap.BankTab), uint8(swap.BankSlot),
                                  swap.ContainerSlot, swap.ContainerItemSlot,
                                  uint32(std::max<int32>(0, swap.StackCount)), swap.AutoStore);
+                sScriptMgr->OnPlayerBankWithdraw(player, bank.OwnerKind == OWNER_REALM
+                    ? AscensionPersonalBank::REALM : AscensionPersonalBank::PERSONAL);
+            }
             else
                 DepositToBank(player, bank, swap.ContainerSlot, swap.ContainerItemSlot,
                               uint8(swap.BankTab), uint8(swap.BankSlot),
@@ -822,6 +826,8 @@ void HandleWithdrawMoney(Player* player, OpenBank& bank, WorldPacket const& pack
             StoreMoney(bank);
             SendTabChanged(player, bank, 0);
             LogBankEvent(bank, GUILD_BANK_LOG_WITHDRAW_MONEY, 0, player, withdraw.Money, 0);
+            sScriptMgr->OnPlayerBankWithdraw(player, bank.OwnerKind == OWNER_REALM
+                ? AscensionPersonalBank::REALM : AscensionPersonalBank::PERSONAL);
         });
 }
 
