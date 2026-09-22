@@ -8,7 +8,8 @@ namespace
 enum StormbringerContractSpells : uint32
 {
     SPELL_CLOUDSURFER = 806414,
-    SPELL_FLOW_OF_WRATH = 801855
+    SPELL_FLOW_OF_WRATH = 801855,
+    SPELL_AETHERMANCY_RANK_2 = 705691
 };
 
 constexpr uint32 SHOCK_FAMILY_MASK = 2048;
@@ -30,5 +31,8 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[EFFECT_0].MiscValue == SPELLMOD_EFFECT2 &&
         info->Effects[EFFECT_0].SpellClassMask == flag96(0, 0, DROWN_FAMILY_MASK))
         info->Effects[EFFECT_0].SpellClassMask = flag96(0, DROWN_FAMILY_MASK, 0);
+    if (info->Id == SPELL_AETHERMANCY_RANK_2 && info->Effects[EFFECT_0].ApplyAuraName == SPELL_AURA_ADD_PCT_MODIFIER &&
+        info->Effects[EFFECT_0].MiscValue == SPELLMOD_CRITICAL_CHANCE)
+        info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_ADD_FLAT_MODIFIER;
 }
 }
