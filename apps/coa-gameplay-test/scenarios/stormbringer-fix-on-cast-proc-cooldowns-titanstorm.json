@@ -95,6 +95,9 @@
       "actor": "armed", "metric": "cooldown_ms", "spell": 801847,
       "relative_to": "rank1_lightning", "min": -2100, "max": -900
     },
+    { "action": "set_health", "actor": "control_dummy", "value": 300000 },
+    { "action": "set_health", "actor": "armed_dummy", "value": 300000 },
+    { "action": "wait", "ms": 1500 },
     { "action": "cast", "actor": "control", "spell": 501432, "target": "control_dummy" },
     { "action": "cast", "actor": "armed", "spell": 501432, "target": "armed_dummy" },
     { "action": "wait", "ms": 1700 },
