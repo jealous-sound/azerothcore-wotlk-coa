@@ -503,6 +503,13 @@ void ApplyContracts(SpellInfo* info)
         // Factor() below, covering every spender uniformly - the same read-by-value pattern used
         // for Speed Demon (707232) above.
         info->Effects[EFFECT_0].Effect = 0;
+    if (id == 680900)
+        // Infernal Pummeling: its own baked effect is a stray SPELLMOD_EFFECT2 flat modifier
+        // scoped to Melt's own classmask (would add +10 to Melt's disabled EFFECT_2 crit-chance
+        // slot instead of a damage-taken bonus). Null it; the real 10% value is read directly via
+        // Amount() and applied to Melt's own inert MOD_DAMAGE_FROM_CASTER slot (id == 803334,
+        // EFFECT_1 in ModifySpellEffectBaseValue below), gated on this talent.
+        info->Effects[EFFECT_0].Effect = 0;
     info->_InitializeExplicitTargetMask();
 }
 }
@@ -560,6 +567,8 @@ class xoroth_scaling : public UnitScript
             value *= 1 + .2f * Count(player, 804787);
         if (info->Id == 800999 && index == 1)
             value = player->HasAura(302581) ? float(Amount(302581)) : 0;
+        if (info->Id == 803334 && index == 1)
+            value = player->HasAura(680900) ? float(Amount(680900)) : 0;
         if (info->Id == 801055 || info->Id == 560817 || info->Id == 802855)
             value *= State(player).unleash;
         value = std::clamp(value, float(INT32_MIN / 2), float(INT32_MAX / 2));
