@@ -203,6 +203,7 @@ void AddSC_AscensionRunemasterTravel();
 void AddSC_AscensionStormbringerTalents();
 void AddSC_AscensionStormbringerWindGate();
 void AddSC_AscensionStormbringerZephyr();
+void AddSC_AscensionStormbringerDrown();
 void AddSC_AscensionStormbringerPet();
 void AddSC_AscensionStormbringerSphere();
 void AddSC_AscensionBloodmageSecondary();
@@ -430,6 +431,7 @@ void Addmod_ascension_compatScripts()
     AddSC_AscensionStormbringerTalents();
     AddSC_AscensionStormbringerWindGate();
     AddSC_AscensionStormbringerZephyr();
+    AddSC_AscensionStormbringerDrown();
     AddSC_AscensionStormbringerPet();
     AddSC_AscensionStormbringerSphere();
     AddSC_AscensionBloodmageSecondary();
