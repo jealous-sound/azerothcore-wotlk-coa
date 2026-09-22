@@ -1133,7 +1133,7 @@ void HandleWithdrawAllowanceQuery(Player* player, OpenBank& /*bank*/, WorldPacke
 
 namespace AscensionPersonalBank
 {
-    void SendKindHint(Player* player, uint8 kind)
+void SendKindHint(Player* player, uint8 kind)
 {
     // Two flags, read in this order by the client's GetBankPermissions().
     WorldPacket packet(SMSG_BANK_PERMISSIONS, 2);
