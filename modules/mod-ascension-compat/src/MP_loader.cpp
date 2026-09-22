@@ -211,6 +211,7 @@ void AddSC_AscensionStormbringerSphere();
 void AddSC_AscensionStormbringerStormflow();
 void AddSC_AscensionStormbringerFog();
 void AddSC_AscensionStormbringerSurge();
+void AddSC_AscensionStormbringerIonicAura();
 void AddSC_AscensionBloodmageSecondary();
 void AddSC_AscensionBloodmageHemostasis();
 void AddSC_AscensionRangerSecondary();
@@ -444,6 +445,7 @@ void Addmod_ascension_compatScripts()
     AddSC_AscensionStormbringerStormflow();
     AddSC_AscensionStormbringerFog();
     AddSC_AscensionStormbringerSurge();
+    AddSC_AscensionStormbringerIonicAura();
     AddSC_AscensionBloodmageSecondary();
     AddSC_AscensionBloodmageHemostasis();
     AddSC_AscensionRangerSecondary();
