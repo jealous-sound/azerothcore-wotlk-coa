@@ -200,6 +200,7 @@ void AddSC_AscensionPrimalistMagmatism();
 void AddSC_AscensionPrimalistGeomancy();
 void AddSC_AscensionRunemasterTalents();
 void AddSC_AscensionRunemasterTravel();
+void AddSC_AscensionStormbringerLightning();
 void AddSC_AscensionStormbringerTalents();
 void AddSC_AscensionStormbringerWindGate();
 void AddSC_AscensionStormbringerZephyr();
@@ -428,6 +429,7 @@ void Addmod_ascension_compatScripts()
     AddSC_AscensionPrimalistGeomancy();
     AddSC_AscensionRunemasterTalents();
     AddSC_AscensionRunemasterTravel();
+    AddSC_AscensionStormbringerLightning();
     AddSC_AscensionStormbringerTalents();
     AddSC_AscensionStormbringerWindGate();
     AddSC_AscensionStormbringerZephyr();
