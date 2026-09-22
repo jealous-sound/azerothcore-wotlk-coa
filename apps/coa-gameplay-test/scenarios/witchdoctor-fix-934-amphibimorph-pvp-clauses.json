@@ -114,6 +114,12 @@
       "within_ms": 6000
     },
     {
+      "action": "reset_cooldown",
+      "label": "Amphibimorph has a 120 sec recovery time (Spell.dbc RecoveryTime); reset it so the second cast is not rejected SPELL_FAILED_NOT_READY",
+      "actor": "doctor",
+      "spell": 500952
+    },
+    {
       "action": "cast",
       "label": "Amphibimorph lands on the PvP-flagged victim",
       "actor": "doctor",
