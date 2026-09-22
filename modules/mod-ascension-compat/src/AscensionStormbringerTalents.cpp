@@ -42,6 +42,7 @@ enum StormbringerTalentSpells : uint32
     SPELL_DARK_SKIES_BUFF = 680855,
     SPELL_CRITICAL_CIRCUIT = 807314,
     SPELL_REFUND_STATIC_10 = 804084,
+    SPELL_CONJURATION_MASTERY = 300595,
     SPELL_PREDICTABLE_WEATHER_WINDOW = 807481,
     SPELL_LIGHTNING_ROD = 300609,
     SPELL_LIGHTNING_ROD_SPREAD = 300928,
@@ -61,6 +62,12 @@ enum StormbringerTalentSpells : uint32
 };
 
 constexpr int32 ASCENSION_SPELLMOD_BONUS_MULTIPLIER = 41;
+constexpr uint32 CONJURE_STORM_FAMILY_FLAG_TWO = 16;
+
+bool IsConjureStorm(SpellInfo const* info)
+{
+    return info && info->SpellFamilyName == 22 && (info->SpellFamilyFlags[2] & CONJURE_STORM_FAMILY_FLAG_TWO);
+}
 
 bool SpendsStatic(uint32 spellId)
 {
@@ -175,6 +182,10 @@ public:
         if (player && player->getClass() == CLASS_STORMBRINGER && info->SpellFamilyName == 22 &&
             info->Id == SPELL_CLOUDBURST && !spell->IsTriggered())
             player->CastSpell(player, SPELL_CLOUDBURST_KNOCKBACK, true);
+
+        if (player && player->getClass() == CLASS_STORMBRINGER && IsConjureStorm(info) &&
+            !spell->IsTriggered() && player->HasSpell(SPELL_CONJURATION_MASTERY))
+            player->CastSpell(player, SPELL_REFUND_STATIC_10, true);
     }
 
     void OnSpellHitResult(Spell* spell, Unit* target, uint8 miss, uint32 damage, uint32, bool critical) override
