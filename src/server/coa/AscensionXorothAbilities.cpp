@@ -174,6 +174,8 @@ class xoroth_casts : public AllSpellScript
             duration = int32(duration * (1 + Amount(704964, 1) / 100.0f));
         if (id == 801052)
             duration = int32(duration * State(player).unleash);
+        if (player->HasAura(704980) && Mark(aura->GetSpellInfo()))
+            duration = int32(duration * (1 + Amount(704980, 1) / 100.0f));
     }
     void OnSpellBeforeEffects(Spell* spell, Unit* caster, SpellInfo const* info) override
     {

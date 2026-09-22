@@ -92,6 +92,10 @@ bool Pestilence(uint32 id)
 {
     return id == 801053 || id == 802344 || id == 802345 || id == 804786 || id == 801054;
 }
+bool Mark(SpellInfo const* info)
+{
+    return info && info->SpellFamilyName == 23 && (info->SpellFamilyFlags[1] & 2147483648u);
+}
 uint32 Count(Unit const* unit, uint32 id)
 {
     Aura const* aura = unit ? unit->GetAura(id) : nullptr;

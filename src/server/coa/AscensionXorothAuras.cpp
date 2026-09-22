@@ -19,10 +19,6 @@ bool First(AuraEffect const* effect)
             return false;
     return true;
 }
-bool Mark(SpellInfo const* info)
-{
-    return info && info->SpellFamilyName == 23 && (info->SpellFamilyFlags[1] & 2147483648u);
-}
 class aura_ascension_xoroth_lifecycle : public AuraScript
 {
     PrepareAuraScript(aura_ascension_xoroth_lifecycle);
