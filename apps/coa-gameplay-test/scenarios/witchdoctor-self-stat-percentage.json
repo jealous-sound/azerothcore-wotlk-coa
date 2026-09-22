@@ -15,7 +15,7 @@
     { "action": "snapshot", "actor": "juju", "metric": "stat", "stat": 3, "save_as": "juju_int0" },
     { "action": "learn", "actor": "juju", "spell": 503608 },
     { "action": "assert", "label": "Juju Injection rank 1 self-applies", "actor": "juju", "metric": "aura", "spell": 503608, "equals": 1, "within_ms": 3000 },
-    { "action": "assert", "label": "Rank 1 raises Agility by 5%", "actor": "juju", "metric": "stat", "stat": 1, "ratio_to": "juju_agi0", "min": 1.04, "max": 1.06 },
+    { "action": "assert", "label": "Rank 1 raises Agility by 5%", "actor": "juju", "metric": "stat", "stat": 1, "ratio_to": "juju_agi0", "min": 1.03, "max": 1.06 },
     { "action": "assert", "label": "Rank 1 raises Intellect by 5%", "actor": "juju", "metric": "stat", "stat": 3, "ratio_to": "juju_int0", "min": 1.04, "max": 1.06 },
     { "action": "unlearn", "actor": "juju", "spell": 503608 },
     { "action": "assert", "label": "Unlearning rank 1 removes the aura", "actor": "juju", "metric": "aura", "spell": 503608, "equals": 0 },

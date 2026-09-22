@@ -143,11 +143,12 @@
     },
     {
       "action": "assert",
-      "label": "#489: native DurationIndex 1 = 10000 ms (SpellDuration.dbc)",
+      "label": "#489: native DurationIndex 1 = 10000 ms (SpellDuration.dbc), aura_duration_ms ticks down from the moment it's applied so we allow drift below the DBC max",
       "actor": "spirit",
       "metric": "aura_duration_ms",
       "spell": 681233,
-      "equals": 10000
+      "min": 8000,
+      "max": 10000
     },
     {
       "action": "assert",

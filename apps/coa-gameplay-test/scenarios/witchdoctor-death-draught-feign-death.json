@@ -12,13 +12,20 @@
       "spell_hit_rating": 10000
     }
   ],
+  "location": {
+    "map": 0,
+    "x": -8917.41,
+    "y": -115.853,
+    "z": 82.3711,
+    "o": 0
+  },
   "creatures": [
     {
       "id": "enemy0",
       "owner": "caster",
       "entry": 36,
       "level": 60,
-      "distance": 5,
+      "distance": 3,
       "health": 100000
     }
   ],
@@ -84,18 +91,23 @@
       "within_ms": 3000
     },
     {
-      "action": "set_moving",
+      "action": "teleport",
+      "label": "Real native relocation (set_moving only fixtures the movement-flag bit for cast-restriction checks; it never calls Unit::UpdatePosition, so it cannot exercise AURA_INTERRUPT_FLAG_MOVE. A same-map teleport is ack'd next tick via WorldSession::HandleMoveTeleportAck -> Unit::UpdatePosition(dest, true), which unconditionally treats teleport as relocation and calls RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_MOVE) - the same native path a client's WASD movement takes.)",
       "actor": "caster",
-      "enabled": true
+      "map": 0,
+      "x": -8917.41,
+      "y": -115.853,
+      "z": 82.3711,
+      "o": 0
     },
     {
       "action": "assert",
-      "label": "Movement clears the Feign Death aura (AuraInterruptFlags 15420 includes AURA_INTERRUPT_FLAG_MOVE), proving it is a live, wired aura rather than stuck",
+      "label": "Native relocation clears the Feign Death aura (AuraInterruptFlags 15420 includes AURA_INTERRUPT_FLAG_MOVE), proving it is a live, wired aura rather than stuck",
       "actor": "caster",
       "metric": "aura",
       "spell": 602220,
       "equals": 0,
-      "within_ms": 2000
+      "within_ms": 3000
     }
   ]
 }

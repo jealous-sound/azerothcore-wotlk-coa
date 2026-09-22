@@ -27,7 +27,7 @@
 
     { "action": "snapshot", "actor": "strangle", "metric": "spell_crit_chance", "save_as": "strangle_crit0" },
     { "action": "snapshot", "actor": "strangle", "metric": "spell_damage_done", "spell": 807037, "target": "strangle", "save_as": "strangle_nature0" },
-    { "action": "snapshot", "actor": "strangle", "metric": "spell_healing_done", "spell": 560747, "target": "strangle", "save_as": "strangle_heal0" },
+    { "action": "snapshot", "actor": "strangle", "metric": "spell_healing_done", "spell": 500514, "target": "strangle", "save_as": "strangle_heal0" },
     { "action": "assert", "label": "Bad Juju's threat is unmodified before the passive", "actor": "strangle", "metric": "spell_modifier", "spell": 802087, "op": 2, "base": 100, "equals": 100 },
     { "action": "learn", "actor": "strangle", "spell": 705877 },
     { "action": "assert", "label": "Stranglethorn Style rank 1 self-applies", "actor": "strangle", "metric": "aura", "spell": 705877, "equals": 1, "within_ms": 3000 },
@@ -41,20 +41,20 @@
     { "action": "learn", "actor": "strangle", "spell": 705878 },
     { "action": "assert", "label": "Stranglethorn Style rank 2 self-applies", "actor": "strangle", "metric": "aura", "spell": 705878, "equals": 1, "within_ms": 3000 },
     { "action": "assert", "label": "Rank 2 raises Nature damage by 4%", "actor": "strangle", "metric": "spell_damage_done", "spell": 807037, "target": "strangle", "ratio_to": "strangle_nature0", "min": 1.03, "max": 1.05 },
-    { "action": "assert", "label": "Rank 2 raises healing done by 6%", "actor": "strangle", "metric": "spell_healing_done", "spell": 560747, "target": "strangle", "ratio_to": "strangle_heal0", "min": 1.048, "max": 1.072 },
+    { "action": "assert", "label": "Rank 2 raises healing done by 6%", "actor": "strangle", "metric": "spell_healing_done", "spell": 500514, "target": "strangle", "ratio_to": "strangle_heal0", "min": 1.048, "max": 1.072 },
     { "action": "assert", "label": "Rank 2 no longer raises crit chance (clause swapped away)", "actor": "strangle", "metric": "spell_crit_chance", "relative_to": "strangle_crit0", "min": -0.1, "max": 0.1 },
     { "action": "assert", "label": "Rank 2 no longer touches Bad Juju's threat", "actor": "strangle", "metric": "spell_modifier", "spell": 802087, "op": 2, "base": 100, "equals": 100 },
 
-    { "action": "snapshot", "actor": "potent", "metric": "spell_healing_done", "spell": 560747, "target": "potent", "save_as": "potent_heal0" },
+    { "action": "snapshot", "actor": "potent", "metric": "spell_healing_done", "spell": 500514, "target": "potent", "save_as": "potent_heal0" },
     { "action": "learn", "actor": "potent", "spell": 503748 },
     { "action": "assert", "label": "Potent Mixes rank 1 self-applies", "actor": "potent", "metric": "aura", "spell": 503748, "equals": 1, "within_ms": 3000 },
-    { "action": "assert", "label": "Rank 1 raises healing done by 4%", "actor": "potent", "metric": "spell_healing_done", "spell": 560747, "target": "potent", "ratio_to": "potent_heal0", "min": 1.03, "max": 1.05 },
+    { "action": "assert", "label": "Rank 1 raises healing done by 4%", "actor": "potent", "metric": "spell_healing_done", "spell": 500514, "target": "potent", "ratio_to": "potent_heal0", "min": 1.03, "max": 1.05 },
     { "action": "assert", "label": "Rank 1 ships the exact -15 flat threat effect (not a %, per the DBC record itself)", "actor": "potent", "metric": "aura_amount", "spell": 503748, "effect": 1, "equals": -15 },
     { "action": "unlearn", "actor": "potent", "spell": 503748 },
     { "action": "assert", "label": "Unlearning rank 1 removes the aura", "actor": "potent", "metric": "aura", "spell": 503748, "equals": 0 },
     { "action": "learn", "actor": "potent", "spell": 504888 },
     { "action": "assert", "label": "Potent Mixes rank 2 self-applies", "actor": "potent", "metric": "aura", "spell": 504888, "equals": 1, "within_ms": 3000 },
-    { "action": "assert", "label": "Rank 2 raises healing done by 8%", "actor": "potent", "metric": "spell_healing_done", "spell": 560747, "target": "potent", "ratio_to": "potent_heal0", "min": 1.064, "max": 1.096 },
+    { "action": "assert", "label": "Rank 2 raises healing done by 8%", "actor": "potent", "metric": "spell_healing_done", "spell": 500514, "target": "potent", "ratio_to": "potent_heal0", "min": 1.064, "max": 1.096 },
     { "action": "assert", "label": "Rank 2 ships the exact -30 flat threat effect", "actor": "potent", "metric": "aura_amount", "spell": 504888, "effect": 1, "equals": -30 }
   ]
 }

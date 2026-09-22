@@ -24,7 +24,7 @@
         },
         {
             "id": "enemy",
-            "race": 1,
+            "race": 5,
             "class": 8,
             "level": 80
         },
@@ -40,6 +40,20 @@
             "action": "wait",
             "label": "Let level scaling settle",
             "ms": 3000
+        },
+        {
+            "action": "set_aura",
+            "label": "Force one crit recalculation: the login value of PLAYER_CRIT_PERCENTAGE is stale",
+            "actor": "loa",
+            "spell": 503747,
+            "stacks": 1
+        },
+        {
+            "action": "set_aura",
+            "label": "Drop the primer again so the baselines are the unbuffed, recalculated values",
+            "actor": "loa",
+            "spell": 503747,
+            "stacks": 0
         },
         {
             "action": "assert",
@@ -91,11 +105,12 @@
         },
         {
             "action": "assert",
-            "label": "Melee crit chance rises by exactly 4",
+            "label": "Melee crit chance rises by 4 (within float32 rounding: UpdateCritPercentage sums flat/pct/rating/weapon-skill float terms, unlike the exact-integer spell crit path)",
             "actor": "loa",
             "metric": "melee_crit_chance",
             "relative_to": "loa_meleecrit0",
-            "equals": 4,
+            "min": 3.999,
+            "max": 4.001,
             "within_ms": 3000
         },
         {
@@ -291,21 +306,23 @@
         },
         {
             "action": "assert",
-            "label": "Spell cast time returns to baseline",
+            "label": "Spell cast time returns to baseline (within 1ms: ApplyPercentModFloatVar's apply-then-remove round trip on UNIT_MOD_CAST_SPEED is not a bit-exact float32 inverse)",
             "actor": "ae",
             "metric": "spell_cast_time_ms",
             "spell": 807037,
             "relative_to": "ae_cast0",
-            "equals": 0
+            "min": -2,
+            "max": 2
         },
         {
             "action": "assert",
-            "label": "Main-hand attack time returns to baseline",
+            "label": "Main-hand attack time returns to baseline (within 1ms: ApplyAttackTimePercentMod's apply-then-remove round trip on m_modAttackSpeedPct is not a bit-exact float32 inverse)",
             "actor": "ae",
             "metric": "attack_time_ms",
             "hand": 0,
             "relative_to": "ae_attack0",
-            "equals": 0
+            "min": -2,
+            "max": 2
         },
         {
             "action": "assert",

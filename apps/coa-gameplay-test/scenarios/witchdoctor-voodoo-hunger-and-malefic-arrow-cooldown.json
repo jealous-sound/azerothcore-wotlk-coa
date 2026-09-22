@@ -50,8 +50,8 @@
       "action": "wait", "ms": 4000 },
     { "action": "assert", "actor": "hunger_caster", "metric": "aura_stacks", "spell": 807213, "equals": 10, "within_ms": 1000, "label": "Stacks cap at 10" },
 
-    { "label": "#490: magnitude per stack is +10% (EffectBasePoints[0]=9 -> real +10, ADD_PCT_MODIFIER)",
-      "action": "assert", "actor": "hunger_caster", "metric": "aura_amount", "spell": 807213, "effect": 0, "equals": 10 },
+    { "label": "#490: magnitude per stack is +10% (EffectBasePoints[0]=9 -> real +10, ADD_PCT_MODIFIER; spell_effect_value reads the un-stacked per-application value, since aura_amount would return base * current stack count -- AuraEffect::CalculateAmount ends with `amount *= GetBase()->GetStackAmount()`, SpellAuraEffects.cpp:654 -- and by this point the aura is already capped at 10 stacks, matching the pattern in bloodmage-bloodsores-periodic-proc.json's own note on this exact engine behavior)",
+      "action": "assert", "actor": "hunger_caster", "metric": "spell_effect_value", "spell": 807213, "effect": 0, "equals": 10 },
 
     { "label": "#490 control: same Shadowstalker cast without ever learning Hunger (705942) must never grant a stack",
       "action": "learn", "actor": "hunger_control", "spell": 807040 },
