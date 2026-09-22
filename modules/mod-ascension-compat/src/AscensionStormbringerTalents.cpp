@@ -32,7 +32,8 @@ enum StormbringerTalentSpells : uint32
     SPELL_ELECTROCUTIONER = 804592,
     SPELL_DARK_SKIES_BUFF = 680855,
     SPELL_CRITICAL_CIRCUIT = 807314,
-    SPELL_REFUND_STATIC_10 = 804084
+    SPELL_REFUND_STATIC_10 = 804084,
+    SPELL_PREDICTABLE_WEATHER_WINDOW = 807481
 };
 
 constexpr int32 ASCENSION_SPELLMOD_BONUS_MULTIPLIER = 41;
@@ -138,6 +139,14 @@ public:
                 scaling.MiscValue = SPELLMOD_BONUS_MULTIPLIER;
             flag96 const armOfThorimFamilyFlags(0, 2, 0);
             scaling.SpellClassMask |= armOfThorimFamilyFlags;
+        }
+        if (info->Id == SPELL_PREDICTABLE_WEATHER_WINDOW &&
+            info->Effects[EFFECT_0].IsAura(SPELL_AURA_ADD_PCT_MODIFIER) &&
+            info->Effects[EFFECT_0].MiscValue == SPELLMOD_CASTING_TIME &&
+            info->ProcFlags == PROC_FLAG_DONE_MELEE_AUTO_ATTACK && !info->ProcCharges)
+        {
+            info->ProcFlags = PROC_FLAG_NONE;
+            info->ProcCharges = 1;
         }
     }
 };
