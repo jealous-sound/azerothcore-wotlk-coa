@@ -510,6 +510,8 @@ void ApplyContracts(SpellInfo* info)
         // Amount() and applied to Melt's own inert MOD_DAMAGE_FROM_CASTER slot (id == 803334,
         // EFFECT_1 in ModifySpellEffectBaseValue below), gated on this talent.
         info->Effects[EFFECT_0].Effect = 0;
+    if (id == 300386)
+        info->Effects[EFFECT_0].Effect = 0;
     info->_InitializeExplicitTargetMask();
 }
 }

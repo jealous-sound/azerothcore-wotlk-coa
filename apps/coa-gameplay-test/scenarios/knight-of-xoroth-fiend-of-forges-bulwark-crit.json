@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "name": "Fiend of Forges adds 10% crit chance to Forgefiend's Bulwark's Enrage buff (#1586)",
+  "contract": "Fiend of Forges 300386 reads 'Forgefiend's Bulwark now also increases your critical strike chance by 10%' (bindmysoul.com/conquest/talents.normalized.json, fetchedAt 2026-07-22T23:10:31.369Z; matches the client's own moa_description). Forgefiend's Bulwark's Enrage buff (801019, applied by the 801065 block/parry/dodge proc) already carries a dormant EFFECT_1 in the installed Spell.dbc: native aura 290 (SPELL_AURA_MOD_CRIT_PCT), BasePoints -1/DieSides 1 -> base 0. Fiend of Forges' own baked effect is a stray SPELLMOD_EFFECT2 (misc 12) scoped to 801019's own classmask, but SPELLMOD_EFFECT2 only feeds specific native effect-value lookups, not the CalcValue() path that sets an aura's own base amount, so it never raised the crit chance. AscensionXorothContracts.cpp nulls it; aura_ascension_xoroth_lifecycle::Calculate (AscensionXorothAuras.cpp) now sets 801019's EFFECT_1 amount to Amount(300386, 0) = 10 while the caster knows the talent, and to 0 otherwise - the same claimed-inert-slot pattern Speed Demon/Suffuse (#1223) uses. SPELL_AURA_MOD_CRIT_PCT feeds both Player::UpdateAllWeaponDependentCritAuras and UpdateAllSpellCritChances, so melee_crit_chance moves with it.",
+  "timeout_ms": 90000,
+  "players": [
+    { "id": "knight", "race": 1, "class": 17, "level": 60 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+    { "action": "snapshot", "actor": "knight", "metric": "melee_crit_chance", "save_as": "crit_before" },
+    { "action": "set_aura", "actor": "knight", "spell": 801019, "stacks": 1, "label": "Force the Enrage buff without Fiend of Forges" },
+    { "action": "wait", "label": "Let the aura's effects settle", "ms": 500 },
+    {
+      "action": "assert", "label": "SETUP: the Enrage buff is active",
+      "actor": "knight", "metric": "aura", "spell": 801019, "equals": 1
+    },
+    {
+      "action": "assert", "label": "BASELINE: Enrage's own crit slot stays at zero without the talent",
+      "actor": "knight", "metric": "aura_amount", "spell": 801019, "effect": 1, "equals": 0
+    },
+    {
+      "action": "assert", "label": "BASELINE: crit chance is unaffected without the talent",
+      "actor": "knight", "metric": "melee_crit_chance", "relative_to": "crit_before", "equals": 0
+    },
+    { "action": "learn", "actor": "knight", "spell": 300386 },
+    {
+      "action": "assert", "label": "SETUP: Fiend of Forges is learned",
+      "actor": "knight", "metric": "knows_spell", "spell": 300386, "equals": 1
+    },
+    { "action": "set_aura", "actor": "knight", "spell": 801019, "stacks": 1, "label": "Reapply Enrage so its amount recomputes with the talent known" },
+    { "action": "wait", "label": "Let the aura's effects settle", "ms": 500 },
+    {
+      "action": "assert", "label": "SETUP: Enrage is active with Fiend of Forges known",
+      "actor": "knight", "metric": "aura", "spell": 801019, "equals": 1
+    },
+    {
+      "action": "assert", "label": "CONTRACT: Enrage's crit slot rises to 10",
+      "actor": "knight", "metric": "aura_amount", "spell": 801019, "effect": 1, "equals": 10
+    },
+    {
+      "action": "assert", "label": "CONTRACT: crit chance rises by 10 percentage points while Enrage is active",
+      "actor": "knight", "metric": "melee_crit_chance", "relative_to": "crit_before", "equals": 10
+    },
+    { "action": "set_aura", "actor": "knight", "spell": 801019, "stacks": 0, "label": "Remove Enrage" },
+    { "action": "wait", "label": "Let the aura's removal settle", "ms": 500 },
+    {
+      "action": "assert", "label": "REGRESSION: crit chance returns to baseline once Enrage expires",
+      "actor": "knight", "metric": "melee_crit_chance", "relative_to": "crit_before", "equals": 0
+    }
+  ]
+}

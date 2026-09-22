@@ -42,6 +42,8 @@ class aura_ascension_xoroth_lifecycle : public AuraScript
             // Speed Demon (707232): Suffuse's own claimed EFFECT_2 slot (SPELL_AURA_MOD_INCREASE_SPEED,
             // see ApplyContracts) stays at its base zero unless the caster has the talent.
             amount = player->HasAura(707232) ? Amount(707232, 0) : 0;
+        if (id == 801019 && effect->GetEffIndex() == EFFECT_1)
+            amount = player->HasAura(300386) ? Amount(300386, 0) : 0;
     }
     void Apply(AuraEffect const* effect, AuraEffectHandleModes)
     {
