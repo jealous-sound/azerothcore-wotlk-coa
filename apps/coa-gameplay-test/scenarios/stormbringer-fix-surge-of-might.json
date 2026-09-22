@@ -31,7 +31,7 @@
     { "action": "cast", "actor": "ally", "spell": 2136, "target": "dummy" },
     { "action": "assert", "label": "DISCRIMINATING: the ally's direct damage procs the aura",
       "actor": "ally", "metric": "spell_proc_count", "spell": 520084, "min": 1, "within_ms": 2000 },
-    { "action": "assert", "label": "DISCRIMINATING: the proc deals Nature damage 573254",
-      "actor": "ally", "metric": "spell_damage_count", "spell": 573254, "min": 1, "within_ms": 2000 }
+    { "action": "assert", "label": "DISCRIMINATING: the proc deals Nature damage 573254, logged under sb (Spell::DoAllEffectOnTarget uses m_originalCaster, which HandleProcTriggerSpellWithValueAuraProc resolves via triggeredByAura->GetCasterGUID() to 520084's own caster sb, not the proccing ally)",
+      "actor": "sb", "metric": "spell_damage_count", "spell": 573254, "min": 1, "within_ms": 2000 }
   ]
 }
