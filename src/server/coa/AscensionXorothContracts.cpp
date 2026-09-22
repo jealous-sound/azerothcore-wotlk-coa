@@ -512,6 +512,8 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[EFFECT_0].Effect = 0;
     if (id == 300386)
         info->Effects[EFFECT_0].Effect = 0;
+    if (id == 300387)
+        info->Effects[EFFECT_0].Effect = 0;
     info->_InitializeExplicitTargetMask();
 }
 }

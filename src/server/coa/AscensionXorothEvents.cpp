@@ -64,7 +64,8 @@ class aura_ascension_xoroth_event : public AuraScript
             case 801065:
                 return (block || parry || dodge) && Chance(player, id);
             case 804345:
-                return damage && Chance(player, id);
+                return damage &&
+                       Chance(player, id, 0, player->HasAura(300387) ? float(Amount(300387)) : 0);
             default:
                 return false;
             }

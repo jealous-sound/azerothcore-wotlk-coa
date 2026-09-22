@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "name": "Brimstone's Blood raises Demon's Blood's proc chance by 25 points (#1587)",
+  "contract": "Brimstone's Blood 300387 reads 'Increases the chance of gaining a stack of Demon's Blood by 25%' (bindmysoul.com/conquest/talents.normalized.json, fetchedAt 2026-07-22T23:10:31.369Z; matches the client's own moa_description). The chance belongs to the innate class passive Demon's Blood (804345, ProcChance 25 in the installed Spell.dbc, granted at class tiers 6/7 in AscensionCustomClassData.h): 'Damage taken has a 25% chance to generate Rage and grant Demon's Blood.' aura_ascension_xoroth_event::Check (AscensionXorothEvents.cpp) rolls this manually via AscensionXoroth::Chance(player, 804345), bypassing the native spellmod pipeline entirely, so Brimstone's Blood's own baked SPELLMOD_CHANCE_OF_SUCCESS effect (even though its classmask does match 804345) is never read; it is nulled in ApplyContracts. The fix adds Amount(300387) = 25 as Chance()'s bonus parameter, so the roll becomes 50% while the talent is known. On each successful roll, Proc() (AscensionXorothEvents.cpp case 804345) casts 521226 (Rage) directly via the AscensionXoroth::Cast() helper - a script-issued cast with no aura named as its trigger, so spell_cast_count (not spell_proc_count, which requires native trigger-spell recording) is the metric that observes it, per the README's guidance for script-driven casts. The scenario counts 521226 casts over two equal-length mutual-combat windows against the same weak, high-health training dummy: 48 melee-swing-taken trials at the baseline 25% chance yield an expected 12 (std 3), so a null-hypothesis run producing 20 or more has under 1% probability (z ~ 2.7); the talented window (50% chance, expected 24) clears 20 with about 90% power (z ~ -1.3). The test only requires the talented window's count to exceed the untalented window's, and separately clears the loose absolute floor.",
+  "timeout_ms": 400000,
+  "players": [
+    { "id": "knight", "race": 1, "class": 17, "level": 60 }
+  ],
+  "creatures": [
+    { "id": "dummy", "owner": "knight", "entry": 36, "level": 60, "health": 5000000, "distance": 3 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+    { "action": "set_health", "actor": "knight", "value": 500000, "maximum": 500000, "label": "Give the knight enough of a health buffer to survive the whole combat window" },
+    { "action": "learn", "actor": "knight", "spell": 804345, "label": "Ensure the innate Demon's Blood passive is known" },
+    {
+      "action": "assert", "label": "SETUP: Demon's Blood is known without Brimstone's Blood",
+      "actor": "knight", "metric": "knows_spell", "spell": 300387, "equals": 0
+    },
+    { "action": "snapshot", "actor": "knight", "metric": "spell_cast_count", "spell": 521226, "save_as": "grants_before_baseline" },
+    { "action": "attack", "actor": "knight", "target": "dummy", "label": "Start mutual combat without the talent" },
+    { "action": "wait", "label": "Let ~48 damage-taken trials resolve at the baseline 25% chance", "ms": 150000 },
+    { "action": "stop_attack", "actor": "knight" },
+    {
+      "action": "assert", "label": "SETUP: combat actually generated Rage grants at the baseline chance",
+      "actor": "knight", "metric": "spell_cast_count", "spell": 521226, "relative_to": "grants_before_baseline", "min": 1
+    },
+    { "action": "snapshot", "actor": "knight", "metric": "spell_cast_count", "spell": 521226, "save_as": "grants_before_talent" },
+    { "action": "learn", "actor": "knight", "spell": 300387 },
+    {
+      "action": "assert", "label": "SETUP: Brimstone's Blood is now known",
+      "actor": "knight", "metric": "knows_spell", "spell": 300387, "equals": 1
+    },
+    { "action": "attack", "actor": "knight", "target": "dummy", "label": "Resume mutual combat with the talent known" },
+    { "action": "wait", "label": "Let ~48 more damage-taken trials resolve at the boosted 50% chance", "ms": 150000 },
+    { "action": "stop_attack", "actor": "knight" },
+    {
+      "action": "assert", "label": "CONTRACT: the talented window generates markedly more Rage grants than the untalented window",
+      "actor": "knight", "metric": "spell_cast_count", "spell": 521226, "relative_to": "grants_before_talent", "min": 20
+    }
+  ]
+}
