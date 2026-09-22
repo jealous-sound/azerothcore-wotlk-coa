@@ -126,8 +126,15 @@ void Gain(Player* player, uint32 count)
     if (!player || !player->IsAlive() || !count)
         return;
     uint32 previous = Count(player, 500906);
+    // Base cap of 6; Heart of Xoroth (704956) registers a native SPELLMOD_MAX_AURA_STACKS
+    // modifier (its classmask is corrected to Demon's Blood's own family flags in
+    // AscensionXorothContracts.cpp) for +5 additional stacks, matching the pattern already
+    // used by Necromancer's Capacity() (AscensionNecromancer.cpp).
+    int32 cap = 6;
+    player->ApplySpellMod(500906, SPELLMOD_MAX_AURA_STACKS, cap);
+    uint32 maxStacks = uint32(std::max(cap, 0));
     if (Aura* aura = player->AddAura(500906, player))
-        aura->SetStackAmount(std::min(6u, previous + count));
+        aura->SetStackAmount(std::min(maxStacks, previous + count));
 }
 bool Chance(Player* player, uint32 id, uint32 cooldown, float bonus)
 {

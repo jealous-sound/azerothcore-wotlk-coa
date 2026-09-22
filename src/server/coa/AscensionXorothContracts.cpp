@@ -486,6 +486,14 @@ void ApplyContracts(SpellInfo* info)
         // Amount() and applied in Unleash() below.
         for (auto& e : info->Effects)
             e.Effect = 0;
+    if (id == 704956)
+        // Heart of Xoroth: its own baked SPELLMOD_MAX_AURA_STACKS effect (misc 31, +5 stacks via
+        // BasePoints 4 + the DieSides 1 rounding) carries a scrambled classmask
+        // ([536870912,0,16]) that overlaps none of Demon's Blood's (500906) actual family flags
+        // (dword1 bit4 / 16). Correct it so the native spellmod - applied via
+        // AscensionXoroth::Gain()'s ApplySpellMod(500906, SPELLMOD_MAX_AURA_STACKS, ...), the
+        // same pattern as Necromancer's Capacity() (AscensionNecromancer.cpp) - actually matches.
+        info->Effects[EFFECT_0].SpellClassMask = flag96(0, 16, 0);
     info->_InitializeExplicitTargetMask();
 }
 }
