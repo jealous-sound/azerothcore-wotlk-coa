@@ -25,7 +25,8 @@ enum StormbringerTalentSpells : uint32
     SPELL_CHARGED_CONDUIT = 803790,
     SPELL_ELECTROCUTIONER_PASSIVE = 500068,
     SPELL_ELECTROCUTIONER_TALENT = 92096,
-    SPELL_ELECTROCUTIONER = 804592
+    SPELL_ELECTROCUTIONER = 804592,
+    SPELL_DARK_SKIES_BUFF = 680855
 };
 
 uint32 ElectrocutionerChance(Player const* player)
@@ -168,6 +169,45 @@ class aura_ascension_electrical_charge : public AuraScript
     }
 };
 
+class aura_ascension_dark_skies : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_dark_skies);
+
+    bool Validate(SpellInfo const*) override { return ValidateSpellInfo({SPELL_DARK_SKIES_BUFF}); }
+
+    bool Check(ProcEventInfo& event)
+    {
+        Unit* player = GetTarget();
+        Unit* victim = event.GetActionTarget();
+        return player->IsPlayer() && player->getClass() == CLASS_STORMBRINGER && player->IsAlive() &&
+            GetCaster() == player && event.GetActor() == player && victim && victim != player &&
+            !player->IsFriendlyTo(victim) && event.GetDamageInfo() && event.GetDamageInfo()->GetDamage();
+    }
+
+    void Proc(AuraEffect const*, ProcEventInfo& event)
+    {
+        PreventDefaultAction();
+        Unit* player = GetTarget();
+        if (event.GetHitMask() & PROC_HIT_CRITICAL)
+            player->RemoveAurasDueToSpell(SPELL_DARK_SKIES_BUFF);
+        else
+            player->CastSpell(player, SPELL_DARK_SKIES_BUFF, true);
+    }
+
+    void Remove(AuraEffect const*, AuraEffectHandleModes)
+    {
+        GetTarget()->RemoveAurasDueToSpell(SPELL_DARK_SKIES_BUFF);
+    }
+
+    void Register() override
+    {
+        DoCheckProc += AuraCheckProcFn(aura_ascension_dark_skies::Check);
+        OnEffectProc += AuraEffectProcFn(aura_ascension_dark_skies::Proc, EFFECT_0, SPELL_AURA_PROC_TRIGGER_SPELL);
+        AfterEffectRemove += AuraEffectRemoveFn(aura_ascension_dark_skies::Remove,
+            EFFECT_0, SPELL_AURA_PROC_TRIGGER_SPELL, AURA_EFFECT_HANDLE_REAL);
+    }
+};
+
 class aura_ascension_charged_conduit : public AuraScript
 {
     PrepareAuraScript(aura_ascension_charged_conduit);
@@ -192,4 +232,5 @@ void AddSC_AscensionStormbringerTalents()
     RegisterSpellScript(aura_ascension_barometric_pressure);
     RegisterSpellScript(aura_ascension_electrical_charge);
     RegisterSpellScript(aura_ascension_charged_conduit);
+    RegisterSpellScript(aura_ascension_dark_skies);
 }
