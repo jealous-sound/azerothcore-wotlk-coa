@@ -1,7 +1,7 @@
 # CoA talents: catalog, commands and the client's character-advancement service
 
 Use this reference for anything touching CoA talent points, ranks, specializations or the talent window's
-state. The live pieces are `modules/mod-ascension-compat/src/AscensionCoATalentData.*` (catalog),
+state. The live pieces are `src/server/coa/AscensionCoATalentData.*` (catalog),
 `AscensionCoATalentState.*` (spellbook-derived state and wire form) and `AscensionClassService` in
 `AscensionCompat.cpp` (rules, commands, packets).
 
@@ -121,7 +121,7 @@ WoW restores it, so the specialization overlay returns on every reload or relog;
 
 ## Checks
 
-- `python3 modules/mod-ascension-compat/tests/talent_state/run.py --dbc-dir <client dbc dir>`: budgets, rank
+- `python3 apps/coa-tests/talent_state/run.py --dbc-dir <client dbc dir>`: budgets, rank
   derivation, point accounting, packet layout and upload parsing, compiled against the real catalog.
 - Ghost `e2e/coa/talents/authority_test.go`: persistence across a relog, budget refusal, reset, the 0x0725/0x0726
   sequence and the 0x0727 upload against a running slot.

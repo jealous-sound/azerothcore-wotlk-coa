@@ -29,7 +29,7 @@ target_link_libraries(
         game
         gtest_main
         gmock_main
-        game-interface
+        coa-interface
 )
 
 # Add module test sources if any modules registered tests

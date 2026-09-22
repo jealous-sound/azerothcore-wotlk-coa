@@ -353,7 +353,7 @@ class DataSet:
 
 def source_matches(identity):
     result = subprocess.run(['rg', '-n', '--max-count', '5', '--glob', '*.{cpp,h,sql}',
-                             rf'\b{int(identity)}\b', 'modules/mod-ascension-compat/src',
+                             rf'\b{int(identity)}\b', 'src/server/coa',
                              'src/server/game', 'src/server/scripts', 'data/sql/updates/pending_db_world'],
                             cwd=ROOT, capture_output=True, text=True, timeout=30)
     if result.returncode not in (0, 1):

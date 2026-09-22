@@ -305,7 +305,7 @@ CoAChallenges.ProfessionXP.PointsPerLevel = 50
 ############################################################################
 
 # Aura that marks a character as participating in the High Risk ruleset
-# (mod-ascension-compat SPELL_ASCENSION_HIGH_RISK). HIGH_RISK_ONLY challenges
+# (CoA SPELL_ASCENSION_HIGH_RISK). HIGH_RISK_ONLY challenges
 # require it to activate and fail if it is lost while active.
 # Default: 1004019
 CoAChallenges.HighRisk.Aura = 1004019

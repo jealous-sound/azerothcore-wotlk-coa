@@ -126,19 +126,19 @@ WorldSocket::WorldSocket(IoContextTcpSocket&& socket)
     _headerBuffer.Resize(sizeof(ClientPktHeader));
 
     bool const allowAscensionClient = GetRemoteIpAddress().is_loopback() ||
-        sConfigMgr->GetOption<bool>("AscensionCompat.AllowRemoteClients", false, false);
+        sConfigMgr->GetOption<bool>("CoA.AllowRemoteClients", false, false);
     _ascensionCompatEnabled = allowAscensionClient &&
-        sConfigMgr->GetOption<bool>("AscensionCompat.Enable", false, false);
+        sConfigMgr->GetOption<bool>("CoA.Enable", false, false);
     _usePlaintextWorldHeaders = allowAscensionClient &&
-        sConfigMgr->GetOption<bool>("AscensionCompat.PlaintextWorldHeaders", false, false);
+        sConfigMgr->GetOption<bool>("CoA.PlaintextWorldHeaders", false, false);
 
     // Extensions.dll changes the Ascension client's ping period to five seconds.
     // Allow one second of jitter while retaining the ordinary overspeed strike limit.
     if (_ascensionCompatEnabled)
     {
         _minimumPingInterval = std::chrono::seconds(4);
-        _firstAscensionExtensionOpcode = sConfigMgr->GetOption<uint32>("AscensionCompat.FirstExtensionOpcode", 0x051F);
-        _lastAscensionExtensionOpcode = sConfigMgr->GetOption<uint32>("AscensionCompat.LastExtensionOpcode", 0x09D3);
+        _firstAscensionExtensionOpcode = sConfigMgr->GetOption<uint32>("CoA.FirstExtensionOpcode", 0x051F);
+        _lastAscensionExtensionOpcode = sConfigMgr->GetOption<uint32>("CoA.LastExtensionOpcode", 0x09D3);
     }
 }
 
@@ -341,7 +341,7 @@ bool WorldSocket::ReadHeaderHandler()
     if (!_loggedFirstClientHeader && GetRemoteIpAddress().is_loopback())
     {
         _loggedFirstClientHeader = true;
-        LOG_INFO("module.ascension_compat",
+        LOG_INFO("coa",
             "First loopback world header: raw={}, cryptInitialized={}, decodedSize={}, decodedOpcode=0x{:04X}",
             rawHeader, cryptInitialized, header->size, header->cmd);
     }
@@ -581,7 +581,7 @@ void WorldSocket::HandleAuthSession(WorldPacket & recvPacket)
     std::shared_ptr<ClientAuthSession> authSession = std::make_shared<ClientAuthSession>();
 
     if (GetRemoteIpAddress().is_loopback())
-        LOG_INFO("module.ascension_compat", "Parsing loopback CMSG_AUTH_SESSION with {} payload bytes", recvPacket.size());
+        LOG_INFO("coa", "Parsing loopback CMSG_AUTH_SESSION with {} payload bytes", recvPacket.size());
 
     // Read the content of the packet
     recvPacket >> authSession->Build;
@@ -599,7 +599,7 @@ void WorldSocket::HandleAuthSession(WorldPacket & recvPacket)
 
     if (GetRemoteIpAddress().is_loopback())
     {
-        LOG_INFO("module.ascension_compat",
+        LOG_INFO("coa",
             "Parsed loopback CMSG_AUTH_SESSION: account={}, build={}, realmId={}, addonBytes={}",
             authSession->Account, authSession->Build, authSession->RealmID, authSession->AddonInfo.size());
     }
@@ -616,7 +616,7 @@ void WorldSocket::HandleAuthSessionCallback(std::shared_ptr<ClientAuthSession> a
 {
     if (GetRemoteIpAddress().is_loopback())
     {
-        LOG_INFO("module.ascension_compat",
+        LOG_INFO("coa",
             "Loopback auth query completed: foundAccount={}, cryptInitializedBeforeCallback={}",
             bool(result), _authCrypt.IsInitialized());
     }
@@ -653,7 +653,7 @@ void WorldSocket::HandleAuthSessionCallback(std::shared_ptr<ClientAuthSession> a
 
     if (GetRemoteIpAddress().is_loopback())
     {
-        LOG_INFO("module.ascension_compat",
+        LOG_INFO("coa",
             "Loopback world-header mode selected: plaintextCompatibility={}, cryptInitialized={}",
             usePlaintextWorldHeaders, _authCrypt.IsInitialized());
     }

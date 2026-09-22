@@ -155,7 +155,7 @@ namespace
     /// Whether a creature may be given a view at all, whoever is looking at it.
     ///
     /// These are the exclusions the realm-wide implementation makes in its own `CanScale`
-    /// (mod-ascension-compat, `AscensionCompatLevelScalingScript`) and they are not optional: a
+    /// (CoA, `AscensionCompatLevelScalingScript`) and they are not optional: a
     /// creature that belongs to somebody - a pet, a summon, a totem, a charmed unit - must never be
     /// re-levelled, and neither must a trigger, a critter or a non-combat pet, which are scenery with
     /// a health bar. A scripted private instance is CoA's own scripted content and is left exactly as
@@ -849,15 +849,15 @@ public:
                                                         std::memory_order_relaxed);
 
         // Creature scaling is this module's now - per character, in the viewer's own client - so the
-        // realm-wide path in mod-ascension-compat stands aside: it lifts the creature object itself,
+        // realm-wide path in CoA stands aside: it lifts the creature object itself,
         // which every client is told about, and a character who never asked for scaling would then
         // see a raised world anyway. The flag is a live switch rather than a config load decision, so
         // whichever module ran its hooks first does not matter, and turning this module off returns
         // the realm-wide path exactly as it was.
         LocalLevelScaling::CreatureScalingOwnedPerViewer.store(available, std::memory_order_relaxed);
-        if (available && sConfigMgr->GetOption<bool>("AscensionCompat.LevelScaling", false))
+        if (available && sConfigMgr->GetOption<bool>("CoA.LevelScaling", false))
             LOG_INFO("module.destiny_weaver",
-                     "AscensionCompat.LevelScaling is 1, but per-character creature scaling owns the "
+                     "CoA.LevelScaling is 1, but per-character creature scaling owns the "
                      "answer: the realm-wide lift is standing aside for as long as this module is on");
 
         LOG_INFO("module.destiny_weaver",

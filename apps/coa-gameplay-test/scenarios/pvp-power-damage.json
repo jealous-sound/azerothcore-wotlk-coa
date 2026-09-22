@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "PvP Power raises damage against players",
-  "contract": "A chestpiece with PvP Power (+42) adds 42 x 0.05% = 2.1% to a level 60 attacker's damage against another player. Requires PvpPower.Enable = 1 in mod_ascension_compat.conf.",
+  "contract": "A chestpiece with PvP Power (+42) adds 42 x 0.05% = 2.1% to a level 60 attacker's damage against another player. Requires PvpPower.Enable = 1 in coa.conf.",
   "players": [
     {
       "id": "k",

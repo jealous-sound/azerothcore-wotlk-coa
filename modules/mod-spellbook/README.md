@@ -7,7 +7,7 @@ the selected rank for money.
 ## The problem
 
 The realm's books summoned a companion creature whose script was `npc_ascension_training_book` - a
-gossip menu that re-granted whatever the compat module's automatic progression handed out. The
+gossip menu that re-granted whatever CoA's automatic progression handed out. The
 original books were a class trainer: the client draws that window only for a unit it reads as a
 trainer (`UNIT_NPC_FLAG_TRAINER`, 0x10), and the ranked class abilities the books sold were never
 restored to this realm's trainer data at all.
@@ -40,8 +40,8 @@ restored to this realm's trainer data at all.
   the client announces on its own. Sending a learned-spell packet on top of that cue announced every
   rank up twice in chat.
 - **Automatic delivery off.** The books are how a character earns abilities, so this change ships
-  `AscensionCompat.AutoProgression = 0` (config file and code default) in `mod-ascension-compat`:
-  the class spells and rank upgrades that module handed out on level up are no longer granted
+  `CoA.AutoProgression = 0` (config file and code default) in the CoA server component:
+  the class spells and rank upgrades CoA handed out on level up are no longer granted
   automatically. A talent tree's free nodes (the specialization identity and its free first row) are
   still granted: the books never sell them, and without them the tree stays locked (#4436). It only ever subtracts - the reconcile pass, talent replacements,
   taught abilities and the runemaster passes are untouched, and the gossip option that restores a
@@ -94,7 +94,7 @@ book's creature ("has no model ... can't load"), so the item summons nothing.
 In game: obtain a book (`.additem 98457`) and summon it - right-clicking the book opens the trainer
 window with your own class, and Train learns the rank and pays for it.
 
-The gameplay test driver in `mod-ascension-compat` exposes the whole path as metrics
+The gameplay test driver in the CoA server component exposes the whole path as metrics
 (`spellbook_rows`, `spellbook_offers_spell`, `spellbook_buy_succeeded`, `spellbook_learned_alerts`,
 `spellbook_unannounced_buys`, ...) through its `trainer_buy` action, and one scenario replays the
 live report of three purchases that were granted without announcing themselves, and a second one buys a
