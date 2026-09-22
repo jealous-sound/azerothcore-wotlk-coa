@@ -7,7 +7,7 @@
     { "id": "storm", "race": 1, "class": 16, "level": 80, "spell_hit_rating": 10000 },
     { "id": "victim", "race": 2, "class": 16, "level": 80, "spell_hit_rating": 10000 }
   ],
-  "location": { "map": 0, "x": -8917.41, "y": -115.853, "z": 82.3711, "o": 0 },
+  "location": { "map": 0, "x": -9617.06, "y": -288.949, "z": 57.3053, "o": 0 },
   "steps": [
     { "action": "wait", "label": "Let login and level scaling settle", "ms": 5000 },
     { "action": "pvp", "actor": "storm", "enabled": true },
