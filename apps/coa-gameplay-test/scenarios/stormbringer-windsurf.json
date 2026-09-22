@@ -234,12 +234,22 @@
     },
     {
       "action": "teleport",
+      "label": "INTERCEPT: the fixture spawn point is a sanctuary (Unit::_IsValidAttackTarget rejects any PvP attack there regardless of faction); move the Stormbringer out first",
+      "actor": "wind",
+      "map": 0,
+      "x": -9617.06,
+      "y": -288.949,
+      "z": 57.3053,
+      "o": 0
+    },
+    {
+      "action": "teleport",
       "label": "INTERCEPT: put the attacker in melee range, facing the Stormbringer",
       "actor": "striker",
       "map": 0,
-      "x": -8920.41,
-      "y": -115.853,
-      "z": 82.3711,
+      "x": -9620.06,
+      "y": -288.949,
+      "z": 57.3053,
       "o": 0
     },
     {
