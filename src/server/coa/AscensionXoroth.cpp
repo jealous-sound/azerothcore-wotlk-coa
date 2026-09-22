@@ -184,6 +184,8 @@ void Refresh(Player* player)
         player->RemoveAurasDueToSpell(id);
     if (AuraEffect* effect = player->GetAuraEffect(704186, EFFECT_0))
         effect->ChangeAmount(Amount(704186) + 10 * Count(player, 500906));
+    if (AuraEffect* effect = player->GetAuraEffect(704953, EFFECT_0))
+        effect->ChangeAmount(Count(player, 500906));
 
     scale(573075, player->HasAura(573035) ? player->GetUInt32Value(PLAYER_FIELD_COMBAT_RATING_1 + CR_BLOCK) / 2 : 0);
     for (auto const& replacement : {std::array<uint32, 3>{301302, 801016, 804353},

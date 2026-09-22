@@ -269,6 +269,24 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[1].Effect = 0;
         info->Effects[2].Effect = 0;
     }
+    if (id == 704953)
+    {
+        // Chop Shop: each stack of Demon's Blood (500906) adds 1% crit chance to Sever/Brimstone
+        // Bludgeon (family bit 0,2097152 - shared by Sever 500904 and its Brimstone Bludgeon 520005
+        // replacement) and Meatsaw (family bit 0,8388608). Base amount starts at 0 and is kept in sync
+        // with the current stack count by Refresh() in AscensionXoroth.cpp.
+        SpellEffectInfo& e = info->Effects[EFFECT_0];
+        e.Effect = SPELL_EFFECT_APPLY_AURA;
+        e.ApplyAuraName = SPELL_AURA_ADD_FLAT_MODIFIER;
+        e.BasePoints = 0;
+        e.DieSides = 0;
+        e.MiscValue = SPELLMOD_CRITICAL_CHANCE;
+        e.SpellClassMask = flag96(0, 2097152 | 8388608, 0);
+        e.TargetA = SpellImplicitTargetInfo(TARGET_UNIT_CASTER);
+        e.TargetB = SpellImplicitTargetInfo();
+        info->Effects[EFFECT_1].Effect = 0;
+        info->Effects[EFFECT_2].Effect = 0;
+    }
     info->_InitializeExplicitTargetMask();
 }
 }
