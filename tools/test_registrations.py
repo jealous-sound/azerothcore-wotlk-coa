@@ -14,6 +14,20 @@ class RegistrationTests(unittest.TestCase):
     def test_valid_flat_loader(self):
         self.assertEqual(inspect(self.sources)['status'], 'passed')
 
+    def test_worldserver_must_call_the_coa_loader_once(self):
+        registered = 'sScriptMgr->SetScriptLoader([] { AddScripts(); AddCoAScripts(); });'
+        self.assertEqual(inspect(self.sources, registered)['status'], 'passed')
+        for worldserver in ['sScriptMgr->SetScriptLoader(AddScripts);', '// AddCoAScripts();',
+                            registered.replace('AddCoAScripts();', 'AddCoAScripts(); AddCoAScripts();')]:
+            with self.subTest(worldserver=worldserver):
+                self.assertEqual(inspect(self.sources, worldserver)['status'], 'failed')
+
+    def test_second_root_loader_definition_is_reported(self):
+        self.sources['Other.cpp'] = 'void AddCoAScripts() {}'
+        result = inspect(self.sources)
+        self.assertEqual(result['status'], 'failed')
+        self.assertEqual(result['issues'][0]['message'], 'Expected one CoA root loader across all sources')
+
     def test_forgetting_a_registration_is_reported(self):
         self.sources['Forgotten.cpp'] = 'void AddAscensionForgottenScripts() {}'
         result = inspect(self.sources)

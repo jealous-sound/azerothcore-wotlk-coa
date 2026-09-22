@@ -1,4 +1,5 @@
-CLI_DESCRIPTION = """Check the CoA server's flat loader: each entry point must be defined and called exactly once.
+CLI_DESCRIPTION = """Check the CoA server's flat loader: each entry point must be defined and called exactly once,
+and the worldserver must call the CoA loader exactly once.
 
 This checks source wiring, not SQL spell bindings, compilation, or gameplay behavior.
 Comments and string literals are ignored; conditional/non-flat loaders require explicit checker support.
@@ -14,9 +15,11 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 MODULE = ROOT / 'src/server/coa'
+WORLDSERVER = ROOT / 'src/server/apps/worldserver/Main.cpp'
 NAME = r'(?:AddSC_\w+|Add(?:Ascension|CoA)\w*Scripts)'
 DEFINITION = re.compile(r'\bvoid\s+(' + NAME + r')\s*\(\s*(?:void\s*)?\)\s*\{')
 CALL = re.compile(r'\b(' + NAME + r')\s*\(\s*\)\s*;')
+ROOT_CALL = re.compile(r'\bAddCoAScripts\s*\(\s*\)\s*;')
 IGNORED = re.compile(
     r'//[^\n]*|/\*[\s\S]*?\*/|R"(?P<delimiter>[^ ()\\\t\r\n]{0,16})\([\s\S]*?\)(?P=delimiter)"'
     r'|"(?:\\[\s\S]|[^"\\])*"|\'(?:\\[^\n]|[^\'\\\n])*\'')
@@ -26,7 +29,7 @@ def code_only(source):
     return IGNORED.sub(lambda match: re.sub(r'[^\n]', ' ', match.group()), source)
 
 
-def inspect(sources):
+def inspect(sources, worldserver=None):
     definitions = defaultdict(list)
     issues = []
     for path, text in sources.items():
@@ -37,6 +40,11 @@ def inspect(sources):
     if len(loader_definitions) != 1:
         issues.append({'entry': 'AddCoAScripts', 'definitions': loader_definitions,
                        'message': 'Expected one CoA root loader across all sources'})
+    if worldserver is not None:
+        root_calls = len(ROOT_CALL.findall(code_only(worldserver)))
+        if root_calls != 1:
+            issues.append({'entry': 'AddCoAScripts', 'path': WORLDSERVER.relative_to(ROOT).as_posix(),
+                           'calls': root_calls, 'message': 'The worldserver must call AddCoAScripts exactly once'})
     loader = code_only(sources.get('CoAScriptLoader.cpp', ''))
     entries = list(re.finditer(r'\bvoid\s+AddCoAScripts\s*\(\s*\)\s*\{', loader))
     if len(entries) != 1:
@@ -64,9 +72,9 @@ def inspect(sources):
             'calls': sum(map(len, calls.values())), 'issues': issues}
 
 
-def check(directory=MODULE):
+def check(directory=MODULE, worldserver=WORLDSERVER):
     return inspect({path.relative_to(directory).as_posix(): path.read_text(encoding='utf-8')
-                    for path in sorted(directory.rglob('*.cpp'))})
+                    for path in sorted(directory.rglob('*.cpp'))}, worldserver.read_text(encoding='utf-8'))
 
 
 def main(argv=None):
