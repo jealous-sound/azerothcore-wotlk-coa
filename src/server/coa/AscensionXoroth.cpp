@@ -254,6 +254,11 @@ void Unleash(Player* player, Unit* center, float strength, bool pet)
                                       : 0;
     if (!spell)
         return;
+    // Boundless Fury (704954): +30% effectiveness for Pestilence of Death's unleash (801055)
+    // specifically, matching its own SpellClassMask target (neutralized in
+    // AscensionXorothContracts.cpp; its value is read directly here).
+    if (spell == 801055 && player->HasAura(704954))
+        strength *= 1 + Amount(704954) / 100.0f;
     float old = State(player).unleash;
     State(player).unleash = strength;
     uint32 n = 0;

@@ -478,6 +478,14 @@ void ApplyContracts(SpellInfo* info)
         e.TargetA = SpellImplicitTargetInfo(TARGET_UNIT_CASTER);
         e.TargetB = SpellImplicitTargetInfo();
     }
+    if (id == 704954)
+        // Boundless Fury: its own baked SPELLMOD_ALL_EFFECTS classmask (dword0 bit26, matching
+        // Unleash Death 801055 - Pestilence of Death's unleash spell) is duplicated identically
+        // on EFFECT_0 and EFFECT_1 and is never read by AscensionXoroth::Unleash()'s custom
+        // State().unleash damage multiplier. Null both; the real 30% value is read directly via
+        // Amount() and applied in Unleash() below.
+        for (auto& e : info->Effects)
+            e.Effect = 0;
     info->_InitializeExplicitTargetMask();
 }
 }
