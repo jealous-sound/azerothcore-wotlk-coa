@@ -9,7 +9,9 @@ enum StormbringerContractSpells : uint32
 {
     SPELL_CLOUDSURFER = 806414,
     SPELL_FLOW_OF_WRATH = 801855,
-    SPELL_AETHERMANCY_RANK_2 = 705691
+    SPELL_AETHERMANCY_RANK_2 = 705691,
+    SPELL_ELECTRIFIED_WATERS_TRIGGER = 573437,
+    SPELL_DROWN_TARGET_AURA_STUB = 807136
 };
 
 constexpr uint32 SHOCK_FAMILY_MASK = 2048;
@@ -34,5 +36,7 @@ void ApplyContracts(SpellInfo* info)
     if (info->Id == SPELL_AETHERMANCY_RANK_2 && info->Effects[EFFECT_0].ApplyAuraName == SPELL_AURA_ADD_PCT_MODIFIER &&
         info->Effects[EFFECT_0].MiscValue == SPELLMOD_CRITICAL_CHANCE)
         info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_ADD_FLAT_MODIFIER;
+    if (info->Id == SPELL_ELECTRIFIED_WATERS_TRIGGER && info->TargetAuraSpell == SPELL_DROWN_TARGET_AURA_STUB)
+        info->TargetAuraSpell = 0;
 }
 }
