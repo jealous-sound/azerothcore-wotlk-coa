@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "Stormbringer: Eye of the Tornado refunds Static and Dark Skies stacks on non-crits (#1098, #1671)",
-  "contract": "Eye of the Tornado 706297 is a permanent passive (DurationIndex 21) whose Effect[0] is SPELL_EFFECT_APPLY_AURA with EffectApplyAuraName[0] = 42 SPELL_AURA_PROC_TRIGGER_SPELL and EffectTriggerSpell[0] = 804044 'Add 5 Static', whose Effect[1] is 175 SPELL_EFFECT_ASCENSION_MODIFY_AURA_STACKS with EffectMiscValue[1] = 5 on trigger spell 803102 Static, targeted at TARGET_UNIT_CASTER, so one damaging critical strike must add exactly 5 Static. Dark Skies 300593 is the same kind of passive with EffectTriggerSpell[0] = 680855; its DBC Description resolves every promised number from 680855, whose StackAmount is 5, DurationIndex 1 (10000 ms) and EffectApplyAuraName[0] = 71 SPELL_AURA_MOD_SPELL_CRIT_CHANCE_SCHOOL with EffectMiscValue[0] = 72 (SPELL_SCHOOL_MASK_NATURE 8 | SPELL_SCHOOL_MASK_ARCANE 64) and EffectBasePoints[0] 1 + EffectDieSides[0] 1 = 2 per stack, so a non-critical direct damage spell must cast 680855 on the Stormbringer, a critical strike must remove it, five stacks must add exactly 10 Nature spell crit and nothing outside school mask 72. Both spells carry DBC ProcFlags 0 and had no spell_proc row, so SpellMgr generated no SpellProcEntry and Aura::GetProcEffectMask returned 0 on every event. Shock 804020 is the probe: SpellFamilyName 22, SchoolMask 8 Nature, DmgClass 1 magic, RecoveryTime 0, CastTime 1500 ms, and it appears in neither the class-16 ResourceGainRules nor the class-16 ResourceCostRules of AscensionCustomResourceData.h, while the Call Lightning branch of stormbringer_talent_casts that would grant it Static stays closed because 500040 is never learned here - so Shock alone moves Static by zero. The Dark Skies gain is proved with spell_cast_count of 680855 rather than its stack count, because a later critical strike wipes the stacks while the cast counter is monotonic; with base crit only, six casts make an all-critical run vanishingly unlikely. spell_crit_rating 100000 is the fixture's way of forcing the critical branches.",
+  "contract": "Eye of the Tornado 706297 is a permanent passive (DurationIndex 21) whose Effect[0] is SPELL_EFFECT_APPLY_AURA with EffectApplyAuraName[0] = 42 SPELL_AURA_PROC_TRIGGER_SPELL and EffectTriggerSpell[0] = 804044 'Add 5 Static', whose Effect[1] is 175 SPELL_EFFECT_ASCENSION_MODIFY_AURA_STACKS with EffectMiscValue[1] = 5 on trigger spell 803102 Static, targeted at TARGET_UNIT_CASTER, so one damaging critical strike must add exactly 5 Static. Dark Skies 300593 is the same kind of passive with EffectTriggerSpell[0] = 680855; its DBC Description resolves every promised number from 680855, whose StackAmount is 5, DurationIndex 1 (10000 ms) and EffectApplyAuraName[0] = 71 SPELL_AURA_MOD_SPELL_CRIT_CHANCE_SCHOOL with EffectMiscValue[0] = 72 (SPELL_SCHOOL_MASK_NATURE 8 | SPELL_SCHOOL_MASK_ARCANE 64) and EffectBasePoints[0] 1 + EffectDieSides[0] 1 = 2 per stack, so a non-critical direct damage spell must cast 680855 on the Stormbringer, a critical strike must remove it, five stacks must add exactly 10 Nature spell crit and nothing outside school mask 72. Both spells carry DBC ProcFlags 0 and had no spell_proc row, so SpellMgr generated no SpellProcEntry and Aura::GetProcEffectMask returned 0 on every event. Shock 804020 is the probe: SpellFamilyName 22, SchoolMask 8 Nature, DmgClass 1 magic, RecoveryTime 0, CastTime 1500 ms, and it appears in neither the class-16 ResourceGainRules nor the class-16 ResourceCostRules of AscensionCustomResourceData.h. It is not, however, Static-neutral: Call Lightning 500040 and Shock 804020 are both class-16 level-1 baseline abilities (AscensionCustomClassData.h), so every player here already knows Call Lightning without an explicit learn step, and stormbringer_talent_casts::OnSpellHitResult's pre-existing native branch (predating this fix, from 'restore CoA abilities and gameplay') casts 804086 'Add 20 Static' on every damaging, non-triggered hit of the Shock chain while the caster lacks Thunder Ward 800098 - regardless of critical status. That flat +20 per cast is deterministic (804086's EffectMiscValue[1] = 20 via SPELL_EFFECT_ASCENSION_MODIFY_AURA_STACKS, no roll_chance) and is accounted for in the Static assertions below alongside Eye of the Tornado's own +5 per crit. The Dark Skies gain is proved with spell_cast_count of 680855 rather than its stack count, because a later critical strike wipes the stacks while the cast counter is monotonic; with base crit only, six casts make an all-critical run vanishingly unlikely. spell_crit_rating 100000 is the fixture's way of forcing the critical branches.",
   "timeout_ms": 180000,
   "players": [
     {
@@ -93,11 +93,11 @@
     },
     {
       "action": "assert",
-      "label": "BASELINE: Shock is in no class-16 Static gain or cost rule, so a critical Shock grants 0 Static",
+      "label": "BASELINE: Shock is in no class-16 Static gain or cost rule, but the native Call Lightning kit passive still adds a flat 20 Static per hit",
       "actor": "tornado",
       "metric": "aura_stacks",
       "spell": 803102,
-      "equals": 0
+      "equals": 20
     },
     {
       "action": "learn",
@@ -117,11 +117,11 @@
     },
     {
       "action": "assert",
-      "label": "DISCRIMINATING: one damaging critical strike refunds 804044's EffectMiscValue[1] = 5 Static",
+      "label": "DISCRIMINATING: one damaging critical strike adds 804044's EffectMiscValue[1] = 5 Static on top of the 20 baseline and the 20 native per-cast add, 20 + 20 + 5 = 45",
       "actor": "tornado",
       "metric": "aura_stacks",
       "spell": 803102,
-      "equals": 5
+      "equals": 45
     },
     {
       "action": "cast",
@@ -136,11 +136,11 @@
     },
     {
       "action": "assert",
-      "label": "DISCRIMINATING: the refund repeats per critical strike, 5 + 5 = 10 Static",
+      "label": "DISCRIMINATING: the refund repeats per critical strike, 45 + 20 (native) + 5 (refund) = 70 Static",
       "actor": "tornado",
       "metric": "aura_stacks",
       "spell": 803102,
-      "equals": 10
+      "equals": 70
     },
     {
       "action": "snapshot",
