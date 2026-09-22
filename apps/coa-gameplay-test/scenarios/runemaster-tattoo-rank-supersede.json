@@ -19,6 +19,8 @@
   {"action": "wait", "ms": 1500},
   {"action": "assert", "metric": "aura", "spell": 801094, "equals": 0, "actor": "r"},
   {"action": "cast", "actor": "r", "spell": 803754},
-  {"action": "assert", "metric": "aura", "spell": 803754, "equals": 1, "within_ms": 3000, "actor": "r"}
+  {"action": "assert", "metric": "aura", "spell": 803754, "equals": 1, "within_ms": 3000, "actor": "r"},
+  {"action": "assert", "label": "The active higher rank must not also apply the lower-rank aura",
+   "metric": "aura", "spell": 801094, "equals": 0, "actor": "r"}
  ]
 }

@@ -33,22 +33,21 @@ Read that checkout's `AGENTS.md` and `apps/coa-gameplay-test/README.md` before t
 ## Execute
 
 1. Validate the scenario with `python apps/coa-gameplay-test/run.py validate <scenario>`.
-2. Resolve a worldserver containing the runtime module, the matching game data/config, and local MySQL 8
+2. Resolve a worldserver built with CoA, the matching game data/config, and local MySQL 8
    `mysql.exe`/`mysqldump.exe`. Read credentials through the source config without printing them. Check
    the candidate build's source and freshness; do not assume an installed binary includes current edits.
    If normal credentials cannot create schemas, use `--database-client-config` with an authorized existing
    MySQL `[client]` file on the same endpoint (see README). Do not change existing account grants.
-3. Follow existing build authorization. The repository requires an explicit request before configuring or
-   building. If a suitable executable is unavailable, finish the scenario and source checks, then explain
-   the exact build needed and request authorization. A requested runtime run permits the runner's isolated
-   database copies and owned test process; it does not authorize replacing the installed server.
+3. Configure or build a matching test executable when needed, following `.agents/docs/build.md`. Prefer an
+   existing incremental build. A requested runtime run permits the runner's isolated database copies and
+   owned test process; it does not authorize replacing the installed server.
 4. Run `python apps/coa-gameplay-test/run.py run <scenario> --worldserver <exe> --config <conf>
    --mysql <mysql> --mysqldump <mysqldump>`. Invoke as one shell command with properly quoted arguments.
    The runner reuses its owned world copy by default, with fresh accounts/characters on each run. It checks
    source data, repository SQL and configs for changes, applies startup updates and audits persistent world
    writes after shutdown. A clean world copy is retained; disposable character/auth schemas and credentials
    are removed. Use `--refresh-world` to replace a cache or `--fresh-databases` for a fully disposable run.
-   Never point the enabled runtime module at normal databases or reuse a result directory.
+   Never point the test worldserver at normal databases or reuse a result directory.
 5. Inspect `summary.json`, `result.json` and relevant startup/runtime log errors. A pass requires the runner's
    zero exit code and completed assertions. Missing readiness, a crash, a partial result, a timeout or cleanup
    failure is a failed run. Diagnose infrastructure failures before interpreting gameplay outcomes. Use a

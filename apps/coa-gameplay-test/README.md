@@ -1,16 +1,139 @@
 # CoA gameplay tests
 
 Execute repeatable scenarios inside a real worldserver, using its loaded DBCs, SQL, scripts, maps and updates.
-The runtime component is `modules/mod-ascension-compat/src/CoAGameplayTest.cpp`; it is disabled by default.
+The runtime component is `src/server/coa/CoAGameplayTest.cpp`; it is disabled by default.
+
+## Find and verify a mechanic
+
+The searchable catalog derives spell IDs, classes, assertions, metrics and contracts from the scenarios.
+`checks.json` binds the existing numerical result checkers to their exact scenario definitions and mode arguments.
+Use the [agent DBC viewer](../coa-dbc/README.md#agent-retrieval-coa-dbc-viewer) to inspect source data first.
+The [mechanic map](../coa-mechanics/README.md) connects spells and quests to ranks/acquisition, expected behavior
+and reviewed execution paths. `catalog.py --quest ID` and `workflow.py --quest ID` select quest investigations.
+
+```sh
+python apps/coa-gameplay-test/catalog.py --spell 1257670
+python apps/coa-gameplay-test/catalog.py --query 'replenishment'
+python apps/coa-gameplay-test/workflow.py --spell 1257670
+python apps/coa-gameplay-test/catalog.py --check
+```
+
+`workflow.py` returns candidate scenarios and an investigation sequence in JSON. It does not infer that a
+report is a defect or create a PR. Establish expectations independently, select a metric that observes the
+behavior, reproduce it, then classify the result as a defect, already working, an incorrect test or unresolved.
+Use the existing issue-to-PR workflow when that scope is requested.
+
+`run.py run` now combines native execution with every registered numerical check for an exact catalog
+scenario. Checks requiring companion scenarios (currently the two Rockslide selection cases) run both cases
+automatically. With `--output`, their directories live under that output. `verification.json` is written in
+the first case's result directory, includes executable/scenario/checker identities, and controls the final exit code.
+`NATIVE STAGE COMPLETE` is intermediate progress; only `VERIFICATION PASSED` means the combined checks passed.
+Native failures also produce a failed combined outcome, with required checks marked `blocked` when their
+native evidence is unavailable. A failure stops further native runs because cleanup may have failed. If native
+setup fails before creating a result directory, the combined outcome is printed to standard output.
+
+For example, the existing Primalist conversion script has two registered modes:
+
+| Scenario | Required checker | Mode argument |
+| --- | --- | --- |
+| `primalist-everlasting-rage` | `check_primalist_native_conversions.py` | `everlasting` |
+| `primalist-king-mountain` | `check_primalist_native_conversions.py` | `king` |
+
+Run the scenario once with the usual isolated-runner options; there is no separate checker command to remember:
+
+```sh
+python apps/coa-gameplay-test/run.py run apps/coa-gameplay-test/scenarios/primalist-everlasting-rage.json \
+  --worldserver /path/to/worldserver \
+  --config /path/to/worldserver.conf \
+  --mysql /path/to/mysql \
+  --mysqldump /path/to/mysqldump \
+  --server-modules-dir /path/to/compiled-conf-dir/modules
+```
+
+The default command rejects modified/exploratory definitions absent from the catalog. Use `--native-only`
+explicitly for those experiments; its exit code covers native execution only and produces no combined pass.
+Native success alone cannot pass a failed, missing or timed-out required numerical check.
+
+For new spell or quest regressions, save the reusable definition under `scenarios/`. Express direct assertions
+in that definition and add any extra numerical checker to `checks.json`, listing scenario IDs in its expected
+argument order, followed by mode arguments in `args`. Shared checks can list multiple scenarios; the runner
+selects their companions transitively. Registry validation runs before native execution and in CI, and rejects
+missing files, duplicate bindings and any `check_*.py` script left unregistered. Scenarios with no extra checker
+still receive combined verification of native completion, assertions and cleanup.
+
+Recheck existing result bundles without starting a server:
+
+```sh
+python apps/coa-gameplay-test/verification.py .cache/coa-gameplay-tests/RUN
+python apps/coa-gameplay-test/verification.py path/to/rockslide-first path/to/rockslide-highest
+python -B apps/coa-gameplay-test/test_verification.py
+```
+
+Rechecks require the exact current scenario definition, its recorded hash, matching native step/run identity,
+passing native assertions and cleanup, all companion results, and matching companion executable hashes.
+They do not establish that old results cover current source, database, config or client changes. The registry
+ensures checkers run; it does not prove every expected mechanic has an adequate scenario or independent contract.
+
+## Prevent recurring mistakes
+
+Run the fast source checks for the working diff, including staged and untracked files:
+
+```sh
+python -B tools/check_source.py --base HEAD
+python -B tools/check_source.py --base origin/main --plan
+```
+
+The JSON outcome lists the selected checks, failures and timings. `--all` runs every fast suite. SQL boundaries
+and new C++/Python comments in CoA-owned code are always checked; changed CoA sources select loader registration
+checks; gameplay tooling/scenario changes
+select scenario validation, combined-verification tests, and runner/cache ownership and cleanup tests. Reviewed
+execution-path changes also check mechanic-map references. Documentation-only changes skip these test suites.
+CI uses the same selection for pull requests and retains the repository publication checks. Main-branch and
+manual runs perform a full audit; SQL-boundary exceptions are reviewed on the pull request. The existing compiled
+client-compatibility harness runs only for relevant changes or a full audit. The local command never builds or
+starts a server.
+
+CoA-owned code uses names, structure and tests to express intent. The comment check covers
+`src/server/coa/`, `apps/coa-tests/`, `apps/coa-bugreport/`, `apps/coa-dbc/`, `apps/coa-gameplay-test/`,
+`apps/coa-mechanics/`, `tools/` and `.github/scripts/`. It rejects explanatory comments and docstrings on added lines, while preserving legal
+headers, recognized tool directives and native test-generator markers. Strings and runtime CLI help remain data.
+`python -B tools/check_comments.py --all` also checks unchanged C++ and Python files in those directories.
+Upstream source, dependencies, SQL and configuration documentation remain outside this check.
+
+The loader check requires each CoA `AddSC_*`, `AddAscension*Scripts` and `AddCoA*Scripts` definition to have
+exactly one call from the flat CoA script loader, and each call to have exactly one definition. It ignores comments
+and string literals. It does not prove SQL bindings, hook reachability, or gameplay behavior; those require data
+inspection and behavioral tests. The checker intentionally reports an unsupported conditional loader for review.
+
+For behavior, choose the existing scenario that observes the changed mechanic and run it through `run.py run`:
+
+- **Duplicated calculations:** `bloodmage-dominion-of-blood-vampiric-fang` compares healing with the same cast's
+  damage; doubled healing fails the ratio. `ascension-replenishment` checks exact amounts for different recipient
+  pools. For a new coefficient change, vary AP/RAP/SP independently and check the final affected hit or tick.
+- **Wrong ownership:** `primalist-sharpened-claws` includes a wrong-caster pet control;
+  `wisdomball-dungeon-quests` checks the interacting player's quest state without changing the summoner's state.
+- **Rank replacement:** `pyromancer-fix-4104-ascension-rank-supersede` and `runemaster-tattoo-rank-supersede`
+  verify that a superseded rank cannot apply its aura, the current rank can, and the lower aura stays absent
+  while the higher aura is active. A stat-stacking change also
+  needs its effective stat/damage assertion; checking only the learned spell list is insufficient.
+- **Cleanup:** `primalist-protectors-hand` verifies armor returns after removing all sources;
+  `primalist-sharpened-claws` covers expiry and unlearning. Runner/cache tests separately cover database ownership,
+  collisions, leases, failed audits and unstopped processes; infrastructure cleanup is part of combined verification.
+
+Keep expectations independent of implementation. Use distinguishable players/stats, positive and negative
+controls, and bounded final values; a broad “damage increased” assertion can miss double scaling. The fast tests
+inject doubled amounts, wrong-recipient values and retained auras into synthetic recorded results to prove those
+errors cannot pass verification. These checks validate the verifier, not current worldserver behavior. Source
+patterns cannot reliably establish these gameplay rules, and passing source checks is never a gameplay pass.
 
 ## Run
 
 Python 3.11+, MySQL 8 client tools, a local MySQL server and a worldserver built with the runtime component
 are required. The commands below run the runner directly (Windows example); Docker installations on Linux use
 the [Compose test service](#linux-docker), which provides all of them.
-Follow the repository's build authorization rules. Adding the new source requires CMake
+Build a matching test executable when needed. Adding the new source requires CMake
 reconfiguration before building; running an older binary will fail the readiness check.
-The module requires Boost.PropertyTree headers. Component-based vcpkg installations need
+The CoA server component requires Boost.PropertyTree headers. Component-based vcpkg installations need
 `boost-property-tree` for the same triplet as the existing Boost libraries. CMake checks this dependency.
 
 ```powershell
@@ -107,11 +230,12 @@ Results default to `.cache/coa-gameplay-tests/<run-id>/`:
 - `scenario.json`: exact scenario used.
 - `worldserver.log`: process output, including startup and script errors.
 - `result.json`: server version, actual values and step outcomes.
-- `summary.json`: overall result, binary/scenario SHA-256 and any cleanup failure.
+- `summary.json`: native-stage result, binary/scenario SHA-256 and any cleanup failure.
+- `verification.json`: combined native and registered numerical verification for catalog scenarios.
 
-Exit code zero requires every expected assertion and step to complete, matching run identity, a clean server
-exit and successful cleanup/cache audit. A submitted cast alone is never a pass. Numeric fields in the server's
-property-tree JSON are strings; the Python runner converts and rechecks assertion values.
+Combined exit code zero requires every expected assertion and step to complete, matching run identity, a clean server
+exit, successful cleanup/cache audit and every registered numerical check. A submitted cast alone is never a pass.
+Numeric fields in the server's property-tree JSON are strings; the Python runner converts and rechecks assertion values.
 
 ### Linux (Docker)
 
@@ -124,8 +248,8 @@ SQL updates), the live `DOCKER_VOL_ETC` configs are read-only sources, and `DOCK
 Its database environment variables override any stale connections in `worldserver.conf` or the environment file.
 If another Compose override changes the live schema names, mirror those names in this service's
 `AC_*_DATABASE_INFO` variables while retaining the loopback endpoint. Build the worldserver image from the same
-checkout first, with the runtime module and cache startup barrier; rebuild the test image after it. A mounted
-source checkout does not update the compiled server. Build authorization is still required.
+checkout first, with CoA and the cache startup barrier; rebuild the test image after it. A mounted
+source checkout does not update the compiled server. Prefer rebuilding only the required test targets.
 
 ```bash
 mkdir -p .cache/coa-gameplay-tests
@@ -186,8 +310,8 @@ preserves Static and must leave the talent without a depletion bonus.
 
 The [damage-led scaling scenario](scenarios/level-scaling-damage-engagement.json) checks that an
 out-of-range attacker scales a fresh creature before a nonlethal or lethal opening hit, and that
-later damage leaves its combat level fixed. It requires `AscensionCompat.LevelScaling=1`,
-`AscensionCompat.LevelScalingMaxLift=5` and `MonsterSight=50`. The level-1 fixtures stand 80–85 yards
+later damage leaves its combat level fixed. It requires `CoA.LevelScaling=1`,
+`CoA.LevelScalingMaxLift=5` and `MonsterSight=50`. The level-1 fixtures stand 80–85 yards
 away and must scale to level 6, so both declare `level_scaling`. One fixture has only one maximum HP to
 expose damage-before-scaling.
 Spell 705798 is learned as a fixture: its one damage and zero initial threat exercise damage-led
@@ -238,9 +362,13 @@ damage coefficients.
 | `gossip_select` | `actor`, zero-based `option`: select from the current menu through the session handler. |
 | `who` | `actor`, optional name-filter `target`, `class_mask`, `race_mask`: submit a native Who query. |
 | `add_item` | `actor`, `item`, optional `count` (default 1): grant fixture inventory. |
+| `fill_bags` | `actor`, optional `slots` (default 0): fill the bags with distinct non-stacking armor until that many free slots remain, so a scenario can prove what a full inventory does. Fails if the bags cannot be filled. |
 | `equip` | `actor`, `item`, `slot` (0..18): equip an owned item through the session handler. |
 | `use_item` | `actor`, `item`, `spell`, optional `target` and `destination`: normal item-use handler. |
 | `use_gameobject` | `actor`, `entry`: native use request for the actor's single nearby owned gameobject. |
+| `set_skill` | `actor`, `skill`, `value`, `maximum`: fixture a native profession skill. |
+| `gather_skill` | `actor`, gathering `skill`, `required`: native gathering XP and skill-up attempt. |
+| `set_xp_enabled` | `actor`, boolean `enabled`: fixture the native XP-lock flag. |
 | `set_level` | `actor`, `value` (1..80): fixture level change through native `GiveLevel`, including level-change hooks. |
 | `set_health`, `set_power` | `actor`, `value` within native maximums; `set_power` accepts `power` (default 0). Optional `pet: true` selects the player's current pet. |
 | `reset_cooldown` | Player `actor`, `spell`: reset that native spell cooldown between independent cases. |
@@ -251,6 +379,11 @@ damage coefficients.
 
 `set_health` also accepts an explicit `maximum` for a player or their pet, using native `SetMaxHealth`.
 This fixture supports exact health-percentage boundaries without granting GM permissions.
+
+`gather_skill` calls `UpdateGatherSkill`; it does not harvest a node or prove loot delivery.
+
+`xp` and `next_level_xp` read the player's XP fields; `skill_value` requires `skill` and reads pure skill.
+XP-delta assertions must also keep the level stable, or crossing a level would wrap the XP bar.
 
 Every step accepts a descriptive `label`. Assertions optionally accept `within_ms`: poll until the expected
 state appears, failing at the deadline. This means "eventually", not "remains true throughout the window".
@@ -270,6 +403,19 @@ Metrics: `health`, `max_health`, `power`, `max_power`, `alive`, `combat`, `casti
 `charm_entry`, `charm_aura_stacks`, `controls_self`, `private_instance`, `dynamic_object`,
 `dynamic_object_duration_ms`, `distance`, `spell_proc_count`, `spell_cast_count`, `temporary_spell_replacement`,
 `bank_shows`, `system_messages`, `cast_failure`, `pet_is_banker`, `pet_display`, `pet_scale`.
+`free_inventory_slots` is how many bag slots the player could still fill, so `fill_bags` plus
+`free_inventory_slots` `equals: 0` is how a scenario states "the bags are full". `mail_count` is the
+number of mails the player holds and `mail_item_count` the items inside them, which is how a reward
+that the bags could not take proves it was posted rather than lost; `mail_has_item` takes `item` and
+returns whether any mail carries it, and `mail_pool_item_count` takes `cache` (optional `table`) and
+counts only the mail items that are in that cache's own pool. `notifications` counts the
+centre-screen notices a session has been sent and `notification_contains` takes `text` and returns
+whether one carried it, which is how a test proves a player was told something in the middle of the
+screen and not only in chat. The cache metrics are `carried_pool_item_count` (needs `cache`,
+optional `table`), `pool_variant_count`, `pool_retired_item_count`, `pool_row_count`,
+`pool_item_present` (needs `item`), and `cache_token_count`, `cache_token_stage`, `cache_token_present`
+(need `cache`, the last also `item`), which read the token table the realm loads and answer how many
+tier tokens a cache may pay, the highest tier among them, and whether one named token is among them.
 Boolean metrics use 0/1. Spell/aura metrics require `spell`; `item_count` requires `item`.
 `carried_item_count` sums the stack counts of equipped items (bags included), the backpack and the bags' contents.
 `aura_positive` reads the applied aura's beneficial flag; check `aura` separately to distinguish absence from a debuff.
@@ -402,9 +548,9 @@ resource type, recipient and current pets. The total is the logged nominal gain 
 `display_id` reads the unit's selected server display ID; it does not verify client rendering or animations.
 `global_cooldown_ms` requires `spell` and reads the remaining native global cooldown for its recovery category.
 Player commands retain normal permission and gameplay checks; verify their effects with assertions.
-`owned_creature_count` requires a player and `entry`. It counts living creatures of that entry owned by
+`owned_creature_count` requires a player and `entry`. It counts living creatures of that entry owned, created or summoned by
 the player, in the same phase and within 100 yards, including summons outside the guardian-pet slot.
-An optional `spell` restricts the count to creatures with that aura; `caster` can select its aura owner.
+An optional `spell` restricts the count to creatures with that aura; `caster` can select its aura owner. `min_distance` keeps creatures at least that many yards from the player (2D), and `owner_display: true` those wearing the player's display.
 `owned_gameobject_count` requires a player and `entry`. It counts their summoned gameobjects of that entry
 in the same phase and within 100 yards. `gameobject_remaining_ms` uses the same lookup and requires exactly
 one object when present; it returns the remaining lifetime with one-second precision, zero when absent,
@@ -423,14 +569,14 @@ check aura presence separately when zero is a valid effect amount. Permanent aur
 `scenarios/destiny-weaver-scaling.json` checks deferred scaling choices, armor debuffs, creature values
 updates after level changes, fractional damage accumulation, and ordinary damage with scaling off.
 It requires `DestinyWeaver.Enable=1`, `DestinyWeaver.LevelScaling=1`, `DestinyWeaver.Scaling.Offset=3`,
-and `AscensionCompat.QuestLevelScaling=1`. Spell 705798 supplies one base damage without critical hits;
+and `CoA.QuestLevelScaling=1`. Spell 705798 supplies one base damage without critical hits;
 Faerie Fire (770) supplies a 5% armor reduction. Spell 705798 uses melee hit resolution, so the fixture
 sets melee hit and expertise as well as spell hit. Template 1501 has HealthModifier 0.93: the level-1
 fixture's real pool remains 40 HP while its level-57 view has 2,590 HP. Ten one-damage hits cannot remove
 a whole real HP; 67 remove one.
 
 `scenarios/destiny-weaver-quest-fallback.json` requires a separate run with `DestinyWeaver.Enable=0`
-and `AscensionCompat.QuestLevelScaling=1`. Quest 7 must still scale to the player's level and award XP.
+and `CoA.QuestLevelScaling=1`. Quest 7 must still scale to the player's level and award XP.
 
 The `level_scaling_packet` action takes a player `actor` and `value` (0 or 1). It sends the existing
 four-byte request through the early packet hook on a worker, verifies that player state has not changed
@@ -470,7 +616,7 @@ not provide an automatic statistical test. Keep intended values independent of t
 
 ```powershell
 python -m unittest discover -s apps/coa-gameplay-test -p 'test_*.py'
-python apps/codestyle/codestyle-cpp.py --files modules/mod-ascension-compat/src/CoAGameplayTest.cpp
+python apps/codestyle/codestyle-cpp.py --files src/server/coa/CoAGameplayTest.cpp
 ```
 
 Runner checks cover invalid scenarios, incorrect/partial results, owned-process timeouts, isolation,

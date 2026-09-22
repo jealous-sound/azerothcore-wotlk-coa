@@ -1,4 +1,3 @@
-"""Check native Primalist resource, cooldown, conversion and pet-cleave observations."""
 import json
 import sys
 from pathlib import Path

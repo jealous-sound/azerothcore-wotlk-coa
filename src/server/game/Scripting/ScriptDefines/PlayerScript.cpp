@@ -21,6 +21,7 @@
 #include "World.h"
 
 #include <algorithm>
+#include <limits>
 
 void ScriptMgr::OnPlayerBeforeDurabilityRepair(Player* player, ObjectGuid npcGUID, ObjectGuid itemGUID, float& discountMod, uint8 guildBank)
 {
@@ -144,6 +145,8 @@ void ScriptMgr::OnPlayerBeforeSendLoot(Player* player, ObjectGuid lootGuid, Loot
 
 void ScriptMgr::OnPlayerGiveXP(Player* player, uint32& amount, Unit* victim, uint8 xpSource)
 {
+    amount = static_cast<uint32>(std::min(double(amount) * sWorld->getRate(RATE_XP_GLOBAL),
+        double(std::numeric_limits<uint32>::max())));
     CALL_ENABLED_HOOKS(PlayerScript, PLAYERHOOK_ON_GIVE_EXP, script->OnPlayerGiveXP(player, amount, victim, xpSource));
 }
 
@@ -951,6 +954,11 @@ bool ScriptMgr::OnPlayerCanResurrect(Player* player)
 bool ScriptMgr::OnPlayerCanEnterManastorm(Player* player)
 {
     CALL_ENABLED_BOOLEAN_HOOKS(PlayerScript, PLAYERHOOK_CAN_ENTER_MANASTORM, !script->OnPlayerCanEnterManastorm(player));
+}
+
+void ScriptMgr::OnPlayerBankWithdraw(Player* player, uint8 kind)
+{
+    CALL_ENABLED_HOOKS(PlayerScript, PLAYERHOOK_ON_BANK_WITHDRAW, script->OnPlayerBankWithdraw(player, kind));
 }
 
 bool ScriptMgr::OnPlayerEnvironmentalDamage(Player* player, uint32 type, uint32 damage)

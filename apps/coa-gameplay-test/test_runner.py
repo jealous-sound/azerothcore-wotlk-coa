@@ -1,5 +1,3 @@
-"""Behavioral checks for scenario validation, process failures and database ownership."""
-
 import copy
 import io
 import json
@@ -14,6 +12,22 @@ import run
 
 
 class RunnerTests(unittest.TestCase):
+    def test_profession_fixture_validation(self):
+        scenario = run.read_json(Path(__file__).parent / 'scenarios' / 'profession-xp.json')
+        self.assertIs(run.validate(scenario), scenario)
+        for step in (
+            {'action': 'set_skill', 'actor': 'gatherer', 'skill': 186, 'value': 76, 'maximum': 75},
+            {'action': 'gather_skill', 'actor': 'gatherer', 'skill': 171, 'required': 1},
+            {'action': 'gather_skill', 'actor': 'gatherer', 'skill': 186, 'required': -1},
+            {'action': 'set_xp_enabled', 'actor': 'gatherer', 'enabled': 1},
+            {'action': 'assert', 'actor': 'gatherer', 'metric': 'skill_value', 'equals': 0},
+            {'action': 'assert', 'actor': 'gatherer', 'metric': 'health', 'ratio_to': 'level_xp', 'equals': 1},
+        ):
+            invalid = copy.deepcopy(scenario)
+            invalid['steps'].append(step)
+            with self.subTest(step=step), self.assertRaises(ValueError):
+                run.validate(invalid)
+
     def test_optional_character_names(self):
         scenario = run.read_json(Path(__file__).parent / 'scenarios' / 'optional-character-names.json')
         self.assertIs(run.validate(scenario), scenario)
@@ -468,7 +482,7 @@ class RunnerTests(unittest.TestCase):
             source = directory / 'modules'
             source.mkdir()
             config = source / 'module.conf'
-            config.write_text('AscensionCompat.Enable = 1\n')
+            config.write_text('CoA.Enable = 1\n')
             staged = run.stage_modules(source, directory / 'run' / 'configs' / 'modules', {'BindIP'})
             self.assertEqual(staged[0].read_bytes(), config.read_bytes())
             config.write_text('BindIP = "0.0.0.0"\n')
@@ -562,7 +576,7 @@ class RunnerTests(unittest.TestCase):
             directory = Path(temporary)
             source = directory / 'modules'
             source.mkdir()
-            (source / 'module.conf').write_text('AscensionCompat.Enable = 1\n')
+            (source / 'module.conf').write_text('CoA.Enable = 1\n')
             destination = directory / 'server-modules'
             destination.mkdir()
             (destination / 'other.conf').write_text('WorldDatabaseInfo = "0;0;u;p;d"\n')
@@ -650,7 +664,8 @@ class RunnerTests(unittest.TestCase):
             installed_handlers.append(run.signal.getsignal(run.signal.SIGTERM))
             return 0
 
-        with patch.object(run, 'execute', side_effect=fake_execute):
+        with patch.object(run, 'execute', side_effect=fake_execute), \
+                patch('workflow.run_registered', side_effect=lambda args, scenario, execute: execute(args, scenario)):
             code = run.main(arguments)
         self.assertEqual(code, 0)
         self.assertEqual(len(installed_handlers), 1)

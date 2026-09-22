@@ -1,4 +1,3 @@
-"""Check independently sampled five-percent Mountain Avatar grants and extensions."""
 import json
 import sys
 from pathlib import Path

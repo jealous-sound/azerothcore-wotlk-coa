@@ -51,9 +51,9 @@
 
 // The progression tables this module serves live with the compat layer that generated them.
 // They are plain generated data headers, so they are read rather than copied.
-#include "../../mod-ascension-compat/src/AscensionCoATalentData.h"
-#include "../../mod-ascension-compat/src/AscensionCustomClassData.h"
-#include "../../mod-ascension-compat/src/AscensionSpellProgressionData.h"
+#include "AscensionCoATalentData.h"
+#include "AscensionCustomClassData.h"
+#include "AscensionSpellProgressionData.h"
 #include "SpellbookCostData.h"
 #include "SpellbookOfferData.h"
 #include "SpellbookRankData.h"
@@ -734,8 +734,23 @@ namespace
     };
 }
 
+class spellbook_metric_provider final : public WorldScript
+{
+public:
+    spellbook_metric_provider() : WorldScript("spellbook_metric_provider")
+    {
+        CoASpellbook::SetProvider({Spellbook::RowCount, Spellbook::OffersSpell, Spellbook::CoversSpell});
+    }
+
+    ~spellbook_metric_provider() override
+    {
+        CoASpellbook::SetProvider({});
+    }
+};
+
 void AddSpellbookScripts()
 {
+    new spellbook_metric_provider();
     new SpellbookBookScript();
     new SpellbookServerScript();
 }

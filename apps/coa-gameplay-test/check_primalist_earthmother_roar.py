@@ -1,4 +1,3 @@
-"""Check the native missing-health heal, including its ordinary critical multiplier."""
 import json
 import math
 import sys

@@ -269,6 +269,26 @@ CoAChallenges.Fatigue.SafeGraceSeconds = 1
 
 
 ############################################################################
+# Mailbox (TAKE_MAIL_MONEY_OR_ITEM, #4205)
+############################################################################
+# Taking a non-store item/currency from the mailbox taints the character for
+# the next non-prestige trial activation (a facet of OUTSIDE_INTERACTION).
+# Item entries listed here are exempt (store items / reward caches).
+CoAChallenges.MailExemptItems = "1397884;1397885;1397886"
+
+
+############################################################################
+# Outside interactions (OUTSIDE_INTERACTION implicit condition)
+############################################################################
+# Non-prestige trials cannot be started after a player-facing outside service
+# interaction: trade with another player, auction house, vendor, or guild bank
+# withdrawal. Disable to turn the whole implicit gate off (the mailbox keeps
+# its own gate above).
+# Default: 1
+CoAChallenges.OutsideInteractionGate = 1
+
+
+############################################################################
 # Professions (Artisan's / Survivalist's Guild)
 ############################################################################
 
@@ -285,7 +305,7 @@ CoAChallenges.ProfessionXP.PointsPerLevel = 50
 ############################################################################
 
 # Aura that marks a character as participating in the High Risk ruleset
-# (mod-ascension-compat SPELL_ASCENSION_HIGH_RISK). HIGH_RISK_ONLY challenges
+# (CoA SPELL_ASCENSION_HIGH_RISK). HIGH_RISK_ONLY challenges
 # require it to activate and fail if it is lost while active.
 # Default: 1004019
 CoAChallenges.HighRisk.Aura = 1004019

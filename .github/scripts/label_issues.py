@@ -8,7 +8,6 @@ import sys
 
 REPO = os.environ.get("GITHUB_REPOSITORY", "")
 
-# Labels this automation may add. Existing labels are never removed.
 MANAGED_LABELS = [
     "Barbarian",
     "Bloodmage",
@@ -42,8 +41,6 @@ MANAGED_LABELS = [
 ]
 
 
-# Class labels.
-# Word boundaries are used to reduce accidental matches.
 CLASS_PATTERNS = {
     "Barbarian": r"\bbarbarian\b",
     "Bloodmage": r"\bbloodmage\b",
@@ -69,8 +66,6 @@ CLASS_PATTERNS = {
 }
 
 
-# Class IDs and display names from src/server/shared/SharedDefines.h (enum Classes).
-# Include only classes with configured repository labels.
 CLASS_ID_LABELS = {
     12: "Barbarian",
     13: "Witch Doctor",
@@ -96,7 +91,6 @@ CLASS_ID_LABELS = {
 }
 
 
-# General category labels.
 CATEGORY_PATTERNS = {
     "Class Fix": [
         r"\bclass\s+fix\b",
@@ -189,11 +183,7 @@ def determine_labels(issue):
 
     labels = []
 
-    # -------------------------
-    # Class detection
-    # -------------------------
 
-    # CoABugReport emits this field without the class name.
     for match in re.finditer(
         r"^[ \t]*Class[ \t]+ID[ \t]*:[ \t]*([0-9]{1,3})[ \t]*\r?$",
         body,
@@ -207,9 +197,6 @@ def determine_labels(issue):
         if re.search(pattern, text, re.IGNORECASE):
             labels.append(label)
 
-    # -------------------------
-    # Category detection
-    # -------------------------
 
     for label, patterns in CATEGORY_PATTERNS.items():
         for pattern in patterns:
@@ -221,17 +208,10 @@ def determine_labels(issue):
     if status:
         labels.append(status)
 
-    # Remove duplicates while preserving order.
     return list(dict.fromkeys(labels))
 
 
 def determine_testing_status(body):
-    """Accept an explicit status field or checked box, never incidental prose.
-
-    Supported forms: `Testing status: Tested`, a `### Testing status` heading
-    followed by `Tested`, or `- [x] Tested`. Each also accepts `Not Tested`.
-    Conflicting declarations leave the status for a human to resolve.
-    """
     statuses = set()
     awaiting_status = False
     for line in body.splitlines():

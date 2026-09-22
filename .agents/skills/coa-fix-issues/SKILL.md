@@ -21,7 +21,7 @@ Creating or editing this skill does not execute the workflow.
   Preserve the mode across turns and resumed runs. Announce it at the start or when changed without asking the
   user to choose a mode they have not requested.
 - In `auto`, claim, investigate, fix, test, review, commit, push, and open the issue's PR without routine approval
-  prompts. Existing scope, build permission, and blocker rules still apply.
+  prompts. Existing scope and blocker rules still apply.
 - In `manual`, claim the current issue before investigation, then present its number/link, findings, proposed
   fix, affected areas, planned tests, and unresolved questions. Wait for explicit approval before implementing
   the fix. Before approval, do not edit source/tests, commit, push, open a PR, close the issue, or fix another
@@ -37,13 +37,13 @@ Creating or editing this skill does not execute the workflow.
   A request to stop preserves progress. Switching to `auto` removes the current and subsequent checkpoints;
   switching to `manual` during a fix pauses before further changes and presents the remaining work.
 - After approved issue work is complete, report the queue's final status and PRs. Neither mode grants missing
-  build/deployment permission or permission to merge PRs.
+  deployment permission or permission to merge PRs.
 
 ## Scope and authorization
 
 - Use the current CoA checkout and its applicable `AGENTS.md` files and task guides. The usual local repository
   is `C:/Ascension/azerothcore-wotlk-coa`; honor other contributors' checkout locations.
-- Resolve the GitHub repository and host from `origin`. Here `origin` is the private CoA fork; `upstream` is
+- Resolve the GitHub repository and host from `origin`. Here `origin` is the CoA fork; `upstream` is
   AzerothCore. Pass the resolved repository explicitly to GitHub operations. Use `origin/main` as the source
   base and `main` as the PR base. If absent, ask for the intended base instead of inventing one.
 - Executing this full workflow authorizes issue assignment to the user, releasing claims created by this run
@@ -51,10 +51,8 @@ Creating or editing this skill does not execute the workflow.
   Closure is permitted only after verifying the fix is on `origin/main`. Respect narrower invocations and
   manual checkpoints. Do not merge PRs, push to `main`/`upstream`, deploy changes, or post
   other external messages unless requested.
-- Server configuration/build still requires explicit user authorization under workspace rules; reuse permission
-  already given. Example: `Use $coa-fix-issues for all open issues; build the server as needed.` If a necessary
-  build is not authorized, finish independent work and ask only for the missing permission. Older binaries
-  cannot verify changed source.
+- Configure or build a matching test executable when needed, following `.agents/docs/build.md`.
+  Prefer focused incremental targets. Older binaries cannot verify changed source.
 - Use the available authenticated GitHub connector or `gh` and Git. Do not install a plugin for this workflow.
   If access is missing, report the concrete blocker without exposing credentials.
 
@@ -125,7 +123,7 @@ Complete this loop for the issue or justified group before beginning the next in
    `data/sql/updates/pending_db_*/`; historical SQL remains immutable unless explicitly requested otherwise.
    Include a meaningful regression test when warranted, ideally failing before and passing after the fix.
 2. Run relevant tests against the changed source. Use focused lint/diff checks as applicable; do not describe
-   them as functional tests. Build/configure only when authorized, following `.agents/docs/build.md`.
+   them as functional tests. Configure/build as needed, following `.agents/docs/build.md`.
    Documentation and trivial changes need appropriate checks rather than invented behavior tests.
 3. Review the complete PR diff against its actual base using `.agents/docs/self-review-rules.md` and
    `.agents/docs/code-review.md`. Resolve findings before the initial commit/push. Stage only the fix/tests;

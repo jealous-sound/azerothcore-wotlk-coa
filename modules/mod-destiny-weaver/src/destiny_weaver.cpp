@@ -11,8 +11,8 @@
 // are in the module's SQL revision.
 //
 //   * Open World Scaling        - the quest levels this character reads and plays at. Creatures in
-//                                 the open world are scaled realm-wide by mod-ascension-compat
-//                                 (AscensionCompat.LevelScaling), because a creature carries one
+//                                 the open world are scaled realm-wide by CoA
+//                                 (CoA.LevelScaling), because a creature carries one
 //                                 level that the server broadcasts to every client: it cannot be
 //                                 level 27 for one character and level 2 for the one beside them.
 //                                 A quest level, unlike a creature level, is sent to a single
@@ -58,7 +58,7 @@
 #include "WorldPacket.h"
 #include "WorldSession.h"
 
-#include "../../mod-ascension-compat/src/AscensionCompatOpcodes.h"
+#include "AscensionCompatOpcodes.h"
 
 #include <mutex>
 #include <optional>
