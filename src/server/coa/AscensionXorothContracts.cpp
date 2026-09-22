@@ -385,6 +385,30 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[EFFECT_1].Effect = 0;
         info->Effects[EFFECT_2].Effect = 0;
     }
+    if (id == 680723)
+    {
+        // Brute Strength: native SPELL_AURA_MOD_CRIT_DAMAGE_BONUS (+10% Physical crit damage), plus
+        // a private SPELLMOD_RANGE flat modifier (+5 yds) scoped to a combined classmask spanning
+        // Flesh Hook (500020, dword0 bit3 and dword2 bit0), Chains of Malice (803185, dword0 bit22)
+        // and Chainwhip (800081, dword0 bit19).
+        SpellEffectInfo& crit = info->Effects[EFFECT_0];
+        crit.Effect = SPELL_EFFECT_APPLY_AURA;
+        crit.ApplyAuraName = SPELL_AURA_MOD_CRIT_DAMAGE_BONUS;
+        crit.BasePoints = 10;
+        crit.DieSides = 0;
+        crit.MiscValue = SPELL_SCHOOL_MASK_NORMAL;
+        crit.TargetA = SpellImplicitTargetInfo(TARGET_UNIT_CASTER);
+        crit.TargetB = SpellImplicitTargetInfo();
+        SpellEffectInfo& range = info->Effects[EFFECT_1];
+        range.Effect = SPELL_EFFECT_APPLY_AURA;
+        range.ApplyAuraName = SPELL_AURA_ADD_FLAT_MODIFIER;
+        range.BasePoints = 5;
+        range.DieSides = 0;
+        range.MiscValue = SPELLMOD_RANGE;
+        range.SpellClassMask = flag96(4718592, 0, 1);
+        range.TargetA = SpellImplicitTargetInfo(TARGET_UNIT_CASTER);
+        range.TargetB = SpellImplicitTargetInfo();
+    }
     info->_InitializeExplicitTargetMask();
 }
 }
