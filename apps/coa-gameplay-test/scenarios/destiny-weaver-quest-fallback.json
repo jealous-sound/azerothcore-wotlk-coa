@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "Destiny Weaver disabled: realm quest scaling fallback",
-  "contract": "Run with DestinyWeaver.Enable=0 and AscensionCompat.QuestLevelScaling=1. Quest 7 is authored at level 2; with no per-character resolver it must still use the level-60 realm scaling and award positive XP.",
+  "contract": "Run with DestinyWeaver.Enable=0 and CoA.QuestLevelScaling=1. Quest 7 is authored at level 2; with no per-character resolver it must still use the level-60 realm scaling and award positive XP.",
   "players": [
     {
       "id": "caster",

@@ -15,7 +15,7 @@
  *      safe zones. Cannot be summoned in High-Risk Open World."
  *
  * The bank they open is the *native* one - not this realm's personal/realm banks, which are
- * summoned vault objects handled elsewhere (mod-ascension-compat's AscensionPersonalBank). No
+ * summoned vault objects handled elsewhere (CoA's AscensionPersonalBank). No
  * code is needed for it: the pets carry UNIT_NPC_FLAG_BANKER (0x20000) and the core answers the
  * client's own click (CMSG_BANKER_ACTIVATE 0x01B7 -> WorldSession::HandleBankerActivateOpcode ->
  * Player::GetNPCIfCanInteractWith(guid, UNIT_NPC_FLAG_BANKER) -> SendShowBank), which is a path
@@ -24,7 +24,7 @@
  * What this module adds is what data cannot express:
  *
  *   * the summon restriction and the use restriction. "High-Risk Open World" is the character
- *     ruleset this fork keeps in mod-ascension-compat/src/AscensionRulesets.cpp: High-Risk is aura
+ *     ruleset this fork keeps in src/server/coa/AscensionRulesets.cpp: High-Risk is aura
  *     1004019, War Mode is aura 1004119, and PvE is that same War Mode aura *plus* the marker
  *     9931032 - which is how the client tells the two apart. So the states stay separate here as
  *     they are on the client: War Mode and High-Risk refuse the companion, PvE keeps it. The
@@ -72,7 +72,7 @@
 namespace
 {
 // The companions, their summon spells and the displays the client gives them. The displays are
-// quoted from the client's own creature cache and from mod-ascension-compat's collection model
+// quoted from the client's own creature cache and from CoA's collection model
 // table (AscensionCollectionModelData.h), so the two agree by construction.
 constexpr uint32 CELESTIAL_TREASURE_KEEPER = 80918;
 constexpr uint32 TREASURE_KEEPER = 10111377;
@@ -81,7 +81,7 @@ constexpr uint32 TREASURE_KEEPER_DISPLAY = 48611;             // Creature\wyrmto
 constexpr uint32 SPELL_SUMMON_CELESTIAL_TREASURE_KEEPER = 93417;
 constexpr uint32 SPELL_SUMMON_TREASURE_KEEPER = 985356;
 
-// The character rulesets, kept in step with mod-ascension-compat's AscensionRulesets.cpp, which
+// The character rulesets, kept in step with CoA's AscensionRulesets.cpp, which
 // selects and applies them. Read from auras rather than from the selection spells: the selection
 // spells are the menu, the auras are the state.
 constexpr uint32 SPELL_HIGH_RISK = 1004019;   // "High-Risk mode is enabled..."

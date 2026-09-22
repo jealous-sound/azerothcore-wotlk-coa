@@ -482,7 +482,7 @@ class RunnerTests(unittest.TestCase):
             source = directory / 'modules'
             source.mkdir()
             config = source / 'module.conf'
-            config.write_text('AscensionCompat.Enable = 1\n')
+            config.write_text('CoA.Enable = 1\n')
             staged = run.stage_modules(source, directory / 'run' / 'configs' / 'modules', {'BindIP'})
             self.assertEqual(staged[0].read_bytes(), config.read_bytes())
             config.write_text('BindIP = "0.0.0.0"\n')
@@ -576,7 +576,7 @@ class RunnerTests(unittest.TestCase):
             directory = Path(temporary)
             source = directory / 'modules'
             source.mkdir()
-            (source / 'module.conf').write_text('AscensionCompat.Enable = 1\n')
+            (source / 'module.conf').write_text('CoA.Enable = 1\n')
             destination = directory / 'server-modules'
             destination.mkdir()
             (destination / 'other.conf').write_text('WorldDatabaseInfo = "0;0;u;p;d"\n')

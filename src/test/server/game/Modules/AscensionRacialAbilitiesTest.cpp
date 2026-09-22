@@ -1,6 +1,6 @@
 /* Copyright (C) 2016+ AzerothCore, GNU AGPL v3. */
 
-#include "../../../../../modules/mod-ascension-compat/src/AscensionRacialAbilities.h"
+#include "AscensionRacialAbilities.h"
 #include "gtest/gtest.h"
 
 namespace

@@ -1,7 +1,7 @@
 # CoA gameplay tests
 
 Execute repeatable scenarios inside a real worldserver, using its loaded DBCs, SQL, scripts, maps and updates.
-The runtime component is `modules/mod-ascension-compat/src/CoAGameplayTest.cpp`; it is disabled by default.
+The runtime component is `src/server/coa/CoAGameplayTest.cpp`; it is disabled by default.
 
 ## Find and verify a mechanic
 
@@ -84,7 +84,7 @@ python -B tools/check_source.py --base origin/main --plan
 ```
 
 The JSON outcome lists the selected checks, failures and timings. `--all` runs every fast suite. SQL boundaries
-and new C++/Python comments in CoA-owned code are always checked; changed module sources select loader registration
+and new C++/Python comments in CoA-owned code are always checked; changed CoA sources select loader registration
 checks; gameplay tooling/scenario changes
 select scenario validation, combined-verification tests, and runner/cache ownership and cleanup tests. Reviewed
 execution-path changes also check mechanic-map references. Documentation-only changes skip these test suites.
@@ -94,14 +94,14 @@ client-compatibility harness runs only for relevant changes or a full audit. The
 starts a server.
 
 CoA-owned code uses names, structure and tests to express intent. The comment check covers
-`modules/mod-ascension-compat/`, `apps/coa-dbc/`, `apps/coa-gameplay-test/`, `apps/coa-mechanics/`, `tools/`
-and `.github/scripts/`. It rejects explanatory comments and docstrings on added lines, while preserving legal
+`src/server/coa/`, `apps/coa-tests/`, `apps/coa-bugreport/`, `apps/coa-dbc/`, `apps/coa-gameplay-test/`,
+`apps/coa-mechanics/`, `tools/` and `.github/scripts/`. It rejects explanatory comments and docstrings on added lines, while preserving legal
 headers, recognized tool directives and native test-generator markers. Strings and runtime CLI help remain data.
 `python -B tools/check_comments.py --all` also checks unchanged C++ and Python files in those directories.
 Upstream source, dependencies, SQL and configuration documentation remain outside this check.
 
 The loader check requires each CoA `AddSC_*`, `AddAscension*Scripts` and `AddCoA*Scripts` definition to have
-exactly one call from the module's flat loader, and each call to have exactly one definition. It ignores comments
+exactly one call from the flat CoA script loader, and each call to have exactly one definition. It ignores comments
 and string literals. It does not prove SQL bindings, hook reachability, or gameplay behavior; those require data
 inspection and behavioral tests. The checker intentionally reports an unsupported conditional loader for review.
 
@@ -133,7 +133,7 @@ are required. The commands below run the runner directly (Windows example); Dock
 the [Compose test service](#linux-docker), which provides all of them.
 Build a matching test executable when needed. Adding the new source requires CMake
 reconfiguration before building; running an older binary will fail the readiness check.
-The module requires Boost.PropertyTree headers. Component-based vcpkg installations need
+The CoA server component requires Boost.PropertyTree headers. Component-based vcpkg installations need
 `boost-property-tree` for the same triplet as the existing Boost libraries. CMake checks this dependency.
 
 ```powershell
@@ -248,7 +248,7 @@ SQL updates), the live `DOCKER_VOL_ETC` configs are read-only sources, and `DOCK
 Its database environment variables override any stale connections in `worldserver.conf` or the environment file.
 If another Compose override changes the live schema names, mirror those names in this service's
 `AC_*_DATABASE_INFO` variables while retaining the loopback endpoint. Build the worldserver image from the same
-checkout first, with the runtime module and cache startup barrier; rebuild the test image after it. A mounted
+checkout first, with CoA and the cache startup barrier; rebuild the test image after it. A mounted
 source checkout does not update the compiled server. Prefer rebuilding only the required test targets.
 
 ```bash
@@ -310,8 +310,8 @@ preserves Static and must leave the talent without a depletion bonus.
 
 The [damage-led scaling scenario](scenarios/level-scaling-damage-engagement.json) checks that an
 out-of-range attacker scales a fresh creature before a nonlethal or lethal opening hit, and that
-later damage leaves its combat level fixed. It requires `AscensionCompat.LevelScaling=1`,
-`AscensionCompat.LevelScalingMaxLift=5` and `MonsterSight=50`. The level-1 fixtures stand 80–85 yards
+later damage leaves its combat level fixed. It requires `CoA.LevelScaling=1`,
+`CoA.LevelScalingMaxLift=5` and `MonsterSight=50`. The level-1 fixtures stand 80–85 yards
 away and must scale to level 6, so both declare `level_scaling`. One fixture has only one maximum HP to
 expose damage-before-scaling.
 Spell 705798 is learned as a fixture: its one damage and zero initial threat exercise damage-led
@@ -569,14 +569,14 @@ check aura presence separately when zero is a valid effect amount. Permanent aur
 `scenarios/destiny-weaver-scaling.json` checks deferred scaling choices, armor debuffs, creature values
 updates after level changes, fractional damage accumulation, and ordinary damage with scaling off.
 It requires `DestinyWeaver.Enable=1`, `DestinyWeaver.LevelScaling=1`, `DestinyWeaver.Scaling.Offset=3`,
-and `AscensionCompat.QuestLevelScaling=1`. Spell 705798 supplies one base damage without critical hits;
+and `CoA.QuestLevelScaling=1`. Spell 705798 supplies one base damage without critical hits;
 Faerie Fire (770) supplies a 5% armor reduction. Spell 705798 uses melee hit resolution, so the fixture
 sets melee hit and expertise as well as spell hit. Template 1501 has HealthModifier 0.93: the level-1
 fixture's real pool remains 40 HP while its level-57 view has 2,590 HP. Ten one-damage hits cannot remove
 a whole real HP; 67 remove one.
 
 `scenarios/destiny-weaver-quest-fallback.json` requires a separate run with `DestinyWeaver.Enable=0`
-and `AscensionCompat.QuestLevelScaling=1`. Quest 7 must still scale to the player's level and award XP.
+and `CoA.QuestLevelScaling=1`. Quest 7 must still scale to the player's level and award XP.
 
 The `level_scaling_packet` action takes a player `actor` and `value` (0 or 1). It sends the existing
 four-byte request through the early packet hook on a worker, verifies that player state has not changed
@@ -616,7 +616,7 @@ not provide an automatic statistical test. Keep intended values independent of t
 
 ```powershell
 python -m unittest discover -s apps/coa-gameplay-test -p 'test_*.py'
-python apps/codestyle/codestyle-cpp.py --files modules/mod-ascension-compat/src/CoAGameplayTest.cpp
+python apps/codestyle/codestyle-cpp.py --files src/server/coa/CoAGameplayTest.cpp
 ```
 
 Runner checks cover invalid scenarios, incorrect/partial results, owned-process timeouts, isolation,

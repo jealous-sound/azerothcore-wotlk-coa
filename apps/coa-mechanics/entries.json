@@ -14,18 +14,18 @@
       "execution": [
         {
           "stage": "registration",
-          "interpretation": "The module loader registers the resource talent hooks.",
+          "interpretation": "The CoA script loader registers the resource talent hooks.",
           "source": {
-            "path": "modules/mod-ascension-compat/src/MP_loader.cpp",
+            "path": "src/server/coa/CoAScriptLoader.cpp",
             "anchor": "    AddSC_AscensionResourceTalents();",
-            "reviewed_sha256": "43667ad384e22d7732efdf784a1a4167886849fcbe66aa0524306fb4bbc99981"
+            "reviewed_sha256": "23635e3fc02e9c76b8a74c330327e3e1b8cda0d509ba5d93dcd258655db0dcfc"
           }
         },
         {
           "stage": "metadata correction",
           "interpretation": "For Mana periodic energize, the load hook replaces the flat aura with OBS_MOD_POWER.",
           "source": {
-            "path": "modules/mod-ascension-compat/src/AscensionResourceTalents.cpp",
+            "path": "src/server/coa/AscensionResourceTalents.cpp",
             "anchor": "            case Replenishment:",
             "reviewed_sha256": "425b825f74ee0f7f1c7edc7ac49d4fa44b70a400466b18870f9cc6c0dbf20726"
           }
@@ -66,7 +66,7 @@
           "stage": "catalog load",
           "interpretation": "Joins class/spec data, filters rank entries, then resolves automatic dependencies.",
           "source": {
-            "path": "modules/mod-ascension-compat/src/AscensionCoATalentData.cpp",
+            "path": "src/server/coa/AscensionCoATalentData.cpp",
             "anchor": "bool LoadCoATalentData()",
             "reviewed_sha256": "14cced38457cdf8539ac09fe9b7e14abbd5c2328db0620875e744e9b6395eacd"
           }
@@ -75,7 +75,7 @@
           "stage": "rank selection",
           "interpretation": "Checks class, spec, rank, level and budget, with distinct automatic/free-choice rules.",
           "source": {
-            "path": "modules/mod-ascension-compat/src/AscensionCompat.cpp",
+            "path": "src/server/coa/AscensionCompat.cpp",
             "anchor": "  bool SetTalentRank(Player* player,",
             "reviewed_sha256": "37bacd57ff6eb2651ca7201962c78786d91342da40dcb157390e7c7c3f1368b3"
           }
@@ -84,7 +84,7 @@
           "stage": "client upload",
           "interpretation": "Validates the requested known-entry set before applying rank changes.",
           "source": {
-            "path": "modules/mod-ascension-compat/src/AscensionCompat.cpp",
+            "path": "src/server/coa/AscensionCompat.cpp",
             "anchor": "  bool ApplyKnownEntriesUpload(Player* player,",
             "reviewed_sha256": "37bacd57ff6eb2651ca7201962c78786d91342da40dcb157390e7c7c3f1368b3"
           }
@@ -165,7 +165,7 @@
           "stage": "packet interception",
           "interpretation": "Intercepts quest packets naming a usable Wisdomball; ordinary quest-giver paths remain.",
           "source": {
-            "path": "modules/mod-ascension-compat/src/AscensionWisdomball.cpp",
+            "path": "src/server/coa/AscensionWisdomball.cpp",
             "anchor": "bool HandlePacket(Player* player, WorldPacket const& packet)",
             "reviewed_sha256": "aedc138d7091f7e3f77dcf880be07b20e106363cf54289816334fa158341a00f"
           }
@@ -174,7 +174,7 @@
           "stage": "interaction gates",
           "interpretation": "Requires a living ball in range, map and phase; the interacting player need not own it.",
           "source": {
-            "path": "modules/mod-ascension-compat/src/AscensionWisdomball.cpp",
+            "path": "src/server/coa/AscensionWisdomball.cpp",
             "anchor": "bool CanUseBall(Player* player, Creature const* ball)",
             "reviewed_sha256": "aedc138d7091f7e3f77dcf880be07b20e106363cf54289816334fa158341a00f"
           }
@@ -183,7 +183,7 @@
           "stage": "acceptance",
           "interpretation": "Offers dungeon quests through CanAddQuest, bypassing ordinary chain gates.",
           "source": {
-            "path": "modules/mod-ascension-compat/src/AscensionWisdomball.cpp",
+            "path": "src/server/coa/AscensionWisdomball.cpp",
             "anchor": "bool Accept(Player* player, Creature* ball, Quest const* quest)",
             "reviewed_sha256": "aedc138d7091f7e3f77dcf880be07b20e106363cf54289816334fa158341a00f"
           }
@@ -192,7 +192,7 @@
           "stage": "reward validation",
           "interpretation": "The ball still checks reward eligibility before native RewardQuest.",
           "source": {
-            "path": "modules/mod-ascension-compat/src/AscensionWisdomball.cpp",
+            "path": "src/server/coa/AscensionWisdomball.cpp",
             "anchor": "            if (player->CanRewardQuest(quest, reward, true))",
             "reviewed_sha256": "aedc138d7091f7e3f77dcf880be07b20e106363cf54289816334fa158341a00f"
           }
@@ -225,7 +225,7 @@
           "stage": "script registration",
           "interpretation": "Registers the Wisdomball creature, player and packet-facing hooks.",
           "source": {
-            "path": "modules/mod-ascension-compat/src/AscensionWisdomball.cpp",
+            "path": "src/server/coa/AscensionWisdomball.cpp",
             "anchor": "void AddSC_AscensionWisdomball()",
             "reviewed_sha256": "aedc138d7091f7e3f77dcf880be07b20e106363cf54289816334fa158341a00f"
           }
@@ -234,7 +234,7 @@
           "stage": "quest service",
           "interpretation": "Provides scripted quest lists beyond the creature queststarter rows.",
           "source": {
-            "path": "modules/mod-ascension-compat/src/AscensionWisdomball.cpp",
+            "path": "src/server/coa/AscensionWisdomball.cpp",
             "anchor": "class npc_wondrous_wisdomball : public CreatureScript",
             "reviewed_sha256": "aedc138d7091f7e3f77dcf880be07b20e106363cf54289816334fa158341a00f"
           }

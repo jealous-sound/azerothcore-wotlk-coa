@@ -704,7 +704,7 @@ namespace CoAChallenges
     }
 
     // ---- HIGH_RISK_ONLY -----------------------------------------------------
-    // High Risk is a ruleset aura applied by mod-ascension-compat
+    // High Risk is a ruleset aura applied by CoA
     // (SPELL_ASCENSION_HIGH_RISK = 1004019; see AscensionRulesets.cpp). The rule
     // means the challenge may only run while the character carries it. The aura
     // is polled per tick from a cached guid set (refreshed on login/activate/
@@ -1013,7 +1013,7 @@ namespace CoAChallenges
             return !HasPermaDeathFailure(player);
         }
 
-        // NO_MANASTORM: the Manastorm feature lives in mod-ascension-compat,
+        // NO_MANASTORM: the Manastorm feature lives in CoA,
         // which calls this hook before starting a run.
         bool OnPlayerCanEnterManastorm(Player* player) override
         {
@@ -1961,7 +1961,7 @@ namespace CoAChallenges
                 trans->Append("DELETE FROM {} WHERE guid = {}", table, guid);
         }
 
-        // Personal / realm bank withdrawal (mod-ascension-compat fires this core
+        // Personal / realm bank withdrawal (CoA fires this core
         // hook) feeds the OUTSIDE_INTERACTION gate. kind: 0 = personal, 1 = realm.
         void OnPlayerBankWithdraw(Player* player, uint8 kind) override
         {

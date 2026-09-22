@@ -10,7 +10,7 @@ import check_source
 
 class SourceSelectionTests(unittest.TestCase):
     def test_every_selection_includes_comment_enforcement(self):
-        for paths in [[], ['README.md'], ['modules/mod-ascension-compat/src/AscensionExample.cpp']]:
+        for paths in [[], ['README.md'], ['src/server/coa/AscensionExample.cpp']]:
             commands = check_source.commands_for(check_source.select(paths), 'fixture-base')
             self.assertIn(['tools/check_comments.py', '--base', 'fixture-base'], commands)
         commands = check_source.commands_for(check_source.select([], all_checks=True), 'HEAD', all_checks=True)
@@ -46,9 +46,14 @@ class SourceSelectionTests(unittest.TestCase):
         self.assertIn(['apps/coa-gameplay-test/test_world_cache.py'], check_source.SUITES['gameplay']['commands'])
 
     def test_new_or_deleted_module_sources_require_registration_check(self):
-        for path in ['modules/mod-ascension-compat/src/AscensionExample.cpp',
-                     'modules/mod-ascension-compat/src/nested/Example.cpp']:
+        for path in ['src/server/coa/AscensionExample.cpp',
+                     'src/server/coa/nested/Example.cpp']:
             self.assertEqual(check_source.select([path])['checks'], ['registrations'])
+
+    def test_native_spell_layout_sources_select_dbc_and_mechanic_checks(self):
+        for path in ['src/server/shared/DataStores/DBCStructure.h', 'src/server/shared/DataStores/DBCfmt.h']:
+            with self.subTest(path=path):
+                self.assertTrue({'dbc', 'mechanics'} <= set(check_source.select([path])['checks']))
 
     def test_reviewed_execution_sources_select_map_integrity_checks(self):
         path = 'src/server/game/Handlers/QuestHandler.cpp'
