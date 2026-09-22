@@ -369,6 +369,35 @@ class aura_ascension_charged_conduit : public AuraScript
             EFFECT_1, SPELL_AURA_HASTE_SPELLS, AURA_EFFECT_HANDLE_REAL);
     }
 };
+
+class aura_ascension_stormcloak : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_stormcloak);
+
+    void Calculate(AuraEffect const*, int32& amount, bool& recalculate)
+    {
+        amount = -1;
+        recalculate = false;
+    }
+
+    void Absorb(AuraEffect*, DamageInfo& damage, uint32& absorb)
+    {
+        absorb = 0;
+        AuraEffect const* halved = GetEffect(EFFECT_2);
+        if (!halved || halved->GetAmount() <= 0 || damage.GetDamageType() == DOT)
+            return;
+        if (!roll_chance_i(int32(GetSpellInfo()->ProcChance)))
+            return;
+        absorb = uint32(uint64(damage.GetDamage()) * uint32(halved->GetAmount()) / 100);
+    }
+
+    void Register() override
+    {
+        DoEffectCalcAmount +=
+            AuraEffectCalcAmountFn(aura_ascension_stormcloak::Calculate, EFFECT_0, SPELL_AURA_SCHOOL_ABSORB);
+        OnEffectAbsorb += AuraEffectAbsorbFn(aura_ascension_stormcloak::Absorb, EFFECT_0);
+    }
+};
 }
 
 void AddSC_AscensionStormbringerTalents()
@@ -380,4 +409,5 @@ void AddSC_AscensionStormbringerTalents()
     RegisterSpellScript(aura_ascension_electrical_charge);
     RegisterSpellScript(aura_ascension_charged_conduit);
     RegisterSpellScript(aura_ascension_dark_skies);
+    RegisterSpellScript(aura_ascension_stormcloak);
 }
