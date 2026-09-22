@@ -1,0 +1,56 @@
+{
+  "schema": 1,
+  "name": "Barbarian audit: Rapid Recovery spell modifier reaches its target spells (#2550)",
+  "contract": "Audit report #2550 asked for a script for a passive whose effects are native spell-mod auras (107 flat, 108 percent). The effect BasePoints and EffectSpellClassMask in Spell.dbc name the spell-mod operation, amount and affected Barbarian spells; Player::ApplySpellMod, which the spell_modifier metric calls, must deliver base+flat or base*(100+pct)/100. Expected values are computed from the DBC amount, not from the implementation. This scenario covers the effect with a resolvable EffectSpellClassMask (aura-108 percent modifier, op 19 ACTIVATION_TIME, targeting Onslaught). The spell's other aura-107 flat modifier (op 1 DURATION, amount 5000) carries an empty SpellClassMask and selects no family-18 spell, so it is out of scope here, matching the #1217-style carve-out for a second effect handled elsewhere.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "b",
+      "race": 1,
+      "class": 12,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "ms": 3000
+    },
+    {
+      "action": "assert",
+      "label": "before: 801758 has no modifier for op 19",
+      "actor": "b",
+      "metric": "spell_modifier",
+      "spell": 801758,
+      "op": 19,
+      "base": 100000,
+      "min": 99998,
+      "max": 100002
+    },
+    {
+      "action": "learn",
+      "actor": "b",
+      "spell": 705171
+    },
+    {
+      "action": "assert",
+      "label": "Rapid Recovery (705171) is active",
+      "actor": "b",
+      "metric": "aura",
+      "spell": 705171,
+      "equals": 1,
+      "within_ms": 3000
+    },
+    {
+      "action": "assert",
+      "label": "705171 op 19 percent -50 reaches 801758 (mask selects 1 Barbarian spell(s))",
+      "actor": "b",
+      "metric": "spell_modifier",
+      "spell": 801758,
+      "op": 19,
+      "base": 100000,
+      "min": 49998,
+      "max": 50002
+    }
+  ]
+}
