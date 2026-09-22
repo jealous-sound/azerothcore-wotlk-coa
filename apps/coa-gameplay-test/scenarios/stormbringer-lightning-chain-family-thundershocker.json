@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "name": "Stormbringer: Thundershocker works natively (#1682)",
+  "contract": "#1682: Thundershocker (300610) is a flat SPELLMOD_EFFECT3 (23, i.e. effect index 2) modifier, EffectBasePoints 29 + DieSides 1 = +30, class mask (0,0,2), which matches Eye of the Storm's own family-22 flags (0,0,2). The chain is 806307 -> periodic trigger 806455 -> trigger 807712, and 807712's own effect 2 is SPELL_AURA_MOD_DAMAGE_FROM_CASTER (base 0); the modifier raises that amount from 0 to 30 on the root debuff itself, so 'while rooted by Eye of the Storm' is satisfied by construction. Unit::SpellDamageBonusTaken applies it to any family-22 hit from the same caster (Unit.cpp), read here through spell_damage_taken on the rooted dummy (fixed base 1000 per apps/coa-gameplay-test/README.md, target identifies the attacker), giving 1000 -> 1300. The root debuff is snapshotted at application time, so Eye of the Storm is re-cast after learning the talent instead of re-reading a stale aura. High Voltage (570191, issue #2154) was proved separately and lives in stormbringer-lightning-chain-family-high-voltage.json; this scenario asserts #1682 only.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "s",
+      "race": 8,
+      "class": 16,
+      "level": 80
+    }
+  ],
+  "creatures": [
+    { "id": "eots_dummy", "owner": "s", "entry": 36, "health": 10000000, "distance": 3 }
+  ],
+  "location": {
+    "map": 0,
+    "x": -8917.41,
+    "y": -115.853,
+    "z": 82.3711,
+    "o": 0
+  },
+  "steps": [
+    { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+    { "action": "learn", "actor": "s", "spell": 806307 },
+    { "action": "learn", "actor": "s", "spell": 501438 },
+    { "action": "assert", "label": "SETUP: the fixture has enough mana for a 37% base mana cast",
+      "actor": "s", "metric": "max_power", "power": 0, "min": 2500 },
+    { "action": "set_power", "actor": "s", "power": 0, "value": 2500 },
+    { "action": "cast", "actor": "s", "spell": 806307, "target": "eots_dummy" },
+    { "action": "wait", "label": "Let the periodic trigger apply the root", "ms": 4000 },
+    { "action": "assert", "label": "BASELINE: Eye of the Storm's root debuff is applied",
+      "actor": "eots_dummy", "metric": "aura", "spell": 807712, "caster": "s", "equals": 1, "within_ms": 3000 },
+    { "action": "assert", "label": "BASELINE: the root's own damage-from-caster amount is 0 without Thundershocker",
+      "actor": "eots_dummy", "metric": "aura_amount", "spell": 807712, "effect": 2, "equals": 0 },
+    { "action": "assert", "label": "BASELINE: Forked Lightning's incoming-damage query is the metric's fixed 1000 against the rooted target",
+      "actor": "eots_dummy", "metric": "spell_damage_taken", "spell": 501438, "target": "s", "equals": 1000 },
+    { "action": "learn", "actor": "s", "spell": 300610 },
+    { "action": "reset_cooldown", "actor": "s", "spell": 806307 },
+    { "action": "wait", "label": "Keep the proven pacing between the two Eye of the Storm casts, which share the 1000-1500 ms global cooldown of StartRecoveryCategory 133", "ms": 2000 },
+    { "action": "set_power", "actor": "s", "power": 0, "value": 2500 },
+    { "action": "cast", "actor": "s", "spell": 806307, "target": "eots_dummy" },
+    { "action": "wait", "label": "Let the periodic trigger re-apply the root with Thundershocker learned", "ms": 4000 },
+    { "action": "assert", "label": "DISCRIMINATING: Thundershocker raises the root's damage-from-caster amount to 30",
+      "actor": "eots_dummy", "metric": "aura_amount", "spell": 807712, "effect": 2, "equals": 30 },
+    { "action": "assert", "label": "DISCRIMINATING: Forked Lightning's incoming-damage query against the rooted target rises to 1300",
+      "actor": "eots_dummy", "metric": "spell_damage_taken", "spell": 501438, "target": "s", "equals": 1300 }
+  ]
+}
