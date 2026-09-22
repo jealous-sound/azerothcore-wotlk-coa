@@ -189,7 +189,6 @@ class spell_ascension_witch_hunter_ability : public SpellScript
             ++_hits;
         if (Dusk(GetSpellInfo()) || id == 803502 || Noctis(GetSpellInfo()))
         {
-            // The tooltips read the heal percent from the passive (${$574336m1}), so follow it rather than a literal
             SpellInfo const* passive = sSpellMgr->GetSpellInfo(Noctis(GetSpellInfo()) ? 574336 : 574334);
             uint32 percent = passive ? std::max(passive->Effects[EFFECT_0].CalcValue(), 0) :
                                        (Noctis(GetSpellInfo()) ? 100 : 25);
@@ -325,8 +324,6 @@ class spell_ascension_witch_hunter_ability : public SpellScript
             talent(582310, 804304);
             if (_bounty)
                 player->RemoveAurasDueToSpell(504478);
-            // The buff's charge is consumed by the Bolt natively (Dead and Gone adds a second one), so only
-            // an exhausted buff pays out its Dash
             Aura const* boltDash = player->GetAura(520670);
             if (_boltDash && (!boltDash || !boltDash->IsUsingCharges()))
             {
@@ -369,8 +366,6 @@ class spell_ascension_witch_hunter_ability : public SpellScript
         }
         if (id == 805738)
         {
-            // Rearmament's text resets every Trap. That clause is effect 1, an Ascension effect the core has no
-            // handler for, whose class mask names the traps: reset the known spells that mask matches.
             flag96 const traps = info->Effects[EFFECT_1].SpellClassMask;
             for (auto const& [known, state] : player->GetSpellMap())
                 if (state->State != PLAYERSPELL_REMOVED)
@@ -378,7 +373,6 @@ class spell_ascension_witch_hunter_ability : public SpellScript
                         if (trap->SpellFamilyName == 21 && (trap->SpellFamilyFlags & traps))
                         {
                             Reset(player, known);
-                            // The traps also carry a category cooldown (Spell.dbc CategoryRecoveryTime 60000)
                             if (uint32 category = trap->GetCategory())
                                 player->RemoveCategoryCooldown(category);
                         }

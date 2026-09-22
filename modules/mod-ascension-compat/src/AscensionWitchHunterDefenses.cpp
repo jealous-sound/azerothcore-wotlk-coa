@@ -61,7 +61,6 @@ class aura_ascension_witch_hunter_lifecycle : public AuraScript
         if (GetId() == 562225 && effect->GetEffIndex() == EFFECT_1)
             amount = Night() ? 100 : 0;
         if (Family(GetSpellInfo(), 2, 4) && effect->GetEffIndex() == EFFECT_0)
-            // March's damage is the amount of a periodic trigger, which the core never runs through the DOT mods
             if (Unit* caster = GetCaster())
                 if (Player* modOwner = caster->GetSpellModOwner())
                     modOwner->ApplySpellMod(GetId(), SPELLMOD_DOT, amount);

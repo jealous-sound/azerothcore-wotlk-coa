@@ -78,11 +78,6 @@ void ClearReplacement(Player* player, uint32 word, uint32 mask)
             player->SetTemporarySpellReplacement(id, 0);
 }
 
-// Silver Bullets and Silver Bolts ship their creature-type bonus as a raw aura 112 record: the private 20014
-// selector in MiscValue and the creature-type mask in MiscValueB. Nothing reads aura 112 with that selector,
-// while native aura 168 honours the effect's class mask when the selector sits in MiscValueB. The record is
-// checked against its reviewed shape and converted in place, as the Bloodmage talents do; no amount, class
-// mask or creature-type mask is redeclared.
 void ConvertCreatureTypeDamage(SpellInfo* info, uint8 index)
 {
     SpellEffectInfo& effect = info->Effects[index];
@@ -106,13 +101,10 @@ void ApplyContracts(SpellInfo* info)
         info->InterruptFlags |= SPELL_INTERRUPT_FLAG_MOVEMENT;
         info->ChannelInterruptFlags |= AURA_INTERRUPT_FLAG_MOVE;
     }
-    if (id == 574149 || id == 574163) // Silver Bullets, "additional ... against Undead"
+    if (id == 574149 || id == 574163)
         ConvertCreatureTypeDamage(info, EFFECT_1);
-    if (id == 804026) // Silver Bolts, "doubled against Undead or Demons"
+    if (id == 804026)
         ConvertCreatureTypeDamage(info, EFFECT_0);
-    // Decimate hands its aura 280 (armor penetration percent) to the Shadow Hounds, but Unit::CalcArmorReducedDamage
-    // reads that aura only for players. Aura 338 is read for any attacker, and its 100% removes all of the target's
-    // armor, which is the "ignore Armor" the text promises.
     if (id == 804194 && info->Effects[EFFECT_1].ApplyAuraName == SPELL_AURA_MOD_ARMOR_PENETRATION_PCT)
         info->Effects[EFFECT_1].ApplyAuraName = SPELL_AURA_ASCENSION_MOD_IGNORE_ARMOR_PCT;
     if (id == 707535)
@@ -281,7 +273,7 @@ void ApplyContracts(SpellInfo* info)
     if (id == 500102)
         info->Effects[EFFECT_1].Effect = 0;
     if (id == 504713)
-        info->ProcCharges = 0; // Bolt and Dash (520670) keeps its DBC charge, which Dead and Gone's charges mod extends
+        info->ProcCharges = 0;
     if (id == 504790)
     {
         info->Effects[EFFECT_2].ApplyAuraName = SPELL_AURA_ASCENSION_MOD_CRIT_CHANCE;
