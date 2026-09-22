@@ -22,7 +22,9 @@ code's contributors. The component's history before the move is reachable with
 Historical SQL lives in `modules/mod-ascension/data/sql/` (formerly
 `modules/mod-ascension-compat/`). The database updater tracks applied migrations
 by file name and hash, and both are unchanged. That directory is not a buildable
-module. New migrations belong in `data/sql/updates/pending_db_*/`.
+module. The appearance-template provenance table those migrations create is renamed
+to `item_template_coa` by a later pending migration. New migrations belong in
+`data/sql/updates/pending_db_*/`.
 
 This is an independent reconstruction; source presence does not establish
 complete official gameplay parity. The canceled Retail/native-class experiment
@@ -35,12 +37,19 @@ protocol, data or process problem.
 
 ## Upgrading a server configured before the move
 
-- Rename `etc/modules/mod_ascension_compat.conf` to `coa.conf`, and its
-  `AscensionCompat.*` keys to `CoA.*` (for example `CoA.LevelScaling`).
-- Add `Logger.coa=4,Console Server` to `worldserver.conf`; the old
-  `module.ascension_compat` category is gone.
-- If the old file or old keys are still present, the worldserver logs an error at
-  startup naming what to rename.
+- Move the settings of `etc/modules/mod_ascension_compat.conf` into `coa.conf`,
+  renaming its `AscensionCompat.*` keys to `CoA.*` (for example `CoA.LevelScaling`),
+  then delete `mod_ascension_compat.conf`. Installing the server removes the old
+  `mod_ascension_compat.conf.dist`; delete it by hand if you install another way, or
+  `acore.sh` copies it back to `mod_ascension_compat.conf`.
+- Rename environment overrides the same way: `AC_ASCENSION_COMPAT_<KEY>` becomes
+  `AC_CO_A_<KEY>` (for example `AC_CO_A_LEVEL_SCALING`).
+- Add `Logger.coa=4,Console Server` to `worldserver.conf`, and rename any
+  `Logger.module.ascension_compat`, `Logger.module.gameplay_test` or
+  `Logger.module.highrisk` line to `Logger.coa`, `Logger.coa.gameplay_test` or
+  `Logger.coa.highrisk`. Without `Logger.coa`, CoA logs only errors.
+- The worldserver logs an error at startup for each of these steps it finds undone,
+  and when the old `item_template_ascension_compat` world table is still present.
 
 ## Client DBCs
 

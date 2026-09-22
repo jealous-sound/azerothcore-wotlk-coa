@@ -26,6 +26,12 @@ foreach(COA_CONFIG coa_bugreport.conf.dist coa.conf.dist)
   string(APPEND COA_CONFIG_FILE_LIST "${COA_CONFIG_FILE},")
 endforeach()
 
+if(UNIX)
+  install(CODE "file(REMOVE \"\$ENV{DESTDIR}${CONF_DIR}/modules/mod_ascension_compat.conf.dist\")")
+elseif(WIN32)
+  install(CODE "file(REMOVE \"\$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/configs/modules/mod_ascension_compat.conf.dist\")")
+endif()
+
 set(COA_SQL_DIRECTORY mod-ascension)
 set_property(GLOBAL PROPERTY COA_SQL_DIRECTORY ${COA_SQL_DIRECTORY})
 target_compile_options(coa-interface

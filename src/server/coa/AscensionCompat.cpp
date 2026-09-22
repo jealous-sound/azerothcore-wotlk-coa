@@ -91,6 +91,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cstdlib>
 #include <cstring>
 #include <filesystem>
 #include <type_traits>
@@ -102,11 +103,16 @@
 #include <mutex>
 #include <optional>
 #include <set>
+#include <string>
 #include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
+
+#ifndef _WIN32
+extern char** environ;
+#endif
 
 using namespace Acore::ChatCommands;
 
@@ -5973,20 +5979,6 @@ public:
         SendAscensionCoAXpConfig(session);
   }
 
-private:
-  static void ReportRenamedConfiguration() {
-    std::filesystem::path const legacyFile =
-        std::filesystem::path(sConfigMgr->GetConfigPath()) / "modules" / "mod_ascension_compat.conf";
-    std::error_code error;
-    if (std::filesystem::exists(legacyFile, error))
-      LOG_ERROR("coa", "{} is no longer read: rename it to coa.conf and its AscensionCompat.* keys to CoA.*",
-                legacyFile.generic_string());
-
-    constexpr std::string_view legacyPrefix = "AscensionCompat.";
-    for (std::string const& key : sConfigMgr->GetKeysByString(std::string(legacyPrefix)))
-      LOG_ERROR("coa", "Config key {} is no longer read: rename it to CoA.{}", key, key.substr(legacyPrefix.size()));
-  }
-
   void OnLoadCustomDatabaseTable() override {
     if (!ascensionCompatConfig.GetConfigValue<bool>(
             AscensionCompatConfig::ENABLED))
@@ -5996,6 +5988,7 @@ private:
   }
 
   void OnStartup() override {
+    ReportLegacyItemTemplateTable();
     AscensionCompatData::LoadCoATalentData();
     if (!ascensionCompatConfig.GetConfigValue<bool>(
             AscensionCompatConfig::ENABLED))
@@ -6012,6 +6005,67 @@ private:
              "Ascension compatibility enabled; consuming extension opcodes "
              "0x{:04X}-0x{:04X}; collection data {}",
              firstOpcode, lastOpcode, dataLoaded ? "ready" : "unavailable");
+  }
+
+private:
+  static char** EnvironmentVariables() {
+#ifdef _WIN32
+    return _environ;
+#else
+    return environ;
+#endif
+  }
+
+  static void ReportRenamedConfiguration() {
+    std::filesystem::path const modules = std::filesystem::path(sConfigMgr->GetConfigPath()) / "modules";
+    std::error_code error;
+    if (std::filesystem::exists(modules / "mod_ascension_compat.conf", error))
+      LOG_ERROR("coa", "{} is no longer read: move its settings into coa.conf as CoA.* keys, then delete it",
+                (modules / "mod_ascension_compat.conf").generic_string());
+    if (std::filesystem::exists(modules / "mod_ascension_compat.conf.dist", error))
+      LOG_ERROR("coa", "{} is obsolete: delete it, or acore.sh copies it back to mod_ascension_compat.conf",
+                (modules / "mod_ascension_compat.conf.dist").generic_string());
+
+    constexpr std::string_view legacyPrefix = "AscensionCompat.";
+    for (std::string const& key : sConfigMgr->GetKeysByString(std::string(legacyPrefix)))
+      LOG_ERROR("coa", "Config key {} is no longer read: rename it to CoA.{}", key, key.substr(legacyPrefix.size()));
+
+    constexpr std::string_view legacyEnvironmentPrefix = "AC_ASCENSION_COMPAT_";
+    for (char** entry = EnvironmentVariables(); entry && *entry; ++entry) {
+      std::string_view const variable(*entry);
+      if (!variable.starts_with(legacyEnvironmentPrefix))
+        continue;
+      std::string_view const name = variable.substr(0, variable.find('='));
+      LOG_ERROR("coa", "Environment variable {} is no longer read: rename it to AC_CO_A_{}", name,
+                name.substr(legacyEnvironmentPrefix.size()));
+    }
+
+    constexpr std::array<std::pair<std::string_view, std::string_view>, 3> legacyLoggers = {{
+        {"Logger.module.ascension_compat", "Logger.coa"},
+        {"Logger.module.gameplay_test", "Logger.coa.gameplay_test"},
+        {"Logger.module.highrisk", "Logger.coa.highrisk"}}};
+    for (auto const& [legacy, current] : legacyLoggers)
+      if (!sConfigMgr->GetKeysByString(std::string(legacy)).empty())
+        LOG_ERROR("coa", "{} is no longer used: rename it to {}", legacy, current);
+    if (sConfigMgr->GetKeysByString("Logger.coa").empty() && !sConfigMgr->GetKeysByString("Logger.module").empty())
+      LOG_ERROR("coa", "worldserver.conf has no Logger.coa line, so CoA logs only errors: "
+                "add Logger.coa=4,Console Server");
+  }
+
+  static void ReportLegacyItemTemplateTable() {
+    auto tableExists = [](std::string_view table) {
+      return WorldDatabase.Query("SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() "
+                                 "AND TABLE_NAME = '{}'", table) != nullptr;
+    };
+    if (!tableExists("item_template_ascension_compat"))
+      return;
+    if (tableExists("item_template_coa"))
+      LOG_ERROR("coa", "World table item_template_ascension_compat exists again next to item_template_coa, as "
+                "happens when its creating migration is re-applied: run INSERT IGNORE INTO item_template_coa "
+                "SELECT * FROM item_template_ascension_compat, then DROP TABLE item_template_ascension_compat");
+    else
+      LOG_ERROR("coa", "World table item_template_ascension_compat has not been renamed: apply the pending "
+                "world update rev_20260923_00_coa_item_template_table.sql");
   }
 };
 
