@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "Stormbringer: Gift of Air empowers the Air Elemental and extends Tailwind (#755)",
-  "contract": "#755 Gift of Air (705715) promises two things: casting Kiss of the Clouds empowers the Air Elemental with Gift of Air (804033), and the Stormbringer's critical strikes extend Tailwind (804035) by 1.5 seconds. 705715 is a SPELL_AURA_PROC_TRIGGER_SPELL passive with ProcFlags = 0, so no proc entry is generated and 804033 never fires; the critical-strike clause is carried by 583254 (SPELL_EFFECT_ASCENSION_MODIFY_AURA_DURATION, EffectMiscValue[0] = 804035), which no acquirable spell reaches. One spell_proc row plus aura_ascension_gift_of_air deliver both clauses. Expected values come from the effective DBC: 804033 EffectBasePoints[1] = 19 plus EffectDieSides[1] = 1 gives 20% damage done, EffectAmplitude[2] = 2000 ms for the periodic heal, DurationIndex 9 (SpellDuration.Duration = 30000); 583254 EffectBasePoints[0] = 1499 plus EffectDieSides[0] = 1 gives exactly 1500 ms, and its TARGET_SRC_CASTER / TARGET_UNIT_SRC_AREA_ALLY pair covers the caster. Kiss of the Clouds is selected by family 22 with SpellFamilyFlags[2] = 0x100000.",
+  "contract": "#755 Gift of Air (705715) promises two things: casting Kiss of the Clouds empowers the Air Elemental with Gift of Air (804033), and the Stormbringer's critical strikes extend Tailwind (804035) by 1.5 seconds. 705715 is a SPELL_AURA_PROC_TRIGGER_SPELL passive with ProcFlags = 0, so no proc entry is generated and 804033 never fires; the critical-strike clause is carried by 583254 (SPELL_EFFECT_ASCENSION_MODIFY_AURA_DURATION, EffectMiscValue[0] = 804035), which no acquirable spell reaches. One spell_proc row plus aura_ascension_gift_of_air deliver both clauses. Expected values come from the effective DBC: 804033 EffectBasePoints[1] = 19 plus EffectDieSides[1] = 1 gives 20% damage done, EffectAmplitude[2] = 2000 ms for the periodic heal, DurationIndex 9 (SpellDuration.Duration = 30000); 583254 EffectBasePoints[0] = 1499 plus EffectDieSides[0] = 1 gives exactly 1500 ms, and its TARGET_SRC_CASTER / TARGET_UNIT_SRC_AREA_ALLY pair covers the caster. Kiss of the Clouds is selected by family 22 with SpellFamilyFlags[2] = 0x100000. Tailwind is a cast spell, not a passive, so the fixture has to learn 804035 before casting it (the harness cast record reports spell_active false otherwise) and has to carry 804035's CasterAuraSpell 681016 'At Least 20 Static', the Stormbringer resource threshold aura, or Spell::CheckCast answers SPELL_FAILED_CASTER_AURASTATE; stormbringer-fix-unshackle-family-wrath-of-alakir.json uses the same learn plus 803102/681016 idiom.",
   "timeout_ms": 240000,
   "players": [
     {
@@ -58,7 +58,9 @@
     { "action": "assert", "label": "SETUP: the second Kiss of the Clouds was accepted",
       "actor": "s", "metric": "cast_failure", "spell": 500039, "equals": 0 },
     { "action": "learn", "actor": "s", "spell": 804036 },
+    { "action": "learn", "actor": "s", "spell": 804035 },
     { "action": "set_aura", "actor": "s", "spell": 803102, "stacks": 100 },
+    { "action": "set_aura", "actor": "s", "spell": 681016, "stacks": 1 },
     { "action": "cast", "actor": "s", "spell": 804035 },
     { "action": "assert", "label": "SETUP: Tailwind (804035) is up on the Stormbringer",
       "actor": "s", "metric": "aura", "spell": 804035, "equals": 1, "within_ms": 4000 },
