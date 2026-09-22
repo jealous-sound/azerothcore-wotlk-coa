@@ -1,5 +1,8 @@
 /* Copyright (C) 2016+ AzerothCore, GNU AGPL v3. */
 #include "AscensionCustomResourceData.h"
+#include "CellImpl.h"
+#include "GridNotifiers.h"
+#include "GridNotifiersImpl.h"
 #include "Player.h"
 #include "ScriptMgr.h"
 #include "Spell.h"
@@ -7,6 +10,7 @@
 #include "SpellAuras.h"
 #include "SpellMgr.h"
 #include "SpellScript.h"
+#include <list>
 
 namespace
 {
@@ -33,7 +37,13 @@ enum StormbringerTalentSpells : uint32
     SPELL_DARK_SKIES_BUFF = 680855,
     SPELL_CRITICAL_CIRCUIT = 807314,
     SPELL_REFUND_STATIC_10 = 804084,
-    SPELL_PREDICTABLE_WEATHER_WINDOW = 807481
+    SPELL_PREDICTABLE_WEATHER_WINDOW = 807481,
+    SPELL_LIGHTNING_ROD = 300609,
+    SPELL_LIGHTNING_ROD_SPREAD = 300928,
+    SPELL_VOLT = 500928,
+    SPELL_FORKED_LIGHTNING = 801851,
+    SPELL_NEVER_STRIKES_TWICE = 804828,
+    SPELL_ELECTROCUTE = 801844
 };
 
 constexpr int32 ASCENSION_SPELLMOD_BONUS_MULTIPLIER = 41;
@@ -47,11 +57,61 @@ bool SpendsStatic(uint32 spellId)
     return false;
 }
 
-uint32 ElectrocutionerChance(Player const* player)
+uint32 TalentProcChance(uint32 talent)
 {
-    SpellInfo const* talent = sSpellMgr->GetSpellInfo(SPELL_ELECTROCUTIONER_TALENT);
+    SpellInfo const* info = sSpellMgr->GetSpellInfo(talent);
+    return info ? info->ProcChance : 0;
+}
+
+uint32 StaticScaledChance(Player const* player, uint32 talent)
+{
     Aura const* staticAura = player->GetAura(SPELL_STATIC);
-    return (talent ? talent->ProcChance : 0) + (staticAura ? staticAura->GetStackAmount() / 5 : 0);
+    return TalentProcChance(talent) + (staticAura ? staticAura->GetStackAmount() / 5 : 0);
+}
+
+std::list<Unit*> NearbyUnits(Unit* center, float range)
+{
+    std::list<Unit*> result;
+    if (!center || !center->IsInWorld())
+        return result;
+    Acore::AnyUnitInObjectRangeCheck check(center, range);
+    Acore::UnitListSearcher<Acore::AnyUnitInObjectRangeCheck> search(center, result, check);
+    Cell::VisitObjects(center, search, range);
+    result.remove_if([center](Unit* unit) { return !unit->IsAlive() || !center->InSamePhase(unit); });
+    result.sort([](Unit* a, Unit* b) { return a->GetGUID() < b->GetGUID(); });
+    return result;
+}
+
+void SpreadVolt(Player* player, Unit* source, uint32 count, float radius)
+{
+    Aura* origin = source ? source->GetAuraOfRankedSpell(SPELL_VOLT, player->GetGUID()) : nullptr;
+    if (!origin || !count)
+        return;
+    for (Unit* target : NearbyUnits(source, radius))
+    {
+        if (target == source || !player->IsValidAttackTarget(target) || !player->IsWithinLOSInMap(target))
+            continue;
+        if (Aura* old = target->GetAura(origin->GetId(), player->GetGUID());
+            old && old->GetDuration() >= origin->GetDuration())
+            continue;
+        Aura* copy = player->AddAura(origin->GetId(), target);
+        if (!copy)
+            continue;
+        copy->SetStackAmount(origin->GetStackAmount());
+        copy->SetMaxDuration(origin->GetMaxDuration());
+        copy->SetDuration(origin->GetDuration());
+        for (uint8 i = 0; i < MAX_SPELL_EFFECTS; ++i)
+            if (AuraEffect* effect = origin->GetEffect(i))
+                if (AuraEffect* next = copy->GetEffect(i))
+                {
+                    next->ChangeAmount(effect->GetAmount());
+                    next->SetCritChance(effect->GetCritChance());
+                    next->SetPctMods(effect->GetPctMods());
+                    next->SetPeriodicTimer(effect->GetPeriodicTimer());
+                }
+        if (!--count)
+            break;
+    }
 }
 
 class stormbringer_talent_casts : public AllSpellScript
@@ -78,7 +138,7 @@ public:
 
         if (damage && !spell->IsTriggered() &&
             (player->HasSpell(SPELL_ELECTROCUTIONER_PASSIVE) || player->HasSpell(SPELL_ELECTROCUTIONER_TALENT)) &&
-            roll_chance_i(ElectrocutionerChance(player)))
+            roll_chance_i(StaticScaledChance(player, SPELL_ELECTROCUTIONER_TALENT)))
             player->CastSpell(player, SPELL_ELECTROCUTIONER, true);
 
         if (critical && damage && !spell->IsTriggered() && player->HasAura(SPELL_CRITICAL_CIRCUIT) &&
@@ -87,6 +147,20 @@ public:
             spell->SetScriptValue(SPELL_CRITICAL_CIRCUIT, 1);
             player->CastSpell(player, SPELL_REFUND_STATIC_10, true);
         }
+
+        if (damage && !spell->IsTriggered() && player->HasSpell(SPELL_LIGHTNING_ROD) &&
+            sSpellMgr->GetFirstSpellInChain(info->Id) == SPELL_FORKED_LIGHTNING &&
+            roll_chance_i(StaticScaledChance(player, SPELL_LIGHTNING_ROD)))
+        {
+            if (SpellInfo const* spread = sSpellMgr->GetSpellInfo(SPELL_LIGHTNING_ROD_SPREAD))
+                SpreadVolt(player, target, spread->MaxAffectedTargets,
+                    spread->Effects[EFFECT_0].CalcRadius(player));
+        }
+
+        if (damage && !spell->IsTriggered() && player->HasSpell(SPELL_NEVER_STRIKES_TWICE) &&
+            sSpellMgr->GetFirstSpellInChain(info->Id) == SPELL_ELECTROCUTE &&
+            roll_chance_i(TalentProcChance(SPELL_NEVER_STRIKES_TWICE)))
+            player->CastSpell(target, info->Id, true);
 
         bool repeat =info->Id == SPELL_PERPETUAL_SHOCK;
         if (!repeat && (spell->IsTriggered() || sSpellMgr->GetFirstSpellInChain(info->Id) != SPELL_SHOCK))

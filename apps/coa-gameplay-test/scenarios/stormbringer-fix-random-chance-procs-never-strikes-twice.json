@@ -1,0 +1,946 @@
+{
+  "schema": 1,
+  "name": "Stormbringer: Never Strikes Twice? repeats Electrocute at the cast rank (#3450)",
+  "contract": "#3450 Never Strikes Twice? (804828) is SPELL_ATTR0_PASSIVE with ProcChance 25, Spell.dbc ProcFlags 0 and one effect: SPELL_EFFECT_APPLY_AURA with EffectApplyAuraName 42 (SPELL_AURA_PROC_TRIGGER_SPELL) on EffectTriggerSpell 801844. With no spell_proc row, SpellMgr::LoadSpellProcs skipped the record ('Skip if no proc flags in DBC') and Aura::GetProcEffectMask returned 0 ('only auras with spell proc entry can trigger proc'), so 'Your Electrocute now has a 25% chance to strike again' never happened. A spell_proc row alone would not deliver the tooltip either: 801844 is Electrocute Rank 1 and AuraEffect::HandleProcTriggerSpellAuraProc casts the literal EffectTriggerSpell with no rank resolution, while spell_ranks and the module's own progression give a level 80 Stormbringer Rank 13 (501432), so the repeat would land at Rank 1 damage. The fix therefore performs the roll in the class's existing AllSpellScript OnSpellHitResult hook, gated on the passive being known, on the damaging spell being in Electrocute's rank chain and on the hit not being triggered - the same guard the Electrocutioner proc beside it uses, which also prevents the repeat from re-triggering itself - and re-casts the rank that actually procced. The discriminator is a cast count: 24 deliberate casts with the passive must produce more than 24 Electrocutes, and none of them may be Rank 1. Both counts behave as a flat one-for-one on the current binary. No absolute damage number is asserted, because Electrocute's damage depends on spell power and on spell_bonus_data rows that PR #4612 is still restoring.",
+  "timeout_ms": 240000,
+  "players": [
+    {
+      "id": "s",
+      "race": 8,
+      "class": 16,
+      "level": 80,
+      "spell_hit_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "dummy",
+      "owner": "s",
+      "entry": 721,
+      "level": 80,
+      "health": 1000000,
+      "distance": 5
+    }
+  ],
+  "location": {
+    "map": 0,
+    "x": -8917.41,
+    "y": -115.853,
+    "z": 82.3711,
+    "o": 0
+  },
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "s",
+      "spell": 501432
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: the level 80 caster knows Electrocute Rank 13",
+      "actor": "s",
+      "metric": "knows_spell",
+      "spell": 501432,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: no Electrocute has been cast yet",
+      "actor": "s",
+      "metric": "spell_cast_count",
+      "spell": 501432,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: Electrocute Rank 1 has not been cast either",
+      "actor": "s",
+      "metric": "spell_cast_count",
+      "spell": 801844,
+      "equals": 0
+    },
+    {
+      "action": "set_power",
+      "actor": "s",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "set_health",
+      "actor": "dummy",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "s",
+      "spell": 501432
+    },
+    {
+      "action": "cast",
+      "actor": "s",
+      "spell": 501432,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 1700
+    },
+    {
+      "action": "set_power",
+      "actor": "s",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "set_health",
+      "actor": "dummy",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "s",
+      "spell": 501432
+    },
+    {
+      "action": "cast",
+      "actor": "s",
+      "spell": 501432,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 1700
+    },
+    {
+      "action": "set_power",
+      "actor": "s",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "set_health",
+      "actor": "dummy",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "s",
+      "spell": 501432
+    },
+    {
+      "action": "cast",
+      "actor": "s",
+      "spell": 501432,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 1700
+    },
+    {
+      "action": "set_power",
+      "actor": "s",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "set_health",
+      "actor": "dummy",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "s",
+      "spell": 501432
+    },
+    {
+      "action": "cast",
+      "actor": "s",
+      "spell": 501432,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 1700
+    },
+    {
+      "action": "set_power",
+      "actor": "s",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "set_health",
+      "actor": "dummy",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "s",
+      "spell": 501432
+    },
+    {
+      "action": "cast",
+      "actor": "s",
+      "spell": 501432,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 1700
+    },
+    {
+      "action": "set_power",
+      "actor": "s",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "set_health",
+      "actor": "dummy",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "s",
+      "spell": 501432
+    },
+    {
+      "action": "cast",
+      "actor": "s",
+      "spell": 501432,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 1700
+    },
+    {
+      "action": "set_power",
+      "actor": "s",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "set_health",
+      "actor": "dummy",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "s",
+      "spell": 501432
+    },
+    {
+      "action": "cast",
+      "actor": "s",
+      "spell": 501432,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 1700
+    },
+    {
+      "action": "set_power",
+      "actor": "s",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "set_health",
+      "actor": "dummy",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "s",
+      "spell": 501432
+    },
+    {
+      "action": "cast",
+      "actor": "s",
+      "spell": 501432,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 1700
+    },
+    {
+      "action": "assert",
+      "label": "BASELINE: eight casts without the passive produce exactly eight Electrocutes",
+      "actor": "s",
+      "metric": "spell_cast_count",
+      "spell": 501432,
+      "equals": 8
+    },
+    {
+      "action": "assert",
+      "label": "BASELINE: nothing repeated at Rank 1",
+      "actor": "s",
+      "metric": "spell_cast_count",
+      "spell": 801844,
+      "equals": 0
+    },
+    {
+      "action": "learn",
+      "actor": "s",
+      "spell": 804828
+    },
+    {
+      "action": "set_power",
+      "actor": "s",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "set_health",
+      "actor": "dummy",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "s",
+      "spell": 501432
+    },
+    {
+      "action": "cast",
+      "actor": "s",
+      "spell": 501432,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 1700
+    },
+    {
+      "action": "set_power",
+      "actor": "s",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "set_health",
+      "actor": "dummy",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "s",
+      "spell": 501432
+    },
+    {
+      "action": "cast",
+      "actor": "s",
+      "spell": 501432,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 1700
+    },
+    {
+      "action": "set_power",
+      "actor": "s",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "set_health",
+      "actor": "dummy",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "s",
+      "spell": 501432
+    },
+    {
+      "action": "cast",
+      "actor": "s",
+      "spell": 501432,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 1700
+    },
+    {
+      "action": "set_power",
+      "actor": "s",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "set_health",
+      "actor": "dummy",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "s",
+      "spell": 501432
+    },
+    {
+      "action": "cast",
+      "actor": "s",
+      "spell": 501432,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 1700
+    },
+    {
+      "action": "set_power",
+      "actor": "s",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "set_health",
+      "actor": "dummy",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "s",
+      "spell": 501432
+    },
+    {
+      "action": "cast",
+      "actor": "s",
+      "spell": 501432,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 1700
+    },
+    {
+      "action": "set_power",
+      "actor": "s",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "set_health",
+      "actor": "dummy",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "s",
+      "spell": 501432
+    },
+    {
+      "action": "cast",
+      "actor": "s",
+      "spell": 501432,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 1700
+    },
+    {
+      "action": "set_power",
+      "actor": "s",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "set_health",
+      "actor": "dummy",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "s",
+      "spell": 501432
+    },
+    {
+      "action": "cast",
+      "actor": "s",
+      "spell": 501432,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 1700
+    },
+    {
+      "action": "set_power",
+      "actor": "s",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "set_health",
+      "actor": "dummy",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "s",
+      "spell": 501432
+    },
+    {
+      "action": "cast",
+      "actor": "s",
+      "spell": 501432,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 1700
+    },
+    {
+      "action": "set_power",
+      "actor": "s",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "set_health",
+      "actor": "dummy",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "s",
+      "spell": 501432
+    },
+    {
+      "action": "cast",
+      "actor": "s",
+      "spell": 501432,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 1700
+    },
+    {
+      "action": "set_power",
+      "actor": "s",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "set_health",
+      "actor": "dummy",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "s",
+      "spell": 501432
+    },
+    {
+      "action": "cast",
+      "actor": "s",
+      "spell": 501432,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 1700
+    },
+    {
+      "action": "set_power",
+      "actor": "s",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "set_health",
+      "actor": "dummy",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "s",
+      "spell": 501432
+    },
+    {
+      "action": "cast",
+      "actor": "s",
+      "spell": 501432,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 1700
+    },
+    {
+      "action": "set_power",
+      "actor": "s",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "set_health",
+      "actor": "dummy",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "s",
+      "spell": 501432
+    },
+    {
+      "action": "cast",
+      "actor": "s",
+      "spell": 501432,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 1700
+    },
+    {
+      "action": "set_power",
+      "actor": "s",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "set_health",
+      "actor": "dummy",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "s",
+      "spell": 501432
+    },
+    {
+      "action": "cast",
+      "actor": "s",
+      "spell": 501432,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 1700
+    },
+    {
+      "action": "set_power",
+      "actor": "s",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "set_health",
+      "actor": "dummy",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "s",
+      "spell": 501432
+    },
+    {
+      "action": "cast",
+      "actor": "s",
+      "spell": 501432,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 1700
+    },
+    {
+      "action": "set_power",
+      "actor": "s",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "set_health",
+      "actor": "dummy",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "s",
+      "spell": 501432
+    },
+    {
+      "action": "cast",
+      "actor": "s",
+      "spell": 501432,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 1700
+    },
+    {
+      "action": "set_power",
+      "actor": "s",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "set_health",
+      "actor": "dummy",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "s",
+      "spell": 501432
+    },
+    {
+      "action": "cast",
+      "actor": "s",
+      "spell": 501432,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 1700
+    },
+    {
+      "action": "set_power",
+      "actor": "s",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "set_health",
+      "actor": "dummy",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "s",
+      "spell": 501432
+    },
+    {
+      "action": "cast",
+      "actor": "s",
+      "spell": 501432,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 1700
+    },
+    {
+      "action": "set_power",
+      "actor": "s",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "set_health",
+      "actor": "dummy",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "s",
+      "spell": 501432
+    },
+    {
+      "action": "cast",
+      "actor": "s",
+      "spell": 501432,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 1700
+    },
+    {
+      "action": "set_power",
+      "actor": "s",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "set_health",
+      "actor": "dummy",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "s",
+      "spell": 501432
+    },
+    {
+      "action": "cast",
+      "actor": "s",
+      "spell": 501432,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 1700
+    },
+    {
+      "action": "set_power",
+      "actor": "s",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "set_health",
+      "actor": "dummy",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "s",
+      "spell": 501432
+    },
+    {
+      "action": "cast",
+      "actor": "s",
+      "spell": 501432,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 1700
+    },
+    {
+      "action": "set_power",
+      "actor": "s",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "set_health",
+      "actor": "dummy",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "s",
+      "spell": 501432
+    },
+    {
+      "action": "cast",
+      "actor": "s",
+      "spell": 501432,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 1700
+    },
+    {
+      "action": "set_power",
+      "actor": "s",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "set_health",
+      "actor": "dummy",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "s",
+      "spell": 501432
+    },
+    {
+      "action": "cast",
+      "actor": "s",
+      "spell": 501432,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 1700
+    },
+    {
+      "action": "set_power",
+      "actor": "s",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "set_health",
+      "actor": "dummy",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "s",
+      "spell": 501432
+    },
+    {
+      "action": "cast",
+      "actor": "s",
+      "spell": 501432,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 1700
+    },
+    {
+      "action": "set_power",
+      "actor": "s",
+      "power": 0,
+      "value": 2500
+    },
+    {
+      "action": "set_health",
+      "actor": "dummy",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "s",
+      "spell": 501432
+    },
+    {
+      "action": "cast",
+      "actor": "s",
+      "spell": 501432,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 1700
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING: 32 deliberate casts produced at least one extra Electrocute (25% per hit, so a run of 24 misses is 0.10%)",
+      "actor": "s",
+      "metric": "spell_cast_count",
+      "spell": 501432,
+      "min": 33
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING: the repeat lands at the rank the player cast, not at Electrocute Rank 1 (801844), which is the literal EffectTriggerSpell of 804828",
+      "actor": "s",
+      "metric": "spell_cast_count",
+      "spell": 801844,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING: the extra strike dealt damage to the enemy",
+      "actor": "s",
+      "metric": "spell_damage_count",
+      "spell": 501432,
+      "target": "dummy",
+      "min": 33
+    }
+  ]
+}
