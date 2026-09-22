@@ -435,6 +435,29 @@ void ApplyContracts(SpellInfo* info)
         cost.TargetB = SpellImplicitTargetInfo();
         info->Effects[EFFECT_2].Effect = 0;
     }
+    if (id == 704959)
+    {
+        // Cinderblade: native SPELL_AURA_MOD_RATING_FROM_STAT converts 20% of Intellect into melee/
+        // ranged/spell critical strike rating (Player::UpdateRating reads MiscValue as a CombatRating
+        // bitmask - CR_CRIT_MELEE|CR_CRIT_RANGED|CR_CRIT_SPELL = 1792 - and MiscValueB as the source
+        // Stats index), plus native SPELL_AURA_MOD_SPELL_HIT_CHANCE +6%.
+        SpellEffectInfo& crit = info->Effects[EFFECT_0];
+        crit.Effect = SPELL_EFFECT_APPLY_AURA;
+        crit.ApplyAuraName = SPELL_AURA_MOD_RATING_FROM_STAT;
+        crit.BasePoints = 20;
+        crit.DieSides = 0;
+        crit.MiscValue = (1 << CR_CRIT_MELEE) | (1 << CR_CRIT_RANGED) | (1 << CR_CRIT_SPELL);
+        crit.MiscValueB = STAT_INTELLECT;
+        crit.TargetA = SpellImplicitTargetInfo(TARGET_UNIT_CASTER);
+        crit.TargetB = SpellImplicitTargetInfo();
+        SpellEffectInfo& hit = info->Effects[EFFECT_1];
+        hit.Effect = SPELL_EFFECT_APPLY_AURA;
+        hit.ApplyAuraName = SPELL_AURA_MOD_SPELL_HIT_CHANCE;
+        hit.BasePoints = 6;
+        hit.DieSides = 0;
+        hit.TargetA = SpellImplicitTargetInfo(TARGET_UNIT_CASTER);
+        hit.TargetB = SpellImplicitTargetInfo();
+    }
     info->_InitializeExplicitTargetMask();
 }
 }
