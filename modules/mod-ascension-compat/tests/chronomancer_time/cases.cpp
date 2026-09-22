@@ -37,12 +37,15 @@ int main()
         for (uint32 other : {RenewalAeon, ResilienceAeon, ProtectionAeon, OblivionAeon})
             player.Add(other, &player);
         Spell activation(&player, manager.GetSpellInfo(aeon), 0);
+        assert(activation.IsTriggered());
         hooks.OnSpellCast(&activation, &player, activation.GetSpellInfo(), false);
         int count = 0;
         for (uint32 other : {RenewalAeon, ResilienceAeon, ProtectionAeon, OblivionAeon})
             count += player.HasAura(other);
         assert(count == 1 && player.HasAura(aeon));
         player.RemoveAurasDueToSpell(aeon);
+        for (uint32 other : {RenewalAeon, ResilienceAeon, ProtectionAeon, OblivionAeon})
+            assert(!player.HasAura(other));
     }
     for (uint32 beacon : {0u, 574310u, 574362u})
     {

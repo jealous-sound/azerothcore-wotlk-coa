@@ -210,14 +210,14 @@ public:
     void OnSpellCast(Spell* spell, Unit* caster, SpellInfo const* info, bool) override
     {
         Player* player = Chronomancer(caster);
-        if (!player || spell->IsTriggered())
+        if (!player)
             return;
         for (uint32 aeon : {RenewalAeon, ResilienceAeon, ProtectionAeon, OblivionAeon})
             if (info->Id == aeon)
                 for (uint32 other : {RenewalAeon, ResilienceAeon, ProtectionAeon, OblivionAeon})
                     if (other != aeon)
                         player->RemoveAurasDueToSpell(other);
-        if (!IsRank(info->Id, Epoch))
+        if (spell->IsTriggered() || !IsRank(info->Id, Epoch))
             return;
         Aura* sands = player->GetAura(Sands);
         if (sands && sands->GetStackAmount() >= 5)

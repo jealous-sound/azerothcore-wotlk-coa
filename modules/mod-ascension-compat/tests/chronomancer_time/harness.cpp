@@ -32,6 +32,7 @@ enum
     GLOBALHOOK_ON_LOAD_SPELL_CUSTOM_ATTR = 1,
     SPELL_ATTR2_CANT_CRIT = 1,
     SPELL_ATTR3_IGNORE_CASTER_MODIFIERS = 1,
+    SPELL_ATTR4_ALLOW_CAST_WHILE_CASTING = 0x80,
     SPELL_ATTR4_IGNORE_DAMAGE_TAKEN_MODIFIERS = 1,
     SPELL_ATTR6_IGNORE_HEALTH_MODIFIERS = 1
 };
@@ -341,7 +342,8 @@ struct Spell
     SpellCastTargets m_targets;
     std::map<uint32, uint64> values;
     Spell(Unit *caster, SpellInfo const *info, int flags)
-        : fixtureCaster(caster), fixtureInfo(info), triggered(flags != 0)
+        : fixtureCaster(caster), fixtureInfo(info),
+          triggered(flags != 0 || (info->AttributesEx4 & SPELL_ATTR4_ALLOW_CAST_WHILE_CASTING))
     {
     }
     Unit *GetCaster()
