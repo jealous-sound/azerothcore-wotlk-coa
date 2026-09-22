@@ -3,11 +3,13 @@
 #include "CellImpl.h"
 #include "GridNotifiers.h"
 #include "GridNotifiersImpl.h"
+#include "Log.h"
 #include "Player.h"
 #include "ScriptMgr.h"
 #include "Spell.h"
 #include "SpellAuraEffects.h"
 #include "SpellAuras.h"
+#include "SpellInfo.h"
 #include "SpellMgr.h"
 #include "SpellScript.h"
 #include <algorithm>
@@ -54,7 +56,8 @@ enum StormbringerTalentSpells : uint32
     SPELL_LIGHTNING_CAGE_BARRIER = 560032,
     SPELL_THORIMS_GIFT = 570173,
     SPELL_THORIMS_GIFT_PATCH = 570174,
-    SPELL_HURRICANES_BUFF = 570129
+    SPELL_HURRICANES_BUFF = 570129,
+    SPELL_UNBOUND_ELEMENTALIST = 705702
 };
 
 constexpr int32 ASCENSION_SPELLMOD_BONUS_MULTIPLIER = 41;
@@ -90,6 +93,24 @@ void ReduceRankCooldowns(Player* player, uint32 firstRank, int32 delta)
         else
             player->ModifySpellCooldown(spell, delta);
     }
+}
+
+
+void ApplyUnboundElementalistContract(SpellInfo* info)
+{
+    SpellEffectInfo& owner = info->Effects[EFFECT_0];
+    SpellEffectInfo const& elemental = info->Effects[EFFECT_1];
+    if (owner.Effect != SPELL_EFFECT_APPLY_AURA || owner.ApplyAuraName != SPELL_AURA_ADD_PCT_MODIFIER ||
+        owner.MiscValue != SPELLMOD_ALL_EFFECTS || owner.BasePoints != -1 || owner.DieSides != 1 ||
+        owner.SpellClassMask != flag96(16, 0, 0) || elemental.ApplyAuraName != owner.ApplyAuraName ||
+        elemental.MiscValue != owner.MiscValue || elemental.SpellClassMask != owner.SpellClassMask ||
+        elemental.DieSides != owner.DieSides || elemental.BasePoints <= 0)
+    {
+        LOG_ERROR("module.ascension_compat", "Skipped unexpected Unbound Elementalist record {}", info->Id);
+        return;
+    }
+
+    owner.BasePoints = elemental.BasePoints;
 }
 
 uint32 StaticScaledChance(Player const* player, uint32 talent)
@@ -281,6 +302,8 @@ public:
             info->Effects[EFFECT_0].ApplyAuraName == SPELL_AURA_MOD_DAMAGE_PERCENT_DONE &&
             !info->Effects[EFFECT_0].MiscValue)
             info->Effects[EFFECT_0].MiscValue = SPELL_SCHOOL_MASK_ALL;
+        if (info->Id == SPELL_UNBOUND_ELEMENTALIST)
+            ApplyUnboundElementalistContract(info);
     }
 };
 
