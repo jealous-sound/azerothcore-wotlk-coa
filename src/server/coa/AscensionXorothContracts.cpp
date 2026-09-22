@@ -409,6 +409,32 @@ void ApplyContracts(SpellInfo* info)
         range.TargetA = SpellImplicitTargetInfo(TARGET_UNIT_CASTER);
         range.TargetB = SpellImplicitTargetInfo();
     }
+    if (id == 804354)
+    {
+        // Black Skull Shield: native SPELL_AURA_ADD_PCT_MODIFIER (SPELLMOD_DAMAGE) +25% Shieldgore
+        // damage, plus a private SPELLMOD_COST flat modifier of -5 Rage, both scoped to Shieldgore's
+        // own family classmask (804353, dword1 bit8) - the same SPELLMOD_COST pattern used by
+        // Combusting Blade (#942).
+        SpellEffectInfo& dmg = info->Effects[EFFECT_0];
+        dmg.Effect = SPELL_EFFECT_APPLY_AURA;
+        dmg.ApplyAuraName = SPELL_AURA_ADD_PCT_MODIFIER;
+        dmg.BasePoints = 25;
+        dmg.DieSides = 0;
+        dmg.MiscValue = SPELLMOD_DAMAGE;
+        dmg.SpellClassMask = flag96(0, 256, 0);
+        dmg.TargetA = SpellImplicitTargetInfo(TARGET_UNIT_CASTER);
+        dmg.TargetB = SpellImplicitTargetInfo();
+        SpellEffectInfo& cost = info->Effects[EFFECT_1];
+        cost.Effect = SPELL_EFFECT_APPLY_AURA;
+        cost.ApplyAuraName = SPELL_AURA_ADD_FLAT_MODIFIER;
+        cost.BasePoints = -5;
+        cost.DieSides = 0;
+        cost.MiscValue = SPELLMOD_COST;
+        cost.SpellClassMask = flag96(0, 256, 0);
+        cost.TargetA = SpellImplicitTargetInfo(TARGET_UNIT_CASTER);
+        cost.TargetB = SpellImplicitTargetInfo();
+        info->Effects[EFFECT_2].Effect = 0;
+    }
     info->_InitializeExplicitTargetMask();
 }
 }
