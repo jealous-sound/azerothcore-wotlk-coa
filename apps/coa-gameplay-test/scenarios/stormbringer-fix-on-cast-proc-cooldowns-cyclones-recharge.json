@@ -91,6 +91,16 @@
       "actor": "armed", "metric": "cooldown_ms", "spell": 501449,
       "relative_to": "kiss_electrocute", "min": -3500, "max": -2500
     },
+    {
+      "action": "set_health",
+      "label": "Restore health above Electrocute's 35% floor: at 30% health Call Lightning landed with a 0 damage delta (dummy still alive at 298430/1000000, so this is not a dead-target no-op); every sibling scenario (Evergale, Focal Point, Titanstorm) casts Call Lightning only while the dummy sits at full or unreduced health, never after the Electrocute health-drop fixture",
+      "actor": "control_dummy", "value": 1000000
+    },
+    {
+      "action": "set_health",
+      "label": "Restore health above Electrocute's 35% floor: same requirement on the armed dummy",
+      "actor": "armed_dummy", "value": 1000000
+    },
     { "action": "snapshot", "actor": "armed_dummy", "metric": "health", "save_as": "dummy_before_lightning" },
     { "action": "set_aura", "actor": "control", "spell": 803102, "stacks": 100 },
     { "action": "set_aura", "actor": "armed", "spell": 803102, "stacks": 100 },
