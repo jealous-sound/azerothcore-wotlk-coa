@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "name": "Witch Doctor: Spirit Striker raises the Serpent Ward's Voodoo Fire proc chance (#824)",
+  "contract": "#824: Spirit Striker 806286 carries ADD_FLAT_MODIFIER (aura 107), EffectMiscValue 18 (SPELLMOD_CHANCE_OF_SUCCESS), EffectBasePoints 9 (real value 10), EffectSpellClassMask word1 bit 27 (134217728), matching exactly the SpellFamilyFlags[1] of Voodoo Fire One 802262 (ProcChance 20) and Voodoo Fire Two 803846 (ProcChance 40). The Serpent Ward's UpdateAI (AscensionWitchDoctorSummons.cpp) rolled that chance as a hardcoded C++ literal (20 or 40) via roll_chance_f, never through Player::ApplySpellMod, so the registered spellmod was silently dropped -- a real_bug (Spirit Striker's +10% had zero gameplay effect). The fix adds player->ApplySpellMod(VoodooFireOne/Two, SPELLMOD_CHANCE_OF_SUCCESS, chance) before the roll, matching the existing pattern in AscensionPrimalistJudgement.cpp/AscensionPyromancerEvents.cpp. spell_modifier on VoodooFireOne is NOT usable proof here: the aura is a plain core-generic ADD_FLAT_MODIFIER, so it registers on the player identically before and after the fix -- it only proves the aura loaded, not that the pet code consults it (this is the exact trap the investigation flagged). The gameplay-test harness also has no metric that can attribute a spell cast or spell-damage event to a player-owned TempSummon actor: spell_cast_count/spell_proc_count key off GetUnit(actor), which only resolves to a player (_actors) or a harness 'creatures' fixture (_targets), and spell_go_count/spell_damage_count/spell_damage_total require the actor to BE a player and restrict 'caster' to that player's own GUID or Player::GetPetGUID() (a formal pet); the Serpent Ward is summoned via Player::SummonCreature + SetOwnerGUID, never registered as a formal Pet or as a harness target, so none of those metrics can isolate its casts (confirmed by reading modules/mod-ascension-compat/src/CoAGameplayTest.cpp, not assumed). The only available proof is therefore statistical: the enemy fixture's own health loss, compared in the same run before vs after learning 806286, over N=140 Serpent Ward attack ticks per phase (WardAttackInterval=2000ms, no haste). Voodoo Fire (500473, EffectBasePoints 72, no per-level scaling) fires only on a successful roll; Serpent Ward Attack (573055, EffectBasePoints 4 + EffectRealPointsPerLevel 2.3 -> about 186 at level 80) fires every tick regardless, so it dominates the mean damage and dilutes the ratio signal: with p=0.2 to p=0.3 the expected ratio of phase-2-to-phase-1 health loss is only around 1.036 by this rough theoretical calculation (not measured on a live server); 1.02 is used as a deliberately conservative pass/fail line, closer to the unfixed side than the midpoint, so a false PASS on unfixed code is rarer than a false FAIL on fixed code. This statistical distinguisher was designed from DBC constants only (BasePoints, ProcChance, RealPointsPerLevel) and was NOT executed against a live worldserver (out of scope for this task, no build/deploy performed); it does not account for the Serpent Ward's own possible spell-crit chance or partial magic-resist rolls against the fixture, both unverified, so the true false-pass/false-fail rate could exceed the theoretical ~15% two-sided estimate documented in fix-824.md. It is included as the best available same-run, server-numbers regression signal given this constraint, not as a low-flake guarantee. Hex of Malice 501158 is cast once purely to put the caster in combat with the enemy fixture (Unit::SetInCombatWith on the original caster is required for AscensionWitchDoctor::Enemy() to ever hand the ward a target) and its own damage (instant hit + a 24000 ms DOT, SpellDuration.dbc row 106) is fully waited out before either measured phase begins, so it never contaminates the comparison.",
+  "timeout_ms": 600000,
+  "players": [
+    { "id": "caster", "race": 1, "class": 13, "level": 80 }
+  ],
+  "creatures": [
+    { "id": "enemy0", "owner": "caster", "entry": 36, "level": 80, "distance": 4, "health": 4000000 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let level scaling settle", "ms": 3000 },
+    {
+      "action": "assert", "label": "No damage bonus on Voodoo Fire One before Spirit Striker (registration sanity check, not proof of consumption)",
+      "actor": "caster", "metric": "spell_modifier", "spell": 802262, "op": 18, "base": 20, "equals": 20
+    },
+    { "action": "learn", "actor": "caster", "spell": 500960 },
+    { "action": "cast", "actor": "caster", "spell": 500960, "target": "enemy0" },
+    {
+      "action": "assert", "label": "Serpent Ward is summoned",
+      "actor": "caster", "metric": "owned_creature_count", "entry": 50105, "equals": 1, "within_ms": 3000
+    },
+    { "action": "wait", "label": "Let the ward settle before entering combat", "ms": 1500 },
+    { "action": "cast", "actor": "caster", "label": "Hex of Malice puts the caster in combat with the fixture", "spell": 501158, "target": "enemy0" },
+    { "action": "wait", "label": "Let Hex of Malice's instant hit and 24000 ms DOT fully resolve before measuring", "ms": 26000 },
+    {
+      "action": "assert", "label": "The ward survived the settle window",
+      "actor": "caster", "metric": "owned_creature_count", "entry": 50105, "equals": 1
+    },
+    { "action": "snapshot", "actor": "enemy0", "metric": "health", "save_as": "health_0" },
+    { "action": "wait", "label": "PHASE 1 (no Spirit Striker): 140 Serpent Ward ticks at 2000 ms", "ms": 280000 },
+    { "action": "snapshot", "actor": "enemy0", "metric": "health", "save_as": "health_1" },
+    { "action": "snapshot", "actor": "enemy0", "metric": "health", "relative_to": "health_0", "save_as": "phase1_delta" },
+    { "action": "learn", "actor": "caster", "spell": 806286 },
+    {
+      "action": "assert", "label": "Voodoo Fire One's registered spellmod is still 30 after learning Spirit Striker (registration sanity check, not proof of consumption)",
+      "actor": "caster", "metric": "spell_modifier", "spell": 802262, "op": 18, "base": 20, "equals": 30
+    },
+    { "action": "wait", "label": "PHASE 2 (with Spirit Striker): another 140 Serpent Ward ticks at 2000 ms", "ms": 280000 },
+    {
+      "action": "assert",
+      "label": "FIX PROOF: with Spirit Striker learned, phase 2 health loss is at least 2% larger than phase 1's own same-run baseline. Before the fix this ratio stays flat around 1.0 (the hardcoded 20% roll never moves); after the fix the boosted 30% roll pushes it toward ~1.036.",
+      "actor": "enemy0", "metric": "health", "relative_to": "health_1", "ratio_to": "phase1_delta", "min": 1.02
+    }
+  ]
+}

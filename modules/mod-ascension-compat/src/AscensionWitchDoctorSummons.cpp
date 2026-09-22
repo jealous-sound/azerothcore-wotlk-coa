@@ -392,7 +392,12 @@ class npc_ascension_witch_doctor : public ScriptedAI
             if (Unit* target = Enemy(player))
             {
                 me->CastSpell(target, SerpentAttackSpell, true, nullptr, nullptr, _owner);
-                float chance = player->HasAura(VoodooFireTwo) ? 40 : player->HasAura(VoodooFireOne) ? 20 : 0;
+                uint32 voodooFireRank = player->HasAura(VoodooFireTwo) ? VoodooFireTwo
+                                       : player->HasAura(VoodooFireOne) ? VoodooFireOne
+                                                                         : 0;
+                float chance = voodooFireRank == VoodooFireTwo ? 40 : voodooFireRank == VoodooFireOne ? 20 : 0;
+                if (voodooFireRank)
+                    player->ApplySpellMod(voodooFireRank, SPELLMOD_CHANCE_OF_SUCCESS, chance);
                 if (chance && roll_chance_f(chance))
                 {
                     uint32 cap = 3;
