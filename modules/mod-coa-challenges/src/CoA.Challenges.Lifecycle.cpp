@@ -1305,6 +1305,13 @@ namespace CoAChallenges
         // level is completed (relevant only when re-completion is allowed).
         bool const firstCompletion = !HasCompletionLevel(guid, challengeID, level);
 
+        // Rewards are handed out while the challenge is still recorded as active, and the
+        // completion row that marks it done is written straight after. Granting last meant a
+        // failed grant (or a realm drop in between) consumed the challenge and paid nothing,
+        // with no way to retry; granting first at worst leaves the challenge complete with the
+        // reward already paid, which the row written below then records.
+        GrantChallengeRewards(player, challengeID, level, firstCompletion);
+
         CharacterDatabase.DirectExecute(
             "INSERT IGNORE INTO coa_challenge_completion (guid, challengeId, level, completeTime, startTime) "
             "VALUES ({}, {}, {}, UNIX_TIMESTAMP(), {})", guid, challengeID, level, startTime);
@@ -1330,8 +1337,6 @@ namespace CoAChallenges
         // "deactivate". Re-push the active list (now without this trial).
         SendActiveList(player);
         SendCriteriaState(player);
-
-        GrantChallengeRewards(player, challengeID, level, firstCompletion);
 
         if (WorldSession* session = player->GetSession())
         {
