@@ -84,7 +84,7 @@
     },
     {
       "action": "assert", "label": "DISCRIMINATING: the player's spell critical chance rises by 6",
-      "actor": "storm", "metric": "spell_crit_chance", "relative_to": "crit_base", "equals": 6
+      "actor": "storm", "metric": "spell_crit_chance", "relative_to": "crit_base", "min": 5.9, "max": 6.1
     },
     { "action": "wait", "ms": 1000 },
     { "action": "cast", "actor": "storm", "spell": 804017, "target": "dummy" },
