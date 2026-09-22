@@ -24,7 +24,7 @@ enum StormbringerLightningSpells : uint32
     SPELL_FORKED_LIGHTNING_FIRST_RANK = 801851,
     SPELL_ARM_OF_THORIM_FIRST_RANK = 801847,
     SPELL_CALL_LIGHTNING = 500040,
-    SPELL_ELECTROCUTE = 501421
+    SPELL_ELECTROCUTE_FIRST_RANK = 801844
 };
 
 class stormbringer_lightning_procs : public AllSpellScript
@@ -73,7 +73,7 @@ private:
 
     void ApplySparks(Player* owner, Unit* target, uint32 source) const
     {
-        if ((source != SPELL_ELECTROCUTE && source != SPELL_ARM_OF_THORIM_FIRST_RANK) ||
+        if ((source != SPELL_ELECTROCUTE_FIRST_RANK && source != SPELL_ARM_OF_THORIM_FIRST_RANK) ||
             !owner->HasAura(SPELL_SPARKS))
             return;
         owner->CastSpell(target, SPELL_SPARKS_CRIT_DEBUFF, true);
