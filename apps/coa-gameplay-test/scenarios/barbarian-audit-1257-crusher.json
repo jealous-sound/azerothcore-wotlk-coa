@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "name": "Barbarian audit: Crusher resets Crush's cooldown from a native DBC-generated proc, no code needed (#1257)",
+  "contract": "Crusher rank 2 (807875, passive) has one effect: APPLY_AURA SPELL_AURA_PROC_TRIGGER_SPELL (42) triggering 807911 with EffectBasePoints 0. Spell.dbc gives 807875 ProcFlags 4 (PROC_FLAG_DONE_MELEE_AUTO_ATTACK) and ProcChance 20, matching the tooltip 'Melee auto attacks now have a 20% chance to reset the cooldown of Crush'. No spell_proc/spell_linked_spell/spell_proc_event row exists for 807875 anywhere in the repository. That looked like the same gap as Essence Harvester (#1182, see bloodmage-essence-harvester-fang-reset.json): SpellMgr::LoadSpellProcs only builds a spell_proc row from a spell's own DBC ProcFlags when that field is nonzero (SpellMgr.cpp ~2253, 'Skip if no proc flags in DBC'); Essence Harvester's DBC ProcFlags is 0, so it needed an explicit row. Crusher's DBC ProcFlags is 4 (nonzero), so the same loader's default-proc generator (SpellMgr.cpp 2194-2328, isTriggerAura[SPELL_AURA_PROC_TRIGGER_SPELL] = true) builds one automatically from the DBC ProcFlags/ProcChance -- no SQL or C++ change needed. The triggered spell 807911 has one effect, SPELL_EFFECT_ASCENSION_RESET_COOLDOWN (195, EffectMiscValue 500915 = Crush, EffectMiscValueB 0), an existing generic handler (Spell::EffectAscensionResetCooldown) that resets the target spell's cooldown/category through the normal ResetAscensionCooldown path used by every other Ascension reset-on-proc talent in this module. Crush (500915) has RecoveryTime/CategoryRecoveryTime 25000ms, so putting it on cooldown and then landing enough 1900ms-speed auto attacks (Worn Shortsword, item 25) to exceed the 20% chance's false-failure probability (40 swings: 0.8^40 is about 0.013%) proves the whole native chain -- proc generation, trigger dispatch and the reset effect -- without any fix.",
+  "timeout_ms": 120000,
+  "players": [
+    {
+      "id": "b",
+      "race": 1,
+      "class": 12,
+      "level": 80,
+      "melee_hit_rating": 10000,
+      "expertise_rating": 10000
+    }
+  ],
+  "creatures": [
+    { "id": "d", "owner": "b", "entry": 36, "level": 80, "health": 500000, "distance": 3 }
+  ],
+  "steps": [
+    { "action": "wait", "ms": 5000 },
+
+    { "action": "learn", "actor": "b", "spell": 807875 },
+    { "action": "learn", "actor": "b", "spell": 500915 },
+    { "action": "add_item", "actor": "b", "item": 25 },
+    { "action": "equip", "actor": "b", "item": 25, "slot": 15 },
+    { "action": "wait", "ms": 2000 },
+
+    { "action": "cast", "actor": "b", "spell": 500915, "target": "d" },
+    { "action": "assert", "label": "Crush enters its native 25s cooldown", "actor": "b", "metric": "cooldown_ms", "spell": 500915, "min": 20000, "within_ms": 3000 },
+
+    { "action": "attack", "actor": "b", "target": "d" },
+    { "action": "assert", "label": "b enters native melee combat", "actor": "b", "metric": "combat", "equals": 1, "within_ms": 5000 },
+    { "action": "assert", "actor": "d", "metric": "alive", "equals": 1 },
+
+    { "action": "assert", "label": "Crusher's DBC-generated proc resets Crush's cooldown without any code or SQL change", "actor": "b", "metric": "cooldown_ms", "spell": 500915, "equals": 0, "within_ms": 100000 },
+    { "action": "assert", "label": "the proc was actually recorded against Crusher's aura", "actor": "b", "metric": "spell_proc_count", "spell": 807875, "min": 1 }
+  ]
+}
