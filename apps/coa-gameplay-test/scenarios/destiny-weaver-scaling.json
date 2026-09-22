@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "Destiny Weaver: queued choices, armor, level refresh and fractional damage",
-  "contract": "Requires DestinyWeaver.Enable=1, DestinyWeaver.LevelScaling=1, offset=3, AscensionCompat.QuestLevelScaling=1. A network-thread request must not change player state until a player update. Creature level and transmitted fields follow level changes; armor reduction changes physical mitigation; 67 one-damage hits against a level-1 pool viewed at level 57 remove one real HP, not 67. Scaling OFF restores ordinary damage. No network delivery or rendering is tested. Fixture entry 1501 uses the installed 0.93 HealthModifier: native health is 40 at level 1 and 2590 at level 57.",
+  "contract": "Requires DestinyWeaver.Enable=1, DestinyWeaver.LevelScaling=1, offset=3, CoA.QuestLevelScaling=1. A network-thread request must not change player state until a player update. Creature level and transmitted fields follow level changes; armor reduction changes physical mitigation; 67 one-damage hits against a level-1 pool viewed at level 57 remove one real HP, not 67. Scaling OFF restores ordinary damage. No network delivery or rendering is tested. Fixture entry 1501 uses the installed 0.93 HealthModifier: native health is 40 at level 1 and 2590 at level 57.",
   "timeout_ms": 180000,
   "location": {
     "map": 0,

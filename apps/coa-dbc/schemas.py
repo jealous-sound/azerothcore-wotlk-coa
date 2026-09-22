@@ -5,8 +5,8 @@ import re
 
 ROOT = Path(__file__).resolve().parents[2]
 STRUCTURES = 'src/server/shared/DataStores/DBCStructure.h'
-TALENTS = 'modules/mod-ascension-compat/src/AscensionCoATalentData.cpp'
-CHARGES = 'modules/mod-ascension-compat/src/AscensionClassMechanics.cpp'
+TALENTS = 'src/server/coa/AscensionCoATalentData.cpp'
+CHARGES = 'src/server/coa/AscensionClassMechanics.cpp'
 DBC_FIELD_BYTES = 4
 SPELL_FIELD_COUNT = 234
 SPELL_FIELDS_OMITTED_BY_NATIVE_STRUCTURE = ((13, 'StancesHigh'), (15, 'StancesNotHigh'))

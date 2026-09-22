@@ -33,7 +33,7 @@ Read that checkout's `AGENTS.md` and `apps/coa-gameplay-test/README.md` before t
 ## Execute
 
 1. Validate the scenario with `python apps/coa-gameplay-test/run.py validate <scenario>`.
-2. Resolve a worldserver containing the runtime module, the matching game data/config, and local MySQL 8
+2. Resolve a worldserver built with CoA, the matching game data/config, and local MySQL 8
    `mysql.exe`/`mysqldump.exe`. Read credentials through the source config without printing them. Check
    the candidate build's source and freshness; do not assume an installed binary includes current edits.
    If normal credentials cannot create schemas, use `--database-client-config` with an authorized existing
@@ -47,7 +47,7 @@ Read that checkout's `AGENTS.md` and `apps/coa-gameplay-test/README.md` before t
    source data, repository SQL and configs for changes, applies startup updates and audits persistent world
    writes after shutdown. A clean world copy is retained; disposable character/auth schemas and credentials
    are removed. Use `--refresh-world` to replace a cache or `--fresh-databases` for a fully disposable run.
-   Never point the enabled runtime module at normal databases or reuse a result directory.
+   Never point the test worldserver at normal databases or reuse a result directory.
 5. Inspect `summary.json`, `result.json` and relevant startup/runtime log errors. A pass requires the runner's
    zero exit code and completed assertions. Missing readiness, a crash, a partial result, a timeout or cleanup
    failure is a failed run. Diagnose infrastructure failures before interpreting gameplay outcomes. Use a

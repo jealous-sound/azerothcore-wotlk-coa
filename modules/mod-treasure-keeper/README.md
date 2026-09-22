@@ -12,7 +12,7 @@ non-combat pets whose right click opens the character's **own (native) bank**.
 | their own text | *"Right Click to summon and dismiss your companion, that acts as a portable bank while in safe zones. Cannot be summoned in High-Risk Open World."* |
 | regression | `apps/coa-gameplay-test/scenarios/treasure-keeper.json` — the ruleset rule end to end: served in PvE and with no ruleset aura, summoned-and-refused in High-Risk and War Mode where an existing companion answers the click with the reason, and served again after a switch back to PvE |
 | creatures | **80918 Celestial Treasure Keeper** and **10111377 Treasure Keeper**, faction 35, summon-only (no `creature` rows anywhere) |
-| displays | 47857 `Creature\CelestialHuman\CelestialHuman.m2`, 48611 `Creature\wyrmtongue\wyrmtongue.mdx` — both also in mod-ascension-compat's `AscensionCollectionModelData.h` and in the client's `Appearances.dbc` (rows 54544, 54558), which is the Pets-tab pair |
+| displays | 47857 `Creature\CelestialHuman\CelestialHuman.m2`, 48611 `Creature\wyrmtongue\wyrmtongue.mdx` — both also in CoA's `AscensionCollectionModelData.h` and in the client's `Appearances.dbc` (rows 54544, 54558), which is the Pets-tab pair |
 | where they came from | store/bundle grants only: no vendor, loot table or quest rewards them anywhere in this database |
 
 ## Why they did nothing
@@ -54,7 +54,7 @@ and *"Treasure Keeper not working … Right clicking the pet should give access 
 ## The ruleset restriction — three separate states
 
 *"Cannot be summoned in High-Risk Open World"* is a ruleset, not a zone, and the rulesets live in the
-character's auras (`mod-ascension-compat/src/AscensionRulesets.cpp`): **High-Risk** is **1004019**,
+character's auras (`src/server/coa/AscensionRulesets.cpp`): **High-Risk** is **1004019**,
 **War Mode** is **1004119** alone, and **PvE is that same War Mode aura plus the marker 9931032** —
 which is how the client's own `C_Player:GetRuleset()` tells PvE from War Mode, and why a PvE
 character shows a buff the client titles "War Mode".
@@ -139,4 +139,4 @@ withholds the native window and nothing else; the module never opens a bank of i
 
 Deliberately not done: a second bank window. The core's handler is the single implementation of
 "open the native bank" — the CoA personal/realm banks are a different feature (summoned vault
-objects, `mod-ascension-compat`'s `AscensionPersonalBank`) and are untouched by this module.
+objects, the CoA server component's `AscensionPersonalBank`) and are untouched by this module.

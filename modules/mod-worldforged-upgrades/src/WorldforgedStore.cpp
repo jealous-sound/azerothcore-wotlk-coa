@@ -17,7 +17,7 @@
 
 #include "WorldforgedUpgrades.h"
 
-#include "../../mod-ascension-compat/src/AscensionCompatOpcodes.h"
+#include "AscensionCompatOpcodes.h"
 
 #include "Config.h"
 #include "DatabaseEnv.h"

@@ -386,7 +386,7 @@ void RefreshInvertedBreathTracking(Player* player);
     void UntrackRegen(Player* player);
     void FatigueUpdate(Player* player, uint32 diff);
     // HIGH_RISK_ONLY: aura that marks a character as participating in the
-    // High Risk ruleset (applied by mod-ascension-compat). Conf-tunable.
+    // High Risk ruleset (applied by CoA). Conf-tunable.
     uint32 HighRiskAura();
     bool HighRiskActivationBlocked(Player* player);
     void RefreshHighRiskTracking(Player* player);

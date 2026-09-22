@@ -35,6 +35,8 @@ jobs:
           python -B tools/check_source.py --base "$base" --github-output "$GITHUB_OUTPUT" "${extra[@]}"
       - name: Native client compatibility checks
         if: steps.source-checks.outputs.client_compat == 'true'
-        run: python -B modules/mod-ascension-compat/tests/client_compat/run.py
+        run: |
+          python -B apps/coa-tests/client_compat/run.py
+          python -B apps/coa-tests/core_integration/run.py
       - run: python -B tools/check_repository.py
       - run: git diff --check HEAD^ HEAD
