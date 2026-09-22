@@ -2373,6 +2373,7 @@ namespace CoAChallenges
                 { "ruletest",  HandleCoARuleTestCommand, SEC_ADMINISTRATOR, Console::Yes },
                 { "ruletestall", HandleCoARuleTestAllCommand, SEC_ADMINISTRATOR, Console::Yes },
                 { "conditiontest", HandleCoAConditionTestCommand, SEC_ADMINISTRATOR, Console::Yes },
+                { "flag",      HandleCoAFlagCommand,       SEC_ADMINISTRATOR, Console::Yes },
                 { "ruletestparty", HandleCoARuleTestPartyCommand, SEC_ADMINISTRATOR, Console::Yes },
                 { "ruleaudit", HandleCoARuleAuditCommand, SEC_ADMINISTRATOR, Console::Yes },
                 { "auditdefs", HandleCoAAuditDefsCommand, SEC_ADMINISTRATOR, Console::Yes },
@@ -2750,6 +2751,36 @@ namespace CoAChallenges
                 handler->PSendSysMessage("CONDITION GATES PASS");
             else
                 handler->SendErrorMessage("CONDITION GATES FAIL (see per-condition lines above)");
+            return true;
+        }
+
+        // .coa flag <player> <FLAG> [on|off]
+        // GM-only: set/clear a persistent activation-condition flag on a
+        // character (e.g. OUTSIDE_BANK) to exercise the activation gate without
+        // performing the real action. Then `.coa trial check <id>`.
+        static bool HandleCoAFlagCommand(ChatHandler* handler, std::string playerName,
+            std::string flag, Optional<bool> on)
+        {
+            Player* p = ObjectAccessor::FindPlayerByName(playerName);
+            if (!p)
+            {
+                handler->SendErrorMessage("Player '{}' is not online.", playerName);
+                return false;
+            }
+            uint32 const guid = p->GetGUID().GetCounter();
+            if (!on || *on)
+            {
+                SetConditionFlag(guid, flag.c_str());
+                handler->PSendSysMessage("Set condition flag '{}' for {}.", flag, p->GetName());
+            }
+            else
+            {
+                std::string eflag = flag;
+                CharacterDatabase.EscapeString(eflag);
+                CharacterDatabase.Execute(
+                    "DELETE FROM coa_character_condition WHERE guid = {} AND flag = '{}'", guid, eflag);
+                handler->PSendSysMessage("Cleared condition flag '{}' for {}.", flag, p->GetName());
+            }
             return true;
         }
 
