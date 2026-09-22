@@ -363,10 +363,6 @@ class spell_ascension_cultist_sanity_tap : public SpellScript
             SPELL_EFFECT_ENERGIZE_PCT);
     }
 };
-// 504829 ("Energize 10% Missing Mana") is the periodic-trigger helper for Worrysome Idol (706917); it also
-// backs Star-Charged (500756), a different, non-Cultist ability. Only override its default ENERGIZE_PCT
-// handler (which restores a flat percentage of maximum mana) for the Cultist caster, leaving Star-Charged
-// on the unaudited default behavior.
 class spell_ascension_cultist_worrysome_idol : public SpellScript
 {
     PrepareSpellScript(spell_ascension_cultist_worrysome_idol);
