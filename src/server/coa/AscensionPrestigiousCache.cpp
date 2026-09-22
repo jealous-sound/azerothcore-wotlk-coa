@@ -70,7 +70,7 @@ void LoadPrestigiousCachePools()
     }
     else
     {
-        LOG_WARN("module.ascension_compat",
+        LOG_WARN("coa",
             "ascension_prestigious_cache_reward is missing: Prestigious Caches will not open.");
     }
 
@@ -87,7 +87,7 @@ void LoadPrestigiousCachePools()
     }
     else
     {
-        LOG_WARN("module.ascension_compat",
+        LOG_WARN("coa",
             "ascension_cache_content_token is missing: Prestigious Caches pay no tier tokens.");
     }
 

@@ -97,7 +97,7 @@ public:
             if (!player->HasSpell(id))
                 player->learnSpell(id, false);
 
-        if (!sConfigMgr->GetOption<bool>("AscensionCompat.RulesetLoginDefault", true))
+        if (!sConfigMgr->GetOption<bool>("CoA.RulesetLoginDefault", true))
             return;
 
         if (!player->IsInWorld())

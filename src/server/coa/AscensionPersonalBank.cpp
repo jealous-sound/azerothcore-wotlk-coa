@@ -81,7 +81,7 @@ void LoadBank(OpenBank& bank)
             uint8 const index = fields[0].Get<uint8>();
             if (index >= BANK_TABS)
             {
-                LOG_ERROR("module.ascension_compat",
+                LOG_ERROR("coa",
                           "Personal bank tab {} out of range for owner kind {} id {}",
                           index, bank.OwnerKind, bank.OwnerId);
                 continue;
@@ -117,7 +117,7 @@ void LoadBank(OpenBank& bank)
 
             if (tab >= BANK_TABS || slot >= BANK_SLOTS)
             {
-                LOG_ERROR("module.ascension_compat",
+                LOG_ERROR("coa",
                           "Personal bank item {} sits in an invalid slot (tab {} slot {})",
                           itemGuid, tab, slot);
                 continue;
@@ -126,7 +126,7 @@ void LoadBank(OpenBank& bank)
             ItemTemplate const* proto = sObjectMgr->GetItemTemplate(itemEntry);
             if (!proto)
             {
-                LOG_ERROR("module.ascension_compat",
+                LOG_ERROR("coa",
                           "Personal bank item {} has unknown template {}", itemGuid, itemEntry);
                 continue;
             }
@@ -134,7 +134,7 @@ void LoadBank(OpenBank& bank)
             Item* item = NewItemOrBag(proto);
             if (!item->LoadFromDB(itemGuid, ObjectGuid::Empty, fields, itemEntry))
             {
-                LOG_ERROR("module.ascension_compat",
+                LOG_ERROR("coa",
                           "Personal bank item {} could not be loaded", itemGuid);
                 delete item;
                 continue;
@@ -748,7 +748,7 @@ void WithBankPacket(WorldPacket const& packet, Use&& use)
     }
     catch (...)
     {
-        LOG_DEBUG("module.ascension_compat", "Ignored a malformed bank packet (opcode {})",
+        LOG_DEBUG("coa", "Ignored a malformed bank packet (opcode {})",
                   packet.GetOpcode());
     }
 }
@@ -853,7 +853,7 @@ void HandleBuyTab(Player* player, OpenBank& bank, WorldPacket const& packet)
 
             LogBankEvent(bank, GUILD_BANK_LOG_WITHDRAW_MONEY, 0, player, price, 0);
 
-            LOG_INFO("module.ascension_compat",
+            LOG_INFO("coa",
                      "Personal bank: {} bought tab {} ({} copper) as kind {} id {}",
                      player->GetName(), bank.Tabs - 1, price, bank.OwnerKind, bank.OwnerId);
         });
@@ -1015,7 +1015,7 @@ void Opened(Player* player, uint8 kind, ObjectGuid vault)
 
     SendBankData(player, stored, kind, true);
 
-    LOG_INFO("module.ascension_compat",
+    LOG_INFO("coa",
              "{} bank opened for {} (kind {}, owner {} id {}, {} tabs, {} items, {} copper)",
              kind == REALM ? "Realm" : "Personal", player->GetName(), uint32(kind),
              uint32(stored.OwnerKind), stored.OwnerId, stored.Tabs, ItemCount(stored), stored.Money);
@@ -1035,7 +1035,7 @@ bool HandlePacket(Player* player, WorldPacket const& packet)
     GameObject* vault = ObjectAccessor::GetGameObject(*player, bank.Vault);
     if (!vault || !vault->IsInWorld() || player->GetDistance(vault) > BANK_REACH)
     {
-        LOG_INFO("module.ascension_compat", "Personal bank closed for {} (bank object gone or out of reach)",
+        LOG_INFO("coa", "Personal bank closed for {} (bank object gone or out of reach)",
                  player->GetName());
         Closed(player);
         return false;
@@ -1135,7 +1135,7 @@ bool AddTab(Player* player, uint8 kind)
         SendBankData(player, itr->second, kind, true);
     }
 
-    LOG_INFO("module.ascension_compat", "{} bank: {} unlocked tab {} with a voucher (owner {} id {})",
+    LOG_INFO("coa", "{} bank: {} unlocked tab {} with a voucher (owner {} id {})",
              kind == REALM ? "Realm" : "Personal", player->GetName(), tabs, uint32(ownerKind), ownerId);
     return true;
 }

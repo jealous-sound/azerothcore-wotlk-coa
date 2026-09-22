@@ -71,7 +71,7 @@ class CommentPolicyTests(unittest.TestCase):
     def test_upstream_dependencies_and_configuration_are_outside_scope(self):
         for path in ['src/server/game/Spells/Spell.cpp', 'deps/example/test.py',
                      'modules/other/src/Test.cpp', 'data/sql/base/world.sql',
-                     'src/server/coa/conf/mod_ascension_compat.conf.dist']:
+                     'src/server/coa/conf/coa.conf.dist']:
             with self.subTest(path=path):
                 self.assertIsNone(language(path))
                 self.assertEqual(comments('// prose', path), [])

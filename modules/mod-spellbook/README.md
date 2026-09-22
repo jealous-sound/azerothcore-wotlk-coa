@@ -40,7 +40,7 @@ restored to this realm's trainer data at all.
   the client announces on its own. Sending a learned-spell packet on top of that cue announced every
   rank up twice in chat.
 - **Automatic delivery off.** The books are how a character earns abilities, so this change ships
-  `AscensionCompat.AutoProgression = 0` (config file and code default) in the CoA server component:
+  `CoA.AutoProgression = 0` (config file and code default) in the CoA server component:
   the class spells and rank upgrades CoA handed out on level up are no longer granted
   automatically. A talent tree's free nodes (the specialization identity and its free first row) are
   still granted: the books never sell them, and without them the tree stays locked (#4436). It only ever subtracts - the reconcile pass, talent replacements,

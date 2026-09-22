@@ -57,13 +57,13 @@ namespace
 
     bool CharacterSelectionEnabled()
     {
-        return sConfigMgr->GetOption<bool>("AscensionCompat.CharacterSelectionEnable", true);
+        return sConfigMgr->GetOption<bool>("CoA.CharacterSelectionEnable", true);
     }
 
     uint32 CharacterSelectionMaxActive()
     {
         uint32 const maximum = sConfigMgr->GetOption<uint32>(
-            "AscensionCompat.CharacterSelectionMaxActive", 10);
+            "CoA.CharacterSelectionMaxActive", 10);
         return std::clamp(maximum, uint32(1), CHARACTER_LIST_MAXIMUM);
     }
 
@@ -185,7 +185,7 @@ namespace
 
                     sWorld->UpdateRealmCharCount(accountId);
 
-                    LOG_INFO("module.ascension_compat",
+                    LOG_INFO("coa",
                         "Activated character {} for account {} ({}/{} active characters)",
                         charGuid, accountId, activeCount + 1, CharacterSelectionMaxActive());
                 }));
@@ -240,7 +240,7 @@ namespace
 
                     sWorld->UpdateRealmCharCount(accountId);
 
-                    LOG_INFO("module.ascension_compat",
+                    LOG_INFO("coa",
                         "Deactivated character {} for account {}", charGuid, accountId);
                 }));
     }
@@ -253,7 +253,7 @@ namespace
 
         if (payload.empty())
         {
-            LOG_DEBUG("module.ascension_compat",
+            LOG_DEBUG("coa",
                 "Ignored empty character-selection sort order from account {}",
                 session->GetAccountId());
             return;
@@ -261,7 +261,7 @@ namespace
 
         if (payload.size() > SORT_ORDER_PAYLOAD_MAXIMUM)
         {
-            LOG_ERROR("module.ascension_compat",
+            LOG_ERROR("coa",
                 "Account {} sent an oversized character-selection sort order ({} bytes); ignored",
                 session->GetAccountId(), payload.size());
             return;
@@ -275,7 +275,7 @@ namespace
             "ON DUPLICATE KEY UPDATE `sort_order` = VALUES(`sort_order`)",
             session->GetAccountId(), escaped);
 
-        LOG_DEBUG("module.ascension_compat",
+        LOG_DEBUG("coa",
             "Stored character-selection sort order for account {} ({} bytes)",
             session->GetAccountId(), payload.size());
     }
@@ -361,7 +361,7 @@ namespace
 
         session->SendPacket(&info);
 
-        LOG_DEBUG("module.ascension_compat",
+        LOG_DEBUG("coa",
             "Sent Ascension character list for account {}: max={}, total={}, active={}, inactive={}, extras={}, sort order={} bytes",
             session->GetAccountId(), maxActive, total, activeCount, total - activeCount, extras.size(), sortOrder.size());
     }

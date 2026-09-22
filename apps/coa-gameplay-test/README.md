@@ -310,8 +310,8 @@ preserves Static and must leave the talent without a depletion bonus.
 
 The [damage-led scaling scenario](scenarios/level-scaling-damage-engagement.json) checks that an
 out-of-range attacker scales a fresh creature before a nonlethal or lethal opening hit, and that
-later damage leaves its combat level fixed. It requires `AscensionCompat.LevelScaling=1`,
-`AscensionCompat.LevelScalingMaxLift=5` and `MonsterSight=50`. The level-1 fixtures stand 80–85 yards
+later damage leaves its combat level fixed. It requires `CoA.LevelScaling=1`,
+`CoA.LevelScalingMaxLift=5` and `MonsterSight=50`. The level-1 fixtures stand 80–85 yards
 away and must scale to level 6, so both declare `level_scaling`. One fixture has only one maximum HP to
 expose damage-before-scaling.
 Spell 705798 is learned as a fixture: its one damage and zero initial threat exercise damage-led
@@ -569,14 +569,14 @@ check aura presence separately when zero is a valid effect amount. Permanent aur
 `scenarios/destiny-weaver-scaling.json` checks deferred scaling choices, armor debuffs, creature values
 updates after level changes, fractional damage accumulation, and ordinary damage with scaling off.
 It requires `DestinyWeaver.Enable=1`, `DestinyWeaver.LevelScaling=1`, `DestinyWeaver.Scaling.Offset=3`,
-and `AscensionCompat.QuestLevelScaling=1`. Spell 705798 supplies one base damage without critical hits;
+and `CoA.QuestLevelScaling=1`. Spell 705798 supplies one base damage without critical hits;
 Faerie Fire (770) supplies a 5% armor reduction. Spell 705798 uses melee hit resolution, so the fixture
 sets melee hit and expertise as well as spell hit. Template 1501 has HealthModifier 0.93: the level-1
 fixture's real pool remains 40 HP while its level-57 view has 2,590 HP. Ten one-damage hits cannot remove
 a whole real HP; 67 remove one.
 
 `scenarios/destiny-weaver-quest-fallback.json` requires a separate run with `DestinyWeaver.Enable=0`
-and `AscensionCompat.QuestLevelScaling=1`. Quest 7 must still scale to the player's level and award XP.
+and `CoA.QuestLevelScaling=1`. Quest 7 must still scale to the player's level and award XP.
 
 The `level_scaling_packet` action takes a player `actor` and `value` (0 or 1). It sends the existing
 four-byte request through the early packet hook on a worker, verifies that player state has not changed

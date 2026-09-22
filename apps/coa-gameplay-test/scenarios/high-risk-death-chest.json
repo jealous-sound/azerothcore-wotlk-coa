@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "High-Risk death creates a loss chest",
-  "contract": "A High-Risk level 60 character carrying gear, resources and gold loses items to a chest on death. Requires HighRisk.Losses = 1 and 100% loss chances in mod_ascension_compat.conf.",
+  "contract": "A High-Risk level 60 character carrying gear, resources and gold loses items to a chest on death. Requires HighRisk.Losses = 1 and 100% loss chances in coa.conf.",
   "players": [
     {
       "id": "v",

@@ -492,7 +492,7 @@ public:
                         auto instance = CharacterDatabase.Query(SelectItemInstance(chest.id, i[0].Get<uint8>()));
                         if (!instance)
                         {
-                            LOG_ERROR("module.highrisk", "Chest {} slot {}: escrow inconsistency; new losses disabled",
+                            LOG_ERROR("coa.highrisk", "Chest {} slot {}: escrow inconsistency; new losses disabled",
                                 chest.id, i[0].Get<uint8>());
                             enabled = false;
                             continue;
@@ -500,7 +500,7 @@ public:
                         Item item;
                         if (!item.LoadFromDB(i[1].Get<uint32>(), ObjectGuid::Empty, instance->Fetch(), i[2].Get<uint32>()))
                         {
-                            LOG_ERROR("module.highrisk", "Chest {}: item {} cannot load; new losses disabled",
+                            LOG_ERROR("coa.highrisk", "Chest {}: item {} cannot load; new losses disabled",
                                 chest.id, i[1].Get<uint32>());
                             enabled = false;
                             continue;

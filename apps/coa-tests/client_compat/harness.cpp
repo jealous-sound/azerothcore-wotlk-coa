@@ -148,11 +148,11 @@ struct Config
     bool Plaintext = true;
     template<class T> T GetOption(char const* name, T fallback, bool = true) const
     {
-        if (std::strcmp(name, "AscensionCompat.Enable") == 0)
+        if (std::strcmp(name, "CoA.Enable") == 0)
             return T(Enabled);
-        if (std::strcmp(name, "AscensionCompat.AllowRemoteClients") == 0)
+        if (std::strcmp(name, "CoA.AllowRemoteClients") == 0)
             return T(AllowRemote);
-        if (std::strcmp(name, "AscensionCompat.PlaintextWorldHeaders") == 0)
+        if (std::strcmp(name, "CoA.PlaintextWorldHeaders") == 0)
             return T(Plaintext);
         return fallback;
     }

@@ -50,9 +50,9 @@ per-character system adds, and of what a port has to carry.
 | `DestinyWeaver.Scaling.QuestXpKeepShare` | | 100 | experience kept there — 100 puts no discount on levelling |
 | `DestinyWeaver.ExperienceBonusControl` | | 1 | exposes the second Weaver option |
 | `DestinyWeaver.DisplayStream.Enable` | | 1 | streams the Weavers' display rows (Part 2) |
-| `AscensionCompat.LevelScaling` | `mod_ascension_compat.conf` | either | the realm-wide object lift; it stands aside by itself while the per-character module is on (see `CreatureScalingOwnedPerViewer`), so no configuration change is needed either way |
+| `CoA.LevelScaling` | `coa.conf` | either | the realm-wide object lift; it stands aside by itself while the per-character module is on (see `CreatureScalingOwnedPerViewer`), so no configuration change is needed either way |
 
-Each key lives in its component's `*.conf.dist` (`src/server/coa/conf/mod_ascension_compat.conf.dist` and
+Each key lives in its component's `*.conf.dist` (`src/server/coa/conf/coa.conf.dist` and
 `modules/mod-destiny-weaver/conf/destiny_weaver.conf.dist`).
 
 ### Client
@@ -166,7 +166,7 @@ has:
    installed, the core answers exactly as `main` does today).
 2. **`mod-destiny-weaver`** — scaling engine, the menu, the notifications, the display stream.
 3. **The SQL updates** — creatures, models, presets, spawns, gossip text.
-4. **Nothing about `AscensionCompat.LevelScaling`**: the realm-wide lift stands aside automatically
+4. **Nothing about `CoA.LevelScaling`**: the realm-wide lift stands aside automatically
    while the per-character module is enabled, and returns when it is not.
 5. **Nothing client-side**, which is the point of streaming the displays and of keeping the
    per-recipient patch: the same build works on a stock CoA client.

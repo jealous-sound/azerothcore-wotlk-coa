@@ -280,9 +280,9 @@ void WorldSession::HandleCharCreateOpcode(WorldPacket& recvData)
              >> createInfo->OutfitId;
 
     if (createInfo->Class == 10 && IsAscensionCompatEnabled() &&
-        sConfigMgr->GetOption<bool>("AscensionCompat.MapClass10ToWarrior", false))
+        sConfigMgr->GetOption<bool>("CoA.MapClass10ToWarrior", false))
     {
-        LOG_INFO("module.ascension_compat",
+        LOG_INFO("coa",
             "Mapping Ascension class 10 to warrior for local character creation (account ID: {})",
             GetAccountId());
         createInfo->Class = CLASS_WARRIOR;

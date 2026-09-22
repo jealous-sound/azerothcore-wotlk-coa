@@ -477,7 +477,7 @@ public:
             ready.put("status", "ready");
             ready.put("waiting_for_start", !_startFile.empty());
             WriteResult(sConfigMgr->GetOption<std::string>("CoAGameplayTest.ReadyFile", ""), ready);
-            LOG_INFO("module.gameplay_test", "Gameplay harness ready: {}", _runId);
+            LOG_INFO("coa.gameplay_test", "Gameplay harness ready: {}", _runId);
         }
         catch (std::exception const& error)
         {
@@ -2617,7 +2617,7 @@ private:
             }
             Require(player->GetFreeInventorySpace() <= target,
                 "The bags could not be filled for the full inventory fixture");
-            LOG_DEBUG("module.ascension_compat", "gameplay test filled {} bag slots for {}",
+            LOG_DEBUG("coa", "gameplay test filled {} bag slots for {}",
                 filled, player->GetGUID().ToString());
         }
         else if (action == "equip")
@@ -2829,7 +2829,7 @@ private:
             return;
         _finished = true;
         if (!passed)
-            LOG_ERROR("module.gameplay_test", "Scenario failed at step {}: {}", _completed, message);
+            LOG_ERROR("coa.gameplay_test", "Scenario failed at step {}: {}", _completed, message);
         Tree failures;
         for (auto const& [id, actor] : _actors)
             for (auto const& entry : actor.castFailures)
@@ -2862,9 +2862,9 @@ private:
         catch (std::exception const& error)
         {
             passed = false;
-            LOG_ERROR("module.gameplay_test", "Could not write gameplay result: {}", error.what());
+            LOG_ERROR("coa.gameplay_test", "Could not write gameplay result: {}", error.what());
         }
-        LOG_INFO("module.gameplay_test", "Gameplay test {}: {}", passed ? "passed" : "failed", message);
+        LOG_INFO("coa.gameplay_test", "Gameplay test {}: {}", passed ? "passed" : "failed", message);
         World::StopNow(passed ? SHUTDOWN_EXIT_CODE : ERROR_EXIT_CODE);
     }
 

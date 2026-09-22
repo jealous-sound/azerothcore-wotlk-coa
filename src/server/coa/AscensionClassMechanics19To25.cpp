@@ -63,7 +63,7 @@ void ApplyAscensionClassMechanics19To25(SpellInfo* spellInfo)
         }
         else
         {
-            LOG_ERROR("module.ascension_compat",
+            LOG_ERROR("coa",
                 "Skipped unexpected Infinite Shield record {}",
                 spellInfo->Id);
         }
@@ -84,7 +84,7 @@ void ApplyAscensionClassMechanics19To25(SpellInfo* spellInfo)
         }
         else
         {
-            LOG_ERROR("module.ascension_compat",
+            LOG_ERROR("coa",
                 "Skipped unexpected Paradox Cannon record {}",
                 spellInfo->Id);
         }

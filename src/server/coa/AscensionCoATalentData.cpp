@@ -207,7 +207,7 @@ bool LoadCoATalentData()
 
         if (tooManyRanks)
         {
-            LOG_ERROR("module.ascension_compat", "Skipped CoA talent entry {} with more than 3 ranks", entryId);
+            LOG_ERROR("coa", "Skipped CoA talent entry {} with more than 3 ranks", entryId);
             continue;
         }
 
@@ -259,7 +259,7 @@ bool LoadCoATalentData()
 
         if (required.size() > 2)
         {
-            LOG_ERROR("module.ascension_compat", "Skipped CoA talent entry {} dependencies: {} required entries",
+            LOG_ERROR("coa", "Skipped CoA talent entry {} dependencies: {} required entries",
                 node.Entry.EntryId, required.size());
             continue;
         }
@@ -269,7 +269,7 @@ bool LoadCoATalentData()
         CoAAutomaticDependencies.push_back(dependency);
     }
 
-    LOG_INFO("module.ascension_compat",
+    LOG_INFO("coa",
         "Loaded {} CoA talent entries ({} selectable free, {} automatic dependencies, {} budget rows)",
         CoATalentEntries.size(), CoASelectableFreeEntries.size(), CoAAutomaticDependencies.size(),
         CoATalentBudgets.size());

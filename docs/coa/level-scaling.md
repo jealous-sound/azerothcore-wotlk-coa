@@ -3,11 +3,11 @@
 Open-world scaling, as it is implemented here. Two formulas decide everything, and two switches
 pick between them:
 
-* **creatures** scale **realm-wide, for every character** (`AscensionCompat.LevelScaling`), because a
+* **creatures** scale **realm-wide, for every character** (`CoA.LevelScaling`), because a
   creature carries a single level that the server broadcasts to every client — it cannot be level 27
   for one character and level 2 for the one standing next to them. The nearest character decides,
-  bounded by `AscensionCompat.LevelScalingMaxLift`.
-* **quests** are per character (`AscensionCompat.QuestLevelScaling` is the realm default; the
+  bounded by `CoA.LevelScalingMaxLift`.
+* **quests** are per character (`CoA.QuestLevelScaling` is the realm default; the
   character's own choice at the Destiny Weaver, offered at creation as well, decides). The quest
   level is sent to that one client, so it can genuinely differ per character.
 
@@ -30,7 +30,7 @@ ScaleQuestLevel(original, playerLevel):
 ```
 
 `CreatureOffset` comes from `DestinyWeaver.Scaling.Offset` (default 3). `CreatureMaxLift` comes from
-`AscensionCompat.LevelScalingMaxLift` and is the ceiling on how far a creature may be lifted; it is
+`CoA.LevelScalingMaxLift` and is the ceiling on how far a creature may be lifted; it is
 **0 (no ceiling) by default here**, so a creature comes all the way up to *the nearest character's
 level minus the offset*. That is the whole point of the feature: content in front of a character is
 relevant to that character. A ceiling is for a realm with a mixed population — it keeps a
@@ -58,7 +58,7 @@ corridor walk in/out of range — nothing else. (`Creature::SelectLevel()` itsel
 `OnBeforeCreatureSelectLevel`, which is how the engage path re-reads its stashed engager.)
 
 `QuestScalingEnabled(player)` is the per-character gate for **quests only**. The realm switch
-`AscensionCompat.QuestLevelScaling` must be on for it to be consulted at all; the resolver then
+`CoA.QuestLevelScaling` must be on for it to be consulted at all; the resolver then
 answers for one character. No resolver, or no opinion, means "take the realm default".
 `mod-destiny-weaver` installs the resolver and stores the choice in `character_settings` under
 `core.destiny_weaver` (index 0 = the choice, 2 = off).

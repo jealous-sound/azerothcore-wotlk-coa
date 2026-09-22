@@ -9,7 +9,7 @@
 #  characters can fight the same one at two different levels while everybody else sees it authored.
 #  Quest levels and the tuning of what a scaled quest pays are per character as well.
 #
-#  The realm-wide lift in CoA (AscensionCompat.LevelScaling) is a different model - it
+#  The realm-wide lift in CoA (CoA.LevelScaling) is a different model - it
 #  raises the creature object itself, which every client is told about - so it stands aside while this
 #  module owns the answer (see CreatureScalingOwnedPerViewer in LocalLevelScaling.h). Its configuration
 #  is left as it is, and it takes over again when DestinyWeaver.LevelScaling is set to 0.
@@ -51,7 +51,7 @@ DestinyWeaver.LevelScaling.Default = 1
 #        Reloadable:  yes (.reload config)
 #
 #        The ceiling on how far a creature may be lifted belongs to the realm-wide path
-#        (AscensionCompat.LevelScalingMaxLift in mod_ascension_compat.conf) and is not applied here: a
+#        (CoA.LevelScalingMaxLift in coa.conf) and is not applied here: a
 #        view is delivered to one client, so there is nobody else for a high view to be wrong for.
 
 DestinyWeaver.Scaling.Offset = 3

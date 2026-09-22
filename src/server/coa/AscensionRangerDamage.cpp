@@ -169,7 +169,7 @@ void ApplyWildStrikeOffHandContract(SpellInfo* spellInfo)
         offHand.DieSides = 0;
     }
     else
-        LOG_ERROR("module.ascension_compat", "Skipped unexpected Wild Strike off-hand record {}", spellInfo->Id);
+        LOG_ERROR("coa", "Skipped unexpected Wild Strike off-hand record {}", spellInfo->Id);
 }
 }
 

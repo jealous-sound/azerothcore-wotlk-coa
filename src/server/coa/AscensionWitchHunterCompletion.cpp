@@ -84,7 +84,7 @@ void ConvertCreatureTypeDamage(SpellInfo* info, uint8 index)
     if (effect.Effect != SPELL_EFFECT_APPLY_AURA || effect.ApplyAuraName != SPELL_AURA_OVERRIDE_CLASS_SCRIPTS ||
         effect.MiscValue != ASCENSION_CLASSMASK_CREATURE_DAMAGE || effect.MiscValueB <= 0 || !effect.SpellClassMask)
     {
-        LOG_ERROR("module.ascension_compat", "Skipped unexpected Witch Hunter creature damage record {}", info->Id);
+        LOG_ERROR("coa", "Skipped unexpected Witch Hunter creature damage record {}", info->Id);
         return;
     }
     effect.ApplyAuraName = SPELL_AURA_MOD_DAMAGE_DONE_VERSUS;

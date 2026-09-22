@@ -92,6 +92,7 @@
 #include <algorithm>
 #include <array>
 #include <cstring>
+#include <filesystem>
 #include <type_traits>
 #include <deque>
 #include <limits>
@@ -101,6 +102,7 @@
 #include <mutex>
 #include <optional>
 #include <set>
+#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -306,37 +308,37 @@ public:
 
   void BuildConfigCache() override {
     SetConfigValue<bool>(AscensionCompatConfig::ENABLED,
-                         "AscensionCompat.Enable", true);
+                         "CoA.Enable", true);
     SetConfigValue<bool>(AscensionCompatConfig::LOG_CONSUMED_PACKETS,
-                         "AscensionCompat.LogConsumedPackets", true);
+                         "CoA.LogConsumedPackets", true);
     SetConfigValue<uint32>(AscensionCompatConfig::FIRST_EXTENSION_OPCODE,
-                           "AscensionCompat.FirstExtensionOpcode", 0x051F);
+                           "CoA.FirstExtensionOpcode", 0x051F);
     SetConfigValue<uint32>(AscensionCompatConfig::LAST_EXTENSION_OPCODE,
-                           "AscensionCompat.LastExtensionOpcode", 0x09D3);
+                           "CoA.LastExtensionOpcode", 0x09D3);
     SetConfigValue<bool>(AscensionCompatConfig::AUTO_COLLECT_APPEARANCES,
-                         "AscensionCompat.AutoCollectAppearances", true);
+                         "CoA.AutoCollectAppearances", true);
     SetConfigValue<bool>(
         AscensionCompatConfig::UNLOCK_LOCAL_APPEARANCE_CATALOG,
-        "AscensionCompat.UnlockLocalAppearanceCatalog", true);
+        "CoA.UnlockLocalAppearanceCatalog", true);
     SetConfigValue<uint32>(
         AscensionCompatConfig::APPEARANCE_CATALOG_PER_CATEGORY,
-        "AscensionCompat.AppearanceCatalogPerCategory", 500);
+        "CoA.AppearanceCatalogPerCategory", 500);
     SetConfigValue<bool>(AscensionCompatConfig::UNLOCK_ALL_VANITY,
-                         "AscensionCompat.UnlockAllVanity", true);
+                         "CoA.UnlockAllVanity", true);
     SetConfigValue<std::string>(AscensionCompatConfig::REALM_TYPE,
-                                "AscensionCompat.RealmType", "live");
+                                "CoA.RealmType", "live");
     SetConfigValue<bool>(AscensionCompatConfig::ALLOW_LEARNED_SPELL_DELIVERY,
-                         "AscensionCompat.AllowLearnedSpellDelivery", true);
+                         "CoA.AllowLearnedSpellDelivery", true);
     SetConfigValue<bool>(AscensionCompatConfig::LEARN_OWNED_COMPANIONS,
-                         "AscensionCompat.LearnOwnedCompanions", true);
+                         "CoA.LearnOwnedCompanions", true);
     SetConfigValue<bool>(AscensionCompatConfig::MAX_RIDING_FROM_START,
-                         "AscensionCompat.MaxRidingFromStart", true);
+                         "CoA.MaxRidingFromStart", true);
     SetConfigValue<bool>(AscensionCompatConfig::LEVEL_SCALING,
-                         "AscensionCompat.LevelScaling", true);
+                         "CoA.LevelScaling", true);
     SetConfigValue<bool>(AscensionCompatConfig::QUEST_LEVEL_SCALING,
-                         "AscensionCompat.QuestLevelScaling", true);
+                         "CoA.QuestLevelScaling", true);
     SetConfigValue<bool>(AscensionCompatConfig::AUTO_PROGRESSION,
-                         "AscensionCompat.AutoProgression", false);
+                         "CoA.AutoProgression", false);
   }
 };
 
@@ -595,7 +597,7 @@ public:
     reconcile(AscensionCompatData::LegacyGeneratedClassSpells);
     reconcile(AscensionCompatData::ClassSpells);
     if (removed)
-      LOG_INFO("module.ascension_compat", "Reconciled {} proven class grants for {} against live level {}",
+      LOG_INFO("coa", "Reconciled {} proven class grants for {} against live level {}",
           removed, player->GetName(), uint32(player->GetLevel()));
     uint32 learned = 0;
     bool const automaticProgression =
@@ -627,7 +629,7 @@ public:
 
       if (!sSpellMgr->GetSpellInfo(progressionSpell.SpellId))
       {
-        LOG_ERROR("module.ascension_compat",
+        LOG_ERROR("coa",
                   "Cannot teach missing Ascension class spell {} to {}",
                   progressionSpell.SpellId, player->GetName());
         continue;
@@ -671,7 +673,7 @@ public:
     {
       ChatHandler(player->GetSession())
           .PSendSysMessage("Restored {} Ascension class abilities.", learned);
-      LOG_INFO("module.ascension_compat",
+      LOG_INFO("coa",
                "Restored {} progression spells for {} (class {}, level {})",
                learned, player->GetName(), uint32(player->getClass()),
                uint32(player->GetLevel()));
@@ -875,7 +877,7 @@ public:
           }
           else
           {
-            LOG_ERROR("module.ascension_compat",
+            LOG_ERROR("coa",
                       "Cannot teach missing proficiency spell {} to {}",
                       definition.SpellId, player->GetName());
           }
@@ -915,7 +917,7 @@ public:
     }
     if (learned || removed)
     {
-      LOG_INFO("module.ascension_compat",
+      LOG_INFO("coa",
                "Synchronized proficiencies for {} (class {}, level {}): "
                "learned {}, removed {}",
                player->GetName(), uint32(player->getClass()),
@@ -988,7 +990,7 @@ public:
     for (uint8 slot = EQUIPMENT_SLOT_START; slot < INVENTORY_SLOT_ITEM_END; ++slot)
       if (player->GetItemByPos(INVENTORY_SLOT_BAG_0, slot))
       {
-        LOG_ERROR("module.ascension_compat", "Refused non-empty live starter initialization for class {}", uint32(player->getClass()));
+        LOG_ERROR("coa", "Refused non-empty live starter initialization for class {}", uint32(player->getClass()));
         return false;
       }
 
@@ -1007,7 +1009,7 @@ public:
           !entry.Count || !item || entry.Count > item->GetMaxStackSize() ||
           (equipped && entry.Count != 1) || !positions.insert(position).second)
       {
-        LOG_ERROR("module.ascension_compat", "Invalid live starter class {} item {} slot {} count {}", uint32(entry.ClassId), entry.ItemId, uint32(entry.Slot), entry.Count);
+        LOG_ERROR("coa", "Invalid live starter class {} item {} slot {} count {}", uint32(entry.ClassId), entry.ItemId, uint32(entry.Slot), entry.Count);
         return false;
       }
 
@@ -1017,7 +1019,7 @@ public:
         InventoryResult const result = player->CanEquipNewItem(entry.Slot, destination, entry.ItemId, false);
         if (result != EQUIP_ERR_OK || destination != position)
         {
-          LOG_ERROR("module.ascension_compat", "Cannot equip live starter class {} item {} in slot {}: {}", uint32(entry.ClassId), entry.ItemId, uint32(entry.Slot), uint32(result));
+          LOG_ERROR("coa", "Cannot equip live starter class {} item {} in slot {}: {}", uint32(entry.ClassId), entry.ItemId, uint32(entry.Slot), uint32(result));
           return false;
         }
       }
@@ -1028,7 +1030,7 @@ public:
         if (result != EQUIP_ERR_OK || destinations.size() != 1 ||
             destinations.front().pos != position || destinations.front().count != entry.Count)
         {
-          LOG_ERROR("module.ascension_compat", "Cannot store live starter class {} item {} in slot {}: {}", uint32(entry.ClassId), entry.ItemId, uint32(entry.Slot), uint32(result));
+          LOG_ERROR("coa", "Cannot store live starter class {} item {} in slot {}: {}", uint32(entry.ClassId), entry.ItemId, uint32(entry.Slot), uint32(result));
           return false;
         }
       }
@@ -1060,7 +1062,7 @@ public:
       if (!created || created->GetEntry() != entry.ItemId || created->GetCount() != entry.Count ||
           player->GetItemByPos(entry.Bag, entry.Slot) != created)
       {
-        LOG_ERROR("module.ascension_compat", "Failed exact live starter placement for class {} item {} slot {}", uint32(entry.ClassId), entry.ItemId, uint32(entry.Slot));
+        LOG_ERROR("coa", "Failed exact live starter placement for class {} item {} slot {}", uint32(entry.ClassId), entry.ItemId, uint32(entry.Slot));
         return false;
       }
     }
@@ -1095,7 +1097,7 @@ public:
       if (!item)
       {
         complete = false;
-        LOG_ERROR("module.ascension_compat", "Missing starter item template {}", itemId);
+        LOG_ERROR("coa", "Missing starter item template {}", itemId);
         continue;
       }
 
@@ -1128,7 +1130,7 @@ public:
       if (slot == EQUIPMENT_SLOT_END)
       {
         complete = false;
-        LOG_ERROR("module.ascension_compat", "Unsupported starter item inventory type for {}", itemId);
+        LOG_ERROR("coa", "Unsupported starter item inventory type for {}", itemId);
         continue;
       }
       if (player->GetItemByPos(INVENTORY_SLOT_BAG_0, slot) ||
@@ -1158,7 +1160,7 @@ public:
       ChatHandler(player->GetSession())
           .PSendSysMessage("Restored {} custom-class starter items.",
                            restored);
-      LOG_INFO("module.ascension_compat",
+      LOG_INFO("coa",
                "Restored {} starter items for {} (class {})", restored,
                player->GetName(), uint32(player->getClass()));
     }
@@ -1214,7 +1216,7 @@ public:
     if (uint32 const learned = SynchronizeTaughtAbilities(player, true))
     {
         player->SendInitialSpells();
-        LOG_INFO("module.ascension_compat",
+        LOG_INFO("coa",
                  "Prepared {} taught abilities for {} before entering the world",
                  learned, player->GetName());
     }
@@ -1263,7 +1265,7 @@ public:
     player->GetSession()->SendPacket(&packet);
 
     uint32 const sent = SendKnownTalentEntries(player);
-    LOG_INFO("module.ascension_compat",
+    LOG_INFO("coa",
              "Initialized Character Advancement for {} (class {}, level {}) with {} known entries",
              player->GetName(), uint32(player->getClass()), uint32(player->GetLevel()), sent);
   }
@@ -1317,7 +1319,7 @@ public:
       player->GetSession()->SendPacket(&packet);
     }
 
-    LOG_DEBUG("module.ascension_compat",
+    LOG_DEBUG("coa",
               "Sent Character Advancement bridge to {}: specialization {}, {} entries in {} message(s)",
               player->GetName(), specializationId, uint32(ranks.size()), uint32(chunks.size()));
   }
@@ -1471,7 +1473,7 @@ public:
 
     SynchronizeProgression(player);
 
-    LOG_INFO("module.ascension_compat", "Set local CoA talent entry {} to rank {} for {} (class {})", entryId, rank,
+    LOG_INFO("coa", "Set local CoA talent entry {} to rank {} for {} (class {})", entryId, rank,
              player->GetName(), uint32(player->getClass()));
     return true;
   }
@@ -1492,7 +1494,7 @@ public:
     }
 
     SynchronizeProgression(player);
-    LOG_INFO("module.ascension_compat", "Reset {} paid CoA talent rank(s) for {} (class {})", removed,
+    LOG_INFO("coa", "Reset {} paid CoA talent rank(s) for {} (class {})", removed,
              player->GetName(), uint32(player->getClass()));
     return removed;
   }
@@ -1503,7 +1505,7 @@ public:
                                                 specializationBudget))
       return true;
 
-    LOG_ERROR("module.ascension_compat", "No CoA talent budget row for class {} at level {} ({})",
+    LOG_ERROR("coa", "No CoA talent budget row for class {} at level {} ({})",
               uint32(player->getClass()), uint32(player->GetLevel()), player->GetName());
     error = Acore::StringFormat("No talent budget is known for class {} at level {}; no rank can be raised.",
                                 uint32(player->getClass()), uint32(player->GetLevel()));
@@ -1632,7 +1634,7 @@ public:
     for (auto const& [entry, rank] : changes)
       if (!SetTalentRank(player, *entry, rank, error, false))
       {
-        LOG_ERROR("module.ascension_compat",
+        LOG_ERROR("coa",
                   "Known-entries upload for {} failed after validation at entry {} rank {}: {}", player->GetName(),
                   entry->EntryId, rank, error);
         return false;
@@ -1646,7 +1648,7 @@ public:
     std::deque<std::vector<uint8>>& queue = _pendingUploads[accountId];
     if (queue.size() >= MAX_QUEUED_KNOWN_ENTRIES_UPLOADS)
     {
-      LOG_WARN("module.ascension_compat", "Dropping known-entries upload for account {}: its queue is full",
+      LOG_WARN("coa", "Dropping known-entries upload for account {}: its queue is full",
                accountId);
       return;
     }
@@ -1680,7 +1682,7 @@ public:
     std::vector<AscensionCoATalentState::KnownEntry> upload;
     if (!AscensionCoATalentState::ParseKnownEntriesUpload(body.data(), body.size(), upload))
     {
-      LOG_WARN("module.ascension_compat", "Malformed Ascension known-entries upload from {} payload={} bytes",
+      LOG_WARN("coa", "Malformed Ascension known-entries upload from {} payload={} bytes",
                player->GetName(), body.size());
     }
     else
@@ -1689,7 +1691,7 @@ public:
       if (!ApplyKnownEntriesUpload(player, upload, error))
       {
         ChatHandler(player->GetSession()).SendSysMessage(error);
-        LOG_INFO("module.ascension_compat", "Refused known-entries upload of {} record(s) from {}: {}",
+        LOG_INFO("coa", "Refused known-entries upload of {} record(s) from {}: {}",
                  upload.size(), player->GetName(), error);
       }
     }
@@ -1838,7 +1840,7 @@ public:
         if (SetTalentRank(player, *entry, rank, error))
           ++restored;
         else
-          LOG_INFO("module.ascension_compat", "Stored talent entry {} rank {} not restored for {}: {}",
+          LOG_INFO("coa", "Stored talent entry {} rank {} not restored for {}: {}",
                    entry->EntryId, rank, player->GetName(), error);
       }
     return restored;
@@ -1870,7 +1872,7 @@ public:
 
       uint32 const restored = previousSpecialization ? 0 : RestoreBuilds(player, specializationId);
       uint32 granted = SynchronizeProgression(player);
-      LOG_INFO("module.ascension_compat",
+      LOG_INFO("coa",
                "Synchronized {} (class {}) with local specialization {}, restored {} stored rank(s) and "
                "granted {} missing automatic spells",
                player->GetName(), uint32(player->getClass()), specializationId, restored, granted);
@@ -1923,7 +1925,7 @@ public:
             "Activated specialization {}. Stored the build of specialization {}, removed {} old talent "
             "spell(s), restored {} stored rank(s) and granted {} automatic ability/passive spell(s).",
             specializationId, previousSpecialization, removed, restored, granted);
-    LOG_INFO("module.ascension_compat",
+    LOG_INFO("coa",
              "Switched {} (class {}) to local specialization {}: removed {} CoA spells, restored {} "
              "stored ranks and granted {} automatic spells",
              player->GetName(), uint32(player->getClass()), specializationId, removed, restored, granted);
@@ -2105,7 +2107,7 @@ public:
 
                 if (!sSpellMgr->GetSpellInfo(spellId))
                 {
-                    LOG_ERROR("module.ascension_compat",
+                    LOG_ERROR("coa",
                         "Ascension resource spell {} is missing from the server DBC",
                         spellId);
                     ++missingResourceSpells;
@@ -2134,7 +2136,7 @@ public:
             validateResourceSpell(rule.ForbiddenAuraSpellId);
             if (rule.ChancePercent > 100)
             {
-                LOG_ERROR("module.ascension_compat",
+                LOG_ERROR("coa",
                     "Ascension resource generator {}-{} has invalid chance {}",
                     rule.FirstSpellId, rule.LastSpellId,
                     uint32(rule.ChancePercent));
@@ -2149,7 +2151,7 @@ public:
             {
                 if (!sSpellMgr->GetSpellInfo(spellId))
                 {
-                    LOG_ERROR("module.ascension_compat",
+                    LOG_ERROR("coa",
                         "Ascension resource generator spell {} is missing from the server DBC",
                         spellId);
                     ++missingAbilitySpells;
@@ -2164,7 +2166,7 @@ public:
             validateResourceSpell(rule.ForbiddenAuraSpellId);
             if (rule.PowerType >= MAX_POWERS)
             {
-                LOG_ERROR("module.ascension_compat",
+                LOG_ERROR("coa",
                     "Ascension native resource generator has invalid power type {}",
                     uint32(rule.PowerType));
                 ++missingResourceSpells;
@@ -2178,7 +2180,7 @@ public:
             {
                 if (!sSpellMgr->GetSpellInfo(spellId))
                 {
-                    LOG_ERROR("module.ascension_compat",
+                    LOG_ERROR("coa",
                         "Ascension native resource generator spell {} is missing from the server DBC",
                         spellId);
                     ++missingAbilitySpells;
@@ -2193,7 +2195,7 @@ public:
             validateResourceSpell(rule.PreserveCostAuraSpellId);
             if (rule.PreserveCostChancePercent > 100)
             {
-                LOG_ERROR("module.ascension_compat",
+                LOG_ERROR("coa",
                     "Ascension resource spender {}-{} has invalid preserve-cost chance {}",
                     rule.FirstSpellId, rule.LastSpellId,
                     uint32(rule.PreserveCostChancePercent));
@@ -2204,7 +2206,7 @@ public:
             {
                 if (!sSpellMgr->GetSpellInfo(spellId))
                 {
-                    LOG_ERROR("module.ascension_compat",
+                    LOG_ERROR("coa",
                         "Ascension resource spender spell {} is missing from the server DBC",
                         spellId);
                     ++missingAbilitySpells;
@@ -2216,7 +2218,7 @@ public:
         {
             if (!sSpellMgr->GetSpellInfo(spellId))
             {
-                LOG_ERROR("module.ascension_compat",
+                LOG_ERROR("coa",
                     "Ascension Reaper all-soul consumer spell {} is missing from the server DBC",
                     spellId);
                 ++missingAbilitySpells;
@@ -2231,7 +2233,7 @@ public:
             {
                 if (!sSpellMgr->GetSpellInfo(spellId))
                 {
-                    LOG_ERROR("module.ascension_compat",
+                    LOG_ERROR("coa",
                         "Ascension Reaper one-soul consumer spell {} is missing from the server DBC",
                         spellId);
                     ++missingAbilitySpells;
@@ -2239,7 +2241,7 @@ public:
             }
         }
 
-        LOG_INFO("module.ascension_compat",
+        LOG_INFO("coa",
             "Validated {} custom resource auras and spell helpers; {} resource spells and {} mapped abilities are missing",
             checkedResourceSpells.size(), missingResourceSpells,
             missingAbilitySpells);
@@ -2768,7 +2770,7 @@ private:
             player->GetName(), player->GetName(), 0, false);
         player->GetSession()->SendPacket(&packet);
 
-        LOG_INFO("module.ascension_compat",
+        LOG_INFO("coa",
             "Sent Reaper resource state to {}: souls={}, fragments={}, infused={}, runic={}/{}",
             player->GetName(), uint32(souls), uint32(fragments), infused,
             runicPower, maximumRunicPower);
@@ -3126,14 +3128,14 @@ public:
         std::unique(_allAppearanceIds.begin(), _allAppearanceIds.end()),
         _allAppearanceIds.end());
 
-    LOG_INFO("module.ascension_compat",
+    LOG_INFO("coa",
              "Loaded Ascension collection data: {} appearances, {} item "
              "mappings, {} item sets, {} vanity entries",
              _appearances.size(), _itemAppearances.size(),
              _itemSetItems.size(), _vanityItems.size());
 
     if (!itemSetsLoaded)
-      LOG_WARN("module.ascension_compat",
+      LOG_WARN("coa",
                "Ascension item-set expansion is unavailable; individual "
                "appearance categories remain usable");
 
@@ -3147,7 +3149,7 @@ public:
     std::deque<WorldPacket> &queue = _pendingPackets[accountId];
     if (queue.size() >= MAX_QUEUED_EXTENSION_PACKETS)
     {
-      LOG_WARN("module.ascension_compat",
+      LOG_WARN("coa",
                "Dropping Ascension extension packet 0x{:04X} for account {} "
                "because its queue is full",
                packet.GetOpcode(), accountId);
@@ -3198,7 +3200,7 @@ public:
     InitializeRiding(player);
     QueueOwnedCompanionSpells(player, *state);
 
-    LOG_INFO("module.ascension_compat",
+    LOG_INFO("coa",
              "Synchronized Ascension collections for {}: {} appearances, {} "
              "saved vanity items",
              player->GetName(), state->CollectedAppearances.size(),
@@ -3329,7 +3331,7 @@ public:
         if (learned)
         {
             player->SendInitialSpells();
-            LOG_INFO("module.ascension_compat", "Prepared {} account mount/companion spells for {} before entering the world",
+            LOG_INFO("coa", "Prepared {} account mount/companion spells for {} before entering the world",
                 learned, player->GetName());
         }
     }
@@ -3404,7 +3406,7 @@ public:
         if (beforeMap)
             player->SendInitialSpells();
 
-        LOG_INFO("module.ascension_compat", "Learned {} owned bank spell(s) for {}",
+        LOG_INFO("coa", "Learned {} owned bank spell(s) for {}",
                  learned, player->GetName());
     }
 
@@ -3452,7 +3454,7 @@ public:
         state.PendingCompanionSpells = GetMissingOwnedCompanionSpells(player, state);
         state.CompanionSpellTimer = 5000;
         if (!state.PendingCompanionSpells.empty())
-            LOG_INFO("module.ascension_compat", "Queued {} owned mount/companion spells for {} (4 per 200 ms)",
+            LOG_INFO("coa", "Queued {} owned mount/companion spells for {} (4 per 200 ms)",
                 state.PendingCompanionSpells.size(), player->GetName());
     }
 
@@ -3480,7 +3482,7 @@ public:
 
         if (state->NextCompanionSpell == state->PendingCompanionSpells.size())
         {
-            LOG_INFO("module.ascension_compat", "Completed owned mount/companion spell synchronization for {}", player->GetName());
+            LOG_INFO("coa", "Completed owned mount/companion spell synchronization for {}", player->GetName());
             state->PendingCompanionSpells.clear();
             state->NextCompanionSpell = 0;
         }
@@ -3604,7 +3606,7 @@ public:
     SendActiveAppearances(player, *state);
     SendApplyResult(player, "APPLY_APPEARANCES_OK");
 
-    LOG_INFO("module.ascension_compat",
+    LOG_INFO("coa",
              "Applied local appearance {} to category {} for {}",
              appearanceId, categoryId, player->GetName());
   }
@@ -3696,7 +3698,7 @@ private:
     for (uint32 appearanceId : _allAppearanceIds)
       state.CollectedAppearances.insert(appearanceId);
 
-    LOG_INFO("module.ascension_compat",
+    LOG_INFO("coa",
              "Unlocked {} local wardrobe appearances for {} ({} total)",
              state.CollectedAppearances.size() - before, player->GetName(),
              state.CollectedAppearances.size());
@@ -3711,7 +3713,7 @@ private:
     if (appearances.size() <= MAX_APPEARANCE_SNAPSHOT_ENTRIES)
     {
       SendAppearanceCollection(player, appearances);
-      LOG_INFO("module.ascension_compat", "Sent complete wardrobe snapshot for {}: {} appearances, no per-item login notifications",
+      LOG_INFO("coa", "Sent complete wardrobe snapshot for {}: {} appearances, no per-item login notifications",
           player->GetName(), appearances.size());
       return;
     }
@@ -3767,7 +3769,7 @@ private:
     state.AppearanceAddTimer = APPEARANCE_ADD_INITIAL_DELAY_MS;
     SendAppearanceCollection(player, snapshot);
 
-    LOG_INFO("module.ascension_compat",
+    LOG_INFO("coa",
              "Started full wardrobe sync for {}: {} snapshot entries and {} "
              "streamed entries",
              player->GetName(), snapshot.size(),
@@ -3828,7 +3830,7 @@ private:
     ChatHandler(player->GetSession())
         .PSendSysMessage("Unlocked all {} local wardrobe appearances.", total);
 
-    LOG_INFO("module.ascension_compat",
+    LOG_INFO("coa",
              "Completed full wardrobe sync for {}: {} appearances",
              player->GetName(), total);
   }
@@ -3955,7 +3957,7 @@ private:
 
       LearnOwnedBankSpells(player, state, !player->IsInWorld());
       SendOwnedVanityStoreRecords(player, state);
-      LOG_INFO("module.ascension_compat", "Account {} acquired the bank item {} through {}",
+      LOG_INFO("coa", "Account {} acquired the bank item {} through {}",
                state.AccountId, itemId, player->GetName());
     }
   }
@@ -3974,7 +3976,7 @@ private:
         break;
       }
     } catch (ByteBufferException const &) {
-      LOG_WARN("module.ascension_compat",
+      LOG_WARN("coa",
                "Malformed Ascension extension packet opcode=0x{:04X} from {}",
                packet.GetOpcode(), player->GetName());
     }
@@ -4152,7 +4154,7 @@ public:
 
     player->GetSession()->SendPacket(&p);
 
-    LOG_INFO("module.ascension_compat",
+    LOG_INFO("coa",
              "Realm info sent to {}: type {}, realm {}.", player->GetName(), art, realm.Id.Realm);
   }
 
@@ -4240,7 +4242,7 @@ private:
         owned += std::to_string(itemId);
       }
 
-      LOG_INFO("module.ascension_compat",
+      LOG_INFO("coa",
                "Sent {} vanity store record(s) to {} for owned item(s): {}",
                itemIds.size(), player->GetName(), owned);
     }
@@ -4467,7 +4469,7 @@ bool HandlePersonalBankActivate(Player* player, WorldPacket const& packet)
         ChatHandler(player->GetSession())
             .PSendSysMessage("You do not own a {} bank.",
                              itr->second.Kind == PERSONAL_BANK_REALM ? "Realm" : "Personal");
-        LOG_INFO("module.ascension_compat",
+        LOG_INFO("coa",
                  "{} touched a {} bank placed by {} (vault {}) without owning one",
                  player->GetName(),
                  itr->second.Kind == PERSONAL_BANK_REALM ? "realm" : "personal",
@@ -4478,7 +4480,7 @@ bool HandlePersonalBankActivate(Player* player, WorldPacket const& packet)
     SendBankPermissions(player, itr->second.Kind);
     AscensionPersonalBank::Opened(player, itr->second.Kind, banker);
 
-    LOG_INFO("module.ascension_compat",
+    LOG_INFO("coa",
              "Personal bank opened for {} (kind {}, vault {}, full update {})",
              player->GetName(), uint32(itr->second.Kind), banker.ToString(),
              fullUpdate);
@@ -4526,7 +4528,7 @@ class spell_ascension_personal_bank : public SpellScript
 
         if (!vault)
         {
-            LOG_ERROR("module.ascension_compat",
+            LOG_ERROR("coa",
                       "Could not summon bank object {} for {} (spell {})",
                       entry, player->GetName(), GetSpellInfo()->Id);
             return;
@@ -4536,7 +4538,7 @@ class spell_ascension_personal_bank : public SpellScript
 
         player->AddSpellCooldown(GetSpellInfo()->Id, 0, BANK_VAULT_DURATION * IN_MILLISECONDS, true);
 
-        LOG_INFO("module.ascension_compat",
+        LOG_INFO("coa",
                  "Summoned bank object {} (kind {}, entry {}, spell {}) for {} at "
                  "{:.2f} {:.2f} {:.2f} (caster feet {:.2f})",
                  vault->GetGUID().ToString(), uint32(kind), entry,
@@ -4635,7 +4637,7 @@ public:
             return true;
 
         SendCollectionCreatureQueryResponse(session, entry);
-        LOG_DEBUG("module.ascension_compat", "Answered local creature preview query: entry {}, display {}, payload {}",
+        LOG_DEBUG("coa", "Answered local creature preview query: entry {}, display {}, payload {}",
             entry, model->DisplayId, packet.size());
         return false;
     }
@@ -4684,7 +4686,7 @@ public:
         constexpr uint32 maxCreatureQueries = 256;
         if (!session || packet.size() < sizeof(uint32))
         {
-            LOG_WARN("module.ascension_compat",
+            LOG_WARN("coa",
                 "Malformed Ascension creature asset query payload={} bytes", packet.size());
             return false;
         }
@@ -4692,7 +4694,7 @@ public:
         uint32 const count = packet.read<uint32>(0);
         if (!count || count > maxCreatureQueries)
         {
-            LOG_WARN("module.ascension_compat",
+            LOG_WARN("coa",
                 "Malformed Ascension creature asset query count={} payload={} bytes", count, packet.size());
             return false;
         }
@@ -4700,7 +4702,7 @@ public:
         std::size_t const expectedSize = sizeof(uint32) + std::size_t(count) * sizeof(uint32);
         if (packet.size() != expectedSize)
         {
-            LOG_WARN("module.ascension_compat",
+            LOG_WARN("coa",
                 "Malformed Ascension creature asset query count={} payload={} bytes", count, packet.size());
             return false;
         }
@@ -4713,7 +4715,7 @@ public:
                 ++answered;
         }
 
-        LOG_DEBUG("module.ascension_compat",
+        LOG_DEBUG("coa",
             "Answered Ascension creature asset query: requested {}, answered {}", count, answered);
         return false;
     }
@@ -4751,7 +4753,7 @@ public:
       if (ascensionCompatConfig.GetConfigValue<bool>(
               AscensionCompatConfig::LOG_CONSUMED_PACKETS))
       {
-        LOG_INFO("module.ascension_compat",
+        LOG_INFO("coa",
                  "Consumed Ascension missile-position packet payload={} bytes [{}]",
                  packet.size(), DescribePacketPayload(packet));
       }
@@ -4765,7 +4767,7 @@ public:
     if (ascensionCompatConfig.GetConfigValue<bool>(
             AscensionCompatConfig::LOG_CONSUMED_PACKETS)) {
       char const *name = ExtensionOpcodeName(uint16(opcode));
-      LOG_INFO("module.ascension_compat",
+      LOG_INFO("coa",
                "Consumed Ascension extension packet opcode=0x{:04X} ({}) "
                "payload={} bytes [{}]",
                opcode, name ? name : "unknown", packet.size(),
@@ -4907,7 +4909,7 @@ public:
     std::string label = name ? std::string(" (") + name + ")" : std::string();
     handler->PSendSysMessage("Sent 0x{:04X}{} with {} payload bytes.",
                              opcode, label, uint32(packet.size()));
-    LOG_INFO("module.ascension_compat",
+    LOG_INFO("coa",
              "Sent extension packet opcode=0x{:04X} ({}) payload={} bytes [{}] "
              "to {}",
              opcode, name ? name : "unknown", packet.size(),
@@ -4939,7 +4941,7 @@ public:
     handler->PSendSysMessage("  summon would ground at {:.2f} (riser {:.2f})",
                              GroundHeightBeneath(map, x, y, feetZ),
                              GroundHeightBeneath(map, x, y, feetZ) - feetZ);
-    LOG_INFO("module.ascension_compat",
+    LOG_INFO("coa",
              "Bank ground probe for {}: feet {:.2f}, spot {:.2f} {:.2f}, "
              "terrain {:.2f}, terrain+vmap {:.2f}, chosen {:.2f}",
              player->GetName(), feetZ, x, y,
@@ -5956,18 +5958,33 @@ public:
     LocalLevelScaling::QuestEnabled.store(enabled && ascensionCompatConfig.GetConfigValue<bool>(
         AscensionCompatConfig::QUEST_LEVEL_SCALING), std::memory_order_relaxed);
 
-    uint32 lift = sConfigMgr->GetOption<uint32>("AscensionCompat.LevelScalingMaxLift", 5);
+    uint32 lift = sConfigMgr->GetOption<uint32>("CoA.LevelScalingMaxLift", 5);
     LocalLevelScaling::CreatureMaxLift.store(
         static_cast<std::uint8_t>(std::min<uint32>(lift, 255)), std::memory_order_relaxed);
   }
 
   void OnAfterConfigLoad(bool reload) override {
+    ReportRenamedConfiguration();
     if (!reload || !ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED))
       return;
 
     for (auto const& [accountId, session] : sWorldSessionMgr->GetAllSessions())
       if (session && session->GetPlayer() && session->GetPlayer()->IsInWorld())
         SendAscensionCoAXpConfig(session);
+  }
+
+private:
+  static void ReportRenamedConfiguration() {
+    std::filesystem::path const legacyFile =
+        std::filesystem::path(sConfigMgr->GetConfigPath()) / "modules" / "mod_ascension_compat.conf";
+    std::error_code error;
+    if (std::filesystem::exists(legacyFile, error))
+      LOG_ERROR("coa", "{} is no longer read: rename it to coa.conf and its AscensionCompat.* keys to CoA.*",
+                legacyFile.generic_string());
+
+    constexpr std::string_view legacyPrefix = "AscensionCompat.";
+    for (std::string const& key : sConfigMgr->GetKeysByString(std::string(legacyPrefix)))
+      LOG_ERROR("coa", "Config key {} is no longer read: rename it to CoA.{}", key, key.substr(legacyPrefix.size()));
   }
 
   void OnLoadCustomDatabaseTable() override {
@@ -5991,7 +6008,7 @@ public:
     bool dataLoaded =
         AscensionCollectionService::Instance().LoadClientData();
     AscensionResourceService::Instance().ValidateDefinitions();
-    LOG_INFO("module.ascension_compat",
+    LOG_INFO("coa",
              "Ascension compatibility enabled; consuming extension opcodes "
              "0x{:04X}-0x{:04X}; collection data {}",
              firstOpcode, lastOpcode, dataLoaded ? "ready" : "unavailable");
@@ -6076,7 +6093,7 @@ public:
         ChatHandler(player->GetSession()).PSendSysMessage(
             "{} raised to {}.", prof.name, cap);
 
-        LOG_DEBUG("module.ascension_compat",
+        LOG_DEBUG("coa",
                   "Tradesman's Scroll: player {} set {} to {}",
                   player->GetName(), prof.name, cap);
 

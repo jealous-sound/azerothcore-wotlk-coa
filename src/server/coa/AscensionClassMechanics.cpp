@@ -487,7 +487,7 @@ void ApplyTinkerScrapperContract(SpellInfo* spellInfo)
     }
     else
     {
-        LOG_ERROR("module.ascension_compat",
+        LOG_ERROR("coa",
             "Skipped unexpected Scrapper resource record {}", spellInfo->Id);
     }
 }
@@ -511,7 +511,7 @@ void ApplyTinkerScrapResourceContract(SpellInfo* spellInfo)
             effect.MiscValue != SPELLMOD_DAMAGE || effect.SpellClassMask ||
             effect.BasePoints != originalBasePoints[index] || effect.DieSides != 1)
         {
-            LOG_ERROR("module.ascension_compat",
+            LOG_ERROR("coa",
                 "Skipped unexpected Scrap resource record {}", spellInfo->Id);
             return;
         }
@@ -538,7 +538,7 @@ void ApplyRangerFixedDurationContract(SpellInfo* spellInfo)
     }
     else
     {
-        LOG_ERROR("module.ascension_compat", "Skipped unexpected Advantage duration record {}", spellInfo->Id);
+        LOG_ERROR("coa", "Skipped unexpected Advantage duration record {}", spellInfo->Id);
     }
 }
 
@@ -582,7 +582,7 @@ void ApplyRangerConditionalDamageContracts(SpellInfo* spellInfo)
         effect.MiscValueB = ASCENSION_CLASSMASK_AURASTATE_DAMAGE;
     }
     else
-        LOG_ERROR("module.ascension_compat", "Skipped unexpected Ranger conditional damage record {}", spellInfo->Id);
+        LOG_ERROR("coa", "Skipped unexpected Ranger conditional damage record {}", spellInfo->Id);
 }
 
 void ApplyRangerUnderhandedContracts(SpellInfo* spellInfo)
@@ -604,7 +604,7 @@ void ApplyRangerUnderhandedContracts(SpellInfo* spellInfo)
             effect.BasePoints != basePoints || effect.DieSides != 1 || effect.SpellClassMask != masks[index] ||
             effect.TargetA.GetTarget() != TARGET_UNIT_CASTER || effect.TargetB.GetTarget() != 0)
         {
-            LOG_ERROR("module.ascension_compat", "Skipped unexpected Underhanded coefficient record {}", spellInfo->Id);
+            LOG_ERROR("coa", "Skipped unexpected Underhanded coefficient record {}", spellInfo->Id);
             return;
         }
     }
@@ -632,7 +632,7 @@ void ApplyRangerInstinctualCombatantContract(SpellInfo* spellInfo)
             (attackPower.SpellClassMask == flag96(16, 0, 8) || attackPower.SpellClassMask == flag96(16, 0, 0)))
             attackPower.SpellClassMask = flag96(16, 0, 0);
         else
-            LOG_ERROR("module.ascension_compat", "Skipped unexpected Instinctual Combatant talent record {}", spellInfo->Id);
+            LOG_ERROR("coa", "Skipped unexpected Instinctual Combatant talent record {}", spellInfo->Id);
         return;
     }
 
@@ -651,7 +651,7 @@ void ApplyRangerInstinctualCombatantContract(SpellInfo* spellInfo)
         criticalChance.SpellClassMask = flag96(0, 134250496, 0);
     }
     else
-        LOG_ERROR("module.ascension_compat", "Skipped unexpected Instinctual Combatant record {}", spellInfo->Id);
+        LOG_ERROR("coa", "Skipped unexpected Instinctual Combatant record {}", spellInfo->Id);
 }
 
 void ApplyAdditionalTargetContracts(SpellInfo* spellInfo)
@@ -711,7 +711,7 @@ void ApplyAdditionalTargetContracts(SpellInfo* spellInfo)
         }
         else
         {
-            LOG_ERROR("module.ascension_compat",
+            LOG_ERROR("coa",
                 "Skipped unexpected additional-target record {}", spellInfo->Id);
         }
         return;
@@ -732,7 +732,7 @@ void ApplyRangerForestDwellerContract(SpellInfo* spellInfo)
             obsoleteSpeed.ApplyAuraName == SPELL_AURA_ADD_FLAT_MODIFIER &&
             obsoleteSpeed.MiscValue == SPELLMOD_EFFECT1) || obsoleteSpeed.Effect == 0))
     {
-        LOG_ERROR("module.ascension_compat", "Skipped unexpected Forest Dweller record {}", spellInfo->Id);
+        LOG_ERROR("coa", "Skipped unexpected Forest Dweller record {}", spellInfo->Id);
         return;
     }
 
@@ -758,7 +758,7 @@ void ApplyRangerOffensiveSpellContracts(SpellInfo* spellInfo)
             (toxicDart && (helper.Effect != SPELL_EFFECT_TRIGGER_SPELL ||
                 (helper.TriggerSpell != 681293 && helper.TriggerSpell != 807821))))
         {
-            LOG_ERROR("module.ascension_compat", "Skipped unexpected Ranger offensive spell {}", spellInfo->Id);
+            LOG_ERROR("coa", "Skipped unexpected Ranger offensive spell {}", spellInfo->Id);
             return;
         }
 
@@ -778,7 +778,7 @@ void ApplyRangerOffensiveSpellContracts(SpellInfo* spellInfo)
                 AURA_INTERRUPT_FLAG_MELEE_ATTACK | AURA_INTERRUPT_FLAG_SPELL_ATTACK;
         }
         else
-            LOG_ERROR("module.ascension_compat", "Skipped unexpected Woodland Adept stealth {}", spellInfo->Id);
+            LOG_ERROR("coa", "Skipped unexpected Woodland Adept stealth {}", spellInfo->Id);
     }
 }
 
@@ -1004,7 +1004,7 @@ std::unordered_map<uint32, ClientSpellCharge> const& ClientSpellCharges()
             if (category == byCategory.end() || category->second.first < 1 || category->second.first > 20 ||
                 category->second.second < 1 || category->second.second > 86400000)
             {
-                LOG_ERROR("module.ascension_compat", "Skipped invalid client charge category {} of spell {}",
+                LOG_ERROR("coa", "Skipped invalid client charge category {} of spell {}",
                     categoryId, spellId);
                 continue;
             }
@@ -1012,7 +1012,7 @@ std::unordered_map<uint32, ClientSpellCharge> const& ClientSpellCharges()
             result[spellId] = { category->second.first, category->second.second, categoryId };
         }
 
-        LOG_INFO("module.ascension_compat", "Loaded {} client spell charge records", result.size());
+        LOG_INFO("coa", "Loaded {} client spell charge records", result.size());
         return result;
     }();
     return charges;
@@ -1109,7 +1109,7 @@ void ApplyAscensionClassMechanics(SpellInfo* spellInfo)
             effect.ApplyAuraName = SPELL_AURA_DUMMY;
         }
         else
-            LOG_ERROR("module.ascension_compat", "Skipped unexpected Bannerman record {}", spellInfo->Id);
+            LOG_ERROR("coa", "Skipped unexpected Bannerman record {}", spellInfo->Id);
     }
 
     if (spellInfo->Id == SPELL_GUARDIAN_RAISE_SHIELD_ENERGIZE)
@@ -1125,7 +1125,7 @@ void ApplyAscensionClassMechanics(SpellInfo* spellInfo)
         }
         else
         {
-            LOG_ERROR("module.ascension_compat",
+            LOG_ERROR("coa",
                 "Skipped unexpected Raise Shield energize record {}",
                 spellInfo->Id);
         }
@@ -1145,7 +1145,7 @@ void ApplyAscensionClassMechanics(SpellInfo* spellInfo)
         }
         else
         {
-            LOG_ERROR("module.ascension_compat",
+            LOG_ERROR("coa",
                 "Skipped unexpected Bounty Hunter record {}", spellInfo->Id);
         }
     }

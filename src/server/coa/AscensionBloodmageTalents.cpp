@@ -128,7 +128,7 @@ void ApplyBloodmageConditionalContracts(SpellInfo* info)
             effect.ApplyAuraName != SPELL_AURA_OVERRIDE_CLASS_SCRIPTS || effect.MiscValue != raw ||
             effect.MiscValueB <= 0 || !effect.SpellClassMask)
         {
-            LOG_ERROR("module.ascension_compat", "Skipped unexpected Bloodmage scoped damage record {}",
+            LOG_ERROR("coa", "Skipped unexpected Bloodmage scoped damage record {}",
                 info->Id);
             return;
         }
@@ -143,7 +143,7 @@ void ApplyBloodmageConditionalContracts(SpellInfo* info)
             effect.ApplyAuraName != SPELL_AURA_OVERRIDE_CLASS_SCRIPTS || effect.MiscValue != raw ||
             effect.MiscValueB <= 0 || !effect.SpellClassMask)
         {
-            LOG_ERROR("module.ascension_compat", "Skipped unexpected Bloodmage conditional record {}",
+            LOG_ERROR("coa", "Skipped unexpected Bloodmage conditional record {}",
                 info->Id);
             return;
         }

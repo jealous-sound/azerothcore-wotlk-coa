@@ -115,7 +115,7 @@ void ApplyAscensionChangelogSpellChanges(SpellInfo* spellInfo)
     {
         if (!ValidateChange(spellInfo, *it))
         {
-            LOG_WARN("module.ascension_compat",
+            LOG_WARN("coa",
                 "CoA changelog: skipped spell {} (source {}): unexpected family, effect or old value",
                 spellInfo->Id, it->SourceId);
             return;
@@ -127,7 +127,7 @@ void ApplyAscensionChangelogSpellChanges(SpellInfo* spellInfo)
         if (ReadChangeValue(spellInfo, *it) != it->After)
         {
             ApplyChange(spellInfo, *it);
-            LOG_DEBUG("module.ascension_compat", "CoA changelog: updated spell {} from source {}",
+            LOG_DEBUG("coa", "CoA changelog: updated spell {} from source {}",
                 spellInfo->Id, it->SourceId);
         }
     }

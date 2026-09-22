@@ -20,7 +20,7 @@ if(NOT COA_PROPERTY_TREE_INCLUDE_DIR)
 endif()
 
 set(COA_CONFIG_FILE_LIST "")
-foreach(COA_CONFIG coa_bugreport.conf.dist mod_ascension_compat.conf.dist)
+foreach(COA_CONFIG coa_bugreport.conf.dist coa.conf.dist)
   CopyModuleConfig("${CMAKE_CURRENT_SOURCE_DIR}/conf/${COA_CONFIG}" coa)
   string(REGEX REPLACE "\\.dist$" "" COA_CONFIG_FILE ${COA_CONFIG})
   string(APPEND COA_CONFIG_FILE_LIST "${COA_CONFIG_FILE},")

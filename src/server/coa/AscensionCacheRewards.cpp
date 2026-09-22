@@ -100,7 +100,7 @@ bool Deliver(Player* player, std::vector<Reward> const& rewards, Item* cache)
     for (Reward const& reward : rewards)
         if (!reward.count || !sObjectMgr->GetItemTemplate(reward.itemId))
         {
-            LOG_ERROR("module.ascension_compat",
+            LOG_ERROR("coa",
                 "cache {} has reward {} x{}, which is not a valid item; cache kept",
                 cache ? cache->GetEntry() : 0, reward.itemId, reward.count);
             return false;
@@ -134,7 +134,7 @@ bool Deliver(Player* player, std::vector<Reward> const& rewards, Item* cache)
         {
             for (auto const& given : stored)
                 UndoOne(player, given.first, given.second);
-            LOG_ERROR("module.ascension_compat",
+            LOG_ERROR("coa",
                 "cache {} reward {} x{} could not be taken by the bags or posted to {}; cache kept",
                 cache ? cache->GetEntry() : 0, reward.itemId, reward.count,
                 player->GetGUID().ToString());
@@ -154,7 +154,7 @@ bool Deliver(Player* player, std::vector<Reward> const& rewards, Item* cache)
         handler.SendSysMessage(message);
         handler.SendNotification(message);
 
-        LOG_DEBUG("module.ascension_compat",
+        LOG_DEBUG("coa",
             "cache {} posted {} reward(s) to {} because the bags were full",
             cache ? cache->GetEntry() : 0, uint32(posted.size()), player->GetGUID().ToString());
     }

@@ -18,7 +18,7 @@ realm needs from the rest of it, and what a reviewer should look at.
 | `src/server/game/Entities/Player/PlayerQuest.cpp:45` | `Player::GetQuestLevel` asks `ScaleQuestLevel(quest->GetQuestLevel(), GetLevel())` |
 | `src/server/game/Quests/QuestDef.cpp:202` | `Quest::XPValue` prices a quest at its scaled level |
 | `src/server/coa/AscensionCompat.cpp` (`AscensionCompatLevelScalingScript`, from line 5794) | the creature half: lift the **object** |
-| `AscensionCompat.cpp:335-337` | config: `AscensionCompat.LevelScaling`, `AscensionCompat.QuestLevelScaling` |
+| `AscensionCompat.cpp:335-337` | config: `CoA.LevelScaling`, `CoA.QuestLevelScaling` |
 
 The creature half in one paragraph, because everything else is a comparison with it: on
 `OnBeforeCreatureSelectLevel` the authored level is remembered in a per-guid map; on
@@ -64,7 +64,7 @@ triggers, critters, non-combat pets, anything with a charmer or owner, and scrip
 
 | capability | realm-wide path | this branch | where the per-character one lives |
 |---|---|---|---|
-| who scales | everybody on the realm (`AscensionCompat.LevelScaling`) | each character's own choice, on by default | `destiny_weaver.cpp` (`LevelScalingEnabled`, the Weaver menu), config `DestinyWeaver.LevelScaling.Default` |
+| who scales | everybody on the realm (`CoA.LevelScaling`) | each character's own choice, on by default | `destiny_weaver.cpp` (`LevelScalingEnabled`, the Weaver menu), config `DestinyWeaver.LevelScaling.Default` |
 | creature level | the object, lifted once for all | per recipient, sent only to them | `ViewFor` + `OnPatchValuesUpdate` |
 | creature health / mana | object health (a genuine pool change) | the viewer's share of the one shared pool | `OnPatchValuesUpdate`, `DamageDealtToPool` |
 | creature stats (armour, attack power, weapon damage, skills) | `SelectLevel()` + armour fix-up, object-wide | the `creature_classlevelstats` row at the view level, per viewer | `StatsAt`, `HitFrom`, `ViewArmorFor`, `ViewLevelForCore` |
@@ -94,7 +94,7 @@ grow or race?* Audit result, by mechanism:
 | **State lifetime.** | The refresh registry is erased when the episode is served or expires, and by `ForgetClient` on logout; `g_toldState` (what each client believes) and `g_lastSpoken` are erased on logout with it; `g_leadersSeen` holds one entry per online leader. No map is keyed by creature, so nothing accumulates per spawn. |
 | **Hot-path cost.** | The realm switches and the offset are cached in atomics at config load (`g_scalingAvailable`, `LocalLevelScaling::CreatureOffset`), so `ViewFor` asks the config system nothing; it early-outs on "character has scaling off", then on the object checks, then on reaction, and only then reads the two `creature_classlevelstats` rows. |
 | **`.reload config`.** | The resolvers and the cached switches are (re)installed in `ApplyTuning()` on `WORLDHOOK_ON_AFTER_CONFIG_LOAD`, so turning the feature on or off takes effect on the next creature rather than on the next restart. |
-| **Two scaling systems at once.** | the CoA server component's realm-wide lift and this one must not both be on: a character with scaling *off* would have the world raised around them anyway. We log a loud error at config load if `AscensionCompat.LevelScaling = 1` while the per-character system is on (`ApplyTuning()` in `destiny_weaver_scaling.cpp`). Keep it `0`. |
+| **Two scaling systems at once.** | the CoA server component's realm-wide lift and this one must not both be on: a character with scaling *off* would have the world raised around them anyway. We log a loud error at config load if `CoA.LevelScaling = 1` while the per-character system is on (`ApplyTuning()` in `destiny_weaver_scaling.cpp`). Keep it `0`. |
 
 ## 5. Notification spam
 
@@ -128,7 +128,7 @@ news, and a realm's own social pressure is a better brake on that than a silent 
   `Unit::CalcArmorReducedDamage` (through the resolvers), `KillRewarder`, `Acore::XP::Gain`,
   `Player::isHonorOrXPTarget`, `Player::RewardReputation`, `QuestDef`/`PlayerQuest`, `GossipDef`.
 * `AscensionCompatLevelScalingScript` should **stay** as the realm-wide fallback for realms that never
-  install the module, gated by `AscensionCompat.LevelScaling` as it is today; the error above is what
+  install the module, gated by `CoA.LevelScaling` as it is today; the error above is what
   makes a realm that runs both notice.
 * Config keys this adds: `DestinyWeaver.Enable`, `DestinyWeaver.LevelScaling`,
   `DestinyWeaver.LevelScaling.Default`, `DestinyWeaver.Scaling.Offset`,

@@ -65,7 +65,7 @@ void LoadCallboardCachePools()
     }
     else
     {
-        LOG_WARN("module.ascension_compat",
+        LOG_WARN("coa",
             "ascension_callboard_cache_reward is missing: Callboard Caches will not open.");
     }
 

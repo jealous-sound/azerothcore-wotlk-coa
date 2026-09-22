@@ -855,9 +855,9 @@ public:
         // whichever module ran its hooks first does not matter, and turning this module off returns
         // the realm-wide path exactly as it was.
         LocalLevelScaling::CreatureScalingOwnedPerViewer.store(available, std::memory_order_relaxed);
-        if (available && sConfigMgr->GetOption<bool>("AscensionCompat.LevelScaling", false))
+        if (available && sConfigMgr->GetOption<bool>("CoA.LevelScaling", false))
             LOG_INFO("module.destiny_weaver",
-                     "AscensionCompat.LevelScaling is 1, but per-character creature scaling owns the "
+                     "CoA.LevelScaling is 1, but per-character creature scaling owns the "
                      "answer: the realm-wide lift is standing aside for as long as this module is on");
 
         LOG_INFO("module.destiny_weaver",

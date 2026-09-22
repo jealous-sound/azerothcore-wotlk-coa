@@ -3,16 +3,15 @@
 CoA is the compatibility layer between AzerothCore and the Ascension 3.3.5a client:
 protocol adapters, account-wide collections, character advancement, custom classes
 and resources, and class corrections. It is a required server component of this
-AzerothCore fork. Its implementation
-is built by `src/server/coa/CMakeLists.txt`, independently of optional modules,
-and registered by `AddCoAScripts()` during worldserver script initialization.
+AzerothCore fork, built by `src/server/coa/CMakeLists.txt` independently of optional
+modules and registered by `AddCoAScripts()` during worldserver script initialization.
 Class scripts continue to use the normal script APIs.
 
 Sources live in `src/server/coa/`, focused regressions in `apps/coa-tests/`, and
-configuration templates in `src/server/coa/conf/`. The installed configuration
-filenames and `etc/modules/` location are retained for existing deployments.
-Runtime configuration is supplied by `src/server/coa/conf/mod_ascension_compat.conf.dist`,
-not by committing live local credentials.
+configuration templates in `src/server/coa/conf/`. They install to
+`etc/modules/coa.conf` and `etc/modules/coa_bugreport.conf`; runtime configuration is
+supplied there, not by committing live local credentials. CoA logs under `coa`,
+`coa.gameplay_test` and `coa.highrisk`.
 
 This fork, CoA included, is licensed under the root `LICENSE` (GNU GPL v2), like
 AzerothCore. Most CoA source files still carry the short "GNU AGPL v3" notice from
@@ -33,6 +32,15 @@ Canonical client files, generated candidates, runtime databases and deployment
 evidence are kept outside this repository. Preserve applied SQL hashes.
 Do not run historical installers or clear client caches to compensate for a
 protocol, data or process problem.
+
+## Upgrading a server configured before the move
+
+- Rename `etc/modules/mod_ascension_compat.conf` to `coa.conf`, and its
+  `AscensionCompat.*` keys to `CoA.*` (for example `CoA.LevelScaling`).
+- Add `Logger.coa=4,Console Server` to `worldserver.conf`; the old
+  `module.ascension_compat` category is gone.
+- If the old file or old keys are still present, the worldserver logs an error at
+  startup naming what to rename.
 
 ## Client DBCs
 
@@ -350,11 +358,11 @@ The copied client's `Extensions.dll` patches the ping timer at executable addres
 DLL SHA-256 is `f7b713095aab17a1e376f487290d4b7c4c18931635e4d91136d76db2592be8fa`.
 Stock AzerothCore counts pings less than 27 seconds apart as overspeed; ordinary
 accounts are disconnected after exceeding `MaxOverspeedPings`, while GM permission
-23 bypasses that check. Local connections with `AscensionCompat.Enable = 1` accept
+23 bypasses that check. Local connections with `CoA.Enable = 1` accept
 the five-second cadence with a one-second jitter margin. Faster sustained flooding
 still reaches the strike limit. Other connections retain the stock limit.
 
-For a realm dedicated to this client, set `AscensionCompat.AllowRemoteClients = 1`
+For a realm dedicated to this client, set `CoA.AllowRemoteClients = 1`
 and restart worldserver. This also applies the configured plaintext world headers,
 extension opcode range, ping interval, Ascension spell-modifier packet layout and
 class-10 character creation mapping to remote connections. The default is `0`;

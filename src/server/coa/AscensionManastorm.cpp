@@ -220,17 +220,17 @@ namespace
                 if (std::all_of(reachable.begin(), reachable.end(), [](bool value) { return value; }))
                     validScenes.push_back(i);
             }
-            LOG_INFO("module.ascension_compat", "Manastorm: {} of {} scenes have available templates and geometry",
+            LOG_INFO("coa", "Manastorm: {} of {} scenes have available templates and geometry",
                 validScenes.size(), Scenes.size());
             uint32 const opening = uint32(std::count_if(validScenes.begin(), validScenes.end(), [](uint32 index)
             {
                 return Scenes[index].unlock == 1;
             }));
-            LOG_INFO("module.ascension_compat", "Manastorm: {} validated opening rooms", opening);
+            LOG_INFO("coa", "Manastorm: {} validated opening rooms", opening);
             if (!opening)
             {
                 enabled.store(false);
-                LOG_ERROR("module.ascension_compat", "Manastorm disabled: no reachable opening room is installed");
+                LOG_ERROR("coa", "Manastorm disabled: no reachable opening room is installed");
             }
         }
 
@@ -1029,7 +1029,7 @@ namespace
                     if (!success)
                     {
                         itr->second.databaseReady = false;
-                        LOG_ERROR("module.ascension_compat", "Manastorm XP save failed for {}; relog required", guid.ToString());
+                        LOG_ERROR("coa", "Manastorm XP save failed for {}; relog required", guid.ToString());
                     }
                 }
             });
@@ -1078,7 +1078,7 @@ namespace
                 uint32 const entry = fields[12].Get<uint32>();
                 if (!IsCache(entry) || fields[2].Get<uint32>() != 1)
                 {
-                    LOG_ERROR("module.ascension_compat", "Invalid pending Manastorm cache {} for {}",
+                    LOG_ERROR("coa", "Invalid pending Manastorm cache {} for {}",
                         itemGuid, player->GetGUID().ToString());
                     return;
                 }
@@ -1127,7 +1127,7 @@ namespace
                 transaction->Append(claim);
                 if (!CharacterDatabase.AsyncCommitTransaction(transaction).m_future.get())
                 {
-                    LOG_ERROR("module.ascension_compat", "Manastorm cache delivery failed for {}; reward retained",
+                    LOG_ERROR("coa", "Manastorm cache delivery failed for {}; reward retained",
                         player->GetGUID().ToString());
                     return;
                 }
@@ -1495,7 +1495,7 @@ namespace
             float const ground = map->GetHeight(PHASEMASK_NORMAL, spawn.x, spawn.y, spawn.z + 2.0f, true, 10.0f);
             if (!std::isfinite(ground) || std::abs(ground - spawn.z) > 4.0f)
             {
-                LOG_ERROR("module.ascension_compat", "Manastorm rejected geometry for scene {}, creature {}",
+                LOG_ERROR("coa", "Manastorm rejected geometry for scene {}, creature {}",
                     run.GetScene().stage, spawn.entry);
                 return nullptr;
             }

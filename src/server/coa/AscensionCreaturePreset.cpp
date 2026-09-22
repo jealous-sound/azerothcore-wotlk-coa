@@ -21,7 +21,7 @@ void AscensionCreaturePresetMgr::LoadFromDB()
 
     if (!result)
     {
-        LOG_WARN("module.ascension_compat", ">> Table creature_display_preset is empty or missing.");
+        LOG_WARN("coa", ">> Table creature_display_preset is empty or missing.");
         return;
     }
 
@@ -51,7 +51,7 @@ void AscensionCreaturePresetMgr::LoadFromDB()
         _entryToDisplays[preset.entry].push_back(preset.display_id);
     } while (result->NextRow());
 
-    LOG_INFO("module.ascension_compat", ">> Loaded {} creature display presets into cache across {} unique creature entries.",
+    LOG_INFO("coa", ">> Loaded {} creature display presets into cache across {} unique creature entries.",
         _presets.size(), _entryToDisplays.size());
 }
 

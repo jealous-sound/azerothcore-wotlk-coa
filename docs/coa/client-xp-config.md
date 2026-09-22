@@ -1,6 +1,6 @@
 # Client XP configuration
 
-With `AscensionCompat.Enable` enabled, character login sends `SMSG_COA_CONFIG` (`0x58D`) before the
+With `CoA.Enable` enabled, character login sends `SMSG_COA_CONFIG` (`0x58D`) before the
 character-advancement login state. Reloading world configuration resends the current values to sessions
 with a player in the world.
 
