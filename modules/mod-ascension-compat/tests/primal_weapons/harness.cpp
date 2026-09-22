@@ -1,4 +1,3 @@
-// Actual selector, eligibility, aura callbacks and native charge transitions.
 #include <array>
 #include <cassert>
 #include <cstdint>
@@ -143,7 +142,7 @@ struct Aura
 #define ASSERT(value) assert(value)
 #ifdef _MSC_VER
 #pragma warning(push)
-#pragma warning(disable: 4244) // Existing native CalcMaxCharges returns uint32 as uint8.
+#pragma warning(disable: 4244)
 #endif
 // ACTUAL_CHARGES
 #ifdef _MSC_VER
@@ -273,7 +272,7 @@ int main()
     damage.amount = 0;
     assert(!bestial.CheckProc(event));
     damage.absorbed = 100;
-    assert(bestial.CheckProc(event)); // A fully absorbed critical strike still qualifies.
+    assert(bestial.CheckProc(event));
     damage.absorbed = 0;
     damage.amount = 100;
     bestial.Remove(nullptr, 1);
@@ -294,7 +293,7 @@ int main()
     AscensionClassService::Instance().spec = 0;
     primal.Apply(nullptr, 1);
     RemoveAscensionPrimalistWeapons(&player);
-    assert(player.auras.contains(563262)); // Preserve a loaded imbue until CAD responds.
+    assert(player.auras.contains(563262));
     AscensionClassService::Instance().spec = 60;
     RemoveAscensionPrimalistWeapons(&player);
     assert(!player.auras.contains(563262));

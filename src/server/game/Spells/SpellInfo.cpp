@@ -1478,8 +1478,11 @@ bool SpellInfo::IsAffectedBySpellMod(SpellModifier const* mod) const
         mod->spellId == 705780 && mod->op == SPELLMOD_JUMP_TARGETS && mod->type == SPELLMOD_FLAT &&
         mod->mask == flag96(128, 0, 0);
 
+    bool const bloodFueledAbsorb = Id == 560361 && mod->spellId == 705416 && mod->op == SPELLMOD_EFFECT1 &&
+        mod->type == SPELLMOD_PCT;
+
     // xinef: dont check duration mod
-    if (mod->op != SPELLMOD_DURATION && !bandageGunTargets)
+    if (mod->op != SPELLMOD_DURATION && !bandageGunTargets && !bloodFueledAbsorb)
         if (!IsAffectedBySpellMods())
             return false;
 

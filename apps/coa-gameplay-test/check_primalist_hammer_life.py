@@ -1,4 +1,3 @@
-"""Verify Hammer of Life copies exactly 20% to each of its three selected targets."""
 import json
 import sys
 from pathlib import Path

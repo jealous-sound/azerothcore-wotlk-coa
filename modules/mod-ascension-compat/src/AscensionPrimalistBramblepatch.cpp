@@ -24,7 +24,6 @@ public:
             return;
         if (info->Id == BramblepatchEnemies)
         {
-            // Effect immunity protects against incoming movement. The tooltip instead restricts the victim's casts.
             for (SpellEffectInfo& effect : info->Effects)
                 if (effect.IsAura(SPELL_AURA_EFFECT_IMMUNITY))
                     effect.ApplyAuraName = SPELL_AURA_DUMMY;
@@ -32,7 +31,6 @@ public:
         else if (info->Id == BramblepatchAllies &&
             info->Effects[EFFECT_0].IsAura(SPELL_AURA_MOD_DAMAGE_PERCENT_TAKEN))
         {
-            // The unused zero-damage slot can cover the destination form of knockback as well.
             info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_EFFECT_IMMUNITY;
             info->Effects[EFFECT_0].MiscValue = SPELL_EFFECT_KNOCK_BACK_DEST;
         }

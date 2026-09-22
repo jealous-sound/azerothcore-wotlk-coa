@@ -29,8 +29,6 @@ class aura_ascension_earthshaker_periodic : public AuraScript
         if (!caster || !caster->HasAura(Earthshaker))
             return;
 
-        // Native physical magic spells have no critical chance. Earthshaker explicitly permits
-        // Seismic periodic critical hits, using Nature spell crit while retaining physical defenses.
         SpellInfo const* info = GetSpellInfo();
         float chance = caster->SpellDoneCritChance(GetTarget(), info, SPELL_SCHOOL_MASK_NATURE, BASE_ATTACK, true);
         chance = GetTarget()->SpellTakenCritChance(caster, info, info->GetSchoolMask(), chance, BASE_ATTACK, true);
@@ -55,8 +53,6 @@ public:
         if (info->Id != Earthshaker || info->SpellFamilyName != 37)
             return;
 
-        // Retain Crash and Earthquake, adding the newer Seismic spells to the authored native modifiers.
-        // Tremor is the other periodic Seismic effect; the remaining additions deal direct damage.
         if (info->Effects[EFFECT_0].IsAura(SPELL_AURA_ABILITY_PERIODIC_CRIT))
             info->Effects[EFFECT_0].SpellClassMask[0] |= 64;
         for (SpellEffIndex index : {EFFECT_1, EFFECT_2})

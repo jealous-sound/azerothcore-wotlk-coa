@@ -222,6 +222,10 @@ void AddSC_AscensionChronomancerMovement();
 void AddSC_AscensionAdventurerCache();
 void AddSC_AscensionBankVoucher();
 void AddSC_AscensionFeatherOfAncients();
+void AddSC_AscensionReaperRuin();
+void AddSC_AscensionReaperRedshade();
+void AddSC_AscensionReaperSpellContracts();
+void AddSC_AscensionReaperTalentProcs();
 void AddSC_AscensionPersonalBank();
 void AddSC_AscensionWisdomball();
 void AddSC_AscensionBloodmageTalents();
@@ -241,13 +245,8 @@ void AddSC_AscensionRunemasterSecondary();
 void AddSC_AscensionRunemasterHurricane();
 void AddSC_AscensionRunemasterRiftClones();
 
-// Add all
-// cf. the naming convention https://github.com/azerothcore/azerothcore-wotlk/blob/master/doc/changelog/master.md#how-to-upgrade-4
-// additionally replace all '-' in the module folder name with '_' here
 void Addmod_ascension_compatScripts()
 {
-    // Registered first so every later OnLoadSpellCustomAttr pass, and every runtime guard that asserts a
-    // record carries no coefficient, reads the same cleared EffectBonusMultiplier.
     AddAscensionStockCoefficientScripts();
     AddAscensionScalingBaseScripts();
     AddAscensionManastormScripts();
@@ -449,6 +448,10 @@ void Addmod_ascension_compatScripts()
     AddSC_AscensionAdventurerCache();
     AddSC_AscensionBankVoucher();
     AddSC_AscensionFeatherOfAncients();
+    AddSC_AscensionReaperRuin();
+    AddSC_AscensionReaperRedshade();
+    AddSC_AscensionReaperSpellContracts();
+    AddSC_AscensionReaperTalentProcs();
     AddSC_AscensionPersonalBank();
     AddSC_AscensionWisdomball();
     AddSC_AscensionBloodmageTalents();

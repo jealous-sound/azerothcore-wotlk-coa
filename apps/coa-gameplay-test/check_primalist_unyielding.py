@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check Unyielding Form against the ordinary, non-scaling armor items in its fixture."""
+CLI_DESCRIPTION = """Check Unyielding Form against the ordinary, non-scaling armor items in its fixture."""
 
 import argparse
 import json
@@ -12,8 +12,6 @@ def check(directory):
     if summary['status'] != 'passed' or result['status'] != 'passed':
         raise ValueError('A completed native scenario pass is required')
     values = {step['label']: float(step['actual']) for step in result['steps'] if 'actual' in step}
-    # item_template armor for 200, 236, 285 and 8094; both scaling fields are zero.
-    # Equipping replaces the starter chest, so the net armor gain is not the new item's full contribution.
     for armor, item_armor in (('cloth', 103), ('leather', 150), ('mail', 178), ('plate', 359)):
         contribution = values[f'{armor}_armor'] - values[f'{armor}_bare']
         if contribution <= 0:
@@ -27,6 +25,6 @@ def check(directory):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument('result_directory', type=Path)
     check(parser.parse_args().result_directory)

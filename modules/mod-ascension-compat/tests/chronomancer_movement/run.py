@@ -1,4 +1,3 @@
-"""Exercise the actual clone/Rewind and Backtrack lifecycle callbacks."""
 import os
 from pathlib import Path
 import re

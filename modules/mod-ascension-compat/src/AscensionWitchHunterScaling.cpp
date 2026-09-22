@@ -24,9 +24,6 @@ void ApplyAscensionWitchHunterScalingContracts(SpellInfo* spellInfo)
         spellInfo->Effects[EFFECT_1].Effect || spellInfo->Effects[EFFECT_2].Effect)
         return;
 
-    // The flat form adds coefficient points: 25 means another 0.25 of SP.
-    // It must also reach the two normalized-weapon helpers, which do not use
-    // the native school-damage coefficient table.
     effect.ApplyAuraName = SPELL_AURA_OVERRIDE_CLASS_SCRIPTS;
     effect.MiscValue = ASCENSION_SPELL_POWER_COEFFICIENT_FLAT;
 }

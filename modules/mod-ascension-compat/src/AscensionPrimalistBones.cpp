@@ -39,8 +39,6 @@ class spell_ascension_bring_their_bones : public SpellScript
 
     void SkipInitialStack(SpellEffIndex index)
     {
-        // Applying the mark is not a pet ability hit. The first damaging hit
-        // earns stack one; the visible mark itself is the parent dummy aura.
         PreventHitDefaultEffect(index);
     }
 
@@ -96,8 +94,6 @@ class aura_ascension_bones_listener : public AuraScript
         Player* owner = PetPrimalist(pet);
         Unit* victim = event.GetActionTarget();
         Aura* mark = victim->GetAura(BonesMark, owner->GetGUID());
-        // Native stack mutations use AddAura too. Keep the caster filter so
-        // another Primalist's mark cannot contribute stacks or be consumed.
         Aura* stacks = owner->AddAura(BonesStacks, victim);
         if (!stacks)
             return;
@@ -105,8 +101,6 @@ class aura_ascension_bones_listener : public AuraScript
         if (stacks->GetStackAmount() < 5)
             return;
         stacks->Remove();
-        // The listener retains its player's original-caster GUID. Native
-        // damage calculation therefore uses the visible tooltip's owner AP.
         pet->CastSpell(victim, BonesDamage, true, nullptr, effect);
     }
 
@@ -126,8 +120,6 @@ class spell_ascension_bones_damage : public SpellScript
 
     void PreserveOtherMarks(SpellEffIndex index)
     {
-        // The threshold already consumed this owner's stacks. The copied
-        // helper's unfiltered REMOVE_AURA would also erase other owners' stacks.
         PreventHitDefaultEffect(index);
     }
 
@@ -149,7 +141,6 @@ public:
             info->Effects[EFFECT_0].ApplyAuraName == SPELL_AURA_DUMMY)
             info->AttributesEx3 |= SPELL_ATTR3_DOT_STACKING_RULE;
 
-        // SpellCustomAttr.dbc f2 = 0x8000 agrees with the visible armor-bypass contract.
         if (info->Id == BonesDamage && info->SpellFamilyName == 37 &&
             info->GetSchoolMask() == SPELL_SCHOOL_MASK_NORMAL && info->DmgClass == SPELL_DAMAGE_CLASS_MELEE &&
             info->Effects[EFFECT_0].Effect == SPELL_EFFECT_SCHOOL_DAMAGE &&

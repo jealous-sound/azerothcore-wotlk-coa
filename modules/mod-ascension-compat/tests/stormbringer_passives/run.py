@@ -1,4 +1,4 @@
-"""Exercise Cloudburst and Shock's actual callbacks, including the triggered repeat."""
+CLI_DESCRIPTION = """Exercise Cloudburst and Shock's actual callbacks, including the triggered repeat."""
 import argparse
 import importlib.util
 from pathlib import Path
@@ -214,7 +214,7 @@ int main()
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument("--workspace-tools", type=Path, default=ROOT.parent / "tools")
     parser.add_argument("--spell-dbc", type=Path)
     args = parser.parse_args()
@@ -242,7 +242,7 @@ def main():
         assert child[110] == 180 and child[80] + child[74] == 101 and child[92] == 45
         assert rows[570054][72] == 64 and rows[570054][117] == 804084
         assert rows[804086][72] == 175 and rows[804086][111] == 20 and rows[804086][117] == 803102
-        assert rows[500040][71] == 2  # Call Lightning is a learned attack, not a gating aura.
+        assert rows[500040][71] == 2
         assert rows[803563][71:73] == rows[803566][71:73] == (129, 6)
         assert rows[803563][95:97] == (65, 4) and rows[803566][95:97] == (33, 4)
         assert rows[803563][92] == rows[803566][92] != 0

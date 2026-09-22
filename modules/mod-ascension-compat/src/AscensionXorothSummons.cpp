@@ -25,7 +25,7 @@ void Summon(Player* player, uint32 entry, Position const& position, uint32 durat
             player->GetMap()->SummonCreature(entry, position, nullptr, duration + (entry == 51323 ? 500 : 0), player))
         unit->SetTempSummonType(TEMPSUMMON_TIMED_DESPAWN);
 }
-} // namespace AscensionXoroth
+}
 namespace
 {
 using namespace AscensionXoroth;
@@ -84,7 +84,6 @@ struct npc_ascension_xoroth_summon : public ScriptedAI
             me->SetReactState(REACT_DEFENSIVE);
             if (me->GetEntry() == 50301)
             {
-                // This TempSummon bypasses SetMinion; Firebolt still needs player target and immunity rules.
                 me->m_ControlledByPlayer = true;
                 me->SetUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED);
                 me->SetByteValue(UNIT_FIELD_BYTES_2, 1, player->GetByteValue(UNIT_FIELD_BYTES_2, 1));
@@ -107,7 +106,7 @@ struct npc_ascension_xoroth_summon : public ScriptedAI
     }
     void JustDied(Unit*) override
     {
-        if (me->GetEntry() != 50301) // Only Hellfire Imps, never a timed despawn or another summon.
+        if (me->GetEntry() != 50301)
             return;
         if (Player* player = Owner(ObjectAccessor::GetPlayer(*me, owner)); player && player->HasAura(804013))
         {
@@ -162,9 +161,6 @@ struct npc_ascension_xoroth_summon : public ScriptedAI
             DoMeleeAttackIfReady();
     }
 };
-// Sacrificial Circle names owner area aura 805916 as its caster requirement, but no Hellfire Imp applies it
-// (its cost modifier is rebuilt as 805965). Check the living imps instead, and sacrifice only the caster's own
-// imps: the native ally area would also force party members to cast the self-killing helper.
 class spell_ascension_xoroth_sacrificial_circle : public SpellScript
 {
     PrepareSpellScript(spell_ascension_xoroth_sacrificial_circle);
@@ -197,7 +193,6 @@ class spell_ascension_xoroth_sacrificial_circle : public SpellScript
         Creature* imp = GetHitCreature();
         if (!player || !OwnImp(player, imp))
             return;
-        // The tooltip adds 25% of each sacrificed imp's maximum health; 706753 heals the master and kills the imp.
         imp->CastCustomSpell(706753, SPELLVALUE_BASE_POINT0, int32(imp->CountPctFromMaxHealth(25)), player,
                              TRIGGERED_FULL_MASK);
     }
@@ -210,7 +205,7 @@ class spell_ascension_xoroth_sacrificial_circle : public SpellScript
                                            SPELL_EFFECT_TRIGGER_SPELL);
     }
 };
-} // namespace
+}
 void AddSC_AscensionXorothSummons()
 {
     RegisterCreatureAI(npc_ascension_xoroth_summon);

@@ -1,4 +1,4 @@
-"""Execute Raise Shield's production block callback and energize correction in a native fixture."""
+CLI_DESCRIPTION = """Execute Raise Shield's production block callback and energize correction in a native fixture."""
 
 import argparse
 import os
@@ -17,7 +17,7 @@ method = runpy.run_path(str(HERE.parent / "client_compat/run.py"))["method"]
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument("--source-ref", help="Test a local Git revision to demonstrate the regression.")
     parser.add_argument("--dbc-dir", type=Path, required=True)
     args = parser.parse_args()

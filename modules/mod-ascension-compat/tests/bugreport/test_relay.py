@@ -1,5 +1,3 @@
-"""Offline delivery and HTTP contract tests. No real network or player data."""
-
 from contextlib import contextmanager
 import importlib.util
 import io

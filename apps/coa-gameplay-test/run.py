@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run gameplay scenarios in a dedicated worldserver with disposable local databases."""
+CLI_DESCRIPTION = """Run gameplay scenarios in a dedicated worldserver with disposable local databases."""
 
 import argparse
 import configparser
@@ -33,7 +33,7 @@ METRICS = {
     'health', 'health_pct', 'max_health', 'power', 'max_power', 'alive', 'combat', 'casting', 'level',
     'aura', 'aura_stacks', 'aura_charges', 'aura_duration_ms', 'aura_amount', 'aura_positive',
     'knows_spell', 'has_talent', 'talent_points', 'cooldown_ms', 'global_cooldown_ms', 'spell_charges',
-    'item_count', 'carried_item_count', 'bank_bag_slots', 'bank_shows', 'system_messages',
+    'action_button', 'item_count', 'carried_item_count', 'bank_bag_slots', 'bank_shows', 'system_messages',
     'taxi_node', 'pet_entry', 'pet_aura_stacks', 'pet_is_banker', 'pet_display', 'pet_scale', 'owned_creature_count',
     'charm_entry', 'charm_aura_stacks', 'controls_self', 'private_instance',
     'dynamic_object', 'dynamic_object_duration_ms', 'gossip_options',
@@ -86,7 +86,7 @@ PLAYER_STAT_METRICS = {
     'spell_heal_count', 'spell_heal_total', 'spell_effective_heal_total',
     'pet_aura_amount', 'pet_aura_amplitude_ms', 'pet_max_health', 'pet_attack_power', 'pet_run_speed_rate',
 }
-METRIC_FIELDS = {'actor', 'metric', 'spell', 'power', 'caster', 'effect', 'item', 'entry',
+METRIC_FIELDS = {'actor', 'metric', 'spell', 'power', 'caster', 'effect', 'item', 'entry', 'button',
                  'relative_to', 'ratio_to', 'target', 'quest', 'id', 'stat', 'school', 'hand', 'rating', 'op',
                  'base', 'key', 'index', 'pet', 'critical', 'target_pet', 'periodic', 'name',
                  'min_distance', 'owner_display'}
@@ -100,6 +100,8 @@ ACTIONS = {
     'snapshot': ({'actor', 'metric', 'save_as'}, METRIC_FIELDS | {'save_as'}),
     'assert': ({'actor', 'metric'}, METRIC_FIELDS | {'equals', 'min', 'max', 'within_ms'}),
     'learn': ({'actor', 'spell'}, {'actor', 'spell'}),
+    'set_action_button': ({'actor', 'spell', 'button'}, {'actor', 'spell', 'button'}),
+    'grant_resource': ({'actor', 'spell'}, {'actor', 'spell', 'amount'}),
     'unlearn': ({'actor', 'spell'}, {'actor', 'spell', 'all_specs'}),
     'money': ({'actor', 'copper'}, {'actor', 'copper'}),
     'set_aura': ({'actor', 'spell', 'stacks'}, {'actor', 'spell', 'stacks', 'pet'}),
@@ -411,7 +413,7 @@ def validate(scenario):
                 require('quest' in step, f'{where}: metric needs quest')
             if metric == 'gossip_text':
                 require('id' in step, f'{where}: metric needs text id')
-            if metric in {'knows_spell', 'has_talent', 'talent_points', 'cooldown_ms', 'spell_charges', 'item_count',
+            if metric in {'knows_spell', 'has_talent', 'talent_points', 'cooldown_ms', 'spell_charges', 'action_button', 'item_count',
                           'carried_item_count', 'bank_bag_slots', 'taxi_node', 'cast_pushback_ms',
                           'bank_shows', 'system_messages', 'cast_failure',
                           'pet_entry', 'pet_aura_stacks', 'pet_is_banker', 'pet_display', 'pet_scale',
@@ -480,7 +482,6 @@ def read_config(path):
 
 
 def env_var_name(key):
-    """Mirror IniKeyToEnvVarKey in src/common/Configuration/Config.cpp."""
     result = []
     for index, char in enumerate(key):
         if char in ' .-':
@@ -497,14 +498,12 @@ def env_var_name(key):
 
 
 def server_environment(overrides, environment=None):
-    """Keep inherited settings except variables that would replace generated harness values."""
     blocked = {env_var_name(key) for key in overrides}
     source = os.environ if environment is None else environment
     return {name: value for name, value in source.items() if name not in blocked}
 
 
 def source_setting(config, key, default=None, environment=None):
-    """Read a source value as the server does: an AC_* environment variable replaces the file value."""
     source = os.environ if environment is None else environment
     value = source.get(env_var_name(key), config.get(key, default))
     require(value is not None, f'Missing source setting: {key}')
@@ -538,7 +537,6 @@ def cnf_quote(value):
 
 
 def database_credentials(connections, path):
-    """Read optional existing admin credentials without changing the source endpoint or schema."""
     parser = configparser.ConfigParser(interpolation=None)
     try:
         parser.read_string(path.read_text(encoding='utf-8-sig'))
@@ -583,7 +581,6 @@ class Databases:
                 require(self.names[role] != connection.database, 'Source and test database must differ')
                 path = directory / f'{role}-client.cnf'
                 self.option_files[role] = path
-                # Never put credentials in process arguments or test reports.
                 content = '[client]\n' + '\n'.join(f'{key}={cnf_quote(str(value))}' for key, value in {
                     'host': connection.host, 'port': connection.port, 'user': connection.user,
                     'password': connection.password, 'protocol': 'TCP', 'default-character-set': 'utf8mb4',
@@ -619,7 +616,6 @@ class Databases:
         elif tables:
             arguments.append('--no-create-info')
         arguments.extend([connection.database, *tables])
-        # Stream the snapshot, keeping the world database out of Python memory.
         with tempfile.TemporaryFile() as errors:
             source = subprocess.Popen(arguments, stdout=subprocess.PIPE, stderr=errors, creationflags=CREATE_FLAGS)
             target = None
@@ -643,7 +639,6 @@ class Databases:
     def prepare(self, roles=('auth', 'characters', 'world')):
         for role in roles:
             name = self.names[role]
-            # CREATE without IF NOT EXISTS fails closed on collisions; only our creations are dropped.
             self.sql(role, f'CREATE DATABASE `{name}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;')
             self.created.append(role)
             print(f'Preparing isolated {role} database...', flush=True)
@@ -653,7 +648,6 @@ class Databases:
                 if role == 'auth':
                     tables += ['rbac_permissions', 'rbac_linked_permissions', 'rbac_default_permissions', 'realmlist']
                 else:
-                    # Required realm metadata: ArenaSeasonMgr asserts if this table is empty.
                     tables += ['active_arena_season']
                 self.copy(role, tables=tables)
 
@@ -699,9 +693,7 @@ def check_no_reserved_overrides(path, reserved):
 
 
 def stage_modules(source, destination, reserved):
-    """Copy module configs into the directory the worldserver reads, never replacing existing files."""
     if destination.exists():
-        # Pre-existing files in the destination are never copied, but they must not silently win either.
         for path in sorted(destination.glob('*.conf')):
             check_no_reserved_overrides(path, reserved)
             require((source / path.name).is_file(),
@@ -778,7 +770,8 @@ def run_process(command, directory, ready_path, result_path, run_id, startup_tim
                 else:
                     require(now - ready_at < timeout, 'Gameplay scenario/shutdown timed out')
                 time.sleep(0.1)
-            require(result_path.exists(), 'Worldserver exited without a result; check the build and server log')
+            require(result_path.exists(), f'Worldserver exited with code {process.returncode} without a result; '
+                    'check the build and server log')
             report = read_json(result_path)
             if report.get('status') == 'passed':
                 require(on_ready is None or ready_at is not None, 'Startup barrier was not observed')
@@ -822,13 +815,12 @@ def execute(args, scenario):
     run_id = secrets.token_hex(6)
     output = (args.output or ROOT / '.cache' / 'coa-gameplay-tests' / run_id).resolve()
     output.mkdir(parents=True, exist_ok=False)
+    args.result_directory = output
     result_path = output / 'result.json'
     ready_path = output / 'ready.json'
     scenario_path = output / 'scenario.json'
     scenario_path.write_text(json.dumps(scenario, indent=2) + '\n', encoding='utf-8')
     print(f'Run {run_id}: {output}', flush=True)
-    # Credential-bearing files (option files, generated config) never live under `output`: on the Docker
-    # service that directory is a host bind mount, and on all platforms it is the disposable result directory.
     credentials_dir = Path(tempfile.mkdtemp(prefix='coa-gameplay-test-'))
     generated_config = credentials_dir / 'worldserver.conf'
     module_configs = []
@@ -869,7 +861,6 @@ def execute(args, scenario):
             'CoAGameplayTest.ReadyFile': ready_path.as_posix(),
             'CoAGameplayTest.ResultFile': result_path.as_posix(),
         }
-        # Windows worldservers read configs/modules relative to their working directory, the output directory.
         module_target = args.server_modules_dir or output / 'configs' / 'modules'
         module_configs = stage_modules(module_source, module_target, set(overrides))
         summary['module_config_sha256'] = {path.name: sha256(path) for path in module_configs}
@@ -905,24 +896,18 @@ def execute(args, scenario):
         shutil.rmtree(credentials_dir, ignore_errors=True)
         summary['total_seconds'] = round(time.monotonic() - started, 3)
         (output / 'summary.json').write_text(json.dumps(summary, indent=2) + '\n', encoding='utf-8')
-    print(f"{summary['status'].upper()}: {scenario['name']}\nResults: {output}")
+    stage = 'COMPLETE' if summary['status'] == 'passed' else 'FAILED'
+    print(f"NATIVE STAGE {stage}: {scenario['name']}\nResults: {output}")
     if 'message' in summary:
         print(summary['message'])
     return 0 if summary['status'] == 'passed' else 1
 
 
 def _raise_keyboard_interrupt(signum, frame):
-    """SIGTERM handler: route the ordinary Compose/`docker stop` signal through the existing interrupt cleanup."""
     raise KeyboardInterrupt
 
 
-def main(argv=None):
-    parser = argparse.ArgumentParser(description=__doc__)
-    subparsers = parser.add_subparsers(dest='command', required=True)
-    check = subparsers.add_parser('validate', help='Validate a scenario without starting a server')
-    check.add_argument('scenario', type=Path)
-    run = subparsers.add_parser('run', help='Prepare isolated test DBs, run a scenario, and clean up')
-    run.add_argument('scenario', type=Path)
+def add_run_arguments(run):
     run.add_argument('--worldserver', type=Path, required=True)
     run.add_argument('--config', type=Path, required=True, help='Source worldserver config; never changed')
     run.add_argument('--mysql', type=Path, required=True)
@@ -933,12 +918,24 @@ def main(argv=None):
     run.add_argument('--server-modules-dir', type=Path,
                      help='Directory the worldserver reads module configs from; required outside Windows')
     run.add_argument('--output', type=Path, help='New directory for logs and results')
+    run.add_argument('--native-only', action='store_true',
+                     help='Exploratory execution only; explicitly skip combined verification')
     run.add_argument('--startup-timeout', type=float, default=600)
     mode = run.add_mutually_exclusive_group()
     mode.add_argument('--fresh-databases', action='store_true', help='Use disposable copies without the world cache')
     mode.add_argument('--refresh-world', action='store_true', help='Replace the owned world cache before this run')
     run.add_argument('--world-cache-dir', type=Path, default=ROOT / '.cache/coa-gameplay-tests/world-cache',
                      help='Local cache metadata/lease directory; database ownership is verified separately')
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
+    subparsers = parser.add_subparsers(dest='command', required=True)
+    check = subparsers.add_parser('validate', help='Validate a scenario without starting a server')
+    check.add_argument('scenario', type=Path)
+    run = subparsers.add_parser('run', help='Prepare isolated test DBs, run a scenario, and clean up')
+    run.add_argument('scenario', type=Path)
+    add_run_arguments(run)
     args = parser.parse_args(argv)
     previous_sigterm_handler = None
     sigterm_installed = False
@@ -953,7 +950,8 @@ def main(argv=None):
         if hasattr(signal, 'SIGTERM'):
             previous_sigterm_handler = signal.signal(signal.SIGTERM, _raise_keyboard_interrupt)
             sigterm_installed = True
-        return execute(args, scenario)
+        from workflow import run_registered
+        return run_registered(args, scenario, execute)
     except (ValueError, OSError, KeyError, TypeError) as error:
         print(f'ERROR: {error}', file=sys.stderr)
         return 1

@@ -46,7 +46,7 @@ class witch_hunter_casts : public AllSpellScript
   public:
     witch_hunter_casts() : AllSpellScript("witch_hunter_casts") {}
 
-    void OnSpellCast(Spell* spell, Unit* caster, SpellInfo const* info, bool /*skipCheck*/) override
+    void OnSpellCast(Spell* spell, Unit* caster, SpellInfo const* info, bool) override
     {
         Player* player = Owner(caster);
         if (!player || !spell->IsTriggered())
@@ -55,8 +55,6 @@ class witch_hunter_casts : public AllSpellScript
         if (!channel)
             return;
 
-        // Advance after a channel shot is launched, even if it misses or is
-        // absorbed. Target calculation has already used the preceding shot count.
         if (info->Id == SPELL_WITCHBANE_SHOT && Family(channel, 1, 4194304) &&
             player->HasAura(SPELL_ARBALEST_MASTERY))
             Cast(player, player, SPELL_ARBALEST_MASTERY_PROGRESS);
@@ -74,7 +72,6 @@ class witch_hunter_casts : public AllSpellScript
             uint32 extra = player->GetPower(POWER_RAGE);
             spell->SetScriptExtraPowerSpent(extra);
             player->ModifyPower(POWER_RAGE, -int32(extra));
-            // Local rule: each whole Rage adds half a point of damage per player level.
             spell->SetSpellValue(SPELLVALUE_BASE_POINT1, info->Effects[EFFECT_1].BasePoints + 1 +
                                                              int32((extra / 10) * player->GetLevel() * 0.5f));
         }
@@ -87,8 +84,6 @@ class witch_hunter_casts : public AllSpellScript
             return;
         SpellInfo const* info = spell->GetSpellInfo();
         float multiplier = 1.0f;
-        // Every Brand rank releases this payload; its advertised creature bonus
-        // was only stored in an unlearned legacy passive.
         if (info->Id == SPELL_BRAND_OF_THE_DAMNED_DAMAGE && info->SpellFamilyName == 21 &&
             hit.missCondition == SPELL_MISS_NONE && (target->GetCreatureTypeMask() & CREATURE_TYPEMASK_DEMON_OR_UNDEAD))
             multiplier *= 2.0f;
@@ -116,7 +111,7 @@ class witch_hunter_casts : public AllSpellScript
             }
     }
 
-    void OnSpellCheckCast(Spell* spell, bool /*strict*/, SpellCastResult& result) override
+    void OnSpellCheckCast(Spell* spell, bool, SpellCastResult& result) override
     {
         if (result != SPELL_CAST_OK)
             return;
@@ -252,9 +247,6 @@ class spell_ascension_witch_hunter_ability : public SpellScript
         SpellInfo const* info = GetSpellInfo();
         uint32 id = info->Id;
         Unit* target = GetExplTargetUnit();
-        // Vault has SPELL_ATTR4_ALLOW_CAST_WHILE_CASTING, which adds TRIGGERED_IGNORE_CAST_IN_PROGRESS and
-        // TRIGGERED_CAST_DIRECTLY to the player's own cast, so IsTriggered() is true for it. Real triggered
-        // casts also carry TRIGGERED_IGNORE_GCD (see Spell::prepare).
         bool const playerVault = id == 500085 && !GetSpell()->HasTriggeredCastFlag(TRIGGERED_IGNORE_GCD);
         if (GetSpell()->IsTriggered() && !playerVault)
             return;
@@ -296,10 +288,6 @@ class spell_ascension_witch_hunter_ability : public SpellScript
             float distance = 10.0f * player->GetSpeedRate(MOVE_RUN);
             if (AuraEffect* extra = player->GetAuraEffect(789256, EFFECT_0))
                 distance += extra->GetAmount();
-            // MotionMaster::MoveJumpTo returns immediately for players, so drive the vault with the
-            // native knockback packet the way SPELL_EFFECT_KNOCK_BACK does. A knockback travels
-            // speedXY * 2 * speedZ / gravity yards, and KnockbackFrom derives its direction from
-            // (caster - source), so aim it from a point one yard behind the requested heading.
             float const speedZ = 5.0f;
             float const speedXY = distance * float(Movement::gravity) / (2.0f * speedZ);
             float const heading = player->GetOrientation() + angle;
@@ -431,7 +419,7 @@ class spell_ascension_witch_hunter_ability : public SpellScript
         AfterCast += SpellCastFn(spell_ascension_witch_hunter_ability::After);
     }
 };
-} // namespace
+}
 
 void AddAscensionWitchHunterAbilityScripts()
 {

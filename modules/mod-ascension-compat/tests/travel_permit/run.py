@@ -1,4 +1,3 @@
-"""Exercise the actual Travel Permit menu and destination callbacks without a server."""
 import os
 from pathlib import Path
 import runpy
@@ -86,7 +85,7 @@ int main()
 }
 '''
     assert "OnCheckCast += SpellCheckCastFn" in source and "AfterCast += SpellCastFn" in source
-    assert "bool OnUse(" not in source  # Failed/cooling-down item casts never reach OpenMenu.
+    assert "bool OnUse(" not in source
     compiler = shutil.which(os.environ.get("CXX", "g++"))
     assert compiler, "Set CXX to a C++17 compiler."
     with tempfile.TemporaryDirectory(prefix="coa-travel-permit-") as directory:

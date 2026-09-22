@@ -39,9 +39,6 @@ Player* Owner(Unit const* unit)
 VenomancerState& State(Player* player)
 {
     std::lock_guard<std::mutex> lock(stateMutex);
-    // The map is locked for the lookup only: the caller then reads and writes the state with no
-    // lock held. Kept by pointer, the state itself never moves, so an insert for another player
-    // rehashing the map cannot leave that caller writing into freed memory.
     return *states.try_emplace(player->GetGUID(), std::make_unique<VenomancerState>()).first->second;
 }
 bool Named(SpellInfo const* info, uint32 root)
@@ -201,7 +198,6 @@ bool CrossesLair(Unit const* attacker, Unit const* target)
 }
 void AddFungic(Player* player, Unit* target, uint32 damage)
 {
-    // Two contributions share the refreshed duration; a third replaces the oldest remainder.
     uint32 previous = 0;
     if (Aura* aura = target->GetAura(706456,player->GetGUID()))
         if (AuraEffect* effect = aura->GetEffect(aura->GetStackAmount() > 1 ? EFFECT_2 : EFFECT_1))
@@ -247,7 +243,6 @@ bool Resource(Player* player, uint32 id, int32 delta)
 float BroodMultiplier(uint32 count, int32 effectiveness)
 {
     constexpr float multipliers[] = {1, 1.25f, 1.60f, 2.05f, 2.60f, 3.50f};
-    // Extra capacity permits another generator; spenders retain the authored five-mark ceiling.
     return 1 + (multipliers[std::min(count, 5u)] - 1) * (1 + effectiveness / 100.0f);
 }
 void Expose(Player* player, uint32 stacks, bool molt)
@@ -257,7 +252,6 @@ void Expose(Player* player, uint32 stacks, bool molt)
     uint32 after = molt ? 15 : std::max(current, std::min(maximum, current + stacks));
     if (Aura* aura = player->GetAura(Exposed))
     {
-        // Every application restarts the shared stack timer, even when the stacks are already capped.
         aura->RefreshTimers();
         aura->SetStackAmount(after);
     }
@@ -415,7 +409,7 @@ void Refresh(Player* player)
     }
     state.refreshing = false;
 }
-} // namespace AscensionVenomancer
+}
 namespace
 {
 class venomancer_player : public PlayerScript

@@ -31,7 +31,6 @@ class spell_ascension_earthmother_roar : public SpellScript
     {
         Unit* caster = GetCaster();
         if (caster->HasAura(EarthmotherRoar, caster->GetGUID()))
-            // Apply Protective Roar's maximum-health effect before measuring missing health.
             caster->CastSpell(caster, EarthmotherHeal, TRIGGERED_FULL_MASK);
     }
 
@@ -70,8 +69,6 @@ public:
         if (info->Id == EarthmotherHeal && info->SpellFamilyName == 37 &&
             info->Effects[EFFECT_0].Effect == SPELL_EFFECT_HEAL_PCT && info->Effects[EFFECT_0].MiscValueB == 1)
         {
-            // The copied percent-heal effect uses maximum health. Supply a missing-health base
-            // through the ordinary heal path instead, retaining native healing/taken modifiers.
             info->Effects[EFFECT_0].Effect = SPELL_EFFECT_HEAL;
         }
     }

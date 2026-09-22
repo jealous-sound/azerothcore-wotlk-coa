@@ -17,8 +17,6 @@ public:
         if (info->Id == StoneTosser && info->SpellFamilyName == 37 &&
             info->Effects[EFFECT_0].ApplyAuraName == SPELL_AURA_ADD_PCT_MODIFIER &&
             info->Effects[EFFECT_0].MiscValue == 41)
-            // Copied operation 41 scales the spell-power coefficient. The native equivalent
-            // preserves the authored family mask and leaves base damage and AP unchanged.
             info->Effects[EFFECT_0].MiscValue = SPELLMOD_BONUS_MULTIPLIER;
     }
 };

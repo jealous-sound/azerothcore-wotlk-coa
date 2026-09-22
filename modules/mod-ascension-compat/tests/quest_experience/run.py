@@ -1,4 +1,3 @@
-"""Use copied XP records and native quest/aura calculations to check #58."""
 import argparse
 import os
 from pathlib import Path
@@ -47,8 +46,8 @@ def main():
     kills = source('src/server/game/Entities/Player/KillRewarder.cpp').rsplit('// 4.2.2.', 1)[1]
     kills = kills[kills.index('bool const recruitAFriend'):kills.index('// 4.2.3.')]
     manastorm = source('modules/mod-ascension-compat/src/AscensionManastorm.cpp')
-    snapshot = manastorm.split('// Snapshot XP bonuses', 1)[1]
-    snapshot = snapshot[snapshot.index('bool const recruitAFriend'):snapshot.index('uint32 const xp')]
+    snapshot = manastorm[manastorm.index('bool const recruitAFriend'):]
+    snapshot = snapshot[:snapshot.index('uint32 const xp')]
     header = (ROOT / 'src/server/game/Miscellaneous/LocalLevelScaling.h').as_posix()
     code = r'''
 #include <array>

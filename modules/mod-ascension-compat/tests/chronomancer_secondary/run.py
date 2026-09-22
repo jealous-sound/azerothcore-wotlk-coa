@@ -1,4 +1,3 @@
-"""Exercise Chronomancer secondary callbacks and native player/creature regeneration."""
 import os
 from pathlib import Path
 import re
@@ -22,7 +21,6 @@ def main():
     player = (ROOT / 'src/server/game/Entities/Player/Player.cpp').read_text()
     creature = (ROOT / 'src/server/game/Entities/Creature/Creature.cpp').read_text()
     regen = method(player, 'void Player::RegenerateHealth()') + '\n'
-    # The unchanged creature calculation truncates its float multiplier into an integer.
     regen += '#pragma warning(push)\n#pragma warning(disable: 4244)\n'
     regen += method(creature, 'void Creature::RegenerateHealth()') + '\n#pragma warning(pop)\n'
     code = code.replace('// NATIVE_REGEN', regen)

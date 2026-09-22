@@ -1,4 +1,3 @@
-"""Exercise Hookshot's owned target window using native temporary replacement packets."""
 import os
 from pathlib import Path
 import re

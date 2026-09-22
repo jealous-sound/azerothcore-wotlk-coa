@@ -34,7 +34,7 @@ void Summon(Player* player, uint32 entry, Position const& position, uint32 durat
     if (!player || !player->IsAlive())
         return;
     if (entry == 840000)
-        entry = HallucinationEntry; // 840000 is the installed Witch Doctor clone and is immutable here.
+        entry = HallucinationEntry;
     bool oldGod = Tentacle(entry) && entry != 500464;
     if (!Tentacle(entry) && entry != 533030 && entry != 397771 && entry != HallucinationEntry &&
         entry != 50298 && entry != 50263)
@@ -46,7 +46,7 @@ void Summon(Player* player, uint32 entry, Position const& position, uint32 durat
         return;
     summon->SetTempSummonType(TEMPSUMMON_TIMED_DESPAWN);
     summon->GetMotionMaster()->Clear();
-    summon->GetMotionMaster()->MoveIdle(); // Override Guardian's post-IsSummonedBy automatic follow.
+    summon->GetMotionMaster()->MoveIdle();
     if (entry == HallucinationEntry)
         Wander(summon);
     if (entry == 50263)
@@ -104,7 +104,7 @@ void UpdateDash(Player* player, uint32 diff)
     state.dashPrevious = player->GetPosition();
     state.dashMs = state.dashMs > diff && player->IsAlive() ? state.dashMs - diff : 0;
 }
-} // namespace AscensionCultist
+}
 namespace
 {
 using namespace AscensionCultist;

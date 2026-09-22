@@ -17,7 +17,6 @@ public:
     {
         if (info->Id == EarthmotherPrecisionDebuff && info->SpellFamilyName == 37 &&
             info->Effects[EFFECT_0].IsAura(SPELL_AURA_MOD_ATTACKER_SPELL_HIT_CHANCE))
-            // Physical spells such as Geode Barrage also use the spell hit table.
             info->Effects[EFFECT_0].MiscValue = SPELL_SCHOOL_MASK_ALL;
     }
 };

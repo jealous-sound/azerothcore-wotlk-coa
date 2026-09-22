@@ -64,7 +64,6 @@ struct Player : Unit
 {
     uint32 cls = 20;
     Session session;
-    // Ownership persistence is covered by taught_abilities; this fixture isolates callbacks and native packets.
     std::map<uint32, bool> spells;
     std::set<uint32> inactive;
     std::map<uint32, uint32> m_temporarySpellReplacements;
@@ -198,14 +197,12 @@ int main()
     assert(!cast.CanPrepare(&spell, nullptr, nullptr));
     spell.m_targets.unit = nullptr; SpellCastResult result = 0;
     cast.OnSpellCheckCast(&spell, false, result); assert(result == SPELL_FAILED_BAD_TARGETS);
-    // An older trap ending must not remove the new trap's button/window.
     player.AddAura(681304, &enemy); root.Apply(nullptr, 1);
     player.AddAura(681304, &second); root.fixtureTarget = &second; root.Apply(nullptr, 1);
     enemy.RemoveAurasDueToSpell(681304, player.guid);
     assert(HemostasisTarget(&player) == &second);
     player.RemoveAurasDueToSpell(302895, player.guid);
     assert(!player.spells.contains(803326) && !HemostasisTarget(&player));
-    // A permanent helper survives cleanup; an inactive other-spec helper cannot be repurposed.
     player.spells[803326] = false; root.Apply(nullptr, 1);
     player.RemoveAurasDueToSpell(302895, player.guid); assert(player.spells.contains(803326));
     player.inactive.insert(803326); root.Apply(nullptr, 1);

@@ -46,7 +46,6 @@ class aura_ascension_mountain_avatar : public AuraScript
         }
         else
         {
-            // The authored grant helper uses unsupported effect 178; grant the same five-second aura directly.
             owner->CastSpell(owner, EarthenAvatar, TRIGGERED_FULL_MASK);
             if (Aura* avatar = owner->GetAura(EarthenAvatar, owner->GetGUID()))
             {
@@ -112,7 +111,7 @@ public:
         if (info->SpellFamilyName != 37)
             return;
         if (info->Id == EarthenAvatar && info->Effects[EFFECT_2].IsAura(SPELL_AURA_MOD_DAMAGE_PERCENT_TAKEN))
-            info->Effects[EFFECT_2].BasePoints = -16; // The active tooltip specifies 15%, like the damage bonus.
+            info->Effects[EFFECT_2].BasePoints = -16;
         else if (info->Id == AvatarImmunity)
         {
             info->AttributesCu &= ~SPELL_ATTR0_CU_FORCE_AURA_SAVING;

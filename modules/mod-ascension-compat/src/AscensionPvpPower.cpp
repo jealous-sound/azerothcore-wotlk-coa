@@ -57,7 +57,6 @@ uint32 Damage(Unit* target, Unit* attacker, uint32 amount)
         return amount;
     Player const* source = attacker->ToPlayer();
     Player const* recipient = target->ToPlayer();
-    // Controlled creatures are never treated as open-world PvE targets.
     if (source && (recipient || (!target->GetCharmerOrOwnerPlayerOrPlayerItself() && HighRiskWorld(source))))
         amount = Scale(amount, EquippedPower(source), 5);
     if (recipient && !attacker->GetCharmerOrOwnerPlayerOrPlayerItself() && HighRiskWorld(recipient))

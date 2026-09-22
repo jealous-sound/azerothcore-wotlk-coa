@@ -10,27 +10,11 @@
 
 namespace
 {
-// CoA scales most of its content by level through SpellDescriptionVariables row 182 rather than
-// through Spell.dbc's own per-level fields. A spell's formula text multiplies one effect's authored
-// base points by it, always as "${$<spellId>m<N>*$<scalingbp>+ ...}", and the generated list records
-// which effect of which spell that is.
-//
-// The curve is a level normaliser, not a stat coefficient: 0.0318 at level 1, 0.0939 at 10, 0.1982
-// at 20, 0.5184 at 40, and 0.9874 at CoA's level-60 cap, which it crosses at about 60.46. A server
-// that ignores it therefore pays the full level-60 amount at every level, so the error is invisible
-// at the cap and grows as the character's level falls - roughly five times the intended amount in
-// the teens and thirty at level 1.
-//
-// SpellInfo::CalcValue calls this hook after base points, dice and RealPointsPerLevel and before
-// combo points, effect modifiers and the creature-level multiplier, which is exactly where the
-// authored base is still the authored base.
 double ScalingBase(uint8 level)
 {
     return 0.0267291844060354 + 0.0048541098014737 * level + 0.0001859597762293 * level * level;
 }
 
-// $PL is the player's level. A summon or totem carries its own, so resolve the owner and leave the
-// value alone when no player is behind the cast rather than scaling by a creature's level.
 Player const* LevelOwner(Unit const* caster)
 {
     if (!caster)

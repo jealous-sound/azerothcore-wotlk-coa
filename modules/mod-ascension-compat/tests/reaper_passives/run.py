@@ -1,4 +1,4 @@
-"""Exercise Reaper talent procs and the actual shared resource dispatcher."""
+CLI_DESCRIPTION = """Exercise Reaper talent procs and the actual shared resource dispatcher."""
 import argparse
 import importlib.util
 from pathlib import Path
@@ -101,7 +101,7 @@ int main()
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument("--workspace-tools", type=Path, default=ROOT.parent / "tools")
     parser.add_argument("--spell-dbc", type=Path)
     parser.add_argument("--source-ref", help="Use an older resource dispatcher as a negative control")

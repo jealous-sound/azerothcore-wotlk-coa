@@ -147,12 +147,9 @@ class spell_ascension_ranger_flower_pickup : public SpellScript
             targets.clear();
             return;
         }
-        // Native target selection supplies the captured two-yard pickup radius.
         targets.remove_if([&](WorldObject* object)
         {
             Unit* unit = object->ToUnit();
-            // Native raid membership includes owned summons. Flowers must not
-            // consume one another merely because they share an owner.
             if (Creature* creature = object->ToCreature())
                 if (creature->GetEntry() == NPC_GREEN_FLOWER || creature->GetEntry() == NPC_RED_FLOWER)
                     return true;
@@ -167,7 +164,7 @@ class spell_ascension_ranger_flower_pickup : public SpellScript
             return leftDistance == rightDistance ? left->GetGUID() < right->GetGUID() : leftDistance < rightDistance;
         });
         if (targets.size() > 1)
-            targets.resize(1); // Exactly one ally consumes the flower, even on a crowded update.
+            targets.resize(1);
     }
 
     void Register() override
@@ -219,8 +216,6 @@ class spell_ascension_ranger_highlander : public SpellScript
 
     void Consume()
     {
-        // Cost reduction has already been applied by the native masked spellmod.
-        // Preserve the cast-local snapshot for a delayed Falconstrike impact.
         if (empowered)
             GetCaster()->RemoveAurasDueToSpell(SPELL_HIGHLANDER_READY, GetCaster()->GetGUID());
     }
@@ -254,7 +249,6 @@ public:
         if (!player || player->getClass() != CLASS_RANGER || info->SpellFamilyName != 27 || spell->IsTriggered() ||
             !player->IsInCombat() || !player->HasAura(SPELL_FOREST_HERALD))
             return;
-        // Toxic Dart and the actual Advantage consumer prerequisite, across ranks.
         if ((info->SpellFamilyFlags[0] & 32768) || info->CasterAuraSpell == SPELL_ADVANTAGE)
             if (SpellInfo const* talent = sSpellMgr->GetSpellInfo(SPELL_FOREST_HERALD))
                 if (roll_chance_i(talent->ProcChance))
@@ -274,9 +268,9 @@ public:
         if (info->Effects[EFFECT_0].Effect == SPELL_EFFECT_SUMMON &&
             info->Effects[EFFECT_0].MiscValue == NPC_GREEN_FLOWER &&
             info->Effects[EFFECT_2].TriggerSpell == SPELL_HIGHLANDER_STACKS)
-            info->Effects[EFFECT_2].Effect = 0; // Award only after a successful summon and with the talent.
+            info->Effects[EFFECT_2].Effect = 0;
         if (info->Id == SPELL_HIGHLANDER_REDUCTION)
-            info->StackAmount = 1; // The active talent promises one 40% reduction, not four stacking copies.
+            info->StackAmount = 1;
     }
 };
 

@@ -73,8 +73,6 @@ class spell_ascension_runemaster_brand_weapons : public SpellScript
         values.AddSpellMod(SPELLVALUE_BASE_POINT2, GetEffectValue());
         values.AddSpellMod(SPELLVALUE_MELEE_ATTACK_TYPE, effIndex == EFFECT_0 ? BASE_ATTACK : OFF_ATTACK);
 
-        // Preserve native E142 forwarding, cooldown and original-caster policy.
-        // The hand value is consumed before prepare, hit rolls, crit and procs.
         if (helper->CategoryRecoveryTime && GetSpellInfo()->GetCategory() == helper->GetCategory())
             GetCaster()->ToPlayer()->RemoveSpellCooldown(helper->Id);
 
@@ -132,8 +130,6 @@ void ApplyAscensionRunemasterScalingContracts(SpellInfo* info)
         second.RealPointsPerLevel != 0.32852f || second.BasePoints != (info->Id == 712307 ? 78 : 10))
         return;
 
-    // The visible formula gives the same rank base for each weapon. Keep each
-    // slot's native effect modifiers, but repair the stale second-slot rank data.
     second.BasePoints = first.BasePoints;
     second.RealPointsPerLevel = first.RealPointsPerLevel;
 }

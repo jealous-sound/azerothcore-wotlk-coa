@@ -46,8 +46,6 @@ inline bool Quickdraw(SpellInfo const* info)
 }
 inline bool Desecrate(SpellInfo const* info)
 {
-    // Family word 2 bit 0x800000 is not exclusive to Desecrate: the Shadow/Death Trap casts carry it
-    // alongside the trap bit (0x840000) and so do the Shadow Trapped payloads, so key off the rank ids.
     return info && info->SpellFamilyName == 21 &&
            (info->Id == 680518 || (info->Id >= 681207 && info->Id <= 681211));
 }
@@ -67,6 +65,6 @@ void ApplyContracts(SpellInfo* info);
 bool InSmoke(Unit const* attacker, Unit const* target);
 void CallHounds(Player* player, Unit* target);
 void SummonHounds(Player* player, uint32 count, uint32 duration, uint32 spellId, Unit* target = nullptr);
-} // namespace AscensionWitchHunter
+}
 
 #endif

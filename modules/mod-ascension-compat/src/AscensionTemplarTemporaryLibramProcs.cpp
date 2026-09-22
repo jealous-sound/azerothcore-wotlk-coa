@@ -87,7 +87,6 @@ class spell_ascension_templar_temporary_libram : public AuraScript
         if (IsCurrentMainLibram(castInfo))
             return true;
 
-        // Current specialization 92111 supersedes the legacy passive named by this tooltip.
         return GetSpellInfo()->Id == SPELL_EONAR && castInfo && castInfo->Id == SPELL_SILVERHAND &&
             castInfo->SpellFamilyName == TEMPLAR_FAMILY &&
             (castInfo->DmgClass == SPELL_DAMAGE_CLASS_MELEE || castInfo->DmgClass == SPELL_DAMAGE_CLASS_MAGIC) &&

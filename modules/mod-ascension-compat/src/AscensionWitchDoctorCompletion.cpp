@@ -25,7 +25,7 @@ namespace
 {
 std::unordered_map<ObjectGuid, std::unique_ptr<DoctorState>> states;
 std::mutex stateMutex;
-} // namespace
+}
 
 Player* Owner(Unit const* unit)
 {
@@ -35,9 +35,6 @@ Player* Owner(Unit const* unit)
 DoctorState& State(Player* player)
 {
     std::lock_guard<std::mutex> lock(stateMutex);
-    // The map is locked for the lookup only: the caller then reads and writes the state with no
-    // lock held. Kept by pointer, the state itself never moves, so an insert for another player
-    // rehashing the map cannot leave that caller writing into freed memory.
     return *states.try_emplace(player->GetGUID(), std::make_unique<DoctorState>()).first->second;
 }
 void Forget(Player* player)
@@ -213,20 +210,14 @@ void ApplyContracts(SpellInfo* info)
     if ((id == ChosenOne || id == MojoHigh) &&
         info->Effects[EFFECT_0].ApplyAuraName == SPELL_AURA_ADD_FLAT_MODIFIER &&
         info->Effects[EFFECT_0].MiscValue == SPELLMOD_EFFECT3)
-        info->Effects[EFFECT_0].SpellClassMask = flag96(512, 0, 0); // Mimic Ward's summon count
-    // "Summon a mimic ward" - one, with Chosen One adding the second. The record's summon count reads
-    // as two once the core applies its base-point convention, so the ward always arrived doubled and
-    // Chosen One pushed it to three.
+        info->Effects[EFFECT_0].SpellClassMask = flag96(512, 0, 0);
     if (id == Mimic && info->Effects[EFFECT_2].Effect == SPELL_EFFECT_SUMMON)
         info->Effects[EFFECT_2].BasePoints = 1;
     if (Family(info, 0, 4))
     {
-        // Keep all victims in one cast, including rank coefficients and actual hit accounting.
         info->Effects[EFFECT_0].Effect = SPELL_EFFECT_SCHOOL_DAMAGE;
         info->Effects[EFFECT_0].TriggerSpell = 0;
     }
-    // Each Call of Sseratus summon also triggers The True Spirit's buff, talent or not. Summon() already grants
-    // it per ward when the talent is known.
     if (id == CallSseratus && info->Effects[EFFECT_1].TriggerSpell == TrueSpiritReady)
         info->Effects[EFFECT_1].Effect = 0;
     if (id == ShadowhunterCost)
@@ -287,7 +278,7 @@ void ApplyContracts(SpellInfo* info)
         periodic(EFFECT_0, 250);
         info->DurationEntry = sSpellDurationStore.LookupEntry(1);
         info->Effects[EFFECT_1].Effect = 0;
-        info->Speed = 0.0f; // snapshot the spend into the immediate aura before consuming Spirits
+        info->Speed = 0.0f;
     }
     if (id == EclipseHit || id == EclipseSplash || id == PuppetHit)
     {
@@ -299,7 +290,7 @@ void ApplyContracts(SpellInfo* info)
         }
     }
     if (Family(info, 0, 33554432))
-        dummy(EFFECT_1); // Godslayer runs once on expiry, never as an unconditional periodic spell.
+        dummy(EFFECT_1);
     if (id == Frenzy)
     {
         dummy(EFFECT_2);
@@ -365,11 +356,11 @@ void ApplyContracts(SpellInfo* info)
     if (id == StalkerSpeed)
         periodic(EFFECT_1, 500);
     if (id == Mirage)
-        info->Effects[EFFECT_1].Effect = 0; // exactly five Spirits from the successful cast
+        info->Effects[EFFECT_1].Effect = 0;
     if (id == SenjinSwiftness)
-        info->Effects[EFFECT_1].SpellClassMask = flag96(0, 0, 1073741824); // was empty, so its -60s cooldown mod matched every WD spell instead of just Mirage
+        info->Effects[EFFECT_1].SpellClassMask = flag96(0, 0, 1073741824);
     if (id == SenjinWisdom)
-        info->Effects[EFFECT_0].SpellClassMask = flag96(0, 0, 1073741824); // pointed at the wrong classmask word, so its +20s duration mod never matched Mirage
+        info->Effects[EFFECT_0].SpellClassMask = flag96(0, 0, 1073741824);
     if (id == RageBrewBuff)
         info->Effects[EFFECT_1].BasePoints = 14;
     if (id == Voice)
@@ -401,15 +392,15 @@ void ApplyContracts(SpellInfo* info)
     if (id == Volley)
     {
         info->Effects[EFFECT_1].Effect = info->Effects[EFFECT_2].Effect = 0;
-        info->SpellFamilyFlags[1] |= 4; // inherits Reclamation spell modifiers
+        info->SpellFamilyFlags[1] |= 4;
     }
     if (id == Umbral)
     {
         info->Effects[EFFECT_1].Effect = 0;
-        info->SpellFamilyFlags[1] |= 33554432; // inherits Hex modifiers without becoming the stored Hex
-        info->AttributesEx5 &= ~SPELL_ATTR5_EXTRA_INITIAL_PERIOD; // the leech starts one period after the hit
+        info->SpellFamilyFlags[1] |= 33554432;
+        info->AttributesEx5 &= ~SPELL_ATTR5_EXTRA_INITIAL_PERIOD;
         info->StartRecoveryTime = 0;
-        info->StartRecoveryCategory = 0; // off the global cooldown
+        info->StartRecoveryCategory = 0;
     }
     if (id == HexfireWrath || id == Umbral)
     {
@@ -417,7 +408,7 @@ void ApplyContracts(SpellInfo* info)
         for (SpellEffectInfo& effect : info->Effects)
         {
             effect.TargetB = SpellImplicitTargetInfo();
-            effect.ChainTarget = 1; // explicit script adds the same two victims to every relevant effect
+            effect.ChainTarget = 1;
         }
     }
     if (id == HexfireWrath)
@@ -425,7 +416,7 @@ void ApplyContracts(SpellInfo* info)
     if (id == BigVoodoo)
         info->Effects[EFFECT_1].Effect = info->Effects[EFFECT_2].Effect = 0;
     if (id == VoodooCauldron)
-        info->Effects[EFFECT_2].Effect = 0; // the owned, stationary cauldron AI pulses the rank amount
+        info->Effects[EFFECT_2].Effect = 0;
     if (id == WarGolem)
     {
         SpellEffectInfo& absorb = info->Effects[EFFECT_1];
@@ -473,10 +464,9 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[EFFECT_0].BasePoints = -21;
     if (id == JungleThistle)
     {
-        // Current parent promises area-damage protection; the old threat effect is absent.
         info->Effects[EFFECT_0].Effect = SPELL_EFFECT_TRIGGER_SPELL;
         info->Effects[EFFECT_0].TriggerSpell = JungleProtection;
-        info->Effects[EFFECT_2].BasePoints = 19; // changelog 69822: secondary heal +10 percentage points
+        info->Effects[EFFECT_2].BasePoints = 19;
     }
     if (id == SentryRevealSpell)
     {
@@ -486,10 +476,10 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_MOD_STALKED;
     }
     if (id == Stasis)
-        info->Effects[EFFECT_1].Effect = 0; // burst timing belongs to the ward AI
+        info->Effects[EFFECT_1].Effect = 0;
     for (SpellEffectInfo& effect : info->Effects)
         if (effect.Effect == SPELL_EFFECT_SUMMON)
-            effect.MiscValueB = 64; // creation, ownership and slots are provided by the class summon script
+            effect.MiscValueB = 64;
     if (id == UnstableHeal)
     {
         info->Effects[EFFECT_0].TargetA = SpellImplicitTargetInfo(TARGET_UNIT_TARGET_ALLY);
@@ -532,12 +522,10 @@ void ApplyContracts(SpellInfo* info)
                     effect.TargetA = SpellImplicitTargetInfo(heal ? TARGET_UNIT_TARGET_ALLY : TARGET_UNIT_TARGET_ENEMY);
                     effect.TargetB = SpellImplicitTargetInfo();
                 }
-            // Contracts run after the core caches this mask; keep the explicit recipient of copied effects.
             info->_InitializeExplicitTargetMask();
         }
     if (id == JungleSecretsHeal)
     {
-        // A share of the effective Brew heal, with one explicitly selected recipient per effigy.
         info->DmgClass = SPELL_DAMAGE_CLASS_NONE;
         info->AttributesEx2 |= SPELL_ATTR2_CANT_CRIT;
         info->AttributesEx3 |= SPELL_ATTR3_IGNORE_CASTER_MODIFIERS;
@@ -548,7 +536,7 @@ void ApplyContracts(SpellInfo* info)
         info->_InitializeExplicitTargetMask();
     }
 }
-} // namespace AscensionWitchDoctor
+}
 
 namespace
 {
@@ -596,7 +584,7 @@ class witch_doctor_sessions : public PlayerScript
     witch_doctor_sessions() : PlayerScript("witch_doctor_sessions", {PLAYERHOOK_ON_LOGOUT}) {}
     void OnPlayerLogout(Player* player) override { Forget(player); }
 };
-} // namespace
+}
 void AddAscensionWitchDoctorCompletionScripts()
 {
     new witch_doctor_scaling();

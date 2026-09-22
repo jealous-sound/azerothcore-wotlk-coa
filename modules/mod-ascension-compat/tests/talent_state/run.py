@@ -1,4 +1,4 @@
-"""Check the CoA talent budget table and the spellbook-derived talent state without a server.
+CLI_DESCRIPTION = """Check the CoA talent budget table and the spellbook-derived talent state without a server.
 
 Compiles the module's talent catalog loader and talent state code against the client DBC set the server loads
 (--dbc-dir), then checks the essence budgets, rank derivation, point accounting and the known-entries wire form.
@@ -139,7 +139,7 @@ int main(int, char** argv)
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument("--dbc-dir", type=Path, required=True)
     args = parser.parse_args()
 

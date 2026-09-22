@@ -1,4 +1,4 @@
-"""Execute actual travel callbacks with bounded maps, movement and spell ownership.
+CLI_DESCRIPTION = """Execute actual travel callbacks with bounded maps, movement and spell ownership.
 
 Uses native enums and the native temporary replacement/packet functions. It does
 not simulate collision geometry, movement splines, client acknowledgements or a
@@ -25,7 +25,7 @@ def load(name, path):
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument("--workspace-tools", type=Path, default=ROOT.parent / "tools")
     parser.add_argument("--spell-dbc", type=Path)
     args = parser.parse_args()

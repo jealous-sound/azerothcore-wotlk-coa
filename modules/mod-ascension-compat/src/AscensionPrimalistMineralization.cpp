@@ -16,8 +16,6 @@ public:
     void OnLoadSpellCustomAttr(SpellInfo* info) override
     {
         if (info->Id == MineralizationBuff && info->CasterAuraState == AURA_STATE_HEALTHLESS_35_PERCENT)
-            // The proc condition checks health when casting. Its six-second reward must remain effective
-            // after healing above the threshold, instead of having its effects disabled by aura state.
             info->CasterAuraState = 0;
     }
 };

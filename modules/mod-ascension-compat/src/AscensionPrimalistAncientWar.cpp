@@ -25,12 +25,9 @@ public:
         if (info->Id != AncientOfWar || info->SpellFamilyName != 37)
             return;
         if (info->Effects[EFFECT_1].IsAura(SPELL_AURA_ADD_FLAT_MODIFIER))
-            // Thirty percent more Hammer effectiveness: its 20% conversion becomes 26%, not 50%.
             info->Effects[EFFECT_1].ApplyAuraName = SPELL_AURA_ADD_PCT_MODIFIER;
         if (info->Effects[EFFECT_2].IsAura(SPELL_AURA_TRANSFORM) &&
             info->Effects[EFFECT_2].MiscValue == 346922)
-            // The copied custom creature is absent. Existing Ancient of War 3469 uses the
-            // verified copied-client AncientOfWar model (display 1461, model 188).
             info->Effects[EFFECT_2].MiscValue = AncientCreature;
     }
 };

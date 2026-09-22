@@ -1,4 +1,3 @@
-"""Verify every Starfire Shot rank uses its referenced flat damage plus the existing mana term."""
 import importlib.util
 from pathlib import Path
 import struct

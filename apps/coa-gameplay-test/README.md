@@ -3,6 +3,129 @@
 Execute repeatable scenarios inside a real worldserver, using its loaded DBCs, SQL, scripts, maps and updates.
 The runtime component is `modules/mod-ascension-compat/src/CoAGameplayTest.cpp`; it is disabled by default.
 
+## Find and verify a mechanic
+
+The searchable catalog derives spell IDs, classes, assertions, metrics and contracts from the scenarios.
+`checks.json` binds the existing numerical result checkers to their exact scenario definitions and mode arguments.
+Use the [agent DBC viewer](../coa-dbc/README.md#agent-retrieval-coa-dbc-viewer) to inspect source data first.
+The [mechanic map](../coa-mechanics/README.md) connects spells and quests to ranks/acquisition, expected behavior
+and reviewed execution paths. `catalog.py --quest ID` and `workflow.py --quest ID` select quest investigations.
+
+```sh
+python apps/coa-gameplay-test/catalog.py --spell 1257670
+python apps/coa-gameplay-test/catalog.py --query 'replenishment'
+python apps/coa-gameplay-test/workflow.py --spell 1257670
+python apps/coa-gameplay-test/catalog.py --check
+```
+
+`workflow.py` returns candidate scenarios and an investigation sequence in JSON. It does not infer that a
+report is a defect or create a PR. Establish expectations independently, select a metric that observes the
+behavior, reproduce it, then classify the result as a defect, already working, an incorrect test or unresolved.
+Use the existing issue-to-PR workflow when that scope is requested.
+
+`run.py run` now combines native execution with every registered numerical check for an exact catalog
+scenario. Checks requiring companion scenarios (currently the two Rockslide selection cases) run both cases
+automatically. With `--output`, their directories live under that output. `verification.json` is written in
+the first case's result directory, includes executable/scenario/checker identities, and controls the final exit code.
+`NATIVE STAGE COMPLETE` is intermediate progress; only `VERIFICATION PASSED` means the combined checks passed.
+Native failures also produce a failed combined outcome, with required checks marked `blocked` when their
+native evidence is unavailable. A failure stops further native runs because cleanup may have failed. If native
+setup fails before creating a result directory, the combined outcome is printed to standard output.
+
+For example, the existing Primalist conversion script has two registered modes:
+
+| Scenario | Required checker | Mode argument |
+| --- | --- | --- |
+| `primalist-everlasting-rage` | `check_primalist_native_conversions.py` | `everlasting` |
+| `primalist-king-mountain` | `check_primalist_native_conversions.py` | `king` |
+
+Run the scenario once with the usual isolated-runner options; there is no separate checker command to remember:
+
+```sh
+python apps/coa-gameplay-test/run.py run apps/coa-gameplay-test/scenarios/primalist-everlasting-rage.json \
+  --worldserver /path/to/worldserver \
+  --config /path/to/worldserver.conf \
+  --mysql /path/to/mysql \
+  --mysqldump /path/to/mysqldump \
+  --server-modules-dir /path/to/compiled-conf-dir/modules
+```
+
+The default command rejects modified/exploratory definitions absent from the catalog. Use `--native-only`
+explicitly for those experiments; its exit code covers native execution only and produces no combined pass.
+Native success alone cannot pass a failed, missing or timed-out required numerical check.
+
+For new spell or quest regressions, save the reusable definition under `scenarios/`. Express direct assertions
+in that definition and add any extra numerical checker to `checks.json`, listing scenario IDs in its expected
+argument order, followed by mode arguments in `args`. Shared checks can list multiple scenarios; the runner
+selects their companions transitively. Registry validation runs before native execution and in CI, and rejects
+missing files, duplicate bindings and any `check_*.py` script left unregistered. Scenarios with no extra checker
+still receive combined verification of native completion, assertions and cleanup.
+
+Recheck existing result bundles without starting a server:
+
+```sh
+python apps/coa-gameplay-test/verification.py .cache/coa-gameplay-tests/RUN
+python apps/coa-gameplay-test/verification.py path/to/rockslide-first path/to/rockslide-highest
+python -B apps/coa-gameplay-test/test_verification.py
+```
+
+Rechecks require the exact current scenario definition, its recorded hash, matching native step/run identity,
+passing native assertions and cleanup, all companion results, and matching companion executable hashes.
+They do not establish that old results cover current source, database, config or client changes. The registry
+ensures checkers run; it does not prove every expected mechanic has an adequate scenario or independent contract.
+
+## Prevent recurring mistakes
+
+Run the fast source checks for the working diff, including staged and untracked files:
+
+```sh
+python -B tools/check_source.py --base HEAD
+python -B tools/check_source.py --base origin/main --plan
+```
+
+The JSON outcome lists the selected checks, failures and timings. `--all` runs every fast suite. SQL boundaries
+and new C++/Python comments in CoA-owned code are always checked; changed module sources select loader registration
+checks; gameplay tooling/scenario changes
+select scenario validation, combined-verification tests, and runner/cache ownership and cleanup tests. Reviewed
+execution-path changes also check mechanic-map references. Documentation-only changes skip these test suites.
+CI uses the same selection for pull requests and retains the repository publication checks. Main-branch and
+manual runs perform a full audit; SQL-boundary exceptions are reviewed on the pull request. The existing compiled
+client-compatibility harness runs only for relevant changes or a full audit. The local command never builds or
+starts a server.
+
+CoA-owned code uses names, structure and tests to express intent. The comment check covers
+`modules/mod-ascension-compat/`, `apps/coa-dbc/`, `apps/coa-gameplay-test/`, `apps/coa-mechanics/`, `tools/`
+and `.github/scripts/`. It rejects explanatory comments and docstrings on added lines, while preserving legal
+headers, recognized tool directives and native test-generator markers. Strings and runtime CLI help remain data.
+`python -B tools/check_comments.py --all` also checks unchanged C++ and Python files in those directories.
+Upstream source, dependencies, SQL and configuration documentation remain outside this check.
+
+The loader check requires each CoA `AddSC_*`, `AddAscension*Scripts` and `AddCoA*Scripts` definition to have
+exactly one call from the module's flat loader, and each call to have exactly one definition. It ignores comments
+and string literals. It does not prove SQL bindings, hook reachability, or gameplay behavior; those require data
+inspection and behavioral tests. The checker intentionally reports an unsupported conditional loader for review.
+
+For behavior, choose the existing scenario that observes the changed mechanic and run it through `run.py run`:
+
+- **Duplicated calculations:** `bloodmage-dominion-of-blood-vampiric-fang` compares healing with the same cast's
+  damage; doubled healing fails the ratio. `ascension-replenishment` checks exact amounts for different recipient
+  pools. For a new coefficient change, vary AP/RAP/SP independently and check the final affected hit or tick.
+- **Wrong ownership:** `primalist-sharpened-claws` includes a wrong-caster pet control;
+  `wisdomball-dungeon-quests` checks the interacting player's quest state without changing the summoner's state.
+- **Rank replacement:** `pyromancer-fix-4104-ascension-rank-supersede` and `runemaster-tattoo-rank-supersede`
+  verify that a superseded rank cannot apply its aura, the current rank can, and the lower aura stays absent
+  while the higher aura is active. A stat-stacking change also
+  needs its effective stat/damage assertion; checking only the learned spell list is insufficient.
+- **Cleanup:** `primalist-protectors-hand` verifies armor returns after removing all sources;
+  `primalist-sharpened-claws` covers expiry and unlearning. Runner/cache tests separately cover database ownership,
+  collisions, leases, failed audits and unstopped processes; infrastructure cleanup is part of combined verification.
+
+Keep expectations independent of implementation. Use distinguishable players/stats, positive and negative
+controls, and bounded final values; a broad “damage increased” assertion can miss double scaling. The fast tests
+inject doubled amounts, wrong-recipient values and retained auras into synthetic recorded results to prove those
+errors cannot pass verification. These checks validate the verifier, not current worldserver behavior. Source
+patterns cannot reliably establish these gameplay rules, and passing source checks is never a gameplay pass.
+
 ## Run
 
 Python 3.11+, MySQL 8 client tools, a local MySQL server and a worldserver built with the runtime component
@@ -107,11 +230,12 @@ Results default to `.cache/coa-gameplay-tests/<run-id>/`:
 - `scenario.json`: exact scenario used.
 - `worldserver.log`: process output, including startup and script errors.
 - `result.json`: server version, actual values and step outcomes.
-- `summary.json`: overall result, binary/scenario SHA-256 and any cleanup failure.
+- `summary.json`: native-stage result, binary/scenario SHA-256 and any cleanup failure.
+- `verification.json`: combined native and registered numerical verification for catalog scenarios.
 
-Exit code zero requires every expected assertion and step to complete, matching run identity, a clean server
-exit and successful cleanup/cache audit. A submitted cast alone is never a pass. Numeric fields in the server's
-property-tree JSON are strings; the Python runner converts and rechecks assertion values.
+Combined exit code zero requires every expected assertion and step to complete, matching run identity, a clean server
+exit, successful cleanup/cache audit and every registered numerical check. A submitted cast alone is never a pass.
+Numeric fields in the server's property-tree JSON are strings; the Python runner converts and rechecks assertion values.
 
 ### Linux (Docker)
 

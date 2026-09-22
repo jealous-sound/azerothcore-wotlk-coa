@@ -136,7 +136,6 @@ public:
                         Cast(player, player, 301265);
                 }
             }
-            // Charges count qualifying casts even when their Vow cannot fulfill this event.
             if (dawn->GetCharges() > 1)
                 dawn->SetCharges(dawn->GetCharges() - 1);
             else
@@ -276,7 +275,6 @@ public:
             Unit* ally = ObjectAccessor::GetUnit(*player, State(player).blessed);
             if (ally && ally->IsAlive() && ally->HasAura(Bless, player->GetGUID()) && player->IsWithinDistInMap(ally, 100))
             {
-                // Archived worked example: 2,000 healed at full mana -> 1,000 heal, 250 mana sacrificed.
                 AuraEffect const* form = player->GetAuraEffect(HolyForm,EFFECT_1);
                 uint32 extra = uint32(std::clamp(double(healing) * player->GetPower(POWER_MANA) *
                     std::max(0,form ? form->GetAmount() : Amount(HolyForm,1)) /
@@ -285,7 +283,6 @@ public:
                 if (paid && player->GetPower(POWER_MANA) >= paid)
                 {
                     player->ModifyPower(POWER_MANA, -int32(paid));
-                    // Permit this explicitly authored heal to proc Redeemer and Heat Wave, while marking recursion.
                     State(player).event = false;
                     Copy(player, ally, 807994, extra);
                     State(player).event = true;

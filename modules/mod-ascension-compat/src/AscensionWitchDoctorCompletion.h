@@ -412,5 +412,5 @@ void WardBuff(Player* player, uint32 spell);
 void ExplodeClones(Player* player);
 void SyncReplacements(Player* player);
 void ApplyContracts(SpellInfo* info);
-} // namespace AscensionWitchDoctor
+}
 #endif

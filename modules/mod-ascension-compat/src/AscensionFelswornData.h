@@ -1,5 +1,4 @@
 /* Copyright (C) 2016+ AzerothCore, GNU AGPL v3. */
-// Generated from the pinned client records by tools/Generate-FelswornCompletion.py.
 #ifndef ASCENSION_FELSWORN_DATA_H
 #define ASCENSION_FELSWORN_DATA_H
 #include "Define.h"

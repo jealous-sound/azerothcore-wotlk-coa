@@ -122,7 +122,6 @@ public:
                 {
                     uint32 stacks = marks->GetStackAmount();
                     float amount = Amount(301983, 0, player) + .35f * player->SpellBaseHealingBonusDone(SPELL_SCHOOL_MASK_SHADOW);
-                    // Native marker contributes 20% healing per owned stack; remove only after the heal.
                     Copy(player, ally, 301983, uint32(std::max(0.0f, amount)));
                     if (Aura* remaining = ally->GetAura(301982, player->GetGUID()); remaining && remaining->GetStackAmount() == stacks)
                         remaining->Remove();
@@ -334,7 +333,6 @@ class spell_ascension_cultist_resource : public SpellScript
 class spell_ascension_cultist_sanity_tap : public SpellScript
 {
     PrepareSpellScript(spell_ascension_cultist_sanity_tap);
-    // The client effect restores a percentage of maximum mana; Sanity Tap restores it from the missing mana.
     void Effect(SpellEffIndex index)
     {
         PreventHitDefaultEffect(index);
@@ -415,7 +413,7 @@ class spell_ascension_cultist_ability : public SpellScript
             }
         }
         if (id == 804779 && (effect.Effect == 174 || effect.Effect == 164))
-            PreventHitDefaultEffect(index); // The ritual's ten consenting channels, not a stale sacrifice helper.
+            PreventHitDefaultEffect(index);
     }
     void Launch(SpellEffIndex index)
     {

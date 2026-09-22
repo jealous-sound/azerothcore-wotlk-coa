@@ -122,8 +122,6 @@ class aura_ascension_pyromancer_event : public AuraScript
         if (Named(GetSpellInfo(), 504380))
         {
             float retaliation = GetSpellInfo()->Effects[1].CalcValue(player) + player->GetStat(STAT_SPIRIT) * .1f;
-            // 524623 ignores caster modifiers (it also carries Retaliation), so apply the barrier rank's own
-            // damage modifiers (Bright Flames) to the amount here.
             player->ApplySpellMod(id, SPELLMOD_DAMAGE, retaliation);
             Copy(player, target, 524623, uint32(std::clamp(retaliation, 0.0f, float(INT32_MAX / 2))));
         }
@@ -233,7 +231,7 @@ class aura_ascension_pyromancer_event : public AuraScript
         OnProc += AuraProcFn(aura_ascension_pyromancer_event::Proc);
     }
 };
-} // namespace
+}
 void AddSC_AscensionPyromancerEvents()
 {
     RegisterSpellScript(aura_ascension_pyromancer_event);

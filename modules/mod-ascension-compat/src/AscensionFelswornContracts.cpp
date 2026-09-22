@@ -16,7 +16,6 @@ void ApplyContracts(SpellInfo* info)
     if (!info || info->SpellFamilyName != 20)
         return;
     uint32 id = info->Id;
-    // Blood of Mannoroth's sole resource helper must grant all six charges, including from zero.
     if (id == MannorothFelfury)
         info->Effects[EFFECT_0].MiscValue = 6;
     auto dummy = [info](uint8 slot) {
@@ -59,10 +58,6 @@ void ApplyContracts(SpellInfo* info)
     {
         info->DurationEntry = sSpellDurationStore.LookupEntry(1);
         info->Effects[2].Effect = 0;
-        // Inner Demon is the only Felsworn button the client DBC leaves out of the shared global
-        // cooldown, so it can be recast without delay and cast during another spell's cooldown.
-        // Ruin, Felwrath, Sunder, Twin Slice and Fel Fireball all use category 133 for 1000 ms.
-        // The matching client record is produced by apps/coa-spells/inner_demon_gcd.py.
         info->StartRecoveryCategory = 133;
         info->StartRecoveryTime = 1000;
     }
@@ -104,7 +99,7 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[0].MiscValueB = AURA_STATE_HEALTH_ABOVE_75_PERCENT;
     }
     if (id == 520833)
-        dummy(1); // a damage multiplier, not a critical strike selector
+        dummy(1);
     if (id == 804610 || id == 704611 || id == 300489 || id == 803478 || id == 574146)
         dummy(0);
     if (id == 300489)
@@ -115,17 +110,16 @@ void ApplyContracts(SpellInfo* info)
         dummy(0);
     if (id == 801573)
     {
-        dummy(0), dummy(1); // exact health boundary, including the hit that crosses it
+        dummy(0), dummy(1);
         info->DurationEntry = sSpellDurationStore.LookupEntry(21);
     }
     if (id == 800220)
-        dummy(0); // preserve native radius and cooldown, select all eligible allies in the cast hook
+        dummy(0);
     if (id == 800203)
-        info->Effects[2].Effect = 0; // mana burn only after a successful interrupt
+        info->Effects[2].Effect = 0;
     if (id == BurningCommander)
     {
         periodic(1, 3000);
-        // Player checks the authored weapon set directly; native Titan's Grip adds an unrelated damage penalty.
         info->Effects[EFFECT_2].Effect = 0;
     }
     if (id == 574145)
@@ -144,7 +138,7 @@ void ApplyContracts(SpellInfo* info)
     {
         info->Effects[0].ApplyAuraName = SPELL_AURA_MOD_BASE_RESISTANCE_PCT;
         info->Effects[0].MiscValue = SPELL_SCHOOL_MASK_NORMAL;
-        info->Effects[0].MiscValueB = 6; // cloth and leather item contributions only
+        info->Effects[0].MiscValueB = 6;
     }
     if (id == 800206)
     {
@@ -175,7 +169,7 @@ void ApplyContracts(SpellInfo* info)
     if (id == 561216)
     {
         periodic(0, 500);
-        info->DurationEntry = sSpellDurationStore.LookupEntry(27); // six assaults in three seconds
+        info->DurationEntry = sSpellDurationStore.LookupEntry(27);
         info->Effects[1].Effect = 0;
         info->Effects[2].ApplyAuraName = SPELL_AURA_MECHANIC_IMMUNITY_MASK;
         info->Effects[2].MiscValue = IMMUNE_TO_MOVEMENT_IMPAIRMENT_AND_LOSS_CONTROL_MASK;
@@ -190,9 +184,9 @@ void ApplyContracts(SpellInfo* info)
     if (id == 555276)
         dummy(0);
     if (id == 560087)
-        dummy(0); // critical chance is captured by the original cast and carried to its delayed helpers
+        dummy(0);
     if (id == 807962)
-        dummy(0), dummy(1); // eligibility and the ten-second lockout are decided at debuff launch
+        dummy(0), dummy(1);
     if (id == 555277)
         info->Effects[0].MiscValue = SPELLMOD_CASTING_TIME;
     if (id == 807163)
@@ -224,7 +218,7 @@ void ApplyContracts(SpellInfo* info)
     }
     if (id == 807727)
     {
-        dummy(1); // monster-only damage penalty is evaluated with the actual victim
+        dummy(1);
         info->Effects[2].Effect = SPELL_EFFECT_APPLY_AURA;
         info->Effects[2].ApplyAuraName = SPELL_AURA_SCHOOL_ABSORB;
         info->Effects[2].MiscValue = SPELL_SCHOOL_MASK_NORMAL;
@@ -243,11 +237,11 @@ void ApplyContracts(SpellInfo* info)
         info->DurationEntry = sSpellDurationStore.LookupEntry(1);
     }
     if (id == 712483)
-        dummy(0); // target casts accumulate; expiry pays the result once
+        dummy(0);
     if (id == 707902)
         info->ProcCharges = 0;
     if (id == 707901)
-        dummy(0); // owned Fire damage at the hit boundary; keep native Fire crit vulnerability
+        dummy(0);
     if (Named(info, 704368))
         for (uint8 i = 0; i < MAX_SPELL_EFFECTS; ++i)
             if (info->Effects[i].TriggerSpell == 803717)
@@ -269,7 +263,7 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[1].Effect = 0;
     }
     if (id == 560284)
-        info->Effects[2].Effect = 0; // one summon per cast, even with several impact victims
+        info->Effects[2].Effect = 0;
     if (id == 520832)
     {
         info->Effects[0].TargetA = SpellImplicitTargetInfo(TARGET_UNIT_TARGET_ENEMY);
@@ -277,25 +271,17 @@ void ApplyContracts(SpellInfo* info)
     }
     if (id == 555742)
         info->AttributesEx2 |= SPELL_ATTR2_CANT_CRIT;
-    // "Damage caused may interrupt the effect": the disorient and its slow carry no damage interrupt
-    // flag, so no hit ever broke them. Both the placed cast and its self-centred version share the text.
     if (id == 805235 || id == 807590)
         info->AuraInterruptFlags |= AURA_INTERRUPT_FLAG_TAKE_DAMAGE;
     if (id == Unphased)
     {
-        // Effect 1 as authored is aura 107 (ADD_FLAT_MODIFIER) with SPELLMOD_EFFECT1 selecting Inner
-        // Demon's (804216) effect 0 (aura 36, MOD_SHAPESHIFT) - a value nothing reads, so the tooltip's
-        // "reduces spell pushback ... while Inner Demon is active" (#919) is otherwise unimplemented.
-        // Retarget it at a real SPELL_AURA_REDUCE_PUSHBACK on the caster; felsworn_scaling below zeroes
-        // it while Inner Demon is inactive, and aura_ascension_felsworn_lifecycle
-        // (AscensionFelswornAuras.cpp) recalculates it whenever Inner Demon is applied or removed.
         info->Effects[1].ApplyAuraName = SPELL_AURA_REDUCE_PUSHBACK;
         info->Effects[1].MiscValue = 0;
         info->Effects[1].SpellClassMask = flag96(0, 0, 0);
     }
     info->_InitializeExplicitTargetMask();
 }
-} // namespace AscensionFelsworn
+}
 
 namespace
 {
@@ -392,7 +378,7 @@ class felsworn_scaling : public UnitScript
             crit = 10000;
     }
 };
-} // namespace
+}
 void AddSC_AscensionFelswornContracts()
 {
     new felsworn_scaling();

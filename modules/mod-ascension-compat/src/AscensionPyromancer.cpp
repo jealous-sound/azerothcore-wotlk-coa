@@ -21,7 +21,7 @@ namespace
 {
 std::unordered_map<ObjectGuid, std::unique_ptr<PyromancerState>> states;
 std::mutex stateMutex;
-} // namespace
+}
 Player* Owner(Unit const* unit)
 {
     if (!unit)
@@ -34,9 +34,6 @@ Player* Owner(Unit const* unit)
 PyromancerState& State(Player* player)
 {
     std::lock_guard<std::mutex> lock(stateMutex);
-    // The map is locked for the lookup only: the caller then reads and writes the state with no
-    // lock held. Kept by pointer, the state itself never moves, so an insert for another player
-    // rehashing the map cannot leave that caller writing into freed memory.
     return *states.try_emplace(player->GetGUID(), std::make_unique<PyromancerState>()).first->second;
 }
 bool Named(SpellInfo const* info, uint32 root)
@@ -88,8 +85,6 @@ bool Chance(Player* player, uint32 id, uint32 cooldown)
     SpellInfo const* info = sSpellMgr->GetSpellInfo(id);
     if (!info || !player->HasAura(id) || State(player).timers.HasTimeUntilEvent(id))
         return false;
-    // Talents such as Heat Wave, Roasted Alive and Blessing of the Inferno raise this record's chance through
-    // SPELLMOD_CHANCE_OF_SUCCESS, the way the native proc roll (Aura::CalcProcChance) reads it.
     float chance = float(info->ProcChance);
     player->ApplySpellMod(id, SPELLMOD_CHANCE_OF_SUCCESS, chance);
     if (!roll_chance_f(std::clamp(chance, 0.0f, 100.0f)))
@@ -132,8 +127,6 @@ void Flames(Player* player, uint32 count)
     uint32 stacks = old ? old->GetStackAmount() : 0;
     if (Aura* aura = player->AddAura(FlamecastingAura, player))
     {
-        // Invocation of Flames, Brilliance and Flames of Focus raise the cap through SPELLMOD_MAX_AURA_STACKS,
-        // which SetStackAmount does not consult, so the native limit is read here.
         aura->SetStackAmount(std::min<uint32>(aura->GetSpellInfo()->CalcMaxAuraStacks(player), stacks + count));
         if (remaining >= 0)
             aura->SetDuration(remaining);
@@ -447,7 +440,7 @@ void UpdateDash(Player* player, uint32 diff)
     state.dashPrevious = player->GetPosition();
     state.dashMs = state.dashMs > diff && player->IsAlive() ? state.dashMs - diff : 0;
 }
-} // namespace AscensionPyromancer
+}
 namespace
 {
 class pyromancer_player : public PlayerScript
@@ -477,7 +470,7 @@ class pyromancer_player : public PlayerScript
         AscensionPyromancer::states.erase(player->GetGUID());
     }
 };
-} // namespace
+}
 void AddSC_AscensionPyromancer()
 {
     new pyromancer_player();

@@ -38,14 +38,10 @@ class aura_ascension_primalist_boon : public AuraScript
     {
         if (!IsPetCopy(GetUnitOwner(), GetCaster()) || effect->GetAuraType() == SPELL_AURA_DUMMY)
             return;
-        // Copy the already resolved owner amount, including Bountiful Boons and
-        // the damage shield's scaling. Do not apply those modifiers a second time.
         if (Unit* owner = GetUnitOwner()->GetOwner())
             if (Aura* original = owner->GetAura(GetId(), owner->GetGUID()))
                 if (AuraEffect const* originalEffect = original->GetEffect(effect->GetEffIndex()))
                     amount = originalEffect->GetAmount();
-        // Keep Hawk's whole-percent trigger payload. Its resolved healing is halved
-        // at the hit stage, so a 1% tick does not disappear through integer rounding.
         if (GetId() != BoonOfTheHawk || effect->GetEffIndex() != EFFECT_2)
             amount /= 2;
     }
@@ -55,8 +51,6 @@ class aura_ascension_primalist_boon : public AuraScript
         if (IsPetCopy(GetTarget(), GetCaster()))
         {
             Unit* owner = GetTarget()->GetOwner();
-            // Also reject stale saved pet auras after dismissal, a talent reset,
-            // or changing the owner's Boon while the pet was absent.
             if (!owner->HasAura(FuryOfTheWild) || !owner->HasAura(GetId(), owner->GetGUID()))
                 Remove();
             return;
@@ -66,8 +60,6 @@ class aura_ascension_primalist_boon : public AuraScript
             return;
         Pet* pet = player->GetPet();
         if (pet && pet->IsAlive() && pet->GetOwnerGUID() == player->GetGUID())
-            // Keep the copy self-owned by the pet, independent of the player's
-            // single-target aura tracking and with native pet healing attribution.
             pet->AddAura(GetId(), pet);
     }
 
@@ -134,8 +126,6 @@ class aura_ascension_lion_boon_periodic : public AuraScript
 
     void Periodic(AuraEffect const*, bool&, int32& amplitude)
     {
-        // The copied Pet SLS (505219) specifies 6000 ms, versus 3000 ms for
-        // the player SLS. Half effectiveness is half the dispel frequency.
         if (IsPetCopy(GetUnitOwner(), GetCaster()))
             amplitude *= 2;
     }

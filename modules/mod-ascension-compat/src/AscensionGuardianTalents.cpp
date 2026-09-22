@@ -31,7 +31,6 @@ void Synchronize(Player* player)
 {
     if (!player || player->getClass() != CLASS_GUARDIAN || !player->IsInWorld())
         return;
-    // Learning a temporary spell invokes the player hooks synchronously.
     static thread_local std::set<ObjectGuid> updating;
     if (!updating.insert(player->GetGUID()).second)
         return;
@@ -81,8 +80,6 @@ void Synchronize(Player* player)
     for (uint32 id : candidates)
         if (!desired.count(id))
         {
-            // Native removeSpell recursively removes higher ranks. Retain an
-            // inactive temporary lower rank while its higher rank is required.
             bool neededByHigherRank = std::any_of(desired.begin(), desired.end(), [id](uint32 rank)
             {
                 return sSpellMgr->GetFirstSpellInChain(id) == sSpellMgr->GetFirstSpellInChain(rank) &&
@@ -105,7 +102,7 @@ class guardian_talents : public PlayerScript
 public:
     guardian_talents() : PlayerScript("guardian_talents", { PLAYERHOOK_ON_UPDATE, PLAYERHOOK_ON_FORGOT_SPELL }) { }
 
-    void OnPlayerUpdate(Player* player, uint32 /*diff*/) override
+    void OnPlayerUpdate(Player* player, uint32) override
     {
         Synchronize(player);
     }

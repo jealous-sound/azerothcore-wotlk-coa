@@ -33,17 +33,13 @@ class spell_ascension_ranger_skullpiercer : public SpellScript
         return caster && caster->IsPlayer() && caster->ToPlayer()->getClass() == CLASS_RANGER;
     }
 
-    void ScaleDamage(SpellEffIndex /*effIndex*/)
+    void ScaleDamage(SpellEffIndex)
     {
         Unit* target = GetHitUnit();
         Unit* caster = GetCaster();
         if (!target || !caster)
             return;
 
-        // SQL's single AP coefficient chooses either AP or RAP. Skullpiercer
-        // explicitly needs both. Add them before native done/taken modifiers,
-        // preserving the already rolled rank amount and all hit/crit defenses.
-        // Target attack-power bonuses follow the corresponding native AP paths.
         double melee = caster->GetTotalAttackPowerValue(BASE_ATTACK);
         melee += target->GetTotalAuraModifier(SPELL_AURA_MELEE_ATTACK_POWER_ATTACKER_BONUS);
         double ranged = caster->GetTotalAttackPowerValue(RANGED_ATTACK);
@@ -51,8 +47,6 @@ class spell_ascension_ranger_skullpiercer : public SpellScript
         double bonus = 0.25 * ranged + 0.10 * melee;
         float const multiplier = caster->GetSpellAttackPowerCoefficientMultiplier(GetSpellInfo(), false);
         if (multiplier != 1.0f)
-            // Match native coefficient arithmetic before integer truncation.
-            // Promoting a float 1.15 to double would turn 200 * 1.15 into 229.
             bonus = float(bonus) * multiplier;
         if (!std::isfinite(bonus) || bonus < std::numeric_limits<int32>::min() || bonus > std::numeric_limits<int32>::max())
             return;

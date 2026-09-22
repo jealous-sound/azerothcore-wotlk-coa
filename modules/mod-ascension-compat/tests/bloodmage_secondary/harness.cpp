@@ -125,7 +125,7 @@ int main()
         spell.info.Id=800490;spell.markers.clear();player.casts.clear();
         enemy.bleeding=mask&1;enemy.health=mask&2?34:50;enemy.front=!(mask&4);
         TargetInfo hit;hook.OnSpellCalculatedTarget(&spell,&enemy,hit);
-        enemy.health=10; // Crossing the threshold during the hit must not retroactively add a condition.
+        enemy.health=10;
         hook.OnSpellHitResult(&spell,&enemy,0,100,0,false);
         auto count=player.casts.size();assert(count==uint32(bool(mask&1)+bool(mask&2)+bool(mask&4)));
         for(auto const& cast:player.casts)assert(cast.target==&enemy && cast.amount==100);

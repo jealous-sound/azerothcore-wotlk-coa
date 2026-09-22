@@ -19,8 +19,6 @@ void EnergizeTremor(Unit* caster, SpellInfo const* info, uint32 damage)
     if (caster && caster->IsPlayer() && caster->getClass() == CLASS_WILDWALKER &&
         caster->IsAlive() && damage && info && info->SpellFamilyName == 37 &&
         sSpellMgr->GetFirstSpellInChain(info->Id) == SeismicTremor)
-        // The authored energize helper applies Trembling Rage's native flat modifier.
-        // Observe resolved damage so misses, immunities and fully absorbed ticks grant no Rage.
         caster->CastSpell(caster, TremorRage, TRIGGERED_FULL_MASK);
 }
 

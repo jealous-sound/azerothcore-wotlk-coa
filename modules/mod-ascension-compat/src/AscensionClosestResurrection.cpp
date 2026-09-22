@@ -13,8 +13,6 @@
 
 namespace
 {
-// The client's death dialog offers "Closest Town" and "Closest City" and only casts these two spells.
-// CastSpellByID needs them known on the server, so every character learns them at login.
 enum ClosestResurrection : uint32
 {
     SPELL_RESURRECT_CLOSEST_TOWN = 84423,
@@ -22,7 +20,6 @@ enum ClosestResurrection : uint32
     CITY_MIN_LEVEL = 10
 };
 
-// The same terms as a Spirit Healer: half health and mana, resurrection sickness and its durability loss.
 constexpr float RESURRECT_RESTORE_PERCENT = 0.5f;
 
 struct Destination
@@ -40,21 +37,18 @@ struct Capital
     Destination destination;
 };
 
-// The `.tele` hub of each capital. The first entry of a team is used when it has no capital on the map the
-// player died on, for example in Northrend.
 constexpr std::array<Capital, 8> Capitals =
 {{
-    { TEAM_ALLIANCE, { 0, -8833.38f, 628.628f, 94.0066f, 1.06535f } },   // Stormwind
-    { TEAM_ALLIANCE, { 0, -4918.88f, -940.406f, 501.564f, 5.42347f } },  // Ironforge
-    { TEAM_ALLIANCE, { 1, 9949.56f, 2284.21f, 1341.4f, 1.59587f } },     // Darnassus
-    { TEAM_ALLIANCE, { 530, -3965.7f, -11653.6f, -138.844f, 0.852154f } }, // The Exodar
-    { TEAM_HORDE, { 1, 1629.85f, -4373.64f, 31.5573f, 3.69762f } },      // Orgrimmar
-    { TEAM_HORDE, { 1, -1277.37f, 124.804f, 131.287f, 5.22274f } },      // Thunder Bluff
-    { TEAM_HORDE, { 0, 1584.14f, 240.308f, -52.1534f, 0.041793f } },     // Undercity
-    { TEAM_HORDE, { 530, 9487.69f, -7279.2f, 14.2866f, 6.16478f } }      // Silvermoon City
+    { TEAM_ALLIANCE, { 0, -8833.38f, 628.628f, 94.0066f, 1.06535f } },
+    { TEAM_ALLIANCE, { 0, -4918.88f, -940.406f, 501.564f, 5.42347f } },
+    { TEAM_ALLIANCE, { 1, 9949.56f, 2284.21f, 1341.4f, 1.59587f } },
+    { TEAM_ALLIANCE, { 530, -3965.7f, -11653.6f, -138.844f, 0.852154f } },
+    { TEAM_HORDE, { 1, 1629.85f, -4373.64f, 31.5573f, 3.69762f } },
+    { TEAM_HORDE, { 1, -1277.37f, 124.804f, 131.287f, 5.22274f } },
+    { TEAM_HORDE, { 0, 1584.14f, 240.308f, -52.1534f, 0.041793f } },
+    { TEAM_HORDE, { 530, 9487.69f, -7279.2f, 14.2866f, 6.16478f } }
 }};
 
-// Instances and battlegrounds have their own ways back, and a Wintergrasp battle its own resurrection queue.
 bool CanResurrectHere(Player* player)
 {
     if (player->GetMap()->Instanceable())
@@ -129,7 +123,7 @@ class spell_ascension_closest_resurrection : public SpellScript
         return SPELL_CAST_OK;
     }
 
-    void Resurrect(SpellEffIndex /*effIndex*/)
+    void Resurrect(SpellEffIndex)
     {
         Player* player = GetCaster()->ToPlayer();
         std::optional<Destination> destination = FindDestination(player);
@@ -138,7 +132,6 @@ class spell_ascension_closest_resurrection : public SpellScript
 
         player->ResurrectPlayer(RESURRECT_RESTORE_PERCENT, true);
 
-        // A script can refuse the resurrection, for example a failed permadeath challenge.
         if (!player->IsAlive())
             return;
 

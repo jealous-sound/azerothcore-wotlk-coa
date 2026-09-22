@@ -117,8 +117,6 @@ void Summon(Player* player, Unit* target, uint32 spell, Position const* destinat
         if (effect.Effect == SPELL_EFFECT_SUMMON)
         {
             entry = effect.MiscValue;
-            // Destructo-Bot is a native puppet. Its summon properties arrange
-            // possession and release it on logout, transfer and despawn.
             if (spell == DestructoBot)
             {
                 properties = sSummonPropertiesStore.LookupEntry(effect.MiscValueB);
@@ -192,7 +190,7 @@ void Detonate(Player* player)
         if ((device->GetEntry() == 50045 || device->GetEntry() == 50600) && player->IsWithinDistInMap(device,60))
             device->AI()->DoAction(1);
 }
-} // namespace AscensionTinker
+}
 namespace
 {
 using namespace AscensionTinker;
@@ -209,8 +207,6 @@ struct npc_ascension_tinker_pet : PetAI
             events.Update(diff);
             if (!initialized)
             {
-                // The pet spawns passive, so it would stand beside the Tinker and never fight. Start it defensive
-                // like any other summoned pet; a stance the player picks afterwards is kept.
                 if (me->HasReactState(REACT_PASSIVE))
                     me->SetReactState(REACT_DEFENSIVE);
                 if (CharmInfo* charmInfo = me->GetCharmInfo())
@@ -252,14 +248,10 @@ struct npc_ascension_tinker_device : ScriptedAI
             return;
         owner = player->GetGUID();
         me->SetOwnerGUID(owner);
-        // Native summon-area auras enumerate m_Controlled, not our GUID index.
-        // Keep the stationary TempSummon AI while participating in that lifecycle.
         player->m_Controlled.insert(me);
         me->SetFaction(player->GetFaction());
         if (Turret(me->GetEntry()))
         {
-            // TempSummon skips SetMinion: owner GUID alone still leaves shots
-            // on the creature-vs-creature target and immunity checks.
             me->m_ControlledByPlayer = true;
             me->SetUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED);
             me->SetByteValue(UNIT_FIELD_BYTES_2, 1, player->GetByteValue(UNIT_FIELD_BYTES_2, 1));
@@ -272,9 +264,6 @@ struct npc_ascension_tinker_device : ScriptedAI
         start = previous = me->GetPosition();
         if (!Mobile())
             me->GetMotionMaster()->MoveIdle();
-        // Bomb Ready (500354) is SPELL_EFFECT_APPLY_AREA_AURA_OWNER over 60 yards with no duration, so the
-        // mine holds it and the Tinker receives it while in range. It is the caster aura Remote Detonation
-        // (801798) requires, and it lapses on its own when the mine explodes, dies or despawns.
         if (me->GetEntry() == 50045 || me->GetEntry() == 50600)
             Cast(me,me,500354);
         if (me->GetEntry() == 226312)
@@ -379,9 +368,6 @@ struct npc_ascension_tinker_device : ScriptedAI
             return target && target->IsAlive() && player->IsValidAttackTarget(target) &&
                 me->IsWithinDistInMap(target,range) && me->CanSeeOrDetect(target) && me->IsWithinLOSInMap(target);
         };
-        // The shared focus is updated by explicit hostile Tinker casts and by changes to
-        // the player's actual attack victim. It is deliberately not inferred from selection,
-        // combat membership or nearby hostility.
         if (Unit* target = ObjectAccessor::GetUnit(*me,State(player).focus); valid(target))
             return target;
         return nullptr;
@@ -399,7 +385,6 @@ struct npc_ascension_tinker_device : ScriptedAI
                 me->CastSpell(target->GetPositionX(),target->GetPositionY(),target->GetPositionZ(),706694,true);
             else
                 Cast(me,target,706689);
-            // The native timer includes ranged haste and adjusts when haste changes.
             me->resetAttackTimer(RANGED_ATTACK);
         }
     }

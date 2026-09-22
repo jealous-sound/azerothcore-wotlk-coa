@@ -40,8 +40,6 @@ struct ResourceDisplay
     char const* Name;
 };
 
-// Every aura read by Interface/FrameXML/Ascension_CoAResources. A zero display
-// maximum means the UI derives the value from Spell.dbc or specialization data.
 inline constexpr std::array<ResourceDisplay, 32> ResourceDisplays =
 {{
     {12, 805813, 10, "Barbarian resource"},
@@ -86,8 +84,6 @@ struct ResourceThresholdRule
     std::uint32_t ThresholdSpellId;
 };
 
-// Ascension uses hidden auras to make fixed-cost abilities castable. The
-// private server normally keeps them synchronized with the visible resource.
 inline constexpr std::array<ResourceThresholdRule, 7> ResourceThresholdRules =
 {{
     {14, 800058, 2, 803468},
@@ -113,13 +109,8 @@ struct ResourceGainRule
     std::uint8_t ChancePercent = 100;
 };
 
-// These active abilities advertise resource generation in their tooltips, but
-// their public Spell.dbc records contain no effect that performs it. Ranges are
-// rank chains verified against the local Ascension spell dump.
-inline constexpr std::array<ResourceGainRule, 183> ResourceGainRules =
+inline constexpr std::array<ResourceGainRule, 187> ResourceGainRules =
 {{
-    // Native helpers already supply Twin Slice, Fel Fireball, and Seeking Flame.
-    // Fel Torpedo and the current Bane variants generate through their class scripts.
     {14, 524706, 524706, 800058, 1, ResourceMutation::AuraStacks,
         ResourceGainEvent::FirstSuccessfulHostileTarget},
     {14, 805240, 805240, 800058, 1, ResourceMutation::AuraStacks,
@@ -160,7 +151,6 @@ inline constexpr std::array<ResourceGainRule, 183> ResourceGainRules =
         ResourceGainEvent::Cast, 0, 800098},
     {16, 560032, 560032, 803102, 50, ResourceMutation::AuraStacks,
         ResourceGainEvent::Cast, 0, 800098},
-    // Shock's learned-Call-Lightning gate and triggered repeat are handled by the class script.
     {16, 570138, 570141, 803102, 20, ResourceMutation::AuraStacks,
         ResourceGainEvent::FirstSuccessfulHostileTarget, 0, 800098},
     {16, 804036, 804036, 803102, 20, ResourceMutation::AuraStacks,
@@ -176,12 +166,8 @@ inline constexpr std::array<ResourceGainRule, 183> ResourceGainRules =
         ResourceGainEvent::FirstSuccessfulHostileTarget},
     {17, 680939, 680944, 500906, 1, ResourceMutation::AuraStacks,
         ResourceGainEvent::FirstSuccessfulHostileTarget},
-    // Call: Hellfire Imp already has one public-DBC stack helper, while its
-    // tooltip and private implementation grant two. This supplies the second.
     {17, 804883, 804883, 500906, 1, ResourceMutation::AuraStacks},
 
-    // Vengeance grants one additional Felfury on the first successful use of
-    // Twin Slice or Felrend, with the authored 60% proc chance.
     {14, 501257, 501261, 800058, 1, ResourceMutation::AuraStacks,
         ResourceGainEvent::FirstSuccessfulHostileTarget, 520817, 0, 60},
     {14, 547210, 547211, 800058, 1, ResourceMutation::AuraStacks,
@@ -195,8 +181,6 @@ inline constexpr std::array<ResourceGainRule, 183> ResourceGainRules =
     {14, 802405, 802409, 800058, 1, ResourceMutation::AuraStacks,
         ResourceGainEvent::FirstSuccessfulHostileTarget, 520817, 0, 60},
 
-    // Twin Fury grants one additional Felfury only when the first damaging
-    // hit of Twin Slice or Annihilan Strike critically strikes.
     {14, 501257, 501261, 800058, 1, ResourceMutation::AuraStacks,
         ResourceGainEvent::FirstCriticalDamagingHit, 801892},
     {14, 547210, 547211, 800058, 1, ResourceMutation::AuraStacks,
@@ -210,8 +194,6 @@ inline constexpr std::array<ResourceGainRule, 183> ResourceGainRules =
     {14, 801903, 801903, 800058, 1, ResourceMutation::AuraStacks,
         ResourceGainEvent::FirstCriticalDamagingHit, 801892},
 
-    // Forked Lightning is explicitly per enemy struck, while Volt gains on
-    // every periodic damage tick. Thunder Ward forbids all local Static gain.
     {16, 501438, 501441, 803102, 5, ResourceMutation::AuraStacks,
         ResourceGainEvent::EachSuccessfulHostileTarget, 0, 800098},
     {16, 582303, 582304, 803102, 5, ResourceMutation::AuraStacks,
@@ -223,14 +205,8 @@ inline constexpr std::array<ResourceGainRule, 183> ResourceGainRules =
     {16, 501403, 501411, 803102, 2, ResourceMutation::AuraStacks,
         ResourceGainEvent::PeriodicDamageTick, 0, 800098},
 
-    // Tempest advertises a flat Static gain and carries no record that performs it. Electrocute,
-    // Gale, Brine and Lightning Cage belong here too, but their rules already sit further up in
-    // this table. Charge (804826) is left alone: its own record already grants 100.
     {16, 803002, 803002, 803102, 10, ResourceMutation::AuraStacks,
         ResourceGainEvent::Cast, 0, 800098},
-    // Megawatt Missile and Stormforged Strike state 20 Static as well and carry only damage effects.
-    // Thunder Orb, Stormcloak, Thunder King and Volt's helper are left alone: their records trigger a
-    // working "Add N Static" helper of their own.
     {16, 500045, 500045, 803102, 20, ResourceMutation::AuraStacks,
         ResourceGainEvent::FirstSuccessfulHostileTarget, 0, 800098},
     {16, 501476, 501484, 803102, 20, ResourceMutation::AuraStacks,
@@ -238,8 +214,6 @@ inline constexpr std::array<ResourceGainRule, 183> ResourceGainRules =
     {16, 500193, 500193, 803102, 20, ResourceMutation::AuraStacks,
         ResourceGainEvent::FirstSuccessfulHostileTarget, 0, 800098},
 
-    // Carver adds a second Demonfire only when any learned Gore rank
-    // critically damages its target.
     {17, 805555, 805555, 500906, 1, ResourceMutation::AuraStacks,
         ResourceGainEvent::FirstCriticalDamagingHit, 707390},
     {17, 680939, 680944, 500906, 1, ResourceMutation::AuraStacks,
@@ -262,7 +236,6 @@ inline constexpr std::array<ResourceGainRule, 183> ResourceGainRules =
     {21, 520227, 520227, 804329, 2, ResourceMutation::AuraStacks},
     {21, 573243, 573246, 804329, 2, ResourceMutation::AuraStacks},
     {21, 806345, 806345, 804329, 2, ResourceMutation::AuraStacks},
-    // Captured Falconstrike ranks 2-8 specify one Advantage; rank 1 explicitly specifies two.
     {21, 806437, 806443, 804329, 1, ResourceMutation::AuraStacks},
     {21, 803104, 803104, 804329, 2, ResourceMutation::AuraStacks},
     {21, 803852, 803852, 804329, 2, ResourceMutation::AuraStacks},
@@ -275,7 +248,6 @@ inline constexpr std::array<ResourceGainRule, 183> ResourceGainRules =
     {24, 500649, 500652, 807389, 50, ResourceMutation::AuraStacks},
     {24, 535650, 535651, 807389, 30, ResourceMutation::AuraStacks},
     {24, 582762, 582764, 807389, 30, ResourceMutation::AuraStacks},
-    // The copied invocation already grants three Embers through native triggers.
     {24, 802119, 802119, 807533, 2, ResourceMutation::AuraStacks},
 
     {24, 502020, 502031, 807389, 10, ResourceMutation::AuraStacks,
@@ -297,7 +269,6 @@ inline constexpr std::array<ResourceGainRule, 183> ResourceGainRules =
     {24, 502011, 502019, 807389, 20, ResourceMutation::AuraStacks},
     {24, 800806, 800806, 807389, 30, ResourceMutation::AuraStacks},
     {24, 502044, 502052, 807389, 30, ResourceMutation::AuraStacks},
-    // Sunstrider Array doubles Cinderheart's ordinary 30 Heat gain.
     {24, 800806, 800806, 807389, 30, ResourceMutation::AuraStacks,
         ResourceGainEvent::Cast, 804230},
     {24, 502044, 502052, 807389, 30, ResourceMutation::AuraStacks,
@@ -375,17 +346,11 @@ inline constexpr std::array<ResourceGainRule, 183> ResourceGainRules =
     {29, 0, 0, 804972, 1, ResourceMutation::AuraStacks,
         ResourceGainEvent::PeriodicDamageTick, 706036, 0, 10},
 
-    // Every current Soul Strike rank grants one Reaped Soul on a landed
-    // strike, including an absorbed hit. The old heal helper's Fragment text
-    // predates the visible ability; Soul Collector changes only Reap.
     {30, 500517, 500521, 500363, 1, ResourceMutation::AuraStacks,
         ResourceGainEvent::FirstSuccessfulHostileTarget},
     {30, 500646, 500646, 500363, 1, ResourceMutation::AuraStacks,
         ResourceGainEvent::FirstSuccessfulHostileTarget},
 
-    // Soul Fragment's public helper depends on private custom effect 183.
-    // Add the aura stack directly and let the compatibility service perform
-    // the three-fragments-to-one-soul conversion.
     {30, 500357, 500357, 805077, 1, ResourceMutation::AuraStacks,
         ResourceGainEvent::FirstSuccessfulDamagingHit},
     {30, 500357, 500357, 355461, 1, ResourceMutation::TriggerSpell,
@@ -406,6 +371,14 @@ inline constexpr std::array<ResourceGainRule, 183> ResourceGainRules =
         ResourceGainEvent::FirstSuccessfulDamagingHit},
     {30, 573302, 573303, 355461, 1, ResourceMutation::TriggerSpell,
         ResourceGainEvent::FirstSuccessfulDamagingHit},
+    {30, 505170, 505170, 805077, 1, ResourceMutation::AuraStacks,
+        ResourceGainEvent::FirstSuccessfulDamagingHit},
+    {30, 505170, 505170, 355461, 1, ResourceMutation::TriggerSpell,
+        ResourceGainEvent::FirstSuccessfulDamagingHit},
+    {30, 505326, 505326, 805077, 1, ResourceMutation::AuraStacks,
+        ResourceGainEvent::FirstSuccessfulDamagingHit},
+    {30, 505326, 505326, 355461, 1, ResourceMutation::TriggerSpell,
+        ResourceGainEvent::FirstSuccessfulDamagingHit},
     {30, 801328, 801328, 355461, 1, ResourceMutation::TriggerSpell,
         ResourceGainEvent::FirstSuccessfulHostileTarget},
     {30, 803834, 803839, 355461, 1, ResourceMutation::TriggerSpell,
@@ -422,12 +395,8 @@ inline constexpr std::array<ResourceGainRule, 183> ResourceGainRules =
         ResourceGainEvent::FirstSuccessfulDamagingHit},
     {30, 806818, 806824, 500363, 3, ResourceMutation::AuraStacks,
         ResourceGainEvent::FirstSuccessfulDamagingHit},
-    // Sinister Litany's public DBC triggers Reaped Soul twice; the tooltip
-    // and private behavior grant three, so only the missing third is local.
     {30, 805185, 805185, 500363, 1, ResourceMutation::AuraStacks},
 
-    // Murder's current conditional tooltip grants a whole soul only with
-    // Soul Collector; its critical Soul Generator bonus remains independent.
     {30, 500376, 500376, 500363, 1, ResourceMutation::AuraStacks,
         ResourceGainEvent::FirstSuccessfulHostileTarget, 706731},
     {30, 502679, 502684, 500363, 1, ResourceMutation::AuraStacks,
@@ -451,15 +420,11 @@ inline constexpr std::array<ResourceGainRule, 183> ResourceGainRules =
     {30, 567531, 567532, 500363, 1, ResourceMutation::AuraStacks,
         ResourceGainEvent::FirstCriticalDamagingHit, 704552},
 
-    // Deathwind grants once when the cloud is cast, including an empty area;
-    // repeated field applications and leech ticks cannot generate more souls.
     {30, 800174, 800174, 500363, 1, ResourceMutation::AuraStacks,
         ResourceGainEvent::Cast},
     {30, 502989, 502994, 500363, 1, ResourceMutation::AuraStacks,
         ResourceGainEvent::Cast},
 
-    // Current Earthshaping identity uses cast events; Geode's +1 amount is
-    // reconstructed from helper 681264, whose older hit wording is superseded.
     {31, 500402, 500402, 680441, 1, ResourceMutation::AuraStacks,
         ResourceGainEvent::Cast, 92149},
     {31, 502769, 502777, 680441, 1, ResourceMutation::AuraStacks,
@@ -481,9 +446,6 @@ inline constexpr std::array<ResourceGainRule, 183> ResourceGainRules =
     {31, 807432, 807432, 680441, 1, ResourceMutation::AuraStacks,
         ResourceGainEvent::Cast, 92149},
 
-    // Wand of Time's own tooltip advertises Echo Fragment generation once Echo Fragments (92120) is
-    // known, but its public Spell.dbc record has no effect that performs it. Rank 1 (520175) is a
-    // standalone id; ranks 2-7 (520702-520707) are one contiguous chain (spell_ranks).
     {22, 520175, 520175, 804455, 1, ResourceMutation::AuraStacks,
         ResourceGainEvent::EachSuccessfulDamagingHit, 92120},
     {22, 520702, 520707, 804455, 1, ResourceMutation::AuraStacks,
@@ -502,9 +464,6 @@ struct NativePowerGainRule
     std::uint32_t ForbiddenAuraSpellId = 0;
 };
 
-// Rage and Runic Power are represented internally in tenths. These Reaper
-// abilities describe fixed gains, but their public DBC records omit the
-// energize effect that Ascension's private server applies.
 inline constexpr std::array<NativePowerGainRule, 13> NativePowerGainRules =
 {{
     {19, 0, 0, 3, 10, ResourceGainEvent::PeriodicDamageTick, 301253},
@@ -514,17 +473,6 @@ inline constexpr std::array<NativePowerGainRule, 13> NativePowerGainRules =
         ResourceGainEvent::FirstSuccessfulHostileTarget, 704680},
     {23, 707911, 707911, 6, 200,
         ResourceGainEvent::FirstSuccessfulHostileTarget, 704680},
-    // Scythe Rush (500359) deliberately keeps no row here. Its hit adapter
-    // casts helper 805339, whose own energize effect grants the same 150
-    // tenths and logs the SPELL_ENERGIZE event this table's ModifyPower never
-    // produced. A row would stack a second silent grant on top of it.
-    // Soulrend's amount is a placeholder. Its tooltip says "generates Runic
-    // Power" without an amount, the public changelog never stated one, and the
-    // retained live logs contain no energize event for it (the gain was applied
-    // silently); spend-over-cap windows only bound it from below. 150 matches
-    // the class's other builders until a live value is confirmed; do not
-    // advertise it as official parity. 573320 is the armor-debuff aura and is
-    // deliberately excluded from the ranges.
     {30, 572341, 572342, 6, 150,
         ResourceGainEvent::FirstSuccessfulHostileTarget},
     {30, 573316, 573319, 6, 150,
@@ -535,8 +483,6 @@ inline constexpr std::array<NativePowerGainRule, 13> NativePowerGainRules =
         ResourceGainEvent::FirstSuccessfulHostileTarget},
     {30, 802422, 802428, 6, 200,
         ResourceGainEvent::FirstSuccessfulHostileTarget},
-    // Seismic Spike/Crash use their authored energize helpers in
-    // AscensionPrimalistSeismicResources so talent modifiers apply without a second fixed grant.
     {31, 680442, 680442, 1, 10, ResourceGainEvent::EachSuccessfulDamagingHit},
     {31, 681114, 681117, 1, 10, ResourceGainEvent::EachSuccessfulDamagingHit},
     {31, 680442, 680442, 1, 10, ResourceGainEvent::PeriodicDamageTick},
@@ -555,9 +501,6 @@ struct ResourceCostRule
     std::uint8_t PreserveCostChancePercent = 0;
 };
 
-// Rules marked None still receive a local power check, but their public DBC
-// effect already performs the spend. Fixed and All replace private-server
-// consumption that is absent from the public DBC.
 inline constexpr std::array<ResourceCostRule, 59> ResourceCostRules =
 {{
     {14, 801904, 801904, 800058, 2, ResourceConsumption::Fixed,

@@ -1,4 +1,3 @@
-"""Compile actual Power Sphere summon, hit, movement and explosion callbacks."""
 import os
 from pathlib import Path
 import re

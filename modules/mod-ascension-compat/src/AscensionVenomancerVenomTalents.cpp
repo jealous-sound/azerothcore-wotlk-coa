@@ -40,9 +40,6 @@ void NormalizeVenomics(SpellInfo* info)
         !IsSelfModifier(info->Effects[EFFECT_1], SPELL_AURA_DUMMY, 1, 0, flag96(0, 0, 0)))
         return;
 
-    // ALL_EFFECTS scales raw amounts, including the two authored E1 payloads.
-    // BONUS_MULTIPLIER separately scales SP/BH coefficients added later by native
-    // bonus calculation; neither modifier multiplies completed healing/damage.
     info->Effects[EFFECT_0].MiscValue = SPELLMOD_ALL_EFFECTS;
     SpellEffectInfo& coefficient = info->Effects[EFFECT_1];
     coefficient.ApplyAuraName = SPELL_AURA_ADD_PCT_MODIFIER;
@@ -150,8 +147,6 @@ void ExtendOwnSpore(Player* player, Unit* target)
                 maximum > std::numeric_limits<int32>::max() - SPORE_EXTENSION)
                 continue;
 
-            // Native tick budget reads max duration. Keep its phase/tick number
-            // and snapshot, while extending both the budget and remaining life.
             aura->SetMaxDuration(maximum + SPORE_EXTENSION);
             aura->SetDuration(remaining + SPORE_EXTENSION);
         }
@@ -183,11 +178,10 @@ public:
             RefreshMycosisModifiers(player);
     }
 
-    void OnAuraRemove(Unit* unit, AuraApplication* application, AuraRemoveMode /*mode*/) override
+    void OnAuraRemove(Unit* unit, AuraApplication* application, AuraRemoveMode) override
     {
         Player* player = Venomancer(unit);
         Aura* aura = application ? application->GetBase() : nullptr;
-        // Unit's hook follows native removal of all talent spell modifiers.
         if (player && aura && aura->GetCasterGUID() == player->GetGUID() && IsIntoxicating(aura->GetSpellInfo()))
             RefreshMycosisModifiers(player);
     }
@@ -215,12 +209,12 @@ class spell_ascension_venomancer_intoxicating_mycosis : public SpellScript
         return IsMycosis(info);
     }
 
-    void ResetHit(SpellMissInfo /*miss*/)
+    void ResetHit(SpellMissInfo)
     {
         _damageEffectHit = false;
     }
 
-    void RecordHit(SpellEffIndex /*index*/)
+    void RecordHit(SpellEffIndex)
     {
         _damageEffectHit = true;
     }

@@ -1,4 +1,3 @@
-// The runner inserts production queue, reward and loadout methods into this isolated backend.
 #include "AscensionManastormRules.h"
 #include "AscensionManastormProtocol.h"
 #include "AscensionManastormGadgets.h"
@@ -261,7 +260,7 @@ std::chrono::seconds GetGameTime()
 {
     return std::chrono::seconds(100000);
 }
-} // namespace GameTime
+}
 struct Objects
 {
     uint32 next = 100;
@@ -497,7 +496,6 @@ int main(int argc, char** argv)
     s.SetLoadout(&player, loadout, 0, 0);
     assert(CharacterDatabase.Commit(s.transactions.back()));
     assert(loadout.slots[0] == 0);
-    // Exercise real completion and persistence with no buff, potion, aura, and combined bonuses.
     uint32 guid = 100;
     for (auto const& [multiplier, firstXP, repeatXP] :
          {std::tuple{1.0f, 75u, 60u}, {1.25f, 93u, 75u}, {1.5f, 112u, 90u}, {1.875f, 140u, 112u}})
@@ -507,7 +505,7 @@ int main(int argc, char** argv)
         boosted.xpMultiplier = multiplier;
         Run& rewardRun = s.runs[boosted.guid];
         s.Complete(&boosted, rewardRun);
-        boosted.xpMultiplier = 1.0f; // Expiry while the transaction is in flight must not change the reward.
+        boosted.xpMultiplier = 1.0f;
         assert(CharacterDatabase.Commit(s.transactions.back()));
         assert(CharacterDatabase.xp[boosted.guid.value] == firstXP && rewardRun.pendingXP == firstXP);
         boosted.xpMultiplier = multiplier;

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check Vitality Surge's 25% chance per effective heal."""
+CLI_DESCRIPTION = """Check Vitality Surge's 25% chance per effective heal."""
 
 import argparse
 import json
@@ -35,6 +35,6 @@ def check(directory):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument('result_directory', type=Path)
     check(parser.parse_args().result_directory)

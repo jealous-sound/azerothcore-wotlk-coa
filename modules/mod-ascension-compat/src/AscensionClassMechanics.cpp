@@ -412,8 +412,6 @@ void AddGuardianCenturionPolearmTargets(Spell* spell, Player* player)
                 GUARDIAN_CENTURION_POLEARM_DEPTH)
             continue;
 
-        // Only the two weapon-damage effects are copied. The caster-only
-        // Motivation-duration helper must still execute exactly once.
         spell->AddUnitTargetForScript(candidate,
             GUARDIAN_CENTURION_DAMAGE_EFFECT_MASK, true, true);
     }
@@ -452,8 +450,6 @@ void ApplyRangerEludeExitEffects(Player* player, bool removedByDeath)
         player->HasAura(SPELL_RANGER_ELUDE) || !player->HasAura(SPELL_RANGER_ELUSIVE_CHARACTER))
         return;
 
-    // The native removal hook runs after the old aura is detached. Keep the
-    // authored amount/duration on the proc aura instead of duplicating them.
     player->CastSpell(player, SPELL_RANGER_ELUSIVE_CHARACTER_EFFECTS, true);
 }
 
@@ -466,8 +462,6 @@ void RefreshRangerEludePenalty(Player* player)
     if (!penalty || penalty->GetAuraType() != SPELL_AURA_MOD_DECREASE_SPEED)
         return;
 
-    // CoA changelog 71881 replaces the old non-stacking speed bonus with
-    // removal of Elude's own penalty. Other slows and speed buffs stay native.
     if (player->HasAura(SPELL_RANGER_FOREST_DWELLER))
         penalty->ChangeAmount(0);
     else
@@ -489,8 +483,6 @@ void ApplyTinkerScrapperContract(SpellInfo* spellInfo)
         (tick.TriggerSpell == SPELL_TINKER_GENERATE_TWENTY_SCRAP ||
             tick.TriggerSpell == SPELL_TINKER_GENERATE_TEN_SCRAP))
     {
-        // Preserve the channel cadence and separate mana tick; only its
-        // resource payload differs from the authored ten Scrap per tick.
         tick.TriggerSpell = SPELL_TINKER_GENERATE_TEN_SCRAP;
     }
     else
@@ -525,10 +517,6 @@ void ApplyTinkerScrapResourceContract(SpellInfo* spellInfo)
         }
     }
 
-    // These copied resource markers otherwise register wildcard damage mods:
-    // +1002 flat and +10% per stored Scrap. Keep all stack-scaled amounts,
-    // especially effect 0 / 1000 used by the capacity tooltip, without creating
-    // combat modifiers. Actual Scrap spending and generation keep their aura ID.
     for (SpellEffectInfo& effect : spellInfo->Effects)
         effect.ApplyAuraName = SPELL_AURA_DUMMY;
 }
@@ -546,9 +534,6 @@ void ApplyRangerFixedDurationContract(SpellInfo* spellInfo)
         (duration.SpellClassMask == flag96(16777280, 0, 1048704) ||
             duration.SpellClassMask == flag96(16777216, 0, 1048704)))
     {
-        // Changelog 71878/71880: Rusty Shiv and Guise no longer gain duration
-        // from Advantage. The only other spell with this bit is instant
-        // Pick Pocket (Sticky Fingers), which has no duration or aura.
         duration.SpellClassMask = flag96(16777216, 0, 1048704);
     }
     else
@@ -645,8 +630,6 @@ void ApplyRangerInstinctualCombatantContract(SpellInfo* spellInfo)
             attackPower.BasePoints == 9 && attackPower.DieSides == 1 &&
             attackPower.TargetA.GetTarget() == TARGET_UNIT_CASTER && attackPower.TargetB.GetTarget() == 0 &&
             (attackPower.SpellClassMask == flag96(16, 0, 8) || attackPower.SpellClassMask == flag96(16, 0, 0)))
-            // Only Instinct's melee AP percentage. The old extra bit also
-            // modified Battle Screech and this talent's own crit helper.
             attackPower.SpellClassMask = flag96(16, 0, 0);
         else
             LOG_ERROR("module.ascension_compat", "Skipped unexpected Instinctual Combatant talent record {}", spellInfo->Id);
@@ -664,9 +647,6 @@ void ApplyRangerInstinctualCombatantContract(SpellInfo* spellInfo)
         (criticalChance.SpellClassMask == flag96(0, 134250498, 0) ||
             criticalChance.SpellClassMask == flag96(0, 134250496, 0)))
     {
-        // Talent 707319 promises three Skullpiercer or Assault casts. Let the
-        // native charged spell modifier own consumption, refresh and expiry.
-        // Assaulted is a separate triggered spell, not another promised cast.
         spellInfo->ProcCharges = 3;
         criticalChance.SpellClassMask = flag96(0, 134250496, 0);
     }
@@ -679,6 +659,18 @@ void ApplyAdditionalTargetContracts(SpellInfo* spellInfo)
     if (!spellInfo)
         return;
 
+    enum AdditionalTargetSpells : uint32
+    {
+        AdvantageQuills = 801429,
+        AerialAssault = 705068,
+        PulsarExplosionRankOne = 704794,
+        PulsarExplosionRankTwo = 707894,
+        GoodVenom = 680797,
+        Lifemender = 706477,
+        PropheticSpeaker = 706956,
+        Earthsplitter = 806081
+    };
+
     struct Contract
     {
         uint32 SpellId;
@@ -689,14 +681,14 @@ void ApplyAdditionalTargetContracts(SpellInfo* spellInfo)
     };
     static constexpr std::array<Contract, 8> contracts =
     {{
-        {801429, 27, EFFECT_1, 0, {{0, 4, 0}}},     // Advantage: Quills
-        {705068, 27, EFFECT_2, 1, {{512, 0, 0}}},    // Aerial Assault
-        {704794, 32, EFFECT_0, 0, {{0, 128, 0}}},    // Pulsar Explosion, rank 1
-        {707894, 32, EFFECT_0, 1, {{0, 128, 0}}},    // Pulsar Explosion, rank 2
-        {680797, 35, EFFECT_0, 0, {{0, 0, 524288}}}, // Good Venom
-        {706477, 35, EFFECT_0, 4, {{4194304, 0, 0}}}, // Lifemender
-        {706956, 35, EFFECT_1, 4, {{0, 0, 8}}},      // Prophetic Speaker
-        {806081, 24, EFFECT_2, 0, {{16, 0, 0}}}     // Earthsplitter
+        {AdvantageQuills, 27, EFFECT_1, 0, {{0, 4, 0}}},
+        {AerialAssault, 27, EFFECT_2, 1, {{512, 0, 0}}},
+        {PulsarExplosionRankOne, 32, EFFECT_0, 0, {{0, 128, 0}}},
+        {PulsarExplosionRankTwo, 32, EFFECT_0, 1, {{0, 128, 0}}},
+        {GoodVenom, 35, EFFECT_0, 0, {{0, 0, 524288}}},
+        {Lifemender, 35, EFFECT_0, 4, {{4194304, 0, 0}}},
+        {PropheticSpeaker, 35, EFFECT_1, 4, {{0, 0, 8}}},
+        {Earthsplitter, 24, EFFECT_2, 0, {{16, 0, 0}}}
     }};
 
     for (Contract const& contract : contracts)
@@ -715,9 +707,6 @@ void ApplyAdditionalTargetContracts(SpellInfo* spellInfo)
             effect.TargetB.GetTarget() == 0 &&
             effect.SpellClassMask == flag96(contract.Mask[0], contract.Mask[1], contract.Mask[2]))
         {
-            // These uncharged target-count modifiers match the native area/cone
-            // aura contract. Do not send operation 34 through the client's
-            // ordinary modifier packet: its family-bit stride is only 31.
             effect.ApplyAuraName = SPELL_AURA_MOD_MAX_AFFECTED_TARGETS;
         }
         else
@@ -747,8 +736,6 @@ void ApplyRangerForestDwellerContract(SpellInfo* spellInfo)
         return;
     }
 
-    // The old modifier adds movement speed through 524862 and would retain
-    // the superseded bonus alongside the correctly removed slow.
     obsoleteSpeed.Effect = 0;
     obsoleteSpeed.ApplyAuraName = SPELL_AURA_NONE;
 }
@@ -775,14 +762,9 @@ void ApplyRangerOffensiveSpellContracts(SpellInfo* spellInfo)
             return;
         }
 
-        // Usable from Elude still means the offensive cast leaves stealth.
-        // Native prepare removes cast/attack-interrupted auras after validation;
-        // triggered ticks and helpers retain their native interruption exemption.
         spellInfo->AttributesEx &= ~SPELL_ATTR1_ALLOW_WHILE_STEALTHED;
         if (toxicDart)
         {
-            // The visible rank promises its own poison plus the 807821 silence.
-            // 681293 is a second poison (Toxishot), not that silence helper.
             helper.TriggerSpell = 807821;
         }
     }
@@ -792,8 +774,6 @@ void ApplyRangerOffensiveSpellContracts(SpellInfo* spellInfo)
         SpellEffectInfo const& stealth = spellInfo->Effects[EFFECT_1];
         if (stealth.Effect == SPELL_EFFECT_APPLY_AURA && stealth.ApplyAuraName == SPELL_AURA_MOD_STEALTH)
         {
-            // Woodland Adept's actual stealth carrier only had a shapeshift
-            // interrupt flag, letting its stealth survive attacks after Elude ended.
             spellInfo->AuraInterruptFlags |= AURA_INTERRUPT_FLAG_CAST |
                 AURA_INTERRUPT_FLAG_MELEE_ATTACK | AURA_INTERRUPT_FLAG_SPELL_ATTACK;
         }
@@ -843,8 +823,6 @@ void HandleRangerAdvantageCast(Spell* spell, Player* player)
         amount = 1;
     else if (IsRangerHuntingShot(spellId))
     {
-        // Hunting Shot retains one gain per ricochet target. The user's local
-        // rule includes failed hit rolls; the native list already deduplicates targets.
         for (TargetInfo const& target : *spell->GetUniqueTargetInfo())
             if (target.targetGUID != player->GetGUID())
                 ++amount;
@@ -892,8 +870,6 @@ bool DidRangerAdvantageConsumerSucceed(Spell* spell, Player const* player)
             return true;
     }
 
-    // Self-only spenders have no hostile target that can miss, dodge, or
-    // parry. Empty source-area casts are also successful casts.
     return !hasExternalTarget;
 }
 
@@ -956,13 +932,11 @@ void HandleRangerAdvantageSpent(Player* player, uint8 amount)
 
 namespace
 {
-// Custom classes 12-32 own spell families 18-38.
 bool IsCustomClassFamily(uint32 family)
 {
     return family >= 18 && family <= 38;
 }
 
-// Spells whose client name or rank carries the word "deprecated" (or the client's "depreacated" typo).
 bool HasDeprecatedWord(char const* text)
 {
     if (!text)
@@ -980,9 +954,6 @@ bool HasDeprecatedWord(char const* text)
     return false;
 }
 
-// Some copied records use bow inventory type 15 when their subclass mask requires a crossbow (type 26), and
-// Tormentor ranks pair ranged subclasses with off-hand type 22. Keep the subclass restriction and add only the
-// inventory types that can hold those ranged subclasses.
 uint32 RepairedRangedInventoryMask(int32 itemClass, uint32 subclassMask, uint32 inventoryMask)
 {
     uint32 const rangedSubclasses = (1 << 2) | (1 << 3) | (1 << 16) | (1 << 18) | (1 << 19);
@@ -1006,7 +977,6 @@ struct ClientSpellCharge
     uint32 Category;
 };
 
-// SpellCharges.dbc links a spell to a SpellChargesCategory.dbc row holding its charge count and recharge time.
 std::unordered_map<uint32, ClientSpellCharge> const& ClientSpellCharges()
 {
     static std::unordered_map<uint32, ClientSpellCharge> const charges = []
@@ -1048,7 +1018,6 @@ std::unordered_map<uint32, ClientSpellCharge> const& ClientSpellCharges()
     return charges;
 }
 
-// Ranks of one ability share a charge pool keyed by their first rank.
 uint32 ChargeRankRoot(uint32 spellId)
 {
     static std::unordered_map<uint32, uint32> const roots = []
@@ -1071,7 +1040,6 @@ void ApplyClientSpellCharges(SpellInfo* spellInfo)
 
     uint32 const root = ChargeRankRoot(spellInfo->Id);
     uint32 recoveryMs = charge->second.RecoveryMs;
-    // Runeblade's tooltip reads "3 Charges, 6 sec recharge"; its client charge category 110 recharges in 5 seconds.
     if (root == 707141 && charge->second.Category == 110 && charge->second.Maximum == 3 && recoveryMs == 5000)
         recoveryMs = 6000;
 
@@ -1130,7 +1098,7 @@ void ApplyAscensionClassMechanics(SpellInfo* spellInfo)
     ApplyRangerForestDwellerContract(spellInfo);
     ApplyAscensionSunClericRadianceContracts(spellInfo);
 
-    if (spellInfo->Id == 504144) // Bannerman
+    if (spellInfo->Id == 504144)
     {
         SpellEffectInfo& effect = spellInfo->Effects[EFFECT_0];
         if (spellInfo->SpellFamilyName == uint32(CLASS_GUARDIAN) + 6 &&
@@ -1138,8 +1106,6 @@ void ApplyAscensionClassMechanics(SpellInfo* spellInfo)
             effect.ApplyAuraName == SPELL_AURA_ADD_FLAT_MODIFIER &&
             effect.MiscValue == SPELLMOD_EFFECT3 && effect.SpellClassMask == flag96(0, 0, 0x00100000))
         {
-            // The banner's old all-summon damage modifier cannot distinguish the
-            // initial Valiance pulse. Its owner-aware script consumes this amount.
             effect.ApplyAuraName = SPELL_AURA_DUMMY;
         }
         else
@@ -1175,8 +1141,6 @@ void ApplyAscensionClassMechanics(SpellInfo* spellInfo)
             effect.ApplyAuraName == SPELL_AURA_PROC_TRIGGER_SPELL &&
             effect.TriggerSpell == SPELL_RANGER_BOUNTY_HUNTER_DEBUFF)
         {
-            // The copied proc flag incorrectly binds this talent to ordinary
-            // melee swings. The exact Flank/Rusty event is dispatched below.
             spellInfo->ProcFlags = PROC_FLAG_NONE;
         }
         else
@@ -1200,8 +1164,6 @@ void SynchronizeAscensionClassMechanics(Player* player)
     if (!player || !IsAscensionClass(player->getClass()))
         return;
 
-    // The user subsequently authorized removal of already learned deprecated
-    // class spells. This flag is explicit DBC evidence, not snapshot absence.
     std::vector<uint32> obsolete;
     for (auto const& [spellId, playerSpell] : player->GetSpellMap())
     {
@@ -1281,8 +1243,6 @@ void HandleAscensionClassMechanicsCalculatedTarget(Spell* spell, Player* player,
         if (!primary || targetInfo.targetGUID != primary->GetGUID())
             return;
 
-        // A polearm stabs the primary target an additional time. Secondary
-        // units behind it receive one copy of the weapon-damage effects.
         targetInfo.damage *= 2;
         targetInfo.damageBeforeTakenMods *= 2;
         return;
@@ -1291,7 +1251,7 @@ void HandleAscensionClassMechanicsCalculatedTarget(Spell* spell, Player* player,
 
 void HandleAscensionClassMechanicsHit(Spell* spell, Player* player,
     Unit* target, std::uint8_t missInfo, std::uint32_t damage,
-    std::uint32_t /*healing*/, bool critical)
+    std::uint32_t, bool critical)
 {
     if (!spell || !player || !target || missInfo != SPELL_MISS_NONE)
         return;
@@ -1303,8 +1263,6 @@ void HandleAscensionClassMechanicsHit(Spell* spell, Player* player,
     HandleAscensionClassMechanics26To32Hit(spell, player, target, missInfo,
         damage, critical);
 
-    // The remaining contracts apply only to an offensive target. Several
-    // abilities also have a separate caster-target helper in the same cast.
     if (target == player || player->IsFriendlyTo(target))
         return;
 
@@ -1312,9 +1270,6 @@ void HandleAscensionClassMechanicsHit(Spell* spell, Player* player,
     if (player->getClass() == CLASS_RANGER)
         HandleRangerBountyHunterHit(player, target, spellId, damage);
 
-    // The adapters above deliberately admit their exact triggered children
-    // (including Rusty Shiv, Solar Flare, and Dirge). The remaining contracts
-    // retain the non-triggered-cast boundary.
     if (spell->IsTriggered())
         return;
 
@@ -1325,8 +1280,6 @@ void HandleAscensionClassMechanicsHit(Spell* spell, Player* player,
             target == spell->GetOriginalTarget() &&
             spell->TryMarkScriptEventHandled(GUARDIAN_CENTURION_SWORD_EVENT))
         {
-            // The copied helper contains SPELL_EFFECT_ADD_EXTRA_ATTACKS with
-            // an exact amount of three after the normal weapon-damage hit.
             player->CastSpell(player,
                 SPELL_GUARDIAN_CENTURION_SWORD_ATTACKS, true);
         }
@@ -1369,9 +1322,6 @@ void HandleAscensionClassMechanicsHit(Spell* spell, Player* player,
 
     if (player->getClass() == CLASS_CULTIST && IsCultistTwilightShieldtoss(spellId))
     {
-        // The copied active ranks put the authored slow helper in a DUMMY
-        // target effect. Ascension's private dispatcher invokes it for each
-        // successful bounce; stock AzerothCore otherwise drops that slot.
         player->CastSpell(target, SPELL_CULTIST_TWILIGHT_SHIELDTOSS_SLOW, true);
         return;
     }
@@ -1381,7 +1331,6 @@ void HandleAscensionClassMechanicsHit(Spell* spell, Player* player,
 
     HandleRangerQuiverHit(player, target, spell->GetSpellInfo(), damage);
 
-    // Only Archery Master's additional point requires an actual critical hit.
     if (IsRangerQuickShot(spellId) && critical && player->HasAura(SPELL_RANGER_ARCHERY_MASTER) &&
         spell->TryMarkScriptEventHandled(RANGER_ARCHERY_MASTER_EVENT))
         AddRangerAdvantage(player, 1);
@@ -1404,19 +1353,11 @@ void HandleAscensionClassMechanicsCast(Spell* spell)
     if (player->getClass() == CLASS_RANGER &&
         info->CasterAuraSpell == SPELL_RANGER_ADVANTAGE)
     {
-        // CoA refunds the full spend when every external target missed,
-        // dodged, or parried. Delayed missiles already have their launch-time
-        // miss condition in the target list, so consumption can remain here.
         if (!DidRangerAdvantageConsumerSucceed(spell, player))
             return;
 
-        // "Used with five" also includes casts whose stacks Elven Tactics preserves.
         HandleAscensionRangerStonemason(spell, player);
 
-        // Ascension's private proc service applies this hidden passive after
-        // every successful Advantage consumer. AzerothCore does not generate a
-        // proc entry for it because its copied DBC ProcFlags are zero. Preserve
-        // Elven Tactics by applying its native chance spellmod to the helper.
         float consumeChance = 100.0f;
         player->ApplySpellMod(SPELL_RANGER_ADVANTAGE_DECREMENT_PASSIVE,
             SPELLMOD_CHANCE_OF_SUCCESS, consumeChance, spell);
@@ -1435,17 +1376,13 @@ void HandleAscensionClassMechanicsCast(Spell* spell)
         return;
 
     uint32 firstRank = sSpellMgr->GetFirstSpellInChain(info->Id);
-    if (firstRank == 800316) // Reprisal, all seven verified ranks
+    if (firstRank == 800316)
     {
-        // The block-ready window remains usable until its native aura expires;
-        // the separate rechargeable pool now prevents unlimited attacks.
-        // Valiance already adds 20 through the native Effect1 spell modifier on
-        // this helper's family mask. Casting twice would incorrectly grant 80.
         player->CastSpell(player, 500175, true);
     }
-    else if (IsGuardianCenturionStrike(info->Id) && player->HasAura(504140)) // Centurion Strike / Supremacy
+    else if (IsGuardianCenturionStrike(info->Id) && player->HasAura(504140))
     {
-        player->CastSpell(player, 504143, true); // Native category-54 restore + block-ready trigger
+        player->CastSpell(player, 504143, true);
     }
 
     uint32 spellId = info->Id;
@@ -1523,7 +1460,6 @@ void HandleAscensionClassMechanicsBlock(Player* player)
     if (!player || player->getClass() != CLASS_GUARDIAN)
         return;
 
-    // A full block also restores Energy; damage taken is not required.
     if (player->HasAura(SPELL_GUARDIAN_RAISE_SHIELD))
         player->CastSpell(player, SPELL_GUARDIAN_RAISE_SHIELD_ENERGIZE, true);
 

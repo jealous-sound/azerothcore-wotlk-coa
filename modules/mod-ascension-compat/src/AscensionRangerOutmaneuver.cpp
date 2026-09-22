@@ -132,7 +132,6 @@ struct npc_ascension_outmaneuver_decoy : ScriptedAI
         elapsed = 0;
         Player* player = me->GetCharmerOrOwnerPlayerOrPlayerItself();
         Aura* window = player ? player->GetAura(SPELL_DECOY_WINDOW, player->GetGUID()) : nullptr;
-        // Awaiting the initial teleport acknowledgement must not erase the marker.
         if (!player || !player->IsAlive() || !player->IsInWorld() || player->GetMap() != me->GetMap() ||
             !player->InSamePhase(me) || !player->HasActiveSpell(SPELL_OUTMANEUVER) || !window ||
             window->GetScriptValue(NPC_OUTMANEUVER_DECOY) != me->GetGUID().GetRawValue())
@@ -164,8 +163,6 @@ class spell_ascension_outmaneuver : public SpellScript
         WorldLocation const* destination = GetExplTargetDest();
         if (!CanManeuver(player) || !target || target != GetExplTargetUnit() || !GetHitAura() || !destination)
             return;
-        // The captured summon uses TARGET_DEST_TARGET_ENEMY: leave the decoy
-        // beneath the enemy, independently of its later movement.
         TempSummon* decoy = player->SummonCreature(NPC_OUTMANEUVER_DECOY, target->GetPosition(),
             TEMPSUMMON_MANUAL_DESPAWN);
         if (!decoy)
@@ -190,7 +187,6 @@ class spell_ascension_outmaneuver : public SpellScript
             player->RemoveAurasDueToSpell(SPELL_DECOY_WINDOW, player->GetGUID());
             return;
         }
-        // Retain the native target-relative teleport destination.
         Position teleportDestination = *destination;
         player->NearTeleportTo(teleportDestination, true);
     }
@@ -287,7 +283,6 @@ class spell_ascension_decoy_strike : public SpellScript
         {
             _departure = decoy->GetPosition();
             _return = true;
-            // Killing the marked enemy must not cancel this cast's return.
             window->SetScriptValue(SPELL_DECOY_STRIKE, 1);
         }
     }

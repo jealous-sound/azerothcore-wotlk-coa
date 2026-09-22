@@ -21,14 +21,11 @@ public:
     {
         if (info->Id == DouseDamage && info->Effects[EFFECT_0].Effect == SPELL_EFFECT_SCHOOL_DAMAGE)
         {
-            // The active 807558 description uses its own zero base plus 8% AP.
-            // The copied Warlock helper's flat 87 damage and curse description are obsolete.
             info->Effects[EFFECT_0].BasePoints = -1;
             info->Effects[EFFECT_0].DieSides = 1;
         }
         if (info->Id == Doused && info->SpellFamilyName == 37 &&
             info->Effects[EFFECT_1].IsAura(SPELL_AURA_MOD_DAMAGE_PERCENT_TAKEN))
-            // Increase magic damage taken by two percent, rather than reducing it.
             info->Effects[EFFECT_1].BasePoints = 1;
     }
 };

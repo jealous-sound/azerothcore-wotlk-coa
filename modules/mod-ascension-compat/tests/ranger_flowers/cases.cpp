@@ -59,7 +59,7 @@ int main()
     ally.position = owner.position;
     targets = {&ally, &owner};
     pickup.SelectAlly(targets);
-    assert(targets == std::list<WorldObject*>{&owner}); // Stable tie, no second pickup.
+    assert(targets == std::list<WorldObject*>{&owner});
     owner.alive = false;
     targets = {&ally};
     pickup.SelectAlly(targets);
@@ -123,7 +123,7 @@ int main()
     highlander.Snapshot();
     highlander.Consume();
     assert(!owner.HasAura(712427));
-    highlander.Hit(); // Delayed impact after the aura was consumed still debuffs once.
+    highlander.Hit();
     assert(owner.casts.back() == 712428);
     count = owner.casts.size();
     highlander.Hit();

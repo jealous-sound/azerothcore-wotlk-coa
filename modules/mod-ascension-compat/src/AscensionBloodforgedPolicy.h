@@ -7,8 +7,6 @@
 
 namespace Bloodforged
 {
-// Configurable realm tuning; these are not recovered Ascension drop rates.
-// Each value counts outcomes out of 10,000; one roll selects at most one quality.
 using Rates = std::array<unsigned, 3>;
 constexpr std::array<Rates, 5> DefaultRates = {{{450, 50, 0}, {400, 100, 0},
     {380, 140, 15}, {360, 180, 25}, {340, 220, 40}}};
@@ -40,7 +38,6 @@ constexpr unsigned RollQuality(unsigned roll, Rates const& rates)
 
 constexpr bool EligibleItem(unsigned requiredLevel, unsigned itemLevel, unsigned targetLevel)
 {
-    // Keep the original requirements. Never downscale level 70/80 definitions.
     return targetLevel >= 15 && targetLevel <= 60
         && requiredLevel <= targetLevel && requiredLevel <= 60
         && itemLevel > 0 && itemLevel <= (targetLevel == 60 ? 92 : targetLevel + 10);

@@ -1,4 +1,4 @@
-"""Exercise Wind Gate's actual summon, acquisition, target checks and charge metadata."""
+CLI_DESCRIPTION = """Exercise Wind Gate's actual summon, acquisition, target checks and charge metadata."""
 import argparse
 import importlib.util
 from pathlib import Path
@@ -150,7 +150,7 @@ def load(name, path):
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument("--workspace-tools", type=Path, default=ROOT.parent / "tools")
     parser.add_argument("--spell-dbc", type=Path)
     args = parser.parse_args()
@@ -238,7 +238,6 @@ def main():
             old, strings = tool.dbc.read(raw, len(captured[0]))
             new, new_strings = tool.dbc.read(output, len(captured[0]))
             assert new[:len(old)] == old and new_strings[:len(strings)] == strings
-            # Recheck the refactored shared merger's existing Runemaster callers in memory.
             rune = tool.dbc.transform(raw, table)
             assert tool.dbc.transform(rune, table) == rune
     print("PASS: Wind Gate placement/ownership, ally pull guards, temporary ability, native charges and data")

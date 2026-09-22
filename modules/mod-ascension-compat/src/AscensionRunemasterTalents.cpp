@@ -33,9 +33,6 @@ void SyncStonePetroglyph(Player* player)
         player->CastSpell(player, 712310, true);
 }
 
-// Palm Sigil (805380/805381/805382) gates its cast on CasterAuraSpell 808089, a marker spell
-// literally named "Runeshroud or Waveforged" that nothing else ever grants, making it permanently
-// uncastable. Mirror the real Runeshroud/Waveforged state onto it instead.
 void SyncRuneshroudOrWaveforged(Player* player)
 {
     bool active = player->HasAura(500288, player->GetGUID()) || player->HasAura(705565, player->GetGUID());
@@ -50,7 +47,6 @@ constexpr uint32 SPELL_PERMAFROST_MARKER = 807114;
 constexpr uint32 SPELL_RUNESHROUD = 500288;
 constexpr int32 PERMAFROST_PLAYER_DURATION = 8000;
 
-// Permafrost Rune: 8 sec against players, 80% reduced cooldown while in Runeshroud.
 void ApplyPermafrostAura(Unit* unit, Aura* aura)
 {
     uint32 id = aura->GetId();
@@ -93,7 +89,6 @@ public:
 
     void OnAuraRemove(Unit* unit, AuraApplication* application, AuraRemoveMode mode) override
     {
-        // The marker aura must not outlive the rune that damage or dispels ended early.
         if (unit && application && application->GetBase()->GetId() == SPELL_PERMAFROST_RUNE)
             unit->RemoveAurasDueToSpell(SPELL_PERMAFROST_MARKER, application->GetBase()->GetCasterGUID());
         Player* player = unit ? unit->ToPlayer() : nullptr;
@@ -116,14 +111,11 @@ void ApplyAscensionRunemasterTalentContracts(SpellInfo* info)
 {
     if (info->Id == SPELL_PERMAFROST_RUNE)
     {
-        // "Damage taken will end the effect."
         info->AuraInterruptFlags |= AURA_INTERRUPT_FLAG_TAKE_DAMAGE;
         return;
     }
     if (info->Id != 712310 || info->SpellFamilyName != 38)
         return;
-    // The native periodic heal and effect-98 immunity already exist. Complete
-    // knockback immunity for the separate destination-based effect as well.
     auto& effect = info->Effects[EFFECT_1];
     effect.Effect = SPELL_EFFECT_APPLY_AURA;
     effect.ApplyAuraName = SPELL_AURA_EFFECT_IMMUNITY;

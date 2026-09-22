@@ -67,5 +67,5 @@ bool Daytime();
 void SunGate(Player* player);
 void Valkyr(Player* player, Unit* target, bool dawn = false, bool fulfillment = false);
 void ApplyContracts(SpellInfo* info);
-} // namespace AscensionSunCleric
+}
 #endif

@@ -24,7 +24,6 @@ void ReduceRankCooldowns(Player* player, uint32 firstRank, int32 delta)
     if (!player || delta >= 0)
         return;
     std::vector<uint32> cooldowns;
-    // Shared categories store an entry per rank. Update the active rank as well.
     for (auto const& entry : player->GetSpellCooldownMap())
         if (sSpellMgr->GetFirstSpellInChain(entry.first) == firstRank)
             cooldowns.push_back(entry.first);
@@ -77,8 +76,6 @@ class spell_ascension_protector_of_the_grove : public SpellScript
     void Reduce(SpellEffIndex index)
     {
         PreventHitDefaultEffect(index);
-        // The visible talent takes one second from effect zero for all three cooldowns.
-        // The copied helper's other slots still contain obsolete half-second values.
         int32 delta = GetSpellInfo()->Effects[EFFECT_0].CalcValue(GetCaster());
         ReduceRankCooldowns(GetHitPlayer(), GetSpellInfo()->Effects[index].MiscValue, delta);
     }
@@ -102,8 +99,6 @@ class spell_ascension_thanes_guidance : public SpellScript
     void Reduce(SpellEffIndex index)
     {
         PreventHitDefaultEffect(index);
-        // The unused middle slot contains zero, which native effect 165 treats
-        // as a full Earthen Avatar reset. The tooltip names only Hammer and Rush.
         if (index != EFFECT_0 && index != EFFECT_2)
             return;
         ReduceRankCooldowns(GetHitPlayer(), GetSpellInfo()->Effects[index].MiscValue, GetEffectValue());
@@ -129,7 +124,6 @@ class spell_ascension_spiritbound_cooldowns : public SpellScript
     {
         PreventHitDefaultEffect(index);
         ReduceRankCooldowns(GetHitPlayer(), GetSpellInfo()->Effects[index].MiscValue, GetEffectValue());
-        // Grasp shares the Seismic cooldown but was added after this three-slot helper.
         if (index == EFFECT_0)
             ReduceRankCooldowns(GetHitPlayer(), SeismicGrasp, GetEffectValue());
     }
@@ -155,8 +149,6 @@ class spell_ascension_rupturer_lance : public SpellScript
     void Reduce(SpellEffIndex index)
     {
         PreventHitDefaultEffect(index);
-        // The beam always triggers its helper, but the cooldown benefit requires Rupturer.
-        // Lithic Lance consumes its readiness window before generating new Earthshaping.
         if (GetCaster()->HasAura(Rupturer))
             ReduceRankCooldowns(GetHitPlayer(), TerrasurgeFirst, GetEffectValue());
     }

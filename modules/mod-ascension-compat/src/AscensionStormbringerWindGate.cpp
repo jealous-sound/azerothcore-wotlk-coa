@@ -158,7 +158,6 @@ class spell_ascension_wind_gate : public SpellScript
         player->ApplySpellMod(SPELL_WIND_GATE, SPELLMOD_DURATION, duration);
         if (!destination || duration <= 0 || !player->HasActiveSpell(SPELL_WIND_GATE))
             return;
-        // A stationary TempSummon avoids the native Guardian's forced follow.
         TempSummon* gate = player->SummonCreature(NPC_WIND_GATE, *destination,
             TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, uint32(duration));
         if (!gate)
@@ -196,8 +195,6 @@ class spell_ascension_wind_gate_evacuate : public SpellScript
         Player* player = GetCaster()->ToPlayer();
         Unit* target = GetHitUnit();
         if (CanEvacuate(player, target))
-            // The helper's destination is its caster. Cast from the owned gate,
-            // retaining the native pull effect and movement handling.
             GetWindGate(player)->CastSpell(target, SPELL_EVACUATE_PULL, true);
     }
 
@@ -244,7 +241,7 @@ public:
         if (info->SpellFamilyName != 22)
             return;
         if (info->Id == SPELL_WIND_GATE)
-            info->Effects[EFFECT_1].Effect = 0; // The stationary summon owns the gate; the copied area dummy is inert.
+            info->Effects[EFFECT_1].Effect = 0;
     }
 };
 }

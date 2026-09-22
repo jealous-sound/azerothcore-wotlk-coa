@@ -68,7 +68,6 @@ public:
         if (info->Id == ThanesRage && info->SpellFamilyName == 37 &&
             info->Effects[EFFECT_0].IsAura(SPELL_AURA_MOD_TOTAL_STAT_PERCENTAGE) &&
             info->Effects[EFFECT_0].MiscValue == STAT_STAMINA)
-            // The tooltip grants a flat amount derived from Strength, not a percentage of Stamina.
             info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_MOD_STAT;
     }
 };

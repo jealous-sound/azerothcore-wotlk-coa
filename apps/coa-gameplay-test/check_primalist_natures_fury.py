@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-"""Verify Nature's Fury proc frequency and nominal mana restored per native hit."""
 
 import json
 import math
@@ -18,7 +17,6 @@ def check(directory):
     trials, successes = values['swings'], values['procs']
     if trials < 200 or not 0 < successes < trials or values['proc_damage'] <= 0:
         raise ValueError('Insufficient native attacks or positive proc damage')
-    # Exact two-sided binomial test of the independently authored 20% tooltip rate.
     masses = [math.comb(trials, k) * 0.2 ** k * 0.8 ** (trials - k) for k in range(trials + 1)]
     probability = sum(mass for mass in masses if mass <= masses[successes] * (1 + 1e-12))
     if probability < 0.001:

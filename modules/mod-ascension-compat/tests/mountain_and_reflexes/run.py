@@ -1,4 +1,4 @@
-"""Exercise actual Mountain/Reflexes scripts and the native dodge calculation."""
+CLI_DESCRIPTION = """Exercise actual Mountain/Reflexes scripts and the native dodge calculation."""
 import argparse
 import importlib.util
 from pathlib import Path
@@ -57,7 +57,7 @@ constexpr int GLOBALHOOK_ON_LOAD_SPELL_CUSTOM_ATTR = 1;
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument("--workspace-tools", type=Path, default=ROOT.parent / "tools")
     parser.add_argument("--spell-dbc", type=Path)
     args = parser.parse_args()

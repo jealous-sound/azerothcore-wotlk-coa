@@ -65,7 +65,7 @@ class aura_ascension_sun_cleric_lifecycle : public AuraScript
                     blocks += talent->GetAmount();
                 GetAura()->SetCharges(uint8(std::clamp(blocks,1,255)));
             }
-            GetAura()->SetUsingCharges(false); // Only landed blocks consume a charge, inside our event route.
+            GetAura()->SetUsingCharges(false);
         }
         if (id == 680888)
             GetAura()->SetUsingCharges(false);
@@ -204,7 +204,7 @@ class aura_ascension_sun_cleric_lifecycle : public AuraScript
                 ReducePercent(player,806477,std::abs(Amount(301176,1)));
         }
         if (id == 572752 || id == 704930 || id == 807080)
-            PreventDefaultAction(); // The active aura's removal owns its delayed action, exactly once.
+            PreventDefaultAction();
         if (id == 570125 && slot == 2)
         {
             PreventDefaultAction();
@@ -285,7 +285,6 @@ class aura_ascension_rejuvenating_rays : public AuraScript
         if (effect->GetEffIndex() != EFFECT_0 || ++_seconds < 10)
             return;
 
-        // Remove every disease after ten continuous seconds in this caster's field.
         std::vector<std::pair<uint32, ObjectGuid>> diseases;
         for (auto const& entry : target->GetAppliedAuras())
             if (!entry.second->IsPositive() && entry.second->GetBase()->GetSpellInfo()->Dispel == DISPEL_DISEASE)

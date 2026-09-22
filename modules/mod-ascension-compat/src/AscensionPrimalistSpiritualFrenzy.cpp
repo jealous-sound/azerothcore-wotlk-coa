@@ -69,7 +69,6 @@ class aura_ascension_spiritual_frenzy_pet : public AuraScript
         PreventDefaultAction();
         Unit* pet = GetTarget();
         std::list<Unit*> units;
-        // Nearby means ordinary melee reach; every extra victim gets its own native hit and mitigation rolls.
         float radius = pet->GetCombatReach() + NOMINAL_MELEE_RANGE;
         Acore::AnyUnitInObjectRangeCheck check(pet, radius);
         Acore::UnitListSearcher<Acore::AnyUnitInObjectRangeCheck> search(pet, units, check);

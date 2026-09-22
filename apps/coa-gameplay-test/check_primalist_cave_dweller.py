@@ -1,4 +1,3 @@
-"""Check native armor penetration rating against the authored Intellect percentage."""
 import json
 import sys
 from pathlib import Path

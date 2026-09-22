@@ -42,7 +42,6 @@ bool IsCombatSymbiosisAura(SpellInfo const* spellInfo)
 
 void NormalizeCombatSymbiosisCharges(SpellInfo* spellInfo)
 {
-    // The native login loader discards saved charges unless SpellInfo has them.
     if (IsCombatSymbiosisAura(spellInfo) && !spellInfo->ProcCharges)
         spellInfo->ProcCharges = 20;
 }
@@ -85,8 +84,6 @@ class aura_ascension_tinker_combat_symbiosis : public AuraScript
         if (!GetUnitOwner() || !GetCasterGUID().IsPlayer())
             return false;
 
-        // A valid recipient's short aura can outlive the remote Tinker's grid
-        // presence or session. Do not require that caster to remain resolvable.
         Unit* caster = GetCaster();
         Player* player = caster ? caster->ToPlayer() : nullptr;
         return !caster || (player && player->getClass() == CLASS_TINKER);
@@ -114,14 +111,10 @@ class aura_ascension_tinker_combat_symbiosis : public AuraScript
             return;
 
         uint64 amount = uint64(damage->GetDamage()) * uint32(effect->GetAmount()) / 100;
-        // Each positive damage event spends its native charge, even when the
-        // heal rounds to zero. Preserve CalcValue's signed float boundary.
         if (!amount || double(float(amount)) > double(std::numeric_limits<int32>::max()))
             return;
 
         Unit* recipient = GetTarget();
-        // Explicit original caster avoids the triggered-aura fallback to the
-        // remote Tinker. Native ally selection centers on this damage dealer.
         recipient->CastCustomSpell(SPELL_COMBAT_SYMBIOSIS_HEAL, SPELLVALUE_BASE_POINT0,
             int32(amount), recipient, true, nullptr, effect, recipient->GetGUID());
     }

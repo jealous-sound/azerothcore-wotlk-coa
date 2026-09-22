@@ -41,13 +41,10 @@ void PhoenixCommand(Player* player, Unit* target, bool dive)
             phoenix->AI()->DoAction(dive ? 1 : 2);
         }
 }
-} // namespace AscensionPyromancer
+}
 namespace
 {
 using namespace AscensionPyromancer;
-// Phoenix Egg 712290 carries the 5000 ms tick as a periodic effect that is never cast, so the creature schedules its own
-// heals. Burning Crescendo shortens that tick through SPELLMOD_ACTIVATION_TIME, which the core reads only when it builds
-// a periodic aura, so the modifier is applied here on every reschedule and a talent learned mid-life still counts.
 Milliseconds PhoenixPeriod(Player* player)
 {
     SpellInfo const* info = sSpellMgr->GetSpellInfo(712290);
@@ -202,7 +199,7 @@ struct npc_ascension_pyromancer_summon : public ScriptedAI
         timers.ScheduleEvent(1, next);
     }
 };
-} // namespace
+}
 void AddSC_AscensionPyromancerSummons()
 {
     RegisterCreatureAI(npc_ascension_pyromancer_summon);

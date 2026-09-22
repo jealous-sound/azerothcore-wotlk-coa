@@ -27,14 +27,10 @@ void ApplyContracts(SpellInfo* info)
     if (!info || info->SpellFamilyName != 34)
         return;
     uint32 id = info->Id;
-    // Overcharged is a beacon-only one-use guard. The native exclusion field also applies it on hit, and it has
-    // no duration, so any spell keeping the field leaves it stuck on the player it hits.
     if (info->ExcludeTargetAuraSpell == 560711)
         info->ExcludeTargetAuraSpell = 0;
     if (id == 707495)
     {
-        // The former duplicate pet Synergy payload is now supplied by 707278.
-        // This hidden, normally saved dummy retains the selected Module across login.
         info->Effects[0].Effect = SPELL_EFFECT_APPLY_AURA;
         info->Effects[0].ApplyAuraName = SPELL_AURA_DUMMY;
         info->Effects[0].TargetA = SpellImplicitTargetInfo(TARGET_UNIT_CASTER);
@@ -110,8 +106,6 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_PERIODIC_DUMMY;
     if (id == 573054)
     {
-        // The lifecycle tick selects enemies around the recipient; damage belongs
-        // to the Tinker, so its coefficient and threat redirection use that caster.
         info->Effects[EFFECT_0].TargetA = SpellImplicitTargetInfo(TARGET_UNIT_TARGET_ENEMY);
         info->Effects[EFFECT_0].TargetB = SpellImplicitTargetInfo();
     }
@@ -122,7 +116,7 @@ void ApplyContracts(SpellInfo* info)
         info->DurationEntry = sSpellDurationStore.LookupEntry(21);
     }
     if (Named(info,504519))
-        info->Effects[1].Effect = 0; // The owned turret distributes the summon damage field.
+        info->Effects[1].Effect = 0;
     if (id == 560757)
         for (auto& effect : info->Effects)
             if (effect.Effect)
@@ -142,16 +136,12 @@ void ApplyContracts(SpellInfo* info)
         dummy(1);
     }
     if (id == 653232)
-        info->Effects[0].MiscValue = 21003; // Existing native creature-type critical chance consumer.
+        info->Effects[0].MiscValue = 21003;
     if (id == 680999)
     {
         info->Effects[0].MiscValue = SPELL_SCHOOL_MASK_NORMAL;
         info->DurationEntry = sSpellDurationStore.LookupEntry(21);
     }
-    // Nano-Repair Tech's periodic heal regenerates the Tinker and the pet in one triggered cast. A
-    // TARGET_UNIT_PET on TargetA makes the native pet-presence check reject the whole cast while no guardian
-    // pet exists, which also drops the caster's own share; a Tinker running devices but no permanent pet
-    // therefore received nothing. The same pet is selected from TargetB, which that check does not read.
     if (id == 681516 && info->Effects[EFFECT_1].TargetA.GetTarget() == TARGET_UNIT_PET)
     {
         info->Effects[EFFECT_1].TargetA = SpellImplicitTargetInfo();
@@ -160,13 +150,13 @@ void ApplyContracts(SpellInfo* info)
     if (id == 801744)
         for (auto& effect : info->Effects)
             if (effect.Effect)
-                effect.Effect = SPELL_EFFECT_DUMMY; // The delayed location snapshot owns both phases.
+                effect.Effect = SPELL_EFFECT_DUMMY;
     if (id == 707244 || id == 707256)
         for (uint8 slot = 0; slot < MAX_SPELL_EFFECTS; ++slot)
             if (info->Effects[slot].Effect)
                 dummy(slot);
     if (Named(info,500232))
-        dummy(2); // The old blanket caster critical aura is not Rocket Launcher's conditional rule.
+        dummy(2);
     if (Named(info,805351))
         info->Effects[2].Effect = 0;
     if (id == 807966 || id == 704475)
@@ -213,17 +203,13 @@ void ApplyContracts(SpellInfo* info)
             effect.TargetA = SpellImplicitTargetInfo(TARGET_UNIT_TARGET_ALLY);
     }
     if (id == 706692)
-        info->Effects[1].Effect = 0; // Retain native turret appearance until an exact upgraded display is recovered.
+        info->Effects[1].Effect = 0;
     if (id == 705792)
     {
-        info->Effects[0].Effect = 0; // Device crit/hit inheritance is applied explicitly with owner scope.
+        info->Effects[0].Effect = 0;
         info->Effects[1].ApplyAuraName = SPELL_AURA_MOD_CRIT_PCT;
         info->Effects[2].ApplyAuraName = SPELL_AURA_ASCENSION_MOD_HIT_CHANCE_ALL_PCT;
     }
-    // Flak Guns authors its "increased critical damage" half as a flat modifier, but the consumer of
-    // SPELLMOD_CRIT_DAMAGE_BONUS applies it to the absolute critical bonus, so the flat form added 15 raw
-    // damage instead of scaling the bonus by 15%. Only the second effect is rewritten; the first one is a
-    // critical strike chance modifier, which is already consumed as percentage points.
     if (id == 520686 && info->Effects[EFFECT_1].ApplyAuraName == SPELL_AURA_ADD_FLAT_MODIFIER &&
         info->Effects[EFFECT_1].MiscValue == SPELLMOD_CRIT_DAMAGE_BONUS)
         info->Effects[EFFECT_1].ApplyAuraName = SPELL_AURA_ADD_PCT_MODIFIER;
@@ -247,8 +233,6 @@ void ApplyContracts(SpellInfo* info)
                 effect.TargetA = SpellImplicitTargetInfo(TARGET_UNIT_TARGET_ALLY);
                 effect.TargetB = SpellImplicitTargetInfo();
             }
-    // Shield Beacon pulses its armor helper at each ally. Persistent area auras need a dynamic object the beacon
-    // never creates, so the helper applied nothing; apply the aura to the ally directly.
     if (id == 801256 || (id >= 803804 && id <= 803808))
         for (auto& effect : info->Effects)
             if (effect.Effect == SPELL_EFFECT_PERSISTENT_AREA_AURA)
@@ -258,11 +242,11 @@ void ApplyContracts(SpellInfo* info)
                 effect.TargetB = SpellImplicitTargetInfo();
             }
     if (id == 560709 || id == 560710)
-        info->Effects[1].Effect = 0; // The exact beacon, not the player, stores its one-use guard.
+        info->Effects[1].Effect = 0;
     if (id == 561267)
-        info->Effects[1].Effect = 0; // The explicit pet mana restoration is independent of heal modifiers.
+        info->Effects[1].Effect = 0;
     if (id == 524903)
-        info->Effects[1].Effect = 0; // Consume only the triggering owner's mark.
+        info->Effects[1].Effect = 0;
     if (id == 578335)
         info->Attributes |= SPELL_ATTR0_NO_IMMUNITIES;
     if (id == 801982 || id == 802477 || id == 500601 || id == 806074 || id == 706648 || id == 802336)
@@ -270,7 +254,6 @@ void ApplyContracts(SpellInfo* info)
         info->Speed = 0;
         info->Attributes |= SPELL_ATTR0_ALLOW_CAST_WHILE_DEAD;
     }
-    // The device AI selects the complete explosion set once. Each helper is one selected hit.
     if (id == 801982 || id == 802477 || id == 500601 || id == 806074 || id == 706648 ||
         id == 802336 || id == 712680 || id == 561269)
         for (auto& effect : info->Effects)
@@ -288,7 +271,7 @@ void ApplyContracts(SpellInfo* info)
         }
     info->_InitializeExplicitTargetMask();
 }
-} // namespace AscensionTinker
+}
 namespace
 {
 using namespace AscensionTinker;

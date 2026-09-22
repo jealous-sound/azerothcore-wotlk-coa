@@ -50,7 +50,6 @@ public:
             return;
         if (info->Id == JourneyGround && info->Effects[EFFECT_1].TriggerSpell == CragDamage)
         {
-            // The authored ground object owns the visual; its burst is delayed once per cast.
             info->Effects[EFFECT_1].Effect = 0;
             info->Effects[EFFECT_1].TargetA = SpellImplicitTargetInfo(0);
             info->Effects[EFFECT_1].TargetB = SpellImplicitTargetInfo(0);
@@ -60,7 +59,6 @@ public:
             SpellInfo const* ground = sSpellMgr->GetSpellInfo(JourneyGround);
             if (!ground)
                 return;
-            // Both damage and the owner-specific Earthquake debuff use the same five victims.
             info->MaxAffectedTargets = ground->MaxAffectedTargets;
             for (SpellEffIndex index : {EFFECT_0, EFFECT_1})
             {
@@ -100,7 +98,6 @@ class spell_ascension_journey_ground : public SpellScript
             if (!player || !player->IsInWorld() || !player->IsAlive() ||
                 player->GetMapId() != map || player->GetInstanceId() != instance || player->GetPhaseMask() != phase)
                 return;
-            // Capture the ground position, not the original victim, so moving out avoids the explosion.
             player->CastSpell(location.GetPositionX(), location.GetPositionY(), location.GetPositionZ(),
                 CragDamage, true);
         }, Milliseconds(std::max(1, GetSpellInfo()->GetDuration())));

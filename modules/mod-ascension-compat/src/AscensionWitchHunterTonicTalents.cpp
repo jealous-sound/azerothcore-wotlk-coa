@@ -78,8 +78,6 @@ class spell_ascension_witch_hunter_tonic_supply : public SpellScript
 
         for (uint32 id : WITCH_HUNTER_TONIC_CASTS)
         {
-            // Category cooldowns have entries for the other ranks too. Leave
-            // the consumed family intact, and reduce each other entry once.
             uint32 otherRoot = GetWitchHunterTonicRoot(sSpellMgr->GetSpellInfo(id));
             if (!otherRoot || otherRoot == consumedRoot)
                 continue;

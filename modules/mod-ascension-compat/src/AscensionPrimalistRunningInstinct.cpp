@@ -29,7 +29,6 @@ class spell_ascension_running_instinct : public SpellScript
     {
         Unit* caster = GetCaster();
         if (caster->HasAura(RunningInstinct, caster->GetGUID()))
-            // Select allies from the starting position, before the forward charge moves the caster.
             caster->CastSpell(caster, RunningInstinctHeal, TRIGGERED_FULL_MASK);
     }
 
@@ -77,7 +76,6 @@ public:
             info->AttributesCu |= SPELL_ATTR0_CU_CONE_LINE;
         else if (info->Id == RunningInstinctDamage)
         {
-            // Keep the authored masks and include the later Wildclaw/Seismic spell families.
             info->Effects[EFFECT_0].SpellClassMask[0] |= 65;
             info->Effects[EFFECT_0].SpellClassMask[2] |= 263168;
             info->Effects[EFFECT_1].SpellClassMask[0] |= 64;

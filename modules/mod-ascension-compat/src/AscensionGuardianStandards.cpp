@@ -112,9 +112,9 @@ struct npc_ascension_guardian_standard : ScriptedAI
         }
     }
 
-    void AttackStart(Unit* /*target*/) override { }
-    void MoveInLineOfSight(Unit* /*target*/) override { }
-    void EnterEvadeMode(EvadeReason /*why*/) override { }
+    void AttackStart(Unit*) override { }
+    void MoveInLineOfSight(Unit*) override { }
+    void EnterEvadeMode(EvadeReason) override { }
 
     void IsSummonedBy(WorldObject* summoner) override
     {
@@ -130,21 +130,16 @@ struct npc_ascension_guardian_standard : ScriptedAI
         me->SetFaction(owner->GetFaction());
         me->SetLevel(owner->GetLevel());
         me->SetReactState(REACT_PASSIVE);
-        // A Standard is a banner, not a combatant: enemies cannot attack it and keep to its Guardian.
         me->SetUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
         me->GetMotionMaster()->Clear();
         me->GetMotionMaster()->MoveIdle();
-        // The native area-aura owner is the stationary standard, not the player.
-        // Keep this caster GUID so range/cleanup and multiple owners stay native.
         me->CastSpell(me, contract->field, true);
-        // "Active Standards" is an owner area aura: carried by the standard, it marks its Guardian, and
-        // Reclaim Standards requires that marker (CasterAuraSpell) to be castable.
         me->CastSpell(me, STANDARD_ACTIVE_MARKER, true);
         RefreshTalents(owner);
         events.ScheduleEvent(STANDARD_OWNER_CHECK, Milliseconds(STANDARD_OWNER_CHECK_MS));
     }
 
-    void JustDied(Unit* /*killer*/) override
+    void JustDied(Unit*) override
     {
         me->RemoveAllAuras();
         ForgetStandard(ownerGuid, me->GetGUID());
@@ -192,8 +187,6 @@ class spell_ascension_guardian_standard : public SpellScript
         owner->ApplySpellMod(GetSpellInfo()->Id, SPELLMOD_DURATION, duration);
         if (duration <= 0)
             return;
-        // Do not use SummonProperties 61: the stock Guardian path forces Follow
-        // after IsSummonedBy, making a banner follow its owner like a pet.
         if (TempSummon* standard = owner->SummonCreature(contract->creature, *destination,
                 TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, uint32(duration)))
         {
@@ -204,8 +197,6 @@ class spell_ascension_guardian_standard : public SpellScript
 
     void SkipAutomaticReclaim(SpellEffIndex index)
     {
-        // Replacement is atomic at summon success, not the parent's earlier
-        // launch trigger. Field Commander is checked separately below.
         PreventHitDefaultEffect(index);
     }
 
@@ -262,8 +253,6 @@ class aura_ascension_guardian_recovery : public AuraScript
         SpellInfo const* heal = sSpellMgr->GetSpellInfo(STANDARD_RECOVERY_HEAL);
         if (!heal || !GetTarget()->IsAlive())
             return;
-        // Active ability text takes precedence over the stale percent-max-HP
-        // hidden helper description. Native healing modifiers still run once.
         int32 amount = heal->Effects[EFFECT_0].CalcValue(owner) + int32(owner->GetStat(STAT_STRENGTH) * 0.25f);
         GetCaster()->CastCustomSpell(GetTarget(), STANDARD_RECOVERY_HEAL, &amount, nullptr, nullptr,
             true, nullptr, effect, owner->GetGUID());
@@ -286,8 +275,6 @@ class aura_ascension_guardian_valiance : public AuraScript
             return;
         int32 amount = effect->GetSpellInfo()->Effects[EFFECT_2].CalcValue(owner) +
             int32(owner->GetTotalAttackPowerValue(BASE_ATTACK) * 0.04f);
-        // The standard's first periodic update is its initial pulse. Only the
-        // owner's own banner enables Bannerman; later pulses keep normal damage.
         if (effect->GetTickNumber() == 1 &&
             (owner->HasAura(BANNER_SWIFTNESS, owner->GetGUID()) ||
                 owner->HasAura(BANNER_CONQUEST, owner->GetGUID())))
@@ -307,7 +294,7 @@ class aura_ascension_guardian_valiance : public AuraScript
 class aura_ascension_guardian_tower : public AuraScript
 {
     PrepareAuraScript(aura_ascension_guardian_tower);
-    void UpdateArmor(AuraEffect const* /*effect*/, AuraEffectHandleModes /*mode*/)
+    void UpdateArmor(AuraEffect const*, AuraEffectHandleModes)
     {
         if (Player* player = GetTarget()->ToPlayer())
             player->UpdateArmor();

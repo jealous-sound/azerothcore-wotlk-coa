@@ -42,7 +42,6 @@ class spell_ascension_verdant_chase : public SpellScript
             if (sSpellMgr->GetFirstSpellInChain(entry.first) == first)
                 reductions.emplace_back(entry.first, CalculatePct(player->GetSpellCooldownDelay(entry.first),
                     std::clamp(GetEffectValue(), 0, 100)));
-        // Snapshot every category/rank entry before changing any of them.
         for (auto const& [spell, reduction] : reductions)
             if (reduction)
                 player->ModifySpellCooldown(spell, -int32(reduction));

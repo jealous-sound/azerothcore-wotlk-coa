@@ -38,9 +38,6 @@ Player* Owner(Unit const* unit)
 SunClericState& State(Player* player)
 {
     std::lock_guard<std::mutex> lock(stateMutex);
-    // The map is locked for the lookup only: the caller then reads and writes the state with no
-    // lock held. Kept by pointer, the state itself never moves, so an insert for another player
-    // rehashing the map cannot leave that caller writing into freed memory.
     return *states.try_emplace(player->GetGUID(), std::make_unique<SunClericState>()).first->second;
 }
 bool Named(SpellInfo const* info, uint32 root)
@@ -249,7 +246,6 @@ void ActivateDawn(Player* player)
     Cast(player, player, Dawn);
     if (Aura* aura = player->GetAura(Dawn))
         aura->SetCharges(10);
-    // This saved, otherwise unused slot arms one school choice per Dawn activation.
     if (AuraEffect* choice = player->GetAuraEffect(Dawn, EFFECT_1))
         choice->SetAmount(1);
     if (player->HasAura(704586))
@@ -298,7 +294,6 @@ void Eclipse(Player* player, Unit* target, uint32 amount)
 }
 bool Daytime()
 {
-    // Local policy: realm time, 06:00 inclusive to 18:00 exclusive.
     time_t now = time_t(GameTime::GetGameTime().count());
     tm local{};
 #ifdef _WIN32
@@ -350,7 +345,6 @@ void Refresh(Player* player)
     SetAmount(player, 707776, 0, int32(player->GetStat(STAT_INTELLECT)));
     SetAmount(player, 561023, 2, int32(player->GetItemArmorBySubclass(ITEM_SUBCLASS_ARMOR_SHIELD)));
     SetAmount(player, 680639, 1, int32(5 * player->GetStat(STAT_INTELLECT)));
-    // Native periodic helper flags do not express these ownership/lifetime constraints.
     for (uint32 id : {803500, 803492, 807750, 807751, 807752, 807446, 805481, 805491, 681471})
         player->RemoveAurasDueToSpell(id);
     bool replacement = player->IsAlive() && player->HasAura(803238) && player->HasSpell(Highest(player, 800231));
@@ -365,7 +359,7 @@ void Refresh(Player* player)
         state.firstAttacks.clear();
     state.refreshing = false;
 }
-} // namespace AscensionSunCleric
+}
 namespace
 {
 class sun_cleric_player : public PlayerScript

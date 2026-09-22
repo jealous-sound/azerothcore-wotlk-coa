@@ -17,8 +17,9 @@
       "id": "enemy",
       "owner": "reaper",
       "entry": 36,
-      "level": 2,
-      "distance": 6
+      "level": 60,
+      "distance": 6,
+      "health": 1000000
     }
   ],
   "steps": [
@@ -44,12 +45,6 @@
       "stacks": 1
     },
     {
-      "action": "snapshot",
-      "actor": "enemy",
-      "metric": "health",
-      "save_as": "b"
-    },
-    {
       "action": "cast",
       "actor": "reaper",
       "spell": 500631,
@@ -66,12 +61,21 @@
     },
     {
       "action": "assert",
-      "actor": "enemy",
-      "metric": "health",
-      "relative_to": "b",
-      "max": -300,
-      "within_ms": 7000,
-      "label": "The first Soul Bolt lands on an enemy in front of the caster"
+      "actor": "reaper",
+      "metric": "spell_damage_count",
+      "spell": 500627,
+      "target": "enemy",
+      "min": 3,
+      "within_ms": 8000,
+      "label": "Three Soul Bolts damage the enemy in front of the caster"
+    },
+    {
+      "action": "assert",
+      "actor": "reaper",
+      "metric": "aura",
+      "spell": 803031,
+      "equals": 0,
+      "label": "Soul Infusion is consumed"
     }
   ]
 }

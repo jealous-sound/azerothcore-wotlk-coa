@@ -1,4 +1,4 @@
-"""Execute the Primalist #88 callbacks with bounded world APIs and native enum values."""
+CLI_DESCRIPTION = """Execute the Primalist #88 callbacks with bounded world APIs and native enum values."""
 import argparse
 import importlib.util
 from pathlib import Path
@@ -11,7 +11,7 @@ HERE = Path(__file__).resolve().parent
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument("--workspace-tools", type=Path, default=ROOT.parent / "tools")
     parser.add_argument("--spell-dbc", type=Path)
     args = parser.parse_args()
@@ -25,8 +25,6 @@ def main():
                        ("src/server/shared/SharedDefines.h", "SpellCastResult")]:
         enums.append(native.extractor.extract((ROOT / path).read_text(), r"enum " + name + r"\b") + ";")
     full_source = (ROOT / "modules/mod-ascension-compat/src/AscensionPrimalistTalents.cpp").read_text()
-    # Keep these bounded callback tests independent of other scripts in the same
-    # translation unit. The added proc/aura scripts have native gameplay scenarios.
     declarations = [
         (r"enum PrimalistAbilitySpells\b", ";"),
         (r"Player\* Primalist\(", ""),
@@ -71,7 +69,7 @@ def main():
             assert rows[spell_id][95] == 227 and rows[spell_id][116] == 803138
         assert rows[803138][71:74] == (2, 0, 0) and rows[803138][208] == 37
         assert rows[802885][72] == 30 and rows[802885][111] == 1
-        assert rows[802885][81] == 29 and rows[802885][75] == 51  # 30-80 internal Rage (3-8 visible).
+        assert rows[802885][81] == 29 and rows[802885][75] == 51
     print("PASS: lethal boundary/cooldown, defense removal, owned Tremor crits, pet command gates and native helpers")
 
 

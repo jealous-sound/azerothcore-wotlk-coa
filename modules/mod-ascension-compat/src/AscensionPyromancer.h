@@ -64,5 +64,5 @@ bool CanPhoenixCommand(Player* player, Unit* target, bool dive);
 void StartDash(Player* player);
 void UpdateDash(Player* player, uint32 diff);
 void ApplyContracts(SpellInfo* info);
-} // namespace AscensionPyromancer
+}
 #endif
