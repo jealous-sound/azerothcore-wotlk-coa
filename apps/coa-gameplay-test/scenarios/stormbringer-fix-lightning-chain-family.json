@@ -95,6 +95,7 @@
       "actor": "shocked", "metric": "aura_amount", "spell": 706729, "caster": "p", "equals": 3 },
     { "action": "assert", "label": "Sparks runs on SpellDuration id 1 of 10000 ms, less the time since it landed",
       "actor": "shocked", "metric": "aura_duration_ms", "spell": 706729, "caster": "p", "min": 7000, "max": 10000 },
+    { "action": "wait", "label": "Let Electrocute's global cooldown clear before casting Arm of Thorim", "ms": 2000 },
 
     { "action": "set_power", "actor": "p", "power": 0, "value": 2500 },
     { "action": "set_aura", "actor": "p", "spell": 803102, "stacks": 1 },
