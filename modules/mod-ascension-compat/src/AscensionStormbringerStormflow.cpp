@@ -5,6 +5,7 @@
 #include "SpellAuraEffects.h"
 #include "SpellAuras.h"
 #include "SpellInfo.h"
+#include "SpellScript.h"
 
 namespace
 {
@@ -13,7 +14,11 @@ enum StormflowSpells : uint32
     SPELL_BLESSING_OF_LEI_SHEN = 561228,
     SPELL_BLESSING_OF_LEI_SHEN_HEAL = 561308,
     SPELL_STORM_SYNERGY = 578300,
-    SPELL_CONDUCTIVE = 567559
+    SPELL_CONDUCTIVE = 567559,
+    SPELL_UNSTABLE = 705723,
+    SPELL_UNSTABLE_PERIOD = 707222,
+    SPELL_AMPED_FLOW = 806411,
+    SPELL_AMPED_FLOW_TARGETS = 567556
 };
 
 enum StormflowFamilyFlags : uint32
@@ -25,6 +30,7 @@ enum StormflowFamilyFlags : uint32
 
 enum StormflowUnportedAuras : uint32
 {
+    AURA_STORMFLOW_ALLOWED_SPELLS = 353,
     AURA_HEAL_FOR_DAMAGE_DEALT = 354
 };
 
@@ -47,6 +53,19 @@ Spell* StormflowChannel(Player* player)
     return channel;
 }
 
+void RederiveChannelPeriod(Unit* owner)
+{
+    Player* player = owner ? owner->ToPlayer() : nullptr;
+    Spell* channel = player ? StormflowChannel(player) : nullptr;
+    if (!channel)
+        return;
+    Unit* victim = channel->m_targets.GetUnitTarget();
+    if (!victim)
+        return;
+    if (AuraEffect* periodic = victim->GetAuraEffect(channel->GetSpellInfo()->Id, EFFECT_0, player->GetGUID()))
+        periodic->CalculatePeriodic(player);
+}
+
 class stormbringer_stormflow_contracts : public GlobalScript
 {
 public:
@@ -62,7 +81,8 @@ public:
             info->Effects[slot].ApplyAuraName = SPELL_AURA_DUMMY;
             info->Effects[slot].TriggerSpell = 0;
         };
-        if (info->Id == SPELL_BLESSING_OF_LEI_SHEN || info->Id == SPELL_STORM_SYNERGY)
+        if (info->Id == SPELL_BLESSING_OF_LEI_SHEN || info->Id == SPELL_STORM_SYNERGY ||
+            info->Id == SPELL_UNSTABLE || info->Id == SPELL_AMPED_FLOW)
         {
             for (uint8 slot = 0; slot < MAX_SPELL_EFFECTS; ++slot)
                 if (info->Effects[slot].ApplyAuraName == SPELL_AURA_PROC_TRIGGER_SPELL ||
@@ -70,6 +90,8 @@ public:
                     dummy(slot);
             info->ProcFlags = info->ProcCharges = 0;
         }
+        if (IsStormflow(info) && info->Effects[EFFECT_1].ApplyAuraName == AURA_STORMFLOW_ALLOWED_SPELLS)
+            dummy(EFFECT_1);
     }
 };
 
@@ -100,7 +122,7 @@ public:
     stormbringer_stormflow_hits() : AllSpellScript("stormbringer_stormflow_hits",
         {ALLSPELLHOOK_ON_HIT_RESULT}) { }
 
-    void OnSpellHitResult(Spell* spell, Unit* target, uint8 miss, uint32 damage, uint32, bool) override
+    void OnSpellHitResult(Spell* spell, Unit* target, uint8 miss, uint32 damage, uint32, bool critical) override
     {
         Player* player = spell->GetCaster() ? spell->GetCaster()->ToPlayer() : nullptr;
         SpellInfo const* info = spell->GetSpellInfo();
@@ -111,6 +133,62 @@ public:
 
         if (IsElectrocute(info) && player->HasAura(SPELL_STORM_SYNERGY) && StormflowChannel(player))
             player->CastSpell(player, SPELL_CONDUCTIVE, true);
+
+        if (critical && player->HasAura(SPELL_UNSTABLE))
+            player->CastSpell(player, SPELL_UNSTABLE_PERIOD, true);
+    }
+};
+
+class aura_ascension_stormflow : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_stormflow);
+
+    bool Validate(SpellInfo const*) override { return ValidateSpellInfo({SPELL_AMPED_FLOW_TARGETS}); }
+
+    void Apply(AuraEffect const*, AuraEffectHandleModes)
+    {
+        Unit* caster = GetCaster();
+        if (!caster || caster != GetTarget() || !caster->HasAura(SPELL_AMPED_FLOW))
+            return;
+        int32 channelled = GetAura()->GetDuration();
+        Aura* extra = caster->AddAura(SPELL_AMPED_FLOW_TARGETS, caster);
+        if (extra && channelled > 0)
+        {
+            extra->SetMaxDuration(channelled);
+            extra->SetDuration(channelled);
+        }
+    }
+
+    void OnRemove(AuraEffect const*, AuraEffectHandleModes)
+    {
+        if (GetCasterGUID() == GetTarget()->GetGUID())
+            GetTarget()->RemoveAurasDueToSpell(SPELL_AMPED_FLOW_TARGETS);
+    }
+
+    void Register() override
+    {
+        AfterEffectApply += AuraEffectApplyFn(aura_ascension_stormflow::Apply,
+            EFFECT_1, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
+        AfterEffectRemove += AuraEffectRemoveFn(aura_ascension_stormflow::OnRemove,
+            EFFECT_1, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
+    }
+};
+
+class aura_ascension_unstable : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_unstable);
+
+    void Rederive(AuraEffect const*, AuraEffectHandleModes)
+    {
+        RederiveChannelPeriod(GetTarget());
+    }
+
+    void Register() override
+    {
+        AfterEffectApply += AuraEffectApplyFn(aura_ascension_unstable::Rederive,
+            EFFECT_0, SPELL_AURA_ADD_PCT_MODIFIER, AURA_EFFECT_HANDLE_REAL);
+        AfterEffectRemove += AuraEffectRemoveFn(aura_ascension_unstable::Rederive,
+            EFFECT_0, SPELL_AURA_ADD_PCT_MODIFIER, AURA_EFFECT_HANDLE_REAL);
     }
 };
 }
@@ -120,4 +198,6 @@ void AddSC_AscensionStormbringerStormflow()
     new stormbringer_stormflow_contracts();
     new stormbringer_stormflow_blessing();
     new stormbringer_stormflow_hits();
+    RegisterSpellScript(aura_ascension_stormflow);
+    RegisterSpellScript(aura_ascension_unstable);
 }
