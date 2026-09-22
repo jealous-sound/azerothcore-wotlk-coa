@@ -1600,7 +1600,8 @@ namespace CoAChallenges
     // matter. Auras/meters/packets are moot for a character not in the world
     // (login strips orphan challenge auras), but the failure lock and the active
     // row must be written, or the partner would keep playing the trial.
-    void FailChallengeOffline(uint32 guid, uint32 challengeID, uint32 level, uint32 deaths)
+    void FailChallengeOffline(uint32 guid, uint32 challengeID, uint32 level, uint32 deaths,
+        ObjectGuid const& killerSource)
     {
         CharacterDatabase.DirectExecute(
             "INSERT IGNORE INTO coa_challenge_failure (guid, challengeId, level, deaths, failTime) "
@@ -1612,6 +1613,27 @@ namespace CoAChallenges
         ClearCharChallengeCache(guid);
         LOG_INFO("module.coa_challenges", "Challenge {} ({}) failed for offline character {} (deaths={})",
             challengeID, ChallengeName(challengeID), guid, deaths);
+
+        // Queue the realm announcement too, so an offline SharedFate partner is
+        // announced like the online ones (the flush resolves name/level from the
+        // character cache).
+        PendingFail pending;
+        pending.challengeID = challengeID;
+        pending.level = level;
+        {
+            uint32 sourceGuid = (killerSource.IsEmpty()
+                ? ObjectGuid::Create<HighGuid::Player>(guid) : killerSource).GetCounter();
+            std::lock_guard<std::mutex> lock(LastKillerMutex);
+            auto it = LastKiller.find(sourceGuid);
+            if (it != LastKiller.end())
+            {
+                pending.killerKind = it->second.kind;
+                pending.killerEntry = it->second.entry;
+                pending.killerName = it->second.name;
+            }
+        }
+        std::lock_guard<std::mutex> lock(PendingFailMutex);
+        PendingFailBroadcast[guid] = pending;
     }
 
     // Shared fate (Duo/Trio/Vitality): one holder's death fails EVERY holder
@@ -1649,7 +1671,7 @@ namespace CoAChallenges
             {
                 // Offline partner: fail it in the DB too, or it would keep the
                 // trial on relogin.
-                FailChallengeOffline(mguid, challengeID, f[0].Get<uint32>(), deaths);
+                FailChallengeOffline(mguid, challengeID, f[0].Get<uint32>(), deaths, dead->GetGUID());
                 continue;
             }
             if (member == dead)
@@ -1704,7 +1726,8 @@ namespace CoAChallenges
                 if (Player* member = ObjectAccessor::FindPlayer(guid))
                     FailChallenge(member, cid, f[0].Get<uint32>(), f[1].Get<uint32>());
                 else
-                    FailChallengeOffline(guid.GetCounter(), cid, f[0].Get<uint32>(), f[1].Get<uint32>());
+                    FailChallengeOffline(guid.GetCounter(), cid, f[0].Get<uint32>(), f[1].Get<uint32>(),
+                        ObjectGuid::Empty);
             }
         }
     }
