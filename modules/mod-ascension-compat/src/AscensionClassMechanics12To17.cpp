@@ -26,6 +26,11 @@ constexpr std::uint32_t SPELL_FELSWORN_TYRANTS_GAZE = 805240;
 constexpr std::uint32_t SPELL_FELSWORN_TYRANTS_GAZE_HEAL = 805241;
 
 constexpr std::uint32_t SPELL_STORMBRINGER_STATIC_ELECTRICITY = 524954;
+constexpr std::uint32_t SPELL_STORMBRINGER_STORMCLOUD = 801859;
+constexpr std::uint32_t SPELL_STORMBRINGER_GEYSER = 800374;
+constexpr std::uint32_t SPELL_STORMBRINGER_THUNDER_KING = 804591;
+constexpr std::uint32_t SPELL_STORMBRINGER_THUNDER_FIST = 800020;
+constexpr std::uint32_t SPELL_STORMBRINGER_RAGING_STORM = 800014;
 constexpr std::uint32_t NPC_STORMBRINGER_ELECTRIFIED_WATER = 310603;
 constexpr std::uint32_t STORMBRINGER_ELECTRIFIED_WATER_DURATION = 20000;
 
@@ -176,6 +181,18 @@ void HandleAscensionClassMechanics12To17Hit(Spell* spell, Player* player,
                 player->SummonCreature(NPC_STORMBRINGER_ELECTRIFIED_WATER,
                     player->GetPosition(), TEMPSUMMON_TIMED_DESPAWN,
                     STORMBRINGER_ELECTRIFIED_WATER_DURATION);
+            }
+
+            if (IsSpellInRanges(spellId, STORMBRINGER_TORRENTIAL_WRATH) &&
+                target->HasAura(SPELL_STORMBRINGER_STORMCLOUD, player->GetGUID()))
+            {
+                player->CastSpell(target, SPELL_STORMBRINGER_GEYSER, true);
+            }
+
+            if (critical && player->HasAura(SPELL_STORMBRINGER_THUNDER_KING))
+            {
+                player->CastSpell(target, SPELL_STORMBRINGER_THUNDER_FIST, true);
+                player->CastSpell(player, SPELL_STORMBRINGER_RAGING_STORM, true);
             }
             break;
         }
