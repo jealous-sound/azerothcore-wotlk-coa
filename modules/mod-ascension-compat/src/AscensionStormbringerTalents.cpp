@@ -47,7 +47,9 @@ enum StormbringerTalentSpells : uint32
     SPELL_ELECTROCUTE = 801844,
     SPELL_STORMBREAKER = 705669,
     SPELL_PULSE_CONVERSION = 707619,
-    SPELL_PULSE_CONVERSION_HEAL = 504830
+    SPELL_PULSE_CONVERSION_HEAL = 504830,
+    SPELL_STORM_BARRIER = 707204,
+    SPELL_LIGHTNING_CAGE_BARRIER = 560032
 };
 
 constexpr int32 ASCENSION_SPELLMOD_BONUS_MULTIPLIER = 41;
@@ -439,6 +441,68 @@ class aura_ascension_stormcloak : public AuraScript
         OnEffectAbsorb += AuraEffectAbsorbFn(aura_ascension_stormcloak::Absorb, EFFECT_0);
     }
 };
+
+class aura_ascension_invigorating_winds : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_invigorating_winds);
+
+    void SetImmunity(bool apply)
+    {
+        Unit* ally = GetTarget();
+        ally->ApplySpellImmune(GetId(), IMMUNITY_MECHANIC, MECHANIC_SILENCE, apply);
+        ally->ApplySpellImmune(GetId(), IMMUNITY_MECHANIC, MECHANIC_INTERRUPT, apply);
+    }
+
+    void Apply(AuraEffect const*, AuraEffectHandleModes)
+    {
+        SetImmunity(true);
+    }
+
+    void OnRemove(AuraEffect const*, AuraEffectHandleModes)
+    {
+        SetImmunity(false);
+    }
+
+    void Register() override
+    {
+        AfterEffectApply += AuraEffectApplyFn(aura_ascension_invigorating_winds::Apply,
+            EFFECT_1, SPELL_AURA_REDUCE_PUSHBACK, AURA_EFFECT_HANDLE_REAL);
+        AfterEffectRemove += AuraEffectRemoveFn(aura_ascension_invigorating_winds::OnRemove,
+            EFFECT_1, SPELL_AURA_REDUCE_PUSHBACK, AURA_EFFECT_HANDLE_REAL);
+    }
+};
+
+class aura_ascension_lightning_cage : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_lightning_cage);
+
+    bool Validate(SpellInfo const*) override { return ValidateSpellInfo({SPELL_LIGHTNING_CAGE_BARRIER}); }
+
+    void Apply(AuraEffect const*, AuraEffectHandleModes)
+    {
+        Player* owner = GetTarget()->ToPlayer();
+        if (!owner || !owner->HasSpell(SPELL_STORM_BARRIER))
+            return;
+        if (Aura* barrier = owner->AddAura(SPELL_LIGHTNING_CAGE_BARRIER, owner))
+        {
+            barrier->SetMaxDuration(GetAura()->GetMaxDuration());
+            barrier->SetDuration(GetAura()->GetDuration());
+        }
+    }
+
+    void OnRemove(AuraEffect const*, AuraEffectHandleModes)
+    {
+        GetTarget()->RemoveAurasDueToSpell(SPELL_LIGHTNING_CAGE_BARRIER);
+    }
+
+    void Register() override
+    {
+        AfterEffectApply += AuraEffectApplyFn(aura_ascension_lightning_cage::Apply,
+            EFFECT_0, SPELL_AURA_MOD_DECREASE_SPEED, AURA_EFFECT_HANDLE_REAL);
+        AfterEffectRemove += AuraEffectRemoveFn(aura_ascension_lightning_cage::OnRemove,
+            EFFECT_0, SPELL_AURA_MOD_DECREASE_SPEED, AURA_EFFECT_HANDLE_REAL);
+    }
+};
 }
 
 void AddSC_AscensionStormbringerTalents()
@@ -452,4 +516,6 @@ void AddSC_AscensionStormbringerTalents()
     RegisterSpellScript(aura_ascension_charged_conduit);
     RegisterSpellScript(aura_ascension_dark_skies);
     RegisterSpellScript(aura_ascension_stormcloak);
+    RegisterSpellScript(aura_ascension_invigorating_winds);
+    RegisterSpellScript(aura_ascension_lightning_cage);
 }
