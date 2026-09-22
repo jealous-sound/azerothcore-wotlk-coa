@@ -530,6 +530,8 @@ void ApplyContracts(SpellInfo* info)
     }
     if (id == 704980)
         info->Effects[EFFECT_1].Effect = 0;
+    if (id == 705000)
+        info->Effects[EFFECT_0].Effect = 0;
     info->_InitializeExplicitTargetMask();
 }
 }

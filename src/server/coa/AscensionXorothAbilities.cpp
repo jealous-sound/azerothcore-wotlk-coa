@@ -214,10 +214,13 @@ class xoroth_casts : public AllSpellScript
     }
     void OnSpellCritChance(Spell* spell, Unit*, float& chance) override
     {
-        if (!Owner(spell->GetCaster()))
+        Player* player = Owner(spell->GetCaster());
+        if (!player)
             return;
         if (spell->GetScriptValue(524913) || spell->GetScriptValue(802618))
             chance = 100;
+        if (Spender(spell->GetSpellInfo()) && player->HasAura(705000))
+            chance = std::min(100.0f, chance + Amount(705000));
     }
     void OnSpellCalculatedTarget(Spell* spell, Unit* target, TargetInfo& result) override
     {

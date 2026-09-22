@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "name": "To Ashes raises Demonfire-spending abilities' crit chance by 5% (#2470)",
+  "contract": "To Ashes 705000 reads 'Increases the critical strike chance of abilities that spend Demonfire by 5%' (bindmysoul.com/conquest/talents.normalized.json, fetchedAt 2026-07-22T23:10:31.369Z; matches the client's own moa_description). Its own baked SPELLMOD_CRITICAL_CHANCE effect only overlaps a few of the eleven Demonfire-spending root spells enumerated by AscensionXoroth::Spender() - the same under-coverage wave C already found and fixed for Murderous Might (520290, #1242) with the identical remedy: AscensionXorothContracts.cpp nulls the native effect, and xoroth_casts::OnSpellCritChance (AscensionXorothAbilities.cpp) now adds Amount(705000) = 5 to the chance whenever Spender(spell->GetSpellInfo()) is true and the caster has aura 705000, covering every spender uniformly regardless of classmask. Melt (803334) is a self-contained Spender root (single spell ID, no rank chain) chosen so the fix is exercised directly; the native crit-chance query used here (spell_done_crit_chance) resolves the same ALLSPELLHOOK_ON_CRIT_CHANCE path a real cast would.",
+  "timeout_ms": 90000,
+  "players": [
+    { "id": "knight", "race": 1, "class": 17, "level": 60 }
+  ],
+  "creatures": [
+    { "id": "dummy", "owner": "knight", "entry": 36, "level": 60, "health": 1000000, "distance": 3 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+    { "action": "snapshot", "actor": "knight", "metric": "spell_done_crit_chance", "spell": 803334, "target": "dummy", "save_as": "melt_crit_before" },
+    { "action": "snapshot", "actor": "knight", "metric": "spell_done_crit_chance", "spell": 680944, "target": "dummy", "save_as": "gore_crit_before" },
+    { "action": "learn", "actor": "knight", "spell": 705000 },
+    {
+      "action": "assert", "label": "SETUP: To Ashes is learned",
+      "actor": "knight", "metric": "knows_spell", "spell": 705000, "equals": 1
+    },
+    { "action": "wait", "label": "Let the passive's modifiers settle", "ms": 500 },
+    {
+      "action": "assert", "label": "CONTRACT: Melt's crit chance rises by 5 percentage points",
+      "actor": "knight", "metric": "spell_done_crit_chance", "spell": 803334, "target": "dummy",
+      "relative_to": "melt_crit_before", "equals": 5
+    },
+    {
+      "action": "assert", "label": "REGRESSION: a non-Spender family spell (Gore) is untouched",
+      "actor": "knight", "metric": "spell_done_crit_chance", "spell": 680944, "target": "dummy",
+      "relative_to": "gore_crit_before", "equals": 0
+    }
+  ]
+}
