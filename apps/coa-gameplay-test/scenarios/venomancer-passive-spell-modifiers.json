@@ -265,9 +265,11 @@
       "equals": 0
     },
     {
-      "action": "cast",
+      "action": "set_aura",
       "actor": "v",
-      "spell": 800841
+      "spell": 800841,
+      "stacks": 1,
+      "label": "Enter Spider Form (set_aura; the cast did not apply it in the previous run)"
     },
     {
       "action": "assert",

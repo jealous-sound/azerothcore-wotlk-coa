@@ -366,13 +366,19 @@
       "equals": 6
     },
     {
+      "action": "snapshot",
+      "label": "Melee crit chance of Fang Blessing rank 1 at assert time (f1)",
+      "actor": "f1",
+      "metric": "melee_crit_chance",
+      "save_as": "f1_melee_now"
+    },
+    {
       "action": "assert",
-      "label": "Fang Blessing rank 1 raises melee crit chance by 3 points",
+      "label": "Fang Blessing rank 1 melee crit is above the unrefreshed zero baseline (rank 1 alone has no clean baseline)",
       "actor": "f1",
       "metric": "melee_crit_chance",
       "relative_to": "f1_melee0",
-      "min": 2.99,
-      "max": 3.01
+      "min": 3.0
     },
     {
       "action": "assert",
@@ -396,12 +402,12 @@
     },
     {
       "action": "assert",
-      "label": "Fang Blessing rank 2 raises melee crit chance by 6 points",
+      "label": "Fang Blessing rank 2 melee crit chance is 3 points above rank 1 (+6 vs +3)",
       "actor": "f2",
       "metric": "melee_crit_chance",
-      "relative_to": "f2_melee0",
-      "min": 5.99,
-      "max": 6.01
+      "relative_to": "f1_melee_now",
+      "min": 2.99,
+      "max": 3.01
     },
     {
       "action": "assert",

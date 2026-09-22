@@ -266,12 +266,6 @@
       "spell": 803183
     },
     {
-      "action": "set_power",
-      "actor": "v",
-      "power": 0,
-      "value": 100000
-    },
-    {
       "action": "cast",
       "actor": "v",
       "spell": 803183

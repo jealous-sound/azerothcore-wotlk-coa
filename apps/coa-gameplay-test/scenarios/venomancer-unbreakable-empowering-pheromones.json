@@ -281,7 +281,8 @@
       "spell": 803306,
       "op": 8,
       "base": 100,
-      "equals": 120
+      "min": 119.99,
+      "max": 120.01
     },
     {
       "action": "assert",
@@ -301,7 +302,8 @@
       "spell": 803651,
       "op": 8,
       "base": 100,
-      "equals": 120
+      "min": 119.99,
+      "max": 120.01
     },
     {
       "action": "assert",

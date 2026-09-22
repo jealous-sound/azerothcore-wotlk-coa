@@ -112,6 +112,12 @@
       "enabled": false
     },
     {
+      "action": "learn",
+      "label": "Learn Toxic Stride (active spell; cast requires HasActiveSpell)",
+      "actor": "stride",
+      "spell": 504347
+    },
+    {
       "action": "cast",
       "label": "Cast Toxic Stride",
       "actor": "stride",

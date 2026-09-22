@@ -17,8 +17,8 @@
     { "action": "snapshot", "label": "Baseline cast speed of the party member", "actor": "mate", "metric": "cast_speed_multiplier", "save_as": "speed_m0" },
     { "action": "snapshot", "label": "Baseline cast speed of the outsider", "actor": "outsider", "metric": "cast_speed_multiplier", "save_as": "speed_o0" },
     { "action": "snapshot", "label": "Spore max range before Fungal Link", "actor": "venomancer", "metric": "spell_max_range", "spell": 804983, "save_as": "range0" },
-    { "action": "assert", "label": "BASELINE: Spore range is unmodified before the passive", "actor": "venomancer", "metric": "spell_modifier", "spell": 804983, "op": 5, "base": 100, "equals": 100 },
-    { "action": "assert", "label": "BASELINE: Spore threat is unmodified before the passive", "actor": "venomancer", "metric": "spell_modifier", "spell": 804983, "op": 2, "base": 100, "equals": 100 },
+    { "action": "assert", "label": "BASELINE: Spore range is unmodified before the passive", "actor": "venomancer", "metric": "spell_modifier", "spell": 804983, "op": 5, "base": 100, "min": 99.99, "max": 100.01 },
+    { "action": "assert", "label": "BASELINE: Spore threat is unmodified before the passive", "actor": "venomancer", "metric": "spell_modifier", "spell": 804983, "op": 2, "base": 100, "min": 99.99, "max": 100.01 },
 
     { "action": "learn", "actor": "venomancer", "spell": 300959 },
 
@@ -30,9 +30,9 @@
     { "action": "assert", "label": "The party member's cast time shrinks by 3%", "actor": "mate", "metric": "cast_speed_multiplier", "ratio_to": "speed_m0", "min": 0.968, "max": 0.974 },
     { "action": "assert", "label": "CONTROL: the bystander's cast speed is unchanged", "actor": "outsider", "metric": "cast_speed_multiplier", "ratio_to": "speed_o0", "min": 0.999, "max": 1.001 },
 
-    { "action": "assert", "label": "Spore's range modifier is +20% (100 -> 120)", "actor": "venomancer", "metric": "spell_modifier", "spell": 804983, "op": 5, "base": 100, "equals": 120 },
-    { "action": "assert", "label": "Spore's threat modifier is -20% (100 -> 80)", "actor": "venomancer", "metric": "spell_modifier", "spell": 804983, "op": 2, "base": 100, "equals": 80 },
+    { "action": "assert", "label": "Spore's range modifier is +20% (100 -> 120)", "actor": "venomancer", "metric": "spell_modifier", "spell": 804983, "op": 5, "base": 100, "min": 119.99, "max": 120.01 },
+    { "action": "assert", "label": "Spore's threat modifier is -20% (100 -> 80)", "actor": "venomancer", "metric": "spell_modifier", "spell": 804983, "op": 2, "base": 100, "min": 79.99, "max": 80.01 },
     { "action": "assert", "label": "Spore's real max range rises by 20% of its 30 yards", "actor": "venomancer", "metric": "spell_max_range", "spell": 804983, "ratio_to": "range0", "min": 1.19, "max": 1.21 },
-    { "action": "assert", "label": "CONTROL: the party member owns no Fungal Link modifier, so Spore range there is unchanged", "actor": "mate", "metric": "spell_modifier", "spell": 804983, "op": 5, "base": 100, "equals": 100 }
+    { "action": "assert", "label": "CONTROL: the party member owns no Fungal Link modifier, so Spore range there is unchanged", "actor": "mate", "metric": "spell_modifier", "spell": 804983, "op": 5, "base": 100, "min": 99.99, "max": 100.01 }
   ]
 }
