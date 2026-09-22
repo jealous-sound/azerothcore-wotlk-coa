@@ -498,6 +498,8 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[EFFECT_2].ApplyAuraName = SPELL_AURA_MOD_ROOT;
         info->AuraInterruptFlags |= AURA_INTERRUPT_FLAG_TAKE_DAMAGE;
     }
+    if (id == Amphibimorph)
+        info->AuraInterruptFlags |= AURA_INTERRUPT_FLAG_TAKE_DAMAGE;
     if (IsBeam(info))
         info->ManaPerSecond = 0;
     if (id == Frenzy)

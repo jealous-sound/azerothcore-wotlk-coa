@@ -289,6 +289,7 @@ enum DoctorSpells : uint32
     Veil = 802100,
     VeilDamage = 806473,
     JungleProtection = 572872,
+    Amphibimorph = 500952,
     AutoShot = 75
 };
 
