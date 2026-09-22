@@ -2950,8 +2950,19 @@ void DynObjAura::FillTargetMap(std::map<Unit*, uint8>& targets, Unit* /*caster*/
             continue;
 
         SpellInfo const* spellInfo = GetSpellInfo();
+        SpellEffectInfo const& effect = spellInfo->Effects[effIndex];
         UnitList targetList;
-        if (spellInfo->Effects[effIndex].TargetB.GetTarget() == TARGET_DEST_DYNOBJ_ALLY || spellInfo->Effects[effIndex].TargetB.GetTarget() == TARGET_UNIT_DEST_AREA_ALLY)
+        // CoA: Eldritch Obelisk's speed-buff effect (Cultist spell 560321 triggers 560322; effect 2 is
+        // SPELL_EFFECT_PERSISTENT_AREA_AURA) encodes its ally selector in EffectImplicitTargetA (31
+        // TARGET_UNIT_DEST_AREA_ALLY) with TargetB unset, but this function only ever inspects TargetB, so
+        // the buff never reaches allies (#960). EffectImplicitTargetA also carries an ally selector for many
+        // other, unrelated spells (confirmed with a full Spell.dbc scan), so this exemption is scoped to this
+        // one spell rather than checking TargetA generally, which would change their behaviour too.
+        bool const eldritchObeliskAllySpeed = spellInfo->Id == 560322 &&
+            effect.TargetA.GetTarget() == TARGET_UNIT_DEST_AREA_ALLY;
+        bool const targetBAlly = effect.TargetB.GetTarget() == TARGET_DEST_DYNOBJ_ALLY ||
+            effect.TargetB.GetTarget() == TARGET_UNIT_DEST_AREA_ALLY;
+        if (targetBAlly || eldritchObeliskAllySpeed)
         {
             Acore::AnyFriendlyUnitInObjectRangeCheck u_check(GetDynobjOwner(), dynObjOwnerCaster, radius);
             Acore::UnitListSearcher<Acore::AnyFriendlyUnitInObjectRangeCheck> searcher(GetDynobjOwner(), targetList, u_check);
