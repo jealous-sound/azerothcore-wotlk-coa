@@ -6,6 +6,7 @@
 #include "DBCStores.h"
 #include "GridNotifiers.h"
 #include "GridNotifiersImpl.h"
+#include "Log.h"
 #include "Pet.h"
 #include "Player.h"
 #include "ScriptMgr.h"
@@ -77,6 +78,19 @@ void ClearReplacement(Player* player, uint32 word, uint32 mask)
             player->SetTemporarySpellReplacement(id, 0);
 }
 
+void ConvertCreatureTypeDamage(SpellInfo* info, uint8 index)
+{
+    SpellEffectInfo& effect = info->Effects[index];
+    if (effect.Effect != SPELL_EFFECT_APPLY_AURA || effect.ApplyAuraName != SPELL_AURA_OVERRIDE_CLASS_SCRIPTS ||
+        effect.MiscValue != ASCENSION_CLASSMASK_CREATURE_DAMAGE || effect.MiscValueB <= 0 || !effect.SpellClassMask)
+    {
+        LOG_ERROR("module.ascension_compat", "Skipped unexpected Witch Hunter creature damage record {}", info->Id);
+        return;
+    }
+    effect.ApplyAuraName = SPELL_AURA_MOD_DAMAGE_DONE_VERSUS;
+    std::swap(effect.MiscValue, effect.MiscValueB);
+}
+
 void ApplyContracts(SpellInfo* info)
 {
     if (!info || info->SpellFamilyName != 21)
@@ -87,6 +101,12 @@ void ApplyContracts(SpellInfo* info)
         info->InterruptFlags |= SPELL_INTERRUPT_FLAG_MOVEMENT;
         info->ChannelInterruptFlags |= AURA_INTERRUPT_FLAG_MOVE;
     }
+    if (id == 574149 || id == 574163)
+        ConvertCreatureTypeDamage(info, EFFECT_1);
+    if (id == 804026)
+        ConvertCreatureTypeDamage(info, EFFECT_0);
+    if (id == 804194 && info->Effects[EFFECT_1].ApplyAuraName == SPELL_AURA_MOD_ARMOR_PENETRATION_PCT)
+        info->Effects[EFFECT_1].ApplyAuraName = SPELL_AURA_ASCENSION_MOD_IGNORE_ARMOR_PCT;
     if (id == 707535)
     {
         info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_MOD_SPELL_DAMAGE_OF_STAT_PERCENT;
@@ -252,7 +272,7 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[EFFECT_0].TargetA = SpellImplicitTargetInfo(TARGET_UNIT_DEST_AREA_ALLY);
     if (id == 500102)
         info->Effects[EFFECT_1].Effect = 0;
-    if (id == 520670 || id == 504713)
+    if (id == 504713)
         info->ProcCharges = 0;
     if (id == 504790)
     {

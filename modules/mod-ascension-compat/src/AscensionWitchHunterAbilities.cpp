@@ -189,7 +189,9 @@ class spell_ascension_witch_hunter_ability : public SpellScript
             ++_hits;
         if (Dusk(GetSpellInfo()) || id == 803502 || Noctis(GetSpellInfo()))
         {
-            uint32 percent = Noctis(GetSpellInfo()) ? 50 : 25;
+            SpellInfo const* passive = sSpellMgr->GetSpellInfo(Noctis(GetSpellInfo()) ? 574336 : 574334);
+            uint32 percent = passive ? std::max(passive->Effects[EFFECT_0].CalcValue(), 0) :
+                                       (Noctis(GetSpellInfo()) ? 100 : 25);
             if (dealt)
                 player->CastCustomSpell(Noctis(GetSpellInfo()) ? 574337 : 574335, SPELLVALUE_BASE_POINT0,
                                         int32(dealt * uint64(percent) / 100), player, TRIGGERED_FULL_MASK);
@@ -322,7 +324,8 @@ class spell_ascension_witch_hunter_ability : public SpellScript
             talent(582310, 804304);
             if (_bounty)
                 player->RemoveAurasDueToSpell(504478);
-            if (_boltDash)
+            Aura const* boltDash = player->GetAura(520670);
+            if (_boltDash && (!boltDash || !boltDash->IsUsingCharges()))
             {
                 player->RemoveAurasDueToSpell(520670);
                 Cast(player, player, 524602);
@@ -360,6 +363,19 @@ class spell_ascension_witch_hunter_ability : public SpellScript
                 Cast(player, player, 680511);
                 player->RemoveAurasDueToSpell(680498);
             }
+        }
+        if (id == 805738)
+        {
+            flag96 const traps = info->Effects[EFFECT_1].SpellClassMask;
+            for (auto const& [known, state] : player->GetSpellMap())
+                if (state->State != PLAYERSPELL_REMOVED)
+                    if (SpellInfo const* trap = sSpellMgr->GetSpellInfo(known))
+                        if (trap->SpellFamilyName == 21 && (trap->SpellFamilyFlags & traps))
+                        {
+                            Reset(player, known);
+                            if (uint32 category = trap->GetCategory())
+                                player->RemoveCategoryCooldown(category);
+                        }
         }
         if (id == 680498)
             Cast(player, player, 680505);

@@ -14,6 +14,7 @@ using int32 = std::int32_t;
 using int64 = std::int64_t;
 enum
 {
+    SPELL_ATTR0_CU_AURA_CANNOT_BE_SAVED = 1,
     CLASS_CHRONOMANCER = 22,
     EFFECT_0 = 0,
     EFFECT_1 = 1,
@@ -32,8 +33,14 @@ enum
     GLOBALHOOK_ON_LOAD_SPELL_CUSTOM_ATTR = 1,
     SPELL_ATTR2_CANT_CRIT = 1,
     SPELL_ATTR3_IGNORE_CASTER_MODIFIERS = 1,
-    SPELL_ATTR4_IGNORE_DAMAGE_TAKEN_MODIFIERS = 1,
-    SPELL_ATTR6_IGNORE_HEALTH_MODIFIERS = 1
+    SPELL_ATTR4_ALLOW_CAST_WHILE_CASTING = 0x80,
+    SPELL_ATTR4_IGNORE_DAMAGE_TAKEN_MODIFIERS = 0x100,
+    SPELL_ATTR6_IGNORE_HEALTH_MODIFIERS = 1,
+    SPELL_SCHOOL_MASK_NORMAL = 1,
+    SPELL_SCHOOL_MASK_MAGIC = 126,
+    TARGET_UNIT_TARGET_ENEMY = 6,
+    SPELL_SCHOOL_MASK_FROST = 0x10,
+    SPELL_SCHOOL_MASK_ARCANE = 0x40
 };
 enum SpellCastResult
 {
@@ -42,12 +49,14 @@ enum SpellCastResult
 };
 struct Unit;
 struct Player;
+using SpellImplicitTargetInfo = uint32;
 struct SpellEffectInfo
 {
+    uint32 TargetA = 0, TargetB = 0;
     uint32 Effect = 0, ApplyAuraName = 0, Amplitude = 0, TriggerSpell = 0;
     int32 BasePoints = 0, DieSides = 1, MiscValue = 0;
-    float radius = 0, BonusMultiplier = 0;
-    std::array<uint32, 3> mask{};
+    float radius = 0, RealPointsPerLevel = 0, BonusMultiplier = 0;
+    std::array<uint32, 3> mask{}, SpellClassMask{};
     int32 CalcValue() const
     {
         return BasePoints + DieSides;
@@ -57,12 +66,32 @@ struct SpellEffectInfo
         return radius;
     }
 };
+struct SpellRangeEntry
+{
+    uint32 ID;
+};
+struct SpellRangeStore
+{
+    SpellRangeEntry unlimited{13};
+    SpellRangeEntry const *LookupEntry(uint32 id) const
+    {
+        assert(id == unlimited.ID);
+        return &unlimited;
+    }
+} sSpellRangeStore;
+std::array<uint32, 3>& operator|=(std::array<uint32, 3>& left, std::array<uint32, 3> const& right)
+{
+    for (int i = 0; i < 3; ++i) left[i] |= right[i];
+    return left;
+}
 struct SpellInfo
 {
     uint32 Id = 0, SpellFamilyName = 28, StackAmount = 1, MaxAffectedTargets = 0, rank = 1;
-    uint32 AttributesEx2 = 0, AttributesEx3 = 0, AttributesEx4 = 0, AttributesEx6 = 0;
+    uint32 AttributesCu = 0, AttributesEx2 = 0, AttributesEx3 = 0, AttributesEx4 = 0, AttributesEx6 = 0;
     int32 duration = 0;
-    std::array<uint32, 3> flags{};
+    uint32 SchoolMask = 0;
+    SpellRangeEntry const *RangeEntry = nullptr;
+    std::array<uint32, 3> flags{}, SpellFamilyFlags{};
     std::array<SpellEffectInfo, 3> Effects;
     int32 GetDuration() const
     {
@@ -89,8 +118,16 @@ struct Manager
     }
 } manager;
 auto sSpellMgr = &manager;
+struct AuraEffect
+{
+    int32 amount = 0;
+    int32 GetAmount() const { return amount; }
+    void SetAmount(int32 value) { amount = value; }
+};
 struct Aura
 {
+    AuraEffect effect;
+    AuraEffect* GetEffect(uint8) { return &effect; }
     uint32 id = 0, caster = 0;
     int32 duration = 0, maximum = 0;
     uint8 stacks = 1;
@@ -286,6 +323,7 @@ void Unit::CastCustomSpell(uint32 id, int slot, int32 value, Unit *target, bool 
     assert(slot == SPELLVALUE_BASE_POINT0);
     CastSpell(target, id, triggered);
     casts.back().amount = value;
+    target->GetAura(id)->effect.amount = value;
 }
 std::vector<Unit *> nearby;
 namespace Acore
@@ -338,10 +376,12 @@ struct Spell
     Unit *fixtureCaster;
     SpellInfo const *fixtureInfo;
     bool triggered;
+    uint32 healingIncludingOverheal = 0;
     SpellCastTargets m_targets;
     std::map<uint32, uint64> values;
     Spell(Unit *caster, SpellInfo const *info, int flags)
-        : fixtureCaster(caster), fixtureInfo(info), triggered(flags != 0)
+        : fixtureCaster(caster), fixtureInfo(info),
+          triggered(flags != 0 || (info->AttributesEx4 & SPELL_ATTR4_ALLOW_CAST_WHILE_CASTING))
     {
     }
     Unit *GetCaster()
@@ -355,6 +395,10 @@ struct Spell
     bool IsTriggered() const
     {
         return triggered;
+    }
+    uint32 GetScriptHealingIncludingOverheal() const
+    {
+        return healingIncludingOverheal;
     }
     void SetScriptValue(uint32 key, uint64 value)
     {
@@ -404,6 +448,10 @@ struct HealInfo
 struct DamageInfo
 {
     uint32 amount = 0;
+    Unit* victim = nullptr;
+    uint32 school = SPELL_SCHOOL_MASK_NORMAL;
+    Unit* GetVictim() const { return victim; }
+    uint32 GetSchoolMask() const { return school; }
     uint32 GetDamage() const
     {
         return amount;
@@ -432,9 +480,6 @@ struct ProcEventInfo
         return damage;
     }
 };
-struct AuraEffect
-{
-};
 struct Hook
 {
     void operator+=(int)
@@ -446,6 +491,12 @@ struct AuraScript
     Unit *fixtureTarget = nullptr;
     bool prevented = false;
     Hook DoCheckProc, OnEffectProc;
+    virtual bool Validate(SpellInfo const*) { return true; }
+    bool ValidateSpellInfo(std::initializer_list<uint32> ids)
+    {
+        for (uint32 id : ids) if (!manager.GetSpellInfo(id)) return false;
+        return true;
+    }
     virtual void Register()
     {
     }

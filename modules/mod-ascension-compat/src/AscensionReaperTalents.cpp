@@ -34,10 +34,37 @@ enum ReaperTalentSpells : uint32
     SPELL_BLOOD_FRENZY_TALENT = 707899,
     SPELL_BLOOD_FRENZY = 803039,
     SPELL_HARVEST_TIME_LOW = 704188,
-    SPELL_HARVEST_TIME = 803995
+    SPELL_HARVEST_TIME = 803995,
+    SPELL_SOUL_HARVEST_TALENT = 504012,
+    SPELL_SOUL_HARVEST = 573050,
+    SPELL_SPIRIT_CULLING = 301986,
+    SPELL_SPECTRAL_SCYTHE = 500576,
+    SPELL_DAMNED = 706786,
+    SPELL_DAMNED_HASTE = 560420,
+    SPELL_PURGATORY = 504046,
+    SPELL_PURGATORY_DAMAGE = 504047,
+    SPELL_ESSENCE_INVIGORATION = 805186,
+    SPELL_ESSENCE_INVIGORATION_HEAL = 805187
 };
 
-constexpr float BloodFrenzyRange = 20.0f;
+Unit* HostileTargetInRange(Player* player, uint32 spellId)
+{
+    SpellInfo const* info = sSpellMgr->GetSpellInfo(spellId);
+    Unit* target = player->GetSelectedUnit();
+    if (!target)
+        target = player->GetVictim();
+    if (!info || !target || target == player || !target->IsAlive() ||
+        !player->IsValidAttackTarget(target) ||
+        !player->IsWithinDistInMap(target, info->GetMaxRange(false)))
+        return nullptr;
+    return target;
+}
+
+bool RollTalent(Player* player, uint32 talentId)
+{
+    SpellInfo const* talent = sSpellMgr->GetSpellInfo(talentId);
+    return talent && player->HasAura(talentId) && roll_chance_i(int32(talent->ProcChance));
+}
 
 int32 PainbringerMilliseconds(uint32 spellId)
 {
@@ -47,8 +74,7 @@ int32 PainbringerMilliseconds(uint32 spellId)
 
 void ApplyPainbringer(Player* player)
 {
-    SpellInfo const* talent = sSpellMgr->GetSpellInfo(SPELL_PAINBRINGER);
-    if (!talent || !player->HasAura(SPELL_PAINBRINGER) || !roll_chance_i(int32(talent->ProcChance)))
+    if (!RollTalent(player, SPELL_PAINBRINGER))
         return;
 
     if (Aura* rage = player->GetAura(SPELL_MASOCHISTIC_RAGE, player->GetGUID()))
@@ -72,6 +98,36 @@ void ApplyPainbringer(Player* player)
         rage->SetMaxDuration(duration);
         rage->SetDuration(duration);
     }
+}
+
+void ApplySoulHarvest(Player* player)
+{
+    if (!RollTalent(player, SPELL_SOUL_HARVEST_TALENT))
+        return;
+
+    if (Unit* target = HostileTargetInRange(player, SPELL_SOUL_HARVEST))
+        player->CastSpell(target, SPELL_SOUL_HARVEST, true);
+}
+
+void ApplySpiritCulling(Player* player)
+{
+    if (!RollTalent(player, SPELL_SPIRIT_CULLING))
+        return;
+
+    player->CastSpell(player, SPELL_SPECTRAL_SCYTHE, true);
+}
+
+void ApplyHarvestedSoulTalents(Player* player)
+{
+    ApplyPainbringer(player);
+    ApplySoulHarvest(player);
+    ApplySpiritCulling(player);
+}
+
+void CastTalentTrigger(Player* player, uint32 talentId, uint32 triggerId)
+{
+    if (RollTalent(player, talentId))
+        player->CastSpell(player, triggerId, true);
 }
 
 class spell_ascension_soul_capture : public SpellScript
@@ -174,6 +230,30 @@ class aura_ascension_harvester : public AuraScript
     }
 };
 
+class aura_ascension_reaper_ghastly_form : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_reaper_ghastly_form);
+
+    static constexpr float AttackPowerCoefficient = 0.2f;
+
+    bool Load() override { return GetUnitOwner() && GetUnitOwner()->IsPlayer(); }
+
+    void CalculateAmount(AuraEffect const*, int32& amount, bool& canBeRecalculated)
+    {
+        if (Unit* owner = GetUnitOwner())
+            amount += int32(owner->GetTotalAttackPowerValue(BASE_ATTACK) * AttackPowerCoefficient);
+
+        canBeRecalculated = false;
+    }
+
+    void Register() override
+    {
+        DoEffectCalcAmount += AuraEffectCalcAmountFn(
+            aura_ascension_reaper_ghastly_form::CalculateAmount, EFFECT_0,
+            SPELL_AURA_SCHOOL_ABSORB);
+    }
+};
+
 class aura_ascension_jailers_call : public AuraScript
 {
     PrepareAuraScript(aura_ascension_jailers_call);
@@ -199,12 +279,7 @@ class aura_ascension_reaper_blood_frenzy : public AuraScript
         Player* player = GetTarget()->ToPlayer();
         if (!player || !player->IsAlive())
             return nullptr;
-        Unit* target = player->GetSelectedUnit();
-        if (!target || target == player || !target->IsAlive() ||
-            !player->IsValidAttackTarget(target) ||
-            !player->IsWithinDistInMap(target, BloodFrenzyRange))
-            return nullptr;
-        return target;
+        return HostileTargetInRange(player, SPELL_BLOOD_FRENZY);
     }
 
     bool CheckProc(ProcEventInfo& event)
@@ -272,9 +347,26 @@ bool HandleAscensionReaperResource(Player* player, uint32 spellId, int32 amount)
     {
         if (player->HasAura(SPELL_SOUL_SPLINTERS))
             player->CastSpell(player, SPELL_SOUL_SPLINTER, true);
-        ApplyPainbringer(player);
+        ApplyHarvestedSoulTalents(player);
     }
     return true;
+}
+
+void ApplyAscensionReaperSoulInfusionGained(Player* player)
+{
+    if (!player || player->getClass() != CLASS_REAPER || !player->IsAlive())
+        return;
+
+    CastTalentTrigger(player, SPELL_DAMNED, SPELL_DAMNED_HASTE);
+    CastTalentTrigger(player, SPELL_PURGATORY, SPELL_PURGATORY_DAMAGE);
+}
+
+void ApplyAscensionReaperSoulInfusionSpent(Player* player)
+{
+    if (!player || player->getClass() != CLASS_REAPER || !player->IsAlive())
+        return;
+
+    CastTalentTrigger(player, SPELL_ESSENCE_INVIGORATION, SPELL_ESSENCE_INVIGORATION_HEAL);
 }
 
 void AddSC_AscensionReaperTalents()
@@ -283,5 +375,6 @@ void AddSC_AscensionReaperTalents()
     RegisterSpellScript(aura_ascension_harvester);
     RegisterSpellScript(aura_ascension_jailers_call);
     RegisterSpellScript(aura_ascension_reaper_blood_frenzy);
+    RegisterSpellScript(aura_ascension_reaper_ghastly_form);
     new reaper_talent_events();
 }

@@ -6,6 +6,8 @@
 
 class Player;
 bool HandleAscensionReaperResource(Player* player, uint32 spellId, int32 amount);
+void ApplyAscensionReaperSoulInfusionGained(Player* player);
+void ApplyAscensionReaperSoulInfusionSpent(Player* player);
 void AddSC_AscensionReaperTalents();
 
 #endif

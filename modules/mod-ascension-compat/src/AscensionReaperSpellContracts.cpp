@@ -16,6 +16,7 @@ constexpr uint32 SPELL_SOULSTONE_LURE = 561376;
 constexpr uint32 SPELL_SOULSTONE_LURE_AURA = 561826;
 constexpr uint32 NPC_SOULSTONE_LURE = 557911;
 constexpr uint32 SUMMON_PROPERTIES_STATIONARY = 64;
+constexpr uint32 SPELL_DEATHBRINGER = 573040;
 
 class reaper_spell_contracts : public GlobalScript
 {
@@ -38,6 +39,11 @@ public:
         else if (info->Id == SPELL_SOULSTONE_LURE && info->Effects[EFFECT_0].Effect == SPELL_EFFECT_SUMMON &&
             info->Effects[EFFECT_0].MiscValue == NPC_SOULSTONE_LURE)
             info->Effects[EFFECT_0].MiscValueB = SUMMON_PROPERTIES_STATIONARY;
+        else if (info->Id == SPELL_DEATHBRINGER &&
+            info->Effects[EFFECT_0].ApplyAuraName == SPELL_AURA_ADD_PCT_MODIFIER &&
+            info->Effects[EFFECT_0].MiscValue == SPELLMOD_DURATION &&
+            info->Effects[EFFECT_0].SpellClassMask == flag96(16777216, 0, 0))
+            info->Effects[EFFECT_0].SpellClassMask = flag96(16777216, 536875008, 67108864);
     }
 };
 

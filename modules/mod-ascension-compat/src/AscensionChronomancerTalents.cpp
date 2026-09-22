@@ -14,8 +14,12 @@ namespace
 {
 enum ChronomancerTalentSpells : uint32
 {
+    SPELL_ROLL_BACK = 804490,
+    SPELL_TIME_SKIP = 804451,
     SPELL_SHIMMERING_SHARD = 806302,
     SPELL_SHIMMER = 806303,
+    SPELL_THROUGH_THE_AEONS = 560310,
+    SPELL_THROUGH_THE_AEONS_BUFF = 560311,
     SPELL_AEON_RENEWAL = 806290,
     SPELL_AEON_RESILIENCE = 806291,
     SPELL_AEON_PROTECTION = 806292,
@@ -192,9 +196,13 @@ public:
     void OnSpellCast(Spell* spell, Unit* caster, SpellInfo const* info, bool) override
     {
         Player* player = caster ? caster->ToPlayer() : nullptr;
-        if (player && player->getClass() == CLASS_CHRONOMANCER && info->SpellFamilyName == 28 &&
-            !spell->IsTriggered() && IsAeonActivation(info->Id) && player->HasAura(SPELL_SHIMMERING_SHARD))
+        if (!player || player->getClass() != CLASS_CHRONOMANCER || info->SpellFamilyName != 28 ||
+            spell->HasTriggeredCastFlag(TRIGGERED_IGNORE_GCD) || !IsAeonActivation(info->Id))
+            return;
+        if (player->HasAura(SPELL_SHIMMERING_SHARD))
             player->CastSpell(player, SPELL_SHIMMER, true);
+        if (player->HasAura(SPELL_THROUGH_THE_AEONS))
+            player->CastSpell(player, SPELL_THROUGH_THE_AEONS_BUFF, true);
     }
 };
 }
@@ -203,6 +211,26 @@ void ApplyAscensionChronomancerTalentContracts(SpellInfo* info)
 {
     if (info->SpellFamilyName != 28)
         return;
+    if (info->Id == SPELL_ROLL_BACK)
+    {
+        info->Effects[EFFECT_0].Effect = SPELL_EFFECT_DISPEL;
+        info->Effects[EFFECT_0].BasePoints = 0;
+        info->Effects[EFFECT_0].DieSides = 1;
+        info->Effects[EFFECT_0].MiscValue = DISPEL_ALL;
+        info->_InitializeExplicitTargetMask();
+    }
+    if (info->Id == SPELL_TIME_SKIP)
+    {
+        info->ProcFlags = 0;
+        info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_DUMMY;
+        info->Effects[EFFECT_0].TriggerSpell = 0;
+    }
+    if (info->Id == SPELL_THROUGH_THE_AEONS)
+    {
+        info->ProcFlags = 0;
+        info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_DUMMY;
+        info->Effects[EFFECT_0].TriggerSpell = 0;
+    }
     if (info->Id == SPELL_DIMENSIONAL_DIVERGENCE)
     {
         info->Effects[EFFECT_1].Effect = 0;

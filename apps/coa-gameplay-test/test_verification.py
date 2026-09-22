@@ -346,5 +346,26 @@ class VerificationTests(unittest.TestCase):
                     self.assertEqual(run.main(arguments), expected)
 
 
+    def test_oblivion_requires_full_healing_without_added_damage(self):
+        case = 'chronomancer-oblivion-epoch-overhealing'
+        scenario = catalog.read_json(catalog.DIRECTORY / 'scenarios' / (case + '.json'))
+        self.write(self.definitions / 'scenarios' / (case + '.json'), scenario)
+        script = 'check_chronomancer_oblivion.py'
+        shutil.copyfile(catalog.DIRECTORY / script, self.definitions / script)
+        self.checks['checks'].extend(check for check in catalog.bindings() if check['script'] == script)
+        self.write(self.definitions / 'checks.json', self.checks)
+        values = {step['save_as']: 0 for step in scenario['steps'] if step['action'] == 'snapshot'}
+        values.update(full_healing=1000, full_damage=1000, boosted_healing=3000, boosted_damage=3000)
+        good = self.bundle(case, values, scenario)
+        self.assertEqual(self.verify(good)['status'], 'passed')
+        for key, amount in [('full_damage', 0), ('full_damage', 100), ('full_damage', 2000),
+                            ('boosted_damage', 5000), ('full_healing', 0)]:
+            with self.subTest(measurement=key, amount=amount):
+                bad = self.bundle(f'{case}-{key}-{amount}', {**values, key: amount}, scenario)
+                outcome = self.verify(bad)
+                self.assertEqual(outcome['status'], 'failed')
+                self.assertEqual(outcome['checks'][0]['status'], 'failed')
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -18,20 +18,26 @@ enum RulesetSpells : uint32
     SPELL_MERCENARY = 9930874
 };
 
+uint32 RulesetAura(uint32 selectionId)
+{
+    switch (selectionId)
+    {
+        case SPELL_SELECT_HIGH_RISK:
+            return SPELL_HIGH_RISK;
+        case SPELL_SELECT_PVE:
+            return SPELL_PVE;
+        default:
+            return SPELL_WAR_MODE;
+    }
+}
+
 void ApplyRuleset(Player* player, uint32 selectionId)
 {
     player->RemoveAurasDueToSpell(SPELL_HIGH_RISK);
     player->RemoveAurasDueToSpell(SPELL_WAR_MODE);
     player->RemoveAurasDueToSpell(SPELL_PVE);
     player->RemoveAurasDueToSpell(SPELL_MERCENARY);
-    if (selectionId == SPELL_SELECT_HIGH_RISK)
-        player->CastSpell(player, SPELL_HIGH_RISK, true);
-    else
-    {
-        player->CastSpell(player, SPELL_WAR_MODE, true);
-        if (selectionId == SPELL_SELECT_PVE)
-            player->CastSpell(player, SPELL_PVE, true);
-    }
+    player->CastSpell(player, RulesetAura(selectionId), true);
 }
 
 class spell_ascension_ruleset_select : public SpellScript
@@ -98,7 +104,13 @@ public:
             return;
 
         if (!player->HasAura(SPELL_HIGH_RISK) && !player->HasAura(SPELL_WAR_MODE) && !player->HasAura(SPELL_PVE))
+        {
             ApplyRuleset(player, SPELL_SELECT_PVE);
+            return;
+        }
+
+        if (player->HasAura(SPELL_PVE))
+            player->RemoveAurasDueToSpell(SPELL_WAR_MODE);
     }
 };
 }

@@ -34,7 +34,15 @@ METRICS = {
     'health', 'health_pct', 'max_health', 'power', 'max_power', 'alive', 'combat', 'casting', 'level',
     'aura', 'aura_stacks', 'aura_charges', 'aura_duration_ms', 'aura_amount', 'aura_positive',
     'knows_spell', 'has_talent', 'talent_points', 'cooldown_ms', 'global_cooldown_ms', 'spell_charges',
-    'action_button', 'item_count', 'carried_item_count', 'bank_bag_slots', 'bank_shows', 'system_messages',
+    'action_button', 'item_count', 'carried_item_count', 'carried_pool_item_count', 'carried_variant_item_count',
+    'pool_variant_count', 'pool_retired_item_count', 'pool_row_count', 'pool_item_present',
+    'cache_token_count', 'cache_token_stage', 'cache_token_present',
+    'free_inventory_slots', 'mail_count', 'mail_item_count', 'mail_has_item',
+    'mail_pool_item_count', 'notifications', 'notification_contains',
+    'bank_bag_slots', 'bank_shows',
+    'system_messages',
+    'system_message_contains', 'challenge_start_responses', 'challenge_start_code',
+    'owned_creature_scale', 'unit_scale', 'token_count', 'item_sell_price', 'creature_model_scale', 'creature_model_display',
     'taxi_node', 'pet_entry', 'pet_aura_stacks', 'pet_aura_duration_ms', 'pet_is_banker', 'pet_display',
     'pet_scale', 'owned_creature_count',
     'charm_entry', 'charm_aura_stacks', 'controls_self', 'private_instance',
@@ -91,8 +99,8 @@ PLAYER_STAT_METRICS = {
 }
 METRIC_FIELDS = {'actor', 'metric', 'spell', 'power', 'caster', 'effect', 'item', 'entry', 'button',
                  'relative_to', 'ratio_to', 'target', 'quest', 'id', 'stat', 'school', 'hand', 'rating', 'op',
-                 'base', 'key', 'index', 'pet', 'critical', 'target_pet', 'periodic', 'name',
-                 'min_distance', 'owner_display', 'skill'}
+                 'base', 'key', 'index', 'pet', 'critical', 'target_pet', 'periodic', 'name', 'text',
+                 'min_distance', 'owner_display', 'skill', 'cache', 'table', 'exclude'}
 ACTIONS = {
     'stop_attack': ({'actor'}, {'actor'}),
     'set_moving': ({'actor', 'enabled'}, {'actor', 'enabled'}),
@@ -115,6 +123,7 @@ ACTIONS = {
     'cast_charm': ({'actor', 'spell'}, {'actor', 'spell', 'target'}),
     'gossip_hello': ({'actor'}, {'actor', 'target'}),
     'banker_activate': ({'actor'}, {'actor', 'target', 'owner', 'entry'}),
+    'start_challenge': ({'actor', 'challenge', 'level'}, {'actor', 'challenge', 'level'}),
     'area_trigger': ({'actor', 'id'}, {'actor', 'id'}),
     'trainer_buy': ({'actor', 'spell'}, {'actor', 'spell', 'target'}),
     'gossip_select': ({'actor', 'option'}, {'actor', 'option'}),
@@ -137,6 +146,7 @@ ACTIONS = {
     'talent': ({'actor', 'talent', 'rank'}, {'actor', 'talent', 'rank'}),
     'reset_talents': ({'actor'}, {'actor'}),
     'add_item': ({'actor', 'item'}, {'actor', 'item', 'count'}),
+    'fill_bags': ({'actor'}, {'actor', 'slots'}),
     'equip': ({'actor', 'item', 'slot'}, {'actor', 'item', 'slot'}),
     'use_item': ({'actor', 'item', 'spell'}, {'actor', 'item', 'spell', 'target', 'destination'}),
     'use_gameobject': ({'actor', 'entry'}, {'actor', 'entry'}),
@@ -278,7 +288,7 @@ def validate(scenario):
             for key in ('x', 'y', 'z', 'o'):
                 if key in step:
                     number(step[key], f'{where}.{key}', -17000, 17000)
-        for key in ('spell', 'item', 'talent', 'count', 'entry', 'quest', 'id'):
+        for key in ('spell', 'item', 'talent', 'count', 'entry', 'quest', 'id', 'challenge', 'level'):
             if key in step:
                 number(step[key], f'{where}.{key}', 1, 2**31 - 1, True)
         for key, maximum in (('rank', 4), ('effect', 2), ('slot', 18), ('power', 6), ('choice', 5),
@@ -409,6 +419,28 @@ def validate(scenario):
                 number(step['school'], f'{where}.school', 0, 6, True)
             if metric == 'item_count':
                 require('item' in step, f'{where}: metric needs item')
+            if metric == 'carried_pool_item_count':
+                require('cache' in step, f'{where}: metric needs the cache item it checks against')
+            if metric == 'pool_variant_count':
+                require('cache' in step, f'{where}: metric needs the cache item it checks against')
+            if metric == 'pool_retired_item_count':
+                require('cache' in step, f'{where}: metric needs the cache item it checks against')
+            if metric == 'pool_row_count':
+                require('cache' in step, f'{where}: metric needs the cache item it checks against')
+            if metric == 'pool_item_present':
+                require('cache' in step, f'{where}: metric needs the cache item it checks against')
+                require('item' in step, f'{where}: metric needs the item to look for')
+            if metric in ('cache_token_count', 'cache_token_stage', 'cache_token_present'):
+                require('cache' in step, f'{where}: metric needs the cache item it checks against')
+            if metric == 'cache_token_present':
+                require('item' in step, f'{where}: metric needs the token to look for')
+            if metric in ('mail_has_item',):
+                require('item' in step, f'{where}: metric needs the item to look for')
+            if metric == 'mail_pool_item_count':
+                require('cache' in step, f'{where}: metric needs the cache item it checks against')
+            if metric == 'notification_contains':
+                require(isinstance(step.get('text'), str) and step['text'].strip(),
+                        f'{where}: metric needs the text to look for')
             if metric == 'quest_rewarded':
                 require('quest' in step, f'{where}: metric needs quest')
             if metric == 'who_class':
@@ -416,6 +448,11 @@ def validate(scenario):
             if metric == 'owned_creature_count':
                 require('entry' in step, f'{where}: metric needs creature entry')
                 require('caster' not in step or 'spell' in step, f'{where}: aura caster filter needs spell')
+            if metric == 'owned_creature_scale':
+                require('entry' in step, f'{where}: metric needs creature entry')
+            if metric == 'system_message_contains':
+                require(isinstance(step.get('text'), str) and step['text'].strip(),
+                        f'{where}: metric needs the text to look for')
             if metric in {'spellbook_offers_spell', 'spellbook_learned_alerts',
                           'spellbook_buy_succeeded', 'spellbook_buy_failed', 'cast_failure'}:
                 require('spell' in step, f'{where}: metric needs spell')
@@ -434,8 +471,11 @@ def validate(scenario):
             if metric == 'gossip_text':
                 require('id' in step, f'{where}: metric needs text id')
             if metric in {'knows_spell', 'has_talent', 'talent_points', 'cooldown_ms', 'spell_charges', 'action_button', 'item_count',
-                          'carried_item_count', 'bank_bag_slots', 'taxi_node', 'cast_pushback_ms',
-                          'bank_shows', 'system_messages', 'cast_failure',
+                          'carried_item_count', 'carried_pool_item_count', 'carried_variant_item_count',
+                          'bank_bag_slots', 'taxi_node',
+                          'cast_pushback_ms',
+                          'bank_shows', 'system_messages', 'system_message_contains',
+                          'challenge_start_responses', 'challenge_start_code', 'owned_creature_scale', 'cast_failure',
                           'pet_entry', 'pet_aura_stacks', 'pet_is_banker', 'pet_display', 'pet_scale',
                           'owned_creature_count', 'charm_entry',
                           'charm_aura_stacks', 'controls_self', 'private_instance',
@@ -462,15 +502,16 @@ def validate(scenario):
                           'ball_turn_in_count', 'ball_turn_in_quest',
                           'temporary_spell_replacement'} | PLAYER_STAT_METRICS:
                 require(step['actor'] in player_ids, f'{where}: metric needs a player')
+            shape = (metric, step.get('exclude'))
             if 'relative_to' in step:
-                require(snapshots.get(step['relative_to']) == metric, f'{where}: missing or incompatible snapshot')
+                require(snapshots.get(step['relative_to']) == shape, f'{where}: missing or incompatible snapshot')
             if 'ratio_to' in step:
-                require(snapshots.get(step['ratio_to']) == metric, f'{where}: missing or incompatible ratio snapshot')
+                require(snapshots.get(step['ratio_to']) == shape, f'{where}: missing or incompatible ratio snapshot')
             if action == 'snapshot':
                 name = step['save_as']
                 require(isinstance(name, str) and ACTOR_ID.fullmatch(name), f'{where}: invalid snapshot name')
                 require(name not in snapshots, f'{where}: duplicate snapshot')
-                snapshots[name] = metric
+                snapshots[name] = shape
             else:
                 assertions += 1
                 require(any(key in step for key in ('equals', 'min', 'max')), f'{where}: no expected value')

@@ -435,13 +435,10 @@ namespace CoAChallenges
                 "{} requires you to be in High Risk.", ChallengeName(challengeID));
             return 12; // RULE_BROKEN
         }
-        if (ChallengeLevelCount(challengeID) > 1 && level > 1
-            && !HasCompletionLevel(guid, challengeID, level - 1))
-        {                                                        // 9 PREVIOUS_LEVEL_NOT_COMPLETED
-            ChatHandler(player->GetSession()).PSendSysMessage(
-                "Complete the previous level of {} first.", ChallengeName(challengeID));
-            return 9;
-        }
+        // Multi-level challenges are difficulty picks, not a ladder: any level can be
+        // entered straight away (Adventure Mode at level 30 without ever completing
+        // level 1, as on Ascension). Levels are not shortcuts either - rewards are paid
+        // per completed (challenge, level) row, so entering high only buys a harder fight.
         if (IsPrestigeChallenge(challengeID) && !IsPrestiged(player))  // 11 NOT_PRESTIGE
         {
             ChatHandler(player->GetSession()).PSendSysMessage("{} requires prestige.", ChallengeName(challengeID));
@@ -1013,10 +1010,18 @@ namespace CoAChallenges
             }
             else if (type == "CHALLENGE_CONDITIONS_TYPE_LOOT_INTERACTION")
             {
-                bool looted = HasConditionFlag(guid, "LOOTED");
+                // Loot history gates a one-shot run, not a difficulty ladder. A
+                // multi-level challenge is entered at whichever level the player picks
+                // (Adventure Mode 1-100), and the mode itself is built on dungeon loot,
+                // so a lifetime "has looted" flag would lock out every level of it for a
+                // player who has ever opened a corpse. The condition stays live for
+                // single-level challenges, where "start clean" is the point of it.
+                bool const ladder = ChallengeLevelCount(challengeID) > 1;
+                bool looted = !ladder && HasConditionFlag(guid, "LOOTED");
                 s.label = "LOOT_INTERACTION";
                 s.broken = looted;
-                s.detail = looted ? "LOOTED" : "clean";
+                s.detail = ladder ? "not required for a multi-level challenge"
+                                  : (looted ? "LOOTED" : "clean");
                 s.message = "You have already looted something; this trial must be started before any loot interaction.";
             }
             else if (type == "CHALLENGE_CONDITIONS_TYPE_LEVEL_UP")
@@ -1300,6 +1305,13 @@ namespace CoAChallenges
         // level is completed (relevant only when re-completion is allowed).
         bool const firstCompletion = !HasCompletionLevel(guid, challengeID, level);
 
+        // Rewards are handed out while the challenge is still recorded as active, and the
+        // completion row that marks it done is written straight after. Granting last meant a
+        // failed grant (or a realm drop in between) consumed the challenge and paid nothing,
+        // with no way to retry; granting first at worst leaves the challenge complete with the
+        // reward already paid, which the row written below then records.
+        GrantChallengeRewards(player, challengeID, level, firstCompletion);
+
         CharacterDatabase.DirectExecute(
             "INSERT IGNORE INTO coa_challenge_completion (guid, challengeId, level, completeTime, startTime) "
             "VALUES ({}, {}, {}, UNIX_TIMESTAMP(), {})", guid, challengeID, level, startTime);
@@ -1325,8 +1337,6 @@ namespace CoAChallenges
         // "deactivate". Re-push the active list (now without this trial).
         SendActiveList(player);
         SendCriteriaState(player);
-
-        GrantChallengeRewards(player, challengeID, level, firstCompletion);
 
         if (WorldSession* session = player->GetSession())
         {

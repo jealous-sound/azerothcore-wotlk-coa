@@ -186,3 +186,82 @@ Bloodforged.Rates25 = "4.00 1.00 0.00"
 Bloodforged.Rates35 = "3.80 1.40 0.15"
 Bloodforged.Rates45 = "3.60 1.80 0.25"
 Bloodforged.Rates55 = "3.40 2.20 0.40"
+
+#
+#    Ascension.PrestigiousCache.ReleaseStage
+#        Description: The newest tier the realm has released, 1-6. A Prestigious Cache pays
+#                     tokens of its own content only, and never one from a tier above this
+#                     one, so a Classic-stage realm never hands out a Tier 6 token. Tier
+#                     2.5 counts as 2.5, so 3 still covers it.
+#        Default:     6
+
+Ascension.PrestigiousCache.ReleaseStage = 6
+
+#
+#    Ascension.PrestigiousCache.TokenChancePercent
+#        Description: Chance for a Prestigious Cache to also hand over one of its own tier's
+#                     tokens, "a chance of one or more global tier tokens, if tiers are
+#                     released" as the cache's own description puts it. A cache whose
+#                     content has no token of its own pays none.
+#        Default:     25
+
+Ascension.PrestigiousCache.TokenChancePercent = 25
+
+#
+#    Ascension.PrestigiousCache.SecondTokenChancePercent
+#        Description: Chance for that first token to be two.
+#        Default:     5
+
+Ascension.PrestigiousCache.SecondTokenChancePercent = 5
+
+#
+#    Ascension.PrestigiousCache.ClassicStages
+#        Description: How many of the Classic Prestigious Caches are released, 0-8, in the
+#                     order 1287304 held for Heroic Dungeons, Zul'Gurub, Molten Core,
+#                     Onyxia, Blackwing Lair, Ruins of Ahn'Qiraj, Temple of Ahn'Qiraj,
+#                     Naxxramas. The generic "most recent Prestigious Cache available"
+#                     resolves to the newest released one.
+#        Default:     8
+
+Ascension.PrestigiousCache.ClassicStages = 8
+
+#
+#    Ascension.PrestigiousCache.TbcStages
+#        Description: How many of the Burning Crusade Prestigious Caches are released, 0-9,
+#                     in the order 1297310 held for Karazhan, Gruul's Lair, Magtheridon's
+#                     Lair, Serpentshrine Caverns, Tempest Keep, Zul'Aman, The Battle for
+#                     Mount Hyjal, Black Temple, Sunwell. Zero keeps the generic caches on
+#                     the Classic ladder.
+#        Default:     0
+
+Ascension.PrestigiousCache.TbcStages = 0
+
+#
+#    Ascension.CallboardCache.ReleaseStage
+#        Description: The realm's current content progression stage, 0-7, in the order the
+#                     Callboard Caches released: Heroic and Mythic Dungeons, Zul'Gurub,
+#                     Molten Core, Onyxia's Lair, Blackwing Lair, Ruins of Ahn'Qiraj,
+#                     Temple of Ahn'Qiraj, Naxxramas. A generic Callboard Cache resolves
+#                     to a tier at or below this stage.
+#        Default:     7
+
+Ascension.CallboardCache.ReleaseStage = 7
+
+#
+#    Ascension.CallboardCache.PreviousStageOnly
+#        Description: Hold every generic Callboard Cache one stage below the released one.
+#                     The 1378050 cache promises "gear up to the previous tier released"
+#                     and stops there on its own whatever this is set to.
+#        Default:     0
+
+Ascension.CallboardCache.PreviousStageOnly = 0
+
+#
+#    Ascension.CallboardCache.ItemLevelAllowance
+#        Description: How far above the opener's average equipped item level a Callboard
+#                     Cache may reach: "This Callboard Cache gives you rewards based on
+#                     your item level." Rewards are preferred at the opener's own level or
+#                     above, never further up than this allowance.
+#        Default:     6
+
+Ascension.CallboardCache.ItemLevelAllowance = 6

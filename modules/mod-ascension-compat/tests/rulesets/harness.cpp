@@ -138,16 +138,19 @@ int main()
     player.auras.insert(123);
     login.OnPlayerLogin(&player);
     assert((player.known == std::set<uint32>{123, 84420, 84421, 84422}) && player.learns == 2);
-    assert((player.auras == std::set<uint32>{123, 1004119, 9931032}));
+    assert((player.auras == std::set<uint32>{123, 9931032}));
     login.OnPlayerLogin(&player);
-    assert(player.learns == 2 && (player.auras == std::set<uint32>{123, 1004119, 9931032}));
+    assert(player.learns == 2 && (player.auras == std::set<uint32>{123, 9931032}));
     for (auto const& kept : {std::set<uint32>{1004019}, std::set<uint32>{1004119},
-                             std::set<uint32>{1004119, 9931032}})
+                             std::set<uint32>{9931032}})
     {
         player.auras = kept;
         login.OnPlayerLogin(&player);
         assert(player.auras == kept);
     }
+    player.auras = {1004119, 9931032};
+    login.OnPlayerLogin(&player);
+    assert((player.auras == std::set<uint32>{9931032}));
     configMgrStub.rulesetLoginDefault = false;
     Player gated;
     login.OnPlayerLogin(&gated);
@@ -168,7 +171,7 @@ int main()
     player.resting = true;
     assert(script.CheckCast() == SPELL_CAST_OK);
     const std::map<uint32, std::set<uint32>> modes = {
-        {84420, {1004119}}, {84421, {1004019}}, {84422, {1004119, 9931032}}
+        {84420, {1004119}}, {84421, {1004019}}, {84422, {9931032}}
     };
     for (auto const& [previous, auras] : modes)
         for (auto const& [selected, expected] : modes)
