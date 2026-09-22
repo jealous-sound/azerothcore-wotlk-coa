@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "Stormbringer: Critical Circuit refunds Static on critical Static spenders (#3667)",
-  "contract": "Critical Circuit 807314 is a permanent passive (DurationIndex 21) whose Effect[0] is SPELL_EFFECT_APPLY_AURA with EffectApplyAuraName[0] = 42 SPELL_AURA_PROC_TRIGGER_SPELL and EffectTriggerSpell[0] = 804084 'Add 10 Static', whose Effect[1] is 175 SPELL_EFFECT_ASCENSION_MODIFY_AURA_STACKS with EffectMiscValue[1] = 10 on trigger spell 803102 Static, targeted at TARGET_UNIT_CASTER. Its DBC ProcFlags are 0 and it had no spell_proc row, so Aura::GetProcEffectMask returned 0 on every event and the refund never happened. The set of 'Static spenders' is not expressible in DBC terms - the class-16 rows of AscensionCompatData::ResourceCostRules share no SpellFamilyFlags bit - so the predicate reads that table directly. Call Lightning 500040 is a spender: {16, 500040, 500040, 803102, 50, ResourceConsumption::Fixed}, SpellFamilyName 22, SchoolMask 8 Nature, DmgClass 1 magic, TARGET_UNIT_TARGET_ENEMY, CastTime 1500 ms, no RecoveryTime or CategoryRecoveryTime, and it appears in no class-16 ResourceGainRules row, so its only Static movement is the 50-point cost taken at cast. Shock 804020 is the negative control on a second Stormbringer: same family, school, damage class and target type, but no class-16 cost rule at all, so a critical Shock must earn no refund. That control character deliberately never learns Call Lightning, because the Shock branch of stormbringer_talent_casts grants Static (804086) only to a Stormbringer who knows 500040. Static 803102 has DBC StackAmount 100, so both baselines stay under that ceiling and a wrongly granted refund would be visible rather than clamped. spell_crit_rating 100000 is the fixture's way of forcing the critical branch.",
+  "contract": "Critical Circuit 807314 is a permanent passive (DurationIndex 21) whose Effect[0] is SPELL_EFFECT_APPLY_AURA with EffectApplyAuraName[0] = 42 SPELL_AURA_PROC_TRIGGER_SPELL and EffectTriggerSpell[0] = 804084 'Add 10 Static', whose Effect[1] is 175 SPELL_EFFECT_ASCENSION_MODIFY_AURA_STACKS with EffectMiscValue[1] = 10 on trigger spell 803102 Static, targeted at TARGET_UNIT_CASTER. Its DBC ProcFlags are 0 and it had no spell_proc row, so Aura::GetProcEffectMask returned 0 on every event and the refund never happened. The set of 'Static spenders' is not expressible in DBC terms - the class-16 rows of AscensionCompatData::ResourceCostRules share no SpellFamilyFlags bit - so the predicate reads that table directly. Call Lightning 500040 is a spender: {16, 500040, 500040, 803102, 50, ResourceConsumption::Fixed}, SpellFamilyName 22, SchoolMask 8 Nature, DmgClass 1 magic, TARGET_UNIT_TARGET_ENEMY, CastTime 1500 ms, no RecoveryTime or CategoryRecoveryTime, and it appears in no class-16 ResourceGainRules row, so its only Static movement is the 50-point cost taken at cast. Shock 804020 is the negative control on a second Stormbringer: same family, school, damage class and target type, but no class-16 cost rule at all, so a critical Shock must earn no refund. That control character deliberately never learns Call Lightning, because the Shock branch of stormbringer_talent_casts grants Static (804086) only to a Stormbringer who knows 500040. Static 803102 has DBC StackAmount 100, so both baselines stay under that ceiling and a wrongly granted refund would be visible rather than clamped. spell_crit_rating 100000 is the fixture's way of forcing the critical branch. The fix reads player->HasAura(807314) rather than any DBC proc data, so the fixture asserts that aura is actually present (807314 has DBC StackAmount 0, a non-stacking presence aura) before the discriminating cast instead of trusting learn's auto-cast-on-learn path silently.",
   "timeout_ms": 120000,
   "players": [
     {
@@ -95,6 +95,21 @@
       "action": "learn",
       "actor": "cc",
       "spell": 807314
+    },
+    {
+      "action": "set_aura",
+      "label": "SETUP: guarantee the Critical Circuit passive is actually active - learn's auto-cast-on-learn is not independently observable through any other fixture action",
+      "actor": "cc",
+      "spell": 807314,
+      "stacks": 1
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: Critical Circuit is present before the discriminating cast",
+      "actor": "cc",
+      "metric": "aura",
+      "spell": 807314,
+      "equals": 1
     },
     {
       "action": "set_aura",
