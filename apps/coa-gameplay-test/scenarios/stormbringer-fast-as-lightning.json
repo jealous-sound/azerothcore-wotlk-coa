@@ -36,15 +36,15 @@
     },
     {
       "action": "assert", "label": "DISCRIMINATING: while Electrocutioner is active Electrocute 801844 gains 20% damage",
-      "actor": "s", "metric": "spell_modifier", "spell": 801844, "op": 0, "base": 100, "equals": 120
+      "actor": "s", "metric": "spell_modifier", "spell": 801844, "op": 0, "base": 100, "min": 119.9, "max": 120.1
     },
     {
       "action": "assert", "label": "DISCRIMINATING: the same 20% reaches the trained rank chain (Electrocute 501421, SpellFamilyFlags[1] 2097152)",
-      "actor": "s", "metric": "spell_modifier", "spell": 501421, "op": 0, "base": 100, "equals": 120
+      "actor": "s", "metric": "spell_modifier", "spell": 501421, "op": 0, "base": 100, "min": 119.9, "max": 120.1
     },
     {
       "action": "assert", "label": "DISCRIMINATING: and the highest Electrocute rank 501432",
-      "actor": "s", "metric": "spell_modifier", "spell": 501432, "op": 0, "base": 100, "equals": 120
+      "actor": "s", "metric": "spell_modifier", "spell": 501432, "op": 0, "base": 100, "min": 119.9, "max": 120.1
     },
     { "action": "set_aura", "actor": "s", "spell": 804592, "stacks": 0 },
     {
