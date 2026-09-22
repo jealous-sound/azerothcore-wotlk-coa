@@ -25,6 +25,7 @@
       "actor": "dummy", "metric": "aura_duration_ms", "spell": 801859, "caster": "storm", "min": 11000, "max": 15000 },
     { "action": "assert", "label": "NATIVE: aura 271 adds the tooltip's 20% (BasePoints 19 + DieSides 1), so 1000 becomes 1200",
       "actor": "dummy", "metric": "spell_damage_taken", "spell": 503359, "target": "storm", "equals": 1200 },
+    { "action": "wait", "label": "Let the shared GCD (StartRecoveryCategory 133, 1000-1500 ms) clear before the next cast", "ms": 1701 },
     { "action": "cast", "actor": "storm", "spell": 503359, "target": "dummy" },
     { "action": "assert", "label": "SETUP: Torrential Wrath lands on the Stormcloud'd target",
       "actor": "storm", "metric": "spell_damage_count", "spell": 503359, "equals": 1, "within_ms": 8000 },
