@@ -17,6 +17,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
 sys.path.insert(0, str(HERE.parent))
 from coa_talent_catalog import STUBS  # noqa: E402
+from client_data import dbc_dir  # noqa: E402
 
 MAIN = r"""
 #include "AscensionCoATalentData.h"
@@ -140,8 +141,9 @@ int main(int, char** argv)
 
 def main():
     parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
-    parser.add_argument("--dbc-dir", type=Path, required=True)
+    parser.add_argument("--dbc-dir", type=Path)
     args = parser.parse_args()
+    args.dbc_dir = args.dbc_dir or dbc_dir()
 
     compiler = shutil.which(os.environ.get("CXX", "cl.exe" if os.name == "nt" else "c++"))
     assert compiler, "Enable a C++20 compiler (VS Developer PowerShell on Windows)."

@@ -5,6 +5,10 @@ import runpy
 import struct
 import subprocess
 import tempfile
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from client_data import dbc_dir  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
@@ -13,9 +17,10 @@ extract = runpy.run_path(str(HERE.parent / 'client_compat/run.py'))['method']
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dbc-dir', type=Path, required=True)
+    parser.add_argument('--dbc-dir', type=Path)
     parser.add_argument('--before', action='store_true')
     args = parser.parse_args()
+    args.dbc_dir = args.dbc_dir or dbc_dir()
 
     def source(path):
         return (ROOT / path).read_text()

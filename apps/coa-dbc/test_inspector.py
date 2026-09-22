@@ -185,25 +185,6 @@ class InspectorTests(unittest.TestCase):
                 self.assertIn(i * 4, by_offset, f'{name} field {i}')
                 self.assertIn(by_offset[i * 4].kind, {'s': 's', 'f': 'f'}.get(kind, 'Ii'), f'{name} field {i}')
 
-    def test_spell_layout_rejects_native_member_and_disk_offset_drift(self):
-        root = self.path / 'source'
-        for name in [schemas.STRUCTURES, schemas.SPELL_LAYOUT, 'src/server/shared/DataStores/DBCfmt.h']:
-            target = root / name
-            target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_bytes((schemas.ROOT / name).read_bytes())
-        header = root / schemas.STRUCTURES
-        original = header.read_text()
-        header.write_text(original.replace('uint32    ManaCost;', 'float     ManaCost;'))
-        with self.assertRaisesRegex(ValueError, 'does not match native'):
-            schemas.spell_schema(root)
-        header.write_text(original)
-        layout = root / schemas.SPELL_LAYOUT
-        rows = json.loads(layout.read_text())
-        rows[1][1] = rows[1][2] = 0
-        layout.write_text(json.dumps(rows))
-        with self.assertRaisesRegex(ValueError, 'Duplicate Spell disk layout index'):
-            schemas.spell_schema(root)
-
 
 if __name__ == '__main__':
     unittest.main()

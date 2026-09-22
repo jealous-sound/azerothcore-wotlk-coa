@@ -15,7 +15,7 @@ find_path(COA_PROPERTY_TREE_INCLUDE_DIR
   NO_DEFAULT_PATH)
 if(NOT COA_PROPERTY_TREE_INCLUDE_DIR)
   message(FATAL_ERROR
-    "CoA gameplay tests require Boost.PropertyTree headers. Install boost-property-tree for your vcpkg triplet, "
+    "CoA requires Boost.PropertyTree headers. Install boost-property-tree for your vcpkg triplet, "
     "or provide a complete Boost installation.")
 endif()
 

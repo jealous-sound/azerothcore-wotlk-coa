@@ -9,6 +9,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from source_paths import git_source  # noqa: E402
+from client_data import dbc_dir  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
@@ -17,9 +18,10 @@ extract = runpy.run_path(str(HERE.parent / 'client_compat/run.py'))['method']
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dbc-dir', type=Path, required=True)
+    parser.add_argument('--dbc-dir', type=Path)
     parser.add_argument('--source-ref')
     args = parser.parse_args()
+    args.dbc_dir = args.dbc_dir or dbc_dir()
     path = 'src/server/coa/AscensionXorothContracts.cpp'
     contracts = (git_source(['git', 'show', args.source_ref + ':' + path], cwd=ROOT).decode()
                  if args.source_ref else (ROOT / path).read_text())

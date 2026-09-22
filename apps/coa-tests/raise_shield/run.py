@@ -13,6 +13,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from source_paths import git_source  # noqa: E402
+from client_data import dbc_dir  # noqa: E402
 
 
 HERE = Path(__file__).resolve().parent
@@ -23,8 +24,9 @@ method = runpy.run_path(str(HERE.parent / "client_compat/run.py"))["method"]
 def main():
     parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument("--source-ref", help="Test a local Git revision to demonstrate the regression.")
-    parser.add_argument("--dbc-dir", type=Path, required=True)
+    parser.add_argument("--dbc-dir", type=Path)
     args = parser.parse_args()
+    args.dbc_dir = args.dbc_dir or dbc_dir()
 
     def source(path):
         if args.source_ref:

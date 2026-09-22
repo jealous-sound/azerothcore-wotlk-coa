@@ -8,6 +8,10 @@ import struct
 import subprocess
 import tempfile
 import zipfile
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from client_data import dbc_dir  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
@@ -59,8 +63,9 @@ def check_summons(rows):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dbc-dir', type=Path, required=True)
+    parser.add_argument('--dbc-dir', type=Path)
     args = parser.parse_args()
+    args.dbc_dir = args.dbc_dir or dbc_dir()
 
     def rows(name):
         blob = (args.dbc_dir / (name + '.dbc')).read_bytes()

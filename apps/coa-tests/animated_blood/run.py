@@ -6,6 +6,10 @@ import sqlite3
 import struct
 import subprocess
 import tempfile
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from client_data import dbc_dir  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
@@ -15,8 +19,9 @@ SQL = ROOT / 'data/sql/updates/pending_db_world/rev_1789365018824773600.sql'
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dbc-dir', type=Path, required=True)
+    parser.add_argument('--dbc-dir', type=Path)
     args = parser.parse_args()
+    args.dbc_dir = args.dbc_dir or dbc_dir()
     db = sqlite3.connect(':memory:')
     db.executescript('''
         CREATE TABLE creature_template (entry INT PRIMARY KEY, name TEXT, minlevel INT, maxlevel INT,
