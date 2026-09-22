@@ -19,7 +19,8 @@ from check_change_boundaries import ROOT, changed_paths
 GAMEPLAY = 'apps/coa-gameplay-test/'
 DBC = 'apps/coa-dbc/'
 MECHANICS = 'apps/coa-mechanics/'
-MODULE = 'modules/mod-ascension-compat/'
+COA = 'src/server/coa/'
+COA_TESTS = 'apps/coa-tests/'
 CONTROL_FILES = {'tools/check_source.py', 'tools/test_source.py', '.github/workflows/quality.yml'}
 SUITES = {
     'source-tools': {
@@ -36,24 +37,25 @@ SUITES = {
         'commands': [['.github/scripts/test_label_issues.py']],
     },
     'dbc': {
-        'paths': [DBC + '*.py', DBC + 'coa-dbc-viewer', DBC + 'viewer.html'],
+        'paths': [DBC + '*.py', DBC + 'coa-dbc-viewer', DBC + 'viewer.html', DBC + 'spell-layout.json'],
         'commands': [[DBC + 'test_client_dbc.py'], [DBC + 'test_inspector.py'], [DBC + 'test_capture_sql.py']],
     },
     'mechanics': {
-        'paths': [MECHANICS + '*.py', MECHANICS + '*.json', DBC + '*.py', GAMEPLAY + '*.py', GAMEPLAY + '*.json'],
+        'paths': [MECHANICS + '*.py', MECHANICS + '*.json', DBC + '*.py', DBC + 'spell-layout.json', GAMEPLAY + '*.py', GAMEPLAY + '*.json'],
         'commands': [[MECHANICS + 'test_mechanic_map.py'], [MECHANICS + 'mechanic_map.py', 'check']],
     },
     'gameplay': {
-        'paths': [GAMEPLAY + '*.py', GAMEPLAY + '*.json', MODULE + 'src/CoAGameplayTest*'],
+        'paths': [GAMEPLAY + '*.py', GAMEPLAY + '*.json', COA + 'CoAGameplayTest*'],
         'commands': [[GAMEPLAY + 'test_runner.py'], [GAMEPLAY + 'test_world_cache.py'],
                      [GAMEPLAY + 'test_verification.py'], [GAMEPLAY + 'catalog.py', '--check']],
     },
     'registrations': {
-        'paths': [MODULE + 'src/*.cpp', MODULE + 'src/*.h', MODULE + 'include.sh', 'tools/*registrations.py'],
+        'paths': [COA + '*.cpp', COA + '*.h', COA + 'CMakeLists.txt', 'tools/*registrations.py'],
         'commands': [['tools/check_registrations.py']],
     },
 }
-CLIENT_COMPAT_PATHS = [MODULE + 'tests/client_compat/*', 'src/server/game/Server/WorldSocket.*',
+CLIENT_COMPAT_PATHS = [COA_TESTS + 'client_compat/*', COA_TESTS + 'core_integration/*',
+                       COA + 'CoASpellbook.*', COA + 'CMakeLists.txt', 'src/server/game/Server/WorldSocket.*',
                        'src/server/game/Entities/Player/*', 'src/server/shared/DataStores/*',
                        'src/common/DataStores/*', 'src/common/Define.h', 'src/common/Common.h']
 

@@ -8,6 +8,7 @@
 #define SPELLBOOK_API_H
 
 #include <cstdint>
+#include "CoASpellbook.h"
 
 class Player;
 
@@ -17,7 +18,7 @@ namespace Spellbook
     /// the client's own opcode table in Extensions.dll, where it is registered to the handler
     /// that reads one 44 byte row, and it is the same table this realm's compat module reads its
     /// ids from. Kept here so the module and the test driver that watches for it share one home.
-    constexpr uint16 SMSG_PATCH_SPELL_CUSTOM_ATTR = 0x05F4;
+    constexpr uint16 SMSG_PATCH_SPELL_CUSTOM_ATTR = CoASpellbook::SMSG_PATCH_SPELL_CUSTOM_ATTR;
 
     /// How many rows the book would show this player. Zero means no window can be built, which
     /// is the case the book falls back to a gossip option for.

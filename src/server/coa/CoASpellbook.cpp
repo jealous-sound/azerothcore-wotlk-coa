@@ -1,0 +1,26 @@
+#include "CoASpellbook.h"
+
+namespace
+{
+    CoASpellbook::Provider SpellbookProvider;
+}
+
+void CoASpellbook::SetProvider(Provider provider)
+{
+    SpellbookProvider = provider;
+}
+
+double CoASpellbook::RowCount(Player* player)
+{
+    return SpellbookProvider.RowCount ? double(SpellbookProvider.RowCount(player)) : -1.0;
+}
+
+double CoASpellbook::OffersSpell(Player* player, std::uint32_t spellId)
+{
+    return SpellbookProvider.OffersSpell ? double(SpellbookProvider.OffersSpell(player, spellId)) : -1.0;
+}
+
+double CoASpellbook::CoversSpell(Player* player, std::uint32_t spellId)
+{
+    return SpellbookProvider.CoversSpell ? double(SpellbookProvider.CoversSpell(player, spellId)) : -1.0;
+}

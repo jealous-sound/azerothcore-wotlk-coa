@@ -58,7 +58,7 @@
 #include "WorldPacket.h"
 #include "WorldSession.h"
 
-#include "../../mod-ascension-compat/src/AscensionCompatOpcodes.h"
+#include "AscensionCompatOpcodes.h"
 
 #include <mutex>
 #include <optional>

@@ -191,10 +191,10 @@ Lessons from the Guardian correction; these are source/test findings, not a clai
 - `C:/Ascension/tools/Audit-BarbarianDamage.py` — pinned pre-fix contract audit, not a post-fix health check.
 - `C:/Ascension/tools/Test-BarbarianDamageFix.py` — native block and x86/x64 launcher fixtures.
 - `C:/Ascension/tools/Generate-BarbarianDamageFix.py` — policy-owned SQL and description-only DBC generation.
-- `C:/Ascension/azerothcore-wotlk-coa/modules/mod-ascension-compat/src/AscensionBarbarianScaling.cpp` — guarded RAP exception.
+- `C:/Ascension/azerothcore-wotlk-coa/src/server/coa/AscensionBarbarianScaling.cpp` — guarded RAP exception.
 - `C:/Ascension/runtime/validation/barbarian-damage-20260906/implemented.md` — deployment facts and limits.
 - `C:/Ascension/tools/Test-GuardianStandards.py` — actual-source summon/scaling/armor cases and model checks.
-- `C:/Ascension/azerothcore-wotlk-coa/modules/mod-ascension-compat/src/AscensionGuardianStandards.cpp` — stationary standards.
+- `C:/Ascension/azerothcore-wotlk-coa/src/server/coa/AscensionGuardianStandards.cpp` — stationary standards.
 
 ## Pyromancer follow-up lessons
 
@@ -292,7 +292,7 @@ Lessons from the second audit round, 2026-09-21:
 ## Venomancer completion, 2026-09-10
 
 Source package: `runtime/validation/venomancer-completion-20260910`; new SQL14 only. See its
-190 individual dispositions and `modules/mod-ascension-compat/docs/venomancer-completion.md`.
+190 individual dispositions and `docs/coa/venomancer-completion.md`.
 Preserve the pending Pyromancer, Cultist and Sun Cleric packages and current native-file launcher.
 
 - Distinguish an obsolete zero-flag proc field from a functioning native effect: Venomancy Expert
@@ -317,7 +317,7 @@ Preserve the pending Pyromancer, Cultist and Sun Cleric packages and current nat
 
 ## Tinker completion, 2026-09-10
 
-The pending Tinker policy is `modules/mod-ascension-compat/docs/tinker-completion.md`; individual
+The pending Tinker policy is `docs/coa/tinker-completion.md`; individual
 dispositions are in `runtime/validation/tinker-completion-20260910/findings.md`. Source reconstruction
 does not establish linked runtime behavior or official parity. Nanobot Reconstruction scaling remains
 unresolved; keep its current first/higher-rank coefficients until evidence establishes a stat term.

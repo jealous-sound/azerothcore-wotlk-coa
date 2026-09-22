@@ -239,7 +239,8 @@ foreach(SOURCE_MODULE ${MODULES_MODULE_LIST})
       PRIVATE
         acore-core-interface
       PUBLIC
-        game)
+        game
+        coa-interface)
 
     target_include_directories(${MODULE_SOURCE_PROJECT_NAME}
       PUBLIC
@@ -302,7 +303,8 @@ target_link_libraries(modules
     acore-core-interface
     mysql
   PUBLIC
-    game-interface)
+    game-interface
+    coa)
 
 target_include_directories(modules
   PUBLIC

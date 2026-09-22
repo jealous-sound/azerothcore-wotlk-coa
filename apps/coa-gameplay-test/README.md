@@ -1,7 +1,7 @@
 # CoA gameplay tests
 
 Execute repeatable scenarios inside a real worldserver, using its loaded DBCs, SQL, scripts, maps and updates.
-The runtime component is `modules/mod-ascension-compat/src/CoAGameplayTest.cpp`; it is disabled by default.
+The runtime component is `src/server/coa/CoAGameplayTest.cpp`; it is disabled by default.
 
 ## Find and verify a mechanic
 
@@ -94,7 +94,7 @@ client-compatibility harness runs only for relevant changes or a full audit. The
 starts a server.
 
 CoA-owned code uses names, structure and tests to express intent. The comment check covers
-`modules/mod-ascension-compat/`, `apps/coa-dbc/`, `apps/coa-gameplay-test/`, `apps/coa-mechanics/`, `tools/`
+`src/server/coa/`, `apps/coa-tests/`, `apps/coa-bugreport/`, `apps/coa-dbc/`, `apps/coa-gameplay-test/`, `apps/coa-mechanics/`, `tools/`
 and `.github/scripts/`. It rejects explanatory comments and docstrings on added lines, while preserving legal
 headers, recognized tool directives and native test-generator markers. Strings and runtime CLI help remain data.
 `python -B tools/check_comments.py --all` also checks unchanged C++ and Python files in those directories.
@@ -616,7 +616,7 @@ not provide an automatic statistical test. Keep intended values independent of t
 
 ```powershell
 python -m unittest discover -s apps/coa-gameplay-test -p 'test_*.py'
-python apps/codestyle/codestyle-cpp.py --files modules/mod-ascension-compat/src/CoAGameplayTest.cpp
+python apps/codestyle/codestyle-cpp.py --files src/server/coa/CoAGameplayTest.cpp
 ```
 
 Runner checks cover invalid scenarios, incorrect/partial results, owned-process timeouts, isolation,

@@ -1,4 +1,4 @@
-CLI_DESCRIPTION = """Check the CoA module's flat loader: each entry point must be defined and called exactly once.
+CLI_DESCRIPTION = """Check the CoA server's flat loader: each entry point must be defined and called exactly once.
 
 This checks source wiring, not SQL spell bindings, compilation, or gameplay behavior.
 Comments and string literals are ignored; conditional/non-flat loaders require explicit checker support.
@@ -13,7 +13,7 @@ import sys
 
 
 ROOT = Path(__file__).resolve().parents[1]
-MODULE = ROOT / 'modules/mod-ascension-compat/src'
+MODULE = ROOT / 'src/server/coa'
 NAME = r'(?:AddSC_\w+|Add(?:Ascension|CoA)\w*Scripts)'
 DEFINITION = re.compile(r'\bvoid\s+(' + NAME + r')\s*\(\s*(?:void\s*)?\)\s*\{')
 CALL = re.compile(r'\b(' + NAME + r')\s*\(\s*\)\s*;')
@@ -33,22 +33,26 @@ def inspect(sources):
         code = code_only(text)
         for match in DEFINITION.finditer(code):
             definitions[match[1]].append({'path': path, 'line': code.count('\n', 0, match.start()) + 1})
-    loader = code_only(sources.get('MP_loader.cpp', ''))
-    entries = list(re.finditer(r'\bvoid\s+Addmod_ascension_compatScripts\s*\(\s*\)\s*\{', loader))
+    loader_definitions = definitions.pop('AddCoAScripts', [])
+    if len(loader_definitions) != 1:
+        issues.append({'entry': 'AddCoAScripts', 'definitions': loader_definitions,
+                       'message': 'Expected one CoA root loader across all sources'})
+    loader = code_only(sources.get('CoAScriptLoader.cpp', ''))
+    entries = list(re.finditer(r'\bvoid\s+AddCoAScripts\s*\(\s*\)\s*\{', loader))
     if len(entries) != 1:
         return {'status': 'failed', 'definitions': len(definitions), 'calls': 0,
-                'issues': [{'message': 'Expected exactly one Addmod_ascension_compatScripts loader definition'}]}
+                'issues': [{'message': 'Expected exactly one AddCoAScripts loader definition'}]}
     start, end, depth = entries[0].end(), entries[0].end(), 1
     while end < len(loader) and depth:
         depth += (loader[end] == '{') - (loader[end] == '}')
         end += 1
     body = loader[start:end - 1]
     if depth or CALL.sub('', body).strip():
-        issues.append({'path': 'MP_loader.cpp',
+        issues.append({'path': 'CoAScriptLoader.cpp',
                        'message': 'Loader is not a flat list of registrations; update the checker for this structure'})
     calls = defaultdict(list)
     for match in CALL.finditer(body):
-        calls[match[1]].append({'path': 'MP_loader.cpp', 'line': loader.count('\n', 0, start + match.start()) + 1})
+        calls[match[1]].append({'path': 'CoAScriptLoader.cpp', 'line': loader.count('\n', 0, start + match.start()) + 1})
     for name in sorted(definitions.keys() | calls.keys()):
         defined, called = definitions.get(name, []), calls.get(name, [])
         if len(defined) != 1 or len(called) != 1:

@@ -11,7 +11,7 @@ class CommentPolicyTests(unittest.TestCase):
     def test_cpp_comments_are_found_without_matching_literals(self):
         source = 'auto url = "https://example.test";\nauto raw = R"tag(/* data */ // data)tag";\n'
         source += "auto number = 1'000'000; auto quote = '\\'';\nint value = 1; // redundant\n/* prose */\n"
-        found = violations(source, 'modules/mod-ascension-compat/src/Test.cpp')
+        found = violations(source, 'src/server/coa/Test.cpp')
         self.assertEqual([entry.text for entry in found], ['// redundant', '/* prose */'])
         self.assertEqual(found[0].line, 4)
 
@@ -29,9 +29,9 @@ class CommentPolicyTests(unittest.TestCase):
 
     def test_harness_markers_are_allowed_only_in_test_templates(self):
         source = '// ACTUAL_SOURCE\n// NATIVE_ENUMS\n// explanation\n'
-        found = violations(source, 'modules/mod-ascension-compat/tests/example/harness.cpp')
+        found = violations(source, 'apps/coa-tests/example/harness.cpp')
         self.assertEqual([entry.text for entry in found], ['// explanation'])
-        self.assertEqual(len(violations(source, 'modules/mod-ascension-compat/src/Test.cpp')), 3)
+        self.assertEqual(len(violations(source, 'src/server/coa/Test.cpp')), 3)
 
     def test_comment_between_tokens_is_still_a_comment(self):
         found = violations('int/**/value;', 'tools/test.cpp')
@@ -71,7 +71,7 @@ class CommentPolicyTests(unittest.TestCase):
     def test_upstream_dependencies_and_configuration_are_outside_scope(self):
         for path in ['src/server/game/Spells/Spell.cpp', 'deps/example/test.py',
                      'modules/other/src/Test.cpp', 'data/sql/base/world.sql',
-                     'modules/mod-ascension-compat/conf/mod_ascension_compat.conf.dist']:
+                     'src/server/coa/conf/mod_ascension_compat.conf.dist']:
             with self.subTest(path=path):
                 self.assertIsNone(language(path))
                 self.assertEqual(comments('// prose', path), [])

@@ -36,7 +36,7 @@ For an authorized installation, close the affected client, retain its prior DLL 
 the native-pair manifest through the existing deployment guards. Keep the native realmlist
 and RealmData companion fixes. Set `Data/<locale>/realmlist.wtf` to the authserver and set
 the server's realm address to its reachable world endpoint. Enable the module's remote
-client compatibility settings as described in its [README](../../modules/mod-ascension-compat/README.md).
+client compatibility settings as described in its [README](../../docs/coa/README.md).
 
 ## Run without requesting administrator privileges
 
