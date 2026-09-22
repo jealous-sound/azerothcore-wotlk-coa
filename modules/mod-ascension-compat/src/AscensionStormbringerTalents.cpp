@@ -18,6 +18,8 @@ enum StormbringerTalentSpells : uint32
     SPELL_SHOCK_DOT = 560336,
     SPELL_SHOCK_HIDDEN_PASSIVE = 707058,
     SPELL_PERPETUAL_SHOCK = 570054,
+    SPELL_INVOKING_STORMS_RANK_1 = 705667,
+    SPELL_INVOKING_STORMS_RANK_2 = 707793,
     SPELL_CALL_LIGHTNING = 500040,
     SPELL_THUNDER_WARD = 800098,
     SPELL_STATIC = 803102,
@@ -32,6 +34,8 @@ enum StormbringerTalentSpells : uint32
     SPELL_CRITICAL_CIRCUIT = 807314,
     SPELL_REFUND_STATIC_10 = 804084
 };
+
+constexpr int32 ASCENSION_SPELLMOD_BONUS_MULTIPLIER = 41;
 
 bool SpendsStatic(uint32 spellId)
 {
@@ -126,6 +130,15 @@ public:
             info->Effects[EFFECT_1].Effect = 0;
         if (info->Id == SPELL_CHARGED_CONDUIT)
             info->Effects[EFFECT_2].Effect = 0;
+        if (info->Id == SPELL_INVOKING_STORMS_RANK_1 || info->Id == SPELL_INVOKING_STORMS_RANK_2)
+        {
+            SpellEffectInfo& scaling = info->Effects[EFFECT_0];
+            if (scaling.ApplyAuraName == SPELL_AURA_ADD_PCT_MODIFIER &&
+                scaling.MiscValue == ASCENSION_SPELLMOD_BONUS_MULTIPLIER)
+                scaling.MiscValue = SPELLMOD_BONUS_MULTIPLIER;
+            flag96 const armOfThorimFamilyFlags(0, 2, 0);
+            scaling.SpellClassMask |= armOfThorimFamilyFlags;
+        }
     }
 };
 

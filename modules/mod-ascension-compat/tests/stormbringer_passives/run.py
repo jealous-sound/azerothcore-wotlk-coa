@@ -24,11 +24,26 @@ constexpr int ALLSPELLHOOK_ON_CAST = 1, ALLSPELLHOOK_ON_HIT_RESULT = 2,
     GLOBALHOOK_ON_LOAD_SPELL_CUSTOM_ATTR = 3, EFFECT_0 = 0, EFFECT_1 = 1, EFFECT_2 = 2, SPELL_MISS_NONE = 0,
     SPELLVALUE_BASE_POINT0 = 0, SPELL_ATTR2_CANT_CRIT = 1,
     SPELL_ATTR3_IGNORE_CASTER_MODIFIERS = 2, SPELL_ATTR4_IGNORE_DAMAGE_TAKEN_MODIFIERS = 4;
+constexpr uint32 SPELL_AURA_ADD_PCT_MODIFIER = 108, SPELLMOD_BONUS_MULTIPLIER = 24;
+struct flag96
+{
+    uint32 part[3];
+    flag96(uint32 first = 0, uint32 second = 0, uint32 third = 0):part{first,second,third}{}
+    flag96& operator|=(flag96 const& right)
+    {for(int i=0;i<3;++i)part[i]|=right.part[i];return *this;}
+    bool operator==(flag96 const& right) const
+    {return part[0]==right.part[0]&&part[1]==right.part[1]&&part[2]==right.part[2];}
+};
+struct SpellEffectInfo
+{
+    uint32 Effect = 0;float BonusMultiplier = 1.0f;
+    uint32 ApplyAuraName = 0;int32 MiscValue = 0;flag96 SpellClassMask;
+};
 struct SpellInfo
 {
     uint32 Id = 801838, SpellFamilyName = 22, AttributesEx2 = 0, AttributesEx3 = 0, AttributesEx4 = 0;
     bool AscensionInheritsResolvedAmount = false;uint32 StackAmount=20;
-    struct Slot {uint32 Effect = 0;float BonusMultiplier = 1.0f;};std::array<Slot,3> Effects;
+    std::array<SpellEffectInfo,3> Effects;
 };
 struct Unit;
 struct Spell
@@ -223,6 +238,20 @@ int main()
     contracts.OnLoadSpellCustomAttr(&info);assert(!info.Effects[2].Effect);
     info.Id=804020;info.Effects[1].Effect=64;
     contracts.OnLoadSpellCustomAttr(&info);assert(info.Effects[1].Effect==64);
+    for(uint32 id : {705667u,707793u})
+    {
+        info=SpellInfo{};info.Id=id;info.SpellFamilyName=22;
+        info.Effects[0].ApplyAuraName=SPELL_AURA_ADD_PCT_MODIFIER;info.Effects[0].MiscValue=41;
+        info.Effects[0].SpellClassMask=flag96(2048,16,0);
+        contracts.OnLoadSpellCustomAttr(&info);
+        assert(info.Effects[0].MiscValue==int32(SPELLMOD_BONUS_MULTIPLIER));
+        assert(info.Effects[0].SpellClassMask==flag96(2048,18,0));
+        info=SpellInfo{};info.Id=id;info.SpellFamilyName=3;
+        info.Effects[0].ApplyAuraName=SPELL_AURA_ADD_PCT_MODIFIER;info.Effects[0].MiscValue=41;
+        info.Effects[0].SpellClassMask=flag96(2048,16,0);
+        contracts.OnLoadSpellCustomAttr(&info);
+        assert(info.Effects[0].MiscValue==41 && info.Effects[0].SpellClassMask==flag96(2048,16,0));
+    }
 }
 '''
 
@@ -249,7 +278,7 @@ def main():
         count = struct.unpack_from("<I", raw, 4)[0]
         rows = {r[0]: r for r in struct.iter_unpack("<234I", raw[20:20 + count * 936])
                 if r[0] in {801838, 802385, 570054, 804086, 500040, 803563, 803566, 560336, 707058, 704149, 800299,
-                            803790, 705639}}
+                            803790, 705639, 705667, 707793, 567518}}
         parent, child = rows[801838], rows[802385]
         assert parent[71:74] == (3, 64, 0) and parent[92] == 0 and parent[117] == 32991
         assert parent[208:212] == child[208:212] == (22, 0, 0, 8388608)
@@ -270,6 +299,11 @@ def main():
         bursts = rows[705639]
         assert bursts[95] == 108 and bursts[110] == 3 and bursts[80] + bursts[74] == 50
         assert bursts[124] == passive[211] == 268435456
+        first, second, thorim = rows[705667], rows[707793], rows[567518]
+        assert first[95] == second[95] == 108 and first[110] == second[110] == 41
+        assert first[122:124] == second[122:124] == (2048, 16) and first[124] == second[124] == 0
+        assert first[80] + first[74] == 15 and second[80] + second[74] == 30
+        assert thorim[208] == 22 and thorim[209:212] == (0, 2, 32)
         raw = (args.spell_dbc.parent / "SpellDuration.dbc").read_bytes()
         count = struct.unpack_from("<I", raw, 4)[0]
         durations = {r[0]: r[1] for r in struct.iter_unpack("<4i", raw[20:20 + count * 16])}
@@ -278,8 +312,8 @@ def main():
         count = struct.unpack_from("<I", raw, 4)[0]
         radius = {r[0]: r[1] for r in struct.iter_unpack("<I3f", raw[20:20 + count * 16])}
         assert radius[45] == 10
-    print("PASS: Cloudburst; Shock ranks/repeat, the hidden passive's periodic share, learned-spell gate, "
-          "ward/hostile/miss/trigger guards and helper data")
+    print("PASS: Cloudburst; Shock ranks/repeat, the hidden passive's periodic share, Invoking Storms' modifier "
+          "contract, learned-spell gate, ward/hostile/miss/trigger guards and helper data")
 
 
 if __name__ == "__main__":
