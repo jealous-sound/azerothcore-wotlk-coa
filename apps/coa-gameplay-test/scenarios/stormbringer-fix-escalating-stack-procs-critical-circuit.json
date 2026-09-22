@@ -1,0 +1,162 @@
+{
+  "schema": 1,
+  "name": "Stormbringer: Critical Circuit refunds Static on critical Static spenders (#3667)",
+  "contract": "Critical Circuit 807314 is a permanent passive (DurationIndex 21) whose Effect[0] is SPELL_EFFECT_APPLY_AURA with EffectApplyAuraName[0] = 42 SPELL_AURA_PROC_TRIGGER_SPELL and EffectTriggerSpell[0] = 804084 'Add 10 Static', whose Effect[1] is 175 SPELL_EFFECT_ASCENSION_MODIFY_AURA_STACKS with EffectMiscValue[1] = 10 on trigger spell 803102 Static, targeted at TARGET_UNIT_CASTER. Its DBC ProcFlags are 0 and it had no spell_proc row, so Aura::GetProcEffectMask returned 0 on every event and the refund never happened. The set of 'Static spenders' is not expressible in DBC terms - the class-16 rows of AscensionCompatData::ResourceCostRules share no SpellFamilyFlags bit - so the predicate reads that table directly. Call Lightning 500040 is a spender: {16, 500040, 500040, 803102, 50, ResourceConsumption::Fixed}, SpellFamilyName 22, SchoolMask 8 Nature, DmgClass 1 magic, TARGET_UNIT_TARGET_ENEMY, CastTime 1500 ms, no RecoveryTime or CategoryRecoveryTime, and it appears in no class-16 ResourceGainRules row, so its only Static movement is the 50-point cost taken at cast. Shock 804020 is the negative control on a second Stormbringer: same family, school, damage class and target type, but no class-16 cost rule at all, so a critical Shock must earn no refund. That control character deliberately never learns Call Lightning, because the Shock branch of stormbringer_talent_casts grants Static (804086) only to a Stormbringer who knows 500040. Static 803102 has DBC StackAmount 100, so both baselines stay under that ceiling and a wrongly granted refund would be visible rather than clamped. spell_crit_rating 100000 is the fixture's way of forcing the critical branch.",
+  "timeout_ms": 120000,
+  "players": [
+    {
+      "id": "cc",
+      "race": 8,
+      "class": 16,
+      "level": 80,
+      "spell_hit_rating": 10000,
+      "spell_crit_rating": 100000
+    },
+    {
+      "id": "ctrl",
+      "race": 8,
+      "class": 16,
+      "level": 80,
+      "spell_hit_rating": 10000,
+      "spell_crit_rating": 100000
+    }
+  ],
+  "location": {
+    "map": 0,
+    "x": -8917.41,
+    "y": -115.853,
+    "z": 82.3711,
+    "o": 0
+  },
+  "creatures": [
+    {
+      "id": "dummy",
+      "owner": "cc",
+      "entry": 36,
+      "level": 80,
+      "health": 2000000,
+      "distance": 5
+    },
+    {
+      "id": "ctrl_dummy",
+      "owner": "ctrl",
+      "entry": 36,
+      "level": 80,
+      "health": 2000000,
+      "distance": 5
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let logins, spawns and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "cc",
+      "spell": 500040
+    },
+    {
+      "action": "set_aura",
+      "label": "SETUP: 100 Static, the aura's DBC StackAmount",
+      "actor": "cc",
+      "spell": 803102,
+      "stacks": 100
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: the Stormbringer holds 100 Static",
+      "actor": "cc",
+      "metric": "aura_stacks",
+      "spell": 803102,
+      "equals": 100
+    },
+    {
+      "action": "cast",
+      "label": "BASELINE: a critical Call Lightning without Critical Circuit learned",
+      "actor": "cc",
+      "spell": 500040,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 3000
+    },
+    {
+      "action": "assert",
+      "label": "BASELINE: the cost rule takes 50, leaving 100 - 50 = 50 Static and no refund",
+      "actor": "cc",
+      "metric": "aura_stacks",
+      "spell": 803102,
+      "equals": 50
+    },
+    {
+      "action": "learn",
+      "actor": "cc",
+      "spell": 807314
+    },
+    {
+      "action": "set_aura",
+      "label": "SETUP: back to 100 Static",
+      "actor": "cc",
+      "spell": 803102,
+      "stacks": 100
+    },
+    {
+      "action": "cast",
+      "label": "A critical Call Lightning with Critical Circuit learned",
+      "actor": "cc",
+      "spell": 500040,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 3000
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING: 100 - 50 cost + 10 refund (804084 EffectMiscValue[1]) = 60 Static",
+      "actor": "cc",
+      "metric": "aura_stacks",
+      "spell": 803102,
+      "equals": 60
+    },
+    {
+      "action": "learn",
+      "actor": "ctrl",
+      "spell": 804020
+    },
+    {
+      "action": "learn",
+      "actor": "ctrl",
+      "spell": 807314
+    },
+    {
+      "action": "set_aura",
+      "label": "SETUP: 50 Static on the control, low enough that a wrong +10 shows under the 100 ceiling",
+      "actor": "ctrl",
+      "spell": 803102,
+      "stacks": 50
+    },
+    {
+      "action": "cast",
+      "label": "A critical Shock, a family-22 damage spell with no class-16 Static cost rule",
+      "actor": "ctrl",
+      "spell": 804020,
+      "target": "ctrl_dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 3000
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING: a critical strike with a non-spender earns no refund, so Static stays at 50",
+      "actor": "ctrl",
+      "metric": "aura_stacks",
+      "spell": 803102,
+      "equals": 50
+    }
+  ]
+}

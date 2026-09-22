@@ -1,4 +1,5 @@
 /* Copyright (C) 2016+ AzerothCore, GNU AGPL v3. */
+#include "AscensionCustomResourceData.h"
 #include "Player.h"
 #include "ScriptMgr.h"
 #include "Spell.h"
@@ -26,8 +27,19 @@ enum StormbringerTalentSpells : uint32
     SPELL_ELECTROCUTIONER_PASSIVE = 500068,
     SPELL_ELECTROCUTIONER_TALENT = 92096,
     SPELL_ELECTROCUTIONER = 804592,
-    SPELL_DARK_SKIES_BUFF = 680855
+    SPELL_DARK_SKIES_BUFF = 680855,
+    SPELL_CRITICAL_CIRCUIT = 807314,
+    SPELL_REFUND_STATIC_10 = 804084
 };
+
+bool SpendsStatic(uint32 spellId)
+{
+    for (AscensionCompatData::ResourceCostRule const& rule : AscensionCompatData::ResourceCostRules)
+        if (rule.ClassId == CLASS_STORMBRINGER && rule.ResourceSpellId == SPELL_STATIC &&
+            spellId >= rule.FirstSpellId && spellId <= rule.LastSpellId)
+            return rule.Consumption != AscensionCompatData::ResourceConsumption::None;
+    return false;
+}
 
 uint32 ElectrocutionerChance(Player const* player)
 {
@@ -50,7 +62,7 @@ public:
             player->CastSpell(player, SPELL_CLOUDBURST_KNOCKBACK, true);
     }
 
-    void OnSpellHitResult(Spell* spell, Unit* target, uint8 miss, uint32 damage, uint32, bool) override
+    void OnSpellHitResult(Spell* spell, Unit* target, uint8 miss, uint32 damage, uint32, bool critical) override
     {
         Player* player = spell->GetCaster()->ToPlayer();
         SpellInfo const* info = spell->GetSpellInfo();
@@ -62,6 +74,13 @@ public:
             (player->HasSpell(SPELL_ELECTROCUTIONER_PASSIVE) || player->HasSpell(SPELL_ELECTROCUTIONER_TALENT)) &&
             roll_chance_i(ElectrocutionerChance(player)))
             player->CastSpell(player, SPELL_ELECTROCUTIONER, true);
+
+        if (critical && damage && !spell->IsTriggered() && player->HasAura(SPELL_CRITICAL_CIRCUIT) &&
+            SpendsStatic(info->Id) && !spell->GetScriptValue(SPELL_CRITICAL_CIRCUIT))
+        {
+            spell->SetScriptValue(SPELL_CRITICAL_CIRCUIT, 1);
+            player->CastSpell(player, SPELL_REFUND_STATIC_10, true);
+        }
 
         bool repeat =info->Id == SPELL_PERPETUAL_SHOCK;
         if (!repeat && (spell->IsTriggered() || sSpellMgr->GetFirstSpellInChain(info->Id) != SPELL_SHOCK))
