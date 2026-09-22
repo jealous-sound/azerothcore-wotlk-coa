@@ -218,6 +218,7 @@ void AddSC_AscensionRangerPetalkeeper();
 void AddSC_AscensionRangerFalconstrike();
 void AddSC_AscensionChronomancerTalents();
 void AddSC_AscensionChronomancerTime();
+void AddSC_AscensionChronomancerRenewal();
 void AddSC_AscensionChronomancerMovement();
 void AddSC_AscensionAdventurerCache();
 void AddSC_AscensionBankVoucher();
@@ -445,6 +446,7 @@ void Addmod_ascension_compatScripts()
     AddSC_AscensionRangerFalconstrike();
     AddSC_AscensionChronomancerTalents();
     AddSC_AscensionChronomancerTime();
+    AddSC_AscensionChronomancerRenewal();
     AddSC_AscensionChronomancerMovement();
     AddSC_AscensionAdventurerCache();
     AddSC_AscensionBankVoucher();

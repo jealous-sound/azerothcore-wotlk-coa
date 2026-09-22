@@ -142,8 +142,7 @@ void ApplyEpochAeon(Player* player, Unit* target, uint32 healing, uint32 healing
 {
     if (player->HasAura(ResilienceAeon))
         SpreadRecovery(player, target, ResilienceSpread);
-    if (player->HasAura(OblivionAeon))
-        healing = healingIncludingOverheal;
+    healing = healingIncludingOverheal;
     if (!healing)
         return;
     if (player->HasAura(RenewalAeon))
@@ -158,8 +157,14 @@ void ApplyEpochAeon(Player* player, Unit* target, uint32 healing, uint32 healing
         player->CastCustomSpell(Renewal, SPELLVALUE_BASE_POINT0, tick, target, true);
     }
     else if (player->HasAura(ProtectionAeon))
+    {
+        uint64 absorb = uint64(healing) * std::max(0, Amount(ProtectionAeon)) / 100;
+        if (Aura* existing = target->GetAura(Protection, player->GetGUID()))
+            if (AuraEffect const* effect = existing->GetEffect(EFFECT_0))
+                absorb += std::max(0, effect->GetAmount());
         player->CastCustomSpell(Protection, SPELLVALUE_BASE_POINT0,
-            int32(std::min<uint64>(uint64(healing) * Amount(ProtectionAeon) / 100, INT32_MAX)), target, true);
+            int32(std::min<uint64>(absorb, INT32_MAX)), target, true);
+    }
     else if (player->HasAura(OblivionAeon))
     {
         auto enemies = Nearby(player, target, Oblivion, false);
@@ -390,6 +395,8 @@ void ApplyTimeContracts(SpellInfo* info)
         info->Effects[EFFECT_2].ApplyAuraName = SPELL_AURA_DUMMY;
         info->Effects[EFFECT_2].TriggerSpell = 0;
     }
+    if (info->Id == Renewal)
+        info->AttributesCu |= SPELL_ATTR0_CU_AURA_CANNOT_BE_SAVED;
     if (info->Id == Renewal || info->Id == Protection || info->Id == OvercorrectionHeal)
     {
         info->AttributesEx2 |= SPELL_ATTR2_CANT_CRIT;
