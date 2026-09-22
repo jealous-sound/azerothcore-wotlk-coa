@@ -71,6 +71,7 @@
       "action": "assert", "label": "DISCRIMINATING: the window carries exactly one charge",
       "actor": "storm", "metric": "aura_charges", "spell": 807481, "equals": 1
     },
+    { "action": "set_aura", "actor": "storm", "spell": 803102, "stacks": 100 },
     { "action": "cast", "actor": "storm", "spell": 804017, "target": "dummy" },
     {
       "action": "assert", "label": "SETUP: the instant Torrential Wrath cast was accepted",
