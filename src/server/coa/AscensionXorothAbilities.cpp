@@ -438,6 +438,8 @@ class xoroth_casts : public AllSpellScript
             {
                 if (player->HasAura(SPELL_WARPATH))
                     Cast(player, player, SPELL_WARPATH_PROTECTION);
+                if (player->HasAura(680216))
+                    player->RemoveMovementImpairingAuras(true);
                 Unleash(player, player);
                 if (player->HasAura(704961))
                     if (Pet* pet = player->GetPet(); pet && pet->GetEntry() == 510100)
