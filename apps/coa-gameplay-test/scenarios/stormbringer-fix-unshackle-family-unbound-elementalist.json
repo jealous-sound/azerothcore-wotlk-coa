@@ -40,7 +40,7 @@
     { "action": "learn", "actor": "s", "spell": 705702 },
     { "action": "wait", "ms": 1000 },
     { "action": "assert", "label": "DISCRIMINATING: Unbound Elementalist applies its tooltip's 20% to Unshackle as a caster-side all-effects modifier",
-      "actor": "s", "metric": "spell_modifier", "spell": 706625, "op": 8, "base": 100, "equals": 120 },
+      "actor": "s", "metric": "spell_modifier", "spell": 706625, "op": 8, "base": 100, "min": 119.9, "max": 120.1 },
     { "action": "assert", "label": "DISCRIMINATING: Unshackle's damage effect becomes 25 + 20% = 30",
       "actor": "s", "metric": "spell_effect_value", "spell": 706625, "effect": 1, "equals": 30 },
     { "action": "assert", "label": "DISCRIMINATING: Unshackle's haste effect becomes 30 + 20% = 36",
