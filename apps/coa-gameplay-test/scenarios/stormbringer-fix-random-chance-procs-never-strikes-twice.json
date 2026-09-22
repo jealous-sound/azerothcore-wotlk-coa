@@ -76,6 +76,11 @@
       "value": 300000
     },
     {
+      "action": "wait",
+      "label": "Let Unit::Update refresh the aura state",
+      "ms": 2000
+    },
+    {
       "action": "reset_cooldown",
       "actor": "s",
       "spell": 501432
