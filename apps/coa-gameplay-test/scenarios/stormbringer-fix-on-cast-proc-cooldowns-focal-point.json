@@ -79,6 +79,7 @@
       "action": "assert", "label": "DISCRIMINATING: the ally's crit chance returns to its baseline",
       "actor": "ally", "metric": "spell_crit_chance", "relative_to": "ally_crit", "min": -0.1, "max": 0.1
     },
+    { "action": "set_aura", "actor": "caster", "spell": 803102, "stacks": 100 },
     { "action": "snapshot", "actor": "dummy", "metric": "health", "save_as": "dummy_before_thorim" },
     { "action": "cast", "actor": "caster", "spell": 567520, "target": "dummy" },
     { "action": "wait", "ms": 1700 },
