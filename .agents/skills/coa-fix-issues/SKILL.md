@@ -43,7 +43,7 @@ Creating or editing this skill does not execute the workflow.
 
 - Use the current CoA checkout and its applicable `AGENTS.md` files and task guides. The usual local repository
   is `C:/Ascension/azerothcore-wotlk-coa`; honor other contributors' checkout locations.
-- Resolve the GitHub repository and host from `origin`. Here `origin` is the private CoA fork; `upstream` is
+- Resolve the GitHub repository and host from `origin`. Here `origin` is the CoA fork; `upstream` is
   AzerothCore. Pass the resolved repository explicitly to GitHub operations. Use `origin/main` as the source
   base and `main` as the PR base. If absent, ask for the intended base instead of inventing one.
 - Executing this full workflow authorizes issue assignment to the user, releasing claims created by this run

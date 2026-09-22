@@ -19,7 +19,7 @@ Claws of Hell refreshes the caster's own Unleash Apocalypse on the selected targ
 at least four Demonfire without a refund. Triggered casts and another caster's effect do not qualify;
 the existing periodic tick timer is preserved. Fiery Retribution reduces Sacrificial Circle by two
 seconds and Implosion by one second when an owned Hellfire Imp dies. Other summons and timed despawns
-do not qualify. `tests/xoroth_passives/run.py` exercises these callbacks with the workspace fixture.
+do not qualify. `apps/coa-tests/xoroth_passives/run.py` exercises these callbacks with the workspace fixture.
 
 Skulltaker and Warbringer gain 20% and 18% damage per Demonfire respectively, following record 66622
 (2025-12-22). The other recovered bundle rules are explicit: Flames +50% damage per stack, Hellmaw

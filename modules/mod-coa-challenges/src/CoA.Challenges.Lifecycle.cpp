@@ -427,7 +427,7 @@ namespace CoAChallenges
             }
         }
         // HIGH_RISK_ONLY (High Roller / Ironman - High-Risk): the character must
-        // be in the High Risk ruleset (aura applied by mod-ascension-compat).
+        // be in the High Risk ruleset (aura applied by CoA).
         if (CoAParse::ListContains(ChallengeRules(challengeID), "CHALLENGE_RULES_TYPE_HIGH_RISK_ONLY")
             && HighRiskActivationBlocked(player))
         {

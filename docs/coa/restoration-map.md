@@ -52,8 +52,8 @@ per-character system adds, and of what a port has to carry.
 | `DestinyWeaver.DisplayStream.Enable` | | 1 | streams the Weavers' display rows (Part 2) |
 | `AscensionCompat.LevelScaling` | `mod_ascension_compat.conf` | either | the realm-wide object lift; it stands aside by itself while the per-character module is on (see `CreatureScalingOwnedPerViewer`), so no configuration change is needed either way |
 
-Each key lives in its own module's `conf/*.conf.dist` (`mod_ascension_compat.conf.dist` and
-`destiny_weaver.conf.dist`).
+Each key lives in its component's `*.conf.dist` (`src/server/coa/conf/mod_ascension_compat.conf.dist` and
+`modules/mod-destiny-weaver/conf/destiny_weaver.conf.dist`).
 
 ### Client
 

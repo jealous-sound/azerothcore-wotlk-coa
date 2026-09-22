@@ -150,7 +150,7 @@ recorded here because nothing else carries its closure.
 | #1183 | Time Beacon | 574310, 574362 | `apps/coa-gameplay-test/scenarios/chronomancer-time-beacon-durations.json` |
 
 The gameplay scenario carries the closure because the module unit test that previously carried it,
-`tests/chronomancer_time/cases.cpp:47-62`, cannot run on Linux: its `run.py` builds through MSVC's `cl.exe`.
+`apps/coa-tests/chronomancer_time/cases.cpp:47-62`, cannot run on Linux: its `run.py` builds through MSVC's `cl.exe`.
 That test still covers the same contract on Windows. It loops `{0u, 574310u, 574362u}`, applying one beacon at
 a time and removing both between iterations, and asserts Aeon of Renewal's applied duration at 3000 / 7000 /
 11000 ms and Aeon of Protection's at that duration plus 5000 ms. The `7000 - 3000 = 4000` and

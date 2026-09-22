@@ -17,7 +17,7 @@ binary identity and rollback information are recorded in `CoA-Repack/RELEASE.jso
   native shot validation admits the owner's neutral targets and NPC-immune training dummies.
   Its model migration reduces only Sentry display 28526 to scale 0.35. These source changes
   require a new server binary and the pending `rev_20260913_00_tinker_sentry.sql` migration.
-  `tests/tinker_sentry/run.py` exercises initialization, native immunity/CvC admission,
+  `apps/coa-tests/tinker_sentry/run.py` exercises initialization, native immunity/CvC admission,
   firing, target filters, timers and migration replay; `--source-ref` reproduces the earlier
   rotating-without-firing failure. These are bounded offline checks, not in-game acceptance.
 - Mechsuit permits family-34 casts while its two owned auras are active and retains the pet needed

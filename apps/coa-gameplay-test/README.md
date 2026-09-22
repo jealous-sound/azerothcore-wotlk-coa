@@ -84,7 +84,7 @@ python -B tools/check_source.py --base origin/main --plan
 ```
 
 The JSON outcome lists the selected checks, failures and timings. `--all` runs every fast suite. SQL boundaries
-and new C++/Python comments in CoA-owned code are always checked; changed module sources select loader registration
+and new C++/Python comments in CoA-owned code are always checked; changed CoA sources select loader registration
 checks; gameplay tooling/scenario changes
 select scenario validation, combined-verification tests, and runner/cache ownership and cleanup tests. Reviewed
 execution-path changes also check mechanic-map references. Documentation-only changes skip these test suites.
@@ -101,7 +101,7 @@ headers, recognized tool directives and native test-generator markers. Strings a
 Upstream source, dependencies, SQL and configuration documentation remain outside this check.
 
 The loader check requires each CoA `AddSC_*`, `AddAscension*Scripts` and `AddCoA*Scripts` definition to have
-exactly one call from the module's flat loader, and each call to have exactly one definition. It ignores comments
+exactly one call from the flat CoA script loader, and each call to have exactly one definition. It ignores comments
 and string literals. It does not prove SQL bindings, hook reachability, or gameplay behavior; those require data
 inspection and behavioral tests. The checker intentionally reports an unsupported conditional loader for review.
 

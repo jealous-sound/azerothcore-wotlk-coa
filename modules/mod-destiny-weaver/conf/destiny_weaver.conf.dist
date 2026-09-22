@@ -9,7 +9,7 @@
 #  characters can fight the same one at two different levels while everybody else sees it authored.
 #  Quest levels and the tuning of what a scaled quest pays are per character as well.
 #
-#  The realm-wide lift in mod-ascension-compat (AscensionCompat.LevelScaling) is a different model - it
+#  The realm-wide lift in CoA (AscensionCompat.LevelScaling) is a different model - it
 #  raises the creature object itself, which every client is told about - so it stands aside while this
 #  module owns the answer (see CreatureScalingOwnedPerViewer in LocalLevelScaling.h). Its configuration
 #  is left as it is, and it takes over again when DestinyWeaver.LevelScaling is set to 0.
@@ -27,7 +27,7 @@ DestinyWeaver.Enable = 1
 #        Description: Whether the scaling service exists at all - open-world creature scaling and
 #                     quest scaling together. 0 leaves the choice in the menu without effect: every
 #                     creature is met at its authored level and every quest plays at its authored
-#                     level, and the realm-wide lift in mod-ascension-compat is handed back.
+#                     level, and the realm-wide lift in CoA is handed back.
 #        Default:     1 - (Enabled)
 #                     0 - (Disabled)
 #        Reloadable:  yes (.reload config)

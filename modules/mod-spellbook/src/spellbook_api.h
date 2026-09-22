@@ -1,9 +1,9 @@
 // Public surface of the spellbook module: what the Books of Ascension would offer a player.
 //
-// The gameplay test driver in mod-ascension-compat uses this to assert, per class, that the
-// window covers the spells the class is entitled to. It is deliberately tiny - the rows
-// themselves, and whether one spell is among them - so it cannot become a second definition
-// of the offer.
+// The CoA gameplay test driver reaches it through the CoASpellbook provider this module
+// registers, to assert per class that the window covers the spells the class is entitled
+// to. It is deliberately tiny - the rows themselves, and whether one spell is among them -
+// so it cannot become a second definition of the offer.
 #ifndef SPELLBOOK_API_H
 #define SPELLBOOK_API_H
 
@@ -16,8 +16,8 @@ namespace Spellbook
 {
     /// The client's "here are rows of your spell attribute table" opcode. The number comes from
     /// the client's own opcode table in Extensions.dll, where it is registered to the handler
-    /// that reads one 44 byte row, and it is the same table this realm's compat module reads its
-    /// ids from. Kept here so the module and the test driver that watches for it share one home.
+    /// that reads one 44 byte row, and it is the same table CoA reads its ids from. The value
+    /// lives in CoASpellbook.h so this module and the CoA test driver that watches for it agree.
     constexpr uint16 SMSG_PATCH_SPELL_CUSTOM_ATTR = CoASpellbook::SMSG_PATCH_SPELL_CUSTOM_ATTR;
 
     /// How many rows the book would show this player. Zero means no window can be built, which

@@ -18,8 +18,9 @@ AzerothCore is a C++ MMORPG server emulator for World of Warcraft 3.3.5a (WotLK)
   `src/server/coa/`, `apps/coa-tests/`, `apps/coa-bugreport/`, `apps/coa-{dbc,gameplay-test,mechanics}/`,
   `tools/` and `.github/scripts/`.
   `tools/check_source.py` enforces this for C++ and Python; `tools/check_comments.py --all` audits the full scope.
-- In inherited AzerothCore source, retain comments only for non-obvious external constraints or rationale
-  that cannot be expressed by the code. Preserve legal attribution and machine-consumed directives.
+- In inherited AzerothCore source, keep existing comments so upstream merges stay clean; change a comment only
+  with the code it describes. Add comments there only for non-obvious external constraints or rationale that
+  the code cannot express. Preserve legal attribution and machine-consumed directives.
 
 ## Investigating reported defects
 
@@ -85,11 +86,12 @@ Read the relevant sections when needed for the work. Do not read every guide or 
 
 ## Modules
 
-External modules live in `modules/`, each a subdir with its own `CMakeLists.txt`. Disable with `-DDISABLED_AC_MODULES="mod1;mod2"`. See `modules/how_to_make_a_module.md`.
+External modules live in `modules/`, each with its sources in `src/`. Disable one with `-DMODULE_<NAME>=disabled`
+(for example `-DMODULE_MOD_SPELLBOOK=disabled`). See `modules/how_to_make_a_module.md`.
 
-In this private fork, CoA is a required server component in `src/server/coa/`, with focused tests in
+In this fork, CoA is a required server component in `src/server/coa/`, with focused tests in
 `apps/coa-tests/`. `modules/mod-ascension-compat/data/sql/` retains historical migration paths only.
-`origin` is the private CoA fork; `upstream` is the original AzerothCore
+`origin` is the CoA fork; `upstream` is the original AzerothCore
 repository. Fetching upstream is separate from reviewing, merging, building or deploying its changes.
 
 ## Maintaining guidance

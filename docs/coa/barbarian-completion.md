@@ -48,7 +48,7 @@ not give a complete formula or event policy. They are not measured official outp
 The #88 follow-up connects Might of Utgarde to Ancestral Combat's existing proc.
 With the talent and a living owned Ancestor, its native helper makes the Ancestor
 use Ancestral Whirl and heals it for 5% of maximum health. The extra attack and
-Fill Level remain separate existing effects. `tests/barbarian_passives/run.py`
+Fill Level remain separate existing effects. `apps/coa-tests/barbarian_passives/run.py`
 checks the production callback, ownership, missing/dead pets and recursion guards.
 
 The new scripts use class 12 and family 18 checks. Spears include all four families:

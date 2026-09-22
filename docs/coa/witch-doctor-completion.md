@@ -12,7 +12,7 @@ The #88 follow-up connects Jungle Secrets to successful Loa's Brew healing. Each
 living owned effigy selects one additional living party/raid ally in its native
 heal radius and line of sight, prioritizing the lowest health percentage. The
 original Brew recipient is excluded. The helper copies 35% of effective healing,
-without another critical roll or healing bonus. `tests/witch_doctor_passives/run.py`
+without another critical roll or healing bonus. `apps/coa-tests/witch_doctor_passives/run.py`
 exercises the production hit callback, selection, ownership and helper metadata.
 
 The installed copied-client Spell.dbc and its family-19 helper closure define ranks, masks, descriptions,

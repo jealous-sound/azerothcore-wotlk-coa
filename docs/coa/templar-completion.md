@@ -106,7 +106,7 @@ including every rank. Armor of Faith triggers only when the caster's Staffguard 
 by damage; expiry, cancellation and dispelling a shield with capacity remaining do not trigger it.
 Its native area damage and threat retain the authored 20% AP and 50% Holy spell-power coefficients
 through pending `rev_20260913_02_templar_passives.sql`. The regression at
-`tests/templar_passives/run.py` reuses the workspace completion fixture in a temporary directory.
+`apps/coa-tests/templar_passives/run.py` reuses the workspace completion fixture in a temporary directory.
 
 ## Summons, movement and installation
 

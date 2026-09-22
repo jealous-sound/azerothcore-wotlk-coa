@@ -8,22 +8,36 @@ Class scripts continue to use the normal script APIs.
 Sources live in `src/server/coa/`, focused regressions in `apps/coa-tests/`, and
 configuration templates in `src/server/coa/conf/`. The installed configuration
 filenames and `etc/modules/` location are retained for existing deployments.
-The code's license and attribution are preserved in `src/server/coa/LICENSE`.
+Runtime configuration is supplied by `src/server/coa/conf/mod_ascension_compat.conf.dist`,
+not by committing live local credentials.
+
+CoA is licensed like the rest of this AzerothCore fork (see the root `LICENSE`);
+its source files carry AzerothCore's standard license header. The component's
+history before the move is reachable with `git log --follow`; keep its license
+headers and upstream attribution.
 
 Historical SQL remains at `modules/mod-ascension-compat/data/sql/` so applied
 migration paths and hashes remain stable. That directory is not a buildable
 module. New migrations belong in `data/sql/updates/pending_db_*/`.
 
 This is an independent reconstruction; source presence does not establish
-complete official gameplay parity.
+complete official gameplay parity. The canceled Retail/native-class experiment
+is absent.
 
 Canonical client files, generated candidates, runtime databases and deployment
 evidence remain in sibling workspace directories and are not part of this
 server repository. Use the corresponding generators in the workspace `tools`
-directory, preserve applied SQL hashes, and follow
-`.agents/docs/systems/ascension-local-deployment.md` in the server checkout.
+directory and preserve applied SQL hashes.
 Do not run historical installers or clear client caches to compensate for a
 protocol, data or process problem.
+
+## Client DBCs
+
+The worldserver reads the CoA client's DBC files from `<DataDir>/dbc`; for the default
+`acore.sh` install that is `env/dist/data/dbc`. Building the server does not need them,
+but running it and the CoA tests in `apps/coa-tests/` that read client data do. Put the
+extracted files there, or set `COA_DBC_DIR` when the tests should read another directory.
+[`apps/coa-dbc`](../../apps/coa-dbc/README.md) extracts and checks them.
 
 ## World database installation
 
