@@ -119,7 +119,7 @@ def main(argv=None):
         result = {'schema': 1, 'scope': 'source checks only; gameplay scenarios and compilation are not executed',
                   'base': args.base, 'changed_files': len(paths), 'selected_suites': selection['checks'],
                   'client_compat': {'selected': selection['client_compat'], 'status': 'not_run',
-                                    'reason': 'C++ harness; separate build authorization or configured CI step'},
+                                    'reason': 'C++ harness; run separately when relevant or in CI'},
                   'status': 'planned', 'commands': commands}
         if args.github_output:
             with args.github_output.open('a', encoding='utf-8') as output:

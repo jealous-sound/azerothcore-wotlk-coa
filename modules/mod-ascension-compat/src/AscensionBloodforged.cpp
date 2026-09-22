@@ -35,7 +35,7 @@ struct Settings
     bool enabled = false;
 };
 
-std::atomic<std::shared_ptr<Settings const>> settings;
+std::shared_ptr<Settings const> settings;
 
 Condition riskCondition = []
 {
@@ -79,7 +79,7 @@ private:
     static void Load()
     {
         auto next = std::make_shared<Settings>();
-        settings.store(std::make_shared<Settings>());
+        std::atomic_store(&settings, std::make_shared<Settings const>());
         if (!sConfigMgr->GetOption<bool>("Bloodforged.Enable", false))
             return;
         if (!sConfigMgr->GetOption<bool>("PvpPower.Enable", false))
@@ -165,7 +165,7 @@ private:
                 return;
             }
         next->enabled = true;
-        settings.store(next);
+        std::atomic_store(&settings, std::shared_ptr<Settings const>(next));
         LOG_INFO("server.loading", "Bloodforged world drops ready: {} verified catalogue entries", entries.size());
     }
 };
@@ -178,7 +178,7 @@ public:
     void OnAfterLootTemplateProcess(Loot* loot, LootTemplate const*, LootStore const& store,
         Player* owner, bool personal, bool, uint16 lootMode) override
     {
-        auto current = settings.load();
+        auto current = std::atomic_load(&settings);
         if (!current || !current->enabled || !owner || !loot || personal
             || &store != &LootTemplates_Creature || !(lootMode & LOOT_MODE_DEFAULT)
             || !owner->GetMap() || owner->GetMap()->Instanceable()

@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "Reaper Haunt leaves a visage of the caster that runs away",
-  "contract": "Haunt (573425) summons a visage of the Reaper (entry 840000) that runs away from the caster. Haunt requires stealth, so the fixture applies a stealth aura.",
+  "contract": "Haunt (573425) summons a visage of the Reaper (entry 840000) that runs away from the caster. Haunt requires stealth, so the fixture applies a stealth aura. Haunt has three charges with a 30-second recharge. A cast consumes one charge, which must remain spent after the four-second movement observation.",
   "timeout_ms": 120000,
   "players": [
     {
@@ -39,9 +39,25 @@
       "ms": 500
     },
     {
+      "action": "assert",
+      "actor": "r",
+      "metric": "spell_charges",
+      "spell": 573425,
+      "label": "Haunt starts with three charges",
+      "equals": 3
+    },
+    {
       "action": "cast",
       "actor": "r",
       "spell": 573425
+    },
+    {
+      "action": "assert",
+      "actor": "r",
+      "metric": "spell_charges",
+      "spell": 573425,
+      "label": "Haunt spends one charge",
+      "equals": 2
     },
     {
       "action": "assert",
@@ -73,6 +89,14 @@
       "entry": 840000,
       "min_distance": 8,
       "min": 1
+    },
+    {
+      "action": "assert",
+      "actor": "r",
+      "metric": "spell_charges",
+      "spell": 573425,
+      "label": "The spent charge has not recharged after four seconds",
+      "equals": 2
     }
   ]
 }

@@ -3,6 +3,7 @@
  * https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-AGPL3
  */
 
+#include "AscensionReaperTalents.h"
 #include "AccountMgr.h"
 #include "AscensionWisdomball.h"
 #include "AsyncCallbackProcessor.h"
@@ -975,6 +976,14 @@ private:
                         return std::max(0, current->GetCastTimeRemaining());
             return 0;
         }
+        if (metric == "xp" || metric == "next_level_xp" || metric == "skill_value")
+        {
+            Player* player = unit->ToPlayer();
+            Require(player != nullptr, "XP/skill metric needs a player");
+            if (metric == "skill_value")
+                return player->GetPureSkillValue(step.get<uint32>("skill"));
+            return player->GetUInt32Value(metric == "xp" ? PLAYER_XP : PLAYER_NEXT_LEVEL_XP);
+        }
         if (metric == "level")
             return unit->GetLevel();
         if (metric == "view_level")
@@ -1128,6 +1137,12 @@ private:
             Require(sSpellMgr->GetSpellInfo(spell) != nullptr, "Unknown spell in metric");
         if (metric == "knows_spell")
             return player->HasSpell(spell);
+        if (metric == "action_button")
+        {
+            uint8 button = uint8(step.get<uint32>("button"));
+            ActionButton const* action = player->GetActionButton(button);
+            return action && action->GetType() == ACTION_BUTTON_SPELL ? action->GetAction() : 0;
+        }
         if (metric == "temporary_spell_replacement")
             return player->GetTemporarySpellReplacement(spell);
         if (metric == "spellbook_rows")
@@ -2143,6 +2158,18 @@ private:
             player->ModifyMoney(copper);
             Require(player->GetMoney() >= uint32(copper), "Money fixture failed");
         }
+        else if (action == "grant_resource")
+        {
+            int32 amount = int32(step.get<int32>("amount", 1));
+            Require(HandleAscensionReaperResource(player, spell, amount),
+                "Resource spell does not belong to this class");
+        }
+        else if (action == "set_action_button")
+        {
+            uint8 button = uint8(step.get<uint32>("button"));
+            Require(player->addActionButton(button, spell, ACTION_BUTTON_SPELL) != nullptr,
+                "Action button could not be set");
+        }
         else if (action == "learn")
         {
             player->learnSpell(spell);
@@ -2260,6 +2287,24 @@ private:
                     + std::to_string(player->IsInCombat()) + ", casting "
                     + std::to_string(player->IsNonMeleeSpellCast(false)));
             }
+        }
+        else if (action == "set_skill")
+        {
+            uint32 const skill = step.get<uint32>("skill");
+            Require(sSkillLineStore.LookupEntry(skill) != nullptr, "Unknown fixture skill");
+            player->SetSkill(skill, 1, step.get<uint16>("value"), step.get<uint16>("maximum"));
+        }
+        else if (action == "gather_skill")
+        {
+            uint32 const skill = step.get<uint32>("skill");
+            player->UpdateGatherSkill(skill, player->GetPureSkillValue(skill), step.get<uint32>("required"));
+        }
+        else if (action == "set_xp_enabled")
+        {
+            if (step.get<bool>("enabled"))
+                player->RemovePlayerFlag(PLAYER_FLAGS_NO_XP_GAIN);
+            else
+                player->SetPlayerFlag(PLAYER_FLAGS_NO_XP_GAIN);
         }
         else if (action == "set_level")
         {

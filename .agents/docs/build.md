@@ -16,6 +16,6 @@ Tests (Google Test, in `src/test/`): configure `-DBUILD_TESTING=ON`, then `ctest
 ## Source discovery and runtime checks
 
 - Adding a module `.cpp` can require reconfiguring the existing CMake build to refresh source discovery.
-  A successful incremental build does not prove the new file was compiled. Configure/build only when authorized.
+  A successful incremental build does not prove the new file was compiled. Reconfigure when discovery is needed.
 - Server readiness does not exercise character loading or gameplay. For lifecycle fixes, use a focused regression
   for the failing callback and relevant map states; report real login and in-game acceptance separately.

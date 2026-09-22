@@ -276,7 +276,6 @@ class templar_casts : public AllSpellScript
         if (Named(info, 804929))
         {
             Copy(player, player, 807414, damage);
-            Cast(player, target, 801832);
             if (!spell->IsTriggered() &&
                 (Chance(player, 520883) || (!player->HasAura(520883) && Chance(player, 520017))))
                 Cast(player, target, info->Id);

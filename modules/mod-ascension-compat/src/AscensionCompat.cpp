@@ -20,6 +20,8 @@
 #include "AscensionClassMechanics19To25.h"
 #include "AscensionClassMechanics26To32.h"
 #include "AscensionCoATalentData.h"
+#include "AscensionCoAConfig.h"
+#include "WorldSessionMgr.h"
 #include "AscensionCoATalentState.h"
 #include "AscensionRunemasterEchoes.h"
 #include "AscensionCollectionModelData.h"
@@ -5347,6 +5349,7 @@ public:
   void OnPlayerLogin(Player *player) override {
     if (ascensionCompatConfig.GetConfigValue<bool>(
             AscensionCompatConfig::ENABLED)) {
+      SendAscensionCoAXpConfig(player->GetSession());
       AscensionClassService::Instance().OnPlayerLogin(player);
       RemoveLegacyQuestSpells(player);
       SynchronizeAscensionClassMechanics(player);
@@ -5940,7 +5943,7 @@ class AscensionCompatWorldScript : public WorldScript {
 public:
   AscensionCompatWorldScript()
       : WorldScript("AscensionCompatWorldScript",
-                    {WORLDHOOK_ON_BEFORE_CONFIG_LOAD, WORLDHOOK_ON_STARTUP,
+                    {WORLDHOOK_ON_BEFORE_CONFIG_LOAD, WORLDHOOK_ON_AFTER_CONFIG_LOAD, WORLDHOOK_ON_STARTUP,
                      WORLDHOOK_ON_LOAD_CUSTOM_DATABASE_TABLE}) {}
 
   void OnBeforeConfigLoad(bool reload) override {
@@ -5954,6 +5957,15 @@ public:
     uint32 lift = sConfigMgr->GetOption<uint32>("AscensionCompat.LevelScalingMaxLift", 5);
     LocalLevelScaling::CreatureMaxLift.store(
         static_cast<std::uint8_t>(std::min<uint32>(lift, 255)), std::memory_order_relaxed);
+  }
+
+  void OnAfterConfigLoad(bool reload) override {
+    if (!reload || !ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED))
+      return;
+
+    for (auto const& [accountId, session] : sWorldSessionMgr->GetAllSessions())
+      if (session && session->GetPlayer() && session->GetPlayer()->IsInWorld())
+        SendAscensionCoAXpConfig(session);
   }
 
   void OnLoadCustomDatabaseTable() override {
@@ -6134,6 +6146,112 @@ class spell_ascension_jailers_bargain : public AuraScript
     {
         DoEffectCalcAmount += AuraEffectCalcAmountFn(spell_ascension_jailers_bargain::CalculateAmount,
             EFFECT_0, SPELL_AURA_SCHOOL_ABSORB);
+    }
+};
+
+class spell_ascension_reaper_extinction : public AuraScript
+{
+    PrepareAuraScript(spell_ascension_reaper_extinction);
+
+    static constexpr uint32 BaseChance = 5;
+    static constexpr uint32 ChancePerSoul = 10;
+
+    bool Load() override
+    {
+        return ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED) &&
+            GetUnitOwner() && GetUnitOwner()->IsPlayer();
+    }
+
+    bool CheckProc(ProcEventInfo&)
+    {
+        Unit* owner = GetUnitOwner();
+        if (!owner)
+            return false;
+
+        uint32 souls = 0;
+        if (Aura* reapedSouls = owner->GetAura(SPELL_REAPER_REAPED_SOUL))
+            souls = reapedSouls->GetStackAmount();
+
+        return roll_chance_i(int32(BaseChance + ChancePerSoul * souls));
+    }
+
+    void Register() override
+    {
+        DoCheckProc += AuraCheckProcFn(spell_ascension_reaper_extinction::CheckProc);
+    }
+};
+
+class spell_ascension_reaper_extinction_buff : public AuraScript
+{
+    PrepareAuraScript(spell_ascension_reaper_extinction_buff);
+
+    static constexpr std::array<uint32, 7> SlaughterRanks =
+        {{500373, 500429, 500430, 500431, 500432, 500433, 500434}};
+
+    bool Load() override
+    {
+        return ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED);
+    }
+
+    bool CheckProc(ProcEventInfo& eventInfo)
+    {
+        SpellInfo const* spellInfo = eventInfo.GetSpellInfo();
+        return spellInfo && std::find(SlaughterRanks.begin(), SlaughterRanks.end(), spellInfo->Id) !=
+            SlaughterRanks.end();
+    }
+
+    void Register() override
+    {
+        DoCheckProc += AuraCheckProcFn(spell_ascension_reaper_extinction_buff::CheckProc);
+    }
+};
+
+class spell_ascension_reaper_ruin : public AuraScript
+{
+    PrepareAuraScript(spell_ascension_reaper_ruin);
+
+    static constexpr std::array<uint32, 5> ShudderScythe =
+        {{572382, 578261, 578262, 801322, 805708}};
+
+    bool Load() override
+    {
+        return ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED);
+    }
+
+    bool CheckProc(ProcEventInfo& eventInfo)
+    {
+        SpellInfo const* spellInfo = eventInfo.GetSpellInfo();
+        return spellInfo && std::find(ShudderScythe.begin(), ShudderScythe.end(), spellInfo->Id) !=
+            ShudderScythe.end();
+    }
+
+    void Register() override
+    {
+        DoCheckProc += AuraCheckProcFn(spell_ascension_reaper_ruin::CheckProc);
+    }
+};
+
+class spell_ascension_reaper_redshade : public AuraScript
+{
+    PrepareAuraScript(spell_ascension_reaper_redshade);
+
+    static constexpr std::array<uint32, 10> Reap =
+        {{354319, 500357, 504056, 504057, 504058, 504557, 505151, 573302, 573303, 801327}};
+
+    bool Load() override
+    {
+        return ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED);
+    }
+
+    bool CheckProc(ProcEventInfo& eventInfo)
+    {
+        SpellInfo const* spellInfo = eventInfo.GetSpellInfo();
+        return spellInfo && std::find(Reap.begin(), Reap.end(), spellInfo->Id) != Reap.end();
+    }
+
+    void Register() override
+    {
+        DoCheckProc += AuraCheckProcFn(spell_ascension_reaper_redshade::CheckProc);
     }
 };
 
@@ -6500,6 +6618,10 @@ void AddAscensionCompatScripts() {
   RegisterSpellScript(spell_ascension_experience_potion);
   RegisterSpellScript(spell_ascension_local_mount);
   RegisterSpellScript(spell_ascension_jailers_bargain);
+  RegisterSpellScript(spell_ascension_reaper_extinction);
+  RegisterSpellScript(spell_ascension_reaper_extinction_buff);
+  RegisterSpellScript(spell_ascension_reaper_ruin);
+  RegisterSpellScript(spell_ascension_reaper_redshade);
   RegisterSpellScript(spell_ascension_wildcard_mount);
   RegisterSpellScript(spell_ascension_legacy_quest_reward);
   new AscensionTradesmanScroll();

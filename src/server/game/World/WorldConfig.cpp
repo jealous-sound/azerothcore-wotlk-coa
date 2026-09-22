@@ -17,6 +17,7 @@
 
 #include "Player.h"
 #include "WorldConfig.h"
+#include <cmath>
 
 void WorldConfig::BuildConfigCache()
 {
@@ -52,6 +53,53 @@ void WorldConfig::BuildConfigCache()
 
     SetConfigValue<float>(RATE_REWARD_QUEST_MONEY, "Rate.RewardQuestMoney", 1.0f);
     SetConfigValue<float>(RATE_REWARD_BONUS_MONEY, "Rate.RewardBonusMoney", 1.0f);
+    auto const validXPRate = [](float const& value) { return std::isfinite(value) && value >= 0.0f; };
+    SetConfigValue<float>(RATE_XP_GLOBAL, "Rate.XP.Global", 1.0f,
+        ConfigValueCache::Reloadable::Yes, validXPRate, "finite and >= 0");
+    SetConfigValue<float>(RATE_XP_PROFESSION, "Rate.XP.Profession", 0.4f,
+        ConfigValueCache::Reloadable::Yes, validXPRate, "finite and >= 0");
+    SetConfigValue<float>(RATE_XP_PROFESSION_BASE_FRACTION, "Rate.XP.Profession.BaseFraction", 0.02f,
+        ConfigValueCache::Reloadable::Yes, validXPRate, "finite and >= 0");
+    SetConfigValue<float>(RATE_XP_PROFESSION_GRAY, "Rate.XP.Profession.Gray", 0.0f,
+        ConfigValueCache::Reloadable::Yes, validXPRate, "finite and >= 0");
+    SetConfigValue<float>(RATE_XP_PROFESSION_GREEN, "Rate.XP.Profession.Green", 0.95f,
+        ConfigValueCache::Reloadable::Yes, validXPRate, "finite and >= 0");
+    SetConfigValue<float>(RATE_XP_PROFESSION_YELLOW, "Rate.XP.Profession.Yellow", 1.0f,
+        ConfigValueCache::Reloadable::Yes, validXPRate, "finite and >= 0");
+    SetConfigValue<float>(RATE_XP_PROFESSION_ORANGE, "Rate.XP.Profession.Orange", 1.05f,
+        ConfigValueCache::Reloadable::Yes, validXPRate, "finite and >= 0");
+    SetConfigValue<float>(RATE_XP_PROFESSION_MINING, "Rate.XP.Profession.Mining", 2.11f,
+        ConfigValueCache::Reloadable::Yes, validXPRate, "finite and >= 0");
+    SetConfigValue<float>(RATE_XP_PROFESSION_HERBALISM, "Rate.XP.Profession.Herbalism", 1.44f,
+        ConfigValueCache::Reloadable::Yes, validXPRate, "finite and >= 0");
+    SetConfigValue<float>(RATE_XP_PROFESSION_DISENCHANTING, "Rate.XP.Profession.Disenchanting", 1.44f,
+        ConfigValueCache::Reloadable::Yes, validXPRate, "finite and >= 0");
+    SetConfigValue<float>(RATE_XP_PROFESSION_SKINNING, "Rate.XP.Profession.Skinning", 0.55f,
+        ConfigValueCache::Reloadable::Yes, validXPRate, "finite and >= 0");
+    SetConfigValue<float>(RATE_XP_PROFESSION_FISHING, "Rate.XP.Profession.Fishing", 0.33f,
+        ConfigValueCache::Reloadable::Yes, validXPRate, "finite and >= 0");
+    SetConfigValue<float>(RATE_XP_PROFESSION_BLACKSMITHING, "Rate.XP.Profession.Blacksmithing", 3.77f,
+        ConfigValueCache::Reloadable::Yes, validXPRate, "finite and >= 0");
+    SetConfigValue<float>(RATE_XP_PROFESSION_JEWELCRAFTING, "Rate.XP.Profession.Jewelcrafting", 3.77f,
+        ConfigValueCache::Reloadable::Yes, validXPRate, "finite and >= 0");
+    SetConfigValue<float>(RATE_XP_PROFESSION_ALCHEMY, "Rate.XP.Profession.Alchemy", 3.0f,
+        ConfigValueCache::Reloadable::Yes, validXPRate, "finite and >= 0");
+    SetConfigValue<float>(RATE_XP_PROFESSION_ENCHANTING, "Rate.XP.Profession.Enchanting", 2.88f,
+        ConfigValueCache::Reloadable::Yes, validXPRate, "finite and >= 0");
+    SetConfigValue<float>(RATE_XP_PROFESSION_LEATHERWORKING, "Rate.XP.Profession.Leatherworking", 2.0f,
+        ConfigValueCache::Reloadable::Yes, validXPRate, "finite and >= 0");
+    SetConfigValue<float>(RATE_XP_PROFESSION_FIRST_AID, "Rate.XP.Profession.FirstAid", 0.55f,
+        ConfigValueCache::Reloadable::Yes, validXPRate, "finite and >= 0");
+    SetConfigValue<float>(RATE_XP_PROFESSION_COOKING, "Rate.XP.Profession.Cooking", 0.55f,
+        ConfigValueCache::Reloadable::Yes, validXPRate, "finite and >= 0");
+    SetConfigValue<float>(RATE_XP_PROFESSION_ENGINEERING, "Rate.XP.Profession.Engineering", 3.6f,
+        ConfigValueCache::Reloadable::Yes, validXPRate, "finite and >= 0");
+    SetConfigValue<float>(RATE_XP_PROFESSION_TAILORING, "Rate.XP.Profession.Tailoring", 1.66f,
+        ConfigValueCache::Reloadable::Yes, validXPRate, "finite and >= 0");
+    SetConfigValue<float>(RATE_XP_PROFESSION_LOCKPICKING, "Rate.XP.Profession.Lockpicking", 0.0f,
+        ConfigValueCache::Reloadable::Yes, validXPRate, "finite and >= 0");
+    SetConfigValue<float>(RATE_XP_PROFESSION_INSCRIPTION, "Rate.XP.Profession.Inscription", 2.88f,
+        ConfigValueCache::Reloadable::Yes, validXPRate, "finite and >= 0");
     SetConfigValue<float>(RATE_XP_KILL, "Rate.XP.Kill", 1.0f);
     SetConfigValue<float>(RATE_XP_BG_KILL_AV, "Rate.XP.BattlegroundKillAV", 1.0f);
     SetConfigValue<float>(RATE_XP_BG_KILL_WSG, "Rate.XP.BattlegroundKillWSG", 1.0f);

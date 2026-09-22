@@ -3,6 +3,7 @@
 #include "CellImpl.h"
 #include "GridNotifiersImpl.h"
 #include "ObjectAccessor.h"
+#include "Random.h"
 #include "Player.h"
 #include "ScriptMgr.h"
 #include "SpellAuraEffects.h"
@@ -25,8 +26,53 @@ enum ReaperTalentSpells : uint32
     SPELL_REAPED_SOUL = 500363,
     SPELL_SOUL_CAPTURED = 572887,
     SPELL_SOUL_SPLINTERS = 805719,
-    SPELL_SOUL_SPLINTER = 805720
+    SPELL_SOUL_SPLINTER = 805720,
+    SPELL_PAINBRINGER = 680995,
+    SPELL_PAINBRINGER_APPLY = 520533,
+    SPELL_PAINBRINGER_EXTEND = 520877,
+    SPELL_MASOCHISTIC_RAGE = 570097,
+    SPELL_BLOOD_FRENZY_TALENT = 707899,
+    SPELL_BLOOD_FRENZY = 803039,
+    SPELL_HARVEST_TIME_LOW = 704188,
+    SPELL_HARVEST_TIME = 803995
 };
+
+constexpr float BloodFrenzyRange = 20.0f;
+
+int32 PainbringerMilliseconds(uint32 spellId)
+{
+    SpellInfo const* info = sSpellMgr->GetSpellInfo(spellId);
+    return info ? info->Effects[EFFECT_0].CalcValue() : 0;
+}
+
+void ApplyPainbringer(Player* player)
+{
+    SpellInfo const* talent = sSpellMgr->GetSpellInfo(SPELL_PAINBRINGER);
+    if (!talent || !player->HasAura(SPELL_PAINBRINGER) || !roll_chance_i(int32(talent->ProcChance)))
+        return;
+
+    if (Aura* rage = player->GetAura(SPELL_MASOCHISTIC_RAGE, player->GetGUID()))
+    {
+        int32 const extension = PainbringerMilliseconds(SPELL_PAINBRINGER_EXTEND);
+        if (extension <= 0)
+            return;
+
+        rage->SetMaxDuration(rage->GetMaxDuration() + extension);
+        rage->SetDuration(rage->GetDuration() + extension);
+        return;
+    }
+
+    player->CastSpell(player, SPELL_MASOCHISTIC_RAGE, true);
+    int32 const duration = PainbringerMilliseconds(SPELL_PAINBRINGER_APPLY);
+    if (duration <= 0)
+        return;
+
+    if (Aura* rage = player->GetAura(SPELL_MASOCHISTIC_RAGE, player->GetGUID()))
+    {
+        rage->SetMaxDuration(duration);
+        rage->SetDuration(duration);
+    }
+}
 
 class spell_ascension_soul_capture : public SpellScript
 {
@@ -144,6 +190,45 @@ class aura_ascension_jailers_call : public AuraScript
     }
 };
 
+class aura_ascension_reaper_blood_frenzy : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_reaper_blood_frenzy);
+
+    Unit* FrenzyTarget() const
+    {
+        Player* player = GetTarget()->ToPlayer();
+        if (!player || !player->IsAlive())
+            return nullptr;
+        Unit* target = player->GetSelectedUnit();
+        if (!target || target == player || !target->IsAlive() ||
+            !player->IsValidAttackTarget(target) ||
+            !player->IsWithinDistInMap(target, BloodFrenzyRange))
+            return nullptr;
+        return target;
+    }
+
+    bool CheckProc(ProcEventInfo& event)
+    {
+        SpellInfo const* spell = event.GetSpellInfo();
+        return spell && (spell->Id == SPELL_HARVEST_TIME || spell->Id == SPELL_HARVEST_TIME_LOW) &&
+            event.GetActor() == GetTarget() && FrenzyTarget() != nullptr;
+    }
+
+    void Proc(AuraEffect const* effect, ProcEventInfo&)
+    {
+        PreventDefaultAction();
+        if (Unit* target = FrenzyTarget())
+            GetTarget()->CastSpell(target, SPELL_BLOOD_FRENZY, true, nullptr, effect);
+    }
+
+    void Register() override
+    {
+        DoCheckProc += AuraCheckProcFn(aura_ascension_reaper_blood_frenzy::CheckProc);
+        OnEffectProc += AuraEffectProcFn(aura_ascension_reaper_blood_frenzy::Proc, EFFECT_0,
+            SPELL_AURA_PROC_TRIGGER_SPELL);
+    }
+};
+
 class reaper_talent_events : public UnitScript
 {
 public:
@@ -183,8 +268,12 @@ bool HandleAscensionReaperResource(Player* player, uint32 spellId, int32 amount)
         if (Aura* created = player->AddAura(spellId, player); created && amount > 1)
             created->ModStackAmount(amount - 1);
     aura = player->GetAura(spellId, player->GetGUID());
-    if (aura && aura->GetStackAmount() > previous && player->IsAlive() && player->HasAura(SPELL_SOUL_SPLINTERS))
-        player->CastSpell(player, SPELL_SOUL_SPLINTER, true);
+    if (aura && aura->GetStackAmount() > previous && player->IsAlive())
+    {
+        if (player->HasAura(SPELL_SOUL_SPLINTERS))
+            player->CastSpell(player, SPELL_SOUL_SPLINTER, true);
+        ApplyPainbringer(player);
+    }
     return true;
 }
 
@@ -193,5 +282,6 @@ void AddSC_AscensionReaperTalents()
     RegisterSpellScript(spell_ascension_soul_capture);
     RegisterSpellScript(aura_ascension_harvester);
     RegisterSpellScript(aura_ascension_jailers_call);
+    RegisterSpellScript(aura_ascension_reaper_blood_frenzy);
     new reaper_talent_events();
 }
