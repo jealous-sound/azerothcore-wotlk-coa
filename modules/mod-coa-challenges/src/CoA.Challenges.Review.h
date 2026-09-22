@@ -492,6 +492,8 @@ void SetConditionFlag(uint32 guid, char const* flag);
 bool HasConditionFlag(uint32 guid, char const* flag);
 uint32 FreeInventorySlots(Player* player);
 std::vector<ConditionState> EvaluateConditions(Player* player, uint32 challengeID);
+std::vector<ConditionState> EvaluateConditionsFor(Player* player, uint32 challengeID,
+    std::string const& conds, bool injectOutside);
 std::string CheckActivationConditions(Player* player, uint32 challengeID);
 bool IsPristine(Player* player, uint32 challengeID);
 bool RequirementsMet(uint32 guid, uint32 challengeID);

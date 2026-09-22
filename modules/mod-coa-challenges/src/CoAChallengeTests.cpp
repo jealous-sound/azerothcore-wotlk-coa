@@ -1866,6 +1866,81 @@ namespace CoAChallenges
 
     // GM-only (`.coa ruletestparty <p1> <p2>`): rules whose check needs a second
     // player (trade/group/PvP range). Both must be online in the open world.
+    // Automated condition-gate tests (`.coa conditiontest <player>`). Exercises
+    // every implemented condition type through the REAL EvaluateConditions, with
+    // a synthetic condition string (no definition declares most of them) and the
+    // implicit OUTSIDE_INTERACTION injection disabled.
+    bool Test_ConditionGates(Player* player)
+    {
+        if (!player)
+            return false;
+
+        Test_SetQuiet(true);
+        uint32 const cid = 188;   // scratch trial id; label/logging only
+        uint32 const guid = player->GetGUID().GetCounter();
+
+        int count = 0, fails = 0;
+        auto RUN = [&](char const* label, char const* cond, bool expectBroken,
+                       std::function<void()> setup)
+        {
+            ResetCharacterForTest(player);
+            if (setup)
+            {
+                setup();
+                WaitCharacterQueueEmpty();   // condition flags are written async
+            }
+            bool broken = false;
+            for (ConditionState const& s : EvaluateConditionsFor(player, cid, cond, false))
+                if (s.broken)
+                    broken = true;
+            bool const ok = (broken == expectBroken);
+            SendTestLine(player, "  {:<46} {} (broken={})", label, ok ? "PASS" : "FAIL", broken);
+            ++count;
+            if (!ok)
+                ++fails;
+        };
+
+        // Historical facets: clean by default, broken once the flag is set.
+        RUN("MAIL clean", "CHALLENGE_CONDITIONS_TYPE_TAKE_MAIL_MONEY_OR_ITEM:0/0/0", false, nullptr);
+        RUN("MAIL flagged", "CHALLENGE_CONDITIONS_TYPE_TAKE_MAIL_MONEY_OR_ITEM:0/0/0", true,
+            [&]{ SetConditionFlag(guid, "OUTSIDE_MAIL"); });
+        RUN("TRADE flagged", "CHALLENGE_CONDITIONS_TYPE_ACCEPT_TRADE:0/0/0", true,
+            [&]{ SetConditionFlag(guid, "OUTSIDE_TRADE"); });
+        RUN("AUCTIONHOUSE flagged", "CHALLENGE_CONDITIONS_TYPE_AUCTIONHOUSE_INTERACTION:0/0/0", true,
+            [&]{ SetConditionFlag(guid, "OUTSIDE_AH"); });
+        RUN("VENDOR flagged", "CHALLENGE_CONDITIONS_TYPE_VENDOR_INTERACTION:0/0/0", true,
+            [&]{ SetConditionFlag(guid, "OUTSIDE_VENDOR"); });
+        RUN("GUILD_BANK flagged", "CHALLENGE_CONDITIONS_TYPE_WITHDRAW_GUILD_BANK_MONEY_OR_ITEM:0/0/0", true,
+            [&]{ SetConditionFlag(guid, "OUTSIDE_GUILD_BANK"); });
+        RUN("BANK flagged", "CHALLENGE_CONDITIONS_TYPE_WITHDRAW_BANK_MONEY_OR_ITEM:0/0/0", true,
+            [&]{ SetConditionFlag(guid, "OUTSIDE_BANK"); });
+        RUN("REALM_BANK flagged", "CHALLENGE_CONDITIONS_TYPE_WITHDRAW_REALM_BANK_MONEY_OR_ITEM:0/0/0", true,
+            [&]{ SetConditionFlag(guid, "OUTSIDE_REALM_BANK"); });
+        RUN("OUTSIDE aggregate clean", "CHALLENGE_CONDITIONS_TYPE_OUTSIDE_INTERACTION:0/0/0", false, nullptr);
+        RUN("OUTSIDE aggregate flagged", "CHALLENGE_CONDITIONS_TYPE_OUTSIDE_INTERACTION:0/0/0", true,
+            [&]{ SetConditionFlag(guid, "OUTSIDE_AH"); });
+        RUN("LOOT flagged", "CHALLENGE_CONDITIONS_TYPE_LOOT_INTERACTION:0/0/0", true,
+            [&]{ SetConditionFlag(guid, "LOOTED"); });
+
+        // Live conditions.
+        RUN("LEVEL_UP at level 1", "CHALLENGE_CONDITIONS_TYPE_LEVEL_UP:0/0/0", false, nullptr);
+        RUN("LEVEL_UP at level 2", "CHALLENGE_CONDITIONS_TYPE_LEVEL_UP:0/0/0", true,
+            [&]{ player->GiveLevel(2); });
+        RUN("TWO_PROFESSIONS none", "CHALLENGE_CONDITIONS_TYPE_HAVE_TWO_PRIMARY_PROFESSIONS:0/0/0", false, nullptr);
+        RUN("TWO_PROFESSIONS two", "CHALLENGE_CONDITIONS_TYPE_HAVE_TWO_PRIMARY_PROFESSIONS:0/0/0", true,
+            [&]{ player->SetSkill(SKILL_ALCHEMY, 0, 1, 75); player->SetSkill(SKILL_BLACKSMITHING, 0, 1, 75); });
+        RUN("GROUP_SIZE:0 solo", "CHALLENGE_CONDITIONS_TYPE_GROUP_SIZE:0/0/0", false, nullptr);
+        RUN("FREE_SLOTS:1", "CHALLENGE_CONDITIONS_TYPE_HAVE_FREE_INVENTORY_SLOTS:1/0/0", false, nullptr);
+
+        // Unimplemented types must fail closed (documented, not silently allowed).
+        RUN("unhandled type blocks", "CHALLENGE_CONDITIONS_TYPE_COMPLETE_CHALLENGE:1/0/0", true, nullptr);
+
+        ResetCharacterForTest(player);
+        Test_SetQuiet(false);
+        SendTestLine(player, "  ---- condition gates: {} run, {} failed ----", count, fails);
+        return fails == 0;
+    }
+
     bool Test_PartyRuleGates(Player* a, Player* b)
     {
         if (!a || !b || a == b)

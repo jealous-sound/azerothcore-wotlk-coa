@@ -940,10 +940,13 @@ namespace CoAChallenges
         return count;
     }
 
-    std::vector<ConditionState> EvaluateConditions(Player* player, uint32 challengeID)
+    // `conds` is normally the challenge's own condition list; the test harness
+    // passes a synthetic string with injectOutside=false to exercise one type
+    // without depending on a definition that declares it.
+    std::vector<ConditionState> EvaluateConditionsFor(Player* player, uint32 challengeID,
+        std::string const& conds, bool injectOutside)
     {
         std::vector<ConditionState> out;
-        std::string conds = ChallengeConditions(challengeID);
         uint32 guid = player->GetGUID().GetCounter();
         bool hasOutside = false;
         size_t start = 0;
@@ -1073,8 +1076,8 @@ namespace CoAChallenges
         // the client surfaces it via a dedicated activation reason code and no
         // trial declares it per-trial, so inject it for every non-prestige
         // trial. The other interaction types are facets of this single flag.
-        if (!hasOutside && OutsideInteractionGateEnabled() && IsTrialChallenge(challengeID)
-            && !IsPrestigeChallenge(challengeID))
+        if (injectOutside && !hasOutside && OutsideInteractionGateEnabled()
+            && IsTrialChallenge(challengeID) && !IsPrestigeChallenge(challengeID))
         {
             std::string message;
             bool const outside = OutsideInteractionBroken(ConditionFlags(guid), AllOutsideFacets(), message);
@@ -1087,6 +1090,11 @@ namespace CoAChallenges
             out.push_back(s);
         }
         return out;
+    }
+
+    std::vector<ConditionState> EvaluateConditions(Player* player, uint32 challengeID)
+    {
+        return EvaluateConditionsFor(player, challengeID, ChallengeConditions(challengeID), true);
     }
 
     // Empty return = OK; otherwise a human-readable reason.

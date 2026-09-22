@@ -2372,6 +2372,7 @@ namespace CoAChallenges
                 { "e2emiss",   HandleCoAE2EMissCommand, SEC_ADMINISTRATOR, Console::Yes },
                 { "ruletest",  HandleCoARuleTestCommand, SEC_ADMINISTRATOR, Console::Yes },
                 { "ruletestall", HandleCoARuleTestAllCommand, SEC_ADMINISTRATOR, Console::Yes },
+                { "conditiontest", HandleCoAConditionTestCommand, SEC_ADMINISTRATOR, Console::Yes },
                 { "ruletestparty", HandleCoARuleTestPartyCommand, SEC_ADMINISTRATOR, Console::Yes },
                 { "ruleaudit", HandleCoARuleAuditCommand, SEC_ADMINISTRATOR, Console::Yes },
                 { "auditdefs", HandleCoAAuditDefsCommand, SEC_ADMINISTRATOR, Console::Yes },
@@ -2731,6 +2732,24 @@ namespace CoAChallenges
                 handler->PSendSysMessage("RULE GATES PASS");
             else
                 handler->SendErrorMessage("RULE GATES FAIL (see per-rule lines above)");
+            return true;
+        }
+
+        // .coa conditiontest <player>
+        // GM-only: exercises every implemented activation condition through the
+        // real EvaluateConditions, using a synthetic condition string.
+        static bool HandleCoAConditionTestCommand(ChatHandler* handler, std::string playerName)
+        {
+            Player* p = ObjectAccessor::FindPlayerByName(playerName);
+            if (!p)
+            {
+                handler->SendErrorMessage("Player '{}' is not online.", playerName);
+                return false;
+            }
+            if (Test_ConditionGates(p))
+                handler->PSendSysMessage("CONDITION GATES PASS");
+            else
+                handler->SendErrorMessage("CONDITION GATES FAIL (see per-condition lines above)");
             return true;
         }
 

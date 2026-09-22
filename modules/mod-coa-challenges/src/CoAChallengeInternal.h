@@ -63,6 +63,7 @@ namespace CoAChallenges
     int Test_RunLevelGateE2E(Player* player, uint32 challengeId);
     bool Test_CheckRuleGate(Player* player, uint32 challengeId);
     bool Test_RuleGates(Player* player);
+    bool Test_ConditionGates(Player* player);
     bool Test_PartyRuleGates(Player* a, Player* b);
     void Test_AuditAllRules(Player* player);
     void Test_AuditAllDefs(Player* player);
