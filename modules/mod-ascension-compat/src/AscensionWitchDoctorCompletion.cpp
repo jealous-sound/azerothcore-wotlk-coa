@@ -335,6 +335,14 @@ void ApplyContracts(SpellInfo* info)
         for (SpellEffectInfo& effect : info->Effects)
             if (!effect.IsAura())
                 effect.Effect = 0;
+    if (id == JungleBooms &&
+        info->Effects[EFFECT_1].ApplyAuraName == SPELL_AURA_ADD_FLAT_MODIFIER &&
+        info->Effects[EFFECT_1].MiscValue == 34 &&
+        info->Effects[EFFECT_1].BasePoints == -4 && info->Effects[EFFECT_1].DieSides == 1)
+    {
+        info->Effects[EFFECT_1].ApplyAuraName = SPELL_AURA_MOD_MAX_AFFECTED_TARGETS;
+        info->Effects[EFFECT_1].SpellClassMask = flag96(0, 0, 2048);
+    }
     if (IsIngredient(id))
     {
         info->StackAmount = 1;

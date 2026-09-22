@@ -182,6 +182,7 @@ enum DoctorSpells : uint32
     MojoThistle = 500472,
     MojoFish = 705850,
     MojoShrooms = 705851,
+    JungleBooms = 705859,
     JungleThistle = 500508,
     FrogShrooms = 500509,
     FishBones = 500594,
