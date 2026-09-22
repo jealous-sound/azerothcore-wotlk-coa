@@ -449,6 +449,39 @@ class spell_ascension_cultist_shield : public SpellScript
         AfterCast += SpellCastFn(spell_ascension_cultist_shield::After);
     }
 };
+constexpr uint32 SPELL_SHADOW_TRAINING = 805607;
+constexpr uint32 SPELL_GAZE_OF_CTHUN_HEAL_TRIGGER = 520333;
+class aura_ascension_cultist_shadow_training : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_cultist_shadow_training);
+    bool Validate(SpellInfo const* spellInfo) override
+    {
+        if (!spellInfo || spellInfo->Id != SPELL_SHADOW_TRAINING || spellInfo->SpellFamilyName != 31 ||
+            spellInfo->Effects[EFFECT_1].Effect != SPELL_EFFECT_APPLY_AURA ||
+            spellInfo->Effects[EFFECT_1].ApplyAuraName != SPELL_AURA_MOD_EXPERTISE ||
+            spellInfo->Effects[EFFECT_1].MiscValue != 0 || spellInfo->Effects[EFFECT_1].BasePoints != 99 ||
+            spellInfo->Effects[EFFECT_1].DieSides != 1)
+            return false;
+        SpellInfo const* gazeHeal = sSpellMgr->GetSpellInfo(SPELL_GAZE_OF_CTHUN_HEAL_TRIGGER);
+        return gazeHeal && gazeHeal->SpellFamilyName == 31 && (gazeHeal->SpellFamilyFlags & flag96(2097152, 0, 0));
+    }
+    void AddGazeHealingModifier(AuraEffect const* aurEff, SpellModifier*& spellMod)
+    {
+        if (spellMod)
+            return;
+        spellMod = new SpellModifier(aurEff->GetBase());
+        spellMod->op = SPELLMOD_DAMAGE;
+        spellMod->type = SPELLMOD_PCT;
+        spellMod->spellId = SPELL_SHADOW_TRAINING;
+        spellMod->mask = flag96(2097152, 0, 0);
+        spellMod->value = 100;
+    }
+    void Register() override
+    {
+        DoEffectCalcSpellMod += AuraEffectCalcSpellModFn(
+            aura_ascension_cultist_shadow_training::AddGazeHealingModifier, EFFECT_1, SPELL_AURA_MOD_EXPERTISE);
+    }
+};
 }
 void AddSC_AscensionCultistAbilities()
 {
@@ -457,4 +490,5 @@ void AddSC_AscensionCultistAbilities()
     RegisterSpellScript(spell_ascension_cultist_sanity_tap);
     RegisterSpellScript(spell_ascension_cultist_ability);
     RegisterSpellScript(spell_ascension_cultist_shield);
+    RegisterSpellScript(aura_ascension_cultist_shadow_training);
 }
