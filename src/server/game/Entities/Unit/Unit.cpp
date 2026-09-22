@@ -8062,6 +8062,12 @@ bool Unit::HasAuraState(AuraStateType flag, SpellInfo const* spellProto, Unit co
         return false;
     }
 
+    // Not a real AuraStateType bit; SPELL_AURA_MOD_DAMAGE_DONE_VERSUS_AURASTATE effects can carry this
+    // Ascension pseudo-state in their MiscValue and expect the same health check HasAscensionConditionalCombatState
+    // already answers for the SPELL_AURA_OVERRIDE_CLASS_SCRIPTS path.
+    if (flag == AuraStateType(ASCENSION_TARGET_HEALTH_ABOVE_80_PERCENT))
+        return HasAscensionConditionalCombatState(ASCENSION_TARGET_HEALTH_ABOVE_80_PERCENT);
+
     return HasFlag(UNIT_FIELD_AURASTATE, 1u << (flag - 1));
 }
 
