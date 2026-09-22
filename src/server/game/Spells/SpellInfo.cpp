@@ -1502,7 +1502,12 @@ bool SpellInfo::IsAffectedBySpellMod(SpellModifier const* mod) const
         switch (mod->spellId)
         {
             case 520682: case 520810: return Id == 520345;
-            case 680600: case 802047: return root == 805116 || root == 804152;
+            case 680600: return root == 805116 || root == 804152;
+            // Unlike 680600, this modifier's two effects are not interchangeable: effect 0
+            // (SPELLMOD_EFFECT1) carries only Hammer of Twilight's classmask, effect 1
+            // (SPELLMOD_EFFECT2) only Entropic Slam's. Route each op to its own root only,
+            // or the other op's SpellModifier instance also matches the wrong target spell.
+            case 802047: return mod->op == SPELLMOD_EFFECT1 ? root == 805116 : root == 804152;
             case 805115: return root == 500720 || root == 806222 || root == 805116;
             case 681102: case 681389: case 806768: return Id == 300277;
             default: break;
