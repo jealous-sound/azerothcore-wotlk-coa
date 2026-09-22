@@ -312,6 +312,28 @@ void ApplyContracts(SpellInfo* info)
         cost.TargetB = SpellImplicitTargetInfo();
         info->Effects[EFFECT_2].Effect = 0;
     }
+    if (id == 707388)
+    {
+        // Consuming Blade: a private SPELLMOD_CRITICAL_CHANCE flat modifier scoped to Gore's family
+        // classmask (0,64,0), plus a flat expertise bonus via the native SPELL_AURA_MOD_EXPERTISE.
+        SpellEffectInfo& crit = info->Effects[EFFECT_0];
+        crit.Effect = SPELL_EFFECT_APPLY_AURA;
+        crit.ApplyAuraName = SPELL_AURA_ADD_FLAT_MODIFIER;
+        crit.BasePoints = 25;
+        crit.DieSides = 0;
+        crit.MiscValue = SPELLMOD_CRITICAL_CHANCE;
+        crit.SpellClassMask = flag96(0, 64, 0);
+        crit.TargetA = SpellImplicitTargetInfo(TARGET_UNIT_CASTER);
+        crit.TargetB = SpellImplicitTargetInfo();
+        SpellEffectInfo& expertise = info->Effects[EFFECT_1];
+        expertise.Effect = SPELL_EFFECT_APPLY_AURA;
+        expertise.ApplyAuraName = SPELL_AURA_MOD_EXPERTISE;
+        expertise.BasePoints = 5;
+        expertise.DieSides = 0;
+        expertise.TargetA = SpellImplicitTargetInfo(TARGET_UNIT_CASTER);
+        expertise.TargetB = SpellImplicitTargetInfo();
+        info->Effects[EFFECT_2].Effect = 0;
+    }
     info->_InitializeExplicitTargetMask();
 }
 }
