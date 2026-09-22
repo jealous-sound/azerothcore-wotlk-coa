@@ -77,19 +77,22 @@ def main():
     archive = zipfile.ZipFile(ROOT / 'data/coa-world/coa-world-20260912.zip')
     rank_sql = archive.read(next(p for p in archive.namelist() if p.rsplit('/', 1)[-1] == 'spell_ranks.sql')).decode()
     ranks = [tuple(map(int, row)) for row in re.findall(r'\((\d+),(\d+),(\d+)\)', rank_sql)]
-    ranks = [row for row in ranks if row[0] in (801270, 800857, 804491, 572633)]
+    ranks = [row for row in ranks if row[0] in (801270, 800857, 804491, 572633, 572352)]
     ids.update(row[1] for row in ranks)
     init = ['void InitData(){']
     for sid in sorted(ids):
         r = spells[sid]
         duration = signed(durations[r[40]][1]) if r[40] else 0
-        init.append(f'{{auto& s=manager.infos[{sid}];s.Id={sid};s.duration={duration};'
+        init.append(f'{{auto& s=manager.infos[{sid}];s.Id={sid};s.duration={duration};s.SpellFamilyName={r[208]};'
                     f's.StackAmount={r[49]};s.MaxAffectedTargets={r[212]};s.AttributesEx4={r[8]};'
                     f's.flags={{{r[209]},{r[210]},{r[211]}}};')
         for i in range(3):
+            scaling = struct.unpack('<f', struct.pack('<I', r[77+i]))[0]
+            bonus = struct.unpack('<f', struct.pack('<I', r[229+i]))[0]
             radius = struct.unpack('<f', struct.pack('<I', radii[r[92+i]][1]))[0] if r[92+i] else 0
             init.append(f'{{auto& e=s.Effects[{i}];e.Effect={r[71+i]};e.ApplyAuraName={r[95+i]};'
                         f'e.BasePoints={signed(r[80+i])};e.DieSides={signed(r[74+i])};'
+                        f'e.RealPointsPerLevel={scaling}f;e.BonusMultiplier={bonus}f;'
                         f'e.Amplitude={r[98+i]};e.MiscValue={signed(r[110+i])};e.radius={float(radius)}f;'
                         f'e.mask={{{r[122+i*3]},{r[123+i*3]},{r[124+i*3]}}};}}')
         init.append('}')

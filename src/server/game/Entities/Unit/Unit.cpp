@@ -6273,7 +6273,8 @@ void Unit::GetDispellableAuraList(Unit* caster, uint32 dispelMask, DispelCharges
 
         if (aura->GetSpellInfo()->GetDispelMask() & dispelMask)
         {
-            if (aura->GetSpellInfo()->Dispel == DISPEL_MAGIC)
+            if (aura->GetSpellInfo()->Dispel == DISPEL_MAGIC ||
+                (dispelSpell->Id == 804490 && dispelSpell->SpellFamilyName == 28))
             {
                 // do not remove positive auras if friendly target
                 //               negative auras if non-friendly target

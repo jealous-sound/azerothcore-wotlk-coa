@@ -479,6 +479,13 @@
       "args": [
         "carnage"
       ]
+    },
+    {
+      "script": "check_chronomancer_oblivion.py",
+      "scenarios": [
+        "chronomancer-oblivion-epoch-overhealing"
+      ],
+      "args": []
     }
   ]
 }

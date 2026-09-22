@@ -1,6 +1,7 @@
 CLI_DESCRIPTION = """Exercise Shimmering Shard's actual completed-cast hook and native helper contract."""
 import argparse
 import importlib.util
+import re
 from pathlib import Path
 import struct
 import sqlite3
@@ -12,12 +13,13 @@ int main()
 {
     Player player;
     player.cls = CLASS_CHRONOMANCER;
-    Spell spell;
+    AeonSpell spell;
     spell.caster = &player;
     SpellInfo info;
     info.SpellFamilyName = 28;
     spell.info = &info;
     Hooks hooks;
+    assert(spell.IsTriggered());
     for (uint32 id : {806290, 806291, 806292, 806293})
     {
         info.Id = id;
@@ -34,6 +36,28 @@ int main()
         spell.triggered = false;
         player.RemoveAurasDueToSpell(806302);
     }
+    for (uint32 id : {806290, 806291, 806292, 806293})
+    {
+        info.Id = id;
+        player.AddAura(560310, &player);
+        auto count = player.casts.size();
+        hooks.OnSpellCast(&spell, &player, &info, false);
+        assert(player.casts.size() == count + 1);
+        assert(player.casts.back().id == 560311 && player.casts.back().target == player.guid);
+        spell.triggered = true;
+        hooks.OnSpellCast(&spell, &player, &info, false);
+        assert(player.casts.size() == count + 1);
+        spell.triggered = false;
+        player.AddAura(806302, &player);
+        hooks.OnSpellCast(&spell, &player, &info, false);
+        assert(player.casts.size() == count + 3);
+        assert(player.casts[count + 1].id == 806303 && player.casts[count + 2].id == 560311);
+        player.RemoveAurasDueToSpell(806302);
+        player.RemoveAurasDueToSpell(560310);
+        hooks.OnSpellCast(&spell, &player, &info, false);
+        assert(player.casts.size() == count + 3);
+    }
+    player.AddAura(560310, &player);
     player.AddAura(806302, &player);
     auto before = player.casts.size();
     info.Id = 806303;
@@ -45,6 +69,28 @@ int main()
     info.SpellFamilyName = 27;
     hooks.OnSpellCast(&spell, &player, &info, false);
     assert(player.casts.size() == before);
+    info = {};
+    info.Id = 804490;
+    info.SpellFamilyName = 28;
+    ApplyAscensionChronomancerTalentContracts(&info);
+    assert(info.Effects[0].Effect == SPELL_EFFECT_DISPEL && info.Effects[0].CalcValue() == 1 &&
+           info.Effects[0].MiscValue == DISPEL_ALL && info.targetMaskRebuilt);
+    info = {};
+    info.Id = 804451;
+    info.SpellFamilyName = 28;
+    info.Effects[0].ApplyAuraName = 42;
+    info.Effects[0].TriggerSpell = 804470;
+    ApplyAscensionChronomancerTalentContracts(&info);
+    assert(info.Effects[0].ApplyAuraName == SPELL_AURA_DUMMY && !info.Effects[0].TriggerSpell);
+    info = {};
+    info.Id = 560310;
+    info.SpellFamilyName = 28;
+    info.ProcFlags = 2;
+    info.Effects[0].ApplyAuraName = 42;
+    info.Effects[0].TriggerSpell = 560311;
+    ApplyAscensionChronomancerTalentContracts(&info);
+    assert(!info.ProcFlags && info.Effects[0].ApplyAuraName == SPELL_AURA_DUMMY &&
+           !info.Effects[0].TriggerSpell);
     info = {};
     info.Id = 806303;
     info.SpellFamilyName = 28;
@@ -131,6 +177,10 @@ def main():
     def fixture_read(path):
         code = read(path)
         if path.name == "WitchDoctorCompletionHarness.cpp":
+            for name, value in (("SPELL_EFFECT_DISPEL", 38), ("DISPEL_ALL", 7)):
+                if not re.search(r"\b" + name + r"\b", code):
+                    code += f"\nconstexpr uint32 {name}={value};\n"
+
             code = code.replace("struct Position {};", "struct Position { float x=0,y=0,z=0,orientation=0; };")
             code = code.replace("float ap=1000", "float y=0,z=0,orientation=0; bool immuneSlow=false; float ap=1000")
             code = code.replace("Position GetPosition()const{return {};}",
@@ -143,6 +193,8 @@ def main():
                 "void* GetVehicle() { return vehicle?this:nullptr; } "
                 "bool IsValidAssistTarget(Unit* target) { return IsFriendlyTo(target); } "
                 "void NearTeleportTo(Position& p, bool=false) { x=p.x; y=p.y; z=p.z; orientation=p.orientation; }")
+            if not re.search(r"\bProcFlags\b", fixture.extract(code, r"struct SpellInfo\b")):
+                code = code.replace("struct SpellInfo {", "struct SpellInfo { uint32 ProcFlags=0; ")
             code = code.replace("struct SpellInfo {", "struct SpellInfo { bool targetMaskRebuilt=false; "
                 "void _InitializeExplicitTargetMask() { targetMaskRebuilt=true; }")
         return code
@@ -155,7 +207,12 @@ def main():
     production += "Unit* GetExplTargetUnit() { return fixtureHit; } Unit* GetHitUnit() { return fixtureHit; }\n"
     production += fixture.extract(source, r"SpellCastResult CheckSwap\(\)")
     production += fixture.fn(source, "Swap") + "};\n"
-    production += "struct Hooks {\n" + fixture.fn(source, "OnSpellCast") + "};\n"
+    production += "constexpr uint32 TRIGGERED_IGNORE_GCD=1; struct AeonSpell:Spell { "
+    production += "bool IsTriggered() const { return true; } "
+    production += "bool HasTriggeredCastFlag(uint32 flag) const { "
+    production += "assert(flag==TRIGGERED_IGNORE_GCD); return triggered; } };\n"
+    hook = fixture.fn(source, "OnSpellCast").replace("Spell* spell", "AeonSpell* spell")
+    production += "struct Hooks {\n" + hook + "};\n"
     production += fixture.fn(source, "ApplyAscensionChronomancerTalentContracts")
     with tempfile.TemporaryDirectory(prefix="coa-chronomancer-passives-") as directory:
         fixture.native.OUT = Path(directory)
@@ -177,6 +234,7 @@ def main():
             if sid in {806290, 806291, 806292, 806293, 806302, 806303, 806727, 802790, 803301, 803703}:
                 rows[sid] = struct.unpack_from("<234I", raw, offset)
         for sid in range(806290, 806294):
+            assert rows[sid][8] & 0x80
             assert rows[sid][208:212] == (28, 0, 64, 0)
         assert rows[806303][71:73] == (6, 6) and rows[806303][95:97] == (79, 136)
         assert rows[806303][80] + rows[806303][74] == 4

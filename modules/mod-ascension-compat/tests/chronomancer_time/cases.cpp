@@ -55,26 +55,58 @@ int main()
             player.Add(beacon, &player);
         int duration = beacon == 0 ? 3000 : beacon == 574310 ? 7000 : 11000;
         player.Add(RenewalAeon, &player);
-        ApplyEpochAeon(&player, &target, 13200);
+        ApplyEpochAeon(&player, &target, 13200, 13200);
         assert(player.casts.back().id == Renewal && player.casts.back().amount == 9900 / (duration / 1000));
         assert(target.GetAura(Renewal)->GetDuration() == duration);
         player.RemoveAurasDueToSpell(RenewalAeon);
         player.Add(ProtectionAeon, &player);
-        ApplyEpochAeon(&player, &target, 13200);
+        ApplyEpochAeon(&player, &target, 13200, 13200);
         assert(player.casts.back().id == Protection && player.casts.back().amount == 6600);
         assert(target.GetAura(Protection)->GetDuration() == duration + 5000);
         player.RemoveAurasDueToSpell(ProtectionAeon);
     }
+    auto oblivion = manager.GetSpellInfo(Oblivion);
+    assert(Oblivion == 583921 && oblivion->SpellFamilyName == 28);
+    assert(oblivion->SchoolMask == SPELL_SCHOOL_MASK_MAGIC);
+    assert(oblivion->AttributesEx2 & SPELL_ATTR2_CANT_CRIT);
+    assert(oblivion->AttributesEx3 & SPELL_ATTR3_IGNORE_CASTER_MODIFIERS);
+    assert(oblivion->AttributesEx4 & SPELL_ATTR4_IGNORE_DAMAGE_TAKEN_MODIFIERS);
+    assert(oblivion->Effects[0].TargetA == TARGET_UNIT_TARGET_ENEMY && !oblivion->Effects[0].TargetB);
+    assert(oblivion->Effects[0].Effect == 2 && !oblivion->Effects[1].Effect && !oblivion->Effects[2].Effect);
+    assert(!oblivion->Effects[0].DieSides && !oblivion->Effects[0].RealPointsPerLevel &&
+           !oblivion->Effects[0].BonusMultiplier);
+    assert(oblivion->RangeEntry && oblivion->RangeEntry->ID == 13);
     player.Add(OblivionAeon, &player);
-    ApplyEpochAeon(&player, &target, 600);
+    ApplyEpochAeon(&player, &target, 600, 600);
     assert(player.casts.back().id == Oblivion && player.casts.back().target == &enemy &&
            player.casts.back().amount == 600);
     auto count = player.casts.size();
     enemy.los = false;
-    ApplyEpochAeon(&player, &target, 600);
+    ApplyEpochAeon(&player, &target, 600, 600);
     assert(player.casts.size() == count);
     enemy.los = true;
+    enemy.x = target.x + 15.0f;
+    ApplyEpochAeon(&player, &target, 900, 900);
+    ++count;
+    assert(player.casts.size() == count && player.casts.back().amount == 900);
+    enemy.x = target.x + 15.1f;
+    ApplyEpochAeon(&player, &target, 900, 900);
+    assert(player.casts.size() == count);
+    enemy.x = 11;
+    epoch.healingIncludingOverheal = 1200;
+    hooks.OnSpellHitResult(&epoch, &target, SPELL_MISS_NONE, 0, 0, false);
+    ++count;
+    assert(player.casts.size() == count && player.casts.back().amount == 1200);
+    epoch.healingIncludingOverheal = 900;
+    hooks.OnSpellHitResult(&epoch, &target, SPELL_MISS_NONE, 0, 100, false);
+    ++count;
+    assert(player.casts.size() == count && player.casts.back().amount == 900);
+    epoch.healingIncludingOverheal = 0;
+    ApplyEpochAeon(&player, &target, 0, 0);
+    assert(player.casts.size() == count);
     player.RemoveAurasDueToSpell(OblivionAeon);
+    ApplyEpochAeon(&player, &target, 600, 600);
+    assert(player.casts.size() == count);
     player.Add(CadenceTalent, &player);
     player.Add(OrderlyTalent, &player);
     hooks.OnSpellHitResult(&epoch, &target, SPELL_MISS_IMMUNE, 0, 600, true);
@@ -82,6 +114,37 @@ int main()
     for (int i = 0; i < 12; ++i)
         hooks.OnSpellHitResult(&epoch, &target, SPELL_MISS_NONE, 0, 600, true);
     assert(player.GetAura(Cadence)->GetStackAmount() == 5 && player.GetAura(Orderly)->GetStackAmount() == 10);
+
+    assert(manager.GetSpellInfo(Overcorrection)->Effects[0].ApplyAuraName == SPELL_AURA_DUMMY);
+    auto overcorrection = manager.GetSpellInfo(OvercorrectionHeal);
+    assert(overcorrection->GetDuration() == 5000 && overcorrection->Effects[0].Amplitude == 1000);
+    assert(overcorrection->AttributesEx2 & SPELL_ATTR2_CANT_CRIT);
+    assert(overcorrection->AttributesEx3 & SPELL_ATTR3_IGNORE_CASTER_MODIFIERS);
+    assert(overcorrection->AttributesEx6 & SPELL_ATTR6_IGNORE_HEALTH_MODIFIERS);
+    for (uint32 rank : {572352u, 572353u, 572354u, 572355u, 572356u, 572360u})
+    {
+        Spell correction(&player, manager.GetSpellInfo(rank), 0);
+        correction.healingIncludingOverheal = 2000;
+        count = player.casts.size();
+        hooks.OnSpellHitResult(&correction, &player, SPELL_MISS_NONE, 0, 1000, false);
+        assert(player.casts.size() == count);
+        player.Add(Overcorrection, &player);
+        for (Unit* recipient : {static_cast<Unit*>(&player), &target})
+        {
+            hooks.OnSpellHitResult(&correction, recipient, SPELL_MISS_NONE, 0, 1000, false);
+            ++count;
+            assert(player.casts.size() == count && player.casts.back().id == OvercorrectionHeal &&
+                   player.casts.back().target == recipient && player.casts.back().amount == 60);
+            assert(recipient->GetAura(OvercorrectionHeal)->GetDuration() == 5000);
+            hooks.OnSpellHitResult(&correction, recipient, SPELL_MISS_NONE, 0, 0, false);
+            ++count;
+            assert(player.casts.size() == count && player.casts.back().amount == 120);
+            hooks.OnSpellHitResult(&correction, recipient, SPELL_MISS_NONE, 0, 2000, false);
+            hooks.OnSpellHitResult(&correction, recipient, SPELL_MISS_IMMUNE, 0, 0, false);
+            assert(player.casts.size() == count);
+        }
+        player.RemoveAurasDueToSpell(Overcorrection);
+    }
 
     Aura *recovery = player.Add(501778, &target);
     recovery->SetDuration(4000);

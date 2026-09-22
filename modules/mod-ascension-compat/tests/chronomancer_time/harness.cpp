@@ -33,8 +33,12 @@ enum
     SPELL_ATTR2_CANT_CRIT = 1,
     SPELL_ATTR3_IGNORE_CASTER_MODIFIERS = 1,
     SPELL_ATTR4_ALLOW_CAST_WHILE_CASTING = 0x80,
-    SPELL_ATTR4_IGNORE_DAMAGE_TAKEN_MODIFIERS = 1,
-    SPELL_ATTR6_IGNORE_HEALTH_MODIFIERS = 1
+    SPELL_ATTR4_IGNORE_DAMAGE_TAKEN_MODIFIERS = 0x100,
+    SPELL_ATTR6_IGNORE_HEALTH_MODIFIERS = 1,
+    SPELL_SCHOOL_MASK_MAGIC = 126,
+    TARGET_UNIT_TARGET_ENEMY = 6,
+    SPELL_SCHOOL_MASK_FROST = 0x10,
+    SPELL_SCHOOL_MASK_ARCANE = 0x40
 };
 enum SpellCastResult
 {
@@ -43,11 +47,13 @@ enum SpellCastResult
 };
 struct Unit;
 struct Player;
+using SpellImplicitTargetInfo = uint32;
 struct SpellEffectInfo
 {
+    uint32 TargetA = 0, TargetB = 0;
     uint32 Effect = 0, ApplyAuraName = 0, Amplitude = 0, TriggerSpell = 0;
     int32 BasePoints = 0, DieSides = 1, MiscValue = 0;
-    float radius = 0, BonusMultiplier = 0;
+    float radius = 0, RealPointsPerLevel = 0, BonusMultiplier = 0;
     std::array<uint32, 3> mask{};
     int32 CalcValue() const
     {
@@ -58,11 +64,26 @@ struct SpellEffectInfo
         return radius;
     }
 };
+struct SpellRangeEntry
+{
+    uint32 ID;
+};
+struct SpellRangeStore
+{
+    SpellRangeEntry unlimited{13};
+    SpellRangeEntry const *LookupEntry(uint32 id) const
+    {
+        assert(id == unlimited.ID);
+        return &unlimited;
+    }
+} sSpellRangeStore;
 struct SpellInfo
 {
     uint32 Id = 0, SpellFamilyName = 28, StackAmount = 1, MaxAffectedTargets = 0, rank = 1;
     uint32 AttributesEx2 = 0, AttributesEx3 = 0, AttributesEx4 = 0, AttributesEx6 = 0;
     int32 duration = 0;
+    uint32 SchoolMask = 0;
+    SpellRangeEntry const *RangeEntry = nullptr;
     std::array<uint32, 3> flags{};
     std::array<SpellEffectInfo, 3> Effects;
     int32 GetDuration() const
@@ -339,6 +360,7 @@ struct Spell
     Unit *fixtureCaster;
     SpellInfo const *fixtureInfo;
     bool triggered;
+    uint32 healingIncludingOverheal = 0;
     SpellCastTargets m_targets;
     std::map<uint32, uint64> values;
     Spell(Unit *caster, SpellInfo const *info, int flags)
@@ -357,6 +379,10 @@ struct Spell
     bool IsTriggered() const
     {
         return triggered;
+    }
+    uint32 GetScriptHealingIncludingOverheal() const
+    {
+        return healingIncludingOverheal;
     }
     void SetScriptValue(uint32 key, uint64 value)
     {
