@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "name": "Crushing Dissonance interrupts casting enemies within its 8 yd radius and applies its 30 sec cooldown (#3722)",
+  "contract": "Crushing Dissonance 804056 (Spell.dbc, RecoveryTime/CategoryRecoveryTime 30000 = '30 sec cooldown', DurationIndex 27 = 3000 ms = 'for 3 sec', EffectMechanic MECHANIC_INTERRUPT, ImplicitTargetA TARGET_SRC_CASTER + ImplicitTargetB TARGET_UNIT_SRC_AREA_ENEMY, RadiusIndex 14 = 8 yd) has one effect, SPELL_EFFECT_INTERRUPT_CAST (68). Spell::EffectInterruptCast (SpellEffects.cpp:4080-4114) is the native, generic engine handler for this effect on any spell: for every target in range with a PreventionType SPELL_PREVENTION_TYPE_SILENCE cast in progress, it calls unitTarget->ProhibitSpellSchool(curSpellInfo->GetSchoolMask(), duration) -- duration from this spell's own DurationIndex-derived 3000 ms -- immediately before unitTarget->InterruptSpell(...), both inside the same unconditional branch; no CoA script or dummy handler exists for 804056 anywhere in the source. This scenario runs the interrupt itself and its 8 yd radius boundary to completion with the same hostile self-casting fixture (Scholomance Dark Summoner 11582, SmartAI in-combat event casting Summon Risen Lackey 17618, a 4000 ms PreventionType-SILENCE cast with InterruptFlags 0x9). FIXTURE-DISTANCE CORRECTION: the 'near' fixture must be within actual melee range for the player's own `attack` (CMSG_ATTACKSWING) to ever connect and set combat -- for a Player caller, Unit::Attack (Unit.cpp) does not call EngageWithTarget (that branch is creature-only); combat is instead set later, only once a real swing lands via PlayerUpdates.cpp's melee-attacking update, which requires Unit::IsWithinMeleeRange (Unit.cpp:794-809): distsq < (GetMeleeRange()+leeway)^2, and GetMeleeRange returns max(reach1+reach2+4/3, NOMINAL_MELEE_RANGE=5.0f) (ObjectDefines.h:47). At exactly the previous 5 yd fixture offset this check is a strict '<' against a 5.0 floor and fails outright (confirmed by the first native run: the 'near' assert never saw combat==1 in its 10 s poll window), so 'near' is placed at 3 yd instead, the same offset already proven reliable by bloodmage-aneurysm-interrupt-heal.json/#3713's identical fixture. ENGAGEMENT-MECHANISM CORRECTION for 'far': a stationary player's plain melee `attack` can never connect at 20 yd (no movement action exists in this harness), so 'far' cannot be brought into combat that way, and no distance can be both melee-reachable (<~5 yd) and outside the 8 yd AoE radius at once. Instead, 'far' is engaged with a single ranged hostile cast (Eldritch Shock 808043, SPELL_EFFECT_SCHOOL_DAMAGE, TARGET_UNIT_TARGET_ENEMY, SpellRange.dbc id 6 = 'Vision Range', far beyond 20 yd, StartRecoveryTime 0 so it does not consume the shared GCD needed for 804056's own cast): Spell.cpp:2967-2970 calls Unit::AtTargetAttacked for any non-positive hit on a non-friendly target, which calls target->EngageWithTarget(caster) (Unit.cpp:12037-12046) unconditionally on the spell's target, regardless of range -- this is the same native mechanism that lets any ranged/hostile spell pull a creature into combat, independent of melee proximity, so 'far' ends up genuinely IsInCombat() and free to run its own SmartAI in-combat event (Summon Risen Lackey) exactly like 'near' does, while remaining physically 20 yd away, outside Crushing Dissonance's 8 yd radius. The tooltip's 3 sec same-school lockout that follows a successful interrupt is not independently observed at runtime here: the harness has no action that commands an NPC to attempt a cast on demand, so there is no way to drive a second, timed cast attempt into the lockout window without relying on the fixture's own randomised 5-7 sec recast timer, which would be a coin-flip. That half is established by source reading only (SpellEffects.cpp:4104-4108: ProhibitSpellSchool is called unconditionally in the same branch, immediately before the InterruptSpell call this scenario does observe), not by an independent runtime assertion. Regression guard for behaviour that already works natively; no code change.",
+  "timeout_ms": 120000,
+  "players": [
+    { "id": "cultist", "race": 1, "class": 25, "level": 80, "spell_hit_rating": 10000 }
+  ],
+  "creatures": [
+    { "id": "near", "owner": "cultist", "entry": 11582, "faction": 14, "level": 80, "health": 1000000, "distance": 3 },
+    { "id": "far", "owner": "cultist", "entry": 11582, "faction": 14, "level": 80, "health": 1000000, "distance": 20 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let each fixture's out-of-combat Summon Frail Skeleton cast finish", "ms": 26000 },
+    { "action": "learn", "actor": "cultist", "spell": 804056 },
+    { "action": "learn", "actor": "cultist", "spell": 808043 },
+    { "action": "attack", "actor": "cultist", "target": "near" },
+    {
+      "action": "assert", "label": "The near fixture is engaged",
+      "actor": "near", "metric": "combat", "equals": 1, "within_ms": 10000
+    },
+    {
+      "action": "assert", "label": "The near fixture is mid-cast",
+      "actor": "near", "metric": "casting", "equals": 1, "within_ms": 25000
+    },
+    { "action": "cast", "actor": "cultist", "spell": 804056 },
+    {
+      "action": "assert", "label": "DISCRIMINATING: Crushing Dissonance interrupts the cast inside its 8 yd radius (#3722)",
+      "actor": "near", "metric": "casting", "equals": 0, "within_ms": 2000
+    },
+    {
+      "action": "assert", "label": "Crushing Dissonance's own cooldown is 30 sec (#3722)",
+      "actor": "cultist", "metric": "cooldown_ms", "spell": 804056, "min": 28000, "within_ms": 500
+    },
+    { "action": "stop_attack", "actor": "cultist" },
+    { "action": "reset_cooldown", "actor": "cultist", "spell": 804056 },
+    { "action": "cast", "label": "Pull the far fixture into combat at range, since melee attack cannot reach 20 yd", "actor": "cultist", "spell": 808043, "target": "far" },
+    {
+      "action": "assert", "label": "The far fixture is engaged",
+      "actor": "far", "metric": "combat", "equals": 1, "within_ms": 10000
+    },
+    {
+      "action": "assert", "label": "The far fixture is mid-cast",
+      "actor": "far", "metric": "casting", "equals": 1, "within_ms": 25000
+    },
+    { "action": "cast", "actor": "cultist", "spell": 804056 },
+    {
+      "action": "assert", "label": "DISCRIMINATING: a fixture 20 yd away, outside the 8 yd radius, keeps casting (#3722)",
+      "actor": "far", "metric": "casting", "equals": 1
+    }
+  ]
+}
