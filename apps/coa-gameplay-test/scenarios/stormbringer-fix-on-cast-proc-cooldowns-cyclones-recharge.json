@@ -92,6 +92,8 @@
       "relative_to": "kiss_electrocute", "min": -3500, "max": -2500
     },
     { "action": "snapshot", "actor": "armed_dummy", "metric": "health", "save_as": "dummy_before_lightning" },
+    { "action": "set_aura", "actor": "control", "spell": 803102, "stacks": 100 },
+    { "action": "set_aura", "actor": "armed", "spell": 803102, "stacks": 100 },
     { "action": "cast", "actor": "control", "spell": 501399, "target": "control_dummy" },
     { "action": "cast", "actor": "armed", "spell": 501399, "target": "armed_dummy" },
     { "action": "wait", "ms": 2600 },
