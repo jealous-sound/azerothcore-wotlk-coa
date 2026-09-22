@@ -11,6 +11,8 @@ from pathlib import Path
 
 from world_data import METADATA, MySQL, ROOT, audit, bootstrap, identifier, load_baseline, native_sql_hash
 
+PROVENANCE_TABLES = {"item_template_coa", "item_template_ascension_compat"}
+
 
 def migrate_source(mysql):
     for index, path in enumerate(sorted((ROOT / "data/sql/base/db_world").glob("*.sql")), 1):
@@ -61,7 +63,8 @@ def compare_source(source, manifest):
         keys = contract["primaryKey"]
         if keys:
             # Generation timestamps in this provenance table are expected to differ on a fresh install.
-            compared = [c for c in columns if not (table == "item_template_ascension_compat" and c == "created_at")]
+            compared = [c for c in columns
+                        if not (table in PROVENANCE_TABLES and c == "created_at")]
             join = " AND ".join("s." + identifier(k) + "=r." + identifier(k) for k in keys)
             changed = " OR ".join("NOT (BINARY s." + identifier(c) + " <=> BINARY r."
                                   + identifier(c) + ")" for c in compared)
