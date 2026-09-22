@@ -95,7 +95,6 @@ void ReduceRankCooldowns(Player* player, uint32 firstRank, int32 delta)
     }
 }
 
-
 void ApplyUnboundElementalistContract(SpellInfo* info)
 {
     SpellEffectInfo& owner = info->Effects[EFFECT_0];
