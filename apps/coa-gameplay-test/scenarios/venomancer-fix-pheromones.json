@@ -17,8 +17,6 @@
     { "action": "learn", "actor": "v", "spell": 803651 },
     { "action": "learn", "actor": "v", "spell": 707689 },
     { "action": "learn", "actor": "v2", "spell": 803177 },
-    { "action": "set_power", "actor": "v", "power": 0, "value": 100000 },
-    { "action": "set_power", "actor": "v2", "power": 0, "value": 100000 },
     { "action": "cast", "actor": "v", "spell": 803177, "target": "ally" },
     { "action": "assert", "label": "BASELINE: Spider Pheromones is applied by v",
       "actor": "ally", "metric": "aura", "spell": 803177, "caster": "v", "equals": 1, "within_ms": 3000 },
