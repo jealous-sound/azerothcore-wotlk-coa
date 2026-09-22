@@ -458,6 +458,26 @@ void ApplyContracts(SpellInfo* info)
         hit.TargetA = SpellImplicitTargetInfo(TARGET_UNIT_CASTER);
         hit.TargetB = SpellImplicitTargetInfo();
     }
+    if (id == 707232)
+        // Speed Demon: null its own raw SPELLMOD_EFFECT3 effect (which targeted Suffuse's then-inert
+        // EFFECT_2 slot and would otherwise still fire through the native spellmod pipeline whenever
+        // Suffuse is cast). The talent's actual bonus is read directly by value below via Amount().
+        info->Effects[EFFECT_0].Effect = 0;
+    if (id == 801063)
+    {
+        // Suffuse: claim the previously inert EFFECT_2 slot as a native SPELL_AURA_MOD_INCREASE_SPEED
+        // effect on the caster. Its amount is zero here and is scaled to Speed Demon's own tooltip
+        // value (707232) only while the player has that talent, in
+        // aura_ascension_xoroth_lifecycle::Calculate (AscensionXorothAuras.cpp) - Suffuse's own
+        // aura lifetime already gates how long the speed bonus lasts.
+        SpellEffectInfo& e = info->Effects[EFFECT_2];
+        e.Effect = SPELL_EFFECT_APPLY_AURA;
+        e.ApplyAuraName = SPELL_AURA_MOD_INCREASE_SPEED;
+        e.BasePoints = 0;
+        e.DieSides = 0;
+        e.TargetA = SpellImplicitTargetInfo(TARGET_UNIT_CASTER);
+        e.TargetB = SpellImplicitTargetInfo();
+    }
     info->_InitializeExplicitTargetMask();
 }
 }
