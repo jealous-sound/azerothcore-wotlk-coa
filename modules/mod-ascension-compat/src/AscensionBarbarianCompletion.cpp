@@ -296,10 +296,6 @@ public:
 
     void OnCalcMaxDuration(Aura const* aura, int32& duration) override
     {
-        // 705170 (Unrelenting rank 2) ships with DurationIndex 0 (no DBC duration
-        // entry) but, unlike rank 1, isn't SPELL_ATTR0_PASSIVE, so the engine's own
-        // passive/no-duration-entry fallback in Aura::CalcMaxDuration never applies,
-        // and every aura it grants is created with 0ms and expires immediately.
         if (aura && aura->GetId() == 705170)
             duration = -1;
     }
