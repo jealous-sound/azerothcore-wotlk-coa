@@ -22,7 +22,9 @@ enum AirElementalSpells : uint32
     SPELL_AURAT_GALE = 500019,
     SPELL_FLURRY_READY = 807465,
     SPELL_FLURRY_DOT = 807555,
-    SPELL_FLURRY_DEBUFF = 807464
+    SPELL_FLURRY_DEBUFF = 807464,
+    SPELL_COMFORTING_WINDS = 704209,
+    SPELL_COMFORTING_WINDS_PET_BOND = 584238
 };
 
 enum AirElementalEntries : uint32
@@ -65,11 +67,18 @@ public:
             player->RemovePet(pet, PET_SAVE_NOT_IN_SLOT);
             return;
         }
-        if (player->IsAlive() && pet->IsAlive() && player->IsInWorld() && pet->IsInWorld() &&
-            player->GetMap() == pet->GetMap() && player->InSamePhase(pet) &&
-            (!pet->HasAura(SPELL_AIR_ELEMENTAL_PASSIVE, player->GetGUID()) ||
-                !pet->HasAura(SPELL_INVIGORATION_PROC, pet->GetGUID())))
+        if (!player->IsAlive() || !pet->IsAlive() || !player->IsInWorld() || !pet->IsInWorld() ||
+            player->GetMap() != pet->GetMap() || !player->InSamePhase(pet))
+            return;
+        if (!pet->HasAura(SPELL_AIR_ELEMENTAL_PASSIVE, player->GetGUID()) ||
+            !pet->HasAura(SPELL_INVIGORATION_PROC, pet->GetGUID()))
             player->CastSpell(pet, SPELL_AIR_ELEMENTAL_PASSIVE, true);
+        bool const bonded = player->HasAura(SPELL_COMFORTING_WINDS);
+        bool const petBonded = pet->HasAura(SPELL_COMFORTING_WINDS_PET_BOND, player->GetGUID());
+        if (bonded && !petBonded)
+            player->CastSpell(pet, SPELL_COMFORTING_WINDS_PET_BOND, true);
+        else if (!bonded && petBonded)
+            pet->RemoveAurasDueToSpell(SPELL_COMFORTING_WINDS_PET_BOND, player->GetGUID());
     }
 };
 
