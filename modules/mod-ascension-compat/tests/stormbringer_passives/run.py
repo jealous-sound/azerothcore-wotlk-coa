@@ -52,6 +52,8 @@ struct Unit
 {
     bool friendly=false, moving=false;uint32 guid=1;std::set<uint32> auras;
     std::map<uint32,Aura> owned;std::vector<uint32> casts;
+    int32 periodicShare = 10;
+    int32 CalculateSpellDamage(Unit const*, SpellInfo const*, uint8) const {return periodicShare;}
     bool isMoving()const{return moving;}bool HasAura(uint32 id)const{return auras.contains(id);}
     Aura* GetAura(uint32 id){return HasAura(id)?&owned[id]:nullptr;}
     void RemoveAurasDueToSpell(uint32 id){auras.erase(id);owned.erase(id);}
@@ -193,6 +195,18 @@ int main()
     info.SpellFamilyName=22;player.cls=CLASS_MAGE;
     hook.OnSpellHitResult(&spell,&creature,0,100,0,false);assert(player.casts.empty());
     assert(player.dotAmounts.empty());
+    player.cls=CLASS_STORMBRINGER;player.periodicShare=15;
+    spell.markers.clear();player.casts.clear();player.dotAmounts.clear();
+    info=SpellInfo{};info.Id=804020;info.SpellFamilyName=22;
+    spell.info=&info;spell.owner=&player;spell.triggered=false;
+    hook.OnSpellHitResult(&spell,&creature,0,100,0,false);
+    assert(player.dotAmounts==std::vector<int32>{15});
+    spell.markers.clear();player.dotAmounts.clear();
+    hook.OnSpellHitResult(&spell,&creature,0,259,0,false);
+    assert(player.dotAmounts==std::vector<int32>{38});
+    player.periodicShare=10;spell.markers.clear();player.casts.clear();player.dotAmounts.clear();
+    hook.OnSpellHitResult(&spell,&creature,0,259,0,false);
+    assert(player.dotAmounts==std::vector<int32>{25});
     stormbringer_resource_contracts contracts;
     player.cls=CLASS_STORMBRINGER;
     info.Id=560336;contracts.OnLoadSpellCustomAttr(&info);
@@ -234,7 +248,8 @@ def main():
         raw = args.spell_dbc.read_bytes()
         count = struct.unpack_from("<I", raw, 4)[0]
         rows = {r[0]: r for r in struct.iter_unpack("<234I", raw[20:20 + count * 936])
-                if r[0] in {801838, 802385, 570054, 804086, 500040, 803563, 803566, 560336, 707058, 704149, 800299, 803790}}
+                if r[0] in {801838, 802385, 570054, 804086, 500040, 803563, 803566, 560336, 707058, 704149, 800299,
+                            803790, 705639}}
         parent, child = rows[801838], rows[802385]
         assert parent[71:74] == (3, 64, 0) and parent[92] == 0 and parent[117] == 32991
         assert parent[208:212] == child[208:212] == (22, 0, 0, 8388608)
@@ -252,6 +267,9 @@ def main():
         dot, passive = rows[560336], rows[707058]
         assert dot[208] == 22 and dot[95] == 3 and dot[98] == 500 and dot[40] == 36
         assert passive[80] + passive[74] == 10 and passive[116] == 560336
+        bursts = rows[705639]
+        assert bursts[95] == 108 and bursts[110] == 3 and bursts[80] + bursts[74] == 50
+        assert bursts[124] == passive[211] == 268435456
         raw = (args.spell_dbc.parent / "SpellDuration.dbc").read_bytes()
         count = struct.unpack_from("<I", raw, 4)[0]
         durations = {r[0]: r[1] for r in struct.iter_unpack("<4i", raw[20:20 + count * 16])}
@@ -260,7 +278,8 @@ def main():
         count = struct.unpack_from("<I", raw, 4)[0]
         radius = {r[0]: r[1] for r in struct.iter_unpack("<I3f", raw[20:20 + count * 16])}
         assert radius[45] == 10
-    print("PASS: Cloudburst; Shock ranks/repeat, learned-spell gate, ward/hostile/miss/trigger guards and helper data")
+    print("PASS: Cloudburst; Shock ranks/repeat, the hidden passive's periodic share, learned-spell gate, "
+          "ward/hostile/miss/trigger guards and helper data")
 
 
 if __name__ == "__main__":

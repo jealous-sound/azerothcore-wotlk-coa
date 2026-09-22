@@ -16,6 +16,7 @@ enum StormbringerTalentSpells : uint32
     SPELL_CLOUDBURST_KNOCKBACK = 802385,
     SPELL_SHOCK = 804020,
     SPELL_SHOCK_DOT = 560336,
+    SPELL_SHOCK_HIDDEN_PASSIVE = 707058,
     SPELL_PERPETUAL_SHOCK = 570054,
     SPELL_CALL_LIGHTNING = 500040,
     SPELL_THUNDER_WARD = 800098,
@@ -86,10 +87,13 @@ public:
         if (!repeat && (spell->IsTriggered() || sSpellMgr->GetFirstSpellInChain(info->Id) != SPELL_SHOCK))
             return;
 
-        if (damage && !spell->GetScriptValue(SPELL_SHOCK_DOT))
+        SpellInfo const* periodicShare = sSpellMgr->GetSpellInfo(SPELL_SHOCK_HIDDEN_PASSIVE);
+        if (damage && periodicShare && !spell->GetScriptValue(SPELL_SHOCK_DOT))
         {
             spell->SetScriptValue(SPELL_SHOCK_DOT, 1);
-            player->CastCustomSpell(SPELL_SHOCK_DOT, SPELLVALUE_BASE_POINT0, int32(damage / 10), target, true);
+            int32 const share = player->CalculateSpellDamage(target, periodicShare, EFFECT_0);
+            player->CastCustomSpell(SPELL_SHOCK_DOT, SPELLVALUE_BASE_POINT0, int32(damage) * share / 100,
+                target, true);
         }
         if (player->HasSpell(SPELL_CALL_LIGHTNING) && !player->HasAura(SPELL_THUNDER_WARD) &&
             !spell->GetScriptValue(SPELL_STATIC))
