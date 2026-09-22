@@ -1596,6 +1596,24 @@ namespace CoAChallenges
         }
     }
 
+    // Fail a character that is offline (a SharedFate partner): only the DB rows
+    // matter. Auras/meters/packets are moot for a character not in the world
+    // (login strips orphan challenge auras), but the failure lock and the active
+    // row must be written, or the partner would keep playing the trial.
+    void FailChallengeOffline(uint32 guid, uint32 challengeID, uint32 level, uint32 deaths)
+    {
+        CharacterDatabase.DirectExecute(
+            "INSERT IGNORE INTO coa_challenge_failure (guid, challengeId, level, deaths, failTime) "
+            "VALUES ({}, {}, {}, {}, UNIX_TIMESTAMP())",
+            guid, challengeID, level, deaths);
+        CharacterDatabase.DirectExecute(
+            "DELETE FROM coa_character_challenge WHERE guid = {} AND challengeId = {}",
+            guid, challengeID);
+        ClearCharChallengeCache(guid);
+        LOG_INFO("module.coa_challenges", "Challenge {} ({}) failed for offline character {} (deaths={})",
+            challengeID, ChallengeName(challengeID), guid, deaths);
+    }
+
     // Shared fate (Duo/Trio/Vitality): one holder's death fails EVERY holder
     // in the party, including the dead player. Returns failed challenge IDs.
     void FailSharedFate(Player* dead, uint32 challengeID)
@@ -1618,17 +1636,22 @@ namespace CoAChallenges
         for (Group::MemberSlotList::const_iterator itr = group->GetMemberSlots().begin();
              itr != group->GetMemberSlots().end(); ++itr)
         {
-            Player* member = ObjectAccessor::FindPlayer(itr->guid);
-            if (!member)
-                continue;
-            uint32 mguid = member->GetGUID().GetCounter();
+            uint32 mguid = itr->guid.GetCounter();
             QueryResult r = CharacterDatabase.Query(
                 "SELECT level, deaths FROM coa_character_challenge WHERE guid = {} AND challengeId = {}",
                 mguid, challengeID);
             if (!r)
                 continue;
             Field* f = r->Fetch();
-            uint32 deaths = f[1].Get<uint32>() + (member == dead ? 1 : 0);
+            uint32 deaths = f[1].Get<uint32>() + (itr->guid == dead->GetGUID() ? 1 : 0);
+            Player* member = ObjectAccessor::FindPlayer(itr->guid);
+            if (!member)
+            {
+                // Offline partner: fail it in the DB too, or it would keep the
+                // trial on relogin.
+                FailChallengeOffline(mguid, challengeID, f[0].Get<uint32>(), deaths);
+                continue;
+            }
             if (member == dead)
                 CharacterDatabase.Execute(
                     "UPDATE coa_character_challenge SET deaths = {} WHERE guid = {} AND challengeId = {}",
@@ -1640,25 +1663,26 @@ namespace CoAChallenges
     // Leaving/disbanding a group fails SharedFate (Duo/Trio) challenges: the
     // leaver fails, and by shared fate so do the remaining holders. `extra` is
     // the member already removed from `group` (nullptr for a disband).
-    void FailSharedFateHolders(Group* group, Player* extra)
+    void FailSharedFateHolders(Group* group, ObjectGuid extraGuid)
     {
         if (!ChallengesEnabled())
             return;
 
-        std::vector<std::pair<Player*, uint32>> targets;
-        auto collect = [&targets](Player* member)
+        // Keyed by guid (not Player*) so offline partners are failed too.
+        std::vector<std::pair<ObjectGuid, uint32>> targets;
+        auto collect = [&targets](ObjectGuid guid)
         {
-            if (!member)
+            if (guid.IsEmpty())
                 return;
             if (QueryResult r = CharacterDatabase.Query(
                     "SELECT challengeId FROM coa_character_challenge WHERE guid = {}",
-                    member->GetGUID().GetCounter()))
+                    guid.GetCounter()))
             {
                 do
                 {
                     uint32 cid = r->Fetch()[0].Get<uint32>();
                     if (IsSharedFate(cid))
-                        targets.emplace_back(member, cid);
+                        targets.emplace_back(guid, cid);
                 } while (r->NextRow());
             }
         };
@@ -1666,17 +1690,21 @@ namespace CoAChallenges
         if (group)
             for (Group::MemberSlotList::const_iterator itr = group->GetMemberSlots().begin();
                  itr != group->GetMemberSlots().end(); ++itr)
-                collect(ObjectAccessor::FindPlayer(itr->guid));
-        collect(extra);
+                collect(itr->guid);
+        if (!extraGuid.IsEmpty())
+            collect(extraGuid);
 
-        for (auto const& [member, cid] : targets)
+        for (auto const& [guid, cid] : targets)
         {
             if (QueryResult r = CharacterDatabase.Query(
                     "SELECT level, deaths FROM coa_character_challenge WHERE guid = {} AND challengeId = {}",
-                    member->GetGUID().GetCounter(), cid))
+                    guid.GetCounter(), cid))
             {
                 Field* f = r->Fetch();
-                FailChallenge(member, cid, f[0].Get<uint32>(), f[1].Get<uint32>());
+                if (Player* member = ObjectAccessor::FindPlayer(guid))
+                    FailChallenge(member, cid, f[0].Get<uint32>(), f[1].Get<uint32>());
+                else
+                    FailChallengeOffline(guid.GetCounter(), cid, f[0].Get<uint32>(), f[1].Get<uint32>());
             }
         }
     }
@@ -1685,7 +1713,7 @@ namespace CoAChallenges
     // (group == nullptr still fails the leaver's SharedFate challenge).
     void Test_FailSharedFateOnLeave(Player* player)
     {
-        FailSharedFateHolders(nullptr, player);
+        FailSharedFateHolders(nullptr, player->GetGUID());
     }
 
     void HandlePlayerDeath(Player* player)

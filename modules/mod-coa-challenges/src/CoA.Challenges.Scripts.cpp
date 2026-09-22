@@ -3024,14 +3024,14 @@ namespace CoAChallenges
         {
             if (group && (group->isBGGroup() || group->isBFGroup()))
                 return;
-            FailSharedFateHolders(group, ObjectAccessor::FindPlayer(guid));
+            FailSharedFateHolders(group, guid);
         }
 
         void OnDisband(Group* group) override
         {
             if (group && (group->isBGGroup() || group->isBFGroup()))
                 return;
-            FailSharedFateHolders(group, nullptr);
+            FailSharedFateHolders(group, ObjectGuid::Empty);
         }
     };
 

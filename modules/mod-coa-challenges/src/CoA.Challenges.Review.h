@@ -510,7 +510,7 @@ void FailChallenge(Player* player, uint32 challengeID, uint32 level, uint32 deat
     ObjectGuid const& killerSource = ObjectGuid::Empty,
     KillerKind causeKind = KillerKind::Unknown, uint32 causeEntry = 0, std::string causeName = "");
 void FailSharedFate(Player* dead, uint32 challengeID);
-void FailSharedFateHolders(Group* group, Player* extra);
+void FailSharedFateHolders(Group* group, ObjectGuid extraGuid);
 void HandlePlayerDeath(Player* player);
 uint32 CraftedItemRarity(SkillLineAbilityEntry const* ability);
 void GrantProfessionXP(Player* member, uint32 rarityMult);
