@@ -1,6 +1,9 @@
 /* Copyright (C) 2016+ AzerothCore, GNU AGPL v3. */
+#include "AscensionCacheRewards.h"
+#include "Chat.h"
 #include "Item.h"
 #include "ItemScript.h"
+#include "Log.h"
 #include "LootMgr.h"
 #include "ObjectMgr.h"
 #include "Player.h"
@@ -44,34 +47,24 @@ void OpenCache(Player* player, Item* item)
     loot.containerGUID = item->GetGUID();
     loot.FillLoot(item->GetEntry(), LootTemplates_Item, player, true, true);
 
-    std::vector<LootItem const*> rewards;
-    ItemPosCountVec reserved;
+    std::vector<AscensionCacheRewards::Reward> rewards;
     uint32 const slots = loot.GetMaxSlotInLootFor(player);
     for (uint32 slot = 0; slot < slots; ++slot)
     {
         LootItem const* reward = loot.LootItemInSlot(slot, player);
         if (!reward)
             continue;
-        InventoryResult space =
-            player->CanStoreNewItem(NULL_BAG, NULL_SLOT, reserved, reward->itemid, reward->count);
-        if (space != EQUIP_ERR_OK)
-        {
-            player->SendEquipError(space, nullptr, nullptr, reward->itemid);
-            return;
-        }
-        rewards.push_back(reward);
+        ItemTemplate const* proto = sObjectMgr->GetItemTemplate(reward->itemid);
+        if (!proto)
+            continue;
+        rewards.push_back({ reward->itemid, uint16(proto->ItemLevel), uint8(5), uint8(proto->SubClass),
+            uint32(reward->count ? reward->count : 1), reward->randomPropertyId });
     }
 
-    uint32 count = 1;
-    player->DestroyItemCount(item, count, true);
-    for (LootItem const* reward : rewards)
-    {
-        ItemPosCountVec dest;
-        if (player->CanStoreNewItem(NULL_BAG, NULL_SLOT, dest, reward->itemid, reward->count) != EQUIP_ERR_OK)
-            continue;
-        if (Item* stored = player->StoreNewItem(dest, reward->itemid, true, reward->randomPropertyId))
-            player->SendNewItem(stored, reward->count, false, false, true);
-    }
+    if (rewards.empty())
+        return;
+
+    AscensionCacheRewards::Deliver(player, rewards, item);
 }
 
 class item_ascension_adventurer_cache : public ItemScript

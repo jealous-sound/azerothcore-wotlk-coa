@@ -64,6 +64,8 @@
 #include <map>
 #include <memory>
 #include <set>
+#include <unordered_map>
+#include <unordered_set>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -253,6 +255,8 @@ struct Actor
     uint32 bankShows = 0;
     uint32 systemMessages = 0;
     std::vector<std::string> systemMessageTexts;
+    uint32 notifications = 0;
+    std::vector<std::string> notificationTexts;
     uint32 challengeStartResponses = 0;
     uint32 challengeStartLastCode = 0;
     std::map<uint64, std::map<uint16, uint32>> unitValues;
@@ -616,6 +620,14 @@ private:
                         }
                         actor.systemMessageTexts.push_back(text);
                     }
+                }
+                if (packet.GetOpcode() == SMSG_NOTIFICATION)
+                {
+                    ++actor.notifications;
+                    WorldPacket notice(packet);
+                    std::string text;
+                    notice >> text;
+                    actor.notificationTexts.push_back(text);
                 }
                 if (packet.GetOpcode() == SMSG_COA_CHALLENGE_START_RESPONSE)
                 {
@@ -1671,6 +1683,44 @@ private:
             return std::any_of(lines.begin(), lines.end(), [&needle](std::string const& line)
                 { return line.find(needle) != std::string::npos; }) ? 1.0 : 0.0;
         }
+        if (metric == "notifications")
+            return double(_actors.at(step.get<std::string>("actor")).notifications);
+        if (metric == "notification_contains")
+        {
+            std::string const needle = step.get<std::string>("text");
+            auto const& lines = _actors.at(step.get<std::string>("actor")).notificationTexts;
+            return std::any_of(lines.begin(), lines.end(), [&needle](std::string const& line)
+                { return line.find(needle) != std::string::npos; }) ? 1.0 : 0.0;
+        }
+        if (metric == "mail_pool_item_count")
+        {
+            uint32 cache = step.get<uint32>("cache");
+            std::string table = step.get<std::string>("table", "prestigious");
+            Require(table == "callboard" || table == "prestigious", "Unknown cache reward table");
+            static std::unordered_map<std::string, std::unordered_set<uint32>> pools;
+            std::string const key = table + ":" + std::to_string(cache);
+            auto found = pools.find(key);
+            if (found == pools.end())
+            {
+                std::unordered_set<uint32> ids;
+                std::string query = "SELECT `RewardItemId` FROM `ascension_" + table +
+                    "_cache_reward` WHERE `CacheItemId` = " + std::to_string(cache);
+                if (QueryResult result = WorldDatabase.Query(query.c_str()))
+                    do
+                    {
+                        ids.insert(result->Fetch()[0].Get<uint32>());
+                    } while (result->NextRow());
+                Require(!ids.empty(), "The cache has no reward pool to check against");
+                found = pools.emplace(key, std::move(ids)).first;
+            }
+
+            uint32 count = 0;
+            for (Mail* mail : player->GetMails())
+                for (MailItemInfo const& entry : mail->items)
+                    if (found->second.count(entry.item_template))
+                        ++count;
+            return double(count);
+        }
         if (metric == "cast_failure")
         {
             auto const& reasons = _actors.at(step.get<std::string>("actor")).castFailureReason;
@@ -1757,17 +1807,212 @@ private:
             return metric == "creature_model_scale" ? double(model->DisplayScale)
                                                      : double(model->CreatureDisplayID);
         }
-        if (metric == "carried_item_count")
+        if (metric == "pool_variant_count" || metric == "carried_variant_item_count")
         {
+            auto isVariant = [](ItemTemplate const* proto)
+            {
+                std::string const& text = proto->Description;
+                std::string tag;
+                if (text.size() > 2 && text[0] == '@')
+                {
+                    size_t end = text.find('@', 1);
+                    if (end != std::string::npos)
+                        tag = text.substr(1, end - 1);
+                }
+                if (tag == "Heroic Dungeon" || tag == "Mythic Dungeon")
+                    return false;
+                if (proto->HasFlag(ITEM_FLAG_HEROIC_TOOLTIP))
+                    return true;
+                return tag.rfind("Heroic", 0) == 0 || tag.rfind("Mythic", 0) == 0 ||
+                    tag.rfind("Ascended", 0) == 0;
+            };
+            if (metric == "carried_variant_item_count")
+            {
+                uint32 count = 0;
+                for (uint8 slot = EQUIPMENT_SLOT_START; slot < INVENTORY_SLOT_ITEM_END; ++slot)
+                    if (Item* item = player->GetItemByPos(INVENTORY_SLOT_BAG_0, slot))
+                        if (ItemTemplate const* proto = item->GetTemplate())
+                            if (isVariant(proto))
+                                count += item->GetCount();
+                for (uint8 bag = INVENTORY_SLOT_BAG_START; bag < INVENTORY_SLOT_BAG_END; ++bag)
+                    if (Bag* container = player->GetBagByPos(bag))
+                        for (uint32 slot = 0; slot < container->GetBagSize(); ++slot)
+                            if (Item* item = container->GetItemByPos(uint8(slot)))
+                                if (ItemTemplate const* proto = item->GetTemplate())
+                                    if (isVariant(proto))
+                                        count += item->GetCount();
+                return double(count);
+            }
+
+            uint32 cache = step.get<uint32>("cache");
+            std::string table = step.get<std::string>("table", "prestigious");
+            Require(table == "callboard" || table == "prestigious", "Unknown cache reward table");
+            uint32 variants = 0;
+            std::string query = "SELECT i.Flags, i.description FROM ascension_" + table +
+                "_cache_reward p JOIN item_template i ON i.entry = p.RewardItemId"
+                " WHERE p.CacheItemId = " + std::to_string(cache);
+            if (QueryResult result = WorldDatabase.Query(query.c_str()))
+                do
+                {
+                    Field* fields = result->Fetch();
+                    uint32 flags = fields[0].Get<uint32>();
+                    std::string text = fields[1].Get<std::string>();
+                    std::string tag;
+                    if (text.size() > 2 && text[0] == '@')
+                    {
+                        size_t end = text.find('@', 1);
+                        if (end != std::string::npos)
+                            tag = text.substr(1, end - 1);
+                    }
+                    if (tag == "Heroic Dungeon" || tag == "Mythic Dungeon")
+                        continue;
+                    if ((flags & ITEM_FLAG_HEROIC_TOOLTIP) != 0 || tag.rfind("Heroic", 0) == 0 ||
+                        tag.rfind("Mythic", 0) == 0 || tag.rfind("Ascended", 0) == 0)
+                        ++variants;
+                } while (result->NextRow());
+            else
+                Require(false, "The cache has no reward pool to check against");
+            return double(variants);
+        }
+        if (metric == "pool_retired_item_count")
+        {
+            uint32 cache = step.get<uint32>("cache");
+            std::string table = step.get<std::string>("table", "prestigious");
+            Require(table == "callboard" || table == "prestigious", "Unknown cache reward table");
+            uint32 retired = 0;
+            std::string query = "SELECT i.description FROM ascension_" + table +
+                "_cache_reward p JOIN item_template i ON i.entry = p.RewardItemId"
+                " WHERE p.CacheItemId = " + std::to_string(cache);
+            if (QueryResult result = WorldDatabase.Query(query.c_str()))
+                do
+                {
+                    if (result->Fetch()[0].Get<std::string>().find("deprecated") != std::string::npos)
+                        ++retired;
+                } while (result->NextRow());
+            else
+                Require(false, "The cache has no reward pool to check against");
+            return double(retired);
+        }
+        if (metric == "pool_row_count" || metric == "pool_item_present")
+        {
+            uint32 cache = step.get<uint32>("cache");
+            std::string table = step.get<std::string>("table", "prestigious");
+            Require(table == "callboard" || table == "prestigious", "Unknown cache reward table");
+            uint32 wanted = step.get<uint32>("item", 0);
+            std::string query = "SELECT `RewardItemId` FROM `ascension_" + table +
+                "_cache_reward` WHERE `CacheItemId` = " + std::to_string(cache);
+            uint32 rows = 0;
+            bool present = false;
+            if (QueryResult result = WorldDatabase.Query(query.c_str()))
+                do
+                {
+                    ++rows;
+                    if (wanted && result->Fetch()[0].Get<uint32>() == wanted)
+                        present = true;
+                } while (result->NextRow());
+            else
+                Require(false, "The cache has no reward pool to check against");
+            Require(rows > 0, "The cache has an empty reward pool");
+            if (metric == "pool_row_count")
+                return double(rows);
+            Require(wanted != 0, "pool_item_present needs an item to look for");
+            return present ? 1.0 : 0.0;
+        }
+        if (metric == "free_inventory_slots")
+            return double(player->GetFreeInventorySpace());
+        if (metric == "mail_count" || metric == "mail_item_count" || metric == "mail_has_item")
+        {
+            uint32 mails = 0, items = 0;
+            uint32 wanted = step.get<uint32>("item", 0);
+            bool found = false;
+            for (Mail* mail : player->GetMails())
+            {
+                ++mails;
+                for (MailItemInfo const& entry : mail->items)
+                {
+                    ++items;
+                    if (wanted && entry.item_template == wanted)
+                        found = true;
+                }
+            }
+            if (metric == "mail_count")
+                return double(mails);
+            if (metric == "mail_item_count")
+                return double(items);
+            Require(wanted != 0, "mail_has_item needs the item to look for");
+            return found ? 1.0 : 0.0;
+        }
+        if (metric == "cache_token_count" || metric == "cache_token_stage" ||
+            metric == "cache_token_present")
+        {
+            uint32 cache = step.get<uint32>("cache");
+            uint32 wanted = step.get<uint32>("item", 0);
+            std::string query = "SELECT `RewardItemId`, `TokenStage` FROM "
+                "`ascension_cache_content_token` WHERE `CacheItemId` = " + std::to_string(cache);
+            uint32 rows = 0;
+            uint32 highest = 0;
+            bool present = false;
+            if (QueryResult result = WorldDatabase.Query(query.c_str()))
+                do
+                {
+                    Field* fields = result->Fetch();
+                    ++rows;
+                    uint32 stage = uint32(fields[1].Get<uint8>());
+                    if (stage > highest)
+                        highest = stage;
+                    if (wanted && fields[0].Get<uint32>() == wanted)
+                        present = true;
+                } while (result->NextRow());
+            if (metric == "cache_token_count")
+                return double(rows);
+            if (metric == "cache_token_stage")
+                return double(highest);
+            Require(wanted != 0, "cache_token_present needs a token to look for");
+            return present ? 1.0 : 0.0;
+        }
+        if (metric == "carried_item_count" || metric == "carried_pool_item_count")
+        {
+            static std::unordered_map<std::string, std::unordered_set<uint32>> pools;
+            std::unordered_set<uint32> const* pool = nullptr;
+            if (metric == "carried_pool_item_count")
+            {
+                uint32 cache = step.get<uint32>("cache");
+                std::string table = step.get<std::string>("table", "prestigious");
+                Require(table == "callboard" || table == "prestigious", "Unknown cache reward table");
+                std::string key = table + ":" + std::to_string(cache);
+                auto found = pools.find(key);
+                if (found == pools.end())
+                {
+                    std::unordered_set<uint32> ids;
+                    std::string query = "SELECT `RewardItemId` FROM `ascension_" + table +
+                        "_cache_reward` WHERE `CacheItemId` = " + std::to_string(cache);
+                    if (QueryResult result = WorldDatabase.Query(query.c_str()))
+                        do
+                        {
+                            ids.insert(result->Fetch()[0].Get<uint32>());
+                        } while (result->NextRow());
+                    Require(!ids.empty(), "The cache has no reward pool to check against");
+                    found = pools.emplace(key, std::move(ids)).first;
+                }
+                pool = &found->second;
+            }
+            auto excluded = step.get_optional<uint32>("exclude");
             uint32 count = 0;
+            auto countItem = [pool, &count, &excluded](Item* item)
+            {
+                if (excluded && item->GetEntry() == *excluded)
+                    return;
+                if (!pool || pool->count(item->GetEntry()))
+                    count += item->GetCount();
+            };
             for (uint8 slot = EQUIPMENT_SLOT_START; slot < INVENTORY_SLOT_ITEM_END; ++slot)
                 if (Item* item = player->GetItemByPos(INVENTORY_SLOT_BAG_0, slot))
-                    count += item->GetCount();
+                    countItem(item);
             for (uint8 bag = INVENTORY_SLOT_BAG_START; bag < INVENTORY_SLOT_BAG_END; ++bag)
                 if (Bag* container = player->GetBagByPos(bag))
                     for (uint32 slot = 0; slot < container->GetBagSize(); ++slot)
                         if (Item* item = container->GetItemByPos(uint8(slot)))
-                            count += item->GetCount();
+                            countItem(item);
             return count;
         }
         if (metric == "quest_status" || metric == "quest_takeable")
@@ -2351,6 +2596,28 @@ private:
         }
         else if (action == "add_item")
             Require(player->AddItem(step.get<uint32>("item"), step.get<uint32>("count", 1)), "Item grant failed");
+        else if (action == "fill_bags")
+        {
+            uint32 const target = step.get<uint32>("slots", 0);
+            uint32 filled = 0;
+            for (auto const& stored : *sObjectMgr->GetItemTemplateStore())
+            {
+                if (player->GetFreeInventorySpace() <= target)
+                    break;
+
+                ItemTemplate const& proto = stored.second;
+                if (proto.Class != ITEM_CLASS_ARMOR || proto.GetMaxStackSize() > 1 ||
+                    proto.MaxCount > 0 || proto.ItemLevel < 1 || player->GetItemCount(stored.first))
+                    continue;
+
+                if (player->AddItem(stored.first, 1))
+                    ++filled;
+            }
+            Require(player->GetFreeInventorySpace() <= target,
+                "The bags could not be filled for the full inventory fixture");
+            LOG_DEBUG("module.ascension_compat", "gameplay test filled {} bag slots for {}",
+                filled, player->GetGUID().ToString());
+        }
         else if (action == "equip")
         {
             Item* item = player->GetItemByEntry(step.get<uint32>("item"));

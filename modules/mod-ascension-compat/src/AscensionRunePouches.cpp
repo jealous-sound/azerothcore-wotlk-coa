@@ -62,11 +62,14 @@ bool PayRunePouch(Player* player, Item* item)
         return true;
     }
 
+    uint32 const held = player->GetItemCount(RuneOfAscensionItem, false);
+    Item* runes = player->StoreNewItem(dest, RuneOfAscensionItem, true);
+    if (!runes || player->GetItemCount(RuneOfAscensionItem, false) <= held)
+        return true;
+
     uint32 count = 1;
     player->DestroyItemCount(item, count, true);
-
-    if (Item* runes = player->StoreNewItem(dest, RuneOfAscensionItem, true))
-        player->SendNewItem(runes, amount, false, false, true);
+    player->SendNewItem(runes, amount, false, false, true);
     return true;
 }
 

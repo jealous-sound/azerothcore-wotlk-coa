@@ -362,6 +362,7 @@ damage coefficients.
 | `gossip_select` | `actor`, zero-based `option`: select from the current menu through the session handler. |
 | `who` | `actor`, optional name-filter `target`, `class_mask`, `race_mask`: submit a native Who query. |
 | `add_item` | `actor`, `item`, optional `count` (default 1): grant fixture inventory. |
+| `fill_bags` | `actor`, optional `slots` (default 0): fill the bags with distinct non-stacking armor until that many free slots remain, so a scenario can prove what a full inventory does. Fails if the bags cannot be filled. |
 | `equip` | `actor`, `item`, `slot` (0..18): equip an owned item through the session handler. |
 | `use_item` | `actor`, `item`, `spell`, optional `target` and `destination`: normal item-use handler. |
 | `use_gameobject` | `actor`, `entry`: native use request for the actor's single nearby owned gameobject. |
@@ -402,6 +403,19 @@ Metrics: `health`, `max_health`, `power`, `max_power`, `alive`, `combat`, `casti
 `charm_entry`, `charm_aura_stacks`, `controls_self`, `private_instance`, `dynamic_object`,
 `dynamic_object_duration_ms`, `distance`, `spell_proc_count`, `spell_cast_count`, `temporary_spell_replacement`,
 `bank_shows`, `system_messages`, `cast_failure`, `pet_is_banker`, `pet_display`, `pet_scale`.
+`free_inventory_slots` is how many bag slots the player could still fill, so `fill_bags` plus
+`free_inventory_slots` `equals: 0` is how a scenario states "the bags are full". `mail_count` is the
+number of mails the player holds and `mail_item_count` the items inside them, which is how a reward
+that the bags could not take proves it was posted rather than lost; `mail_has_item` takes `item` and
+returns whether any mail carries it, and `mail_pool_item_count` takes `cache` (optional `table`) and
+counts only the mail items that are in that cache's own pool. `notifications` counts the
+centre-screen notices a session has been sent and `notification_contains` takes `text` and returns
+whether one carried it, which is how a test proves a player was told something in the middle of the
+screen and not only in chat. The cache metrics are `carried_pool_item_count` (needs `cache`,
+optional `table`), `pool_variant_count`, `pool_retired_item_count`, `pool_row_count`,
+`pool_item_present` (needs `item`), and `cache_token_count`, `cache_token_stage`, `cache_token_present`
+(need `cache`, the last also `item`), which read the token table the realm loads and answer how many
+tier tokens a cache may pay, the highest tier among them, and whether one named token is among them.
 Boolean metrics use 0/1. Spell/aura metrics require `spell`; `item_count` requires `item`.
 `carried_item_count` sums the stack counts of equipped items (bags included), the backpack and the bags' contents.
 `aura_positive` reads the applied aura's beneficial flag; check `aura` separately to distinguish absence from a debuff.
