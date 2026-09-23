@@ -1,0 +1,42 @@
+{
+ "schema": 1,
+ "name": "Titan Scroll: Eonar kill hook casts the ground heal in the open world",
+ "contract": "With aura 993957 active, mod-coa-titan-scrolls' OnPlayerCreatureKill hook rolls 10% per kill and, outside a capital city, casts spell 993963 (Eonar's Blessing) at the kill location with BASE_POINT0/1 set to a flat 5% of the killed creature's max health per tick (matches the buff's own native tooltip; the buff does not stack). The spell ticks 5 times over its duration, so the total delivered is 25% of the killed creature's max health. ProcFlags is 0 on 993957 in the DBC, so this can only be a script cast, never a native aura proc — spell_cast_count (not spell_proc_count) is the correct observation.",
+ "timeout_ms": 120000,
+ "players": [
+  { "id": "killer", "race": 1, "class": 1, "level": 60 }
+ ],
+ "location": { "map": 0, "x": -9095.0, "y": -105.0, "z": 71.0, "o": 0.0 },
+ "creatures": [
+  { "id": "unbuffed_prey", "owner": "killer", "entry": 68, "health": 1000, "level": 1 },
+  { "id": "prey1", "owner": "killer", "entry": 68, "health": 1000, "level": 1 },
+  { "id": "prey2", "owner": "killer", "entry": 68, "health": 1000, "level": 1 },
+  { "id": "prey3", "owner": "killer", "entry": 68, "health": 1000, "level": 1 },
+  { "id": "prey4", "owner": "killer", "entry": 68, "health": 1000, "level": 1 },
+  { "id": "prey5", "owner": "killer", "entry": 68, "health": 1000, "level": 1 },
+  { "id": "prey6", "owner": "killer", "entry": 68, "health": 1000, "level": 1 },
+  { "id": "prey7", "owner": "killer", "entry": 68, "health": 1000, "level": 1 }
+ ],
+ "steps": [
+  { "action": "attack", "actor": "killer", "target": "unbuffed_prey" },
+  { "action": "wait", "ms": 1500 },
+  { "action": "assert", "label": "No buff active yet: killing must never cast the ground heal (deterministic, no RNG involved when the aura is absent)", "actor": "killer", "metric": "spell_cast_count", "spell": 993963, "equals": 0 },
+  { "action": "set_aura", "actor": "killer", "spell": 993957, "stacks": 1 },
+  { "action": "attack", "actor": "killer", "target": "prey1" },
+  { "action": "wait", "ms": 1000 },
+  { "action": "attack", "actor": "killer", "target": "prey2" },
+  { "action": "wait", "ms": 1000 },
+  { "action": "attack", "actor": "killer", "target": "prey3" },
+  { "action": "wait", "ms": 1000 },
+  { "action": "attack", "actor": "killer", "target": "prey4" },
+  { "action": "wait", "ms": 1000 },
+  { "action": "attack", "actor": "killer", "target": "prey5" },
+  { "action": "wait", "ms": 1000 },
+  { "action": "attack", "actor": "killer", "target": "prey6" },
+  { "action": "wait", "ms": 1000 },
+  { "action": "attack", "actor": "killer", "target": "prey7" },
+  { "action": "wait", "ms": 1000 },
+  { "action": "assert", "label": "At least one of 7 buffed kills at 10% procced the ground heal (P(0 successes) = 0.9^7 ~= 48%; if this flakes, raise creature count rather than the chance)", "actor": "killer", "metric": "spell_cast_count", "spell": 993963, "min": 1 },
+  { "action": "assert", "label": "Heal-per-tick lands on the killer (not a nearby enemy): flat 5% of the killed creature's 1000 max health per tick (1000*5/100=50)", "actor": "killer", "metric": "aura_amount", "spell": 993963, "effect": 0, "equals": 50, "within_ms": 2000 }
+ ]
+}

@@ -1,0 +1,19 @@
+{
+ "schema": 1,
+ "name": "Titan Scroll: Eonar kill hook never procs inside a capital city",
+ "contract": "AREA_FLAG_CAPITAL gates the hook before the 10% roll (mirrors PlayerUpdates.cpp:1419's own capital check). A kill inside Stormwind must never cast 993963, regardless of stacks or the RNG roll.",
+ "timeout_ms": 60000,
+ "players": [
+  { "id": "killer", "race": 1, "class": 1, "level": 60 }
+ ],
+ "location": { "map": 0, "x": -8868.0, "y": 626.0, "z": 94.0, "o": 0.0, "ignore_access": true },
+ "creatures": [
+  { "id": "prey1", "owner": "killer", "entry": 68, "health": 1, "level": 1 }
+ ],
+ "steps": [
+  { "action": "set_aura", "actor": "killer", "spell": 993957, "stacks": 5 },
+  { "action": "attack", "actor": "killer", "target": "prey1" },
+  { "action": "wait", "ms": 1500 },
+  { "action": "assert", "label": "No ground heal was cast inside Stormwind", "actor": "killer", "metric": "spell_cast_count", "spell": 993963, "equals": 0 }
+ ]
+}
