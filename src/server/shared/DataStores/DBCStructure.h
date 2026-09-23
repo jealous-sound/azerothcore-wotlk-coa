@@ -1804,6 +1804,14 @@ struct SpellCategoryEntry
     uint32 Flags;
 };
 
+// Ascension: the spells each spell modifier applies to, beyond its own family and class mask.
+struct SpellAffectEntry
+{
+    uint32 ID;                                              // 0
+    uint32 ModifierSpellID;                                 // 1
+    uint32 AffectedSpellID;                                 // 2
+};
+
 struct SpellDifficultyEntry
 {
     uint32     ID;                                          // 0
