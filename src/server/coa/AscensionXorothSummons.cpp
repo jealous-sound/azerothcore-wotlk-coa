@@ -186,6 +186,18 @@ class spell_ascension_xoroth_sacrificial_circle : public SpellScript
         Player* player = Owner(GetCaster());
         targets.remove_if([player](WorldObject* target) { return !player || !OwnImp(player, target); });
     }
+    // SPELL_EFFECT_TRIGGER_SPELL's native default executes at the launch stage, but this effect's area
+    // target list (TARGET_UNIT_SRC_AREA_ALLY, filtered to owned imps by SelectImps above) is only
+    // resolved by the hit stage - the same launch/hit split AzerothCore already works around for
+    // spell_pal_righteous_defense (see its own "WORKAROUND ... see issue #3718" comment). Without also
+    // preventing the default at launch, the native chain (805677 -> 706752 -> 706759) fires unblocked
+    // there before Sacrifice() below ever runs at hit time, applying 706759's shield at its inert
+    // baseline (BasePoints -1, i.e. 0) - matching the exact-0 shield amount this bug produced. Verified
+    // empirically: Sacrifice() never logged anything at all until this launch-stage prevention was added.
+    void PreventLaunchDefault(SpellEffIndex index)
+    {
+        PreventHitDefaultEffect(index);
+    }
     void Sacrifice(SpellEffIndex index)
     {
         PreventHitDefaultEffect(index);
@@ -193,17 +205,29 @@ class spell_ascension_xoroth_sacrificial_circle : public SpellScript
         Creature* imp = GetHitCreature();
         if (!player || !OwnImp(player, imp))
             return;
-        imp->CastCustomSpell(706753, SPELLVALUE_BASE_POINT0, int32(imp->CountPctFromMaxHealth(25)), player,
-                             TRIGGERED_FULL_MASK);
+        // Read both percentages of the imp's max health before either CastCustomSpell call: the first
+        // call below (706753) is the imp sacrificing itself to heal the player, and once that has run
+        // the imp may already be dead/despawned, making a later imp->CountPctFromMaxHealth() call
+        // (for Soul Furnace's shield) unreliable.
+        int32 const healAmount = int32(imp->CountPctFromMaxHealth(25));
+        int32 const shieldAmount = int32(imp->CountPctFromMaxHealth(15));
+        imp->CastCustomSpell(706753, SPELLVALUE_BASE_POINT0, healAmount, player, TRIGGERED_FULL_MASK);
         if (player->HasAura(706758))
-            player->CastCustomSpell(706759, SPELLVALUE_BASE_POINT2, int32(imp->CountPctFromMaxHealth(15)), player,
-                                    TRIGGERED_FULL_MASK);
+            player->CastCustomSpell(706759, SPELLVALUE_BASE_POINT2, shieldAmount, player, TRIGGERED_FULL_MASK);
     }
     void Register() override
     {
         OnCheckCast += SpellCheckCastFn(spell_ascension_xoroth_sacrificial_circle::CheckImps);
+        // EFFECT_0 is TargetA TARGET_SRC_CASTER / TargetB TARGET_UNIT_SRC_AREA_ALLY in the installed
+        // Spell.dbc (verified via a runtime dump: Effects[EFFECT_0].TargetB.GetTarget() == 30), not
+        // TARGET_UNIT_DEST_AREA_ALLY (31) as previously registered here. That one-constant mismatch
+        // made AzerothCore's SpellScript effect-vs-dbc validation reject this hook outright ("did not
+        // match dbc effect data ... won't be executed"), so SelectImps never filtered the area target
+        // list to the caster's own imps.
         OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_ascension_xoroth_sacrificial_circle::SelectImps,
-                                                                  EFFECT_0, TARGET_UNIT_DEST_AREA_ALLY);
+                                                                  EFFECT_0, TARGET_UNIT_SRC_AREA_ALLY);
+        OnEffectLaunchTarget += SpellEffectFn(spell_ascension_xoroth_sacrificial_circle::PreventLaunchDefault, EFFECT_0,
+                                              SPELL_EFFECT_TRIGGER_SPELL);
         OnEffectHitTarget += SpellEffectFn(spell_ascension_xoroth_sacrificial_circle::Sacrifice, EFFECT_0,
                                            SPELL_EFFECT_TRIGGER_SPELL);
     }
