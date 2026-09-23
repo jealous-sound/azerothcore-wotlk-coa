@@ -376,9 +376,10 @@ and restart worldserver. This also applies the configured plaintext world header
 extension opcode range, ping interval, Ascension spell-modifier packet layout and
 class-10 character creation mapping to remote connections. The default is `0`;
 password proofs, IP bans and packet size validation remain required.
-The native v4 client also needs the [world-address fix](../../apps/client-compat/README.md)
-to enter remote worlds without its DLL corrupting an active client hook. That fix uses
-the authserver's realm address without a per-IP allowlist.
+The client package's `Extensions.dll` must also carry the world-address fix to enter
+remote worlds; without it the DLL corrupts an active client hook when the world address
+is not on its built-in allowlist. Client binaries and patches are maintained outside
+this repository.
 
 The `gtOCTRegenHP`, `gtRegenHPPerSpt` and `gtRegenMPPerSpt` client files each contain
 3,200 single-float rows indexed by class and level. Their SQL overlay tables are empty,
