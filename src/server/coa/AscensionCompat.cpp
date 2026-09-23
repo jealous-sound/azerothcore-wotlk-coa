@@ -5772,6 +5772,12 @@ public:
             ApplyAscensionExperienceContracts(spellInfo);
             switch (spellInfo->Id)
             {
+                case 19782:
+                    if (spellInfo->Effects[EFFECT_0].Effect == SPELL_EFFECT_APPLY_AURA &&
+                        spellInfo->Effects[EFFECT_0].ApplyAuraName == SPELL_AURA_MOD_STAT &&
+                        spellInfo->Effects[EFFECT_0].MiscValue == STAT_SPIRIT)
+                        spellInfo->Effects[EFFECT_0].MiscValue = STAT_STAMINA;
+                    break;
                 case 83328: case 83329: case 83330: case 83331: case 83332:
                 case 83334: case 83335: case 83336: case 103921:
                     if (spellInfo->Effects[EFFECT_0].Effect == SPELL_EFFECT_APPLY_AURA &&
