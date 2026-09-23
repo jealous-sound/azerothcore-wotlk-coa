@@ -143,6 +143,7 @@ constexpr uint16 SMSG_PATCH_VANITY_COLLECTION = 0x0573;
 constexpr uint16 SMSG_REALM_INFO = 0x09BC;
 constexpr uint8 REALM_CREATION_FLAG_CONQUEST_OF_AZEROTH = 6;
 constexpr uint8 REALM_CREATION_FLAG_WARCRAFT_REBORN = 7;
+constexpr uint8 REALM_INFO_ADDONS_ALLOWED = 1;
 
 constexpr uint16 SMSG_BANK_PERMISSIONS = 0x0769;
 
@@ -4191,7 +4192,7 @@ public:
       p << f;
     p << sWorld->GetRealmName();
     p << "";
-    p << static_cast<uint8>(0);
+    p << REALM_INFO_ADDONS_ALLOWED;
 
     session->SendPacket(&p);
 
