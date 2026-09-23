@@ -150,10 +150,12 @@ constexpr uint8 REALM_INFO_ADDONS_ALLOWED = 1;
 constexpr uint16 SMSG_BANK_PERMISSIONS = 0x0769;
 
 constexpr uint32 MAX_BULK_QUERY_ENTRIES = 256;
+constexpr std::size_t POINT_SPEND_REQUEST_SIZE = sizeof(uint8) + sizeof(uint32);
+constexpr uint8 POINT_SPEND_VANITY_COLLECTION_ITEM = 2;
 
-constexpr std::array<uint16, 3> QUEUED_EXTENSION_OPCODES = {
+constexpr std::array<uint16, 4> QUEUED_EXTENSION_OPCODES = {
     CMSG_APPLY_APPEARANCES, CMSG_SET_CAN_SEE_APPEARANCES,
-    CMSG_EXTENSION_INITIALIZED};
+    CMSG_EXTENSION_INITIALIZED, CMSG_CUSTOM_ASCENSION_POINT_SPEND_REQUEST};
 
 struct ExtensionOpcodeIdentity {
   uint16 Opcode;
@@ -4034,6 +4036,9 @@ private:
         for (uint32 entry : ReadBulkQueryEntries(packet))
           player->GetSession()->SendItemQuerySingleResponse(entry);
         break;
+      case CMSG_CUSTOM_ASCENSION_POINT_SPEND_REQUEST:
+        HandlePointSpendRequest(player, packet);
+        break;
       default:
         break;
       }
@@ -4132,6 +4137,28 @@ private:
     RefreshVisibleItems(player);
     SendAppearanceVisibility(player, *state);
   }
+
+    void HandlePointSpendRequest(Player* player, WorldPacket& packet)
+    {
+        if (packet.size() != POINT_SPEND_REQUEST_SIZE)
+        {
+            LOG_WARN("coa", "Malformed Ascension point spend request from {}: {} bytes",
+                player->GetName(), packet.size());
+            return;
+        }
+
+        uint8 kind = 0;
+        uint32 itemId = 0;
+        packet >> kind >> itemId;
+        if (kind != POINT_SPEND_VANITY_COLLECTION_ITEM)
+        {
+            LOG_DEBUG("coa", "Ignored Ascension point spend request of kind {} for {} from {}",
+                kind, itemId, player->GetName());
+            return;
+        }
+
+        DeliverLocalVanityItem(player, itemId);
+    }
 
   void SaveActiveAppearances(Player *player,
                              PlayerCollectionState const &state) {

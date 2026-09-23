@@ -1,3 +1,4 @@
+#include "AscensionCollectibleSpellData.h"
 #include "ItemTemplate.h"
 #include "WorldPacket.h"
 #include <algorithm>
@@ -9,8 +10,10 @@
 #include <mutex>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <type_traits>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #define ASSERT(condition, ...) assert(condition)
@@ -38,12 +41,16 @@ void LogSink(Arguments&&...)
 #define LOG_WARN(...) LogSink(__VA_ARGS__)
 #define LOG_DEBUG(...) LogSink(__VA_ARGS__)
 
+struct Player;
+
 class WorldSession
 {
 public:
     uint32 AccountId = 1;
     int LocaleIndex = -1;
+    Player* PlayerObject = nullptr;
     std::vector<WorldPacket> Sent;
+    std::vector<std::string> Messages;
 
     uint32 GetAccountId() const { return AccountId; }
     int GetSessionDbLocaleIndex() const { return LocaleIndex; }
@@ -84,24 +91,85 @@ struct SpellInfo
 
 struct SpellMgr
 {
-    SpellInfo Fireball;
+    SpellInfo Spell;
+    std::unordered_set<uint32> Known = {133, 200001, 200002};
 
-    SpellInfo const* GetSpellInfo(uint32 spellId) const { return spellId == 133 ? &Fireball : nullptr; }
+    SpellInfo const* GetSpellInfo(uint32 spellId) const { return Known.contains(spellId) ? &Spell : nullptr; }
 } spellMgr;
 
 SpellMgr* sSpellMgr = &spellMgr;
 
 // ACTUAL_ITEM_QUERY
 
+struct Item
+{
+    uint32 Entry = 0;
+};
+
+using ItemPosCountVec = std::vector<uint32>;
+
+enum InventoryResult
+{
+    EQUIP_ERR_OK = 0,
+    EQUIP_ERR_INVENTORY_FULL = 50
+};
+
+constexpr uint8 NULL_BAG = 0;
+constexpr uint8 NULL_SLOT = 255;
+
 struct Player
 {
     WorldSession* Session = nullptr;
     uint32 ChargeSnapshots = 0;
     uint32 EchoSnapshots = 0;
+    bool BagsFull = false;
+    std::deque<Item> Items;
+    std::vector<uint32> Stored;
+    std::vector<uint32> Learned;
+    uint32 EquipErrors = 0;
+    uint32 NewItemNotices = 0;
 
     WorldSession* GetSession() const { return Session; }
     std::string GetName() const { return "Tester"; }
     void SendAllSpellChargeStates() { ++ChargeSnapshots; }
+
+    InventoryResult CanStoreNewItem(uint8, uint8, ItemPosCountVec&, uint32, uint32) const
+    {
+        return BagsFull ? EQUIP_ERR_INVENTORY_FULL : EQUIP_ERR_OK;
+    }
+
+    void SendEquipError(InventoryResult, Item*, Item*, uint32) { ++EquipErrors; }
+
+    Item* StoreNewItem(ItemPosCountVec const&, uint32 itemId, bool)
+    {
+        Stored.push_back(itemId);
+        Items.push_back({itemId});
+        return &Items.back();
+    }
+
+    void SendNewItem(Item*, uint32, bool, bool) { ++NewItemNotices; }
+    void learnSpell(uint32 spellId, bool = false) { Learned.push_back(spellId); }
+    bool HasSpell(uint32 spellId) const { return std::count(Learned.begin(), Learned.end(), spellId); }
+    bool HasItemCount(uint32 itemId) const { return std::count(Stored.begin(), Stored.end(), itemId); }
+    void SendInitialSpells() { }
+};
+
+class ChatHandler
+{
+public:
+    explicit ChatHandler(WorldSession* session) : _session(session) { }
+
+    Player* GetPlayer() const { return _session->PlayerObject; }
+    void SendSysMessage(std::string_view text) { _session->Messages.emplace_back(text); }
+
+    template<class... Arguments>
+    void PSendSysMessage(std::string_view text, Arguments&&...)
+    {
+        _session->Messages.emplace_back(text);
+    }
+
+private:
+    WorldSession* _session;
 };
 
 void SendAscensionRunemasterEchoesOwnership(Player* player)
@@ -160,6 +228,8 @@ struct CompatConfig
 {
     std::string RealmType = "live";
     std::string ClassModel = "coa";
+    bool UnlockAllVanity = true;
+    bool LearnedSpellDelivery = true;
 
     template<class T>
     T GetConfigValue(AscensionCompatConfig key) const
@@ -168,6 +238,10 @@ struct CompatConfig
             return key == AscensionCompatConfig::REALM_TYPE ? RealmType : ClassModel;
         else if constexpr (std::is_same_v<T, uint32>)
             return key == AscensionCompatConfig::FIRST_EXTENSION_OPCODE ? 0x051F : 0x09D3;
+        else if (key == AscensionCompatConfig::UNLOCK_ALL_VANITY)
+            return UnlockAllVanity;
+        else if (key == AscensionCompatConfig::ALLOW_LEARNED_SPELL_DELIVERY)
+            return LearnedSpellDelivery;
         else
             return true;
     }
@@ -192,9 +266,15 @@ struct World
 
 World* sWorld = &world;
 
-struct CollectionState
+struct PlayerCollectionState
 {
+    std::unordered_set<uint32> OwnedVanityItems;
     uint32 CosmeticTimer = 0;
+};
+
+struct VanityInfo
+{
+    uint32 LearnedSpell = 0;
 };
 
 class AscensionCollectionService
@@ -216,14 +296,19 @@ public:
     void ProcessPendingAppearanceAdds(Player*, uint32) { }
     void ProcessPendingCompanionSpells(Player*, uint32) { }
     void ProcessCompanionLoot(Player*, uint32, bool = false) { }
-    std::shared_ptr<CollectionState> GetState(Player*) { return nullptr; }
-    void RefreshCosmetics(Player*, CollectionState&) { }
+    std::shared_ptr<PlayerCollectionState> GetState(Player*) { return State; }
+    void RefreshCosmetics(Player*, PlayerCollectionState&) { }
 
     // ACTUAL_SEND_REALM_INFO
     // ACTUAL_QUEUE_CLIENT_PACKET
     // ACTUAL_ON_PLAYER_UPDATE
     // ACTUAL_HANDLE_CLIENT_PACKET
+    // ACTUAL_POINT_SPEND
+    // ACTUAL_DELIVER_VANITY
+    // ACTUAL_BANK_VANITY
 
+    std::shared_ptr<PlayerCollectionState> State;
+    std::unordered_map<uint32, VanityInfo> _vanityItems;
     std::mutex _packetMutex;
     std::unordered_map<uint32, std::deque<WorldPacket>> _pendingPackets;
 };
@@ -242,6 +327,11 @@ struct AscensionClassService
 struct AscensionCompatServerScript : ServerScript
 {
     // ACTUAL_CAN_PACKET_RECEIVE_EARLY
+};
+
+struct AscensionCompatCommandScript
+{
+    // ACTUAL_LOCAL_VANITY_COMMAND
 };
 
 struct RealmInfo
@@ -465,6 +555,107 @@ void TestItemQueries()
     Check(!creaturesPassedOn && !malformedPassedOn && answeredCreatures == std::vector<uint32>{44472, 1234},
         "creature bulk queries keep their validation and answers");
 }
+
+WorldPacket PointSpend(uint8 kind, uint32 itemId)
+{
+    WorldPacket packet(0x0523, 5);
+    packet << kind << itemId;
+    return packet;
+}
+
+struct Delivery
+{
+    std::vector<uint32> Stored;
+    std::vector<uint32> Learned;
+    std::vector<std::string> Messages;
+    uint32 EquipErrors = 0;
+    uint32 NewItemNotices = 0;
+
+    bool operator==(Delivery const&) const = default;
+};
+
+struct VanitySetup
+{
+    bool UnlockAll = true;
+    bool LearnedSpellDelivery = true;
+    bool BagsFull = false;
+};
+
+Delivery Deliver(VanitySetup const& setup, std::vector<WorldPacket> const& requests, uint32 commandItem = 0)
+{
+    ascensionCompatConfig.UnlockAllVanity = setup.UnlockAll;
+    ascensionCompatConfig.LearnedSpellDelivery = setup.LearnedSpellDelivery;
+    AscensionCollectionService& service = AscensionCollectionService::Instance();
+    service.State = std::make_shared<PlayerCollectionState>();
+    service.State->OwnedVanityItems = {1001, 1003, 1004, 56925, 134985};
+    WorldSession session;
+    Player player;
+    player.Session = &session;
+    player.BagsFull = setup.BagsFull;
+    session.PlayerObject = &player;
+    if (commandItem)
+    {
+        ChatHandler handler(&session);
+        AscensionCompatCommandScript::HandleLocalVanityCommand(&handler, commandItem);
+    }
+    bool consumed = true;
+    for (WorldPacket const& request : requests)
+        consumed &= !Receive(session, request);
+    service.OnPlayerUpdate(&player, 1);
+    service.State.reset();
+    assert(consumed);
+    return {player.Stored, player.Learned, session.Messages, player.EquipErrors, player.NewItemNotices};
+}
+
+void TestVanityDelivery()
+{
+    for (uint32 itemId : {1001u, 1002u, 56925u, 110000u, 134985u})
+    {
+        ItemTemplate& item = objectMgr.Items[itemId];
+        item.ItemId = itemId;
+        item.Name1 = "Vanity";
+    }
+    objectMgr.Items[110000].Spells[0].SpellId = 200001;
+    objectMgr.Items[134985].Spells[0].SpellId = 200002;
+    AscensionCollectionService& service = AscensionCollectionService::Instance();
+    for (uint32 itemId : {1001u, 1002u, 1003u, 1004u, 56925u, 110000u, 134985u})
+        service._vanityItems[itemId] = {};
+    service._vanityItems[1003].LearnedSpell = 133;
+
+    bool matches = true;
+    for (bool unlockAll : {true, false})
+        for (bool learnedSpells : {true, false})
+            for (bool bagsFull : {false, true})
+                for (uint32 itemId : {1001u, 1002u, 1003u, 1004u, 56925u, 110000u, 134985u, 424242u})
+                {
+                    VanitySetup const setup{unlockAll, learnedSpells, bagsFull};
+                    matches &= Deliver(setup, {PointSpend(2, itemId)}) == Deliver(setup, {}, itemId);
+                }
+    Check(matches, "every native vanity delivery request ends exactly like .localvanity for the same item");
+
+    Delivery const owned = Deliver({}, {PointSpend(2, 1001)});
+    Delivery const bank = Deliver({}, {PointSpend(2, 134985)});
+    Delivery const spell = Deliver({}, {PointSpend(2, 1003)});
+    Check(owned.Stored == std::vector<uint32>{1001} && owned.NewItemNotices == 1 &&
+        bank.Stored == std::vector<uint32>{134985} && bank.Learned == std::vector<uint32>{200002} &&
+        spell.Learned == std::vector<uint32>{133}, "native requests deliver owned items, banks and learned spells");
+
+    VanitySetup const locked{false, true, false};
+    Delivery const refused = Deliver(locked, {PointSpend(2, 1002), PointSpend(2, 56925), PointSpend(2, 110000),
+        PointSpend(2, 424242), PointSpend(2, 1004)});
+    Delivery const full = Deliver({true, true, true}, {PointSpend(2, 1001)});
+    Check(refused.Stored.empty() && refused.Learned.empty() && refused.Messages.size() == 5 &&
+        full.Stored.empty() && full.EquipErrors == 1,
+        "locked, sigil, unowned bank, unknown and templateless items and full bags are refused");
+
+    WorldPacket shortRequest(0x0523, 4);
+    shortRequest << uint32(1001);
+    WorldPacket longRequest = PointSpend(2, 1001);
+    longRequest << uint8(0);
+    Delivery const ignored = Deliver({}, {PointSpend(1, 1001), PointSpend(0, 1001), PointSpend(3, 1001),
+        shortRequest, longRequest, WorldPacket(0x0523, 0)});
+    Check(ignored == Delivery{}, "other point-spend kinds and malformed requests deliver nothing");
+}
 }
 
 int main()
@@ -472,6 +663,7 @@ int main()
     TestRealmInfo();
     TestWorldEntryResend();
     TestItemQueries();
+    TestVanityDelivery();
     std::cout << checks - failures << '/' << checks << " checks passed\n";
     return failures ? 1 : 0;
 }

@@ -1,8 +1,9 @@
 CLI_DESCRIPTION = """Run Ascension extension packet regressions without a server or database.
 
 Compiles the production realm-info sender, socket-thread packet hook, extension packet
-queue, world-thread handler and stock item query builder against the real WorldPacket
-and ItemTemplate. Pass --source-ref to test another Git ref.
+queue, world-thread handler, stock item query builder, vanity delivery and .localvanity
+command against the real WorldPacket and ItemTemplate. Pass --source-ref to test
+another Git ref.
 """
 
 import argparse
@@ -68,6 +69,16 @@ def main():
         ('ON_PLAYER_UPDATE', method(compat, 'void OnPlayerUpdate(Player *player, uint32 diff) {')),
         ('HANDLE_CLIENT_PACKET', method(compat, 'void HandleClientPacket(Player *player')),
         ('CAN_PACKET_RECEIVE_EARLY', method(compat, 'bool CanPacketReceiveEarly(WorldSession *session')),
+        ('POINT_SPEND', method_or(compat, 'void HandlePointSpendRequest(Player* player', '')),
+        ('DELIVER_VANITY', method(compat, 'void DeliverLocalVanityItem(Player *player, uint32 itemId)')),
+        ('BANK_VANITY', '\n'.join([re.search(r'static constexpr std::array<uint32, \d+> BankVanityItems = [^;]+;',
+                                             compat)[0]] + [method(compat, signature) for signature in (
+            'static bool IsBankVanityItem(uint32 itemId)',
+            'bool OwnsBankVanityItem(Player* player',
+            'std::vector<uint32> GetMissingBankSpells(Player* player',
+            'void LearnOwnedBankSpells(Player* player',
+        )])),
+        ('LOCAL_VANITY_COMMAND', method(compat, 'static bool HandleLocalVanityCommand(ChatHandler *handler')),
     ]:
         harness = harness.replace('// ACTUAL_' + marker, text)
 
@@ -76,7 +87,7 @@ def main():
     includes = [ROOT / 'src/common', ROOT / 'src/common/Utilities', ROOT / 'src/server/shared',
                 ROOT / 'src/server/shared/DataStores', ROOT / 'src/server/shared/Packets',
                 ROOT / 'src/server/game/Server', ROOT / 'src/server/game/Server/Protocol',
-                ROOT / 'src/server/game/Entities/Item']
+                ROOT / 'src/server/game/Entities/Item', ROOT / 'src/server/coa']
     with tempfile.TemporaryDirectory(prefix='coa-extension-packets-') as directory:
         out = Path(directory)
         cpp = out / 'harness.cpp'
