@@ -271,6 +271,14 @@ namespace
         return view.Level;
     }
 
+    uint32 ViewMaxHealthForCore(Player const* viewer, Creature const* creature)
+    {
+        CreatureView view;
+        if (!ViewFor(creature, const_cast<Player*>(viewer), view))
+            return 0;
+        return view.MaxHealth;
+    }
+
     /// The fields a view rewrites, in one list. The patch looks a position up by index, and a forced
     /// values update is what carries an index to a client at all, so a field added here is both
     /// tracked and re-sendable without a second place to keep in step.
@@ -850,6 +858,8 @@ public:
                                                         std::memory_order_relaxed);
         LocalLevelScaling::CreatureViewLevelOwner.store(available ? &ViewLevelForCore : nullptr,
                                                         std::memory_order_relaxed);
+        LocalLevelScaling::CreatureViewMaxHealthOwner.store(available ? &ViewMaxHealthForCore : nullptr,
+                                                            std::memory_order_relaxed);
 
         // Creature scaling is this module's now - per character, in the viewer's own client - so the
         // realm-wide path in CoA stands aside: it lifts the creature object itself,
@@ -893,6 +903,7 @@ public:
         LocalLevelScaling::QuestScalingOwner.store(nullptr);
         LocalLevelScaling::CreatureViewArmorOwner.store(nullptr);
         LocalLevelScaling::CreatureViewLevelOwner.store(nullptr);
+        LocalLevelScaling::CreatureViewMaxHealthOwner.store(nullptr);
     }
 };
 

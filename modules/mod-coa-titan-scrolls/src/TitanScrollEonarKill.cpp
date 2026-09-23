@@ -1,6 +1,7 @@
 /* Copyright (C) 2016+ AzerothCore, GNU AGPL v3. */
 
 #include "DBCStores.h"
+#include "LocalLevelScaling.h"
 #include "Player.h"
 #include "Random.h"
 #include "ScriptMgr.h"
@@ -50,7 +51,13 @@ public:
         if (!blessing)
             return;
 
-        uint32 healPerTick = killed->GetMaxHealth() * TITAN_SCROLL_EONAR_HEAL_PERCENT / 100;
+        // The tooltip's "creature health" is the health bar the killer was shown, which level
+        // scaling lifts per character above the creature's own.
+        uint32 maxHealth = LocalLevelScaling::ViewMaxHealthFor(killer, killed);
+        if (!maxHealth)
+            maxHealth = killed->GetMaxHealth();
+
+        uint32 healPerTick = maxHealth * TITAN_SCROLL_EONAR_HEAL_PERCENT / 100;
 
         SpellCastTargets targets;
         targets.SetDst(killed->GetPosition());

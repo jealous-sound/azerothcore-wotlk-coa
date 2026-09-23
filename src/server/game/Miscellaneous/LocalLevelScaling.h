@@ -136,6 +136,18 @@ inline std::uint8_t ViewLevelFor(Player const* viewer, Creature const* creature)
     return owner ? owner(viewer, creature) : 0;
 }
 
+/// The max health one character's version of one creature has, or zero when that character sees the
+/// authored creature. For effects worded as a share of "the creature's health", which the character
+/// reads off the health bar they are shown.
+using CreatureViewMaxHealthResolver = std::uint32_t (*)(Player const*, Creature const*);
+inline std::atomic<CreatureViewMaxHealthResolver> CreatureViewMaxHealthOwner{nullptr};
+
+inline std::uint32_t ViewMaxHealthFor(Player const* viewer, Creature const* creature)
+{
+    CreatureViewMaxHealthResolver const owner = CreatureViewMaxHealthOwner.load(std::memory_order_relaxed);
+    return owner ? owner(viewer, creature) : 0;
+}
+
 inline std::uint8_t ScaleCreatureLevel(std::uint8_t originalLevel, std::uint8_t playerLevel,
     std::uint8_t offset = 3)
 {
