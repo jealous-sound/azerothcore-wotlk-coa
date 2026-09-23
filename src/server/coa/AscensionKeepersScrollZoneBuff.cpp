@@ -7,6 +7,7 @@
 #include "MapMgr.h"
 #include "Player.h"
 #include "ScriptMgr.h"
+#include "Spell.h"
 #include "SpellAuras.h"
 #include "SpellMgr.h"
 #include "StringFormat.h"
@@ -60,63 +61,56 @@ void ApplyZoneScrollAura(Player* player, uint32 spellId, int32 remainingMs)
     }
 }
 
-class ascension_keepers_scroll_zone_buff_item : public AllItemScript
+class ascension_keepers_scroll_zone_buff_player : public PlayerScript
 {
 public:
-    ascension_keepers_scroll_zone_buff_item() : AllItemScript("ascension_keepers_scroll_zone_buff_item") { }
+    ascension_keepers_scroll_zone_buff_player()
+        : PlayerScript("ascension_keepers_scroll_zone_buff_player",
+            {PLAYERHOOK_ON_UPDATE_ZONE, PLAYERHOOK_CAN_CAST_ITEM_USE_SPELL}) { }
 
-    bool CanItemUse(Player* player, Item* item, SpellCastTargets const&) override
+    bool OnPlayerCanCastItemUseSpell(Player* player, Item* item, SpellCastTargets const& /*targets*/,
+        uint8 castCount, uint32 /*glyphIndex*/) override
     {
         uint32 spellId = SpellForItem(item->GetEntry());
         if (!spellId)
-            return false;
+            return true;
 
         SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spellId);
         int32 durationMs = spellInfo ? spellInfo->GetMaxDuration() : 0;
         if (durationMs <= 0)
-            return false;
+            return true;
 
         uint32 zoneId = player->GetZoneId();
         time_t now = GameTime::GetGameTime().count();
-        time_t expireAt = now + durationMs / 1000;
 
         {
             std::lock_guard<std::mutex> lock(g_zoneScrollLock);
             time_t& slot = g_zoneScrollBuffs[zoneId][spellId];
             if (slot > now)
             {
+                Spell::SendCastResult(player, spellInfo, castCount, SPELL_FAILED_AURA_BOUNCED);
                 ChatHandler(player->GetSession()).PSendSysMessage(
                     "{} is already active in this zone.", spellInfo->SpellName[LOCALE_enUS]);
-                return true;
+                return false;
             }
-            slot = expireAt;
+            slot = now + durationMs / 1000;
         }
 
-        player->DestroyItemCount(item->GetEntry(), 1, true);
-
-        Map* map = player->GetMap();
-        if (!map)
-            return true;
-
-        for (MapReference const& ref : map->GetPlayers())
+        if (Map* map = player->GetMap())
         {
-            Player* target = ref.GetSource();
-            if (target->IsInWorld() && target->GetZoneId() == zoneId)
-                ApplyZoneScrollAura(target, spellId, durationMs);
-        }
+            for (MapReference const& ref : map->GetPlayers())
+            {
+                Player* target = ref.GetSource();
+                if (target != player && target->IsInWorld() && target->GetZoneId() == zoneId)
+                    ApplyZoneScrollAura(target, spellId, durationMs);
+            }
 
-        map->SendZoneText(zoneId, Acore::StringFormat(
-            "{} has blessed this zone with {}!", player->GetName(), spellInfo->SpellName[LOCALE_enUS]).c_str());
+            map->SendZoneText(zoneId, Acore::StringFormat(
+                "{} has blessed this zone with {}!", player->GetName(), spellInfo->SpellName[LOCALE_enUS]).c_str());
+        }
 
         return true;
     }
-};
-
-class ascension_keepers_scroll_zone_buff_player : public PlayerScript
-{
-public:
-    ascension_keepers_scroll_zone_buff_player()
-        : PlayerScript("ascension_keepers_scroll_zone_buff_player", {PLAYERHOOK_ON_UPDATE_ZONE}) { }
 
     void OnPlayerUpdateZone(Player* player, uint32 newZone, uint32 /*newArea*/) override
     {
@@ -195,7 +189,6 @@ private:
 
 void AddSC_AscensionKeepersScrollZoneBuff()
 {
-    new ascension_keepers_scroll_zone_buff_item();
     new ascension_keepers_scroll_zone_buff_player();
     new ascension_keepers_scroll_zone_buff_world();
 }
