@@ -49,6 +49,8 @@ def main():
     config_enum = re.search(r'enum ServerConfigs\s*\{.*?\};', config, re.S)[0]
     config_names = re.findall(r'^\s*(\w+)\s*(?:=\s*0)?\s*[,}]', config_enum, re.M)
     expected = {'RATE_XP_GLOBAL': 'RATE_XP_GLOBAL', 'RATE_XP_PROFESSION': 'RATE_XP_PROFESSION'}
+    for key in ('KILL KILL_TBC KILL_WOTLK QUEST QUEST_TBC QUEST_WOTLK EXPLORE ELITE DUNGEON_ELITE').split():
+        expected[f'RATE_XP_{key}'] = f'RATE_XP_{key}'
     for suffix in ('GRAY GREEN YELLOW ORANGE MINING HERBALISM DISENCHANTING SKINNING FISHING '
                    'BLACKSMITHING JEWELCRAFTING ALCHEMY ENCHANTING LEATHERWORKING FIRST_AID '
                    'COOKING ENGINEERING TAILORING LOCKPICKING INSCRIPTION').split():
@@ -112,7 +114,8 @@ int main(int, char** argv)
             rates = decode((out / f'packet{scale}').read_bytes())
             assert rates == {key: scale * (config_names.index(setting) + 0.25)
                              for key, setting in expected.items()}
-    print('PASS: opcode, six sections, 22 rate mappings, key framing, zero rates, refreshed rates, null session')
+    print(f'PASS: opcode, six sections, {len(expected)} rate mappings, key framing, zero rates, refreshed rates, '
+          'null session')
 
 
 if __name__ == '__main__':

@@ -93,11 +93,12 @@ struct Unit
 struct QuestXPEntry {std::array<uint32,10> Exp{};};
 struct XPStore {std::map<int,QuestXPEntry> data;QuestXPEntry const* LookupEntry(int id){return &data.at(id);}};
 XPStore sQuestXPStore;
-struct Quest {int Level=7;uint32 RewardXPDifficulty=5;uint32 XPValue(uint8)const;bool IsDFQuest()const{return false;}};
+struct Quest {int Level=7;uint32 RewardXPDifficulty=5;uint32 XPValue(uint8)const;bool IsDFQuest()const{return false;}
+    int GetQuestLevel()const{return Level;}};
 struct Player:Unit
 {
     uint8 playerLevel=13;bool raf=false;
-    uint8 GetLevel()const{return playerLevel;}float GetQuestRate(bool)const{return 1;}
+    uint8 GetLevel()const{return playerLevel;}float GetQuestRate(bool,int)const{return 1;}
     bool GetsRecruitAFriendBonus(bool)const{return raf;}
     uint32 CalculateQuestRewardXP(Quest const*);uint32 KillXP(uint32);float ManastormMultiplier();
 };

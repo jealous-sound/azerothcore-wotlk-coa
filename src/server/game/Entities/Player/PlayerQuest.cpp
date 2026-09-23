@@ -1506,7 +1506,7 @@ uint32 Player::CalculateQuestRewardXP(Quest const* quest)
     sScriptMgr->OnPlayerBeforeGetLevelForXPGain(this, level);
 
     // apply world quest rate
-    uint32 xp = uint32(quest->XPValue(level, LocalLevelScaling::QuestScalingEnabled(this)) * GetQuestRate(quest->IsDFQuest()));
+    uint32 xp = uint32(quest->XPValue(level, LocalLevelScaling::QuestScalingEnabled(this)) * GetQuestRate(quest->IsDFQuest(), quest->GetQuestLevel()));
 
     // handle SPELL_AURA_MOD_XP_QUEST_PCT auras
     bool const recruitAFriend = GetsRecruitAFriendBonus(true);

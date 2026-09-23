@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "Profession XP: global rate stacks with dynamic XP",
-  "contract": "Run with Rate.XP.Global=2 and default profession rates. Yellow mining awards floor(floor(next-level XP * 0.02 * 0.4 * 2.11) * 2), followed by dynamic XP. This checks the configured world multiplier and player multiplier compose once each. Effective player_xp_for_level at level 20 is 20800: base mining truncates to 351; Global=2 yields exactly 702.",
+  "contract": "Run with Rate.XP.Global=2 and default profession rates. Yellow mining awards floor(floor(next-level XP * 0.02 * 0.4 * 2.11) * 2), followed by dynamic XP. This checks the configured world multiplier and player multiplier compose once each. Effective player_xp_for_level at level 20 is 23200: base mining truncates to 391; Global=2 yields exactly 782.",
   "players": [
     {
       "id": "miner",
@@ -22,7 +22,7 @@
       "action": "assert",
       "actor": "miner",
       "metric": "next_level_xp",
-      "equals": 20800
+      "equals": 23200
     },
     {
       "action": "command",
@@ -46,7 +46,7 @@
       "actor": "miner",
       "metric": "xp",
       "relative_to": "before",
-      "equals": 702
+      "equals": 782
     },
     {
       "action": "snapshot",

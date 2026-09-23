@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "Profession XP: rates, difficulty, capped skill and dynamic XP",
-  "contract": "Provisional local policy approved for this change: XP = floor(next-level XP * 0.02 * 0.4 * profession * difficulty), then Rate.XP.Global (default 1), then dynamic XP. Mining 2.11, herbalism 1.44, skinning 0.55; gray 0, green 0.95, yellow 1, orange 1.05 from PR #4128. Test completed-action skill APIs on real players, not node harvesting or loot. The effective player_xp_for_level row for level 20 is 20800; exact awards truncate only after the profession factors. Requires default profession/global rates and dynamic XP player choice enabled. Capped skill still rewards non-gray actions; missing skill, gray, XP lock and max player level award none. Craft 2330 consumes one each of 2447, 765, 3371 and creates item 118 (Spell.dbc); SkillLineAbility 8053 gives alchemy yellow 55, gray 95. Normal cast verifies crafting rewards and missing-reagent rejection.",
+  "contract": "Provisional local policy approved for this change: XP = floor(next-level XP * 0.02 * 0.4 * profession * difficulty), then Rate.XP.Global (default 0.9295), then dynamic XP. Mining 2.11, herbalism 1.44, skinning 0.55; gray 0, green 0.95, yellow 1, orange 1.05 from PR #4128. Test completed-action skill APIs on real players, not node harvesting or loot. The effective player_xp_for_level row for level 20 is 23200; exact awards truncate only after the profession factors. Requires default profession/global rates and dynamic XP player choice enabled. Capped skill still rewards non-gray actions; missing skill, gray, XP lock and max player level award none. Craft 2330 consumes one each of 2447, 765, 3371 and creates item 118 (Spell.dbc); SkillLineAbility 8053 gives alchemy yellow 55, gray 95. Normal cast verifies crafting rewards and missing-reagent rejection.",
   "timeout_ms": 90000,
   "players": [
     {
@@ -21,7 +21,7 @@
       "action": "assert",
       "actor": "gatherer",
       "metric": "next_level_xp",
-      "equals": 20800
+      "equals": 23200
     },
     {
       "action": "set_skill",
@@ -48,7 +48,7 @@
       "label": "mining_orange",
       "metric": "xp",
       "relative_to": "mining_orange_before",
-      "equals": 368
+      "equals": 382
     },
     {
       "action": "set_skill",
@@ -75,7 +75,7 @@
       "label": "mining_yellow",
       "metric": "xp",
       "relative_to": "mining_yellow_before",
-      "equals": 351
+      "equals": 363
     },
     {
       "action": "set_skill",
@@ -102,7 +102,7 @@
       "label": "mining_green",
       "metric": "xp",
       "relative_to": "mining_green_before",
-      "equals": 333
+      "equals": 345
     },
     {
       "action": "set_skill",
@@ -129,7 +129,7 @@
       "label": "herbalism_yellow",
       "metric": "xp",
       "relative_to": "herbalism_yellow_before",
-      "equals": 239
+      "equals": 248
     },
     {
       "action": "set_skill",
@@ -156,7 +156,7 @@
       "label": "skinning_yellow",
       "metric": "xp",
       "relative_to": "skinning_yellow_before",
-      "equals": 91
+      "equals": 94
     },
     {
       "action": "set_skill",
@@ -183,7 +183,7 @@
       "label": "capped_mining",
       "metric": "xp",
       "relative_to": "capped_mining_before",
-      "equals": 351
+      "equals": 363
     },
     {
       "action": "assert",
@@ -399,7 +399,7 @@
       "label": "Yellow alchemy XP uses its 3x profession factor",
       "metric": "xp",
       "relative_to": "craft_before",
-      "equals": 499
+      "equals": 516
     },
     {
       "action": "snapshot",

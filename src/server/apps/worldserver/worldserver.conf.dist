@@ -2144,11 +2144,11 @@ WaterBreath.Timer = 180000
 #
 #    EnableLowLevelRegenBoost
 #        Description: Greatly increase Health and Mana regen rates for players under level 15 (Added in patch 3.3)
-#        Default:     1 - Enabled
-#                     0 - Disabled
+#        Default:     0 - Disabled (Classic+: vanilla regeneration while levelling)
+#                     1 - Enabled
 #
 
-EnableLowLevelRegenBoost = 1
+EnableLowLevelRegenBoost = 0
 
 #
 #    Rate.MoveSpeed.Player
@@ -2220,12 +2220,13 @@ Rate.Energy            = 1
 #    Rate.Rest.Offline.InWilderness
 #    Rate.Rest.MaxBonus
 #        Description: Resting points grow rates.
-#        Default:     1   - (Rate.Rest.InGame)
+#                     Rate.Rest.InGame 0.5 matches the vanilla online accrual (5% of a level per 8 hours).
+#        Default:     0.5 - (Rate.Rest.InGame)
 #                     1   - (Rate.Rest.Offline.InTavernOrCity)
 #                     1   - (Rate.Rest.Offline.InWilderness)
 #                     1.5 - (Rate.Rest.MaxBonus)
 
-Rate.Rest.InGame                 = 1
+Rate.Rest.InGame                 = 0.5
 Rate.Rest.Offline.InTavernOrCity = 1
 Rate.Rest.Offline.InWilderness   = 1
 Rate.Rest.MaxBonus               = 1.5
@@ -2424,6 +2425,28 @@ Stats.Limits.Block = 95.0
 Stats.Limits.Crit  = 95.0
 
 #
+#    ClassicPlus.CombatRules
+#        Description: Use the vanilla 1.12 combat rules for combat that involves vanilla levels
+#                     (attack table against creatures, crushing blows, armor, spell resistance and
+#                     spell hit). Level 61-80 content keeps the WotLK rules.
+#        Default:     1 - Enabled
+#                     0 - Disabled
+
+ClassicPlus.CombatRules = 1
+
+#
+#    ClassicPlus.StatFormulas
+#        Description: Use the vanilla 1.12 stat formulas (critical strike and dodge from agility,
+#                     spell critical strike from intellect, out-of-combat health regeneration from
+#                     spirit, Shaman melee attack power) for the original classes up to level 60,
+#                     blending into the WotLK values by level 80. Values authored by the CoA client
+#                     data (for example the mana regeneration curve) are kept.
+#        Default:     1 - Enabled
+#                     0 - Disabled
+
+ClassicPlus.StatFormulas = 1
+
+#
 ###################################################################################################
 
 ###################################################################################################
@@ -2469,6 +2492,17 @@ Rate.Reputation.Gain.AB = 1
 Rate.Reputation.Gain.AV = 1
 
 #
+#    ClassicPlus.ReputationSpillover
+#        Description: Characters up to level 60 use the vanilla 1.12 reputation spillover: Alliance and
+#                     Horde reputation spills 25% to each of their capitals, Steamwheedle Cartel 100% to
+#                     each goblin town, and capitals do not spill to each other. Higher levels keep the
+#                     reputation_spillover_template and Faction.dbc spillover.
+#        Default:     1 - Enabled
+#                     0 - Disabled
+
+ClassicPlus.ReputationSpillover = 1
+
+#
 ###################################################################################################
 
 ###################################################################################################
@@ -2483,20 +2517,37 @@ MaxGroupXPDistance = 74
 
 #
 #    Rate.XP.Kill
+#    Rate.XP.Kill.TBC
+#    Rate.XP.Kill.WotLK
+#    Rate.XP.Elite
+#    Rate.XP.DungeonElite
 #    Rate.XP.Quest
+#    Rate.XP.Quest.TBC
+#    Rate.XP.Quest.WotLK
 #    Rate.XP.Explore
 #    Rate.XP.Pet
-#        Description: Experience rates (outside battleground)
-#        Default:     1 - (Rate.XP.Kill)
-#                     1 - (Rate.XP.Quest)
-#                     1 - (Rate.XP.Quest.DF) - Dungeon Finder/LFG quests only.
-#                     1 - (Rate.XP.Explore)
-#                     1 - (Rate.XP.Pet)
+#        Description: Experience rates (outside battleground). The defaults are the live Ascension
+#                     Conquest of Azeroth realm rates captured in PR #4128.
+#                     Kill rates apply by the content of the map and zone (Kill = level 1-60 content),
+#                     quest rates by the quest level (Quest = level 1-60 quests).
+#                     Rate.XP.Elite and Rate.XP.DungeonElite replace the fixed x2 elite kill bonus,
+#                     outside and inside dungeons and raids respectively.
+#        Default:     1.0909091 - (Rate.XP.Kill)
+#                     1.0909091 - (Rate.XP.Kill.TBC)
+#                     0.90909094 - (Rate.XP.Kill.WotLK)
+#                     1.44     - (Rate.XP.Elite)
+#                     2.175    - (Rate.XP.DungeonElite)
+#                     1.26     - (Rate.XP.Quest)
+#                     1.26     - (Rate.XP.Quest.TBC)
+#                     1.05     - (Rate.XP.Quest.WotLK)
+#                     1        - (Rate.XP.Quest.DF) - Dungeon Finder/LFG quests only.
+#                     4        - (Rate.XP.Explore)
+#                     1        - (Rate.XP.Pet)
 
 #    Rate.XP.Global
 #        Multiplies all player XP sources using OnPlayerGiveXP before module modifiers, including dynamic XP.
-#        Default 1 preserves existing rates; the PR #4128 captured realm used 0.9295.
-Rate.XP.Global = 1
+#        Default 0.9295, the rate of the realm captured in PR #4128.
+Rate.XP.Global = 0.9295
 
 #    Rate.XP.Profession
 #        Provisional local formula, not verified live Ascension XP parity:
@@ -2532,11 +2583,17 @@ Rate.XP.Profession.Tailoring = 1.66
 Rate.XP.Profession.Lockpicking = 0
 Rate.XP.Profession.Inscription = 2.88
 
-Rate.XP.Kill      = 1
-Rate.XP.Quest     = 1
-Rate.XP.Quest.DF  = 1
-Rate.XP.Explore   = 1
-Rate.XP.Pet       = 1
+Rate.XP.Kill            = 1.0909091
+Rate.XP.Kill.TBC        = 1.0909091
+Rate.XP.Kill.WotLK      = 0.90909094
+Rate.XP.Elite           = 1.44
+Rate.XP.DungeonElite    = 2.175
+Rate.XP.Quest           = 1.26
+Rate.XP.Quest.TBC       = 1.26
+Rate.XP.Quest.WotLK     = 1.05
+Rate.XP.Quest.DF        = 1
+Rate.XP.Explore         = 4
+Rate.XP.Pet             = 1
 
 #
 #    Rate.XP.BattlegroundKill...
@@ -3035,10 +3092,10 @@ CreatureFamilyFleeAssistanceRadius = 30
 #
 #    CreatureLeashRadius
 #        Description: Distance (in yards) for default leash due to being too far from pulled position.
-#        Default:     30 - (Enabled)
+#        Default:     50 - (Enabled, vanilla chase distance)
 #                     0  - (Disabled)
 
-CreatureLeashRadius = 30
+CreatureLeashRadius = 50
 
 #
 #    CreatureFamilyAssistanceRadius
@@ -3105,6 +3162,15 @@ Corpse.Decay.WORLDBOSS = 3600
 #         Default:    0.5
 
 Rate.Corpse.Decay.Looted = 0.5
+
+#
+#    Respawn.TimerStartsAtDeath
+#        Description: Start a creature's respawn timer when it dies, as in vanilla, instead of when
+#                     its corpse is removed. The corpse is removed once the respawn time is reached.
+#        Default:     1 - Enabled
+#                     0 - Disabled (respawn delay counts from corpse removal)
+
+Respawn.TimerStartsAtDeath = 1
 
 #
 #    Rate.Creature.Normal.Damage
