@@ -50,6 +50,7 @@
 
 // Zone Interval should be 1 second
 constexpr auto ZONE_UPDATE_INTERVAL = 1000;
+constexpr int32 XP_SOURCE_MASK_PROFESSION = 4;
 
 void Player::Update(uint32 p_time)
 {
@@ -835,7 +836,12 @@ void Player::RewardProfessionXP(uint32 skillId, uint32 current, uint32 gray, uin
         : current >= yellow ? RATE_XP_PROFESSION_YELLOW : RATE_XP_PROFESSION_ORANGE;
     double const reward = double(sObjectMgr->GetXPForLevel(GetLevel()))
         * sWorld->getRate(RATE_XP_PROFESSION_BASE_FRACTION) * sWorld->getRate(RATE_XP_PROFESSION)
-        * sWorld->getRate(profession) * sWorld->getRate(difficulty);
+        * sWorld->getRate(profession) * sWorld->getRate(difficulty)
+        * GetTotalAuraMultiplier(SPELL_AURA_MOD_XP_PCT, [](AuraEffect const* effect)
+        {
+            // CoA's MOD_XP_PCT MiscValue is a mask of XP sources: 1 kills, 2 quests, 4 professions.
+            return (effect->GetMiscValue() & XP_SOURCE_MASK_PROFESSION) != 0;
+        });
     uint32 xp = static_cast<uint32>(std::min(reward, double(std::numeric_limits<uint32>::max())));
     sScriptMgr->OnPlayerGiveXP(this, xp, nullptr, XPSOURCE_PROFESSION);
     GiveXP(xp, nullptr);
