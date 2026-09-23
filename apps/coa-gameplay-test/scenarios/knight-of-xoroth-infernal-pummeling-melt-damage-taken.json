@@ -8,7 +8,10 @@
       "id": "knight",
       "race": 1,
       "class": 17,
-      "level": 60
+      "level": 60,
+      "spell_hit_rating": 10000,
+      "melee_hit_rating": 10000,
+      "expertise_rating": 10000
     }
   ],
   "creatures": [
@@ -25,12 +28,15 @@
     { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
     { "action": "learn", "actor": "knight", "spell": 801059 },
     { "action": "learn", "actor": "knight", "spell": 803334 },
+    { "action": "set_aura", "actor": "knight", "spell": 500906, "stacks": 1, "label": "Melt and Flames of Xoroth are Spender abilities (AscensionXoroth::Spender); grant Demonfire so xoroth_casts::OnSpellCheckCast does not block the cast" },
     { "action": "cast", "actor": "knight", "spell": 803334, "target": "dummy", "label": "Melt, without Infernal Pummeling" },
     { "action": "wait", "ms": 500 },
     {
       "action": "assert", "label": "SETUP: Melt's debuff is on the target",
       "actor": "dummy", "metric": "aura", "spell": 803334, "equals": 1
     },
+    { "action": "wait", "label": "Clear the global cooldown before the next cast", "ms": 1700 },
+    { "action": "set_aura", "actor": "knight", "spell": 500906, "stacks": 1, "label": "Demonfire was consumed by the Melt cast; grant it again for Flames of Xoroth" },
     { "action": "cast", "actor": "knight", "spell": 801059, "target": "dummy", "label": "Flames of Xoroth, Melt debuff has no bonus yet" },
     { "action": "wait", "ms": 500 },
     {
@@ -48,10 +54,18 @@
       "action": "assert", "label": "SETUP: the Infernal Pummeling passive is active",
       "actor": "knight", "metric": "aura", "spell": 680900, "equals": 1
     },
+    { "action": "wait", "label": "Clear the global cooldown from the first Flames of Xoroth cast", "ms": 1700 },
     { "action": "reset_cooldown", "actor": "knight", "spell": 803334 },
+    { "action": "set_aura", "actor": "knight", "spell": 500906, "stacks": 1, "label": "Grant Demonfire again for the enhanced Melt cast" },
     { "action": "cast", "actor": "knight", "spell": 803334, "target": "dummy", "label": "Melt again, now enhanced by Infernal Pummeling" },
+    {
+      "action": "assert", "label": "SETUP: Melt's re-applied debuff is on the target",
+      "actor": "dummy", "metric": "aura", "spell": 803334, "equals": 1, "within_ms": 3000
+    },
     { "action": "wait", "ms": 500 },
+    { "action": "wait", "label": "Clear the global cooldown before the next cast", "ms": 1700 },
     { "action": "reset_cooldown", "actor": "knight", "spell": 801059 },
+    { "action": "set_aura", "actor": "knight", "spell": 500906, "stacks": 1, "label": "Grant Demonfire again for the enhanced Flames of Xoroth cast" },
     { "action": "cast", "actor": "knight", "spell": 801059, "target": "dummy", "label": "Flames of Xoroth, with the enhanced Melt debuff" },
     { "action": "wait", "ms": 500 },
     {

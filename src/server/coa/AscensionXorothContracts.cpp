@@ -519,10 +519,16 @@ void ApplyContracts(SpellInfo* info)
     if (id == 680900)
         // Infernal Pummeling: its own baked effect is a stray SPELLMOD_EFFECT2 flat modifier
         // scoped to Melt's own classmask (would add +10 to Melt's disabled EFFECT_2 crit-chance
-        // slot instead of a damage-taken bonus). Null it; the real 10% value is read directly via
-        // Amount() and applied to Melt's own inert MOD_DAMAGE_FROM_CASTER slot (id == 803334,
-        // EFFECT_1 in ModifySpellEffectBaseValue below), gated on this talent.
-        info->Effects[EFFECT_0].Effect = 0;
+        // slot instead of a damage-taken bonus). Neutralize it; the real 10% value is read directly
+        // via Amount() and applied to Melt's own inert MOD_DAMAGE_FROM_CASTER slot (id == 803334,
+        // EFFECT_1 in ModifySpellEffectBaseValue below), gated on this talent. Re-tag as
+        // SPELL_AURA_DUMMY rather than zeroing the effect type outright - the latter leaves no
+        // valid unit-owned aura effect at all (Aura::BuildEffectMaskForOwner returns 0), so
+        // set_aura's fixture path (and native learn-time CastSpell) can never make the passive an
+        // active aura, and player->HasAura(680900) could then never be true (same bug class as
+        // Murderous Might, 520290, above; confirmed empirically: set_aura threw "Could not apply
+        // fixture aura" before this fix).
+        info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_DUMMY;
     if (id == 300386)
         info->Effects[EFFECT_0].Effect = 0;
     if (id == 300387)
