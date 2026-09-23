@@ -28,6 +28,7 @@ void AddSC_AscensionPvpPower();
 void AddSC_AscensionRestingBuff();
 void AddSC_AscensionClosestResurrection();
 void AddSC_AscensionThreatRedirect();
+void AddSC_AscensionKeepersScrollSteadfast();
 void AddAscensionStockCoefficientScripts();
 void AddAscensionScalingBaseScripts();
 void AddCoABugReportScripts();
@@ -515,4 +516,5 @@ void AddCoAScripts()
     AddSC_AscensionRestingBuff();
     AddSC_AscensionClosestResurrection();
     AddSC_AscensionThreatRedirect();
+    AddSC_AscensionKeepersScrollSteadfast();
 }
