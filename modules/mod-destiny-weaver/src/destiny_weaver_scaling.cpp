@@ -41,6 +41,7 @@
 // whose version *is* the creature: their fight is then the authored fight, and nobody else's fight
 // changes because of it.
 #include "destiny_weaver.h"
+#include "destiny_weaver_view_damage.h"
 
 #include "Config.h"
 #include "Creature.h"
@@ -116,7 +117,7 @@ namespace
         uint32 Armor;
         uint32 AttackPower;
         uint32 RangedAttackPower;
-        uint32 BaseDamage;
+        float BaseDamage;
     };
 
     LevelStats StatsAt(uint8 level, CreatureTemplate const* info)
@@ -124,15 +125,16 @@ namespace
         CreatureBaseStats const* stats = sObjectMgr->GetCreatureBaseStats(level, info->unit_class);
         return LevelStats{ stats->GenerateHealth(info), stats->GenerateMana(info),
                            uint32(stats->GenerateArmor(info)), stats->AttackPower, stats->RangedAttackPower,
-                           uint32(stats->GenerateBaseDamage(info)) };
+                           stats->GenerateBaseDamage(info) };
     }
 
-    /// What a creature built from this row hits for: its weapon damage plus the attack power behind
-    /// it, which is what UpdateAttackPowerAndDamage writes into UNIT_FIELD_MINDAMAGE and what
-    /// Unit::CalculateDamage reads back out.
-    double HitFrom(LevelStats const& stats)
+    /// What a creature built from this row hits for on average: the middle of its weapon range plus
+    /// the attack power behind it, which is what UpdateAttackPowerAndDamage writes into
+    /// UNIT_FIELD_MINDAMAGE and UNIT_FIELD_MAXDAMAGE and what Unit::CalculateDamage rolls between.
+    double HitFrom(LevelStats const& stats, CreatureTemplate const* info)
     {
-        return double(stats.BaseDamage) + double(stats.AttackPower) / 14.0;
+        return DestinyWeaver::AverageCreatureMeleeHit(stats.BaseDamage, stats.AttackPower, info->BaseVariance,
+                                                      info->BaseAttackTime);
     }
 
     /// One character's version of one creature.
@@ -229,7 +231,8 @@ namespace
         view.MaxHealth = std::max<uint32>(1, uint32(uint64(realMaxHealth) * view.Stats.Health /
                                                     std::max<uint32>(ownStats.Health, 1)));
         view.DamageDealtToPool = double(realMaxHealth) / double(view.MaxHealth);
-        view.DamageTakenFactor = HitFrom(view.Stats) / std::max(1.0, HitFrom(ownStats));
+        view.DamageTakenFactor = DestinyWeaver::ViewDamageTakenFactor(HitFrom(view.Stats, info),
+                                                                      HitFrom(ownStats, info));
         return true;
     }
 
