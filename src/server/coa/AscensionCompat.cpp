@@ -5730,6 +5730,7 @@ void ApplyAscensionExperienceContracts(SpellInfo* info)
         case 157353:
         case 818046:
         case 819046:
+        case 993943:
             for (SpellEffectInfo& effect : info->Effects)
                 if (effect.ApplyAuraName == SPELL_AURA_MOD_XP_PCT &&
                     (effect.MiscValue == 2 || effect.MiscValue == 8))
