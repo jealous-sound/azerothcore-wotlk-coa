@@ -5,6 +5,7 @@
 #include "WorldSession.h"
 #include <iterator>
 #include <string_view>
+#include <utility>
 
 namespace
 {
@@ -47,33 +48,59 @@ constexpr ClientRate XpRates[] = {
     { "RATE_XP_PROFESSION_LOCKPICKING_MODIFIER", RATE_XP_PROFESSION_LOCKPICKING },
     { "RATE_XP_PROFESSION_INSCRIPTION_MODIFIER", RATE_XP_PROFESSION_INSCRIPTION },
 };
+
+std::vector<CoAConfigBoolSource>& BoolSources()
+{
+    static std::vector<CoAConfigBoolSource> sources;
+    return sources;
 }
 
-WorldPacket BuildAscensionCoAXpConfig()
+void AppendKey(WorldPacket& packet, std::string_view key)
 {
+    packet << uint32(key.size());
+    packet.append(reinterpret_cast<uint8 const*>(key.data()), key.size());
+}
+}
+
+void AddAscensionCoAConfigBoolSource(CoAConfigBoolSource source)
+{
+    BoolSources().push_back(std::move(source));
+}
+
+WorldPacket BuildAscensionCoAConfig()
+{
+    CoAConfigBools bools;
+    for (CoAConfigBoolSource const& source : BoolSources())
+        source(bools);
+
     WorldPacket packet(SMSG_COA_CONFIG);
     uint32 constexpr integerConfigCount = 0;
-    uint32 constexpr booleanConfigCount = 0;
     uint32 constexpr floatConfigCount = 0;
     uint32 constexpr integerVectorConfigCount = 0;
     uint32 constexpr floatVectorConfigCount = 0;
-    packet << integerConfigCount << booleanConfigCount << floatConfigCount;
+    packet << integerConfigCount;
+    packet << uint32(bools.size());
+    for (auto const& [key, value] : bools)
+    {
+        AppendKey(packet, key);
+        packet << value;
+    }
+    packet << floatConfigCount;
     packet << uint32(std::size(XpRates));
     for (ClientRate const& rate : XpRates)
     {
-        packet << uint32(rate.key.size());
-        packet.append(reinterpret_cast<uint8 const*>(rate.key.data()), rate.key.size());
+        AppendKey(packet, rate.key);
         packet << sWorld->getRate(rate.setting);
     }
     packet << integerVectorConfigCount << floatVectorConfigCount;
     return packet;
 }
 
-void SendAscensionCoAXpConfig(WorldSession* session)
+void SendAscensionCoAConfig(WorldSession* session)
 {
     if (!session)
         return;
 
-    WorldPacket packet = BuildAscensionCoAXpConfig();
+    WorldPacket packet = BuildAscensionCoAConfig();
     session->SendPacket(&packet);
 }

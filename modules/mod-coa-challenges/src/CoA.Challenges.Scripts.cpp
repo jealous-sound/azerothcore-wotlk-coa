@@ -3390,6 +3390,7 @@ namespace CoAChallenges
 
 void Addmod_coa_challengesScripts()
 {
+    AddAscensionCoAConfigBoolSource(CoAChallenges::AppendConfigBools);
     new CoAChallenges::CoAChallengesPlayer();
     new CoAChallenges::CoAChallengesWorld();
     new CoAChallenges::CoAChallengesServer();

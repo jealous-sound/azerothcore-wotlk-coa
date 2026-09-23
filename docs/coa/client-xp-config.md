@@ -9,7 +9,13 @@ The packet follows the six-section layout from PR #4128, revision
 vectors. Each section begins with a uint32 entry count. Rate entries contain a uint32 byte length, an
 ASCII key without a terminator, and an IEEE-754 float. Scalars use the normal little-endian packet writer.
 
-This implementation populates only the rates section, with 31 supported XP settings:
+Like the live realm's single login packet, every `CONFIG_*` flag travels in this packet's boolean
+section. A server component contributes flags with `AddAscensionCoAConfigBoolSource`;
+`mod-coa-challenges` adds `CONFIG_CHALLENGE_ENABLED`, `CONFIG_CHALLENGE_CREATOR_ENABLED` and the Gamemodes flags.
+While the flags came in a separate packet before the rates-only one, the Trials button stayed disabled
+(#4912).
+
+The rates section carries 31 supported XP settings:
 
 - `RATE_XP_GLOBAL` and `RATE_XP_PROFESSION` come from `Rate.XP.Global` and `Rate.XP.Profession`.
 - `RATE_XP_KILL`, `RATE_XP_KILL_TBC` and `RATE_XP_KILL_WOTLK` come from `Rate.XP.Kill`, `Rate.XP.Kill.TBC`
@@ -22,9 +28,9 @@ This implementation populates only the rates section, with 31 supported XP setti
   The client's `FIRST_AID` spelling maps to `Rate.XP.Profession.FirstAid`.
 
 All values come from the core's validated, cached configuration, whose defaults equal the captured
-realm's rates. The capture itself is not replayed. Empty sections do not implement the other
-configuration features from #4128, and this change does not include its talent-tree packets or
-feature gates.
+realm's rates. The capture itself is not replayed. The integer, float and vector sections stay empty;
+they do not implement the other configuration features from #4128, and this change does not include
+its talent-tree packets or feature gates.
 
 The table describes realm base rates. Dynamic XP's player choices, XP buffs, and the provisional
 `Rate.XP.Profession.BaseFraction` remain server-side; no verified client keys exist here for those values.
@@ -32,5 +38,6 @@ The packet does not make the client calculate an exact XP award or add a new vis
 
 Run `python3 -B apps/coa-tests/coa_config/run.py` to compile the production sender
 with the real WorldPacket/ByteBuffer writer and isolated world/session dependencies. The test decodes
-its bytes independently, checking the opcode, section framing, all 31 mappings, zero rates, changed
-rates and a missing session. Actual client consumption and display require a separate client test.
+its bytes independently, checking the opcode, section framing, all 31 mappings, registered flags beside
+the rates, zero rates, changed rates and a missing session. Actual client consumption and display
+require a separate client test.

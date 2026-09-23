@@ -263,20 +263,13 @@ namespace CoAChallenges
         }
     }
 
-    void SendConfigBatch(Player* player)
+    // SMSG_COA_CONFIG carries the realm's XP rates too, so the flags join the
+    // CoA packet instead of following it in a second batch of their own.
+    void AppendConfigBools(CoAConfigBools& bools)
     {
         if (!ChallengesEnabled())
             return;
 
-        WorldSession* session = player->GetSession();
-        if (!session)
-            return;
-
-        WorldPacket data(SMSG_COA_CONFIG, 128);
-
-        data << uint32(0);
-
-        std::vector<std::pair<std::string, uint8>> bools;
         bools.emplace_back("CONFIG_CHALLENGE_ENABLED",
             sConfigMgr->GetOption<bool>("CoAChallenges.ChallengeEnabled", true) ? 1 : 0);
         bools.emplace_back("CONFIG_CHALLENGE_CREATOR_ENABLED",
@@ -297,19 +290,6 @@ namespace CoAChallenges
                 bools.emplace_back(m.hiddenKey, GameModeHidden(m.name) ? uint8(1) : uint8(0));
             }
         }
-        data << uint32(bools.size());
-        for (auto const& [key, value] : bools)
-        {
-            AppendConfigString(data, key);
-            data << value;
-        }
-
-        data << uint32(0);
-        data << uint32(0);
-
-        session->SendPacket(&data);
-        LOG_INFO("module.coa_challenges", "Sent SMSG_COA_CONFIG ({} bool flags) to {}",
-            bools.size(), player->GetName());
     }
 
     // Response packet shared by START (0x593) and STOP (0x595).

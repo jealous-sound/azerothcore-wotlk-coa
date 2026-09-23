@@ -5396,7 +5396,7 @@ public:
   void OnPlayerLogin(Player *player) override {
     if (ascensionCompatConfig.GetConfigValue<bool>(
             AscensionCompatConfig::ENABLED)) {
-      SendAscensionCoAXpConfig(player->GetSession());
+      SendAscensionCoAConfig(player->GetSession());
       AscensionClassService::Instance().OnPlayerLogin(player);
       RemoveLegacyQuestSpells(player);
       SynchronizeAscensionClassMechanics(player);
@@ -6013,7 +6013,7 @@ public:
 
     for (auto const& [accountId, session] : sWorldSessionMgr->GetAllSessions())
       if (session && session->GetPlayer() && session->GetPlayer()->IsInWorld())
-        SendAscensionCoAXpConfig(session);
+        SendAscensionCoAConfig(session);
   }
 
   void OnLoadCustomDatabaseTable() override {
