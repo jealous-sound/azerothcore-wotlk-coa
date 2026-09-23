@@ -4416,7 +4416,9 @@ void Spell::SendSpellCooldown()
     Player* _player = m_caster->ToPlayer();
 
     // mana/health/etc potions, disabled by client (until combat out as declarate)
-    if (m_CastItem && (m_CastItem->IsPotion() || m_spellInfo->IsCooldownStartedOnEvent()))
+    // A triggered spell never clears the potion (Player::UpdatePotionCooldown skips it), so it must not set it either:
+    // an item whose second on-use spell is triggered would otherwise leave every potion "not ready" out of combat.
+    if (m_CastItem && !IsIgnoringCooldowns() && (m_CastItem->IsPotion() || m_spellInfo->IsCooldownStartedOnEvent()))
     {
         // need in some way provided data for Spell::finish SendCooldownEvent
         _player->SetLastPotionId(m_CastItem->GetEntry());
