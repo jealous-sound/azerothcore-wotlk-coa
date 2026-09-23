@@ -434,7 +434,7 @@ void Creature::RemoveCorpse(bool setSpawnTime, bool skipVisibility)
             AI()->CorpseRemoved(respawnDelay);
 
         // Should get removed later, just keep "compatibility" with scripts
-        if (setSpawnTime)
+        if (setSpawnTime && !CreatureRespawnClock::KeepsRespawnTime(m_respawnTime, IsRespawnTimerFromDeath()))
         {
             m_respawnTime = GameTime::GetGameTime().count() + respawnDelay;
             //SaveRespawnTime();
@@ -464,7 +464,7 @@ void Creature::RemoveCorpse(bool setSpawnTime, bool skipVisibility)
         // Always save respawn time in non-compat mode since the creature is being
         // destroyed — ProcessRespawns() needs the entry to know when to recreate it.
         // m_respawnTime was already set in setDeathState(JustDied).
-        if (setSpawnTime)
+        if (setSpawnTime && !CreatureRespawnClock::KeepsRespawnTime(m_respawnTime, IsRespawnTimerFromDeath()))
             m_respawnTime = std::max<time_t>(GameTime::GetGameTime().count() + respawnDelay, m_respawnTime);
         SaveRespawnTime();
 
@@ -758,9 +758,17 @@ void Creature::Update(uint32 diff)
                 else
                 {
                     m_groupLootTimer -= diff;
+                    time_t const rollEnd = GameTime::GetGameTime().count() + m_groupLootTimer / IN_MILLISECONDS + 1;
+                    if (CreatureRespawnClock::KeepsRespawnTime(m_respawnTime, IsRespawnTimerFromDeath()) &&
+                        m_respawnTime < rollEnd)
+                    {
+                        m_respawnTime = rollEnd;
+                        SaveRespawnTime();
+                    }
                 }
             }
-            else if (m_corpseRemoveTime <= GameTime::GetGameTime().count())
+            else if (CreatureRespawnClock::IsCorpseDue(GameTime::GetGameTime().count(), m_corpseRemoveTime,
+                m_respawnTime, IsRespawnTimerFromDeath()))
             {
                 RemoveCorpse(false);
                 LOG_DEBUG("entities.unit", "Removing corpse... {} ", GetUInt32Value(OBJECT_FIELD_ENTRY));
@@ -2001,8 +2009,11 @@ void Creature::setDeathState(DeathState state, bool despawn)
     if (state == DeathState::JustDied)
     {
         m_corpseRemoveTime = GameTime::GetGameTime().count() + m_corpseDelay;
-        uint32 dynamicRespawnDelay = GetMap()->ApplyDynamicModeRespawnScaling(this, m_respawnDelay);
-        m_respawnTime = GameTime::GetGameTime().count() + dynamicRespawnDelay + m_corpseDelay;
+        bool const respawnTimerFromDeath = IsRespawnTimerFromDeath();
+        uint32 dynamicRespawnDelay = GetMap()->ApplyDynamicModeRespawnScaling(this,
+            CreatureRespawnClock::DelayAtDeath(m_respawnDelay, respawnTimerFromDeath));
+        m_respawnTime = CreatureRespawnClock::RespawnTimeAtDeath(GameTime::GetGameTime().count(), dynamicRespawnDelay,
+            m_corpseDelay, respawnTimerFromDeath);
 
         // always save boss respawn time at death to prevent crash cheating
         if (GetMap()->IsDungeon() || isWorldBoss() || GetCreatureTemplate()->rank >= CREATURE_ELITE_ELITE)
@@ -2706,6 +2717,12 @@ void Creature::SaveRespawnTime()
     GetMap()->SaveCreatureRespawnTime(m_spawnId, m_respawnTime);
 }
 
+bool Creature::IsRespawnTimerFromDeath() const
+{
+    return m_spawnId && !IsSummon() && (!m_creatureData || m_creatureData->dbData)
+        && sWorld->getBoolConfig(CONFIG_RESPAWN_TIMER_STARTS_AT_DEATH);
+}
+
 bool Creature::CanCreatureAttack(Unit const* victim, bool skipDistCheck) const
 {
     if (!victim->IsInMap(this))
@@ -3189,7 +3206,7 @@ void Creature::AllLootRemovedFromCorpse()
     float decayRate = sWorld->getRate(RATE_CORPSE_DECAY_LOOTED);
     uint32 diff = uint32((m_corpseRemoveTime - now) * decayRate);
 
-    m_respawnTime -= diff;
+    m_respawnTime = CreatureRespawnClock::RespawnTimeAfterLoot(m_respawnTime, diff, IsRespawnTimerFromDeath());
 
     // corpse skinnable, but without skinning flag, and then skinned, corpse will despawn next update
     if (loot.loot_type == LOOT_SKINNING)

@@ -24,6 +24,7 @@
 #include "CreatureData.h"
 #include "LootMgr.h"
 #include "Unit.h"
+#include <algorithm>
 #include <list>
 
 class SpellInfo;
@@ -42,6 +43,38 @@ class CreatureGroup;
 //used for handling non-repeatable random texts
 typedef std::vector<uint8> CreatureTextRepeatIds;
 typedef std::unordered_map<uint8, CreatureTextRepeatIds> CreatureTextRepeatGroup;
+
+namespace CreatureRespawnClock
+{
+    // AzerothCore world data gives some spawns 0-10 s delays that relied on the corpse decay being added to them;
+    // 25 s is the vmangos default creature respawn delay.
+    constexpr uint32 MinimumDelayFromDeath = 25;
+
+    constexpr uint32 DelayAtDeath(uint32 respawnDelay, bool timerStartsAtDeath)
+    {
+        return timerStartsAtDeath ? std::max(respawnDelay, MinimumDelayFromDeath) : respawnDelay;
+    }
+
+    constexpr time_t RespawnTimeAtDeath(time_t now, uint32 respawnDelay, uint32 corpseDelay, bool timerStartsAtDeath)
+    {
+        return now + respawnDelay + (timerStartsAtDeath ? 0 : corpseDelay);
+    }
+
+    constexpr time_t RespawnTimeAfterLoot(time_t respawnTime, uint32 corpseTimeCut, bool timerStartsAtDeath)
+    {
+        return timerStartsAtDeath ? respawnTime : respawnTime - corpseTimeCut;
+    }
+
+    constexpr bool IsCorpseDue(time_t now, time_t corpseRemoveTime, time_t respawnTime, bool timerStartsAtDeath)
+    {
+        return corpseRemoveTime <= now || (timerStartsAtDeath && respawnTime != 0 && respawnTime <= now);
+    }
+
+    constexpr bool KeepsRespawnTime(time_t respawnTime, bool timerStartsAtDeath)
+    {
+        return timerStartsAtDeath && respawnTime != 0;
+    }
+}
 
 class Creature : public Unit, public GridObject<Creature>, public MovableMapObject, public UpdatableMapObject
 {
@@ -539,6 +572,7 @@ private:
     void ForcedDespawn(Milliseconds timeMSToDespawn = 0ms, Seconds forcedRespawnTimer = 0s);
 
     [[nodiscard]] bool CanPeriodicallyCallForAssistance() const;
+    [[nodiscard]] bool IsRespawnTimerFromDeath() const;
 
     // WaypointMovementGenerator variable
     uint32 m_waypointID;
