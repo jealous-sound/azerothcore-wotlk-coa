@@ -1,6 +1,7 @@
 /* Copyright (C) 2016+ AzerothCore, GNU AGPL v3. */
 
 #include "Chat.h"
+#include "DBCStores.h"
 #include "GameTime.h"
 #include "Item.h"
 #include "Map.h"
@@ -41,6 +42,26 @@ uint32 SpellForItem(uint32 itemEntry)
         if (entry.ItemEntry == itemEntry)
             return entry.SpellId;
     return 0;
+}
+
+constexpr char const* ANNOUNCE_TAG_COLOR = "ffa54a";
+
+std::string ItemIcon(ItemTemplate const* proto)
+{
+    ItemDisplayInfoEntry const* display = sItemDisplayInfoStore.LookupEntry(proto->DisplayInfoID);
+    if (!display || !display->inventoryIcon || !*display->inventoryIcon)
+        return "";
+    return Acore::StringFormat("|TInterface\\Icons\\{}:20:20|t ", display->inventoryIcon);
+}
+
+std::string ZoneBlessingAnnouncement(Player const* player, ItemTemplate const* proto, SpellInfo const* spellInfo)
+{
+    std::string icon = ItemIcon(proto);
+    return Acore::StringFormat(
+        "{}|cff{}[Keeper's Scroll]|r {}{} used their |c{:08x}|Hitem:{}:0:0:0:0:0:0:0:0:0|h[{}]|h|r "
+        "to buff the zone with |cff71d5ff|Hspell:{}|h[{}]|h|r!",
+        icon, ANNOUNCE_TAG_COLOR, icon, player->GetName(), ItemQualityColors[proto->Quality], proto->ItemId,
+        proto->Name1, spellInfo->Id, spellInfo->SpellName[LOCALE_enUS]);
 }
 
 std::mutex g_zoneScrollLock;
@@ -105,8 +126,7 @@ public:
                     ApplyZoneScrollAura(target, spellId, durationMs);
             }
 
-            map->SendZoneText(zoneId, Acore::StringFormat(
-                "{} has blessed this zone with {}!", player->GetName(), spellInfo->SpellName[LOCALE_enUS]).c_str());
+            map->SendZoneText(zoneId, ZoneBlessingAnnouncement(player, item->GetTemplate(), spellInfo).c_str());
         }
 
         return true;
