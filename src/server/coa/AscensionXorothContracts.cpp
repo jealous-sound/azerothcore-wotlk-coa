@@ -486,13 +486,21 @@ void ApplyContracts(SpellInfo* info)
         e.TargetB = SpellImplicitTargetInfo();
     }
     if (id == 704954)
+    {
         // Boundless Fury: its own baked SPELLMOD_ALL_EFFECTS classmask (dword0 bit26, matching
         // Unleash Death 801055 - Pestilence of Death's unleash spell) is duplicated identically
         // on EFFECT_0 and EFFECT_1 and is never read by AscensionXoroth::Unleash()'s custom
-        // State().unleash damage multiplier. Null both; the real 30% value is read directly via
-        // Amount() and applied in Unleash() below.
-        for (auto& e : info->Effects)
-            e.Effect = 0;
+        // State().unleash damage multiplier. The real 30% value is read directly via Amount()
+        // (which defaults to EFFECT_0) and applied in Unleash() below. Null EFFECT_1's duplicate
+        // outright, but re-tag EFFECT_0's ApplyAuraName as SPELL_AURA_DUMMY rather than zeroing
+        // its effect type: zeroing the effect type leaves the spell with no valid unit-owned aura
+        // effect at all (Aura::BuildEffectMaskForOwner returns 0), so the passive can never
+        // actually become an active aura via set_aura's fixture path or the native learn-time
+        // CastSpell (Player::addSpell) alike - the very player->HasAura(704954) gate Unleash()
+        // depends on could then never be true (same bug class as Murderous Might, 520290, above).
+        info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_DUMMY;
+        info->Effects[EFFECT_1].Effect = 0;
+    }
     if (id == 704956)
         // Heart of Xoroth: its own baked SPELLMOD_MAX_AURA_STACKS effect (misc 31, +5 stacks via
         // BasePoints 4 + the DieSides 1 rounding) carries a scrambled classmask
