@@ -59,8 +59,11 @@ enum BloodmageTalentSpells : uint32
     SPELL_THIRST_ANIMATED_BLOOD = 300796,
     SPELL_CRIMSON_EXPEDITION = 523727,
     SPELL_SANGUINE_SCION = 807292,
-    SPELL_BLOOD_RUNS_COLD = 560257
+    SPELL_BLOOD_RUNS_COLD = 560257,
+    SPELL_CURSED_GROUND = 561195
 };
+
+constexpr uint32 SanguineRuptureMinimumTargets = 5;
 
 constexpr uint32 BloodboltClassMask1 = 0x00020000;
 
@@ -74,6 +77,7 @@ enum AscensionRawCombatSelector : int32
 constexpr uint32 AnimatedBloodSummons[] = {325301, 335301, 315301};
 
 constexpr uint32 CursedForms[] = {562572, 562720, 680692, 800157, 801076, 524865};
+constexpr uint32 MortalAbilityForms[] = {680692, 801076};
 
 bool IsCursedForm(uint32 id)
 {
@@ -87,6 +91,19 @@ bool HasCursedForm(Player const* player, Aura const* ignored = nullptr)
     for (uint32 form : CursedForms)
         if (Aura const* aura = player->GetAura(form, player->GetGUID()); aura && aura != ignored)
             return true;
+    return false;
+}
+
+bool HasCursedFormRestrictingMortalAbilities(Player const* player)
+{
+    for (uint32 form : CursedForms)
+    {
+        if (std::find(std::begin(MortalAbilityForms), std::end(MortalAbilityForms), form) !=
+            std::end(MortalAbilityForms))
+            continue;
+        if (player->HasAura(form, player->GetGUID()))
+            return true;
+    }
     return false;
 }
 
@@ -109,14 +126,19 @@ void SyncCursedFormRequirement(Player* player)
 {
     bool active = HasCursedForm(player);
 
-    for (uint32 marker : {uint32(SPELL_CURSED_FORM_REQUIREMENT), uint32(SPELL_CURSED_FORM_REQUIREMENT_2),
-        uint32(AscensionBloodmage::CursedForm)})
+    for (uint32 marker : {uint32(SPELL_CURSED_FORM_REQUIREMENT), uint32(SPELL_CURSED_FORM_REQUIREMENT_2)})
     {
         if (!active)
             player->RemoveAurasDueToSpell(marker, player->GetGUID());
         else if (player->IsInWorld() && player->IsAlive() && !player->HasAura(marker, player->GetGUID()))
             player->CastSpell(player, marker, true);
     }
+
+    if (!HasCursedFormRestrictingMortalAbilities(player))
+        player->RemoveAurasDueToSpell(AscensionBloodmage::CursedForm, player->GetGUID());
+    else if (player->IsInWorld() && player->IsAlive() &&
+        !player->HasAura(AscensionBloodmage::CursedForm, player->GetGUID()))
+        player->CastSpell(player, AscensionBloodmage::CursedForm, true);
 }
 
 void ApplyBloodmageConditionalContracts(SpellInfo* info)
@@ -354,6 +376,34 @@ int32 BloodmageProcShare(AuraEffect const* effect, ProcEventInfo& event)
     return int32(std::min<uint64>(share, std::numeric_limits<int32>::max()));
 }
 
+class spell_ascension_bloodmage_sanguine_rupture : public SpellScript
+{
+    PrepareSpellScript(spell_ascension_bloodmage_sanguine_rupture);
+
+    void HandleBleed(SpellEffIndex effIndex)
+    {
+        bool shouldBleed = GetCaster()->HasAura(SPELL_CURSED_GROUND);
+        if (shouldBleed)
+        {
+            uint32 successfulTargets = 0;
+            for (auto const& target : *GetSpell()->GetUniqueTargetInfo())
+                if ((target.effectMask & (1 << EFFECT_1)) && target.missCondition == SPELL_MISS_NONE)
+                    ++successfulTargets;
+
+            shouldBleed = successfulTargets >= SanguineRuptureMinimumTargets;
+        }
+
+        if (!shouldBleed)
+            PreventHitDefaultEffect(effIndex);
+    }
+
+    void Register() override
+    {
+        OnEffectLaunchTarget += SpellEffectFn(spell_ascension_bloodmage_sanguine_rupture::HandleBleed,
+            EFFECT_1, SPELL_EFFECT_TRIGGER_SPELL);
+    }
+};
+
 class aura_ascension_bloodmage_dark_sigil : public AuraScript
 {
     PrepareAuraScript(aura_ascension_bloodmage_dark_sigil);
@@ -588,6 +638,7 @@ void AddSC_AscensionBloodmageTalents()
     new bloodmage_cursed_form_weapons();
     new bloodmage_blood_constructor();
     new bloodmage_talent_contracts();
+    RegisterSpellScript(spell_ascension_bloodmage_sanguine_rupture);
     RegisterSpellScript(spell_ascension_animated_blood);
     RegisterSpellScript(aura_ascension_bloodmage_crimson_feast);
     RegisterSpellScript(aura_ascension_bloodmage_coagulation);

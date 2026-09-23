@@ -33,6 +33,7 @@
 #include "UnitUtils.h"
 #include <boost/container/flat_map.hpp>
 #include <functional>
+#include <optional>
 #include <utility>
 
 #define WORLD_TRIGGER   12999
@@ -1230,9 +1231,16 @@ public:
     /*********************************************************/
     /***       METHODS RELATED TO DAMAGE CACULATIONS       ***/
     /*********************************************************/
-    static uint32 DealDamage(Unit* attacker, Unit* victim, uint32 damage, CleanDamage const* cleanDamage = nullptr, DamageEffectType damagetype = DIRECT_DAMAGE, SpellSchoolMask damageSchoolMask = SPELL_SCHOOL_MASK_NORMAL, SpellInfo const* spellProto = nullptr, bool durabilityLoss = true, bool allowGM = false, Spell const* spell = nullptr);
+    static uint32 DealDamage(Unit* attacker, Unit* victim, uint32 damage, CleanDamage const* cleanDamage = nullptr,
+                             DamageEffectType damagetype = DIRECT_DAMAGE,
+                             SpellSchoolMask damageSchoolMask = SPELL_SCHOOL_MASK_NORMAL,
+                             SpellInfo const* spellProto = nullptr, bool durabilityLoss = true,
+                             bool allowGM = false, Spell const* spell = nullptr,
+                             std::optional<uint32>* scriptHealthLeechDamage = nullptr);
     void DealMeleeDamage(CalcDamageInfo* damageInfo, bool durabilityLoss);
-    void DealSpellDamage(SpellNonMeleeDamage* damageInfo, bool durabilityLoss, Spell const* spell = nullptr, uint32* scriptDamageResult = nullptr);
+    void DealSpellDamage(SpellNonMeleeDamage* damageInfo, bool durabilityLoss, Spell const* spell = nullptr,
+                         uint32* scriptDamageResult = nullptr,
+                         std::optional<uint32>* scriptHealthLeechDamage = nullptr);
     void DealDamageShieldDamage(Unit* victim);
     static void DealDamageMods(Unit const* victim, uint32& damage, uint32* absorb);
 

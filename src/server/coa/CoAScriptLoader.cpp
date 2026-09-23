@@ -261,6 +261,8 @@ void AddSC_AscensionPrimalistSecondary();
 void AddSC_AscensionRunemasterSecondary();
 void AddSC_AscensionRunemasterHurricane();
 void AddSC_AscensionRunemasterRiftClones();
+void AddSC_AscensionWelcomeWarchest();
+void AddSC_AscensionClassBundleStore();
 
 void AddCoAScripts()
 {
@@ -521,4 +523,6 @@ void AddCoAScripts()
     AddSC_AscensionKeepersScrollSteadfast();
     AddSC_AscensionProfessionSpellAffect();
     AddSC_AscensionKeepersScrollZoneBuff();
+    AddSC_AscensionWelcomeWarchest();
+    AddSC_AscensionClassBundleStore();
 }

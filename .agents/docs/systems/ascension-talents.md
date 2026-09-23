@@ -105,9 +105,12 @@ Opcodes and layouts come from the community measurements in `hertigservices/Asce
   by that client and therefore never split. Sent with the bridge; `.localspecstate` is that client's request
   for it (same handler as `.localtalent sync`). One of the two forms retires with the client patch that ships.
 - Opcode identities (from #4030, decoded from the `Extensions.dll` name-stub table): `0x0523` is
-  `CMSG_CUSTOM_ASCENSION_POINT_SPEND_REQUEST` (the native point purchase, never sent by the patch-B shim),
-  `0x061A` is `CMSG_CREATURE_QUERY_BULK`, `0x064A` is `SMSG_PATCH_CHARACTER_ADVANCEMENT` (unused: the client
-  loads its own catalogue).
+  `CMSG_CUSTOM_ASCENSION_POINT_SPEND_REQUEST`, `0x061A` is `CMSG_CREATURE_QUERY_BULK`, `0x064A` is
+  `SMSG_PATCH_CHARACTER_ADVANCEMENT` (unused: the client loads its own catalogue). Despite its name, `0x0523`
+  carries no talent points: its five senders are the vanity-collection Lua functions (`C_VanityCollection`
+  and `RequestDeliver*CollectionItem`), each writing `{u8 Enum.VanityCurrency, u32 item}`. Currency 2
+  (Donation Points) comes from both Deliver and the web-shop buy; the server handles it as a delivery through
+  `DeliverLocalVanityItem`.
 
 ## The shipped compat client (patch-B.MPQ, `Ascension_Collections`)
 

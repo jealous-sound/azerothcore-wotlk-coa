@@ -53,6 +53,7 @@
 #include "World.h"
 #include "WorldPacket.h"
 #include <cmath>
+#include <optional>
 #include <G3D/g3dmath.h>
 
 /// @todo: this import is not necessary for compilation and marked as unused by the IDE
@@ -2914,8 +2915,10 @@ void Spell::DoAllEffectOnTarget(TargetInfo* target)
             // damage result for other scripts, and do not infer damage from
             // later health deltas that can include triggered heals or damage.
             uint32 const healthBeforeDamage = unitTarget->GetHealth();
-            caster->DealSpellDamage(&damageInfo, true, this, &scriptDamageResult);
-            m_scriptHealthLeechDamage = std::min(scriptDamageResult, healthBeforeDamage);
+            std::optional<uint32> damageForHealthLeech;
+            caster->DealSpellDamage(&damageInfo, true, this, &scriptDamageResult, &damageForHealthLeech);
+            m_scriptHealthLeechDamage = damageForHealthLeech.value_or(
+                std::min(scriptDamageResult, healthBeforeDamage));
 
             // do procs after damage, eg healing effects
             // no need to check if target is alive, done in procdamageandspell
