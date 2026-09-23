@@ -36,6 +36,7 @@
 #include "CharacterCache.h"
 #include "CharacterDatabaseCleaner.h"
 #include "Chat.h"
+#include "ClassicPlusStats.h"
 #include "CombatLogPackets.h"
 #include "Common.h"
 #include "ConditionMgr.h"
@@ -2100,18 +2101,33 @@ void Player::RegenerateHealth()
         HealthIncreaseRate = sWorld->getRate(RATE_HEALTH) * (2.066f - (GetLevel() * 0.066f));
 
     float addvalue = 0.0f;
+    bool const classicStats = sWorld->getBoolConfig(CONFIG_CLASSIC_PLUS_STAT_FORMULAS);
+    float polymorphRegenFraction = 1.0f / 3.0f;
+    float sittingRegenMultiplier = 1.33f;
+    if (classicStats)
+    {
+        polymorphRegenFraction =
+            ClassicPlusStats::PolymorphHealthRegenFraction(getClass(), GetLevel(), polymorphRegenFraction);
+        sittingRegenMultiplier =
+            ClassicPlusStats::SittingHealthRegenMultiplier(getClass(), GetLevel(), sittingRegenMultiplier);
+    }
 
     // polymorphed case
     if (IsPolymorphed())
-        addvalue = (float)GetMaxHealth() / 3;
+        addvalue = GetMaxHealth() * polymorphRegenFraction;
     // normal regen case (maybe partly in combat case)
     else if (!IsInCombat() || HasRegenDuringCombatAura())
     {
-        addvalue = OCTRegenHPPerSpirit() * HealthIncreaseRate;
+        float spiritRegen = OCTRegenHPPerSpirit();
+        if (classicStats)
+            spiritRegen =
+                ClassicPlusStats::HealthRegenPerTick(getClass(), GetLevel(), GetStat(STAT_SPIRIT), spiritRegen);
+
+        addvalue = spiritRegen * HealthIncreaseRate;
 
         if (!IsStandState())
         {
-            addvalue *= 1.33f;
+            addvalue *= sittingRegenMultiplier;
         }
 
         addvalue *= GetTotalAuraMultiplier(SPELL_AURA_MOD_HEALTH_REGEN_PERCENT);
@@ -5393,8 +5409,12 @@ float Player::GetMeleeCritFromAgility()
     if (!critBase || !critRatio)
         return 0.0f;
 
-    float crit = critBase->base + GetStat(STAT_AGILITY) * critRatio->ratio;
-    return crit * 100.0f;
+    ClassicPlusStats::StatCurve crit{ critBase->base,
+        ClassicPlusStats::CorrectedClientMeleeCritRatio(pclass, level, critRatio->ratio) };
+    if (sWorld->getBoolConfig(CONFIG_CLASSIC_PLUS_STAT_FORMULAS))
+        crit = ClassicPlusStats::MeleeCrit(pclass, level, crit);
+
+    return (crit.Base + GetStat(STAT_AGILITY) * crit.PerPoint) * 100.0f;
 }
 
 void Player::GetDodgeFromAgility(float& diminishing, float& nondiminishing)
@@ -5446,9 +5466,14 @@ void Player::GetDodgeFromAgility(float& diminishing, float& nondiminishing)
     float base_agility = GetCreateStat(STAT_AGILITY) * GetPctModifierValue(UnitMods(UNIT_MOD_STAT_START + AsUnderlyingType(STAT_AGILITY)), BASE_PCT);
     float bonus_agility = GetStat(STAT_AGILITY) - base_agility;
 
+    float const ratio = ClassicPlusStats::CorrectedClientMeleeCritRatio(pclass, level, dodgeRatio->ratio);
+    ClassicPlusStats::StatCurve dodge{ dodge_base[fallbackClassIndex], ratio * crit_to_dodge[fallbackClassIndex] };
+    if (sWorld->getBoolConfig(CONFIG_CLASSIC_PLUS_STAT_FORMULAS))
+        dodge = ClassicPlusStats::Dodge(pclass, level, dodge);
+
     // calculate diminishing (green in char screen) and non-diminishing (white) contribution
-    diminishing = 100.0f * bonus_agility * dodgeRatio->ratio * crit_to_dodge[fallbackClassIndex];
-    nondiminishing = 100.0f * (dodge_base[fallbackClassIndex] + base_agility * dodgeRatio->ratio * crit_to_dodge[fallbackClassIndex]);
+    diminishing = 100.0f * bonus_agility * dodge.PerPoint;
+    nondiminishing = 100.0f * (dodge.Base + base_agility * dodge.PerPoint);
 }
 
 float Player::GetSpellCritFromIntellect()
@@ -5464,8 +5489,11 @@ float Player::GetSpellCritFromIntellect()
     if (!critBase || !critRatio)
         return 0.0f;
 
-    float crit = critBase->base + GetStat(STAT_INTELLECT) * critRatio->ratio;
-    return crit * 100.0f;
+    ClassicPlusStats::StatCurve crit{ critBase->base, critRatio->ratio };
+    if (sWorld->getBoolConfig(CONFIG_CLASSIC_PLUS_STAT_FORMULAS))
+        crit = ClassicPlusStats::SpellCrit(pclass, level, crit);
+
+    return (crit.Base + GetStat(STAT_INTELLECT) * crit.PerPoint) * 100.0f;
 }
 
 float Player::GetRatingMultiplier(CombatRating cr) const

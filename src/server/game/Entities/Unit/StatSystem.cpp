@@ -15,6 +15,7 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "ClassicPlusStats.h"
 #include "Config.h"
 #include "Creature.h"
 #include "Item.h"
@@ -25,6 +26,7 @@
 #include "SpellAuraEffects.h"
 #include "SpellMgr.h"
 #include "Unit.h"
+#include "World.h"
 
 inline bool _ModifyUInt32(bool apply, uint32& baseValue, int32& amount)
 {
@@ -537,6 +539,8 @@ void Player::UpdateAttackPowerAndDamage(bool ranged)
             IsClass(CLASS_SHAMAN, CLASS_CONTEXT_STATS) || IsClass(CLASS_ROGUE, CLASS_CONTEXT_STATS))
         {
             val2 = level * 2.0f + GetStat(STAT_STRENGTH) + GetStat(STAT_AGILITY) - 20.0f;
+            if (sWorld->getBoolConfig(CONFIG_CLASSIC_PLUS_STAT_FORMULAS))
+                val2 = ClassicPlusStats::MeleeAttackPower(getClass(), GetLevel(), GetStat(STAT_STRENGTH), val2);
         }
         else if (IsClass(CLASS_DRUID, CLASS_CONTEXT_STATS))
         {
