@@ -82,6 +82,60 @@ void ApplyZoneScrollAura(Player* player, uint32 spellId, int32 remainingMs)
     }
 }
 
+bool IsActiveInZone(uint32 zoneId, uint32 spellId)
+{
+    std::lock_guard<std::mutex> lock(g_zoneScrollLock);
+    auto zone = g_zoneScrollBuffs.find(zoneId);
+    if (zone == g_zoneScrollBuffs.end())
+        return false;
+    auto spell = zone->second.find(spellId);
+    return spell != zone->second.end() && spell->second > GameTime::GetGameTime().count();
+}
+
+bool TryBlessZone(uint32 zoneId, uint32 spellId, int32 durationMs)
+{
+    time_t now = GameTime::GetGameTime().count();
+    std::lock_guard<std::mutex> lock(g_zoneScrollLock);
+    time_t& slot = g_zoneScrollBuffs[zoneId][spellId];
+    if (slot > now)
+        return false;
+    slot = now + durationMs / 1000;
+    return true;
+}
+
+class ascension_keepers_scroll_zone_buff_spell : public AllSpellScript
+{
+public:
+    ascension_keepers_scroll_zone_buff_spell()
+        : AllSpellScript("ascension_keepers_scroll_zone_buff_spell", {ALLSPELLHOOK_ON_BEFORE_EFFECTS}) { }
+
+    void OnSpellBeforeEffects(Spell* spell, Unit* caster, SpellInfo const* spellInfo) override
+    {
+        Player* player = caster ? caster->ToPlayer() : nullptr;
+        Item* item = spell->m_CastItem;
+        if (!player || !item || SpellForItem(item->GetEntry()) != spellInfo->Id)
+            return;
+
+        int32 durationMs = spellInfo->GetMaxDuration();
+        uint32 zoneId = player->GetZoneId();
+        if (durationMs <= 0 || !TryBlessZone(zoneId, spellInfo->Id, durationMs))
+            return;
+
+        Map* map = player->GetMap();
+        if (!map)
+            return;
+
+        for (MapReference const& ref : map->GetPlayers())
+        {
+            Player* target = ref.GetSource();
+            if (target != player && target->IsInWorld() && target->GetZoneId() == zoneId)
+                ApplyZoneScrollAura(target, spellInfo->Id, durationMs);
+        }
+
+        map->SendZoneText(zoneId, ZoneBlessingAnnouncement(player, item->GetTemplate(), spellInfo).c_str());
+    }
+};
+
 class ascension_keepers_scroll_zone_buff_player : public PlayerScript
 {
 public:
@@ -97,39 +151,13 @@ public:
             return true;
 
         SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spellId);
-        int32 durationMs = spellInfo ? spellInfo->GetMaxDuration() : 0;
-        if (durationMs <= 0)
+        if (!spellInfo || !IsActiveInZone(player->GetZoneId(), spellId))
             return true;
 
-        uint32 zoneId = player->GetZoneId();
-        time_t now = GameTime::GetGameTime().count();
-
-        {
-            std::lock_guard<std::mutex> lock(g_zoneScrollLock);
-            time_t& slot = g_zoneScrollBuffs[zoneId][spellId];
-            if (slot > now)
-            {
-                Spell::SendCastResult(player, spellInfo, castCount, SPELL_FAILED_AURA_BOUNCED);
-                ChatHandler(player->GetSession()).PSendSysMessage(
-                    "{} is already active in this zone.", spellInfo->SpellName[LOCALE_enUS]);
-                return false;
-            }
-            slot = now + durationMs / 1000;
-        }
-
-        if (Map* map = player->GetMap())
-        {
-            for (MapReference const& ref : map->GetPlayers())
-            {
-                Player* target = ref.GetSource();
-                if (target != player && target->IsInWorld() && target->GetZoneId() == zoneId)
-                    ApplyZoneScrollAura(target, spellId, durationMs);
-            }
-
-            map->SendZoneText(zoneId, ZoneBlessingAnnouncement(player, item->GetTemplate(), spellInfo).c_str());
-        }
-
-        return true;
+        Spell::SendCastResult(player, spellInfo, castCount, SPELL_FAILED_AURA_BOUNCED);
+        ChatHandler(player->GetSession()).PSendSysMessage(
+            "{} is already active in this zone.", spellInfo->SpellName[LOCALE_enUS]);
+        return false;
     }
 
     void OnPlayerUpdateZone(Player* player, uint32 newZone, uint32 /*newArea*/) override
@@ -209,6 +237,7 @@ private:
 
 void AddSC_AscensionKeepersScrollZoneBuff()
 {
+    new ascension_keepers_scroll_zone_buff_spell();
     new ascension_keepers_scroll_zone_buff_player();
     new ascension_keepers_scroll_zone_buff_world();
 }
