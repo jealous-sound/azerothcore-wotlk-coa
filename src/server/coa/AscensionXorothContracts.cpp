@@ -499,10 +499,16 @@ void ApplyContracts(SpellInfo* info)
         // 2/25) only overlaps 3 of the 11 Demonfire-spending root spells in
         // AscensionXoroth::Spender() - Skulltaker (800168), Melt (803334) and Warbringer
         // (802581) - and Hellstorm (802342) carries no family flags at all, so no classmask can
-        // ever cover it. Null the native effect and read its value directly via Amount() in
-        // Factor() below, covering every spender uniformly - the same read-by-value pattern used
-        // for Speed Demon (707232) above.
-        info->Effects[EFFECT_0].Effect = 0;
+        // ever cover it. Null the native SPELLMOD_DAMAGE behavior and read its value directly via
+        // Amount() in Factor() below, covering every spender uniformly. Re-tag EFFECT_0 as
+        // SPELL_AURA_DUMMY rather than zeroing info->Effects[EFFECT_0].Effect outright: zeroing the
+        // effect type leaves the spell with no valid unit-owned aura effect at all
+        // (Aura::BuildEffectMaskForOwner returns 0), so the passive can never actually become an
+        // active aura via the native learn-time CastSpell (Player::addSpell) - the very
+        // player->HasAura(520290) gate this fix (and its own scenario fixture) depends on could
+        // then never be true. Keeping EFFECT_0 as a harmless dummy aura lets it apply normally
+        // while carrying no native spellmod behavior of its own.
+        info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_DUMMY;
     if (id == 680900)
         // Infernal Pummeling: its own baked effect is a stray SPELLMOD_EFFECT2 flat modifier
         // scoped to Melt's own classmask (would add +10 to Melt's disabled EFFECT_2 crit-chance

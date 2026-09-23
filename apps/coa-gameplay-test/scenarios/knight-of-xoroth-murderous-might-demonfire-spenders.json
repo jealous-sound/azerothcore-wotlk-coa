@@ -24,6 +24,7 @@
   "steps": [
     { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
     { "action": "learn", "actor": "knight", "spell": 806965 },
+    { "action": "set_aura", "actor": "knight", "spell": 500906, "stacks": 1, "label": "Grant Demonfire so the Spender check in xoroth_casts::OnSpellCheckCast passes" },
     { "action": "cast", "actor": "knight", "spell": 806965, "target": "dummy", "label": "Hellmaw, without Murderous Might" },
     {
       "action": "wait",
@@ -41,6 +42,7 @@
     { "action": "reset_cooldown", "actor": "knight", "spell": 806965 },
     { "action": "learn", "actor": "knight", "spell": 520290 },
     { "action": "set_aura", "actor": "knight", "spell": 520290, "stacks": 1, "label": "Force the Murderous Might passive aura" },
+    { "action": "set_aura", "actor": "knight", "spell": 500906, "stacks": 1, "label": "Demonfire was consumed by the first Spender cast; grant it again" },
     { "action": "wait", "label": "Let the passive's modifiers settle", "ms": 500 },
     {
       "action": "assert", "label": "SETUP: the Murderous Might passive is active",
