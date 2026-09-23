@@ -65,6 +65,7 @@
 #include "ConfigValueCache.h"
 #include "DatabaseEnv.h"
 #include "DBCStores.h"
+#include "GameTime.h"
 #include "GossipDef.h"
 #include "GlobalScript.h"
 #include "GridTerrainData.h"
@@ -86,6 +87,7 @@
 #include "SpellAuras.h"
 #include "SpellMgr.h"
 #include "SpellScript.h"
+#include "Timer.h"
 #include "WorldPacket.h"
 #include "WorldSession.h"
 
@@ -94,6 +96,7 @@
 #include <bit>
 #include <cstdlib>
 #include <cstring>
+#include <ctime>
 #include <filesystem>
 #include <type_traits>
 #include <deque>
@@ -4934,6 +4937,7 @@ public:
         {"localresource", HandleLocalResourceCommand, SEC_PLAYER,
          Console::No},
         {"localcharges", HandleLocalChargesCommand, SEC_PLAYER, Console::No},
+        {"localtime", HandleLocalTimeCommand, SEC_GAMEMASTER, Console::No},
         {"spellcharges", spellChargesCommandTable},
         {"localclassrepair", HandleLocalClassRepairCommand, SEC_PLAYER,
          Console::No},
@@ -5095,6 +5099,43 @@ public:
 
     AscensionCollectionService::Instance().DeliverLocalVanityItem(player,
                                                                    itemId);
+    return true;
+  }
+
+  static constexpr float REAL_TIME_GAME_SPEED = 0.01666667f;
+
+  static time_t SameDayAt(time_t time, uint8 hour, uint8 minute) {
+    std::tm local = Acore::Time::TimeBreakdown(time);
+    local.tm_hour = hour;
+    local.tm_min = minute;
+    local.tm_sec = 0;
+    local.tm_isdst = -1;
+    return std::mktime(&local);
+  }
+
+  static bool HandleLocalTimeCommand(ChatHandler *handler, Optional<uint8> hour,
+                                     Optional<uint8> minute) {
+    Player *player = handler->GetPlayer();
+    if (!player)
+      return false;
+
+    if ((hour && *hour > 23) || (minute && *minute > 59))
+    {
+      handler->SendSysMessage("Give an hour from 0 to 23 and an optional minute from 0 to 59, or no "
+                              "arguments to follow the server clock again.");
+      return true;
+    }
+
+    time_t const now = GameTime::GetGameTime().count();
+    time_t const shown = hour ? SameDayAt(now, *hour, minute.value_or(0)) : now;
+    WorldPacket data(SMSG_LOGIN_SETTIMESPEED, 4 + 4 + 4);
+    data.AppendPackedTime(shown);
+    data << REAL_TIME_GAME_SPEED;
+    data << uint32(0);
+    player->SendDirectMessage(&data);
+
+    std::tm const clock = Acore::Time::TimeBreakdown(shown);
+    handler->PSendSysMessage("Your client's clock now reads {:02}:{:02}.", clock.tm_hour, clock.tm_min);
     return true;
   }
 

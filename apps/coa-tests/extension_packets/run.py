@@ -1,9 +1,9 @@
 CLI_DESCRIPTION = """Run Ascension extension packet regressions without a server or database.
 
 Compiles the production realm-info sender, socket-thread packet hook, extension packet
-queue, world-thread handler, stock item query builder, vanity delivery and .localvanity
-command against the real WorldPacket and ItemTemplate. Pass --source-ref to test
-another Git ref.
+queue, world-thread handler, stock item query builder, vanity delivery, .localvanity
+and .localtime commands against the real WorldPacket and ItemTemplate. Pass --source-ref
+to test another Git ref.
 """
 
 import argparse
@@ -51,12 +51,15 @@ def main():
     items = source('src/server/game/Handlers/ItemHandler.cpp')
     objects = source('src/server/game/Globals/ObjectMgr.h')
     buffer = source('src/server/shared/Packets/ByteBuffer.cpp')
+    timer = source('src/common/Utilities/Timer.cpp')
     harness = (HERE / 'harness.cpp').read_text(encoding='utf-8')
     for marker, text in [
         ('BYTE_BUFFER', '\n'.join(method(buffer, signature) for signature in (
             'void ByteBuffer::append(uint8 const* src, std::size_t cnt)',
             'ByteBufferPositionException::ByteBufferPositionException(',
+            'void ByteBuffer::AppendPackedTime(time_t time)',
         ))),
+        ('TIME_BREAKDOWN', method(timer, 'std::tm Acore::Time::TimeBreakdown(')),
         ('GET_LOCALE_STRING', method(objects, 'static inline void GetLocaleString(std::vector<std::string> const&')),
         ('ITEM_QUERY', method(items, 'void WorldSession::HandleItemQuerySingleOpcode(') + '\n' + method_or(
             items, 'void WorldSession::SendItemQuerySingleResponse(',
@@ -81,6 +84,13 @@ def main():
             'void LearnOwnedBankSpells(Player* player',
         )])),
         ('LOCAL_VANITY_COMMAND', method(compat, 'static bool HandleLocalVanityCommand(ChatHandler *handler')),
+        ('LOCAL_TIME_COMMAND', '\n'.join([
+            (re.search(r'static constexpr float REAL_TIME_GAME_SPEED = [^;]+;', compat) or [''])[0],
+            method_or(compat, 'static time_t SameDayAt(time_t time', ''),
+            method_or(compat, 'static bool HandleLocalTimeCommand(ChatHandler *handler',
+                      'static bool HandleLocalTimeCommand(ChatHandler*, Optional<uint8>, Optional<uint8>) '
+                      '{ return false; }'),
+        ])),
     ]:
         harness = harness.replace('// ACTUAL_' + marker, text)
 

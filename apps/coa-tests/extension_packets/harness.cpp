@@ -1,10 +1,12 @@
 #include "AscensionCollectibleSpellData.h"
 #include "ItemTemplate.h"
+#include "Optional.h"
 #include "WorldPacket.h"
 #include <algorithm>
 #include <array>
 #include <bit>
 #include <cassert>
+#include <ctime>
 #include <deque>
 #include <iostream>
 #include <memory>
@@ -18,6 +20,36 @@
 #include <vector>
 
 #define ASSERT(condition, ...) assert(condition)
+
+time_t gameTime = 0;
+
+namespace Acore::Time
+{
+std::tm TimeBreakdown(time_t time = 0);
+}
+
+namespace GameTime
+{
+Seconds GetGameTime()
+{
+    return Seconds(gameTime);
+}
+}
+
+Seconds GetEpochTime()
+{
+    return Seconds(gameTime);
+}
+
+#ifdef _WIN32
+std::tm* localtime_r(time_t const* time, std::tm* result)
+{
+    localtime_s(result, time);
+    return result;
+}
+#endif
+
+// ACTUAL_TIME_BREAKDOWN
 // ACTUAL_BYTE_BUFFER
 
 namespace
@@ -133,6 +165,7 @@ struct Player
 
     WorldSession* GetSession() const { return Session; }
     std::string GetName() const { return "Tester"; }
+    void SendDirectMessage(WorldPacket const* packet) { Session->SendPacket(packet); }
     void SendAllSpellChargeStates() { ++ChargeSnapshots; }
 
     InventoryResult CanStoreNewItem(uint8, uint8, ItemPosCountVec&, uint32, uint32) const
@@ -338,6 +371,7 @@ struct AscensionCompatServerScript : ServerScript
 struct AscensionCompatCommandScript
 {
     // ACTUAL_LOCAL_VANITY_COMMAND
+    // ACTUAL_LOCAL_TIME_COMMAND
 };
 
 struct RealmInfo
@@ -745,6 +779,93 @@ void TestVanityDelivery()
 }
 }
 
+struct ClientClock
+{
+    bool Sent = false;
+    bool Complete = false;
+    std::tm Shown{};
+    float Speed = 0.0f;
+    uint32 Trailer = 1;
+    std::size_t Messages = 0;
+};
+
+ClientClock LocalTime(Optional<uint8> hour = {}, Optional<uint8> minute = {})
+{
+    WorldSession session;
+    Player player;
+    player.Session = &session;
+    session.PlayerObject = &player;
+    ChatHandler handler(&session);
+    AscensionCompatCommandScript::HandleLocalTimeCommand(&handler, hour, minute);
+
+    ClientClock clock;
+    clock.Messages = session.Messages.size();
+    if (session.Sent.size() != 1 || session.Sent[0].GetOpcode() != SMSG_LOGIN_SETTIMESPEED)
+        return clock;
+
+    WorldPacket packet = session.Sent[0];
+    packet.rpos(0);
+    uint32 const packed = packet.read<uint32>();
+    clock.Sent = true;
+    clock.Shown.tm_year = int((packed >> 24) & 0x1F) + 100;
+    clock.Shown.tm_mon = int((packed >> 20) & 0xF);
+    clock.Shown.tm_mday = int((packed >> 14) & 0x3F) + 1;
+    clock.Shown.tm_hour = int((packed >> 6) & 0x1F);
+    clock.Shown.tm_min = int(packed & 0x3F);
+    clock.Speed = packet.read<float>();
+    clock.Trailer = packet.read<uint32>();
+    clock.Complete = packet.rpos() == packet.size();
+    return clock;
+}
+
+bool ShowsDay(ClientClock const& clock, std::tm const& day)
+{
+    return clock.Shown.tm_year == day.tm_year && clock.Shown.tm_mon == day.tm_mon && clock.Shown.tm_mday == day.tm_mday;
+}
+
+void TestLocalTime()
+{
+    std::tm night{};
+    night.tm_year = 126;
+    night.tm_mon = 8;
+    night.tm_mday = 23;
+    night.tm_hour = 22;
+    night.tm_min = 40;
+    night.tm_sec = 15;
+    night.tm_isdst = -1;
+    gameTime = std::mktime(&night);
+
+    ClientClock const noon = LocalTime(uint8(12), uint8(30));
+    Check(noon.Sent && noon.Complete && ShowsDay(noon, night) && noon.Shown.tm_hour == 12 && noon.Shown.tm_min == 30,
+        ".localtime 12 30 sends the client 12:30 on the server's current day");
+    Check(noon.Speed == 0.01666667f && noon.Trailer == 0,
+        ".localtime keeps the login packet's real-time clock speed");
+
+    ClientClock const morning = LocalTime(uint8(6));
+    Check(morning.Sent && ShowsDay(morning, night) && morning.Shown.tm_hour == 6 && morning.Shown.tm_min == 0,
+        ".localtime 6 starts the hour at minute zero");
+
+    bool everyTime = true;
+    for (uint8 hour = 0; hour < 24; ++hour)
+        for (uint8 minute : {uint8(0), uint8(59)})
+        {
+            ClientClock const clock = LocalTime(hour, minute);
+            everyTime &= clock.Sent && ShowsDay(clock, night) && clock.Shown.tm_hour == hour &&
+                clock.Shown.tm_min == minute;
+        }
+    Check(everyTime, "every hour from 0 to 23 reaches the client unchanged");
+
+    ClientClock const server = LocalTime();
+    Check(server.Sent && server.Complete && ShowsDay(server, night) && server.Shown.tm_hour == 22 &&
+        server.Shown.tm_min == 40,
+        ".localtime without arguments returns the client to the server clock");
+
+    ClientClock const lateHour = LocalTime(uint8(24));
+    ClientClock const lateMinute = LocalTime(uint8(12), uint8(60));
+    Check(!lateHour.Sent && !lateMinute.Sent && lateHour.Messages == 1 && lateMinute.Messages == 1,
+        "hours past 23 and minutes past 59 are refused without a packet");
+}
+
 int WarningsFrom(uint32 accountId, int repeats, std::vector<WorldPacket> const& packets)
 {
     WorldSession session;
@@ -779,6 +900,7 @@ int main()
     TestItemQueries();
     TestVanityDelivery();
     TestRejectedPacketWarnings();
+    TestLocalTime();
     std::cout << checks - failures << '/' << checks << " checks passed\n";
     return failures ? 1 : 0;
 }
