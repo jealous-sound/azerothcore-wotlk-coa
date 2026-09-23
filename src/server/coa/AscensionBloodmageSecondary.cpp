@@ -38,6 +38,8 @@ enum BloodmageSecondarySpells : uint32
     SPELL_ROTCLAW = 804197,
     SPELL_ROTCLAW_ENERGIZE = 805352,
     SPELL_BLOOD_THIRST = 706613,
+    SPELL_TORTURE = 504071,
+    SPELL_TORTURE_DURATION = 561152,
     SPELL_INSATIABLE = 706621,
     SPELL_INSATIABLE_STACK = 706663,
     SPELL_VAMPIRIC_FANG = 804726,
@@ -57,6 +59,7 @@ enum BloodmageSecondarySpells : uint32
     SPELL_VAMPIRIC_FANG_HEAL = 572374
 };
 
+constexpr uint32 TORTURE_MINIMUM_THIRST_STACKS = 9;
 constexpr uint32 VampiricFangRanks[] = {804726, 504093, 504094, 504095, 504096, 504097, 553271, 553272};
 
 bool IsVampiricFang(uint32 id)
@@ -206,11 +209,16 @@ public:
         if (IsVampiricFang(id) && !spell->GetScriptValue(SPELL_VAMPIRIC_FANG))
         {
             spell->SetScriptValue(SPELL_VAMPIRIC_FANG, 1);
+            Aura const* thirst = player->GetAura(SPELL_BLOOD_THIRST);
+            bool extendTransgression = player->HasAura(SPELL_TORTURE) && thirst &&
+                thirst->GetStackAmount() >= TORTURE_MINIMUM_THIRST_STACKS;
             if (damage)
                 Unit::DealHeal(player, player, damage);
             player->RemoveAurasDueToSpell(SPELL_BLOOD_THIRST);
             player->RemoveAurasDueToSpell(SPELL_INSATIABLE);
             player->RemoveAurasDueToSpell(SPELL_INSATIABLE_STACK);
+            if (extendTransgression)
+                player->CastSpell(player, SPELL_TORTURE_DURATION, true);
         }
         if (!damage)
             return;
