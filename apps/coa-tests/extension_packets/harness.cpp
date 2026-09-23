@@ -3,6 +3,7 @@
 #include "WorldPacket.h"
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <cassert>
 #include <deque>
 #include <iostream>
@@ -23,6 +24,7 @@ namespace
 {
 int failures = 0;
 int checks = 0;
+int warnings = 0;
 
 void Check(bool value, char const* name)
 {
@@ -38,7 +40,7 @@ void LogSink(Arguments&&...)
 }
 
 #define LOG_INFO(...) LogSink(__VA_ARGS__)
-#define LOG_WARN(...) LogSink(__VA_ARGS__)
+#define LOG_WARN(...) (++warnings, LogSink(__VA_ARGS__))
 #define LOG_DEBUG(...) LogSink(__VA_ARGS__)
 
 struct Player;
@@ -301,6 +303,7 @@ public:
 
     // ACTUAL_SEND_REALM_INFO
     // ACTUAL_QUEUE_CLIENT_PACKET
+    // ACTUAL_REJECT_CLIENT_PACKET
     // ACTUAL_TAKE_CLIENT_PACKETS
     // ACTUAL_ON_PLAYER_UPDATE
     // ACTUAL_HANDLE_CLIENT_PACKET
@@ -312,6 +315,8 @@ public:
     std::unordered_map<uint32, VanityInfo> _vanityItems;
     std::mutex _packetMutex;
     std::unordered_map<uint32, std::deque<WorldPacket>> _pendingPackets;
+    std::mutex _rejectedPacketMutex;
+    std::unordered_map<uint32, uint32> _rejectedPackets;
 };
 
 struct AscensionClassService
@@ -718,12 +723,40 @@ void TestVanityDelivery()
 }
 }
 
+int WarningsFrom(uint32 accountId, int repeats, std::vector<WorldPacket> const& packets)
+{
+    WorldSession session;
+    session.AccountId = accountId;
+    Player player;
+    player.Session = &session;
+    int const before = warnings;
+    for (int repeat = 0; repeat < repeats; ++repeat)
+        for (WorldPacket const& packet : packets)
+            Receive(session, packet);
+    for (int update = 0; update < 4; ++update)
+        AscensionCollectionService::Instance().OnPlayerUpdate(&player, 1);
+    return warnings - before;
+}
+
+void TestRejectedPacketWarnings()
+{
+    WorldPacket shortRequest(0x0523, 4);
+    shortRequest << uint32(1001);
+    int const malformedQueries = WarningsFrom(20, 1000, {BulkQuery({35}, 2), BulkQuery({44472}, 2, 0x061A)});
+    int const overflow = WarningsFrom(21, 1064, {ApplyAppearances()});
+    int const malformedSpends = WarningsFrom(22, 64, {shortRequest});
+    Check(malformedQueries == 11, "2000 malformed bulk queries log 11 warnings, at 1, 2, 4 ... 1024 rejections");
+    Check(overflow == 10, "1000 packets dropped from a full queue log 10 warnings");
+    Check(malformedSpends == 7, "64 malformed point spend requests log 7 warnings");
+}
+
 int main()
 {
     TestRealmInfo();
     TestWorldEntryResend();
     TestItemQueries();
     TestVanityDelivery();
+    TestRejectedPacketWarnings();
     std::cout << checks - failures << '/' << checks << " checks passed\n";
     return failures ? 1 : 0;
 }

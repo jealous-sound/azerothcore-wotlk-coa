@@ -91,6 +91,7 @@
 
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <cstdlib>
 #include <cstring>
 #include <filesystem>
@@ -3218,14 +3219,20 @@ public:
 
     if (queue.size() >= MAX_QUEUED_EXTENSION_PACKETS)
     {
-      LOG_WARN("coa",
-               "Dropping Ascension extension packet 0x{:04X} for account {} "
-               "because its queue is full",
-               packet.GetOpcode(), accountId);
+      RejectClientPacket(accountId, packet, "its queue is full");
       return;
     }
 
     queue.emplace_back(packet);
+  }
+
+  void RejectClientPacket(uint32 accountId, WorldPacket const& packet, std::string_view reason)
+  {
+    std::lock_guard lock(_rejectedPacketMutex);
+    uint32 const rejected = ++_rejectedPackets[accountId];
+    if (std::has_single_bit(rejected))
+      LOG_WARN("coa", "Rejected Ascension extension packet 0x{:04X} ({} bytes) from account {}: {}; {} rejected so far",
+          packet.GetOpcode(), packet.size(), accountId, reason, rejected);
   }
 
   void OnPlayerLogin(Player *player) {
@@ -3280,6 +3287,11 @@ public:
     {
       std::lock_guard lock(_stateMutex);
       _playerStates.erase(player->GetGUID().GetCounter());
+    }
+
+    {
+      std::lock_guard lock(_rejectedPacketMutex);
+      _rejectedPackets.erase(player->GetSession()->GetAccountId());
     }
 
     std::lock_guard lock(_packetMutex);
@@ -4072,9 +4084,7 @@ private:
         break;
       }
     } catch (ByteBufferException const &) {
-      LOG_WARN("coa",
-               "Malformed Ascension extension packet opcode=0x{:04X} from {}",
-               packet.GetOpcode(), player->GetName());
+      RejectClientPacket(player->GetSession()->GetAccountId(), packet, "malformed payload");
     }
   }
 
@@ -4171,8 +4181,7 @@ private:
     {
         if (packet.size() != POINT_SPEND_REQUEST_SIZE)
         {
-            LOG_WARN("coa", "Malformed Ascension point spend request from {}: {} bytes",
-                player->GetName(), packet.size());
+            RejectClientPacket(player->GetSession()->GetAccountId(), packet, "malformed point spend request");
             return;
         }
 
@@ -4472,6 +4481,8 @@ private:
 
   std::mutex _packetMutex;
   std::unordered_map<uint32, std::deque<WorldPacket>> _pendingPackets;
+  std::mutex _rejectedPacketMutex;
+  std::unordered_map<uint32, uint32> _rejectedPackets;
 
   std::mutex _stateMutex;
   std::unordered_map<uint32, std::shared_ptr<PlayerCollectionState>>
@@ -4821,8 +4832,8 @@ public:
         std::vector<uint32> const entries = ReadBulkQueryEntries(packet, MAX_CREATURE_QUERY_BULK_ENTRIES);
         if (entries.empty())
         {
-            LOG_WARN("coa",
-                "Malformed Ascension creature asset query payload={} bytes", packet.size());
+            AscensionCollectionService::Instance().RejectClientPacket(session->GetAccountId(), packet,
+                "malformed creature query");
             return false;
         }
 
@@ -4838,10 +4849,11 @@ public:
 
     if (opcode == CMSG_ITEM_QUERY_BULK)
     {
+        AscensionCollectionService& service = AscensionCollectionService::Instance();
         if (ReadBulkQueryEntries(packet, MAX_ITEM_QUERY_BULK_ENTRIES).empty())
-            LOG_WARN("coa", "Malformed Ascension item query payload={} bytes", packet.size());
+            service.RejectClientPacket(session->GetAccountId(), packet, "malformed item query");
         else
-            AscensionCollectionService::Instance().QueueClientPacket(session->GetAccountId(), packet);
+            service.QueueClientPacket(session->GetAccountId(), packet);
         return false;
     }
 
