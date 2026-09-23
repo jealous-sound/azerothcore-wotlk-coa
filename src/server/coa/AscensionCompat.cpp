@@ -121,6 +121,7 @@ constexpr uint16 CMSG_ANTICHEAT_ALERT = 0x051F;
 constexpr uint16 CMSG_CUSTOM_ASCENSION_POINT_SPEND_REQUEST = 0x0523;
 constexpr uint16 CMSG_EXTENSION_INITIALIZED = 0x0561;
 constexpr uint16 CMSG_CREATURE_QUERY_BULK = 0x061A;
+constexpr uint16 CMSG_ITEM_QUERY_BULK = 0x061B;
 constexpr uint16 CMSG_APPLY_APPEARANCES = 0x0697;
 constexpr uint16 SMSG_APPLY_APPEARANCES_RESULT = 0x0698;
 constexpr uint16 SMSG_APPEARANCE_COLLECTION_INFO = 0x0699;
@@ -148,6 +149,8 @@ constexpr uint8 REALM_INFO_ADDONS_ALLOWED = 1;
 
 constexpr uint16 SMSG_BANK_PERMISSIONS = 0x0769;
 
+constexpr uint32 MAX_BULK_QUERY_ENTRIES = 256;
+
 constexpr std::array<uint16, 3> QUEUED_EXTENSION_OPCODES = {
     CMSG_APPLY_APPEARANCES, CMSG_SET_CAN_SEE_APPEARANCES,
     CMSG_EXTENSION_INITIALIZED};
@@ -163,7 +166,7 @@ constexpr ExtensionOpcodeIdentity EXTENSION_OPCODES[] = {
     {0x053B, "CMSG_ASCENSIONGM_TICKET_LIST_REQUEST"},
     {CMSG_EXTENSION_INITIALIZED, "CMSG_EXTENSION_INITIALIZED"},
     {0x05A1, "CMSG_CHALLENGE_QUERY_FAILURE"},
-    {0x061B, "CMSG_ITEM_QUERY_BULK"},
+    {CMSG_ITEM_QUERY_BULK, "CMSG_ITEM_QUERY_BULK"},
     {0x0667, "CMSG_SET_LEVEL_SCALING"},
     {CMSG_APPLY_APPEARANCES, "CMSG_APPLY_APPEARANCES"},
     {SMSG_APPLY_APPEARANCES_RESULT, "SMSG_APPLY_APPEARANCES_RESULT"},
@@ -222,6 +225,23 @@ constexpr ExtensionOpcodeIdentity EXTENSION_OPCODES[] = {
   if (packet.size() > limit)
     description += "...";
   return description;
+}
+
+[[nodiscard]] std::vector<uint32> ReadBulkQueryEntries(WorldPacket const& packet)
+{
+    if (packet.size() < sizeof(uint32))
+        return {};
+
+    uint32 const count = packet.read<uint32>(0);
+    if (!count || count > MAX_BULK_QUERY_ENTRIES ||
+        packet.size() != sizeof(uint32) + std::size_t(count) * sizeof(uint32))
+        return {};
+
+    std::vector<uint32> entries;
+    entries.reserve(count);
+    for (uint32 index = 0; index < count; ++index)
+        entries.push_back(packet.read<uint32>(sizeof(uint32) + std::size_t(index) * sizeof(uint32)));
+    return entries;
 }
 
 constexpr uint32 SPELL_PYROMANCER_HEAT = 807389;
@@ -4010,6 +4030,10 @@ private:
         LOG_DEBUG("coa", "Resent spell charge state to {} after client world entry",
                   player->GetName());
         break;
+      case CMSG_ITEM_QUERY_BULK:
+        for (uint32 entry : ReadBulkQueryEntries(packet))
+          player->GetSession()->SendItemQuerySingleResponse(entry);
+        break;
       default:
         break;
       }
@@ -4738,40 +4762,30 @@ public:
 
     if (opcode == CMSG_CREATURE_QUERY_BULK)
     {
-        constexpr uint32 maxCreatureQueries = 256;
-        if (!session || packet.size() < sizeof(uint32))
+        std::vector<uint32> const entries = ReadBulkQueryEntries(packet);
+        if (entries.empty())
         {
             LOG_WARN("coa",
                 "Malformed Ascension creature asset query payload={} bytes", packet.size());
             return false;
         }
 
-        uint32 const count = packet.read<uint32>(0);
-        if (!count || count > maxCreatureQueries)
-        {
-            LOG_WARN("coa",
-                "Malformed Ascension creature asset query count={} payload={} bytes", count, packet.size());
-            return false;
-        }
-
-        std::size_t const expectedSize = sizeof(uint32) + std::size_t(count) * sizeof(uint32);
-        if (packet.size() != expectedSize)
-        {
-            LOG_WARN("coa",
-                "Malformed Ascension creature asset query count={} payload={} bytes", count, packet.size());
-            return false;
-        }
-
         uint32 answered = 0;
-        for (uint32 index = 0; index < count; ++index)
-        {
-            uint32 const entry = packet.read<uint32>(sizeof(uint32) + std::size_t(index) * sizeof(uint32));
+        for (uint32 entry : entries)
             if (SendCollectionCreatureQueryResponse(session, entry))
                 ++answered;
-        }
 
         LOG_DEBUG("coa",
-            "Answered Ascension creature asset query: requested {}, answered {}", count, answered);
+            "Answered Ascension creature asset query: requested {}, answered {}", entries.size(), answered);
+        return false;
+    }
+
+    if (opcode == CMSG_ITEM_QUERY_BULK)
+    {
+        if (ReadBulkQueryEntries(packet).empty())
+            LOG_WARN("coa", "Malformed Ascension item query payload={} bytes", packet.size());
+        else
+            AscensionCollectionService::Instance().QueueClientPacket(session->GetAccountId(), packet);
         return false;
     }
 

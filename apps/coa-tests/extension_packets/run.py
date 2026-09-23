@@ -1,8 +1,8 @@
 CLI_DESCRIPTION = """Run Ascension extension packet regressions without a server or database.
 
 Compiles the production realm-info sender, socket-thread packet hook, extension packet
-queue and world-thread handler against the real WorldPacket. Pass --source-ref to test
-another Git ref.
+queue, world-thread handler and stock item query builder against the real WorldPacket
+and ItemTemplate. Pass --source-ref to test another Git ref.
 """
 
 import argparse
@@ -32,6 +32,10 @@ def constant(source, name):
     return re.search(r'^constexpr [\w:]+ ' + name + r' = [^;]+;$', source, re.M)[0]
 
 
+def method_or(source, signature, fallback):
+    return method(source, signature) if signature in source else fallback
+
+
 def main():
     parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument('--source-ref', help='Read production code from a local Git ref for regression checks.')
@@ -43,6 +47,8 @@ def main():
         return (ROOT / name).read_text(encoding='utf-8')
 
     compat = source('src/server/coa/AscensionCompat.cpp')
+    items = source('src/server/game/Handlers/ItemHandler.cpp')
+    objects = source('src/server/game/Globals/ObjectMgr.h')
     buffer = source('src/server/shared/Packets/ByteBuffer.cpp')
     harness = (HERE / 'harness.cpp').read_text(encoding='utf-8')
     for marker, text in [
@@ -50,6 +56,10 @@ def main():
             'void ByteBuffer::append(uint8 const* src, std::size_t cnt)',
             'ByteBufferPositionException::ByteBufferPositionException(',
         ))),
+        ('GET_LOCALE_STRING', method(objects, 'static inline void GetLocaleString(std::vector<std::string> const&')),
+        ('ITEM_QUERY', method(items, 'void WorldSession::HandleItemQuerySingleOpcode(') + '\n' + method_or(
+            items, 'void WorldSession::SendItemQuerySingleResponse(',
+            'void WorldSession::SendItemQuerySingleResponse(uint32) { }')),
         ('OPCODES', opcodes(compat)),
         ('QUEUE_LIMIT', constant(compat, 'MAX_QUEUED_EXTENSION_PACKETS')),
         ('CONFIG_KEYS', method(compat, 'enum class AscensionCompatConfig') + ';'),
@@ -63,8 +73,10 @@ def main():
 
     compiler = shutil.which(os.environ.get('CXX', 'cl.exe' if os.name == 'nt' else 'c++'))
     assert compiler, 'Enable a C++20 compiler (VS Developer PowerShell on Windows).'
-    includes = [ROOT / 'src/common', ROOT / 'src/common/Utilities', ROOT / 'src/server/shared/Packets',
-                ROOT / 'src/server/game/Server', ROOT / 'src/server/game/Server/Protocol']
+    includes = [ROOT / 'src/common', ROOT / 'src/common/Utilities', ROOT / 'src/server/shared',
+                ROOT / 'src/server/shared/DataStores', ROOT / 'src/server/shared/Packets',
+                ROOT / 'src/server/game/Server', ROOT / 'src/server/game/Server/Protocol',
+                ROOT / 'src/server/game/Entities/Item']
     with tempfile.TemporaryDirectory(prefix='coa-extension-packets-') as directory:
         out = Path(directory)
         cpp = out / 'harness.cpp'

@@ -1,3 +1,4 @@
+#include "ItemTemplate.h"
 #include "WorldPacket.h"
 #include <algorithm>
 #include <array>
@@ -41,11 +42,56 @@ class WorldSession
 {
 public:
     uint32 AccountId = 1;
+    int LocaleIndex = -1;
     std::vector<WorldPacket> Sent;
 
     uint32 GetAccountId() const { return AccountId; }
+    int GetSessionDbLocaleIndex() const { return LocaleIndex; }
     void SendPacket(WorldPacket const* packet) { Sent.push_back(*packet); }
+    void HandleItemQuerySingleOpcode(WorldPacket& recvData);
+    void SendItemQuerySingleResponse(uint32 item);
 };
+
+struct ObjectMgr
+{
+    std::unordered_map<uint32, ItemTemplate> Items;
+    std::unordered_map<uint32, ItemLocale> Locales;
+
+    ItemTemplate const* GetItemTemplate(uint32 entry) const
+    {
+        auto const itr = Items.find(entry);
+        return itr != Items.end() ? &itr->second : nullptr;
+    }
+
+    ItemLocale const* GetItemLocale(uint32 entry) const
+    {
+        auto const itr = Locales.find(entry);
+        return itr != Locales.end() ? &itr->second : nullptr;
+    }
+
+    // ACTUAL_GET_LOCALE_STRING
+} objectMgr;
+
+ObjectMgr* sObjectMgr = &objectMgr;
+
+struct SpellInfo
+{
+    uint32 RecoveryTime = 1500;
+    uint32 CategoryRecoveryTime = 0;
+
+    uint32 GetCategory() const { return 0; }
+};
+
+struct SpellMgr
+{
+    SpellInfo Fireball;
+
+    SpellInfo const* GetSpellInfo(uint32 spellId) const { return spellId == 133 ? &Fireball : nullptr; }
+} spellMgr;
+
+SpellMgr* sSpellMgr = &spellMgr;
+
+// ACTUAL_ITEM_QUERY
 
 struct Player
 {
@@ -163,7 +209,10 @@ public:
     std::vector<uint16> AppearancePackets;
 
     void HandleApplyAppearances(Player*, WorldPacket& packet) { AppearancePackets.push_back(packet.GetOpcode()); }
-    void HandleSetAppearanceVisibility(Player*, WorldPacket& packet) { AppearancePackets.push_back(packet.GetOpcode()); }
+    void HandleSetAppearanceVisibility(Player*, WorldPacket& packet)
+    {
+        AppearancePackets.push_back(packet.GetOpcode());
+    }
     void ProcessPendingAppearanceAdds(Player*, uint32) { }
     void ProcessPendingCompanionSpells(Player*, uint32) { }
     void ProcessCompanionLoot(Player*, uint32, bool = false) { }
@@ -305,12 +354,124 @@ void TestWorldEntryResend()
     Check(service.AppearancePackets == std::vector<uint16>{0x0697, 0x06A3},
         "appearance packets still reach the world thread in order");
 }
+
+WorldPacket BulkQuery(std::vector<uint32> const& entries, uint32 count, uint16 opcode = 0x061B)
+{
+    WorldPacket packet(opcode, sizeof(uint32) * (entries.size() + 1));
+    packet << count;
+    for (uint32 entry : entries)
+        packet << entry;
+    return packet;
+}
+
+WorldPacket BulkQuery(std::vector<uint32> const& entries)
+{
+    return BulkQuery(entries, uint32(entries.size()));
+}
+
+std::vector<uint8> Bytes(WorldPacket const& packet)
+{
+    std::vector<uint8> bytes(packet.size());
+    for (std::size_t index = 0; index < packet.size(); ++index)
+        bytes[index] = packet[index];
+    return bytes;
+}
+
+std::vector<uint8> SingleQueryReply(uint32 entry, int localeIndex)
+{
+    WorldSession session;
+    session.LocaleIndex = localeIndex;
+    WorldPacket query(0x0056, 4);
+    query << entry;
+    session.HandleItemQuerySingleOpcode(query);
+    assert(session.Sent.size() == 1 && session.Sent[0].GetOpcode() == SMSG_ITEM_QUERY_SINGLE_RESPONSE);
+    return Bytes(session.Sent[0]);
+}
+
+std::vector<std::vector<uint8>> BulkReplies(WorldSession& session, Player& player, WorldPacket const& query)
+{
+    session.Sent.clear();
+    bool const passedOn = Receive(session, query);
+    bool const answeredOnSocket = !session.Sent.empty();
+    AscensionCollectionService::Instance().OnPlayerUpdate(&player, 1);
+    std::vector<std::vector<uint8>> replies;
+    for (WorldPacket const& packet : session.Sent)
+        replies.push_back(packet.GetOpcode() == SMSG_ITEM_QUERY_SINGLE_RESPONSE ? Bytes(packet) : std::vector<uint8>{});
+    if (passedOn || answeredOnSocket)
+        replies.push_back({});
+    return replies;
+}
+
+void TestItemQueries()
+{
+    ItemTemplate& blade = objectMgr.Items[35];
+    blade.ItemId = 35;
+    blade.Class = 2;
+    blade.SubClass = 7;
+    blade.SoundOverrideSubclass = -1;
+    blade.Name1 = "Test Blade";
+    blade.Description = "Sharp";
+    blade.Spells[0].SpellId = 133;
+    blade.Spells[0].SpellCooldown = -1;
+    blade.Spells[0].SpellCategoryCooldown = -1;
+    ItemTemplate& cloak = objectMgr.Items[135522];
+    cloak.ItemId = 135522;
+    cloak.Class = 4;
+    cloak.Name1 = "Ascension Appearance 135522";
+    objectMgr.Locales[35].Name = {"", "", "Testklinge"};
+
+    WorldSession session;
+    Player player;
+    player.Session = &session;
+
+    std::vector<std::vector<uint8>> const replies = BulkReplies(session, player, BulkQuery({35, 999999, 135522}));
+    std::vector<uint8> const unknown = {0x3F, 0x42, 0x0F, 0x80};
+    Check(replies.size() == 3 && replies[0] == SingleQueryReply(35, -1) && replies[1] == unknown &&
+        replies[2] == SingleQueryReply(135522, -1),
+        "a bulk item query answers each entry in order with the stock single-item response");
+
+    WorldPacket first(SMSG_ITEM_QUERY_SINGLE_RESPONSE, 0);
+    if (!replies.empty())
+        first.append(replies[0].data(), replies[0].size());
+    first.rpos(0);
+    bool const stockLayout = first.size() > 16 && first.read<uint32>() == 35 && first.read<uint32>() == 2 &&
+        first.read<uint32>() == 7 && first.read<int32>() == -1 && ReadString(first) == "Test Blade";
+    Check(stockLayout, "the reply starts with the stock entry, class, subclass, sound and name fields");
+
+    session.LocaleIndex = 2;
+    std::vector<std::vector<uint8>> const localized = BulkReplies(session, player, BulkQuery({35}));
+    Check(localized.size() == 1 && localized[0] == SingleQueryReply(35, 2) && localized[0] != SingleQueryReply(35, -1),
+        "bulk replies use the session locale like single queries");
+    session.LocaleIndex = -1;
+
+    std::vector<uint32> full(256);
+    for (uint32 index = 0; index < full.size(); ++index)
+        full[index] = index % 2 ? 35 : 135522;
+    Check(BulkReplies(session, player, BulkQuery(full)).size() == 256, "the largest accepted batch is answered");
+
+    bool rejected = true;
+    for (WorldPacket const& malformed : {BulkQuery({}), BulkQuery(std::vector<uint32>(257, 35)),
+            BulkQuery({35}, 2), BulkQuery({35, 36}, 1), WorldPacket(0x061B, 0)})
+        rejected &= BulkReplies(session, player, malformed).empty();
+    WorldPacket shortCount(0x061B, 3);
+    shortCount << uint8(1) << uint8(0) << uint8(0);
+    rejected &= BulkReplies(session, player, shortCount).empty();
+    Check(rejected, "empty, oversized, truncated and padded batches are consumed without replies");
+
+    answeredCreatures.clear();
+    session.Sent.clear();
+    bool const creaturesPassedOn = Receive(session, BulkQuery({44472, 1234}, 2, 0x061A));
+    bool const malformedPassedOn = Receive(session, BulkQuery({44472}, 2, 0x061A));
+    Check(!creaturesPassedOn && !malformedPassedOn && answeredCreatures == std::vector<uint32>{44472, 1234},
+        "creature bulk queries keep their validation and answers");
+}
 }
 
 int main()
 {
     TestRealmInfo();
     TestWorldEntryResend();
+    TestItemQueries();
     std::cout << checks - failures << '/' << checks << " checks passed\n";
     return failures ? 1 : 0;
 }
