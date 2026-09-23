@@ -13,6 +13,8 @@
   ],
   "steps": [
     { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
+    { "action": "add_item", "actor": "knight", "item": 629951 },
+    { "action": "equip", "label": "Swap the class's two-handed starter weapon for a one-hander so a shield can be equipped", "actor": "knight", "item": 629951, "slot": 15 },
     { "action": "add_item", "actor": "knight", "item": 2362 },
     { "action": "equip", "label": "Equip a shield in the off hand", "actor": "knight", "item": 2362, "slot": 16 },
     { "action": "wait", "label": "Let the equipment update settle", "ms": 1000 },
