@@ -141,6 +141,8 @@ constexpr uint16 CMSG_MISSILE_FIRE_POSITION = 0x09C7;
 constexpr uint16 SMSG_PATCH_VANITY_COLLECTION = 0x0573;
 
 constexpr uint16 SMSG_REALM_INFO = 0x09BC;
+constexpr uint8 REALM_CREATION_FLAG_CONQUEST_OF_AZEROTH = 6;
+constexpr uint8 REALM_CREATION_FLAG_WILDCARD = 7;
 
 constexpr uint16 SMSG_BANK_PERMISSIONS = 0x0769;
 
@@ -298,6 +300,7 @@ enum class AscensionCompatConfig {
   APPEARANCE_CATALOG_PER_CATEGORY,
   UNLOCK_ALL_VANITY,
   REALM_TYPE,
+  CLASS_MODEL,
   ALLOW_LEARNED_SPELL_DELIVERY,
   LEARN_OWNED_COMPANIONS,
   MAX_RIDING_FROM_START,
@@ -335,6 +338,8 @@ public:
                          "CoA.UnlockAllVanity", true);
     SetConfigValue<std::string>(AscensionCompatConfig::REALM_TYPE,
                                 "CoA.RealmType", "live");
+    SetConfigValue<std::string>(AscensionCompatConfig::CLASS_MODEL,
+                                "CoA.ClassModel", "hero");
     SetConfigValue<bool>(AscensionCompatConfig::ALLOW_LEARNED_SPELL_DELIVERY,
                          "CoA.AllowLearnedSpellDelivery", true);
     SetConfigValue<bool>(AscensionCompatConfig::LEARN_OWNED_COMPANIONS,
@@ -4150,6 +4155,14 @@ private:
 
 public:
   void SendRealmInfo(Player *player) {
+    if (player && player->GetSession())
+      SendRealmInfo(player->GetSession(), player->GetName());
+  }
+
+  void SendRealmInfo(WorldSession *session, std::string const &who = "char-select") {
+    if (!session)
+      return;
+
     std::string const art = ascensionCompatConfig.GetConfigValue<std::string>(
         AscensionCompatConfig::REALM_TYPE);
 
@@ -4159,6 +4172,13 @@ public:
     else if (art == "ptr")         flags[3] = 1;
     else if (art == "development") flags[4] = 1;
     else                           flags[0] = 1;
+
+    std::string const model = ascensionCompatConfig.GetConfigValue<std::string>(
+        AscensionCompatConfig::CLASS_MODEL);
+    if (model == "coa")
+      flags[REALM_CREATION_FLAG_CONQUEST_OF_AZEROTH] = 1;
+    else if (model == "wildcard")
+      flags[REALM_CREATION_FLAG_WILDCARD] = 1;
 
     WorldPacket p(SMSG_REALM_INFO, 64);
     p << static_cast<uint32>(realm.Id.Realm);
@@ -4173,10 +4193,11 @@ public:
     p << "";
     p << static_cast<uint8>(0);
 
-    player->GetSession()->SendPacket(&p);
+    session->SendPacket(&p);
 
     LOG_INFO("coa",
-             "Realm info sent to {}: type {}, realm {}.", player->GetName(), art, realm.Id.Realm);
+             "Realm info sent to {}: type {}, class model {}, realm {}.",
+             who, art, model, realm.Id.Realm);
   }
 
 private:
@@ -4686,6 +4707,7 @@ public:
     else if (opcode == CMSG_CHAR_ENUM)
     {
       SendAscensionCharacterListInfo(session);
+      AscensionCollectionService::Instance().SendRealmInfo(session);
     }
 
     uint32 firstOpcode = ascensionCompatConfig.GetConfigValue<uint32>(

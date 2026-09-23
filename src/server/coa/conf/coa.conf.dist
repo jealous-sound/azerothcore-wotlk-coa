@@ -111,6 +111,17 @@ Ascension.Manastorm.Enable = 0
 CoA.RealmType = "live"
 
 #
+#    CoA.ClassModel
+#        Character-creation flavour advertised to the client.
+#        "hero"     - free-pick Hero. Default.
+#        "coa"      - Conquest of Azeroth class selection.
+#        "wildcard" - wildcard creation.
+#        Default: "hero"
+#
+
+CoA.ClassModel = "hero"
+
+#
 #    CoA.LevelScalingMaxLift
 #        Description: How many levels above its own a creature may be lifted by
 #                     LevelScaling. Without a cap, a level 30 player crossing a
