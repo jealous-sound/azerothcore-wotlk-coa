@@ -532,7 +532,10 @@ void ApplyContracts(SpellInfo* info)
     if (id == 300386)
         info->Effects[EFFECT_0].Effect = 0;
     if (id == 300387)
-        info->Effects[EFFECT_0].Effect = 0;
+        // Brimstone's Blood: same "zero effect" bug class as Murderous Might (520290) above - the
+        // player->HasAura(300387) gate in aura_ascension_xoroth_event::Check (AscensionXorothEvents.cpp,
+        // case 804345) could never be true if this effect is zeroed outright. Re-tag as SPELL_AURA_DUMMY.
+        info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_DUMMY;
     if (id == 300390)
     {
         SpellEffectInfo& e = info->Effects[EFFECT_0];
