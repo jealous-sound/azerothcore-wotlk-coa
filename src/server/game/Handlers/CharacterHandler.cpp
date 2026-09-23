@@ -962,13 +962,12 @@ void WorldSession::HandlePlayerLoginFromDB(LoginQueryHolder const& holder)
     }
 
     // pussywizard: send instance welcome message as when entering the instance through a portal
-    if (MapDifficulty const* mapDiff = GetMapDifficultyData(pCurrChar->GetMap()->GetId(), pCurrChar->GetMap()->GetDifficulty()))
-        if (mapDiff->resetTime)
-            if (time_t timeReset = sInstanceSaveMgr->GetResetTimeFor(pCurrChar->GetMap()->GetId(), pCurrChar->GetMap()->GetDifficulty()))
-            {
-                uint32 timeleft = uint32(timeReset - GameTime::GetGameTime().count());
-                pCurrChar->SendInstanceResetWarning(pCurrChar->GetMap()->GetId(), pCurrChar->GetMap()->GetDifficulty(), timeleft, true);
-            }
+    if (InstanceSaveMgr::GetResetDelayFor(pCurrChar->GetMap()->GetId(), pCurrChar->GetMap()->GetDifficulty()))
+        if (time_t timeReset = sInstanceSaveMgr->GetResetTimeFor(pCurrChar->GetMap()->GetId(), pCurrChar->GetMap()->GetDifficulty()))
+        {
+            uint32 timeleft = uint32(timeReset - GameTime::GetGameTime().count());
+            pCurrChar->SendInstanceResetWarning(pCurrChar->GetMap()->GetId(), pCurrChar->GetMap()->GetDifficulty(), timeleft, true);
+        }
 
     // pussywizard: ensure that we end up on map with our loaded transport:
     if (Transport* t = pCurrChar->GetTransport())
@@ -1329,13 +1328,12 @@ void WorldSession::HandlePlayerLoginToCharInWorld(Player* pCurrChar)
         group->SendUpdate();
 
     // pussywizard: send instance welcome message as when entering the instance through a portal
-    if (MapDifficulty const* mapDiff = GetMapDifficultyData(pCurrChar->GetMap()->GetId(), pCurrChar->GetMap()->GetDifficulty()))
-        if (mapDiff->resetTime)
-            if (time_t timeReset = sInstanceSaveMgr->GetResetTimeFor(pCurrChar->GetMap()->GetId(), pCurrChar->GetMap()->GetDifficulty()))
-            {
-                uint32 timeleft = uint32(timeReset - GameTime::GetGameTime().count());
-                GetPlayer()->SendInstanceResetWarning(pCurrChar->GetMap()->GetId(), pCurrChar->GetMap()->GetDifficulty(), timeleft, true);
-            }
+    if (InstanceSaveMgr::GetResetDelayFor(pCurrChar->GetMap()->GetId(), pCurrChar->GetMap()->GetDifficulty()))
+        if (time_t timeReset = sInstanceSaveMgr->GetResetTimeFor(pCurrChar->GetMap()->GetId(), pCurrChar->GetMap()->GetDifficulty()))
+        {
+            uint32 timeleft = uint32(timeReset - GameTime::GetGameTime().count());
+            GetPlayer()->SendInstanceResetWarning(pCurrChar->GetMap()->GetId(), pCurrChar->GetMap()->GetDifficulty(), timeleft, true);
+        }
 
     // this shouldn't do anything, becaues offline can't be on taxi, but just in case
     pCurrChar->ContinueTaxiFlight();
