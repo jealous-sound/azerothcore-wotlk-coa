@@ -17,6 +17,7 @@ constexpr uint32 SPELL_SOULSTONE_LURE_AURA = 561826;
 constexpr uint32 NPC_SOULSTONE_LURE = 557911;
 constexpr uint32 SUMMON_PROPERTIES_STATIONARY = 64;
 constexpr uint32 SPELL_DEATHBRINGER = 573040;
+constexpr uint32 SPELL_HARVEST_TIME = 803995;
 
 class reaper_spell_contracts : public GlobalScript
 {
@@ -44,6 +45,11 @@ public:
             info->Effects[EFFECT_0].MiscValue == SPELLMOD_DURATION &&
             info->Effects[EFFECT_0].SpellClassMask == flag96(16777216, 0, 0))
             info->Effects[EFFECT_0].SpellClassMask = flag96(16777216, 536875008, 67108864);
+        else if (info->Id == SPELL_HARVEST_TIME &&
+            info->Effects[EFFECT_1].ApplyAuraName == SPELL_AURA_ADD_FLAT_MODIFIER &&
+            info->Effects[EFFECT_1].MiscValue == SPELLMOD_CHANCE_OF_SUCCESS &&
+            !info->Effects[EFFECT_1].SpellClassMask)
+            info->Effects[EFFECT_1].ApplyAuraName = SPELL_AURA_DUMMY;
     }
 };
 

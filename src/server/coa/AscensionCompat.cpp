@@ -3998,6 +3998,9 @@ private:
       case CMSG_SET_CAN_SEE_APPEARANCES:
         HandleSetAppearanceVisibility(player, packet);
         break;
+      case CMSG_CUSTOM_ASCENSION_POINT_SPEND_REQUEST:
+        HandleVanityDeliveryRequest(player, packet);
+        break;
       default:
         break;
       }
@@ -4006,6 +4009,32 @@ private:
                "Malformed Ascension extension packet opcode=0x{:04X} from {}",
                packet.GetOpcode(), player->GetName());
     }
+  }
+
+  void HandleVanityDeliveryRequest(Player *player, WorldPacket &packet) {
+    constexpr uint8 REQUEST_VANITY_DELIVERY = 2;
+
+    if (packet.size() < sizeof(uint8) + sizeof(uint32))
+    {
+      LOG_WARN("module.ascension_compat",
+               "Malformed vanity delivery request payload={} bytes from {}",
+               packet.size(), player->GetName());
+      return;
+    }
+
+    uint8 kind = packet.read<uint8>(0);
+    uint32 itemId = packet.read<uint32>(sizeof(uint8));
+    if (kind != REQUEST_VANITY_DELIVERY)
+    {
+      LOG_INFO("module.ascension_compat",
+               "Unhandled Ascension point-spend request kind={} value={} from {}",
+               kind, itemId, player->GetName());
+      return;
+    }
+
+    LOG_INFO("module.ascension_compat", "Vanity delivery requested: item {} for {}",
+             itemId, player->GetName());
+    DeliverLocalVanityItem(player, itemId);
   }
 
   void HandleApplyAppearances(Player *player, WorldPacket &packet) {
@@ -4786,7 +4815,8 @@ public:
       return false;
 
     if (opcode == CMSG_APPLY_APPEARANCES ||
-        opcode == CMSG_SET_CAN_SEE_APPEARANCES) {
+        opcode == CMSG_SET_CAN_SEE_APPEARANCES ||
+        opcode == CMSG_CUSTOM_ASCENSION_POINT_SPEND_REQUEST) {
       AscensionCollectionService::Instance().QueueClientPacket(
           session->GetAccountId(), packet);
     }

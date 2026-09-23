@@ -1051,6 +1051,28 @@ void ApplyClientSpellCharges(SpellInfo* spellInfo)
 }
 }
 
+void DisarmUnmaskedCooldownModifier(SpellInfo* spellInfo)
+{
+    if (!IsCustomClassFamily(spellInfo->SpellFamilyName))
+        return;
+
+    for (SpellEffectInfo& effect : spellInfo->Effects)
+    {
+        if (effect.Effect != SPELL_EFFECT_APPLY_AURA)
+            continue;
+        if (effect.ApplyAuraName != SPELL_AURA_ADD_FLAT_MODIFIER &&
+            effect.ApplyAuraName != SPELL_AURA_ADD_PCT_MODIFIER)
+            continue;
+        if (effect.MiscValue != SPELLMOD_COOLDOWN && effect.MiscValue != SPELLMOD_GLOBAL_COOLDOWN)
+            continue;
+        if (effect.SpellClassMask)
+            continue;
+
+        effect.ApplyAuraName = SPELL_AURA_DUMMY;
+        effect.MiscValue = 0;
+    }
+}
+
 void ApplyAscensionClassMechanics(SpellInfo* spellInfo)
 {
     if (!spellInfo)
@@ -1155,6 +1177,7 @@ void ApplyAscensionClassMechanics(SpellInfo* spellInfo)
     spellInfo->IsDeprecatedForPlayers =
         HasDeprecatedWord(spellInfo->SpellName[0]) || HasDeprecatedWord(spellInfo->Rank[0]);
     ApplyClientSpellCharges(spellInfo);
+    DisarmUnmaskedCooldownModifier(spellInfo);
 
     if (IsCustomClassFamily(spellInfo->SpellFamilyName))
         spellInfo->EquippedItemInventoryTypeMask = int32(RepairedRangedInventoryMask(spellInfo->EquippedItemClass,

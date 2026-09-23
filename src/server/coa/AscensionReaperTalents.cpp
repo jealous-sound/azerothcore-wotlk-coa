@@ -44,7 +44,9 @@ enum ReaperTalentSpells : uint32
     SPELL_PURGATORY = 504046,
     SPELL_PURGATORY_DAMAGE = 504047,
     SPELL_ESSENCE_INVIGORATION = 805186,
-    SPELL_ESSENCE_INVIGORATION_HEAL = 805187
+    SPELL_ESSENCE_INVIGORATION_HEAL = 805187,
+    SPELL_TORMENTOR = 92147,
+    SPELL_TORMENTOR_COOLDOWN = 504558
 };
 
 Unit* HostileTargetInRange(Player* player, uint32 spellId)
@@ -128,6 +130,24 @@ void CastTalentTrigger(Player* player, uint32 talentId, uint32 triggerId)
 {
     if (RollTalent(player, talentId))
         player->CastSpell(player, triggerId, true);
+}
+
+void ApplyTormentor(Player* player)
+{
+    if (!RollTalent(player, SPELL_TORMENTOR))
+        return;
+
+    SpellInfo const* reduction = sSpellMgr->GetSpellInfo(SPELL_TORMENTOR_COOLDOWN);
+    if (!reduction)
+        return;
+
+    SpellEffectInfo const& effect = reduction->Effects[EFFECT_0];
+    uint32 const affected = uint32(effect.MiscValue);
+    int32 const milliseconds = effect.CalcValue();
+    if (!affected || milliseconds >= 0 || !player->HasSpellCooldown(affected))
+        return;
+
+    player->ModifySpellCooldown(affected, milliseconds);
 }
 
 class spell_ascension_soul_capture : public SpellScript
@@ -367,6 +387,7 @@ void ApplyAscensionReaperSoulInfusionSpent(Player* player)
         return;
 
     CastTalentTrigger(player, SPELL_ESSENCE_INVIGORATION, SPELL_ESSENCE_INVIGORATION_HEAL);
+    ApplyTormentor(player);
 }
 
 void AddSC_AscensionReaperTalents()
