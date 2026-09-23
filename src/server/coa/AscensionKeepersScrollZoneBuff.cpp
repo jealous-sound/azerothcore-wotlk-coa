@@ -68,8 +68,8 @@ public:
         : PlayerScript("ascension_keepers_scroll_zone_buff_player",
             {PLAYERHOOK_ON_UPDATE_ZONE, PLAYERHOOK_CAN_CAST_ITEM_USE_SPELL}) { }
 
-    bool OnPlayerCanCastItemUseSpell(Player* player, Item* item, SpellCastTargets const& /*targets*/,
-        uint8 castCount, uint32 /*glyphIndex*/) override
+    bool OnPlayerCanCastItemUseSpell(Player* player, Item* item, SpellCastTargets const&,
+        uint8 castCount, uint32) override
     {
         uint32 spellId = SpellForItem(item->GetEntry());
         if (!spellId)
