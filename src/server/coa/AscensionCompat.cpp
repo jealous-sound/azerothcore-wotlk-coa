@@ -149,7 +149,10 @@ constexpr uint8 REALM_INFO_ADDONS_ALLOWED = 1;
 
 constexpr uint16 SMSG_BANK_PERMISSIONS = 0x0769;
 
-constexpr uint32 MAX_BULK_QUERY_ENTRIES = 256;
+constexpr uint32 MAX_CREATURE_QUERY_BULK_ENTRIES = 256;
+constexpr uint32 MAX_ITEM_QUERY_BULK_ENTRIES = 50;
+constexpr std::size_t MAX_EXTENSION_REPLIES_PER_UPDATE = 150;
+static_assert(MAX_ITEM_QUERY_BULK_ENTRIES <= MAX_EXTENSION_REPLIES_PER_UPDATE);
 constexpr std::size_t POINT_SPEND_REQUEST_SIZE = sizeof(uint8) + sizeof(uint32);
 constexpr uint8 VANITY_CURRENCY_DONATION_POINTS = 2;
 
@@ -229,13 +232,13 @@ constexpr ExtensionOpcodeIdentity EXTENSION_OPCODES[] = {
   return description;
 }
 
-[[nodiscard]] std::vector<uint32> ReadBulkQueryEntries(WorldPacket const& packet)
+[[nodiscard]] std::vector<uint32> ReadBulkQueryEntries(WorldPacket const& packet, uint32 maxEntries)
 {
     if (packet.size() < sizeof(uint32))
         return {};
 
     uint32 const count = packet.read<uint32>(0);
-    if (!count || count > MAX_BULK_QUERY_ENTRIES ||
+    if (!count || count > maxEntries ||
         packet.size() != sizeof(uint32) + std::size_t(count) * sizeof(uint32))
         return {};
 
@@ -244,6 +247,11 @@ constexpr ExtensionOpcodeIdentity EXTENSION_OPCODES[] = {
     for (uint32 index = 0; index < count; ++index)
         entries.push_back(packet.read<uint32>(sizeof(uint32) + std::size_t(index) * sizeof(uint32)));
     return entries;
+}
+
+[[nodiscard]] std::size_t ExpectedReplies(WorldPacket const& packet)
+{
+    return packet.GetOpcode() == CMSG_ITEM_QUERY_BULK ? packet.read<uint32>(0) : 1;
 }
 
 constexpr uint32 SPELL_PYROMANCER_HEAT = 807389;
@@ -3201,6 +3209,13 @@ public:
   void QueueClientPacket(uint32 accountId, WorldPacket const &packet) {
     std::lock_guard lock(_packetMutex);
     std::deque<WorldPacket> &queue = _pendingPackets[accountId];
+    auto const isWorldEntryNotice = [](WorldPacket const& queued)
+    {
+      return queued.GetOpcode() == CMSG_EXTENSION_INITIALIZED;
+    };
+    if (isWorldEntryNotice(packet) && std::any_of(queue.begin(), queue.end(), isWorldEntryNotice))
+      return;
+
     if (queue.size() >= MAX_QUEUED_EXTENSION_PACKETS)
     {
       LOG_WARN("coa",
@@ -3271,20 +3286,34 @@ public:
     _pendingPackets.erase(player->GetSession()->GetAccountId());
   }
 
-  void OnPlayerUpdate(Player *player, uint32 diff) {
-    std::deque<WorldPacket> packets;
-    uint32 accountId = player->GetSession()->GetAccountId();
+  [[nodiscard]] std::vector<WorldPacket> TakeClientPackets(uint32 accountId)
+  {
+    std::vector<WorldPacket> packets;
+    std::lock_guard lock(_packetMutex);
+    auto itr = _pendingPackets.find(accountId);
+    if (itr == _pendingPackets.end())
+      return packets;
+
+    std::deque<WorldPacket> &queue = itr->second;
+    std::size_t budget = MAX_EXTENSION_REPLIES_PER_UPDATE;
+    while (!queue.empty())
     {
-      std::lock_guard lock(_packetMutex);
-      auto itr = _pendingPackets.find(accountId);
-      if (itr != _pendingPackets.end())
-      {
-        packets = std::move(itr->second);
-        _pendingPackets.erase(itr);
-      }
+      std::size_t const replies = ExpectedReplies(queue.front());
+      if (replies > budget)
+        break;
+
+      budget -= replies;
+      packets.push_back(std::move(queue.front()));
+      queue.pop_front();
     }
 
-    for (WorldPacket &packet : packets)
+    if (queue.empty())
+      _pendingPackets.erase(itr);
+    return packets;
+  }
+
+  void OnPlayerUpdate(Player *player, uint32 diff) {
+    for (WorldPacket &packet : TakeClientPackets(player->GetSession()->GetAccountId()))
       HandleClientPacket(player, packet);
 
     ProcessPendingAppearanceAdds(player, diff);
@@ -4033,7 +4062,7 @@ private:
                   player->GetName());
         break;
       case CMSG_ITEM_QUERY_BULK:
-        for (uint32 entry : ReadBulkQueryEntries(packet))
+        for (uint32 entry : ReadBulkQueryEntries(packet, MAX_ITEM_QUERY_BULK_ENTRIES))
           player->GetSession()->SendItemQuerySingleResponse(entry);
         break;
       case CMSG_CUSTOM_ASCENSION_POINT_SPEND_REQUEST:
@@ -4789,7 +4818,7 @@ public:
 
     if (opcode == CMSG_CREATURE_QUERY_BULK)
     {
-        std::vector<uint32> const entries = ReadBulkQueryEntries(packet);
+        std::vector<uint32> const entries = ReadBulkQueryEntries(packet, MAX_CREATURE_QUERY_BULK_ENTRIES);
         if (entries.empty())
         {
             LOG_WARN("coa",
@@ -4809,7 +4838,7 @@ public:
 
     if (opcode == CMSG_ITEM_QUERY_BULK)
     {
-        if (ReadBulkQueryEntries(packet).empty())
+        if (ReadBulkQueryEntries(packet, MAX_ITEM_QUERY_BULK_ENTRIES).empty())
             LOG_WARN("coa", "Malformed Ascension item query payload={} bytes", packet.size());
         else
             AscensionCollectionService::Instance().QueueClientPacket(session->GetAccountId(), packet);

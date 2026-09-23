@@ -301,6 +301,7 @@ public:
 
     // ACTUAL_SEND_REALM_INFO
     // ACTUAL_QUEUE_CLIENT_PACKET
+    // ACTUAL_TAKE_CLIENT_PACKETS
     // ACTUAL_ON_PLAYER_UPDATE
     // ACTUAL_HANDLE_CLIENT_PACKET
     // ACTUAL_POINT_SPEND
@@ -405,6 +406,13 @@ WorldPacket ExtensionInitialized()
     return packet;
 }
 
+WorldPacket ApplyAppearances()
+{
+    WorldPacket packet(0x0697, 4);
+    packet << uint32(0);
+    return packet;
+}
+
 void TestWorldEntryResend()
 {
     AscensionCollectionService& service = AscensionCollectionService::Instance();
@@ -421,8 +429,10 @@ void TestWorldEntryResend()
 
     bool consumed = true;
     for (int worldEntry = 0; worldEntry < 3; ++worldEntry)
+    {
         consumed &= !Receive(session, ExtensionInitialized());
-    service.OnPlayerUpdate(&player, 1);
+        service.OnPlayerUpdate(&player, 1);
+    }
     Check(consumed && player.ChargeSnapshots == 4 && player.EchoSnapshots == 4,
         "login, loading screens and reloads each get their own resend");
 
@@ -434,15 +444,22 @@ void TestWorldEntryResend()
     Check(player.ChargeSnapshots == charges && player.EchoSnapshots == echoes,
         "other extension notices resend nothing");
 
-    WorldPacket apply(0x0697, 4);
-    apply << uint32(0);
     WorldPacket visibility(0x06A3, 2);
     visibility << uint8(1) << uint8(1);
-    Receive(session, apply);
+    Receive(session, ApplyAppearances());
     Receive(session, visibility);
     service.OnPlayerUpdate(&player, 1);
     Check(service.AppearancePackets == std::vector<uint16>{0x0697, 0x06A3},
         "appearance packets still reach the world thread in order");
+
+    for (int notice = 0; notice < 200; ++notice)
+        Receive(session, ExtensionInitialized());
+    Receive(session, ApplyAppearances());
+    service.OnPlayerUpdate(&player, 1);
+    Check(player.ChargeSnapshots == charges + 1 && player.EchoSnapshots == echoes + 1,
+        "notices that arrive before the same world update share one resend");
+    Check(service.AppearancePackets == std::vector<uint16>{0x0697, 0x06A3, 0x0697},
+        "repeated notices do not fill the queue and crowd out later packets");
 }
 
 WorldPacket BulkQuery(std::vector<uint32> const& entries, uint32 count, uint16 opcode = 0x061B)
@@ -534,19 +551,47 @@ void TestItemQueries()
         "bulk replies use the session locale like single queries");
     session.LocaleIndex = -1;
 
-    std::vector<uint32> full(256);
+    std::vector<uint32> full(50);
     for (uint32 index = 0; index < full.size(); ++index)
         full[index] = index % 2 ? 35 : 135522;
-    Check(BulkReplies(session, player, BulkQuery(full)).size() == 256, "the largest accepted batch is answered");
+    Check(BulkReplies(session, player, BulkQuery(full)).size() == 50,
+        "the client's largest batch of 50 entries is answered");
 
     bool rejected = true;
-    for (WorldPacket const& malformed : {BulkQuery({}), BulkQuery(std::vector<uint32>(257, 35)),
+    for (WorldPacket const& malformed : {BulkQuery({}), BulkQuery(std::vector<uint32>(51, 35)),
             BulkQuery({35}, 2), BulkQuery({35, 36}, 1), WorldPacket(0x061B, 0)})
         rejected &= BulkReplies(session, player, malformed).empty();
     WorldPacket shortCount(0x061B, 3);
     shortCount << uint8(1) << uint8(0) << uint8(0);
     rejected &= BulkReplies(session, player, shortCount).empty();
     Check(rejected, "empty, oversized, truncated and padded batches are consumed without replies");
+
+    AscensionCollectionService& service = AscensionCollectionService::Instance();
+    session.Sent.clear();
+    for (int batch = 0; batch < 64; ++batch)
+        Receive(session, BulkQuery(full));
+    std::size_t largestUpdate = 0;
+    for (int update = 0; update < 30; ++update)
+    {
+        std::size_t const before = session.Sent.size();
+        service.OnPlayerUpdate(&player, 1);
+        largestUpdate = std::max(largestUpdate, session.Sent.size() - before);
+    }
+    bool inOrder = session.Sent.size() == 64 * full.size();
+    for (std::size_t index = 0; inOrder && index < session.Sent.size(); ++index)
+        inOrder = session.Sent[index].read<uint32>(0) == full[index % full.size()];
+    Check(largestUpdate == 150 && inOrder,
+        "a flood of item batches gets at most 150 replies per world update and every reply in order");
+
+    std::size_t const appearances = service.AppearancePackets.size();
+    for (int batch = 0; batch < 3; ++batch)
+        Receive(session, BulkQuery(full));
+    Receive(session, ApplyAppearances());
+    service.OnPlayerUpdate(&player, 1);
+    bool const waited = service.AppearancePackets.size() == appearances;
+    service.OnPlayerUpdate(&player, 1);
+    Check(waited && service.AppearancePackets.size() == appearances + 1,
+        "packets behind a full update budget keep their place for the next update");
 
     answeredCreatures.clear();
     session.Sent.clear();

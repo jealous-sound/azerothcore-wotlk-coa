@@ -66,6 +66,7 @@ def main():
         ('CONFIG_KEYS', method(compat, 'enum class AscensionCompatConfig') + ';'),
         ('SEND_REALM_INFO', method(compat, 'void SendRealmInfo(WorldSession *session')),
         ('QUEUE_CLIENT_PACKET', method(compat, 'void QueueClientPacket(uint32 accountId')),
+        ('TAKE_CLIENT_PACKETS', method_or(compat, 'std::vector<WorldPacket> TakeClientPackets(uint32 accountId)', '')),
         ('ON_PLAYER_UPDATE', method(compat, 'void OnPlayerUpdate(Player *player, uint32 diff) {')),
         ('HANDLE_CLIENT_PACKET', method(compat, 'void HandleClientPacket(Player *player')),
         ('CAN_PACKET_RECEIVE_EARLY', method(compat, 'bool CanPacketReceiveEarly(WorldSession *session')),
