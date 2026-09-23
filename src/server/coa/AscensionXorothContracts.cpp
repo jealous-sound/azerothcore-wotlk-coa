@@ -557,7 +557,12 @@ void ApplyContracts(SpellInfo* info)
     if (id == 704980)
         info->Effects[EFFECT_1].Effect = 0;
     if (id == 705000)
-        info->Effects[EFFECT_0].Effect = 0;
+        // To Ashes: same "zero effect" bug class as Murderous Might (520290) above - the
+        // player->HasAura(705000) gate in xoroth_casts::OnSpellCritChance (AscensionXorothAbilities.cpp)
+        // could never be true if this effect is zeroed outright (Player::addSpell's learn-time
+        // CastSpell would build an aura with no valid effect mask). Re-tag as SPELL_AURA_DUMMY rather
+        // than zeroing the effect type, matching the established remedy.
+        info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_DUMMY;
     info->_InitializeExplicitTargetMask();
 }
 }

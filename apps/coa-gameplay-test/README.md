@@ -498,7 +498,12 @@ to query the native periodic coefficient path instead of direct healing/damage.
 `spell_effect_value` and `spell_damage_done` accept `pet: true` to calculate using the player's current pet.
 `melee_hit_chance`/`spell_hit_chance` read the player's hit modifiers and `spell_power` (`school` 1..6) its base
 spell damage bonus. `spell_done_crit_chance` and `melee_spell_damage_done` require `spell` and `target`: the native
-crit chance for that spell, and the weapon-spell damage bonus from a fixed base of 1000. `aura_crit_chance` reads a
+crit chance for that spell, and the weapon-spell damage bonus from a fixed base of 1000. `spell_done_crit_chance`
+only reflects native `ApplySpellMod(SPELLMOD_CRITICAL_CHANCE)` modifiers (a bare `Unit::SpellDoneCritChance` query);
+it does not invoke `AllSpellScript::OnSpellCritChance`, which only runs mid-cast (`Spell::DoAllEffectOnTarget`).
+`spell_done_crit_chance_scripted` requires the same `spell`/`target` and additionally runs that hook via a
+throwaway, never-cast `Spell` instance, so a script-hook-only crit bonus is observable without a real cast.
+`aura_crit_chance` reads a
 periodic aura effect's snapshotted crit chance; `aura_script_value` requires `key`. `script_melee_damage_taken`,
 `script_spell_damage_taken` and `script_periodic_damage_taken` require `target` as the attacker (and `spell` for
 the latter two) and return 1000 after the registered module damage-taken hooks. `script_heal_received` requires
