@@ -556,11 +556,23 @@ void TestItemQueries()
         "creature bulk queries keep their validation and answers");
 }
 
-WorldPacket PointSpend(uint8 kind, uint32 itemId)
+enum VanityCurrency : uint8
+{
+    SeasonalPoints = 1,
+    DonationPoints = 2,
+    BazaarTokens = 3
+};
+
+WorldPacket PointSpend(uint8 currency, uint32 itemId)
 {
     WorldPacket packet(0x0523, 5);
-    packet << kind << itemId;
+    packet << currency << itemId;
     return packet;
+}
+
+WorldPacket DonationPointsRequest(uint32 itemId)
+{
+    return PointSpend(DonationPoints, itemId);
 }
 
 struct Delivery
@@ -629,32 +641,35 @@ void TestVanityDelivery()
                 for (uint32 itemId : {1001u, 1002u, 1003u, 1004u, 56925u, 110000u, 134985u, 424242u})
                 {
                     VanitySetup const setup{unlockAll, learnedSpells, bagsFull};
-                    matches &= Deliver(setup, {PointSpend(2, itemId)}) == Deliver(setup, {}, itemId);
+                    matches &= Deliver(setup, {DonationPointsRequest(itemId)}) == Deliver(setup, {}, itemId);
                 }
-    Check(matches, "every native vanity delivery request ends exactly like .localvanity for the same item");
+    Check(matches,
+        "every Donation Points request (Deliver or web-shop buy) ends exactly like .localvanity for the same item");
 
-    Delivery const owned = Deliver({}, {PointSpend(2, 1001)});
-    Delivery const bank = Deliver({}, {PointSpend(2, 134985)});
-    Delivery const spell = Deliver({}, {PointSpend(2, 1003)});
+    Delivery const owned = Deliver({}, {DonationPointsRequest(1001)});
+    Delivery const bank = Deliver({}, {DonationPointsRequest(134985)});
+    Delivery const spell = Deliver({}, {DonationPointsRequest(1003)});
     Check(owned.Stored == std::vector<uint32>{1001} && owned.NewItemNotices == 1 &&
         bank.Stored == std::vector<uint32>{134985} && bank.Learned == std::vector<uint32>{200002} &&
-        spell.Learned == std::vector<uint32>{133}, "native requests deliver owned items, banks and learned spells");
+        spell.Learned == std::vector<uint32>{133},
+        "Donation Points requests deliver owned items, banks and learned spells");
 
     VanitySetup const locked{false, true, false};
-    Delivery const refused = Deliver(locked, {PointSpend(2, 1002), PointSpend(2, 56925), PointSpend(2, 110000),
-        PointSpend(2, 424242), PointSpend(2, 1004)});
-    Delivery const full = Deliver({true, true, true}, {PointSpend(2, 1001)});
+    Delivery const refused = Deliver(locked, {DonationPointsRequest(1002), DonationPointsRequest(56925),
+        DonationPointsRequest(110000), DonationPointsRequest(424242), DonationPointsRequest(1004)});
+    Delivery const full = Deliver({true, true, true}, {DonationPointsRequest(1001)});
     Check(refused.Stored.empty() && refused.Learned.empty() && refused.Messages.size() == 5 &&
         full.Stored.empty() && full.EquipErrors == 1,
         "locked, sigil, unowned bank, unknown and templateless items and full bags are refused");
 
     WorldPacket shortRequest(0x0523, 4);
     shortRequest << uint32(1001);
-    WorldPacket longRequest = PointSpend(2, 1001);
+    WorldPacket longRequest = DonationPointsRequest(1001);
     longRequest << uint8(0);
-    Delivery const ignored = Deliver({}, {PointSpend(1, 1001), PointSpend(0, 1001), PointSpend(3, 1001),
-        shortRequest, longRequest, WorldPacket(0x0523, 0)});
-    Check(ignored == Delivery{}, "other point-spend kinds and malformed requests deliver nothing");
+    Delivery const ignored = Deliver({}, {PointSpend(SeasonalPoints, 1001), PointSpend(0, 1001),
+        PointSpend(BazaarTokens, 1001), shortRequest, longRequest, WorldPacket(0x0523, 0)});
+    Check(ignored == Delivery{},
+        "Seasonal Points, Bazaar Tokens, unknown currencies and malformed requests deliver nothing");
 }
 }
 

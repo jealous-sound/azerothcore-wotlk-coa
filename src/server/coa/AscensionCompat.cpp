@@ -151,7 +151,7 @@ constexpr uint16 SMSG_BANK_PERMISSIONS = 0x0769;
 
 constexpr uint32 MAX_BULK_QUERY_ENTRIES = 256;
 constexpr std::size_t POINT_SPEND_REQUEST_SIZE = sizeof(uint8) + sizeof(uint32);
-constexpr uint8 POINT_SPEND_VANITY_COLLECTION_ITEM = 2;
+constexpr uint8 VANITY_CURRENCY_DONATION_POINTS = 2;
 
 constexpr std::array<uint16, 4> QUEUED_EXTENSION_OPCODES = {
     CMSG_APPLY_APPEARANCES, CMSG_SET_CAN_SEE_APPEARANCES,
@@ -4147,13 +4147,13 @@ private:
             return;
         }
 
-        uint8 kind = 0;
+        uint8 currency = 0;
         uint32 itemId = 0;
-        packet >> kind >> itemId;
-        if (kind != POINT_SPEND_VANITY_COLLECTION_ITEM)
+        packet >> currency >> itemId;
+        if (currency != VANITY_CURRENCY_DONATION_POINTS)
         {
-            LOG_DEBUG("coa", "Ignored Ascension point spend request of kind {} for {} from {}",
-                kind, itemId, player->GetName());
+            LOG_DEBUG("coa", "Ignored Ascension point spend request in vanity currency {} for {} from {}",
+                currency, itemId, player->GetName());
             return;
         }
 
