@@ -212,10 +212,13 @@ namespace
             return false;
 
         uint8 const own = creature->GetLevel();
+        uint8 const offset = LocalLevelScaling::CreatureOffset.load(std::memory_order_relaxed);
+        Map const* map = creature->GetMap();
         // The viewer's own rule, not the realm's: a level that is told to one client is bounded by
         // nothing, because there is nobody else for a high view to be wrong for.
-        uint8 const level = LocalLevelScaling::ScaleCreatureLevelForViewer(
-            own, viewer->GetLevel(), LocalLevelScaling::CreatureOffset.load(std::memory_order_relaxed));
+        uint8 const level = map->IsNonRaidDungeon() && map->IsRegularDifficulty()
+            ? LocalLevelScaling::ScaleDungeonCreatureLevelForViewer(own, viewer->GetLevel(), offset)
+            : LocalLevelScaling::ScaleCreatureLevelForViewer(own, viewer->GetLevel(), offset);
         if (level == own)
             return false;               // their version *is* the creature: nothing to virtualise
 

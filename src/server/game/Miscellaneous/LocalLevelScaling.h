@@ -171,6 +171,19 @@ inline std::uint8_t ScaleCreatureLevelForViewer(std::uint8_t originalLevel, std:
     return std::max(originalLevel, floor);
 }
 
+/// The viewer's rule inside a normal five-player dungeon, which also brings a creature down.
+///
+/// The dungeon finder admits a group to a classic dungeon from well below its authored level
+/// (Scarlet Monastery - Cathedral from 20 against creatures of 36-40), so a dungeon creature is held
+/// inside the viewer's band on both sides.
+inline std::uint8_t ScaleDungeonCreatureLevelForViewer(std::uint8_t originalLevel, std::uint8_t playerLevel,
+    std::uint8_t offset = 3)
+{
+    std::uint32_t const ceiling = std::uint32_t(playerLevel) + offset;
+    std::uint8_t const lifted = ScaleCreatureLevelForViewer(originalLevel, playerLevel, offset);
+    return static_cast<std::uint8_t>(std::min<std::uint32_t>(lifted, ceiling));
+}
+
 inline std::uint8_t ScaleQuestLevel(std::int32_t originalLevel, std::uint8_t playerLevel)
 {
     if (originalLevel <= 0)
