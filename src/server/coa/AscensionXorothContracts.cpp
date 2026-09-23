@@ -459,10 +459,17 @@ void ApplyContracts(SpellInfo* info)
         hit.TargetB = SpellImplicitTargetInfo();
     }
     if (id == 707232)
-        // Speed Demon: null its own raw SPELLMOD_EFFECT3 effect (which targeted Suffuse's then-inert
-        // EFFECT_2 slot and would otherwise still fire through the native spellmod pipeline whenever
-        // Suffuse is cast). The talent's actual bonus is read directly by value below via Amount().
-        info->Effects[EFFECT_0].Effect = 0;
+        // Speed Demon: neutralize its own raw SPELLMOD_EFFECT3 effect (which targeted Suffuse's
+        // then-inert EFFECT_2 slot and would otherwise still fire through the native spellmod
+        // pipeline whenever Suffuse is cast). The talent's actual bonus is read directly by value
+        // below via Amount(). Re-tag EFFECT_0 as SPELL_AURA_DUMMY rather than zeroing
+        // info->Effects[EFFECT_0].Effect outright: zeroing the effect type leaves the spell with no
+        // valid unit-owned aura effect at all (Aura::BuildEffectMaskForOwner returns 0), so the
+        // passive can never actually become an active aura via set_aura's fixture path or the
+        // native learn-time CastSpell (Player::addSpell) alike - the very player->HasAura(707232)
+        // gate this talent depends on could then never be true (same bug class as Murderous Might,
+        // 520290, above).
+        info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_DUMMY;
     if (id == 801063)
     {
         // Suffuse: claim the previously inert EFFECT_2 slot as a native SPELL_AURA_MOD_INCREASE_SPEED

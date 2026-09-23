@@ -166,6 +166,15 @@ class xoroth_casts : public AllSpellScript
         uint32 fire = State(player).fire, id = aura->GetId();
         if (id == 801064)
             duration = 3000 * fire;
+        if (id == 801063)
+            // Suffuse (801063) carries no SpellDuration.dbc entry (SpellInfo::GetDuration() returns
+            // exactly 0 - confirmed empirically via a runtime dump of DurationEntry), so the native
+            // aura this talent now claims at EFFECT_2 (see ApplyContracts) would apply and expire in
+            // the same tick regardless of its own content. Give it the same "temporary buff scaled by
+            // Demonfire stacks spent" duration already used for the sibling Spender-consumption buff
+            // 801064 immediately above, since Suffuse is the same kind of ability (a Spender that
+            // consumes Demon's Blood stacks via BeginResources/state.fire).
+            duration = 3000 * fire;
         if (id == 801017)
             duration *= 1 + fire;
         if (id == 803889)
