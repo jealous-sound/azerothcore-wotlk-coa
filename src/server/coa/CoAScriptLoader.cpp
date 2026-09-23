@@ -29,6 +29,7 @@ void AddSC_AscensionRestingBuff();
 void AddSC_AscensionClosestResurrection();
 void AddSC_AscensionThreatRedirect();
 void AddSC_AscensionKeepersScrollSteadfast();
+void AddSC_AscensionKeepersScrollZoneBuff();
 void AddAscensionStockCoefficientScripts();
 void AddAscensionScalingBaseScripts();
 void AddCoABugReportScripts();
@@ -517,4 +518,5 @@ void AddCoAScripts()
     AddSC_AscensionClosestResurrection();
     AddSC_AscensionThreatRedirect();
     AddSC_AscensionKeepersScrollSteadfast();
+    AddSC_AscensionKeepersScrollZoneBuff();
 }
