@@ -26,7 +26,7 @@ public:
             return;
 
         effect.Effect = SPELL_EFFECT_APPLY_AURA;
-        effect.ApplyAuraName = SPELL_AURA_MOD_INCREASE_MOUNTED_SPEED;
+        effect.ApplyAuraName = SPELL_AURA_MOD_MOUNTED_SPEED_NOT_STACK;
         effect.BasePoints = 24;
         effect.DieSides = 1;
         info->DurationEntry = sSpellDurationStore.LookupEntry(STEADFAST_DURATION_ONE_HOUR);

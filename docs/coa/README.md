@@ -360,6 +360,20 @@ filter. Tooltip links remain documentation, not unconditional spellbook grants.
 This closes the reviewed acquisition/trigger gaps, not every outstanding mechanic
 in the broader class-completion audits.
 
+## Keeper's Scrolls
+
+A Keeper's Scroll blesses the zone it is used in, not the player: everyone in the
+zone gets its buff, players entering later get it for the time left, and a second
+scroll of the same kind is refused while one is active. The registry lives in
+memory, so a restart clears active blessings.
+
+Keeper's Scroll: Steadfast (91770) ships as an empty dummy; the server rewrites it
+into +25% mounted speed with the stacking mount speed aura Crusader Aura uses. Its
+client row has no tooltip either. When preparing a requested client update, run
+`apps/coa-spells/keepers_scroll_steadfast.py --input <Spell.dbc> --output
+<candidate-Spell.dbc>`; it edits one row in a separate output and never packages or
+installs a client archive.
+
 ## Login and natural regeneration
 
 The copied client's `Extensions.dll` patches the ping timer at executable address
