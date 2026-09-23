@@ -150,9 +150,10 @@ constexpr uint8 REALM_INFO_ADDONS_ALLOWED = 1;
 
 constexpr uint16 SMSG_BANK_PERMISSIONS = 0x0769;
 
-constexpr uint32 MAX_CREATURE_QUERY_BULK_ENTRIES = 256;
+constexpr uint32 MAX_CREATURE_QUERY_BULK_ENTRIES = 50;
 constexpr uint32 MAX_ITEM_QUERY_BULK_ENTRIES = 50;
 constexpr std::size_t MAX_EXTENSION_REPLIES_PER_UPDATE = 150;
+static_assert(MAX_CREATURE_QUERY_BULK_ENTRIES <= MAX_EXTENSION_REPLIES_PER_UPDATE);
 static_assert(MAX_ITEM_QUERY_BULK_ENTRIES <= MAX_EXTENSION_REPLIES_PER_UPDATE);
 constexpr std::size_t POINT_SPEND_REQUEST_SIZE = sizeof(uint8) + sizeof(uint32);
 constexpr uint8 VANITY_CURRENCY_DONATION_POINTS = 2;
@@ -252,7 +253,8 @@ constexpr ExtensionOpcodeIdentity EXTENSION_OPCODES[] = {
 
 [[nodiscard]] std::size_t ExpectedReplies(WorldPacket const& packet)
 {
-    return packet.GetOpcode() == CMSG_ITEM_QUERY_BULK ? packet.read<uint32>(0) : 1;
+    uint16 const opcode = packet.GetOpcode();
+    return opcode == CMSG_ITEM_QUERY_BULK || opcode == CMSG_CREATURE_QUERY_BULK ? packet.read<uint32>(0) : 1;
 }
 
 constexpr uint32 SPELL_PYROMANCER_HEAT = 807389;
@@ -3068,6 +3070,8 @@ private:
     mutable std::unordered_map<ObjectGuid, uint32> _staticDecayTimers;
 };
 
+bool SendCollectionCreatureQueryResponse(WorldSession* session, uint32 creatureId);
+
 class AscensionCollectionService {
 public:
     static bool IsCosmeticCategory(uint32 category)
@@ -4077,6 +4081,10 @@ private:
         for (uint32 entry : ReadBulkQueryEntries(packet, MAX_ITEM_QUERY_BULK_ENTRIES))
           player->GetSession()->SendItemQuerySingleResponse(entry);
         break;
+      case CMSG_CREATURE_QUERY_BULK:
+        for (uint32 entry : ReadBulkQueryEntries(packet, MAX_CREATURE_QUERY_BULK_ENTRIES))
+          SendCollectionCreatureQueryResponse(player->GetSession(), entry);
+        break;
       case CMSG_CUSTOM_ASCENSION_POINT_SPEND_REQUEST:
         HandlePointSpendRequest(player, packet);
         break;
@@ -4827,31 +4835,13 @@ public:
     if (opcode == CMSG_RESET_DUNGEONS)
       return true;
 
-    if (opcode == CMSG_CREATURE_QUERY_BULK)
-    {
-        std::vector<uint32> const entries = ReadBulkQueryEntries(packet, MAX_CREATURE_QUERY_BULK_ENTRIES);
-        if (entries.empty())
-        {
-            AscensionCollectionService::Instance().RejectClientPacket(session->GetAccountId(), packet,
-                "malformed creature query");
-            return false;
-        }
-
-        uint32 answered = 0;
-        for (uint32 entry : entries)
-            if (SendCollectionCreatureQueryResponse(session, entry))
-                ++answered;
-
-        LOG_DEBUG("coa",
-            "Answered Ascension creature asset query: requested {}, answered {}", entries.size(), answered);
-        return false;
-    }
-
-    if (opcode == CMSG_ITEM_QUERY_BULK)
+    if (opcode == CMSG_CREATURE_QUERY_BULK || opcode == CMSG_ITEM_QUERY_BULK)
     {
         AscensionCollectionService& service = AscensionCollectionService::Instance();
-        if (ReadBulkQueryEntries(packet, MAX_ITEM_QUERY_BULK_ENTRIES).empty())
-            service.RejectClientPacket(session->GetAccountId(), packet, "malformed item query");
+        uint32 const maxEntries = opcode == CMSG_ITEM_QUERY_BULK ? MAX_ITEM_QUERY_BULK_ENTRIES :
+            MAX_CREATURE_QUERY_BULK_ENTRIES;
+        if (ReadBulkQueryEntries(packet, maxEntries).empty())
+            service.RejectClientPacket(session->GetAccountId(), packet, "malformed bulk query");
         else
             service.QueueClientPacket(session->GetAccountId(), packet);
         return false;

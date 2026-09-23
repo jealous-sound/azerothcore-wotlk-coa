@@ -599,11 +599,33 @@ void TestItemQueries()
         "packets behind a full update budget keep their place for the next update");
 
     answeredCreatures.clear();
-    session.Sent.clear();
     bool const creaturesPassedOn = Receive(session, BulkQuery({44472, 1234}, 2, 0x061A));
     bool const malformedPassedOn = Receive(session, BulkQuery({44472}, 2, 0x061A));
-    Check(!creaturesPassedOn && !malformedPassedOn && answeredCreatures == std::vector<uint32>{44472, 1234},
-        "creature bulk queries keep their validation and answers");
+    bool const oversizedPassedOn = Receive(session, BulkQuery(std::vector<uint32>(51, 44472), 51, 0x061A));
+    bool const answeredEarly = !answeredCreatures.empty();
+    service.OnPlayerUpdate(&player, 1);
+    Check(!creaturesPassedOn && !malformedPassedOn && !oversizedPassedOn && !answeredEarly &&
+        answeredCreatures == std::vector<uint32>{44472, 1234},
+        "creature bulk queries are validated early and answered on the next world update");
+
+    answeredCreatures.clear();
+    std::vector<uint32> creatures(50);
+    for (uint32 index = 0; index < creatures.size(); ++index)
+        creatures[index] = 44472 + index;
+    for (int batch = 0; batch < 64; ++batch)
+        Receive(session, BulkQuery(creatures, 50, 0x061A));
+    std::size_t largestCreatureUpdate = 0;
+    for (int update = 0; update < 30; ++update)
+    {
+        std::size_t const before = answeredCreatures.size();
+        service.OnPlayerUpdate(&player, 1);
+        largestCreatureUpdate = std::max(largestCreatureUpdate, answeredCreatures.size() - before);
+    }
+    bool creaturesInOrder = answeredCreatures.size() == 64 * creatures.size();
+    for (std::size_t index = 0; creaturesInOrder && index < answeredCreatures.size(); ++index)
+        creaturesInOrder = answeredCreatures[index] == creatures[index % creatures.size()];
+    Check(largestCreatureUpdate == 150 && creaturesInOrder,
+        "a flood of creature batches gets at most 150 replies per world update and every reply in order");
 }
 
 enum VanityCurrency : uint8
