@@ -82,6 +82,18 @@ void ApplyZoneScrollAura(Player* player, uint32 spellId, int32 remainingMs)
     }
 }
 
+constexpr uint32 SPELL_KEEPERS_SCROLL_GHOST_RUNNER = 91803;
+constexpr uint32 SPELL_GHOST_RUNNER_SPEED = 92417;
+
+void SyncGhostRunner(Player* player)
+{
+    bool const wanted = player->HasPlayerFlag(PLAYER_FLAGS_GHOST) && player->HasAura(SPELL_KEEPERS_SCROLL_GHOST_RUNNER);
+    if (wanted && !player->HasAura(SPELL_GHOST_RUNNER_SPEED))
+        player->CastSpell(player, SPELL_GHOST_RUNNER_SPEED, true);
+    else if (!wanted && player->HasAura(SPELL_GHOST_RUNNER_SPEED))
+        player->RemoveAurasDueToSpell(SPELL_GHOST_RUNNER_SPEED);
+}
+
 bool IsActiveInZone(uint32 zoneId, uint32 spellId)
 {
     std::lock_guard<std::mutex> lock(g_zoneScrollLock);
@@ -129,7 +141,10 @@ public:
         {
             Player* target = ref.GetSource();
             if (target != player && target->IsInWorld() && target->GetZoneId() == zoneId)
+            {
                 ApplyZoneScrollAura(target, spellInfo->Id, durationMs);
+                SyncGhostRunner(target);
+            }
         }
 
         map->SendZoneText(zoneId, ZoneBlessingAnnouncement(player, item->GetTemplate(), spellInfo).c_str());
@@ -141,7 +156,18 @@ class ascension_keepers_scroll_zone_buff_player : public PlayerScript
 public:
     ascension_keepers_scroll_zone_buff_player()
         : PlayerScript("ascension_keepers_scroll_zone_buff_player",
-            {PLAYERHOOK_ON_UPDATE_ZONE, PLAYERHOOK_CAN_CAST_ITEM_USE_SPELL}) { }
+            {PLAYERHOOK_ON_UPDATE_ZONE, PLAYERHOOK_CAN_CAST_ITEM_USE_SPELL, PLAYERHOOK_ON_PLAYER_RELEASED_GHOST,
+             PLAYERHOOK_ON_PLAYER_RESURRECT}) { }
+
+    void OnPlayerReleasedGhost(Player* player) override
+    {
+        SyncGhostRunner(player);
+    }
+
+    void OnPlayerResurrect(Player* player, float, bool&) override
+    {
+        SyncGhostRunner(player);
+    }
 
     bool OnPlayerCanCastItemUseSpell(Player* player, Item* item, SpellCastTargets const&,
         uint8 castCount, uint32) override
@@ -179,6 +205,8 @@ public:
             else if (player->HasAura(entry.SpellId))
                 player->RemoveAurasDueToSpell(entry.SpellId);
         }
+
+        SyncGhostRunner(player);
     }
 };
 
@@ -223,7 +251,10 @@ public:
                 {
                     Player* player = ref.GetSource();
                     if (player->IsInWorld() && player->GetZoneId() == zoneId && player->HasAura(spellId))
+                    {
                         player->RemoveAurasDueToSpell(spellId);
+                        SyncGhostRunner(player);
+                    }
                 }
             });
         }
