@@ -142,7 +142,7 @@ constexpr uint16 SMSG_PATCH_VANITY_COLLECTION = 0x0573;
 
 constexpr uint16 SMSG_REALM_INFO = 0x09BC;
 constexpr uint8 REALM_CREATION_FLAG_CONQUEST_OF_AZEROTH = 6;
-constexpr uint8 REALM_CREATION_FLAG_WILDCARD = 7;
+constexpr uint8 REALM_CREATION_FLAG_WARCRAFT_REBORN = 7;
 
 constexpr uint16 SMSG_BANK_PERMISSIONS = 0x0769;
 
@@ -339,7 +339,7 @@ public:
     SetConfigValue<std::string>(AscensionCompatConfig::REALM_TYPE,
                                 "CoA.RealmType", "live");
     SetConfigValue<std::string>(AscensionCompatConfig::CLASS_MODEL,
-                                "CoA.ClassModel", "hero");
+                                "CoA.ClassModel", "coa");
     SetConfigValue<bool>(AscensionCompatConfig::ALLOW_LEARNED_SPELL_DELIVERY,
                          "CoA.AllowLearnedSpellDelivery", true);
     SetConfigValue<bool>(AscensionCompatConfig::LEARN_OWNED_COMPANIONS,
@@ -4177,8 +4177,8 @@ public:
         AscensionCompatConfig::CLASS_MODEL);
     if (model == "coa")
       flags[REALM_CREATION_FLAG_CONQUEST_OF_AZEROTH] = 1;
-    else if (model == "wildcard")
-      flags[REALM_CREATION_FLAG_WILDCARD] = 1;
+    else if (model == "wcr")
+      flags[REALM_CREATION_FLAG_WARCRAFT_REBORN] = 1;
 
     WorldPacket p(SMSG_REALM_INFO, 64);
     p << static_cast<uint32>(realm.Id.Realm);

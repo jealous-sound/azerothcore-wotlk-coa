@@ -112,14 +112,15 @@ CoA.RealmType = "live"
 
 #
 #    CoA.ClassModel
-#        Character-creation flavour advertised to the client.
-#        "hero"     - free-pick Hero. Default.
-#        "coa"      - Conquest of Azeroth class selection.
-#        "wildcard" - wildcard creation.
-#        Default: "hero"
+#        Description: Character-creation mode advertised to the client in
+#                     SMSG_REALM_INFO when the character list is requested.
+#                     "coa"  - Conquest of Azeroth classes. Default.
+#                     "wcr"  - Warcraft Reborn (classic) classes.
+#                     "hero" - free-pick Hero.
+#        Default:     "coa"
 #
 
-CoA.ClassModel = "hero"
+CoA.ClassModel = "coa"
 
 #
 #    CoA.LevelScalingMaxLift
