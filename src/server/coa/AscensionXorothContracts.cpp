@@ -530,7 +530,11 @@ void ApplyContracts(SpellInfo* info)
         // fixture aura" before this fix).
         info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_DUMMY;
     if (id == 300386)
-        info->Effects[EFFECT_0].Effect = 0;
+        // Fiend of Forges: same "zero effect" bug class as Murderous Might (520290) above - the
+        // player->HasAura(300386) gate in AscensionXorothAuras.cpp's aura_ascension_xoroth_lifecycle::
+        // Calculate (801019/EFFECT_1) could never be true if this effect is zeroed outright. Re-tag as
+        // SPELL_AURA_DUMMY rather than zeroing the effect type, matching the established remedy.
+        info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_DUMMY;
     if (id == 300387)
         // Brimstone's Blood: same "zero effect" bug class as Murderous Might (520290) above - the
         // player->HasAura(300387) gate in aura_ascension_xoroth_event::Check (AscensionXorothEvents.cpp,
