@@ -85,7 +85,11 @@ public:
         switch (xpSource)
         {
             case PlayerXPSource::XPSOURCE_KILL:
-                amount = StripBonus(amount, player->GetTotalAuraMultiplier(SPELL_AURA_MOD_XP_PCT, include));
+                amount = StripBonus(amount, player->GetTotalAuraMultiplier(SPELL_AURA_MOD_XP_PCT,
+                    [&include](AuraEffect const* effect)
+                    {
+                        return Player::IsKillXPAuraEffect(effect) && include(effect);
+                    }));
                 break;
             case PlayerXPSource::XPSOURCE_QUEST:
             case PlayerXPSource::XPSOURCE_QUEST_DF:

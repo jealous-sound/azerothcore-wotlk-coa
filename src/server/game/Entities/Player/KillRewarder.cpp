@@ -185,7 +185,7 @@ void KillRewarder::_RewardXP(Player* player, float rate)
         xp *= player->GetTotalAuraMultiplier(SPELL_AURA_MOD_XP_PCT, [recruitAFriend](AuraEffect const* effect)
         {
             // CoA's party Aura of Experience explicitly excludes the recruit-a-friend bonus.
-            return effect->GetId() != 818059 || !recruitAFriend;
+            return Player::IsKillXPAuraEffect(effect) && (effect->GetId() != 818059 || !recruitAFriend);
         });
 
         // 4.2.3. Give XP to player.
