@@ -506,7 +506,7 @@ def validate(scenario):
             if 'relative_to' in step:
                 require(snapshots.get(step['relative_to']) == shape, f'{where}: missing or incompatible snapshot')
             if 'ratio_to' in step:
-                require(snapshots.get(step['ratio_to']) == shape, f'{where}: missing or incompatible ratio snapshot')
+                require(step['ratio_to'] in snapshots, f'{where}: missing ratio snapshot')
             if action == 'snapshot':
                 name = step['save_as']
                 require(isinstance(name, str) and ACTOR_ID.fullmatch(name), f'{where}: invalid snapshot name')

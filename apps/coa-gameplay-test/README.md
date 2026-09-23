@@ -394,7 +394,7 @@ by other nearby fixture actors. Rejected equipment actions include native invent
 must assert consumption and recovery after normal casts; restoring fixture charges does not prove recovery.
 For absence checks, wait through the relevant cast/proc window first, then assert. `relative_to` subtracts
 a previously named snapshot of the same metric; it is available on snapshots and assertions.
-`ratio_to` then divides by a nonzero snapshot of the same metric, for comparisons such as boosted/base damage.
+`ratio_to` then divides by a nonzero snapshot, including a different numeric metric such as healing/damage.
 `cast` accepts an optional `destination` with `x`, `y`, `z` to send an explicit ground target.
 
 Metrics: `health`, `max_health`, `power`, `max_power`, `alive`, `combat`, `casting`, `level`, `quest_objective_count` (needs `quest`, optional `index`), `knows_spell`,

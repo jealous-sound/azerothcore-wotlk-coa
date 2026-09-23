@@ -61,6 +61,7 @@
 #include <atomic>
 #include <cstdint>
 #include <mutex>
+#include <optional>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -643,7 +644,8 @@ public:
     /// which is exactly why it works: the pool that character is watching is `1 / DamageDealtToPool`
     /// times the real one, so taking that fraction out of the real pool drops their bar by the number
     /// they were shown, and the fight lasts what a fight at their version's level lasts.
-    uint32 DealDamage(Unit* attacker, Unit* victim, uint32 damage, DamageEffectType /*damagetype*/) override
+    uint32 DealDamage(Unit* attacker, Unit* victim, uint32 damage, DamageEffectType /*damagetype*/,
+                      std::optional<uint32>* scriptHealthLeechDamage) override
     {
         Creature* creature = victim ? victim->ToCreature() : nullptr;
         Player* player = OwningPlayer(attacker);
@@ -656,6 +658,13 @@ public:
 
         if (!creature->IsAlive() || creature->IsEvadingAttacks())
             return damage;
+
+        if (scriptHealthLeechDamage)
+        {
+            uint32 const realMaxHealth = std::max<uint32>(creature->GetMaxHealth(), 1);
+            uint32 const viewHealth = uint32(uint64(creature->GetHealth()) * view.MaxHealth / realMaxHealth);
+            *scriptHealthLeechDamage = std::min(damage, viewHealth);
+        }
 
         auto* remainder = creature->CustomData.GetDefault<DamageRemainder>(DAMAGE_REMAINDER_KEY);
         double const total = double(damage) * view.DamageDealtToPool + remainder->Value;

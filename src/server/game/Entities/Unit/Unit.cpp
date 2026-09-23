@@ -1006,9 +1006,15 @@ void Unit::DealDamageMods(Unit const* victim, uint32& damage, uint32* absorb)
     }
 }
 
-uint32 Unit::DealDamage(Unit* attacker, Unit* victim, uint32 damage, CleanDamage const* cleanDamage, DamageEffectType damagetype, SpellSchoolMask damageSchoolMask, SpellInfo const* spellProto, bool durabilityLoss, bool /*allowGM*/, Spell const* damageSpell /*= nullptr*/)
+uint32 Unit::DealDamage(Unit* attacker, Unit* victim, uint32 damage, CleanDamage const* cleanDamage,
+                        DamageEffectType damagetype, SpellSchoolMask damageSchoolMask,
+                        SpellInfo const* spellProto, bool durabilityLoss, bool /*allowGM*/,
+                        Spell const* damageSpell /*= nullptr*/,
+                        std::optional<uint32>* scriptHealthLeechDamage)
 {
-    damage = sScriptMgr->DealDamage(attacker, victim, damage, damagetype);
+    std::optional<uint32> resolvedScriptHealthLeechDamage;
+    damage = sScriptMgr->DealDamage(attacker, victim, damage, damagetype,
+                                    scriptHealthLeechDamage ? &resolvedScriptHealthLeechDamage : nullptr);
     // Xinef: initialize damage done for rage calculations
     // Xinef: its rare to modify damage in hooks, however training dummy's sets damage to 0
     uint32 rage_damage = damage + ((cleanDamage != nullptr) ? cleanDamage->absorbed_damage : 0);
@@ -1039,6 +1045,8 @@ uint32 Unit::DealDamage(Unit* attacker, Unit* victim, uint32 damage, CleanDamage
     {
         if (victim->ToPlayer()->GetCommandStatus(CHEAT_GOD))
         {
+            if (scriptHealthLeechDamage)
+                *scriptHealthLeechDamage = 0;
             return 0;
         }
     }
@@ -1373,6 +1381,9 @@ uint32 Unit::DealDamage(Unit* attacker, Unit* victim, uint32 damage, CleanDamage
 
     LOG_DEBUG("entities.unit", "DealDamageEnd returned {} damage", damage);
 
+    if (scriptHealthLeechDamage)
+        *scriptHealthLeechDamage = resolvedScriptHealthLeechDamage.value_or(damage);
+
     return damage;
 }
 
@@ -1668,10 +1679,14 @@ void Unit::CalculateSpellDamageTaken(SpellNonMeleeDamage* damageInfo, int32 dama
     }
 }
 
-void Unit::DealSpellDamage(SpellNonMeleeDamage* damageInfo, bool durabilityLoss, Spell const* spell /*= nullptr*/, uint32* scriptDamageResult /*= nullptr*/)
+void Unit::DealSpellDamage(SpellNonMeleeDamage* damageInfo, bool durabilityLoss, Spell const* spell /*= nullptr*/,
+                           uint32* scriptDamageResult /*= nullptr*/,
+                           std::optional<uint32>* scriptHealthLeechDamage /*= nullptr*/)
 {
     if (scriptDamageResult)
         *scriptDamageResult = 0;
+    if (scriptHealthLeechDamage)
+        *scriptHealthLeechDamage = 0;
 
     if (damageInfo == 0)
         return;
@@ -1693,7 +1708,9 @@ void Unit::DealSpellDamage(SpellNonMeleeDamage* damageInfo, bool durabilityLoss,
 
     // Call default DealDamage
     CleanDamage cleanDamage(damageInfo->cleanDamage, damageInfo->absorb, BASE_ATTACK, MELEE_HIT_NORMAL);
-    uint32 damageDealt = Unit::DealDamage(this, victim, damageInfo->damage, &cleanDamage, SPELL_DIRECT_DAMAGE, SpellSchoolMask(damageInfo->schoolMask), spellProto, durabilityLoss, false, spell);
+    uint32 damageDealt = Unit::DealDamage(this, victim, damageInfo->damage, &cleanDamage, SPELL_DIRECT_DAMAGE,
+                                           SpellSchoolMask(damageInfo->schoolMask), spellProto, durabilityLoss,
+                                           false, spell, scriptHealthLeechDamage);
     if (scriptDamageResult)
         *scriptDamageResult = damageDealt;
 }

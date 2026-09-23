@@ -77,6 +77,15 @@ class RunnerTests(unittest.TestCase):
             with self.subTest(change=change), self.assertRaises(ValueError):
                 run.validate(scenario)
 
+    def test_ratio_can_compare_different_numeric_metrics(self):
+        self.scenario['steps'].extend([
+            {'action': 'snapshot', 'actor': 'caster', 'metric': 'spell_damage_total', 'spell': 116,
+             'target': 'target', 'save_as': 'damage'},
+            {'action': 'assert', 'actor': 'caster', 'metric': 'spell_heal_total', 'spell': 116,
+             'target': 'caster', 'ratio_to': 'damage', 'equals': 1},
+        ])
+        self.assertIs(run.validate(self.scenario), self.scenario)
+
     def test_completed_cast_and_packet_count_metrics(self):
         for metric, actor, extra in [('spell_cast_count', 'caster', {}),
                                      ('spell_cast_count', 'target', {}),
