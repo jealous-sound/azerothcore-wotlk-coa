@@ -28,6 +28,7 @@
 #include "Chat.h"
 #include "ChatPackets.h"
 #include "ChatTextBuilder.h"
+#include "ClassicPlusCombat.h"
 #include "CombatPackets.h"
 #include "Common.h"
 #include "ConditionMgr.h"
@@ -103,6 +104,20 @@ float playerBaseMoveSpeed[MAX_MOVE_TYPE] =
     4.5f,                  // MOVE_FLIGHT_BACK
     3.14f                  // MOVE_PITCH_RATE
 };
+
+static bool IsClassicPlusCombat(Unit const* attacker, Unit const* victim)
+{
+    return sWorld->getBoolConfig(CONFIG_CLASSIC_PLUS_COMBAT_RULES) &&
+        ClassicPlusCombat::IsClassicContext({ attacker->getLevelForTarget(victim), attacker->IsControlledByPlayer() },
+            { victim->getLevelForTarget(attacker), victim->IsControlledByPlayer() });
+}
+
+static float ClassicCreatureAvoidanceChance(Unit const* creature, AuraType aura)
+{
+    if (creature->IsTotem())
+        return 0.0f;
+    return std::max(0.0f, ClassicPlusCombat::CreatureBaseAvoidance + creature->GetTotalAuraModifier(aura));
+}
 
 DamageInfo::DamageInfo(Unit* _attacker, Unit* _victim, uint32 _damage, SpellInfo const* _spellInfo, SpellSchoolMask _schoolMask, DamageEffectType _damageType, uint32 cleanDamage)
     : m_attacker(_attacker), m_victim(_victim), m_damage(_damage), m_spellInfo(_spellInfo), m_schoolMask(_schoolMask),
@@ -1929,10 +1944,18 @@ void Unit::CalculateMeleeDamage(Unit* victim, CalcDamageInfo* damageInfo, Weapon
         {
             damageInfo->HitInfo     |= HITINFO_GLANCING;
             damageInfo->TargetState  = VICTIMSTATE_HIT;
-            int32 leveldif = int32(victim->GetLevel()) - int32(GetLevel());
-            if (leveldif > 3)
-                leveldif = 3;
-            float reducePercent = 1 - leveldif * 0.1f;
+            float reducePercent = ClassicPlusCombat::WotlkGlancingDamageMultiplier(
+                int32(victim->getLevelForTarget(this)) - int32(getLevelForTarget(victim)));
+            if (IsClassicPlusCombat(this, victim))
+            {
+                // Sun Cleric falls back to Priest for stats, but fights in plate with Strength-based melee.
+                Classes const glancingClass = getClass() == CLASS_SUN_CLERIC ? CLASS_PALADIN :
+                    GetLegacyClassForCustomClass(Classes(getClass()));
+                bool const caster = glancingClass && (CLASSMASK_WAND_USERS & (1 << (glancingClass - 1)));
+                ClassicPlusCombat::DamageRange const range = ClassicPlusCombat::GlancingDamageRange(
+                    int32(victim->GetDefenseSkillValue(this)), int32(GetWeaponSkillValue(attackType, victim)), caster);
+                reducePercent = frand(range.Low, range.High);
+            }
 
             for (uint8 i = 0; i < MAX_ITEM_PROTO_DAMAGES; ++i)
             {
@@ -2130,7 +2153,9 @@ void Unit::DealMeleeDamage(CalcDamageInfo* damageInfo, bool durabilityLoss)
         uint32 AttackerMeleeSkill = GetUnitMeleeSkill();
 
         // xinef: fix daze mechanics
-        Probability -= ((float)VictimDefense + (float)VictimAuraDefense - AttackerMeleeSkill) * 0.1428f;
+        float const chancePerSkillPoint = IsClassicPlusCombat(this, victim) ?
+            ClassicPlusCombat::DazeChancePerSkillPoint : 0.1428f;
+        Probability -= ((float)VictimDefense + (float)VictimAuraDefense - AttackerMeleeSkill) * chancePerSkillPoint;
 
         if (Probability > 40.0f)
             Probability = 40.0f;
@@ -2240,6 +2265,7 @@ bool Unit::IsDamageReducedByArmor(SpellSchoolMask schoolMask, SpellInfo const* s
 uint32 Unit::CalcArmorReducedDamage(Unit const* attacker, Unit const* victim, const uint32 damage, SpellInfo const* spellInfo, uint8 attackerLevel, WeaponAttackType /*attackType*/)
 {
     float armor = float(victim->GetArmor());
+    bool const classic = attacker && IsClassicPlusCombat(attacker, victim);
 
     // Armor is one of the per-level creature rows, so a character fighting their own version of a
     // creature has to meet *that* version's armor - otherwise a creature shown at level 57 is
@@ -2336,7 +2362,9 @@ uint32 Unit::CalcArmorReducedDamage(Unit const* attacker, Unit const* victim, co
         if (attacker->IsPlayer() || bonusPct)
         {
             float maxArmorPen = 0;
-            if (victim->GetLevel() < 60)
+            if (classic)
+                maxArmorPen = ClassicPlusCombat::ArmorConstant(victim->getLevelForTarget(attacker));
+            else if (victim->GetLevel() < 60)
                 maxArmorPen = float(400 + 85 * victim->GetLevel());
             else
                 maxArmorPen = 400 + 85 * victim->GetLevel() + 4.5f * 85 * (victim->GetLevel() - 59);
@@ -2358,6 +2386,8 @@ uint32 Unit::CalcArmorReducedDamage(Unit const* attacker, Unit const* victim, co
         levelModifier = levelModifier + (4.5f * (levelModifier - 59));
 
     float tmpvalue = 0.1f * armor / (8.5f * levelModifier + 40);
+    if (classic)
+        tmpvalue = armor / ClassicPlusCombat::ArmorConstant(attacker->getLevelForTarget(victim));
     tmpvalue = tmpvalue / (1.0f + tmpvalue);
 
     if (tmpvalue < 0.0f)
@@ -2386,6 +2416,15 @@ float Unit::GetEffectiveResistChance(Unit const* owner, SpellSchoolMask schoolMa
     }
 
     victimResistance = std::max(victimResistance, 0.0f);
+
+    if (owner && IsClassicPlusCombat(owner, victim))
+    {
+        uint8 const casterLevel = owner->getLevelForTarget(victim);
+        bool const levelBased = victim->IsCreature() &&
+            (!spellInfo || !spellInfo->HasAttribute(SPELL_ATTR0_CU_BINARY_SPELL));
+        return ClassicPlusCombat::SpellResistChance(victimResistance,
+            int32(victim->getLevelForTarget(owner)) - int32(casterLevel), casterLevel, levelBased);
+    }
 
     if (owner && (!spellInfo || !spellInfo->HasAttribute(SPELL_ATTR0_CU_BINARY_SPELL)))
         victimResistance += std::max(static_cast<float>(victim->GetLevel() - owner->GetLevel()) * 5.0f, 0.0f);
@@ -2423,30 +2462,42 @@ void Unit::CalcAbsorbResist(DamageInfo& dmgInfo, bool Splited)
     if (!(schoolMask & SPELL_SCHOOL_MASK_NORMAL) && (!(schoolMask & SPELL_SCHOOL_MASK_HOLY) || victim->IsCreature()) && (!spellInfo || (!spellInfo->HasAttribute(SPELL_ATTR0_CU_BINARY_SPELL) && !spellInfo->HasAttribute(SPELL_ATTR4_NO_CAST_LOG))))
     {
         float averageResist = Unit::GetEffectiveResistChance(attacker, schoolMask, victim);
+        float damageResisted = 0.0f;
 
-        float discreteResistProbability[11];
-        for (uint32 i = 0; i < 11; ++i)
+        if (attacker && IsClassicPlusCombat(attacker, victim))
         {
-            discreteResistProbability[i] = 0.5f - 2.5f * std::fabs(0.1f * i - averageResist);
-            if (discreteResistProbability[i] < 0.0f)
-                discreteResistProbability[i] = 0.0f;
+            if (dmgInfo.GetDamageType() == DOT && spellInfo &&
+                !ClassicPlusCombat::ResistsDotAsDirectDamage(spellInfo->Id))
+                averageResist *= ClassicPlusCombat::DotResistChanceFactor;
+            damageResisted = float(damage) * ClassicPlusCombat::PartialResistMultiplier(
+                ClassicPlusCombat::PartialResistDistribution(averageResist), float(rand_norm()) * 100.0f);
         }
-
-        if (averageResist <= 0.1f)
+        else
         {
-            discreteResistProbability[0] = 1.0f - 7.5f * averageResist;
-            discreteResistProbability[1] = 5.0f * averageResist;
-            discreteResistProbability[2] = 2.5f * averageResist;
+            float discreteResistProbability[11];
+            for (uint32 i = 0; i < 11; ++i)
+            {
+                discreteResistProbability[i] = 0.5f - 2.5f * std::fabs(0.1f * i - averageResist);
+                if (discreteResistProbability[i] < 0.0f)
+                    discreteResistProbability[i] = 0.0f;
+            }
+
+            if (averageResist <= 0.1f)
+            {
+                discreteResistProbability[0] = 1.0f - 7.5f * averageResist;
+                discreteResistProbability[1] = 5.0f * averageResist;
+                discreteResistProbability[2] = 2.5f * averageResist;
+            }
+
+            float r = float(rand_norm());
+            uint32 i = 0;
+            float probabilitySum = discreteResistProbability[0];
+
+            while (r >= probabilitySum && i < 10)
+                probabilitySum += discreteResistProbability[++i];
+
+            damageResisted = float(damage * i / 10);
         }
-
-        float r = float(rand_norm());
-        uint32 i = 0;
-        float probabilitySum = discreteResistProbability[0];
-
-        while (r >= probabilitySum && i < 10)
-            probabilitySum += discreteResistProbability[++i];
-
-        float damageResisted = float(damage * i / 10);
 
         if (damageResisted) // if equal to 0, checking these is pointless
         {
@@ -3065,6 +3116,11 @@ MeleeHitOutcome Unit::RollMeleeOutcomeAgainst(Unit const* victim, WeaponAttackTy
     float dodge_chance = victim->GetUnitDodgeChance();
     float block_chance = victim->GetUnitBlockChance();
     float parry_chance = victim->GetUnitParryChance();
+    if (!victim->IsPlayer() && IsClassicPlusCombat(this, victim))
+    {
+        dodge_chance = ClassicCreatureAvoidanceChance(victim, SPELL_AURA_MOD_DODGE_PERCENT);
+        parry_chance = ClassicCreatureAvoidanceChance(victim, SPELL_AURA_MOD_PARRY_PERCENT);
+    }
 
     // Useful if want to specify crit & miss chances for melee, else it could be removed
     //LOG_DEBUG("entities.unit", "MELEE OUTCOME: miss {} crit {} dodge {} parry {} block {}", miss_chance, crit_chance, dodge_chance, parry_chance, block_chance);
@@ -3091,6 +3147,15 @@ MeleeHitOutcome Unit::RollMeleeOutcomeAgainst(Unit const* victim, WeaponAttackTy
     int32    skillBonus  = 4 * (attackerWeaponSkill - victimMaxSkillValueForLevel);
     int32    sum = 0, tmp = 0;
     int32    roll = urand (0, 10000);
+    bool const classic = IsClassicPlusCombat(this, victim);
+
+    auto const reduceBySkill = [&](ClassicPlusCombat::Avoidance avoidance, int32 chance)
+    {
+        if (!classic || victim->IsPlayer())
+            return chance - skillBonus;
+        return ClassicPlusCombat::CreatureAvoidanceChance(avoidance, chance, attackerWeaponSkill,
+            attackerMaxSkillValueForLevel, victimMaxSkillValueForLevel, victim->getLevelForTarget(this));
+    };
 
     LOG_DEBUG("entities.unit", "RollMeleeOutcomeAgainst: skill bonus of {} for attacker", skillBonus);
     //LOG_DEBUG("entities.unit", "RollMeleeOutcomeAgainst: rolled {}, miss {}, dodge {}, parry {}, block {}, crit {}",
@@ -3131,7 +3196,7 @@ MeleeHitOutcome Unit::RollMeleeOutcomeAgainst(Unit const* victim, WeaponAttackTy
             tmp = 0;
 
         if ((tmp > 0)                                        // check if unit _can_ dodge
-                && ((tmp -= skillBonus) > 0)
+                && ((tmp = reduceBySkill(ClassicPlusCombat::Avoidance::Dodge, tmp)) > 0)
                 && roll < (sum += tmp))
         {
             LOG_DEBUG("entities.unit", "RollMeleeOutcomeAgainst: DODGE <{}, {})", sum - tmp, sum);
@@ -3142,7 +3207,8 @@ MeleeHitOutcome Unit::RollMeleeOutcomeAgainst(Unit const* victim, WeaponAttackTy
     // parry & block chances
 
     // check if attack comes from behind, nobody can parry or block if attacker is behind
-    if (!victim->HasInArc(M_PI, this) && !victim->HasIgnoreHitDirectionAura())
+    bool const canParryOrBlock = victim->HasInArc(M_PI, this) || victim->HasIgnoreHitDirectionAura();
+    if (!canParryOrBlock)
     {
         LOG_DEBUG("entities.unit", "RollMeleeOutcomeAgainst: attack came from behind.");
     }
@@ -3163,82 +3229,106 @@ MeleeHitOutcome Unit::RollMeleeOutcomeAgainst(Unit const* victim, WeaponAttackTy
                 tmp = 0;
 
             if (tmp > 0                                         // check if unit _can_ parry
-                    && (tmp -= skillBonus) > 0
+                    && (tmp = reduceBySkill(ClassicPlusCombat::Avoidance::Parry, tmp)) > 0
                     && roll < (sum += tmp))
             {
                 LOG_DEBUG("entities.unit", "RollMeleeOutcomeAgainst: PARRY <{}, {})", sum - tmp, sum);
                 return MELEE_HIT_PARRY;
             }
         }
-
-        if (victim->IsPlayer() || !(victim->ToCreature()->HasFlagsExtra(CREATURE_FLAG_EXTRA_NO_BLOCK)))
-        {
-            tmp = block_chance;
-
-            // xinef: cant block while casting or while stunned
-            if (victim->IsNonMeleeSpellCast(false, false, true) || victim->HasUnitState(UNIT_STATE_CONTROLLED))
-                tmp = 0;
-
-            if (tmp > 0                                          // check if unit _can_ block
-                    && (tmp -= skillBonus) > 0
-                    && roll < (sum += tmp))
-            {
-                LOG_DEBUG("entities.unit", "RollMeleeOutcomeAgainst: BLOCK <{}, {})", sum - tmp, sum);
-                return MELEE_HIT_BLOCK;
-            }
-        }
     }
 
-    // Max 40% chance to score a glancing blow against mobs that are higher level (can do only players and pets and not with ranged weapon)
-    if (attType != RANGED_ATTACK &&
-            (IsPlayer() || IsPet()) &&
-            !victim->IsPlayer() && !victim->IsPet() &&
-            GetLevel() < victim->getLevelForTarget(this))
+    // Max 40% chance to score a glancing blow against mobs that are higher level (any level under the classic rules)
+    // (can do only players and pets and not with ranged weapon)
+    auto const rollGlancing = [&]()
     {
+        if (attType == RANGED_ATTACK || (!IsPlayer() && !IsPet()) || victim->IsPlayer() || victim->IsPet() ||
+            (classic && victim->IsControlledByPlayer()))
+            return false;
+
         // cap possible value (with bonuses > max skill)
         int32 skill = attackerWeaponSkill;
         int32 maxskill = attackerMaxSkillValueForLevel;
         skill = (skill > maxskill) ? maxskill : skill;
 
-        tmp = (10 + (victimDefenseSkill - skill)) * 100;
-        tmp = tmp > 4000 ? 4000 : tmp;
-        if (roll < (sum += tmp))
+        if (classic)
+            tmp = crit_chance < 10000 ? ClassicPlusCombat::GlancingChance(victimDefenseSkill, skill, maxskill) : 0;
+        else if (GetLevel() < victim->getLevelForTarget(this))
         {
-            LOG_DEBUG("entities.unit", "RollMeleeOutcomeAgainst: GLANCING <{}, {})", sum - 4000, sum);
-            return MELEE_HIT_GLANCING;
+            tmp = (10 + (victimDefenseSkill - skill)) * 100;
+            tmp = tmp > 4000 ? 4000 : tmp;
+        }
+        else
+            return false;
+
+        if (tmp <= 0 || roll >= (sum += tmp))
+            return false;
+
+        LOG_DEBUG("entities.unit", "RollMeleeOutcomeAgainst: GLANCING <{}, {})", sum - tmp, sum);
+        return true;
+    };
+
+    if (classic && rollGlancing())
+        return MELEE_HIT_GLANCING;
+
+    if (canParryOrBlock && (victim->IsPlayer() || !(victim->ToCreature()->HasFlagsExtra(CREATURE_FLAG_EXTRA_NO_BLOCK))))
+    {
+        tmp = block_chance;
+
+        // xinef: cant block while casting or while stunned
+        if (victim->IsNonMeleeSpellCast(false, false, true) || victim->HasUnitState(UNIT_STATE_CONTROLLED))
+            tmp = 0;
+
+        if (tmp > 0                                          // check if unit _can_ block
+                && (tmp = reduceBySkill(ClassicPlusCombat::Avoidance::Block, tmp)) > 0
+                && roll < (sum += tmp))
+        {
+            LOG_DEBUG("entities.unit", "RollMeleeOutcomeAgainst: BLOCK <{}, {})", sum - tmp, sum);
+            return MELEE_HIT_BLOCK;
         }
     }
 
-    // mobs can score crushing blows if they're 4 or more levels above victim
-    if (getLevelForTarget(victim) >= victim->getLevelForTarget(this) + 4 &&
-            // can be from by creature (if can) or from controlled player that considered as creature
-            !IsControlledByPlayer() &&
-            !(IsCreature() && ToCreature()->HasFlagsExtra(CREATURE_FLAG_EXTRA_NO_CRUSHING_BLOWS)))
+    if (!classic && rollGlancing())
+        return MELEE_HIT_GLANCING;
+
+    auto const rollCrushing = [&]()
     {
-        // when their weapon skill is 15 or more above victim's defense skill
-        tmp = victimDefenseSkill;
-        int32 tmpmax = victimMaxSkillValueForLevel;
-        // having defense above your maximum (from items, talents etc.) has no effect
-        tmp = tmp > tmpmax ? tmpmax : tmp;
-        // tmp = mob's level * 5 - player's current defense skill
-        tmp = attackerMaxSkillValueForLevel - tmp;
-        if (tmp >= 15)
+        // mobs can score crushing blows if they're 4 or more levels above victim (3 under the classic rules)
+        if ((classic || getLevelForTarget(victim) >= victim->getLevelForTarget(this) + 4) &&
+                // can be from by creature (if can) or from controlled player that considered as creature
+                !IsControlledByPlayer() &&
+                !(IsCreature() && ToCreature()->HasFlagsExtra(CREATURE_FLAG_EXTRA_NO_CRUSHING_BLOWS)))
         {
-            // add 2% chance per lacking skill point, min. is 15%
-            tmp = tmp * 200 - 1500;
-            if (roll < (sum += tmp))
+            // when their weapon skill is 15 or more above victim's defense skill
+            tmp = victimDefenseSkill;
+            int32 tmpmax = victimMaxSkillValueForLevel;
+            // having defense above your maximum (from items, talents etc.) has no effect
+            tmp = tmp > tmpmax ? tmpmax : tmp;
+            // tmp = mob's level * 5 - player's current defense skill
+            tmp = attackerMaxSkillValueForLevel - tmp;
+            if (tmp >= 15)
             {
-                LOG_DEBUG("entities.unit", "RollMeleeOutcomeAgainst: CRUSHING <{}, {})", sum - tmp, sum);
-                // Local fierce-blow policy: Forgemaster may turn an otherwise crushing
-                // frontal melee hit into a normal shield block; ordinary block rolls stay native.
-                if (Player const* knight = victim->ToPlayer(); knight && knight->getClass() == 17 &&
-                    knight->HasAura(560655) && knight->CanBlock() && knight->GetShield(true) &&
-                    victim->HasInArc(float(M_PI), this) && roll_chance_i(60))
-                    return MELEE_HIT_BLOCK;
-                return MELEE_HIT_CRUSHING;
+                // add 2% chance per lacking skill point, min. is 15%
+                tmp = tmp * 200 - 1500;
+                if (roll < (sum += tmp))
+                {
+                    LOG_DEBUG("entities.unit", "RollMeleeOutcomeAgainst: CRUSHING <{}, {})", sum - tmp, sum);
+                    // Local fierce-blow policy: Forgemaster may turn an otherwise crushing
+                    // frontal melee hit into a normal shield block; ordinary block rolls stay native.
+                    if (Player const* knight = victim->ToPlayer(); knight && knight->getClass() == 17 &&
+                        knight->HasAura(560655) && knight->CanBlock() && knight->GetShield(true) &&
+                        victim->HasInArc(float(M_PI), this) && roll_chance_i(60))
+                        return MELEE_HIT_BLOCK;
+                    return MELEE_HIT_CRUSHING;
+                }
             }
         }
-    }
+        return MELEE_HIT_NORMAL;
+    };
+
+    if (!classic)
+        if (MeleeHitOutcome const crushing = rollCrushing(); crushing != MELEE_HIT_NORMAL)
+            return crushing;
 
     // Critical chance
     tmp = crit_chance;
@@ -3247,10 +3337,16 @@ MeleeHitOutcome Unit::RollMeleeOutcomeAgainst(Unit const* victim, WeaponAttackTy
     {
         LOG_DEBUG("entities.unit", "RollMeleeOutcomeAgainst: CRIT <{}, {})", sum - tmp, sum);
         if (IsCreature() && (ToCreature()->HasFlagsExtra(CREATURE_FLAG_EXTRA_NO_CRIT)))
+        {
             LOG_DEBUG("entities.unit", "RollMeleeOutcomeAgainst: CRIT DISABLED)");
-        else
-            return MELEE_HIT_CRIT;
+            return MELEE_HIT_NORMAL;
+        }
+        return MELEE_HIT_CRIT;
     }
+
+    if (classic)
+        if (MeleeHitOutcome const crushing = rollCrushing(); crushing != MELEE_HIT_NORMAL)
+            return crushing;
 
     LOG_DEBUG("entities.unit", "RollMeleeOutcomeAgainst: NORMAL");
     return MELEE_HIT_NORMAL;
@@ -3383,7 +3479,14 @@ bool Unit::isSpellBlocked(Unit* victim, SpellInfo const* spellProto, WeaponAttac
             return false;
 
         float blockChance = victim->GetUnitBlockChance();
-        blockChance += (int32(GetWeaponSkillValue(attackType, victim)) - int32(victim->GetMaxSkillValueForLevel(this))) * 0.04f;
+        int32 const weaponSkill = int32(GetWeaponSkillValue(attackType, victim));
+        int32 const victimMaxSkill = int32(victim->GetMaxSkillValueForLevel(this));
+        if (!victim->IsPlayer() && IsClassicPlusCombat(this, victim))
+            blockChance = ClassicPlusCombat::CreatureAvoidanceChance(ClassicPlusCombat::Avoidance::Block,
+                int32(blockChance * 100.0f), weaponSkill, int32(GetMaxSkillValueForLevel(victim)), victimMaxSkill,
+                victim->getLevelForTarget(this)) / 100.0f;
+        else
+            blockChance += (weaponSkill - victimMaxSkill) * 0.04f;
 
         // xinef: cant block while casting or while stunned
         if (blockChance < 0.0f || victim->IsNonMeleeSpellCast(false, false, true) || victim->HasUnitState(UNIT_STATE_CONTROLLED))
@@ -3449,6 +3552,14 @@ SpellMissInfo Unit::MeleeSpellHitResult(Unit* victim, SpellInfo const* spellInfo
         attackerWeaponSkill = int32(GetWeaponSkillValue(attType, victim));
 
     int32 skillDiff = attackerWeaponSkill - int32(victim->GetMaxSkillValueForLevel(this));
+    bool const classicCreatureVictim = !victim->IsPlayer() && IsClassicPlusCombat(this, victim);
+    using Avoidance = ClassicPlusCombat::Avoidance;
+    auto const classicAvoidance = [&](Avoidance avoidance, float chance)
+    {
+        return ClassicPlusCombat::CreatureAvoidanceChance(avoidance, int32(chance * 100.0f), attackerWeaponSkill,
+            int32(GetMaxSkillValueForLevel(victim)), int32(victim->GetMaxSkillValueForLevel(this)),
+            victim->getLevelForTarget(this));
+    };
 
     uint32 roll = urand (0, 10000);
 
@@ -3550,7 +3661,9 @@ SpellMissInfo Unit::MeleeSpellHitResult(Unit* victim, SpellInfo const* spellInfo
     if (canDodge)
     {
         // Roll dodge
-        int32 dodgeChance = int32(victim->GetUnitDodgeChance() * 100.0f) - skillDiff * 4;
+        int32 dodgeChance = classicCreatureVictim ?
+            classicAvoidance(Avoidance::Dodge, ClassicCreatureAvoidanceChance(victim, SPELL_AURA_MOD_DODGE_PERCENT)) :
+            int32(victim->GetUnitDodgeChance() * 100.0f) - skillDiff * 4;
         // Reduce enemy dodge chance by SPELL_AURA_MOD_COMBAT_RESULT_CHANCE
         dodgeChance += GetTotalAuraModifierByMiscValue(SPELL_AURA_MOD_COMBAT_RESULT_CHANCE, VICTIMSTATE_DODGE) * 100;
         dodgeChance = int32(float(dodgeChance) * GetTotalAuraMultiplier(SPELL_AURA_MOD_ENEMY_DODGE));
@@ -3572,7 +3685,9 @@ SpellMissInfo Unit::MeleeSpellHitResult(Unit* victim, SpellInfo const* spellInfo
     if (canParry)
     {
         // Roll parry
-        int32 parryChance = int32(victim->GetUnitParryChance() * 100.0f)  - skillDiff * 4;
+        int32 parryChance = classicCreatureVictim ?
+            classicAvoidance(Avoidance::Parry, ClassicCreatureAvoidanceChance(victim, SPELL_AURA_MOD_PARRY_PERCENT)) :
+            int32(victim->GetUnitParryChance() * 100.0f)  - skillDiff * 4;
         // Reduce parry chance by attacker expertise rating
         if (IsPlayer())
             parryChance -= int32(ToPlayer()->GetExpertiseDodgeOrParryReduction(attType) * 100.0f);
@@ -3590,7 +3705,9 @@ SpellMissInfo Unit::MeleeSpellHitResult(Unit* victim, SpellInfo const* spellInfo
 
     if (canBlock)
     {
-        int32 blockChance = int32(victim->GetUnitBlockChance() * 100.0f) - skillDiff * 4;
+        int32 blockChance = classicCreatureVictim ?
+            classicAvoidance(Avoidance::Block, victim->GetUnitBlockChance()) :
+            int32(victim->GetUnitBlockChance() * 100.0f) - skillDiff * 4;
 
         // xinef: cant block while casting or while stunned
         if (blockChance < 0 || victim->IsNonMeleeSpellCast(false, false, true) || victim->HasUnitState(UNIT_STATE_CONTROLLED))
@@ -3687,6 +3804,8 @@ SpellMissInfo Unit::MagicSpellHitResult(Unit* victim, SpellInfo const* spellInfo
     else if (HitChance > 10000)
         HitChance = 10000;
 
+    bool const classic = IsClassicPlusCombat(this, victim);
+
     int32 tmp = 10000 - HitChance;
     if (IsPlayer() && getClass() == CLASS_STARCALLER && HasAura(802203))
         tmp = 0;
@@ -3721,7 +3840,11 @@ SpellMissInfo Unit::MagicSpellHitResult(Unit* victim, SpellInfo const* spellInfo
         }
 
         if (spellInfo->HasAttribute(SPELL_ATTR0_CU_BINARY_SPELL) && (spellInfo->GetSchoolMask() & (SPELL_SCHOOL_MASK_NORMAL | SPELL_SCHOOL_MASK_HOLY)) == 0)
-            tmp += int32(Unit::GetEffectiveResistChance(this, spellInfo->GetSchoolMask(), victim, spellInfo) * 10000.0f);
+        {
+            float const resistChance =
+                Unit::GetEffectiveResistChance(this, spellInfo->GetSchoolMask(), victim, spellInfo);
+            tmp += classic ? ClassicPlusCombat::BinaryResistChance(tmp, resistChance) : int32(resistChance * 10000.0f);
+        }
     }
 
     // Roll chance
@@ -4182,7 +4305,11 @@ float Unit::GetUnitCriticalChance(WeaponAttackType attackType, Unit const* victi
         Unit::ApplyResilience(victim, &crit, nullptr, false, CR_CRIT_TAKEN_RANGED);
 
     // Apply crit chance from defence skill
-    crit += (int32(GetMaxSkillValueForLevel(victim)) - int32(victim->GetDefenseSkillValue(this))) * 0.04f;
+    if (!victim->IsPlayer() && IsClassicPlusCombat(this, victim))
+        crit += ClassicPlusCombat::CreatureVictimCritModifier(int32(GetWeaponSkillValue(attackType, victim)),
+            int32(GetMaxSkillValueForLevel(victim)), int32(victim->GetDefenseSkillValue(this)));
+    else
+        crit += (int32(GetMaxSkillValueForLevel(victim)) - int32(victim->GetDefenseSkillValue(this))) * 0.04f;
 
     // xinef: SPELL_AURA_MOD_ATTACKER_SPELL_AND_WEAPON_CRIT_CHANCE should be calculated at the end
     crit += victim->GetTotalAuraModifier(SPELL_AURA_MOD_ATTACKER_SPELL_AND_WEAPON_CRIT_CHANCE);
@@ -8802,7 +8929,11 @@ void Unit::EnergizeBySpell(Unit* victim, uint32 spellID, uint32 damage, Powers p
     // Happiness is internal hunter pet state, not combat assistance — energizing it must not generate threat
     if (powerType != POWER_HAPPINESS)
         if (SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spellID))
-            victim->GetThreatMgr().ForwardThreatForAssistingMe(this, float(damage) / 2.0f, spellInfo, true);
+        {
+            float const threatPerPoint = powerType == POWER_ENERGY && IsClassicPlusCombat(this, victim) ?
+                ClassicPlusCombat::EnergyThreatPerPoint : 0.5f;
+            victim->GetThreatMgr().ForwardThreatForAssistingMe(this, float(damage) * threatPerPoint, spellInfo, true);
+        }
 
     SendEnergizeSpellLog(victim, spellID, damage, powerType);
 }
@@ -9891,7 +10022,11 @@ float Unit::SpellTakenCritChance(Unit const* caster, SpellInfo const* spellProto
                     Unit::ApplyResilience(this, &crit_chance, nullptr, false, CR_CRIT_TAKEN_RANGED);
 
                 // Apply crit chance from defence skill
-                if (caster)
+                if (caster && !IsPlayer() && IsClassicPlusCombat(caster, this))
+                    crit_chance += ClassicPlusCombat::CreatureVictimCritModifier(
+                        int32(caster->GetWeaponSkillValue(attackType, this)),
+                        int32(caster->GetMaxSkillValueForLevel(this)), int32(GetDefenseSkillValue(caster)));
+                else if (caster)
                     crit_chance += (int32(caster->GetMaxSkillValueForLevel(this)) - int32(GetDefenseSkillValue(caster))) * 0.04f;
 
                 break;
@@ -15995,8 +16130,12 @@ float Unit::MeleeSpellMissChance(Unit const* victim, WeaponAttackType attType, i
     // bonus from skills is 0.04%
     //miss_chance -= skillDiff * 0.04f;
     int32 diff = -skillDiff;
+    bool const classic = IsClassicPlusCombat(this, victim);
+    bool const classicCreatureVictim = !victim->IsPlayer() && classic;
     if (victim->IsPlayer())
-        missChance += diff > 0 ? diff * 0.04f : diff * 0.02f;
+        missChance += classic || diff > 0 ? diff * 0.04f : diff * 0.02f;
+    else if (classicCreatureVictim)
+        missChance = ClassicPlusCombat::CreatureMissChance(missChance, diff, victim->getLevelForTarget(this));
     else
         missChance += diff > 10 ? 1 + (diff - 10) * 0.4f : diff * 0.1f;
 
@@ -16012,10 +16151,10 @@ float Unit::MeleeSpellMissChance(Unit const* victim, WeaponAttackType attType, i
 
     missChance -= hitChance - 100.0f;
 
-    if (attType == RANGED_ATTACK)
-        missChance -= m_modRangedHitChance;
-    else
-        missChance -= m_modMeleeHitChance;
+    float const hitBonus = attType == RANGED_ATTACK ? m_modRangedHitChance : m_modMeleeHitChance;
+    missChance -= hitBonus;
+    if (classicCreatureVictim)
+        missChance += ClassicPlusCombat::IgnoredHitChance(hitChance - 100.0f + hitBonus, diff);
 
     // Limit miss chance from 0 to 60%
     if (missChance < 0.0f)
