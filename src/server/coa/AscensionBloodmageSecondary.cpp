@@ -21,6 +21,8 @@ namespace
 {
 enum BloodmageSecondarySpells : uint32
 {
+    SPELL_SACRIFICIAL_RITE = 800785,
+    SPELL_SACRIFICIAL_RITE_HEALING = 800786,
     SPELL_VEINBURST = 504260,
     SPELL_REAVE = 800490,
     SPELL_REAVE_BLEED = 802883,
@@ -58,6 +60,36 @@ enum BloodmageSecondarySpells : uint32
 };
 
 constexpr uint32 VampiricFangRanks[] = {804726, 504093, 504094, 504095, 504096, 504097, 553271, 553272};
+
+class aura_ascension_bloodmage_sacrificial_rite : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_bloodmage_sacrificial_rite);
+
+    bool Validate(SpellInfo const* info) override
+    {
+        return info && info->Id == SPELL_SACRIFICIAL_RITE &&
+            info->Effects[EFFECT_0].IsAura(SPELL_AURA_MOD_MELEE_RANGED_HASTE) &&
+            ValidateSpellInfo({SPELL_SACRIFICIAL_RITE_HEALING});
+    }
+
+    void GrantHealing(AuraEffect const*, AuraEffectHandleModes)
+    {
+        if (GetTargetApplication()->GetRemoveMode() != AURA_REMOVE_BY_EXPIRE)
+            return;
+
+        Player* player = GetTarget()->ToPlayer();
+        if (!player || player->getClass() != CLASS_SON_OF_ARUGAL || !player->IsAlive() || !player->IsInWorld())
+            return;
+
+        player->CastSpell(player, SPELL_SACRIFICIAL_RITE_HEALING, TRIGGERED_FULL_MASK);
+    }
+
+    void Register() override
+    {
+        AfterEffectRemove += AuraEffectRemoveFn(aura_ascension_bloodmage_sacrificial_rite::GrantHealing,
+            EFFECT_0, SPELL_AURA_MOD_MELEE_RANGED_HASTE, AURA_EFFECT_HANDLE_REAL);
+    }
+};
 
 bool IsVampiricFang(uint32 id)
 {
@@ -596,6 +628,7 @@ class spell_ascension_bloodmage_excision : public SpellScript
 
 void AddSC_AscensionBloodmageSecondary()
 {
+    RegisterSpellScript(aura_ascension_bloodmage_sacrificial_rite);
     new bloodmage_secondary_casts();
     new bloodmage_kiss_periodic();
     new bloodmage_secondary_contracts();
