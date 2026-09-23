@@ -532,6 +532,10 @@ namespace lfg
         LfgReward const* GetRandomDungeonReward(uint32 dungeon, uint8 level);
         /// Returns all random and seasonal dungeons for given level and expansion
         LfgDungeonSet GetRandomAndSeasonalDungeons(uint8 level, uint8 expansion);
+        /// Returns the newest expansion whose dungeons fit under the given level cap
+        static uint8 GetExpansionForLevelCap(uint32 levelCap);
+        /// Raises the random dungeons of a capped realm's last expansion to reach the level cap
+        static void ExtendRandomDungeonsToLevelCap(LFGDungeonContainer& dungeons, uint32 levelCap);
         /// Teleport a player to/from selected dungeon
         void TeleportPlayer(Player* player, bool out, WorldLocation const* teleportLocation = nullptr);
         /// Inits new proposal to boot a player

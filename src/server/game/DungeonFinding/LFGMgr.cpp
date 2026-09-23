@@ -280,6 +280,8 @@ namespace lfg
             }
         }
 
+        ExtendRandomDungeonsToLevelCap(LfgDungeonStore, sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL));
+
         // Fill teleport locations from DB
         //                                                   0          1           2           3            4
         QueryResult result = WorldDatabase.Query("SELECT dungeonId, position_x, position_y, position_z, orientation FROM lfg_dungeon_template");
@@ -476,7 +478,8 @@ namespace lfg
         ObjectGuid guid = player->GetGUID();
 
         uint8 level = player->GetLevel();
-        uint8 expansion = player->GetSession()->Expansion();
+        uint8 expansion = std::min(player->GetSession()->Expansion(),
+            GetExpansionForLevelCap(sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL)));
         LfgDungeonSet const& dungeons = GetDungeonsByRandom(0);
         LfgLockMap lock;
 
@@ -2943,8 +2946,31 @@ namespace lfg
         return 0;
     }
 
+    uint8 LFGMgr::GetExpansionForLevelCap(uint32 levelCap)
+    {
+        if (levelCap <= 60)
+            return EXPANSION_CLASSIC;
+
+        if (levelCap <= 70)
+            return EXPANSION_THE_BURNING_CRUSADE;
+
+        return EXPANSION_WRATH_OF_THE_LICH_KING;
+    }
+
+    void LFGMgr::ExtendRandomDungeonsToLevelCap(LFGDungeonContainer& dungeons, uint32 levelCap)
+    {
+        if (levelCap >= DEFAULT_MAX_LEVEL)
+            return;
+
+        uint8 expansion = GetExpansionForLevelCap(levelCap);
+        for (auto& [id, dungeon] : dungeons)
+            if (dungeon.type == LFG_TYPE_RANDOM && dungeon.expansion == expansion && dungeon.maxlevel < levelCap)
+                dungeon.maxlevel = uint8(levelCap);
+    }
+
     LfgDungeonSet LFGMgr::GetRandomAndSeasonalDungeons(uint8 level, uint8 expansion)
     {
+        expansion = std::min(expansion, GetExpansionForLevelCap(sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL)));
         LfgDungeonSet randomDungeons;
         for (lfg::LFGDungeonContainer::const_iterator itr = LfgDungeonStore.begin(); itr != LfgDungeonStore.end(); ++itr)
         {

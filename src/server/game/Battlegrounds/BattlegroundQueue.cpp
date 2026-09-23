@@ -1083,7 +1083,7 @@ void BattlegroundQueue::BattlegroundQueueAnnouncerUpdate(uint32 diff, Battlegrou
 
             auto bgName = bg_template->GetName();
             uint32 MaxPlayers = GetMinPlayersPerTeam(bg_template, bracketEntry) * 2;
-            uint32 q_max_level = std::min(bracketEntry->maxLevel, (uint32) 80);
+            uint32 q_max_level = std::min(GetBracketMaxLevel(bracketEntry), (uint32) 80);
 
             ChatHandler(nullptr).SendWorldTextOptional(LANG_BG_QUEUE_ANNOUNCE_WORLD, ANNOUNCER_FLAG_DISABLE_BG_QUEUE, bgName.c_str(), q_min_level, q_max_level, qPlayers, MaxPlayers);
         }
@@ -1134,7 +1134,7 @@ void BattlegroundQueue::SendMessageBGQueue(Player* leader, Battleground* bg, PvP
     uint32 MinPlayers = GetMinPlayersPerTeam(bg, bracketEntry);
     uint32 MaxPlayers = MinPlayers * 2;
     uint32 q_min_level = std::min(bracketEntry->minLevel, (uint32)80);
-    uint32 q_max_level = std::min(bracketEntry->maxLevel, (uint32)80);
+    uint32 q_max_level = std::min(GetBracketMaxLevel(bracketEntry), (uint32)80);
     uint32 qHorde = GetPlayersCountInGroupsQueue(bracketId, BG_QUEUE_NORMAL_HORDE);
     uint32 qAlliance = GetPlayersCountInGroupsQueue(bracketId, BG_QUEUE_NORMAL_ALLIANCE);
     auto qTotal = qHorde + qAlliance;
@@ -1196,7 +1196,7 @@ void BattlegroundQueue::SendJoinMessageArenaQueue(Player* leader, GroupQueueInfo
         auto arenatype = Acore::StringFormat("{}v{}", ginfo->ArenaType, ginfo->ArenaType);
         uint32 playersNeed = ArenaTeam::GetReqPlayersForType(ginfo->ArenaType);
         uint32 q_min_level = std::min(bracketEntry->minLevel, (uint32)80);
-        uint32 q_max_level = std::min(bracketEntry->maxLevel, (uint32)80);
+        uint32 q_max_level = std::min(GetBracketMaxLevel(bracketEntry), (uint32)80);
         uint32 qPlayers = GetPlayersCountInGroupsQueue(bracketId, BG_QUEUE_NORMAL_HORDE) + GetPlayersCountInGroupsQueue(bracketId, BG_QUEUE_NORMAL_ALLIANCE);
 
         LOG_DEBUG("bg.arena", "> Queue status for {} (skirmish {}) (Lvl: {} to {}) Queued: {} (Need at least {} more)",

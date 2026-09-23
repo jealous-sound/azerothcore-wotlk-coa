@@ -1874,7 +1874,7 @@ void Battleground::SetBracket(PvPDifficultyEntry const* bracketEntry)
 {
     m_IsTemplate = false;
     m_BracketId = bracketEntry->GetBracketId();
-    SetLevelRange(bracketEntry->minLevel, bracketEntry->maxLevel);
+    SetLevelRange(bracketEntry->minLevel, GetBracketMaxLevel(bracketEntry));
 }
 
 void Battleground::StartTimedAchievement(AchievementCriteriaTimedTypes type, uint32 entry)

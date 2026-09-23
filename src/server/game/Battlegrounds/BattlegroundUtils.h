@@ -5,6 +5,8 @@
 
 uint32 GetMinPlayersPerTeam(Battleground* bg, PvPDifficultyEntry const* bracketEntry);
 
+uint32 GetBracketMaxLevel(PvPDifficultyEntry const* bracketEntry);
+
 // Effective low-levels MinPlayersPerTeam override for a BG type:
 // the per-BG config if set, else the global one. 0 = no override.
 // BGs entered through the Random BG queue have BATTLEGROUND_RB as

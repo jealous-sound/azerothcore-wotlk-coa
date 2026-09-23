@@ -574,7 +574,7 @@ void WorldConfig::BuildConfigCache()
 
     SetConfigValue<bool>(CONFIG_PLAYER_SETTINGS_ENABLED, "EnablePlayerSettings", 0);
 
-    SetConfigValue<bool>(CONFIG_ALLOW_JOIN_BG_AND_LFG, "JoinBGAndLFG.Enable", false);
+    SetConfigValue<bool>(CONFIG_ALLOW_JOIN_BG_AND_LFG, "JoinBGAndLFG.Enable", true);
 
     SetConfigValue<uint32>(CONFIG_LFG_MAIL_ITEM_ON_FULL_INVENTORY, "LFG.MailItemOnFullInventory", 0);
 

@@ -3546,10 +3546,10 @@ CAIS.Enable = 0
 #
 #    JoinBGAndLFG.Enable
 #        Description: Allow queueing for BG and LFG at the same time.
-#        Default:     0 - Disabled
-#                     1 - Enabled
+#        Default:     1 - Enabled
+#                     0 - Disabled
 
-JoinBGAndLFG.Enable = 0
+JoinBGAndLFG.Enable = 1
 
 #
 #    LFG.MailItemOnFullInventory

@@ -19,6 +19,11 @@ uint32 GetMinPlayersPerTeam(Battleground* bg, PvPDifficultyEntry const* bracketE
     return (lowLevelsOverride && !isMaxLevel) ? lowLevelsOverride : bg->GetMinPlayersPerTeam();
 }
 
+uint32 GetBracketMaxLevel(PvPDifficultyEntry const* bracketEntry)
+{
+    return std::min<uint32>(bracketEntry->maxLevel, sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL));
+}
+
 uint32 GetLowLevelsMinPlayersOverride(BattlegroundTypeId bgTypeId)
 {
     uint32 perBg = 0;
