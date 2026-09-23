@@ -22,18 +22,19 @@ struct ZoneScrollEntry
 {
     uint32 ItemEntry;
     uint32 SpellId;
+    char const* Name;
 };
 
 constexpr ZoneScrollEntry kZoneScrolls[] = {
-    { 696661, 993961 },  // Keeper's Scroll: Golganneth
-    { 696662, 993943 },  // Keeper's Scroll: Norgannon
-    { 696663, 993955 },  // Keeper's Scroll: Khaz'goroth
-    { 696664, 993959 },  // Keeper's Scroll: Aggramar
-    { 696665, 993957 },  // Keeper's Scroll: Eonar
-    { 1179240, 91770 },  // Keeper's Scroll: Steadfast
-    { 1179261, 91796 },  // Keeper's Scroll: Featherfall
-    { 1179266, 91803 },  // Keeper's Scroll: Ghost Runner
-    { 1179269, 91814 },  // Keeper's Scroll: Crafting Speed
+    { 696661, 993961, "Golganneth" },
+    { 696662, 993943, "Norgannon" },
+    { 696663, 993955, "Khaz'goroth" },
+    { 696664, 993959, "Aggramar" },
+    { 696665, 993957, "Eonar" },
+    { 1179240, 91770, "Steadfast" },
+    { 1179261, 91796, "Featherfall" },
+    { 1179266, 91803, "Ghost Runner" },
+    { 1179269, 91814, "Crafting Speed" },
 };
 
 uint32 SpellForItem(uint32 itemEntry)
@@ -186,7 +187,7 @@ public:
         return false;
     }
 
-    void OnPlayerUpdateZone(Player* player, uint32 newZone, uint32 /*newArea*/) override
+    void OnPlayerUpdateZone(Player* player, uint32 newZone, uint32) override
     {
         time_t now = GameTime::GetGameTime().count();
         std::unordered_map<uint32, time_t> active;
@@ -224,7 +225,7 @@ public:
         _timer = 0;
 
         time_t now = GameTime::GetGameTime().count();
-        std::vector<std::pair<uint32, uint32>> expired; // {zoneId, spellId}
+        std::vector<std::pair<uint32, uint32>> expiredZoneSpells;
 
         {
             std::lock_guard<std::mutex> lock(g_zoneScrollLock);
@@ -234,7 +235,7 @@ public:
                 {
                     if (it->second <= now)
                     {
-                        expired.emplace_back(zoneId, it->first);
+                        expiredZoneSpells.emplace_back(zoneId, it->first);
                         it = spells.erase(it);
                     }
                     else
@@ -243,7 +244,7 @@ public:
             }
         }
 
-        for (auto const& [zoneId, spellId] : expired)
+        for (auto const& [zoneId, spellId] : expiredZoneSpells)
         {
             sMapMgr->DoForAllMaps([zoneId, spellId](Map* map)
             {
