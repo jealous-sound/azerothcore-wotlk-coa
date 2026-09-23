@@ -74,6 +74,7 @@ enum AscensionRawCombatSelector : int32
 constexpr uint32 AnimatedBloodSummons[] = {325301, 335301, 315301};
 
 constexpr uint32 CursedForms[] = {562572, 562720, 680692, 800157, 801076, 524865};
+constexpr uint32 MortalAbilityForms[] = {680692, 801076};
 
 bool IsCursedForm(uint32 id)
 {
@@ -87,6 +88,19 @@ bool HasCursedForm(Player const* player, Aura const* ignored = nullptr)
     for (uint32 form : CursedForms)
         if (Aura const* aura = player->GetAura(form, player->GetGUID()); aura && aura != ignored)
             return true;
+    return false;
+}
+
+bool HasCursedFormRestrictingMortalAbilities(Player const* player)
+{
+    for (uint32 form : CursedForms)
+    {
+        if (std::find(std::begin(MortalAbilityForms), std::end(MortalAbilityForms), form) !=
+            std::end(MortalAbilityForms))
+            continue;
+        if (player->HasAura(form, player->GetGUID()))
+            return true;
+    }
     return false;
 }
 
@@ -109,14 +123,19 @@ void SyncCursedFormRequirement(Player* player)
 {
     bool active = HasCursedForm(player);
 
-    for (uint32 marker : {uint32(SPELL_CURSED_FORM_REQUIREMENT), uint32(SPELL_CURSED_FORM_REQUIREMENT_2),
-        uint32(AscensionBloodmage::CursedForm)})
+    for (uint32 marker : {uint32(SPELL_CURSED_FORM_REQUIREMENT), uint32(SPELL_CURSED_FORM_REQUIREMENT_2)})
     {
         if (!active)
             player->RemoveAurasDueToSpell(marker, player->GetGUID());
         else if (player->IsInWorld() && player->IsAlive() && !player->HasAura(marker, player->GetGUID()))
             player->CastSpell(player, marker, true);
     }
+
+    if (!HasCursedFormRestrictingMortalAbilities(player))
+        player->RemoveAurasDueToSpell(AscensionBloodmage::CursedForm, player->GetGUID());
+    else if (player->IsInWorld() && player->IsAlive() &&
+        !player->HasAura(AscensionBloodmage::CursedForm, player->GetGUID()))
+        player->CastSpell(player, AscensionBloodmage::CursedForm, true);
 }
 
 void ApplyBloodmageConditionalContracts(SpellInfo* info)

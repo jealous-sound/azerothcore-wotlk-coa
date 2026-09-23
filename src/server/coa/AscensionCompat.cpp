@@ -54,6 +54,7 @@
 #include "AscensionSpellProgressionData.h"
 #include "AscensionTalentReplacementData.h"
 #include "AscensionTaughtAbilityData.h"
+#include "AscensionPooledVitality.h"
 #include "AscensionCreaturePreset.h"
 #include "Bag.h"
 #include "Battlefield.h"
@@ -227,6 +228,7 @@ constexpr uint32 SPELL_STORMBRINGER_WRATH_OF_ALAKIR = 300834;
 constexpr uint32 SPELL_STORMBRINGER_UNSHACKLE_EXTENSION = 300835;
 constexpr uint32 SPELL_BLOODMAGE_THIRST_PASSIVE = 92112;
 constexpr uint32 SPELL_BLOODMAGE_THIRST = 706613;
+constexpr uint32 BLOODMAGE_FLESHWEAVER_SPEC = 25;
 constexpr uint32 SPELL_REAPER_REAPED_SOUL = 500363;
 constexpr uint32 SPELL_REAPER_SOUL_INFUSION = 803031;
 constexpr uint32 SPELL_REAPER_SOUL_INFUSION_REMOVER = 561290;
@@ -1923,6 +1925,9 @@ public:
         ++removed;
       }
     }
+
+    if (player->getClass() == CLASS_SON_OF_ARUGAL && previousSpecialization == BLOODMAGE_FLESHWEAVER_SPEC)
+      player->RemoveAurasDueToSpell(AscensionBloodmage::PooledVitality);
 
     {
       std::lock_guard<std::mutex> lock(_stateLock);
