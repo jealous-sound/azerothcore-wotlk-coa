@@ -4879,12 +4879,9 @@ public:
     if (QueueAscensionManastormPacket(session, packet))
       return false;
 
-    if (std::find(QUEUED_EXTENSION_OPCODES.begin(),
-                  QUEUED_EXTENSION_OPCODES.end(),
-                  opcode) != QUEUED_EXTENSION_OPCODES.end()) {
-      AscensionCollectionService::Instance().QueueClientPacket(
-          session->GetAccountId(), packet);
-    }
+    if (std::find(QUEUED_EXTENSION_OPCODES.begin(), QUEUED_EXTENSION_OPCODES.end(), opcode) !=
+        QUEUED_EXTENSION_OPCODES.end())
+        AscensionCollectionService::Instance().QueueClientPacket(session->GetAccountId(), packet);
 
     if (opcode == CMSG_MISSILE_FIRE_POSITION)
     {
