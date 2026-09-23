@@ -1,12 +1,14 @@
 CLI_DESCRIPTION = """Run Ascension extension packet regressions without a server or database.
 
-Compiles the production realm-info sender against the real WorldPacket and checks
-the bytes the stock Extensions.dll reads. Pass --source-ref to test another Git ref.
+Compiles the production realm-info sender, socket-thread packet hook, extension packet
+queue and world-thread handler against the real WorldPacket. Pass --source-ref to test
+another Git ref.
 """
 
 import argparse
 import os
 from pathlib import Path
+import re
 import runpy
 import shutil
 import subprocess
@@ -23,7 +25,11 @@ method = runpy.run_path(str(HERE.parent / 'client_compat/run.py'))['method']
 
 def opcodes(source):
     start = source.index('namespace {\n') + len('namespace {\n')
-    return source[start:source.index('struct ExtensionOpcodeIdentity')]
+    return source[start:source.index('constexpr uint32 SPELL_PYROMANCER_HEAT')]
+
+
+def constant(source, name):
+    return re.search(r'^constexpr [\w:]+ ' + name + r' = [^;]+;$', source, re.M)[0]
 
 
 def main():
@@ -45,7 +51,13 @@ def main():
             'ByteBufferPositionException::ByteBufferPositionException(',
         ))),
         ('OPCODES', opcodes(compat)),
+        ('QUEUE_LIMIT', constant(compat, 'MAX_QUEUED_EXTENSION_PACKETS')),
+        ('CONFIG_KEYS', method(compat, 'enum class AscensionCompatConfig') + ';'),
         ('SEND_REALM_INFO', method(compat, 'void SendRealmInfo(WorldSession *session')),
+        ('QUEUE_CLIENT_PACKET', method(compat, 'void QueueClientPacket(uint32 accountId')),
+        ('ON_PLAYER_UPDATE', method(compat, 'void OnPlayerUpdate(Player *player, uint32 diff) {')),
+        ('HANDLE_CLIENT_PACKET', method(compat, 'void HandleClientPacket(Player *player')),
+        ('CAN_PACKET_RECEIVE_EARLY', method(compat, 'bool CanPacketReceiveEarly(WorldSession *session')),
     ]:
         harness = harness.replace('// ACTUAL_' + marker, text)
 

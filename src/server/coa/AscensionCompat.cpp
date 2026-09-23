@@ -119,6 +119,7 @@ using namespace Acore::ChatCommands;
 namespace {
 constexpr uint16 CMSG_ANTICHEAT_ALERT = 0x051F;
 constexpr uint16 CMSG_CUSTOM_ASCENSION_POINT_SPEND_REQUEST = 0x0523;
+constexpr uint16 CMSG_EXTENSION_INITIALIZED = 0x0561;
 constexpr uint16 CMSG_CREATURE_QUERY_BULK = 0x061A;
 constexpr uint16 CMSG_APPLY_APPEARANCES = 0x0697;
 constexpr uint16 SMSG_APPLY_APPEARANCES_RESULT = 0x0698;
@@ -147,6 +148,10 @@ constexpr uint8 REALM_INFO_ADDONS_ALLOWED = 1;
 
 constexpr uint16 SMSG_BANK_PERMISSIONS = 0x0769;
 
+constexpr std::array<uint16, 3> QUEUED_EXTENSION_OPCODES = {
+    CMSG_APPLY_APPEARANCES, CMSG_SET_CAN_SEE_APPEARANCES,
+    CMSG_EXTENSION_INITIALIZED};
+
 struct ExtensionOpcodeIdentity {
   uint16 Opcode;
   char const *Name;
@@ -156,7 +161,7 @@ constexpr ExtensionOpcodeIdentity EXTENSION_OPCODES[] = {
     {CMSG_ANTICHEAT_ALERT, "CMSG_ANTICHEAT_ALERT"},
     {CMSG_CUSTOM_ASCENSION_POINT_SPEND_REQUEST, "CMSG_CUSTOM_ASCENSION_POINT_SPEND_REQUEST"},
     {0x053B, "CMSG_ASCENSIONGM_TICKET_LIST_REQUEST"},
-    {0x0561, "CMSG_EXTENSION_INITIALIZED"},
+    {CMSG_EXTENSION_INITIALIZED, "CMSG_EXTENSION_INITIALIZED"},
     {0x05A1, "CMSG_CHALLENGE_QUERY_FAILURE"},
     {0x061B, "CMSG_ITEM_QUERY_BULK"},
     {0x0667, "CMSG_SET_LEVEL_SCALING"},
@@ -3999,6 +4004,12 @@ private:
       case CMSG_SET_CAN_SEE_APPEARANCES:
         HandleSetAppearanceVisibility(player, packet);
         break;
+      case CMSG_EXTENSION_INITIALIZED:
+        player->SendAllSpellChargeStates();
+        SendAscensionRunemasterEchoesOwnership(player);
+        LOG_DEBUG("coa", "Resent spell charge state to {} after client world entry",
+                  player->GetName());
+        break;
       default:
         break;
       }
@@ -4786,8 +4797,9 @@ public:
     if (QueueAscensionManastormPacket(session, packet))
       return false;
 
-    if (opcode == CMSG_APPLY_APPEARANCES ||
-        opcode == CMSG_SET_CAN_SEE_APPEARANCES) {
+    if (std::find(QUEUED_EXTENSION_OPCODES.begin(),
+                  QUEUED_EXTENSION_OPCODES.end(),
+                  opcode) != QUEUED_EXTENSION_OPCODES.end()) {
       AscensionCollectionService::Instance().QueueClientPacket(
           session->GetAccountId(), packet);
     }
