@@ -130,10 +130,6 @@ void Gain(Player* player, uint32 count)
     if (!player || !player->IsAlive() || !count)
         return;
     uint32 previous = Count(player, 500906);
-    // Base cap of 6; Heart of Xoroth (704956) registers a native SPELLMOD_MAX_AURA_STACKS
-    // modifier (its classmask is corrected to Demon's Blood's own family flags in
-    // AscensionXorothContracts.cpp) for +5 additional stacks, matching the pattern already
-    // used by Necromancer's Capacity() (AscensionNecromancer.cpp).
     int32 cap = 6;
     player->ApplySpellMod(500906, SPELLMOD_MAX_AURA_STACKS, cap);
     uint32 maxStacks = uint32(std::max(cap, 0));
@@ -267,9 +263,6 @@ void Unleash(Player* player, Unit* center, float strength, bool pet)
                                       : 0;
     if (!spell)
         return;
-    // Boundless Fury (704954): +30% effectiveness for Pestilence of Death's unleash (801055)
-    // specifically, matching its own SpellClassMask target (neutralized in
-    // AscensionXorothContracts.cpp; its value is read directly here).
     if (spell == 801055 && player->HasAura(704954))
         strength *= 1 + Amount(704954) / 100.0f;
     float old = State(player).unleash;

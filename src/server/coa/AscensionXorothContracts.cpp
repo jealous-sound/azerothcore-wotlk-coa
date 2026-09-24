@@ -271,10 +271,6 @@ void ApplyContracts(SpellInfo* info)
     }
     if (id == 704953)
     {
-        // Chop Shop: each stack of Demon's Blood (500906) adds 1% crit chance to Sever/Brimstone
-        // Bludgeon (family bit 0,2097152 - shared by Sever 500904 and its Brimstone Bludgeon 520005
-        // replacement) and Meatsaw (family bit 0,8388608). Base amount starts at 0 and is kept in sync
-        // with the current stack count by Refresh() in AscensionXoroth.cpp.
         SpellEffectInfo& e = info->Effects[EFFECT_0];
         e.Effect = SPELL_EFFECT_APPLY_AURA;
         e.ApplyAuraName = SPELL_AURA_ADD_FLAT_MODIFIER;
@@ -289,10 +285,6 @@ void ApplyContracts(SpellInfo* info)
     }
     if (id == 704999)
     {
-        // Combusting Blade: flat +5% Intellect, plus a private SPELLMOD_COST flat modifier that
-        // reduces Infernal Strike's Rage cost by 5. The classmask reuses the same combined Infernal
-        // Strike/Shieldgore family bits already patched onto Fiend (680197) above, so the discount
-        // survives the Shieldgore replacement exactly like that existing damage bonus does.
         SpellEffectInfo& intellect = info->Effects[EFFECT_0];
         intellect.Effect = SPELL_EFFECT_APPLY_AURA;
         intellect.ApplyAuraName = SPELL_AURA_MOD_PERCENT_STAT;
@@ -314,8 +306,6 @@ void ApplyContracts(SpellInfo* info)
     }
     if (id == 707388)
     {
-        // Consuming Blade: a private SPELLMOD_CRITICAL_CHANCE flat modifier scoped to Gore's family
-        // classmask (0,64,0), plus a flat expertise bonus via the native SPELL_AURA_MOD_EXPERTISE.
         SpellEffectInfo& crit = info->Effects[EFFECT_0];
         crit.Effect = SPELL_EFFECT_APPLY_AURA;
         crit.ApplyAuraName = SPELL_AURA_ADD_FLAT_MODIFIER;
@@ -336,10 +326,6 @@ void ApplyContracts(SpellInfo* info)
     }
     if (id == 804947)
     {
-        // Screamin' Demon: a private SPELLMOD_COOLDOWN flat modifier of -15 sec scoped to Unleash
-        // Pestilence's own family classmask, following the same full-effect-rewrite pattern used for
-        // Battle Cleric (AscensionSunClericBattleCleric.cpp) - explicit DieSides 0 avoids the
-        // BasePoints+1 rounding that a die-sides-1 slot would otherwise apply.
         SpellEffectInfo& e = info->Effects[EFFECT_0];
         e.Effect = SPELL_EFFECT_APPLY_AURA;
         e.ApplyAuraName = SPELL_AURA_ADD_FLAT_MODIFIER;
@@ -354,10 +340,6 @@ void ApplyContracts(SpellInfo* info)
     }
     if (id == 706501)
     {
-        // Absolutism: partial armor ignore on Meatsaw via the custom SPELL_AURA_ASCENSION_MOD_IGNORE_ARMOR_PCT
-        // (Unit::CalcArmorReducedDamage reads this as a positive percentage to shave off the target's
-        // armor before mitigation), scoped to Meatsaw's family classmask. Same aura type already used
-        // by AscensionWitchHunterCompletion.cpp (804194) and AscensionSunClericRadiance.cpp (Vindicator).
         SpellEffectInfo& e = info->Effects[EFFECT_0];
         e.Effect = SPELL_EFFECT_APPLY_AURA;
         e.ApplyAuraName = SPELL_AURA_ASCENSION_MOD_IGNORE_ARMOR_PCT;
@@ -371,9 +353,6 @@ void ApplyContracts(SpellInfo* info)
     }
     if (id == 705020)
     {
-        // War Pig: flat +4% Physical damage via the native SPELL_AURA_MOD_DAMAGE_PERCENT_DONE
-        // (MiscValue = SPELL_SCHOOL_MASK_NORMAL), already folded into the melee/ranged/spell
-        // damage-done paths by UpdateDamagePctDoneMods.
         SpellEffectInfo& e = info->Effects[EFFECT_0];
         e.Effect = SPELL_EFFECT_APPLY_AURA;
         e.ApplyAuraName = SPELL_AURA_MOD_DAMAGE_PERCENT_DONE;
@@ -387,10 +366,6 @@ void ApplyContracts(SpellInfo* info)
     }
     if (id == 680723)
     {
-        // Brute Strength: native SPELL_AURA_MOD_CRIT_DAMAGE_BONUS (+10% Physical crit damage), plus
-        // a private SPELLMOD_RANGE flat modifier (+5 yds) scoped to a combined classmask spanning
-        // Flesh Hook (500020, dword0 bit3 and dword2 bit0), Chains of Malice (803185, dword0 bit22)
-        // and Chainwhip (800081, dword0 bit19).
         SpellEffectInfo& crit = info->Effects[EFFECT_0];
         crit.Effect = SPELL_EFFECT_APPLY_AURA;
         crit.ApplyAuraName = SPELL_AURA_MOD_CRIT_DAMAGE_BONUS;
@@ -411,10 +386,6 @@ void ApplyContracts(SpellInfo* info)
     }
     if (id == 804354)
     {
-        // Black Skull Shield: native SPELL_AURA_ADD_PCT_MODIFIER (SPELLMOD_DAMAGE) +25% Shieldgore
-        // damage, plus a private SPELLMOD_COST flat modifier of -5 Rage, both scoped to Shieldgore's
-        // own family classmask (804353, dword1 bit8) - the same SPELLMOD_COST pattern used by
-        // Combusting Blade (#942).
         SpellEffectInfo& dmg = info->Effects[EFFECT_0];
         dmg.Effect = SPELL_EFFECT_APPLY_AURA;
         dmg.ApplyAuraName = SPELL_AURA_ADD_PCT_MODIFIER;
@@ -437,10 +408,6 @@ void ApplyContracts(SpellInfo* info)
     }
     if (id == 704959)
     {
-        // Cinderblade: native SPELL_AURA_MOD_RATING_FROM_STAT converts 20% of Intellect into melee/
-        // ranged/spell critical strike rating (Player::UpdateRating reads MiscValue as a CombatRating
-        // bitmask - CR_CRIT_MELEE|CR_CRIT_RANGED|CR_CRIT_SPELL = 1792 - and MiscValueB as the source
-        // Stats index), plus native SPELL_AURA_MOD_SPELL_HIT_CHANCE +6%.
         SpellEffectInfo& crit = info->Effects[EFFECT_0];
         crit.Effect = SPELL_EFFECT_APPLY_AURA;
         crit.ApplyAuraName = SPELL_AURA_MOD_RATING_FROM_STAT;
@@ -459,24 +426,9 @@ void ApplyContracts(SpellInfo* info)
         hit.TargetB = SpellImplicitTargetInfo();
     }
     if (id == 707232)
-        // Speed Demon: neutralize its own raw SPELLMOD_EFFECT3 effect (which targeted Suffuse's
-        // then-inert EFFECT_2 slot and would otherwise still fire through the native spellmod
-        // pipeline whenever Suffuse is cast). The talent's actual bonus is read directly by value
-        // below via Amount(). Re-tag EFFECT_0 as SPELL_AURA_DUMMY rather than zeroing
-        // info->Effects[EFFECT_0].Effect outright: zeroing the effect type leaves the spell with no
-        // valid unit-owned aura effect at all (Aura::BuildEffectMaskForOwner returns 0), so the
-        // passive can never actually become an active aura via set_aura's fixture path or the
-        // native learn-time CastSpell (Player::addSpell) alike - the very player->HasAura(707232)
-        // gate this talent depends on could then never be true (same bug class as Murderous Might,
-        // 520290, above).
         info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_DUMMY;
     if (id == 801063)
     {
-        // Suffuse: claim the previously inert EFFECT_2 slot as a native SPELL_AURA_MOD_INCREASE_SPEED
-        // effect on the caster. Its amount is zero here and is scaled to Speed Demon's own tooltip
-        // value (707232) only while the player has that talent, in
-        // aura_ascension_xoroth_lifecycle::Calculate (AscensionXorothAuras.cpp) - Suffuse's own
-        // aura lifetime already gates how long the speed bonus lasts.
         SpellEffectInfo& e = info->Effects[EFFECT_2];
         e.Effect = SPELL_EFFECT_APPLY_AURA;
         e.ApplyAuraName = SPELL_AURA_MOD_INCREASE_SPEED;
@@ -487,66 +439,18 @@ void ApplyContracts(SpellInfo* info)
     }
     if (id == 704954)
     {
-        // Boundless Fury: its own baked SPELLMOD_ALL_EFFECTS classmask (dword0 bit26, matching
-        // Unleash Death 801055 - Pestilence of Death's unleash spell) is duplicated identically
-        // on EFFECT_0 and EFFECT_1 and is never read by AscensionXoroth::Unleash()'s custom
-        // State().unleash damage multiplier. The real 30% value is read directly via Amount()
-        // (which defaults to EFFECT_0) and applied in Unleash() below. Null EFFECT_1's duplicate
-        // outright, but re-tag EFFECT_0's ApplyAuraName as SPELL_AURA_DUMMY rather than zeroing
-        // its effect type: zeroing the effect type leaves the spell with no valid unit-owned aura
-        // effect at all (Aura::BuildEffectMaskForOwner returns 0), so the passive can never
-        // actually become an active aura via set_aura's fixture path or the native learn-time
-        // CastSpell (Player::addSpell) alike - the very player->HasAura(704954) gate Unleash()
-        // depends on could then never be true (same bug class as Murderous Might, 520290, above).
         info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_DUMMY;
         info->Effects[EFFECT_1].Effect = 0;
     }
     if (id == 704956)
-        // Heart of Xoroth: its own baked SPELLMOD_MAX_AURA_STACKS effect (misc 31, +5 stacks via
-        // BasePoints 4 + the DieSides 1 rounding) carries a scrambled classmask
-        // ([536870912,0,16]) that overlaps none of Demon's Blood's (500906) actual family flags
-        // (dword1 bit4 / 16). Correct it so the native spellmod - applied via
-        // AscensionXoroth::Gain()'s ApplySpellMod(500906, SPELLMOD_MAX_AURA_STACKS, ...), the
-        // same pattern as Necromancer's Capacity() (AscensionNecromancer.cpp) - actually matches.
         info->Effects[EFFECT_0].SpellClassMask = flag96(0, 16, 0);
     if (id == 520290)
-        // Murderous Might: its own baked SPELLMOD_DAMAGE classmask (dword1 bit0, dword2 bits
-        // 2/25) only overlaps 3 of the 11 Demonfire-spending root spells in
-        // AscensionXoroth::Spender() - Skulltaker (800168), Melt (803334) and Warbringer
-        // (802581) - and Hellstorm (802342) carries no family flags at all, so no classmask can
-        // ever cover it. Null the native SPELLMOD_DAMAGE behavior and read its value directly via
-        // Amount() in Factor() below, covering every spender uniformly. Re-tag EFFECT_0 as
-        // SPELL_AURA_DUMMY rather than zeroing info->Effects[EFFECT_0].Effect outright: zeroing the
-        // effect type leaves the spell with no valid unit-owned aura effect at all
-        // (Aura::BuildEffectMaskForOwner returns 0), so the passive can never actually become an
-        // active aura via the native learn-time CastSpell (Player::addSpell) - the very
-        // player->HasAura(520290) gate this fix (and its own scenario fixture) depends on could
-        // then never be true. Keeping EFFECT_0 as a harmless dummy aura lets it apply normally
-        // while carrying no native spellmod behavior of its own.
         info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_DUMMY;
     if (id == 680900)
-        // Infernal Pummeling: its own baked effect is a stray SPELLMOD_EFFECT2 flat modifier
-        // scoped to Melt's own classmask (would add +10 to Melt's disabled EFFECT_2 crit-chance
-        // slot instead of a damage-taken bonus). Neutralize it; the real 10% value is read directly
-        // via Amount() and applied to Melt's own inert MOD_DAMAGE_FROM_CASTER slot (id == 803334,
-        // EFFECT_1 in ModifySpellEffectBaseValue below), gated on this talent. Re-tag as
-        // SPELL_AURA_DUMMY rather than zeroing the effect type outright - the latter leaves no
-        // valid unit-owned aura effect at all (Aura::BuildEffectMaskForOwner returns 0), so
-        // set_aura's fixture path (and native learn-time CastSpell) can never make the passive an
-        // active aura, and player->HasAura(680900) could then never be true (same bug class as
-        // Murderous Might, 520290, above; confirmed empirically: set_aura threw "Could not apply
-        // fixture aura" before this fix).
         info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_DUMMY;
     if (id == 300386)
-        // Fiend of Forges: same "zero effect" bug class as Murderous Might (520290) above - the
-        // player->HasAura(300386) gate in AscensionXorothAuras.cpp's aura_ascension_xoroth_lifecycle::
-        // Calculate (801019/EFFECT_1) could never be true if this effect is zeroed outright. Re-tag as
-        // SPELL_AURA_DUMMY rather than zeroing the effect type, matching the established remedy.
         info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_DUMMY;
     if (id == 300387)
-        // Brimstone's Blood: same "zero effect" bug class as Murderous Might (520290) above - the
-        // player->HasAura(300387) gate in aura_ascension_xoroth_event::Check (AscensionXorothEvents.cpp,
-        // case 804345) could never be true if this effect is zeroed outright. Re-tag as SPELL_AURA_DUMMY.
         info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_DUMMY;
     if (id == 300390)
     {
@@ -565,11 +469,6 @@ void ApplyContracts(SpellInfo* info)
     if (id == 704980)
         info->Effects[EFFECT_1].Effect = 0;
     if (id == 705000)
-        // To Ashes: same "zero effect" bug class as Murderous Might (520290) above - the
-        // player->HasAura(705000) gate in xoroth_casts::OnSpellCritChance (AscensionXorothAbilities.cpp)
-        // could never be true if this effect is zeroed outright (Player::addSpell's learn-time
-        // CastSpell would build an aura with no valid effect mask). Re-tag as SPELL_AURA_DUMMY rather
-        // than zeroing the effect type, matching the established remedy.
         info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_DUMMY;
     info->_InitializeExplicitTargetMask();
 }
