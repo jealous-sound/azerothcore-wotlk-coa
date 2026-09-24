@@ -462,7 +462,7 @@ class xoroth_casts : public AllSpellScript
                     Cast(player, pet, id == 801053 ? 802605 : id == 802344 ? 802603 : id == 804786 ? 806962 : 802604);
                     State(player).timers.ScheduleEvent(300398, 10s);
                 }
-            if (Infernal(info) && player->HasAura(707666))
+            if (Infernal(info) && player->HasAura(706755))
                 Summon(player, 50301, player->GetNearPosition(2, 0),
                        uint32(sSpellMgr->GetSpellInfo(807699)->GetDuration()));
             if (Named(info, 801059) && fire == 6 && player->HasAura(704452))

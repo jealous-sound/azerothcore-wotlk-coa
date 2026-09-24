@@ -33,7 +33,7 @@ void Scale(Creature* unit, Player* player)
 {
     bool imp = unit->GetEntry() == 50301;
     float health = player->GetMaxHealth() * (imp ? .25f : .6f);
-    if (imp && player->HasAura(707666))
+    if (imp && player->HasAura(706755))
         health *= 1.3f;
     if (imp && player->HasAura(804879))
         health *= 1.5f;
