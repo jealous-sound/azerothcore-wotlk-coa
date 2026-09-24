@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "Primalist Ancient of War form and Hammer effectiveness",
-  "contract": "The twenty-second form selects the available Ancient of War display, reduces movement by thirty percent, adds twenty points of melee/spell crit to the party, and increases Hammer of Life conversion from twenty to twenty-six percent. Expiry restores all modifiers; actual damage and healing copies are checked independently.",
+  "contract": "The twenty-second form selects the available Ancient of War display, reduces movement by thirty percent, keeps native auto-attack swinging and damaging, adds twenty points of melee/spell crit to the party, and increases Hammer of Life conversion from twenty to twenty-six percent. Expiry restores all modifiers; actual damage and healing copies are checked independently.",
   "players": [
     {
       "id": "primalist",
@@ -453,6 +453,52 @@
       "spell": 803973,
       "effect": 0,
       "equals": 26
+    },
+    {
+      "action": "snapshot",
+      "actor": "primalist",
+      "metric": "melee_attack_count",
+      "save_as": "formswingsbefore"
+    },
+    {
+      "action": "snapshot",
+      "actor": "primalist",
+      "metric": "melee_damage_count",
+      "save_as": "formhitsbefore"
+    },
+    {
+      "action": "attack",
+      "actor": "primalist",
+      "target": "target"
+    },
+    {
+      "action": "wait",
+      "ms": 3000
+    },
+    {
+      "action": "stop_attack",
+      "actor": "primalist"
+    },
+    {
+      "action": "assert",
+      "actor": "primalist",
+      "metric": "melee_attack_count",
+      "relative_to": "formswingsbefore",
+      "min": 1
+    },
+    {
+      "action": "assert",
+      "actor": "primalist",
+      "metric": "melee_damage_count",
+      "relative_to": "formhitsbefore",
+      "min": 1
+    },
+    {
+      "action": "assert",
+      "actor": "primalist",
+      "metric": "aura",
+      "spell": 504222,
+      "equals": 1
     },
     {
       "action": "set_health",
