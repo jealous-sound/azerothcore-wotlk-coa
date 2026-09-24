@@ -979,6 +979,8 @@ private:
             return unit->GetHealthPct();
         if (metric == "max_health")
             return unit->GetMaxHealth();
+        if (metric == "creature_type")
+            return unit->GetCreatureType();
         if (metric == "display_id")
             return unit->GetDisplayId();
         if (metric == "unit_scale")

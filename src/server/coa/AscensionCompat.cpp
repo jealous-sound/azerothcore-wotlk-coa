@@ -6421,10 +6421,24 @@ class spell_ascension_jailers_bargain : public AuraScript
         canBeRecalculated = false;
     }
 
+    void ApplySleepImmunity(AuraEffect const*, AuraEffectHandleModes)
+    {
+        GetTarget()->ApplySpellImmune(GetId(), IMMUNITY_MECHANIC, MECHANIC_SLEEP, true);
+    }
+
+    void RemoveSleepImmunity(AuraEffect const*, AuraEffectHandleModes)
+    {
+        GetTarget()->ApplySpellImmune(GetId(), IMMUNITY_MECHANIC, MECHANIC_SLEEP, false);
+    }
+
     void Register() override
     {
         DoEffectCalcAmount += AuraEffectCalcAmountFn(spell_ascension_jailers_bargain::CalculateAmount,
             EFFECT_0, SPELL_AURA_SCHOOL_ABSORB);
+        AfterEffectApply += AuraEffectApplyFn(spell_ascension_jailers_bargain::ApplySleepImmunity,
+            EFFECT_2, SPELL_AURA_MECHANIC_IMMUNITY, AURA_EFFECT_HANDLE_REAL);
+        AfterEffectRemove += AuraEffectRemoveFn(spell_ascension_jailers_bargain::RemoveSleepImmunity,
+            EFFECT_2, SPELL_AURA_MECHANIC_IMMUNITY, AURA_EFFECT_HANDLE_REAL);
     }
 };
 
