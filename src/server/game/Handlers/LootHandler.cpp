@@ -209,7 +209,7 @@ void WorldSession::HandleLootMoneyOpcode(WorldPacket& /*recvData*/)
                 if (!member)
                     continue;
 
-                if (player->IsAtLootRewardDistance(member))
+                if (player->IsAtLootRewardDistance(member) && sScriptMgr->OnAllowedToLootContainerCheck(member, guid))
                     playersNear.push_back(member);
             }
 

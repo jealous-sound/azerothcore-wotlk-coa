@@ -260,6 +260,7 @@ struct Actor
     uint32 challengeStartResponses = 0;
     uint32 challengeStartLastCode = 0;
     std::map<uint64, std::map<uint16, uint32>> unitValues;
+    std::map<uint32, uint32> creatureQueryRank;
     uint32 lastQuestWindow = 0;
     std::unique_ptr<WorldSession> session;
     ObjectGuid guid;
@@ -639,6 +640,21 @@ private:
                 }
                 if (packet.GetOpcode() == SMSG_SHOW_BANK)
                     ++actor.bankShows;
+                if (packet.GetOpcode() == SMSG_CREATURE_QUERY_RESPONSE)
+                {
+                    WorldPacket response(packet);
+                    uint32 entry = 0;
+                    response >> entry;
+                    if (!(entry & 0x80000000))
+                    {
+                        std::string name, subName, iconName;
+                        uint8 unusedName = 0;
+                        uint32 typeFlags = 0, type = 0, family = 0, rank = 0;
+                        response >> name >> unusedName >> unusedName >> unusedName >> subName >> iconName;
+                        response >> typeFlags >> type >> family >> rank;
+                        actor.creatureQueryRank[entry] = rank;
+                    }
+                }
                 ObserveUnitValues(actor, packet);
                 if (packet.GetOpcode() == SMSG_ATTACKERSTATEUPDATE)
                 {
@@ -951,7 +967,9 @@ private:
                 creature->SetRegeneratingHealth(false);
                 creature->SetFaction(definition.get<uint32>("faction", 14));
                 creature->SetLevel(uint8(definition.get<uint32>("level", 80)));
-                creature->SetMaxHealth(definition.get<uint32>("health", 100000));
+                uint32 const health = definition.get<uint32>("health", 100000);
+                creature->SetStatFlatModifier(UNIT_MOD_HEALTH, BASE_VALUE, float(health));
+                creature->SetMaxHealth(health);
                 creature->SetHealth(creature->GetMaxHealth());
                 creature->CombatStop(true, true);
                 creature->SetReactState(REACT_PASSIVE);
@@ -1042,6 +1060,12 @@ private:
             if (itr == actor.unitValues.end() || !itr->second.count(field))
                 return 0;
             return itr->second.at(field);
+        }
+        if (metric == "creature_query_rank")
+        {
+            Actor& actor = _actors.at(step.get<std::string>("actor"));
+            auto itr = actor.creatureQueryRank.find(step.get<uint32>("entry"));
+            return itr == actor.creatureQueryRank.end() ? -1 : int64(itr->second);
         }
         if (metric == "quest_level" || metric == "quest_xp")
         {
@@ -2239,6 +2263,11 @@ private:
             if (group->IsFull() && !group->isRaidGroup())
                 group->ConvertToRaid();
             Require(group->AddMember(member), "Could not join fixture group");
+            if (auto method = step.get_optional<uint32>("loot_method"))
+            {
+                group->SetLootMethod(LootMethod(*method));
+                group->SendUpdate();
+            }
         }
         else if (action == "command")
         {
@@ -2424,6 +2453,13 @@ private:
         {
             WorldPacket packet(CMSG_COA_START_CHALLENGE, 8);
             packet << uint32(step.get<uint32>("challenge")) << uint32(step.get<uint32>("level"));
+            sScriptMgr->CanPacketReceive(player->GetSession(), packet);
+            record.put("result", "submitted; verify the answer with assertions");
+        }
+        else if (action == "stop_challenge")
+        {
+            WorldPacket packet(CMSG_COA_STOP_CHALLENGE, 4);
+            packet << uint32(step.get<uint32>("challenge"));
             sScriptMgr->CanPacketReceive(player->GetSession(), packet);
             record.put("result", "submitted; verify the answer with assertions");
         }

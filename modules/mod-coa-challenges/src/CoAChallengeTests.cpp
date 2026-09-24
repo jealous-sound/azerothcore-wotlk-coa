@@ -942,12 +942,11 @@ namespace CoAChallenges
             return 0;
         }
 
-        uint32 RuleTestFirstFetchQuest()
+        uint32 RuleTestFirstQuest(bool withoutObjectives)
         {
             for (auto const& pair : sObjectMgr->GetQuestTemplates())
-                for (uint32 i = 0; i < QUEST_ITEM_OBJECTIVES_COUNT; ++i)
-                    if (pair.second->RequiredItemId[i])
-                        return pair.first;
+                if (IsQuestWithoutObjectives(pair.second) == withoutObjectives)
+                    return pair.first;
             return 0;
         }
 
@@ -1266,6 +1265,8 @@ namespace CoAChallenges
             "CHALLENGE_RULES_TYPE_NO_ORANGE_QUESTS",
             "CHALLENGE_RULES_TYPE_NO_RED_QUESTS",
             "CHALLENGE_RULES_TYPE_NO_FETCH_QUEST_EXPERIENCE",
+            "CHALLENGE_RULES_TYPE_COSMETIC_ELITE_ENEMIES",
+            "CHALLENGE_RULES_TYPE_STRICT_CHALLENGE_RESTRICTED_TAPPING",
             "CHALLENGE_RULES_TYPE_NO_TALENTS",
             "CHALLENGE_RULES_TYPE_NO_HEARTHSTONE",
             "CHALLENGE_RULES_TYPE_NO_BONUS_EXPERIENCE",
@@ -1511,12 +1512,14 @@ namespace CoAChallenges
         RUN("CHALLENGE_RULES_TYPE_NO_EXPERIENCE_EXCEPT_PROFESSIONS", [](Player* p) {
             uint32 amt = 1000; sScriptMgr->OnPlayerGiveXP(p, amt, nullptr, XPSOURCE_KILL); return amt == 0; });
         RUN("CHALLENGE_RULES_TYPE_NO_FETCH_QUEST_EXPERIENCE", [](Player* p) {
-            uint32 qid = RuleTestFirstFetchQuest();
-            Quest const* q = qid ? sObjectMgr->GetQuestTemplate(qid) : nullptr;
-            if (!q) return true;
-            uint32 xp = 1000;
-            sScriptMgr->OnPlayerQuestComputeXP(p, q, xp);
-            return xp == 0; });
+            Quest const* talk = sObjectMgr->GetQuestTemplate(RuleTestFirstQuest(true));
+            Quest const* work = sObjectMgr->GetQuestTemplate(RuleTestFirstQuest(false));
+            if (!talk || !work) return true;
+            uint32 talkXp = 1000;
+            sScriptMgr->OnPlayerQuestComputeXP(p, talk, talkXp);
+            uint32 workXp = 1000;
+            sScriptMgr->OnPlayerQuestComputeXP(p, work, workXp);
+            return talkXp == 0 && workXp == 1000; });
 
         // ---- 6. Quests (color) ----
         RUN("CHALLENGE_RULES_TYPE_NO_QUESTS", [](Player* p) {
@@ -1837,6 +1840,8 @@ namespace CoAChallenges
                 "CHALLENGE_RULES_TYPE_ONLY_PVP_IN_5_LEVEL_RANGE",        // `.coa ruletestparty`
                 "CHALLENGE_RULES_TYPE_ONLY_PVP_SAME_LEVEL_IF_MAX_LEVEL", // `.coa ruletestparty`
                 "CHALLENGE_RULES_TYPE_PVE_ONLY",                          // `.coa ruletestparty`
+                "CHALLENGE_RULES_TYPE_COSMETIC_ELITE_ENEMIES",            // challenges-adventure-mode scenario
+                "CHALLENGE_RULES_TYPE_STRICT_CHALLENGE_RESTRICTED_TAPPING", // challenges-adventure-mode scenario
             };
             std::set<std::string> const& impl = ImplementedRules();
             uint32 missing = 0;

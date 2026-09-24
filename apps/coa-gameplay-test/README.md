@@ -355,7 +355,7 @@ damage coefficients.
 | `stop_attack` | Player `actor`: native melee stop request. |
 | `pvp` | Player `actor`, boolean `enabled`: native PvP toggle request. Disabling retains the ordinary flag-removal timer. |
 | `set_moving` | Player `actor`, boolean `enabled`: fixture the native forward movement flag for cast restriction tests. |
-| `group` | `actor`, `target`: fixture party; creates the actor's group if needed and adds an ungrouped player. |
+| `group` | `actor`, `target`, optional `loot_method` (0-4): fixture party; creates the actor's group if needed, adds an ungrouped player and sets the loot method. |
 | `cast_charm` | Same fields: native pet-cast handler, with the charmed unit as the default target. |
 | `gossip_hello` | `actor`, optional `target`: native gossip handler; defaults to the actor's summoned companion. |
 | `banker_activate` | `actor`, optional `target`, or optional `owner` + `entry`: native banker click (`CMSG_BANKER_ACTIVATE`); defaults to the actor's summoned companion, and `owner` aims it at a companion another actor summoned, walking up to it first. |
@@ -594,7 +594,9 @@ It tests dispatch and deferral, not a real socket, packet delivery, or every pos
 `view_level` takes a player `actor` and unit `target` and queries the target-relative combat level.
 `sent_level` and `sent_max_health` use the same fields and observe values-only object updates emitted to
 the socketless session. They return zero until the corresponding field has been observed; they do not
-force updates or inspect client rendering. `quest_level` and `quest_xp` take a player `actor` and `quest`
+force updates or inspect client rendering. `creature_query_rank` takes a player `actor` and creature `entry` and
+returns the rank of the last creature query response delivered to that session, or -1 before one arrives.
+`quest_level` and `quest_xp` take a player `actor` and `quest`
 and query the native quest level and XP calculations without awarding a reward.
 
 ## Evidence boundaries

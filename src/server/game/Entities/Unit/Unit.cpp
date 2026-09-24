@@ -9537,11 +9537,23 @@ uint32 Unit::SpellDamageBonusDone(Unit* victim, SpellInfo const* spellProto, uin
     return uint32(std::max(tmpDamage, 0.0f));
 }
 
+static bool IsAdventureModeDamageDoneAura(uint32 spellId)
+{
+    if (spellId == 302054)
+        return true;
+
+    if (spellId >= 302060 && spellId <= 302069)
+        return (spellId - 302060) % 3 == 0;
+
+    return spellId >= 302601 && spellId <= 302883 && (spellId - 302601) % 3 == 0;
+}
+
 float Unit::GetAscensionNormalTuningDamageMultiplier(Unit const* victim, uint32 schoolMask) const
 {
     // Copied aura 341 means damage against monsters (e.g. Frozen Waters 271942
-    // and Fire and Ice 1582385). Enable only the reviewed normal tuning records;
-    // aura 322 and the separately authored PvP tuning remain independent.
+    // and Fire and Ice 1582385). Enable only the reviewed normal tuning records
+    // and the first difficulty aura of each Adventure Mode tier; aura 322 and
+    // the separately authored PvP tuning remain independent.
     if (!victim || victim->IsCharmedOwnedByPlayerOrPlayer())
         return 1.0f;
 
@@ -9549,7 +9561,8 @@ float Unit::GetAscensionNormalTuningDamageMultiplier(Unit const* victim, uint32 
         [schoolMask](AuraEffect const* effect)
         {
             uint32 const id = effect->GetId();
-            return id >= 887000 && id <= 887090 && (effect->GetMiscValue() & schoolMask);
+            bool const reviewed = (id >= 887000 && id <= 887090) || IsAdventureModeDamageDoneAura(id);
+            return reviewed && (effect->GetMiscValue() & schoolMask);
         });
 }
 
