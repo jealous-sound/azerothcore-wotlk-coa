@@ -462,6 +462,7 @@ struct NativePowerGainRule
     ResourceGainEvent Event = ResourceGainEvent::Cast;
     std::uint32_t RequiredAuraSpellId = 0;
     std::uint32_t ForbiddenAuraSpellId = 0;
+    std::uint32_t AmountSpellId = 0;
 };
 
 inline constexpr std::array<NativePowerGainRule, 13> NativePowerGainRules =
@@ -480,9 +481,9 @@ inline constexpr std::array<NativePowerGainRule, 13> NativePowerGainRules =
     {30, 573321, 573322, 6, 150,
         ResourceGainEvent::FirstSuccessfulHostileTarget},
     {30, 801624, 801624, 6, 200,
-        ResourceGainEvent::FirstSuccessfulHostileTarget},
+        ResourceGainEvent::FirstSuccessfulHostileTarget, 0, 0, 359504},
     {30, 802422, 802428, 6, 200,
-        ResourceGainEvent::FirstSuccessfulHostileTarget},
+        ResourceGainEvent::FirstSuccessfulHostileTarget, 0, 0, 359504},
     {31, 680442, 680442, 1, 10, ResourceGainEvent::EachSuccessfulDamagingHit},
     {31, 681114, 681117, 1, 10, ResourceGainEvent::EachSuccessfulDamagingHit},
     {31, 680442, 680442, 1, 10, ResourceGainEvent::PeriodicDamageTick},

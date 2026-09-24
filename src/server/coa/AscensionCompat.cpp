@@ -2228,6 +2228,7 @@ public:
         {
             validateResourceSpell(rule.RequiredAuraSpellId);
             validateResourceSpell(rule.ForbiddenAuraSpellId);
+            validateResourceSpell(rule.AmountSpellId);
             if (rule.PowerType >= MAX_POWERS)
             {
                 LOG_ERROR("coa",
@@ -2630,8 +2631,14 @@ public:
                     continue;
             }
 
-            player->ModifyPower(static_cast<Powers>(rule.PowerType),
-                rule.InternalAmount);
+            int32 amount = rule.InternalAmount;
+            if (rule.AmountSpellId)
+                if (SpellInfo const* amountSpell = sSpellMgr->GetSpellInfo(rule.AmountSpellId))
+                    if (amountSpell->Effects[EFFECT_0].Effect == SPELL_EFFECT_ENERGIZE &&
+                        amountSpell->Effects[EFFECT_0].MiscValue == rule.PowerType)
+                        amount = amountSpell->Effects[EFFECT_0].CalcValue(player);
+
+            player->ModifyPower(static_cast<Powers>(rule.PowerType), amount);
             changed = true;
         }
 
