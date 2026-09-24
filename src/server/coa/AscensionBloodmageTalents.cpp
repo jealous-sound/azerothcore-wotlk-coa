@@ -428,6 +428,23 @@ class aura_ascension_bloodmage_dark_sigil : public AuraScript
     }
 };
 
+class aura_ascension_bloodmage_thick_pelt : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_bloodmage_thick_pelt);
+
+    void Calculate(AuraEffect const*, int32& amount, bool&)
+    {
+        Unit* caster = GetCaster();
+        amount = caster ? std::min(0, 15 - int32(caster->GetTotalAttackPowerValue(BASE_ATTACK) * 0.2f)) : 0;
+    }
+
+    void Register() override
+    {
+        DoEffectCalcAmount += AuraEffectCalcAmountFn(aura_ascension_bloodmage_thick_pelt::Calculate,
+            EFFECT_0, SPELL_AURA_MOD_DAMAGE_TAKEN);
+    }
+};
+
 constexpr float BloodMoonHealthThreshold = 75.0f;
 
 class aura_ascension_bloodmage_blood_moon : public AuraScript
@@ -644,6 +661,7 @@ void AddSC_AscensionBloodmageTalents()
     RegisterSpellScript(aura_ascension_bloodmage_coagulation);
     RegisterSpellScript(aura_ascension_bloodmage_forbidden_power);
     RegisterSpellScript(aura_ascension_bloodmage_dark_sigil);
+    RegisterSpellScript(aura_ascension_bloodmage_thick_pelt);
     RegisterSpellScript(aura_ascension_bloodmage_blood_moon);
     RegisterSpellScript(aura_ascension_bloodmage_cursed_blood);
     RegisterSpellScript(aura_ascension_bloodmage_essence_harvester);
