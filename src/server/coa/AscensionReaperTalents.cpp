@@ -21,6 +21,8 @@ enum ReaperTalentSpells : uint32
     SPELL_HARVESTER_AMOUNT = 500283,
     SPELL_BLOOD_HARVEST = 504565,
     SPELL_UNDERWALK = 800797,
+    SPELL_BEYOND_THE_VEIL = 804053,
+    SPELL_BEYOND_THE_VEIL_BUFF = 560591,
     SPELL_FROM_THE_SHADOWS = 561099,
     SPELL_FROM_THE_SHADOWS_CRIT = 561128,
     SPELL_REAPED_SOUL = 500363,
@@ -308,16 +310,37 @@ class reaper_talent_events : public UnitScript
 {
 public:
     reaper_talent_events() : UnitScript("reaper_talent_events", true,
-        {UNITHOOK_ON_AURA_REMOVE, UNITHOOK_MODIFY_SPELL_EFFECT_BASE_VALUE}) { }
+        {UNITHOOK_ON_AURA_APPLY, UNITHOOK_ON_AURA_REMOVE, UNITHOOK_MODIFY_SPELL_EFFECT_BASE_VALUE}) { }
+
+    void OnAuraApply(Unit* unit, Aura* aura) override
+    {
+        Player* player = unit ? unit->ToPlayer() : nullptr;
+        if (!player || player->getClass() != CLASS_REAPER || !aura ||
+            aura->GetCasterGUID() != player->GetGUID() ||
+            (aura->GetId() != SPELL_UNDERWALK && aura->GetId() != SPELL_BEYOND_THE_VEIL))
+            return;
+
+        if (player->HasAura(SPELL_UNDERWALK, player->GetGUID()) &&
+            player->HasAura(SPELL_BEYOND_THE_VEIL, player->GetGUID()) &&
+            !player->HasAura(SPELL_BEYOND_THE_VEIL_BUFF, player->GetGUID()))
+            player->CastSpell(player, SPELL_BEYOND_THE_VEIL_BUFF, true);
+    }
 
     void OnAuraRemove(Unit* unit, AuraApplication* application, AuraRemoveMode mode) override
     {
         Player* player = unit ? unit->ToPlayer() : nullptr;
-        if (!player || player->getClass() != CLASS_REAPER || !application || !player->IsAlive() ||
-            !player->IsInWorld() || mode == AURA_REMOVE_BY_DEATH)
+        if (!player || player->getClass() != CLASS_REAPER || !application)
             return;
         Aura* aura = application->GetBase();
-        if (aura->GetId() == SPELL_UNDERWALK && aura->GetCasterGUID() == player->GetGUID() &&
+        if (aura->GetCasterGUID() != player->GetGUID())
+            return;
+
+        if (aura->GetId() == SPELL_UNDERWALK || aura->GetId() == SPELL_BEYOND_THE_VEIL)
+            player->RemoveAurasDueToSpell(SPELL_BEYOND_THE_VEIL_BUFF, player->GetGUID());
+
+        if (!player->IsAlive() || !player->IsInWorld() || mode == AURA_REMOVE_BY_DEATH)
+            return;
+        if (aura->GetId() == SPELL_UNDERWALK &&
             player->HasAura(SPELL_FROM_THE_SHADOWS))
             player->CastSpell(player, SPELL_FROM_THE_SHADOWS_CRIT, true);
     }

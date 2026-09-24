@@ -449,7 +449,8 @@ requires `school` (1..6); `armor`, `attack_power`, `ranged_attack_power`, the ha
 periodic interval.
 `block_chance` reads the player's percentage field; `block_value` reads native shield block value;
 `critical_block_chance` reads the total modifier used by the native critical block roll.
-`moving` reads the unit's native movement state. `distance_2d` requires `target` and measures horizontal center distance.
+`moving` reads the unit's native movement state. `water_walk` reports whether the unit has a water-walking aura.
+`distance_2d` requires `target` and measures horizontal center distance.
 `forced_forward` reads the server's force-movement flag; it does not simulate client movement or navigation.
 `cast_remaining_ms` requires `spell` and returns its active cast/channel timer, or zero when inactive.
 `cast_pushback_ms` reads the player's cumulative native cast-delay notifications, excluding elapsed cast time.
