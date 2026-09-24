@@ -39,6 +39,10 @@ enum ReaperTalentSpells : uint32
     SPELL_SOUL_HARVEST = 573050,
     SPELL_SPIRIT_CULLING = 301986,
     SPELL_SPECTRAL_SCYTHE = 500576,
+    SPELL_FATESEALER = 705442,
+    SPELL_FATESEALER_PROTECTION = 705443,
+    SPELL_EATER_OF_SOULS = 805181,
+    SPELL_EATER_OF_SOULS_PROTECTION = 805182,
     SPELL_DAMNED = 706786,
     SPELL_DAMNED_HASTE = 560420,
     SPELL_PURGATORY = 504046,
@@ -117,11 +121,29 @@ void ApplySpiritCulling(Player* player)
     player->CastSpell(player, SPELL_SPECTRAL_SCYTHE, true);
 }
 
-void ApplyHarvestedSoulTalents(Player* player)
+void ApplyFatesealer(Player* player, uint8 gainedSouls)
+{
+    if (!player->HasAura(SPELL_FATESEALER))
+        return;
+
+    for (uint8 soul = 0; soul < gainedSouls; ++soul)
+        player->CastSpell(player, SPELL_FATESEALER_PROTECTION, true);
+}
+
+void ApplyEaterOfSouls(Player* player, uint8 soulStacks)
+{
+    if (soulStacks == 3 && player->HasAura(SPELL_EATER_OF_SOULS) &&
+        !player->HasAura(SPELL_EATER_OF_SOULS_PROTECTION))
+        player->CastSpell(player, SPELL_EATER_OF_SOULS_PROTECTION, true);
+}
+
+void ApplyHarvestedSoulTalents(Player* player, uint8 soulStacks, uint8 gainedSouls)
 {
     ApplyPainbringer(player);
     ApplySoulHarvest(player);
     ApplySpiritCulling(player);
+    ApplyFatesealer(player, gainedSouls);
+    ApplyEaterOfSouls(player, soulStacks);
 }
 
 void CastTalentTrigger(Player* player, uint32 talentId, uint32 triggerId)
@@ -345,9 +367,10 @@ bool HandleAscensionReaperResource(Player* player, uint32 spellId, int32 amount)
     aura = player->GetAura(spellId, player->GetGUID());
     if (aura && aura->GetStackAmount() > previous && player->IsAlive())
     {
+        uint8 const soulStacks = aura->GetStackAmount();
         if (player->HasAura(SPELL_SOUL_SPLINTERS))
             player->CastSpell(player, SPELL_SOUL_SPLINTER, true);
-        ApplyHarvestedSoulTalents(player);
+        ApplyHarvestedSoulTalents(player, soulStacks, soulStacks - previous);
     }
     return true;
 }
