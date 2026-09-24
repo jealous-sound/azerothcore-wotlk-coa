@@ -197,11 +197,9 @@ void Refresh(Player* player)
         effect->ChangeAmount(Count(player, 500906));
 
     scale(573075, player->HasAura(573035) ? player->GetUInt32Value(PLAYER_FIELD_COMBAT_RATING_1 + CR_BLOCK) / 2 : 0);
-    for (auto const& replacement : {std::array<uint32, 3>{301302, 801016, 804353},
-                                    {800710, 500904, 520005},
+    for (auto const& replacement : {std::array<uint32, 3>{800710, 500904, 520005},
                                     {570727, 801059, 802581},
-                                    {807587, 801059, 520292},
-                                    {706755, 804883, 707666}})
+                                    {807587, 801059, 520292}})
     {
         uint32 talent = replacement[0];
         if (talent == 570727 && player->HasAura(807587))
