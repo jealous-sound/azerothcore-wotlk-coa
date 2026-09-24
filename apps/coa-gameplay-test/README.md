@@ -594,7 +594,9 @@ It tests dispatch and deferral, not a real socket, packet delivery, or every pos
 `view_level` takes a player `actor` and unit `target` and queries the target-relative combat level.
 `sent_level` and `sent_max_health` use the same fields and observe values-only object updates emitted to
 the socketless session. They return zero until the corresponding field has been observed; they do not
-force updates or inspect client rendering. `quest_level` and `quest_xp` take a player `actor` and `quest`
+force updates or inspect client rendering. `lfg_dungeon_disabled` takes an LFGDungeons.dbc `dungeon` id and
+returns 1 when the `disables` table locks that dungeon's map and difficulty out of Dungeon Finder, otherwise 0.
+`quest_level` and `quest_xp` take a player `actor` and `quest`
 and query the native quest level and XP calculations without awarding a reward.
 
 ## Evidence boundaries

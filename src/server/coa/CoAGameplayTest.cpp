@@ -23,6 +23,7 @@
 #include "Group.h"
 #include "GroupMgr.h"
 #include "Item.h"
+#include "LFGMgr.h"
 #include "ItemPackets.h"
 #include "NPCPackets.h"
 #include "Log.h"
@@ -1031,6 +1032,12 @@ private:
         }
         if (metric == "level")
             return unit->GetLevel();
+        if (metric == "lfg_dungeon_disabled")
+        {
+            lfg::LFGDungeonData const* dungeon = sLFGMgr->GetLFGDungeon(step.get<uint32>("dungeon"));
+            Require(dungeon != nullptr, "LFG disable metric needs a known dungeon");
+            return sLFGMgr->IsDungeonDisabled(dungeon->map, Difficulty(dungeon->difficulty)) ? 1 : 0;
+        }
         if (metric == "view_level")
             return GetUnit(step.get<std::string>("target"))->getLevelForTarget(unit);
         if (metric == "sent_level" || metric == "sent_max_health")
