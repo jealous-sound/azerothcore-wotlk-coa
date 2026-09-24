@@ -659,9 +659,11 @@ public:
       LOG_INFO("coa", "Reconciled {} proven class grants for {} against live level {}",
           removed, player->GetName(), uint32(player->GetLevel()));
     uint32 learned = 0;
+    bool const botCannotBuyBooksOfAscension = player->GetSession() && player->GetSession()->IsBot();
     bool const automaticProgression =
         explicitRequest || ascensionCompatConfig.GetConfigValue<bool>(
-                               AscensionCompatConfig::AUTO_PROGRESSION);
+                               AscensionCompatConfig::AUTO_PROGRESSION) ||
+        botCannotBuyBooksOfAscension;
     for (uint32 spellId : racialSpells)
         if (automaticProgression && !player->HasSpell(spellId) && sSpellMgr->GetSpellInfo(spellId))
         {

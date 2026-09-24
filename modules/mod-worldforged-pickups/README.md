@@ -838,6 +838,75 @@ Both rows are written as the world holds them, read back from `acore_world` down
 quaternion as well as the position - and both are UPDATEs keyed on guid, so the file is idempotent
 and touches nothing but the position, the rotation and the comment.
 
+### The placements and rotations authored in game: Deadwind Pass
+
+`2026_09_24_36_worldforged_deadwind_pass_authored.sql` is the zone's own check in the map editor,
+the same shape as the Elwynn and Redridge ones above: the editing project's **thirty-five
+changesets**, one save each, read in the order they were written with the last write to a row
+winning. Every one of the zone's rows was gone over by hand, and the file holds **22 rows moved
+and/or turned**, **6 rows removed by the editor** and **6 placements added** - and then **two more
+rows removed** when the zone was walked in game, each one an object the pass had just left standing
+twice. Position and the rotation quaternion are written exactly as the editor emitted them, digit
+for digit, and the orientation column as the yaw that quaternion represents - the editor's own
+orientation column agreed with its quaternion on every row here, so there is nothing to reconcile.
+
+* **twenty-two rows moved, every one of them by more than a yard**, the furthest **Scorched Tome**
+  (520063, guid 6940502) by **914.0 yd**, **Heirloom of the Whisperwind** (515436, guid 6941336)
+  284.5, **Cellar Rubble** (254498, guid 6941305) 168.4, **Unique Bush** (90554, guid 6941003) 149.2,
+  **Celestial Edge of Starfall** (515434, guid 6941143) 89.4, **Arlithrien Moon Orb** (515430, guid
+  6940080) 70.7, **Chainmail Gauntlets** (90508, guid 6940537) 67.6 and **Red Plumage** (90565, guid
+  6940593) 28.3; the remaining fourteen moved between 1.5 and 20.1 yd. **Thirteen were also
+  turned**, the largest **Red Plumage** (3.082 rad), **Cursed Branch** (2.946), **Timberbane's Old
+  Hatchet** (2.926), **Blade of the Faithful** (2.565), **Foreboding Banner** (1.873) and **Dark
+  Scythe** (1.725).
+* **six rows were removed by the editor's own changesets**, each a placement it took out of the
+  client's own data: **Forgotten Cane** (90552, guid 6940765 at -10832.9 -2408.0 270.5), **Lunar
+  Tome** (515431, guid 6940728 at -10849.5 -2483.0 207.9), **Small War Drum** (515388, guid 6940519
+  at -10932.9 -2483.0 176.2), **Stuck Scimitar** (90562, guid 6940248 at -10716.2 -1983.0 129.0),
+  **Wooden Maul** (90553, guid 6941253 at -11032.9 -2183.0 50.5) and **Shining Wand** (254488, guid
+  6941307 at -11113.2 -2083.0 50.4). Five of them stood exactly on the surface the terrain reader
+  describes - that is where their heights came from - and each of those five has its object placed
+  again below, on the terrain of the spot the author chose.
+* **six placements added**, on the guids the allocator gives them, each keeping the loot row its
+  object already had: **Forgotten Cane** (90552, guid 6960016) at -11064.2 -2154.9 27.9, **Small War
+  Drum** (515388, guid 6960017) at -10996.7 -2312.5 117.0, **Lunar Tome** (515431, guid 6960018) at
+  -11116.2 -2085.4 49.4, the zone's **Timberling Ritual Blade** (515433, guid 6960019) at -11156.9
+  -2479.2 105.3, **Wooden Maul** (90553, guid 6960020) at -10855.6 -2286.4 117.2 and **Stuck
+  Scimitar** (90562, guid 6960021) at -10837.0 -2089.3 124.5. Five of the six stand on the ground
+  the worldserver reads at their own spot (0.0 to 2.4 yd); **Timberling Ritual Blade** stands 107.6
+  yd below the surface the terrain reader gives there, inside the crypt, as the zone's other rows
+  in Karazhan's cellars and crypts do. The world's own area data files that spot in the Blasted
+  Lands area, outside this zone's bounds.
+* **two more rows were removed when the zone was walked in game**, each a second row of an object
+  the pass above had just answered for:
+    * **Timberling Ritual Blade** (515433) was still standing on the realm map's own listing of it
+      at -11116.2 -2183.0 (guid 6941255) while the editor placed the same object at -11156.9
+      -2479.2 (guid 6960019), so the older row goes and the object stands once.
+    * **Shining Wand** (254488) is the item the map draws on two pages, the Deadwind Pass page at
+      -11113.2 -2083.0 and the page for the zone below it at -10764.4 -3369.2 (guid 6941308). The
+      Deadwind row went in the editor's own changeset above; the other went on the walk, so **both
+      of the item's listings are gone** and it is handed out by no pickup of this module now.
+* **nothing that is not this module's is touched.** Every guid the file addresses is one of this
+  module's own pickups, so it edits no object the world itself owns.
+
+**How the numbers were checked.** All 22 rewritten rows, the 6 added placements and the absence of
+all **8** removed guids were read back from the live database afterwards: **278 assertions, none
+failing** - entry, position, quaternion, orientation, script and the placement note all exactly as
+the file writes them, and every added placement holds a loot row. Every statement is an UPDATE on a
+guid, a REPLACE on a guid the file allocates, or a DELETE, so the pass is idempotent: applied a
+second and a third time it leaves the same rows. The pass moves the realm's own totals the way its
+rows move: six placements leave and six arrive in the editor's changesets, and two more rows go on
+the walk, so the realm stands two pickups fewer than it did before the pass.
+
+**The workbook was then checked against the server, row by row.** `worldforged-items.xlsx` carries
+**962 placement rows over 15 sheets**; every row's guid was read back from the live database -
+**0 rows with nothing behind them, 0 entry mismatches** - each row's position, height and facing
+were refreshed from the database, the 28 rows the editor touched are marked `Rotation complete`,
+the five rows whose object it removed and placed again carry the guid the allocator gave the new
+placement and its coordinates, the one placement it added that had no row is in the sheet at its
+final guid, and the two rows removed on the walk are gone from their sheets (Deadwind Pass stands
+35 pickups, the zone below it 56).
+
 ### The nineteenth pass: Dun Morogh and Coldridge Valley, paired marker by marker
 
 `2026_09_23_16_worldforged_dun_morogh.sql` is the pass that moved the marker set itself, and
