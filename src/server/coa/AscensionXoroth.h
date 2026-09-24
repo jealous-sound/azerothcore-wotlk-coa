@@ -58,6 +58,8 @@ uint32 Highest(Player* player, uint32 root);
 void Replace(Player* player, uint32 root, uint32 replacement);
 void Unleash(Player* player, Unit* center, float strength = 1, bool pet = false);
 void Summon(Player* player, uint32 entry, Position const& position, uint32 duration);
+void ImpFormation(uint32 slot, float& distance, float& angle);
+Position ImpPosition(Player* player);
 void Spread(Player* player, Unit* target);
 void ApplyContracts(SpellInfo* info);
 }
