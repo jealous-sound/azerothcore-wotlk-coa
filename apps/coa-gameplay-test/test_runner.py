@@ -116,6 +116,28 @@ class RunnerTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             run.validate(self.scenario)
 
+    def test_cancel_aura_requires_player_and_spell(self):
+        self.scenario['steps'].append({'action': 'cancel_aura', 'actor': 'caster', 'spell': 802229})
+        self.assertIs(run.validate(self.scenario), self.scenario)
+        for change in ({'actor': 'target'}, {'actor': 'absent'}, {'spell': 0}, {'spell': -802229},
+                       {'spell': True}, {'spell': 802229.5}, {'pet': True}, {'target': 'caster'}, {'stacks': 0}):
+            invalid = copy.deepcopy(self.scenario)
+            invalid['steps'][-1].update(change)
+            with self.subTest(change=change), self.assertRaises(ValueError):
+                run.validate(invalid)
+        for field in ('actor', 'spell'):
+            invalid = copy.deepcopy(self.scenario)
+            del invalid['steps'][-1][field]
+            with self.subTest(missing=field), self.assertRaises(ValueError):
+                run.validate(invalid)
+
+    def test_stunned_observation_accepts_units(self):
+        for actor in ('caster', 'target'):
+            scenario = copy.deepcopy(self.scenario)
+            scenario['steps'].append({'action': 'assert', 'actor': actor, 'metric': 'stunned', 'equals': 0})
+            with self.subTest(actor=actor):
+                self.assertIs(run.validate(scenario), scenario)
+
     def test_pet_spell_calculations(self):
         for metric in ('spell_effect_value', 'spell_damage_done'):
             with self.subTest(metric=metric):

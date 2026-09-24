@@ -1091,6 +1091,8 @@ private:
         }
         if (metric == "rooted")
             return unit->HasUnitState(UNIT_STATE_ROOT);
+        if (metric == "stunned")
+            return unit->HasUnitState(UNIT_STATE_STUNNED);
         if (metric == "stealth_detection")
             return unit->m_stealthDetect.GetValue(STEALTH_GENERAL);
         if (metric == "can_detect")
@@ -2466,6 +2468,13 @@ private:
                 packet << target->GetGUID();
                 player->GetSession()->HandleAttackSwingOpcode(packet);
             }
+        }
+        else if (action == "cancel_aura")
+        {
+            Require(sSpellMgr->GetSpellInfo(spell) != nullptr, "Unknown aura cancellation spell");
+            WorldPacket packet(CMSG_CANCEL_AURA, 4);
+            packet << spell;
+            player->GetSession()->HandleCancelAuraOpcode(packet);
         }
         else if (action == "set_aura")
         {
