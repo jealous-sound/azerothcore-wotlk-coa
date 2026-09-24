@@ -5900,6 +5900,7 @@ public:
             ApplyAscensionExperienceContracts(spellInfo);
             switch (spellInfo->Id)
             {
+                case 19743:
                 case 19782:
                     if (spellInfo->Effects[EFFECT_0].Effect == SPELL_EFFECT_APPLY_AURA &&
                         spellInfo->Effects[EFFECT_0].ApplyAuraName == SPELL_AURA_MOD_STAT &&
