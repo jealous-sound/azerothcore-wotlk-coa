@@ -1031,6 +1031,16 @@ private:
         }
         if (metric == "level")
             return unit->GetLevel();
+        if (metric == "map_id")
+            return unit->GetMapId();
+        if (metric == "area_trigger_contains")
+        {
+            Player* player = unit->ToPlayer();
+            Require(player != nullptr, "Area trigger geometry needs a player");
+            AreaTrigger const* trigger = sObjectMgr->GetAreaTrigger(step.get<uint32>("id"));
+            Require(trigger != nullptr, "Unknown area trigger");
+            return player->IsInAreaTriggerRadius(trigger);
+        }
         if (metric == "view_level")
             return GetUnit(step.get<std::string>("target"))->getLevelForTarget(unit);
         if (metric == "sent_level" || metric == "sent_max_health")

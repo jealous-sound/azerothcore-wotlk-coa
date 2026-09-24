@@ -65,6 +65,43 @@ class RunnerTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertIs(run.validate(scenario), scenario)
 
+    def test_area_trigger_request_and_geometry_validation(self):
+        for step in (
+            {'action': 'area_trigger', 'actor': 'caster', 'id': 2173},
+            {'action': 'assert', 'actor': 'caster', 'metric': 'area_trigger_contains', 'id': 2173, 'equals': 1},
+        ):
+            scenario = copy.deepcopy(self.scenario)
+            scenario['steps'].append(step)
+            self.assertIs(run.validate(scenario), scenario)
+            for change in ({'actor': 'target'}, {'id': 0}, {'id': -1}, {'id': True}, {'id': 2**31}):
+                invalid = copy.deepcopy(scenario)
+                invalid['steps'][-1].update(change)
+                with self.subTest(step=step, change=change), self.assertRaises(ValueError):
+                    run.validate(invalid)
+            del scenario['steps'][-1]['id']
+            with self.assertRaises(ValueError):
+                run.validate(scenario)
+
+    def test_map_observation_accepts_players_and_creatures(self):
+        for actor in ('caster', 'target'):
+            scenario = copy.deepcopy(self.scenario)
+            scenario['steps'].append({'action': 'assert', 'actor': actor, 'metric': 'map_id', 'equals': 0})
+            with self.subTest(actor=actor):
+                self.assertIs(run.validate(scenario), scenario)
+
+    def test_deeprun_assertions_reject_incorrect_native_observations(self):
+        for name in ('deeprun-tram-entry', 'deeprun-tram-geometry'):
+            self.scenario = run.read_json(Path(__file__).parent / 'scenarios' / f'{name}.json')
+            report = self.report()
+            run.check_report(report, report['run_id'], self.scenario, 0)
+            for index, step in enumerate(self.scenario['steps']):
+                if step['action'] != 'assert':
+                    continue
+                invalid = copy.deepcopy(report)
+                invalid['steps'][index]['actual'] = '0' if step['equals'] else '369'
+                with self.subTest(scenario=name, index=index), self.assertRaisesRegex(ValueError, 'Equality'):
+                    run.check_report(invalid, report['run_id'], self.scenario, 0)
+
     def test_spell_damage_observation_filters(self):
         step = {'action': 'assert', 'actor': 'caster', 'metric': 'spell_damage_count',
                 'spell': 116, 'target': 'target', 'pet': True, 'critical': False, 'equals': 0}

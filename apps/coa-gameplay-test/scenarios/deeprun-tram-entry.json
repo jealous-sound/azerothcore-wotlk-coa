@@ -1,0 +1,54 @@
+{
+  "schema": 1,
+  "name": "Deeprun Tram: Stormwind entry accepts the CoA client trigger volume",
+  "contract": "CoA trigger 2173 accepts the reported point on map 0 and teleports to 369; invalid requests do not.",
+  "location": {"map": 0, "x": -8353.81, "y": 514.589, "z": 84.4088},
+  "players": [{"id": "traveler", "race": 1, "class": 8, "level": 80}],
+  "steps": [
+    {
+      "action": "teleport", "actor": "traveler", "map": 0,
+      "x": -8384.280273, "y": 511.261993, "z": 88.122498,
+      "label": "Outside control: thirty yards from the client center"
+    },
+    {"action": "wait", "ms": 250},
+    {"action": "assert", "actor": "traveler", "metric": "map_id", "equals": 0},
+    {"action": "assert", "actor": "traveler", "metric": "area_trigger_contains", "id": 2173, "equals": 0},
+    {"action": "area_trigger", "actor": "traveler", "id": 2173},
+    {"action": "wait", "ms": 250},
+    {
+      "action": "assert", "actor": "traveler", "metric": "map_id", "equals": 0,
+      "label": "Outside-volume request cannot enter the tram"
+    },
+    {
+      "action": "teleport", "actor": "traveler", "map": 1,
+      "x": -8353.81, "y": 514.589, "z": 84.4088,
+      "label": "Wrong-map control: identical coordinates on Kalimdor"
+    },
+    {"action": "wait", "ms": 250},
+    {"action": "assert", "actor": "traveler", "metric": "map_id", "equals": 1},
+    {"action": "assert", "actor": "traveler", "metric": "area_trigger_contains", "id": 2173, "equals": 0},
+    {"action": "area_trigger", "actor": "traveler", "id": 2173},
+    {"action": "wait", "ms": 250},
+    {
+      "action": "assert", "actor": "traveler", "metric": "map_id", "equals": 1,
+      "label": "Matching coordinates on another map cannot enter the tram"
+    },
+    {
+      "action": "teleport", "actor": "traveler", "map": 0,
+      "x": -8353.81, "y": 514.589, "z": 84.4088,
+      "label": "Reported position inside the client sphere"
+    },
+    {"action": "wait", "ms": 250},
+    {"action": "assert", "actor": "traveler", "metric": "map_id", "equals": 0},
+    {
+      "action": "snapshot", "actor": "traveler", "metric": "area_trigger_contains", "id": 2173,
+      "save_as": "reported_point_accepted"
+    },
+    {"action": "area_trigger", "actor": "traveler", "id": 2173},
+    {"action": "wait", "ms": 250},
+    {
+      "action": "assert", "actor": "traveler", "metric": "map_id", "equals": 369, "within_ms": 5000,
+      "label": "Legitimate entry request completes the native teleport to Deeprun Tram"
+    }
+  ]
+}

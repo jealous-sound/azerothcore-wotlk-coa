@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "name": "Deeprun Tram: native geometry agrees with the CoA client at the reported point",
+  "contract": "Native zero-delta geometry accepts the reported CoA trigger point, rejects outside and wrong-map points.",
+  "location": {"map": 0, "x": -8353.81, "y": 514.589, "z": 84.4088},
+  "players": [{"id": "traveler", "race": 1, "class": 8, "level": 80}],
+  "steps": [
+    {"action": "assert", "actor": "traveler", "metric": "map_id", "equals": 0},
+    {
+      "action": "assert", "actor": "traveler", "metric": "area_trigger_contains", "id": 2173, "equals": 1,
+      "label": "Native geometry accepts the reported point within the client volume"
+    },
+    {
+      "action": "teleport", "actor": "traveler", "map": 0,
+      "x": -8384.280273, "y": 511.261993, "z": 88.122498
+    },
+    {"action": "wait", "ms": 250},
+    {"action": "assert", "actor": "traveler", "metric": "map_id", "equals": 0},
+    {"action": "assert", "actor": "traveler", "metric": "area_trigger_contains", "id": 2173, "equals": 0},
+    {
+      "action": "teleport", "actor": "traveler", "map": 1,
+      "x": -8353.81, "y": 514.589, "z": 84.4088
+    },
+    {"action": "wait", "ms": 250},
+    {"action": "assert", "actor": "traveler", "metric": "map_id", "equals": 1},
+    {"action": "assert", "actor": "traveler", "metric": "area_trigger_contains", "id": 2173, "equals": 0}
+  ]
+}
