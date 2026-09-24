@@ -4586,7 +4586,7 @@ void SendBankPermissions(Player* player, uint8 kind)
     AscensionPersonalBank::SendKindHint(player, uint8(kind));
 }
 
-[[nodiscard]] float AverageEquippedItemLevel(Player* player)
+[[nodiscard]] float AverageEquippedItemLevel(Player* player, uint8 emptiedSlot)
 {
     float sum = 0.0f;
     uint32 count = 0;
@@ -4597,17 +4597,18 @@ void SendBankPermissions(Player* player, uint8 kind)
             continue;
 
         ++count;
-        if (Item* item = player->GetItemByPos(INVENTORY_SLOT_BAG_0, slot))
+        if (Item* item = slot == emptiedSlot ? nullptr : player->GetItemByPos(INVENTORY_SLOT_BAG_0, slot))
             sum += item->GetTemplate()->Quality == ITEM_QUALITY_HEIRLOOM ? player->GetLevel()
                                                                         : item->GetTemplate()->ItemLevel;
     }
     return sum / count;
 }
 
-void SendAverageItemLevel(Player* player)
+void SendAverageItemLevel(Player* player, uint8 emptiedSlot = EQUIPMENT_SLOT_END)
 {
     WorldPacket data(SMSG_UPDATE_OBJECT_ADDON, 16);
-    data << player->GetGUID() << PLAYER_ADDON_FIELD_AVERAGE_ITEM_LEVEL << AverageEquippedItemLevel(player);
+    data << player->GetGUID() << PLAYER_ADDON_FIELD_AVERAGE_ITEM_LEVEL
+         << AverageEquippedItemLevel(player, emptiedSlot);
     player->SendMessageToSet(&data, true);
 }
 
@@ -5666,7 +5667,7 @@ public:
                                        Item *item) override {
     AscensionCollectionService::Instance().OnVisibleItemSet(player, slot, item);
     if (player->IsInWorld() && ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED))
-      SendAverageItemLevel(player);
+      SendAverageItemLevel(player, item ? EQUIPMENT_SLOT_END : slot);
   }
 
   void OnPlayerEquip(Player *player, Item *item, uint8, uint8,
