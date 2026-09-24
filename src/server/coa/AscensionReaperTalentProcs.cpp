@@ -1,7 +1,9 @@
 /* Copyright (C) 2016+ AzerothCore, GNU AGPL v3. */
 
 #include "AscensionReaperTalentProcs.h"
+#include "Player.h"
 #include "ScriptMgr.h"
+#include "SpellAuraEffects.h"
 #include "SpellAuras.h"
 #include "SpellInfo.h"
 #include "SpellScript.h"
@@ -10,6 +12,45 @@
 namespace
 {
 using AscensionReaperTalentProcs::Rules;
+
+constexpr uint32 JailersWill = 524939;
+constexpr uint32 JailersWillHelper = 578264;
+constexpr float JailersWillStrengthCoefficient = 0.3f;
+
+class aura_ascension_reaper_jailers_will_helper : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_reaper_jailers_will_helper);
+
+    bool Validate(SpellInfo const* info) override
+    {
+        SpellEffectInfo const& effect = info->Effects[EFFECT_0];
+        return info->Id == JailersWillHelper && info->SpellFamilyName == 36 &&
+            effect.Effect == SPELL_EFFECT_APPLY_AURA && effect.ApplyAuraName == SPELL_AURA_ADD_FLAT_MODIFIER &&
+            effect.MiscValue == SPELLMOD_EFFECT2 && effect.MiscValueB == 0 &&
+            effect.BasePoints == 4 && effect.DieSides == 1 && !effect.RealPointsPerLevel &&
+            effect.SpellClassMask == flag96(0, 2048, 0) &&
+            effect.TargetA.GetTarget() == TARGET_UNIT_CASTER && effect.TargetB.GetTarget() == 0;
+    }
+
+    bool Load() override
+    {
+        Unit* owner = GetUnitOwner();
+        return owner && owner->IsPlayer() && owner->getClass() == CLASS_REAPER &&
+            GetCasterGUID() == owner->GetGUID() && owner->HasAura(JailersWill);
+    }
+
+    void Calculate(AuraEffect const*, int32& amount, bool& recalculate)
+    {
+        amount = int32(std::max(0.0f, GetUnitOwner()->GetStat(STAT_STRENGTH)) * JailersWillStrengthCoefficient);
+        recalculate = true;
+    }
+
+    void Register() override
+    {
+        DoEffectCalcAmount += AuraEffectCalcAmountFn(aura_ascension_reaper_jailers_will_helper::Calculate,
+            EFFECT_0, SPELL_AURA_ADD_FLAT_MODIFIER);
+    }
+};
 
 class spell_ascension_reaper_talent_proc : public AuraScript
 {
@@ -45,5 +86,6 @@ class spell_ascension_reaper_talent_proc : public AuraScript
 
 void AddSC_AscensionReaperTalentProcs()
 {
+    RegisterSpellScript(aura_ascension_reaper_jailers_will_helper);
     RegisterSpellScript(spell_ascension_reaper_talent_proc);
 }
