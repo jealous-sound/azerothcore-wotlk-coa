@@ -26,8 +26,7 @@
 --   heads do (80642, 80643), and those creatures do not exist here. Giving
 --   their spells to the body would be invented.
 
-DROP TABLE IF EXISTS `coa_boss_schedule`;
-CREATE TABLE `coa_boss_schedule` (
+CREATE TABLE IF NOT EXISTS `coa_boss_schedule` (
   `entry`     INT UNSIGNED NOT NULL COMMENT 'base creature entry, all four difficulties',
   `idx`       INT UNSIGNED NOT NULL,
   `spell_d0`  INT UNSIGNED NOT NULL DEFAULT 0,
@@ -43,14 +42,16 @@ CREATE TABLE `coa_boss_schedule` (
   PRIMARY KEY (`entry`, `idx`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;
 
-DROP TABLE IF EXISTS `coa_boss`;
-CREATE TABLE `coa_boss` (
+CREATE TABLE IF NOT EXISTS `coa_boss` (
   `entry`      INT UNSIGNED NOT NULL,
   `boss_id`    INT UNSIGNED NOT NULL COMMENT 'encounter index in the instance script',
   `berserk_ms` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '0 never',
   `comment`    VARCHAR(128) NOT NULL DEFAULT '',
   PRIMARY KEY (`entry`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;
+
+DELETE FROM `coa_boss` WHERE `entry` IN (12118,12259,12057,12264,12056,12098,11988);
+DELETE FROM `coa_boss_schedule` WHERE `entry` IN (12118,12259,12057,12264,12056,12098,11988);
 
 INSERT INTO `coa_boss` VALUES (12118, 0, 0, 'Lucifron');
 INSERT INTO `coa_boss` VALUES (12259, 2, 0, 'Gehennas');

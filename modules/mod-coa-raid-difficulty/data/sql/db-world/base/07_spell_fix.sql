@@ -7,14 +7,16 @@
 --
 -- `value` is the number as the DBC shows it: base points + 1.
 
-DROP TABLE IF EXISTS `coa_spell_fix`;
-CREATE TABLE `coa_spell_fix` (
+CREATE TABLE IF NOT EXISTS `coa_spell_fix` (
   `spell_id`     INT UNSIGNED NOT NULL,
   `effect_index` TINYINT UNSIGNED NOT NULL,
   `value`        INT NOT NULL,
   `comment`      VARCHAR(255) NOT NULL DEFAULT '',
   PRIMARY KEY (`spell_id`, `effect_index`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;
+
+-- Only our own rows: other modules may add corrections to the same table.
+DELETE FROM `coa_spell_fix` WHERE `spell_id` IN (2110405, 2110410, 2110816, 2110823);
 
 -- Razorgore. Both rows step Normal -> Heroic x1.259, Heroic -> Mythic x1.177;
 -- Ascended takes the same x1.176 again, the last step of the 20:27:34:40 family.

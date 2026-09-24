@@ -40,8 +40,7 @@
 -- all. Two groups that are equal in the original but not in our data are set
 -- to their median first: the Blackwing drakes and the Edge of Madness bosses.
 
-DROP TABLE IF EXISTS `coa_boss_flex`;
-CREATE TABLE `coa_boss_flex` (
+CREATE TABLE IF NOT EXISTS `coa_boss_flex` (
   `entry`    INT UNSIGNED NOT NULL COMMENT 'base creature entry',
   `hp_d0`    INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'health per player, Normal; 0 no flex',
   `hp_d1`    INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Heroic',
@@ -51,6 +50,7 @@ CREATE TABLE `coa_boss_flex` (
   PRIMARY KEY (`entry`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;
 
+DELETE FROM `coa_boss_flex` WHERE `entry` IN (12118,12259,12057,12264,12056,12098,11988,11502,10184,14509,14507,14517,14510,14515,11380,11382,15114,15082,15083,15084,15085,14834,12435,13020,12017,11983,14601,11981,14020,11583,15348,15341,15340,15370,15369,15339,15263,15511,15544,15543,15516,15510,15299,15509,15276,15275,15517,15589,15727);
 INSERT INTO `coa_boss_flex` VALUES (12118, 431810, 575747, 866550, 1263490, 'Lucifron: Normal = Heroic x 0.750 (set), Heroic measured, Mythic = Heroic x 1.505 (pattern), Ascended measured');
 INSERT INTO `coa_boss_flex` VALUES (12259, 647716, 863621, 1299826, 1895236, 'Gehennas: Normal = Heroic x 0.750 (set), Heroic measured, Mythic = Heroic x 1.505 (pattern), Ascended measured');
 INSERT INTO `coa_boss_flex` VALUES (12057, 809645, 1079527, 1624782, 2369044, 'Garr: Normal = Heroic x 0.750 (set), Heroic measured, Mythic = Heroic x 1.505 (pattern), Ascended measured');
