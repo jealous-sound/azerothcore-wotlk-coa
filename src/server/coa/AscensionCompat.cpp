@@ -146,6 +146,8 @@ constexpr uint16 CMSG_CHARACTER_ADVANCEMENT_KNOWN_ENTRIES = 0x0727;
 constexpr uint16 CMSG_MISSILE_FIRE_POSITION = 0x09C7;
 
 constexpr uint16 SMSG_PATCH_VANITY_COLLECTION = 0x0573;
+constexpr uint16 SMSG_UPDATE_OBJECT_ADDON = 0x0578;
+constexpr uint32 PLAYER_ADDON_FIELD_AVERAGE_ITEM_LEVEL = 5;
 
 constexpr uint16 SMSG_REALM_INFO = 0x09BC;
 constexpr uint8 REALM_CREATION_FLAG_CONQUEST_OF_AZEROTH = 6;
@@ -4584,6 +4586,31 @@ void SendBankPermissions(Player* player, uint8 kind)
     AscensionPersonalBank::SendKindHint(player, uint8(kind));
 }
 
+[[nodiscard]] float AverageEquippedItemLevel(Player* player)
+{
+    float sum = 0.0f;
+    uint32 count = 0;
+    for (uint8 slot = EQUIPMENT_SLOT_START; slot < EQUIPMENT_SLOT_END; ++slot)
+    {
+        if (slot == EQUIPMENT_SLOT_TABARD || slot == EQUIPMENT_SLOT_RANGED || slot == EQUIPMENT_SLOT_OFFHAND ||
+            slot == EQUIPMENT_SLOT_BODY)
+            continue;
+
+        ++count;
+        if (Item* item = player->GetItemByPos(INVENTORY_SLOT_BAG_0, slot))
+            sum += item->GetTemplate()->Quality == ITEM_QUALITY_HEIRLOOM ? player->GetLevel()
+                                                                        : item->GetTemplate()->ItemLevel;
+    }
+    return sum / count;
+}
+
+void SendAverageItemLevel(Player* player)
+{
+    WorldPacket data(SMSG_UPDATE_OBJECT_ADDON, 16);
+    data << player->GetGUID() << PLAYER_ADDON_FIELD_AVERAGE_ITEM_LEVEL << AverageEquippedItemLevel(player);
+    player->SendMessageToSet(&data, true);
+}
+
 [[nodiscard]] bool OwnsPlacedBank(Player* player, uint8 kind)
 {
     static std::array<PersonalBankSpell, 2> const personalSpells =
@@ -5531,6 +5558,7 @@ public:
       AscensionResourceService::Instance().OnPlayerLogin(player);
       AscensionCollectionService::Instance().OnPlayerLogin(player);
       RefreshScaledQuestQueries(player);
+      SendAverageItemLevel(player);
     }
   }
 
@@ -5538,6 +5566,7 @@ public:
     if (ascensionCompatConfig.GetConfigValue<bool>(
             AscensionCompatConfig::ENABLED))
     {
+      SendAverageItemLevel(player);
       AscensionClassService::Instance().SynchronizeProgression(player);
       AscensionClassService::Instance().SynchronizeProficiencies(player);
       AscensionClassService::Instance().SendCharacterAdvancementKnownEntries(player);
@@ -5636,6 +5665,8 @@ public:
   void OnPlayerAfterSetVisibleItemSlot(Player *player, uint8 slot,
                                        Item *item) override {
     AscensionCollectionService::Instance().OnVisibleItemSet(player, slot, item);
+    if (player->IsInWorld() && ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED))
+      SendAverageItemLevel(player);
   }
 
   void OnPlayerEquip(Player *player, Item *item, uint8, uint8,
