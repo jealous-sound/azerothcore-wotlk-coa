@@ -78,7 +78,7 @@ METRICS = {
     'spell_damage_count', 'spell_damage_total', 'spell_uses_armor',
     'spell_heal_count', 'spell_heal_total', 'spell_effective_heal_total',
     'pet_aura_amount', 'pet_aura_amplitude_ms', 'pet_max_health', 'pet_attack_power', 'pet_run_speed_rate',
-    'distance', 'spell_proc_count', 'temporary_spell_replacement',
+    'distance', 'spell_proc_count', 'temporary_spell_replacement', 'map_id', 'area_trigger_contains',
 }
 PLAYER_STAT_METRICS = {
     'spell_go_count',
@@ -344,6 +344,9 @@ def validate(scenario):
                         and type(step['periodic']) is bool,
                         f'{where}: periodic requires a damage/healing calculation and a boolean')
             require(metric in METRICS, f'{where}: unknown metric')
+            if metric == 'area_trigger_contains':
+                require(step['actor'] in player_ids and 'id' in step,
+                        f'{where}: area trigger geometry needs a player and id')
             if metric in {'xp', 'next_level_xp', 'skill_value'}:
                 require(step['actor'] in player_ids, f'{where}: XP/skill metric needs a player')
                 if metric == 'skill_value':

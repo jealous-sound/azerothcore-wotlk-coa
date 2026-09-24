@@ -430,6 +430,15 @@ and returns that player's class ID, or zero if absent. These inspect packets fro
 not client packet delivery. Masks use native Who bits (`1 << classID`, `1 << raceID`), with class 32 in bit zero;
 omitted masks mean all. The custom-class scenario expects ordinary player RBAC, including faction separation.
 `health_pct` observes current health as a percentage of maximum health.
+`map_id` observes the unit's current map after the harness acknowledges native transfers.
+`area_trigger_contains` requires a player and trigger `id`; it queries `Player::IsInAreaTriggerRadius`
+with zero delta, including the player's object size. It does not send a request or add the tavern allowance.
+The [Deeprun Tram entry scenario](scenarios/deeprun-tram-entry.json) sends native trigger 2173 requests,
+rejects outside-volume and wrong-map controls, and requires the reported interior point to reach map 369.
+It needs map-0 and map-1 tile 47,31, normal character-login terrain, and the map-369 global WMO
+(`vmaps/369.vmtree` and its referenced model). A global-WMO map need not have `maps/369*.map` terrain.
+The [geometry scenario](scenarios/deeprun-tram-geometry.json) checks the native predicate without entering 369;
+passing it alone does not establish successful teleportation. Run both through combined verification.
 `cast_speed_multiplier` observes the native cast-time multiplier; smaller values mean faster casts.
 `spell_crit_chance` observes the player's Shadow spell critical chance, in percentage points.
 `spell_damage_done` and `melee_damage_done` require `target` and query native outgoing damage calculations
