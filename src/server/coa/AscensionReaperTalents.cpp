@@ -44,7 +44,9 @@ enum ReaperTalentSpells : uint32
     SPELL_PURGATORY = 504046,
     SPELL_PURGATORY_DAMAGE = 504047,
     SPELL_ESSENCE_INVIGORATION = 805186,
-    SPELL_ESSENCE_INVIGORATION_HEAL = 805187
+    SPELL_ESSENCE_INVIGORATION_HEAL = 805187,
+    SPELL_WEAKENED_SOULS = 92146,
+    SPELL_WEAKENED_SOUL = 803433
 };
 
 Unit* HostileTargetInRange(Player* player, uint32 spellId)
@@ -304,6 +306,30 @@ class aura_ascension_reaper_blood_frenzy : public AuraScript
     }
 };
 
+class spell_ascension_reaper_weakened_souls : public SpellScript
+{
+    PrepareSpellScript(spell_ascension_reaper_weakened_souls);
+
+    bool Validate(SpellInfo const* info) override
+    {
+        return info && info->Effects[EFFECT_0].Effect == SPELL_EFFECT_SCHOOL_DAMAGE &&
+            ValidateSpellInfo({SPELL_WEAKENED_SOUL});
+    }
+
+    void ApplyWeakenedSoul(SpellEffIndex)
+    {
+        Unit* caster = GetCaster();
+        if (Unit* target = GetHitUnit(); target && caster->HasAura(SPELL_WEAKENED_SOULS))
+            caster->CastSpell(target, SPELL_WEAKENED_SOUL, true);
+    }
+
+    void Register() override
+    {
+        OnEffectHitTarget += SpellEffectFn(spell_ascension_reaper_weakened_souls::ApplyWeakenedSoul,
+            EFFECT_0, SPELL_EFFECT_SCHOOL_DAMAGE);
+    }
+};
+
 class reaper_talent_events : public UnitScript
 {
 public:
@@ -376,5 +402,6 @@ void AddSC_AscensionReaperTalents()
     RegisterSpellScript(aura_ascension_jailers_call);
     RegisterSpellScript(aura_ascension_reaper_blood_frenzy);
     RegisterSpellScript(aura_ascension_reaper_ghastly_form);
+    RegisterSpellScript(spell_ascension_reaper_weakened_souls);
     new reaper_talent_events();
 }
