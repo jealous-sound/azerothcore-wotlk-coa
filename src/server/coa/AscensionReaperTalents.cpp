@@ -8,6 +8,7 @@
 #include "ScriptMgr.h"
 #include "SpellAuraEffects.h"
 #include "SpellAuras.h"
+#include "SpellInfo.h"
 #include "SpellMgr.h"
 #include "SpellScript.h"
 #include <algorithm>
@@ -129,6 +130,42 @@ void CastTalentTrigger(Player* player, uint32 talentId, uint32 triggerId)
     if (RollTalent(player, talentId))
         player->CastSpell(player, triggerId, true);
 }
+
+class spell_ascension_reaper_essence_invigoration_heal : public SpellScript
+{
+    PrepareSpellScript(spell_ascension_reaper_essence_invigoration_heal);
+
+    void Heal(SpellEffIndex)
+    {
+        Unit* target = GetHitUnit();
+        if (!target)
+            return;
+
+        uint64 missing = target->GetMaxHealth() - std::min(target->GetHealth(), target->GetMaxHealth());
+        uint64 amount = missing * std::clamp(GetEffectValue(), 0, 100) / 100;
+        SetEffectValue(int32(std::min<uint64>(amount, std::numeric_limits<int32>::max())));
+    }
+
+    void Register() override
+    {
+        OnEffectLaunchTarget += SpellEffectFn(spell_ascension_reaper_essence_invigoration_heal::Heal,
+            EFFECT_0, SPELL_EFFECT_HEAL);
+    }
+};
+
+class reaper_essence_invigoration_metadata : public GlobalScript
+{
+public:
+    reaper_essence_invigoration_metadata() : GlobalScript("reaper_essence_invigoration_metadata",
+        {GLOBALHOOK_ON_LOAD_SPELL_CUSTOM_ATTR}) { }
+
+    void OnLoadSpellCustomAttr(SpellInfo* info) override
+    {
+        if (info->Id == SPELL_ESSENCE_INVIGORATION_HEAL && info->SpellFamilyName == 36 &&
+            info->Effects[EFFECT_0].Effect == SPELL_EFFECT_HEAL_PCT && info->Effects[EFFECT_0].MiscValueB == 1)
+            info->Effects[EFFECT_0].Effect = SPELL_EFFECT_HEAL;
+    }
+};
 
 class spell_ascension_soul_capture : public SpellScript
 {
@@ -371,6 +408,8 @@ void ApplyAscensionReaperSoulInfusionSpent(Player* player)
 
 void AddSC_AscensionReaperTalents()
 {
+    new reaper_essence_invigoration_metadata();
+    RegisterSpellScript(spell_ascension_reaper_essence_invigoration_heal);
     RegisterSpellScript(spell_ascension_soul_capture);
     RegisterSpellScript(aura_ascension_harvester);
     RegisterSpellScript(aura_ascension_jailers_call);

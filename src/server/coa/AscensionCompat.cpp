@@ -2967,6 +2967,9 @@ private:
         if (HarvestTimePreserves(player, spellInfo))
             return;
 
+        bool const requiresSoulInfusion = spellInfo->CasterAuraSpell == SPELL_REAPER_SOUL_INFUSION &&
+            player->HasAura(SPELL_REAPER_SOUL_INFUSION);
+
         uint32 spellId = spellInfo->Id;
         if (std::find(REAPER_ALL_SOUL_CONSUMERS.begin(),
                 REAPER_ALL_SOUL_CONSUMERS.end(), spellId) !=
@@ -2974,12 +2977,12 @@ private:
         {
             player->RemoveAurasDueToSpell(SPELL_REAPER_REAPED_SOUL);
             player->RemoveAurasDueToSpell(SPELL_REAPER_SOUL_INFUSION);
+            if (requiresSoulInfusion)
+                ApplyAscensionReaperSoulInfusionSpent(player);
             return;
         }
 
-        if (spellInfo->CasterAuraSpell == SPELL_REAPER_SOUL_INFUSION &&
-            player->HasAura(SPELL_REAPER_SOUL_INFUSION) &&
-            !WasAvoidedByEveryTarget(player, spell))
+        if (requiresSoulInfusion && !WasAvoidedByEveryTarget(player, spell))
         {
             player->CastSpell(player, SPELL_REAPER_SOUL_INFUSION_REMOVER, true);
             ApplyAscensionReaperSoulInfusionSpent(player);
