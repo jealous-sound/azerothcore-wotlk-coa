@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "name": "Spectral Warden summons a guardian and shields nearby allies (#3725)",
+  "contract": "Spectral Warden summons one guardian for 20 seconds and shields nearby allies.",
+  "timeout_ms": 90000,
+  "players": [
+    { "id": "reaper", "race": 5, "class": 30, "level": 80 },
+    { "id": "ally", "race": 5, "class": 30, "level": 80 }
+  ],
+  "location": { "map": 0, "x": -8917.41, "y": -115.853, "z": 82.3711, "o": 0 },
+  "steps": [
+    { "action": "wait", "ms": 5000 },
+    { "action": "learn", "actor": "reaper", "spell": 805716 },
+    { "action": "set_power", "actor": "reaper", "power": 6, "value": 1000 },
+    { "action": "assert", "actor": "reaper", "metric": "pet_entry", "equals": 0 },
+    { "action": "assert", "actor": "ally", "metric": "aura", "spell": 805716, "equals": 0 },
+    { "action": "cast", "actor": "reaper", "spell": 805716 },
+    { "action": "assert", "actor": "reaper", "metric": "cast_failure", "spell": 805716, "equals": 0 },
+    { "action": "assert", "actor": "ally", "metric": "aura", "spell": 805716, "equals": 1, "within_ms": 3000 },
+    { "action": "assert", "actor": "ally", "metric": "aura_amount", "spell": 805716, "effect": 1, "min": 199 },
+    { "action": "assert", "actor": "reaper", "metric": "pet_entry", "equals": 100481,
+      "within_ms": 3000 },
+    { "action": "wait", "ms": 22500 },
+    { "action": "assert", "actor": "reaper", "metric": "pet_entry", "equals": 0 },
+    { "action": "assert", "actor": "ally", "metric": "aura", "spell": 805716, "equals": 0 }
+  ]
+}
