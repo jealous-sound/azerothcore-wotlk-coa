@@ -71,7 +71,7 @@ window expiry. These geometry decisions require validation against actual maps a
 
 ## Native assets and legacy identities
 
-Five guarded definitions: Fungarian 45896/display 18227; Mushroom 506018/display 26981; Brood Trap
+Five guarded definitions: Fungarian 45896/display 49116 (Elemental); Mushroom 506018/display 26981; Brood Trap
 52121/display 23058; Spiderling 999298/display 955; Scarab 999299/display 10005. Their native display,
 model and model-info dependencies resolve. The mushroom display is an invisible carrier; native
 Putrid Mushroom spell 31690 supplies visual 7863, state kit 6739, effect 3060 and
