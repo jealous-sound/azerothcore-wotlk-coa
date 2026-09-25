@@ -2,8 +2,9 @@
   "schema": 1,
   "name": "Reaper Beyond Death Reliquary chance (#1797)",
   "contract": [
-    "Beyond Death grants an independent 8% chance per Reliquary Soul Bolt damage event to launch an additional Soul Bolt.",
-    "Thirty Reliquary casts create ninety ordinary Soul Bolt hits; proc count must be consistent with an 8% event chance and exclude zero or guaranteed procs."
+    "Beyond Death gives each Reliquary Soul Bolt damage event an independent 8% chance to launch one additional Soul Bolt.",
+    "Thirty Reliquary casts create thirty first-bolt helper casts and ninety ordinary hits; one to eighteen extra helper casts and hits is consistent with the 8% chance.",
+    "The aura-attributed cast counter includes both the extra helper and its damage child for each proc."
   ],
   "players": [
     {
@@ -865,15 +866,6 @@
     },
     {
       "action": "assert",
-      "label": "Beyond Death procs at a rate consistent with eight percent",
-      "actor": "reaper",
-      "metric": "spell_proc_count",
-      "spell": 301193,
-      "min": 1,
-      "max": 18
-    },
-    {
-      "action": "assert",
       "label": "Extra Soul Bolt helpers stay within the eight percent range",
       "actor": "reaper",
       "metric": "spell_cast_count",
@@ -893,7 +885,7 @@
     },
     {
       "action": "snapshot",
-      "label": "Beyond Death proc count",
+      "label": "Aura-attributed helper and damage child casts",
       "actor": "reaper",
       "metric": "spell_proc_count",
       "spell": 301193,
