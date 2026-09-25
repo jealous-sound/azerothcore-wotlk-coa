@@ -246,6 +246,7 @@ struct Actor
     uint32 lootReceived = 0;
     std::array<uint32, 2> meleeAttacksByHand{};
     std::array<uint32, 2> meleeDamageByHand{};
+    std::array<uint64, 2> meleeDamageTotalByHand{};
     uint64 castPushbackMs = 0;
     std::vector<SpellCastEvent> spellCasts;
     std::vector<SpellDamageEvent> spellDamage;
@@ -653,7 +654,10 @@ private:
                         uint8 hand = hitInfo & HITINFO_OFFHAND ? OFF_ATTACK : BASE_ATTACK;
                         ++actor.meleeAttacksByHand[hand];
                         if (damage)
+                        {
                             ++actor.meleeDamageByHand[hand];
+                            actor.meleeDamageTotalByHand[hand] += damage;
+                        }
                     }
                 }
 
@@ -1384,9 +1388,19 @@ private:
             return player->GetShieldBlockValue();
         if (metric == "critical_block_chance")
             return player->GetTotalAuraModifier(SPELL_AURA_MOD_BLOCK_CRIT_CHANCE);
-        if (metric == "melee_attack_count" || metric == "melee_damage_count")
+        if (metric == "melee_attack_count" || metric == "melee_damage_count" ||
+            metric == "melee_damage_total")
         {
             Actor const& actor = _actors.at(step.get<std::string>("actor"));
+            if (metric == "melee_damage_total")
+            {
+                if (auto hand = step.get_optional<uint32>("hand"))
+                {
+                    Require(*hand < 2, "Melee hand must be main hand or off hand");
+                    return double(actor.meleeDamageTotalByHand[*hand]);
+                }
+                return double(actor.meleeDamageTotalByHand[BASE_ATTACK] + actor.meleeDamageTotalByHand[OFF_ATTACK]);
+            }
             auto const& counts = metric == "melee_attack_count" ? actor.meleeAttacksByHand : actor.meleeDamageByHand;
             if (auto hand = step.get_optional<uint32>("hand"))
             {
