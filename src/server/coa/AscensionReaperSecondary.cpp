@@ -17,6 +17,8 @@ enum ReaperSecondarySpells : uint32
     SPELL_SPIRIT_WALKER = 561082,
     SPELL_SPIRIT_WALKER_SPEED = 561093,
     SPELL_ENDBRINGER = 800922,
+    SPELL_GRAVESITE = 572213,
+    SPELL_GRAVESITE_AREA = 804722,
     SPELL_ENDBRINGER_AMOUNT = 801341,
     SPELL_ENDBRINGER_HEAL = 520419,
     SPELL_DIRGE = 801328,
@@ -89,6 +91,10 @@ public:
 
     void OnSpellCast(Spell* spell, Unit* caster, SpellInfo const* info, bool) override
     {
+        if (info->Id == SPELL_ENDBRINGER && caster->IsPlayer() && caster->getClass() == CLASS_REAPER &&
+            !spell->IsTriggered() && caster->HasAura(SPELL_GRAVESITE, caster->GetGUID()))
+            caster->CastSpell(caster, SPELL_GRAVESITE_AREA, true);
+
         if (caster->IsPlayer() && caster->getClass() == CLASS_REAPER && !spell->IsTriggered() &&
             sSpellMgr->GetFirstSpellInChain(info->Id) == SPELL_MURDER &&
             spell->GetScriptValue(SPELL_CRIMSON_STACK))
@@ -118,6 +124,30 @@ public:
         }
         if (root == SPELL_MURDER && spell->GetScriptValue(SPELL_CRIMSON_STACK) >= 5)
             HealFromDamage(player, SPELL_CRIMSON_AMOUNT, SPELL_CRIMSON_HEAL, damage);
+    }
+};
+
+class aura_ascension_gravesite : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_gravesite);
+
+    bool Check(ProcEventInfo& event)
+    {
+        Unit* player = GetTarget();
+        Unit* victim = event.GetActionTarget();
+        if (!player->IsPlayer() || player->getClass() != CLASS_REAPER || GetCaster() != player ||
+            event.GetActor() != player || !victim || victim == player || player->IsFriendlyTo(victim) ||
+            !event.GetDamageInfo() || !event.GetDamageInfo()->GetDamage() ||
+            !(event.GetHitMask() & PROC_HIT_CRITICAL) ||
+            (event.GetTypeMask() & (PROC_FLAG_DONE_PERIODIC | PROC_FLAG_TAKEN_PERIODIC)))
+            return false;
+
+        return victim->HasAura(SPELL_GRAVESITE_AREA);
+    }
+
+    void Register() override
+    {
+        DoCheckProc += AuraCheckProcFn(aura_ascension_gravesite::Check);
     }
 };
 
@@ -185,5 +215,6 @@ void AddSC_AscensionReaperSecondary()
     new reaper_ghost_speed();
     new reaper_secondary_hits();
     new reaper_secondary_metadata();
+    RegisterSpellScript(aura_ascension_gravesite);
     RegisterSpellScript(aura_ascension_crimson_thirst);
 }
