@@ -263,6 +263,7 @@ void AddSC_AscensionRunemasterHurricane();
 void AddSC_AscensionRunemasterRiftClones();
 void AddSC_AscensionWelcomeWarchest();
 void AddSC_AscensionClassBundleStore();
+void AddSC_AscensionLfgObjective();
 
 void AddCoAScripts()
 {
@@ -525,4 +526,5 @@ void AddCoAScripts()
     AddSC_AscensionKeepersScrollZoneBuff();
     AddSC_AscensionWelcomeWarchest();
     AddSC_AscensionClassBundleStore();
+    AddSC_AscensionLfgObjective();
 }
