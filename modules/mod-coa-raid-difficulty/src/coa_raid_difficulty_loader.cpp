@@ -39,6 +39,8 @@ void AddCoaHuhuranScripts();
 void AddCoaTwinEmperorsScripts();
 void AddCoaOuroScripts();
 void AddCoaCThunScripts();
+void AddCoaWorldBossScripts();
+void AddCoaEmeraldDragonScripts();
 
 void Addmod_coa_raid_difficultyScripts()
 {
@@ -72,4 +74,6 @@ void Addmod_coa_raid_difficultyScripts()
     AddCoaTwinEmperorsScripts();
     AddCoaOuroScripts();
     AddCoaCThunScripts();
+    AddCoaWorldBossScripts();
+    AddCoaEmeraldDragonScripts();
 }
