@@ -7,8 +7,10 @@
 -- default. Setting per_player > 0 switches a boss to that times the players
 -- within `radius` yards on the pull, clamped to min_players..max_players.
 --
--- Lord Kazzak has a template but no spawn in this world database. The script
--- is assigned; the spawn needs a position from someone standing on it.
+-- Lord Kazzak had a template but no spawn in this world database. Ascension
+-- keeps him at the Shrine of Lord Kazzak in the south of the Tainted Scar; the
+-- spawn below sits in the middle of the Doomguard Commanders that guard that
+-- spot (four of them within 25 yards), at their height. Respawn: 3 days.
 --
 -- The dragons have no logs. Their pool is Azuregos' measured one times their
 -- stock share of his health (1802 / 3200 HealthModifier): 21,827,020.
@@ -45,3 +47,9 @@ UPDATE `creature_template` SET `ScriptName` = 'boss_emeriss_coa'      WHERE `ent
 UPDATE `creature_template` SET `ScriptName` = 'boss_taerar_coa'       WHERE `entry` = 14890;
 UPDATE `creature_template` SET `ScriptName` = 'npc_ysondre_druid_coa' WHERE `entry` = 15260;
 UPDATE `creature_template` SET `ScriptName` = 'npc_taerar_shade_coa'  WHERE `entry` = 15302;
+
+DELETE FROM `creature` WHERE `id` = 12397;
+INSERT INTO `creature` (`guid`, `id`, `map`, `zoneId`, `areaId`, `spawnMask`, `phaseMask`, `equipment_id`,
+    `position_x`, `position_y`, `position_z`, `orientation`, `spawntimesecs`, `wander_distance`,
+    `currentwaypoint`, `curhealth`, `curmana`, `MovementType`, `npcflag`, `unit_flags`, `dynamicflags`)
+VALUES (9780100, 12397, 0, 4, 73, 1, 1, 0, -12213.0, -2740.0, 15.3, 1.57, 259200, 0, 0, 0, 0, 0, 0, 0, 0);
