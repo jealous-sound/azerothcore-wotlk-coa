@@ -3273,14 +3273,14 @@ public:
 
     if (player->GetSession()->IsBot())
     {
+      TakeLoginState(player);
       InitializeRiding(player);
       return;
     }
 
-    std::shared_ptr<PlayerCollectionState> state =
-        std::make_shared<PlayerCollectionState>();
-    state->AccountId = player->GetSession()->GetAccountId();
-    LoadPlayerState(player, *state);
+    std::shared_ptr<PlayerCollectionState> state = TakeLoginState(player);
+    if (!state)
+      state = LoadCollectionState(player);
 
     UnlockLocalAppearanceCatalog(player, *state);
 
@@ -3320,6 +3320,7 @@ public:
     {
       std::lock_guard lock(_stateMutex);
       _playerStates.erase(player->GetGUID().GetCounter());
+      _loginStates.erase(player->GetGUID().GetCounter());
     }
 
     {
@@ -3441,10 +3442,8 @@ public:
             !ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::LEARN_OWNED_COMPANIONS))
             return;
 
-        PlayerCollectionState state;
-        state.AccountId = player->GetSession()->GetAccountId();
-        LoadPlayerState(player, state);
-        std::vector<uint32> const spells = GetMissingOwnedCompanionSpells(player, state);
+        std::shared_ptr<PlayerCollectionState const> const state = LoginState(player);
+        std::vector<uint32> const spells = GetMissingOwnedCompanionSpells(player, *state);
         std::size_t learned = 0;
         for (uint32 spellId : spells)
         {
@@ -3543,11 +3542,7 @@ public:
         if (!_clientDataLoaded || player->IsInWorld() || !player->GetSession()->PlayerLoading())
             return;
 
-        PlayerCollectionState state;
-        state.AccountId = player->GetSession()->GetAccountId();
-        LoadPlayerState(player, state);
-
-        LearnOwnedBankSpells(player, state, true);
+        LearnOwnedBankSpells(player, *LoginState(player), true);
     }
 
     std::vector<uint32> GetMissingOwnedCompanionSpells(Player* player, PlayerCollectionState const& state) const
@@ -3967,6 +3962,32 @@ private:
     std::lock_guard lock(_stateMutex);
     auto itr = _playerStates.find(player->GetGUID().GetCounter());
     return itr != _playerStates.end() ? itr->second : nullptr;
+  }
+
+  std::shared_ptr<PlayerCollectionState> LoadCollectionState(Player *player) {
+    auto state = std::make_shared<PlayerCollectionState>();
+    state->AccountId = player->GetSession()->GetAccountId();
+    LoadPlayerState(player, *state);
+    return state;
+  }
+
+  std::shared_ptr<PlayerCollectionState> LoginState(Player *player) {
+    uint32 const guid = player->GetGUID().GetCounter();
+    {
+      std::lock_guard lock(_stateMutex);
+      if (auto itr = _loginStates.find(guid); itr != _loginStates.end())
+        return itr->second;
+    }
+
+    std::shared_ptr<PlayerCollectionState> state = LoadCollectionState(player);
+    std::lock_guard lock(_stateMutex);
+    return _loginStates.try_emplace(guid, state).first->second;
+  }
+
+  std::shared_ptr<PlayerCollectionState> TakeLoginState(Player *player) {
+    std::lock_guard lock(_stateMutex);
+    auto node = _loginStates.extract(player->GetGUID().GetCounter());
+    return node.empty() ? nullptr : std::move(node.mapped());
   }
 
   void LoadPlayerState(Player *player, PlayerCollectionState &state) {
@@ -4524,6 +4545,8 @@ private:
   std::mutex _stateMutex;
   std::unordered_map<uint32, std::shared_ptr<PlayerCollectionState>>
       _playerStates;
+  std::unordered_map<uint32, std::shared_ptr<PlayerCollectionState>>
+      _loginStates;
 };
 
 AscensionCollectionModels::Entry const* FindCollectionModel(uint32 creatureId)

@@ -7,33 +7,28 @@ namespace CoAChallenges
 
     void SendActiveList(Player* player)
     {
+        if (!player->GetSession())
+            return;
+        SendActiveList(player, LoadActiveChallengeRows(player->GetGUID().GetCounter()));
+    }
+
+    void SendActiveList(Player* player, std::vector<ActiveChallengeRow> const& rows)
+    {
         WorldSession* session = player->GetSession();
         if (!session)
             return;
 
-        uint32 guid = player->GetGUID().GetCounter();
-        QueryResult result = CharacterDatabase.Query(
-            "SELECT challengeId, level FROM coa_character_challenge WHERE guid = {}", guid);
-
         WorldPacket data(SMSG_COA_CHALLENGE_ACTIVE_LIST, 64);
-        if (!result)
+        data << uint32(rows.size());
+        for (ActiveChallengeRow const& row : rows)
         {
             data << uint32(0);
-        }
-        else
-        {
-            data << uint32(result->GetRowCount());
-            do
-            {
-                Field* f = result->Fetch();
-                data << uint32(0);
-                data << uint32(f[0].Get<uint32>());
-                data << uint32(f[1].Get<uint32>());
-                data << uint32(1);
-                data << uint32(0);
-                data << uint32(0);
-                data << uint16(0);
-            } while (result->NextRow());
+            data << uint32(row.challengeId);
+            data << uint32(row.level);
+            data << uint32(1);
+            data << uint32(0);
+            data << uint32(0);
+            data << uint16(0);
         }
 
         session->SendPacket(&data);
@@ -232,13 +227,14 @@ namespace CoAChallenges
             pending.rollback.size(), pending.requesterGuid);
     }
 
-
     void PushLoginState(Player* player)
     {
+        std::vector<ActiveChallengeRow> const active = TakeLoginChallengeRows(player->GetGUID().GetCounter());
+
         SendConfigBatch(player);
-        SendActiveList(player);
+        SendActiveList(player, active);
         SendCriteriaState(player);
-        RecomputeRequiredGameModes(player);
+        RecomputeRequiredGameModes(player, active);
         ReapplyGameModeBehavior(player);
         if (sConfigMgr->GetOption<bool>("CoAChallenges.SendFailureList", true))
             SendFailureList(player);
@@ -248,38 +244,23 @@ namespace CoAChallenges
         // Load the in-memory counters and push the meter stacks first, then
         // re-apply the challenge aura last so its icon keeps the same slot.
         // (Auras don't reliably survive relog; the DB is the source of truth.)
-        RefreshHungerTracking(player);
-        RefreshFatigueTracking(player);
+        RefreshHungerTracking(player, active);
+        RefreshFatigueTracking(player, active);
         RefreshSpellbindTracking(player);
         RefreshInvertedBreathTracking(player);
         RefreshRegenTracking(player);
         RefreshHighRiskTracking(player);
         RefreshLootedTracking(player);
         SyncMeterAuras(player);
-        ReapplyActiveSpells(player);
+        ReapplyActiveSpells(player, active);
         // Drop challenge auras with no backing active challenge (self-heal for
         // an orphan left by a row deleted out-of-band).
         StripOrphanChallengeAuras(player);
 
         // Safety: no hunger active -> no meter icons lingering.
-        {
-            uint32 guid = player->GetGUID().GetCounter();
-            bool anyHunger = false;
-            if (QueryResult r = CharacterDatabase.Query(
-                    "SELECT challengeId FROM coa_character_challenge WHERE guid = {}", guid))
-            {
-                do
-                {
-                    if (IsHungerChallenge(r->Fetch()[0].Get<uint32>()))
-                    {
-                        anyHunger = true;
-                        break;
-                    }
-                } while (r->NextRow());
-            }
-            if (!anyHunger)
-                RemoveMeterAuras(player);
-        }
+        if (std::none_of(active.begin(), active.end(),
+                [](ActiveChallengeRow const& row) { return IsHungerChallenge(row.challengeId); }))
+            RemoveMeterAuras(player);
 
         // A character that logs in already at the cap with an active challenge
         // (or one activated at the cap) completes it here.

@@ -198,16 +198,13 @@ namespace CoAChallenges
     // Death strips auras; resurrect must restore active challenge auras.
     void ReapplyActiveSpells(Player* player)
     {
-        uint32 guid = player->GetGUID().GetCounter();
-        if (QueryResult actives = CharacterDatabase.Query(
-                "SELECT challengeId, level FROM coa_character_challenge WHERE guid = {}", guid))
-        {
-            do
-            {
-                Field* f = actives->Fetch();
-                ApplyChallengeSpell(player, f[0].Get<uint32>(), f[1].Get<uint32>());
-            } while (actives->NextRow());
-        }
+        ReapplyActiveSpells(player, LoadActiveChallengeRows(player->GetGUID().GetCounter()));
+    }
+
+    void ReapplyActiveSpells(Player* player, std::vector<ActiveChallengeRow> const& rows)
+    {
+        for (ActiveChallengeRow const& row : rows)
+            ApplyChallengeSpell(player, row.challengeId, row.level);
     }
 
     // Login reconciliation: drop challenge auras that have no backing active

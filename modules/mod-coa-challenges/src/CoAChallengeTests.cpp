@@ -80,6 +80,7 @@ namespace CoAChallenges
         // flags last so the character ends up truly clean.
         WaitCharacterQueueEmpty();
         CharacterDatabase.DirectExecute("DELETE FROM coa_character_condition WHERE guid = {}", guid);
+        ResetConditionFlags(guid);
 
         LOG_INFO("module.coa_challenges", "Test reset {}: level 1, 0 money, no challenges",
             player->GetName());

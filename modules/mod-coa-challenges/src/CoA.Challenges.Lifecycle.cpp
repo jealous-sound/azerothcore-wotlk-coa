@@ -3,6 +3,9 @@
 #include "CoA.Challenges.Review.h"
 
 #include <atomic>
+#include <mutex>
+#include <optional>
+#include <unordered_map>
 
 namespace CoAChallenges
 {
@@ -130,17 +133,18 @@ namespace CoAChallenges
     {
         if (!player)
             return;
+        RecomputeRequiredGameModes(player, LoadActiveChallengeRows(player->GetGUID().GetCounter()));
+    }
+
+    void RecomputeRequiredGameModes(Player* player, std::vector<ActiveChallengeRow> const& rows)
+    {
+        if (!player)
+            return;
         uint32 guid = player->GetGUID().GetCounter();
 
         uint32 mask = 0;
-        if (QueryResult r = CharacterDatabase.Query(
-                "SELECT challengeId FROM coa_character_challenge WHERE guid = {}", guid))
-        {
-            do
-            {
-                mask |= RequiredGameMode(r->Fetch()[0].Get<uint32>());
-            } while (r->NextRow());
-        }
+        for (ActiveChallengeRow const& row : rows)
+            mask |= RequiredGameMode(row.challengeId);
 
         // Preserve genuinely player-toggled modes (testing flag): without this a
         // login/activate recompute would silently clear them.
@@ -243,6 +247,7 @@ namespace CoAChallenges
         CharacterDatabase.DirectExecute("DELETE FROM coa_challenge_completion WHERE guid = {}", guid);
         CharacterDatabase.DirectExecute("DELETE FROM coa_challenge_failure WHERE guid = {}", guid);
         CharacterDatabase.DirectExecute("DELETE FROM coa_character_condition WHERE guid = {}", guid);
+        ResetConditionFlags(guid);
         CharacterDatabase.DirectExecute("DELETE FROM coa_character_gamemode WHERE guid = {}", guid);
         CharacterDatabase.DirectExecute("DELETE FROM coa_character_gamemode_lives WHERE guid = {}", guid);
         CharacterDatabase.DirectExecute("DELETE FROM coa_character_survival WHERE guid = {}", guid);
@@ -634,6 +639,23 @@ namespace CoAChallenges
         return active;
     }
 
+    // Every column the login state needs, read in one query. PushLoginState hands the same rows to
+    // each consumer and seeds the cache with them, instead of querying the table once per consumer.
+    std::vector<ActiveChallengeRow> LoadActiveChallengeRows(uint32 guid)
+    {
+        std::vector<ActiveChallengeRow> rows;
+        if (QueryResult r = CharacterDatabase.Query(
+                "SELECT challengeId, level, hunger, thirst FROM coa_character_challenge WHERE guid = {}", guid))
+        {
+            do
+            {
+                Field* f = r->Fetch();
+                rows.push_back({ f[0].Get<uint32>(), f[1].Get<uint32>(), f[2].Get<int32>(), f[3].Get<int32>() });
+            } while (r->NextRow());
+        }
+        return rows;
+    }
+
     // Test seam (`.coa cachetoctou`, see CoAChallengeTests.cpp). The hook runs on the calling
     // thread between the DB load and the cache publish, so a test can inject an invalidation
     // exactly in the TOCTOU window. Both are inert in production (empty hook, override -1).
@@ -699,6 +721,67 @@ namespace CoAChallenges
             CharChallengeCache[guid] = active;
             return active;
         }
+    }
+
+    // Read before loading rows for SeedCharChallengeCache, so an invalidation in between is detected.
+    uint64 CharChallengeCacheGeneration()
+    {
+        std::lock_guard<std::mutex> lock(CharChallengeMutex);
+        return CharChallengeGeneration;
+    }
+
+    // Publishes rows the caller loaded after reading CharChallengeCacheGeneration: never over an
+    // existing entry, and not at all once the generation has moved on.
+    void SeedCharChallengeCache(uint32 guid, uint64 generation, std::vector<ActiveChallengeRow> const& rows)
+    {
+        std::vector<std::pair<uint32, uint32>> active;
+        active.reserve(rows.size());
+        for (ActiveChallengeRow const& row : rows)
+            active.emplace_back(row.challengeId, row.level);
+
+        std::lock_guard<std::mutex> lock(CharChallengeMutex);
+        if (CharChallengeGeneration != generation)
+            return;
+        CharChallengeCache.try_emplace(guid, std::move(active));
+    }
+
+    // Rows read while the character loads (Player::LoadFromDB), kept for PushLoginState in the same
+    // login together with the cache generation they were read under. Any invalidation since then
+    // means a module write may have changed them, and PushLoginState reads the table again.
+    std::mutex LoginChallengeRowsMutex;
+    std::unordered_map<uint32, std::pair<uint64, std::vector<ActiveChallengeRow>>> LoginChallengeRows;
+
+    void PreloadLoginChallengeRows(uint32 guid)
+    {
+        uint64 const generation = CharChallengeCacheGeneration();
+        std::vector<ActiveChallengeRow> rows = LoadActiveChallengeRows(guid);
+        SeedCharChallengeCache(guid, generation, rows);
+        std::lock_guard<std::mutex> lock(LoginChallengeRowsMutex);
+        LoginChallengeRows[guid] = { generation, std::move(rows) };
+    }
+
+    std::vector<ActiveChallengeRow> TakeLoginChallengeRows(uint32 guid)
+    {
+        std::optional<std::pair<uint64, std::vector<ActiveChallengeRow>>> preloaded;
+        {
+            std::lock_guard<std::mutex> lock(LoginChallengeRowsMutex);
+            if (auto node = LoginChallengeRows.extract(guid))
+                preloaded = std::move(node.mapped());
+        }
+
+        uint64 const generation = CharChallengeCacheGeneration();
+        if (preloaded && preloaded->first == generation)
+            return std::move(preloaded->second);
+
+        std::vector<ActiveChallengeRow> rows = LoadActiveChallengeRows(guid);
+        SeedCharChallengeCache(guid, generation, rows);
+        return rows;
+    }
+
+    void ForgetLoginChallengeRows(uint32 guid)
+    {
+        std::lock_guard<std::mutex> lock(LoginChallengeRowsMutex);
+        LoginChallengeRows.erase(guid);
     }
 
     // Called wherever the module adds or removes a row of coa_character_challenge, and at logout.
@@ -805,34 +888,80 @@ namespace CoAChallenges
     // "broken" (blocking activation) when the player violates it. Loot/level
     // flags persist per character; group/inventory are checked live.
 
+    // Condition flags are cached per character and written through. The
+    // INSERT is asynchronous, so reading the table back could miss a flag an
+    // earlier hook just set (loot, then start a trial before the queue drains);
+    // the cache is the authority once a character's rows have been loaded.
+    namespace
+    {
+        std::mutex ConditionFlagMutex;
+        std::unordered_map<uint32, std::set<std::string>> ConditionFlagCache;
+
+        // Caller holds ConditionFlagMutex.
+        std::set<std::string>& LoadedConditionFlags(uint32 guid)
+        {
+            auto [itr, inserted] = ConditionFlagCache.try_emplace(guid);
+            if (inserted)
+                if (QueryResult r = CharacterDatabase.Query(
+                        "SELECT flag FROM coa_character_condition WHERE guid = {}", guid))
+                {
+                    do { itr->second.insert(r->Fetch()[0].Get<std::string>()); } while (r->NextRow());
+                }
+            return itr->second;
+        }
+    }
+
     void SetConditionFlag(uint32 guid, char const* flag)
     {
         std::string eflag = flag ? flag : "";
+        {
+            std::lock_guard<std::mutex> lock(ConditionFlagMutex);
+            if (!LoadedConditionFlags(guid).insert(eflag).second)
+                return;
+        }
         CharacterDatabase.EscapeString(eflag);
         CharacterDatabase.Execute(
             "INSERT IGNORE INTO coa_character_condition (guid, flag) VALUES ({}, '{}')",
             guid, eflag);
     }
 
-    bool HasConditionFlag(uint32 guid, char const* flag)
+    void ClearConditionFlag(uint32 guid, std::string const& flag)
     {
-        std::string eflag = flag ? flag : "";
+        {
+            std::lock_guard<std::mutex> lock(ConditionFlagMutex);
+            LoadedConditionFlags(guid).erase(flag);
+        }
+        std::string eflag = flag;
         CharacterDatabase.EscapeString(eflag);
-        return (bool)CharacterDatabase.Query(
-            "SELECT 1 FROM coa_character_condition WHERE guid = {} AND flag = '{}' LIMIT 1",
-            guid, eflag);
+        CharacterDatabase.Execute(
+            "DELETE FROM coa_character_condition WHERE guid = {} AND flag = '{}'", guid, eflag);
     }
 
-    // Every condition flag for a character, in one query.
+    // The character's rows were deleted: it has no flags from now on.
+    void ResetConditionFlags(uint32 guid)
+    {
+        std::lock_guard<std::mutex> lock(ConditionFlagMutex);
+        ConditionFlagCache[guid].clear();
+    }
+
+    // The character itself was deleted: drop its entry.
+    void ForgetConditionFlags(uint32 guid)
+    {
+        std::lock_guard<std::mutex> lock(ConditionFlagMutex);
+        ConditionFlagCache.erase(guid);
+    }
+
+    bool HasConditionFlag(uint32 guid, char const* flag)
+    {
+        std::lock_guard<std::mutex> lock(ConditionFlagMutex);
+        return LoadedConditionFlags(guid).count(flag ? flag : "") != 0;
+    }
+
+    // Every condition flag for a character.
     std::set<std::string> ConditionFlags(uint32 guid)
     {
-        std::set<std::string> out;
-        if (QueryResult r = CharacterDatabase.Query(
-                "SELECT flag FROM coa_character_condition WHERE guid = {}", guid))
-        {
-            do { out.insert(r->Fetch()[0].Get<std::string>()); } while (r->NextRow());
-        }
-        return out;
+        std::lock_guard<std::mutex> lock(ConditionFlagMutex);
+        return LoadedConditionFlags(guid);
     }
 
     // Human label for an OUTSIDE_INTERACTION facet flag (nullptr = not one).
