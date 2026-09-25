@@ -35,6 +35,16 @@ bool Enraged(Unit const* unit)
     return unit && (unit->HasAuraState(AURA_STATE_ENRAGE) || unit->HasAura(801761) || unit->HasAura(805804));
 }
 
+void ReadyToKill(Player* player)
+{
+    for (uint32 rank : {850021u, 850038u, 850039u, 850040u, 850041u, 850042u, 850043u})
+        if (player->HasSpell(rank))
+        {
+            player->CastSpell(player, 850025, true);
+            return;
+        }
+}
+
 void Extend(Unit* owner, uint32 id, int32 amount, int32 cap)
 {
     if (Aura* aura = owner->GetAura(id, owner->GetGUID()))
@@ -212,6 +222,8 @@ class aura_ascension_barbarian_lifecycle : public AuraScript
         if (id == 707410)
             if (AuraEffect* cost = player->GetAuraEffect(801761, EFFECT_1))
                 cost->RecalculateAmount();
+        if (id == 560521)
+            ReadyToKill(player);
         if (id == 560933 && player->HasAura(560910))
             player->CastSpell(player, 560909, true);
         if (id == 705198 && !player->HasSpell(807482))

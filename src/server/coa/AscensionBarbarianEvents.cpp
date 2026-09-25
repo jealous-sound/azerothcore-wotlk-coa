@@ -353,6 +353,23 @@ private:
             }
     }
 };
+
+class barbarian_killing_spree : public PlayerScript
+{
+public:
+    barbarian_killing_spree() : PlayerScript("barbarian_killing_spree",
+        {PLAYERHOOK_ON_PVP_KILL, PLAYERHOOK_ON_CREATURE_KILL}) { }
+
+    void OnPlayerPVPKill(Player* killer, Player*) override { Ready(killer); }
+    void OnPlayerCreatureKill(Player* killer, Creature*) override { Ready(killer); }
+
+private:
+    static void Ready(Player* player)
+    {
+        if (Player* barbarian = Owner(player))
+            ReadyToKill(barbarian);
+    }
+};
 }
 
 void AddAscensionBarbarianEventScripts()
@@ -361,4 +378,5 @@ void AddAscensionBarbarianEventScripts()
     RegisterSpellScript(spell_ascension_barbarian_conversion);
     RegisterSpellScript(aura_ascension_barbarian_bleed);
     new barbarian_grisly_meal();
+    new barbarian_killing_spree();
 }

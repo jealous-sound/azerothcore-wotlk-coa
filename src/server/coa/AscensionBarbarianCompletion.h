@@ -20,6 +20,7 @@ Player* Owner(Unit* unit);
 Unit* Ancestor(Player* player);
 bool Enraged(Unit const* unit);
 void Extend(Unit* owner, uint32 id, int32 amount, int32 cap = 0);
+void ReadyToKill(Player* player);
 void ApplyContracts(SpellInfo* info);
 }
 
