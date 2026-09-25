@@ -132,7 +132,8 @@ namespace
             me->RemoveAurasDueToSpell(SPELL_FRIENDS_ON_THE_OTHER_SIDE);
             if (!shades)
                 return;
-            int32 bonus = (Info(me, SPELL_FRIENDS_ON_THE_OTHER_SIDE, 1) - 1) * shades;
+            // CastCustomSpell adds the spell's one point of dice on top.
+            int32 bonus = Info(me, SPELL_FRIENDS_ON_THE_OTHER_SIDE, 1) * shades - 1;
             me->CastCustomSpell(me, SPELL_FRIENDS_ON_THE_OTHER_SIDE, nullptr, &bonus, nullptr, true);
         }
 
