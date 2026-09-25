@@ -4,7 +4,7 @@
  * The difficulty templates, the links between them and the spawn masks are
  * data and live in data/sql. The code is the boss AI that reads its fight out
  * of coa_boss_schedule, the bosses that keep their choreography with Ascension's
- * spells (Onyxia and the Blackwing Lair bosses), the flex health that sizes a boss to the raid, and
+ * spells (Onyxia, the Blackwing Lair and the Zul'Gurub bosses), the flex health that sizes a boss to the raid, and
  * the corrections to broken spell values.
  *
  * modules/mod-coa-raid-difficulty -> Addmod_coa_raid_difficultyScripts.
@@ -19,6 +19,15 @@ void AddCoaBroodlordScripts();
 void AddCoaDrakeScripts();
 void AddCoaChromaggusScripts();
 void AddCoaNefarianScripts();
+void AddCoaVenoxisScripts();
+void AddCoaJeklikScripts();
+void AddCoaMarliScripts();
+void AddCoaThekalScripts();
+void AddCoaArlokkScripts();
+void AddCoaMandokirScripts();
+void AddCoaJindoScripts();
+void AddCoaHakkarScripts();
+void AddCoaGrilekScripts();
 
 void Addmod_coa_raid_difficultyScripts()
 {
@@ -32,4 +41,13 @@ void Addmod_coa_raid_difficultyScripts()
     AddCoaDrakeScripts();
     AddCoaChromaggusScripts();
     AddCoaNefarianScripts();
+    AddCoaVenoxisScripts();
+    AddCoaJeklikScripts();
+    AddCoaMarliScripts();
+    AddCoaThekalScripts();
+    AddCoaArlokkScripts();
+    AddCoaMandokirScripts();
+    AddCoaJindoScripts();
+    AddCoaHakkarScripts();
+    AddCoaGrilekScripts();
 }
