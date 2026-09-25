@@ -5,12 +5,13 @@
     "Spell.dbc 804185 promises daytime haste; 807231 grants 3% spell and melee/ranged haste for 30000 ms.",
     "The parent must keep that helper alive, remove the opposite helper and clean up both on removal.",
     "Run only while realm-local time stays in [06:00,18:00); allow at least 120 seconds before dusk.",
-    "The isolated runner inherits TZ. Choose a fixed offset placing its clock near noon for a deterministic run.",
+    "hour 12 starts the case in 12:00-12:59 realm-local time, over five hours before dusk on either clock.",
     "Learn the parent after clearing fixture state; only it casts the selected helper. Seed the opposite helper.",
     "Duration must stay near 30000 ms after 5 seconds and across two 31-second waits, with exactly one cast.",
     "Cast counts retain evidence of an expiry/recast even when the brief absence falls between observations."
   ],
   "timeout_ms": 120000,
+  "hour": 12,
   "players": [{ "id": "hunter", "race": 1, "class": 15, "level": 60 }],
   "steps": [
     { "action": "wait", "label": "Let character setup settle", "ms": 5000 },
