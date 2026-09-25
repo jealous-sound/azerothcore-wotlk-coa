@@ -122,6 +122,28 @@ void ConsumeSelected(Player* player, Spell* spell)
                     aura->Remove();
             }
 }
+bool Flayable(Unit* unit)
+{
+    Creature* corpse = unit ? unit->ToCreature() : nullptr;
+    return corpse && corpse->getDeathState() == DeathState::Corpse &&
+           (corpse->GetCreatureType() == CREATURE_TYPE_HUMANOID || corpse->GetCreatureType() == CREATURE_TYPE_BEAST ||
+            corpse->GetCreatureType() == CREATURE_TYPE_DEMON);
+}
+float FlayRange(Player* player, Spell* spell)
+{
+    return std::max(spell->GetSpellInfo()->GetMaxRange(false, player, spell), INTERACTION_DISTANCE);
+}
+Creature* NearestFlayable(Player* player, float range)
+{
+    std::list<Creature*> corpses;
+    player->GetDeadCreatureListInGrid(corpses, range, true);
+    Creature* nearest = nullptr;
+    for (Creature* corpse : corpses)
+        if (Flayable(corpse) && player->IsWithinLOSInMap(corpse) &&
+            (!nearest || player->GetExactDistSq(corpse) < player->GetExactDistSq(nearest)))
+            nearest = corpse;
+    return nearest;
+}
 class xoroth_casts : public AllSpellScript
 {
   public:
@@ -147,14 +169,12 @@ class xoroth_casts : public AllSpellScript
             result = SPELL_FAILED_CASTER_AURASTATE;
         if (info->Id == 801042)
         {
-            Unit* unit = spell->m_targets.GetUnitTarget();
-            Creature* corpse = unit ? unit->ToCreature() : nullptr;
+            if (!Flayable(spell->m_targets.GetUnitTarget()))
+                if (Creature* corpse = NearestFlayable(player, FlayRange(player, spell)))
+                    spell->m_targets.SetUnitTarget(corpse);
             if (player->IsInCombat())
                 result = SPELL_FAILED_AFFECTING_COMBAT;
-            else if (!corpse || corpse->getDeathState() != DeathState::Corpse ||
-                     (corpse->GetCreatureType() != CREATURE_TYPE_HUMANOID &&
-                      corpse->GetCreatureType() != CREATURE_TYPE_BEAST &&
-                      corpse->GetCreatureType() != CREATURE_TYPE_DEMON))
+            else if (!Flayable(spell->m_targets.GetUnitTarget()))
                 result = SPELL_FAILED_BAD_TARGETS;
         }
     }
