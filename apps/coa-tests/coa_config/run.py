@@ -29,17 +29,24 @@ def decode(data):
         offset += struct.calcsize(fmt)
         return result
 
-    assert [take('<I') for _ in range(3)] == [0, 0, 0]
-    rates = {}
-    for _ in range(take('<I')):
-        length = take('<I')
-        key = data[offset:offset + length].decode('ascii')
-        offset += length
-        assert '\0' not in key and key not in rates
-        rates[key] = take('<f')
+    def section(value_format):
+        nonlocal offset
+        entries = {}
+        for _ in range(take('<I')):
+            length = take('<I')
+            key = data[offset:offset + length].decode('ascii')
+            offset += length
+            assert '\0' not in key and key not in entries
+            entries[key] = take(value_format)
+        return entries
+
+    assert take('<I') == 0
+    bools = section('<B')
+    assert take('<I') == 0
+    rates = section('<f')
     assert [take('<I') for _ in range(2)] == [0, 0]
     assert offset == len(data)
-    return rates
+    return bools, rates
 
 
 def main():
@@ -90,12 +97,20 @@ public:
 ''' + support + '''
 int main(int, char** argv)
 {
-    SendAscensionCoAXpConfig(nullptr);
+    SendAscensionCoAConfig(nullptr);
     for (int i = 0; i != 3; ++i)
     {
+        if (i == 1)
+        {
+            AddAscensionCoAConfigBoolSource([](CoAConfigBools& bools)
+            {
+                bools.emplace_back("CONFIG_CHALLENGE_ENABLED", 1);
+            });
+            AddAscensionCoAConfigBoolSource([](CoAConfigBools& bools) { bools.emplace_back("CONFIG_HIDDEN", 0); });
+        }
         world.scale = i;
         WorldSession session;
-        SendAscensionCoAXpConfig(&session);
+        SendAscensionCoAConfig(&session);
         assert(session.sent.GetOpcode() == 0x58D);
         std::ofstream file(std::string(argv[1]) + std::to_string(i), std::ios::binary);
         file.write(reinterpret_cast<char const*>(session.sent.contents()), session.sent.size());
@@ -111,11 +126,12 @@ int main(int, char** argv)
         subprocess.run(command, check=True)
         subprocess.run([str(out / 'test'), str(out / 'packet')], check=True)
         for scale in range(3):
-            rates = decode((out / f'packet{scale}').read_bytes())
+            bools, rates = decode((out / f'packet{scale}').read_bytes())
+            assert bools == ({} if scale == 0 else {'CONFIG_CHALLENGE_ENABLED': 1, 'CONFIG_HIDDEN': 0})
             assert rates == {key: scale * (config_names.index(setting) + 0.25)
                              for key, setting in expected.items()}
-    print(f'PASS: opcode, six sections, {len(expected)} rate mappings, key framing, zero rates, refreshed rates, '
-          'null session')
+    print(f'PASS: opcode, six sections, {len(expected)} rate mappings, registered flags beside the rates, '
+          'key framing, zero rates, refreshed rates, null session')
 
 
 if __name__ == '__main__':

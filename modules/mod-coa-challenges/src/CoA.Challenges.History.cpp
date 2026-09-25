@@ -235,7 +235,6 @@ namespace CoAChallenges
 
     void PushLoginState(Player* player)
     {
-        SendConfigBatch(player);
         SendActiveList(player);
         SendCriteriaState(player);
         RecomputeRequiredGameModes(player);

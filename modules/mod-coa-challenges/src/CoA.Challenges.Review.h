@@ -15,6 +15,7 @@
 #include "WorldSessionMgr.h"
 #include "WorldPacket.h"
 #include "Opcodes.h"
+#include "AscensionCoAConfig.h"
 #include "Config.h"
 #include "Log.h"
 #include "DatabaseEnv.h"
@@ -320,7 +321,7 @@ void FlushFailureBroadcasts();
 void AppendConfigString(WorldPacket& data, std::string const& key);
 std::string HexDump(WorldPacket const& packet);
 void EnsureTables();
-void SendConfigBatch(Player* player);
+void AppendConfigBools(CoAConfigBools& bools);
 GameModeDef const* FindGameMode(std::string const& name);
 char const* GameModeNameForBit(uint32 bit);
 bool GameModesEnabled();
