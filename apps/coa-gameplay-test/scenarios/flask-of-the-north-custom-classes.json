@@ -1,0 +1,70 @@
+{
+  "schema": 1,
+  "name": "Flask of the North: custom classes keep the server alive and receive a flask",
+  "contract": [
+    "Flask of the North (item 47499) casts 67019, whose DBC tooltip grants spell power 67016 (47),",
+    "attack power 67017 (80) or Strength 67018 (40) for one hour. Item 47499 requires Alchemy 400,",
+    "so the fixture learns and casts 67019 directly; the item only supplies that spell.",
+    "Stock selection by class: Mage receives only spell power, Warrior only Strength.",
+    "Custom classes 12-32 previously built an empty choice list and irand(0, -1) aborted the worldserver.",
+    "Pyromancer is a spell-power caster and must receive only the spell power flask.",
+    "Barbarian is a physical class: never spell power. Documented decision without live evidence:",
+    "custom classes choose through their existing legacy class, so Barbarian (Rogue) receives attack power.",
+    "A clean run end with every actor alive proves the server survived; flask amounts are not measured."
+  ],
+  "timeout_ms": 90000,
+  "players": [
+    { "id": "barbarian", "race": 1, "class": 12, "level": 80 },
+    { "id": "pyromancer", "race": 1, "class": 24, "level": 80 },
+    { "id": "mage", "race": 1, "class": 8, "level": 80 },
+    { "id": "warrior", "race": 1, "class": 1, "level": 80 }
+  ],
+  "steps": [
+    { "action": "learn", "actor": "barbarian", "spell": 67019 },
+    { "action": "cast", "label": "Barbarian drinks Flask of the North", "actor": "barbarian", "spell": 67019 },
+    {
+      "action": "assert", "label": "Barbarian receives the attack power flask", "actor": "barbarian",
+      "metric": "aura", "spell": 67017, "equals": 1, "within_ms": 3000
+    },
+    { "action": "assert", "actor": "barbarian", "metric": "aura", "spell": 67016, "equals": 0 },
+    { "action": "assert", "actor": "barbarian", "metric": "aura", "spell": 67018, "equals": 0 },
+    { "action": "assert", "actor": "barbarian", "metric": "alive", "equals": 1 },
+
+    { "action": "learn", "actor": "pyromancer", "spell": 67019 },
+    { "action": "cast", "label": "Pyromancer drinks Flask of the North", "actor": "pyromancer", "spell": 67019 },
+    {
+      "action": "assert", "label": "Pyromancer receives the spell power flask", "actor": "pyromancer",
+      "metric": "aura", "spell": 67016, "equals": 1, "within_ms": 3000
+    },
+    { "action": "assert", "actor": "pyromancer", "metric": "aura", "spell": 67017, "equals": 0 },
+    { "action": "assert", "actor": "pyromancer", "metric": "aura", "spell": 67018, "equals": 0 },
+    { "action": "assert", "actor": "pyromancer", "metric": "alive", "equals": 1 },
+
+    { "action": "learn", "actor": "mage", "spell": 67019 },
+    { "action": "cast", "label": "Stock control: Mage drinks Flask of the North", "actor": "mage", "spell": 67019 },
+    {
+      "action": "assert", "label": "Mage receives only the spell power flask", "actor": "mage",
+      "metric": "aura", "spell": 67016, "equals": 1, "within_ms": 3000
+    },
+    { "action": "assert", "actor": "mage", "metric": "aura", "spell": 67017, "equals": 0 },
+    { "action": "assert", "actor": "mage", "metric": "aura", "spell": 67018, "equals": 0 },
+
+    { "action": "learn", "actor": "warrior", "spell": 67019 },
+    {
+      "action": "cast", "label": "Stock control: Warrior drinks Flask of the North", "actor": "warrior",
+      "spell": 67019
+    },
+    {
+      "action": "assert", "label": "Warrior receives only the Strength flask", "actor": "warrior",
+      "metric": "aura", "spell": 67018, "equals": 1, "within_ms": 3000
+    },
+    { "action": "assert", "actor": "warrior", "metric": "aura", "spell": 67016, "equals": 0 },
+    { "action": "assert", "actor": "warrior", "metric": "aura", "spell": 67017, "equals": 0 },
+
+    { "action": "wait", "label": "Keep the world updating after every flask", "ms": 1000 },
+    { "action": "assert", "actor": "barbarian", "metric": "alive", "equals": 1 },
+    { "action": "assert", "actor": "pyromancer", "metric": "alive", "equals": 1 },
+    { "action": "assert", "actor": "mage", "metric": "alive", "equals": 1 },
+    { "action": "assert", "actor": "warrior", "metric": "alive", "equals": 1 }
+  ]
+}
