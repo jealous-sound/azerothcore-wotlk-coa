@@ -486,6 +486,10 @@ Boolean metrics use 0/1. Spell/aura metrics require `spell`; `item_count` requir
 `carried_item_count` sums the stack counts of equipped items (bags included), the backpack and the bags' contents.
 `aura_positive` reads the applied aura's beneficial flag; check `aura` separately to distinguish absence from a debuff.
 `gossip_options` counts the player's current server-side gossip options; it does not verify client rendering.
+`gossip_option_text` needs `index` (zero-based) and `text` and returns whether that option carries exactly that
+text, which is how a scenario holds the server to a client window that finds its buttons by their wording.
+`active_spell` requires `spell` and reads whether the spell is the usable rank in the spellbook: `knows_spell`
+also counts a lower rank a higher one has superseded, which the client cannot cast.
 `trainer_list_packets` counts the trainer windows the session has been sent, `trainer_window_rows` is the row
 count of the last one, and `trainer_window_state` requires `spell` and returns the state byte that window gave
 the spell's row (`0` available, `1` unavailable, `2` known), or `-1` when the window does not hold that row.

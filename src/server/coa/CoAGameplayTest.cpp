@@ -1629,14 +1629,16 @@ private:
         }
         Player* player = unit->ToPlayer();
         Require(player != nullptr, "Metric requires a player: " + metric);
-        if (metric == "knows_spell" || metric == "cooldown_ms" || metric == "spell_charges" ||
-            metric == "global_cooldown_ms" || metric == "has_talent" ||
+        if (metric == "knows_spell" || metric == "active_spell" || metric == "cooldown_ms" ||
+            metric == "spell_charges" || metric == "global_cooldown_ms" || metric == "has_talent" ||
             metric == "spellbook_offers_spell" || metric == "spellbook_covers_spell" ||
             metric == "trainer_window_state" || metric == "trainer_window_ability" ||
             metric == "temporary_spell_replacement")
             Require(sSpellMgr->GetSpellInfo(spell) != nullptr, "Unknown spell in metric");
         if (metric == "knows_spell")
             return player->HasSpell(spell);
+        if (metric == "active_spell")
+            return player->HasActiveSpell(spell);
         if (metric == "action_button")
         {
             uint8 button = uint8(step.get<uint32>("button"));
@@ -1739,6 +1741,14 @@ private:
         }
         if (metric == "gossip_options")
             return player->PlayerTalkClass->GetGossipMenu().GetMenuItemCount();
+        if (metric == "gossip_option_text")
+        {
+            GossipMenuItemContainer const& options = player->PlayerTalkClass->GetGossipMenu().GetMenuItems();
+            uint32 const index = step.get<uint32>("index");
+            if (index >= options.size())
+                return 0;
+            return std::next(options.begin(), index)->second.Message == step.get<std::string>("text");
+        }
         if (metric == "loot_received")
             return _actors.at(step.get<std::string>("actor")).lootReceived;
         if (metric == "nearby_gameobject_count")
