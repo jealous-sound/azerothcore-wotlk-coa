@@ -1,0 +1,145 @@
+--- a/src/server/game/Entities/Unit/Unit.cpp
++++ b/src/server/game/Entities/Unit/Unit.cpp
+@@ -2725,6 +2725,8 @@
+ 
+ void Unit::CalcHealAbsorb(HealInfo& healInfo)
+ {
++    sScriptMgr->OnBeforeHealAbsorb(healInfo);
++
+     if (!healInfo.GetHeal())
+         return;
+ 
+--- a/src/server/game/Spells/Auras/SpellAuraEffects.cpp
++++ b/src/server/game/Spells/Auras/SpellAuraEffects.cpp
+@@ -627,6 +627,8 @@
+ 
+     GetBase()->CallScriptEffectCalcAmountHandlers(this, amount, m_canBeRecalculated);
+ 
++    sScriptMgr->OnAfterAuraEffectCalculateAmount(this, caster, amount);
++
+     // Aura 317's healing clauses use independent healing-taken auras in the
+     // copied data. This channel modifies only the completed absorb capacity.
+     if (amount > 0 && GetBase()->GetType() == UNIT_AURA_TYPE &&
+--- a/src/server/game/Scripting/ScriptMgr.h
++++ b/src/server/game/Scripting/ScriptMgr.h
+@@ -582,6 +582,8 @@
+     void ModifySpellEffectBaseValue(Unit const* caster, SpellInfo const* spellInfo,
+         uint8 effectIndex, float& value);
+     void ModifyHealReceived(Unit* target, Unit* healer, uint32& addHealth, SpellInfo const* spellInfo);
++    void OnBeforeHealAbsorb(HealInfo& healInfo);
++    void OnAfterAuraEffectCalculateAmount(AuraEffect const* effect, Unit* caster, int32& amount);
+     uint32 DealDamage(Unit* AttackerUnit, Unit* pVictim, uint32 damage, DamageEffectType damagetype);
+     void OnBeforeRollMeleeOutcomeAgainst(Unit const* attacker, Unit const* victim, WeaponAttackType attType, int32& attackerMaxSkillValueForLevel, int32& victimMaxSkillValueForLevel, int32& attackerWeaponSkill, int32& victimDefenseSkill, int32& crit_chance, int32& miss_chance, int32& dodge_chance, int32& parry_chance, int32& block_chance);
+     void OnAuraApply(Unit* /*unit*/, Aura* /*aura*/);
+--- a/src/server/game/Scripting/ScriptDefines/UnitScript.h
++++ b/src/server/game/Scripting/ScriptDefines/UnitScript.h
+@@ -46,6 +46,8 @@
+     UNITHOOK_ON_UNIT_EXIT_COMBAT,
+     UNITHOOK_ON_UNIT_DEATH,
+     UNITHOOK_ON_UNIT_SET_SHAPESHIFT_FORM,
++    UNITHOOK_ON_BEFORE_HEAL_ABSORB,
++    UNITHOOK_ON_AFTER_AURA_EFFECT_CALCULATE_AMOUNT,
+     UNITHOOK_ON_SEND_AURA_UPDATE,
+     UNITHOOK_MODIFY_SPELL_EFFECT_BASE_VALUE,
+     UNITHOOK_CAN_UNIT_ATTACK,
+@@ -55,6 +57,7 @@
+ 
+ enum ReputationRank : uint8;
+ class ByteBuffer;
++class HealInfo;
+ struct BuildValuesCachePosPointers;
+ 
+ class UnitScript : public ScriptObject
+@@ -65,6 +68,13 @@
+ public:
+     // Called when a unit deals healing to another unit
+     virtual void OnHeal(Unit* /*healer*/, Unit* /*reciever*/, uint32& /*gain*/) { }
++
++    // Runs once for direct and periodic healing, before absorbs and overhealing.
++    virtual void OnBeforeHealAbsorb(HealInfo& /*healInfo*/) { }
++
++    // Runs after spell-specific calculations and before applying aura stacks.
++    virtual void OnAfterAuraEffectCalculateAmount(AuraEffect const* /*effect*/, Unit* /*caster*/,
++        int32& /*amount*/) { }
+ 
+     // Called when a unit deals damage to another unit
+     virtual void OnDamage(Unit* /*attacker*/, Unit* /*victim*/, uint32& /*damage*/) { }
+--- a/src/server/game/Scripting/ScriptDefines/UnitScript.cpp
++++ b/src/server/game/Scripting/ScriptDefines/UnitScript.cpp
+@@ -19,6 +19,17 @@
+ #include "ScriptMgr.h"
+ #include "ScriptMgrMacros.h"
+ 
++void ScriptMgr::OnBeforeHealAbsorb(HealInfo& healInfo)
++{
++    CALL_ENABLED_HOOKS(UnitScript, UNITHOOK_ON_BEFORE_HEAL_ABSORB, script->OnBeforeHealAbsorb(healInfo));
++}
++
++void ScriptMgr::OnAfterAuraEffectCalculateAmount(AuraEffect const* effect, Unit* caster, int32& amount)
++{
++    CALL_ENABLED_HOOKS(UnitScript, UNITHOOK_ON_AFTER_AURA_EFFECT_CALCULATE_AMOUNT,
++        script->OnAfterAuraEffectCalculateAmount(effect, caster, amount));
++}
++
+ void ScriptMgr::OnHeal(Unit* healer, Unit* reciever, uint32& gain)
+ {
+     CALL_ENABLED_HOOKS(UnitScript, UNITHOOK_ON_HEAL, script->OnHeal(healer, reciever, gain));
+--- a/src/server/database/Database/Implementation/CharacterDatabase.cpp
++++ b/src/server/database/Database/Implementation/CharacterDatabase.cpp
+@@ -22,6 +22,36 @@
+ {
+     if (!m_reconnecting)
+         m_stmts.resize(MAX_CHARACTERDATABASE_STATEMENTS);
++
++    PrepareStatement(CHAR_SEL_HIGHRISK_MODE,
++        "SELECT mode FROM highrisk_ruleset WHERE guid=?", CONNECTION_SYNCH);
++    PrepareStatement(CHAR_SEL_HIGHRISK_MAX_CHEST,
++        "SELECT COALESCE(MAX(id),0) FROM highrisk_chest", CONNECTION_SYNCH);
++    PrepareStatement(CHAR_SEL_HIGHRISK_CHESTS,
++        "SELECT id,owner,map,phase,x,y,z,o,gold FROM highrisk_chest c WHERE gold>0 OR EXISTS "
++        "(SELECT 1 FROM highrisk_chest_item i WHERE i.chest_id=c.id AND i.claimant=0)", CONNECTION_SYNCH);
++    PrepareStatement(CHAR_SEL_HIGHRISK_ITEMS,
++        "SELECT ci.slot,ci.item_guid,ci.entry,ci.count,ii.randomPropertyId FROM highrisk_chest_item ci "
++        "LEFT JOIN item_instance ii ON ii.guid=ci.item_guid WHERE ci.chest_id=? AND ci.claimant=0", CONNECTION_SYNCH);
++    PrepareStatement(CHAR_SEL_HIGHRISK_ITEM,
++        "SELECT ii.creatorGuid,ii.giftCreatorGuid,ii.count,ii.duration,ii.charges,ii.flags,ii.enchantments,"
++        "ii.randomPropertyId,ii.durability,ii.playedTime,ii.text,ii.guid,ii.itemEntry "
++        "FROM highrisk_chest_item ci JOIN item_instance ii ON ii.guid=ci.item_guid "
++        "WHERE ci.chest_id=? AND ci.slot=? AND ci.claimant=0 AND ii.owner_guid=0 "
++        "AND NOT EXISTS (SELECT 1 FROM character_inventory inv WHERE inv.item=ii.guid)", CONNECTION_SYNCH);
++    PrepareStatement(CHAR_INS_HIGHRISK_CHEST,
++        "INSERT INTO highrisk_chest (id,owner,map,phase,x,y,z,o,gold,original_gold) "
++        "VALUES (?,?,?,?,?,?,?,?,?,?)", CONNECTION_ASYNC);
++    PrepareStatement(CHAR_INS_HIGHRISK_ITEM,
++        "INSERT INTO highrisk_chest_item (chest_id,slot,item_guid,entry,count) VALUES (?,?,?,?,?)",
++        CONNECTION_ASYNC);
++    PrepareStatement(CHAR_UPD_HIGHRISK_ITEM_CLAIM,
++        "UPDATE highrisk_chest_item SET claimant=?,claimed_at=CURRENT_TIMESTAMP "
++        "WHERE chest_id=? AND slot=? AND claimant=0", CONNECTION_ASYNC);
++    PrepareStatement(CHAR_UPD_HIGHRISK_GOLD_CLAIM,
++        "UPDATE highrisk_chest SET gold=0,gold_claimant=?,gold_claimed_at=CURRENT_TIMESTAMP "
++        "WHERE id=? AND gold>0", CONNECTION_ASYNC);
++
+ 
+     // Read-only safety gate for the unregistered, never-saved Create probe.
+     PrepareStatement(CHAR_SEL_FRESH_CHECK_GUID_COUNT, "SELECT COUNT(*) FROM characters WHERE guid BETWEEN ? AND ?", CONNECTION_SYNCH);
+--- a/src/server/database/Database/Implementation/CharacterDatabase.h
++++ b/src/server/database/Database/Implementation/CharacterDatabase.h
+@@ -549,6 +549,17 @@
+ 
+     CHAR_NO_OP_PROVIDE_REALM_CONTEXT,
+ 
++    CHAR_SEL_HIGHRISK_MODE,
++    CHAR_SEL_HIGHRISK_CHESTS,
++    CHAR_SEL_HIGHRISK_MAX_CHEST,
++    CHAR_SEL_HIGHRISK_ITEMS,
++    CHAR_SEL_HIGHRISK_ITEM,
++    CHAR_INS_HIGHRISK_CHEST,
++    CHAR_INS_HIGHRISK_ITEM,
++    CHAR_UPD_HIGHRISK_ITEM_CLAIM,
++    CHAR_UPD_HIGHRISK_GOLD_CLAIM,
++
++
+     CHAR_SEL_FRESH_CHECK_GUID_COUNT,
+ 
+     CHAR_SEL_MANASTORM_CLEARS,

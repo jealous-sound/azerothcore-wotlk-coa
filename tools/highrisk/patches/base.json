@@ -1,0 +1,12 @@
+{
+  "commit": "77e98c4f853a1b24b0b6b313afa312344f09591d",
+  "files": {
+    "src/server/game/Entities/Unit/Unit.cpp": "c49e5d39bd1e1844ca622e441170c803759f2c251ad3553ed44546ac898cbb6c",
+    "src/server/game/Spells/Auras/SpellAuraEffects.cpp": "94124b9fb945986e9f34827e0bf1be122b9948bbc3a3c405658e46386953afe1",
+    "src/server/game/Scripting/ScriptMgr.h": "a6bf7d17d54d952f2e445d5d29f1f41016392486e8dbc761caf34b2134ef272d",
+    "src/server/game/Scripting/ScriptDefines/UnitScript.h": "8dac99ac53cdd8db4a1e0a91c2fcadb46d74938faee457d2f0361e6eb30afa22",
+    "src/server/game/Scripting/ScriptDefines/UnitScript.cpp": "901009935ecdfc4c1d7cffafef1e9fc177f2f51a93e776019f65973f34f3d141",
+    "src/server/database/Database/Implementation/CharacterDatabase.cpp": "71f40d98f5182b68e10f5891e68906bb6b5206eaf0d647c773eab736dff1e01b",
+    "src/server/database/Database/Implementation/CharacterDatabase.h": "bbaec003848b2416391e72c3053a3c88d93e9da73d1d87bda768b1a5fc4525df"
+  }
+}
