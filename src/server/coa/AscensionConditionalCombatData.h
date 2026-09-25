@@ -71,6 +71,8 @@ constexpr AscensionConditionalCombatRule AscensionConditionalCombatRules[] =
         { 0u, 2097152u, 0u } },
     { 653232, 34, 0, 112, 20008, 256, 24, 1, 21003, 256, 1, 1,
         { 0u, 0u, 0u } },
+    { 500542, 36, 0, 112, 20002, 13, 29, 1, 21008, 13, 1, 1,
+        { 4294967295u, 4294967295u, 4294967295u } },
 };
 
 #endif
