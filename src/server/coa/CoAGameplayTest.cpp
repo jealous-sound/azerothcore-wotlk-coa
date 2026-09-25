@@ -1547,7 +1547,8 @@ private:
             sScriptMgr->ModifyPeriodicDamageAurasTick(player, attacker, damage, info);
             return damage;
         }
-        if (metric == "spell_done_crit_chance" || metric == "spell_done_crit_chance_scripted" ||
+        if (metric == "spell_done_crit_chance" || metric == "spell_taken_crit_chance" ||
+            metric == "spell_done_crit_chance_scripted" ||
             metric == "melee_spell_damage_done" || metric == "spell_critical_damage" ||
             metric == "armor_reduced_damage")
         {
@@ -1556,6 +1557,11 @@ private:
             Require(info != nullptr, "Unknown spell in metric");
             if (metric == "spell_done_crit_chance")
                 return player->SpellDoneCritChance(target, info, info->GetSchoolMask(), BASE_ATTACK, false);
+            if (metric == "spell_taken_crit_chance")
+            {
+                float chance = player->SpellDoneCritChance(target, info, info->GetSchoolMask(), BASE_ATTACK, false);
+                return target->SpellTakenCritChance(player, info, info->GetSchoolMask(), chance, BASE_ATTACK, false);
+            }
             if (metric == "spell_done_crit_chance_scripted")
             {
                 float chance = player->SpellDoneCritChance(target, info, info->GetSchoolMask(), BASE_ATTACK, false);

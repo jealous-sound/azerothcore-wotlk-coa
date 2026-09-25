@@ -509,6 +509,8 @@ only reflects native `ApplySpellMod(SPELLMOD_CRITICAL_CHANCE)` modifiers (a bare
 it does not invoke `AllSpellScript::OnSpellCritChance`, which only runs mid-cast (`Spell::DoAllEffectOnTarget`).
 `spell_done_crit_chance_scripted` requires the same `spell`/`target` and additionally runs that hook via a
 throwaway, never-cast `Spell` instance, so a script-hook-only crit bonus is observable without a real cast.
+`spell_taken_crit_chance` applies the target's native `SpellTakenCritChance` to the caster's done chance,
+including target health and school conditions. It requires the same `spell` and `target`.
 `aura_crit_chance` reads a
 periodic aura effect's snapshotted crit chance; `aura_script_value` requires `key`. `script_melee_damage_taken`,
 `script_spell_damage_taken` and `script_periodic_damage_taken` require `target` as the attacker (and `spell` for

@@ -37,7 +37,7 @@
     {
       "action": "snapshot",
       "actor": "reaper",
-      "metric": "spell_done_crit_chance",
+      "metric": "spell_taken_crit_chance",
       "spell": 500517,
       "target": "target",
       "save_as": "crit_base"
@@ -66,7 +66,7 @@
     {
       "action": "assert",
       "actor": "reaper",
-      "metric": "spell_done_crit_chance",
+      "metric": "spell_taken_crit_chance",
       "spell": 500517,
       "target": "target",
       "relative_to": "crit_base",
@@ -98,7 +98,7 @@
     {
       "action": "assert",
       "actor": "reaper",
-      "metric": "spell_done_crit_chance",
+      "metric": "spell_taken_crit_chance",
       "spell": 500517,
       "target": "target",
       "relative_to": "crit_base",
@@ -124,7 +124,7 @@
     {
       "action": "assert",
       "actor": "reaper",
-      "metric": "spell_done_crit_chance",
+      "metric": "spell_taken_crit_chance",
       "spell": 500517,
       "target": "target",
       "relative_to": "crit_base",
