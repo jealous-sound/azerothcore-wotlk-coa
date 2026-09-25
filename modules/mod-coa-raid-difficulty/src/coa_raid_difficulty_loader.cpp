@@ -4,7 +4,7 @@
  * The difficulty templates, the links between them and the spawn masks are
  * data and live in data/sql. The code is the boss AI that reads its fight out
  * of coa_boss_schedule, the bosses that keep their choreography with Ascension's
- * spells (Onyxia, the Blackwing Lair and the Zul'Gurub bosses), the flex health that sizes a boss to the raid, and
+ * spells (Onyxia and the Blackwing Lair, Zul'Gurub and Ahn'Qiraj bosses), the flex health that sizes a boss to the raid, and
  * the corrections to broken spell values.
  *
  * modules/mod-coa-raid-difficulty -> Addmod_coa_raid_difficultyScripts.
@@ -28,6 +28,17 @@ void AddCoaMandokirScripts();
 void AddCoaJindoScripts();
 void AddCoaHakkarScripts();
 void AddCoaGrilekScripts();
+void AddCoaKurinnaxxScripts();
+void AddCoaRajaxxScripts();
+void AddCoaBuruScripts();
+void AddCoaMoamScripts();
+void AddCoaOssirianScripts();
+void AddCoaSkeramScripts();
+void AddCoaSarturaScripts();
+void AddCoaHuhuranScripts();
+void AddCoaTwinEmperorsScripts();
+void AddCoaOuroScripts();
+void AddCoaCThunScripts();
 
 void Addmod_coa_raid_difficultyScripts()
 {
@@ -50,4 +61,15 @@ void Addmod_coa_raid_difficultyScripts()
     AddCoaJindoScripts();
     AddCoaHakkarScripts();
     AddCoaGrilekScripts();
+    AddCoaKurinnaxxScripts();
+    AddCoaRajaxxScripts();
+    AddCoaBuruScripts();
+    AddCoaMoamScripts();
+    AddCoaOssirianScripts();
+    AddCoaSkeramScripts();
+    AddCoaSarturaScripts();
+    AddCoaHuhuranScripts();
+    AddCoaTwinEmperorsScripts();
+    AddCoaOuroScripts();
+    AddCoaCThunScripts();
 }

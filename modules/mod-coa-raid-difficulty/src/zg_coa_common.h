@@ -71,6 +71,19 @@ namespace coa_zg
             eff == 2 ? &bp[2] : nullptr, true);
     }
 
+    // Damage in the name of `spellId` for spells whose own effect cannot carry
+    // it (a dummy or a periodic dummy): logged as that spell, dealt directly.
+    inline void SpellDamage(Unit* caster, Unit* target, uint32 spellId, uint32 amount, SpellSchoolMask school)
+    {
+        SpellInfo const* info = sSpellMgr->GetSpellInfo(spellId);
+        if (!info || !target || !amount || !target->IsAlive())
+            return;
+        SpellNonMeleeDamage log(caster, target, info, school);
+        log.damage = std::min<uint32>(amount, target->GetHealth());
+        caster->SendSpellNonMeleeDamageLog(&log);
+        Unit::DealDamage(caster, target, log.damage, nullptr, SPELL_DIRECT_DAMAGE, school, info, false);
+    }
+
     // Adds one stack of `spell` from `caster`, up to `max`.
     inline void AddStack(Unit* caster, Unit* target, uint32 spell, uint8 max = 100)
     {
