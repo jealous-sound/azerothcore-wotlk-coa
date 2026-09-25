@@ -419,6 +419,10 @@ damage coefficients.
 | `pvp` | Player `actor`, boolean `enabled`: native PvP toggle request. Disabling retains the ordinary flag-removal timer. |
 | `set_moving` | Player `actor`, boolean `enabled`: fixture the native forward movement flag for cast restriction tests. |
 | `group` | `actor`, `target`, optional `loot_method` (0-4): fixture party; creates the actor's group if needed, adds an ungrouped player and sets the loot method. |
+| `lfg_dungeon` | `actor`, LFGDungeons.dbc `dungeon`: fixture Dungeon Finder group; converts the actor's ordinary group to an LFG group assigned to that dungeon, as a completed proposal does. |
+| `lfg_teleport` | Player `actor`, optional boolean `out` (default false): native `CMSG_LFG_TELEPORT` request into or out of the group's dungeon. |
+| `leave_group` | Player `actor`: native `CMSG_GROUP_DISBAND` leave request; fails if the player stays grouped. |
+| `die` | Player `actor`: fixture death through self damage equal to current health; the body stays unreleased. |
 | `cast_charm` | Same fields: native pet-cast handler, with the charmed unit as the default target. |
 | `gossip_hello` | `actor`, optional `target`: native gossip handler; defaults to the actor's summoned companion. |
 | `banker_activate` | `actor`, optional `target`, or optional `owner` + `entry`: native banker click (`CMSG_BANKER_ACTIVATE`); defaults to the actor's summoned companion, and `owner` aims it at a companion another actor summoned, walking up to it first. |
@@ -461,8 +465,8 @@ a previously named snapshot of the same metric; it is available on snapshots and
 `ratio_to` then divides by a nonzero snapshot, including a different numeric metric such as healing/damage.
 `cast` accepts an optional `destination` with `x`, `y`, `z` to send an explicit ground target.
 
-Metrics: `health`, `max_health`, `creature_type`, `power`, `max_power`, `alive`, `combat`, `casting`, `level`,
-`quest_objective_count` (needs `quest`, optional `index`), `knows_spell`, `has_talent`, `talent_points`,
+Metrics: `health`, `max_health`, `creature_type`, `power`, `max_power`, `alive`, `map_id`, `combat`, `casting`,
+`level`, `quest_objective_count` (needs `quest`, optional `index`), `knows_spell`, `has_talent`, `talent_points`,
 `cooldown_ms`, `item_count`, `carried_item_count`, `bank_bag_slots`, `aura`, `aura_stacks`, `aura_charges`,
 `aura_duration_ms`, `aura_amount`, `pet_entry`, `pet_aura_stacks`, `owned_creature_count`,
 `charm_entry`, `charm_aura_stacks`, `controls_self`, `private_instance`, `dynamic_object`,

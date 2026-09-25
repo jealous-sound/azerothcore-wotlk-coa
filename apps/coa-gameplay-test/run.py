@@ -34,7 +34,7 @@ METRICS = {
     'moving', 'water_walk', 'forced_forward', 'distance_2d', 'cast_remaining_ms', 'cast_pushback_ms',
     'melee_damage_count', 'melee_damage_total',
     'pet_power', 'pet_max_power', 'spell_energize_count', 'spell_energize_total',
-    'xp', 'next_level_xp', 'skill_value', 'lfg_dungeon_disabled',
+    'xp', 'next_level_xp', 'skill_value', 'lfg_dungeon_disabled', 'map_id',
     'view_level', 'sent_level', 'sent_max_health', 'creature_query_rank', 'quest_level', 'quest_xp',
     'health', 'health_pct', 'max_health', 'creature_type', 'power', 'max_power', 'alive', 'combat', 'casting', 'level',
     'aura', 'aura_stacks', 'aura_charges', 'aura_duration_ms', 'aura_amount', 'aura_positive',
@@ -130,6 +130,10 @@ ACTIONS = {
     'attack': ({'actor', 'target'}, {'actor', 'target', 'pet'}),
     'pvp': ({'actor', 'enabled'}, {'actor', 'enabled'}),
     'group': ({'actor', 'target'}, {'actor', 'target', 'loot_method'}),
+    'lfg_dungeon': ({'actor', 'dungeon'}, {'actor', 'dungeon'}),
+    'lfg_teleport': ({'actor'}, {'actor', 'out'}),
+    'leave_group': ({'actor'}, {'actor'}),
+    'die': ({'actor'}, {'actor'}),
     'cast_charm': ({'actor', 'spell'}, {'actor', 'spell', 'target'}),
     'gossip_hello': ({'actor'}, {'actor', 'target'}),
     'banker_activate': ({'actor'}, {'actor', 'target', 'owner', 'entry'}),
@@ -327,6 +331,10 @@ def validate(scenario):
                     f'{where}: group needs another player')
             if 'loot_method' in step:
                 number(step['loot_method'], f'{where}.loot_method', 0, 4, True)
+        if action == 'lfg_dungeon':
+            number(step['dungeon'], f'{where}.dungeon', 1, 2**24 - 1, True)
+        if action == 'lfg_teleport' and 'out' in step:
+            require(type(step['out']) is bool, f'{where}: out must be boolean')
         for key in ('ms', 'within_ms'):
             if key in step:
                 number(step[key], f'{where}.{key}', 0, scenario.get('timeout_ms', 90000), True)

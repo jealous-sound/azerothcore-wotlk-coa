@@ -1429,6 +1429,8 @@ private:
         }
         if (metric == "alive")
             return unit->IsAlive();
+        if (metric == "map_id")
+            return unit->GetMapId();
         if (metric == "combat")
             return unit->IsInCombat();
         if (metric == "casting")
@@ -2739,6 +2741,38 @@ private:
                 group->SetLootMethod(LootMethod(*method));
                 group->SendUpdate();
             }
+        }
+        else if (action == "lfg_dungeon")
+        {
+            Group* group = player->GetGroup();
+            Require(group != nullptr && !group->isLFGGroup(), "LFG dungeon fixture needs an ordinary group");
+            lfg::LFGDungeonData const* dungeon = sLFGMgr->GetLFGDungeon(step.get<uint32>("dungeon"));
+            Require(dungeon != nullptr, "Unknown LFG dungeon");
+            group->ConvertToLFG();
+            group->SetDungeonDifficulty(Difficulty(dungeon->difficulty));
+            sLFGMgr->SetDungeon(group->GetGUID(), dungeon->Entry());
+        }
+        else if (action == "lfg_teleport")
+        {
+            bool out = step.get<bool>("out", false);
+            WorldPacket packet(CMSG_LFG_TELEPORT, 1);
+            packet << out;
+            player->GetSession()->HandleLfgTeleportOpcode(packet);
+            record.put("result", "teleport requested");
+        }
+        else if (action == "leave_group")
+        {
+            Require(player->GetGroup() != nullptr, "Leave request needs a group");
+            WorldPacket packet(CMSG_GROUP_DISBAND, 0);
+            player->GetSession()->HandleGroupDisbandOpcode(packet);
+            Require(!player->GetGroup(), "Native leave request kept the player grouped");
+        }
+        else if (action == "die")
+        {
+            Require(player->IsAlive(), "Death fixture needs a living player");
+            Unit::DealDamage(player, player, player->GetHealth(), nullptr, SELF_DAMAGE, SPELL_SCHOOL_MASK_NORMAL,
+                nullptr, false);
+            Require(!player->IsAlive(), "Self damage did not kill the player");
         }
         else if (action == "command")
         {
