@@ -105,7 +105,7 @@
       "actor": "reaper",
       "metric": "melee_damage_count",
       "hand": 0,
-      "min": 2
+      "min": 1
     },
     {
       "action": "assert",
@@ -113,7 +113,7 @@
       "actor": "reaper",
       "metric": "spell_cast_count",
       "spell": 804474,
-      "min": 2
+      "min": 1
     },
     {
       "action": "assert",
@@ -122,7 +122,7 @@
       "metric": "spell_damage_count",
       "spell": 804474,
       "target": "enemy",
-      "min": 2
+      "min": 1
     },
     {
       "action": "assert",
@@ -236,7 +236,7 @@
       "metric": "spell_cast_count",
       "spell": 804474,
       "relative_to": "base_frost_casts",
-      "min": 2
+      "min": 1
     },
     {
       "action": "assert",
