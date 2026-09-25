@@ -12731,6 +12731,8 @@ uint32 Unit::GetCreatureType() const
             return CREATURE_TYPE_DEMON;
         if (getClass() == CLASS_NECROMANCER && HasAura(500981))
             return CREATURE_TYPE_UNDEAD;
+        if (getClass() == CLASS_REAPER && HasAura(805718))
+            return CREATURE_TYPE_UNDEAD;
         ShapeshiftForm form = GetShapeshiftForm();
         SpellShapeshiftFormEntry const* ssEntry = sSpellShapeshiftFormStore.LookupEntry(form);
         if (ssEntry && ssEntry->creatureType > 0)
