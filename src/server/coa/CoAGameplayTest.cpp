@@ -1678,7 +1678,6 @@ private:
         if (metric == "owned_creature_count")
         {
             uint32 entry = step.get<uint32>("entry");
-            Require(sObjectMgr->GetCreatureTemplate(entry) != nullptr, "Unknown creature entry in metric");
             Require(!spell || sSpellMgr->GetSpellInfo(spell) != nullptr, "Unknown owned creature aura spell");
             ObjectGuid caster;
             if (auto id = step.get_optional<std::string>("caster"))
