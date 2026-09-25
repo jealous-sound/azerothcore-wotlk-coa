@@ -138,6 +138,7 @@ constexpr uint16 CMSG_SET_CAN_SEE_APPEARANCES = 0x06A3;
 constexpr uint16 SMSG_VANITY_COLLECTION_INFO = 0x06F7;
 constexpr uint16 SMSG_VANITY_COLLECTION_ADDED = 0x06F8;
 
+constexpr uint16 CMSG_QUERY_CUSTOM_STORE = 0x06B9;
 constexpr uint16 SMSG_QUERY_CUSTOM_STORE_RESULT = 0x06BA;
 constexpr std::size_t VANITY_STORE_RECORD_DWORDS = 16;
 constexpr uint16 SMSG_CHARACTER_ADVANCEMENT_ACTIVE_SPEC = 0x0725;
@@ -2228,6 +2229,7 @@ public:
         {
             validateResourceSpell(rule.RequiredAuraSpellId);
             validateResourceSpell(rule.ForbiddenAuraSpellId);
+            validateResourceSpell(rule.AmountSpellId);
             if (rule.PowerType >= MAX_POWERS)
             {
                 LOG_ERROR("coa",
@@ -2630,8 +2632,14 @@ public:
                     continue;
             }
 
-            player->ModifyPower(static_cast<Powers>(rule.PowerType),
-                rule.InternalAmount);
+            int32 amount = rule.InternalAmount;
+            if (rule.AmountSpellId)
+                if (SpellInfo const* amountSpell = sSpellMgr->GetSpellInfo(rule.AmountSpellId))
+                    if (amountSpell->Effects[EFFECT_0].Effect == SPELL_EFFECT_ENERGIZE &&
+                        amountSpell->Effects[EFFECT_0].MiscValue == rule.PowerType)
+                        amount = amountSpell->Effects[EFFECT_0].CalcValue(player);
+
+            player->ModifyPower(static_cast<Powers>(rule.PowerType), amount);
             changed = true;
         }
 
@@ -2967,6 +2975,9 @@ private:
         if (HarvestTimePreserves(player, spellInfo))
             return;
 
+        bool const requiresSoulInfusion = spellInfo->CasterAuraSpell == SPELL_REAPER_SOUL_INFUSION &&
+            player->HasAura(SPELL_REAPER_SOUL_INFUSION);
+
         uint32 spellId = spellInfo->Id;
         if (std::find(REAPER_ALL_SOUL_CONSUMERS.begin(),
                 REAPER_ALL_SOUL_CONSUMERS.end(), spellId) !=
@@ -2974,12 +2985,12 @@ private:
         {
             player->RemoveAurasDueToSpell(SPELL_REAPER_REAPED_SOUL);
             player->RemoveAurasDueToSpell(SPELL_REAPER_SOUL_INFUSION);
+            if (requiresSoulInfusion)
+                ApplyAscensionReaperSoulInfusionSpent(player);
             return;
         }
 
-        if (spellInfo->CasterAuraSpell == SPELL_REAPER_SOUL_INFUSION &&
-            player->HasAura(SPELL_REAPER_SOUL_INFUSION) &&
-            !WasAvoidedByEveryTarget(player, spell))
+        if (requiresSoulInfusion && !WasAvoidedByEveryTarget(player, spell))
         {
             player->CastSpell(player, SPELL_REAPER_SOUL_INFUSION_REMOVER, true);
             ApplyAscensionReaperSoulInfusionSpent(player);
@@ -4927,6 +4938,15 @@ public:
     if (AscensionCompatOpcodes::Dispatch(session, packet))
       return false;
 
+    if (opcode == CMSG_QUERY_CUSTOM_STORE)
+    {
+      WorldPacket empty(SMSG_QUERY_CUSTOM_STORE_RESULT, 32);
+      empty << "QUERY_CUSTOM_STORE_OK";
+      empty << uint32(0);
+      session->SendPacket(&empty);
+      return false;
+    }
+
     if (ascensionCompatConfig.GetConfigValue<bool>(
             AscensionCompatConfig::LOG_CONSUMED_PACKETS)) {
       char const *name = ExtensionOpcodeName(uint16(opcode));
@@ -6421,10 +6441,24 @@ class spell_ascension_jailers_bargain : public AuraScript
         canBeRecalculated = false;
     }
 
+    void ApplySleepImmunity(AuraEffect const*, AuraEffectHandleModes)
+    {
+        GetTarget()->ApplySpellImmune(GetId(), IMMUNITY_MECHANIC, MECHANIC_SLEEP, true);
+    }
+
+    void RemoveSleepImmunity(AuraEffect const*, AuraEffectHandleModes)
+    {
+        GetTarget()->ApplySpellImmune(GetId(), IMMUNITY_MECHANIC, MECHANIC_SLEEP, false);
+    }
+
     void Register() override
     {
         DoEffectCalcAmount += AuraEffectCalcAmountFn(spell_ascension_jailers_bargain::CalculateAmount,
             EFFECT_0, SPELL_AURA_SCHOOL_ABSORB);
+        AfterEffectApply += AuraEffectApplyFn(spell_ascension_jailers_bargain::ApplySleepImmunity,
+            EFFECT_2, SPELL_AURA_MECHANIC_IMMUNITY, AURA_EFFECT_HANDLE_REAL);
+        AfterEffectRemove += AuraEffectRemoveFn(spell_ascension_jailers_bargain::RemoveSleepImmunity,
+            EFFECT_2, SPELL_AURA_MECHANIC_IMMUNITY, AURA_EFFECT_HANDLE_REAL);
     }
 };
 

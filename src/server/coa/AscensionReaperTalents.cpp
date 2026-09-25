@@ -8,6 +8,7 @@
 #include "ScriptMgr.h"
 #include "SpellAuraEffects.h"
 #include "SpellAuras.h"
+#include "SpellInfo.h"
 #include "SpellMgr.h"
 #include "SpellScript.h"
 #include <algorithm>
@@ -21,6 +22,8 @@ enum ReaperTalentSpells : uint32
     SPELL_HARVESTER_AMOUNT = 500283,
     SPELL_BLOOD_HARVEST = 504565,
     SPELL_UNDERWALK = 800797,
+    SPELL_BEYOND_THE_VEIL = 804053,
+    SPELL_BEYOND_THE_VEIL_BUFF = 560591,
     SPELL_FROM_THE_SHADOWS = 561099,
     SPELL_FROM_THE_SHADOWS_CRIT = 561128,
     SPELL_REAPED_SOUL = 500363,
@@ -39,12 +42,18 @@ enum ReaperTalentSpells : uint32
     SPELL_SOUL_HARVEST = 573050,
     SPELL_SPIRIT_CULLING = 301986,
     SPELL_SPECTRAL_SCYTHE = 500576,
+    SPELL_FATESEALER = 705442,
+    SPELL_FATESEALER_PROTECTION = 705443,
+    SPELL_EATER_OF_SOULS = 805181,
+    SPELL_EATER_OF_SOULS_PROTECTION = 805182,
     SPELL_DAMNED = 706786,
     SPELL_DAMNED_HASTE = 560420,
     SPELL_PURGATORY = 504046,
     SPELL_PURGATORY_DAMAGE = 504047,
     SPELL_ESSENCE_INVIGORATION = 805186,
-    SPELL_ESSENCE_INVIGORATION_HEAL = 805187
+    SPELL_ESSENCE_INVIGORATION_HEAL = 805187,
+    SPELL_WEAKENED_SOULS = 92146,
+    SPELL_WEAKENED_SOUL = 803433
 };
 
 Unit* HostileTargetInRange(Player* player, uint32 spellId)
@@ -117,11 +126,29 @@ void ApplySpiritCulling(Player* player)
     player->CastSpell(player, SPELL_SPECTRAL_SCYTHE, true);
 }
 
-void ApplyHarvestedSoulTalents(Player* player)
+void ApplyFatesealer(Player* player, uint8 gainedSouls)
+{
+    if (!player->HasAura(SPELL_FATESEALER))
+        return;
+
+    for (uint8 soul = 0; soul < gainedSouls; ++soul)
+        player->CastSpell(player, SPELL_FATESEALER_PROTECTION, true);
+}
+
+void ApplyEaterOfSouls(Player* player, uint8 soulStacks)
+{
+    if (soulStacks == 3 && player->HasAura(SPELL_EATER_OF_SOULS) &&
+        !player->HasAura(SPELL_EATER_OF_SOULS_PROTECTION))
+        player->CastSpell(player, SPELL_EATER_OF_SOULS_PROTECTION, true);
+}
+
+void ApplyHarvestedSoulTalents(Player* player, uint8 soulStacks, uint8 gainedSouls)
 {
     ApplyPainbringer(player);
     ApplySoulHarvest(player);
     ApplySpiritCulling(player);
+    ApplyFatesealer(player, gainedSouls);
+    ApplyEaterOfSouls(player, soulStacks);
 }
 
 void CastTalentTrigger(Player* player, uint32 talentId, uint32 triggerId)
@@ -129,6 +156,42 @@ void CastTalentTrigger(Player* player, uint32 talentId, uint32 triggerId)
     if (RollTalent(player, talentId))
         player->CastSpell(player, triggerId, true);
 }
+
+class spell_ascension_reaper_essence_invigoration_heal : public SpellScript
+{
+    PrepareSpellScript(spell_ascension_reaper_essence_invigoration_heal);
+
+    void Heal(SpellEffIndex)
+    {
+        Unit* target = GetHitUnit();
+        if (!target)
+            return;
+
+        uint64 missing = target->GetMaxHealth() - std::min(target->GetHealth(), target->GetMaxHealth());
+        uint64 amount = missing * std::clamp(GetEffectValue(), 0, 100) / 100;
+        SetEffectValue(int32(std::min<uint64>(amount, std::numeric_limits<int32>::max())));
+    }
+
+    void Register() override
+    {
+        OnEffectLaunchTarget += SpellEffectFn(spell_ascension_reaper_essence_invigoration_heal::Heal,
+            EFFECT_0, SPELL_EFFECT_HEAL);
+    }
+};
+
+class reaper_essence_invigoration_metadata : public GlobalScript
+{
+public:
+    reaper_essence_invigoration_metadata() : GlobalScript("reaper_essence_invigoration_metadata",
+        {GLOBALHOOK_ON_LOAD_SPELL_CUSTOM_ATTR}) { }
+
+    void OnLoadSpellCustomAttr(SpellInfo* info) override
+    {
+        if (info->Id == SPELL_ESSENCE_INVIGORATION_HEAL && info->SpellFamilyName == 36 &&
+            info->Effects[EFFECT_0].Effect == SPELL_EFFECT_HEAL_PCT && info->Effects[EFFECT_0].MiscValueB == 1)
+            info->Effects[EFFECT_0].Effect = SPELL_EFFECT_HEAL;
+    }
+};
 
 class spell_ascension_soul_capture : public SpellScript
 {
@@ -304,20 +367,65 @@ class aura_ascension_reaper_blood_frenzy : public AuraScript
     }
 };
 
+class spell_ascension_reaper_weakened_souls : public SpellScript
+{
+    PrepareSpellScript(spell_ascension_reaper_weakened_souls);
+
+    bool Validate(SpellInfo const* info) override
+    {
+        return info && info->Effects[EFFECT_0].Effect == SPELL_EFFECT_SCHOOL_DAMAGE &&
+            ValidateSpellInfo({SPELL_WEAKENED_SOUL});
+    }
+
+    void ApplyWeakenedSoul(SpellEffIndex)
+    {
+        Unit* caster = GetCaster();
+        if (Unit* target = GetHitUnit(); target && caster->HasAura(SPELL_WEAKENED_SOULS))
+            caster->CastSpell(target, SPELL_WEAKENED_SOUL, true);
+    }
+
+    void Register() override
+    {
+        OnEffectHitTarget += SpellEffectFn(spell_ascension_reaper_weakened_souls::ApplyWeakenedSoul,
+            EFFECT_0, SPELL_EFFECT_SCHOOL_DAMAGE);
+    }
+};
+
 class reaper_talent_events : public UnitScript
 {
 public:
     reaper_talent_events() : UnitScript("reaper_talent_events", true,
-        {UNITHOOK_ON_AURA_REMOVE, UNITHOOK_MODIFY_SPELL_EFFECT_BASE_VALUE}) { }
+        {UNITHOOK_ON_AURA_APPLY, UNITHOOK_ON_AURA_REMOVE, UNITHOOK_MODIFY_SPELL_EFFECT_BASE_VALUE}) { }
+
+    void OnAuraApply(Unit* unit, Aura* aura) override
+    {
+        Player* player = unit ? unit->ToPlayer() : nullptr;
+        if (!player || player->getClass() != CLASS_REAPER || !aura ||
+            aura->GetCasterGUID() != player->GetGUID() ||
+            (aura->GetId() != SPELL_UNDERWALK && aura->GetId() != SPELL_BEYOND_THE_VEIL))
+            return;
+
+        if (player->HasAura(SPELL_UNDERWALK, player->GetGUID()) &&
+            player->HasAura(SPELL_BEYOND_THE_VEIL, player->GetGUID()) &&
+            !player->HasAura(SPELL_BEYOND_THE_VEIL_BUFF, player->GetGUID()))
+            player->CastSpell(player, SPELL_BEYOND_THE_VEIL_BUFF, true);
+    }
 
     void OnAuraRemove(Unit* unit, AuraApplication* application, AuraRemoveMode mode) override
     {
         Player* player = unit ? unit->ToPlayer() : nullptr;
-        if (!player || player->getClass() != CLASS_REAPER || !application || !player->IsAlive() ||
-            !player->IsInWorld() || mode == AURA_REMOVE_BY_DEATH)
+        if (!player || player->getClass() != CLASS_REAPER || !application)
             return;
         Aura* aura = application->GetBase();
-        if (aura->GetId() == SPELL_UNDERWALK && aura->GetCasterGUID() == player->GetGUID() &&
+        if (aura->GetCasterGUID() != player->GetGUID())
+            return;
+
+        if (aura->GetId() == SPELL_UNDERWALK || aura->GetId() == SPELL_BEYOND_THE_VEIL)
+            player->RemoveAurasDueToSpell(SPELL_BEYOND_THE_VEIL_BUFF, player->GetGUID());
+
+        if (!player->IsAlive() || !player->IsInWorld() || mode == AURA_REMOVE_BY_DEATH)
+            return;
+        if (aura->GetId() == SPELL_UNDERWALK &&
             player->HasAura(SPELL_FROM_THE_SHADOWS))
             player->CastSpell(player, SPELL_FROM_THE_SHADOWS_CRIT, true);
     }
@@ -345,9 +453,10 @@ bool HandleAscensionReaperResource(Player* player, uint32 spellId, int32 amount)
     aura = player->GetAura(spellId, player->GetGUID());
     if (aura && aura->GetStackAmount() > previous && player->IsAlive())
     {
+        uint8 const soulStacks = aura->GetStackAmount();
         if (player->HasAura(SPELL_SOUL_SPLINTERS))
             player->CastSpell(player, SPELL_SOUL_SPLINTER, true);
-        ApplyHarvestedSoulTalents(player);
+        ApplyHarvestedSoulTalents(player, soulStacks, soulStacks - previous);
     }
     return true;
 }
@@ -371,10 +480,13 @@ void ApplyAscensionReaperSoulInfusionSpent(Player* player)
 
 void AddSC_AscensionReaperTalents()
 {
+    new reaper_essence_invigoration_metadata();
+    RegisterSpellScript(spell_ascension_reaper_essence_invigoration_heal);
     RegisterSpellScript(spell_ascension_soul_capture);
     RegisterSpellScript(aura_ascension_harvester);
     RegisterSpellScript(aura_ascension_jailers_call);
     RegisterSpellScript(aura_ascension_reaper_blood_frenzy);
     RegisterSpellScript(aura_ascension_reaper_ghastly_form);
+    RegisterSpellScript(spell_ascension_reaper_weakened_souls);
     new reaper_talent_events();
 }

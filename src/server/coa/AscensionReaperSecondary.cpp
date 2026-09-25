@@ -27,6 +27,9 @@ enum ReaperSecondarySpells : uint32
     SPELL_SPECTRE_HIT = 803742,
     SPELL_SPECTRE_ROOT = 803942,
     SPELL_MURDER = 500376,
+    SPELL_HARD_BARGAIN = 300569,
+    SPELL_TORMENTED_SOULS = 500481,
+    SPELL_HARD_BARGAIN_HELPER = 572300,
     SPELL_CRIMSON_THIRST = 807415,
     SPELL_CRIMSON_STACK = 807416,
     SPELL_CRIMSON_AMOUNT = 807417,
@@ -72,6 +75,39 @@ public:
         if (aura->GetCasterGUID() == player->GetGUID() &&
             (aura->GetId() == SPELL_GHOST || aura->GetId() == SPELL_SPIRIT_WALKER))
             player->RemoveAurasDueToSpell(SPELL_SPIRIT_WALKER_SPEED, player->GetGUID());
+    }
+};
+
+class reaper_hard_bargain : public UnitScript
+{
+public:
+    reaper_hard_bargain() : UnitScript("reaper_hard_bargain", true,
+        {UNITHOOK_ON_AURA_APPLY, UNITHOOK_ON_AURA_REMOVE}) { }
+
+    void OnAuraApply(Unit* unit, Aura* aura) override
+    {
+        Player* player = unit ? unit->ToPlayer() : nullptr;
+        if (!player || player->getClass() != CLASS_REAPER || !aura ||
+            aura->GetCasterGUID() != player->GetGUID() ||
+            (aura->GetId() != SPELL_HARD_BARGAIN && aura->GetId() != SPELL_TORMENTED_SOULS))
+            return;
+
+        if (player->HasAura(SPELL_HARD_BARGAIN, player->GetGUID()) &&
+            player->HasAura(SPELL_TORMENTED_SOULS, player->GetGUID()) &&
+            !player->HasAura(SPELL_HARD_BARGAIN_HELPER, player->GetGUID()))
+            player->CastSpell(player, SPELL_HARD_BARGAIN_HELPER, true);
+    }
+
+    void OnAuraRemove(Unit* unit, AuraApplication* application, AuraRemoveMode) override
+    {
+        Player* player = unit ? unit->ToPlayer() : nullptr;
+        if (!player || player->getClass() != CLASS_REAPER || !application)
+            return;
+
+        Aura* aura = application->GetBase();
+        if (aura->GetCasterGUID() == player->GetGUID() &&
+            (aura->GetId() == SPELL_HARD_BARGAIN || aura->GetId() == SPELL_TORMENTED_SOULS))
+            player->RemoveAurasDueToSpell(SPELL_HARD_BARGAIN_HELPER, player->GetGUID());
     }
 };
 
@@ -201,7 +237,8 @@ public:
         }
         if (info->Id == SPELL_ENDBRINGER_HEAL)
             info->DmgClass = SPELL_DAMAGE_CLASS_NONE;
-        if (info->Id == SPELL_SPIRIT_WALKER_SPEED || info->Id == SPELL_CRIMSON_STACK)
+        if (info->Id == SPELL_SPIRIT_WALKER_SPEED || info->Id == SPELL_CRIMSON_STACK ||
+            info->Id == SPELL_HARD_BARGAIN_HELPER)
         {
             info->AttributesCu &= ~SPELL_ATTR0_CU_FORCE_AURA_SAVING;
             info->AttributesCu |= SPELL_ATTR0_CU_AURA_CANNOT_BE_SAVED;
@@ -213,6 +250,7 @@ public:
 void AddSC_AscensionReaperSecondary()
 {
     new reaper_ghost_speed();
+    new reaper_hard_bargain();
     new reaper_secondary_hits();
     new reaper_secondary_metadata();
     RegisterSpellScript(aura_ascension_gravesite);
