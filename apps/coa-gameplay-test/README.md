@@ -468,6 +468,7 @@ It does not execute an attack.
 accepts `effect` (default 0). These queries submit no attack.
 `melee_attack_count` counts the actor's native melee combat packets, including extra attacks and misses.
 `melee_damage_count` counts only those dealing positive damage. Both accept `hand` (0 main hand, 1 off hand).
+`melee_damage_total` sums the positive melee damage in those packets and accepts the same hand filter.
 These observations do not test delivery to a network client.
 `spell_damage_count` and `spell_damage_total` require `spell` and count positive direct or periodic spell
 damage events, or sum their post-mitigation damage, from the actor's native combat packets. Optional `target`

@@ -3,6 +3,7 @@
 #include "Player.h"
 #include "ScriptMgr.h"
 #include "Spell.h"
+#include "SpellAuraEffects.h"
 #include "SpellAuras.h"
 #include "SpellMgr.h"
 #include "SpellScript.h"
@@ -28,7 +29,9 @@ enum ReaperSecondarySpells : uint32
     SPELL_CRIMSON_THIRST = 807415,
     SPELL_CRIMSON_STACK = 807416,
     SPELL_CRIMSON_AMOUNT = 807417,
-    SPELL_CRIMSON_HEAL = 807545
+    SPELL_CRIMSON_HEAL = 807545,
+    SPELL_GHOSTLY_WEAPON = 803997,
+    SPELL_GHOSTLY_WEAPON_FROST = 804474
 };
 
 void HealFromDamage(Player* player, uint32 reference, uint32 helper, uint32 damage)
@@ -155,6 +158,48 @@ class aura_ascension_crimson_thirst : public AuraScript
     }
 };
 
+class aura_ascension_ghostly_weapon : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_ghostly_weapon);
+
+    bool Validate(SpellInfo const* info) override
+    {
+        SpellInfo const* frost = sSpellMgr->GetSpellInfo(SPELL_GHOSTLY_WEAPON_FROST);
+        return info->Id == SPELL_GHOSTLY_WEAPON && info->Effects[EFFECT_0].ApplyAuraName == 354 &&
+            frost && frost->SchoolMask == SPELL_SCHOOL_MASK_FROST &&
+            frost->Effects[EFFECT_0].Effect == SPELL_EFFECT_SCHOOL_DAMAGE;
+    }
+
+    bool Check(ProcEventInfo& event)
+    {
+        Unit* owner = GetTarget();
+        Unit* victim = event.GetActionTarget();
+        DamageInfo const* damage = event.GetDamageInfo();
+        SpellInfo const* spell = event.GetSpellInfo();
+        return owner->IsPlayer() && owner->getClass() == CLASS_REAPER && owner->IsAlive() &&
+            GetCasterGUID() == owner->GetGUID() && event.GetActor() == owner && victim &&
+            victim->IsAlive() && !owner->IsFriendlyTo(victim) && damage && damage->GetDamage() &&
+            damage->GetDamageType() != DOT && (!spell || spell->Id != SPELL_GHOSTLY_WEAPON_FROST) &&
+            (event.GetTypeMask() & (PROC_FLAG_DONE_MELEE_AUTO_ATTACK | PROC_FLAG_DONE_SPELL_MELEE_DMG_CLASS));
+    }
+
+    void Proc(AuraEffect const* effect, ProcEventInfo& event)
+    {
+        PreventDefaultAction();
+        uint64 amount = uint64(event.GetDamageInfo()->GetDamage()) * std::max(0, effect->GetAmount()) / 100;
+        if (amount)
+            GetTarget()->CastCustomSpell(SPELL_GHOSTLY_WEAPON_FROST, SPELLVALUE_BASE_POINT0,
+                int32(std::min<uint64>(amount, std::numeric_limits<int32>::max())),
+                event.GetActionTarget(), TRIGGERED_FULL_MASK);
+    }
+
+    void Register() override
+    {
+        DoCheckProc += AuraCheckProcFn(aura_ascension_ghostly_weapon::Check);
+        OnEffectProc += AuraEffectProcFn(aura_ascension_ghostly_weapon::Proc, EFFECT_0, AuraType(354));
+    }
+};
+
 class reaper_secondary_metadata : public GlobalScript
 {
 public:
@@ -176,6 +221,8 @@ public:
             info->AttributesCu &= ~SPELL_ATTR0_CU_FORCE_AURA_SAVING;
             info->AttributesCu |= SPELL_ATTR0_CU_AURA_CANNOT_BE_SAVED;
         }
+        if (info->Id == SPELL_GHOSTLY_WEAPON_FROST)
+            info->AscensionInheritsResolvedAmount = true;
     }
 };
 }
@@ -186,4 +233,5 @@ void AddSC_AscensionReaperSecondary()
     new reaper_secondary_hits();
     new reaper_secondary_metadata();
     RegisterSpellScript(aura_ascension_crimson_thirst);
+    RegisterSpellScript(aura_ascension_ghostly_weapon);
 }

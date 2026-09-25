@@ -28,6 +28,7 @@ ACTOR_ID = re.compile(r'[a-z][a-z0-9_]{0,31}\Z')
 LOCAL_HOSTS = {'127.0.0.1', 'localhost', '::1'}
 METRICS = {
     'moving', 'forced_forward', 'distance_2d', 'cast_remaining_ms', 'cast_pushback_ms', 'melee_damage_count',
+    'melee_damage_total',
     'pet_power', 'pet_max_power', 'spell_energize_count', 'spell_energize_total',
     'xp', 'next_level_xp', 'skill_value',
     'view_level', 'sent_level', 'sent_max_health', 'quest_level', 'quest_xp',
@@ -84,6 +85,7 @@ PLAYER_STAT_METRICS = {
     'spell_go_count',
     'global_cooldown_ms',
     'melee_damage_count',
+    'melee_damage_total',
     'pet_power', 'pet_max_power', 'spell_energize_count', 'spell_energize_total',
     'melee_crit_chance', 'dodge_chance', 'parry_chance', 'expertise', 'combat_rating',
     'spell_modifier', 'spell_cast_time_ms', 'spell_max_range', 'spell_max_stacks', 'spell_healing_done',
@@ -415,7 +417,7 @@ def validate(scenario):
                 number(step.get('op'), f'{where}.op', 0, 31, True)
                 number(step.get('base'), f'{where}.base')
             if 'hand' in step:
-                maximum = 1 if metric in {'melee_attack_count', 'melee_damage_count'} else 2
+                maximum = 1 if metric in {'melee_attack_count', 'melee_damage_count', 'melee_damage_total'} else 2
                 number(step['hand'], f'{where}.hand', 0, maximum, True)
             if 'school' in step and metric == 'spell_crit_chance':
                 number(step['school'], f'{where}.school', 0, 6, True)
