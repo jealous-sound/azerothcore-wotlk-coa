@@ -28,6 +28,7 @@ enum ReaperTalentSpells : uint32
     SPELL_FROM_THE_SHADOWS_CRIT = 561128,
     SPELL_REAPED_SOUL = 500363,
     SPELL_SOUL_CAPTURED = 572887,
+    SPELL_SPECTRAL_WARDEN = 805716,
     SPELL_SOUL_SPLINTERS = 805719,
     SPELL_SOUL_SPLINTER = 805720,
     SPELL_PAINBRINGER = 680995,
@@ -432,6 +433,10 @@ public:
 
     void ModifySpellEffectBaseValue(Unit const* caster, SpellInfo const* info, uint8 index, float& value) override
     {
+        if (caster && caster->IsPlayer() && caster->getClass() == CLASS_REAPER && info->Id == SPELL_SPECTRAL_WARDEN &&
+            info->SpellFamilyName == 36 && index == EFFECT_1 && info->Effects[index].IsAura(SPELL_AURA_SCHOOL_ABSORB))
+            value += caster->GetStat(STAT_STAMINA) * 1.5f;
+
         if (caster && caster->IsPlayer() && caster->getClass() == CLASS_REAPER && info->Id == SPELL_SOUL_SPLINTER &&
             info->SpellFamilyName == 36 && index == EFFECT_0 && info->Effects[index].IsAura(SPELL_AURA_PERIODIC_DAMAGE))
             value += std::max(0.0f, caster->GetStat(STAT_STAMINA)) * 0.035f;
