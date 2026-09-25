@@ -265,6 +265,22 @@ class spell_ascension_gaze_of_theradras : public SpellScript
     bool _newVictim = false;
 };
 
+class spell_ascension_seismic_wave : public SpellScript
+{
+    PrepareSpellScript(spell_ascension_seismic_wave);
+
+    void AddHealingPower(SpellEffIndex)
+    {
+        int32 power = GetCaster()->SpellBaseHealingBonusDone(GetSpellInfo()->GetSchoolMask());
+        SetEffectValue(GetEffectValue() + int32(power * 0.3f));
+    }
+
+    void Register() override
+    {
+        OnEffectLaunchTarget += SpellEffectFn(spell_ascension_seismic_wave::AddHealingPower, EFFECT_0, SPELL_EFFECT_HEAL);
+    }
+};
+
 class primalist_secondary_metadata : public GlobalScript
 {
 public:
@@ -336,4 +352,5 @@ void AddSC_AscensionPrimalistSecondary()
     RegisterSpellScript(aura_ascension_natures_blessing);
     RegisterSpellScript(aura_ascension_hammer_of_life);
     RegisterSpellScript(spell_ascension_gaze_of_theradras);
+    RegisterSpellScript(spell_ascension_seismic_wave);
 }
