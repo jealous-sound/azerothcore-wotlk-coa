@@ -16,6 +16,7 @@
       "id": "enemy",
       "owner": "knight",
       "entry": 36,
+      "level": 11,
       "health": 100000,
       "distance": 3
     }

@@ -119,6 +119,12 @@ struct npc_ascension_xoroth_summon : public ScriptedAI
         events.ScheduleEvent(1, 1s);
         Refresh(player);
     }
+    void AttackStart(Unit* target) override
+    {
+        if (target && target != me->GetVictim())
+            me->StopMoving();
+        ScriptedAI::AttackStart(target);
+    }
     void sGossipHello(Player* player) override
     {
         Player* summoner = ObjectAccessor::GetPlayer(*me, owner);
