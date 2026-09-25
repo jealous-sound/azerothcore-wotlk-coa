@@ -1,7 +1,10 @@
 import copy
+from datetime import datetime, timedelta, timezone
 import io
 import json
+import os
 from pathlib import Path
+import subprocess
 import sys
 import tempfile
 from types import SimpleNamespace
@@ -65,6 +68,44 @@ class RunnerTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertIs(run.validate(scenario), scenario)
 
+    def test_hour_is_an_optional_realm_local_hour(self):
+        for hour in (0, 12, 23):
+            scenario = copy.deepcopy(self.scenario)
+            scenario['hour'] = hour
+            self.assertIs(run.validate(scenario), scenario)
+        for hour in (-1, 24, 1.5, True, '12', None):
+            scenario = copy.deepcopy(self.scenario)
+            scenario['hour'] = hour
+            with self.subTest(hour=hour), self.assertRaisesRegex(ValueError, '^hour: '):
+                run.validate(scenario)
+
+    def test_hour_timezone_is_a_posix_offset_placing_local_time_at_the_start_of_that_hour(self):
+        for utc_hour, hour, expected in ((10, 12, 'UTC-01:01'), (23, 0, 'UTC-00:01'), (1, 23, 'UTC+02:59'),
+                                         (12, 0, 'UTC-11:01'), (12, 23, 'UTC-10:01'), (5, 5, 'UTC+00:59'),
+                                         (0, 12, 'UTC-11:01'), (22, 12, 'UTC+10:59'), (18, 6, 'UTC-11:01')):
+            now = datetime(2026, 9, 24, utc_hour, 59, 30, tzinfo=timezone.utc)
+            with self.subTest(utc_hour=utc_hour, hour=hour):
+                zone = run.hour_timezone(hour, now)
+                self.assertEqual(zone, expected)
+                west = (1 if zone[3] == '+' else -1) * (int(zone[4:6]) * 60 + int(zone[7:9]))
+                self.assertEqual((utc_hour * 60 + 59 - west) % (24 * 60), hour * 60)
+        moscow = datetime(2026, 9, 25, 1, 0, tzinfo=timezone(timedelta(hours=3)))
+        self.assertEqual(run.hour_timezone(12, moscow), 'UTC+10:00')
+        with patch.object(run, 'utc_now', return_value=datetime(2026, 9, 24, 3, 0, tzinfo=timezone.utc)):
+            self.assertEqual(run.scenario_timezone({**self.scenario, 'hour': 0}), {'TZ': 'UTC+03:00'})
+        self.assertEqual(run.scenario_timezone(self.scenario), {})
+
+    @unittest.skipIf(os.name == 'nt', 'POSIX TZ strings are checked through the C library of a child process')
+    def test_hour_timezone_starts_that_local_hour_in_a_child_process(self):
+        for utc_hour, minute, hour in ((10, 30, 12), (22, 59, 12), (23, 59, 0), (1, 0, 23), (12, 1, 0), (6, 45, 18)):
+            now = datetime(2026, 9, 24, utc_hour, minute, 30, tzinfo=timezone.utc)
+            with self.subTest(utc_hour=utc_hour, minute=minute, hour=hour):
+                local = subprocess.run(
+                    [sys.executable, '-c', f'import time; print(time.localtime({int(now.timestamp())})[3:5])'],
+                    env={**os.environ, 'TZ': run.hour_timezone(hour, now)}, capture_output=True, text=True,
+                    check=True)
+                self.assertEqual(local.stdout.strip(), f'({hour}, 0)')
+
     def test_spell_damage_observation_filters(self):
         step = {'action': 'assert', 'actor': 'caster', 'metric': 'spell_damage_count',
                 'spell': 116, 'target': 'target', 'pet': True, 'critical': False, 'equals': 0}
@@ -90,7 +131,8 @@ class RunnerTests(unittest.TestCase):
         for metric, actor, extra in [('spell_cast_count', 'caster', {}),
                                      ('spell_cast_count', 'target', {}),
                                      ('spell_go_count', 'caster', {}),
-                                     ('spell_go_count', 'caster', {'pet': True})]:
+                                     ('spell_go_count', 'caster', {'pet': True}),
+                                     ('spell_go_count', 'caster', {'entry': 50587})]:
             with self.subTest(metric=metric, actor=actor, extra=extra):
                 scenario = copy.deepcopy(self.scenario)
                 scenario['steps'].append({'action': 'assert', 'actor': actor, 'metric': metric,
@@ -101,7 +143,9 @@ class RunnerTests(unittest.TestCase):
                     run.validate(scenario)
         for metric, actor, extra in [('spell_go_count', 'target', {}),
                                      ('spell_cast_count', 'caster', {'pet': True}),
-                                     ('spell_go_count', 'caster', {'pet': 1})]:
+                                     ('spell_go_count', 'caster', {'pet': 1}),
+                                     ('spell_go_count', 'caster', {'entry': 0}),
+                                     ('spell_go_count', 'caster', {'entry': 50587, 'pet': True})]:
             scenario = copy.deepcopy(self.scenario)
             scenario['steps'].append({'action': 'assert', 'actor': actor, 'metric': metric,
                                       'spell': 116, 'equals': 0, **extra})
@@ -647,7 +691,10 @@ class RunnerTests(unittest.TestCase):
             config.write_text(
                 'LoginDatabaseInfo = "127.0.0.1;3306;user;secret-password;source_auth"\n'
                 'CharacterDatabaseInfo = "127.0.0.1;3306;user;secret-password;source_characters"\n'
-                'WorldDatabaseInfo = "127.0.0.1;3306;user;secret-password;source_world"\n')
+                'WorldDatabaseInfo = "127.0.0.1;3306;user;secret-password;source_world"\n'
+                'CharacterDatabase.WorkerThreads = 4\nCharacterDatabase.TransactionIsolation = "READ-COMMITTED"\n'
+                'LoginDatabase.TransactionIsolation = "SERIALIZABLE"\n'
+                'WorldDatabase.TransactionIsolation = "READ-UNCOMMITTED"\n')
             mysql = directory / 'mysql'
             mysql.write_bytes(b'')
             mysqldump = directory / 'mysqldump'
@@ -661,6 +708,7 @@ class RunnerTests(unittest.TestCase):
                 fresh_databases=True, refresh_world=False, world_cache_dir=directory / 'cache')
             report = self.report()
             credential_dirs = []
+            server_settings = []
             real_mkdtemp = tempfile.mkdtemp
 
             def recording_mkdtemp(*a, **kw):
@@ -668,20 +716,70 @@ class RunnerTests(unittest.TestCase):
                 credential_dirs.append(Path(path))
                 return path
 
+            def recording_process(command, *a, **kw):
+                server_settings.append(run.read_config(Path(command[-1])))
+                return report, 0
+
             with patch.object(run.tempfile, 'mkdtemp', side_effect=recording_mkdtemp), \
                     patch.object(run.secrets, 'token_hex', return_value='012345abcdef'), \
                     patch.object(run.Databases, 'prepare', lambda self, **kw: None), \
                     patch.object(run.Databases, 'cleanup', lambda self: []), \
-                    patch.object(run, 'run_process', return_value=(report, 0)):
+                    patch.object(run, 'run_process', side_effect=recording_process):
                 code = run.execute(args, self.scenario)
             self.assertEqual(code, 0)
             self.assertEqual(len(credential_dirs), 1)
+            self.assertEqual(server_settings[0]['TempDir'], credential_dirs[0].as_posix())
+            self.assertEqual({name: server_settings[0][f'CoAGameplayTest.{name}'] for name in run.CLOCK_SETTINGS},
+                             {'Clock': 'real', 'Lanes': '1', 'StepMs': '3', 'ActiveWaitCapMs': '25',
+                              'PollCapMs': '10', 'StartHour': '10'})
+            self.assertEqual(server_settings[0]['CoAGameplayTest.CaseDirectory'], '')
+            self.assertEqual({key: server_settings[0][key] for key in (
+                'LoginDatabase.WorkerThreads', 'CharacterDatabase.WorkerThreads', 'LoginDatabase.TransactionIsolation',
+                'CharacterDatabase.TransactionIsolation', 'WorldDatabase.TransactionIsolation')}, {
+                'LoginDatabase.WorkerThreads': '1', 'CharacterDatabase.WorkerThreads': '1',
+                'LoginDatabase.TransactionIsolation': '', 'CharacterDatabase.TransactionIsolation': '',
+                'WorldDatabase.TransactionIsolation': ''})
             self.assertFalse(credential_dirs[0].exists())
             self.assertFalse((output / 'worldserver.conf').exists())
             self.assertFalse(any(output.glob('*-client.cnf')))
             for path in output.rglob('*'):
                 if path.is_file():
                     self.assertNotIn('secret-password', path.read_text(encoding='utf-8', errors='replace'))
+
+    def test_execute_gives_only_an_hour_scenario_a_fixed_offset(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            (directory / 'worldserver').write_bytes(b'binary')
+            config = directory / 'worldserver.conf'
+            config.write_text(''.join(f'{key} = "127.0.0.1;3306;user;secret;source_{role}"\n'
+                                      for role, key in run.DATABASE_SETTINGS.items()))
+            for tool in ('mysql', 'mysqldump'):
+                (directory / tool).write_bytes(b'')
+            (directory / 'modules').mkdir()
+            observed = []
+
+            def recording_process(command, *a, **kw):
+                observed.append(kw['environment'])
+                return {**self.report(), 'realm_local_start': '2026-09-25 12:34:56'}, 0
+
+            with patch.object(run.Databases, 'prepare', lambda self, **kw: None), \
+                    patch.object(run.Databases, 'cleanup', lambda self: []), \
+                    patch.object(run, 'run_process', side_effect=recording_process), \
+                    patch.object(run.secrets, 'token_hex', return_value='012345abcdef'), \
+                    patch.object(run, 'utc_now', return_value=datetime(2026, 9, 24, 22, 40, tzinfo=timezone.utc)), \
+                    patch.dict(run.os.environ, {'TZ': 'Europe/Moscow'}):
+                for name, scenario in (('noon', {**self.scenario, 'hour': 12}), ('plain', self.scenario)):
+                    args = SimpleNamespace(
+                        worldserver=directory / 'worldserver', config=config, mysql=directory / 'mysql',
+                        mysqldump=directory / 'mysqldump', database_client_config=None, modules_config_dir=None,
+                        server_modules_dir=directory / name / 'modules', output=directory / name,
+                        startup_timeout=3, fresh_databases=True, refresh_world=False,
+                        world_cache_dir=directory / 'cache')
+                    self.assertEqual(run.execute(args, scenario), 0)
+            self.assertEqual([environment['TZ'] for environment in observed], ['UTC+10:40', 'Europe/Moscow'])
+            summaries = [run.read_json(directory / name / 'summary.json') for name in ('noon', 'plain')]
+            self.assertEqual([summary.get('timezone') for summary in summaries], ['UTC+10:40', None])
+            self.assertEqual({summary['realm_local_start'] for summary in summaries}, {'2026-09-25 12:34:56'})
 
     @unittest.skipUnless(hasattr(run.signal, 'SIGTERM'), 'SIGTERM is not available on this platform')
     def test_sigterm_handler_raises_and_previous_handler_is_restored(self):

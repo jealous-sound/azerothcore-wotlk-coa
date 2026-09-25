@@ -331,6 +331,13 @@
       "all_specs": true
     },
     {
+      "action": "unlearn",
+      "actor": "primalist",
+      "spell": 706159,
+      "all_specs": true,
+      "label": "Lithic Lance's 20% Ready proc would replace Geode Barrage with Lithic Lance"
+    },
+    {
       "action": "learn",
       "actor": "primalist",
       "spell": 500402

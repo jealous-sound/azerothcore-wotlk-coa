@@ -4,6 +4,7 @@ CLI_DESCRIPTION = """Run gameplay scenarios in a dedicated worldserver with disp
 import argparse
 import configparser
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 import hashlib
 import json
 import math
@@ -26,12 +27,16 @@ CREATE_FLAGS = subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
 IDENTIFIER = re.compile(r'[A-Za-z_][A-Za-z0-9_]*\Z')
 ACTOR_ID = re.compile(r'[a-z][a-z0-9_]{0,31}\Z')
 LOCAL_HOSTS = {'127.0.0.1', 'localhost', '::1'}
+HOURS_PER_DAY = 24
+MINUTES_PER_HOUR = 60
+MINUTES_PER_DAY = HOURS_PER_DAY * MINUTES_PER_HOUR
 METRICS = {
-    'moving', 'forced_forward', 'distance_2d', 'cast_remaining_ms', 'cast_pushback_ms', 'melee_damage_count',
+    'moving', 'water_walk', 'forced_forward', 'distance_2d', 'cast_remaining_ms', 'cast_pushback_ms',
+    'melee_damage_count', 'melee_damage_total',
     'pet_power', 'pet_max_power', 'spell_energize_count', 'spell_energize_total',
-    'xp', 'next_level_xp', 'skill_value',
+    'xp', 'next_level_xp', 'skill_value', 'lfg_dungeon_disabled',
     'view_level', 'sent_level', 'sent_max_health', 'creature_query_rank', 'quest_level', 'quest_xp',
-    'health', 'health_pct', 'max_health', 'power', 'max_power', 'alive', 'combat', 'casting', 'level',
+    'health', 'health_pct', 'max_health', 'creature_type', 'power', 'max_power', 'alive', 'combat', 'casting', 'level',
     'aura', 'aura_stacks', 'aura_charges', 'aura_duration_ms', 'aura_amount', 'aura_positive',
     'knows_spell', 'has_talent', 'talent_points', 'cooldown_ms', 'global_cooldown_ms', 'spell_charges',
     'action_button', 'item_count', 'carried_item_count', 'carried_pool_item_count', 'carried_variant_item_count',
@@ -71,7 +76,8 @@ METRICS = {
     'aura_amplitude_ms', 'melee_crit_chance', 'dodge_chance', 'parry_chance', 'expertise', 'combat_rating',
     'spell_modifier', 'spell_cast_time_ms', 'spell_max_range', 'spell_max_stacks', 'spell_healing_done',
     'aura_crit_chance', 'aura_script_value', 'melee_hit_chance', 'spell_hit_chance', 'spell_power',
-    'spell_done_crit_chance', 'spell_done_crit_chance_scripted', 'melee_spell_damage_done', 'script_melee_damage_taken',
+    'spell_done_crit_chance', 'spell_taken_crit_chance', 'spell_done_crit_chance_scripted',
+    'melee_spell_damage_done', 'script_melee_damage_taken',
     'script_spell_damage_taken', 'script_periodic_damage_taken', 'script_heal_received', 'spell_effect_value',
     'block_chance', 'block_value', 'critical_block_chance', 'spell_critical_damage', 'armor_reduced_damage',
     'aoe_damage_taken', 'reputation_gain', 'spell_immune', 'spell_effect_immune', 'melee_attack_count',
@@ -84,10 +90,12 @@ PLAYER_STAT_METRICS = {
     'spell_go_count',
     'global_cooldown_ms',
     'melee_damage_count',
+    'melee_damage_total',
     'pet_power', 'pet_max_power', 'spell_energize_count', 'spell_energize_total',
     'melee_crit_chance', 'dodge_chance', 'parry_chance', 'expertise', 'combat_rating',
     'spell_modifier', 'spell_cast_time_ms', 'spell_max_range', 'spell_max_stacks', 'spell_healing_done',
-    'melee_hit_chance', 'spell_hit_chance', 'spell_power', 'spell_done_crit_chance', 'spell_done_crit_chance_scripted', 'melee_spell_damage_done',
+    'melee_hit_chance', 'spell_hit_chance', 'spell_power', 'spell_done_crit_chance',
+    'spell_taken_crit_chance', 'spell_done_crit_chance_scripted', 'melee_spell_damage_done',
     'script_melee_damage_taken', 'script_spell_damage_taken', 'script_periodic_damage_taken',
     'script_heal_received', 'spell_effect_value',
     'block_chance', 'block_value', 'critical_block_chance', 'spell_critical_damage', 'armor_reduced_damage',
@@ -100,7 +108,7 @@ PLAYER_STAT_METRICS = {
 METRIC_FIELDS = {'actor', 'metric', 'spell', 'power', 'caster', 'effect', 'item', 'entry', 'button',
                  'relative_to', 'ratio_to', 'target', 'quest', 'id', 'stat', 'school', 'hand', 'rating', 'op',
                  'base', 'key', 'index', 'pet', 'critical', 'target_pet', 'periodic', 'name', 'text',
-                 'min_distance', 'owner_display', 'skill', 'cache', 'table', 'exclude'}
+                 'min_distance', 'owner_display', 'skill', 'cache', 'table', 'exclude', 'dungeon'}
 ACTIONS = {
     'stop_attack': ({'actor'}, {'actor'}),
     'set_moving': ({'actor', 'enabled'}, {'actor', 'enabled'}),
@@ -201,10 +209,12 @@ def read_json(path):
 
 def validate(scenario):
     keys(scenario, {'schema', 'name', 'players', 'steps'},
-         {'schema', 'name', 'players', 'creatures', 'steps', 'timeout_ms', 'location', 'contract'}, 'scenario')
+         {'schema', 'name', 'players', 'creatures', 'steps', 'timeout_ms', 'location', 'contract', 'hour'}, 'scenario')
     require(type(scenario['schema']) is int and scenario['schema'] == 1, 'Unsupported scenario schema')
     require(isinstance(scenario['name'], str) and scenario['name'].strip(), 'Scenario needs a name')
     number(scenario.get('timeout_ms', 90000), 'timeout_ms', 1, 600000, True)
+    if 'hour' in scenario:
+        number(scenario['hour'], 'hour', 0, HOURS_PER_DAY - 1, True)
     players = scenario['players']
     creatures = scenario.get('creatures', [])
     require(isinstance(players, list) and 1 <= len(players) <= 8, 'Expected 1..8 players')
@@ -363,6 +373,8 @@ def validate(scenario):
             if metric == 'creature_query_rank':
                 require(step['actor'] in player_ids, f'{where}: creature query metric needs a player')
                 number(step.get('entry'), f'{where}.entry', 1, 2**31 - 1, True)
+            if metric == 'lfg_dungeon_disabled':
+                number(step.get('dungeon'), f'{where}.dungeon', 1, 2**24 - 1, True)
             if metric in {'quest_level', 'quest_xp'}:
                 require(step['actor'] in player_ids and 'quest' in step,
                         f'{where}: quest metric needs a player and quest')
@@ -373,6 +385,7 @@ def validate(scenario):
                     'spell_damage_done', 'spell_damage_taken', 'spell_healing_taken', 'spell_hit_bonus_taken',
                     'spell_cast_count', 'spell_go_count', 'spell_modifier', 'spell_cast_time_ms',
                     'spell_max_range', 'spell_max_stacks', 'spell_healing_done', 'spell_done_crit_chance',
+                    'spell_taken_crit_chance',
                     'spell_done_crit_chance_scripted',
                     'melee_spell_damage_done', 'script_spell_damage_taken', 'script_periodic_damage_taken',
                     'script_heal_received', 'spell_effect_value', 'spell_critical_damage', 'armor_reduced_damage',
@@ -392,13 +405,16 @@ def validate(scenario):
                                                            'spell_damage_done'}),
                             f'{where}: {key} only filters supported spell combat events')
                     require(type(step[key]) is bool, f'{where}: {key} must be boolean')
+            if metric == 'spell_go_count' and 'entry' in step:
+                require('pet' not in step, f'{where}: spell_go_count selects either pet or entry')
             if 'target_pet' in step:
                 require(metric in {'spell_heal_count', 'spell_heal_total', 'spell_effective_heal_total',
                                    'spell_energize_count', 'spell_energize_total'}
                         and step.get('target') in player_ids, f'{where}: target_pet needs a healing or energize target player')
                 require(type(step['target_pet']) is bool, f'{where}: target_pet must be boolean')
             if metric in {'spell_damage_done', 'melee_damage_done', 'spell_damage_taken', 'melee_damage_taken',
-                          'spell_healing_done', 'spell_healing_taken', 'spell_done_crit_chance', 'spell_done_crit_chance_scripted', 'melee_spell_damage_done',
+                          'spell_healing_done', 'spell_healing_taken', 'spell_done_crit_chance',
+                          'spell_taken_crit_chance', 'spell_done_crit_chance_scripted', 'melee_spell_damage_done',
                           'spell_critical_damage', 'armor_reduced_damage', 'spell_immune', 'spell_effect_immune',
                           'distance_2d', 'can_detect'} \
                     or metric.startswith('script_'):
@@ -421,7 +437,7 @@ def validate(scenario):
                 number(step.get('op'), f'{where}.op', 0, 31, True)
                 number(step.get('base'), f'{where}.base')
             if 'hand' in step:
-                maximum = 1 if metric in {'melee_attack_count', 'melee_damage_count'} else 2
+                maximum = 1 if metric in {'melee_attack_count', 'melee_damage_count', 'melee_damage_total'} else 2
                 number(step['hand'], f'{where}.hand', 0, maximum, True)
             if 'school' in step and metric == 'spell_crit_chance':
                 number(step['school'], f'{where}.school', 0, 6, True)
@@ -564,6 +580,22 @@ def env_var_name(key):
                 continue
         result.append(char.upper())
     return 'AC_' + ''.join(result)
+
+
+def utc_now():
+    return datetime.now(timezone.utc)
+
+
+def hour_timezone(hour, now=None):
+    utc = (now or utc_now()).astimezone(timezone.utc)
+    ahead = (hour - utc.hour) * MINUTES_PER_HOUR - utc.minute
+    offset = (ahead + MINUTES_PER_DAY // 2) % MINUTES_PER_DAY - MINUTES_PER_DAY // 2
+    hours, minutes = divmod(abs(offset), MINUTES_PER_HOUR)
+    return f"UTC{'-' if offset > 0 else '+'}{hours:02d}:{minutes:02d}"
+
+
+def scenario_timezone(scenario, now=None):
+    return {'TZ': hour_timezone(scenario['hour'], now)} if 'hour' in scenario else {}
 
 
 def server_environment(overrides, environment=None):
@@ -740,6 +772,80 @@ def unused_port():
         return listener.getsockname()[1]
 
 
+DATABASE_SETTINGS = {'auth': 'LoginDatabaseInfo', 'characters': 'CharacterDatabaseInfo', 'world': 'WorldDatabaseInfo'}
+RUN_SETTINGS = ('DataDir', 'SourceDirectory', 'LogsDir', 'TempDir', 'WorldServerPort', 'CoAGameplayTest.RunId',
+                'CoAGameplayTest.WorldDatabaseId')
+SERVER_SETTINGS = {
+    'BindIP': '127.0.0.1', 'Console.Enable': 1, 'Ra.Enable': 0, 'SOAP.Enabled': 0, 'MapUpdate.Threads': 0,
+    'Warden.Enabled': 0, 'Network.UseSocketActivation': 0,
+    'LoginDatabase.WorkerThreads': 1, 'CharacterDatabase.WorkerThreads': 1,
+    'LoginDatabase.TransactionIsolation': '', 'CharacterDatabase.TransactionIsolation': '',
+    'WorldDatabase.TransactionIsolation': '',
+    'Updates.EnableDatabases': 7, 'CoAGameplayTest.Enable': 1,
+}
+HARNESS_FILES = {'start': 'StartFile', 'scenario': 'ScenarioFile', 'ready': 'ReadyFile', 'result': 'ResultFile',
+                 'cases': 'CaseDirectory'}
+CLOCK_SETTINGS = {'Clock': 'real', 'Lanes': 1, 'StepMs': 3, 'ActiveWaitCapMs': 25, 'PollCapMs': 10, 'StartHour': 10}
+
+
+def reserved_settings():
+    return {*DATABASE_SETTINGS.values(), *RUN_SETTINGS, *SERVER_SETTINGS,
+            *(f'CoAGameplayTest.{name}' for name in (*HARNESS_FILES.values(), *CLOCK_SETTINGS))}
+
+
+def source_connections(config, client_config=None):
+    connections = {role: Connection.parse(source_setting(config, key)) for role, key in DATABASE_SETTINGS.items()}
+    if client_config:
+        connections = database_credentials(connections, client_config)
+    return connections
+
+
+def data_directory(config, binary):
+    data_dir = Path(source_setting(config, 'DataDir', '.'))
+    if not data_dir.is_absolute():
+        data_dir = binary.parent / data_dir
+    return data_dir.resolve()
+
+
+def harness_overrides(connections, names, data_dir, logs, private, run_id, world_id, files, clock=None):
+    unknown = files.keys() - HARNESS_FILES.keys()
+    require(not unknown, f'Unknown harness files: {sorted(unknown)}')
+    clock = clock or {}
+    unknown = clock.keys() - CLOCK_SETTINGS.keys()
+    require(not unknown, f'Unknown clock settings: {sorted(unknown)}')
+    overrides = {key: connections[role].with_database(names[role]) for role, key in DATABASE_SETTINGS.items()}
+    overrides.update(zip(RUN_SETTINGS, (data_dir.as_posix(), ROOT.as_posix(), logs.as_posix(), private.as_posix(),
+                                        unused_port(), run_id, world_id)))
+    overrides.update(SERVER_SETTINGS)
+    overrides.update({f'CoAGameplayTest.{name}': Path(files[key]).as_posix() if files.get(key) else ''
+                      for key, name in HARNESS_FILES.items()})
+    overrides.update({f'CoAGameplayTest.{name}': value for name, value in (CLOCK_SETTINGS | clock).items()})
+    return overrides
+
+
+def world_cache_info(cache):
+    return cache.info if cache else {'mode': 'fresh', 'retained': False}
+
+
+def prepare_databases(database, cache, refresh=False):
+    if cache:
+        cache.prepare(refresh=refresh)
+    database.prepare(roles=('auth', 'characters') if cache else ('auth', 'characters', 'world'))
+
+
+def release_databases(database, cache, server_still_running, summary):
+    failures = list(database.names.values()) if server_still_running else database.cleanup()
+    if cache:
+        try:
+            cache.finish(server_still_running=server_still_running)
+        except (ValueError, OSError, subprocess.SubprocessError, KeyError) as error:
+            summary['cache_cleanup_error'] = str(error)
+            failures.append(database.names['world'])
+    if failures:
+        summary.update(status='failed', cleanup_failed=failures)
+    return failures
+
+
 def write_config(source, destination, overrides):
     lines = []
     for line in source.read_text(encoding='utf-8-sig').splitlines():
@@ -816,20 +922,52 @@ def check_report(report, run_id, scenario, returncode):
             require(record.get('status') == 'completed', 'An action did not complete')
 
 
+def read_ready(path, run_id):
+    ready = read_json(path)
+    require(ready.get('run_id') == run_id and ready.get('status') == 'ready', 'Invalid readiness record')
+    return ready
+
+
+def server_command(binary, config):
+    return [str(binary), '-c', str(config)]
+
+
+def start_server(command, directory, log, environment=None):
+    return subprocess.Popen(command, cwd=directory, stdin=subprocess.PIPE, stdout=log, stderr=log,
+                            env=environment, creationflags=CREATE_FLAGS)
+
+
+def stop_process(process):
+    if process.poll() is None:
+        try:
+            process.stdin.write(b'server shutdown 0\n')
+            process.stdin.flush()
+            process.wait(timeout=15)
+        except (OSError, subprocess.TimeoutExpired):
+            try:
+                process.kill()
+                process.wait(timeout=15)
+            except (OSError, subprocess.TimeoutExpired) as error:
+                if process.poll() is None:
+                    raise ServerStillRunning(process.pid) from error
+    process.stdin.close()
+
+
 def run_process(command, directory, ready_path, result_path, run_id, startup_timeout, timeout,
-                on_ready=None, environment=None):
+                on_ready=None, environment=None, should_stop=None):
     with (directory / 'worldserver.log').open('wb') as log:
-        process = subprocess.Popen(command, cwd=directory, stdin=subprocess.PIPE, stdout=log, stderr=log,
-                                   env=environment, creationflags=CREATE_FLAGS)
+        if should_stop and should_stop():
+            raise KeyboardInterrupt
+        process = start_server(command, directory, log, environment)
         start = time.monotonic()
         ready_at = None
         try:
             while process.poll() is None:
+                if should_stop and should_stop():
+                    raise KeyboardInterrupt
                 now = time.monotonic()
                 if ready_at is None and ready_path.exists():
-                    ready = read_json(ready_path)
-                    require(ready.get('run_id') == run_id and ready.get('status') == 'ready',
-                            'Invalid readiness record')
+                    ready = read_ready(ready_path, run_id)
                     if on_ready:
                         on_ready(ready)
                     ready_at = time.monotonic()
@@ -845,23 +983,10 @@ def run_process(command, directory, ready_path, result_path, run_id, startup_tim
             if report.get('status') == 'passed':
                 require(on_ready is None or ready_at is not None, 'Startup barrier was not observed')
                 require(ready_path.exists(), 'Successful result is missing harness readiness')
-                ready = read_json(ready_path)
-                require(ready.get('run_id') == run_id and ready.get('status') == 'ready', 'Invalid readiness record')
+                read_ready(ready_path, run_id)
             return report, process.returncode
         finally:
-            if process.poll() is None:
-                try:
-                    process.stdin.write(b'server shutdown 0\n')
-                    process.stdin.flush()
-                    process.wait(timeout=15)
-                except (OSError, subprocess.TimeoutExpired):
-                    try:
-                        process.kill()
-                        process.wait(timeout=15)
-                    except (OSError, subprocess.TimeoutExpired) as error:
-                        if process.poll() is None:
-                            raise ServerStillRunning(process.pid) from error
-            process.stdin.close()
+            stop_process(process)
 
 
 def sha256(path):
@@ -876,11 +1001,7 @@ def execute(args, scenario):
     mysql = args.mysql.resolve(strict=True)
     dump = args.mysqldump.resolve(strict=True)
     config = read_config(source_config)
-    connections = {role: Connection.parse(source_setting(config, key)) for role, key in {
-        'auth': 'LoginDatabaseInfo', 'characters': 'CharacterDatabaseInfo', 'world': 'WorldDatabaseInfo',
-    }.items()}
-    if args.database_client_config:
-        connections = database_credentials(connections, args.database_client_config)
+    connections = source_connections(config, args.database_client_config)
     run_id = secrets.token_hex(6)
     output = (args.output or ROOT / '.cache' / 'coa-gameplay-tests' / run_id).resolve()
     output.mkdir(parents=True, exist_ok=False)
@@ -905,42 +1026,34 @@ def execute(args, scenario):
         if not args.fresh_databases:
             cache = WorldCache(database, args.world_cache_dir.resolve(),
                                input_fingerprint(ROOT, source_config, module_source), result_directory=output)
-            summary['world_cache'] = cache.info
-            cache.prepare(refresh=args.refresh_world)
-        else:
-            summary['world_cache'] = {'mode': 'fresh', 'retained': False}
-        database.prepare(roles=('auth', 'characters') if cache else ('auth', 'characters', 'world'))
+        summary['world_cache'] = world_cache_info(cache)
+        prepare_databases(database, cache, args.refresh_world)
         summary['database_prepare_seconds'] = round(time.monotonic() - started, 3)
-        data_dir = Path(source_setting(config, 'DataDir', '.'))
-        if not data_dir.is_absolute():
-            data_dir = binary.parent / data_dir
-        overrides = {
-            'LoginDatabaseInfo': connections['auth'].with_database(database.names['auth']),
-            'CharacterDatabaseInfo': connections['characters'].with_database(database.names['characters']),
-            'WorldDatabaseInfo': connections['world'].with_database(database.names['world']),
-            'DataDir': data_dir.resolve().as_posix(), 'SourceDirectory': ROOT.as_posix(),
-            'LogsDir': output.as_posix(), 'BindIP': '127.0.0.1', 'WorldServerPort': unused_port(),
-            'Console.Enable': 1, 'Ra.Enable': 0, 'SOAP.Enabled': 0, 'MapUpdate.Threads': 0,
-            'Warden.Enabled': 0, 'Network.UseSocketActivation': 0,
-            'LoginDatabase.WorkerThreads': 1, 'CharacterDatabase.WorkerThreads': 1,
-            'Updates.EnableDatabases': 7, 'CoAGameplayTest.Enable': 1, 'CoAGameplayTest.RunId': run_id,
-            'CoAGameplayTest.WorldDatabaseId': cache.metadata['world_id'] if cache else run_id,
-            'CoAGameplayTest.StartFile': (output / 'start.json').as_posix() if cache else '',
-            'CoAGameplayTest.ScenarioFile': scenario_path.as_posix(),
-            'CoAGameplayTest.ReadyFile': ready_path.as_posix(),
-            'CoAGameplayTest.ResultFile': result_path.as_posix(),
-        }
-        module_target = args.server_modules_dir or output / 'configs' / 'modules'
-        module_configs = stage_modules(module_source, module_target, set(overrides))
-        summary['module_config_sha256'] = {path.name: sha256(path) for path in module_configs}
+        start_path = output / 'start.json' if cache else None
+        overrides = harness_overrides(connections, database.names, data_directory(config, binary), output,
+                                      credentials_dir, run_id, cache.metadata['world_id'] if cache else run_id,
+                                      {'start': start_path, 'scenario': scenario_path, 'ready': ready_path,
+                                       'result': result_path})
+        staged_configs = getattr(args, 'staged_module_configs', None)
+        if staged_configs is None:
+            module_target = args.server_modules_dir or output / 'configs' / 'modules'
+            module_configs = stage_modules(module_source, module_target, set(overrides))
+            staged_configs = module_configs
+        summary['module_config_sha256'] = {path.name: sha256(path) for path in staged_configs}
         write_config(source_config, generated_config, overrides)
         server_started = time.monotonic()
-        on_ready = (lambda record: cache.ready(record, output / 'start.json', run_id)) if cache else None
-        report, returncode = run_process([str(binary), '-c', str(generated_config)], output, ready_path,
+        on_ready = (lambda record: cache.ready(record, start_path, run_id)) if cache else None
+        zone = scenario_timezone(scenario)
+        if zone:
+            summary['timezone'] = zone['TZ']
+        report, returncode = run_process(server_command(binary, generated_config), output, ready_path,
                                          result_path, run_id, args.startup_timeout,
                                          scenario.get('timeout_ms', 90000) / 1000 + 30,
-                                         on_ready=on_ready, environment=server_environment(overrides))
+                                         on_ready=on_ready, environment=server_environment(overrides) | zone,
+                                         should_stop=getattr(args, 'should_stop', None))
         summary['server_seconds'] = round(time.monotonic() - server_started, 3)
+        if report.get('realm_local_start'):
+            summary['realm_local_start'] = report['realm_local_start']
         check_report(report, run_id, scenario, returncode)
         summary.update(status='passed', assertions=int(report['assertions']))
     except ServerStillRunning as error:
@@ -949,15 +1062,7 @@ def execute(args, scenario):
     except (ValueError, OSError, subprocess.SubprocessError, KeyError) as error:
         summary['message'] = str(error)
     finally:
-        failures = list(database.names.values()) if retain_databases else database.cleanup()
-        if cache:
-            try:
-                cache.finish(server_still_running=retain_databases)
-            except (ValueError, OSError, subprocess.SubprocessError, KeyError) as error:
-                summary['cache_cleanup_error'] = str(error)
-                failures.append(database.names['world'])
-        if failures:
-            summary.update(status='failed', cleanup_failed=failures)
+        release_databases(database, cache, retain_databases, summary)
         generated_config.unlink(missing_ok=True)
         for path in module_configs:
             path.unlink(missing_ok=True)

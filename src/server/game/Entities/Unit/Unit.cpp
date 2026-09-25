@@ -4189,6 +4189,7 @@ int32 Unit::GetAscensionConditionalCombatModifier(Unit const* victim, SpellInfo 
 
         bool global = false;
         bool creature = false;
+        bool shadow = false;
         AscensionConditionalCombatModifier kind;
         switch (effect->GetMiscValue())
         {
@@ -4198,6 +4199,10 @@ int32 Unit::GetAscensionConditionalCombatModifier(Unit const* victim, SpellInfo 
             case ASCENSION_STATE_GLOBAL_CRIT:
                 kind = ASCENSION_CONDITIONAL_CRIT_CHANCE;
                 global = true;
+                break;
+            case ASCENSION_STATE_MASKED_SHADOW_CRIT:
+                kind = ASCENSION_CONDITIONAL_CRIT_CHANCE;
+                shadow = true;
                 break;
             case ASCENSION_STATE_MASKED_AND_AUTO_CRIT:
                 kind = ASCENSION_CONDITIONAL_CRIT_CHANCE;
@@ -4236,7 +4241,8 @@ int32 Unit::GetAscensionConditionalCombatModifier(Unit const* victim, SpellInfo 
                 return false;
         }
 
-        if (kind != modifier || (!global && (!spellInfo || !effect->IsAffectedOnSpell(spellInfo))))
+        if (kind != modifier || (!global && (!spellInfo || !effect->IsAffectedOnSpell(spellInfo))) ||
+            (shadow && !(spellInfo->GetSchoolMask() & SPELL_SCHOOL_MASK_SHADOW)))
             return false;
 
         int32 condition = effect->GetMiscValueB();
@@ -12744,6 +12750,8 @@ uint32 Unit::GetCreatureType() const
             return CREATURE_TYPE_DEMON;
         if (getClass() == CLASS_NECROMANCER && HasAura(500981))
             return CREATURE_TYPE_UNDEAD;
+        if (getClass() == CLASS_REAPER && HasAura(805718))
+            return CREATURE_TYPE_UNDEAD;
         ShapeshiftForm form = GetShapeshiftForm();
         SpellShapeshiftFormEntry const* ssEntry = sSpellShapeshiftFormStore.LookupEntry(form);
         if (ssEntry && ssEntry->creatureType > 0)
@@ -13712,7 +13720,7 @@ void Unit::ProcSkillsAndReactives(bool isVictim, Unit* target, uint32 procFlag, 
 
 void Unit::GetProcAurasTriggeredOnEvent(AuraApplicationProcContainer& aurasTriggeringProc, std::list<AuraApplication*>* procAuras, ProcEventInfo eventInfo)
 {
-    TimePoint now = std::chrono::steady_clock::now();
+    TimePoint now = GameTime::SteadyNow();
 
     auto processAuraApplication = [&](AuraApplication* aurApp)
     {

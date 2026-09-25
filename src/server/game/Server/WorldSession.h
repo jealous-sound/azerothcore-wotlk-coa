@@ -1242,6 +1242,11 @@ public:                                                 // opcodes handlers
     TransactionCallback& AddTransactionCallback(TransactionCallback&& callback);
     SQLQueryHolderCallback& AddQueryHolderCallback(SQLQueryHolderCallback&& callback);
 
+    [[nodiscard]] bool HasPendingAsyncCallbacks() const
+    {
+        return !_queryProcessor.Empty() || !_transactionCallbacks.Empty() || !_queryHolderProcessor.Empty();
+    }
+
     void InitializeSession();
     void InitializeSessionCallback(CharacterDatabaseQueryHolder const& realmHolder, uint32 clientCacheVersion);
 

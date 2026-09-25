@@ -140,6 +140,28 @@ WorldDatabase.WorkerThreads     = 1
 CharacterDatabase.WorkerThreads = 1
 
 #
+#    LoginDatabase.TransactionIsolation
+#    WorldDatabase.TransactionIsolation
+#    CharacterDatabase.TransactionIsolation
+#        Description: Transaction isolation level of every connection of the pool, synchronous and
+#                     asynchronous, applied on each connect and reconnect. Empty keeps the MySQL
+#                     server default (REPEATABLE-READ unless the server is configured otherwise).
+#                     A value not listed under Values stops the server at startup.
+#                     READ-UNCOMMITTED and READ-COMMITTED need row-based binary logging
+#                     (binlog_format ROW or MIXED, or binary logging off); with binlog_format
+#                     STATEMENT the server stops at startup, because MySQL would reject every write.
+#        Example:     "READ-COMMITTED" - (Avoids the gap-lock deadlocks of concurrent character
+#                                         creation when CharacterDatabase.WorkerThreads is above 1)
+#        Values:      "READ-UNCOMMITTED", "READ-COMMITTED", "REPEATABLE-READ", "SERIALIZABLE"
+#        Default:     "" - (LoginDatabase.TransactionIsolation)
+#                     "" - (WorldDatabase.TransactionIsolation)
+#                     "" - (CharacterDatabase.TransactionIsolation)
+
+LoginDatabase.TransactionIsolation     = ""
+WorldDatabase.TransactionIsolation     = ""
+CharacterDatabase.TransactionIsolation = ""
+
+#
 #    LoginDatabase.SynchThreads
 #    WorldDatabase.SynchThreads
 #    CharacterDatabase.SynchThreads

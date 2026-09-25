@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "Primalist Geode Barrage: physical damage with Nature spell power",
-  "contract": "Three physical stones each add 36% Nature spell power and 9% attack power before armor mitigation.",
+  "contract": "Three physical stones each add 36% Nature spell power and 9% attack power before armor mitigation. 502771 rolls its stone damage once per cast (EffectBasePoints 64, DieSides 5: 65-69 at the caster's level 22 = SpellLevel), so a cast's three stones match. With 72 Nature spell power and 62 attack power a stone is (65..69 + 25.92 + 5.58) x 0.974 (the PvE tuning that spell_damage_done reads as 974 of 1000) x 0.783..0.793 (armor_reduced_damage 783-793 of 1000 for the bear's recorded armor of 596-630), 73.6..77.6, recorded as 73-77; without the spell power it is 54-57, so a 70-80 bound on the mean noncritical stone still needs the 36% coefficient. A total bound of 185-225 over the three stones rejected the high rolls (228, 231) and a single critical stone (262, 291).",
   "timeout_ms": 90000,
   "players": [
     {
@@ -272,6 +272,24 @@
       "save_as": "spellpower72_total"
     },
     {
+      "action": "snapshot",
+      "actor": "primalist",
+      "metric": "spell_damage_count",
+      "spell": 803138,
+      "target": "bear",
+      "critical": false,
+      "save_as": "spellpower72_noncrit_count"
+    },
+    {
+      "action": "snapshot",
+      "actor": "primalist",
+      "metric": "spell_damage_total",
+      "spell": 803138,
+      "target": "bear",
+      "critical": false,
+      "save_as": "spellpower72_noncrit_total"
+    },
+    {
       "action": "cast",
       "actor": "primalist",
       "spell": 502771,
@@ -301,14 +319,27 @@
       "save_as": "spellpower72_damage"
     },
     {
+      "action": "snapshot",
+      "actor": "primalist",
+      "metric": "spell_damage_count",
+      "spell": 803138,
+      "target": "bear",
+      "critical": false,
+      "relative_to": "spellpower72_noncrit_count",
+      "save_as": "spellpower72_noncrit_stones"
+    },
+    {
       "action": "assert",
       "actor": "primalist",
       "metric": "spell_damage_total",
       "spell": 803138,
       "target": "bear",
-      "relative_to": "spellpower72_total",
-      "min": 185,
-      "max": 225
+      "critical": false,
+      "relative_to": "spellpower72_noncrit_total",
+      "ratio_to": "spellpower72_noncrit_stones",
+      "min": 70,
+      "max": 80,
+      "label": "Each noncritical stone deals (65-69 + 36% of 72 spell power + 9% of attack power) after tuning and armor"
     },
     {
       "action": "assert",

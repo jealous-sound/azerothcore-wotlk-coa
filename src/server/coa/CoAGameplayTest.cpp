@@ -13,6 +13,7 @@
 #include "Chat.h"
 #include "Config.h"
 #include "Creature.h"
+#include "CreatureAI.h"
 #include "DBCStores.h"
 #include "DatabaseEnv.h"
 #include "DynamicObject.h"
@@ -23,6 +24,7 @@
 #include "Group.h"
 #include "GroupMgr.h"
 #include "Item.h"
+#include "LFGMgr.h"
 #include "ItemPackets.h"
 #include "NPCPackets.h"
 #include "Log.h"
@@ -41,7 +43,9 @@
 #include "SpellAuraEffects.h"
 #include "SpellAuras.h"
 #include "SpellMgr.h"
+#include "StringFormat.h"
 #include "TemporarySummon.h"
+#include "Timer.h"
 #include "UpdateData.h"
 #include "UpdateFields.h"
 #include "World.h"
@@ -49,6 +53,8 @@
 #include "WorldSession.h"
 #include "WhoListCacheMgr.h"
 
+#include "CoAGameplayClock.h"
+#include "CoAGameplayIsolation.h"
 #include "CoASpellbook.h"
 #include <boost/bind/placeholders.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -56,6 +62,7 @@
 #include <array>
 #include <chrono>
 #include <cmath>
+#include <ctime>
 #include <filesystem>
 #include <fstream>
 #include <future>
@@ -63,6 +70,7 @@
 #include <limits>
 #include <map>
 #include <memory>
+#include <optional>
 #include <set>
 #include <unordered_map>
 #include <unordered_set>
@@ -74,6 +82,8 @@ namespace
 {
 using Tree = boost::property_tree::ptree;
 using Clock = std::chrono::steady_clock;
+using CoAGameplay::LaneActivity;
+using CoAGameplay::StepRequest;
 
 std::set<ObjectGuid> NoRegenerationActors;
 
@@ -88,7 +98,6 @@ public:
         return !NoRegenerationActors.contains(player->GetGUID());
     }
 };
-constexpr uint32 TestPhase = LocalLevelScaling::FixturePhaseMask;
 constexpr uint32 MaximumActors = 8;
 constexpr uint16 LevelScalingOpcode = 0x0667;
 
@@ -118,10 +127,104 @@ void WriteResult(std::string const& path, Tree const& result)
     std::filesystem::rename(temporary, path);
 }
 
+bool WriteCaseResult(std::string const& path, Tree const& result)
+{
+    try
+    {
+        WriteResult(path, result);
+        return true;
+    }
+    catch (std::exception const& error)
+    {
+        LOG_ERROR("coa.gameplay_test", "Could not write gameplay result: {}", error.what());
+        return false;
+    }
+}
+
 uint64 Elapsed(Clock::time_point start)
 {
     return std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now() - start).count();
 }
+
+uint64 GameElapsed(TimePoint start)
+{
+    return uint64(std::max<Milliseconds::rep>(0,
+        std::chrono::duration_cast<Milliseconds>(GameTime::Now() - start).count()));
+}
+
+bool IsRunId(std::string const& id)
+{
+    return id.size() == 12 && id.find_first_not_of("0123456789abcdef") == std::string::npos;
+}
+
+constexpr uint64 RunnerPatienceMs = 600000;
+constexpr uint64 TeardownRecheckMs = 50;
+constexpr uint64 RealBackstopFactor = 3;
+constexpr uint32 DefaultStartHour = 10;
+constexpr uint32 HoursPerDay = 24;
+constexpr int32 DaysToFindAnHour = 3;
+constexpr char const* RealClock = "real";
+constexpr char const* SimulatedClock = "simulated";
+
+std::tm RealmLocalTime(Seconds time)
+{
+    return Acore::Time::TimeBreakdown(time_t(time.count()));
+}
+
+std::string RealmLocalText(Seconds time)
+{
+    std::tm const local = RealmLocalTime(time);
+    return Acore::StringFormat("{:04}-{:02}-{:02} {:02}:{:02}:{:02}", local.tm_year + 1900, local.tm_mon + 1,
+        local.tm_mday, local.tm_hour, local.tm_min, local.tm_sec);
+}
+
+SystemTimePoint NextRealmLocalHour(SystemTimePoint from, uint32 hour)
+{
+    std::tm const today = RealmLocalTime(std::chrono::floor<Seconds>(from.time_since_epoch()));
+    for (int32 day = 0; day < DaysToFindAnHour; ++day)
+    {
+        std::tm start = today;
+        start.tm_mday += day;
+        start.tm_hour = int32(hour);
+        start.tm_min = 0;
+        start.tm_sec = 0;
+        start.tm_isdst = -1;
+        time_t const startTime = std::mktime(&start);
+        Require(startTime != time_t(-1), "Could not convert a realm-local hour to a timestamp");
+        SystemTimePoint const point = std::chrono::system_clock::from_time_t(startTime);
+        if (point >= from)
+            return point;
+    }
+    throw std::runtime_error("Could not find the next realm-local hour");
+}
+
+bool InFirstMinuteOfHour(Seconds time, uint32 hour)
+{
+    std::tm const local = RealmLocalTime(time);
+    return uint32(local.tm_hour) == hour && local.tm_min == 0;
+}
+
+void RequireRealmLocalHour(uint32 hour)
+{
+    std::tm const local = RealmLocalTime(GameTime::GetGameTime());
+    Require(uint32(local.tm_hour) == hour, Acore::StringFormat("Case needs realm-local hour {:02}:00-{:02}:59, but "
+        "realm-local time is {:02}:{:02}; run it on a worldserver whose TZ puts local time in that hour", hour, hour,
+        local.tm_hour, local.tm_min));
+}
+
+struct CaseAccounts
+{
+    std::vector<std::string> accounts;
+    std::vector<std::string> characters;
+    bool namesReusable = false;
+};
+
+struct CaseOutcome
+{
+    std::string resultPath;
+    Tree report;
+    CaseAccounts accounts;
+};
 
 class ProcCounter
 {
@@ -157,6 +260,13 @@ public:
         return itr == _casts.end() ? 0 : itr->second;
     }
 
+    static void Forget(std::set<ObjectGuid> const& units)
+    {
+        auto const owned = [&units](auto const& entry) { return units.contains(entry.first.first); };
+        std::erase_if(_counts, owned);
+        std::erase_if(_casts, owned);
+    }
+
 private:
     static bool _enabled;
     static std::map<std::pair<ObjectGuid, uint32>, uint32> _counts;
@@ -172,7 +282,9 @@ enum class ActorStage
     Account,
     Creating,
     Enumerating,
+    Enumerated,
     LoggingIn,
+    InWorld,
     Transfer,
     Ready
 };
@@ -245,6 +357,7 @@ struct Actor
     uint32 lootReceived = 0;
     std::array<uint32, 2> meleeAttacksByHand{};
     std::array<uint32, 2> meleeDamageByHand{};
+    std::array<uint64, 2> meleeDamageTotalByHand{};
     uint64 castPushbackMs = 0;
     std::vector<SpellCastEvent> spellCasts;
     std::vector<SpellDamageEvent> spellDamage;
@@ -262,10 +375,36 @@ struct Actor
     std::map<uint64, std::map<uint16, uint32>> unitValues;
     std::map<uint32, uint32> creatureQueryRank;
     uint32 lastQuestWindow = 0;
+    std::string observerError;
     std::unique_ptr<WorldSession> session;
+    uint32 accountId = 0;
     ObjectGuid guid;
     ActorStage stage = ActorStage::Account;
+    std::vector<std::pair<ActorStage, Clock::time_point>> reached;
+    bool generatedName = false;
 };
+
+char const* StageName(ActorStage stage)
+{
+    switch (stage)
+    {
+        case ActorStage::Account: return "account";
+        case ActorStage::Creating: return "creating";
+        case ActorStage::Enumerating: return "enumerating";
+        case ActorStage::Enumerated: return "enumerated";
+        case ActorStage::LoggingIn: return "logging_in";
+        case ActorStage::InWorld: return "in_world";
+        case ActorStage::Transfer: return "transfer";
+        case ActorStage::Ready: return "ready";
+    }
+    return "unknown";
+}
+
+void Reach(Actor& actor, ActorStage stage)
+{
+    actor.stage = stage;
+    actor.reached.emplace_back(stage, Clock::now());
+}
 
 struct Target
 {
@@ -416,399 +555,577 @@ void ObserveUnitValues(Actor& actor, WorldPacket const& packet)
     }
 }
 
-class CoAGameplayTest final : public WorldScript
+void ObservePacket(Actor& actor, WorldPacket const& packet)
+{
+    ObserveSpellCasts(actor, packet);
+    ObserveSpellDamage(actor, packet);
+    ObserveSpellHealing(actor, packet);
+    ObserveSpellEnergize(actor, packet);
+    if (packet.GetOpcode() == SMSG_SPELL_DELAYED)
+    {
+        WorldPacket response(packet);
+        ObjectGuid caster;
+        uint32 delay;
+        response >> caster.ReadAsPacked() >> delay;
+        if (caster == actor.guid)
+            actor.castPushbackMs += delay;
+    }
+    if (packet.GetOpcode() == SMSG_CAST_FAILED)
+    {
+        WorldPacket response(packet);
+        uint8 count, reason;
+        uint32 spell;
+        response >> count >> spell >> reason;
+        Tree failure;
+        failure.put("cast_count", uint32(count));
+        failure.put("spell", spell);
+        failure.put("reason", uint32(reason));
+        actor.castFailures.push_back({"", failure});
+        actor.castFailureReason[spell] = reason;
+    }
+
+    if (packet.GetOpcode() == SMSG_MESSAGECHAT)
+    {
+        ++actor.systemMessages;
+        WorldPacket chat(packet);
+        uint8 chatType = 0;
+        chat >> chatType;
+        if (chatType == CHAT_MSG_SYSTEM)
+        {
+            int32 language;
+            uint32 flags;
+            uint32 length;
+            ObjectGuid sender, receiver;
+            chat >> language >> sender >> flags >> receiver >> length;
+            std::string text;
+            if (length > 1)
+            {
+                text.resize(length - 1);
+                chat.read(reinterpret_cast<uint8*>(text.data()), text.size());
+            }
+            actor.systemMessageTexts.push_back(text);
+        }
+    }
+    if (packet.GetOpcode() == SMSG_NOTIFICATION)
+    {
+        ++actor.notifications;
+        WorldPacket notice(packet);
+        std::string text;
+        notice >> text;
+        actor.notificationTexts.push_back(text);
+    }
+    if (packet.GetOpcode() == SMSG_COA_CHALLENGE_START_RESPONSE)
+    {
+        ++actor.challengeStartResponses;
+        WorldPacket response(packet);
+        uint32 challengeId = 0, level = 0, code = 0;
+        response >> challengeId >> level >> code;
+        actor.challengeStartLastCode = code;
+    }
+    if (packet.GetOpcode() == SMSG_SHOW_BANK)
+        ++actor.bankShows;
+    if (packet.GetOpcode() == SMSG_CREATURE_QUERY_RESPONSE)
+    {
+        WorldPacket response(packet);
+        uint32 entry = 0;
+        response >> entry;
+        if (!(entry & 0x80000000))
+        {
+            std::string name, subName, iconName;
+            uint8 unusedName = 0;
+            uint32 typeFlags = 0, type = 0, family = 0, rank = 0;
+            response >> name >> unusedName >> unusedName >> unusedName >> subName >> iconName;
+            response >> typeFlags >> type >> family >> rank;
+            actor.creatureQueryRank[entry] = rank;
+        }
+    }
+    ObserveUnitValues(actor, packet);
+    if (packet.GetOpcode() == SMSG_ATTACKERSTATEUPDATE)
+    {
+        WorldPacket response(packet);
+        uint32 hitInfo;
+        uint32 damage;
+        ObjectGuid attacker, victim;
+        response >> hitInfo >> attacker.ReadAsPacked() >> victim.ReadAsPacked() >> damage;
+        if (attacker == actor.guid)
+        {
+            uint8 hand = hitInfo & HITINFO_OFFHAND ? OFF_ATTACK : BASE_ATTACK;
+            ++actor.meleeAttacksByHand[hand];
+            if (damage)
+            {
+                ++actor.meleeDamageByHand[hand];
+                actor.meleeDamageTotalByHand[hand] += damage;
+            }
+        }
+    }
+
+    ++actor.packetOrdinal;
+
+    if (packet.GetOpcode() == CoASpellbook::SMSG_PATCH_SPELL_CUSTOM_ATTR)
+    {
+        WorldPacket row(packet);
+        uint32 rowId = 0;
+        uint32 marked = 0;
+        row >> rowId >> marked;
+        ++actor.notifyRows[marked];
+        ++actor.notifyRowTotal;
+        actor.notifiedAt.emplace(marked, actor.packetOrdinal);
+    }
+
+    if (packet.GetOpcode() == SMSG_QUESTGIVER_OFFER_REWARD ||
+        packet.GetOpcode() == SMSG_QUESTGIVER_REQUEST_ITEMS ||
+        packet.GetOpcode() == SMSG_QUESTGIVER_QUEST_DETAILS)
+        actor.lastQuestWindow = packet.GetOpcode();
+
+    if (packet.GetOpcode() == SMSG_SUPERCEDED_SPELL)
+    {
+        ++actor.supersededPackets;
+        WorldPacket swap(packet);
+        uint32 previous = 0;
+        uint32 replacement = 0;
+        swap >> previous >> replacement;
+        ++actor.supersededFor[replacement];
+        actor.announcements.emplace_back(actor.packetOrdinal, replacement);
+    }
+
+    if (packet.GetOpcode() == SMSG_LEARNED_SPELL)
+    {
+        WorldPacket announcement(packet);
+        uint32 announced = 0;
+        announcement >> announced;
+        ++actor.learnedAlerts[announced];
+        actor.announced.insert(announced);
+        actor.announcements.emplace_back(actor.packetOrdinal, announced);
+    }
+
+    if (packet.GetOpcode() == SMSG_TRAINER_BUY_SUCCEEDED ||
+        packet.GetOpcode() == SMSG_TRAINER_BUY_FAILED)
+    {
+        WorldPacket answer(packet);
+        ObjectGuid trainer;
+        uint32 bought = 0;
+        answer >> trainer >> bought;
+        if (packet.GetOpcode() == SMSG_TRAINER_BUY_SUCCEEDED)
+        {
+            ++actor.buySucceeded[bought];
+            ++actor.buysGranted;
+            auto const notified = actor.notifiedAt.find(bought);
+            if (notified == actor.notifiedAt.end() || notified->second > actor.packetOrdinal)
+                ++actor.buysNotNotified;
+            if (!actor.announced.count(bought))
+                ++actor.buysUnannounced;
+            if (actor.learnedAlerts[bought] > 1)
+                ++actor.buysMisannounced;
+            actor.lastBuyCueIds.clear();
+            for (std::pair<uint32, uint32> const& entry : actor.announcements)
+                if (entry.first > actor.lastBuyOrdinal)
+                    actor.lastBuyCueIds.push_back(entry.second);
+
+            uint32 const sinceBuy = uint32(actor.lastBuyCueIds.size());
+            actor.lastBuyCues = sinceBuy;
+            if (!sinceBuy)
+                ++actor.buysSilent;
+            else if (sinceBuy > 1)
+                ++actor.buysMulti;
+            actor.lastBuyOrdinal = actor.packetOrdinal;
+        }
+        else
+            ++actor.buyFailed[bought];
+    }
+
+    if (packet.GetOpcode() == SMSG_TRAINER_LIST)
+    {
+        WorldPacket window(packet);
+        ObjectGuid trainer;
+        int32 type = 0;
+        int32 rows = 0;
+        window >> trainer >> type >> rows;
+        ++actor.trainerWindows;
+        actor.trainerWindowRows = rows > 0 ? uint32(rows) : 0;
+        actor.trainerWindowState.clear();
+        actor.trainerWindowAbility.clear();
+        for (int32 i = 0; i < rows; ++i)
+        {
+            int32 rowSpell = 0;
+            uint8 state = 0;
+            int32 price = 0;
+            uint32 pointCost0 = 0;
+            uint32 pointCost1 = 0;
+            uint8 requiredLevel = 0;
+            uint32 skillLine = 0;
+            uint32 skillRank = 0;
+            uint32 ability1 = 0;
+            uint32 ability2 = 0;
+            uint32 ability3 = 0;
+            window >> rowSpell >> state >> price >> pointCost0 >> pointCost1 >> requiredLevel
+                   >> skillLine >> skillRank >> ability1 >> ability2 >> ability3;
+            if (rowSpell > 0)
+            {
+                actor.trainerWindowState[uint32(rowSpell)] = state;
+                actor.trainerWindowAbility[uint32(rowSpell)] = ability1;
+            }
+        }
+    }
+
+    if (packet.GetOpcode() != SMSG_WHO)
+        return;
+    WorldPacket response(packet);
+    uint32 displayed, matches;
+    response >> displayed >> matches;
+    Require(displayed <= matches, "Invalid Who response counts");
+    actor.whoClasses.clear();
+    for (uint32 index = 0; index < displayed; ++index)
+    {
+        std::string name, guild;
+        uint32 level, playerClass, race, zone;
+        uint8 gender;
+        response >> name >> guild >> level >> playerClass >> race >> gender >> zone;
+        actor.whoClasses.emplace(name, playerClass);
+    }
+    Require(response.rpos() == response.size(), "Unexpected Who response fields");
+    ++actor.whoResponses;
+}
+
+class GameplayCase
 {
 public:
-    CoAGameplayTest() : WorldScript("CoAGameplayTest", { WORLDHOOK_ON_STARTUP,
-        WORLDHOOK_ON_UPDATE, WORLDHOOK_ON_SHUTDOWN }) { }
+    GameplayCase(std::string runId, std::string resultPath, uint32 phase = CoAGameplay::LanePhase(0),
+        CoAGameplay::NameAllocator* names = nullptr) : _phase(phase), _runId(std::move(runId)),
+        _resultPath(std::move(resultPath)), _names(names), _admitted(Clock::now()) { }
 
-    void OnStartup() override
+    void PlaceInBatch(std::string const& batchId, uint32 sequence, std::string const& clock, uint32 lane)
     {
-        if (!sConfigMgr->GetOption<bool>("CoAGameplayTest.Enable", false))
-            return;
+        _report.put("schema", 1);
+        _report.put("run_id", _runId);
+        _report.put("batch_id", batchId);
+        _report.put("sequence", sequence);
+        _report.put("clock", clock);
+        _report.put("lane", lane);
+        _report.put("phase_mask", _phase);
+        StartGameClock();
+        _measured = true;
+    }
 
-        _enabled = true;
-        _started = Clock::now();
-        ProcCounter::Begin();
-        try
+    void Load(std::string const& scenarioFile)
+    {
+        boost::property_tree::read_json(scenarioFile, _scenario);
+        Require(_scenario.get<uint32>("schema") == 1, "Unsupported scenario schema");
+        _timeout = _scenario.get<uint32>("timeout_ms", 90000);
+        Require(_timeout > 0 && _timeout <= 600000, "Invalid scenario timeout");
+        _report.put("schema", 1);
+        _report.put("run_id", _runId);
+        _report.put("scenario", _scenario.get<std::string>("name"));
+        _report.put("server_version", GitRevision::GetFullVersion());
+        _report.put("execution", "socketless-session-handlers");
+        _report.put("data_dir", sWorld->GetDataPath());
+        _steps = _scenario.get_child("steps");
+        Require(!_steps.empty() && _steps.size() <= 10000, "Scenario needs 1..10000 steps");
+        _nextStep = _steps.begin();
+
+        auto const& players = _scenario.get_child("players");
+        Require(!players.empty() && players.size() <= MaximumActors, "Scenario needs 1..8 players");
+        uint32 index = 0;
+        for (auto const& entry : players)
         {
-            _runId = sConfigMgr->GetOption<std::string>("CoAGameplayTest.RunId", "");
-            Require(_runId.size() == 12 && _runId.find_first_not_of("0123456789abcdef") == std::string::npos,
-                "RunId must be twelve lowercase hexadecimal characters");
-            CheckIsolation();
-            _resultPath = sConfigMgr->GetOption<std::string>("CoAGameplayTest.ResultFile", "");
-            Require(!std::filesystem::exists(_resultPath), "Result file already exists");
-            _startFile = sConfigMgr->GetOption<std::string>("CoAGameplayTest.StartFile", "");
-            Require(_startFile.empty() || !std::filesystem::exists(_startFile), "Start file already exists");
-            boost::property_tree::read_json(
-                sConfigMgr->GetOption<std::string>("CoAGameplayTest.ScenarioFile", ""), _scenario);
-            Require(_scenario.get<uint32>("schema") == 1, "Unsupported scenario schema");
-            _timeout = _scenario.get<uint32>("timeout_ms", 90000);
-            Require(_timeout > 0 && _timeout <= 600000, "Invalid scenario timeout");
-            _report.put("schema", 1);
-            _report.put("run_id", _runId);
-            _report.put("scenario", _scenario.get<std::string>("name"));
-            _report.put("server_version", GitRevision::GetFullVersion());
-            _report.put("execution", "socketless-session-handlers");
-            _report.put("data_dir", sWorld->GetDataPath());
-            _steps = _scenario.get_child("steps");
-            Require(!_steps.empty() && _steps.size() <= 10000, "Scenario needs 1..10000 steps");
-            _nextStep = _steps.begin();
-
-            auto const& players = _scenario.get_child("players");
-            Require(!players.empty() && players.size() <= MaximumActors, "Scenario needs 1..8 players");
-            uint32 index = 0;
-            for (auto const& entry : players)
-            {
-                std::string id = entry.second.get<std::string>("id");
-                Require(!id.empty() && !_actors.count(id), "Duplicate or empty player id");
-                auto& actor = _actors[id];
-                actor.definition = entry.second;
-                actor.account = "CT" + _runId + std::to_string(index);
-                actor.name = entry.second.get<std::string>("name", "Harness" + std::string(1, char('a' + index++)));
-                Require(normalizePlayerName(actor.name), "Invalid fixture character name");
-                for (auto const& [otherId, other] : _actors)
-                    Require(otherId == id || other.name != actor.name, "Duplicate fixture character name");
-                Require(AccountMgr::GetId(actor.account) == 0, "Test account already exists");
-                Require(sAccountMgr->CreateAccount(actor.account, _runId) == AOR_OK, "Account creation failed");
-            }
-
-            Tree ready;
-            ready.put("run_id", _runId);
-            ready.put("status", "ready");
-            ready.put("waiting_for_start", !_startFile.empty());
-            WriteResult(sConfigMgr->GetOption<std::string>("CoAGameplayTest.ReadyFile", ""), ready);
-            LOG_INFO("coa.gameplay_test", "Gameplay harness ready: {}", _runId);
-        }
-        catch (std::exception const& error)
-        {
-            Finish(false, error.what());
+            std::string id = entry.second.get<std::string>("id");
+            Require(!id.empty() && !_actors.count(id), "Duplicate or empty player id");
+            auto& actor = _actors[id];
+            actor.definition = entry.second;
+            actor.account = "CT" + _runId + std::to_string(index);
+            actor.name = FixtureName(entry.second, index++);
+            actor.generatedName = _names && !entry.second.get_optional<std::string>("name");
+            Require(normalizePlayerName(actor.name), "Invalid fixture character name");
+            for (auto const& [otherId, other] : _actors)
+                Require(otherId == id || other.name != actor.name, "Duplicate fixture character name");
+            Require(AccountMgr::GetId(actor.account) == 0, "Test account already exists");
+            Require(sAccountMgr->CreateAccount(actor.account, _runId) == AOR_OK, "Account creation failed");
+            LookUpAccount(id);
         }
     }
 
-    void OnUpdate(uint32) override
+    void RestartClock()
     {
-        if (!_enabled || _finished)
-            return;
+        _admitted = Clock::now();
+        _admittedGame.reset();
+    }
 
+    bool Tick(uint32 diff)
+    {
+        ++_ticks;
+        if (AnyActorInWorld())
+            _maxStepMs = std::max(_maxStepMs, diff);
+        if (!_admittedGame)
+            StartGameClock();
+        RaiseObserverErrors();
         try
         {
-            if (!_startFile.empty())
-            {
-                Require(Elapsed(_started) < 600000, "Runner did not release the startup barrier");
-                std::ifstream startStream(_startFile);
-                if (!startStream.is_open())
-                    return;
-                Tree start;
-                boost::property_tree::read_json(startStream, start);
-                Require(start.get<std::string>("run_id") == _runId, "Start file belongs to another run");
-                _startFile.clear();
-                _started = Clock::now();
-            }
-            Require(Elapsed(_started) < _timeout, "Scenario timed out during setup or execution");
-            _queries.ProcessReadyCallbacks();
-            bool ready = true;
-            for (auto& [id, actor] : _actors)
-            {
-                PumpActor(id, actor);
-                ready = ready && actor.stage == ActorStage::Ready;
-            }
-            if (!ready)
-                return;
-            if (!_targetsCreated)
-                CreateTargets();
-            if (_nextStep == _steps.end())
-            {
-                Require(_assertions > 0, "Scenario completed without assertions");
-                Finish(true, "All assertions passed");
-                return;
-            }
-            RunStep(_nextStep->second);
+            bool const completed = Progress();
+            RaiseObserverErrors();
+            return completed;
         }
-        catch (std::exception const& error)
+        catch (std::exception const&)
         {
-            Finish(false, error.what());
+            RaiseObserverErrors();
+            throw;
         }
     }
 
-    void OnShutdown() override
+    uint32 VisiblePhases() const
     {
-        if (_enabled && !_finished)
-            Finish(false, "Server shut down before the scenario completed");
+        uint32 phases = _phase;
+        for (auto const& [id, actor] : _actors)
+            if (Player const* player = actor.session ? actor.session->GetPlayer() : nullptr)
+                phases |= player->GetPhaseMask();
+        return phases;
+    }
+
+    StepRequest StepNeed() const
+    {
+        StepRequest request;
+        request.databaseQuiet = DatabaseQuiet();
+        if (!_readyAt)
+        {
+            if (AnyActorInWorld())
+                request.activity = LaneActivity::Stepping;
+            return request;
+        }
+        request.activity = LaneActivity::Stepping;
+        if (!_stepStarted || _nextStep == _steps.end())
+            return request;
+        Tree const& step = _nextStep->second;
+        bool const waiting = step.get<std::string>("action", "") == "wait";
+        uint64 const window = waiting ? step.get<uint32>("ms", 0) : step.get<uint32>("within_ms", 0);
+        uint64 const elapsed = GameElapsed(_stepTime);
+        request.activity = waiting ? LaneActivity::Waiting : LaneActivity::Polling;
+        request.remaining = Milliseconds(Milliseconds::rep(window > elapsed ? window - elapsed : 0));
+        return request;
+    }
+
+    void Conclude(bool passed, std::string const& message)
+    {
+        if (!passed)
+            LOG_ERROR("coa.gameplay_test", "Scenario failed at step {}: {}", _completed, message);
+        Tree failures;
+        for (auto const& [id, actor] : _actors)
+            for (auto const& entry : actor.castFailures)
+            {
+                Tree failure = entry.second;
+                failure.put("actor", id);
+                failures.push_back({"", failure});
+            }
+        if (!failures.empty())
+            _report.put_child("cast_failures", failures);
+        _report.put("status", passed ? "passed" : "failed");
+        _report.put("message", message);
+        _report.put("elapsed_ms", TimeoutElapsed());
+        _report.put("assertions", _assertions);
+        _report.put("completed_steps", _completed);
+        _report.put_child("steps", _records);
+        if (_measured)
+            RecordTiming();
+    }
+
+    bool Dismiss(bool leaveGroups)
+    {
+        std::set<ObjectGuid> units;
+        for (auto const& [id, target] : _targets)
+        {
+            if (Map* map = sMapMgr->FindMap(target.map, target.instance))
+                if (Creature* creature = map->GetCreature(target.guid))
+                    creature->DespawnOrUnsummon();
+            LocalLevelScaling::ForgetFixture(target.guid.GetRawValue());
+            units.insert(target.guid);
+        }
+        bool ungrouped = true;
+        for (auto& [id, actor] : _actors)
+            if (Player* player = actor.session ? actor.session->GetPlayer() : nullptr)
+            {
+                if (leaveGroups)
+                    ungrouped = LeaveGroups(player) && ungrouped;
+                actor.session->LogoutPlayer(false);
+            }
+        for (auto& [id, actor] : _actors)
+        {
+            actor.session.reset();
+            if (actor.guid.IsEmpty())
+                continue;
+            NoRegenerationActors.erase(actor.guid);
+            units.insert(actor.guid);
+        }
+        ProcCounter::Forget(units);
+        return ungrouped;
+    }
+
+    bool Write()
+    {
+        return WriteCaseResult(_resultPath, _report);
+    }
+
+    CaseOutcome Outcome() const
+    {
+        CaseOutcome outcome{ _resultPath, _report, {} };
+        for (auto const& [id, actor] : _actors)
+        {
+            if (!actor.account.empty())
+                outcome.accounts.accounts.push_back(actor.account);
+            if (!actor.name.empty())
+                outcome.accounts.characters.push_back(actor.name);
+            outcome.accounts.namesReusable = outcome.accounts.namesReusable || !actor.generatedName;
+        }
+        return outcome;
     }
 
 private:
-    void CheckIsolation()
+    static bool LeaveGroups(Player* player)
     {
-        std::string worldId = sConfigMgr->GetOption<std::string>("CoAGameplayTest.WorldDatabaseId", _runId);
-        Require(worldId.size() == 12 && worldId.find_first_not_of("0123456789abcdef") == std::string::npos,
-            "WorldDatabaseId must be twelve lowercase hexadecimal characters");
-        for (auto const& [key, suffix] : std::map<std::string, std::string>{
-            { "LoginDatabaseInfo", "auth" }, { "CharacterDatabaseInfo", "characters" },
-            { "WorldDatabaseInfo", "world" } })
+        for (uint8 nesting = 0; nesting < 2; ++nesting)
+            if (Group* group = player->GetGroup())
+                group->Disband();
+        return !player->GetGroup() && !player->GetOriginalGroup();
+    }
+
+    std::string FixtureName(Tree const& definition, uint32 index)
+    {
+        char const legacy = char('a' + index);
+        if (auto name = definition.get_optional<std::string>("name"))
+            return *name;
+        if (!_names)
+            return "Harness" + std::string(1, legacy);
+        return _legacyNames[legacy] = _names->Next();
+    }
+
+    std::string CommandText(Tree const& step) const
+    {
+        std::string const command = step.get<std::string>("command");
+        return _legacyNames.empty() ? command : CoAGameplay::SubstituteLegacyNames(command, _legacyNames);
+    }
+
+    void LookUpAccount(std::string const& id)
+    {
+        std::string const query = Acore::StringFormat("SELECT id FROM account WHERE username = '{}'",
+            _actors.at(id).account);
+        _queries.AddCallback(LoginDatabase.AsyncQuery(query).WithCallback([this, id](QueryResult result)
         {
-            std::string connection = sConfigMgr->GetOption<std::string>(key, "");
-            auto first = connection.find(';');
-            auto last = connection.rfind(';');
-            Require(first != std::string::npos && last != first, "Invalid database connection");
-            std::string host = connection.substr(0, first);
-            Require(host == "127.0.0.1" || host == "localhost" || host == "::1", "Test DB must be local");
-            std::string databaseId = suffix == "world" ? worldId : _runId;
-            Require(connection.substr(last + 1) == "coa_test_" + databaseId + "_" + suffix,
-                "Harness requires its own named test databases");
+            if (result)
+            {
+                _actors.at(id).accountId = result->Fetch()[0].Get<uint32>();
+                _actors.at(id).reached.emplace_back(ActorStage::Account, Clock::now());
+            }
+            else
+                LookUpAccount(id);
+        }));
+    }
+
+    void StartGameClock()
+    {
+        _admittedGame = GameTime::Now();
+        _report.put("realm_local_start", RealmLocalText(GameTime::GetGameTime()));
+    }
+
+    void RaiseObserverErrors() const
+    {
+        for (auto const& [id, actor] : _actors)
+            Require(actor.observerError.empty(), actor.observerError);
+    }
+
+    void CheckTimeout() const
+    {
+        Require(TimeoutElapsed() < _timeout, "Scenario timed out during setup or execution");
+        Require(Elapsed(_admitted) < RealBackstopFactor * _timeout,
+            "Scenario exceeded three times its timeout in real time");
+    }
+
+    uint64 TimeoutElapsed() const
+    {
+        return _readyAt ? _setupRealMs + GameElapsed(*_readyAt) : Elapsed(_admitted);
+    }
+
+    void RecordTiming()
+    {
+        uint64 const real = Elapsed(_admitted);
+        _report.put("game_elapsed_ms", _admittedGame ? GameElapsed(*_admittedGame) : 0);
+        _report.put("real_elapsed_ms", real);
+        _report.put("setup_real_ms", _readyAt ? _setupRealMs : real);
+        _report.put("ticks", _ticks);
+        _report.put("max_step_ms", _maxStepMs);
+        Tree stages;
+        for (auto const& [id, actor] : _actors)
+        {
+            Tree reached;
+            for (auto const& [stage, at] : actor.reached)
+                reached.put(StageName(stage),
+                    std::chrono::duration_cast<std::chrono::milliseconds>(at - _admitted).count());
+            stages.put_child(id, reached);
         }
-        Require(sConfigMgr->GetOption<std::string>("BindIP", "") == "127.0.0.1", "BindIP must be loopback");
-        Require(sConfigMgr->GetOption<uint32>("MapUpdate.Threads", 1) == 0, "Map workers must be disabled");
+        _report.put_child("setup_stages", stages);
+    }
+
+    bool DatabaseQuiet() const
+    {
+        return _queries.Empty() && std::ranges::none_of(_actors, [](auto const& entry)
+        {
+            return entry.second.session && entry.second.session->HasPendingAsyncCallbacks();
+        });
+    }
+
+    bool AnyActorInWorld() const
+    {
+        return std::ranges::any_of(_actors, [](auto const& entry)
+        {
+            return entry.second.stage >= ActorStage::InWorld;
+        });
+    }
+
+    bool AllActorsAt(ActorStage stage) const
+    {
+        return std::ranges::all_of(_actors, [stage](auto const& entry) { return entry.second.stage == stage; });
+    }
+
+    bool Progress()
+    {
+        CheckTimeout();
+        _queries.ProcessReadyCallbacks();
+        if (!Prepared())
+            return false;
+        if (!_targetsCreated)
+            CreateTargets();
+        if (!TargetsSettled())
+            return false;
+        if (_nextStep == _steps.end())
+        {
+            Require(_assertions > 0, "Scenario completed without assertions");
+            return true;
+        }
+        RunStep(_nextStep->second);
+        return false;
+    }
+
+    bool Prepared()
+    {
+        for (auto& [id, actor] : _actors)
+            PumpActor(id, actor);
+        if (_readyAt)
+            return true;
+        if (AllActorsAt(ActorStage::Enumerated))
+            for (auto& [id, actor] : _actors)
+                LogIn(actor);
+        if (AllActorsAt(ActorStage::InWorld))
+            for (auto& [id, actor] : _actors)
+                Normalize(id, actor);
+        if (!AllActorsAt(ActorStage::Ready))
+            return false;
+        _readyAt = GameTime::Now();
+        _setupRealMs = Elapsed(_admitted);
+        return true;
     }
 
     void PumpActor(std::string const& id, Actor& actor)
     {
         if (actor.stage == ActorStage::Account)
         {
-            uint32 accountId = AccountMgr::GetId(actor.account);
-            if (!accountId)
+            if (!actor.accountId)
                 return;
-            actor.session = std::make_unique<WorldSession>(accountId, std::string(actor.account), 0, nullptr,
-                SEC_PLAYER, EXPANSION_WRATH_OF_THE_LICH_KING, 0, LOCALE_enUS, 0, false, false, 0,
-                actor.definition.get<bool>("bot", false));
-            actor.session->SetSocketlessPacketObserver([&actor](WorldPacket const& packet)
-            {
-                ObserveSpellCasts(actor, packet);
-                ObserveSpellDamage(actor, packet);
-                ObserveSpellHealing(actor, packet);
-                ObserveSpellEnergize(actor, packet);
-                if (packet.GetOpcode() == SMSG_SPELL_DELAYED)
-                {
-                    WorldPacket response(packet);
-                    ObjectGuid caster;
-                    uint32 delay;
-                    response >> caster.ReadAsPacked() >> delay;
-                    if (caster == actor.guid)
-                        actor.castPushbackMs += delay;
-                }
-                if (packet.GetOpcode() == SMSG_CAST_FAILED)
-                {
-                    WorldPacket response(packet);
-                    uint8 count, reason;
-                    uint32 spell;
-                    response >> count >> spell >> reason;
-                    Tree failure;
-                    failure.put("cast_count", uint32(count));
-                    failure.put("spell", spell);
-                    failure.put("reason", uint32(reason));
-                    actor.castFailures.push_back({"", failure});
-                    actor.castFailureReason[spell] = reason;
-                }
-
-                if (packet.GetOpcode() == SMSG_MESSAGECHAT)
-                {
-                    ++actor.systemMessages;
-                    WorldPacket chat(packet);
-                    uint8 chatType = 0;
-                    chat >> chatType;
-                    if (chatType == CHAT_MSG_SYSTEM)
-                    {
-                        int32 language;
-                        uint32 flags;
-                        uint32 length;
-                        ObjectGuid sender, receiver;
-                        chat >> language >> sender >> flags >> receiver >> length;
-                        std::string text;
-                        if (length > 1)
-                        {
-                            text.resize(length - 1);
-                            chat.read(reinterpret_cast<uint8*>(text.data()), text.size());
-                        }
-                        actor.systemMessageTexts.push_back(text);
-                    }
-                }
-                if (packet.GetOpcode() == SMSG_NOTIFICATION)
-                {
-                    ++actor.notifications;
-                    WorldPacket notice(packet);
-                    std::string text;
-                    notice >> text;
-                    actor.notificationTexts.push_back(text);
-                }
-                if (packet.GetOpcode() == SMSG_COA_CHALLENGE_START_RESPONSE)
-                {
-                    ++actor.challengeStartResponses;
-                    WorldPacket response(packet);
-                    uint32 challengeId = 0, level = 0, code = 0;
-                    response >> challengeId >> level >> code;
-                    actor.challengeStartLastCode = code;
-                }
-                if (packet.GetOpcode() == SMSG_SHOW_BANK)
-                    ++actor.bankShows;
-                if (packet.GetOpcode() == SMSG_CREATURE_QUERY_RESPONSE)
-                {
-                    WorldPacket response(packet);
-                    uint32 entry = 0;
-                    response >> entry;
-                    if (!(entry & 0x80000000))
-                    {
-                        std::string name, subName, iconName;
-                        uint8 unusedName = 0;
-                        uint32 typeFlags = 0, type = 0, family = 0, rank = 0;
-                        response >> name >> unusedName >> unusedName >> unusedName >> subName >> iconName;
-                        response >> typeFlags >> type >> family >> rank;
-                        actor.creatureQueryRank[entry] = rank;
-                    }
-                }
-                ObserveUnitValues(actor, packet);
-                if (packet.GetOpcode() == SMSG_ATTACKERSTATEUPDATE)
-                {
-                    WorldPacket response(packet);
-                    uint32 hitInfo;
-                    uint32 damage;
-                    ObjectGuid attacker, victim;
-                    response >> hitInfo >> attacker.ReadAsPacked() >> victim.ReadAsPacked() >> damage;
-                    if (attacker == actor.guid)
-                    {
-                        uint8 hand = hitInfo & HITINFO_OFFHAND ? OFF_ATTACK : BASE_ATTACK;
-                        ++actor.meleeAttacksByHand[hand];
-                        if (damage)
-                            ++actor.meleeDamageByHand[hand];
-                    }
-                }
-
-                ++actor.packetOrdinal;
-
-                if (packet.GetOpcode() == CoASpellbook::SMSG_PATCH_SPELL_CUSTOM_ATTR)
-                {
-                    WorldPacket row(packet);
-                    uint32 rowId = 0;
-                    uint32 marked = 0;
-                    row >> rowId >> marked;
-                    ++actor.notifyRows[marked];
-                    ++actor.notifyRowTotal;
-                    actor.notifiedAt.emplace(marked, actor.packetOrdinal);
-                }
-
-                if (packet.GetOpcode() == SMSG_QUESTGIVER_OFFER_REWARD ||
-                    packet.GetOpcode() == SMSG_QUESTGIVER_REQUEST_ITEMS ||
-                    packet.GetOpcode() == SMSG_QUESTGIVER_QUEST_DETAILS)
-                    actor.lastQuestWindow = packet.GetOpcode();
-
-                if (packet.GetOpcode() == SMSG_SUPERCEDED_SPELL)
-                {
-                    ++actor.supersededPackets;
-                    WorldPacket swap(packet);
-                    uint32 previous = 0;
-                    uint32 replacement = 0;
-                    swap >> previous >> replacement;
-                    ++actor.supersededFor[replacement];
-                    actor.announcements.emplace_back(actor.packetOrdinal, replacement);
-                }
-
-                if (packet.GetOpcode() == SMSG_LEARNED_SPELL)
-                {
-                    WorldPacket announcement(packet);
-                    uint32 announced = 0;
-                    announcement >> announced;
-                    ++actor.learnedAlerts[announced];
-                    actor.announced.insert(announced);
-                    actor.announcements.emplace_back(actor.packetOrdinal, announced);
-                }
-
-                if (packet.GetOpcode() == SMSG_TRAINER_BUY_SUCCEEDED ||
-                    packet.GetOpcode() == SMSG_TRAINER_BUY_FAILED)
-                {
-                    WorldPacket answer(packet);
-                    ObjectGuid trainer;
-                    uint32 bought = 0;
-                    answer >> trainer >> bought;
-                    if (packet.GetOpcode() == SMSG_TRAINER_BUY_SUCCEEDED)
-                    {
-                        ++actor.buySucceeded[bought];
-                        ++actor.buysGranted;
-                        auto const notified = actor.notifiedAt.find(bought);
-                        if (notified == actor.notifiedAt.end() || notified->second > actor.packetOrdinal)
-                            ++actor.buysNotNotified;
-                        if (!actor.announced.count(bought))
-                            ++actor.buysUnannounced;
-                        if (actor.learnedAlerts[bought] > 1)
-                            ++actor.buysMisannounced;
-                        actor.lastBuyCueIds.clear();
-                        for (std::pair<uint32, uint32> const& entry : actor.announcements)
-                            if (entry.first > actor.lastBuyOrdinal)
-                                actor.lastBuyCueIds.push_back(entry.second);
-
-                        uint32 const sinceBuy = uint32(actor.lastBuyCueIds.size());
-                        actor.lastBuyCues = sinceBuy;
-                        if (!sinceBuy)
-                            ++actor.buysSilent;
-                        else if (sinceBuy > 1)
-                            ++actor.buysMulti;
-                        actor.lastBuyOrdinal = actor.packetOrdinal;
-                    }
-                    else
-                        ++actor.buyFailed[bought];
-                }
-
-                if (packet.GetOpcode() == SMSG_TRAINER_LIST)
-                {
-                    WorldPacket window(packet);
-                    ObjectGuid trainer;
-                    int32 type = 0;
-                    int32 rows = 0;
-                    window >> trainer >> type >> rows;
-                    ++actor.trainerWindows;
-                    actor.trainerWindowRows = rows > 0 ? uint32(rows) : 0;
-                    actor.trainerWindowState.clear();
-                    actor.trainerWindowAbility.clear();
-                    for (int32 i = 0; i < rows; ++i)
-                    {
-                        int32 rowSpell = 0;
-                        uint8 state = 0;
-                        int32 price = 0;
-                        uint32 pointCost0 = 0;
-                        uint32 pointCost1 = 0;
-                        uint8 requiredLevel = 0;
-                        uint32 skillLine = 0;
-                        uint32 skillRank = 0;
-                        uint32 ability1 = 0;
-                        uint32 ability2 = 0;
-                        uint32 ability3 = 0;
-                        window >> rowSpell >> state >> price >> pointCost0 >> pointCost1 >> requiredLevel
-                               >> skillLine >> skillRank >> ability1 >> ability2 >> ability3;
-                        if (rowSpell > 0)
-                        {
-                            actor.trainerWindowState[uint32(rowSpell)] = state;
-                            actor.trainerWindowAbility[uint32(rowSpell)] = ability1;
-                        }
-                    }
-                }
-
-                if (packet.GetOpcode() != SMSG_WHO)
-                    return;
-                WorldPacket response(packet);
-                uint32 displayed, matches;
-                response >> displayed >> matches;
-                Require(displayed <= matches, "Invalid Who response counts");
-                actor.whoClasses.clear();
-                for (uint32 index = 0; index < displayed; ++index)
-                {
-                    std::string name, guild;
-                    uint32 level, playerClass, race, zone;
-                    uint8 gender;
-                    response >> name >> guild >> level >> playerClass >> race >> gender >> zone;
-                    actor.whoClasses.emplace(name, playerClass);
-                }
-                Require(response.rpos() == response.size(), "Unexpected Who response fields");
-                ++actor.whoResponses;
-            });
-            actor.session->InitializeSession();
-            WorldPacket create(CMSG_CHAR_CREATE, 32);
-            uint32 race = actor.definition.get<uint32>("race");
-            uint32 playerClass = actor.definition.get<uint32>("class");
-            Require(race > 0 && race <= 255 && playerClass > 0 && playerClass <= 255,
-                "Race/class must fit the character creation packet");
-            create << actor.definition.get<std::string>("name", actor.name) << uint8(race) << uint8(playerClass);
-            for (uint8 i = 0; i < 7; ++i)
-                create << uint8(0);
-            actor.session->HandleCharCreateOpcode(create);
-            actor.stage = ActorStage::Creating;
+            OpenSession(actor);
         }
 
         if (!actor.session->GetPlayer() || !actor.session->GetPlayer()->IsInWorld())
@@ -825,17 +1142,14 @@ private:
             auto* statement = CharacterDatabase.GetPreparedStatement(CHAR_SEL_ENUM);
             statement->SetData(0, PET_SAVE_AS_CURRENT);
             statement->SetData(1, actor.session->GetAccountId());
-            actor.stage = ActorStage::Enumerating;
+            Reach(actor, ActorStage::Enumerating);
             _queries.AddCallback(CharacterDatabase.AsyncQuery(statement).WithPreparedCallback(
                 [this, id](PreparedQueryResult result)
                 {
                     Require(bool(result), "Created character missing from enumeration");
                     auto& current = _actors.at(id);
                     current.session->HandleCharEnum(result);
-                    WorldPacket login(CMSG_PLAYER_LOGIN, 8);
-                    login << current.guid;
-                    current.session->HandlePlayerLoginOpcode(login);
-                    current.stage = ActorStage::LoggingIn;
+                    Reach(current, ActorStage::Enumerated);
                 }));
         }
 
@@ -850,38 +1164,88 @@ private:
         {
             if (actor.session->PlayerLoading() || !player->IsInWorld())
                 return;
-            uint32 level = actor.definition.get<uint32>("level", 80);
-            Require(level > 0 && level <= uint32(sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL)),
-                "Invalid player level");
-            player->SetPhaseMask(TestPhase, true);
-            player->GiveLevel(uint8(level));
-            Require(player->GetLevel() == level, "Fixture level change rejected");
-            if (auto hitRating = actor.definition.get_optional<int32>("spell_hit_rating"))
-                player->ApplyRatingMod(CR_HIT_SPELL, *hitRating, true);
-            if (auto critRating = actor.definition.get_optional<int32>("spell_crit_rating"))
-                player->ApplyRatingMod(CR_CRIT_SPELL, *critRating, true);
-            if (auto critRating = actor.definition.get_optional<int32>("melee_crit_rating"))
-                player->ApplyRatingMod(CR_CRIT_MELEE, *critRating, true);
-            if (auto hitRating = actor.definition.get_optional<int32>("ranged_hit_rating"))
-                player->ApplyRatingMod(CR_HIT_RANGED, *hitRating, true);
-            if (auto hitRating = actor.definition.get_optional<int32>("melee_hit_rating"))
-                player->ApplyRatingMod(CR_HIT_MELEE, *hitRating, true);
-            if (auto expertise = actor.definition.get_optional<int32>("expertise_rating"))
-                player->ApplyRatingMod(CR_EXPERTISE, *expertise, true);
-            if (!actor.definition.get<bool>("allow_regeneration", true))
-                NoRegenerationActors.insert(player->GetGUID());
-            player->SetHealth(player->GetMaxHealth());
-            for (uint8 power = 0; power < MAX_POWERS; ++power)
-                player->SetPower(Powers(power), player->GetMaxPower(Powers(power)));
-            actor.stage = ActorStage::Transfer;
-            if (auto location = _scenario.get_child_optional("location"))
-                Require(player->TeleportTo(location->get<uint32>("map"), location->get<float>("x"),
-                    location->get<float>("y"), location->get<float>("z"), location->get<float>("o", 0),
-                    location->get<bool>("ignore_access", false) ? TELE_TO_GM_MODE : 0),
-                    "Fixture teleport failed");
+            player->SetPhaseMask(_phase, true);
+            Reach(actor, ActorStage::InWorld);
         }
+        CompleteTransfer(actor);
+    }
 
-        player = actor.session->GetPlayer();
+    static void OpenSession(Actor& actor)
+    {
+        actor.session = std::make_unique<WorldSession>(actor.accountId, std::string(actor.account), 0, nullptr,
+            SEC_PLAYER, EXPANSION_WRATH_OF_THE_LICH_KING, 0, LOCALE_enUS, 0, false, false, 0,
+            actor.definition.get<bool>("bot", false));
+        actor.session->SetSocketlessPacketObserver([&actor](WorldPacket const& packet)
+        {
+            try
+            {
+                ObservePacket(actor, packet);
+            }
+            catch (std::exception const& error)
+            {
+                if (actor.observerError.empty())
+                    actor.observerError = error.what();
+            }
+        });
+        actor.session->InitializeSession();
+        WorldPacket create(CMSG_CHAR_CREATE, 32);
+        uint32 race = actor.definition.get<uint32>("race");
+        uint32 playerClass = actor.definition.get<uint32>("class");
+        Require(race > 0 && race <= 255 && playerClass > 0 && playerClass <= 255,
+            "Race/class must fit the character creation packet");
+        create << actor.definition.get<std::string>("name", actor.name) << uint8(race) << uint8(playerClass);
+        for (uint8 i = 0; i < 7; ++i)
+            create << uint8(0);
+        actor.session->HandleCharCreateOpcode(create);
+        Reach(actor, ActorStage::Creating);
+    }
+
+    static void LogIn(Actor& actor)
+    {
+        WorldPacket login(CMSG_PLAYER_LOGIN, 8);
+        login << actor.guid;
+        actor.session->HandlePlayerLoginOpcode(login);
+        Reach(actor, ActorStage::LoggingIn);
+    }
+
+    void Normalize(std::string const& id, Actor& actor)
+    {
+        Player* player = actor.session->GetPlayer();
+        Require(player && player->IsInWorld(), "Test player left the world: " + id);
+        uint32 level = actor.definition.get<uint32>("level", 80);
+        Require(level > 0 && level <= uint32(sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL)),
+            "Invalid player level");
+        player->GiveLevel(uint8(level));
+        Require(player->GetLevel() == level, "Fixture level change rejected");
+        if (auto hitRating = actor.definition.get_optional<int32>("spell_hit_rating"))
+            player->ApplyRatingMod(CR_HIT_SPELL, *hitRating, true);
+        if (auto critRating = actor.definition.get_optional<int32>("spell_crit_rating"))
+            player->ApplyRatingMod(CR_CRIT_SPELL, *critRating, true);
+        if (auto critRating = actor.definition.get_optional<int32>("melee_crit_rating"))
+            player->ApplyRatingMod(CR_CRIT_MELEE, *critRating, true);
+        if (auto hitRating = actor.definition.get_optional<int32>("ranged_hit_rating"))
+            player->ApplyRatingMod(CR_HIT_RANGED, *hitRating, true);
+        if (auto hitRating = actor.definition.get_optional<int32>("melee_hit_rating"))
+            player->ApplyRatingMod(CR_HIT_MELEE, *hitRating, true);
+        if (auto expertise = actor.definition.get_optional<int32>("expertise_rating"))
+            player->ApplyRatingMod(CR_EXPERTISE, *expertise, true);
+        if (!actor.definition.get<bool>("allow_regeneration", true))
+            NoRegenerationActors.insert(player->GetGUID());
+        player->SetHealth(player->GetMaxHealth());
+        for (uint8 power = 0; power < MAX_POWERS; ++power)
+            player->SetPower(Powers(power), player->GetMaxPower(Powers(power)));
+        Reach(actor, ActorStage::Transfer);
+        if (auto location = _scenario.get_child_optional("location"))
+            Require(player->TeleportTo(location->get<uint32>("map"), location->get<float>("x"),
+                location->get<float>("y"), location->get<float>("z"), location->get<float>("o", 0),
+                location->get<bool>("ignore_access", false) ? TELE_TO_GM_MODE : 0),
+                "Fixture teleport failed");
+        CompleteTransfer(actor);
+    }
+
+    static void CompleteTransfer(Actor& actor)
+    {
+        Player* player = actor.session->GetPlayer();
         if (player && player->IsBeingTeleportedFar())
             actor.session->HandleMoveWorldportAck();
         player = actor.session->GetPlayer();
@@ -893,7 +1257,7 @@ private:
         }
         if (actor.stage == ActorStage::Transfer && player && player->IsInWorld()
             && !player->IsBeingTeleported())
-            actor.stage = ActorStage::Ready;
+            Reach(actor, ActorStage::Ready);
     }
 
     Player* GetPlayer(std::string const& id)
@@ -943,6 +1307,17 @@ private:
         return nullptr;
     }
 
+    bool TargetsSettled() const
+    {
+        return std::ranges::none_of(_targets, [](auto const& entry)
+        {
+            Target const& target = entry.second;
+            Map* map = sMapMgr->FindMap(target.map, target.instance);
+            Creature* creature = map ? map->GetCreature(target.guid) : nullptr;
+            return creature && creature->IsInEvadeMode();
+        });
+    }
+
     void CreateTargets()
     {
         if (auto creatures = _scenario.get_child_optional("creatures"))
@@ -960,7 +1335,7 @@ private:
                 TempSummon* creature = player->SummonCreature(definition.get<uint32>("entry"), position);
                 Require(creature != nullptr, "Could not summon fixture creature: " + id);
                 _targets.emplace(id, Target{ creature->GetMapId(), creature->GetInstanceId(), creature->GetGUID() });
-                creature->SetPhaseMask(TestPhase, true);
+                creature->SetPhaseMask(_phase, true);
                 if (definition.get<bool>("level_scaling", false))
                     LocalLevelScaling::AllowFixtureScaling(creature->GetGUID().GetRawValue());
                 creature->SetReactState(REACT_PASSIVE);
@@ -972,6 +1347,8 @@ private:
                 creature->SetMaxHealth(health);
                 creature->SetHealth(creature->GetMaxHealth());
                 creature->CombatStop(true, true);
+                if (CreatureAI* ai = creature->AI(); ai && ai->IsEngaged())
+                    ai->EnterEvadeMode();
                 creature->SetReactState(REACT_PASSIVE);
             }
         }
@@ -997,6 +1374,8 @@ private:
             return unit->GetHealthPct();
         if (metric == "max_health")
             return unit->GetMaxHealth();
+        if (metric == "creature_type")
+            return unit->GetCreatureType();
         if (metric == "display_id")
             return unit->GetDisplayId();
         if (metric == "unit_scale")
@@ -1022,6 +1401,8 @@ private:
             return unit->IsNonMeleeSpellCast(false);
         if (metric == "moving")
             return unit->isMoving();
+        if (metric == "water_walk")
+            return unit->HasWaterWalkAura();
         if (metric == "forced_forward")
             return unit->HasUnitFlag2(UNIT_FLAG2_FORCE_MOVEMENT);
         if (metric == "cast_pushback_ms")
@@ -1049,6 +1430,12 @@ private:
         }
         if (metric == "level")
             return unit->GetLevel();
+        if (metric == "lfg_dungeon_disabled")
+        {
+            lfg::LFGDungeonData const* dungeon = sLFGMgr->GetLFGDungeon(step.get<uint32>("dungeon"));
+            Require(dungeon != nullptr, "LFG disable metric needs a known dungeon");
+            return sLFGMgr->IsDungeonDisabled(dungeon->map, Difficulty(dungeon->difficulty)) ? 1 : 0;
+        }
         if (metric == "view_level")
             return GetUnit(step.get<std::string>("target"))->getLevelForTarget(unit);
         if (metric == "sent_level" || metric == "sent_max_health")
@@ -1131,11 +1518,19 @@ private:
         if (metric == "spell_go_count")
         {
             Require(unit->IsPlayer(), "Cast packets need a player observer");
-            Unit* caster = step.get<bool>("pet", false) ? static_cast<Unit*>(unit->ToPlayer()->GetPet()) : unit;
-            Require(caster != nullptr, "Cast query needs a present pet");
+            auto const entry = step.get_optional<uint32>("entry");
+            Require(!entry || !step.get<bool>("pet", false), "Cast query selects either a pet or a creature entry");
+            ObjectGuid caster;
+            if (!entry)
+            {
+                Unit* source = step.get<bool>("pet", false) ? static_cast<Unit*>(unit->ToPlayer()->GetPet()) : unit;
+                Require(source != nullptr, "Cast query needs a present pet");
+                caster = source->GetGUID();
+            }
             uint32 count = 0;
             for (SpellCastEvent const& event : _actors.at(step.get<std::string>("actor")).spellCasts)
-                if (event.caster == caster->GetGUID() && event.spell == spell)
+                if (event.spell == spell && (entry ? event.caster.IsCreature() && event.caster.GetEntry() == *entry
+                                                   : event.caster == caster))
                     ++count;
             return count;
         }
@@ -1397,9 +1792,19 @@ private:
             return player->GetShieldBlockValue();
         if (metric == "critical_block_chance")
             return player->GetTotalAuraModifier(SPELL_AURA_MOD_BLOCK_CRIT_CHANCE);
-        if (metric == "melee_attack_count" || metric == "melee_damage_count")
+        if (metric == "melee_attack_count" || metric == "melee_damage_count" ||
+            metric == "melee_damage_total")
         {
             Actor const& actor = _actors.at(step.get<std::string>("actor"));
+            if (metric == "melee_damage_total")
+            {
+                if (auto hand = step.get_optional<uint32>("hand"))
+                {
+                    Require(*hand < 2, "Melee hand must be main hand or off hand");
+                    return double(actor.meleeDamageTotalByHand[*hand]);
+                }
+                return double(actor.meleeDamageTotalByHand[BASE_ATTACK] + actor.meleeDamageTotalByHand[OFF_ATTACK]);
+            }
             auto const& counts = metric == "melee_attack_count" ? actor.meleeAttacksByHand : actor.meleeDamageByHand;
             if (auto hand = step.get_optional<uint32>("hand"))
             {
@@ -1546,7 +1951,8 @@ private:
             sScriptMgr->ModifyPeriodicDamageAurasTick(player, attacker, damage, info);
             return damage;
         }
-        if (metric == "spell_done_crit_chance" || metric == "spell_done_crit_chance_scripted" ||
+        if (metric == "spell_done_crit_chance" || metric == "spell_taken_crit_chance" ||
+            metric == "spell_done_crit_chance_scripted" ||
             metric == "melee_spell_damage_done" || metric == "spell_critical_damage" ||
             metric == "armor_reduced_damage")
         {
@@ -1555,6 +1961,11 @@ private:
             Require(info != nullptr, "Unknown spell in metric");
             if (metric == "spell_done_crit_chance")
                 return player->SpellDoneCritChance(target, info, info->GetSchoolMask(), BASE_ATTACK, false);
+            if (metric == "spell_taken_crit_chance")
+            {
+                float chance = player->SpellDoneCritChance(target, info, info->GetSchoolMask(), BASE_ATTACK, false);
+                return target->SpellTakenCritChance(player, info, info->GetSchoolMask(), chance, BASE_ATTACK, false);
+            }
             if (metric == "spell_done_crit_chance_scripted")
             {
                 float chance = player->SpellDoneCritChance(target, info, info->GetSchoolMask(), BASE_ATTACK, false);
@@ -1677,7 +2088,6 @@ private:
         if (metric == "owned_creature_count")
         {
             uint32 entry = step.get<uint32>("entry");
-            Require(sObjectMgr->GetCreatureTemplate(entry) != nullptr, "Unknown creature entry in metric");
             Require(!spell || sSpellMgr->GetSpellInfo(spell) != nullptr, "Unknown owned creature aura spell");
             ObjectGuid caster;
             if (auto id = step.get_optional<std::string>("caster"))
@@ -2115,7 +2525,7 @@ private:
         if (!_stepStarted)
         {
             _stepStarted = true;
-            _stepTime = Clock::now();
+            _stepTime = GameTime::Now();
         }
         std::string action = step.get<std::string>("action");
         Tree record;
@@ -2124,7 +2534,7 @@ private:
         record.put("label", step.get<std::string>("label", action));
         if (action == "wait")
         {
-            if (Elapsed(_stepTime) < step.get<uint32>("ms"))
+            if (GameElapsed(_stepTime) < step.get<uint32>("ms"))
                 return;
         }
         else if (action == "level_scaling_packet")
@@ -2175,10 +2585,10 @@ private:
                     record.put("expected_min", *minimum);
                 if (maximum)
                     record.put("expected_max", *maximum);
-                if (!passed && Elapsed(_stepTime) < step.get<uint32>("within_ms", 0))
+                if (!passed && GameElapsed(_stepTime) < step.get<uint32>("within_ms", 0))
                     return;
                 record.put("status", passed ? "passed" : "failed");
-                record.put("elapsed_ms", Elapsed(_stepTime));
+                record.put("elapsed_ms", GameElapsed(_stepTime));
                 _records.push_back({ "", record });
                 ++_assertions;
                 Require(passed, "Assertion failed: " + record.get<std::string>("label"));
@@ -2186,12 +2596,27 @@ private:
                 return;
             }
         }
+        else if (action == "login_hooks" && !QueuedCharacterWorkDone())
+            return;
         else
             Act(step, record);
         record.put("status", "completed");
-        record.put("elapsed_ms", Elapsed(_stepTime));
+        record.put("elapsed_ms", GameElapsed(_stepTime));
         _records.push_back({ "", record });
         Advance();
+    }
+
+    bool QueuedCharacterWorkDone()
+    {
+        if (_characterQueueReached)
+            return true;
+        if (!_characterQueueMarked)
+        {
+            _characterQueueMarked = true;
+            _queries.AddCallback(CharacterDatabase.AsyncQuery("SELECT 1").WithCallback(
+                [this](QueryResult) { _characterQueueReached = true; }));
+        }
+        return false;
     }
 
     void Act(Tree const& step, Tree& record)
@@ -2204,7 +2629,7 @@ private:
             {
                 static_cast<std::string*>(context)->append(text);
             });
-            bool handled = handler.ParseCommands(step.get<std::string>("command"));
+            bool handled = handler.ParseCommands(CommandText(step));
             record.put("output", output);
             Require(handled && !handler.HasSentErrorMessage(), "Console command failed: " + output);
             return;
@@ -2272,7 +2697,7 @@ private:
         else if (action == "command")
         {
             ChatHandler handler(player->GetSession());
-            bool handled = handler.ParseCommands(step.get<std::string>("command"));
+            bool handled = handler.ParseCommands(CommandText(step));
             Require(handled && !handler.HasSentErrorMessage(), "Player command failed");
             record.put("result", "submitted; verify effects with assertions");
         }
@@ -2318,7 +2743,7 @@ private:
                 player->GetSession()->HandleOpenItemOpcode(request);
         }
         else if (action == "set_phase")
-            player->SetPhaseMask(step.get<uint32>("value", TestPhase), true);
+            player->SetPhaseMask(step.get<uint32>("value", _phase), true);
         else if (action == "set_money")
             player->SetMoney(step.get<uint32>("value"));
         else if (action == "use_nearby_gameobject")
@@ -2879,66 +3304,31 @@ private:
         ++_nextStep;
         ++_completed;
         _stepStarted = false;
+        _characterQueueMarked = false;
+        _characterQueueReached = false;
     }
 
-    void Finish(bool passed, std::string const& message)
-    {
-        if (_finished)
-            return;
-        _finished = true;
-        if (!passed)
-            LOG_ERROR("coa.gameplay_test", "Scenario failed at step {}: {}", _completed, message);
-        Tree failures;
-        for (auto const& [id, actor] : _actors)
-            for (auto const& entry : actor.castFailures)
-            {
-                Tree failure = entry.second;
-                failure.put("actor", id);
-                failures.push_back({"", failure});
-            }
-        if (!failures.empty())
-            _report.add_child("cast_failures", failures);
-        for (auto const& [id, target] : _targets)
-            if (Map* map = sMapMgr->FindMap(target.map, target.instance))
-                if (Creature* creature = map->GetCreature(target.guid))
-                    creature->DespawnOrUnsummon();
-        for (auto& [id, actor] : _actors)
-            if (actor.session && actor.session->GetPlayer())
-                actor.session->LogoutPlayer(false);
-        _actors.clear();
-        NoRegenerationActors.clear();
-        _report.put("status", passed ? "passed" : "failed");
-        _report.put("message", message);
-        _report.put("elapsed_ms", Elapsed(_started));
-        _report.put("assertions", _assertions);
-        _report.put("completed_steps", _completed);
-        _report.add_child("steps", _records);
-        try
-        {
-            WriteResult(_resultPath, _report);
-        }
-        catch (std::exception const& error)
-        {
-            passed = false;
-            LOG_ERROR("coa.gameplay_test", "Could not write gameplay result: {}", error.what());
-        }
-        LOG_INFO("coa.gameplay_test", "Gameplay test {}: {}", passed ? "passed" : "failed", message);
-        World::StopNow(passed ? SHUTDOWN_EXIT_CODE : ERROR_EXIT_CODE);
-    }
-
-    bool _enabled = false;
-    bool _finished = false;
     bool _targetsCreated = false;
     bool _stepStarted = false;
+    bool _characterQueueMarked = false;
+    bool _characterQueueReached = false;
+    bool _measured = false;
     uint8 _castCount = 0;
     uint32 _timeout = 90000;
     uint32 _assertions = 0;
     uint32 _completed = 0;
+    uint32 _ticks = 0;
+    uint32 _maxStepMs = 0;
+    uint32 _phase;
+    uint64 _setupRealMs = 0;
     std::string _runId;
     std::string _resultPath;
-    std::string _startFile;
-    Clock::time_point _started;
-    Clock::time_point _stepTime;
+    CoAGameplay::NameAllocator* _names;
+    std::map<char, std::string> _legacyNames;
+    Clock::time_point _admitted;
+    std::optional<TimePoint> _admittedGame;
+    std::optional<TimePoint> _readyAt;
+    TimePoint _stepTime;
     Tree _scenario;
     Tree _steps;
     Tree::const_iterator _nextStep;
@@ -2948,6 +3338,728 @@ private:
     std::map<std::string, Target> _targets;
     std::map<std::string, double> _snapshots;
     QueryCallbackProcessor _queries;
+};
+
+enum class TeardownStage
+{
+    Idle,
+    Settling,
+    Clearing
+};
+
+struct QueuedCase
+{
+    uint32 sequence = 0;
+    bool stop = false;
+    bool exclusive = false;
+    bool realPace = false;
+    std::optional<uint32> hour;
+    std::string runId;
+    std::string scenarioFile;
+    std::string resultFile;
+};
+
+struct Lane
+{
+    uint32 index = 0;
+    uint32 phase = 0;
+    uint32 sequence = 0;
+    bool exclusive = false;
+    bool realPace = false;
+    TeardownStage stage = TeardownStage::Idle;
+    Clock::time_point teardownStarted;
+    Clock::time_point lastDeletion;
+    std::unique_ptr<GameplayCase> gameplayCase;
+    CaseOutcome outcome;
+    std::vector<uint32> deletedAccounts;
+
+    bool Idle() const
+    {
+        return !gameplayCase && stage == TeardownStage::Idle;
+    }
+};
+
+class CoAGameplayTest final : public WorldScript
+{
+public:
+    CoAGameplayTest() : WorldScript("CoAGameplayTest", { WORLDHOOK_ON_STARTUP,
+        WORLDHOOK_ON_UPDATE, WORLDHOOK_ON_SHUTDOWN }) { }
+
+    void OnStartup() override
+    {
+        if (!sConfigMgr->GetOption<bool>("CoAGameplayTest.Enable", false))
+            return;
+
+        _enabled = true;
+        _started = Clock::now();
+        ProcCounter::Begin();
+        _caseDirectory = sConfigMgr->GetOption<std::string>("CoAGameplayTest.CaseDirectory", "", false);
+        if (_caseDirectory.empty())
+            StartSingle();
+        else
+            StartQueue();
+    }
+
+    void OnUpdate(uint32 diff) override
+    {
+        if (!_enabled || _finished)
+            return;
+
+        if (_caseDirectory.empty())
+            UpdateSingle(diff);
+        else
+            UpdateQueue(diff);
+    }
+
+    void OnShutdown() override
+    {
+        if (!_enabled)
+            return;
+
+        if (_caseDirectory.empty())
+        {
+            if (!_finished)
+                Finish(false, InterruptedMessage);
+            return;
+        }
+
+        bool interrupted = false;
+        for (Lane& lane : _lanes)
+        {
+            if (lane.gameplayCase)
+                AbandonCase(lane);
+            else if (lane.stage != TeardownStage::Idle && !_aborted)
+                FailOutcome(lane, "Server shut down before the case teardown completed");
+            else
+                continue;
+            interrupted = true;
+        }
+        if (interrupted)
+            World::StopNow(ERROR_EXIT_CODE);
+    }
+
+private:
+    static constexpr char const* InterruptedMessage = "Server shut down before the scenario completed";
+
+    void CheckIsolation()
+    {
+        std::string worldId = sConfigMgr->GetOption<std::string>("CoAGameplayTest.WorldDatabaseId", _runId);
+        Require(IsRunId(worldId), "WorldDatabaseId must be twelve lowercase hexadecimal characters");
+        for (auto const& [key, suffix] : std::map<std::string, std::string>{
+            { "LoginDatabaseInfo", "auth" }, { "CharacterDatabaseInfo", "characters" },
+            { "WorldDatabaseInfo", "world" } })
+        {
+            std::string connection = sConfigMgr->GetOption<std::string>(key, "");
+            auto first = connection.find(';');
+            auto last = connection.rfind(';');
+            Require(first != std::string::npos && last != first, "Invalid database connection");
+            std::string host = connection.substr(0, first);
+            Require(host == "127.0.0.1" || host == "localhost" || host == "::1", "Test DB must be local");
+            std::string databaseId = suffix == "world" ? worldId : _runId;
+            Require(connection.substr(last + 1) == "coa_test_" + databaseId + "_" + suffix,
+                "Harness requires its own named test databases");
+        }
+        Require(sConfigMgr->GetOption<std::string>("BindIP", "") == "127.0.0.1", "BindIP must be loopback");
+        Require(sConfigMgr->GetOption<uint32>("MapUpdate.Threads", 1) == 0, "Map workers must be disabled");
+    }
+
+    void ReadRunId()
+    {
+        _runId = sConfigMgr->GetOption<std::string>("CoAGameplayTest.RunId", "");
+        Require(IsRunId(_runId), "RunId must be twelve lowercase hexadecimal characters");
+        CheckIsolation();
+    }
+
+    void ReadStartFile()
+    {
+        _startFile = sConfigMgr->GetOption<std::string>("CoAGameplayTest.StartFile", "");
+        Require(_startFile.empty() || !std::filesystem::exists(_startFile), "Start file already exists");
+    }
+
+    static std::string ConfiguredClock()
+    {
+        return sConfigMgr->GetOption<std::string>("CoAGameplayTest.Clock", RealClock, false);
+    }
+
+    static uint32 ConfiguredLanes()
+    {
+        return sConfigMgr->GetOption<uint32>("CoAGameplayTest.Lanes", 1, false);
+    }
+
+    static Milliseconds ConfiguredStep(std::string const& name, Milliseconds fallback)
+    {
+        uint32 const value = sConfigMgr->GetOption<uint32>("CoAGameplayTest." + name, uint32(fallback.count()), false);
+        Require(value >= CoAGameplay::MinimumStep.count() && value <= CoAGameplay::MaximumStep.count(),
+            name + " must be between 1 and 2000 ms");
+        return Milliseconds(value);
+    }
+
+    void ReadClock()
+    {
+        _clock = ConfiguredClock();
+        Require(_clock == RealClock || _clock == SimulatedClock, "Clock must be real or simulated");
+        uint32 const lanes = ConfiguredLanes();
+        Require(lanes >= 1 && lanes <= CoAGameplay::MaxLanes, "Lanes must be between 1 and 15");
+        Require(lanes == 1 || _clock == SimulatedClock, "Several lanes need the simulated clock");
+        _policy.step = ConfiguredStep("StepMs", _policy.step);
+        _freezeUnseenWorld = sConfigMgr->GetOption<bool>("CoAGameplayTest.FreezeUnseenWorld", true, false);
+        _policy.activeWaitCap = ConfiguredStep("ActiveWaitCapMs", _policy.activeWaitCap);
+        _policy.pollCap = ConfiguredStep("PollCapMs", _policy.pollCap);
+        _lanes = std::vector<Lane>(lanes);
+        for (uint32 index = 0; index < lanes; ++index)
+        {
+            _lanes[index].index = index;
+            _lanes[index].phase = CoAGameplay::LanePhase(index);
+        }
+        LocalLevelScaling::SetFixturePhases(CoAGameplay::LanePhases(lanes));
+        _simulated = _clock == SimulatedClock;
+        if (!_simulated)
+            return;
+        _startHour = sConfigMgr->GetOption<uint32>("CoAGameplayTest.StartHour", DefaultStartHour, false);
+        Require(_startHour < HoursPerDay, "StartHour must be between 0 and 23");
+        SystemTimePoint const start = NextRealmLocalHour(std::chrono::system_clock::now(), _startHour);
+        GameTime::EnableSimulation();
+        GameTime::SetSimulatedSystemAnchor(start);
+        LOG_INFO("coa.gameplay_test", "Simulated realm-local time starts at {}",
+            RealmLocalText(std::chrono::floor<Seconds>(start.time_since_epoch())));
+    }
+
+    static std::string CharacterDatabaseIsolation()
+    {
+        QueryResult const result = CharacterDatabase.Query("SELECT @@SESSION.transaction_isolation");
+        Require(result != nullptr, "Could not read the character database transaction isolation");
+        return result->Fetch()[0].Get<std::string>();
+    }
+
+    void WriteReady()
+    {
+        Tree ready;
+        ready.put("run_id", _runId);
+        ready.put("status", "ready");
+        ready.put("waiting_for_start", !_startFile.empty());
+        if (!_caseDirectory.empty())
+        {
+            ready.put("mode", "queue");
+            ready.put("clock", _clock);
+            ready.put("lanes", uint32(_lanes.size()));
+            if (_simulated)
+                ready.put("start_hour", _startHour);
+            ready.put("character_db_workers",
+                sConfigMgr->GetOption<uint32>("CharacterDatabase.WorkerThreads", 1, false));
+            ready.put("character_db_isolation", CharacterDatabaseIsolation());
+        }
+        WriteResult(sConfigMgr->GetOption<std::string>("CoAGameplayTest.ReadyFile", ""), ready);
+    }
+
+    bool Released()
+    {
+        Require(Elapsed(_started) < RunnerPatienceMs, "Runner did not release the startup barrier");
+        std::ifstream startStream(_startFile);
+        if (!startStream.is_open())
+            return false;
+        Tree start;
+        boost::property_tree::read_json(startStream, start);
+        Require(start.get<std::string>("run_id") == _runId, "Start file belongs to another run");
+        _startFile.clear();
+        _started = Clock::now();
+        return true;
+    }
+
+    void StartSingle()
+    {
+        std::string resultPath;
+        try
+        {
+            ReadRunId();
+            Require(ConfiguredClock() == RealClock && ConfiguredLanes() == 1,
+                "A single scenario runs on the real clock in one lane");
+            resultPath = sConfigMgr->GetOption<std::string>("CoAGameplayTest.ResultFile", "");
+            Require(!std::filesystem::exists(resultPath), "Result file already exists");
+            ReadStartFile();
+            _case = std::make_unique<GameplayCase>(_runId, resultPath);
+            _case->Load(sConfigMgr->GetOption<std::string>("CoAGameplayTest.ScenarioFile", ""));
+            WriteReady();
+            LOG_INFO("coa.gameplay_test", "Gameplay harness ready: {}", _runId);
+        }
+        catch (std::exception const& error)
+        {
+            if (!_case)
+                _case = std::make_unique<GameplayCase>(_runId, resultPath);
+            Finish(false, error.what());
+        }
+    }
+
+    void UpdateSingle(uint32 diff)
+    {
+        try
+        {
+            if (!_startFile.empty())
+            {
+                if (!Released())
+                    return;
+                _case->RestartClock();
+            }
+            if (_case->Tick(diff))
+                Finish(true, "All assertions passed");
+        }
+        catch (std::exception const& error)
+        {
+            Finish(false, error.what());
+        }
+    }
+
+    void Finish(bool passed, std::string const& message)
+    {
+        if (_finished)
+            return;
+        _finished = true;
+        _case->Conclude(passed, message);
+        _case->Dismiss(false);
+        passed = _case->Write() && passed;
+        LOG_INFO("coa.gameplay_test", "Gameplay test {}: {}", passed ? "passed" : "failed", message);
+        World::StopNow(passed ? SHUTDOWN_EXIT_CODE : ERROR_EXIT_CODE);
+    }
+
+    void StartQueue()
+    {
+        try
+        {
+            ReadRunId();
+            Require(sConfigMgr->GetOption<std::string>("CoAGameplayTest.ScenarioFile", "").empty()
+                && sConfigMgr->GetOption<std::string>("CoAGameplayTest.ResultFile", "").empty(),
+                "Queue mode takes scenario and result files from its cases");
+            Require(sConfigMgr->GetOption<uint32>("LoginDatabase.WorkerThreads", 1) == 1,
+                "Queue mode needs one asynchronous login database worker");
+            Require(!sConfigMgr->GetOption<bool>("Cluster.Enabled", false),
+                "Queue mode needs cluster mode disabled to disband fixture groups");
+            Require(std::filesystem::is_directory(_caseDirectory), "Case directory does not exist");
+            ReadStartFile();
+            ReadClock();
+            WriteReady();
+            _idleSince = Clock::now();
+            LOG_INFO("coa.gameplay_test", "Gameplay queue ready: {} ({} clock, {} lanes)", _runId, _clock,
+                _lanes.size());
+        }
+        catch (std::exception const& error)
+        {
+            Abort(error.what());
+        }
+    }
+
+    void UpdateQueue(uint32 diff)
+    {
+        try
+        {
+            if (!_startFile.empty())
+            {
+                if (!Released())
+                    return;
+                _idleSince = Clock::now();
+            }
+            for (Lane& lane : _lanes)
+            {
+                UpdateLane(lane, diff);
+                if (_finished)
+                    return;
+            }
+            Admit();
+            if (_finished)
+                return;
+            if (!AllLanesIdle())
+                _idleSince = Clock::now();
+            RequestWorldStep();
+        }
+        catch (std::exception const& error)
+        {
+            Abort(error.what());
+        }
+    }
+
+    void Abort(std::string const& message)
+    {
+        _finished = true;
+        _aborted = true;
+        LOG_ERROR("coa.gameplay_test", "Gameplay queue stopped: {}", message);
+        World::StopNow(ERROR_EXIT_CODE);
+    }
+
+    bool AllLanesIdle() const
+    {
+        return std::ranges::all_of(_lanes, [](Lane const& lane) { return lane.Idle(); });
+    }
+
+    Lane* FreeLane(bool exclusive)
+    {
+        if (std::ranges::any_of(_lanes, [](Lane const& lane) { return lane.exclusive && !lane.Idle(); }))
+            return nullptr;
+        if (exclusive && !AllLanesIdle())
+            return nullptr;
+        auto const free = std::ranges::find_if(_lanes, [](Lane const& lane) { return lane.Idle(); });
+        return free == _lanes.end() ? nullptr : &*free;
+    }
+
+    void Admit()
+    {
+        while (_next || ReadNextCase())
+        {
+            if (_next->stop)
+            {
+                if (AllLanesIdle())
+                    Stop(_next->sequence);
+                return;
+            }
+            Lane* lane = FreeLane(_next->exclusive);
+            if (!lane || !ReachHour(_next->hour))
+                return;
+            QueuedCase const next = std::move(*_next);
+            _next.reset();
+            StartCase(*lane, next);
+            if (_finished)
+                return;
+        }
+    }
+
+    bool ReachHour(std::optional<uint32> hour)
+    {
+        if (!_simulated)
+            return true;
+        Seconds const gameTime = GameTime::GetGameTime();
+        if (hour)
+            _awayFromStartHour = true;
+        else if (!_awayFromStartHour || uint32(RealmLocalTime(gameTime).tm_hour) == _startHour)
+        {
+            _awayFromStartHour = false;
+            return true;
+        }
+        uint32 const target = hour.value_or(_startHour);
+        if (InFirstMinuteOfHour(gameTime, target))
+            return true;
+        if (!AllLanesIdle())
+            return false;
+        SystemTimePoint const now = GameTime::GetSystemTime();
+        GameTime::AdvanceSimulation(std::chrono::ceil<Milliseconds>(NextRealmLocalHour(now, target) - now));
+        return false;
+    }
+
+    void Stop(uint32 sequence)
+    {
+        _finished = true;
+        LOG_INFO("coa.gameplay_test", "Gameplay queue stopped after {} cases", sequence);
+        World::StopNow(SHUTDOWN_EXIT_CODE);
+    }
+
+    bool ReadNextCase()
+    {
+        std::filesystem::path const path = std::filesystem::path(_caseDirectory) /
+            Acore::StringFormat("case-{:06}.json", _sequence);
+        if (!std::filesystem::exists(path))
+        {
+            if (AllLanesIdle())
+                Require(Elapsed(_idleSince) < RunnerPatienceMs, "Runner did not provide the next case");
+            return false;
+        }
+
+        Tree record;
+        boost::property_tree::read_json(path.string(), record);
+        Require(record.get<uint32>("schema") == 1, "Unsupported case schema");
+        Require(record.get<std::string>("batch_id") == _runId, "Case belongs to another batch");
+        Require(record.get<uint32>("sequence") == _sequence, "Case is out of sequence");
+        QueuedCase next;
+        next.sequence = _sequence;
+        if (record.count("stop"))
+        {
+            Require(record.get<bool>("stop") && !record.count("run_id") && !record.count("scenario_file")
+                && !record.count("result_file") && !record.count("exclusive") && !record.count("pace")
+                && !record.count("hour"), "Malformed stop case");
+            next.stop = true;
+        }
+        else
+        {
+            next.runId = record.get<std::string>("run_id");
+            Require(IsRunId(next.runId) && next.runId != _runId && _runIds.insert(next.runId).second,
+                "Case run id must be twelve lowercase hexadecimal characters not used before");
+            next.scenarioFile = record.get<std::string>("scenario_file");
+            next.resultFile = record.get<std::string>("result_file");
+            Require(!next.scenarioFile.empty(), "Case needs a scenario file");
+            Require(!next.resultFile.empty() && !std::filesystem::exists(next.resultFile),
+                "Case result file must be new");
+            if (record.count("exclusive"))
+            {
+                auto const exclusive = record.get_optional<bool>("exclusive");
+                Require(exclusive.is_initialized(), "Case exclusive must be a boolean");
+                next.exclusive = *exclusive;
+            }
+            if (auto pace = record.get_optional<std::string>("pace"))
+            {
+                Require(*pace == RealClock, "Case pace must be real");
+                next.realPace = true;
+            }
+            if (record.count("hour"))
+            {
+                auto const hour = record.get_optional<uint32>("hour");
+                Require(hour && *hour < HoursPerDay, "Case hour must be an integer from 0 to 23");
+                next.hour = *hour;
+                next.exclusive = true;
+            }
+        }
+        _next = std::move(next);
+        ++_sequence;
+        return true;
+    }
+
+    void StartCase(Lane& lane, QueuedCase const& next)
+    {
+        lane.sequence = next.sequence;
+        lane.exclusive = next.exclusive;
+        lane.realPace = next.realPace;
+        lane.outcome = CaseOutcome{};
+        lane.gameplayCase = std::make_unique<GameplayCase>(next.runId, next.resultFile, lane.phase,
+            _lanes.size() > 1 ? &_names : nullptr);
+        lane.gameplayCase->PlaceInBatch(_runId, next.sequence, _clock, lane.index);
+        LOG_INFO("coa.gameplay_test", "Gameplay case {} started in lane {}: {}", next.sequence, lane.index,
+            next.runId);
+        std::string failure;
+        try
+        {
+            lane.gameplayCase->Load(next.scenarioFile);
+            if (next.hour)
+                RequireRealmLocalHour(*next.hour);
+            return;
+        }
+        catch (std::exception const& error)
+        {
+            failure = error.what();
+        }
+        EndCase(lane, false, failure);
+    }
+
+    void UpdateLane(Lane& lane, uint32 diff)
+    {
+        if (lane.gameplayCase)
+        {
+            RunCase(lane, diff);
+            return;
+        }
+        if (lane.stage == TeardownStage::Idle)
+            return;
+        try
+        {
+            Settle(lane);
+        }
+        catch (std::exception const& error)
+        {
+            FailTeardown(lane, error.what());
+        }
+    }
+
+    void RunCase(Lane& lane, uint32 diff)
+    {
+        bool completed = false;
+        try
+        {
+            completed = lane.gameplayCase->Tick(diff);
+        }
+        catch (std::exception const& error)
+        {
+            EndCase(lane, false, error.what());
+            return;
+        }
+        if (completed)
+            EndCase(lane, true, "All assertions passed");
+    }
+
+    void EndCase(Lane& lane, bool passed, std::string const& message)
+    {
+        try
+        {
+            CompleteCase(lane, passed, message);
+        }
+        catch (std::exception const& error)
+        {
+            FailTeardown(lane, error.what());
+        }
+    }
+
+    void CompleteCase(Lane& lane, bool passed, std::string const& message)
+    {
+        lane.gameplayCase->Conclude(passed, message);
+        LOG_INFO("coa.gameplay_test", "Gameplay case {} {} in lane {}: {}", lane.sequence,
+            passed ? "passed" : "failed", lane.index, message);
+        lane.outcome = lane.gameplayCase->Outcome();
+        lane.deletedAccounts.clear();
+        lane.teardownStarted = Clock::now();
+        lane.stage = TeardownStage::Settling;
+        bool ungrouped = false;
+        try
+        {
+            ungrouped = lane.gameplayCase->Dismiss(true);
+        }
+        catch (std::exception const&)
+        {
+            StrandCaseWithoutSecondLogout(lane);
+            throw;
+        }
+        lane.gameplayCase.reset();
+        Require(ungrouped, "A fixture group survived teardown");
+        if (!lane.outcome.accounts.namesReusable)
+        {
+            ReleaseLane(lane);
+            return;
+        }
+        DeleteAccounts(lane);
+        lane.lastDeletion = Clock::now();
+        lane.stage = TeardownStage::Clearing;
+    }
+
+    void AbandonCase(Lane& lane)
+    {
+        try
+        {
+            if (!_aborted)
+            {
+                lane.gameplayCase->Conclude(false, InterruptedMessage);
+                lane.gameplayCase->Write();
+            }
+            lane.gameplayCase->Dismiss(false);
+            lane.gameplayCase.reset();
+        }
+        catch (std::exception const& error)
+        {
+            LOG_ERROR("coa.gameplay_test", "Could not abandon gameplay case {}: {}", lane.sequence, error.what());
+            StrandCaseWithoutSecondLogout(lane);
+        }
+    }
+
+    static void StrandCaseWithoutSecondLogout(Lane& lane)
+    {
+        static_cast<void>(lane.gameplayCase.release());
+    }
+
+    void FailOutcome(Lane& lane, std::string const& failure)
+    {
+        lane.stage = TeardownStage::Idle;
+        std::string const message = lane.outcome.report.get<std::string>("status", "") == "passed" ? failure
+            : lane.outcome.report.get<std::string>("message", "") + "; " + failure;
+        lane.outcome.report.put("status", "failed");
+        lane.outcome.report.put("message", message);
+        WriteCaseResult(lane.outcome.resultPath, lane.outcome.report);
+        LOG_ERROR("coa.gameplay_test", "Gameplay case {} ({}) failed: {}", lane.sequence,
+            lane.outcome.report.get<std::string>("run_id", ""), message);
+    }
+
+    void FailTeardown(Lane& lane, std::string const& reason)
+    {
+        FailOutcome(lane, "Teardown failed: " + reason);
+        Abort("Teardown of case " + std::to_string(lane.sequence) + " failed: " + reason);
+    }
+
+    static void Settle(Lane& lane)
+    {
+        Require(Elapsed(lane.teardownStarted) < RunnerPatienceMs, "Case teardown did not finish");
+        if (Elapsed(lane.lastDeletion) < TeardownRecheckMs)
+            return;
+        if (TeardownComplete(lane))
+        {
+            ReleaseLane(lane);
+            return;
+        }
+        DeleteAccounts(lane);
+        lane.lastDeletion = Clock::now();
+    }
+
+    static void ReleaseLane(Lane& lane)
+    {
+        lane.stage = TeardownStage::Idle;
+        Require(WriteCaseResult(lane.outcome.resultPath, lane.outcome.report),
+            "Could not write the result of case " + std::to_string(lane.sequence));
+    }
+
+    static void DeleteAccounts(Lane& lane)
+    {
+        for (std::string const& account : lane.outcome.accounts.accounts)
+            if (uint32 const id = AccountMgr::GetId(account))
+            {
+                Require(AccountMgr::DeleteAccount(id) == AOR_OK, "Could not delete case account " + account);
+                if (std::ranges::find(lane.deletedAccounts, id) == lane.deletedAccounts.end())
+                    lane.deletedAccounts.push_back(id);
+            }
+        for (std::string name : lane.outcome.accounts.characters)
+        {
+            CharacterDatabase.EscapeString(name);
+            if (QueryResult result = CharacterDatabase.Query("SELECT guid FROM characters WHERE name = '{}'", name))
+                Player::DeleteFromDB(result->Fetch()[0].Get<uint32>(), 0, false, true);
+        }
+    }
+
+    static bool TeardownComplete(Lane const& lane)
+    {
+        for (std::string const& account : lane.outcome.accounts.accounts)
+            if (AccountMgr::GetId(account))
+                return false;
+        for (uint32 const id : lane.deletedAccounts)
+        {
+            std::string name;
+            if (AccountMgr::GetName(id, name) || AccountMgr::GetCharactersCount(id))
+                return false;
+        }
+        for (std::string const& name : lane.outcome.accounts.characters)
+        {
+            if (sCharacterCache->GetCharacterGuidByName(name))
+                return false;
+            CharacterDatabasePreparedStatement* statement = CharacterDatabase.GetPreparedStatement(CHAR_SEL_CHECK_NAME);
+            statement->SetData(0, name);
+            if (CharacterDatabase.Query(statement))
+                return false;
+        }
+        return true;
+    }
+
+    void RequestWorldStep() const
+    {
+        if (!_simulated)
+            return;
+        std::vector<StepRequest> requests;
+        uint32 phases = 0;
+        if (_freezeUnseenWorld)
+        {
+            phases = CoAGameplay::LanePhases(uint32(_lanes.size()));
+            for (Lane const& lane : _lanes)
+                if (lane.gameplayCase)
+                    phases |= lane.gameplayCase->VisiblePhases();
+        }
+        Map::SetSimulatedUpdatePhases(phases);
+        for (Lane const& lane : _lanes)
+        {
+            if (!lane.gameplayCase)
+                continue;
+            if (lane.realPace)
+                return;
+            requests.push_back(lane.gameplayCase->StepNeed());
+        }
+        if (std::optional<Milliseconds> const step = CoAGameplay::ChooseStep(requests, _policy))
+            GameTime::RequestStep(*step);
+    }
+
+    bool _enabled = false;
+    bool _finished = false;
+    bool _aborted = false;
+    bool _simulated = false;
+    bool _awayFromStartHour = false;
+    bool _freezeUnseenWorld = true;
+    uint32 _sequence = 0;
+    uint32 _startHour = DefaultStartHour;
+    std::string _runId;
+    std::string _startFile;
+    std::string _caseDirectory;
+    std::string _clock = RealClock;
+    Clock::time_point _started;
+    Clock::time_point _idleSince;
+    CoAGameplay::ClockPolicy _policy;
+    CoAGameplay::NameAllocator _names;
+    std::unique_ptr<GameplayCase> _case;
+    std::vector<Lane> _lanes;
+    std::optional<QueuedCase> _next;
+    std::unordered_set<std::string> _runIds;
 };
 
 class CoAGameplayTestProcCounter final : public AllSpellScript

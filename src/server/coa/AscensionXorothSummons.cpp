@@ -12,6 +12,7 @@
 #include "SpellMgr.h"
 #include "SpellScript.h"
 #include "TemporarySummon.h"
+#include "WorldPacket.h"
 #include "ThreatManager.h"
 #include <algorithm>
 #include <cstdlib>
@@ -21,9 +22,30 @@ void Summon(Player* player, uint32 entry, Position const& position, uint32 durat
 {
     if (!player || !player->IsAlive() || !player->IsInWorld())
         return;
-    if (TempSummon* unit =
-            player->GetMap()->SummonCreature(entry, position, nullptr, duration + (entry == 51323 ? 500 : 0), player))
-        unit->SetTempSummonType(TEMPSUMMON_TIMED_DESPAWN);
+    TempSummon* unit =
+        player->GetMap()->SummonCreature(entry, position, nullptr, duration + (entry == 51323 ? 500 : 0), player);
+    if (!unit)
+        return;
+    unit->SetTempSummonType(TEMPSUMMON_TIMED_DESPAWN);
+    if (uint32 spell = entry == 50301 ? 807699 : entry == 50375 ? 704247 : 0)
+    {
+        WorldPacket log(SMSG_SPELLLOGEXECUTE, 8 + 4 + 4 + 4 + 4 + 8);
+        log << player->GetPackGUID() << uint32(spell) << uint32(1) << uint32(SPELL_EFFECT_SUMMON) << uint32(1)
+            << unit->GetPackGUID();
+        player->SendMessageToSet(&log, true);
+    }
+}
+void ImpFormation(uint32 slot, float& distance, float& angle)
+{
+    static constexpr float spread[] = {0.0f, 0.45f, -0.45f, 0.9f, -0.9f};
+    distance = 2.0f + float(slot / 5) * 1.2f;
+    angle = float(M_PI) + spread[slot % 5];
+}
+Position ImpPosition(Player* player)
+{
+    float distance, angle;
+    ImpFormation(uint32(State(player).imps.size()), distance, angle);
+    return player->GetNearPosition(distance, angle);
 }
 }
 namespace
@@ -33,7 +55,7 @@ void Scale(Creature* unit, Player* player)
 {
     bool imp = unit->GetEntry() == 50301;
     float health = player->GetMaxHealth() * (imp ? .25f : .6f);
-    if (imp && player->HasAura(707666))
+    if (imp && player->HasAura(706755))
         health *= 1.3f;
     if (imp && player->HasAura(804879))
         health *= 1.5f;
@@ -97,6 +119,12 @@ struct npc_ascension_xoroth_summon : public ScriptedAI
         events.ScheduleEvent(1, 1s);
         Refresh(player);
     }
+    void AttackStart(Unit* target) override
+    {
+        if (target && target != me->GetVictim())
+            me->StopMoving();
+        ScriptedAI::AttackStart(target);
+    }
     void sGossipHello(Player* player) override
     {
         Player* summoner = ObjectAccessor::GetPlayer(*me, owner);
@@ -141,12 +169,14 @@ struct npc_ascension_xoroth_summon : public ScriptedAI
         {
             if (me->GetEntry() == 50301 || me->GetEntry() == 50375)
                 Scale(me, player);
-            if (me->GetEntry() == 50301 && me->GetVictim())
-                Cast(me, me->GetVictim(), 800444);
             events.ScheduleEvent(1, 2s);
         }
         if (me->GetEntry() == 51323 || me->GetEntry() == 50268)
             return;
+        if (me->GetEntry() == 50301)
+            for (UnitMoveType type : {MOVE_WALK, MOVE_RUN})
+                if (float rate = player->GetSpeedRate(type) * 1.15f; me->GetSpeedRate(type) != rate)
+                    me->SetSpeedRate(type, rate);
         if (Unit* target = me->GetVictim(); target && !player->IsValidAttackTarget(target))
             me->AttackStop();
         if (!me->GetVictim())
@@ -155,9 +185,18 @@ struct npc_ascension_xoroth_summon : public ScriptedAI
             if (target && player->IsValidAttackTarget(target))
                 AttackStart(target);
             else if (me->GetMotionMaster()->GetCurrentMovementGeneratorType() != FOLLOW_MOTION_TYPE)
-                me->GetMotionMaster()->MoveFollow(player, 2, 0);
+            {
+                auto const& imps = State(player).imps;
+                auto slot = std::find(imps.begin(), imps.end(), me->GetGUID());
+                float distance = 2, angle = 0;
+                if (me->GetEntry() == 50301 && slot != imps.end())
+                    ImpFormation(uint32(slot - imps.begin()), distance, angle);
+                me->GetMotionMaster()->MoveFollow(player, distance, angle, MOTION_SLOT_ACTIVE, true,
+                                                  me->GetEntry() != 50301);
+            }
         }
-        if (UpdateVictim() && me->GetEntry() == 50375)
+        bool engaged = UpdateVictim();
+        if ((engaged && me->GetEntry() == 50375) || (me->GetEntry() == 50301 && me->GetVictim()))
             DoMeleeAttackIfReady();
     }
 };

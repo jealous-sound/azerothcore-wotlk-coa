@@ -25,12 +25,18 @@ void GrantWarchest(Player* player)
     if (CharacterDatabase.Query("SELECT 1 FROM coa_account_warchest WHERE account = {}", accountId))
         return;
 
-    CharacterDatabase.Execute("INSERT INTO coa_account_warchest (account, claimed_at) VALUES ({}, {})",
-        accountId, uint32(GameTime::GetGameTime().count()));
+    if (!sObjectMgr->GetItemTemplate(WARCHEST_ITEM))
+    {
+        LOG_ERROR("coa", "GrantWarchest: missing item_template entry {} for WARCHEST_ITEM, account {} not granted", WARCHEST_ITEM, accountId);
+        return;
+    }
 
     Item* item = Item::CreateItem(WARCHEST_ITEM, 1);
     if (!item)
         return;
+
+    CharacterDatabase.Execute("INSERT INTO coa_account_warchest (account, claimed_at) VALUES ({}, {})",
+        accountId, uint32(GameTime::GetGameTime().count()));
 
     CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
     item->SaveToDB(trans);

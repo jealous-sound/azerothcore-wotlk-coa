@@ -116,7 +116,7 @@ class aura_ascension_xoroth_event : public AuraScript
         switch (id)
         {
         case 92104:
-            Summon(player, 50301, player->GetNearPosition(2, 0), sSpellMgr->GetSpellInfo(805966)->GetDuration());
+            Summon(player, 50301, ImpPosition(player), sSpellMgr->GetSpellInfo(805966)->GetDuration());
             break;
         case 300376:
             Cast(player, player, 805799);

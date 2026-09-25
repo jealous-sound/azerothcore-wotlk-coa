@@ -1,7 +1,11 @@
 # CoA gameplay tests
 
 Execute repeatable scenarios inside a real worldserver, using its loaded DBCs, SQL, scripts, maps and updates.
-The runtime component is `src/server/coa/CoAGameplayTest.cpp`; it is disabled by default.
+The runtime component is `src/server/coa/CoAGameplayTest.cpp`; it is disabled by default. Scenarios are verified
+through the gameplay stage of [`tools/verify_all.py`](../../docs/coa/verification.md), which runs them with
+`batch.py` in queue mode, by default up to 15 at once in one worldserver on a
+[simulated clock](../../docs/coa/verification.md#accelerated-single-server-mode); this directory's runners are its
+implementation.
 
 ## Find and verify a mechanic
 
@@ -23,14 +27,12 @@ report is a defect or create a PR. Establish expectations independently, select 
 behavior, reproduce it, then classify the result as a defect, already working, an incorrect test or unresolved.
 Use the existing issue-to-PR workflow when that scope is requested.
 
-`run.py run` now combines native execution with every registered numerical check for an exact catalog
-scenario. Checks requiring companion scenarios (currently the two Rockslide selection cases) run both cases
-automatically. With `--output`, their directories live under that output. `verification.json` is written in
-the first case's result directory, includes executable/scenario/checker identities, and controls the final exit code.
-`NATIVE STAGE COMPLETE` is intermediate progress; only `VERIFICATION PASSED` means the combined checks passed.
-Native failures also produce a failed combined outcome, with required checks marked `blocked` when their
-native evidence is unavailable. A failure stops further native runs because cleanup may have failed. If native
-setup fails before creating a result directory, the combined outcome is printed to standard output.
+The gameplay stage combines native execution with every registered numerical check for each exact catalog
+scenario it runs. Checks requiring companion scenarios (currently the two Rockslide selection cases) add both
+cases to the selection automatically. Its `gameplay/verification.json` covers every selected catalog case,
+includes executable/scenario/checker identities, and decides the stage's outcome together with each case's
+native result. Native failures also produce a failed combined outcome, with required checks marked `blocked`
+when their native evidence is unavailable.
 
 For example, the existing Primalist conversion script has two registered modes:
 
@@ -39,20 +41,21 @@ For example, the existing Primalist conversion script has two registered modes:
 | `primalist-everlasting-rage` | `check_primalist_native_conversions.py` | `everlasting` |
 | `primalist-king-mountain` | `check_primalist_native_conversions.py` | `king` |
 
-Run the scenario once with the usual isolated-runner options; there is no separate checker command to remember:
+Select the scenario once; there is no separate checker command to remember:
 
 ```sh
-python apps/coa-gameplay-test/run.py run apps/coa-gameplay-test/scenarios/primalist-everlasting-rage.json \
-  --worldserver /path/to/worldserver \
-  --config /path/to/worldserver.conf \
-  --mysql /path/to/mysql \
-  --mysqldump /path/to/mysqldump \
-  --server-modules-dir /path/to/compiled-conf-dir/modules
+python -B tools/verify_all.py --stages build,gameplay --scenario primalist-everlasting-rage
 ```
 
-The default command rejects modified/exploratory definitions absent from the catalog. Use `--native-only`
-explicitly for those experiments; its exit code covers native execution only and produces no combined pass.
+A scenario file that differs from its catalog definition is exploratory: pass its path to `--scenario`. It runs
+natively only, is reported separately and never produces a combined pass, but it must pass for the stage to pass.
+A selection of exploratory files only ends `INCOMPLETE` (an `unavailable` gameplay stage) even when they pass.
 Native success alone cannot pass a failed, missing or timed-out required numerical check.
+
+`run.py run` is the single-scenario runner behind the stage's isolated reruns and the Docker service. It runs a
+catalog scenario and its companions in their own worldservers and writes `verification.json` in the first
+case's result directory; `NATIVE STAGE COMPLETE` is intermediate progress and only `VERIFICATION PASSED` means
+the combined checks passed. Its `--native-only` option is the exploratory equivalent.
 
 For new spell or quest regressions, save the reusable definition under `scenarios/`. Express direct assertions
 in that definition and add any extra numerical checker to `checks.json`, listing scenario IDs in its expected
@@ -61,12 +64,11 @@ selects their companions transitively. Registry validation runs before native ex
 missing files, duplicate bindings and any `check_*.py` script left unregistered. Scenarios with no extra checker
 still receive combined verification of native completion, assertions and cleanup.
 
-Recheck existing result bundles without starting a server:
+Recheck recorded result bundles without starting a server:
 
 ```sh
-python apps/coa-gameplay-test/verification.py .cache/coa-gameplay-tests/RUN
+python apps/coa-gameplay-test/verification.py .cache/verify-all/STAMP/gameplay/cases/frostbolt
 python apps/coa-gameplay-test/verification.py path/to/rockslide-first path/to/rockslide-highest
-python -B apps/coa-gameplay-test/test_verification.py
 ```
 
 Rechecks require the exact current scenario definition, its recorded hash, matching native step/run identity,
@@ -76,28 +78,33 @@ ensures checkers run; it does not prove every expected mechanic has an adequate 
 
 ## Prevent recurring mistakes
 
-Run the fast source checks for the working diff, including staged and untracked files:
+Run the fast source checks for the working diff, including staged and untracked files, through the `source`
+stage:
 
 ```sh
-python -B tools/check_source.py --base HEAD
-python -B tools/check_source.py --base origin/main --plan
+python -B tools/verify_all.py --stages source --base HEAD
+python -B tools/verify_all.py --stages source --base origin/main
 ```
 
-The JSON outcome lists the selected checks, failures and timings. `--all` runs every fast suite. SQL boundaries
-and new C++/Python comments in CoA-owned code are always checked; changed CoA sources select loader registration
-checks; gameplay tooling/scenario changes
-select scenario validation, combined-verification tests, and runner/cache ownership and cleanup tests. Reviewed
-execution-path changes also check mechanic-map references. Documentation-only changes skip these test suites.
+`source.log` holds the outcome of `tools/check_source.py`: the selected checks, failures and timings;
+`report.json` lists the selected suites and failed commands. `--plan` shows only the command, not the selection.
+Without `--base` the stage runs every fast suite but compares with `HEAD`, so committed changes are not
+boundary-checked; pass the PR base before a PR (see the
+[source comparison base](../../docs/coa/verification.md#source-comparison-base)). SQL boundaries and new
+C++/Python comments in CoA-owned code are always checked; changed CoA sources select loader registration
+checks; gameplay tooling/scenario changes select scenario validation, combined-verification tests, and
+runner/cache ownership and cleanup tests. Reviewed execution-path changes also check mechanic-map references.
+Documentation-only changes skip these test suites.
 CI uses the same selection for pull requests and retains the repository publication checks. Main-branch and
 manual runs perform a full audit; SQL-boundary exceptions are reviewed on the pull request. The existing compiled
-client-compatibility harness runs only for relevant changes or a full audit. The local command never builds or
-starts a server.
+client-compatibility harness runs in CI only for relevant changes or a full audit; locally the `harness` stage
+runs it. The source stage never builds or starts a server.
 
 CoA-owned code uses names, structure and tests to express intent. The comment check covers
 `src/server/coa/`, `apps/coa-tests/`, `apps/coa-bugreport/`, `apps/coa-dbc/`, `apps/coa-gameplay-test/`,
 `apps/coa-mechanics/`, `tools/` and `.github/scripts/`. It rejects explanatory comments and docstrings on added lines, while preserving legal
 headers, recognized tool directives and native test-generator markers. Strings and runtime CLI help remain data.
-`python -B tools/check_comments.py --all` also checks unchanged C++ and Python files in those directories.
+Without `--base`, the source stage also checks unchanged C++ and Python files in those directories.
 Upstream source, dependencies, SQL and configuration documentation remain outside this check.
 
 The loader check requires each CoA `AddSC_*`, `AddAscension*Scripts` and `AddCoA*Scripts` definition to have
@@ -105,7 +112,8 @@ exactly one call from the flat CoA script loader, and each call to have exactly 
 and string literals. It does not prove SQL bindings, hook reachability, or gameplay behavior; those require data
 inspection and behavioral tests. The checker intentionally reports an unsupported conditional loader for review.
 
-For behavior, choose the existing scenario that observes the changed mechanic and run it through `run.py run`:
+For behavior, choose the existing scenario that observes the changed mechanic and select it with
+`verify_all.py --scenario <id>`:
 
 - **Duplicated calculations:** `bloodmage-dominion-of-blood-vampiric-fang` compares healing with the same cast's
   damage; doubled healing fails the ratio. `ascension-replenishment` checks exact amounts for different recipient
@@ -119,6 +127,8 @@ For behavior, choose the existing scenario that observes the changed mechanic an
 - **Cleanup:** `primalist-protectors-hand` verifies armor returns after removing all sources;
   `primalist-sharpened-claws` covers expiry and unlearning. Runner/cache tests separately cover database ownership,
   collisions, leases, failed audits and unstopped processes; infrastructure cleanup is part of combined verification.
+- **Chance-limited procs:** `reaper-beyond-death-reliquary` counts the ordinary Soul Bolts and the additional
+  helper casts and damage hits across 90 trials. Its 8% chance still leaves about a 0.055% chance of no proc.
 
 Keep expectations independent of implementation. Use distinguishable players/stats, positive and negative
 controls, and bounded final values; a broad “damage increased” assertion can miss double scaling. The fast tests
@@ -129,55 +139,70 @@ patterns cannot reliably establish these gameplay rules, and passing source chec
 ## Run
 
 Python 3.11+, MySQL 8 client tools, a local MySQL server and a worldserver built with the runtime component
-are required. The commands below run the runner directly (Windows example); Docker installations on Linux use
-the [Compose test service](#linux-docker), which provides all of them.
-Build a matching test executable when needed. Adding the new source requires CMake
+are required. `tools/verify_all.py` finds them through `conf/verify-all.json` or auto-detection and builds the
+worldserver in its `build` stage; see its [setup](../../docs/coa/verification.md#setup). Docker installations
+on Linux can use the [Compose test service](#linux-docker), which provides all of them.
+Adding the new source requires CMake
 reconfiguration before building; running an older binary will fail the readiness check.
 The CoA server component requires Boost.PropertyTree headers. Component-based vcpkg installations need
 `boost-property-tree` for the same triplet as the existing Boost libraries. CMake checks this dependency.
 
-```powershell
-python apps/coa-gameplay-test/run.py validate apps/coa-gameplay-test/scenarios/frostbolt.json
+Validate a definition while writing it, then verify it:
 
-python apps/coa-gameplay-test/run.py run apps/coa-gameplay-test/scenarios/frostbolt.json `
-  --worldserver C:/path/to/test-build/worldserver.exe `
-  --config C:/path/to/worldserver.conf `
-  --mysql C:/path/to/mysql.exe `
-  --mysqldump C:/path/to/mysqldump.exe
+```sh
+python apps/coa-gameplay-test/run.py validate apps/coa-gameplay-test/scenarios/frostbolt.json
+python -B tools/verify_all.py --stages build,gameplay --scenario frostbolt
 ```
 
-The runner creates fresh `coa_test_<run-id>_auth` and `coa_test_<run-id>_characters` schemas on each run.
-It creates a reusable `coa_test_<cache-id>_world` copy on the first run, then reuses that world database.
+`run.py validate` checks the definition without starting a server; it is not an execution result.
+
+Every worldserver gets fresh `coa_test_<id>_auth` and `coa_test_<id>_characters` schemas: one pair per
+queue-mode server, shared by its cases, and one per single-scenario run. Each case creates and deletes its
+own accounts and characters. A world-cache slot creates a reusable `coa_test_<cache-id>_world` copy on its
+first run, then reuses that world database.
 The copies include world data, auth/character schemas, RBAC, realm definitions, active arena season and
 migration metadata.
 Existing accounts and characters are not copied. The MySQL user needs read access to the sources and permission
 to create/import/drop the test schemas. Sources must be local. No authserver or game client is needed.
 The copies omit MySQL triggers, routines and scheduled events.
 
-If the normal server account cannot create schemas, pass `--database-client-config <admin-client.ini>`.
-The existing MySQL `[client]` file must provide `host`, `port`, `user` and `password`, with the same host/port
-as all source connections. Its credentials are used for cloning, the isolated server and cleanup. For the
-local Repack, this file is `C:/Ascension/CoA-Repack/mysql/admin-client.ini`. Credentials stay in temporary
-config files, never command arguments or reports; no grants or existing accounts are changed.
+If the normal server account cannot create schemas, set `database_client_config` in `conf/verify-all.json`
+(the runners' `--database-client-config`). The existing MySQL `[client]` file must provide `host`, `port`,
+`user` and `password`, with the same host/port as all source connections. Its credentials are used for
+cloning, the isolated server and cleanup. For the local Repack, this file is
+`C:/Ascension/CoA-Repack/mysql/admin-client.ini`. Credentials stay in temporary config files, never command
+arguments or reports; no grants or existing accounts are changed.
 
 The generated config binds the test worldserver to loopback on an unused port, uses a private log directory,
-disables map worker threads and points all three database connections to isolated schemas. Source SQL updates
+disables map worker threads and points all three database connections to isolated schemas. It keeps one
+asynchronous login and character database worker at the MySQL server's default transaction isolation, except
+on the simulated-clock worldserver, whose character database uses `batch.py --character-db-workers` workers
+(default 16) at READ-COMMITTED; see [Character database](../../docs/coa/verification.md#character-database). These
+database settings are harness controls too. Its `TempDir` is
+the runner's private temporary directory, so the SQL updater's password file is neither shared between
+concurrent test servers nor left in the system temporary directory. Source SQL updates
 run normally against the copies. Source configuration and the installed server are not changed. Relative
 `DataDir` is resolved against the binary's directory; use an absolute path when that differs from your setup.
 Module `.conf` files beside the source config (in `modules/`) are copied into the directory the worldserver
-reads module configs from, then removed at the end. Use `--modules-config-dir` for a different source location.
+reads module configs from, then removed at the end; the gameplay stage copies them once for all its servers.
+Use `modules_config_dir` (`--modules-config-dir`) for a different source location.
 On Windows that directory is `configs/modules/` relative to the working directory (the test directory), the
-default. Elsewhere the worldserver reads `CONF_DIR/modules/`, fixed at build time, so `--server-modules-dir`
-is required; use an empty directory in an isolated test installation. Existing files there are never replaced,
-and additional `.conf` files are rejected so they cannot change the test settings. Copied file hashes appear
-in the summary. Module configs cannot override database isolation or harness controls.
+default. Elsewhere the worldserver reads `CONF_DIR/modules/`, fixed at build time, so `server_modules_dir`
+(`--server-modules-dir`) is required; `verify_all.py` defaults it to `<CONF_DIR>/modules`. Use a directory
+without module `.conf` files of its own, as in an isolated test installation. Existing files there are never
+replaced, and additional `.conf` files are rejected so they cannot change the test settings. Copied file hashes
+appear in the summary. Module configs cannot override database isolation or harness controls.
 
 Source settings follow the server's precedence: an `AC_*` environment variable (for example `AC_DATA_DIR`)
 replaces the value in the source config. The test worldserver inherits the runner's environment except
 variables that would replace generated harness values, such as `AC_UPDATES_ENABLE_DATABASES` or
-`AC_LOGIN_DATABASE_INFO`, so the generated config always controls isolation, logging and updates.
+`AC_LOGIN_DATABASE_INFO`, so the generated config always controls isolation, logging and updates. A single-mode
+run of a scenario with an `hour` sets `TZ` to a fixed offset that puts local time at the start of that hour, and
+its `summary.json` records it as `timezone`.
 
-When the scenario ends, the runtime logs out its test players and shuts down. The runner waits for process
+In single mode the runtime logs out its test players and shuts down when the scenario ends. In queue mode it
+tears each case down, deletes the case's accounts and waits for the next case until the runner sends a stop case
+([queue-mode semantics](../../docs/coa/verification.md#gameplay-queue-mode)). The runner waits for process
 exit before dropping the auth/character schemas, auditing the cached world and removing generated credentials.
 Credentials are written only to mode-600 option files and a generated `worldserver.conf` in a private temporary
 directory of the runner, never under the result directory; the directory is removed when the run ends.
@@ -187,16 +212,20 @@ Inspect `summary.json` and the lease before removing any leftovers.
 
 ## Reusing the world database
 
-Reuse is the default. Each run still starts a new worldserver and fresh accounts/characters, so inventory,
-talents, quests and other character state cannot carry over. The cache saves the full world import on later runs.
-Metadata lives under `.cache/coa-gameplay-tests/world-cache/`; `--world-cache-dir` selects a different directory.
-This directory contains ownership metadata and an exclusive lease, not credentials or SQL dumps.
+Reuse is the default. Each case still gets fresh accounts/characters, so inventory, talents, quests and other
+character state cannot carry over. The cache saves the full world import on later runs.
+Single-scenario metadata lives under `.cache/coa-gameplay-tests/world-cache/`; `--world-cache-dir` selects a
+different directory. The gameplay stage gives each worker its own slot under
+`.cache/coa-gameplay-tests/world-cache/slots/` (`batch.py --world-cache-root`), used by that worker's servers
+and isolated reruns.
+Each directory contains ownership metadata and an exclusive lease, not credentials or SQL dumps.
 
-Add one of these options to the same `run` command when needed:
+`verify_all.py` passes either option to its gameplay stage (and the runners `run.py run` and `batch.py` accept
+them directly):
 
 - `--refresh-world`: replace the owned world copy before running, then retain it if the scenario leaves it clean.
-- `--fresh-databases`: bypass the cache, copy all three schemas and drop them after the run. Use this for final
-  verification when a completely fresh database is required. It also works with older harness binaries.
+- `--fresh-databases`: bypass the cache, copy all three schemas and drop them after the run, for a completely
+  fresh database baseline. It also works with older harness binaries.
 
 The runner checks source table contents and definitions, repository SQL files under `data/sql/updates`,
 `data/sql/custom` and `modules`, the source/main module configs and inherited `AC_*` settings. Changes refresh
@@ -225,19 +254,31 @@ override a running test. Refresh does not bypass a lease or an ownership mismatc
 invalidation reason, and preparation/server/total seconds. A retained world with `retained: true` is intentional.
 Generated credential and module configuration files are removed on every normal cleanup.
 
-Results default to `.cache/coa-gameplay-tests/<run-id>/`:
+The gameplay stage writes each catalog case's queue-mode or accelerated attempt under `gameplay/cases/<id>/` of
+its output, a real-pace rerun under `gameplay/real-pace/<id>/` and an isolated rerun under
+`gameplay/isolated/<id>/`; `cases.<id>.directory` in `gameplay/gameplay.json` names the bundle that decided the
+verdict. Each exploratory scenario file gets a bundle under `gameplay/exploratory/<key>/` and each server's logs
+are under `gameplay/servers/`. A single-scenario run writes its bundle to `.cache/coa-gameplay-tests/<run-id>/`
+by default. The [verification guide](../../docs/coa/verification.md#results-and-exit-codes) lists the batch
+files.
 
 - `scenario.json`: exact scenario used.
-- `worldserver.log`: process output, including startup and script errors.
+- `worldserver.log`: process output, including startup and script errors (in the server directory for a batch).
 - `result.json`: server version, actual values and step outcomes.
 - `summary.json`: native-stage result, binary/scenario SHA-256 and any cleanup failure.
-- `verification.json`: combined native and registered numerical verification for catalog scenarios.
+- `verification.json`: combined native and registered numerical verification for catalog scenarios (one file
+  for the whole selection in a batch).
 
-Combined exit code zero requires every expected assertion and step to complete, matching run identity, a clean server
+A passing outcome requires every expected assertion and step to complete, matching run identity, a clean server
 exit, successful cleanup/cache audit and every registered numerical check. A submitted cast alone is never a pass.
 Numeric fields in the server's property-tree JSON are strings; the Python runner converts and rechecks assertion values.
 
 ### Linux (Docker)
+
+This service runs the single-scenario runner inside the worldserver image, for Docker installations without
+the local build and MySQL client tools that `verify_all.py` uses. It is the one execution route outside
+`verify_all.py`: agents use it only when the user asks for it. Its results are not part of a `verify_all.py`
+report; report them as single-scenario evidence.
 
 `docker/compose.yml` adds the `ac-gameplay-test` service to the root Compose stack. It uses the locally built
 worldserver image plus Python and shares the `ac-database` network namespace, so MySQL is reachable on
@@ -283,14 +324,24 @@ cleanup failure may leave schemas or a lease behind; inspect `summary.json` and 
 
 With matching server sources, game data, source databases and effective config, Docker invokes the same Python
 runner and native runtime, including scenario validation, actions, assertions, SQL updates and cleanup. The
-skill's experiment design and result-inspection steps still apply. This does not validate client rendering or
-network login, and a static review alone cannot establish runtime parity between Windows and Linux binaries.
+skill's experiment design applies, but there is no `report.json` or `gameplay/` tree. Inspect the run directory
+instead: `summary.json` for the native result, binary identity, cleanup and `world_cache`; `result.json` for the
+step outcomes and actual values; `verification.json` (catalog scenarios only) for combined verification; and
+`worldserver.log` for startup and script errors. Only a final `VERIFICATION PASSED` line with a passed
+`verification.json` is a pass; a `--native-only` run proves native execution only. This does not validate
+client rendering or network login, and a static review alone cannot establish runtime parity between Windows
+and Linux binaries.
 
 ## Scenario format
 
 Start from [scenarios/frostbolt.json](scenarios/frostbolt.json). Schema version 1 accepts up to eight players,
 eight creatures and 10,000 sequential steps. Optional `timeout_ms` bounds setup plus execution (default 90s,
-maximum 10 minutes). Optional `contract` records the independently established expected behavior.
+maximum 10 minutes); execution counts in game time, which the simulated clock advances past waits. Optional
+`contract` records the independently established expected behavior. Optional `hour` (0-23) starts the case in that
+realm-local hour, for mechanics that read the time of day: the simulated clock, which otherwise starts at 10:00,
+jumps ahead to it, and the real clock runs the case in single mode with a fixed `TZ` offset
+([realm-local time](../../docs/coa/verification.md#realm-local-time)). Every result records its start as
+`realm_local_start`.
 The [talent and item scenario](scenarios/talent-and-items.json) exercises talent learning, passive removal,
 equipping a shirt and consuming a healing potion. It does not measure the talent's damage coefficient.
 The [Shadowblast scenario](scenarios/shadowblast-shadow-rage.json) reproduces a Shadow Rage pet-targeting crash
@@ -328,12 +379,24 @@ It defaults to true and has no effect on other players or on a disabled harness.
 Characters are created and loaded through the existing character creation, enumeration and login
 handlers with ordinary player security. Optional `location` supplies `map`, `x`, `y`, `z`, `o` for a fixture
 teleport. `location.ignore_access` optionally bypasses entry requirements for a fixture (for example a solo
-raid test), without enabling GM mode during combat. Actors share phase `1 << 30` to isolate ordinary spawns.
+raid test), without enabling GM mode during combat. Actors share their lane's phase (`1 << 30` with one lane) to
+isolate ordinary spawns.
+
+`wait` and `within_ms` use game time on both clocks. On the real clock it follows the wall clock at world-tick
+resolution; on the [simulated clock](../../docs/coa/verification.md#accelerated-single-server-mode) it advances
+in world steps of up to 25 ms, so keep timing assertions robust to one step.
+Without `name`, players are `Harness<a..h>` with one lane and generated 10-letter names with several;
+`Harness<a..h>` in `console` and `command` text is rewritten to match, so refer to players by actor id elsewhere.
+A scenario that depends on process-global state, such as the Who list, belongs in `clock_policy.json`
+([exclusive cases](../../docs/coa/verification.md#exclusive-cases)). Phases do not separate creature text with
+area, zone or map range, which `system_messages` counts.
 
 Creatures require `id`, player `owner` and template `entry`. Optional `distance` offsets X from their owner
 (default 3 yards); `faction`, `level`, `health` default to 14, 80, 100000. They retain template data and AI,
 with passive reaction and health regeneration disabled. Pick a template whose scripts suit the experiment.
-Setup clears combat initiated by spawn-time AI before starting the scenario. Later combat follows normal rules.
+Setup clears combat initiated by spawn-time AI before starting the scenario: a fixture whose AI engaged a player
+while spawning evades at once. No step runs while any fixture is evading, so a spell or attack is never aimed at
+a fixture that is resetting; the step's time keeps running meanwhile. Combat otherwise follows normal rules.
 Local level scaling ignores fixtures, because it rebuilds a creature through `SelectLevel()` and would discard
 the declared `level` and `health`; optional `level_scaling` (default false) opts a fixture back into it, which
 only the damage-led scaling scenario above needs. Creature AI can still change initial fixture levels and
@@ -374,7 +437,7 @@ damage coefficients.
 | `set_health`, `set_power` | `actor`, `value` within native maximums; `set_power` accepts `power` (default 0). Optional `pet: true` selects the player's current pet. |
 | `reset_cooldown` | Player `actor`, `spell`: reset that native spell cooldown between independent cases. |
 | `restore_charges` | Player `actor`, `spell`: restore the native charge pool between independent cases. Separate from ordinary cooldowns. |
-| `wait` | `ms`: let the real world continue updating. |
+| `wait` | `ms`: let the world continue updating for that much game time. |
 | `snapshot` | `actor`, `metric`, `save_as`: remember a numeric observation. |
 | `assert` | `actor`, `metric`, `equals` and/or `min`/`max`: check an observation. |
 
@@ -398,8 +461,9 @@ a previously named snapshot of the same metric; it is available on snapshots and
 `ratio_to` then divides by a nonzero snapshot, including a different numeric metric such as healing/damage.
 `cast` accepts an optional `destination` with `x`, `y`, `z` to send an explicit ground target.
 
-Metrics: `health`, `max_health`, `power`, `max_power`, `alive`, `combat`, `casting`, `level`, `quest_objective_count` (needs `quest`, optional `index`), `knows_spell`,
-`has_talent`, `talent_points`, `cooldown_ms`, `item_count`, `carried_item_count`, `bank_bag_slots`, `aura`, `aura_stacks`, `aura_charges`,
+Metrics: `health`, `max_health`, `creature_type`, `power`, `max_power`, `alive`, `combat`, `casting`, `level`,
+`quest_objective_count` (needs `quest`, optional `index`), `knows_spell`, `has_talent`, `talent_points`,
+`cooldown_ms`, `item_count`, `carried_item_count`, `bank_bag_slots`, `aura`, `aura_stacks`, `aura_charges`,
 `aura_duration_ms`, `aura_amount`, `pet_entry`, `pet_aura_stacks`, `owned_creature_count`,
 `charm_entry`, `charm_aura_stacks`, `controls_self`, `private_instance`, `dynamic_object`,
 `dynamic_object_duration_ms`, `distance`, `spell_proc_count`, `spell_cast_count`, `temporary_spell_replacement`,
@@ -432,6 +496,7 @@ and returns that player's class ID, or zero if absent. These inspect packets fro
 not client packet delivery. Masks use native Who bits (`1 << classID`, `1 << raceID`), with class 32 in bit zero;
 omitted masks mean all. The custom-class scenario expects ordinary player RBAC, including faction separation.
 `health_pct` observes current health as a percentage of maximum health.
+`creature_type` reads the native type used by creature-type targeting and effects.
 `cast_speed_multiplier` observes the native cast-time multiplier; smaller values mean faster casts.
 `spell_crit_chance` observes the player's Shadow spell critical chance, in percentage points.
 `spell_damage_done` and `melee_damage_done` require `target` and query native outgoing damage calculations
@@ -449,7 +514,8 @@ requires `school` (1..6); `armor`, `attack_power`, `ranged_attack_power`, the ha
 periodic interval.
 `block_chance` reads the player's percentage field; `block_value` reads native shield block value;
 `critical_block_chance` reads the total modifier used by the native critical block roll.
-`moving` reads the unit's native movement state. `distance_2d` requires `target` and measures horizontal center distance.
+`moving` reads the unit's native movement state. `water_walk` reports whether the unit has a water-walking aura.
+`distance_2d` requires `target` and measures horizontal center distance.
 `forced_forward` reads the server's force-movement flag; it does not simulate client movement or navigation.
 `cast_remaining_ms` requires `spell` and returns its active cast/channel timer, or zero when inactive.
 `cast_pushback_ms` reads the player's cumulative native cast-delay notifications, excluding elapsed cast time.
@@ -468,6 +534,7 @@ It does not execute an attack.
 accepts `effect` (default 0). These queries submit no attack.
 `melee_attack_count` counts the actor's native melee combat packets, including extra attacks and misses.
 `melee_damage_count` counts only those dealing positive damage. Both accept `hand` (0 main hand, 1 off hand).
+`melee_damage_total` sums the positive melee damage in those packets and accepts the same hand filter.
 These observations do not test delivery to a network client.
 `spell_damage_count` and `spell_damage_total` require `spell` and count positive direct or periodic spell
 damage events, or sum their post-mitigation damage, from the actor's native combat packets. Optional `target`
@@ -505,6 +572,8 @@ only reflects native `ApplySpellMod(SPELLMOD_CRITICAL_CHANCE)` modifiers (a bare
 it does not invoke `AllSpellScript::OnSpellCritChance`, which only runs mid-cast (`Spell::DoAllEffectOnTarget`).
 `spell_done_crit_chance_scripted` requires the same `spell`/`target` and additionally runs that hook via a
 throwaway, never-cast `Spell` instance, so a script-hook-only crit bonus is observable without a real cast.
+`spell_taken_crit_chance` applies the target's native `SpellTakenCritChance` to the caster's done chance,
+including target health and school conditions. It requires the same `spell` and `target`.
 `aura_crit_chance` reads a
 periodic aura effect's snapshotted crit chance; `aura_script_value` requires `key`. `script_melee_damage_taken`,
 `script_spell_damage_taken` and `script_periodic_damage_taken` require `target` as the attacker (and `spell` for
@@ -524,6 +593,9 @@ reward eligibility and invokes native reward delivery. These actions do not test
 `restore_quest_spells` takes `actor` and invokes the native restoration of spells from rewarded quests.
 `login_hooks` takes `actor` and replays registered player-login hooks on the current character; it does not reconnect
 or reload the character from the database. Use it to exercise a repair against deliberately seeded fixture state.
+Hooks read character rows synchronously, so the step first waits for a marker query queued behind every character
+database write already queued, as a real login's queries are; with several character database workers a write that
+another worker is still running when the marker returns can remain uncommitted.
 `temporary_spell_replacement` requires `spell` and returns the spell ID currently standing in for it on the
 player's bars. `Player::GetTemporarySpellReplacement` returns the queried spell itself when nothing replaces
 it, so the unreplaced reading is that spell's own ID, never zero. It reads server-side state, not what the
@@ -594,8 +666,10 @@ It tests dispatch and deferral, not a real socket, packet delivery, or every pos
 `view_level` takes a player `actor` and unit `target` and queries the target-relative combat level.
 `sent_level` and `sent_max_health` use the same fields and observe values-only object updates emitted to
 the socketless session. They return zero until the corresponding field has been observed; they do not
-force updates or inspect client rendering. `creature_query_rank` takes a player `actor` and creature `entry` and
-returns the rank of the last creature query response delivered to that session, or -1 before one arrives.
+force updates or inspect client rendering. `lfg_dungeon_disabled` takes an LFGDungeons.dbc `dungeon` id and
+returns 1 when the `disables` table locks that dungeon's map and difficulty out of Dungeon Finder, otherwise 0.
+`creature_query_rank` takes a player `actor` and creature `entry` and returns the rank of the
+last creature query response delivered to that session, or -1 before one arrives.
 `quest_level` and `quest_xp` take a player `actor` and `quest`
 and query the native quest level and XP calculations without awarding a reward.
 
@@ -624,18 +698,22 @@ not provide an automatic statistical test. Keep intended values independent of t
 
 ## Runner checks
 
-```powershell
-python -m unittest discover -s apps/coa-gameplay-test -p 'test_*.py'
-python apps/codestyle/codestyle-cpp.py --files src/server/coa/CoAGameplayTest.cpp
+```sh
+python -B tools/verify_all.py --stages source
 ```
 
-Runner checks cover invalid scenarios, incorrect/partial results, owned-process timeouts, isolation,
-partial-clone cleanup, cache reuse/invalidation, ownership and exclusive leases. They do not substitute for
-building and running the native scenario.
+The source stage's `gameplay` suite runs the runner, batch, world-cache and verification tests and
+`catalog.py --check`; with `--base`, it is selected when gameplay tooling, scenarios or the runtime component
+change. Runner checks cover invalid scenarios, incorrect/partial results, owned-process timeouts, isolation,
+partial-clone cleanup, cache reuse/invalidation, ownership and exclusive leases, and the queue protocol with a
+fake server. They do not substitute for building and running the native scenario.
 
 `spell_go_count` counts the actor's native `SMSG_SPELL_GO` packets for `spell`; optional `pet: true`
-selects the current pet. Invisible triggered spells may omit this packet. A cast count proves dispatch,
-so pair it with effect assertions. It does not test network delivery or client rendering.
+selects the current pet, and `entry` instead counts the packets the actor received from any creature of that
+template, such as its own summoned wards, which are neither pets nor fixtures. Other lanes' creatures are in other
+phases, so `entry` counts only creatures the case's players can see. Invisible triggered spells may omit this
+packet. A cast count proves dispatch, so pair it with effect assertions. It does not test network delivery or
+client rendering.
 `spell_hit_bonus_taken` reads the victim aura contribution to the native spell hit calculation for `spell`.
 `rooted` reads the unit's native root state. `spell_healing_taken` queries incoming healing from `target`
 with a base amount of 1000 and requires `spell`; `periodic: true` selects the native HoT path.
