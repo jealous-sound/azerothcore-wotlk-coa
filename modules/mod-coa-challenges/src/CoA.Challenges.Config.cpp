@@ -306,6 +306,8 @@ namespace CoAChallenges
 
         data << uint32(0);
         data << uint32(0);
+        data << uint32(0);
+        data << uint32(0);
 
         session->SendPacket(&data);
         LOG_INFO("module.coa_challenges", "Sent SMSG_COA_CONFIG ({} bool flags) to {}",
