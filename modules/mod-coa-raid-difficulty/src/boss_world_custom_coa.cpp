@@ -43,6 +43,24 @@
  *   Visions of Ny'alotha every 45s    4s cast: everyone, then after 6s a void
  *                                     explosion under each of them
  *   Fierce Blow         every 7.8s    tank
+ *
+ * Atal'zul, the Soulreaver, with Zul'rogg (map 890; two kills in the log of
+ * 25.08.2026, same spell damage on both, see the level table for health)
+ *   Spectral Bolt       every 1.5s    his tank, stacking shadow damage taken
+ *   Spectral Volley     every 12s     3s cast, everyone
+ *   Land of the Dead    every 61.4s   six seconds: a Damned Wight a second at
+ *                                     the raid, a choking cloud every other
+ *   Spectral Veil       at 80/60/40/20%  a channel of up to 100s: shadow damage
+ *                                     to everyone each second, growing, and a
+ *                                     Restless Spirit that bombs where it lands.
+ *                                     One Soul Vessel wakes; its death breaks
+ *                                     the veil and gives the raid Soul Release.
+ *   Zul'rogg            Fierce Blow every 7.6s, Titanic Crush every 10.8s,
+ *                       Consume Life every 8s; cannot die while Atal'zul lives
+ *
+ * Trut-K'hahn has no log and no map. His kit is his spell block; every timer
+ * is designed: Fierce Blow 8s, Turkey Rush 20s, Feather Storm 30s, Flap Flap
+ * Flap and Dive Bomb 40s, Call the Flock 60s.
  */
 
 #include "Containers.h"
@@ -704,6 +722,513 @@ namespace
         Milliseconds _fierce = 8s;
     };
 
+    // --------------------------------------------------------------- Atal'Zul
+    enum AtalzulSpells
+    {
+        SPELL_SPECTRAL_BOLT     = 2119801,
+        SPELL_SPECTRAL_BOLT_HIT = 2119802,
+        SPELL_LAND_OF_THE_DEAD  = 2119806,
+        SPELL_RAISE_DEAD        = 2119807,
+        SPELL_CHOKING_CLOUD     = 2119810,
+        SPELL_SPECTRAL_VEIL     = 2119816,
+        SPELL_VEIL_TRIGGER      = 2119817,
+        SPELL_SPECTRAL_BOMB     = 2119819,
+        SPELL_SPECTRAL_BOMB_HIT = 2119820,
+        SPELL_HAND_OF_SOULREAVER= 2119825,
+        SPELL_TITANIC_CRUSH     = 2119826,
+        SPELL_TITANIC_CRUSH_HIT = 2119828,
+        SPELL_TRAUMA            = 2119830,
+        SPELL_ENDLESS_HUNGER    = 2119831,
+        SPELL_CONSUME_LIFE      = 2119832,
+        SPELL_CONSUME_LIFE_HEAL = 2119836,
+        SPELL_CONSUME_LIFE_AP   = 2119837,
+        SPELL_SOUL_RELEASE      = 2119839,
+        SPELL_SOUL_RELEASE_HIT  = 2119840,
+        SPELL_SOUL_VESSEL       = 2119844,
+        SPELL_SOUL_BIND         = 2119845,
+        SPELL_SOUL_LINK         = 2119847,
+        SPELL_SPECTRAL_VOLLEY   = 2119848,
+        SPELL_VEIL_PULSE        = 2119853,
+        SPELL_VEIL_POWER        = 2119857,
+
+        NPC_ATALZUL             = 67532,
+        NPC_ZULROGG             = 67533,
+        NPC_DAMNED_WIGHT        = 67534,
+        NPC_RESTLESS_SPIRIT     = 67535,
+        NPC_SOUL_VESSEL         = 67536,
+    };
+
+    enum AtalzulEvents { EA_BOLT = 1, EA_VOLLEY, EA_LAND };
+
+    // Casts the Spectral Bomb where it appears and is gone 2s later; killing it
+    // first stops the bomb.
+    struct npc_restless_spirit_coa : public ScriptedAI
+    {
+        explicit npc_restless_spirit_coa(Creature* creature) : ScriptedAI(creature) { }
+
+        void Reset() override
+        {
+            ApplyLevelHealth(me);
+            me->SetReactState(REACT_PASSIVE);
+        }
+
+        void IsSummonedBy(WorldObject* /*summoner*/) override { DoCastSelf(SPELL_SPECTRAL_BOMB); }
+
+        void OnSpellCast(SpellInfo const* spell) override
+        {
+            if (spell->Id != SPELL_SPECTRAL_BOMB)
+                return;
+            Unit* caster = me;
+            if (TempSummon* s = me->ToTempSummon())
+                if (Unit* atal = s->GetSummonerUnit())
+                    caster = atal;
+            caster->CastSpell(me->GetPositionX(), me->GetPositionY(), me->GetPositionZ(), SPELL_SPECTRAL_BOMB_HIT, true);
+            me->DespawnOrUnsummon(100ms);
+        }
+
+        void UpdateAI(uint32 /*diff*/) override { }
+    };
+
+    // The phylacteries: asleep until Spectral Veil binds one; its death breaks
+    // the veil and releases the soul onto the raid.
+    struct npc_soul_vessel_coa : public ScriptedAI
+    {
+        explicit npc_soul_vessel_coa(Creature* creature) : ScriptedAI(creature) { }
+
+        void Reset() override
+        {
+            ApplyLevelHealth(me);
+            me->SetReactState(REACT_PASSIVE);
+            me->SetControlled(true, UNIT_STATE_ROOT);
+            DoCastSelf(SPELL_SOUL_VESSEL, true);
+            Sleep(true);
+        }
+
+        void Sleep(bool asleep)
+        {
+            if (asleep)
+                me->SetUnitFlag(UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_NON_ATTACKABLE);
+            else
+                me->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_NON_ATTACKABLE);
+        }
+
+        void JustDied(Unit* /*killer*/) override
+        {
+            for (Player* p : Players(me, [&](Player* x) { return me->IsWithinDistInMap(x, 100.0f); }))
+            {
+                me->CastSpell(p, SPELL_SOUL_RELEASE_HIT, true);
+                AddStack(me, p, SPELL_SOUL_RELEASE);
+            }
+            if (Creature* atal = me->FindNearestCreature(NPC_ATALZUL, 200.0f))
+                atal->AI()->DoAction(1);
+        }
+
+        void UpdateAI(uint32 /*diff*/) override { }
+    };
+
+    struct boss_atalzul_coa : public custom_world_boss_coa
+    {
+        explicit boss_atalzul_coa(Creature* creature) : custom_world_boss_coa(creature), _summons(creature) { }
+
+        void Reset() override
+        {
+            custom_world_boss_coa::Reset();
+            _summons.DespawnAll();
+            _nextVeil = 80;
+            me->RemoveAurasDueToSpell(SPELL_VEIL_POWER);
+            std::list<Creature*> vessels;
+            me->GetCreatureListWithEntryInGrid(vessels, NPC_SOUL_VESSEL, 100.0f);
+            for (Creature* v : vessels)
+            {
+                if (!v->IsAlive())
+                    v->Respawn(true);
+                else if (auto* ai = dynamic_cast<npc_soul_vessel_coa*>(v->AI()))
+                {
+                    v->SetFullHealth();
+                    ai->Sleep(true);
+                }
+            }
+        }
+
+        void JustEngagedWith(Unit* who) override
+        {
+            custom_world_boss_coa::JustEngagedWith(who);
+            if (Creature* rogg = me->FindNearestCreature(NPC_ZULROGG, 100.0f))
+                if (!rogg->IsInCombat())
+                    rogg->AI()->AttackStart(who);
+        }
+
+        void JustSummoned(Creature* summon) override
+        {
+            _summons.Summon(summon);
+            if (summon->GetEntry() == NPC_DAMNED_WIGHT)
+                if (Unit* t = SelectTarget(SelectTargetMethod::Random, 0, 100.0f, true))
+                    summon->AI()->AttackStart(t);
+        }
+
+        void JustDied(Unit* /*killer*/) override
+        {
+            _summons.DespawnAll();
+            if (Creature* rogg = me->FindNearestCreature(NPC_ZULROGG, 200.0f))
+                rogg->DespawnOrUnsummon(10s);
+        }
+
+        void Schedule() override
+        {
+            events.ScheduleEvent(EA_BOLT, 700ms);
+            events.ScheduleEvent(EA_VOLLEY, 8400ms);
+            events.ScheduleEvent(EA_LAND, 11400ms);
+        }
+
+        void Execute(uint32 eventId) override
+        {
+            switch (eventId)
+            {
+                case EA_BOLT:   DoCastVictim(SPELL_SPECTRAL_BOLT);  events.Repeat(1500ms);  break;
+                case EA_VOLLEY: DoCastVictim(SPELL_SPECTRAL_VOLLEY); events.Repeat(12s);    break;
+                case EA_LAND:   DoCastSelf(SPELL_LAND_OF_THE_DEAD); events.Repeat(61400ms); break;
+            }
+        }
+
+        void OnSpellCast(SpellInfo const* spell) override
+        {
+            if (spell->Id == SPELL_SPECTRAL_BOLT)
+            {
+                if (Unit* v = me->GetVictim())
+                    me->CastSpell(v, SPELL_SPECTRAL_BOLT_HIT, true);
+            }
+            else if (spell->Id == SPELL_SPECTRAL_VEIL)
+                BindVessel();
+        }
+
+        // Land of the Dead and Spectral Veil tick through their trigger spells.
+        void SpellHit(Unit* /*caster*/, SpellInfo const* spell) override
+        {
+            if (spell->Id == SPELL_RAISE_DEAD)
+            {
+                Unit* t = RandomPlayer(false);
+                if (!t)
+                    return;
+                // A wight every second; a choking cloud every other.
+                me->SummonCreature(NPC_DAMNED_WIGHT, t->GetPositionX() + frand(-4.0f, 4.0f), t->GetPositionY() + frand(-4.0f, 4.0f),
+                    t->GetPositionZ(), 0, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 10000);
+                if (_raise++ % 2 == 0)
+                    CastAt(t->GetPosition(), SPELL_CHOKING_CLOUD);
+            }
+            else if (spell->Id == SPELL_VEIL_TRIGGER)
+            {
+                DoCastAOE(SPELL_VEIL_PULSE, true);
+                AddStack(me, me, SPELL_VEIL_POWER);
+                if (Unit* t = RandomPlayer(false))
+                    me->SummonCreature(NPC_RESTLESS_SPIRIT, t->GetPositionX() + frand(-2.0f, 2.0f), t->GetPositionY() + frand(-2.0f, 2.0f),
+                        t->GetPositionZ(), 0, TEMPSUMMON_TIMED_DESPAWN, 5000);
+            }
+        }
+
+        void DamageTaken(Unit* attacker, uint32& damage, DamageEffectType type, SpellSchoolMask school) override
+        {
+            custom_world_boss_coa::DamageTaken(attacker, damage, type, school);
+            if (_nextVeil && !me->HasAura(SPELL_SPECTRAL_VEIL) && me->HealthBelowPctDamaged(_nextVeil, damage))
+            {
+                _nextVeil = _nextVeil > 20 ? _nextVeil - 20 : 0;
+                me->InterruptNonMeleeSpells(false);
+                DoCastSelf(SPELL_SPECTRAL_VEIL);
+            }
+        }
+
+        void BindVessel()
+        {
+            std::list<Creature*> vessels;
+            me->GetCreatureListWithEntryInGrid(vessels, NPC_SOUL_VESSEL, 100.0f);
+            vessels.remove_if([](Creature* v) { return !v->IsAlive() || !v->HasUnitFlag(UNIT_FLAG_NOT_SELECTABLE); });
+            if (vessels.empty())
+                return;
+            Creature* v = Acore::Containers::SelectRandomContainerElement(vessels);
+            if (auto* ai = dynamic_cast<npc_soul_vessel_coa*>(v->AI()))
+                ai->Sleep(false);
+            v->CastSpell(me, SPELL_SOUL_BIND, true);
+            v->CastSpell(me, SPELL_SOUL_LINK, true);
+        }
+
+        // A vessel died: the veil breaks.
+        void DoAction(int32 action) override
+        {
+            if (action != 1 || !me->HasAura(SPELL_SPECTRAL_VEIL))
+                return;
+            me->InterruptNonMeleeSpells(false);
+            me->RemoveAurasDueToSpell(SPELL_SPECTRAL_VEIL);
+            me->RemoveAurasDueToSpell(SPELL_SOUL_LINK);
+            me->RemoveAurasDueToSpell(SPELL_VEIL_POWER);
+        }
+
+    private:
+        SummonList _summons;
+        uint8 _nextVeil = 80;
+        uint32 _raise = 0;
+    };
+
+    enum ZulroggEvents { EZ_CRUSH = 1, EZ_FIERCE };
+
+    struct boss_zulrogg_coa : public custom_world_boss_coa
+    {
+        explicit boss_zulrogg_coa(Creature* creature) : custom_world_boss_coa(creature) { }
+
+        void Reset() override
+        {
+            custom_world_boss_coa::Reset();
+            DoCastSelf(SPELL_HAND_OF_SOULREAVER, true);
+            DoCastSelf(SPELL_ENDLESS_HUNGER, true);
+        }
+
+        void JustEngagedWith(Unit* who) override
+        {
+            custom_world_boss_coa::JustEngagedWith(who);
+            if (Creature* atal = me->FindNearestCreature(NPC_ATALZUL, 100.0f))
+                if (!atal->IsInCombat())
+                    atal->AI()->AttackStart(who);
+        }
+
+        void Schedule() override
+        {
+            events.ScheduleEvent(EZ_FIERCE, 5400ms);
+            events.ScheduleEvent(EZ_CRUSH, 7200ms);
+        }
+
+        void Execute(uint32 eventId) override
+        {
+            switch (eventId)
+            {
+                case EZ_FIERCE: DoCastVictim(SPELL_FIERCE_BLOW);   events.Repeat(7600ms);  break;
+                case EZ_CRUSH:  DoCastVictim(SPELL_TITANIC_CRUSH); events.Repeat(10800ms); break;
+            }
+        }
+
+        void OnSpellCast(SpellInfo const* spell) override
+        {
+            if (spell->Id != SPELL_TITANIC_CRUSH)
+                return;
+            Unit* target = me->GetVictim();
+            if (!target)
+                return;
+            for (Player* p : Players(me, [&](Player* x) { return target->IsWithinDistInMap(x, 5.0f); }))
+                me->CastSpell(p, SPELL_TITANIC_CRUSH_HIT, true);
+            me->CastSpell(target, SPELL_TRAUMA, true);
+        }
+
+        // Endless Hunger: every Consume Life that lands heals him, or at full
+        // health raises his attack power.
+        void SpellHitTarget(Unit* target, SpellInfo const* spell) override
+        {
+            if (spell->Id != SPELL_CONSUME_LIFE || !target->IsPlayer())
+                return;
+            if (me->IsFullHealth())
+                DoCastSelf(SPELL_CONSUME_LIFE_AP, true);
+            else
+                Hit(me, me, SPELL_CONSUME_LIFE_HEAL, Info(me, SPELL_CONSUME_LIFE) - 1);
+        }
+
+        // Hand of the Soulreaver: he cannot die while Atal'zul is bound.
+        void DamageTaken(Unit* attacker, uint32& damage, DamageEffectType type, SpellSchoolMask school) override
+        {
+            custom_world_boss_coa::DamageTaken(attacker, damage, type, school);
+            if (damage >= me->GetHealth())
+                if (Creature* atal = me->FindNearestCreature(NPC_ATALZUL, 200.0f))
+                    if (atal->IsAlive())
+                        damage = me->GetHealth() > 1 ? me->GetHealth() - 1 : 0;
+        }
+    };
+
+    // ------------------------------------------------------------ Trut-K'hahn
+    enum TrutSpells
+    {
+        SPELL_FLAP              = 2119901,
+        SPELL_DIVE_BOMB_INFO    = 2119902,
+        SPELL_DIVE_BOMB         = 2119903,
+        SPELL_DIVE_KNOCKBACK    = 2119904,
+        SPELL_DIVE_STUN         = 2119905,
+        SPELL_FEATHER_STORM     = 2119907,
+        SPELL_CALL_THE_FLOCK    = 2119908,
+        SPELL_TURKEY_RUSH       = 2119909,
+        SPELL_TURKEY_RUSH_PRE   = 2119910,
+        SPELL_TURKEY_RUSH_HIT   = 2119911,
+
+        NPC_TRUT_FLOCK          = 9780030,
+        NPC_FEATHER_STORM       = 9780031,
+    };
+
+    enum TrutEvents { ET_FIERCE = 1, ET_RUSH, ET_FLAP, ET_STORM, ET_FLOCK, TT_DIVE };
+
+    constexpr uint8 FLOCK_SIZE = 5;
+
+    struct boss_trut_khahn_coa : public custom_world_boss_coa
+    {
+        explicit boss_trut_khahn_coa(Creature* creature) : custom_world_boss_coa(creature), _summons(creature) { }
+
+        void Reset() override
+        {
+            custom_world_boss_coa::Reset();
+            _summons.DespawnAll();
+        }
+
+        void JustDied(Unit* /*killer*/) override { _summons.DespawnAll(); }
+
+        void JustSummoned(Creature* summon) override
+        {
+            _summons.Summon(summon);
+            if (summon->GetEntry() == NPC_TRUT_FLOCK)
+                if (Unit* t = SelectTarget(SelectTargetMethod::Random, 0, 100.0f, true))
+                    summon->AI()->AttackStart(t);
+        }
+
+        void Schedule() override
+        {
+            events.ScheduleEvent(ET_FIERCE, 6s);
+            events.ScheduleEvent(ET_RUSH, 15s);
+            events.ScheduleEvent(ET_STORM, 25s);
+            events.ScheduleEvent(ET_FLAP, 40s);
+            events.ScheduleEvent(ET_FLOCK, 60s);
+        }
+
+        void Execute(uint32 eventId) override
+        {
+            switch (eventId)
+            {
+                case ET_FIERCE: DoCastVictim(SPELL_FIERCE_BLOW); events.Repeat(8s); break;
+                case ET_RUSH:
+                    if (Unit* t = RandomPlayer())
+                    {
+                        _rushTo = t->GetPosition();
+                        CastAt(_rushTo, SPELL_TURKEY_RUSH_PRE);
+                        DoCast(t, SPELL_TURKEY_RUSH);
+                    }
+                    events.Repeat(20s);
+                    break;
+                case ET_FLAP:
+                    if (Unit* t = RandomPlayer(false))
+                    {
+                        _diveAt = t->GetPosition();
+                        DoCastSelf(SPELL_FLAP);
+                    }
+                    events.Repeat(40s);
+                    break;
+                case ET_STORM:
+                    if (Unit* t = RandomPlayer(false))
+                        me->SummonCreature(NPC_FEATHER_STORM, t->GetPosition(), TEMPSUMMON_TIMED_DESPAWN, 15000);
+                    events.Repeat(30s);
+                    break;
+                case ET_FLOCK: DoCastSelf(SPELL_CALL_THE_FLOCK); events.Repeat(60s); break;
+            }
+        }
+
+        void OnSpellCast(SpellInfo const* spell) override
+        {
+            switch (spell->Id)
+            {
+                case SPELL_TURKEY_RUSH:
+                {
+                    // Everyone within 4 yards of his path is run over.
+                    Position const from = me->GetPosition();
+                    float const dx = _rushTo.GetPositionX() - from.GetPositionX();
+                    float const dy = _rushTo.GetPositionY() - from.GetPositionY();
+                    float const len2 = std::max(1.0f, dx * dx + dy * dy);
+                    for (Player* p : PlayersWithin(me, 100.0f))
+                    {
+                        float const u = std::clamp(((p->GetPositionX() - from.GetPositionX()) * dx + (p->GetPositionY() - from.GetPositionY()) * dy) / len2, 0.0f, 1.0f);
+                        float const ex = from.GetPositionX() + u * dx - p->GetPositionX();
+                        float const ey = from.GetPositionY() + u * dy - p->GetPositionY();
+                        if (ex * ex + ey * ey <= 16.0f)
+                            me->CastSpell(p, SPELL_TURKEY_RUSH_HIT, true);
+                    }
+                    me->GetMotionMaster()->MoveCharge(_rushTo.GetPositionX(), _rushTo.GetPositionY(), _rushTo.GetPositionZ(), 42.0f);
+                    break;
+                }
+                case SPELL_FLAP:
+                    me->SetDisableGravity(true);
+                    me->GetMotionMaster()->MovePoint(0, _diveAt.GetPositionX(), _diveAt.GetPositionY(), _diveAt.GetPositionZ() + 15.0f, FORCED_MOVEMENT_NONE, 0.f, 0.f, false);
+                    _clock.ScheduleEvent(TT_DIVE, 3s);
+                    break;
+                case SPELL_CALL_THE_FLOCK:
+                    for (uint8 i = 0; i < FLOCK_SIZE; ++i)
+                    {
+                        Position pos = me->GetPosition();
+                        me->MovePosition(pos, 12.0f, 2 * float(M_PI) * i / FLOCK_SIZE);
+                        me->SummonCreature(NPC_TRUT_FLOCK, pos, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 10000);
+                    }
+                    break;
+            }
+        }
+
+        void Tick(uint32 tick) override
+        {
+            if (tick != TT_DIVE)
+                return;
+            me->SetDisableGravity(false);
+            me->NearTeleportTo(_diveAt.GetPositionX(), _diveAt.GetPositionY(), _diveAt.GetPositionZ(), me->GetOrientation());
+            int32 const base = Info(me, SPELL_DIVE_BOMB_INFO);
+            for (Player* p : PlayersWithin(me, 100.0f))
+            {
+                float const d = p->GetExactDist2d(&_diveAt);
+                // Hit directly: stunned. Further out: less damage, thrown back.
+                Hit(me, p, SPELL_DIVE_BOMB, int32(base * std::clamp(1.0f - d / 40.0f, 0.1f, 1.0f)) - 1);
+                me->CastSpell(p, d <= 5.0f ? SPELL_DIVE_STUN : SPELL_DIVE_KNOCKBACK, true);
+            }
+        }
+
+    private:
+        SummonList _summons;
+        Position _rushTo;
+        Position _diveAt;
+    };
+
+    // A feather storm that drifts from player to player for 15 seconds.
+    struct npc_feather_storm_coa : public ScriptedAI
+    {
+        explicit npc_feather_storm_coa(Creature* creature) : ScriptedAI(creature) { }
+
+        void Reset() override
+        {
+            me->SetReactState(REACT_PASSIVE);
+            _pulse = 1s;
+            _move = 0ms;
+        }
+
+        void UpdateAI(uint32 diff) override
+        {
+            _pulse -= Milliseconds(diff);
+            _move -= Milliseconds(diff);
+            if (_pulse <= 0ms)
+            {
+                Unit* caster = me;
+                if (TempSummon* s = me->ToTempSummon())
+                    if (Unit* trut = s->GetSummonerUnit())
+                        caster = trut;
+                for (Player* p : Players(me, [&](Player* x) { return me->IsWithinDistInMap(x, 8.0f); }))
+                    caster->CastSpell(p, SPELL_FEATHER_STORM, true);
+                _pulse = 1s;
+            }
+            if (_move <= 0ms)
+            {
+                std::vector<Player*> pool = Players(me, [&](Player* x) { return me->IsWithinDistInMap(x, 60.0f); });
+                if (!pool.empty())
+                {
+                    Player* p = Acore::Containers::SelectRandomContainerElement(pool);
+                    me->GetMotionMaster()->MovePoint(0, p->GetPosition());
+                }
+                _move = 5s;
+            }
+        }
+
+    private:
+        Milliseconds _pulse = 1s;
+        Milliseconds _move = 0ms;
+    };
+
+    // Adds of the Atal'Zul and Trut-K'hahn fights: melee, Fierce Blow, the level.
+    struct npc_custom_add_coa : public npc_psychophage_coa
+    {
+        using npc_psychophage_coa::npc_psychophage_coa;
+    };
+
     template <class AI>
     class custom_script : public CreatureScript
     {
@@ -720,4 +1245,11 @@ void AddCoaCustomWorldBossScripts()
     new custom_script<boss_snowgrave_coa>("boss_snowgrave_coa");
     new custom_script<boss_soggoth_coa>("boss_soggoth_coa");
     new custom_script<npc_psychophage_coa>("npc_psychophage_coa");
+    new custom_script<boss_atalzul_coa>("boss_atalzul_coa");
+    new custom_script<boss_zulrogg_coa>("boss_zulrogg_coa");
+    new custom_script<npc_soul_vessel_coa>("npc_soul_vessel_coa");
+    new custom_script<npc_restless_spirit_coa>("npc_restless_spirit_coa");
+    new custom_script<npc_custom_add_coa>("npc_custom_add_coa");
+    new custom_script<boss_trut_khahn_coa>("boss_trut_khahn_coa");
+    new custom_script<npc_feather_storm_coa>("npc_feather_storm_coa");
 }
