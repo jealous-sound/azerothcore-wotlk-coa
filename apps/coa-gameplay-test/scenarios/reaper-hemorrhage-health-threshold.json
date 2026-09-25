@@ -122,6 +122,17 @@
       "value": 36000
     },
     {
+      "action": "wait",
+      "ms": 1000
+    },
+    {
+      "action": "assert",
+      "actor": "target",
+      "metric": "health_pct",
+      "min": 35.01,
+      "label": "Target returns above thirty-five percent"
+    },
+    {
       "action": "assert",
       "actor": "reaper",
       "metric": "spell_taken_crit_chance",
