@@ -36,7 +36,9 @@ enum ReaperSecondarySpells : uint32
     SPELL_CRIMSON_AMOUNT = 807417,
     SPELL_CRIMSON_HEAL = 807545,
     SPELL_GHOSTLY_WEAPON = 803997,
-    SPELL_GHOSTLY_WEAPON_FROST = 804474
+    SPELL_GHOSTLY_WEAPON_FROST = 804474,
+    SPELL_LAMENTING = 705397,
+    SPELL_LAMENTING_HEAL = 807420
 };
 
 void HealFromDamage(Player* player, uint32 reference, uint32 helper, uint32 damage)
@@ -149,6 +151,8 @@ public:
         uint32 id = spell->GetSpellInfo()->Id;
         if (id == SPELL_DIRGE_HIT && player->HasAura(SPELL_ENDBRINGER, player->GetGUID()))
             HealFromDamage(player, SPELL_ENDBRINGER_AMOUNT, SPELL_ENDBRINGER_HEAL, damage);
+        if (id == SPELL_GHOSTLY_WEAPON_FROST && player->HasAura(SPELL_LAMENTING, player->GetGUID()))
+            HealFromDamage(player, SPELL_LAMENTING, SPELL_LAMENTING_HEAL, damage);
         if (id == SPELL_SPECTRE_HIT && target->IsAlive())
             player->CastSpell(target, SPELL_SPECTRE_ROOT, true);
         if (spell->IsTriggered())
