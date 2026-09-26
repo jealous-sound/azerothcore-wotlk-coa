@@ -33,10 +33,25 @@ enum WitchHunterCastSpells
     SPELL_SHARPSHOOTER_ENERGIZE = 704385
 };
 
+enum WitchHunterHounds
+{
+    NPC_SHADOWHOUND = 50124,
+    NPC_LESSER_SHADOWHOUND = 50224
+};
+
+void GrantShadowRageToHounds(Player* player)
+{
+    float const range = sSpellMgr->AssertSpellInfo(SPELL_SHADOW_RAGE_PET)->Effects[EFFECT_1].CalcRadius(player);
+    for (Unit* hound : Nearby(player, range))
+        if ((hound->GetEntry() == NPC_SHADOWHOUND || hound->GetEntry() == NPC_LESSER_SHADOWHOUND) &&
+            hound->GetOwnerGUID() == player->GetGUID())
+            Cast(player, hound, SPELL_SHADOW_RAGE_PET);
+}
+
 void ApplyShadowblastTalents(Player* player)
 {
     if (player->HasAura(SPELL_SHADOW_RAGE_TALENT))
-        Cast(player, Hound(player), SPELL_SHADOW_RAGE_PET);
+        GrantShadowRageToHounds(player);
     if (player->HasAura(SPELL_SHARPSHOOTER))
         Cast(player, player, SPELL_SHARPSHOOTER_ENERGIZE);
 }
