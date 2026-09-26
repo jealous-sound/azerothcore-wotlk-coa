@@ -1,54 +1,57 @@
 {
   "schema": 1,
-  "name": "Spectral Tiger mount: 42777 mounts its display and stays mounted",
-  "contract": "Spell 42777 must apply a persistent mounted aura and set the mount display to its creature's model (21974). Spell 499910 is a positive control that must keep mounting display 21973. Run speed is not asserted: 42777 carries no mounted-speed effect.",
+  "name": "Spectral Tiger mounts: 42777, 499910, 42776 and 499912 mount their models",
+  "contract": "Each Spectral-family mount spell must apply a persistent mounted aura and set the mount display to its creature's model: 42777 -> 21974, 499910 -> 21973, 42776 -> 470000, 499912 -> 470000. Run speed is not asserted.",
   "timeout_ms": 120000,
   "players": [
-    { "id": "tiger", "race": 1, "class": 1, "level": 80 },
-    { "id": "control", "race": 1, "class": 1, "level": 80 }
+    { "id": "swift", "race": 1, "class": 1, "level": 80 },
+    { "id": "regular", "race": 1, "class": 1, "level": 80 },
+    { "id": "armored", "race": 1, "class": 1, "level": 80 },
+    { "id": "armored_swift", "race": 1, "class": 1, "level": 80 }
   ],
   "steps": [
     { "action": "wait", "label": "Settle", "ms": 3000 },
 
-    { "action": "set_skill", "actor": "tiger", "skill": 762, "value": 300, "maximum": 300 },
-    { "action": "learn", "actor": "tiger", "spell": 42777 },
-    { "action": "cast", "actor": "tiger", "spell": 42777 },
-    {
-      "action": "assert", "label": "42777 cast applies its mounted aura",
-      "actor": "tiger", "metric": "aura", "spell": 42777, "equals": 1, "within_ms": 6000
-    },
-    {
-      "action": "assert", "label": "42777 sets the mounted unit flag",
-      "actor": "tiger", "metric": "mounted", "equals": 1, "within_ms": 6000
-    },
-    {
-      "action": "assert", "label": "42777 sets mount display 21974",
-      "actor": "tiger", "metric": "mount_display", "equals": 21974, "within_ms": 6000
-    },
-    { "action": "wait", "label": "Survive a server tick", "ms": 3000 },
-    {
-      "action": "assert", "label": "42777 aura persists",
-      "actor": "tiger", "metric": "aura", "spell": 42777, "equals": 1
-    },
-    {
-      "action": "assert", "label": "42777 stays mounted",
-      "actor": "tiger", "metric": "mounted", "equals": 1
-    },
-    {
-      "action": "assert", "label": "42777 display persists",
-      "actor": "tiger", "metric": "mount_display", "equals": 21974
-    },
+    { "action": "set_skill", "actor": "swift", "skill": 762, "value": 300, "maximum": 300 },
+    { "action": "learn", "actor": "swift", "spell": 42777 },
+    { "action": "cast", "actor": "swift", "spell": 42777 },
+    { "action": "assert", "actor": "swift", "metric": "aura", "spell": 42777, "equals": 1, "within_ms": 6000 },
+    { "action": "assert", "actor": "swift", "metric": "mounted", "equals": 1, "within_ms": 6000 },
+    { "action": "assert", "actor": "swift", "metric": "mount_display", "equals": 21974, "within_ms": 6000 },
+    { "action": "wait", "ms": 3000 },
+    { "action": "assert", "label": "42777 persists", "actor": "swift", "metric": "aura", "spell": 42777, "equals": 1 },
+    { "action": "assert", "actor": "swift", "metric": "mounted", "equals": 1 },
+    { "action": "assert", "actor": "swift", "metric": "mount_display", "equals": 21974 },
 
-    { "action": "set_skill", "actor": "control", "skill": 762, "value": 300, "maximum": 300 },
-    { "action": "learn", "actor": "control", "spell": 499910 },
-    { "action": "cast", "actor": "control", "spell": 499910 },
-    {
-      "action": "assert", "label": "499910 control still mounts display 21973",
-      "actor": "control", "metric": "mount_display", "equals": 21973, "within_ms": 6000
-    },
-    {
-      "action": "assert", "label": "499910 control stays mounted",
-      "actor": "control", "metric": "mounted", "equals": 1
-    }
+    { "action": "set_skill", "actor": "regular", "skill": 762, "value": 300, "maximum": 300 },
+    { "action": "learn", "actor": "regular", "spell": 499910 },
+    { "action": "cast", "actor": "regular", "spell": 499910 },
+    { "action": "assert", "actor": "regular", "metric": "aura", "spell": 499910, "equals": 1, "within_ms": 6000 },
+    { "action": "assert", "actor": "regular", "metric": "mount_display", "equals": 21973, "within_ms": 6000 },
+    { "action": "assert", "label": "499910 mounted", "actor": "regular", "metric": "mounted", "equals": 1 },
+    { "action": "wait", "ms": 3000 },
+    { "action": "assert", "label": "499910 persists", "actor": "regular", "metric": "mount_display", "equals": 21973 },
+
+    { "action": "set_skill", "actor": "armored", "skill": 762, "value": 300, "maximum": 300 },
+    { "action": "learn", "actor": "armored", "spell": 42776 },
+    { "action": "cast", "actor": "armored", "spell": 42776 },
+    { "action": "assert", "actor": "armored", "metric": "aura", "spell": 42776, "equals": 1, "within_ms": 6000 },
+    { "action": "assert", "actor": "armored", "metric": "mounted", "equals": 1, "within_ms": 6000 },
+    { "action": "assert", "actor": "armored", "metric": "mount_display", "equals": 470000, "within_ms": 6000 },
+    { "action": "wait", "ms": 3000 },
+    { "action": "assert", "label": "42776 persists", "actor": "armored", "metric": "aura", "spell": 42776, "equals": 1 },
+    { "action": "assert", "actor": "armored", "metric": "mounted", "equals": 1 },
+    { "action": "assert", "actor": "armored", "metric": "mount_display", "equals": 470000 },
+
+    { "action": "set_skill", "actor": "armored_swift", "skill": 762, "value": 300, "maximum": 300 },
+    { "action": "learn", "actor": "armored_swift", "spell": 499912 },
+    { "action": "cast", "actor": "armored_swift", "spell": 499912 },
+    { "action": "assert", "actor": "armored_swift", "metric": "aura", "spell": 499912, "equals": 1, "within_ms": 6000 },
+    { "action": "assert", "actor": "armored_swift", "metric": "mounted", "equals": 1, "within_ms": 6000 },
+    { "action": "assert", "actor": "armored_swift", "metric": "mount_display", "equals": 470000, "within_ms": 6000 },
+    { "action": "wait", "ms": 3000 },
+    { "action": "assert", "label": "499912 persists", "actor": "armored_swift", "metric": "aura", "spell": 499912, "equals": 1 },
+    { "action": "assert", "actor": "armored_swift", "metric": "mounted", "equals": 1 },
+    { "action": "assert", "actor": "armored_swift", "metric": "mount_display", "equals": 470000 }
   ]
 }
