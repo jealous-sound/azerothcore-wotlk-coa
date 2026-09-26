@@ -262,6 +262,7 @@ void AddSC_AscensionPrimalistSecondary();
 void AddSC_AscensionRunemasterSecondary();
 void AddSC_AscensionRunemasterHurricane();
 void AddSC_AscensionRunemasterRiftClones();
+void AddSC_AscensionRunemasterTalentEffects();
 void AddSC_AscensionWelcomeWarchest();
 void AddSC_AscensionClassBundleStore();
 void AddSC_AscensionLfgObjective();
@@ -505,6 +506,7 @@ void AddCoAScripts()
     AddSC_AscensionRunemasterSecondary();
     AddSC_AscensionRunemasterHurricane();
     AddSC_AscensionRunemasterRiftClones();
+    AddSC_AscensionRunemasterTalentEffects();
     AddAscensionRunemasterZenithScripts();
     AddAscensionRunemasterEchoesScripts();
     AddAscensionVenomancerVenomScripts();
