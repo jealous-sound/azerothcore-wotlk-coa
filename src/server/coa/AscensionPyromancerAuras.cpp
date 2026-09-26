@@ -41,12 +41,8 @@ class aura_ascension_pyromancer_lifecycle : public AuraScript
         }
         if (Named(GetSpellInfo(), 805500))
             if (AuraEffect* periodic = GetEffect(EFFECT_0))
-            {
                 if (GetEffect(EFFECT_1) && GetEffect(EFFECT_1)->GetAmount() > 0)
                     periodic->SetCritChance(100);
-                else if (!player->HasAura(520770))
-                    periodic->SetCritChance(0);
-            }
         if (GetTarget() != player)
             return;
         if (id == 524707 && (mode & AURA_EFFECT_HANDLE_REAPPLY))
