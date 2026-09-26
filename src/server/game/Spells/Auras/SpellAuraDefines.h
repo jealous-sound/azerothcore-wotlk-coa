@@ -426,6 +426,7 @@ enum AscensionCreatureTypeDamageScope
 // spellmod indices out of the native player's fixed-size modifier arrays.
 enum AscensionAttackPowerCoefficientScript
 {
+    ASCENSION_DIRECT_AP_COEFFICIENT_FLAT = 20032,
     ASCENSION_DIRECT_AP_COEFFICIENT_PCT = 20042,
     ASCENSION_PERIODIC_AP_COEFFICIENT_PCT = 20045
 };
