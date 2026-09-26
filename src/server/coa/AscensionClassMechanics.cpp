@@ -1359,6 +1359,7 @@ void HandleAscensionClassMechanicsCast(Spell* spell)
             return;
 
         HandleAscensionRangerStonemason(spell, player);
+        HandleAscensionRangerPhoenixPlumes(spell, player);
 
         float consumeChance = 100.0f;
         player->ApplySpellMod(SPELL_RANGER_ADVANTAGE_DECREMENT_PASSIVE,
