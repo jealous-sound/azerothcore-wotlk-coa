@@ -196,7 +196,9 @@ the decisive field.
   aura-354 record.
 - **#534 Destabilize Time 680971** — effect 0 is aura 42 with `EffectTriggerSpell` **0**, and
   `AuraEffect::HandleProcTriggerSpellAuraProc` returns on a null trigger. Every number in the tooltip lives in
-  570761, which nothing casts.
+  570761, which nothing casts. Since 2026-09-26 `spell_ascension_destabilize_time` keeps 570761 on the target
+  at the debuff's stacks and remaining duration and adds a stack on each enemy cast
+  (`chronomancer-destabilize-time-cast-slow`).
 - **#3395 Roll Back 804490** — its single `SPELL_EFFECT_SCRIPT_EFFECT` falls through
   `Spell::EffectScriptEffect`, which handles only `SPELLFAMILY_GENERIC` and `SPELLFAMILY_ROGUE`, and no module
   script registers on the id.
@@ -236,7 +238,9 @@ the decisive field.
   correct; only "casting Unmake on a target will remove this effect" has no carrier. No Unmake rank has a
   `spell_linked_spell` or a `spell_script_names` row, no module script touches 520185/520186/520188, and
   `Unit::GetDispellableAuraList` only lets a spell with `SPELL_ATTR0_NO_IMMUNITIES` remove a
-  `MECHANIC_BANISH` aura.
+  `MECHANIC_BANISH` aura. Since 2026-09-26 every Unmake rank casts the client's own remover 807310
+  ("Unmake / Buy Time Remover", `SPELL_EFFECT_REMOVE_AURA` 520186 with `SPELL_ATTR0_NO_IMMUNITIES`) through
+  `spell_linked_spell` (`chronomancer-buy-time-unmake-removal`).
 - **#1163 Rapid Acceleration 570149** — the tooltip adds 15% bonus-healing scaling to Accelerated Recovery and
   an instant heal for 15% of the total periodic effect. Effect 0 is `SPELL_AURA_ADD_PCT_MODIFIER` with
   `EffectMiscValue` 40 while `MAX_SPELLMOD` is 32, so `AuraEffect::CalculateSpellMod` and

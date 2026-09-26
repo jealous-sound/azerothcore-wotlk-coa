@@ -34,7 +34,8 @@ enum ChronomancerTalentSpells : uint32
     SPELL_TIMEGUARD = 804441,
     SPELL_MARK_OF_ORDER_ADD_STACK = 806270,
     SPELL_IDEAL_TIME_BUFF = 807210,
-    SPELL_NOZDORMUS_GAZE = 807691
+    SPELL_NOZDORMUS_GAZE = 807691,
+    SPELL_DESTABILIZE_TIME_SLOW = 570761
 };
 
 constexpr uint32 TimeguardHeavyHitPercent = 20;
@@ -142,6 +143,55 @@ class spell_ascension_unmaker_of_realities : public AuraScript
     {
         DoCheckProc += AuraCheckProcFn(spell_ascension_unmaker_of_realities::CheckProc);
         OnProc += AuraProcFn(spell_ascension_unmaker_of_realities::HandleProc);
+    }
+};
+
+class spell_ascension_destabilize_time : public AuraScript
+{
+    PrepareAuraScript(spell_ascension_destabilize_time);
+
+    bool Validate(SpellInfo const*) override
+    {
+        return ValidateSpellInfo({SPELL_DESTABILIZE_TIME_SLOW});
+    }
+
+    void MatchSlow(AuraEffect const*, AuraEffectHandleModes)
+    {
+        Unit* caster = GetCaster();
+        Unit* target = GetTarget();
+        if (!caster || !target)
+            return;
+        Aura* slow = target->GetAura(SPELL_DESTABILIZE_TIME_SLOW, caster->GetGUID());
+        if (!slow)
+            slow = caster->AddAura(SPELL_DESTABILIZE_TIME_SLOW, target);
+        if (!slow)
+            return;
+        slow->SetMaxDuration(GetMaxDuration());
+        slow->SetDuration(GetDuration());
+        if (slow->GetStackAmount() != GetStackAmount())
+            slow->SetStackAmount(GetStackAmount());
+    }
+
+    void RemoveSlow(AuraEffect const*, AuraEffectHandleModes)
+    {
+        GetTarget()->RemoveAurasDueToSpell(SPELL_DESTABILIZE_TIME_SLOW, GetCasterGUID());
+    }
+
+    void GainStackOnCast(AuraEffect const*, ProcEventInfo&)
+    {
+        PreventDefaultAction();
+        if (uint32(GetStackAmount()) < GetSpellInfo()->StackAmount)
+            GetAura()->SetStackAmount(uint8(GetStackAmount() + 1));
+    }
+
+    void Register() override
+    {
+        AfterEffectApply += AuraEffectApplyFn(spell_ascension_destabilize_time::MatchSlow, EFFECT_0,
+            SPELL_AURA_PROC_TRIGGER_SPELL, AURA_EFFECT_HANDLE_REAL_OR_REAPPLY_MASK);
+        AfterEffectRemove += AuraEffectRemoveFn(spell_ascension_destabilize_time::RemoveSlow, EFFECT_0,
+            SPELL_AURA_PROC_TRIGGER_SPELL, AURA_EFFECT_HANDLE_REAL);
+        OnEffectProc += AuraEffectProcFn(spell_ascension_destabilize_time::GainStackOnCast, EFFECT_0,
+            SPELL_AURA_PROC_TRIGGER_SPELL);
     }
 };
 
@@ -260,5 +310,6 @@ void AddSC_AscensionChronomancerTalents()
     new chronomancer_talent_casts();
     RegisterSpellScript(spell_ascension_dimensional_divergence);
     RegisterSpellScript(spell_ascension_unmaker_of_realities);
+    RegisterSpellScript(spell_ascension_destabilize_time);
     RegisterSpellScript(spell_ascension_timeguard);
 }
