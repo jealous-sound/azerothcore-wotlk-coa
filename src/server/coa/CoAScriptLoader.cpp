@@ -27,6 +27,7 @@ void AddSC_AscensionBloodforged();
 void AddSC_AscensionPvpPower();
 void AddSC_AscensionRestingBuff();
 void AddSC_AscensionClosestResurrection();
+void AddSC_AscensionDungeonRelease();
 void AddSC_AscensionThreatRedirect();
 void AddSC_AscensionKeepersScrollSteadfast();
 void AddSC_AscensionProfessionSpellAffect();
@@ -522,6 +523,7 @@ void AddCoAScripts()
     AddSC_AscensionPvpPower();
     AddSC_AscensionRestingBuff();
     AddSC_AscensionClosestResurrection();
+    AddSC_AscensionDungeonRelease();
     AddSC_AscensionThreatRedirect();
     AddSC_AscensionKeepersScrollSteadfast();
     AddSC_AscensionProfessionSpellAffect();

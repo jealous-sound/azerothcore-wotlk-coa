@@ -1450,6 +1450,8 @@ private:
         }
         if (metric == "distance_2d")
             return unit->GetExactDist2d(GetUnit(step.get<std::string>("target")));
+        if (metric == "point_distance_2d")
+            return unit->GetExactDist2d(step.get<float>("x"), step.get<float>("y"));
         if (metric == "cast_remaining_ms")
         {
             for (CurrentSpellTypes type : {CURRENT_GENERIC_SPELL, CURRENT_CHANNELED_SPELL})
@@ -2787,6 +2789,16 @@ private:
             Unit::DealDamage(player, player, player->GetHealth(), nullptr, SELF_DAMAGE, SPELL_SCHOOL_MASK_NORMAL,
                 nullptr, false);
             Require(!player->IsAlive(), "Self damage did not kill the player");
+        }
+        else if (action == "release_spirit")
+        {
+            Require(!player->IsAlive() && !player->HasPlayerFlag(PLAYER_FLAGS_GHOST),
+                "Release needs an unreleased body");
+            WorldPacket packet(CMSG_REPOP_REQUEST, 1);
+            packet << uint8(0);
+            player->GetSession()->HandleRepopRequestOpcode(packet);
+            Require(player->IsAlive() || player->HasPlayerFlag(PLAYER_FLAGS_GHOST),
+                "Native release request left the body unreleased");
         }
         else if (action == "command")
         {
