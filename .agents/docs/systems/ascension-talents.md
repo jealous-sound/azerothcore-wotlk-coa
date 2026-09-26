@@ -117,10 +117,22 @@ Opcodes and layouts come from the community measurements in `hertigservices/Asce
 `CharacterAdvancementCompat.lua` and `CharacterAdvancementStateCompat.lua` override the native API: the
 specialization is a per-character SavedVariable, ranks are rebuilt from `IsSpellKnown`/`IsPlayerSpell`, the
 budget is a local formula equal to the essence table, and Save sends `.localspec` then one `.localtalent` per
-changed entry. Known defects (client repository, not this one): the SavedVariable is read at file scope before
-WoW restores it, so the specialization overlay returns on every reload or relog; `IsSpellKnown` misses
-`SPELL_ATTR0_DO_NOT_DISPLAY` passives, so hidden ranks read as 0 and a reset never removes them. The server's
-0x0726 exists so a client can take its ranks from `GetTalentRankByID` instead.
+changed entry. The server's 0x0726 exists so a client can take its ranks from `GetTalentRankByID` instead.
+
+Two defects of that layer used to be listed here as open. **Both are fixed in the shipped client patch**,
+read in the installed `patch-B.MPQ` (merged 2026-09-18): the specialization SavedVariable is read on
+`ADDON_LOADED` instead of at file scope, so the overlay no longer returns on every relog, and the rank
+rebuild falls through to `IsSpellIDKnown`, which sees `SPELL_ATTR0_DO_NOT_DISPLAY` passives, so hidden ranks
+no longer read as 0.
+
+Measured on the client as players have it (lab run 2026-09-20, coa-protocol-atlas
+`docs/lab-runs/2026-09-20-talent-feature-health.md`): the active specialization and the spent points survive
+a relog, and a paid entry taken with `.localtalent` is displayed at its rank, survives a relog and is removed
+again. The symptom behind #100, #1397, #3672 and #3971 does not reproduce.
+
+What remains is maintenance, not repair: the compat layer is ~1 576 lines of Lua standing in front of a
+native getter that is broken on this build (`GetTalentRankByID`, see the atlas's rank-source note), and
+retiring it is #4320's subject. It is not on the critical path of a working feature.
 
 ## Checks
 
