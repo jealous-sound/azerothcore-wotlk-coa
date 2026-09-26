@@ -290,8 +290,10 @@ def validate(scenario):
                         f'{where}: player command must start with a dot')
         if 'actor' in step:
             require(step['actor'] in actor_ids, f'{where}: unknown actor')
-            require(action in {'snapshot', 'assert', 'set_health'} or step['actor'] in player_ids,
+            require(action in {'snapshot', 'assert', 'set_health', 'cast'} or step['actor'] in player_ids,
                     f'{where}: action needs a player')
+            if action == 'cast' and step['actor'] not in player_ids:
+                require('destination' not in step, f'{where}: creature cast has no destination')
         for key in ('target', 'caster'):
             if key in step:
                 require(step[key] in actor_ids, f'{where}: unknown {key}')

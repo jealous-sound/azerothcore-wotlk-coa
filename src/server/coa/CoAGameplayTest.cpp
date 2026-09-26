@@ -2691,6 +2691,18 @@ private:
             creature->SetHealth(health);
             return;
         }
+        if (action == "cast" && !_actors.count(id))
+        {
+            Unit* creature = GetUnit(id);
+            uint32 spell = step.get<uint32>("spell");
+            Require(sSpellMgr->GetSpellInfo(spell) != nullptr, "Unknown spell: " + std::to_string(spell));
+            Unit* target = step.get_optional<std::string>("target")
+                ? GetUnit(step.get<std::string>("target")) : creature;
+            SpellCastResult result = creature->CastSpell(target, spell, TRIGGERED_FULL_MASK);
+            record.put("cast_result", uint32(result));
+            Require(result == SPELL_CAST_OK, "Creature cast failed: " + std::to_string(result));
+            return;
+        }
         Player* player = GetPlayer(id);
         if (auto const found = _actors.find(id); found != _actors.end())
             found->second.lastBuyOrdinal = found->second.packetOrdinal;
