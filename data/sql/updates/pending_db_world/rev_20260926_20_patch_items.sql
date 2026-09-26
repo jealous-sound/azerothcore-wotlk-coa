@@ -1,0 +1,78 @@
+-- Item name and description patches; excludes the broad shop-text replacement.
+--
+UPDATE `item_template` SET `name` = 'Descension Appearance 46522' WHERE `entry` = 46522;
+UPDATE `item_template` SET `name` = 'Descension Appearance 46523' WHERE `entry` = 46523;
+UPDATE `item_template` SET `name` = 'Descension Appearance 46524' WHERE `entry` = 46524;
+UPDATE `item_template` SET `name` = 'Descension Appearance 46525' WHERE `entry` = 46525;
+UPDATE `item_template` SET `name` = 'Descension Appearance 46526' WHERE `entry` = 46526;
+UPDATE `item_template` SET `name` = 'Descension Appearance 46527' WHERE `entry` = 46527;
+UPDATE `item_template` SET `name` = 'Ruthless Book of Descension' WHERE `entry` = 91461;
+UPDATE `item_template` SET `name` = 'Battleplate of Descension' WHERE `entry` = 97274;
+UPDATE `item_template` SET `name` = 'Gauntlets of Descension' WHERE `entry` = 97275;
+UPDATE `item_template` SET `name` = 'Faceguard of Descension' WHERE `entry` = 97276;
+UPDATE `item_template` SET `name` = 'Greaves of Descension' WHERE `entry` = 97277;
+UPDATE `item_template` SET `name` = 'Mantle of Descension' WHERE `entry` = 97278;
+UPDATE `item_template` SET `name` = 'Bracers of Descension' WHERE `entry` = 97289;
+UPDATE `item_template` SET `name` = 'Belt of Descension' WHERE `entry` = 97290;
+UPDATE `item_template` SET `name` = 'Boots of Descension' WHERE `entry` = 97291;
+UPDATE `item_template` SET `name` = 'Flames of Descension' WHERE `entry` = 97300;
+UPDATE `item_template` SET `name` = 'Cache of Descension' WHERE `entry` = 97314;
+UPDATE `item_template` SET `name` = 'Vestments of Descension' WHERE `entry` = 97317;
+UPDATE `item_template` SET `name` = 'Challenger''s Book of Descension' WHERE `entry` = 97765;
+UPDATE `item_template` SET `name` = 'Cache of Descension' WHERE `entry` = 98006;
+UPDATE `item_template` SET `name` = 'Cache of Descension' WHERE `entry` = 98007;
+UPDATE `item_template` SET `name` = 'Nightmarish Book of Descension' WHERE `entry` = 98450;
+UPDATE `item_template` SET `name` = 'Book of Descension' WHERE `entry` = 98457;
+UPDATE `item_template` SET `name` = 'Book of Talented Descension' WHERE `entry` = 98458;
+UPDATE `item_template` SET `name` = 'Book of Skillful Descension' WHERE `entry` = 98459;
+UPDATE `item_template` SET `name` = 'Verdant Book of Descension' WHERE `entry` = 98461;
+UPDATE `item_template` SET `name` = 'Drafted Book of Descension' WHERE `entry` = 99386;
+UPDATE `item_template` SET `name` = 'Ruthless Tabard of Descension' WHERE `entry` = 99984;
+UPDATE `item_template` SET `name` = 'Wild Book of Descension' WHERE `entry` = 102133;
+UPDATE `item_template` SET `name` = 'Mark of Descension' WHERE `entry` = 111381;
+UPDATE `item_template` SET `name` = 'Descension Appearance 132707' WHERE `entry` = 132707;
+UPDATE `item_template` SET `name` = 'Descension Appearance 132719' WHERE `entry` = 132719;
+UPDATE `item_template` SET `name` = 'Harlequin''s Book of Descension' WHERE `entry` = 229980;
+UPDATE `item_template` SET `name` = 'Destined Book of Descension' WHERE `entry` = 253331;
+UPDATE `item_template` SET `name` = 'Descension Music Box' WHERE `entry` = 332190;
+UPDATE `item_template` SET `name` = 'Rune of Descension' WHERE `entry` = 375250;
+UPDATE `item_template` SET `name` = 'Warcraft Reborn Book of Descension' WHERE `entry` = 393610;
+UPDATE `item_template` SET `name` = 'Challenge Reward: Mark of Descension' WHERE `entry` = 414045;
+UPDATE `item_template` SET `name` = 'Beginner''s Book of Descension' WHERE `entry` = 414200;
+UPDATE `item_template` SET `name` = 'Bloodforged Book of Descension' WHERE `entry` = 499920;
+UPDATE `item_template` SET `name` = 'Book of Descension' WHERE `entry` = 499992;
+UPDATE `item_template` SET `name` = 'Rune of Descension Pouch (12,500)' WHERE `entry` = 509872;
+UPDATE `item_template` SET `name` = 'Rune of Descension Pouch (15,000)' WHERE `entry` = 509873;
+UPDATE `item_template` SET `name` = 'Rune of Descension Pouch (20,000)' WHERE `entry` = 509874;
+UPDATE `item_template` SET `name` = 'Rune of Descension Pouch (25,000)' WHERE `entry` = 509875;
+UPDATE `item_template` SET `name` = 'Rune of Descension Pouch (30,000)' WHERE `entry` = 509876;
+UPDATE `item_template` SET `name` = 'Rune of Descension Pouch (17,500)' WHERE `entry` = 509886;
+UPDATE `item_template` SET `name` = 'Rune of Descension Pouch (32,500)' WHERE `entry` = 509893;
+UPDATE `item_template` SET `name` = 'Rune of Descension Pouch (39,000)' WHERE `entry` = 509894;
+UPDATE `item_template` SET `name` = 'Rune of Descension Pouch (45,500)' WHERE `entry` = 509895;
+UPDATE `item_template` SET `name` = 'Rune of Descension Pouch (52,000)' WHERE `entry` = 509896;
+UPDATE `item_template` SET `name` = 'Rune of Descension Pouch (65,000)' WHERE `entry` = 509897;
+UPDATE `item_template` SET `name` = 'Rune of Descension Pouch (35,000)' WHERE `entry` = 518448;
+UPDATE `item_template` SET `name` = 'Rune of Descension Pouch (40,000)' WHERE `entry` = 518449;
+UPDATE `item_template` SET `name` = 'Rune of Descension Pouch (50,000)' WHERE `entry` = 518450;
+UPDATE `item_template` SET `name` = 'Tabard of Descension' WHERE `entry` = 597600;
+UPDATE `item_template` SET `name` = 'Fel-Infused Tabard of Descension' WHERE `entry` = 597602;
+UPDATE `item_template` SET `name` = 'Icebound Tabard of Descension' WHERE `entry` = 597603;
+UPDATE `item_template` SET `name` = 'Tabard of Blessed Descension' WHERE `entry` = 597800;
+UPDATE `item_template` SET `name` = 'Reborn Book of Descension' WHERE `entry` = 637848;
+UPDATE `item_template` SET `name` = 'Descension Survival Guide' WHERE `entry` = 777991;
+UPDATE `item_template` SET `name` = 'Boss Blitz Rune of Descension Pouch (200,000)' WHERE `entry` = 800902;
+UPDATE `item_template` SET `name` = 'Conqueror''s Tabard of Descension' WHERE `entry` = 1175624;
+UPDATE `item_template` SET `name` = 'Unleashed Elemental Book of Descension' WHERE `entry` = 1777357;
+UPDATE `item_template` SET `name` = 'Unleashed Book of Descension' WHERE `entry` = 1777359;
+UPDATE `item_template` SET `name` = 'Tabard of Fanatical Descension' WHERE `entry` = 2073850;
+UPDATE `item_template` SET `name` = 'Rune of Descension Pouch (500,000)' WHERE `entry` = 2509893;
+UPDATE `item_template` SET `name` = 'Necrotic Book of Descension' WHERE `entry` = 6300095;
+UPDATE `item_template` SET `description` = 'It was all just a dream...' WHERE `entry` = 97318;
+UPDATE `item_template` SET `description` = 'It was all just a dream...' WHERE `entry` = 101171;
+UPDATE `item_template` SET `description` = 'It was all just a dream...' WHERE `entry` = 101493;
+
+UPDATE `item_template` SET `description` =
+    'Seek out Tiraxis, the Ethereal Bazaar Vendor in any major city '
+    'in order to exchange these tokens for a reward.'
+WHERE `entry` = 975001;

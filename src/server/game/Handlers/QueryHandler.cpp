@@ -92,7 +92,15 @@ void WorldSession::HandleCreatureQueryOpcode(WorldPacket& recvData)
     ObjectGuid guid;
     recvData >> guid;
 
+    SendCreatureQuerySingleResponse(entry, guid);
+}
+
+void WorldSession::SendCreatureQuerySingleResponse(uint32 entry, ObjectGuid guid)
+{
     CreatureTemplate const* ci = sObjectMgr->GetCreatureTemplate(entry);
+    if (entry == 9780012)
+        LOG_INFO("network", "Guardian title query: entry {}, template found {}, guid {}",
+            entry, ci != nullptr, guid.ToString());
     if (ci)
     {
         std::string Name, Title;
@@ -108,6 +116,9 @@ void WorldSession::HandleCreatureQueryOpcode(WorldPacket& recvData)
                 ObjectMgr::GetLocaleString(cl->Title, loc_idx, Title);
             }
         }
+        if (entry == 9780012)
+            LOG_INFO("network", "Guardian title response: entry {}, name '{}', template title '{}', sent title '{}'",
+                entry, Name, ci->SubName, Title);
         // guess size
         WorldPacket data(SMSG_CREATURE_QUERY_RESPONSE, 100);
         data << uint32(entry);                                       // creature entry

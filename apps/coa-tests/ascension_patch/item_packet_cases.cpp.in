@@ -1,0 +1,84 @@
+struct ExpectedLayout
+{
+    AscensionPatchItems::Table table;
+    std::size_t prefix, strings, suffix;
+    bool nul;
+    std::vector<std::size_t> pointers;
+};
+
+int main()
+{
+    using namespace AscensionPatchItems;
+    std::vector<ExpectedLayout> layouts = {
+        {Table::Addon, 15, 2, 0, false, {1, 2}},
+        {Table::DisplayInfoCollections, 8, 2, 0, false, {4, 5}},
+        {Table::Appearances, 3, 0, 0, false, {}},
+        {Table::SetAppearances, 3, 0, 0, false, {}},
+        {Table::Item, 8, 0, 0, false, {}},
+        {Table::ExtendedCost, 16, 0, 0, false, {}},
+        {Table::Visuals, 6, 0, 0, false, {}},
+        {Table::VisualEffects, 2, 1, 0, false, {1}},
+        {Table::Set, 37, 1, 0, false, {1}},
+        {Table::RandomSuffix, 13, 2, 0, false, {1, 2}},
+        {Table::RandomProperties, 8, 2, 0, false, {1, 7}},
+        {Table::PurchaseGroup, 10, 1, 0, false, {9}},
+        {Table::LimitCategory, 4, 1, 0, false, {1}},
+        {Table::DisplayInfo, 25, 14, 0, false, {1, 2, 3, 4, 5, 6, 15, 16, 17, 18, 19, 20, 21, 22}},
+        {Table::CondExtCosts, 4, 0, 0, false, {}}
+    };
+    for (auto const& layout : layouts)
+    {
+        std::vector<uint32> fields(layout.prefix + layout.suffix);
+        for (std::size_t i = 0; i < fields.size(); ++i) fields[i] = 0x12340000u + uint32(i);
+        std::vector<std::string> strings;
+        for (std::size_t i = 0; i < layout.strings; ++i) strings.push_back(i % 2 ? "" : "text" + std::to_string(i));
+        auto packet = Encode(layout.table, fields, strings);
+        assert(packet && packet->opcode == static_cast<uint16>(layout.table));
+        std::size_t cursor = 0;
+        auto readWord = [&]()
+        {
+            assert(cursor + 4 <= packet->bytes.size());
+            uint32 value = 0;
+            for (int shift = 0; shift < 32; shift += 8) value |= uint32(packet->bytes[cursor++]) << shift;
+            return value;
+        };
+        auto checkWord = [&](std::size_t index)
+        {
+            bool pointer = false;
+            for (std::size_t slot : layout.pointers) pointer |= slot == index;
+            assert(readWord() == (pointer ? 0 : fields[index]));
+        };
+        for (std::size_t i = 0; i < layout.prefix; ++i) checkWord(i);
+        for (auto const& text : strings)
+        {
+            if (!layout.nul) assert(readWord() == text.size());
+            for (unsigned char byte : text) assert(packet->bytes.at(cursor++) == byte);
+            if (layout.nul) assert(packet->bytes.at(cursor++) == 0);
+        }
+        for (std::size_t i = layout.prefix; i < fields.size(); ++i) checkWord(i);
+        assert(cursor == packet->bytes.size());
+        auto invalid = fields;
+        invalid.pop_back();
+        assert(!Encode(layout.table, invalid, strings));
+        invalid.push_back(1); invalid.push_back(2);
+        assert(!Encode(layout.table, invalid, strings));
+        auto extraStrings = strings;
+        extraStrings.emplace_back("extra");
+        assert(!Encode(layout.table, fields, extraStrings));
+    }
+    assert(!Encode(static_cast<Table>(0xFFFF), {}, {}));
+    assert(!Encode(Table::Stat, {}));
+    assert(!Encode(Table::VisualEffects, {1, 0}, {std::string("a\0b", 3)}));
+    assert(!Encode(Table::VisualEffects, {1, 0}, {std::string(4097, 'x')}));
+    auto utf8 = Encode(Table::VisualEffects, {1, 99}, {"\xC3\xA9"});
+    assert((utf8->bytes == std::vector<uint8>{1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0xC3, 0xA9}));
+    Player player;
+    assert(!Send(nullptr, Table::Item, std::vector<uint32>(8)));
+    player.connected = false;
+    assert(!Send(&player, Table::Item, std::vector<uint32>(8)));
+    player.connected = true;
+    assert(!Send(&player, Table::Stat, {}));
+    assert(!player.sent);
+    assert(Send(&player, Table::Item, {1, 2, 3, 4, 5, 6, 7, 8}));
+    assert(player.sent && player.sent->opcode == 0x0932);
+}

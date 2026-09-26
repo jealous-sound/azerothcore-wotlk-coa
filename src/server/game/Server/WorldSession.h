@@ -579,6 +579,7 @@ public:
     //void SendTestCreatureQueryOpcode(uint32 entry, ObjectGuid guid, uint32 testvalue);
     void SendNameQueryOpcode(ObjectGuid guid);
     void SendItemQuerySingleResponse(uint32 item);
+    void SendCreatureQuerySingleResponse(uint32 entry, ObjectGuid guid);
 
     /// `onlyTrainable` leaves out the rows of the window the player cannot buy yet; see
     /// Trainer::SendSpells.

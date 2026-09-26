@@ -15,6 +15,7 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "AchievementMgr.h"
 #include "ArenaTeamMgr.h"
 #include "AuctionHouseMgr.h"
 #include "Bag.h"
@@ -66,6 +67,8 @@ public:
         };
         static ChatCommandTable debugSendCommandTable =
         {
+            { "achievements",   HandleDebugSendAchievementsCommand,    rbac::RBAC_PERM_COMMAND_DEBUG,          Console::No },
+            { "creaturequery",  HandleDebugSendCreatureQueryCommand,   rbac::RBAC_PERM_COMMAND_DEBUG,          Console::No },
             { "buyerror",       HandleDebugSendBuyErrorCommand,        rbac::RBAC_PERM_COMMAND_DEBUG_COSMETIC, Console::No },
             { "channelnotify",  HandleDebugSendChannelNotifyCommand,   rbac::RBAC_PERM_COMMAND_DEBUG_COSMETIC, Console::No },
             { "chatmessage",    HandleDebugSendChatMsgCommand,         rbac::RBAC_PERM_COMMAND_DEBUG_COSMETIC, Console::No },
@@ -125,6 +128,28 @@ public:
             { "wpgps", HandleWPGPSCommand, rbac::RBAC_PERM_COMMAND_DEBUG_COSMETIC, Console::No }
         };
         return commandTable;
+    }
+
+    static bool HandleDebugSendAchievementsCommand(ChatHandler* handler)
+    {
+        handler->GetPlayer()->GetAchievementMgr()->SendAllAchievementData();
+        handler->SendSysMessage("Resent existing achievement state; no achievement progress was changed.");
+        return true;
+    }
+
+    static bool HandleDebugSendCreatureQueryCommand(ChatHandler* handler, uint32 entry)
+    {
+        CreatureTemplate const* creature = sObjectMgr->GetCreatureTemplate(entry);
+        if (!creature)
+        {
+            handler->PSendSysMessage("Creature template {} is not loaded.", entry);
+            return false;
+        }
+
+        handler->GetSession()->SendCreatureQuerySingleResponse(entry, ObjectGuid::Empty);
+        handler->PSendSysMessage("Sent creature query response for {}: name '{}', template title '{}'.",
+            entry, creature->Name, creature->SubName);
+        return true;
     }
 
     // cinematicId - ID from CinematicSequences.dbc

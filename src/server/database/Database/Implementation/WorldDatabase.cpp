@@ -23,6 +23,18 @@ void WorldDatabaseConnection::DoPrepareStatements()
     if (!m_reconnecting)
         m_stmts.resize(MAX_WORLDDATABASE_STATEMENTS);
 
+    PrepareStatement(WORLD_SEL_PATCH_ACHIEVEMENT,
+        "SELECT achievement_id, name, description, reward FROM patch_achievement "
+        "WHERE enabled = 1 ORDER BY achievement_id", CONNECTION_SYNCH);
+    PrepareStatement(WORLD_SEL_PATCH_ACHIEVEMENT_CRITERIA,
+        "SELECT criteria_id, description FROM patch_achievement_criteria WHERE enabled = 1 ORDER BY criteria_id",
+        CONNECTION_SYNCH);
+    PrepareStatement(WORLD_SEL_PATCH_ACHIEVEMENT_CATEGORY,
+        "SELECT category_id, name FROM patch_achievement_category WHERE enabled = 1 ORDER BY category_id",
+        CONNECTION_SYNCH);
+    PrepareStatement(WORLD_SEL_PATCH_SPELL,
+        "SELECT spell_id, name, `rank`, description, aura_description FROM patch_spell WHERE enabled = 1 ORDER BY spell_id",
+        CONNECTION_SYNCH);
     PrepareStatement(WORLD_SEL_QUEST_POOLS, "SELECT entry, pool_entry FROM pool_quest", CONNECTION_SYNCH);
     PrepareStatement(WORLD_DEL_CRELINKED_RESPAWN, "DELETE FROM linked_respawn WHERE guid = ?", CONNECTION_ASYNC);
     PrepareStatement(WORLD_REP_CREATURE_LINKED_RESPAWN, "REPLACE INTO linked_respawn (guid, linkedGuid) VALUES (?, ?)", CONNECTION_ASYNC);

@@ -3,6 +3,7 @@
  */
 
 #include "CoAScriptLoader.h"
+
 #include "AscensionReaperDirge.h"
 #include "AscensionTinkerOverload.h"
 #include "AscensionRunemasterGlyphs.h"
@@ -18,6 +19,7 @@
 #include "AscensionVenomancerVenomPayloads.h"
 #include "AscensionTinkerCombatSymbiosis.h"
 
+void AddAscensionPatchTooltipScripts();
 void AddAscensionCompatScripts();
 void AddAscensionTravelPermitScripts();
 void AddSC_AscensionRulesets();
@@ -267,6 +269,7 @@ void AddSC_AscensionLfgObjective();
 
 void AddCoAScripts()
 {
+    AddAscensionPatchTooltipScripts();
     AddAscensionStockCoefficientScripts();
     AddAscensionScalingBaseScripts();
     AddAscensionManastormScripts();
