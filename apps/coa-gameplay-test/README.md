@@ -378,6 +378,8 @@ normal calculations, useful for preventing misses, dodges and parries in determi
 Optional `allow_regeneration: false` suppresses only that fixture player's ordinary health/power regeneration
 through the native regeneration hook. Spell costs, healing, energize effects and combat remain enabled.
 It defaults to true and has no effect on other players or on a disabled harness.
+Optional `expansion` (0..2, default 2) is the fixture session's expansion, as a realm with a lower `Expansion`
+setting caps a real client's; it gates maps and profession ranks.
 Characters are created and loaded through the existing character creation, enumeration and login
 handlers with ordinary player security. Optional `location` supplies `map`, `x`, `y`, `z`, `o` for a fixture
 teleport. `location.ignore_access` optionally bypasses entry requirements for a fixture (for example a solo
@@ -452,7 +454,8 @@ This fixture supports exact health-percentage boundaries without granting GM per
 
 `gather_skill` calls `UpdateGatherSkill`; it does not harvest a node or prove loot delivery.
 
-`xp` and `next_level_xp` read the player's XP fields; `skill_value` requires `skill` and reads pure skill.
+`xp` and `next_level_xp` read the player's XP fields; `skill_value` and `skill_maximum` require `skill` and read
+the pure skill value and maximum. `spell_active` requires `spell` and reports whether a known rank is the active one.
 XP-delta assertions must also keep the level stable, or crossing a level would wrap the XP bar.
 
 Every step accepts a descriptive `label`. Assertions optionally accept `within_ms`: poll until the expected

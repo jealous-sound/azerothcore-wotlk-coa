@@ -21,6 +21,20 @@
 #include "Player.h"
 #include "SpellInfo.h"
 #include "SpellMgr.h"
+#include "WorldSession.h"
+
+namespace
+{
+    bool RaisesProfessionAboveStep(SpellInfo const* spellInfo, uint16 maxStep)
+    {
+        for (SpellEffectInfo const& spellEffectInfo : spellInfo->GetEffects())
+            if ((spellEffectInfo.IsEffect(SPELL_EFFECT_SKILL_STEP) || spellEffectInfo.IsEffect(SPELL_EFFECT_SKILL))
+                && IsProfessionSkill(spellEffectInfo.MiscValue) && spellEffectInfo.CalcValue() > maxStep)
+                return true;
+
+        return false;
+    }
+}
 
 namespace Trainer
 {
@@ -179,13 +193,23 @@ namespace Trainer
         if (player->GetLevel() < trainerSpell->ReqLevel)
             return SpellState::Unavailable;
 
+        // check expansion requirement of profession ranks
+        uint16 maxProfessionStep = GetMaxProfessionSkillStep(player->GetSession()->Expansion());
+        SpellInfo const* trainerSpellInfo = sSpellMgr->AssertSpellInfo(trainerSpell->SpellId);
+        if (RaisesProfessionAboveStep(trainerSpellInfo, maxProfessionStep))
+            return SpellState::Unavailable;
+
         // check ranks
         bool hasLearnSpellEffect = false;
         bool knowsAllLearnedSpells = true;
-        for (SpellEffectInfo const& spellEffectInfo : sSpellMgr->AssertSpellInfo(trainerSpell->SpellId)->GetEffects())
+        for (SpellEffectInfo const& spellEffectInfo : trainerSpellInfo->GetEffects())
         {
             if (!spellEffectInfo.IsEffect(SPELL_EFFECT_LEARN_SPELL))
                 continue;
+
+            if (SpellInfo const* learnedSpellInfo = sSpellMgr->GetSpellInfo(spellEffectInfo.TriggerSpell))
+                if (RaisesProfessionAboveStep(learnedSpellInfo, maxProfessionStep))
+                    return SpellState::Unavailable;
 
             hasLearnSpellEffect = true;
             if (!player->HasSpell(spellEffectInfo.TriggerSpell))
