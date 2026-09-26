@@ -3127,7 +3127,14 @@ private:
             Unit* caster = action == "cast_charm" ? player->GetCharm() : player;
             Require(caster != nullptr, "Player has no charmed unit");
             Unit* target = step.get_optional<std::string>("target") ? GetUnit(step.get<std::string>("target")) : caster;
-            targets.SetUnitTarget(target);
+            if (auto targetItem = step.get_optional<uint32>("target_item"))
+            {
+                Item* item = player->GetItemByEntry(*targetItem);
+                Require(item != nullptr, "Target item is missing");
+                targets.SetItemTarget(item);
+            }
+            else
+                targets.SetUnitTarget(target);
             if (auto destination = step.get_child_optional("destination"))
                 targets.SetDst(destination->get<float>("x"), destination->get<float>("y"),
                     destination->get<float>("z"), caster->GetOrientation());
@@ -3202,7 +3209,7 @@ private:
             Item* item = player->GetItemByEntry(step.get<uint32>("item"));
             Require(item != nullptr, "Item must be granted before equipping");
             uint32 slot = step.get<uint32>("slot");
-            Require(slot < EQUIPMENT_SLOT_END, "Invalid equipment slot");
+            Require(slot < INVENTORY_SLOT_BAG_END, "Invalid equipment slot");
             WorldPacket packet(CMSG_AUTOEQUIP_ITEM_SLOT, 9);
             packet << item->GetGUID() << uint8(slot);
             WorldPackets::Item::AutoEquipItemSlot request(std::move(packet));
