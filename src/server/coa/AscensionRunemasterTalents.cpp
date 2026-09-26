@@ -33,9 +33,21 @@ void SyncStonePetroglyph(Player* player)
         player->CastSpell(player, 712310, true);
 }
 
+constexpr uint32 SPELL_RUNIC_BREAKOUT = 705583;
+constexpr uint32 SPELL_RUNIC_BREAKOUT_WINDOW = 520767;
+
+void OpenRunicBreakoutWindow(Player* player, Aura const* runeshroud, AuraRemoveMode mode)
+{
+    if (runeshroud->GetCasterGUID() != player->GetGUID() || mode == AURA_REMOVE_BY_DEATH || !player->IsAlive() ||
+        !player->IsInWorld() || !player->HasAura(SPELL_RUNIC_BREAKOUT))
+        return;
+    player->CastSpell(player, SPELL_RUNIC_BREAKOUT_WINDOW, true);
+}
+
 void SyncRuneshroudOrWaveforged(Player* player)
 {
-    bool active = player->HasAura(500288, player->GetGUID()) || player->HasAura(705565, player->GetGUID());
+    bool active = player->HasAura(500288, player->GetGUID()) || player->HasAura(705565, player->GetGUID()) ||
+        player->HasAura(SPELL_RUNIC_BREAKOUT_WINDOW, player->GetGUID());
     if (!active)
         player->RemoveAurasDueToSpell(808089, player->GetGUID());
     else if (!player->HasAura(808089, player->GetGUID()))
@@ -83,7 +95,7 @@ public:
         uint32 id = aura->GetId();
         if (id == 707157 || id == 712310 || IsEarthTattoo(id))
             SyncStonePetroglyph(player);
-        if (id == 500288 || id == 705565)
+        if (id == 500288 || id == 705565 || id == SPELL_RUNIC_BREAKOUT_WINDOW)
             SyncRuneshroudOrWaveforged(player);
     }
 
@@ -101,14 +113,33 @@ public:
         if (id == 500288 && aura->GetCasterGUID() == player->GetGUID() && mode != AURA_REMOVE_BY_DEATH &&
             player->IsAlive() && player->IsInWorld() && player->HasAura(520054))
             player->CastSpell(player, 520768, true);
-        if (id == 500288 || id == 705565)
+        if (id == SPELL_RUNESHROUD)
+            OpenRunicBreakoutWindow(player, aura, mode);
+        if (id == 500288 || id == 705565 || id == SPELL_RUNIC_BREAKOUT_WINDOW)
             SyncRuneshroudOrWaveforged(player);
     }
 };
+
+constexpr uint32 SPELL_ADVANCED_MAGI = 804557;
+constexpr int32 ASCENSION_SPELLMOD_BONUS_MULTIPLIER = 41;
+
+void ApplyAdvancedMagiScaling(SpellInfo* info)
+{
+    flag96 const elementalBurstFamilyFlags(0, 0, 131072);
+    SpellEffectInfo& scaling = info->Effects[EFFECT_1];
+    if (scaling.IsAura(SPELL_AURA_ADD_PCT_MODIFIER) && scaling.MiscValue == ASCENSION_SPELLMOD_BONUS_MULTIPLIER &&
+        scaling.SpellClassMask == elementalBurstFamilyFlags)
+        scaling.MiscValue = SPELLMOD_BONUS_MULTIPLIER;
+}
 }
 
 void ApplyAscensionRunemasterTalentContracts(SpellInfo* info)
 {
+    if (info->Id == SPELL_ADVANCED_MAGI && info->SpellFamilyName == 38)
+    {
+        ApplyAdvancedMagiScaling(info);
+        return;
+    }
     if (info->Id == SPELL_PERMAFROST_RUNE)
     {
         info->AuraInterruptFlags |= AURA_INTERRUPT_FLAG_TAKE_DAMAGE;
