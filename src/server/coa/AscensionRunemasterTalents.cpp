@@ -79,6 +79,42 @@ void ApplyPermafrostAura(Unit* unit, Aura* aura)
         caster->ModifySpellCooldown(SPELL_PERMAFROST_RUNE, -int32(remaining * 4 / 5));
 }
 
+constexpr uint32 SPELL_RUNIC_TEMPEST = 560036;
+constexpr uint32 SPELL_RUNESHROUD_OR_WAVEFORGED = 808089;
+
+void KeepRunicTempestMarker(Player* player)
+{
+    if (player->IsAlive() && player->IsInWorld() && player->HasAura(SPELL_RUNIC_TEMPEST, player->GetGUID()) &&
+        !player->HasAura(SPELL_RUNESHROUD_OR_WAVEFORGED, player->GetGUID()))
+        player->CastSpell(player, SPELL_RUNESHROUD_OR_WAVEFORGED, true);
+}
+
+class runemaster_runic_tempest_events : public UnitScript
+{
+public:
+    runemaster_runic_tempest_events() : UnitScript("runemaster_runic_tempest_events", true,
+        {UNITHOOK_ON_AURA_APPLY, UNITHOOK_ON_AURA_REMOVE}) { }
+
+    void OnAuraApply(Unit* unit, Aura* aura) override
+    {
+        Player* player = unit ? unit->ToPlayer() : nullptr;
+        if (player && aura && player->getClass() == CLASS_SPIRIT_MAGE && aura->GetId() == SPELL_RUNIC_TEMPEST)
+            KeepRunicTempestMarker(player);
+    }
+
+    void OnAuraRemove(Unit* unit, AuraApplication* application, AuraRemoveMode) override
+    {
+        Player* player = unit ? unit->ToPlayer() : nullptr;
+        if (!player || !application || player->getClass() != CLASS_SPIRIT_MAGE)
+            return;
+        uint32 id = application->GetBase()->GetId();
+        if (id == SPELL_RUNIC_TEMPEST && player->IsInWorld())
+            SyncRuneshroudOrWaveforged(player);
+        else if (id != SPELL_RUNIC_TEMPEST && id != SPELL_RUNESHROUD_OR_WAVEFORGED)
+            KeepRunicTempestMarker(player);
+    }
+};
+
 class runemaster_talent_events : public UnitScript
 {
 public:
@@ -158,4 +194,5 @@ void ApplyAscensionRunemasterTalentContracts(SpellInfo* info)
 void AddSC_AscensionRunemasterTalents()
 {
     new runemaster_talent_events();
+    new runemaster_runic_tempest_events();
 }
