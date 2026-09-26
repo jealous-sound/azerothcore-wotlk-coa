@@ -19,6 +19,9 @@ constexpr uint32 CharmOfWarding = 705967;
 constexpr uint32 Spider = 800841;
 constexpr uint32 Beetle = 803183;
 constexpr uint32 Skulk = 800843;
+constexpr uint32 SpiderLord = 704264;
+constexpr uint32 SpiderLordDisplay = 139094;
+constexpr float SpiderLordScale = 0.25f;
 struct VenomancerState
 {
     EventMap timers;
@@ -55,6 +58,7 @@ void Expose(Player* player, uint32 stacks, bool molt = false);
 uint32 ClearExposed(Player* player);
 float BroodMultiplier(uint32 count, int32 effectiveness);
 void Refresh(Player* player);
+void UpdateSpiderLordDisplay(Player* player);
 bool Chance(Player* player, uint32 id, uint32 cooldown = 0);
 std::list<Unit*> Nearby(Unit* center, float radius);
 std::list<Unit*> Allies(Player* player, Unit* center, float radius, uint32 count = 0);

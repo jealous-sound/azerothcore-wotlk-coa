@@ -1414,6 +1414,8 @@ private:
             return unit->GetDisplayId();
         if (metric == "unit_scale")
             return double(unit->GetObjectScale());
+        if (metric == "combat_reach")
+            return double(unit->GetCombatReach());
         if (metric == "power" || metric == "max_power" || metric == "pet_power" || metric == "pet_max_power")
         {
             if (metric == "pet_power" || metric == "pet_max_power")
