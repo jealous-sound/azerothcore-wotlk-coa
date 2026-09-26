@@ -154,14 +154,53 @@ void ApplyContracts(SpellInfo* info)
         cost.SpellClassMask = flag96(65536, 0, 0);
         cost.TargetA = SpellImplicitTargetInfo(TARGET_UNIT_CASTER);
     }
-    if (id == 804337)
-        info->Effects[EFFECT_0].MiscValue = SPELLMOD_COOLDOWN;
 }
 }
 
 namespace
 {
 using namespace AscensionBarbarian;
+
+constexpr uint32 SPELL_BARBARIC_RAGE = 804337;
+
+bool EnrageSource(SpellInfo const* info)
+{
+    return info->GetAuraState() == AURA_STATE_ENRAGE || info->Id == 801761 || info->Id == 805804;
+}
+
+class barbarian_barbaric_rage : public UnitScript
+{
+public:
+    barbarian_barbaric_rage() : UnitScript("barbarian_barbaric_rage", true, { UNITHOOK_ON_AURA_APPLY,
+        UNITHOOK_ON_AURA_REMOVE, UNITHOOK_ON_AFTER_AURA_EFFECT_CALCULATE_AMOUNT }) { }
+
+    void OnAfterAuraEffectCalculateAmount(AuraEffect const* effect, Unit*, int32& amount) override
+    {
+        if (effect->GetId() == SPELL_BARBARIC_RAGE && effect->GetEffIndex() == EFFECT_0 &&
+            effect->GetBase()->GetType() == UNIT_AURA_TYPE && !Enraged(effect->GetBase()->GetUnitOwner()))
+            amount = 0;
+    }
+
+    void OnAuraApply(Unit* unit, Aura* aura) override
+    {
+        if (aura)
+            Synchronize(Owner(unit), aura->GetSpellInfo());
+    }
+
+    void OnAuraRemove(Unit* unit, AuraApplication* application, AuraRemoveMode) override
+    {
+        if (application)
+            Synchronize(Owner(unit), application->GetBase()->GetSpellInfo());
+    }
+
+private:
+    static void Synchronize(Player* player, SpellInfo const* changed)
+    {
+        if (player && EnrageSource(changed))
+            if (AuraEffect* effect = player->GetAuraEffect(SPELL_BARBARIC_RAGE, EFFECT_0, player->GetGUID()))
+                effect->RecalculateAmount(player);
+    }
+};
 
 class barbarian_scaling : public UnitScript
 {
@@ -425,6 +464,7 @@ public:
 
 void AddAscensionBarbarianCompletionScripts()
 {
+    new barbarian_barbaric_rage();
     new barbarian_scaling();
     new barbarian_casts();
     RegisterSpellScript(aura_ascension_barbarian_lifecycle);
