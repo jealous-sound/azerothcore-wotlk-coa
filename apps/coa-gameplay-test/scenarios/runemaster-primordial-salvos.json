@@ -11,7 +11,9 @@
     "Thaumaturgy 804550 without the talent launches no salvo; with it, the Frost Glyph 520090 launches one Frost",
     "Salvo that hits the target and an enemy 4 yd from it but not one 17 yd away, the Flame Glyph 520091 launches a",
     "Flame Salvo and no Frost Salvo, and every salvo carries 6% of spell power (Drink Fel Infusion 44505 supplies",
-    "+2000). The 'all enemies' wording against the salvos' MaxAffectedTargets 4 is not covered."
+    "+2000). The 'all enemies' wording against the salvos' MaxAffectedTargets 4 is not covered. The gain per",
+    "point of spell power is 0.06 times the caster's own percentage damage-done multipliers (1.11 for this fixture:",
+    "the unmodified salvo reads 1110 of 1000), hence windows of 0.059-0.07; before the fix it read 0 and 0.8."
   ],
   "timeout_ms": 120000,
   "location": {"map": 0, "x": -8949.95, "y": -132.493, "z": 83.5312, "o": 0},
@@ -47,13 +49,13 @@
       "save_as": "arcane_power"},
     {"action": "assert", "label": "Frost Salvo carries 6% of spell power", "actor": "rm",
       "metric": "spell_damage_done", "spell": 800730, "target": "target", "relative_to": "frost_salvo_base",
-      "ratio_to": "frost_power", "min": 0.055, "max": 0.065},
+      "ratio_to": "frost_power", "min": 0.059, "max": 0.07},
     {"action": "assert", "label": "Flame Salvo carries 6% of spell power", "actor": "rm",
       "metric": "spell_damage_done", "spell": 800729, "target": "target", "relative_to": "flame_salvo_base",
-      "ratio_to": "fire_power", "min": 0.055, "max": 0.065},
+      "ratio_to": "fire_power", "min": 0.059, "max": 0.07},
     {"action": "assert", "label": "Arcane Salvo carries 6% of spell power", "actor": "rm",
       "metric": "spell_damage_done", "spell": 800731, "target": "target", "relative_to": "arcane_salvo_base",
-      "ratio_to": "arcane_power", "min": 0.055, "max": 0.065},
+      "ratio_to": "arcane_power", "min": 0.059, "max": 0.07},
     {"action": "set_aura", "actor": "rm", "spell": 44505, "stacks": 0},
 
     {"action": "set_aura", "label": "Control: a Frost Glyph without the talent", "actor": "rm", "spell": 520090,
