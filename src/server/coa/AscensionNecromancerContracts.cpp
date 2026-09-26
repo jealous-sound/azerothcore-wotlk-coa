@@ -301,6 +301,11 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[1].Effect = 0;
     if (id == 500307)
         info->Effects[0].Effect = 0;
+    if (id == 500443)
+    {
+        info->TargetAuraSpell = 0;
+        info->Effects[2].Effect = 0;
+    }
     if ((id >= 533236 && id <= 533239) || Family(info, 2, 67108864) || id == 802121)
     {
         info->Effects[0].Effect = SPELL_EFFECT_DUMMY;
