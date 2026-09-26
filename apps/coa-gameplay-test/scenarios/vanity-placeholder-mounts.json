@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "name": "Vanity unlock hides [PH] placeholder mounts",
+  "contract": "With CoA.UnlockAllVanity = 1, valid mount and companion vanity items remain deliverable, while [PH] placeholder mounts are not entitled and their spells are not learned. Explicit collection ownership is not exercised here because the harness cannot fixture account-level vanity ownership.",
+  "timeout_ms": 120000,
+  "players": [
+    { "id": "collector", "race": 1, "class": 1, "level": 80 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Settle", "ms": 3000 },
+
+    { "action": "command", "actor": "collector", "command": ".localvanity 560498" },
+    { "action": "command", "actor": "collector", "command": ".localvanity 560503" },
+    { "action": "command", "actor": "collector", "command": ".localvanity 560529" },
+    { "action": "command", "actor": "collector", "command": ".localvanity 560570" },
+    { "action": "command", "actor": "collector", "command": ".localvanity 33225" },
+    { "action": "command", "actor": "collector", "command": ".localvanity 558715" },
+    { "action": "wait", "label": "Let the collection sync settle", "ms": 2000 },
+
+    { "action": "assert", "label": "[PH] group A spell 364941 not learned", "actor": "collector", "metric": "knows_spell", "spell": 364941, "equals": 0 },
+    { "action": "assert", "label": "[PH] group A spell 364946 not learned", "actor": "collector", "metric": "knows_spell", "spell": 364946, "equals": 0 },
+    { "action": "assert", "label": "[PH] group B spell 365298 not learned", "actor": "collector", "metric": "knows_spell", "spell": 365298, "equals": 0 },
+    { "action": "assert", "label": "[PH] group B spell 365349 not learned", "actor": "collector", "metric": "knows_spell", "spell": 365349, "equals": 0 },
+
+    { "action": "assert", "label": "valid Swift Spectral mount item delivered", "actor": "collector", "metric": "item_count", "item": 33225, "equals": 1 },
+    { "action": "assert", "label": "valid companion item delivered", "actor": "collector", "metric": "item_count", "item": 558715, "equals": 1 }
+  ]
+}

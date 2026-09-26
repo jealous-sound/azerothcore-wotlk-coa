@@ -323,6 +323,7 @@ constexpr uint32 APPEARANCE_LOGIN_RESYNC_DELAY_MS = 3000;
 constexpr std::size_t MAX_QUEUED_EXTENSION_PACKETS = 64;
 constexpr uint32 VANITY_CATEGORY_MOUNTS = 0x04000000;
 constexpr uint32 VANITY_CATEGORY_COMPANIONS = 0x08000000;
+constexpr char VANITY_PLACEHOLDER_SPELL_PREFIX[] = "[PH]";
 constexpr uint32 ITEM_WONDROUS_WISDOMBALL = 101169;
 constexpr uint32 ITEM_FIX_O_TRON_5000 = 97330;
 constexpr std::size_t COMPANION_SPELLS_PER_BATCH = 4;
@@ -3545,6 +3546,19 @@ public:
         LearnOwnedBankSpells(player, *LoginState(player), true);
     }
 
+    [[nodiscard]] bool IsUnlockAllEligibleVanity(uint32 itemId) const
+    {
+        auto const itr = _vanityItems.find(itemId);
+        if (itr == _vanityItems.end())
+            return false;
+
+        uint32 const learnedSpell = itr->second.LearnedSpell;
+        SpellInfo const* const spell = learnedSpell ? sSpellMgr->GetSpellInfo(learnedSpell) : nullptr;
+        char const* const name = spell ? spell->SpellName[LOCALE_enUS] : nullptr;
+        return !name || std::strncmp(name, VANITY_PLACEHOLDER_SPELL_PREFIX,
+                                     sizeof(VANITY_PLACEHOLDER_SPELL_PREFIX) - 1) != 0;
+    }
+
     std::vector<uint32> GetMissingOwnedCompanionSpells(Player* player, PlayerCollectionState const& state) const
     {
         std::vector<uint32> spells;
@@ -3557,7 +3571,8 @@ public:
             bool const utilityCompanion = itemId == ITEM_WONDROUS_WISDOMBALL || itemId == ITEM_FIX_O_TRON_5000;
             if (!(vanity.CategoryMask & (VANITY_CATEGORY_MOUNTS | VANITY_CATEGORY_COMPANIONS)) && !utilityCompanion)
                 continue;
-            if ((!unlockAll && !state.OwnedVanityItems.contains(itemId)) ||
+            bool const explicitlyOwned = state.OwnedVanityItems.contains(itemId);
+            if ((!explicitlyOwned && (!unlockAll || !IsUnlockAllEligibleVanity(itemId))) ||
                 std::binary_search(AscensionCollectibles::SigilSpells.begin(),
                     AscensionCollectibles::SigilSpells.end(), vanity.LearnedSpell) ||
                 !vanity.LearnedSpell || player->HasSpell(vanity.LearnedSpell) ||
@@ -3754,7 +3769,8 @@ public:
     bool const entitled =
         IsBankVanityItem(itemId)
             ? OwnsBankVanityItem(player, *state, itemId)
-            : (unlockAll || state->OwnedVanityItems.contains(itemId));
+            : (state->OwnedVanityItems.contains(itemId) ||
+               (unlockAll && IsUnlockAllEligibleVanity(itemId)));
     if (!entitled)
     {
       ChatHandler(player->GetSession())
@@ -4386,11 +4402,14 @@ private:
 
       vanityItems.erase(
           std::remove_if(vanityItems.begin(), vanityItems.end(),
-                         [](uint32 itemId) { return IsBankVanityItem(itemId); }),
+                         [this](uint32 itemId) {
+                             return IsBankVanityItem(itemId) ||
+                                    !IsUnlockAllEligibleVanity(itemId);
+                         }),
           vanityItems.end());
 
       for (uint32 itemId : state.OwnedVanityItems)
-        if (IsBankVanityItem(itemId))
+        if (IsBankVanityItem(itemId) || !IsUnlockAllEligibleVanity(itemId))
           vanityItems.push_back(itemId);
     }
     else
@@ -4415,11 +4434,17 @@ private:
 
     std::vector<uint32> itemIds;
     if (unlockAll)
-      itemIds = _allVanityItemIds;
+      for (uint32 itemId : _allVanityItemIds)
+        if (IsUnlockAllEligibleVanity(itemId))
+          itemIds.push_back(itemId);
     else
       for (uint32 itemId : state.OwnedVanityItems)
         if (_vanityItems.contains(itemId))
           itemIds.push_back(itemId);
+
+    for (uint32 itemId : state.OwnedVanityItems)
+      if (_vanityItems.contains(itemId) && !IsUnlockAllEligibleVanity(itemId))
+        itemIds.push_back(itemId);
 
     std::sort(itemIds.begin(), itemIds.end());
     itemIds.erase(std::unique(itemIds.begin(), itemIds.end()), itemIds.end());
