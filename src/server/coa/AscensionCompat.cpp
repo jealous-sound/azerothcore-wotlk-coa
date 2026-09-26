@@ -5551,8 +5551,22 @@ public:
       return true;
 
     handled = true;
-    return AscensionClassService::Instance().InitializeLiveBaseline(player) &&
-           AscensionClassService::Instance().InitializeLiveStarterKit(player);
+    if (!AscensionClassService::Instance().InitializeLiveBaseline(player))
+      return false;
+
+    PlaceStartingActionButtons(player);
+    return AscensionClassService::Instance().InitializeLiveStarterKit(player);
+  }
+
+  static void PlaceStartingActionButtons(Player* player)
+  {
+    PlayerInfo const* info = sObjectMgr->GetPlayerInfo(player->getRace(true), player->getClass());
+    if (!info)
+      return;
+
+    for (PlayerCreateInfoAction const& action : info->action)
+      if (!player->GetActionButton(action.button))
+        player->addActionButton(action.button, action.action, action.type);
   }
 
   bool OnPlayerCheckItemInSlotAtLoadInventory(Player* player, Item* item, uint8 slot,
