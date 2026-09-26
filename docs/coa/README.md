@@ -360,6 +360,14 @@ filter. Tooltip links remain documentation, not unconditional spellbook grants.
 This closes the reviewed acquisition/trigger gaps, not every outstanding mechanic
 in the broader class-completion audits.
 
+Templar Scarlet Training turns the next Argent Blade into Scarlet Hammer through the
+Scarlet Crusader aura (301172), which the client also uses for the button glow. The
+server lends Scarlet Hammer, and Vindication's Divine Fury, only while the swap is
+active. The client row still describes the retired Chastise version; when preparing a
+requested client update, run `apps/coa-spells/scarlet_crusader_tooltip.py --input
+<Spell.dbc> --output <candidate-Spell.dbc>`. It rewrites that row's English texts in a
+separate output and never packages or installs a client archive.
+
 ## Keeper's Scrolls
 
 A Keeper's Scroll blesses the zone it is used in, not the player: everyone in the
