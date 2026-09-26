@@ -1206,8 +1206,10 @@ private:
 
     static void OpenSession(Actor& actor)
     {
+        uint32 const expansion = actor.definition.get<uint32>("expansion", EXPANSION_WRATH_OF_THE_LICH_KING);
+        Require(expansion <= EXPANSION_WRATH_OF_THE_LICH_KING, "Player expansion must be 0..2");
         actor.session = std::make_unique<WorldSession>(actor.accountId, std::string(actor.account), 0, nullptr,
-            SEC_PLAYER, EXPANSION_WRATH_OF_THE_LICH_KING, 0, LOCALE_enUS, 0, false, false, 0,
+            SEC_PLAYER, uint8(expansion), 0, LOCALE_enUS, 0, false, false, 0,
             actor.definition.get<bool>("bot", false));
         actor.session->SetSocketlessPacketObserver([&actor](WorldPacket const& packet)
         {
@@ -1458,12 +1460,14 @@ private:
                         return std::max(0, current->GetCastTimeRemaining());
             return 0;
         }
-        if (metric == "xp" || metric == "next_level_xp" || metric == "skill_value")
+        if (metric == "xp" || metric == "next_level_xp" || metric == "skill_value" || metric == "skill_maximum")
         {
             Player* player = unit->ToPlayer();
             Require(player != nullptr, "XP/skill metric needs a player");
             if (metric == "skill_value")
                 return player->GetPureSkillValue(step.get<uint32>("skill"));
+            if (metric == "skill_maximum")
+                return player->GetPureMaxSkillValue(step.get<uint32>("skill"));
             return player->GetUInt32Value(metric == "xp" ? PLAYER_XP : PLAYER_NEXT_LEVEL_XP);
         }
         if (metric == "level")
@@ -1634,13 +1638,19 @@ private:
         Player* player = unit->ToPlayer();
         Require(player != nullptr, "Metric requires a player: " + metric);
         if (metric == "knows_spell" || metric == "cooldown_ms" || metric == "spell_charges" ||
-            metric == "global_cooldown_ms" || metric == "has_talent" ||
+            metric == "spell_active" || metric == "global_cooldown_ms" || metric == "has_talent" ||
             metric == "spellbook_offers_spell" || metric == "spellbook_covers_spell" ||
             metric == "trainer_window_state" || metric == "trainer_window_ability" ||
             metric == "temporary_spell_replacement")
             Require(sSpellMgr->GetSpellInfo(spell) != nullptr, "Unknown spell in metric");
         if (metric == "knows_spell")
             return player->HasSpell(spell);
+        if (metric == "spell_active")
+        {
+            auto known = player->GetSpellMap().find(spell);
+            return known != player->GetSpellMap().end() && known->second->State != PLAYERSPELL_REMOVED
+                && known->second->Active;
+        }
         if (metric == "action_button")
         {
             uint8 button = uint8(step.get<uint32>("button"));

@@ -34,11 +34,11 @@ METRICS = {
     'moving', 'water_walk', 'forced_forward', 'distance_2d', 'cast_remaining_ms', 'cast_pushback_ms',
     'melee_damage_count', 'melee_damage_total',
     'pet_power', 'pet_max_power', 'spell_energize_count', 'spell_energize_total',
-    'xp', 'next_level_xp', 'skill_value', 'lfg_dungeon_disabled', 'map_id',
+    'xp', 'next_level_xp', 'skill_value', 'skill_maximum', 'lfg_dungeon_disabled', 'map_id',
     'view_level', 'sent_level', 'sent_max_health', 'creature_query_rank', 'quest_level', 'quest_xp',
     'health', 'health_pct', 'max_health', 'creature_type', 'power', 'max_power', 'alive', 'combat', 'casting', 'level',
     'aura', 'aura_stacks', 'aura_charges', 'aura_duration_ms', 'aura_amount', 'aura_positive',
-    'knows_spell', 'has_talent', 'talent_points', 'cooldown_ms', 'global_cooldown_ms', 'spell_charges',
+    'knows_spell', 'spell_active', 'has_talent', 'talent_points', 'cooldown_ms', 'global_cooldown_ms', 'spell_charges',
     'action_button', 'item_count', 'carried_item_count', 'carried_pool_item_count', 'carried_variant_item_count',
     'pool_variant_count', 'pool_retired_item_count', 'pool_row_count', 'pool_item_present',
     'cache_token_count', 'cache_token_stage', 'cache_token_present',
@@ -230,7 +230,7 @@ def validate(scenario):
         keys(player, {'id', 'race', 'class'},
              {'id', 'race', 'class', 'level', 'bot', 'spell_hit_rating', 'spell_crit_rating',
               'melee_crit_rating', 'ranged_hit_rating', 'melee_hit_rating', 'expertise_rating',
-              'allow_regeneration', 'name'}, 'player')
+              'allow_regeneration', 'name', 'expansion'}, 'player')
         identity = player['id']
         require(isinstance(identity, str) and ACTOR_ID.fullmatch(identity), 'Invalid player id')
         require(identity not in actor_ids, 'Duplicate actor id')
@@ -242,6 +242,7 @@ def validate(scenario):
         for key in ('race', 'class'):
             number(player[key], key, 1, 255, True)
         number(player.get('level', 80), 'level', 1, 255, True)
+        number(player.get('expansion', 2), 'expansion', 0, 2, True)
         require(type(player.get('bot', False)) is bool, 'bot must be boolean')
         number(player.get('spell_hit_rating', 0), 'spell_hit_rating', 0, 100000, True)
         number(player.get('spell_crit_rating', 0), 'spell_crit_rating', 0, 100000, True)
@@ -370,9 +371,9 @@ def validate(scenario):
                         and type(step['periodic']) is bool,
                         f'{where}: periodic requires a damage/healing calculation and a boolean')
             require(metric in METRICS, f'{where}: unknown metric')
-            if metric in {'xp', 'next_level_xp', 'skill_value'}:
+            if metric in {'xp', 'next_level_xp', 'skill_value', 'skill_maximum'}:
                 require(step['actor'] in player_ids, f'{where}: XP/skill metric needs a player')
-                if metric == 'skill_value':
+                if metric in {'skill_value', 'skill_maximum'}:
                     number(step.get('skill'), f'{where}.skill', 1, 65535, True)
             if metric in {'player_name', 'name_lookup'}:
                 require(step['actor'] in player_ids and isinstance(step.get('name'), str)
@@ -392,7 +393,7 @@ def validate(scenario):
                         f'{where}: quest metric needs a player and quest')
             if metric.startswith('aura') or metric in {
                     'knows_spell', 'cooldown_ms', 'global_cooldown_ms', 'spell_charges', 'cast_remaining_ms', 'has_talent',
-                    'pet_aura_stacks', 'pet_aura_duration_ms', 'charm_aura_stacks',
+                    'pet_aura_stacks', 'pet_aura_duration_ms', 'charm_aura_stacks', 'spell_active',
                     'dynamic_object', 'dynamic_object_duration_ms', 'spell_power_cost',
                     'spell_damage_done', 'spell_damage_taken', 'spell_healing_taken', 'spell_hit_bonus_taken',
                     'spell_cast_count', 'spell_go_count', 'spell_modifier', 'spell_cast_time_ms',
@@ -508,7 +509,7 @@ def validate(scenario):
                 require('id' in step, f'{where}: metric needs text id')
             if metric in {'knows_spell', 'has_talent', 'talent_points', 'cooldown_ms', 'spell_charges', 'action_button', 'item_count',
                           'carried_item_count', 'carried_pool_item_count', 'carried_variant_item_count',
-                          'bank_bag_slots', 'taxi_node',
+                          'bank_bag_slots', 'taxi_node', 'spell_active',
                           'cast_pushback_ms',
                           'bank_shows', 'system_messages', 'system_message_contains',
                           'challenge_start_responses', 'challenge_start_code', 'owned_creature_scale', 'cast_failure',

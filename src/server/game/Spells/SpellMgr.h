@@ -636,6 +636,12 @@ inline bool IsProfessionOrRidingSkill(uint32 skill)
     return  IsProfessionSkill(skill) || skill == SKILL_RIDING;
 }
 
+// Classic professions end at Artisan (skill step 4); each expansion adds the next rank (Master, Grand Master).
+inline uint16 GetMaxProfessionSkillStep(uint8 expansion)
+{
+    return 4 + expansion;
+}
+
 bool IsPartOfSkillLine(uint32 skillId, uint32 spellId);
 
 // spell diminishing returns

@@ -236,6 +236,7 @@ void AddSC_AscensionAdventurerCache();
 void AddSC_AscensionBankVoucher();
 void AddSC_AscensionRunePouches();
 void AddSC_AscensionUpgradeKits();
+void AddSC_AscensionProfessionRanks();
 void AddSC_AscensionPrestigiousCache();
 void AddSC_AscensionCallboardCache();
 void AddSC_AscensionFeatherOfAncients();
@@ -479,6 +480,7 @@ void AddCoAScripts()
     AddSC_AscensionBankVoucher();
     AddSC_AscensionRunePouches();
     AddSC_AscensionUpgradeKits();
+    AddSC_AscensionProfessionRanks();
     AddSC_AscensionPrestigiousCache();
     AddSC_AscensionCallboardCache();
     AddSC_AscensionFeatherOfAncients();
