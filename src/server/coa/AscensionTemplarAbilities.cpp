@@ -39,6 +39,8 @@ bool Selected(SpellInfo const* info, uint32 aura)
         return false;
     }
 }
+constexpr uint32 SPELL_VISUAL_KIT_BENEDICTION_CAST = 4565;
+constexpr uint32 SPELL_VISUAL_KIT_BENEDICTION_IMPACT = 4566;
 constexpr uint32 selected[] = {806354, 807004, 561156, 681136, 712378, 524766, 806523, 524617};
 void ConsumeSelected(Player* player, Spell* spell)
 {
@@ -341,8 +343,12 @@ class spell_ascension_templar_ability : public SpellScript
     void Launch(SpellEffIndex effect)
     {
         Player* player = Owner(GetCaster());
-        if (player && Named(GetSpellInfo(), 801448) && !player->HasAura(705287))
-            PreventHitDefaultEffect(effect);
+        if (!player || !Named(GetSpellInfo(), 801448) || player->HasAura(705287))
+            return;
+        PreventHitDefaultEffect(effect);
+        player->SendPlaySpellVisual(SPELL_VISUAL_KIT_BENEDICTION_CAST);
+        if (Unit* target = GetHitUnit())
+            target->SendPlaySpellVisual(SPELL_VISUAL_KIT_BENEDICTION_IMPACT);
     }
     void Enlighten(SpellEffIndex effect)
     {
