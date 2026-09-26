@@ -50,6 +50,13 @@
       "command": ".localspec 95"
     },
     {
+      "action": "unlearn",
+      "actor": "primalist",
+      "spell": 300697,
+      "all_specs": true,
+      "label": "Remove the automatic Geomancy Crushing the Earth spell power, which refreshes after the baselines"
+    },
+    {
       "action": "learn",
       "actor": "primalist",
       "spell": 681114
@@ -219,6 +226,13 @@
       "actor": "enemy",
       "spell": 681114,
       "stacks": 0
+    },
+    {
+      "action": "set_aura",
+      "actor": "primalist",
+      "spell": 680441,
+      "stacks": 0,
+      "label": "Drop Earthshaping from the Tremor casts, which expires exactly now and adds its own Terrasurge bonus"
     },
     {
       "action": "assert",
@@ -442,5 +456,5 @@
       "stacks": 0
     }
   ],
-  "contract": "Only periodic Tremor damage grants Geomolding: one stack per tick, 3 additional Rage and 10% Terrasurge damage per stack, up to ten. The next Terrasurge consumes all stacks; direct damage, unlearning, unrelated spells and expiry are controls."
+  "contract": "Only periodic Tremor damage grants Geomolding: one stack per tick, 3 additional Rage and 10% Terrasurge damage per stack, up to ten. The next Terrasurge consumes all stacks; direct damage, unlearning, unrelated spells and expiry are controls. Specialization 95 (Geomancy) grants Crushing the Earth (300697) automatically; its two-second refresh adds spell power after the baselines are taken, so the scenario removes it and keeps spell power constant."
 }

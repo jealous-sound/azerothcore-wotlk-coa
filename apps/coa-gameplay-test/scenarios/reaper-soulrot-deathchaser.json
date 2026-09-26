@@ -4,7 +4,8 @@
   "contract": [
     "A Reaper with Soulrot applies debuff 804660 when Deathchaser 805190 damages a hostile creature.",
     "Successive Deathchaser ticks add stacks up to the DBC cap of 20.",
-    "The 15-second debuff deals one late damage event when it expires."
+    "The 15-second debuff deals one late damage event when it expires.",
+    "Deathchaser 805190 is DmgClass 2 (melee), so its application rolls melee miss and dodge against the same-level victim; the Reaper gets melee hit and expertise rating so that roll cannot leave the victim without the periodic aura. Soulrot 804660 is a magic spell covered by the spell hit rating."
   ],
   "timeout_ms": 60000,
   "players": [
@@ -13,7 +14,9 @@
       "race": 10,
       "class": 30,
       "level": 80,
-      "spell_hit_rating": 10000
+      "spell_hit_rating": 10000,
+      "melee_hit_rating": 10000,
+      "expertise_rating": 10000
     }
   ],
   "creatures": [

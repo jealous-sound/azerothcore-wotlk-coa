@@ -586,10 +586,11 @@ A run of every stage without focus filters cannot currently end `PASSED` on any 
 
 - One worldserver and module configuration applies to every gameplay case, including the reruns, and
   some scenarios require opposite values. `who-hides-bots` needs `Who.ShowBots=0` while `who-lists-bots` expects
-  the shipped `1`; `destiny-weaver-quest-fallback` needs `DestinyWeaver.Enable=0` while `destiny-weaver-scaling`
-  needs `1`. Others, such as `profession-xp-disabled`, `profession-xp-global`, `high-risk-death-chest` and
-  `pvp-power-damage`, name their required values in their `contract`. At least one scenario of each opposing
-  pair fails on every configuration.
+  the shipped `1`; `destiny-weaver-quest-fallback` and `level-scaling-damage-engagement` need
+  `DestinyWeaver.Enable=0` (the latter also accepts `DestinyWeaver.LevelScaling=0`) while `destiny-weaver-scaling`
+  needs both at `1`. Others, such as `profession-xp-disabled`, `profession-xp-global`, `high-risk-death-chest`,
+  `destructo-bot-manastorm` and `pvp-power-damage`, name their required values in their `contract`. At least one
+  scenario of each opposing pair fails on every configuration.
 - The always-unavailable harness scripts above keep the run from `PASSED` even when everything else passes.
 
 Classify every failed or blocked stage, failed or `not_run` case and failed or unavailable harness script:

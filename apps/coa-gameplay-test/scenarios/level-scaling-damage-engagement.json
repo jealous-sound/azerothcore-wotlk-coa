@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "Level scaling: damage before engagement, including a lethal opening hit",
-  "contract": "First hits scale before damage; later hits preserve combat level. Setup requirements are in README.",
+  "contract": "First hits scale before damage; later hits preserve combat level. Requires CoA.LevelScaling=1, CoA.LevelScalingMaxLift=5, MonsterSight=50 and DestinyWeaver.LevelScaling=0 (or DestinyWeaver.Enable=0); setup details are in README.",
   "timeout_ms": 30000,
   "location": {
     "map": 0,

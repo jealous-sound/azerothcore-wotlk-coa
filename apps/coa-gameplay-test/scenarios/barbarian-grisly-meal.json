@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "Grisly Meal marker buff is granted by a kill (#4231)",
-  "contract": "A Barbarian who knows Grisly Meal gains its marker buff (804755) after killing an enemy that yields experience, then can cast Grisly Meal out of combat. A different class killing the same enemy does not gain the buff.",
+  "contract": "A Barbarian who knows Grisly Meal gains its marker buff (804755) after killing an enemy that yields experience, then can cast Grisly Meal out of combat. A different class killing the same enemy does not gain the buff. The enemies are level 20, like the players, so they yield experience (a level 10 enemy is gray to a level 20 character), and have 1 health so each player kills its own.",
   "timeout_ms": 90000,
   "players": [
     {
@@ -22,14 +22,16 @@
       "id": "e",
       "owner": "b",
       "entry": 36,
-      "level": 10,
+      "level": 20,
+      "health": 1,
       "distance": 3
     },
     {
       "id": "f",
       "owner": "c",
       "entry": 36,
-      "level": 10,
+      "level": 20,
+      "health": 1,
       "distance": 3
     }
   ],
@@ -59,6 +61,22 @@
       "action": "attack",
       "actor": "c",
       "target": "f"
+    },
+    {
+      "action": "assert",
+      "label": "the Barbarian kills its enemy",
+      "actor": "e",
+      "metric": "alive",
+      "equals": 0,
+      "within_ms": 15000
+    },
+    {
+      "action": "assert",
+      "label": "the Warrior kills its enemy",
+      "actor": "f",
+      "metric": "alive",
+      "equals": 0,
+      "within_ms": 15000
     },
     {
       "action": "assert",

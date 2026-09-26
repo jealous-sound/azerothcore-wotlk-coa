@@ -50,6 +50,13 @@
       "command": ".localspec 95"
     },
     {
+      "action": "unlearn",
+      "actor": "primalist",
+      "spell": 300697,
+      "all_specs": true,
+      "label": "Remove the automatic Geomancy Crushing the Earth spell power, which refreshes after the baselines"
+    },
+    {
       "action": "learn",
       "actor": "primalist",
       "spell": 802335
@@ -683,5 +690,5 @@
       "ms": 1600
     }
   ],
-  "contract": "Magma Geodes deal 30% more damage strictly above 75% target health. Test 75%, 75.01% and 100%, normal hits, unrelated physical Geodes and unlearning. The existing native Eruption cooldown modifier reduces it by 15 seconds."
+  "contract": "Magma Geodes deal 30% more damage strictly above 75% target health. Test 75%, 75.01% and 100%, normal hits, unrelated physical Geodes and unlearning. The existing native Eruption cooldown modifier reduces it by 15 seconds. Specialization 95 (Geomancy) grants Crushing the Earth (300697) automatically; its two-second refresh adds spell power after the baselines are taken, so the scenario removes it and keeps spell power constant."
 }

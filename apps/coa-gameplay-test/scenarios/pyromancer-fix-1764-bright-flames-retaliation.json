@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "Bright Flames raises Inferno Barrier's retaliation damage (#1764)",
-  "contract": "#1764: Bright Flames 300759 (rank 1) and 301351 (rank 2): effect 2 is ADD_PCT_MODIFIER (aura 108) on SPELLMOD_DAMAGE (misc 0), base 14 -> +15% and 29 -> +30%, class mask {0, 0, 0x400} = Inferno Barrier (504380, 535650, 535651, 582762-582764; SpellFamilyFlags {0, 0, 1024}); tooltip: increases the damage it deals by $s2% (Spell.dbc served file). The module turns the barrier's PROC_TRIGGER_DAMAGE into a dummy and deals the retaliation itself as Lucifron's Rage 524623 (family 30, empty flags) with an amount computed from effect 2 and Spirit, so the SPELLMOD_DAMAGE modifier matched neither 524623 nor that amount. The fix runs the caster's SPELLMOD_DAMAGE modifiers for the barrier rank on the amount. A second Pyromancer (Orc, PvP flagged) hits the barriered Pyromancer with Flare Bolt 800790; the barrier retaliates with one Lucifron's Rage. The damage total of 524623 is measured with no talent (control), with rank 1 and with rank 2, and compared as ratios over non-critical hits only. Lucifron's Rage 524623 is a spell that can critically hit (crit chance 6.39% measured with spell_done_crit_chance), which raised one rank 2 sample to 51 in an earlier run. Only the barrier's amount scales: Retaliation = Effect 2 of 504380 (Spell.dbc base 3, die sides 1, value 4) + Spirit * 0.1, truncated to an integer, plus a spell-power part S of 524623 that Bright Flames does not touch. With Spirit 186 the amount is 22.6, so a +15% modifier gives 25 and +30% gives 29 (integer truncation), and the control total 36 measured on the server gives S = 14: rank 1 = (25+14)/36 = 1.083 (bounds 1.06..1.11), rank 2 = (29+14)/36 = 1.194 (bounds 1.15..1.23); unfixed 1.0, rank 2 mis-scaled as +15% 1.083. Fails before the fix (ratio 1.00). Not covered: the absorb half (aura 317) which already worked.",
+  "contract": "#1764: Bright Flames 300759 (rank 1) and 301351 (rank 2): effect 2 is ADD_PCT_MODIFIER (aura 108) on SPELLMOD_DAMAGE (misc 0), base 14 -> +15% and 29 -> +30%, class mask {0, 0, 0x400} = Inferno Barrier (504380, 535650, 535651, 582762-582764; SpellFamilyFlags {0, 0, 1024}); tooltip: increases the damage it deals by $s2% (Spell.dbc served file). The module turns the barrier's PROC_TRIGGER_DAMAGE into a dummy and deals the retaliation itself as Lucifron's Rage 524623 (family 30, empty flags) with an amount computed from effect 2 and Spirit, so the SPELLMOD_DAMAGE modifier matched neither 524623 nor that amount. The fix runs the caster's SPELLMOD_DAMAGE modifiers for the barrier rank on the amount. A second Pyromancer (Orc, PvP flagged) hits the barriered Pyromancer with Flare Bolt 800790; the barrier retaliates with one Lucifron's Rage. The damage total of 524623 is measured with no talent (control), with rank 1 and with rank 2, and compared as ratios over non-critical hits only. Lucifron's Rage 524623 is a spell that can critically hit (crit chance 6.39% measured with spell_done_crit_chance), which raised one rank 2 sample to 51 in an earlier run. Each stage takes a single sample and measures only noncritical damage, so a critical control retaliation left the control total at 0 ('Missing or zero ratio snapshot') and a critical rank sample read a ratio of 0; with three samples at 6.39% that failed about one run in six. The enemy therefore carries Blessed Resilience 33143 (SPELL_AURA_MOD_ATTACKER_SPELL_AND_WEAPON_CRIT_CHANCE, -1000) for each hit: Unit::SpellTakenCritChance adds it for every negative spell, so the retaliation cannot crit and each stage yields its one noncritical sample. It changes no damage amount. Only the barrier's amount scales: Retaliation = Effect 2 of 504380 (Spell.dbc base 3, die sides 1, value 4) + Spirit * 0.1, truncated to an integer, plus a spell-power part S of 524623 that Bright Flames does not touch. With Spirit 186 the amount is 22.6, so a +15% modifier gives 25 and +30% gives 29 (integer truncation), and the control total 36 measured on the server gives S = 14: rank 1 = (25+14)/36 = 1.083 (bounds 1.06..1.11), rank 2 = (29+14)/36 = 1.194 (bounds 1.15..1.23); unfixed 1.0, rank 2 mis-scaled as +15% 1.083. Fails before the fix (ratio 1.00). Not covered: the absorb half (aura 317) which already worked.",
   "timeout_ms": 180000,
   "players": [
     {
@@ -141,6 +141,20 @@
       "save_as": "c_control"
     },
     {
+      "action": "set_aura",
+      "label": "Restart Blessed Resilience so its 6 s duration covers this retaliation",
+      "actor": "enemy",
+      "spell": 33143,
+      "stacks": 0
+    },
+    {
+      "action": "set_aura",
+      "label": "Blessed Resilience (33143, aura 197 at -1000) keeps the single retaliation sample non-critical",
+      "actor": "enemy",
+      "spell": 33143,
+      "stacks": 1
+    },
+    {
       "action": "cast",
       "actor": "enemy",
       "spell": 800790,
@@ -247,6 +261,20 @@
       "spell": 524623,
       "target": "enemy",
       "save_as": "c_rank1"
+    },
+    {
+      "action": "set_aura",
+      "label": "Restart Blessed Resilience so its 6 s duration covers this retaliation",
+      "actor": "enemy",
+      "spell": 33143,
+      "stacks": 0
+    },
+    {
+      "action": "set_aura",
+      "label": "Blessed Resilience (33143, aura 197 at -1000) keeps the single retaliation sample non-critical",
+      "actor": "enemy",
+      "spell": 33143,
+      "stacks": 1
     },
     {
       "action": "cast",
@@ -362,6 +390,20 @@
       "spell": 524623,
       "target": "enemy",
       "save_as": "c_rank2"
+    },
+    {
+      "action": "set_aura",
+      "label": "Restart Blessed Resilience so its 6 s duration covers this retaliation",
+      "actor": "enemy",
+      "spell": 33143,
+      "stacks": 0
+    },
+    {
+      "action": "set_aura",
+      "label": "Blessed Resilience (33143, aura 197 at -1000) keeps the single retaliation sample non-critical",
+      "actor": "enemy",
+      "spell": 33143,
+      "stacks": 1
     },
     {
       "action": "cast",

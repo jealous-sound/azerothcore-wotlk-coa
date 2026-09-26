@@ -207,7 +207,7 @@
     {
       "script": "check_primalist_geode_procs.py",
       "scenarios": [
-        "primalist-geomolding"
+        "primalist-primal-shaman-mask"
       ],
       "args": []
     },
