@@ -16,6 +16,7 @@
 namespace
 {
 using namespace AscensionXoroth;
+constexpr uint32 SPELL_FLAMES_OF_XOROTH_VISUAL = 801003;
 constexpr uint32 selected[] = {680197, 680203, 681184, 520021, 802617, 802618, 524913, 680729, 712294};
 bool Select(SpellInfo const* info, uint32 id)
 {
@@ -440,6 +441,8 @@ class xoroth_casts : public AllSpellScript
             }
             if (id == 520292)
                 Reduce(player, id, 3000 * fire);
+            if (Named(info, 801059))
+                Cast(player, player, SPELL_FLAMES_OF_XOROTH_VISUAL);
             if (id == 802342)
                 Cast(player, player, 801017);
             if (id == 805679)
