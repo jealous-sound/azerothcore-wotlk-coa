@@ -1,0 +1,213 @@
+struct ExpectedLayout
+{
+    AscensionPatchAchievements::Table table;
+    std::size_t prefix, strings, suffix;
+    bool nul;
+    std::vector<std::size_t> pointers;
+};
+
+int main()
+{
+    using namespace AscensionPatchAchievements;
+    std::vector<ExpectedLayout> layouts = {
+        {Table::Achievement, 14, 3, 0, false, {4, 5, 11}},
+        {Table::Criteria, 9, 16, 5, false, {}},
+        {Table::Category, 2, 16, 2, false, {}}
+    };
+    for (auto const& layout : layouts)
+    {
+        std::vector<uint32> fields(layout.prefix + layout.suffix);
+        for (std::size_t i = 0; i < fields.size(); ++i) fields[i] = 0x12340000u + uint32(i);
+        std::vector<std::string> strings;
+        for (std::size_t i = 0; i < layout.strings; ++i) strings.push_back(i % 2 ? "" : "text" + std::to_string(i));
+        auto packet = Encode(layout.table, fields, strings);
+        assert(packet && packet->opcode == static_cast<uint16>(layout.table));
+        std::size_t cursor = 0;
+        auto readWord = [&]()
+        {
+            assert(cursor + 4 <= packet->bytes.size());
+            uint32 value = 0;
+            for (int shift = 0; shift < 32; shift += 8) value |= uint32(packet->bytes[cursor++]) << shift;
+            return value;
+        };
+        auto checkWord = [&](std::size_t index)
+        {
+            bool pointer = false;
+            for (std::size_t slot : layout.pointers) pointer |= slot == index;
+            assert(readWord() == (pointer ? 0 : fields[index]));
+        };
+        for (std::size_t i = 0; i < layout.prefix; ++i) checkWord(i);
+        for (auto const& text : strings)
+        {
+            if (!layout.nul) assert(readWord() == text.size());
+            for (unsigned char byte : text) assert(packet->bytes.at(cursor++) == byte);
+            if (layout.nul) assert(packet->bytes.at(cursor++) == 0);
+        }
+        for (std::size_t i = layout.prefix; i < fields.size(); ++i) checkWord(i);
+        assert(cursor == packet->bytes.size());
+        auto invalid = fields;
+        invalid.pop_back();
+        assert(!Encode(layout.table, invalid, strings));
+        invalid.push_back(1); invalid.push_back(2);
+        assert(!Encode(layout.table, invalid, strings));
+        auto extraStrings = strings;
+        extraStrings.emplace_back("extra");
+        assert(!Encode(layout.table, fields, extraStrings));
+    }
+    auto original = BuildPatch(Table::Achievement, 41068, TextOverrides(3));
+    assert(original);
+    std::string originalBytes(original->bytes.begin(), original->bytes.end());
+    assert(originalBytes.find("Runes of Ascension (500)") != std::string::npos);
+    auto cleared = BuildPatch(Table::Achievement, 41068,
+        {std::string(""), std::nullopt, std::nullopt});
+    assert(cleared);
+    std::string clearedBytes(cleared->bytes.begin(), cleared->bytes.end());
+    assert(clearedBytes.find("Runes of Ascension") == std::string::npos);
+    assert(clearedBytes.find("Obtain 500 Marks of Ascension.") != std::string::npos);
+    assert(!BuildPatch(Table::Achievement, 0, TextOverrides(3)));
+    assert(!BuildPatch(Table::Achievement, 41068, TextOverrides(2)));
+    assert(!BuildPatch(static_cast<Table>(0xFFFF), 41068, TextOverrides(3)));
+    assert(!BuildPatch(Table::Achievement, 41068,
+        {std::string(4097, 'x'), std::nullopt, std::nullopt}));
+    assert(!BuildPatch(Table::Achievement, 41068,
+        {std::string("a\0b", 3), std::nullopt, std::nullopt}));
+    auto descension = BuildSeedPatches();
+    assert(descension.size() == 541);
+    auto word = [](WorldPacket const& packet, std::size_t offset)
+    {
+        uint32 value = 0;
+        for (int shift = 0; shift < 32; shift += 8)
+            value |= uint32(packet.bytes.at(offset++)) << shift;
+        return value;
+    };
+    auto findPacket = [&](Table table, uint32 id) -> WorldPacket const*
+    {
+        WorldPacket const* found = nullptr;
+        for (auto const& packet : descension)
+            if (packet.opcode == static_cast<uint16>(table) && word(packet, 0) == id)
+            {
+                assert(!found);
+                found = &packet;
+            }
+        return found;
+    };
+    auto achievement = findPacket(Table::Achievement, 41067);
+    assert(achievement && word(*achievement, 24) == 21000 && word(*achievement, 28) == 100);
+    auto criteria = findPacket(Table::Criteria, 41067);
+    assert(criteria && word(*criteria, 12) == 375250 && word(*criteria, 16) == 100);
+    assert(word(*criteria, criteria->bytes.size() - 20) == 2);
+    assert(word(*criteria, criteria->bytes.size() - 4) == 1);
+    auto category = findPacket(Table::Category, 21000);
+    assert(category && word(*category, category->bytes.size() - 4) == 30);
+    auto checkText = [&](Table table, uint32 id, std::string const& text)
+    {
+        auto packet = findPacket(table, id);
+        assert(packet);
+        std::string bytes(packet->bytes.begin(), packet->bytes.end());
+        assert(bytes.find(text) != std::string::npos);
+    };
+    checkText(Table::Achievement, 41068, "Runes of Descension (500)");
+    checkText(Table::Achievement, 41068, "Obtain 500 Runes of Descension.");
+    checkText(Table::Achievement, 41141, "Obtain 1000000 Runes of Descension.");
+    checkText(Table::Achievement, 41142, "Obtain 1100000 Runes of Descension.");
+    checkText(Table::Achievement, 41191, "Runes of Descension (10000000)");
+    checkText(Table::Achievement, 41191, "Obtain 10000000 Runes of Descension.");
+    checkText(Table::Criteria, 41190, "Runes of Descension (10000000)");
+    for (uint32 id = 41143; id <= 41191; ++id)
+    {
+        auto milestone = findPacket(Table::Achievement, id);
+        assert(milestone);
+        uint32 titleLength = word(*milestone, 56);
+        std::string title(milestone->bytes.begin() + 60, milestone->bytes.begin() + 60 + titleLength);
+        std::size_t amountBegin = title.find('(') + 1;
+        std::string amount = title.substr(amountBegin, title.find(')', amountBegin) - amountBegin);
+        checkText(Table::Achievement, id, "Obtain " + amount + " Runes of Descension.");
+        WorldPacket const* requirement = nullptr;
+        for (auto const& packet : descension)
+            if (packet.opcode == 0x0937 && word(packet, 4) == id)
+            {
+                assert(!requirement);
+                requirement = &packet;
+            }
+        assert(requirement);
+        assert(word(*requirement, 8) == 36);
+        assert(word(*requirement, 12) == 375250);
+        assert(word(*requirement, 16) == std::stoul(amount));
+    }
+    checkText(Table::Achievement, 87200, "Path to Descension: Choose Your Risk");
+    checkText(Table::Achievement, 5000, "Descension Season 1 Level 20");
+    checkText(Table::Category, 22000, "Path to Descension");
+    checkText(Table::Category, 16135, "Descension Seasonal");
+    checkText(Table::Achievement, 6312, "Realm First! Learned The Book of Descension");
+    checkText(Table::Achievement, 16719, "Earned 100 Seasonal Essences & 1000 Runes of Descension");
+    checkText(Table::Achievement, 212828, "Path to Descension: Mythic+ Vendor");
+    checkText(Table::Category, 2000, "Descension Dungeons");
+    checkText(Table::Category, 15132, "Descension");
+    checkText(Table::Category, 16130, "Descension Season 5");
+    for (uint32 id : {41133u, 41134u, 41135u, 41136u, 41137u, 41138u, 41139u, 41140u})
+        assert(!findPacket(Table::Achievement, id));
+    std::array<std::size_t, 3> counts{};
+    for (auto const& packet : descension)
+    {
+        if (packet.opcode == 0x0936) ++counts[0];
+        else if (packet.opcode == 0x0937) ++counts[1];
+        else if (packet.opcode == 0x0938) ++counts[2];
+        else assert(false);
+    }
+    assert(counts[0] == 336 && counts[1] == 189 && counts[2] == 16);
+    std::array<uint32, 3> numericHashes{2166136261u, 2166136261u, 2166136261u};
+    for (auto const& packet : descension)
+    {
+        std::size_t family = packet.opcode - 0x0936;
+        auto hashBytes = [&](std::size_t begin, std::size_t end)
+        {
+            for (std::size_t index = begin; index < end; ++index)
+                numericHashes[family] = (numericHashes[family] ^ packet.bytes[index]) * 16777619u;
+        };
+        if (family == 0) hashBytes(0, 56);
+        else if (family == 1)
+        {
+            hashBytes(0, 36);
+            hashBytes(packet.bytes.size() - 20, packet.bytes.size());
+        }
+        else
+        {
+            hashBytes(0, 8);
+            hashBytes(packet.bytes.size() - 8, packet.bytes.size());
+        }
+    }
+    assert(numericHashes[0] == 1399112531u);
+    assert(numericHashes[1] == 1828597766u);
+    assert(numericHashes[2] == 3783873433u);
+    for (auto const& packet : descension)
+    {
+        std::string bytes(packet.bytes.begin(), packet.bytes.end());
+        assert(bytes.find("Descension") != std::string::npos);
+        assert(bytes.find("Ascension") == std::string::npos);
+    }
+    assert(!Encode(static_cast<Table>(0xFFFF), {}, {}));
+    auto fields = std::vector<uint32>(4, 1);
+    auto names = std::vector<std::string>(16);
+    names[0] = std::string("a\0b", 3);
+    assert(!Encode(Table::Category, fields, names));
+    names[0] = std::string(4097, 'x');
+    assert(!Encode(Table::Category, fields, names));
+    names.assign(16, std::string(4096, 'x'));
+    assert(!Encode(Table::Category, fields, names));
+    names.assign(16, "");
+    names[0] = "\xC3\xA9";
+    auto utf8 = Encode(Table::Category, fields, names);
+    assert(utf8 && utf8->bytes[8] == 2 && utf8->bytes[12] == 0xC3 && utf8->bytes[13] == 0xA9);
+    names.pop_back();
+    assert(!Encode(Table::Category, fields, names));
+    names.emplace_back();
+    Player player;
+    assert(!Send(nullptr, Table::Category, fields, names));
+    player.connected = false;
+    assert(!Send(&player, Table::Category, fields, names));
+    player.connected = true;
+    assert(!Send(&player, static_cast<Table>(0xFFFF), {}, {}));
+    assert(!player.sent);
+    assert(Send(&player, Table::Category, fields, names));
+    assert(player.sent && player.sent->opcode == 0x0938);
+}

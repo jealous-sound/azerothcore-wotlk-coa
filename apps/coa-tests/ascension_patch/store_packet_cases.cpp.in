@@ -1,0 +1,60 @@
+std::array<std::string, 4> ReadTexts(WorldPacket const& packet)
+{
+    assert(packet.opcode == 0x092A);
+    std::size_t cursor = 170 * 4;
+    std::array<std::string, 4> texts;
+    for (std::string& text : texts)
+    {
+        uint32 length = 0;
+        for (int shift = 0; shift < 32; shift += 8)
+            length |= uint32(packet.bytes.at(cursor++)) << shift;
+        assert(cursor + length <= packet.bytes.size());
+        text.assign(packet.bytes.begin() + cursor, packet.bytes.begin() + cursor + length);
+        cursor += length;
+    }
+    assert(cursor == packet.bytes.size());
+    return texts;
+}
+
+int main()
+{
+    using namespace AscensionPatchSpells;
+    for (auto const& record : AscensionPatchSpellData::Records)
+    {
+        auto original = BuildSpellPatch(record.Fields[0], {});
+        assert(original);
+        auto originalTexts = ReadTexts(*original);
+        for (std::size_t index = 0; index < 4; ++index)
+            assert(originalTexts[index] == record.Strings[index]);
+        std::vector<uint32> fields(record.Fields.begin(), record.Fields.end());
+        std::vector<std::string> texts(originalTexts.begin(), originalTexts.end());
+        auto expected = Encode(Table::Spell, fields, texts);
+        assert(expected && original->bytes == expected->bytes);
+        for (std::size_t index = 0; index < 4; ++index)
+        {
+            TextOverrides overrides;
+            overrides[index] = std::string();
+            auto cleared = BuildSpellPatch(record.Fields[0], overrides);
+            assert(cleared);
+            auto clearedTexts = ReadTexts(*cleared);
+            for (std::size_t other = 0; other < 4; ++other)
+                assert(clearedTexts[other] == (other == index ? "" : originalTexts[other]));
+            overrides[index] = "text ${$w1} \xC3\xA9";
+            auto patched = BuildSpellPatch(record.Fields[0], overrides);
+            assert(patched);
+            auto patchedTexts = ReadTexts(*patched);
+            for (std::size_t other = 0; other < 4; ++other)
+                assert(patchedTexts[other] == (other == index ? *overrides[index] : originalTexts[other]));
+            for (std::size_t byte = 0; byte < 680; ++byte)
+                assert(patched->bytes[byte] == original->bytes[byte]);
+            overrides[index] = std::string(4097, 'x');
+            assert(!BuildSpellPatch(record.Fields[0], overrides));
+            overrides[index] = std::string("a\0b", 3);
+            assert(!BuildSpellPatch(record.Fields[0], overrides));
+        }
+        auto unchanged = BuildSpellPatch(record.Fields[0], {});
+        assert(unchanged && unchanged->bytes == original->bytes);
+    }
+    assert(!BuildSpellPatch(0, {}));
+    assert(!BuildSpellPatch(123456, {}));
+}
