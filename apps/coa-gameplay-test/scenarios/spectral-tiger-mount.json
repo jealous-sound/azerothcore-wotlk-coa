@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "Spectral Tiger mounts: 42777, 499910, 42776 and 499912 mount their models",
-  "contract": "Each Spectral-family mount spell must apply a persistent mounted aura and set the mount display to its creature's model: 42777 -> 21974, 499910 -> 21973, 42776 -> 470000, 499912 -> 470000. Run speed is not asserted.",
+  "contract": "Each Spectral-family mount spell must apply a persistent mounted aura and set the mount display to its creature's model: 42777 -> 21974, 499910 -> 21973, 42776 -> 470000, 499912 -> 470000. 42776 and 499912 must carry the 1.5 second summon cast (spell_cast_time_ms 1500), the same as 42777. 42777 must survive the harness forward-movement flag. Harness limit: there is no client movement/navigation driver (README Evidence boundaries), so Unit::UpdatePosition never sees a relocation and the interrupted-by-movement fix on 42777 is confirmed by the client test, not here. Run speed is not asserted.",
   "timeout_ms": 120000,
   "players": [
     { "id": "swift", "race": 1, "class": 1, "level": 80 },
@@ -23,6 +23,14 @@
     { "action": "assert", "actor": "swift", "metric": "mounted", "equals": 1 },
     { "action": "assert", "actor": "swift", "metric": "mount_display", "equals": 21974 },
 
+    { "action": "set_moving", "actor": "swift", "enabled": true },
+    { "action": "assert", "label": "forward movement flag set", "actor": "swift", "metric": "moving", "equals": 1 },
+    { "action": "wait", "ms": 1500 },
+    { "action": "assert", "label": "42777 aura survives movement fixture", "actor": "swift", "metric": "aura", "spell": 42777, "equals": 1 },
+    { "action": "assert", "label": "42777 mounted after movement fixture", "actor": "swift", "metric": "mounted", "equals": 1 },
+    { "action": "assert", "label": "42777 display after movement fixture", "actor": "swift", "metric": "mount_display", "equals": 21974 },
+    { "action": "set_moving", "actor": "swift", "enabled": false },
+
     { "action": "set_skill", "actor": "regular", "skill": 762, "value": 300, "maximum": 300 },
     { "action": "learn", "actor": "regular", "spell": 499910 },
     { "action": "cast", "actor": "regular", "spell": 499910 },
@@ -34,6 +42,7 @@
 
     { "action": "set_skill", "actor": "armored", "skill": 762, "value": 300, "maximum": 300 },
     { "action": "learn", "actor": "armored", "spell": 42776 },
+    { "action": "assert", "label": "42776 cast time is 1500 ms", "actor": "armored", "metric": "spell_cast_time_ms", "spell": 42776, "equals": 1500 },
     { "action": "cast", "actor": "armored", "spell": 42776 },
     { "action": "assert", "actor": "armored", "metric": "aura", "spell": 42776, "equals": 1, "within_ms": 6000 },
     { "action": "assert", "actor": "armored", "metric": "mounted", "equals": 1, "within_ms": 6000 },
@@ -45,6 +54,7 @@
 
     { "action": "set_skill", "actor": "armored_swift", "skill": 762, "value": 300, "maximum": 300 },
     { "action": "learn", "actor": "armored_swift", "spell": 499912 },
+    { "action": "assert", "label": "499912 cast time is 1500 ms", "actor": "armored_swift", "metric": "spell_cast_time_ms", "spell": 499912, "equals": 1500 },
     { "action": "cast", "actor": "armored_swift", "spell": 499912 },
     { "action": "assert", "actor": "armored_swift", "metric": "aura", "spell": 499912, "equals": 1, "within_ms": 6000 },
     { "action": "assert", "actor": "armored_swift", "metric": "mounted", "equals": 1, "within_ms": 6000 },
