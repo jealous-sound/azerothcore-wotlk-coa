@@ -171,9 +171,13 @@ the decisive field.
   (801291) is zeroed by `AscensionStockCoefficients.cpp`. The Timerend half is dead. 560528 also has no
   `spell_group` / `spell_group_stack_rules` row, so "does not stack with similar effects" is unenforced.
 - **#786 Black Hole 707557, 707743** — aura 112 `SPELL_AURA_OVERRIDE_CLASS_SCRIPTS`, `EffectMiscValue` 20007,
-  `EffectMiscValueB` 26. No module converts it to the native aura 303, and `enum AuraStateType` has no state
-  26, so even a converted effect would test permanently false. The mask `[0,33554944,0]` also omits Chromatic
-  Shard, which the tooltip names.
+  `EffectMiscValueB` 26. Every other client record with selector 20007 and state 26 describes "slowed"
+  targets (Reckless Assault 804610, The Time Has Come 572879, Shard of True Ice 805425), and Felsworn's
+  Reckless Assault already reads it as `SPELL_AURA_MOD_DECREASE_SPEED`. Since 2026-09-27
+  `Unit::HasAuraState` computes `ASCENSION_TARGET_SLOWED` (26) that way and both ranks convert to aura 303,
+  so Melt Reality and Unmake gain the bonus
+  (`chronomancer-black-hole-slowed-damage`). The mask `[0,33554944,0]` still omits Chromatic Shard, which the
+  tooltip names; that half has no carrier.
 - **#1987 Timeblender 555737** — the crit half works; "gives it an additional charge" has no carrier.
   `SpellCharges.dbc` holds exactly one row for the Fabric of Time family, `(572378, 328)`, and none of the
   obtainable ranks (570177/570178/570179, 572361/572362/572363, 806299) has one.

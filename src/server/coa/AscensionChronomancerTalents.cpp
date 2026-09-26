@@ -255,12 +255,40 @@ public:
             player->CastSpell(player, SPELL_THROUGH_THE_AEONS_BUFF, true);
     }
 };
+
+constexpr uint32 BlackHoleRank1 = 707557;
+constexpr uint32 BlackHoleRank2 = 707743;
+constexpr uint32 MeltRealityAndUnmakeFamilyFlags1 = 512 | 33554432;
+
+void ApplyBlackHoleSlowedDamageContract(SpellInfo* info)
+{
+    if (info->Id != BlackHoleRank1 && info->Id != BlackHoleRank2)
+        return;
+
+    SpellEffectInfo& effect = info->Effects[EFFECT_0];
+    bool const copied = effect.ApplyAuraName == SPELL_AURA_OVERRIDE_CLASS_SCRIPTS &&
+        effect.MiscValue == ASCENSION_CLASSMASK_AURASTATE_DAMAGE && effect.MiscValueB == ASCENSION_TARGET_SLOWED;
+    bool const converted = effect.ApplyAuraName == SPELL_AURA_MOD_DAMAGE_DONE_VERSUS_AURASTATE &&
+        effect.MiscValue == ASCENSION_TARGET_SLOWED && effect.MiscValueB == ASCENSION_CLASSMASK_AURASTATE_DAMAGE;
+    if (effect.Effect != SPELL_EFFECT_APPLY_AURA || (!copied && !converted) ||
+        effect.SpellClassMask != flag96(0, MeltRealityAndUnmakeFamilyFlags1, 0) ||
+        effect.TargetA.GetTarget() != TARGET_UNIT_CASTER || effect.TargetB.GetTarget())
+    {
+        LOG_ERROR("coa", "Skipped unexpected Black Hole record {}", info->Id);
+        return;
+    }
+
+    effect.ApplyAuraName = SPELL_AURA_MOD_DAMAGE_DONE_VERSUS_AURASTATE;
+    effect.MiscValue = ASCENSION_TARGET_SLOWED;
+    effect.MiscValueB = ASCENSION_CLASSMASK_AURASTATE_DAMAGE;
+}
 }
 
 void ApplyAscensionChronomancerTalentContracts(SpellInfo* info)
 {
     if (info->SpellFamilyName != 28)
         return;
+    ApplyBlackHoleSlowedDamageContract(info);
     if (info->Id == SPELL_ROLL_BACK)
     {
         info->Effects[EFFECT_0].Effect = SPELL_EFFECT_DISPEL;

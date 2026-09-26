@@ -8223,6 +8223,9 @@ bool Unit::HasAuraState(AuraStateType flag, SpellInfo const* spellProto, Unit co
     if (flag == AuraStateType(ASCENSION_TARGET_HEALTH_ABOVE_80_PERCENT))
         return HasAscensionConditionalCombatState(ASCENSION_TARGET_HEALTH_ABOVE_80_PERCENT);
 
+    if (flag == AuraStateType(ASCENSION_TARGET_SLOWED))
+        return HasAuraType(SPELL_AURA_MOD_DECREASE_SPEED);
+
     return HasFlag(UNIT_FIELD_AURASTATE, 1u << (flag - 1));
 }
 

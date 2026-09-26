@@ -463,6 +463,7 @@ enum AscensionConditionalCombatModifier
 
 enum AscensionConditionalTargetState
 {
+    ASCENSION_TARGET_SLOWED = 26,
     ASCENSION_TARGET_HEALTH_ABOVE_80_PERCENT = 28
 };
 
