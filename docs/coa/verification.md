@@ -371,9 +371,10 @@ case, each with its reason:
 
 An exclusive case is admitted only when every lane is idle, and no other case starts until it finishes. The runner
 rejects ids missing from the catalog and empty reasons. The list holds `who-custom-classes`, `who-hides-bots` and
-`who-lists-bots` (the Who list is process-global) and `bloodforged-high-risk-drop` (`set_phase 1` affects live
-creatures). A case with an [`hour`](#realm-local-time) is exclusive without being listed. Add a case, with its
-reason, when it reads or changes process-global state; exclusivity does not fix timing failures. Chat that ignores
+`who-lists-bots` (the Who list is process-global) and `bloodforged-high-risk-drop` and
+`coa-prestige-chromie-spawns` (`set_phase 1` affects live creatures). A case with an [`hour`](#realm-local-time) is
+exclusive without being listed. Add a case, with its reason, when it reads or changes process-global state;
+exclusivity does not fix timing failures. Chat that ignores
 phases is a known limit that the list does not cover: `treasure-keeper` asserts exact `system_messages` deltas and
 shares the server, so [creature text on its map](#fidelity-limits) from another lane can fail it.
 
