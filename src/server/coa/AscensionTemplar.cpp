@@ -212,8 +212,9 @@ void Zealotry(Player* player, Unit* target, bool repeat)
     if (!target || !player->IsValidAttackTarget(target))
         return;
     Cast(player, target, 801450);
-    if (!repeat && ((player->HasAura(572554) && roll_chance_i(10)) ||
-                    (!player->HasAura(572554) && player->HasAura(572548) && roll_chance_i(10))))
+    uint32 sermon = player->HasAura(572554) ? 572554 : player->HasAura(572548) ? 572548 : 0;
+    SpellInfo const* info = sermon ? sSpellMgr->GetSpellInfo(sermon) : nullptr;
+    if (!repeat && info && roll_chance_i(info->ProcChance))
         Zealotry(player, target, true);
 }
 uint32 HopeCount(Player* player)
