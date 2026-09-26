@@ -1414,6 +1414,8 @@ private:
             return unit->GetDisplayId();
         if (metric == "unit_scale")
             return double(unit->GetObjectScale());
+        if (metric == "combat_reach")
+            return double(unit->GetCombatReach());
         if (metric == "power" || metric == "max_power" || metric == "pet_power" || metric == "pet_max_power")
         {
             if (metric == "pet_power" || metric == "pet_max_power")
@@ -2689,6 +2691,18 @@ private:
             uint32 health = step.get<uint32>("value");
             Require(health > 0 && health <= creature->GetMaxHealth(), "Health fixture outside valid range");
             creature->SetHealth(health);
+            return;
+        }
+        if (action == "cast" && !_actors.count(id))
+        {
+            Unit* creature = GetUnit(id);
+            uint32 spell = step.get<uint32>("spell");
+            Require(sSpellMgr->GetSpellInfo(spell) != nullptr, "Unknown spell: " + std::to_string(spell));
+            Unit* target = step.get_optional<std::string>("target")
+                ? GetUnit(step.get<std::string>("target")) : creature;
+            SpellCastResult result = creature->CastSpell(target, spell, TRIGGERED_FULL_MASK);
+            record.put("cast_result", uint32(result));
+            Require(result == SPELL_CAST_OK, "Creature cast failed: " + std::to_string(result));
             return;
         }
         Player* player = GetPlayer(id);

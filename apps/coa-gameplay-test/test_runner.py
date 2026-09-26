@@ -402,6 +402,8 @@ class RunnerTests(unittest.TestCase):
                                          'spell': 502329, 'equals': 1}),
             lambda s: s['steps'].append({'action': 'assert', 'actor': 'caster', 'metric': 'dynamic_object',
                                          'equals': 1}),
+            lambda s: s['steps'].append({'action': 'cast', 'actor': 'target', 'spell': 10308, 'target': 'caster',
+                                         'destination': {'x': 0, 'y': 0, 'z': 0}}),
             lambda s: s['steps'].append({'action': 'cast_charm', 'actor': 'target', 'spell': 802176}),
             lambda s: s['steps'].append({'action': 'gossip_hello', 'actor': 'caster', 'target': 'missing'}),
             lambda s: s['steps'].append({'action': 'attack', 'actor': 'caster'}),

@@ -337,6 +337,21 @@ void ApplyVenoms(Player* player, Unit* target)
                 Cast(player, target, helper);
         }
 }
+void UpdateSpiderLordDisplay(Player* player)
+{
+    bool spiderLord = player->HasAura(Beetle) && player->HasAura(SpiderLord);
+    uint32 beetleDisplay = player->GetModelForForm(player->GetShapeshiftForm(), Beetle);
+    if (spiderLord && beetleDisplay && player->GetDisplayId() == beetleDisplay)
+    {
+        float boundingRadius = player->GetFloatValue(UNIT_FIELD_BOUNDINGRADIUS);
+        float combatReach = player->GetCombatReach();
+        player->SetDisplayId(SpiderLordDisplay, SpiderLordScale);
+        player->SetFloatValue(UNIT_FIELD_BOUNDINGRADIUS, boundingRadius);
+        player->SetFloatValue(UNIT_FIELD_COMBATREACH, combatReach);
+    }
+    else if (!spiderLord && player->GetDisplayId() == SpiderLordDisplay)
+        player->RestoreDisplayId();
+}
 void Refresh(Player* player)
 {
     auto& state = State(player);
@@ -352,7 +367,8 @@ void Refresh(Player* player)
     SetHelper(player, 560281, player->IsAlive() && player->HasAura(800912));
     SetHelper(player, 800293, spider && player->HasAura(805104));
     SetHelper(player, 800389, spider && player->HasAura(805140));
-    SetHelper(player, 805139, beetle && player->HasAura(704264));
+    SetHelper(player, 805139, beetle && player->HasAura(SpiderLord));
+    UpdateSpiderLordDisplay(player);
     SetHelper(player, 504792, player->HasAura(503856));
     SetAmount(player, 803216, 1, int32(5 * (player->GetStat(STAT_INTELLECT) + player->GetStat(STAT_AGILITY))));
     SetAmount(player, 705970, 0, beetle ? Amount(705970) : 0);
@@ -440,8 +456,19 @@ public:
         states.erase(player->GetGUID());
     }
 };
+class venomancer_unit : public UnitScript
+{
+public:
+    venomancer_unit() : UnitScript("venomancer_unit", true, {UNITHOOK_ON_DISPLAYID_CHANGE}) { }
+    void OnDisplayIdChange(Unit* unit, uint32) override
+    {
+        if (Player* player = AscensionVenomancer::Owner(unit); player == unit)
+            AscensionVenomancer::UpdateSpiderLordDisplay(player);
+    }
+};
 }
 void AddSC_AscensionVenomancer()
 {
     new venomancer_player();
+    new venomancer_unit();
 }

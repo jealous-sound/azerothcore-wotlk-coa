@@ -16,7 +16,7 @@
 namespace
 {
 using namespace AscensionXoroth;
-constexpr uint32 SPELL_FLAMES_OF_XOROTH_BREATH = 801003;
+constexpr uint32 SPELL_FLAMES_OF_XOROTH_VISUAL = 801003;
 constexpr uint32 selected[] = {680197, 680203, 681184, 520021, 802617, 802618, 524913, 680729, 712294};
 bool Select(SpellInfo const* info, uint32 id)
 {
@@ -441,6 +441,8 @@ class xoroth_casts : public AllSpellScript
             }
             if (id == 520292)
                 Reduce(player, id, 3000 * fire);
+            if (Named(info, 801059))
+                Cast(player, player, SPELL_FLAMES_OF_XOROTH_VISUAL);
             if (id == 802342)
                 Cast(player, player, 801017);
             if (id == 805679)
@@ -486,8 +488,6 @@ class xoroth_casts : public AllSpellScript
             if (Infernal(info) && player->HasAura(706755))
                 Summon(player, 50301, ImpPosition(player),
                        uint32(sSpellMgr->GetSpellInfo(807699)->GetDuration()));
-            if (Named(info, 801059))
-                Cast(player, player, SPELL_FLAMES_OF_XOROTH_BREATH);
             if (Named(info, 801059) && fire == 6 && player->HasAura(704452))
                 Cast(player, player, 801006);
             if (Named(info, 800340) && Chance(player, 704975))

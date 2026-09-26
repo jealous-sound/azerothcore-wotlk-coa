@@ -1087,6 +1087,39 @@ filled green, the five whose object moved to a new guid carry the guid the alloc
 the eight rows the walk left empty are kept on the sheet and marked removed, so the markers the
 walk took out stay visible. The sheet stands **38 pickups, 30 of them authored in game**, and its
 Index row says the same.
+### The final authored pass: Tirisfal Glades, item by item
+
+`2026_09_26_63_worldforged_tirisfal_final.sql` is the zone reconciled against the realm map marker
+by marker and then walked by hand in the map editor, written as one file that carries the zone's
+final verified state and supersedes every earlier state of it, so a database converges from any of
+them.
+
+The marker pass reads the zone's eighty-one judged placements and moves four onto the marker of the
+object's own name (Nightweb Spider Egg 4.2 yd, Stashed Goods 5.3 yd, Rattlecage Cauldron 7.4 yd,
+Oathblade 7.5 yd, each keeping the height the realm's own record gives it), takes five extra
+placings out (a Quivering Web and a Sturdy Arrow far from any marker, and three Apothecary's
+Lantern rows whose marker the object of that name already answers), and restores the pair the
+undead starting ground kept for its own starting NPCs exactly as the realm recorded it: Joshua's
+Cherry Pie (90641) with the loot row its marker is named after, the Cherry Pie prop (90635) beside
+it, and Maquel's Fallen Water Pouch (90642, empty, as the realm kept it).
+
+The review that follows takes twelve stands out - two duplicates whose surviving stands are the
+Ceremonial Mace (6940229) and Quivering Web (6940921) rows, and ten the review's own judgement.
+
+The walk afterwards - the editing project's **45 changesets** (`spawns_20260926_*`, written on
+2026-09-26), one save each, the last write to each guid winning - leaves **41 sheet pickups** at
+the spots it verified, with the full authored quaternions the editor emitted, and re-creates three
+of them (Long Fishing Spear, Interloper's Loop and Fallen Hardwood Plank) on the guids its own
+editor allocates, 6960206-6960208. Six further stands the walk marked red are taken out, and four
+Undercity creatures stand where the walk verified them. Scenery the walk nudged is moved without
+its script or comment being touched, so the module's pickup census counts only what it should.
+The zone's sheet reads **50 pickups**, and its Index row says the same.
+
+Every row was read back from the live database: 429 assertions with none failing - each of the 36
+written rows standing at the audited spot with the quaternion the editor emitted, the twenty-six
+deleted guids gone, the re-created trio holding its entry under its new guid with the module's
+script and its own loot row, and the four creatures standing where the walk left them.
+
 ### The final authored pass: Duskwood, item by item
 
 `2026_09_25_48_worldforged_duskwood_pass_authored.sql` is the zone walked by hand in the map editor,
