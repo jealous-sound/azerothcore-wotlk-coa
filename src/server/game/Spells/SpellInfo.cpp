@@ -1485,8 +1485,13 @@ bool SpellInfo::IsAffectedBySpellMod(SpellModifier const* mod) const
     bool const bloodFueledAbsorb = Id == 560361 && mod->spellId == 705416 && mod->op == SPELLMOD_EFFECT1 &&
         mod->type == SPELLMOD_PCT;
 
+    // Spirit Eclipse's splash damage is snapshotted from its parent aura, so the splash ignores caster
+    // modifiers. Bwonsamdi's Edge names only the splash; the snapshot applies it explicitly.
+    bool const bwonsamdisEdgeSplash = Id == 802712 && mod->spellId == 712435 && mod->op == SPELLMOD_DAMAGE &&
+        mod->type == SPELLMOD_PCT;
+
     // xinef: dont check duration mod
-    if (mod->op != SPELLMOD_DURATION && !bandageGunTargets && !bloodFueledAbsorb)
+    if (mod->op != SPELLMOD_DURATION && !bandageGunTargets && !bloodFueledAbsorb && !bwonsamdisEdgeSplash)
         if (!IsAffectedBySpellMods())
             return false;
 
