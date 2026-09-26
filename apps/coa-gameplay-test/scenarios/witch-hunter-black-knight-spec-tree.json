@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "name": "The server serves the Witch Hunter Black Knight specialization tree (#214)",
+  "contract": "ChrSpecs.dbc row 97 is class token WITCHHUNTER, tab token WITCHKNIGHT (CharacterAdvancementTabTypes 94), displayed 'Black Knight', identity entry 7553. LoadCoATalentData joins CharacterAdvancement rows by (class token, tab token), which gives spec 97 its 38 entries, the same 38 nodes the client's CoATalentNodeData.lua files under the tab 'Black Knight'. CharacterAdvancementEssence gives class 15 one specialization point at level 11. Selecting the specialization grants the identity passive Grasp of the Undying 707064 (entry 7553, an automatic entry), and the specialization point buys Noctis Blade 802280 (entry 7569, TECost 1). Switching to Houndmaster (spec 11) removes the Black Knight tree's spells. An empty Black Knight tab in the client is the compat client's tab-alias table lacking WitchKnight -> Black Knight, which client patch revision 6 adds.",
+  "timeout_ms": 60000,
+  "players": [
+    {"id": "wh", "race": 1, "class": 15, "level": 11}
+  ],
+  "steps": [
+    {"action": "wait", "label": "Let login hooks and class synchronisation settle", "ms": 5000},
+    {"action": "assert", "label": "No Black Knight identity before the specialization", "actor": "wh", "metric": "knows_spell", "spell": 707064, "equals": 0},
+    {"action": "command", "actor": "wh", "command": ".localspec 97"},
+    {"action": "assert", "label": "Black Knight grants its identity passive", "actor": "wh", "metric": "knows_spell", "spell": 707064, "equals": 1, "within_ms": 3000},
+    {"action": "assert", "label": "Noctis Blade is not bought yet", "actor": "wh", "metric": "knows_spell", "spell": 802280, "equals": 0},
+    {"action": "command", "actor": "wh", "command": ".localtalent 7569 1"},
+    {"action": "assert", "label": "The specialization point buys Noctis Blade", "actor": "wh", "metric": "knows_spell", "spell": 802280, "equals": 1, "within_ms": 3000},
+    {"action": "command", "actor": "wh", "command": ".localspec 11"},
+    {"action": "assert", "label": "Leaving Black Knight removes its identity", "actor": "wh", "metric": "knows_spell", "spell": 707064, "equals": 0, "within_ms": 3000},
+    {"action": "assert", "label": "Leaving Black Knight removes Noctis Blade", "actor": "wh", "metric": "knows_spell", "spell": 802280, "equals": 0}
+  ]
+}

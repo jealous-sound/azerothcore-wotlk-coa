@@ -140,7 +140,7 @@ class spell_ascension_witch_hunter_flames_of_sin : public AuraScript
 
     bool Load() override
     {
-        return IsFlameCaster(GetCaster()) && GetCaster() == GetTarget();
+        return IsFlameCaster(GetCaster()) && GetCaster() == GetUnitOwner();
     }
 
     bool CheckProc(ProcEventInfo& eventInfo)
@@ -229,7 +229,7 @@ class spell_ascension_witch_hunter_flame_modifier_update : public AuraScript
 
     bool Load() override
     {
-        return IsFlameCaster(GetTarget());
+        return IsFlameCaster(GetUnitOwner());
     }
 
     void UpdateFlameAmount(AuraEffect const*, AuraEffectHandleModes)

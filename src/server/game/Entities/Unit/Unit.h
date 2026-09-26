@@ -1542,6 +1542,7 @@ public:
     [[nodiscard]] float GetTotalAuraMultiplierByMiscMask(AuraType auratype, uint32 misc_mask) const;
     [[nodiscard]] float GetHealthBasedDamageTakenMultiplier() const;
     [[nodiscard]] float GetAscensionNormalTuningDamageMultiplier(Unit const* victim, uint32 schoolMask) const;
+    [[nodiscard]] float GetAscensionPvpTuningDamageMultiplier(Unit const* victim, uint32 schoolMask) const;
     [[nodiscard]] int32 GetMaxPositiveAuraModifierByMiscMask(AuraType auratype, uint32 misc_mask, AuraEffect const* except = nullptr) const;
     [[nodiscard]] int32 GetMaxNegativeAuraModifierByMiscMask(AuraType auratype, uint32 misc_mask) const;
 

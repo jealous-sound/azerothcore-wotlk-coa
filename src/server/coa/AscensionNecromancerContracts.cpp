@@ -112,8 +112,6 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[0].ApplyAuraName = SPELL_AURA_MOD_ATTACK_POWER;
     if (id == 561318)
         info->Effects[0].ValueMultiplier = 1.0f;
-    if (id == 573131)
-        info->DurationEntry = sSpellDurationStore.LookupEntry(1);
     if (id == 807098)
     {
         info->Effects[0].Effect = SPELL_EFFECT_DUMMY;

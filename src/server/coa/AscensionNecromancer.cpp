@@ -256,7 +256,8 @@ void Plague(Player* player, Unit* target, uint8 stacks)
     }
     else if (Aura* fresh = player->AddAura(570131, target))
         fresh->SetStackAmount(stacks);
-    Cast(player, player, 573131);
+    if (player->HasAura(574138))
+        Cast(player, player, 573131);
     if (player->HasAura(300965))
         ExtendWorms(player, target, std::abs(Amount(301337, 0, player)));
 }

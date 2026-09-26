@@ -217,10 +217,7 @@ class npc_ascension_witch_doctor : public ScriptedAI
             me->SetDisplayId(player->GetDisplayId());
             me->SetReactState(REACT_PASSIVE);
             me->SetCombatMovement(false);
-            me->SetWalk(false);
-            float angle = player->GetExactDist2d(me) > 0.5f ? player->GetAbsoluteAngle(me) : player->GetOrientation();
-            me->GetMotionMaster()->MovePoint(1, me->GetNearPosition(HauntRunDistance,
-                Position::NormalizeOrientation(angle - me->GetOrientation())), FORCED_MOVEMENT_RUN);
+            RunAwayFrom(player);
             return;
         }
         if (!player || player->getClass() != CLASS_WITCH_DOCTOR)
@@ -235,7 +232,12 @@ class npc_ascension_witch_doctor : public ScriptedAI
         me->SetReactState(REACT_PASSIVE);
         me->SetCombatMovement(false);
         State(player).summons.push_back(me->GetGUID());
-        if (me->GetEntry() == NpcMirage || me->GetEntry() == NpcMarionette)
+        if (me->GetEntry() == NpcMirage)
+        {
+            player->CastSpell(me, CloneMe, true);
+            RunAwayFrom(player);
+        }
+        if (me->GetEntry() == NpcMarionette)
             me->SetDisplayId(player->GetDisplayId());
         if (me->GetEntry() == NpcGolem)
         {
@@ -248,6 +250,13 @@ class npc_ascension_witch_doctor : public ScriptedAI
             _timer = 3000;
         if (me->GetEntry() == NpcSerpent || me->GetEntry() == NpcMassSerpent || me->GetEntry() == NpcViper)
             _timer = WardAttackInterval();
+    }
+    void RunAwayFrom(Player* player)
+    {
+        me->SetWalk(false);
+        float angle = player->GetExactDist2d(me) > 0.5f ? player->GetAbsoluteAngle(me) : player->GetOrientation();
+        me->GetMotionMaster()->MovePoint(1, me->GetNearPosition(HauntRunDistance,
+            Position::NormalizeOrientation(angle - me->GetOrientation())), FORCED_MOVEMENT_RUN);
     }
     uint32 WardAttackInterval() const
     {
@@ -294,7 +303,8 @@ class npc_ascension_witch_doctor : public ScriptedAI
                 }
             if (Unit* target = ObjectAccessor::GetUnit(*me, _target))
                 if (me->IsAlive() && me->IsWithinLOSInMap(target) && me->IsWithinDistInMap(target, 40.0f))
-                    me->CastSpell(target, _spell, true);
+                    me->CastSpell(target, _spell, true, nullptr, nullptr,
+                                  me->GetEntry() == NpcMimic ? _owner : ObjectGuid::Empty);
         }
         if (action == ActionExplode && !_exploded)
         {

@@ -388,7 +388,8 @@ class aura_ascension_witch_doctor_lifecycle : public AuraScript
             IngredientChanged(player, id, false);
         if (id == Spirit && player == GetTarget())
         {
-            for (uint32 helper : {SpiritStats, SpiritCast, SpiritChance, SpiritSpeed})
+            for (uint32 helper : {SpiritStats, SpiritCast, SpiritChance, SpiritSpeed, SpiritOrbOne, SpiritOrbTwo,
+                                  SpiritOrbThree, SpiritOrbFour, SpiritOrbFive})
                 player->RemoveAurasDueToSpell(helper);
         }
         if (IsHex(GetSpellInfo()))
