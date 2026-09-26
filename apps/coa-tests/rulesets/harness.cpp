@@ -5,14 +5,20 @@
 #include <set>
 using uint32 = std::uint32_t;
 using uint8 = std::uint8_t;
+using int32 = std::int32_t;
 // ENUMS
 using SpellEffIndex = uint32;
 constexpr uint32 EFFECT_0 = 0, SPELL_EFFECT_DUMMY = 3;
 constexpr int GLOBALHOOK_ON_LOAD_SPELL_CUSTOM_ATTR = 1, AURA_REMOVE_BY_DEATH = 1;
 constexpr int PLAYERHOOK_ON_LOGIN = 1;
+constexpr int UNITHOOK_ON_AURA_APPLY = 1, UNITHOOK_ON_AURA_REMOVE = 2, UNITHOOK_ON_AFTER_AURA_EFFECT_CALCULATE_AMOUNT = 3;
+constexpr uint32 SPELL_AURA_DUMMY = 4, SPELL_AURA_MOD_XP_PCT = 200, UNIT_AURA_TYPE = 1;
+constexpr uint8 MAX_SPELL_EFFECTS = 3;
+using AuraRemoveMode = int;
 struct Player;
 struct Aura;
 struct AuraApplication;
+struct AuraEffect;
 struct SpellInfo
 {
     uint32 Id = 0, Attributes = 0, AttributesEx3 = 0, Stances = 0;
@@ -35,6 +41,13 @@ struct Unit
     void _UnapplyAura(AuraApplicationMap::iterator& it, int) { it = m_appliedAuras.erase(it); }
     void RemoveOwnedAura(AuraMap::iterator& it, int) { it = m_ownedAuras.erase(it); }
     void RemoveAllAurasOnDeath();
+    virtual bool HasAura(uint32) const { return false; }
+    std::map<uint32, AuraEffect*> effects;
+    AuraEffect* GetAuraEffect(uint32 id, uint8 index) const
+    {
+        auto found = effects.find(id * MAX_SPELL_EFFECTS + index);
+        return found == effects.end() ? nullptr : found->second;
+    }
 };
 struct Player : Unit
 {
@@ -48,7 +61,7 @@ struct Player : Unit
     void learnSpell(uint32 id, bool dependent) { assert(!dependent); known.insert(id); ++learns; }
     Player* ToPlayer() override { return this; }
     bool HasPlayerFlag(PlayerFlags flag) const { assert(flag == PLAYER_FLAGS_RESTING); return resting; }
-    bool HasAura(uint32 id) const { return auras.contains(id); }
+    bool HasAura(uint32 id) const override { return auras.contains(id); }
     void RemoveAurasDueToSpell(uint32 id) { auras.erase(id); }
     void CastSpell(Player* target, uint32 id, bool triggered)
     {
@@ -63,6 +76,9 @@ struct Aura
     SpellInfo const* GetSpellInfo() const { return info; }
     uint32 GetCasterGUID() const { return owner->GetGUID(); }
     Unit* GetOwner() const { return owner; }
+    Unit* GetUnitOwner() const { return owner; }
+    uint32 GetId() const { return info->Id; }
+    uint32 GetType() const { return UNIT_AURA_TYPE; }
     bool IsPassive() const { return info->HasAttribute(SPELL_ATTR0_PASSIVE); }
     bool IsDeathPersistent() const { return info->IsDeathPersistent(); }
     bool IsSingleTarget() const { return false; }
@@ -71,6 +87,32 @@ struct Aura
     bool CanBeSaved() const;
 };
 struct AuraApplication { Aura* aura; Aura const* GetBase() const { return aura; } };
+struct UnitScript
+{
+    UnitScript(char const*, bool, std::initializer_list<int>) { }
+    virtual ~UnitScript() = default;
+    virtual void OnAfterAuraEffectCalculateAmount(AuraEffect const*, Unit*, int32&) { }
+    virtual void OnAuraApply(Unit*, Aura*) { }
+    virtual void OnAuraRemove(Unit*, AuraApplication*, AuraRemoveMode) { }
+};
+UnitScript* unitScript = nullptr;
+struct AuraEffect
+{
+    Aura* base;
+    uint32 auraType;
+    int32 baseAmount;
+    int32 amount = 0;
+    uint32 GetId() const { return base->GetId(); }
+    uint32 GetAuraType() const { return auraType; }
+    Aura* GetBase() const { return base; }
+    void RecalculateAmount()
+    {
+        int32 value = baseAmount;
+        if (unitScript)
+            unitScript->OnAfterAuraEffectCalculateAmount(this, nullptr, value);
+        amount = value;
+    }
+};
 struct Hook { template<class T> void operator+=(T) { } };
 struct SpellScript
 {
@@ -138,19 +180,19 @@ int main()
     player.auras.insert(123);
     login.OnPlayerLogin(&player);
     assert((player.known == std::set<uint32>{123, 84420, 84421, 84422}) && player.learns == 2);
-    assert((player.auras == std::set<uint32>{123, 9931032}));
+    assert((player.auras == std::set<uint32>{123, 1004119, 9931032}));
     login.OnPlayerLogin(&player);
-    assert(player.learns == 2 && (player.auras == std::set<uint32>{123, 9931032}));
+    assert(player.learns == 2 && (player.auras == std::set<uint32>{123, 1004119, 9931032}));
     for (auto const& kept : {std::set<uint32>{1004019}, std::set<uint32>{1004119},
-                             std::set<uint32>{9931032}})
+                             std::set<uint32>{1004119, 9931032}})
     {
         player.auras = kept;
         login.OnPlayerLogin(&player);
         assert(player.auras == kept);
     }
-    player.auras = {1004119, 9931032};
+    player.auras = {9931032};
     login.OnPlayerLogin(&player);
-    assert((player.auras == std::set<uint32>{9931032}));
+    assert((player.auras == std::set<uint32>{1004119, 9931032}));
     configMgrStub.rulesetLoginDefault = false;
     Player gated;
     login.OnPlayerLogin(&gated);
@@ -171,7 +213,7 @@ int main()
     player.resting = true;
     assert(script.CheckCast() == SPELL_CAST_OK);
     const std::map<uint32, std::set<uint32>> modes = {
-        {84420, {1004119}}, {84421, {1004019}}, {84422, {9931032}}
+        {84420, {1004119}}, {84421, {1004019}}, {84422, {1004119, 9931032}}
     };
     for (auto const& [previous, auras] : modes)
         for (auto const& [selected, expected] : modes)
@@ -194,5 +236,31 @@ int main()
     ruleset_aura_metadata metadata;
     metadata.OnLoadSpellCustomAttr(&info);
     assert(info.AttributesEx3 == 0);
+    ruleset_war_mode_experience experience;
+    unitScript = &experience;
+    Player pve;
+    SpellInfo warModeInfo;
+    warModeInfo.Id = 1004119;
+    SpellInfo pveInfo;
+    pveInfo.Id = 9931032;
+    Aura warMode{&warModeInfo, &pve};
+    Aura pveMode{&pveInfo, &pve};
+    AuraApplication pveApplication{&pveMode};
+    AuraEffect marker{&warMode, SPELL_AURA_DUMMY, 7};
+    AuraEffect experienceBonus{&warMode, SPELL_AURA_MOD_XP_PCT, 15};
+    pve.effects[1004119 * MAX_SPELL_EFFECTS] = &marker;
+    pve.effects[1004119 * MAX_SPELL_EFFECTS + 1] = &experienceBonus;
+    pve.auras = {1004119};
+    experienceBonus.RecalculateAmount();
+    assert(experienceBonus.amount == 15);
+    pve.auras.insert(9931032);
+    experience.OnAuraApply(&pve, &warMode);
+    assert(experienceBonus.amount == 15);
+    experience.OnAuraApply(&pve, &pveMode);
+    assert(experienceBonus.amount == 0 && marker.amount == 0);
+    pve.auras.erase(9931032);
+    experience.OnAuraRemove(&pve, &pveApplication, 0);
+    assert(experienceBonus.amount == 15 && marker.amount == 0);
+    unitScript = nullptr;
     // DBC_CASES
 }
