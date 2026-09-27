@@ -1565,45 +1565,6 @@ void Creature::SelectLevel(bool changelevel)
     sScriptMgr->OnCreatureSelectLevel(cInfo, this);
 }
 
-void Creature::RefreshLevelDependantStats()
-{
-    CreatureTemplate const* cInfo = GetCreatureTemplate();
-    if (!cInfo)
-        return;
-
-    uint32 const previousHealth = GetHealth();
-    uint32 const previousMaxHealth = GetMaxHealth();
-
-    // The level itself comes from OnBeforeCreatureSelectLevel, which is where the scaling features
-    // answer with the level they want this creature to be.
-    SelectLevel(true);
-
-    // Everything the level derives from. UpdateEntry does exactly this after SelectLevel, and calls
-    // UpdateAllStats for the fields SelectLevel does not write: attack power (melee and ranged), the
-    // damage range the client draws from it, armour and the resistances. Skipping it is invisible on
-    // the health bar and very visible in a fight.
-    SetMeleeDamageSchool(SpellSchools(cInfo->dmgschool));
-    CreatureBaseStats const* stats = sObjectMgr->GetCreatureBaseStats(GetLevel(), cInfo->unit_class);
-    SetStatFlatModifier(UNIT_MOD_ARMOR,             BASE_VALUE, stats->GenerateArmor(cInfo));
-    SetStatFlatModifier(UNIT_MOD_RESISTANCE_HOLY,   BASE_VALUE, float(cInfo->resistance[SPELL_SCHOOL_HOLY]));
-    SetStatFlatModifier(UNIT_MOD_RESISTANCE_FIRE,   BASE_VALUE, float(cInfo->resistance[SPELL_SCHOOL_FIRE]));
-    SetStatFlatModifier(UNIT_MOD_RESISTANCE_NATURE, BASE_VALUE, float(cInfo->resistance[SPELL_SCHOOL_NATURE]));
-    SetStatFlatModifier(UNIT_MOD_RESISTANCE_FROST,  BASE_VALUE, float(cInfo->resistance[SPELL_SCHOOL_FROST]));
-    SetStatFlatModifier(UNIT_MOD_RESISTANCE_SHADOW, BASE_VALUE, float(cInfo->resistance[SPELL_SCHOOL_SHADOW]));
-    SetStatFlatModifier(UNIT_MOD_RESISTANCE_ARCANE, BASE_VALUE, float(cInfo->resistance[SPELL_SCHOOL_ARCANE]));
-
-    SetCanModifyStats(true);
-    UpdateAllStats();
-
-    // A creature re-levelled here is one nobody is fighting: its health is carried over as a share
-    // rather than as the old absolute number, which at a much higher level would leave it looking
-    // nearly dead while it is in fact untouched (and a creature at full health simply stays full).
-    uint32 const newMaxHealth = GetMaxHealth();
-    SetHealth(previousMaxHealth && previousHealth
-        ? std::max<uint32>(1, uint32(uint64(previousHealth) * newMaxHealth / previousMaxHealth))
-        : newMaxHealth);
-}
-
 float Creature::_GetHealthMod(int32 Rank)
 {
     switch (Rank)                                           // define rates for each elite rank

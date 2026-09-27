@@ -359,17 +359,6 @@ Arm of Thorim rolls 133–144 base damage at the fixture level, so two independe
 of 1.10–1.31 with its 20% bonus and 0.91–1.09 without it (including integer rounding). Charged Conduit
 preserves Static and must leave the talent without a depletion bonus.
 
-The [damage-led scaling scenario](scenarios/level-scaling-damage-engagement.json) checks that an
-out-of-range attacker scales a fresh creature before a nonlethal or lethal opening hit, and that
-later damage leaves its combat level fixed. It requires `CoA.LevelScaling=1`,
-`CoA.LevelScalingMaxLift=5`, `MonsterSight=50` and `DestinyWeaver.LevelScaling=0` (or
-`DestinyWeaver.Enable=0`): while the Destiny Weaver owns creature scaling per viewer, the realm-wide lift
-stands aside, so this case and `destiny-weaver-scaling` need separate runs. The level-1 fixtures stand 80–85 yards
-away and must scale to level 6, so both declare `level_scaling`. One fixture has only one maximum HP to
-expose damage-before-scaling.
-Spell 705798 is learned as a fixture: its one damage and zero initial threat exercise damage-led
-engagement through the normal cast handler. This tests the damage path, not an Overload proc or pet AI.
-
 Players require `id`, numeric `race` and `class`; `level` defaults to 80. Optional `bot` logs the actor in on a
 session flagged as a bot, the way playerbots flags the sessions it creates, so a scenario can check what the
 server does differently for them. Optional `spell_hit_rating`,
@@ -403,11 +392,8 @@ template whose scripts suit the experiment.
 Setup clears combat initiated by spawn-time AI before starting the scenario: a fixture whose AI engaged a player
 while spawning evades at once. No step runs while any fixture is evading, so a spell or attack is never aimed at
 a fixture that is resetting; the step's time keeps running meanwhile. Combat otherwise follows normal rules.
-Local level scaling ignores fixtures, because it rebuilds a creature through `SelectLevel()` and would discard
-the declared `level` and `health`; optional `level_scaling` (default false) opts a fixture back into it, which
-only the damage-led scaling scenario above needs. Creature AI can still change initial fixture levels and
-maximum health. Let them settle before taking baselines; assert stable maximums and final levels when testing
-damage coefficients.
+Creature AI can change initial fixture levels and maximum health. Let them settle before taking baselines;
+assert stable maximums and final levels when testing damage coefficients.
 
 | Action | Fields and behavior |
 | --- | --- |

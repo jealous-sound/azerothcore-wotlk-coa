@@ -359,7 +359,6 @@ enum class AscensionCompatConfig {
   ALLOW_LEARNED_SPELL_DELIVERY,
   LEARN_OWNED_COMPANIONS,
   MAX_RIDING_FROM_START,
-  LEVEL_SCALING,
   QUEST_LEVEL_SCALING,
   AUTO_PROGRESSION,
 
@@ -401,8 +400,6 @@ public:
                          "CoA.LearnOwnedCompanions", true);
     SetConfigValue<bool>(AscensionCompatConfig::MAX_RIDING_FROM_START,
                          "CoA.MaxRidingFromStart", true);
-    SetConfigValue<bool>(AscensionCompatConfig::LEVEL_SCALING,
-                         "CoA.LevelScaling", true);
     SetConfigValue<bool>(AscensionCompatConfig::QUEST_LEVEL_SCALING,
                          "CoA.QuestLevelScaling", true);
     SetConfigValue<bool>(AscensionCompatConfig::AUTO_PROGRESSION,
@@ -6137,182 +6134,6 @@ public:
     }
 };
 
-namespace
-{
-struct LevelScalingState
-{
-  uint8 Original;
-  uint32 Timer;
-};
-
-std::mutex g_levelScalingLock;
-std::unordered_map<uint64, LevelScalingState> g_levelScalingStates;
-
-std::unordered_map<uint64, uint8> g_levelScalingPendingEngager;
-
-bool CanScaleCreature(Creature const* creature)
-{
-  if (LocalLevelScaling::CreatureScalingOwnedPerViewer.load(std::memory_order_relaxed))
-    return false;
-
-  return LocalLevelScaling::CreatureEnabled.load(std::memory_order_relaxed) && creature &&
-      !creature->GetMap()->IsScriptedPrivateInstance() &&
-      !creature->IsPet() && !creature->IsTotem() && !creature->IsTrigger() && !creature->IsCritter() &&
-      creature->GetCreatureType() != CREATURE_TYPE_NON_COMBAT_PET && !creature->GetCharmerOrOwner() &&
-      !LocalLevelScaling::IsUnscaledFixture(creature->GetPhaseMask(), creature->GetGUID().GetRawValue());
-}
-}
-
-class AscensionCompatLevelScalingScript : public AllCreatureScript
-{
-public:
-  AscensionCompatLevelScalingScript()
-      : AllCreatureScript("AscensionCompatLevelScalingScript") {}
-
-  void OnBeforeCreatureSelectLevel(CreatureTemplate const*,
-                                   Creature* creature, uint8& level) override
-  {
-    if (!CanScaleCreature(creature))
-      return;
-
-    uint64 guid = creature->GetGUID().GetRawValue();
-    uint8 original = level;
-    {
-      std::lock_guard<std::mutex> guard(g_levelScalingLock);
-      auto [itr, inserted] = g_levelScalingStates.try_emplace(guid, LevelScalingState{level, 1000});
-      original = itr->second.Original;
-      if (inserted)
-        itr->second.Original = level;
-    }
-
-    level = DesiredLevel(creature, original);
-  }
-
-  void OnAllCreatureUpdate(Creature* creature, uint32 diff) override
-  {
-    if (!CanScaleCreature(creature) || creature->IsInCombat() || !creature->IsAlive() ||
-        creature->GetHealth() != creature->GetMaxHealth())
-      return;
-
-    uint64 guid = creature->GetGUID().GetRawValue();
-    uint8 original;
-    {
-      std::lock_guard<std::mutex> guard(g_levelScalingLock);
-      LevelScalingState& state =
-          g_levelScalingStates.try_emplace(guid, LevelScalingState{creature->GetLevel(), 1000}).first->second;
-      if (state.Timer > diff)
-      {
-        state.Timer -= diff;
-        return;
-      }
-      state.Timer = 1000;
-      original = state.Original;
-    }
-
-    if (DesiredLevel(creature, original) == creature->GetLevel())
-      return;
-
-    creature->SelectLevel();
-    if (CreatureTemplate const* creatureTemplate = creature->GetCreatureTemplate())
-    {
-      CreatureBaseStats const* stats = sObjectMgr->GetCreatureBaseStats(
-          creature->GetLevel(), creatureTemplate->unit_class);
-      creature->SetStatFlatModifier(UNIT_MOD_ARMOR, BASE_VALUE, stats->GenerateArmor(creatureTemplate));
-    }
-  }
-
-  void OnCreatureRemoveWorld(Creature* creature) override
-  {
-    LocalLevelScaling::ForgetFixture(creature->GetGUID().GetRawValue());
-    std::lock_guard<std::mutex> guard(g_levelScalingLock);
-    g_levelScalingStates.erase(creature->GetGUID().GetRawValue());
-    g_levelScalingPendingEngager.erase(creature->GetGUID().GetRawValue());
-  }
-
-  static uint8 DesiredLevel(Creature const* creature, uint8 original)
-  {
-    Map* map = creature->GetMap();
-    if (!map)
-      return original;
-
-    bool const useNearestPlayer = LocalLevelScaling::CreatureMaxLift.load(std::memory_order_relaxed) != 0;
-    uint8 desired = original;
-    float range = creature->GetSightRange();
-    float meilleure = -1.0f;
-    for (auto const& reference : map->GetPlayers())
-    {
-        Player* player = reference.GetSource();
-        if (!player || !player->IsAlive() || player->IsGameMaster() ||
-            !creature->InSamePhase(player) || !creature->IsWithinDistInMap(player, range) ||
-            !player->IsValidAttackTarget(creature))
-            continue;
-        float distance = creature->GetExactDist(player);
-        if (useNearestPlayer && meilleure >= 0.0f && distance >= meilleure)
-            continue;
-        meilleure = distance;
-        uint8 const scaledLevel = LocalLevelScaling::ScaleCreatureLevel(original, player->GetLevel(),
-            LocalLevelScaling::CreatureOffset.load(std::memory_order_relaxed));
-        desired = useNearestPlayer ? scaledLevel : std::max(desired, scaledLevel);
-    }
-
-    std::lock_guard<std::mutex> guard(g_levelScalingLock);
-    if (auto itr = g_levelScalingPendingEngager.find(creature->GetGUID().GetRawValue());
-        itr != g_levelScalingPendingEngager.end())
-    {
-      uint8 const scaledLevel = LocalLevelScaling::ScaleCreatureLevel(original, itr->second,
-          LocalLevelScaling::CreatureOffset.load(std::memory_order_relaxed));
-      desired = useNearestPlayer ? scaledLevel : std::max(desired, scaledLevel);
-      g_levelScalingPendingEngager.erase(itr);
-    }
-    return desired;
-  }
-};
-
-class AscensionCompatLevelScalingEngageScript : public UnitScript
-{
-public:
-    AscensionCompatLevelScalingEngageScript()
-        : UnitScript("AscensionCompatLevelScalingEngageScript", true,
-            {UNITHOOK_ON_UNIT_ENTER_COMBAT, UNITHOOK_ON_DAMAGE}) { }
-
-    void OnUnitEnterCombat(Unit* unit, Unit* victim) override
-    {
-        ScaleForEngager(unit ? unit->ToCreature() : nullptr, victim);
-    }
-
-    void OnDamage(Unit* attacker, Unit* victim, uint32& damage) override
-    {
-        Creature* creature = victim ? victim->ToCreature() : nullptr;
-        if (damage && attacker != victim && creature && !creature->IsEngaged())
-            ScaleForEngager(creature, attacker);
-    }
-
-private:
-    static void ScaleForEngager(Creature* creature, Unit* engager)
-    {
-        if (!CanScaleCreature(creature) || !engager || !creature->IsAlive() ||
-            creature->GetHealth() != creature->GetMaxHealth())
-            return;
-
-        Player* player = engager->GetCharmerOrOwnerPlayerOrPlayerItself();
-        if (!player || !player->IsAlive() || player->IsGameMaster())
-            return;
-
-        {
-            std::lock_guard<std::mutex> guard(g_levelScalingLock);
-            g_levelScalingPendingEngager[creature->GetGUID().GetRawValue()] = player->GetLevel();
-        }
-
-        creature->SelectLevel();
-        if (CreatureTemplate const* creatureTemplate = creature->GetCreatureTemplate())
-        {
-            CreatureBaseStats const* stats = sObjectMgr->GetCreatureBaseStats(
-                creature->GetLevel(), creatureTemplate->unit_class);
-            creature->SetStatFlatModifier(UNIT_MOD_ARMOR, BASE_VALUE, stats->GenerateArmor(creatureTemplate));
-        }
-    }
-};
-
 class AscensionCompatWorldScript : public WorldScript {
 public:
   AscensionCompatWorldScript()
@@ -6323,14 +6144,8 @@ public:
   void OnBeforeConfigLoad(bool reload) override {
     ascensionCompatConfig.Initialize(reload);
     bool enabled = ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED);
-    LocalLevelScaling::CreatureEnabled.store(enabled && ascensionCompatConfig.GetConfigValue<bool>(
-        AscensionCompatConfig::LEVEL_SCALING), std::memory_order_relaxed);
     LocalLevelScaling::QuestEnabled.store(enabled && ascensionCompatConfig.GetConfigValue<bool>(
         AscensionCompatConfig::QUEST_LEVEL_SCALING), std::memory_order_relaxed);
-
-    uint32 lift = sConfigMgr->GetOption<uint32>("CoA.LevelScalingMaxLift", 5);
-    LocalLevelScaling::CreatureMaxLift.store(
-        static_cast<std::uint8_t>(std::min<uint32>(lift, 255)), std::memory_order_relaxed);
   }
 
   void OnAfterConfigLoad(bool reload) override {
@@ -7083,8 +6898,6 @@ void AddAscensionCompatScripts() {
   new AscensionCompatAllSpellScript();
   new AscensionCompatUnitScript();
   new AscensionCompatChangelogScript();
-  new AscensionCompatLevelScalingScript();
-  new AscensionCompatLevelScalingEngageScript();
   new AscensionCompatWorldScript();
   new AscensionCompatAllCreatureScript();
 }

@@ -38,12 +38,12 @@ protocol, data or process problem.
 ## Upgrading a server configured before the move
 
 - Move the settings of `etc/modules/mod_ascension_compat.conf` into `coa.conf`,
-  renaming its `AscensionCompat.*` keys to `CoA.*` (for example `CoA.LevelScaling`),
+  renaming its `AscensionCompat.*` keys to `CoA.*` (for example `CoA.QuestLevelScaling`),
   then delete `mod_ascension_compat.conf`. Installing the server removes the old
   `mod_ascension_compat.conf.dist`; delete it by hand if you install another way, or
   `acore.sh` copies it back to `mod_ascension_compat.conf`.
 - Rename environment overrides the same way: `AC_ASCENSION_COMPAT_<KEY>` becomes
-  `AC_CO_A_<KEY>` (for example `AC_CO_A_LEVEL_SCALING`).
+  `AC_CO_A_<KEY>` (for example `AC_CO_A_QUEST_LEVEL_SCALING`).
 - Add `Logger.coa=4,Console Server` to `worldserver.conf`, and rename any
   `Logger.module.ascension_compat`, `Logger.module.gameplay_test` or
   `Logger.module.highrisk` line to `Logger.coa`, `Logger.coa.gameplay_test` or

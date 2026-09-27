@@ -985,7 +985,6 @@ public:
             if (Map* map = sMapMgr->FindMap(target.map, target.instance))
                 if (Creature* creature = map->GetCreature(target.guid))
                     creature->DespawnOrUnsummon();
-            LocalLevelScaling::ForgetFixture(target.guid.GetRawValue());
             units.insert(target.guid);
         }
         bool ungrouped = true;
@@ -1415,8 +1414,6 @@ private:
                 Require(creature != nullptr, "Could not summon fixture creature: " + id);
                 _targets.emplace(id, Target{ creature->GetMapId(), creature->GetInstanceId(), creature->GetGUID() });
                 creature->SetPhaseMask(_phase, true);
-                if (definition.get<bool>("level_scaling", false))
-                    LocalLevelScaling::AllowFixtureScaling(creature->GetGUID().GetRawValue());
                 creature->SetReactState(REACT_PASSIVE);
                 creature->SetRegeneratingHealth(false);
                 creature->SetFaction(definition.get<uint32>("faction", 14));
@@ -3776,7 +3773,6 @@ private:
             _lanes[index].index = index;
             _lanes[index].phase = CoAGameplay::LanePhase(index);
         }
-        LocalLevelScaling::SetFixturePhases(CoAGameplay::LanePhases(lanes));
         _simulated = _clock == SimulatedClock;
         if (!_simulated)
             return;

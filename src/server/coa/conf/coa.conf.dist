@@ -68,18 +68,6 @@ CoA.MaxRidingFromStart = 1
 # Set to 0 to leave such characters on Ruleset.None instead.
 CoA.RulesetLoginDefault = 1
 
-# Local solo scaling. A creature below the player-minus-three floor is raised
-# with stock AzerothCore stat curves. Creatures one or two levels below, equal,
-# or higher stay unchanged. Friendly NPCs, pets, critters and triggers are not mobs.
-#
-# A module that gives each character their own version of a creature owns this
-# answer while it is enabled, and this path stands aside for as long as it is:
-# raising the object is a change every client is told about, so it cannot be one
-# character's alone. Nothing needs to change here either way, the takeover is
-# logged at config load, and switching that module off hands this path back
-# exactly as it was.
-CoA.LevelScaling = 1
-
 # Lower-level quests report the player's level and use the matching QuestXP row.
 # Quests already above the player remain higher. Shared quest templates are immutable.
 CoA.QuestLevelScaling = 1
@@ -121,23 +109,6 @@ CoA.RealmType = "live"
 #
 
 CoA.ClassModel = "coa"
-
-#
-#    CoA.LevelScalingMaxLift
-#        Description: How many levels above its own a creature may be lifted by
-#                     LevelScaling. Without a cap, a level 30 player crossing a
-#                     starting zone lifts every creature around to 27, and the
-#                     low level bots fighting them are killed by creatures that
-#                     were never theirs.
-#                     A creature has a single level, broadcast to every client:
-#                     it cannot be 27 for a player and 2 for a bot. Bounding the
-#                     lift is the only compromise between keeping content
-#                     relevant and keeping the world playable for whoever is
-#                     already in it.
-#                     0 disables the cap and restores the original behaviour.
-#        Default:     5
-
-CoA.LevelScalingMaxLift = 5
 
 ###################################################################################################
 # HIGH-RISK PACKAGE
