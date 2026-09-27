@@ -7,9 +7,9 @@
 -- so one companion is the tooltip's 1%, and the 500 ms refresh makes a summon or despawn count
 -- immediately.
 --
--- "Physical and Nature" is the tooltip's own scope, and the record does not carry it: ranger_guidance_contract
--- widens the SchoolMask to SPELL_SCHOOL_NORMAL | SPELL_SCHOOL_NATURE when it is either already correct or
--- still the bare SPELL_SCHOOL_NORMAL the mirror reports, and leaves anything else untouched with a log line.
+-- "Physical and Nature" is already carried by the record: effect 0's MiscValue is 9 (SPELL_SCHOOL_MASK_NORMAL
+-- | SPELL_SCHOOL_MASK_NATURE), and MiscValue is the school filter every SPELL_AURA_MOD_DAMAGE_PERCENT_DONE
+-- reader in Unit.cpp applies. The spell's own SchoolMask (1) does not scope the aura, so nothing rewrites it.
 --
 -- Plumes of War (705071, Farstrider row 9 col 5) reads "Increases the critical strike chance of
 -- Falconstrike and Emerald Arrow by 15%. In addition, critical strikes with Falconstrike now increase the

@@ -5,10 +5,12 @@
 -- SPELL_AURA_DUMMY with BasePoints 0 and nothing anywhere in src/ or data/ reads it, so the exclusivity
 -- clause was pure dead data and every Frenzy in the window stacked.
 --
--- aura_ascension_ranger_frenzy zeroes effect 1's amount while the buffed ally already carries Worn Out,
--- which is the only reading that matches a 5 min cooldown and a 5 min marker. Effect 1 applies before
--- effect 2 fires the trigger, so the check sees the Worn Out from a previous Frenzy, not the one this
--- cast is about to apply.
+-- spell_ascension_ranger_frenzy drops every unit that already carries Worn Out from all three effects' target
+-- lists, the way Bloodlust skips Sated targets: a Worn Out ally gets neither the haste nor a refreshed Worn
+-- Out, which is the only reading that matches a 5 min cooldown and a 5 min marker. Target selection runs
+-- before the launch phase, and SPELL_EFFECT_TRIGGER_SPELL fires at launch, so the check sees the Worn Out
+-- from a previous Frenzy, not the one this cast is about to apply. Zeroing the aura amount instead cannot
+-- work: the triggered Worn Out is already on the target when the aura is created at hit.
 --
 -- Pilfering (705087, Brigand row 7 col 9) reads "Adds 10% to the damage dealt by Dirty Blades and causes
 -- its damage dealt to heal you equal to 50% of the value." The 10% is effect 0, SPELL_AURA_ADD_FLAT_MODIFIER
@@ -28,10 +30,15 @@
 -- AttributesMask 0: a white swing is the Ranger's own, never a triggered cast, and the AUTO_ATTACK branch
 -- of Aura::GetProcEffectMask exempts white swings from PROC_ATTR_TRIGGERED_CAN_PROC anyway.
 -- Chance 0 so the record's own ProcChance applies, per rev_20260919_20_coa_proc_chance_parity.sql.
+--
+-- "Its damage dealt" is the Nature damage Dirty Blades adds to the swing, so the heal is the swing damage
+-- times Dirty Blades' own effect 0 amount (which already includes the +10 from Pilfering's effect 0) times
+-- Pilfering's 50%, not 50% of the whole swing. The script's Load() reads the owner with GetUnitOwner(),
+-- because AuraScript::GetTarget() is null while the script loads and the script never attached before.
 DELETE FROM `spell_script_names` WHERE `ScriptName` IN
-    ('aura_ascension_ranger_frenzy', 'aura_ascension_ranger_pilfering');
+    ('aura_ascension_ranger_frenzy', 'spell_ascension_ranger_frenzy', 'aura_ascension_ranger_pilfering');
 INSERT INTO `spell_script_names` (`spell_id`, `ScriptName`) VALUES
-(520492, 'aura_ascension_ranger_frenzy'),
+(520492, 'spell_ascension_ranger_frenzy'),
 (705087, 'aura_ascension_ranger_pilfering');
 DELETE FROM `spell_proc` WHERE `SpellId` IN (705087);
 INSERT INTO `spell_proc`

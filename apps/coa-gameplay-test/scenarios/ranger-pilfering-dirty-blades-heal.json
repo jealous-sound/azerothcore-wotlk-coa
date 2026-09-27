@@ -1,0 +1,169 @@
+{
+  "schema": 1,
+  "name": "Ranger Pilfering: Dirty Blades swings heal for 50% of Dirty Blades' damage (#2516)",
+  "contract": "Pilfering 705087 (Brigand row 7 col 9) reads 'Adds 10% to the damage dealt by Dirty Blades and causes its damage dealt to heal you equal to 50% of the value.' Effect 0 is SPELL_AURA_ADD_FLAT_MODIFIER SPELLMOD_EFFECT1 +10 on Dirty Blades (class mask 0x1000000), effect 1 is Ascension aura 354 with BasePoints 49 + 1 = 50 and TriggerSpell 520880 'Dirty Blades' (SPELL_EFFECT_HEAL on the caster, SPELL_ATTR2_CANT_CRIT, SPELL_ATTR3_IGNORE_CASTER_MODIFIERS). Dirty Blades 680276 effect 0 is aura 354 with BasePoints 69 + 1 = 70, its share of each melee auto attack. aura_ascension_ranger_pilfering (spell_proc ProcFlags 4, melee auto attack) never attached before this fix because its Load() read AuraScript::GetTarget(), which is null while the script loads. Expected: with Pilfering learned and no Dirty Blades, swings heal nothing; with Dirty Blades up its effect 0 is 80 (70 + Pilfering's 10) and every swing heals for swing damage x 80% x 50% = 40% of the swing (the golem is stunned, so every swing is a plain hit). Each heal is rounded down to a whole point, so with unarmed swings of 20-30 damage the ratio sits between 0.33 and 0.40; the pre-fix reading of 50% of the whole swing gives 0.5 and a script that never attaches gives no heal at all.",
+  "timeout_ms": 90000,
+  "location": {
+    "map": 0,
+    "x": -8917.41,
+    "y": -115.853,
+    "z": 82.3711,
+    "o": 0
+  },
+  "players": [
+    {
+      "id": "ranger",
+      "race": 1,
+      "class": 21,
+      "level": 80,
+      "melee_hit_rating": 10000,
+      "expertise_rating": 10000,
+      "allow_regeneration": false
+    }
+  ],
+  "creatures": [
+    {
+      "id": "golem",
+      "owner": "ranger",
+      "entry": 36,
+      "level": 80,
+      "health": 1000000,
+      "distance": 3
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "label": "Fixture stun, so the golem neither fights back nor avoids swings",
+      "actor": "ranger",
+      "spell": 23775
+    },
+    {
+      "action": "cast",
+      "actor": "ranger",
+      "spell": 23775,
+      "target": "golem"
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: the golem is stunned",
+      "actor": "golem",
+      "metric": "aura",
+      "spell": 23775,
+      "equals": 1,
+      "within_ms": 2000
+    },
+    {
+      "action": "learn",
+      "actor": "ranger",
+      "spell": 705087
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: Pilfering is active on the Ranger",
+      "actor": "ranger",
+      "metric": "aura",
+      "spell": 705087,
+      "equals": 1,
+      "within_ms": 3000
+    },
+    {
+      "action": "set_health",
+      "label": "Leave room for the heal",
+      "actor": "ranger",
+      "value": 100
+    },
+    {
+      "action": "attack",
+      "actor": "ranger",
+      "target": "golem"
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: a swing lands without Dirty Blades",
+      "actor": "ranger",
+      "metric": "melee_damage_count",
+      "min": 1,
+      "within_ms": 8000
+    },
+    {
+      "action": "assert",
+      "label": "Without Dirty Blades Pilfering heals nothing",
+      "actor": "ranger",
+      "metric": "spell_heal_count",
+      "spell": 520880,
+      "equals": 0
+    },
+    {
+      "action": "set_aura",
+      "label": "Dirty Blades for its 4 seconds",
+      "actor": "ranger",
+      "spell": 680276,
+      "stacks": 1
+    },
+    {
+      "action": "snapshot",
+      "actor": "ranger",
+      "metric": "melee_damage_total",
+      "save_as": "melee_before"
+    },
+    {
+      "action": "snapshot",
+      "actor": "ranger",
+      "metric": "spell_heal_total",
+      "spell": 520880,
+      "save_as": "heal_before"
+    },
+    {
+      "action": "assert",
+      "label": "Dirty Blades carries Pilfering's +10",
+      "actor": "ranger",
+      "metric": "aura_amount",
+      "spell": 680276,
+      "effect": 0,
+      "equals": 80
+    },
+    {
+      "action": "assert",
+      "label": "A Dirty Blades swing heals the Ranger",
+      "actor": "ranger",
+      "metric": "spell_heal_count",
+      "spell": 520880,
+      "min": 1,
+      "within_ms": 3500
+    },
+    {
+      "action": "stop_attack",
+      "actor": "ranger"
+    },
+    {
+      "action": "set_aura",
+      "actor": "ranger",
+      "spell": 680276,
+      "stacks": 0
+    },
+    {
+      "action": "snapshot",
+      "actor": "ranger",
+      "metric": "melee_damage_total",
+      "relative_to": "melee_before",
+      "save_as": "blades_melee"
+    },
+    {
+      "action": "assert",
+      "label": "The heal is 50% of Dirty Blades' 80% share of the swing (integer heal per swing)",
+      "actor": "ranger",
+      "metric": "spell_heal_total",
+      "spell": 520880,
+      "relative_to": "heal_before",
+      "ratio_to": "blades_melee",
+      "min": 0.33,
+      "max": 0.401
+    }
+  ]
+}

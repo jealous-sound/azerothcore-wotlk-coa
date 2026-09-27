@@ -1,6 +1,5 @@
 /* Copyright (C) 2016+ AzerothCore, GNU AGPL v3. */
 #include "AscensionRangerTalents.h"
-#include "Log.h"
 #include "Player.h"
 #include "ScriptMgr.h"
 #include "Spell.h"
@@ -66,7 +65,6 @@ constexpr std::array<WingmanCompanion, 3> WingmanCompanions =
     {NPC_DRAGONHAWK, SPELL_DRAGONHAWK_PRESENCE}
 }};
 
-constexpr uint32 GUIDANCE_SCHOOL_MASK = SPELL_SCHOOL_NORMAL | SPELL_SCHOOL_NATURE;
 constexpr uint8 RANGER_ADVANTAGE_MAX_STACKS = 5;
 constexpr int32 WINGMAN_REFRESH_MS = 500;
 
@@ -205,29 +203,34 @@ class aura_ascension_ranger_highwayman : public AuraScript
     }
 };
 
-class aura_ascension_ranger_frenzy : public AuraScript
+class spell_ascension_ranger_frenzy : public SpellScript
 {
-    PrepareAuraScript(aura_ascension_ranger_frenzy);
+    PrepareSpellScript(spell_ascension_ranger_frenzy);
 
     bool Validate(SpellInfo const* spellInfo) override
     {
-        SpellEffectInfo const& haste = spellInfo->Effects[EFFECT_1];
-        return spellInfo->Id == SPELL_FRENZY && haste.IsAura(SPELL_AURA_MOD_MELEE_RANGED_HASTE) &&
-            haste.BasePoints + haste.DieSides == 30 && ValidateSpellInfo({SPELL_WORN_OUT});
+        SpellEffectInfo const& wornOut = spellInfo->Effects[EFFECT_2];
+        return spellInfo->Id == SPELL_FRENZY && wornOut.Effect == SPELL_EFFECT_TRIGGER_SPELL &&
+            wornOut.TriggerSpell == SPELL_WORN_OUT && ValidateSpellInfo({SPELL_WORN_OUT});
     }
 
-    void Calculate(AuraEffect const*, int32& amount, bool& canBeRecalculated)
+    void SkipWornOut(std::list<WorldObject*>& targets)
     {
-        canBeRecalculated = true;
-        Unit* ally = GetTarget();
-        if (ally && ally->HasAura(SPELL_WORN_OUT))
-            amount = 0;
+        targets.remove_if([](WorldObject* target)
+        {
+            Unit* unit = target->ToUnit();
+            return !unit || unit->HasAura(SPELL_WORN_OUT);
+        });
     }
 
     void Register() override
     {
-        DoEffectCalcAmount += AuraEffectCalcAmountFn(aura_ascension_ranger_frenzy::Calculate,
-            EFFECT_1, SPELL_AURA_MOD_MELEE_RANGED_HASTE);
+        OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_ascension_ranger_frenzy::SkipWornOut,
+            EFFECT_0, TARGET_UNIT_CASTER_AREA_RAID);
+        OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_ascension_ranger_frenzy::SkipWornOut,
+            EFFECT_1, TARGET_UNIT_CASTER_AREA_RAID);
+        OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_ascension_ranger_frenzy::SkipWornOut,
+            EFFECT_2, TARGET_UNIT_CASTER_AREA_RAID);
     }
 };
 
@@ -245,7 +248,7 @@ class aura_ascension_ranger_pilfering : public AuraScript
 
     bool Load() override
     {
-        Unit* ranger = GetTarget();
+        Unit* ranger = GetUnitOwner();
         return ranger && ranger->IsPlayer() && ranger->ToPlayer()->getClass() == CLASS_RANGER;
     }
 
@@ -265,7 +268,12 @@ class aura_ascension_ranger_pilfering : public AuraScript
         if (!CheckProc(event))
             return;
 
-        uint64 amount = uint64(event.GetDamageInfo()->GetDamage()) * std::clamp(effect->GetAmount(), 0, 100) / 100;
+        AuraEffect const* blades = GetTarget()->GetAuraEffect(SPELL_DIRTY_BLADES, EFFECT_0);
+        if (!blades)
+            return;
+
+        uint64 amount = uint64(event.GetDamageInfo()->GetDamage()) * uint64(std::max(blades->GetAmount(), 0)) *
+            uint64(std::clamp(effect->GetAmount(), 0, 100)) / 10000;
         if (amount && amount <= uint64(std::numeric_limits<int32>::max()))
             GetTarget()->CastCustomSpell(SPELL_PILFERING_HEAL, SPELLVALUE_BASE_POINT0,
                 int32(amount), GetTarget(), true);
@@ -335,24 +343,6 @@ class aura_ascension_ranger_guidance : public AuraScript
     }
 };
 
-class ranger_guidance_contract : public GlobalScript
-{
-public:
-    ranger_guidance_contract() : GlobalScript("ranger_guidance_contract",
-        {GLOBALHOOK_ON_LOAD_SPELL_CUSTOM_ATTR}) { }
-
-    void OnLoadSpellCustomAttr(SpellInfo* info) override
-    {
-        if (!info || info->Id != SPELL_GUIDANCE)
-            return;
-
-        if (info->SchoolMask == SPELL_SCHOOL_NORMAL || info->SchoolMask == GUIDANCE_SCHOOL_MASK)
-            info->SchoolMask = GUIDANCE_SCHOOL_MASK;
-        else
-            LOG_ERROR("coa", "Skipped unexpected Guidance school mask {}", info->SchoolMask);
-    }
-};
-
 class ranger_swiftshot_hits : public AllSpellScript
 {
 public:
@@ -406,9 +396,8 @@ void AddSC_AscensionRangerTalents()
     RegisterSpellScript(spell_ascension_ranger_knockout);
     RegisterSpellScript(aura_ascension_ranger_wingman);
     RegisterSpellScript(aura_ascension_ranger_highwayman);
-    RegisterSpellScript(aura_ascension_ranger_frenzy);
+    RegisterSpellScript(spell_ascension_ranger_frenzy);
     RegisterSpellScript(aura_ascension_ranger_pilfering);
     RegisterSpellScript(aura_ascension_ranger_guidance);
-    new ranger_guidance_contract();
     new ranger_swiftshot_hits();
 }
