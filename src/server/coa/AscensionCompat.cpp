@@ -4646,11 +4646,17 @@ void SendBankPermissions(Player* player, uint8 kind)
     return sum / count;
 }
 
-void SendAverageItemLevel(Player* player, uint8 emptiedSlot = EQUIPMENT_SLOT_END)
+[[nodiscard]] WorldPacket BuildAverageItemLevel(Player* player, uint8 emptiedSlot = EQUIPMENT_SLOT_END)
 {
     WorldPacket data(SMSG_UPDATE_OBJECT_ADDON, 16);
     data << player->GetGUID() << PLAYER_ADDON_FIELD_AVERAGE_ITEM_LEVEL
          << AverageEquippedItemLevel(player, emptiedSlot);
+    return data;
+}
+
+void SendAverageItemLevel(Player* player, uint8 emptiedSlot = EQUIPMENT_SLOT_END)
+{
+    WorldPacket data = BuildAverageItemLevel(player, emptiedSlot);
     player->SendMessageToSet(&data, true);
 }
 
@@ -4813,6 +4819,16 @@ public:
 
         if (packet.GetOpcode() == CMSG_SET_ACTIVE_MOVER)
             AscensionClassService::Instance().OnPlayerActiveMover(session->GetPlayer());
+
+        if (packet.GetOpcode() == CMSG_INSPECT && packet.size() >= sizeof(uint64))
+        {
+            if (Player* target = ObjectAccessor::GetPlayer(*session->GetPlayer(), packet.read<ObjectGuid>(0)))
+            {
+                WorldPacket data = BuildAverageItemLevel(target);
+                session->SendPacket(&data);
+            }
+            return true;
+        }
 
         if (packet.GetOpcode() == CMSG_GET_MIRRORIMAGE_DATA && packet.size() >= sizeof(uint64))
         {
