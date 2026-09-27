@@ -264,6 +264,7 @@ void AddSC_AscensionReaperSecondary();
 void AddSC_AscensionReaperReliquary();
 void AddSC_AscensionPrimalistSecondary();
 void AddSC_AscensionRunemasterSecondary();
+void AddSC_AscensionRunemasterBurnedEtching();
 void AddSC_AscensionRunemasterHurricane();
 void AddSC_AscensionRunemasterRiftClones();
 void AddSC_AscensionRunemasterDisappearance();
@@ -517,6 +518,7 @@ void AddCoAScripts()
     AddSC_AscensionReaperReliquary();
     AddSC_AscensionPrimalistSecondary();
     AddSC_AscensionRunemasterSecondary();
+    AddSC_AscensionRunemasterBurnedEtching();
     AddSC_AscensionRunemasterHurricane();
     AddSC_AscensionRunemasterRiftClones();
     AddSC_AscensionRunemasterDisappearance();

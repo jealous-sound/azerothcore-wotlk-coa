@@ -22,6 +22,8 @@ enum RunemasterSecondarySpells : uint32
     SPELL_RIFTBLADE_COUNTER = 500468,
     SPELL_RIFTBLADE_MANA = 500466,
     SPELL_WATER_AMOUNT = 802645,
+    SPELL_LEYSTONE_SPRINGS = 300581,
+    SPELL_LEYSTONE_MANA = 520866,
     SPELL_PRIMORDIAL_BLAST = 800732,
     SPELL_SMOLDER = 801087,
     SPELL_WARPDAGGER = 500287,
@@ -106,7 +108,16 @@ public:
     void ModifySpellEffectBaseValue(Unit const* caster, SpellInfo const* info, uint8 index, float& value) override
     {
         Player* player = caster ? const_cast<Unit*>(caster)->ToPlayer() : nullptr;
-        if (!player || player->getClass() != CLASS_SPIRIT_MAGE || info->Id != SPELL_RIFTBLADE_MANA || index != EFFECT_0)
+        if (!player || player->getClass() != CLASS_SPIRIT_MAGE || index != EFFECT_0)
+            return;
+        if (info->Id == SPELL_LEYSTONE_MANA)
+        {
+            AuraEffect const* springs = player->GetAuraEffect(SPELL_LEYSTONE_SPRINGS, EFFECT_1, player->GetGUID());
+            if (springs && HasTattoo(player, SPELL_WATER_TATTOO))
+                AddPct(value, springs->GetAmount());
+            return;
+        }
+        if (info->Id != SPELL_RIFTBLADE_MANA)
             return;
         value += std::max(0.0f, player->GetTotalAttackPowerValue(BASE_ATTACK)) * 0.3f;
         if (HasTattoo(player, SPELL_WATER_TATTOO))
