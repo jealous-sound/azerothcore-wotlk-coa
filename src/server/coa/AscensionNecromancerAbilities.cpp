@@ -64,6 +64,11 @@ void Virulency(Player* player, Unit* target)
                         effect->SetPeriodicTimer(saved.timers[index]);
                     }
             }
+        if (Aura* infestation = player->GetAura(803782); infestation && infestation->GetCharges())
+        {
+            infestation->SetCharges(infestation->GetCharges() - 1);
+            return;
+        }
         state.diseases.clear();
         player->RemoveAurasDueToSpell(803782);
         player->SetTemporarySpellReplacement(801938, 0);

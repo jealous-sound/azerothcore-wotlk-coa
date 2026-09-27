@@ -207,7 +207,13 @@ bool Summon(Player* player, uint32 spell, Unit* target, Position const& position
     uint8 cost = Cost(player, spell);
     if (cost && int32(Capacity(player)) - Used(player) < cost)
         return false;
-    int32 lifetime = duration ? duration : info->GetDuration();
+    int32 lifetime = duration;
+    if (!lifetime)
+    {
+        lifetime = info->GetDuration();
+        if (lifetime > 0)
+            player->ApplySpellMod(spell, SPELLMOD_DURATION, lifetime);
+    }
     bool created = false;
     for (auto const& row : NecromancerSummons)
         if (row.spell == spell)

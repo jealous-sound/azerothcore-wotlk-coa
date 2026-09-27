@@ -415,7 +415,9 @@ class necromancer_scaling : public UnitScript
             {
                 float sp = float(row.healing ? player->SpellBaseHealingBonusDone(SpellSchoolMask(row.school))
                                              : player->SpellBaseDamageBonusDone(SpellSchoolMask(row.school)));
-                value += std::max(0.0f, sp) * row.sp + player->GetStat(STAT_INTELLECT) * row.intellect +
+                float coefficient = row.sp * 100.0f;
+                player->ApplySpellMod(info->Id, SPELLMOD_BONUS_MULTIPLIER, coefficient);
+                value += std::max(0.0f, sp) * coefficient / 100.0f + player->GetStat(STAT_INTELLECT) * row.intellect +
                          player->GetTotalAttackPowerValue(BASE_ATTACK) * row.ap;
             }
     }
