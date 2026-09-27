@@ -267,6 +267,7 @@ void AddSC_AscensionRunemasterDisappearance();
 void AddSC_AscensionRunemasterTalentEffects();
 void AddSC_AscensionRunemasterRunicTalents();
 void AddSC_AscensionRunemasterElementalTalents();
+void AddSC_AscensionRunemasterTalentProcs();
 void AddSC_AscensionRunemasterTalentMechanics();
 void AddSC_AscensionWelcomeWarchest();
 void AddSC_AscensionClassBundleStore();
@@ -516,6 +517,7 @@ void AddCoAScripts()
     AddSC_AscensionRunemasterTalentEffects();
     AddSC_AscensionRunemasterRunicTalents();
     AddSC_AscensionRunemasterElementalTalents();
+    AddSC_AscensionRunemasterTalentProcs();
     AddSC_AscensionRunemasterTalentMechanics();
     AddAscensionRunemasterZenithScripts();
     AddAscensionRunemasterEchoesScripts();
