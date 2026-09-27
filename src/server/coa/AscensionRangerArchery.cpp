@@ -186,9 +186,9 @@ bool IsHuntingShotRank(uint32 spellId)
 
 bool CarriesHuntingShotMark(Unit const* enemy, Unit const* ranger)
 {
-    for (AuraApplicationMap const& application : enemy->GetAppliedAuras())
+    for (auto const& [key, application] : enemy->GetAppliedAuras())
     {
-        Aura const* aura = application.second->GetBase();
+        Aura const* aura = application->GetBase();
         if (aura->GetCasterGUID() != ranger->GetGUID())
             continue;
         if (IsHuntingShotRank(sSpellMgr->GetFirstSpellInChain(aura->GetId())))
