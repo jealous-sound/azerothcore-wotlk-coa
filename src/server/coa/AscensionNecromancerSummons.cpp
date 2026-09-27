@@ -317,6 +317,9 @@ void Order(Player* player, Unit* target, uint32 spell)
         target = ObjectAccessor::GetUnit(*player, player->GetTarget());
     if (!target || !player->IsValidAttackTarget(target) || player->HasAura(500983))
         return;
+    if (Creature* creature = target->ToCreature())
+        if (!creature->IsDamageEnoughForLootingAndReward())
+            creature->LowerPlayerDamageReq(creature->GetHealth(), true, player->GetLevel());
     State(player).focus = target->GetGUID();
     for (Creature* minion : Minions(player))
     {
