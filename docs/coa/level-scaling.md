@@ -31,16 +31,18 @@ ScaleQuestLevel(original, playerLevel):
 
 `CreatureOffset` comes from `DestinyWeaver.Scaling.Offset` (default 3). `CreatureMaxLift` comes from
 `CoA.LevelScalingMaxLift` and is the ceiling on how far a creature may be lifted; it is
-**0 (no ceiling) by default here**, so a creature comes all the way up to *the nearest character's
-level minus the offset*. That is the whole point of the feature: content in front of a character is
-relevant to that character. A ceiling is for a realm with a mixed population — it keeps a
-starting-zone creature a starting-zone creature, at the price of scaling doing nothing visible in a
-low-level zone (a level 2 creature beside a level 80 character becomes a level 7 creature).
+**5 by default** (`coa.conf.dist` and the code's fallback in `AscensionCompat.cpp`). 0 removes the
+ceiling, so a creature comes all the way up to *the character's level minus the offset*. A ceiling is
+for a realm with a mixed population — it keeps a starting-zone creature a starting-zone creature, at
+the price of scaling doing little in a low-level zone (a level 2 creature beside a level 80 character
+becomes a level 7 creature).
 
-The **nearest** character decides the level either way (`DesiredLevel` in `AscensionCompat.cpp`),
-never the highest level in sight: taking the maximum hands one player's level to everybody, so a
-level-30 character crossing a starting zone would lift the creatures a level-1 character is
-fighting. A character who pulls a creature through a pet, guardian or trap from outside
+With a ceiling set, the **nearest** character decides the level (`DesiredLevel` in
+`AscensionCompat.cpp`): taking the maximum hands one player's level to everybody, so a level-30
+character crossing a starting zone would lift the creatures a level-1 character is fighting. With
+`CoA.LevelScalingMaxLift = 0` the highest character in sight decides instead. Either way a playerbot
+counts only when no other character is in sight, and a bot's pull never sets the engager level. A
+character who pulls a creature through a pet, guardian or trap from outside
 `GetSightRange()` is counted anyway — `AscensionCompatLevelScalingEngageScript` stashes their level
 as combat starts, and `DesiredLevel` prefers it.
 
