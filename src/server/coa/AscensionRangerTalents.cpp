@@ -30,7 +30,11 @@ enum RangerTalentSpells : uint32
     SPELL_SWIFTSHOT = 705028,
     SPELL_SWIFTSHOT_VULNERABILITY = 800578,
     SPELL_WAR_FALCON_PRESENCE = 680278,
-    SPELL_DRAGONHAWK_PRESENCE = 681394
+    SPELL_DRAGONHAWK_PRESENCE = 681394,
+    SPELL_FRENZY = 520492,
+    SPELL_WORN_OUT = 804457,
+    SPELL_PILFERING = 705087,
+    SPELL_PILFERING_HEAL = 520880
 };
 
 enum RangerTalentRankChains : uint32
@@ -198,6 +202,79 @@ class aura_ascension_ranger_highwayman : public AuraScript
     }
 };
 
+class aura_ascension_ranger_frenzy : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_ranger_frenzy);
+
+    bool Validate(SpellInfo const* spellInfo) override
+    {
+        SpellEffectInfo const& haste = spellInfo->Effects[EFFECT_1];
+        return spellInfo->Id == SPELL_FRENZY && haste.IsAura(SPELL_AURA_MOD_MELEE_RANGED_HASTE) &&
+            haste.BasePoints + haste.DieSides == 30 && ValidateSpellInfo({SPELL_WORN_OUT});
+    }
+
+    void Calculate(AuraEffect const*, int32& amount, bool& canBeRecalculated)
+    {
+        canBeRecalculated = true;
+        Unit* ally = GetTarget();
+        if (ally && ally->HasAura(SPELL_WORN_OUT))
+            amount = 0;
+    }
+
+    void Register() override
+    {
+        DoEffectCalcAmount += AuraEffectCalcAmountFn(aura_ascension_ranger_frenzy::Calculate,
+            EFFECT_1, SPELL_AURA_MOD_MELEE_RANGED_HASTE);
+    }
+};
+
+class aura_ascension_ranger_pilfering : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_ranger_pilfering);
+
+    bool Validate(SpellInfo const* spellInfo) override
+    {
+        return spellInfo->Id == SPELL_PILFERING &&
+            spellInfo->Effects[EFFECT_1].IsAura(AuraType(354)) &&
+            spellInfo->Effects[EFFECT_1].TriggerSpell == SPELL_PILFERING_HEAL &&
+            ValidateSpellInfo({SPELL_PILFERING_HEAL, SPELL_DIRTY_BLADES});
+    }
+
+    bool Load() override
+    {
+        Unit* ranger = GetTarget();
+        return ranger && ranger->IsPlayer() && ranger->ToPlayer()->getClass() == CLASS_RANGER;
+    }
+
+    bool CheckProc(ProcEventInfo& event)
+    {
+        DamageInfo const* damage = event.GetDamageInfo();
+        Unit* victim = event.GetActionTarget();
+        return event.GetActor() == GetTarget() && victim && victim != GetTarget() &&
+            !GetTarget()->IsFriendlyTo(victim) && damage && damage->GetDamage() &&
+            (damage->GetDamageType() == DIRECT_DAMAGE || damage->GetDamageType() == SPELL_DIRECT_DAMAGE) &&
+            GetTarget()->HasAura(SPELL_DIRTY_BLADES);
+    }
+
+    void Heal(AuraEffect const* effect, ProcEventInfo& event)
+    {
+        PreventDefaultAction();
+        if (!CheckProc(event))
+            return;
+
+        uint64 amount = uint64(event.GetDamageInfo()->GetDamage()) * std::clamp(effect->GetAmount(), 0, 100) / 100;
+        if (amount && amount <= uint64(std::numeric_limits<int32>::max()))
+            GetTarget()->CastCustomSpell(SPELL_PILFERING_HEAL, SPELLVALUE_BASE_POINT0,
+                int32(amount), GetTarget(), true);
+    }
+
+    void Register() override
+    {
+        DoCheckProc += AuraCheckProcFn(aura_ascension_ranger_pilfering::CheckProc);
+        OnEffectProc += AuraEffectProcFn(aura_ascension_ranger_pilfering::Heal, EFFECT_1, AuraType(354));
+    }
+};
+
 class ranger_swiftshot_hits : public AllSpellScript
 {
 public:
@@ -251,5 +328,7 @@ void AddSC_AscensionRangerTalents()
     RegisterSpellScript(spell_ascension_ranger_knockout);
     RegisterSpellScript(aura_ascension_ranger_wingman);
     RegisterSpellScript(aura_ascension_ranger_highwayman);
+    RegisterSpellScript(aura_ascension_ranger_frenzy);
+    RegisterSpellScript(aura_ascension_ranger_pilfering);
     new ranger_swiftshot_hits();
 }
