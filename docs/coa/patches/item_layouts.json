@@ -1,0 +1,232 @@
+{
+  "dll_sha256": "0f8d847b3adc44a963606f0cd4f7938ad6fcd6f4d87feac3131c7153bdf3bb11",
+  "layouts": [
+    {
+      "table": "Addon",
+      "opcode": "0x0569",
+      "name": "SMSG_PATCH_ITEM_ADDON",
+      "status": "verified",
+      "prefix_words": 15,
+      "strings": 2,
+      "suffix_words": 0,
+      "string_encoding": "length32",
+      "pointer_words": [
+        1,
+        2
+      ],
+      "handler_rva": "0x001E1800"
+    },
+    {
+      "table": "DisplayInfoCollections",
+      "opcode": "0x056A",
+      "name": "SMSG_PATCH_ITEM_DISPLAY_INFO_COLLECTIONS",
+      "status": "verified",
+      "prefix_words": 8,
+      "strings": 2,
+      "suffix_words": 0,
+      "string_encoding": "length32",
+      "pointer_words": [
+        4,
+        5
+      ],
+      "handler_rva": "0x001E1B50"
+    },
+    {
+      "table": "Stat",
+      "opcode": "0x059F",
+      "name": "SMSG_PATCH_ITEM_STAT",
+      "status": "unverified",
+      "prefix_words": null,
+      "strings": null,
+      "suffix_words": null,
+      "string_encoding": null,
+      "pointer_words": [],
+      "handler_rva": null
+    },
+    {
+      "table": "Appearances",
+      "opcode": "0x0693",
+      "name": "SMSG_PATCH_ITEM_APPEARANCES",
+      "status": "verified",
+      "prefix_words": 3,
+      "strings": 0,
+      "suffix_words": 0,
+      "string_encoding": "length32",
+      "pointer_words": [],
+      "handler_rva": "0x001E1AB0"
+    },
+    {
+      "table": "SetAppearances",
+      "opcode": "0x06EC",
+      "name": "SMSG_PATCH_ITEM_SET_APPEARANCES",
+      "status": "verified",
+      "prefix_words": 3,
+      "strings": 0,
+      "suffix_words": 0,
+      "string_encoding": "length32",
+      "pointer_words": [],
+      "handler_rva": "0x001E1D50"
+    },
+    {
+      "table": "Item",
+      "opcode": "0x0932",
+      "name": "SMSG_PATCH_ITEM",
+      "status": "verified",
+      "prefix_words": 8,
+      "strings": 0,
+      "suffix_words": 0,
+      "string_encoding": "length32",
+      "pointer_words": [],
+      "handler_rva": "0x0022D960"
+    },
+    {
+      "table": "ExtendedCost",
+      "opcode": "0x0944",
+      "name": "SMSG_PATCH_ITEM_EXTENDED_COST",
+      "status": "verified",
+      "prefix_words": 16,
+      "strings": 0,
+      "suffix_words": 0,
+      "string_encoding": "length32",
+      "pointer_words": [],
+      "handler_rva": "0x0022D870"
+    },
+    {
+      "table": "Visuals",
+      "opcode": "0x0964",
+      "name": "SMSG_PATCH_ITEM_VISUALS",
+      "status": "verified",
+      "prefix_words": 6,
+      "strings": 0,
+      "suffix_words": 0,
+      "string_encoding": "length32",
+      "pointer_words": [],
+      "handler_rva": "0x0022E1F0"
+    },
+    {
+      "table": "VisualEffects",
+      "opcode": "0x0965",
+      "name": "SMSG_PATCH_ITEM_VISUAL_EFFECTS",
+      "status": "verified",
+      "prefix_words": 2,
+      "strings": 1,
+      "suffix_words": 0,
+      "string_encoding": "length32",
+      "pointer_words": [
+        1
+      ],
+      "handler_rva": "0x0022E290"
+    },
+    {
+      "table": "Set",
+      "opcode": "0x0966",
+      "name": "SMSG_PATCH_ITEM_SET",
+      "status": "verified",
+      "prefix_words": 37,
+      "strings": 1,
+      "suffix_words": 0,
+      "string_encoding": "length32",
+      "pointer_words": [
+        1
+      ],
+      "handler_rva": "0x0022E0B0"
+    },
+    {
+      "table": "RandomSuffix",
+      "opcode": "0x0967",
+      "name": "SMSG_PATCH_ITEM_RANDOM_SUFFIX",
+      "status": "verified",
+      "prefix_words": 13,
+      "strings": 2,
+      "suffix_words": 0,
+      "string_encoding": "length32",
+      "pointer_words": [
+        1,
+        2
+      ],
+      "handler_rva": "0x0022DED0"
+    },
+    {
+      "table": "RandomProperties",
+      "opcode": "0x0968",
+      "name": "SMSG_PATCH_ITEM_RANDOM_PROPERTIES",
+      "status": "verified",
+      "prefix_words": 8,
+      "strings": 2,
+      "suffix_words": 0,
+      "string_encoding": "length32",
+      "pointer_words": [
+        1,
+        7
+      ],
+      "handler_rva": "0x0022DD10"
+    },
+    {
+      "table": "PurchaseGroup",
+      "opcode": "0x0969",
+      "name": "SMSG_PATCH_ITEM_PURCHASE_GROUP",
+      "status": "verified",
+      "prefix_words": 10,
+      "strings": 1,
+      "suffix_words": 0,
+      "string_encoding": "length32",
+      "pointer_words": [
+        9
+      ],
+      "handler_rva": "0x0022DBD0"
+    },
+    {
+      "table": "LimitCategory",
+      "opcode": "0x096A",
+      "name": "SMSG_PATCH_ITEM_LIMIT_CATEGORY",
+      "status": "verified",
+      "prefix_words": 4,
+      "strings": 1,
+      "suffix_words": 0,
+      "string_encoding": "length32",
+      "pointer_words": [
+        1
+      ],
+      "handler_rva": "0x0022DAA0"
+    },
+    {
+      "table": "DisplayInfo",
+      "opcode": "0x096B",
+      "name": "SMSG_PATCH_ITEM_DISPLAY_INFO",
+      "status": "verified",
+      "prefix_words": 25,
+      "strings": 14,
+      "suffix_words": 0,
+      "string_encoding": "length32",
+      "pointer_words": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22
+      ],
+      "handler_rva": "0x0022CF90"
+    },
+    {
+      "table": "CondExtCosts",
+      "opcode": "0x096C",
+      "name": "SMSG_PATCH_ITEM_COND_EXT_COSTS",
+      "status": "verified",
+      "prefix_words": 4,
+      "strings": 0,
+      "suffix_words": 0,
+      "string_encoding": "length32",
+      "pointer_words": [],
+      "handler_rva": "0x0022CEF0"
+    }
+  ]
+}

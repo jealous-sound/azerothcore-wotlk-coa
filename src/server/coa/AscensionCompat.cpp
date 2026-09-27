@@ -4133,7 +4133,12 @@ private:
         break;
       case CMSG_CREATURE_QUERY_BULK:
         for (uint32 entry : ReadBulkQueryEntries(packet, MAX_CREATURE_QUERY_BULK_ENTRIES))
-          SendCollectionCreatureQueryResponse(player->GetSession(), entry);
+        {
+          if (sObjectMgr->GetCreatureTemplate(entry))
+            player->GetSession()->SendCreatureQuerySingleResponse(entry, ObjectGuid::Empty);
+          else
+            SendCollectionCreatureQueryResponse(player->GetSession(), entry);
+        }
         break;
       case CMSG_CUSTOM_ASCENSION_POINT_SPEND_REQUEST:
         HandlePointSpendRequest(player, packet);

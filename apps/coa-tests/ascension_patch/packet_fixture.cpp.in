@@ -1,0 +1,35 @@
+#include <cassert>
+#include <cstdint>
+#include <optional>
+#include <string>
+#include <vector>
+using uint8 = std::uint8_t;
+using uint16 = std::uint16_t;
+using uint32 = std::uint32_t;
+class WorldPacket
+{
+public:
+    uint16 opcode;
+    std::vector<uint8> bytes;
+    WorldPacket(uint16 id, std::size_t) : opcode(id) { }
+    template<class T> WorldPacket& operator<<(T value)
+    {
+        for (std::size_t i = 0; i < sizeof(T); ++i)
+            bytes.push_back(uint8(value >> (i * 8)));
+        return *this;
+    }
+    void append(char const* data, std::size_t size)
+    {
+        assert(data && size);
+        bytes.insert(bytes.end(), data, data + size);
+    }
+};
+class Player
+{
+public:
+    bool connected = true;
+    std::optional<WorldPacket> sent;
+    Player* GetSession() { return connected ? this : nullptr; }
+    void SendDirectMessage(WorldPacket const* packet) { sent = *packet; }
+};
+#define LOG_ERROR(...)

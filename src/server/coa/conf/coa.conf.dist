@@ -277,3 +277,16 @@ Ascension.CallboardCache.PreviousStageOnly = 0
 #        Default:     6
 
 Ascension.CallboardCache.ItemLevelAllowance = 6
+
+# Send cached patch_spell overrides to every player before initial world visibility.
+# Disabled by default: 0 sends no patches and disables tooltip amount hooks.
+# SQL rows are loaded at startup; restart worldserver after editing patch_spell.
+# Restart the client to discard any patches received earlier.
+AscensionPatch.Tooltips = 0
+
+# Experimental client records; test each independently with a fresh client session.
+# All three require AscensionPatch.Tooltips = 1. Achievement delivery resends existing progress.
+# Criteria and category layouts remain unverified; keep them disabled for title-only testing.
+AscensionPatch.Achievements = 0
+AscensionPatch.AchievementCriteria = 0
+AscensionPatch.AchievementCategories = 0

@@ -1,0 +1,42 @@
+{
+  "dll_sha256": "0f8d847b3adc44a963606f0cd4f7938ad6fcd6f4d87feac3131c7153bdf3bb11",
+  "layouts": [
+    {
+      "table": "Achievement",
+      "opcode": "0x0936",
+      "name": "SMSG_PATCH_ACHIEVEMENT",
+      "prefix_words": 14,
+      "strings": 3,
+      "suffix_words": 0,
+      "string_encoding": "length32",
+      "pointer_words": [
+        4,
+        5,
+        11
+      ],
+      "handler_rva": "0x00229FB0"
+    },
+    {
+      "table": "Criteria",
+      "opcode": "0x0937",
+      "name": "SMSG_PATCH_ACHIEVEMENT_CRITERIA",
+      "prefix_words": 9,
+      "strings": 16,
+      "suffix_words": 5,
+      "string_encoding": "length32",
+      "pointer_words": [],
+      "handler_rva": "0x00229B40"
+    },
+    {
+      "table": "Category",
+      "opcode": "0x0938",
+      "name": "SMSG_PATCH_ACHIEVEMENT_CATEGORY",
+      "prefix_words": 2,
+      "strings": 16,
+      "suffix_words": 2,
+      "string_encoding": "length32",
+      "pointer_words": [],
+      "handler_rva": "0x00229850"
+    }
+  ]
+}

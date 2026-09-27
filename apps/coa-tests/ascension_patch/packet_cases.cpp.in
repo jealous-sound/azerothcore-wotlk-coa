@@ -1,0 +1,107 @@
+struct ExpectedLayout
+{
+    AscensionPatchSpells::Table table;
+    std::size_t prefix, strings, suffix;
+    bool nul;
+    std::vector<std::size_t> pointers;
+};
+
+int main()
+{
+    using namespace AscensionPatchSpells;
+    std::vector<ExpectedLayout> layouts = {
+        {Table::Charges, 2, 0, 0, false, {}},
+        {Table::ChargesCategory, 3, 0, 0, false, {}},
+        {Table::Affect, 3, 0, 0, false, {}},
+        {Table::CustomAttr, 11, 0, 0, false, {}},
+        {Table::Addon, 23, 0, 0, false, {}},
+        {Table::TagTypes, 29, 6, 0, true, {23, 24, 25, 26, 27, 28}},
+        {Table::Tags, 3, 0, 0, false, {}},
+        {Table::SpellSuggestions, 4, 0, 0, false, {}},
+        {Table::StatSuggestions, 4, 0, 0, false, {}},
+        {Table::ActivationOverlays, 14, 2, 0, true, {2, 9}},
+        {Table::Spell, 170, 4, 0, false, {136, 137, 138, 139}},
+        {Table::Visual, 32, 0, 0, false, {}},
+        {Table::VisualKit, 38, 0, 0, false, {}},
+        {Table::VisualKitModelAttach, 10, 0, 0, false, {}},
+        {Table::VisualEffectName, 1, 2, 4, false, {}},
+        {Table::Missile, 15, 0, 0, false, {}},
+        {Table::MissileMotion, 1, 2, 2, false, {}},
+        {Table::ItemEnchantment, 14, 16, 8, false, {}},
+        {Table::ShapeshiftForm, 18, 1, 0, false, {}},
+        {Table::Icon, 1, 1, 0, false, {}},
+        {Table::Category, 2, 0, 0, false, {}},
+        {Table::Duration, 4, 0, 0, false, {}},
+        {Table::CastTimes, 4, 0, 0, false, {}},
+        {Table::Radius, 4, 0, 0, false, {}},
+        {Table::Range, 8, 2, 0, false, {6, 7}},
+        {Table::Difficulty, 5, 0, 0, false, {}},
+        {Table::DescriptionVariables, 2, 1, 0, false, {1}},
+        {Table::EffectCameraShakes, 4, 0, 0, false, {}},
+        {Table::ChainEffects, 45, 2, 0, false, {7, 41}},
+        {Table::ItemEnchantmentCondition, 16, 0, 0, false, {}},
+        {Table::VisualKitAreaModel, 3, 1, 0, false, {1}},
+        {Table::VisualPrecastTransitions, 3, 2, 0, false, {1, 2}},
+        {Table::RuneCost, 5, 0, 0, false, {}},
+        {Table::FocusObject, 2, 1, 0, false, {1}}
+    };
+    for (auto const& layout : layouts)
+    {
+        std::vector<uint32> fields(layout.prefix + layout.suffix);
+        for (std::size_t i = 0; i < fields.size(); ++i) fields[i] = 0x12340000u + uint32(i);
+        std::vector<std::string> strings;
+        for (std::size_t i = 0; i < layout.strings; ++i) strings.push_back(i % 2 ? "" : "text" + std::to_string(i));
+        auto packet = Encode(layout.table, fields, strings);
+        assert(packet && packet->opcode == static_cast<uint16>(layout.table));
+        std::size_t cursor = 0;
+        auto readWord = [&]()
+        {
+            assert(cursor + 4 <= packet->bytes.size());
+            uint32 value = 0;
+            for (int shift = 0; shift < 32; shift += 8) value |= uint32(packet->bytes[cursor++]) << shift;
+            return value;
+        };
+        auto checkWord = [&](std::size_t index)
+        {
+            bool pointer = false;
+            for (std::size_t slot : layout.pointers) pointer |= slot == index;
+            assert(readWord() == (pointer ? 0 : fields[index]));
+        };
+        for (std::size_t i = 0; i < layout.prefix; ++i) checkWord(i);
+        for (auto const& text : strings)
+        {
+            if (!layout.nul) assert(readWord() == text.size());
+            for (unsigned char byte : text) assert(packet->bytes.at(cursor++) == byte);
+            if (layout.nul) assert(packet->bytes.at(cursor++) == 0);
+        }
+        for (std::size_t i = layout.prefix; i < fields.size(); ++i) checkWord(i);
+        assert(cursor == packet->bytes.size());
+        auto invalid = fields;
+        invalid.pop_back();
+        assert(!Encode(layout.table, invalid, strings));
+        invalid.push_back(1); invalid.push_back(2);
+        assert(!Encode(layout.table, invalid, strings));
+        auto extraStrings = strings;
+        extraStrings.emplace_back("extra");
+        assert(!Encode(layout.table, fields, extraStrings));
+    }
+    auto renewal = Encode(Table::Spell, std::vector<uint32>(170), {"Rippling Renewal", "", "", ""});
+    assert(renewal && renewal->bytes.size() == 712);
+    for (std::size_t i = 700; i < 712; ++i)
+        assert(renewal->bytes[i] == 0);
+    assert(!Encode(static_cast<Table>(0xFFFF), {}, {}));
+    assert(!Encode(Table::Icon, {1}, {std::string("a\0b", 3)}));
+    assert(!Encode(Table::Icon, {1}, {std::string(4097, 'x')}));
+    assert(!Encode(Table::ItemEnchantment, std::vector<uint32>(22), std::vector<std::string>(16, std::string(4096, 'x'))));
+    auto utf8 = Encode(Table::Icon, {1}, {"\xC3\xA9"});
+    assert((utf8->bytes == std::vector<uint8>{1, 0, 0, 0, 2, 0, 0, 0, 0xC3, 0xA9}));
+    Player player;
+    assert(!Send(nullptr, Table::Duration, {1, 2, 3, 4}));
+    player.connected = false;
+    assert(!Send(&player, Table::Duration, {1, 2, 3, 4}));
+    player.connected = true;
+    assert(!Send(&player, Table::Duration, {1}));
+    assert(!player.sent);
+    assert(Send(&player, Table::Duration, {1, 2, 3, 4}));
+    assert(player.sent && player.sent->opcode == 0x950);
+}

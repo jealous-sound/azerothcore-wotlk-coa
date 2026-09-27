@@ -1,0 +1,409 @@
+{
+  "dll_sha256": "0f8d847b3adc44a963606f0cd4f7938ad6fcd6f4d87feac3131c7153bdf3bb11",
+  "layouts": [
+    {
+      "table": "Charges",
+      "opcode": "0x0570",
+      "prefix_words": 2,
+      "strings": 0,
+      "suffix_words": 0,
+      "string_encoding": "length32",
+      "pointer_words": [],
+      "handler_rva": "0x001E3910",
+      "name": "SMSG_PATCH_SPELL_CHARGES"
+    },
+    {
+      "table": "ChargesCategory",
+      "opcode": "0x0571",
+      "prefix_words": 3,
+      "strings": 0,
+      "suffix_words": 0,
+      "string_encoding": "length32",
+      "pointer_words": [],
+      "handler_rva": "0x001E3880",
+      "name": "SMSG_PATCH_SPELL_CHARGES_CATEGORY"
+    },
+    {
+      "table": "Affect",
+      "opcode": "0x0574",
+      "prefix_words": 3,
+      "strings": 0,
+      "suffix_words": 0,
+      "string_encoding": "length32",
+      "pointer_words": [],
+      "handler_rva": "0x001E3790",
+      "name": "SMSG_PATCH_SPELL_AFFECT"
+    },
+    {
+      "table": "CustomAttr",
+      "opcode": "0x05F4",
+      "prefix_words": 11,
+      "strings": 0,
+      "suffix_words": 0,
+      "string_encoding": "length32",
+      "pointer_words": [],
+      "handler_rva": "0x001E39A0",
+      "name": "SMSG_PATCH_SPELL_CUSTOM_ATTR"
+    },
+    {
+      "table": "Addon",
+      "opcode": "0x0686",
+      "prefix_words": 23,
+      "strings": 0,
+      "suffix_words": 0,
+      "string_encoding": "length32",
+      "pointer_words": [],
+      "handler_rva": "0x001E36B0",
+      "name": "SMSG_PATCH_SPELL_ADDON"
+    },
+    {
+      "table": "TagTypes",
+      "opcode": "0x06C0",
+      "prefix_words": 29,
+      "strings": 6,
+      "suffix_words": 0,
+      "string_encoding": "nul",
+      "pointer_words": [
+        23,
+        24,
+        25,
+        26,
+        27,
+        28
+      ],
+      "handler_rva": "0x001E3BD0",
+      "name": "SMSG_PATCH_SPELL_TAG_TYPES"
+    },
+    {
+      "table": "Tags",
+      "opcode": "0x06C1",
+      "prefix_words": 3,
+      "strings": 0,
+      "suffix_words": 0,
+      "string_encoding": "length32",
+      "pointer_words": [],
+      "handler_rva": "0x001E40C0",
+      "name": "SMSG_PATCH_SPELL_TAGS"
+    },
+    {
+      "table": "SpellSuggestions",
+      "opcode": "0x06CE",
+      "prefix_words": 4,
+      "strings": 0,
+      "suffix_words": 0,
+      "string_encoding": "length32",
+      "pointer_words": [],
+      "handler_rva": "0x001E3A70",
+      "name": "SMSG_PATCH_SPELL_SPELL_SUGGESTIONS"
+    },
+    {
+      "table": "StatSuggestions",
+      "opcode": "0x06D2",
+      "prefix_words": 4,
+      "strings": 0,
+      "suffix_words": 0,
+      "string_encoding": "length32",
+      "pointer_words": [],
+      "handler_rva": "0x001E3B20",
+      "name": "SMSG_PATCH_SPELL_STAT_SUGGESTIONS"
+    },
+    {
+      "table": "ActivationOverlays",
+      "opcode": "0x06F6",
+      "prefix_words": 14,
+      "strings": 2,
+      "suffix_words": 0,
+      "string_encoding": "nul",
+      "pointer_words": [
+        2,
+        9
+      ],
+      "handler_rva": "0x001E3430",
+      "name": "SMSG_PATCH_SPELL_ACTIVATION_OVERLAYS"
+    },
+    {
+      "table": "Spell",
+      "opcode": "0x092A",
+      "prefix_words": 170,
+      "strings": 4,
+      "suffix_words": 0,
+      "string_encoding": "length32",
+      "pointer_words": [
+        136,
+        137,
+        138,
+        139
+      ],
+      "handler_rva": "0x00231DE0",
+      "name": "SMSG_PATCH_SPELL"
+    },
+    {
+      "table": "Visual",
+      "opcode": "0x092C",
+      "prefix_words": 32,
+      "strings": 0,
+      "suffix_words": 0,
+      "string_encoding": "length32",
+      "pointer_words": [],
+      "handler_rva": "0x002331F0",
+      "name": "SMSG_PATCH_SPELL_VISUAL"
+    },
+    {
+      "table": "VisualKit",
+      "opcode": "0x092D",
+      "prefix_words": 38,
+      "strings": 0,
+      "suffix_words": 0,
+      "string_encoding": "length32",
+      "pointer_words": [],
+      "handler_rva": "0x002333B0",
+      "name": "SMSG_PATCH_SPELL_VISUAL_KIT"
+    },
+    {
+      "table": "VisualKitModelAttach",
+      "opcode": "0x092E",
+      "prefix_words": 10,
+      "strings": 0,
+      "suffix_words": 0,
+      "string_encoding": "length32",
+      "pointer_words": [],
+      "handler_rva": "0x00233480",
+      "name": "SMSG_PATCH_SPELL_VISUAL_KIT_MODEL_ATTACH"
+    },
+    {
+      "table": "VisualEffectName",
+      "opcode": "0x092F",
+      "prefix_words": 1,
+      "strings": 2,
+      "suffix_words": 4,
+      "string_encoding": "length32",
+      "pointer_words": [],
+      "handler_rva": "0x00232FD0",
+      "name": "SMSG_PATCH_SPELL_VISUAL_EFFECT_NAME"
+    },
+    {
+      "table": "Missile",
+      "opcode": "0x0930",
+      "prefix_words": 15,
+      "strings": 0,
+      "suffix_words": 0,
+      "string_encoding": "length32",
+      "pointer_words": [],
+      "handler_rva": "0x00232830",
+      "name": "SMSG_PATCH_SPELL_MISSILE"
+    },
+    {
+      "table": "MissileMotion",
+      "opcode": "0x0931",
+      "prefix_words": 1,
+      "strings": 2,
+      "suffix_words": 2,
+      "string_encoding": "length32",
+      "pointer_words": [],
+      "handler_rva": "0x00232920",
+      "name": "SMSG_PATCH_SPELL_MISSILE_MOTION"
+    },
+    {
+      "table": "ItemEnchantment",
+      "opcode": "0x0935",
+      "prefix_words": 14,
+      "strings": 16,
+      "suffix_words": 8,
+      "string_encoding": "length32",
+      "pointer_words": [],
+      "handler_rva": "0x00232360",
+      "name": "SMSG_PATCH_SPELL_ITEM_ENCHANTMENT"
+    },
+    {
+      "table": "ShapeshiftForm",
+      "opcode": "0x0949",
+      "prefix_words": 18,
+      "strings": 1,
+      "suffix_words": 0,
+      "string_encoding": "length32",
+      "pointer_words": [],
+      "handler_rva": "0x00232DF0",
+      "name": "SMSG_PATCH_SPELL_SHAPESHIFT_FORM"
+    },
+    {
+      "table": "Icon",
+      "opcode": "0x094A",
+      "prefix_words": 1,
+      "strings": 1,
+      "suffix_words": 0,
+      "string_encoding": "length32",
+      "pointer_words": [],
+      "handler_rva": "0x00232160",
+      "name": "SMSG_PATCH_SPELL_ICON"
+    },
+    {
+      "table": "Category",
+      "opcode": "0x094F",
+      "prefix_words": 2,
+      "strings": 0,
+      "suffix_words": 0,
+      "string_encoding": "length32",
+      "pointer_words": [],
+      "handler_rva": "0x002317D0",
+      "name": "SMSG_PATCH_SPELL_CATEGORY"
+    },
+    {
+      "table": "Duration",
+      "opcode": "0x0950",
+      "prefix_words": 4,
+      "strings": 0,
+      "suffix_words": 0,
+      "string_encoding": "length32",
+      "pointer_words": [],
+      "handler_rva": "0x00231B90",
+      "name": "SMSG_PATCH_SPELL_DURATION"
+    },
+    {
+      "table": "CastTimes",
+      "opcode": "0x0951",
+      "prefix_words": 4,
+      "strings": 0,
+      "suffix_words": 0,
+      "string_encoding": "length32",
+      "pointer_words": [],
+      "handler_rva": "0x00231730",
+      "name": "SMSG_PATCH_SPELL_CAST_TIMES"
+    },
+    {
+      "table": "Radius",
+      "opcode": "0x0952",
+      "prefix_words": 4,
+      "strings": 0,
+      "suffix_words": 0,
+      "string_encoding": "length32",
+      "pointer_words": [],
+      "handler_rva": "0x00232B00",
+      "name": "SMSG_PATCH_SPELL_RADIUS"
+    },
+    {
+      "table": "Range",
+      "opcode": "0x0953",
+      "prefix_words": 8,
+      "strings": 2,
+      "suffix_words": 0,
+      "string_encoding": "length32",
+      "pointer_words": [
+        6,
+        7
+      ],
+      "handler_rva": "0x00232BA0",
+      "name": "SMSG_PATCH_SPELL_RANGE"
+    },
+    {
+      "table": "Difficulty",
+      "opcode": "0x0954",
+      "prefix_words": 5,
+      "strings": 0,
+      "suffix_words": 0,
+      "string_encoding": "length32",
+      "pointer_words": [],
+      "handler_rva": "0x00231B00",
+      "name": "SMSG_PATCH_SPELL_DIFFICULTY"
+    },
+    {
+      "table": "DescriptionVariables",
+      "opcode": "0x0955",
+      "prefix_words": 2,
+      "strings": 1,
+      "suffix_words": 0,
+      "string_encoding": "length32",
+      "pointer_words": [
+        1
+      ],
+      "handler_rva": "0x002319F0",
+      "name": "SMSG_PATCH_SPELL_DESCRIPTION_VARIABLES"
+    },
+    {
+      "table": "EffectCameraShakes",
+      "opcode": "0x0956",
+      "prefix_words": 4,
+      "strings": 0,
+      "suffix_words": 0,
+      "string_encoding": "length32",
+      "pointer_words": [],
+      "handler_rva": "0x00231C30",
+      "name": "SMSG_PATCH_SPELL_EFFECT_CAMERA_SHAKES"
+    },
+    {
+      "table": "ChainEffects",
+      "opcode": "0x0957",
+      "prefix_words": 45,
+      "strings": 2,
+      "suffix_words": 0,
+      "string_encoding": "length32",
+      "pointer_words": [
+        7,
+        41
+      ],
+      "handler_rva": "0x00231840",
+      "name": "SMSG_PATCH_SPELL_CHAIN_EFFECTS"
+    },
+    {
+      "table": "ItemEnchantmentCondition",
+      "opcode": "0x0958",
+      "prefix_words": 16,
+      "strings": 0,
+      "suffix_words": 0,
+      "string_encoding": "length32",
+      "pointer_words": [],
+      "handler_rva": "0x00232270",
+      "name": "SMSG_PATCH_SPELL_ITEM_ENCHANTMENT_CONDITION"
+    },
+    {
+      "table": "VisualKitAreaModel",
+      "opcode": "0x0959",
+      "prefix_words": 3,
+      "strings": 1,
+      "suffix_words": 0,
+      "string_encoding": "length32",
+      "pointer_words": [
+        1
+      ],
+      "handler_rva": "0x002332A0",
+      "name": "SMSG_PATCH_SPELL_VISUAL_KIT_AREA_MODEL"
+    },
+    {
+      "table": "VisualPrecastTransitions",
+      "opcode": "0x095A",
+      "prefix_words": 3,
+      "strings": 2,
+      "suffix_words": 0,
+      "string_encoding": "length32",
+      "pointer_words": [
+        1,
+        2
+      ],
+      "handler_rva": "0x00233540",
+      "name": "SMSG_PATCH_SPELL_VISUAL_PRECAST_TRANSITIONS"
+    },
+    {
+      "table": "RuneCost",
+      "opcode": "0x095F",
+      "prefix_words": 5,
+      "strings": 0,
+      "suffix_words": 0,
+      "string_encoding": "length32",
+      "pointer_words": [],
+      "handler_rva": "0x00232D60",
+      "name": "SMSG_PATCH_SPELL_RUNE_COST"
+    },
+    {
+      "table": "FocusObject",
+      "opcode": "0x0961",
+      "prefix_words": 2,
+      "strings": 1,
+      "suffix_words": 0,
+      "string_encoding": "length32",
+      "pointer_words": [
+        1
+      ],
+      "handler_rva": "0x00231CD0",
+      "name": "SMSG_PATCH_SPELL_FOCUS_OBJECT"
+    }
+  ]
+}

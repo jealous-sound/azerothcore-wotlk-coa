@@ -1,4 +1,5 @@
 /* Copyright (C) 2016+ AzerothCore, GNU AGPL v3. */
+#include "AscensionPatchSpells.h"
 #include "CellImpl.h"
 #include "DBCStores.h"
 #include "GridNotifiers.h"
@@ -12,6 +13,7 @@
 #include "SpellScript.h"
 #include <algorithm>
 #include <limits>
+#include <utility>
 
 namespace
 {
@@ -26,6 +28,8 @@ enum TimeSpells : uint32
     ResilienceAeon = 806291,
     ProtectionAeon = 806292,
     OblivionAeon = 806293,
+    RipplingRenewal = 560384,
+    RipplingRenewalHeal = 560385,
     Renewal = 560355,
     Protection = 560374,
     Oblivion = 583921,
@@ -54,6 +58,66 @@ enum TimeSpells : uint32
     ExpeditingTime = 706055,
     BorrowedTime = 680373,
     BorrowedTimeHeal = 680374
+};
+
+constexpr uint32 RipplingRenewalRefreshTimerKey = 0x50544348;
+
+class SpellModifierPreview
+{
+    Player* _owner;
+    Spell* _previous;
+
+public:
+    explicit SpellModifierPreview(Unit* caster) : _owner(caster->GetSpellModOwner()),
+        _previous(_owner ? std::exchange(_owner->m_spellModTakingSpell, nullptr) : nullptr) { }
+    ~SpellModifierPreview()
+    {
+        if (_owner)
+            _owner->m_spellModTakingSpell = _previous;
+    }
+};
+
+int32 RipplingRenewalTooltipAmount(Unit* caster)
+{
+    if (!caster || !caster->IsInWorld())
+        return 0;
+    SpellInfo const* pulse = sSpellMgr->GetSpellInfo(RipplingRenewalHeal);
+    if (!pulse)
+        return 0;
+    SpellModifierPreview preview(caster);
+    uint32 base = uint32(std::max(0, pulse->Effects[EFFECT_0].CalcValue(caster)));
+    uint32 healing = caster->SpellHealingBonusDone(caster, pulse, base, HEAL, EFFECT_0);
+    return int32(std::min<uint32>(healing, std::numeric_limits<int32>::max()));
+}
+
+class chronomancer_time_tooltip_amounts : public UnitScript
+{
+public:
+    chronomancer_time_tooltip_amounts() : UnitScript("chronomancer_time_tooltip_amounts", true,
+        {UNITHOOK_ON_AFTER_AURA_EFFECT_CALCULATE_AMOUNT, UNITHOOK_ON_UNIT_UPDATE}) { }
+
+    void OnAfterAuraEffectCalculateAmount(AuraEffect const* effect, Unit* caster, int32& amount) override
+    {
+        if (AscensionPatchSpells::IsTooltipPatchEnabled(RipplingRenewal) && effect->GetId() == RipplingRenewal &&
+            effect->GetEffIndex() == EFFECT_0 && effect->GetAuraType() == SPELL_AURA_PERIODIC_TRIGGER_SPELL)
+            amount = RipplingRenewalTooltipAmount(caster);
+    }
+
+    void OnUnitUpdate(Unit* unit, uint32 diff) override
+    {
+        if (!AscensionPatchSpells::IsTooltipPatchEnabled(RipplingRenewal) || !unit->IsPlayer())
+            return;
+        Aura* aura = unit->GetAura(RipplingRenewal);
+        if (!aura)
+            return;
+        uint64 elapsed = aura->GetScriptValue(RipplingRenewalRefreshTimerKey) + diff;
+        aura->SetScriptValue(RipplingRenewalRefreshTimerKey, elapsed % 500);
+        if (elapsed < 500)
+            return;
+        if (AuraEffect* effect = aura->GetEffect(EFFECT_0))
+            if (effect->GetAuraType() == SPELL_AURA_PERIODIC_TRIGGER_SPELL)
+                effect->SetAmount(RipplingRenewalTooltipAmount(aura->GetCaster()));
+    }
 };
 
 Player* Chronomancer(Unit* caster)
@@ -424,6 +488,7 @@ void AddSC_AscensionChronomancerTime()
 {
     new chronomancer_time_casts();
     new chronomancer_time_contracts();
+    new chronomancer_time_tooltip_amounts();
     RegisterSpellScript(aura_ascension_timeline_tether);
     RegisterSpellScript(aura_ascension_borrowed_time);
 }
