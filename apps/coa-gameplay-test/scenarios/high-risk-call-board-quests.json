@@ -1,0 +1,102 @@
+{
+  "schema": 1,
+  "name": "High-Risk quests are handed out and taken back at the faction call boards",
+  "contract": "The Hero's Call Board (gameobject 402000, Darnassus) and the Warchief's Command Board (402001, The Crossroads) give and take back the High-Risk dailies from the AscensionDB archive (revision d6494ceb3150, built 2026-09-12). A character under the High-Risk ruleset (aura 1004019) sees the board's available marker and can take quest 50015; a character without it is neither offered nor granted the quest. The accepted quest is finished and handed in at the same board, which pays its 3000 Runes of Descension (item 375250) and marks the daily done for the day. A quest titled For The Horde (980204) is taken only at the Horde board: the Alliance board refuses it and the Warchief's Command Board grants it to a High-Risk Horde character.",
+  "timeout_ms": 180000,
+  "players": [
+    { "id": "hero", "race": 4, "class": 1, "level": 70 },
+    { "id": "plain", "race": 4, "class": 1, "level": 70 },
+    { "id": "grunt", "race": 2, "class": 1, "level": 70 }
+  ],
+  "location": {
+    "map": 1,
+    "x": 9942.68,
+    "y": 2274.21,
+    "z": 1341.39,
+    "o": 3.14159
+  },
+  "steps": [
+    { "action": "set_phase", "label": "The High-Risk character stands in the world phase, where the boards are", "actor": "hero", "value": 1 },
+    { "action": "set_phase", "label": "So does the character outside High-Risk", "actor": "plain", "value": 1 },
+    { "action": "set_phase", "label": "And the Horde character", "actor": "grunt", "value": 1 },
+    {
+      "action": "teleport",
+      "label": "The Horde character waits at The Crossroads, by the Warchief's Command Board",
+      "actor": "grunt", "map": 1, "x": -440.542, "y": -2581.54, "z": 95.789, "o": 3.14159
+    },
+    { "action": "wait", "label": "Let the spawns and the teleport settle", "ms": 5000 },
+    { "action": "set_aura", "label": "Enter the High-Risk ruleset", "actor": "hero", "spell": 1004019, "stacks": 1 },
+    {
+      "action": "assert",
+      "label": "The High-Risk character may take the High-Risk daily",
+      "actor": "hero", "metric": "quest_takeable", "quest": 50015, "equals": 1
+    },
+    {
+      "action": "assert",
+      "label": "A character outside High-Risk may not",
+      "actor": "plain", "metric": "quest_takeable", "quest": 50015, "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "The board shows the High-Risk character something to take",
+      "actor": "hero", "metric": "dialog_status", "entry": 402000, "min": 1, "within_ms": 3000
+    },
+    {
+      "action": "assert",
+      "label": "The same board shows nothing to a character outside High-Risk",
+      "actor": "plain", "metric": "dialog_status", "entry": 402000, "equals": 0
+    },
+    { "action": "quest_accept", "label": "The character outside High-Risk asks for it anyway", "actor": "plain", "quest": 50015, "entry": 402000 },
+    {
+      "action": "assert",
+      "label": "The board refused it",
+      "actor": "plain", "metric": "quest_status", "quest": 50015, "equals": 0, "within_ms": 2000
+    },
+    { "action": "quest_accept", "label": "Take the daily at the Hero's Call Board", "actor": "hero", "quest": 50015, "entry": 402000 },
+    {
+      "action": "assert",
+      "label": "It is in the log, not yet finished",
+      "actor": "hero", "metric": "quest_status", "quest": 50015, "equals": 3, "within_ms": 3000
+    },
+    {
+      "action": "snapshot",
+      "label": "Record the runes carried before the hand-in",
+      "actor": "hero", "metric": "item_count", "item": 375250, "save_as": "runes_before"
+    },
+    { "action": "quest_complete", "label": "Finish its objectives, as the kills would", "actor": "hero", "quest": 50015 },
+    {
+      "action": "assert",
+      "label": "It is ready to hand in",
+      "actor": "hero", "metric": "quest_status", "quest": 50015, "equals": 1, "within_ms": 3000
+    },
+    { "action": "quest_turn_in", "label": "Hand it in at the same board", "actor": "hero", "quest": 50015, "entry": 402000, "reward": 0 },
+    {
+      "action": "assert",
+      "label": "The board took it back, so the repeatable quest has left the log",
+      "actor": "hero", "metric": "quest_status", "quest": 50015, "equals": 0, "within_ms": 3000
+    },
+    {
+      "action": "assert",
+      "label": "The board paid the quest's runes",
+      "actor": "hero", "metric": "item_count", "item": 375250, "relative_to": "runes_before", "equals": 3000
+    },
+    {
+      "action": "assert",
+      "label": "As a daily it cannot be taken again today",
+      "actor": "hero", "metric": "quest_takeable", "quest": 50015, "equals": 0
+    },
+    { "action": "quest_accept", "label": "Ask the Alliance board for a For The Horde quest", "actor": "hero", "quest": 980204, "entry": 402000 },
+    {
+      "action": "assert",
+      "label": "The Alliance board does not hand it out",
+      "actor": "hero", "metric": "quest_status", "quest": 980204, "equals": 0, "within_ms": 2000
+    },
+    { "action": "set_aura", "label": "The Horde character enters the High-Risk ruleset", "actor": "grunt", "spell": 1004019, "stacks": 1 },
+    { "action": "quest_accept", "label": "Take it at the Warchief's Command Board", "actor": "grunt", "quest": 980204, "entry": 402001 },
+    {
+      "action": "assert",
+      "label": "The Horde board granted it",
+      "actor": "grunt", "metric": "quest_status", "quest": 980204, "equals": 3, "within_ms": 3000
+    }
+  ]
+}

@@ -1327,7 +1327,7 @@ private:
         return nullptr;
     }
 
-    Creature* GetGiver(Player* player, uint32 entry)
+    WorldObject* GetGiver(Player* player, uint32 entry)
     {
         if (Creature* owned = GetOwnedCreature(player, entry))
             return owned;
@@ -1337,6 +1337,13 @@ private:
         for (Creature* creature : creatures)
             if (creature->IsAlive() && player->InSamePhase(creature))
                 return creature;
+
+        std::list<GameObject*> gameObjects;
+        player->GetGameObjectListWithEntryInGrid(gameObjects, entry, 30.0f);
+        for (GameObject* gameObject : gameObjects)
+            if (gameObject->isSpawned() && gameObject->GetGoType() == GAMEOBJECT_TYPE_QUESTGIVER
+                && player->InSamePhase(gameObject))
+                return gameObject;
 
         return nullptr;
     }
@@ -2535,8 +2542,9 @@ private:
         if (metric == "dialog_status")
         {
             uint32 entry = step.get<uint32>("entry");
-            Require(sObjectMgr->GetCreatureTemplate(entry) != nullptr, "Unknown creature entry in metric");
-            Creature* giver = GetGiver(player, entry);
+            Require(sObjectMgr->GetCreatureTemplate(entry) != nullptr || sObjectMgr->GetGameObjectTemplate(entry) != nullptr,
+                "Unknown quest giver entry in metric");
+            WorldObject* giver = GetGiver(player, entry);
             return giver ? double(player->GetQuestDialogStatus(giver)) : 0.0;
         }
         if (metric == "ball_offer_count" || metric == "ball_offers_quest")
@@ -3313,7 +3321,7 @@ private:
             uint32 quest = step.get<uint32>("quest");
             Require(sObjectMgr->GetQuestTemplate(quest) != nullptr, "Unknown quest");
 
-            Creature* giver = GetGiver(player, step.get<uint32>("entry"));
+            WorldObject* giver = GetGiver(player, step.get<uint32>("entry"));
             Require(giver != nullptr, "No giver of that entry is within reach of the player");
 
             if (action == "quest_turn_in")
@@ -3345,7 +3353,7 @@ private:
             else
             {
                 WorldPacket packet(CMSG_QUESTGIVER_ACCEPT_QUEST, 16);
-                packet << giver->GetGUID() << quest << uint8(0);
+                packet << giver->GetGUID() << quest << uint32(0);
                 bool const openToCore = sScriptMgr->CanPacketReceive(player->GetSession(), packet);
                 record.put("accept_handled_by_script", !openToCore);
                 if (openToCore)
@@ -3359,7 +3367,7 @@ private:
             uint32 quest = step.get<uint32>("quest");
             Require(sObjectMgr->GetQuestTemplate(quest) != nullptr, "Unknown quest");
 
-            Creature* giver = GetGiver(player, step.get<uint32>("entry"));
+            WorldObject* giver = GetGiver(player, step.get<uint32>("entry"));
             Require(giver != nullptr, "No giver of that entry is within reach of the player");
 
             WorldPacket packet(CMSG_QUESTGIVER_QUERY_QUEST, 16);
@@ -3373,7 +3381,7 @@ private:
             uint32 quest = step.get<uint32>("quest");
             Require(sObjectMgr->GetQuestTemplate(quest) != nullptr, "Unknown quest");
 
-            Creature* giver = GetGiver(player, step.get<uint32>("entry"));
+            WorldObject* giver = GetGiver(player, step.get<uint32>("entry"));
             Require(giver != nullptr, "No giver of that entry is within reach of the player");
 
             WorldPacket packet(CMSG_QUESTGIVER_COMPLETE_QUEST, 16);

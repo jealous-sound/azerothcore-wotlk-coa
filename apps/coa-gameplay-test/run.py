@@ -497,7 +497,7 @@ def validate(scenario):
             if metric in {'quest_status', 'quest_takeable', 'quest_objective_count'}:
                 require('quest' in step, f'{where}: metric needs quest')
             if metric == 'dialog_status':
-                require('entry' in step, f'{where}: metric needs creature entry')
+                require('entry' in step, f'{where}: metric needs quest giver entry')
             if metric == 'taxi_node':
                 number(step.get('entry'), f'{where}.entry', 1, 2**31 - 1, True)
             if metric == 'ball_offers_quest':
