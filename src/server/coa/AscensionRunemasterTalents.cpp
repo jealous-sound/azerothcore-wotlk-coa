@@ -169,6 +169,18 @@ void ApplyAdvancedMagiScaling(SpellInfo* info)
         scaling.SpellClassMask == elementalBurstFamilyFlags)
         scaling.MiscValue = SPELLMOD_BONUS_MULTIPLIER;
 }
+
+constexpr uint32 SPELL_ALTERATION_RANK_1 = 705619;
+
+void ApplyAlterationWaterTattooScope(SpellInfo* info)
+{
+    flag96 const rankOneTattooFamilyFlags(4, 0, 16418);
+    flag96 const waterTattooFamilyFlags(2097152, 0, 0);
+    SpellEffectInfo& effectiveness = info->Effects[EFFECT_0];
+    if (effectiveness.IsAura(SPELL_AURA_ADD_PCT_MODIFIER) && effectiveness.MiscValue == SPELLMOD_ALL_EFFECTS &&
+        effectiveness.SpellClassMask == rankOneTattooFamilyFlags)
+        effectiveness.SpellClassMask |= waterTattooFamilyFlags;
+}
 }
 
 void ApplyAscensionRunemasterTalentContracts(SpellInfo* info)
@@ -176,6 +188,11 @@ void ApplyAscensionRunemasterTalentContracts(SpellInfo* info)
     if (info->Id == SPELL_ADVANCED_MAGI && info->SpellFamilyName == 38)
     {
         ApplyAdvancedMagiScaling(info);
+        return;
+    }
+    if (info->Id == SPELL_ALTERATION_RANK_1 && info->SpellFamilyName == 38)
+    {
+        ApplyAlterationWaterTattooScope(info);
         return;
     }
     if (info->Id == SPELL_PERMAFROST_RUNE)
