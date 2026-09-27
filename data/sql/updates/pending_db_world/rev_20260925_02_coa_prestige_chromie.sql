@@ -9,7 +9,7 @@ INSERT INTO `creature_template`
    `speed_walk`, `speed_run`, `unit_class`, `unit_flags`, `unit_flags2`, `type`, `AIName`,
    `MovementType`, `HealthModifier`, `RegenHealth`, `flags_extra`, `ScriptName`)
 VALUES
-  (178081, 'Chromie', 'Prestige', 0, 63, 63, 35, 129, 1, 1.14286, 1, 33536, 2048, 2, '', 0, 1.35, 1, 2,
+  (178081, 'Chromie', 'Prestige', 0, 63, 63, 35, 131, 1, 1.14286, 1, 33536, 2048, 2, '', 0, 1.35, 1, 2,
    'npc_coa_prestige_chromie'),
   (990782, 'Chromie - Experience Items', NULL, 0, 1, 1, 35, 128, 1, 1.14286, 1, 0, 0, 7, '', 0, 1, 1, 0, '')
 ON DUPLICATE KEY UPDATE
@@ -32,14 +32,15 @@ INSERT INTO `creature_template_model` (`CreatureID`, `Idx`, `CreatureDisplayID`,
 -- Worldforged guardian, who is placed by the call boards for the same reason
 -- (modules/mod-worldforged-upgrades): a few yards from him on the same street, with the height
 -- taken from the NPCs standing around them. Should the call boards turn up, move her with
--- `.npc move` and rewrite these rows.
+-- `.npc move` and rewrite these rows. The guid is left to AUTO_INCREMENT; the DELETE
+-- by id clears any earlier rows, so re-applying the file never collides.
 DELETE FROM `creature` WHERE `id` = 178081;
 INSERT INTO `creature`
   (`id`, `map`, `spawnMask`, `phaseMask`, `equipment_id`, `position_x`, `position_y`, `position_z`,
    `orientation`, `spawntimesecs`, `wander_distance`, `currentwaypoint`, `curhealth`, `curmana`,
    `MovementType`)
 VALUES
-(178081, 0, 1, 1, 0, -8818.9, 629.6, 94.0, 3.79461, 300, 0, 0, 0, 0, 0),
+(178081, 0, 1, 1, 0, -8820.67, 625.782, 94.0, 3.78035, 300, 0, 0, 0, 0, 0),
 (178081, 1, 1, 1, 0, 1581.6, -4418.4, 8.2, 3.38266, 300, 0, 0, 0, 0, 0);
 
 -- "I would like to purchase Prestige items!": the 104 Prestige offers. Every price is an

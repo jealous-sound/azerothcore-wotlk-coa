@@ -27,6 +27,7 @@
 #include "CharacterCache.h"
 #include "Chat.h"
 #include "CommandScript.h"
+#include "CoA.Prestige.API.h"
 #include "CoAChallengeParse.h"
 #include "CoAChallengeInternal.h"
 #include "MiscScript.h"
@@ -482,8 +483,10 @@ bool IsSharedFate(uint32 challengeID);
 uint32 ExclusiveGroup(uint32 challengeID);
 bool IsTrialChallenge(uint32 challengeID);
 bool IsPrestigeChallenge(uint32 challengeID);
-// Aura the client treats as "prestiged" (C_Player:IsPrestiged() = HasAura(9930831)).
-constexpr uint32 COA_PRESTIGE_AURA = 9930831;
+// Prestige state and its aura live in mod-coa-prestige (single owner).
+// "Prestiged" is the client's C_Player:IsPrestiged() = HasAura(PRESTIGE_AURA).
+// The experience bonus is applied here, from CoAPrestige::ExperienceBonusPercent.
+constexpr uint32 COA_PRESTIGE_AURA = CoAPrestige::PRESTIGE_AURA;
 bool IsPrestiged(Player* player);
 uint32 RequiredGameMode(uint32 challengeID);
 void RecomputeRequiredGameModes(Player* player);

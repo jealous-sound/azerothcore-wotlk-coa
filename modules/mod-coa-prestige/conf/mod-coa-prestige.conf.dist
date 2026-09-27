@@ -25,11 +25,13 @@ CoAPrestige.Enable = 1
 CoAPrestige.RequiredLevel = 60
 
 #    CoAPrestige.ExperienceBonusPercent
-#        Description: Extra experience, in percent, for a character with the Prestige Challenge
-#                     aura (9930831). It multiplies every experience source after the realm rates
-#                     and experience potions. The aura's own amount in Spell.dbc is 150.
-#        Default:     150 - (2.5 times the experience)
-CoAPrestige.ExperienceBonusPercent = 150
+#        Description: Total experience, in percent, for a character in an active prestige cycle
+#                     (the Prestige Challenge aura 9930831). mod-coa-challenges applies it and
+#                     skips it while a Resolute / NO_BONUS_EXPERIENCE challenge is active. The
+#                     aura is SPELL_AURA_DUMMY (no mechanical effect); the client tooltip says
+#                     "by 300%".
+#        Default:     300 - (3 times the experience)
+CoAPrestige.ExperienceBonusPercent = 300
 
 #    CoAPrestige.Rewards
 #        Description: The items every activation pays, as item:count pairs. Whatever does not fit

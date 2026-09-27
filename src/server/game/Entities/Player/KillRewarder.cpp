@@ -180,12 +180,17 @@ void KillRewarder::_RewardXP(Player* player, float rate)
 
     if (xp)
     {
-        // 4.2.2. Apply auras modifying rewarded XP (SPELL_AURA_MOD_XP_PCT).
+        // 4.2.2. Apply auras modifying rewarded XP (SPELL_AURA_MOD_XP_PCT). A
+        // NO_BONUS_EXPERIENCE challenge drops the positive bonuses but keeps penalties
+        // (XP Lock, challenge drawbacks).
         bool const recruitAFriend = player->GetsRecruitAFriendBonus(true);
-        xp *= player->GetTotalAuraMultiplier(SPELL_AURA_MOD_XP_PCT, [recruitAFriend](AuraEffect const* effect)
+        bool const noBonusExperience = sScriptMgr->OnPlayerHasNoBonusExperience(player);
+        xp *= player->GetTotalAuraMultiplier(SPELL_AURA_MOD_XP_PCT, [recruitAFriend, noBonusExperience](AuraEffect const* effect)
         {
             // CoA's party Aura of Experience explicitly excludes the recruit-a-friend bonus.
-            return effect->GetId() != 818059 || !recruitAFriend;
+            if (effect->GetId() == 818059 && recruitAFriend)
+                return false;
+            return !noBonusExperience || effect->GetAmount() <= 0;
         });
 
         // 4.2.3. Give XP to player.
