@@ -21,6 +21,7 @@
 #include "AscensionClassMechanics26To32.h"
 #include "AscensionCoATalentData.h"
 #include "AscensionCoAConfig.h"
+#include "AscensionRealmLevelCap.h"
 #include "WorldSessionMgr.h"
 #include "AscensionCoATalentState.h"
 #include "AscensionRunemasterEchoes.h"
@@ -5677,6 +5678,7 @@ public:
     if (ascensionCompatConfig.GetConfigValue<bool>(
             AscensionCompatConfig::ENABLED)) {
       SendAscensionCoAXpConfig(player->GetSession());
+      SendAscensionRealmLevelCap(player->GetSession());
       AscensionClassService::Instance().OnPlayerLogin(player);
       RemoveLegacyQuestSpells(player);
       SynchronizeAscensionClassMechanics(player);
