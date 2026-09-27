@@ -323,6 +323,8 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[1].TargetB = SpellImplicitTargetInfo();
         info->TargetAuraSpell = 0;
     }
+    if (id == 801545)
+        info->TargetAuraSpell = 0;
     if (id == 801514)
     {
         info->Effects[2].TargetA = SpellImplicitTargetInfo(TARGET_UNIT_MASTER);
