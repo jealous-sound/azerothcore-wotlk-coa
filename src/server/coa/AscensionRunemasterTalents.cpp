@@ -35,6 +35,7 @@ void SyncStonePetroglyph(Player* player)
 
 constexpr uint32 SPELL_RUNIC_BREAKOUT = 705583;
 constexpr uint32 SPELL_RUNIC_BREAKOUT_WINDOW = 520767;
+constexpr uint32 SPELL_WAVEFORGED_WINDOW = 500469;
 
 void OpenRunicBreakoutWindow(Player* player, Aura const* runeshroud, AuraRemoveMode mode)
 {
@@ -46,7 +47,8 @@ void OpenRunicBreakoutWindow(Player* player, Aura const* runeshroud, AuraRemoveM
 
 void SyncRuneshroudOrWaveforged(Player* player)
 {
-    bool active = player->HasAura(500288, player->GetGUID()) || player->HasAura(705565, player->GetGUID()) ||
+    bool active = player->HasAura(500288, player->GetGUID()) ||
+        player->HasAura(SPELL_WAVEFORGED_WINDOW, player->GetGUID()) ||
         player->HasAura(SPELL_RUNIC_BREAKOUT_WINDOW, player->GetGUID());
     if (!active)
         player->RemoveAurasDueToSpell(808089, player->GetGUID());
@@ -131,7 +133,7 @@ public:
         uint32 id = aura->GetId();
         if (id == 707157 || id == 712310 || IsEarthTattoo(id))
             SyncStonePetroglyph(player);
-        if (id == 500288 || id == 705565 || id == SPELL_RUNIC_BREAKOUT_WINDOW)
+        if (id == 500288 || id == SPELL_WAVEFORGED_WINDOW || id == SPELL_RUNIC_BREAKOUT_WINDOW)
             SyncRuneshroudOrWaveforged(player);
     }
 
@@ -151,7 +153,7 @@ public:
             player->CastSpell(player, 520768, true);
         if (id == SPELL_RUNESHROUD)
             OpenRunicBreakoutWindow(player, aura, mode);
-        if (id == 500288 || id == 705565 || id == SPELL_RUNIC_BREAKOUT_WINDOW)
+        if (id == 500288 || id == SPELL_WAVEFORGED_WINDOW || id == SPELL_RUNIC_BREAKOUT_WINDOW)
             SyncRuneshroudOrWaveforged(player);
     }
 };

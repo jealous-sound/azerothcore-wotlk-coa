@@ -130,6 +130,24 @@ int main()
     tempestCaster.cls = CLASS_WILDWALKER;
     tempest.OnAuraApply(&tempestCaster, &runicTempest);
     assert(!tempestCaster.HasAura(808089));
+
+    Player waveforged;
+    waveforged.cls = CLASS_SPIRIT_MAGE;
+    Aura waveforgedTalent;
+    waveforgedTalent.id = 705565;
+    waveforged.auras.insert(705565);
+    events.OnAuraApply(&waveforged, &waveforgedTalent);
+    assert(!waveforged.HasAura(808089));
+    Aura waveforgedWindow;
+    waveforgedWindow.id = 500469;
+    waveforged.auras.insert(500469);
+    events.OnAuraApply(&waveforged, &waveforgedWindow);
+    assert(waveforged.HasAura(808089));
+    waveforged.auras.erase(500469);
+    AuraApplication windowEnd;
+    windowEnd.aura = waveforgedWindow;
+    events.OnAuraRemove(&waveforged, &windowEnd, AURA_REMOVE_BY_EXPIRE);
+    assert(!waveforged.HasAura(808089) && waveforged.HasAura(705565));
 }
 '''
 
@@ -178,8 +196,8 @@ def main():
         assert rows[712310][95] == 23 and rows[712310][98] == 4000 and rows[712310][116] == 712337
         assert rows[712310][97] == 37 and rows[712310][112] == 98
         assert rows[712337][71] == 136 and rows[712337][80] + rows[712337][74] == 3
-    print("PASS: Earth Tattoo ranks, acquisition/removal ordering, helper continuity, Runeshroud exit gates "
-          "and the Runic Tempest marker")
+    print("PASS: Earth Tattoo ranks, acquisition/removal ordering, helper continuity, Runeshroud exit gates, "
+          "the Runic Tempest marker and the Waveforged window")
 
 
 if __name__ == "__main__":
