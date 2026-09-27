@@ -1,5 +1,6 @@
 /* Copyright (C) 2016+ AzerothCore, GNU AGPL v3. */
 #include "AscensionRangerTalents.h"
+#include "Log.h"
 #include "Player.h"
 #include "ScriptMgr.h"
 #include "Spell.h"
@@ -34,7 +35,8 @@ enum RangerTalentSpells : uint32
     SPELL_FRENZY = 520492,
     SPELL_WORN_OUT = 804457,
     SPELL_PILFERING = 705087,
-    SPELL_PILFERING_HEAL = 520880
+    SPELL_PILFERING_HEAL = 520880,
+    SPELL_GUIDANCE = 532261
 };
 
 enum RangerTalentRankChains : uint32
@@ -64,6 +66,7 @@ constexpr std::array<WingmanCompanion, 3> WingmanCompanions =
     {NPC_DRAGONHAWK, SPELL_DRAGONHAWK_PRESENCE}
 }};
 
+constexpr uint32 GUIDANCE_SCHOOL_MASK = SPELL_SCHOOL_NORMAL | SPELL_SCHOOL_NATURE;
 constexpr uint8 RANGER_ADVANTAGE_MAX_STACKS = 5;
 constexpr int32 WINGMAN_REFRESH_MS = 500;
 
@@ -275,6 +278,81 @@ class aura_ascension_ranger_pilfering : public AuraScript
     }
 };
 
+class aura_ascension_ranger_guidance : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_ranger_guidance);
+
+    bool Validate(SpellInfo const* spellInfo) override
+    {
+        SpellEffectInfo const& damage = spellInfo->Effects[EFFECT_0];
+        return spellInfo->Id == SPELL_GUIDANCE && spellInfo->IsPassive() &&
+            damage.IsAura(SPELL_AURA_MOD_DAMAGE_PERCENT_DONE) && damage.DieSides == 1 &&
+            ValidateSpellInfo({SPELL_WAR_FALCON_PRESENCE, SPELL_DRAGONHAWK_PRESENCE});
+    }
+
+    void Calculate(AuraEffect const*, int32& amount, bool& canBeRecalculated)
+    {
+        canBeRecalculated = true;
+        amount = 0;
+        Unit* owner = GetUnitOwner();
+        if (!owner)
+            return;
+
+        for (Unit* controlled : owner->m_Controlled)
+        {
+            if (!controlled || !controlled->IsAlive() || controlled->GetOwnerGUID() != owner->GetGUID())
+                continue;
+            for (WingmanCompanion const& companion : WingmanCompanions)
+            {
+                SpellInfo const* presence = sSpellMgr->GetSpellInfo(companion.Presence);
+                if (controlled->GetEntry() == companion.Entry && presence &&
+                    owner->IsWithinDistInMap(controlled, presence->Effects[EFFECT_0].CalcRadius()))
+                    ++amount;
+            }
+        }
+    }
+
+    void Period(AuraEffect const*, bool& isPeriodic, int32& timer)
+    {
+        isPeriodic = true;
+        timer = WINGMAN_REFRESH_MS;
+    }
+
+    void Refresh(AuraEffect const* effect)
+    {
+        PreventDefaultAction();
+        GetAura()->GetEffect(effect->GetEffIndex())->RecalculateAmount();
+    }
+
+    void Register() override
+    {
+        DoEffectCalcAmount += AuraEffectCalcAmountFn(aura_ascension_ranger_guidance::Calculate,
+            EFFECT_0, SPELL_AURA_MOD_DAMAGE_PERCENT_DONE);
+        DoEffectCalcPeriodic += AuraEffectCalcPeriodicFn(aura_ascension_ranger_guidance::Period,
+            EFFECT_0, SPELL_AURA_MOD_DAMAGE_PERCENT_DONE);
+        OnEffectPeriodic += AuraEffectPeriodicFn(aura_ascension_ranger_guidance::Refresh,
+            EFFECT_0, SPELL_AURA_MOD_DAMAGE_PERCENT_DONE);
+    }
+};
+
+class ranger_guidance_contract : public GlobalScript
+{
+public:
+    ranger_guidance_contract() : GlobalScript("ranger_guidance_contract",
+        {GLOBALHOOK_ON_LOAD_SPELL_CUSTOM_ATTR}) { }
+
+    void OnLoadSpellCustomAttr(SpellInfo* info) override
+    {
+        if (!info || info->Id != SPELL_GUIDANCE)
+            return;
+
+        if (info->SchoolMask == SPELL_SCHOOL_NORMAL || info->SchoolMask == GUIDANCE_SCHOOL_MASK)
+            info->SchoolMask = GUIDANCE_SCHOOL_MASK;
+        else
+            LOG_ERROR("coa", "Skipped unexpected Guidance school mask {}", info->SchoolMask);
+    }
+};
+
 class ranger_swiftshot_hits : public AllSpellScript
 {
 public:
@@ -330,5 +408,7 @@ void AddSC_AscensionRangerTalents()
     RegisterSpellScript(aura_ascension_ranger_highwayman);
     RegisterSpellScript(aura_ascension_ranger_frenzy);
     RegisterSpellScript(aura_ascension_ranger_pilfering);
+    RegisterSpellScript(aura_ascension_ranger_guidance);
+    new ranger_guidance_contract();
     new ranger_swiftshot_hits();
 }
