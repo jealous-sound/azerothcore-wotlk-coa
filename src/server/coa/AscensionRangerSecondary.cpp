@@ -11,6 +11,59 @@ namespace
 {
 constexpr uint32 AdvantageCompanions[] = {704337, 801429, 801700, 802612};
 
+enum RangerAdaptationSpells : uint32
+{
+    SPELL_FOOTPADS_ADAPTATION = 523489,
+    SPELL_GREATER_FOOTPADS_ADAPTATION = 523513,
+    SPELL_WOODSMANS_ADAPTATION = 800266,
+    SPELL_GREATER_WOODSMANS_ADAPTATION = 680294
+};
+
+class aura_ascension_ranger_adaptation : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_ranger_adaptation);
+
+    bool Validate(SpellInfo const* spellInfo) override
+    {
+        return ValidateSpellInfo({SPELL_FOOTPADS_ADAPTATION, SPELL_GREATER_FOOTPADS_ADAPTATION,
+            SPELL_WOODSMANS_ADAPTATION, SPELL_GREATER_WOODSMANS_ADAPTATION}) &&
+            RivalAdaptation(spellInfo->Id) != 0;
+    }
+
+    static uint32 RivalAdaptation(uint32 spellId)
+    {
+        switch (spellId)
+        {
+            case SPELL_FOOTPADS_ADAPTATION:
+                return SPELL_GREATER_FOOTPADS_ADAPTATION;
+            case SPELL_GREATER_FOOTPADS_ADAPTATION:
+                return SPELL_FOOTPADS_ADAPTATION;
+            case SPELL_WOODSMANS_ADAPTATION:
+                return SPELL_GREATER_WOODSMANS_ADAPTATION;
+            case SPELL_GREATER_WOODSMANS_ADAPTATION:
+                return SPELL_WOODSMANS_ADAPTATION;
+            default:
+                return 0;
+        }
+    }
+
+    void ExcludeRival(AuraEffect const*, AuraEffectHandleModes mode)
+    {
+        if (mode & AURA_EFFECT_HANDLE_REAL)
+        {
+            uint32 rival = RivalAdaptation(GetId());
+            if (rival)
+                GetUnitOwner()->RemoveAurasDueToSpell(rival, GetUnitOwner()->GetGUID());
+        }
+    }
+
+    void Register() override
+    {
+        AfterEffectApply += AuraEffectApplyFn(aura_ascension_ranger_adaptation::ExcludeRival,
+            EFFECT_0, SPELL_AURA_ANY, AURA_EFFECT_HANDLE_REAL);
+    }
+};
+
 class aura_ascension_ranger_advantage : public AuraScript
 {
     PrepareAuraScript(aura_ascension_ranger_advantage);
@@ -120,6 +173,7 @@ public:
 
 void AddSC_AscensionRangerSecondary()
 {
+    RegisterSpellScript(aura_ascension_ranger_adaptation);
     RegisterSpellScript(aura_ascension_ranger_advantage);
     new ranger_secondary_hits();
     new ranger_secondary_contracts();

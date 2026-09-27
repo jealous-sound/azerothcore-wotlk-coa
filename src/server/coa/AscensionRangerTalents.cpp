@@ -1,5 +1,7 @@
 /* Copyright (C) 2016+ AzerothCore, GNU AGPL v3. */
 #include "AscensionRangerTalents.h"
+#include "AllCreatureScript.h"
+#include "Creature.h"
 #include "Player.h"
 #include "ScriptMgr.h"
 #include "Spell.h"
@@ -62,6 +64,34 @@ constexpr std::array<WingmanCompanion, 3> WingmanCompanions =
 
 constexpr uint8 RANGER_ADVANTAGE_MAX_STACKS = 5;
 constexpr int32 WINGMAN_REFRESH_MS = 500;
+
+class ranger_wingman_companions : public AllCreatureScript
+{
+public:
+    ranger_wingman_companions() : AllCreatureScript("ranger_wingman_companions") { }
+
+    void OnBeforeCreatureSelectLevel(CreatureTemplate const*, Creature* creature, uint8& level) override
+    {
+        if (!IsWingmanCompanion(creature))
+            return;
+
+        Unit* owner = creature->GetCharmerOrOwner();
+        if (owner && owner->IsPlayer() && owner->ToPlayer()->getClass() == CLASS_RANGER &&
+            owner->GetLevel() != level)
+            level = owner->GetLevel();
+    }
+
+    static bool IsWingmanCompanion(Creature const* creature)
+    {
+        if (!creature)
+            return false;
+
+        for (WingmanCompanion const& companion : WingmanCompanions)
+            if (creature->GetEntry() == companion.Entry)
+                return true;
+        return false;
+    }
+};
 
 bool HasFullAdvantage(Player const* player)
 {
@@ -251,5 +281,6 @@ void AddSC_AscensionRangerTalents()
     RegisterSpellScript(spell_ascension_ranger_knockout);
     RegisterSpellScript(aura_ascension_ranger_wingman);
     RegisterSpellScript(aura_ascension_ranger_highwayman);
+    new ranger_wingman_companions();
     new ranger_swiftshot_hits();
 }
