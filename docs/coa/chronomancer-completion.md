@@ -211,7 +211,11 @@ the decisive field.
   `Spell::EffectScriptEffect`, which handles only `SPELLFAMILY_GENERIC` and `SPELLFAMILY_ROGUE`, and no module
   script registers on the id.
 - **#1071 Unstable Chronoglass 503836** — `SPELL_EFFECT_SUMMON` with `EffectMiscValue` 506015, and creature
-  506015 exists neither in `data/sql/` nor in the repack's world dump.
+  506015 exists neither in `data/sql/` nor in the repack's world dump. The spell side of the mechanic is
+  shipped: 506638 "Unstable Chronoglass" is `SPELL_AURA_SPELL_MAGNET` on `TARGET_UNIT_MASTER` with
+  `ProcCharges` 3, the tooltip's "next 3", which `Unit::GetMagicHitRedirectTarget` consumes natively, and
+  503870 "[Aura]" (`SPELL_AURA_DUMMY` + `SPELL_AURA_MOD_STUN`, visual 19992) is the glass's own state. Only the
+  creature row is missing: its display id, faction, level, `unit_class` and flags are in no readable source.
 - **#765 Incarnation of Chaos 570067** — its Description promises resetting Chromatic Shard's cooldown and a
   free next cast; its three effects do none of it. 504723 is the record that does exactly that, and nothing in
   `Spell.dbc` triggers it.
@@ -233,8 +237,12 @@ the decisive field.
   100% of their total health, and heals it back at the end. Effect 0 is aura 69 `SPELL_AURA_SCHOOL_ABSORB`
   with `EffectBasePoints` 25 and `EffectMiscValueB` 100, which `Unit::CalcAbsorbResist` reads as a flat ~25
   shield; damage splitting in this core is a different aura, 300 `SPELL_AURA_SHARE_DAMAGE_PCT` in
-  `Unit::DealDamage`. The cap and the end-of-duration heal have no carrier, and effect 1 is an unscripted
-  `SPELL_AURA_DUMMY`.
+  `Unit::DealDamage`, and effect 1 is an unscripted `SPELL_AURA_DUMMY`. The payloads do exist: 707600
+  "The Vast Infinite [Damage]" ("Share damage.") and 707601 "[Heal]" ("Share heal."), both resolved-value
+  helpers. Since 2026-09-27 `spell_ascension_the_vast_infinite` absorbs 25% of each hit up to 100% of the
+  holder's maximum health, splits it evenly across the caster's linked group members through 707600 and heals
+  each of them through 707601 at expiry for the shared damage it took (`chronomancer-the-vast-infinite-share`).
+  The cap is not exercised by that scenario.
 - **#3152 Overcorrection 707657** — the tooltip promises a heal-over-time on the caster; the single effect is
   `APPLY_AURA` with `Aura=354`, `EffectBasePoints` 5 and `EffectTriggerSpell` 561231, and aura 354 is
   `nullptr` in the handler table. The HoT 561231 itself is ready (`SPELL_AURA_PERIODIC_HEAL`, 1000 ms
@@ -255,7 +263,14 @@ the decisive field.
 - **#1163 Rapid Acceleration 570149** — the tooltip adds 15% bonus-healing scaling to Accelerated Recovery and
   an instant heal for 15% of the total periodic effect. Effect 0 is `SPELL_AURA_ADD_PCT_MODIFIER` with
   `EffectMiscValue` 40 while `MAX_SPELLMOD` is 32, so `AuraEffect::CalculateSpellMod` and
-  `Player::AddSpellMod` both discard it; effect 1 is an unscripted `SPELL_AURA_DUMMY`.
+  `Player::AddSpellMod` both discard it; effect 1 is an unscripted `SPELL_AURA_DUMMY`. The client names the
+  private index: Weapon Empowerment 92857 "[Spell Power Direct]" uses op 24 and 92858 "[Spell Power DoT]" op 40.
+  Since 2026-09-27 effect 0 loads as `SPELLMOD_BONUS_MULTIPLIER`, which scales Accelerated Recovery's periodic
+  coefficient in `Unit::SpellHealingBonusDone`, and each application casts the client's Accelerated Recovery
+  heal 804500 for 15% of the tick amount times the total ticks (`chronomancer-rapid-acceleration`). Accelerated
+  Recovery itself still has no bonus-healing coefficient in the repository (`EffectBonusMultiplier` 0, no
+  `spell_bonus_data` row) although its tooltip reads `$bh*0.23` per tick, so the 15% multiplies whatever the
+  world database supplies.
 - **Singularity Core 804438** (surfaced by #2984, out of its scope) — the tooltip says "Empower your **Wand
   attacks**", but its aura-42 effect has an empty `EffectSpellClassMask`, so the entry
   `SpellMgr::LoadSpellProcs` generates has
@@ -281,3 +296,8 @@ Records whose displayed text describes something their own effects do not, with 
 - **Waves of Time 801277, Shatter Echo 680374** — both carry an `AuraDescription` for an aura effect the
   record does not have; **524944** names "Empower Wand: Artillery" where its `EffectMiscValue` is 804435 Flux
   Emitter.
+- **The Bieko Effect 706099** (#1219) — Hasten 801304's `$?s706099` text and 707312's own description name
+  Dimensional Divergence, Backtrack and Timeguard, and 712371's names Mend Timeline and Temporal Focus; the
+  talent's description and 707312's `EffectMiscValue`s agree on Dimensional Divergence 802790, Temporal Anomaly
+  806315 and Temporal Focus 806165, and those are what `spell_ascension_the_bieko_effect` reduces
+  (`chronomancer-bieko-effect-cooldowns`).
