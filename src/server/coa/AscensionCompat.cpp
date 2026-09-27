@@ -666,7 +666,7 @@ public:
                                AscensionCompatConfig::AUTO_PROGRESSION) ||
         botCannotBuyBooksOfAscension;
     for (uint32 spellId : racialSpells)
-        if (automaticProgression && !player->HasSpell(spellId) && sSpellMgr->GetSpellInfo(spellId))
+        if (!player->HasSpell(spellId) && sSpellMgr->GetSpellInfo(spellId))
         {
             player->learnSpell(spellId, false);
             ++learned;
