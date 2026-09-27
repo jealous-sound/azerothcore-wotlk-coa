@@ -127,7 +127,7 @@ public:
                 spell->SetScriptValue(Dawn, 1);
                 State(player).timers.ScheduleEvent(Dawn, 1s);
             }
-            if (AuraEffect* choice = dawn->GetEffect(EFFECT_1); choice && choice->GetAmount() &&
+            if (AuraEffect* choice = dawn->GetEffect(EFFECT_0); choice && choice->GetAmount() &&
                 (player->HasSpell(92135) || player->HasAura(92135)))
             {
                 uint32 school = info->SchoolMask & (SPELL_SCHOOL_MASK_HOLY | SPELL_SCHOOL_MASK_FIRE);

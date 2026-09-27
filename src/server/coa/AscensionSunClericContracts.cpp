@@ -80,7 +80,6 @@ void ApplyContracts(SpellInfo* info)
     if (id == Dawn)
     {
         dummy(0);
-        dummy(1);
         info->ProcCharges = 10;
     }
     if (id == SolarPower)
