@@ -56,8 +56,7 @@ enum ReaperTalentSpells : uint32
     SPELL_WEAKENED_SOULS = 92146,
     SPELL_WEAKENED_SOUL = 803433,
     SPELL_DOMINION = 803999,
-    SPELL_GHOST_CLAW = 803985,
-    SPELL_GHOST_CLAW_TALENT_REPLACEMENT = 807234
+    SPELL_GHOST_CLAW = 803985
 };
 
 Unit* HostileTargetInRange(Player* player, uint32 spellId)
@@ -183,7 +182,7 @@ class aura_ascension_reaper_ghost_claw : public AuraScript
 
     bool Validate(SpellInfo const* info) override
     {
-        return info->Id == SPELL_GHOST_CLAW || info->Id == SPELL_GHOST_CLAW_TALENT_REPLACEMENT;
+        return info->Id == SPELL_GHOST_CLAW;
     }
 
     void ResetOnDeath(AuraEffect const*, AuraEffectHandleModes)
@@ -195,8 +194,8 @@ class aura_ascension_reaper_ghost_claw : public AuraScript
             return;
 
         Player* player = caster->ToPlayer();
-        if (player->HasSpellCooldown(GetId()))
-            player->RemoveSpellCooldown(GetId(), true);
+        if (player->HasSpellCooldown(SPELL_GHOST_CLAW))
+            player->RemoveSpellCooldown(SPELL_GHOST_CLAW, true);
     }
 
     void Register() override
