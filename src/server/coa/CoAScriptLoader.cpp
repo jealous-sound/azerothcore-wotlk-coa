@@ -266,6 +266,7 @@ void AddSC_AscensionReaperReliquary();
 void AddSC_AscensionReaperGhostClaw();
 void AddSC_AscensionReaperAnimaAmbusher();
 void AddSC_AscensionReaperMindScreech();
+void AddSC_AscensionReaperBloodBinding();
 void AddSC_AscensionPrimalistSecondary();
 void AddSC_AscensionRunemasterSecondary();
 void AddSC_AscensionRunemasterBurnedEtching();
@@ -525,6 +526,7 @@ void AddCoAScripts()
     AddSC_AscensionReaperGhostClaw();
     AddSC_AscensionReaperAnimaAmbusher();
     AddSC_AscensionReaperMindScreech();
+    AddSC_AscensionReaperBloodBinding();
     AddSC_AscensionPrimalistSecondary();
     AddSC_AscensionRunemasterSecondary();
     AddSC_AscensionRunemasterBurnedEtching();
