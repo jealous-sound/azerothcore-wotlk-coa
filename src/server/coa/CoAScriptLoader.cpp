@@ -263,6 +263,7 @@ void AddSC_AscensionPrimalistSecondary();
 void AddSC_AscensionRunemasterSecondary();
 void AddSC_AscensionRunemasterHurricane();
 void AddSC_AscensionRunemasterRiftClones();
+void AddSC_AscensionRunemasterDisappearance();
 void AddSC_AscensionRunemasterTalentEffects();
 void AddSC_AscensionRunemasterRunicTalents();
 void AddSC_AscensionRunemasterElementalTalents();
@@ -511,6 +512,7 @@ void AddCoAScripts()
     AddSC_AscensionRunemasterSecondary();
     AddSC_AscensionRunemasterHurricane();
     AddSC_AscensionRunemasterRiftClones();
+    AddSC_AscensionRunemasterDisappearance();
     AddSC_AscensionRunemasterTalentEffects();
     AddSC_AscensionRunemasterRunicTalents();
     AddSC_AscensionRunemasterElementalTalents();
