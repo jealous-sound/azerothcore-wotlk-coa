@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "Barbarian: every Brutal Swing and Decapitate rank accepts a one-handed weapon (#5124, #5135)",
-  "contract": "Brutal Swing rank 2 (500996) and Decapitate rank 2 (806905) carry an EquippedItemInventoryTypeMask that their own EquippedItemSubClassMask contradicts: the subclass list admits one-handed axes, maces, swords, fists, daggers and spears, but the slot mask accepts only a two-handed weapon. A Barbarian wielding a one-handed weapon therefore gets SPELL_FAILED_EQUIPPED_ITEM_CLASS (29) from rank 2 onwards while rank 1 (500913, 804414) succeeds. Every rank of both chains must accept the same one-handed weapon, and every rank must still refuse to cast with no weapon equipped.",
+  "contract": "Brutal Swing rank 2 (500996) and Decapitate rank 2 (806905) carry an EquippedItemInventoryTypeMask that their own EquippedItemSubClassMask contradicts: the subclass list admits one-handed axes, maces, swords, fists, daggers and spears, but the slot mask accepts only a two-handed weapon. A Barbarian wielding a one-handed weapon therefore gets SPELL_FAILED_EQUIPPED_ITEM_CLASS (29) from rank 2 onwards while rank 1 (500913, 804414) succeeds. Every rank of both chains must accept the same one-handed weapon, and every rank must still refuse to cast with no weapon equipped. Decapitate is only usable on enemies below 35% health (TargetAuraState, checked before the weapon requirement), so both targets are lowered to 30% before any Decapitate cast.",
   "timeout_ms": 120000,
   "players": [
     {
@@ -174,6 +174,12 @@
       "label": "Brutal Swing rank 2 really cast"
     },
     {
+      "action": "set_health",
+      "actor": "enemy",
+      "value": 150000,
+      "label": "Decapitate is only usable below 35% health: put the one-handed Barbarian's target at 30%"
+    },
+    {
       "action": "set_power",
       "actor": "onehand",
       "power": 3,
@@ -221,6 +227,12 @@
       "equals": 1,
       "within_ms": 3000,
       "label": "Decapitate rank 2 really cast"
+    },
+    {
+      "action": "set_health",
+      "actor": "undefended",
+      "value": 150000,
+      "label": "Put the unarmed control's target below 35% so only the weapon requirement can refuse Decapitate"
     },
     {
       "action": "set_power",
