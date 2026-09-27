@@ -37,8 +37,7 @@ enum RunemasterSecondarySpells : uint32
     SPELL_ARCANE_SIGIL_DOT = 807819,
     SPELL_ARCANE_SIGIL_SILENCE = 808020,
     SPELL_FIRE_ENGRAVING = 653211,
-    SPELL_FIREBRAND = 653210,
-    SPELL_FIREBRAND_EXPLOSION = 653212
+    SPELL_FIREBRAND = 653210
 };
 
 bool HasTattoo(Player* player, uint32 root)
@@ -258,27 +257,6 @@ class aura_ascension_runemaster_fire_engraving : public AuraScript
     }
 };
 
-class aura_ascension_runemaster_firebrand : public AuraScript
-{
-    PrepareAuraScript(aura_ascension_runemaster_firebrand);
-
-    void Explode(AuraEffect const*, AuraEffectHandleModes)
-    {
-        Unit* caster = GetCaster();
-        Unit* target = GetTarget();
-        if (GetTargetApplication()->GetRemoveMode() != AURA_REMOVE_BY_EXPIRE || !caster || !target->IsAlive())
-            return;
-        for (uint8 stack = GetStackAmount(); stack > 0; --stack)
-            caster->CastSpell(target, SPELL_FIREBRAND_EXPLOSION, true);
-    }
-
-    void Register() override
-    {
-        AfterEffectRemove += AuraEffectRemoveFn(aura_ascension_runemaster_firebrand::Explode, EFFECT_0,
-                                                SPELL_AURA_PERIODIC_DAMAGE, AURA_EFFECT_HANDLE_REAL);
-    }
-};
-
 class runemaster_secondary_metadata : public GlobalScript
 {
 public:
@@ -314,5 +292,4 @@ void AddSC_AscensionRunemasterSecondary()
     new runemaster_secondary_metadata();
     RegisterSpellScript(aura_ascension_arcane_palm_sigil);
     RegisterSpellScript(aura_ascension_runemaster_fire_engraving);
-    RegisterSpellScript(aura_ascension_runemaster_firebrand);
 }
