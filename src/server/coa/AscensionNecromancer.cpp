@@ -254,8 +254,8 @@ void Plague(Player* player, Unit* target, uint8 stacks)
         return;
     if (Aura* aura = target->GetAura(570131, player->GetGUID()))
     {
-        aura->SetStackAmount(
-            uint8(std::min<uint32>(aura->GetSpellInfo()->StackAmount, uint32(aura->GetStackAmount()) + stacks)));
+        uint32 maximum = aura->GetSpellInfo()->CalcMaxAuraStacks(player);
+        aura->SetStackAmount(uint8(std::min<uint32>(maximum, uint32(aura->GetStackAmount()) + stacks)));
     }
     else if (Aura* fresh = player->AddAura(570131, target))
         fresh->SetStackAmount(stacks);
