@@ -6194,21 +6194,27 @@ public:
     bool const useNearestPlayer = LocalLevelScaling::CreatureMaxLift.load(std::memory_order_relaxed) != 0;
     uint8 desired = original;
     float range = creature->GetSightRange();
-    float meilleure = -1.0f;
-    for (auto const& reference : map->GetPlayers())
+    for (bool bots : { false, true })
     {
-        Player* player = reference.GetSource();
-        if (!player || !player->IsAlive() || player->IsGameMaster() ||
-            !creature->InSamePhase(player) || !creature->IsWithinDistInMap(player, range) ||
-            !player->IsValidAttackTarget(creature))
-            continue;
-        float distance = creature->GetExactDist(player);
-        if (useNearestPlayer && meilleure >= 0.0f && distance >= meilleure)
-            continue;
-        meilleure = distance;
-        uint8 const scaledLevel = LocalLevelScaling::ScaleCreatureLevel(original, player->GetLevel(),
-            LocalLevelScaling::CreatureOffset.load(std::memory_order_relaxed));
-        desired = useNearestPlayer ? scaledLevel : std::max(desired, scaledLevel);
+        float meilleure = -1.0f;
+        for (auto const& reference : map->GetPlayers())
+        {
+            Player* player = reference.GetSource();
+            bool const bot = player && player->GetSession() && player->GetSession()->IsBot();
+            if (!player || !player->IsAlive() || player->IsGameMaster() || bot != bots ||
+                !creature->InSamePhase(player) || !creature->IsWithinDistInMap(player, range) ||
+                !player->IsValidAttackTarget(creature))
+                continue;
+            float distance = creature->GetExactDist(player);
+            if (useNearestPlayer && meilleure >= 0.0f && distance >= meilleure)
+                continue;
+            meilleure = distance;
+            uint8 const scaledLevel = LocalLevelScaling::ScaleCreatureLevel(original, player->GetLevel(),
+                LocalLevelScaling::CreatureOffset.load(std::memory_order_relaxed));
+            desired = useNearestPlayer ? scaledLevel : std::max(desired, scaledLevel);
+        }
+        if (meilleure >= 0.0f)
+            break;
     }
 
     std::lock_guard<std::mutex> guard(g_levelScalingLock);
@@ -6251,7 +6257,8 @@ private:
             return;
 
         Player* player = engager->GetCharmerOrOwnerPlayerOrPlayerItself();
-        if (!player || !player->IsAlive() || player->IsGameMaster())
+        if (!player || !player->IsAlive() || player->IsGameMaster() ||
+            (player->GetSession() && player->GetSession()->IsBot()))
             return;
 
         {
