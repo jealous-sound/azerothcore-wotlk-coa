@@ -29,6 +29,8 @@ struct SpentPoints
 
 SpentPoints Spent(std::vector<KnownEntry> const& known);
 
+std::vector<std::uint32_t> LayoutViolations(std::vector<KnownEntry> const& known);
+
 std::vector<std::uint8_t> KnownEntriesPayload(std::vector<KnownEntry> const& known);
 
 bool ParseKnownEntriesUpload(std::uint8_t const* data, std::size_t size, std::vector<KnownEntry>& known);

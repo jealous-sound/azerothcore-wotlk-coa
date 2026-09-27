@@ -53,6 +53,14 @@ joining tables, use field 2.
   rank count, level, automatic entries immutable, budget. A rank above the held one must fit the tree's budget
   (`Spent` over the known entries versus `GetCoATalentBudget`); rank 0 and lower ranks always go through, so an
   over-budget character can always come back under it.
+- Row gates and choice nodes: a paid node's row is `PositionY` (byte `0x192`) and its gate is
+  `RequiredTabAEInvestment` (dword 38, class tree: 0/9/24 for rows 0-3/4-7/8-9) or `RequiredTabTEInvestment`
+  (dword 39, specialization tree: 0/8/23). The gate counts points in the same tree's earlier rows. Paid nodes
+  sharing a `Group` (field 29) are one choice node: taking one option replaces the other. `SetTalentRank`
+  refuses a change that leaves a held node below its gate (a removal as well as an addition) unless that node
+  was already below it; `RestoreBuilds` restores in row order; `OnPlayerLogin` refunds, deepest first, paid
+  nodes that break a gate or share a choice node (`RepairTalentLayout`). The tree's parent links
+  (`ConnectedNodes`) are not in the DBC, so the server does not check which parent a node hangs from.
 - `.localtalent reset`: `ResetPaidTalents`, every paid rank of the class; automatic grants and the
   specialization stay.
 - `.localtalent sync`: the character-advancement state again (bridge message, and the native known entries

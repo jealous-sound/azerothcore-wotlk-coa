@@ -6,6 +6,7 @@
 #include "Log.h"
 #include <algorithm>
 #include <cctype>
+#include <cstring>
 #include <map>
 #include <string>
 #include <string_view>
@@ -41,7 +42,12 @@ enum AdvancementDwordField : uint32
     ADVANCEMENT_GROUP        = 29,
     ADVANCEMENT_CLASS_TYPE   = 32,
     ADVANCEMENT_TAB          = 33,
+    ADVANCEMENT_CLASS_GATE   = 38,
+    ADVANCEMENT_SPEC_GATE    = 39,
 };
+
+constexpr uint32 ADVANCEMENT_ROW_BYTE = 0x192;
+constexpr uint32 ADVANCEMENT_MINIMUM_DWORDS = (ADVANCEMENT_ROW_BYTE + sizeof(float) + sizeof(uint32) - 1) / sizeof(uint32);
 
 enum EssenceDwordField : uint32
 {
@@ -55,6 +61,16 @@ enum EssenceDwordField : uint32
 bool Contains(auto const& values, uint32 value)
 {
     return std::find(values.begin(), values.end(), value) != values.end();
+}
+
+uint8 Row(ClientDBC::Record const& record)
+{
+    std::array<uint8, sizeof(float)> bytes{};
+    for (uint32 index = 0; index < bytes.size(); ++index)
+        bytes[index] = record.GetUInt8(ADVANCEMENT_ROW_BYTE + index);
+    float position = 0.0f;
+    std::memcpy(&position, bytes.data(), sizeof(position));
+    return position > 0.0f && position < 255.0f ? uint8(position + 0.5f) : 0;
 }
 
 std::string Upper(std::string_view text)
@@ -109,7 +125,7 @@ bool LoadCoATalentData()
         !classTypes.Load(GetClientDBCPath("CharacterAdvancementClassTypes.dbc"), 5) ||
         !tabTypes.Load(GetClientDBCPath("CharacterAdvancementTabTypes.dbc"), 2) ||
         !specs.Load(GetClientDBCPath("ChrSpecs.dbc"), 29) ||
-        !advancement.Load(GetClientDBCPath("CharacterAdvancement.dbc"), ADVANCEMENT_TAB + 1) ||
+        !advancement.Load(GetClientDBCPath("CharacterAdvancement.dbc"), ADVANCEMENT_MINIMUM_DWORDS) ||
         !essence.Load(GetClientDBCPath("CharacterAdvancementEssence.dbc"), ESSENCE_TE + 1))
         return false;
 
@@ -190,6 +206,11 @@ bool LoadCoATalentData()
         node.Entry.RequiredLevel = uint8(record.GetUInt32(ADVANCEMENT_LEVEL));
         node.Group = record.GetUInt32(ADVANCEMENT_GROUP);
         node.ClassTab = tab == SHARED_CLASS_TAB_ID;
+        node.Entry.Row = Row(record);
+        node.Entry.RequiredTreePoints = uint8(std::min<uint32>(
+            record.GetUInt32(node.ClassTab ? ADVANCEMENT_CLASS_GATE : ADVANCEMENT_SPEC_GATE), 255));
+        if (node.Entry.AECost || node.Entry.TECost)
+            node.Entry.ChoiceGroup = node.Group;
 
         bool tooManyRanks = false;
         for (uint32 field = ADVANCEMENT_SPELLS; field < ADVANCEMENT_SPELLS + ADVANCEMENT_RANK_COUNT; ++field)

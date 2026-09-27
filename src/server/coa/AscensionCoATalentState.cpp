@@ -76,6 +76,34 @@ SpentPoints Spent(std::vector<KnownEntry> const& known)
     return spent;
 }
 
+std::vector<std::uint32_t> LayoutViolations(std::vector<KnownEntry> const& known)
+{
+    std::vector<std::pair<AscensionCompatData::CoATalentEntry const*, std::uint32_t>> paid;
+    for (KnownEntry const& item : known)
+        if (AscensionCompatData::CoATalentEntry const* entry = FindEntry(item.EntryId))
+            if (item.Rank && (entry->AECost || entry->TECost))
+                paid.emplace_back(entry, std::min<std::uint32_t>(item.Rank, entry->SpellCount));
+
+    std::vector<std::uint32_t> violations;
+    for (auto const& [entry, rank] : paid)
+    {
+        std::uint32_t pointsAbove = 0;
+        bool laterChoice = false;
+        for (auto const& [other, otherRank] : paid)
+        {
+            if (other->ClassId != entry->ClassId || other->SpecId != entry->SpecId)
+                continue;
+            if (other->Row < entry->Row)
+                pointsAbove += otherRank * std::uint32_t(other->SpecId ? other->TECost : other->AECost);
+            if (entry->ChoiceGroup && other->ChoiceGroup == entry->ChoiceGroup && other->EntryId < entry->EntryId)
+                laterChoice = true;
+        }
+        if (pointsAbove < entry->RequiredTreePoints || laterChoice)
+            violations.push_back(entry->EntryId);
+    }
+    return violations;
+}
+
 std::vector<std::uint8_t> KnownEntriesPayload(std::vector<KnownEntry> const& known)
 {
     std::vector<std::uint8_t> out;
