@@ -1,0 +1,144 @@
+/* Copyright (C) 2016+ AzerothCore, GNU AGPL v3. */
+
+#include "AscensionRunemasterBrand.h"
+#include "Player.h"
+#include "ScriptMgr.h"
+#include "Spell.h"
+#include "SpellAuras.h"
+#include "SpellInfo.h"
+#include "SpellMgr.h"
+#include "SpellScript.h"
+#include <vector>
+
+namespace
+{
+enum RunemasterTalentProcSpells : uint32
+{
+    SPELL_ANCIENT_WARRIOR_COOLDOWN = 520757,
+    SPELL_HOARFROST = 801104,
+    SPELL_LEY_LOCK = 800995
+};
+
+bool IsRunemaster(Unit const* unit)
+{
+    return unit && unit->IsPlayer() && unit->getClass() == CLASS_SPIRIT_MAGE;
+}
+
+void ReduceSharedCooldowns(Player* player, uint32 spellId, int32 delta)
+{
+    SpellInfo const* named = sSpellMgr->GetSpellInfo(spellId);
+    if (!player || !named || delta >= 0)
+        return;
+    uint32 const root = sSpellMgr->GetFirstSpellInChain(spellId);
+    uint32 const category = named->GetCategory();
+    std::vector<uint32> cooling;
+    for (auto const& [id, cooldown] : player->GetSpellCooldownMap())
+        if (SpellInfo const* info = sSpellMgr->GetSpellInfo(id))
+            if (sSpellMgr->GetFirstSpellInChain(id) == root ||
+                (category && info->GetCategory() == category && info->SpellFamilyName == named->SpellFamilyName))
+                cooling.push_back(id);
+    for (uint32 id : cooling)
+    {
+        uint32 const remaining = player->GetSpellCooldownDelay(id);
+        if (uint64(-int64(delta)) >= remaining)
+            player->RemoveSpellCooldown(id, true);
+        else
+            player->ModifySpellCooldown(id, delta);
+    }
+}
+
+class spell_ascension_runemaster_ancient_warrior : public SpellScript
+{
+    PrepareSpellScript(spell_ascension_runemaster_ancient_warrior);
+
+    bool Validate(SpellInfo const* info) override
+    {
+        return info->Id == SPELL_ANCIENT_WARRIOR_COOLDOWN &&
+            info->Effects[EFFECT_0].Effect == SPELL_EFFECT_ASCENSION_MODIFY_COOLDOWN &&
+            ValidateSpellInfo({uint32(info->Effects[EFFECT_0].MiscValue)});
+    }
+
+    bool Load() override
+    {
+        return IsRunemaster(GetCaster());
+    }
+
+    void ReduceFistOfTheAncients(SpellEffIndex effIndex)
+    {
+        PreventHitDefaultEffect(effIndex);
+        ReduceSharedCooldowns(GetHitPlayer(), uint32(GetSpellInfo()->Effects[effIndex].MiscValue), GetEffectValue());
+    }
+
+    void Register() override
+    {
+        OnEffectHitTarget += SpellEffectFn(spell_ascension_runemaster_ancient_warrior::ReduceFistOfTheAncients,
+            EFFECT_0, SPELL_EFFECT_ASCENSION_MODIFY_COOLDOWN);
+    }
+};
+
+class aura_ascension_runemaster_decoder : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_runemaster_decoder);
+
+    bool CheckDamagedEnemy(ProcEventInfo& eventInfo)
+    {
+        Unit* owner = GetTarget();
+        Unit* target = eventInfo.GetActionTarget();
+        DamageInfo const* damage = eventInfo.GetDamageInfo();
+        return IsRunemaster(owner) && owner->IsAlive() && eventInfo.GetActor() == owner && target &&
+            target != owner && target->IsAlive() && !owner->IsFriendlyTo(target) && damage && damage->GetDamage();
+    }
+
+    void TriggerEngravings(ProcEventInfo& eventInfo)
+    {
+        PreventDefaultAction();
+        TriggerRunemasterWeaponEngravings(GetTarget(), eventInfo.GetActionTarget());
+    }
+
+    void Register() override
+    {
+        DoCheckProc += AuraCheckProcFn(aura_ascension_runemaster_decoder::CheckDamagedEnemy);
+        OnProc += AuraProcFn(aura_ascension_runemaster_decoder::TriggerEngravings);
+    }
+};
+
+class aura_ascension_runemaster_leyfrost : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_runemaster_leyfrost);
+
+    bool CheckHoarfrost(ProcEventInfo& eventInfo)
+    {
+        SpellInfo const* info = eventInfo.GetSpellInfo();
+        return IsRunemaster(GetTarget()) && eventInfo.GetActor() == GetTarget() && info &&
+            sSpellMgr->GetFirstSpellInChain(info->Id) == SPELL_HOARFROST;
+    }
+
+    void Register() override
+    {
+        DoCheckProc += AuraCheckProcFn(aura_ascension_runemaster_leyfrost::CheckHoarfrost);
+    }
+};
+
+class runemaster_ley_lock_duration : public AllSpellScript
+{
+public:
+    runemaster_ley_lock_duration() : AllSpellScript("runemaster_ley_lock_duration",
+        {ALLSPELLHOOK_ON_INTERRUPT_DURATION}) { }
+
+    void OnSpellInterruptDuration(Spell* spell, Unit*, int32& duration) override
+    {
+        Unit* caster = spell->GetOriginalCaster();
+        if (spell->GetSpellInfo()->Id != SPELL_LEY_LOCK || !IsRunemaster(caster))
+            return;
+        caster->ToPlayer()->ApplySpellMod(SPELL_LEY_LOCK, SPELLMOD_DURATION, duration);
+    }
+};
+}
+
+void AddSC_AscensionRunemasterTalentProcs()
+{
+    RegisterSpellScript(spell_ascension_runemaster_ancient_warrior);
+    RegisterSpellScript(aura_ascension_runemaster_decoder);
+    RegisterSpellScript(aura_ascension_runemaster_leyfrost);
+    new runemaster_ley_lock_duration();
+}

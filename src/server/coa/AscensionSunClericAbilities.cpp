@@ -44,6 +44,9 @@ bool Useful(SpellInfo const* info)
             return true;
     return Gavel(info) || Any(info, {800626, 520359, 520024, 800054, 804751,804249,572752});
 }
+constexpr uint32 ScorchMarks = 807059;
+constexpr uint32 BurnTheHeretics = 560857;
+constexpr uint32 BurnTheHereticsMagicDamage = 560856;
 void Finish(Player* player, Spell* spell)
 {
     for (uint32 id : SunClericFinite)
@@ -58,6 +61,8 @@ void Finish(Player* player, Spell* spell)
                     Cast(player, player, 524859);
                 if (id == 800722 && player->HasAura(680648))
                     StackWithoutRefresh(player, 681254);
+                if (id == ScorchMarks && player->HasAura(BurnTheHeretics))
+                    Cast(player, player, BurnTheHereticsMagicDamage);
             }
 }
 class sun_cleric_spells : public AllSpellScript
@@ -122,7 +127,7 @@ public:
                 spell->SetScriptValue(Dawn, 1);
                 State(player).timers.ScheduleEvent(Dawn, 1s);
             }
-            if (AuraEffect* choice = dawn->GetEffect(EFFECT_1); choice && choice->GetAmount() &&
+            if (AuraEffect* choice = dawn->GetEffect(EFFECT_0); choice && choice->GetAmount() &&
                 (player->HasSpell(92135) || player->HasAura(92135)))
             {
                 uint32 school = info->SchoolMask & (SPELL_SCHOOL_MASK_HOLY | SPELL_SCHOOL_MASK_FIRE);

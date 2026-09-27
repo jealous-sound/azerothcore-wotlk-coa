@@ -94,6 +94,60 @@ int main()
         info.Effects[1].MiscValue == 144 && !info.Effects[1].BasePoints && !info.Effects[1].DieSides);
     assert(info.Effects[0].ApplyAuraName == 23 && info.Effects[0].TriggerSpell == 712337 &&
         info.Effects[0].Amplitude == 4000 && info.Effects[2].MiscValue == 98);
+
+    runemaster_runic_tempest_events tempest;
+    Player tempestCaster;
+    tempestCaster.cls = CLASS_SPIRIT_MAGE;
+    Aura runicTempest;
+    runicTempest.id = 560036;
+    AuraApplication tempestEnd;
+    tempestEnd.aura = runicTempest;
+    AuraApplication shroudEnd;
+    shroudEnd.aura.id = 500288;
+    tempestCaster.auras.insert(560036);
+    tempest.OnAuraApply(&tempestCaster, &runicTempest);
+    assert(tempestCaster.HasAura(808089));
+    events.OnAuraRemove(&tempestCaster, &shroudEnd, AURA_REMOVE_BY_CANCEL);
+    assert(!tempestCaster.HasAura(808089));
+    tempest.OnAuraRemove(&tempestCaster, &shroudEnd, AURA_REMOVE_BY_CANCEL);
+    assert(tempestCaster.HasAura(808089));
+    tempestCaster.auras.erase(560036);
+    tempest.OnAuraRemove(&tempestCaster, &tempestEnd, AURA_REMOVE_BY_EXPIRE);
+    assert(!tempestCaster.HasAura(808089));
+    tempestCaster.auras.insert(560036);
+    tempest.OnAuraApply(&tempestCaster, &runicTempest);
+    tempestCaster.auras.insert(500288);
+    tempestCaster.auras.erase(560036);
+    tempest.OnAuraRemove(&tempestCaster, &tempestEnd, AURA_REMOVE_BY_CANCEL);
+    assert(tempestCaster.HasAura(808089));
+    tempestCaster.auras.erase(500288);
+    tempestCaster.auras.insert(560036);
+    tempestCaster.alive = false;
+    tempestCaster.auras.erase(808089);
+    tempest.OnAuraRemove(&tempestCaster, &shroudEnd, AURA_REMOVE_BY_DEATH);
+    assert(!tempestCaster.HasAura(808089));
+    tempestCaster.alive = true;
+    tempestCaster.cls = CLASS_WILDWALKER;
+    tempest.OnAuraApply(&tempestCaster, &runicTempest);
+    assert(!tempestCaster.HasAura(808089));
+
+    Player waveforged;
+    waveforged.cls = CLASS_SPIRIT_MAGE;
+    Aura waveforgedTalent;
+    waveforgedTalent.id = 705565;
+    waveforged.auras.insert(705565);
+    events.OnAuraApply(&waveforged, &waveforgedTalent);
+    assert(!waveforged.HasAura(808089));
+    Aura waveforgedWindow;
+    waveforgedWindow.id = 500469;
+    waveforged.auras.insert(500469);
+    events.OnAuraApply(&waveforged, &waveforgedWindow);
+    assert(waveforged.HasAura(808089));
+    waveforged.auras.erase(500469);
+    AuraApplication windowEnd;
+    windowEnd.aura = waveforgedWindow;
+    events.OnAuraRemove(&waveforged, &windowEnd, AURA_REMOVE_BY_EXPIRE);
+    assert(!waveforged.HasAura(808089) && waveforged.HasAura(705565));
 }
 '''
 
@@ -142,7 +196,8 @@ def main():
         assert rows[712310][95] == 23 and rows[712310][98] == 4000 and rows[712310][116] == 712337
         assert rows[712310][97] == 37 and rows[712310][112] == 98
         assert rows[712337][71] == 136 and rows[712337][80] + rows[712337][74] == 3
-    print("PASS: Earth Tattoo ranks, acquisition/removal ordering, helper continuity and Runeshroud exit gates")
+    print("PASS: Earth Tattoo ranks, acquisition/removal ordering, helper continuity, Runeshroud exit gates, "
+          "the Runic Tempest marker and the Waveforged window")
 
 
 if __name__ == "__main__":

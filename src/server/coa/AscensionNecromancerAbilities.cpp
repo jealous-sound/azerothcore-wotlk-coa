@@ -64,6 +64,11 @@ void Virulency(Player* player, Unit* target)
                         effect->SetPeriodicTimer(saved.timers[index]);
                     }
             }
+        if (Aura* infestation = player->GetAura(803782); infestation && infestation->GetCharges())
+        {
+            infestation->SetCharges(infestation->GetCharges() - 1);
+            return;
+        }
         state.diseases.clear();
         player->RemoveAurasDueToSpell(803782);
         player->SetTemporarySpellReplacement(801938, 0);
@@ -366,7 +371,7 @@ class spell_ascension_necromancer_ability : public SpellScript
                 int32 heal = Amount(id, 0, player);
                 if (player->HasAura(704684))
                     heal = player->CountPctFromMaxHealth(Amount(704684));
-                minion->DespawnOrUnsummon();
+                minion->KillSelf();
                 Copy(player, player, 805031, std::max(1, heal), 1);
             }
             Sync(player);
@@ -432,9 +437,26 @@ class spell_ascension_necromancer_ability : public SpellScript
             }
     }
 };
+
+class spell_ascension_necromancer_transfer_life : public SpellScript
+{
+    PrepareSpellScript(spell_ascension_necromancer_transfer_life);
+    void Filter(std::list<WorldObject*>& targets)
+    {
+        Player* player = Owner(GetCaster());
+        targets.remove_if([player](WorldObject* object)
+                          { return !player || !object->ToUnit() || !IsMinion(player, object->ToUnit(), true); });
+    }
+    void Register() override
+    {
+        OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_ascension_necromancer_transfer_life::Filter,
+                                                                  EFFECT_ALL, TARGET_UNIT_SRC_AREA_ALLY);
+    }
+};
 }
 void AddAscensionNecromancerAbilityScripts()
 {
     new necromancer_casts();
     RegisterSpellScript(spell_ascension_necromancer_ability);
+    RegisterSpellScript(spell_ascension_necromancer_transfer_life);
 }

@@ -9,6 +9,7 @@ namespace
 {
 constexpr uint32 SPELL_EVIL_DOERS_BEWARE = 681328;
 constexpr uint32 SPELL_REAPER_HEMORRHAGE = 705432;
+constexpr uint32 SPELL_REAPER_THE_TIME_HAS_COME = 572879;
 
 bool HasExpectedEvilDoersLegacy(SpellInfo const* spellInfo)
 {
@@ -37,6 +38,25 @@ void ApplyReaperHemorrhageDamageContract(SpellInfo* spellInfo)
 
     effect.ApplyAuraName = SPELL_AURA_MOD_DAMAGE_DONE_VERSUS_AURASTATE;
     effect.MiscValue = AURA_STATE_HEALTHLESS_35_PERCENT;
+    effect.MiscValueB = ASCENSION_CLASSMASK_AURASTATE_DAMAGE;
+}
+
+void ApplyReaperTheTimeHasComeDamageContract(SpellInfo* spellInfo)
+{
+    if (spellInfo->Id != SPELL_REAPER_THE_TIME_HAS_COME || spellInfo->SpellFamilyName != 36 ||
+        !spellInfo->HasAttribute(SPELL_ATTR0_PASSIVE))
+        return;
+
+    SpellEffectInfo& effect = spellInfo->Effects[EFFECT_0];
+    if (effect.Effect != SPELL_EFFECT_APPLY_AURA || effect.ApplyAuraName != SPELL_AURA_OVERRIDE_CLASS_SCRIPTS ||
+        effect.MiscValue != ASCENSION_CLASSMASK_AURASTATE_DAMAGE || effect.MiscValueB != ASCENSION_TARGET_SLOWED ||
+        effect.BasePoints != 9 || effect.DieSides != 1 ||
+        effect.SpellClassMask != flag96(677413671u, 2449487953u, 4472960u) ||
+        effect.TargetA.GetTarget() != TARGET_UNIT_CASTER || effect.TargetB.GetTarget())
+        return;
+
+    effect.ApplyAuraName = SPELL_AURA_MOD_DAMAGE_DONE_VERSUS_AURASTATE;
+    effect.MiscValue = ASCENSION_TARGET_SLOWED;
     effect.MiscValueB = ASCENSION_CLASSMASK_AURASTATE_DAMAGE;
 }
 }
@@ -75,4 +95,5 @@ void ApplyAscensionConditionalCombatContracts(SpellInfo* spellInfo)
     }
 
     ApplyReaperHemorrhageDamageContract(spellInfo);
+    ApplyReaperTheTimeHasComeDamageContract(spellInfo);
 }

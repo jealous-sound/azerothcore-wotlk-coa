@@ -1359,6 +1359,7 @@ void HandleAscensionClassMechanicsCast(Spell* spell)
             return;
 
         HandleAscensionRangerStonemason(spell, player);
+        HandleAscensionRangerPhoenixPlumes(spell, player);
 
         float consumeChance = 100.0f;
         player->ApplySpellMod(SPELL_RANGER_ADVANTAGE_DECREMENT_PASSIVE,
@@ -1487,6 +1488,8 @@ void HandleAscensionClassMechanicsAuraApply(Player* player, std::uint32_t spellI
     if (player->getClass() == CLASS_GUARDIAN && formation != GUARDIAN_FORMATIONS.end())
     {
         ApplyGuardianFormation(player, spellId);
+        if (spellId == SPELL_GUARDIAN_TOWER_FORMATION)
+            player->CastSpell(player, SPELL_GUARDIAN_TOWER_FORMATION_VISUAL, true);
         return;
     }
 

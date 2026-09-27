@@ -16,8 +16,33 @@ enum HurricaneSpells : uint32
     SPELL_HURRICANE_HIT = 645437,
     SPELL_HURRICANE_DODGE = 645440,
     SPELL_WAVEFORGED = 705565,
-    SPELL_WAVEFORGED_READY = 500469
+    SPELL_WAVEFORGED_READY = 500469,
+    SPELL_SWIFT_ETCHING = 705600,
+    SPELL_SWIFT_ETCHING_READY = 500506,
+    SPELL_WATER_RUNES = 707150,
+    SPELL_WATER_ENGRAVING = 653214,
+    SPELL_ICE_ENGRAVING = 653266
 };
+
+struct WaterRune
+{
+    SpellEffIndex Effect;
+    uint32 Engraving;
+};
+
+constexpr WaterRune WaterRunes[] = {{EFFECT_1, SPELL_WATER_ENGRAVING}, {EFFECT_2, SPELL_ICE_ENGRAVING}};
+
+void ApplyWaterRunes(Unit* player, Unit* target)
+{
+    Aura* runes = player->GetAura(SPELL_WATER_RUNES, player->GetGUID());
+    if (!runes)
+        return;
+    for (WaterRune const& rune : WaterRunes)
+        if (AuraEffect const* effect = runes->GetEffect(rune.Effect);
+            effect && target->IsAlive() && player->HasAura(rune.Engraving, player->GetGUID()))
+            player->CastSpell(target, runes->GetSpellInfo()->Effects[rune.Effect].TriggerSpell, TRIGGERED_FULL_MASK,
+                nullptr, effect);
+}
 
 bool StrikeHurricane(Unit* player, Aura* aura)
 {
@@ -74,10 +99,13 @@ class aura_ascension_runemaster_hurricane : public AuraScript
     {
         Unit* player = GetTarget();
         player->RemoveAurasDueToSpell(SPELL_HURRICANE_DODGE, player->GetGUID());
-        if (player->IsAlive() && player->IsInWorld() &&
-            GetTargetApplication()->GetRemoveMode() != AURA_REMOVE_BY_DEATH &&
-            player->HasAura(SPELL_WAVEFORGED, player->GetGUID()))
+        if (!player->IsAlive() || !player->IsInWorld() ||
+            GetTargetApplication()->GetRemoveMode() == AURA_REMOVE_BY_DEATH)
+            return;
+        if (player->HasAura(SPELL_WAVEFORGED, player->GetGUID()))
             player->CastSpell(player, SPELL_WAVEFORGED_READY, true);
+        if (player->HasAura(SPELL_SWIFT_ETCHING, player->GetGUID()))
+            player->CastSpell(player, SPELL_SWIFT_ETCHING_READY, true);
     }
 
     void Register() override
@@ -110,10 +138,17 @@ class spell_ascension_hurricane_damage : public SpellScript
             SetHitDamage(CalculatePct(GetHitDamage(), 80));
     }
 
+    void EngraveStruckTarget()
+    {
+        if (Unit* target = GetHitUnit())
+            ApplyWaterRunes(GetCaster(), target);
+    }
+
     void Register() override
     {
         BeforeCast += SpellCastFn(spell_ascension_hurricane_damage::Scale);
         OnHit += SpellHitFn(spell_ascension_hurricane_damage::Hit);
+        AfterHit += SpellHitFn(spell_ascension_hurricane_damage::EngraveStruckTarget);
     }
 };
 
@@ -134,6 +169,8 @@ public:
             info->AttributesCu &= ~SPELL_ATTR0_CU_FORCE_AURA_SAVING;
             info->AttributesCu |= SPELL_ATTR0_CU_AURA_CANNOT_BE_SAVED;
         }
+        if (info->Id == SPELL_WATER_RUNES && info->ProcFlags == PROC_FLAG_DONE_MELEE_AUTO_ATTACK)
+            info->ProcFlags = PROC_FLAG_NONE;
     }
 };
 }
