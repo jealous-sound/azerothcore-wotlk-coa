@@ -27,11 +27,11 @@ Notes on the evidence:
 | # | Title | Verdict | Evidence | Commit |
 |---|---|---|---|---|
 | [#473](https://github.com/jealous-sound/azerothcore-wotlk-coa/issues/473) | Harvesting Grounds (705413) | NEEDS IN-GAME CHECK | Effect 2 is PERSISTENT_AREA_AURA (27) with aura 192 MOD_MELEE_RANGED_HASTE: the haste slow is generic. The movement slow and the pull-back to the centre are not in the reported effects, and nothing in the tree references 705413. Check whether the DBC has another effect for them. | - |
-| [#494](https://github.com/jealous-sound/azerothcore-wotlk-coa/issues/494) | Soulstorm (705403) | REAL BUG | Proc row and rule already exist (`data/sql/updates/pending_db_world/rev_20260920_17_reaper_talent_procs.sql:112-123`, `AscensionReaperTalentProcs.h:38`), but the row had Chance 100 against the tooltip's 40%. Fixed in `rev_20260927_95`. | 257333d |
+| [#494](https://github.com/jealous-sound/azerothcore-wotlk-coa/issues/494) | Soulstorm (705403) | REAL BUG | Proc row and rule already exist (`data/sql/updates/pending_db_world/rev_20260920_17_reaper_talent_procs.sql:112-123`, `AscensionReaperTalentProcs.h:38`), but the row had Chance 100 against the tooltip's 40%. Fixed in `rev_20260927_95`. | c79ca0f |
 | [#495](https://github.com/jealous-sound/azerothcore-wotlk-coa/issues/495) | Life Tap (706788) | NEEDS IN-GAME CHECK | Aura 4 DUMMY with no handler: nothing references 706788. The cooldown part is probably a separate spell-mod effect. The 'heals 200% of the damage it deals' part is unimplemented as far as the tree shows, but the Spectral Warden damage spell ID needs DBC before it can be scripted. | - |
 | [#1024](https://github.com/jealous-sound/azerothcore-wotlk-coa/issues/1024) | Soulforged Weaponry (561127, 561340) | FALSE POSITIVE | Aura 122 MOD_OFFHAND_DAMAGE_PCT is generic. The 8% free-Murder proc has rows for 561127 (Chance 8) and 561340 (Chance 15) in `data/sql/updates/pending_db_world/rev_20260921_20_reaper_talent_procs_two.sql:101-140`, plus the rule list in `AscensionReaperTalentProcs.h`. | - |
-| [#1135](https://github.com/jealous-sound/azerothcore-wotlk-coa/issues/1135) | Soulbender (804004) | REAL BUG | PROC_TRIGGER_SPELL with no spell_proc row; Reaper proc talents ship with ProcTypeMask 0 (`rev_20260920_17` header). Added a row keyed like Chasing Death (family 36, mask0 0x4) in `rev_20260927_96`. | d0b8ef2 |
-| [#1339](https://github.com/jealous-sound/azerothcore-wotlk-coa/issues/1339) | Dominion (803999) | REAL BUG | PROC_TRIGGER_SPELL with no row. Its event (gaining Soul Infusion) has no proc flag, so `ApplyAscensionReaperSoulInfusionGained` now casts the talent's own DBC trigger spell (`AscensionReaperTalents.cpp`). | 6887177 |
+| [#1135](https://github.com/jealous-sound/azerothcore-wotlk-coa/issues/1135) | Soulbender (804004) | REAL BUG | PROC_TRIGGER_SPELL with no spell_proc row; Reaper proc talents ship with ProcTypeMask 0 (`rev_20260920_17` header). Added a row keyed like Chasing Death (family 36, mask0 0x4) in `rev_20260927_96`. | 419b1eb |
+| [#1339](https://github.com/jealous-sound/azerothcore-wotlk-coa/issues/1339) | Dominion (803999) | REAL BUG | PROC_TRIGGER_SPELL with no row. Its event (gaining Soul Infusion) has no proc flag, so `ApplyAscensionReaperSoulInfusionGained` now casts the talent's own DBC trigger spell (`AscensionReaperTalents.cpp`). | fef4d10 |
 | [#1372](https://github.com/jealous-sound/azerothcore-wotlk-coa/issues/1372) | Apparition (705389) | FALSE POSITIVE | aura 108 (ADD_PCT_MODIFIER) is a DBC spell modifier applied by the core; no script needed (+30% Spectre Stride). The stealth-detection rider would be a separate effect. | - |
 | [#1640](https://github.com/jealous-sound/azerothcore-wotlk-coa/issues/1640) | Chancing Death (300550) | NEEDS IN-GAME CHECK | Aura 23 PERIODIC_TRIGGER_SPELL is generic. Whether the trigger spell enforces 'below 35% health' (aura state / caster condition) needs DBC or an in-game check. 300550 is not in the spellbook tree data, so check that it can be acquired. | - |
 | [#1641](https://github.com/jealous-sound/azerothcore-wotlk-coa/issues/1641) | Cursed Rosary (300551) | FALSE POSITIVE | The audit mislabels aura 79: in 3.3.5 it is MOD_DAMAGE_PERCENT_DONE (`SpellAuraDefines.h:142`), which matches '+3% Physical and Shadow damage'. aura 79 has a generic core handler in `SpellAuraEffects.cpp`. | - |
@@ -62,7 +62,7 @@ Notes on the evidence:
 | [#2656](https://github.com/jealous-sound/azerothcore-wotlk-coa/issues/2656) | Death Dealer (705401) | FALSE POSITIVE | aura 107 (ADD_FLAT_MODIFIER) is a DBC spell modifier applied by the core; no script needed (duration). | - |
 | [#2659](https://github.com/jealous-sound/azerothcore-wotlk-coa/issues/2659) | Harnessed Life (705406) | NEEDS IN-GAME CHECK | The aura is a spell modifier, but 'Tormented Souls has a 25% chance not to consume a stack' depends on Tormented Souls stack consumption, which is not implemented (see #5361). | - |
 | [#2661](https://github.com/jealous-sound/azerothcore-wotlk-coa/issues/2661) | Ravenous Thirst (705409) | FALSE POSITIVE | aura 107 (ADD_FLAT_MODIFIER) is a DBC spell modifier applied by the core; no script needed (Runic Power cost). | - |
-| [#2663](https://github.com/jealous-sound/azerothcore-wotlk-coa/issues/2663) | Crimson Death (705414) | REAL BUG | Proc row and rule exist (`data/sql/updates/pending_db_world/rev_20260920_17_reaper_talent_procs.sql:126-137`), but the row had Chance 100 against the tooltip's 20%, so every Slaughter repeated for free. Fixed in `rev_20260927_95`. | 257333d |
+| [#2663](https://github.com/jealous-sound/azerothcore-wotlk-coa/issues/2663) | Crimson Death (705414) | REAL BUG | Proc row and rule exist (`data/sql/updates/pending_db_world/rev_20260920_17_reaper_talent_procs.sql:126-137`), but the row had Chance 100 against the tooltip's 20%, so every Slaughter repeated for free. Fixed in `rev_20260927_95`. | c79ca0f |
 | [#2669](https://github.com/jealous-sound/azerothcore-wotlk-coa/issues/2669) | Anima Ambusher (705424) | REAL BUG | Aura 354 is an unknown Ascension aura with a nullptr handler (`SpellAuraEffects.cpp:419`). It is not in `isTriggerAura`, and nothing references 705424. Other classes script each aura-354 talent individually. Not fixed: this needs the trigger spell and the Spectre Stride damage IDs from DBC. | - |
 | [#2670](https://github.com/jealous-sound/azerothcore-wotlk-coa/issues/2670) | Ghost (705426) | FALSE POSITIVE | Proc row and rule exist: `data/sql/updates/pending_db_world/rev_20260921_20_reaper_talent_procs_two.sql:185-196`, rule 705426 -> 805185. | - |
 | [#2671](https://github.com/jealous-sound/azerothcore-wotlk-coa/issues/2671) | Souls for the Slaughter (705428) | FALSE POSITIVE | Proc row with crit HitMask exists: `data/sql/updates/pending_db_world/rev_20260920_17_reaper_talent_procs.sql:140-151`. | - |
@@ -83,7 +83,7 @@ Notes on the evidence:
 | [#3164](https://github.com/jealous-sound/azerothcore-wotlk-coa/issues/3164) | Soul Piercer (712484) | FALSE POSITIVE | Proc row and rule exist: `data/sql/updates/pending_db_world/rev_20260920_17_reaper_talent_procs.sql:182-193`, rule 712484. | - |
 | [#3165](https://github.com/jealous-sound/azerothcore-wotlk-coa/issues/3165) | Fleeting Soul (712683) | FALSE POSITIVE | aura 107 (ADD_FLAT_MODIFIER) is a DBC spell modifier applied by the core; no script needed (cooldown). | - |
 | [#3334](https://github.com/jealous-sound/azerothcore-wotlk-coa/issues/3334) | Spectral Waltz (803988) | NEEDS IN-GAME CHECK | Aura 4 DUMMY has no handler. The 50% reduction and pacify are probably other effects of 803988 (not in the report). | - |
-| [#3335](https://github.com/jealous-sound/azerothcore-wotlk-coa/issues/3335) | Harvest Time (803995) | REAL BUG | Aura 290 MOD_CRIT_PCT is generic. The Soul Infusion preserve was 100% for the whole buff (`AscensionCompat.cpp` HarvestTimePreserves) instead of 50%. Fixed. | 9700700 |
+| [#3335](https://github.com/jealous-sound/azerothcore-wotlk-coa/issues/3335) | Harvest Time (803995) | REAL BUG | Aura 290 MOD_CRIT_PCT is generic. The Soul Infusion preserve was 100% for the whole buff (`AscensionCompat.cpp` HarvestTimePreserves) instead of 50%. Fixed. | d0c1ed9 |
 | [#3337](https://github.com/jealous-sound/azerothcore-wotlk-coa/issues/3337) | Ghostly Magic (803998, 807889) | FALSE POSITIVE | aura 108 (ADD_PCT_MODIFIER) is a DBC spell modifier applied by the core; no script needed (both IDs). | - |
 | [#3338](https://github.com/jealous-sound/azerothcore-wotlk-coa/issues/3338) | Reaper's Pact (804001) | NEEDS IN-GAME CHECK | Aura 81 SPLIT_DAMAGE_PCT is generic, but it is applied by APPLY_AURA (6), not an area aura, and nothing references 804001, so no code removes it beyond 30 yds unless another DBC effect does (review: changed from FALSE POSITIVE). | - |
 | [#3425](https://github.com/jealous-sound/azerothcore-wotlk-coa/issues/3425) | Spectre Strength (804671, 807886) | FALSE POSITIVE | Aura 137 MOD_TOTAL_STAT_PERCENTAGE is generic. | - |
@@ -105,10 +105,10 @@ Notes on the evidence:
 | [#3905](https://github.com/jealous-sound/azerothcore-wotlk-coa/issues/3905) | Blood Harvester (300889) | FALSE POSITIVE | Raid aura 65 with 290 MOD_CRIT_PCT is generic. | - |
 | [#3913](https://github.com/jealous-sound/azerothcore-wotlk-coa/issues/3913) | Ethereal Guard (300969) | FALSE POSITIVE | Raid aura 65 with 87 MOD_DAMAGE_PERCENT_TAKEN is generic (the audit mislabels 87). | - |
 | [#1492](https://github.com/jealous-sound/azerothcore-wotlk-coa/issues/1492) | Ghost Pig | ALREADY FIXED | `rev_20260916_60_reaper_ghost_form_appearance.sql` adds creature 841213 -> display 5430 (the pig was the 16358 fallback for a missing template). Needs the world DB update applied. Close after an in-game check. | - |
-| [#4005](https://github.com/jealous-sound/azerothcore-wotlk-coa/issues/4005) | Soul rend does not consume a Soul Infusion, allowing infinite casts. | REAL BUG (partial) | Soulrend 573316 is an all-soul consumer (`AscensionCompat.cpp` REAPER_ALL_SOUL_CONSUMERS, ConsumeReaperSouls). Two things made it effectively free: Harvest Time skipped consumption 100% of the time, and Soulstorm refunded a soul on 100% of hits. Both are fixed. Check whether infinite casts still happen outside Harvest Time. | 9700700, 257333d |
+| [#4005](https://github.com/jealous-sound/azerothcore-wotlk-coa/issues/4005) | Soul rend does not consume a Soul Infusion, allowing infinite casts. | REAL BUG (partial) | Soulrend 573316 is an all-soul consumer (`AscensionCompat.cpp` REAPER_ALL_SOUL_CONSUMERS, ConsumeReaperSouls). Two things made it effectively free: Harvest Time skipped consumption 100% of the time, and Soulstorm refunded a soul on 100% of hits. Both are fixed. Check whether infinite casts still happen outside Harvest Time. | d0c1ed9, c79ca0f |
 | [#4010](https://github.com/jealous-sound/azerothcore-wotlk-coa/issues/4010) | Soul Harvester Talent does not give a buff. | ALREADY FIXED | `rev_20260919_31_reaper_soul_harvester_proc.sql` adds a PROC_FLAG_KILL row (Chance 100) for 804311 -> 804312. It only fires on kills that grant XP or honor. Check in game. | - |
 | [#4227](https://github.com/jealous-sound/azerothcore-wotlk-coa/issues/4227) | Spectral scythe that is a sword and also stuck in the ground while hitting like a wet noodle. | REAL BUG (not fixed) | The creature 250305 from `rev_20260916_04_reaper_spectral_scythe.sql` uses display 25398 (runeblade) on purpose, because the deployed CreatureDisplayInfo has no scythe. It is a plain guardian (petType MAX_PET_TYPE), so `Guardian::InitStatsForLevel` (`Pet.cpp:1152+`) never sets its weapon damage, which gives near-zero hits. The model height needs hover/InhabitType. Needs Ascension's damage formula; see open questions. | - |
-| [#4244](https://github.com/jealous-sound/azerothcore-wotlk-coa/issues/4244) | Ghost Claw not reseting | REAL BUG | Nothing reset Ghost Claw 803985. Added `aura_ascension_reaper_ghost_claw`: the cooldown resets when the aura is removed by the target's death. Review: talent 504269 replaces 803985 with 807234 (`AscensionTalentReplacementData.h:61`); the script now also covers 807234 (`rev_20260927_98`). | d2ddaed, 43b9add |
+| [#4244](https://github.com/jealous-sound/azerothcore-wotlk-coa/issues/4244) | Ghost Claw not reseting | REAL BUG | Nothing reset Ghost Claw 803985. Added `aura_ascension_reaper_ghost_claw`: the cooldown resets when the aura is removed by the target's death. Review: talent 504269 replaces 803985 with 807234 (`AscensionTalentReplacementData.h:61`); the script now also covers 807234 (`rev_20260927_98`). | 7a35ae0, a43a9a7 |
 | [#4313](https://github.com/jealous-sound/azerothcore-wotlk-coa/issues/4313) | patch-B.MPQ client workarounds: inventory, and the server-side levers that can retire them | NOT A REAPER BUG | This is a tracking/meta issue for the client patch-B.MPQ inventory, not a Reaper defect. No server change applies. | - |
 | [#4902](https://github.com/jealous-sound/azerothcore-wotlk-coa/issues/4902) | Reaper's spell Murder has bugged sound effect | NEEDS IN-GAME CHECK (client) | Nothing on the server re-casts or interrupts Murder 500376 (the only references are resource rules and `AscensionReaperSecondary.cpp:128`). Spell sound comes from client SpellVisual/SoundEntries data, so the cause is very likely client-side. | - |
 | [#5351](https://github.com/jealous-sound/azerothcore-wotlk-coa/issues/5351) | Can have any talent you want if you just path it first. | REAL BUG (not fixed, all classes) | `SetTalentRank` (`AscensionCompat.cpp:1431`) checks class, spec, rank count, level and budget, but has no tree adjacency or path model at all. `CoATalentEntry` has no connection fields, and CharacterAdvancement's link bytes are still opaque (`apps/coa-dbc/README.md`). This affects every class and needs its own task. | - |
@@ -120,12 +120,12 @@ Notes on the evidence:
 
 | Commit | Change | Issues |
 |---|---|---|
-| 9700700 | `fix(CoA/Reaper): Harvest Time preserves Soul Infusion on a 50% roll` (`AscensionCompat.cpp` HarvestTimePreserves) | Refs #3335, #4005 |
-| 257333d | `fix(CoA/Reaper): Soulstorm and Crimson Death proc at their stated chance` (`rev_20260927_95_reaper_soulstorm_crimson_death_chance.sql`) | Fixes #494, #2663; Refs #4005 |
-| 6887177 | `fix(CoA/Reaper): Dominion grants its armor when Soul Infusion is gained` (`AscensionReaperTalents.cpp` CastOwnProcTrigger) | Fixes #1339 |
-| d2ddaed | `fix(CoA/Reaper): Ghost Claw cooldown resets when its target dies` (`aura_ascension_reaper_ghost_claw` + `rev_20260927_97_reaper_ghost_claw_reset.sql`) | Fixes #4244 |
-| d0b8ef2 | `fix(CoA/Reaper): Soulbender procs on a landed Deathchaser` (`rev_20260927_96_reaper_soulbender_proc.sql`) | Fixes #1135 |
-| 43b9add | `fix(CoA/Reaper): Ghost Claw talent replacement also resets on a kill` (review; `rev_20260927_98_reaper_ghost_claw_replacement_reset.sql`) | Refs #4244 |
+| d0c1ed9 | `fix(CoA/Reaper): Harvest Time preserves Soul Infusion on a 50% roll` (`AscensionCompat.cpp` HarvestTimePreserves) | Refs #3335, #4005 |
+| c79ca0f | `fix(CoA/Reaper): Soulstorm and Crimson Death proc at their stated chance` (`rev_20260927_95_reaper_soulstorm_crimson_death_chance.sql`) | Fixes #494, #2663; Refs #4005 |
+| fef4d10 | `fix(CoA/Reaper): Dominion grants its armor when Soul Infusion is gained` (`AscensionReaperTalents.cpp` CastOwnProcTrigger) | Fixes #1339 |
+| 7a35ae0 | `fix(CoA/Reaper): Ghost Claw cooldown resets when its target dies` (`aura_ascension_reaper_ghost_claw` + `rev_20260927_97_reaper_ghost_claw_reset.sql`) | Fixes #4244 |
+| 419b1eb | `fix(CoA/Reaper): Soulbender procs on a landed Deathchaser` (`rev_20260927_96_reaper_soulbender_proc.sql`) | Fixes #1135 |
+| a43a9a7 | `fix(CoA/Reaper): Ghost Claw talent replacement also resets on a kill` (review; `rev_20260927_98_reaper_ghost_claw_replacement_reset.sql`) | Refs #4244 |
 | (final) | Adds this handoff; removes `.reaper-run/` and `.claude/settings.json` | - |
 
 ## (c) Test plan
@@ -140,7 +140,7 @@ Notes on the evidence:
   run the focused gameplay runs below, or reproduce them manually with GM commands on a level-80 Reaper
   (class 30) with the world DB updates applied.
 
-### 1. Harvest Time (9700700)
+### 1. Harvest Time (d0c1ed9)
 
 1. `.learn 803995`, then set up Soul Infusion: `.aura 500363` three times, or cast until `.aura 803031` is up.
 2. Cast Harvest Time, then cast a spell that requires Soul Infusion (for example Soulrend 573316) 20 times,
@@ -151,7 +151,7 @@ Notes on the evidence:
 Note: Soulrend is an all-soul consumer, so it takes the `REAPER_ALL_SOUL_CONSUMERS` branch after the
 preserve roll, which means a failed roll consumes the souls too.
 
-### 2. Soulstorm and Crimson Death (257333d)
+### 2. Soulstorm and Crimson Death (c79ca0f)
 
 1. Check the DB: `SELECT SpellId, ProcFlags, Chance FROM spell_proc WHERE SpellId IN (705403,705414);` should
    return `40` and `20`.
@@ -161,7 +161,7 @@ preserve roll, which means a failed roll consumes the souls too.
 5. **Expected:** the combat log shows a free second Slaughter on about 20% of casts. Before the fix, every
    cast repeated.
 
-### 3. Dominion (6887177)
+### 3. Dominion (fef4d10)
 
 1. `.learn 803999` and confirm the passive is up (`.aura` list).
 2. Gain Soul Infusion by building 3 Reaped Souls.
@@ -171,7 +171,7 @@ preserve roll, which means a failed roll consumes the souls too.
    only once per Infusion gain. It should not also fire from a DBC proc flag; if 803999 does ship ProcFlags,
    add a `spell_proc` row with `ProcFlags` 0 or a `DoCheckProc` false.
 
-### 4. Ghost Claw (d2ddaed)
+### 4. Ghost Claw (7a35ae0)
 
 1. `.learn 803985` and cast it on a low-health mob, then kill the mob while it carries the Ghost Claw aura.
 2. **Expected:** the Ghost Claw cooldown is cleared at once.
@@ -181,7 +181,7 @@ preserve roll, which means a failed roll consumes the souls too.
    triggered spell, move the `spell_script_names` row to that ID. Check with
    `coa-dbc-viewer record --id 803985 --field 'Effect*'`.
 
-### 5. Soulbender (d0b8ef2)
+### 5. Soulbender (419b1eb)
 
 1. `.learn 804004`, then cast Deathchaser (805190) on a target.
 2. **Expected:** the Soulbender trigger spell fires on each landed Deathchaser hit, and Runic Power gained
