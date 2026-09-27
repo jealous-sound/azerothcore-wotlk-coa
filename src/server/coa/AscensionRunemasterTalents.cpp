@@ -185,7 +185,7 @@ void ApplyAlterationWaterTattooScope(SpellInfo* info)
 
 void ExposeRuneshroudOrWaveforgedMarker(SpellInfo* info)
 {
-    if (info->Id != SPELL_RUNESHROUD_OR_WAVEFORGED || info->SpellFamilyName != 38)
+    if (info->Id != SPELL_RUNESHROUD_OR_WAVEFORGED)
         return;
     if (!info->Effects[EFFECT_0].IsAura(SPELL_AURA_DUMMY))
     {
