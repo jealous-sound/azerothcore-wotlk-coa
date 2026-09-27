@@ -168,8 +168,10 @@ the decisive field.
 - **#894 Infinite Horizon 560528** — effect 1 is `SPELLMOD_BONUS_MULTIPLIER` +20% masked to Timerend and
   Unmake, but `Unit::SpellDamageBonusDone` applies that op only when the effect's `EffectBonusMultiplier` is
   nonzero. Unmake 503784 carries 0.0624; every Timerend rank carries 0.0, and the one that carried 0.1
-  (801291) is zeroed by `AscensionStockCoefficients.cpp`. The Timerend half is dead. 560528 also has no
-  `spell_group` / `spell_group_stack_rules` row, so "does not stack with similar effects" is unenforced.
+  (801291) is zeroed by `AscensionStockCoefficients.cpp`, and the Timerend descriptions state no spell power
+  term. The Timerend half is dead. The raid aura and the Unmake bonus work
+  (`chronomancer-infinite-horizon-raid-and-unmake-scaling`), and since 2026-09-22 raid damage group 2000184
+  enforces "does not stack with similar effects" (`stormbringer-fix-conductor-in-charge`).
 - **#786 Black Hole 707557, 707743** — aura 112 `SPELL_AURA_OVERRIDE_CLASS_SCRIPTS`, `EffectMiscValue` 20007,
   `EffectMiscValueB` 26. Every other client record with selector 20007 and state 26 describes "slowed"
   targets (Reckless Assault 804610, The Time Has Come 572879, Shard of True Ice 805425), and Felsworn's
@@ -197,7 +199,9 @@ the decisive field.
 - **#916 Shifting Chaos 706059** — its only effect is `Aura=354`, left `nullptr` in the handler table and
   absent from `isTriggerAura[]`; ~250 Ascension spells across every class use it. The same gap kills #807
   Chaotic Time's "Melt Reality replicates an additional 20%" clause, whose mask resolves to 504727, itself an
-  aura-354 record.
+  aura-354 record. Since 2026-09-27 706059's effect is a dummy and `chronomancer_secondary_hits` casts its
+  payload 801269 at every Chromatic Shard or Anomaly Spike hit for 20% of the damage dealt, as a resolved
+  amount over 801269's native 8 yd area around the struck enemy (`chronomancer-shifting-chaos-replication`).
 - **#534 Destabilize Time 680971** — effect 0 is aura 42 with `EffectTriggerSpell` **0**, and
   `AuraEffect::HandleProcTriggerSpellAuraProc` returns on a null trigger. Every number in the tooltip lives in
   570761, which nothing casts. Since 2026-09-26 `spell_ascension_destabilize_time` keeps 570761 on the target
@@ -237,7 +241,10 @@ the decisive field.
   amplitude, 5000 ms duration).
 - **#829 Infinite Keeper 806312** — the tooltip triggers the effect when Unmake hits an enemy affected by
   *your* Timerend. The record has no `spell_proc` row, and the caster half of the clause cannot be expressed
-  in data: `conditions` / `CONDITION_AURA` is satisfied by any caster's Timerend.
+  in data: `conditions` / `CONDITION_AURA` is satisfied by any caster's Timerend. Since 2026-09-27 806312's
+  effect is a dummy and `chronomancer_secondary_hits` casts its trigger 806314 when an Unmake rank lands on an
+  enemy carrying the same Chronomancer's Timerend, and the vortex 806313 carries its tooltip's 0.12 spell power
+  per tick (`chronomancer-infinite-keeper-timerend-vortex`).
 - **#449 Buy Time 520188** — the stasis package (520185, 520186 and its delayed 520205) is entirely native and
   correct; only "casting Unmake on a target will remove this effect" has no carrier. No Unmake rank has a
   `spell_linked_spell` or a `spell_script_names` row, no module script touches 520185/520186/520188, and
