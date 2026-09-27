@@ -159,6 +159,20 @@ public:
     }
 };
 
+class runemaster_marker_login : public PlayerScript
+{
+public:
+    runemaster_marker_login() : PlayerScript("runemaster_marker_login", {PLAYERHOOK_ON_LOGIN}) { }
+
+    void OnPlayerLogin(Player* player) override
+    {
+        if (player->getClass() != CLASS_SPIRIT_MAGE)
+            return;
+        SyncRuneshroudOrWaveforged(player);
+        KeepRunicTempestMarker(player);
+    }
+};
+
 constexpr uint32 SPELL_ADVANCED_MAGI = 804557;
 constexpr int32 ASCENSION_SPELLMOD_BONUS_MULTIPLIER = 41;
 
@@ -229,4 +243,5 @@ void AddSC_AscensionRunemasterTalents()
 {
     new runemaster_talent_events();
     new runemaster_runic_tempest_events();
+    new runemaster_marker_login();
 }
