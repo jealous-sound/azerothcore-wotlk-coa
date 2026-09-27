@@ -669,6 +669,9 @@ sets melee hit and expertise as well as spell hit. Template 1501 has HealthModif
 fixture's real pool remains 40 HP while its level-57 view has 2,590 HP. Ten one-damage hits cannot remove
 a whole real HP; 67 remove one.
 
+`scenarios/skinning-dungeon-scaled-view.json` and `scenarios/skinning-open-world-level-scaling.json` need the
+same settings: the skinning requirement follows a view that lowers a dungeon creature, never one that lifts it.
+
 `scenarios/destiny-weaver-quest-fallback.json` requires a separate run with `DestinyWeaver.Enable=0`
 and `CoA.QuestLevelScaling=1`. Quest 7 must still scale to the player's level and award XP.
 

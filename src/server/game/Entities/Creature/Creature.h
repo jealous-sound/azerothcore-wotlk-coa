@@ -175,6 +175,7 @@ public:
     [[nodiscard]] bool IsAvoidingAOE() const { return HasFlagsExtra(CREATURE_FLAG_EXTRA_AVOID_AOE); }
 
     uint8 getLevelForTarget(WorldObject const* target) const override; // overwrite Unit::getLevelForTarget for boss level support
+    [[nodiscard]] uint8 GetLootSkillLevelFor(Player const* looter) const;
 
     [[nodiscard]] bool IsInEvadeMode() const { return HasUnitState(UNIT_STATE_EVADE); }
     [[nodiscard]] bool IsEvadingAttacks() const { return IsInEvadeMode() || CanNotReachTarget(); }

@@ -3219,6 +3219,14 @@ void Creature::AllLootRemovedFromCorpse()
     }
 }
 
+uint8 Creature::GetLootSkillLevelFor(Player const* looter) const
+{
+    // The client derives a corpse's skinning requirement from the level it was sent, which a per-viewer view can
+    // lower inside a dungeon. A lifted view keeps the authored level: the skinning loot is the authored creature's.
+    uint8 const view = LocalLevelScaling::ViewLevelFor(looter, this);
+    return view ? std::min(view, GetLevel()) : GetLevel();
+}
+
 uint8 Creature::getLevelForTarget(WorldObject const* target) const
 {
     if (!isWorldBoss() || !target || !target->ToUnit())

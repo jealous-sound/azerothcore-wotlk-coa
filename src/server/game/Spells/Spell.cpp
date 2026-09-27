@@ -6376,7 +6376,7 @@ SpellCastResult Spell::CheckCast(bool strict, uint32* /*param1*/, uint32* /*para
                     uint32 skill = creature->GetCreatureTemplate()->GetRequiredLootSkill();
 
                     int32 skillValue = m_caster->ToPlayer()->GetSkillValue(skill);
-                    int32 TargetLevel = m_targets.GetUnitTarget()->GetLevel();
+                    int32 TargetLevel = creature->GetLootSkillLevelFor(m_caster->ToPlayer());
                     int32 ReqValue = (skillValue < 100 ? (TargetLevel - 10) * 10 : TargetLevel * 5);
                     if (ReqValue > skillValue)
                         return SPELL_FAILED_LOW_CASTLEVEL;
