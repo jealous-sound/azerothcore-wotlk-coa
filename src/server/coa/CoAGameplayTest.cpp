@@ -1380,6 +1380,7 @@ private:
                 creature->SetStatFlatModifier(UNIT_MOD_HEALTH, BASE_VALUE, float(health));
                 creature->SetMaxHealth(health);
                 creature->SetHealth(creature->GetMaxHealth());
+                creature->ResetPlayerDamageReq();
                 creature->CombatStop(true, true);
                 if (CreatureAI* ai = creature->AI(); ai && ai->IsEngaged())
                     ai->EnterEvadeMode();
