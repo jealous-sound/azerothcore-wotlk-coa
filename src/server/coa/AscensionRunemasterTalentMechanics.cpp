@@ -16,7 +16,9 @@ enum RunemasterTalentMechanicSpells : uint32
     SPELL_RUNIC_BRAND = 712299,
     SPELL_CINDERSTORM_RUNES = 706458,
     SPELL_TURBULENT_SPIRAL = 707153,
-    SPELL_GLYPHIC_DESTRUCTION = 800758
+    SPELL_GLYPHIC_DESTRUCTION = 800758,
+    SPELL_RUNIC_OMEN = 520285,
+    SPELL_RUNIC_OMEN_EMPOWER = 705596
 };
 
 constexpr uint32 RUNEMASTER_SPELL_FAMILY = uint32(CLASS_SPIRIT_MAGE) + 6;
@@ -71,6 +73,43 @@ class spell_ascension_runemaster_power_overwhelming_reset : public SpellScript
     {
         OnEffectHitTarget += SpellEffectFn(spell_ascension_runemaster_power_overwhelming_reset::ResetEveryRank,
             EFFECT_0, SPELL_EFFECT_ASCENSION_MODIFY_COOLDOWN);
+    }
+};
+
+class spell_ascension_runemaster_runic_omen_empower : public SpellScript
+{
+    PrepareSpellScript(spell_ascension_runemaster_runic_omen_empower);
+
+    bool Validate(SpellInfo const* info) override
+    {
+        SpellEffectInfo const& effect = info->Effects[EFFECT_1];
+        return effect.Effect == SPELL_EFFECT_DUMMY && effect.TriggerSpell == SPELL_RUNIC_OMEN_EMPOWER &&
+            ValidateSpellInfo({SPELL_RUNIC_OMEN_EMPOWER});
+    }
+
+    bool Load() override
+    {
+        return IsRunemaster(GetCaster());
+    }
+
+    void Empower(SpellEffIndex effIndex)
+    {
+        PreventHitDefaultEffect(effIndex);
+        Player* player = GetHitPlayer();
+        if (!player)
+            return;
+        Aura* counter = player->GetAura(SPELL_RUNIC_OMEN, player->GetGUID());
+        if (counter && counter->GetStackAmount() >= 3)
+        {
+            player->RemoveAurasDueToSpell(SPELL_RUNIC_OMEN, player->GetGUID());
+            player->CastSpell(player, SPELL_RUNIC_OMEN_EMPOWER, true);
+        }
+    }
+
+    void Register() override
+    {
+        OnEffectHitTarget += SpellEffectFn(spell_ascension_runemaster_runic_omen_empower::Empower,
+            EFFECT_1, SPELL_EFFECT_DUMMY);
     }
 };
 
@@ -164,6 +203,7 @@ public:
 void AddSC_AscensionRunemasterTalentMechanics()
 {
     RegisterSpellScript(spell_ascension_runemaster_power_overwhelming_reset);
+    RegisterSpellScript(spell_ascension_runemaster_runic_omen_empower);
     RegisterSpellScript(aura_ascension_runemaster_turbulence);
     new runemaster_cinderstorm_runes_metadata();
     new runemaster_glyphic_destruction_metadata();
