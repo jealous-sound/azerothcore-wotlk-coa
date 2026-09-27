@@ -2187,6 +2187,14 @@ private:
                 return double(creature->GetObjectScale());
             return 0.0;
         }
+        if (metric == "owned_creature_weapon_damage_min")
+        {
+            uint32 entry = step.get<uint32>("entry");
+            Require(sObjectMgr->GetCreatureTemplate(entry) != nullptr, "Unknown creature entry in metric");
+            if (Creature* creature = GetOwnedCreature(player, entry))
+                return double(creature->GetFloatValue(UNIT_FIELD_MINDAMAGE));
+            return 0.0;
+        }
         if (metric == "bank_shows")
             return double(_actors.at(step.get<std::string>("actor")).bankShows);
         if (metric == "system_messages")

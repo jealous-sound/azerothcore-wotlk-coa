@@ -1,7 +1,7 @@
 /* Copyright (C) 2016+ AzerothCore, GNU AGPL v3. */
 #include "AscensionRangerTalents.h"
-#include "AllCreatureScript.h"
 #include "Creature.h"
+#include "ObjectMgr.h"
 #include "Player.h"
 #include "ScriptMgr.h"
 #include "Spell.h"
@@ -10,6 +10,7 @@
 #include "SpellMgr.h"
 #include "SpellScript.h"
 #include "SpellScriptLoader.h"
+#include "TemporarySummon.h"
 #include <algorithm>
 #include <array>
 #include <limits>
@@ -65,20 +66,28 @@ constexpr std::array<WingmanCompanion, 3> WingmanCompanions =
 constexpr uint8 RANGER_ADVANTAGE_MAX_STACKS = 5;
 constexpr int32 WINGMAN_REFRESH_MS = 500;
 
-class ranger_wingman_companions : public AllCreatureScript
+class ranger_wingman_companions : public PlayerScript
 {
 public:
-    ranger_wingman_companions() : AllCreatureScript("ranger_wingman_companions") { }
+    ranger_wingman_companions() : PlayerScript("ranger_wingman_companions",
+        {PLAYERHOOK_ON_AFTER_GUARDIAN_INIT_STATS_FOR_LEVEL}) { }
 
-    void OnBeforeCreatureSelectLevel(CreatureTemplate const*, Creature* creature, uint8& level) override
+    void OnPlayerAfterGuardianInitStatsForLevel(Player* player, Guardian* guardian) override
     {
-        if (!IsWingmanCompanion(creature))
+        if (!player || player->getClass() != CLASS_RANGER || !IsWingmanCompanion(guardian))
             return;
 
-        Unit* owner = creature->GetCharmerOrOwner();
-        if (owner && owner->IsPlayer() && owner->ToPlayer()->getClass() == CLASS_RANGER &&
-            owner->GetLevel() != level)
-            level = owner->GetLevel();
+        CreatureTemplate const* info = guardian->GetCreatureTemplate();
+        CreatureBaseStats const* stats = sObjectMgr->GetCreatureBaseStats(guardian->GetLevel(), info->unit_class);
+        float const damage = stats->GenerateBaseDamage(info);
+        for (WeaponAttackType attack : {BASE_ATTACK, OFF_ATTACK, RANGED_ATTACK})
+        {
+            guardian->SetBaseWeaponDamage(attack, MINDAMAGE, damage);
+            guardian->SetBaseWeaponDamage(attack, MAXDAMAGE, damage * 1.5f);
+        }
+        guardian->SetStatFlatModifier(UNIT_MOD_ATTACK_POWER, BASE_VALUE, float(stats->AttackPower));
+        guardian->SetStatFlatModifier(UNIT_MOD_ATTACK_POWER_RANGED, BASE_VALUE, float(stats->RangedAttackPower));
+        guardian->UpdateAllStats();
     }
 
     static bool IsWingmanCompanion(Creature const* creature)
