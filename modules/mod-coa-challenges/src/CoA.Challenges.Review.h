@@ -535,6 +535,8 @@ void FailSharedFateHolders(Group* group, ObjectGuid extraGuid);
 void HandlePlayerDeath(Player* player);
 uint32 CraftedItemRarity(SkillLineAbilityEntry const* ability);
 void GrantProfessionXP(Player* member, uint32 rarityMult);
+Player* GetPlayerOwner(Creature* creature);
+void ApplyActiveChallengeSpellsToCreature(Player* player, Creature* creature);
 } // namespace CoAChallenges
 
 #endif // COA_CHALLENGES_REVIEW_H

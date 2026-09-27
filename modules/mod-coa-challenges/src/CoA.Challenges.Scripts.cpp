@@ -4,6 +4,8 @@
 #include "RBAC.h"
 #include "KillRewarder.h"
 #include "Random.h"
+#include "AllCreatureScript.h"
+
 
 using namespace Acore::ChatCommands;
 
@@ -3695,6 +3697,24 @@ namespace CoAChallenges
         }
     };
 
+    class CoAChallengesAllCreature : public AllCreatureScript
+    {
+    public:
+        CoAChallengesAllCreature() : AllCreatureScript("CoAChallengesAllCreature") { }
+
+        void OnCreatureAddWorld(Creature* creature) override
+        {
+            if (!creature)
+                return;
+
+            Player* owner = GetPlayerOwner(creature);
+            if (!owner)
+                return;
+
+            ApplyActiveChallengeSpellsToCreature(owner, creature);
+        }
+    };
+
 } // namespace CoAChallenges
 
 void Addmod_coa_challengesScripts()
@@ -3709,4 +3729,6 @@ void Addmod_coa_challengesScripts()
     new CoAChallenges::CoAChallengesGuild();
     new CoAChallenges::CoAChallengesGroup();
     new CoAChallenges::CoAChallengesSpells();
+    new CoAChallenges::CoAChallengesAllCreature();
 }
+
