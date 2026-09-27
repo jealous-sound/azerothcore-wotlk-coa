@@ -4348,15 +4348,15 @@ public:
     p << static_cast<uint32>(0);
     for (uint8 f : flags)
       p << f;
-    p << sWorld->GetRealmName();
+    p << realm.Name;
     p << "";
     p << REALM_INFO_ADDONS_ALLOWED;
 
     session->SendPacket(&p);
 
     LOG_INFO("coa",
-             "Realm info sent to {}: type {}, class model {}, realm {}.",
-             who, art, model, realm.Id.Realm);
+             "Realm info sent to {}: type {}, class model {}, realm {} ({}).",
+             who, art, model, realm.Id.Realm, realm.Name);
   }
 
 private:

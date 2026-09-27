@@ -292,11 +292,12 @@ struct RealmHandle
 struct
 {
     RealmHandle Id;
+    std::string Name = "Conquest of Azeroth";
 } realm;
 
 struct World
 {
-    std::string GetRealmName() const { return "Conquest of Azeroth"; }
+    std::string GetRealmName() const { return "unset world realm name"; }
 } world;
 
 World* sWorld = &world;
@@ -418,8 +419,10 @@ RealmInfo SendRealmInfo(std::string const& realmType, std::string const& classMo
 void TestRealmInfo()
 {
     RealmInfo const live = SendRealmInfo("live", "coa");
-    Check(live.Complete && live.Name == "Conquest of Azeroth" && live.Description.empty(),
+    Check(live.Complete && live.Description.empty(),
         "realm info ends one byte after its two strings");
+    Check(live.Name == realm.Name && live.Name != sWorld->GetRealmName(),
+        "realm info names the realm the auth database lists, not the unset world name");
     Check(live.AddOnsAllowed == 1, "realm info tells the stock client that add-ons are allowed");
     Check(live.Flags == std::vector<uint8>{1, 0, 0, 0, 0, 0, 1, 0}, "live CoA realm flags are unchanged");
 
@@ -428,9 +431,9 @@ void TestRealmInfo()
         for (char const* classModel : {"coa", "wcr", "classic"})
         {
             RealmInfo const info = SendRealmInfo(realmType, classModel);
-            allowedEverywhere &= info.Complete && info.AddOnsAllowed == 1;
+            allowedEverywhere &= info.Complete && info.AddOnsAllowed == 1 && info.Name == realm.Name;
         }
-    Check(allowedEverywhere, "every realm type and class model allows add-ons");
+    Check(allowedEverywhere, "every realm type and class model allows add-ons and names the realm");
 }
 
 bool Receive(WorldSession& session, WorldPacket const& packet)
