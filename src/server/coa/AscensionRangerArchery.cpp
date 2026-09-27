@@ -27,20 +27,27 @@ enum RangerArcherySpells : uint32
     SPELL_SKIRMISH_BRUTAL_SHOT_CRITICAL = 803335,
     SPELL_INCENDIARY_SHOT = 524870,
     SPELL_INCENDIARY_ARROWS = 524869,
-    SPELL_INCENDIARY_EXPLOSION = 570182
+    SPELL_INCENDIARY_EXPLOSION = 570182,
+    SPELL_HAWKEYE = 800358,
+    SPELL_HAWKEYE_ARROW = 801192,
+    SPELL_WOODLAND_STALKER = 705034
 };
 
 enum RangerArcheryChains : uint32
 {
     CHAIN_SKULLPIERCER = 802036,
-    CHAIN_PRECISION_SHOT = 500075
+    CHAIN_PRECISION_SHOT = 500075,
+    CHAIN_HUNTING_SHOT = 801191
 };
 
 constexpr uint32 RANGER_FAMILY = 27;
+constexpr uint32 HUNTING_SHOT_LAST_RANK = 547208;
 constexpr uint32 PRECISION_SHOT_FLAG = 8388608;
 constexpr uint32 BRUTAL_SHOT_FLAG = 128;
 constexpr int32 PIERCED_LINGERING_PCT = 35;
 constexpr int32 PIERCED_LINGERING_TICKS = 2;
+constexpr int32 WOODLAND_STALKER_ELUDE_CRIT = 20;
+constexpr int32 ELUDE_REFRESH_MS = 500;
 constexpr uint8 PRECISION_SHOT_BUFF_CHARGES = 1;
 constexpr uint8 INCENDIARY_ARROWS_CHARGES = 3;
 
@@ -172,6 +179,99 @@ public:
     }
 };
 
+bool IsHuntingShotRank(uint32 spellId)
+{
+    return spellId == CHAIN_HUNTING_SHOT || (spellId >= 547202 && spellId <= HUNTING_SHOT_LAST_RANK);
+}
+
+bool CarriesHuntingShotMark(Unit const* enemy, Unit const* ranger)
+{
+    for (AuraApplicationMap const& application : enemy->GetAppliedAuras())
+    {
+        Aura const* aura = application.second->GetBase();
+        if (aura->GetCasterGUID() != ranger->GetGUID())
+            continue;
+        if (IsHuntingShotRank(sSpellMgr->GetFirstSpellInChain(aura->GetId())))
+            return true;
+    }
+    return false;
+}
+
+class aura_ascension_ranger_hawkeye : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_ranger_hawkeye);
+
+    bool Validate(SpellInfo const* spellInfo) override
+    {
+        SpellEffectInfo const& volley = spellInfo->Effects[EFFECT_0];
+        return spellInfo->Id == SPELL_HAWKEYE && IsRangerSpell(spellInfo) && spellInfo->IsPassive() &&
+            volley.Effect == SPELL_EFFECT_APPLY_AREA_AURA_ENEMY &&
+            volley.IsAura(SPELL_AURA_PERIODIC_TRIGGER_SPELL) &&
+            volley.TriggerSpell == SPELL_HAWKEYE_ARROW && ValidateSpellInfo({SPELL_HAWKEYE_ARROW});
+    }
+
+    bool IsMarkedEnemy(Unit* target)
+    {
+        Unit* ranger = GetUnitOwner();
+        return target && ranger && ranger->IsPlayer() &&
+            ranger->ToPlayer()->getClass() == CLASS_RANGER &&
+            !ranger->IsFriendlyTo(target) && CarriesHuntingShotMark(target, ranger);
+    }
+
+    void Register() override
+    {
+        DoCheckAreaTarget += AuraCheckAreaTargetFn(aura_ascension_ranger_hawkeye::IsMarkedEnemy);
+    }
+};
+
+class aura_ascension_ranger_woodland_stalker : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_ranger_woodland_stalker);
+
+    bool Validate(SpellInfo const* spellInfo) override
+    {
+        SpellEffectInfo const& critical = spellInfo->Effects[EFFECT_0];
+        return spellInfo->Id == SPELL_WOODLAND_STALKER && IsRangerSpell(spellInfo) && spellInfo->IsPassive() &&
+            critical.IsAura(SPELL_AURA_ADD_FLAT_MODIFIER) && critical.BasePoints == WOODLAND_STALKER_ELUDE_CRIT - 1 &&
+            critical.DieSides == 1 && ValidateSpellInfo({SPELL_ELUDE});
+    }
+
+    bool InElude() const
+    {
+        Unit* ranger = GetUnitOwner();
+        return ranger && ranger->IsPlayer() && ranger->ToPlayer()->getClass() == CLASS_RANGER &&
+            ranger->HasAura(SPELL_ELUDE);
+    }
+
+    void Calculate(AuraEffect const*, int32& amount, bool& canBeRecalculated)
+    {
+        canBeRecalculated = true;
+        amount = InElude() ? WOODLAND_STALKER_ELUDE_CRIT : 0;
+    }
+
+    void Period(AuraEffect const*, bool& isPeriodic, int32& timer)
+    {
+        isPeriodic = true;
+        timer = ELUDE_REFRESH_MS;
+    }
+
+    void Refresh(AuraEffect const* effect)
+    {
+        PreventDefaultAction();
+        GetAura()->GetEffect(effect->GetEffIndex())->RecalculateAmount();
+    }
+
+    void Register() override
+    {
+        DoEffectCalcAmount += AuraEffectCalcAmountFn(aura_ascension_ranger_woodland_stalker::Calculate,
+            EFFECT_0, SPELL_AURA_ADD_FLAT_MODIFIER);
+        DoEffectCalcPeriodic += AuraEffectCalcPeriodicFn(aura_ascension_ranger_woodland_stalker::Period,
+            EFFECT_0, SPELL_AURA_ADD_FLAT_MODIFIER);
+        OnEffectPeriodic += AuraEffectPeriodicFn(aura_ascension_ranger_woodland_stalker::Refresh,
+            EFFECT_0, SPELL_AURA_ADD_FLAT_MODIFIER);
+    }
+};
+
 bool IsPrecisionShotBuff(SpellInfo const* info, uint32 spellId, uint8 effect, uint32 stacks)
 {
     SpellEffectInfo const& modifier = info->Effects[effect];
@@ -248,6 +348,8 @@ public:
 void AddSC_AscensionRangerArchery()
 {
     RegisterSpellScript(aura_ascension_ranger_pierced_bleed);
+    RegisterSpellScript(aura_ascension_ranger_hawkeye);
+    RegisterSpellScript(aura_ascension_ranger_woodland_stalker);
     new ranger_archery_hits();
     new ranger_archery_contracts();
 }
