@@ -598,6 +598,8 @@ and closes its current loot window. `collect_loot` takes `actor`, collects slot 
 quantity reached inventory and records the item/count. It supports ordinary container loot, not quest-only slots.
 `loot_count` and `loot_entry` report the actor's current uncollected item slots and first entry; `loot_received`
 reports the inventory increase from its last successful `collect_loot`. Closed windows return zero slots/entry.
+`creature_loot_quality_rate` requires `entry` (a creature loot id), fills that template `rolls` times (default 10000)
+for the actor and reports the percentage of fills holding an item of at least `quality` (default 3, rare).
 `quest_rewarded` requires `quest` and reads the player's native rewarded status.
 `prepare_quest` takes `actor` and `quest`, adds the quest and required delivery items, then completes its objectives (unless `complete` is false, which leaves the quest in progress)
 as fixture setup. `reward_quest` takes the same fields and optional zero-based `choice` (default 0); it checks normal

@@ -29,6 +29,7 @@
 #include "NPCPackets.h"
 #include "Log.h"
 #include "LocalLevelScaling.h"
+#include "LootMgr.h"
 #include "Map.h"
 #include "MapMgr.h"
 #include "ObjectAccessor.h"
@@ -1770,6 +1771,26 @@ private:
                     if (!item.is_looted && itemTemplate->Name1.rfind("Bloodforged", 0) == 0)
                         ++count;
             return count;
+        }
+        if (metric == "creature_loot_quality_rate")
+        {
+            uint32 const lootId = step.get<uint32>("entry");
+            uint32 const quality = step.get<uint32>("quality", ITEM_QUALITY_RARE);
+            uint32 const rolls = step.get<uint32>("rolls", 10000);
+            Require(LootTemplates_Creature.HaveLootFor(lootId), "Unknown creature loot template");
+            Require(rolls != 0, "creature_loot_quality_rate needs rolls");
+            uint32 hits = 0;
+            for (uint32 roll = 0; roll < rolls; ++roll)
+            {
+                Loot loot;
+                loot.FillLoot(lootId, LootTemplates_Creature, player, true, true);
+                hits += std::any_of(loot.items.begin(), loot.items.end(), [quality](LootItem const& item)
+                {
+                    ItemTemplate const* itemTemplate = sObjectMgr->GetItemTemplate(item.itemid);
+                    return itemTemplate && itemTemplate->Quality >= quality;
+                });
+            }
+            return 100.0 * hits / rolls;
         }
         if (metric == "nearby_creature_count")
         {

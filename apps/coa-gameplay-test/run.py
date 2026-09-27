@@ -85,7 +85,7 @@ METRICS = {
     'spell_damage_count', 'spell_damage_total', 'spell_uses_armor',
     'spell_heal_count', 'spell_heal_total', 'spell_effective_heal_total',
     'pet_aura_amount', 'pet_aura_amplitude_ms', 'pet_max_health', 'pet_attack_power', 'pet_run_speed_rate',
-    'distance', 'spell_proc_count', 'temporary_spell_replacement',
+    'distance', 'spell_proc_count', 'temporary_spell_replacement', 'creature_loot_quality_rate',
 }
 PLAYER_STAT_METRICS = {
     'spell_go_count',
