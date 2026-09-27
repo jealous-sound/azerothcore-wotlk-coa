@@ -54,7 +54,8 @@ enum ReaperTalentSpells : uint32
     SPELL_ESSENCE_INVIGORATION = 805186,
     SPELL_ESSENCE_INVIGORATION_HEAL = 805187,
     SPELL_WEAKENED_SOULS = 92146,
-    SPELL_WEAKENED_SOUL = 803433
+    SPELL_WEAKENED_SOUL = 803433,
+    SPELL_DOMINION = 803999
 };
 
 Unit* HostileTargetInRange(Player* player, uint32 spellId)
@@ -156,6 +157,22 @@ void CastTalentTrigger(Player* player, uint32 talentId, uint32 triggerId)
 {
     if (RollTalent(player, talentId))
         player->CastSpell(player, triggerId, true);
+}
+
+void CastOwnProcTrigger(Player* player, uint32 talentId)
+{
+    SpellInfo const* talent = sSpellMgr->GetSpellInfo(talentId);
+    if (!talent || !player->HasAura(talentId))
+        return;
+
+    for (SpellEffectInfo const& effect : talent->Effects)
+    {
+        if (!effect.IsAura(SPELL_AURA_PROC_TRIGGER_SPELL) || !sSpellMgr->GetSpellInfo(effect.TriggerSpell))
+            continue;
+
+        player->CastSpell(player, effect.TriggerSpell, true);
+        return;
+    }
 }
 
 class spell_ascension_reaper_essence_invigoration_heal : public SpellScript
@@ -473,6 +490,7 @@ void ApplyAscensionReaperSoulInfusionGained(Player* player)
 
     CastTalentTrigger(player, SPELL_DAMNED, SPELL_DAMNED_HASTE);
     CastTalentTrigger(player, SPELL_PURGATORY, SPELL_PURGATORY_DAMAGE);
+    CastOwnProcTrigger(player, SPELL_DOMINION);
 }
 
 void ApplyAscensionReaperSoulInfusionSpent(Player* player)
