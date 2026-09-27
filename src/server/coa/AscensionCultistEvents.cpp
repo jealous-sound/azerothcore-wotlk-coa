@@ -13,9 +13,19 @@
 namespace
 {
 using namespace AscensionCultist;
+constexpr uint32 NzothTentacleSummon = 500707;
+constexpr uint32 YshaarjCurse = 807632;
+constexpr uint32 DespoiledGround = 805180;
 bool Infusion(uint32 id)
 {
     return std::find(std::begin(CultistInfusions), std::end(CultistInfusions), id) != std::end(CultistInfusions);
+}
+int32 ModifiedDuration(Player* player, uint32 id)
+{
+    SpellInfo const* info = sSpellMgr->GetSpellInfo(id);
+    int32 duration = info ? info->GetDuration() : 0;
+    player->ApplySpellMod(id, SPELLMOD_DURATION, duration);
+    return std::max(0, duration);
 }
 class aura_ascension_cultist_event : public AuraScript
 {
@@ -216,9 +226,14 @@ class aura_ascension_cultist_event : public AuraScript
             case 707640: Cast(player, player, 805113); break;
             case 800463: Cast(player, player, 502133); break;
             case 802043: Cast(player, player, 572613); break;
-            case 803035: Cast(player, target, 805180); break;
+            case 803035:
+                if (target && target->IsAlive())
+                    player->CastCustomSpell(DespoiledGround, SPELLVALUE_AURA_DURATION,
+                        ModifiedDuration(player, YshaarjCurse), target, true);
+                break;
             case 803037:
-                Summon(player, 500464, player->GetNearPosition(1, 0), sSpellMgr->GetSpellInfo(500707)->GetDuration(), target);
+                Summon(player, 500464, player->GetNearPosition(1, 0),
+                    ModifiedDuration(player, NzothTentacleSummon), target);
                 break;
             case 803082: Cast(player, target, 803083); break;
             case 803339: Cast(player, player, 803340); break;
