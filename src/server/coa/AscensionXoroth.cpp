@@ -182,7 +182,10 @@ void Refresh(Player* player)
         if (aura && aura->GetEffect(EFFECT_0) && aura->GetEffect(EFFECT_0)->GetAmount() != value)
             aura->GetEffect(EFFECT_0)->ChangeAmount(value);
     };
-    scale(302546, player->GetAuraOfRankedSpell(706569) ? imps * Amount(302546) : 0);
+    int32 blockPerImp = player->HasAura(707836)                ? Amount(302546, 1)
+                        : player->GetAuraOfRankedSpell(706569) ? Amount(302546)
+                                                               : 0;
+    scale(302546, int32(imps) * blockPerImp);
     scale(302573, player->HasAura(804340) ? imps * Amount(302573) : 0);
     scale(302574, player->HasAura(804340) ? -int32(imps) * Amount(302574) : 0);
     scale(302592, imps);

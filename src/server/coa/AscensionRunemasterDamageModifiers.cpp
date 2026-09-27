@@ -4,8 +4,46 @@
 #include "SpellInfo.h"
 #include "SpellDefines.h"
 
+namespace
+{
+constexpr uint32 SPELL_ELEMENTAL_ACUITY = 706671;
+constexpr uint32 SPELL_AIR_ENGRAVING = 653223;
+constexpr int32 PRIVATE_ATTACK_POWER_COEFFICIENT = 32;
+
+void ApplyElementalAcuityRunebladeScaling(SpellInfo* info)
+{
+    flag96 const runebladeFamilyFlags(0, 0, 262144);
+    SpellEffectInfo& scaling = info->Effects[EFFECT_1];
+    if (info->Id != SPELL_ELEMENTAL_ACUITY || !scaling.IsAura(SPELL_AURA_ADD_FLAT_MODIFIER) ||
+        scaling.MiscValue != PRIVATE_ATTACK_POWER_COEFFICIENT || scaling.SpellClassMask != runebladeFamilyFlags ||
+        scaling.BasePoints != 24 || scaling.DieSides != 1 || scaling.TargetA.GetTarget() != TARGET_UNIT_CASTER)
+        return;
+
+    scaling.ApplyAuraName = SPELL_AURA_OVERRIDE_CLASS_SCRIPTS;
+    scaling.MiscValue = ASCENSION_DIRECT_AP_COEFFICIENT_FLAT;
+}
+
+void ApplyAirEngravingHurricaneScope(SpellInfo* info)
+{
+    flag96 const hurricaneStrikeFamilyFlags(0, 0, 4);
+    SpellEffectInfo& hurricane = info->Effects[EFFECT_1];
+    if (info->Id != SPELL_AIR_ENGRAVING || !hurricane.IsAura(SPELL_AURA_ADD_PCT_MODIFIER) ||
+        hurricane.MiscValue != SPELLMOD_DAMAGE || hurricane.SpellClassMask != flag96() ||
+        hurricane.BasePoints != -1 || hurricane.DieSides != 1 || hurricane.TargetA.GetTarget() != TARGET_UNIT_CASTER)
+        return;
+
+    hurricane.SpellClassMask = hurricaneStrikeFamilyFlags;
+}
+}
+
 void ApplyAscensionRunemasterDamageModifierContracts(SpellInfo* info)
 {
+    if (info && info->SpellFamilyName == uint32(CLASS_SPIRIT_MAGE) + 6)
+    {
+        ApplyElementalAcuityRunebladeScaling(info);
+        ApplyAirEngravingHurricaneScope(info);
+    }
+
     if (!info || info->SpellFamilyName != uint32(CLASS_SPIRIT_MAGE) + 6 ||
         info->SpellFamilyFlags != flag96() || info->Effects[EFFECT_2].Effect)
         return;

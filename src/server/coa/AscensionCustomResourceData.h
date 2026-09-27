@@ -465,7 +465,7 @@ struct NativePowerGainRule
     std::uint32_t AmountSpellId = 0;
 };
 
-inline constexpr std::array<NativePowerGainRule, 13> NativePowerGainRules =
+inline constexpr std::array<NativePowerGainRule, 16> NativePowerGainRules =
 {{
     {19, 0, 0, 3, 10, ResourceGainEvent::PeriodicDamageTick, 301253},
     {23, 704355, 704355, 6, 200,
@@ -479,6 +479,12 @@ inline constexpr std::array<NativePowerGainRule, 13> NativePowerGainRules =
     {30, 573316, 573319, 6, 150,
         ResourceGainEvent::FirstSuccessfulHostileTarget},
     {30, 573321, 573322, 6, 150,
+        ResourceGainEvent::FirstSuccessfulHostileTarget},
+    {30, 800172, 800172, 6, 150,
+        ResourceGainEvent::FirstSuccessfulHostileTarget},
+    {30, 502668, 502671, 6, 150,
+        ResourceGainEvent::FirstSuccessfulHostileTarget},
+    {30, 567531, 567532, 6, 150,
         ResourceGainEvent::FirstSuccessfulHostileTarget},
     {30, 801624, 801624, 6, 200,
         ResourceGainEvent::FirstSuccessfulHostileTarget, 0, 0, 359504},

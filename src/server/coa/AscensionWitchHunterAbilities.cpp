@@ -27,18 +27,47 @@ enum WitchHunterCastSpells
     SPELL_SIXFOLD_SHOT = 807364,
     SPELL_SIXFOLD_SHOT_DAMAGE = 807527,
     SPELL_SIXFOLD_SHOT_ENERGIZE = 521228,
+    SPELL_SIXFOLD_SHOT_PASSIVE = 500567,
+    SPELL_SIXFOLD_SHOT_STACKS = 500569,
+    SPELL_SIXFOLD_SHOT_TRANSFORM = 500604,
     SPELL_SHADOW_RAGE_TALENT = 705455,
     SPELL_SHADOW_RAGE_PET = 804192,
     SPELL_SHARPSHOOTER = 705456,
     SPELL_SHARPSHOOTER_ENERGIZE = 704385
 };
 
+enum WitchHunterHounds
+{
+    NPC_SHADOWHOUND = 50124,
+    NPC_LESSER_SHADOWHOUND = 50224
+};
+
+void GrantShadowRageToHounds(Player* player)
+{
+    float const range = sSpellMgr->AssertSpellInfo(SPELL_SHADOW_RAGE_PET)->Effects[EFFECT_1].CalcRadius(player);
+    for (Unit* hound : Nearby(player, range))
+        if ((hound->GetEntry() == NPC_SHADOWHOUND || hound->GetEntry() == NPC_LESSER_SHADOWHOUND) &&
+            hound->GetOwnerGUID() == player->GetGUID())
+            Cast(player, hound, SPELL_SHADOW_RAGE_PET);
+}
+
 void ApplyShadowblastTalents(Player* player)
 {
     if (player->HasAura(SPELL_SHADOW_RAGE_TALENT))
-        Cast(player, Hound(player), SPELL_SHADOW_RAGE_PET);
+        GrantShadowRageToHounds(player);
     if (player->HasAura(SPELL_SHARPSHOOTER))
         Cast(player, player, SPELL_SHARPSHOOTER_ENERGIZE);
+}
+
+bool SubmittedByPlayer(Spell const* spell)
+{
+    return !spell->HasTriggeredCastFlag(TRIGGERED_IGNORE_GCD);
+}
+
+bool SixfoldShotReady(Player* player)
+{
+    Aura const* stacks = player->GetAura(SPELL_SIXFOLD_SHOT_STACKS);
+    return player->HasAura(SPELL_SIXFOLD_SHOT_PASSIVE) && stacks && stacks->GetStackAmount() >= 5;
 }
 
 class witch_hunter_casts : public AllSpellScript
@@ -123,9 +152,16 @@ class witch_hunter_casts : public AllSpellScript
             return;
         }
         Player* player = Owner(caster);
-        if (!player || spell->IsTriggered())
+        if (!player)
             return;
         uint32 id = spell->GetSpellInfo()->Id;
+        if (id == SPELL_SIXFOLD_SHOT && SubmittedByPlayer(spell) && !SixfoldShotReady(player))
+        {
+            result = SPELL_FAILED_CASTER_AURASTATE;
+            return;
+        }
+        if (spell->IsTriggered())
+            return;
         if (id == 500085 && player->HasUnitState(UNIT_STATE_ROOT))
             result = SPELL_FAILED_ROOTED;
         if (id == 802281 &&
@@ -141,12 +177,6 @@ class witch_hunter_casts : public AllSpellScript
         if ((id == 681788 || id == 684330 || id == 685020 || id == 686020) &&
             (!player->HasAura(680513) || !player->HasAura(681499)))
             result = SPELL_FAILED_CASTER_AURASTATE;
-        if (id == SPELL_SIXFOLD_SHOT)
-        {
-            Aura* ready = player->GetAura(500569);
-            if (!player->HasAura(500567) || !ready || ready->GetStackAmount() < 5)
-                result = SPELL_FAILED_CASTER_AURASTATE;
-        }
     }
 };
 
@@ -246,8 +276,8 @@ class spell_ascension_witch_hunter_ability : public SpellScript
         SpellInfo const* info = GetSpellInfo();
         uint32 id = info->Id;
         Unit* target = GetExplTargetUnit();
-        bool const playerVault = id == 500085 && !GetSpell()->HasTriggeredCastFlag(TRIGGERED_IGNORE_GCD);
-        if (GetSpell()->IsTriggered() && !playerVault)
+        bool const castWhileCasting = (id == 500085 || id == SPELL_SIXFOLD_SHOT) && SubmittedByPlayer(GetSpell());
+        if (GetSpell()->IsTriggered() && !castWhileCasting)
             return;
         auto talent = [&](uint32 passive, uint32 helper, Unit* recipient = nullptr)
         {
@@ -258,19 +288,20 @@ class spell_ascension_witch_hunter_ability : public SpellScript
             talent(805773, 504478);
         if (Family(info, 2, 16))
             ApplyShadowblastTalents(player);
-        if (Bolt(info) && player->HasAura(500567))
+        if (Bolt(info) && player->HasAura(SPELL_SIXFOLD_SHOT_PASSIVE))
         {
-            Cast(player, player, 500569);
-            if (Aura* counter = player->GetAura(500569))
-                if (counter->GetStackAmount() >= 5)
-                {
-                    Replacement(player, 0, 64, SPELL_SIXFOLD_SHOT);
-                }
+            Cast(player, player, SPELL_SIXFOLD_SHOT_STACKS);
+            if (SixfoldShotReady(player))
+            {
+                Cast(player, player, SPELL_SIXFOLD_SHOT_TRANSFORM);
+                Replacement(player, 0, 64, SPELL_SIXFOLD_SHOT);
+            }
         }
         if (id == SPELL_SIXFOLD_SHOT)
         {
             ClearReplacement(player, 0, 64);
-            player->RemoveAurasDueToSpell(500569);
+            player->RemoveAurasDueToSpell(SPELL_SIXFOLD_SHOT_STACKS);
+            player->RemoveAurasDueToSpell(SPELL_SIXFOLD_SHOT_TRANSFORM);
         }
         if (id == 500085)
         {

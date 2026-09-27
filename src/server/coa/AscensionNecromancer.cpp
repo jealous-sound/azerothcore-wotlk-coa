@@ -214,8 +214,11 @@ void Reduce(Player* player, uint32 root, int32 milliseconds)
 bool Chance(Player* player, uint32 talent, float multiplier, uint32 cooldown)
 {
     SpellInfo const* info = sSpellMgr->GetSpellInfo(talent);
-    if (!info || !player->HasAura(talent) || State(player).cooldowns.HasTimeUntilEvent(talent) ||
-        !roll_chance_f(std::min(100.0f, std::max(0.0f, info->ProcChance * multiplier))))
+    if (!info || !player->HasAura(talent) || State(player).cooldowns.HasTimeUntilEvent(talent))
+        return false;
+    float chance = info->ProcChance * multiplier;
+    player->ApplySpellMod(talent, SPELLMOD_CHANCE_OF_SUCCESS, chance);
+    if (!roll_chance_f(std::clamp(chance, 0.0f, 100.0f)))
         return false;
     if (cooldown)
         State(player).cooldowns.ScheduleEvent(talent, Milliseconds(cooldown));
@@ -251,12 +254,13 @@ void Plague(Player* player, Unit* target, uint8 stacks)
         return;
     if (Aura* aura = target->GetAura(570131, player->GetGUID()))
     {
-        aura->SetStackAmount(
-            uint8(std::min<uint32>(aura->GetSpellInfo()->StackAmount, uint32(aura->GetStackAmount()) + stacks)));
+        uint32 maximum = aura->GetSpellInfo()->CalcMaxAuraStacks(player);
+        aura->SetStackAmount(uint8(std::min<uint32>(maximum, uint32(aura->GetStackAmount()) + stacks)));
     }
     else if (Aura* fresh = player->AddAura(570131, target))
         fresh->SetStackAmount(stacks);
-    Cast(player, player, 573131);
+    if (player->HasAura(574138))
+        Cast(player, player, 573131);
     if (player->HasAura(300965))
         ExtendWorms(player, target, std::abs(Amount(301337, 0, player)));
 }

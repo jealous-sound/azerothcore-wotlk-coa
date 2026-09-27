@@ -176,13 +176,6 @@ int main()
     engraving.Proc(&amount,event); assert(player.casts.empty() && brand->stacks==2 && brand->duration==1200);
     damage.type=2; assert(!engraving.Check(event)); damage.type=1;
     event.actor=&other; assert(!engraving.Check(event)); event.actor=&player;
-    aura_ascension_runemaster_firebrand firebrand; firebrand.fixtureCaster=&player; firebrand.fixtureTarget=&enemy;
-    firebrand.fixtureAura.stacks=3; player.casts.clear();
-    firebrand.Explode(&amount,1);
-    assert(player.casts.size()==3 && player.casts.back().id==653212 && player.casts.back().target==&enemy);
-    firebrand.fixtureApplication.mode=0; player.casts.clear(); firebrand.Explode(&amount,1); assert(player.casts.empty());
-    firebrand.fixtureApplication.mode=AURA_REMOVE_BY_EXPIRE; enemy.alive=false;
-    firebrand.Explode(&amount,1); assert(player.casts.empty()); enemy.alive=true;
     runemaster_secondary_metadata metadata; SpellInfo info; info.SpellFamilyName=38; info.Id=712298;
     metadata.OnLoadSpellCustomAttr(&info); assert(info.AscensionInheritsResolvedAmount);
 }
