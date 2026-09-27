@@ -55,8 +55,7 @@ enum ReaperTalentSpells : uint32
     SPELL_ESSENCE_INVIGORATION_HEAL = 805187,
     SPELL_WEAKENED_SOULS = 92146,
     SPELL_WEAKENED_SOUL = 803433,
-    SPELL_DOMINION = 803999,
-    SPELL_GHOST_CLAW = 803985
+    SPELL_DOMINION = 803999
 };
 
 Unit* HostileTargetInRange(Player* player, uint32 spellId)
@@ -175,35 +174,6 @@ void CastOwnProcTrigger(Player* player, uint32 talentId)
         return;
     }
 }
-
-class aura_ascension_reaper_ghost_claw : public AuraScript
-{
-    PrepareAuraScript(aura_ascension_reaper_ghost_claw);
-
-    bool Validate(SpellInfo const* info) override
-    {
-        return info->Id == SPELL_GHOST_CLAW;
-    }
-
-    void ResetOnDeath(AuraEffect const*, AuraEffectHandleModes)
-    {
-        Unit* caster = GetCaster();
-        Unit* target = GetTarget();
-        if (!caster || !caster->IsPlayer() || caster == target ||
-            GetTargetApplication()->GetRemoveMode() != AURA_REMOVE_BY_DEATH)
-            return;
-
-        Player* player = caster->ToPlayer();
-        if (player->HasSpellCooldown(SPELL_GHOST_CLAW))
-            player->RemoveSpellCooldown(SPELL_GHOST_CLAW, true);
-    }
-
-    void Register() override
-    {
-        AfterEffectRemove += AuraEffectRemoveFn(aura_ascension_reaper_ghost_claw::ResetOnDeath, EFFECT_ALL,
-            SPELL_AURA_ANY, AURA_EFFECT_HANDLE_REAL);
-    }
-};
 
 class spell_ascension_reaper_essence_invigoration_heal : public SpellScript
 {
@@ -540,7 +510,6 @@ void AddSC_AscensionReaperTalents()
     RegisterSpellScript(aura_ascension_jailers_call);
     RegisterSpellScript(aura_ascension_reaper_blood_frenzy);
     RegisterSpellScript(aura_ascension_reaper_ghastly_form);
-    RegisterSpellScript(aura_ascension_reaper_ghost_claw);
     RegisterSpellScript(spell_ascension_reaper_weakened_souls);
     new reaper_talent_events();
 }
