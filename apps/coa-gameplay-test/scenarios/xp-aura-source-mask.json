@@ -1,0 +1,76 @@
+{
+  "schema": 1,
+  "name": "XP auras only modify kill XP when their source mask names creature kills (#4908)",
+  "contract": "The misc value of SPELL_AURA_MOD_XP_PCT is a mask of XP sources: 1 creature kills, 2 quests, 4 professions, 8 battlegrounds. Each level-20 player kills a level-20 Elwynn creature whose base award under the live realm rates is 146 (see xp-ascension-rates). Keeper's Scroll: Khaz'goroth (993955, +25% mask 4, gathering and crafting), The Hunt V (83258, +10% mask 2, quests) and Exterminator Tier 1 (282, -100% mask 2, 'You can only get experience from Creatures or PvP') leave kill XP at 146; before the fix they paid 183, 160 and 0. Keeper's Scroll: Norgannon (993943) has a +10% kill effect (mask 1) and a +10% quest effect (mask 2): only the kill effect applies, 158 * 1.1 = 173, then Rate.XP.Global gives 160, instead of 177 with both effects.",
+  "timeout_ms": 120000,
+  "location": {
+    "map": 0,
+    "x": -9617.06,
+    "y": -288.949,
+    "z": 57.3053,
+    "o": 0
+  },
+  "players": [
+    { "id": "plain", "race": 1, "class": 1, "level": 20 },
+    { "id": "crafter", "race": 1, "class": 1, "level": 20 },
+    { "id": "quester", "race": 1, "class": 1, "level": 20 },
+    { "id": "exterminator", "race": 1, "class": 1, "level": 20 },
+    { "id": "scholar", "race": 1, "class": 1, "level": 20 }
+  ],
+  "creatures": [
+    { "id": "plain_mob", "owner": "plain", "entry": 2158, "level": 20, "health": 20, "distance": 2 },
+    { "id": "crafter_mob", "owner": "crafter", "entry": 2158, "level": 20, "health": 20, "distance": 2 },
+    { "id": "quester_mob", "owner": "quester", "entry": 2158, "level": 20, "health": 20, "distance": 2 },
+    { "id": "exterminator_mob", "owner": "exterminator", "entry": 2158, "level": 20, "health": 20, "distance": 2 },
+    { "id": "scholar_mob", "owner": "scholar", "entry": 2158, "level": 20, "health": 20, "distance": 2 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let spawn AI settle", "ms": 3000 },
+    { "action": "command", "actor": "plain", "command": ".xp 1" },
+    { "action": "command", "actor": "crafter", "command": ".xp 1" },
+    { "action": "command", "actor": "quester", "command": ".xp 1" },
+    { "action": "command", "actor": "exterminator", "command": ".xp 1" },
+    { "action": "command", "actor": "scholar", "command": ".xp 1" },
+    { "action": "set_aura", "actor": "crafter", "spell": 993955, "stacks": 1 },
+    { "action": "set_aura", "actor": "quester", "spell": 83258, "stacks": 1 },
+    { "action": "set_aura", "actor": "exterminator", "spell": 282, "stacks": 1 },
+    { "action": "set_aura", "actor": "scholar", "spell": 993943, "stacks": 1 },
+    { "action": "snapshot", "actor": "plain", "metric": "xp", "save_as": "plain_before" },
+    { "action": "snapshot", "actor": "crafter", "metric": "xp", "save_as": "crafter_before" },
+    { "action": "snapshot", "actor": "quester", "metric": "xp", "save_as": "quester_before" },
+    { "action": "snapshot", "actor": "exterminator", "metric": "xp", "save_as": "exterminator_before" },
+    { "action": "snapshot", "actor": "scholar", "metric": "xp", "save_as": "scholar_before" },
+    { "action": "attack", "actor": "plain", "target": "plain_mob" },
+    { "action": "attack", "actor": "crafter", "target": "crafter_mob" },
+    { "action": "attack", "actor": "quester", "target": "quester_mob" },
+    { "action": "attack", "actor": "exterminator", "target": "exterminator_mob" },
+    { "action": "attack", "actor": "scholar", "target": "scholar_mob" },
+    { "action": "assert", "actor": "plain_mob", "metric": "alive", "equals": 0, "within_ms": 30000 },
+    { "action": "assert", "actor": "crafter_mob", "metric": "alive", "equals": 0, "within_ms": 30000 },
+    { "action": "assert", "actor": "quester_mob", "metric": "alive", "equals": 0, "within_ms": 30000 },
+    { "action": "assert", "actor": "exterminator_mob", "metric": "alive", "equals": 0, "within_ms": 30000 },
+    { "action": "assert", "actor": "scholar_mob", "metric": "alive", "equals": 0, "within_ms": 30000 },
+    {
+      "action": "assert", "label": "No XP aura: base kill award",
+      "actor": "plain", "metric": "xp", "relative_to": "plain_before", "equals": 146, "within_ms": 5000
+    },
+    {
+      "action": "assert", "label": "Profession-only XP aura leaves kill XP alone",
+      "actor": "crafter", "metric": "xp", "relative_to": "crafter_before", "equals": 146, "within_ms": 5000
+    },
+    {
+      "action": "assert", "label": "Quest-only XP bonus leaves kill XP alone",
+      "actor": "quester", "metric": "xp", "relative_to": "quester_before", "equals": 146, "within_ms": 5000
+    },
+    {
+      "action": "assert", "label": "Quest-only XP block still pays creature kills",
+      "actor": "exterminator", "metric": "xp", "relative_to": "exterminator_before", "equals": 146,
+      "within_ms": 5000
+    },
+    {
+      "action": "assert", "label": "Only the kill effect of a kill-and-quest aura applies to kill XP",
+      "actor": "scholar", "metric": "xp", "relative_to": "scholar_before", "min": 159, "max": 162,
+      "within_ms": 5000
+    }
+  ]
+}
