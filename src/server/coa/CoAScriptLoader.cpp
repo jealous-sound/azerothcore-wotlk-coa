@@ -229,6 +229,7 @@ void AddSC_AscensionRangerTalents();
 void AddSC_AscensionRangerFlowers();
 void AddSC_AscensionRangerPetalkeeper();
 void AddSC_AscensionRangerFalconstrike();
+void AddSC_AscensionRangerArchery();
 void AddSC_AscensionChronomancerTalents();
 void AddSC_AscensionChronomancerTime();
 void AddSC_AscensionChronomancerRenewal();
@@ -479,6 +480,7 @@ void AddCoAScripts()
     AddSC_AscensionRangerFlowers();
     AddSC_AscensionRangerPetalkeeper();
     AddSC_AscensionRangerFalconstrike();
+    AddSC_AscensionRangerArchery();
     AddSC_AscensionChronomancerTalents();
     AddSC_AscensionChronomancerTime();
     AddSC_AscensionChronomancerRenewal();
