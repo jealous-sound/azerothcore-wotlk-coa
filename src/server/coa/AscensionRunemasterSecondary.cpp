@@ -147,8 +147,8 @@ public:
             if (root == SPELL_PRIMORDIAL_BLAST || root == SPELL_SMOLDER)
             {
                 if (uint32 rank = KnownRank(player, SPELL_RUNEBLADE))
-                    player->RestoreSpellCharge(rank, player->HasAura(SPELL_ETERNAL_MAGIC, player->GetGUID())
-                        ? SPELL_ETERNAL_MAGIC_CHARGES : 1);
+                    player->RestoreSpellCharge(rank, root == SPELL_PRIMORDIAL_BLAST &&
+                        player->HasAura(SPELL_ETERNAL_MAGIC, player->GetGUID()) ? SPELL_ETERNAL_MAGIC_CHARGES : 1);
             }
             else if (root == SPELL_RUNEBLADE)
             {
