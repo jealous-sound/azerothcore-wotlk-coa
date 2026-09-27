@@ -282,7 +282,6 @@ constexpr uint32 SPELL_REAPER_GENERATE_SOUL = 805078;
 constexpr uint32 SPELL_REAPER_SCYTHE_RUSH = 500359;
 constexpr uint32 SPELL_REAPER_SCYTHE_RUSH_MARKER = 500377;
 constexpr uint32 SPELL_REAPER_HARVEST_TIME = 803995;
-constexpr int32 REAPER_HARVEST_TIME_PRESERVE_CHANCE = 50;
 constexpr char ASCENSION_LOCAL_RESOURCE_PREFIX[] = "ASC_LOCAL_RESOURCE";
 constexpr char ASCENSION_ACTIVE_SPEC_SETTING[] = "core.ascension_active_spec";
 constexpr char ASCENSION_TALENT_BUILD_SETTING_PREFIX[] = "core.ascension_build.";
@@ -2935,8 +2934,7 @@ private:
     static bool HarvestTimePreserves(Player const* player, SpellInfo const* spellInfo)
     {
         return spellInfo->CasterAuraSpell == SPELL_REAPER_SOUL_INFUSION &&
-            player->HasAura(SPELL_REAPER_HARVEST_TIME) &&
-            roll_chance_i(REAPER_HARVEST_TIME_PRESERVE_CHANCE);
+            player->HasAura(SPELL_REAPER_HARVEST_TIME);
     }
 
     static bool WasAvoidedByEveryTarget(Player const* player, Spell* spell)
