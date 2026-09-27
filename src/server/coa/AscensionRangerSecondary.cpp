@@ -9,13 +9,13 @@
 
 namespace
 {
-constexpr uint32 AdvantageCompanions[] = {704337, 801429, 801700};
+constexpr uint32 AdvantageCompanions[] = {704337, 801429, 801700, 802612};
 
 class aura_ascension_ranger_advantage : public AuraScript
 {
     PrepareAuraScript(aura_ascension_ranger_advantage);
 
-    bool Validate(SpellInfo const*) override { return ValidateSpellInfo({704337, 801429, 801700}); }
+    bool Validate(SpellInfo const*) override { return ValidateSpellInfo({704337, 801429, 801700, 802612}); }
 
     bool Load() override
     {
