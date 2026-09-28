@@ -589,6 +589,7 @@ bool Accept(Player* player, Creature* ball, Quest const* quest)
         player->GetName(), questId, player->GetMapId());
 
     player->AddQuestAndCheckCompletion(quest, ball);
+    player->ShareQuestWithGroup(quest);
     PushStatus(player, ball, DialogStatus(player, ball));
     return true;
 }

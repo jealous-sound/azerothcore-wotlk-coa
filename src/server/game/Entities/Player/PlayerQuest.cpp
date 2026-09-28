@@ -15,6 +15,7 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "Chat.h"
 #include "CreatureAI.h"
 #include "DisableMgr.h"
 #include "GameEventMgr.h"
@@ -32,6 +33,7 @@
 #include "ScriptMgr.h"
 #include "SpellAuraEffects.h"
 #include "SpellMgr.h"
+#include "World.h"
 #include "WorldSession.h"
 
 /*********************************************************/
@@ -1592,6 +1594,78 @@ bool Player::CanShareQuest(uint32 quest_id) const
         }
     }
     return false;
+}
+
+void Player::ShareQuestWithGroup(Quest const* quest)
+{
+    if (!quest)
+        return;
+
+    Group* group = GetGroup();
+    if (!group)
+        return;
+
+    for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
+    {
+        Player* player = itr->GetSource();
+
+        if (!player || player == this || !player->IsInMap(this))         // skip self
+            continue;
+
+        if (!player->SatisfyQuestStatus(quest, false))
+        {
+            SendPushToPartyResponse(player, QUEST_PARTY_MSG_HAVE_QUEST);
+            continue;
+        }
+
+        if (player->GetQuestStatus(quest->GetQuestId()) == QUEST_STATUS_COMPLETE)
+        {
+            SendPushToPartyResponse(player, QUEST_PARTY_MSG_FINISH_QUEST);
+            continue;
+        }
+
+        if (!player->CanTakeQuest(quest, false))
+        {
+            SendPushToPartyResponse(player, QUEST_PARTY_MSG_CANT_TAKE_QUEST);
+            continue;
+        }
+
+        if (!player->SatisfyQuestLog(false))
+        {
+            SendPushToPartyResponse(player, QUEST_PARTY_MSG_LOG_FULL);
+            continue;
+        }
+
+        // Check if Quest Share in BG is enabled
+        if (sWorld->getBoolConfig(CONFIG_BATTLEGROUND_DISABLE_QUEST_SHARE_IN_BG))
+        {
+            // Check if player is in BG
+            if (InBattleground())
+            {
+                ChatHandler(GetSession()).SendNotification(LANG_BG_SHARE_QUEST_ERROR);
+                continue;
+            }
+        }
+
+        if (player->GetDivider())
+        {
+            SendPushToPartyResponse(player, QUEST_PARTY_MSG_BUSY);
+            continue;
+        }
+
+        SendPushToPartyResponse(player, QUEST_PARTY_MSG_SHARING_QUEST);
+
+        if (quest->IsAutoAccept() && player->CanAddQuest(quest, true) && player->CanTakeQuest(quest, true))
+            player->AddQuestAndCheckCompletion(quest, this);
+
+        if (quest->IsAutoComplete() || !quest->GetQuestMethod())
+            player->PlayerTalkClass->SendQuestGiverRequestItems(quest, GetGUID(), player->CanCompleteRepeatableQuest(quest), true);
+        else
+        {
+            player->SetDivider(GetGUID());
+            player->PlayerTalkClass->SendQuestGiverQuestDetails(quest, player->GetGUID(), true);
+        }
+    }
 }
 
 void Player::SetQuestStatus(uint32 questId, QuestStatus status, bool update /*= true*/)

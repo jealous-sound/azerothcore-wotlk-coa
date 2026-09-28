@@ -1572,6 +1572,7 @@ public:
     [[nodiscard]] bool HasQuest(uint32 questId) const;
     void UpdateForQuestWorldObjects();
     [[nodiscard]] bool CanShareQuest(uint32 quest_id) const;
+    void ShareQuestWithGroup(Quest const* quest);
 
     void SendQuestComplete(uint32 quest_id);
     void SendQuestReward(Quest const* quest, uint32 XP);

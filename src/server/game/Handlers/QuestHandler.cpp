@@ -542,72 +542,7 @@ void WorldSession::HandlePushQuestToParty(WorldPackets::Quest::PushQuestToParty&
     LOG_DEBUG("network", "WORLD: Received CMSG_PUSHQUESTTOPARTY quest = {}", packet.QuestId);
 
     if (Quest const* quest = sObjectMgr->GetQuestTemplate(packet.QuestId))
-    {
-        if (Group* group = _player->GetGroup())
-        {
-            for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
-            {
-                Player* player = itr->GetSource();
-
-                if (!player || player == _player || !player->IsInMap(_player))         // skip self
-                    continue;
-
-                if (!player->SatisfyQuestStatus(quest, false))
-                {
-                    _player->SendPushToPartyResponse(player, QUEST_PARTY_MSG_HAVE_QUEST);
-                    continue;
-                }
-
-                if (player->GetQuestStatus(packet.QuestId) == QUEST_STATUS_COMPLETE)
-                {
-                    _player->SendPushToPartyResponse(player, QUEST_PARTY_MSG_FINISH_QUEST);
-                    continue;
-                }
-
-                if (!player->CanTakeQuest(quest, false))
-                {
-                    _player->SendPushToPartyResponse(player, QUEST_PARTY_MSG_CANT_TAKE_QUEST);
-                    continue;
-                }
-
-                if (!player->SatisfyQuestLog(false))
-                {
-                    _player->SendPushToPartyResponse(player, QUEST_PARTY_MSG_LOG_FULL);
-                    continue;
-                }
-
-                // Check if Quest Share in BG is enabled
-                if (sWorld->getBoolConfig(CONFIG_BATTLEGROUND_DISABLE_QUEST_SHARE_IN_BG))
-                {
-                    // Check if player is in BG
-                    if (_player->InBattleground())
-                    {
-                        ChatHandler(_player->GetSession()).SendNotification(LANG_BG_SHARE_QUEST_ERROR);
-                        continue;
-                    }
-                }
-
-                if (player->GetDivider())
-                {
-                    _player->SendPushToPartyResponse(player, QUEST_PARTY_MSG_BUSY);
-                    continue;
-                }
-
-                _player->SendPushToPartyResponse(player, QUEST_PARTY_MSG_SHARING_QUEST);
-
-                if (quest->IsAutoAccept() && player->CanAddQuest(quest, true) && player->CanTakeQuest(quest, true))
-                    player->AddQuestAndCheckCompletion(quest, _player);
-
-                if (quest->IsAutoComplete() || !quest->GetQuestMethod())
-                    player->PlayerTalkClass->SendQuestGiverRequestItems(quest, _player->GetGUID(), player->CanCompleteRepeatableQuest(quest), true);
-                else
-                {
-                    player->SetDivider(_player->GetGUID());
-                    player->PlayerTalkClass->SendQuestGiverQuestDetails(quest, player->GetGUID(), true);
-                }
-            }
-        }
-    }
+        _player->ShareQuestWithGroup(quest);
 }
 
 void WorldSession::HandleQuestPushResult(WorldPackets::Quest::QuestPushResultClient& packet)
