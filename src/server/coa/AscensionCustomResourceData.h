@@ -109,7 +109,7 @@ struct ResourceGainRule
     std::uint8_t ChancePercent = 100;
 };
 
-inline constexpr std::array<ResourceGainRule, 187> ResourceGainRules =
+inline constexpr std::array<ResourceGainRule, 189> ResourceGainRules =
 {{
     {14, 524706, 524706, 800058, 1, ResourceMutation::AuraStacks,
         ResourceGainEvent::FirstSuccessfulHostileTarget},
@@ -449,7 +449,11 @@ inline constexpr std::array<ResourceGainRule, 187> ResourceGainRules =
     {22, 520175, 520175, 804455, 1, ResourceMutation::AuraStacks,
         ResourceGainEvent::EachSuccessfulDamagingHit, 92120},
     {22, 520702, 520707, 804455, 1, ResourceMutation::AuraStacks,
-        ResourceGainEvent::EachSuccessfulDamagingHit, 92120}
+        ResourceGainEvent::EachSuccessfulDamagingHit, 92120},
+    {22, 561284, 561284, 804455, 1, ResourceMutation::AuraStacks,
+        ResourceGainEvent::Cast, 92120},
+    {22, 561354, 561357, 804455, 1, ResourceMutation::AuraStacks,
+        ResourceGainEvent::Cast, 92120}
 }};
 
 struct NativePowerGainRule
