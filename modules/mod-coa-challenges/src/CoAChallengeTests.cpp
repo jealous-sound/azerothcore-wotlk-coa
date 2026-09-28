@@ -80,6 +80,7 @@ namespace CoAChallenges
         // flags last so the character ends up truly clean.
         WaitCharacterQueueEmpty();
         CharacterDatabase.DirectExecute("DELETE FROM coa_character_condition WHERE guid = {}", guid);
+        ResetConditionFlags(guid);
 
         LOG_INFO("module.coa_challenges", "Test reset {}: level 1, 0 money, no challenges",
             player->GetName());
@@ -942,12 +943,11 @@ namespace CoAChallenges
             return 0;
         }
 
-        uint32 RuleTestFirstFetchQuest()
+        uint32 RuleTestFirstQuest(bool withoutObjectives)
         {
             for (auto const& pair : sObjectMgr->GetQuestTemplates())
-                for (uint32 i = 0; i < QUEST_ITEM_OBJECTIVES_COUNT; ++i)
-                    if (pair.second->RequiredItemId[i])
-                        return pair.first;
+                if (IsQuestWithoutObjectives(pair.second) == withoutObjectives)
+                    return pair.first;
             return 0;
         }
 
@@ -1266,6 +1266,8 @@ namespace CoAChallenges
             "CHALLENGE_RULES_TYPE_NO_ORANGE_QUESTS",
             "CHALLENGE_RULES_TYPE_NO_RED_QUESTS",
             "CHALLENGE_RULES_TYPE_NO_FETCH_QUEST_EXPERIENCE",
+            "CHALLENGE_RULES_TYPE_COSMETIC_ELITE_ENEMIES",
+            "CHALLENGE_RULES_TYPE_STRICT_CHALLENGE_RESTRICTED_TAPPING",
             "CHALLENGE_RULES_TYPE_NO_TALENTS",
             "CHALLENGE_RULES_TYPE_NO_HEARTHSTONE",
             "CHALLENGE_RULES_TYPE_NO_BONUS_EXPERIENCE",
@@ -1511,12 +1513,14 @@ namespace CoAChallenges
         RUN("CHALLENGE_RULES_TYPE_NO_EXPERIENCE_EXCEPT_PROFESSIONS", [](Player* p) {
             uint32 amt = 1000; sScriptMgr->OnPlayerGiveXP(p, amt, nullptr, XPSOURCE_KILL); return amt == 0; });
         RUN("CHALLENGE_RULES_TYPE_NO_FETCH_QUEST_EXPERIENCE", [](Player* p) {
-            uint32 qid = RuleTestFirstFetchQuest();
-            Quest const* q = qid ? sObjectMgr->GetQuestTemplate(qid) : nullptr;
-            if (!q) return true;
-            uint32 xp = 1000;
-            sScriptMgr->OnPlayerQuestComputeXP(p, q, xp);
-            return xp == 0; });
+            Quest const* talk = sObjectMgr->GetQuestTemplate(RuleTestFirstQuest(true));
+            Quest const* work = sObjectMgr->GetQuestTemplate(RuleTestFirstQuest(false));
+            if (!talk || !work) return true;
+            uint32 talkXp = 1000;
+            sScriptMgr->OnPlayerQuestComputeXP(p, talk, talkXp);
+            uint32 workXp = 1000;
+            sScriptMgr->OnPlayerQuestComputeXP(p, work, workXp);
+            return talkXp == 0 && workXp == 1000; });
 
         // ---- 6. Quests (color) ----
         RUN("CHALLENGE_RULES_TYPE_NO_QUESTS", [](Player* p) {
@@ -1837,6 +1841,8 @@ namespace CoAChallenges
                 "CHALLENGE_RULES_TYPE_ONLY_PVP_IN_5_LEVEL_RANGE",        // `.coa ruletestparty`
                 "CHALLENGE_RULES_TYPE_ONLY_PVP_SAME_LEVEL_IF_MAX_LEVEL", // `.coa ruletestparty`
                 "CHALLENGE_RULES_TYPE_PVE_ONLY",                          // `.coa ruletestparty`
+                "CHALLENGE_RULES_TYPE_COSMETIC_ELITE_ENEMIES",            // challenges-adventure-mode scenario
+                "CHALLENGE_RULES_TYPE_STRICT_CHALLENGE_RESTRICTED_TAPPING", // challenges-adventure-mode scenario
             };
             std::set<std::string> const& impl = ImplementedRules();
             uint32 missing = 0;
@@ -2211,6 +2217,56 @@ namespace CoAChallenges
         }
 
         return ok;
+    }
+
+    // GM-only (`.coa pettest <player>`): regression test for Issue #4343.
+    // Verifies that when a player activates a trial with a trial aura (e.g. Nightmare 61, aura 93132),
+    // any creature/pet summoned by the player receives the trial aura dynamically, and when the trial
+    // is reset, the aura is cleanly removed from both player and summon.
+    bool Test_PetTrialAuras(Player* player)
+    {
+        if (!player || !player->IsInWorld())
+            return false;
+
+        ResetCharacterForTest(player);
+        uint32 const cid = 61; // Nightmare
+        uint32 const expectedAura = 93132;
+        ActivateChallengeForTest(player, cid);
+
+        if (!player->HasAura(expectedAura))
+        {
+            SendTestLine(player, "  pet_trial_auras: player failed to receive trial aura {}", expectedAura);
+            ResetCharacterForTest(player);
+            return false;
+        }
+
+        // Spawn a temporary summon owned by the player
+        Position pos = player->GetPosition();
+        TempSummon* summon = player->GetMap()->SummonCreature(
+            50075, // Generic summonable creature
+            pos, nullptr, 15000, player);
+
+        if (!summon)
+        {
+            SendTestLine(player, "  pet_trial_auras: could not summon test creature");
+            ResetCharacterForTest(player);
+            return false;
+        }
+
+        bool const hasAura = summon->HasAura(expectedAura);
+        SendTestLine(player, "  pet_trial_auras: summon '{}' (GUID {}) aura {} -> {}",
+            summon->GetName(), summon->GetGUID().ToString(), expectedAura, hasAura ? "PASS" : "FAIL");
+
+        // Now test trial reset - aura must be stripped from both player and summon
+        ResetChallengeState(player);
+        bool const playerLost = !player->HasAura(expectedAura);
+        bool const summonLost = !summon->HasAura(expectedAura);
+        SendTestLine(player, "  pet_trial_auras: aura stripped on reset -> player: {}, summon: {}",
+            playerLost ? "PASS" : "FAIL", summonLost ? "PASS" : "FAIL");
+
+        summon->UnSummon();
+        ResetCharacterForTest(player);
+        return hasAura && playerLost && summonLost;
     }
 
     // GM-only (`.coa auditdefs <player>`): data-integrity sweep over EVERY

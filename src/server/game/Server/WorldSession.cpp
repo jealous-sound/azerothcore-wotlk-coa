@@ -317,7 +317,7 @@ void WorldSession::SendPacket(WorldPacket const* packet)
 
     if (!m_Socket)
     {
-        if (_socketlessPacketObserver)
+        if (_socketlessPacketObserver && sScriptMgr->CanPacketSend(this, *packet))
             _socketlessPacketObserver(*packet);
         return;
     }

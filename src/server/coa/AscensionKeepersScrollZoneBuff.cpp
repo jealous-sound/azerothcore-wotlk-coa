@@ -1,0 +1,306 @@
+/* Copyright (C) 2016+ AzerothCore, GNU AGPL v3. */
+
+#include "Chat.h"
+#include "DBCStores.h"
+#include "GameTime.h"
+#include "Group.h"
+#include "Item.h"
+#include "Map.h"
+#include "MapMgr.h"
+#include "Player.h"
+#include "ScriptMgr.h"
+#include "Spell.h"
+#include "SpellAuras.h"
+#include "SpellMgr.h"
+#include "StringFormat.h"
+#include <algorithm>
+#include <mutex>
+#include <vector>
+
+namespace
+{
+struct ZoneScrollEntry
+{
+    uint32 ItemEntry;
+    uint32 SpellId;
+    char const* Name;
+};
+
+constexpr ZoneScrollEntry kZoneScrolls[] = {
+    { 696661, 993961, "Golganneth" },
+    { 696662, 993943, "Norgannon" },
+    { 696663, 993955, "Khaz'goroth" },
+    { 696664, 993959, "Aggramar" },
+    { 696665, 993957, "Eonar" },
+    { 1179240, 91770, "Steadfast" },
+    { 1179261, 91796, "Featherfall" },
+    { 1179266, 91803, "Ghost Runner" },
+    { 1179269, 91814, "Crafting Speed" },
+};
+
+uint32 SpellForItem(uint32 itemEntry)
+{
+    for (ZoneScrollEntry const& entry : kZoneScrolls)
+        if (entry.ItemEntry == itemEntry)
+            return entry.SpellId;
+    return 0;
+}
+
+constexpr char const* ANNOUNCE_TAG_COLOR = "ffa54a";
+
+std::string ItemIcon(ItemTemplate const* proto)
+{
+    ItemDisplayInfoEntry const* display = sItemDisplayInfoStore.LookupEntry(proto->DisplayInfoID);
+    if (!display || !display->inventoryIcon || !*display->inventoryIcon)
+        return "";
+    return Acore::StringFormat("|TInterface\\Icons\\{}:20:20|t ", display->inventoryIcon);
+}
+
+std::string ZoneBlessingAnnouncement(Player const* player, ItemTemplate const* proto, SpellInfo const* spellInfo)
+{
+    std::string icon = ItemIcon(proto);
+    return Acore::StringFormat(
+        "{}|cff{}[Keeper's Scroll]|r {}{} used their |c{:08x}|Hitem:{}:0:0:0:0:0:0:0:0:0|h[{}]|h|r "
+        "to buff the zone with |cff71d5ff|Hspell:{}|h[{}]|h|r!",
+        icon, ANNOUNCE_TAG_COLOR, icon, player->GetName(), ItemQualityColors[proto->Quality], proto->ItemId,
+        proto->Name1, spellInfo->Id, spellInfo->SpellName[LOCALE_enUS]);
+}
+
+struct ZoneBlessing
+{
+    uint32 ZoneId;
+    uint32 InstanceId;
+    uint32 SpellId;
+    ObjectGuid Caster;
+    time_t ExpireAt;
+};
+
+std::mutex g_zoneScrollLock;
+std::vector<ZoneBlessing> g_zoneBlessings;
+
+bool SharesBlessing(Player const* player, ObjectGuid caster)
+{
+    if (player->GetGUID() == caster)
+        return true;
+    Group const* group = player->GetGroup();
+    return group && group->IsMember(caster);
+}
+
+time_t BlessingExpiry(Player const* player, uint32 zoneId, uint32 spellId)
+{
+    time_t expiry = 0;
+    std::lock_guard<std::mutex> lock(g_zoneScrollLock);
+    for (ZoneBlessing const& blessing : g_zoneBlessings)
+        if (blessing.ZoneId == zoneId && blessing.InstanceId == player->GetInstanceId() &&
+            blessing.SpellId == spellId && blessing.ExpireAt > expiry && SharesBlessing(player, blessing.Caster))
+            expiry = blessing.ExpireAt;
+    return expiry;
+}
+
+void ApplyZoneScrollAura(Player* player, uint32 spellId, int32 remainingMs)
+{
+    if (remainingMs <= 0)
+        return;
+
+    if (!player->HasAura(spellId))
+        player->CastSpell(player, spellId, true);
+
+    if (Aura* aura = player->GetAura(spellId))
+    {
+        aura->SetMaxDuration(remainingMs);
+        aura->SetDuration(remainingMs);
+    }
+}
+
+constexpr uint32 SPELL_KEEPERS_SCROLL_GHOST_RUNNER = 91803;
+constexpr uint32 SPELL_GHOST_RUNNER_SPEED = 92417;
+
+void SyncGhostRunner(Player* player)
+{
+    bool const wanted = player->HasPlayerFlag(PLAYER_FLAGS_GHOST) && player->HasAura(SPELL_KEEPERS_SCROLL_GHOST_RUNNER);
+    if (wanted && !player->HasAura(SPELL_GHOST_RUNNER_SPEED))
+        player->CastSpell(player, SPELL_GHOST_RUNNER_SPEED, true);
+    else if (!wanted && player->HasAura(SPELL_GHOST_RUNNER_SPEED))
+        player->RemoveAurasDueToSpell(SPELL_GHOST_RUNNER_SPEED);
+}
+
+constexpr uint32 SPELL_KEEPERS_SCROLL_FEATHERFALL = 91796;
+
+bool IsAllowedOnMap(Map const* map, uint32 spellId)
+{
+    if (!map->Instanceable())
+        return true;
+    return map->IsBattleground() && spellId == SPELL_KEEPERS_SCROLL_FEATHERFALL;
+}
+
+std::vector<Player*> BlessingRecipients(Player* caster)
+{
+    std::vector<Player*> recipients{caster};
+    Group* group = caster->GetGroup();
+    if (!group)
+        return recipients;
+
+    for (GroupReference* ref = group->GetFirstMember(); ref; ref = ref->next())
+    {
+        Player* member = ref->GetSource();
+        if (member && member != caster && member->IsInWorld() && member->GetMap() == caster->GetMap() &&
+            member->GetZoneId() == caster->GetZoneId())
+            recipients.push_back(member);
+    }
+    return recipients;
+}
+
+class ascension_keepers_scroll_zone_buff_spell : public AllSpellScript
+{
+public:
+    ascension_keepers_scroll_zone_buff_spell()
+        : AllSpellScript("ascension_keepers_scroll_zone_buff_spell", {ALLSPELLHOOK_ON_BEFORE_EFFECTS}) { }
+
+    void OnSpellBeforeEffects(Spell* spell, Unit* caster, SpellInfo const* spellInfo) override
+    {
+        Player* player = caster ? caster->ToPlayer() : nullptr;
+        Item* item = spell->m_CastItem;
+        if (!player || !item || SpellForItem(item->GetEntry()) != spellInfo->Id)
+            return;
+
+        int32 durationMs = spellInfo->GetMaxDuration();
+        if (durationMs <= 0)
+            return;
+
+        {
+            std::lock_guard<std::mutex> lock(g_zoneScrollLock);
+            g_zoneBlessings.push_back({player->GetZoneId(), player->GetInstanceId(), spellInfo->Id, player->GetGUID(),
+                GameTime::GetGameTime().count() + durationMs / 1000});
+        }
+
+        std::string announcement = ZoneBlessingAnnouncement(player, item->GetTemplate(), spellInfo);
+        for (Player* recipient : BlessingRecipients(player))
+        {
+            if (recipient != player)
+            {
+                ApplyZoneScrollAura(recipient, spellInfo->Id, durationMs);
+                SyncGhostRunner(recipient);
+            }
+            ChatHandler(recipient->GetSession()).SendSysMessage(announcement);
+        }
+    }
+};
+
+class ascension_keepers_scroll_zone_buff_player : public PlayerScript
+{
+public:
+    ascension_keepers_scroll_zone_buff_player()
+        : PlayerScript("ascension_keepers_scroll_zone_buff_player",
+            {PLAYERHOOK_ON_UPDATE_ZONE, PLAYERHOOK_CAN_CAST_ITEM_USE_SPELL, PLAYERHOOK_ON_PLAYER_RELEASED_GHOST,
+             PLAYERHOOK_ON_PLAYER_RESURRECT}) { }
+
+    void OnPlayerReleasedGhost(Player* player) override
+    {
+        SyncGhostRunner(player);
+    }
+
+    void OnPlayerResurrect(Player* player, float, bool&) override
+    {
+        SyncGhostRunner(player);
+    }
+
+    bool OnPlayerCanCastItemUseSpell(Player* player, Item* item, SpellCastTargets const&,
+        uint8 castCount, uint32) override
+    {
+        uint32 spellId = SpellForItem(item->GetEntry());
+        if (!spellId)
+            return true;
+
+        SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spellId);
+        if (!spellInfo)
+            return true;
+
+        if (!IsAllowedOnMap(player->GetMap(), spellId))
+        {
+            Spell::SendCastResult(player, spellInfo, castCount, SPELL_FAILED_NOT_HERE);
+            ChatHandler(player->GetSession()).PSendSysMessage(
+                "{} cannot be used here.", spellInfo->SpellName[LOCALE_enUS]);
+            return false;
+        }
+
+        if (BlessingExpiry(player, player->GetZoneId(), spellId) <= GameTime::GetGameTime().count())
+            return true;
+
+        Spell::SendCastResult(player, spellInfo, castCount, SPELL_FAILED_AURA_BOUNCED);
+        ChatHandler(player->GetSession()).PSendSysMessage(
+            "{} is already active for you in this zone.", spellInfo->SpellName[LOCALE_enUS]);
+        return false;
+    }
+
+    void OnPlayerUpdateZone(Player* player, uint32 newZone, uint32) override
+    {
+        time_t now = GameTime::GetGameTime().count();
+        for (ZoneScrollEntry const& entry : kZoneScrolls)
+        {
+            time_t expiry = BlessingExpiry(player, newZone, entry.SpellId);
+            if (expiry > now)
+                ApplyZoneScrollAura(player, entry.SpellId, int32((expiry - now) * 1000));
+            else if (player->HasAura(entry.SpellId))
+                player->RemoveAurasDueToSpell(entry.SpellId);
+        }
+
+        SyncGhostRunner(player);
+    }
+};
+
+class ascension_keepers_scroll_zone_buff_world : public WorldScript
+{
+public:
+    ascension_keepers_scroll_zone_buff_world()
+        : WorldScript("ascension_keepers_scroll_zone_buff_world", {WORLDHOOK_ON_UPDATE}) { }
+
+    void OnUpdate(uint32 diff) override
+    {
+        _timer += diff;
+        if (_timer < EXPIRE_CHECK_INTERVAL_MS)
+            return;
+        _timer = 0;
+
+        time_t now = GameTime::GetGameTime().count();
+        std::vector<ZoneBlessing> expired;
+
+        {
+            std::lock_guard<std::mutex> lock(g_zoneScrollLock);
+            auto isExpired = [now](ZoneBlessing const& blessing) { return blessing.ExpireAt <= now; };
+            std::copy_if(g_zoneBlessings.begin(), g_zoneBlessings.end(), std::back_inserter(expired), isExpired);
+            std::erase_if(g_zoneBlessings, isExpired);
+        }
+
+        for (ZoneBlessing const& blessing : expired)
+        {
+            sMapMgr->DoForAllMaps([&blessing, now](Map* map)
+            {
+                if (map->GetInstanceId() != blessing.InstanceId)
+                    return;
+
+                for (MapReference const& ref : map->GetPlayers())
+                {
+                    Player* player = ref.GetSource();
+                    if (!player->IsInWorld() || player->GetZoneId() != blessing.ZoneId ||
+                        BlessingExpiry(player, blessing.ZoneId, blessing.SpellId) > now)
+                        continue;
+
+                    player->RemoveAurasDueToSpell(blessing.SpellId);
+                    SyncGhostRunner(player);
+                }
+            });
+        }
+    }
+
+private:
+    uint32 _timer = 0;
+    static constexpr uint32 EXPIRE_CHECK_INTERVAL_MS = 10000;
+};
+}
+
+void AddSC_AscensionKeepersScrollZoneBuff()
+{
+    new ascension_keepers_scroll_zone_buff_spell();
+    new ascension_keepers_scroll_zone_buff_player();
+    new ascension_keepers_scroll_zone_buff_world();
+}

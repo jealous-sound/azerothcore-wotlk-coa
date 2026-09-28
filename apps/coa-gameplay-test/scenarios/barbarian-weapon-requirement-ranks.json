@@ -1,0 +1,258 @@
+{
+  "schema": 1,
+  "name": "Barbarian: every Brutal Swing and Decapitate rank accepts a one-handed weapon (#5124, #5135)",
+  "contract": "Brutal Swing rank 2 (500996) and Decapitate rank 2 (806905) carry an EquippedItemInventoryTypeMask that their own EquippedItemSubClassMask contradicts: the subclass list admits one-handed axes, maces, swords, fists, daggers and spears, but the slot mask accepts only a two-handed weapon. A Barbarian wielding a one-handed weapon therefore gets SPELL_FAILED_EQUIPPED_ITEM_CLASS (29) from rank 2 onwards while rank 1 (500913, 804414) succeeds. Every rank of both chains must accept the same one-handed weapon, and every rank must still refuse to cast with no weapon equipped. Decapitate is only usable on enemies below 35% health (TargetAuraState, checked before the weapon requirement), so both targets are lowered to 30% before any Decapitate cast.",
+  "timeout_ms": 120000,
+  "players": [
+    {
+      "id": "onehand",
+      "race": 1,
+      "class": 12,
+      "level": 26,
+      "melee_hit_rating": 10000,
+      "expertise_rating": 10000
+    },
+    {
+      "id": "bare",
+      "race": 1,
+      "class": 12,
+      "level": 26,
+      "melee_hit_rating": 10000,
+      "expertise_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "enemy",
+      "owner": "onehand",
+      "entry": 36,
+      "level": 26,
+      "health": 500000,
+      "distance": 3
+    },
+    {
+      "id": "undefended",
+      "owner": "bare",
+      "entry": 36,
+      "level": 26,
+      "health": 500000,
+      "distance": 3
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "ms": 3000
+    },
+    {
+      "action": "add_item",
+      "actor": "onehand",
+      "item": 25
+    },
+    {
+      "action": "equip",
+      "actor": "onehand",
+      "item": 25,
+      "slot": 15
+    },
+    {
+      "action": "learn",
+      "actor": "onehand",
+      "spell": 500913
+    },
+    {
+      "action": "learn",
+      "actor": "onehand",
+      "spell": 500996
+    },
+    {
+      "action": "learn",
+      "actor": "onehand",
+      "spell": 804414
+    },
+    {
+      "action": "learn",
+      "actor": "onehand",
+      "spell": 806905
+    },
+    {
+      "action": "learn",
+      "actor": "bare",
+      "spell": 500913
+    },
+    {
+      "action": "learn",
+      "actor": "bare",
+      "spell": 500996
+    },
+    {
+      "action": "learn",
+      "actor": "bare",
+      "spell": 804414
+    },
+    {
+      "action": "learn",
+      "actor": "bare",
+      "spell": 806905
+    },
+    {
+      "action": "set_power",
+      "actor": "bare",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "cast",
+      "actor": "bare",
+      "spell": 500996,
+      "target": "undefended"
+    },
+    {
+      "action": "assert",
+      "actor": "bare",
+      "metric": "cast_failure",
+      "spell": 500996,
+      "equals": 29,
+      "label": "An unarmed Barbarian still has no weapon that fits rank 2"
+    },
+    {
+      "action": "set_power",
+      "actor": "onehand",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "cast",
+      "actor": "onehand",
+      "spell": 500913,
+      "target": "enemy"
+    },
+    {
+      "action": "assert",
+      "actor": "onehand",
+      "metric": "cast_failure",
+      "spell": 500913,
+      "equals": 0,
+      "label": "Brutal Swing rank 1 accepts a one-handed weapon"
+    },
+    {
+      "action": "assert",
+      "actor": "onehand",
+      "metric": "spell_cast_count",
+      "spell": 500913,
+      "equals": 1,
+      "within_ms": 3000,
+      "label": "Brutal Swing rank 1 really cast"
+    },
+    {
+      "action": "set_power",
+      "actor": "onehand",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "cast",
+      "actor": "onehand",
+      "spell": 500996,
+      "target": "enemy"
+    },
+    {
+      "action": "assert",
+      "actor": "onehand",
+      "metric": "cast_failure",
+      "spell": 500996,
+      "equals": 0,
+      "label": "Brutal Swing rank 2 must accept the one-handed weapon rank 1 accepts"
+    },
+    {
+      "action": "assert",
+      "actor": "onehand",
+      "metric": "spell_cast_count",
+      "spell": 500996,
+      "equals": 1,
+      "within_ms": 3000,
+      "label": "Brutal Swing rank 2 really cast"
+    },
+    {
+      "action": "set_health",
+      "actor": "enemy",
+      "value": 150000,
+      "label": "Decapitate is only usable below 35% health: put the one-handed Barbarian's target at 30%"
+    },
+    {
+      "action": "set_power",
+      "actor": "onehand",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "cast",
+      "actor": "onehand",
+      "spell": 804414,
+      "target": "enemy"
+    },
+    {
+      "action": "assert",
+      "actor": "onehand",
+      "metric": "cast_failure",
+      "spell": 804414,
+      "equals": 0,
+      "label": "Decapitate rank 1 accepts a one-handed weapon"
+    },
+    {
+      "action": "set_power",
+      "actor": "onehand",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "cast",
+      "actor": "onehand",
+      "spell": 806905,
+      "target": "enemy"
+    },
+    {
+      "action": "assert",
+      "actor": "onehand",
+      "metric": "cast_failure",
+      "spell": 806905,
+      "equals": 0,
+      "label": "Decapitate rank 2 must accept the one-handed weapon rank 1 accepts"
+    },
+    {
+      "action": "assert",
+      "actor": "onehand",
+      "metric": "spell_cast_count",
+      "spell": 806905,
+      "equals": 1,
+      "within_ms": 3000,
+      "label": "Decapitate rank 2 really cast"
+    },
+    {
+      "action": "set_health",
+      "actor": "undefended",
+      "value": 150000,
+      "label": "Put the unarmed control's target below 35% so only the weapon requirement can refuse Decapitate"
+    },
+    {
+      "action": "set_power",
+      "actor": "bare",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "cast",
+      "actor": "bare",
+      "spell": 806905,
+      "target": "undefended"
+    },
+    {
+      "action": "assert",
+      "actor": "bare",
+      "metric": "cast_failure",
+      "spell": 806905,
+      "equals": 29,
+      "label": "An unarmed Barbarian still has no weapon that fits Decapitate rank 2"
+    }
+  ]
+}

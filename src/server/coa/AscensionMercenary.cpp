@@ -23,7 +23,7 @@ constexpr int32 MERCENARY_CRIMINAL_DURATION = 8 * MINUTE * IN_MILLISECONDS;
 
 bool IsPvPRuleset(Unit const* unit)
 {
-    return unit->HasAura(SPELL_HIGH_RISK) || unit->HasAura(SPELL_WAR_MODE);
+    return unit->HasAura(SPELL_HIGH_RISK) || (unit->HasAura(SPELL_WAR_MODE) && !unit->HasAura(SPELL_PVE));
 }
 
 class spell_ascension_mercenary : public SpellScript

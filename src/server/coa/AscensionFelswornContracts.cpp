@@ -186,7 +186,10 @@ void ApplyContracts(SpellInfo* info)
     if (id == 560087)
         dummy(0);
     if (id == 807962)
+    {
         dummy(0), dummy(1);
+        info->AttributesEx3 |= SPELL_ATTR3_SUPPRESS_CASTER_PROCS;
+    }
     if (id == 555277)
         info->Effects[0].MiscValue = SPELLMOD_CASTING_TIME;
     if (id == 807163)

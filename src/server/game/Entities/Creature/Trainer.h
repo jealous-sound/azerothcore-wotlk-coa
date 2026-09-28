@@ -69,7 +69,10 @@ namespace Trainer
 
             [[nodiscard]] Spell const* GetSpell(uint32 spellId) const;
             [[nodiscard]] std::vector<Spell> const& GetSpells() const { return _spells; }
-            void SendSpells(Creature* npc, Player* player, LocaleConstant locale) const;
+            /// Writes the trainer window. `onlyTrainable` drops the rows of `_spells` the player cannot
+            /// buy yet - the upper ranks of a ladder they have not climbed, and every other unavailable
+            /// one - and keeps the rest: the step they are on and the steps open to them.
+            void SendSpells(Creature* npc, Player* player, LocaleConstant locale, bool onlyTrainable = false) const;
             bool CanTeachSpell(Player const* player, Spell const* trainerSpell) const;
             void TeachSpell(Creature* npc, Player* player, uint32 spellId);
 

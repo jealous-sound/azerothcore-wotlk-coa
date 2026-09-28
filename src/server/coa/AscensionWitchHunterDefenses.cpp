@@ -112,7 +112,9 @@ class aura_ascension_witch_hunter_lifecycle : public AuraScript
             PreventDefaultAction();
             bool night = Night();
             player->RemoveAurasDueToSpell(night ? 807231 : 807198);
-            if (!player->HasAura(night ? 807198 : 807231))
+            if (Aura* aura = player->GetAura(night ? 807198 : 807231))
+                aura->RefreshDuration();
+            else
                 Cast(player, player, night ? 807198 : 807231);
         }
         if (id == 562225 && player)
@@ -287,6 +289,7 @@ class aura_ascension_witch_hunter_lifecycle : public AuraScript
                 break;
             case 500569:
                 ClearReplacement(player, 0, 64);
+                player->RemoveAurasDueToSpell(500604);
                 break;
             case 500567:
                 player->RemoveAurasDueToSpell(500569);

@@ -77,7 +77,8 @@ void ScriptMgr::ModifyHealReceived(Unit* target, Unit* healer, uint32& heal, Spe
     CALL_ENABLED_HOOKS(UnitScript, UNITHOOK_MODIFY_HEAL_RECEIVED, script->ModifyHealReceived(target, healer, heal, spellInfo));
 }
 
-uint32 ScriptMgr::DealDamage(Unit* AttackerUnit, Unit* pVictim, uint32 damage, DamageEffectType damagetype)
+uint32 ScriptMgr::DealDamage(Unit* AttackerUnit, Unit* pVictim, uint32 damage, DamageEffectType damagetype,
+    std::optional<uint32>* scriptHealthLeechDamage)
 {
     if (ScriptRegistry<UnitScript>::ScriptPointerList.empty())
     {
@@ -86,7 +87,8 @@ uint32 ScriptMgr::DealDamage(Unit* AttackerUnit, Unit* pVictim, uint32 damage, D
 
     for (auto const& [scriptID, script] : ScriptRegistry<UnitScript>::ScriptPointerList)
     {
-        damage = script->DealDamage(AttackerUnit, pVictim, damage, damagetype);
+        damage = script->DealDamage(AttackerUnit, pVictim, damage, damagetype,
+                                    scriptHealthLeechDamage);
     }
 
     return damage;

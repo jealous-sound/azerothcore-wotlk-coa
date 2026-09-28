@@ -51,8 +51,11 @@ Creating or editing this skill does not execute the workflow.
   Closure is permitted only after verifying the fix is on `origin/main`. Respect narrower invocations and
   manual checkpoints. Do not merge PRs, push to `main`/`upstream`, deploy changes, or post
   other external messages unless requested.
-- Configure or build a matching test executable when needed, following `.agents/docs/build.md`.
-  Prefer focused incremental targets. Older binaries cannot verify changed source.
+- Verify only through `tools/verify_all.py` (`docs/coa/verification.md`); do not launch gameplay runners, unit
+  tests, harnesses or source checks directly. Its build stage compiles the checkout, so include `build` in any
+  run that needs current binaries. Older binaries cannot verify changed source. It reads `conf/verify-all.json`
+  and `build/` from the checkout it runs in; a new worktree needs `--settings` and its own build (see
+  Separate worktrees in that guide).
 - Use the available authenticated GitHub connector or `gh` and Git. Do not install a plugin for this workflow.
   If access is missing, report the concrete blocker without exposing credentials.
 
@@ -121,21 +124,29 @@ Complete this loop for the issue or justified group before beginning the next in
 
 1. Apply the smallest complete fix using the repository's C++/script/SQL/subsystem guides. New SQL belongs in
    `data/sql/updates/pending_db_*/`; historical SQL remains immutable unless explicitly requested otherwise.
-   Include a meaningful regression test when warranted, ideally failing before and passing after the fix.
-2. Run relevant tests against the changed source. Use focused lint/diff checks as applicable; do not describe
-   them as functional tests. Configure/build as needed, following `.agents/docs/build.md`.
-   Documentation and trivial changes need appropriate checks rather than invented behavior tests.
+   Include a meaningful regression test when warranted, ideally failing before and passing after the fix;
+   show both outcomes with the same focused `verify_all.py` selection.
+2. Verify only with `tools/verify_all.py`: focused selections while iterating (`--stages build,gameplay
+   --scenario <id>`, `--stages harness --harness <name>`), then `python -B tools/verify_all.py --base origin/main`
+   before the initial commit and after later changes. Documentation-only changes need
+   `--stages source --base origin/main`, not invented behavior tests; do not describe source checks as functional
+   tests. Lint changed C++/SQL with the codestyle linters. Classify full-run failures as the verification guide's
+   Full runs section describes and do not publish while a new failure remains. Record the `VERIFY ALL` status,
+   `report.json` path, unavailable or blocked scope, the gameplay clock and the `acceleration_sensitive` and
+   `batch_sensitive` scenarios.
 3. Review the complete PR diff against its actual base using `.agents/docs/self-review-rules.md` and
    `.agents/docs/code-review.md`. Resolve findings before the initial commit/push. Stage only the fix/tests;
    use an issue-scoped commit such as `fix(Core): correct behavior (#123)`. Record its SHA/files and actual
    checks. Follow-up corrections to published work get tested, scoped commits; do not amend/force-push it.
 4. Recheck ownership and relevant base changes. Integrate material base changes without rewriting published
-   history and revalidate affected behavior. Push the tested branch explicitly, for example
+   history and revalidate affected behavior with `verify_all.py`. Push the tested branch explicitly, for example
    `git push --set-upstream origin HEAD:refs/heads/<issue-branch>`. Verify the remote head equals the tested
    local head. A failed push leaves the fix pending; inspect remote state before retrying uncertain writes.
 5. Prepare the PR title/body from the final diff and actual tests, following `pull_request_template.md`, retaining
    its testing footer and accurate AI disclosure. Include issue/commit/test mapping and a separate `Fixes #123`
-   entry for each issue fully resolved. Distinguish source checks, server startup, and in-game testing.
+   entry for each issue fully resolved. Report the `verify_all.py` status and scope, including unavailable
+   stages, the gameplay clock and the `acceleration_sensitive` and `batch_sensitive` scenarios. Distinguish
+   source checks, server startup, and in-game testing.
 6. Search for an existing PR with this repository/head/base before creating one; reuse it on resumed runs.
    Otherwise open the PR immediately with explicit repository, head, and `--base main`. With `gh pr create`,
    use `--title` and `--body-file` with an exact multiline temporary file. Verify URL/head/base/published SHA.
@@ -145,7 +156,8 @@ Complete this loop for the issue or justified group before beginning the next in
    verify `main` is the default branch and automatic closure is enabled when that information is available.
    If automatic closure is unavailable, report the need for closure after merge; do not change repository
    settings or schedule monitoring. This workflow does not merge PRs or wait indefinitely for approval.
-8. For an already-fixed report, verify the reported behavior and the fix's presence on fetched `origin/main`.
+8. For an already-fixed report, verify the reported behavior with `verify_all.py` and the fix's presence on
+   fetched `origin/main`.
    Then close it as completed with the exact comment `Fixed` (after approval in manual mode), verifying state
    and avoiding duplicate comments. A fix present only on an unmerged branch remains open and links to its
    existing PR. Do not invent a commit/PR, label invalid or duplicate reports fixed, or reopen others' closures.

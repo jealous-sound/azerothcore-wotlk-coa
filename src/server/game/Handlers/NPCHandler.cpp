@@ -90,7 +90,7 @@ void WorldSession::HandleTrainerListOpcode(WorldPackets::NPC::Hello& packet)
     SendTrainerList(npc);
 }
 
-void WorldSession::SendTrainerList(Creature* npc)
+void WorldSession::SendTrainerList(Creature* npc, bool onlyTrainable)
 {
     // remove fake death
     if (GetPlayer()->HasUnitState(UNIT_STATE_DIED))
@@ -111,7 +111,7 @@ void WorldSession::SendTrainerList(Creature* npc)
 
     npc->PauseMovementForInteraction();
 
-    trainer->SendSpells(npc, _player, GetSessionDbLocaleIndex());
+    trainer->SendSpells(npc, _player, GetSessionDbLocaleIndex(), onlyTrainable);
 }
 
 void WorldSession::HandleTrainerBuySpellOpcode(WorldPackets::NPC::TrainerBuySpell& packet)

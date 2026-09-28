@@ -130,6 +130,10 @@ void ApplyContracts(SpellInfo* info)
         info->ProcFlags = 0;
         info->ProcCharges = 0;
     }
+    if (Named(info, 804929))
+        for (auto& effect : info->Effects)
+            if (effect.Effect == SPELL_EFFECT_TRIGGER_SPELL && effect.TriggerSpell == 801832)
+                effect.Effect = 0;
     if (id == 801832 || id == 807035 || Family(info, 0, 262144) || id == 807890)
         for (auto& effect : info->Effects)
             if (effect.Effect && effect.TargetA.GetTarget() == TARGET_UNIT_TARGET_ENEMY && !effect.ChainTarget)

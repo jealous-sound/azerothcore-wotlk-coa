@@ -3,7 +3,6 @@
 #include "World.h"
 #include "WorldPacket.h"
 #include "WorldSession.h"
-#include <iterator>
 #include <string_view>
 
 namespace
@@ -47,33 +46,55 @@ constexpr ClientRate XpRates[] = {
     { "RATE_XP_PROFESSION_LOCKPICKING_MODIFIER", RATE_XP_PROFESSION_LOCKPICKING },
     { "RATE_XP_PROFESSION_INSCRIPTION_MODIFIER", RATE_XP_PROFESSION_INSCRIPTION },
 };
+
+std::vector<AscensionClientConfigSource>& Sources()
+{
+    static std::vector<AscensionClientConfigSource> sources;
+    return sources;
 }
 
-WorldPacket BuildAscensionCoAXpConfig()
+template <typename Wire, typename Value>
+void AppendSection(WorldPacket& packet, std::vector<std::pair<std::string, Value>> const& values)
 {
+    packet << uint32(values.size());
+    for (auto const& [key, value] : values)
+    {
+        packet << uint32(key.size());
+        packet.append(reinterpret_cast<uint8 const*>(key.data()), key.size());
+        packet << Wire(value);
+    }
+}
+}
+
+void RegisterAscensionClientConfig(AscensionClientConfigSource source)
+{
+    Sources().push_back(source);
+}
+
+WorldPacket BuildAscensionCoAConfig()
+{
+    AscensionClientConfig config;
+    for (ClientRate const& rate : XpRates)
+        config.Rates.emplace_back(std::string(rate.key), sWorld->getRate(rate.setting));
+    for (AscensionClientConfigSource source : Sources())
+        source(config);
+
     WorldPacket packet(SMSG_COA_CONFIG);
-    uint32 constexpr integerConfigCount = 0;
-    uint32 constexpr booleanConfigCount = 0;
-    uint32 constexpr floatConfigCount = 0;
     uint32 constexpr integerVectorConfigCount = 0;
     uint32 constexpr floatVectorConfigCount = 0;
-    packet << integerConfigCount << booleanConfigCount << floatConfigCount;
-    packet << uint32(std::size(XpRates));
-    for (ClientRate const& rate : XpRates)
-    {
-        packet << uint32(rate.key.size());
-        packet.append(reinterpret_cast<uint8 const*>(rate.key.data()), rate.key.size());
-        packet << sWorld->getRate(rate.setting);
-    }
+    AppendSection<int32>(packet, config.Integers);
+    AppendSection<uint8>(packet, config.Booleans);
+    AppendSection<float>(packet, config.Floats);
+    AppendSection<float>(packet, config.Rates);
     packet << integerVectorConfigCount << floatVectorConfigCount;
     return packet;
 }
 
-void SendAscensionCoAXpConfig(WorldSession* session)
+void SendAscensionCoAConfig(WorldSession* session)
 {
     if (!session)
         return;
 
-    WorldPacket packet = BuildAscensionCoAXpConfig();
+    WorldPacket packet = BuildAscensionCoAConfig();
     session->SendPacket(&packet);
 }

@@ -59,16 +59,16 @@ class aura_ascension_templar_event : public AuraScript
             float chance = 20.0f;
             player->ApplySpellMod(520007, SPELLMOD_CHANCE_OF_SUCCESS, chance);
             return damage && !periodic && !Named(info, 804929) && (id != 520007 || !player->HasAura(92111)) &&
-                   roll_chance_f(chance);
+                   (id == 520007 || roll_chance_f(chance));
         }
         case 704116:
             return damage && crit && (Named(info, 801443) || Named(info, 801446));
         case 706385:
             return damage && periodic && Named(info, 804906);
         case 707391:
-            return damage && melee && !periodic && roll_chance_i(20);
+            return damage && melee && !periodic;
         case 560648:
-            return damage && melee && !periodic && roll_chance_i(10);
+            return damage && melee && !periodic;
         case 680397:
             return heal && !State(player).cooldowns.HasTimeUntilEvent(id);
         case 705298:
@@ -79,11 +79,11 @@ class aura_ascension_templar_event : public AuraScript
             return damage && melee && !periodic;
         case 706325:
             return damage && (Named(info, 804906) || Named(info, 801445) || Named(info, 803872)) &&
-                   player->IsWithinMeleeRange(event.GetActionTarget()) && roll_chance_i(15);
+                   player->IsWithinMeleeRange(event.GetActionTarget());
         case 712346:
             return damage && crit && player->HasAura(803237);
         case 524620:
-            return damage && periodic && Named(info, 804906) && roll_chance_i(15);
+            return damage && periodic && Named(info, 804906);
         case 805415:
             return damage && crit && !State(player).cooldowns.HasTimeUntilEvent(id);
         case 801441:

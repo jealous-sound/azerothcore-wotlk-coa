@@ -61,6 +61,7 @@
 #include <atomic>
 #include <cstdint>
 #include <mutex>
+#include <optional>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -156,16 +157,14 @@ namespace
 
     /// Whether a creature may be given a view at all, whoever is looking at it.
     ///
-    /// These are the exclusions the realm-wide implementation makes in its own `CanScale`
-    /// (CoA, `AscensionCompatLevelScalingScript`) and they are not optional: a
-    /// creature that belongs to somebody - a pet, a summon, a totem, a charmed unit - must never be
-    /// re-levelled, and neither must a trigger, a critter or a non-combat pet, which are scenery with
-    /// a health bar. A scripted private instance is CoA's own scripted content and is left exactly as
-    /// authored. A view is only ever about the open world.
+    /// These exclusions are not optional: a creature that belongs to somebody - a pet, a summon, a
+    /// totem, a charmed unit - must never be re-levelled, and neither must a trigger, a critter or a
+    /// non-combat pet, which are scenery with a health bar. A scripted private instance is CoA's own
+    /// scripted content and is left exactly as authored. A view is only ever about the open world.
     ///
-    /// The realm switch that guards the same list upstream is deliberately absent: whether a
-    /// character scales at all is their own choice here (`ScalingChoiceEnabled`), and the realm's
-    /// switch only decides whether that choice is consulted.
+    /// There is no realm switch in front of the list: whether a character scales at all is their own
+    /// choice (`ScalingChoiceEnabled`), and the module's switch only decides whether that choice is
+    /// consulted.
     bool ViewableCreature(Creature const* creature)
     {
         if (!creature)
@@ -182,18 +181,16 @@ namespace
 
     /// Whether this character's version of this creature is theirs to fight.
     ///
-    /// The realm-wide implementation only lets a creature be lifted by a character who could attack
-    /// it (`Player::IsValidAttackTarget`), so a vendor, a trainer, a quest giver or a friendly guard
-    /// keeps its authored level. The intent is kept; the question is asked in the one form that does
-    /// not change while a client is holding the answer. `IsValidAttackTarget` folds in hostility,
-    /// stealth and invisibility, immunities and flags, so a creature would appear and vanish as a
-    /// view depending on whether it could be seen at that instant - and a client caches the level it
-    /// was told, so the level it displays would flap with it. The reaction is faction and faction
-    /// state: hostile and neutral creatures scale for a character, friendly ones do not.
+    /// A vendor, a trainer, a quest giver or a friendly guard keeps its authored level. The question
+    /// is asked in the one form that does not change while a client is holding the answer, which is
+    /// why it is not `Player::IsValidAttackTarget`: that folds in hostility, stealth and invisibility,
+    /// immunities and flags, so a creature would appear and vanish as a view depending on whether it
+    /// could be seen at that instant - and a client caches the level it was told, so the level it
+    /// displays would flap with it. The reaction is faction and faction state: hostile and neutral
+    /// creatures scale for a character, friendly ones do not.
     ///
-    /// Deliberately not excluded: a game master. Upstream excludes them because their level lifts the
-    /// creature for everybody standing nearby; here a view is only ever one client's, so a GM who
-    /// turned scaling on sees the same world a player would.
+    /// Deliberately not excluded: a game master. A view is only ever one client's, so a GM who turned
+    /// scaling on sees the same world a player would.
     bool ViewableBy(Player const* viewer, Creature const* creature)
     {
         return viewer && creature && viewer->GetReactionTo(creature) <= REP_NEUTRAL;
@@ -212,10 +209,13 @@ namespace
             return false;
 
         uint8 const own = creature->GetLevel();
+        uint8 const offset = LocalLevelScaling::CreatureOffset.load(std::memory_order_relaxed);
+        Map const* map = creature->GetMap();
         // The viewer's own rule, not the realm's: a level that is told to one client is bounded by
         // nothing, because there is nobody else for a high view to be wrong for.
-        uint8 const level = LocalLevelScaling::ScaleCreatureLevelForViewer(
-            own, viewer->GetLevel(), LocalLevelScaling::CreatureOffset.load(std::memory_order_relaxed));
+        uint8 const level = map->IsNonRaidDungeon() && map->IsRegularDifficulty()
+            ? LocalLevelScaling::ScaleDungeonCreatureLevelForViewer(own, viewer->GetLevel(), offset)
+            : LocalLevelScaling::ScaleCreatureLevelForViewer(own, viewer->GetLevel(), offset);
         if (level == own)
             return false;               // their version *is* the creature: nothing to virtualise
 
@@ -269,6 +269,14 @@ namespace
         if (!ViewFor(creature, const_cast<Player*>(viewer), view))
             return 0;
         return view.Level;
+    }
+
+    uint32 ViewMaxHealthForCore(Player const* viewer, Creature const* creature)
+    {
+        CreatureView view;
+        if (!ViewFor(creature, const_cast<Player*>(viewer), view))
+            return 0;
+        return view.MaxHealth;
     }
 
     /// The fields a view rewrites, in one list. The patch looks a position up by index, and a forced
@@ -643,7 +651,8 @@ public:
     /// which is exactly why it works: the pool that character is watching is `1 / DamageDealtToPool`
     /// times the real one, so taking that fraction out of the real pool drops their bar by the number
     /// they were shown, and the fight lasts what a fight at their version's level lasts.
-    uint32 DealDamage(Unit* attacker, Unit* victim, uint32 damage, DamageEffectType /*damagetype*/) override
+    uint32 DealDamage(Unit* attacker, Unit* victim, uint32 damage, DamageEffectType /*damagetype*/,
+                      std::optional<uint32>* scriptHealthLeechDamage) override
     {
         Creature* creature = victim ? victim->ToCreature() : nullptr;
         Player* player = OwningPlayer(attacker);
@@ -656,6 +665,13 @@ public:
 
         if (!creature->IsAlive() || creature->IsEvadingAttacks())
             return damage;
+
+        if (scriptHealthLeechDamage)
+        {
+            uint32 const realMaxHealth = std::max<uint32>(creature->GetMaxHealth(), 1);
+            uint32 const viewHealth = uint32(uint64(creature->GetHealth()) * view.MaxHealth / realMaxHealth);
+            *scriptHealthLeechDamage = std::min(damage, viewHealth);
+        }
 
         auto* remainder = creature->CustomData.GetDefault<DamageRemainder>(DAMAGE_REMAINDER_KEY);
         double const total = double(damage) * view.DamageDealtToPool + remainder->Value;
@@ -850,18 +866,8 @@ public:
                                                         std::memory_order_relaxed);
         LocalLevelScaling::CreatureViewLevelOwner.store(available ? &ViewLevelForCore : nullptr,
                                                         std::memory_order_relaxed);
-
-        // Creature scaling is this module's now - per character, in the viewer's own client - so the
-        // realm-wide path in CoA stands aside: it lifts the creature object itself,
-        // which every client is told about, and a character who never asked for scaling would then
-        // see a raised world anyway. The flag is a live switch rather than a config load decision, so
-        // whichever module ran its hooks first does not matter, and turning this module off returns
-        // the realm-wide path exactly as it was.
-        LocalLevelScaling::CreatureScalingOwnedPerViewer.store(available, std::memory_order_relaxed);
-        if (available && sConfigMgr->GetOption<bool>("CoA.LevelScaling", false))
-            LOG_INFO("module.destiny_weaver",
-                     "CoA.LevelScaling is 1, but per-character creature scaling owns the "
-                     "answer: the realm-wide lift is standing aside for as long as this module is on");
+        LocalLevelScaling::CreatureViewMaxHealthOwner.store(available ? &ViewMaxHealthForCore : nullptr,
+                                                            std::memory_order_relaxed);
 
         LOG_INFO("module.destiny_weaver",
                  "open world scaling: creatures per character, level - {} and every stat row with it "
@@ -893,6 +899,7 @@ public:
         LocalLevelScaling::QuestScalingOwner.store(nullptr);
         LocalLevelScaling::CreatureViewArmorOwner.store(nullptr);
         LocalLevelScaling::CreatureViewLevelOwner.store(nullptr);
+        LocalLevelScaling::CreatureViewMaxHealthOwner.store(nullptr);
     }
 };
 

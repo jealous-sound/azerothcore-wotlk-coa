@@ -1,0 +1,19 @@
+###################################################################################################
+#  mod-hero-call-board
+#
+#  The Hero's Call Board (Stormwind) and the Warchief's Command Board (Orgrimmar): the Ascension
+#  client's Call Board window with its PvE, Profession and PvP daily categories. Accepting, turning
+#  in or abandoning a board quest keeps the open category on screen, so "Accept All" and batch
+#  turn-ins work. The module also credits the dailies that need a server event: duel victories,
+#  battleground wins and dungeon finder clears by difficulty.
+#
+#  This code is part of the AzerothCore project. See AUTHORS file for Copyright information.
+###################################################################################################
+
+[worldserver]
+
+#    HeroCallBoard.Enable
+#        Description: Whether the Call Boards answer with their categories and credit their dailies.
+#        Default:     1 - (Enabled)
+#                     0 - (Disabled; the boards behave as ordinary quest givers)
+HeroCallBoard.Enable = 1

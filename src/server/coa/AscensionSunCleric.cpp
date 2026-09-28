@@ -246,7 +246,7 @@ void ActivateDawn(Player* player)
     Cast(player, player, Dawn);
     if (Aura* aura = player->GetAura(Dawn))
         aura->SetCharges(10);
-    if (AuraEffect* choice = player->GetAuraEffect(Dawn, EFFECT_1))
+    if (AuraEffect* choice = player->GetAuraEffect(Dawn, EFFECT_0))
         choice->SetAmount(1);
     if (player->HasAura(704586))
         Cast(player, player, 805265);

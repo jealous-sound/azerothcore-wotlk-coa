@@ -44,7 +44,7 @@ unsigned HealingPower(Unit const* caster)
     if (!player || !player->GetMap())
         return 0;
     Map const* map = player->GetMap();
-    bool warMode = player->HasAura(NoRiskAura);
+    bool warMode = player->HasAura(NoRiskAura) && !player->HasAura(PveModeAura);
     if (!HealingContext(map->Instanceable(), map->IsBattlegroundOrArena(),
         player->HasAura(HighRiskAura), warMode))
         return 0;

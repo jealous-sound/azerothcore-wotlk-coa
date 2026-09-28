@@ -392,6 +392,11 @@ void WorldSession::HandleItemQuerySingleOpcode(WorldPacket& recvData)
     uint32 item;
     recvData >> item;
 
+    SendItemQuerySingleResponse(item);
+}
+
+void WorldSession::SendItemQuerySingleResponse(uint32 item)
+{
     LOG_DEBUG("network.opcode", "STORAGE: Item Query = {}", item);
 
     ItemTemplate const* pProto = sObjectMgr->GetItemTemplate(item);

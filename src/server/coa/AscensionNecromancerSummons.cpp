@@ -59,6 +59,11 @@ uint32 Followers(Player* player)
             ++count;
     return count;
 }
+uint8 SummonCount(Player const* player, SpellInfo const* info, NecromancerSummon const& row)
+{
+    int32 count = int32(player->ApplyEffectModifiers(info, row.effect, float(row.count)));
+    return uint8(std::clamp(count, 1, 16));
+}
 uint32 FormationSlot(Player* player, Creature const* minion)
 {
     uint32 slot = 0;
@@ -207,11 +212,17 @@ bool Summon(Player* player, uint32 spell, Unit* target, Position const& position
     uint8 cost = Cost(player, spell);
     if (cost && int32(Capacity(player)) - Used(player) < cost)
         return false;
-    int32 lifetime = duration ? duration : info->GetDuration();
+    int32 lifetime = duration;
+    if (!lifetime)
+    {
+        lifetime = info->GetDuration();
+        if (lifetime > 0)
+            player->ApplySpellMod(spell, SPELLMOD_DURATION, lifetime);
+    }
     bool created = false;
     for (auto const& row : NecromancerSummons)
         if (row.spell == spell)
-            for (uint8 i = 0; i < std::min<uint8>(row.count, 16); ++i)
+            for (uint8 i = 0, count = SummonCount(player, info, row); i < count; ++i)
             {
                 if (cost && int32(Capacity(player)) - Used(player) < cost)
                 {
@@ -258,7 +269,7 @@ bool Summon(Player* player, uint32 spell, Unit* target, Position const& position
                     point = player->GetPosition();
                     point.SetOrientation(heading);
                     player->MovePositionToFirstCollision(point, 2.0f, heading - player->GetOrientation());
-                    float const lateral = (float(i) - (row.count - 1) / 2.0f) * 1.0f;
+                    float const lateral = (float(i) - (count - 1) / 2.0f) * 1.0f;
                     point.m_positionX += std::cos(heading + float(M_PI) / 2) * lateral;
                     point.m_positionY += std::sin(heading + float(M_PI) / 2) * lateral;
                     point.SetOrientation(heading);
@@ -306,6 +317,9 @@ void Order(Player* player, Unit* target, uint32 spell)
         target = ObjectAccessor::GetUnit(*player, player->GetTarget());
     if (!target || !player->IsValidAttackTarget(target) || player->HasAura(500983))
         return;
+    if (Creature* creature = target->ToCreature())
+        if (!creature->IsDamageEnoughForLootingAndReward())
+            creature->LowerPlayerDamageReq(creature->GetHealth(), true, player->GetLevel());
     State(player).focus = target->GetGUID();
     for (Creature* minion : Minions(player))
     {

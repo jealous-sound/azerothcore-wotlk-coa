@@ -12,6 +12,7 @@ enum Spells : uint32
     PooledVitality = 680687,
     VitalityForLater = 681026,
     VitalityHeal = 681025,
+    NightFeast = 563736,
     MendSelfHeal = 681032,
     HeartbreakBuff = 807563,
     VisceralPower = 807687,

@@ -10,6 +10,7 @@ using SpellEffIndex = uint32;
 constexpr uint32 EFFECT_0 = 0, SPELL_EFFECT_DUMMY = 3;
 constexpr int GLOBALHOOK_ON_LOAD_SPELL_CUSTOM_ATTR = 1, AURA_REMOVE_BY_DEATH = 1;
 constexpr int PLAYERHOOK_ON_LOGIN = 1;
+using AuraRemoveMode = int;
 struct Player;
 struct Aura;
 struct AuraApplication;
@@ -35,6 +36,7 @@ struct Unit
     void _UnapplyAura(AuraApplicationMap::iterator& it, int) { it = m_appliedAuras.erase(it); }
     void RemoveOwnedAura(AuraMap::iterator& it, int) { it = m_ownedAuras.erase(it); }
     void RemoveAllAurasOnDeath();
+    virtual bool HasAura(uint32) const { return false; }
 };
 struct Player : Unit
 {
@@ -48,7 +50,7 @@ struct Player : Unit
     void learnSpell(uint32 id, bool dependent) { assert(!dependent); known.insert(id); ++learns; }
     Player* ToPlayer() override { return this; }
     bool HasPlayerFlag(PlayerFlags flag) const { assert(flag == PLAYER_FLAGS_RESTING); return resting; }
-    bool HasAura(uint32 id) const { return auras.contains(id); }
+    bool HasAura(uint32 id) const override { return auras.contains(id); }
     void RemoveAurasDueToSpell(uint32 id) { auras.erase(id); }
     void CastSpell(Player* target, uint32 id, bool triggered)
     {
@@ -141,8 +143,7 @@ int main()
     assert((player.auras == std::set<uint32>{123, 9931032}));
     login.OnPlayerLogin(&player);
     assert(player.learns == 2 && (player.auras == std::set<uint32>{123, 9931032}));
-    for (auto const& kept : {std::set<uint32>{1004019}, std::set<uint32>{1004119},
-                             std::set<uint32>{9931032}})
+    for (auto const& kept : {std::set<uint32>{1004019}, std::set<uint32>{1004119}, std::set<uint32>{9931032}})
     {
         player.auras = kept;
         login.OnPlayerLogin(&player);
@@ -155,6 +156,9 @@ int main()
     Player gated;
     login.OnPlayerLogin(&gated);
     assert((gated.known == std::set<uint32>{84420, 84421, 84422}) && gated.learns == 3 && gated.auras.empty());
+    gated.auras = {1004119, 9931032};
+    login.OnPlayerLogin(&gated);
+    assert((gated.auras == std::set<uint32>{9931032}));
     configMgrStub.rulesetLoginDefault = true;
     Player evicted;
     evicted.inWorld = false;

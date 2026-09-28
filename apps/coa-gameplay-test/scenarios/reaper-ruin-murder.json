@@ -1,0 +1,24 @@
+{
+ "schema": 1,
+ "name": "Ruin marks what Murder hits",
+ "contract": "Ruin 805198's client description reads 'Damage dealt by Shudder Scythe applies Ruin' only when the caster knows Shudder Scythe (805708); otherwise it reads 'Damage dealt by Murder applies Ruin'. Murder (500376) is the Reaper's baseline attack, replaced by Shudder Scythe once that talent is learned (AscensionTalentReplacementData.h: {30, 56, 805708, 500376, {{{572382, 0}}}}), so a Reaper without Shudder Scythe is casting Murder and must still get the mark. spell_ascension_reaper_ruin's CheckProc previously allowlisted only the Shudder Scythe family (572382, 578261, 578262, 801322, 805708), so Murder's damage never reached the 805199 proc. This scenario casts baseline Murder and expects Ruin to land, which fails before the CheckProc fix and passes after it.",
+ "timeout_ms": 180000,
+ "players": [
+  { "id": "reaper", "race": 10, "class": 30, "level": 80, "melee_hit_rating": 10000, "expertise_rating": 10000 }
+ ],
+ "creatures": [
+  { "id": "enemy", "owner": "reaper", "entry": 1601, "level": 80 }
+ ],
+ "steps": [
+  { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 6000 },
+  { "action": "learn", "actor": "reaper", "spell": 805198 },
+  { "action": "assert", "label": "The talent is owned", "actor": "reaper", "metric": "knows_spell", "spell": 805198, "equals": 1 },
+  { "action": "assert", "label": "The talent aura has settled on the caster", "actor": "reaper", "metric": "aura", "spell": 805198, "equals": 1, "within_ms": 3000 },
+  { "action": "assert", "label": "Reaper does not know Shudder Scythe", "actor": "reaper", "metric": "knows_spell", "spell": 805708, "equals": 0 },
+  { "action": "assert", "label": "Ruin is not on the enemy yet", "actor": "enemy", "metric": "aura", "spell": 805199, "equals": 0 },
+  { "action": "cast", "actor": "reaper", "spell": 500376, "target": "enemy" },
+  { "action": "assert", "label": "Murder applies Ruin", "actor": "enemy", "metric": "aura", "spell": 805199, "equals": 1, "within_ms": 3000 },
+  { "action": "wait", "label": "Let Ruin fall off", "ms": 11000 },
+  { "action": "assert", "label": "Ruin expired", "actor": "enemy", "metric": "aura", "spell": 805199, "equals": 0 }
+ ]
+}

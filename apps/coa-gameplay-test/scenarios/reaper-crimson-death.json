@@ -1,0 +1,164 @@
+{
+  "schema": 1,
+  "name": "Crimson Death casts Slaughter an additional time free of cost (#2663)",
+  "contract": [
+    "Crimson Death 705414 is a native SPELL_AURA_PROC_TRIGGER_SPELL aura whose EffectTriggerSpell is 500373, Slaughter itself.",
+    "spell_proc gives it Chance 100 and ProcFlags 87060 (rev_20260920_17/rev_20260921_20 pending_db_world), and spell_script_names",
+    "binds spell_ascension_reaper_talent_proc, which checks the caster's cast against the whitelist for talent 705414 in",
+    "AscensionReaperTalentProcs.h (only 500373 and its ranks). A completed Slaughter cast should therefore trigger one",
+    "additional completed cast of the same spell, free of its Runic Power cost."
+  ],
+  "timeout_ms": 60000,
+  "players": [
+    {
+      "id": "control",
+      "race": 5,
+      "class": 30,
+      "level": 80,
+      "melee_hit_rating": 10000,
+      "spell_hit_rating": 10000
+    },
+    {
+      "id": "crimson",
+      "race": 5,
+      "class": 30,
+      "level": 80,
+      "melee_hit_rating": 10000,
+      "spell_hit_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "control_target",
+      "owner": "control",
+      "entry": 299,
+      "level": 80,
+      "health": 1000000,
+      "distance": 2
+    },
+    {
+      "id": "crimson_target",
+      "owner": "crimson",
+      "entry": 299,
+      "level": 80,
+      "health": 1000000,
+      "distance": 2
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "unlearn",
+      "actor": "control",
+      "spell": 705414
+    },
+    {
+      "action": "learn",
+      "actor": "crimson",
+      "spell": 705414
+    },
+    {
+      "action": "assert",
+      "label": "Crimson Death aura is active",
+      "actor": "crimson",
+      "metric": "aura",
+      "spell": 705414,
+      "equals": 1,
+      "within_ms": 3000
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 500373
+    },
+    {
+      "action": "learn",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "control",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "set_health",
+      "actor": "control_target",
+      "value": 300000
+    },
+    {
+      "action": "wait",
+      "label": "Let control_target's aura state catch up with its health",
+      "ms": 1000
+    },
+    {
+      "action": "cast",
+      "label": "control casts Slaughter directly",
+      "actor": "control",
+      "spell": 500373,
+      "target": "control_target"
+    },
+    {
+      "action": "assert",
+      "label": "control Slaughter cast was accepted",
+      "actor": "control",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "control Slaughter cast count without Crimson Death",
+      "actor": "control",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "equals": 1,
+      "within_ms": 3000
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "wait",
+      "label": "Let crimson_target's aura state catch up with its health",
+      "ms": 1000
+    },
+    {
+      "action": "cast",
+      "label": "crimson casts Slaughter directly",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "assert",
+      "label": "crimson Slaughter cast was accepted",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "crimson Slaughter cast count includes the free Crimson Death trigger",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "min": 2,
+      "within_ms": 3000
+    }
+  ]
+}

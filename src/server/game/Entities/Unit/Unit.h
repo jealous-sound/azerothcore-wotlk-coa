@@ -33,6 +33,7 @@
 #include "UnitUtils.h"
 #include <boost/container/flat_map.hpp>
 #include <functional>
+#include <optional>
 #include <utility>
 
 #define WORLD_TRIGGER   12999
@@ -1230,9 +1231,16 @@ public:
     /*********************************************************/
     /***       METHODS RELATED TO DAMAGE CACULATIONS       ***/
     /*********************************************************/
-    static uint32 DealDamage(Unit* attacker, Unit* victim, uint32 damage, CleanDamage const* cleanDamage = nullptr, DamageEffectType damagetype = DIRECT_DAMAGE, SpellSchoolMask damageSchoolMask = SPELL_SCHOOL_MASK_NORMAL, SpellInfo const* spellProto = nullptr, bool durabilityLoss = true, bool allowGM = false, Spell const* spell = nullptr);
+    static uint32 DealDamage(Unit* attacker, Unit* victim, uint32 damage, CleanDamage const* cleanDamage = nullptr,
+                             DamageEffectType damagetype = DIRECT_DAMAGE,
+                             SpellSchoolMask damageSchoolMask = SPELL_SCHOOL_MASK_NORMAL,
+                             SpellInfo const* spellProto = nullptr, bool durabilityLoss = true,
+                             bool allowGM = false, Spell const* spell = nullptr,
+                             std::optional<uint32>* scriptHealthLeechDamage = nullptr);
     void DealMeleeDamage(CalcDamageInfo* damageInfo, bool durabilityLoss);
-    void DealSpellDamage(SpellNonMeleeDamage* damageInfo, bool durabilityLoss, Spell const* spell = nullptr, uint32* scriptDamageResult = nullptr);
+    void DealSpellDamage(SpellNonMeleeDamage* damageInfo, bool durabilityLoss, Spell const* spell = nullptr,
+                         uint32* scriptDamageResult = nullptr,
+                         std::optional<uint32>* scriptHealthLeechDamage = nullptr);
     void DealDamageShieldDamage(Unit* victim);
     static void DealDamageMods(Unit const* victim, uint32& damage, uint32* absorb);
 
@@ -1256,6 +1264,7 @@ public:
     int32 SpellBaseDamageBonusTaken(SpellSchoolMask schoolMask, bool isDoT = false);
     float SpellPctDamageModsDone(Unit* victim, SpellInfo const* spellProto, DamageEffectType damagetype);
     float GetSpellAttackPowerCoefficientMultiplier(SpellInfo const* spellInfo, bool periodic) const;
+    float GetSpellAttackPowerCoefficientFlatBonus(SpellInfo const* spellInfo) const;
     float GetSpellPowerCoefficientFlatBonus(SpellInfo const* spellInfo) const;
     uint32 SpellDamageBonusDone(Unit* victim, SpellInfo const* spellProto, uint32 pdamage, DamageEffectType damagetype, uint8 effIndex, float TotalMod = 0.0f, uint32 stack = 1);
     uint32 SpellDamageBonusTaken(Unit* caster, SpellInfo const* spellProto, uint32 pdamage, DamageEffectType damagetype, uint32 stack = 1);
@@ -1534,6 +1543,7 @@ public:
     [[nodiscard]] float GetTotalAuraMultiplierByMiscMask(AuraType auratype, uint32 misc_mask) const;
     [[nodiscard]] float GetHealthBasedDamageTakenMultiplier() const;
     [[nodiscard]] float GetAscensionNormalTuningDamageMultiplier(Unit const* victim, uint32 schoolMask) const;
+    [[nodiscard]] float GetAscensionPvpTuningDamageMultiplier(Unit const* victim, uint32 schoolMask) const;
     [[nodiscard]] int32 GetMaxPositiveAuraModifierByMiscMask(AuraType auratype, uint32 misc_mask, AuraEffect const* except = nullptr) const;
     [[nodiscard]] int32 GetMaxNegativeAuraModifierByMiscMask(AuraType auratype, uint32 misc_mask) const;
 
@@ -1647,6 +1657,7 @@ public:
     // Energize spells
     void SendEnergizeSpellLog(Unit* victim, uint32 SpellID, uint32 Damage, Powers powertype);
     void EnergizeBySpell(Unit* victim, uint32 SpellID, uint32 Damage, Powers powertype);
+    [[nodiscard]] bool GainsManaWithoutThreat() const;
 
     // Spells immunities
     void ApplySpellImmune(uint32 spellId, uint32 op, uint32 type, bool apply, SpellImmuneBlockType blockType = SPELL_BLOCK_TYPE_ALL);

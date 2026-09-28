@@ -43,6 +43,7 @@ bool Sever(SpellInfo const* info);
 bool Infernal(SpellInfo const* info);
 bool Derived(SpellInfo const* info);
 bool Pestilence(uint32 id);
+bool Mark(SpellInfo const* info);
 uint32 Count(Unit const* unit, uint32 id);
 int32 Amount(uint32 id, uint8 slot = 0, Unit* caster = nullptr);
 void Cast(Unit* caster, Unit* target, uint32 id);
@@ -57,6 +58,8 @@ uint32 Highest(Player* player, uint32 root);
 void Replace(Player* player, uint32 root, uint32 replacement);
 void Unleash(Player* player, Unit* center, float strength = 1, bool pet = false);
 void Summon(Player* player, uint32 entry, Position const& position, uint32 duration);
+void ImpFormation(uint32 slot, float& distance, float& angle);
+Position ImpPosition(Player* player);
 void Spread(Player* player, Unit* target);
 void ApplyContracts(SpellInfo* info);
 }

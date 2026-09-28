@@ -1,0 +1,54 @@
+{
+  "schema": 1,
+  "name": "Native appearance outfit requests save, reload and delete outfits",
+  "contract": "C_AppearanceOutfit.SaveOutfit sends CMSG_SAVE_APPEARANCE_OUTFIT (0x069E): a C-string name, then u32 n and n appearance ids indexed by category. DeleteOutfit sends CMSG_DELETE_APPEARANCE_OUTFIT (0x06A0) with the name. The DLL keeps the outfit only when SMSG 0x069F / 0x06A1 carries SAVE_/DELETE_APPEARANCE_OUTFIT_OK and reads the list from SMSG_APPEARANCE_OUTFIT_INFO (0x069D) at login. Expected: a valid save is accepted and stored per character, so the login list names it; an outfit naming an appearance the character has not collected is refused; deleting removes it, and deleting it again is refused.",
+  "timeout_ms": 30000,
+  "players": [
+    { "id": "wearer", "race": 1, "class": 1, "level": 10 }
+  ],
+  "steps": [
+    {
+      "action": "client_packet", "label": "Save the empty outfit Plate", "actor": "wearer", "opcode": 1694,
+      "fields": [ { "string": "Plate" }, { "u32": 3 }, { "u32": 0 }, { "u32": 0 }, { "u32": 0 } ]
+    },
+    {
+      "action": "assert", "label": "The save is accepted", "actor": "wearer", "metric": "server_packet_contains",
+      "opcode": 1695, "text": "SAVE_APPEARANCE_OUTFIT_OK", "equals": 1, "within_ms": 1000
+    },
+    {
+      "action": "client_packet", "label": "Save an outfit with an uncollected appearance", "actor": "wearer",
+      "opcode": 1694, "fields": [ { "string": "Stolen" }, { "u32": 1 }, { "u32": 4000000000 } ]
+    },
+    {
+      "action": "assert", "label": "The uncollected outfit is refused", "actor": "wearer",
+      "metric": "server_packet_contains", "opcode": 1695, "text": "SAVE_APPEARANCE_OUTFIT_UNKNOWN", "equals": 1,
+      "within_ms": 1000
+    },
+    { "action": "login_hooks", "label": "Reload the collection state from the database", "actor": "wearer" },
+    {
+      "action": "assert", "label": "The login outfit list names the saved outfit", "actor": "wearer",
+      "metric": "server_packet_contains", "opcode": 1693, "text": "Plate", "equals": 1, "within_ms": 1000
+    },
+    {
+      "action": "assert", "label": "The refused outfit was not stored", "actor": "wearer",
+      "metric": "server_packet_contains", "opcode": 1693, "text": "Stolen", "equals": 0
+    },
+    {
+      "action": "client_packet", "label": "Delete Plate", "actor": "wearer", "opcode": 1696,
+      "fields": [ { "string": "Plate" } ]
+    },
+    {
+      "action": "assert", "label": "The delete is accepted", "actor": "wearer", "metric": "server_packet_contains",
+      "opcode": 1697, "text": "DELETE_APPEARANCE_OUTFIT_OK", "equals": 1, "within_ms": 1000
+    },
+    {
+      "action": "client_packet", "label": "Delete Plate again", "actor": "wearer", "opcode": 1696,
+      "fields": [ { "string": "Plate" } ]
+    },
+    {
+      "action": "assert", "label": "A missing outfit cannot be deleted", "actor": "wearer",
+      "metric": "server_packet_contains", "opcode": 1697, "text": "DELETE_APPEARANCE_OUTFIT_UNKNOWN", "equals": 1,
+      "within_ms": 1000
+    }
+  ]
+}

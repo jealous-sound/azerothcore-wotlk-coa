@@ -7,6 +7,7 @@
 #ifndef COA_CHALLENGES_REVIEW_H
 #define COA_CHALLENGES_REVIEW_H
 
+#include "AscensionCoAConfig.h"
 #include "ScriptMgr.h"
 #include "Player.h"
 #include "Bag.h"
@@ -27,6 +28,7 @@
 #include "CharacterCache.h"
 #include "Chat.h"
 #include "CommandScript.h"
+#include "CoA.Prestige.API.h"
 #include "CoAChallengeParse.h"
 #include "CoAChallengeInternal.h"
 #include "MiscScript.h"
@@ -320,7 +322,7 @@ void FlushFailureBroadcasts();
 void AppendConfigString(WorldPacket& data, std::string const& key);
 std::string HexDump(WorldPacket const& packet);
 void EnsureTables();
-void SendConfigBatch(Player* player);
+void AppendClientConfig(AscensionClientConfig& config);
 GameModeDef const* FindGameMode(std::string const& name);
 char const* GameModeNameForBit(uint32 bit);
 bool GameModesEnabled();
@@ -333,6 +335,19 @@ uint32 LoadGameModeMask(uint32 guid);
 bool CacheGenerationGuardEnabled();
 std::vector<std::pair<uint32, uint32>> CachedCharChallenges(uint32 guid);
 void ClearCharChallengeCache(uint32 guid);
+struct ActiveChallengeRow
+{
+    uint32 challengeId = 0;
+    uint32 level = 0;
+    int32 hunger = 0;
+    int32 thirst = 0;
+};
+std::vector<ActiveChallengeRow> LoadActiveChallengeRows(uint32 guid);
+uint64 CharChallengeCacheGeneration();
+void SeedCharChallengeCache(uint32 guid, uint64 generation, std::vector<ActiveChallengeRow> const& rows);
+void PreloadLoginChallengeRows(uint32 guid);
+std::vector<ActiveChallengeRow> TakeLoginChallengeRows(uint32 guid);
+void ForgetLoginChallengeRows(uint32 guid);
 uint32 CachedGameModeMask(uint32 guid);
 void ClearGameModeMaskCache(uint32 guid);
 void ApplyGameModeSpells(Player* player, uint32 oldMask, uint32 newMask);
@@ -350,6 +365,7 @@ void ReapplyGameModeBehavior(Player* player);
 char const* ChallengeResponseString(uint32 code);
     std::vector<uint32> GetChallengeSpells(uint32 challengeID, uint32 level = 0);
     void ReapplyActiveSpells(Player* player);
+    void ReapplyActiveSpells(Player* player, std::vector<ActiveChallengeRow> const& rows);
     void StripOrphanChallengeAuras(Player* player);
     std::vector<RewardDef> GetChallengeRewards(uint32 challengeID, uint32 level);
     void GrantChallengeRewards(Player* player, uint32 challengeID, uint32 level, bool firstTime);
@@ -365,6 +381,7 @@ void UntrackHunger(Player* player);
 void WarnHunger(Player* player, char const* kind, int32 value);
 void HungerUpdate(Player* player, uint32 diff);
 void RefreshHungerTracking(Player* player);
+void RefreshHungerTracking(Player* player, std::vector<ActiveChallengeRow> const& rows);
 void RemoveHungerChallenge(Player* player, uint32 challengeID);
 void SyncMeterAuras(Player* player);
 bool IsFatigueChallenge(uint32 challengeID);
@@ -376,6 +393,7 @@ void SendFatigueBar(Player* player, int32 fatigue);
 void TrackFatigue(Player* player, uint32 challengeID);
 void ClearFatigue(Player* player);
 void RefreshFatigueTracking(Player* player);
+void RefreshFatigueTracking(Player* player, std::vector<ActiveChallengeRow> const& rows);
 void TrackSpellbind(Player* player, uint32 challengeID);
 void UntrackSpellbind(Player* player);
 void RefreshSpellbindTracking(Player* player);
@@ -402,6 +420,7 @@ void RefreshInvertedBreathTracking(Player* player);
     // NO_GROUP_FOR_DUNGEONS: true when either player is inside a dungeon.
     bool GroupForDungeonsBlocked(Player* player, Player* other);
 void SendActiveList(Player* player);
+void SendActiveList(Player* player, std::vector<ActiveChallengeRow> const& rows);
 void PushLoginState(Player* player);
 void AppendFailureString(WorldPacket& data, std::string const& s);
 void AppendFailureRecord(WorldPacket& data, std::string const& who, uint32 challengeID, uint32 level);
@@ -465,11 +484,14 @@ bool IsSharedFate(uint32 challengeID);
 uint32 ExclusiveGroup(uint32 challengeID);
 bool IsTrialChallenge(uint32 challengeID);
 bool IsPrestigeChallenge(uint32 challengeID);
-// Aura the client treats as "prestiged" (C_Player:IsPrestiged() = HasAura(9930831)).
-constexpr uint32 COA_PRESTIGE_AURA = 9930831;
+// Prestige state and its aura live in mod-coa-prestige (single owner).
+// "Prestiged" is the client's C_Player:IsPrestiged() = HasAura(PRESTIGE_AURA).
+// The experience bonus is applied here, from CoAPrestige::ExperienceBonusPercent.
+constexpr uint32 COA_PRESTIGE_AURA = CoAPrestige::PRESTIGE_AURA;
 bool IsPrestiged(Player* player);
 uint32 RequiredGameMode(uint32 challengeID);
 void RecomputeRequiredGameModes(Player* player);
+void RecomputeRequiredGameModes(Player* player, std::vector<ActiveChallengeRow> const& rows);
 uint32 RequiredGameEvent(uint32 challengeID);
 bool NoRewards(uint32 challengeID);
 bool ChallengeExists(uint32 challengeID);
@@ -490,6 +512,9 @@ std::set<uint32> ActiveChallenges(uint32 guid);
 bool HasActiveTrial(uint32 guid);
 void SetConditionFlag(uint32 guid, char const* flag);
 bool HasConditionFlag(uint32 guid, char const* flag);
+void ClearConditionFlag(uint32 guid, std::string const& flag);
+void ResetConditionFlags(uint32 guid);
+void ForgetConditionFlags(uint32 guid);
 uint32 FreeInventorySlots(Player* player);
 std::vector<ConditionState> EvaluateConditions(Player* player, uint32 challengeID);
 std::vector<ConditionState> EvaluateConditionsFor(Player* player, uint32 challengeID,
@@ -514,6 +539,8 @@ void FailSharedFateHolders(Group* group, ObjectGuid extraGuid);
 void HandlePlayerDeath(Player* player);
 uint32 CraftedItemRarity(SkillLineAbilityEntry const* ability);
 void GrantProfessionXP(Player* member, uint32 rarityMult);
+Player* GetPlayerOwner(Creature* creature);
+void ApplyActiveChallengeSpellsToCreature(Player* player, Creature* creature);
 } // namespace CoAChallenges
 
 #endif // COA_CHALLENGES_REVIEW_H

@@ -19,8 +19,23 @@
 #include "Creature.h"
 #include "NPCPackets.h"
 #include "Player.h"
+#include "ScriptMgr.h"
 #include "SpellInfo.h"
 #include "SpellMgr.h"
+#include "WorldSession.h"
+
+namespace
+{
+    bool RaisesProfessionAboveStep(SpellInfo const* spellInfo, uint16 maxStep)
+    {
+        for (SpellEffectInfo const& spellEffectInfo : spellInfo->GetEffects())
+            if ((spellEffectInfo.IsEffect(SPELL_EFFECT_SKILL_STEP) || spellEffectInfo.IsEffect(SPELL_EFFECT_SKILL))
+                && IsProfessionSkill(spellEffectInfo.MiscValue) && spellEffectInfo.CalcValue() > maxStep)
+                return true;
+
+        return false;
+    }
+}
 
 namespace Trainer
 {
@@ -34,7 +49,7 @@ namespace Trainer
         _greeting[DEFAULT_LOCALE] = std::move(greeting);
     }
 
-    void Trainer::SendSpells(Creature* npc, Player* player, LocaleConstant locale) const
+    void Trainer::SendSpells(Creature* npc, Player* player, LocaleConstant locale, bool onlyTrainable) const
     {
         float reputationDiscount = player->GetReputationPriceDiscount(npc);
 
@@ -46,6 +61,13 @@ namespace Trainer
         for (Spell const& trainerSpell : _spells)
         {
             if (!player->IsSpellFitByClassAndRace(trainerSpell.SpellId))
+                continue;
+
+            // The state is asked once and then decides both whether the row is written at all and what
+            // the row reads: the same call that gates the purchase gates the window, so a trainer can
+            // never leave out a spell it would have sold, or offer a row it would have refused.
+            SpellState spellState = GetSpellState(player, &trainerSpell);
+            if (onlyTrainable && spellState == SpellState::Unavailable)
                 continue;
 
             SpellInfo const* trainerSpellInfo = sSpellMgr->AssertSpellInfo(trainerSpell.SpellId);
@@ -64,7 +86,7 @@ namespace Trainer
             trainerList.Spells.emplace_back();
             WorldPackets::NPC::TrainerListSpell& trainerListSpell = trainerList.Spells.back();
             trainerListSpell.SpellID = trainerSpell.SpellId;
-            trainerListSpell.Usable = AsUnderlyingType(GetSpellState(player, &trainerSpell));
+            trainerListSpell.Usable = AsUnderlyingType(spellState);
             trainerListSpell.MoneyCost = int32(trainerSpell.MoneyCost * reputationDiscount);
             trainerListSpell.PointCost[0] = 0; // spells don't cost talent points
             trainerListSpell.PointCost[1] = (primaryProfessionFirstRank ? 1 : 0);
@@ -115,6 +137,7 @@ namespace Trainer
             player->learnSpell(trainerSpell->SpellId, false);
 
         SendTeachSucceeded(npc, player, spellId);
+        sScriptMgr->OnPlayerLearnTrainerSpell(player, npc, spellId);
     }
 
     Spell const* Trainer::GetSpell(uint32 spellId) const
@@ -172,13 +195,23 @@ namespace Trainer
         if (player->GetLevel() < trainerSpell->ReqLevel)
             return SpellState::Unavailable;
 
+        // check expansion requirement of profession ranks
+        uint16 maxProfessionStep = GetMaxProfessionSkillStep(player->GetSession()->Expansion());
+        SpellInfo const* trainerSpellInfo = sSpellMgr->AssertSpellInfo(trainerSpell->SpellId);
+        if (RaisesProfessionAboveStep(trainerSpellInfo, maxProfessionStep))
+            return SpellState::Unavailable;
+
         // check ranks
         bool hasLearnSpellEffect = false;
         bool knowsAllLearnedSpells = true;
-        for (SpellEffectInfo const& spellEffectInfo : sSpellMgr->AssertSpellInfo(trainerSpell->SpellId)->GetEffects())
+        for (SpellEffectInfo const& spellEffectInfo : trainerSpellInfo->GetEffects())
         {
             if (!spellEffectInfo.IsEffect(SPELL_EFFECT_LEARN_SPELL))
                 continue;
+
+            if (SpellInfo const* learnedSpellInfo = sSpellMgr->GetSpellInfo(spellEffectInfo.TriggerSpell))
+                if (RaisesProfessionAboveStep(learnedSpellInfo, maxProfessionStep))
+                    return SpellState::Unavailable;
 
             hasLearnSpellEffect = true;
             if (!player->HasSpell(spellEffectInfo.TriggerSpell))

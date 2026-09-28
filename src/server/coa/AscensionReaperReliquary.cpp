@@ -1,10 +1,10 @@
 /* Copyright (C) 2016+ AzerothCore, GNU AGPL v3. */
 #include "Player.h"
 #include "ScriptMgr.h"
+#include "Spell.h"
 #include "SpellAuras.h"
 #include "SpellMgr.h"
 #include "SpellScript.h"
-#include <algorithm>
 #include <iterator>
 
 namespace
@@ -12,14 +12,14 @@ namespace
 constexpr uint32 SPELL_ATTACK_BOLTS[] = {500618, 500619, 500620};
 constexpr uint32 SPELL_VISUAL_BOLTS[] = {500621, 500622, 500623};
 constexpr uint32 SPELL_REAPED_SOUL = 500363;
-constexpr uint32 SPELL_STORED_BOLTS = 500629;
+constexpr uint32 SPELL_BEYOND_DEATH = 301193;
+constexpr uint32 SPELL_SOUL_BOLT = 500627;
 constexpr uint32 BOLT_INTERVAL_MS = 2500;
 
 class ReliquaryBolts : public BasicEvent
 {
 public:
-    ReliquaryBolts(Unit* caster, uint32 index, uint32 bolts)
-        : _caster(caster), _index(index), _bolts(bolts) { }
+    ReliquaryBolts(Unit* caster, uint32 index) : _caster(caster), _index(index) { }
 
     bool Execute(uint64, uint32) override
     {
@@ -27,21 +27,15 @@ public:
             return true;
 
         _caster->CastSpell(_caster, SPELL_ATTACK_BOLTS[_index], true);
-        _caster->RemoveAurasDueToSpell(SPELL_VISUAL_BOLTS[_index]);
 
-        if (Aura* stored = _caster->GetAura(SPELL_STORED_BOLTS, _caster->GetGUID()))
-            stored->ModStackAmount(-1);
-
-        if (++_index < _bolts)
-            _caster->m_Events.AddEventAtOffset(new ReliquaryBolts(_caster, _index, _bolts),
-                Milliseconds(BOLT_INTERVAL_MS));
+        if (++_index < std::size(SPELL_ATTACK_BOLTS))
+            _caster->m_Events.AddEventAtOffset(new ReliquaryBolts(_caster, _index), Milliseconds(BOLT_INTERVAL_MS));
         return true;
     }
 
 private:
     Unit* _caster;
     uint32 _index;
-    uint32 _bolts;
 };
 
 class spell_reaper_reliquary_of_the_lost : public SpellScript
@@ -60,15 +54,9 @@ class spell_reaper_reliquary_of_the_lost : public SpellScript
     void Launch()
     {
         Unit* caster = GetCaster();
-        uint32 const bolts = std::min<uint32>(_souls ? _souls : 1, std::size(SPELL_ATTACK_BOLTS));
+        caster->m_Events.AddEventAtOffset(new ReliquaryBolts(caster, 0), 0ms);
 
-        if (Aura* stored = caster->AddAura(SPELL_STORED_BOLTS, caster))
-            stored->SetStackAmount(uint8(bolts));
-
-        caster->m_Events.AddEventAtOffset(new ReliquaryBolts(caster, 0, bolts),
-            Milliseconds(BOLT_INTERVAL_MS));
-
-        for (uint32 index = 0; index < bolts; ++index)
+        for (uint8 index = 0; index < std::size(SPELL_VISUAL_BOLTS) && index < _souls; ++index)
             caster->CastSpell(caster, SPELL_VISUAL_BOLTS[index], true);
     }
 
@@ -78,9 +66,37 @@ class spell_reaper_reliquary_of_the_lost : public SpellScript
         AfterCast += SpellCastFn(spell_reaper_reliquary_of_the_lost::Launch);
     }
 };
+
+class spell_reaper_beyond_death_bolt : public SpellScript
+{
+    PrepareSpellScript(spell_reaper_beyond_death_bolt);
+
+    void Launch(SpellEffIndex index)
+    {
+        SpellInfo const* source = GetSpell()->GetTriggeredByAuraSpellInfo();
+        if (!source || source->Id != SPELL_BEYOND_DEATH)
+            return;
+
+        Unit* caster = GetCaster();
+        Unit* target = GetHitUnit();
+        AuraEffect const* talent = caster->GetAuraEffect(SPELL_BEYOND_DEATH, EFFECT_0, caster->GetGUID());
+        if (!target || !talent)
+            return;
+
+        PreventHitDefaultEffect(index);
+        caster->CastSpell(target, SPELL_SOUL_BOLT, true, nullptr, talent);
+    }
+
+    void Register() override
+    {
+        OnEffectHitTarget += SpellEffectFn(spell_reaper_beyond_death_bolt::Launch, EFFECT_0,
+            SPELL_EFFECT_TRIGGER_MISSILE);
+    }
+};
 }
 
 void AddSC_AscensionReaperReliquary()
 {
     RegisterSpellScript(spell_reaper_reliquary_of_the_lost);
+    RegisterSpellScript(spell_reaper_beyond_death_bolt);
 }

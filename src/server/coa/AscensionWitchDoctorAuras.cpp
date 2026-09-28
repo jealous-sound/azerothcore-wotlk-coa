@@ -229,6 +229,7 @@ class aura_ascension_witch_doctor_lifecycle : public AuraScript
                        std::max(0, player->SpellBaseDamageBonusDone(SPELL_SCHOOL_MASK_SHADOW)) * 0.15f +
                        player->GetTotalAttackPowerValue(RANGED_ATTACK) * 0.15f),
                 SPELL_DIRECT_DAMAGE, EFFECT_0);
+            player->ApplySpellMod(EclipseSplash, SPELLMOD_DAMAGE, _splash);
         }
         if (id == SenjinBuff)
             GetAura()->SetCharges(2);
@@ -387,7 +388,8 @@ class aura_ascension_witch_doctor_lifecycle : public AuraScript
             IngredientChanged(player, id, false);
         if (id == Spirit && player == GetTarget())
         {
-            for (uint32 helper : {SpiritStats, SpiritCast, SpiritChance, SpiritSpeed})
+            for (uint32 helper : {SpiritStats, SpiritCast, SpiritChance, SpiritSpeed, SpiritOrbOne, SpiritOrbTwo,
+                                  SpiritOrbThree, SpiritOrbFour, SpiritOrbFive})
                 player->RemoveAurasDueToSpell(helper);
         }
         if (IsHex(GetSpellInfo()))

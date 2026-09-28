@@ -140,6 +140,28 @@ WorldDatabase.WorkerThreads     = 1
 CharacterDatabase.WorkerThreads = 1
 
 #
+#    LoginDatabase.TransactionIsolation
+#    WorldDatabase.TransactionIsolation
+#    CharacterDatabase.TransactionIsolation
+#        Description: Transaction isolation level of every connection of the pool, synchronous and
+#                     asynchronous, applied on each connect and reconnect. Empty keeps the MySQL
+#                     server default (REPEATABLE-READ unless the server is configured otherwise).
+#                     A value not listed under Values stops the server at startup.
+#                     READ-UNCOMMITTED and READ-COMMITTED need row-based binary logging
+#                     (binlog_format ROW or MIXED, or binary logging off); with binlog_format
+#                     STATEMENT the server stops at startup, because MySQL would reject every write.
+#        Example:     "READ-COMMITTED" - (Avoids the gap-lock deadlocks of concurrent character
+#                                         creation when CharacterDatabase.WorkerThreads is above 1)
+#        Values:      "READ-UNCOMMITTED", "READ-COMMITTED", "REPEATABLE-READ", "SERIALIZABLE"
+#        Default:     "" - (LoginDatabase.TransactionIsolation)
+#                     "" - (WorldDatabase.TransactionIsolation)
+#                     "" - (CharacterDatabase.TransactionIsolation)
+
+LoginDatabase.TransactionIsolation     = ""
+WorldDatabase.TransactionIsolation     = ""
+CharacterDatabase.TransactionIsolation = ""
+
+#
 #    LoginDatabase.SynchThreads
 #    WorldDatabase.SynchThreads
 #    CharacterDatabase.SynchThreads
@@ -3623,6 +3645,20 @@ DungeonFinder.CastDeserter = 1
 #        Default:     1 - (Blizzlike: All dungeons are available for queue, even if already completed)
 
 DungeonFinder.AllowCompleted = 1
+
+#
+#    DungeonFinder.MaxExpansion
+#
+#        Description: Most recent expansion whose dungeons the Dungeon Finder offers, whatever the
+#                     account's expansion. Conquest of Azeroth stops at level 60: the Burning Crusade
+#                     dungeons open at 58 in LFGDungeons.dbc but need level 64-67 to enter.
+#                     Below 2, the normal random dungeon of that expansion stays open up to
+#                     MaxPlayerLevel (Random Classic Dungeon stops at 59 in the DBC).
+#        Default:     0 - (Classic dungeons only)
+#                     1 - (Up to The Burning Crusade)
+#                     2 - (Up to Wrath of the Lich King, Blizzlike)
+
+DungeonFinder.MaxExpansion = 0
 
 #
 #    DungeonFinder.DungeonSelectionCooldown

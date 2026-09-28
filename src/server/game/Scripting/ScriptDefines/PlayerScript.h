@@ -27,6 +27,10 @@
 #include "AchievementMgr.h"
 #include "KillRewarder.h"
 
+class Object;
+class Pet;
+struct Mail;
+
 enum PlayerHook
 {
     PLAYERHOOK_ON_PLAYER_JUST_DIED,
@@ -136,6 +140,8 @@ enum PlayerHook
     PLAYERHOOK_CAN_GROUP_ACCEPT,
     PLAYERHOOK_CAN_SELL_ITEM,
     PLAYERHOOK_CAN_SEND_MAIL,
+    PLAYERHOOK_CAN_TAKE_MAIL_ITEM,
+    PLAYERHOOK_CAN_TAKE_MAIL_MONEY,
     PLAYERHOOK_PETITION_BUY,
     PLAYERHOOK_PETITION_SHOW_LIST,
     PLAYERHOOK_ON_REWARD_KILL_REWARDER,
@@ -232,9 +238,35 @@ enum PlayerHook
     PLAYERHOOK_ON_CAN_REGENERATE,
     PLAYERHOOK_ON_CAN_ENERGIZE,
     PLAYERHOOK_ON_GET_MAX_ALLOWED_LEVEL,
+    PLAYERHOOK_ON_HAS_NO_BONUS_EXPERIENCE,
     PLAYERHOOK_ON_BANKER_ACTIVATE,
     PLAYERHOOK_ON_BANK_WITHDRAW,
+    PLAYERHOOK_ON_LEARN_PET_TALENT,
+    PLAYERHOOK_ON_LEARN_TRAINER_SPELL,
+    PLAYERHOOK_ON_TAKE_MAIL_ITEM,
+    PLAYERHOOK_CAN_TAKE_QUEST,
+    PLAYERHOOK_CAN_REWARD_QUEST,
+    PLAYERHOOK_ON_QUEST_GIVER_CHOOSE_REWARD,
+    PLAYERHOOK_ON_REFRESH_QUEST_GIVER,
+    PLAYERHOOK_ON_COA_PROGRESS,
+    PLAYERHOOK_ON_GET_GAME_MODE_MASK,
     PLAYERHOOK_END
+};
+
+enum class CoAProgressEvent : uint8
+{
+    ManastormEntered,
+    ManastormPurchase,
+    ManastormPotion,
+    ManastormEscape,
+    ManastormActiveSlot,
+    ManastormFullLoadout,
+    ManastormDepthCleared,
+    ClosestResurrection,
+    Transmogrified,
+    VanityDelivered,
+    VanityCollected,
+    AppearanceCollected
 };
 
 class PlayerScript : public ScriptObject
@@ -314,6 +346,12 @@ public:
     // every multiplier (rate, RaF, rested, favored, other hook order), so it
     // cannot be bypassed by a large XP gain.
     virtual uint8 OnPlayerGetMaxAllowedLevel(Player* /*player*/) { return 0; }
+
+    // Whether every experience bonus is suppressed for this player: base XP only.
+    // Consulted by Player::GiveXP (favored, rested, recruit-a-friend) and by the aura
+    // multiplier sites (kills, quests, professions). A NO_BONUS_EXPERIENCE challenge
+    // returns true.
+    virtual bool OnPlayerHasNoBonusExperience(Player* /*player*/) { return false; }
 
     // Called when a player's reputation changes (before it is actually changed)
     virtual bool OnPlayerReputationChange(Player* /*player*/, uint32 /*factionID*/, int32& /*standing*/, bool /*incremental*/) { return true; }
@@ -545,6 +583,10 @@ public:
     [[nodiscard]] virtual bool OnPlayerCanSellItem(Player* /*player*/, Item* /*item*/, Creature* /*creature*/) { return true; }
 
     [[nodiscard]] virtual bool OnPlayerCanSendMail(Player* /*player*/, ObjectGuid /*receiverGuid*/, ObjectGuid /*mailbox*/, std::string& /*subject*/, std::string& /*body*/, uint32 /*money*/, uint32 /*COD*/, Item* /*item*/) { return true; }
+
+    [[nodiscard]] virtual bool OnPlayerCanTakeMailItem(Player* /*player*/, Item* /*item*/) { return true; }
+
+    [[nodiscard]] virtual bool OnPlayerCanTakeMailMoney(Player* /*player*/, uint32 /*money*/) { return true; }
 
     virtual void OnPlayerPetitionBuy(Player* /*player*/, Creature* /*creature*/, uint32& /*charterid*/, uint32& /*cost*/, uint32& /*type*/) { }
 
@@ -953,6 +995,90 @@ public:
      * @param level The level that should be used for XP gain calculations
      */
     virtual void OnPlayerBeforeGetLevelForXPGain(Player const* /*player*/, uint8& /*level*/) {}
+
+    /**
+     * @brief This hook is called after a pet talent was validated and learned.
+     *
+     * @param player Contains information about the Player
+     * @param pet The pet that learned the talent
+     * @param spellId The learned talent spell
+     */
+    virtual void OnPlayerLearnPetTalent(Player* /*player*/, Pet* /*pet*/, uint32 /*spellId*/) { }
+
+    /**
+     * @brief This hook is called after a trainer successfully taught a spell to the player.
+     *
+     * @param player Contains information about the Player
+     * @param trainer The trainer creature
+     * @param spellId The trainer spell that was bought
+     */
+    virtual void OnPlayerLearnTrainerSpell(Player* /*player*/, Creature* /*trainer*/, uint32 /*spellId*/) { }
+
+    /**
+     * @brief This hook is called after an item attachment was moved from a mail into the player's inventory.
+     *
+     * @param player Contains information about the Player
+     * @param mail The mail the item was taken from
+     * @param itemEntry The entry of the taken item
+     */
+    virtual void OnPlayerTakeMailItem(Player* /*player*/, Mail const* /*mail*/, uint32 /*itemEntry*/) { }
+
+    /**
+     * @brief This hook is called when the core checks whether the player may see or take a quest.
+     *
+     * @param player Contains information about the Player
+     * @param quest The quest
+     * @return false to hide the quest and refuse accepting it
+     */
+    [[nodiscard]] virtual bool OnPlayerCanTakeQuest(Player const* /*player*/, Quest const* /*quest*/) { return true; }
+
+    /**
+     * @brief This hook is called when the core checks whether the player may be rewarded for a quest.
+     *
+     * @param player Contains information about the Player
+     * @param quest The quest
+     * @return false to refuse the ordinary quest reward
+     */
+    [[nodiscard]] virtual bool OnPlayerCanRewardQuest(Player const* /*player*/, Quest const* /*quest*/) { return true; }
+
+    /**
+     * @brief This hook is called after a quest reward request from a validated quest giver, before the core rewards it.
+     *
+     * @param player Contains information about the Player
+     * @param questGiver The quest giver object
+     * @param quest The quest
+     * @param reward The chosen reward index
+     * @return true when a script handled the request and the core must not reward the quest itself
+     */
+    [[nodiscard]] virtual bool OnPlayerQuestGiverChooseReward(Player* /*player*/, Object* /*questGiver*/, Quest const* /*quest*/, uint32 /*reward*/) { return false; }
+
+    /**
+     * @brief This hook is called when a quest giver interaction would close the player's quest giver window.
+     *
+     * @param player Contains information about the Player
+     * @param questGiver The quest giver object
+     * @param quest The quest of the interaction
+     * @return true when a script refreshed the quest giver window and the core must keep it open
+     */
+    [[nodiscard]] virtual bool OnPlayerRefreshQuestGiver(Player* /*player*/, Object* /*questGiver*/, Quest const* /*quest*/) { return false; }
+
+    /**
+     * @brief This hook is called when a Conquest of Azeroth system confirms a player's progress event.
+     *
+     * @param player Contains information about the Player
+     * @param event The confirmed event
+     * @param value The event's subject: an item, spell, appearance or depth, or 0
+     */
+    virtual void OnPlayerCoAProgress(Player* /*player*/, CoAProgressEvent /*event*/, uint32 /*value*/) { }
+
+    /**
+     * @brief This hook is called to resolve a character's Conquest of Azeroth game mode mask.
+     *
+     * @param player Contains information about the Player
+     * @param mask Receives the game mode mask
+     * @return true when the script resolved the mask
+     */
+    [[nodiscard]] virtual bool OnPlayerGetGameModeMask(Player const* /*player*/, uint32& /*mask*/) { return false; }
 };
 
 #endif
