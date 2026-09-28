@@ -1395,6 +1395,18 @@ enum Opcodes : uint16
     SMSG_COA_GAME_MODE_TOGGLE_RESULT                = 0x5A5,
     SMSG_COA_GAME_MODE_STATE                        = 0x90B,
     SMSG_COA_CHALLENGE_RULE_BROKEN                  = 0x5BB,
+    // Area POI: the client's map-pin database (Interface/FrameXML/Data/
+    // MapPOI.lua, DB_MapPOI), rebuilt from what the server sends. Payload is
+    // { u32 id, cstring json }, one POI per packet, and the JSON holds the pin's
+    // own key as its ID, its Name / Description / ZoneId / X / Y / Z, its
+    // TextureId (a minimap-tracking atlas) and its Scale, POIFlags and Apply.
+    // Apply false removes the pin with that ID, so a POI sent under the same ID
+    // as one of the client's static pins replaces it. The client keeps the
+    // payloads in a cache keyed by that id and replays them on every world
+    // entry, so sending one once per login is enough. Outbound-only (above
+    // NUM_MSG_TYPES); the client hash-dispatches it (Extensions.dll 0x77C,
+    // AscJson.cpp).
+    SMSG_COA_AREA_POI_PAYLOAD                       = 0x77C,
     // Portrait menu "Reset all Dungeons" (Lua ResetDungeons(), empty payload).
     CMSG_RESET_DUNGEONS                             = 0x61F,
     // Spell Activation Overlay (the "proc glow" the client paints on the
