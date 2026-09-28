@@ -3,6 +3,7 @@
 #include "Chat.h"
 #include "DBCStores.h"
 #include "GameTime.h"
+#include "Group.h"
 #include "Item.h"
 #include "Map.h"
 #include "MapMgr.h"
@@ -12,8 +13,8 @@
 #include "SpellAuras.h"
 #include "SpellMgr.h"
 #include "StringFormat.h"
+#include <algorithm>
 #include <mutex>
-#include <unordered_map>
 #include <vector>
 
 namespace
@@ -65,8 +66,36 @@ std::string ZoneBlessingAnnouncement(Player const* player, ItemTemplate const* p
         proto->Name1, spellInfo->Id, spellInfo->SpellName[LOCALE_enUS]);
 }
 
+struct ZoneBlessing
+{
+    uint32 ZoneId;
+    uint32 InstanceId;
+    uint32 SpellId;
+    ObjectGuid Caster;
+    time_t ExpireAt;
+};
+
 std::mutex g_zoneScrollLock;
-std::unordered_map<uint32, std::unordered_map<uint32, time_t>> g_zoneScrollBuffs;
+std::vector<ZoneBlessing> g_zoneBlessings;
+
+bool SharesBlessing(Player const* player, ObjectGuid caster)
+{
+    if (player->GetGUID() == caster)
+        return true;
+    Group const* group = player->GetGroup();
+    return group && group->IsMember(caster);
+}
+
+time_t BlessingExpiry(Player const* player, uint32 zoneId, uint32 spellId)
+{
+    time_t expiry = 0;
+    std::lock_guard<std::mutex> lock(g_zoneScrollLock);
+    for (ZoneBlessing const& blessing : g_zoneBlessings)
+        if (blessing.ZoneId == zoneId && blessing.InstanceId == player->GetInstanceId() &&
+            blessing.SpellId == spellId && blessing.ExpireAt > expiry && SharesBlessing(player, blessing.Caster))
+            expiry = blessing.ExpireAt;
+    return expiry;
+}
 
 void ApplyZoneScrollAura(Player* player, uint32 spellId, int32 remainingMs)
 {
@@ -95,25 +124,30 @@ void SyncGhostRunner(Player* player)
         player->RemoveAurasDueToSpell(SPELL_GHOST_RUNNER_SPEED);
 }
 
-bool IsActiveInZone(uint32 zoneId, uint32 spellId)
+constexpr uint32 SPELL_KEEPERS_SCROLL_FEATHERFALL = 91796;
+
+bool IsAllowedOnMap(Map const* map, uint32 spellId)
 {
-    std::lock_guard<std::mutex> lock(g_zoneScrollLock);
-    auto zone = g_zoneScrollBuffs.find(zoneId);
-    if (zone == g_zoneScrollBuffs.end())
-        return false;
-    auto spell = zone->second.find(spellId);
-    return spell != zone->second.end() && spell->second > GameTime::GetGameTime().count();
+    if (!map->Instanceable())
+        return true;
+    return map->IsBattleground() && spellId == SPELL_KEEPERS_SCROLL_FEATHERFALL;
 }
 
-bool TryBlessZone(uint32 zoneId, uint32 spellId, int32 durationMs)
+std::vector<Player*> BlessingRecipients(Player* caster)
 {
-    time_t now = GameTime::GetGameTime().count();
-    std::lock_guard<std::mutex> lock(g_zoneScrollLock);
-    time_t& slot = g_zoneScrollBuffs[zoneId][spellId];
-    if (slot > now)
-        return false;
-    slot = now + durationMs / 1000;
-    return true;
+    std::vector<Player*> recipients{caster};
+    Group* group = caster->GetGroup();
+    if (!group)
+        return recipients;
+
+    for (GroupReference* ref = group->GetFirstMember(); ref; ref = ref->next())
+    {
+        Player* member = ref->GetSource();
+        if (member && member != caster && member->IsInWorld() && member->GetMap() == caster->GetMap() &&
+            member->GetZoneId() == caster->GetZoneId())
+            recipients.push_back(member);
+    }
+    return recipients;
 }
 
 class ascension_keepers_scroll_zone_buff_spell : public AllSpellScript
@@ -130,25 +164,25 @@ public:
             return;
 
         int32 durationMs = spellInfo->GetMaxDuration();
-        uint32 zoneId = player->GetZoneId();
-        if (durationMs <= 0 || !TryBlessZone(zoneId, spellInfo->Id, durationMs))
+        if (durationMs <= 0)
             return;
 
-        Map* map = player->GetMap();
-        if (!map)
-            return;
-
-        for (MapReference const& ref : map->GetPlayers())
         {
-            Player* target = ref.GetSource();
-            if (target != player && target->IsInWorld() && target->GetZoneId() == zoneId)
-            {
-                ApplyZoneScrollAura(target, spellInfo->Id, durationMs);
-                SyncGhostRunner(target);
-            }
+            std::lock_guard<std::mutex> lock(g_zoneScrollLock);
+            g_zoneBlessings.push_back({player->GetZoneId(), player->GetInstanceId(), spellInfo->Id, player->GetGUID(),
+                GameTime::GetGameTime().count() + durationMs / 1000});
         }
 
-        map->SendZoneText(zoneId, ZoneBlessingAnnouncement(player, item->GetTemplate(), spellInfo).c_str());
+        std::string announcement = ZoneBlessingAnnouncement(player, item->GetTemplate(), spellInfo);
+        for (Player* recipient : BlessingRecipients(player))
+        {
+            if (recipient != player)
+            {
+                ApplyZoneScrollAura(recipient, spellInfo->Id, durationMs);
+                SyncGhostRunner(recipient);
+            }
+            ChatHandler(recipient->GetSession()).SendSysMessage(announcement);
+        }
     }
 };
 
@@ -178,31 +212,34 @@ public:
             return true;
 
         SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spellId);
-        if (!spellInfo || !IsActiveInZone(player->GetZoneId(), spellId))
+        if (!spellInfo)
+            return true;
+
+        if (!IsAllowedOnMap(player->GetMap(), spellId))
+        {
+            Spell::SendCastResult(player, spellInfo, castCount, SPELL_FAILED_NOT_HERE);
+            ChatHandler(player->GetSession()).PSendSysMessage(
+                "{} cannot be used here.", spellInfo->SpellName[LOCALE_enUS]);
+            return false;
+        }
+
+        if (BlessingExpiry(player, player->GetZoneId(), spellId) <= GameTime::GetGameTime().count())
             return true;
 
         Spell::SendCastResult(player, spellInfo, castCount, SPELL_FAILED_AURA_BOUNCED);
         ChatHandler(player->GetSession()).PSendSysMessage(
-            "{} is already active in this zone.", spellInfo->SpellName[LOCALE_enUS]);
+            "{} is already active for you in this zone.", spellInfo->SpellName[LOCALE_enUS]);
         return false;
     }
 
     void OnPlayerUpdateZone(Player* player, uint32 newZone, uint32) override
     {
         time_t now = GameTime::GetGameTime().count();
-        std::unordered_map<uint32, time_t> active;
-        {
-            std::lock_guard<std::mutex> lock(g_zoneScrollLock);
-            auto it = g_zoneScrollBuffs.find(newZone);
-            if (it != g_zoneScrollBuffs.end())
-                active = it->second;
-        }
-
         for (ZoneScrollEntry const& entry : kZoneScrolls)
         {
-            auto it = active.find(entry.SpellId);
-            if (it != active.end() && it->second > now)
-                ApplyZoneScrollAura(player, entry.SpellId, int32((it->second - now) * 1000));
+            time_t expiry = BlessingExpiry(player, newZone, entry.SpellId);
+            if (expiry > now)
+                ApplyZoneScrollAura(player, entry.SpellId, int32((expiry - now) * 1000));
             else if (player->HasAura(entry.SpellId))
                 player->RemoveAurasDueToSpell(entry.SpellId);
         }
@@ -225,37 +262,31 @@ public:
         _timer = 0;
 
         time_t now = GameTime::GetGameTime().count();
-        std::vector<std::pair<uint32, uint32>> expiredZoneSpells;
+        std::vector<ZoneBlessing> expired;
 
         {
             std::lock_guard<std::mutex> lock(g_zoneScrollLock);
-            for (auto& [zoneId, spells] : g_zoneScrollBuffs)
-            {
-                for (auto it = spells.begin(); it != spells.end();)
-                {
-                    if (it->second <= now)
-                    {
-                        expiredZoneSpells.emplace_back(zoneId, it->first);
-                        it = spells.erase(it);
-                    }
-                    else
-                        ++it;
-                }
-            }
+            auto isExpired = [now](ZoneBlessing const& blessing) { return blessing.ExpireAt <= now; };
+            std::copy_if(g_zoneBlessings.begin(), g_zoneBlessings.end(), std::back_inserter(expired), isExpired);
+            std::erase_if(g_zoneBlessings, isExpired);
         }
 
-        for (auto const& [zoneId, spellId] : expiredZoneSpells)
+        for (ZoneBlessing const& blessing : expired)
         {
-            sMapMgr->DoForAllMaps([zoneId, spellId](Map* map)
+            sMapMgr->DoForAllMaps([&blessing, now](Map* map)
             {
+                if (map->GetInstanceId() != blessing.InstanceId)
+                    return;
+
                 for (MapReference const& ref : map->GetPlayers())
                 {
                     Player* player = ref.GetSource();
-                    if (player->IsInWorld() && player->GetZoneId() == zoneId && player->HasAura(spellId))
-                    {
-                        player->RemoveAurasDueToSpell(spellId);
-                        SyncGhostRunner(player);
-                    }
+                    if (!player->IsInWorld() || player->GetZoneId() != blessing.ZoneId ||
+                        BlessingExpiry(player, blessing.ZoneId, blessing.SpellId) > now)
+                        continue;
+
+                    player->RemoveAurasDueToSpell(blessing.SpellId);
+                    SyncGhostRunner(player);
                 }
             });
         }
