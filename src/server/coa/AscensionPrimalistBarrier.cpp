@@ -58,6 +58,22 @@ class aura_ascension_earthmother_protection_link : public AuraScript
     }
 };
 
+class primalist_barrier_scaling : public UnitScript
+{
+public:
+    primalist_barrier_scaling() : UnitScript("primalist_barrier_scaling", true,
+        {UNITHOOK_MODIFY_SPELL_EFFECT_BASE_VALUE}) { }
+
+    void ModifySpellEffectBaseValue(Unit const* caster, SpellInfo const* info, uint8 index, float& value) override
+    {
+        if (!caster || !caster->IsPlayer() || caster->getClass() != CLASS_WILDWALKER ||
+            info->SpellFamilyName != 37 || info->Id != RockBarrier || index != EFFECT_0 ||
+            info->Effects[index].ApplyAuraName != SPELL_AURA_MOD_RESISTANCE)
+            return;
+        value += caster->GetStat(STAT_STAMINA) * 3.0f;
+    }
+};
+
 class primalist_barrier_metadata : public GlobalScript
 {
 public:
@@ -132,4 +148,5 @@ void AddSC_AscensionPrimalistBarrier()
     RegisterSpellScript(aura_ascension_fury_of_earthmother);
     RegisterSpellScript(spell_ascension_fury_of_earthmother_charge);
     new primalist_barrier_metadata();
+    new primalist_barrier_scaling();
 }
