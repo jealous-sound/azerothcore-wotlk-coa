@@ -17,6 +17,8 @@ enum BarrierSpells : uint32
     EarthmotherProtection = 560298
 };
 
+constexpr uint32 HandOfEarthmotherFamilyMask1 = 8;
+
 class aura_ascension_earthmother_protection_link : public AuraScript
 {
     PrepareAuraScript(aura_ascension_earthmother_protection_link);
@@ -86,6 +88,13 @@ public:
         {
             info->AttributesCu &= ~SPELL_ATTR0_CU_FORCE_AURA_SAVING;
             info->AttributesCu |= SPELL_ATTR0_CU_AURA_CANNOT_BE_SAVED;
+        }
+        if (info->Id == EarthmotherProtection && info->SpellFamilyName == 37 &&
+            info->Effects[EFFECT_0].ApplyAuraName == SPELL_AURA_ADD_FLAT_MODIFIER)
+        {
+            info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_ADD_PCT_MODIFIER;
+            info->Effects[EFFECT_0].MiscValue = SPELLMOD_COST;
+            info->Effects[EFFECT_0].SpellClassMask = flag96(0, HandOfEarthmotherFamilyMask1, 0);
         }
     }
 };

@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "name": "Earthmother's Protection cuts Hand of the Earthmother's Rage cost by a genuine 50 percent",
+  "contract": "Earthmother's Protection's tooltip: the Rage cost of Hand of the Earthmother is reduced by $s1%. Its raw effect is a flat -50 SpellMod on the wrong op and the wrong classmask (Rock Barrier's own, not Hand of the Earthmother's), so it never touched the cost at all. Fixed, it is a genuine -50% multiplicative cost modifier.",
+  "players": [
+    {
+      "id": "primalist",
+      "race": 1,
+      "class": 31,
+      "level": 80
+    }
+  ],
+  "timeout_ms": 15000,
+  "steps": [
+    { "action": "learn", "actor": "primalist", "spell": 502802 },
+    {
+      "action": "assert", "label": "Baseline Rage cost before the talent",
+      "actor": "primalist", "metric": "spell_power_cost", "spell": 502802, "equals": 350
+    },
+    {
+      "action": "snapshot", "actor": "primalist", "metric": "spell_power_cost", "spell": 502802,
+      "save_as": "cost_before"
+    },
+    { "action": "learn", "actor": "primalist", "spell": 560298 },
+    {
+      "action": "assert", "label": "The talent cuts the cost by exactly half, not a flat -50",
+      "actor": "primalist", "metric": "spell_power_cost", "spell": 502802,
+      "relative_to": "cost_before", "equals": -175
+    }
+  ]
+}
