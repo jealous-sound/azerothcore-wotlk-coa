@@ -295,6 +295,8 @@ class felsworn_casts : public AllSpellScript
         }
         if (info->Id == 704371 && player->HasAura(560641))
             Cast(player, target, 704397);
+        if (info->Id == 803472 && Inner(player) && target != player && !player->IsFriendlyTo(target))
+            Cast(player, player, 803089);
         if (!damage || target == player || player->IsFriendlyTo(target))
             return;
         if (Named(info, 801312))
@@ -423,6 +425,12 @@ class spell_ascension_felsworn_ability : public SpellScript
                    GetSpellInfo()->Id == 572183 && Inner(player));
         }
     }
+    void ExtendInnerDemon(SpellEffIndex effect)
+    {
+        PreventHitDefaultEffect(effect);
+        if (Player* player = Owner(GetCaster()))
+            Extend(player, GetEffectValue());
+    }
     void Register() override
     {
         SpellInfo const* info = sSpellMgr->GetSpellInfo(m_scriptSpellId);
@@ -430,6 +438,9 @@ class spell_ascension_felsworn_ability : public SpellScript
             OnEffectHit += SpellEffectFn(spell_ascension_felsworn_ability::SummonHit, EFFECT_0, SPELL_EFFECT_SUMMON);
         if (info->Id == 807942 || info->Id == 705121)
             OnEffectHitTarget += SpellEffectFn(spell_ascension_felsworn_ability::Hit, EFFECT_0, SPELL_EFFECT_DUMMY);
+        if (info->Id == 803089)
+            OnEffectHitTarget += SpellEffectFn(spell_ascension_felsworn_ability::ExtendInnerDemon, EFFECT_0,
+                                               SPELL_EFFECT_ASCENSION_MODIFY_AURA_DURATION);
     }
 };
 }
