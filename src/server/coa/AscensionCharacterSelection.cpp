@@ -249,7 +249,16 @@ namespace
     {
         WorldPacket readable = packet;
         std::string payload;
-        readable >> payload;
+        try
+        {
+            readable >> payload;
+        }
+        catch (ByteBufferException const&)
+        {
+            LOG_ERROR("coa", "Rejected malformed character-selection sort order from account {}",
+                session->GetAccountId());
+            return;
+        }
 
         if (payload.empty())
         {
