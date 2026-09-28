@@ -510,10 +510,20 @@ WorldSocket::ReadDataHandlerResult WorldSocket::ReadDataHandler()
         return ReadDataHandlerResult::Error;
     }
 
-    if (!sScriptMgr->CanPacketReceiveEarly(_worldSession, *packetToQueue))
+    try
     {
+        if (!sScriptMgr->CanPacketReceiveEarly(_worldSession, *packetToQueue))
+        {
+            delete packetToQueue;
+            return ReadDataHandlerResult::Ok;
+        }
+    }
+    catch (ByteBufferException const&)
+    {
+        LOG_ERROR("network", "WorldSocket::ReadDataHandler(): client {} sent malformed early packet (opcode {})",
+            GetRemoteIpAddress().to_string(), uint32(opcode));
         delete packetToQueue;
-        return ReadDataHandlerResult::Ok;
+        return ReadDataHandlerResult::Error;
     }
 
     if (uint32(opcode) >= NUM_OPCODE_HANDLERS)
