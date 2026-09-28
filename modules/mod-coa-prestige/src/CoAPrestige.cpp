@@ -15,16 +15,22 @@
  * SMSG_UPDATE_OBJECT_ADDON field table; C_Player:IsPrestiged() is HasAura(9930831).
  */
 
+#include "AllBattlegroundScript.h"
 #include "AscensionSpecialization.h"
+#include "Battleground.h"
+#include "CoA.Prestige.API.h"
 #include "CoAPrestigeRules.h"
 #include "Chat.h"
 #include "Config.h"
 #include "CreatureScript.h"
 #include "DatabaseEnv.h"
 #include "Duration.h"
+#include "GameEventMgr.h"
+#include "GlobalScript.h"
 #include "Item.h"
 #include "Log.h"
 #include "Mail.h"
+#include "Map.h"
 #include "ObjectAccessor.h"
 #include "ObjectMgr.h"
 #include "Pet.h"
@@ -57,12 +63,13 @@ namespace
     {
         ACTION_ACTIVATE = 1,
         ACTION_REWARDS = 2,
-        ACTION_EXPERIENCE_ITEMS = 3
+        ACTION_EXPERIENCE_ITEMS = 3,
+        ACTION_DAILY_LABEL = 4
     };
 
     std::atomic<bool> g_enabled{ true };
     std::atomic<uint32> g_requiredLevel{ 60 };
-    std::atomic<uint32> g_experienceBonusPercent{ 150 };
+    std::atomic<uint32> g_experienceBonusPercent{ 300 };
 
     std::mutex g_rewardsLock;
     std::vector<RewardItem> g_rewards;
@@ -76,11 +83,61 @@ namespace
         return g_rewards;
     }
 
+    // Prestige dailies (quests 80954/80955/80956) and the rotation that offers one
+    // per day. The daily is granted on activation and turned in at Chromie; it has
+    // two objectives (the level cap and a content counter), credited by the hooks
+    // below through dummy kill-credit creatures (never spawned; the quest's
+    // ObjectiveText supplies the display).
+    uint32 ActiveDailyQuest()
+    {
+        for (PrestigeDaily const& daily : PrestigeDailies)
+            if (sGameEventMgr->IsActiveEvent(daily.eventId))
+                return daily.questId;
+        return 0;
+    }
+
+    // The daily's aura only applies where its content is: Battlegrounds, a dungeon
+    // instance (not a raid), or the open world.
+    bool DailyContentMatches(PrestigeDaily const& daily, bool inBattleground, bool inInstance, bool inDungeon)
+    {
+        if (daily.auraId == DailyAuraBattlegrounds)
+            return inBattleground;
+        if (daily.auraId == DailyAuraDungeons)
+            return inDungeon;
+        return !inInstance && !inBattleground;
+    }
+
+    // Puts the daily's aura on while its quest is in the panel and its content is where
+    // the character is, and takes it off otherwise.
+    void SyncDailyAuras(Player* player)
+    {
+        bool const active = IsActive(player);
+        Battleground* const bg = player->GetBattleground();
+        bool const inBattleground = bg && bg->isBattleground();
+        bool const inInstance = player->GetMap() && player->GetMap()->Instanceable();
+        bool const inDungeon = player->GetMap() && player->GetMap()->IsDungeon() && !player->GetMap()->IsRaid();
+
+        for (PrestigeDaily const& daily : PrestigeDailies)
+        {
+            // The aura lasts the whole cycle: it stays after the objectives are met and
+            // drops only when the cycle ends at the required level (or the daily is gone).
+            bool const want = active && player->GetQuestStatus(daily.questId) != QUEST_STATUS_NONE
+                && DailyContentMatches(daily, inBattleground, inInstance, inDungeon);
+            if (want)
+            {
+                if (!player->HasAura(daily.auraId))
+                    player->AddAura(daily.auraId, player);
+            }
+            else if (player->HasAura(daily.auraId))
+                player->RemoveAurasDueToSpell(daily.auraId);
+        }
+    }
+
     void LoadConfig()
     {
         g_enabled = sConfigMgr->GetOption<bool>("CoAPrestige.Enable", true);
         g_requiredLevel = std::max<uint32>(2, sConfigMgr->GetOption<uint32>("CoAPrestige.RequiredLevel", 60));
-        g_experienceBonusPercent = sConfigMgr->GetOption<uint32>("CoAPrestige.ExperienceBonusPercent", 150);
+        g_experienceBonusPercent = sConfigMgr->GetOption<uint32>("CoAPrestige.ExperienceBonusPercent", 300);
 
         std::string const text = sConfigMgr->GetOption<std::string>("CoAPrestige.Rewards", DefaultRewards);
         std::optional<std::vector<RewardItem>> rewards = ParseRewards(text);
@@ -254,7 +311,7 @@ namespace
         for (uint16 slot = 0; slot < MAX_QUEST_LOG_SIZE; ++slot)
         {
             uint32 const questId = player->GetQuestSlotQuestId(slot);
-            if (!questId)
+            if (!questId || IsPrestigeDaily(questId))
                 continue;
 
             player->TakeQuestSourceItem(questId, false);
@@ -461,6 +518,7 @@ namespace
         player->AddAura(PrestigedAura, player);
         player->KilledMonsterCredit(PrestigeKillCredit);
         GrantRewards(player, Rewards(), mailed, trans);
+        GrantPrestigeDaily(player);
         player->SetHomebind(WorldLocation(start->mapId, start->positionX, start->positionY, start->positionZ,
             start->orientation), start->areaId);
 
@@ -494,6 +552,7 @@ namespace
         state.active = false;
         SaveState(player, state);
         player->RemoveAurasDueToSpell(PrestigedAura);
+        SyncDailyAuras(player);
         SendPrestigeLevels(player);
         ChatHandler(player->GetSession()).PSendSysMessage(
             "Prestige {} complete: your specialization is unlocked.", state.level);
@@ -518,10 +577,20 @@ public:
             return false;
 
         ClearGossipMenuFor(player);
+        // Pull the character's active prestige daily into the gossip quest list, so
+        // the client's PrestigeModeUI (GetGossipActiveQuests / SelectGossipActiveQuest)
+        // and the standard quest dialog can turn it in.
+        player->PrepareQuestMenu(creature->GetGUID());
         AddGossipItemFor(player, GOSSIP_ICON_CHAT, std::string(OptionActivate), GOSSIP_SENDER_MAIN, ACTION_ACTIVATE);
         AddGossipItemFor(player, GOSSIP_ICON_VENDOR, std::string(OptionRewards), GOSSIP_SENDER_MAIN, ACTION_REWARDS);
         AddGossipItemFor(player, GOSSIP_ICON_VENDOR, std::string(OptionExperienceItems), GOSSIP_SENDER_MAIN,
             ACTION_EXPERIENCE_ITEMS);
+        // The client matches this label with "^Today's Prestige Quest is (.*)$"
+        // to fill the daily tab; it is a label, not an actionable option.
+        if (uint32 const dailyId = ActiveDailyQuest())
+            if (Quest const* daily = sObjectMgr->GetQuestTemplate(dailyId))
+                AddGossipItemFor(player, GOSSIP_ICON_CHAT,
+                    "Today's Prestige Quest is " + daily->GetTitle(), GOSSIP_SENDER_MAIN, ACTION_DAILY_LABEL);
         SendPrestigeLevels(player);
         SendGossipMenuFor(player, DEFAULT_GOSSIP_MESSAGE, creature);
         return true;
@@ -554,7 +623,8 @@ class coa_prestige_player : public PlayerScript
 {
 public:
     coa_prestige_player() : PlayerScript("coa_prestige_player", { PLAYERHOOK_ON_LOGIN, PLAYERHOOK_ON_LOGOUT,
-        PLAYERHOOK_ON_LEVEL_CHANGED, PLAYERHOOK_ON_GIVE_EXP, PLAYERHOOK_ON_LEARN_SPELL, PLAYERHOOK_ON_MAP_CHANGED,
+        PLAYERHOOK_ON_LEVEL_CHANGED, PLAYERHOOK_ON_PLAYER_COMPLETE_QUEST, PLAYERHOOK_ON_QUEST_ABANDON,
+        PLAYERHOOK_ON_LEARN_SPELL, PLAYERHOOK_ON_MAP_CHANGED,
         PLAYERHOOK_ON_SEND_INITIAL_PACKETS_BEFORE_ADD_TO_MAP }) { }
 
     // A client that reconnects to a character still in the world gets its initial packets again but
@@ -579,6 +649,7 @@ public:
         CompleteIfDue(player);
         if (LoadState(player).active && !player->HasAura(PrestigedAura))
             player->AddAura(PrestigedAura, player);
+        SyncDailyAuras(player);
         SendPrestigeLevels(player);
     }
 
@@ -590,14 +661,32 @@ public:
 
     void OnPlayerLevelChanged(Player* player, uint8 /*oldLevel*/) override
     {
-        if (g_enabled)
-            CompleteIfDue(player);
+        if (!g_enabled)
+            return;
+
+        // "Max Level Reached" daily objective: credited at the required level. The
+        // daily still keeps its content objective until that is met too.
+        if (player->GetLevel() >= g_requiredLevel)
+            player->KilledMonsterCredit(DailyCreditMaxLevel);
+
+        CompleteIfDue(player);
     }
 
-    void OnPlayerGiveXP(Player* player, uint32& amount, Unit* /*victim*/, uint8 /*xpSource*/) override
+    void OnPlayerCompleteQuest(Player* player, Quest const* quest) override
     {
-        if (amount && g_enabled && player->HasAura(PrestigedAura))
-            amount = ApplyExperienceBonus(amount, g_experienceBonusPercent);
+        // "Daily Quests Completed" objective: any daily quest turned in counts.
+        if (quest && quest->IsDaily())
+            player->KilledMonsterCredit(DailyCreditWorldQuests);
+
+        // A turned-in daily leaves the quest panel, so its aura goes with it.
+        if (g_enabled)
+            SyncDailyAuras(player);
+    }
+
+    void OnPlayerQuestAbandon(Player* player, uint32 /*questId*/) override
+    {
+        if (g_enabled)
+            SyncDailyAuras(player);
     }
 
     void OnPlayerLearnSpell(Player* player, uint32 spellId) override
@@ -629,8 +718,13 @@ public:
 
     void OnPlayerMapChanged(Player* player) override
     {
-        if (g_enabled)
-            SendPrestigeLevels(player);
+        if (!g_enabled)
+            return;
+
+        SendPrestigeLevels(player);
+        // Entering or leaving a battleground or an instance is what makes a daily's
+        // aura apply or drop.
+        SyncDailyAuras(player);
     }
 };
 
@@ -663,10 +757,118 @@ public:
     }
 };
 
+namespace CoAPrestige
+{
+    bool IsActive(Player* player)
+    {
+        return player && player->HasAura(PrestigedAura) && player->GetLevel() < g_requiredLevel;
+    }
+
+    uint32 ExperienceBonusPercent()
+    {
+        return g_experienceBonusPercent;
+    }
+
+    uint32 RequiredLevel()
+    {
+        return g_requiredLevel;
+    }
+
+    uint32 GrantPrestigeDaily(Player* player, uint32 questId)
+    {
+        if (!player)
+            return 0;
+
+        uint32 const dailyId = questId ? questId : ActiveDailyQuest();
+        if (!dailyId)
+            return 0;
+
+        Quest const* daily = sObjectMgr->GetQuestTemplate(dailyId);
+        if (!daily)
+            return 0;
+
+        if (player->GetQuestStatus(dailyId) == QUEST_STATUS_NONE && !player->IsDailyQuestDone(dailyId))
+            player->AddQuest(daily, player);
+
+        SyncDailyAuras(player);
+        return dailyId;
+    }
+
+    uint32 DailyExperienceBonusPercent(Player* player, uint8 xpSource)
+    {
+        if (!player || !IsActive(player))
+            return 0;
+
+        // Kill and profession experience come from the daily's own aura (84783/84784/
+        // 84788, SPELL_AURA_MOD_XP_PCT) while the character is in that content. The aura
+        // does not reach quests or the battleground-end award, so this hook covers those.
+        bool const quest = xpSource == XPSOURCE_QUEST || xpSource == XPSOURCE_QUEST_DF;
+        bool const battleground = xpSource == XPSOURCE_BATTLEGROUND;
+        if (!quest && !battleground)
+            return 0;
+
+        Battleground* const bg = player->GetBattleground();
+        bool const inBattleground = bg && bg->isBattleground();
+        bool const inInstance = player->GetMap() && player->GetMap()->Instanceable();
+        bool const inDungeon = player->GetMap() && player->GetMap()->IsDungeon() && !player->GetMap()->IsRaid();
+
+        for (PrestigeDaily const& daily : PrestigeDailies)
+        {
+            if (player->GetQuestStatus(daily.questId) == QUEST_STATUS_NONE
+                || !DailyContentMatches(daily, inBattleground, inInstance, inDungeon))
+                continue;
+
+            if (SpellInfo const* aura = sSpellMgr->GetSpellInfo(daily.auraId))
+                if (aura->Effects[0].BasePoints > -1)
+                    return uint32(aura->Effects[0].BasePoints + 1);
+        }
+        return 0;
+    }
+}
+
+// "Battlegrounds Completed" daily objective: credit every participant at BG end.
+class coa_prestige_daily_battleground : public AllBattlegroundScript
+{
+public:
+    coa_prestige_daily_battleground() : AllBattlegroundScript("coa_prestige_daily_battleground",
+        { ALLBATTLEGROUNDHOOK_ON_BATTLEGROUND_END_REWARD }) { }
+
+    // The daily counts battlegrounds only, not arenas.
+    void OnBattlegroundEndReward(Battleground* bg, Player* player, TeamId /*winnerTeamId*/) override
+    {
+        if (player && bg && bg->isBattleground())
+            player->KilledMonsterCredit(DailyCreditBattlegrounds);
+    }
+};
+
+// "Dungeons Completed" daily objective: credit the group when the dungeon's final
+// encounter fires (dungeonCompleted is the LFG dungeon id, non-zero only for the
+// encounter flagged as the dungeon's last boss in instance_encounters).
+class coa_prestige_daily_dungeon : public GlobalScript
+{
+public:
+    coa_prestige_daily_dungeon() : GlobalScript("coa_prestige_daily_dungeon",
+        { GLOBALHOOK_ON_AFTER_UPDATE_ENCOUNTER_STATE }) { }
+
+    void OnAfterUpdateEncounterState(Map* map, EncounterCreditType /*type*/, uint32 /*creditEntry*/,
+        Unit* /*source*/, Difficulty /*difficulty*/, std::list<DungeonEncounter const*> const* /*encounters*/,
+        uint32 dungeonCompleted, bool /*updated*/) override
+    {
+        if (!dungeonCompleted || !map)
+            return;
+
+        for (Map::PlayerList::const_iterator it = map->GetPlayers().begin(); it != map->GetPlayers().end(); ++it)
+            if (Player* it_player = it->GetSource())
+                it_player->KilledMonsterCredit(DailyCreditDungeons);
+    }
+};
+
 void AddSC_coa_prestige()
 {
     new npc_coa_prestige_chromie();
     new coa_prestige_player();
     new coa_prestige_world();
+    new coa_prestige_daily_battleground();
+    new coa_prestige_daily_dungeon();
     AddAscensionSpecializationSwitchGuard(SpecializationSwitchRefusal);
 }

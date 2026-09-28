@@ -211,3 +211,12 @@ TEST(CoAPrestige, ALearnedRankClaimsTheButtonsOfItsChain)
     EXPECT_EQ(ClaimButtons(bar, 200, firstRankOf), (std::vector<uint8_t>{ 2 }));
     EXPECT_TRUE(bar.empty());
 }
+
+TEST(CoAPrestige, ThePrestigeDailiesAreExemptFromTheQuestReset)
+{
+    for (PrestigeDaily const& daily : PrestigeDailies)
+        EXPECT_TRUE(IsPrestigeDaily(daily.questId));
+    EXPECT_FALSE(IsPrestigeDaily(0));
+    EXPECT_FALSE(IsPrestigeDaily(1));
+    EXPECT_FALSE(IsPrestigeDaily(900001));
+}

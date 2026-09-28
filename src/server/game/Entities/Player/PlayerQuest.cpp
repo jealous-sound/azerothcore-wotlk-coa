@@ -1508,12 +1508,16 @@ uint32 Player::CalculateQuestRewardXP(Quest const* quest)
     // apply world quest rate
     uint32 xp = uint32(quest->XPValue(level, LocalLevelScaling::QuestScalingEnabled(this)) * GetQuestRate(quest->IsDFQuest(), quest->GetQuestLevel()));
 
-    // handle SPELL_AURA_MOD_XP_QUEST_PCT auras
+    // handle SPELL_AURA_MOD_XP_QUEST_PCT auras; a NO_BONUS_EXPERIENCE challenge drops
+    // the positive bonuses but keeps penalties.
     bool const recruitAFriend = GetsRecruitAFriendBonus(true);
-    xp *= GetTotalAuraMultiplier(SPELL_AURA_MOD_XP_QUEST_PCT, [recruitAFriend](AuraEffect const* effect)
+    bool const noBonusExperience = sScriptMgr->OnPlayerHasNoBonusExperience(this);
+    xp *= GetTotalAuraMultiplier(SPELL_AURA_MOD_XP_QUEST_PCT, [recruitAFriend, noBonusExperience](AuraEffect const* effect)
     {
         // CoA's party Aura of Experience explicitly excludes the recruit-a-friend bonus.
-        return effect->GetId() != 818059 || !recruitAFriend;
+        if (effect->GetId() == 818059 && recruitAFriend)
+            return false;
+        return !noBonusExperience || effect->GetAmount() <= 0;
     });
 
     return xp;

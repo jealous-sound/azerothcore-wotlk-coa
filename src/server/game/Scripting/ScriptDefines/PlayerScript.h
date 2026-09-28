@@ -136,6 +136,8 @@ enum PlayerHook
     PLAYERHOOK_CAN_GROUP_ACCEPT,
     PLAYERHOOK_CAN_SELL_ITEM,
     PLAYERHOOK_CAN_SEND_MAIL,
+    PLAYERHOOK_CAN_TAKE_MAIL_ITEM,
+    PLAYERHOOK_CAN_TAKE_MAIL_MONEY,
     PLAYERHOOK_PETITION_BUY,
     PLAYERHOOK_PETITION_SHOW_LIST,
     PLAYERHOOK_ON_REWARD_KILL_REWARDER,
@@ -232,6 +234,7 @@ enum PlayerHook
     PLAYERHOOK_ON_CAN_REGENERATE,
     PLAYERHOOK_ON_CAN_ENERGIZE,
     PLAYERHOOK_ON_GET_MAX_ALLOWED_LEVEL,
+    PLAYERHOOK_ON_HAS_NO_BONUS_EXPERIENCE,
     PLAYERHOOK_ON_BANKER_ACTIVATE,
     PLAYERHOOK_ON_BANK_WITHDRAW,
     PLAYERHOOK_END
@@ -314,6 +317,12 @@ public:
     // every multiplier (rate, RaF, rested, favored, other hook order), so it
     // cannot be bypassed by a large XP gain.
     virtual uint8 OnPlayerGetMaxAllowedLevel(Player* /*player*/) { return 0; }
+
+    // Whether every experience bonus is suppressed for this player: base XP only.
+    // Consulted by Player::GiveXP (favored, rested, recruit-a-friend) and by the aura
+    // multiplier sites (kills, quests, professions). A NO_BONUS_EXPERIENCE challenge
+    // returns true.
+    virtual bool OnPlayerHasNoBonusExperience(Player* /*player*/) { return false; }
 
     // Called when a player's reputation changes (before it is actually changed)
     virtual bool OnPlayerReputationChange(Player* /*player*/, uint32 /*factionID*/, int32& /*standing*/, bool /*incremental*/) { return true; }
@@ -545,6 +554,10 @@ public:
     [[nodiscard]] virtual bool OnPlayerCanSellItem(Player* /*player*/, Item* /*item*/, Creature* /*creature*/) { return true; }
 
     [[nodiscard]] virtual bool OnPlayerCanSendMail(Player* /*player*/, ObjectGuid /*receiverGuid*/, ObjectGuid /*mailbox*/, std::string& /*subject*/, std::string& /*body*/, uint32 /*money*/, uint32 /*COD*/, Item* /*item*/) { return true; }
+
+    [[nodiscard]] virtual bool OnPlayerCanTakeMailItem(Player* /*player*/, Item* /*item*/) { return true; }
+
+    [[nodiscard]] virtual bool OnPlayerCanTakeMailMoney(Player* /*player*/, uint32 /*money*/) { return true; }
 
     virtual void OnPlayerPetitionBuy(Player* /*player*/, Creature* /*creature*/, uint32& /*charterid*/, uint32& /*cost*/, uint32& /*type*/) { }
 

@@ -338,6 +338,7 @@ public: /* PlayerScript */
     void OnPlayerBeforeSendLoot(Player* player, ObjectGuid lootGuid, Loot* loot);
     void OnPlayerGiveXP(Player* player, uint32& amount, Unit* victim, uint8 xpSource);
     uint8 GetMaxAllowedLevel(Player* player);
+    bool OnPlayerHasNoBonusExperience(Player* player);
     bool OnPlayerReputationChange(Player* player, uint32 factionID, int32& standing, bool incremental);
     void OnPlayerReputationRankChange(Player* player, uint32 factionID, ReputationRank newRank, ReputationRank oldRank, bool increased);
     void OnPlayerGiveReputation(Player* player, int32 factionID, float& amount, ReputationSource repSource);
@@ -422,6 +423,8 @@ public: /* PlayerScript */
     bool OnPlayerCanGroupAccept(Player* player, Group* group);
     bool OnPlayerCanSellItem(Player* player, Item* item, Creature* creature);
     bool OnPlayerCanSendMail(Player* player, ObjectGuid receiverGuid, ObjectGuid mailbox, std::string& subject, std::string& body, uint32 money, uint32 COD, Item* item);
+    bool OnPlayerCanTakeMailItem(Player* player, Item* item);
+    bool OnPlayerCanTakeMailMoney(Player* player, uint32 money);
     void OnPlayerPetitionBuy(Player* player, Creature* creature, uint32& charterid, uint32& cost, uint32& type);
     void OnPlayerPetitionShowList(Player* player, Creature* creature, uint32& CharterEntry, uint32& CharterDispayID, uint32& CharterCost);
     void OnPlayerRewardKillRewarder(Player* player, KillRewarder* rewarder, bool isDungeon, float& rate);

@@ -160,6 +160,15 @@ uint8 ScriptMgr::GetMaxAllowedLevel(Player* player)
     return cap;
 }
 
+bool ScriptMgr::OnPlayerHasNoBonusExperience(Player* player)
+{
+    bool suppress = false;
+    CALL_ENABLED_HOOKS(PlayerScript, PLAYERHOOK_ON_HAS_NO_BONUS_EXPERIENCE,
+        if (script->OnPlayerHasNoBonusExperience(player))
+            suppress = true;);
+    return suppress;
+}
+
 bool ScriptMgr::OnPlayerReputationChange(Player* player, uint32 factionID, int32& standing, bool incremental)
 {
     CALL_ENABLED_BOOLEAN_HOOKS(PlayerScript, PLAYERHOOK_ON_REPUTATION_CHANGE, !script->OnPlayerReputationChange(player, factionID, standing, incremental));
@@ -548,6 +557,16 @@ bool ScriptMgr::OnPlayerCanSellItem(Player* player, Item* item, Creature* creatu
 bool ScriptMgr::OnPlayerCanSendMail(Player* player, ObjectGuid receiverGuid, ObjectGuid mailbox, std::string& subject, std::string& body, uint32 money, uint32 COD, Item* item)
 {
     CALL_ENABLED_BOOLEAN_HOOKS(PlayerScript, PLAYERHOOK_CAN_SEND_MAIL, !script->OnPlayerCanSendMail(player, receiverGuid, mailbox, subject, body, money, COD, item));
+}
+
+bool ScriptMgr::OnPlayerCanTakeMailItem(Player* player, Item* item)
+{
+    CALL_ENABLED_BOOLEAN_HOOKS(PlayerScript, PLAYERHOOK_CAN_TAKE_MAIL_ITEM, !script->OnPlayerCanTakeMailItem(player, item));
+}
+
+bool ScriptMgr::OnPlayerCanTakeMailMoney(Player* player, uint32 money)
+{
+    CALL_ENABLED_BOOLEAN_HOOKS(PlayerScript, PLAYERHOOK_CAN_TAKE_MAIL_MONEY, !script->OnPlayerCanTakeMailMoney(player, money));
 }
 
 bool ScriptMgr::OnPlayerCanSendErrorAlreadyLooted(Player* player)

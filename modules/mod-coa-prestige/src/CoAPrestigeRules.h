@@ -281,6 +281,51 @@ namespace CoAPrestige
         bar.erase(claimed, bar.end());
         return buttons;
     }
+
+    // Prestige daily objectives, credited through dummy kill-credit creatures (never spawned; the
+    // quest's ObjectiveText supplies the display). Kept here so the world logic and the GM test
+    // command share one definition.
+    constexpr uint32_t DailyCreditMaxLevel      = 900001; // "Max Level Reached"
+    constexpr uint32_t DailyCreditBattlegrounds = 900002; // "Battlegrounds Completed"
+    constexpr uint32_t DailyCreditDungeons      = 900003; // "Dungeons Completed"
+    constexpr uint32_t DailyCreditWorldQuests   = 900004; // "Daily Quests Completed"
+
+    constexpr uint32_t DailyQuestBattlegrounds = 80954; // "Prestige: Battlegrounds"
+    constexpr uint32_t DailyQuestDungeons = 80955;      // "Prestige: Dungeons"
+    constexpr uint32_t DailyQuestOpenWorld = 80956;     // "Prestige: Open World"
+
+    // The passive aura each daily puts on the character while it is in the quest
+    // panel, while that content is played: SPELL_AURA_MOD_XP_PCT, mask 31. BG and
+    // Dungeons are party area auras, Open World is self.
+    constexpr uint32_t DailyAuraBattlegrounds = 84783;
+    constexpr uint32_t DailyAuraDungeons = 84784;
+    constexpr uint32_t DailyAuraOpenWorld = 84788;
+
+    struct PrestigeDaily
+    {
+        uint16_t eventId = 0;
+        uint32_t questId = 0;
+        uint32_t auraId = 0;
+        uint32_t creditEntry = 0;
+        uint32_t creditCount = 0;
+    };
+
+    constexpr PrestigeDaily PrestigeDailies[] =
+    {
+        { 191, DailyQuestBattlegrounds, DailyAuraBattlegrounds, DailyCreditBattlegrounds, 5 },
+        { 192, DailyQuestDungeons, DailyAuraDungeons, DailyCreditDungeons, 5 },
+        { 193, DailyQuestOpenWorld, DailyAuraOpenWorld, DailyCreditWorldQuests, 25 },
+    };
+
+    // The Prestige dailies are exempt from the quest reset of a prestige, so a run
+    // that is already under way keeps its progress.
+    inline bool IsPrestigeDaily(uint32_t questId)
+    {
+        for (PrestigeDaily const& daily : PrestigeDailies)
+            if (daily.questId == questId)
+                return true;
+        return false;
+    }
 }
 
 #endif
