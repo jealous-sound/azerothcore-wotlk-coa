@@ -433,8 +433,9 @@ class spell_ascension_cultist_ability : public SpellScript
         {
             done = true;
             player->GetThreatMgr().RemoveMeFromThreatLists();
+            uint32 duration = sSpellMgr->GetSpellInfo(706932)->GetDuration();
             for (uint32 n = 0; n < 3; ++n)
-                Summon(player, 840000, player->GetNearPosition(2, float(n) * 2), 15000, player->GetVictim());
+                Summon(player, 840000, player->GetNearPosition(2, float(n) * 2), duration, player->GetVictim());
         }
         if (effect.Effect == SPELL_EFFECT_SUMMON)
         {
