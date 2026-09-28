@@ -1638,10 +1638,12 @@ namespace CoAChallenges
             return;
         }
 
+        std::string eTrialId = trialID;
+        CharacterDatabase.EscapeString(eTrialId);
         std::vector<uint32> bundled;
         if (QueryResult r = CharacterDatabase.Query(
                 "SELECT challengeId FROM coa_custom_trial_entry WHERE guid = {} AND trialId = '{}'",
-                ownerGuid, trialID))
+                ownerGuid, eTrialId))
             do { bundled.push_back(r->Fetch()[0].Get<uint32>()); } while (r->NextRow());
 
         if (std::find(bundled.begin(), bundled.end(), challengeID) == bundled.end())
