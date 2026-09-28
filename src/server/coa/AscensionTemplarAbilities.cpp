@@ -272,7 +272,7 @@ class templar_casts : public AllSpellScript
         if (info->Id == 801832)
         {
             if (player->HasAura(705255))
-                Cast(player, player, 803372);
+                player->AddAura(803372, player);
             return;
         }
         if (info->Id == 707111 && player->HasAura(573452) && !spell->GetScriptValue(806106))
