@@ -304,6 +304,8 @@ class felsworn_casts : public AllSpellScript
             if (player->HasAura(802058))
                 Cast(player, player, 524632);
         }
+        if (Named(info, 802060))
+            Cast(player, player, 521213);
         if (Named(info, 802060) && spell->GetScriptValue(804216))
             Copy(player, target, 803467, damage);
         if (Named(info, 801895) && spell->GetScriptValue(804216))
