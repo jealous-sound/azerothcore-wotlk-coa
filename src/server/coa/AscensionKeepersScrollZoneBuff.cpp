@@ -2,6 +2,7 @@
 
 #include "Chat.h"
 #include "DBCStores.h"
+#include "DatabaseEnv.h"
 #include "GameTime.h"
 #include "Group.h"
 #include "Item.h"
@@ -141,6 +142,32 @@ void SyncZoneBlessings(Player* player, uint32 zoneId)
     SyncGhostRunner(player);
 }
 
+void SaveBlessing(ZoneBlessing const& blessing)
+{
+    CharacterDatabase.Execute("REPLACE INTO coa_keepers_scroll_blessing (zone, instance, spell, caster, team, expire_at) "
+        "VALUES ({}, {}, {}, {}, {}, {})", blessing.ZoneId, blessing.InstanceId, blessing.SpellId,
+        blessing.Caster.GetCounter(), uint32(blessing.CasterTeam), uint32(blessing.ExpireAt));
+}
+
+void LoadBlessings()
+{
+    time_t now = GameTime::GetGameTime().count();
+    CharacterDatabase.DirectExecute("DELETE FROM coa_keepers_scroll_blessing WHERE expire_at <= {}", uint32(now));
+    QueryResult result = CharacterDatabase.Query(
+        "SELECT zone, instance, spell, caster, team, expire_at FROM coa_keepers_scroll_blessing");
+    if (!result)
+        return;
+
+    std::lock_guard<std::mutex> lock(g_zoneScrollLock);
+    do
+    {
+        Field* fields = result->Fetch();
+        g_zoneBlessings.push_back({fields[0].Get<uint32>(), fields[1].Get<uint32>(), fields[2].Get<uint32>(),
+            ObjectGuid::Create<HighGuid::Player>(fields[3].Get<uint32>()), TeamId(fields[4].Get<uint8>()),
+            time_t(fields[5].Get<uint32>())});
+    } while (result->NextRow());
+}
+
 std::vector<ObjectGuid> g_pendingGroupSyncs;
 
 void QueueGroupSync(Group const* group, ObjectGuid changedMember = ObjectGuid::Empty)
@@ -175,6 +202,7 @@ public:
             std::lock_guard<std::mutex> lock(g_zoneScrollLock);
             g_zoneBlessings.push_back(blessing);
         }
+        SaveBlessing(blessing);
 
         std::string announcement = ZoneBlessingAnnouncement(player, item->GetTemplate(), spellInfo);
         for (MapReference const& ref : player->GetMap()->GetPlayers())
@@ -262,7 +290,12 @@ class ascension_keepers_scroll_zone_buff_world : public WorldScript
 {
 public:
     ascension_keepers_scroll_zone_buff_world()
-        : WorldScript("ascension_keepers_scroll_zone_buff_world", {WORLDHOOK_ON_UPDATE}) { }
+        : WorldScript("ascension_keepers_scroll_zone_buff_world", {WORLDHOOK_ON_STARTUP, WORLDHOOK_ON_UPDATE}) { }
+
+    void OnStartup() override
+    {
+        LoadBlessings();
+    }
 
     void OnUpdate(uint32 diff) override
     {
@@ -282,6 +315,9 @@ public:
             std::copy_if(g_zoneBlessings.begin(), g_zoneBlessings.end(), std::back_inserter(expired), isExpired);
             std::erase_if(g_zoneBlessings, isExpired);
         }
+
+        if (!expired.empty())
+            CharacterDatabase.Execute("DELETE FROM coa_keepers_scroll_blessing WHERE expire_at <= {}", uint32(now));
 
         for (ZoneBlessing const& blessing : expired)
         {
