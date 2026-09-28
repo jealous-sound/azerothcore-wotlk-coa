@@ -265,6 +265,12 @@ bool CanOffer(Player* player, uint32 questId)
     if (player->IsQuestRewarded(questId) && !quest->IsRepeatable())
         return false;
 
+    if (!player->SatisfyQuestRace(quest, false))
+        return false;
+
+    if (!player->SatisfyQuestExclusiveGroup(quest, false))
+        return false;
+
     return true;
 }
 
