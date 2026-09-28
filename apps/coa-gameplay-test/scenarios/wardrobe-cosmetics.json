@@ -19,9 +19,9 @@
   ],
   "steps": [
     {
-      "action": "command",
+      "action": "apply_appearances",
       "actor": "other",
-      "command": ".localappearance 56 1451"
+      "selection": {"56": 1451}
     },
     {
       "action": "assert",
@@ -31,9 +31,9 @@
       "equals": 1
     },
     {
-      "action": "command",
+      "action": "apply_appearances",
       "actor": "wearer",
-      "command": ".localappearance 56 1451"
+      "selection": {"56": 1451}
     },
     {
       "action": "assert",
@@ -43,14 +43,14 @@
       "equals": 1
     },
     {
-      "action": "command",
+      "action": "apply_appearances",
       "actor": "wearer",
-      "command": ".localappearance 57 1451"
+      "selection": {"56": 1451, "57": 1451}
     },
     {
-      "action": "command",
+      "action": "apply_appearances",
       "actor": "wearer",
-      "command": ".localappearance 56 1452"
+      "selection": {"56": 1452, "57": 1451}
     },
     {
       "action": "assert",
@@ -67,9 +67,9 @@
       "equals": 1
     },
     {
-      "action": "command",
+      "action": "apply_appearances",
       "actor": "wearer",
-      "command": ".localappearance 57 0"
+      "selection": {"56": 1452, "57": 0}
     },
     {
       "action": "assert",
@@ -93,9 +93,9 @@
       "equals": 0
     },
     {
-      "action": "command",
+      "action": "apply_appearances",
       "actor": "wearer",
-      "command": ".localappearance 56 2992"
+      "selection": {"56": 2992, "57": 0}
     },
     {
       "action": "assert",
@@ -105,9 +105,9 @@
       "equals": 1
     },
     {
-      "action": "command",
+      "action": "apply_appearances",
       "actor": "wearer",
-      "command": ".localappearance 56 51444"
+      "selection": {"56": 51444, "57": 0}
     },
     {
       "action": "assert",
@@ -117,9 +117,9 @@
       "equals": 1
     },
     {
-      "action": "command",
+      "action": "apply_appearances",
       "actor": "wearer",
-      "command": ".localappearance 56 52428"
+      "selection": {"56": 52428, "57": 0}
     },
     {
       "action": "assert",
@@ -129,9 +129,9 @@
       "equals": 1
     },
     {
-      "action": "command",
+      "action": "apply_appearances",
       "actor": "wearer",
-      "command": ".localappearance 56 47520"
+      "selection": {"56": 47520, "57": 0}
     },
     {
       "action": "assert",
@@ -153,9 +153,9 @@
       "equals": 1
     },
     {
-      "action": "command",
+      "action": "apply_appearances",
       "actor": "other",
-      "command": ".localappearance 56 1452"
+      "selection": {"56": 1452}
     },
     {
       "action": "assert",
@@ -172,19 +172,19 @@
       "equals": 1
     },
     {
-      "action": "command",
+      "action": "apply_appearances",
       "actor": "other",
-      "command": ".localappearance 56 51444"
+      "selection": {"56": 51444}
     },
     {
-      "action": "command",
+      "action": "apply_appearances",
       "actor": "other",
-      "command": ".localappearance 56 52428"
+      "selection": {"56": 52428}
     },
     {
-      "action": "command",
+      "action": "apply_appearances",
       "actor": "other",
-      "command": ".localappearance 56 47520"
+      "selection": {"56": 47520}
     },
     {
       "action": "assert",
@@ -228,9 +228,9 @@
       "equals": 0
     },
     {
-      "action": "command",
+      "action": "apply_appearances",
       "actor": "wearer",
-      "command": ".localappearance 56 1801"
+      "selection": {"56": 1801, "57": 0}
     },
     {
       "action": "assert",
@@ -254,9 +254,9 @@
       "equals": -1
     },
     {
-      "action": "command",
+      "action": "apply_appearances",
       "actor": "wearer",
-      "command": ".localappearance 56 1802"
+      "selection": {"56": 1802, "57": 0}
     },
     {
       "action": "assert",
@@ -280,9 +280,9 @@
       "equals": -1
     },
     {
-      "action": "command",
+      "action": "apply_appearances",
       "actor": "wearer",
-      "command": ".localappearance 56 2714"
+      "selection": {"56": 2714, "57": 0}
     },
     {
       "action": "assert",
@@ -306,9 +306,9 @@
       "equals": -1
     },
     {
-      "action": "command",
+      "action": "apply_appearances",
       "actor": "wearer",
-      "command": ".localappearance 56 42965"
+      "selection": {"56": 42965, "57": 0}
     },
     {
       "action": "assert",
@@ -332,9 +332,9 @@
       "equals": -1
     },
     {
-      "action": "command",
+      "action": "apply_appearances",
       "actor": "wearer",
-      "command": ".localappearance 56 52441"
+      "selection": {"56": 52441, "57": 0}
     },
     {
       "action": "assert",
@@ -358,9 +358,9 @@
       "equals": -1
     },
     {
-      "action": "command",
+      "action": "apply_appearances",
       "actor": "wearer",
-      "command": ".localappearance 56 52409"
+      "selection": {"56": 52409, "57": 0}
     },
     {
       "action": "assert",
@@ -384,9 +384,9 @@
       "equals": -1
     },
     {
-      "action": "command",
+      "action": "apply_appearances",
       "actor": "wearer",
-      "command": ".localappearance 56 52399"
+      "selection": {"56": 52399, "57": 0}
     },
     {
       "action": "assert",
@@ -410,9 +410,9 @@
       "equals": -1
     },
     {
-      "action": "command",
+      "action": "apply_appearances",
       "actor": "wearer",
-      "command": ".localappearance 56 52476"
+      "selection": {"56": 52476, "57": 0}
     },
     {
       "action": "assert",
@@ -436,9 +436,9 @@
       "equals": -1
     },
     {
-      "action": "command",
+      "action": "apply_appearances",
       "actor": "wearer",
-      "command": ".localappearance 56 1653"
+      "selection": {"56": 1653, "57": 0}
     },
     {
       "action": "assert",
@@ -462,9 +462,9 @@
       "equals": -1
     },
     {
-      "action": "command",
+      "action": "apply_appearances",
       "actor": "wearer",
-      "command": ".localappearance 56 0"
+      "selection": {"56": 0, "57": 0}
     },
     {
       "action": "assert",

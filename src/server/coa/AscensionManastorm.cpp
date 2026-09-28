@@ -73,7 +73,7 @@ namespace
     constexpr uint32 UnrelentingSpeed = 93353;
     constexpr uint32 TribalFury = 93422;
     constexpr uint32 PortalAura = 93338;
-    constexpr uint32 EventCapability = 1;
+    constexpr uint32 EventProgressRefresh = 1;
     constexpr uint32 EventCacheDelivery = 2;
 
     struct Request
@@ -299,7 +299,7 @@ namespace
             auto& run = runs[player->GetGUID()];
             run.token = ++nextToken;
             run.uiEvents.Reset();
-            run.uiEvents.ScheduleEvent(EventCapability, 2s);
+            run.uiEvents.ScheduleEvent(EventProgressRefresh, 2s);
             run.cachesPending = true;
             run.cacheSpaceWarning = false;
             run.uiEvents.ScheduleEvent(EventCacheDelivery, 250ms);
@@ -325,7 +325,6 @@ namespace
             SendProgress(player, run, true);
             run.progressDirty = run.databaseReady;
             LoadBonusAndSlots(player, run);
-            SendCapability(player, run.databaseReady);
             SendLoadout(player, run);
 
             if (run.encounter->depth && run.encounter->instanceId && GameTime::GetGameTime().count() - run.lastSeen <= ReconnectSeconds)
@@ -511,11 +510,10 @@ namespace
             run.uiEvents.Update(diff);
             while (uint32 event = run.uiEvents.ExecuteEvent())
             {
-                if (event == EventCapability)
+                if (event == EventProgressRefresh)
                 {
-                    SendCapability(player, run.databaseReady);
                     SendProgress(player, run, false);
-                    run.uiEvents.ScheduleEvent(EventCapability, 5s);
+                    run.uiEvents.ScheduleEvent(EventProgressRefresh, 5s);
                 }
                 else if (event == EventCacheDelivery && run.cachesPending)
                 {
@@ -579,7 +577,6 @@ namespace
                 run.encounter->guideAction = action == "next" ? 2 : 1;
             else
             {
-                SendCapability(player, run.databaseReady);
                 SendProgress(player, run, true);
                 SendActive(player, run);
                 ChatHandler(player->GetSession()).PSendSysMessage(
@@ -641,7 +638,6 @@ namespace
             SendProgress(player, run, false);
             SendResult(player, EnterResult, "ENTER_MANASTORM_OK");
             sScriptMgr->OnPlayerCoAProgress(player, CoAProgressEvent::ManastormEntered, 0);
-            SendCapability(player, run.databaseReady);
             player->SaveToDB(false, false);
         }
 
@@ -1291,15 +1287,6 @@ namespace
         {
             WorldPacket packet(opcode, 64);
             packet << result;
-            player->SendDirectMessage(&packet);
-        }
-
-        void SendCapability(Player* player, bool ready)
-        {
-            WorldPacket packet;
-            std::string const message = ready ? "LOCAL_MANASTORM\t1:16384:10:80" : "LOCAL_MANASTORM\t0:0:0:0";
-            ChatHandler::BuildChatPacket(packet, CHAT_MSG_WHISPER, LANG_ADDON, player->GetGUID(), player->GetGUID(),
-                message, 0, player->GetName(), player->GetName(), 0, false);
             player->SendDirectMessage(&packet);
         }
 

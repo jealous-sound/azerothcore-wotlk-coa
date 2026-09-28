@@ -384,9 +384,9 @@ installs a client archive.
 
 ## Login and natural regeneration
 
-The copied client's `Extensions.dll` patches the ping timer at executable address
-`0x632DE5` from -30000 to -5000 milliseconds (DLL write at `0x10A689AC`). The inspected
-DLL SHA-256 is `f7b713095aab17a1e376f487290d4b7c4c18931635e4d91136d76db2592be8fa`.
+`Extensions.dll` patches the ping timer at executable address `0x632DE5` from -30000 to
+-5000 milliseconds (DLL write at `0x10A689AC`); the reconstructed DLL
+(`firstoni-dev/ascension-extensions-reconstruction`) makes the same write.
 Stock AzerothCore counts pings less than 27 seconds apart as overspeed; ordinary
 accounts are disconnected after exceeding `MaxOverspeedPings`, while GM permission
 23 bypasses that check. Local connections with `CoA.Enable = 1` accept
@@ -394,14 +394,15 @@ the five-second cadence with a one-second jitter margin. Faster sustained floodi
 still reaches the strike limit. Other connections retain the stock limit.
 
 For a realm dedicated to this client, set `CoA.AllowRemoteClients = 1`
-and restart worldserver. This also applies the configured plaintext world headers,
-extension opcode range, ping interval, Ascension spell-modifier packet layout and
-class-10 character creation mapping to remote connections. The default is `0`;
-password proofs, IP bans and packet size validation remain required.
-The client package's `Extensions.dll` must also carry the world-address fix to enter
-remote worlds; without it the DLL corrupts an active client hook when the world address
-is not on its built-in allowlist. Client binaries and patches are maintained outside
-this repository.
+and restart worldserver. This also applies the extension opcode range, ping interval,
+Ascension spell-modifier packet layout and class-10 character creation mapping to remote
+connections. The default is `0`; password proofs, IP bans and packet size validation
+remain required.
+
+The server talks to the client interface only through the DLL's native packets; it has
+no addon-message or chat-command channel. The reconstructed DLL authenticates with stock
+SRP6 and keeps the stock world-header cipher, which is the only header mode the server
+supports. Client binaries are maintained outside this repository.
 
 The `gtOCTRegenHP`, `gtRegenHPPerSpt` and `gtRegenMPPerSpt` client files each contain
 3,200 single-float rows indexed by class and level. Their SQL overlay tables are empty,

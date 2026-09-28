@@ -306,6 +306,21 @@ class RunnerTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 run.validate(invalid)
 
+    def test_native_client_upload_actions(self):
+        self.scenario['steps'].extend([
+            {'action': 'specialization', 'actor': 'caster', 'id': 60},
+            {'action': 'advancement_rank', 'actor': 'caster', 'entry': 34422, 'rank': 1},
+            {'action': 'apply_appearances', 'actor': 'caster', 'selection': {'56': 1451, '57': 0}},
+        ])
+        self.assertIs(run.validate(self.scenario), self.scenario)
+        for index, key, value in ((-3, 'actor', 'target'), (-3, 'id', 0), (-2, 'rank', 4), (-2, 'actor', 'target'),
+                                   (-1, 'selection', {'x': 1}), (-1, 'selection', {'0': 1}),
+                                   (-1, 'selection', [1451]), (-1, 'actor', 'target')):
+            invalid = copy.deepcopy(self.scenario)
+            invalid['steps'][index][key] = value
+            with self.assertRaises(ValueError):
+                run.validate(invalid)
+
     def test_cast_pushback_observation_requires_player(self):
         self.scenario['steps'].append(
             {'action': 'assert', 'actor': 'caster', 'metric': 'cast_pushback_ms', 'equals': 0})

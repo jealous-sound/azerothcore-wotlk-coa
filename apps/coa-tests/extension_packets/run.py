@@ -1,9 +1,9 @@
 CLI_DESCRIPTION = """Run Ascension extension packet regressions without a server or database.
 
 Compiles the production realm-info sender, socket-thread packet hook, extension packet
-queue, world-thread handler, stock item query builder, vanity delivery, .localvanity
-and .localtime commands against the real WorldPacket and ItemTemplate. Pass --source-ref
-to test another Git ref.
+queue, world-thread handler, stock item query builder, vanity delivery and the .localtime
+command against the real WorldPacket and ItemTemplate. Pass --source-ref to test another
+Git ref.
 """
 
 import argparse
@@ -77,7 +77,7 @@ def main():
         ('HANDLE_CLIENT_PACKET', method(compat, 'void HandleClientPacket(Player *player')),
         ('CAN_PACKET_RECEIVE_EARLY', method(compat, 'bool CanPacketReceiveEarly(WorldSession *session')),
         ('POINT_SPEND', method_or(compat, 'void HandlePointSpendRequest(Player* player', '')),
-        ('DELIVER_VANITY', method(compat, 'void DeliverLocalVanityItem(Player *player, uint32 itemId)')),
+        ('DELIVER_VANITY', method(compat, 'void DeliverVanityItem(Player *player, uint32 itemId)')),
         ('BANK_VANITY', '\n'.join([re.search(r'static constexpr std::array<uint32, \d+> BankVanityItems = [^;]+;',
                                              compat)[0]] + [method(compat, signature) for signature in (
             'static bool IsBankVanityItem(uint32 itemId)',
@@ -85,7 +85,6 @@ def main():
             'std::vector<uint32> GetMissingBankSpells(Player* player',
             'void LearnOwnedBankSpells(Player* player',
         )])),
-        ('LOCAL_VANITY_COMMAND', method(compat, 'static bool HandleLocalVanityCommand(ChatHandler *handler')),
         ('LOCAL_TIME_COMMAND', '\n'.join([
             (re.search(r'static constexpr float REAL_TIME_GAME_SPEED = [^;]+;', compat) or [''])[0],
             method_or(compat, 'static time_t SameDayAt(time_t time', ''),

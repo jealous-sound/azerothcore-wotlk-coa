@@ -119,6 +119,9 @@ ACTIONS = {
     'set_moving': ({'actor', 'enabled'}, {'actor', 'enabled'}),
     'level_scaling_packet': ({'actor', 'value'}, {'actor', 'value'}),
     'client_packet': ({'actor', 'opcode'}, {'actor', 'opcode', 'fields', 'consumed'}),
+    'specialization': ({'actor', 'id'}, {'actor', 'id'}),
+    'advancement_rank': ({'actor', 'entry', 'rank'}, {'actor', 'entry', 'rank'}),
+    'apply_appearances': ({'actor', 'selection'}, {'actor', 'selection'}),
     'sell_item': ({'actor', 'entry', 'item'}, {'actor', 'entry', 'item', 'count'}),
     'console': ({'command'}, {'command'}),
     'command': ({'actor', 'command'}, {'actor', 'command'}),
@@ -375,6 +378,20 @@ def validate(scenario):
                 require(step['code_actor'] in player_ids, f'{where}: code_actor must be a player')
         if action == 'die' and 'revived' in step:
             require(type(step['revived']) is bool, f'{where}: revived must be boolean')
+        if action == 'specialization':
+            require(step['actor'] in player_ids, f'{where}: specialization needs a player')
+            number(step['id'], f'{where}.id', 1, 0xFFFF, True)
+        if action == 'advancement_rank':
+            require(step['actor'] in player_ids, f'{where}: advancement_rank needs a player')
+            number(step['entry'], f'{where}.entry', 1, 2**32 - 1, True)
+            number(step['rank'], f'{where}.rank', 0, 3, True)
+        if action == 'apply_appearances':
+            require(step['actor'] in player_ids, f'{where}: apply_appearances needs a player')
+            selection = step['selection']
+            require(isinstance(selection, dict), f'{where}: selection must map categories to appearances')
+            for category, appearance in selection.items():
+                require(category.isdigit() and 0 < int(category) < 256, f'{where}.selection: invalid category')
+                number(appearance, f'{where}.selection.{category}', 0, 2**32 - 1, True)
         if action == 'client_packet':
             number(step['opcode'], f'{where}.opcode', 1, 0xFFFF, True)
             if 'consumed' in step:

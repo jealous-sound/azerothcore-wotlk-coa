@@ -219,7 +219,7 @@ private:
     WorldSession* _session;
 };
 
-void SendAscensionRunemasterEchoesOwnership(Player* player)
+void SendAscensionRunemasterEchoesCooldown(Player* player)
 {
     ++player->EchoSnapshots;
 }
@@ -372,7 +372,11 @@ struct AscensionClassService
         return service;
     }
 
-    void QueueKnownEntriesUpload(uint32, WorldPacket const&) { }
+    std::vector<uint32> Uploads;
+    std::vector<uint32> Resets;
+
+    void QueueKnownEntriesUpload(uint32 accountId, WorldPacket const&) { Uploads.push_back(accountId); }
+    void QueueTalentReset(uint32 accountId) { Resets.push_back(accountId); }
 };
 
 struct AscensionCompatServerScript : ServerScript
@@ -382,7 +386,6 @@ struct AscensionCompatServerScript : ServerScript
 
 struct AscensionCompatCommandScript
 {
-    // ACTUAL_LOCAL_VANITY_COMMAND
     // ACTUAL_LOCAL_TIME_COMMAND
 };
 
@@ -712,7 +715,7 @@ struct VanitySetup
     bool BagsFull = false;
 };
 
-Delivery Deliver(VanitySetup const& setup, std::vector<WorldPacket> const& requests, uint32 commandItem = 0)
+Delivery Deliver(VanitySetup const& setup, std::vector<WorldPacket> const& requests, uint32 directItem = 0)
 {
     ascensionCompatConfig.UnlockAllVanity = setup.UnlockAll;
     ascensionCompatConfig.LearnedSpellDelivery = setup.LearnedSpellDelivery;
@@ -725,11 +728,8 @@ Delivery Deliver(VanitySetup const& setup, std::vector<WorldPacket> const& reque
     player.Session = &session;
     player.BagsFull = setup.BagsFull;
     session.PlayerObject = &player;
-    if (commandItem)
-    {
-        ChatHandler handler(&session);
-        AscensionCompatCommandScript::HandleLocalVanityCommand(&handler, commandItem);
-    }
+    if (directItem)
+        service.DeliverVanityItem(&player, directItem);
     bool consumed = true;
     for (WorldPacket const& request : requests)
         consumed &= !Receive(session, request);
@@ -768,7 +768,7 @@ void TestVanityDelivery()
                     matches &= Deliver(setup, {DonationPointsRequest(itemId)}) == Deliver(setup, {}, itemId);
                 }
     Check(matches,
-        "every Donation Points request (Deliver or web-shop buy) ends exactly like .localvanity for the same item");
+        "every Donation Points request (Deliver or web-shop buy) ends exactly like a delivery of the same item");
 
     Delivery const owned = Deliver({}, {DonationPointsRequest(1001)});
     Delivery const bank = Deliver({}, {DonationPointsRequest(134985)});
@@ -914,10 +914,24 @@ void TestRejectedPacketWarnings()
     Check(malformedSpends == 7, "64 malformed point spend requests log 7 warnings");
 }
 
+void TestTalentRequests()
+{
+    AscensionClassService& service = AscensionClassService::Instance();
+    WorldSession session;
+    WorldPacket upload(0x0727, 4);
+    upload << uint32(0);
+    WorldPacket reset(CMSG_UNLEARN_TALENTS, 0);
+    bool const consumed = !Receive(session, upload) && !Receive(session, reset);
+    Check(consumed && service.Uploads == std::vector<uint32>{session.GetAccountId()} &&
+        service.Resets == std::vector<uint32>{session.GetAccountId()},
+        "the native known-entries upload and talent reset are consumed and queued for the account");
+}
+
 int main()
 {
     TestRealmInfo();
     TestWorldEntryResend();
+    TestTalentRequests();
     TestItemQueries();
     TestVanityDelivery();
     TestRejectedPacketWarnings();
