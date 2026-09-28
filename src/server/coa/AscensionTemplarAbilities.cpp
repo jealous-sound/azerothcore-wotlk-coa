@@ -159,7 +159,7 @@ class templar_casts : public AllSpellScript
                         if (Aura* aura = pair.second->GetBase();
                             Named(aura->GetSpellInfo(), 803872) && aura->GetCasterGUID() == player->GetGUID())
                             aura->SetDuration(aura->GetMaxDuration());
-            if (!player->HasAura(92109) && !player->HasAura(803149))
+            if (!player->HasAura(92109) && !player->HasAura(803149) && !Named(info, 805409))
                 ClearOaths(player);
             if (Named(info, 501562))
                 player->RemoveAurasDueToSpell(807764);
