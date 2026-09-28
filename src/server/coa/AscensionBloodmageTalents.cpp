@@ -32,6 +32,7 @@ enum BloodmageTalentSpells : uint32
     SPELL_BLOODMOON_POWER = 801961,
     SPELL_ETERNAL_CURSE = 800157,
     SPELL_ETERNAL_CURSE_ARMOR = 804320,
+    SPELL_ETERNAL_CURSE_TANK_STANCE = 807736,
     SPELL_BLOOD_SHIELD = 504296,
     SPELL_COAGULATION_DISPEL = 504102,
     SPELL_DARK_MARK = 705731,
@@ -253,7 +254,10 @@ public:
         if (IsCursedForm(aura->GetId()))
             UpdateCursedFormWeapons(player, true);
         if (aura->GetId() == SPELL_ETERNAL_CURSE)
+        {
             player->CastSpell(player, SPELL_ETERNAL_CURSE_ARMOR, true);
+            player->CastSpell(player, SPELL_ETERNAL_CURSE_TANK_STANCE, true);
+        }
         if (aura->GetId() == SPELL_DARK_MARK)
             player->CastSpell(player, SPELL_DARK_MARK_AURA, true);
         if (IsCursedForm(aura->GetId()) && aura->GetCasterGUID() == player->GetGUID() &&
@@ -281,7 +285,10 @@ public:
         if (IsCursedForm(aura->GetId()) && !HasCursedForm(player, aura))
             UpdateCursedFormWeapons(player, false);
         if (aura->GetId() == SPELL_ETERNAL_CURSE)
+        {
             player->RemoveAurasDueToSpell(SPELL_ETERNAL_CURSE_ARMOR);
+            player->RemoveAurasDueToSpell(SPELL_ETERNAL_CURSE_TANK_STANCE);
+        }
         if (aura->GetId() == SPELL_DARK_MARK)
             player->RemoveAurasDueToSpell(SPELL_DARK_MARK_AURA, player->GetGUID());
         if (!player->IsAlive() || !player->IsInWorld() || mode == AURA_REMOVE_BY_DEATH)
