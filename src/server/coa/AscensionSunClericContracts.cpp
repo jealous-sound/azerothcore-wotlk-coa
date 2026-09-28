@@ -85,6 +85,7 @@ void ApplyContracts(SpellInfo* info)
     {
         dummy(0);
         info->ProcCharges = 10;
+        info->Attributes &= ~SPELL_ATTR0_AURA_IS_DEBUFF;
     }
     if (id == SolarPower)
         dummy(1);
