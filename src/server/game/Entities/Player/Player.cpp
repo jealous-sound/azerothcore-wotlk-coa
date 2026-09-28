@@ -10383,7 +10383,8 @@ void Player::AddSpellMod(SpellModifier* mod, bool apply)
 
     int i = 0;
     flag96 _mask = 0;
-    for (int eff = 0; eff < 96 && mod->op < MAX_CLIENT_SPELLMOD; ++eff)
+    uint32 const clientSpellModCount = useAscensionSpellModifierLayout ? MAX_SPELLMOD : MAX_CLIENT_SPELLMOD;
+    for (int eff = 0; eff < 96 && uint32(mod->op) < clientSpellModCount; ++eff)
     {
         if (eff != 0 && eff % 32 == 0)
             _mask[i++] = 0;

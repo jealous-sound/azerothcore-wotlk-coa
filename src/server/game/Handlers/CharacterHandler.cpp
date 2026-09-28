@@ -1234,10 +1234,11 @@ void WorldSession::HandlePlayerLoginToCharInWorld(Player* pCurrChar)
     pCurrChar->SetInGameTime(GameTime::GetGameTimeMS().count());
 
     // Xinef: we need to resend all spell mods
+    uint32 const clientSpellModCount = IsAscensionCompatEnabled() ? MAX_SPELLMOD : MAX_CLIENT_SPELLMOD;
     for (uint16 Opcode = SMSG_SET_FLAT_SPELL_MODIFIER; Opcode <= SMSG_SET_PCT_SPELL_MODIFIER; ++Opcode) // PCT = FLAT+1
     {
         uint32 modType = (Opcode == SMSG_SET_FLAT_SPELL_MODIFIER) ? SPELLMOD_FLAT : SPELLMOD_PCT;
-        for (uint32 opType = SPELLMOD_DAMAGE; opType < MAX_CLIENT_SPELLMOD; ++opType)
+        for (uint32 opType = SPELLMOD_DAMAGE; opType < clientSpellModCount; ++opType)
         {
             int32 i = 0;
             flag96 _mask = 0;
