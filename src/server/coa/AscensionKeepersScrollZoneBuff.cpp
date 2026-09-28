@@ -7,6 +7,7 @@
 #include "Item.h"
 #include "Map.h"
 #include "MapMgr.h"
+#include "ObjectAccessor.h"
 #include "Player.h"
 #include "ScriptMgr.h"
 #include "Spell.h"
@@ -125,6 +126,32 @@ void SyncGhostRunner(Player* player)
         player->RemoveAurasDueToSpell(SPELL_GHOST_RUNNER_SPEED);
 }
 
+void SyncZoneBlessings(Player* player, uint32 zoneId)
+{
+    time_t now = GameTime::GetGameTime().count();
+    for (ZoneScrollEntry const& entry : kZoneScrolls)
+    {
+        time_t expiry = BlessingExpiry(player, zoneId, entry.SpellId);
+        if (expiry > now)
+            ApplyZoneScrollAura(player, entry.SpellId, int32((expiry - now) * 1000));
+        else if (player->HasAura(entry.SpellId))
+            player->RemoveAurasDueToSpell(entry.SpellId);
+    }
+
+    SyncGhostRunner(player);
+}
+
+std::vector<ObjectGuid> g_pendingGroupSyncs;
+
+void QueueGroupSync(Group const* group, ObjectGuid changedMember = ObjectGuid::Empty)
+{
+    std::lock_guard<std::mutex> lock(g_zoneScrollLock);
+    for (Group::MemberSlot const& slot : group->GetMemberSlots())
+        g_pendingGroupSyncs.push_back(slot.guid);
+    if (changedMember)
+        g_pendingGroupSyncs.push_back(changedMember);
+}
+
 class ascension_keepers_scroll_zone_buff_spell : public AllSpellScript
 {
 public:
@@ -204,17 +231,30 @@ public:
 
     void OnPlayerUpdateZone(Player* player, uint32 newZone, uint32) override
     {
-        time_t now = GameTime::GetGameTime().count();
-        for (ZoneScrollEntry const& entry : kZoneScrolls)
-        {
-            time_t expiry = BlessingExpiry(player, newZone, entry.SpellId);
-            if (expiry > now)
-                ApplyZoneScrollAura(player, entry.SpellId, int32((expiry - now) * 1000));
-            else if (player->HasAura(entry.SpellId))
-                player->RemoveAurasDueToSpell(entry.SpellId);
-        }
+        SyncZoneBlessings(player, newZone);
+    }
+};
 
-        SyncGhostRunner(player);
+class ascension_keepers_scroll_zone_buff_group : public GroupScript
+{
+public:
+    ascension_keepers_scroll_zone_buff_group()
+        : GroupScript("ascension_keepers_scroll_zone_buff_group",
+            {GROUPHOOK_ON_ADD_MEMBER, GROUPHOOK_ON_REMOVE_MEMBER, GROUPHOOK_ON_DISBAND}) { }
+
+    void OnAddMember(Group* group, ObjectGuid) override
+    {
+        QueueGroupSync(group);
+    }
+
+    void OnRemoveMember(Group* group, ObjectGuid guid, RemoveMethod, ObjectGuid, char const*) override
+    {
+        QueueGroupSync(group, guid);
+    }
+
+    void OnDisband(Group* group) override
+    {
+        QueueGroupSync(group);
     }
 };
 
@@ -226,6 +266,8 @@ public:
 
     void OnUpdate(uint32 diff) override
     {
+        SyncPendingGroups();
+
         _timer += diff;
         if (_timer < EXPIRE_CHECK_INTERVAL_MS)
             return;
@@ -263,6 +305,19 @@ public:
     }
 
 private:
+    static void SyncPendingGroups()
+    {
+        std::vector<ObjectGuid> pending;
+        {
+            std::lock_guard<std::mutex> lock(g_zoneScrollLock);
+            pending.swap(g_pendingGroupSyncs);
+        }
+
+        for (ObjectGuid guid : pending)
+            if (Player* player = ObjectAccessor::FindPlayer(guid))
+                SyncZoneBlessings(player, player->GetZoneId());
+    }
+
     uint32 _timer = 0;
     static constexpr uint32 EXPIRE_CHECK_INTERVAL_MS = 10000;
 };
@@ -272,5 +327,6 @@ void AddSC_AscensionKeepersScrollZoneBuff()
 {
     new ascension_keepers_scroll_zone_buff_spell();
     new ascension_keepers_scroll_zone_buff_player();
+    new ascension_keepers_scroll_zone_buff_group();
     new ascension_keepers_scroll_zone_buff_world();
 }

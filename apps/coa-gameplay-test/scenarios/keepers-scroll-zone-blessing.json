@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "Keeper's Scroll blesses the user's faction in the zone, and their group across factions",
-  "contract": "A Keeper's Scroll blessing belongs to the zone it was used in. It reaches every player in that zone of the user's faction, grouped or not, and players of the other faction only while they are in the user's group; the announcement goes to exactly those players. A player entering the zone later receives it on the same terms. Only a player who already holds the blessing is refused, so the other faction in the zone can still use its own scroll. The blessing does not follow a player into another zone or instance, and scrolls are usable inside instances.",
+  "contract": "A Keeper's Scroll blessing belongs to the zone it was used in. It reaches every player in that zone of the user's faction, grouped or not, and players of the other faction only while they are in the user's group; the announcement goes to exactly those players. A player entering the zone later receives it on the same terms, and joining or leaving the user's group grants or removes it at once. Only a player who already holds the blessing is refused, so the other faction in the zone can still use its own scroll. The blessing does not follow a player into another zone or instance, and scrolls are usable inside instances.",
   "timeout_ms": 180000,
   "location": { "map": 1, "x": 340.0, "y": -4686.0, "z": 16.5 },
   "players": [
@@ -39,6 +39,13 @@
       "metric": "system_message_contains", "text": "used their", "equals": 0 },
     { "action": "assert", "label": "the player in another zone does not", "actor": "latecomer",
       "metric": "system_message_contains", "text": "used their", "equals": 0 },
+
+    { "action": "group", "label": "the ungrouped Alliance player joins the user's group in the zone", "actor": "user", "target": "alliance" },
+    { "action": "assert", "label": "joining the group grants the blessing already active in the zone", "actor": "alliance",
+      "metric": "aura", "spell": 91814, "equals": 1, "within_ms": 3000 },
+    { "action": "leave_group", "actor": "alliance" },
+    { "action": "assert", "label": "leaving the group takes it away again", "actor": "alliance",
+      "metric": "aura", "spell": 91814, "equals": 0, "within_ms": 3000 },
 
     { "action": "add_item", "actor": "horde", "item": 1179269 },
     { "action": "use_item", "actor": "horde", "item": 1179269, "spell": 91814 },
