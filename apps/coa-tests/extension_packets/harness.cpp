@@ -87,6 +87,7 @@ public:
     std::vector<std::string> Messages;
 
     uint32 GetAccountId() const { return AccountId; }
+    Player* GetPlayer() const { return PlayerObject; }
     int GetSessionDbLocaleIndex() const { return LocaleIndex; }
     void SendPacket(WorldPacket const* packet) { Sent.push_back(*packet); }
     void HandleItemQuerySingleOpcode(WorldPacket& recvData);
@@ -251,10 +252,13 @@ bool SendCollectionCreatureQueryResponse(WorldSession*, uint32 entry)
     return true;
 }
 
+std::vector<uint16> DispatchedOpcodes;
+
 namespace AscensionCompatOpcodes
 {
-bool Dispatch(WorldSession*, WorldPacket const&)
+bool Dispatch(WorldSession*, WorldPacket const& packet)
 {
+    DispatchedOpcodes.push_back(packet.GetOpcode());
     return false;
 }
 }
@@ -478,6 +482,48 @@ WorldPacket ApplyAppearances()
     WorldPacket packet(0x0697, 4);
     packet << uint32(0);
     return packet;
+}
+
+WorldPacket StoreQuery(uint32 store)
+{
+    WorldPacket packet(0x06B9, 4);
+    packet << store;
+    return packet;
+}
+
+WorldPacket StorePurchase(uint32 key, uint32 quantity)
+{
+    WorldPacket packet(0x06BB, 8);
+    packet << key << quantity;
+    return packet;
+}
+
+void TestStorePackets()
+{
+    AscensionCollectionService& service = AscensionCollectionService::Instance();
+    WorldSession session;
+    Player player;
+    player.Session = &session;
+    session.PlayerObject = &player;
+    DispatchedOpcodes.clear();
+
+    bool const queryPassedOn = Receive(session, StoreQuery(7));
+    bool const purchasePassedOn = Receive(session, StorePurchase(9, 1));
+    Check(!queryPassedOn && !purchasePassedOn && session.Sent.empty() && DispatchedOpcodes.empty(),
+        "the socket hook queues store queries and purchases without running a store handler");
+    service.OnPlayerUpdate(&player, 1);
+    Check(DispatchedOpcodes == std::vector<uint16>{0x06B9, 0x06BB} && session.Sent.size() == 1 &&
+            session.Sent[0].GetOpcode() == 0x06BA,
+        "the player update runs the store handlers in order and answers an unclaimed query with an empty store");
+
+    WorldSession glue;
+    DispatchedOpcodes.clear();
+    bool const glueQueryPassedOn = Receive(glue, StoreQuery(7));
+    bool const gluePurchasePassedOn = Receive(glue, StorePurchase(9, 1));
+    service.OnPlayerUpdate(&player, 1);
+    Check(!glueQueryPassedOn && !gluePurchasePassedOn && DispatchedOpcodes.empty() && glue.Sent.size() == 1 &&
+            glue.Sent[0].GetOpcode() == 0x06BA,
+        "before login a store query gets the empty store at once and a purchase is dropped, not queued");
 }
 
 void TestWorldEntryResend()
@@ -954,6 +1000,7 @@ int main()
 {
     TestRealmInfo();
     TestWorldEntryResend();
+    TestStorePackets();
     TestTalentRequests();
     TestItemQueries();
     TestVanityDelivery();
