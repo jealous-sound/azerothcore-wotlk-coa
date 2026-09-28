@@ -2662,6 +2662,7 @@ namespace CoAChallenges
                 { "ruleaudit", HandleCoARuleAuditCommand, SEC_ADMINISTRATOR, Console::Yes },
                 { "auditdefs", HandleCoAAuditDefsCommand, SEC_ADMINISTRATOR, Console::Yes },
                 { "cachetoctou", HandleCoACacheToctouCommand, SEC_ADMINISTRATOR, Console::Yes },
+                { "pettest",   HandleCoAPetTestCommand,   SEC_ADMINISTRATOR, Console::Yes },
                 { "gamemode",  HandleCoAGameModeCommand,  SEC_ADMINISTRATOR, Console::Yes },
                 { "sync",      HandleCoASyncCommand,       SEC_ADMINISTRATOR, Console::Yes },
                 { "fatigue",   HandleCoAFatigueCommand,   SEC_ADMINISTRATOR, Console::Yes },
@@ -3132,6 +3133,23 @@ namespace CoAChallenges
                 handler->PSendSysMessage("CACHE TOCTOU PASS");
             else
                 handler->SendErrorMessage("CACHE TOCTOU FAIL (see lines above)");
+            return true;
+        }
+
+        // .coa pettest <player>
+        // GM-only: regression test for Issue #4343 (trial auras applied to summons).
+        static bool HandleCoAPetTestCommand(ChatHandler* handler, std::string playerName)
+        {
+            Player* p = ObjectAccessor::FindPlayerByName(playerName);
+            if (!p)
+            {
+                handler->SendErrorMessage("Player '{}' is not online.", playerName);
+                return false;
+            }
+            if (Test_PetTrialAuras(p))
+                handler->PSendSysMessage("PET TRIAL AURAS PASS");
+            else
+                handler->SendErrorMessage("PET TRIAL AURAS FAIL (see lines above)");
             return true;
         }
 
