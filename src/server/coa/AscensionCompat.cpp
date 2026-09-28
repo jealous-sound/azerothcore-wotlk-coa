@@ -5045,6 +5045,18 @@ public:
 
     if (opcode == CMSG_QUERY_CUSTOM_STORE || opcode == CMSG_PURCHASE_CUSTOM_STORE_ITEM)
     {
+      if (!session->GetPlayer())
+      {
+        if (opcode == CMSG_QUERY_CUSTOM_STORE)
+        {
+          WorldPacket empty(SMSG_QUERY_CUSTOM_STORE_RESULT, 32);
+          empty << "QUERY_CUSTOM_STORE_OK";
+          empty << uint32(0);
+          session->SendPacket(&empty);
+        }
+        return false;
+      }
+
       AscensionCollectionService::Instance().QueueClientPacket(session->GetAccountId(), packet);
       return false;
     }
