@@ -148,6 +148,7 @@ constexpr uint16 SMSG_VANITY_COLLECTION_INFO = 0x06F7;
 constexpr uint16 SMSG_VANITY_COLLECTION_ADDED = 0x06F8;
 
 constexpr uint16 CMSG_QUERY_CUSTOM_STORE = 0x06B9;
+constexpr uint16 CMSG_PURCHASE_CUSTOM_STORE_ITEM = 0x06BB;
 constexpr uint16 SMSG_QUERY_CUSTOM_STORE_RESULT = 0x06BA;
 constexpr std::size_t VANITY_STORE_RECORD_DWORDS = 16;
 constexpr uint16 SMSG_CHARACTER_ADVANCEMENT_ACTIVE_SPEC = 0x0725;
@@ -4117,6 +4118,17 @@ private:
       case CMSG_CUSTOM_ASCENSION_POINT_SPEND_REQUEST:
         HandlePointSpendRequest(player, packet);
         break;
+      case CMSG_QUERY_CUSTOM_STORE:
+      case CMSG_PURCHASE_CUSTOM_STORE_ITEM:
+        if (!AscensionCompatOpcodes::Dispatch(player->GetSession(), packet) &&
+            packet.GetOpcode() == CMSG_QUERY_CUSTOM_STORE)
+        {
+          WorldPacket empty(SMSG_QUERY_CUSTOM_STORE_RESULT, 32);
+          empty << "QUERY_CUSTOM_STORE_OK";
+          empty << uint32(0);
+          player->GetSession()->SendPacket(&empty);
+        }
+        break;
       default:
         break;
       }
@@ -5031,6 +5043,12 @@ public:
     if (QueueAscensionManastormPacket(session, packet))
       return false;
 
+    if (opcode == CMSG_QUERY_CUSTOM_STORE || opcode == CMSG_PURCHASE_CUSTOM_STORE_ITEM)
+    {
+      AscensionCollectionService::Instance().QueueClientPacket(session->GetAccountId(), packet);
+      return false;
+    }
+
     if (std::find(QUEUED_EXTENSION_OPCODES.begin(), QUEUED_EXTENSION_OPCODES.end(), opcode) !=
         QUEUED_EXTENSION_OPCODES.end())
         AscensionCollectionService::Instance().QueueClientPacket(session->GetAccountId(), packet);
@@ -5050,15 +5068,6 @@ public:
 
     if (AscensionCompatOpcodes::Dispatch(session, packet))
       return false;
-
-    if (opcode == CMSG_QUERY_CUSTOM_STORE)
-    {
-      WorldPacket empty(SMSG_QUERY_CUSTOM_STORE_RESULT, 32);
-      empty << "QUERY_CUSTOM_STORE_OK";
-      empty << uint32(0);
-      session->SendPacket(&empty);
-      return false;
-    }
 
     if (ascensionCompatConfig.GetConfigValue<bool>(
             AscensionCompatConfig::LOG_CONSUMED_PACKETS)) {
