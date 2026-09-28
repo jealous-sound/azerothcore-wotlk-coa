@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "Reaper Weakened Souls applies a caster-specific debuff on Soulrend",
-  "contract": "With talent 92146, a landed Soulrend applies 803433 to its target, increasing Reaper Shadow and Frost damage from that caster by 10%. The installed debuff has permanent duration. Soulrend without the talent does not apply it.",
+  "contract": "With talent 92146, a landed Soulrend applies 803433 to its target, increasing Reaper Shadow and Frost damage from that caster by 10%. The installed debuff has permanent duration. Soulrend without the talent does not apply it. Frost is probed with Dreadwake 503286 (Frost, family 36, a weapon strike whose taken bonus comes from MeleeDamageBonusTaken); Ghostly Weapon's Frost child 804474 carries SPELL_ATTR4_IGNORE_DAMAGE_TAKEN_MODIFIERS in the client DBC, so it never gains taken modifiers and cannot show the debuff.",
   "players": [
     { "id": "baseline", "race": 2, "class": 30, "level": 60, "spell_hit_rating": 10000, "melee_hit_rating": 10000, "expertise_rating": 10000 },
     { "id": "talented", "race": 2, "class": 30, "level": 60, "spell_hit_rating": 10000, "melee_hit_rating": 10000, "expertise_rating": 10000 }
@@ -22,7 +22,7 @@
     { "action": "set_aura", "actor": "talented", "spell": 500363, "stacks": 3 },
     { "action": "set_aura", "actor": "talented", "spell": 803031, "stacks": 1 },
     { "action": "snapshot", "actor": "marked_enemy", "metric": "spell_damage_taken", "spell": 500376, "target": "talented", "save_as": "shadow_before" },
-    { "action": "snapshot", "actor": "marked_enemy", "metric": "spell_damage_taken", "spell": 804474, "target": "talented", "save_as": "frost_before" },
+    { "action": "snapshot", "actor": "marked_enemy", "metric": "melee_damage_taken", "spell": 503286, "target": "talented", "save_as": "frost_before" },
     { "action": "snapshot", "actor": "marked_enemy", "metric": "spell_damage_taken", "spell": 500376, "target": "baseline", "save_as": "other_caster_before" },
     { "action": "snapshot", "actor": "marked_enemy", "metric": "spell_damage_taken", "spell": 500489, "target": "talented", "save_as": "physical_before" },
     { "action": "snapshot", "actor": "plain_enemy", "metric": "health", "save_as": "plain_health" },
@@ -37,7 +37,7 @@
     { "action": "assert", "actor": "marked_enemy", "metric": "aura_amount", "spell": 803433, "caster": "talented", "equals": 10, "label": "Weakened Souls adds ten percent damage" },
     { "action": "assert", "actor": "marked_enemy", "metric": "aura_duration_ms", "spell": 803433, "caster": "talented", "equals": -1, "label": "Weakened Souls uses its permanent DBC duration" },
     { "action": "assert", "actor": "marked_enemy", "metric": "spell_damage_taken", "spell": 500376, "target": "talented", "ratio_to": "shadow_before", "min": 1.095, "max": 1.105, "label": "Reaper Shadow damage from the talented caster rises ten percent" },
-    { "action": "assert", "actor": "marked_enemy", "metric": "spell_damage_taken", "spell": 804474, "target": "talented", "ratio_to": "frost_before", "min": 1.095, "max": 1.105, "label": "Reaper Frost damage from the talented caster rises ten percent" },
+    { "action": "assert", "actor": "marked_enemy", "metric": "melee_damage_taken", "spell": 503286, "target": "talented", "ratio_to": "frost_before", "min": 1.095, "max": 1.105, "label": "Reaper Frost damage from the talented caster rises ten percent" },
     { "action": "assert", "actor": "marked_enemy", "metric": "spell_damage_taken", "spell": 500376, "target": "baseline", "ratio_to": "other_caster_before", "min": 0.995, "max": 1.005, "label": "Other Reaper casters do not gain the bonus" },
     { "action": "assert", "actor": "marked_enemy", "metric": "spell_damage_taken", "spell": 500489, "target": "talented", "ratio_to": "physical_before", "min": 0.995, "max": 1.005, "label": "Reaper Physical damage does not gain the bonus" }
   ]

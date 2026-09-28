@@ -5,6 +5,7 @@
 #include "ObjectAccessor.h"
 #include "Random.h"
 #include "Player.h"
+#include "ScriptedCreature.h"
 #include "ScriptMgr.h"
 #include "SpellAuraEffects.h"
 #include "SpellAuras.h"
@@ -54,7 +55,10 @@ enum ReaperTalentSpells : uint32
     SPELL_ESSENCE_INVIGORATION = 805186,
     SPELL_ESSENCE_INVIGORATION_HEAL = 805187,
     SPELL_WEAKENED_SOULS = 92146,
-    SPELL_WEAKENED_SOUL = 803433
+    SPELL_WEAKENED_SOUL = 803433,
+    SPELL_LIFE_TAP = 706788,
+    SPELL_DOMINION = 803999,
+    SPELL_DOMINION_ARMOR = 804000
 };
 
 Unit* HostileTargetInRange(Player* player, uint32 spellId)
@@ -392,6 +396,31 @@ class spell_ascension_reaper_weakened_souls : public SpellScript
     }
 };
 
+struct npc_ascension_reaper_spectral_warden : public ScriptedAI
+{
+    explicit npc_ascension_reaper_spectral_warden(Creature* creature) : ScriptedAI(creature) { }
+
+    void DamageDealt(Unit*, uint32& damage, DamageEffectType, SpellSchoolMask) override
+    {
+        if (!damage)
+            return;
+
+        Player* owner = ObjectAccessor::GetPlayer(*me, me->GetOwnerGUID());
+        if (!owner || !owner->IsAlive() || owner->getClass() != CLASS_REAPER || !owner->HasAura(SPELL_LIFE_TAP))
+            return;
+
+        SpellInfo const* lifeTap = sSpellMgr->GetSpellInfo(SPELL_LIFE_TAP);
+        if (!lifeTap)
+            return;
+
+        float const healPct = lifeTap->Effects[EFFECT_0].CalcValue() / 100.0f;
+        if (healPct <= 0.0f)
+            return;
+
+        Unit::DealHeal(owner, owner, uint32(float(damage) * healPct));
+    }
+};
+
 class reaper_talent_events : public UnitScript
 {
 public:
@@ -473,6 +502,7 @@ void ApplyAscensionReaperSoulInfusionGained(Player* player)
 
     CastTalentTrigger(player, SPELL_DAMNED, SPELL_DAMNED_HASTE);
     CastTalentTrigger(player, SPELL_PURGATORY, SPELL_PURGATORY_DAMAGE);
+    CastTalentTrigger(player, SPELL_DOMINION, SPELL_DOMINION_ARMOR);
 }
 
 void ApplyAscensionReaperSoulInfusionSpent(Player* player)
@@ -493,5 +523,6 @@ void AddSC_AscensionReaperTalents()
     RegisterSpellScript(aura_ascension_reaper_blood_frenzy);
     RegisterSpellScript(aura_ascension_reaper_ghastly_form);
     RegisterSpellScript(spell_ascension_reaper_weakened_souls);
+    RegisterCreatureAI(npc_ascension_reaper_spectral_warden);
     new reaper_talent_events();
 }

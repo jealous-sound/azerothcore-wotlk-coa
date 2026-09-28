@@ -7008,7 +7008,7 @@ void AuraEffect::HandleObsModPowerAuraTick(Unit* target, Unit* caster) const
 
     int32 gain = target->ModifyPower(PowerType, amount);
 
-    if (caster)
+    if (caster && !(PowerType == POWER_MANA && target->GainsManaWithoutThreat()))
         target->GetThreatMgr().ForwardThreatForAssistingMe(caster, float(gain) * 0.5f, GetSpellInfo(), true);
 }
 
@@ -7042,7 +7042,7 @@ void AuraEffect::HandlePeriodicEnergizeAuraTick(Unit* target, Unit* caster) cons
                     GetCasterGUID().ToString(), target->GetGUID().ToString(), amount, GetId());
     int32 gain = target->ModifyPower(PowerType, amount);
 
-    if (caster)
+    if (caster && !(PowerType == POWER_MANA && target->GainsManaWithoutThreat()))
         target->GetThreatMgr().ForwardThreatForAssistingMe(caster, float(gain) * 0.5f, GetSpellInfo(), true);
 }
 

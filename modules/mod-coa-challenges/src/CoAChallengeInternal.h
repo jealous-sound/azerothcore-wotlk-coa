@@ -69,6 +69,7 @@ namespace CoAChallenges
     void Test_AuditAllRules(Player* player);
     void Test_AuditAllDefs(Player* player);
     bool Test_CacheToctou(Player* player);
+    bool Test_PetTrialAuras(Player* player);
 
     // Cache TOCTOU seam (implemented in Lifecycle.cpp / GameModes.cpp): lets the
     // regression test inject an invalidation between the DB load and the cache

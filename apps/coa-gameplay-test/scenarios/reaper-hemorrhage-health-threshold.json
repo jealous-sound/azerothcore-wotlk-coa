@@ -21,7 +21,8 @@
   "name": "Hemorrhage grants critical chance and damage below 35% (#1265)",
   "contract": [
     "Hemorrhage adds twenty critical percentage points against enemies below 35% health.",
-    "Hemorrhage also adds twenty percent Reaper ability damage below 35% health."
+    "Hemorrhage also adds twenty percent Reaper ability damage below 35% health.",
+    "The damage bonus is SPELL_AURA_MOD_DAMAGE_DONE_VERSUS_AURASTATE on the target's AURA_STATE_HEALTHLESS_35_PERCENT, which Unit::Update refreshes from current health, while the crit bonus reads current health directly; each health change is therefore given world updates before the damage bonus is measured, in both directions."
   ],
   "timeout_ms": 60000,
   "steps": [
@@ -87,6 +88,10 @@
       "action": "set_health",
       "actor": "target",
       "value": 34000
+    },
+    {
+      "action": "wait",
+      "ms": 1000
     },
     {
       "action": "assert",

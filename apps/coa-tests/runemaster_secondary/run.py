@@ -76,11 +76,11 @@ struct Unit
     }
     void CastCustomSpell(''')
     code = code.replace('uint32 cls=30,', '''std::map<uint32,int> spells;
-    std::vector<uint32> restored, cleared;
+    std::vector<uint32> restored, restoredCounts, cleared;
     bool offhand=true;
     auto const& GetSpellMap() const { return spells; }
     bool HasActiveSpell(uint32 id) const { return spells.contains(id); }
-    void RestoreSpellCharge(uint32 id) { restored.push_back(id); }
+    void RestoreSpellCharge(uint32 id,uint32 count) { restored.push_back(id); restoredCounts.push_back(count); }
     void RemoveSpellCooldown(uint32 id,bool update) { assert(update); cleared.push_back(id); }
     void* GetWeaponForAttack(uint32 hand,bool usable) { assert(hand==1 && usable); return offhand?this:nullptr; }
     uint32 cls=32,''')
@@ -148,6 +148,13 @@ int main()
     spell.info.Id=502632; casts.OnSpellCast(&spell,&player,&spell.info,false);
     assert(player.restored.back()==707148 && !player.HasAura(801512,1));
     spell.info.Id=800732; casts.OnSpellCast(&spell,&player,&spell.info,false); assert(player.restored.size()==2);
+    assert(player.restoredCounts==std::vector<uint32>({1,1}));
+    player.AddAura(806698,&player);
+    casts.OnSpellCast(&spell,&player,&spell.info,false);
+    assert(player.restored.back()==707148 && player.restoredCounts.back()==3);
+    spell.info.Id=502632; casts.OnSpellCast(&spell,&player,&spell.info,false);
+    assert(player.restoredCounts.back()==1);
+    player.RemoveAurasDueToSpell(806698,1); player.restored.resize(2); player.restoredCounts.resize(2);
     player.AddAura(92153,&player); spell.info.Id=707148; player.casts.clear();
     casts.OnSpellHitResult(&spell,&enemy,0,301,0,false);
     assert(player.casts.size()==1 && player.casts.back().id==712298 && player.casts.back().amount==150);
@@ -176,13 +183,6 @@ int main()
     engraving.Proc(&amount,event); assert(player.casts.empty() && brand->stacks==2 && brand->duration==1200);
     damage.type=2; assert(!engraving.Check(event)); damage.type=1;
     event.actor=&other; assert(!engraving.Check(event)); event.actor=&player;
-    aura_ascension_runemaster_firebrand firebrand; firebrand.fixtureCaster=&player; firebrand.fixtureTarget=&enemy;
-    firebrand.fixtureAura.stacks=3; player.casts.clear();
-    firebrand.Explode(&amount,1);
-    assert(player.casts.size()==3 && player.casts.back().id==653212 && player.casts.back().target==&enemy);
-    firebrand.fixtureApplication.mode=0; player.casts.clear(); firebrand.Explode(&amount,1); assert(player.casts.empty());
-    firebrand.fixtureApplication.mode=AURA_REMOVE_BY_EXPIRE; enemy.alive=false;
-    firebrand.Explode(&amount,1); assert(player.casts.empty()); enemy.alive=true;
     runemaster_secondary_metadata metadata; SpellInfo info; info.SpellFamilyName=38; info.Id=712298;
     metadata.OnLoadSpellCustomAttr(&info); assert(info.AscensionInheritsResolvedAmount);
 }

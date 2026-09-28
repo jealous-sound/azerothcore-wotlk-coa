@@ -3140,8 +3140,8 @@ SpellMissInfo Spell::DoSpellHitOnUnit(Unit* unit, uint32 effectMask, bool scaleA
         if ((type == DRTYPE_PLAYER && (unit->IsCharmedOwnedByPlayerOrPlayer() || flagsExtra & CREATURE_FLAG_EXTRA_ALL_DIMINISH ||
             (m_diminishGroup == DIMINISHING_TAUNT && (flagsExtra & CREATURE_FLAG_EXTRA_OBEYS_TAUNT_DIMINISHING_RETURNS)))) || type == DRTYPE_ALL)
         {
-            // Do not apply diminish return if caster is NPC
-            if (m_caster->IsCharmedOwnedByPlayerOrPlayer())
+            // NPC casters only diminish player-controlled targets
+            if (m_caster->IsCharmedOwnedByPlayerOrPlayer() || unit->IsCharmedOwnedByPlayerOrPlayer())
             {
                 unit->IncrDiminishing(m_diminishGroup);
             }
@@ -6376,7 +6376,7 @@ SpellCastResult Spell::CheckCast(bool strict, uint32* /*param1*/, uint32* /*para
                     uint32 skill = creature->GetCreatureTemplate()->GetRequiredLootSkill();
 
                     int32 skillValue = m_caster->ToPlayer()->GetSkillValue(skill);
-                    int32 TargetLevel = m_targets.GetUnitTarget()->GetLevel();
+                    int32 TargetLevel = creature->GetLootSkillLevelFor(m_caster->ToPlayer());
                     int32 ReqValue = (skillValue < 100 ? (TargetLevel - 10) * 10 : TargetLevel * 5);
                     if (ReqValue > skillValue)
                         return SPELL_FAILED_LOW_CASTLEVEL;

@@ -1087,6 +1087,39 @@ filled green, the five whose object moved to a new guid carry the guid the alloc
 the eight rows the walk left empty are kept on the sheet and marked removed, so the markers the
 walk took out stay visible. The sheet stands **38 pickups, 30 of them authored in game**, and its
 Index row says the same.
+### The final authored pass: Tirisfal Glades, item by item
+
+`2026_09_26_63_worldforged_tirisfal_final.sql` is the zone reconciled against the realm map marker
+by marker and then walked by hand in the map editor, written as one file that carries the zone's
+final verified state and supersedes every earlier state of it, so a database converges from any of
+them.
+
+The marker pass reads the zone's eighty-one judged placements and moves four onto the marker of the
+object's own name (Nightweb Spider Egg 4.2 yd, Stashed Goods 5.3 yd, Rattlecage Cauldron 7.4 yd,
+Oathblade 7.5 yd, each keeping the height the realm's own record gives it), takes five extra
+placings out (a Quivering Web and a Sturdy Arrow far from any marker, and three Apothecary's
+Lantern rows whose marker the object of that name already answers), and restores the pair the
+undead starting ground kept for its own starting NPCs exactly as the realm recorded it: Joshua's
+Cherry Pie (90641) with the loot row its marker is named after, the Cherry Pie prop (90635) beside
+it, and Maquel's Fallen Water Pouch (90642, empty, as the realm kept it).
+
+The review that follows takes twelve stands out - two duplicates whose surviving stands are the
+Ceremonial Mace (6940229) and Quivering Web (6940921) rows, and ten the review's own judgement.
+
+The walk afterwards - the editing project's **45 changesets** (`spawns_20260926_*`, written on
+2026-09-26), one save each, the last write to each guid winning - leaves **41 sheet pickups** at
+the spots it verified, with the full authored quaternions the editor emitted, and re-creates three
+of them (Long Fishing Spear, Interloper's Loop and Fallen Hardwood Plank) on the guids its own
+editor allocates, 6960206-6960208. Six further stands the walk marked red are taken out, and four
+Undercity creatures stand where the walk verified them. Scenery the walk nudged is moved without
+its script or comment being touched, so the module's pickup census counts only what it should.
+The zone's sheet reads **50 pickups**, and its Index row says the same.
+
+Every row was read back from the live database: 429 assertions with none failing - each of the 36
+written rows standing at the audited spot with the quaternion the editor emitted, the twenty-six
+deleted guids gone, the re-created trio holding its entry under its new guid with the module's
+script and its own loot row, and the four creatures standing where the walk left them.
+
 ### The final authored pass: Duskwood, item by item
 
 `2026_09_25_48_worldforged_duskwood_pass_authored.sql` is the zone walked by hand in the map editor,
@@ -1156,6 +1189,116 @@ and the absence of all fourteen removed guids. The worldserver applies the file 
 (`Applying update "2026_09_25_48_worldforged_duskwood_pass_authored.sql"`), and the realm then reads
 **99,470 gameobjects**, **2,822 worldforged pickups** over **1,662 distinct ids** and **1,805 pickup
 templates**.
+
+### The thirty-fourth pass: Westfall revised, walked in the map editor and reviewed on the sheet
+
+`2026_09_25_54_worldforged_westfall_revision.sql` is not a marker pairing. Westfall was taken through
+the map by hand this time, in the client's own editor: **41 changesets** written in the pro2 project
+between 17:41 and 19:03 on 2026-09-25, each one a save of the zone - **34 rows re-placed, 4 objects
+taken out of the client's own data and 3 objects placed on fresh guids** - and then the zone's own
+sheet of `worldforged-items.xlsx` was marked up by hand: **41 rows green** (kept) and **45 rows red**
+(out). This file is both halves read together, and where they disagree the review wins.
+
+* **The green 41 are the rows that stay.** **35 of them were re-placed in the walk** - 33 the editor
+  moved and/or turned, and 2 whose object it emptied at its old spot and placed again elsewhere in the
+  zone, which take the guid the editor allocated: **6960037** for Defias Mage Stash in Moonbrook
+  (entry 90252, from the Longshore spot at 1,187 yd) and **6960038** for Harvest Golem Scythe at The
+  Dead Acre (entry 1345068, from The Molsen Farm). **5 the review kept exactly as they stood**: Defias
+  Toe Knife, Field Boots, Flexible Gloves, Stolen Thunderbrew Flask and Worn Quel'thalas Heirloom.
+  Position and rotation quaternion are what the editor emitted, down to the digit, and `orientation`
+  is the yaw that quaternion represents. The zone's sheet now carries **40 rows**: the forty-first,
+  the **Deadman's Signet** (515510), was moved out of the zone in the same walk - the editor emptied
+  its Alexston Farmstead spot and placed it in **Raven Hill Cemetery**, in Duskwood - and its row went
+  with it, to that zone's sheet, in walk order. It is the one row the walk took out of Westfall
+  without the review taking it out of the world.
+* **45 rows are gone**, every one of them marked red on the sheet by hand. **48 objects are deleted**
+  for them, because three of the rows whose objects the editor emptied and placed again are among the
+  green - 6940322 (Deadman's Signet), 6940347 (Defias Mage Stash) and 6940594 (Harvest Golem Scythe) -
+  so their old spots go and their placements are written above. 44 distinct object entries stand
+  behind the 45 rows. **The review has a shape**: every row it kept holds an item of **level 16 to
+  25**, and **43 of the 45 it took out hold items of level 31 to 58** - the two exceptions being
+  Defias Magus Staff (level 18, which the editor had also nudged in the same walk: a removal is the
+  last thing said about a row, so the nudge is not written) and Rehomed Belt (level 25).
+* **The review is a statement about the zone, not about the realm.** Those 44 entries hold **118
+  spawns in 62 areas** across the world - Westfall's own 45 of them, then Longshore 9, Teldrassil 5,
+  Thousand Needles 5, Swamp of Sorrows 3, Arathi Highlands 3, Darkcloud Pinnacle 3 and the rest - and
+  **every one of them outside the zone is left exactly as it was**, in the world and in the book: the
+  realm-map design gives each object one placement per realm map, and this zone gave up only its own.
+  The book's other twenty-one sheets are unchanged, the two exceptions being the zone's own row and
+  Duskwood's.
+* **Four items lose their last carrier**, which is what the review asks for and is written down here
+  rather than left to be found later: **Defias Magus Staff** (451117), **Drowned Diver's Ring**
+  (515511), **Scuba Slayer's Blade** (515524) and **Rehomed Belt** (521266) each stood on one object
+  in the world, and that object is gone. The other 43 items of the red rows keep carriers wherever
+  their own realm maps put them.
+* **Heavy Bone** (95819, guid 6940607) drew the Desolace giant's femur,
+  `world\expansion07\doodads\desertzone\8des_bones_femur01.m2`, whose own bounding box in the
+  client's `GameObjectDisplayInfo.dbc` is **26.1 yd long, 8.1 wide and 5.8 tall at size 1** - a
+  landmark lying in the grass rather than a bone you pick up. Its size becomes **0.01**, a femur 26 cm
+  long, which is the size the review asked for. That entry backs this one placement and nothing else
+  in the world, so nothing else changes shape with it.
+* **Four pickups stand in the zone that its sheet has never listed**, and they are neither kept nor
+  taken out because the review never saw them: two rows of the realm's own, kept under
+  `AscensionWorldforged ... | AtlasLoot Westfall` (**6930005** Defias Rusty Gun Rack at Moonbrook,
+  **6930030** Zun'watha Cleaver at Longshore), and two a later pass restored on markers the earlier
+  Westfall pass could not project (**6940755** Misplaced Pitchfork at Jangolode Mine, **6940915**
+  Quarry Sledge at the Gold Coast Quarry). They are the only rows of the zone's 44 that are not on its
+  sheet, and nothing was done to them; the zone's sheet lists 40 because the review's own set was 40,
+  not because the zone holds 40.
+
+**How the numbers were checked.** Every statement in the file is an `UPDATE` keyed on guid, a
+`DELETE` keyed on guid, or a `REPLACE` on a guid the file allocates, so re-running it leaves the same
+rows: the file was applied to the live database and applied a second time with no error. Afterwards
+every claim was read back from the database one by one (`.scratch/wf24/check.py`): **198 assertions,
+none failing** - each of the 33 moved rows standing at the position and quaternion the changeset
+emitted with its `orientation` the yaw they mean, each of the three new guids holding its entry at the
+spot the editor left it with the module's script and its own in-game note and still handing out its
+item, all 48 removed guids gone, the five kept rows still this module's pickups, the zone's areas
+holding exactly the 40 reviewed rows plus the 4 its sheet never listed, the world outside the zone
+holding the same 2,732 pickups it held before plus the signet where the walk put it in Duskwood,
+Heavy Bone's template at 0.01 with that entry backing one placement, and the items of the removed rows
+counted to name the four whose last carrier they were. The book was then read back against the world
+as well (`.scratch/wf24/book_vs_live.py`): **279 assertions, none failing** - every row's object,
+entry, coordinates, facing, sub-zone and teleport command the world's own, the 35 authored rows marked
+complete and the 5 kept ones left as they were, no red row anywhere on the zone's sheet, Duskwood's
+sheet carrying the signet in walk order with every row it carried before saying exactly what it said,
+and every other sheet of the workbook identical to what it said before the review. The file is
+idempotent and the worldserver applies it on boot. The realm then reads **99,431 gameobjects**,
+**2,777 worldforged pickups** over **1,688 distinct ids** and **1,834 pickup templates**.
+
+### The thirty-fifth pass: Westfall cross-checked against the reference realm
+
+A gameobject dump of the live reference realm the book's atlas was drawn from
+(`GameObjects-Bronzebeard(1).zip`, its `curated/dump_Westfall.csv`) stands **30 worldforge pickups in
+Westfall**; twenty of them this world already stood within 0 to 15 yd of where the dump puts them.
+Of the ten it held that the zone did not, four are the Travel Sack and the Defias Magus Staff the
+review of the same day took out on purpose and four are books and chests this world's earlier passes
+had restored into other zones - the dump puts **Evil Chest** in The Dust Plains, **Light and Shadow
+Vol: 1** on Sentinel Hill and **Ancient Priest Tome** in Moonbrook, and all three stand **empty** -
+no loot row at all, on either realm - so they are left out: a pickup that gives nothing is scenery,
+not a pickup. `2026_09_25_55_worldforged_westfall_missing.sql` restores the dump's four remaining
+Westfall pickups, each with the loot row it already carries and none handing out a mystic scroll -
+the four armour pieces are class 4:
+
+* **Salma's Summer Wardrobe** (95777) at Saldean's Farm, handing out Salma's Summer Dress (515677) -
+  at the spot and with the rotation the map editor re-authored the same evening
+  (changeset `spawns_20260925_214907.sql`, quaternion -0.880449588 / 0.474139772);
+* **Unlocked Chest** (95809) at Saldean's Farm, handing out Field Trousers (450775);
+* **Heavy Stompers** (95817) at Stendel's Pond, handing out Heavy Boots (450721);
+* **Stolen Supplies** (518322) by Sentinel Hill, handing out Rehomed Belt (521266).
+
+An earlier draft of the file also stood **The Law of Light** (111000) in The Dagger Hills, handing
+out the item of its name; it is not wanted and the file as it now stands takes that spawn back out,
+so a database that ran the draft and one that runs only this file end in the same state. Every
+template and loot row is restated in the file, so it stands alone; it is idempotent, it was applied
+to the live database twice by hand and a third time through the worldserver's boot path
+(`Applying update ... '785987E'`), and `.scratch/wf24/check_missing.py` read every claim back:
+**61 assertions, none failing** - each spawn at its intended spot, Salma's Wardrobe carrying the
+editor's quaternion, each with its loot row and no mystic scroll among the items, the three empty
+objects gaining no new spawn anywhere, The Law of Light's guid gone, and the realm reading
+**99,435 gameobjects** and **2,781 worldforged pickups**. The zone's sheet follows: **44 rows**,
+the four restorations marked complete, and the items no pickup in this world hands out drop from
+sixteen to twelve.
 
 ### The nineteenth pass: Dun Morogh and Coldridge Valley, paired marker by marker
 

@@ -1,14 +1,17 @@
 {
   "schema": 1,
   "name": "Murderous Might raises Demonfire-spending abilities' damage by 25% (#1242)",
-  "contract": "Murderous Might 520290 reads 'Increases the base damage of abilities that spend Demonfire by 25%' (bindmysoul.com/conquest/talents.normalized.json, fetchedAt 2026-07-22T23:10:31.369Z; matches the client's own moa_description). Its own baked effect is a native aura 108 (SPELL_AURA_ADD_PCT_MODIFIER) SPELLMOD_DAMAGE classmask that overlaps only 3 of the 11 Demonfire-spending root spells enumerated by AscensionXoroth::Spender() (Skulltaker 800168, Melt 803334, Warbringer 802581) - and Hellstorm 802342 carries no family flags at all, so no classmask could ever cover every spender. AscensionXorothContracts.cpp nulls the native effect; xoroth_scaling::Factor() (used by the ModifySpellDamageTaken/ModifyPeriodicDamageAurasTick/ModifyMeleeDamage UnitScript hooks) now multiplies damage by (1 + Amount(520290)/100) for any Spender() spell when the caster has aura 520290, covering every spender uniformly regardless of classmask. Hellmaw 806965 is a self-contained Spender root (its direct SCHOOL_DAMAGE effect and its own periodic tick carry trigger_spell 0, so the hit's SpellInfo::Id is 806965 itself) chosen so the fix is exercised on a root the original broken classmask did not cover.",
+  "contract": "Murderous Might 520290 reads 'Increases the base damage of abilities that spend Demonfire by 25%' (bindmysoul.com/conquest/talents.normalized.json, fetchedAt 2026-07-22T23:10:31.369Z; matches the client's own moa_description). Its own baked effect is a native aura 108 (SPELL_AURA_ADD_PCT_MODIFIER) SPELLMOD_DAMAGE classmask that overlaps only 3 of the 11 Demonfire-spending root spells enumerated by AscensionXoroth::Spender() (Skulltaker 800168, Melt 803334, Warbringer 802581) - and Hellstorm 802342 carries no family flags at all, so no classmask could ever cover every spender. AscensionXorothContracts.cpp nulls the native effect; xoroth_scaling::Factor() (used by the ModifySpellDamageTaken/ModifyPeriodicDamageAurasTick/ModifyMeleeDamage UnitScript hooks) now multiplies damage by (1 + Amount(520290)/100) for any Spender() spell when the caster has aura 520290, covering every spender uniformly regardless of classmask. Hellmaw 806965 is a self-contained Spender root (its direct SCHOOL_DAMAGE effect and its own periodic tick carry trigger_spell 0, so the hit's SpellInfo::Id is 806965 itself) chosen so the fix is exercised on a root the original broken classmask did not cover. Hellmaw is a DmgClass 2 (melee) spell with its own miss, dodge, parry and crit rolls against the level 60 dummy, so a missed untalented hit left the baseline at zero and a critical strike on only one of the two hits would move the ratio by 2x. The knight therefore gets melee hit, expertise and melee crit rating 10000: both hits land and both crit, and the shared crit multiplier cancels in the ratio.",
   "timeout_ms": 90000,
   "players": [
     {
       "id": "knight",
       "race": 1,
       "class": 17,
-      "level": 60
+      "level": 60,
+      "melee_hit_rating": 10000,
+      "expertise_rating": 10000,
+      "melee_crit_rating": 10000
     }
   ],
   "creatures": [

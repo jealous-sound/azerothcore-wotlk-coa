@@ -14950,6 +14950,8 @@ void Player::LearnPetTalent(ObjectGuid petGuid, uint32 talentId, uint32 talentRa
 
     // update free talent points
     pet->SetFreeTalentPoints(CurTalentPoints - (talentRank - curtalent_maxrank + 1));
+    if (pet->HasSpell(spellid))
+        sScriptMgr->OnPlayerLearnPetTalent(this, pet, spellid);
 }
 
 void Player::AddKnownCurrency(uint32 itemId)

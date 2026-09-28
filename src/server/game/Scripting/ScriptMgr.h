@@ -63,7 +63,9 @@ class InstanceScript;
 class Item;
 class Map;
 class MotionTransport;
+class Object;
 class OutdoorPvP;
+class Pet;
 class Player;
 class Quest;
 class ScriptMgr;
@@ -83,6 +85,7 @@ class SpellScriptLoader;
 
 struct AchievementCriteriaData;
 struct AuctionEntry;
+struct Mail;
 struct Condition;
 struct ConditionSourceInfo;
 struct DungeonProgressionRequirements;
@@ -510,6 +513,15 @@ public: /* PlayerScript */
     void OnPlayerGetReputationPriceDiscount(Player const* player, FactionTemplateEntry const* factionTemplate, float& discount);
     void OnPlayerLearnTaxiNode(Player const* player, uint32 nodeId);
     void OnPlayerBeforeGetLevelForXPGain(Player const* player, uint8& level);
+    void OnPlayerLearnPetTalent(Player* player, Pet* pet, uint32 spellId);
+    void OnPlayerLearnTrainerSpell(Player* player, Creature* trainer, uint32 spellId);
+    void OnPlayerTakeMailItem(Player* player, Mail const* mail, uint32 itemEntry);
+    bool OnPlayerCanTakeQuest(Player const* player, Quest const* quest);
+    bool OnPlayerCanRewardQuest(Player const* player, Quest const* quest);
+    bool OnPlayerQuestGiverChooseReward(Player* player, Object* questGiver, Quest const* quest, uint32 reward);
+    bool OnPlayerRefreshQuestGiver(Player* player, Object* questGiver, Quest const* quest);
+    void OnPlayerCoAProgress(Player* player, CoAProgressEvent event, uint32 value);
+    std::optional<uint32> OnPlayerGetGameModeMask(Player const* player);
 
     // Anti cheat
     void AnticheatSetCanFlybyServer(Player* player, bool apply);

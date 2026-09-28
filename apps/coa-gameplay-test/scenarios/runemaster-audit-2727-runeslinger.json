@@ -1,0 +1,3292 @@
+{
+  "schema": 1,
+  "name": "Runemaster Runeslinger procs 20% spell haste for 5s off direct damage (#2727)",
+  "contract": [
+    "Runeslinger 705550 Effect0 is SPELL_AURA_PROC_TRIGGER_SPELL, ProcChance 5, trigger 520760",
+    "(SPELL_AURA_HASTE_SPELLS, BasePoints 19/DieSides 1 = +20%, DurationIndex 28 = 5000ms). Spell.dbc",
+    "ProcFlags is 0 and, before the fix, no spell_proc row existed, so it never fired. After the fix",
+    "(spell_proc row 0x00010154, the same generic 'direct damage dealt' mask already used for Earth",
+    "Engraving 653221), repeated Primordial Blast hits must eventually proc 520760, dropping",
+    "cast_speed_multiplier to ~1/1.2 (0.833) for 5 sec. 150 trials at 5% bound the flake rate to",
+    "0.95^150 (about 0.045%) of seeing zero procs."
+  ],
+  "timeout_ms": 180000,
+  "location": {
+    "map": 0,
+    "x": -8949.95,
+    "y": -132.493,
+    "z": 83.5312,
+    "o": 0
+  },
+  "players": [
+    {
+      "id": "rm",
+      "race": 1,
+      "class": 32,
+      "level": 80,
+      "spell_hit_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "dummy",
+      "owner": "rm",
+      "entry": 36,
+      "level": 80,
+      "health": 5000000,
+      "distance": 10
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI settle",
+      "ms": 3000
+    },
+    {
+      "action": "learn",
+      "actor": "rm",
+      "spell": 705550
+    },
+    {
+      "action": "learn",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: Runeslinger is active",
+      "actor": "rm",
+      "metric": "aura",
+      "spell": 705550,
+      "equals": 1,
+      "within_ms": 1500
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: no haste proc before any damage",
+      "actor": "rm",
+      "metric": "aura",
+      "spell": 520760,
+      "equals": 0
+    },
+    {
+      "action": "snapshot",
+      "actor": "rm",
+      "metric": "cast_speed_multiplier",
+      "save_as": "cast_speed_base"
+    },
+    {
+      "action": "set_aura",
+      "label": "Fixture: mana pool for the repeated Primordial Blast casts",
+      "actor": "rm",
+      "spell": 10040,
+      "stacks": 3
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: the mana fixture landed",
+      "actor": "rm",
+      "metric": "max_power",
+      "power": 0,
+      "min": 20000,
+      "within_ms": 3000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "assert",
+      "label": "CONTRACT: repeated direct damage eventually procs Runeslinger",
+      "actor": "rm",
+      "metric": "spell_proc_count",
+      "spell": 705550,
+      "min": 1
+    },
+    {
+      "action": "cancel_aura",
+      "label": "The trials above already proved the proc fires at least once; a natural proc landing far earlier in the 150-cast loop would have expired its 5 sec duration long before this point, so re-apply it deterministically to verify its own mechanics.",
+      "actor": "rm",
+      "spell": 520760
+    },
+    {
+      "action": "set_aura",
+      "actor": "rm",
+      "spell": 520760,
+      "stacks": 1
+    },
+    {
+      "action": "assert",
+      "label": "CONTRACT: the haste buff is active",
+      "actor": "rm",
+      "metric": "aura",
+      "spell": 520760,
+      "equals": 1,
+      "within_ms": 500
+    },
+    {
+      "action": "assert",
+      "label": "CONTRACT: the buff grants +20% spell haste (cast_speed_multiplier drops ~1/1.2)",
+      "actor": "rm",
+      "metric": "cast_speed_multiplier",
+      "min": 0.82,
+      "max": 0.85
+    },
+    {
+      "action": "assert",
+      "label": "CONTRACT: the haste buff lasts 5 sec",
+      "actor": "rm",
+      "metric": "aura_duration_ms",
+      "spell": 520760,
+      "min": 3500,
+      "max": 5000
+    }
+  ]
+}

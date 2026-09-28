@@ -1053,6 +1053,56 @@ void ScriptMgr::OnPlayerSpellCooldownCalculated(Player* player, SpellInfo const*
     CALL_ENABLED_HOOKS(PlayerScript, PLAYERHOOK_ON_SPELL_COOLDOWN_CALCULATED, script->OnPlayerSpellCooldownCalculated(player, spellInfo, spell, recoveryMs));
 }
 
+void ScriptMgr::OnPlayerLearnPetTalent(Player* player, Pet* pet, uint32 spellId)
+{
+    CALL_ENABLED_HOOKS(PlayerScript, PLAYERHOOK_ON_LEARN_PET_TALENT, script->OnPlayerLearnPetTalent(player, pet, spellId));
+}
+
+void ScriptMgr::OnPlayerLearnTrainerSpell(Player* player, Creature* trainer, uint32 spellId)
+{
+    CALL_ENABLED_HOOKS(PlayerScript, PLAYERHOOK_ON_LEARN_TRAINER_SPELL, script->OnPlayerLearnTrainerSpell(player, trainer, spellId));
+}
+
+void ScriptMgr::OnPlayerTakeMailItem(Player* player, Mail const* mail, uint32 itemEntry)
+{
+    CALL_ENABLED_HOOKS(PlayerScript, PLAYERHOOK_ON_TAKE_MAIL_ITEM, script->OnPlayerTakeMailItem(player, mail, itemEntry));
+}
+
+bool ScriptMgr::OnPlayerCanTakeQuest(Player const* player, Quest const* quest)
+{
+    CALL_ENABLED_BOOLEAN_HOOKS(PlayerScript, PLAYERHOOK_CAN_TAKE_QUEST, !script->OnPlayerCanTakeQuest(player, quest));
+}
+
+bool ScriptMgr::OnPlayerCanRewardQuest(Player const* player, Quest const* quest)
+{
+    CALL_ENABLED_BOOLEAN_HOOKS(PlayerScript, PLAYERHOOK_CAN_REWARD_QUEST, !script->OnPlayerCanRewardQuest(player, quest));
+}
+
+bool ScriptMgr::OnPlayerQuestGiverChooseReward(Player* player, Object* questGiver, Quest const* quest, uint32 reward)
+{
+    CALL_ENABLED_BOOLEAN_HOOKS_WITH_DEFAULT_FALSE(PlayerScript, PLAYERHOOK_ON_QUEST_GIVER_CHOOSE_REWARD, script->OnPlayerQuestGiverChooseReward(player, questGiver, quest, reward));
+}
+
+bool ScriptMgr::OnPlayerRefreshQuestGiver(Player* player, Object* questGiver, Quest const* quest)
+{
+    CALL_ENABLED_BOOLEAN_HOOKS_WITH_DEFAULT_FALSE(PlayerScript, PLAYERHOOK_ON_REFRESH_QUEST_GIVER, script->OnPlayerRefreshQuestGiver(player, questGiver, quest));
+}
+
+void ScriptMgr::OnPlayerCoAProgress(Player* player, CoAProgressEvent event, uint32 value)
+{
+    CALL_ENABLED_HOOKS(PlayerScript, PLAYERHOOK_ON_COA_PROGRESS, script->OnPlayerCoAProgress(player, event, value));
+}
+
+std::optional<uint32> ScriptMgr::OnPlayerGetGameModeMask(Player const* player)
+{
+    uint32 mask = 0;
+    for (auto const& script : ScriptRegistry<PlayerScript>::EnabledHooks[PLAYERHOOK_ON_GET_GAME_MODE_MASK])
+        if (script->OnPlayerGetGameModeMask(player, mask))
+            return mask;
+
+    return std::nullopt;
+}
+
 PlayerScript::PlayerScript(char const* name, std::vector<uint16> enabledHooks)
     : ScriptObject(name, PLAYERHOOK_END)
 {

@@ -7,6 +7,7 @@
 #ifndef COA_CHALLENGES_REVIEW_H
 #define COA_CHALLENGES_REVIEW_H
 
+#include "AscensionCoAConfig.h"
 #include "ScriptMgr.h"
 #include "Player.h"
 #include "Bag.h"
@@ -321,7 +322,7 @@ void FlushFailureBroadcasts();
 void AppendConfigString(WorldPacket& data, std::string const& key);
 std::string HexDump(WorldPacket const& packet);
 void EnsureTables();
-void SendConfigBatch(Player* player);
+void AppendClientConfig(AscensionClientConfig& config);
 GameModeDef const* FindGameMode(std::string const& name);
 char const* GameModeNameForBit(uint32 bit);
 bool GameModesEnabled();
@@ -538,6 +539,8 @@ void FailSharedFateHolders(Group* group, ObjectGuid extraGuid);
 void HandlePlayerDeath(Player* player);
 uint32 CraftedItemRarity(SkillLineAbilityEntry const* ability);
 void GrantProfessionXP(Player* member, uint32 rarityMult);
+Player* GetPlayerOwner(Creature* creature);
+void ApplyActiveChallengeSpellsToCreature(Player* player, Creature* creature);
 } // namespace CoAChallenges
 
 #endif // COA_CHALLENGES_REVIEW_H

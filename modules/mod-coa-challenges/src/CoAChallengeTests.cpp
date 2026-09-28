@@ -2219,6 +2219,56 @@ namespace CoAChallenges
         return ok;
     }
 
+    // GM-only (`.coa pettest <player>`): regression test for Issue #4343.
+    // Verifies that when a player activates a trial with a trial aura (e.g. Nightmare 61, aura 93132),
+    // any creature/pet summoned by the player receives the trial aura dynamically, and when the trial
+    // is reset, the aura is cleanly removed from both player and summon.
+    bool Test_PetTrialAuras(Player* player)
+    {
+        if (!player || !player->IsInWorld())
+            return false;
+
+        ResetCharacterForTest(player);
+        uint32 const cid = 61; // Nightmare
+        uint32 const expectedAura = 93132;
+        ActivateChallengeForTest(player, cid);
+
+        if (!player->HasAura(expectedAura))
+        {
+            SendTestLine(player, "  pet_trial_auras: player failed to receive trial aura {}", expectedAura);
+            ResetCharacterForTest(player);
+            return false;
+        }
+
+        // Spawn a temporary summon owned by the player
+        Position pos = player->GetPosition();
+        TempSummon* summon = player->GetMap()->SummonCreature(
+            50075, // Generic summonable creature
+            pos, nullptr, 15000, player);
+
+        if (!summon)
+        {
+            SendTestLine(player, "  pet_trial_auras: could not summon test creature");
+            ResetCharacterForTest(player);
+            return false;
+        }
+
+        bool const hasAura = summon->HasAura(expectedAura);
+        SendTestLine(player, "  pet_trial_auras: summon '{}' (GUID {}) aura {} -> {}",
+            summon->GetName(), summon->GetGUID().ToString(), expectedAura, hasAura ? "PASS" : "FAIL");
+
+        // Now test trial reset - aura must be stripped from both player and summon
+        ResetChallengeState(player);
+        bool const playerLost = !player->HasAura(expectedAura);
+        bool const summonLost = !summon->HasAura(expectedAura);
+        SendTestLine(player, "  pet_trial_auras: aura stripped on reset -> player: {}, summon: {}",
+            playerLost ? "PASS" : "FAIL", summonLost ? "PASS" : "FAIL");
+
+        summon->UnSummon();
+        ResetCharacterForTest(player);
+        return hasAura && playerLost && summonLost;
+    }
+
     // GM-only (`.coa auditdefs <player>`): data-integrity sweep over EVERY
     // definition (all ids): rule/condition/objective tokens are known and
     // enforced, aura spells resolve to a SpellInfo, reward items/achievements

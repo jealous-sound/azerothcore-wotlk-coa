@@ -142,6 +142,7 @@ class spell_ascension_closest_resurrection : public SpellScript
         player->SpawnCorpseBones();
         player->TeleportTo(destination->map, destination->x, destination->y, destination->z,
             destination->orientation, TELE_TO_SPELL);
+        sScriptMgr->OnPlayerCoAProgress(player, CoAProgressEvent::ClosestResurrection, GetSpellInfo()->Id);
     }
 
     void Register() override

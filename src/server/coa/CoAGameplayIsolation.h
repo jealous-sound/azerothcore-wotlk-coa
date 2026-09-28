@@ -16,6 +16,7 @@ namespace CoAGameplay
 {
     inline constexpr uint32 MaxLanes = 15;
     inline constexpr uint32 FirstConcurrentLaneBit = 16;
+    inline constexpr uint32 FixturePhaseMask = 1u << 30;
 
     uint32 LanePhase(uint32 lane);
     uint32 LanePhases(uint32 lanes);

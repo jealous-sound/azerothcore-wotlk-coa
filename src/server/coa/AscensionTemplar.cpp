@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <memory>
 #include <mutex>
+#include <set>
 #include <unordered_map>
 
 namespace AscensionTemplar
@@ -127,9 +128,18 @@ void ReduceLibrams(Player* player, int32 milliseconds)
 }
 void Replacement(Player* player, uint32 root, uint32 replacement)
 {
+    if (replacement && !player->HasActiveSpell(replacement))
+        player->learnSpell(replacement, true);
+    std::set<uint32> lent;
     for (auto const& pair : player->GetSpellMap())
         if (player->HasSpell(pair.first) && Named(sSpellMgr->GetSpellInfo(pair.first), root))
+        {
+            if (!replacement)
+                lent.insert(player->GetTemporarySpellReplacement(pair.first));
             player->SetTemporarySpellReplacement(pair.first, replacement);
+        }
+    for (uint32 id : lent)
+        player->removeSpell(id, SPEC_MASK_ALL, true);
 }
 void ClearOaths(Player* player)
 {
@@ -202,8 +212,9 @@ void Zealotry(Player* player, Unit* target, bool repeat)
     if (!target || !player->IsValidAttackTarget(target))
         return;
     Cast(player, target, 801450);
-    if (!repeat && ((player->HasAura(572554) && roll_chance_i(10)) ||
-                    (!player->HasAura(572554) && player->HasAura(572548) && roll_chance_i(10))))
+    uint32 sermon = player->HasAura(572554) ? 572554 : player->HasAura(572548) ? 572548 : 0;
+    SpellInfo const* info = sermon ? sSpellMgr->GetSpellInfo(sermon) : nullptr;
+    if (!repeat && info && roll_chance_i(info->ProcChance))
         Zealotry(player, target, true);
 }
 uint32 HopeCount(Player* player)

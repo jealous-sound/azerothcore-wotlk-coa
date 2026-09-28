@@ -22,6 +22,8 @@ enum RunemasterSecondarySpells : uint32
     SPELL_RIFTBLADE_COUNTER = 500468,
     SPELL_RIFTBLADE_MANA = 500466,
     SPELL_WATER_AMOUNT = 802645,
+    SPELL_LEYSTONE_SPRINGS = 300581,
+    SPELL_LEYSTONE_MANA = 520866,
     SPELL_PRIMORDIAL_BLAST = 800732,
     SPELL_SMOLDER = 801087,
     SPELL_WARPDAGGER = 500287,
@@ -36,9 +38,10 @@ enum RunemasterSecondarySpells : uint32
     SPELL_ARCANE_SIGIL = 805380,
     SPELL_ARCANE_SIGIL_DOT = 807819,
     SPELL_ARCANE_SIGIL_SILENCE = 808020,
+    SPELL_ETERNAL_MAGIC = 806698,
+    SPELL_ETERNAL_MAGIC_CHARGES = 3,
     SPELL_FIRE_ENGRAVING = 653211,
-    SPELL_FIREBRAND = 653210,
-    SPELL_FIREBRAND_EXPLOSION = 653212
+    SPELL_FIREBRAND = 653210
 };
 
 bool HasTattoo(Player* player, uint32 root)
@@ -107,7 +110,16 @@ public:
     void ModifySpellEffectBaseValue(Unit const* caster, SpellInfo const* info, uint8 index, float& value) override
     {
         Player* player = caster ? const_cast<Unit*>(caster)->ToPlayer() : nullptr;
-        if (!player || player->getClass() != CLASS_SPIRIT_MAGE || info->Id != SPELL_RIFTBLADE_MANA || index != EFFECT_0)
+        if (!player || player->getClass() != CLASS_SPIRIT_MAGE || index != EFFECT_0)
+            return;
+        if (info->Id == SPELL_LEYSTONE_MANA)
+        {
+            AuraEffect const* springs = player->GetAuraEffect(SPELL_LEYSTONE_SPRINGS, EFFECT_1, player->GetGUID());
+            if (springs && HasTattoo(player, SPELL_WATER_TATTOO))
+                AddPct(value, springs->GetAmount());
+            return;
+        }
+        if (info->Id != SPELL_RIFTBLADE_MANA)
             return;
         value += std::max(0.0f, player->GetTotalAttackPowerValue(BASE_ATTACK)) * 0.3f;
         if (HasTattoo(player, SPELL_WATER_TATTOO))
@@ -135,7 +147,8 @@ public:
             if (root == SPELL_PRIMORDIAL_BLAST || root == SPELL_SMOLDER)
             {
                 if (uint32 rank = KnownRank(player, SPELL_RUNEBLADE))
-                    player->RestoreSpellCharge(rank);
+                    player->RestoreSpellCharge(rank, root == SPELL_PRIMORDIAL_BLAST &&
+                        player->HasAura(SPELL_ETERNAL_MAGIC, player->GetGUID()) ? SPELL_ETERNAL_MAGIC_CHARGES : 1);
             }
             else if (root == SPELL_RUNEBLADE)
             {
@@ -258,27 +271,6 @@ class aura_ascension_runemaster_fire_engraving : public AuraScript
     }
 };
 
-class aura_ascension_runemaster_firebrand : public AuraScript
-{
-    PrepareAuraScript(aura_ascension_runemaster_firebrand);
-
-    void Explode(AuraEffect const*, AuraEffectHandleModes)
-    {
-        Unit* caster = GetCaster();
-        Unit* target = GetTarget();
-        if (GetTargetApplication()->GetRemoveMode() != AURA_REMOVE_BY_EXPIRE || !caster || !target->IsAlive())
-            return;
-        for (uint8 stack = GetStackAmount(); stack > 0; --stack)
-            caster->CastSpell(target, SPELL_FIREBRAND_EXPLOSION, true);
-    }
-
-    void Register() override
-    {
-        AfterEffectRemove += AuraEffectRemoveFn(aura_ascension_runemaster_firebrand::Explode, EFFECT_0,
-                                                SPELL_AURA_PERIODIC_DAMAGE, AURA_EFFECT_HANDLE_REAL);
-    }
-};
-
 class runemaster_secondary_metadata : public GlobalScript
 {
 public:
@@ -314,5 +306,4 @@ void AddSC_AscensionRunemasterSecondary()
     new runemaster_secondary_metadata();
     RegisterSpellScript(aura_ascension_arcane_palm_sigil);
     RegisterSpellScript(aura_ascension_runemaster_fire_engraving);
-    RegisterSpellScript(aura_ascension_runemaster_firebrand);
 }

@@ -16,6 +16,7 @@
 namespace
 {
 using namespace AscensionXoroth;
+constexpr uint32 SPELL_FLAMES_OF_XOROTH_VISUAL = 801003;
 constexpr uint32 selected[] = {680197, 680203, 681184, 520021, 802617, 802618, 524913, 680729, 712294};
 bool Select(SpellInfo const* info, uint32 id)
 {
@@ -122,6 +123,28 @@ void ConsumeSelected(Player* player, Spell* spell)
                     aura->Remove();
             }
 }
+bool Flayable(Unit* unit)
+{
+    Creature* corpse = unit ? unit->ToCreature() : nullptr;
+    return corpse && corpse->getDeathState() == DeathState::Corpse &&
+           (corpse->GetCreatureType() == CREATURE_TYPE_HUMANOID || corpse->GetCreatureType() == CREATURE_TYPE_BEAST ||
+            corpse->GetCreatureType() == CREATURE_TYPE_DEMON);
+}
+float FlayRange(Player* player, Spell* spell)
+{
+    return std::max(spell->GetSpellInfo()->GetMaxRange(false, player, spell), INTERACTION_DISTANCE);
+}
+Creature* NearestFlayable(Player* player, float range)
+{
+    std::list<Creature*> corpses;
+    player->GetDeadCreatureListInGrid(corpses, range, true);
+    Creature* nearest = nullptr;
+    for (Creature* corpse : corpses)
+        if (Flayable(corpse) && player->IsWithinLOSInMap(corpse) &&
+            (!nearest || player->GetExactDistSq(corpse) < player->GetExactDistSq(nearest)))
+            nearest = corpse;
+    return nearest;
+}
 class xoroth_casts : public AllSpellScript
 {
   public:
@@ -147,14 +170,12 @@ class xoroth_casts : public AllSpellScript
             result = SPELL_FAILED_CASTER_AURASTATE;
         if (info->Id == 801042)
         {
-            Unit* unit = spell->m_targets.GetUnitTarget();
-            Creature* corpse = unit ? unit->ToCreature() : nullptr;
+            if (!Flayable(spell->m_targets.GetUnitTarget()))
+                if (Creature* corpse = NearestFlayable(player, FlayRange(player, spell)))
+                    spell->m_targets.SetUnitTarget(corpse);
             if (player->IsInCombat())
                 result = SPELL_FAILED_AFFECTING_COMBAT;
-            else if (!corpse || corpse->getDeathState() != DeathState::Corpse ||
-                     (corpse->GetCreatureType() != CREATURE_TYPE_HUMANOID &&
-                      corpse->GetCreatureType() != CREATURE_TYPE_BEAST &&
-                      corpse->GetCreatureType() != CREATURE_TYPE_DEMON))
+            else if (!Flayable(spell->m_targets.GetUnitTarget()))
                 result = SPELL_FAILED_BAD_TARGETS;
         }
     }
@@ -164,10 +185,8 @@ class xoroth_casts : public AllSpellScript
         if (!player)
             return;
         uint32 fire = State(player).fire, id = aura->GetId();
-        if (id == 801064)
-            duration = 3000 * fire;
-        if (id == 801063)
-            duration = 3000 * fire;
+        if (id == 801064 || id == 801063)
+            duration = Amount(500906, EFFECT_2, player) * int32(fire);
         if (id == 801017)
             duration *= 1 + fire;
         if (id == 803889)
@@ -420,6 +439,8 @@ class xoroth_casts : public AllSpellScript
             }
             if (id == 520292)
                 Reduce(player, id, 3000 * fire);
+            if (Named(info, 801059))
+                Cast(player, player, SPELL_FLAMES_OF_XOROTH_VISUAL);
             if (id == 802342)
                 Cast(player, player, 801017);
             if (id == 805679)

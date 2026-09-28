@@ -1,42 +1,43 @@
 {
  "schema": 1,
- "name": "Titan Scroll: Eonar kill hook casts the ground heal in the open world",
- "contract": "With aura 993957 active, mod-coa-titan-scrolls' OnPlayerCreatureKill hook rolls 10% per kill and, outside a capital city, casts spell 993963 (Eonar's Blessing) at the kill location with BASE_POINT0/1 set to a flat 5% of the killed creature's max health per tick (matches the buff's own native tooltip; the buff does not stack). The spell ticks 5 times over its duration, so the total delivered is 25% of the killed creature's max health. ProcFlags is 0 on 993957 in the DBC, so this can only be a script cast, never a native aura proc — spell_cast_count (not spell_proc_count) is the correct observation.",
+ "name": "Titan Scroll: Eonar kill hook skips the kills of player-made summons in the open world",
+ "contract": "With aura 993957 active, mod-coa-titan-scrolls' OnPlayerCreatureKill hook returns for a summoned, critter or totem victim before its capital check and its 10% roll, so such a kill never casts 993963 (Eonar's Blessing). coa-gameplay-test fixtures are TempSummons the player summoned, so eight buffed one-hit kills in Elwynn Forest, which is not a capital, must complete Eonar's Blessing zero times whatever the roll. The positive proc, its 10% chance, the cast at the corpse and the heal of 5% of the maximum health the killer is shown (the real maximum when there is no per-character view) are covered by apps/coa-tests/titan_scroll_eonar, which forces the roll both ways.",
  "timeout_ms": 120000,
  "players": [
-  { "id": "killer", "race": 1, "class": 1, "level": 60 }
+  { "id": "killer", "race": 1, "class": 1, "level": 60, "melee_hit_rating": 10000, "expertise_rating": 10000 }
  ],
  "location": { "map": 0, "x": -9095.0, "y": -105.0, "z": 71.0, "o": 0.0 },
  "creatures": [
-  { "id": "unbuffed_prey", "owner": "killer", "entry": 68, "health": 1000, "level": 1 },
-  { "id": "prey1", "owner": "killer", "entry": 68, "health": 1000, "level": 1 },
-  { "id": "prey2", "owner": "killer", "entry": 68, "health": 1000, "level": 1 },
-  { "id": "prey3", "owner": "killer", "entry": 68, "health": 1000, "level": 1 },
-  { "id": "prey4", "owner": "killer", "entry": 68, "health": 1000, "level": 1 },
-  { "id": "prey5", "owner": "killer", "entry": 68, "health": 1000, "level": 1 },
-  { "id": "prey6", "owner": "killer", "entry": 68, "health": 1000, "level": 1 },
-  { "id": "prey7", "owner": "killer", "entry": 68, "health": 1000, "level": 1 }
+  { "id": "prey1", "owner": "killer", "entry": 68, "health": 1, "level": 60 },
+  { "id": "prey2", "owner": "killer", "entry": 68, "health": 1, "level": 60 },
+  { "id": "prey3", "owner": "killer", "entry": 68, "health": 1, "level": 60 },
+  { "id": "prey4", "owner": "killer", "entry": 68, "health": 1, "level": 60 },
+  { "id": "prey5", "owner": "killer", "entry": 68, "health": 1, "level": 60 },
+  { "id": "prey6", "owner": "killer", "entry": 68, "health": 1, "level": 60 },
+  { "id": "prey7", "owner": "killer", "entry": 68, "health": 1, "level": 60 },
+  { "id": "prey8", "owner": "killer", "entry": 68, "health": 1, "level": 60 }
  ],
  "steps": [
-  { "action": "attack", "actor": "killer", "target": "unbuffed_prey" },
-  { "action": "wait", "ms": 1500 },
-  { "action": "assert", "label": "No buff active yet: killing must never cast the ground heal (deterministic, no RNG involved when the aura is absent)", "actor": "killer", "metric": "spell_cast_count", "spell": 993963, "equals": 0 },
+  { "action": "wait", "label": "Let login and zone updates settle before the fixture buff", "ms": 2000 },
   { "action": "set_aura", "actor": "killer", "spell": 993957, "stacks": 1 },
   { "action": "attack", "actor": "killer", "target": "prey1" },
-  { "action": "wait", "ms": 1000 },
+  { "action": "assert", "label": "Buffed kill 1 lands", "actor": "prey1", "metric": "alive", "equals": 0, "within_ms": 6000 },
   { "action": "attack", "actor": "killer", "target": "prey2" },
-  { "action": "wait", "ms": 1000 },
+  { "action": "assert", "label": "Buffed kill 2 lands", "actor": "prey2", "metric": "alive", "equals": 0, "within_ms": 6000 },
   { "action": "attack", "actor": "killer", "target": "prey3" },
-  { "action": "wait", "ms": 1000 },
+  { "action": "assert", "label": "Buffed kill 3 lands", "actor": "prey3", "metric": "alive", "equals": 0, "within_ms": 6000 },
   { "action": "attack", "actor": "killer", "target": "prey4" },
-  { "action": "wait", "ms": 1000 },
+  { "action": "assert", "label": "Buffed kill 4 lands", "actor": "prey4", "metric": "alive", "equals": 0, "within_ms": 6000 },
   { "action": "attack", "actor": "killer", "target": "prey5" },
-  { "action": "wait", "ms": 1000 },
+  { "action": "assert", "label": "Buffed kill 5 lands", "actor": "prey5", "metric": "alive", "equals": 0, "within_ms": 6000 },
   { "action": "attack", "actor": "killer", "target": "prey6" },
-  { "action": "wait", "ms": 1000 },
+  { "action": "assert", "label": "Buffed kill 6 lands", "actor": "prey6", "metric": "alive", "equals": 0, "within_ms": 6000 },
   { "action": "attack", "actor": "killer", "target": "prey7" },
-  { "action": "wait", "ms": 1000 },
-  { "action": "assert", "label": "At least one of 7 buffed kills at 10% procced the ground heal (P(0 successes) = 0.9^7 ~= 48%; if this flakes, raise creature count rather than the chance)", "actor": "killer", "metric": "spell_cast_count", "spell": 993963, "min": 1 },
-  { "action": "assert", "label": "Heal-per-tick lands on the killer (not a nearby enemy): flat 5% of the killed creature's 1000 max health per tick (1000*5/100=50)", "actor": "killer", "metric": "aura_amount", "spell": 993963, "effect": 0, "equals": 50, "within_ms": 2000 }
+  { "action": "assert", "label": "Buffed kill 7 lands", "actor": "prey7", "metric": "alive", "equals": 0, "within_ms": 6000 },
+  { "action": "attack", "actor": "killer", "target": "prey8" },
+  { "action": "assert", "label": "Buffed kill 8 lands", "actor": "prey8", "metric": "alive", "equals": 0, "within_ms": 6000 },
+  { "action": "wait", "label": "Let any blessing cast from the last kill complete", "ms": 2000 },
+  { "action": "assert", "label": "The Eonar buff stayed on through every kill", "actor": "killer", "metric": "aura", "spell": 993957, "equals": 1 },
+  { "action": "assert", "label": "No kill of a player-made summon cast Eonar's Blessing", "actor": "killer", "metric": "spell_cast_count", "spell": 993963, "equals": 0 }
  ]
 }

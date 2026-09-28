@@ -1,0 +1,415 @@
+{
+  "schema": 1,
+  "name": "Reaper Harvest Time preserves Soul Infusion at 50%, not always",
+  "contract": [
+    "Harvest Time 803995 promises abilities requiring Soul Infusion have a 50% chance to not consume the",
+    "effect. AscensionCompat.cpp HarvestTimePreserves previously returned true unconditionally whenever the",
+    "aura was present, so Soul Infusion Reaped Soul Remover 561290 was never cast while Harvest Time was",
+    "active. Soulslam 504014 has CasterAuraSpell 803031 (Soul Infusion) and is not in",
+    "REAPER_ALL_SOUL_CONSUMERS, so it exercises the requiresSoulInfusion/HarvestTimePreserves path.",
+    "Soulslam is a level-20 class kit spell (AscensionCustomClassData.h) gated by CoA.AutoProgression",
+    "(off by default per coa.conf.dist), so it must be learned explicitly rather than assumed from the",
+    "character's level; a prior run recorded spell_active=false on the bare cast, which is the harness's",
+    "cast-the-owned-rank wall (the spell was simply never learned), not a Soulslam-specific defect.",
+    "Across 16 independent casts with Soul Infusion re-applied before each one, a 50% preserve chance",
+    "(read from Harvest Time's own DBC effect 1, EffectBasePoints -51) makes at least one consumption and",
+    "at least one preservation overwhelmingly likely (~2^-15 to fail either bound by chance); the pre-fix",
+    "code always preserves (0 consumptions), which the min bound rejects."
+  ],
+  "players": [
+    {
+      "id": "reaper",
+      "race": 2,
+      "class": 30,
+      "level": 60
+    }
+  ],
+  "creatures": [
+    {
+      "id": "enemy",
+      "owner": "reaper",
+      "entry": 36,
+      "level": 60,
+      "distance": 6,
+      "health": 1000000
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "reaper",
+      "spell": 803995
+    },
+    {
+      "action": "cast",
+      "actor": "reaper",
+      "spell": 803995,
+      "target": "reaper",
+      "label": "Harvest Time is not DBC-flagged passive (Attributes 0), so learning it alone does not apply its aura"
+    },
+    {
+      "action": "assert",
+      "label": "Harvest Time aura active",
+      "actor": "reaper",
+      "metric": "aura",
+      "spell": 803995,
+      "equals": 1,
+      "within_ms": 3000
+    },
+    {
+      "action": "learn",
+      "actor": "reaper",
+      "spell": 504014,
+      "label": "Soulslam is a class kit spell gated by CoA.AutoProgression (off by default); GiveLevel alone does not grant it"
+    },
+    {
+      "action": "set_aura",
+      "actor": "reaper",
+      "spell": 803031,
+      "stacks": 1
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "reaper",
+      "spell": 504014
+    },
+    {
+      "action": "cast",
+      "actor": "reaper",
+      "spell": 504014,
+      "target": "enemy"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "set_aura",
+      "actor": "reaper",
+      "spell": 803031,
+      "stacks": 1
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "reaper",
+      "spell": 504014
+    },
+    {
+      "action": "cast",
+      "actor": "reaper",
+      "spell": 504014,
+      "target": "enemy"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "set_aura",
+      "actor": "reaper",
+      "spell": 803031,
+      "stacks": 1
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "reaper",
+      "spell": 504014
+    },
+    {
+      "action": "cast",
+      "actor": "reaper",
+      "spell": 504014,
+      "target": "enemy"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "set_aura",
+      "actor": "reaper",
+      "spell": 803031,
+      "stacks": 1
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "reaper",
+      "spell": 504014
+    },
+    {
+      "action": "cast",
+      "actor": "reaper",
+      "spell": 504014,
+      "target": "enemy"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "set_aura",
+      "actor": "reaper",
+      "spell": 803031,
+      "stacks": 1
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "reaper",
+      "spell": 504014
+    },
+    {
+      "action": "cast",
+      "actor": "reaper",
+      "spell": 504014,
+      "target": "enemy"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "set_aura",
+      "actor": "reaper",
+      "spell": 803031,
+      "stacks": 1
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "reaper",
+      "spell": 504014
+    },
+    {
+      "action": "cast",
+      "actor": "reaper",
+      "spell": 504014,
+      "target": "enemy"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "set_aura",
+      "actor": "reaper",
+      "spell": 803031,
+      "stacks": 1
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "reaper",
+      "spell": 504014
+    },
+    {
+      "action": "cast",
+      "actor": "reaper",
+      "spell": 504014,
+      "target": "enemy"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "set_aura",
+      "actor": "reaper",
+      "spell": 803031,
+      "stacks": 1
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "reaper",
+      "spell": 504014
+    },
+    {
+      "action": "cast",
+      "actor": "reaper",
+      "spell": 504014,
+      "target": "enemy"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "set_aura",
+      "actor": "reaper",
+      "spell": 803031,
+      "stacks": 1
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "reaper",
+      "spell": 504014
+    },
+    {
+      "action": "cast",
+      "actor": "reaper",
+      "spell": 504014,
+      "target": "enemy"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "set_aura",
+      "actor": "reaper",
+      "spell": 803031,
+      "stacks": 1
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "reaper",
+      "spell": 504014
+    },
+    {
+      "action": "cast",
+      "actor": "reaper",
+      "spell": 504014,
+      "target": "enemy"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "set_aura",
+      "actor": "reaper",
+      "spell": 803031,
+      "stacks": 1
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "reaper",
+      "spell": 504014
+    },
+    {
+      "action": "cast",
+      "actor": "reaper",
+      "spell": 504014,
+      "target": "enemy"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "set_aura",
+      "actor": "reaper",
+      "spell": 803031,
+      "stacks": 1
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "reaper",
+      "spell": 504014
+    },
+    {
+      "action": "cast",
+      "actor": "reaper",
+      "spell": 504014,
+      "target": "enemy"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "set_aura",
+      "actor": "reaper",
+      "spell": 803031,
+      "stacks": 1
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "reaper",
+      "spell": 504014
+    },
+    {
+      "action": "cast",
+      "actor": "reaper",
+      "spell": 504014,
+      "target": "enemy"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "set_aura",
+      "actor": "reaper",
+      "spell": 803031,
+      "stacks": 1
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "reaper",
+      "spell": 504014
+    },
+    {
+      "action": "cast",
+      "actor": "reaper",
+      "spell": 504014,
+      "target": "enemy"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "set_aura",
+      "actor": "reaper",
+      "spell": 803031,
+      "stacks": 1
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "reaper",
+      "spell": 504014
+    },
+    {
+      "action": "cast",
+      "actor": "reaper",
+      "spell": 504014,
+      "target": "enemy"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "set_aura",
+      "actor": "reaper",
+      "spell": 803031,
+      "stacks": 1
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "reaper",
+      "spell": 504014
+    },
+    {
+      "action": "cast",
+      "actor": "reaper",
+      "spell": 504014,
+      "target": "enemy"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "assert",
+      "label": "Soul Infusion is consumed on at least one of 16 trials",
+      "actor": "reaper",
+      "metric": "spell_cast_count",
+      "spell": 561290,
+      "min": 1,
+      "max": 15
+    }
+  ]
+}

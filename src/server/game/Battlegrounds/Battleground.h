@@ -373,7 +373,7 @@ public:
     void SetEndTime(uint32 Time) { m_EndTime = Time; }
     void SetLastResurrectTime(uint32 Time) { m_LastResurrectTime = Time; }
     void SetLevelRange(uint32 min, uint32 max) { m_LevelMin = min; m_LevelMax = max; }
-    void SetRated(bool state) { m_IsRated = state; }
+    void SetRated(bool state) { m_IsRated = state && !m_IsWargame; }
     void SetArenaType(uint8 type) { m_ArenaType = type; }
     void SetArenaorBGType(bool _isArena) { m_IsArena = _isArena; }
     void SetWinner(PvPTeamId winner) { m_WinnerId = winner; }
@@ -413,6 +413,7 @@ public:
     [[nodiscard]] bool isArena() const        { return m_IsArena; }
     [[nodiscard]] bool isBattleground() const { return !m_IsArena; }
     [[nodiscard]] bool isRated() const        { return m_IsRated; }
+    [[nodiscard]] bool IsWargame() const      { return m_IsWargame; }
 
     typedef std::map<ObjectGuid, Player*> BattlegroundPlayerMap;
     [[nodiscard]] BattlegroundPlayerMap const& GetPlayers() const { return m_Players; }
@@ -673,6 +674,10 @@ private:
     PvPTeamId m_WinnerId;
     int32  m_StartDelayTime;
     bool   m_IsRated;                                   // is this battle rated?
+    // Private matches must never be offered to the public matchmaking queues.
+    // Only BattlegroundMgr can mark a fresh instance before it admits players.
+    friend class BattlegroundMgr;
+    bool   m_IsWargame{ false };
     bool   m_PrematureCountDown;
     uint32 m_PrematureCountDownTimer;
     std::string m_Name{};

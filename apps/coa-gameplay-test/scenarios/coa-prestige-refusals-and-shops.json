@@ -16,7 +16,7 @@
   ],
   "steps": [
     { "action": "wait", "label": "Let the fixtures settle", "ms": 3000 },
-    { "action": "command", "actor": "young", "command": ".localspec 25" },
+    { "action": "specialization", "actor": "young", "id": 25 },
     { "action": "wait", "ms": 1000 },
 
     { "action": "gossip_hello", "actor": "young", "target": "chromie_young" },

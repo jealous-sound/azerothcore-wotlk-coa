@@ -189,6 +189,18 @@ struct Player
     void SendInitialSpells() { }
 };
 
+// ACTUAL_PROGRESS_EVENT
+
+struct ScriptMgr
+{
+    std::vector<std::pair<CoAProgressEvent, uint32>> Progress;
+
+    void OnPlayerCoAProgress(Player*, CoAProgressEvent event, uint32 value) { Progress.emplace_back(event, value); }
+};
+
+ScriptMgr scriptMgr;
+ScriptMgr* const sScriptMgr = &scriptMgr;
+
 class ChatHandler
 {
 public:
@@ -207,7 +219,7 @@ private:
     WorldSession* _session;
 };
 
-void SendAscensionRunemasterEchoesOwnership(Player* player)
+void SendAscensionRunemasterEchoesCooldown(Player* player)
 {
     ++player->EchoSnapshots;
 }
@@ -292,11 +304,12 @@ struct RealmHandle
 struct
 {
     RealmHandle Id;
+    std::string Name = "Conquest of Azeroth";
 } realm;
 
 struct World
 {
-    std::string GetRealmName() const { return "Conquest of Azeroth"; }
+    std::string GetRealmName() const { return "unset world realm name"; }
 } world;
 
 World* sWorld = &world;
@@ -312,6 +325,28 @@ struct VanityInfo
     uint32 LearnedSpell = 0;
 };
 
+struct ObjectGuid
+{
+    explicit ObjectGuid(uint64 raw) : Raw(raw) { }
+    uint64 Raw;
+};
+
+struct AscensionClassService
+{
+    static AscensionClassService& Instance()
+    {
+        static AscensionClassService service;
+        return service;
+    }
+
+    std::vector<uint32> Uploads;
+    std::vector<uint32> Resets;
+
+    void QueueKnownEntriesUpload(uint32 accountId, WorldPacket const&) { Uploads.push_back(accountId); }
+    void QueueTalentReset(uint32 accountId) { Resets.push_back(accountId); }
+    void SendInspectResult(Player*, ObjectGuid) { }
+};
+
 class AscensionCollectionService
 {
 public:
@@ -324,6 +359,8 @@ public:
     std::vector<uint16> AppearancePackets;
 
     void HandleApplyAppearances(Player*, WorldPacket& packet) { AppearancePackets.push_back(packet.GetOpcode()); }
+    void HandleSaveOutfit(Player*, WorldPacket& packet) { AppearancePackets.push_back(packet.GetOpcode()); }
+    void HandleDeleteOutfit(Player*, WorldPacket& packet) { AppearancePackets.push_back(packet.GetOpcode()); }
     void HandleSetAppearanceVisibility(Player*, WorldPacket& packet)
     {
         AppearancePackets.push_back(packet.GetOpcode());
@@ -352,17 +389,6 @@ public:
     std::unordered_map<uint32, uint32> _rejectedPackets;
 };
 
-struct AscensionClassService
-{
-    static AscensionClassService& Instance()
-    {
-        static AscensionClassService service;
-        return service;
-    }
-
-    void QueueKnownEntriesUpload(uint32, WorldPacket const&) { }
-};
-
 struct AscensionCompatServerScript : ServerScript
 {
     // ACTUAL_CAN_PACKET_RECEIVE_EARLY
@@ -370,15 +396,14 @@ struct AscensionCompatServerScript : ServerScript
 
 struct AscensionCompatCommandScript
 {
-    // ACTUAL_LOCAL_VANITY_COMMAND
     // ACTUAL_LOCAL_TIME_COMMAND
 };
 
 struct RealmInfo
 {
     std::vector<uint8> Flags;
+    std::string DataPath;
     std::string Name;
-    std::string Description;
     uint8 AddOnsAllowed = 0;
     bool Complete = false;
 };
@@ -398,8 +423,8 @@ RealmInfo Decode(WorldPacket packet)
     packet.read_skip(2 * sizeof(uint32) + 3 * sizeof(float) + sizeof(uint32) + 2 * sizeof(float) + sizeof(uint32));
     for (int flag = 0; flag < 8; ++flag)
         info.Flags.push_back(packet.read<uint8>());
+    info.DataPath = ReadString(packet);
     info.Name = ReadString(packet);
-    info.Description = ReadString(packet);
     info.AddOnsAllowed = packet.read<uint8>();
     info.Complete = packet.rpos() == packet.size();
     return info;
@@ -418,8 +443,10 @@ RealmInfo SendRealmInfo(std::string const& realmType, std::string const& classMo
 void TestRealmInfo()
 {
     RealmInfo const live = SendRealmInfo("live", "coa");
-    Check(live.Complete && live.Name == "Conquest of Azeroth" && live.Description.empty(),
-        "realm info ends one byte after its two strings");
+    Check(live.Complete, "realm info ends one byte after its two strings");
+    Check(live.DataPath.empty(), "realm info names no realm data path, so the client keeps its own archives");
+    Check(live.Name == realm.Name && live.Name != sWorld->GetRealmName(),
+        "realm info names the realm the auth database lists in the realm-name string");
     Check(live.AddOnsAllowed == 1, "realm info tells the stock client that add-ons are allowed");
     Check(live.Flags == std::vector<uint8>{1, 0, 0, 0, 0, 0, 1, 0}, "live CoA realm flags are unchanged");
 
@@ -428,9 +455,10 @@ void TestRealmInfo()
         for (char const* classModel : {"coa", "wcr", "classic"})
         {
             RealmInfo const info = SendRealmInfo(realmType, classModel);
-            allowedEverywhere &= info.Complete && info.AddOnsAllowed == 1;
+            allowedEverywhere &= info.Complete && info.AddOnsAllowed == 1 && info.DataPath.empty() &&
+                info.Name == realm.Name;
         }
-    Check(allowedEverywhere, "every realm type and class model allows add-ons");
+    Check(allowedEverywhere, "every realm type and class model allows add-ons and names the realm");
 }
 
 bool Receive(WorldSession& session, WorldPacket const& packet)
@@ -499,6 +527,16 @@ void TestWorldEntryResend()
         "notices that arrive before the same world update share one resend");
     Check(service.AppearancePackets == std::vector<uint16>{0x0697, 0x06A3, 0x0697},
         "repeated notices do not fill the queue and crowd out later packets");
+
+    WorldPacket save(0x069E, 16);
+    save << std::string("Plate") << uint32(0);
+    WorldPacket remove(0x06A0, 8);
+    remove << std::string("Plate");
+    bool const outfitsConsumed = !Receive(session, save) && !Receive(session, remove);
+    service.OnPlayerUpdate(&player, 1);
+    Check(outfitsConsumed && service.AppearancePackets ==
+            std::vector<uint16>{0x0697, 0x06A3, 0x0697, 0x069E, 0x06A0},
+        "outfit save and delete requests are consumed and handled on the world thread in order");
 }
 
 WorldPacket BulkQuery(std::vector<uint32> const& entries, uint32 count, uint16 opcode = 0x061B)
@@ -688,6 +726,7 @@ struct Delivery
     std::vector<std::string> Messages;
     uint32 EquipErrors = 0;
     uint32 NewItemNotices = 0;
+    std::vector<uint32> Reported;
 
     bool operator==(Delivery const&) const = default;
 };
@@ -699,11 +738,12 @@ struct VanitySetup
     bool BagsFull = false;
 };
 
-Delivery Deliver(VanitySetup const& setup, std::vector<WorldPacket> const& requests, uint32 commandItem = 0)
+Delivery Deliver(VanitySetup const& setup, std::vector<WorldPacket> const& requests, uint32 directItem = 0)
 {
     ascensionCompatConfig.UnlockAllVanity = setup.UnlockAll;
     ascensionCompatConfig.LearnedSpellDelivery = setup.LearnedSpellDelivery;
     AscensionCollectionService& service = AscensionCollectionService::Instance();
+    scriptMgr.Progress.clear();
     service.State = std::make_shared<PlayerCollectionState>();
     service.State->OwnedVanityItems = {1001, 1003, 1004, 56925, 134985};
     WorldSession session;
@@ -711,18 +751,19 @@ Delivery Deliver(VanitySetup const& setup, std::vector<WorldPacket> const& reque
     player.Session = &session;
     player.BagsFull = setup.BagsFull;
     session.PlayerObject = &player;
-    if (commandItem)
-    {
-        ChatHandler handler(&session);
-        AscensionCompatCommandScript::HandleLocalVanityCommand(&handler, commandItem);
-    }
+    if (directItem)
+        service.DeliverVanityItem(&player, directItem);
     bool consumed = true;
     for (WorldPacket const& request : requests)
         consumed &= !Receive(session, request);
     service.OnPlayerUpdate(&player, 1);
     service.State.reset();
     assert(consumed);
-    return {player.Stored, player.Learned, session.Messages, player.EquipErrors, player.NewItemNotices};
+    std::vector<uint32> reported;
+    for (auto const& [event, value] : scriptMgr.Progress)
+        if (event == CoAProgressEvent::VanityDelivered)
+            reported.push_back(value);
+    return {player.Stored, player.Learned, session.Messages, player.EquipErrors, player.NewItemNotices, reported};
 }
 
 void TestVanityDelivery()
@@ -750,7 +791,7 @@ void TestVanityDelivery()
                     matches &= Deliver(setup, {DonationPointsRequest(itemId)}) == Deliver(setup, {}, itemId);
                 }
     Check(matches,
-        "every Donation Points request (Deliver or web-shop buy) ends exactly like .localvanity for the same item");
+        "every Donation Points request (Deliver or web-shop buy) ends exactly like a delivery of the same item");
 
     Delivery const owned = Deliver({}, {DonationPointsRequest(1001)});
     Delivery const bank = Deliver({}, {DonationPointsRequest(134985)});
@@ -759,13 +800,16 @@ void TestVanityDelivery()
         bank.Stored == std::vector<uint32>{134985} && bank.Learned == std::vector<uint32>{200002} &&
         spell.Learned == std::vector<uint32>{133},
         "Donation Points requests deliver owned items, banks and learned spells");
+    Check(owned.Reported == std::vector<uint32>{1001} && bank.Reported == std::vector<uint32>{134985} &&
+        spell.Reported == std::vector<uint32>{1003},
+        "each delivered vanity item or spell is reported once as progress");
 
     VanitySetup const locked{false, true, false};
     Delivery const refused = Deliver(locked, {DonationPointsRequest(1002), DonationPointsRequest(56925),
         DonationPointsRequest(110000), DonationPointsRequest(424242), DonationPointsRequest(1004)});
     Delivery const full = Deliver({true, true, true}, {DonationPointsRequest(1001)});
     Check(refused.Stored.empty() && refused.Learned.empty() && refused.Messages.size() == 5 &&
-        full.Stored.empty() && full.EquipErrors == 1,
+        full.Stored.empty() && full.EquipErrors == 1 && refused.Reported.empty() && full.Reported.empty(),
         "locked, sigil, unowned bank, unknown and templateless items and full bags are refused");
 
     WorldPacket shortRequest(0x0523, 4);
@@ -893,10 +937,24 @@ void TestRejectedPacketWarnings()
     Check(malformedSpends == 7, "64 malformed point spend requests log 7 warnings");
 }
 
+void TestTalentRequests()
+{
+    AscensionClassService& service = AscensionClassService::Instance();
+    WorldSession session;
+    WorldPacket upload(0x0727, 4);
+    upload << uint32(0);
+    WorldPacket reset(CMSG_UNLEARN_TALENTS, 0);
+    bool const consumed = !Receive(session, upload) && !Receive(session, reset);
+    Check(consumed && service.Uploads == std::vector<uint32>{session.GetAccountId()} &&
+        service.Resets == std::vector<uint32>{session.GetAccountId()},
+        "the native known-entries upload and talent reset are consumed and queued for the account");
+}
+
 int main()
 {
     TestRealmInfo();
     TestWorldEntryResend();
+    TestTalentRequests();
     TestItemQueries();
     TestVanityDelivery();
     TestRejectedPacketWarnings();

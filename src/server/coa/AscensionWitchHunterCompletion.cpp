@@ -101,6 +101,8 @@ void ApplyContracts(SpellInfo* info)
         info->InterruptFlags |= SPELL_INTERRUPT_FLAG_MOVEMENT;
         info->ChannelInterruptFlags |= AURA_INTERRUPT_FLAG_MOVE;
     }
+    if ((id == 807364 || id == 805751) && info->IsChanneled())
+        info->AttributesEx5 &= ~SPELL_ATTR5_ALLOW_ACTION_DURING_CHANNEL;
     if (id == 574149 || id == 574163)
         ConvertCreatureTypeDamage(info, EFFECT_1);
     if (id == 804026)

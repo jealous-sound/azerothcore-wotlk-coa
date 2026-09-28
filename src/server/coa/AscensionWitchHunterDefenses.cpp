@@ -289,6 +289,7 @@ class aura_ascension_witch_hunter_lifecycle : public AuraScript
                 break;
             case 500569:
                 ClearReplacement(player, 0, 64);
+                player->RemoveAurasDueToSpell(500604);
                 break;
             case 500567:
                 player->RemoveAurasDueToSpell(500569);
