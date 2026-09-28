@@ -107,6 +107,8 @@ void ApplyContracts(SpellInfo* info)
         ConvertCreatureTypeDamage(info, EFFECT_1);
     if (id == 804026)
         ConvertCreatureTypeDamage(info, EFFECT_0);
+    if (id == 800697)
+        info->Effects[EFFECT_1].ChainTarget = info->Effects[EFFECT_0].ChainTarget;
     if (id == 804194 && info->Effects[EFFECT_1].ApplyAuraName == SPELL_AURA_MOD_ARMOR_PENETRATION_PCT)
         info->Effects[EFFECT_1].ApplyAuraName = SPELL_AURA_ASCENSION_MOD_IGNORE_ARMOR_PCT;
     if (id == 707535)
