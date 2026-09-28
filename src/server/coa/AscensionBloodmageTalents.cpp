@@ -543,6 +543,27 @@ class aura_ascension_bloodmage_coagulation : public AuraScript
     }
 };
 
+constexpr uint32 TaldaramsTormentEnergizeRage = 30;
+
+class aura_ascension_bloodmage_taldarams_torment : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_bloodmage_taldarams_torment);
+
+    void Tick(AuraEffect const*)
+    {
+        Unit* caster = GetCaster();
+        if (!caster)
+            return;
+        caster->EnergizeBySpell(caster, GetId(), TaldaramsTormentEnergizeRage, POWER_RAGE);
+    }
+
+    void Register() override
+    {
+        OnEffectPeriodic += AuraEffectPeriodicFn(aura_ascension_bloodmage_taldarams_torment::Tick,
+            EFFECT_0, SPELL_AURA_PERIODIC_DAMAGE);
+    }
+};
+
 class aura_ascension_bloodmage_forbidden_power : public AuraScript
 {
     PrepareAuraScript(aura_ascension_bloodmage_forbidden_power);
@@ -670,6 +691,7 @@ void AddSC_AscensionBloodmageTalents()
     RegisterSpellScript(spell_ascension_animated_blood);
     RegisterSpellScript(aura_ascension_bloodmage_crimson_feast);
     RegisterSpellScript(aura_ascension_bloodmage_coagulation);
+    RegisterSpellScript(aura_ascension_bloodmage_taldarams_torment);
     RegisterSpellScript(aura_ascension_bloodmage_forbidden_power);
     RegisterSpellScript(aura_ascension_bloodmage_dark_sigil);
     RegisterSpellScript(aura_ascension_bloodmage_thick_pelt);
