@@ -143,7 +143,7 @@ ACTIONS = {
     'lfg_teleport': ({'actor'}, {'actor', 'out'}),
     'leave_group': ({'actor'}, {'actor'}),
     'die': ({'actor'}, {'actor', 'revived'}),
-    'cast_charm': ({'actor', 'spell'}, {'actor', 'spell', 'target'}),
+    'cast_charm': ({'actor', 'spell'}, {'actor', 'spell', 'target', 'pet'}),
     'gossip_hello': ({'actor'}, {'actor', 'target'}),
     'banker_activate': ({'actor'}, {'actor', 'target', 'owner', 'entry'}),
     'start_challenge': ({'actor', 'challenge', 'level'}, {'actor', 'challenge', 'level'}),

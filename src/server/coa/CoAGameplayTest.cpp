@@ -598,7 +598,7 @@ void ObservePacket(Actor& actor, WorldPacket const& packet)
         if (caster == actor.guid)
             actor.castPushbackMs += delay;
     }
-    if (packet.GetOpcode() == SMSG_CAST_FAILED)
+    if (packet.GetOpcode() == SMSG_CAST_FAILED || packet.GetOpcode() == SMSG_PET_CAST_FAILED)
     {
         WorldPacket response(packet);
         uint8 count, reason;
@@ -3344,8 +3344,9 @@ private:
         {
             _actors.at(step.get<std::string>("actor")).castFailureReason.erase(spell);
             SpellCastTargets targets;
-            Unit* caster = action == "cast_charm" ? player->GetCharm() : player;
-            Require(caster != nullptr, "Player has no charmed unit");
+            Unit* caster = action != "cast_charm" ? player :
+                step.get<bool>("pet", false) ? static_cast<Unit*>(player->GetPet()) : player->GetCharm();
+            Require(caster != nullptr, "Player has no charmed unit or pet");
             Unit* target = step.get_optional<std::string>("target") ? GetUnit(step.get<std::string>("target")) : caster;
             if (auto targetItem = step.get_optional<uint32>("target_item"))
             {
