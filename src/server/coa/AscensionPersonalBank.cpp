@@ -423,7 +423,7 @@ void MoveIntoInventory(CharacterDatabaseTransaction trans, Player* player, ItemP
 }
 
 void DepositToBank(Player* player, OpenBank& bank, uint8 bag, uint8 slot, uint8 tab, uint8 bankSlot,
-                   uint32 split, bool autoStore)
+                   uint32 split)
 {
     Item* source = player->GetItemByPos(bag, slot);
     if (!source)
@@ -441,7 +441,8 @@ void DepositToBank(Player* player, OpenBank& bank, uint8 bag, uint8 slot, uint8 
     if (tab >= bank.Tabs)
         return;
 
-    if (autoStore && !FindBankSlotFor(bank, tab, source, bankSlot))
+    // A right-clicked bag item arrives with bank slot NULL_SLOT: pick one, as Guild::BankMoveItemData does.
+    if (bankSlot == NULL_SLOT && !FindBankSlotFor(bank, tab, source, bankSlot))
     {
         player->SendEquipError(EQUIP_ERR_BANK_FULL, source, nullptr);
         return;
@@ -781,7 +782,8 @@ void HandleSwapItems(Player* player, OpenBank& bank, WorldPacket const& packet)
                 return;
             }
 
-            if (swap.ToSlot)
+            // AutoStore carries no bag position, so it can only mean bank -> bag (as in HandleGuildBankSwapItems).
+            if (swap.ToSlot || swap.AutoStore)
             {
                 WithdrawToPlayer(player, bank, uint8(swap.BankTab), uint8(swap.BankSlot),
                                  swap.ContainerSlot, swap.ContainerItemSlot,
@@ -792,8 +794,7 @@ void HandleSwapItems(Player* player, OpenBank& bank, WorldPacket const& packet)
             else
                 DepositToBank(player, bank, swap.ContainerSlot, swap.ContainerItemSlot,
                               uint8(swap.BankTab), uint8(swap.BankSlot),
-                              swap.AutoStore ? 0 : uint32(std::max<int32>(0, swap.StackCount)),
-                              swap.AutoStore);
+                              uint32(std::max<int32>(0, swap.StackCount)));
         });
 }
 
