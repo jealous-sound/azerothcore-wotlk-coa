@@ -118,7 +118,7 @@ ACTIONS = {
     'stop_attack': ({'actor'}, {'actor'}),
     'set_moving': ({'actor', 'enabled'}, {'actor', 'enabled'}),
     'level_scaling_packet': ({'actor', 'value'}, {'actor', 'value'}),
-    'client_packet': ({'actor', 'opcode'}, {'actor', 'opcode', 'fields', 'consumed'}),
+    'client_packet': ({'actor', 'opcode'}, {'actor', 'opcode', 'fields', 'consumed', 'early'}),
     'specialization': ({'actor', 'id'}, {'actor', 'id', 'refused'}),
     'advancement_rank': ({'actor', 'entry', 'rank'}, {'actor', 'entry', 'rank', 'refused'}),
     'apply_appearances': ({'actor', 'selection'}, {'actor', 'selection'}),
@@ -410,6 +410,8 @@ def validate(scenario):
             number(step['opcode'], f'{where}.opcode', 1, 0xFFFF, True)
             if 'consumed' in step:
                 require(type(step['consumed']) is bool, f'{where}: consumed must be boolean')
+            if 'early' in step:
+                require(type(step['early']) is bool, f'{where}: early must be boolean')
             fields = step.get('fields', [])
             require(isinstance(fields, list), f'{where}: fields must be a list')
             for index, field in enumerate(fields):

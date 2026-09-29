@@ -2751,10 +2751,14 @@ private:
                             throw std::runtime_error("Unknown packet field type: " + kind);
                     }
 
-            bool const consumed = ReceiveEarly(player, request);
-            record.put("consumed_early", consumed);
+            bool const early = step.get<bool>("early", true);
+            bool const consumed = early ? ReceiveEarly(player, request)
+                : !sScriptMgr->CanPacketReceive(player->GetSession(), request);
+            record.put(early ? "consumed_early" : "consumed", consumed);
+            char const* const hook = early ? "early packet hook" : "packet hook";
             Require(consumed == step.get<bool>("consumed", true), consumed
-                ? "The packet was consumed by an early packet hook" : "No early packet hook consumed the packet");
+                ? Acore::StringFormat("The packet was consumed by the {}", hook)
+                : Acore::StringFormat("No {} consumed the packet", hook));
         }
         else if (action == "specialization" || action == "advancement_rank")
         {
