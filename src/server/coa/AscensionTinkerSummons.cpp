@@ -28,6 +28,29 @@ bool Permanent(uint32 entry)
 {
     return entry == 50048 || entry == 500481 || entry == 60671 || entry == 60070 || entry == 60672;
 }
+uint32 AbilitySkillLine(uint32 entry)
+{
+    switch (entry)
+    {
+        case 60070: return 10037;
+        case 60671: return 10038;
+        case 60672: return 10039;
+        case 500481: return 10040;
+        case 50048: return 10041;
+        default: return 0;
+    }
+}
+void TeachAbilities(Pet* pet)
+{
+    for (SkillLineAbilityEntry const* ability : GetSkillLineAbilitiesBySkillLine(AbilitySkillLine(pet->GetEntry())))
+        if (SpellInfo const* spell = sSpellMgr->GetSpellInfo(ability->Spell))
+        {
+            if (spell->SpellLevel > pet->GetLevel())
+                pet->unlearnSpell(spell->Id,false);
+            else if (!pet->HasSpell(spell->Id))
+                pet->learnSpell(spell->Id);
+        }
+}
 bool Turret(uint32 entry)
 {
     return entry == 50046;
@@ -199,6 +222,7 @@ struct npc_ascension_tinker_pet : PetAI
     explicit npc_ascension_tinker_pet(Creature* creature) : PetAI(creature) { }
     EventMap events;
     bool initialized = false;
+    uint8 taughtLevel = 0;
     void UpdateAI(uint32 diff) override
     {
         Player* player = Owner(me);
@@ -215,6 +239,11 @@ struct npc_ascension_tinker_pet : PetAI
             if (!initialized || events.ExecuteEvent())
             {
                 Scale(player,me,!initialized);
+                if (Pet* pet = me->ToPet(); pet && pet->GetLevel() != taughtLevel)
+                {
+                    TeachAbilities(pet);
+                    taughtLevel = pet->GetLevel();
+                }
                 initialized = true;
                 events.ScheduleEvent(1,1000ms);
                 if (me->GetEntry() == 500481)
