@@ -35,6 +35,13 @@ class spell_ascension_barbarian_ability : public SpellScript
             PreventHitDefaultEffect(index);
     }
 
+    SpellCastResult CheckRoot()
+    {
+        if (GetCaster()->HasUnitState(UNIT_STATE_ROOT))
+            return SPELL_FAILED_ROOTED;
+        return SPELL_CAST_OK;
+    }
+
     void Select(std::list<WorldObject*>& targets)
     {
         Unit* caster = GetCaster();
@@ -165,6 +172,8 @@ class spell_ascension_barbarian_ability : public SpellScript
                 EFFECT_ALL, TARGET_UNIT_CONE_ENEMY_24);
             OnHit += SpellHitFn(spell_ascension_barbarian_ability::Damage);
         }
+        if (info && info->HasEffect(SPELL_EFFECT_CHARGE_DEST))
+            OnCheckCast += SpellCheckCastFn(spell_ascension_barbarian_ability::CheckRoot);
         AfterHit += SpellHitFn(spell_ascension_barbarian_ability::Hit);
         AfterCast += SpellCastFn(spell_ascension_barbarian_ability::Finish);
     }

@@ -175,6 +175,15 @@ class RunnerTests(unittest.TestCase):
             with self.subTest(missing=field), self.assertRaises(ValueError):
                 run.validate(invalid)
 
+    def test_cancel_mount_requires_player(self):
+        self.scenario['steps'].append({'action': 'cancel_mount', 'actor': 'caster'})
+        self.assertIs(run.validate(self.scenario), self.scenario)
+        for change in ({'actor': 'target'}, {'actor': 'absent'}, {'spell': 801384}):
+            invalid = copy.deepcopy(self.scenario)
+            invalid['steps'][-1].update(change)
+            with self.subTest(change=change), self.assertRaises(ValueError):
+                run.validate(invalid)
+
     def test_stunned_observation_accepts_units(self):
         for actor in ('caster', 'target'):
             scenario = copy.deepcopy(self.scenario)
@@ -208,6 +217,15 @@ class RunnerTests(unittest.TestCase):
                                        'spell': 997800, 'target': 'caster', 'target_pet': True, 'equals': 0})
         self.assertIs(run.validate(self.scenario), self.scenario)
         for change in ({'target_pet': 1}, {'target': 'target'}, {'metric': 'health'}, {'actor': 'target'}):
+            scenario = copy.deepcopy(self.scenario)
+            scenario['steps'][-1].update(change)
+            with self.subTest(change=change), self.assertRaises(ValueError):
+                run.validate(scenario)
+
+    def test_cast_at_current_pet(self):
+        self.scenario['steps'].append({'action': 'cast', 'actor': 'caster', 'spell': 801707, 'target_pet': True})
+        self.assertIs(run.validate(self.scenario), self.scenario)
+        for change in ({'target_pet': 1}, {'target': 'target'}, {'actor': 'target'}):
             scenario = copy.deepcopy(self.scenario)
             scenario['steps'][-1].update(change)
             with self.subTest(change=change), self.assertRaises(ValueError):
@@ -309,12 +327,12 @@ class RunnerTests(unittest.TestCase):
     def test_native_client_upload_actions(self):
         self.scenario['steps'].extend([
             {'action': 'specialization', 'actor': 'caster', 'id': 60},
-            {'action': 'advancement_rank', 'actor': 'caster', 'entry': 34422, 'rank': 1},
+            {'action': 'advancement_rank', 'actor': 'caster', 'entry': 34422, 'rank': 1, 'refused': True},
             {'action': 'apply_appearances', 'actor': 'caster', 'selection': {'56': 1451, '57': 0}},
         ])
         self.assertIs(run.validate(self.scenario), self.scenario)
         for index, key, value in ((-3, 'actor', 'target'), (-3, 'id', 0), (-2, 'rank', 4), (-2, 'actor', 'target'),
-                                   (-1, 'selection', {'x': 1}), (-1, 'selection', {'0': 1}),
+                                   (-2, 'refused', 1), (-1, 'selection', {'x': 1}), (-1, 'selection', {'0': 1}),
                                    (-1, 'selection', [1451]), (-1, 'actor', 'target')):
             invalid = copy.deepcopy(self.scenario)
             invalid['steps'][index][key] = value

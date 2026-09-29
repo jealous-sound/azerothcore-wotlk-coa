@@ -2277,6 +2277,7 @@ public:
     [[nodiscard]] bool CanBlock() const { return m_canBlock; }
     void SetCanBlock(bool value);
     [[nodiscard]] bool HasBurningCommander() const;
+    [[nodiscard]] bool HasValkyrGrip() const;
     [[nodiscard]] bool CanTitanGrip(ItemTemplate const* weapon = nullptr) const;
     void SetCanTitanGrip(bool value);
     [[nodiscard]] bool CanTameExoticPets() const { return IsGameMaster() || HasAuraType(SPELL_AURA_ALLOW_TAME_PET_TYPE); }
@@ -2527,12 +2528,15 @@ public:
     void SetTemporaryUnsummonedPetNumber(uint32 petnumber) { m_temporaryUnsummonedPetNumber = petnumber; }
     void UnsummonPetTemporaryIfAny();
     void ResummonPetTemporaryUnSummonedIfAny();
+    [[nodiscard]] bool IsInTinkerMechsuit() const
+    {
+        return getClass() == CLASS_TINKER && !IsInFlight() &&
+            HasAura(801384, GetGUID()) && HasAura(803451, GetGUID());
+    }
     [[nodiscard]] bool IsPetNeedBeTemporaryUnsummoned() const
     {
-        bool mechsuit = getClass() == CLASS_TINKER && !IsInFlight() &&
-            HasAura(801384, GetGUID()) && HasAura(803451, GetGUID());
         return GetSession()->PlayerLogout() || !IsInWorld() || !IsAlive() ||
-            (IsMounted() && !mechsuit) || GetVehicle() || IsBeingTeleported();
+            (IsMounted() && !IsInTinkerMechsuit()) || GetVehicle() || IsBeingTeleported();
     }
     bool CanResummonPet(uint32 spellid);
 

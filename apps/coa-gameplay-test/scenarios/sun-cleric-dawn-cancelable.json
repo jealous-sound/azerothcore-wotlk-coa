@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "name": "Sun Cleric: Dawn can be canceled to bank remaining Solar Power (#5239)",
+  "contract": "Dawn 807440's DBC Attributes carry SPELL_ATTR0_NO_AURA_CANCEL (coa-dbc-viewer record --id 807440 against /home/fab/CoaServer/dbc_clientset). WorldSession::HandleCancelAuraOpcode (SpellHandler.cpp) refuses to remove any aura whose SpellInfo carries that attribute, so a player right-clicking Dawn to bank whatever Solar Power stacks remain got no response from the server at all. AscensionSunClericAuras.cpp's Remove() has no id==Dawn special case, so canceling early does not run any charge/stack cleanup beyond the aura's own removal -- nothing here depends on Dawn expiring naturally. ApplyContracts now clears SPELL_ATTR0_NO_AURA_CANCEL for id == Dawn alongside the existing dummy(0)/ProcCharges/AURA_IS_DEBUFF corrections. A native CMSG_CANCEL_AURA request against Dawn must remove it.",
+  "timeout_ms": 60000,
+  "players": [
+    { "id": "cleric", "race": 1, "class": 27, "level": 80 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 3000 },
+    { "action": "learn", "actor": "cleric", "spell": 804584 },
+    {
+      "action": "set_aura", "label": "Fixture: Dawn requires 20 Solar Power (500149) to cast (sun_cleric_spells::OnSpellCheckCast)",
+      "actor": "cleric", "spell": 500149, "stacks": 20
+    },
+    {
+      "action": "set_aura", "label": "Fixture: Dawn's own DBC CasterAuraSpell requires the 704396 readiness marker (normally set by AscensionSunCleric.cpp Resource(), which set_aura on 500149 bypasses)",
+      "actor": "cleric", "spell": 704396, "stacks": 1
+    },
+    { "action": "cast", "actor": "cleric", "spell": 804584 },
+    {
+      "action": "assert", "label": "SETUP: Dawn is active",
+      "actor": "cleric", "metric": "aura", "spell": 807440, "equals": 1, "within_ms": 2000
+    },
+    { "action": "cancel_aura", "actor": "cleric", "spell": 807440 },
+    {
+      "action": "assert", "label": "The cancel request actually removes Dawn",
+      "actor": "cleric", "metric": "aura", "spell": 807440, "equals": 0
+    }
+  ]
+}

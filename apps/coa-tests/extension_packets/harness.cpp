@@ -382,6 +382,7 @@ public:
 
     // ACTUAL_SEND_REALM_INFO
     // ACTUAL_SEND_GAME_MODE_STATE
+    // ACTUAL_SEND_SECURE_ADDON_LIST
     // ACTUAL_QUEUE_CLIENT_PACKET
     // ACTUAL_REJECT_CLIENT_PACKET
     // ACTUAL_TAKE_CLIENT_PACKETS
@@ -509,6 +510,25 @@ WorldPacket ExtensionInitialized()
     return packet;
 }
 
+bool TrustsHelpUi(WorldPacket packet)
+{
+    if (packet.GetOpcode() != 0x094E || packet.size() != 22)
+        return false;
+
+    packet.rpos(0);
+    return packet.read<uint32>() == 1 && ReadString(packet) == "Ascension_HelpUI" &&
+        packet.read<uint8>() == 1 && packet.rpos() == packet.size();
+}
+
+void TestCharacterEnumeration()
+{
+    WorldSession session;
+    bool const passedOn = Receive(session, WorldPacket(CMSG_CHAR_ENUM, 0));
+    Check(passedOn, "character enumeration still reaches the core handler");
+    Check(session.Sent.size() == 2 && session.Sent[0].GetOpcode() == 0x09BC && TrustsHelpUi(session.Sent[1]),
+        "character enumeration sends realm info followed by the secure HelpUI addon list");
+}
+
 WorldPacket ApplyAppearances()
 {
     WorldPacket packet(0x0697, 4);
@@ -571,6 +591,8 @@ void TestWorldEntryResend()
     service.OnPlayerUpdate(&player, 1);
     Check(player.ChargeSnapshots == 1 && player.EchoSnapshots == 1,
         "the next world update resends the charge snapshot and the Runemaster echoes");
+    Check(session.Sent.size() == 1 && TrustsHelpUi(session.Sent[0]),
+        "the next world update trusts HelpUI with the client's count, name and secure-flag layout");
 
     bool consumed = true;
     for (int worldEntry = 0; worldEntry < 3; ++worldEntry)
@@ -580,13 +602,16 @@ void TestWorldEntryResend()
     }
     Check(consumed && player.ChargeSnapshots == 4 && player.EchoSnapshots == 4,
         "login, loading screens and reloads each get their own resend");
+    Check(session.Sent.size() == 4 && std::all_of(session.Sent.begin(), session.Sent.end(), TrustsHelpUi),
+        "every extension initialization restores the secure HelpUI addon list");
 
     uint32 const charges = player.ChargeSnapshots;
     uint32 const echoes = player.EchoSnapshots;
+    std::size_t const addonLists = session.Sent.size();
     WorldPacket poll(0x0745, 0);
     Check(!Receive(session, poll), "other extension notices stay consumed");
     service.OnPlayerUpdate(&player, 1);
-    Check(player.ChargeSnapshots == charges && player.EchoSnapshots == echoes,
+    Check(player.ChargeSnapshots == charges && player.EchoSnapshots == echoes && session.Sent.size() == addonLists,
         "other extension notices resend nothing");
 
     WorldPacket visibility(0x06A3, 2);
@@ -603,6 +628,8 @@ void TestWorldEntryResend()
     service.OnPlayerUpdate(&player, 1);
     Check(player.ChargeSnapshots == charges + 1 && player.EchoSnapshots == echoes + 1,
         "notices that arrive before the same world update share one resend");
+    Check(session.Sent.size() == addonLists + 1 && TrustsHelpUi(session.Sent.back()),
+        "duplicate initialization notices share one secure-addon resend");
     Check(service.AppearancePackets == std::vector<uint16>{0x0697, 0x06A3, 0x0697},
         "repeated notices do not fill the queue and crowd out later packets");
 
@@ -1032,6 +1059,7 @@ int main()
 {
     TestRealmInfo();
     TestGameModeState();
+    TestCharacterEnumeration();
     TestWorldEntryResend();
     TestStorePackets();
     TestTalentRequests();
