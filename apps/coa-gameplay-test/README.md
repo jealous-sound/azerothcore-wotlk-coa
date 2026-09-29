@@ -460,7 +460,7 @@ must assert consumption and recovery after normal casts; restoring fixture charg
 For absence checks, wait through the relevant cast/proc window first, then assert. `relative_to` subtracts
 a previously named snapshot of the same metric; it is available on snapshots and assertions.
 `ratio_to` then divides by a nonzero snapshot, including a different numeric metric such as healing/damage.
-`cast` accepts an optional `destination` with `x`, `y`, `z` to send an explicit ground target.
+`cast` and `cast_charm` accept an optional `destination` with `x`, `y`, `z` to send an explicit ground target.
 
 Metrics: `health`, `max_health`, `creature_type`, `power`, `max_power`, `alive`, `map_id`, `combat`, `casting`,
 `level`, `quest_objective_count` (needs `quest`, optional `index`), `knows_spell`, `has_talent`, `talent_points`,
