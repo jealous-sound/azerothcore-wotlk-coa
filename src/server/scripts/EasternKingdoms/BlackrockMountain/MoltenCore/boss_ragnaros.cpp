@@ -38,10 +38,11 @@ enum Texts
 
 enum Spells
 {
-    SPELL_HAND_OF_RAGNAROS                  = 19780,
-    SPELL_WRATH_OF_RAGNAROS                 = 20566,
+    SPELL_HAND_OF_RAGNAROS                  = 2108612,  // Ascension: periodic-trigger debuff on the victim; SpellDifficulty group 2213 already scales Heroic-Ascended. Was 19780.
+    SPELL_WRATH_OF_RAGNAROS                 = 2108623,  // Ascension: area hit on the victim; SpellDifficulty group 2215 already scales Heroic-Ascended. Was 20566.
     SPELL_LAVA_BURST                        = 21908,    // Randomly trigger one of server side spells (21886, 21900 - 21907) which summons Go 178088
-    SPELL_MAGMA_BLAST                       = 20565,    // Ranged attack
+    SPELL_MAGMA_BLAST                       = 2108607,  // Ascension: dummy, chained to SPELL_MAGMA_BLAST_EFFECT by spell_ragnaros_magma_blast_coa_dummy below. Was 20565, ranged attack.
+    SPELL_MAGMA_BLAST_EFFECT                = 2108608,  // Ascension: bound to spell_coa_damage_info_hit (coa_spell_damage_info) for the real per-difficulty damage.
     SPELL_SONS_OF_FLAME_DUMMY               = 21108,    // Server side effect
     SPELL_RAGSUBMERGE                       = 21107,    // Stealth aura
     SPELL_RAGNA_SUBMERGE_VISUAL             = 20567,    // Visual for submerging into lava
@@ -307,7 +308,9 @@ struct boss_ragnaros : public BossAI
                 }
                 case EVENT_HAND_OF_RAGNAROS:
                 {
-                    DoCastSelf(SPELL_HAND_OF_RAGNAROS);
+                    // Ascension's Hand of Ragnaros targets the victim, not an
+                    // area around the caster (see the Spells enum above).
+                    DoCastVictim(SPELL_HAND_OF_RAGNAROS);
                     if (_isKnockbackEmoteAllowed)
                     {
                         Talk(SAY_KNOCKBACK);
@@ -524,9 +527,34 @@ class spell_ragnaros_summon_sons_of_flame : public SpellScript
     }
 };
 
+// 2108607 - Magma Blast (Ascension dummy; interrupting the cast must not deal damage)
+class spell_ragnaros_magma_blast_coa_dummy : public SpellScript
+{
+    PrepareSpellScript(spell_ragnaros_magma_blast_coa_dummy);
+
+    bool Validate(SpellInfo const* /*spellInfo*/) override
+    {
+        return ValidateSpellInfo({ SPELL_MAGMA_BLAST_EFFECT });
+    }
+
+    void HandleScript(SpellEffIndex /*effIndex*/)
+    {
+        Unit* caster = GetCaster();
+        Unit* target = GetHitUnit();
+        if (caster && target)
+            caster->CastSpell(target, SPELL_MAGMA_BLAST_EFFECT, true);
+    }
+
+    void Register() override
+    {
+        OnEffectHitTarget += SpellEffectFn(spell_ragnaros_magma_blast_coa_dummy::HandleScript, EFFECT_0, SPELL_EFFECT_DUMMY);
+    }
+};
+
 void AddSC_boss_ragnaros()
 {
     RegisterMoltenCoreCreatureAI(boss_ragnaros);
     RegisterSpellScript(spell_ragnaros_lava_burst_randomizer);
     RegisterSpellScript(spell_ragnaros_summon_sons_of_flame);
+    RegisterSpellScript(spell_ragnaros_magma_blast_coa_dummy);
 }
