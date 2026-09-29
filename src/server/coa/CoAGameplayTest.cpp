@@ -2767,12 +2767,14 @@ private:
                 if (!answered && GameElapsed(_stepTime) < TalentRequestWindowMs)
                     return;
                 Require(answered && !applied, "The server did not refuse the upload");
-                return;
             }
-            if (!applied && GameElapsed(_stepTime) < TalentRequestWindowMs)
-                return;
-            Require(applied, specialization ? "The server did not activate the uploaded specialization"
-                : "The server did not apply the uploaded talent rank");
+            else
+            {
+                if (!applied && GameElapsed(_stepTime) < TalentRequestWindowMs)
+                    return;
+                Require(applied, specialization ? "The server did not activate the uploaded specialization"
+                    : "The server did not apply the uploaded talent rank");
+            }
         }
         else if (action == "apply_appearances")
         {

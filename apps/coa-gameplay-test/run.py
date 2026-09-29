@@ -120,7 +120,7 @@ ACTIONS = {
     'level_scaling_packet': ({'actor', 'value'}, {'actor', 'value'}),
     'client_packet': ({'actor', 'opcode'}, {'actor', 'opcode', 'fields', 'consumed'}),
     'specialization': ({'actor', 'id'}, {'actor', 'id', 'refused'}),
-    'advancement_rank': ({'actor', 'entry', 'rank'}, {'actor', 'entry', 'rank'}),
+    'advancement_rank': ({'actor', 'entry', 'rank'}, {'actor', 'entry', 'rank', 'refused'}),
     'apply_appearances': ({'actor', 'selection'}, {'actor', 'selection'}),
     'sell_item': ({'actor', 'entry', 'item'}, {'actor', 'entry', 'item', 'count'}),
     'console': ({'command'}, {'command'}),
@@ -386,6 +386,7 @@ def validate(scenario):
             require(step['actor'] in player_ids, f'{where}: advancement_rank needs a player')
             number(step['entry'], f'{where}.entry', 1, 2**32 - 1, True)
             number(step['rank'], f'{where}.rank', 0, 3, True)
+            require(type(step.get('refused', False)) is bool, f'{where}: refused must be boolean')
         if action == 'apply_appearances':
             require(step['actor'] in player_ids, f'{where}: apply_appearances needs a player')
             selection = step['selection']
