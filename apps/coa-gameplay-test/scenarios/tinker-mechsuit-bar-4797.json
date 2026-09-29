@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "Tinker: the Mechsuit fills its empty form bar with the suit's abilities (#4797)",
-  "contract": "Build: Mechsuit (801384) shapeshifts the Tinker into form 49, whose bonus action bar starts at button 72. Entering the suit with an empty form bar places Scrap Shot (500549), which the suit replaces with Gatling Gun (500213), followed by the known Mechsuit abilities, as druid forms start with their own bar. A form bar the player has already arranged is left untouched.",
+  "contract": "Build: Mechsuit (801384) shapeshifts the Tinker into form 49, whose bonus action bar starts at button 72. Entering the suit with an empty form bar places Gatling Gun (500213) followed by the known Mechsuit abilities, as druid forms start with their own bar. A form bar the player has already arranged is left untouched.",
   "timeout_ms": 60000,
   "players": [
     {
@@ -86,19 +86,10 @@
     },
     {
       "action": "assert",
-      "label": "CONTRACT the form bar's first button is Scrap Shot",
+      "label": "CONTRACT the form bar's first button is Gatling Gun",
       "actor": "fresh",
       "metric": "action_button",
       "button": 72,
-      "equals": 500549,
-      "within_ms": 2000
-    },
-    {
-      "action": "assert",
-      "label": "CONTRACT the suit turns that button into Gatling Gun",
-      "actor": "fresh",
-      "metric": "temporary_spell_replacement",
-      "spell": 500549,
       "equals": 500213,
       "within_ms": 2000
     },

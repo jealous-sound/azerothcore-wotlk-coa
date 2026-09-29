@@ -314,7 +314,7 @@ void FillMechsuitBar(Player* player)
         if (player->GetActionButton(button))
             return;
     uint8 button = MechsuitBar;
-    for (uint32 root : {500549u,801387u,805372u,801389u})
+    for (uint32 root : {GatlingGun,801387u,805372u,801389u})
         if (player->addActionButton(button,Highest(player,root),ACTION_BUTTON_SPELL))
             ++button;
     if (button != MechsuitBar)
@@ -333,6 +333,11 @@ void Refresh(Player* player)
     SetHelper(player,803329,mech);
     SetHelper(player,680999,mech && player->HasAura(806631));
     SetAmount(player,801385,1,mech && player->HasAura(681001) ? -std::abs(Amount(681001)) : 0);
+    bool suit = player->HasSpell(Highest(player,Mechsuit));
+    if (suit && !player->HasSpell(GatlingGun))
+        player->learnSpell(GatlingGun);
+    else if (!suit && player->HasSpell(GatlingGun))
+        player->removeSpell(GatlingGun,SPEC_MASK_ALL,false);
     if (!mech)
     {
         player->RemoveAurasDueToSpell(803451,player->GetGUID());
@@ -351,17 +356,13 @@ void Refresh(Player* player)
     if (Spell* channel = player->GetCurrentSpell(CURRENT_CHANNELED_SPELL); channel &&
         channel->GetSpellInfo()->Id == 504594 && channel->getState() != SPELL_STATE_FINISHED)
         gear = true;
-    for (auto [root,replacement,enabled] : {std::tuple(500549u,500213u,mech),
-        std::tuple(504527u,504594u,gear)})
-    {
-        if (enabled && !player->HasSpell(replacement))
-            player->learnSpell(replacement,true);
-        for (auto const& pair : player->GetSpellMap())
-            if (player->HasSpell(pair.first) && Named(sSpellMgr->GetSpellInfo(pair.first),root))
-                player->SetTemporarySpellReplacement(pair.first,enabled ? replacement : 0);
-        if (!enabled)
-            player->removeSpell(replacement,SPEC_MASK_ALL,true);
-    }
+    if (gear && !player->HasSpell(504594))
+        player->learnSpell(504594,true);
+    for (auto const& pair : player->GetSpellMap())
+        if (player->HasSpell(pair.first) && Named(sSpellMgr->GetSpellInfo(pair.first),504527))
+            player->SetTemporarySpellReplacement(pair.first,gear ? 504594 : 0);
+    if (!gear)
+        player->removeSpell(504594,SPEC_MASK_ALL,true);
     if (!player->HasAura(707249))
         player->RemoveAurasDueToSpell(707251);
     if (!player->HasAura(572545) || !player->HasAura(653232))
