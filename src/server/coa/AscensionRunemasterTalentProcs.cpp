@@ -4,10 +4,13 @@
 #include "Player.h"
 #include "ScriptMgr.h"
 #include "Spell.h"
+#include "SpellAuraEffects.h"
 #include "SpellAuras.h"
 #include "SpellInfo.h"
 #include "SpellMgr.h"
 #include "SpellScript.h"
+#include <algorithm>
+#include <limits>
 #include <vector>
 
 namespace
@@ -16,7 +19,9 @@ enum RunemasterTalentProcSpells : uint32
 {
     SPELL_ANCIENT_WARRIOR_COOLDOWN = 520757,
     SPELL_HOARFROST = 801104,
-    SPELL_LEY_LOCK = 800995
+    SPELL_LEY_LOCK = 800995,
+    SPELL_HARVESTED_LEY_ENERGY = 803258,
+    SPELL_LEY_POWER_STRIKE = 803282
 };
 
 bool IsRunemaster(Unit const* unit)
@@ -133,6 +138,90 @@ public:
         caster->ToPlayer()->ApplySpellMod(SPELL_LEY_LOCK, SPELLMOD_DURATION, duration);
     }
 };
+
+class spell_ascension_runemaster_ley_power : public SpellScript
+{
+    PrepareSpellScript(spell_ascension_runemaster_ley_power);
+
+    bool Validate(SpellInfo const*) override
+    {
+        return ValidateSpellInfo({SPELL_HARVESTED_LEY_ENERGY});
+    }
+
+    bool Load() override
+    {
+        return IsRunemaster(GetCaster());
+    }
+
+    void HarvestEnemy(SpellEffIndex effIndex)
+    {
+        PreventHitDefaultEffect(effIndex);
+        Unit* caster = GetCaster();
+        Unit* enemy = GetHitUnit();
+        if (enemy && enemy != caster && !caster->IsFriendlyTo(enemy))
+            caster->CastSpell(caster, SPELL_HARVESTED_LEY_ENERGY, TRIGGERED_FULL_MASK);
+    }
+
+    void Register() override
+    {
+        OnEffectHitTarget += SpellEffectFn(spell_ascension_runemaster_ley_power::HarvestEnemy, EFFECT_0,
+            SPELL_EFFECT_SCRIPT_EFFECT);
+    }
+};
+
+class aura_ascension_runemaster_harvested_ley_energy : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_runemaster_harvested_ley_energy);
+
+    bool Validate(SpellInfo const*) override
+    {
+        return ValidateSpellInfo({SPELL_LEY_POWER_STRIKE});
+    }
+
+    bool CheckDamagedEnemy(ProcEventInfo& eventInfo)
+    {
+        Unit* owner = GetTarget();
+        Unit* target = eventInfo.GetActionTarget();
+        DamageInfo const* damage = eventInfo.GetDamageInfo();
+        SpellInfo const* spell = eventInfo.GetSpellInfo();
+        return IsRunemaster(owner) && owner->IsAlive() && eventInfo.GetActor() == owner && target &&
+            target != owner && !owner->IsFriendlyTo(target) && damage && damage->GetDamage() &&
+            (!spell || spell->Id != SPELL_LEY_POWER_STRIKE);
+    }
+
+    void Strike(AuraEffect const* effect, ProcEventInfo& eventInfo)
+    {
+        PreventDefaultAction();
+        uint64 const share = uint64(eventInfo.GetDamageInfo()->GetDamage()) *
+            std::clamp(effect->GetAmount(), 0, 100) / 100;
+        if (share)
+            GetTarget()->CastCustomSpell(SPELL_LEY_POWER_STRIKE, SPELLVALUE_BASE_POINT0,
+                int32(std::min<uint64>(share, std::numeric_limits<int32>::max())), eventInfo.GetActionTarget(),
+                TRIGGERED_FULL_MASK);
+    }
+
+    void Register() override
+    {
+        DoCheckProc += AuraCheckProcFn(aura_ascension_runemaster_harvested_ley_energy::CheckDamagedEnemy);
+        OnEffectProc += AuraEffectProcFn(aura_ascension_runemaster_harvested_ley_energy::Strike, EFFECT_0,
+            AuraType(354));
+    }
+};
+
+class runemaster_ley_power_metadata : public GlobalScript
+{
+public:
+    runemaster_ley_power_metadata() : GlobalScript("runemaster_ley_power_metadata",
+        {GLOBALHOOK_ON_LOAD_SPELL_CUSTOM_ATTR}) { }
+
+    void OnLoadSpellCustomAttr(SpellInfo* info) override
+    {
+        if (info->Id != SPELL_LEY_POWER_STRIKE || info->Effects[EFFECT_0].Effect != SPELL_EFFECT_SCHOOL_DAMAGE)
+            return;
+        info->AscensionInheritsResolvedAmount = true;
+        info->Effects[EFFECT_0].BonusMultiplier = 0.0f;
+    }
+};
 }
 
 void AddSC_AscensionRunemasterTalentProcs()
@@ -141,4 +230,7 @@ void AddSC_AscensionRunemasterTalentProcs()
     RegisterSpellScript(aura_ascension_runemaster_decoder);
     RegisterSpellScript(aura_ascension_runemaster_leyfrost);
     new runemaster_ley_lock_duration();
+    RegisterSpellScript(spell_ascension_runemaster_ley_power);
+    RegisterSpellScript(aura_ascension_runemaster_harvested_ley_energy);
+    new runemaster_ley_power_metadata();
 }
