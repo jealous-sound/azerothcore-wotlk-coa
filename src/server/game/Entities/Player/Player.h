@@ -2277,6 +2277,7 @@ public:
     [[nodiscard]] bool CanBlock() const { return m_canBlock; }
     void SetCanBlock(bool value);
     [[nodiscard]] bool HasBurningCommander() const;
+    [[nodiscard]] bool HasValkyrGrip() const;
     [[nodiscard]] bool CanTitanGrip(ItemTemplate const* weapon = nullptr) const;
     void SetCanTitanGrip(bool value);
     [[nodiscard]] bool CanTameExoticPets() const { return IsGameMaster() || HasAuraType(SPELL_AURA_ALLOW_TAME_PET_TYPE); }

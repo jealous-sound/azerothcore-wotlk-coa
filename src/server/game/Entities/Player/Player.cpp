@@ -109,7 +109,8 @@
 
 enum CustomEquipmentSpells : uint32
 {
-    SPELL_BURNING_COMMANDER = 92089
+    SPELL_BURNING_COMMANDER = 92089,
+    SPELL_VALKYR_GRIP = 707072
 };
 
 enum CharacterFlags
@@ -13810,9 +13811,14 @@ bool Player::HasBurningCommander() const
     return getClass() == CLASS_DEMON_HUNTER && GetLevel() >= 10 && HasActiveSpell(SPELL_BURNING_COMMANDER);
 }
 
+bool Player::HasValkyrGrip() const
+{
+    return getClass() == CLASS_SUN_CLERIC && HasActiveSpell(SPELL_VALKYR_GRIP);
+}
+
 bool Player::CanTitanGrip(ItemTemplate const* weapon) const
 {
-    bool commander = HasBurningCommander();
+    bool commander = HasBurningCommander() || HasValkyrGrip();
     if (!m_canTitanGrip && !commander)
         return false;
     return !weapon || (weapon->Class == ITEM_CLASS_WEAPON &&

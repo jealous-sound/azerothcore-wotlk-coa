@@ -113,7 +113,9 @@ bool Rush(SpellInfo const* info)
 }
 bool Twin(SpellInfo const* info)
 {
-    return Named(info, 801901) || (info && info->SpellFamilyName == 20 && (info->SpellFamilyFlags[0] & 1048576));
+    return Named(info, 801901) ||
+           (info && info->SpellFamilyName == 20 &&
+            ((info->SpellFamilyFlags[0] & 1048576) || (info->SpellFamilyFlags[1] & 65536)));
 }
 bool Inner(Unit const* player)
 {
