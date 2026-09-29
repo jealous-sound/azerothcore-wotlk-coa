@@ -257,7 +257,7 @@ struct npc_ascension_tinker_pet : PetAI
 struct npc_ascension_tinker_device : ScriptedAI
 {
     explicit npc_ascension_tinker_device(Creature* creature) : ScriptedAI(creature) { }
-    ObjectGuid owner, focus;
+    ObjectGuid owner, focus, pursued;
     Position start, previous;
     EventMap events;
     std::set<ObjectGuid> used;
@@ -269,6 +269,22 @@ struct npc_ascension_tinker_device : ScriptedAI
     {
         return me->GetEntry() == 226312 || me->GetEntry() == 226012 || me->GetEntry() == 840028 ||
             me->GetEntry() == 226112 || me->GetEntry() == 500711 || me->GetEntry() == 50300;
+    }
+    bool Bomb() const
+    {
+        return me->GetEntry() == 226012 || me->GetEntry() == 840028 || me->GetEntry() == 226112;
+    }
+    void Pursue(Unit* target)
+    {
+        MotionMaster* motion = me->GetMotionMaster();
+        if (!Bomb())
+            motion->MoveChase(target);
+        else if (pursued != target->GetGUID() || motion->GetCurrentMovementGeneratorType() != FOLLOW_MOTION_TYPE)
+        {
+            pursued = target->GetGUID();
+            me->SetWalk(false);
+            motion->MoveFollow(target,0,0,MOTION_SLOT_ACTIVE,false,false);
+        }
     }
     void IsSummonedBy(WorldObject* summoner) override
     {
@@ -329,7 +345,7 @@ struct npc_ascension_tinker_device : ScriptedAI
             focus = guid;
             if (Mobile() && me->GetEntry() != 226312)
                 if (Unit* target = ObjectAccessor::GetUnit(*me,guid))
-                    me->GetMotionMaster()->MoveChase(target);
+                    Pursue(target);
         }
     }
     uint32 GetData(uint32 id) const override
@@ -447,12 +463,12 @@ struct npc_ascension_tinker_device : ScriptedAI
                             break;
                         }
                 }
-                if ((entry == 226012 || entry == 840028 || entry == 226112) && target)
+                if (Bomb() && target)
                 {
                     if (me->IsWithinDistInMap(target,2))
                         Explode();
                     else
-                        me->GetMotionMaster()->MoveChase(target);
+                        Pursue(target);
                 }
                 events.ScheduleEvent(1,200ms);
             }

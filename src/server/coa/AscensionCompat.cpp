@@ -165,6 +165,7 @@ constexpr uint16 SMSG_UPDATE_OBJECT_ADDON = 0x0578;
 constexpr uint32 PLAYER_ADDON_FIELD_AVERAGE_ITEM_LEVEL = 5;
 
 constexpr uint16 SMSG_REALM_INFO = 0x09BC;
+constexpr uint16 SMSG_ASCENSION_SECURE_ADDONS = 0x094E;
 constexpr uint8 REALM_CREATION_FLAG_CONQUEST_OF_AZEROTH = 6;
 constexpr uint8 REALM_CREATION_FLAG_WARCRAFT_REBORN = 7;
 constexpr uint8 REALM_INFO_ADDONS_ALLOWED = 1;
@@ -4102,6 +4103,7 @@ private:
         AscensionClassService::Instance().SendInspectResult(player, ObjectGuid(packet.read<uint64>()));
         break;
       case CMSG_EXTENSION_INITIALIZED:
+        SendSecureAddonList(player->GetSession());
         player->SendAllSpellChargeStates();
         SendAscensionRunemasterEchoesCooldown(player);
         LOG_DEBUG("coa", "Resent spell charge state to {} after client world entry",
@@ -4349,6 +4351,18 @@ public:
              "Realm info sent to {}: type {}, class model {}, realm {} ({}).",
              who, art, model, realm.Id.Realm, realm.Name);
   }
+
+    void SendSecureAddonList(WorldSession* session)
+    {
+        if (!session)
+            return;
+
+        WorldPacket packet(SMSG_ASCENSION_SECURE_ADDONS, 32);
+        packet << uint32(1);
+        packet << "Ascension_HelpUI";
+        packet << uint8(1);
+        session->SendPacket(&packet);
+    }
 
 private:
   void SendOutfitCollection(Player *player, PlayerCollectionState const &state)
@@ -4988,7 +5002,9 @@ public:
     else if (opcode == CMSG_CHAR_ENUM)
     {
       SendAscensionCharacterListInfo(session);
-      AscensionCollectionService::Instance().SendRealmInfo(session);
+      AscensionCollectionService& service = AscensionCollectionService::Instance();
+      service.SendRealmInfo(session);
+      service.SendSecureAddonList(session);
     }
 
     uint32 firstOpcode = ascensionCompatConfig.GetConfigValue<uint32>(

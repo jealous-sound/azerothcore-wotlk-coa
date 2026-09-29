@@ -17,6 +17,8 @@ enum BarrierSpells : uint32
     EarthmotherProtection = 560298
 };
 
+constexpr uint32 HandOfEarthmotherFamilyMask1 = 8;
+
 class aura_ascension_earthmother_protection_link : public AuraScript
 {
     PrepareAuraScript(aura_ascension_earthmother_protection_link);
@@ -58,6 +60,22 @@ class aura_ascension_earthmother_protection_link : public AuraScript
     }
 };
 
+class primalist_barrier_scaling : public UnitScript
+{
+public:
+    primalist_barrier_scaling() : UnitScript("primalist_barrier_scaling", true,
+        {UNITHOOK_MODIFY_SPELL_EFFECT_BASE_VALUE}) { }
+
+    void ModifySpellEffectBaseValue(Unit const* caster, SpellInfo const* info, uint8 index, float& value) override
+    {
+        if (!caster || !caster->IsPlayer() || caster->getClass() != CLASS_WILDWALKER ||
+            info->SpellFamilyName != 37 || info->Id != RockBarrier || index != EFFECT_0 ||
+            info->Effects[index].ApplyAuraName != SPELL_AURA_MOD_RESISTANCE)
+            return;
+        value += caster->GetStat(STAT_STAMINA) * 3.0f;
+    }
+};
+
 class primalist_barrier_metadata : public GlobalScript
 {
 public:
@@ -70,6 +88,13 @@ public:
         {
             info->AttributesCu &= ~SPELL_ATTR0_CU_FORCE_AURA_SAVING;
             info->AttributesCu |= SPELL_ATTR0_CU_AURA_CANNOT_BE_SAVED;
+        }
+        if (info->Id == EarthmotherProtection && info->SpellFamilyName == 37 &&
+            info->Effects[EFFECT_0].ApplyAuraName == SPELL_AURA_ADD_FLAT_MODIFIER)
+        {
+            info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_ADD_PCT_MODIFIER;
+            info->Effects[EFFECT_0].MiscValue = SPELLMOD_COST;
+            info->Effects[EFFECT_0].SpellClassMask = flag96(0, HandOfEarthmotherFamilyMask1, 0);
         }
     }
 };
@@ -132,4 +157,5 @@ void AddSC_AscensionPrimalistBarrier()
     RegisterSpellScript(aura_ascension_fury_of_earthmother);
     RegisterSpellScript(spell_ascension_fury_of_earthmother_charge);
     new primalist_barrier_metadata();
+    new primalist_barrier_scaling();
 }

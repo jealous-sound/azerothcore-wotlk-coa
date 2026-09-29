@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "name": "Spider Bomb and Firepot Drone travel to their target and explode (#5291, #5292, #4386)",
+  "contract": "Build: Spider Bomb 500535 reads 'Build a Spider Bomb that will immediately run towards your target and detonate', and Build: Firepot Drone 500600 reads that the drone 'flies towards your target, dropping a bomb along its path and exploding upon landing'. AscensionDB (Exiles DB) lists Spider Bomb Explosion 801982 as cast by NPC 226012. Both builds summon a device (Spider Bomb 226012 at DEST_CASTER_RANDOM within 6 yd, Firepot Drone 226112 at DEST_CASTER_FRONT 3 yd) that lives 15 s and runs npc_ascension_tinker_device, which explodes once the device is within 2 yd of its focus. The golem stands 20 yd in front of the Tinker with passive fixture reaction, so only a device that travels to it can damage it. #5291/#5292/#4386 report that both devices stand still and never explode; ChaseMovementGenerator pauses whenever the chaser's victim is not the chase target, and the passive device never attacks. Each device must reach the golem, damage it and be gone well before its 15 s duration.",
+  "timeout_ms": 120000,
+  "players": [
+    {"id": "tinker", "race": 1, "class": 28, "level": 80}
+  ],
+  "creatures": [
+    {"id": "golem", "owner": "tinker", "entry": 36, "level": 80, "distance": 20, "health": 1000000}
+  ],
+  "location": {"map": 0, "x": -8917.41, "y": -115.853, "z": 82.3711, "o": 0},
+  "steps": [
+    {"action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000},
+    {"action": "learn", "actor": "tinker", "spell": 500535},
+    {"action": "learn", "actor": "tinker", "spell": 500600},
+    {"action": "snapshot", "actor": "golem", "metric": "health", "save_as": "golem_before_bomb"},
+    {"action": "cast", "label": "Build a Spider Bomb on the golem", "actor": "tinker", "spell": 500535, "target": "golem"},
+    {"action": "assert", "label": "One Spider Bomb is built", "actor": "tinker", "metric": "owned_creature_count", "entry": 226012, "equals": 1, "within_ms": 2000},
+    {"action": "assert", "label": "The Spider Bomb reaches the golem and detonates", "actor": "golem", "metric": "health", "relative_to": "golem_before_bomb", "max": -1, "within_ms": 6000},
+    {"action": "assert", "label": "The Spider Bomb is gone after detonating", "actor": "tinker", "metric": "owned_creature_count", "entry": 226012, "equals": 0, "within_ms": 2000},
+    {"action": "wait", "label": "Let the global cooldown pass", "ms": 1500},
+    {"action": "snapshot", "actor": "golem", "metric": "health", "save_as": "golem_before_drone"},
+    {"action": "cast", "label": "Build a Firepot Drone on the golem", "actor": "tinker", "spell": 500600, "target": "golem"},
+    {"action": "assert", "label": "One Firepot Drone is built", "actor": "tinker", "metric": "owned_creature_count", "entry": 226112, "equals": 1, "within_ms": 4000},
+    {"action": "assert", "label": "The Firepot Drone damages the golem", "actor": "golem", "metric": "health", "relative_to": "golem_before_drone", "max": -1, "within_ms": 8000},
+    {"action": "assert", "label": "The Firepot Drone lands on the golem and is gone", "actor": "tinker", "metric": "owned_creature_count", "entry": 226112, "equals": 0, "within_ms": 8000}
+  ]
+}

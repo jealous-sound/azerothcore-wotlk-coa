@@ -2769,12 +2769,14 @@ private:
                 if (!answered && GameElapsed(_stepTime) < TalentRequestWindowMs)
                     return;
                 Require(answered && !applied, "The server did not refuse the upload");
-                return;
             }
-            if (!applied && GameElapsed(_stepTime) < TalentRequestWindowMs)
-                return;
-            Require(applied, specialization ? "The server did not activate the uploaded specialization"
-                : "The server did not apply the uploaded talent rank");
+            else
+            {
+                if (!applied && GameElapsed(_stepTime) < TalentRequestWindowMs)
+                    return;
+                Require(applied, specialization ? "The server did not activate the uploaded specialization"
+                    : "The server did not apply the uploaded talent rank");
+            }
         }
         else if (action == "apply_appearances")
         {
@@ -3348,6 +3350,11 @@ private:
                 step.get<bool>("pet", false) ? static_cast<Unit*>(player->GetPet()) : player->GetCharm();
             Require(caster != nullptr, "Player has no charmed unit or pet");
             Unit* target = step.get_optional<std::string>("target") ? GetUnit(step.get<std::string>("target")) : caster;
+            if (step.get<bool>("target_pet", false))
+            {
+                target = player->GetPet();
+                Require(target != nullptr, "Cast at a pet needs a current pet");
+            }
             if (auto targetItem = step.get_optional<uint32>("target_item"))
             {
                 Item* item = player->GetItemByEntry(*targetItem);

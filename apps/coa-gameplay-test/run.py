@@ -120,7 +120,7 @@ ACTIONS = {
     'level_scaling_packet': ({'actor', 'value'}, {'actor', 'value'}),
     'client_packet': ({'actor', 'opcode'}, {'actor', 'opcode', 'fields', 'consumed'}),
     'specialization': ({'actor', 'id'}, {'actor', 'id', 'refused'}),
-    'advancement_rank': ({'actor', 'entry', 'rank'}, {'actor', 'entry', 'rank'}),
+    'advancement_rank': ({'actor', 'entry', 'rank'}, {'actor', 'entry', 'rank', 'refused'}),
     'apply_appearances': ({'actor', 'selection'}, {'actor', 'selection'}),
     'sell_item': ({'actor', 'entry', 'item'}, {'actor', 'entry', 'item', 'count'}),
     'console': ({'command'}, {'command'}),
@@ -135,7 +135,7 @@ ACTIONS = {
     'money': ({'actor', 'copper'}, {'actor', 'copper'}),
     'set_aura': ({'actor', 'spell', 'stacks'}, {'actor', 'spell', 'stacks', 'pet'}),
     'cancel_aura': ({'actor', 'spell'}, {'actor', 'spell'}),
-    'cast': ({'actor', 'spell'}, {'actor', 'spell', 'target', 'destination'}),
+    'cast': ({'actor', 'spell'}, {'actor', 'spell', 'target', 'destination', 'target_pet'}),
     'attack': ({'actor', 'target'}, {'actor', 'target', 'pet'}),
     'pvp': ({'actor', 'enabled'}, {'actor', 'enabled'}),
     'group': ({'actor', 'target'}, {'actor', 'target', 'loot_method'}),
@@ -303,6 +303,10 @@ def validate(scenario):
                     f'{where}: action needs a player')
             if action == 'cast' and step['actor'] not in player_ids:
                 require('destination' not in step, f'{where}: creature cast has no destination')
+            if action == 'cast' and 'target_pet' in step:
+                require(type(step['target_pet']) is bool, f'{where}: target_pet must be boolean')
+                require(step['actor'] in player_ids and 'target' not in step,
+                        f'{where}: target_pet casts from a player at their current pet')
         for key in ('target', 'caster'):
             if key in step:
                 require(step[key] in actor_ids, f'{where}: unknown {key}')
@@ -386,6 +390,7 @@ def validate(scenario):
             require(step['actor'] in player_ids, f'{where}: advancement_rank needs a player')
             number(step['entry'], f'{where}.entry', 1, 2**32 - 1, True)
             number(step['rank'], f'{where}.rank', 0, 3, True)
+            require(type(step.get('refused', False)) is bool, f'{where}: refused must be boolean')
         if action == 'apply_appearances':
             require(step['actor'] in player_ids, f'{where}: apply_appearances needs a player')
             selection = step['selection']
