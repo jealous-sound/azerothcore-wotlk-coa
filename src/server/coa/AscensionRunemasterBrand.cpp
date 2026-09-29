@@ -324,6 +324,11 @@ void ApplyAscensionRunemasterBrandContracts(SpellInfo* info)
     ApplyGenesisContracts(info);
     ApplyFrigidFusionContracts(info);
 
+    SpellEffectInfo& fistBonus = info->Effects[EFFECT_1];
+    if (info->Id == SPELL_FIRE_ENGRAVING && fistBonus.IsAura(SPELL_AURA_ADD_PCT_MODIFIER) &&
+        fistBonus.MiscValue == SPELLMOD_DAMAGE && !fistBonus.SpellClassMask)
+        fistBonus.SpellClassMask = flag96(0, 0, 0x00008000);
+
     SpellEffectInfo& effect = info->Effects[EFFECT_0];
     if (info->Id == SPELL_RUNIC_BRAND_MARK && !info->ProcFlags && !info->ProcCharges && !info->StackAmount &&
         effect.IsAura(SPELL_AURA_DUMMY) && effect.TargetA.GetTarget() == TARGET_UNIT_TARGET_ENEMY &&
