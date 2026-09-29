@@ -13,6 +13,7 @@ void AddCoaBossAIScripts();
 void AddCoaFlexHealthScripts();
 void AddCoaOnyxiaScripts();
 void AddCoaSpellFixScripts();
+void AddCoaDamageInfoScripts();
 void AddCoaRazorgoreScripts();
 void AddCoaVaelastraszScripts();
 void AddCoaBroodlordScripts();
@@ -49,6 +50,7 @@ void Addmod_coa_raid_difficultyScripts()
     AddCoaFlexHealthScripts();
     AddCoaOnyxiaScripts();
     AddCoaSpellFixScripts();
+    AddCoaDamageInfoScripts();
     AddCoaRazorgoreScripts();
     AddCoaVaelastraszScripts();
     AddCoaBroodlordScripts();
