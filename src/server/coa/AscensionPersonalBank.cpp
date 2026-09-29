@@ -441,7 +441,6 @@ void DepositToBank(Player* player, OpenBank& bank, uint8 bag, uint8 slot, uint8 
     if (tab >= bank.Tabs)
         return;
 
-    // A right-clicked bag item arrives with bank slot NULL_SLOT: pick one, as Guild::BankMoveItemData does.
     if (bankSlot == NULL_SLOT && !FindBankSlotFor(bank, tab, source, bankSlot))
     {
         player->SendEquipError(EQUIP_ERR_BANK_FULL, source, nullptr);
@@ -782,7 +781,6 @@ void HandleSwapItems(Player* player, OpenBank& bank, WorldPacket const& packet)
                 return;
             }
 
-            // AutoStore carries no bag position, so it can only mean bank -> bag (as in HandleGuildBankSwapItems).
             if (swap.ToSlot || swap.AutoStore)
             {
                 WithdrawToPlayer(player, bank, uint8(swap.BankTab), uint8(swap.BankSlot),
