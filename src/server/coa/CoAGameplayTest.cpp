@@ -379,6 +379,7 @@ struct Actor
     uint32 bankShows = 0;
     uint32 systemMessages = 0;
     std::vector<std::string> systemMessageTexts;
+    std::vector<std::pair<ObjectGuid, std::string>> whispers;
     uint32 notifications = 0;
     std::vector<std::string> notificationTexts;
     uint32 challengeStartResponses = 0;
@@ -618,7 +619,7 @@ void ObservePacket(Actor& actor, WorldPacket const& packet)
         WorldPacket chat(packet);
         uint8 chatType = 0;
         chat >> chatType;
-        if (chatType == CHAT_MSG_SYSTEM)
+        if (chatType == CHAT_MSG_SYSTEM || chatType == CHAT_MSG_WHISPER)
         {
             int32 language;
             uint32 flags;
@@ -631,7 +632,10 @@ void ObservePacket(Actor& actor, WorldPacket const& packet)
                 text.resize(length - 1);
                 chat.read(reinterpret_cast<uint8*>(text.data()), text.size());
             }
-            actor.systemMessageTexts.push_back(text);
+            if (chatType == CHAT_MSG_SYSTEM)
+                actor.systemMessageTexts.push_back(text);
+            else
+                actor.whispers.emplace_back(sender, text);
         }
     }
     if (packet.GetOpcode() == SMSG_NOTIFICATION)
@@ -2271,6 +2275,14 @@ private:
             return std::any_of(lines.begin(), lines.end(), [&needle](std::string const& line)
                 { return line.find(needle) != std::string::npos; }) ? 1.0 : 0.0;
         }
+        if (metric == "whispers_received")
+        {
+            ObjectGuid const from = GetPlayer(step.get<std::string>("from"))->GetGUID();
+            std::string const text = step.get<std::string>("text");
+            auto const& whispers = _actors.at(step.get<std::string>("actor")).whispers;
+            return double(std::count_if(whispers.begin(), whispers.end(), [&](auto const& whisper)
+                { return whisper.first == from && whisper.second == text; }));
+        }
         if (metric == "notifications")
             return double(_actors.at(step.get<std::string>("actor")).notifications);
         if (metric == "notification_contains")
@@ -2989,6 +3001,14 @@ private:
             bool const revived = step.get<bool>("revived", false);
             Require(player->IsAlive() == revived, revived ? "The death was not followed by a resurrection"
                 : "Self damage did not kill the player");
+        }
+        else if (action == "whisper")
+        {
+            WorldPacket packet(CMSG_MESSAGECHAT, 64);
+            packet << uint32(CHAT_MSG_WHISPER) << step.get<uint32>("language", LANG_COMMON)
+                << step.get<std::string>("to") << step.get<std::string>("text");
+            player->GetSession()->HandleMessagechatOpcode(packet);
+            record.put("result", "whisper sent; verify delivery with assertions");
         }
         else if (action == "command")
         {
