@@ -8,6 +8,7 @@ packet and spell store are isolated. Pass --source-ref to test another Git ref.
 import argparse
 import os
 from pathlib import Path
+import runpy
 import shutil
 import subprocess
 import sys
@@ -18,20 +19,16 @@ from source_paths import git_source  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
-
-
-def block(source, start_marker):
-    start = source.index(start_marker)
-    end = source.index('{', start) + 1
-    depth = 1
-    while depth:
-        depth += (source[end] == '{') - (source[end] == '}')
-        end += 1
-    return source[start:end]
+method = runpy.run_path(str(HERE.parent / 'client_compat/run.py'))['method']
+SPELL_MODIFIER_HELPERS = (
+    'bool Player::UsesAscensionSpellModifierLayout(',
+    'uint32 Player::GetClientSpellModCount(',
+    'void Player::SendSpellModifier(',
+)
 
 
 def declaration(source, start_marker):
-    text = block(source, start_marker)
+    text = method(source, start_marker)
     end = source.index(text) + len(text)
     return text + source[end:source.index('\n', end)]
 
@@ -66,8 +63,9 @@ def main():
         ('SPELL_MOD_TYPE', declaration(player_header, 'enum SpellModType')),
         ('SPELL_MODIFIER', declaration(player_header, 'struct SpellModifier')),
         ('SPELL_MOD_CONTAINER', line(player_header, 'typedef std::unordered_set<SpellModifier*> SpellModContainer;')),
-        ('ADD_SPELL_MOD', block(player, 'void Player::AddSpellMod(')),
-        ('LOGIN_RESEND', block(handler, '    // Xinef: we need to resend all spell mods')),
+        ('ADD_SPELL_MOD', '\n\n'.join([method(player, signature) for signature in SPELL_MODIFIER_HELPERS
+                                       if signature in player] + [method(player, 'void Player::AddSpellMod(')])),
+        ('LOGIN_RESEND', method(handler, '    // Xinef: we need to resend all spell mods')),
     ]:
         harness = harness.replace('// ACTUAL_' + marker, text)
 

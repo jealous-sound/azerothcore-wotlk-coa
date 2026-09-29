@@ -1824,6 +1824,9 @@ public:
     SkillStatusMap& GetSkillStatusMap() { return mSkillStatus; }
 
     void AddSpellMod(SpellModifier* mod, bool apply);
+    [[nodiscard]] bool UsesAscensionSpellModifierLayout() const;
+    [[nodiscard]] uint32 GetClientSpellModCount() const;
+    void SendSpellModifier(uint16 opcode, uint8 eff, uint8 op, int32 value, uint32 spellFamily) const;
     bool IsAffectedBySpellmod(SpellInfo const* spellInfo, SpellModifier* mod, Spell* spell = nullptr);
     bool HasSpellMod(SpellModifier* mod, Spell* spell);
     template <class T>

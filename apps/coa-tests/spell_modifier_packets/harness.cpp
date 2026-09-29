@@ -88,9 +88,12 @@ class Player
 {
 public:
     WorldSession* GetSession() const { return Session; }
-    void SendDirectMessage(WorldPacket const* packet) { sent.push_back(*packet); }
+    void SendDirectMessage(WorldPacket const* packet) const { sent.push_back(*packet); }
     SpellModContainer const& GetSpellModList(uint32 op) const { return m_spellMods[op]; }
     void AddSpellMod(SpellModifier* mod, bool apply);
+    bool UsesAscensionSpellModifierLayout() const;
+    uint32 GetClientSpellModCount() const;
+    void SendSpellModifier(uint16 opcode, uint8 eff, uint8 op, int32 value, uint32 spellFamily) const;
 
     WorldSession* Session = nullptr;
     std::array<SpellModContainer, MAX_SPELLMOD> m_spellMods;
@@ -195,7 +198,8 @@ void LoginResendsMaxAuraStacks(bool ascensionClient)
                    {0, LIFE_FORCE_MASK_BIT, MAX_AURA_STACKS_OP, 1, 0, 0, 0, NECROMANCER_FAMILY, 0, 0, 0}),
               "logging in resends the max aura stacks modifier to an Ascension client");
     else
-        Check(!SentStockOp(MAX_AURA_STACKS_OP), "logging in does not resend the max aura stacks modifier to a stock client");
+        Check(!SentStockOp(MAX_AURA_STACKS_OP),
+              "logging in does not resend the max aura stacks modifier to a stock client");
 }
 }
 
