@@ -175,6 +175,15 @@ class RunnerTests(unittest.TestCase):
             with self.subTest(missing=field), self.assertRaises(ValueError):
                 run.validate(invalid)
 
+    def test_cancel_mount_requires_player(self):
+        self.scenario['steps'].append({'action': 'cancel_mount', 'actor': 'caster'})
+        self.assertIs(run.validate(self.scenario), self.scenario)
+        for change in ({'actor': 'target'}, {'actor': 'absent'}, {'spell': 801384}):
+            invalid = copy.deepcopy(self.scenario)
+            invalid['steps'][-1].update(change)
+            with self.subTest(change=change), self.assertRaises(ValueError):
+                run.validate(invalid)
+
     def test_stunned_observation_accepts_units(self):
         for actor in ('caster', 'target'):
             scenario = copy.deepcopy(self.scenario)

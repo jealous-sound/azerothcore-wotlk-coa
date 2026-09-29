@@ -3258,6 +3258,11 @@ private:
             packet << spell;
             player->GetSession()->HandleCancelAuraOpcode(packet);
         }
+        else if (action == "cancel_mount")
+        {
+            WorldPacket packet(CMSG_CANCEL_MOUNT_AURA, 0);
+            player->GetSession()->HandleCancelMountAuraOpcode(packet);
+        }
         else if (action == "set_aura")
         {
             Unit* recipient = player;

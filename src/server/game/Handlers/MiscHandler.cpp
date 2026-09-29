@@ -1587,6 +1587,10 @@ void WorldSession::HandleCancelMountAuraOpcode(WorldPacket& /*recv_data*/)
     if (!_player->IsMounted())
         return;
 
+    // The client sends this with every cast while mounted; the Mechsuit is left through its own aura.
+    if (_player->IsInTinkerMechsuit())
+        return;
+
     if (_player->IsInFlight())                               // not blizz like; no any messages on blizz
     {
         ChatHandler(this).SendSysMessage(LANG_YOU_IN_FLIGHT);
