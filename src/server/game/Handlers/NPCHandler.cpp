@@ -323,6 +323,10 @@ void WorldSession::SendBindPoint(Creature* npc)
     // send spell for homebinding (3286)
     npc->CastSpell(_player, bindspell, true);
 
+    // Innkeepers replace a lost Hearthstone when the player makes the inn their home.
+    if (!_player->HasItemCount(6948, 1, true))
+        _player->AddItem(6948, 1);
+
     WorldPacket data(SMSG_TRAINER_BUY_SUCCEEDED, (8 + 4));
     data << npc->GetGUID();
     data << uint32(bindspell);

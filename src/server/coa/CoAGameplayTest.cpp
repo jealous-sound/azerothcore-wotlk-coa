@@ -3194,6 +3194,27 @@ private:
             packet << guid;
             player->GetSession()->HandleBankerActivateOpcode(packet);
         }
+        else if (action == "binder_activate")
+        {
+            Unit* innkeeper = GetUnit(step.get<std::string>("target"));
+            if (!innkeeper->IsWithinDistInMap(player, INTERACTION_DISTANCE))
+                player->UpdatePosition(innkeeper->GetPositionX(), innkeeper->GetPositionY(),
+                                       innkeeper->GetPositionZ(), player->GetOrientation(), true);
+            WorldPacket packet(CMSG_BINDER_ACTIVATE, 8);
+            packet << innkeeper->GetGUID();
+            player->GetSession()->HandleBinderActivateOpcode(packet);
+        }
+        else if (action == "destroy_item")
+        {
+            Item* item = player->GetItemByEntry(step.get<uint32>("item"));
+            Require(item != nullptr, "The player carries no item of that entry");
+            WorldPacket packet(CMSG_DESTROYITEM, 6);
+            packet << uint8(item->GetBagSlot()) << uint8(item->GetSlot()) << uint8(0)
+                   << uint8(0) << uint8(0) << uint8(0);
+            WorldPackets::Item::DestroyItem request(std::move(packet));
+            request.Read();
+            player->GetSession()->HandleDestroyItemOpcode(request);
+        }
         else if (action == "start_challenge")
         {
             WorldPacket packet(CMSG_COA_START_CHALLENGE, 8);
