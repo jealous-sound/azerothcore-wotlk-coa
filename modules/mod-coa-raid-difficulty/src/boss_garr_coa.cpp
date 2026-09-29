@@ -29,6 +29,7 @@
  * Firesworn (12099, npc_garr_firesworn) keep their own untouched script.
  */
 
+#include "CreatureScript.h"
 #include "ScriptedCreature.h"
 #include "SpellInfo.h"
 #include "SpellMgr.h"
@@ -67,7 +68,7 @@ namespace
             _landSlidePending = false;
         }
 
-        void JustEngagedWith(Unit* who) override
+        void JustEngagedWith(Unit* /*who*/) override
         {
             _JustEngagedWith();
             events.ScheduleEvent(EVENT_FIERCE_BLOW, 12s);
