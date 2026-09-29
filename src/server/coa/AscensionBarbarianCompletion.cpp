@@ -146,6 +146,8 @@ void ApplyContracts(SpellInfo* info)
     }
     if (id == 707410)
         info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_DUMMY;
+    if (id == 800401)
+        info->AttributesCu &= ~SPELL_ATTR0_CU_NEGATIVE;
     if (id == 801761)
     {
         SpellEffectInfo& cost = info->Effects[EFFECT_1];
