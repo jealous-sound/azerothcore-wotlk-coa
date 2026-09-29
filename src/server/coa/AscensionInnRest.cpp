@@ -9,17 +9,16 @@ namespace
 {
 enum InnRest : uint32
 {
-    SPELL_RESTING = 997615,     // 15 min dummy; expiring grants Well Rested
-    SPELL_WELL_RESTED = 997616  // +8% monster-kill XP for 2 h
+    SPELL_RESTING = 997615,
+    SPELL_WELL_RESTED = 997616
 };
 
-// Resting runs only while the player stays inside an inn; leaving drops the unfinished rest.
 class player_ascension_inn_rest : public PlayerScript
 {
 public:
     player_ascension_inn_rest() : PlayerScript("player_ascension_inn_rest", {PLAYERHOOK_ON_UPDATE}) { }
 
-    void OnPlayerUpdate(Player* player, uint32 /*diff*/) override
+    void OnPlayerUpdate(Player* player, uint32) override
     {
         bool inInn = player->HasRestFlag(REST_FLAG_IN_TAVERN) && player->IsAlive();
         if (inInn == player->HasAura(SPELL_RESTING))
@@ -36,12 +35,12 @@ class aura_ascension_inn_resting : public AuraScript
 {
     PrepareAuraScript(aura_ascension_inn_resting);
 
-    bool Validate(SpellInfo const* /*info*/) override
+    bool Validate(SpellInfo const*) override
     {
         return ValidateSpellInfo({SPELL_WELL_RESTED});
     }
 
-    void GrantWellRested(AuraEffect const* /*effect*/, AuraEffectHandleModes /*mode*/)
+    void GrantWellRested(AuraEffect const*, AuraEffectHandleModes)
     {
         if (GetTargetApplication()->GetRemoveMode() != AURA_REMOVE_BY_EXPIRE)
             return;
