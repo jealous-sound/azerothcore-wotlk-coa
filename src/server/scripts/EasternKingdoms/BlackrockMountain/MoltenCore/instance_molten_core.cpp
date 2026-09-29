@@ -98,6 +98,11 @@ struct instance_molten_core : public InstanceScript
                 break;
             }
             case NPC_FIRESWORN:
+            {
+                AddMinion(creature);
+                _garrFireswornGUIDs.insert(creature->GetGUID());
+                break;
+            }
             case NPC_FLAMEWALKER:
             case NPC_FLAMEWALKER_PROTECTOR:
             case NPC_FLAMEWALKER_PRIEST:
@@ -117,6 +122,7 @@ struct instance_molten_core : public InstanceScript
             case NPC_FIRESWORN:
             {
                 RemoveMinion(creature);
+                _garrFireswornGUIDs.erase(creature->GetGUID());
                 break;
             }
             case NPC_FLAMEWALKER:
@@ -232,6 +238,25 @@ struct instance_molten_core : public InstanceScript
             {
                 cache->SetRespawnTime(7 * DAY);
                 cache->SetLootRecipient(instance);
+            }
+        }
+        else if (bossId == DATA_GARR)
+        {
+            switch (state)
+            {
+                case NOT_STARTED:
+                case FAIL:
+                {
+                    for (ObjectGuid const& fireswornGuid : _garrFireswornGUIDs)
+                    {
+                        Creature* firesworn = instance->GetCreature(fireswornGuid);
+                        if (firesworn && firesworn->isDead())
+                            firesworn->Respawn();
+                    }
+                    break;
+                }
+                default:
+                    break;
             }
         }
         else if (bossId == DATA_GOLEMAGG)
@@ -374,6 +399,7 @@ private:
     ObjectGuid _majordomoExecutusGUID;
     ObjectGuid _cacheOfTheFirelordGUID;
     ObjectGuid _garrGUID;
+    GuidSet _garrFireswornGUIDs;
     ObjectGuid _magmadarGUID;
 };
 
