@@ -3345,6 +3345,11 @@ private:
             Unit* caster = action == "cast_charm" ? player->GetCharm() : player;
             Require(caster != nullptr, "Player has no charmed unit");
             Unit* target = step.get_optional<std::string>("target") ? GetUnit(step.get<std::string>("target")) : caster;
+            if (step.get<bool>("target_pet", false))
+            {
+                target = player->GetPet();
+                Require(target != nullptr, "Cast at a pet needs a current pet");
+            }
             if (auto targetItem = step.get_optional<uint32>("target_item"))
             {
                 Item* item = player->GetItemByEntry(*targetItem);
