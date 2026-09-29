@@ -1178,6 +1178,7 @@ void ApplyAscensionClassMechanics(SpellInfo* spellInfo)
         HasDeprecatedWord(spellInfo->SpellName[0]) || HasDeprecatedWord(spellInfo->Rank[0]);
     ApplyClientSpellCharges(spellInfo);
     DisarmUnmaskedCooldownModifier(spellInfo);
+    AscensionTinker::ApplyBeaconChargePool(spellInfo);
 
     if (IsCustomClassFamily(spellInfo->SpellFamilyName))
         spellInfo->EquippedItemInventoryTypeMask = int32(RepairedRangedInventoryMask(spellInfo->EquippedItemClass,

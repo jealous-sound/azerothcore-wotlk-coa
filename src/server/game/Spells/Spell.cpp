@@ -7921,8 +7921,8 @@ SpellCastResult Spell::CheckItems(uint32* param1, uint32* param2)
 
 SpellCastResult Spell::CheckSpellFocus()
 {
-    // check spell focus object
-    if (m_spellInfo->RequiresSpellFocus)
+    // check spell focus object, unless a script answers the focus itself
+    if (m_spellInfo->RequiresSpellFocus && !sScriptMgr->OnSpellFocusAnswered(this))
     {
         CellCoord p(Acore::ComputeCellCoord(m_caster->GetPositionX(), m_caster->GetPositionY()));
         Cell cell(p);

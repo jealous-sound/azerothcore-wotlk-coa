@@ -6108,6 +6108,20 @@ class AscensionTradesmanScroll : public ItemScript
 public:
     AscensionTradesmanScroll() : ItemScript("ascension_tradesman_scroll") { }
 
+    static std::vector<uint32> MissingRankSpells(Player const* player, uint32 skillId)
+    {
+        uint16 const currentStep = player->GetSkillStep(skillId);
+        uint16 const maxStep = GetMaxProfessionSkillStep(player->GetSession()->Expansion());
+        std::vector<uint32> missing;
+        for (uint32 rankSpell : sSpellMgr->GetSkillRankSpells(skillId))
+        {
+            uint16 const step = sSpellMgr->GetSpellLearnSkill(rankSpell)->step;
+            if (step > currentStep && step <= maxStep && !player->HasSpell(rankSpell))
+                missing.push_back(rankSpell);
+        }
+        return missing;
+    }
+
     bool OnUse(Player* player, Item* item, SpellCastTargets const&) override
     {
         if (!player || !item)
@@ -6120,7 +6134,8 @@ public:
             std::string label = prof.name;
             if (!player->HasSkill(prof.skillId))
                 label += " (not learned)";
-            else if (player->GetSkillValue(prof.skillId) >= player->GetPureMaxSkillValue(prof.skillId))
+            else if (MissingRankSpells(player, prof.skillId).empty() &&
+                     player->GetSkillValue(prof.skillId) >= player->GetPureMaxSkillValue(prof.skillId))
                 label += " (already maxed)";
 
             AddGossipItemFor(player, GOSSIP_ICON_TRAINER, label, kSenderScroll, i);
@@ -6148,6 +6163,9 @@ public:
                 "You must learn {} before the scroll can raise it.", prof.name);
             return;
         }
+
+        for (uint32 rankSpell : MissingRankSpells(player, prof.skillId))
+            player->learnSpell(rankSpell);
 
         uint16 const cap = player->GetPureMaxSkillValue(prof.skillId);
         if (!cap)

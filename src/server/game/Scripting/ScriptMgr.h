@@ -688,6 +688,7 @@ public: /* Arena Team Script */
 public: /* SpellSC */
     void OnCalcMaxDuration(Aura const* aura, int32& maxDuration);
     void OnSpellCheckCast(Spell* spell, bool strict, SpellCastResult& res);
+    bool OnSpellFocusAnswered(Spell* spell);
     bool CanPrepare(Spell* spell, SpellCastTargets const* targets, AuraEffect const* triggeredByAura);
     bool CanScalingEverything(Spell* spell);
     bool CanSelectSpecTalent(Spell* spell);
