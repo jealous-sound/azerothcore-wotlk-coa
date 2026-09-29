@@ -13,6 +13,7 @@ namespace
 enum RunemasterRunicTalentSpells : uint32
 {
     SPELL_EARTH_TATTOO = 801094,
+    SPELL_AIR_TATTOO = 802630,
     SPELL_GRANITE_SHIELD = 520822,
     SPELL_GUARDING_RUNE = 500464,
     SPELL_ELEMENTAL_SECRETS = 707149,
@@ -53,6 +54,28 @@ class aura_ascension_runemaster_granite_shield : public AuraScript
     {
         OnEffectPeriodic += AuraEffectPeriodicFn(aura_ascension_runemaster_granite_shield::RequireEarthTattoo,
             EFFECT_0, SPELL_AURA_PERIODIC_TRIGGER_SPELL);
+    }
+};
+
+class aura_ascension_runemaster_wind_walker : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_runemaster_wind_walker);
+
+    bool Validate(SpellInfo const*) override
+    {
+        return ValidateSpellInfo({SPELL_AIR_TATTOO});
+    }
+
+    void RequireAirTattoo(AuraEffect const*)
+    {
+        if (!GetTarget()->HasAura(SPELL_AIR_TATTOO, GetTarget()->GetGUID()))
+            PreventDefaultAction();
+    }
+
+    void Register() override
+    {
+        OnEffectPeriodic += AuraEffectPeriodicFn(aura_ascension_runemaster_wind_walker::RequireAirTattoo,
+            EFFECT_ALL, SPELL_AURA_PERIODIC_TRIGGER_SPELL);
     }
 };
 
@@ -116,6 +139,7 @@ class spell_ascension_runemaster_protective_warding : public SpellScript
 void AddSC_AscensionRunemasterRunicTalents()
 {
     RegisterSpellScript(aura_ascension_runemaster_granite_shield);
+    RegisterSpellScript(aura_ascension_runemaster_wind_walker);
     RegisterSpellScript(aura_ascension_runemaster_speed_rune_stealth);
     RegisterSpellScript(spell_ascension_runemaster_protective_warding);
 }
