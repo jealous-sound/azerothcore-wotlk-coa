@@ -168,6 +168,7 @@ constexpr uint16 SMSG_REALM_INFO = 0x09BC;
 constexpr uint8 REALM_CREATION_FLAG_CONQUEST_OF_AZEROTH = 6;
 constexpr uint8 REALM_CREATION_FLAG_WARCRAFT_REBORN = 7;
 constexpr uint8 REALM_INFO_ADDONS_ALLOWED = 1;
+constexpr uint16 SMSG_GAME_MODE_STATE = 0x090B;
 
 constexpr uint16 SMSG_BANK_PERMISSIONS = 0x0769;
 
@@ -375,6 +376,9 @@ enum class AscensionCompatConfig {
   MAX_RIDING_FROM_START,
   QUEST_LEVEL_SCALING,
   AUTO_PROGRESSION,
+  GAME_MODE_MASK,
+  CLIENT_BOOLEAN_CONFIGS,
+  CLIENT_INTEGER_CONFIGS,
 
   NUM_CONFIGS,
 };
@@ -408,6 +412,9 @@ public:
                                 "CoA.RealmType", "live");
     SetConfigValue<std::string>(AscensionCompatConfig::CLASS_MODEL,
                                 "CoA.ClassModel", "coa");
+    SetConfigValue<uint32>(AscensionCompatConfig::GAME_MODE_MASK, "CoA.GameModeMask", 0);
+    SetConfigValue<std::string>(AscensionCompatConfig::CLIENT_BOOLEAN_CONFIGS, "CoA.ClientBooleanConfigs", "");
+    SetConfigValue<std::string>(AscensionCompatConfig::CLIENT_INTEGER_CONFIGS, "CoA.ClientIntegerConfigs", "");
     SetConfigValue<bool>(AscensionCompatConfig::ALLOW_LEARNED_SPELL_DELIVERY,
                          "CoA.AllowLearnedSpellDelivery", true);
     SetConfigValue<bool>(AscensionCompatConfig::LEARN_OWNED_COMPANIONS,
@@ -1293,7 +1300,10 @@ public:
 
   void OnPlayerLogin(Player *player) {
     if (!IsAscensionCustomClass(player))
+    {
+      QueueCharacterAdvancementState(player);
       return;
+    }
 
     uint32 const specializationId = player->GetPlayerSetting(ASCENSION_ACTIVE_SPEC_SETTING, 0).value;
     if (specializationId)
@@ -3296,6 +3306,7 @@ public:
     SendOutfitCollection(player, *state);
     SendAppearanceVisibility(player, *state);
     SendRealmInfo(player);
+    SendGameModeState(player);
     SendVanityCollection(player, *state);
     SendOwnedVanityStoreRecords(player, *state);
     RefreshVisibleItems(player);
@@ -4348,6 +4359,17 @@ public:
     LOG_INFO("coa",
              "Realm info sent to {}: type {}, class model {}, realm {} ({}).",
              who, art, model, realm.Id.Realm, realm.Name);
+  }
+
+  void SendGameModeState(Player *player) {
+    if (!player || !player->GetSession())
+      return;
+
+    uint32 const mask = ascensionCompatConfig.GetConfigValue<uint32>(
+        AscensionCompatConfig::GAME_MODE_MASK);
+    WorldPacket p(SMSG_GAME_MODE_STATE, sizeof(uint32));
+    p << mask;
+    player->GetSession()->SendPacket(&p);
   }
 
 private:
@@ -6766,10 +6788,20 @@ public:
   }
 };
 
+void AppendConfiguredClientConfigs(AscensionClientConfig& config) {
+  AppendAscensionClientConfigList(ascensionCompatConfig.GetConfigValue<std::string>(
+                                      AscensionCompatConfig::CLIENT_BOOLEAN_CONFIGS),
+                                  config.Booleans);
+  AppendAscensionClientConfigList(ascensionCompatConfig.GetConfigValue<std::string>(
+                                      AscensionCompatConfig::CLIENT_INTEGER_CONFIGS),
+                                  config.Integers);
+}
+
 void AddAscensionCompatScripts() {
   RegisterAscensionClientConfig([](AscensionClientConfig& config) {
     config.Booleans.emplace_back("CONFIG_CHARACTER_ADVANCEMENT_BUILD_INSPECT_ENABLED", true);
   });
+  RegisterAscensionClientConfig(AppendConfiguredClientConfigs);
   new npc_ascension_training_book();
   RegisterSpellScript(spell_ascension_personal_bank);
   RegisterSpellScript(spell_ascension_experience_potion);

@@ -70,6 +70,7 @@ def main():
         ('QUEUE_LIMIT', constant(compat, 'MAX_QUEUED_EXTENSION_PACKETS')),
         ('CONFIG_KEYS', method(compat, 'enum class AscensionCompatConfig') + ';'),
         ('SEND_REALM_INFO', method(compat, 'void SendRealmInfo(WorldSession *session')),
+        ('SEND_GAME_MODE_STATE', method_or(compat, 'void SendGameModeState(Player *player)', 'void SendGameModeState(Player*) { }')),
         ('QUEUE_CLIENT_PACKET', method(compat, 'void QueueClientPacket(uint32 accountId')),
         ('REJECT_CLIENT_PACKET', method_or(compat, 'void RejectClientPacket(uint32 accountId', '')),
         ('TAKE_CLIENT_PACKETS', method_or(compat, 'std::vector<WorldPacket> TakeClientPackets(uint32 accountId)', '')),

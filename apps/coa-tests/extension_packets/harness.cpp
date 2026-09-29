@@ -279,6 +279,7 @@ struct CompatConfig
 {
     std::string RealmType = "live";
     std::string ClassModel = "coa";
+    uint32 GameModeMask = 0;
     bool UnlockAllVanity = true;
     bool LearnedSpellDelivery = true;
 
@@ -288,7 +289,11 @@ struct CompatConfig
         if constexpr (std::is_same_v<T, std::string>)
             return key == AscensionCompatConfig::REALM_TYPE ? RealmType : ClassModel;
         else if constexpr (std::is_same_v<T, uint32>)
+        {
+            if (key == AscensionCompatConfig::GAME_MODE_MASK)
+                return GameModeMask;
             return key == AscensionCompatConfig::FIRST_EXTENSION_OPCODE ? 0x051F : 0x09D3;
+        }
         else if (key == AscensionCompatConfig::UNLOCK_ALL_VANITY)
             return UnlockAllVanity;
         else if (key == AscensionCompatConfig::ALLOW_LEARNED_SPELL_DELIVERY)
@@ -376,6 +381,7 @@ public:
     void RefreshCosmetics(Player*, PlayerCollectionState&) { }
 
     // ACTUAL_SEND_REALM_INFO
+    // ACTUAL_SEND_GAME_MODE_STATE
     // ACTUAL_QUEUE_CLIENT_PACKET
     // ACTUAL_REJECT_CLIENT_PACKET
     // ACTUAL_TAKE_CLIENT_PACKETS
@@ -463,6 +469,32 @@ void TestRealmInfo()
                 info.Name == realm.Name;
         }
     Check(allowedEverywhere, "every realm type and class model allows add-ons and names the realm");
+}
+
+std::vector<uint32> SentGameModes(uint32 mask)
+{
+    ascensionCompatConfig.GameModeMask = mask;
+    WorldSession session;
+    Player player;
+    player.Session = &session;
+    AscensionCollectionService::Instance().SendGameModeState(&player);
+    std::vector<uint32> modes;
+    for (WorldPacket packet : session.Sent)
+    {
+        packet.rpos(0);
+        if (packet.GetOpcode() == 0x090B && packet.size() == sizeof(uint32))
+            modes.push_back(packet.read<uint32>());
+    }
+    return modes;
+}
+
+void TestGameModeState()
+{
+    Check(SentGameModes(0) == std::vector<uint32>{0},
+        "a realm without custom game modes still tells the client its mode is none");
+    Check(SentGameModes(64) == std::vector<uint32>{64}, "a wildcard realm sends the wildcard game-mode bit");
+    Check(SentGameModes(64 | 8) == std::vector<uint32>{72}, "combined game modes reach the client as one mask");
+    ascensionCompatConfig.GameModeMask = 0;
 }
 
 bool Receive(WorldSession& session, WorldPacket const& packet)
@@ -999,6 +1031,7 @@ void TestTalentRequests()
 int main()
 {
     TestRealmInfo();
+    TestGameModeState();
     TestWorldEntryResend();
     TestStorePackets();
     TestTalentRequests();

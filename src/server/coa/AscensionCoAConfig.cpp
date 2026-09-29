@@ -3,6 +3,8 @@
 #include "World.h"
 #include "WorldPacket.h"
 #include "WorldSession.h"
+#include "Tokenize.h"
+#include <charconv>
 #include <string_view>
 
 namespace
@@ -64,6 +66,44 @@ void AppendSection(WorldPacket& packet, std::vector<std::pair<std::string, Value
         packet << Wire(value);
     }
 }
+
+std::string_view TrimSpaces(std::string_view text)
+{
+    std::size_t const first = text.find_first_not_of(' ');
+    if (first == std::string_view::npos)
+        return {};
+    return text.substr(first, text.find_last_not_of(' ') - first + 1);
+}
+
+template <typename Value>
+void AppendConfigList(std::string_view list, std::vector<std::pair<std::string, Value>>& out)
+{
+    for (std::string_view entry : Acore::Tokenize(list, ',', false))
+    {
+        std::size_t const separator = entry.find('=');
+        if (separator == std::string_view::npos)
+            continue;
+
+        std::string_view const key = TrimSpaces(entry.substr(0, separator));
+        std::string_view const value = TrimSpaces(entry.substr(separator + 1));
+        int32 number = 0;
+        auto const [end, error] = std::from_chars(value.data(), value.data() + value.size(), number);
+        if (key.empty() || error != std::errc() || end != value.data() + value.size())
+            continue;
+
+        out.emplace_back(std::string(key), static_cast<Value>(number));
+    }
+}
+}
+
+void AppendAscensionClientConfigList(std::string_view list, std::vector<std::pair<std::string, bool>>& out)
+{
+    AppendConfigList(list, out);
+}
+
+void AppendAscensionClientConfigList(std::string_view list, std::vector<std::pair<std::string, int32>>& out)
+{
+    AppendConfigList(list, out);
 }
 
 void RegisterAscensionClientConfig(AscensionClientConfigSource source)
