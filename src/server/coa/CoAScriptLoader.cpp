@@ -247,6 +247,7 @@ void AddSC_AscensionProfessionRanks();
 void AddSC_AscensionPrestigiousCache();
 void AddSC_AscensionCallboardCache();
 void AddSC_AscensionFeatherOfAncients();
+void AddSC_AscensionInnRest();
 void AddSC_AscensionReaperRuin();
 void AddSC_AscensionReaperRedshade();
 void AddSC_AscensionReaperSpellContracts();
@@ -509,6 +510,7 @@ void AddCoAScripts()
     AddSC_AscensionPrestigiousCache();
     AddSC_AscensionCallboardCache();
     AddSC_AscensionFeatherOfAncients();
+    AddSC_AscensionInnRest();
     AddSC_AscensionReaperRuin();
     AddSC_AscensionReaperRedshade();
     AddSC_AscensionReaperSpellContracts();
