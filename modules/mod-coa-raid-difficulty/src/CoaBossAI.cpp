@@ -295,7 +295,7 @@ namespace
             if (SpellCastResult result = me->CastSpell(target, spell, false); result != SPELL_CAST_OK)
             {
                 _pending.erase(sSpellMgr->GetSpellIdForDifficulty(spell, me));
-                LOG_ERROR("scripts", "coa_boss_ai: boss {} (map spawn mode {}) failed to cast {} at {}: result {}",
+                LOG_DEBUG("scripts", "coa_boss_ai: boss {} (map spawn mode {}) failed to cast {} at {}: result {}",
                           me->GetEntry(), uint32(me->GetMap()->GetSpawnMode()), spell, target->GetGUID().ToString(),
                           uint32(result));
             }
