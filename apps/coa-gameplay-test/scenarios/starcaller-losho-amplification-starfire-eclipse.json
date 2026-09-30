@@ -24,8 +24,8 @@
     }
   ],
   "creatures": [
-    { "id": "dummy_control", "owner": "control", "entry": 36, "level": 80, "health": 1000000, "distance": 3 },
-    { "id": "dummy_star", "owner": "star", "entry": 36, "level": 80, "health": 1000000, "distance": 3 }
+    { "id": "dummy_control", "owner": "control", "entry": 36, "level": 80, "health": 1000000, "distance": 6.5 },
+    { "id": "dummy_star", "owner": "star", "entry": 36, "level": 80, "health": 1000000, "distance": 6.5 }
   ],
   "steps": [
     { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
