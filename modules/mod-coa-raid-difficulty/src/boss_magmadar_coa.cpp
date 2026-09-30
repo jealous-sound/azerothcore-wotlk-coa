@@ -30,7 +30,7 @@
 #include "ScriptedCreature.h"
 #include "SpellScript.h"
 #include "SpellScriptLoader.h"
-#include "molten_core.h"
+#include "../../../src/server/scripts/EasternKingdoms/BlackrockMountain/MoltenCore/molten_core.h"
 
 namespace
 {
