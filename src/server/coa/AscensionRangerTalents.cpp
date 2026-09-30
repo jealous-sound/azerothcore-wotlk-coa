@@ -68,6 +68,23 @@ constexpr std::array<WingmanCompanion, 3> WingmanCompanions =
 constexpr uint8 RANGER_ADVANTAGE_MAX_STACKS = 5;
 constexpr int32 WINGMAN_REFRESH_MS = 500;
 
+template <typename Visitor>
+void ForEachPresentCompanion(Unit* owner, Visitor&& visit)
+{
+    for (Unit* controlled : owner->m_Controlled)
+    {
+        if (!controlled || !controlled->IsAlive() || controlled->GetOwnerGUID() != owner->GetGUID())
+            continue;
+        for (WingmanCompanion const& companion : WingmanCompanions)
+        {
+            SpellInfo const* presence = sSpellMgr->GetSpellInfo(companion.Presence);
+            if (controlled->GetEntry() == companion.Entry && presence &&
+                owner->IsWithinDistInMap(controlled, presence->Effects[EFFECT_0].CalcRadius()))
+                visit(presence);
+        }
+    }
+}
+
 bool HasFullAdvantage(Player const* player)
 {
     Aura const* advantage = player->GetAura(SPELL_ADVANTAGE);
@@ -135,19 +152,10 @@ class aura_ascension_ranger_wingman : public AuraScript
     {
         recalculate = true;
         amount = 0;
-        Unit* owner = GetUnitOwner();
-        for (Unit* controlled : owner->m_Controlled)
+        ForEachPresentCompanion(GetUnitOwner(), [&amount](SpellInfo const* presence)
         {
-            if (!controlled || !controlled->IsAlive() || controlled->GetOwnerGUID() != owner->GetGUID())
-                continue;
-            for (WingmanCompanion const& companion : WingmanCompanions)
-            {
-                SpellInfo const* presence = sSpellMgr->GetSpellInfo(companion.Presence);
-                if (controlled->GetEntry() == companion.Entry && presence &&
-                    owner->IsWithinDistInMap(controlled, presence->Effects[EFFECT_0].CalcRadius()))
-                    amount += presence->Effects[EFFECT_2].CalcValue();
-            }
-        }
+            amount += presence->Effects[EFFECT_2].CalcValue();
+        });
     }
 
     void Period(AuraEffect const*, bool& periodic, int32& interval)
@@ -265,9 +273,6 @@ class aura_ascension_ranger_pilfering : public AuraScript
     void Heal(AuraEffect const* effect, ProcEventInfo& event)
     {
         PreventDefaultAction();
-        if (!CheckProc(event))
-            return;
-
         AuraEffect const* blades = GetTarget()->GetAuraEffect(SPELL_DIRTY_BLADES, EFFECT_0);
         if (!blades)
             return;
@@ -306,18 +311,7 @@ class aura_ascension_ranger_guidance : public AuraScript
         if (!owner)
             return;
 
-        for (Unit* controlled : owner->m_Controlled)
-        {
-            if (!controlled || !controlled->IsAlive() || controlled->GetOwnerGUID() != owner->GetGUID())
-                continue;
-            for (WingmanCompanion const& companion : WingmanCompanions)
-            {
-                SpellInfo const* presence = sSpellMgr->GetSpellInfo(companion.Presence);
-                if (controlled->GetEntry() == companion.Entry && presence &&
-                    owner->IsWithinDistInMap(controlled, presence->Effects[EFFECT_0].CalcRadius()))
-                    ++amount;
-            }
-        }
+        ForEachPresentCompanion(owner, [&amount](SpellInfo const*) { ++amount; });
     }
 
     void Period(AuraEffect const*, bool& isPeriodic, int32& timer)

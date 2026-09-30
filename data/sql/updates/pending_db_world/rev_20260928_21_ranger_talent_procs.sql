@@ -20,7 +20,7 @@
 -- closely the shipped Red Dream 521451 -> 521643 heal in rev_20260914_11_ranger_red_flowers.sql.
 --
 -- The proc event is the Ranger's own melee auto attack while Dirty Blades (680276) is up, which is what
--- Dirty Blades itself keys on ("your melee auto attacks deal an additional 60% of the damage dealt").
+-- Dirty Blades itself keys on ("your melee auto attacks deal an additional 70% of the damage dealt").
 -- CheckProc tests that in code against the aura rather than through SpellFamilyMask, so the row does not
 -- depend on a family bit this revision cannot read. ProcFlags 4 = PROC_FLAG_DONE_MELEE_AUTO_ATTACK
 -- (SpellMgr.h:118); the melee/ranged spell and periodic bits are left out because the tooltip says the
@@ -35,6 +35,9 @@
 -- times Dirty Blades' own effect 0 amount (which already includes the +10 from Pilfering's effect 0) times
 -- Pilfering's 50%, not 50% of the whole swing. The script's Load() reads the owner with GetUnitOwner(),
 -- because AuraScript::GetTarget() is null while the script loads and the script never attached before.
+-- Known limit: Dirty Blades' own Nature damage (aura 354 to 520571) has no script or proc row yet, so the heal is
+-- computed from the swing damage and Dirty Blades' amount rather than from damage actually dealt; it will not
+-- follow resists or absorbs until that damage is implemented and this heal keys on it.
 DELETE FROM `spell_script_names` WHERE `ScriptName` IN
     ('aura_ascension_ranger_frenzy', 'spell_ascension_ranger_frenzy', 'aura_ascension_ranger_pilfering');
 INSERT INTO `spell_script_names` (`spell_id`, `ScriptName`) VALUES
