@@ -35,6 +35,8 @@ void AddAscensionStockCoefficientScripts();
 void AddAscensionScalingBaseScripts();
 void AddCoABugReportScripts();
 void AddCoAPlayerTicketScripts();
+void AddAscensionWildcardScripts();
+void AddAscensionAchievementConditionScripts();
 void AddAscensionAccountInfoScripts();
 void AddCoAGameplayTestScripts();
 void AddSC_AscensionResourceTalents();
@@ -565,6 +567,8 @@ void AddCoAScripts()
     AddAscensionTinkerCombatSymbiosisScripts();
     AddCoABugReportScripts();
     AddCoAPlayerTicketScripts();
+    AddAscensionWildcardScripts();
+    AddAscensionAchievementConditionScripts();
     AddAscensionAccountInfoScripts();
     AddCoAGameplayTestScripts();
     AddSC_AscensionResourceTalents();

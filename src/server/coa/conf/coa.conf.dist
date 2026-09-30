@@ -13,8 +13,9 @@ CoA.Enable = 1
 # Authentication proofs and packet size checks remain required. Restart to apply.
 CoA.AllowRemoteClients = 0
 
-# Ascension's classless character creator submits reserved WotLK class ID 10.
-# Use a stock warrior shell until the classless progression backend is added.
+# Ascension's classless character creator submits class ID 10 (Hero).
+# 1 - Create a stock warrior shell instead.
+# 0 - Create a Hero. Use this on a realm with CoA.ClassModel = "hero".
 CoA.MapClass10ToWarrior = 1
 
 # Log each consumed extension packet during protocol discovery.

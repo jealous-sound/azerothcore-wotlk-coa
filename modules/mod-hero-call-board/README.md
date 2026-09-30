@@ -11,6 +11,10 @@ The **Hero's Call Board** (Stormwind, `402000`) and the **Warchief's Command Boa
   instead of closing the window. Every quest still passes the core's own checks.
 - Dailies that need a server event are credited here: five duel victories (`80651`), a battleground win (`81260`),
   and dungeon finder clears of a Normal, Heroic or Mythic dungeon (`81042`, `81041`, `80652`).
+- The weekly leader quests of Darkmoon - Season 10 Wildcard: **Lead a Dungeon!** (`100078`, 5000 Runes of Ascension)
+  credits the group leader when a dungeon's final encounter falls, **Lead a Raid!** (`100077`, 10000) when one of
+  the listed final raid bosses dies (the classic raids have no usable last-encounter data). There is no Mythic+, so
+  Lead a Mythic+ is not offered.
 
 The board rewards are the quests' own Runes of Ascension. The Callboard Cache is handled by the CoA core.
 

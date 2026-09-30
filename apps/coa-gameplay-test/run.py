@@ -66,7 +66,7 @@ METRICS = {
     'cast_speed_multiplier', 'spell_crit_chance', 'spell_power_cost', 'spell_damage_done', 'melee_damage_done',
     'who_count', 'who_class', 'player_name', 'name_lookup', 'loot_count', 'loot_entry', 'loot_received',
     'loot_gold', 'loot_bloodforged', 'nearby_gameobject_count', 'nearby_creature_count', 'carried_money',
-    'quest_rewarded', 'spell_damage_taken', 'melee_damage_taken', 'spell_healing_taken',
+    'quest_rewarded', 'has_achievement', 'has_title', 'spell_damage_taken', 'melee_damage_taken', 'spell_healing_taken',
     'spell_hit_bonus_taken', 'rooted', 'stunned', 'spell_cast_count', 'spell_go_count', 'cast_failure',
     'stealth_detection', 'can_detect',
     'quest_status', 'quest_takeable', 'quest_objective_count', 'dialog_status',
@@ -88,7 +88,9 @@ METRICS = {
     'pet_aura_amount', 'pet_aura_amplitude_ms', 'pet_max_health', 'pet_attack_power', 'pet_run_speed_rate',
     'distance', 'spell_proc_count', 'temporary_spell_replacement', 'creature_loot_quality_rate',
     'quest_menu_items', 'quest_menu_has', 'player_setting', 'server_packets', 'server_packet_contains',
-    'player_class', 'cached_class', 'at_login_flag',
+    'player_class', 'cached_class', 'at_login_flag', 'wildcard_starter_spells_known', 'action_bar_unknown_spells',
+    'wildcard_spells_known', 'wildcard_cards_pending', 'wildcard_cards_collected', 'wildcard_roll_cards_set',
+    'wildcard_roll_cards_used', 'wildcard_bonus_pack_progress',
 }
 PLAYER_STAT_METRICS = {
     'spell_go_count',
@@ -113,7 +115,7 @@ METRIC_FIELDS = {'actor', 'metric', 'spell', 'power', 'caster', 'effect', 'item'
                  'relative_to', 'ratio_to', 'target', 'quest', 'id', 'stat', 'school', 'hand', 'rating', 'op',
                  'base', 'key', 'index', 'pet', 'critical', 'target_pet', 'periodic', 'name', 'text',
                  'min_distance', 'owner_display', 'skill', 'cache', 'table', 'exclude', 'dungeon', 'source',
-                 'opcode', 'from', 'slot'}
+                 'opcode', 'from', 'slot', 'achievement', 'title'}
 ACTIONS = {
     'stop_attack': ({'actor'}, {'actor'}),
     'set_moving': ({'actor', 'enabled'}, {'actor', 'enabled'}),
@@ -131,7 +133,7 @@ ACTIONS = {
     'snapshot': ({'actor', 'metric', 'save_as'}, METRIC_FIELDS | {'save_as'}),
     'assert': ({'actor', 'metric'}, METRIC_FIELDS | {'equals', 'min', 'max', 'within_ms'}),
     'learn': ({'actor', 'spell'}, {'actor', 'spell'}),
-    'set_action_button': ({'actor', 'spell', 'button'}, {'actor', 'spell', 'button'}),
+    'set_action_button': ({'actor', 'button'}, {'actor', 'spell', 'button', 'wildcard_slot'}),
     'grant_resource': ({'actor', 'spell'}, {'actor', 'spell', 'amount'}),
     'unlearn': ({'actor', 'spell'}, {'actor', 'spell', 'all_specs'}),
     'money': ({'actor', 'copper'}, {'actor', 'copper'}),
@@ -332,7 +334,7 @@ def validate(scenario):
                 if key in step:
                     number(step[key], f'{where}.{key}', -17000, 17000)
         for key in ('spell', 'item', 'talent', 'count', 'entry', 'quest', 'id', 'challenge', 'level',
-                    'target_item'):
+                    'target_item', 'achievement', 'title'):
             if key in step:
                 number(step[key], f'{where}.{key}', 1, 2**31 - 1, True)
         for key, maximum in (('rank', 4), ('effect', 2), ('slot', 22),('power', 6), ('choice', 5),
@@ -341,6 +343,10 @@ def validate(scenario):
                 number(step[key], f'{where}.{key}', 0, maximum, True)
         if 'stacks' in step:
             number(step['stacks'], f'{where}.stacks', 0, 255, True)
+        if action == 'set_action_button':
+            require(('spell' in step) != ('wildcard_slot' in step), f'{where}: needs a spell or a wildcard_slot')
+            if 'wildcard_slot' in step:
+                number(step['wildcard_slot'], f'{where}.wildcard_slot', 0, 255, True)
         if action in ('set_aura', 'attack', 'set_health', 'set_power') and 'pet' in step:
             require(type(step['pet']) is bool, f'{where}: pet must be boolean')
             require(step['actor'] in player_ids, f'{where}: pet fixture needs a player')
@@ -422,7 +428,8 @@ def validate(scenario):
             for index, field in enumerate(fields):
                 require(isinstance(field, dict) and len(field) == 1, f'{where}.fields[{index}]: expected one typed value')
                 (kind, value), = field.items()
-                require(kind in {'u8', 'u32', 'u64', 'string', 'buyback_guid', 'actor_guid', 'stabled_pet'},
+                require(kind in {'u8', 'u32', 'u64', 'string', 'buyback_guid', 'actor_guid', 'stabled_pet',
+                                 'wildcard_entry', 'wildcard_pending_cards', 'wildcard_lowest_card'},
                         f'{where}.fields[{index}]: unknown field type')
                 if kind == 'string':
                     require(isinstance(value, str), f'{where}.fields[{index}]: expected a string')
@@ -430,7 +437,8 @@ def validate(scenario):
                     require(value in actor_ids, f'{where}.fields[{index}]: expected a player or creature id')
                 else:
                     maximum = {'u8': 255, 'u32': 2**32 - 1, 'u64': 2**64 - 1, 'buyback_guid': 2**31 - 1,
-                               'stabled_pet': 3}[kind]
+                               'stabled_pet': 3, 'wildcard_entry': 255, 'wildcard_pending_cards': 1000,
+                               'wildcard_lowest_card': 7}[kind]
                     number(value, f'{where}.fields[{index}]', 0, maximum, True)
         if 'value' in step:
             number(step['value'], f'{where}.value', 1 if action == 'set_health' else 0, 2**31 - 1, True)
@@ -555,6 +563,10 @@ def validate(scenario):
                         f'{where}: metric needs the text to look for')
             if metric == 'quest_rewarded':
                 require('quest' in step, f'{where}: metric needs quest')
+            if metric == 'has_achievement':
+                require('achievement' in step, f'{where}: metric needs achievement')
+            if metric == 'has_title':
+                require('title' in step, f'{where}: metric needs title')
             if metric == 'who_class':
                 require(step.get('target') in player_ids, f'{where}: Who class metric needs a target player')
             if metric == 'owned_creature_count':
@@ -630,14 +642,19 @@ def validate(scenario):
                           'cast_speed_multiplier', 'spell_crit_chance', 'spell_power_cost',
                           'spell_damage_done', 'melee_damage_done',
                           'who_count', 'who_class',
-                          'loot_count', 'loot_entry', 'loot_received', 'quest_rewarded',
+                          'loot_count', 'loot_entry', 'loot_received', 'quest_rewarded', 'has_achievement',
+                          'has_title',
                           'quest_status', 'quest_takeable', 'quest_objective_count', 'dialog_status',
                           'ball_offer_count', 'ball_offers_quest',
                           'ball_carried_count', 'ball_carried_quest',
                           'ball_turn_in_count', 'ball_turn_in_quest',
                           'temporary_spell_replacement', 'quest_menu_items', 'quest_menu_has',
                           'player_setting', 'server_packets', 'server_packet_contains',
-                          'player_class', 'cached_class', 'at_login_flag'} | PLAYER_STAT_METRICS:
+                          'player_class', 'cached_class', 'at_login_flag',
+                          'wildcard_starter_spells_known', 'action_bar_unknown_spells',
+                          'wildcard_spells_known', 'wildcard_cards_pending',
+                          'wildcard_cards_collected', 'wildcard_roll_cards_set',
+                          'wildcard_roll_cards_used', 'wildcard_bonus_pack_progress'} | PLAYER_STAT_METRICS:
                 require(step['actor'] in player_ids, f'{where}: metric needs a player')
             shape = (metric, step.get('exclude'))
             if 'relative_to' in step:

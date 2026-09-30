@@ -133,7 +133,7 @@ enum Classes
     CLASS_SHAMAN         = 7,  // TITLE Shaman
     CLASS_MAGE           = 8,  // TITLE Mage
     CLASS_WARLOCK        = 9,  // TITLE Warlock
-    // CLASS_HERO        = 10, // Ascension classless/free-pick shell
+    CLASS_HERO           = 10, // TITLE Hero
     CLASS_DRUID          = 11, // TITLE Druid
     CLASS_BARBARIAN      = 12, // TITLE Barbarian
     CLASS_WITCH_DOCTOR   = 13, // TITLE Witch Doctor
@@ -161,12 +161,17 @@ enum Classes
 // max+1 for player class
 #define MAX_CLASSES       33
 
-// Every client class bit except Ascension's reserved classless/free-pick ID 10.
-#define CLASSMASK_ALL_PLAYABLE 0xFFFFFDFFu
+// Every client class bit, including Ascension's classless Hero (ID 10).
+#define CLASSMASK_ALL_PLAYABLE 0xFFFFFFFFu
 
 constexpr bool IsAscensionClass(uint8 classId)
 {
     return classId >= CLASS_BARBARIAN && classId <= CLASS_SPIRIT_MAGE;
+}
+
+constexpr bool UsesProjectileAmmo(uint8 classId)
+{
+    return classId != CLASS_HERO && !IsAscensionClass(classId);
 }
 
 // Several WotLK formulas have hard-coded per-class constants rather than DBC
@@ -175,6 +180,7 @@ constexpr Classes GetLegacyClassForCustomClass(Classes playerClass)
 {
     switch (playerClass)
     {
+        case CLASS_HERO:          return CLASS_DRUID;
         case CLASS_BARBARIAN:     return CLASS_ROGUE;
         case CLASS_WITCH_DOCTOR:  return CLASS_SHAMAN;
         case CLASS_DEMON_HUNTER:  return CLASS_ROGUE;
@@ -205,6 +211,11 @@ constexpr uint32 ExpandLegacyClassMask(uint32 classMask)
 {
     if (classMask & 0xFFFFF800u)
         return classMask;
+
+    // A mask naming every WotLK class predates Hero and means every class.
+    constexpr uint32 wotlkPlayableMask = 0x5FFu;
+    if ((classMask & wotlkPlayableMask) == wotlkPlayableMask)
+        return CLASSMASK_ALL_PLAYABLE;
 
     uint32 result = classMask;
     for (uint8 classId = CLASS_BARBARIAN; classId < MAX_CLASSES; ++classId)

@@ -15,6 +15,9 @@ struct KnownEntry
 {
     std::uint32_t EntryId;
     std::uint32_t Rank;
+    std::uint32_t LearnedSpellRank = 0;
+    bool Locked = false;
+    std::uint32_t LearnOrder = 0;
 };
 
 std::uint32_t KnownRank(AscensionCompatData::CoATalentEntry const& entry, HasSpell const& hasSpell);
