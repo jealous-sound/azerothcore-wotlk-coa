@@ -1,0 +1,252 @@
+{
+  "schema": 1,
+  "name": "Ranger Serrations adds 5%/10% damage against bleeding and poisoned targets (#5421)",
+  "contract": "Serrations 705050 (rank 1) and 707850 (rank 2) read 'Increases your damage against bleeding or Poisoned targets by $s1%.' Effect 1 is native SPELL_AURA_MOD_DAMAGE_DONE_VERSUS_AURASTATE on AURA_STATE_BLEEDING (18). Effect 2 is the raw Ascension selector aura 112 with MiscValue 20007 and MiscValueB 32 (AURA_STATE_ASCENSION_POISONED); ApplyRangerSerrationsContract converts it at load to the same aurastate aura, scoped to the Ranger family, when BasePoints is 4 (rank 1) or 9 (rank 2). Unit::HasAuraState answers state 32 with any harmful applied aura whose dispel type is poison. Expected: Hunting Shot 801191 done to a bleeding (Rend 772) or a poisoned (Deadly Poison 2818) creature is 1.05x (rank 1) or 1.10x (rank 2) the same query against a clean creature, and exactly 1x before the talent is learned; before the conversion the poison clause did nothing.",
+  "timeout_ms": 60000,
+  "location": {
+    "map": 0,
+    "x": -8917.41,
+    "y": -115.853,
+    "z": 82.3711,
+    "o": 0
+  },
+  "players": [
+    {
+      "id": "ranger",
+      "race": 1,
+      "class": 21,
+      "level": 80
+    }
+  ],
+  "creatures": [
+    {
+      "id": "applier",
+      "owner": "ranger",
+      "entry": 36,
+      "level": 80,
+      "health": 1000000,
+      "distance": 15
+    },
+    {
+      "id": "bleeding",
+      "owner": "ranger",
+      "entry": 36,
+      "level": 80,
+      "health": 1000000,
+      "distance": 5,
+      "faction": 7
+    },
+    {
+      "id": "poisoned",
+      "owner": "ranger",
+      "entry": 36,
+      "level": 80,
+      "health": 1000000,
+      "distance": 8,
+      "faction": 7
+    },
+    {
+      "id": "clean",
+      "owner": "ranger",
+      "entry": 36,
+      "level": 80,
+      "health": 1000000,
+      "distance": 11,
+      "faction": 7
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "cast",
+      "label": "Fixture bleed on the first creature",
+      "actor": "applier",
+      "spell": 772,
+      "target": "bleeding"
+    },
+    {
+      "action": "cast",
+      "label": "Fixture poison on the second creature",
+      "actor": "applier",
+      "spell": 2818,
+      "target": "poisoned"
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: the first creature is bleeding",
+      "actor": "bleeding",
+      "metric": "aura",
+      "spell": 772,
+      "equals": 1,
+      "within_ms": 3000
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: the second creature is poisoned",
+      "actor": "poisoned",
+      "metric": "aura",
+      "spell": 2818,
+      "equals": 1,
+      "within_ms": 3000
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: the third creature is clean",
+      "actor": "clean",
+      "metric": "aura",
+      "spell": 772,
+      "equals": 0
+    },
+    {
+      "action": "snapshot",
+      "actor": "ranger",
+      "metric": "spell_damage_done",
+      "spell": 801191,
+      "target": "clean",
+      "save_as": "clean_damage"
+    },
+    {
+      "action": "assert",
+      "label": "Without Serrations a bleeding target takes no bonus",
+      "actor": "ranger",
+      "metric": "spell_damage_done",
+      "spell": 801191,
+      "target": "bleeding",
+      "ratio_to": "clean_damage",
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "label": "Without Serrations a poisoned target takes no bonus",
+      "actor": "ranger",
+      "metric": "spell_damage_done",
+      "spell": 801191,
+      "target": "poisoned",
+      "ratio_to": "clean_damage",
+      "equals": 1
+    },
+    {
+      "action": "learn",
+      "actor": "ranger",
+      "spell": 705050
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: Serrations rank 1 is learned",
+      "actor": "ranger",
+      "metric": "aura",
+      "spell": 705050,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING: rank 1 deals 5% more to a bleeding target",
+      "actor": "ranger",
+      "metric": "spell_damage_done",
+      "spell": 801191,
+      "target": "bleeding",
+      "ratio_to": "clean_damage",
+      "min": 1.049,
+      "max": 1.051
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING: rank 1 deals 5% more to a poisoned target",
+      "actor": "ranger",
+      "metric": "spell_damage_done",
+      "spell": 801191,
+      "target": "poisoned",
+      "ratio_to": "clean_damage",
+      "min": 1.049,
+      "max": 1.051
+    },
+    {
+      "action": "assert",
+      "label": "Rank 1 gives a clean target no bonus",
+      "actor": "ranger",
+      "metric": "spell_damage_done",
+      "spell": 801191,
+      "target": "clean",
+      "ratio_to": "clean_damage",
+      "equals": 1
+    },
+    {
+      "action": "unlearn",
+      "actor": "ranger",
+      "spell": 705050
+    },
+    {
+      "action": "learn",
+      "actor": "ranger",
+      "spell": 707850
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: Serrations rank 2 is learned",
+      "actor": "ranger",
+      "metric": "aura",
+      "spell": 707850,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: rank 1 is gone, so the ranks cannot stack",
+      "actor": "ranger",
+      "metric": "aura",
+      "spell": 705050,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING: rank 2 deals 10% more to a bleeding target",
+      "actor": "ranger",
+      "metric": "spell_damage_done",
+      "spell": 801191,
+      "target": "bleeding",
+      "ratio_to": "clean_damage",
+      "min": 1.099,
+      "max": 1.101
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING: rank 2 deals 10% more to a poisoned target",
+      "actor": "ranger",
+      "metric": "spell_damage_done",
+      "spell": 801191,
+      "target": "poisoned",
+      "ratio_to": "clean_damage",
+      "min": 1.099,
+      "max": 1.101
+    },
+    {
+      "action": "assert",
+      "label": "Rank 2 gives a clean target no bonus",
+      "actor": "ranger",
+      "metric": "spell_damage_done",
+      "spell": 801191,
+      "target": "clean",
+      "ratio_to": "clean_damage",
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: the bleed lasted through the checks",
+      "actor": "bleeding",
+      "metric": "aura",
+      "spell": 772,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: the poison lasted through the checks",
+      "actor": "poisoned",
+      "metric": "aura",
+      "spell": 2818,
+      "equals": 1
+    }
+  ]
+}

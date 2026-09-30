@@ -1286,6 +1286,8 @@ private:
             player->ApplyRatingMod(CR_CRIT_SPELL, *critRating, true);
         if (auto critRating = actor.definition.get_optional<int32>("melee_crit_rating"))
             player->ApplyRatingMod(CR_CRIT_MELEE, *critRating, true);
+        if (auto critRating = actor.definition.get_optional<int32>("ranged_crit_rating"))
+            player->ApplyRatingMod(CR_CRIT_RANGED, *critRating, true);
         if (auto hitRating = actor.definition.get_optional<int32>("ranged_hit_rating"))
             player->ApplyRatingMod(CR_HIT_RANGED, *hitRating, true);
         if (auto hitRating = actor.definition.get_optional<int32>("melee_hit_rating"))
