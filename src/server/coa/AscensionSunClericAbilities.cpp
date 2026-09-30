@@ -14,6 +14,9 @@
 namespace
 {
 using namespace AscensionSunCleric;
+constexpr uint32 ChosenKing = 707079;
+constexpr uint32 HammerOfKings = 804751;
+constexpr uint32 Anointed = 524998;
 bool Select(uint32 id, SpellInfo const* info)
 {
     switch (id)
@@ -171,6 +174,8 @@ public:
         if (!player || caster != player || info->SpellFamilyName != 33 || spell->IsTriggered())
             return;
         uint32 id = info->Id;
+        if (id == HammerOfKings && player->HasAura(ChosenKing, player->GetGUID()))
+            Cast(player, player, Anointed);
         if (Invocation(info))
         {
             if (player->HasAura(681436))
