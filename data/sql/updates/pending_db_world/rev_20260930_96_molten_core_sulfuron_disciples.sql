@@ -88,19 +88,9 @@ INSERT INTO `coa_boss_flex` (`entry`, `hp_d0`, `hp_d1`, `hp_d2`, `hp_d3`, `comme
 (92032, 121814, 175412, 229010, 282609, 'Proxima the Opressor: CoA video Ascended (6.5M/23), same reading as Corvus; Mythic/Ascended only'),
 (92033, 121814, 175412, 229010, 282609, 'Ebon the Cruel: CoA video Ascended (6.5M/23), same reading as Corvus; Mythic/Ascended only');
 
--- Widen coa_boss_summon (rev_20260930_92) from "one reinforcement per boss" to "one or more,
--- optionally taking the place of a nearby creature" -- CoaBossAI.cpp reads the new columns.
--- idx makes the primary key support several rows per boss; existing rows (Lucifron's Shadow of
--- Lucifron) default to idx 0 and keep their old, unreplaced-spawn behaviour unchanged.
-ALTER TABLE `coa_boss_summon`
-  ADD COLUMN `idx` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'position within this boss, multiple summons' AFTER `entry`,
-  ADD COLUMN `replace_entry` INT UNSIGNED NOT NULL DEFAULT 0
-    COMMENT 'despawn the nearest live creature of this entry near the boss and summon at its spot, 0 none',
-  ADD COLUMN `replace_radius` FLOAT NOT NULL DEFAULT 0 COMMENT 'search radius in yards for replace_entry',
-  ADD COLUMN `min_difficulty` TINYINT UNSIGNED NOT NULL DEFAULT 0
-    COMMENT 'map spawn mode this row is active from: 0 Normal, 1 Heroic, 2 Mythic, 3 Ascended';
-ALTER TABLE `coa_boss_summon` DROP PRIMARY KEY, ADD PRIMARY KEY (`entry`, `idx`);
-
+-- coa_boss_summon (rev_20260930_92) already carries idx/replace_entry/replace_radius/
+-- min_difficulty in its final schema, so this revision only inserts Sulfuron's own rows.
+--
 -- Sulfuron (12098): the three disciples, Mythic/Ascended only (min_difficulty 2) -- no
 -- Normal/Heroic Sulfuron pull exists in the corpus, so Normal/Heroic keep their four Corvus
 -- spawns exactly as they are; only this row's own difficulty check changes anything. Each

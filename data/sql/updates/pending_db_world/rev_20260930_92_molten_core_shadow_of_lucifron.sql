@@ -38,18 +38,35 @@
 -- (modules/mod-coa-raid-difficulty/data/sql/db-world/base/03_boss_schedule.sql).
 -- summon_entry: the difficulty variant resolves via difficulty_entry_1..3, as usual.
 -- summon_buff_spell: cast by this boss at the summoned add right after the summon, 0 none.
-CREATE TABLE IF NOT EXISTS `coa_boss_summon` (
-  `entry`            INT UNSIGNED NOT NULL COMMENT 'boss entry, coa_boss.entry',
-  `summon_entry`     INT UNSIGNED NOT NULL DEFAULT 0,
-  `summon_delay_ms`  INT UNSIGNED NOT NULL DEFAULT 0,
+--
+-- This table is owned only by this unpublished branch (created here, widened in place by
+-- rev_20260930_96 for Sulfuron's disciples): rev_96's own ALTER TABLE on a CREATE TABLE IF NOT
+-- EXISTS was not idempotent (a changed-hash re-run of either file re-applies both, and ALTER
+-- ADD COLUMN/DROP PRIMARY KEY fails the second time). This revision instead owns the table's
+-- final shape directly -- `idx` supports several summon rows per boss (PK `entry`, `idx`),
+-- `replace_entry`/`replace_radius` let a summon take the place of a nearby live creature
+-- instead of adding on top, and `min_difficulty` gates a row to a map spawn mode
+-- (0 Normal .. 3 Ascended, CoaBossAI.cpp). Lucifron's own row below is unaffected: it keeps
+-- idx 0, replace_entry 0 (no replacement) and min_difficulty 0 (every difficulty).
+DROP TABLE IF EXISTS `coa_boss_summon`;
+CREATE TABLE `coa_boss_summon` (
+  `entry`             INT UNSIGNED NOT NULL COMMENT 'boss entry, coa_boss.entry',
+  `idx`               INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'position within this boss, multiple summons',
+  `summon_entry`      INT UNSIGNED NOT NULL DEFAULT 0,
+  `summon_delay_ms`   INT UNSIGNED NOT NULL DEFAULT 0,
   `summon_buff_spell` INT UNSIGNED NOT NULL DEFAULT 0,
-  `comment`          VARCHAR(128) NOT NULL DEFAULT '',
-  PRIMARY KEY (`entry`)
+  `replace_entry`     INT UNSIGNED NOT NULL DEFAULT 0
+    COMMENT 'despawn the nearest live creature of this entry near the boss and summon at its spot, 0 none',
+  `replace_radius`    FLOAT NOT NULL DEFAULT 0 COMMENT 'search radius in yards for replace_entry',
+  `min_difficulty`    TINYINT UNSIGNED NOT NULL DEFAULT 0
+    COMMENT 'map spawn mode this row is active from: 0 Normal, 1 Heroic, 2 Mythic, 3 Ascended',
+  `comment`           VARCHAR(128) NOT NULL DEFAULT '',
+  PRIMARY KEY (`entry`, `idx`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 DELETE FROM `coa_boss_summon` WHERE `entry` = 12118;
-INSERT INTO `coa_boss_summon` (`entry`, `summon_entry`, `summon_delay_ms`, `summon_buff_spell`, `comment`) VALUES
-(12118, 12268, 5000, 2105223, 'Lucifron summons Shadow of Lucifron');
+INSERT INTO `coa_boss_summon` (`entry`, `idx`, `summon_entry`, `summon_delay_ms`, `summon_buff_spell`, `comment`) VALUES
+(12118, 0, 12268, 5000, 2105223, 'Lucifron summons Shadow of Lucifron');
 
 -- Full column list, difficulty variants matching every other MC add (Firesworn:
 -- 12099/112099/212099/312099; Magmadar's heads: rev_20260930_91).
