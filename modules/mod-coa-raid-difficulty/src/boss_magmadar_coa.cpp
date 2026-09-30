@@ -252,9 +252,20 @@ class spell_magmadar_head_lava_bomb : public SpellScript
 
     void HandleDummy(SpellEffIndex /*effIndex*/)
     {
+        // Unlike the body's own vanilla Lava Bomb (a GO trap spell, where the vanilla script's
+        // target->CastSpell(target, ...) idiom is harmless), this follow-up is a
+        // SPELL_EFFECT_PERSISTENT_AREA_AURA at TARGET_UNIT_DEST_AREA_ENEMY: Spell::EffectPersistentAA
+        // and Spell::SelectImplicitAreaTargets both key the "enemy" search and the DynamicObject's
+        // owner off m_caster, not the original caster. Casting it as the hit player (target->CastSpell)
+        // makes the ground fire search for the *player's* enemies, i.e. hostile NPCs, so it never
+        // finds any raid member and the puddle silently applies to nobody. Casting it as the head
+        // (same as spell_magmadar_head_scorching_breath_tick's caster->CastSpell) keeps the area
+        // search hostile to players, while GetExplicitTargetMask() still anchors the destination on
+        // the hit target's own position (InitExplicitTargets falls back to the unit target for
+        // TARGET_FLAG_DEST_LOCATION).
         if (Unit* caster = GetCaster())
             if (Unit* target = GetHitUnit())
-                target->CastSpell(target, SPELL_HEAD_LAVA_BOMB_EFFECT, true, nullptr, nullptr, caster->GetGUID());
+                caster->CastSpell(target, SPELL_HEAD_LAVA_BOMB_EFFECT, true);
     }
 
     void Register() override
