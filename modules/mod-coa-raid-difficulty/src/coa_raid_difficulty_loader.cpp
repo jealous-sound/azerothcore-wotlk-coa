@@ -18,6 +18,7 @@ void AddCoaRazorgoreScripts();
 void AddCoaVaelastraszScripts();
 void AddCoaBroodlordScripts();
 void AddCoaGarrScripts();
+void AddCoaLucifronScripts();
 void AddCoaMagmadarScripts();
 void AddCoaShazzrahScripts();
 void AddCoaDrakeScripts();
@@ -58,6 +59,7 @@ void Addmod_coa_raid_difficultyScripts()
     AddCoaVaelastraszScripts();
     AddCoaBroodlordScripts();
     AddCoaGarrScripts();
+    AddCoaLucifronScripts();
     AddCoaMagmadarScripts();
     AddCoaShazzrahScripts();
     AddCoaDrakeScripts();

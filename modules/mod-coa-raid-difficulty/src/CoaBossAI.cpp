@@ -29,7 +29,15 @@
  * never stand down.
  *
  * Deliberately thin otherwise. Nothing here knows about ranges, conditions or
- * adds; a boss that needs that keeps its own script.
+ * adds; a boss that needs that keeps its own script. One exception
+ * (rev_20260930_92): a boss's entry can carry an optional one-shot summon
+ * (entry, delay, buff spell cast on the new add) via the dedicated
+ * `coa_boss_summon` table for a boss whose only extra need is "spawn one
+ * reinforcement and buff it" - Lucifron's Shadow of Lucifron. A boss needing
+ * more than that still gets its own script, as Garr and Magmadar do for
+ * their own adds. The table is separate from `coa_boss` (base SQL, owned by
+ * this module's schema) so this add-only feature never needs an ALTER TABLE
+ * on it.
  */
 
 #include "Creature.h"
@@ -73,6 +81,13 @@ namespace
     {
         uint32 bossId = 0;
         uint32 berserkMs = 0;
+        // Lucifron only (rev_20260930_92): a single reinforcement add, summoned once and
+        // buffed by the boss itself, driven by data instead of a bespoke script for the
+        // boss body - the body keeps using this shared engine for its own schedule.
+        // Loaded from `coa_boss_summon`, a table separate from `coa_boss` itself.
+        uint32 summonEntry = 0;
+        uint32 summonDelayMs = 0;
+        uint32 summonBuffSpell = 0;
         std::vector<ScheduleRow> rows;
     };
 
@@ -96,6 +111,19 @@ namespace
                 BossData& boss = g_bosses[f[0].Get<uint32>()];
                 boss.bossId = f[1].Get<uint32>();
                 boss.berserkMs = f[2].Get<uint32>();
+            } while (result->NextRow());
+        }
+
+        if (QueryResult result = WorldDatabase.Query(
+                "SELECT entry, summon_entry, summon_delay_ms, summon_buff_spell FROM coa_boss_summon"))
+        {
+            do
+            {
+                Field* f = result->Fetch();
+                BossData& boss = g_bosses[f[0].Get<uint32>()];
+                boss.summonEntry = f[1].Get<uint32>();
+                boss.summonDelayMs = f[2].Get<uint32>();
+                boss.summonBuffSpell = f[3].Get<uint32>();
             } while (result->NextRow());
         }
 
@@ -154,6 +182,9 @@ namespace
 
             if (_data->berserkMs)
                 _events.ScheduleEvent(EVENT_BERSERK, Milliseconds(_data->berserkMs));
+
+            if (_data->summonEntry)
+                _events.ScheduleEvent(EVENT_SUMMON, Milliseconds(_data->summonDelayMs));
         }
 
         void DamageTaken(Unit* attacker, uint32& damage, DamageEffectType type, SpellSchoolMask school) override
@@ -221,6 +252,12 @@ namespace
                     continue;
                 }
 
+                if (eventId == EVENT_SUMMON)
+                {
+                    Summon();
+                    continue;
+                }
+
                 uint32 const index = eventId - 1;
                 if (index >= _data->rows.size())
                     continue;
@@ -244,8 +281,21 @@ namespace
         enum
         {
             EVENT_BERSERK = 0xFFFF,
+            EVENT_SUMMON = 0xFFFE,
             SPELL_BERSERK = 26662
         };
+
+        constexpr static float SUMMON_OFFSET_DIST = 4.0f;
+
+        // Lucifron only: one add at a designed offset, then the boss buffs it (and itself,
+        // per the buff spell's own target layout) - see rev_20260930_92 for the DBC evidence.
+        void Summon()
+        {
+            if (Creature* summoned = DoSummon(_data->summonEntry, me->GetNearPosition(SUMMON_OFFSET_DIST, 0.0f),
+                                               0, TEMPSUMMON_MANUAL_DESPAWN))
+                if (_data->summonBuffSpell)
+                    me->CastSpell(summoned, _data->summonBuffSpell, true);
+        }
 
         struct Pending
         {
