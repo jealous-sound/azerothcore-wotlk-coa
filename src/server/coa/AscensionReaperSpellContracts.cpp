@@ -17,6 +17,7 @@ constexpr uint32 SPELL_SOULSTONE_LURE_AURA = 561826;
 constexpr uint32 NPC_SOULSTONE_LURE = 557911;
 constexpr uint32 SUMMON_PROPERTIES_STATIONARY = 64;
 constexpr uint32 SPELL_DEATHBRINGER = 573040;
+constexpr uint32 SPELL_APPARITION = 705389;
 
 class reaper_spell_contracts : public GlobalScript
 {
@@ -28,6 +29,12 @@ public:
     {
         if (!info || info->SpellFamilyName != 36)
             return;
+
+        if (info->Id == SPELL_APPARITION &&
+            info->Effects[EFFECT_1].ApplyAuraName == SPELL_AURA_ADD_PCT_MODIFIER &&
+            info->Effects[EFFECT_1].MiscValue == SPELLMOD_EFFECT1 &&
+            info->Effects[EFFECT_1].SpellClassMask == flag96(0, 67108864, 0))
+            info->Effects[EFFECT_1].MiscValue = SPELLMOD_EFFECT2;
 
         if (info->Id == SPELL_THRESH)
         {
