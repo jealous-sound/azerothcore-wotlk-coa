@@ -63,8 +63,8 @@ this session), **exiles-kit** (CoA database export, db.exil.es, 2026-09-13), **d
 | Suppressing Shadows | 2105218, area, 29.2s/25.1s | ran; landing effect (2105219) missing | landing effect 2105219 added to the row | designed (row shape), measured (timers) | — |
 | Impending Doom | 2105201→2105205, area | absent — no schedule row at all | added, first 7s/period 20s | dbm (DBM-Warmane vanilla Doom, CD20/first7); no log ever recorded this cast | timer is a vanilla-CD borrow, not a measured Ascension interval |
 
-Health: `coa_boss_flex` `hp_d0..d3` 431,810/575,747/866,550/1,263,490 (Normal = Heroic ×0.750 set, Heroic
-measured, Mythic = Heroic ×1.505 pattern, Ascended measured).
+Health: `coa_boss_flex` `hp_d0..d3` 588,759/785,012/1,181,513/1,722,727 (rebuilt from a direct CoA video
+reading at Ascended; d0-d2 from Lucifron's own prior shape anchored on it — see §5).
 
 Lucifron previously ran `MovementType=2` (WAYPOINT) on a path leading straight toward Magmadar's spawn,
 matching the reported "wanders into Magmadar's room, with 2 adds" exactly (the Flamewaker Protectors follow
@@ -94,7 +94,7 @@ to Lucifron's own schedule. Whether that's intentional or should move to Lucifro
 
 | | Reality | Before | After | Evidence | Open question |
 |---|---|---|---|---|---|
-| Body casts nothing (kept as stock melee/Frenzy/Panic); two head creatures (80642/80643) cast Enrage (2105307), Scorching Breath (2105360 dummy → hidden 2105361 → real hit 2105362-65), Lava Burst (2105357, Damage Info 2105351-54) and Lava Bomb ground fire (2105366 dummy → persistent-area 2105367-70) | stock `boss_magmadar` script only | new `boss_magmadar_coa.cpp`: on engage, `DoSummon`s both heads (`TEMPSUMMON_MANUAL_DESPAWN`, difficulty variant auto-resolved by `creature_template.difficulty_entry_1..3`) plus periodic Core Hound (11671) reinforcements | new head kit wired and cast on schedule; ground-fire puddle fixed (see below) | exiles-kit (heads' spells) + measured (in-probe cast/damage confirmation, lm-validation.md) | Core Hound entry/count/cadence (2 hounds, first 45s/repeat 50s) and the head/body 15/15/70 health split are `designed`, not measured — see §8 |
+| Body casts nothing (kept as stock melee/Frenzy/Panic); two head creatures (80642/80643) cast Enrage (2105307), Scorching Breath (2105360 dummy → hidden 2105361 → real hit 2105362-65), Lava Burst (2105357, Damage Info 2105351-54) and Lava Bomb ground fire (2105366 dummy → persistent-area 2105367-70) | stock `boss_magmadar` script only | new `boss_magmadar_coa.cpp`: on engage, `DoSummon`s both heads (`TEMPSUMMON_MANUAL_DESPAWN`, difficulty variant auto-resolved by `creature_template.difficulty_entry_1..3`) plus periodic Core Hound (11671) reinforcements | new head kit wired and cast on schedule; ground-fire puddle fixed (see below); heads share the body's health pool (see below) | exiles-kit (heads' spells) + measured (in-probe cast/damage confirmation, lm-validation.md) + MC_PV video ("PV = Magmadar") for the shared pool | Core Hound entry/count/cadence (2 hounds, first 45s/repeat 50s) is `designed`, not measured — see §8 |
 
 The two heads don't exist as a static spawn or a vehicle passenger anywhere in the export — they are summoned
 by the body's own script on engage, the same idiom already used for Garr's Firesworn. `Lava Burst`'s
@@ -105,9 +105,12 @@ event in-probe: its follow-up cast used `target->CastSpell(...)`, so `EffectPers
 raid's — fixed (`cafb24165`) by casting from the head instead, matching the already-working Scorching Breath
 idiom; validated on all 4 difficulties (294-528 periodic damage ticks/run, correct per-difficulty spell id).
 
-`coa_boss_flex` has no row for Magmadar or Golemagg by id; Magmadar was given Golemagg's own flex row
-(809,645/1,079,527/1,624,782/2,369,044, same recorded health for both), and the head/body split above
-redistributes that total (70% body, 15% per head) rather than adding to it.
+Every MC_PV video reading for the heads is annotated "PV = Magmadar" — they always display the same health as
+the body. The prior 70% body / 15% per-head split of a shared Golemagg-derived total (rev_20260930_91) is
+replaced: Magmadar now has his own direct CoA video reading (§5), both heads carry his row unchanged, and
+`boss_magmadar_coa.cpp` makes the body the only damage target — heads are immune to all damage
+(`SetImmuneToAll(true)` on `Reset()`) and mirror the body's current health every `UpdateAI` tick via
+`InstanceScript::GetCreature(DATA_MAGMADAR)`, rather than holding an independent fraction of the total.
 
 ### Gehennas (12259)
 
@@ -120,7 +123,8 @@ redistributes that total (70% body, 15% per head) rather than adding to it.
 | Immolate 2105429→2105430, random non-tank, 15.4s/20s | ran, placeholder dmg | Damage Info wired | measured + exiles-kit | — |
 | Conjure Flame Orb 2105417, tank, 50.7s/78.1s | ran | unchanged | measured | — |
 
-Health: `hp_d0..d3` 647,716/863,621/1,299,826/1,895,236.
+Health: `hp_d0..d3` 884,118/1,178,824/1,774,235/2,586,957 (rebuilt from a direct CoA video reading at
+Ascended — see §5).
 
 ### Garr (12057)
 
@@ -131,7 +135,8 @@ Health: `hp_d0..d3` 647,716/863,621/1,299,826/1,895,236.
 | Firesworn respawn on wipe (#5391) | not respawned; instance script only had the Golemagg branch | fixed: `_garrFireswornGUIDs` tracked, respawned on `NOT_STARTED`/`FAIL` mirroring Golemagg | measured (code read) | — |
 | Firesworn Eruption damage (#5388) | 19497 (~3000 dmg) flat on Normal/Heroic, 350126 (~4600) on Mythic/Ascended — a real `SpellDifficulty.dbc` family, not an Ascended value leaking onto Normal | unchanged | unchanged | exiles-kit + dbc | Not flex-scaled by raid size/gear the way boss casts are — needs a decision on whether that's the actual defect (§8) |
 
-Health: `hp_d0..d3` 809,645/1,079,527/1,624,782/2,369,044.
+Health: `hp_d0..d3` 1,105,520/1,474,027/2,218,539/3,234,783 (rebuilt from a direct CoA video reading at
+Ascended — see §5).
 
 "Garr Earthquake"/"Garr Cave In" (Snit's WA ids 500297/500298) were checked directly against `Spell.dbc` this
 session: neither id is an earthquake or cave-in spell (500297 is a cosmetic banner prop, 500298 an unrelated
@@ -149,8 +154,8 @@ proc buff) — treated as stale/recycled aura data, not a real Garr mechanic, an
 | Mass Counterspell (self) 2105609→610, 23.6s/34.8s | targeted Shazzrah himself, both spells carry `SPELL_ATTR3_ONLY_ON_PLAYER` → `SPELL_FAILED_TARGET_NOT_PLAYER`, never landed | retargeted to tank (Dampen Magic) / area (Mass Counterspell) — `rev_20260930_87` | measured (docker cast-failure logs + Spell.dbc effect targets) | — |
 | Arcane Force Nova 2105612→617, area, 44.3s/64.6s | appeared "never" cast in short probe windows | unchanged spell, but `coa_boss_ai`'s event clock previously stalled a tick whenever the boss briefly had no victim (e.g. mid-teleport); fixed (`35c4f405e`) so the clock advances on every elapsed tick | measured (confirmed firing in the 32-run campaign once the clock fix landed) | — |
 
-Health: `hp_d0..d3` 566,709/755,612/1,137,262/1,657,316 (all three multipliers measured, no pattern fallback
-needed). Time Stop (2105618) and Mass Slow (2105619) exist in the kit with no schedule row and no
+Health: `hp_d0..d3` 775,397/1,033,863/1,556,054/2,267,615 (rebuilt from a Bronzebeard video reading at
+Ascended times the C=3.306 BB->CoA coefficient — see §5). Time Stop (2105618) and Mass Slow (2105619) exist in the kit with no schedule row and no
 corroborating log/addon evidence — left as needs-decision, not added.
 
 ### Baron Geddon (12056)
@@ -166,8 +171,8 @@ teleports dropping bots from Geddon's threat list, forcing repeated evades) — 
 harness, not this repo; see [Verification](#verification). Confirmed working on all 4 difficulties: Inferno
 pulses 10× at 1s intervals for 875-1999 damage, Armageddon's 2105748 hits all 10 bots for 8.75-10.0M.
 
-Health: `hp_d0..d3` 647,716/863,621/1,299,826/1,894,878 — the one boss whose `coa_boss_flex` comment claims
-Heroic/Mythic/Ascended are all measured, no pattern guess.
+Health: `hp_d0..d3` 884,285/1,179,047/1,774,570/2,586,957 (rebuilt from a direct CoA video reading at
+Ascended — see §5).
 
 ### Sulfuron Harbinger (12098)
 
@@ -175,8 +180,8 @@ Heroic/Mythic/Ascended are all measured, no pattern guess.
 |---|---|---|---|---|---|
 | Flame Spear / Hand of Ragnaros / Dark Strike / Inspire / Demoralizing Shout / Fierce Blow / Conflagrate (7 measured rows) | ran | unchanged | measured | The only boss whose schedule ids match vanilla exactly (not Ascension's custom 2105xxx range) — kit reads as largely untouched from vanilla |
 
-Health: `hp_d0..d3` 323,858/431,811/649,913/947,618 (half of most other bosses, matching a halved
-`HealthModifier` — consistent with vanilla Sulfuron always running lower HP than the other 63-elites). Add
+Health: `hp_d0..d3` 441,316/588,422/885,626/1,291,304 (rebuilt from a direct CoA video reading at Ascended —
+see §5). Add
 "Flamewaker Priest" (11662, renamed on CoA to Corvus the Nimble — see §4) runs its own hand-written kit
 unaffected by any of this.
 
@@ -200,7 +205,8 @@ Magma Splash/Cave In looked "missing" above Normal in an early literal-id check;
 `SpellDifficulty.dbc` family (rows 2122/2125) and fire on every difficulty with the same count/cadence as
 Normal — a false alarm, not a defect; see [Verification](#verification).
 
-Health: `hp_d0..d3` 809,645/1,079,527/1,624,782/2,369,044 (identical to Garr's row). Add "Core Rager" (11672,
+Health: `hp_d0..d3` 1,104,793/1,473,058/2,217,081/3,232,656 (Magmadar has its own direct CoA video reading now;
+Golemagg has none of its own and keeps the K=1.3645 family rescale — see §5). Add "Core Rager" (11672,
 renamed on CoA to Cindermaw — see §4) carries "Stress" (2105858, a genuine self-stacking aura) in its CoA kit,
 but its `ScriptName` (`npc_core_rager`, hand-written C++) always wins over SmartAI, so no data row for it
 would run; reported, not fixed.
@@ -211,9 +217,8 @@ would run; reported, not fixed.
 |---|---|---|---|---|---|
 | Stock kit: Magic Reflection, Damage Reflection, Aegis of Ragnaros, Teleport Random/Target, Separation Anxiety, Champion, Immunity | stock `boss_majordomo` script, all vanilla ids | unchanged | measured (stock file) | Ascension-only kit ids (2108014-2108033: Aegis of the Firelord, Molten/Shadow Shield, Broken Bond, Rising Anger, Empowered Shadow Nova/Blast Wave) are never cast; thematic name matches to the stock mechanics exist but are unverified — no measured log covers Majordomo (the 42-log corpus is scoped to the 8 schedule bosses) |
 
-Health: no `coa_boss_flex` row by id; this branch gave Majordomo a flex row derived as Golemagg's ×0.8065 (the
-ratio of their recorded absolute health) — 652,940/870,586/1,310,308/1,910,519 — since no boss-specific log
-exists for him either.
+Health: `hp_d0..d3` 890,963/1,187,950/1,787,968/2,606,980 — no CoA/BB video reading of his own; the prior
+Golemagg-derived row is kept but rescaled by K=1.3645 like Golemagg itself (§5).
 
 ### Ragnaros (11502)
 
@@ -225,8 +230,9 @@ exists for him either.
 | Sulfuras Slam, both Super Nova groups, Magma Splash, Unbearable Heat, Magma Strike, Fire Strike/Fierce Fire Strike, Meteor | in the CoA kit, no stock choreography beat matches them | not wired | not wired | exiles-kit only | No safe mapping without a log or a maintainer ruling — listed in §8 |
 | Submerge / Sons of Flame / knockback timers | stock, all vanilla, unchanged (180s submerge, 90s duration) | unchanged | unchanged | measured (stock file) | Whether the stock script's vanilla-id casts already resolve to the matching CoA ids via the core's own `SpellDifficulty` chain (as they do for Sulfuron) was not confirmed at runtime this session |
 
-Health: `hp_d0..d3` 842,031/1,122,708/1,669,897/2,463,806 (Ascended = Heroic ×2.195 pattern; the other three
-tiers measured).
+Health: `hp_d0..d3` 2,394,118/3,192,157/4,747,960/7,058,824 — d0 and d3 are both direct CoA video readings
+(Normal and Ascended); d1/d2 follow his own prior d1/d0, d2/d0 ratios anchored on the new d0. He starts the
+fight at 50% of this pool (`boss_ragnaros.cpp`, both realms' videos agree) — see §5.
 
 ## 4. Trash
 
@@ -261,19 +267,61 @@ variants at all) had no change proposed.
 
 ## 5. Health
 
-**Method**: Normal is CoA's own absolute health (db.exil.es export, exiles-db-export-2026-09-13), expressed
-as a `HealthModifier` over this core's base health curve at the matching level/class so the product lands on
-the recorded value. Heroic, Mythic and Ascended multiply that by ×1.44, ×1.88 and ×2.32 respectively — ratios
-read directly from CoA's client creature caches, which recorded these exact multipliers against Normal for
-several MC creatures across the four tiers (Baron Geddon on all three; Golemagg, Majordomo, Shazzrah and two
-Flamewakers on Ascended). Ragnaros (Ascended) is the one exception, recorded at ×3.835 instead of ×2.32.
+**Template health** (out-of-combat, non-flexed): Normal is CoA's own absolute health (db.exil.es export,
+exiles-db-export-2026-09-13), expressed as a `HealthModifier` over this core's base health curve at the
+matching level/class so the product lands on the recorded value. Heroic, Mythic and Ascended multiply that by
+×1.44, ×1.88 and ×2.32 respectively — ratios read directly from CoA's client creature caches, which recorded
+these exact multipliers against Normal for several MC creatures across the four tiers (Baron Geddon on all
+three; Golemagg, Majordomo, Shazzrah and two Flamewakers on Ascended). Ragnaros (Ascended) is the one
+exception, recorded at ×3.835 instead of ×2.32. This field is left as-is by the flex rebuild below: every
+entity that also has a `coa_boss_flex` row gets its health overridden by `FlexHealth.cpp`'s
+`OnCreatureSelectLevel` hook immediately at spawn in a raid map, so the static `HealthModifier` is inert for
+those entities regardless of its value — keeping it as the export's own figure avoids mixing two sources for
+one field.
 
-Flexed bosses (7 `coa_boss_ai` bosses + Ragnaros) still take their in-fight health from `coa_boss_flex` at
-pull time, scaled by raid size (10–25), not from the flat `HealthModifier`. Two bosses have no measured flex
-row of their own (Magmadar, Majordomo); this branch gave them derived rows (§3) rather than inventing new
-numbers. **Normal flex = Heroic × 0.750 is a guess made by #5391's/this branch's own predecessor work
-(referenced in the plan as #5389's open question)** — it is applied to every flexed boss's Normal row, and is
-explicitly not a measured value; see §8.
+**Flex health** (in-fight, `coa_boss_flex`, scaled by raid size 10–25 at spawn and at pull): fully rebuilt this
+session from the user's own MC_PV video recordings — two Bronzebeard-realm (BB) videos and one CoA-realm
+video, reading absolute health for most bosses and every trash type at a known player count, at varying
+difficulties. Method, in order of preference:
+
+1. A direct CoA-video reading (present for Lucifron, Magmadar, Gehennas, Garr, Baron Geddon, Sulfuron
+   Harbinger, Corvus the Nimble, Ragnaros Normal+Ascended, Lesser Son of Flame Ascended), divided by its own
+   "effective player count", used as-is for that difficulty.
+2. Where a boss has a CoA reading for only one or two tiers, the rest are filled in from that boss's own
+   *existing* `hp_d0:d1:d2:d3` relative shape, anchored on the new measured value(s) — not the generic trash
+   ladder, since these bosses already carried a measured per-difficulty shape.
+3. Two bosses with no CoA or BB reading of their own (Golemagg, Majordomo) have their whole existing row
+   rescaled by **K = 1.3645** — the average CoA-video/current-design ratio (Ascended) across the six bosses
+   that do have a direct CoA reading (a tight 1.363–1.365 cluster, read as one global "prior design → real CoA"
+   rescale for this boss family).
+4. Everything else with only a BB-video reading (Shazzrah, every trash type, Shadow of Lucifron) uses that
+   reading × **C = 3.306** — the average CoA/BB ratio (Ascended) over the three bosses with both a CoA and a BB
+   reading (Garr 3.300, Baron Geddon 3.299, Gehennas 3.317; Magmadar's own pair is a 3.14 outlier and excluded,
+   unexplained). Trash readings are all at the Mythic tier; converted to Normal via ÷1.88, then to all four
+   tiers via the same client-cache ratio 1:1.44:1.88:2.32 used for the static `HealthModifier` above.
+5. Two trash types (Lava Spawn 12265, Flamewaker Protector 12119) have no reading anywhere — left un-flexed,
+   no number invented for them.
+
+Full per-entity table, the coefficients' derivation and every excluded/unspawned entity (three CoA-only named
+Sulfuron priests, two CoA-only Son of Flame variants, Sacrificial Chains — all export placeholder stubs with
+no `creature_template` row on this fork) are in `.agents/plans/mc-restoration/hp/hp-pools.md` (gitignored
+working notes) and `rev_20260930_94_molten_core_health_pools.sql`'s own comments.
+
+Ragnaros starts the fight at 50% health (both realms' videos agree: CoA Normal 20.3M/17 = 50% of 40.7M, CoA
+Ascended 60M/17 = 50% of 120M) — `coa_boss_flex` holds his full pool; the 50% start is applied in
+`boss_ragnaros.cpp` right before he becomes attackable, both on the initial intro and a post-wipe re-engage.
+FlexHealth's own health-percentage-preserving recompute on combat entry carries that 50% through the flex
+resize unchanged.
+
+Magmadar's two heads no longer split his flex total 70/15/15 (rev_20260930_91); every video reading for them
+is annotated "PV = Magmadar" (heads always display the same health as the body), so they now carry his row
+unchanged and mirror his live health every tick, with the body the sole damage target (`boss_magmadar_coa.cpp`)
+— see §3.
+
+**Normal flex = Heroic × 0.750 was a guess** in the prior (now superseded) design; the new Normal figures
+above are either a direct CoA reading (Lucifron, Magmadar, Gehennas, Garr, Baron Geddon, Sulfuron, Ragnaros) or
+derived the same way as the other tiers (§8 still tracks trash timers/kits as designed, but health itself is
+no longer a blanket 0.75 guess for the entities in the table above).
 
 ## 6. Damage per difficulty
 
@@ -324,10 +372,10 @@ never drops them; their Mythic rows (10% and 9.1%) are kept.
 
 ## 8. Known gaps / needs decision
 
-1. **Normal flex health = Heroic × 0.750 (#5389).** Applied to every flexed boss as a set value, not a
-   measured one; #5389 itself reports flex scaling as incorrect. Options: keep the 0.75 ratio as CoA's actual
-   intended tuning (no evidence either way beyond the ratio being applied uniformly), or capture a Normal-tier
-   log to replace the guess per boss.
+1. **~~Normal flex health = Heroic × 0.750 (#5389).~~ Resolved for the video-covered roster.** Every boss and
+   trash type in §5's table now has a Normal figure that is either a direct CoA video reading (Lucifron,
+   Magmadar, Gehennas, Garr, Baron Geddon, Sulfuron, Ragnaros) or derived the same way as its other tiers —
+   the blanket ×0.750 guess no longer applies to any of them. It is not otherwise revisited outside Molten Core.
 2. **#5388, Firesworn Eruption damage.** The DBC data does not support the bug report's framing
    ("Ascended-level damage on Normal") — Eruption is genuinely flat (~3000 dmg) across Normal/Heroic by design,
    with a real, higher-tier Mythic/Ascended id (~4600 dmg). The more likely defect is that this fixed AoE hit
@@ -357,12 +405,14 @@ never drops them; their Mythic rows (10% and 9.1%) are kept.
 7. **Lucifron's Flamewaker Protectors vs. a player's memory.** The report behind the movement fix said "no
    adds"; the export's own static placement and the branch's own evidence both show 2 adds are correct —
    kept as-is, the recollection is treated as the uncertain input.
-8. **Shadow of Lucifron (12268) timing/health.** The 5s summon delay, its 25%-of-Lucifron's-flex health, and
-   its Shadow Bolt/Cleave/Dark Sundering cadences are all `designed`, not measured — no static spawn or
-   summon-spell evidence exists for this creature anywhere in the export. Awaiting the player's own logs.
-9. **Magmadar's Core Hound cadence and head/body health split.** The Core Hound (11671) reinforcements
-   (first 45s, repeat 50s), the 70/15/15 body/head split of Magmadar's flex total, and the heads' own spell
-   cadences are all `designed` — no CoA log or export evidence places any of them.
+8. **Shadow of Lucifron (12268) timing.** The 5s summon delay and its Shadow Bolt/Cleave/Dark Sundering
+   cadences are still `designed`, not measured — no static spawn or summon-spell evidence exists for this
+   creature anywhere in the export. Its health is no longer designed (§5: a Bronzebeard video reading × the
+   BB→CoA coefficient, replacing the old 25%-of-Lucifron placeholder). Awaiting the player's own logs for the
+   remaining timings.
+9. **Magmadar's Core Hound cadence.** The Core Hound (11671) reinforcement cadence (first 45s, repeat 50s) is
+   still `designed` — no CoA log or export evidence places it. The head/body health split is resolved: the
+   heads now mirror the body's own health (§3/§5) instead of holding a designed fraction of it.
 10. **Majordomo's kit.** None of his Ascension-only abilities (2108014-2108033: Aegis of the Firelord,
    Molten/Shadow Shield, Broken Bond, Rising Anger, Empowered Shadow Nova/Blast Wave) are cast by him or his
    Flamewaker Healer/Elite adds; only vanilla-id stock abilities run. Thematic name matches to the stock
@@ -394,6 +444,29 @@ never drops them; their Mythic rows (10% and 9.1%) are kept.
     in inventory) was matched to a live cast; not one of the 12 pairs wired in §6, left unmapped.
 17. **Sulfuron's own Dark Strike (19777) is dead code** — never `cast_start`s from Sulfuron himself; the
     Flamewaker Priest add casts the identical id instead. Not changed, flagged in case that was unintended.
+18. **Magmadar's CoA/BB health-coefficient outlier.** Every other boss with both a CoA and a Bronzebeard video
+    reading lands the CoA/BB ratio at 3.30-3.32; Magmadar's own pair gives 3.14, clearly outside that cluster.
+    Not used (Magmadar has his own direct CoA reading, so no coefficient was needed for him), but unexplained —
+    a possible link to his head/body health-sharing mechanic was not investigated.
+19. **Three CoA-only Sulfuron-priest names and two CoA-only Son of Flame variants have no `creature_template`
+    row at all on this fork.** Cull the Destroyer, "Proxima the Opressor" (the export's own spelling; the
+    player's notes say "Proximus") and Ebon the Cruel (export ids 92031-92033) each read 6.5M health at 23
+    players in the CoA video, identical to Corvus the Nimble's own reading; "Son of Flame" and "Greater Son of
+    Flame" (92026/92027) also have their own CoA readings. All five exist in the db.exil.es export only as
+    level-1/health-1 placeholder stubs with no `AIName` — none is spawned in this raid today. Bringing them in
+    would need new `creature_template`/`creature_template_model` rows and a summon hook, the same shape of work
+    already done for Magmadar's heads; their computed health figures are kept in
+    `.agents/plans/mc-restoration/hp/hp-pools.md` for whoever picks this up. Sacrificial Chains (92030) is the
+    same situation, with only a Bronzebeard reading.
+20. **Ragnaros's own health-design scale factor (~x2.85-2.86) differs from the rest of the boss family's
+    (~x1.365).** Both are internally consistent with the two anchor points (his prior design vs. his own direct
+    CoA readings at Normal and Ascended), but no explanation was sought beyond the base flex table's existing
+    note that Ragnaros already needed a separate end-boss factor from the rest of the roster.
+21. **A live in-game pull of the rebuilt health pools was not exercised this session** (Ragnaros's 50% start,
+    Magmadar's head/body health mirroring under real damage, a flexed trash pack at a live player count).
+    Confirmed instead by direct `coa_boss_flex` database inspection on slot 3 after deploy and a clean
+    worldserver start/load; see `hp-pools.md`'s Verification section for why (no working GM credential for a
+    SOAP/console check in this session) and what a follow-up should check.
 
 ## Verification
 
