@@ -136,10 +136,11 @@ class aura_ascension_witch_hunter_unbroken : public AuraScript
                 decay = &row;
                 break;
             }
-        if (++_ticks < decay->ticks)
-            return;
-        _ticks = 0;
-        _amount = std::max(0, _amount - decay->amount);
+        if (++_ticks >= decay->ticks)
+        {
+            _ticks = 0;
+            _amount = std::max(0, _amount - decay->amount);
+        }
         Refresh(owner, _amount);
     }
 
