@@ -1055,6 +1055,16 @@ void TestTalentRequests()
         "the native known-entries upload and talent reset are consumed and queued for the account");
 }
 
+void TestCoreHandledRequests()
+{
+    WorldSession session;
+    Check(Receive(session, WorldPacket(CMSG_RESET_DUNGEONS, 0)),
+        "the portrait menu's reset all dungeons reaches the core handler");
+    Check(Receive(session, WorldPacket(CMSG_PORT_GRAVEYARD, 0)),
+        "the ghost frame's return to graveyard reaches the core handler");
+    Check(session.Sent.empty(), "the early hook answers none of the requests the core handles");
+}
+
 int main()
 {
     TestRealmInfo();
@@ -1063,6 +1073,7 @@ int main()
     TestWorldEntryResend();
     TestStorePackets();
     TestTalentRequests();
+    TestCoreHandledRequests();
     TestItemQueries();
     TestVanityDelivery();
     TestRejectedPacketWarnings();

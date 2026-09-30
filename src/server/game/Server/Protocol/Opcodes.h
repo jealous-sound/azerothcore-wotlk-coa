@@ -1409,6 +1409,8 @@ enum Opcodes : uint16
     SMSG_COA_AREA_POI_PAYLOAD                       = 0x77C,
     // Portrait menu "Reset all Dungeons" (Lua ResetDungeons(), empty payload).
     CMSG_RESET_DUNGEONS                             = 0x61F,
+    // Ghost frame "Return to graveyard" (Lua PortGraveyard(), empty payload).
+    CMSG_PORT_GRAVEYARD                             = 0x544,
     // Spell Activation Overlay (the "proc glow" the client paints on the
     // action button of the marked spell). Client handlers: 0x9B1 -> 0x10235A90
     // (fires Lua SPELL_ACTIVATION_SHOW), 0x9B2 -> 0x10235840 (SPELL_ACTIVATION_HIDE).

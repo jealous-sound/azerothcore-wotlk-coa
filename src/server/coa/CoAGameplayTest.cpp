@@ -2778,6 +2778,9 @@ private:
             Require(consumed == step.get<bool>("consumed", true), consumed
                 ? Acore::StringFormat("The packet was consumed by the {}", hook)
                 : Acore::StringFormat("No {} consumed the packet", hook));
+            if (early && !consumed)
+                if (char const* handler = DeliverToSession(player, request))
+                    record.put("core_handler", handler);
         }
         else if (action == "specialization" || action == "advancement_rank")
         {
@@ -3731,6 +3734,20 @@ private:
         {
             return !sScriptMgr->CanPacketReceiveEarly(session, packet);
         }).get();
+    }
+
+    static char const* DeliverToSession(Player* player, WorldPacket& packet)
+    {
+        if (packet.GetOpcode() >= NUM_OPCODE_HANDLERS)
+            return nullptr;
+
+        ClientOpcodeHandler const* handler = opcodeTable[static_cast<OpcodeClient>(packet.GetOpcode())];
+        if (!handler || handler->Status != STATUS_LOGGEDIN || !player->IsInWorld())
+            return nullptr;
+
+        packet.rpos(0);
+        handler->Call(player->GetSession(), packet);
+        return handler->Name;
     }
 
     void Advance()

@@ -194,6 +194,8 @@ constexpr uint16 CMSG_CLAIM_TUTORIAL_REWARD = 0x06A8;
 constexpr std::array<uint16, 3> MODULE_EXTENSION_OPCODES = {
     CMSG_QUERY_VENDORED_ITEM_RECOVERY, CMSG_RECOVER_VENDORED_ITEM, CMSG_CLAIM_TUTORIAL_REWARD};
 
+constexpr std::array<uint16, 2> CORE_EXTENSION_OPCODES = {CMSG_RESET_DUNGEONS, CMSG_PORT_GRAVEYARD};
+
 struct ExtensionOpcodeIdentity {
   uint16 Opcode;
   char const *Name;
@@ -5040,7 +5042,8 @@ public:
     if (opcode == CMSG_ANTICHEAT_ALERT)
       return true;
 
-    if (opcode == CMSG_RESET_DUNGEONS)
+    if (std::find(CORE_EXTENSION_OPCODES.begin(), CORE_EXTENSION_OPCODES.end(), opcode) !=
+        CORE_EXTENSION_OPCODES.end())
       return true;
 
     if (opcode == CMSG_CREATURE_QUERY_BULK || opcode == CMSG_ITEM_QUERY_BULK)

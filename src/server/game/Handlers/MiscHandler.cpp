@@ -90,6 +90,18 @@ void WorldSession::HandleRepopRequestOpcode(WorldPacket& recv_data)
     GetPlayer()->RepopAtGraveyard();
 }
 
+// The Ascension ghost frame's "Return to graveyard" calls PortGraveyard(), which sends this empty
+// extension opcode.
+void WorldSession::HandlePortGraveyardOpcode(WorldPacket& /*recvData*/)
+{
+    LOG_DEBUG("network", "WORLD: CMSG_PORT_GRAVEYARD");
+
+    if (GetPlayer()->IsAlive() || !GetPlayer()->HasPlayerFlag(PLAYER_FLAGS_GHOST))
+        return;
+
+    GetPlayer()->RepopAtGraveyard();
+}
+
 // Ascension client extension opcode 0x51F. The client's Extensions.dll anti-tamper
 // layer reports local detections here (anti-debug checks, debugger window/process
 // names, injected DLL names, ...). The first string is the alert type such as
