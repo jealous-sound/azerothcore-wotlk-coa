@@ -6785,7 +6785,9 @@ SpellCastResult Spell::CheckCast(bool strict, uint32* /*param1*/, uint32* /*para
                     InstanceTemplate const* it = sObjectMgr->GetInstanceTemplate(m_caster->GetMapId());
                     if (it)
                         allowMount = it->AllowMount;
-                    if (m_caster->IsPlayer() && !allowMount && !m_spellInfo->AreaGroupId)
+                    // Mechsuit is a combat form; its mount helper carries the suit's model and form.
+                    bool tinkerMechsuit = m_spellInfo->Id == 803451 && m_caster->getClass() == CLASS_TINKER;
+                    if (m_caster->IsPlayer() && !allowMount && !m_spellInfo->AreaGroupId && !tinkerMechsuit)
                         return SPELL_FAILED_NO_MOUNTS_ALLOWED;
 
                     if (m_caster->IsInDisallowedMountForm())
