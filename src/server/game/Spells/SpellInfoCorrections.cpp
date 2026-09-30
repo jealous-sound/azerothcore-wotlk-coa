@@ -1334,6 +1334,7 @@ void SpellMgr::LoadSpellInfoCorrections()
     ApplySpellFix({ 15007 }, [](SpellInfo* spellInfo)
     {
         spellInfo->SpellFamilyName = SPELLFAMILY_GENERIC;
+        spellInfo->AttributesEx4 |= SPELL_ATTR4_AURA_EXPIRES_OFFLINE;
     });
 
     // Luck of the Draw
