@@ -3611,6 +3611,18 @@ namespace CoAChallenges
         uint32 Last = 0;
     };
 
+    // CanUnitAttack (UnitScript / Unit::_IsValidAttackTarget) is evaluated by AI
+    // target-validity scans, AoE splash and threat-list revalidation far more
+    // often than by an actual attack attempt, so the PVE_ONLY refusal below is
+    // throttled per player like mod-scrolls-of-retreat's own refusal notice.
+    constexpr uint32 PveOnlyNoticeIntervalMs = 3000;
+    constexpr char const* PveOnlyNoticeKey = "coa_challenges.pve_only_notice";
+
+    struct PveOnlyNotice : DataMap::Base
+    {
+        uint32 Last = 0;
+    };
+
     class CoAChallengesUnit : public UnitScript
     {
     public:
@@ -3671,7 +3683,15 @@ namespace CoAChallenges
             if (PlayerHasRule(a, "CHALLENGE_RULES_TYPE_PVE_ONLY"))
             {
                 if (a->GetSession())
-                    NotifyPlayer(a, "Your challenge is PvE only: you cannot fight players.");
+                {
+                    PveOnlyNotice* notice = a->CustomData.GetDefault<PveOnlyNotice>(PveOnlyNoticeKey);
+                    uint32 const now = getMSTime();
+                    if (!notice->Last || now - notice->Last >= PveOnlyNoticeIntervalMs)
+                    {
+                        notice->Last = now;
+                        NotifyPlayer(a, "Your challenge is PvE only: you cannot fight players.");
+                    }
+                }
                 return false;
             }
 
