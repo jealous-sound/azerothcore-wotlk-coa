@@ -33,7 +33,8 @@ enum WitchHunterCastSpells
     SPELL_SHADOW_RAGE_TALENT = 705455,
     SPELL_SHADOW_RAGE_PET = 804192,
     SPELL_SHARPSHOOTER = 705456,
-    SPELL_SHARPSHOOTER_ENERGIZE = 704385
+    SPELL_SHARPSHOOTER_ENERGIZE = 704385,
+    SPELL_DEAL_WITH_THE_DEVIL = 680255
 };
 
 enum WitchHunterHounds
@@ -74,6 +75,14 @@ class witch_hunter_casts : public AllSpellScript
 {
   public:
     witch_hunter_casts() : AllSpellScript("witch_hunter_casts") {}
+
+    void OnSpellCritChance(Spell* spell, Unit*, float& chance) override
+    {
+        Player* player = Owner(spell->GetCaster());
+        if (player && spell->GetCaster() == player && Quickdraw(spell->GetSpellInfo()) &&
+            player->HasAura(SPELL_DEAL_WITH_THE_DEVIL, player->GetGUID()))
+            chance = 100.0f;
+    }
 
     void OnSpellCast(Spell* spell, Unit* caster, SpellInfo const* info, bool) override
     {
