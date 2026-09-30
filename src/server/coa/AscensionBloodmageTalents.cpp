@@ -63,7 +63,9 @@ enum BloodmageTalentSpells : uint32
     SPELL_CRIMSON_EXPEDITION = 523727,
     SPELL_SANGUINE_SCION = 807292,
     SPELL_BLOOD_RUNS_COLD = 560257,
-    SPELL_CURSED_GROUND = 561195
+    SPELL_CURSED_GROUND = 561195,
+    SPELL_BLOOD_SCENT = 804223,
+    SPELL_BLOOD_SCENT_LEECH = 807300
 };
 
 constexpr uint32 SanguineRuptureMinimumTargets = 5;
@@ -86,6 +88,52 @@ bool IsCursedForm(uint32 id)
 {
     return std::find(std::begin(CursedForms), std::end(CursedForms), id) != std::end(CursedForms);
 }
+
+bool BloodScentTarget(Unit const* player, Unit const* target)
+{
+    return player && target && target != player && !player->IsFriendlyTo(target) &&
+        target->GetHealthPct() < 35.0f;
+}
+
+uint32 BloodScentDamage(Unit* target, Unit* attacker, uint32 amount)
+{
+    Player* player = attacker ? attacker->ToPlayer() : nullptr;
+    if (!player || player->getClass() != CLASS_SON_OF_ARUGAL || !player->IsAlive() || !amount ||
+        !BloodScentTarget(player, target) || !player->HasAura(SPELL_ACCURSED_FORM, player->GetGUID()))
+        return amount;
+    AuraEffect const* effect = player->GetAuraEffect(SPELL_BLOOD_SCENT, EFFECT_0, player->GetGUID());
+    if (!effect || effect->GetAmount() <= 0)
+        return amount;
+    uint64 const result = uint64(amount) * (100 + uint64(effect->GetAmount())) / 100;
+    return uint32(std::min<uint64>(result, std::numeric_limits<uint32>::max()));
+}
+
+class bloodmage_blood_scent_damage : public UnitScript
+{
+public:
+    bloodmage_blood_scent_damage() : UnitScript("bloodmage_blood_scent_damage", true,
+        {UNITHOOK_MODIFY_MELEE_DAMAGE, UNITHOOK_MODIFY_SPELL_DAMAGE_TAKEN,
+        UNITHOOK_MODIFY_PERIODIC_DAMAGE_AURAS_TICK}) { }
+
+    void ModifyMeleeDamage(Unit* target, Unit* attacker, uint32& amount) override
+    {
+        amount = BloodScentDamage(target, attacker, amount);
+    }
+
+    void ModifySpellDamageTaken(Unit* target, Unit* attacker, int32& amount, SpellInfo const* info) override
+    {
+        if (amount > 0 && info && info->Id != SPELL_BLOOD_SCENT_LEECH)
+            amount = int32(std::min<uint32>(BloodScentDamage(target, attacker, uint32(amount)),
+                std::numeric_limits<int32>::max()));
+    }
+
+    void ModifyPeriodicDamageAurasTick(Unit* target, Unit* attacker, uint32& amount,
+        SpellInfo const* info) override
+    {
+        if (info && !info->IsPositive() && !info->HasAura(SPELL_AURA_PERIODIC_DAMAGE_PERCENT))
+            amount = BloodScentDamage(target, attacker, amount);
+    }
+};
 
 constexpr uint8 CursedFormWeaponSlots[] = {EQUIPMENT_SLOT_MAINHAND, EQUIPMENT_SLOT_OFFHAND, EQUIPMENT_SLOT_RANGED};
 
@@ -431,6 +479,35 @@ class spell_ascension_bloodmage_sanguine_rupture : public SpellScript
     }
 };
 
+class aura_ascension_bloodmage_blood_scent : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_bloodmage_blood_scent);
+
+    bool Validate(SpellInfo const*) override { return ValidateSpellInfo({SPELL_BLOOD_SCENT_LEECH}); }
+
+    bool Check(ProcEventInfo& event)
+    {
+        SpellInfo const* info = event.GetSpellInfo();
+        return IsBloodmageDamageProc(GetTarget(), GetCaster(), event) &&
+            BloodScentTarget(GetTarget(), event.GetActionTarget()) &&
+            !(event.GetTypeMask() & PROC_FLAG_DONE_PERIODIC) && (!info || info->Id != SPELL_BLOOD_SCENT_LEECH);
+    }
+
+    void Proc(AuraEffect const* effect, ProcEventInfo& event)
+    {
+        PreventDefaultAction();
+        if (int32 amount = BloodmageProcShare(effect, event))
+            GetTarget()->CastCustomSpell(SPELL_BLOOD_SCENT_LEECH, SPELLVALUE_BASE_POINT0, amount,
+                event.GetActionTarget(), TRIGGERED_FULL_MASK);
+    }
+
+    void Register() override
+    {
+        DoCheckProc += AuraCheckProcFn(aura_ascension_bloodmage_blood_scent::Check);
+        OnEffectProc += AuraEffectProcFn(aura_ascension_bloodmage_blood_scent::Proc, EFFECT_1, AuraType(354));
+    }
+};
+
 class aura_ascension_bloodmage_dark_sigil : public AuraScript
 {
     PrepareAuraScript(aura_ascension_bloodmage_dark_sigil);
@@ -664,6 +741,17 @@ public:
 
         ApplyBloodmageConditionalContracts(info);
 
+        if (info->Id == SPELL_BLOOD_SCENT &&
+            info->Effects[EFFECT_0].ApplyAuraName == SPELL_AURA_ADD_FLAT_MODIFIER &&
+            info->Effects[EFFECT_0].MiscValue == SPELLMOD_EFFECT2)
+            info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_DUMMY;
+        if (info->Id == SPELL_BLOOD_SCENT_LEECH &&
+            info->Effects[EFFECT_0].Effect == SPELL_EFFECT_HEALTH_LEECH)
+        {
+            info->AscensionInheritsResolvedAmount = true;
+            info->AttributesEx3 |= SPELL_ATTR3_IGNORE_CASTER_MODIFIERS;
+        }
+
         if ((info->Id == SPELL_CRIMSON_EXPEDITION || info->Id == SPELL_SANGUINE_SCION) &&
             info->Effects[EFFECT_0].ApplyAuraName == SPELL_AURA_ADD_FLAT_MODIFIER &&
             info->Effects[EFFECT_0].MiscValue == SPELLMOD_CRITICAL_CHANCE)
@@ -699,6 +787,7 @@ public:
 void AddSC_AscensionBloodmageTalents()
 {
     new bloodmage_talent_events();
+    new bloodmage_blood_scent_damage();
     new bloodmage_cursed_form_death();
     new bloodmage_cursed_form_weapons();
     new bloodmage_blood_constructor();
@@ -711,6 +800,7 @@ void AddSC_AscensionBloodmageTalents()
     RegisterSpellScript(aura_ascension_bloodmage_taldarams_torment);
     RegisterSpellScript(aura_ascension_bloodmage_forbidden_power);
     RegisterSpellScript(aura_ascension_bloodmage_dark_sigil);
+    RegisterSpellScript(aura_ascension_bloodmage_blood_scent);
     RegisterSpellScript(aura_ascension_bloodmage_thick_pelt);
     RegisterSpellScript(aura_ascension_bloodmage_blood_moon);
     RegisterSpellScript(aura_ascension_bloodmage_cursed_blood);
