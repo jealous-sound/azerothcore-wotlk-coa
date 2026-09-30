@@ -1,14 +1,19 @@
--- Sulfuron Harbinger's three named disciples (92031-92033), Mythic/Ascended only.
+-- Sulfuron Harbinger's three named disciples (92031-92033), every difficulty.
 --
 -- The 55-pull Mythic/Ascended log corpus for Sulfuron always shows the same four adds next to
 -- him: one Corvus the Nimble (11662, the stock Flamewaker Priest, renamed on CoA by
 -- rev_20260930_84) plus Cull the Destroyer (92031), Proxima the Opressor (92032) and Ebon the
 -- Cruel (92033), one of each -- never a second Corvus alongside the three named ones, and never
--- more than four total. The base game spawns four Flamewaker Priests around Sulfuron; on
--- Mythic/Ascended three of those four spots are the disciples instead, not three extra adds on
--- top of all four Corvus. No Normal/Heroic Sulfuron pull exists in this corpus at all, so
--- Corvus's own four spawns are left exactly as they are on every difficulty -- this migration
--- adds nothing below Mythic and does not touch Corvus's creature_template row or spawns.
+-- more than four total. The base game spawns four Flamewaker Priests around Sulfuron; three of
+-- those four spots are the disciples instead, not three extra adds on top of all four Corvus.
+-- Corrected (this correction, the user's own report): the fight does not differ by difficulty --
+-- the same four named adds appear on Normal/Heroic too, not only Mythic/Ascended. No
+-- Normal/Heroic Sulfuron pull exists in the log corpus to independently confirm this, so the
+-- Normal/Heroic composition rests on the user's report rather than a log; the Mythic/Ascended
+-- composition remains log-confirmed. This migration no longer gates the disciples' summon rows
+-- to a minimum difficulty (this correction dropped `coa_boss_summon.min_difficulty` and its
+-- CoaBossAI.cpp gate entirely, see rev_20260930_92's updated header) and does not touch Corvus's
+-- creature_template row or spawns.
 --
 -- Each disciple's sub_name names the MC boss it apes (exiles-db export, 2026-09-13):
 -- Cull the Destroyer -> "Disciple to Gehennas", Proxima the Opressor -> "Disciple to Shazzrah",
@@ -18,9 +23,9 @@
 --
 -- Health: video reading is 6.5M at 23 players Ascended for all three, identical to Corvus's own
 -- reading (hp/hp-pools.md) -- so this migration mirrors Corvus's own already-flexed coa_boss_flex
--- shape (rev_20260930_94) verbatim for all three. d0/d1 (Normal/Heroic) are never read at
--- runtime since these entries only spawn on Mythic/Ascended, but the table needs a value in
--- every column; carrying Corvus's own numbers there is the least invented choice, not a claim
+-- shape (rev_20260930_94) verbatim for all three, all four difficulty columns now live (the
+-- disciples spawn on Normal/Heroic too, this correction). d0/d1 (Normal/Heroic) still have no
+-- own reading; carrying Corvus's own numbers there is the least invented choice, not a claim
 -- that a Normal/Heroic reading exists.
 --
 -- Template columns otherwise copy Corvus/Flamewaker Priest's own row (creature_template.sql,
@@ -84,25 +89,25 @@ INSERT INTO `creature_template_model` (`CreatureID`, `Idx`, `CreatureDisplayID`,
 -- mirrors Corvus's own coa_boss_flex row (rev_20260930_94) verbatim; see the header comment.
 DELETE FROM `coa_boss_flex` WHERE `entry` IN (92031, 92032, 92033);
 INSERT INTO `coa_boss_flex` (`entry`, `hp_d0`, `hp_d1`, `hp_d2`, `hp_d3`, `comment`) VALUES
-(92031, 121814, 175412, 229010, 282609, 'Cull the Destroyer: CoA video Ascended (6.5M/23), same reading as Corvus; Mythic/Ascended only'),
-(92032, 121814, 175412, 229010, 282609, 'Proxima the Opressor: CoA video Ascended (6.5M/23), same reading as Corvus; Mythic/Ascended only'),
-(92033, 121814, 175412, 229010, 282609, 'Ebon the Cruel: CoA video Ascended (6.5M/23), same reading as Corvus; Mythic/Ascended only');
+(92031, 121814, 175412, 229010, 282609, 'Cull the Destroyer: CoA video Ascended (6.5M/23), same reading as Corvus; every difficulty'),
+(92032, 121814, 175412, 229010, 282609, 'Proxima the Opressor: CoA video Ascended (6.5M/23), same reading as Corvus; every difficulty'),
+(92033, 121814, 175412, 229010, 282609, 'Ebon the Cruel: CoA video Ascended (6.5M/23), same reading as Corvus; every difficulty');
 
--- coa_boss_summon (rev_20260930_92) already carries idx/replace_entry/replace_radius/
--- min_difficulty in its final schema, so this revision only inserts Sulfuron's own rows.
+-- coa_boss_summon (rev_20260930_92, narrowed by this correction) already carries idx/
+-- replace_entry/replace_radius in its final schema, so this revision only inserts Sulfuron's
+-- own rows.
 --
--- Sulfuron (12098): the three disciples, Mythic/Ascended only (min_difficulty 2) -- no
--- Normal/Heroic Sulfuron pull exists in the corpus, so Normal/Heroic keep their four Corvus
--- spawns exactly as they are; only this row's own difficulty check changes anything. Each
--- disciple replaces the nearest still-alive Flamewaker Priest/Corvus the Nimble (11662) within
--- the priest cluster's own spread (creature.sql spawns run x594-613/y-1177..-1179 around
--- Sulfuron's own x=601/y=-1179, export creature_spawn) -- 25yd comfortably covers that without
--- reaching into neighbouring rooms. No buff spell: unlike Lucifron's Shadow, nothing in the kit
--- evidence names one. No delay evidence exists either; a small 500ms stagger avoids three
--- simultaneous despawn/summon pairs on the same tick.
+-- Sulfuron (12098): the three disciples, every difficulty (this correction dropped the
+-- Mythic/Ascended-only gate -- the user's own report is that the fight does not differ by
+-- difficulty). Each disciple replaces the nearest still-alive Flamewaker Priest/Corvus the
+-- Nimble (11662) within the priest cluster's own spread (creature.sql spawns run
+-- x594-613/y-1177..-1179 around Sulfuron's own x=601/y=-1179, export creature_spawn) -- 25yd
+-- comfortably covers that without reaching into neighbouring rooms. No buff spell: unlike
+-- Lucifron's Shadow, nothing in the kit evidence names one. No delay evidence exists either; a
+-- small 500ms stagger avoids three simultaneous despawn/summon pairs on the same tick.
 DELETE FROM `coa_boss_summon` WHERE `entry` = 12098;
 INSERT INTO `coa_boss_summon` (`entry`, `idx`, `summon_entry`, `summon_delay_ms`, `summon_buff_spell`,
-    `replace_entry`, `replace_radius`, `min_difficulty`, `comment`) VALUES
-(12098, 1, 92031, 500, 0, 11662, 25, 2, 'Sulfuron: Cull the Destroyer replaces a Flamewaker Priest'),
-(12098, 2, 92032, 1000, 0, 11662, 25, 2, 'Sulfuron: Proxima the Opressor replaces a Flamewaker Priest'),
-(12098, 3, 92033, 1500, 0, 11662, 25, 2, 'Sulfuron: Ebon the Cruel replaces a Flamewaker Priest');
+    `replace_entry`, `replace_radius`, `comment`) VALUES
+(12098, 1, 92031, 500, 0, 11662, 25, 'Sulfuron: Cull the Destroyer replaces a Flamewaker Priest'),
+(12098, 2, 92032, 1000, 0, 11662, 25, 'Sulfuron: Proxima the Opressor replaces a Flamewaker Priest'),
+(12098, 3, 92033, 1500, 0, 11662, 25, 'Sulfuron: Ebon the Cruel replaces a Flamewaker Priest');

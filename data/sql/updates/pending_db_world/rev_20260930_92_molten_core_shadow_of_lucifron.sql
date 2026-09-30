@@ -40,14 +40,18 @@
 -- summon_buff_spell: cast by this boss at the summoned add right after the summon, 0 none.
 --
 -- This table is owned only by this unpublished branch (created here, widened in place by
--- rev_20260930_96 for Sulfuron's disciples): rev_96's own ALTER TABLE on a CREATE TABLE IF NOT
--- EXISTS was not idempotent (a changed-hash re-run of either file re-applies both, and ALTER
--- ADD COLUMN/DROP PRIMARY KEY fails the second time). This revision instead owns the table's
--- final shape directly -- `idx` supports several summon rows per boss (PK `entry`, `idx`),
--- `replace_entry`/`replace_radius` let a summon take the place of a nearby live creature
--- instead of adding on top, and `min_difficulty` gates a row to a map spawn mode
--- (0 Normal .. 3 Ascended, CoaBossAI.cpp). Lucifron's own row below is unaffected: it keeps
--- idx 0, replace_entry 0 (no replacement) and min_difficulty 0 (every difficulty).
+-- rev_20260930_96 for Sulfuron's disciples, narrowed back in place by this correction once the
+-- disciples turned out to apply on every difficulty): rev_96's own ALTER TABLE on a CREATE TABLE
+-- IF NOT EXISTS was not idempotent (a changed-hash re-run of either file re-applies both, and
+-- ALTER ADD COLUMN/DROP PRIMARY KEY fails the second time). This revision instead owns the
+-- table's final shape directly -- `idx` supports several summon rows per boss (PK `entry`,
+-- `idx`), `replace_entry`/`replace_radius` let a summon take the place of a nearby live creature
+-- instead of adding on top. There is no `min_difficulty` column: rev_96 added one for
+-- Sulfuron's disciples on the (corrected) assumption that they were Mythic/Ascended only: once
+-- that assumption was wrong (this correction), every row left in the table wanted every
+-- difficulty, so the column and its CoaBossAI.cpp gate were dead code and were dropped with it
+-- rather than kept for a hypothetical future row. Lucifron's own row below is unaffected: it
+-- keeps idx 0, replace_entry 0 (no replacement).
 DROP TABLE IF EXISTS `coa_boss_summon`;
 CREATE TABLE `coa_boss_summon` (
   `entry`             INT UNSIGNED NOT NULL COMMENT 'boss entry, coa_boss.entry',
@@ -58,8 +62,6 @@ CREATE TABLE `coa_boss_summon` (
   `replace_entry`     INT UNSIGNED NOT NULL DEFAULT 0
     COMMENT 'despawn the nearest live creature of this entry near the boss and summon at its spot, 0 none',
   `replace_radius`    FLOAT NOT NULL DEFAULT 0 COMMENT 'search radius in yards for replace_entry',
-  `min_difficulty`    TINYINT UNSIGNED NOT NULL DEFAULT 0
-    COMMENT 'map spawn mode this row is active from: 0 Normal, 1 Heroic, 2 Mythic, 3 Ascended',
   `comment`           VARCHAR(128) NOT NULL DEFAULT '',
   PRIMARY KEY (`entry`, `idx`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

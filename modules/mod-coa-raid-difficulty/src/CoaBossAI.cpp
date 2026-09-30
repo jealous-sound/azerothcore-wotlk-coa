@@ -37,13 +37,16 @@
  * row), Sulfuron's three disciples (three rows, rev_20260930_96). A row can
  * also name a `replace_entry`/`replace_radius`: the nearest still-alive
  * creature of that entry within range is despawned and the summon takes its
- * exact spot instead of a fixed offset from the boss, and a `min_difficulty`
- * (0 Normal .. 3 Ascended, default 0) so a row can be Mythic/Ascended-only
- * without a second copy of the boss's schedule - Sulfuron already has
+ * exact spot instead of a fixed offset from the boss - Sulfuron already has
  * four static Flamewaker Priest/Corvus the Nimble spawns around him, and the
- * 55-pull Mythic/Ascended log corpus never shows more than one of those next
- * to the three named disciples, so three of the four make room instead of the
- * disciples being extra adds on top. A boss needing more than "summon(s),
+ * fight does not differ by difficulty (the user's own report; no Normal/Heroic
+ * Sulfuron pull exists in the log corpus to confirm it independently), so
+ * three of the four make room for the disciples on every difficulty instead of
+ * the disciples being extra adds on top or Mythic/Ascended-only. A row's
+ * `min_difficulty` gate (rev_20260930_96) was removed with it: once Sulfuron's
+ * disciples stopped being Mythic/Ascended-only, no row left any value other
+ * than the column's own default, so the gate never filtered anything. A boss
+ * needing more than "summon(s),
  * maybe replacing something nearby" still gets its own script, as Garr and
  * Magmadar do for their own adds. The table is separate from `coa_boss` (base
  * SQL, owned by this module's schema) so this add-only feature never needs an
@@ -98,10 +101,6 @@ namespace
         // replaceRadius of the boss and summon at its spot instead of a fixed offset.
         uint32 replaceEntry = 0;
         float replaceRadius = 0.0f;
-        // Map spawn mode this row is active from (0 Normal .. 3 Ascended). Sulfuron's
-        // disciples are Mythic/Ascended only (rev_20260930_96); Lucifron's Shadow of
-        // Lucifron keeps its default of 0, every difficulty, unchanged.
-        uint8 minDifficulty = 0;
     };
 
     struct BossData
@@ -140,8 +139,8 @@ namespace
         }
 
         if (QueryResult result = WorldDatabase.Query(
-                "SELECT entry, summon_entry, summon_delay_ms, summon_buff_spell, replace_entry, replace_radius, "
-                "min_difficulty FROM coa_boss_summon ORDER BY entry, idx"))
+                "SELECT entry, summon_entry, summon_delay_ms, summon_buff_spell, replace_entry, replace_radius "
+                "FROM coa_boss_summon ORDER BY entry, idx"))
         {
             do
             {
@@ -153,7 +152,6 @@ namespace
                 row.summonBuffSpell = f[3].Get<uint32>();
                 row.replaceEntry = f[4].Get<uint32>();
                 row.replaceRadius = f[5].Get<float>();
-                row.minDifficulty = f[6].Get<uint8>();
                 boss.summons.push_back(row);
             } while (result->NextRow());
         }
@@ -215,9 +213,8 @@ namespace
             if (_data->berserkMs)
                 _events.ScheduleEvent(EVENT_BERSERK, Milliseconds(_data->berserkMs));
 
-            uint8 const mode = uint8(me->GetMap()->GetSpawnMode());
             for (uint32 i = 0; i < _data->summons.size(); ++i)
-                if (_data->summons[i].summonEntry && mode >= _data->summons[i].minDifficulty)
+                if (_data->summons[i].summonEntry)
                     _events.ScheduleEvent(EVENT_SUMMON_BASE + i, Milliseconds(_data->summons[i].summonDelayMs));
         }
 
