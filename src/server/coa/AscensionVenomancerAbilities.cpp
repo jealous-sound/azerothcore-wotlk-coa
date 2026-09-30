@@ -275,7 +275,7 @@ class spell_ascension_venomancer_ability : public SpellScript
         if (!player)
             return;
         uint32 id = GetSpellInfo()->Id;
-        Unit* target = GetHitUnit();
+        Unit* target = IsInTargetHook() ? GetHitUnit() : nullptr;
         if (GetSpellInfo()->Effects[index].Effect != SPELL_EFFECT_DUMMY)
             return;
         PreventHitDefaultEffect(index);
