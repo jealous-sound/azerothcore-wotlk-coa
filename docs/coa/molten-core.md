@@ -211,15 +211,19 @@ column is simply not representative for those two tiers; see [Verification](#ver
 **Sulfuron's four disciples.** The corpus's three Mythic/Ascended Sulfuron pulls each show exactly four
 adds: Corvus the Nimble (11662) plus three previously-unimplemented, CoA-named disciples — Cull the Destroyer
 (92031), Proxima the Opressor (92032), Ebon the Cruel (92033) — sharing one video health reading (6.5M/23p).
-No Normal/Heroic pull exists, so Corvus keeps his stock four-spawn kit there; on Mythic/Ascended, three of
-his four spawns are now replaced by the named disciples (`coa_boss_summon`, widened this session to
-"replace the nearest live creature of a given entry" alongside plain summon-and-buff). Each disciple runs a
-dummy→real-effect curse/self-heal pair read from `Spell.dbc`: Cull = Curse of Gehennas + Cauterize (real
-heal), Proxima = Dampen Magic + Arcane Instability (Shazzrah's own measured cadences), Ebon = Curse of
-Lucifron + Dark Mending (real heal); all three also carry a Shadow Bolt with no matching "- Damage Info"
-family, so it still deals DBC placeholder damage. Confirmed in-game (`verify-ABC.md`): d0 spawns the
-unchanged 4-Corvus quad, d2 spawns 1 Corvus + the three disciples, all casting over a 90s window. Cadences
-are designed (every log entry reads `casts: 0`); Rapid Regeneration (804315) is left unwired, never observed.
+Corrected: the user's own report is that this fight does not differ by difficulty, so three of Corvus's four
+spawns are replaced by the named disciples on every difficulty, not Mythic/Ascended only (no Normal/Heroic
+pull exists in the log corpus to confirm this independently, unlike the Mythic/Ascended composition itself).
+`coa_boss_summon` (widened for this add to "replace the nearest live creature of a given entry" alongside
+plain summon-and-buff) no longer carries a difficulty gate at all — the `min_difficulty` column and its
+`CoaBossAI.cpp` check were dropped once removing Sulfuron's gate left every row wanting every difficulty.
+Each disciple runs a dummy→real-effect curse/self-heal pair read from `Spell.dbc`: Cull = Curse of Gehennas +
+Cauterize (real heal), Proxima = Dampen Magic + Arcane Instability (Shazzrah's own measured cadences), Ebon =
+Curse of Lucifron + Dark Mending (real heal); all three also carry a Shadow Bolt with no matching "- Damage
+Info" family, so it still deals DBC placeholder damage. Confirmed in-game (`verify-ABC.md`,
+`impl-D-fixes.md`): d0 and d2 both now spawn 1 Corvus + the three disciples, all casting over a 90s window.
+Cadences are designed (every log entry reads `casts: 0`); Rapid Regeneration (804315) is left unwired, never
+observed.
 
 ### Golemagg the Incinerator (11988)
 
@@ -254,14 +258,31 @@ Golemagg-derived row is kept but rescaled by K=1.3645 like Golemagg itself (§5)
 **Sacrificial Chains (92030).** Present in 48 of the corpus's 49 Majordomo pulls (Heroic 6, Mythic 8,
 Ascended 34) and no other boss's fights — Majordomo is the summoner. Median first spawn +29s after pull,
 repeat cycle ~47-50s, each instance surviving ~10-24s to raid damage before dying. Wired via a small,
-comment-tagged addition to inherited `boss_majordomo_executus.cpp` (one event, one summon call) plus a new
-`npc_sacrificial_chains_coa.cpp`: on spawn it self-casts Sacrifice (2108020, measured); every 20s [designed,
-from kill-time clustering] it heals to full and re-casts Sacrifice rank 2 (2108023, measured), escalating to
-Berserk (2100213, measured id, rare — 1/56 aura instances) on the second loop. Health: measured per-player
-kills (Heroic 11,501, Mythic 19,553, Ascended 32,147 averaged); Normal has no pull and uses the same
-Heroic×0.750 convention as other unmeasured rows. Confirmed in-game (`verify-ABC.md`): the chain spawns on
-schedule and the heal/Renew loop fires as coded; Berserk and the spawn-time Sacrifice cast were not
-independently observed within the test window (test-observability gaps, not script defects).
+comment-tagged addition to inherited `boss_majordomo_executus.cpp` (one event, one summon call, unchanged)
+plus `npc_sacrificial_chains_coa.cpp`.
+
+Corrected: the chain does not self-cast a heal/re-sacrifice loop on itself. `mc-dataset.json`'s own
+aggregation drops aura target names, so a direct WoWCombatLog re-query was needed: every logged
+`SPELL_AURA_APPLIED` for Sacrifice (2108020) has "Sacrificial Chains" as source and a *player* as dest —
+matching 2108020's own `Spell.dbc` implicit target (`TARGET_UNIT_TARGET_ENEMY`, not the caster). On spawn the
+chain heals its target(s) to full (2108023) then applies Sacrifice (2108020) to a random, per-mode-capped set
+of nearby raid members — not a fixed count on every difficulty. Re-verified exactly (per-spawn group size,
+not just a max): Heroic (13p, 6 spawns) is 2 targets in all 6; Ascended (12p×2 + 15p, 35 spawns) is 1 target
+in 14 and 2 in 21, never 3 or 4; Mythic (17p, 8 spawns) is 2 targets in 6 and 3 in 2 — the only difficulty
+that ever reaches 3. No Normal Majordomo pull exists; Normal mirrors Heroic, untested. Killing the chain frees its
+captives: in every clean (non-wipe) sample the chain's own death and the debuff's removal from its target(s)
+share the same log timestamp, well inside 2108020's real 300s duration, so this is an explicit on-death
+cleanup, not the debuff expiring on its own; `npc_sacrificial_chains_coa.cpp` now does this in `JustDied`.
+Berserk (2100213, measured id, rare — 1/56 Sacrifice applications) is kept as a small spawn-time roll, not a
+"second loop" escalation (there is no loop to escalate). No periodic "roast" damage is implemented on
+unfreed captives: 2108020 has no `EffectTriggerSpell` and no `SPELL_PERIODIC_DAMAGE` tied to spell id
+2108020 appears anywhere in the four re-queried logs, so a timed kill would be invented, not evidenced — see
+`impl-D-fixes.md`.
+
+Health: measured per-player kills (Heroic 11,501, Mythic 19,553, Ascended 32,147 averaged); Normal has no
+pull and uses the same Heroic×0.750 convention as other unmeasured rows (unchanged by this correction).
+Confirmed in-game (`verify-ABC.md`, `impl-D-fixes.md`): the chain spawns on schedule; it now chains nearby
+players (not itself) and killing it removes the debuff from them.
 
 ### Ragnaros (11502)
 
@@ -527,9 +548,11 @@ never drops them; their Mythic rows (10% and 9.1%) are kept.
 23. **Merge distance/hold (5 yd/1.5s) and the disciples' six cast cadences are designed**, not measured — no
     coordinates exist in the corpus for the former, and every disciple/Sacrificial Chains cast shows
     `casts: 0` (aura-application counts only); cadences borrow the closest measured sibling kit instead.
-24. **Sulfuron disciples' Shadow Bolt and Sacrificial Chains' heal/Berserk loop are both designed/placeholder
-    for the same reason as items 16/23**: no "- Damage Info" family exists for the Shadow Bolt ids, and the
-    chain shows 0 direct casts in every log.
+24. **Sulfuron disciples' Shadow Bolt is designed/placeholder for the same reason as items 16/23**: no
+    "- Damage Info" family exists for the Shadow Bolt ids. Sacrificial Chains no longer has a self-cast
+    heal/Berserk loop — a WoWCombatLog re-query showed 2108020/2108023 land on nearby players, not the chain
+    itself (see the Majordomo section above); the per-mode chain-target cap (Heroic/Ascended 2, Mythic 3) is
+    measured, Normal is untested and mirrors Heroic.
 25. **Ragnaros's "Hidden" emerge cluster (2108622-2108661, incl. 2108631 "Emerge - Hidden - Knockback") is
     not implemented** — the likely real submerge/emerge and add-phase machinery, but no cast from either
     Ragnaros GUID (11502/11503) matches it in the corpus; only Fire Strike (2108601/02) is ever seen.

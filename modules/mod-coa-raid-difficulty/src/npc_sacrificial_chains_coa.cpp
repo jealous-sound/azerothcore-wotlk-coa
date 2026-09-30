@@ -19,12 +19,18 @@
  *   - One spawn (one creature GUID) chains more than one player at once: every apply for a given
  *     GUID lands within ~0.5s of the others, e.g. GUID …E003357 (Ascended, 12p,
  *     2026-08-25-14.41.47) applies to both "Scorchwalker" and "Geonox" 0.5s apart. Counting
- *     distinct targets per GUID across all four logs: Heroic (13p, 6 spawns) maxes at 2;
- *     Ascended (12p and 15p, 18 spawns) maxes at 2; Mythic (17p, 8 spawns) maxes at 3 (two of the
- *     eight spawns). No Normal Majordomo pull exists in the corpus. Implemented as a per-mode cap
- *     (Normal/Heroic/Ascended 2, Mythic 3 - Ascended's cap matches Heroic's own measured value,
- *     not the nominal difficulty order; Normal mirrors Heroic, untested) on a random distinct
- *     selection of nearby raid members, clamped to however many are actually available.
+ *     distinct targets per GUID across all four logs, re-verified at the coordinator's request
+ *     (exact per-spawn group sizes, not just a max): Heroic (13p, 1 pull, 6 spawns) is 2 targets
+ *     every single time (6/6) - never 3, contrary to the "3 on Normal/Heroic" fallback the task
+ *     otherwise allows. Ascended (12p x2 pulls + 15p x1 pull, 35 spawns total) is 1 target 14/35
+ *     of the time and 2 targets the other 21/35 - never 3 or 4. Mythic (17p, 1 pull, 8 spawns) is
+ *     2 targets 6/8 of the time and 3 targets the other 2/8 - the only difficulty that ever reaches
+ *     3. No Normal Majordomo pull exists in the corpus. Implemented as a per-mode cap on the
+ *     measured maximum (Normal/Heroic/Ascended 2, Mythic 3 - Ascended's cap matches Heroic's own
+ *     measured value, not the nominal difficulty order; Normal mirrors Heroic, untested) on a
+ *     random distinct selection of nearby raid members, clamped to however many are actually
+ *     available - Ascended's frequent single-target spawns are naturally covered by this clamp
+ *     rather than a separate lower cap.
  *   - Killing the chain frees its chained player(s): in every clean (non-wipe) sample, e.g. GUID
  *     …E00317C, the chain's own UNIT_DIED/PARTY_KILL and the SPELL_AURA_REMOVED of 2108020 on its
  *     target(s) share the exact same log timestamp (17:43:57.250 for all three lines). 2108020's
