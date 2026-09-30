@@ -104,6 +104,7 @@ void ApplyContracts(SpellInfo* info)
     {
         dummy(0);
         dummy(1);
+        info->Effects[2].ApplyAuraName = SPELL_AURA_MOD_CRIT_PCT;
     }
     if (id == 803492 || id == 807750 || id == 807751 || id == 807752 || id == 803500 || id == 807446 ||
         id == 805481 || id == 805491 || id == 681471)
