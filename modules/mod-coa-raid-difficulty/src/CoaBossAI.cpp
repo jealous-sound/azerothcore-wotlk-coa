@@ -196,12 +196,21 @@ namespace
 
         void UpdateAI(uint32 diff) override
         {
-            if (!UpdateVictim() || !_data)
+            if (!_data)
                 return;
 
+            // The clock runs on elapsed combat time, not on whether this
+            // exact tick has a victim to swing at: UpdateVictim() goes
+            // false for an instant on ordinary target swaps (Blink's
+            // teleport, a dummy's pending target dying), and gating the
+            // event map's Update() on it stalls every row's timer for as
+            // long as that keeps happening - by design a long-period row
+            // (Inferno, Arcane Force Nova) drifts far enough to miss a
+            // short test window while a fast-repeating row just looks a
+            // little late.
             _events.Update(diff);
 
-            if (me->HasUnitState(UNIT_STATE_CASTING))
+            if (!UpdateVictim() || me->HasUnitState(UNIT_STATE_CASTING))
                 return;
 
             while (uint32 eventId = _events.ExecuteEvent())
