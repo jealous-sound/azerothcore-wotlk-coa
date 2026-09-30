@@ -30,14 +30,24 @@
  *
  * Deliberately thin otherwise. Nothing here knows about ranges, conditions or
  * adds; a boss that needs that keeps its own script. One exception
- * (rev_20260930_92): a boss's entry can carry an optional one-shot summon
- * (entry, delay, buff spell cast on the new add) via the dedicated
- * `coa_boss_summon` table for a boss whose only extra need is "spawn one
- * reinforcement and buff it" - Lucifron's Shadow of Lucifron. A boss needing
- * more than that still gets its own script, as Garr and Magmadar do for
- * their own adds. The table is separate from `coa_boss` (base SQL, owned by
- * this module's schema) so this add-only feature never needs an ALTER TABLE
- * on it.
+ * (rev_20260930_92, widened rev_20260930_96): a boss's entry can carry one or
+ * more one-shot summons (entry, delay, buff spell cast on the new add) via the
+ * dedicated `coa_boss_summon` table, for a boss whose only extra need is
+ * "spawn reinforcements and buff them" - Lucifron's Shadow of Lucifron (one
+ * row), Sulfuron's three disciples (three rows, rev_20260930_96). A row can
+ * also name a `replace_entry`/`replace_radius`: the nearest still-alive
+ * creature of that entry within range is despawned and the summon takes its
+ * exact spot instead of a fixed offset from the boss, and a `min_difficulty`
+ * (0 Normal .. 3 Ascended, default 0) so a row can be Mythic/Ascended-only
+ * without a second copy of the boss's schedule - Sulfuron already has
+ * four static Flamewaker Priest/Corvus the Nimble spawns around him, and the
+ * 55-pull Mythic/Ascended log corpus never shows more than one of those next
+ * to the three named disciples, so three of the four make room instead of the
+ * disciples being extra adds on top. A boss needing more than "summon(s),
+ * maybe replacing something nearby" still gets its own script, as Garr and
+ * Magmadar do for their own adds. The table is separate from `coa_boss` (base
+ * SQL, owned by this module's schema) so this add-only feature never needs an
+ * ALTER TABLE on it (it gets its own, in the migration that widens it).
  */
 
 #include "Creature.h"
@@ -54,7 +64,9 @@
 #include "SpellInfo.h"
 #include "SpellMgr.h"
 
+#include <list>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace
@@ -77,17 +89,30 @@ namespace
         uint8 target;
     };
 
+    struct SummonRow
+    {
+        uint32 summonEntry = 0;
+        uint32 summonDelayMs = 0;
+        uint32 summonBuffSpell = 0;
+        // 0 none: otherwise despawn the nearest live creature of this entry within
+        // replaceRadius of the boss and summon at its spot instead of a fixed offset.
+        uint32 replaceEntry = 0;
+        float replaceRadius = 0.0f;
+        // Map spawn mode this row is active from (0 Normal .. 3 Ascended). Sulfuron's
+        // disciples are Mythic/Ascended only (rev_20260930_96); Lucifron's Shadow of
+        // Lucifron keeps its default of 0, every difficulty, unchanged.
+        uint8 minDifficulty = 0;
+    };
+
     struct BossData
     {
         uint32 bossId = 0;
         uint32 berserkMs = 0;
-        // Lucifron only (rev_20260930_92): a single reinforcement add, summoned once and
-        // buffed by the boss itself, driven by data instead of a bespoke script for the
-        // boss body - the body keeps using this shared engine for its own schedule.
-        // Loaded from `coa_boss_summon`, a table separate from `coa_boss` itself.
-        uint32 summonEntry = 0;
-        uint32 summonDelayMs = 0;
-        uint32 summonBuffSpell = 0;
+        // One or more reinforcements, summoned once and optionally buffed by the boss
+        // itself, driven by data instead of a bespoke script for the boss body - the
+        // body keeps using this shared engine for its own schedule. Loaded from
+        // `coa_boss_summon`, a table separate from `coa_boss` itself.
+        std::vector<SummonRow> summons;
         std::vector<ScheduleRow> rows;
     };
 
@@ -115,15 +140,21 @@ namespace
         }
 
         if (QueryResult result = WorldDatabase.Query(
-                "SELECT entry, summon_entry, summon_delay_ms, summon_buff_spell FROM coa_boss_summon"))
+                "SELECT entry, summon_entry, summon_delay_ms, summon_buff_spell, replace_entry, replace_radius, "
+                "min_difficulty FROM coa_boss_summon ORDER BY entry, idx"))
         {
             do
             {
                 Field* f = result->Fetch();
                 BossData& boss = g_bosses[f[0].Get<uint32>()];
-                boss.summonEntry = f[1].Get<uint32>();
-                boss.summonDelayMs = f[2].Get<uint32>();
-                boss.summonBuffSpell = f[3].Get<uint32>();
+                SummonRow row;
+                row.summonEntry = f[1].Get<uint32>();
+                row.summonDelayMs = f[2].Get<uint32>();
+                row.summonBuffSpell = f[3].Get<uint32>();
+                row.replaceEntry = f[4].Get<uint32>();
+                row.replaceRadius = f[5].Get<float>();
+                row.minDifficulty = f[6].Get<uint8>();
+                boss.summons.push_back(row);
             } while (result->NextRow());
         }
 
@@ -165,6 +196,7 @@ namespace
             BossAI::Reset();
             _events.Reset();
             _pending.clear();
+            _replaced.clear();
             _hpDone.assign(_data ? _data->rows.size() : 0, false);
         }
 
@@ -183,8 +215,10 @@ namespace
             if (_data->berserkMs)
                 _events.ScheduleEvent(EVENT_BERSERK, Milliseconds(_data->berserkMs));
 
-            if (_data->summonEntry)
-                _events.ScheduleEvent(EVENT_SUMMON, Milliseconds(_data->summonDelayMs));
+            uint8 const mode = uint8(me->GetMap()->GetSpawnMode());
+            for (uint32 i = 0; i < _data->summons.size(); ++i)
+                if (_data->summons[i].summonEntry && mode >= _data->summons[i].minDifficulty)
+                    _events.ScheduleEvent(EVENT_SUMMON_BASE + i, Milliseconds(_data->summons[i].summonDelayMs));
         }
 
         void DamageTaken(Unit* attacker, uint32& damage, DamageEffectType type, SpellSchoolMask school) override
@@ -252,9 +286,9 @@ namespace
                     continue;
                 }
 
-                if (eventId == EVENT_SUMMON)
+                if (eventId >= EVENT_SUMMON_BASE && eventId < EVENT_SUMMON_BASE + _data->summons.size())
                 {
-                    Summon();
+                    Summon(_data->summons[eventId - EVENT_SUMMON_BASE]);
                     continue;
                 }
 
@@ -281,20 +315,43 @@ namespace
         enum
         {
             EVENT_BERSERK = 0xFFFF,
-            EVENT_SUMMON = 0xFFFE,
+            EVENT_SUMMON_BASE = 0x8000,
             SPELL_BERSERK = 26662
         };
 
         constexpr static float SUMMON_OFFSET_DIST = 4.0f;
 
-        // Lucifron only: one add at a designed offset, then the boss buffs it (and itself,
-        // per the buff spell's own target layout) - see rev_20260930_92 for the DBC evidence.
-        void Summon()
+        // One add, at a designed offset unless it replaces a nearby creature (Sulfuron's
+        // disciples take the spot of a despawned Flamewaker Priest/Corvus the Nimble
+        // instead), then the boss buffs it if the row names a buff spell - see
+        // rev_20260930_92 (Shadow of Lucifron) and rev_20260930_96 (the disciples) for the
+        // evidence behind each row.
+        void Summon(SummonRow const& row)
         {
-            if (Creature* summoned = DoSummon(_data->summonEntry, me->GetNearPosition(SUMMON_OFFSET_DIST, 0.0f),
-                                               0, TEMPSUMMON_MANUAL_DESPAWN))
-                if (_data->summonBuffSpell)
-                    me->CastSpell(summoned, _data->summonBuffSpell, true);
+            if (!row.summonEntry)
+                return;
+
+            Position pos = me->GetNearPosition(SUMMON_OFFSET_DIST, 0.0f);
+
+            if (row.replaceEntry)
+            {
+                std::list<Creature*> nearby;
+                me->GetCreatureListWithEntryInGrid(nearby, row.replaceEntry, row.replaceRadius);
+                for (Creature* candidate : nearby)
+                {
+                    if (!candidate->IsAlive() || _replaced.find(candidate->GetGUID()) != _replaced.end())
+                        continue;
+
+                    pos = candidate->GetPosition();
+                    _replaced.insert(candidate->GetGUID());
+                    candidate->DespawnOrUnsummon();
+                    break;
+                }
+            }
+
+            if (Creature* summoned = DoSummon(row.summonEntry, pos, 0, TEMPSUMMON_MANUAL_DESPAWN))
+                if (row.summonBuffSpell)
+                    me->CastSpell(summoned, row.summonBuffSpell, true);
         }
 
         struct Pending
@@ -354,6 +411,7 @@ namespace
         BossData const* _data;
         EventMap _events;
         std::unordered_map<uint32, Pending> _pending;
+        std::unordered_set<ObjectGuid> _replaced;
         std::vector<bool> _hpDone;
     };
 
