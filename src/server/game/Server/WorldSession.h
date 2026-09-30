@@ -889,6 +889,7 @@ public:                                                 // opcodes handlers
     void HandleTaxiQueryAvailableNodes(WorldPacket& recvPacket);
     void HandleActivateTaxiOpcode(WorldPacket& recvPacket);
     void HandleActivateTaxiExpressOpcode(WorldPacket& recvPacket);
+    void HandleTaxiRequestEarlyLandingOpcode(WorldPacket& recvPacket);
     void HandleMoveSplineDoneOpcode(WorldPacket& recvPacket);
     void SendActivateTaxiReply(ActivateTaxiReply reply);
 

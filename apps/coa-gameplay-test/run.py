@@ -49,7 +49,7 @@ METRICS = {
     'system_messages',
     'system_message_contains', 'whispers_received', 'challenge_start_responses', 'challenge_start_code',
     'owned_creature_scale', 'unit_scale', 'combat_reach', 'token_count', 'item_sell_price', 'creature_model_scale', 'creature_model_display',
-    'taxi_node', 'pet_entry', 'pet_aura_stacks', 'pet_aura_duration_ms', 'pet_is_banker', 'pet_display',
+    'taxi_node', 'in_flight', 'taxi_destination', 'pet_entry', 'pet_aura_stacks', 'pet_aura_duration_ms', 'pet_is_banker', 'pet_display',
     'pet_scale', 'pet_knows_spell', 'owned_creature_count', 'owned_creature_weapon_damage_min',
     'charm_entry', 'charm_aura_stacks', 'controls_self', 'private_instance',
     'dynamic_object', 'dynamic_object_duration_ms', 'gossip_options', 'gossip_option_text',
@@ -119,6 +119,7 @@ ACTIONS = {
     'set_moving': ({'actor', 'enabled'}, {'actor', 'enabled'}),
     'level_scaling_packet': ({'actor', 'value'}, {'actor', 'value'}),
     'client_packet': ({'actor', 'opcode'}, {'actor', 'opcode', 'fields', 'consumed', 'early'}),
+    'discover_taxi_node': ({'actor', 'entry'}, {'actor', 'entry'}),
     'specialization': ({'actor', 'id'}, {'actor', 'id', 'refused'}),
     'advancement_rank': ({'actor', 'entry', 'rank'}, {'actor', 'entry', 'rank', 'refused'}),
     'apply_appearances': ({'actor', 'selection'}, {'actor', 'selection'}),
@@ -408,6 +409,8 @@ def validate(scenario):
             for category, appearance in selection.items():
                 require(category.isdigit() and 0 < int(category) < 256, f'{where}.selection: invalid category')
                 number(appearance, f'{where}.selection.{category}', 0, 2**32 - 1, True)
+        if action == 'discover_taxi_node':
+            number(step['entry'], f'{where}.entry', 1, 2**31 - 1, True)
         if action == 'client_packet':
             number(step['opcode'], f'{where}.opcode', 1, 0xFFFF, True)
             if 'consumed' in step:
@@ -424,7 +427,7 @@ def validate(scenario):
                 if kind == 'string':
                     require(isinstance(value, str), f'{where}.fields[{index}]: expected a string')
                 elif kind == 'actor_guid':
-                    require(value in player_ids, f'{where}.fields[{index}]: expected a player id')
+                    require(value in actor_ids, f'{where}.fields[{index}]: expected a player or creature id')
                 else:
                     maximum = {'u8': 255, 'u32': 2**32 - 1, 'u64': 2**64 - 1, 'buyback_guid': 2**31 - 1}[kind]
                     number(value, f'{where}.fields[{index}]', 0, maximum, True)
@@ -600,7 +603,7 @@ def validate(scenario):
                         f'{where}: metric needs the text to look for')
             if metric in {'knows_spell', 'has_talent', 'talent_points', 'cooldown_ms', 'spell_charges', 'action_button', 'item_count',
                           'carried_item_count', 'carried_pool_item_count', 'carried_variant_item_count',
-                          'bank_bag_slots', 'taxi_node', 'spell_active',
+                          'bank_bag_slots', 'taxi_node', 'in_flight', 'taxi_destination', 'spell_active',
                           'cast_pushback_ms',
                           'bank_shows', 'system_messages', 'system_message_contains', 'whispers_received',
                           'challenge_start_responses', 'challenge_start_code', 'owned_creature_scale', 'cast_failure',

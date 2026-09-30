@@ -1411,6 +1411,8 @@ enum Opcodes : uint16
     CMSG_RESET_DUNGEONS                             = 0x61F,
     // Ghost frame "Return to graveyard" (Lua PortGraveyard(), empty payload).
     CMSG_PORT_GRAVEYARD                             = 0x544,
+    // Action bar leave button during a flight (Lua TaxiRequestEarlyLanding(), empty payload).
+    CMSG_TAXI_REQUEST_EARLY_LANDING                 = 0x5F2,
     // Spell Activation Overlay (the "proc glow" the client paints on the
     // action button of the marked spell). Client handlers: 0x9B1 -> 0x10235A90
     // (fires Lua SPELL_ACTIVATION_SHOW), 0x9B2 -> 0x10235840 (SPELL_ACTIVATION_HIDE).

@@ -1062,6 +1062,8 @@ void TestCoreHandledRequests()
         "the portrait menu's reset all dungeons reaches the core handler");
     Check(Receive(session, WorldPacket(CMSG_PORT_GRAVEYARD, 0)),
         "the ghost frame's return to graveyard reaches the core handler");
+    Check(Receive(session, WorldPacket(CMSG_TAXI_REQUEST_EARLY_LANDING, 0)),
+        "the flight's early landing request reaches the core handler");
     Check(session.Sent.empty(), "the early hook answers none of the requests the core handles");
 }
 

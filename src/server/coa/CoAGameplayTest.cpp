@@ -2192,6 +2192,10 @@ private:
             return player->GetBankBagSlotCount();
         if (metric == "taxi_node")
             return player->m_taxi.IsTaximaskNodeKnown(step.get<uint32>("entry"));
+        if (metric == "in_flight")
+            return player->IsInFlight();
+        if (metric == "taxi_destination")
+            return player->m_taxi.empty() ? 0 : player->m_taxi.GetPath().back();
         if (metric == "private_instance")
             return player->GetMap()->IsScriptedPrivateInstance();
         if (metric == "controls_self")
@@ -2765,7 +2769,7 @@ private:
                         else if (kind == "buyback_guid")
                             request << BuybackGuid(player, value.get_value<uint32>());
                         else if (kind == "actor_guid")
-                            request << GetPlayer(value.get_value<std::string>())->GetGUID().GetRawValue();
+                            request << GetUnit(value.get_value<std::string>())->GetGUID().GetRawValue();
                         else
                             throw std::runtime_error("Unknown packet field type: " + kind);
                     }
@@ -3607,6 +3611,12 @@ private:
             Require(sMapStore.LookupEntry(map) != nullptr, "Unknown map to teleport to");
             player->TeleportTo(map, x, y, z, o);
             record.put("result", "teleport sent");
+        }
+        else if (action == "discover_taxi_node")
+        {
+            uint32 const node = step.get<uint32>("entry");
+            Require(sTaxiNodesStore.LookupEntry(node) != nullptr, "Unknown taxi node");
+            player->m_taxi.SetTaximaskNode(node);
         }
         else if (action == "quest_accept" || action == "quest_turn_in")
         {

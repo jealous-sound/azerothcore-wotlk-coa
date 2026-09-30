@@ -425,8 +425,10 @@ supports. Client binaries are maintained outside this repository.
   [player tickets](player-tickets.md).
 - Requests the core session handles like stock ones, registered in its opcode table and let
   through the CoA packet filter: the portrait menu's reset all dungeons (`CMSG_RESET_DUNGEONS`,
-  0x061F) and the ghost frame's return to graveyard (`CMSG_PORT_GRAVEYARD`, 0x0544), which
-  moves a released ghost to its closest graveyard.
+  0x061F); the ghost frame's return to graveyard (`CMSG_PORT_GRAVEYARD`, 0x0544), which
+  moves a released ghost to its closest graveyard; and the flight's early landing request
+  (`CMSG_TAXI_REQUEST_EARLY_LANDING`, 0x05F2), which ends the flight at the next discovered
+  flight point on its route, so the later legs are neither flown nor paid.
 
 The `gtOCTRegenHP`, `gtRegenHPPerSpt` and `gtRegenMPPerSpt` client files each contain
 3,200 single-float rows indexed by class and level. Their SQL overlay tables are empty,
