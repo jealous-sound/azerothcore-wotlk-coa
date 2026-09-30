@@ -2993,6 +2993,16 @@ BuildChoice ApplyBuildUpload(Player* player, std::vector<AscensionCoATalentState
     LOG_INFO("coa", "Wildcard stat path of {}: entry {}", player->GetName(), choice.PrimaryStat);
     return choice;
 }
+
+void DraftBuild(Player* player)
+{
+    std::vector<Slot> const slots = Slots(player);
+    if (std::none_of(slots.begin(), slots.end(), [](Slot const& slot) { return slot.EntryId; }))
+        RerollStartingAbilities(player);
+    for (uint32 roll = 0; roll < DRAFT_ROLL_LIMIT; ++roll)
+        if (std::string_view(RollAbilities(player, {})) != "ROLL_ABILITIES_OK")
+            break;
+}
 }
 
 void AddAscensionWildcardScripts()

@@ -22,6 +22,7 @@ namespace AscensionWildcard
 {
 constexpr std::uint32_t GAME_MODE_WILDCARD = 0x40;
 constexpr std::uint16_t WILDCARD_SEASON_EVENT = 194;
+constexpr std::uint32_t DRAFT_ROLL_LIMIT = 200;
 constexpr std::size_t STARTING_ABILITY_COUNT = 4;
 constexpr std::uint8_t STARTING_REROLL_MAX_LEVEL = 9;
 constexpr std::uint32_t ABILITY_ROLL_COST = 2;
@@ -532,6 +533,7 @@ RollCardSlots RollCards(Player const* player);
 CardCollection Collection(Player const* player);
 std::vector<AscensionCoATalentState::KnownEntry> KnownEntries(Player const* player);
 BuildChoice ApplyBuildUpload(Player* player, std::vector<AscensionCoATalentState::KnownEntry> const& upload);
+void DraftBuild(Player* player);
 }
 
 #endif
