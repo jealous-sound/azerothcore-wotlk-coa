@@ -32,6 +32,7 @@
 
 #include "CreatureScript.h"
 #include "InstanceScript.h"
+#include "ObjectAccessor.h"
 #include "ScriptedCreature.h"
 #include "SpellScript.h"
 #include "SpellScriptLoader.h"
@@ -180,7 +181,7 @@ namespace
                 return;
 
             InstanceScript* instance = me->GetInstanceScript();
-            Creature* body = instance ? instance->GetCreature(DATA_MAGMADAR) : nullptr;
+            Creature* body = instance ? ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_MAGMADAR)) : nullptr;
             if (!body || body == me || !body->IsAlive())
                 return;
 
@@ -224,7 +225,7 @@ namespace
         void UpdateAI(uint32 diff) override
         {
             if (InstanceScript* instance = me->GetInstanceScript())
-                if (Creature* body = instance->GetCreature(DATA_MAGMADAR))
+                if (Creature* body = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_MAGMADAR)))
                     if (body->IsAlive() && me->IsAlive())
                         me->SetHealth(std::min(body->GetHealth(), me->GetMaxHealth()));
 
