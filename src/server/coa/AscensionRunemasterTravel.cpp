@@ -83,7 +83,6 @@ void ClearTravel(Player* player, uint32 spell)
     Creature* marker = FindMarker(player, spell);
     ForgetMarker(player->GetGUID(), spell, guid);
     player->SetTemporarySpellReplacement(spell, 0);
-    player->removeSpell(ReturnSpell(spell), SPEC_MASK_ALL, true);
     player->RemoveAurasDueToSpell(TravelAura(spell), player->GetGUID());
     if (marker)
         marker->DespawnOrUnsummon();

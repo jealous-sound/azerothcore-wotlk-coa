@@ -14,7 +14,7 @@
     { "action": "wait", "label": "Let level scaling settle", "ms": 5000 },
     { "action": "set_health", "actor": "target", "value": 999999 },
     { "action": "assert", "actor": "target", "metric": "max_health", "equals": 1000000 },
-    { "action": "command", "actor": "bloodmage", "command": ".localspec 25" },
+    { "action": "specialization", "actor": "bloodmage", "id": 25 },
     { "action": "wait", "ms": 1000 },
     {
       "action": "assert", "label": "Fleshweaver grants Pooled Vitality",
@@ -29,7 +29,7 @@
       "actor": "bloodmage", "metric": "aura_stacks", "spell": 680687, "equals": 1,
       "within_ms": 5000
     },
-    { "action": "command", "actor": "bloodmage", "command": ".localspec 26" },
+    { "action": "specialization", "actor": "bloodmage", "id": 26 },
     { "action": "wait", "ms": 1000 },
     {
       "action": "assert", "label": "Leaving Fleshweaver removes its Pooled Vitality passive",

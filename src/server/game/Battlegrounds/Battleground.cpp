@@ -247,6 +247,9 @@ Battleground::~Battleground()
 
 uint32 Battleground::GetMinPlayersPerTeam() const
 {
+    if (IsWargame())
+        return m_MinPlayersPerTeam;
+
     uint32 lowLevelsOverride = GetLowLevelsMinPlayersOverride(GetBgTypeID());
     return (lowLevelsOverride && !isTemplate() && !isMaxLevel() && !isArena()) ? lowLevelsOverride : m_MinPlayersPerTeam;
 }
@@ -1285,7 +1288,7 @@ void Battleground::AddOrSetPlayerToCorrectBgGroup(Player* player, TeamId teamId)
 // This method should be called only once ... it adds pointer to queue
 void Battleground::AddToBGFreeSlotQueue()
 {
-    if (!_InBGFreeSlotQueue && isBattleground())
+    if (!_InBGFreeSlotQueue && isBattleground() && !IsWargame())
     {
         sBattlegroundMgr->AddToBGFreeSlotQueue(m_RealTypeID, this);
         _InBGFreeSlotQueue = true;

@@ -231,7 +231,6 @@ namespace CoAChallenges
     {
         std::vector<ActiveChallengeRow> const active = TakeLoginChallengeRows(player->GetGUID().GetCounter());
 
-        SendConfigBatch(player);
         SendActiveList(player, active);
         SendCriteriaState(player);
         RecomputeRequiredGameModes(player, active);

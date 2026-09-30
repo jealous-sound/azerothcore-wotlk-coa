@@ -9,12 +9,12 @@
   "steps": [
     {"action": "wait", "label": "Let login hooks and class synchronisation settle", "ms": 5000},
     {"action": "assert", "label": "No Black Knight identity before the specialization", "actor": "wh", "metric": "knows_spell", "spell": 707064, "equals": 0},
-    {"action": "command", "actor": "wh", "command": ".localspec 97"},
+    {"action": "specialization", "actor": "wh", "id": 97},
     {"action": "assert", "label": "Black Knight grants its identity passive", "actor": "wh", "metric": "knows_spell", "spell": 707064, "equals": 1, "within_ms": 3000},
     {"action": "assert", "label": "Noctis Blade is not bought yet", "actor": "wh", "metric": "knows_spell", "spell": 802280, "equals": 0},
-    {"action": "command", "actor": "wh", "command": ".localtalent 7569 1"},
+    {"action": "advancement_rank", "actor": "wh", "entry": 7569, "rank": 1},
     {"action": "assert", "label": "The specialization point buys Noctis Blade", "actor": "wh", "metric": "knows_spell", "spell": 802280, "equals": 1, "within_ms": 3000},
-    {"action": "command", "actor": "wh", "command": ".localspec 11"},
+    {"action": "specialization", "actor": "wh", "id": 11},
     {"action": "assert", "label": "Leaving Black Knight removes its identity", "actor": "wh", "metric": "knows_spell", "spell": 707064, "equals": 0, "within_ms": 3000},
     {"action": "assert", "label": "Leaving Black Knight removes Noctis Blade", "actor": "wh", "metric": "knows_spell", "spell": 802280, "equals": 0}
   ]

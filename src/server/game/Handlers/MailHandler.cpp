@@ -608,6 +608,7 @@ void WorldSession::HandleMailTakeItem(WorldPacket& recvData)
         player->m_mailsUpdated = true;
         player->RemoveMItem(it->GetGUID().GetCounter());
 
+        uint32 const itemEntry = it->GetEntry();
         uint32 count = it->GetCount();                      // save counts before store and possible merge with deleting
         it->SetState(ITEM_UNCHANGED);                       // need to set this state, otherwise item cannot be removed later, if neccessary
         player->MoveItemToInventory(dest, it, true);
@@ -623,6 +624,7 @@ void WorldSession::HandleMailTakeItem(WorldPacket& recvData)
         CharacterDatabase.CommitTransaction(trans);
 
         player->SendMailResult(mailId, MAIL_ITEM_TAKEN, MAIL_OK, 0, itemLowGuid, count);
+        sScriptMgr->OnPlayerTakeMailItem(player, m, itemEntry);
     }
     else
         player->SendMailResult(mailId, MAIL_ITEM_TAKEN, MAIL_ERR_EQUIP_ERROR, msg);

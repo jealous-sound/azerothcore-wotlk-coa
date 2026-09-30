@@ -18,6 +18,7 @@ namespace AscensionCompatData
 std::vector<CoATalentEntry> CoATalentEntries;
 std::vector<CoASelectableFreeEntry> CoASelectableFreeEntries;
 std::vector<CoAAutomaticDependency> CoAAutomaticDependencies;
+std::vector<CoASpecialization> CoASpecializations;
 std::vector<CoATalentBudget> CoATalentBudgets;
 
 namespace
@@ -28,7 +29,8 @@ constexpr uint32 ADVANCEMENT_RANK_COUNT = 5;
 
 constexpr std::array<uint32, 2> IDENTITY_PASSIVES_KEEPING_AUTHORED_GATES = { 4037, 4041 };
 
-constexpr std::array<uint32, 8> BARBARIAN_MANUAL_FREE_CHOICES = { 9172, 9861, 11172, 11257, 12112, 13111, 30764, 34257 };
+constexpr std::array<uint32, 10> MANUAL_FREE_CHOICE_ENTRIES =
+    { 9172, 9861, 11172, 11257, 12112, 13111, 30764, 34257, 6243, 11243 };
 
 enum AdvancementDwordField : uint32
 {
@@ -41,6 +43,13 @@ enum AdvancementDwordField : uint32
     ADVANCEMENT_GROUP        = 29,
     ADVANCEMENT_CLASS_TYPE   = 32,
     ADVANCEMENT_TAB          = 33,
+};
+
+enum ChrSpecsDwordField : uint32
+{
+    CHR_SPECS_ID              = 0,
+    CHR_SPECS_SIGNATURE_SPELL = 24,
+    CHR_SPECS_IDENTITY_ENTRY  = 28,
 };
 
 enum EssenceDwordField : uint32
@@ -102,6 +111,7 @@ bool LoadCoATalentData()
     CoATalentEntries.clear();
     CoASelectableFreeEntries.clear();
     CoAAutomaticDependencies.clear();
+    CoASpecializations.clear();
     CoATalentBudgets.clear();
 
     ClientDBC classes, classTypes, tabTypes, specs, advancement, essence;
@@ -151,13 +161,18 @@ bool LoadCoATalentData()
 
     std::map<std::pair<std::string, std::string>, uint32> specByClassAndTab;
     std::unordered_map<uint32, uint32> identitySpecByEntry;
+    std::vector<std::tuple<uint32, uint32, uint32>> specIdentities;
     for (uint32 row = 0; row < specs.GetRecordCount(); ++row)
     {
         ClientDBC::Record record = specs.GetRecord(row);
         std::pair<std::string, std::string> key(record.GetString(1), record.GetString(2));
-        specByClassAndTab[key] = record.GetUInt32(0);
-        if (uint32 identity = record.GetUInt32(28))
-            identitySpecByEntry[identity] = record.GetUInt32(0);
+        uint32 const specId = record.GetUInt32(CHR_SPECS_ID);
+        specByClassAndTab[key] = specId;
+        if (uint32 identity = record.GetUInt32(CHR_SPECS_IDENTITY_ENTRY))
+        {
+            identitySpecByEntry[identity] = specId;
+            specIdentities.emplace_back(specId, identity, record.GetUInt32(CHR_SPECS_SIGNATURE_SPELL));
+        }
     }
 
     std::vector<Node> nodes;
@@ -238,7 +253,7 @@ bool LoadCoATalentData()
     for (Node const& node : nodes)
     {
         CoATalentEntries.push_back(node.Entry);
-        if (Contains(BARBARIAN_MANUAL_FREE_CHOICES, node.Entry.EntryId))
+        if (Contains(MANUAL_FREE_CHOICE_ENTRIES, node.Entry.EntryId))
             CoASelectableFreeEntries.push_back({ node.Entry.EntryId, node.Group });
 
         if (node.Entry.AECost || node.Entry.TECost || node.Required.empty())
@@ -250,7 +265,7 @@ bool LoadCoATalentData()
             auto requiredNode = nodeById.find(requiredId);
             bool const paidClassNode = requiredNode != nodeById.end() && requiredNode->second->ClassTab &&
                 (requiredNode->second->Entry.AECost || requiredNode->second->Entry.TECost);
-            if (!(node.Entry.SpecId && !Contains(BARBARIAN_MANUAL_FREE_CHOICES, node.Entry.EntryId) && paidClassNode))
+            if (!(node.Entry.SpecId && !Contains(MANUAL_FREE_CHOICE_ENTRIES, node.Entry.EntryId) && paidClassNode))
                 required.push_back(requiredId);
         }
 
@@ -269,10 +284,28 @@ bool LoadCoATalentData()
         CoAAutomaticDependencies.push_back(dependency);
     }
 
+    for (auto const& [specId, identityId, signatureSpellId] : specIdentities)
+    {
+        auto identity = nodeById.find(identityId);
+        if (identity == nodeById.end() || identity->second->Entry.SpecId != specId)
+            continue;
+
+        uint32 signatureId = 0;
+        for (Node const& node : nodes)
+            if (signatureSpellId && node.Entry.ClassId == identity->second->Entry.ClassId &&
+                Contains(node.Entry.SpellIds, signatureSpellId))
+            {
+                signatureId = node.Entry.EntryId;
+                break;
+            }
+        CoASpecializations.push_back({ uint16(specId), identity->second->Entry.ClassId, identityId, signatureId });
+    }
+
     LOG_INFO("coa",
-        "Loaded {} CoA talent entries ({} selectable free, {} automatic dependencies, {} budget rows)",
+        "Loaded {} CoA talent entries ({} selectable free, {} automatic dependencies, {} specializations, "
+        "{} budget rows)",
         CoATalentEntries.size(), CoASelectableFreeEntries.size(), CoAAutomaticDependencies.size(),
-        CoATalentBudgets.size());
+        CoASpecializations.size(), CoATalentBudgets.size());
     return true;
 }
 }

@@ -269,7 +269,10 @@ void Spend(Player* player, uint32 id, uint64 generation)
             aura && generation == aura->GetScriptValue(Scrap))
         {
             if (aura->GetCharges() > 1)
+            {
                 aura->SetCharges(aura->GetCharges() - 1);
+                aura->SetUsingCharges(false);
+            }
             else
                 aura->Remove();
         }
@@ -304,6 +307,19 @@ void ReconcileModules(Player* player)
     for (Aura* aura : remove)
         aura->Remove();
 }
+void FillMechsuitBar(Player* player)
+{
+    constexpr uint8 MechsuitBar = 72, MechsuitBarSize = 12;
+    for (uint8 button = MechsuitBar; button < MechsuitBar + MechsuitBarSize; ++button)
+        if (player->GetActionButton(button))
+            return;
+    uint8 button = MechsuitBar;
+    for (uint32 root : {GatlingGun,801387u,805372u,801389u})
+        if (player->addActionButton(button,Highest(player,root),ACTION_BUTTON_SPELL))
+            ++button;
+    if (button != MechsuitBar)
+        player->SendActionButtons(1);
+}
 void Refresh(Player* player)
 {
     auto& state = State(player);
@@ -317,11 +333,18 @@ void Refresh(Player* player)
     SetHelper(player,803329,mech);
     SetHelper(player,680999,mech && player->HasAura(806631));
     SetAmount(player,801385,1,mech && player->HasAura(681001) ? -std::abs(Amount(681001)) : 0);
+    bool suit = player->HasSpell(Highest(player,Mechsuit));
+    if (suit && !player->HasSpell(GatlingGun))
+        player->learnSpell(GatlingGun);
+    else if (!suit && player->HasSpell(GatlingGun))
+        player->removeSpell(GatlingGun,SPEC_MASK_ALL,false);
     if (!mech)
     {
         player->RemoveAurasDueToSpell(803451,player->GetGUID());
         player->RemoveAurasDueToSpell(504749,player->GetGUID());
     }
+    else
+        FillMechsuitBar(player);
     bool mine = false;
     for (Creature* device : Devices(player))
         mine |= device->GetEntry() == 50045 || device->GetEntry() == 50600;
@@ -333,17 +356,13 @@ void Refresh(Player* player)
     if (Spell* channel = player->GetCurrentSpell(CURRENT_CHANNELED_SPELL); channel &&
         channel->GetSpellInfo()->Id == 504594 && channel->getState() != SPELL_STATE_FINISHED)
         gear = true;
-    for (auto [root,replacement,enabled] : {std::tuple(500549u,500213u,mech),
-        std::tuple(504527u,504594u,gear)})
-    {
-        if (enabled && !player->HasSpell(replacement))
-            player->learnSpell(replacement,true);
-        for (auto const& pair : player->GetSpellMap())
-            if (player->HasSpell(pair.first) && Named(sSpellMgr->GetSpellInfo(pair.first),root))
-                player->SetTemporarySpellReplacement(pair.first,enabled ? replacement : 0);
-        if (!enabled)
-            player->removeSpell(replacement,SPEC_MASK_ALL,true);
-    }
+    if (gear && !player->HasSpell(504594))
+        player->learnSpell(504594,true);
+    for (auto const& pair : player->GetSpellMap())
+        if (player->HasSpell(pair.first) && Named(sSpellMgr->GetSpellInfo(pair.first),504527))
+            player->SetTemporarySpellReplacement(pair.first,gear ? 504594 : 0);
+    if (!gear)
+        player->removeSpell(504594,SPEC_MASK_ALL,true);
     if (!player->HasAura(707249))
         player->RemoveAurasDueToSpell(707251);
     if (!player->HasAura(572545) || !player->HasAura(653232))

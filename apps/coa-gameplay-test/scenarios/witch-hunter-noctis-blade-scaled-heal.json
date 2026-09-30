@@ -28,8 +28,7 @@
       "entry": 1501,
       "level": 1,
       "health": 100000,
-      "distance": 3,
-      "level_scaling": true
+      "distance": 3
     }
   ],
   "steps": [

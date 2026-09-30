@@ -2,6 +2,7 @@
   "schema": 1,
   "exclusive": {
     "bloodforged-high-risk-drop": "set_phase 1 affects live creatures outside the case's lane phase",
+    "coa-prestige-chromie-spawns": "set_phase 1 affects live creatures outside the case's lane phase",
     "who-custom-classes": "The Who list is process-global and would list players of other running cases",
     "who-hides-bots": "The Who list is process-global and would list players of other running cases",
     "who-lists-bots": "The Who list is process-global and would list players of other running cases"

@@ -280,7 +280,7 @@ Each running case owns a lane. The runner keeps up to twice as many case files w
 and the server admits the next file whenever a lane is free.
 
 - Players and fixture creatures of a lane use its own phase: bit 30 for lane 0 and bits 16-29 for lanes 1-14.
-  `set_phase` without a `value` uses the lane's phase, and local level scaling skips every lane phase.
+  `set_phase` without a `value` uses the lane's phase.
 - With more than one lane, default character names are generated 10-letter names (`H` followed by alternating
   consonants and vowels), and whole-word `Harness<a..h>` in `console` and `command` text becomes the case's
   generated name. Explicit fixture `name` values are kept.
@@ -371,9 +371,10 @@ case, each with its reason:
 
 An exclusive case is admitted only when every lane is idle, and no other case starts until it finishes. The runner
 rejects ids missing from the catalog and empty reasons. The list holds `who-custom-classes`, `who-hides-bots` and
-`who-lists-bots` (the Who list is process-global) and `bloodforged-high-risk-drop` (`set_phase 1` affects live
-creatures). A case with an [`hour`](#realm-local-time) is exclusive without being listed. Add a case, with its
-reason, when it reads or changes process-global state; exclusivity does not fix timing failures. Chat that ignores
+`who-lists-bots` (the Who list is process-global) and `bloodforged-high-risk-drop` and
+`coa-prestige-chromie-spawns` (`set_phase 1` affects live creatures). A case with an [`hour`](#realm-local-time) is
+exclusive without being listed. Add a case, with its reason, when it reads or changes process-global state;
+exclusivity does not fix timing failures. Chat that ignores
 phases is a known limit that the list does not cover: `treasure-keeper` asserts exact `system_messages` deltas and
 shares the server, so [creature text on its map](#fidelity-limits) from another lane can fail it.
 
@@ -586,9 +587,8 @@ A run of every stage without focus filters cannot currently end `PASSED` on any 
 
 - One worldserver and module configuration applies to every gameplay case, including the reruns, and
   some scenarios require opposite values. `who-hides-bots` needs `Who.ShowBots=0` while `who-lists-bots` expects
-  the shipped `1`; `destiny-weaver-quest-fallback` and `level-scaling-damage-engagement` need
-  `DestinyWeaver.Enable=0` (the latter also accepts `DestinyWeaver.LevelScaling=0`) while `destiny-weaver-scaling`
-  needs both at `1`. Others, such as `profession-xp-disabled`, `profession-xp-global`, `high-risk-death-chest`,
+  the shipped `1`; `destiny-weaver-quest-fallback` needs `DestinyWeaver.Enable=0` while `destiny-weaver-scaling`
+  needs it at `1`. Others, such as `profession-xp-disabled`, `profession-xp-global`, `high-risk-death-chest`,
   `destructo-bot-manastorm` and `pvp-power-damage`, name their required values in their `contract`. At least one
   scenario of each opposing pair fails on every configuration.
 - The always-unavailable harness scripts above keep the run from `PASSED` even when everything else passes.

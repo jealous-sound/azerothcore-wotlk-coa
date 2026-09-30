@@ -4,6 +4,8 @@
 #include "RBAC.h"
 #include "KillRewarder.h"
 #include "Random.h"
+#include "AllCreatureScript.h"
+
 
 using namespace Acore::ChatCommands;
 
@@ -1219,7 +1221,13 @@ namespace CoAChallenges
     class CoAChallengesPlayer : public PlayerScript
     {
     public:
-        CoAChallengesPlayer() : PlayerScript("CoAChallengesPlayer", { PLAYERHOOK_ON_SEND_INITIAL_PACKETS_BEFORE_ADD_TO_MAP, PLAYERHOOK_ON_LOGIN, PLAYERHOOK_ON_PLAYER_JUST_DIED, PLAYERHOOK_ON_PLAYER_RESURRECT, PLAYERHOOK_CAN_RESURRECT, PLAYERHOOK_CAN_SEND_MAIL, PLAYERHOOK_CAN_JOIN_LFG, PLAYERHOOK_CAN_JOIN_IN_BATTLEGROUND_QUEUE, PLAYERHOOK_CAN_JOIN_IN_ARENA_QUEUE, PLAYERHOOK_CAN_INIT_TRADE, PLAYERHOOK_CAN_PLACE_AUCTION_BID, PLAYERHOOK_ON_BEFORE_SEND_LOOT, PLAYERHOOK_ON_LEVEL_CHANGED, PLAYERHOOK_ON_CREATURE_KILL, PLAYERHOOK_ON_CREATURE_KILLED_BY_PET, PLAYERHOOK_ON_PLAYER_KILLED_BY_CREATURE, PLAYERHOOK_ON_PVP_KILL, PLAYERHOOK_ON_LOOT_ITEM, PLAYERHOOK_ON_PLAYER_COMPLETE_QUEST, PLAYERHOOK_ON_UPDATE, PLAYERHOOK_ON_LOGOUT, PLAYERHOOK_CAN_GROUP_INVITE, PLAYERHOOK_CAN_GROUP_ACCEPT, PLAYERHOOK_ON_UPDATE_CRAFTING_SKILL, PLAYERHOOK_ON_UPDATE_GATHERING_SKILL, PLAYERHOOK_ON_BEFORE_QUEST_COMPLETE, PLAYERHOOK_ON_QUEST_COMPUTE_EXP, PLAYERHOOK_ON_GIVE_EXP, PLAYERHOOK_ON_GET_MAX_ALLOWED_LEVEL, PLAYERHOOK_CAN_LEARN_TALENT, PLAYERHOOK_CAN_USE_ITEM, PLAYERHOOK_CAN_ENTER_MAP, PLAYERHOOK_CAN_EQUIP_ITEM, PLAYERHOOK_CAN_ENTER_MANASTORM, PLAYERHOOK_ON_PLAYER_ENVIRONMENTAL_DAMAGE, PLAYERHOOK_ON_PLAYER_BREATH_INVERTED, PLAYERHOOK_ON_BEFORE_BUY_ITEM_FROM_VENDOR, PLAYERHOOK_CAN_SELL_ITEM, PLAYERHOOK_ON_CAN_UPDATE_SKILL, PLAYERHOOK_ON_UPDATE_SKILL, PLAYERHOOK_ON_PLAYER_PVP_FLAG_CHANGE, PLAYERHOOK_ON_CAN_REGENERATE, PLAYERHOOK_ON_CAN_ENERGIZE, PLAYERHOOK_ON_CAN_GIVE_LEVEL, PLAYERHOOK_ON_BEFORE_TELEPORT, PLAYERHOOK_ON_DELETE_FROM_DB, PLAYERHOOK_ON_BANK_WITHDRAW, PLAYERHOOK_ON_REWARD_KILL_REWARDER, PLAYERHOOK_ON_GIVE_REPUTATION, PLAYERHOOK_PASSED_QUEST_KILLED_MONSTER_CREDIT, PLAYERHOOK_ON_LOAD_FROM_DB }) { }
+        CoAChallengesPlayer() : PlayerScript("CoAChallengesPlayer", { PLAYERHOOK_ON_SEND_INITIAL_PACKETS_BEFORE_ADD_TO_MAP, PLAYERHOOK_ON_PLAYER_JUST_DIED, PLAYERHOOK_ON_PLAYER_RESURRECT, PLAYERHOOK_CAN_RESURRECT, PLAYERHOOK_CAN_SEND_MAIL, PLAYERHOOK_CAN_JOIN_LFG, PLAYERHOOK_CAN_JOIN_IN_BATTLEGROUND_QUEUE, PLAYERHOOK_CAN_JOIN_IN_ARENA_QUEUE, PLAYERHOOK_CAN_INIT_TRADE, PLAYERHOOK_CAN_PLACE_AUCTION_BID, PLAYERHOOK_ON_BEFORE_SEND_LOOT, PLAYERHOOK_ON_LEVEL_CHANGED, PLAYERHOOK_ON_CREATURE_KILL, PLAYERHOOK_ON_CREATURE_KILLED_BY_PET, PLAYERHOOK_ON_PLAYER_KILLED_BY_CREATURE, PLAYERHOOK_ON_PVP_KILL, PLAYERHOOK_ON_LOOT_ITEM, PLAYERHOOK_ON_PLAYER_COMPLETE_QUEST, PLAYERHOOK_ON_UPDATE, PLAYERHOOK_ON_LOGOUT, PLAYERHOOK_CAN_GROUP_INVITE, PLAYERHOOK_CAN_GROUP_ACCEPT, PLAYERHOOK_ON_UPDATE_CRAFTING_SKILL, PLAYERHOOK_ON_UPDATE_GATHERING_SKILL, PLAYERHOOK_ON_BEFORE_QUEST_COMPLETE, PLAYERHOOK_ON_QUEST_COMPUTE_EXP, PLAYERHOOK_ON_GIVE_EXP, PLAYERHOOK_ON_GET_MAX_ALLOWED_LEVEL, PLAYERHOOK_ON_HAS_NO_BONUS_EXPERIENCE, PLAYERHOOK_CAN_LEARN_TALENT, PLAYERHOOK_CAN_USE_ITEM, PLAYERHOOK_CAN_ENTER_MAP, PLAYERHOOK_CAN_EQUIP_ITEM, PLAYERHOOK_CAN_ENTER_MANASTORM, PLAYERHOOK_ON_PLAYER_ENVIRONMENTAL_DAMAGE, PLAYERHOOK_ON_PLAYER_BREATH_INVERTED, PLAYERHOOK_ON_BEFORE_BUY_ITEM_FROM_VENDOR, PLAYERHOOK_CAN_SELL_ITEM, PLAYERHOOK_ON_CAN_UPDATE_SKILL, PLAYERHOOK_ON_UPDATE_SKILL, PLAYERHOOK_ON_PLAYER_PVP_FLAG_CHANGE, PLAYERHOOK_ON_CAN_REGENERATE, PLAYERHOOK_ON_CAN_ENERGIZE, PLAYERHOOK_ON_CAN_GIVE_LEVEL, PLAYERHOOK_ON_BEFORE_TELEPORT, PLAYERHOOK_ON_DELETE_FROM_DB, PLAYERHOOK_ON_BANK_WITHDRAW, PLAYERHOOK_ON_REWARD_KILL_REWARDER, PLAYERHOOK_ON_GIVE_REPUTATION, PLAYERHOOK_PASSED_QUEST_KILLED_MONSTER_CREDIT, PLAYERHOOK_ON_LOAD_FROM_DB, PLAYERHOOK_ON_GET_GAME_MODE_MASK }) { }
+
+        bool OnPlayerGetGameModeMask(Player const* player, uint32& mask) override
+        {
+            mask = CachedGameModeMask(player->GetGUID().GetCounter());
+            return true;
+        }
 
         // Player::LoadFromDB, before the inventory load asks PlayerHasRule: one read of the active
         // challenges serves both that cache and PushLoginState later in the same login.
@@ -1233,11 +1241,6 @@ namespace CoAChallenges
         void OnPlayerSendInitialPacketsBeforeAddToMap(Player* player, WorldPacket& /*data*/) override
         {
             PushLoginState(player);
-        }
-
-        void OnPlayerLogin(Player* player) override
-        {
-            SendConfigBatch(player);
         }
 
         void OnPlayerJustDied(Player* player) override
@@ -1645,6 +1648,11 @@ namespace CoAChallenges
         }
 
         // ---- Rules: experience source / talents / items ----------------------
+        bool OnPlayerHasNoBonusExperience(Player* player) override
+        {
+            return PlayerHasRule(player, "CHALLENGE_RULES_TYPE_NO_BONUS_EXPERIENCE");
+        }
+
         void OnPlayerGiveXP(Player* player, uint32& amount, Unit* victim, uint8 xpSource) override
         {
             if (PlayerHasRule(player, "CHALLENGE_RULES_TYPE_NO_EXPERIENCE_EXCEPT_QUESTS"))
@@ -1684,6 +1692,26 @@ namespace CoAChallenges
                 && xpSource == XPSOURCE_KILL && victim && victim->IsCreature()
                 && victim->GetLevel() <= player->GetLevel())
                 amount = 0;
+
+            // Prestige experience bonus: while a prestige cycle is in progress
+            // the character earns the module's configured experience (the single
+            // "Prestige Challenge" aura, 9930831, is the IsPrestiged() marker and
+            // carries no mechanical XP effect, so this core applies it). The bonus
+            // is flat, not per-cycle, and only below the cap. A challenge carrying
+            // NO_BONUS_EXPERIENCE (Prestige - Resolute, Slow and Steady, Resolute
+            // Mode) ignores it.
+            if (amount && CoAPrestige::IsActive(player)
+                && !PlayerHasRule(player, "CHALLENGE_RULES_TYPE_NO_BONUS_EXPERIENCE"))
+            {
+                amount = uint32(uint64(amount) * CoAPrestige::ExperienceBonusPercent() / 100);
+            }
+
+            // Prestige daily bonus: the content the held Prestige daily names earns extra
+            // experience while it is played (Open World / Battlegrounds / Dungeons). A
+            // challenge carrying NO_BONUS_EXPERIENCE ignores it too.
+            if (amount && !PlayerHasRule(player, "CHALLENGE_RULES_TYPE_NO_BONUS_EXPERIENCE"))
+                if (uint32 const daily = CoAPrestige::DailyExperienceBonusPercent(player, xpSource))
+                    amount = uint32(uint64(amount) * (100 + daily) / 100);
 
             // NO_LEVEL_PAST_REQUIREMENTS: hold the player one point short of the
             // FIRST unmet objective level ahead. A huge gain (e.g. a big XP
@@ -2654,6 +2682,7 @@ namespace CoAChallenges
                 { "ruleaudit", HandleCoARuleAuditCommand, SEC_ADMINISTRATOR, Console::Yes },
                 { "auditdefs", HandleCoAAuditDefsCommand, SEC_ADMINISTRATOR, Console::Yes },
                 { "cachetoctou", HandleCoACacheToctouCommand, SEC_ADMINISTRATOR, Console::Yes },
+                { "pettest",   HandleCoAPetTestCommand,   SEC_ADMINISTRATOR, Console::Yes },
                 { "gamemode",  HandleCoAGameModeCommand,  SEC_ADMINISTRATOR, Console::Yes },
                 { "sync",      HandleCoASyncCommand,       SEC_ADMINISTRATOR, Console::Yes },
                 { "fatigue",   HandleCoAFatigueCommand,   SEC_ADMINISTRATOR, Console::Yes },
@@ -3124,6 +3153,23 @@ namespace CoAChallenges
                 handler->PSendSysMessage("CACHE TOCTOU PASS");
             else
                 handler->SendErrorMessage("CACHE TOCTOU FAIL (see lines above)");
+            return true;
+        }
+
+        // .coa pettest <player>
+        // GM-only: regression test for Issue #4343 (trial auras applied to summons).
+        static bool HandleCoAPetTestCommand(ChatHandler* handler, std::string playerName)
+        {
+            Player* p = ObjectAccessor::FindPlayerByName(playerName);
+            if (!p)
+            {
+                handler->SendErrorMessage("Player '{}' is not online.", playerName);
+                return false;
+            }
+            if (Test_PetTrialAuras(p))
+                handler->PSendSysMessage("PET TRIAL AURAS PASS");
+            else
+                handler->SendErrorMessage("PET TRIAL AURAS FAIL (see lines above)");
             return true;
         }
 
@@ -3689,10 +3735,29 @@ namespace CoAChallenges
         }
     };
 
+    class CoAChallengesAllCreature : public AllCreatureScript
+    {
+    public:
+        CoAChallengesAllCreature() : AllCreatureScript("CoAChallengesAllCreature") { }
+
+        void OnCreatureAddWorld(Creature* creature) override
+        {
+            if (!creature)
+                return;
+
+            Player* owner = GetPlayerOwner(creature);
+            if (!owner)
+                return;
+
+            ApplyActiveChallengeSpellsToCreature(owner, creature);
+        }
+    };
+
 } // namespace CoAChallenges
 
 void Addmod_coa_challengesScripts()
 {
+    RegisterAscensionClientConfig(&CoAChallenges::AppendClientConfig);
     new CoAChallenges::CoAChallengesPlayer();
     new CoAChallenges::CoAChallengesWorld();
     new CoAChallenges::CoAChallengesServer();
@@ -3703,4 +3768,6 @@ void Addmod_coa_challengesScripts()
     new CoAChallenges::CoAChallengesGuild();
     new CoAChallenges::CoAChallengesGroup();
     new CoAChallenges::CoAChallengesSpells();
+    new CoAChallenges::CoAChallengesAllCreature();
 }
+

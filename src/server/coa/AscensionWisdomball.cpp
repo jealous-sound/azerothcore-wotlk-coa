@@ -40,6 +40,8 @@ constexpr float InteractionRange = 30.0f;
 
 constexpr uint32 StatusCheckIntervalMs = 2000;
 
+constexpr uint32 QuestsCompletedWithoutPlayerAction[] = { 5722, 5724 };
+
 struct DungeonQuests
 {
     std::vector<uint32> starters;
@@ -158,6 +160,15 @@ bool Contains(std::vector<uint32> const& ids, uint32 questId)
     return std::binary_search(ids.begin(), ids.end(), questId);
 }
 
+bool CompletesWithoutPlayerAction(uint32 questId)
+{
+    for (uint32 excluded : QuestsCompletedWithoutPlayerAction)
+        if (excluded == questId)
+            return true;
+
+    return false;
+}
+
 std::vector<uint32> DungeonMaps()
 {
     std::vector<uint32> maps;
@@ -259,10 +270,19 @@ bool CanOffer(Player* player, uint32 questId)
     if (!quest || IsPlaceholder(quest))
         return false;
 
+    if (CompletesWithoutPlayerAction(questId))
+        return false;
+
     if (player->GetQuestStatus(questId) != QUEST_STATUS_NONE)
         return false;
 
     if (player->IsQuestRewarded(questId) && !quest->IsRepeatable())
+        return false;
+
+    if (!player->SatisfyQuestRace(quest, false))
+        return false;
+
+    if (!player->SatisfyQuestExclusiveGroup(quest, false))
         return false;
 
     return true;

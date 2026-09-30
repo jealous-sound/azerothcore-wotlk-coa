@@ -1125,7 +1125,8 @@ void AchievementMgr::UpdateAchievementCriteria(AchievementCriteriaTypes type, ui
                         if (achievIdByArenaSlot[j] == achievement->ID)
                         {
                             Battleground* bg = GetPlayer()->GetBattleground();
-                            if (!bg || !bg->isArena() || ArenaTeam::GetSlotByType(bg->GetArenaType()) != j)
+                            if (!bg || !bg->isArena() || !bg->GetArenaType()
+                                || ArenaTeam::GetSlotByType(bg->GetArenaType()) != j)
                                 notfit = true;
 
                             break;

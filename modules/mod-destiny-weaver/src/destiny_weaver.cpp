@@ -10,13 +10,10 @@
 // restored here is the menu and the two settings behind it; the creatures and their gossip text
 // are in the module's SQL revision.
 //
-//   * Open World Scaling        - the quest levels this character reads and plays at. Creatures in
-//                                 the open world are scaled realm-wide by CoA
-//                                 (CoA.LevelScaling), because a creature carries one
-//                                 level that the server broadcasts to every client: it cannot be
-//                                 level 27 for one character and level 2 for the one beside them.
-//                                 A quest level, unlike a creature level, is sent to a single
-//                                 client, so it can genuinely follow this character's choice.
+//   * Open World Scaling        - the open-world creatures this character fights and the quest
+//                                 levels they read and play at. Each character is sent their own
+//                                 version of a creature (destiny_weaver_scaling.cpp), so a level-30
+//                                 and a level-20 character see one level-15 creature at 27 and 17.
 //   * Experience Bonus Control  - the bonus experience sources (potions, auras, recruit-a-friend)
 //                                 stop paying, so the character progresses at the base rate; the
 //                                 stripping itself is in destiny_weaver_xp.cpp.
