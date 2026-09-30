@@ -63,7 +63,9 @@ enum BloodmageSecondarySpells : uint32
     SPELL_CURSED_FORM_REQUIREMENT = 525031,
     SPELL_CURSED_FORM_REQUIREMENT_2 = 524861,
     SPELL_VAMPIRIC_FANG_SHARE = 572373,
-    SPELL_VAMPIRIC_FANG_HEAL = 572374
+    SPELL_VAMPIRIC_FANG_HEAL = 572374,
+    SPELL_RUNNING_WILD = 800175,
+    SPELL_RUNNING_WILD_JOURNEYMAN = 520575
 };
 
 constexpr uint32 TORTURE_MINIMUM_THIRST_STACKS = 9;
@@ -672,6 +674,37 @@ class spell_ascension_bloodmage_excision : public SpellScript
             EFFECT_0, SPELL_EFFECT_DUMMY);
     }
 };
+
+void SyncRunningWildJourneyman(Player* player)
+{
+    bool const runningWild = player->HasSpell(SPELL_RUNNING_WILD);
+    bool const journeyman = player->HasSpell(SPELL_RUNNING_WILD_JOURNEYMAN);
+    if (runningWild && !journeyman)
+        player->learnSpell(SPELL_RUNNING_WILD_JOURNEYMAN);
+    else if (!runningWild && journeyman)
+        player->removeSpell(SPELL_RUNNING_WILD_JOURNEYMAN, SPEC_MASK_ALL, false);
+}
+
+class bloodmage_running_wild_journeyman : public PlayerScript
+{
+public:
+    bloodmage_running_wild_journeyman() : PlayerScript("bloodmage_running_wild_journeyman",
+        {PLAYERHOOK_ON_LOGIN, PLAYERHOOK_ON_LEARN_SPELL, PLAYERHOOK_ON_FORGOT_SPELL}) { }
+
+    void OnPlayerLogin(Player* player) override { SyncRunningWildJourneyman(player); }
+
+    void OnPlayerLearnSpell(Player* player, uint32 spell) override
+    {
+        if (spell == SPELL_RUNNING_WILD)
+            SyncRunningWildJourneyman(player);
+    }
+
+    void OnPlayerForgotSpell(Player* player, uint32 spell) override
+    {
+        if (spell == SPELL_RUNNING_WILD)
+            SyncRunningWildJourneyman(player);
+    }
+};
 }
 
 void AddSC_AscensionBloodmageSecondary()
@@ -690,4 +723,5 @@ void AddSC_AscensionBloodmageSecondary()
     RegisterSpellScript(spell_ascension_bloodmage_hemal_excision);
     RegisterSpellScript(aura_ascension_bloodmage_hemal_excision);
     RegisterSpellScript(spell_ascension_bloodmage_excision);
+    new bloodmage_running_wild_journeyman();
 }
