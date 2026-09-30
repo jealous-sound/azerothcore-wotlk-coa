@@ -169,7 +169,7 @@ namespace
             events.ScheduleEvent(EVENT_HEAD_LAVA_BOMB, isRightHead ? 6s : 11s);
         }
 
-        void ExecuteEvent(uint32 eventId) override
+        void ExecuteEvent(uint32 eventId)
         {
             switch (eventId)
             {

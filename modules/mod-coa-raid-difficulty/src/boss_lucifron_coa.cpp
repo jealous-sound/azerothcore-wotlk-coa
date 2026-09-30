@@ -92,7 +92,7 @@ namespace
             events.ScheduleEvent(EVENT_DARK_SUNDERING, 12s);
         }
 
-        void ExecuteEvent(uint32 eventId) override
+        void ExecuteEvent(uint32 eventId)
         {
             switch (eventId)
             {
