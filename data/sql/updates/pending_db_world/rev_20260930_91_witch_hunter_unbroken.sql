@@ -7,8 +7,9 @@
 -- ProcFlags 139944: taken melee and ranged auto attacks, melee and ranged abilities, and harmful spells; no periodic
 -- ticks, so damage-over-time cannot stack it. Chance 0 keeps the record's own ProcChance (100). SpellPhaseMask 0, as
 -- the TAKEN_* flags must not be limited to the hit phase.
--- aura_ascension_witch_hunter_unbroken raises the AP on each proc within a 20% of maximum health cap, then walks the
--- 707487 amount back down through the DBC decay tiers and refreshes it on every tick.
+-- aura_ascension_witch_hunter_unbroken sets 707487 to the full 20% of maximum health cap on the first proc, then walks
+-- the amount back down through the DBC decay tiers, each step removing that tier's percentage of the cap, and refreshes
+-- the buff on every tick.
 DELETE FROM `spell_proc` WHERE `SpellId` = 707407;
 INSERT INTO `spell_proc`
   (`SpellId`, `SchoolMask`, `SpellFamilyName`, `SpellFamilyMask0`, `SpellFamilyMask1`,

@@ -40,22 +40,19 @@ constexpr uint32 SPELL_UNBROKEN_BUFF = 707487;
 constexpr int32 UNBROKEN_AP_PERCENT = 20;
 constexpr int32 UNBROKEN_TICK = 1000;
 constexpr int32 UNBROKEN_BUFF_DURATION = 6000;
-constexpr std::array<int32, 3> UNBROKEN_STEPS = {325, 150, 75};
 
 struct UnbrokenDecay
 {
     int32 percent;
-    int32 amount;
     uint32 ticks;
 };
-constexpr std::array<UnbrokenDecay, 3> UNBROKEN_DECAY = {{{20, 75, 50}, {10, 150, 5}, {5, 325, 10}}};
+constexpr std::array<UnbrokenDecay, 3> UNBROKEN_DECAY = {{{20, 50}, {10, 5}, {5, 10}}};
 
 class aura_ascension_witch_hunter_unbroken : public AuraScript
 {
     PrepareAuraScript(aura_ascension_witch_hunter_unbroken);
     int32 _amount = 0;
     uint32 _ticks = 0;
-    uint8 _step = 0;
 
     bool First(AuraEffect const* effect) const
     {
@@ -107,7 +104,6 @@ class aura_ascension_witch_hunter_unbroken : public AuraScript
             return;
         _amount = 0;
         _ticks = 0;
-        _step = 0;
         GetTarget()->RemoveAurasDueToSpell(SPELL_UNBROKEN_BUFF);
     }
 
@@ -139,7 +135,7 @@ class aura_ascension_witch_hunter_unbroken : public AuraScript
         if (++_ticks >= decay->ticks)
         {
             _ticks = 0;
-            _amount = std::max(0, _amount - decay->amount);
+            _amount = std::max(0, _amount - cap * decay->percent / 100);
         }
         Refresh(owner, _amount);
     }
@@ -159,8 +155,7 @@ class aura_ascension_witch_hunter_unbroken : public AuraScript
         int32 cap = Cap();
         if (!owner || !owner->IsAlive() || cap <= 0)
             return;
-        _amount = std::min(cap, _amount + UNBROKEN_STEPS[_step]);
-        _step = uint8((_step + 1) % UNBROKEN_STEPS.size());
+        _amount = cap;
         _ticks = 0;
         Refresh(owner, _amount);
     }
