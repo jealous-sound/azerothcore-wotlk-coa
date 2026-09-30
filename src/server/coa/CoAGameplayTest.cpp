@@ -1368,6 +1368,34 @@ private:
         throw std::runtime_error("No bought-back item of entry " + std::to_string(entry));
     }
 
+    double ListedInstanceBinds(Tree const& step) const
+    {
+        auto const& payloads = _actors.at(step.get<std::string>("actor")).extensionPayloads;
+        auto const answers = payloads.find(uint16(SMSG_QUERY_INSTANCE_BINDS_RESULT));
+        Require(answers != payloads.end() && !answers->second.empty(), "No instance bind answer was received");
+        std::string const& answer = answers->second.back();
+        std::size_t const end = answer.find('\0');
+        Require(end != std::string::npos, "The instance bind answer has no result string");
+        if (answer.compare(0, end, "QUERY_INSTANCE_BINDS_OK"))
+            return -1;
+
+        ByteBuffer binds;
+        binds.append(reinterpret_cast<uint8 const*>(answer.data()) + end + 1, answer.size() - end - 1);
+        uint32 const count = binds.read<uint32>();
+        Require(binds.size() == sizeof(uint32) + std::size_t(count) * 3 * sizeof(uint32),
+            "The instance bind answer does not hold its count of binds");
+        auto const map = step.get_optional<uint32>("id");
+        uint32 listed = 0;
+        for (uint32 index = 0; index < count; ++index)
+        {
+            binds.read_skip<uint32>();
+            uint32 const bindMap = binds.read<uint32>();
+            binds.read_skip<uint32>();
+            listed += !map || bindMap == *map;
+        }
+        return listed;
+    }
+
     static uint32 StabledPetNumber(Player* player, uint32 slot)
     {
         PetStable const* stable = player->GetPetStable();
@@ -2211,6 +2239,8 @@ private:
             return stable ? std::count_if(stable->StabledPets.begin(), stable->StabledPets.end(),
                 [](Optional<PetStable::PetInfo> const& pet) { return pet.has_value(); }) : 0;
         }
+        if (metric == "instance_binds_listed")
+            return ListedInstanceBinds(step);
         if (metric == "stable_result")
             return _actors.at(step.get<std::string>("actor")).lastStableResult;
         if (metric == "pet_rows")

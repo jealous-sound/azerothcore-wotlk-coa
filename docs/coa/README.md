@@ -431,6 +431,10 @@ supports. Client binaries are maintained outside this repository.
   flight point on its route, so the later legs are neither flown nor paid; and the stable
   window's delete button (`CMSG_STABLE_DELETE_PET`, 0x067C), which deletes a stabled pet and
   answers `SMSG_STABLE_RESULT` 8, after which the client lists the stable again.
+- `CMSG_QUERY_INSTANCE_BINDS` (0x06FD), sent at every world entry, is answered with
+  `SMSG_QUERY_INSTANCE_BINDS_RESULT` (0x06FE): `QUERY_INSTANCE_BINDS_OK`, then the player's binds
+  that can still be reset as instance id, map and difficulty. The portrait menu's Reset Instances
+  list shows them.
 
 The `gtOCTRegenHP`, `gtRegenHPPerSpt` and `gtRegenMPPerSpt` client files each contain
 3,200 single-float rows indexed by class and level. Their SQL overlay tables are empty,

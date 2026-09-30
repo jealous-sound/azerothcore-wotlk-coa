@@ -1067,6 +1067,8 @@ void TestCoreHandledRequests()
     WorldPacket deletePet(CMSG_STABLE_DELETE_PET, 4);
     deletePet << uint32(1);
     Check(Receive(session, deletePet), "the stable window's delete request reaches the core handler");
+    Check(Receive(session, WorldPacket(CMSG_QUERY_INSTANCE_BINDS, 0)),
+        "the instance bind query reaches the core handler");
     Check(session.Sent.empty(), "the early hook answers none of the requests the core handles");
 }
 

@@ -574,6 +574,8 @@ talking to its flight master does, so a scenario can request a route through it.
 `stabled_pet_count` counts a player's stabled pets, `pet_rows` counts their saved pets in `character_pet`
 (only those saved in `character_pet.slot` `slot` when given)
 and `stable_result` is the code of the last `SMSG_STABLE_RESULT` they received (0 before any).
+`instance_binds_listed` decodes the player's last `SMSG_QUERY_INSTANCE_BINDS_RESULT` (0x06FE): the number of
+binds it lists, only those on map `id` when given, or -1 when it carries another result than `_OK`.
 `spell_proc_count` requires `spell` and counts the procs of that spell's aura on the actor since the scenario
 started. What is counted is each spell the proc cast while the aura was named as its trigger, which is the one
 place the server records both the proc and its owner; an aura whose proc does not cast anything counts zero.

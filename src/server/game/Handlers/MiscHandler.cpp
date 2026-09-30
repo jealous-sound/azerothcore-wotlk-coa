@@ -31,6 +31,7 @@
 #include "Group.h"
 #include "GuildMgr.h"
 #include "InstancePackets.h"
+#include "InstanceSaveMgr.h"
 #include "InstanceScript.h"
 #include "Language.h"
 #include "Log.h"
@@ -1382,6 +1383,26 @@ void WorldSession::ResetAllDungeons()
     }
     else
         Player::ResetInstances(_player->GetGUID(), INSTANCE_RESET_ALL, false);
+}
+
+// The Ascension client asks for its instance binds at every world entry and instance info update; the portrait
+// menu lists them for a single reset. Only binds that can still be reset are listed.
+void WorldSession::HandleQueryInstanceBindsOpcode(WorldPacket& /*recvData*/)
+{
+    LOG_DEBUG("network", "WORLD: CMSG_QUERY_INSTANCE_BINDS");
+
+    std::vector<InstanceSave const*> saves;
+    for (uint8 difficulty = 0; difficulty < MAX_DIFFICULTY; ++difficulty)
+        for (auto const& [mapId, bind] : sInstanceSaveMgr->PlayerGetBoundInstances(_player->GetGUID(), Difficulty(difficulty)))
+            if (bind.save->CanReset())
+                saves.push_back(bind.save);
+
+    WorldPacket data(SMSG_QUERY_INSTANCE_BINDS_RESULT, 24 + 4 + saves.size() * 12);
+    data << "QUERY_INSTANCE_BINDS_OK";
+    data << uint32(saves.size());
+    for (InstanceSave const* save : saves)
+        data << uint32(save->GetInstanceId()) << uint32(save->GetMapId()) << uint32(save->GetDifficulty());
+    SendPacket(&data);
 }
 
 void WorldSession::HandleSetDungeonDifficultyOpcode(WorldPackets::Instance::SetDungeonDifficultyClient& packet)
