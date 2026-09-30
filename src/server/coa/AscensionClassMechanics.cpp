@@ -586,6 +586,33 @@ void ApplyRangerConditionalDamageContracts(SpellInfo* spellInfo)
         LOG_ERROR("coa", "Skipped unexpected Ranger conditional damage record {}", spellInfo->Id);
 }
 
+void ApplyRangerSerrationsContract(SpellInfo* spellInfo)
+{
+    if (spellInfo->Id != 705050 && spellInfo->Id != 707850)
+        return;
+
+    int32 amount = spellInfo->Id == 705050 ? 4 : 9;
+    for (SpellEffectInfo& effect : spellInfo->Effects)
+    {
+        if (effect.Effect != SPELL_EFFECT_APPLY_AURA ||
+            effect.ApplyAuraName != SPELL_AURA_OVERRIDE_CLASS_SCRIPTS ||
+            effect.MiscValue != ASCENSION_CLASSMASK_AURASTATE_DAMAGE)
+            continue;
+
+        if (effect.BasePoints == amount && effect.DieSides == 1)
+        {
+            effect.ApplyAuraName = SPELL_AURA_MOD_DAMAGE_DONE_VERSUS_AURASTATE;
+            effect.MiscValue = effect.MiscValueB;
+            effect.MiscValueB = ASCENSION_CLASSMASK_AURASTATE_DAMAGE;
+        }
+        else
+            LOG_ERROR("coa", "Skipped unexpected Ranger Serrations record {}", spellInfo->Id);
+        return;
+    }
+
+    LOG_ERROR("coa", "Skipped unexpected Ranger Serrations record {}", spellInfo->Id);
+}
+
 void ApplyRangerUnderhandedContracts(SpellInfo* spellInfo)
 {
     if (!spellInfo || spellInfo->SpellFamilyName != uint32(CLASS_RANGER) + 6 ||
@@ -1064,6 +1091,7 @@ void ApplyAscensionClassMechanics(SpellInfo* spellInfo)
     ApplyTinkerScrapperContract(spellInfo);
     ApplyRangerFixedDurationContract(spellInfo);
     ApplyRangerConditionalDamageContracts(spellInfo);
+    ApplyRangerSerrationsContract(spellInfo);
     ApplyRangerUnderhandedContracts(spellInfo);
     ApplyRangerInstinctualCombatantContract(spellInfo);
     ApplyAscensionRangerDamageContracts(spellInfo);
