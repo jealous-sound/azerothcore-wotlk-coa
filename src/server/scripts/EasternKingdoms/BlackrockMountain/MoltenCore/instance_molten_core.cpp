@@ -92,6 +92,11 @@ struct instance_molten_core : public InstanceScript
                 _garrGUID = creature->GetGUID();
                 break;
             }
+            case NPC_MAGMADAR:
+            {
+                _magmadarGUID = creature->GetGUID();
+                break;
+            }
             case NPC_RAGNAROS:
             {
                 _ragnarosGUID = creature->GetGUID();
@@ -216,6 +221,8 @@ struct instance_molten_core : public InstanceScript
                 return _majordomoExecutusGUID;
             case DATA_GARR:
                 return _garrGUID;
+            case DATA_MAGMADAR:
+                return _magmadarGUID;
             case DATA_LAVA_STEAM:
                 return _lavaSteamGUID;
             case DATA_LAVA_SPLASH:
