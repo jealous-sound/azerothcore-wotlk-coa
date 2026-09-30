@@ -48,6 +48,7 @@ void AddCoaCThunScripts();
 void AddCoaWorldBossScripts();
 void AddCoaEmeraldDragonScripts();
 void AddCoaCustomWorldBossScripts();
+void AddCoaSacrificialChainsScripts();
 
 void Addmod_coa_raid_difficultyScripts()
 {
@@ -90,4 +91,5 @@ void Addmod_coa_raid_difficultyScripts()
     AddCoaWorldBossScripts();
     AddCoaEmeraldDragonScripts();
     AddCoaCustomWorldBossScripts();
+    AddCoaSacrificialChainsScripts();
 }

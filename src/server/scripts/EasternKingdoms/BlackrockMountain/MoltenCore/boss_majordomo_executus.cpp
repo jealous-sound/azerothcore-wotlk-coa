@@ -78,6 +78,7 @@ enum Events
     EVENT_TELEPORT_RANDOM,
     EVENT_TELEPORT_TARGET,
     EVENT_AEGIS_OF_RAGNAROS,
+    EVENT_SACRIFICIAL_CHAINS,               // CoA addition (rev_20260930_97)
 
     EVENT_DEFEAT_OUTRO_1                    = 1,
     EVENT_DEFEAT_OUTRO_2,
@@ -108,6 +109,11 @@ enum Misc
     PHASE_COMBAT                            = 2,
     PHASE_DEFEAT_OUTRO                      = 3,
     PHASE_RAGNAROS_SUMMONING                = 4,
+
+    // CoA addition (rev_20260930_97): Sacrificial Chains, Majordomo's periodic hostage add
+    // (mc-dataset.json: 92030 in 48/49 corpus Majordomo pulls, median first spawn +29s,
+    // repeating on a median ~47-50s cycle across every sampled difficulty/player count).
+    NPC_SACRIFICIAL_CHAINS_COA              = 92030,
 };
 
 Position const MajordomoRagnaros = { 848.933f, -812.875f, -229.601f, 4.046f };
@@ -247,6 +253,9 @@ struct boss_majordomo : public BossAI
         events.ScheduleEvent(EVENT_TELEPORT_RANDOM, 25s, PHASE_COMBAT, PHASE_COMBAT);
         events.ScheduleEvent(EVENT_TELEPORT_TARGET, 15s, PHASE_COMBAT, PHASE_COMBAT);
 
+        // CoA addition (rev_20260930_97): see NPC_SACRIFICIAL_CHAINS_COA above.
+        events.ScheduleEvent(EVENT_SACRIFICIAL_CHAINS, 29s, PHASE_COMBAT, PHASE_COMBAT);
+
         aliveMinionsGUIDS.clear();
         aliveMinionsGUIDS = static_minionsGUIDS;
     }
@@ -357,6 +366,20 @@ struct boss_majordomo : public BossAI
                             DoCastSelf(SPELL_HATE_TO_ZERO, true);
                             DoCastAOE(SPELL_TELEPORT_TARGET);
                             events.Repeat(30s);
+                            break;
+                        }
+                        case EVENT_SACRIFICIAL_CHAINS:
+                        {
+                            // CoA addition (rev_20260930_97): chain a random raid member's
+                            // position; npc_sacrificial_chains_coa.cpp owns the add's own
+                            // sacrifice/heal-to-full/Berserk behaviour.
+                            Position pos = me->GetPosition();
+                            if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 0.0f, true, false))
+                            {
+                                pos = target->GetPosition();
+                            }
+                            me->SummonCreature(NPC_SACRIFICIAL_CHAINS_COA, pos, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 5 * MINUTE * IN_MILLISECONDS);
+                            events.Repeat(47s);
                             break;
                         }
                     }
