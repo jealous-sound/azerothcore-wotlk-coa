@@ -20,17 +20,22 @@
  * the same reason Ragnaros's unmatched kit entries stay unused: no log
  * evidence to place them on a timer.
  *
- * The heads' own health share, their per-head cast cadence and the
- * periodic Core Hound reinforcements (entry 11671, already in this
- * instance as trash) are not in any log or export; every timer below is
- * designed, not measured, and marked as such.
+ * The heads share Magmadar's own health pool (MC_PV video: both heads always read the same
+ * figure as the body, "PV = Magmadar") - the body is the only damage target, the heads are
+ * immune and mirror its current health every tick; see npc_magmadar_head_coa below. Their
+ * per-head cast cadence and the periodic Core Hound reinforcements (entry 11671, already in
+ * this instance as trash) are not in any log or export; every timer below is designed, not
+ * measured, and marked as such.
  */
 
 #include "CreatureScript.h"
+#include "InstanceScript.h"
 #include "ScriptedCreature.h"
 #include "SpellScript.h"
 #include "SpellScriptLoader.h"
 #include "../../../src/server/scripts/EasternKingdoms/BlackrockMountain/MoltenCore/molten_core.h"
+
+#include <algorithm>
 
 namespace
 {
@@ -159,6 +164,16 @@ namespace
     {
         npc_magmadar_head_coa(Creature* creature) : ScriptedAI(creature) { }
 
+        // Video evidence (MC_PV): the heads' displayed health always reads the same figure as
+        // Magmadar's own ("PV = Magmadar" on both heads, every reading). The simplest faithful
+        // model of a single shared pool is to make the body the only damage target - the heads
+        // take no damage themselves (immune) and mirror the body's current health every tick
+        // (below), instead of splitting the flex total into three independent pools.
+        void Reset() override
+        {
+            me->SetImmuneToAll(true);
+        }
+
         void JustEngagedWith(Unit* /*who*/) override
         {
             // Designed cadence: staggered by head so both do not sync casts.
@@ -195,6 +210,11 @@ namespace
 
         void UpdateAI(uint32 diff) override
         {
+            if (InstanceScript* instance = me->GetInstanceScript())
+                if (Creature* body = instance->GetCreature(DATA_MAGMADAR))
+                    if (body->IsAlive() && me->IsAlive())
+                        me->SetHealth(std::min(body->GetHealth(), me->GetMaxHealth()));
+
             if (!UpdateVictim())
                 return;
 
