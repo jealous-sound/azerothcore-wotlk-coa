@@ -834,14 +834,19 @@ void Player::RewardProfessionXP(uint32 skillId, uint32 current, uint32 gray, uin
     ServerConfigs const difficulty = current >= gray ? RATE_XP_PROFESSION_GRAY
         : current >= green ? RATE_XP_PROFESSION_GREEN
         : current >= yellow ? RATE_XP_PROFESSION_YELLOW : RATE_XP_PROFESSION_ORANGE;
-    double const reward = double(sObjectMgr->GetXPForLevel(GetLevel()))
+    double const rates = double(sObjectMgr->GetXPForLevel(GetLevel()))
         * sWorld->getRate(RATE_XP_PROFESSION_BASE_FRACTION) * sWorld->getRate(RATE_XP_PROFESSION)
-        * sWorld->getRate(profession) * sWorld->getRate(difficulty)
-        * GetTotalAuraMultiplier(SPELL_AURA_MOD_XP_PCT, [](AuraEffect const* effect)
-        {
-            // CoA's MOD_XP_PCT MiscValue is a mask of XP sources: 1 kills, 2 quests, 4 professions.
-            return (effect->GetMiscValue() & XP_SOURCE_MASK_PROFESSION) != 0;
-        });
+        * sWorld->getRate(profession) * sWorld->getRate(difficulty);
+    bool const noBonusExperience = sScriptMgr->OnPlayerHasNoBonusExperience(this);
+    double const auraMultiplier = GetTotalAuraMultiplier(SPELL_AURA_MOD_XP_PCT, [noBonusExperience](AuraEffect const* effect)
+    {
+        // CoA's MOD_XP_PCT MiscValue is a mask of XP sources: 1 kills, 2 quests, 4 professions.
+        if ((effect->GetMiscValue() & XP_SOURCE_MASK_PROFESSION) == 0)
+            return false;
+        // A NO_BONUS_EXPERIENCE challenge keeps penalties but drops the bonuses.
+        return !noBonusExperience || effect->GetAmount() <= 0;
+    });
+    double const reward = rates * auraMultiplier;
     uint32 xp = static_cast<uint32>(std::min(reward, double(std::numeric_limits<uint32>::max())));
     sScriptMgr->OnPlayerGiveXP(this, xp, nullptr, XPSOURCE_PROFESSION);
     GiveXP(xp, nullptr);
@@ -868,6 +873,7 @@ bool Player::UpdateGatherSkill(uint32 SkillId, uint32 SkillValue,
     case SKILL_LOCKPICKING:
     case SKILL_JEWELCRAFTING:
     case SKILL_INSCRIPTION:
+    case SKILL_WOODCUTTING:
         return UpdateSkillPro(SkillId,
                               SkillGainChance(SkillValue, RedLevel + 100,
                                               RedLevel + 50, RedLevel + 25) *

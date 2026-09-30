@@ -41,9 +41,9 @@
       "o": 3.14159
     },
     {
-      "action": "command",
+      "action": "specialization",
       "actor": "primalist",
-      "command": ".localspec 59"
+      "id": 59
     },
     {
       "action": "pvp",
@@ -57,9 +57,9 @@
       "value": 90000
     },
     {
-      "action": "command",
+      "action": "specialization",
       "actor": "enemy",
-      "command": ".localspec 59"
+      "id": 59
     },
     {
       "action": "pvp",

@@ -1,74 +1,46 @@
 # Level scaling: the formulas
 
-Open-world scaling, as it is implemented here. Two formulas decide everything, and two switches
-pick between them:
+Open-world scaling, as it is implemented here. Both halves follow each character's own choice at the
+Destiny Weaver (`mod-destiny-weaver`), which the character-creation screen offers as well:
 
-* **creatures** scale **realm-wide, for every character** (`CoA.LevelScaling`), because a
-  creature carries a single level that the server broadcasts to every client — it cannot be level 27
-  for one character and level 2 for the one standing next to them. The nearest character decides,
-  bounded by `CoA.LevelScalingMaxLift`.
-* **quests** are per character (`CoA.QuestLevelScaling` is the realm default; the
-  character's own choice at the Destiny Weaver, offered at creation as well, decides). The quest
-  level is sent to that one client, so it can genuinely differ per character.
-
-`mod-destiny-weaver` adds the quest choice and the tuning of what a scaled quest pays; it does not
-scale creatures.
+* **creatures** are scaled **per viewer**. Each character is sent their own version of a creature, at
+  their own level minus `DestinyWeaver.Scaling.Offset`, while the creature object keeps its authored
+  level. A level 30 and a level 20 character facing the same level 15 creature see it at 27 and 17 at
+  the same time, and a character with scaling off sees 15. There is no realm-wide creature lift: with
+  `DestinyWeaver.Enable` or `DestinyWeaver.LevelScaling` at 0, every creature keeps its authored level.
+* **quests** are per character as well (`CoA.QuestLevelScaling` is the realm switch; the character's
+  own choice decides). The quest level is sent to that one client, so it can genuinely differ per
+  character.
 
 ## 1. The shared header
 
 `src/server/game/Miscellaneous/LocalLevelScaling.h`
 
 ```
-ScaleCreatureLevel(original, playerLevel, offset = 3):
-    floor = max(1, playerLevel - offset)
-    floor = min(floor, original + CreatureMaxLift)      # 0 = no ceiling
-    return max(original, floor)                         # up only
+ScaleCreatureLevelForViewer(original, viewerLevel, offset = 3):
+    floor = max(1, viewerLevel - offset)
+    return max(original, floor)                         # up only, no ceiling
+
+ScaleDungeonCreatureLevelForViewer(original, viewerLevel, offset = 3):
+    return min(ScaleCreatureLevelForViewer(...), viewerLevel + offset)
 
 ScaleQuestLevel(original, playerLevel):
     if original <= 0: return playerLevel                # -1 = "follow the player"
     return max(min(original, 255), playerLevel)          # rebase onto the player
 ```
 
-`CreatureOffset` comes from `DestinyWeaver.Scaling.Offset` (default 3). `CreatureMaxLift` comes from
-`CoA.LevelScalingMaxLift` and is the ceiling on how far a creature may be lifted; it is
-**0 (no ceiling) by default here**, so a creature comes all the way up to *the nearest character's
-level minus the offset*. That is the whole point of the feature: content in front of a character is
-relevant to that character. A ceiling is for a realm with a mixed population — it keeps a
-starting-zone creature a starting-zone creature, at the price of scaling doing nothing visible in a
-low-level zone (a level 2 creature beside a level 80 character becomes a level 7 creature).
+`CreatureOffset` comes from `DestinyWeaver.Scaling.Offset` (default 3). A view has no ceiling: it is
+told to one client only, so the creature in front of a character comes all the way up to that
+character's band. That is the whole point of the feature: content in front of a character is relevant
+to that character. Inside a normal five-player dungeon the view is also held down to the viewer's
+level plus the offset, because the dungeon finder admits a group well below a dungeon's authored level.
 
-The **nearest** character decides the level either way (`DesiredLevel` in `AscensionCompat.cpp`),
-never the highest level in sight: taking the maximum hands one player's level to everybody, so a
-level-30 character crossing a starting zone would lift the creatures a level-1 character is
-fighting. A character who pulls a creature through a pet, guardian or trap from outside
-`GetSightRange()` is counted anyway — `AscensionCompatLevelScalingEngageScript` stashes their level
-as combat starts, and `DesiredLevel` prefers it.
-
-### Changing a creature's level at runtime
-
-Never call `Creature::SelectLevel()` on its own. It sizes health, mana, base damage and the
-attack-power *modifier*, but the fields that are read back — attack power, the damage range the
-client draws, armour, the resistances — are written by `UpdateAllStats()`, which only
-`Creature::UpdateEntry` called. A scaling path that stopped at `SelectLevel` therefore re-levelled
-a creature's health bar and left it **hitting for its original level**, which is invisible until a
-fight starts. `Creature::RefreshLevelDependantStats()` (Creature.cpp, next to `SelectLevel`) is the
-whole pass with the health carried over as a share, and every scaling path calls it:
-`AscensionCompatLevelScalingScript`, `AscensionCompatLevelScalingEngageScript`, and — for the
-corridor walk in/out of range — nothing else. (`Creature::SelectLevel()` itself re-runs
-`OnBeforeCreatureSelectLevel`, which is how the engage path re-reads its stashed engager.)
-
-`QuestScalingEnabled(player)` is the per-character gate for **quests only**. The realm switch
+`QuestScalingEnabled(player)` is the per-character gate for **quests**. The realm switch
 `CoA.QuestLevelScaling` must be on for it to be consulted at all; the resolver then
 answers for one character. No resolver, or no opinion, means "take the realm default".
 `mod-destiny-weaver` installs the resolver and stores the choice in `character_settings` under
-`core.destiny_weaver` (index 0 = the choice, 2 = off).
-
-Creatures are `mod-destiny-weaver`'s too, and **not** the realm switch above. The realm-wide path
-cannot express what the feature needs — a creature has one level in one object and the server
-broadcasts it — so it would raise the world for a character who never asked. It therefore stands
-aside by itself: while the module is enabled it raises `CreatureScalingOwnedPerViewer`, and
-`CanScaleCreature()` refuses. The switch itself, its ceiling and its engage path are left exactly as
-they were, and they take over again the moment `DestinyWeaver.LevelScaling` is set to 0.
+`core.destiny_weaver` (index 0 = the choice, 2 = off). `ScalingChoiceEnabled(player)` is the same
+choice with no realm switch in front of it, and it is what the per-viewer creature paths ask.
 
 ### A creature's stats, per character
 
@@ -107,7 +79,7 @@ While a character is grouped, `DestinyWeaver::LevelScalingEnabled` answers with 
 switch — on, or off, for every member. It answers with nothing else of the leader's, and that is
 load-bearing rather than incidental:
 
-- the level a creature is shown at is `ScaleCreatureLevel(original, viewer->GetLevel(), offset)` —
+- the level a creature is shown at is `ScaleCreatureLevelForViewer(original, viewer->GetLevel(), offset)` —
   the *viewer's* level;
 - the level a quest is played at is `ScaleQuestLevel(questLevel, playerLevel)` — the *viewer's* level.
 
@@ -205,6 +177,46 @@ exception: it is dispatched to every registered unit script.
 
 Not scaled, deliberately, and matching the reference implementation: **resistances** (template-based
 and level-independent there too) and **loot**, which is one corpse shared by everyone who tagged it.
+
+### Many characters, one creature
+
+The question a crowded realm asks is: *can two characters change each other's world, and does anything
+grow or race?* Audit result, by mechanism:
+
+| property | how it holds |
+|---|---|
+| **No shared mutation.** | Nothing here writes a creature's level, health, stats or flags. The only writes are the transient values *mask* of a creature (`ForceValuesUpdateAtIndex`) and the per-recipient copy of the packet. Two characters cannot see each other's version, and a character with scaling off sees the authored creature exactly. |
+| **Per-recipient delivery.** | `Map::SendObjectUpdates` builds one buffer per player and `Unit::PatchValuesUpdate` rewrites fields for that target; our five fields (`UNIT_FIELD_LEVEL`, `MAXHEALTH`, `HEALTH`, `MAXPOWER1`, `POWER1`) are registered through `ShouldTrackValuesUpdatePosByIndex`, which is called only for fields already in the update mask — so no bandwidth is added to a block that did not already carry them. |
+| **Damage in both directions** | resolves the viewer from the unit that owns the hit (`GetCharmerOrOwnerPlayerOrPlayerItself`), never from "a player nearby". A pet's blows count as its owner's; a creature's blows on a pet follow the owner's view too, deliberately, because pets level with their owner — and pets themselves are never *given* a view. |
+| **Lock discipline.** | One mutex (`g_viewRefreshLock`) guards the refresh registry and the three notification maps; nothing sends a packet while holding it, and the send is made on the thread that owns the client. The hot creature pass reads one relaxed `atomic<uint32>` count first and does nothing else while no refresh is pending. |
+| **State lifetime.** | The refresh registry is erased when the episode is served or expires, and by `ForgetClient` on logout; `g_toldState` (what each client believes) and `g_lastSpoken` are erased on logout with it; `g_leadersSeen` holds one entry per online leader. No map is keyed by creature, so nothing accumulates per spawn. |
+| **Hot-path cost.** | The realm switches and the offset are cached in atomics at config load (`g_scalingAvailable`, `LocalLevelScaling::CreatureOffset`), so `ViewFor` asks the config system nothing; it early-outs on "character has scaling off", then on the object checks, then on reaction, and only then reads the two `creature_classlevelstats` rows. |
+| **`.reload config`.** | The resolvers and the cached switches are (re)installed in `ApplyTuning()` on `WORLDHOOK_ON_AFTER_CONFIG_LOAD`, so turning the feature on or off takes effect on the next creature rather than on the next restart. |
+
+What the per-viewer model does not do: nothing reads a creature object at its view level. A script, a
+creature that inspects itself, or a loot table keyed on level sees the authored creature. That is the
+price of two characters fighting one wolf at two levels.
+
+### How often the character is told
+
+Every player-facing message this feature sends, and every trigger it has:
+
+| trigger | who is messaged | how often |
+|---|---|---|
+| a character throws the switch at the Weaver | that character | once per click |
+| the leader's switch changes while grouped | each online member | once per member per change |
+| a member joins a group whose switch differs from theirs | that member | once |
+| a member leaves, a group disbands | each affected member, in the Weaver's words | once |
+| a leader logs out / hands over the lead, and the switch moves | each member whose state moved | once |
+| **any periodic path** | — | **none: nothing here is sent from a timer, a creature update, an aura tick or a combat hook.** |
+
+Against a crowded realm, the arithmetic is bounded by *real changes*: a group of 40 where the leader
+toggles costs 40 lines, one per member, and nothing else for as long as the switch stays put. Two
+guards keep a single event from being announced twice — `g_toldState` (what each client already
+believes) makes a non-change silent, and `g_lastSpoken` suppresses a repeat of the *same* state inside
+2 seconds, which is what stops the removal-plus-disband pair a two-person group fires from saying the
+same thing twice. What is *not* coalesced, on purpose: toggling on, off, on again is three pieces of
+news, and a realm's own social pressure is a better brake on that than a silent client.
 
 ## 2. Quest experience
 

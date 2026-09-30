@@ -3,7 +3,6 @@
 #include "Config.h"
 #include "Player.h"
 #include "ScriptMgr.h"
-#include "SpellAuraEffects.h"
 #include "SpellScript.h"
 
 namespace
@@ -27,12 +26,10 @@ void ApplyRuleset(Player* player, uint32 selectionId)
     player->RemoveAurasDueToSpell(SPELL_MERCENARY);
     if (selectionId == SPELL_SELECT_HIGH_RISK)
         player->CastSpell(player, SPELL_HIGH_RISK, true);
+    else if (selectionId == SPELL_SELECT_PVE)
+        player->CastSpell(player, SPELL_PVE, true);
     else
-    {
         player->CastSpell(player, SPELL_WAR_MODE, true);
-        if (selectionId == SPELL_SELECT_PVE)
-            player->CastSpell(player, SPELL_PVE, true);
-    }
 }
 
 class spell_ascension_ruleset_select : public SpellScript
@@ -81,41 +78,6 @@ public:
     }
 };
 
-class ruleset_war_mode_experience : public UnitScript
-{
-public:
-    ruleset_war_mode_experience() : UnitScript("ruleset_war_mode_experience", true,
-        {UNITHOOK_ON_AURA_APPLY, UNITHOOK_ON_AURA_REMOVE, UNITHOOK_ON_AFTER_AURA_EFFECT_CALCULATE_AMOUNT}) { }
-
-    void OnAfterAuraEffectCalculateAmount(AuraEffect const* effect, Unit*, int32& amount) override
-    {
-        if (effect->GetId() == SPELL_WAR_MODE && effect->GetAuraType() == SPELL_AURA_MOD_XP_PCT &&
-            effect->GetBase()->GetType() == UNIT_AURA_TYPE && effect->GetBase()->GetUnitOwner()->HasAura(SPELL_PVE))
-            amount = 0;
-    }
-
-    void OnAuraApply(Unit* unit, Aura* aura) override
-    {
-        if (aura && aura->GetId() == SPELL_PVE)
-            RecalculateWarModeExperience(unit);
-    }
-
-    void OnAuraRemove(Unit* unit, AuraApplication* application, AuraRemoveMode) override
-    {
-        if (application && application->GetBase()->GetId() == SPELL_PVE)
-            RecalculateWarModeExperience(unit);
-    }
-
-private:
-    static void RecalculateWarModeExperience(Unit* unit)
-    {
-        for (uint8 index = EFFECT_0; index < MAX_SPELL_EFFECTS; ++index)
-            if (AuraEffect* effect = unit->GetAuraEffect(SPELL_WAR_MODE, index))
-                if (effect->GetAuraType() == SPELL_AURA_MOD_XP_PCT)
-                    effect->RecalculateAmount();
-    }
-};
-
 class ruleset_player_spells : public PlayerScript
 {
 public:
@@ -127,6 +89,9 @@ public:
             if (!player->HasSpell(id))
                 player->learnSpell(id, false);
 
+        if (player->HasAura(SPELL_PVE))
+            player->RemoveAurasDueToSpell(SPELL_WAR_MODE);
+
         if (!sConfigMgr->GetOption<bool>("CoA.RulesetLoginDefault", true))
             return;
 
@@ -135,8 +100,7 @@ public:
 
         bool const noRuleset = !player->HasAura(SPELL_HIGH_RISK) && !player->HasAura(SPELL_WAR_MODE) &&
             !player->HasAura(SPELL_PVE);
-        bool const pveWithoutWarMode = player->HasAura(SPELL_PVE) && !player->HasAura(SPELL_WAR_MODE);
-        if (noRuleset || pveWithoutWarMode)
+        if (noRuleset)
             ApplyRuleset(player, SPELL_SELECT_PVE);
     }
 };
@@ -146,6 +110,5 @@ void AddSC_AscensionRulesets()
 {
     RegisterSpellScript(spell_ascension_ruleset_select);
     new ruleset_aura_metadata();
-    new ruleset_war_mode_experience();
     new ruleset_player_spells();
 }

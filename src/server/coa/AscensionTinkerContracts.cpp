@@ -271,6 +271,14 @@ void ApplyContracts(SpellInfo* info)
         }
     info->_InitializeExplicitTargetMask();
 }
+void ApplyBeaconChargePool(SpellInfo* info)
+{
+    if (!info)
+        return;
+    for (uint32 beacon : TinkerBeacons)
+        if (info->Id == beacon)
+            info->ChargeRecoveryKey = TinkerBeaconChargeRoot;
+}
 }
 namespace
 {

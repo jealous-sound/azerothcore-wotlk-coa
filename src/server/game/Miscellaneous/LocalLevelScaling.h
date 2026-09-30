@@ -10,47 +10,15 @@
 #include <algorithm>
 #include <atomic>
 #include <cstdint>
-#include <mutex>
 #include <optional>
-#include <unordered_set>
 
 class Creature;
 class Player;
 
 namespace LocalLevelScaling
 {
-inline std::atomic<bool> CreatureEnabled{false};
 inline std::atomic<bool> QuestEnabled{false};
 inline std::atomic<std::uint8_t> CreatureOffset{3};
-
-// De combien de niveaux, au maximum, une creature peut etre remontee au-dessus
-// du sien. Sans ce plafond, un joueur de niveau 30 traversant une zone de
-// depart hissait chaque creature a 27 : les bots de bas niveau qui les
-// engageaient se faisaient tuer par des creatures qui n'etaient pas les leurs.
-//
-// Une creature n'a qu'un seul niveau, diffuse a tous les clients : elle ne peut
-// pas valoir 27 pour un joueur et 2 pour un bot. Borner la remontee est donc le
-// seul compromis possible entre « le contenu reste pertinent » et « le monde
-// reste jouable pour ceux qui y sont deja ».
-//
-// 0 desactive le plafond et rend le comportement d'origine.
-//
-// This ceiling bounds a level that is shared: the one creature every client is
-// told about. A module that gives each character their own version of a creature
-// raises CreatureScalingOwnedPerViewer below, and those levels are bounded by
-// nothing, because one character's version of a creature is theirs alone.
-inline std::atomic<std::uint8_t> CreatureMaxLift{5};
-
-/// Set by the module that owns a character's scaling choice, when that ownership
-/// is per viewer rather than realm wide.
-///
-/// It is how the two models stay out of each other's way: the realm-wide path
-/// lifts the creature object itself, which every client is then told about, so a
-/// character who never asked for scaling would see a raised world anyway. While
-/// this is set, that path stands aside (its `CanScaleCreature` refuses) and the
-/// per-viewer path answers instead - kept live rather than decided once at load,
-/// so a `.reload config` moves between the two models without a restart.
-inline std::atomic<bool> CreatureScalingOwnedPerViewer{false};
 
 /// How much of the level-scaled reward a quest keeps when it is lifted from its own level to the
 /// player's, at the extreme end of the range: the rest is lost in proportion to how much of that
@@ -148,34 +116,10 @@ inline std::uint32_t ViewMaxHealthFor(Player const* viewer, Creature const* crea
     return owner ? owner(viewer, creature) : 0;
 }
 
-inline std::uint8_t ScaleCreatureLevel(std::uint8_t originalLevel, std::uint8_t playerLevel,
-    std::uint8_t offset = 3)
-{
-    std::uint8_t floor = playerLevel > offset ? playerLevel - offset : 1;
-
-    // Le plafond s'applique AVANT le max : une creature deja plus haute que
-    // originalLevel + lift garde son niveau, on ne la rabaisse jamais.
-    std::uint8_t lift = CreatureMaxLift.load(std::memory_order_relaxed);
-    if (lift)
-    {
-        std::uint32_t capped = static_cast<std::uint32_t>(originalLevel) + lift;
-        if (floor > capped)
-            floor = static_cast<std::uint8_t>(std::min<std::uint32_t>(capped, 255));
-    }
-
-    return std::max(originalLevel, floor);
-}
-
-/// The same rule as ScaleCreatureLevel, without the ceiling.
-///
-/// This is the level a *viewer* is shown for a creature. The ceiling above exists to bound one
-/// character's effect on the level everybody else is told about, and a view is told to nobody else,
-/// so the reason for it is absent: the creature in front of a character comes all the way up to
-/// that character's band, which is the whole point of the feature (a starting-zone creature stays
-/// relevant to the character standing in front of it).
-///
-/// A realm that also runs the realm-wide path keeps its ceiling for that path; the two are
-/// independent, and CreatureScalingOwnedPerViewer is what keeps them from both answering.
+/// The level a *viewer* is shown for a creature: never lowered, and lifted to the viewer's level minus
+/// the offset. A view is told to nobody else, so it has no ceiling: the creature in front of a
+/// character comes all the way up to that character's band, which is the whole point of the feature
+/// (a starting-zone creature stays relevant to the character standing in front of it).
 inline std::uint8_t ScaleCreatureLevelForViewer(std::uint8_t originalLevel, std::uint8_t playerLevel,
     std::uint8_t offset = 3)
 {
@@ -217,50 +161,6 @@ inline std::uint32_t RewardKeepPercent(std::uint32_t floorPercent, std::int32_t 
 
     std::uint32_t const sharePercent = std::uint32_t(questLevel) * 100 / effectiveLevel;
     return floorPercent + (100 - floorPercent) * sharePercent / 100;
-}
-
-// coa-gameplay-test summons every fixture creature into its lane's phase, then gives it the level and
-// the maximum health its scenario declared. Creature scaling does not assign a level, it rebuilds the
-// creature through SelectLevel(), which recomputes maximum health from the template and throws that
-// declared state away. The lift cap made this visible: a fixture declared at level 80 on a level 11
-// template is rescaled down to level 16, and the hit the scenario was measuring kills it.
-//
-// A fixture is therefore left alone, unless its scenario asked for the opposite by declaring
-// "level_scaling": true on the creature - which only the scenario that tests scaling itself does.
-// FixturePhases holds every lane phase: FixturePhaseMask alone unless the harness runs several
-// lanes and sets their union through SetFixturePhases().
-inline constexpr std::uint32_t FixturePhaseMask = 1u << 30;
-inline std::atomic<std::uint32_t> FixturePhases{FixturePhaseMask};
-
-inline void SetFixturePhases(std::uint32_t phases)
-{
-    FixturePhases.store(phases, std::memory_order_relaxed);
-}
-
-inline std::mutex ScalableFixtureLock;
-inline std::unordered_set<std::uint64_t> ScalableFixtures;
-
-inline void AllowFixtureScaling(std::uint64_t guid)
-{
-    std::lock_guard<std::mutex> guard(ScalableFixtureLock);
-    ScalableFixtures.insert(guid);
-}
-
-inline void ForgetFixture(std::uint64_t guid)
-{
-    std::lock_guard<std::mutex> guard(ScalableFixtureLock);
-    ScalableFixtures.erase(guid);
-}
-
-// The phase test alone answers for every creature in the live world, so the lock is never taken
-// outside a harness run.
-inline bool IsUnscaledFixture(std::uint32_t phaseMask, std::uint64_t guid)
-{
-    if (!(phaseMask & FixturePhases.load(std::memory_order_relaxed)))
-        return false;
-
-    std::lock_guard<std::mutex> guard(ScalableFixtureLock);
-    return ScalableFixtures.find(guid) == ScalableFixtures.end();
 }
 }
 

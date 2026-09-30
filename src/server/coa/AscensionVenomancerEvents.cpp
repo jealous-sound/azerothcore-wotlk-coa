@@ -230,7 +230,7 @@ class aura_ascension_venomancer_event : public AuraScript
                 player->CastSpell(actor->GetPositionX(),actor->GetPositionY(),actor->GetPositionZ(),704347,true);
                 break;
             case 706001:
-                player->CastSpell(target->GetPositionX(),target->GetPositionY(),target->GetPositionZ(),704347,true);
+                player->CastSpell(target,704347,true);
                 break;
             case 706016: Cast(player,target,706017); break;
             case 706018:

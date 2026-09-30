@@ -38,7 +38,9 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <utility>
+#include <vector>
 
 class Creature;
 class GameObject;
@@ -1241,11 +1243,16 @@ public:                                                 // opcodes handlers
      */
 
     QueryCallbackProcessor& GetQueryProcessor() { return _queryProcessor; }
+    void QueueQueryCallback(QueryCallback&& callback);
     TransactionCallback& AddTransactionCallback(TransactionCallback&& callback);
     SQLQueryHolderCallback& AddQueryHolderCallback(SQLQueryHolderCallback&& callback);
 
     [[nodiscard]] bool HasPendingAsyncCallbacks() const
     {
+        std::lock_guard lock(_queuedQueryCallbacksMutex);
+        if (!_queuedQueryCallbacks.empty())
+            return true;
+
         return !_queryProcessor.Empty() || !_transactionCallbacks.Empty() || !_queryHolderProcessor.Empty();
     }
 
@@ -1265,6 +1272,8 @@ private:
     void ProcessQueryCallbacks();
 
     QueryCallbackProcessor _queryProcessor;
+    mutable std::mutex _queuedQueryCallbacksMutex;
+    std::vector<QueryCallback> _queuedQueryCallbacks;
     AsyncCallbackProcessor<TransactionCallback> _transactionCallbacks;
     AsyncCallbackProcessor<SQLQueryHolderCallback> _queryHolderProcessor;
 

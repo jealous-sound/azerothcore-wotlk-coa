@@ -243,14 +243,26 @@ float Mitigation(Player* player, Unit* attacker, uint32 school)
     factor *= std::max(0.0f, 1.0f - float(copies) * (player->HasAura(803219) ? .15f : .1f));
     return factor;
 }
+constexpr uint32 SPELL_TRANQUIL_STATE = 850010;
+constexpr int32 TRANQUIL_STATE_PLAYER_DURATION = 8000;
 class templar_scaling : public UnitScript
 {
   public:
     templar_scaling()
         : UnitScript("templar_scaling", true,
                      {UNITHOOK_MODIFY_SPELL_EFFECT_BASE_VALUE, UNITHOOK_MODIFY_SPELL_DAMAGE_TAKEN,
-                      UNITHOOK_MODIFY_MELEE_DAMAGE, UNITHOOK_MODIFY_PERIODIC_DAMAGE_AURAS_TICK})
+                      UNITHOOK_MODIFY_MELEE_DAMAGE, UNITHOOK_MODIFY_PERIODIC_DAMAGE_AURAS_TICK,
+                      UNITHOOK_ON_AURA_APPLY})
     {
+    }
+    void OnAuraApply(Unit* unit, Aura* aura) override
+    {
+        if (unit && unit->IsPlayer() && aura && aura->GetId() == SPELL_TRANQUIL_STATE &&
+            aura->GetMaxDuration() > TRANQUIL_STATE_PLAYER_DURATION)
+        {
+            aura->SetMaxDuration(TRANQUIL_STATE_PLAYER_DURATION);
+            aura->SetDuration(TRANQUIL_STATE_PLAYER_DURATION);
+        }
     }
     void ModifySpellEffectBaseValue(Unit const* caster, SpellInfo const* info, uint8 index, float& value) override
     {

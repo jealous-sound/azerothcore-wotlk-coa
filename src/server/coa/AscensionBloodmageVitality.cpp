@@ -14,6 +14,7 @@ namespace
 {
 using namespace AscensionBloodmage;
 constexpr uint32 VitalityCost = 10;
+constexpr uint32 Hemopulse = 524906;
 
 bool IsBloodmage(Player const* player)
 {
@@ -101,10 +102,18 @@ public:
     void ModifySpellEffectBaseValue(Unit const* caster, SpellInfo const* info, uint8 index, float& value) override
     {
         if (!caster || !caster->IsPlayer() || caster->getClass() != CLASS_SON_OF_ARUGAL ||
-            info->Id != VitalityHeal || info->SpellFamilyName != 26 || index != EFFECT_0 ||
-            info->Effects[EFFECT_0].Effect != SPELL_EFFECT_HEAL)
+            info->SpellFamilyName != 26 || index != EFFECT_0 || info->Effects[EFFECT_0].Effect != SPELL_EFFECT_HEAL)
             return;
-        double amount = double(value) + caster->GetStat(STAT_SPIRIT) * 0.5;
+
+        double bonus;
+        if (info->Id == VitalityHeal)
+            bonus = caster->GetStat(STAT_SPIRIT) * 0.5;
+        else if (info->Id == Hemopulse)
+            bonus = caster->GetStat(STAT_SPIRIT) * 0.45 + caster->GetStat(STAT_STAMINA) * 0.35;
+        else
+            return;
+
+        double amount = double(value) + bonus;
         if (std::isfinite(amount) && amount >= 0 &&
             double(float(amount)) <= std::numeric_limits<int32>::max())
             value = float(amount);

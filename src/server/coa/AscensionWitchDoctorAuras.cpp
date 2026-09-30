@@ -60,7 +60,7 @@ void SyncReplacements(Player* player)
             if (player->HasAura(TikiTalent) && (player->HasAura(Crystal) || player->HasAura(Beast)))
                 child = Tiki;
         }
-        else if (id == CallSseratus)
+        else if (id == CallSseratusChannel)
         {
             selected = true;
             if (player->HasAura(ViperTalent))

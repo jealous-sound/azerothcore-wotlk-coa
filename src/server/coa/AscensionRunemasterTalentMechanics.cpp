@@ -15,7 +15,10 @@ enum RunemasterTalentMechanicSpells : uint32
 {
     SPELL_RUNIC_BRAND = 712299,
     SPELL_CINDERSTORM_RUNES = 706458,
-    SPELL_TURBULENT_SPIRAL = 707153
+    SPELL_TURBULENT_SPIRAL = 707153,
+    SPELL_GLYPHIC_DESTRUCTION = 800758,
+    SPELL_RUNIC_OMEN = 520285,
+    SPELL_RUNIC_OMEN_EMPOWER = 705596
 };
 
 constexpr uint32 RUNEMASTER_SPELL_FAMILY = uint32(CLASS_SPIRIT_MAGE) + 6;
@@ -70,6 +73,43 @@ class spell_ascension_runemaster_power_overwhelming_reset : public SpellScript
     {
         OnEffectHitTarget += SpellEffectFn(spell_ascension_runemaster_power_overwhelming_reset::ResetEveryRank,
             EFFECT_0, SPELL_EFFECT_ASCENSION_MODIFY_COOLDOWN);
+    }
+};
+
+class spell_ascension_runemaster_runic_omen_empower : public SpellScript
+{
+    PrepareSpellScript(spell_ascension_runemaster_runic_omen_empower);
+
+    bool Validate(SpellInfo const* info) override
+    {
+        SpellEffectInfo const& effect = info->Effects[EFFECT_1];
+        return effect.Effect == SPELL_EFFECT_DUMMY && effect.TriggerSpell == SPELL_RUNIC_OMEN_EMPOWER &&
+            ValidateSpellInfo({SPELL_RUNIC_OMEN_EMPOWER});
+    }
+
+    bool Load() override
+    {
+        return IsRunemaster(GetCaster());
+    }
+
+    void Empower(SpellEffIndex effIndex)
+    {
+        PreventHitDefaultEffect(effIndex);
+        Player* player = GetHitPlayer();
+        if (!player)
+            return;
+        Aura* counter = player->GetAura(SPELL_RUNIC_OMEN, player->GetGUID());
+        if (counter && counter->GetStackAmount() >= 3)
+        {
+            player->RemoveAurasDueToSpell(SPELL_RUNIC_OMEN, player->GetGUID());
+            player->CastSpell(player, SPELL_RUNIC_OMEN_EMPOWER, true);
+        }
+    }
+
+    void Register() override
+    {
+        OnEffectHitTarget += SpellEffectFn(spell_ascension_runemaster_runic_omen_empower::Empower,
+            EFFECT_1, SPELL_EFFECT_DUMMY);
     }
 };
 
@@ -129,11 +169,42 @@ public:
         effect.MiscValueB = ASCENSION_CLASSMASK_AURASTATE_DAMAGE;
     }
 };
+
+class runemaster_glyphic_destruction_metadata : public GlobalScript
+{
+public:
+    runemaster_glyphic_destruction_metadata() : GlobalScript("runemaster_glyphic_destruction_metadata",
+        {GLOBALHOOK_ON_LOAD_SPELL_CUSTOM_ATTR}) { }
+
+    void OnLoadSpellCustomAttr(SpellInfo* info) override
+    {
+        if (info->Id != SPELL_GLYPHIC_DESTRUCTION || info->SpellFamilyName != RUNEMASTER_SPELL_FAMILY)
+            return;
+        SpellEffectInfo& effect = info->Effects[EFFECT_0];
+        int32 const state = AURA_STATE_FROZEN;
+        bool const copied = effect.ApplyAuraName == SPELL_AURA_OVERRIDE_CLASS_SCRIPTS &&
+            effect.MiscValue == ASCENSION_CLASSMASK_AURASTATE_DAMAGE && effect.MiscValueB == state;
+        bool const converted = effect.ApplyAuraName == SPELL_AURA_MOD_DAMAGE_DONE_VERSUS_AURASTATE &&
+            effect.MiscValue == state && effect.MiscValueB == ASCENSION_CLASSMASK_AURASTATE_DAMAGE;
+        if (effect.Effect != SPELL_EFFECT_APPLY_AURA || (!copied && !converted) || effect.BasePoints != 99 ||
+            effect.DieSides != 1 || effect.SpellClassMask != flag96(4096, 0, 0) ||
+            effect.TargetA.GetTarget() != TARGET_UNIT_CASTER || effect.TargetB.GetTarget())
+        {
+            LOG_ERROR("coa", "Skipped unexpected Glyphic Destruction record {}", info->Id);
+            return;
+        }
+        effect.ApplyAuraName = SPELL_AURA_MOD_DAMAGE_DONE_VERSUS_AURASTATE;
+        effect.MiscValue = state;
+        effect.MiscValueB = ASCENSION_CLASSMASK_AURASTATE_DAMAGE;
+    }
+};
 }
 
 void AddSC_AscensionRunemasterTalentMechanics()
 {
     RegisterSpellScript(spell_ascension_runemaster_power_overwhelming_reset);
+    RegisterSpellScript(spell_ascension_runemaster_runic_omen_empower);
     RegisterSpellScript(aura_ascension_runemaster_turbulence);
     new runemaster_cinderstorm_runes_metadata();
+    new runemaster_glyphic_destruction_metadata();
 }

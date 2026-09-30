@@ -1,4 +1,5 @@
 /* Copyright (C) 2016+ AzerothCore, GNU AGPL v3. */
+#include "Item.h"
 #include "Player.h"
 #include "ScriptMgr.h"
 #include "Spell.h"
@@ -116,6 +117,24 @@ public:
             }
     }
 };
+
+class spell_ascension_ranger_polearm_gate : public SpellScript
+{
+    PrepareSpellScript(spell_ascension_ranger_polearm_gate);
+
+    SpellCastResult CheckPolearm()
+    {
+        Player* player = GetCaster()->ToPlayer();
+        Item* weapon = player ? player->GetWeaponForAttack(BASE_ATTACK, true) : nullptr;
+        return weapon && weapon->IsFitToSpellRequirements(GetSpellInfo())
+            ? SPELL_CAST_OK : SPELL_FAILED_EQUIPPED_ITEM_CLASS_MAINHAND;
+    }
+
+    void Register() override
+    {
+        OnCheckCast += SpellCheckCastFn(spell_ascension_ranger_polearm_gate::CheckPolearm);
+    }
+};
 }
 
 void AddSC_AscensionRangerSecondary()
@@ -123,4 +142,5 @@ void AddSC_AscensionRangerSecondary()
     RegisterSpellScript(aura_ascension_ranger_advantage);
     new ranger_secondary_hits();
     new ranger_secondary_contracts();
+    RegisterSpellScript(spell_ascension_ranger_polearm_gate);
 }

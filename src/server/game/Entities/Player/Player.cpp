@@ -109,7 +109,8 @@
 
 enum CustomEquipmentSpells : uint32
 {
-    SPELL_BURNING_COMMANDER = 92089
+    SPELL_BURNING_COMMANDER = 92089,
+    SPELL_VALKYR_GRIP = 707072
 };
 
 enum CharacterFlags
@@ -2497,10 +2498,14 @@ void Player::GiveXP(uint32 xp, Unit* victim, float group_rate, bool isLFGReward)
     uint8 level = GetLevel();
     sScriptMgr->OnPlayerBeforeGetLevelForXPGain(this, level);
 
+    // A NO_BONUS_EXPERIENCE challenge earns base experience only: no favored, rested
+    // or recruit-a-friend bonus.
+    bool const noBonusExperience = sScriptMgr->OnPlayerHasNoBonusExperience(this);
+
     // Favored experience increase START
     uint32 zone = GetZoneId();
     float favored_exp_mult = 0;
-    if ((zone == AREA_HELLFIRE_PENINSULA || zone == AREA_HELLFIRE_RAMPARTS || zone == AREA_MAGTHERIDONS_LAIR || zone == AREA_THE_BLOOD_FURNACE || zone == AREA_THE_SHATTERED_HALLS) && HasAnyAuras(32096 /*Thrallmar's Favor*/, 32098 /*Honor Hold's Favor*/))
+    if (!noBonusExperience && (zone == AREA_HELLFIRE_PENINSULA || zone == AREA_HELLFIRE_RAMPARTS || zone == AREA_MAGTHERIDONS_LAIR || zone == AREA_THE_BLOOD_FURNACE || zone == AREA_THE_SHATTERED_HALLS) && HasAnyAuras(32096 /*Thrallmar's Favor*/, 32098 /*Honor Hold's Favor*/))
         favored_exp_mult = 0.05f; // Thrallmar's Favor and Honor Hold's Favor
 
     xp = uint32(xp * (1 + favored_exp_mult));
@@ -2531,7 +2536,7 @@ void Player::GiveXP(uint32 xp, Unit* victim, float group_rate, bool isLFGReward)
     uint32 curXP = GetUInt32Value(PLAYER_XP);
     uint32 nextLvlXP = GetUInt32Value(PLAYER_NEXT_LEVEL_XP);
     uint32 bonusLimit = xp;
-    bool recruitAFriend = GetsRecruitAFriendBonus(true);
+    bool recruitAFriend = !noBonusExperience && GetsRecruitAFriendBonus(true);
     if (recruitAFriend)
         bonusLimit = 2 * xp;
 
@@ -2548,7 +2553,8 @@ void Player::GiveXP(uint32 xp, Unit* victim, float group_rate, bool isLFGReward)
     }
 
     // RaF does NOT stack with rested experience. Only spend the rested bonus that fits.
-    uint32 bonus_xp = recruitAFriend ? bonusLimit : (victim ? GetXPRestBonus(bonusLimit) : 0);
+    uint32 bonus_xp = noBonusExperience ? 0
+        : (recruitAFriend ? bonusLimit : (victim ? GetXPRestBonus(bonusLimit) : 0));
 
     // hooks and multipliers can modify the xp with a zero or negative value
     // check again before sending invalid xp to the client
@@ -10358,6 +10364,41 @@ template AC_GAME_API void Player::ApplySpellMod(uint32 spellId, SpellModOp op, i
 template AC_GAME_API void Player::ApplySpellMod(uint32 spellId, SpellModOp op, uint32& basevalue, Spell* spell, bool temporaryPet);
 template AC_GAME_API void Player::ApplySpellMod(uint32 spellId, SpellModOp op, float& basevalue, Spell* spell, bool temporaryPet);
 
+bool Player::UsesAscensionSpellModifierLayout() const
+{
+    return GetSession() && GetSession()->IsAscensionCompatEnabled();
+}
+
+uint32 Player::GetClientSpellModCount() const
+{
+    return UsesAscensionSpellModifierLayout() ? MAX_SPELLMOD : MAX_CLIENT_SPELLMOD;
+}
+
+void Player::SendSpellModifier(uint16 opcode, uint8 eff, uint8 op, int32 value, uint32 spellFamily) const
+{
+    bool const useAscensionSpellModifierLayout = UsesAscensionSpellModifierLayout();
+    WorldPacket data(opcode, useAscensionSpellModifierLayout ? 11 : 6);
+    if (useAscensionSpellModifierLayout)
+    {
+        // In Ascension's multi-class modifier engine, mode 0 (11 bytes) specifies
+        // an individual modifier where the trailing uint32 is the SpellFamilyName
+        // (e.g. 32 for Starcaller, 9 for Hunter), indexing client table slice:
+        // SpellFamilyName * 0x11A0 + eff * 31 + opType.
+        data << uint8(0);
+        data << uint8(eff);
+        data << uint8(op);
+        data << int32(value);
+        data << uint32(spellFamily);
+    }
+    else
+    {
+        data << uint8(eff);
+        data << uint8(op);
+        data << int32(value);
+    }
+    SendDirectMessage(&data);
+}
+
 void Player::AddSpellMod(SpellModifier* mod, bool apply)
 {
     if (!mod)
@@ -10377,13 +10418,14 @@ void Player::AddSpellMod(SpellModifier* mod, bool apply)
     LOG_DEBUG("spells.aura", "Player::AddSpellMod {}", mod->spellId);
     uint16 Opcode = (mod->type == SPELLMOD_FLAT) ? SMSG_SET_FLAT_SPELL_MODIFIER : SMSG_SET_PCT_SPELL_MODIFIER;
 
-    bool const useAscensionSpellModifierLayout = GetSession() && GetSession()->IsAscensionCompatEnabled();
+    bool const useAscensionSpellModifierLayout = UsesAscensionSpellModifierLayout();
     SpellInfo const* modSpell = sSpellMgr->GetSpellInfo(mod->spellId);
     uint32 const spellFamily = modSpell ? modSpell->SpellFamilyName : 0;
 
     int i = 0;
     flag96 _mask = 0;
-    for (int eff = 0; eff < 96 && mod->op < MAX_CLIENT_SPELLMOD; ++eff)
+    uint32 const clientSpellModCount = GetClientSpellModCount();
+    for (int eff = 0; eff < 96 && uint32(mod->op) < clientSpellModCount; ++eff)
     {
         if (eff != 0 && eff % 32 == 0)
             _mask[i++] = 0;
@@ -10406,26 +10448,7 @@ void Player::AddSpellMod(SpellModifier* mod, bool apply)
                 }
             }
             val += apply ? mod->value : -(mod->value);
-            WorldPacket data(Opcode, useAscensionSpellModifierLayout ? 11 : 6);
-            if (useAscensionSpellModifierLayout)
-            {
-                // In Ascension's multi-class modifier engine, mode 0 (11 bytes) specifies
-                // an individual modifier where the trailing uint32 is the SpellFamilyName
-                // (e.g. 32 for Starcaller, 9 for Hunter), indexing client table slice:
-                // SpellFamilyName * 0x11A0 + eff * 31 + opType.
-                data << uint8(0);
-                data << uint8(eff);
-                data << uint8(mod->op);
-                data << int32(val);
-                data << uint32(spellFamily);
-            }
-            else
-            {
-                data << uint8(eff);
-                data << uint8(mod->op);
-                data << int32(val);
-            }
-            SendDirectMessage(&data);
+            SendSpellModifier(Opcode, eff, mod->op, val, spellFamily);
         }
     }
 
@@ -13805,9 +13828,14 @@ bool Player::HasBurningCommander() const
     return getClass() == CLASS_DEMON_HUNTER && GetLevel() >= 10 && HasActiveSpell(SPELL_BURNING_COMMANDER);
 }
 
+bool Player::HasValkyrGrip() const
+{
+    return getClass() == CLASS_SUN_CLERIC && HasActiveSpell(SPELL_VALKYR_GRIP);
+}
+
 bool Player::CanTitanGrip(ItemTemplate const* weapon) const
 {
-    bool commander = HasBurningCommander();
+    bool commander = HasBurningCommander() || HasValkyrGrip();
     if (!m_canTitanGrip && !commander)
         return false;
     return !weapon || (weapon->Class == ITEM_CLASS_WEAPON &&
@@ -14945,6 +14973,8 @@ void Player::LearnPetTalent(ObjectGuid petGuid, uint32 talentId, uint32 talentRa
 
     // update free talent points
     pet->SetFreeTalentPoints(CurTalentPoints - (talentRank - curtalent_maxrank + 1));
+    if (pet->HasSpell(spellid))
+        sScriptMgr->OnPlayerLearnPetTalent(this, pet, spellid);
 }
 
 void Player::AddKnownCurrency(uint32 itemId)

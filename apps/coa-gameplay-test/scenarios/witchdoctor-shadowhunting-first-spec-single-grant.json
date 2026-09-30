@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "Choosing Shadowhunting announces Malefic Arrow and Auto Shot once and places no action button (#198)",
-  "contract": "A level 10 Witch Doctor holding Malefic Wrath ranks 1 and 2 (807037, 807211) who first selects Shadowhunting (.localspec 4) gains the identity passive Shadowhunter 92086 ('Allows you to auto shoot with a ranged weapon') and the automatic Malefic Arrow passive 707854 ('Transforms your Malefic Wrath into Malefic Arrow'). Each Malefic Wrath rank is therefore joined by the matching Malefic Arrow rank (801674, 680908; spell_ranks chain 801674) and Auto Shot 75, all temporary grants, and Malefic Wrath rank 2 is replaced by Malefic Arrow rank 2. #198 and its comment showed each of these learned-ability lines two or three times on core feb155c82c75, where Player::learnSpell announced a temporary grant a second time after Player::_addSpell (removed by b2bdf72a5, #251). Each grant must now send exactly one SMSG_LEARNED_SPELL. Selecting a first specialization never touches the stored action bar: SwitchSpecialization only remembers and restores bar buttons when it leaves a previous specialization, and the client's own auto-placement (FrameXML/Util/C_Spell.lua PlaceSpellOnActionBar) is outside this server.",
+  "contract": "A level 10 Witch Doctor holding Malefic Wrath ranks 1 and 2 (807037, 807211) who first selects Shadowhunting (specialization 4) gains the identity passive Shadowhunter 92086 ('Allows you to auto shoot with a ranged weapon') and the automatic Malefic Arrow passive 707854 ('Transforms your Malefic Wrath into Malefic Arrow'). Each Malefic Wrath rank is therefore joined by the matching Malefic Arrow rank (801674, 680908; spell_ranks chain 801674) and Auto Shot 75, all temporary grants, and Malefic Wrath rank 2 is replaced by Malefic Arrow rank 2. #198 and its comment showed each of these learned-ability lines two or three times on core feb155c82c75, where Player::learnSpell announced a temporary grant a second time after Player::_addSpell (removed by b2bdf72a5, #251). Each grant must now send exactly one SMSG_LEARNED_SPELL. Selecting a first specialization never touches the stored action bar: SwitchSpecialization only remembers and restores bar buttons when it leaves a previous specialization, and the client's own auto-placement (FrameXML/Util/C_Spell.lua PlaceSpellOnActionBar) is outside this server.",
   "timeout_ms": 60000,
   "players": [
     { "id": "doctor", "race": 1, "class": 13, "level": 10 }
@@ -25,7 +25,7 @@
     { "action": "snapshot", "actor": "doctor", "metric": "action_button", "button": 10, "save_as": "button_10" },
     { "action": "snapshot", "actor": "doctor", "metric": "action_button", "button": 11, "save_as": "button_11" },
 
-    { "action": "command", "actor": "doctor", "command": ".localspec 4" },
+    { "action": "specialization", "actor": "doctor", "id": 4 },
     { "action": "assert", "label": "Shadowhunting grants its identity Shadowhunter", "actor": "doctor", "metric": "knows_spell", "spell": 92086, "equals": 1, "within_ms": 3000 },
     { "action": "assert", "label": "Shadowhunting grants the automatic Malefic Arrow passive", "actor": "doctor", "metric": "knows_spell", "spell": 707854, "equals": 1, "within_ms": 3000 },
     { "action": "assert", "label": "Malefic Arrow rank 1 joins Malefic Wrath rank 1", "actor": "doctor", "metric": "knows_spell", "spell": 801674, "equals": 1, "within_ms": 3000 },

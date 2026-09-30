@@ -7,6 +7,7 @@
 #ifndef COA_CHALLENGES_REVIEW_H
 #define COA_CHALLENGES_REVIEW_H
 
+#include "AscensionCoAConfig.h"
 #include "ScriptMgr.h"
 #include "Player.h"
 #include "Bag.h"
@@ -27,6 +28,7 @@
 #include "CharacterCache.h"
 #include "Chat.h"
 #include "CommandScript.h"
+#include "CoA.Prestige.API.h"
 #include "CoAChallengeParse.h"
 #include "CoAChallengeInternal.h"
 #include "MiscScript.h"
@@ -320,7 +322,7 @@ void FlushFailureBroadcasts();
 void AppendConfigString(WorldPacket& data, std::string const& key);
 std::string HexDump(WorldPacket const& packet);
 void EnsureTables();
-void SendConfigBatch(Player* player);
+void AppendClientConfig(AscensionClientConfig& config);
 GameModeDef const* FindGameMode(std::string const& name);
 char const* GameModeNameForBit(uint32 bit);
 bool GameModesEnabled();
@@ -482,8 +484,10 @@ bool IsSharedFate(uint32 challengeID);
 uint32 ExclusiveGroup(uint32 challengeID);
 bool IsTrialChallenge(uint32 challengeID);
 bool IsPrestigeChallenge(uint32 challengeID);
-// Aura the client treats as "prestiged" (C_Player:IsPrestiged() = HasAura(9930831)).
-constexpr uint32 COA_PRESTIGE_AURA = 9930831;
+// Prestige state and its aura live in mod-coa-prestige (single owner).
+// "Prestiged" is the client's C_Player:IsPrestiged() = HasAura(PRESTIGE_AURA).
+// The experience bonus is applied here, from CoAPrestige::ExperienceBonusPercent.
+constexpr uint32 COA_PRESTIGE_AURA = CoAPrestige::PRESTIGE_AURA;
 bool IsPrestiged(Player* player);
 uint32 RequiredGameMode(uint32 challengeID);
 void RecomputeRequiredGameModes(Player* player);
@@ -535,6 +539,8 @@ void FailSharedFateHolders(Group* group, ObjectGuid extraGuid);
 void HandlePlayerDeath(Player* player);
 uint32 CraftedItemRarity(SkillLineAbilityEntry const* ability);
 void GrantProfessionXP(Player* member, uint32 rarityMult);
+Player* GetPlayerOwner(Creature* creature);
+void ApplyActiveChallengeSpellsToCreature(Player* player, Creature* creature);
 } // namespace CoAChallenges
 
 #endif // COA_CHALLENGES_REVIEW_H

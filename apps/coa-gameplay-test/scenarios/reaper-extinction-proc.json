@@ -1,0 +1,70 @@
+{
+  "schema": 1,
+  "name": "Reaper Extinction procs off direct Physical damage and grants the buff (#2171)",
+  "contract": [
+    "Extinction 573039 reads 'Direct Physical damage dealt now has a 5% chance to grant you Extinction for $560414d. Chance to trigger this effect is increased by 10% for each Reaped Soul active.'",
+    "Its only DBC effect is aura 42 (SPELL_AURA_PROC_TRIGGER_SPELL) triggering the Stack Adder 520501, but the record's ProcTypeMask is 0, so without spell_proc/spell_script_names rows the proc has no event to hook.",
+    "rev_20260920_11_reaper_extinction_proc.sql (already on origin/main via merged PR #4280, commit 85b231bc0) supplies ProcFlags 20 (melee auto attack | melee-class spell damage), SchoolMask 1 (Physical), SpellPhaseMask 2 (hit) and binds spell_ascension_reaper_extinction, which rolls BaseChance 5 + ChancePerSoul 10 per Reaped Soul 500363 stack.",
+    "Reaped Soul 500363's own DBC StackAmount is 3 (not 10, corrected from the original commit's premise), so the roll is 5 + 10*3 = 35%. Repeated melee auto attacks give many independent trials: over a 45 s window at roughly one swing every ~2 s (~22 swings), the false-failure probability is 0.65^22, well under 0.1%."
+  ],
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "reaper",
+      "race": 2,
+      "class": 30,
+      "level": 60,
+      "melee_hit_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "enemy",
+      "owner": "reaper",
+      "entry": 36,
+      "level": 60,
+      "distance": 3,
+      "health": 1000000
+    }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let level scaling and login settle", "ms": 5000 },
+    { "action": "learn", "actor": "reaper", "spell": 573039 },
+    {
+      "action": "assert",
+      "label": "Extinction talent is known",
+      "actor": "reaper",
+      "metric": "aura",
+      "spell": 573039,
+      "equals": 1,
+      "within_ms": 3000
+    },
+    { "action": "set_aura", "actor": "reaper", "spell": 500363, "stacks": 3 },
+    {
+      "action": "assert",
+      "label": "Fixture precondition: no Extinction buff yet",
+      "actor": "reaper",
+      "metric": "aura",
+      "spell": 560414,
+      "equals": 0
+    },
+    { "action": "attack", "actor": "reaper", "target": "enemy" },
+    {
+      "action": "assert",
+      "label": "A melee auto attack lands on the hostile target",
+      "actor": "reaper",
+      "metric": "melee_damage_count",
+      "min": 1,
+      "within_ms": 4000
+    },
+    {
+      "action": "assert",
+      "label": "Extinction buff is granted from repeated direct Physical hits (~22 trials at 35% each, false-failure well under 0.1%)",
+      "actor": "reaper",
+      "metric": "aura",
+      "spell": 560414,
+      "equals": 1,
+      "within_ms": 45000
+    }
+  ]
+}

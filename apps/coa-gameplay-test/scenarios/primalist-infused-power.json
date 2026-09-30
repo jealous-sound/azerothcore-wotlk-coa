@@ -32,9 +32,9 @@
   "timeout_ms": 600000,
   "steps": [
     {
-      "action": "command",
+      "action": "specialization",
       "actor": "primalist",
-      "command": ".localspec 58"
+      "id": 58
     },
     {
       "action": "learn",
@@ -80,9 +80,9 @@
       "all_specs": true
     },
     {
-      "action": "command",
+      "action": "specialization",
       "actor": "ally",
-      "command": ".localspec 58"
+      "id": 58
     },
     {
       "action": "learn",
