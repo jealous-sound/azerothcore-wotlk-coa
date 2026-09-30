@@ -21,11 +21,13 @@
  * evidence to place them on a timer.
  *
  * The heads share Magmadar's own health pool (MC_PV video: both heads always read the same
- * figure as the body, "PV = Magmadar") - the body is the only damage target, the heads are
- * immune and mirror its current health every tick; see npc_magmadar_head_coa below. Their
- * per-head cast cadence and the periodic Core Hound reinforcements (entry 11671, already in
- * this instance as trash) are not in any log or export; every timer below is designed, not
- * measured, and marked as such.
+ * figure as the body, "PV = Magmadar") - a head takes damage like any other creature, but its
+ * DamageTaken hook redirects that damage onto the body and zeroes it locally, so a head never
+ * dies on its own; it also mirrors the body's current health every tick for display. Killing
+ * the body despawns both heads through BossAI's own summons list. See npc_magmadar_head_coa
+ * below. Their per-head cast cadence and the periodic Core Hound reinforcements (entry 11671,
+ * already in this instance as trash) are not in any log or export; every timer below is
+ * designed, not measured, and marked as such.
  */
 
 #include "CreatureScript.h"
@@ -165,13 +167,24 @@ namespace
         npc_magmadar_head_coa(Creature* creature) : ScriptedAI(creature) { }
 
         // Video evidence (MC_PV): the heads' displayed health always reads the same figure as
-        // Magmadar's own ("PV = Magmadar" on both heads, every reading). The simplest faithful
-        // model of a single shared pool is to make the body the only damage target - the heads
-        // take no damage themselves (immune) and mirror the body's current health every tick
-        // (below), instead of splitting the flex total into three independent pools.
-        void Reset() override
+        // Magmadar's own ("PV = Magmadar" on both heads, every reading). A single shared pool
+        // is modelled by redirecting whatever a head takes into the body (DamageTaken below,
+        // same pattern as npc_heart_of_hakkar_coa) and zeroing the head's own damage, so the
+        // heads never die on their own; they still mirror the body's current health every tick
+        // (below) instead of splitting the flex total into three independent pools.
+        void DamageTaken(Unit* attacker, uint32& damage, DamageEffectType type, SpellSchoolMask /*school*/) override
         {
-            me->SetImmuneToAll(true);
+            uint32 const dealt = damage;
+            damage = 0;
+            if (!dealt || !attacker)
+                return;
+
+            InstanceScript* instance = me->GetInstanceScript();
+            Creature* body = instance ? instance->GetCreature(DATA_MAGMADAR) : nullptr;
+            if (!body || body == me || !body->IsAlive())
+                return;
+
+            Unit::DealDamage(attacker, body, dealt, nullptr, type, SPELL_SCHOOL_MASK_NORMAL, nullptr, false);
         }
 
         void JustEngagedWith(Unit* /*who*/) override
