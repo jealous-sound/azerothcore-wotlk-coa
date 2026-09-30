@@ -1100,6 +1100,7 @@ public:                                                 // opcodes handlers
     void ResetAllDungeons();
     void HandlePortGraveyardOpcode(WorldPacket& recvData);
     void HandleQueryInstanceBindsOpcode(WorldPacket& recvData);
+    void HandleResetInstanceOpcode(WorldPacket& recvData);
     void HandleHearthAndResurrect(WorldPacket& recvData);
     void HandleInstanceLockResponse(WorldPackets::Instance::InstanceLockResponse& packet);
     void HandleUpdateMissileTrajectory(WorldPacket& recvPacket);

@@ -434,7 +434,8 @@ supports. Client binaries are maintained outside this repository.
 - `CMSG_QUERY_INSTANCE_BINDS` (0x06FD), sent at every world entry, is answered with
   `SMSG_QUERY_INSTANCE_BINDS_RESULT` (0x06FE): `QUERY_INSTANCE_BINDS_OK`, then the player's binds
   that can still be reset as instance id, map and difficulty. The portrait menu's Reset Instances
-  list shows them.
+  list shows them, and `CMSG_RESET_INSTANCE` (0x058C: u32 map, u8 difficulty) resets one of them
+  like the stock reset: only outside a group or by its leader, and not while players are inside.
 
 The `gtOCTRegenHP`, `gtRegenHPPerSpt` and `gtRegenMPPerSpt` client files each contain
 3,200 single-float rows indexed by class and level. Their SQL overlay tables are empty,

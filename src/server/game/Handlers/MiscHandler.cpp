@@ -1405,6 +1405,42 @@ void WorldSession::HandleQueryInstanceBindsOpcode(WorldPacket& /*recvData*/)
     SendPacket(&data);
 }
 
+// A Reset Instances list entry calls C_LootLockout.ResetInstanceDifficulty(map, difficulty), which sends this
+// extension opcode to reset one bind the query above listed.
+void WorldSession::HandleResetInstanceOpcode(WorldPacket& recvData)
+{
+    uint32 mapId;
+    uint8 difficulty;
+    recvData >> mapId >> difficulty;
+
+    LOG_DEBUG("network", "WORLD: CMSG_RESET_INSTANCE map {} difficulty {}", mapId, difficulty);
+
+    if (difficulty >= MAX_DIFFICULTY)
+        return;
+
+    if (Group* group = _player->GetGroup())
+        if (!group->IsLeader(_player->GetGUID()) || group->isLFGGroup() || group->isBGGroup() || group->isBFGroup())
+            return;
+
+    InstancePlayerBind* bind = sInstanceSaveMgr->PlayerGetBoundInstance(_player->GetGUID(), mapId, Difficulty(difficulty));
+    if (!bind || !bind->save->CanReset())
+        return;
+
+    InstanceSave* save = bind->save;
+    if (Map* map = sMapMgr->FindMap(save->GetMapId(), save->GetInstanceId()))
+    {
+        if (!map->ToInstanceMap()->Reset(INSTANCE_RESET_ALL))
+        {
+            _player->SendResetInstanceFailed(INSTANCE_RESET_FAILED, mapId);
+            return;
+        }
+    }
+
+    _player->SendResetInstanceSuccess(mapId);
+    sInstanceSaveMgr->DeleteInstanceSavedData(save->GetInstanceId());
+    sInstanceSaveMgr->UnbindAllFor(save);
+}
+
 void WorldSession::HandleSetDungeonDifficultyOpcode(WorldPackets::Instance::SetDungeonDifficultyClient& packet)
 {
     LOG_DEBUG("network", "MSG_SET_DUNGEON_DIFFICULTY");

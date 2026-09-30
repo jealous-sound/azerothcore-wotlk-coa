@@ -1420,6 +1420,8 @@ enum Opcodes : uint16
     // { u32 instance id, u32 map, u32 difficulty }.
     CMSG_QUERY_INSTANCE_BINDS                       = 0x6FD,
     SMSG_QUERY_INSTANCE_BINDS_RESULT                = 0x6FE,
+    // Reset Instances list entry (C_LootLockout.ResetInstanceDifficulty(), u32 map, u8 difficulty).
+    CMSG_RESET_INSTANCE                             = 0x58C,
     // Spell Activation Overlay (the "proc glow" the client paints on the
     // action button of the marked spell). Client handlers: 0x9B1 -> 0x10235A90
     // (fires Lua SPELL_ACTIVATION_SHOW), 0x9B2 -> 0x10235840 (SPELL_ACTIVATION_HIDE).

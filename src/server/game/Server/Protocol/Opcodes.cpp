@@ -1465,6 +1465,7 @@ void OpcodeTable::Initialize()
     /*0x67C*/ DEFINE_HANDLER(CMSG_STABLE_DELETE_PET,                                                STATUS_LOGGEDIN,   PROCESS_THREADUNSAFE,   &WorldSession::HandleStableDeletePet                    );
     /*0x6FD*/ DEFINE_HANDLER(CMSG_QUERY_INSTANCE_BINDS,                                             STATUS_LOGGEDIN,   PROCESS_THREADUNSAFE,   &WorldSession::HandleQueryInstanceBindsOpcode           );
     /*0x6FE*/ DEFINE_SERVER_OPCODE_HANDLER(SMSG_QUERY_INSTANCE_BINDS_RESULT,                        STATUS_NEVER);
+    /*0x58C*/ DEFINE_HANDLER(CMSG_RESET_INSTANCE,                                                   STATUS_LOGGEDIN,   PROCESS_THREADUNSAFE,   &WorldSession::HandleResetInstanceOpcode                );
 
     // Default every other extension slot to a safe NULL handler so an
     // unregistered custom opcode can never null-dereference opcodeTable[].
