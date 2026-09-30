@@ -1411,6 +1411,7 @@ void HandleAscensionClassMechanicsCast(Spell* spell)
     if (firstRank == 800316)
     {
         player->CastSpell(player, 500175, true);
+        player->RemoveAurasDueToSpell(SPELL_GUARDIAN_REPRISAL_READY);
     }
     else if (IsGuardianCenturionStrike(info->Id) && player->HasAura(504140))
     {
