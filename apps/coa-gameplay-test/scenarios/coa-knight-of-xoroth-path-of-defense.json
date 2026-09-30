@@ -1,0 +1,107 @@
+{
+  "schema": 1,
+  "name": "Knight of Xoroth is not offered the Warrior Path of Defense quest and learns none of its spells",
+  "contract": [
+    "Issue #5714: Path of Defense (quest 1498) is Warrior-only; a Knight of Xoroth cannot take it and does not learn Defensive Stance, Sunder Armor or Taunt from it.",
+    "A Warrior can take the same quest and learns all three."
+  ],
+  "players": [
+    {
+      "id": "warrior",
+      "race": 2,
+      "class": 1,
+      "level": 10
+    },
+    {
+      "id": "knight",
+      "race": 2,
+      "class": 17,
+      "level": 29
+    }
+  ],
+  "steps": [
+    {
+      "action": "assert",
+      "label": "Warrior can take Path of Defense",
+      "actor": "warrior",
+      "metric": "quest_takeable",
+      "quest": 1498,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "label": "Knight of Xoroth cannot take Path of Defense",
+      "actor": "knight",
+      "metric": "quest_takeable",
+      "quest": 1498,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "knight",
+      "metric": "knows_spell",
+      "spell": 1100071,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "knight",
+      "metric": "knows_spell",
+      "spell": 1107386,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "knight",
+      "metric": "knows_spell",
+      "spell": 1100355,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "knight",
+      "metric": "knows_spell",
+      "spell": 8121,
+      "equals": 0
+    },
+    {
+      "action": "prepare_quest",
+      "actor": "knight",
+      "quest": 1498
+    },
+    {
+      "action": "reward_quest",
+      "actor": "knight",
+      "quest": 1498
+    },
+    {
+      "action": "assert",
+      "label": "Rewarding the quest teaches the Knight no Warrior spell",
+      "actor": "knight",
+      "metric": "knows_spell",
+      "spell": 1100071,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "knight",
+      "metric": "knows_spell",
+      "spell": 1107386,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "knight",
+      "metric": "knows_spell",
+      "spell": 1100355,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "knight",
+      "metric": "knows_spell",
+      "spell": 8121,
+      "equals": 0
+    }
+  ]
+}
