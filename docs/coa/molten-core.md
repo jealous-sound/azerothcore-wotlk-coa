@@ -444,20 +444,20 @@ never drops them; their Mythic rows (10% and 9.1%) are kept.
     in inventory) was matched to a live cast; not one of the 12 pairs wired in §6, left unmapped.
 17. **Sulfuron's own Dark Strike (19777) is dead code** — never `cast_start`s from Sulfuron himself; the
     Flamewaker Priest add casts the identical id instead. Not changed, flagged in case that was unintended.
-18. **Magmadar's CoA/BB health-coefficient outlier.** Every other boss with both a CoA and a Bronzebeard video
-    reading lands the CoA/BB ratio at 3.30-3.32; Magmadar's own pair gives 3.14, clearly outside that cluster.
-    Not used (Magmadar has his own direct CoA reading, so no coefficient was needed for him), but unexplained —
-    a possible link to his head/body health-sharing mechanic was not investigated.
-19. **Three CoA-only Sulfuron-priest names and two CoA-only Son of Flame variants have no `creature_template`
-    row at all on this fork.** Cull the Destroyer, "Proxima the Opressor" (the export's own spelling; the
-    player's notes say "Proximus") and Ebon the Cruel (export ids 92031-92033) each read 6.5M health at 23
-    players in the CoA video, identical to Corvus the Nimble's own reading; "Son of Flame" and "Greater Son of
-    Flame" (92026/92027) also have their own CoA readings. All five exist in the db.exil.es export only as
-    level-1/health-1 placeholder stubs with no `AIName` — none is spawned in this raid today. Bringing them in
-    would need new `creature_template`/`creature_template_model` rows and a summon hook, the same shape of work
-    already done for Magmadar's heads; their computed health figures are kept in
-    `.agents/plans/mc-restoration/hp/hp-pools.md` for whoever picks this up. Sacrificial Chains (92030) is the
-    same situation, with only a Bronzebeard reading.
+18. **Magmadar's CoA/BB health-coefficient outlier: accepted.** Every other boss with both readings lands the
+    CoA/BB ratio at 3.30-3.32; Magmadar's pair gives 3.14. He has his own CoA reading, so no coefficient is used
+    for him, and the user accepted the difference (the scale is right).
+19. **CoA-only adds missing from this fork: waiting for the combat-log parser.** Cull the Destroyer, "Proxima
+    the Opressor" (the player's notes say "Proximus") and Ebon the Cruel (export ids 92031-92033), "Son of Flame"
+    and "Greater Son of Flame" (92026/92027) and Sacrificial Chains (92030) exist in the db.exil.es export only as
+    placeholder stubs; none has a `creature_template` row here. Their health readings are kept in
+    `.agents/plans/mc-restoration/hp/hp-pools.md`. What a CoA player recalls, to be confirmed from live logs once
+    the parser exists:
+    - Sulfuron's adds wore the Flamewaker Elite skin (Majordomo's adds) and each had its own mechanics.
+    - Ragnaros's phase adds merged when left together: 2 Lesser Son of Flame -> 1 Son of Flame, 2 Son -> 1
+      Greater Son of Flame, 2 Greater -> 1 larger add whose name is not remembered (a kill check: a fully merged
+      add took too long to kill).
+    Nothing is built for them until the logs give their kits, timings and merge rules.
 20. **Ragnaros's own health-design scale factor (~x2.85-2.86) differs from the rest of the boss family's
     (~x1.365).** Both are internally consistent with the two anchor points (his prior design vs. his own direct
     CoA readings at Normal and Ascended), but no explanation was sought beyond the base flex table's existing
