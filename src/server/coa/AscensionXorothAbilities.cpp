@@ -458,7 +458,7 @@ class xoroth_casts : public AllSpellScript
                         (summon->GetEntry() == 50301 || summon->GetEntry() == 50375))
                         player->AddAura(id, summon);
             if (id == 807247)
-                Cast(player, player, 807248);
+                player->AddAura(807248, player);
             if (id == 801061)
                 for (Unit* ally : Nearby(player, 20))
                     if (ally == player || player->IsInRaidWith(ally))
