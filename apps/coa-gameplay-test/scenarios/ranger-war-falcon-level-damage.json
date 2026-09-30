@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "Ranger War Falcons hit with their owner's level of weapon damage (#4546)",
-  "contract": "War Falcon 50393 (Falcon Dive 806341, two SPELL_EFFECT_SUMMON effects, SummonProperties 61 = ally guardian) has a pinned 1/1 creature_template level band, so Creature::SelectLevel writes level-1 creature_classlevelstats weapon damage and attack power when the summon is created. Guardian::InitStats then raises it to the owner's level through Guardian::InitStatsForLevel, but for a guardian that is neither a hunter nor a summon pet that function re-derives weapon damage only for a hardcoded entry list, so every falcon kept its level-1 white hit (the 3-damage hits of #4546) while its level said 80. ranger_wingman_companions re-derives base weapon damage and attack power from creature_classlevelstats at the guardian's level in OnPlayerAfterGuardianInitStatsForLevel, which runs after the owner is set. Expected: a level-80 Ranger's War Falcons report level-80 minimum weapon damage, several times a level-20 Ranger's falcons; before the fix both show the same level-1 value.",
+  "contract": "War Falcon 50393 (Falcon Dive 806341, two SPELL_EFFECT_SUMMON effects, SummonProperties 61 = ally guardian) has a pinned 1/1 creature_template level band, so Creature::SelectLevel writes level-1 creature_classlevelstats weapon damage and attack power when the summon is created. Guardian::InitStats then raises it to the owner's level through Guardian::InitStatsForLevel, but for a guardian that is neither a hunter nor a summon pet that function re-derives weapon damage only for a hardcoded entry list, so every falcon kept its level-1 white hit (the 3-damage hits of #4546) while its level said 80. ranger_wingman_companions re-derives base weapon damage and attack power from creature_classlevelstats at the guardian's level in OnPlayerAfterGuardianInitStatsForLevel, which runs after the owner is set. The hook covers every companion entry, so Falcon's Call (804715, which summons 50264 through 800251) is checked as well. owned_creature_weapon_damage_min reports the lowest value across all copies, so both falcons of a Falcon Dive must meet each bound. Expected: a level-80 Ranger's War Falcons report level-80 minimum weapon damage, several times a level-20 Ranger's falcons; before the fix both show the same level-1 value.",
   "timeout_ms": 60000,
   "location": {
     "map": 0,
@@ -100,6 +100,78 @@
       "metric": "owned_creature_weapon_damage_min",
       "entry": 50393,
       "ratio_to": "novice_falcon",
+      "min": 3
+    },
+    {
+      "action": "learn",
+      "actor": "ranger",
+      "spell": 804715
+    },
+    {
+      "action": "learn",
+      "actor": "novice",
+      "spell": 804715
+    },
+    {
+      "action": "cast",
+      "label": "Level-80 Falcon's Call",
+      "actor": "ranger",
+      "spell": 804715
+    },
+    {
+      "action": "cast",
+      "label": "Level-20 Falcon's Call",
+      "actor": "novice",
+      "spell": 804715
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: the level-80 Ranger has a Falcon's Call falcon",
+      "actor": "ranger",
+      "metric": "owned_creature_count",
+      "entry": 50264,
+      "min": 1,
+      "within_ms": 3000
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: the level-20 Ranger has a Falcon's Call falcon",
+      "actor": "novice",
+      "metric": "owned_creature_count",
+      "entry": 50264,
+      "min": 1,
+      "within_ms": 3000
+    },
+    {
+      "action": "snapshot",
+      "actor": "novice",
+      "metric": "owned_creature_weapon_damage_min",
+      "entry": 50264,
+      "save_as": "novice_call"
+    },
+    {
+      "action": "assert",
+      "label": "A level-20 Falcon's Call falcon hits harder than a level-1 one",
+      "actor": "novice",
+      "metric": "owned_creature_weapon_damage_min",
+      "entry": 50264,
+      "min": 5
+    },
+    {
+      "action": "assert",
+      "label": "A level-80 Falcon's Call falcon has level-80 weapon damage",
+      "actor": "ranger",
+      "metric": "owned_creature_weapon_damage_min",
+      "entry": 50264,
+      "min": 40
+    },
+    {
+      "action": "assert",
+      "label": "Falcon's Call weapon damage scales with the owner's level",
+      "actor": "ranger",
+      "metric": "owned_creature_weapon_damage_min",
+      "entry": 50264,
+      "ratio_to": "novice_call",
       "min": 3
     }
   ]
