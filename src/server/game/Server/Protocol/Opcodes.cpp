@@ -1462,6 +1462,7 @@ void OpcodeTable::Initialize()
     /*0x61F*/ DEFINE_HANDLER(CMSG_RESET_DUNGEONS,                                                   STATUS_LOGGEDIN,   PROCESS_THREADUNSAFE,   &WorldSession::HandleResetDungeonsOpcode                );
     /*0x544*/ DEFINE_HANDLER(CMSG_PORT_GRAVEYARD,                                                   STATUS_LOGGEDIN,   PROCESS_THREADUNSAFE,   &WorldSession::HandlePortGraveyardOpcode                );
     /*0x5F2*/ DEFINE_HANDLER(CMSG_TAXI_REQUEST_EARLY_LANDING,                                       STATUS_LOGGEDIN,   PROCESS_THREADUNSAFE,   &WorldSession::HandleTaxiRequestEarlyLandingOpcode      );
+    /*0x67C*/ DEFINE_HANDLER(CMSG_STABLE_DELETE_PET,                                                STATUS_LOGGEDIN,   PROCESS_THREADUNSAFE,   &WorldSession::HandleStableDeletePet                    );
 
     // Default every other extension slot to a safe NULL handler so an
     // unregistered custom opcode can never null-dereference opcodeTable[].

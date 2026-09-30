@@ -1064,6 +1064,9 @@ void TestCoreHandledRequests()
         "the ghost frame's return to graveyard reaches the core handler");
     Check(Receive(session, WorldPacket(CMSG_TAXI_REQUEST_EARLY_LANDING, 0)),
         "the flight's early landing request reaches the core handler");
+    WorldPacket deletePet(CMSG_STABLE_DELETE_PET, 4);
+    deletePet << uint32(1);
+    Check(Receive(session, deletePet), "the stable window's delete request reaches the core handler");
     Check(session.Sent.empty(), "the early hook answers none of the requests the core handles");
 }
 

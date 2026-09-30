@@ -428,7 +428,9 @@ supports. Client binaries are maintained outside this repository.
   0x061F); the ghost frame's return to graveyard (`CMSG_PORT_GRAVEYARD`, 0x0544), which
   moves a released ghost to its closest graveyard; and the flight's early landing request
   (`CMSG_TAXI_REQUEST_EARLY_LANDING`, 0x05F2), which ends the flight at the next discovered
-  flight point on its route, so the later legs are neither flown nor paid.
+  flight point on its route, so the later legs are neither flown nor paid; and the stable
+  window's delete button (`CMSG_STABLE_DELETE_PET`, 0x067C), which deletes a stabled pet and
+  answers `SMSG_STABLE_RESULT` 8, after which the client lists the stable again.
 
 The `gtOCTRegenHP`, `gtRegenHPPerSpt` and `gtRegenMPPerSpt` client files each contain
 3,200 single-float rows indexed by class and level. Their SQL overlay tables are empty,
