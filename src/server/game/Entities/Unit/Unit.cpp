@@ -4851,10 +4851,11 @@ bool Unit::CanCastDuringChannel(SpellInfo const* info) const
         channel->IsChannelActive() && channel->GetSpellInfo()->Id == 800355)
         return true;
     if (IsPlayer() && getClass() == CLASS_STORMBRINGER && info && info->SpellFamilyName == 22 &&
-        (info->SpellFamilyFlags[0] & 33554432) && (info->SpellFamilyFlags[2] & 32) && HasAura(578300) &&
         channel && channel->getState() != SPELL_STATE_FINISHED && channel->IsChannelActive() &&
         channel->GetSpellInfo()->SpellFamilyName == 22 &&
-        (channel->GetSpellInfo()->SpellFamilyFlags[1] & 65536))
+        (channel->GetSpellInfo()->SpellFamilyFlags[1] & 65536) &&
+        ((info->SpellFamilyFlags[0] & 2048) || (info->SpellFamilyFlags[1] & 128) ||
+        ((info->SpellFamilyFlags[0] & 33554432) && (info->SpellFamilyFlags[2] & 32) && HasAura(578300))))
         return true;
     return getClass() == CLASS_WITCH_DOCTOR && info && info->SpellFamilyName == 19 &&
         ((info->SpellFamilyFlags[1] & 2048) || (info->SpellFamilyFlags[2] & 536870913)) &&
