@@ -26,6 +26,7 @@ enum BloodmageTalentSpells : uint32
     SPELL_DARKCASTING = 712383,
     SPELL_BLOOD_TEAR_SPAWN = 712417,
     SPELL_ACCURSED_FORM = 562572,
+    SPELL_SANGUINE_ESSENCE = 680692,
     SPELL_SANGUINE_SCRIPTURE = 804851,
     SPELL_SANGUINE_SCRIPTURE_BUFF = 504264,
     SPELL_CURSED_FORM_REQUIREMENT = 525031,
@@ -300,6 +301,8 @@ public:
             SyncCursedFormRequirement(player);
         if (IsCursedForm(aura->GetId()) && !HasCursedForm(player, aura))
             UpdateCursedFormWeapons(player, false);
+        if (aura->GetId() == SPELL_SANGUINE_ESSENCE)
+            player->RemoveAurasDueToSpell(AscensionBloodmage::PooledVitality, player->GetGUID());
         if (aura->GetId() == SPELL_ETERNAL_CURSE)
         {
             player->RemoveAurasDueToSpell(SPELL_ETERNAL_CURSE_ARMOR);

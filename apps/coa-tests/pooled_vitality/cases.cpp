@@ -67,11 +67,10 @@ int main()
     events.OnSpellHitResult(&spell, &player, SPELL_MISS_NONE, 0, 301, true);
     events.OnSpellHitResult(&spell, &player, SPELL_MISS_NONE, 0, 301, true);
     assert(player.casts.size() == 2 && std::get<2>(player.casts.back()) == 150);
-    for (uint32 guard : {CursedFormCheck, CursedForm})
-    {
-        ready(); player.auras[guard] = {}; prepare();
-        assert(!spell.GetScriptValue(PooledVitalityTalent)); player.auras.erase(guard);
-    }
+    ready(); player.auras[CursedForm] = {}; prepare();
+    assert(!spell.GetScriptValue(PooledVitalityTalent)); player.auras.erase(CursedForm);
+    ready(); player.auras[CursedFormCheck] = {}; prepare();
+    assert(spell.GetScriptValue(PooledVitalityTalent)); player.auras.erase(CursedFormCheck);
     ready(); player.auras[PooledVitality].caster = 99; prepare();
     assert(!spell.GetScriptValue(PooledVitalityTalent));
     ready(); spell.triggered = true; prepare();
