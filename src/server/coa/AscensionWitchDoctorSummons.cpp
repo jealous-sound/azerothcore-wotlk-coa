@@ -189,7 +189,7 @@ void Summon(Player* player, uint32 spell, Unit* target, Position const& location
 namespace
 {
 using namespace AscensionWitchDoctor;
-constexpr uint32 NpcHauntVisage = 840000;
+bool IsHauntVisage(uint32 entry) { return entry == 840000 || entry == 990020; }
 constexpr float HauntRunDistance = 25.0f;
 class npc_ascension_witch_doctor : public ScriptedAI
 {
@@ -207,7 +207,7 @@ class npc_ascension_witch_doctor : public ScriptedAI
     void IsSummonedBy(WorldObject* summoner) override
     {
         Player* player = summoner ? summoner->ToPlayer() : nullptr;
-        if (player && player->getClass() == CLASS_REAPER && me->GetEntry() == NpcHauntVisage)
+        if (player && player->getClass() == CLASS_REAPER && IsHauntVisage(me->GetEntry()))
         {
             _owner = player->GetGUID();
             me->SetOwnerGUID(_owner);
@@ -376,7 +376,7 @@ class npc_ascension_witch_doctor : public ScriptedAI
             me->DespawnOrUnsummon();
             return;
         }
-        if (me->GetEntry() == NpcHauntVisage)
+        if (IsHauntVisage(me->GetEntry()))
             return;
         _age += diff;
         if (me->GetEntry() == NpcFool)
@@ -654,6 +654,7 @@ class witch_doctor_magnet : public UnitScript
 void AddAscensionWitchDoctorSummonScripts()
 {
     RegisterCreatureAI(npc_ascension_witch_doctor);
+    new GenericCreatureScript<npc_ascension_witch_doctor>("npc_ascension_reaper_haunt");
     RegisterSpellScript(spell_ascension_witch_doctor_summon);
     RegisterSpellScript(spell_ascension_witch_doctor_spiritual_recall);
     new witch_doctor_summon_events();
