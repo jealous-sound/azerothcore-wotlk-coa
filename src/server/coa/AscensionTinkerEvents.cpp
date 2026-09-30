@@ -127,7 +127,7 @@ class aura_ascension_tinker_event : public AuraScript
             case 806758: return damage && !periodic && info && info->DmgClass == SPELL_DAMAGE_CLASS_RANGED &&
                 Chance(player,806758);
             case 560785: return healing && Chance(player,560785);
-            case 705815: return damage && fire && Chance(player,705815);
+            case 705815: return damage && fire;
             case 680975: return damage && Shot(info) && Chance(player,680975);
             case 573247: return damage && info && !periodic && critical && target->HasAura(653247,player->GetGUID());
             case 806627: return (damage || healing) && critical && Chance(player,806627,10000);

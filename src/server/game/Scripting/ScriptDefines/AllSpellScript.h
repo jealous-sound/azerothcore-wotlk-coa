@@ -25,6 +25,7 @@ enum AllSpellHook
 {
     ALLSPELLHOOK_ON_CALC_MAX_DURATION,
     ALLSPELLHOOK_ON_SPELL_CHECK_CAST,
+    ALLSPELLHOOK_ON_SPELL_FOCUS_ANSWERED,
     ALLSPELLHOOK_CAN_PREPARE,
     ALLSPELLHOOK_CAN_SCALING_EVERYTHING,
     ALLSPELLHOOK_CAN_SELECT_SPEC_TALENT,
@@ -63,6 +64,13 @@ public:
     virtual void OnCalcMaxDuration(Aura const* /*aura*/, int32& /*maxDuration*/) { }
 
     virtual void OnSpellCheckCast(Spell* /*spell*/, bool /*strict*/, SpellCastResult& /*res*/) { }
+
+    // Called before the core searches for the focus object that a spell's own
+    // RequiresSpellFocus names, and only for spells that carry one. Returning
+    // true means a script answers that requirement itself: the search is
+    // skipped, no object is needed, and the spell keeps its focus field for the
+    // refusal the server sends when the answer is no.
+    [[nodiscard]] virtual bool OnSpellFocusAnswered(Spell* /*spell*/) { return false; }
 
     [[nodiscard]] virtual bool CanPrepare(Spell* /*spell*/, SpellCastTargets const* /*targets*/, AuraEffect const* /*triggeredByAura*/) { return true; }
 

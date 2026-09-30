@@ -167,12 +167,17 @@ def main():
                        ("src/server/shared/SharedDefines.h", "SpellCastResult")]:
         enums.append(native.extractor.extract((ROOT / path).read_text(), r"enum " + name + r"\b") + ";")
     enums.append("constexpr uint32 CLASS_SPIRIT_MAGE=32, UNITHOOK_ON_AURA_APPLY=4, EFFECT_1=1, "
-                 "SPELL_EFFECT_APPLY_AURA=6, SPELL_AURA_EFFECT_IMMUNITY=37, SPELL_EFFECT_KNOCK_BACK_DEST=144;")
+                 "SPELL_EFFECT_APPLY_AURA=6, SPELL_AURA_EFFECT_IMMUNITY=37, SPELL_EFFECT_KNOCK_BACK_DEST=144, "
+                 "SPELL_AURA_DUMMY=4, SPELL_ATTR0_PASSIVE=0x40, PLAYERHOOK_ON_LOGIN=5;\n#define LOG_ERROR(...)")
     code = (HERE.parent / "primalist_talents/harness.cpp").read_text().split("// ACTUAL_SOURCE")[0]
     code = code.replace("// NATIVE_ENUMS", "\n".join(enums))
     code = code.replace("struct SpellInfo\n{", "struct FixtureEffect { uint32 Effect=0, ApplyAuraName=0, "
-        "TriggerSpell=0, Amplitude=0, DieSides=0; std::int32_t BasePoints=0, MiscValue=0; };\nstruct SpellInfo\n{ "
-        "std::array<FixtureEffect, 3> Effects{};")
+        "TriggerSpell=0, Amplitude=0, DieSides=0; std::int32_t BasePoints=0, MiscValue=0; "
+        "bool IsAura(uint32 aura) const { return Effect == SPELL_EFFECT_APPLY_AURA && ApplyAuraName == aura; } };\n"
+        "struct SpellInfo\n{ std::array<FixtureEffect, 3> Effects{}; uint32 Attributes = 0;")
+    code = code.replace("struct Hook {", "struct PlayerScript\n{\n"
+        "    PlayerScript(char const*, std::initializer_list<int>) { }\n"
+        "    virtual void OnPlayerLogin(Player*) { }\n};\nstruct Hook {")
     code = code.replace("bool HasAura(uint32 id) const", "bool HasAura(uint32 id, uint32 = 0) const")
     code = code.replace("void CastSpell(Unit* target, uint32 id, bool triggered) { casts.emplace_back(target, id, triggered); }",
         "void CastSpell(Unit* target, uint32 id, bool triggered) { casts.emplace_back(target, id, triggered); "

@@ -3,6 +3,8 @@
 
 #include "Define.h"
 
+#include <functional>
+#include <string>
 #include <vector>
 
 class Player;
@@ -10,6 +12,13 @@ class Player;
 uint32 GetAscensionActiveSpecialization(Player const* player);
 
 bool SwitchAscensionSpecialization(Player* player, uint32 specializationId);
+
+using AscensionSpecializationSwitchGuard =
+    std::function<std::string(Player* player, uint32 activeSpecializationId, uint32 requestedSpecializationId)>;
+
+void AddAscensionSpecializationSwitchGuard(AscensionSpecializationSwitchGuard guard);
+
+uint32 ForgetAscensionClassTalents(Player* player);
 
 uint32 GetAscensionTalentRank(Player const* player, uint32 entryId);
 

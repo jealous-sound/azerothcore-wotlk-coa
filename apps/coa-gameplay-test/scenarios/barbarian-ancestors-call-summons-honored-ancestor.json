@@ -9,7 +9,7 @@
   "steps": [
     { "action": "wait", "label": "Let level scaling settle", "ms": 3000 },
     {
-      "action": "command", "actor": "barbarian", "command": ".localspec 3",
+      "action": "specialization", "actor": "barbarian", "id": 3,
       "label": "AscensionTaughtAbilityData.h gates Ancestor's Call on the Ancestry specialization 3"
     },
     { "action": "wait", "ms": 1000 },

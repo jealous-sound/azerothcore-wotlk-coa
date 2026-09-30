@@ -1,5 +1,6 @@
 /* Copyright (C) 2016+ AzerothCore, GNU AGPL v3. */
 #include "AscensionRunemasterTalents.h"
+#include "Log.h"
 #include "ObjectAccessor.h"
 #include "Player.h"
 #include "ScriptMgr.h"
@@ -158,6 +159,20 @@ public:
     }
 };
 
+class runemaster_marker_login : public PlayerScript
+{
+public:
+    runemaster_marker_login() : PlayerScript("runemaster_marker_login", {PLAYERHOOK_ON_LOGIN}) { }
+
+    void OnPlayerLogin(Player* player) override
+    {
+        if (player->getClass() != CLASS_SPIRIT_MAGE)
+            return;
+        SyncRuneshroudOrWaveforged(player);
+        KeepRunicTempestMarker(player);
+    }
+};
+
 constexpr uint32 SPELL_ADVANCED_MAGI = 804557;
 constexpr int32 ASCENSION_SPELLMOD_BONUS_MULTIPLIER = 41;
 
@@ -181,6 +196,19 @@ void ApplyAlterationWaterTattooScope(SpellInfo* info)
         effectiveness.SpellClassMask == rankOneTattooFamilyFlags)
         effectiveness.SpellClassMask |= waterTattooFamilyFlags;
 }
+
+void ExposeRuneshroudOrWaveforgedMarker(SpellInfo* info)
+{
+    if (info->Id != SPELL_RUNESHROUD_OR_WAVEFORGED)
+        return;
+    if (!info->Effects[EFFECT_0].IsAura(SPELL_AURA_DUMMY))
+    {
+        LOG_ERROR("coa", "Skipped unexpected Runeshroud or Waveforged marker record {}", info->Id);
+        return;
+    }
+
+    info->Attributes &= ~SPELL_ATTR0_PASSIVE;
+}
 }
 
 void ApplyAscensionRunemasterTalentContracts(SpellInfo* info)
@@ -200,6 +228,7 @@ void ApplyAscensionRunemasterTalentContracts(SpellInfo* info)
         info->AuraInterruptFlags |= AURA_INTERRUPT_FLAG_TAKE_DAMAGE;
         return;
     }
+    ExposeRuneshroudOrWaveforgedMarker(info);
     if (info->Id != 712310 || info->SpellFamilyName != 38)
         return;
     auto& effect = info->Effects[EFFECT_1];
@@ -214,4 +243,5 @@ void AddSC_AscensionRunemasterTalents()
 {
     new runemaster_talent_events();
     new runemaster_runic_tempest_events();
+    new runemaster_marker_login();
 }

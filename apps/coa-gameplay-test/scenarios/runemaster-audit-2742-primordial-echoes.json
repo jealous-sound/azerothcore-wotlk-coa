@@ -1,0 +1,528 @@
+{
+  "schema": 1,
+  "name": "Runemaster Primordial Echoes relaunches Primordial Blast on a critical strike (#2742)",
+  "contract": [
+    "Primordial Echoes 705572 Effect0 is SPELL_AURA_PROC_TRIGGER_SPELL, ProcChance 40, trigger 547525.",
+    "Spell.dbc ProcFlags is 0 and, before the fix, no spell_proc row existed, so it never fired. Primordial",
+    "Blast (800732 and its ranks) is family 38, SpellFamilyFlags0/1/2 4194304/1048576/64, DmgClass magic,",
+    "a harmful SPELL_EFFECT_SCHOOL_DAMAGE hit. After the fix (spell_proc row scoped to Primordial Blast,",
+    "hit phase, HitMask restricted to PROC_HIT_CRITICAL), repeated crits on Primordial Blast must",
+    "eventually cast 547525 again. spell_crit_rating is set high enough to push spell crit chance near",
+    "100% so the loop exercises the 40% proc roll rather than the native crit roll; 20 trials at 40% bound",
+    "the flake rate to 0.6^20 (about 0.0037%) of seeing zero procs."
+  ],
+  "timeout_ms": 90000,
+  "location": {
+    "map": 0,
+    "x": -8949.95,
+    "y": -132.493,
+    "z": 83.5312,
+    "o": 0
+  },
+  "players": [
+    {
+      "id": "rm",
+      "race": 1,
+      "class": 32,
+      "level": 80,
+      "spell_hit_rating": 10000,
+      "spell_crit_rating": 100000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "dummy",
+      "owner": "rm",
+      "entry": 36,
+      "level": 80,
+      "health": 5000000,
+      "distance": 10
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI settle",
+      "ms": 3000
+    },
+    {
+      "action": "learn",
+      "actor": "rm",
+      "spell": 705572
+    },
+    {
+      "action": "learn",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: Primordial Echoes is active",
+      "actor": "rm",
+      "metric": "aura",
+      "spell": 705572,
+      "equals": 1,
+      "within_ms": 1500
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: forced crit rating pushes spell crit chance near 100%",
+      "actor": "rm",
+      "metric": "spell_crit_chance",
+      "school": 2,
+      "min": 95
+    },
+    {
+      "action": "snapshot",
+      "actor": "rm",
+      "metric": "spell_cast_count",
+      "spell": 547525,
+      "save_as": "echoes_before"
+    },
+    {
+      "action": "set_aura",
+      "label": "Fixture: mana pool for the repeated Primordial Blast casts",
+      "actor": "rm",
+      "spell": 10040,
+      "stacks": 3
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: the mana fixture landed",
+      "actor": "rm",
+      "metric": "max_power",
+      "power": 0,
+      "min": 20000,
+      "within_ms": 3000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "rm",
+      "spell": 800732
+    },
+    {
+      "action": "set_power",
+      "actor": "rm",
+      "power": 0,
+      "value": 20000
+    },
+    {
+      "action": "cast",
+      "actor": "rm",
+      "spell": 800732,
+      "target": "dummy"
+    },
+    {
+      "action": "wait",
+      "ms": 300
+    },
+    {
+      "action": "assert",
+      "label": "CONTRACT: crits on Primordial Blast eventually relaunch it via 547525",
+      "actor": "rm",
+      "metric": "spell_cast_count",
+      "spell": 547525,
+      "relative_to": "echoes_before",
+      "min": 1
+    }
+  ]
+}

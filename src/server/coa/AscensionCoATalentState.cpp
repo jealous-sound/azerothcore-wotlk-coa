@@ -28,6 +28,23 @@ AscensionCompatData::CoATalentEntry const* FindEntry(std::uint32_t entryId)
         [](AscensionCompatData::CoATalentEntry const& entry, std::uint32_t id) { return entry.EntryId < id; });
     return itr != entries.end() && itr->EntryId == entryId ? &*itr : nullptr;
 }
+
+bool IsSelectableFree(std::uint32_t entryId)
+{
+    return std::any_of(AscensionCompatData::CoASelectableFreeEntries.begin(),
+        AscensionCompatData::CoASelectableFreeEntries.end(),
+        [entryId](AscensionCompatData::CoASelectableFreeEntry const& entry) { return entry.EntryId == entryId; });
+}
+
+bool IsIdentity(std::uint32_t entryId)
+{
+    return std::any_of(AscensionCompatData::CoASpecializations.begin(),
+        AscensionCompatData::CoASpecializations.end(),
+        [entryId](AscensionCompatData::CoASpecialization const& specialization)
+        {
+            return specialization.IdentityEntryId == entryId;
+        });
+}
 }
 
 std::uint32_t KnownRank(AscensionCompatData::CoATalentEntry const& entry, HasSpell const& hasSpell)
@@ -138,5 +155,58 @@ bool ParseKnownEntriesUpload(std::uint8_t const* data, std::size_t size, std::ve
         known.push_back({ ReadUInt32(record), ReadUInt32(record + 4) });
     }
     return true;
+}
+
+UploadedSpecialization SpecializationOf(std::vector<KnownEntry> const& upload)
+{
+    UploadedSpecialization uploaded;
+    std::vector<AscensionCompatData::CoATalentEntry const*> chosen;
+    for (KnownEntry const& item : upload)
+    {
+        AscensionCompatData::CoATalentEntry const* entry = item.Rank ? FindEntry(item.EntryId) : nullptr;
+        if (!entry || !entry->SpecId)
+            continue;
+        bool const paid = entry->AECost || entry->TECost || IsSelectableFree(entry->EntryId);
+        if (!paid && !IsIdentity(entry->EntryId))
+            continue;
+        if (uploaded.SpecId && uploaded.SpecId != entry->SpecId)
+            uploaded.Mixed = true;
+        else
+            uploaded.SpecId = entry->SpecId;
+        if (paid)
+            chosen.push_back(entry);
+    }
+
+    AscensionCompatData::CoASpecialization const* signature = nullptr;
+    for (AscensionCompatData::CoASpecialization const& specialization : AscensionCompatData::CoASpecializations)
+        if (specialization.SpecId == uploaded.SpecId)
+            signature = &specialization;
+    uploaded.ChoosesTalents = std::any_of(chosen.begin(), chosen.end(),
+        [signature](AscensionCompatData::CoATalentEntry const* entry)
+        {
+            return !signature || entry->EntryId != signature->SignatureEntryId;
+        });
+    return uploaded;
+}
+
+std::vector<KnownEntry> SpecializationSwitch(std::uint8_t classId, HasSpell const& hasSpell, std::uint32_t specId)
+{
+    std::vector<KnownEntry> upload;
+    for (KnownEntry const& known : KnownEntries(classId, hasSpell))
+        if (AscensionCompatData::CoATalentEntry const* entry = FindEntry(known.EntryId); entry && !entry->SpecId)
+            upload.push_back(known);
+
+    for (AscensionCompatData::CoASpecialization const& specialization : AscensionCompatData::CoASpecializations)
+    {
+        if (specialization.SpecId != specId || specialization.ClassId != classId)
+            continue;
+        upload.push_back({ specialization.IdentityEntryId, 1 });
+        if (specialization.SignatureEntryId && specialization.SignatureEntryId != specialization.IdentityEntryId &&
+            std::none_of(upload.begin(), upload.end(),
+                [&specialization](KnownEntry const& item) { return item.EntryId == specialization.SignatureEntryId; }))
+            upload.push_back({ specialization.SignatureEntryId, 1 });
+        break;
+    }
+    return upload;
 }
 }

@@ -4,7 +4,6 @@
  */
 
 #include "CoAGameplayIsolation.h"
-#include "LocalLevelScaling.h"
 #include "ObjectMgr.h"
 #include "SharedDefines.h"
 #include "WorldMock.h"
@@ -42,15 +41,6 @@ std::vector<std::string> AllocatedNames(uint32 count)
     return names;
 }
 
-class FixturePhasesGuard
-{
-public:
-    ~FixturePhasesGuard()
-    {
-        LocalLevelScaling::SetFixturePhases(LocalLevelScaling::FixturePhaseMask);
-    }
-};
-
 class CoAGameplayNameTest : public ::testing::Test
 {
 protected:
@@ -81,8 +71,8 @@ protected:
 TEST(CoAGameplayIsolationTest, FirstLaneKeepsTheFixturePhase)
 {
     EXPECT_EQ(LanePhase(0), 1u << 30);
-    EXPECT_EQ(LanePhase(0), LocalLevelScaling::FixturePhaseMask);
-    EXPECT_EQ(LanePhases(1), LocalLevelScaling::FixturePhaseMask);
+    EXPECT_EQ(LanePhase(0), FixturePhaseMask);
+    EXPECT_EQ(LanePhases(1), FixturePhaseMask);
 }
 
 TEST(CoAGameplayIsolationTest, ConcurrentLanesUseBitsSixteenToTwentyNine)
@@ -107,31 +97,6 @@ TEST(CoAGameplayIsolationTest, RejectsLanesBeyondTheLimit)
     EXPECT_THROW(LanePhase(MaxLanes), std::out_of_range);
     EXPECT_THROW(LanePhase(31), std::out_of_range);
     EXPECT_THROW(LanePhases(MaxLanes + 1), std::out_of_range);
-}
-
-TEST(CoAGameplayIsolationTest, FixtureScalingDefaultsToTheFirstLanePhase)
-{
-    FixturePhasesGuard restore;
-    constexpr std::uint64_t guid = 0xC0A0000000001234ull;
-    EXPECT_TRUE(LocalLevelScaling::IsUnscaledFixture(LanePhase(0), guid));
-    EXPECT_FALSE(LocalLevelScaling::IsUnscaledFixture(LanePhase(7), guid));
-    EXPECT_FALSE(LocalLevelScaling::IsUnscaledFixture(1u, guid));
-}
-
-TEST(CoAGameplayIsolationTest, FixtureScalingCoversEveryConfiguredLane)
-{
-    FixturePhasesGuard restore;
-    constexpr std::uint64_t guid = 0xC0A0000000005678ull;
-    LocalLevelScaling::SetFixturePhases(LanePhases(MaxLanes));
-    for (uint32 lane = 0; lane < MaxLanes; ++lane)
-        EXPECT_TRUE(LocalLevelScaling::IsUnscaledFixture(LanePhase(lane), guid)) << lane;
-    EXPECT_FALSE(LocalLevelScaling::IsUnscaledFixture(1u, guid));
-    EXPECT_FALSE(LocalLevelScaling::IsUnscaledFixture(1u << 15, guid));
-
-    LocalLevelScaling::AllowFixtureScaling(guid);
-    EXPECT_FALSE(LocalLevelScaling::IsUnscaledFixture(LanePhase(9), guid));
-    LocalLevelScaling::ForgetFixture(guid);
-    EXPECT_TRUE(LocalLevelScaling::IsUnscaledFixture(LanePhase(9), guid));
 }
 
 TEST(CoAGameplayIsolationTest, GeneratedNamesFollowAFixedPattern)

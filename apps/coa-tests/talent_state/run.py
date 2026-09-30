@@ -1,7 +1,8 @@
 CLI_DESCRIPTION = """Check the CoA talent budget table and the spellbook-derived talent state without a server.
 
 Compiles the module's talent catalog loader and talent state code against the client DBC set the server loads
-(--dbc-dir), then checks the essence budgets, rank derivation, point accounting and the known-entries wire form.
+(--dbc-dir), then checks the essence budgets, rank derivation, point accounting, the known-entries wire form and
+the specialization a known-entries upload selects.
 No database, server build or game client is needed.
 """
 
@@ -23,6 +24,7 @@ MAIN = r"""
 #include "AscensionCoATalentData.h"
 #include "AscensionCoATalentState.h"
 #include "DBCStores.h"
+#include <algorithm>
 #include <cstdio>
 #include <set>
 
@@ -155,6 +157,77 @@ int main(int, char** argv)
     met.push_back({ 30465, 1 });
     violations = LayoutViolations(met);
     Check(violations.size() == 1 && violations[0] == 30465, "both options of a choice node flag the later one");
+
+    std::set<std::uint8_t> specializedClasses;
+    for (CoATalentEntry const& entry : CoATalentEntries)
+        if (entry.SpecId)
+            specializedClasses.insert(entry.ClassId);
+    std::set<std::uint8_t> identifiedClasses;
+    bool identitiesBelong = !CoASpecializations.empty();
+    bool switchesDetected = true;
+    for (CoASpecialization const& specialization : CoASpecializations)
+    {
+        identifiedClasses.insert(specialization.ClassId);
+        CoATalentEntry const* identity = Find(specialization.IdentityEntryId);
+        identitiesBelong = identitiesBelong && identity && identity->ClassId == specialization.ClassId &&
+            identity->SpecId == specialization.SpecId;
+        UploadedSpecialization const uploaded = SpecializationOf(
+            SpecializationSwitch(specialization.ClassId, [](std::uint32_t) { return false; }, specialization.SpecId));
+        switchesDetected = switchesDetected && uploaded.SpecId == specialization.SpecId && !uploaded.Mixed &&
+            !uploaded.ChoosesTalents;
+    }
+    Check(identitiesBelong,
+          "every specialization identity entry is a catalog entry of its own class and specialization");
+    Check(identifiedClasses == specializedClasses, "every class with specialization talents has identity entries");
+    Check(switchesDetected,
+          "a switch upload names exactly the specialization it enters and chooses none of its talents");
+
+    CoATalentEntry const* classTalent = spec ? FirstPaid(spec->ClassId, true) : nullptr;
+    std::vector<CoASpecialization> specializations;
+    for (CoASpecialization const& specialization : CoASpecializations)
+        if (classTalent && specialization.ClassId == classTalent->ClassId)
+            specializations.push_back(specialization);
+    Check(classTalent && specializations.size() >= 2, "a class has a paid class talent and two specializations");
+    if (classTalent && specializations.size() >= 2)
+    {
+        std::set<std::uint32_t> spellbook = { classTalent->SpellIds[0] };
+        HasSpell hasSpell = [&spellbook](std::uint32_t id) { return spellbook.count(id) != 0; };
+        std::vector<KnownEntry> const entering =
+            SpecializationSwitch(classTalent->ClassId, hasSpell, specializations[0].SpecId);
+        Check(std::any_of(entering.begin(), entering.end(),
+                  [classTalent](KnownEntry const& item) { return item.EntryId == classTalent->EntryId; }),
+              "a switch upload keeps the class tree");
+        Check(SpecializationOf({ { classTalent->EntryId, 1 } }).SpecId == 0,
+              "a class-tree upload names no specialization");
+        Check(SpecializationOf({ { specializations[0].IdentityEntryId, 0 } }).SpecId == 0,
+              "an entry at rank 0 names no specialization");
+        Check(SpecializationOf({ { specializations[0].IdentityEntryId, 1 },
+                  { specializations[1].IdentityEntryId, 1 } }).Mixed,
+              "entries of two specializations are a mixed upload");
+
+        CoATalentEntry const* chosen = nullptr;
+        CoATalentEntry const* automatic = nullptr;
+        for (CoATalentEntry const& entry : CoATalentEntries)
+        {
+            if (entry.SpecId != specializations[0].SpecId)
+                continue;
+            if (!chosen && (entry.AECost || entry.TECost) && entry.EntryId != specializations[0].SignatureEntryId)
+                chosen = &entry;
+            if (!automatic && !entry.AECost && !entry.TECost && entry.EntryId != specializations[0].IdentityEntryId)
+                automatic = &entry;
+        }
+        Check(chosen && automatic, "the specialization has a paid talent and an automatic entry");
+        if (chosen && automatic)
+        {
+            UploadedSpecialization const picked = SpecializationOf({ { chosen->EntryId, 1 } });
+            Check(picked.SpecId == specializations[0].SpecId && picked.ChoosesTalents,
+                  "a paid specialization talent names its specialization and chooses a talent");
+            Check(SpecializationOf({ { automatic->EntryId, 1 } }).SpecId == 0,
+                  "an automatic entry other than the identity names no specialization");
+            Check(!SpecializationOf({ { automatic->EntryId, 1 }, { specializations[1].IdentityEntryId, 1 } }).Mixed,
+                  "an automatic entry of another specialization does not mix the upload");
+        }
+    }
 
     return failures ? 1 : 0;
 }

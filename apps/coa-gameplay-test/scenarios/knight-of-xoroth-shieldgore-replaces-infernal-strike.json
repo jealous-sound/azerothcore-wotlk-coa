@@ -22,7 +22,7 @@
   ],
   "steps": [
     { "action": "wait", "label": "Let login hooks and class synchronisation settle", "ms": 5000 },
-    { "action": "command", "label": "Choose Defiance", "actor": "knight", "command": ".localspec 17" },
+    { "action": "specialization", "label": "Choose Defiance", "actor": "knight", "id": 17 },
     { "action": "learn", "actor": "knight", "spell": 801016 },
     { "action": "learn", "label": "Pick the Shieldgore talent", "actor": "knight", "spell": 301302 },
     { "action": "wait", "ms": 1000 },

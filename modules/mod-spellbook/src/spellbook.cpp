@@ -488,7 +488,7 @@ namespace
     /// Learns everything the window currently offers as available. This is the book's
     /// "catch me up" action, so a character who fell behind does not have to click through
     /// eighty rows after a fix or a level cap change.
-    uint32 LearnEverythingAvailable(Player *player)
+    uint32 LearnEverythingAvailable(Player *player, Creature *book)
     {
         uint32 learned = 0;
         for (Row const &row : BuildRows(player))
@@ -501,6 +501,8 @@ namespace
             SpellbookNotify::Push(player, row.SpellId);
 
             player->learnSpell(row.SpellId, false);
+            if (player->HasSpell(row.SpellId))
+                sScriptMgr->OnPlayerLearnTrainerSpell(player, book, row.SpellId);
             ++learned;
         }
 
@@ -616,6 +618,8 @@ namespace
         WorldPacket succeeded(SMSG_TRAINER_BUY_SUCCEEDED);
         succeeded << book->GetGUID() << uint32(wanted);
         player->SendDirectMessage(&succeeded);
+        if (player->HasSpell(wanted))
+            sScriptMgr->OnPlayerLearnTrainerSpell(player, book, wanted);
 
         // The row set belongs to the server, so the window on screen is stale the moment this is
         // learned: the rank just bought has to turn "used" and the rank above it has to turn
@@ -687,7 +691,7 @@ namespace
                 !Enabled() || !IsAscensionClass(player->getClass()))
                 return true;
 
-            uint32 const learned = LearnEverythingAvailable(player);
+            uint32 const learned = LearnEverythingAvailable(player, book);
             if (learned)
             {
                 ChatHandler(player->GetSession())

@@ -4,7 +4,6 @@
  */
 
 #include "CoAGameplayIsolation.h"
-#include "LocalLevelScaling.h"
 #include "Util.h"
 #include "utf8.h"
 #include <stdexcept>
@@ -14,7 +13,7 @@ namespace CoAGameplay
     namespace
     {
         constexpr uint32 LastConcurrentLanePhase = 1u << (FirstConcurrentLaneBit + MaxLanes - 2);
-        static_assert(LastConcurrentLanePhase < LocalLevelScaling::FixturePhaseMask);
+        static_assert(LastConcurrentLanePhase < FixturePhaseMask);
 
         constexpr std::string_view LegacyNameStem = "Harness";
         constexpr char FirstLegacyActor = 'a';
@@ -83,7 +82,7 @@ namespace CoAGameplay
             throw std::out_of_range("Gameplay lane " + std::to_string(lane) + " is outside 0.." +
                 std::to_string(MaxLanes - 1));
         if (lane == 0)
-            return LocalLevelScaling::FixturePhaseMask;
+            return FixturePhaseMask;
         return 1u << (FirstConcurrentLaneBit + lane - 1);
     }
 

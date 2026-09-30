@@ -9,8 +9,11 @@
   "steps": [
     { "action": "wait", "label": "Let login hooks and class synchronisation settle", "ms": 5000 },
     { "action": "learn", "label": "Blood Curse fixture: level grants are not auto-learned", "actor": "bloodmage", "spell": 562720 },
-    { "action": "command", "label": "Choose Eternal", "actor": "bloodmage", "command": ".localspec 99" },
-    { "action": "command", "label": "Choose the class talent Blood Pact", "actor": "bloodmage", "command": ".localtalent 31117 1" },
+    { "action": "specialization", "label": "Choose Eternal", "actor": "bloodmage", "id": 99 },
+    {
+      "action": "advancement_rank", "label": "Choose the class talent Blood Pact", "actor": "bloodmage",
+      "entry": 31117, "rank": 1
+    },
     {
       "action": "assert", "label": "SETUP: Blood Pact is owned", "actor": "bloodmage",
       "metric": "knows_spell", "spell": 801955, "equals": 1, "within_ms": 3000
@@ -31,7 +34,10 @@
       "action": "assert", "label": "Rotclaw is a paid talent, not granted with the specialization", "actor": "bloodmage",
       "metric": "knows_spell", "spell": 804197, "equals": 0
     },
-    { "action": "command", "label": "Spend the specialization point on Rotclaw", "actor": "bloodmage", "command": ".localtalent 30191 1" },
+    {
+      "action": "advancement_rank", "label": "Spend the specialization point on Rotclaw", "actor": "bloodmage",
+      "entry": 30191, "rank": 1
+    },
     {
       "action": "assert", "label": "The specialization point buys Rotclaw", "actor": "bloodmage",
       "metric": "knows_spell", "spell": 804197, "equals": 1, "within_ms": 3000

@@ -288,7 +288,8 @@ POLICY = {'schema': 1, 'exclusive': {'alpha': 'The fake worldserver treats alpha
 DEFAULT_DATABASES = {'LoginDatabase.WorkerThreads': '1', 'CharacterDatabase.WorkerThreads': '1',
                      'LoginDatabase.TransactionIsolation': '', 'CharacterDatabase.TransactionIsolation': '',
                      'WorldDatabase.TransactionIsolation': ''}
-SHIPPED_EXCLUSIVE = {'bloodforged-high-risk-drop', 'who-custom-classes', 'who-hides-bots', 'who-lists-bots'}
+SHIPPED_EXCLUSIVE = {'bloodforged-high-risk-drop', 'coa-prestige-chromie-spawns', 'who-custom-classes',
+                     'who-hides-bots', 'who-lists-bots'}
 UTC_EVENING = datetime(2026, 9, 24, 22, 40, tzinfo=timezone.utc)
 
 

@@ -38,6 +38,8 @@ enum RunemasterSecondarySpells : uint32
     SPELL_ARCANE_SIGIL = 805380,
     SPELL_ARCANE_SIGIL_DOT = 807819,
     SPELL_ARCANE_SIGIL_SILENCE = 808020,
+    SPELL_ETERNAL_MAGIC = 806698,
+    SPELL_ETERNAL_MAGIC_CHARGES = 3,
     SPELL_FIRE_ENGRAVING = 653211,
     SPELL_FIREBRAND = 653210
 };
@@ -145,7 +147,8 @@ public:
             if (root == SPELL_PRIMORDIAL_BLAST || root == SPELL_SMOLDER)
             {
                 if (uint32 rank = KnownRank(player, SPELL_RUNEBLADE))
-                    player->RestoreSpellCharge(rank);
+                    player->RestoreSpellCharge(rank, root == SPELL_PRIMORDIAL_BLAST &&
+                        player->HasAura(SPELL_ETERNAL_MAGIC, player->GetGUID()) ? SPELL_ETERNAL_MAGIC_CHARGES : 1);
             }
             else if (root == SPELL_RUNEBLADE)
             {

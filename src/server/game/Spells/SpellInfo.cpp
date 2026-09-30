@@ -2969,7 +2969,8 @@ uint32 SpellInfo::CalcCastTime(Unit* caster, Spell* spell) const
         return 0;
 
     int32 castTime = serpent ? 1000 : CastTimeEntry->CastTime;
-    if (HasAttribute(SPELL_ATTR0_USES_RANGED_SLOT) && (!IsAutoRepeatRangedSpell()))
+    // Ascension channels ranged-slot spells without a base cast time, such as Tinker's Gatling Gun, at once.
+    if (HasAttribute(SPELL_ATTR0_USES_RANGED_SLOT) && (!IsAutoRepeatRangedSpell()) && (castTime || !IsChanneled()))
         castTime += 500;
 
     if (caster)

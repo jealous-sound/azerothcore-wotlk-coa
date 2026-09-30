@@ -9,10 +9,8 @@
 #  characters can fight the same one at two different levels while everybody else sees it authored.
 #  Quest levels and the tuning of what a scaled quest pays are per character as well.
 #
-#  The realm-wide lift in CoA (CoA.LevelScaling) is a different model - it
-#  raises the creature object itself, which every client is told about - so it stands aside while this
-#  module owns the answer (see CreatureScalingOwnedPerViewer in LocalLevelScaling.h). Its configuration
-#  is left as it is, and it takes over again when DestinyWeaver.LevelScaling is set to 0.
+#  This module is the only open-world creature scaling: with it or its scaling service switched off,
+#  every creature keeps its authored level.
 #
 #  This code is part of the AzerothCore project. See AUTHORS file for Copyright information.
 ###################################################################################################
@@ -27,7 +25,7 @@ DestinyWeaver.Enable = 1
 #        Description: Whether the scaling service exists at all - open-world creature scaling and
 #                     quest scaling together. 0 leaves the choice in the menu without effect: every
 #                     creature is met at its authored level and every quest plays at its authored
-#                     level, and the realm-wide lift in CoA is handed back.
+#                     level.
 #        Default:     1 - (Enabled)
 #                     0 - (Disabled)
 #        Reloadable:  yes (.reload config)
@@ -45,14 +43,10 @@ DestinyWeaver.LevelScaling.Default = 1
 #    DestinyWeaver.Scaling.Offset
 #        Description: How far below the character a scaled creature sits. A level 40 character pulls
 #                     creatures up to level 37 with the default, so the world stays a step behind.
-#                     One definition for both models: the per-character view and the realm-wide lift
-#                     read the same offset.
+#                     There is no ceiling on the lift: a view is delivered to one client, so there is
+#                     nobody else for a high view to be wrong for.
 #        Default:     3
 #        Reloadable:  yes (.reload config)
-#
-#        The ceiling on how far a creature may be lifted belongs to the realm-wide path
-#        (CoA.LevelScalingMaxLift in coa.conf) and is not applied here: a
-#        view is delivered to one client, so there is nobody else for a high view to be wrong for.
 
 DestinyWeaver.Scaling.Offset = 3
 

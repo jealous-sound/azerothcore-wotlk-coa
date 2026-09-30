@@ -32,12 +32,14 @@ enum BloodmageTalentSpells : uint32
     SPELL_BLOODMOON_POWER = 801961,
     SPELL_ETERNAL_CURSE = 800157,
     SPELL_ETERNAL_CURSE_ARMOR = 804320,
+    SPELL_ETERNAL_CURSE_TANK_STANCE = 807736,
     SPELL_BLOOD_SHIELD = 504296,
     SPELL_COAGULATION_DISPEL = 504102,
     SPELL_DARK_MARK = 705731,
     SPELL_DARK_MARK_AURA = 707375,
     SPELL_TERRORIZER = 806210,
     SPELL_ENDURING = 300585,
+    SPELL_CLOTTING = 704115,
     SPELL_ADRENALINE_BOOST = 680675,
     SPELL_BLOOD_PLAGUE = 575335,
     SPELL_APPETITE_FOR_BLOOD = 560479,
@@ -178,6 +180,9 @@ void ApplyBloodmageConditionalContracts(SpellInfo* info)
         case SPELL_ENDURING:
             scoped(EFFECT_0, ASCENSION_CLASSMASK_AURASTATE_DAMAGE, SPELL_AURA_MOD_DAMAGE_DONE_VERSUS_AURASTATE);
             break;
+        case SPELL_CLOTTING:
+            scoped(EFFECT_1, ASCENSION_CLASSMASK_AURASTATE_DAMAGE, SPELL_AURA_MOD_DAMAGE_DONE_VERSUS_AURASTATE);
+            break;
         case SPELL_APPETITE_FOR_BLOOD:
             scoped(EFFECT_0, RAW_CREATURE_DAMAGE, SPELL_AURA_MOD_DAMAGE_DONE_VERSUS);
             break;
@@ -249,7 +254,10 @@ public:
         if (IsCursedForm(aura->GetId()))
             UpdateCursedFormWeapons(player, true);
         if (aura->GetId() == SPELL_ETERNAL_CURSE)
+        {
             player->CastSpell(player, SPELL_ETERNAL_CURSE_ARMOR, true);
+            player->CastSpell(player, SPELL_ETERNAL_CURSE_TANK_STANCE, true);
+        }
         if (aura->GetId() == SPELL_DARK_MARK)
             player->CastSpell(player, SPELL_DARK_MARK_AURA, true);
         if (IsCursedForm(aura->GetId()) && aura->GetCasterGUID() == player->GetGUID() &&
@@ -277,7 +285,10 @@ public:
         if (IsCursedForm(aura->GetId()) && !HasCursedForm(player, aura))
             UpdateCursedFormWeapons(player, false);
         if (aura->GetId() == SPELL_ETERNAL_CURSE)
+        {
             player->RemoveAurasDueToSpell(SPELL_ETERNAL_CURSE_ARMOR);
+            player->RemoveAurasDueToSpell(SPELL_ETERNAL_CURSE_TANK_STANCE);
+        }
         if (aura->GetId() == SPELL_DARK_MARK)
             player->RemoveAurasDueToSpell(SPELL_DARK_MARK_AURA, player->GetGUID());
         if (!player->IsAlive() || !player->IsInWorld() || mode == AURA_REMOVE_BY_DEATH)
@@ -532,6 +543,27 @@ class aura_ascension_bloodmage_coagulation : public AuraScript
     }
 };
 
+constexpr uint32 TaldaramsTormentEnergizeRage = 30;
+
+class aura_ascension_bloodmage_taldarams_torment : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_bloodmage_taldarams_torment);
+
+    void Tick(AuraEffect const*)
+    {
+        Unit* caster = GetCaster();
+        if (!caster)
+            return;
+        caster->EnergizeBySpell(caster, GetId(), TaldaramsTormentEnergizeRage, POWER_RAGE);
+    }
+
+    void Register() override
+    {
+        OnEffectPeriodic += AuraEffectPeriodicFn(aura_ascension_bloodmage_taldarams_torment::Tick,
+            EFFECT_0, SPELL_AURA_PERIODIC_DAMAGE);
+    }
+};
+
 class aura_ascension_bloodmage_forbidden_power : public AuraScript
 {
     PrepareAuraScript(aura_ascension_bloodmage_forbidden_power);
@@ -659,6 +691,7 @@ void AddSC_AscensionBloodmageTalents()
     RegisterSpellScript(spell_ascension_animated_blood);
     RegisterSpellScript(aura_ascension_bloodmage_crimson_feast);
     RegisterSpellScript(aura_ascension_bloodmage_coagulation);
+    RegisterSpellScript(aura_ascension_bloodmage_taldarams_torment);
     RegisterSpellScript(aura_ascension_bloodmage_forbidden_power);
     RegisterSpellScript(aura_ascension_bloodmage_dark_sigil);
     RegisterSpellScript(aura_ascension_bloodmage_thick_pelt);
