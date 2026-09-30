@@ -31,8 +31,14 @@ Magmadar's room; summons and buffs Shadow of Lucifron (12268) a few seconds afte
 two head creatures (80642/80643) with a working ground-fire puddle; and fixes the raid schedule's event
 clock so it keeps advancing while a boss briefly has no victim. A 32-run probe campaign also disproved
 several suspected "tier split" defects (Sulfuron, Golemagg, Lucifron, Gehennas resolve their scheduled spell
-ids through `SpellDifficulty.dbc` at cast time) — see [Verification](#verification). What is *not* restored,
-and why, is in [§8](#8-known-gaps--needs-decision).
+ids through `SpellDifficulty.dbc` at cast time) — see [Verification](#verification).
+
+A follow-up pass, driven by a 54-log combat-log corpus (see [Evidence: live combat logs](#evidence-live-combat-logs)),
+adds three CoA-only encounter pieces the export only ever had as level-1/health-1 placeholder stubs: Ragnaros's
+Son of Flame merge chain (Lesser → Son → Greater → Unstable, 12143/92026/92027/92028), Sulfuron's four
+disciples (Corvus the Nimble plus three newly named adds on Mythic/Ascended), and
+Majordomo's Sacrificial Chains add (92030). All three were confirmed in-game this session — see `verify-ABC.md`
+under [Verification](#verification). What is *not* restored, and why, is in [§8](#8-known-gaps--needs-decision).
 
 ## 2. Access
 
@@ -52,6 +58,18 @@ and why, is in [§8](#8-known-gaps--needs-decision).
 Evidence tags: **measured** (our own 42-log/89-pull corpus behind `coa_boss_schedule`, or a probe campaign run
 this session), **exiles-kit** (CoA database export, db.exil.es, 2026-09-13), **dbm** (DBM-MC, Zidras/DBM-Warmane),
 **snit-wa** (Snit's WeakAuras), **designed** (chosen without direct evidence, flagged as such).
+
+### Evidence: live combat logs
+
+A separate corpus backs the three CoA-only adds below: 54 combat logs (~10M records, 0 unparsed) run through
+the user's own combat-log parser (generic log-to-structured-dataset tool: fights/casts/auras/damage per pull,
+joined by creature entry and inferred difficulty). Coverage is uneven: Ragnaros 33 pulls (mostly wipes),
+Lesser/Son of Flame 40N+72A/16N+28A, Sacrificial Chains 48/49 Majordomo pulls, Sulfuron's disciples 3
+Mythic/Ascended pulls only, zero Normal/Heroic Sulfuron or Majordomo pulls. Gaps: no difficulty offset
+survives in recorded GUIDs (difficulty is inferred, not read); no coordinates, so proximity mechanics (merge
+range, summon placement) are timing-only; several adds (disciples, Sacrificial Chains, the "Hidden" cluster)
+show 0 counted casts — only aura/health/damage-taken events are reliable for them. Full stats:
+`logs/coverage.md`, `logs/mc-summary.md` (gitignored, `.agents/plans/mc-restoration/`).
 
 ### Lucifron (12118)
 
@@ -190,6 +208,19 @@ every difficulty, just as 350090/350108 on d2/d3 instead of the schedule's liter
 names via Spell.dbc, same cadence) — no DBC row actually links the two id pairs, so the schedule table's id
 column is simply not representative for those two tiers; see [Verification](#verification).
 
+**Sulfuron's four disciples.** The corpus's three Mythic/Ascended Sulfuron pulls each show exactly four
+adds: Corvus the Nimble (11662) plus three previously-unimplemented, CoA-named disciples — Cull the Destroyer
+(92031), Proxima the Opressor (92032), Ebon the Cruel (92033) — sharing one video health reading (6.5M/23p).
+No Normal/Heroic pull exists, so Corvus keeps his stock four-spawn kit there; on Mythic/Ascended, three of
+his four spawns are now replaced by the named disciples (`coa_boss_summon`, widened this session to
+"replace the nearest live creature of a given entry" alongside plain summon-and-buff). Each disciple runs a
+dummy→real-effect curse/self-heal pair read from `Spell.dbc`: Cull = Curse of Gehennas + Cauterize (real
+heal), Proxima = Dampen Magic + Arcane Instability (Shazzrah's own measured cadences), Ebon = Curse of
+Lucifron + Dark Mending (real heal); all three also carry a Shadow Bolt with no matching "- Damage Info"
+family, so it still deals DBC placeholder damage. Confirmed in-game (`verify-ABC.md`): d0 spawns the
+unchanged 4-Corvus quad, d2 spawns 1 Corvus + the three disciples, all casting over a 90s window. Cadences
+are designed (every log entry reads `casts: 0`); Rapid Regeneration (804315) is left unwired, never observed.
+
 ### Golemagg the Incinerator (11988)
 
 | | Reality | Before | After | Evidence | Open question |
@@ -220,6 +251,18 @@ would run; reported, not fixed.
 Health: `hp_d0..d3` 890,963/1,187,950/1,787,968/2,606,980 — no CoA/BB video reading of his own; the prior
 Golemagg-derived row is kept but rescaled by K=1.3645 like Golemagg itself (§5).
 
+**Sacrificial Chains (92030).** Present in 48 of the corpus's 49 Majordomo pulls (Heroic 6, Mythic 8,
+Ascended 34) and no other boss's fights — Majordomo is the summoner. Median first spawn +29s after pull,
+repeat cycle ~47-50s, each instance surviving ~10-24s to raid damage before dying. Wired via a small,
+comment-tagged addition to inherited `boss_majordomo_executus.cpp` (one event, one summon call) plus a new
+`npc_sacrificial_chains_coa.cpp`: on spawn it self-casts Sacrifice (2108020, measured); every 20s [designed,
+from kill-time clustering] it heals to full and re-casts Sacrifice rank 2 (2108023, measured), escalating to
+Berserk (2100213, measured id, rare — 1/56 aura instances) on the second loop. Health: measured per-player
+kills (Heroic 11,501, Mythic 19,553, Ascended 32,147 averaged); Normal has no pull and uses the same
+Heroic×0.750 convention as other unmeasured rows. Confirmed in-game (`verify-ABC.md`): the chain spawns on
+schedule and the heal/Renew loop fires as coded; Berserk and the spawn-time Sacrifice cast were not
+independently observed within the test window (test-observability gaps, not script defects).
+
 ### Ragnaros (11502)
 
 | | Reality | Before | After | Evidence | Open question |
@@ -233,6 +276,21 @@ Golemagg-derived row is kept but rescaled by K=1.3645 like Golemagg itself (§5)
 Health: `hp_d0..d3` 2,394,118/3,192,157/4,747,960/7,058,824 — d0 and d3 are both direct CoA video readings
 (Normal and Ascended); d1/d2 follow his own prior d1/d0, d2/d0 ratios anchored on the new d0. He starts the
 fight at 50% of this pool (`boss_ragnaros.cpp`, both realms' videos agree) — see §5.
+
+**Son of Flame merge chain.** Confirmed on both Normal and Ascended: Lesser Son of Flame (12143, 40N+72A)
+→ Son of Flame (92026, 16N+28A) → Greater Son of Flame (92027, 5N+9A) → Unstable Son of Flame (92028, 1 pull
+only). Every transition's same-tier pair dies within 0-0.3s of the next tier's first appearance (n=64/15/1)
+— timing only, the corpus has no coordinates. Implemented in a new `npc_son_of_flame_coa.cpp`: same-tier
+adds within 5 yd for 1.5s merge at their midpoint [designed range/hold]. Kit: Fire Strike/Fierce Fire Strike
+(2108704/2108705, the only counted casts at every tier) as a repeating melee alternation; Magma Strike
+(Son+)/Cone of Fire (Greater+) are logged only as auras applied, so they fire once on engagement rather than
+on a guessed timer. Health: Son (147,059/player) and Greater (229,412/player) are direct CoA-video Ascended
+readings, trash-ratio-derived for d0-d2; Unstable has no reading at all — its d2 figure (2,434,084/player,
+24.3M at 10 players) comes from the single unkilled pull's damage-taken lower bound (2,200,559 @ 15p) × the
+family's 1.365 coefficient, about 13× the Greater's own figure — `[low confidence]`, the weakest number in
+this migration. Confirmed in-game (`verify-ABC.md`): all three merges fire correctly in a clean single-pull
+session (~1-2s / ~1-5s / ~12-16s), each despawning both parents and spawning exactly one of the next tier at
+the expected health. Unstable's "Unstable Flames" finisher (2108749) is not wired — no trigger in evidence.
 
 ## 4. Trash
 
@@ -447,17 +505,13 @@ never drops them; their Mythic rows (10% and 9.1%) are kept.
 18. **Magmadar's CoA/BB health-coefficient outlier: accepted.** Every other boss with both readings lands the
     CoA/BB ratio at 3.30-3.32; Magmadar's pair gives 3.14. He has his own CoA reading, so no coefficient is used
     for him, and the user accepted the difference (the scale is right).
-19. **CoA-only adds missing from this fork: waiting for the combat-log parser.** Cull the Destroyer, "Proxima
-    the Opressor" (the player's notes say "Proximus") and Ebon the Cruel (export ids 92031-92033), "Son of Flame"
-    and "Greater Son of Flame" (92026/92027) and Sacrificial Chains (92030) exist in the db.exil.es export only as
-    placeholder stubs; none has a `creature_template` row here. Their health readings are kept in
-    `.agents/plans/mc-restoration/hp/hp-pools.md`. What a CoA player recalls, to be confirmed from live logs once
-    the parser exists:
-    - Sulfuron's adds wore the Flamewaker Elite skin (Majordomo's adds) and each had its own mechanics.
-    - Ragnaros's phase adds merged when left together: 2 Lesser Son of Flame -> 1 Son of Flame, 2 Son -> 1
-      Greater Son of Flame, 2 Greater -> 1 larger add whose name is not remembered (a kill check: a fully merged
-      add took too long to kill).
-    Nothing is built for them until the logs give their kits, timings and merge rules.
+19. **CoA-only adds: implemented, per the combat-log corpus, except what remains below.** Cull the
+    Destroyer, Proxima the Opressor and Ebon the Cruel (92031-92033) are now Sulfuron's other three
+    disciples; Son of Flame and Greater Son of Flame (92026/92027) and Unstable Son of Flame (92028, the
+    previously unnamed "larger add") complete Ragnaros's merge chain; Sacrificial Chains (92030) is
+    Majordomo's. The player's "Flamewaker Elite skin" recollection for Sulfuron's adds is contradicted by the
+    export's own model (display 12030, the plain Flamewaker skin) and not used. Remaining loose ends from
+    this pass are items 22-28 below.
 20. **Ragnaros's own health-design scale factor (~x2.85-2.86) differs from the rest of the boss family's
     (~x1.365).** Both are internally consistent with the two anchor points (his prior design vs. his own direct
     CoA readings at Normal and Ascended), but no explanation was sought beyond the base flex table's existing
@@ -467,6 +521,24 @@ never drops them; their Mythic rows (10% and 9.1%) are kept.
     Confirmed instead by direct `coa_boss_flex` database inspection on slot 3 after deploy and a clean
     worldserver start/load; see `hp-pools.md`'s Verification section for why (no working GM credential for a
     SOAP/console check in this session) and what a follow-up should check.
+22. **Unstable Son of Flame's health (24.3M at Mythic ×10, §3) is a damage-lower-bound extrapolation, not a
+    reading** — 13× the Greater's own measured figure, plausible but unconfirmed; its finisher (2108749) is
+    unwired with no trigger evidence.
+23. **Merge distance/hold (5 yd/1.5s) and the disciples' six cast cadences are designed**, not measured — no
+    coordinates exist in the corpus for the former, and every disciple/Sacrificial Chains cast shows
+    `casts: 0` (aura-application counts only); cadences borrow the closest measured sibling kit instead.
+24. **Sulfuron disciples' Shadow Bolt and Sacrificial Chains' heal/Berserk loop are both designed/placeholder
+    for the same reason as items 16/23**: no "- Damage Info" family exists for the Shadow Bolt ids, and the
+    chain shows 0 direct casts in every log.
+25. **Ragnaros's "Hidden" emerge cluster (2108622-2108661, incl. 2108631 "Emerge - Hidden - Knockback") is
+    not implemented** — the likely real submerge/emerge and add-phase machinery, but no cast from either
+    Ragnaros GUID (11502/11503) matches it in the corpus; only Fire Strike (2108601/02) is ever seen.
+26. **No Normal/Heroic Sulfuron or Majordomo pull exists in the corpus**; their new adds are wired for every
+    difficulty on the Mythic/Ascended evidence plus this doc's general no-reason-to-gate reasoning, unconfirmed
+    for those two tiers.
+27. **Batches A-C's in-game verification (`verify-ABC.md`) is probe/Ghost-only** — the merge chain, disciple
+    composition and Sacrificial Chains loop are confirmed there, but no full in-client MC clear has exercised
+    any of the three additions.
 
 ## Verification
 
@@ -522,3 +594,11 @@ and had to be made combat-aware; bots stay alive (not ghosts) through the pull s
 flowing; loot is requested only after the corpse position is confirmed within loot distance, though the
 gate still blocks a run whose boss ends up out of range at kill time (several runs per campaign, a
 harness limitation, not a boss defect).
+
+**`verify-ABC.md`** (slot 3 @ `a5286fa45`, Ghost e2e): Sulfuron disciples confirmed (d0 unchanged 4-Corvus
+quad, d2 = 1 Corvus + Cull/Proxima/Ebon casting over 90s); Sacrificial Chains confirmed (spawns on
+Majordomo's 29s/47s schedule, heal/Renew loop fires — Berserk and spawn-time Sacrifice not independently
+captured, a test-observability gap); Son of Flame chain confirmed (all three merges fire correctly in a
+clean single-pull session at the expected health; a Ghost-harness artifact, not a server defect, suppressed
+combat on a chained multi-tier session's 2nd/3rd pull). No repository bugs found; the one bug found
+(Majordomo-pull facing) was in the throwaway test, fixed in the scratchpad, not committed.
