@@ -1,0 +1,451 @@
+# Molten Core restoration — state of play
+
+This documents the actual state of Molten Core (map 409) on CoA after `feat/mc-restoration`, and what the
+branch changed. As with the other `docs/coa/` write-ups, this describes the real state, never the wished one:
+every row below is tagged with the evidence it rests on, and every open point is left open rather than guessed.
+
+## 1. Summary
+
+Molten Core ships with four difficulties — Normal, Heroic, Mythic and Ascended — using CoA's usual
+`entry`/`entry+100000`/`entry+200000`/`entry+300000` variant scheme, flexed for 10–25 players. Before this
+branch, the raid was in a materially broken state:
+
+- Loot, health and access rules were not CoA's own values on any difficulty.
+- Two competing AI systems existed for the seven `coa_boss_ai`-driven bosses (Lucifron, Gehennas, Garr,
+  Shazzrah, Baron Geddon, Sulfuron, Golemagg): a hand-written AzerothCore script per boss (dead code, since
+  `coa_boss_ai`'s `ScriptName` wins resolution) and the data-driven `coa_boss_schedule`. Twelve SmartAI trash
+  types had ability rows only for their base (Normal) entry, with none for their `+100000/200000/300000`
+  variants — they lost every scripted ability above Normal. Three trash types (Lava Annihilator, Lava
+  Elemental, Lava Reaver) had no AI at all, on any difficulty, despite having a real CoA kit.
+- The "Damage Info" mechanism (a family of per-difficulty aura rows meant to feed a handful of boss spells'
+  damage) had no server-side reader, so those spells dealt their DBC placeholder amount (about 2 damage) on
+  every difficulty.
+- Four trash creatures ran under names that didn't match CoA's, though role/level/rank already lined up.
+
+This branch restores CoA's loot tables, health, and access rules on all four difficulties; wires the Damage
+Info mechanism; completes Lucifron's, Golemagg's, Garr's and Shazzrah's kits within the evidence available;
+retunes Ragnaros's three exclusive-caster spells to CoA's own ids; fixes Garr's Firesworn not respawning on a
+wipe (#5391); replicates trash abilities onto their missing difficulty variants; gives three previously
+silent trash types a kit; renames the four mismatched trash entries; stops Lucifron patrolling into
+Magmadar's room; summons and buffs Shadow of Lucifron (12268) a few seconds after pull; restores Magmadar's
+two head creatures (80642/80643) with a working ground-fire puddle; and fixes the raid schedule's event
+clock so it keeps advancing while a boss briefly has no victim. A 32-run probe campaign also disproved
+several suspected "tier split" defects (Sulfuron, Golemagg, Lucifron, Gehennas resolve their scheduled spell
+ids through `SpellDifficulty.dbc` at cast time) — see [Verification](#verification). What is *not* restored,
+and why, is in [§8](#8-known-gaps--needs-decision).
+
+## 2. Access
+
+- **Level**: 60 on every difficulty (`dungeon_access_template`, all four rows).
+- **Ascended requires Attunement to the Core**: quest 7848 (Alliance) / 7487 (Horde), both given and ended by
+  Lothos Riftwaker (NPC 14387, Blackrock Mountain). Completing either rewards item 666000, the Molten Core
+  Medallion (Binds when picked up, +15 Fire Resistance, tooltip: "Possession of this medallion grants access
+  to the Molten Core."). `dungeon_access_requirements` gates Ascended (difficulty id 124) on the matching quest
+  per faction. Evidence: exiles-kit (quest/item/NPC records) + measured (the branch's own access SQL).
+- Lothos's teleport into Molten Core is gated by the same quest state, consistent with the medallion's own
+  tooltip; no separate teleport-specific gate exists beyond the quest/item pair.
+- The quest reward previously included leveling XP; a CoA client-cache diff shows it retuned to a
+  near-zero-XP "flag" quest at some point — consistent with its role as a gate, not a leveling quest.
+
+## 3. Per boss
+
+Evidence tags: **measured** (our own 42-log/89-pull corpus behind `coa_boss_schedule`, or a probe campaign run
+this session), **exiles-kit** (CoA database export, db.exil.es, 2026-09-13), **dbm** (DBM-MC, Zidras/DBM-Warmane),
+**snit-wa** (Snit's WeakAuras), **designed** (chosen without direct evidence, flagged as such).
+
+### Lucifron (12118)
+
+| | Reality (CoA kit + evidence) | Before this branch | After this branch | Evidence | Open question |
+|---|---|---|---|---|---|
+| Shadow Bolt | 2105212→2105213, area, 5.3s/15.1s | ran, placeholder ~2 dmg | Damage Info wired, real per-difficulty damage (800/1600/2400/3200) | measured + exiles-kit | — |
+| Fierce Blow | 975011, tank, 8.4s/7.8s | ran | unchanged | measured | — |
+| Curse of Lucifron | 2105206→2105207, area, 18.8s/79.9s | ran, placeholder dmg | Damage Info wired | measured | — |
+| Suppressing Shadows | 2105218, area, 29.2s/25.1s | ran; landing effect (2105219) missing | landing effect 2105219 added to the row | designed (row shape), measured (timers) | — |
+| Impending Doom | 2105201→2105205, area | absent — no schedule row at all | added, first 7s/period 20s | dbm (DBM-Warmane vanilla Doom, CD20/first7); no log ever recorded this cast | timer is a vanilla-CD borrow, not a measured Ascension interval |
+
+Health: `coa_boss_flex` `hp_d0..d3` 431,810/575,747/866,550/1,263,490 (Normal = Heroic ×0.750 set, Heroic
+measured, Mythic = Heroic ×1.505 pattern, Ascended measured).
+
+Lucifron previously ran `MovementType=2` (WAYPOINT) on a path leading straight toward Magmadar's spawn,
+matching the reported "wanders into Magmadar's room, with 2 adds" exactly (the Flamewaker Protectors follow
+him via `creature_formations`). Fixed: `MovementType=0` on template and spawn, `path_id` cleared, the orphan
+`waypoint_data` rows dropped — Lucifron and his Protectors now hold their spawn position. The export's own
+static placement (~4 yd from Lucifron) already showed 2 adds are correct, contradicting a "no adds" player
+recollection — see §8.
+
+**Shadow of Lucifron (12268)** is summoned once, 5s after engage, via a small `coa_boss_summon` hook
+(`summon_entry`/`summon_delay_ms`/`summon_buff_spell` columns on `coa_boss`, read by `CoaBossAI`) instead of a
+bespoke boss script, since Lucifron keeps his existing measured `coa_boss_ai` schedule otherwise unchanged.
+Lucifron casts buff 2105223 once at the summon (its two `MOD_DAMAGE_PERCENT_DONE` +39% Shadow effects land
+one on the new Shadow, one back on himself — "increases his and his master's Shadow damage done"). Shadow's
+kit: Shadow Bolt (2105254 dummy → 2105255 real hit, Damage Info 2105250-53, measured in-probe at
+800/1600/2400/3200 vs. the DBC's 801/1601/2401/3201), Shadow Cleave (2105256, cone, 44% weapon damage) and
+Dark Sundering (2105257, 44% weapon damage + stacking armor reduction). No static spawn or summon-spell
+evidence exists for 12268 anywhere in the export; the summon delay and health (25% of Lucifron's own flex
+figure, anchored to the Flamewaker Protector/Lucifron ratio) are `designed`, not measured — flagged in §8.
+
+Lucifron's other add, **Flamewaker Protector (12119)**, casts Dominate Mind (20604 — a real `MOD_POSSESS`
+aura, not a dummy) on a random non-top-threat target every 5s, confirmed firing repeatedly in probe runs.
+Vanilla Lucifron himself carries Mind Control under this same id — on CoA it is wired to the add instead of
+to Lucifron's own schedule. Whether that's intentional or should move to Lucifron is a needs-decision item
+(§8).
+
+### Magmadar (11982)
+
+| | Reality | Before | After | Evidence | Open question |
+|---|---|---|---|---|---|
+| Body casts nothing (kept as stock melee/Frenzy/Panic); two head creatures (80642/80643) cast Enrage (2105307), Scorching Breath (2105360 dummy → hidden 2105361 → real hit 2105362-65), Lava Burst (2105357, Damage Info 2105351-54) and Lava Bomb ground fire (2105366 dummy → persistent-area 2105367-70) | stock `boss_magmadar` script only | new `boss_magmadar_coa.cpp`: on engage, `DoSummon`s both heads (`TEMPSUMMON_MANUAL_DESPAWN`, difficulty variant auto-resolved by `creature_template.difficulty_entry_1..3`) plus periodic Core Hound (11671) reinforcements | new head kit wired and cast on schedule; ground-fire puddle fixed (see below) | exiles-kit (heads' spells) + measured (in-probe cast/damage confirmation, lm-validation.md) | Core Hound entry/count/cadence (2 hounds, first 45s/repeat 50s) and the head/body 15/15/70 health split are `designed`, not measured — see §8 |
+
+The two heads don't exist as a static spawn or a vehicle passenger anywhere in the export — they are summoned
+by the body's own script on engage, the same idiom already used for Garr's Firesworn. `Lava Burst`'s
+placeholder damage resolves through the same `coa_spell_damage_info` mechanism as the rest of the branch
+(measured d0-d3: 1600/2133/2666/3200). The ground-fire puddle (2105367-70) initially never produced a single
+event in-probe: its follow-up cast used `target->CastSpell(...)`, so `EffectPersistentAA`/
+`SelectImplicitAreaTargets` searched for the hit *player's* enemies around the dest point instead of the
+raid's — fixed (`cafb24165`) by casting from the head instead, matching the already-working Scorching Breath
+idiom; validated on all 4 difficulties (294-528 periodic damage ticks/run, correct per-difficulty spell id).
+
+`coa_boss_flex` has no row for Magmadar or Golemagg by id; Magmadar was given Golemagg's own flex row
+(809,645/1,079,527/1,624,782/2,369,044, same recorded health for both), and the head/body split above
+redistributes that total (70% body, 15% per head) rather than adding to it.
+
+### Gehennas (12259)
+
+| | Reality | Before | After | Evidence | Open question |
+|---|---|---|---|---|---|
+| Fierce Blow 975011, tank, 7.0s/8.5s | ran | unchanged | measured | — |
+| Rain of Fire 2105407, area, 8.5s/30s | ran, placeholder dmg | Damage Info wired | measured + exiles-kit | Unquenchable Flames (2105411-14) is the spell's own built-in `EffectTriggerSpell`, not a separate cast — confirmed no gap |
+| Incinerate 2105405→2105406, area, 9.5s/15.1s | ran, placeholder dmg | Damage Info wired | measured + exiles-kit | — |
+| Curse of Gehennas 2105415→2105416, area, 11.1s/39.9s | ran | unchanged | measured | Dispel-punish proc (2105423/24) needs a `SpellScript`, not a schedule row — not added |
+| Immolate 2105429→2105430, random non-tank, 15.4s/20s | ran, placeholder dmg | Damage Info wired | measured + exiles-kit | — |
+| Conjure Flame Orb 2105417, tank, 50.7s/78.1s | ran | unchanged | measured | — |
+
+Health: `hp_d0..d3` 647,716/863,621/1,299,826/1,895,236.
+
+### Garr (12057)
+
+| | Reality | Before | After | Evidence | Open question |
+|---|---|---|---|---|---|
+| Fierce Blow 975011, tank, 12.0s/8.2s | only scheduled ability | unchanged | measured | Only 1 measured schedule row for Garr — sparsest of the 7 `coa_boss_ai` bosses; log-coverage gap or true current kit is unresolved |
+| Antimagic Pulse, Magma Shackles, Separation Anxiety/Mass Eruption (dead C++ kit) | unreachable (`coa_boss_ai` wins over `boss_garr.cpp`) | replaced by a new `boss_garr_coa.cpp` (own BossAI) | Harden (self-buff, 20s), Land Slide (self, 20s/30s, knockback AoE), Unstoppable Force (self, 45s/45s: drops Harden, applies Cracked+Earth Fury, summons an extra Firesworn, 20s recovery) | designed (all four timers; no log ever recorded them) | Harden/Cracked/Earth Fury's real stack-counting cycle was simplified to a flat crack-and-recover loop; Land Slide's "charge through" is a self-centered AoE, not pathing |
+| Firesworn respawn on wipe (#5391) | not respawned; instance script only had the Golemagg branch | fixed: `_garrFireswornGUIDs` tracked, respawned on `NOT_STARTED`/`FAIL` mirroring Golemagg | measured (code read) | — |
+| Firesworn Eruption damage (#5388) | 19497 (~3000 dmg) flat on Normal/Heroic, 350126 (~4600) on Mythic/Ascended — a real `SpellDifficulty.dbc` family, not an Ascended value leaking onto Normal | unchanged | unchanged | exiles-kit + dbc | Not flex-scaled by raid size/gear the way boss casts are — needs a decision on whether that's the actual defect (§8) |
+
+Health: `hp_d0..d3` 809,645/1,079,527/1,624,782/2,369,044.
+
+"Garr Earthquake"/"Garr Cave In" (Snit's WA ids 500297/500298) were checked directly against `Spell.dbc` this
+session: neither id is an earthquake or cave-in spell (500297 is a cosmetic banner prop, 500298 an unrelated
+proc buff) — treated as stale/recycled aura data, not a real Garr mechanic, and not built on.
+
+### Shazzrah (12264)
+
+| | Reality | Before | After | Evidence | Open question |
+|---|---|---|---|---|---|
+| Arcane Explosion 2105601, tank, 3.6s/8.4s | ran | unchanged | measured | — |
+| Fierce Blow 975011, tank, 6.6s/9.2s | ran | unchanged | measured | — |
+| Dampen Magic (self) 2105607→608, 14.1s/30.2s | ran | unchanged | measured | — |
+| Blink 2105611, area, 14.6s/16.4s | ran as a plain teleport | Gate of Shazzrah's threat wipe (`ResetAllThreat`+`AddThreat`+`AttackStart`) bound via a new `SpellScript` | measured (timer) + measured (dead-code comparison to `boss_shazzrah.cpp`) | The wipe now always lands on the tank (`TARGET_AREA` resolves to the tank), not a random raid member as vanilla did |
+| Arcane Instability 2105605→606, area, 18.4s/65.2s | ran | unchanged | measured | — |
+| Mass Counterspell (self) 2105609→610, 23.6s/34.8s | targeted Shazzrah himself, both spells carry `SPELL_ATTR3_ONLY_ON_PLAYER` → `SPELL_FAILED_TARGET_NOT_PLAYER`, never landed | retargeted to tank (Dampen Magic) / area (Mass Counterspell) — `rev_20260930_87` | measured (docker cast-failure logs + Spell.dbc effect targets) | — |
+| Arcane Force Nova 2105612→617, area, 44.3s/64.6s | appeared "never" cast in short probe windows | unchanged spell, but `coa_boss_ai`'s event clock previously stalled a tick whenever the boss briefly had no victim (e.g. mid-teleport); fixed (`35c4f405e`) so the clock advances on every elapsed tick | measured (confirmed firing in the 32-run campaign once the clock fix landed) | — |
+
+Health: `hp_d0..d3` 566,709/755,612/1,137,262/1,657,316 (all three multipliers measured, no pattern fallback
+needed). Time Stop (2105618) and Mass Slow (2105619) exist in the kit with no schedule row and no
+corroborating log/addon evidence — left as needs-decision, not added.
+
+### Baron Geddon (12056)
+
+| | Reality | Before | After | Evidence | Open question |
+|---|---|---|---|---|---|
+| Fire Strike / Fierce Fire Strike / Ignite Powers / Engulf in Flames / Living Bomb / Melt Through / Inferno / Armageddon (all 8 measured rows) | ran, several with placeholder Damage Info dmg | Damage Info wired for the placeholder rows | unchanged timers | measured | Inferno/Living Bomb/Ignite Powers run at roughly 1.5–3× vanilla DBM's cooldowns — consistent across all three, read as a deliberate Ascension retune, not left as a defect |
+
+Inferno and Armageddon looked broken in early probe campaigns (Inferno never `cast_start`ing, Armageddon
+starting but never completing) but both needed **no** code or data change: both are already fully
+data-driven through existing `SpellDifficulty.dbc` groups. The real cause was a test-harness bug (probe
+teleports dropping bots from Geddon's threat list, forcing repeated evades) — fixed in the disposable Ghost
+harness, not this repo; see [Verification](#verification). Confirmed working on all 4 difficulties: Inferno
+pulses 10× at 1s intervals for 875-1999 damage, Armageddon's 2105748 hits all 10 bots for 8.75-10.0M.
+
+Health: `hp_d0..d3` 647,716/863,621/1,299,826/1,894,878 — the one boss whose `coa_boss_flex` comment claims
+Heroic/Mythic/Ascended are all measured, no pattern guess.
+
+### Sulfuron Harbinger (12098)
+
+| | Reality | Before | After | Evidence | Open question |
+|---|---|---|---|---|---|
+| Flame Spear / Hand of Ragnaros / Dark Strike / Inspire / Demoralizing Shout / Fierce Blow / Conflagrate (7 measured rows) | ran | unchanged | measured | The only boss whose schedule ids match vanilla exactly (not Ascension's custom 2105xxx range) — kit reads as largely untouched from vanilla |
+
+Health: `hp_d0..d3` 323,858/431,811/649,913/947,618 (half of most other bosses, matching a halved
+`HealthModifier` — consistent with vanilla Sulfuron always running lower HP than the other 63-elites). Add
+"Flamewaker Priest" (11662, renamed on CoA to Corvus the Nimble — see §4) runs its own hand-written kit
+unaffected by any of this.
+
+Flame Spear/Hand of Ragnaros looked "missing" on Mythic/Ascended in an early literal-id check; they fire on
+every difficulty, just as 350090/350108 on d2/d3 instead of the schedule's literal 19781/19780 (same ability
+names via Spell.dbc, same cadence) — no DBC row actually links the two id pairs, so the schedule table's id
+column is simply not representative for those two tiers; see [Verification](#verification).
+
+### Golemagg the Incinerator (11988)
+
+| | Reality | Before | After | Evidence | Open question |
+|---|---|---|---|---|---|
+| Fierce Blow / Lava Burst (2105812→2105814) / Massive Stomp (2105817) | ran, Lava Burst had placeholder Damage Info dmg | Damage Info wired for Lava Burst | unchanged timers | measured | — |
+| Magma Splash (2105802, tank) | dead-C++ only (`boss_golemagg.cpp`, unreachable) | added, 10s/18s | designed | no measured log confirms this exact interval |
+| Molten Armor (2105806, tank) | dead-C++ only | added, 16s/32s | designed | same |
+| Cave In (2105825, area) | dead-C++ only | added, 35s/55s | designed | same |
+| Pyroblast, Earthquake, enrage-at-10% (dead C++) | unreachable | not added | designed (per dead code) | no measured interval exists for these three in the 42-log corpus — see §8 |
+| Yank (2105852) | not wired | not wired | not wired | Effect is an exotic chain-pull (id 124) with no plain cast/aura semantics the schedule engine can express |
+
+Magma Splash/Cave In looked "missing" above Normal in an early literal-id check; both resolve through a real
+`SpellDifficulty.dbc` family (rows 2122/2125) and fire on every difficulty with the same count/cadence as
+Normal — a false alarm, not a defect; see [Verification](#verification).
+
+Health: `hp_d0..d3` 809,645/1,079,527/1,624,782/2,369,044 (identical to Garr's row). Add "Core Rager" (11672,
+renamed on CoA to Cindermaw — see §4) carries "Stress" (2105858, a genuine self-stacking aura) in its CoA kit,
+but its `ScriptName` (`npc_core_rager`, hand-written C++) always wins over SmartAI, so no data row for it
+would run; reported, not fixed.
+
+### Majordomo Executus (12018)
+
+| | Reality | Before | After | Evidence | Open question |
+|---|---|---|---|---|---|
+| Stock kit: Magic Reflection, Damage Reflection, Aegis of Ragnaros, Teleport Random/Target, Separation Anxiety, Champion, Immunity | stock `boss_majordomo` script, all vanilla ids | unchanged | measured (stock file) | Ascension-only kit ids (2108014-2108033: Aegis of the Firelord, Molten/Shadow Shield, Broken Bond, Rising Anger, Empowered Shadow Nova/Blast Wave) are never cast; thematic name matches to the stock mechanics exist but are unverified — no measured log covers Majordomo (the 42-log corpus is scoped to the 8 schedule bosses) |
+
+Health: no `coa_boss_flex` row by id; this branch gave Majordomo a flex row derived as Golemagg's ×0.8065 (the
+ratio of their recorded absolute health) — 652,940/870,586/1,310,308/1,910,519 — since no boss-specific log
+exists for him either.
+
+### Ragnaros (11502)
+
+| | Reality | Before | After | Evidence | Open question |
+|---|---|---|---|---|---|
+| Hand of Ragnaros | vanilla id 19780 shared with Sulfuron (whose own schedule already resolves it correctly via `SpellDifficulty.dbc`) | `boss_ragnaros.cpp` cast 19780 on self — would have silently broken Sulfuron's correct Heroic+ resolution if patched by id override | repointed to CoA's own 2108612 (own `SpellDifficulty` group 2213), cast changed self→victim to match the new spell's target field | measured (dbc group) + designed (call-site fix) | — |
+| Wrath of Ragnaros | exclusive caster (only `boss_ragnaros.cpp`) | 20566 | repointed to 2108623 (group 2215) | measured (exclusivity) + dbc | — |
+| Magma Blast | exclusive caster, dummy effect with no native trigger | 20565 | repointed to 2108607; new `SpellScript` casts the damage effect 2108608, already bound to Damage Info from rev_83 | measured + dbc | — |
+| Sulfuras Slam, both Super Nova groups, Magma Splash, Unbearable Heat, Magma Strike, Fire Strike/Fierce Fire Strike, Meteor | in the CoA kit, no stock choreography beat matches them | not wired | not wired | exiles-kit only | No safe mapping without a log or a maintainer ruling — listed in §8 |
+| Submerge / Sons of Flame / knockback timers | stock, all vanilla, unchanged (180s submerge, 90s duration) | unchanged | unchanged | measured (stock file) | Whether the stock script's vanilla-id casts already resolve to the matching CoA ids via the core's own `SpellDifficulty` chain (as they do for Sulfuron) was not confirmed at runtime this session |
+
+Health: `hp_d0..d3` 842,031/1,122,708/1,669,897/2,463,806 (Ascended = Heroic ×2.195 pattern; the other three
+tiers measured).
+
+## 4. Trash
+
+Evidence tags as in §3. "Kit gap" below distinguishes the two different problems found: losing abilities
+above Normal (SmartAI rows existed only for the base entry) versus never having had any ability at all.
+
+| Entry | CoA name | Gap found | Fix applied | Evidence | Open question |
+|---|---|---|---|---|---|
+| 11658 Molten Giant | — | zero abilities above Normal | replicated Smash/Knock Away rows onto +100000/200000/300000 | measured | Kit's higher-magnitude Smash/Knock Away siblings not swapped in — tier order is a guess, not a fact |
+| 11659 Molten Destroyer | — | zero above Normal; kit's "Ground Tremor"/"Magma Splash" family never cast at any difficulty | replicated Stunning Strike/Massive Tremor rows | measured | Ground Tremor/Magma Splash addition not proposed — no timer evidence |
+| 11661 Flamewaker | — | zero above Normal | replicated Strike/Fist of Ragnaros/Sunder Armor rows | measured | — |
+| 11663 Flamewaker Healer | **Flamewaker Acolyte** | zero above Normal; kit's Shadow Nova/shield-bond mechanic never cast | replicated Shadow Shock/Shadow Bolt rows; renamed | measured (rows) + exiles-kit (name) | Which Shadow Bolt sibling (2108000-03) is the intended upgrade is ambiguous, not applied |
+| 11664 Flamewaker Elite | — | zero above Normal; kit's Magma Strike/Molten Shield/Broken Bond never cast | replicated Fireball/Blast Wave/Fire Blast rows | measured | Same Blast Wave sibling ambiguity as above |
+| 11665 Lava Annihilator | — | no AI at all, any difficulty, despite a 3-spell kit | `AIName='SmartAI'`, new flat rows for Flame Buffet/Fireball/Crush Armor on all 4 difficulties | designed (no cooldown evidence in the export at all) | Timers borrowed from Firewalker/Flameguard's cadence, not measured for this creature |
+| 11666 Firewalker | — | zero above Normal | replicated Incite Flames/Fire Blossom rows | measured | Kit's redesigned siblings (2105018/19) look like a different design, not a tier — not swapped in |
+| 11667 Flameguard | — | zero above Normal | replicated Cone of Fire/Melt Armor rows | measured | Kit's "Lava Breath"/"Engulf in Flames" ids appear shared across multiple MC NPCs, not creature-unique — not added |
+| 11668 Firelord (trash) | — | zero above Normal | replicated Soul Burn/Summon Lava Spawn rows | measured | Soul Burn's sibling ordering contradicts the "classic id = smallest" assumption used elsewhere — flagged unknown, no upgrade proposed |
+| 11669 Flame Imp | — | zero above Normal | replicated Fire Nova row | measured | Clean ascending sibling family (2105005-08) exists but was not swapped in |
+| 11672 Core Rager | **Cindermaw** | CoA's own kit for Cindermaw has no Mangle-equivalent at all — the opposite direction of gap | not changed (C++, not data; Mangle stays) | exiles-kit | Whether `npc_core_rager`'s Mangle cast should be removed is a maintainer call, not applied here |
+| 11673 Ancient Core Hound | — | zero above Normal | replicated Serrated Bite/Vicious Bite/undecoded-action rows | measured | `smart_scripts` action type 88 (param 1167300/1167305) was never decoded; left unchanged |
+| 12076 Lava Elemental | — | no AI at all, despite a 2-spell kit | `AIName='SmartAI'`, new flat row for Pyroclast Barrage on all 4 difficulties | designed | Fireball Volley (clean ascending family) not added — no cooldown evidence |
+| 12099 Firesworn | — | kit's "Ignite" DoT never cast | not changed (C++, hand-written) | exiles-kit | No timer evidence to add it; #5388/#5391 do **not** trace to this gap (see §3 Garr) |
+| 12100 Lava Reaver | — | no AI at all, despite a 2-spell kit | `AIName='SmartAI'`, new flat row for Strike; Cleave design (cone vs adjacent) left undecided | designed | — |
+| 12101 Lava Surger | — | zero above Normal | replicated Surge row | measured | — |
+| 12119 Flamewaker Protector | — | zero above Normal (kit has no higher-tier siblings at all for either spell — flat by kit design) | replicated Dominate Mind/Cleave rows | measured | See Lucifron's §3 note on whether Dominate Mind belongs here or on Lucifron |
+| 12143 Son of Flame | **Lesser Son of Flame** | zero scripted abilities at any difficulty; summon-only, no static spawn to attach data to | renamed only; no AI added | exiles-kit (name); measured (no static spawn) | Whether to give it `AIName='SmartAI'` or script the cast at Ragnaros's summon call site is undecided |
+| 11662 Flamewaker Priest | **Corvus the Nimble, Hand of the Harbinger** | none (kit not reviewed for spell content, only renamed) | renamed | exiles-kit (name, subname corroborates the Sulfuron-add pairing) | Exact spawn coordinates vs CoA's own placement not independently checked; spawn counts match |
+
+Two entries with no scripted ability whatsoever and no CoA kit evidence either way (Core Hound 11671 — CoA's
+own export doesn't clearly separate it from 11673; Flame of Ragnaros 13148 — the one entry with no difficulty
+variants at all) had no change proposed.
+
+## 5. Health
+
+**Method**: Normal is CoA's own absolute health (db.exil.es export, exiles-db-export-2026-09-13), expressed
+as a `HealthModifier` over this core's base health curve at the matching level/class so the product lands on
+the recorded value. Heroic, Mythic and Ascended multiply that by ×1.44, ×1.88 and ×2.32 respectively — ratios
+read directly from CoA's client creature caches, which recorded these exact multipliers against Normal for
+several MC creatures across the four tiers (Baron Geddon on all three; Golemagg, Majordomo, Shazzrah and two
+Flamewakers on Ascended). Ragnaros (Ascended) is the one exception, recorded at ×3.835 instead of ×2.32.
+
+Flexed bosses (7 `coa_boss_ai` bosses + Ragnaros) still take their in-fight health from `coa_boss_flex` at
+pull time, scaled by raid size (10–25), not from the flat `HealthModifier`. Two bosses have no measured flex
+row of their own (Magmadar, Majordomo); this branch gave them derived rows (§3) rather than inventing new
+numbers. **Normal flex = Heroic × 0.750 is a guess made by #5391's/this branch's own predecessor work
+(referenced in the plan as #5389's open question)** — it is applied to every flexed boss's Normal row, and is
+explicitly not a measured value; see §8.
+
+## 6. Damage per difficulty
+
+CoA's boss kits contain a handful of spells whose direct-hit or periodic-damage effect is a DBC placeholder
+(`EffectBasePoints` = 1, i.e. amount 2) rather than the real per-difficulty number. The real numbers live in a
+separate family of "`<Boss> - <Spell> - Damage Info`" aura spells (dummy auras, one row per difficulty D0–D3,
+`EffectBasePoints` stepping the real amount). Before this branch nothing read those auras, so the 12 bound
+spells dealt ~2 damage on every difficulty regardless of the info auras' own D0–D3 values.
+
+This branch adds a `coa_spell_damage_info` table (spell → its four info-spell ids) and two small server
+scripts: `spell_coa_damage_info_hit` (`OnEffectHitTarget`, for the 9 direct-hit spells) and
+`spell_coa_damage_info_periodic` (`DoEffectCalcAmount`, for the 3 periodic-damage spells), both resolving the
+caster's raid difficulty (clamped like `FlexHealth.cpp` does) and reading the matching info spell's own
+`EffectBasePoints` at cast/tick time. The 12 bound pairs: Lucifron Shadow Bolt (2105213←2105208-11),
+Flamewaker Shadow Bolt (2105255←2105250-53), Flamewaker Incinerate (2105456←2105451-54), Firesworn Ignite
+(2105563←2105557-60), Gehennas Incinerate (2105406←2105401-04), Gehennas Immolate periodic
+(2105430←2105425-28), Gehennas Conflagrate periodic (2105436←2105431-34), Golemagg Lava Burst
+(2105814←2105808-11), Magmadar Lava Burst (2105357←2105351-54, unreachable while Magmadar runs its stock
+script), Sulfuron Conflagrate periodic (2105906←2105901-04), Ragnaros Magma Blast (2108608←2108603-06) and
+Meteor (2108762←2108755-58, unwired — see §8). This is separate from `SpellDifficulty.dbc`'s own family
+resolution, which does cover some MC spells directly (e.g. Gehennas's Rain of Fire, Sulfuron's Hand of
+Ragnaros/Flame Spear) without needing the Damage Info mechanism at all.
+
+## 7. Loot
+
+Source: db.exil.es (hertigservices/ascension-data release, exiles-db-export-2026-09-13), the database behind
+CoA's own community database site, read past its 20-row page cap. Every base and difficulty-variant entry
+gets its own `lootid`; `creature_loot_template`/`reference_loot_template` were rebuilt in full rather than
+patched.
+
+The MC-specific reference groups were moved from the export's own numbering to **4090011–4090030** because
+reference id **34026** already means something else on this fork (an AQ20 loot table) — reusing it verbatim
+would have collided two unrelated raids' catalogs. World-drop references in the 24xxx range and 34002 already
+matched and were reused unchanged.
+
+Three export quirks that `LootMgr` rejects or flags at load were normalized during generation (not by hand):
+29 rows with `Chance = 0` and `GroupId = 0` (garbled/duplicate export rows that never roll under either
+database's own rules) were dropped rather than inserted; any row with `Chance >= 100` was forced to
+`GroupId = 0` (matching the base game's own convention, e.g. reference 34002) instead of keeping the export's
+group id, which had been pushing several groups' raw total chance past 100%; reference rows got
+`MinCount = MaxCount` (this core doesn't support them differing and only logs a warning otherwise).
+
+Known oddities inherited from the export, not introduced by this branch: several Heroic, Mythic and Ascended trash tables carry
+Northrend gathering items (Rime-Crusted Herbs 44206, Flash-Frozen Flower 44207, Shattered Log 44208; Lava
+Annihilator (3) drops them at 10%, 10% and 7.1%), kept as CoA's data has them. Stoneclad Libram 1310531 (Baron
+Geddon) and Tome of Burning Passion 1310533 (Gehennas) have chance 0 without a group on Normal, so Normal
+never drops them; their Mythic rows (10% and 9.1%) are kept.
+
+## 8. Known gaps / needs decision
+
+1. **Normal flex health = Heroic × 0.750 (#5389).** Applied to every flexed boss as a set value, not a
+   measured one; #5389 itself reports flex scaling as incorrect. Options: keep the 0.75 ratio as CoA's actual
+   intended tuning (no evidence either way beyond the ratio being applied uniformly), or capture a Normal-tier
+   log to replace the guess per boss.
+2. **#5388, Firesworn Eruption damage.** The DBC data does not support the bug report's framing
+   ("Ascended-level damage on Normal") — Eruption is genuinely flat (~3000 dmg) across Normal/Heroic by design,
+   with a real, higher-tier Mythic/Ascended id (~4600 dmg). The more likely defect is that this fixed AoE hit
+   is not flex-scaled to raid size/gear the way boss casts are. Options: leave as designed-flat, or add a
+   flex-style scale table for it.
+3. **Garr's designed timers, and Harden/Land Slide simplified.** Antimagic Pulse and Magma Shackles from the
+   dead C++ kit were not ported; Harden/Cracked/Earth Fury's real stack-counting cycle was flattened to a
+   crack-and-recover loop, and Land Slide's "charge through anyone in the path" became a self-centered AoE.
+   Options: accept the simplification, or invest in a stack-tracking implementation and real path traversal
+   if a log ever substantiates the exact mechanic.
+4. **Golemagg's designed timers, and Yank/Cindermaw Stress not wired.** Magma Splash/Molten Armor/Cave In were
+   added without a measured interval (dead C++ only, no log). Pyroblast/Earthquake/the 10%-health enrage were
+   not added at all — no measured evidence either confirms or rules them out from the 42-log corpus. Yank
+   can't be expressed by the current schedule engine (exotic chain-pull effect). Cindermaw's Stress aura is
+   inert because `npc_core_rager`'s hand-written `ScriptName` always wins over any SmartAI row. Options per
+   item: capture more Golemagg logs before adding any of these, or accept the current 3-ability kit as final;
+   decide whether Yank needs a new engine hook; decide whether Stress belongs in the hand-written script
+   instead of data.
+5. **Gehennas procs.** Curse of Gehennas's dispel-punish mana-burn (2105423/24) needs a `SpellScript`
+   triggered on dispel, which the timer-based schedule engine has no hook for. Not added; needs either a new
+   engine hook or acceptance that this proc is out of scope for the data-driven path.
+6. **Ragnaros abilities not wired**: Sulfuras Slam, both Super Nova groups (2108627-30 and 2108662-65 — which
+   is "base" vs. a variant is itself unresolved), Magma Splash, Unbearable Heat, Magma Strike, Fire
+   Strike/Fierce Fire Strike, and Meteor timing (2108762, already bound to Damage Info via §6 but nothing
+   casts it). None have a stock choreography beat to attach to without inventing one; needs a combat log or an
+   explicit maintainer ruling per ability.
+7. **Lucifron's Flamewaker Protectors vs. a player's memory.** The report behind the movement fix said "no
+   adds"; the export's own static placement and the branch's own evidence both show 2 adds are correct —
+   kept as-is, the recollection is treated as the uncertain input.
+8. **Shadow of Lucifron (12268) timing/health.** The 5s summon delay, its 25%-of-Lucifron's-flex health, and
+   its Shadow Bolt/Cleave/Dark Sundering cadences are all `designed`, not measured — no static spawn or
+   summon-spell evidence exists for this creature anywhere in the export. Awaiting the player's own logs.
+9. **Magmadar's Core Hound cadence and head/body health split.** The Core Hound (11671) reinforcements
+   (first 45s, repeat 50s), the 70/15/15 body/head split of Magmadar's flex total, and the heads' own spell
+   cadences are all `designed` — no CoA log or export evidence places any of them.
+10. **Majordomo's kit.** None of his Ascension-only abilities (2108014-2108033: Aegis of the Firelord,
+   Molten/Shadow Shield, Broken Bond, Rising Anger, Empowered Shadow Nova/Blast Wave) are cast by him or his
+   Flamewaker Healer/Elite adds; only vanilla-id stock abilities run. Thematic name matches to the stock
+   mechanics are plausible but unverified — no log corpus covers Majordomo at all.
+11. **Melee damage is not scaled per difficulty.** `creature_template.DamageModifier` (and every other stat
+    field except health) is byte-identical across all four difficulty variants for every one of the 31 MC
+    entries checked — the variant rows differ from Normal only in `HealthModifier` (§5) and, for the 7
+    scheduled bosses, in spell substitutions. Melee autoattack damage is therefore the same on Ascended as on
+    Normal. Needs a decision on whether melee should scale the way boss-cast damage now does (§6), and by what
+    ratio.
+12. **Lava Burst/Ignite tick damage.** The Damage Info mechanism (§6) is bound to a spell's initial-hit effect
+    or (for the 3 periodic auras) the tick's own `DoEffectCalcAmount` — confirmed working for both shapes. What
+    is not addressed: whether every periodic-damage instance across the boss kits (not just the 3 bound here)
+    is correctly categorized as "hit" vs. "periodic" for Damage Info purposes; no cross-check beyond the 12
+    bound pairs was performed.
+13. **Trash timers are designed, not measured**, for the 15 replicated SmartAI entries (§4) and especially for
+    Lava Annihilator/Lava Elemental/Lava Reaver's brand-new kits, since CoA's own export records essentially
+    no real cooldown data for MC trash (almost every cast shows "1ms"/no cooldown in the export). All of these
+    are flagged in §4's table; none claim measured status.
+14. **Flamewaker Protector's Dominate Mind cadence.** Confirmed firing on a flat 5s SmartAI cooldown against a
+    random non-top-threat target, with two Protectors per pull doing this simultaneously — a real, currently
+    firing mechanic, not a display bug. Whether a trash add repeatedly mind-controlling raid members on this
+    cadence is intended Ascension design, or whether the ability belongs on Lucifron himself instead (§3), is
+    unresolved and needs a maintainer decision.
+15. **Heating Up (Baron Geddon, 2105746) is not wired.** A `MOD_DAMAGE_PERCENT_DONE` self-stack aura with no
+    `EffectTriggerSpell` anywhere pointing at it and no roll on its own base points — the DBC gives no
+    evidence of what triggers it or by how much. Left unimplemented rather than inventing a stack/percentage.
+16. **Harbinger Priests' Damage Info is unmapped.** No "Harbinger Priest" info-aura family (2105950-53, seen
+    in inventory) was matched to a live cast; not one of the 12 pairs wired in §6, left unmapped.
+17. **Sulfuron's own Dark Strike (19777) is dead code** — never `cast_start`s from Sulfuron himself; the
+    Flamewaker Priest add casts the identical id instead. Not changed, flagged in case that was unintended.
+
+## Verification
+
+Two Ghost e2e probe campaigns on slot 3, 10 level-60 bots each, `MC_SECONDS=90`, boss followed via
+server-truth `.npc info` positions, casts measured against `cast_start`/`cast_go`/`spell_damage`/
+`melee`/`periodic`/`aura` packet events. Majordomo and Ragnaros were not pulled in either campaign;
+trash is only in scope as boss-summoned adds, and no run produced a boss-summoned add (all nearby
+"adds" were pre-existing MC trash/other bosses wandering into range, expected given MC's dense
+layout).
+
+- **`final2` campaign** (`7814ee846`, 32 runs, one per boss × difficulty for the other 8 bosses, all
+  `--- PASS`): health forced to staged checkpoints then killed and looted, confirming `max_hp` against
+  `coa_boss_flex.hp_d{0..3}` × 10, stage sequencing and loot every run — the campaign that disproved the
+  suspected "tier split" defects (below).
+- **`lm-validation` campaign** (`cafb24165`, 8 runs, Lucifron + Magmadar × 4 difficulties, after the
+  Shadow of Lucifron and Magmadar heads/ground-fire work): confirmed the Shadow's summon (t≈5s buff,
+  t≈9.5s first Shadow Bolt) and per-difficulty damage on all 4 diffs; confirmed both Magmadar heads
+  summon and cast their full kit, including the ground-fire puddle once `cafb24165` fixed its inverted
+  hostility check (294-528 periodic ticks/run).
+
+| Boss | d0 | d1 | d2 | d3 |
+|---|---|---|---|---|
+| Lucifron | works (Impending Doom, Shadow of Lucifron summon+buff+kit) | works | works | works |
+| Magmadar | works (heads summon, full kit incl. ground fire; Core Hound adds present) | works | works | works |
+| Gehennas | works | works | works | works |
+| Garr | works | works | works | works (loot not opened — probe gate) |
+| Shazzrah | works (Dampen Magic/Mass Counterspell fixed; Arcane Force Nova fires once clock fix applied) | works | works | works |
+| Baron Geddon | works (Inferno casts + 10×1s pulses; Armageddon casts and 2105748 explodes for 8.75-10.0M) | works | works | works |
+| Sulfuron Harbinger | works (Conflagrate hp_pct 50%; Flame Spear/Hand of Ragnaros fire via resolved ids); Sulfuron's own Dark Strike is dead code (add casts it instead) | works | works (ids resolve to 350090/350108, not the schedule's literal 19781/19780) | works |
+| Golemagg | works (Magma Splash/Cave In fire via resolved ids) | works | works | works |
+
+Two fixes landed between the campaigns and are validated by them: the Shazzrah target fix (`d5f1ca687`,
+Dampen Magic/Mass Counterspell were rejected with `SPELL_FAILED_TARGET_NOT_PLAYER` for targeting
+Shazzrah himself) and the `CoaBossAI` event-clock fix (`35c4f405e`, `_events.Update(diff)` ran after the
+`UpdateVictim()` bail-out, so any victim-less tick stalled every row's timer, making low-frequency casts
+like Arcane Force Nova look "never fired" in a short window).
+
+Baron Geddon's Inferno/Armageddon needed no server-side fix — see §3 for the probe-harness root cause.
+
+The "tier split" reports (Sulfuron, Golemagg, Lucifron Impending Doom, Gehennas Rain of Fire "missing"
+above Normal) were all a literal-id comparison error: `coa_boss_schedule` names one base spell id per
+row, and the core resolves the real per-tier id through `SpellDifficulty.dbc`
+(`SpellMgr::GetSpellIdForDifficulty`) at cast time. Re-checking by spell *name* confirms all four
+families fire with identical counts/intervals on every difficulty — no tier split, except Sulfuron's
+Flame Spear/Hand of Ragnaros, where the resolved d2/d3 ids genuinely have no DBC row linking them back
+to the schedule's own 19781/19780 (§3).
+
+Probe pitfalls fixed across both campaigns: bots run at level 60 to satisfy the raid's access
+requirement; bots are revived with huge health via `.modify hp` rather than god mode, since god-mode
+damage does not appear in combat logs; the boss is followed via server-truth `.npc info` positions
+since these bosses patrol, but the naive follow-teleport itself caused Baron Geddon's evade bug above
+and had to be made combat-aware; bots stay alive (not ghosts) through the pull so telemetry keeps
+flowing; loot is requested only after the corpse position is confirmed within loot distance, though the
+gate still blocks a run whose boss ends up out of range at kill time (several runs per campaign, a
+harness limitation, not a boss defect).
