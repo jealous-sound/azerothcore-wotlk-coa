@@ -21,7 +21,13 @@ enum RunemasterTalentProcSpells : uint32
     SPELL_HOARFROST = 801104,
     SPELL_LEY_LOCK = 800995,
     SPELL_HARVESTED_LEY_ENERGY = 803258,
-    SPELL_LEY_POWER_STRIKE = 803282
+    SPELL_LEY_POWER_STRIKE = 803282,
+    SPELL_ENGRAVING_FIRE = 653210,
+    SPELL_ENGRAVING_WATER = 653261,
+    SPELL_ENGRAVING_ICE = 653217,
+    SPELL_ENGRAVING_ARCANE = 653263,
+    SPELL_ENGRAVING_EARTH = 653272,
+    SPELL_ENGRAVING_AIR = 653226
 };
 
 bool IsRunemaster(Unit const* unit)
@@ -121,6 +127,41 @@ class aura_ascension_runemaster_leyfrost : public AuraScript
     void Register() override
     {
         DoCheckProc += AuraCheckProcFn(aura_ascension_runemaster_leyfrost::CheckHoarfrost);
+    }
+};
+
+class aura_ascension_runemaster_convergence : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_runemaster_convergence);
+
+    static bool IsWeaponEngraving(uint32 spellId)
+    {
+        switch (spellId)
+        {
+            case SPELL_ENGRAVING_FIRE:
+            case SPELL_ENGRAVING_WATER:
+            case SPELL_ENGRAVING_ICE:
+            case SPELL_ENGRAVING_ARCANE:
+            case SPELL_ENGRAVING_EARTH:
+            case SPELL_ENGRAVING_AIR:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    bool CheckEngravingHit(ProcEventInfo& eventInfo)
+    {
+        Unit* owner = GetTarget();
+        Unit* target = eventInfo.GetActionTarget();
+        SpellInfo const* spell = eventInfo.GetSpellInfo();
+        return IsRunemaster(owner) && eventInfo.GetActor() == owner && spell && IsWeaponEngraving(spell->Id) &&
+            target && target != owner && target->IsAlive() && !owner->IsFriendlyTo(target);
+    }
+
+    void Register() override
+    {
+        DoCheckProc += AuraCheckProcFn(aura_ascension_runemaster_convergence::CheckEngravingHit);
     }
 };
 
@@ -229,6 +270,7 @@ void AddSC_AscensionRunemasterTalentProcs()
     RegisterSpellScript(spell_ascension_runemaster_ancient_warrior);
     RegisterSpellScript(aura_ascension_runemaster_decoder);
     RegisterSpellScript(aura_ascension_runemaster_leyfrost);
+    RegisterSpellScript(aura_ascension_runemaster_convergence);
     new runemaster_ley_lock_duration();
     RegisterSpellScript(spell_ascension_runemaster_ley_power);
     RegisterSpellScript(aura_ascension_runemaster_harvested_ley_energy);
