@@ -14,6 +14,10 @@ void ApplyContracts(SpellInfo* info)
     if (!info || info->SpellFamilyName != 32)
         return;
     uint32 id = info->Id;
+    if (id == 680805 && info->Effects[EFFECT_0].ApplyAuraName == SPELL_AURA_ADD_PCT_MODIFIER &&
+        info->Effects[EFFECT_0].MiscValue == SPELLMOD_BONUS_MULTIPLIER &&
+        info->Effects[EFFECT_0].SpellClassMask == flag96(0, 4096, 0))
+        info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_ADD_FLAT_MODIFIER;
     auto dummy = [info](uint8 slot) {
         info->Effects[slot].ApplyAuraName = SPELL_AURA_DUMMY;
         info->Effects[slot].TriggerSpell = 0;
