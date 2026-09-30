@@ -114,6 +114,13 @@ enum Misc
 
 constexpr float DEATH_ORIENTATION = 4.0f;
 
+// Ascension video evidence (MC_PV Video 3, CoA): Ragnaros is already at 50% health when he
+// becomes attackable, on every difficulty (Normal 20.3M/17 players = 50% of 40.7M; Ascended
+// 60M/17 = 50% of 120M). coa_boss_flex's hp_d0..d3 hold his full (100%) pool; this constant is
+// applied once, right before he can be attacked, so FlexHealth's own "keep the current
+// percentage" recompute (OnUnitEnterCombat) carries the 50% through unchanged.
+constexpr uint32 RAGNAROS_COA_ENGAGE_HEALTH_PCT = 50;
+
 struct boss_ragnaros : public BossAI
 {
     boss_ragnaros(Creature* creature) : BossAI(creature, DATA_RAGNAROS),
@@ -139,6 +146,7 @@ struct boss_ragnaros : public BossAI
             me->SetImmuneToAll(false);
             me->SetUInt32Value(UNIT_NPC_EMOTESTATE, 0);
             me->HandleEmoteCommand(EMOTE_ONESHOT_EMERGE);
+            me->SetHealth(me->CountPctFromMaxHealth(RAGNAROS_COA_ENGAGE_HEALTH_PCT));
         }
 
         _hasYelledMagmaBurst = false;
@@ -244,6 +252,7 @@ struct boss_ragnaros : public BossAI
                         me->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
                         me->SetImmuneToAll(false);
                         me->SetReactState(REACT_AGGRESSIVE);
+                        me->SetHealth(me->CountPctFromMaxHealth(RAGNAROS_COA_ENGAGE_HEALTH_PCT));
                         DoZoneInCombat();
                         break;
                     }
