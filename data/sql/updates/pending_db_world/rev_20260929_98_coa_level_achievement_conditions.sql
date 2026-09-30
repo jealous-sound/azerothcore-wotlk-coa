@@ -2,6 +2,7 @@
 -- "Realm First! Level 60 Human", "WildCard Level 60") but Achievement_Criteria.dbc only asks for the level,
 -- so every character reaching a level earned all of them. Class and race become S_PLAYER_CLASS_RACE data like
 -- the stock realm-first rows; game modes a scripted check of the character's game mode mask.
+-- Generated from Achievement.dbc and Achievement_Criteria.dbc by apps/coa-wildcard/level_achievement_conditions.py.
 DELETE FROM `achievement_criteria_data` WHERE `type` = 21 AND `criteria_id` IN (
 15449, 15455, 15461, 15467, 15473, 15479, 15485, 15491, 15497, 15503, 21449, 21455, 21461, 21467,
 21473, 21479, 21485, 21491, 21497, 21503, 26338, 26339, 26340, 26341, 26342, 26343, 26344, 26345,

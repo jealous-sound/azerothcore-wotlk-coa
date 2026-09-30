@@ -10,6 +10,7 @@
 #include <functional>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -20,6 +21,7 @@ class Player;
 namespace AscensionWildcard
 {
 constexpr std::uint32_t GAME_MODE_WILDCARD = 0x40;
+constexpr std::uint16_t WILDCARD_SEASON_EVENT = 194;
 constexpr std::size_t STARTING_ABILITY_COUNT = 4;
 constexpr std::uint8_t STARTING_REROLL_MAX_LEVEL = 9;
 constexpr std::uint32_t ABILITY_ROLL_COST = 2;
@@ -89,6 +91,7 @@ struct Entry
     std::uint32_t MinLevel = 0;
     std::uint32_t Group = 0;
     std::vector<std::uint32_t> RankSpells;
+    bool Glyph = false;
 };
 
 struct Essence
@@ -346,7 +349,7 @@ constexpr std::uint32_t WEAPON_SCHOOL_TAG_OFFSET = 1000;
 
 struct SynergySettings
 {
-    std::uint32_t ChancePercent = 70;
+    std::uint32_t ChancePercent = 65;
     std::uint32_t LinkWeight = 3;
     std::uint32_t RelatedWeight = 2;
     std::uint32_t SpecTagWeight = 2;
@@ -361,7 +364,7 @@ bool IsSchoolTag(std::uint32_t tag);
 std::uint32_t SynergyTagOf(std::uint32_t tag, bool weapon);
 std::uint32_t SynergyTagWeight(std::uint32_t tag, SynergySettings const& synergy = {});
 
-void RelateAcrossClasses(Tables& tables);
+void RelateAcrossClasses(Tables& tables, std::unordered_set<std::uint32_t> const& weaponAttacks);
 
 std::uint32_t SynergyScore(Tables const& tables, std::uint32_t candidate, std::vector<std::uint32_t> const& build,
     SynergySettings const& synergy = {});
@@ -512,6 +515,7 @@ inline Slot Decode(std::uint32_t value)
 
 Tables const& LoadedTables();
 bool IsWildcardHero(Player const* player);
+bool PlaysWildcard(std::string_view realmModes);
 
 std::uint32_t ActiveSpec(Player const* player);
 

@@ -2,7 +2,7 @@
 -- refreshes the cooldown of Lava Lash) or require them with @req:<spell>@; many of these interactions are scripted
 -- and invisible to spell class masks. Each talent is linked to every Wildcard ability its rank 1 tooltip names
 -- (longest name wins, so Seal of Arcane Wrath is not Wrath), and a Wildcard synergy roll scores the pair.
--- Generated from Spell.dbc and CharacterAdvancement.dbc by notes/tools/gen_wildcard_tooltip_links.py.
+-- Generated from Spell.dbc and CharacterAdvancement.dbc by apps/coa-wildcard/tooltip_links.py.
 DROP TABLE IF EXISTS `ascension_wildcard_tooltip_links`;
 CREATE TABLE `ascension_wildcard_tooltip_links` (
   `Talent` INT UNSIGNED NOT NULL,

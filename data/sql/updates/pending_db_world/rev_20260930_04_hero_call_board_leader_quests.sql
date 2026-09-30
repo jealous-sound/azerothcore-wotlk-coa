@@ -1,6 +1,7 @@
 -- Weekly leader quests of the Call Boards on Darkmoon - Season 10 Wildcard, as that realm's quest cache holds them:
 -- the group leader who defeats the final boss of any dungeon (Lead a Dungeon!, 5000 Runes of Ascension) or raid
 -- (Lead a Raid!, 10000) earns the credit. The Mythic+ variant is left out because this server has no Mythic+.
+-- The boards offer them only on a Wildcard realm, whose worldserver starts the season event (194).
 INSERT INTO `creature_template` (`entry`, `name`, `faction`, `unit_class`, `type`)
 VALUES
 (101000, 'Raid Leader Credit', 35, 1, 10),
@@ -34,11 +35,12 @@ INSERT INTO `quest_template_addon` (`ID`, `SpecialFlags`) VALUES
 (100077, 1),
 (100078, 1);
 DELETE FROM `gameobject_queststarter` WHERE `quest` IN (100077, 100078);
-INSERT INTO `gameobject_queststarter` (`id`, `quest`) VALUES
-(402000, 100077),
-(402000, 100078),
-(402001, 100077),
-(402001, 100078);
+DELETE FROM `game_event_gameobject_quest` WHERE `quest` IN (100077, 100078);
+INSERT INTO `game_event_gameobject_quest` (`eventEntry`, `id`, `quest`) VALUES
+(194, 402000, 100077),
+(194, 402000, 100078),
+(194, 402001, 100077),
+(194, 402001, 100078);
 DELETE FROM `gameobject_questender` WHERE `quest` IN (100077, 100078);
 INSERT INTO `gameobject_questender` (`id`, `quest`) VALUES
 (402000, 100077),

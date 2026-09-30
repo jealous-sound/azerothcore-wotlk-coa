@@ -267,15 +267,18 @@ TEST(AscensionWildcardTest, TalentsRelateToOtherClassesAbilitiesOfTheSchoolAndEf
     std::uint32_t const frost = 19;
     std::uint32_t const directDamage = 134;
     std::uint32_t const damageOverTime = 5;
-    Tables tables{ { Talent(1, 10, 1), Ability(10, 1), Ability(20, 1), Ability(30, 1), Ability(40, 1) }, HeroBudget() };
+    Tables tables{ { Talent(1, 10, 1), Ability(10, 1), Ability(20, 1), Ability(30, 1), Ability(40, 1),
+        Ability(50, 1) }, HeroBudget() };
     tables.SpellTags[100] = { fire, directDamage };
     tables.SpellTags[200] = { fire, directDamage, 8 };
     tables.SpellTags[300] = { frost, directDamage };
     tables.SpellTags[400] = { fire, damageOverTime };
+    tables.SpellTags[500] = { fire, directDamage };
     tables.Linked[1] = { 10 };
     tables.Linked[10] = { 1 };
-    RelateAcrossClasses(tables);
+    RelateAcrossClasses(tables, { 50 });
     EXPECT_EQ(tables.Related[1], (std::unordered_set<std::uint32_t>{ 20 }));
+    EXPECT_FALSE(tables.Related.contains(50));
     EXPECT_EQ(tables.Related[20], (std::unordered_set<std::uint32_t>{ 1 }));
     EXPECT_FALSE(tables.Related.contains(10));
     EXPECT_EQ(SynergyScore(tables, 20, { 1 }), SynergySettings{}.RelatedWeight);
@@ -386,6 +389,14 @@ TEST(AscensionWildcardTest, TalentsScoreTheAbilitiesTheirTooltipsName)
     EXPECT_EQ(SynergyScore(tables, 10, { 1 }, synergy), 7u);
 }
 
+TEST(AscensionWildcardTest, OnlyARealmThatPlaysWildcardHoldsTheSeasonContent)
+{
+    EXPECT_TRUE(PlaysWildcard("WildCard"));
+    EXPECT_TRUE(PlaysWildcard("Resolute, WildCard "));
+    EXPECT_FALSE(PlaysWildcard(""));
+    EXPECT_FALSE(PlaysWildcard("Resolute,Felforged"));
+}
+
 TEST(AscensionWildcardTest, WeaponAttacksKeepTheirSchoolsApartFromSpells)
 {
     std::uint32_t const fire = 18;
@@ -429,6 +440,16 @@ TEST(AscensionWildcardTest, TalentsForAbilitiesTheBuildLacksAreNotRolled)
     EXPECT_EQ(rolled(anyTalent), (std::set<std::uint32_t>{ 201, 202, 203, 204 }));
 
     EXPECT_EQ(RollLevelEntry(tables, Abilities(5), 11, 0, Fixed(0), Any, { TalentSlot(201) })->EntryId, 201u);
+}
+
+TEST(AscensionWildcardTest, GlyphsAreNeverRolled)
+{
+    Tables tables{ { Talent(201, 10, 1), Talent(202, 10, 1) }, HeroBudget() };
+    tables.Entries[1].Glyph = true;
+    std::mt19937 rng(5);
+    for (int roll = 0; roll < 100; ++roll)
+        EXPECT_EQ(RollLevelEntry(tables, Abilities(5), 11, 0, Seeded(rng), Any)->EntryId, 201u);
+    EXPECT_EQ(RollLevelEntry(tables, Abilities(5), 11, 0, Fixed(0), Any, { TalentSlot(202) })->EntryId, 201u);
 }
 
 TEST(AscensionWildcardTest, TalentRollsGrantARandomRankUpToTheMaximum)

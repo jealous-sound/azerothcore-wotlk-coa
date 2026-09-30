@@ -11,6 +11,7 @@
 #include "Config.h"
 #include "DBCStores.h"
 #include "DatabaseEnv.h"
+#include "GameEventMgr.h"
 #include "GameTime.h"
 #include "Group.h"
 #include "ItemScript.h"
@@ -23,6 +24,8 @@
 #include "SpellScriptLoader.h"
 #include "SpellInfo.h"
 #include "SpellMgr.h"
+#include "StringFormat.h"
+#include "Tokenize.h"
 #include "WorldPacket.h"
 #include "WorldSession.h"
 #include <algorithm>
@@ -378,8 +381,11 @@ void LinkSynergies(Tables& tables)
         SpellInfo const* spell = sSpellMgr->GetSpellInfo(entry.RankSpells.front());
         return spell && (spell->DmgClass == SPELL_DAMAGE_CLASS_MELEE || spell->DmgClass == SPELL_DAMAGE_CLASS_RANGED);
     };
+    std::unordered_set<std::uint32_t> weaponAttacks;
     for (Entry const& entry : tables.Entries)
     {
+        if (isWeaponAttack(entry))
+            weaponAttacks.insert(entry.EntryId);
         std::vector<std::uint32_t> synergy;
         auto const add = [&](Entry const& source, bool schoolOnly)
         {
@@ -398,7 +404,13 @@ void LinkSynergies(Tables& tables)
         if (!synergy.empty())
             tables.SynergyTags[entry.EntryId] = std::move(synergy);
     }
-    RelateAcrossClasses(tables);
+    RelateAcrossClasses(tables, weaponAttacks);
+}
+
+bool IsGlyph(uint32 spellId)
+{
+    SpellInfo const* spell = sSpellMgr->GetSpellInfo(spellId);
+    return spell && std::string_view(spell->SpellName[LOCALE_enUS]).starts_with("Glyph of ");
 }
 
 void LoadTables()
@@ -426,8 +438,10 @@ void LoadTables()
         for (uint32 field = ADVANCEMENT_SPELLS; field < ADVANCEMENT_SPELLS + ADVANCEMENT_RANK_COUNT; ++field)
             if (uint32 const spellId = record.GetUInt32(field))
                 entry.RankSpells.push_back(spellId);
-        if (!entry.RankSpells.empty())
-            tables.Entries.push_back(std::move(entry));
+        if (entry.RankSpells.empty())
+            continue;
+        entry.Glyph = IsGlyph(entry.RankSpells.front());
+        tables.Entries.push_back(std::move(entry));
     }
 
     for (uint32 row = 0; row < essence.GetRecordCount(); ++row)
@@ -470,9 +484,11 @@ void LoadTables()
             tables.BossMarks[fields[0].Get<uint32>()] = fields[1].Get<uint32>();
         } while (result->NextRow());
 
-    LOG_INFO("coa", "Loaded {} Wildcard entries, {} Hero essence levels and {} skill cards, {} of them starters and "
-        "{} dropped by creatures; {} bosses pay Runes of Ascension", tables.Entries.size(), tables.Budget.size(),
-        tables.Cards.size(), tables.StarterCards.size(), tables.DropItems.size(), tables.BossMarks.size());
+    LOG_INFO("coa", "Loaded {} Wildcard entries ({} glyphs, never rolled), {} Hero essence levels and {} skill cards, "
+        "{} of them starters and {} dropped by creatures; {} bosses pay Runes of Ascension", tables.Entries.size(),
+        std::count_if(tables.Entries.begin(), tables.Entries.end(), [](Entry const& entry) { return entry.Glyph; }),
+        tables.Budget.size(), tables.Cards.size(), tables.StarterCards.size(), tables.DropItems.size(),
+        tables.BossMarks.size());
     LOG_INFO("coa", "Wildcard synergy: {} entries linked by spell modifiers, {} named in talent tooltips, {} related "
         "across classes, {} with school or specialization tags", tables.Linked.size(), tables.Mentioned.size(),
         tables.Related.size(), tables.SynergyTags.size());
@@ -2009,7 +2025,7 @@ public:
     AscensionWildcardWorld() : WorldScript("AscensionWildcardWorld",
         { WORLDHOOK_ON_AFTER_CONFIG_LOAD, WORLDHOOK_ON_STARTUP }) { }
 
-    void OnAfterConfigLoad(bool /*reload*/) override
+    void OnAfterConfigLoad(bool) override
     {
         LoadSynergySettings();
     }
@@ -2017,6 +2033,8 @@ public:
     void OnStartup() override
     {
         LoadTables();
+        if (PlaysWildcard(sConfigMgr->GetOption<std::string>("CoAChallenges.GameModes.Realm", "")))
+            sGameEventMgr->StartInternalEvent(WILDCARD_SEASON_EVENT);
     }
 };
 }
@@ -2097,7 +2115,7 @@ std::uint32_t SynergyTagWeight(std::uint32_t tag, SynergySettings const& synergy
     return IsSchoolTag(tag) || weaponSchool ? synergy.SchoolTagWeight : 0;
 }
 
-void RelateAcrossClasses(Tables& tables)
+void RelateAcrossClasses(Tables& tables, std::unordered_set<std::uint32_t> const& weaponAttacks)
 {
     using SchoolEffect = std::pair<std::uint32_t, std::uint32_t>;
     std::map<std::uint32_t, std::set<SchoolEffect>> abilities;
@@ -2118,7 +2136,7 @@ void RelateAcrossClasses(Tables& tables)
                 }
         for (std::uint32_t school : schools)
             for (std::uint32_t effect : effects)
-                abilities[entry.EntryId].emplace(school, effect);
+                abilities[entry.EntryId].emplace(SynergyTagOf(school, weaponAttacks.contains(entry.EntryId)), effect);
     }
 
     for (Entry const& talent : tables.Entries)
@@ -2209,7 +2227,7 @@ std::optional<Slot> RollLevelEntry(Tables const& tables, std::vector<Slot> const
 
     auto const eligible = [&](Entry const& entry)
     {
-        return entry.Talent == talent && entry.MinLevel <= poolLevel && !known.count(entry.EntryId) &&
+        return entry.Talent == talent && !entry.Glyph && entry.MinLevel <= poolLevel && !known.count(entry.EntryId) &&
             entry.EntryId != excludedEntry && !(tameKnown && entry.Group == TAME_GROUP) &&
             !entry.RankSpells.empty() && available(entry.RankSpells.front());
     };
@@ -2839,6 +2857,14 @@ std::vector<AscensionCoATalentState::KnownEntry> KnownEntries(std::vector<Slot> 
 Tables const& LoadedTables()
 {
     return Loaded;
+}
+
+bool PlaysWildcard(std::string_view realmModes)
+{
+    for (std::string_view mode : Acore::Tokenize(realmModes, ',', false))
+        if (Acore::String::Trim(std::string(mode)) == "WildCard")
+            return true;
+    return false;
 }
 
 bool IsWildcardHero(Player const* player)

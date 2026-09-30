@@ -13,9 +13,9 @@
 #                     Range 0-100: 0 = never, 100 = always when a candidate fits the build.
 #                     All Wildcard.Synergy options apply at once after .reload config; the
 #                     worldserver log then shows the values in use.
-#        Default:     70
+#        Default:     65
 
-Wildcard.Synergy.ChancePercent = 70
+Wildcard.Synergy.ChancePercent = 65
 
 #    Wildcard.Synergy.LinkWeight
 #    Wildcard.Synergy.RelatedWeight
@@ -39,7 +39,8 @@ Wildcard.Synergy.LinkWeight = 3
 #    Wildcard.Synergy.RelatedWeight
 #        Description: Score for each cross-class relation: a talent and another class's ability of
 #                     the same spell school and effect as the abilities the talent modifies (e.g. a
-#                     talent for Fireball and Incinerate, both fire direct damage).
+#                     talent for Fireball and Incinerate, both fire direct damage). Weapon attacks
+#                     relate only to weapon attacks, so a spell talent does not pull in melee strikes.
 #        Default:     2
 
 Wildcard.Synergy.RelatedWeight = 2

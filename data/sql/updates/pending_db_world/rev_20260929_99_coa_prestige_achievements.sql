@@ -2,6 +2,7 @@
 -- activation. AzerothCore counts a kill-creature criterion only when achievement_criteria_data holds a row for
 -- it, so Prestige 1-10 never completed. Plain criteria get a NONE row; the race and class realm firsts get
 -- S_PLAYER_CLASS_RACE like the level realm firsts.
+-- Generated from Achievement.dbc and Achievement_Criteria.dbc by apps/coa-wildcard/prestige_achievements.py.
 DELETE FROM `achievement_criteria_data` WHERE `type` IN (0, 21) AND `criteria_id` IN (
 30100, 30101, 30102, 30103, 30104, 30105, 30106, 30107, 30108, 30109, 30110, 30111, 30112, 30113,
 30114, 30115, 30116, 30117, 30118, 30119, 30120, 30121, 30122, 30123, 30124, 30125, 30126, 30127,
