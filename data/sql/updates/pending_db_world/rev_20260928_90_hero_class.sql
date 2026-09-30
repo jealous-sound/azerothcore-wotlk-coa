@@ -1,17 +1,7 @@
--- Hero (class 10), Ascension's classless shell. The client's ChrClasses, CharBaseInfo, CharStartOutfit,
--- SkillRaceClassInfo and gt* rows for class 10 mirror Druid, so the server baseline starts from Druid too.
+-- Hero (class 10) as Darkmoon - Season 10 Wildcard started it, on top of the Hero base of rev_1790611408872048168:
+-- auto attack on the first action button, the season's starting spells, and next to its race's Warrior outfit the
+-- weapons a player remembers from the season (item IDs estimated).
 START TRANSACTION;
-DELETE FROM `playercreateinfo` WHERE `class` = 10;
-INSERT INTO `playercreateinfo` (`race`, `class`, `map`, `zone`, `position_x`, `position_y`, `position_z`, `orientation`)
-SELECT `race`, 10, `map`, `zone`, `position_x`, `position_y`, `position_z`, `orientation`
-FROM `playercreateinfo`
-WHERE (`class` = 1 AND `race` IN (1, 2, 3, 4, 5, 6, 7, 8, 11)) OR (`class` = 2 AND `race` = 10);
-
-DELETE FROM `player_class_stats` WHERE `Class` = 10;
-INSERT INTO `player_class_stats` (`Class`, `Level`, `BaseHP`, `BaseMana`, `Strength`, `Agility`, `Stamina`, `Intellect`, `Spirit`)
-SELECT 10, `Level`, `BaseHP`, `BaseMana`, `Strength`, `Agility`, `Stamina`, `Intellect`, `Spirit`
-FROM `player_class_stats` WHERE `Class` = 11;
-
 DELETE FROM `playercreateinfo_action` WHERE `class` = 10;
 INSERT INTO `playercreateinfo_action` (`race`, `class`, `button`, `action`, `type`)
 SELECT `race`, 10, 0, 6603, 0 FROM `playercreateinfo` WHERE `class` = 10;
@@ -56,14 +46,9 @@ INSERT INTO `playercreateinfo_spell_custom` (`racemask`, `classmask`, `Spell`, `
 
 DELETE FROM `playercreateinfo_item` WHERE `race` = 0 AND `class` = 10;
 INSERT INTO `playercreateinfo_item` (`race`, `class`, `itemid`, `amount`, `Note`) VALUES
-(0, 10, 38, 1, 'Hero starter kit'),
-(0, 10, 39, 1, 'Hero starter kit'),
-(0, 10, 40, 1, 'Hero starter kit'),
 (0, 10, 25, 1, 'Hero starter kit'),
 (0, 10, 2092, 1, 'Hero starter kit'),
 (0, 10, 2362, 1, 'Hero starter kit'),
 (0, 10, 2504, 1, 'Hero starter kit'),
-(0, 10, 23346, 1, 'Hero starter kit'),
-(0, 10, 35, 1, 'Hero starter kit'),
-(0, 10, 6948, 1, 'Hero starter kit');
+(0, 10, 35, 1, 'Hero starter kit');
 COMMIT;

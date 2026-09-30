@@ -3014,7 +3014,6 @@ void AddAscensionWildcardScripts()
     RegisterAscensionClientConfig([](AscensionClientConfig& config)
     {
         using namespace AscensionWildcard;
-        config.Booleans.emplace_back("CONFIG_LEGACY_CHARACTER_ADVANCEMENT_ENABLED", false);
         config.Booleans.emplace_back("CONFIG_WILDCARD_QUICK_ROLLING_ENABLED", true);
         config.Booleans.emplace_back("CONFIG_WILDCARD_ROLL_REPURCHASING_ENABLED", true);
         config.Integers.emplace_back("CONFIG_RANDOM_MODE_MAX_DEFAULT_NORMAL_SKILL_CARDS",

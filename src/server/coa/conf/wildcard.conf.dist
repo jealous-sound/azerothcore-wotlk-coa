@@ -1,6 +1,13 @@
 #
 # CoA: Wildcard (Darkmoon - Season 10)
 #
+# A Wildcard realm also sets, in their own files:
+#     CoAChallenges.GameModes.Realm = WildCard
+#     CoA.GameModeMask = 64
+#     CoA.ClientBooleanConfigs = "CONFIG_LEGACY_CHARACTER_ADVANCEMENT_ENABLED=0"
+#     CoA.ClassModel = "hero"
+#     CoA.RealmType = "seasonal"
+#
 
 [worldserver]
 

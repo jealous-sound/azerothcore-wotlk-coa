@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "A new Hero (class 10) starts with the Darkmoon Season 10 baseline",
-  "contract": "Class 10 is Ascension's classless Hero. A level-1 Hero on Darkmoon - Season 10 Wildcard knew Auto Attack, Dodge, Parry, Block, Dual Wield, Shoot, Throw, Wand, Path of Duality 129243, Twin Flurry 129246, Resilient Constitution 979700 and both Stones of Retreat before its first roll. Heroes wear every armor type and wield every weapon type, and start with minimal gray clothes, one weapon of each common kind and a Hearthstone.",
+  "contract": "Class 10 is Ascension's classless Hero. A level-1 Hero on Darkmoon - Season 10 Wildcard knew Auto Attack, Dodge, Parry, Block, Dual Wield, Shoot, Throw, Wand, Path of Duality 129243, Twin Flurry 129246, Resilient Constitution 979700 and both Stones of Retreat before its first roll. Heroes wear every armor type and wield every weapon type, and start with their race's Warrior outfit and a Hearthstone (for a Human the Recruit's clothes and a Worn Greatsword) plus a sword, a dagger, a staff, a bow and a shield, as a player remembers them (item IDs estimated).",
   "timeout_ms": 60000,
   "players": [
     {"id": "hero", "race": 1, "class": 10, "level": 1}
@@ -22,7 +22,7 @@
     {"action": "assert", "label": "The Swords skill is trained", "actor": "hero", "metric": "skill_value", "skill": 43, "min": 1},
     {"action": "assert", "label": "The starter sword is carried", "actor": "hero", "metric": "item_count", "item": 25, "equals": 1},
     {"action": "assert", "label": "The starter dagger is carried", "actor": "hero", "metric": "item_count", "item": 2092, "equals": 1},
-    {"action": "assert", "label": "The starter greatsword is carried", "actor": "hero", "metric": "item_count", "item": 23346, "equals": 1},
+    {"action": "assert", "label": "The Warrior's greatsword of its race is carried", "actor": "hero", "metric": "item_count", "item": 49778, "equals": 1},
     {"action": "assert", "label": "The starter staff is carried", "actor": "hero", "metric": "item_count", "item": 35, "equals": 1},
     {"action": "assert", "label": "The starter bow is carried", "actor": "hero", "metric": "item_count", "item": 2504, "equals": 1},
     {"action": "assert", "label": "The starter shield is carried", "actor": "hero", "metric": "item_count", "item": 2362, "equals": 1},
