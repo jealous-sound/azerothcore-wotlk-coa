@@ -18,6 +18,7 @@ constexpr uint32 NPC_SOULSTONE_LURE = 557911;
 constexpr uint32 SUMMON_PROPERTIES_STATIONARY = 64;
 constexpr uint32 SPELL_DEATHBRINGER = 573040;
 constexpr uint32 SPELL_APPARITION = 705389;
+constexpr uint32 SPELL_SOULS_FOR_SLAUGHTER_DAMAGE = 575847;
 
 class reaper_spell_contracts : public GlobalScript
 {
@@ -29,6 +30,13 @@ public:
     {
         if (!info || info->SpellFamilyName != 36)
             return;
+
+        if (info->Id == SPELL_SOULS_FOR_SLAUGHTER_DAMAGE &&
+            info->Effects[EFFECT_0].Effect == SPELL_EFFECT_SCHOOL_DAMAGE)
+        {
+            info->AscensionInheritsResolvedAmount = true;
+            info->AttributesEx3 |= SPELL_ATTR3_IGNORE_CASTER_MODIFIERS;
+        }
 
         if (info->Id == SPELL_APPARITION &&
             info->Effects[EFFECT_1].ApplyAuraName == SPELL_AURA_ADD_PCT_MODIFIER &&

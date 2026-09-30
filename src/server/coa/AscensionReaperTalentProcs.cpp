@@ -6,9 +6,11 @@
 #include "SpellAuraEffects.h"
 #include "SpellAuras.h"
 #include "SpellInfo.h"
+#include "SpellMgr.h"
 #include "SpellScript.h"
 #include "Unit.h"
 #include <algorithm>
+#include <limits>
 
 namespace
 {
@@ -19,6 +21,41 @@ constexpr uint32 JailersWillHelper = 578264;
 constexpr float JailersWillStrengthCoefficient = 0.3f;
 constexpr uint32 DeathchaserExtender = 807546;
 constexpr uint32 DeathchaserFirstRank = 805190;
+constexpr uint32 SoulsForSlaughterDamage = 575847;
+
+class aura_ascension_reaper_souls_for_slaughter : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_reaper_souls_for_slaughter);
+
+    bool Validate(SpellInfo const*) override { return ValidateSpellInfo({SoulsForSlaughterDamage}); }
+
+    bool Check(ProcEventInfo& event)
+    {
+        Unit* player = GetTarget();
+        Unit* target = event.GetActionTarget();
+        DamageInfo const* damage = event.GetDamageInfo();
+        return player->IsPlayer() && player->getClass() == CLASS_REAPER && player->IsAlive() &&
+            player == GetCaster() && event.GetActor() == player && !event.GetSpellInfo() && target &&
+            target != player && !player->IsFriendlyTo(target) && damage && damage->GetDamage() &&
+            (event.GetTypeMask() & PROC_FLAG_DONE_MELEE_AUTO_ATTACK);
+    }
+
+    void Proc(AuraEffect const* effect, ProcEventInfo& event)
+    {
+        PreventDefaultAction();
+        uint64 const amount = uint64(event.GetDamageInfo()->GetDamage()) * std::clamp(effect->GetAmount(), 0, 100) / 100;
+        if (amount)
+            GetTarget()->CastCustomSpell(SoulsForSlaughterDamage, SPELLVALUE_BASE_POINT0,
+                int32(std::min<uint64>(amount, std::numeric_limits<int32>::max())), event.GetActionTarget(),
+                TRIGGERED_FULL_MASK);
+    }
+
+    void Register() override
+    {
+        DoCheckProc += AuraCheckProcFn(aura_ascension_reaper_souls_for_slaughter::Check);
+        OnEffectProc += AuraEffectProcFn(aura_ascension_reaper_souls_for_slaughter::Proc, EFFECT_0, AuraType(354));
+    }
+};
 
 class aura_ascension_reaper_jailers_will_helper : public AuraScript
 {
@@ -158,6 +195,7 @@ class aura_ascension_reaper_soulrot : public AuraScript
 
 void AddSC_AscensionReaperTalentProcs()
 {
+    RegisterSpellScript(aura_ascension_reaper_souls_for_slaughter);
     RegisterSpellScript(aura_ascension_reaper_jailers_will_helper);
     RegisterSpellScript(spell_ascension_reaper_talent_proc);
     RegisterSpellScript(spell_ascension_reaper_chasing_death_extender);
