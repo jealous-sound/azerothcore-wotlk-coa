@@ -108,7 +108,7 @@ namespace
             DoZoneInCombat(summon);
         }
 
-        void ExecuteEvent(uint32 eventId) override
+        void ExecuteEvent(uint32 eventId)
         {
             switch (eventId)
             {
@@ -173,7 +173,7 @@ namespace
                 _mergeProximityMs = 0;
             }
 
-            if (!partner || me->GetGUID() > partner->GetGUID())
+            if (!partner || partner->GetGUID() < me->GetGUID())
                 return;
 
             _mergeProximityMs += MERGE_SCAN_INTERVAL_MS;
