@@ -1234,18 +1234,18 @@ void WorldSession::HandlePlayerLoginToCharInWorld(Player* pCurrChar)
     pCurrChar->SetInGameTime(GameTime::GetGameTimeMS().count());
 
     // Xinef: we need to resend all spell mods
+    bool const useAscensionSpellModifierLayout = pCurrChar->UsesAscensionSpellModifierLayout();
+    uint32 const clientSpellModCount = pCurrChar->GetClientSpellModCount();
     for (uint16 Opcode = SMSG_SET_FLAT_SPELL_MODIFIER; Opcode <= SMSG_SET_PCT_SPELL_MODIFIER; ++Opcode) // PCT = FLAT+1
     {
         uint32 modType = (Opcode == SMSG_SET_FLAT_SPELL_MODIFIER) ? SPELLMOD_FLAT : SPELLMOD_PCT;
-        for (uint32 opType = SPELLMOD_DAMAGE; opType < MAX_CLIENT_SPELLMOD; ++opType)
+        for (uint32 opType = SPELLMOD_DAMAGE; opType < clientSpellModCount; ++opType)
         {
             int32 i = 0;
             flag96 _mask = 0;
             SpellModContainer const& spellMods = pCurrChar->GetSpellModList(opType);
             if (spellMods.empty())
                 continue;
-
-            bool const useAscensionSpellModifierLayout = IsAscensionCompatEnabled();
 
             if (useAscensionSpellModifierLayout)
             {
@@ -1284,17 +1284,7 @@ void WorldSession::HandlePlayerLoginToCharInWorld(Player* pCurrChar)
                         if (val == 0)
                             continue;
 
-                        // In Ascension's multi-class modifier engine, mode 0 (11 bytes) specifies
-                        // an individual modifier where the trailing uint32 is the SpellFamilyName
-                        // (e.g. 32 for Starcaller, 9 for Hunter), indexing client table slice:
-                        // SpellFamilyName * 0x11A0 + eff * 31 + opType.
-                        WorldPacket data(Opcode, 11);
-                        data << uint8(0);
-                        data << uint8(eff);
-                        data << uint8(opType);
-                        data << int32(val);
-                        data << uint32(family);
-                        SendPacket(&data);
+                        pCurrChar->SendSpellModifier(Opcode, eff, opType, val, family);
                     }
                 }
             }
@@ -1314,11 +1304,7 @@ void WorldSession::HandlePlayerLoginToCharInWorld(Player* pCurrChar)
                     if (val == 0)
                         continue;
 
-                    WorldPacket data(Opcode, 6);
-                    data << uint8(eff);
-                    data << uint8(opType);
-                    data << int32(val);
-                    SendPacket(&data);
+                    pCurrChar->SendSpellModifier(Opcode, eff, opType, val, 0);
                 }
             }
         }

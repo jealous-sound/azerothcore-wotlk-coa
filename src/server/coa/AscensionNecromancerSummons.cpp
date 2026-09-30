@@ -31,7 +31,7 @@ bool Stationary(uint32 entry)
 }
 bool Ranged(uint32 entry)
 {
-    return entry == 50076 || entry == 50075;
+    return entry == 50076 || entry == 50075 || entry == 50323 || entry == 50177;
 }
 bool Follows(uint32 entry)
 {
@@ -100,8 +100,8 @@ uint32 AttackSpell(uint32 entry)
         return 801513;
     case 50076:
         return 801516;
-    case 50177:
-        return 801513;
+    case 50323:
+        return 822074;
     case 500483:
     case 500484:
         return 801513;

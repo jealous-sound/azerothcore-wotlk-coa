@@ -223,7 +223,11 @@ class aura_ascension_templar_lifecycle : public AuraScript
         if (id == 563269)
             Replacement(player, 801446, 0);
         if (Named(GetSpellInfo(), 805409))
+        {
             player->RemoveAurasDueToSpell(301340);
+            if (!State(player).oath)
+                ClearOaths(player);
+        }
     }
     void Register() override
     {

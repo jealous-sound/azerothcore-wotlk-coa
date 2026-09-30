@@ -2334,7 +2334,9 @@ bool Creature::IsImmunedToSpellEffect(SpellInfo const* spellInfo, uint32 index, 
     if (spellInfo->Effects[index].Mechanic > MECHANIC_NONE && HasMechanicTemplateImmunity(1ULL << spellInfo->Effects[index].Mechanic))
         return true;
 
-    if (GetCreatureTemplate()->type == CREATURE_TYPE_MECHANICAL && spellInfo->Effects[index].Effect == SPELL_EFFECT_HEAL)
+    // Tinker heals are designed to repair player-owned mechanical pets and devices
+    if (GetCreatureTemplate()->type == CREATURE_TYPE_MECHANICAL && spellInfo->Effects[index].Effect == SPELL_EFFECT_HEAL &&
+        !(spellInfo->SpellFamilyName == 34 && GetOwnerGUID().IsPlayer()))
         return true;
 
     return Unit::IsImmunedToSpellEffect(spellInfo, index, caster);

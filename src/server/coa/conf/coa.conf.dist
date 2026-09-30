@@ -106,6 +106,37 @@ CoA.RealmType = "live"
 
 CoA.ClassModel = "coa"
 
+#
+#    CoA.GameModeMask
+#        Description: Custom game-mode bits sent to the client when a character logs in, which
+#                     turn on the matching client UI and rules. Add values to combine modes.
+#                     2    - Ironman
+#                     4    - Survivalist
+#                     8    - Draft
+#                     32   - Resolute
+#                     64   - Wildcard
+#                     128  - Felforged
+#                     256  - Nightmare
+#                     2048 - Build Draft
+#                     4096 - Crusader
+#        Default:     0 - no custom game mode
+#
+
+CoA.GameModeMask = 0
+
+#
+#    CoA.ClientBooleanConfigs
+#    CoA.ClientIntegerConfigs
+#        Description: Extra client configs sent in SMSG_COA_CONFIG, as a comma-separated NAME=value list.
+#                     They select realm-specific client UI, for example
+#                     "CONFIG_LEGACY_CHARACTER_ADVANCEMENT_ENABLED=0" loads the current Character
+#                     Advancement UI instead of the Season 9 one on a free-pick realm.
+#        Default:     "" - none
+#
+
+CoA.ClientBooleanConfigs = ""
+CoA.ClientIntegerConfigs = ""
+
 ###################################################################################################
 # HIGH-RISK PACKAGE
 #

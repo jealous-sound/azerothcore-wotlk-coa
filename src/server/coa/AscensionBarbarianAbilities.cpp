@@ -26,13 +26,18 @@ class spell_ascension_barbarian_ability : public SpellScript
     PrepareSpellScript(spell_ascension_barbarian_ability);
     std::set<ObjectGuid> _hit;
     std::vector<ObjectGuid> _line;
-    Position _endpoint;
-    bool _hasEndpoint = false;
 
     void SuppressStun(SpellEffIndex index)
     {
         if (Family(GetSpellInfo(), 1, 64) && GetCaster()->HasAura(807183))
             PreventHitDefaultEffect(index);
+    }
+
+    SpellCastResult CheckRoot()
+    {
+        if (GetCaster()->HasUnitState(UNIT_STATE_ROOT))
+            return SPELL_FAILED_ROOTED;
+        return SPELL_CAST_OK;
     }
 
     void Select(std::list<WorldObject*>& targets)
@@ -50,9 +55,6 @@ class spell_ascension_barbarian_ability : public SpellScript
         _line.clear();
         for (WorldObject* object : targets)
             _line.push_back(object->GetGUID());
-        float range = GetSpellInfo()->Effects[EFFECT_0].CalcRadius(caster);
-        _endpoint = targets.empty() ? caster->GetNearPosition(range, 0.0f) : targets.back()->GetPosition();
-        _hasEndpoint = true;
     }
 
     void Damage()
@@ -118,9 +120,8 @@ class spell_ascension_barbarian_ability : public SpellScript
         Player* player = Owner(GetCaster());
         if (!player || GetSpell()->IsTriggered())
             return;
-        if (Family(GetSpellInfo(), 1, 256) && _hasEndpoint)
-            player->CastSpell(_endpoint.GetPositionX(), _endpoint.GetPositionY(),
-                _endpoint.GetPositionZ(), 255846, true);
+        if (Family(GetSpellInfo(), 1, 256))
+            player->CastSpell(player, 255845, true);
         if (Family(GetSpellInfo(), 1, 1) && player->HasAura(705208))
             if (Unit* pet = Ancestor(player))
                 pet->CastSpell(pet, 804756, true);
@@ -165,6 +166,8 @@ class spell_ascension_barbarian_ability : public SpellScript
                 EFFECT_ALL, TARGET_UNIT_CONE_ENEMY_24);
             OnHit += SpellHitFn(spell_ascension_barbarian_ability::Damage);
         }
+        if (info && info->HasEffect(SPELL_EFFECT_CHARGE_DEST))
+            OnCheckCast += SpellCheckCastFn(spell_ascension_barbarian_ability::CheckRoot);
         AfterHit += SpellHitFn(spell_ascension_barbarian_ability::Hit);
         AfterCast += SpellCastFn(spell_ascension_barbarian_ability::Finish);
     }

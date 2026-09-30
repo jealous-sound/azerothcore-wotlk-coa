@@ -279,6 +279,7 @@ struct CompatConfig
 {
     std::string RealmType = "live";
     std::string ClassModel = "coa";
+    uint32 GameModeMask = 0;
     bool UnlockAllVanity = true;
     bool LearnedSpellDelivery = true;
 
@@ -288,7 +289,11 @@ struct CompatConfig
         if constexpr (std::is_same_v<T, std::string>)
             return key == AscensionCompatConfig::REALM_TYPE ? RealmType : ClassModel;
         else if constexpr (std::is_same_v<T, uint32>)
+        {
+            if (key == AscensionCompatConfig::GAME_MODE_MASK)
+                return GameModeMask;
             return key == AscensionCompatConfig::FIRST_EXTENSION_OPCODE ? 0x051F : 0x09D3;
+        }
         else if (key == AscensionCompatConfig::UNLOCK_ALL_VANITY)
             return UnlockAllVanity;
         else if (key == AscensionCompatConfig::ALLOW_LEARNED_SPELL_DELIVERY)
@@ -376,6 +381,8 @@ public:
     void RefreshCosmetics(Player*, PlayerCollectionState&) { }
 
     // ACTUAL_SEND_REALM_INFO
+    // ACTUAL_SEND_GAME_MODE_STATE
+    // ACTUAL_SEND_SECURE_ADDON_LIST
     // ACTUAL_QUEUE_CLIENT_PACKET
     // ACTUAL_REJECT_CLIENT_PACKET
     // ACTUAL_TAKE_CLIENT_PACKETS
@@ -465,6 +472,32 @@ void TestRealmInfo()
     Check(allowedEverywhere, "every realm type and class model allows add-ons and names the realm");
 }
 
+std::vector<uint32> SentGameModes(uint32 mask)
+{
+    ascensionCompatConfig.GameModeMask = mask;
+    WorldSession session;
+    Player player;
+    player.Session = &session;
+    AscensionCollectionService::Instance().SendGameModeState(&player);
+    std::vector<uint32> modes;
+    for (WorldPacket packet : session.Sent)
+    {
+        packet.rpos(0);
+        if (packet.GetOpcode() == 0x090B && packet.size() == sizeof(uint32))
+            modes.push_back(packet.read<uint32>());
+    }
+    return modes;
+}
+
+void TestGameModeState()
+{
+    Check(SentGameModes(0) == std::vector<uint32>{0},
+        "a realm without custom game modes still tells the client its mode is none");
+    Check(SentGameModes(64) == std::vector<uint32>{64}, "a wildcard realm sends the wildcard game-mode bit");
+    Check(SentGameModes(64 | 8) == std::vector<uint32>{72}, "combined game modes reach the client as one mask");
+    ascensionCompatConfig.GameModeMask = 0;
+}
+
 bool Receive(WorldSession& session, WorldPacket const& packet)
 {
     return AscensionCompatServerScript().CanPacketReceiveEarly(&session, packet);
@@ -475,6 +508,25 @@ WorldPacket ExtensionInitialized()
     WorldPacket packet(0x0561, 8);
     packet << uint32(0) << uint32(1);
     return packet;
+}
+
+bool TrustsHelpUi(WorldPacket packet)
+{
+    if (packet.GetOpcode() != 0x094E || packet.size() != 22)
+        return false;
+
+    packet.rpos(0);
+    return packet.read<uint32>() == 1 && ReadString(packet) == "Ascension_HelpUI" &&
+        packet.read<uint8>() == 1 && packet.rpos() == packet.size();
+}
+
+void TestCharacterEnumeration()
+{
+    WorldSession session;
+    bool const passedOn = Receive(session, WorldPacket(CMSG_CHAR_ENUM, 0));
+    Check(passedOn, "character enumeration still reaches the core handler");
+    Check(session.Sent.size() == 2 && session.Sent[0].GetOpcode() == 0x09BC && TrustsHelpUi(session.Sent[1]),
+        "character enumeration sends realm info followed by the secure HelpUI addon list");
 }
 
 WorldPacket ApplyAppearances()
@@ -539,6 +591,8 @@ void TestWorldEntryResend()
     service.OnPlayerUpdate(&player, 1);
     Check(player.ChargeSnapshots == 1 && player.EchoSnapshots == 1,
         "the next world update resends the charge snapshot and the Runemaster echoes");
+    Check(session.Sent.size() == 1 && TrustsHelpUi(session.Sent[0]),
+        "the next world update trusts HelpUI with the client's count, name and secure-flag layout");
 
     bool consumed = true;
     for (int worldEntry = 0; worldEntry < 3; ++worldEntry)
@@ -548,13 +602,16 @@ void TestWorldEntryResend()
     }
     Check(consumed && player.ChargeSnapshots == 4 && player.EchoSnapshots == 4,
         "login, loading screens and reloads each get their own resend");
+    Check(session.Sent.size() == 4 && std::all_of(session.Sent.begin(), session.Sent.end(), TrustsHelpUi),
+        "every extension initialization restores the secure HelpUI addon list");
 
     uint32 const charges = player.ChargeSnapshots;
     uint32 const echoes = player.EchoSnapshots;
+    std::size_t const addonLists = session.Sent.size();
     WorldPacket poll(0x0745, 0);
     Check(!Receive(session, poll), "other extension notices stay consumed");
     service.OnPlayerUpdate(&player, 1);
-    Check(player.ChargeSnapshots == charges && player.EchoSnapshots == echoes,
+    Check(player.ChargeSnapshots == charges && player.EchoSnapshots == echoes && session.Sent.size() == addonLists,
         "other extension notices resend nothing");
 
     WorldPacket visibility(0x06A3, 2);
@@ -571,6 +628,8 @@ void TestWorldEntryResend()
     service.OnPlayerUpdate(&player, 1);
     Check(player.ChargeSnapshots == charges + 1 && player.EchoSnapshots == echoes + 1,
         "notices that arrive before the same world update share one resend");
+    Check(session.Sent.size() == addonLists + 1 && TrustsHelpUi(session.Sent.back()),
+        "duplicate initialization notices share one secure-addon resend");
     Check(service.AppearancePackets == std::vector<uint16>{0x0697, 0x06A3, 0x0697},
         "repeated notices do not fill the queue and crowd out later packets");
 
@@ -999,6 +1058,8 @@ void TestTalentRequests()
 int main()
 {
     TestRealmInfo();
+    TestGameModeState();
+    TestCharacterEnumeration();
     TestWorldEntryResend();
     TestStorePackets();
     TestTalentRequests();

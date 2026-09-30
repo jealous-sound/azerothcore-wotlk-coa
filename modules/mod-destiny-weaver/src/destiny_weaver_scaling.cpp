@@ -387,7 +387,7 @@ namespace
 
     void MarkClientDirty(Player* player, bool remindDefault)
     {
-        if (!player || !player->IsInWorld())
+        if (!player || !player->IsInWorld() || player->GetSession()->IsBot())
             return;
 
         // A reminder is owed whatever the state does: it is what the character is left holding.

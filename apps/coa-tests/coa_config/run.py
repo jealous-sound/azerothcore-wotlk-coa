@@ -85,7 +85,8 @@ def compile_and_run(out, main_source, packet_prefix):
     (out / 'main.cpp').write_text(main_source)
     command = [compiler, '-std=c++20', '-Wall', '-Wextra', '-Werror']
     command += [flag for path in [out, *INCLUDE_DIRS] for flag in ('-I', str(path))]
-    command += [str(out / 'main.cpp'), str(MODULE / 'AscensionCoAConfig.cpp'), '-o', str(out / 'test')]
+    command += [str(out / 'main.cpp'), str(MODULE / 'AscensionCoAConfig.cpp'),
+                str(ROOT / 'src/common/Utilities/Tokenize.cpp'), '-o', str(out / 'test')]
     subprocess.run(command, check=True)
     subprocess.run([str(out / 'test'), str(out / packet_prefix)], check=True)
 
@@ -144,6 +145,13 @@ int main(int, char** argv)
     });
     world.scale = 1;
     Write(argv[1], 3, BuildAscensionCoAConfig());
+    RegisterAscensionClientConfig([](AscensionClientConfig& config)
+    {
+        AppendAscensionClientConfigList(" CONFIG_LIST_OFF =0,CONFIG_LIST_ON= 1,missing,=1,CONFIG_LIST_WORD=yes,,",
+                                        config.Booleans);
+        AppendAscensionClientConfigList("CONFIG_LIST_INTEGER=-7,CONFIG_LIST_PARTIAL=4x", config.Integers);
+    });
+    Write(argv[1], 4, BuildAscensionCoAConfig());
 }
 ''', 'packet')
         for scale in range(3):
@@ -155,8 +163,12 @@ int main(int, char** argv)
         assert booleans == {'CONFIG_TEST_ON': 1, 'CONFIG_TEST_OFF': 0}
         assert floats == {'CONFIG_TEST_FLOAT': 1.5}
         assert rates == {**expected_rates(1), 'RATE_TEST': 2.5}
+        integers, booleans, _, _ = decode((out / 'packet4').read_bytes())
+        assert integers == {'CONFIG_TEST_INTEGER': -3, 'CONFIG_LIST_INTEGER': -7}
+        assert booleans == {'CONFIG_TEST_ON': 1, 'CONFIG_TEST_OFF': 0, 'CONFIG_LIST_OFF': 0, 'CONFIG_LIST_ON': 1}
     print(f'PASS: opcode, six sections, {len(expected_rates(1))} rate mappings, key framing, refreshed rates, '
-          'null session, registered integer, boolean, float and rate values share one packet')
+          'null session, registered integer, boolean, float and rate values share one packet, '
+          'configured NAME=value lists skip malformed entries')
 
 
 if __name__ == '__main__':
