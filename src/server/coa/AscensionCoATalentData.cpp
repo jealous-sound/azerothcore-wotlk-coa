@@ -6,7 +6,6 @@
 #include "Log.h"
 #include <algorithm>
 #include <cctype>
-#include <cstring>
 #include <map>
 #include <string>
 #include <string_view>
@@ -49,7 +48,7 @@ enum AdvancementDwordField : uint32
 };
 
 constexpr uint32 ADVANCEMENT_ROW_BYTE = 0x192;
-constexpr uint32 ADVANCEMENT_MINIMUM_DWORDS = (ADVANCEMENT_ROW_BYTE + sizeof(float) + sizeof(uint32) - 1) / sizeof(uint32);
+constexpr uint32 ADVANCEMENT_MINIMUM_DWORDS = (ADVANCEMENT_ROW_BYTE + sizeof(float) + 3) / 4;
 
 enum ChrSpecsDwordField : uint32
 {
@@ -74,11 +73,7 @@ bool Contains(auto const& values, uint32 value)
 
 uint8 Row(ClientDBC::Record const& record)
 {
-    std::array<uint8, sizeof(float)> bytes{};
-    for (uint32 index = 0; index < bytes.size(); ++index)
-        bytes[index] = record.GetUInt8(ADVANCEMENT_ROW_BYTE + index);
-    float position = 0.0f;
-    std::memcpy(&position, bytes.data(), sizeof(position));
+    float const position = record.GetFloatAtByte(ADVANCEMENT_ROW_BYTE);
     return position > 0.0f && position < 255.0f ? uint8(position + 0.5f) : 0;
 }
 

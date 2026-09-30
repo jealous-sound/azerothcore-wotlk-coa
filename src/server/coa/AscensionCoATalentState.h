@@ -30,6 +30,7 @@ struct SpentPoints
 SpentPoints Spent(std::vector<KnownEntry> const& known);
 
 std::vector<std::uint32_t> LayoutViolations(std::vector<KnownEntry> const& known);
+bool BreaksChoiceNode(std::vector<KnownEntry> const& known, std::uint32_t entryId);
 
 std::vector<std::uint8_t> KnownEntriesPayload(std::vector<KnownEntry> const& known);
 

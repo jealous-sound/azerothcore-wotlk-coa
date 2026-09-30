@@ -157,6 +157,16 @@ int main(int, char** argv)
     met.push_back({ 30465, 1 });
     violations = LayoutViolations(met);
     Check(violations.size() == 1 && violations[0] == 30465, "both options of a choice node flag the later one");
+    Check(BreaksChoiceNode(met, 30465) && !BreaksChoiceNode(met, 7244) && !BreaksChoiceNode(met, 7237),
+          "only the later option of a doubled choice node breaks it");
+    CoATalentEntry const* brewing = Find(7131);
+    CoATalentEntry const* classCopy = Find(12264);
+    Check(brewing && classCopy && brewing->SpellIds[0] == classCopy->SpellIds[0] && brewing->SpecId &&
+              !classCopy->SpecId && classCopy->RequiredTreePoints,
+          "a gated class entry shares its rank spell with an ungated specialization entry");
+    std::vector<KnownEntry> sharedSpell = { { 7131, 1 }, { 12264, 1 } };
+    Check(LayoutViolations(sharedSpell).empty() && !BreaksChoiceNode(sharedSpell, 12264),
+          "a rank spell two entries share is one purchase, not a second entry breaking its gate");
 
     std::set<std::uint8_t> specializedClasses;
     for (CoATalentEntry const& entry : CoATalentEntries)
