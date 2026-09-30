@@ -6135,7 +6135,8 @@ struct ScrollProfession
 
 constexpr ScrollProfession kProfessions[] = {
     { 171, "Alchemy" },        { 164, "Blacksmithing" }, { 333, "Enchanting" },
-    { 202, "Engineering" },    { 165, "Leatherworking" }, { 197, "Tailoring" },
+    { 202, "Engineering" },    { 773, "Inscription" },   { 755, "Jewelcrafting" },
+    { 165, "Leatherworking" }, { 197, "Tailoring" },
     { 182, "Herbalism" },      { 186, "Mining" },        { 393, "Skinning" },
     { 185, "Cooking" },        { 129, "First Aid" },     { 356, "Fishing" },
     { 633, "Lockpicking" },    { 732, "Woodcutting" },   { 757, "Woodworking" },
