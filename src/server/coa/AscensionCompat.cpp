@@ -3633,6 +3633,24 @@ public:
     CollectItem(player, *state, item->GetEntry(), true);
   }
 
+    void OnQuestRewarded(Player* player, Quest const* quest)
+    {
+        if (!quest)
+            return;
+
+        auto state = GetState(player);
+        if (!state)
+            return;
+
+        for (uint32 index = 0; index < QUEST_REWARDS_COUNT; ++index)
+            if (quest->RewardItemId[index] && quest->RewardItemIdCount[index])
+                CollectItemAppearance(player, *state, quest->RewardItemId[index], true, true);
+
+        for (uint32 index = 0; index < QUEST_REWARD_CHOICES_COUNT; ++index)
+            if (quest->RewardChoiceItemId[index] && quest->RewardChoiceItemCount[index])
+                CollectItemAppearance(player, *state, quest->RewardChoiceItemId[index], true, true);
+    }
+
   void OnVisibleItemSet(Player *player, uint8 slot, Item *item) {
     if (!item)
       return;
@@ -4033,27 +4051,36 @@ private:
     return false;
   }
 
-  void CollectItem(Player *player, PlayerCollectionState &state, uint32 itemId,
-                   bool notifyClient) {
-    auto mappingItr = _itemAppearances.find(itemId);
-    if (mappingItr != _itemAppearances.end())
+    void CollectItemAppearance(Player* player, PlayerCollectionState& state, uint32 itemId,
+        bool notifyClient, bool equipmentOnly = false)
     {
-      uint32 appearanceId = mappingItr->second;
-      auto const appearance = _appearances.find(appearanceId);
-      if (appearance != _appearances.end() && IsEquipmentAppearance(appearance->second))
-        sScriptMgr->OnPlayerCoAProgress(player, CoAProgressEvent::AppearanceCollected, appearanceId);
-      if (_appearances.contains(appearanceId) &&
-          state.CollectedAppearances.insert(appearanceId).second) {
+        auto const mapping = _itemAppearances.find(itemId);
+        if (mapping == _itemAppearances.end())
+            return;
+
+        uint32 const appearanceId = mapping->second;
+        auto const appearance = _appearances.find(appearanceId);
+        if (appearance == _appearances.end() || (equipmentOnly && !IsEquipmentAppearance(appearance->second)))
+            return;
+
+        if (IsEquipmentAppearance(appearance->second))
+            sScriptMgr->OnPlayerCoAProgress(player, CoAProgressEvent::AppearanceCollected, appearanceId);
+
+        if (!state.CollectedAppearances.insert(appearanceId).second)
+            return;
+
         CharacterDatabase.Execute(
             "INSERT IGNORE INTO `account_appearance_collection` (`account_id`, "
             "`appearance_id`, `source_item`) "
             "VALUES ({}, {}, {})",
             state.AccountId, appearanceId, itemId);
-
         if (notifyClient)
-          SendAppearanceAdded(player, appearanceId, itemId);
-      }
+            SendAppearanceAdded(player, appearanceId, itemId);
     }
+
+  void CollectItem(Player *player, PlayerCollectionState &state, uint32 itemId,
+                   bool notifyClient) {
+    CollectItemAppearance(player, state, itemId, notifyClient);
 
     if (_vanityItems.contains(itemId))
       sScriptMgr->OnPlayerCoAProgress(player, CoAProgressEvent::VanityCollected, itemId);
@@ -5426,6 +5453,7 @@ public:
             {PLAYERHOOK_ON_LOGIN, PLAYERHOOK_ON_LOGOUT, PLAYERHOOK_ON_UPDATE,
              PLAYERHOOK_ON_AFTER_SET_VISIBLE_ITEM_SLOT, PLAYERHOOK_ON_EQUIP, PLAYERHOOK_ON_DELETE,
              PLAYERHOOK_ON_STORE_NEW_ITEM, PLAYERHOOK_ON_CREATE_ITEM,
+             PLAYERHOOK_ON_PLAYER_COMPLETE_QUEST,
              PLAYERHOOK_ON_PLAYER_IS_CLASS, PLAYERHOOK_ON_LEVEL_CHANGED,
              PLAYERHOOK_ON_LEARN_SPELL, PLAYERHOOK_ON_FORGOT_SPELL,
              PLAYERHOOK_ON_AFTER_SPEC_SLOT_CHANGED,
@@ -5674,6 +5702,12 @@ public:
                      bool) override {
     AscensionCollectionService::Instance().OnItemObtained(player, item);
   }
+
+    void OnPlayerCompleteQuest(Player* player, Quest const* quest) override
+    {
+        if (ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED))
+            AscensionCollectionService::Instance().OnQuestRewarded(player, quest);
+    }
 
   void OnPlayerStoreNewItem(Player *player, Item *item,
                             uint32) override {
