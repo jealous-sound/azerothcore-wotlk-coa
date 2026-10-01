@@ -211,6 +211,13 @@ void Refresh(Player* player)
         effect->ChangeAmount(Count(player, 500906));
 
     scale(573075, player->HasAura(573035) ? player->GetUInt32Value(PLAYER_FIELD_COMBAT_RATING_1 + CR_BLOCK) / 2 : 0);
+    if (player->HasAura(800710) && !player->HasSpell(520005))
+        player->learnSpell(520005);
+    if (!player->HasAura(800710) && player->HasSpell(520005))
+    {
+        Replace(player, 500904, 0);
+        player->removeSpell(520005, SPEC_MASK_ALL, false);
+    }
     for (auto const& replacement : {std::array<uint32, 3>{800710, 500904, 520005},
                                     {570727, 801059, 802581},
                                     {807587, 801059, 520292}})
