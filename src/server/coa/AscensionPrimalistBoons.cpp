@@ -13,6 +13,7 @@
 namespace
 {
 constexpr uint32 FuryOfTheWild = 801234;
+constexpr uint32 PrimalConvergence = 800181;
 constexpr uint32 BoonOfTheHawk = 500943;
 constexpr std::array<uint32, 5> Boons = {500935, 500939, BoonOfTheHawk, 800137, 504856};
 
@@ -36,7 +37,15 @@ class aura_ascension_primalist_boon : public AuraScript
 
     void Amount(AuraEffect const* effect, int32& amount, bool&)
     {
-        if (!IsPetCopy(GetUnitOwner(), GetCaster()) || effect->GetAuraType() == SPELL_AURA_DUMMY)
+        if (!IsPetCopy(GetUnitOwner(), GetCaster()))
+        {
+            Player* player = Primalist(GetCaster());
+            if (player && GetUnitOwner() == player)
+                if (AuraEffect const* convergence = player->GetAuraEffect(PrimalConvergence, EFFECT_0))
+                    AddPct(amount, convergence->GetAmount());
+            return;
+        }
+        if (effect->GetAuraType() == SPELL_AURA_DUMMY)
             return;
         if (Unit* owner = GetUnitOwner()->GetOwner())
             if (Aura* original = owner->GetAura(GetId(), owner->GetGUID()))
@@ -79,6 +88,46 @@ class aura_ascension_primalist_boon : public AuraScript
             EFFECT_0, SPELL_AURA_ANY, AURA_EFFECT_HANDLE_REAL_OR_REAPPLY_MASK);
         AfterEffectRemove += AuraEffectRemoveFn(aura_ascension_primalist_boon::Removed,
             EFFECT_0, SPELL_AURA_ANY, AURA_EFFECT_HANDLE_REAL);
+    }
+};
+
+class aura_ascension_primal_convergence : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_primal_convergence);
+
+    bool Load() override { return Primalist(GetUnitOwner()) != nullptr; }
+
+    void SpellMod(AuraEffect const*, SpellModifier*& modifier)
+    {
+        if (modifier)
+            modifier->value = 0;
+    }
+
+    void Refresh(AuraEffect const*, AuraEffectHandleModes)
+    {
+        Player* player = GetTarget()->ToPlayer();
+        for (uint32 spell : Boons)
+        {
+            if (Aura* boon = player->GetAura(spell, player->GetGUID()))
+                for (uint8 index = 0; index < MAX_SPELL_EFFECTS; ++index)
+                    if (AuraEffect* effect = boon->GetEffect(index))
+                        effect->RecalculateAmount();
+            if (Pet* pet = player->GetPet())
+                if (Aura* boon = pet->GetAura(spell, pet->GetGUID()))
+                    for (uint8 index = 0; index < MAX_SPELL_EFFECTS; ++index)
+                        if (AuraEffect* effect = boon->GetEffect(index))
+                            effect->RecalculateAmount();
+        }
+    }
+
+    void Register() override
+    {
+        DoEffectCalcSpellMod += AuraEffectCalcSpellModFn(aura_ascension_primal_convergence::SpellMod,
+            EFFECT_0, SPELL_AURA_ADD_PCT_MODIFIER);
+        AfterEffectApply += AuraEffectApplyFn(aura_ascension_primal_convergence::Refresh,
+            EFFECT_0, SPELL_AURA_ADD_PCT_MODIFIER, AURA_EFFECT_HANDLE_REAL_OR_REAPPLY_MASK);
+        AfterEffectRemove += AuraEffectRemoveFn(aura_ascension_primal_convergence::Refresh,
+            EFFECT_0, SPELL_AURA_ADD_PCT_MODIFIER, AURA_EFFECT_HANDLE_REAL);
     }
 };
 
@@ -141,6 +190,7 @@ class aura_ascension_lion_boon_periodic : public AuraScript
 void AddSC_AscensionPrimalistBoons()
 {
     RegisterSpellScript(aura_ascension_primalist_boon);
+    RegisterSpellScript(aura_ascension_primal_convergence);
     RegisterSpellScript(aura_ascension_fury_of_the_wild);
     RegisterSpellScript(spell_ascension_pet_hawk_heal);
     RegisterSpellScript(aura_ascension_lion_boon_periodic);
