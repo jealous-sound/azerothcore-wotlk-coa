@@ -105,6 +105,11 @@ public:
     {
         if (!info || info->SpellFamilyName != 27)
             return;
+        if (info->Id == 806342)
+        {
+            info->Effects[EFFECT_0].ChainTarget = info->MaxAffectedTargets;
+            info->Effects[EFFECT_1].ChainTarget = info->MaxAffectedTargets;
+        }
         if (info->Id == 560805)
             info->ExcludeTargetAuraSpell = 570167;
         if (info->Id == 801935)
@@ -115,6 +120,48 @@ public:
                 info->AttributesCu &= ~SPELL_ATTR0_CU_FORCE_AURA_SAVING;
                 info->AttributesCu |= SPELL_ATTR0_CU_AURA_CANNOT_BE_SAVED;
             }
+    }
+};
+
+class spell_ascension_ranger_whipvine_targets : public SpellScript
+{
+    PrepareSpellScript(spell_ascension_ranger_whipvine_targets);
+
+    bool Load() override
+    {
+        return GetCaster()->IsPlayer() && GetCaster()->getClass() == CLASS_RANGER;
+    }
+
+    void Select(std::list<WorldObject*>& targets)
+    {
+        Unit* primary = GetExplTargetUnit();
+        Aura const* advantage = GetCaster()->GetAura(804329, GetCaster()->GetGUID());
+        uint32 const count = advantage ? std::min<uint32>(advantage->GetStackAmount(), 5) : 0;
+        if (!primary || !count)
+        {
+            targets.clear();
+            return;
+        }
+        float const radius = GetSpellInfo()->Effects[EFFECT_0].CalcRadius(GetCaster());
+        targets.remove_if([primary, radius](WorldObject* object)
+        {
+            Unit* unit = object ? object->ToUnit() : nullptr;
+            return !unit || !primary->IsWithinDistInMap(unit, radius) || !primary->IsWithinLOSInMap(unit);
+        });
+        targets.sort([primary](WorldObject const* left, WorldObject const* right)
+        {
+            return primary->GetExactDistSq(left) < primary->GetExactDistSq(right);
+        });
+        if (targets.size() > count)
+            targets.resize(count);
+    }
+
+    void Register() override
+    {
+        OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_ascension_ranger_whipvine_targets::Select,
+            EFFECT_0, TARGET_UNIT_TARGET_ENEMY);
+        OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_ascension_ranger_whipvine_targets::Select,
+            EFFECT_1, TARGET_UNIT_TARGET_ENEMY);
     }
 };
 
@@ -143,4 +190,5 @@ void AddSC_AscensionRangerSecondary()
     new ranger_secondary_hits();
     new ranger_secondary_contracts();
     RegisterSpellScript(spell_ascension_ranger_polearm_gate);
+    RegisterSpellScript(spell_ascension_ranger_whipvine_targets);
 }
