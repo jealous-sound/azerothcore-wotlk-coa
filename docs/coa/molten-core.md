@@ -265,11 +265,24 @@ Corrected: the chain does not self-cast a heal/re-sacrifice loop on itself. `mc-
 aggregation drops aura target names, so a direct WoWCombatLog re-query was needed: every logged
 `SPELL_AURA_APPLIED` for Sacrifice (2108020) has "Sacrificial Chains" as source and a *player* as dest —
 matching 2108020's own `Spell.dbc` implicit target (`TARGET_UNIT_TARGET_ENEMY`, not the caster). On spawn the
-chain heals its target(s) to full (2108023) then applies Sacrifice (2108020) to a random, per-mode-capped set
-of nearby raid members — not a fixed count on every difficulty. Re-verified exactly (per-spawn group size,
-not just a max): Heroic (13p, 6 spawns) is 2 targets in all 6; Ascended (12p×2 + 15p, 35 spawns) is 1 target
-in 14 and 2 in 21, never 3 or 4; Mythic (17p, 8 spawns) is 2 targets in 6 and 3 in 2 — the only difficulty
-that ever reaches 3. No Normal Majordomo pull exists; Normal mirrors Heroic, untested. Killing the chain frees its
+chain heals its target(s) to full (2108023) then applies Sacrifice (2108020) to a random set of nearby raid
+members.
+
+**Chain-target cap follows the flex raid size, not difficulty** (rule set by the user from CoA play, superseding
+the earlier per-difficulty cap): the same non-GM, clamped-10..25 player count `coa_flex::CountPlayers`
+(`FlexHealth.cpp`) uses for boss health — 10-14 players chains 1, 15-19 chains 2, 20-25 chains 3, identically on
+every difficulty. `npc_sacrificial_chains_coa.cpp` calls `coa_flex::CountPlayers` (exposed via `FlexHealth.h`)
+instead of duplicating that count. Confirmed live on slot 3 (Ghost harness, `.npc add temp 92030` directly on a
+grouped raid, since keeping Majordomo in combat hits the evade-loop pitfall below): 10/15/20 players in the
+instance chained 1/2/3 players respectively.
+
+The raw per-spawn evidence does not cleanly fit these thresholds — re-derived directly from the four
+WoWCombatLog files by chain-spawn GUID: Heroic (13p, one continuous pull, 6 spawns) chained 2 every time,
+not the 1 the 10-14 band would predict; the Ascended 13p pull (25 spawns) chained 1 in 14/25 and 2 in 11/25
+from the *same* raid size; the Ascended 15p pull (10/10) and the Mythic 17p pull (6/8, 2 in 2/8 at 3) are
+closer to the 15-19→2 band but not exact. No 20-25p pull exists in the corpus to check the top band. The
+real mechanism evidently has a random component beyond pure raid-size thresholding; the user's flex-size rule
+is implemented as specified regardless, per their explicit instruction. Killing the chain frees its
 captives: in every clean (non-wipe) sample the chain's own death and the debuff's removal from its target(s)
 share the same log timestamp, well inside 2108020's real 300s duration, so this is an explicit on-death
 cleanup, not the debuff expiring on its own; `npc_sacrificial_chains_coa.cpp` now does this in `JustDied`.
@@ -551,8 +564,10 @@ never drops them; their Mythic rows (10% and 9.1%) are kept.
 24. **Sulfuron disciples' Shadow Bolt is designed/placeholder for the same reason as items 16/23**: no
     "- Damage Info" family exists for the Shadow Bolt ids. Sacrificial Chains no longer has a self-cast
     heal/Berserk loop — a WoWCombatLog re-query showed 2108020/2108023 land on nearby players, not the chain
-    itself (see the Majordomo section above); the per-mode chain-target cap (Heroic/Ascended 2, Mythic 3) is
-    measured, Normal is untested and mirrors Heroic.
+    itself (see the Majordomo section above). The chain-target cap now follows the flex raid size (user rule,
+    10-14/15-19/20-25 players → 1/2/3, same on every difficulty), not the per-difficulty cap measured earlier;
+    confirmed live on slot 3 at 10/15/20 players, but the raw per-spawn logs do not fit the thresholds cleanly
+    (see the Majordomo section above) — implemented as specified regardless.
 25. **Ragnaros's "Hidden" emerge cluster (2108622-2108661, incl. 2108631 "Emerge - Hidden - Knockback") is
     not implemented** — the likely real submerge/emerge and add-phase machinery, but no cast from either
     Ragnaros GUID (11502/11503) matches it in the corpus; only Fire Strike (2108601/02) is ever seen.
