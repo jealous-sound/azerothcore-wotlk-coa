@@ -1,0 +1,284 @@
+{
+  "schema": 1,
+  "name": "Shadow Rage deals greater proc damage with Lethal Pursuit stacks (#3939)",
+  "contract": [
+    "Normal Shadowblasts with Shadow Rage grant the owner's aura to its summoned hound. Lethal Pursuit allows five stacks. The first actual proc against a second otherwise identical enemy is compared with a one-stack proc against the first enemy, so damage dealt while building stacks cannot enter the second sample. The owner's RAP and both targets stay unchanged."
+  ],
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "hunter",
+      "race": 1,
+      "class": 15,
+      "level": 60,
+      "spell_hit_rating": 10000,
+      "ranged_hit_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "one",
+      "owner": "hunter",
+      "entry": 36,
+      "level": 1,
+      "distance": 12,
+      "health": 1000000
+    },
+    {
+      "id": "five",
+      "owner": "hunter",
+      "entry": 36,
+      "level": 1,
+      "distance": 14,
+      "health": 1000000
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "ms": 3000
+    },
+    {
+      "action": "learn",
+      "actor": "hunter",
+      "spell": 5011
+    },
+    {
+      "action": "add_item",
+      "actor": "hunter",
+      "item": 15807
+    },
+    {
+      "action": "equip",
+      "actor": "hunter",
+      "item": 15807,
+      "slot": 17
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "learn",
+      "actor": "hunter",
+      "spell": 680264
+    },
+    {
+      "action": "learn",
+      "actor": "hunter",
+      "spell": 801343
+    },
+    {
+      "action": "learn",
+      "actor": "hunter",
+      "spell": 705455
+    },
+    {
+      "action": "learn",
+      "actor": "hunter",
+      "spell": 572530
+    },
+    {
+      "action": "cast",
+      "actor": "hunter",
+      "spell": 801343
+    },
+    {
+      "action": "assert",
+      "actor": "hunter",
+      "metric": "pet_entry",
+      "equals": 50124,
+      "within_ms": 5000
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "set_power",
+      "actor": "hunter",
+      "power": 1,
+      "value": 1000
+    },
+    {
+      "action": "cast",
+      "actor": "hunter",
+      "spell": 680264,
+      "target": "one"
+    },
+    {
+      "action": "assert",
+      "actor": "hunter",
+      "metric": "pet_aura_stacks",
+      "spell": 804192,
+      "caster": "hunter",
+      "equals": 1,
+      "within_ms": 4000
+    },
+    {
+      "action": "snapshot",
+      "actor": "hunter",
+      "metric": "pet_aura_amount",
+      "spell": 804192,
+      "effect": 2,
+      "save_as": "one_stack_amount"
+    },
+    {
+      "action": "attack",
+      "actor": "hunter",
+      "target": "one",
+      "pet": true
+    },
+    {
+      "action": "assert",
+      "actor": "hunter",
+      "metric": "spell_damage_count",
+      "spell": 567570,
+      "target": "one",
+      "equals": 1,
+      "within_ms": 14000
+    },
+    {
+      "action": "snapshot",
+      "actor": "hunter",
+      "metric": "spell_damage_total",
+      "spell": 567570,
+      "target": "one",
+      "save_as": "one_stack_damage"
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "hunter",
+      "power": 1,
+      "value": 1000
+    },
+    {
+      "action": "cast",
+      "actor": "hunter",
+      "spell": 680264,
+      "target": "one"
+    },
+    {
+      "action": "assert",
+      "actor": "hunter",
+      "metric": "pet_aura_stacks",
+      "spell": 804192,
+      "caster": "hunter",
+      "equals": 2,
+      "within_ms": 4000
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "hunter",
+      "power": 1,
+      "value": 1000
+    },
+    {
+      "action": "cast",
+      "actor": "hunter",
+      "spell": 680264,
+      "target": "one"
+    },
+    {
+      "action": "assert",
+      "actor": "hunter",
+      "metric": "pet_aura_stacks",
+      "spell": 804192,
+      "caster": "hunter",
+      "equals": 3,
+      "within_ms": 4000
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "hunter",
+      "power": 1,
+      "value": 1000
+    },
+    {
+      "action": "cast",
+      "actor": "hunter",
+      "spell": 680264,
+      "target": "one"
+    },
+    {
+      "action": "assert",
+      "actor": "hunter",
+      "metric": "pet_aura_stacks",
+      "spell": 804192,
+      "caster": "hunter",
+      "equals": 4,
+      "within_ms": 4000
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "hunter",
+      "power": 1,
+      "value": 1000
+    },
+    {
+      "action": "cast",
+      "actor": "hunter",
+      "spell": 680264,
+      "target": "one"
+    },
+    {
+      "action": "assert",
+      "actor": "hunter",
+      "metric": "pet_aura_stacks",
+      "spell": 804192,
+      "caster": "hunter",
+      "equals": 5,
+      "within_ms": 4000
+    },
+    {
+      "action": "assert",
+      "actor": "hunter",
+      "metric": "pet_aura_amount",
+      "spell": 804192,
+      "effect": 2,
+      "ratio_to": "one_stack_amount",
+      "equals": 5
+    },
+    {
+      "action": "attack",
+      "actor": "hunter",
+      "target": "five",
+      "pet": true
+    },
+    {
+      "action": "assert",
+      "actor": "hunter",
+      "metric": "spell_damage_count",
+      "spell": 567570,
+      "target": "five",
+      "equals": 1,
+      "within_ms": 14000
+    },
+    {
+      "action": "assert",
+      "actor": "hunter",
+      "metric": "spell_damage_total",
+      "spell": 567570,
+      "target": "five",
+      "ratio_to": "one_stack_damage",
+      "min": 1.1,
+      "label": "Five stacks increase the actual damage of one proc"
+    }
+  ]
+}
