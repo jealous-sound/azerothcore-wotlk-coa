@@ -123,7 +123,11 @@ enum Misc
 };
 
 Position const MajordomoRagnaros = { 848.933f, -812.875f, -229.601f, 4.046f };
-Position const MajordomoSummonPos = {759.542f, -1173.43f, -118.974f, 3.3048f };
+// CoA correction: moved to the centroid of Majordomo's own 8-add summon ring
+// (creature_summon_groups, entry 12018 group 1) - closer to the room's actual geometric middle
+// than the previous point (Majordomo's own battle position), confirmed valid ground live on slot 3
+// (`.go xyz` lands and holds at this exact z, no fall-through).
+Position const MajordomoSummonPos = {753.3f, -1174.4f, -119.1f, 3.3048f };
 Position const MajordomoMoveRagPos = { 830.9636f, -814.7055f, -228.9733f, 0.0f };   // Position used at Ragnaros summoning event
 Position const RagnarosSummonPos = { 838.3082f, -831.4665f, -232.1853f, 2.199115f };
 
