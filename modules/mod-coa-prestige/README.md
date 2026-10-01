@@ -64,6 +64,15 @@ The state is the player setting `core.coa_prestige`: level, active flag and lock
 It is saved with the character, so a reset is never half-saved. The account total is read from the
 other characters' settings at login.
 
+## Wildcard Heroes
+
+A Hero in Wildcard mode may prestige too. Instead of class talents it resets its active Wildcard
+specialization (`AscensionWildcard::PrestigeSpecialization`): the build, stat path, slotted skill cards and the
+specialization's Silas levelling track start over, and its Scrolls of Fortune (bags, bank and redeemed tokens),
+Cases of Fortune and Bonus Manastorm Caches are deleted. The deleted scrolls become repurchasable at Silas at the
+level cap. Chromie's window reads their count from SMSG 0x720, which is sent before her gossip menu. The
+specialization lock covers the Wildcard specialization swap spells as well.
+
 ## Data
 
 `data/sql/updates/pending_db_world/rev_20260925_02_coa_prestige_chromie.sql` adds:
@@ -86,7 +95,7 @@ The spawn points are chosen, not recovered. Every price is a row of the client's
 
 - The daily Prestige quest ("Today's Prestige Quest is ...").
 - Temporal Contracts. The client's tab for them is disabled.
-- The Draft and Wild Card resets. Conquest of Azeroth has neither mode.
+- The Draft reset. Conquest of Azeroth has no Draft mode.
 
 ## Open questions
 

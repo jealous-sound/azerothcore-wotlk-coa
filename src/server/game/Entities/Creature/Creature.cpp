@@ -1297,7 +1297,8 @@ bool Creature::CanResetTalents(Player* player) const
     if (!trainer)
         return false;
 
-    return player->GetLevel() >= 10 && trainer->IsTrainerValidForPlayer(player);
+    // A Wildcard Hero trains its ranks at any class trainer, but its talents are its rolls.
+    return player->GetLevel() >= 10 && trainer->IsTrainerValidForPlayer(player) && player->getClass() != CLASS_HERO;
 }
 
 Player* Creature::GetLootRecipient() const

@@ -26,8 +26,25 @@
 #include "SpellMgr.h"
 #include "WorldSession.h"
 
+#include <limits>
+#include <optional>
+
 namespace
 {
+    // A Hero playing Wildcard (the game mode bit of AscensionWildcard::GAME_MODE_WILDCARD).
+    bool IsWildcardHero(Player const* player)
+    {
+        if (player->getClass() != CLASS_HERO)
+            return false;
+        std::optional<uint32> const mask = sScriptMgr->OnPlayerGetGameModeMask(player);
+        return mask && (*mask & 0x40);
+    }
+
+    // A Wildcard Hero's trainer: its rows are already the next rank of each ability it rolled, so neither its
+    // class nor the core's rank chains (which miss Ascension's added ranks) decide what it may learn.
+    constexpr uint32 WILDCARD_RANK_TRAINER_ID = std::numeric_limits<uint32>::max();
+    Trainer::WildcardRankRows WildcardRankRowsOf = nullptr;
+
     uint8 ProfessionExpansion(uint32 skill)
     {
         switch (skill)
@@ -129,7 +146,7 @@ namespace Trainer
         trainerList.Spells.reserve(_spells.size());
         for (Spell const& trainerSpell : _spells)
         {
-            if (!player->IsSpellFitByClassAndRace(trainerSpell.SpellId))
+            if (_trainerId != WILDCARD_RANK_TRAINER_ID && !player->IsSpellFitByClassAndRace(trainerSpell.SpellId))
                 continue;
 
             // The state is asked once and then decides both whether the row is written at all and what
@@ -249,7 +266,8 @@ namespace Trainer
             return SpellState::Known;
 
         // check race/class requirement
-        if (!player->IsSpellFitByClassAndRace(trainerSpell->SpellId))
+        bool const wildcardRanks = _trainerId == WILDCARD_RANK_TRAINER_ID;
+        if (!wildcardRanks && !player->IsSpellFitByClassAndRace(trainerSpell->SpellId))
             return SpellState::Unavailable;
 
         // check skill requirement
@@ -291,14 +309,14 @@ namespace Trainer
                 knowsAllLearnedSpells = false;
 
             if (uint32 previousRankSpellId = sSpellMgr->GetPrevSpellInChain(spellEffectInfo.TriggerSpell))
-                if (!player->HasSpell(previousRankSpellId))
+                if (!wildcardRanks && !player->HasSpell(previousRankSpellId))
                     return SpellState::Unavailable;
         }
 
         if (!hasLearnSpellEffect)
         {
             if (uint32 previousRankSpellId = sSpellMgr->GetPrevSpellInChain(trainerSpell->SpellId))
-                if (!player->HasSpell(previousRankSpellId))
+                if (!wildcardRanks && !player->HasSpell(previousRankSpellId))
                     return SpellState::Unavailable;
         }
         else if (knowsAllLearnedSpells)
@@ -320,8 +338,9 @@ namespace Trainer
         switch (GetTrainerType())
         {
             case Type::Class:
+                // check class for class trainers; a Wildcard Hero trains its ranks at any of them
+                return player->getClass() == GetTrainerRequirement() || IsWildcardHero(player);
             case Type::Pet:
-                // check class for class trainers
                 return player->getClass() == GetTrainerRequirement();
             case Type::Mount:
                 // check race for mount trainers
@@ -364,5 +383,24 @@ namespace Trainer
     void Trainer::AddGreetingLocale(LocaleConstant locale, std::string greeting)
     {
         _greeting[locale] = std::move(greeting);
+    }
+
+    void SetWildcardRankRows(WildcardRankRows rows)
+    {
+        WildcardRankRowsOf = rows;
+    }
+
+    Trainer* GetTrainerFor(Creature const* npc, Player const* player)
+    {
+        Trainer* trainer = sObjectMgr->GetTrainer(npc->GetEntry());
+        bool const classTrainerUnit = trainer ? trainer->GetTrainerType() == Type::Class
+                                              : npc->HasNpcFlag(UNIT_NPC_FLAG_TRAINER_CLASS);
+        if (!classTrainerUnit || !WildcardRankRowsOf || !IsWildcardHero(player))
+            return trainer;
+
+        // ponytail: rebuilt for every request, one per thread; cache per player if the lists ever get large.
+        thread_local std::optional<Trainer> wildcardRanks;
+        wildcardRanks.emplace(WILDCARD_RANK_TRAINER_ID, Type::Class, 0, "", WildcardRankRowsOf(player));
+        return &*wildcardRanks;
     }
 }

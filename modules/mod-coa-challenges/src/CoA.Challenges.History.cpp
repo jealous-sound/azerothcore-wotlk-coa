@@ -233,7 +233,12 @@ namespace CoAChallenges
 
         SendActiveList(player, active);
         SendCriteriaState(player);
+        uint32 const guid = player->GetGUID().GetCounter();
+        uint32 const maskBefore = CachedGameModeMask(guid);
         RecomputeRequiredGameModes(player, active);
+        // The client forgets the mask on the character screen; the recompute only sends it when it changed.
+        if (uint32 const mask = CachedGameModeMask(guid); mask && mask == maskBefore)
+            SendGameModeState(player, mask);
         ReapplyGameModeBehavior(player);
         if (sConfigMgr->GetOption<bool>("CoAChallenges.SendFailureList", true))
             SendFailureList(player);

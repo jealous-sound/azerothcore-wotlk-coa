@@ -21,6 +21,16 @@ TEST(CoAPrestige, GossipOptionsMatchTheClientWindow)
     EXPECT_EQ(PrestigedAura, 9930831u);
 }
 
+TEST(CoAPrestige, LoginCatchesUpThePrestigeAchievementsALevelIsMissing)
+{
+    EXPECT_EQ(MissingPrestigeCredits(0, 0), 0u);
+    EXPECT_EQ(MissingPrestigeCredits(1, 0), 1u);
+    EXPECT_EQ(MissingPrestigeCredits(3, 1), 2u);
+    EXPECT_EQ(MissingPrestigeCredits(3, 3), 0u);
+    EXPECT_EQ(MissingPrestigeCredits(12, 4), 6u);
+    EXPECT_EQ(MissingPrestigeCredits(12, 10), 0u);
+}
+
 TEST(CoAPrestige, StateRoundTripsThroughTheSetting)
 {
     State const state{ 3, true, 25 };

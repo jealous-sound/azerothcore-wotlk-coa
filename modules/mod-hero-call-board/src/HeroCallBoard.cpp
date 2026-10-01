@@ -23,8 +23,11 @@
 #include "WorldState.h"
 #include "WorldStateDefines.h"
 
+#include <algorithm>
+#include <array>
 #include <atomic>
 #include <optional>
+#include <vector>
 
 namespace
 {
@@ -52,6 +55,10 @@ namespace
     constexpr uint32 NormalDungeonCredit = 81042;
     constexpr uint32 HeroicDungeonCredit = 81041;
     constexpr uint32 MythicDungeonCredit = 80652;
+    constexpr uint32 RaidLeaderCredit = 101000;
+    constexpr uint32 DungeonLeaderCredit = 101001;
+    constexpr std::array<uint32, 16> FinalRaidBosses = { 10184, 11502, 11583, 14834, 15339, 15727, 15990, 110184,
+        111502, 111583, 114834, 115339, 115727, 115990, 210184, 211502 };
 
     std::atomic<bool> enabled{true};
 
@@ -142,17 +149,22 @@ namespace
                 menu.AddMenuItem(itr->second, 4);
         }
 
+        std::vector<Quest const*> offered;
         auto const available = sObjectMgr->GetGOQuestRelationBounds(board->GetEntry());
         for (auto itr = available.first; itr != available.second; ++itr)
         {
             Quest const* quest = sObjectMgr->GetQuestTemplate(itr->second);
-            if (!quest || quest->GetZoneOrSort() != sort || menu.HasItem(itr->second)
-                || !player->CanSeeStartQuest(quest) || !player->CanTakeQuest(quest, false))
-                continue;
-
-            if (menu.GetMenuItemCount() < GOSSIP_MAX_MENU_ITEMS)
-                menu.AddMenuItem(itr->second, 2);
+            if (quest && quest->GetZoneOrSort() == sort && !menu.HasItem(itr->second)
+                && player->CanSeeStartQuest(quest) && player->CanTakeQuest(quest, false))
+                offered.push_back(quest);
         }
+
+        // Past the menu limit the quests closest to the character's level stay listed.
+        std::stable_sort(offered.begin(), offered.end(),
+            [](Quest const* left, Quest const* right) { return left->GetMinLevel() > right->GetMinLevel(); });
+        for (Quest const* quest : offered)
+            if (menu.GetMenuItemCount() < GOSSIP_MAX_MENU_ITEMS)
+                menu.AddMenuItem(quest->GetQuestId(), 2);
 
         // CallBoardLayout reads the quests' QuestSort synchronously, even on a cold client cache.
         for (uint16 index = 0; index < menu.GetMenuItemCount(); ++index)
@@ -228,7 +240,12 @@ class HeroCallBoardPlayers final : public PlayerScript
 {
 public:
     HeroCallBoardPlayers() : PlayerScript("HeroCallBoardPlayers",
-        { PLAYERHOOK_ON_REFRESH_QUEST_GIVER, PLAYERHOOK_ON_QUEST_ABANDON, PLAYERHOOK_ON_DUEL_END }) { }
+        { PLAYERHOOK_ON_REFRESH_QUEST_GIVER, PLAYERHOOK_ON_QUEST_ABANDON, PLAYERHOOK_ON_DUEL_END,
+            PLAYERHOOK_ON_CREATURE_KILL, PLAYERHOOK_ON_CREATURE_KILLED_BY_PET }) { }
+
+    void OnPlayerCreatureKill(Player* killer, Creature* killed) override { CreditRaidLeader(killer, killed); }
+
+    void OnPlayerCreatureKilledByPet(Player* owner, Creature* killed) override { CreditRaidLeader(owner, killed); }
 
     bool OnPlayerRefreshQuestGiver(Player* player, Object* questGiver, Quest const* quest) override
     {
@@ -260,6 +277,20 @@ public:
             return;
 
         winner->KilledMonsterCredit(DuelCredit);
+    }
+
+private:
+    // The classic raids' last encounters have no usable dungeon encounter data here, so the final bosses are listed.
+    static void CreditRaidLeader(Player* killer, Creature* killed)
+    {
+        if (!enabled.load() || !killed->GetMap()->IsRaid()
+            || std::find(FinalRaidBosses.begin(), FinalRaidBosses.end(), killed->GetEntry()) == FinalRaidBosses.end())
+            return;
+
+        Group const* group = killer->GetGroup();
+        Player* leader = group ? ObjectAccessor::FindPlayer(group->GetLeaderGUID()) : nullptr;
+        if (leader && leader->IsInWorld() && leader->IsAtGroupRewardDistance(killed))
+            leader->KilledMonsterCredit(RaidLeaderCredit);
     }
 };
 
@@ -296,6 +327,8 @@ public:
         if (!dungeon || dungeon->map != map->GetId() || dungeon->difficulty != map->GetDifficulty())
             return;
 
+        CreditDungeonLeader(map, source);
+
         uint32 credit = 0;
         switch (map->GetDifficulty())
         {
@@ -318,6 +351,19 @@ public:
                 && sLFGMgr->GetOldState(group->GetGUID()) == lfg::LFG_STATE_DUNGEON
                 && sLFGMgr->GetOldState(player->GetGUID()) == lfg::LFG_STATE_DUNGEON)
                 player->KilledMonsterCredit(credit);
+        }
+    }
+
+private:
+    static void CreditDungeonLeader(Map* map, Unit* source)
+    {
+        for (auto const& reference : map->GetPlayers())
+        {
+            Player* player = reference.GetSource();
+            Group const* group = player ? player->GetGroup() : nullptr;
+            if (group && group->IsLeader(player->GetGUID()) && player->IsInWorld()
+                && player->IsAtGroupRewardDistance(source))
+                player->KilledMonsterCredit(DungeonLeaderCredit);
         }
     }
 };

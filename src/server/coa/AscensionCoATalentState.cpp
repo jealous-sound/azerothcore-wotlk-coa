@@ -102,9 +102,9 @@ std::vector<std::uint8_t> KnownEntriesPayload(std::vector<KnownEntry> const& kno
     {
         AppendUInt32(out, item.EntryId);
         AppendUInt32(out, item.Rank);
-        AppendUInt32(out, 0);
-        out.push_back(0);
-        AppendUInt32(out, 0);
+        AppendUInt32(out, item.LearnedSpellRank);
+        out.push_back(item.Locked ? 1 : 0);
+        AppendUInt32(out, item.LearnOrder);
         AppendUInt32(out, 0);
     }
     return out;

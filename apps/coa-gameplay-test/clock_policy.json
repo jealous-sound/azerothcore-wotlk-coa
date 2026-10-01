@@ -5,6 +5,7 @@
     "coa-prestige-chromie-spawns": "set_phase 1 affects live creatures outside the case's lane phase",
     "who-custom-classes": "The Who list is process-global and would list players of other running cases",
     "who-hides-bots": "The Who list is process-global and would list players of other running cases",
-    "who-lists-bots": "The Who list is process-global and would list players of other running cases"
+    "who-lists-bots": "The Who list is process-global and would list players of other running cases",
+    "wildcard-season-event": "Stops the process-global Wildcard season event whose spawns and board quests other cases use"
   }
 }

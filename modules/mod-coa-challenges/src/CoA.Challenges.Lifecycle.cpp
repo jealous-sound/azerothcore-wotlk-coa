@@ -142,7 +142,7 @@ namespace CoAChallenges
             return;
         uint32 guid = player->GetGUID().GetCounter();
 
-        uint32 mask = 0;
+        uint32 mask = RealmGameModeMask();
         for (ActiveChallengeRow const& row : rows)
             mask |= RequiredGameMode(row.challengeId);
 

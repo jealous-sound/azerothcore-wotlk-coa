@@ -17,6 +17,7 @@
 
 #include "AllBattlegroundScript.h"
 #include "AscensionSpecialization.h"
+#include "AscensionWildcard.h"
 #include "Battleground.h"
 #include "CoA.Prestige.API.h"
 #include "CoAPrestigeRules.h"
@@ -469,11 +470,13 @@ namespace
     {
         State state = LoadState(player);
         uint32 const requiredLevel = g_requiredLevel;
-        uint32 const specialization = GetAscensionActiveSpecialization(player);
+        bool const wildcard = AscensionWildcard::IsWildcardHero(player);
+        uint32 const specialization = wildcard ? AscensionWildcard::ActiveSpec(player) + 1 :
+            GetAscensionActiveSpecialization(player);
 
         ActivationFacts facts;
         facts.enabled = g_enabled;
-        facts.customClass = IsAscensionCustomClassId(player->getClass());
+        facts.customClass = wildcard || IsAscensionCustomClassId(player->getClass());
         facts.level = player->GetLevel();
         facts.requiredLevel = requiredLevel;
         facts.active = state.active;
@@ -503,7 +506,8 @@ namespace
         DismissPets(player);
         ResetQuests(player, requiredLevel);
 
-        uint32 const talents = ForgetAscensionClassTalents(player);
+        uint32 const talents = wildcard ? AscensionWildcard::PrestigeSpecialization(player) :
+            ForgetAscensionClassTalents(player);
         std::unordered_set<uint32> const chains = ForgetRanksAbove(player, FirstLevel);
         player->GiveLevel(FirstLevel);
         player->SetUInt32Value(PLAYER_XP, 0);
@@ -548,6 +552,15 @@ namespace
             LOG_ERROR("module.coa_prestige", "{} prestiged but could not be sent to the starting zone.",
                 player->GetName());
         return true;
+    }
+
+    void CatchUpPrestigeCredits(Player* player)
+    {
+        uint32 achieved = 0;
+        for (uint32 offset = 0; offset < PrestigeAchievementCount; ++offset)
+            achieved += player->HasAchieved(PrestigeAchievementFirst + offset) ? 1 : 0;
+        for (uint32 credit = MissingPrestigeCredits(LoadState(player).level, achieved); credit; --credit)
+            player->KilledMonsterCredit(PrestigeKillCredit);
     }
 
     void CompleteIfDue(Player* player)
@@ -599,6 +612,8 @@ public:
                 AddGossipItemFor(player, GOSSIP_ICON_CHAT,
                     "Today's Prestige Quest is " + daily->GetTitle(), GOSSIP_SENDER_MAIN, ACTION_DAILY_LABEL);
         SendPrestigeLevels(player);
+        if (AscensionWildcard::IsWildcardHero(player))
+            AscensionWildcard::SendPrestigeInfo(player);
         SendGossipMenuFor(player, DEFAULT_GOSSIP_MESSAGE, creature);
         return true;
     }
@@ -662,6 +677,7 @@ public:
             return;
 
         LoadOtherCharactersPrestige(player);
+        CatchUpPrestigeCredits(player);
         CompleteIfDue(player);
         if (LoadState(player).active && !player->HasAura(PrestigedAura))
             player->AddAura(PrestigedAura, player);

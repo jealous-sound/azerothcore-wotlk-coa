@@ -231,6 +231,8 @@ class npc_ascension_witch_doctor : public ScriptedAI
         me->SetHealth(me->GetMaxHealth());
         me->SetReactState(REACT_PASSIVE);
         me->SetCombatMovement(false);
+        if (me->GetEntry() == NpcCauldron)
+            me->SetVisible(false);
         State(player).summons.push_back(me->GetGUID());
         if (me->GetEntry() == NpcMirage)
         {

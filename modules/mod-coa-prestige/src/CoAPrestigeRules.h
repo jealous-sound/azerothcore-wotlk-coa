@@ -33,6 +33,17 @@ namespace CoAPrestige
     // The "Prestige 1..10" achievements count kill credit of this creature.
     constexpr uint32_t PrestigeKillCredit = 888101;
 
+    // "Prestige 1".."Prestige 10" (13100-13109) and their titles. A character that prestiged before the
+    // criteria data existed got no credit; at login it is given the credits its Prestige level is missing.
+    constexpr uint32_t PrestigeAchievementFirst = 13100;
+    constexpr uint32_t PrestigeAchievementCount = 10;
+
+    inline uint32_t MissingPrestigeCredits(uint32_t prestigeLevel, uint32_t achieved)
+    {
+        uint32_t const due = std::min(prestigeLevel, PrestigeAchievementCount);
+        return due > achieved ? due - achieved : 0;
+    }
+
     // GetPrestigeLevel() in the client's Extensions.dll returns slots 2 and 3 of the per-GUID
     // table that SMSG_UPDATE_OBJECT_ADDON (0x0578) fills: u64 guid, then {u32 index, u32 value}.
     constexpr uint16_t AddonFieldOpcode = 0x0578;

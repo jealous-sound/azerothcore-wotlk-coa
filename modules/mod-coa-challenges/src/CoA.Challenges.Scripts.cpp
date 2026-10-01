@@ -964,11 +964,14 @@ namespace CoAChallenges
     }
 
     // NO_MAIL / NO_OUTSIDE_INTERACTION (rules) forbid RECEIVING mail during the
-    // trial, mirroring OnPlayerCanSendMail for the sending side.
-    bool MailTakeForbidden(Player* player)
+    // trial, mirroring OnPlayerCanSendMail for the sending side. Exempt items
+    // (store items / reward caches, same list as MarkMailTaken) are never
+    // player-to-player mail, so they stay takeable; itemEntry is 0 for money.
+    bool MailTakeForbidden(Player* player, uint32 itemEntry = 0)
     {
-        if (player && (PlayerHasRule(player, "CHALLENGE_RULES_TYPE_NO_MAIL")
-            || NoOutsideInteraction(player)))
+        if (player && !IsMailExemptItem(itemEntry)
+            && (PlayerHasRule(player, "CHALLENGE_RULES_TYPE_NO_MAIL")
+                || NoOutsideInteraction(player)))
         {
             NotifyPlayer(player, "Your challenge forbids receiving mail.");
             return true;
@@ -2333,17 +2336,16 @@ namespace CoAChallenges
             // the item low guid (u32).
             if (opcode == CMSG_MAIL_TAKE_ITEM && packet.size() >= 16)
             {
-                if (MailTakeForbidden(player))
+                Item* item = player ? player->GetMItem(packet.read<uint32>(12)) : nullptr;
+                uint32 itemEntry = item ? item->GetEntry() : 0;
+                if (MailTakeForbidden(player, itemEntry))
                 {
                     if (player)
                         player->SendMailResult(packet.read<uint32>(8), MAIL_ITEM_TAKEN, MAIL_ERR_INTERNAL_ERROR);
                     return false;
                 }
                 if (player)
-                {
-                    Item* item = player->GetMItem(packet.read<uint32>(12));
-                    MarkMailTaken(player, item ? item->GetEntry() : 0);
-                }
+                    MarkMailTaken(player, itemEntry);
                 return true;
             }
             if (opcode == CMSG_MAIL_TAKE_MONEY && packet.size() >= 12)

@@ -326,6 +326,7 @@ void AppendClientConfig(AscensionClientConfig& config);
 GameModeDef const* FindGameMode(std::string const& name);
 char const* GameModeNameForBit(uint32 bit);
 bool GameModesEnabled();
+uint32 RealmGameModeMask();
 void BuildGameModeBaseMap();
 uint32 GameModeBaseForBit(uint32 bit);
 std::unordered_map<uint32, uint32> GameModeBaseSnapshot();

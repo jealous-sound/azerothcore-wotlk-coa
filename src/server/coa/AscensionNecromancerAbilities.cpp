@@ -264,8 +264,9 @@ class necromancer_casts : public AllSpellScript
                 for (auto const& [known, value] : player->GetSpellMap())
                     if (value->State != PLAYERSPELL_REMOVED)
                         if (SpellInfo const* summon = sSpellMgr->GetSpellInfo(known))
-                            if (summon->SpellFamilyName == 29 && summon->HasEffect(SPELL_EFFECT_SUMMON) &&
-                                !Raised(summon))
+                            if (summon->SpellFamilyName == 29 &&
+                                ((summon->HasEffect(SPELL_EFFECT_SUMMON) && !Raised(summon)) ||
+                                 Named(summon, 805040) || Named(summon, 504315)))
                                 animates.push_back(known);
                 for (uint32 animate : animates)
                     player->ModifySpellCooldown(animate, -std::abs(Amount(302910, 1)));

@@ -76,8 +76,13 @@
 #include "World.h"
 #include "WorldPacket.h"
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <limits>
+
+// Ascension's caster state for "only usable after the target dodges" (its Overpower and the Chaser strikes),
+// which it uses instead of the warrior's combo point.
+constexpr AuraStateType ASCENSION_AURA_STATE_TARGET_DODGED = AuraStateType(24);
 
 float baseMoveSpeed[MAX_MOVE_TYPE] =
 {
@@ -657,6 +662,7 @@ void Unit::Update(uint32 p_time)
     ModifyAuraState(AURA_STATE_HEALTHLESS_20_PERCENT, IsAlive() ? HealthBelowPct(20) : false);
     ModifyAuraState(AURA_STATE_HEALTHLESS_35_PERCENT, IsAlive() ? HealthBelowPct(35) : false);
     ModifyAuraState(AURA_STATE_HEALTH_ABOVE_75_PERCENT, IsAlive() ? HealthAbovePct(75) : false);
+    ModifyAuraState(AuraStateType(ASCENSION_TARGET_HEALTH_ABOVE_80_PERCENT), IsAlive() ? HealthAbovePct(80) : false);
 
     UpdateSplineMovement(p_time);
     GetMotionMaster()->UpdateMotion(p_time);
@@ -1397,12 +1403,38 @@ void Unit::CastStop(uint32 except_spellid, bool withInstant)
             InterruptSpell(CurrentSpellTypes(i), false, withInstant);
 }
 
+// A spell triggered by a spell or a proc is cast inside the cast that triggered it. Abilities of different
+// classes put together (Wildcard) can close a trigger loop, one that may branch for every target it hits: past
+// these limits a cast is refused instead of overflowing the stack or stalling the map.
+static constexpr uint32 MAX_NESTED_SPELL_CASTS = 32;
+static constexpr uint32 MAX_CASTS_INSIDE_ONE_CAST = 1000;
+thread_local std::array<uint32, MAX_NESTED_SPELL_CASTS> NestedSpellCasts;
+thread_local uint32 NestedSpellCastCount = 0;
+thread_local uint32 CastsInsideOuterCast = 0;
+thread_local bool TriggerLoopLogged = false;
+
 SpellCastResult Unit::CastSpell(SpellCastTargets const& targets, SpellInfo const* spellInfo, CustomSpellValues const* value, TriggerCastFlags triggerFlags, Item* castItem, AuraEffect const* triggeredByAura, ObjectGuid originalCaster)
 {
     if (!spellInfo)
     {
         LOG_ERROR("entities.unit", "CastSpell: unknown spell by caster {}", GetGUID().ToString());
         return SPELL_FAILED_SPELL_UNAVAILABLE;
+    }
+
+    if (NestedSpellCastCount == MAX_NESTED_SPELL_CASTS ||
+        (NestedSpellCastCount && CastsInsideOuterCast == MAX_CASTS_INSIDE_ONE_CAST))
+    {
+        if (!TriggerLoopLogged)
+        {
+            TriggerLoopLogged = true;
+            std::string chain;
+            for (uint32 index = 0; index < NestedSpellCastCount; ++index)
+                chain += " " + std::to_string(NestedSpellCasts[index]);
+            LOG_ERROR("entities.unit", "CastSpell: spell {} of {} refused, a trigger loop: {} casts nested, {} cast inside "
+                "the outermost one. Nested casts, outermost first:{}", spellInfo->Id, GetName(), NestedSpellCastCount,
+                CastsInsideOuterCast, chain);
+        }
+        return SPELL_FAILED_DONT_REPORT;
     }
 
     /// @todo: this is a workaround - not needed anymore, but required for some scripts :(
@@ -1422,6 +1454,18 @@ SpellCastResult Unit::CastSpell(SpellCastTargets const& targets, SpellInfo const
     }
 
     spell->m_CastItem = castItem;
+    if (NestedSpellCastCount)
+        ++CastsInsideOuterCast;
+    else
+    {
+        CastsInsideOuterCast = 0;
+        TriggerLoopLogged = false;
+    }
+    struct NestedCast
+    {
+        explicit NestedCast(uint32 spellId) { NestedSpellCasts[NestedSpellCastCount++] = spellId; }
+        ~NestedCast() { --NestedSpellCastCount; }
+    } const nested(spellInfo->Id);
     return spell->prepare(&targets, triggeredByAura);
 }
 
@@ -13758,6 +13802,11 @@ void Unit::ProcSkillsAndReactives(bool isVictim, Unit* target, uint32 procFlag, 
                         AddComboPoints(target, 1);
                         StartReactiveTimer(REACTIVE_OVERPOWER);
                     }
+                    if (IsPlayer())
+                    {
+                        ModifyAuraState(ASCENSION_AURA_STATE_TARGET_DODGED, true);
+                        StartReactiveTimer(REACTIVE_OVERPOWER);
+                    }
                 }
 
                 // Wolverine Bite
@@ -14289,6 +14338,7 @@ void Unit::UpdateReactives(uint32 p_time)
                     {
                         ClearComboPoints();
                     }
+                    ModifyAuraState(ASCENSION_AURA_STATE_TARGET_DODGED, false);
                     break;
                 case REACTIVE_WOLVERINE_BITE:
                     if (IsHunterPet())
@@ -15015,7 +15065,10 @@ void Unit::Kill(Unit* killer, Unit* victim, bool durabilityLoss, WeaponAttackTyp
         if (Unit* owner = killer->GetOwner())
         {
             Unit::ProcSkillsAndAuras(owner, victim, PROC_FLAG_KILL, PROC_FLAG_NONE, PROC_EX_NONE, 0, attackType, nullptr, nullptr, -1, nullptr);
-            sScriptMgr->OnPlayerCreatureKilledByPet( killer->GetCharmerOrOwnerPlayerOrPlayerItself(), victim->ToCreature());
+            // The pets and totems of creatures have no player owner, and a pet can kill a player.
+            Player* ownerPlayer = killer->GetCharmerOrOwnerPlayerOrPlayerItself();
+            if (Creature* killedCreature = victim->ToCreature(); ownerPlayer && killedCreature)
+                sScriptMgr->OnPlayerCreatureKilledByPet(ownerPlayer, killedCreature);
         }
 
     if (killer != victim)

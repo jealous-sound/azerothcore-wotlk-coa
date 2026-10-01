@@ -13,8 +13,9 @@ CoA.Enable = 1
 # Authentication proofs and packet size checks remain required. Restart to apply.
 CoA.AllowRemoteClients = 0
 
-# Ascension's classless character creator submits reserved WotLK class ID 10.
-# Use a stock warrior shell until the classless progression backend is added.
+# Ascension's classless character creator submits class ID 10 (Hero).
+# 1 - Create a stock warrior shell instead.
+# 0 - Create a Hero. Use this on a realm with CoA.ClassModel = "hero".
 CoA.MapClass10ToWarrior = 1
 
 # Log each consumed extension packet during protocol discovery.
@@ -85,8 +86,11 @@ CoA.LastExtensionOpcode = 2515
 # Enable only with the reviewed installation package; native gameplay acceptance is still required.
 Ascension.Manastorm.Enable = 0
 
-# What kind of realm the client is told it is on: live, seasonal, league, ptr
-# or development. Exactly one is sent.
+# What kind of realm the client is told it is on: one or more of live,
+# seasonal, league, ptr and development, separated by spaces. Each type sent
+# opens the client's rows flagged for it, so "live seasonal" shows the
+# Character Advancement entries of both, as a seasonal realm on live
+# infrastructure does. An empty or unknown value sends live.
 #
 # This is not cosmetic. The client builds its vanity catalogue only from rows
 # that match an active realm type, so with none set the Vanity Collection stays
