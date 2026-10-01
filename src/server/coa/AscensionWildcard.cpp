@@ -1275,7 +1275,7 @@ char const* PurchaseBoosterPacks(Player* player, uint32 count)
     return "PURCHASE_SEALED_CARD_BOOSTER_PACK_OK";
 }
 
-char const* RerollStartingAbilities(Player* player)
+char const* RerollStartingAbilities(Player* player, StarterPick const& pick = {}, uint32 draws = 1)
 {
     std::vector<Slot> kept = Slots(player);
     bool const fresh = std::none_of(kept.begin(), kept.end(), [](Slot const& slot) { return slot.EntryId; });
@@ -1299,12 +1299,15 @@ char const* RerollStartingAbilities(Player* player)
 
     StarterCardSlots cards = StarterCards(player);
     std::array<std::uint32_t, STARTING_ABILITY_COUNT> const chosen = ChosenStarters(Loaded, cards);
-    std::vector<Slot> const rolled = RollStartingAbilities(kept,
-        [](uint32 bound) { return urand(0, bound - 1); },
-        [player, &releasedSpells](uint32 spellId)
-        {
-            return releasedSpells.count(spellId) || !player->HasSpell(spellId);
-        }, chosen);
+    std::vector<std::vector<Slot>> candidates;
+    for (uint32 draw = 0; draw < std::max<uint32>(draws, 1); ++draw)
+        candidates.push_back(RollStartingAbilities(kept,
+            [](uint32 bound) { return urand(0, bound - 1); },
+            [player, &releasedSpells](uint32 spellId)
+            {
+                return releasedSpells.count(spellId) || !player->HasSpell(spellId);
+            }, chosen));
+    std::vector<Slot> const& rolled = candidates[pick ? std::min(pick(candidates), candidates.size() - 1) : 0];
 
     std::unordered_set<uint32> lostSpells = releasedSpells;
     for (Slot const& slot : rolled)
@@ -2994,11 +2997,11 @@ BuildChoice ApplyBuildUpload(Player* player, std::vector<AscensionCoATalentState
     return choice;
 }
 
-void DraftBuild(Player* player)
+void DraftBuild(Player* player, StarterPick const& pickStarters, std::uint32_t starterDraws)
 {
     std::vector<Slot> const slots = Slots(player);
     if (std::none_of(slots.begin(), slots.end(), [](Slot const& slot) { return slot.EntryId; }))
-        RerollStartingAbilities(player);
+        RerollStartingAbilities(player, pickStarters, starterDraws);
     for (uint32 roll = 0; roll < DRAFT_ROLL_LIMIT; ++roll)
         if (std::string_view(RollAbilities(player, {})) != "ROLL_ABILITIES_OK")
             break;

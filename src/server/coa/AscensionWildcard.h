@@ -533,7 +533,8 @@ RollCardSlots RollCards(Player const* player);
 CardCollection Collection(Player const* player);
 std::vector<AscensionCoATalentState::KnownEntry> KnownEntries(Player const* player);
 BuildChoice ApplyBuildUpload(Player* player, std::vector<AscensionCoATalentState::KnownEntry> const& upload);
-void DraftBuild(Player* player);
+using StarterPick = std::function<std::size_t(std::vector<std::vector<Slot>> const& candidates)>;
+void DraftBuild(Player* player, StarterPick const& pickStarters = {}, std::uint32_t starterDraws = 1);
 }
 
 #endif
