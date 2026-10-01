@@ -39,8 +39,8 @@ namespace
 
         void HandleExpire(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
         {
-            Aura const* aura = GetAura();
-            if (!aura || aura->GetRemoveMode() != AURA_REMOVE_BY_EXPIRE)
+            AuraApplication const* application = GetTargetApplication();
+            if (!application || application->GetRemoveMode() != AURA_REMOVE_BY_EXPIRE)
                 return;
 
             Unit* carrier = GetTarget();
