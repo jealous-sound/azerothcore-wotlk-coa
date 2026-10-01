@@ -719,3 +719,11 @@ evidence + source reads), fixed individually below. See `impl-G-mechanics.md` fo
    once the sons die) is unchanged, only the trigger condition and the 90s->60s safety-ceiling
    duration. Both thresholds rest on only 2 independent kills -- a strong first estimate, not a final
    number.
+10. **Golemagg's Massive Stomp drops a ground-fire puddle, reusing Magmadar's.** Massive Stomp
+    (2105817) is a tank-only dummy+stun with no damage or area component in the DBC. Per the user's
+    own memory of live CoA play, checked first against a Snit's WeakAura hit ("Golemagg Rain of
+    fire", spell id 500263): that id is "Standard of Rallying" in Spell.dbc, an unrelated
+    summon+trigger spell, not a ground/persistent-area fire effect, so it is not usable -- the
+    implementation falls back to Magmadar's own ground-fire puddle (2105366, boss_magmadar_coa.cpp)
+    under a random nearby player, cast from Golemagg himself (the idiom that already works for
+    Magmadar's heads). Designed from player memory, not corpus-evidenced.
