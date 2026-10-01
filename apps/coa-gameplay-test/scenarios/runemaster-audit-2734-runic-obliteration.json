@@ -9,9 +9,11 @@
     "eventually apply aura 805742. This scenario proves ONLY the proc registration; it does not assert",
     "that a subsequent Primordial Blast cast is redirected into Runic Obliteration (805794), because no",
     "cast-redirect script exists yet -- that remains a separate, out-of-scope maintainer decision. 40",
-    "trials at 20% bound the flake rate to 0.8^40 (about 0.013%) of seeing zero procs."
+    "trials at 20% bound the flake rate to 0.8^40 (about 0.013%) of seeing zero procs.",
+    "Elemental Burst has a 2000 ms native cast time. Each trial waits 2500 ms for completion and",
+    "asserts no cast failure; requests rejected as SPELL_IN_PROGRESS are not valid proc trials."
   ],
-  "timeout_ms": 90000,
+  "timeout_ms": 150000,
   "location": {
     "map": 0,
     "x": -8949.95,
@@ -106,7 +108,15 @@
     },
     {
       "action": "wait",
-      "ms": 300
+      "ms": 2500
+    },
+    {
+      "action": "assert",
+      "label": "Trial 1: the Elemental Burst cast was accepted",
+      "actor": "rm",
+      "metric": "cast_failure",
+      "spell": 802202,
+      "equals": 0
     },
     {
       "action": "reset_cooldown",
@@ -127,7 +137,15 @@
     },
     {
       "action": "wait",
-      "ms": 300
+      "ms": 2500
+    },
+    {
+      "action": "assert",
+      "label": "Trial 2: the Elemental Burst cast was accepted",
+      "actor": "rm",
+      "metric": "cast_failure",
+      "spell": 802202,
+      "equals": 0
     },
     {
       "action": "reset_cooldown",
@@ -148,7 +166,15 @@
     },
     {
       "action": "wait",
-      "ms": 300
+      "ms": 2500
+    },
+    {
+      "action": "assert",
+      "label": "Trial 3: the Elemental Burst cast was accepted",
+      "actor": "rm",
+      "metric": "cast_failure",
+      "spell": 802202,
+      "equals": 0
     },
     {
       "action": "reset_cooldown",
@@ -169,7 +195,15 @@
     },
     {
       "action": "wait",
-      "ms": 300
+      "ms": 2500
+    },
+    {
+      "action": "assert",
+      "label": "Trial 4: the Elemental Burst cast was accepted",
+      "actor": "rm",
+      "metric": "cast_failure",
+      "spell": 802202,
+      "equals": 0
     },
     {
       "action": "reset_cooldown",
@@ -190,7 +224,15 @@
     },
     {
       "action": "wait",
-      "ms": 300
+      "ms": 2500
+    },
+    {
+      "action": "assert",
+      "label": "Trial 5: the Elemental Burst cast was accepted",
+      "actor": "rm",
+      "metric": "cast_failure",
+      "spell": 802202,
+      "equals": 0
     },
     {
       "action": "reset_cooldown",
@@ -211,7 +253,15 @@
     },
     {
       "action": "wait",
-      "ms": 300
+      "ms": 2500
+    },
+    {
+      "action": "assert",
+      "label": "Trial 6: the Elemental Burst cast was accepted",
+      "actor": "rm",
+      "metric": "cast_failure",
+      "spell": 802202,
+      "equals": 0
     },
     {
       "action": "reset_cooldown",
@@ -232,7 +282,15 @@
     },
     {
       "action": "wait",
-      "ms": 300
+      "ms": 2500
+    },
+    {
+      "action": "assert",
+      "label": "Trial 7: the Elemental Burst cast was accepted",
+      "actor": "rm",
+      "metric": "cast_failure",
+      "spell": 802202,
+      "equals": 0
     },
     {
       "action": "reset_cooldown",
@@ -253,7 +311,15 @@
     },
     {
       "action": "wait",
-      "ms": 300
+      "ms": 2500
+    },
+    {
+      "action": "assert",
+      "label": "Trial 8: the Elemental Burst cast was accepted",
+      "actor": "rm",
+      "metric": "cast_failure",
+      "spell": 802202,
+      "equals": 0
     },
     {
       "action": "reset_cooldown",
@@ -274,7 +340,15 @@
     },
     {
       "action": "wait",
-      "ms": 300
+      "ms": 2500
+    },
+    {
+      "action": "assert",
+      "label": "Trial 9: the Elemental Burst cast was accepted",
+      "actor": "rm",
+      "metric": "cast_failure",
+      "spell": 802202,
+      "equals": 0
     },
     {
       "action": "reset_cooldown",
@@ -295,7 +369,15 @@
     },
     {
       "action": "wait",
-      "ms": 300
+      "ms": 2500
+    },
+    {
+      "action": "assert",
+      "label": "Trial 10: the Elemental Burst cast was accepted",
+      "actor": "rm",
+      "metric": "cast_failure",
+      "spell": 802202,
+      "equals": 0
     },
     {
       "action": "reset_cooldown",
@@ -316,7 +398,15 @@
     },
     {
       "action": "wait",
-      "ms": 300
+      "ms": 2500
+    },
+    {
+      "action": "assert",
+      "label": "Trial 11: the Elemental Burst cast was accepted",
+      "actor": "rm",
+      "metric": "cast_failure",
+      "spell": 802202,
+      "equals": 0
     },
     {
       "action": "reset_cooldown",
@@ -337,7 +427,15 @@
     },
     {
       "action": "wait",
-      "ms": 300
+      "ms": 2500
+    },
+    {
+      "action": "assert",
+      "label": "Trial 12: the Elemental Burst cast was accepted",
+      "actor": "rm",
+      "metric": "cast_failure",
+      "spell": 802202,
+      "equals": 0
     },
     {
       "action": "reset_cooldown",
@@ -358,7 +456,15 @@
     },
     {
       "action": "wait",
-      "ms": 300
+      "ms": 2500
+    },
+    {
+      "action": "assert",
+      "label": "Trial 13: the Elemental Burst cast was accepted",
+      "actor": "rm",
+      "metric": "cast_failure",
+      "spell": 802202,
+      "equals": 0
     },
     {
       "action": "reset_cooldown",
@@ -379,7 +485,15 @@
     },
     {
       "action": "wait",
-      "ms": 300
+      "ms": 2500
+    },
+    {
+      "action": "assert",
+      "label": "Trial 14: the Elemental Burst cast was accepted",
+      "actor": "rm",
+      "metric": "cast_failure",
+      "spell": 802202,
+      "equals": 0
     },
     {
       "action": "reset_cooldown",
@@ -400,7 +514,15 @@
     },
     {
       "action": "wait",
-      "ms": 300
+      "ms": 2500
+    },
+    {
+      "action": "assert",
+      "label": "Trial 15: the Elemental Burst cast was accepted",
+      "actor": "rm",
+      "metric": "cast_failure",
+      "spell": 802202,
+      "equals": 0
     },
     {
       "action": "reset_cooldown",
@@ -421,7 +543,15 @@
     },
     {
       "action": "wait",
-      "ms": 300
+      "ms": 2500
+    },
+    {
+      "action": "assert",
+      "label": "Trial 16: the Elemental Burst cast was accepted",
+      "actor": "rm",
+      "metric": "cast_failure",
+      "spell": 802202,
+      "equals": 0
     },
     {
       "action": "reset_cooldown",
@@ -442,7 +572,15 @@
     },
     {
       "action": "wait",
-      "ms": 300
+      "ms": 2500
+    },
+    {
+      "action": "assert",
+      "label": "Trial 17: the Elemental Burst cast was accepted",
+      "actor": "rm",
+      "metric": "cast_failure",
+      "spell": 802202,
+      "equals": 0
     },
     {
       "action": "reset_cooldown",
@@ -463,7 +601,15 @@
     },
     {
       "action": "wait",
-      "ms": 300
+      "ms": 2500
+    },
+    {
+      "action": "assert",
+      "label": "Trial 18: the Elemental Burst cast was accepted",
+      "actor": "rm",
+      "metric": "cast_failure",
+      "spell": 802202,
+      "equals": 0
     },
     {
       "action": "reset_cooldown",
@@ -484,7 +630,15 @@
     },
     {
       "action": "wait",
-      "ms": 300
+      "ms": 2500
+    },
+    {
+      "action": "assert",
+      "label": "Trial 19: the Elemental Burst cast was accepted",
+      "actor": "rm",
+      "metric": "cast_failure",
+      "spell": 802202,
+      "equals": 0
     },
     {
       "action": "reset_cooldown",
@@ -505,7 +659,15 @@
     },
     {
       "action": "wait",
-      "ms": 300
+      "ms": 2500
+    },
+    {
+      "action": "assert",
+      "label": "Trial 20: the Elemental Burst cast was accepted",
+      "actor": "rm",
+      "metric": "cast_failure",
+      "spell": 802202,
+      "equals": 0
     },
     {
       "action": "reset_cooldown",
@@ -526,7 +688,15 @@
     },
     {
       "action": "wait",
-      "ms": 300
+      "ms": 2500
+    },
+    {
+      "action": "assert",
+      "label": "Trial 21: the Elemental Burst cast was accepted",
+      "actor": "rm",
+      "metric": "cast_failure",
+      "spell": 802202,
+      "equals": 0
     },
     {
       "action": "reset_cooldown",
@@ -547,7 +717,15 @@
     },
     {
       "action": "wait",
-      "ms": 300
+      "ms": 2500
+    },
+    {
+      "action": "assert",
+      "label": "Trial 22: the Elemental Burst cast was accepted",
+      "actor": "rm",
+      "metric": "cast_failure",
+      "spell": 802202,
+      "equals": 0
     },
     {
       "action": "reset_cooldown",
@@ -568,7 +746,15 @@
     },
     {
       "action": "wait",
-      "ms": 300
+      "ms": 2500
+    },
+    {
+      "action": "assert",
+      "label": "Trial 23: the Elemental Burst cast was accepted",
+      "actor": "rm",
+      "metric": "cast_failure",
+      "spell": 802202,
+      "equals": 0
     },
     {
       "action": "reset_cooldown",
@@ -589,7 +775,15 @@
     },
     {
       "action": "wait",
-      "ms": 300
+      "ms": 2500
+    },
+    {
+      "action": "assert",
+      "label": "Trial 24: the Elemental Burst cast was accepted",
+      "actor": "rm",
+      "metric": "cast_failure",
+      "spell": 802202,
+      "equals": 0
     },
     {
       "action": "reset_cooldown",
@@ -610,7 +804,15 @@
     },
     {
       "action": "wait",
-      "ms": 300
+      "ms": 2500
+    },
+    {
+      "action": "assert",
+      "label": "Trial 25: the Elemental Burst cast was accepted",
+      "actor": "rm",
+      "metric": "cast_failure",
+      "spell": 802202,
+      "equals": 0
     },
     {
       "action": "reset_cooldown",
@@ -631,7 +833,15 @@
     },
     {
       "action": "wait",
-      "ms": 300
+      "ms": 2500
+    },
+    {
+      "action": "assert",
+      "label": "Trial 26: the Elemental Burst cast was accepted",
+      "actor": "rm",
+      "metric": "cast_failure",
+      "spell": 802202,
+      "equals": 0
     },
     {
       "action": "reset_cooldown",
@@ -652,7 +862,15 @@
     },
     {
       "action": "wait",
-      "ms": 300
+      "ms": 2500
+    },
+    {
+      "action": "assert",
+      "label": "Trial 27: the Elemental Burst cast was accepted",
+      "actor": "rm",
+      "metric": "cast_failure",
+      "spell": 802202,
+      "equals": 0
     },
     {
       "action": "reset_cooldown",
@@ -673,7 +891,15 @@
     },
     {
       "action": "wait",
-      "ms": 300
+      "ms": 2500
+    },
+    {
+      "action": "assert",
+      "label": "Trial 28: the Elemental Burst cast was accepted",
+      "actor": "rm",
+      "metric": "cast_failure",
+      "spell": 802202,
+      "equals": 0
     },
     {
       "action": "reset_cooldown",
@@ -694,7 +920,15 @@
     },
     {
       "action": "wait",
-      "ms": 300
+      "ms": 2500
+    },
+    {
+      "action": "assert",
+      "label": "Trial 29: the Elemental Burst cast was accepted",
+      "actor": "rm",
+      "metric": "cast_failure",
+      "spell": 802202,
+      "equals": 0
     },
     {
       "action": "reset_cooldown",
@@ -715,7 +949,15 @@
     },
     {
       "action": "wait",
-      "ms": 300
+      "ms": 2500
+    },
+    {
+      "action": "assert",
+      "label": "Trial 30: the Elemental Burst cast was accepted",
+      "actor": "rm",
+      "metric": "cast_failure",
+      "spell": 802202,
+      "equals": 0
     },
     {
       "action": "reset_cooldown",
@@ -736,7 +978,15 @@
     },
     {
       "action": "wait",
-      "ms": 300
+      "ms": 2500
+    },
+    {
+      "action": "assert",
+      "label": "Trial 31: the Elemental Burst cast was accepted",
+      "actor": "rm",
+      "metric": "cast_failure",
+      "spell": 802202,
+      "equals": 0
     },
     {
       "action": "reset_cooldown",
@@ -757,7 +1007,15 @@
     },
     {
       "action": "wait",
-      "ms": 300
+      "ms": 2500
+    },
+    {
+      "action": "assert",
+      "label": "Trial 32: the Elemental Burst cast was accepted",
+      "actor": "rm",
+      "metric": "cast_failure",
+      "spell": 802202,
+      "equals": 0
     },
     {
       "action": "reset_cooldown",
@@ -778,7 +1036,15 @@
     },
     {
       "action": "wait",
-      "ms": 300
+      "ms": 2500
+    },
+    {
+      "action": "assert",
+      "label": "Trial 33: the Elemental Burst cast was accepted",
+      "actor": "rm",
+      "metric": "cast_failure",
+      "spell": 802202,
+      "equals": 0
     },
     {
       "action": "reset_cooldown",
@@ -799,7 +1065,15 @@
     },
     {
       "action": "wait",
-      "ms": 300
+      "ms": 2500
+    },
+    {
+      "action": "assert",
+      "label": "Trial 34: the Elemental Burst cast was accepted",
+      "actor": "rm",
+      "metric": "cast_failure",
+      "spell": 802202,
+      "equals": 0
     },
     {
       "action": "reset_cooldown",
@@ -820,7 +1094,15 @@
     },
     {
       "action": "wait",
-      "ms": 300
+      "ms": 2500
+    },
+    {
+      "action": "assert",
+      "label": "Trial 35: the Elemental Burst cast was accepted",
+      "actor": "rm",
+      "metric": "cast_failure",
+      "spell": 802202,
+      "equals": 0
     },
     {
       "action": "reset_cooldown",
@@ -841,7 +1123,15 @@
     },
     {
       "action": "wait",
-      "ms": 300
+      "ms": 2500
+    },
+    {
+      "action": "assert",
+      "label": "Trial 36: the Elemental Burst cast was accepted",
+      "actor": "rm",
+      "metric": "cast_failure",
+      "spell": 802202,
+      "equals": 0
     },
     {
       "action": "reset_cooldown",
@@ -862,7 +1152,15 @@
     },
     {
       "action": "wait",
-      "ms": 300
+      "ms": 2500
+    },
+    {
+      "action": "assert",
+      "label": "Trial 37: the Elemental Burst cast was accepted",
+      "actor": "rm",
+      "metric": "cast_failure",
+      "spell": 802202,
+      "equals": 0
     },
     {
       "action": "reset_cooldown",
@@ -883,7 +1181,15 @@
     },
     {
       "action": "wait",
-      "ms": 300
+      "ms": 2500
+    },
+    {
+      "action": "assert",
+      "label": "Trial 38: the Elemental Burst cast was accepted",
+      "actor": "rm",
+      "metric": "cast_failure",
+      "spell": 802202,
+      "equals": 0
     },
     {
       "action": "reset_cooldown",
@@ -904,7 +1210,15 @@
     },
     {
       "action": "wait",
-      "ms": 300
+      "ms": 2500
+    },
+    {
+      "action": "assert",
+      "label": "Trial 39: the Elemental Burst cast was accepted",
+      "actor": "rm",
+      "metric": "cast_failure",
+      "spell": 802202,
+      "equals": 0
     },
     {
       "action": "reset_cooldown",
@@ -925,7 +1239,15 @@
     },
     {
       "action": "wait",
-      "ms": 300
+      "ms": 2500
+    },
+    {
+      "action": "assert",
+      "label": "Trial 40: the Elemental Burst cast was accepted",
+      "actor": "rm",
+      "metric": "cast_failure",
+      "spell": 802202,
+      "equals": 0
     },
     {
       "action": "assert",
