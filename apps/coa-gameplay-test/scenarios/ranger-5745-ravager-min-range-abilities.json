@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "name": "Ravager removes the minimum range of Cutthroat, Serrated Shot and Toxic Dart (#5745)",
+  "name": "Ravager removes the minimum range of Cutthroat, Quick Shot, Serrated Shot and Toxic Dart (#5745)",
   "contract": "Ravager 92116 grants SPELL_AURA_ASCENSION_IGNORE_MIN_RANGE misc 10 (IGNORE_MIN_RANGE_RANGED_ABILITIES). Cutthroat 800359, Serrated Shot 500073 and Toxic Dart 807237 use SpellRange 54 (5-30 yd) and DmgClass SPELL_DAMAGE_CLASS_RANGED, as Quick Shot 500074 does. Without Ravager each cast at 2 yds must fail SPELL_FAILED_TOO_CLOSE (128); with Ravager known the same cast at the same distance must succeed (cast_failure 0). Cutthroat and Serrated Shot also require the caster aura 804329 Advantage (CasterAuraSpell), so the fixture grants it before each of their casts; Toxic Dart has no such requirement. Toxic Dart's Stances mask 536870912 is form 30, Elude (801345); outside it the cast fails SPELL_FAILED_ONLY_SHAPESHIFT, so its cases run last, with the Elude aura applied by the fixture.",
   "timeout_ms": 90000,
   "players": [
@@ -68,6 +68,11 @@
       "action": "learn",
       "actor": "ranger",
       "spell": 801345
+    },
+    {
+      "action": "learn",
+      "actor": "ranger",
+      "spell": 500074
     },
     {
       "action": "learn",
@@ -154,6 +159,32 @@
       "ms": 2000
     },
     {
+      "action": "set_power",
+      "actor": "ranger",
+      "power": 2,
+      "value": 100
+    },
+    {
+      "action": "cast",
+      "actor": "ranger",
+      "spell": 500074,
+      "target": "dummy"
+    },
+    {
+      "action": "assert",
+      "label": "BASELINE: Quick Shot is too close without Ravager",
+      "actor": "ranger",
+      "metric": "cast_failure",
+      "spell": 500074,
+      "equals": 128,
+      "within_ms": 3000
+    },
+    {
+      "action": "wait",
+      "label": "global cooldown",
+      "ms": 2000
+    },
+    {
       "action": "learn",
       "actor": "ranger",
       "spell": 92116
@@ -224,6 +255,32 @@
       "actor": "ranger",
       "metric": "cast_failure",
       "spell": 500073,
+      "equals": 0,
+      "within_ms": 3000
+    },
+    {
+      "action": "wait",
+      "label": "global cooldown",
+      "ms": 2000
+    },
+    {
+      "action": "set_power",
+      "actor": "ranger",
+      "power": 2,
+      "value": 100
+    },
+    {
+      "action": "cast",
+      "actor": "ranger",
+      "spell": 500074,
+      "target": "dummy"
+    },
+    {
+      "action": "assert",
+      "label": "CONTRACT: Ravager removes the minimum range of Quick Shot",
+      "actor": "ranger",
+      "metric": "cast_failure",
+      "spell": 500074,
       "equals": 0,
       "within_ms": 3000
     },
