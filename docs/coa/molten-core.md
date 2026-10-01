@@ -679,3 +679,8 @@ evidence + source reads), fixed individually below. See `impl-G-mechanics.md` fo
    placeholder (1 damage); the real per-difficulty amounts live in "Arcane Force Nova - Hidden Area
    Damage" (2105613-16). Bound via `coa_spell_damage_info`/`spell_coa_damage_info_hit`, the same
    mechanism as rev_20260930_83's 12 pairs.
+5. **Ancient Core Hound (11673) given SmartAI above Normal, plus Melt Armor.** Like the rest of MC
+   trash, only the base entry had any `smart_scripts` rows; replicated onto 111673/211673/311673 and
+   added Melt Armor (2105025, `SPELL_AURA_MOD_RESISTANCE_PCT`, stacks to 5) on all four difficulties --
+   the kit's real tank-facing armor debuff, confirmed in the export but never wired on any tier. The
+   "Ancient X" self-buff family and the undecoded action-type-88 row are unchanged.
