@@ -853,6 +853,7 @@ evidence + source reads), fixed individually below. See `impl-G-mechanics.md` fo
    cadence exists to measure) only to the Mythic and Ascended `creature_template` entries (211673/311673),
    leaving Normal/Heroic (11673/111673) untouched — this fork already gates MC trash by difficulty through
    separate per-tier entries, so no `event_flags` difficulty bit is needed on top of that split.
+   **Superseded by item 4 below**: that premise was wrong — see item 4.
 3. **Ragnaros's submerge duration re-checked against the corpus — no change.** The task asked to compare
    this session's live-measured 78.5s submerge→emerge cycle (`verify-G.md` item 9) against the corpus's
    diag-G3.md estimate of ~55-70s. A fresh extraction of all 4 measured submerge intervals across the 54-log
@@ -862,6 +863,38 @@ evidence + source reads), fixed individually below. See `impl-G-mechanics.md` fo
    single automated Ghost-harness bot run to finish killing the eight Lesser Son of Flame adds (which lets
    Ragnaros emerge early via `SummonedCreatureDies`), not the submerge timer itself — confirmed by reading
    the test and the 60s cap firing regardless of add state. No code or data change made.
+4. **Ancient Core Hound fear still never fired in game — item 2's per-entry split is dead on a real spawn.**
+   The user reported no fear in play on Ascended. `Creature::UpdateEntry` always `SetEntry(Entry)` to the
+   *base* `creature_template` entry (`Creature.cpp`) — only `m_creatureInfo` switches to the
+   `difficulty_entry_1..3` variant for stats; `GetEntry()` never becomes 211673/311673 on a real spawn, any
+   difficulty. `SmartScript::GetScript` falls back to `GetScript((int32)me->GetEntry())` (`SmartScript.cpp`),
+   so a real spawn only ever loads the *base* entry's (11673) smart_scripts rows. The row item 2 added to
+   211673/311673 never ran; the in-game "pass" that earlier appeared to confirm it used
+   `.npc add temp 311673`, which spawns a temporary creature whose entry genuinely is 311673 — not a real
+   Ancient Core Hound, and not representative of how MC trash actually spawns. The same flaw also made
+   `rev_20261001_03_molten_core_core_hound_melt_armor.sql`'s rows 0-3 on 111673/211673/311673 dead (they are
+   byte-for-byte copies of 11673's own rows, which already run on every difficulty via `event_flags = 0`,
+   so they were redundant as well as dead), and `rev_20261001_05_molten_core_shazzrah_reflection.sql`'s
+   summon-cast rows on 111504/211504/311504 (Reflection of Shazzrah, also summoned with its base entry and
+   so also always `GetEntry() == 11504`). Fix (`rev_20261001_14_molten_core_hound_fear_base_entry.sql`,
+   `rev_20261001_15_molten_core_variant_smart_scripts_audit.sql`): delete every dead variant-keyed row and
+   re-assert the hound's full kit (rows 0-3 unchanged) plus the Panic cast (row 4) on the base entry
+   (11673) alone, gating row 4 to Mythic+Ascended with `event_flags = 0x18`
+   (`SMART_EVENT_FLAG_DIFFICULTY_2 | SMART_EVENT_FLAG_DIFFICULTY_3`, `SmartScriptMgr.h`) — the only
+   mechanism that actually reaches a real spawn (`SmartScript::FillScript` filters by
+   `obj->GetMap()->GetSpawnMode()` against `event_flags`, not by which `creature_template` entry the row is
+   keyed to). The Shazzrah reflection's variant rows were pure duplicates of its base-entry row (already
+   unconditional) and were only deleted, nothing moved. No other pending Molten Core SQL file keys
+   `smart_scripts` on a `difficulty_entry_1..3` variant entry; `coa_boss_schedule`, `coa_boss_flex` and the
+   `coa_boss_ai`-scripted bosses are all keyed on base entries already, and no MC creature has a
+   `creature_formations` row in this branch. `tools/test_molten_core_smart_scripts_base_entry.py` replays
+   every pending Molten Core SQL file's smart_scripts DELETE/INSERT statements in filename order and fails
+   if any `(entryorguid, source_type = 0)` row still standing afterwards is keyed on a 1xxxxx/2xxxxx/3xxxxx
+   variant entry.
+   **Probe pitfall**: `.npc add temp <variant-entry>` spawns a creature whose *own* entry is that variant
+   id — it does not exercise the `UpdateEntry`/`GetScript` base-entry fallback that a real, DB-spawned
+   creature goes through. Verifying a difficulty-gated SmartAI row needs a persisted spawn (a `creature`
+   table row on the base entry) on the target difficulty, not a temp-spawn of the variant id.
 
 ## 11. Batch I (2026-10-01): map-409 spawnMask restore
 
