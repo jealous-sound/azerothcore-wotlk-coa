@@ -3081,6 +3081,13 @@ private:
             player->GetSession()->HandleLfgTeleportOpcode(packet);
             record.put("result", "teleport requested");
         }
+        else if (action == "encounter_credit")
+        {
+            Map* map = player->GetMap();
+            Require(map != nullptr && map->IsDungeon(), "Encounter credit needs a dungeon map");
+            map->UpdateEncounterState(ENCOUNTER_CREDIT_KILL_CREATURE, step.get<uint32>("entry"), nullptr);
+            record.put("result", "encounter credited");
+        }
         else if (action == "leave_group")
         {
             Require(player->GetGroup() != nullptr, "Leave request needs a group");
