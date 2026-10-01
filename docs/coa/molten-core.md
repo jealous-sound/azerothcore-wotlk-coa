@@ -367,7 +367,7 @@ above Normal (SmartAI rows existed only for the base entry) versus never having 
 | 11668 Firelord (trash) | — | zero above Normal | replicated Soul Burn/Summon Lava Spawn rows | measured | Soul Burn's sibling ordering contradicts the "classic id = smallest" assumption used elsewhere — flagged unknown, no upgrade proposed |
 | 11669 Flame Imp | — | zero above Normal | replicated Fire Nova row | measured | Clean ascending sibling family (2105005-08) exists but was not swapped in |
 | 11672 Core Rager | **Cindermaw** | CoA's own kit for Cindermaw has no Mangle-equivalent at all — the opposite direction of gap | not changed (C++, not data; Mangle stays) | exiles-kit | Whether `npc_core_rager`'s Mangle cast should be removed is a maintainer call, not applied here |
-| 11673 Ancient Core Hound | — | zero above Normal | replicated Serrated Bite/Vicious Bite/undecoded-action rows | measured | `smart_scripts` action type 88 (param 1167300/1167305) was never decoded; left unchanged |
+| 11673 Ancient Core Hound | — | zero above Normal; no fear ability on any difficulty | replicated Serrated Bite/Vicious Bite/undecoded-action rows; Mythic/Ascended given a fear (see §10 item 2) | measured | action type 88 is decoded (§10 item 2): `SMART_ACTION_CALL_RANDOM_RANGE_TIMED_ACTIONLIST`, params are a timed-actionlist id range, not spell ids |
 | 12076 Lava Elemental | — | no AI at all, despite a 2-spell kit | `AIName='SmartAI'`, new flat row for Pyroclast Barrage on all 4 difficulties | designed | Fireball Volley (clean ascending family) not added — no cooldown evidence |
 | 12099 Firesworn | — | kit's "Ignite" DoT never cast | not changed (C++, hand-written) | exiles-kit | No timer evidence to add it; #5388/#5391 do **not** trace to this gap (see §3 Garr) |
 | 12100 Lava Reaver | — | no AI at all, despite a 2-spell kit | `AIName='SmartAI'`, new flat row for Strike; Cleave design (cone vs adjacent) left undecided | designed | — |
@@ -813,3 +813,49 @@ evidence + source reads), fixed individually below. See `impl-G-mechanics.md` fo
     35s/55s clock; `coa_boss_ai` has no "cast B after A" hook (each row is its own `EventMap` entry), so
     the row's own `first_ms`/`period_ms` were retimed to 13000/45100 to track Massive Stomp's 9000/45100
     instead.
+
+## 10. Batch H (2026-10-01): melee damage ladder, Ragnaros submerge re-check, Ancient Core Hound fear
+
+1. **Melee damage now scales per difficulty (user decision).** `creature_template.DamageModifier` was
+   identical across Normal/Heroic/Mythic/Ascended for every MC creature (bosses and trash), so melee swing
+   damage never scaled even though health (×1/1.44/1.88/2.32) and the Damage Info-bound boss spells (e.g.
+   Lucifron Shadow Bolt 800/1600/2400/3200, a ×1/2/3/4 ladder) already did. A dedicated 54-log corpus pass
+   (`.agents/plans/mc-restoration/research-H1-H2.md`) found the direct evidence too noisy to support its own
+   melee-specific ratio: the best-covered creature (Ancient Core Hound, tank-proxy swings, all four
+   difficulties) measured 1:1.25:1.11:1.73, non-monotonic (Mythic below Heroic); the cross-creature
+   Normal→Ascended median across the 5 creatures with usable samples was only 1.13×, well short of either
+   the health or the spell ladder, and no creature reached either one. Rather than invent an unmeasured
+   melee-only constant from noisy, contradictory data, `DamageModifier` on every MC creature's Heroic/Mythic/
+   Ascended `creature_template` row is set to the same ×1.44/1.88/2.32 already used (and client-cache
+   confirmed) for health — `rev_20261001_11_molten_core_melee_damage_ladder.sql`. Normal is left unchanged:
+   the corpus check against our own server's Ascended-realm log (Molten Giant swings, median 498, n=71,
+   excluding the player) found Normal's own output already in a plausible range next to comparable corpus
+   trash. Out of scope: Sacrificial Chains (92030) and Sulfuron's three named disciples (92031-92033), which
+   have no difficulty-variant `creature_template` rows at all, and Magmadar's two head creatures (80642/
+   80643), which carry `DamageModifier = 0` and never melee (immune to all damage, mirror the body's health).
+   Flagged as designed (a consistency choice with the health ladder), not a melee measurement.
+2. **Ancient Core Hound (11673) fears on Mythic and Ascended only, modeled on Magmadar's own fear.**
+   Per the user's framing ("works like Magmadar's fear"), `.agents/plans/mc-restoration/research-H3.md`
+   traced what Magmadar's fear actually is in live play: the body casts Panic (2105309, confirmed
+   `SPELL_AURA_MOD_FEAR`, self + area-enemy target in `Spell.dbc`) roughly every 40s flat, 157-196 times
+   across the 54-log corpus — not the vanilla donor id (19408) `boss_magmadar_coa.cpp`'s C++ still runs
+   unmodified (a separate, pre-existing gap, not fixed here), and not the "Bellowing Roar"/"Ancient Dread/
+   Fury/Despair/Hysteria" family (2105308/2105310-13) the task brief initially named, which exist as catalog
+   ids but never fire in any of the 54 logs. The hound's own kit has no fear anywhere: its action-type-88
+   random pool (now decoded, see the trash table above) is Ground Stomp/Cauterizing Flames/Withering Heat/
+   Ancient Despair/Ancient Hysteria/Ancient Dread — stun, resistance and stat effects, not fear — confirmed
+   both by static decoding and by the corpus (no Panic or any `MOD_FEAR` aura ever recorded on the hound, any
+   difficulty). `rev_20261001_10_molten_core_ancient_core_hound_fear.sql` adds a Panic (2105309) self-cast
+   row (first 8s, repeat 40s flat, borrowed from Magmadar's own measured cadence — no hound-specific fear
+   cadence exists to measure) only to the Mythic and Ascended `creature_template` entries (211673/311673),
+   leaving Normal/Heroic (11673/111673) untouched — this fork already gates MC trash by difficulty through
+   separate per-tier entries, so no `event_flags` difficulty bit is needed on top of that split.
+3. **Ragnaros's submerge duration re-checked against the corpus — no change.** The task asked to compare
+   this session's live-measured 78.5s submerge→emerge cycle (`verify-G.md` item 9) against the corpus's
+   diag-G3.md estimate of ~55-70s. A fresh extraction of all 4 measured submerge intervals across the 54-log
+   corpus (2 kills × 2 submerges) gives 54.6/57.1/65.2/69.3s, median 61.15s — squarely inside the existing
+   range, and the current code's 60s `EVENT_EMERGE` cap (set from this same diag-G3 evidence in a prior
+   session) already sits right on that median. The 78.5s figure is a different metric: it is the time for a
+   single automated Ghost-harness bot run to finish killing the eight Lesser Son of Flame adds (which lets
+   Ragnaros emerge early via `SummonedCreatureDies`), not the submerge timer itself — confirmed by reading
+   the test and the 60s cap firing regardless of add state. No code or data change made.
