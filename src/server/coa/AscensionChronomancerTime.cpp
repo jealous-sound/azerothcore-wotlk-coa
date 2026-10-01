@@ -416,6 +416,8 @@ void ApplyTimeContracts(SpellInfo* info)
     }
     if (info->Id == Renewal)
         info->AttributesCu |= SPELL_ATTR0_CU_AURA_CANNOT_BE_SAVED;
+    if (info->Id == OvercorrectionHeal)
+        info->AscensionInheritsResolvedAmount = true;
     if (info->Id == Renewal || info->Id == Protection || info->Id == OvercorrectionHeal)
     {
         info->AttributesEx2 |= SPELL_ATTR2_CANT_CRIT;

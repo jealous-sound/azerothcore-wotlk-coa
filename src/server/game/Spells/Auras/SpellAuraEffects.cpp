@@ -6836,7 +6836,8 @@ void AuraEffect::HandlePeriodicHealAurasTick(Unit* target, Unit* caster) const
         if (caster && GetBase()->GetType() == UNIT_AURA_TYPE &&
             !(GetSpellInfo()->AscensionInheritsResolvedAmount &&
               ((GetSpellInfo()->SpellFamilyName == 31 && GetSpellInfo()->Id == 520497) ||
-               (GetSpellInfo()->SpellFamilyName == 34 && GetSpellInfo()->Id == 706255))))
+               (GetSpellInfo()->SpellFamilyName == 34 && GetSpellInfo()->Id == 706255) ||
+               (GetSpellInfo()->SpellFamilyName == 28 && GetSpellInfo()->Id == 561231))))
             damage = int32(float(damage) * caster->GetTotalAuraMultiplier(SPELL_AURA_MOD_HEALING_DONE_PERCENT));
 
         damage = target->SpellHealingBonusTaken(caster, GetSpellInfo(), damage, DOT, GetBase()->GetStackAmount());
