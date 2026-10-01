@@ -9,7 +9,10 @@
     "requirement. A normal Mortal Form Valanar's Vengeance cast below the threshold must invoke the",
     "existing Blood Scent leech helper 807300 and heal its caster; an above-threshold cast must not. The",
     "target health pool is asserted, and ordinary fixture-player regeneration is disabled. This scenario",
-    "observes server calculations and combat logs, not rendered client behavior."
+    "observes server calculations and combat logs, not rendered client behavior.",
+    "Resolved direct and periodic Reave copies retain their forwarded amount without a second execute bonus.",
+    "The leech helper uses the native melee damage class; both spell and melee hit and expertise are capped.",
+    "The target remains below the execute threshold when hit. Valanar consumes health, so the leech effective heal is measured independently of that cost."
   ],
   "timeout_ms": 90000,
   "players": [
@@ -19,7 +22,9 @@
       "class": 20,
       "level": 80,
       "spell_hit_rating": 10000,
-      "allow_regeneration": false
+      "allow_regeneration": false,
+      "melee_hit_rating": 10000,
+      "expertise_rating": 10000
     },
     {
       "id": "dummy",
@@ -145,6 +150,24 @@
     },
     {
       "action": "assert",
+      "label": "Resolved Reave copies retain the source execute bonus exactly once",
+      "actor": "dummy",
+      "metric": "script_spell_damage_taken",
+      "target": "mage",
+      "spell": 802884,
+      "equals": 1000
+    },
+    {
+      "action": "assert",
+      "label": "Resolved Reave copies retain the source execute bonus exactly once",
+      "actor": "dummy",
+      "metric": "script_periodic_damage_taken",
+      "target": "mage",
+      "spell": 802883,
+      "equals": 1000
+    },
+    {
+      "action": "assert",
       "label": "Below 35% health receives the promised 15% damage bonus script_periodic_damage_taken",
       "actor": "dummy",
       "metric": "script_periodic_damage_taken",
@@ -240,6 +263,13 @@
     },
     {
       "action": "assert",
+      "label": "The leech target remains below the execute threshold when the hit lands",
+      "actor": "enemy",
+      "metric": "health_pct",
+      "max": 34
+    },
+    {
+      "action": "assert",
       "label": "Direct damage below 35% triggers the native Blood Scent leech",
       "actor": "mage",
       "metric": "spell_heal_count",
@@ -253,6 +283,15 @@
       "label": "The leech restores positive health",
       "actor": "mage",
       "metric": "spell_heal_total",
+      "spell": 807300,
+      "target": "mage",
+      "min": 1
+    },
+    {
+      "action": "assert",
+      "label": "The leech restores effective health",
+      "actor": "mage",
+      "metric": "spell_effective_heal_total",
       "spell": 807300,
       "target": "mage",
       "min": 1
@@ -375,7 +414,7 @@
       "owner": "mage",
       "entry": 36,
       "level": 80,
-      "distance": 10,
+      "distance": 3,
       "health": 1000000
     }
   ]

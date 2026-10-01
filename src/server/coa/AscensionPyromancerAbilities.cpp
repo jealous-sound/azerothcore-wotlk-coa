@@ -395,7 +395,7 @@ class spell_ascension_pyromancer_ability : public SpellScript
         if (!player)
             return;
         uint32 id = GetSpellInfo()->Id;
-        if (id == 520868 && index == EFFECT_0 && GetHitUnit())
+        if (id == 520868 && index == EFFECT_0 && IsInTargetHook() && GetHitUnit())
         {
             PreventHitDefaultEffect(index);
             Cast(player, GetHitUnit(), 1604);

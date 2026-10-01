@@ -672,7 +672,8 @@ void MotionMaster::MoveJumpTo(float angle, float speedXY, float speedZ)
 /**
  * @brief The unit will jump to a specific point
  */
-void MotionMaster::MoveJump(float x, float y, float z, float speedXY, float speedZ, uint32 id, Unit const* target)
+void MotionMaster::MoveJump(float x, float y, float z, float speedXY, float speedZ, uint32 id, Unit const* target,
+    std::optional<float> finalOrientation)
 {
     LOG_DEBUG("movement.motionmaster", "Unit ({}) jump to point (X: {} Y: {} Z: {})", _owner->GetGUID().ToString(), x, y, z);
 
@@ -688,6 +689,8 @@ void MotionMaster::MoveJump(float x, float y, float z, float speedXY, float spee
     init.SetVelocity(speedXY);
     if (target)
         init.SetFacing(target);
+    else if (finalOrientation)
+        init.SetFacing(*finalOrientation);
 
     Mutate(new EffectMovementGenerator(init, id), MOTION_SLOT_CONTROLLED);
 }

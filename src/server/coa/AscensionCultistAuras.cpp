@@ -180,6 +180,8 @@ class aura_ascension_cultist_lifecycle : public AuraScript
             return;
         if (id == Herald || id == Madness || Named(GetSpellInfo(), 567524))
             Resource(player, Insanity, -100, true);
+        if (id == Madness)
+            player->RemoveAurasDueToSpell(803060);
         if (id == Herald)
         {
             player->RemoveAurasDueToSpell(806769);

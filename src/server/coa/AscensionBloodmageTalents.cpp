@@ -1,10 +1,14 @@
 /* Copyright (C) 2016+ AzerothCore, GNU AGPL v3. */
 #include "AscensionPooledVitality.h"
+#include "AscensionRealmClock.h"
 #include "DBCStores.h"
 #include "Log.h"
+#include "Map.h"
+#include "MotionMaster.h"
 #include "Player.h"
 #include "ScriptMgr.h"
 #include "ScriptedCreature.h"
+#include "Spell.h"
 #include "SpellAuraEffects.h"
 #include "SpellAuras.h"
 #include "SpellScript.h"
@@ -12,6 +16,7 @@
 #include "SpellMgr.h"
 #include "TemporarySummon.h"
 #include <algorithm>
+#include <list>
 #include <utility>
 #include <limits>
 #include <vector>
@@ -65,8 +70,19 @@ enum BloodmageTalentSpells : uint32
     SPELL_BLOOD_RUNS_COLD = 560257,
     SPELL_CURSED_GROUND = 561195,
     SPELL_BLOOD_SCENT = 804223,
-    SPELL_BLOOD_SCENT_LEECH = 807300
+    SPELL_BLOOD_SCENT_LEECH = 807300,
+    SPELL_ATHERANNS_ANGUISH = 680680,
+    SPELL_ATHERANNS_ANGUISH_EXPLOSION = 680681,
+    SPELL_NIGHT_STALKER_BUFF = 808013,
+    SPELL_CARDIAC_ARREST_LEECH = 806946,
+    SPELL_BLOOD_ORB_PERIODIC = 712418,
+    SPELL_BLOOD_ORB_CDR = 712385
 };
+
+constexpr uint32 NPC_BLOOD_ORB = 315303;
+constexpr int32 AtherannsAnguishPercent = 30;
+constexpr uint32 AtherannsAnguishScale = 100;
+constexpr uint32 CardiacArrestDamagePercent = 50;
 
 constexpr uint32 SanguineRuptureMinimumTargets = 5;
 
@@ -122,7 +138,7 @@ public:
 
     void ModifySpellDamageTaken(Unit* target, Unit* attacker, int32& amount, SpellInfo const* info) override
     {
-        if (amount > 0 && info && info->Id != SPELL_BLOOD_SCENT_LEECH)
+        if (amount > 0 && info && !info->AscensionInheritsResolvedAmount)
             amount = int32(std::min<uint32>(BloodScentDamage(target, attacker, uint32(amount)),
                 std::numeric_limits<int32>::max()));
     }
@@ -130,7 +146,8 @@ public:
     void ModifyPeriodicDamageAurasTick(Unit* target, Unit* attacker, uint32& amount,
         SpellInfo const* info) override
     {
-        if (info && !info->IsPositive() && !info->HasAura(SPELL_AURA_PERIODIC_DAMAGE_PERCENT))
+        if (info && !info->AscensionInheritsResolvedAmount && !info->IsPositive() &&
+            !info->HasAura(SPELL_AURA_PERIODIC_DAMAGE_PERCENT))
             amount = BloodScentDamage(target, attacker, amount);
     }
 };
@@ -728,6 +745,277 @@ class aura_ascension_bloodmage_blood_bond : public AuraScript
     }
 };
 
+class aura_ascension_bloodmage_atheranns_anguish : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_bloodmage_atheranns_anguish);
+
+    bool Validate(SpellInfo const* spellInfo) override
+    {
+        return spellInfo->Effects[EFFECT_0].IsAura(SPELL_AURA_DUMMY) &&
+            spellInfo->Effects[EFFECT_0].TriggerSpell == SPELL_ATHERANNS_ANGUISH_EXPLOSION &&
+            spellInfo->Effects[EFFECT_1].IsAura(SPELL_AURA_DUMMY) &&
+            spellInfo->Effects[EFFECT_1].MiscValueB == AtherannsAnguishPercent &&
+            spellInfo->Effects[EFFECT_2].IsAura(SPELL_AURA_DUMMY) &&
+            ValidateSpellInfo({SPELL_ATHERANNS_ANGUISH_EXPLOSION});
+    }
+
+    void Calculate(AuraEffect const*, int32& amount, bool& canBeRecalculated)
+    {
+        amount = 0;
+        canBeRecalculated = false;
+    }
+
+    bool Check(ProcEventInfo& event)
+    {
+        DamageInfo const* damage = event.GetDamageInfo();
+        Unit* caster = GetCaster();
+        return caster && damage && damage->GetDamage() && event.GetActor() == caster &&
+            damage->GetAttacker() == caster && damage->GetVictim() == GetTarget() &&
+            (!damage->GetSpellInfo() || damage->GetSpellInfo()->Id != SPELL_ATHERANNS_ANGUISH_EXPLOSION);
+    }
+
+    void Accumulate(AuraEffect const* effect, ProcEventInfo& event)
+    {
+        PreventDefaultAction();
+        AuraEffect* remainder = GetEffect(EFFECT_2);
+        uint64 total = uint64(std::max(0, effect->GetAmount())) * AtherannsAnguishScale;
+        if (remainder)
+            total += uint64(std::clamp(remainder->GetAmount(), 0, int32(AtherannsAnguishScale - 1)));
+        total += uint64(event.GetDamageInfo()->GetDamage()) * AtherannsAnguishPercent;
+        total = std::min(total, uint64(std::numeric_limits<int32>::max()) * AtherannsAnguishScale);
+        GetEffect(EFFECT_0)->SetAmount(int32(total / AtherannsAnguishScale));
+        if (remainder)
+            remainder->SetAmount(int32(total % AtherannsAnguishScale));
+    }
+
+    void Explode(AuraEffect const* effect, AuraEffectHandleModes)
+    {
+        if (GetTargetApplication()->GetRemoveMode() != AURA_REMOVE_BY_EXPIRE)
+            return;
+
+        Unit* caster = GetCaster();
+        Unit* target = GetTarget();
+        int32 const amount = effect->GetAmount();
+        if (!caster || !caster->IsAlive() || !caster->IsInWorld() || !target->IsAlive() || !target->IsInWorld() ||
+            caster->GetMap() != target->GetMap() || amount <= 0)
+            return;
+
+        caster->CastCustomSpell(SPELL_ATHERANNS_ANGUISH_EXPLOSION, SPELLVALUE_BASE_POINT0, amount, target,
+            TRIGGERED_FULL_MASK, nullptr, effect);
+    }
+
+    void Register() override
+    {
+        DoEffectCalcAmount += AuraEffectCalcAmountFn(aura_ascension_bloodmage_atheranns_anguish::Calculate,
+            EFFECT_ALL, SPELL_AURA_DUMMY);
+        DoCheckProc += AuraCheckProcFn(aura_ascension_bloodmage_atheranns_anguish::Check);
+        OnEffectProc += AuraEffectProcFn(aura_ascension_bloodmage_atheranns_anguish::Accumulate,
+            EFFECT_0, SPELL_AURA_DUMMY);
+        AfterEffectRemove += AuraEffectRemoveFn(aura_ascension_bloodmage_atheranns_anguish::Explode,
+            EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
+    }
+};
+
+class spell_ascension_bloodmage_atheranns_anguish_explosion : public SpellScript
+{
+    PrepareSpellScript(spell_ascension_bloodmage_atheranns_anguish_explosion);
+
+    bool Validate(SpellInfo const* spellInfo) override
+    {
+        SpellEffectInfo const& effect = spellInfo->Effects[EFFECT_0];
+        return effect.Effect == SPELL_EFFECT_SCHOOL_DAMAGE && effect.DieSides == 1 &&
+            !effect.RealPointsPerLevel && !effect.PointsPerComboPoint;
+    }
+
+    bool Load() override
+    {
+        return GetSpell()->IsTriggered();
+    }
+
+    void SetAccumulatedDamage(SpellEffIndex index)
+    {
+        PreventHitDefaultEffect(index);
+        int64 const amount = int64(GetSpellValue()->EffectBasePoints[EFFECT_0]) + 1;
+        SetHitDamage(int32(std::clamp<int64>(amount, 0, std::numeric_limits<int32>::max())));
+    }
+
+    void Register() override
+    {
+        OnEffectLaunchTarget += SpellEffectFn(
+            spell_ascension_bloodmage_atheranns_anguish_explosion::SetAccumulatedDamage,
+            EFFECT_0, SPELL_EFFECT_SCHOOL_DAMAGE);
+    }
+};
+
+class aura_ascension_bloodmage_night_stalker : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_bloodmage_night_stalker);
+
+    void Tick(AuraEffect const*)
+    {
+        Unit* target = GetTarget();
+        if (AscensionRealmClock::IsNight() || !target->IsOutdoors() || target->GetMap()->IsDungeon())
+            return;
+
+        PreventDefaultAction();
+        target->RemoveAurasDueToSpell(SPELL_NIGHT_STALKER_BUFF, target->GetGUID());
+    }
+
+    void Register() override
+    {
+        OnEffectPeriodic += AuraEffectPeriodicFn(aura_ascension_bloodmage_night_stalker::Tick,
+            EFFECT_0, SPELL_AURA_PERIODIC_TRIGGER_SPELL);
+    }
+};
+
+class aura_ascension_bloodmage_cardiac_arrest : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_bloodmage_cardiac_arrest);
+
+    bool Validate(SpellInfo const*) override { return ValidateSpellInfo({SPELL_CARDIAC_ARREST_LEECH}); }
+
+    bool Check(ProcEventInfo& event)
+    {
+        return IsBloodmageDamageProc(GetTarget(), GetCaster(), event);
+    }
+
+    void Proc(AuraEffect const*, ProcEventInfo& event)
+    {
+        PreventDefaultAction();
+        SpellInfo const* leech = sSpellMgr->AssertSpellInfo(SPELL_CARDIAC_ARREST_LEECH);
+        int32 const amplitude = leech->Effects[EFFECT_0].Amplitude;
+        int32 const duration = leech->GetMaxDuration();
+        if (amplitude <= 0 || duration < amplitude)
+            return;
+
+        uint64 const ticks = uint64(duration / amplitude);
+        uint64 const perTick = uint64(event.GetDamageInfo()->GetDamage()) * CardiacArrestDamagePercent / 100 / ticks;
+        if (perTick)
+            GetTarget()->CastCustomSpell(SPELL_CARDIAC_ARREST_LEECH, SPELLVALUE_BASE_POINT0,
+                int32(std::min<uint64>(perTick, std::numeric_limits<int32>::max())), event.GetActionTarget(),
+                TRIGGERED_FULL_MASK);
+    }
+
+    void Register() override
+    {
+        DoCheckProc += AuraCheckProcFn(aura_ascension_bloodmage_cardiac_arrest::Check);
+        OnEffectProc += AuraEffectProcFn(aura_ascension_bloodmage_cardiac_arrest::Proc, EFFECT_0, AuraType(354));
+    }
+};
+
+class spell_ascension_bloodmage_lunge : public SpellScript
+{
+    PrepareSpellScript(spell_ascension_bloodmage_lunge);
+
+    void FaceTarget(SpellEffIndex)
+    {
+        Unit* target = GetExplTargetUnit();
+        WorldLocation const* destination = GetExplTargetDest();
+        if (target && destination)
+            GetSpell()->SetJumpFinalOrientation(destination->GetAngle(target));
+    }
+
+    void Register() override
+    {
+        OnEffectLaunch += SpellEffectFn(spell_ascension_bloodmage_lunge::FaceTarget,
+            EFFECT_0, SPELL_EFFECT_JUMP_DEST);
+    }
+};
+
+class spell_ascension_bloodmage_blood_orb_spawn : public SpellScript
+{
+    PrepareSpellScript(spell_ascension_bloodmage_blood_orb_spawn);
+
+    void Summon(SpellEffIndex index)
+    {
+        PreventHitDefaultEffect(index);
+        Player* player = GetCaster()->ToPlayer();
+        int32 duration = GetSpellInfo()->GetDuration();
+        if (!player || duration <= 0)
+            return;
+
+        player->ApplySpellMod(GetSpellInfo()->Id, SPELLMOD_DURATION, duration);
+        Position const position =
+            player->GetRandomPoint(*player, GetSpellInfo()->Effects[index].CalcRadius(player));
+        if (TempSummon* orb = player->SummonCreature(NPC_BLOOD_ORB, position, TEMPSUMMON_TIMED_DESPAWN,
+            uint32(duration)))
+            orb->SetUInt32Value(UNIT_CREATED_BY_SPELL, GetSpellInfo()->Id);
+    }
+
+    void Register() override
+    {
+        OnEffectHit += SpellEffectFn(spell_ascension_bloodmage_blood_orb_spawn::Summon,
+            EFFECT_0, SPELL_EFFECT_SUMMON);
+    }
+};
+
+struct npc_ascension_bloodmage_blood_orb : public ScriptedAI
+{
+    explicit npc_ascension_bloodmage_blood_orb(Creature* creature) : ScriptedAI(creature) { }
+
+    void AttackStart(Unit*) override { }
+    void MoveInLineOfSight(Unit*) override { }
+    void EnterEvadeMode(EvadeReason) override { }
+
+    void IsSummonedBy(WorldObject* summoner) override
+    {
+        Player* player = summoner ? summoner->ToPlayer() : nullptr;
+        if (!player)
+        {
+            me->DespawnOrUnsummon();
+            return;
+        }
+
+        me->SetOwnerGUID(player->GetGUID());
+        me->SetReactState(REACT_PASSIVE);
+        me->GetMotionMaster()->Clear();
+        me->GetMotionMaster()->MoveIdle();
+        me->CastSpell(me, SPELL_BLOOD_ORB_PERIODIC, true);
+    }
+};
+
+class spell_ascension_bloodmage_blood_orb_pickup : public SpellScript
+{
+    PrepareSpellScript(spell_ascension_bloodmage_blood_orb_pickup);
+
+    bool Validate(SpellInfo const*) override
+    {
+        return ValidateSpellInfo({SPELL_DARKCASTING, SPELL_BLOOD_ORB_PERIODIC, SPELL_BLOOD_ORB_CDR});
+    }
+
+    void SelectOwner(std::list<WorldObject*>& targets)
+    {
+        ObjectGuid const owner = GetCaster()->GetOwnerGUID();
+        targets.remove_if([owner](WorldObject* object)
+        {
+            Unit* unit = object->ToUnit();
+            return !unit || unit->GetGUID() != owner || !unit->IsAlive();
+        });
+    }
+
+    void Collect(SpellEffIndex index)
+    {
+        PreventHitDefaultEffect(index);
+        Creature* orb = GetCaster()->ToCreature();
+        Unit* owner = GetHitUnit();
+        if (!orb || !owner || !orb->HasAura(SPELL_BLOOD_ORB_PERIODIC))
+            return;
+
+        orb->RemoveAurasDueToSpell(SPELL_BLOOD_ORB_PERIODIC);
+        owner->CastSpell(owner, SPELL_DARKCASTING, true);
+        owner->CastSpell(owner, SPELL_BLOOD_ORB_CDR, true);
+        orb->DespawnOrUnsummon();
+    }
+
+    void Register() override
+    {
+        OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(
+            spell_ascension_bloodmage_blood_orb_pickup::SelectOwner, EFFECT_0, TARGET_UNIT_SRC_AREA_ALLY);
+        OnEffectHitTarget += SpellEffectFn(spell_ascension_bloodmage_blood_orb_pickup::Collect,
+            EFFECT_0, SPELL_EFFECT_TRIGGER_SPELL);
+    }
+};
+
 class bloodmage_talent_contracts : public GlobalScript
 {
 public:
@@ -738,6 +1026,9 @@ public:
     {
         if (!info || info->SpellFamilyName != 26)
             return;
+
+        if (info->ExcludeCasterAuraSpell == SPELL_CURSED_FORM_REQUIREMENT_2)
+            info->ExcludeCasterAuraSpell = AscensionBloodmage::CursedForm;
 
         ApplyBloodmageConditionalContracts(info);
 
@@ -750,6 +1041,13 @@ public:
         {
             info->AscensionInheritsResolvedAmount = true;
             info->AttributesEx3 |= SPELL_ATTR3_IGNORE_CASTER_MODIFIERS;
+        }
+
+        if (info->Id == SPELL_ATHERANNS_ANGUISH && info->Effects[EFFECT_1].IsAura(SPELL_AURA_SCHOOL_ABSORB) &&
+            info->Effects[EFFECT_1].MiscValueB == AtherannsAnguishPercent)
+        {
+            info->Effects[EFFECT_1].ApplyAuraName = SPELL_AURA_DUMMY;
+            info->Effects[EFFECT_1].BasePoints = -1;
         }
 
         if ((info->Id == SPELL_CRIMSON_EXPEDITION || info->Id == SPELL_SANGUINE_SCION) &&
@@ -806,4 +1104,12 @@ void AddSC_AscensionBloodmageTalents()
     RegisterSpellScript(aura_ascension_bloodmage_cursed_blood);
     RegisterSpellScript(aura_ascension_bloodmage_essence_harvester);
     RegisterSpellScript(aura_ascension_bloodmage_blood_bond);
+    RegisterSpellScript(aura_ascension_bloodmage_atheranns_anguish);
+    RegisterSpellScript(spell_ascension_bloodmage_atheranns_anguish_explosion);
+    RegisterSpellScript(aura_ascension_bloodmage_night_stalker);
+    RegisterSpellScript(aura_ascension_bloodmage_cardiac_arrest);
+    RegisterSpellScript(spell_ascension_bloodmage_lunge);
+    RegisterSpellScript(spell_ascension_bloodmage_blood_orb_spawn);
+    RegisterCreatureAI(npc_ascension_bloodmage_blood_orb);
+    RegisterSpellScript(spell_ascension_bloodmage_blood_orb_pickup);
 }

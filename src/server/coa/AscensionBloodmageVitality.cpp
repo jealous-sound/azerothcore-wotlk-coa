@@ -23,8 +23,7 @@ bool IsBloodmage(Player const* player)
 
 bool CanEmpower(Player* player)
 {
-    if (!IsBloodmage(player) || !player->HasAura(PooledVitalityTalent) || player->HasAura(CursedFormCheck) ||
-        player->HasAura(CursedForm))
+    if (!IsBloodmage(player) || !player->HasAura(PooledVitalityTalent) || player->HasAura(CursedForm))
         return false;
     Aura const* pool = player->GetAura(PooledVitality, player->GetGUID());
     return pool && uint32(pool->GetStackAmount()) >= VitalityCost;

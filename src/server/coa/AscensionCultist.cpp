@@ -245,7 +245,7 @@ void Refresh(Player* player)
     }
     else
         SetHelper(player, 807883, false);
-    SetHelper(player, 500727, player->IsAlive() && player->HasSpell(500706));
+    SetHelper(player, 500727, player->IsAlive() && (stacks || player->HasSpell(Insanity)));
     for (auto [root, replacement, active] : {std::tuple(804670u, 804711u, player->HasAura(706182)),
              std::tuple(800416u, 504719u, player->HasAura(255070)),
              std::tuple(500110u, 680576u, player->HasAura(681794)),

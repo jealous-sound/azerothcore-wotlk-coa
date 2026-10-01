@@ -20,6 +20,7 @@
 #include "Battleground.h"
 #include "CoA.Prestige.API.h"
 #include "CoAPrestigeRules.h"
+#include "CoASpellbook.h"
 #include "Chat.h"
 #include "Config.h"
 #include "CreatureScript.h"
@@ -349,6 +350,12 @@ namespace
                 chains.insert(sSpellMgr->GetFirstSpellInChain(ability.SpellId));
                 player->removeSpell(ability.SpellId, SPEC_MASK_ALL, false);
             }
+        for (uint32 const spellId : CoASpellbook::UpgradeRanksAbove(player, level))
+            if (player->HasSpell(spellId))
+            {
+                chains.insert(sSpellMgr->GetFirstSpellInChain(spellId));
+                player->removeSpell(spellId, SPEC_MASK_ALL, false);
+            }
         return chains;
     }
 
@@ -625,7 +632,16 @@ public:
     coa_prestige_player() : PlayerScript("coa_prestige_player", { PLAYERHOOK_ON_LOGIN, PLAYERHOOK_ON_LOGOUT,
         PLAYERHOOK_ON_LEVEL_CHANGED, PLAYERHOOK_ON_PLAYER_COMPLETE_QUEST, PLAYERHOOK_ON_QUEST_ABANDON,
         PLAYERHOOK_ON_LEARN_SPELL, PLAYERHOOK_ON_MAP_CHANGED,
-        PLAYERHOOK_ON_SEND_INITIAL_PACKETS_BEFORE_ADD_TO_MAP }) { }
+        PLAYERHOOK_ON_SEND_INITIAL_PACKETS_BEFORE_ADD_TO_MAP,
+        PLAYERHOOK_CAN_GIVE_MAIL_REWARD_AT_GIVE_LEVEL }) { }
+
+    // A prestige cycle relevels the character through thresholds it already passed in a
+    // previous cycle; sObjectMgr->GetMailLevelReward has no per-character idempotency of its
+    // own, so it would resend the same mail every cycle without this guard.
+    bool OnPlayerCanGiveMailRewardAtGiveLevel(Player* player, uint8 /*level*/) override
+    {
+        return !IsActive(player);
+    }
 
     // A client that reconnects to a character still in the world gets its initial packets again but
     // no login or map hook, and starts with an empty field table. The levels follow once the

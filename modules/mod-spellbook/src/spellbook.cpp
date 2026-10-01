@@ -743,7 +743,8 @@ class spellbook_metric_provider final : public WorldScript
 public:
     spellbook_metric_provider() : WorldScript("spellbook_metric_provider")
     {
-        CoASpellbook::SetProvider({Spellbook::RowCount, Spellbook::OffersSpell, Spellbook::CoversSpell});
+        CoASpellbook::SetProvider({Spellbook::RowCount, Spellbook::OffersSpell, Spellbook::CoversSpell,
+            Spellbook::UpgradeRanksAbove});
     }
 
     ~spellbook_metric_provider() override
@@ -786,5 +787,18 @@ namespace Spellbook
         // The window drops what the character already holds, so membership alone would report
         // a bought spell as missing. Entitlement is the union of the two.
         return OffersSpell(player, spellId) || HasRankOrBetter(player, spellId);
+    }
+
+    std::vector<uint32> UpgradeRanksAbove(Player *player, uint8 level)
+    {
+        std::vector<uint32> spells;
+        if (!player)
+            return spells;
+
+        for (SpellbookRankData::Rank const &rank : SpellbookRankData::Ranks)
+            if (rank.ClassId == player->getClass() && rank.RequiredLevel > level)
+                spells.push_back(rank.SpellId);
+
+        return spells;
     }
 }

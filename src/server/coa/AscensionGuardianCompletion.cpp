@@ -115,7 +115,7 @@ class aura_ascension_guardian_lifecycle : public AuraScript
     {
         if (effect->GetEffIndex() == EFFECT_0 && Dynamic(GetId()))
         {
-            amount = DynamicAmount(GetTarget(), GetId());
+            amount = DynamicAmount(GetUnitOwner(), GetId());
             recalculate = false;
         }
     }
