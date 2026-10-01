@@ -87,6 +87,8 @@
 #include "zg_coa_common.h"
 #include "../../../src/server/scripts/EasternKingdoms/BlackrockMountain/MoltenCore/molten_core.h"
 
+#include <algorithm>
+
 namespace
 {
     enum SacrificialChainsSpells
@@ -123,23 +125,34 @@ namespace
 
             uint8 const cap = ChainTargetCap(me->GetMap());
 
+            // Exclude players a concurrent chain already has Sacrifice on, so two chains spawning
+            // close together never both pick the same player.
             std::vector<Player*> targets = coa_zg::PlayersWithin(me, 40.0f);
+            targets.erase(std::remove_if(targets.begin(), targets.end(), [](Player* player)
+            {
+                return player->HasAura(SPELL_SACRIFICE);
+            }), targets.end());
             Acore::Containers::RandomResize(targets, cap);
 
-            float angle = 0.0f;
             for (Player* target : targets)
             {
-                Position chainedSpot = me->GetNearPosition(2.0f, angle);
-                target->NearTeleportTo(chainedSpot);
-                angle += float(M_PI * 2.0) / std::max<float>(float(targets.size()), 1.0f);
-
                 DoCast(target, SPELL_SACRIFICE_RENEW, true);
                 DoCast(target, SPELL_SACRIFICE, true);
-                _chained.push_back(target->GetGUID());
             }
 
             if (roll_chance_f(BERSERK_CHANCE_PCT))
                 DoCastSelf(SPELL_BERSERK, true);
+        }
+
+        // Called by spell_sacrificial_chains_sacrifice_coa::HandleApply once Sacrifice has actually
+        // landed on the target. A failed/blocked cast (e.g. the target got chained by another
+        // instance a moment earlier) never reaches here, so it never leaves a phantom teleport with
+        // no chain - the defect this fix addresses.
+        void OnSacrificeApplied(Player* target)
+        {
+            Position chainedSpot = me->GetNearPosition(2.0f, float(M_PI * 2.0 / 3.0) * float(_chained.size()));
+            target->NearTeleportTo(chainedSpot);
+            _chained.push_back(target->GetGUID());
         }
 
         void JustDied(Unit* /*killer*/) override
@@ -165,12 +178,21 @@ namespace
 
         void HandleApply(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
         {
-            if (Unit* target = GetTarget())
-            {
-                target->SetControlled(true, UNIT_STATE_ROOT);
-                target->SetUnitFlag(UNIT_FLAG_SILENCED);
-                target->SetUnitFlag(UNIT_FLAG_PACIFIED);
-            }
+            Unit* target = GetTarget();
+            if (!target)
+                return;
+
+            target->SetControlled(true, UNIT_STATE_ROOT);
+            target->SetUnitFlag(UNIT_FLAG_SILENCED);
+            target->SetUnitFlag(UNIT_FLAG_PACIFIED);
+
+            // The teleport-next-to-the-chain step lives here, not in the chain's own Reset(), so it
+            // only ever runs once Sacrifice has actually landed on this target.
+            if (Player* player = target->ToPlayer())
+                if (Unit* caster = GetCaster())
+                    if (Creature* chain = caster->ToCreature())
+                        if (npc_sacrificial_chains_coa* chainAI = dynamic_cast<npc_sacrificial_chains_coa*>(chain->AI()))
+                            chainAI->OnSacrificeApplied(player);
         }
 
         void HandleRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
