@@ -16,6 +16,8 @@ void ApplyContracts(SpellInfo* info)
     if (!info || info->SpellFamilyName != 33)
         return;
     uint32 id = info->Id;
+    if (id == 800624)
+        info->AttributesEx &= ~SPELL_ATTR1_NO_THREAT;
     if (id == Rejuvenating)
         for (auto& effect : info->Effects)
             if (effect.IsAura())
