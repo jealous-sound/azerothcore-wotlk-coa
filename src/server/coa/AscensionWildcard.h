@@ -217,9 +217,13 @@ struct StoreCard
     std::uint32_t Price = 0;
 };
 
+constexpr std::uint32_t DARKMOON_PRIZES_STORE = 4;
 constexpr std::uint32_t SKILL_CARD_STORE = 5;
 constexpr std::uint32_t GOLDEN_SKILL_CARD_STORE = 6;
 constexpr std::uint32_t SKILL_CARD_STORE_PRICE = 250;
+constexpr std::uint32_t DARKMOON_PRIZE_PRICE_PETS_AND_ACCESSORIES = 250;
+constexpr std::uint32_t DARKMOON_PRIZE_PRICE_TRANSMOG = 500;
+constexpr std::uint32_t DARKMOON_PRIZE_PRICE_MOUNTS_AND_TOYS = 1000;
 
 struct SealedPurchase
 {
@@ -491,6 +495,7 @@ CardClaim ClaimPendingCards(Tables const& tables, CardCollection& collection, st
     RandomBelow const& random);
 
 std::vector<StoreCard> SkillCardStore(Tables const& tables, std::uint32_t store);
+std::vector<StoreCard> DarkmoonPrizeStore();
 
 std::vector<std::uint8_t> CustomStorePayload(std::uint32_t store, std::vector<StoreCard> const& cards);
 

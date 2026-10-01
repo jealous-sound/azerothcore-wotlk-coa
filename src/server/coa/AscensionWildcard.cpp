@@ -112,7 +112,6 @@ constexpr uint32 SPELL_RANK_MAX = 100;
 constexpr std::array<std::pair<uint32, uint32>, 7> TRAINER_PRICE_PER_SQUARED_LEVEL = { {
     { 10, 3 }, { 20, 10 }, { 30, 11 }, { 50, 12 }, { 60, 13 }, { 70, 20 }, { 255, 36 } } };
 constexpr uint32 SKILL_CARD_ITEM_SPELL = 92657;
-constexpr uint32 DARKMOON_PRIZES_STORE = 4;
 constexpr uint32 SPECIALIZATION_CACHE_ITEM = 2977359;
 constexpr std::array<std::pair<uint32, uint32>, 5> SPECIALIZATION_CACHE_CONTENTS = { {
     { 106954, 1 }, { 134980, 1 }, { 134981, 1 }, { 134982, 1 }, { 134983, 1 } } };
@@ -1886,15 +1885,20 @@ void SendCardStoreTypes(Player* player)
     player->SendDirectMessage(&packet);
 }
 
+std::vector<StoreCard> StoreOffers(uint32 store)
+{
+    return store == DARKMOON_PRIZES_STORE ? DarkmoonPrizeStore() : SkillCardStore(Loaded, store);
+}
+
 bool QueryCardStore(WorldSession* session, WorldPacket const& packet)
 {
     Player* player = session->GetPlayer();
     if (!player || packet.size() < sizeof(uint32))
         return false;
     uint32 const store = packet.read<uint32>(0);
-    if (store != SKILL_CARD_STORE && store != GOLDEN_SKILL_CARD_STORE)
+    if (store != DARKMOON_PRIZES_STORE && store != SKILL_CARD_STORE && store != GOLDEN_SKILL_CARD_STORE)
         return false;
-    SendPayload(player, SMSG_QUERY_CUSTOM_STORE_RESULT, CustomStorePayload(store, SkillCardStore(Loaded, store)));
+    SendPayload(player, SMSG_QUERY_CUSTOM_STORE_RESULT, CustomStorePayload(store, StoreOffers(store)));
     return true;
 }
 
@@ -1931,8 +1935,8 @@ bool BuyStoreCard(WorldSession* session, WorldPacket const& packet)
         return false;
     uint32 const item = packet.read<uint32>(0);
     std::optional<StoreCard> offer;
-    for (uint32 store : { SKILL_CARD_STORE, GOLDEN_SKILL_CARD_STORE })
-        for (StoreCard const& card : SkillCardStore(Loaded, store))
+    for (uint32 store : { DARKMOON_PRIZES_STORE, SKILL_CARD_STORE, GOLDEN_SKILL_CARD_STORE })
+        for (StoreCard const& card : StoreOffers(store))
             if (card.Item == item)
                 offer = card;
     if (!offer)
@@ -2829,6 +2833,25 @@ std::vector<std::uint32_t> CollectCard(Tables const& tables, CardCollection& col
     for (; collection.BonusProgress >= BONUS_PACK_PROGRESS; collection.BonusProgress -= BONUS_PACK_PROGRESS)
         bonusPacks.push_back(CARD_PACKS[random(std::uint32_t(CARD_PACKS.size()))].Item);
     return bonusPacks;
+}
+
+constexpr std::array<std::uint32_t, 10> DARKMOON_PRIZE_PETS_AND_ACCESSORIES = {
+    73764, 73765, 73905, 74981, 80008, 91003, 91040, 499320, 499321, 1201025 };
+constexpr std::array<std::uint32_t, 22> DARKMOON_PRIZE_TRANSMOG = {
+    78341, 120974, 121306, 121421, 121423, 121459, 121477, 121496, 121514, 121524, 121538, 121557, 121569, 121573,
+    121617, 121636, 121714, 121715, 121775, 263031, 263032, 263033 };
+constexpr std::array<std::uint32_t, 5> DARKMOON_PRIZE_MOUNTS_AND_TOYS = { 246192, 400272, 400273, 400274, 998100 };
+
+std::vector<StoreCard> DarkmoonPrizeStore()
+{
+    std::vector<StoreCard> offers;
+    for (std::uint32_t item : DARKMOON_PRIZE_PETS_AND_ACCESSORIES)
+        offers.push_back({ item, DARKMOON_TICKET_ITEM, DARKMOON_PRIZE_PRICE_PETS_AND_ACCESSORIES });
+    for (std::uint32_t item : DARKMOON_PRIZE_TRANSMOG)
+        offers.push_back({ item, DARKMOON_TICKET_ITEM, DARKMOON_PRIZE_PRICE_TRANSMOG });
+    for (std::uint32_t item : DARKMOON_PRIZE_MOUNTS_AND_TOYS)
+        offers.push_back({ item, DARKMOON_TICKET_ITEM, DARKMOON_PRIZE_PRICE_MOUNTS_AND_TOYS });
+    return offers;
 }
 
 std::vector<StoreCard> SkillCardStore(Tables const& tables, std::uint32_t store)

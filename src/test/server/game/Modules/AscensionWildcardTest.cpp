@@ -1131,6 +1131,26 @@ TEST(AscensionWildcardTest, SilasSellsCommonToEpicCardsForTicketsOfTheirKind)
     EXPECT_EQ(ReadUInt32(payload, records + 64 + 36), SKILL_CARD_STORE_PRICE);
 }
 
+TEST(AscensionWildcardTest, SilasSellsTheDarkmoonPrizesForTicketsByKind)
+{
+    std::vector<StoreCard> const prizes = DarkmoonPrizeStore();
+    ASSERT_EQ(prizes.size(), 37u);
+    EXPECT_TRUE(std::all_of(prizes.begin(), prizes.end(),
+        [](StoreCard const& prize) { return prize.Token == DARKMOON_TICKET_ITEM; }));
+    auto const price = [&prizes](std::uint32_t item)
+    {
+        auto const prize = std::find_if(prizes.begin(), prizes.end(),
+            [item](StoreCard const& offer) { return offer.Item == item; });
+        return prize == prizes.end() ? 0u : prize->Price;
+    };
+    EXPECT_EQ(price(73764), DARKMOON_PRIZE_PRICE_PETS_AND_ACCESSORIES);
+    EXPECT_EQ(price(499321), DARKMOON_PRIZE_PRICE_PETS_AND_ACCESSORIES);
+    EXPECT_EQ(price(78341), DARKMOON_PRIZE_PRICE_TRANSMOG);
+    EXPECT_EQ(price(263033), DARKMOON_PRIZE_PRICE_TRANSMOG);
+    EXPECT_EQ(price(246192), DARKMOON_PRIZE_PRICE_MOUNTS_AND_TOYS);
+    EXPECT_EQ(price(998100), DARKMOON_PRIZE_PRICE_MOUNTS_AND_TOYS);
+}
+
 TEST(AscensionWildcardTest, CollectedCardsAreNewOrFillTheBonusPackWithAnyOfTheFourPacks)
 {
     Tables tables = CardTables();
