@@ -28,17 +28,32 @@
 
 namespace
 {
-    bool RaisesProfessionAboveStep(SpellInfo const* spellInfo, uint16 maxStep)
+    uint8 ProfessionExpansion(uint32 skill)
+    {
+        switch (skill)
+        {
+            case SKILL_JEWELCRAFTING:
+                return EXPANSION_THE_BURNING_CRUSADE;
+            case SKILL_INSCRIPTION:
+                return EXPANSION_WRATH_OF_THE_LICH_KING;
+            default:
+                return EXPANSION_CLASSIC;
+        }
+    }
+
+    bool TeachesProfessionBeyondExpansion(SpellInfo const* spellInfo, uint8 expansion)
     {
         for (SpellEffectInfo const& spellEffectInfo : spellInfo->GetEffects())
             if ((spellEffectInfo.IsEffect(SPELL_EFFECT_SKILL_STEP) || spellEffectInfo.IsEffect(SPELL_EFFECT_SKILL))
-                && IsProfessionSkill(spellEffectInfo.MiscValue) && spellEffectInfo.CalcValue() > maxStep)
+                && IsProfessionSkill(spellEffectInfo.MiscValue)
+                && (spellEffectInfo.CalcValue() > GetMaxProfessionSkillStep(expansion)
+                    || ProfessionExpansion(spellEffectInfo.MiscValue) > expansion))
                 return true;
 
         return false;
     }
 
-    uint32 TaughtProfession(Trainer::Trainer const& trainer)
+    bool TeachesOneProfession(Trainer::Trainer const& trainer)
     {
         uint32 profession = 0;
         for (Trainer::Spell const& spell : trainer.GetSpells())
@@ -47,18 +62,17 @@ namespace
                 continue;
 
             if (profession && profession != spell.ReqSkillLine)
-                return 0;
+                return false;
 
             profession = spell.ReqSkillLine;
         }
 
-        return profession;
+        return profession != 0;
     }
 
     // A recipe belongs to the earliest expansion whose map holds a profession trainer that teaches it: Fel Iron
     // patterns are taught in Outland and Northrend only, Thorium ones in Kalimdor and the Eastern Kingdoms too.
-    // Trainers teaching several professions (the Books of Artisans) are not evidence of anything, and neither are
-    // Jewelcrafting's: they all stand in Outland's map, where the trade itself is taught on every realm.
+    // Trainers teaching several professions (the Books of Artisans) are not evidence of anything.
     // ponytail: built once from the spawns at first use, a `.reload` of trainers or creatures does not rebuild it
     uint8 RecipeExpansion(uint32 spellId)
     {
@@ -69,11 +83,7 @@ namespace
             {
                 Trainer::Trainer const* trainer = sObjectMgr->GetTrainer(data.id);
                 MapEntry const* map = sMapStore.LookupEntry(data.mapid);
-                if (!trainer || !map)
-                    continue;
-
-                uint32 const profession = TaughtProfession(*trainer);
-                if (!profession || profession == SKILL_JEWELCRAFTING)
+                if (!trainer || !map || !TeachesOneProfession(*trainer))
                     continue;
 
                 uint8 const expansion = uint8(map->Expansion());
@@ -254,13 +264,14 @@ namespace Trainer
         if (player->GetLevel() < trainerSpell->ReqLevel)
             return SpellState::Unavailable;
 
-        // check expansion requirement of profession ranks and recipes
-        if (RecipeExpansion(trainerSpell->SpellId) > player->GetSession()->Expansion())
+        // check expansion requirement of professions, their ranks and their recipes
+        uint8 const expansion = player->GetSession()->Expansion();
+        if (ProfessionExpansion(trainerSpell->ReqSkillLine) > expansion
+            || RecipeExpansion(trainerSpell->SpellId) > expansion)
             return SpellState::Unavailable;
 
-        uint16 maxProfessionStep = GetMaxProfessionSkillStep(player->GetSession()->Expansion());
         SpellInfo const* trainerSpellInfo = sSpellMgr->AssertSpellInfo(trainerSpell->SpellId);
-        if (RaisesProfessionAboveStep(trainerSpellInfo, maxProfessionStep))
+        if (TeachesProfessionBeyondExpansion(trainerSpellInfo, expansion))
             return SpellState::Unavailable;
 
         // check ranks
@@ -272,7 +283,7 @@ namespace Trainer
                 continue;
 
             if (SpellInfo const* learnedSpellInfo = sSpellMgr->GetSpellInfo(spellEffectInfo.TriggerSpell))
-                if (RaisesProfessionAboveStep(learnedSpellInfo, maxProfessionStep))
+                if (TeachesProfessionBeyondExpansion(learnedSpellInfo, expansion))
                     return SpellState::Unavailable;
 
             hasLearnSpellEffect = true;
