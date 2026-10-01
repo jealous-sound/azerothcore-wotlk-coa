@@ -34,7 +34,8 @@ enum ChronomancerSecondarySpells : uint32
     SPELL_INFINITE_KEEPER = 806312,
     SPELL_INFINITE_KEEPER_TRIGGER = 806314,
     SPELL_SHIFTING_CHAOS = 706059,
-    SPELL_SHIFTING_CHAOS_BLAST = 801269
+    SPELL_SHIFTING_CHAOS_BLAST = 801269,
+    SPELL_GRAVITY_BOMB_EXPLOSION = 801282
 };
 
 constexpr uint32 ChronomancerSpellFamily = 28;
@@ -340,6 +341,9 @@ public:
 
     void OnLoadSpellCustomAttr(SpellInfo* info) override
     {
+        if (info->Id == SPELL_GRAVITY_BOMB_EXPLOSION && info->SpellFamilyName == ChronomancerSpellFamily &&
+            info->DmgClass == SPELL_DAMAGE_CLASS_MAGIC && info->Effects[EFFECT_0].Effect == SPELL_EFFECT_SCHOOL_DAMAGE)
+            info->UseRangedAttackPowerForDamage = true;
         if (info->Id == SPELL_MELT_COPY && info->SpellFamilyName == 28)
         {
             info->AttributesEx2 |= SPELL_ATTR2_CANT_CRIT;
