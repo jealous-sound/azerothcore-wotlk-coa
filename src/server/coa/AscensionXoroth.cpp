@@ -63,6 +63,11 @@ void Reduce(Player* player, uint32 root, int32 milliseconds)
 }
 void Replace(Player* player, uint32 root, uint32 replacement)
 {
+    if (replacement)
+        for (auto const& [id, spell] : player->GetSpellMap())
+            if (player->HasActiveSpell(id) && Named(sSpellMgr->GetSpellInfo(id), replacement) &&
+                sSpellMgr->GetSpellRank(id) > sSpellMgr->GetSpellRank(replacement))
+                replacement = id;
     for (auto const& pair : player->GetSpellMap())
         if (player->HasSpell(pair.first) && Named(sSpellMgr->GetSpellInfo(pair.first), root))
             player->SetTemporarySpellReplacement(pair.first, replacement);

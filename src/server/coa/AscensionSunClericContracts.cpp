@@ -16,6 +16,8 @@ void ApplyContracts(SpellInfo* info)
     if (!info || info->SpellFamilyName != 33)
         return;
     uint32 id = info->Id;
+    if (id == 800624)
+        info->AttributesEx &= ~SPELL_ATTR1_NO_THREAT;
     if (id == Rejuvenating)
         for (auto& effect : info->Effects)
             if (effect.IsAura())
@@ -104,6 +106,7 @@ void ApplyContracts(SpellInfo* info)
     {
         dummy(0);
         dummy(1);
+        info->Effects[2].ApplyAuraName = SPELL_AURA_MOD_CRIT_PCT;
     }
     if (id == 803492 || id == 807750 || id == 807751 || id == 807752 || id == 803500 || id == 807446 ||
         id == 805481 || id == 805491 || id == 681471)
@@ -222,6 +225,7 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[2].SpellClassMask = flag96(67108864, 0, 8388608);
     if (id == Bless)
     {
+        info->AttributesEx5 &= ~SPELL_ATTR5_LIMIT_N;
         info->Effects[0].ApplyAuraName = SPELL_AURA_PERIODIC_DUMMY;
         info->Effects[0].TriggerSpell = 0;
         dummy(2);

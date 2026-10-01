@@ -1,0 +1,126 @@
+{
+  "schema": 1,
+  "name": "Blood Rituals heals a marked ally when Bloodmoon Blast is cast (#5875)",
+  "contract": "Blood Rituals 706624 is a single aura 42 (SPELL_AURA_PROC_TRIGGER_SPELL) marker with ProcFlags 0 and ProcChance 0, so the core proc system never fires it: 'Causes Dark Liturgy to mark targets for $706623d, and causes Bloodmoon Blast to heal marked allies for ${$704119m1+$PL*2.6+$SP*0.07}.' Dark Liturgy 572575's own effect 1 is SPELL_EFFECT_TRIGGER_SPELL targeting TARGET_UNIT_TARGET_ALLY with EffectTriggerSpell 706623, so marking an ally is native and untouched here. 706623 is the mark aura itself (a dummy aura placed on the ally, TargetA/B both TARGET_UNIT_TARGET_ALLY). 704119 is the actual heal: SPELL_EFFECT_HEAL with TargetA 22 (TARGET_SRC_CASTER) + TargetB 30 (TARGET_UNIT_SRC_AREA_ALLY), RadiusIndex 27, EffectBasePoints 3 / DieSides 1 / RealPointsPerLevel 3.7 - the same TargetA/B combination as Dark Essence's 681036 (#508), which needed a target-select script to narrow its native area aura down to Blood Rituals carriers, or it would heal every nearby ally. Before this change nothing in AscensionBloodmageSecondary.cpp or AscensionBloodmageBloodShards.cpp referenced 706624 or 704119 at all: casting any Bloodmoon Blast rank (500125, 501607-501614, 572332) never cast 704119, so the marked ally was never healed. 572332 is the rank a level-80 character owns per AscensionSpellProgressionData.h's 500125 chain (required level 68, the chain's last listed rank). The second player carries the Blood Rituals mark; the third does not and is the control that proves the area heal is narrowed to Blood Rituals carriers, the same role the control plays in #508's scenario. The tooltip's $PL*2.6 and $SP*0.07 bonus-healing terms are a separate tooltip-parity question (no spell_bonus_data row backs them) and are not asserted.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "caster",
+      "race": 1,
+      "class": 20,
+      "level": 80
+    },
+    {
+      "id": "ritual_ally",
+      "race": 1,
+      "class": 20,
+      "level": 80
+    },
+    {
+      "id": "plain_ally",
+      "race": 1,
+      "class": 20,
+      "level": 80
+    }
+  ],
+  "creatures": [
+    {
+      "id": "enemy",
+      "owner": "caster",
+      "entry": 36,
+      "level": 80,
+      "health": 1000000,
+      "distance": 5
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "unlearn",
+      "actor": "caster",
+      "spell": 706624
+    },
+    {
+      "action": "learn",
+      "actor": "caster",
+      "spell": 572332
+    },
+    {
+      "action": "group",
+      "actor": "caster",
+      "target": "ritual_ally"
+    },
+    {
+      "action": "group",
+      "actor": "caster",
+      "target": "plain_ally"
+    },
+    {
+      "action": "set_aura",
+      "label": "Blood Rituals mark on one ally only",
+      "actor": "ritual_ally",
+      "spell": 706623,
+      "stacks": 1
+    },
+    {
+      "action": "cast",
+      "label": "Bloodmoon Blast without the talent",
+      "actor": "caster",
+      "spell": 572332,
+      "target": "enemy"
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "assert",
+      "label": "No Blood Rituals heal without the talent",
+      "actor": "caster",
+      "metric": "spell_heal_count",
+      "spell": 704119,
+      "target": "ritual_ally",
+      "equals": 0
+    },
+    {
+      "action": "learn",
+      "actor": "caster",
+      "spell": 706624
+    },
+    {
+      "action": "wait",
+      "label": "Clear the global cooldown from the first cast",
+      "ms": 1600
+    },
+    {
+      "action": "cast",
+      "label": "Bloodmoon Blast with the talent",
+      "actor": "caster",
+      "spell": 572332,
+      "target": "enemy"
+    },
+    {
+      "action": "assert",
+      "label": "The Blood Rituals ally is healed by Bloodmoon Blast",
+      "actor": "caster",
+      "metric": "spell_heal_count",
+      "spell": 704119,
+      "target": "ritual_ally",
+      "equals": 1,
+      "within_ms": 5000
+    },
+    {
+      "action": "assert",
+      "label": "An ally without the Blood Rituals mark is not healed",
+      "actor": "caster",
+      "metric": "spell_heal_count",
+      "spell": 704119,
+      "target": "plain_ally",
+      "equals": 0
+    }
+  ]
+}

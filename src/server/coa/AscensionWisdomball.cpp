@@ -42,6 +42,9 @@ constexpr uint32 StatusCheckIntervalMs = 2000;
 
 constexpr uint32 QuestsCompletedWithoutPlayerAction[] = { 5722, 5724 };
 
+constexpr uint32 RazorfenKraulMapId = 47;
+constexpr uint32 RazorfenKraulOverworldQuestSortAreaId = 1717;
+
 struct DungeonQuests
 {
     std::vector<uint32> starters;
@@ -113,6 +116,9 @@ std::vector<uint32> AreasOfMap(uint32 mapId)
         if (AreaTableEntry const* area = sAreaTableStore.LookupEntry(i))
             if (area->mapid == mapId)
                 areas.push_back(area->ID);
+
+    if (mapId == RazorfenKraulMapId)
+        areas.push_back(RazorfenKraulOverworldQuestSortAreaId);
 
     return areas;
 }

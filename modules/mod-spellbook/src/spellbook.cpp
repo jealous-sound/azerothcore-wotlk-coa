@@ -53,6 +53,7 @@
 // They are plain generated data headers, so they are read rather than copied.
 #include "AscensionCoATalentData.h"
 #include "AscensionCustomClassData.h"
+#include "AscensionGuardianCompletion.h"
 #include "AscensionSpellProgressionData.h"
 #include "SpellbookCostData.h"
 #include "SpellbookOfferData.h"
@@ -220,10 +221,13 @@ namespace
         uint8 const classId = uint8(player->getClass());
         uint32 const spec = ActiveSpec(player);
 
-        auto add = [&rows, classId, windowView](uint32 spellId, uint8 requiredLevel,
+        auto add = [&rows, classId, windowView, player, spec](uint32 spellId, uint8 requiredLevel,
                                                 uint32 requiredAbility)
         {
             if (!spellId || !sSpellMgr->GetSpellInfo(spellId))
+                return;
+            if (windowView && classId == CLASS_GUARDIAN && AscensionGuardian::Ballad(spellId) &&
+                (spec != 20 || !player->HasAura(505344)))
                 return;
 
             // A spell the talent trees grant is the tree's to hand out, whatever source
@@ -559,7 +563,8 @@ namespace
         if (found == rows.end())
         {
             if (IsTreeSpell(uint32(player->getClass()), wanted) ||
-                HasRankOrBetter(player, wanted))
+                HasRankOrBetter(player, wanted) ||
+                (player->getClass() == CLASS_GUARDIAN && AscensionGuardian::Ballad(wanted)))
             {
                 WorldPacket failed(SMSG_TRAINER_BUY_FAILED);
                 failed << book->GetGUID() << uint32(wanted)

@@ -110,19 +110,30 @@ void Prune(Player* player, bool all)
 {
     auto& state = State(player);
     auto saved = state.minions;
+    auto ownsSummon = [player](MinionRecord const& row)
+    {
+        if (!row.cost || player->HasSpell(row.spell))
+            return true;
+        return std::any_of(player->GetSpellMap().begin(), player->GetSpellMap().end(),
+            [row](auto const& known)
+            {
+                return known.second->State != PLAYERSPELL_REMOVED &&
+                    Named(sSpellMgr->GetSpellInfo(known.first), row.spell);
+            });
+    };
     state.minions.erase(std::remove_if(state.minions.begin(), state.minions.end(),
-                                       [player, all](MinionRecord const& row)
+                                       [player, all, &ownsSummon](MinionRecord const& row)
                                        {
                                            Creature* unit = player->FindMap()
                                                                 ? ObjectAccessor::GetCreature(*player, row.guid)
                                                                 : nullptr;
                                            return all || !unit || !unit->IsAlive() ||
                                                   unit->GetOwnerGUID() != player->GetGUID() || !player->IsInMap(unit) ||
-                                                  !player->InSamePhase(unit);
+                                                  !player->InSamePhase(unit) || !ownsSummon(row);
                                        }),
                         state.minions.end());
-    if (all)
-        for (auto const& row : saved)
+    for (auto const& row : saved)
+        if (all || !ownsSummon(row))
             if (Creature* unit = player->FindMap() ? ObjectAccessor::GetCreature(*player, row.guid) : nullptr)
                 if (unit->GetOwnerGUID() == player->GetGUID())
                     unit->DespawnOrUnsummon();

@@ -327,7 +327,13 @@ void Refresh(Player* player)
                 state.blessed = ally->GetGUID();
                 break;
             }
-    bool healthy = player->IsAlive() && player->GetHealthPct() > 80;
+    if (!player->IsAlive())
+        state.healthyAbove80 = false;
+    else if (player->GetHealthPct() > 80)
+        state.healthyAbove80 = true;
+    else if (player->GetHealthPct() <= 75)
+        state.healthyAbove80 = false;
+    bool healthy = state.healthyAbove80;
     for (auto [talent, helper] : {std::pair(561328u, 561396u), std::pair(704585u, 707769u),
                                 std::pair(805267u, 807876u), std::pair(300314u, 301341u)})
         SetHelper(player, helper, healthy && player->HasAura(talent));

@@ -135,7 +135,7 @@ struct npc_ascension_cultist_summon : public ScriptedAI
         if (me->GetEntry() == 500465)
             Cast(me, me, 802045);
         if (me->GetEntry() == HallucinationEntry)
-            player->CastSpell(me, 49889, true);
+            player->AddAura(49889, me);
         if (me->GetEntry() == 397771)
         {
             me->SetBaseWeaponDamage(BASE_ATTACK, MINDAMAGE, player->GetFloatValue(UNIT_FIELD_MINDAMAGE) * .3f);

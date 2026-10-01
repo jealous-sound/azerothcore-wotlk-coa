@@ -576,7 +576,8 @@ void ObserveExtensionPacket(Actor& actor, WorldPacket const& packet)
 {
     constexpr uint16 FirstExtensionOpcode = 0x520;
     constexpr std::size_t MaxPayloadsPerOpcode = 256;
-    if (packet.GetOpcode() < FirstExtensionOpcode)
+    if (packet.GetOpcode() < FirstExtensionOpcode && packet.GetOpcode() != SMSG_MOVE_SET_CAN_FLY &&
+        packet.GetOpcode() != SMSG_MOVE_UNSET_CAN_FLY)
         return;
 
     ++actor.extensionPackets[packet.GetOpcode()];
@@ -1291,6 +1292,8 @@ private:
             player->ApplyRatingMod(CR_CRIT_SPELL, *critRating, true);
         if (auto critRating = actor.definition.get_optional<int32>("melee_crit_rating"))
             player->ApplyRatingMod(CR_CRIT_MELEE, *critRating, true);
+        if (auto critRating = actor.definition.get_optional<int32>("ranged_crit_rating"))
+            player->ApplyRatingMod(CR_CRIT_RANGED, *critRating, true);
         if (auto hitRating = actor.definition.get_optional<int32>("ranged_hit_rating"))
             player->ApplyRatingMod(CR_HIT_RANGED, *hitRating, true);
         if (auto hitRating = actor.definition.get_optional<int32>("melee_hit_rating"))
@@ -1667,8 +1670,14 @@ private:
             Require(school > SPELL_SCHOOL_NORMAL && school < MAX_SPELL_SCHOOL, "Invalid resistance school");
             return unit->GetResistance(SpellSchools(school));
         }
-        if (metric == "attack_time_ms")
+        if (metric == "attack_time_ms" || metric == "pet_attack_time_ms")
         {
+            if (metric == "pet_attack_time_ms")
+            {
+                Require(unit->IsPlayer(), "Pet attack time needs a player");
+                unit = unit->ToPlayer()->GetPet();
+                Require(unit != nullptr, "Pet attack time needs a current pet");
+            }
             uint32 hand = step.get<uint32>("hand", BASE_ATTACK);
             Require(hand < MAX_ATTACK, "Invalid attack hand");
             return unit->GetFloatValue(static_cast<uint16>(UNIT_FIELD_BASEATTACKTIME) + hand);
@@ -2312,17 +2321,27 @@ private:
             return player->GetMap()->IsScriptedPrivateInstance();
         if (metric == "controls_self")
             return player->m_mover == player;
+        if (metric == "viewpoint_entry" || metric == "seer_entry")
+        {
+            WorldObject* object = metric == "viewpoint_entry" ? player->GetViewpoint() : player->GetSeer();
+            return object ? object->GetEntry() : 0;
+        }
         if (metric == "at_homebind")
             return player->GetMapId() == player->m_homebindMapId &&
                 player->GetExactDist(player->m_homebindX, player->m_homebindY, player->m_homebindZ) <= 5.0f;
-        if (metric == "owned_gameobject_count" || metric == "gameobject_remaining_ms")
+        if (metric == "owned_gameobject_count" || metric == "gameobject_remaining_ms" ||
+            metric == "gameobject_display" || metric == "gameobject_scale")
         {
             std::list<GameObject*> objects = OwnedGameObjects(player, step.get<uint32>("entry"));
             if (metric == "owned_gameobject_count")
                 return objects.size();
             if (objects.empty())
                 return 0;
-            Require(objects.size() == 1, "Gameobject lifetime needs exactly one owned object");
+            Require(objects.size() == 1, "Gameobject metric needs exactly one owned object");
+            if (metric == "gameobject_display")
+                return objects.front()->GetDisplayId();
+            if (metric == "gameobject_scale")
+                return objects.front()->GetObjectScale();
             time_t expiry = objects.front()->GetRespawnTime();
             return expiry ? std::max<time_t>(0, expiry - GameTime::GetGameTime().count()) * IN_MILLISECONDS : -1;
         }
@@ -2368,12 +2387,13 @@ private:
                     && (!ownerDisplay || creature->GetDisplayId() == player->GetDisplayId());
             });
         }
-        if (metric == "owned_creature_scale")
+        if (metric == "owned_creature_scale" || metric == "owned_creature_visible")
         {
             uint32 entry = step.get<uint32>("entry");
             Require(sObjectMgr->GetCreatureTemplate(entry) != nullptr, "Unknown creature entry in metric");
             if (Creature* creature = GetOwnedCreature(player, entry))
-                return double(creature->GetObjectScale());
+                return metric == "owned_creature_visible" ? double(creature->IsVisible()) :
+                    double(creature->GetObjectScale());
             return 0.0;
         }
         if (metric == "owned_creature_weapon_damage_min")
@@ -3094,6 +3114,27 @@ private:
             return;
         }
         std::string id = step.get<std::string>("actor");
+        if (action == "attack_owned_creature")
+        {
+            Creature* attacker = GetUnit(id)->ToCreature();
+            Player* owner = GetPlayer(step.get<std::string>("target"));
+            Require(attacker && attacker->AI(), "Owned-creature attack needs a creature AI");
+            std::list<Creature*> creatures;
+            owner->GetCreatureListWithEntryInGrid(creatures, step.get<uint32>("entry"), 100.0f);
+            creatures.remove_if([owner, attacker](Creature* creature)
+            {
+                return !creature->IsAlive() || creature->GetOwnerGUID() != owner->GetGUID() ||
+                    !owner->InSamePhase(creature) || !attacker->IsValidAttackTarget(creature);
+            });
+            Require(!creatures.empty(), "No valid owned creature for the attacker");
+            creatures.sort([attacker](Creature* first, Creature* second)
+            {
+                return attacker->GetExactDist2d(first) < attacker->GetExactDist2d(second);
+            });
+            attacker->AI()->AttackStart(creatures.front());
+            record.put("target_entry", creatures.front()->GetEntry());
+            return;
+        }
         if (action == "set_health" && !_actors.count(id))
         {
             Unit* creature = GetUnit(id);

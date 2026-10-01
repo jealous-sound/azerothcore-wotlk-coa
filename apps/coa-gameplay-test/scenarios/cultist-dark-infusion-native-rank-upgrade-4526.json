@@ -1,0 +1,161 @@
+{
+  "schema": 1,
+  "name": "cultist-dark-infusion-native-rank-upgrade-4526",
+  "contract": [
+    "Dark Infusion rank one 500721 promises a flat 66 heal at level 34. Its native level-44 rank 570248 promises",
+    "143, without a spell-power term. Buy the paid shared node through advancement, acquire the level-44 upgrade",
+    "from the normal Book of Ascension and take actual enemy damage to trigger exactly the authored flat heal and",
+    "consume the infusion. This verifies rank progression and the stated amount, not an unspecified balance",
+    "increase."
+  ],
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "c",
+      "race": 1,
+      "class": 25,
+      "level": 44
+    }
+  ],
+  "creatures": [
+    {
+      "id": "enemy",
+      "owner": "c",
+      "entry": 36,
+      "level": 44,
+      "health": 1000000,
+      "distance": 5
+    }
+  ],
+  "location": {
+    "map": 0,
+    "x": -8917.41,
+    "y": -115.853,
+    "z": 82.3711,
+    "o": 0
+  },
+  "steps": [
+    {
+      "action": "wait",
+      "ms": 3000
+    },
+    {
+      "action": "specialization",
+      "actor": "c",
+      "id": 40
+    },
+    {
+      "action": "advancement_rank",
+      "actor": "c",
+      "entry": 6274,
+      "rank": 1
+    },
+    {
+      "action": "assert",
+      "actor": "c",
+      "metric": "knows_spell",
+      "spell": 500721,
+      "equals": 1
+    },
+    {
+      "action": "money",
+      "actor": "c",
+      "copper": 1000000
+    },
+    {
+      "action": "learn",
+      "actor": "c",
+      "spell": 97930
+    },
+    {
+      "action": "cast",
+      "actor": "c",
+      "spell": 97930
+    },
+    {
+      "action": "assert",
+      "actor": "c",
+      "metric": "owned_creature_count",
+      "entry": 75115,
+      "equals": 1,
+      "within_ms": 2000
+    },
+    {
+      "action": "gossip_hello",
+      "actor": "c"
+    },
+    {
+      "action": "assert",
+      "actor": "c",
+      "metric": "spellbook_offers_spell",
+      "spell": 570248,
+      "equals": 1
+    },
+    {
+      "action": "trainer_buy",
+      "actor": "c",
+      "spell": 570248
+    },
+    {
+      "action": "assert",
+      "actor": "c",
+      "metric": "spellbook_buy_succeeded",
+      "spell": 570248,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "actor": "c",
+      "metric": "knows_spell",
+      "spell": 570248,
+      "equals": 1
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "cast",
+      "actor": "c",
+      "spell": 570248
+    },
+    {
+      "action": "assert",
+      "actor": "c",
+      "metric": "aura",
+      "spell": 570248,
+      "equals": 1,
+      "within_ms": 1000
+    },
+    {
+      "action": "cast",
+      "actor": "enemy",
+      "spell": 133,
+      "target": "c"
+    },
+    {
+      "action": "assert",
+      "actor": "c",
+      "metric": "spell_heal_count",
+      "spell": 570263,
+      "target": "c",
+      "equals": 1,
+      "within_ms": 1000
+    },
+    {
+      "action": "assert",
+      "actor": "c",
+      "metric": "spell_heal_total",
+      "spell": 570263,
+      "target": "c",
+      "equals": 143
+    },
+    {
+      "action": "assert",
+      "actor": "c",
+      "metric": "aura",
+      "spell": 570248,
+      "equals": 0
+    }
+  ]
+}

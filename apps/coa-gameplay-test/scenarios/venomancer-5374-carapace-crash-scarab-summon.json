@@ -1,0 +1,421 @@
+{
+  "schema": 1,
+  "name": "Venomancer: Carapace Crash summons a Spider Lord scarab (#5374)",
+  "contract": "Carapace Crash (573063, rank 9 of the 803199 chain per spell_ranks) must have the 40% chance to summon a Scarab that Spider Lord 704264's tooltip gives it ('Casting Hivebreak and Carapace Crash now has a 40% chance ... to summon 1 Scarab'; 704264 ProcChance 40, summon spell 560989 creature 999299, SpellDuration index 29 = 12000 ms). Carapace Crash has EffectImplicitTargetA 16 (area around the caster), so the server drops the client's explicit unit target and the cast carries none. The scenario casts it 20 times, 1.6 s apart, in Beetle Form with the Spider Lord passive and asserts a Scarab is alive at the end; only casts from the last 12 s can be seen, so a correct server still fails this run about 2% of the time (0.6^7.5).",
+  "timeout_ms": 120000,
+  "players": [
+    {
+      "id": "v",
+      "race": 1,
+      "class": 29,
+      "level": 60,
+      "spell_hit_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "d1",
+      "owner": "v",
+      "entry": 36,
+      "level": 60,
+      "health": 4000000,
+      "distance": 3
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and local level scaling settle",
+      "ms": 3000
+    },
+    {
+      "action": "learn",
+      "actor": "v",
+      "spell": 573063
+    },
+    {
+      "action": "learn",
+      "actor": "v",
+      "spell": 803183
+    },
+    {
+      "action": "learn",
+      "actor": "v",
+      "spell": 704264
+    },
+    {
+      "action": "cast",
+      "actor": "v",
+      "spell": 803183,
+      "label": "Enter Beetle Form: Carapace Crash carries CasterAuraSpell 803183"
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: Beetle Form is active",
+      "actor": "v",
+      "metric": "aura",
+      "spell": 803183,
+      "equals": 1,
+      "within_ms": 3000
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: Spider Lord passive is active",
+      "actor": "v",
+      "metric": "aura",
+      "spell": 704264,
+      "equals": 1,
+      "within_ms": 3000
+    },
+    {
+      "action": "wait",
+      "label": "Clear the GCD from entering Beetle Form",
+      "ms": 1500
+    },
+    {
+      "action": "assert",
+      "label": "BASELINE: no Scarab summoned yet",
+      "actor": "v",
+      "metric": "owned_creature_count",
+      "entry": 999299,
+      "equals": 0
+    },
+    {
+      "action": "set_power",
+      "actor": "v",
+      "power": 1,
+      "value": 1000,
+      "label": "Fill Rage: Carapace Crash costs 250 raw Rage"
+    },
+    {
+      "action": "cast",
+      "actor": "v",
+      "spell": 573063,
+      "target": "d1"
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: Carapace Crash rank 58 cast succeeded",
+      "actor": "v",
+      "metric": "cast_failure",
+      "spell": 573063,
+      "equals": 0
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "v",
+      "power": 1,
+      "value": 1000
+    },
+    {
+      "action": "cast",
+      "actor": "v",
+      "spell": 573063,
+      "target": "d1"
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "v",
+      "power": 1,
+      "value": 1000
+    },
+    {
+      "action": "cast",
+      "actor": "v",
+      "spell": 573063,
+      "target": "d1"
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "v",
+      "power": 1,
+      "value": 1000
+    },
+    {
+      "action": "cast",
+      "actor": "v",
+      "spell": 573063,
+      "target": "d1"
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "v",
+      "power": 1,
+      "value": 1000
+    },
+    {
+      "action": "cast",
+      "actor": "v",
+      "spell": 573063,
+      "target": "d1"
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "v",
+      "power": 1,
+      "value": 1000
+    },
+    {
+      "action": "cast",
+      "actor": "v",
+      "spell": 573063,
+      "target": "d1"
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "v",
+      "power": 1,
+      "value": 1000
+    },
+    {
+      "action": "cast",
+      "actor": "v",
+      "spell": 573063,
+      "target": "d1"
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "v",
+      "power": 1,
+      "value": 1000
+    },
+    {
+      "action": "cast",
+      "actor": "v",
+      "spell": 573063,
+      "target": "d1"
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "v",
+      "power": 1,
+      "value": 1000
+    },
+    {
+      "action": "cast",
+      "actor": "v",
+      "spell": 573063,
+      "target": "d1"
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "v",
+      "power": 1,
+      "value": 1000
+    },
+    {
+      "action": "cast",
+      "actor": "v",
+      "spell": 573063,
+      "target": "d1"
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "v",
+      "power": 1,
+      "value": 1000
+    },
+    {
+      "action": "cast",
+      "actor": "v",
+      "spell": 573063,
+      "target": "d1"
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "v",
+      "power": 1,
+      "value": 1000
+    },
+    {
+      "action": "cast",
+      "actor": "v",
+      "spell": 573063,
+      "target": "d1"
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "v",
+      "power": 1,
+      "value": 1000
+    },
+    {
+      "action": "cast",
+      "actor": "v",
+      "spell": 573063,
+      "target": "d1"
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "v",
+      "power": 1,
+      "value": 1000
+    },
+    {
+      "action": "cast",
+      "actor": "v",
+      "spell": 573063,
+      "target": "d1"
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "v",
+      "power": 1,
+      "value": 1000
+    },
+    {
+      "action": "cast",
+      "actor": "v",
+      "spell": 573063,
+      "target": "d1"
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "v",
+      "power": 1,
+      "value": 1000
+    },
+    {
+      "action": "cast",
+      "actor": "v",
+      "spell": 573063,
+      "target": "d1"
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "v",
+      "power": 1,
+      "value": 1000
+    },
+    {
+      "action": "cast",
+      "actor": "v",
+      "spell": 573063,
+      "target": "d1"
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "v",
+      "power": 1,
+      "value": 1000
+    },
+    {
+      "action": "cast",
+      "actor": "v",
+      "spell": 573063,
+      "target": "d1"
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "v",
+      "power": 1,
+      "value": 1000
+    },
+    {
+      "action": "cast",
+      "actor": "v",
+      "spell": 573063,
+      "target": "d1"
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "set_power",
+      "actor": "v",
+      "power": 1,
+      "value": 1000
+    },
+    {
+      "action": "cast",
+      "actor": "v",
+      "spell": 573063,
+      "target": "d1"
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "assert",
+      "label": "Carapace Crash summoned a Scarab within 20 casts",
+      "actor": "v",
+      "metric": "owned_creature_count",
+      "entry": 999299,
+      "min": 1
+    }
+  ]
+}

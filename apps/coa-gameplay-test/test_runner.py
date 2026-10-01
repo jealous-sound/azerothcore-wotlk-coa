@@ -415,6 +415,7 @@ class RunnerTests(unittest.TestCase):
             lambda s: s['players'][0].update(expertise_rating=True),
             lambda s: s['players'][0].update(allow_regeneration=0),
             lambda s: s['players'][0].update(spell_crit_rating=-1),
+            lambda s: s['players'][0].update(ranged_crit_rating=-1),
             lambda s: s['steps'].append({'action': 'who', 'actor': 'caster', 'class_mask': 2**32}),
             lambda s: s['steps'].append({'action': 'who', 'actor': 'caster', 'target': 'target'}),
             lambda s: s['steps'].append({'action': 'assert', 'actor': 'caster', 'metric': 'who_class', 'equals': 1}),

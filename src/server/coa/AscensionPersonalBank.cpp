@@ -67,7 +67,7 @@ struct OpenBank
 
 std::unordered_map<ObjectGuid::LowType, OpenBank> openBanks;
 
-void LoadBank(OpenBank& bank)
+void LoadBank(OpenBank& bank, ObjectGuid itemOwner)
 {
     QueryResult tabs = CharacterDatabase.Query(
         "SELECT tab_index, name, icon, text FROM mod_ascension_bank_tab "
@@ -132,7 +132,7 @@ void LoadBank(OpenBank& bank)
             }
 
             Item* item = NewItemOrBag(proto);
-            if (!item->LoadFromDB(itemGuid, ObjectGuid::Empty, fields, itemEntry))
+            if (!item->LoadFromDB(itemGuid, itemOwner, fields, itemEntry))
             {
                 LOG_ERROR("coa",
                           "Personal bank item {} could not be loaded", itemGuid);
@@ -1008,7 +1008,7 @@ void Opened(Player* player, uint8 kind, ObjectGuid vault)
     bank.OwnerKind = kind == REALM ? OWNER_REALM : OWNER_CHARACTER;
     bank.OwnerId = BankOwnerId(player, kind);
     bank.Vault = vault;
-    LoadBank(bank);
+    LoadBank(bank, bank.OwnerKind == OWNER_CHARACTER ? player->GetGUID() : ObjectGuid::Empty);
 
     OpenBank const& stored = openBanks.emplace(guid, std::move(bank)).first->second;
 
