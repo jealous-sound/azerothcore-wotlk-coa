@@ -121,6 +121,15 @@ constexpr float DEATH_ORIENTATION = 4.0f;
 // percentage" recompute (OnUnitEnterCombat) carries the 50% through unchanged.
 constexpr uint32 RAGNAROS_COA_ENGAGE_HEALTH_PCT = 50;
 
+// Live-Ascension evidence (diag-G3.md "Ascension evidence" #1, 54-log corpus, 2 full kills):
+// Ragnaros submerges at health-percentage thresholds, not the stock 180s elapsed-time timer --
+// the first time at ~35% (starting from his own 50% engage health), the second at ~20%, each
+// lasting ~55-70s. The stock 180s timer let a fast-killing raid (high player count/Ascended
+// gear) never submerge at all, matching the "never submerges" report. Both numbers rest on only
+// 2 independent kills; a maintainer should treat them as a strong first estimate.
+constexpr float RAGNAROS_SUBMERGE_HEALTH_PCT_FIRST = 35.0f;
+constexpr float RAGNAROS_SUBMERGE_HEALTH_PCT_SECOND = 20.0f;
+
 struct boss_ragnaros : public BossAI
 {
     boss_ragnaros(Creature* creature) : BossAI(creature, DATA_RAGNAROS),
@@ -128,6 +137,7 @@ struct boss_ragnaros : public BossAI
         _hasYelledMagmaBurst(false),
         _processingMagmaBurst(false),
         _hasSubmergedOnce(false),
+        _hasSubmergedTwice(false),
         _isKnockbackEmoteAllowed(true)
     {
     }
@@ -152,6 +162,7 @@ struct boss_ragnaros : public BossAI
         _hasYelledMagmaBurst = false;
         _processingMagmaBurst = false;
         _hasSubmergedOnce = false;
+        _hasSubmergedTwice = false;
         _isKnockbackEmoteAllowed = true;
         me->SetUInt32Value(UNIT_NPC_EMOTESTATE, 0);
         me->SetControlled(true, UNIT_STATE_ROOT);
@@ -398,6 +409,13 @@ struct boss_ragnaros : public BossAI
                 }
                 case EVENT_SUBMERGE:
                 {
+                    float const threshold = _hasSubmergedOnce ? RAGNAROS_SUBMERGE_HEALTH_PCT_SECOND : RAGNAROS_SUBMERGE_HEALTH_PCT_FIRST;
+                    if (_hasSubmergedTwice || me->GetHealthPct() > threshold)
+                    {
+                        events.Repeat(500ms);
+                        break;
+                    }
+
                     events.CancelEventGroup(PHASE_EMERGED);
                     events.SetPhase(PHASE_SUBMERGED);
                     extraEvents.SetPhase(PHASE_SUBMERGED);
@@ -414,10 +432,14 @@ struct boss_ragnaros : public BossAI
 
                     DoCastAOE(SPELL_SUMMON_SONS_FLAME);
 
-                    if (!_hasSubmergedOnce)
-                        _hasSubmergedOnce = true;
+                    if (_hasSubmergedOnce)
+                        _hasSubmergedTwice = true;
+                    _hasSubmergedOnce = true;
 
-                    extraEvents.ScheduleEvent(EVENT_EMERGE, 90s, PHASE_SUBMERGED, PHASE_SUBMERGED);
+                    // diag-G3.md: both measured submerges lasted ~55-70s; 60s matches that
+                    // window (was 90s), and SummonedCreatureDies still emerges early once every
+                    // Son of Flame is cleared.
+                    extraEvents.ScheduleEvent(EVENT_EMERGE, 60s, PHASE_SUBMERGED, PHASE_SUBMERGED);
                     break;
                 }
             }
@@ -435,6 +457,7 @@ private:
     bool _hasYelledMagmaBurst;
     bool _processingMagmaBurst;
     bool _hasSubmergedOnce;
+    bool _hasSubmergedTwice;
     bool _isKnockbackEmoteAllowed;  // Prevents possible text overlap
 
     GuidSet _lavaBurstGUIDS;
@@ -466,7 +489,8 @@ private:
         events.RescheduleEvent(EVENT_WRATH_OF_RAGNAROS, 30s, PHASE_EMERGED, PHASE_EMERGED);
         events.RescheduleEvent(EVENT_HAND_OF_RAGNAROS, 25s, PHASE_EMERGED, PHASE_EMERGED);
         events.RescheduleEvent(EVENT_LAVA_BURST, 10s, PHASE_EMERGED, PHASE_EMERGED);
-        events.RescheduleEvent(EVENT_SUBMERGE, 180s, PHASE_EMERGED, PHASE_EMERGED);
+        if (!_hasSubmergedTwice)
+            events.RescheduleEvent(EVENT_SUBMERGE, 500ms, PHASE_EMERGED, PHASE_EMERGED);
         events.RescheduleEvent(EVENT_MIGHT_OF_RAGNAROS, 11s, PHASE_EMERGED, PHASE_EMERGED);
         events.RescheduleEvent(EVENT_MELEE_SCAN, 500ms, PHASE_EMERGED, PHASE_EMERGED);
     }

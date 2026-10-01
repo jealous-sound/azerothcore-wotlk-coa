@@ -710,3 +710,12 @@ evidence + source reads), fixed individually below. See `impl-G-mechanics.md` fo
    apply, reverted on remove) -- neither 2108020 nor 2108023 carries any such effect in Spell.dbc, so
    this reproduces live Ascension's measured 18-23s total cast-stop per chained player
    (diag-G3.md) server-side. Killing the chain still frees its captives (unchanged `JustDied`).
+9. **Ragnaros submerges on health thresholds (~35%/~20%), not a flat 180s timer.** The 54-log
+   corpus's two full kills both submerge the first time at ~35% HP and the second at ~20% (he starts
+   at 50%), each lasting ~55-70s, each spawning 8 Lesser Son of Flame -- a fast-killing raid could
+   cross both real thresholds well before the old 180s elapsed-time trigger ever fired, matching the
+   "never submerges" report exactly. `EVENT_SUBMERGE` now polls health every 500ms instead of firing
+   on a flat timer; the submerge/emerge choreography itself (8 sons, `HandleEmerge()`, early emerge
+   once the sons die) is unchanged, only the trigger condition and the 90s->60s safety-ceiling
+   duration. Both thresholds rest on only 2 independent kills -- a strong first estimate, not a final
+   number.
