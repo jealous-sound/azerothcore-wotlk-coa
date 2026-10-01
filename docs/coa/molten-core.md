@@ -684,3 +684,13 @@ evidence + source reads), fixed individually below. See `impl-G-mechanics.md` fo
    added Melt Armor (2105025, `SPELL_AURA_MOD_RESISTANCE_PCT`, stacks to 5) on all four difficulties --
    the kit's real tank-facing armor debuff, confirmed in the export but never wired on any tier. The
    "Ancient X" self-buff family and the undecoded action-type-88 row are unchanged.
+6. **Sulfuron's disciples are static spawns, not a mid-fight swap.** Three of the four static
+   Flamewaker Priest (11662) spawns around Sulfuron (guids 56679/56681/56682) are now Cull the
+   Destroyer/Proxima the Opressor/Ebon the Cruel directly (`creature.id`); the `coa_boss_summon`
+   replace-on-pull rows for entry 12098 are removed (rev_20260930_96, edited in place), so the room
+   shows four distinct names/abilities from load, not a despawn/resummon a few hundred ms into
+   combat. All four now share flags_extra 0x40000000 (knockback/pull immunity, matching the rest of
+   MC's trash) and a new CreatureImmunitiesId (9920254) reproducing Corvus' own -254 mask minus
+   SILENCE (the corpus shows it landing) and POLYMORPH/BANISH (left possible, per the task's "only
+   certain classes could sheep/banish" framing) -- the shared -254 set itself is not edited in
+   place.
