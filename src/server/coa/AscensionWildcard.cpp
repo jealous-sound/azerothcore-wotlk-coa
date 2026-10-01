@@ -101,6 +101,8 @@ constexpr std::array<uint32, 5> STARTING_KIT_SPELLS = { 129243, 129246, 979700, 
 constexpr std::array<std::pair<uint32, uint32>, 5> STARTING_KIT_ITEMS = { {
     { 25, 1 }, { 2092, 1 }, { 2362, 1 }, { 2504, 1 }, { 35, 1 } } };
 constexpr uint32 DICE_OF_DESTINY_SPELL = 18283;
+constexpr uint32 AUTO_SHOT_ENTRY_SPELL = 965202;
+constexpr uint32 AUTO_SHOT_SPELL = 75;
 constexpr uint32 SKILL_CARD_ITEM_SPELL = 92657;
 constexpr uint32 DARKMOON_PRIZES_STORE = 4;
 constexpr uint32 SPECIALIZATION_CACHE_ITEM = 2977359;
@@ -1747,6 +1749,12 @@ void GiveDiceOfDestiny(Player* player)
         player->AddItem(DICE_OF_DESTINY_ITEM, 1);
 }
 
+void GrantAutoShot(Player* player)
+{
+    if (IsWildcardHero(player) && player->HasSpell(AUTO_SHOT_ENTRY_SPELL) && !player->HasSpell(AUTO_SHOT_SPELL))
+        player->learnSpell(AUTO_SHOT_SPELL);
+}
+
 void GiveStartingKit(Player* player)
 {
     if (!IsWildcardHero(player) || !player->HasAtLoginFlag(AT_LOGIN_FIRST))
@@ -1882,7 +1890,7 @@ public:
     AscensionWildcardPlayer() : PlayerScript("AscensionWildcardPlayer",
         { PLAYERHOOK_ON_UPDATE, PLAYERHOOK_ON_LOGOUT, PLAYERHOOK_ON_LOGIN,
             PLAYERHOOK_ON_SEND_INITIAL_PACKETS_BEFORE_ADD_TO_MAP, PLAYERHOOK_ON_CREATURE_KILL,
-            PLAYERHOOK_ON_CREATURE_KILLED_BY_PET })
+            PLAYERHOOK_ON_CREATURE_KILLED_BY_PET, PLAYERHOOK_ON_LEARN_SPELL, PLAYERHOOK_ON_FORGOT_SPELL })
     {
     }
 
@@ -1898,9 +1906,22 @@ public:
         GrantBossMarks(owner, killed);
     }
 
+    void OnPlayerLearnSpell(Player* player, uint32 spellId) override
+    {
+        if (spellId == AUTO_SHOT_ENTRY_SPELL)
+            GrantAutoShot(player);
+    }
+
+    void OnPlayerForgotSpell(Player* player, uint32 spellId) override
+    {
+        if (spellId == AUTO_SHOT_ENTRY_SPELL && IsWildcardHero(player))
+            player->removeSpell(AUTO_SHOT_SPELL, SPEC_MASK_ALL, false);
+    }
+
     void OnPlayerLogin(Player* player) override
     {
         GiveStartingKit(player);
+        GrantAutoShot(player);
         GiveDiceOfDestiny(player);
         LearnFirstSpecialization(player);
         GiveSpecializationCache(player);

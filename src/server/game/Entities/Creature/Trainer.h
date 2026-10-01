@@ -95,6 +95,10 @@ namespace Trainer
             std::vector<Spell> _spells;
             std::array<std::string, TOTAL_LOCALES> _greeting;
     };
+
+    /// The trainer that serves this player at this unit: its own, except that a Wildcard Hero is taught the higher
+    /// ranks of what it knows from every class trainer's list at any class trainer or Book of Ascension.
+    AC_GAME_API Trainer* GetTrainerFor(Creature const* npc, Player const* player);
 }
 
 #endif // Trainer_h__

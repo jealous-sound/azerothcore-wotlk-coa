@@ -18,6 +18,7 @@
 #include "Trainer.h"
 #include "Creature.h"
 #include "NPCPackets.h"
+#include "ObjectMgr.h"
 #include "Player.h"
 #include "ScriptMgr.h"
 #include "SpellInfo.h"
@@ -26,6 +27,7 @@
 
 #include <algorithm>
 #include <optional>
+#include <unordered_set>
 
 namespace
 {
@@ -64,6 +66,24 @@ namespace
             uint32 const previousRankSpellId = sSpellMgr->GetPrevSpellInChain(spellId);
             return previousRankSpellId && player->HasSpell(previousRankSpellId);
         });
+    }
+
+    // Every class trainer's spells, each once, with the price and level of the first trainer listing it.
+    // ponytail: built on first use, so a later reload of the trainer tables is not seen until a restart.
+    Trainer::Trainer& WildcardRankTrainer()
+    {
+        static Trainer::Trainer trainer = []
+        {
+            std::vector<Trainer::Spell> spells;
+            std::unordered_set<uint32> listed;
+            for (auto const& [trainerId, classTrainer] : sObjectMgr->GetTrainers())
+                if (classTrainer.GetTrainerType() == Trainer::Type::Class)
+                    for (Trainer::Spell const& spell : classTrainer.GetSpells())
+                        if (listed.insert(spell.SpellId).second)
+                            spells.push_back(spell);
+            return Trainer::Trainer(0, Trainer::Type::Class, 0, "", std::move(spells));
+        }();
+        return trainer;
     }
 
     bool RaisesProfessionAboveStep(SpellInfo const* spellInfo, uint16 maxStep)
@@ -335,5 +355,15 @@ namespace Trainer
     void Trainer::AddGreetingLocale(LocaleConstant locale, std::string greeting)
     {
         _greeting[locale] = std::move(greeting);
+    }
+
+    Trainer* GetTrainerFor(Creature const* npc, Player const* player)
+    {
+        Trainer* trainer = sObjectMgr->GetTrainer(npc->GetEntry());
+        bool const classTrainerUnit = trainer ? trainer->GetTrainerType() == Type::Class
+                                              : npc->HasNpcFlag(UNIT_NPC_FLAG_TRAINER_CLASS);
+        if (classTrainerUnit && IsWildcardHero(player))
+            return &WildcardRankTrainer();
+        return trainer;
     }
 }
