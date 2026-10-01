@@ -1,12 +1,11 @@
--- Hero (class 10) as Darkmoon - Season 10 Wildcard started it, on top of the Hero base of rev_1790611408872048168:
--- auto attack on the first action button, the season's starting spells, and next to its race's Warrior outfit the
--- weapons a player remembers from the season (item IDs estimated).
+-- Hero (class 10) on top of the Hero base of rev_1790611408872048168: auto attack on the first action button,
+-- the defenses and every armor and weapon proficiency. The Wildcard starting spells and weapons are granted on a
+-- Wildcard Hero's first login (AscensionWildcard GiveStartingKit), so Freepick Heroes keep their kit.
 START TRANSACTION;
 DELETE FROM `playercreateinfo_action` WHERE `class` = 10;
 INSERT INTO `playercreateinfo_action` (`race`, `class`, `button`, `action`, `type`)
 SELECT `race`, 10, 0, 6603, 0 FROM `playercreateinfo` WHERE `class` = 10;
 
--- A level-1 Hero on "Darkmoon - Season 10 Wildcard" knew these spells before its first roll.
 -- Heroes wear every armor type and wield every weapon type.
 DELETE FROM `playercreateinfo_spell_custom` WHERE `racemask` = 0 AND `classmask` = 512;
 INSERT INTO `playercreateinfo_spell_custom` (`racemask`, `classmask`, `Spell`, `Note`) VALUES
@@ -18,11 +17,6 @@ INSERT INTO `playercreateinfo_spell_custom` (`racemask`, `classmask`, `Spell`, `
 (0, 512, 3018, 'Hero: Shoot'),
 (0, 512, 2764, 'Hero: Throw'),
 (0, 512, 5019, 'Hero: Wand'),
-(0, 512, 129243, 'Hero: Path of Duality'),
-(0, 512, 129246, 'Hero: Twin Flurry'),
-(0, 512, 979700, 'Hero: Resilient Constitution'),
-(0, 512, 777000, 'Hero: Stone of Retreat: Orgrimmar'),
-(0, 512, 777003, 'Hero: Stone of Retreat: Stormwind'),
 (0, 512, 196, 'Hero: One-Handed Axes'),
 (0, 512, 197, 'Hero: Two-Handed Axes'),
 (0, 512, 198, 'Hero: One-Handed Maces'),
@@ -45,10 +39,4 @@ INSERT INTO `playercreateinfo_spell_custom` (`racemask`, `classmask`, `Spell`, `
 (0, 512, 9116, 'Hero: Shield');
 
 DELETE FROM `playercreateinfo_item` WHERE `race` = 0 AND `class` = 10;
-INSERT INTO `playercreateinfo_item` (`race`, `class`, `itemid`, `amount`, `Note`) VALUES
-(0, 10, 25, 1, 'Hero starter kit'),
-(0, 10, 2092, 1, 'Hero starter kit'),
-(0, 10, 2362, 1, 'Hero starter kit'),
-(0, 10, 2504, 1, 'Hero starter kit'),
-(0, 10, 35, 1, 'Hero starter kit');
 COMMIT;

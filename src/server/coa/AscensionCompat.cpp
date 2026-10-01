@@ -5491,8 +5491,7 @@ public:
             AscensionCollectionService::Instance().PrepareOwnedCompanionsBeforeMap(player);
             AscensionCollectionService::Instance().PrepareOwnedBankSpellsBeforeMap(player);
             AscensionClassService::Instance().PrepareTaughtAbilitiesBeforeMap(player);
-            if (IsAscensionCustomClass(player) || AscensionWildcard::IsWildcardHero(player))
-                AscensionClassService::Instance().QueueCharacterAdvancementState(player);
+            AscensionClassService::Instance().QueueCharacterAdvancementState(player);
         }
     }
 

@@ -6,7 +6,9 @@
 #     CoA.GameModeMask = 64
 #     CoA.ClientBooleanConfigs = "CONFIG_LEGACY_CHARACTER_ADVANCEMENT_ENABLED=0"
 #     CoA.ClassModel = "hero"
-#     CoA.RealmType = "seasonal"
+#     CoA.MapClass10ToWarrior = 0
+#     CoA.RealmType = "live"
+#     PlayerStart.CustomSpells = 1
 #
 
 [worldserver]

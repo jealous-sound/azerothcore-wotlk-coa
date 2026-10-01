@@ -97,6 +97,9 @@ constexpr uint16 SMSG_COLLECTED_SCROLL_OF_FORTUNE_REWARDS_LIST = 0x06B8;
 constexpr uint16 SMSG_CHARACTER_ADVANCEMENT_ACTIVE_SPEC = 0x0725;
 constexpr uint16 SMSG_CHARACTER_ADVANCEMENT_KNOWN_ENTRIES = 0x0726;
 constexpr uint32 DICE_OF_DESTINY_ITEM = 777992;
+constexpr std::array<uint32, 5> STARTING_KIT_SPELLS = { 129243, 129246, 979700, 777000, 777003 };
+constexpr std::array<std::pair<uint32, uint32>, 5> STARTING_KIT_ITEMS = { {
+    { 25, 1 }, { 2092, 1 }, { 2362, 1 }, { 2504, 1 }, { 35, 1 } } };
 constexpr uint32 DICE_OF_DESTINY_SPELL = 18283;
 constexpr uint32 SKILL_CARD_ITEM_SPELL = 92657;
 constexpr uint32 DARKMOON_PRIZES_STORE = 4;
@@ -1744,6 +1747,15 @@ void GiveDiceOfDestiny(Player* player)
         player->AddItem(DICE_OF_DESTINY_ITEM, 1);
 }
 
+void GiveStartingKit(Player* player)
+{
+    if (!IsWildcardHero(player) || !player->HasAtLoginFlag(AT_LOGIN_FIRST))
+        return;
+    for (uint32 spellId : STARTING_KIT_SPELLS)
+        player->learnSpell(spellId);
+    GiveItems(player, STARTING_KIT_ITEMS);
+}
+
 void LearnFirstSpecialization(Player* player)
 {
     if (IsWildcardHero(player) && !player->HasSpell(SPECIALIZATION_SWAP_SPELLS[0]))
@@ -1888,6 +1900,7 @@ public:
 
     void OnPlayerLogin(Player* player) override
     {
+        GiveStartingKit(player);
         GiveDiceOfDestiny(player);
         LearnFirstSpecialization(player);
         GiveSpecializationCache(player);
