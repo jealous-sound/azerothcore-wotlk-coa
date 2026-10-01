@@ -201,6 +201,20 @@ pulses 10× at 1s intervals for 875-1999 damage, Armageddon's 2105748 hits all 1
 Health: `hp_d0..d3` 884,285/1,179,047/1,774,570/2,586,957 (rebuilt from a direct CoA video reading at
 Ascended — see §5).
 
+**Living Bomb explosion (designed, not corpus-evidenced — see §8).** The carrier aura (2105702-05) applies
+`SPELL_AURA_PERIODIC_TRIGGER_SPELL_WITH_VALUE` (227) on effect 0, not `SPELL_AURA_PERIODIC_TRIGGER_SPELL` (23)
+as its own self-damage trigger id might suggest; `spell_geddon_living_bomb_explosion_coa`
+(`boss_geddon_coa.cpp`) originally registered its `AfterEffectRemove` hook against the wrong aura name (23),
+so `AuraScript::CheckEffect` filtered it on every expiry and the handler never ran on any difficulty — the
+carrier only ever saw its own periodic 2105706 ticks, confirmed in three live trials before the fix. Fixed by
+binding the hook to 227, confirmed against `Spell.dbc` directly. Live re-verification (grouped 5-bot raid,
+Ascended) after the fix: 3/3 natural expiries produced the explosion, each bystander within 5 yd took exactly
+one 3200-damage hit (Normal-ladder figure; the far bot stayed outside 5 yd and never did), the carrier alone
+took its own periodic ticks, and all 3 expiries knocked the actual carrier back (`SMSG_MOVE_KNOCK_BACK`, 3/3).
+An earlier verification attempt with ungrouped bots wrongly reported zero bystander hits post-fix: each
+ungrouped bot gets its own personal raid instance, so no bystander was ever on the same map — a harness
+defect, not a mechanic defect, fixed by grouping the bots into one raid before entering the instance.
+
 ### Sulfuron Harbinger (12098)
 
 | | Reality | Before | After | Evidence | Open question |
@@ -522,7 +536,9 @@ rolls one additional item from that entry's own T1 reference pool when `coa_flex
 in this fork (see `FlexHealth.cpp`'s `BaseEntry()`), the lookup rebuilds the difficulty-specific key from the
 base entry plus the map's own spawn mode rather than trusting `GetEntry()` to already carry the difficulty;
 before this fix the bonus always resolved to the Normal row and drew from the Normal token pool regardless of
-actual difficulty.
+actual difficulty. Re-verified live post-fix (Lucifron, Ascended): a 20-bot kill dropped 3 T1 tokens
+(218878, 219143×2), a 10-bot kill dropped 2 (218861, 212598) — every item from the Ascended pool (`reference_loot_template`
+entry 4090051), none from the Normal pool (4090012).
 
 ## 8. Known gaps / needs decision
 
