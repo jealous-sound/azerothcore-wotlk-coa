@@ -230,6 +230,12 @@ namespace
             me->SetReactState(REACT_AGGRESSIVE);
             me->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
 
+            // Summoned in Reset(), before Magmadar ever engages, so BossAI::JustSummoned's own
+            // "if (me->IsEngaged()) DoZoneInCombat(summon)" branch never ran for these heads the
+            // way it did when they were summoned from JustEngagedWith; do it explicitly here so
+            // UpdateVictim() succeeds and the schedule below actually runs.
+            DoZoneInCombat();
+
             // Designed cadence: staggered by head so both do not sync casts.
             bool const isRightHead = me->GetEntry() % 100000 == NPC_MAGMADAR_HEAD_RIGHT;
             events.ScheduleEvent(EVENT_HEAD_ENRAGE, 25s);
