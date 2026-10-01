@@ -354,8 +354,10 @@ struct npc_ascension_witch_hunter_field : ScriptedAI
                     else
                     {
                         uint32 count = 0;
-                        uint32 limit = sSpellMgr->GetSpellInfo(681179)->MaxAffectedTargets;
-                        for (Unit* victim : Nearby(enemy, 5.0f))
+                        SpellInfo const* stun = sSpellMgr->GetSpellInfo(681179);
+                        uint32 limit = stun->MaxAffectedTargets;
+                        float radius = entry == 506250 ? stun->Effects[EFFECT_0].CalcRadius(owner) : 5.0f;
+                        for (Unit* victim : Nearby(enemy, radius))
                             if (owner->IsValidAttackTarget(victim))
                             {
                                 if (entry == 506250 && limit && count++ >= limit)
