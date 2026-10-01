@@ -170,11 +170,15 @@ struct npc_garr_firesworn : public ScriptedAI
 
 // Firesworn's on-death Eruption (19497, Mythic/Ascended sibling 350126) is a self-centered AoE whose
 // DBC radius (SpellRadius.dbc id 12, 100 yd) covers effectively the whole Garr room; filtering it down
-// to melee range here keeps the vanilla radius id untouched (it is shared by other, unrelated spells)
-// while matching the encounter's own "dies, hits whoever is next to it" design.
+// here keeps the vanilla radius id untouched (it is shared by other, unrelated spells) while matching
+// the encounter's own "dies, hits whoever is close to it" design. The radius is a flat, designed 12 yd
+// exact distance (not a measured value): the prior combat-reach-relative melee-range filter (~7-9 yd
+// for two average hitboxes) read as too small a zone per the user's own report.
 class spell_firesworn_eruption_melee_coa : public SpellScript
 {
     PrepareSpellScript(spell_firesworn_eruption_melee_coa);
+
+    static constexpr float ERUPTION_RADIUS = 12.0f;
 
     void FilterTargets(std::list<WorldObject*>& targets)
     {
@@ -185,7 +189,7 @@ class spell_firesworn_eruption_melee_coa : public SpellScript
         targets.remove_if([caster](WorldObject* target)
         {
             Unit* unit = target->ToUnit();
-            return !unit || !caster->IsWithinMeleeRange(unit, 3.0f);
+            return !unit || caster->GetExactDist(unit) > ERUPTION_RADIUS;
         });
     }
 
