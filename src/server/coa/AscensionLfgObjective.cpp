@@ -43,9 +43,8 @@ class lfg_final_boss_reward : public GlobalScript
 public:
     lfg_final_boss_reward() : GlobalScript("lfg_final_boss_reward", {GLOBALHOOK_ON_AFTER_UPDATE_ENCOUNTER_STATE}) { }
 
-    void OnAfterUpdateEncounterState(Map* map, EncounterCreditType /*type*/, uint32 /*creditEntry*/,
-        Unit* /*source*/, Difficulty /*difficulty*/, std::list<DungeonEncounter const*> const* /*encounters*/,
-        uint32 dungeonCompleted, bool /*updated*/) override
+    void OnAfterUpdateEncounterState(Map* map, EncounterCreditType, uint32, Unit*, Difficulty,
+        std::list<DungeonEncounter const*> const*, uint32 dungeonCompleted, bool) override
     {
         if (!map || !dungeonCompleted)
             return;
