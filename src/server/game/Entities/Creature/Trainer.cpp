@@ -17,7 +17,9 @@
 
 #include "Trainer.h"
 #include "Creature.h"
+#include "DBCStores.h"
 #include "NPCPackets.h"
+#include "ObjectMgr.h"
 #include "Player.h"
 #include "ScriptMgr.h"
 #include "SpellInfo.h"
@@ -34,6 +36,63 @@ namespace
                 return true;
 
         return false;
+    }
+
+    uint32 TaughtProfession(Trainer::Trainer const& trainer)
+    {
+        uint32 profession = 0;
+        for (Trainer::Spell const& spell : trainer.GetSpells())
+        {
+            if (!spell.ReqSkillLine)
+                continue;
+
+            if (profession && profession != spell.ReqSkillLine)
+                return 0;
+
+            profession = spell.ReqSkillLine;
+        }
+
+        return profession;
+    }
+
+    // A recipe belongs to the earliest expansion whose map holds a profession trainer that teaches it: Fel Iron
+    // patterns are taught in Outland and Northrend only, Thorium ones in Kalimdor and the Eastern Kingdoms too.
+    // Trainers teaching several professions (the Books of Artisans) are not evidence of anything, and neither are
+    // Jewelcrafting's: they all stand in Outland's map, where the trade itself is taught on every realm.
+    // ponytail: built once from the spawns at first use, a `.reload` of trainers or creatures does not rebuild it
+    uint8 RecipeExpansion(uint32 spellId)
+    {
+        static std::unordered_map<uint32, uint8> const expansions = []
+        {
+            std::unordered_map<uint32, uint8> result;
+            for (auto const& [spawnId, data] : sObjectMgr->GetAllCreatureData())
+            {
+                Trainer::Trainer const* trainer = sObjectMgr->GetTrainer(data.id);
+                MapEntry const* map = sMapStore.LookupEntry(data.mapid);
+                if (!trainer || !map)
+                    continue;
+
+                uint32 const profession = TaughtProfession(*trainer);
+                if (!profession || profession == SKILL_JEWELCRAFTING)
+                    continue;
+
+                uint8 const expansion = uint8(map->Expansion());
+                for (Trainer::Spell const& spell : trainer->GetSpells())
+                {
+                    if (!spell.ReqSkillLine)
+                        continue;
+
+                    auto [itr, inserted] = result.try_emplace(spell.SpellId, expansion);
+                    if (!inserted)
+                        itr->second = std::min(itr->second, expansion);
+                }
+            }
+
+            return result;
+        }();
+
+        auto itr = expansions.find(spellId);
+        return itr != expansions.end() ? itr->second : EXPANSION_CLASSIC;
     }
 }
 
@@ -195,7 +254,10 @@ namespace Trainer
         if (player->GetLevel() < trainerSpell->ReqLevel)
             return SpellState::Unavailable;
 
-        // check expansion requirement of profession ranks
+        // check expansion requirement of profession ranks and recipes
+        if (RecipeExpansion(trainerSpell->SpellId) > player->GetSession()->Expansion())
+            return SpellState::Unavailable;
+
         uint16 maxProfessionStep = GetMaxProfessionSkillStep(player->GetSession()->Expansion());
         SpellInfo const* trainerSpellInfo = sSpellMgr->AssertSpellInfo(trainerSpell->SpellId);
         if (RaisesProfessionAboveStep(trainerSpellInfo, maxProfessionStep))
