@@ -1504,6 +1504,10 @@ private:
             return unit->GetCreatureType();
         if (metric == "display_id")
             return unit->GetDisplayId();
+        if (metric == "mount_display")
+            return unit->GetMountID();
+        if (metric == "mounted")
+            return unit->IsMounted() ? 1.0 : 0.0;
         if (metric == "unit_scale")
             return double(unit->GetObjectScale());
         if (metric == "combat_reach")
