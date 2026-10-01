@@ -15054,7 +15054,10 @@ void Unit::Kill(Unit* killer, Unit* victim, bool durabilityLoss, WeaponAttackTyp
         if (Unit* owner = killer->GetOwner())
         {
             Unit::ProcSkillsAndAuras(owner, victim, PROC_FLAG_KILL, PROC_FLAG_NONE, PROC_EX_NONE, 0, attackType, nullptr, nullptr, -1, nullptr);
-            sScriptMgr->OnPlayerCreatureKilledByPet( killer->GetCharmerOrOwnerPlayerOrPlayerItself(), victim->ToCreature());
+            // The pets and totems of creatures have no player owner, and a pet can kill a player.
+            Player* ownerPlayer = killer->GetCharmerOrOwnerPlayerOrPlayerItself();
+            if (Creature* killedCreature = victim->ToCreature(); ownerPlayer && killedCreature)
+                sScriptMgr->OnPlayerCreatureKilledByPet(ownerPlayer, killedCreature);
         }
 
     if (killer != victim)
