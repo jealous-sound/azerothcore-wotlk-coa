@@ -76,7 +76,7 @@ namespace
 
         void Register() override
         {
-            AfterEffectRemove += AuraEffectRemoveFn(spell_geddon_living_bomb_explosion_coa::HandleExpire, EFFECT_0, SPELL_AURA_PERIODIC_TRIGGER_SPELL, AURA_EFFECT_HANDLE_REAL);
+            AfterEffectRemove += AuraEffectRemoveFn(spell_geddon_living_bomb_explosion_coa::HandleExpire, EFFECT_0, SPELL_AURA_PERIODIC_TRIGGER_SPELL_WITH_VALUE, AURA_EFFECT_HANDLE_REAL);
         }
     };
 }
