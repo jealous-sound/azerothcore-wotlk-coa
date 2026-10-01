@@ -727,3 +727,9 @@ evidence + source reads), fixed individually below. See `impl-G-mechanics.md` fo
     implementation falls back to Magmadar's own ground-fire puddle (2105366, boss_magmadar_coa.cpp)
     under a random nearby player, cast from Golemagg himself (the idiom that already works for
     Magmadar's heads). Designed from player memory, not corpus-evidenced.
+11. **Baron Geddon's Living Bomb explodes on natural expiry.** 2105702-05 (the carrier aura) had no
+    explosion anywhere in the DBC kit. Per the user's own memory, on `AURA_REMOVE_BY_EXPIRE` only
+    (not dispel, not the carrier's death) the carrier now gets a light vertical launch and everyone
+    else within 5 yd takes fire damage, based on vanilla Living Bomb's own explosion (20476, 3200)
+    scaled by the same 1/1.44/1.88/2.32 ladder used everywhere else in this instance -- the user's
+    coefficient choice, not a measured value for this spell.
