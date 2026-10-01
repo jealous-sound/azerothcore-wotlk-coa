@@ -471,6 +471,55 @@ Annihilator (3) drops them at 10%, 10% and 7.1%), kept as CoA's data has them. S
 Geddon) and Tome of Burning Passion 1310533 (Gehennas) have chance 0 without a group on Normal, so Normal
 never drops them; their Mythic rows (10% and 9.1%) are kept.
 
+### 7.1 Heroic/Mythic/Ascended boss loot restructure, flex tokens, legendaries and the Ingot
+
+The exiles-db export's `creature_loot_template` rows for the 9 scheduled bosses are correctly grouped on
+Normal (a guaranteed-reference Tier 1 token pick, guaranteed currency/flavor items, and one or more low-chance
+epic/legendary groups) but were flattened to independent `GroupId = 0` rolls for every Heroic, Mythic and
+Ascended variant: the T1 reference pool became N items each rolling independently at `100/N`%, the boss's
+rare accent epic and (where present) its legendary row were promoted to an unconditional `Chance = 100`, and
+the guaranteed currency rows and Sulfuron Ingot were dropped entirely. `.agents/plans/mc-restoration/diag-G4.md`
+has the full read-only diagnosis; `.agents/plans/mc-restoration/gen_mc_loot_fix.py` is the corrective
+post-processor (not a regeneration from the export) that rebuilt every scaled variant to mirror Normal's
+structure:
+
+- The scaled variant's own T1-pool items (same item ids the export already assigned per difficulty) move into
+  a new `reference_loot_template` entry (ids `4090031`-`4090057`), picked via a `GroupId = 0`, `Chance = 100`
+  row with `MinCount = MaxCount = 2` — the same baseline Normal now uses on every boss (Lucifron, Baron Geddon,
+  Gehennas, Shazzrah and Sulfuron Harbinger were bumped from 1 pick to 2 to match Ragnaros/Garr/Golemagg/
+  Magmadar, which already rolled 2).
+- Normal's guaranteed currency/flavor rows (Personal Cache 1170083, Raider's Commendation 400750, Rune of
+  Descension 375250, each boss's own key/quest item, and Ragnaros's shared world-drop reference 34002) are
+  copied forward unchanged to every scaled variant that was missing them.
+- The scaled variant's lone leftover `Chance = 100` item (the accent epic each boss already had, e.g. Molten
+  Wristguards' difficulty-specific id for Lucifron) is demoted to its own low-chance `GroupId`, using the same
+  percentage as Normal's equivalent group — not a new number. Baron Geddon has two such leftovers (its curio
+  and its epic single) and both are demoted independently.
+- **Legendaries**: Eye of Sulfuras (17204, Ragnaros), Bindings of the Windseeker left/right (18563 Baron
+  Geddon / 18564 Garr) are added or re-demoted to Normal's own chance (4%, 3%, 4% respectively — matching the
+  classic-era ~3-6% range per wowhead/wowpedia) wherever the scaled table had them at an unconditional 100%
+  (Ragnaros Mythic/Ascended, Garr Heroic) or missing entirely (Ragnaros Heroic, Garr Mythic/Ascended, Baron
+  Geddon on every scaled tier).
+- **Sulfuron Ingot (17203)**: added to every scaled boss variant (previously present only on Normal) at that
+  boss's own Normal chance, and to the Heroic Flameguard trash entry (111667) at the same 0.091% as its Normal
+  entry. Golemagg's own rate was raised from 2% to 33% on **all four difficulties**, matching the classic
+  ~33-34% figure (wowhead/wowpedia; CoA's original 2% was roughly an order of magnitude low per the G4
+  diagnosis); every other boss's existing Normal ingot chance (2-4%) was left as-is and only copied forward.
+- Ragnaros keeps several scaled-only `Chance = 100` rows with no Normal or legendary/epic counterpart
+  (1202039, 1400040, 1319017, 1319138, 2400040, 219138/319138); these are left guaranteed rather than guessed
+  at, mirroring Ragnaros's own Normal design (which already has several always-100% misc items beyond its
+  epic/legendary/ingot groups). The small multi-item recipe/misc pools Normal carries in `GroupId 1/2/3/4/37`
+  (patterns, trash-tier trinkets) were not reconstructed for the scaled variants — the export has no
+  scaled-specific item ids for them, and inventing replacements was out of scope.
+
+**Raid-size token bonus (C++, data-driven)**: `modules/mod-coa-raid-difficulty/src/FlexLoot.{h,cpp}` hooks
+`MISCHOOK_ON_AFTER_LOOT_TEMPLATE_PROCESS` (the same pattern `AscensionBushcraft.cpp` uses for skinning bonus
+loot) and, for any creature entry listed in the new `coa_mc_token_loot` table (one row per boss per
+difficulty, migration `modules/mod-coa-raid-difficulty/data/sql/db-world/base/20_mc_boss_flex_loot.sql`),
+rolls one additional item from that entry's own T1 reference pool when `coa_flex::CountPlayers` (shared with
+`FlexHealth.cpp`) is 20 or more. Net result: 2 guaranteed Tier 1 pieces per boss kill below 20 players, 3 at
+20+, on every difficulty.
+
 ## 8. Known gaps / needs decision
 
 1. **~~Normal flex health = Heroic × 0.750 (#5389).~~ Resolved for the video-covered roster.** Every boss and

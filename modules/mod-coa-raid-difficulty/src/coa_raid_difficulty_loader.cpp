@@ -11,6 +11,7 @@
  */
 void AddCoaBossAIScripts();
 void AddCoaFlexHealthScripts();
+void AddCoaFlexLootScripts();
 void AddCoaOnyxiaScripts();
 void AddCoaSpellFixScripts();
 void AddCoaDamageInfoScripts();
@@ -57,6 +58,7 @@ void Addmod_coa_raid_difficultyScripts()
 {
     AddCoaBossAIScripts();
     AddCoaFlexHealthScripts();
+    AddCoaFlexLootScripts();
     AddCoaOnyxiaScripts();
     AddCoaSpellFixScripts();
     AddCoaDamageInfoScripts();
