@@ -669,3 +669,9 @@ evidence + source reads), fixed individually below. See `impl-G-mechanics.md` fo
    Gehennas scaled with raid size -- at 20 players, about 0.57% of his health instead of the
    Bronzebeard reading of roughly 10% the user remembers. Fixed per-difficulty, anchored on
    Gehennas' own measured `hp_dN`, not a fresh BB-video derivation.
+3. **Firesworn's on-death Eruption (19497/350126) trimmed to melee range.** The DBC's own
+   self-centered radius (SpellRadius.dbc id 12, 100 yd, shared by unrelated spells so left
+   untouched) hit effectively the whole Garr room; `spell_firesworn_eruption_melee_coa`
+   (boss_garr.cpp) filters the native area-target list down to melee range (3 yd past
+   `GetMeleeRange`, which already includes combat reach) after selection, the same
+   filter-after-select idiom `spell_magmadar_head_lava_bomb` already uses.
