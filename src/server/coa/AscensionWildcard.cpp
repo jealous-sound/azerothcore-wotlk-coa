@@ -1963,7 +1963,8 @@ public:
     AscensionWildcardPlayer() : PlayerScript("AscensionWildcardPlayer",
         { PLAYERHOOK_ON_UPDATE, PLAYERHOOK_ON_LOGOUT, PLAYERHOOK_ON_LOGIN,
             PLAYERHOOK_ON_SEND_INITIAL_PACKETS_BEFORE_ADD_TO_MAP, PLAYERHOOK_ON_CREATURE_KILL,
-            PLAYERHOOK_ON_CREATURE_KILLED_BY_PET, PLAYERHOOK_ON_LEARN_SPELL, PLAYERHOOK_ON_FORGOT_SPELL })
+            PLAYERHOOK_ON_CREATURE_KILLED_BY_PET, PLAYERHOOK_ON_LEARN_SPELL, PLAYERHOOK_ON_FORGOT_SPELL,
+            PLAYERHOOK_ON_PLAYER_HAS_ACTIVE_POWER_TYPE })
     {
     }
 
@@ -1977,6 +1978,11 @@ public:
     {
         DropCards(owner, killed);
         GrantBossMarks(owner, killed);
+    }
+
+    bool OnPlayerHasActivePowerType(Player const* player, Powers power) override
+    {
+        return (power == POWER_RAGE || power == POWER_ENERGY) && IsWildcardHero(player);
     }
 
     void OnPlayerLearnSpell(Player* player, uint32 spellId) override
