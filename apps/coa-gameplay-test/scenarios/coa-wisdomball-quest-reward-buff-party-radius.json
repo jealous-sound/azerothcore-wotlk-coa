@@ -1,53 +1,188 @@
 {
   "schema": 1,
-  "name": "Quest 1014 'Arugal Must Die': the turn-in buff reaching the Wondrous Wisdomball is the stock party-radius buff rule, not a targeting defect (#5795)",
-  "contract": "quest_template.sql:1146 quest 1014 'Arugal Must Die' has RewardDisplaySpell (column 16) = 0 and RewardSpell (column 17, cast at turn-in) = 1460 Arcane Intellect - the reporter's screenshot names the correct spell, but an earlier triage pass read the wrong column. PlayerQuest.cpp's RewardQuest (GetRewSpellCast() branch) has the quest-giver creature CastSpell(player, 1460, true) because Arcane Intellect is not self-cast, teaches nothing and creates no item. Spell 1460's own Spell.dbc row (unmodified from Blizzard) sets EffectImplicitTargetA=TARGET_UNIT_TARGET_ALLY and EffectImplicitTargetB=TARGET_UNIT_SRC_AREA_PARTY on both of its APPLY_AURA effects: this is a party-radius buff by design, matching every Fortitude/Intellect-style reward flavor cast. Spell.cpp's TARGET_CHECK_PARTY filter (WorldObjectSpellTargetCheck::operator(), case TARGET_CHECK_PARTY) requires Unit::IsInPartyWith, which returns true whenever GetCharmerOrOwnerOrSelf() resolves both units to the same owner (Unit.cpp, u1 == u2). AscensionWisdomball.cpp's ActiveBall() itself keys the ball to the player through creature->GetOwnerGUID() == player->GetGUID(), so the summoned ball resolves to the player's own identity exactly like a hunter or warlock pet would. The companion picking up the reward buff is therefore the same stock AzerothCore/Blizzard party-buff-radius rule that sweeps any owned pet into a nearby Fortitude/Intellect cast - established, intended behavior, not a CoA quest-reward targeting bug.",
+  "name": "Quest 1014 'Arugal Must Die' handed in at the Wondrous Wisdomball: the reward buff reaching the ball is the stock rule for any giver (#5795)",
+  "contract": "quest_template quest 1014 'Arugal Must Die' has RewardSpell 1460 Arcane Intellect, cast by the quest giver on the player at turn-in. Spell 1460's Spell.dbc row (unmodified Blizzard data) targets TARGET_UNIT_TARGET_ALLY (21) with TARGET_UNIT_SRC_AREA_PARTY (33) on both aura effects, an area around the caster, and a caster is always in its own party radius. The Wondrous Wisdomball (creature 79025) carries dungeon quests and takes them back, so when it is the giver the buff reaches it exactly as it reaches Dalar Dawnweaver when she is the giver. Expected: the turn-in is accepted, the player gets Arcane Intellect, and the giver, whichever creature it is, is covered by the same cast. This is the stock party-radius rule, not a Wisdomball-specific targeting defect.",
   "timeout_ms": 120000,
   "players": [
-    { "id": "hero", "race": 10, "class": 13, "level": 80 }
+    {
+      "id": "hero",
+      "race": 10,
+      "class": 13,
+      "level": 80
+    },
+    {
+      "id": "other",
+      "race": 10,
+      "class": 12,
+      "level": 80
+    }
   ],
   "creatures": [
-    { "id": "dalar", "owner": "hero", "entry": 1938, "level": 21, "distance": 3 }
+    {
+      "id": "dalar",
+      "owner": "other",
+      "entry": 1938,
+      "level": 21,
+      "distance": 3,
+      "faction": 68
+    }
   ],
   "steps": [
-    { "action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 5000 },
-    { "action": "add_item", "label": "Obtain the companion, as a purchase would", "actor": "hero", "item": 101169, "count": 1 },
-    { "action": "use_item", "label": "Using the item teaches its summon", "actor": "hero", "item": 101169, "spell": 55884 },
     {
-      "action": "assert", "label": "The summon is learned",
-      "actor": "hero", "metric": "knows_spell", "spell": 83050, "equals": 1, "within_ms": 3000
-    },
-    { "action": "cast", "label": "Summon the Wondrous Wisdomball", "actor": "hero", "spell": 83050 },
-    { "action": "wait", "label": "Let the summon land", "ms": 3000 },
-    {
-      "action": "assert", "label": "The cast produced a companion this player owns",
-      "actor": "hero", "metric": "owned_creature_count", "entry": 79025, "min": 1, "within_ms": 5000
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
     },
     {
-      "action": "assert", "label": "SETUP: the player has no Arcane Intellect yet",
-      "actor": "hero", "metric": "aura", "spell": 1460, "equals": 0
+      "action": "add_item",
+      "label": "Obtain the companion, as a purchase would",
+      "actor": "hero",
+      "item": 101169,
+      "count": 1
     },
     {
-      "action": "assert", "label": "SETUP: neither does the ball",
-      "actor": "hero", "metric": "owned_creature_count", "entry": 79025, "spell": 1460, "equals": 0
-    },
-    { "action": "prepare_quest", "label": "Fixture: Arugal is already dead and his head is in hand", "actor": "hero", "quest": 1014 },
-    {
-      "action": "assert", "label": "The quest is ready to hand in",
-      "actor": "hero", "metric": "quest_status", "quest": 1014, "equals": 1
-    },
-    { "action": "quest_turn_in", "label": "Hand the quest in at Dalar Dawnweaver", "actor": "hero", "quest": 1014, "entry": 1938, "reward": 0 },
-    {
-      "action": "assert", "label": "The turn-in was accepted and rewarded",
-      "actor": "hero", "metric": "quest_status", "quest": 1014, "equals": 6, "within_ms": 3000
+      "action": "use_item",
+      "label": "Using the item teaches its summon",
+      "actor": "hero",
+      "item": 101169,
+      "spell": 55884
     },
     {
-      "action": "assert", "label": "Quest 1014's RewardSpell casts Arcane Intellect on the player",
-      "actor": "hero", "metric": "aura", "spell": 1460, "equals": 1, "within_ms": 5000
+      "action": "assert",
+      "label": "The summon is learned",
+      "actor": "hero",
+      "metric": "knows_spell",
+      "spell": 83050,
+      "equals": 1,
+      "within_ms": 3000
     },
     {
-      "action": "assert", "label": "The same party-radius cast also reaches the player's own owned companion, as it would a hunter or warlock pet",
-      "actor": "hero", "metric": "owned_creature_count", "entry": 79025, "spell": 1460, "equals": 1, "within_ms": 5000
+      "action": "cast",
+      "label": "Summon the Wondrous Wisdomball",
+      "actor": "hero",
+      "spell": 83050
+    },
+    {
+      "action": "wait",
+      "label": "Let the summon land",
+      "ms": 3000
+    },
+    {
+      "action": "assert",
+      "label": "The cast produced a companion this player owns",
+      "actor": "hero",
+      "metric": "owned_creature_count",
+      "entry": 79025,
+      "min": 1,
+      "within_ms": 5000
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: the player has no Arcane Intellect yet",
+      "actor": "hero",
+      "metric": "aura",
+      "spell": 1460,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: neither does the ball",
+      "actor": "hero",
+      "metric": "owned_creature_count",
+      "entry": 79025,
+      "spell": 1460,
+      "equals": 0
+    },
+    {
+      "action": "prepare_quest",
+      "label": "Fixture: Arugal is already dead and his head is in hand",
+      "actor": "hero",
+      "quest": 1014
+    },
+    {
+      "action": "assert",
+      "label": "The quest is ready to hand in",
+      "actor": "hero",
+      "metric": "quest_status",
+      "quest": 1014,
+      "equals": 1
+    },
+    {
+      "action": "quest_turn_in",
+      "label": "Hand the quest in at the Wondrous Wisdomball, as the reporter did",
+      "actor": "hero",
+      "quest": 1014,
+      "entry": 79025,
+      "reward": 0
+    },
+    {
+      "action": "assert",
+      "label": "The turn-in was accepted and rewarded",
+      "actor": "hero",
+      "metric": "quest_status",
+      "quest": 1014,
+      "equals": 6,
+      "within_ms": 3000
+    },
+    {
+      "action": "assert",
+      "label": "Quest 1014's RewardSpell casts Arcane Intellect on the player",
+      "actor": "hero",
+      "metric": "aura",
+      "spell": 1460,
+      "equals": 1,
+      "within_ms": 5000
+    },
+    {
+      "action": "assert",
+      "label": "The ball, as the giver, is covered by its own party-radius cast",
+      "actor": "hero",
+      "metric": "owned_creature_count",
+      "entry": 79025,
+      "spell": 1460,
+      "equals": 1,
+      "within_ms": 5000
+    },
+    {
+      "action": "prepare_quest",
+      "label": "Control: a second player is ready to hand the same quest in at Dalar Dawnweaver",
+      "actor": "other",
+      "quest": 1014
+    },
+    {
+      "action": "quest_turn_in",
+      "label": "Control: hand it in at Dalar Dawnweaver",
+      "actor": "other",
+      "quest": 1014,
+      "entry": 1938,
+      "reward": 0
+    },
+    {
+      "action": "assert",
+      "label": "Control: the turn-in was accepted",
+      "actor": "other",
+      "metric": "quest_status",
+      "quest": 1014,
+      "equals": 6,
+      "within_ms": 3000
+    },
+    {
+      "action": "assert",
+      "label": "Control: the player gets Arcane Intellect",
+      "actor": "other",
+      "metric": "aura",
+      "spell": 1460,
+      "equals": 1,
+      "within_ms": 5000
+    },
+    {
+      "action": "assert",
+      "label": "Control: the stock giver is covered by its own cast too",
+      "actor": "dalar",
+      "metric": "aura",
+      "spell": 1460,
+      "equals": 1,
+      "within_ms": 5000
     }
   ]
 }
