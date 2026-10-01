@@ -4346,11 +4346,15 @@ public:
         AscensionCompatConfig::REALM_TYPE);
 
     uint8 flags[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-    if (art == "seasonal")         flags[1] = 1;
-    else if (art == "league")      flags[2] = 1;
-    else if (art == "ptr")         flags[3] = 1;
-    else if (art == "development") flags[4] = 1;
-    else                           flags[0] = 1;
+    for (std::string_view type : Acore::Tokenize(art, ' ', false)) {
+      if (type == "live")             flags[0] = 1;
+      else if (type == "seasonal")    flags[1] = 1;
+      else if (type == "league")      flags[2] = 1;
+      else if (type == "ptr")         flags[3] = 1;
+      else if (type == "development") flags[4] = 1;
+    }
+    if (std::none_of(flags, flags + 5, [](uint8 flag) { return flag != 0; }))
+      flags[0] = 1;
 
     std::string const model = ascensionCompatConfig.GetConfigValue<std::string>(
         AscensionCompatConfig::CLASS_MODEL);

@@ -7,8 +7,9 @@
 #     CoA.ClientBooleanConfigs = "CONFIG_LEGACY_CHARACTER_ADVANCEMENT_ENABLED=0"
 #     CoA.ClassModel = "hero"
 #     CoA.MapClass10ToWarrior = 0
-#     CoA.RealmType = "live"
+#     CoA.RealmType = "live seasonal"
 #     PlayerStart.CustomSpells = 1
+#     AlwaysMaxSkillForLevel = 1
 #
 
 [worldserver]
