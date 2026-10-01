@@ -1181,6 +1181,9 @@ void Group::GroupLoot(Loot* loot, WorldObject* pLootedObject)
 
                 loot->items[itemSlot].is_blocked = true;
 
+                if (r->totalPass != r->totalPlayersRolling)
+                    sScriptMgr->OnGroupLootRollStart(this, *r, *loot, *i);
+
                 // If there is any "auto pass", broadcast the pass now.
                 if (r->totalPass)
                 {
@@ -1268,6 +1271,8 @@ void Group::GroupLoot(Loot* loot, WorldObject* pLootedObject)
 
             loot->quest_items[itemSlot - loot->items.size()].is_blocked = true;
 
+            sScriptMgr->OnGroupLootRollStart(this, *r, *loot, *i);
+
             SendLootStartRoll(60000, pLootedObject->GetMapId(), *r);
 
             RollId.push_back(r);
@@ -1342,6 +1347,8 @@ void Group::NeedBeforeGreed(Loot* loot, WorldObject* lootedObject)
 
                 loot->items[itemSlot].is_blocked = true;
 
+                sScriptMgr->OnGroupLootRollStart(this, *r, *loot, *i);
+
                 //Broadcast Pass and Send Rollstart
                 for (Roll::PlayerVote::const_iterator itr = r->playerVote.begin(); itr != r->playerVote.end(); ++itr)
                 {
@@ -1411,6 +1418,8 @@ void Group::NeedBeforeGreed(Loot* loot, WorldObject* lootedObject)
             r->itemSlot = itemSlot;
 
             loot->quest_items[itemSlot - loot->items.size()].is_blocked = true;
+
+            sScriptMgr->OnGroupLootRollStart(this, *r, *loot, *i);
 
             //Broadcast Pass and Send Rollstart
             for (Roll::PlayerVote::const_iterator itr = r->playerVote.begin(); itr != r->playerVote.end(); ++itr)
