@@ -106,7 +106,7 @@ class HoundActions
     }
     ObjectGuid victim;
 
-    void Leap()
+    void Leap(bool called = false)
     {
         Player* owner = Owner(_me->GetOwner());
         Unit* target = ObjectAccessor::GetUnit(*_me, victim);
@@ -119,6 +119,7 @@ class HoundActions
         Position end = target->GetPosition();
         target->MovePositionToFirstCollision(end, target->GetCombatReach(), target->GetRelativeAngle(_me));
         _landingChecks = 0;
+        _called = called;
         _me->GetMotionMaster()->MoveJump(end, 24.0f, 8.0f, POINT_LEAP_LANDING);
         _events.RescheduleEvent(EVENT_CHECK_LANDING, 500ms);
         _events.RescheduleEvent(EVENT_AUTO_LEAP, _me->HasAura(800528) ? 10s : 20s);
@@ -191,6 +192,11 @@ class HoundActions
                                      nullptr, owner->GetGUID());
                 _me->CastCustomSpell(706332, SPELLVALUE_BASE_POINT1, value, target, TRIGGERED_FULL_MASK, nullptr,
                                      nullptr, owner->GetGUID());
+                if (_called && owner->HasAura(500056))
+                    for (Unit* enemy : Nearby(target, 6.0f))
+                        if (owner->IsValidAttackTarget(enemy))
+                            Cast(owner, enemy, 500564);
+                _called = false;
                 _me->AI()->AttackStart(target);
             }
             else if (event == EVENT_AUTO_LEAP)
@@ -210,6 +216,7 @@ class HoundActions
     Creature* _me;
     EventMap _events;
     uint8 _landingChecks = 0;
+    bool _called = false;
 };
 
 struct npc_ascension_witch_hunter_pet : PetAI
@@ -224,7 +231,7 @@ struct npc_ascension_witch_hunter_pet : PetAI
     void DoAction(int32 action) override
     {
         if (action == ACTION_CALLED_LEAP)
-            actions.Leap();
+            actions.Leap(true);
     }
     void UpdateAI(uint32 diff) override
     {
@@ -263,7 +270,7 @@ struct npc_ascension_witch_hunter_hound : ScriptedAI
     void DoAction(int32 action) override
     {
         if (action == ACTION_CALLED_LEAP)
-            actions.Leap();
+            actions.Leap(true);
     }
     void UpdateAI(uint32 diff) override
     {
