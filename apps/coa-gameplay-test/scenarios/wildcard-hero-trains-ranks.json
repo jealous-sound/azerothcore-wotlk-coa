@@ -16,6 +16,12 @@
     {"action": "set_money", "actor": "wild", "value": 100000},
 
     {"action": "learn", "label": "A rolled Arcane Shot at rank 1", "actor": "wild", "spell": 3044},
+    {"action": "gossip_hello", "label": "Talk to the rogue trainer", "actor": "wild", "target": "rogue"},
+    {"action": "assert", "label": "The training option is shown to the Hero", "actor": "wild", "metric": "gossip_options", "equals": 1},
+    {"action": "gossip_select", "label": "Ask for training", "actor": "wild", "option": 0},
+    {"action": "assert", "label": "The option opens the trainer window", "actor": "wild", "metric": "trainer_list_packets", "equals": 1},
+    {"action": "assert", "label": "Arcane Shot rank 2 is in it, available", "actor": "wild", "metric": "trainer_window_state", "spell": 14281, "equals": 0},
+    {"action": "assert", "label": "A rogue rank the Hero has no lower rank of is not", "actor": "wild", "metric": "trainer_window_state", "spell": 1757, "equals": -1},
     {"action": "trainer_buy", "label": "Buy Arcane Shot rank 2 from a rogue trainer", "actor": "wild", "target": "rogue", "spell": 14281},
     {"action": "assert", "label": "The rogue trainer taught the hunter rank", "actor": "wild", "metric": "knows_spell", "spell": 14281, "equals": 1},
     {"action": "trainer_buy", "label": "Ask the rogue trainer for Sinister Strike rank 2", "actor": "wild", "target": "rogue", "spell": 1757},
