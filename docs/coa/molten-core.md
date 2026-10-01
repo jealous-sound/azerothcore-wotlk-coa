@@ -862,3 +862,28 @@ evidence + source reads), fixed individually below. See `impl-G-mechanics.md` fo
    single automated Ghost-harness bot run to finish killing the eight Lesser Son of Flame adds (which lets
    Ragnaros emerge early via `SummonedCreatureDies`), not the submerge timer itself — confirmed by reading
    the test and the 60s cap firing regardless of add state. No code or data change made.
+
+## 11. Batch I (2026-10-01): map-409 spawnMask restore
+
+Heroic/Mythic/Ascended Molten Core were empty of every creature and gameobject: `02_mc_difficulty_spawns.sql`
+(`modules/mod-coa-raid-difficulty/data/sql/db-world/base/`) puts every map-409 row on `spawnMask = 15` (all
+four difficulty bits - the core only spawns a row into the grids of the difficulties whose bit is set, with
+no fallback), but `rev_20260930_99_ASC_northshire_revamp.sql` (from main PR #5764, an unrelated Northshire
+Valley field-level reconciliation) carries a section-4 cleanup statement that narrows it back down:
+`UPDATE creature/gameobject SET spawnMask = 1 WHERE map IN (309, 531, 509, 469, 409) AND spawnMask = 15`. The
+updater merges module and pending files into one list sorted purely by filename
+(`UpdateFetcher::PathCompare`, `src/server/database/Updater/UpdateFetcher.cpp`), so the module's `02_...` file
+always applies before any `rev_...` pending file; nothing after the ASC revamp put map 409 back to 15, so MC
+has been Normal-only since that merge.
+
+Fix: `rev_20261001_13_molten_core_restore_spawn_masks.sql` re-asserts `spawnMask = 15` on every map-409
+`creature`/`gameobject` row, sorting after the revamp file by filename. This also corrects the Majordomo
+portal gameobject added at `spawnMask = 1` in `rev_20261001_08_molten_core_majordomo_portal.sql` - its
+visibility is already gated by the instance script's encounter state, not by the spawn mask, so it belongs on
+all four difficulties like the rest of MC. `tools/test_molten_core_spawn_masks.py` replays the statement
+order across both directories and fails if the final effective map-409 spawnMask is not 15, or if any later
+file inserts a map-409 row with a narrower one.
+
+**Related finding, out of scope for this fix**: the same ASC revamp statement also narrows `spawnMask` on
+other instance maps 309, 531, 509 and 469 (to 1) and map 249 (to 3). Those are not Molten Core and were not
+touched here; flagged for the user to decide whether they need the same restore treatment.
