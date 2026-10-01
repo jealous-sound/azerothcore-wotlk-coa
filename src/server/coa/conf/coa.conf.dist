@@ -30,7 +30,7 @@ CoA.CharacterSelectionEnable = 1
 # Maximum simultaneously active characters per account (1-128).
 # Deactivated characters stay stored, are hidden from the standard character
 # list and can be re-activated later.
-CoA.CharacterSelectionMaxActive = 10
+CoA.CharacterSelectionMaxActive = 128
 
 # Automatically add appearance and vanity entries for items obtained by a character.
 CoA.AutoCollectAppearances = 1

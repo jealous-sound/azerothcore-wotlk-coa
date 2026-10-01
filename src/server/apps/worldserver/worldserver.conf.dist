@@ -2055,9 +2055,9 @@ CharactersPerAccount = 128
 #                     also hides its create button while this many characters are
 #                     active, so one free slot is needed to create another.
 #        Range:       1-128
-#        Default:     10
+#        Default:     128
 
-CharactersPerRealm = 10
+CharactersPerRealm = 128
 
 #
 #    HeroicCharactersPerRealm
