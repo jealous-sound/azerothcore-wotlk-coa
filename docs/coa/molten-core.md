@@ -241,7 +241,7 @@ observed.
 | Fierce Blow / Lava Burst (2105812→2105814) / Massive Stomp (2105817) | ran, Lava Burst had placeholder Damage Info dmg | Damage Info wired for Lava Burst | unchanged timers | measured | — |
 | Magma Splash (2105802, tank) | dead-C++ only (`boss_golemagg.cpp`, unreachable) | added, 10s/18s | designed | no measured log confirms this exact interval |
 | Molten Armor (2105806, tank) | dead-C++ only | added, 16s/32s | designed | same |
-| Cave In (2105825, area) | dead-C++ only | added, 35s/55s | designed | same |
+| Cave In (2105825/27/28, area, ground-fire) | dead-C++ only | added, ~4s after every Massive Stomp (first_ms=13000, period_ms=45100, tracking idx 2's 9000/45100) | measured (diag-golemagg-cavein.md, 8/8 casts across two corpus logs, 3.93-4.10s delay) | — |
 | Pyroblast, Earthquake, enrage-at-10% (dead C++) | unreachable | not added | designed (per dead code) | no measured interval exists for these three in the 42-log corpus — see §8 |
 | Yank (2105852) | not wired | not wired | not wired | Effect is an exotic chain-pull (id 124) with no plain cast/aura semantics the schedule engine can express |
 
@@ -536,8 +536,9 @@ rolls one additional item from that entry's own T1 reference pool when `coa_flex
    crack-and-recover loop, and Land Slide's "charge through anyone in the path" became a self-centered AoE.
    Options: accept the simplification, or invest in a stack-tracking implementation and real path traversal
    if a log ever substantiates the exact mechanic.
-4. **Golemagg's designed timers, and Yank/Cindermaw Stress not wired.** Magma Splash/Molten Armor/Cave In were
-   added without a measured interval (dead C++ only, no log). Pyroblast/Earthquake/the 10%-health enrage were
+4. **Golemagg's designed timers, and Yank/Cindermaw Stress not wired.** Magma Splash/Molten Armor were
+   added without a measured interval (dead C++ only, no log); Cave In's own timing is now measured (§9 item
+   12, `diag-golemagg-cavein.md`). Pyroblast/Earthquake/the 10%-health enrage were
    not added at all — no measured evidence either confirms or rules them out from the 42-log corpus. Yank
    can't be expressed by the current schedule engine (exotic chain-pull effect). Cindermaw's Stress aura is
    inert because `npc_core_rager`'s hand-written `ScriptName` always wins over any SmartAI row. Options per
@@ -783,3 +784,12 @@ evidence + source reads), fixed individually below. See `impl-G-mechanics.md` fo
     designed point in front of the Ragnaros summon area (`RagnarosLairEntranceCoa`) -- pending live
     `.gps` confirmation. The portal despawns only on instance reset, same as every other static MC
     spawn.
+12. **Golemagg's Cave In is the remembered ground fire, timed off Massive Stomp.** Reverts the
+    Magmadar-puddle reuse above (item 10 was superseded by this item and dropped — see commit
+    history): `diag-golemagg-cavein.md`'s combat-log corpus shows Cave In's own DBC kit
+    (2105825/2105827/2105828, a genuine `SPELL_EFFECT_PERSISTENT_AREA_AURA` ground patch, ~1500/2500/3000
+    damage per tick pre-mitigation) landing 3.93-4.10s after every Massive Stomp cast, 8/8 times across
+    two independent logs. `coa_boss_schedule` already carried a Cave In row but on an independent
+    35s/55s clock; `coa_boss_ai` has no "cast B after A" hook (each row is its own `EventMap` entry), so
+    the row's own `first_ms`/`period_ms` were retimed to 13000/45100 to track Massive Stomp's 9000/45100
+    instead.
