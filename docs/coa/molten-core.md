@@ -518,7 +518,11 @@ loot) and, for any creature entry listed in the new `coa_mc_token_loot` table (o
 difficulty, migration `modules/mod-coa-raid-difficulty/data/sql/db-world/base/20_mc_boss_flex_loot.sql`),
 rolls one additional item from that entry's own T1 reference pool when `coa_flex::CountPlayers` (shared with
 `FlexHealth.cpp`) is 20 or more. Net result: 2 guaranteed Tier 1 pieces per boss kill below 20 players, 3 at
-20+, on every difficulty.
+20+, on every difficulty. Because a live creature's `GetEntry()` stays its base entry on every raid difficulty
+in this fork (see `FlexHealth.cpp`'s `BaseEntry()`), the lookup rebuilds the difficulty-specific key from the
+base entry plus the map's own spawn mode rather than trusting `GetEntry()` to already carry the difficulty;
+before this fix the bonus always resolved to the Normal row and drew from the Normal token pool regardless of
+actual difficulty.
 
 ## 8. Known gaps / needs decision
 

@@ -9,6 +9,15 @@
  * reference_loot_template id already used for its guaranteed token picks, so
  * the bonus roll always draws from the same pool, data-driven rather than a
  * hard-coded item list per boss.
+ *
+ * A live creature's GetEntry() stays its base/original entry on every raid
+ * difficulty in this fork (confirmed for Molten Giant's SmartAI and for this
+ * boss family's own loot id resolution - see FlexHealth.cpp's BaseEntry());
+ * it never reports the difficulty_entry_1..3 value. The lookup key therefore
+ * has to be rebuilt from the base entry plus the map's own spawn mode, the
+ * same way FlexHealth.cpp does, instead of trusting GetEntry() to already
+ * carry the difficulty - otherwise every difficulty resolves to the Normal
+ * row and the bonus always draws from the Normal token pool.
  */
 
 #include "FlexLoot.h"
@@ -90,7 +99,12 @@ namespace
 
             auto refIt = g_tokenRefByEntry.end();
             if (Creature const* creature = lootOwner->GetMap()->GetCreature(loot->sourceWorldObjectGUID))
-                refIt = g_tokenRefByEntry.find(creature->GetEntry());
+            {
+                uint8 const mode = uint8(lootOwner->GetMap()->GetSpawnMode());
+                uint32 const baseEntry = creature->GetEntry() % 100000;
+                uint32 const difficultyEntry = baseEntry + uint32(mode) * 100000;
+                refIt = g_tokenRefByEntry.find(difficultyEntry);
+            }
 
             if (refIt == g_tokenRefByEntry.end())
                 return;
