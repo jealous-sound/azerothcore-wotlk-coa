@@ -76,6 +76,7 @@
 #include "World.h"
 #include "WorldPacket.h"
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <limits>
 
@@ -1397,12 +1398,38 @@ void Unit::CastStop(uint32 except_spellid, bool withInstant)
             InterruptSpell(CurrentSpellTypes(i), false, withInstant);
 }
 
+// A spell triggered by a spell or a proc is cast inside the cast that triggered it. Abilities of different
+// classes put together (Wildcard) can close a trigger loop, one that may branch for every target it hits: past
+// these limits a cast is refused instead of overflowing the stack or stalling the map.
+static constexpr uint32 MAX_NESTED_SPELL_CASTS = 32;
+static constexpr uint32 MAX_CASTS_INSIDE_ONE_CAST = 1000;
+thread_local std::array<uint32, MAX_NESTED_SPELL_CASTS> NestedSpellCasts;
+thread_local uint32 NestedSpellCastCount = 0;
+thread_local uint32 CastsInsideOuterCast = 0;
+thread_local bool TriggerLoopLogged = false;
+
 SpellCastResult Unit::CastSpell(SpellCastTargets const& targets, SpellInfo const* spellInfo, CustomSpellValues const* value, TriggerCastFlags triggerFlags, Item* castItem, AuraEffect const* triggeredByAura, ObjectGuid originalCaster)
 {
     if (!spellInfo)
     {
         LOG_ERROR("entities.unit", "CastSpell: unknown spell by caster {}", GetGUID().ToString());
         return SPELL_FAILED_SPELL_UNAVAILABLE;
+    }
+
+    if (NestedSpellCastCount == MAX_NESTED_SPELL_CASTS ||
+        (NestedSpellCastCount && CastsInsideOuterCast == MAX_CASTS_INSIDE_ONE_CAST))
+    {
+        if (!TriggerLoopLogged)
+        {
+            TriggerLoopLogged = true;
+            std::string chain;
+            for (uint32 index = 0; index < NestedSpellCastCount; ++index)
+                chain += " " + std::to_string(NestedSpellCasts[index]);
+            LOG_ERROR("entities.unit", "CastSpell: spell {} of {} refused, a trigger loop: {} casts nested, {} cast inside "
+                "the outermost one. Nested casts, outermost first:{}", spellInfo->Id, GetName(), NestedSpellCastCount,
+                CastsInsideOuterCast, chain);
+        }
+        return SPELL_FAILED_DONT_REPORT;
     }
 
     /// @todo: this is a workaround - not needed anymore, but required for some scripts :(
@@ -1422,7 +1449,17 @@ SpellCastResult Unit::CastSpell(SpellCastTargets const& targets, SpellInfo const
     }
 
     spell->m_CastItem = castItem;
-    return spell->prepare(&targets, triggeredByAura);
+    if (NestedSpellCastCount)
+        ++CastsInsideOuterCast;
+    else
+    {
+        CastsInsideOuterCast = 0;
+        TriggerLoopLogged = false;
+    }
+    NestedSpellCasts[NestedSpellCastCount++] = spellInfo->Id;
+    SpellCastResult const result = spell->prepare(&targets, triggeredByAura);
+    --NestedSpellCastCount;
+    return result;
 }
 
 SpellCastResult Unit::CastSpell(Unit* victim, uint32 spellId, bool triggered, Item* castItem, AuraEffect const* triggeredByAura, ObjectGuid originalCaster)
