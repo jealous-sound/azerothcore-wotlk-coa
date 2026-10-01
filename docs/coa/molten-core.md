@@ -664,3 +664,8 @@ evidence + source reads), fixed individually below. See `impl-G-mechanics.md` fo
    replicated — there was nothing to replicate, only a flag to remove). Their spells stay vanilla
    (unscaled) ids where no CoA-specific variant exists for this creature — a separate, documented gap,
    not fixed here (item 11 below, §8 item 11).
+2. **Gehennas' Flamewaker adds (11661) given a `coa_boss_flex` row, 10% of Gehennas' own `hp_dN`.**
+   The one MC trash type with no flex row at all (rev_20260930_94 omitted it), so it stayed flat while
+   Gehennas scaled with raid size -- at 20 players, about 0.57% of his health instead of the
+   Bronzebeard reading of roughly 10% the user remembers. Fixed per-difficulty, anchored on
+   Gehennas' own measured `hp_dN`, not a fresh BB-video derivation.
