@@ -555,7 +555,7 @@ void WorldConfig::BuildConfigCache()
     SetConfigValue<uint32>(CONFIG_GUILD_BANK_EVENT_LOG_COUNT, "Guild.BankEventLogRecordsCount", GUILD_BANKLOG_MAX_RECORDS, ConfigValueCache::Reloadable::Yes, [](uint32 const& value) { return value <= GUILD_BANKLOG_MAX_RECORDS; }, "<= GUILD_BANKLOG_MAX_RECORDS");
 
     ///- Load the CharDelete related config options
-    SetConfigValue<uint32>(CONFIG_CHARDELETE_METHOD, "CharDelete.Method", 0);
+    SetConfigValue<uint32>(CONFIG_CHARDELETE_METHOD, "CharDelete.Method", 1);
     SetConfigValue<uint32>(CONFIG_CHARDELETE_MIN_LEVEL, "CharDelete.MinLevel", 0);
     SetConfigValue<uint32>(CONFIG_CHARDELETE_KEEP_DAYS, "CharDelete.KeepDays", 30);
 

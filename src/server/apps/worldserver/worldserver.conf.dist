@@ -1896,11 +1896,11 @@ PersistentCharacterCleanFlags = 0
 #
 #    CharDelete.Method
 #        Description: Character deletion behavior.
-#        Default:     0 - (Completely remove character from the database)
-#                     1 - (Unlink the character from account and free up the name, Appears as
-#                         deleted ingame)
+#        Default:     1 - (Unlink the character from account and free up the name, Appears as
+#                         deleted ingame; restorable until CharDelete.KeepDays elapses)
+#                     0 - (Completely remove character from the database)
 
-CharDelete.Method = 0
+CharDelete.Method = 1
 
 #
 #    CharDelete.MinLevel
