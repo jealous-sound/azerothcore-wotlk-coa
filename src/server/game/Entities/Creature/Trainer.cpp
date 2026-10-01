@@ -24,8 +24,48 @@
 #include "SpellMgr.h"
 #include "WorldSession.h"
 
+#include <algorithm>
+#include <optional>
+
 namespace
 {
+    // A Hero playing Wildcard (the game mode bit of AscensionWildcard::GAME_MODE_WILDCARD).
+    bool IsWildcardHero(Player const* player)
+    {
+        if (player->getClass() != CLASS_HERO)
+            return false;
+        std::optional<uint32> const mask = sScriptMgr->OnPlayerGetGameModeMask(player);
+        return mask && (*mask & 0x40);
+    }
+
+    // A Wildcard Hero has no trainer of its own: any class trainer teaches it the higher ranks of the abilities
+    // it rolled, and nothing else.
+    bool TeachesRanksOnly(Trainer::Trainer const& trainer, Player const* player)
+    {
+        return trainer.GetTrainerType() == Trainer::Type::Class &&
+               player->getClass() != trainer.GetTrainerRequirement() && IsWildcardHero(player);
+    }
+
+    bool IsHigherRankOfKnownSpell(Player const* player, uint32 trainerSpellId)
+    {
+        SpellInfo const* trainerSpellInfo = sSpellMgr->GetSpellInfo(trainerSpellId);
+        if (!trainerSpellInfo)
+            return false;
+
+        std::vector<uint32> taught;
+        for (SpellEffectInfo const& spellEffectInfo : trainerSpellInfo->GetEffects())
+            if (spellEffectInfo.IsEffect(SPELL_EFFECT_LEARN_SPELL))
+                taught.push_back(spellEffectInfo.TriggerSpell);
+        if (taught.empty())
+            taught.push_back(trainerSpellId);
+
+        return std::all_of(taught.begin(), taught.end(), [player](uint32 spellId)
+        {
+            uint32 const previousRankSpellId = sSpellMgr->GetPrevSpellInChain(spellId);
+            return previousRankSpellId && player->HasSpell(previousRankSpellId);
+        });
+    }
+
     bool RaisesProfessionAboveStep(SpellInfo const* spellInfo, uint16 maxStep)
     {
         for (SpellEffectInfo const& spellEffectInfo : spellInfo->GetEffects())
@@ -58,9 +98,11 @@ namespace Trainer
         trainerList.TrainerType = AsUnderlyingType(_type);
         trainerList.Greeting = GetGreeting(locale);
         trainerList.Spells.reserve(_spells.size());
+        bool const ranksOnly = TeachesRanksOnly(*this, player);
         for (Spell const& trainerSpell : _spells)
         {
-            if (!player->IsSpellFitByClassAndRace(trainerSpell.SpellId))
+            if (ranksOnly ? !IsHigherRankOfKnownSpell(player, trainerSpell.SpellId)
+                          : !player->IsSpellFitByClassAndRace(trainerSpell.SpellId))
                 continue;
 
             // The state is asked once and then decides both whether the row is written at all and what
@@ -180,7 +222,8 @@ namespace Trainer
             return SpellState::Known;
 
         // check race/class requirement
-        if (!player->IsSpellFitByClassAndRace(trainerSpell->SpellId))
+        if (TeachesRanksOnly(*this, player) ? !IsHigherRankOfKnownSpell(player, trainerSpell->SpellId)
+                                            : !player->IsSpellFitByClassAndRace(trainerSpell->SpellId))
             return SpellState::Unavailable;
 
         // check skill requirement
@@ -247,8 +290,9 @@ namespace Trainer
         switch (GetTrainerType())
         {
             case Type::Class:
+                // check class for class trainers; a Wildcard Hero trains its ranks at any of them
+                return player->getClass() == GetTrainerRequirement() || IsWildcardHero(player);
             case Type::Pet:
-                // check class for class trainers
                 return player->getClass() == GetTrainerRequirement();
             case Type::Mount:
                 // check race for mount trainers
