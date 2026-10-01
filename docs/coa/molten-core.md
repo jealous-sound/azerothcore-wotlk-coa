@@ -86,10 +86,17 @@ reading at Ascended; d0-d2 from Lucifron's own prior shape anchored on it — se
 
 Lucifron previously ran `MovementType=2` (WAYPOINT) on a path leading straight toward Magmadar's spawn,
 matching the reported "wanders into Magmadar's room, with 2 adds" exactly (the Flamewaker Protectors follow
-him via `creature_formations`). Fixed: `MovementType=0` on template and spawn, `path_id` cleared, the orphan
-`waypoint_data` rows dropped — Lucifron and his Protectors now hold their spawn position. The export's own
-static placement (~4 yd from Lucifron) already showed 2 adds are correct, contradicting a "no adds" player
-recollection — see §8.
+him via `creature_formations`). `rev_20260930_90` fixed the wandering (`MovementType=0`, `path_id` cleared,
+the orphan `waypoint_data` rows dropped) but kept the export's own static anchor, which still sat in the open
+corridor leading into Magmadar Cavern, not in Lucifron's own room — a second, independent part of the same
+report. `rev_20260930_98` moves him into that room: world (959, -938, -181.997, o=5.729), computed by fitting
+an affine pixel→world transform of the Molten Core world map against our own measured boss positions
+(Lucifron, Magmadar, Gehennas, Garr, Shazzrah, Geddon, Sulfuron, Golemagg — map 409 `creature` rows) and
+solving for the alcove the player circled on the map (south-west of the Magmadar Cavern mouth, north-east of
+Ragnaros' Lair); ground and orientation confirmed live via GM teleport + `.gps` on slot 3 (solid floor,
+FloorZ -181.997, closely matching the old Z and Magmadar's). The same revision removes Flamewaker Protector
+(12119, guids 56606/56607) outright rather than relocating them with him — the player's own "no adds" account
+is the decision now, superseding the export-placement reading in the superseded §8 item 7 below.
 
 **Shadow of Lucifron (12268)** is summoned once, 5s after engage, via a small `coa_boss_summon` hook
 (`summon_entry`/`summon_delay_ms`/`summon_buff_spell` columns on `coa_boss`, read by `CoaBossAI`) instead of a
@@ -102,11 +109,13 @@ Dark Sundering (2105257, 44% weapon damage + stacking armor reduction). No stati
 evidence exists for 12268 anywhere in the export; the summon delay and health (25% of Lucifron's own flex
 figure, anchored to the Flamewaker Protector/Lucifron ratio) are `designed`, not measured — flagged in §8.
 
-Lucifron's other add, **Flamewaker Protector (12119)**, casts Dominate Mind (20604 — a real `MOD_POSSESS`
-aura, not a dummy) on a random non-top-threat target every 5s, confirmed firing repeatedly in probe runs.
-Vanilla Lucifron himself carries Mind Control under this same id — on CoA it is wired to the add instead of
-to Lucifron's own schedule. Whether that's intentional or should move to Lucifron is a needs-decision item
-(§8).
+**Flamewaker Protector (12119)** no longer spawns at Lucifron at all (`rev_20260930_98`, player decision —
+see §8 item 7). Before its removal it cast Dominate Mind (20604 — a real `MOD_POSSESS` aura, not a dummy) on
+a random non-top-threat target every 5s, confirmed firing repeatedly in probe runs; vanilla Lucifron himself
+carries Mind Control under this same id, so on CoA it had been wired to the add instead of to Lucifron's own
+schedule. That ability has no replacement — it left the fight with the add, not moved onto Lucifron (§8 item
+14 is resolved the same way: the question of where Dominate Mind belongs no longer applies to this
+encounter).
 
 ### Magmadar (11982)
 
@@ -494,9 +503,11 @@ never drops them; their Mythic rows (10% and 9.1%) are kept.
    Strike/Fierce Fire Strike, and Meteor timing (2108762, already bound to Damage Info via §6 but nothing
    casts it). None have a stock choreography beat to attach to without inventing one; needs a combat log or an
    explicit maintainer ruling per ability.
-7. **Lucifron's Flamewaker Protectors vs. a player's memory.** The report behind the movement fix said "no
-   adds"; the export's own static placement and the branch's own evidence both show 2 adds are correct —
-   kept as-is, the recollection is treated as the uncertain input.
+7. **~~Lucifron's Flamewaker Protectors vs. a player's memory.~~ Resolved: removed, by player decision
+   (`rev_20260930_98`).** This item previously read the export's own static placement (2 adds ~4 yd from
+   Lucifron) as outweighing a "no adds" report. On a direct, later in-game account of the correct spot and "no
+   adds", the player's memory is the decision: Flamewaker Protector (12119, guids 56606/56607) is removed
+   outright, not relocated with Lucifron to his corrected alcove position (also `rev_20260930_98`, see §3).
 8. **Shadow of Lucifron (12268) timing.** The 5s summon delay and its Shadow Bolt/Cleave/Dark Sundering
    cadences are still `designed`, not measured — no static spawn or summon-spell evidence exists for this
    creature anywhere in the export. Its health is no longer designed (§5: a Bronzebeard video reading × the
@@ -524,11 +535,10 @@ never drops them; their Mythic rows (10% and 9.1%) are kept.
     Lava Annihilator/Lava Elemental/Lava Reaver's brand-new kits, since CoA's own export records essentially
     no real cooldown data for MC trash (almost every cast shows "1ms"/no cooldown in the export). All of these
     are flagged in §4's table; none claim measured status.
-14. **Flamewaker Protector's Dominate Mind cadence.** Confirmed firing on a flat 5s SmartAI cooldown against a
-    random non-top-threat target, with two Protectors per pull doing this simultaneously — a real, currently
-    firing mechanic, not a display bug. Whether a trash add repeatedly mind-controlling raid members on this
-    cadence is intended Ascension design, or whether the ability belongs on Lucifron himself instead (§3), is
-    unresolved and needs a maintainer decision.
+14. **~~Flamewaker Protector's Dominate Mind cadence.~~ Moot: the add is removed (`rev_20260930_98`, §8 item
+    7).** It had confirmed firing on a flat 5s SmartAI cooldown against a random non-top-threat target, with
+    two Protectors per pull doing this simultaneously. The open question of whether the ability belonged on
+    Lucifron himself instead no longer applies — it left with the add, not moved.
 15. **Heating Up (Baron Geddon, 2105746) is not wired.** A `MOD_DAMAGE_PERCENT_DONE` self-stack aura with no
     `EffectTriggerSpell` anywhere pointing at it and no roll on its own base points — the DBC gives no
     evidence of what triggers it or by how much. Left unimplemented rather than inventing a stack/percentage.
