@@ -3006,6 +3006,31 @@ void DraftBuild(Player* player, StarterPick const& pickStarters, std::uint32_t s
         if (std::string_view(RollAbilities(player, {})) != "ROLL_ABILITIES_OK")
             break;
 }
+
+void ClaimLevelingScrolls(Player* player)
+{
+    uint32 const spec = ActiveSpec(player);
+    std::string const source = SpecSettingSource(CLAIMED_REWARDS_SETTING, spec);
+    uint32 const claimed = SettingAt(player, source, LEVELING_CLAIMS);
+    uint32 reached = claimed;
+    Scrolls scrolls = ScrollCounts(player, spec);
+    for (; reached < LEVELING_REWARDS.size() && LEVELING_REWARDS[reached].Level <= player->GetLevel(); ++reached)
+    {
+        scrolls[SCROLL_GENERIC] += LEVELING_REWARDS[reached].Scrolls;
+        scrolls[SCROLL_TALENTS] += LEVELING_REWARDS[reached].TalentScrolls;
+    }
+    if (reached == claimed)
+        return;
+
+    SetScrolls(player, ScrollToken{ spec, SCROLL_GENERIC }, scrolls[SCROLL_GENERIC]);
+    SetScrolls(player, ScrollToken{ spec, SCROLL_TALENTS }, scrolls[SCROLL_TALENTS]);
+    player->UpdatePlayerSetting(source, LEVELING_CLAIMS, reached);
+}
+
+bool UnlearnForReroll(Player* player, std::uint32_t entryId)
+{
+    return std::string_view(UnlearnWithScroll(player, entryId)) == UNLEARN_OK;
+}
 }
 
 void AddAscensionWildcardScripts()

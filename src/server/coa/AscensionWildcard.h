@@ -535,6 +535,8 @@ std::vector<AscensionCoATalentState::KnownEntry> KnownEntries(Player const* play
 BuildChoice ApplyBuildUpload(Player* player, std::vector<AscensionCoATalentState::KnownEntry> const& upload);
 using StarterPick = std::function<std::size_t(std::vector<std::vector<Slot>> const& candidates)>;
 void DraftBuild(Player* player, StarterPick const& pickStarters = {}, std::uint32_t starterDraws = 1);
+void ClaimLevelingScrolls(Player* player);
+bool UnlearnForReroll(Player* player, std::uint32_t entryId);
 }
 
 #endif
