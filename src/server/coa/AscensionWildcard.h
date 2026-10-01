@@ -184,6 +184,7 @@ struct Tables
     std::unordered_map<std::uint32_t, std::vector<std::uint32_t>> SynergyTags;
     std::unordered_map<std::uint32_t, std::unordered_set<std::uint32_t>> Mentioned;
     std::unordered_map<std::uint32_t, std::string> TagNames;
+    std::unordered_map<std::uint32_t, std::vector<std::uint32_t>> RankLadders;
 };
 
 struct PendingCard

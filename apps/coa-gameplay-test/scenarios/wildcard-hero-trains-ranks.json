@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "A Wildcard Hero trains the ranks of what it knows at any class trainer and Book of Ascension",
-  "contract": "A Wildcard Hero rolls its abilities at rank 1 and has no trainer of its own. Any class trainer, of whatever class, and any Book of Ascension teach it the higher ranks of the spells it knows, at the price and level of the class trainer that lists them: Arcane Shot rank 2 (14281, level 12) at a rogue trainer and Arcane Missiles rank 2 (5144, level 16) at a Book of Ascension. A rank whose lower rank it does not know is refused. The Wildcard Auto shot entry's passive (965202) brings Auto Shot (75) with it and takes it away again.",
+  "contract": "A Wildcard Hero rolls its abilities at rank 1 and has no trainer of its own. Any class trainer, of whatever class, and any Book of Ascension teach it the higher ranks of the spells it knows, along the client's own rank ladders (SpellRank.dbc), one rank at a time: Arcane Shot rank 2 (14281, level 12) at a rogue trainer, and at a Book of Ascension Arcane Missiles rank 2 (5146, level 8), a rank Ascension added that the stock chain lacks, before rank 3 (5144, level 16). A rank that is not the next one, or not of an ability it rolled, is refused, and unlearning the ability takes the trained ranks with it. The Wildcard Auto shot entry's passive (965202) brings Auto Shot (75) with it and takes it away again.",
   "timeout_ms": 60000,
   "players": [
     {"id": "wild", "race": 1, "class": 10, "level": 12}
@@ -28,11 +28,18 @@
     {"action": "assert", "label": "A rank without its lower rank is refused", "actor": "wild", "metric": "knows_spell", "spell": 1757, "equals": 0},
 
     {"action": "learn", "label": "A rolled Arcane Missiles at rank 1", "actor": "wild", "spell": 5143},
-    {"action": "trainer_buy", "label": "Ask the book for Arcane Missiles rank 2 below its level", "actor": "wild", "target": "book", "spell": 5144},
-    {"action": "assert", "label": "Below level 16 the rank is refused", "actor": "wild", "metric": "knows_spell", "spell": 5144, "equals": 0},
+    {"action": "trainer_buy", "label": "Ask the book for Arcane Missiles rank 3 first", "actor": "wild", "target": "book", "spell": 5144},
+    {"action": "assert", "label": "Rank 3 is not the next rank", "actor": "wild", "metric": "knows_spell", "spell": 5144, "equals": 0},
+    {"action": "trainer_buy", "label": "Buy Arcane Missiles rank 2 from a Book of Ascension", "actor": "wild", "target": "book", "spell": 5146},
+    {"action": "assert", "label": "The book taught Ascension's rank 2", "actor": "wild", "metric": "knows_spell", "spell": 5146, "equals": 1},
+    {"action": "trainer_buy", "label": "Ask for rank 3 below its level", "actor": "wild", "target": "book", "spell": 5144},
+    {"action": "assert", "label": "Below level 16 rank 3 is refused", "actor": "wild", "metric": "knows_spell", "spell": 5144, "equals": 0},
     {"action": "set_level", "actor": "wild", "value": 16},
-    {"action": "trainer_buy", "label": "Buy Arcane Missiles rank 2 from a Book of Ascension", "actor": "wild", "target": "book", "spell": 5144},
-    {"action": "assert", "label": "The book taught the mage rank", "actor": "wild", "metric": "knows_spell", "spell": 5144, "equals": 1},
+    {"action": "trainer_buy", "label": "Buy Arcane Missiles rank 3", "actor": "wild", "target": "book", "spell": 5144},
+    {"action": "assert", "label": "The book taught rank 3", "actor": "wild", "metric": "knows_spell", "spell": 5144, "equals": 1},
+    {"action": "unlearn", "label": "Unlearn the rolled Arcane Missiles", "actor": "wild", "spell": 5143},
+    {"action": "assert", "label": "Its rank 2 goes with it", "actor": "wild", "metric": "knows_spell", "spell": 5146, "equals": 0},
+    {"action": "assert", "label": "and its rank 3", "actor": "wild", "metric": "knows_spell", "spell": 5144, "equals": 0},
 
     {"action": "learn", "label": "The Auto shot entry's passive", "actor": "wild", "spell": 965202},
     {"action": "assert", "label": "Auto Shot comes with it", "actor": "wild", "metric": "knows_spell", "spell": 75, "equals": 1},

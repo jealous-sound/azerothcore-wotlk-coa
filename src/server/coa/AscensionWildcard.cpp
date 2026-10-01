@@ -14,6 +14,7 @@
 #include "GameEventMgr.h"
 #include "GameTime.h"
 #include "Group.h"
+#include "ObjectMgr.h"
 #include "ItemScript.h"
 #include "Log.h"
 #include "Player.h"
@@ -26,6 +27,7 @@
 #include "SpellMgr.h"
 #include "StringFormat.h"
 #include "Tokenize.h"
+#include "Trainer.h"
 #include "WorldPacket.h"
 #include "WorldSession.h"
 #include <algorithm>
@@ -103,6 +105,12 @@ constexpr std::array<std::pair<uint32, uint32>, 5> STARTING_KIT_ITEMS = { {
 constexpr uint32 DICE_OF_DESTINY_SPELL = 18283;
 constexpr uint32 AUTO_SHOT_ENTRY_SPELL = 965202;
 constexpr uint32 AUTO_SHOT_SPELL = 75;
+constexpr uint32 SPELL_RANK_FIRST_SPELL = 1;
+constexpr uint32 SPELL_RANK_SPELL = 2;
+constexpr uint32 SPELL_RANK_RANK = 3;
+constexpr uint32 SPELL_RANK_MAX = 100;
+constexpr std::array<std::pair<uint32, uint32>, 7> TRAINER_PRICE_PER_SQUARED_LEVEL = { {
+    { 10, 3 }, { 20, 10 }, { 30, 11 }, { 50, 12 }, { 60, 13 }, { 70, 20 }, { 255, 36 } } };
 constexpr uint32 SKILL_CARD_ITEM_SPELL = 92657;
 constexpr uint32 DARKMOON_PRIZES_STORE = 4;
 constexpr uint32 SPECIALIZATION_CACHE_ITEM = 2977359;
@@ -412,6 +420,26 @@ void LinkSynergies(Tables& tables)
     RelateAcrossClasses(tables, weaponAttacks);
 }
 
+void LoadRankLadders(ClientDBC const& spellRanks, Tables& tables)
+{
+    std::unordered_set<uint32> firstRanks;
+    for (Entry const& entry : tables.Entries)
+        if (!entry.Talent)
+            firstRanks.insert(entry.RankSpells.front());
+
+    for (uint32 row = 0; row < spellRanks.GetRecordCount(); ++row)
+    {
+        ClientDBC::Record record = spellRanks.GetRecord(row);
+        uint32 const first = record.GetUInt32(SPELL_RANK_FIRST_SPELL);
+        uint32 const rank = record.GetUInt32(SPELL_RANK_RANK);
+        if (!firstRanks.contains(first) || !rank || rank > SPELL_RANK_MAX)
+            continue;
+        std::vector<uint32>& ladder = tables.RankLadders[first];
+        ladder.resize(std::max<std::size_t>(ladder.size(), rank));
+        ladder[rank - 1] = record.GetUInt32(SPELL_RANK_SPELL);
+    }
+}
+
 bool IsGlyph(uint32 spellId)
 {
     SpellInfo const* spell = sSpellMgr->GetSpellInfo(spellId);
@@ -463,6 +491,9 @@ void LoadTables()
 
     LoadSkillCards(cards, tables);
     LoadSealedCardCosts(costs, tables);
+    ClientDBC spellRanks;
+    if (spellRanks.Load(GetClientDBCPath("SpellRank.dbc"), SPELL_RANK_RANK + 1))
+        LoadRankLadders(spellRanks, tables);
     ClientDBC tagTypes;
     if (tagTypes.Load(GetClientDBCPath("SpellTagTypes.dbc"), SPELL_TAG_TYPE_NAME + 1))
         for (uint32 row = 0; row < tagTypes.GetRecordCount(); ++row)
@@ -497,6 +528,7 @@ void LoadTables()
     LOG_INFO("coa", "Wildcard synergy: {} entries linked by spell modifiers, {} named in talent tooltips, {} related "
         "across classes, {} with school or specialization tags", tables.Linked.size(), tables.Mentioned.size(),
         tables.Related.size(), tables.SynergyTags.size());
+    LOG_INFO("coa", "Wildcard rank ladders: {} abilities train higher ranks", tables.RankLadders.size());
     Loaded = std::move(tables);
 }
 
@@ -1749,6 +1781,47 @@ void GiveDiceOfDestiny(Player* player)
         player->AddItem(DICE_OF_DESTINY_ITEM, 1);
 }
 
+uint32 TrainerPrice(uint32 spellId, uint32 level)
+{
+    static std::unordered_map<uint32, uint32> const listed = []
+    {
+        std::unordered_map<uint32, uint32> prices;
+        for (auto const& [trainerId, trainer] : sObjectMgr->GetTrainers())
+            if (trainer.GetTrainerType() == Trainer::Type::Class)
+                for (Trainer::Spell const& spell : trainer.GetSpells())
+                    prices.emplace(spell.SpellId, spell.MoneyCost);
+        return prices;
+    }();
+    if (auto const price = listed.find(spellId); price != listed.end())
+        return price->second;
+    auto const band = std::find_if(TRAINER_PRICE_PER_SQUARED_LEVEL.begin(), TRAINER_PRICE_PER_SQUARED_LEVEL.end(),
+        [level](std::pair<uint32, uint32> const& step) { return level <= step.first; });
+    return band->second * level * level;
+}
+
+std::vector<Trainer::Spell> RankTrainerRows(Player const* player)
+{
+    std::vector<Trainer::Spell> rows;
+    for (auto const& [firstSpellId, ladder] : Loaded.RankLadders)
+    {
+        auto const known = std::find_if(ladder.rbegin(), ladder.rend(),
+            [player](uint32 spellId) { return spellId && player->HasSpell(spellId); });
+        if (known == ladder.rend())
+            continue;
+        auto const next = std::find_if(known.base(), ladder.end(), [](uint32 spellId) { return spellId != 0; });
+        SpellInfo const* info = next != ladder.end() ? sSpellMgr->GetSpellInfo(*next) : nullptr;
+        if (!info)
+            continue;
+
+        Trainer::Spell row;
+        row.SpellId = info->Id;
+        row.ReqLevel = uint8(std::clamp<uint32>(info->BaseLevel ? info->BaseLevel : info->SpellLevel, 1, 255));
+        row.MoneyCost = TrainerPrice(info->Id, row.ReqLevel);
+        rows.push_back(row);
+    }
+    return rows;
+}
+
 void GrantAutoShot(Player* player)
 {
     if (IsWildcardHero(player) && player->HasSpell(AUTO_SHOT_ENTRY_SPELL) && !player->HasSpell(AUTO_SHOT_SPELL))
@@ -1914,8 +1987,14 @@ public:
 
     void OnPlayerForgotSpell(Player* player, uint32 spellId) override
     {
-        if (spellId == AUTO_SHOT_ENTRY_SPELL && IsWildcardHero(player))
+        if (!IsWildcardHero(player))
+            return;
+        if (spellId == AUTO_SHOT_ENTRY_SPELL)
             player->removeSpell(AUTO_SHOT_SPELL, SPEC_MASK_ALL, false);
+        if (auto const ladder = Loaded.RankLadders.find(spellId); ladder != Loaded.RankLadders.end())
+            for (uint32 rankSpellId : ladder->second)
+                if (rankSpellId && rankSpellId != spellId && player->HasSpell(rankSpellId))
+                    player->removeSpell(rankSpellId, SPEC_MASK_ALL, false);
     }
 
     void OnPlayerLogin(Player* player) override
@@ -3102,4 +3181,5 @@ void AddAscensionWildcardScripts()
     RegisterSpellScriptWithArgs(AscensionWildcard::spell_wildcard_specialization_swap,
         "spell_wildcard_specialization_swap");
     new AscensionWildcard::AscensionWildcardWorld();
+    Trainer::SetWildcardRankRows(&AscensionWildcard::RankTrainerRows);
 }

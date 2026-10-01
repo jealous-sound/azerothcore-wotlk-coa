@@ -25,9 +25,8 @@
 #include "SpellMgr.h"
 #include "WorldSession.h"
 
-#include <algorithm>
+#include <limits>
 #include <optional>
-#include <unordered_set>
 
 namespace
 {
@@ -40,51 +39,10 @@ namespace
         return mask && (*mask & 0x40);
     }
 
-    // A Wildcard Hero has no trainer of its own: any class trainer teaches it the higher ranks of the abilities
-    // it rolled, and nothing else.
-    bool TeachesRanksOnly(Trainer::Trainer const& trainer, Player const* player)
-    {
-        return trainer.GetTrainerType() == Trainer::Type::Class &&
-               player->getClass() != trainer.GetTrainerRequirement() && IsWildcardHero(player);
-    }
-
-    bool IsHigherRankOfKnownSpell(Player const* player, uint32 trainerSpellId)
-    {
-        SpellInfo const* trainerSpellInfo = sSpellMgr->GetSpellInfo(trainerSpellId);
-        if (!trainerSpellInfo)
-            return false;
-
-        std::vector<uint32> taught;
-        for (SpellEffectInfo const& spellEffectInfo : trainerSpellInfo->GetEffects())
-            if (spellEffectInfo.IsEffect(SPELL_EFFECT_LEARN_SPELL))
-                taught.push_back(spellEffectInfo.TriggerSpell);
-        if (taught.empty())
-            taught.push_back(trainerSpellId);
-
-        return std::all_of(taught.begin(), taught.end(), [player](uint32 spellId)
-        {
-            uint32 const previousRankSpellId = sSpellMgr->GetPrevSpellInChain(spellId);
-            return previousRankSpellId && player->HasSpell(previousRankSpellId);
-        });
-    }
-
-    // Every class trainer's spells, each once, with the price and level of the first trainer listing it.
-    // ponytail: built on first use, so a later reload of the trainer tables is not seen until a restart.
-    Trainer::Trainer& WildcardRankTrainer()
-    {
-        static Trainer::Trainer trainer = []
-        {
-            std::vector<Trainer::Spell> spells;
-            std::unordered_set<uint32> listed;
-            for (auto const& [trainerId, classTrainer] : sObjectMgr->GetTrainers())
-                if (classTrainer.GetTrainerType() == Trainer::Type::Class)
-                    for (Trainer::Spell const& spell : classTrainer.GetSpells())
-                        if (listed.insert(spell.SpellId).second)
-                            spells.push_back(spell);
-            return Trainer::Trainer(0, Trainer::Type::Class, 0, "", std::move(spells));
-        }();
-        return trainer;
-    }
+    // A Wildcard Hero's trainer: its rows are already the next rank of each ability it rolled, so neither its
+    // class nor the core's rank chains (which miss Ascension's added ranks) decide what it may learn.
+    constexpr uint32 WILDCARD_RANK_TRAINER_ID = std::numeric_limits<uint32>::max();
+    Trainer::WildcardRankRows WildcardRankRowsOf = nullptr;
 
     bool RaisesProfessionAboveStep(SpellInfo const* spellInfo, uint16 maxStep)
     {
@@ -118,11 +76,9 @@ namespace Trainer
         trainerList.TrainerType = AsUnderlyingType(_type);
         trainerList.Greeting = GetGreeting(locale);
         trainerList.Spells.reserve(_spells.size());
-        bool const ranksOnly = TeachesRanksOnly(*this, player);
         for (Spell const& trainerSpell : _spells)
         {
-            if (ranksOnly ? !IsHigherRankOfKnownSpell(player, trainerSpell.SpellId)
-                          : !player->IsSpellFitByClassAndRace(trainerSpell.SpellId))
+            if (_trainerId != WILDCARD_RANK_TRAINER_ID && !player->IsSpellFitByClassAndRace(trainerSpell.SpellId))
                 continue;
 
             // The state is asked once and then decides both whether the row is written at all and what
@@ -242,8 +198,8 @@ namespace Trainer
             return SpellState::Known;
 
         // check race/class requirement
-        if (TeachesRanksOnly(*this, player) ? !IsHigherRankOfKnownSpell(player, trainerSpell->SpellId)
-                                            : !player->IsSpellFitByClassAndRace(trainerSpell->SpellId))
+        bool const wildcardRanks = _trainerId == WILDCARD_RANK_TRAINER_ID;
+        if (!wildcardRanks && !player->IsSpellFitByClassAndRace(trainerSpell->SpellId))
             return SpellState::Unavailable;
 
         // check skill requirement
@@ -281,14 +237,14 @@ namespace Trainer
                 knowsAllLearnedSpells = false;
 
             if (uint32 previousRankSpellId = sSpellMgr->GetPrevSpellInChain(spellEffectInfo.TriggerSpell))
-                if (!player->HasSpell(previousRankSpellId))
+                if (!wildcardRanks && !player->HasSpell(previousRankSpellId))
                     return SpellState::Unavailable;
         }
 
         if (!hasLearnSpellEffect)
         {
             if (uint32 previousRankSpellId = sSpellMgr->GetPrevSpellInChain(trainerSpell->SpellId))
-                if (!player->HasSpell(previousRankSpellId))
+                if (!wildcardRanks && !player->HasSpell(previousRankSpellId))
                     return SpellState::Unavailable;
         }
         else if (knowsAllLearnedSpells)
@@ -357,13 +313,22 @@ namespace Trainer
         _greeting[locale] = std::move(greeting);
     }
 
+    void SetWildcardRankRows(WildcardRankRows rows)
+    {
+        WildcardRankRowsOf = rows;
+    }
+
     Trainer* GetTrainerFor(Creature const* npc, Player const* player)
     {
         Trainer* trainer = sObjectMgr->GetTrainer(npc->GetEntry());
         bool const classTrainerUnit = trainer ? trainer->GetTrainerType() == Type::Class
                                               : npc->HasNpcFlag(UNIT_NPC_FLAG_TRAINER_CLASS);
-        if (classTrainerUnit && IsWildcardHero(player))
-            return &WildcardRankTrainer();
-        return trainer;
+        if (!classTrainerUnit || !WildcardRankRowsOf || !IsWildcardHero(player))
+            return trainer;
+
+        // ponytail: rebuilt for every request, one per thread; cache per player if the lists ever get large.
+        thread_local std::optional<Trainer> wildcardRanks;
+        wildcardRanks.emplace(WILDCARD_RANK_TRAINER_ID, Type::Class, 0, "", WildcardRankRowsOf(player));
+        return &*wildcardRanks;
     }
 }
