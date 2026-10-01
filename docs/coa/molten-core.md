@@ -702,3 +702,11 @@ evidence + source reads), fixed individually below. See `impl-G-mechanics.md` fo
    nothing. Summoned at Shazzrah's pre-teleport spot (captured before the engine applies Blink's own
    teleport effect), casts its one spell via SmartAI on spawn, and despawns a few seconds later. One
    per Blink -- no corpus evidence for more.
+8. **Sacrificial Chains spawns at a fixed point and pacifies the players it chains.** The chain now
+   spawns at `MajordomoSummonPos` (Majordomo's own battle spot, the burning ground in the middle of
+   his room) instead of under a random raid member. Chained players are teleported a couple of yards
+   next to the chain and, for the debuff's duration, can neither move, cast nor attack
+   (`spell_sacrificial_chains_sacrifice_coa`: root + `UNIT_FLAG_SILENCED` + `UNIT_FLAG_PACIFIED` on
+   apply, reverted on remove) -- neither 2108020 nor 2108023 carries any such effect in Spell.dbc, so
+   this reproduces live Ascension's measured 18-23s total cast-stop per chained player
+   (diag-G3.md) server-side. Killing the chain still frees its captives (unchanged `JustDied`).

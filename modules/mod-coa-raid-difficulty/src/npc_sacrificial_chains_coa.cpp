@@ -57,6 +57,17 @@
  * summons a new one on a median ~47-50s cycle starting a median 29s after the pull (both
  * measured, see boss_majordomo_executus.cpp - unchanged by this correction).
  *
+ * Corrected (diag-G3.md "Ascension evidence" #2): two independently-checked chained players show
+ * a hard stop on every cast/ability for essentially the exact Sacrifice debuff duration (22.7s
+ * and 18.3s gaps bounding ~20.3s/~17.1s chain lifetimes) - not just "fewer casts". Neither
+ * 2108020 nor 2108023 carries any mechanic/aura in Spell.dbc that would do this, so the evidence
+ * chain cannot see the real mechanism from a combat log alone. Per the user's own decision,
+ * spell_sacrificial_chains_sacrifice_coa (below) reproduces the effect server-side: on apply, the
+ * chained player is moved next to the chain and loses movement/casting/melee until the debuff is
+ * removed; on remove, all three are restored. Also corrected: the chain itself now spawns at a
+ * fixed point (Majordomo's own battle position, boss_majordomo_executus.cpp) instead of under a
+ * random player, so "next to the chain" is a stable spot, not wherever a random target stood.
+ *
  * Type 10 in the export ("non-combat/object-like") is real DBC data, unlike this row's
  * placeholder level/health/faction (hp-pools.md) - implemented passive, no melee: the raid
  * burns it down, it does not fight back.
@@ -69,6 +80,10 @@
 #include "Map.h"
 #include "ObjectAccessor.h"
 #include "ScriptedCreature.h"
+#include "SpellAuraEffects.h"
+#include "SpellAuras.h"
+#include "SpellScript.h"
+#include "SpellScriptLoader.h"
 #include "zg_coa_common.h"
 #include "../../../src/server/scripts/EasternKingdoms/BlackrockMountain/MoltenCore/molten_core.h"
 
@@ -111,8 +126,13 @@ namespace
             std::vector<Player*> targets = coa_zg::PlayersWithin(me, 40.0f);
             Acore::Containers::RandomResize(targets, cap);
 
+            float angle = 0.0f;
             for (Player* target : targets)
             {
+                Position chainedSpot = me->GetNearPosition(2.0f, angle);
+                target->NearTeleportTo(chainedSpot);
+                angle += float(M_PI * 2.0) / std::max<float>(float(targets.size()), 1.0f);
+
                 DoCast(target, SPELL_SACRIFICE_RENEW, true);
                 DoCast(target, SPELL_SACRIFICE, true);
                 _chained.push_back(target->GetGUID());
@@ -136,9 +156,43 @@ namespace
     private:
         GuidVector _chained;
     };
+
+    // Root + silence + pacify for the duration of Sacrifice (2108020): neither effect exists in
+    // Spell.dbc for this spell (see the file header), so this is applied/reverted server-side.
+    class spell_sacrificial_chains_sacrifice_coa : public AuraScript
+    {
+        PrepareAuraScript(spell_sacrificial_chains_sacrifice_coa);
+
+        void HandleApply(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
+        {
+            if (Unit* target = GetTarget())
+            {
+                target->SetControlled(true, UNIT_STATE_ROOT);
+                target->SetUnitFlag(UNIT_FLAG_SILENCED);
+                target->SetUnitFlag(UNIT_FLAG_PACIFIED);
+            }
+        }
+
+        void HandleRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
+        {
+            if (Unit* target = GetTarget())
+            {
+                target->SetControlled(false, UNIT_STATE_ROOT);
+                target->RemoveUnitFlag(UNIT_FLAG_SILENCED);
+                target->RemoveUnitFlag(UNIT_FLAG_PACIFIED);
+            }
+        }
+
+        void Register() override
+        {
+            AfterEffectApply += AuraEffectApplyFn(spell_sacrificial_chains_sacrifice_coa::HandleApply, EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
+            AfterEffectRemove += AuraEffectRemoveFn(spell_sacrificial_chains_sacrifice_coa::HandleRemove, EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
+        }
+    };
 }
 
 void AddCoaSacrificialChainsScripts()
 {
     RegisterMoltenCoreCreatureAI(npc_sacrificial_chains_coa);
+    RegisterSpellScript(spell_sacrificial_chains_sacrifice_coa);
 }

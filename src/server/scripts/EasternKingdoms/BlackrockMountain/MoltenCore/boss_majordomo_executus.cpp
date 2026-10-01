@@ -370,15 +370,13 @@ struct boss_majordomo : public BossAI
                         }
                         case EVENT_SACRIFICIAL_CHAINS:
                         {
-                            // CoA addition (rev_20260930_97): chain a random raid member's
-                            // position; npc_sacrificial_chains_coa.cpp owns the add's own
-                            // sacrifice/heal-to-full/Berserk behaviour.
-                            Position pos = me->GetPosition();
-                            if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 0.0f, true, false))
-                            {
-                                pos = target->GetPosition();
-                            }
-                            me->SummonCreature(NPC_SACRIFICIAL_CHAINS_COA, pos, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 5 * MINUTE * IN_MILLISECONDS);
+                            // Corrected (diag-G3.md "Ascension evidence" #2): the chain always
+                            // spawns at the same fixed point, the burning ground in the middle
+                            // of Majordomo's room (MajordomoSummonPos, his own battle position),
+                            // not on a random raid member -- npc_sacrificial_chains_coa.cpp owns
+                            // the add's own sacrifice/heal-to-full/Berserk/teleport-and-pacify
+                            // behaviour.
+                            me->SummonCreature(NPC_SACRIFICIAL_CHAINS_COA, MajordomoSummonPos, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 5 * MINUTE * IN_MILLISECONDS);
                             events.Repeat(47s);
                             break;
                         }
