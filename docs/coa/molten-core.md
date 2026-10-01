@@ -733,3 +733,12 @@ evidence + source reads), fixed individually below. See `impl-G-mechanics.md` fo
     else within 5 yd takes fire damage, based on vanilla Living Bomb's own explosion (20476, 3200)
     scaled by the same 1/1.44/1.88/2.32 ladder used everywhere else in this instance -- the user's
     coefficient choice, not a measured value for this spell.
+12. **A portal to Ragnaros' lair appears once Majordomo is defeated.** `go_ragnaros_portal_coa`
+    reuses the existing "Molten Core Instance Portal" template (181623, display 6450) rather than a
+    new one; a static spawn near Majordomo's post-defeat spot stays not-selectable
+    (`GO_FLAG_NOT_SELECTABLE`) until `DATA_MAJORDOMO_EXECUTUS` reaches `DONE`, toggled by the
+    instance script both live and on `OnGameObjectCreate` (so it is also usable immediately on
+    re-entering an instance where Majordomo is already dead). Using it teleports the player to a
+    designed point in front of the Ragnaros summon area (`RagnarosLairEntranceCoa`) -- pending live
+    `.gps` confirmation. The portal despawns only on instance reset, same as every other static MC
+    spawn.

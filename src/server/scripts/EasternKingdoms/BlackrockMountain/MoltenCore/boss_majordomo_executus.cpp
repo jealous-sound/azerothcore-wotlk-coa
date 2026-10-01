@@ -16,6 +16,8 @@
  */
 
 #include "CreatureScript.h"
+#include "GameObjectAI.h"
+#include "GameObjectScript.h"
 #include "ObjectAccessor.h"
 #include "Player.h"
 #include "ScriptedCreature.h"
@@ -120,6 +122,12 @@ Position const MajordomoRagnaros = { 848.933f, -812.875f, -229.601f, 4.046f };
 Position const MajordomoSummonPos = {759.542f, -1173.43f, -118.974f, 3.3048f };
 Position const MajordomoMoveRagPos = { 830.9636f, -814.7055f, -228.9733f, 0.0f };   // Position used at Ragnaros summoning event
 Position const RagnarosSummonPos = { 838.3082f, -831.4665f, -232.1853f, 2.199115f };
+
+// CoA addition: safe point in front of the Ragnaros summon area for the post-Majordomo portal
+// (go_ragnaros_portal_coa, instance_molten_core.cpp) to teleport players to -- a designed
+// midpoint between Majordomo's post-defeat spot (MajordomoRagnaros) and RagnarosSummonPos,
+// pending live .gps confirmation.
+Position const RagnarosLairEntranceCoa = { 835.0f, -820.0f, -230.0f, 2.2f };
 
 struct MajordomoAddData
 {
@@ -597,9 +605,29 @@ class spell_summon_ragnaros : public SpellScript
     }
 };
 
+// CoA addition: once Majordomo turns friendly, the static go_ragnaros_portal_coa
+// (instance_molten_core.cpp, GO_RAGNAROS_PORTAL_COA) near his post-defeat spot becomes usable;
+// using it teleports a player straight to the Ragnaros lair entrance instead of requiring the
+// gossip-triggered summon sequence.
+struct go_ragnaros_portal_coa : public GameObjectAI
+{
+    go_ragnaros_portal_coa(GameObject* go) : GameObjectAI(go) { }
+
+    bool GossipHello(Player* player, bool reportUse) override
+    {
+        if (reportUse || !player)
+            return false;
+
+        player->TeleportTo(me->GetMapId(), RagnarosLairEntranceCoa.GetPositionX(), RagnarosLairEntranceCoa.GetPositionY(),
+                            RagnarosLairEntranceCoa.GetPositionZ(), RagnarosLairEntranceCoa.GetOrientation());
+        return true;
+    }
+};
+
 void AddSC_boss_majordomo()
 {
     RegisterMoltenCoreCreatureAI(boss_majordomo);
+    RegisterMoltenCoreGameObjectAI(go_ragnaros_portal_coa);
 
     // Spells
     RegisterSpellScript(spell_hate_to_zero);

@@ -208,6 +208,15 @@ struct instance_molten_core : public InstanceScript
                     ragnaros->AI()->SetGUID(go->GetGUID(), GO_LAVA_BURST);
                 break;
             }
+            case GO_RAGNAROS_PORTAL_COA:
+            {
+                _ragnarosPortalCoaGUID = go->GetGUID();
+                if (GetBossState(DATA_MAJORDOMO_EXECUTUS) == DONE)
+                    go->RemoveGameObjectFlag(GO_FLAG_NOT_SELECTABLE);
+                else
+                    go->SetGameObjectFlag(GO_FLAG_NOT_SELECTABLE);
+                break;
+            }
         }
     }
 
@@ -246,6 +255,9 @@ struct instance_molten_core : public InstanceScript
                 cache->SetRespawnTime(7 * DAY);
                 cache->SetLootRecipient(instance);
             }
+
+            if (GameObject* portal = instance->GetGameObject(_ragnarosPortalCoaGUID))
+                portal->RemoveGameObjectFlag(GO_FLAG_NOT_SELECTABLE);
         }
         else if (bossId == DATA_GARR)
         {
@@ -408,6 +420,11 @@ private:
     ObjectGuid _garrGUID;
     GuidSet _garrFireswornGUIDs;
     ObjectGuid _magmadarGUID;
+
+    // CoA addition: portal to Ragnaros' lair, spawned alongside Majordomo and only usable once
+    // he is defeated -- not selectable until DATA_MAJORDOMO_EXECUTUS reaches DONE, on first load
+    // or on this visit's own defeat.
+    ObjectGuid _ragnarosPortalCoaGUID;
 };
 
 void AddSC_instance_molten_core()
