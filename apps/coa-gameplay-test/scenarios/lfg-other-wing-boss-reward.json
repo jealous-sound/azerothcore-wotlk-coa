@@ -182,6 +182,51 @@
       "quest": 24886,
       "equals": 1,
       "within_ms": 5000
+    },
+    {
+      "action": "assert",
+      "label": "p1 holds the Adventurer's Cache from the completion",
+      "actor": "p1",
+      "metric": "item_count",
+      "item": 1397886,
+      "equals": 1,
+      "within_ms": 5000
+    },
+    {
+      "action": "assert",
+      "label": "p2 holds the Adventurer's Cache from the completion",
+      "actor": "p2",
+      "metric": "item_count",
+      "item": 1397886,
+      "equals": 1,
+      "within_ms": 5000
+    },
+    {
+      "action": "assert",
+      "label": "p3 holds the Adventurer's Cache from the completion",
+      "actor": "p3",
+      "metric": "item_count",
+      "item": 1397886,
+      "equals": 1,
+      "within_ms": 5000
+    },
+    {
+      "action": "assert",
+      "label": "p4 holds the Adventurer's Cache from the completion",
+      "actor": "p4",
+      "metric": "item_count",
+      "item": 1397886,
+      "equals": 1,
+      "within_ms": 5000
+    },
+    {
+      "action": "assert",
+      "label": "p5 holds the Adventurer's Cache from the completion",
+      "actor": "p5",
+      "metric": "item_count",
+      "item": 1397886,
+      "equals": 1,
+      "within_ms": 5000
     }
   ]
 }
