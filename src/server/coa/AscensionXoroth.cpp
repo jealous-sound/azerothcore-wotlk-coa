@@ -162,6 +162,12 @@ void Blood(Player* player)
         Unleash(player, player, .5f);
     Refresh(player);
 }
+void SetRemainingUses(Aura* aura, uint8 uses)
+{
+    aura->SetScriptValue(aura->GetId(), uses);
+    aura->SetCharges(uses);
+    aura->SetUsingCharges(false);
+}
 void Refresh(Player* player)
 {
     auto& state = State(player);
