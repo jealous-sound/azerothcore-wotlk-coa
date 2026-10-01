@@ -675,3 +675,7 @@ evidence + source reads), fixed individually below. See `impl-G-mechanics.md` fo
    (boss_garr.cpp) filters the native area-target list down to melee range (3 yd past
    `GetMeleeRange`, which already includes combat reach) after selection, the same
    filter-after-select idiom `spell_magmadar_head_lava_bomb` already uses.
+4. **Shazzrah's Arcane Force Nova (2105612 -> 2105617) wired through Damage Info.** 2105617 was a DBC
+   placeholder (1 damage); the real per-difficulty amounts live in "Arcane Force Nova - Hidden Area
+   Damage" (2105613-16). Bound via `coa_spell_damage_info`/`spell_coa_damage_info_hit`, the same
+   mechanism as rev_20260930_83's 12 pairs.
