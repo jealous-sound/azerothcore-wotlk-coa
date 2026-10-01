@@ -35,7 +35,9 @@ enum ChronomancerSecondarySpells : uint32
     SPELL_INFINITE_KEEPER_TRIGGER = 806314,
     SPELL_SHIFTING_CHAOS = 706059,
     SPELL_SHIFTING_CHAOS_BLAST = 801269,
-    SPELL_GRAVITY_BOMB_EXPLOSION = 801282
+    SPELL_GRAVITY_BOMB_EXPLOSION = 801282,
+    SPELL_TEMPORAL_ANOMALY = 806315,
+    SPELL_TEMPORAL_ANOMALY_HEAL = 807799
 };
 
 constexpr uint32 ChronomancerSpellFamily = 28;
@@ -303,6 +305,59 @@ class aura_ascension_echo_duration : public AuraScript
     }
 };
 
+class aura_ascension_temporal_anomaly : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_temporal_anomaly);
+    uint64 _absorbed = 0;
+
+    bool Validate(SpellInfo const* info) override
+    {
+        return info->Id == SPELL_TEMPORAL_ANOMALY && info->SpellFamilyName == ChronomancerSpellFamily &&
+            info->Effects[EFFECT_0].IsAura(SPELL_AURA_SCHOOL_ABSORB) &&
+            ValidateSpellInfo({SPELL_TEMPORAL_ANOMALY_HEAL});
+    }
+
+    bool Load() override
+    {
+        return GetCaster() == GetUnitOwner() && SecondaryChronomancer(GetCaster());
+    }
+
+    void Amount(AuraEffect const*, int32& amount, bool& recalculate)
+    {
+        amount = -1;
+        recalculate = false;
+    }
+
+    void Absorb(AuraEffect*, DamageInfo& damage, uint32& amount)
+    {
+        uint32 const percent = uint32(std::clamp(GetSpellInfo()->Effects[EFFECT_0].MiscValueB, 0, 100));
+        amount = uint32(uint64(damage.GetDamage()) * percent / 100);
+    }
+
+    void Store(AuraEffect*, DamageInfo&, uint32& amount)
+    {
+        _absorbed = std::min<uint64>(_absorbed + amount, std::numeric_limits<int32>::max());
+    }
+
+    void Release(AuraEffect const* effect, AuraEffectHandleModes)
+    {
+        Unit* owner = GetTarget();
+        if (GetTargetApplication()->GetRemoveMode() == AURA_REMOVE_BY_EXPIRE && owner->IsAlive() && _absorbed)
+            owner->CastCustomSpell(SPELL_TEMPORAL_ANOMALY_HEAL, SPELLVALUE_BASE_POINT0,
+                int32(_absorbed), owner, TRIGGERED_FULL_MASK, nullptr, effect);
+    }
+
+    void Register() override
+    {
+        DoEffectCalcAmount += AuraEffectCalcAmountFn(aura_ascension_temporal_anomaly::Amount,
+            EFFECT_0, SPELL_AURA_SCHOOL_ABSORB);
+        OnEffectAbsorb += AuraEffectAbsorbFn(aura_ascension_temporal_anomaly::Absorb, EFFECT_0);
+        AfterEffectAbsorb += AuraEffectAbsorbFn(aura_ascension_temporal_anomaly::Store, EFFECT_0);
+        AfterEffectRemove += AuraEffectRemoveFn(aura_ascension_temporal_anomaly::Release,
+            EFFECT_0, SPELL_AURA_SCHOOL_ABSORB, AURA_EFFECT_HANDLE_REAL);
+    }
+};
+
 class chronomancer_secondary_casts : public AllSpellScript
 {
 public:
@@ -344,6 +399,16 @@ public:
         if (info->Id == SPELL_GRAVITY_BOMB_EXPLOSION && info->SpellFamilyName == ChronomancerSpellFamily &&
             info->DmgClass == SPELL_DAMAGE_CLASS_MAGIC && info->Effects[EFFECT_0].Effect == SPELL_EFFECT_SCHOOL_DAMAGE)
             info->UseRangedAttackPowerForDamage = true;
+        if (info->Id == SPELL_TEMPORAL_ANOMALY_HEAL && info->SpellFamilyName == ChronomancerSpellFamily &&
+            info->Effects[EFFECT_0].Effect == SPELL_EFFECT_HEAL)
+        {
+            info->AttributesEx2 |= SPELL_ATTR2_CANT_CRIT;
+            info->AttributesEx3 |= SPELL_ATTR3_IGNORE_CASTER_MODIFIERS;
+            info->AttributesEx4 |= SPELL_ATTR4_IGNORE_DAMAGE_TAKEN_MODIFIERS;
+            info->AttributesEx6 |= SPELL_ATTR6_IGNORE_HEALTH_MODIFIERS;
+            info->AscensionInheritsResolvedAmount = true;
+            info->Effects[EFFECT_0].BonusMultiplier = 0.0f;
+        }
         if (info->Id == SPELL_MELT_COPY && info->SpellFamilyName == 28)
         {
             info->AttributesEx2 |= SPELL_ATTR2_CANT_CRIT;
@@ -387,4 +452,5 @@ void AddSC_AscensionChronomancerSecondary()
     RegisterSpellScript(aura_ascension_ahead_of_the_game);
     RegisterSpellScript(aura_ascension_ripple_release);
     RegisterSpellScript(aura_ascension_echo_duration);
+    RegisterSpellScript(aura_ascension_temporal_anomaly);
 }
