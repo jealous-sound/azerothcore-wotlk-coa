@@ -112,8 +112,6 @@ enum Misc
     PHASE_SUBMERGED                         = 3,        // events which are executed while Ragnaros is submerged (not visible)
 };
 
-constexpr float DEATH_ORIENTATION = 4.0f;
-
 // Ascension video evidence (MC_PV Video 3, CoA): Ragnaros is already at 50% health when he
 // becomes attackable, on every difficulty (Normal 20.3M/17 players = 50% of 40.7M; Ascended
 // 60M/17 = 50% of 120M). coa_boss_flex's hp_d0..d3 hold his full (100%) pool; this constant is
@@ -224,7 +222,6 @@ struct boss_ragnaros : public BossAI
     {
         _JustDied();
         extraEvents.Reset();
-        me->SetFacingTo(DEATH_ORIENTATION);
     }
 
     void KilledUnit(Unit* victim) override
