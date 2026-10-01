@@ -768,21 +768,13 @@ evidence + source reads), fixed individually below. See `impl-G-mechanics.md` fo
    once the sons die) is unchanged, only the trigger condition and the 90s->60s safety-ceiling
    duration. Both thresholds rest on only 2 independent kills -- a strong first estimate, not a final
    number.
-10. **Golemagg's Massive Stomp drops a ground-fire puddle, reusing Magmadar's.** Massive Stomp
-    (2105817) is a tank-only dummy+stun with no damage or area component in the DBC. Per the user's
-    own memory of live CoA play, checked first against a Snit's WeakAura hit ("Golemagg Rain of
-    fire", spell id 500263): that id is "Standard of Rallying" in Spell.dbc, an unrelated
-    summon+trigger spell, not a ground/persistent-area fire effect, so it is not usable -- the
-    implementation falls back to Magmadar's own ground-fire puddle (2105366, boss_magmadar_coa.cpp)
-    under a random nearby player, cast from Golemagg himself (the idiom that already works for
-    Magmadar's heads). Designed from player memory, not corpus-evidenced.
-11. **Baron Geddon's Living Bomb explodes on natural expiry.** 2105702-05 (the carrier aura) had no
+10. **Baron Geddon's Living Bomb explodes on natural expiry.** 2105702-05 (the carrier aura) had no
     explosion anywhere in the DBC kit. Per the user's own memory, on `AURA_REMOVE_BY_EXPIRE` only
     (not dispel, not the carrier's death) the carrier now gets a light vertical launch and everyone
     else within 5 yd takes fire damage, based on vanilla Living Bomb's own explosion (20476, 3200)
     scaled by the same 1/1.44/1.88/2.32 ladder used everywhere else in this instance -- the user's
     coefficient choice, not a measured value for this spell.
-12. **A portal to Ragnaros' lair appears once Majordomo is defeated.** `go_ragnaros_portal_coa`
+11. **A portal to Ragnaros' lair appears once Majordomo is defeated.** `go_ragnaros_portal_coa`
     reuses the existing "Molten Core Instance Portal" template (181623, display 6450) rather than a
     new one; a static spawn near Majordomo's post-defeat spot stays not-selectable
     (`GO_FLAG_NOT_SELECTABLE`) until `DATA_MAJORDOMO_EXECUTUS` reaches `DONE`, toggled by the

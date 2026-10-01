@@ -23,7 +23,6 @@ void AddCoaSonOfFlameScripts();
 void AddCoaSulfuronDisciplesScripts();
 void AddCoaLucifronScripts();
 void AddCoaMagmadarScripts();
-void AddCoaGolemaggScripts();
 void AddCoaGeddonScripts();
 void AddCoaShazzrahScripts();
 void AddCoaDrakeScripts();
@@ -70,7 +69,6 @@ void Addmod_coa_raid_difficultyScripts()
     AddCoaSulfuronDisciplesScripts();
     AddCoaLucifronScripts();
     AddCoaMagmadarScripts();
-    AddCoaGolemaggScripts();
     AddCoaGeddonScripts();
     AddCoaShazzrahScripts();
     AddCoaDrakeScripts();
