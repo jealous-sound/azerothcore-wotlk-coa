@@ -80,6 +80,10 @@
 #include <cmath>
 #include <limits>
 
+// Ascension's caster state for "only usable after the target dodges" (its Overpower and the Chaser strikes),
+// which it uses instead of the warrior's combo point.
+constexpr AuraStateType ASCENSION_AURA_STATE_TARGET_DODGED = AuraStateType(24);
+
 float baseMoveSpeed[MAX_MOVE_TYPE] =
 {
     2.5f,                  // MOVE_WALK
@@ -658,6 +662,7 @@ void Unit::Update(uint32 p_time)
     ModifyAuraState(AURA_STATE_HEALTHLESS_20_PERCENT, IsAlive() ? HealthBelowPct(20) : false);
     ModifyAuraState(AURA_STATE_HEALTHLESS_35_PERCENT, IsAlive() ? HealthBelowPct(35) : false);
     ModifyAuraState(AURA_STATE_HEALTH_ABOVE_75_PERCENT, IsAlive() ? HealthAbovePct(75) : false);
+    ModifyAuraState(AuraStateType(ASCENSION_TARGET_HEALTH_ABOVE_80_PERCENT), IsAlive() ? HealthAbovePct(80) : false);
 
     UpdateSplineMovement(p_time);
     GetMotionMaster()->UpdateMotion(p_time);
@@ -13797,6 +13802,11 @@ void Unit::ProcSkillsAndReactives(bool isVictim, Unit* target, uint32 procFlag, 
                         AddComboPoints(target, 1);
                         StartReactiveTimer(REACTIVE_OVERPOWER);
                     }
+                    if (IsPlayer())
+                    {
+                        ModifyAuraState(ASCENSION_AURA_STATE_TARGET_DODGED, true);
+                        StartReactiveTimer(REACTIVE_OVERPOWER);
+                    }
                 }
 
                 // Wolverine Bite
@@ -14328,6 +14338,7 @@ void Unit::UpdateReactives(uint32 p_time)
                     {
                         ClearComboPoints();
                     }
+                    ModifyAuraState(ASCENSION_AURA_STATE_TARGET_DODGED, false);
                     break;
                 case REACTIVE_WOLVERINE_BITE:
                     if (IsHunterPet())
