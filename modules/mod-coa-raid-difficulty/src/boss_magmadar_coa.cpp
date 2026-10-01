@@ -13,12 +13,21 @@
  * random target, SpellDifficulty group 2100 - the "fire puddle" the body's
  * own vanilla Lava Bomb only approximates).
  *
- * The body itself keeps its stock timers (Frenzy/Panic/Lava Bomb, all
- * vanilla ids) unchanged - no log ever caught them being wrong, and #5120
- * only says the body never casts its *own* kit (Fierce Blow, Bellowing
- * Roar, Ancient Despair/Hysteria/Dread/Fury), which stays unused here for
- * the same reason Ragnaros's unmatched kit entries stay unused: no log
- * evidence to place them on a timer.
+ * The body itself keeps its stock Frenzy/Lava Bomb timers (vanilla ids)
+ * unchanged - no log ever caught them being wrong, and #5120 only says the
+ * body never casts its *own* kit (Fierce Blow, Bellowing Roar, Ancient
+ * Despair/Hysteria/Dread/Fury), which stays unused here for the same reason
+ * Ragnaros's unmatched kit entries stay unused: no log evidence to place
+ * them on a timer.
+ *
+ * Panic is the one body cast the corpus does measure (research-H3.md): the
+ * body's real fear is Ascension's own Panic (2105309, self+area
+ * SPELL_AURA_MOD_FEAR, SpellDifficultyId 0 - one id for every difficulty),
+ * not the vanilla donor id (19408) this script ran before. 157-196 aura
+ * applications across the 54-log corpus, caster GUID matching Magmadar's
+ * body, repeat interval a flat ~40s (40.0/40.1/40.2/39.8/39.9/40.0/40.1/
+ * 40.0/40.1s between nine consecutive casts) with no measured first-cast
+ * offset, so only the repeat is corpus-driven below.
  *
  * The heads share Magmadar's own health pool (MC_PV video: both heads always read the same
  * figure as the body, "PV = Magmadar") - a head takes damage like any other creature, but its
@@ -51,7 +60,7 @@ namespace
     {
         // Body - stock, unchanged (measured: never seen casting anything else)
         SPELL_FRENZY_COA                = 19451,
-        SPELL_PANIC_COA                 = 19408,
+        SPELL_PANIC_COA                 = 2105309, // measured (research-H3.md); vanilla donor was 19408
         SPELL_LAVA_BOMB_MELEE_COA       = 19411,
         SPELL_LAVA_BOMB_RANGED_COA      = 20474,
 
@@ -126,7 +135,7 @@ namespace
                 case EVENT_PANIC_COA:
                 {
                     DoCastVictim(SPELL_PANIC_COA);
-                    events.Repeat(31s, 38s);
+                    events.Repeat(40s); // measured (research-H3.md): flat ~40s, no jitter
                     break;
                 }
                 case EVENT_LAVA_BOMB_MELEE_COA:

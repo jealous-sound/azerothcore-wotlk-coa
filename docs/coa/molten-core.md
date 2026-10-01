@@ -837,9 +837,12 @@ evidence + source reads), fixed individually below. See `impl-G-mechanics.md` fo
 2. **Ancient Core Hound (11673) fears on Mythic and Ascended only, modeled on Magmadar's own fear.**
    Per the user's framing ("works like Magmadar's fear"), `.agents/plans/mc-restoration/research-H3.md`
    traced what Magmadar's fear actually is in live play: the body casts Panic (2105309, confirmed
-   `SPELL_AURA_MOD_FEAR`, self + area-enemy target in `Spell.dbc`) roughly every 40s flat, 157-196 times
-   across the 54-log corpus — not the vanilla donor id (19408) `boss_magmadar_coa.cpp`'s C++ still runs
-   unmodified (a separate, pre-existing gap, not fixed here), and not the "Bellowing Roar"/"Ancient Dread/
+   `SPELL_AURA_MOD_FEAR`, self + area-enemy target in `Spell.dbc`, `SpellDifficultyId` 0 so no
+   per-difficulty variant exists) roughly every 40s flat, 157-196 times across the 54-log corpus — not the
+   vanilla donor id (19408) `boss_magmadar_coa.cpp`'s C++ used to run. That gap is now fixed in the same
+   script: `SPELL_PANIC_COA` is 2105309 and the body's `EVENT_PANIC_COA` repeats on a flat 40s (first cast
+   still at the previous, unmeasured 9500ms offset), on every difficulty (Normal through Ascended, the body
+   script is shared). Not the "Bellowing Roar"/"Ancient Dread/
    Fury/Despair/Hysteria" family (2105308/2105310-13) the task brief initially named, which exist as catalog
    ids but never fire in any of the 54 logs. The hound's own kit has no fear anywhere: its action-type-88
    random pool (now decoded, see the trash table above) is Ground Stomp/Cauterizing Flames/Withering Heat/
