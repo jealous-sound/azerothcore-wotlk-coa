@@ -32,6 +32,7 @@
 #include "Log.h"
 #include "LocalLevelScaling.h"
 #include "LootMgr.h"
+#include "InstanceSaveMgr.h"
 #include "Map.h"
 #include "MapMgr.h"
 #include "ObjectAccessor.h"
@@ -2778,6 +2779,13 @@ private:
             auto const& packets = _actors.at(step.get<std::string>("actor")).extensionPackets;
             auto const found = packets.find(uint16(step.get<uint32>("opcode")));
             return found == packets.end() ? 0.0 : double(found->second);
+        }
+        if (metric == "raid_reset_period")
+        {
+            uint32 const mapId = step.get<uint32>("id");
+            Difficulty const difficulty = Difficulty(step.get<uint32>("index", 0));
+            return double(sInstanceSaveMgr->GetExtendedResetTimeFor(mapId, difficulty) -
+                sInstanceSaveMgr->GetResetTimeFor(mapId, difficulty));
         }
         if (metric == "server_packet_contains")
         {

@@ -88,7 +88,7 @@ METRICS = {
     'pet_aura_amount', 'pet_aura_amplitude_ms', 'pet_max_health', 'pet_attack_power', 'pet_run_speed_rate',
     'distance', 'spell_proc_count', 'temporary_spell_replacement', 'creature_loot_quality_rate',
     'quest_menu_items', 'quest_menu_has', 'player_setting', 'server_packets', 'server_packet_contains',
-    'player_class', 'cached_class', 'at_login_flag',
+    'player_class', 'cached_class', 'at_login_flag', 'raid_reset_period',
 }
 PLAYER_STAT_METRICS = {
     'spell_go_count',
@@ -599,6 +599,9 @@ def validate(scenario):
                 number(step.get('opcode'), f'{where}.opcode', 1, 0xFFFF, True)
             if metric == 'at_login_flag':
                 number(step.get('id'), f'{where}.id', 1, 0xFFFF, True)
+            if metric == 'raid_reset_period':
+                number(step.get('id'), f'{where}.id', 1, 0xFFFF, True)
+                number(step.get('index', 0), f'{where}.index', 0, 3, True)
             if metric == 'server_packet_contains':
                 require(isinstance(step.get('text'), str) and step['text'].strip(),
                         f'{where}: metric needs the text to look for')
