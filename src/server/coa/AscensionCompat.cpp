@@ -116,6 +116,7 @@
 #include <set>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -133,6 +134,8 @@ constexpr uint16 CMSG_CUSTOM_ASCENSION_POINT_SPEND_REQUEST = 0x0523;
 constexpr uint16 CMSG_EXTENSION_INITIALIZED = 0x0561;
 constexpr uint16 CMSG_CREATURE_QUERY_BULK = 0x061A;
 constexpr uint16 CMSG_ITEM_QUERY_BULK = 0x061B;
+constexpr uint16 SMSG_PATCH_APPEARANCES = 0x0692;
+constexpr uint16 SMSG_PATCH_ITEM_APPEARANCES = 0x0693;
 constexpr uint16 CMSG_APPLY_APPEARANCES = 0x0697;
 constexpr uint16 SMSG_APPLY_APPEARANCES_RESULT = 0x0698;
 constexpr uint16 SMSG_APPEARANCE_COLLECTION_INFO = 0x0699;
@@ -213,6 +216,8 @@ constexpr ExtensionOpcodeIdentity EXTENSION_OPCODES[] = {
     {0x05A1, "CMSG_CHALLENGE_QUERY_FAILURE"},
     {CMSG_ITEM_QUERY_BULK, "CMSG_ITEM_QUERY_BULK"},
     {0x0667, "CMSG_SET_LEVEL_SCALING"},
+    {SMSG_PATCH_APPEARANCES, "SMSG_PATCH_APPEARANCES"},
+    {SMSG_PATCH_ITEM_APPEARANCES, "SMSG_PATCH_ITEM_APPEARANCES"},
     {CMSG_APPLY_APPEARANCES, "CMSG_APPLY_APPEARANCES"},
     {SMSG_APPLY_APPEARANCES_RESULT, "SMSG_APPLY_APPEARANCES_RESULT"},
     {SMSG_APPEARANCE_COLLECTION_INFO, "SMSG_APPEARANCE_COLLECTION_INFO"},
@@ -3171,6 +3176,8 @@ public:
     _vanityItems.clear();
     _allAppearanceIds.clear();
     _allVanityItemIds.clear();
+    _woodworkingAppearancePatches.clear();
+    _woodworkingItemAppearancePatches.clear();
 
     ClientDBC appearances;
     bool appearancesLoaded =
@@ -3195,13 +3202,17 @@ public:
     ClientDBC itemAppearances;
     bool itemAppearancesLoaded =
         itemAppearances.Load(GetClientDBCPath("ItemAppearances.dbc"), 3);
+    uint32 lastItemAppearanceRecordId = 0;
     for (uint32 row = 0; row < itemAppearances.GetRecordCount(); ++row) {
       ClientDBC::Record record = itemAppearances.GetRecord(row);
+      lastItemAppearanceRecordId = std::max(lastItemAppearanceRecordId, record.GetUInt32(0));
       uint32 itemId = record.GetUInt32(1);
       uint32 appearanceId = record.GetUInt32(2);
       if (itemId && appearanceId)
         _itemAppearances[itemId] = appearanceId;
     }
+    if (appearancesLoaded && itemAppearancesLoaded)
+        LoadWoodworkingAppearances(lastItemAppearanceRecordId);
 
     ClientDBC itemSets;
     bool itemSetsLoaded = itemSets.Load(GetClientDBCPath("ItemSet.dbc"), 35);
@@ -3302,6 +3313,8 @@ public:
       InitializeRiding(player);
       return;
     }
+
+    SendWoodworkingAppearanceCatalog(player);
 
     std::shared_ptr<PlayerCollectionState> state = TakeLoginState(player);
     if (!state)
@@ -3823,6 +3836,114 @@ public:
   }
 
 private:
+    void LoadWoodworkingAppearances(uint32 lastMappingId)
+    {
+        using VisualKey = std::tuple<uint32, uint32, uint32, uint32>;
+        auto const visualKey = [](ItemTemplate const& item)
+        {
+            return VisualKey{item.DisplayInfoID, item.Class, item.SubClass, item.InventoryType};
+        };
+        std::map<VisualKey, uint32> visualAppearances;
+        for (auto const& [id, appearance] : _appearances)
+        {
+            ItemTemplate const* item = sObjectMgr->GetItemTemplate(appearance.SourceItem);
+            if (!item || !IsEquipmentAppearance(appearance))
+                continue;
+            auto [mapping, inserted] = visualAppearances.try_emplace(visualKey(*item), id);
+            if (!inserted)
+                mapping->second = std::min(mapping->second, id);
+        }
+
+        std::set<uint32> craftedItems;
+        for (SkillLineAbilityEntry const* ability : GetSkillLineAbilitiesBySkillLine(SKILL_WOODWORKING))
+        {
+            SpellInfo const* spell = ability ? sSpellMgr->GetSpellInfo(ability->Spell) : nullptr;
+            if (!spell)
+                continue;
+            for (SpellEffectInfo const& effect : spell->Effects)
+                if (effect.Effect == SPELL_EFFECT_CREATE_ITEM || effect.Effect == SPELL_EFFECT_CREATE_ITEM_2)
+                    craftedItems.insert(effect.ItemType);
+        }
+
+        for (uint32 itemId : craftedItems)
+        {
+            ItemTemplate const* item = sObjectMgr->GetItemTemplate(itemId);
+            if (!item || _itemAppearances.contains(itemId) ||
+                (item->Class != ITEM_CLASS_WEAPON && item->Class != ITEM_CLASS_ARMOR))
+                continue;
+
+            uint32 primaryCategory = 0;
+            uint32 secondaryCategory = 0;
+            switch (item->InventoryType)
+            {
+                case INVTYPE_HEAD:
+                    primaryCategory = 1;
+                    break;
+                case INVTYPE_RANGED:
+                case INVTYPE_RANGEDRIGHT:
+                case INVTYPE_THROWN:
+                    primaryCategory = 12;
+                    break;
+                case INVTYPE_2HWEAPON:
+                case INVTYPE_WEAPON:
+                    primaryCategory = 13;
+                    secondaryCategory = 14;
+                    break;
+                case INVTYPE_SHIELD:
+                case INVTYPE_HOLDABLE:
+                    primaryCategory = 14;
+                    break;
+                default:
+                    continue;
+            }
+
+            if (lastMappingId == std::numeric_limits<uint32>::max())
+                break;
+
+            auto const key = visualKey(*item);
+            auto visual = visualAppearances.find(key);
+            uint32 appearanceId = 0;
+            if (visual != visualAppearances.end())
+                appearanceId = visual->second;
+            else
+            {
+                if (_appearances.contains(itemId))
+                {
+                    LOG_WARN("coa", "Woodworking item {} cannot use an existing unrelated appearance ID", itemId);
+                    continue;
+                }
+                appearanceId = itemId;
+                _appearances.emplace(appearanceId, AppearanceInfo{itemId, primaryCategory, secondaryCategory});
+                _allAppearanceIds.push_back(appearanceId);
+                visualAppearances.emplace(key, appearanceId);
+                _woodworkingAppearancePatches.push_back({appearanceId, itemId, 0, itemId, 0,
+                    primaryCategory, secondaryCategory, 0, itemId, 0, 0, 100, 1, 1, 1, 1, 1});
+            }
+
+            _itemAppearances.emplace(itemId, appearanceId);
+            _woodworkingItemAppearancePatches.push_back({++lastMappingId, itemId, appearanceId});
+        }
+    }
+
+    void SendWoodworkingAppearanceCatalog(Player* player)
+    {
+        for (auto const& row : _woodworkingAppearancePatches)
+        {
+            WorldPacket packet(SMSG_PATCH_APPEARANCES, 17 * sizeof(uint32) + sizeof("APPEARANCE_DISPLAY_TYPE_ITEM"));
+            for (uint32 field : row)
+                packet << field;
+            packet << "APPEARANCE_DISPLAY_TYPE_ITEM";
+            player->GetSession()->SendPacket(&packet);
+        }
+        for (auto const& row : _woodworkingItemAppearancePatches)
+        {
+            WorldPacket packet(SMSG_PATCH_ITEM_APPEARANCES, 3 * sizeof(uint32));
+            for (uint32 field : row)
+                packet << field;
+            player->GetSession()->SendPacket(&packet);
+        }
+    }
+
   void UnlockLocalAppearanceCatalog(Player *player,
                                     PlayerCollectionState &state) {
     if (!ascensionCompatConfig.GetConfigValue<bool>(
@@ -4715,6 +4836,8 @@ private:
   std::unordered_map<uint32, VanityInfo> _vanityItems;
   std::vector<uint32> _allAppearanceIds;
   std::vector<uint32> _allVanityItemIds;
+    std::vector<std::array<uint32, 17>> _woodworkingAppearancePatches;
+    std::vector<std::array<uint32, 3>> _woodworkingItemAppearancePatches;
 
   std::mutex _packetMutex;
   std::unordered_map<uint32, std::deque<WorldPacket>> _pendingPackets;
