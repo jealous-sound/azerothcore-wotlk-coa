@@ -103,6 +103,10 @@ enum Misc
     FACTION_MAJORDOMO_FRIENDLY              = 1080,
     SUMMON_GROUP_ADDS                       = 1,
 
+    // CoA addition: the encounter completes once Majordomo himself drops to this health floor
+    // after all 8 adds are dead, not the instant the last add dies (user's own CoA play memory).
+    MAJORDOMO_DEFEAT_HEALTH_PCT             = 20,
+
     // Points
     POINT_RAGNAROS_SUMMON                   = 1,
 
@@ -197,6 +201,7 @@ struct boss_majordomo : public BossAI
         events.Reset();
         scheduler.CancelAll();
         aliveMinionsGUIDS.clear();
+        _allAddsDefeated = false;
 
         if (instance->GetBossState(DATA_MAJORDOMO_EXECUTUS) != DONE)
         {
@@ -292,18 +297,32 @@ struct boss_majordomo : public BossAI
             else if (!remainingAdds)
             {
                 static_minionsGUIDS.clear();
+                _allAddsDefeated = true;
 
-                instance->SetBossState(DATA_MAJORDOMO_EXECUTUS, DONE);
-                events.CancelEventGroup(PHASE_COMBAT);
-                me->GetMap()->UpdateEncounterState(ENCOUNTER_CREDIT_KILL_CREATURE, me->GetEntry(), me);
-                me->SetImmuneToAll(true);
-                me->SetFaction(FACTION_MAJORDOMO_FRIENDLY);
-                EnterEvadeMode();
-                Talk(SAY_DEFEAT);
+                scheduler.Schedule(500ms, [this](TaskContext context)
+                {
+                    if (me->GetHealthPct() <= float(MAJORDOMO_DEFEAT_HEALTH_PCT))
+                    {
+                        CompleteEncounter();
+                        return;
+                    }
+                    context.Repeat(500ms);
+                });
                 return;
             }
             DoCastAOE(SPELL_ENCOURAGEMENT);
         }
+    }
+
+    void CompleteEncounter()
+    {
+        instance->SetBossState(DATA_MAJORDOMO_EXECUTUS, DONE);
+        events.CancelEventGroup(PHASE_COMBAT);
+        me->GetMap()->UpdateEncounterState(ENCOUNTER_CREDIT_KILL_CREATURE, me->GetEntry(), me);
+        me->SetImmuneToAll(true);
+        me->SetFaction(FACTION_MAJORDOMO_FRIENDLY);
+        EnterEvadeMode();
+        Talk(SAY_DEFEAT);
     }
 
     void JustReachedHome() override
@@ -319,10 +338,21 @@ struct boss_majordomo : public BossAI
 
     void DamageTaken(Unit* /*attacker*/, uint32& damage, DamageEffectType /*dmgType*/, SpellSchoolMask /*school*/) override
     {
-        if (events.IsInPhase(PHASE_COMBAT) && me->GetHealth() <= damage)
+        if (!events.IsInPhase(PHASE_COMBAT))
+            return;
+
+        if (!_allAddsDefeated)
         {
-            damage = 0;
+            if (me->GetHealth() <= damage)
+                damage = 0;
+            return;
         }
+
+        // Solo phase (all adds dead): killable down to the floor, not immune outright - the
+        // recurring health check in SummonedCreatureDies completes the encounter once he gets there.
+        uint32 const floor = me->CountPctFromMaxHealth(MAJORDOMO_DEFEAT_HEALTH_PCT);
+        if (me->GetHealth() <= floor + damage)
+            damage = me->GetHealth() > floor ? me->GetHealth() - floor : 0;
     }
 
     void UpdateAI(uint32 diff) override
@@ -563,6 +593,12 @@ private:
     GuidSet static_minionsGUIDS;    // contained data should be changed on encounter completion
     GuidSet aliveMinionsGUIDS;      // used for calculations
     std::unordered_map<uint32, MajordomoAddData> majordomoSummonsData;
+
+    // CoA addition: he no longer yields the instant his last add dies (user report, live CoA memory
+    // of a real "fight him down" phase). Set once all 8 adds are dead; DamageTaken then clamps him
+    // to MAJORDOMO_DEFEAT_HEALTH_PCT instead of 100%, and a recurring health check completes the
+    // encounter once he actually reaches that floor.
+    bool _allAddsDefeated = false;
 };
 
 // 20538 Hate to Zero (SERVERSIDE)
