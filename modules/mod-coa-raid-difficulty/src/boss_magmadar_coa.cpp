@@ -99,9 +99,36 @@ namespace
     constexpr float HEAD_OFFSET_DIST = 3.0f;
     constexpr float HEAD_OFFSET_ANGLE = 0.55f;
 
+    struct npc_magmadar_head_coa;
+
     struct boss_magmadar_coa : public BossAI
     {
         boss_magmadar_coa(Creature* creature) : BossAI(creature, DATA_MAGMADAR) { }
+
+        // Heads are summoned here, not at engage, so they stand next to the body before the pull
+        // (player report). _Reset() already despawns any previous summons (including a wipe's),
+        // so this both prevents duplicates and respawns a fresh pair after every evade.
+        void Reset() override
+        {
+            _Reset();
+            SummonHeads();
+        }
+
+        void SummonHeads()
+        {
+            if (Creature* head = DoSummon(NPC_MAGMADAR_HEAD_RIGHT, me->GetNearPosition(HEAD_OFFSET_DIST, -HEAD_OFFSET_ANGLE),
+                                           0, TEMPSUMMON_MANUAL_DESPAWN))
+                SetHeadPassive(head);
+            if (Creature* head = DoSummon(NPC_MAGMADAR_HEAD_LEFT, me->GetNearPosition(HEAD_OFFSET_DIST, HEAD_OFFSET_ANGLE),
+                                           0, TEMPSUMMON_MANUAL_DESPAWN))
+                SetHeadPassive(head);
+        }
+
+        static void SetHeadPassive(Creature* head)
+        {
+            head->SetReactState(REACT_PASSIVE);
+            head->SetUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
+        }
 
         void JustEngagedWith(Unit* /*who*/) override
         {
@@ -115,11 +142,10 @@ namespace
             // report asks for periodic Core Hound reinforcements.
             events.ScheduleEvent(EVENT_CORE_HOUND_SPAWN_COA, 45s);
 
-            DoSummon(NPC_MAGMADAR_HEAD_RIGHT, me->GetNearPosition(HEAD_OFFSET_DIST, -HEAD_OFFSET_ANGLE),
-                     0, TEMPSUMMON_MANUAL_DESPAWN);
-            DoSummon(NPC_MAGMADAR_HEAD_LEFT, me->GetNearPosition(HEAD_OFFSET_DIST, HEAD_OFFSET_ANGLE),
-                     0, TEMPSUMMON_MANUAL_DESPAWN);
+            ActivateHeads();
         }
+
+        void ActivateHeads();
 
         void ExecuteEvent(uint32 eventId) override
         {
@@ -197,8 +223,13 @@ namespace
             Unit::DealDamage(attacker, body, dealt, nullptr, type, SPELL_SCHOOL_MASK_NORMAL, nullptr, false);
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        // Called by the body's own JustEngagedWith once Magmadar is pulled: the head stands
+        // passive/unselectable since SummonHeads(), so it never engages on its own.
+        void Activate()
         {
+            me->SetReactState(REACT_AGGRESSIVE);
+            me->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
+
             // Designed cadence: staggered by head so both do not sync casts.
             bool const isRightHead = me->GetEntry() % 100000 == NPC_MAGMADAR_HEAD_RIGHT;
             events.ScheduleEvent(EVENT_HEAD_ENRAGE, 25s);
@@ -253,6 +284,14 @@ namespace
     private:
         EventMap events;
     };
+
+    void boss_magmadar_coa::ActivateHeads()
+    {
+        for (ObjectGuid const& guid : summons)
+            if (Creature* summon = ObjectAccessor::GetCreature(*me, guid))
+                if (npc_magmadar_head_coa* headAI = dynamic_cast<npc_magmadar_head_coa*>(summon->AI()))
+                    headAI->Activate();
+    }
 }
 
 // 2105361 Scorching Breath - Hidden - Hit Dummy
