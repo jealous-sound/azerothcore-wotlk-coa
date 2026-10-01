@@ -5,6 +5,6 @@
 -- encounter state reaches DONE, toggled by the instance script both live and on reload.
 UPDATE `gameobject_template` SET `ScriptName` = 'go_ragnaros_portal_coa' WHERE `entry` = 181623;
 
-DELETE FROM `gameobject` WHERE `guid` = 99000601;
+DELETE FROM `gameobject` WHERE `guid` = 9000601;
 INSERT INTO `gameobject` (`guid`, `id`, `map`, `zoneId`, `areaId`, `spawnMask`, `phaseMask`, `position_x`, `position_y`, `position_z`, `orientation`, `rotation0`, `rotation1`, `rotation2`, `rotation3`, `spawntimesecs`, `animprogress`, `state`, `ScriptName`) VALUES
-(99000601, 181623, 409, 0, 0, 1, 1, 851.933, -812.875, -229.601, 4.046, 0, 0, 0.8994864, -0.4369488, 0, 100, 1, '');
+(9000601, 181623, 409, 0, 0, 1, 1, 851.933, -812.875, -229.601, 4.046, 0, 0, 0.8994864, -0.4369488, 0, 100, 1, '');
