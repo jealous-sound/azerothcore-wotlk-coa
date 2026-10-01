@@ -25,12 +25,13 @@
  *     otherwise allows. Ascended (12p x2 pulls + 15p x1 pull, 35 spawns total) is 1 target 14/35
  *     of the time and 2 targets the other 21/35 - never 3 or 4. Mythic (17p, 1 pull, 8 spawns) is
  *     2 targets 6/8 of the time and 3 targets the other 2/8 - the only difficulty that ever reaches
- *     3. No Normal Majordomo pull exists in the corpus. Implemented as a per-mode cap on the
- *     measured maximum (Normal/Heroic/Ascended 2, Mythic 3 - Ascended's cap matches Heroic's own
- *     measured value, not the nominal difficulty order; Normal mirrors Heroic, untested) on a
- *     random distinct selection of nearby raid members, clamped to however many are actually
- *     available - Ascended's frequent single-target spawns are naturally covered by this clamp
- *     rather than a separate lower cap.
+ *     3. No Normal Majordomo pull exists in the corpus.
+ *
+ *     Rule set by the user from CoA play: chained players follow the flex raid size, not
+ *     difficulty - same on every mode. The flex-scaled player count (coa_flex::CountPlayers,
+ *     non-GM players in the instance, clamped 10..25) maps to a cap of 1 at 10-14 players, 2 at
+ *     15-19, 3 at 20-25 (so also 1 below 10, the clamp's floor); a random distinct selection of
+ *     nearby raid members is chained, clamped to however many are actually available.
  *   - Killing the chain frees its chained player(s): in every clean (non-wipe) sample, e.g. GUID
  *     …E00317C, the chain's own UNIT_DIED/PARTY_KILL and the SPELL_AURA_REMOVED of 2108020 on its
  *     target(s) share the exact same log timestamp (17:43:57.250 for all three lines). 2108020's
@@ -64,6 +65,8 @@
 #include "Containers.h"
 #include "CreatureScript.h"
 #include "DBCEnums.h"
+#include "FlexHealth.h"
+#include "Map.h"
 #include "ObjectAccessor.h"
 #include "ScriptedCreature.h"
 #include "zg_coa_common.h"
@@ -78,12 +81,21 @@ namespace
         SPELL_BERSERK         = 2100213,
     };
 
-    // Measured max distinct targets chained per spawn (raw WoWCombatLog re-query, see header):
-    // Normal untested, mirrors Heroic; Ascended matches Heroic's own measured cap, not Mythic's.
-    constexpr uint8 CHAIN_TARGETS_BY_MODE[MAX_RAID_DIFFICULTY] = { 2, 2, 3, 2 };
-
     // 1/56 Sacrifice applications carried Berserk in the corpus (one Ascended pull).
     constexpr float BERSERK_CHANCE_PCT = 1.8f;
+
+    // User rule from CoA play: chained players follow the flex raid size, the same
+    // non-GM player count coa_flex::CountPlayers uses for boss health (clamped 10..25
+    // there), not the difficulty. 10-14 -> 1, 15-19 -> 2, 20-25 -> 3; same on every mode.
+    uint8 ChainTargetCap(Map* map)
+    {
+        uint32 const players = coa_flex::CountPlayers(map);
+        if (players >= 20)
+            return 3;
+        if (players >= 15)
+            return 2;
+        return 1;
+    }
 
     struct npc_sacrificial_chains_coa : public ScriptedAI
     {
@@ -94,8 +106,7 @@ namespace
             me->SetReactState(REACT_PASSIVE);
             _chained.clear();
 
-            uint8 const mode = std::min<uint8>(uint8(me->GetMap()->GetSpawnMode()), MAX_RAID_DIFFICULTY - 1);
-            uint8 const cap = CHAIN_TARGETS_BY_MODE[mode];
+            uint8 const cap = ChainTargetCap(me->GetMap());
 
             std::vector<Player*> targets = coa_zg::PlayersWithin(me, 40.0f);
             Acore::Containers::RandomResize(targets, cap);
