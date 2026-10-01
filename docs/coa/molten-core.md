@@ -650,3 +650,17 @@ captured, a test-observability gap); Son of Flame chain confirmed (all three mer
 clean single-pull session at the expected health; a Ghost-harness artifact, not a server defect, suppressed
 combat on a chained multi-tier session's 2nd/3rd pull). No repository bugs found; the one bug found
 (Majordomo-pull facing) was in the throwaway test, fixed in the scratchpad, not committed.
+
+## 9. Batch G mechanics (2026-10-01)
+
+Confirmed defects from `.agents/plans/mc-restoration/diag-G1.md`, `diag-G2.md` and `diag-G3.md` (combat-log
+evidence + source reads), fixed individually below. See `impl-G-mechanics.md` for per-fix in-game verification.
+
+1. **Six trash types restricted to Normal by `event_flags`, not just a missing variant.** Molten Giant
+   (11658), Molten Destroyer (11659), Flamewaker (11661), Firewalker (11666), Flameguard (11667) and
+   Firelord (11668) all carry `event_flags = 2` (`SMART_EVENT_FLAG_DIFFICULTY_0`) on their base-entry
+   `smart_scripts` rows — the four difficulty variants reuse the base entry's rows, and `SmartScript::
+   FillScript` filters by this flag, so the whole kit silently dropped above Normal. Cleared (not
+   replicated — there was nothing to replicate, only a flag to remove). Their spells stay vanilla
+   (unscaled) ids where no CoA-specific variant exists for this creature — a separate, documented gap,
+   not fixed here (item 11 below, §8 item 11).
