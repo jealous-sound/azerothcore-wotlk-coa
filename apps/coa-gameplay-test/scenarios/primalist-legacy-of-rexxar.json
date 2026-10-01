@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "Primalist Legacy of Rexxar: owner and pet critical procs",
-  "contract": "Critical Rylak, Wildclaw and pet Primal Shred grant the specified owner/pet buffs; talent removal stops procs.",
+  "contract": "Critical Rylak, Wildclaw and pet Primal Shred grant the specified owner/pet buffs; talent removal stops procs. Leokk Fury 560974 effect 0 and pet effect 1 grant 2% melee attack speed per stack; compare actual owner and pet attack periods, rather than haste rating.",
   "timeout_ms": 120000,
   "players": [
     {
@@ -115,6 +115,12 @@
       "actor": "primalist",
       "metric": "attack_time_ms",
       "save_as": "base_swing"
+    },
+    {
+      "action": "snapshot",
+      "actor": "primalist",
+      "metric": "pet_attack_time_ms",
+      "save_as": "pet_base_swing"
     },
     {
       "action": "snapshot",
@@ -249,6 +255,22 @@
       "metric": "pet_aura_stacks",
       "spell": 560974,
       "equals": 1
+    },
+    {
+      "action": "assert",
+      "actor": "primalist",
+      "metric": "pet_attack_time_ms",
+      "ratio_to": "pet_base_swing",
+      "min": 0.979,
+      "max": 0.982
+    },
+    {
+      "action": "assert",
+      "actor": "primalist",
+      "metric": "attack_time_ms",
+      "ratio_to": "base_swing",
+      "min": 0.979,
+      "max": 0.982
     },
     {
       "action": "assert",
