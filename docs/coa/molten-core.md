@@ -694,3 +694,11 @@ evidence + source reads), fixed individually below. See `impl-G-mechanics.md` fo
    SILENCE (the corpus shows it landing) and POLYMORPH/BANISH (left possible, per the task's "only
    certain classes could sheep/banish" framing) -- the shared -254 set itself is not edited in
    place.
+7. **Shazzrah's Blink leaves a "Reflection of Shazzrah" (11504) behind, casting Mirrored Arcane
+   Explosion (2105650).** The export's own record for 11504 is a placeholder stub (level 1,
+   health_min/max 1, no combat stats) -- the same shape as Sacrificial Chains and the Son of Flame
+   variants before they got real templates -- so its faction/level/combat template is designed off
+   Shazzrah's own row and the lightest existing MC trash health figure (Flame Imp), not invented from
+   nothing. Summoned at Shazzrah's pre-teleport spot (captured before the engine applies Blink's own
+   teleport effect), casts its one spell via SmartAI on spawn, and despawns a few seconds later. One
+   per Blink -- no corpus evidence for more.
