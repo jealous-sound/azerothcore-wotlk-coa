@@ -3598,6 +3598,19 @@ namespace CoAChallenges
         }
     };
 
+    // STRICT_CHALLENGE_RESTRICTED_TAPPING already denies rewards (loot/xp/rep/
+    // quest credit) to a player outside the tapper's restricted challenge via
+    // TappingAllowsRewards; this refusal is the matching attack-time block, so
+    // a mismatched-challenge player cannot fight the mob at all (Ascension
+    // parity), throttled per player so repeated validity checks do not spam chat.
+    constexpr uint32 TappingNoticeIntervalMs = 3000;
+    constexpr char const* TappingNoticeKey = "coa_challenges.tapping_notice";
+
+    struct TappingNotice : DataMap::Base
+    {
+        uint32 Last = 0;
+    };
+
     class CoAChallengesUnit : public UnitScript
     {
     public:
@@ -3623,8 +3636,33 @@ namespace CoAChallenges
             if (!attacker || !target)
                 return true;
             Player* a = attacker->GetCharmerOrOwnerPlayerOrPlayerItself();
+            if (!a)
+                return true;
+
+            // STRICT_CHALLENGE_RESTRICTED_TAPPING: a mismatched-challenge player
+            // cannot attack a mob already tapped for someone else's restricted
+            // challenge (creature targets only; TappingAllowsRewards is a no-op
+            // for an untapped mob or a same-challenge/no-challenge tapper).
+            if (Creature const* creatureTarget = target->ToCreature())
+            {
+                if (!TappingAllowsRewards(a, creatureTarget))
+                {
+                    if (a->GetSession())
+                    {
+                        TappingNotice* notice = a->CustomData.GetDefault<TappingNotice>(TappingNoticeKey);
+                        uint32 const now = getMSTime();
+                        if (!notice->Last || now - notice->Last >= TappingNoticeIntervalMs)
+                        {
+                            notice->Last = now;
+                            NotifyPlayer(a, "This target is already tapped by another challenge.");
+                        }
+                    }
+                    return false;
+                }
+            }
+
             Player* t = target->GetCharmerOrOwnerPlayerOrPlayerItself();
-            if (!a || !t || a == t)
+            if (!t || a == t)
                 return true;
 
             // PVE_ONLY (Adventure Mode): cannot fight other players at all.
