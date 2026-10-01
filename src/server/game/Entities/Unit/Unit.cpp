@@ -1456,10 +1456,12 @@ SpellCastResult Unit::CastSpell(SpellCastTargets const& targets, SpellInfo const
         CastsInsideOuterCast = 0;
         TriggerLoopLogged = false;
     }
-    NestedSpellCasts[NestedSpellCastCount++] = spellInfo->Id;
-    SpellCastResult const result = spell->prepare(&targets, triggeredByAura);
-    --NestedSpellCastCount;
-    return result;
+    struct NestedCast
+    {
+        explicit NestedCast(uint32 spellId) { NestedSpellCasts[NestedSpellCastCount++] = spellId; }
+        ~NestedCast() { --NestedSpellCastCount; }
+    } const nested(spellInfo->Id);
+    return spell->prepare(&targets, triggeredByAura);
 }
 
 SpellCastResult Unit::CastSpell(Unit* victim, uint32 spellId, bool triggered, Item* castItem, AuraEffect const* triggeredByAura, ObjectGuid originalCaster)
