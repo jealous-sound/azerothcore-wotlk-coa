@@ -365,6 +365,18 @@ struct AscensionClassService
     void SendInspectResult(Player*, ObjectGuid) { }
 };
 
+class AscensionDisplayPatchService
+{
+public:
+    static AscensionDisplayPatchService& Instance()
+    {
+        static AscensionDisplayPatchService service;
+        return service;
+    }
+
+    void SendPatchStream(Player*) { }
+};
+
 class AscensionCollectionService
 {
 public:
