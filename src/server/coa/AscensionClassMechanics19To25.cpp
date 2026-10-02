@@ -10,7 +10,6 @@ namespace
 {
 constexpr std::uint32_t SPELL_TEMPLAR_RECKONING = 805421;
 constexpr std::uint32_t SPELL_TEMPLAR_RECKONING_ENERGY = 521241;
-constexpr std::uint32_t TEMPLAR_FAMILY = 25;
 constexpr std::uint32_t SPELL_RANGER_ELUDE = 801345;
 constexpr std::uint32_t SPELL_RANGER_ONSLAUGHT = 801951;
 constexpr std::uint32_t SPELL_RANGER_FOREST_DWELLER = 524864;
@@ -48,44 +47,12 @@ bool IsTemplarReckoning(std::uint32_t spellId)
             return false;
     }
 }
-
-bool IsTemplarSacredSwing(std::uint32_t spellId)
-{
-    switch (spellId)
-    {
-        case 705293:
-        case 748501:
-        case 748502:
-        case 748503:
-        case 748504:
-        case 572769:
-            return true;
-        default:
-            return false;
-    }
-}
 }
 
 void ApplyAscensionClassMechanics19To25(SpellInfo* spellInfo)
 {
     if (!spellInfo)
         return;
-
-    if (IsTemplarSacredSwing(spellInfo->Id))
-    {
-        if (spellInfo->SpellFamilyName == TEMPLAR_FAMILY)
-        {
-            spellInfo->CasterAuraState = AURA_STATE_DEFENSE;
-            spellInfo->CasterAuraSpell = 0;
-        }
-        else
-        {
-            LOG_ERROR("coa",
-                "Skipped unexpected Sacred Swing record {}",
-                spellInfo->Id);
-        }
-        return;
-    }
 
     if (spellInfo->Id == SPELL_CHRONOMANCER_INFINITE_SHIELD)
     {
