@@ -564,6 +564,42 @@ Mythic/Ascended rows (each was serving the other's token id). **Major Mattingly 
 itself is not implemented** (needs its own `item_extended_cost`/`npc_vendor` design per slot and class) and
 is explicitly out of scope for this fix — tokens now drop and are recognizable, but cannot yet be turned in.
 
+**Second correction (`rev_20261001_50_molten_core_tokens_per_boss.sql`): the guaranteed pool was shared
+across all nine bosses, not boss-specific.** `_40` pointed every boss's guaranteed-pick reference at the
+full 8-item Molten set, so a kill could guarantee e.g. Lucifron dropping Molten Boots instead of his own
+Wristguards. Re-reading the export's `creature_loot_template` per boss (not just the aggregate token item
+list) shows each of the nine scheduled bosses already carries exactly one boss-specific token row, matching
+Classic Molten Core's own one-slot-per-boss design: Lucifron -> Wristguards, Magmadar -> Legguards,
+Gehennas -> Girdle, Garr -> Headpiece, Shazzrah -> Handguards, Baron Geddon -> Spaulders, Sulfuron
+Harbinger -> Boots, Golemagg -> Tunic (each at the export's own 2-4% bonus chance, group-exclusive with
+that boss's other rare rolls, left unchanged), and Ragnaros -> Chromatic Legguards (T2, 4%, left
+unchanged). `_50` repoints each of the 32 Tier-1 reference ids (8 bosses x 4 difficulties) at that boss's
+own tier-matched item only, so the guaranteed 2 (3 at 20+ players) pool picks resolve to 2-3 copies of the
+boss's own token, per "if a boss has exactly one specific token, the count means copies of that token."
+
+Ragnaros has no boss-specific row in the guaranteed-pool family anywhere in the export — his only token
+row is the pre-existing low-chance (4%) Chromatic Legguards group, structurally the same kind of row every
+other boss's own token sits in (never part of the guaranteed-pool mechanism). Turning that into a
+guaranteed 2-3 extra Chromatic Legguards per kill would invent a drop rate/count the export does not
+support, so `_50` removes Ragnaros from the guaranteed-pool mechanism entirely (his `reference_loot_template`
+rows, his `creature_loot_template` guarantee row and his `coa_mc_token_loot` rows are all deleted); his 4%
+Chromatic Legguards row is untouched. T2 tokens in Molten Core, confirmed from the export, come only from
+Ragnaros, not from Majordomo — see below.
+
+**Majordomo Executus drops no token of any kind.** He was never in the nine scheduled bosses'
+guaranteed-pool mechanism (never added to `coa_mc_token_loot`), and the export confirms there is nothing to
+add: his own "loot" is the Cache of the Firelord gameobject (179703, type Chest) that
+`instance_molten_core.cpp`'s `SetBossState(DATA_MAJORDOMO_EXECUTUS, DONE)` makes lootable
+(`SetLootRecipient`/7-day respawn) — stock AzerothCore's mechanism, not a CoA addition. The export's own
+`gameobject_loot` row for the chest's loot id (16719) holds only stock classic filler (Limb Cleaver, two
+quest items, Eye of Divinity/Ancient Petrified Leaf) with no Molten/Chromatic item anywhere; the
+Heroic/Mythic/Ascended chest entries the export defines (279703/379703/479703) carry no loot id and no
+loot rows of their own (one stray 0%-chance row on 379703 aside). This matches Classic's own design —
+Majordomo does not drop tier loot himself when spared for the Ragnaros fight — so no token content is
+added here, and no GameObject-loot hook was added to FlexLoot.cpp: there is no evidence of what it would
+feed, and the existing creature-only hook (`&store != &LootTemplates_Creature` check) already leaves
+gameobject loot alone rather than misapplying the creature-token logic to it.
+
 ### 7.2 Cache of the Fire Lord (2400040) opener
 
 **Designed from player memory (no recorded data anywhere)** — `diag-K-firelord-cache.md` exhausted
