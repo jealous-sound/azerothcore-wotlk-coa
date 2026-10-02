@@ -70,7 +70,8 @@ enum PermissionTypes
     RESTRICTED_PERMISSION               = 3,
     ROUND_ROBIN_PERMISSION              = 4,
     OWNER_PERMISSION                    = 5,
-    NONE_PERMISSION                     = 6
+    NONE_PERMISSION                     = 6,
+    QUEST_PERMISSION                    = 7
 };
 
 enum LootType
@@ -320,7 +321,8 @@ struct Loot
     std::vector<LootItem> items;
     std::vector<LootItem> quest_items;
     uint32 gold;
-    uint8 unlootedCount{0};
+    uint32 unlootedCount{0};
+    bool sharedQuestLoot{false};
     ObjectGuid roundRobinPlayer;        // GUID of the player having the Round-Robin ownership for the loot. If 0, round robin owner has released.
     ObjectGuid lootOwnerGUID;
     LootType loot_type{LOOT_NONE};      // required for achievement system
@@ -357,6 +359,7 @@ struct Loot
         PlayersLooting.clear();
         items.clear();
         quest_items.clear();
+        sharedQuestLoot = false;
         gold = 0;
         unlootedCount = 0;
         roundRobinPlayer.Clear();

@@ -1573,6 +1573,12 @@ private:
             return metric == "power" || metric == "pet_power" ?
                 unit->GetPower(Powers(power)) : unit->GetMaxPower(Powers(power));
         }
+        if (metric == "respawn_remaining")
+        {
+            Creature* creature = unit->ToCreature();
+            Require(creature != nullptr, "Respawn metric needs a creature");
+            return std::max<time_t>(0, creature->GetRespawnTime() - GameTime::GetGameTime().count());
+        }
         if (metric == "alive")
             return unit->IsAlive();
         if (metric == "map_id")
@@ -3368,8 +3374,24 @@ private:
         }
         else if (action == "loot_slot")
         {
+            uint32 slot = step.get<uint32>("slot", 0);
+            if (auto entry = step.get_optional<uint32>("item"))
+            {
+                Creature* creature = player->GetMap()->GetCreature(player->GetLootGUID());
+                Require(creature != nullptr, "Item-selected loot needs an open creature corpse");
+                Loot& loot = creature->loot;
+                slot = loot.GetMaxSlotInLootFor(player);
+                for (uint32 candidate = 0; candidate < loot.GetMaxSlotInLootFor(player); ++candidate)
+                    if (LootItem* item = loot.LootItemInSlot(candidate, player))
+                        if (item->itemid == *entry)
+                        {
+                            slot = candidate;
+                            break;
+                        }
+                Require(slot < loot.GetMaxSlotInLootFor(player), "Requested item is not in this player's loot");
+            }
             WorldPacket packet(CMSG_AUTOSTORE_LOOT_ITEM, 1);
-            packet << uint8(step.get<uint32>("slot", 0));
+            packet << uint8(slot);
             if (sScriptMgr->CanPacketReceive(player->GetSession(), packet))
                 player->GetSession()->HandleAutostoreLootItemOpcode(packet);
         }
