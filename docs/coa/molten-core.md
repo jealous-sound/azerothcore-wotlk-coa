@@ -97,6 +97,9 @@ Ragnaros' Lair); ground and orientation confirmed live via GM teleport + `.gps` 
 FloorZ -181.997, closely matching the old Z and Magmadar's). The same revision removes Flamewaker Protector
 (12119, guids 56606/56607) outright rather than relocating them with him — the player's own "no adds" account
 is the decision now, superseding the export-placement reading in the superseded §8 item 7 below.
+The spot was too close to the passage: `rev_20261001_30` moves him to the back of the alcove, (923.3191, -925.5587,
+-189.90823, o=5.962888), read in game with `.gps` by the player standing where he should be (FloorZ -189.9082,
+VMap and MMap height data present).
 
 **Shadow of Lucifron (12268)** is summoned once, 5s after engage, via a small `coa_boss_summon` hook
 (`summon_entry`/`summon_delay_ms`/`summon_buff_spell` columns on `coa_boss`, read by `CoaBossAI`) instead of a
