@@ -645,6 +645,44 @@ measured data.
   Sulfuras from Ragnaros) — an accurate read of §7.1's own flattened Mythic/Ascended loot
   restructure, not padded or invented here. Rebalancing Mythic/Ascended MC gear itself is a
   separate, larger task.
+  **Update (§7.3):** once §7.3 moved every tier's non-set epic gear into `coa_mc_item_pool`,
+  `rev_20261001_71` unions that table into this CTE's result on every difficulty, so Mythic/
+  Ascended grow well past their old 2-item floor (the same gear the random-item mechanism now
+  draws from) instead of staying stuck at the flattened-export count.
+
+### 7.3 Random item drops per kill
+
+On top of the guaranteed set tokens (§7.1), a kill by any of the 8 T1-token bosses, Majordomo
+Executus or Ragnaros (creature loot only — Majordomo's Cache of the Firelord chest, §7.2, is
+excluded for now) also drops N random items, N following the same flex player-count band
+`FlexHealth.cpp`/`FlexLoot.cpp` already use (`coa_flex::CountPlayers`, clamped 10-25,
+`coa_mc_item_count`): 10-14 players → 2 items, 15-19 → 3, 20-25 → 4.
+
+**Pool construction.** Each of the 9 scheduled bosses' own Normal `creature_loot_template`
+already carried a small group of non-set epic gear (class 2 Weapon / class 4 Armor, quality 4)
+rolling independently at 0.154-0.571% per item — restored on every difficulty by
+`rev_20261001_41` (§7.1) but never deduplicated against double-counting. Re-reading those groups
+pairwise found no item shared by literally every boss (the earlier working assumption), but four
+clean boss pairs each sharing one family of items: Golemagg/Baron Geddon (9 items), Magmadar/Garr
+(9), Sulfuron Harbinger/Shazzrah (10), Lucifron/Gehennas (9) — 37 distinct items total. Those 37
+are promoted into one common pool (`coa_mc_item_pool`, `CreatureEntry = 0`) available to every
+boss's draw; each boss's own remaining items (Ragnaros's full 15-item pool, which shares with no
+one, down to Baron Geddon's single leftover Stoneclad Libram) stay keyed to that boss's own base
+entry. Majordomo Executus carries no `creature_loot_template` rows of his own at all (his real
+loot is the Cache of the Firelord gameobject, §7.2) and so draws only from the common pool. Every
+pool item keeps the export's own relative weight: since every item inside a given boss's original
+group already rolled at an identical chance, a uniform weight of 1 per row preserves those ratios
+exactly. `rev_20261001_70` deletes the old per-group rows (Normal `GroupId` 2/3/4, scaled
+`GroupId` 10/11) so nothing drops twice; the CoA case/pack group (`GroupId` 37) and every
+guaranteed/currency row are untouched.
+
+**C++**: `modules/mod-coa-raid-difficulty/src/FlexItems.cpp`, a sibling of `FlexLoot.cpp` reusing
+the same `MISCHOOK_ON_AFTER_LOOT_TEMPLATE_PROCESS` hook and the same base-entry-plus-spawn-mode
+lookup convention. Items are drawn without replacement, weighted by `coa_mc_item_pool.Weight`; a
+boss whose combined pool (common ∪ own) is smaller than N gives every item it has.
+
+Not yet live-verified at the time of writing — see §9/Verification for the planned Lucifron/
+Magmadar + one more boss, Normal and Ascended, 10/15/20-player probe campaign.
 
 ## 8. Known gaps / needs decision
 
