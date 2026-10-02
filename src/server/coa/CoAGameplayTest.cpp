@@ -44,6 +44,7 @@
 #include "QuestDef.h"
 #include "QueryCallback.h"
 #include "ScriptMgr.h"
+#include "SmartAI.h"
 #include "Spell.h"
 #include "SpellAuraEffects.h"
 #include "SpellAuras.h"
@@ -1623,6 +1624,14 @@ private:
             if (metric == "skill_maximum")
                 return player->GetPureMaxSkillValue(step.get<uint32>("skill"));
             return player->GetUInt32Value(metric == "xp" ? PLAYER_XP : PLAYER_NEXT_LEVEL_XP);
+        }
+        if (metric == "smartai_event_count")
+        {
+            Creature* creature = unit->ToCreature();
+            Require(creature != nullptr, "SmartAI event metric needs a creature");
+            SmartAI* ai = dynamic_cast<SmartAI*>(creature->AI());
+            Require(ai != nullptr, "SmartAI event metric needs SmartAI");
+            return ai->GetScript()->GetEvents().size();
         }
         if (metric == "level")
             return unit->GetLevel();

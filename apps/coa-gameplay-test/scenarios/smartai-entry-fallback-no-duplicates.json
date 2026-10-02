@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "name": "SmartAI loads flagged entry fallback once",
+  "contract": "Lost Soul 1531 has DONT_OVERRIDE_ENTRY_SAI (134217728), one unfiltered entry UPDATE event and no spawn GUID script for a temporary summon. Its native SmartScript must retain exactly that one event. Unflagged Riverpaw Outrunner 478 has two unfiltered entry events and must retain both. Flagged fallback must not append the same entry list twice; spawn GUID scripts may still merge entry scripts when the flag is set.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "observer",
+      "race": 1,
+      "class": 1,
+      "level": 80
+    }
+  ],
+  "creatures": [
+    {
+      "id": "flagged",
+      "owner": "observer",
+      "entry": 1531,
+      "faction": 35,
+      "distance": 8
+    },
+    {
+      "id": "control",
+      "owner": "observer",
+      "entry": 478,
+      "faction": 35,
+      "distance": 12
+    }
+  ],
+  "steps": [
+    {
+      "action": "assert",
+      "actor": "control",
+      "metric": "smartai_event_count",
+      "equals": 2
+    },
+    {
+      "action": "assert",
+      "actor": "flagged",
+      "metric": "smartai_event_count",
+      "equals": 1
+    }
+  ]
+}

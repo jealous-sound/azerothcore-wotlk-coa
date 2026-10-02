@@ -470,6 +470,8 @@ a previously named snapshot of the same metric; it is available on snapshots and
 `cast` accepts an optional `destination` with `x`, `y`, `z` to send an explicit ground target.
 `target_pet: true` in place of `target` sends a player's cast at their current pet.
 
+`smartai_event_count` reads the native SmartAI event list of a creature fixture after initialization.
+
 Metrics: `health`, `max_health`, `creature_type`, `power`, `max_power`, `alive`, `map_id`, `combat`, `casting`,
 `level`, `quest_objective_count` (needs `quest`, optional `index`), `knows_spell`, `has_talent`, `talent_points`,
 `cooldown_ms`, `item_count`, `carried_item_count`, `bank_bag_slots`, `aura`, `aura_stacks`, `aura_charges`,
