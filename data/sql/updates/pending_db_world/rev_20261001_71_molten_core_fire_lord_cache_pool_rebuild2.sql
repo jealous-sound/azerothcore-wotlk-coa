@@ -8,6 +8,12 @@
 -- applied once per difficulty, boss-own rows applied per boss) so the cache pool keeps drawing
 -- from the same gear, just relocated. Idempotent: safe to re-run, and a no-op if ever reordered
 -- ahead of rev_20261001_70.
+--
+-- `TemplateSource`'s anchor literal is `'creature1'` (9 chars), not the shorter `'creature'`:
+-- MySQL infers a recursive CTE column's type from the anchor member alone, and the recursive
+-- member's `'reference'` literal (9 chars) does not fit an 8-char-inferred column, failing with
+-- "Data too long for column 'TemplateSource'" the first time a real reference chain is walked.
+-- Padding the anchor's own literal to the same length sidesteps the bug without a CAST.
 DELETE FROM `coa_mc_fire_lord_cache_pool`;
 INSERT INTO `coa_mc_fire_lord_cache_pool` (`RaidDifficulty`, `ItemEntry`)
 WITH RECURSIVE `boss_entry` (`RaidDifficulty`, `CreatureEntry`) AS (
@@ -28,11 +34,11 @@ WITH RECURSIVE `boss_entry` (`RaidDifficulty`, `CreatureEntry`) AS (
     SELECT 3, 312118 UNION ALL SELECT 3, 312259 UNION ALL SELECT 3, 312264 UNION ALL SELECT 3, 312018
 ),
 `loot_scan` (`RaidDifficulty`, `TemplateEntry`, `TemplateSource`) AS (
-    SELECT `RaidDifficulty`, `CreatureEntry`, CAST('creature' AS CHAR(9)) FROM `boss_entry`
+    SELECT `RaidDifficulty`, `CreatureEntry`, 'creature1' FROM `boss_entry`
     UNION ALL
     SELECT `ls`.`RaidDifficulty`, `clt`.`Reference`, 'reference'
     FROM `loot_scan` `ls`
-    JOIN `creature_loot_template` `clt` ON `ls`.`TemplateSource` = 'creature' AND `clt`.`Entry` = `ls`.`TemplateEntry`
+    JOIN `creature_loot_template` `clt` ON `ls`.`TemplateSource` = 'creature1' AND `clt`.`Entry` = `ls`.`TemplateEntry`
     WHERE `clt`.`Reference` != 0 AND `clt`.`Reference` != 34002
       AND `clt`.`Reference` NOT BETWEEN 4090011 AND 4090057
     UNION ALL
@@ -44,7 +50,7 @@ WITH RECURSIVE `boss_entry` (`RaidDifficulty`, `CreatureEntry`) AS (
 )
 SELECT DISTINCT `ls`.`RaidDifficulty`, `it`.`entry`
 FROM `loot_scan` `ls`
-JOIN `creature_loot_template` `clt` ON `ls`.`TemplateSource` = 'creature' AND `clt`.`Entry` = `ls`.`TemplateEntry` AND `clt`.`Reference` = 0
+JOIN `creature_loot_template` `clt` ON `ls`.`TemplateSource` = 'creature1' AND `clt`.`Entry` = `ls`.`TemplateEntry` AND `clt`.`Reference` = 0
 JOIN `item_template` `it` ON `it`.`entry` = `clt`.`Item`
 WHERE `it`.`class` IN (2, 4) AND `it`.`InventoryType` != 0
 UNION
