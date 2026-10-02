@@ -400,8 +400,13 @@ class spell_ascension_witch_hunter_summon : public SpellScript
         player->ApplySpellMod(GetSpellInfo()->Id, SPELLMOD_DURATION, duration);
         if (effect.MiscValue == 50224)
         {
+            Unit* target = GetExplTargetUnit();
+            if (!target || target == player)
+                if (Unit* selected = player->GetSelectedUnit(); selected &&
+                    player->HasInArc(float(M_PI), selected) && player->IsValidAttackTarget(selected))
+                    target = selected;
             SummonHounds(player, std::max(1, effect.CalcValue(player)), duration, GetSpellInfo()->Id,
-                         GetExplTargetUnit());
+                         target);
             return;
         }
         Position position = player->GetPosition();
