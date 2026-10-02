@@ -619,16 +619,12 @@ constexpr std::array<FelswornRiftGrant, 3> FelswornHordeCapitalRifts =
     {535600, 36}
 }};
 
-constexpr std::array<uint32, 6> FelswornCapitalRifts = {535595, 535596, 535597, 535598, 535599, 535600};
-
 bool CanGrantAscensionRacialSpell(Player const* player, uint32 spellId)
 {
+    if (!AscensionFelsworn::CanLearnRift(player, spellId))
+        return false;
     bool racial = false;
     auto const bounds = sSpellMgr->GetSkillLineAbilityMapBounds(spellId);
-    if (std::find(FelswornCapitalRifts.begin(), FelswornCapitalRifts.end(), spellId) != FelswornCapitalRifts.end())
-        for (auto itr = bounds.first; itr != bounds.second; ++itr)
-            if (itr->second->RaceMask && !(itr->second->RaceMask & player->getRaceMask()))
-                return false;
     for (auto itr = bounds.first; itr != bounds.second; ++itr)
         if (AscensionRacialAbilities::GetRace(itr->second->SkillLine))
         {
