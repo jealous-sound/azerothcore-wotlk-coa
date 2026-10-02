@@ -34,6 +34,13 @@
       "ms": 1000
     },
     {
+      "action": "set_health",
+      "label": "Keep the raider alive until the explicit wipe",
+      "actor": "raider",
+      "value": 1000000,
+      "maximum": 1000000
+    },
+    {
       "action": "assert",
       "label": "The fixture entered Sunwell Plateau",
       "actor": "raider",
@@ -121,6 +128,13 @@
       "action": "console",
       "label": "Revive the raider for another pull",
       "command": "revive Harnessa"
+    },
+    {
+      "action": "set_health",
+      "label": "Keep the revived raider alive through the Hand deaths",
+      "actor": "raider",
+      "value": 1000000,
+      "maximum": 1000000
     },
     {
       "action": "attack_nearby",
