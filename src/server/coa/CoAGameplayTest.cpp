@@ -3349,6 +3349,12 @@ private:
                     Require(!creatures.front()->IsAlive(),
                         "Killing blow did not kill, health left " + std::to_string(creatures.front()->GetHealth()));
                 }
+                else if (auto damagePct = step.get_optional<int32>("damage_pct"))
+                {
+                    Require(*damagePct > 0 && *damagePct < 100, "Damage share outside (0, 100)");
+                    Unit::DealDamage(player, creatures.front(), creatures.front()->CountPctFromMaxHealth(*damagePct),
+                        nullptr, DIRECT_DAMAGE, SPELL_SCHOOL_MASK_NORMAL);
+                }
                 else
                     player->GetSession()->HandleAttackSwingOpcode(packet);
             }

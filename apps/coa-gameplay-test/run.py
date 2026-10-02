@@ -167,7 +167,7 @@ ACTIONS = {
     'set_phase': ({'actor'}, {'actor', 'value'}),
     'use_nearby_gameobject': ({'actor', 'entry'}, {'actor', 'entry'}),
     'attack_owned_creature': ({'actor', 'target', 'entry'}, {'actor', 'target', 'entry'}),
-    'attack_nearby': ({'actor', 'entry'}, {'actor', 'entry', 'kill'}),
+    'attack_nearby': ({'actor', 'entry'}, {'actor', 'entry', 'kill', 'damage_pct'}),
     'loot_nearby': ({'actor', 'entry'}, {'actor', 'entry'}),
     'loot_creature': ({'actor', 'target'}, {'actor', 'target'}),
     'loot_slot': ({'actor'}, {'actor', 'slot'}),
