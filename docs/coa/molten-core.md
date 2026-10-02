@@ -488,6 +488,27 @@ Annihilator (3) drops them at 10%, 10% and 7.1%), kept as CoA's data has them. S
 Geddon) and Tome of Burning Passion 1310533 (Gehennas) have chance 0 without a group on Normal, so Normal
 never drops them; their Mythic rows (10% and 9.1%) are kept.
 
+Fiery Core (17010) and Lava Core (17011) carried an unverified placeholder rate set
+(`d3b5e2677` replicated Normal's rates onto the Heroic/Mythic/Ascended variants verbatim) and,
+for both items, several real Classic droppers were missing from the table entirely. Replaced
+(`rev_20261001_82`) with each item's own Wowhead Classic "Dropped by" rate (Wayback snapshots,
+item=17010/fiery-core 20251017200731 and item=17011/lava-core 20251204231747), applied identically
+to all four difficulty variants (neither item has its own tiered id):
+
+| Creature | Fiery Core | Lava Core |
+|---|---|---|
+| Molten Destroyer (11659) | 26.7984% | 26.4793% |
+| Lava Annihilator (11665) | 9.5333% (missing, added) | 38.2558% |
+| Firewalker (11666) | 63.7854% | 13.4590% (missing, added) |
+| Flameguard (11667) | 63.4973% | 13.4201% (missing, added) |
+| Firelord trash (11668) | 44.3127% | 9.8471% (missing, added) |
+| Baron Geddon (12056) | 78.4248% | — |
+| Golemagg the Incinerator (11988) | — | 87.4824% |
+| Garr (12057) | — | 72.8995% |
+| Lava Elemental (12076) | 17.9430% (missing, added) | 56.2082% |
+| Lava Reaver (12100) | 18.5946% (missing, added) | 55.6946% |
+| Lava Surger (12101) | 12.6117% (missing, added) | 10.3356% |
+
 ### 7.1 Heroic/Mythic/Ascended boss loot restructure, flex tokens, legendaries and the Ingot
 
 The exiles-db export's `creature_loot_template` rows for the 9 scheduled bosses are correctly grouped on
@@ -713,8 +734,39 @@ the same `MISCHOOK_ON_AFTER_LOOT_TEMPLATE_PROCESS` hook and the same base-entry-
 lookup convention. Items are drawn without replacement, weighted by `coa_mc_item_pool.Weight`; a
 boss whose combined pool (common ∪ own) is smaller than N gives every item it has.
 
-Not yet live-verified at the time of writing — see §9/Verification for the planned Lucifron/
-Magmadar + one more boss, Normal and Ascended, 10/15/20-player probe campaign.
+Live-verified for Lucifron/Magmadar (§9) and, in a later session, for Ragnaros on both Normal and
+Ascended (`TestMCRagnarosKillCoA`, 10 bots): exactly 2 Chromatic Legguards plus exactly 2 pool
+items (cross-checked against `coa_mc_item_pool` row membership, since Ragnaros's own many
+always-guaranteed rows make the random items indistinguishable by eye) and the Fire Lord cache
+item (2400040) on every kill. Ragnaros's own pool (`CreatureEntry = 11502`) was missing Band of
+Sulfuras (19138/219138/319138/1319138) relative to the Classic Ragnaros loot table
+(wowhead.com/classic/guide/ragnaros-molten-core-strategy-wow-classic, Wayback 20250918015449) —
+added (`rev_20261001_81`) since clean tier clones already exist; it dropped live on the first
+Ascended re-test. Everything else on Ragnaros's 15-item Normal pool matches the guide; three items
+present in the export but not listed by the guide (Veil of Flame Worshipper 12572, Pyroclasmic
+Longbow 15712, Blade of Dragon Bone 17083) were kept, not removed — the guide is not treated as an
+exhaustive authority over the export. The 9 per-class Tier 2 leg pieces the guide also lists are
+intentionally absent from this pool: this fork represents that slot with the single Chromatic
+Legguards token instead (§7.1), not 9 separate class-specific drops.
+
+**Majordomo Executus's Cache of the Firelord (179703) was never actually lootable.**
+`GameObject::Use()` has no `GAMEOBJECT_TYPE_CHEST` case at all (confirmed by reading the stock
+engine switch — it falls to `default:`, spell id stays 0, nothing happens), and a type-3 chest is
+normally opened only via `Spell::EffectOpenLock`, reached by the client auto-casting the spell
+matching its lock's `LockType.dbc` entry — a path nothing in this core ever drives for a bare
+chest GO. The lock itself (57) is not the defect: its populated case resolves through LockType 5
+("Open"), which maps to `SKILL_NONE` and always succeeds trivially. Confirmed live on slot 3 that
+neither `CMSG_LOOT` (guarded to creature/vehicle GUIDs only) nor plain `CMSG_GAMEOBJ_USE` ever
+opened the loot window. Fixed by `go_cache_of_the_firelord_coa` (`boss_majordomo_executus.cpp`),
+which opens the chest directly from `GossipHello` — the same idiom `go_ragnaros_portal_coa`
+already uses to short-circuit `Use()`. `FlexItems.cpp`'s hook already fires for gameobject loot the
+same way it does for creature loot; extended to recognize the chest (keyed on Majordomo's own
+common-pool-only entry, since the chest's difficulty comes from the looting player's map spawn
+mode, not its own entry — it is one static spawn shared across every difficulty). Confirmed live,
+Normal and Ascended, 10 bots: the Classic item pool (reference `12000`, already correct in the
+export — 10 non-set epics plus the two class-quest items, cross-checked item-for-item against
+wowhead.com/classic/guide/majordomo-executus-molten-core-strategy-wow-classic, Wayback
+20260415180430) drops alongside exactly 2 tier-matched random items from the common pool.
 
 ## 8. Known gaps / needs decision
 
