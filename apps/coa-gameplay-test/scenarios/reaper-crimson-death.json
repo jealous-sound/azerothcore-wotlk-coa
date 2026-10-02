@@ -1,14 +1,17 @@
 {
   "schema": 1,
-  "name": "Crimson Death casts Slaughter an additional time free of cost (#2663)",
+  "name": "Crimson Death samples its twenty-percent additional Slaughter chance",
   "contract": [
-    "Crimson Death 705414 is a native SPELL_AURA_PROC_TRIGGER_SPELL aura whose EffectTriggerSpell is 500373, Slaughter itself.",
-    "spell_proc gives it Chance 100 and ProcFlags 87060 (rev_20260920_17/rev_20260921_20 pending_db_world), and spell_script_names",
-    "binds spell_ascension_reaper_talent_proc, which checks the caster's cast against the whitelist for talent 705414 in",
-    "AscensionReaperTalentProcs.h (only 500373 and its ranks). A completed Slaughter cast should therefore trigger one",
-    "additional completed cast of the same spell, free of its Runic Power cost."
+    "Crimson Death 705414 has a 20% chance to repeat Slaughter: authentic DBC ProcChance 20 and tooltip $h%.",
+    "Pending rev_20260927_99 supplies Chance 20 and hit phase 2; the prepared world must include pending SQL.",
+    "Each of 64 ordinary Slaughter casts must complete on a valid target below 35% health.",
+    "At least one extra cast and native proc are required; zero-proc probability is 0.8^64 only for 64 eligible hits.",
+    "At most 32 extra casts and procs reject guaranteed repetition; each trial permits one or two casts.",
+    "The no-aura control casts once. RNG seeds and hit statistics are not changed between trials.",
+    "Resource and cooldown fixtures isolate trials. Free-cost behavior is source evidence, not a cost assertion.",
+    "Slaughter can be dodged or parried. Completed casts are counted, not a guaranteed number of eligible hits."
   ],
-  "timeout_ms": 60000,
+  "timeout_ms": 240000,
   "players": [
     {
       "id": "control",
@@ -133,19 +136,58 @@
     },
     {
       "action": "wait",
-      "label": "Let crimson_target's aura state catch up with its health",
       "ms": 1000
     },
     {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "casts_before"
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_proc_count",
+      "spell": 705414,
+      "save_as": "procs_before"
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_0_before"
+    },
+    {
       "action": "cast",
-      "label": "crimson casts Slaughter directly",
+      "label": "Ordinary Slaughter trial1/64",
       "actor": "crimson",
       "spell": 500373,
       "target": "crimson_target"
     },
     {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
       "action": "assert",
-      "label": "crimson Slaughter cast was accepted",
       "actor": "crimson",
       "metric": "cast_failure",
       "spell": 500373,
@@ -153,12 +195,3196 @@
     },
     {
       "action": "assert",
-      "label": "crimson Slaughter cast count includes the free Crimson Death trigger",
       "actor": "crimson",
       "metric": "spell_cast_count",
       "spell": 500373,
-      "min": 2,
-      "within_ms": 3000
+      "relative_to": "cast_0_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_1_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial2/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_1_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_2_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial3/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_2_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_3_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial4/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_3_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_4_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial5/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_4_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_5_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial6/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_5_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_6_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial7/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_6_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_7_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial8/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_7_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_8_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial9/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_8_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_9_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial10/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_9_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_10_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial11/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_10_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_11_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial12/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_11_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_12_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial13/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_12_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_13_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial14/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_13_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_14_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial15/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_14_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_15_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial16/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_15_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_16_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial17/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_16_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_17_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial18/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_17_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_18_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial19/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_18_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_19_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial20/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_19_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_20_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial21/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_20_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_21_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial22/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_21_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_22_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial23/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_22_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_23_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial24/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_23_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_24_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial25/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_24_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_25_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial26/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_25_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_26_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial27/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_26_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_27_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial28/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_27_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_28_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial29/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_28_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_29_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial30/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_29_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_30_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial31/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_30_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_31_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial32/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_31_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_32_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial33/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_32_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_33_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial34/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_33_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_34_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial35/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_34_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_35_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial36/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_35_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_36_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial37/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_36_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_37_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial38/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_37_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_38_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial39/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_38_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_39_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial40/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_39_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_40_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial41/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_40_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_41_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial42/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_41_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_42_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial43/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_42_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_43_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial44/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_43_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_44_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial45/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_44_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_45_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial46/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_45_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_46_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial47/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_46_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_47_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial48/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_47_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_48_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial49/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_48_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_49_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial50/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_49_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_50_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial51/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_50_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_51_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial52/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_51_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_52_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial53/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_52_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_53_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial54/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_53_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_54_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial55/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_54_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_55_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial56/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_55_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_56_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial57/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_56_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_57_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial58/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_57_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_58_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial59/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_58_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_59_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial60/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_59_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_60_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial61/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_60_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_61_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial62/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_61_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_62_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial63/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_62_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "set_health",
+      "actor": "crimson_target",
+      "value": 300000
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "crimson",
+      "spell": 500373
+    },
+    {
+      "action": "set_power",
+      "actor": "crimson",
+      "power": 6,
+      "value": 1000
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "save_as": "cast_63_before"
+    },
+    {
+      "action": "cast",
+      "label": "Ordinary Slaughter trial64/64",
+      "actor": "crimson",
+      "spell": 500373,
+      "target": "crimson_target"
+    },
+    {
+      "action": "wait",
+      "ms": 1800
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "cast_failure",
+      "spell": 500373,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "cast_63_before",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "casts_before",
+      "save_as": "additional_cast_sample"
+    },
+    {
+      "action": "snapshot",
+      "actor": "crimson",
+      "metric": "spell_proc_count",
+      "spell": 705414,
+      "relative_to": "procs_before",
+      "save_as": "crimson_proc_sample"
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_cast_count",
+      "spell": 500373,
+      "relative_to": "casts_before",
+      "min": 65,
+      "max": 96
+    },
+    {
+      "action": "assert",
+      "actor": "crimson",
+      "metric": "spell_proc_count",
+      "spell": 705414,
+      "relative_to": "procs_before",
+      "min": 1,
+      "max": 32
     }
   ]
 }
