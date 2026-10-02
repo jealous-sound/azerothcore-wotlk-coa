@@ -168,7 +168,7 @@ ACTIONS = {
     'attack_owned_creature': ({'actor', 'target', 'entry'}, {'actor', 'target', 'entry'}),
     'evade_nearby': ({'actor', 'entry'}, {'actor', 'entry'}),
     'remove_corpse_nearby': ({'actor', 'entry'}, {'actor', 'entry'}),
-    'attack_nearby': ({'actor', 'entry'}, {'actor', 'entry', 'kill'}),
+    'attack_nearby': ({'actor', 'entry'}, {'actor', 'entry', 'kill', 'damage_pct'}),
     'loot_nearby': ({'actor', 'entry'}, {'actor', 'entry'}),
     'loot_creature': ({'actor', 'target'}, {'actor', 'target'}),
     'loot_slot': ({'actor'}, {'actor', 'slot'}),
