@@ -256,6 +256,7 @@ void AddSC_AscensionProfessionRanks();
 void AddSC_AscensionPrestigiousCache();
 void AddSC_AscensionCallboardCache();
 void AddSC_AscensionFireLordCache();
+void AddSC_AscensionTierTokenVendor();
 void AddSC_AscensionFeatherOfAncients();
 void AddSC_AscensionVultureCultQuests();
 void AddSC_AscensionCaravanCarts();
@@ -528,6 +529,7 @@ void AddCoAScripts()
     AddSC_AscensionPrestigiousCache();
     AddSC_AscensionCallboardCache();
     AddSC_AscensionFireLordCache();
+    AddSC_AscensionTierTokenVendor();
     AddSC_AscensionFeatherOfAncients();
     AddSC_AscensionVultureCultQuests();
     AddSC_AscensionCaravanCarts();

@@ -1045,22 +1045,30 @@ evidence + source reads), fixed individually below. See `impl-G-mechanics.md` fo
     vendor npcflag, contrary to this doc's own earlier claim: `creature_template.npcflag` was 3
     (`UNIT_NPC_FLAG_GOSSIP|UNIT_NPC_FLAG_QUESTGIVER`), missing `UNIT_NPC_FLAG_VENDOR` (0x80) entirely, so no
     vendor window could ever have opened regardless of `npc_vendor` content — fixed to 131
-    (`rev_20261001_61_molten_core_tier_vendor_npcflag.sql`). The exchange itself needed no C++ and no class-split
-    design: the client's own `ItemExtendedCost.dbc` (loaded verbatim, no SQL override —
-    `src/server/game/DataStores/DBCStores.cpp`) already carries one row per Molten/Chromatic token id requiring
-    exactly 1 of that token, confirming the tokens' tooltip and resolving `diag-P-token-exchange.md`'s open
-    question (token-for-item, not gold-only). `rev_20261001_60_molten_core_tier_token_vendors.sql` adds 961
-    `npc_vendor` rows per vendor: every class variant (including each set's faction "Bloodforged" skin, where a
-    difficulty clone of it exists) of the nine classic Tier 1 sets (Arcanist/Prophecy/Felheart/Nightslayer/
-    Cenarion/Giantstalker's/Earthfury/Lawbringer/Might, plus Transcendence as the Horde skin of Prophecy) and
-    the nine Tier 2 BWL sets (Netherwind/Nemesis/Bloodfang/Stormrage/Dragonstalker's/Ten Storms/Judgement/
-    Wrath/Faith), identified by `item_template.ItemSet`, class=4 only — T0.5 and AQ40 Tier 2.5 sets untouched.
-    Per-difficulty clones are picked by a confirmed, reproducible item-id-offset rule (entry+0 Normal,
-    +300000 Heroic, +1300000 Mythic, +200000 Ascended — distinct from the creature offset convention) rather
-    than guessed; no `AllowableClass`/armor-type/faction restriction applies to any of these 961 items
-    (`FlagsExtra` is 0 on all of them, so `Player::BuyItemFromVendorSlot`'s Horde/Alliance gate never triggers),
-    matching the "any class/armor type may buy" rule as-is, no code change needed. Known gap: most sets'
-    "Bloodforged" skin only has Normal+Heroic clones in this DB (no Mythic/Ascended item id exists for it) —
+    (`rev_20261001_61_molten_core_tier_vendor_npcflag.sql`). Per the player's own recollection of live CoA,
+    talking to either NPC does not open a flat vendor window: it shows a gossip menu of 8 options ("Tokens T1
+    Normal/Heroic/Mythic/Ascended", same four for T2), each opening a vendor list scoped to that tier only.
+    Both NPCs now run `npc_coa_tier_token_vendor` (`src/server/coa/AscensionTierTokenVendor.cpp`), whose
+    `OnGossipSelect` calls `WorldSession::SendListInventory(guid, vendorEntry)` with one of 8 reserved,
+    non-creature `npc_vendor` keys (91000001-91000008) per option — the one piece of new C++ this fix needed,
+    since the core's existing `vendorEntry` override (already used for `SetCurrentVendor`/`BuyItemFromVendorSlot`
+    resolution) made per-tier sub-lists a `SendListInventory` argument, not a new mechanism.
+    The exchange price itself needed no C++ and no class-split design: the client's own `ItemExtendedCost.dbc`
+    (loaded verbatim, no SQL override — `src/server/game/DataStores/DBCStores.cpp`) already carries one row per
+    Molten/Chromatic token id requiring exactly 1 of that token, confirming the tokens' tooltip and resolving
+    `diag-P-token-exchange.md`'s open question (token-for-item, not gold-only).
+    `rev_20261001_60_molten_core_tier_token_vendors.sql` adds 961 `npc_vendor` rows split across the 8 virtual
+    lists (not duplicated per vendor, since both sell the same catalog): every class variant (including each
+    set's faction "Bloodforged" skin, where a difficulty clone of it exists) of the nine classic Tier 1 sets
+    (Arcanist/Prophecy/Felheart/Nightslayer/Cenarion/Giantstalker's/Earthfury/Lawbringer/Might, plus
+    Transcendence as the Horde skin of Prophecy) and the nine Tier 2 BWL sets (Netherwind/Nemesis/Bloodfang/
+    Stormrage/Dragonstalker's/Ten Storms/Judgement/Wrath/Faith), identified by `item_template.ItemSet`, class=4
+    only — T0.5 and AQ40 Tier 2.5 sets untouched. Per-difficulty clones are picked by a confirmed, reproducible
+    item-id-offset rule (entry+0 Normal, +300000 Heroic, +1300000 Mythic, +200000 Ascended — distinct from the
+    creature offset convention) rather than guessed; no `AllowableClass`/armor-type/faction restriction applies
+    to any of these 961 items (`FlagsExtra` is 0 on all of them, so `Player::BuyItemFromVendorSlot`'s
+    Horde/Alliance gate never triggers), matching the "any class/armor type may buy" rule as-is. Known gap: most
+    sets' "Bloodforged" skin only has Normal+Heroic clones in this DB (no Mythic/Ascended item id exists for it) —
     only the clones that exist were wired, nothing invented for the missing tiers.
 
 ## 10. Batch H (2026-10-01): melee damage ladder, Ragnaros submerge re-check, Ancient Core Hound fear
