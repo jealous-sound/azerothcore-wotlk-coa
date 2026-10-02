@@ -46,6 +46,12 @@ namespace
     std::map<uint32, uint32> g_itemCountByMinPlayers;
     std::unordered_map<uint32, std::unordered_map<uint32, std::vector<WeightedItem>>> g_poolByDiffAndBoss;
 
+    // The 10 scheduled-kill base entries this mechanism covers (8 T1-token bosses, Majordomo
+    // Executus, Ragnaros). Majordomo carries no own-pool rows at all (coa_mc_item_pool has no
+    // CreatureEntry = 12018 rows), so he is listed here explicitly to still draw from the common
+    // pool rather than being silently skipped because he never appears as an "own" pool key.
+    constexpr uint32 FLEX_ITEM_BOSS_ENTRIES[] = { 11502, 11982, 11988, 12056, 12057, 12098, 12118, 12259, 12264, 12018 };
+
     uint32 ItemCountForPlayers(uint32 players)
     {
         uint32 count = 0;
@@ -92,14 +98,20 @@ namespace
             } while (result->NextRow());
         }
 
-        for (auto const& [difficulty, ownByBoss] : ownByDiffAndBoss)
+        for (auto const& [difficulty, commonItems] : commonByDiff)
         {
-            for (auto const& [bossEntry, ownItems] : ownByBoss)
+            for (uint32 bossEntry : FLEX_ITEM_BOSS_ENTRIES)
             {
-                std::vector<WeightedItem> combined = ownItems;
-                auto commonIt = commonByDiff.find(difficulty);
-                if (commonIt != commonByDiff.end())
-                    combined.insert(combined.end(), commonIt->second.begin(), commonIt->second.end());
+                std::vector<WeightedItem> combined = commonItems;
+
+                auto ownByBossIt = ownByDiffAndBoss.find(difficulty);
+                if (ownByBossIt != ownByDiffAndBoss.end())
+                {
+                    auto ownIt = ownByBossIt->second.find(bossEntry);
+                    if (ownIt != ownByBossIt->second.end())
+                        combined.insert(combined.end(), ownIt->second.begin(), ownIt->second.end());
+                }
+
                 g_poolByDiffAndBoss[difficulty][bossEntry] = std::move(combined);
             }
         }
