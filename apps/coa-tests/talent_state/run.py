@@ -136,6 +136,38 @@ int main(int, char** argv)
         Check(KnownEntriesPayload({}).size() == 4, "an empty set is a bare zero count");
     }
 
+    CoATalentEntry const* spikes = Find(7237);
+    CoATalentEntry const* lair = Find(7242);
+    CoATalentEntry const* captivation = Find(5215);
+    CoATalentEntry const* mamba = Find(7244);
+    CoATalentEntry const* celerity = Find(30465);
+    Check(spikes && spikes->Row == 4 && spikes->RequiredTreePoints == 9, "class tree row 4 needs 9 points");
+    Check(lair && lair->Row == 9 && lair->RequiredTreePoints == 24, "class tree row 9 needs 24 points");
+    Check(captivation && captivation->SpecId && captivation->Row == 4 && captivation->RequiredTreePoints == 8,
+          "specialization row 4 needs 8 points");
+    Check(mamba && celerity && mamba->ChoiceGroup && mamba->ChoiceGroup == celerity->ChoiceGroup,
+          "the two options of a paid choice node share a group");
+    std::vector<KnownEntry> gated = { { 7229, 1 }, { 7237, 1 } };
+    std::vector<std::uint32_t> violations = LayoutViolations(gated);
+    Check(violations.size() == 1 && violations[0] == 7237, "a row 4 node with one point above it breaks its gate");
+    std::vector<KnownEntry> met = { { 7229, 1 }, { 29607, 1 }, { 7722, 1 }, { 30482, 1 }, { 29588, 1 },
+                                    { 6117, 1 }, { 7241, 1 }, { 6116, 1 }, { 7252, 1 }, { 7237, 1 } };
+    Check(LayoutViolations(met).empty(), "nine points above row 4 meet its gate");
+    met.push_back({ 7244, 1 });
+    met.push_back({ 30465, 1 });
+    violations = LayoutViolations(met);
+    Check(violations.size() == 1 && violations[0] == 30465, "both options of a choice node flag the later one");
+    Check(BreaksChoiceNode(met, 30465) && !BreaksChoiceNode(met, 7244) && !BreaksChoiceNode(met, 7237),
+          "only the later option of a doubled choice node breaks it");
+    CoATalentEntry const* brewing = Find(7131);
+    CoATalentEntry const* classCopy = Find(12264);
+    Check(brewing && classCopy && brewing->SpellIds[0] == classCopy->SpellIds[0] && brewing->SpecId &&
+              !classCopy->SpecId && classCopy->RequiredTreePoints,
+          "a gated class entry shares its rank spell with an ungated specialization entry");
+    std::vector<KnownEntry> sharedSpell = { { 7131, 1 }, { 12264, 1 } };
+    Check(LayoutViolations(sharedSpell).empty() && !BreaksChoiceNode(sharedSpell, 12264),
+          "a rank spell two entries share is one purchase, not a second entry breaking its gate");
+
     std::set<std::uint8_t> specializedClasses;
     for (CoATalentEntry const& entry : CoATalentEntries)
         if (entry.SpecId)

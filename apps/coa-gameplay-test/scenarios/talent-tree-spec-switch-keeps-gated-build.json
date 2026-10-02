@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "name": "A specialization switch restores a gated build, and Dreadnought spends only its level's points (#4463, #4466, #4821)",
+  "contract": "A switch stores the build being left and restores the entered one rank by rank through the talent rules (StoreBuilds/RestoreBuilds); the stored picks are in entry order, so a restore must still satisfy the row gates. Venomancer (class 29) Venom specialization 54, tab VENOM: rows 0-3 hold Wilt 30477 (804982), Spore 30606 (804983), Protraction 7219 (706942), Fungal Growth 6137 (804987), Acid Bolt 6687 (706025), Rotting Away 9575 (706370), Mycosis 30479 (804986) and Envenom 6138 (805900); Captivation 5215 (503930) is row 4 with RequiredTabTEInvestment 8 and the lowest entry id of them all. Stalking is specialization 53. #4463 and #4466 report characters whose trees were empty or locked after a switch. Cultist (class 25) Dreadnought is specialization 96 (tab BULWARK): Twilight Shieldtoss 7404 (524876) is row 0 and Adaptive Combatant 7612 (300268) row 1, TalentEssenceCost 1 each; CharacterAdvancementEssence gives class 25 one specialization point at level 12 and two at 13. #4821 reports unlimited Dreadnought points. Expected: switching away and back restores Captivation with the eight points above it, and Dreadnought buys one talent at 12 and a second at 13.",
+  "timeout_ms": 90000,
+  "players": [
+    { "id": "venomancer", "race": 1, "class": 29, "level": 60 },
+    { "id": "cultist", "race": 1, "class": 25, "level": 12 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let login hooks and class synchronisation settle", "ms": 5000 },
+    { "action": "specialization", "label": "Choose Venom", "actor": "venomancer", "id": 54 },
+    { "action": "advancement_rank", "actor": "venomancer", "entry": 30477, "rank": 1 },
+    { "action": "advancement_rank", "actor": "venomancer", "entry": 30606, "rank": 1 },
+    { "action": "advancement_rank", "actor": "venomancer", "entry": 7219, "rank": 1 },
+    { "action": "advancement_rank", "actor": "venomancer", "entry": 6137, "rank": 1 },
+    { "action": "advancement_rank", "actor": "venomancer", "entry": 6687, "rank": 1 },
+    { "action": "advancement_rank", "actor": "venomancer", "entry": 9575, "rank": 1 },
+    { "action": "advancement_rank", "actor": "venomancer", "entry": 30479, "rank": 1 },
+    { "action": "advancement_rank", "actor": "venomancer", "entry": 6138, "rank": 1 },
+    { "action": "advancement_rank", "label": "Row 4 with 8 points above it", "actor": "venomancer", "entry": 5215, "rank": 1 },
+    { "action": "assert", "label": "SETUP: Captivation is learned", "actor": "venomancer", "metric": "knows_spell", "spell": 503930, "equals": 1, "within_ms": 3000 },
+    { "action": "specialization", "label": "Switch to Stalking", "actor": "venomancer", "id": 53 },
+    { "action": "assert", "label": "The switch removed Venom's Captivation", "actor": "venomancer", "metric": "knows_spell", "spell": 503930, "equals": 0, "within_ms": 3000 },
+    { "action": "specialization", "label": "Switch back to Venom", "actor": "venomancer", "id": 54 },
+    { "action": "assert", "label": "Captivation is restored", "actor": "venomancer", "metric": "knows_spell", "spell": 503930, "equals": 1, "within_ms": 3000 },
+    { "action": "assert", "label": "Wilt is restored", "actor": "venomancer", "metric": "knows_spell", "spell": 804982, "equals": 1 },
+    { "action": "assert", "label": "Envenom is restored", "actor": "venomancer", "metric": "knows_spell", "spell": 805900, "equals": 1 },
+    { "action": "specialization", "label": "Choose Dreadnought", "actor": "cultist", "id": 96 },
+    { "action": "advancement_rank", "label": "Spend the level 12 specialization point", "actor": "cultist", "entry": 7404, "rank": 1 },
+    { "action": "assert", "label": "Twilight Shieldtoss is learned", "actor": "cultist", "metric": "knows_spell", "spell": 524876, "equals": 1, "within_ms": 3000 },
+    { "action": "advancement_rank", "label": "Try a second Dreadnought talent at 12", "actor": "cultist", "entry": 7612, "rank": 1, "refused": true },
+    { "action": "assert", "label": "Level 12 has no second specialization point", "actor": "cultist", "metric": "knows_spell", "spell": 300268, "equals": 0, "within_ms": 3000 },
+    { "action": "set_level", "actor": "cultist", "value": 13 },
+    { "action": "advancement_rank", "label": "Spend the level 13 point", "actor": "cultist", "entry": 7612, "rank": 1 },
+    { "action": "assert", "label": "Level 13 buys the second talent", "actor": "cultist", "metric": "knows_spell", "spell": 300268, "equals": 1, "within_ms": 3000 }
+  ]
+}

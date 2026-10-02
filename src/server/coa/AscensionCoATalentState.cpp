@@ -93,6 +93,84 @@ SpentPoints Spent(std::vector<KnownEntry> const& known)
     return spent;
 }
 
+namespace
+{
+struct Holding
+{
+    AscensionCompatData::CoATalentEntry const* Entry;
+    std::uint32_t Points;
+};
+
+std::vector<Holding> PaidHoldings(std::vector<KnownEntry> const& known)
+{
+    std::vector<std::pair<AscensionCompatData::CoATalentEntry const*, std::uint32_t>> paid;
+    for (KnownEntry const& item : known)
+        if (AscensionCompatData::CoATalentEntry const* entry = FindEntry(item.EntryId))
+            if (item.Rank && (entry->AECost || entry->TECost))
+                paid.emplace_back(entry, std::min<std::uint32_t>(item.Rank, entry->SpellCount));
+    std::sort(paid.begin(), paid.end(), [](auto const& left, auto const& right)
+    {
+        return left.first->EntryId < right.first->EntryId;
+    });
+
+    std::unordered_set<std::uint32_t> claimed;
+    std::vector<Holding> holdings;
+    for (auto const& [entry, rank] : paid)
+    {
+        std::uint32_t fresh = 0;
+        for (std::uint32_t index = 0; index < rank; ++index)
+            if (claimed.insert(entry->SpellIds[index]).second)
+                ++fresh;
+        if (fresh)
+            holdings.push_back({ entry, fresh * std::uint32_t(entry->SpecId ? entry->TECost : entry->AECost) });
+    }
+    return holdings;
+}
+
+bool SharesChoiceNode(AscensionCompatData::CoATalentEntry const& entry,
+                      AscensionCompatData::CoATalentEntry const& other)
+{
+    return entry.ChoiceGroup && other.ChoiceGroup == entry.ChoiceGroup && other.ClassId == entry.ClassId &&
+        other.SpecId == entry.SpecId && other.EntryId < entry.EntryId;
+}
+}
+
+std::vector<std::uint32_t> LayoutViolations(std::vector<KnownEntry> const& known)
+{
+    std::vector<Holding> const holdings = PaidHoldings(known);
+    std::vector<std::uint32_t> violations;
+    for (Holding const& held : holdings)
+    {
+        AscensionCompatData::CoATalentEntry const& entry = *held.Entry;
+        std::uint32_t pointsAbove = 0;
+        bool laterChoice = false;
+        for (Holding const& other : holdings)
+        {
+            if (other.Entry->ClassId != entry.ClassId || other.Entry->SpecId != entry.SpecId)
+                continue;
+            if (other.Entry->Row < entry.Row)
+                pointsAbove += other.Points;
+            if (SharesChoiceNode(entry, *other.Entry))
+                laterChoice = true;
+        }
+        if (pointsAbove < entry.RequiredTreePoints || laterChoice)
+            violations.push_back(entry.EntryId);
+    }
+    return violations;
+}
+
+bool BreaksChoiceNode(std::vector<KnownEntry> const& known, std::uint32_t entryId)
+{
+    std::vector<Holding> const holdings = PaidHoldings(known);
+    for (Holding const& held : holdings)
+        if (held.Entry->EntryId == entryId)
+            return std::any_of(holdings.begin(), holdings.end(), [&held](Holding const& other)
+            {
+                return SharesChoiceNode(*held.Entry, *other.Entry);
+            });
+    return false;
+}
+
 std::vector<std::uint8_t> KnownEntriesPayload(std::vector<KnownEntry> const& known)
 {
     std::vector<std::uint8_t> out;

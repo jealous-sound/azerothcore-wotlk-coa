@@ -17,6 +17,9 @@ struct CoATalentEntry
     std::uint8_t TECost;
     std::uint8_t RequiredLevel;
     std::array<std::uint32_t, 3> SpellIds;
+    std::uint8_t Row;
+    std::uint8_t RequiredTreePoints;
+    std::uint32_t ChoiceGroup;
 };
 
 struct CoASelectableFreeEntry

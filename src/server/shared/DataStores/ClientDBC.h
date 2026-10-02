@@ -40,6 +40,7 @@ public:
         [[nodiscard]] int32 GetInt32(uint32 dword) const { return Read<int32>(dword * sizeof(uint32)); }
         [[nodiscard]] float GetFloat(uint32 dword) const { return Read<float>(dword * sizeof(uint32)); }
         [[nodiscard]] uint8 GetUInt8(uint32 byteOffset) const { return Read<uint8>(byteOffset); }
+        [[nodiscard]] float GetFloatAtByte(uint32 byteOffset) const { return Read<float>(byteOffset); }
         /// Empty when the offset points outside the string block.
         [[nodiscard]] std::string_view GetString(uint32 dword) const;
 

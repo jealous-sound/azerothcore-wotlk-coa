@@ -54,6 +54,28 @@ under it. `SwitchSpecialization` removes every class talent spell when the speci
 new specialization's automatic entries. `ResetPaidTalents` removes every paid rank of the class; automatic grants
 and the specialization stay. Clients reach them only through the native packets below; there is no chat command.
 
+Row gates and choice nodes: a paid node's row is `PositionY` (byte `0x192`) and its gate is
+`RequiredTabAEInvestment` (dword 38, class tree: 0/9/24 for rows 0-3/4-7/8-9) or `RequiredTabTEInvestment`
+(dword 39, specialization tree: 0/8/23). The gate counts points in the same tree's earlier rows. Paid nodes
+sharing a `Group` (field 29) are one choice node: taking one option replaces the other. `SetTalentRank` refuses a
+change that leaves a held node below its gate (a removal as well as an addition). A node that already breaks its
+gate can be lowered or removed but never gain a rank. `SetAscensionTalentRank`, the exported API for modules and
+bots, goes through `SetTalentRank`, so it follows the same rules and budget.
+
+A known-entries upload is checked as a whole before anything is applied and refused with
+`CA_UPDATE_ENTRIES_NOT_TRAVERSIBLE`: `CA_LEARN_NOT_ENOUGH_INVESTED_AE` / `_TE` for a gate in the class or
+specialization tree, `CA_LEARN_GROUP` for a second option of a choice node. The client enforces the same two rules
+(`AscCARules` slots 38/39 and 37).
+
+Two entries can share one rank spell (Witch Doctor 7131, a specialization node, and 12264, a class node, both
+use 503748). The spell is one purchase held by the lower entry id, as `Spent` charges it, so the other entry
+carries no row or choice rule of its own and its presence does not refund the legitimate talent.
+
+`RestoreBuilds` restores in row order and drops the later option of a choice node a stored build holds twice;
+`OnPlayerLogin` refunds, deepest first, paid nodes that break a gate or share a choice node
+(`RepairTalentLayout`), and keeps the same option: the lower entry id. The tree's parent links
+(`ConnectedNodes`) are not in the DBC, so the server does not check which parent a node hangs from.
+
 ## Stored builds
 
 Ascension keeps a build per specialization and swaps between them. A switch here removes every talent spell,

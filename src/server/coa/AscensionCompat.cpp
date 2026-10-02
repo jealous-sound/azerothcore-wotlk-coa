@@ -1336,6 +1336,7 @@ public:
         _activeSpecializations[player->GetGUID().GetCounter()] = specializationId;
     }
 
+    RepairTalentLayout(player);
     SynchronizeProgression(player);
     SynchronizeProficiencies(player);
     RepairStarterKit(player, false);
@@ -1473,8 +1474,83 @@ public:
     return uint32(known.size());
   }
 
+  static bool IsChoiceSibling(AscensionCompatData::CoATalentEntry const& entry, uint32 freeChoiceGroup,
+                              uint32 otherId, uint32 rank)
+  {
+    AscensionCompatData::CoATalentEntry const* other = FindTalentEntry(otherId);
+    if (!rank || !other || other->EntryId == entry.EntryId || other->ClassId != entry.ClassId ||
+        other->SpecId != entry.SpecId)
+      return false;
+    return (freeChoiceGroup && GetSelectableFreeGroup(otherId) == freeChoiceGroup) ||
+           (entry.ChoiceGroup && other->ChoiceGroup == entry.ChoiceGroup);
+  }
+
+  static uint32 RankIn(std::vector<AscensionCoATalentState::KnownEntry> const& build, uint32 entryId)
+  {
+    for (AscensionCoATalentState::KnownEntry const& item : build)
+      if (item.EntryId == entryId)
+        return item.Rank;
+    return 0;
+  }
+
+  static uint32 NewLayoutViolation(std::vector<AscensionCoATalentState::KnownEntry> const& before,
+                                   std::vector<AscensionCoATalentState::KnownEntry> const& after)
+  {
+    std::vector<uint32> const existing = AscensionCoATalentState::LayoutViolations(before);
+    for (uint32 entryId : AscensionCoATalentState::LayoutViolations(after))
+      if (std::find(existing.begin(), existing.end(), entryId) == existing.end() ||
+          RankIn(after, entryId) > RankIn(before, entryId))
+        return entryId;
+    return 0;
+  }
+
+  static UpdateEntriesRefusal LayoutRefusal(uint32 entryId,
+                                            std::vector<AscensionCoATalentState::KnownEntry> const& build)
+  {
+    AscensionCompatData::CoATalentEntry const* entry = FindTalentEntry(entryId);
+    uint32 const rank = RankIn(build, entryId);
+    if (AscensionCoATalentState::BreaksChoiceNode(build, entryId))
+      return { "CA_UPDATE_ENTRIES_NOT_TRAVERSIBLE", "CA_LEARN_GROUP", entryId, rank,
+               Acore::StringFormat("Talent entry {} shares a choice node with another option that build also takes.",
+                                   entryId) };
+    return { "CA_UPDATE_ENTRIES_NOT_TRAVERSIBLE",
+             entry && entry->SpecId ? "CA_LEARN_NOT_ENOUGH_INVESTED_TE" : "CA_LEARN_NOT_ENOUGH_INVESTED_AE",
+             entryId, rank,
+             Acore::StringFormat("Talent entry {} needs {} point(s) spent in the rows above it in its tree.", entryId,
+                                 entry ? uint32(entry->RequiredTreePoints) : 0) };
+  }
+
+  uint32 RepairTalentLayout(Player* player)
+  {
+    uint32 refunded = 0;
+    for (std::size_t pass = 0; pass < AscensionCompatData::CoATalentEntries.size(); ++pass)
+    {
+      AscensionCompatData::CoATalentEntry const* deepest = nullptr;
+      for (uint32 entryId : AscensionCoATalentState::LayoutViolations(KnownTalentEntries(player)))
+        if (AscensionCompatData::CoATalentEntry const* entry = FindTalentEntry(entryId))
+          if (!deepest || entry->Row > deepest->Row)
+            deepest = entry;
+      if (!deepest)
+        break;
+
+      for (uint32 spellId : deepest->SpellIds)
+        if (spellId && player->HasSpell(spellId))
+        {
+          player->removeSpell(spellId, SPEC_MASK_ALL, false);
+          ++refunded;
+        }
+      LOG_INFO("coa", "Refunded CoA talent entry {} of {}: its tree row or choice rules are not met",
+               deepest->EntryId, player->GetName());
+    }
+
+    if (refunded)
+      ChatHandler(player->GetSession()).PSendSysMessage(
+          "Refunded {} talent rank(s) whose tree row or choice requirements were not met.", refunded);
+    return refunded;
+  }
+
   bool SetTalentRank(Player* player, AscensionCompatData::CoATalentEntry const& entry, uint32 rank,
-                     std::string& error, bool checkBudget = true)
+                     std::string& error, bool checkRules = true)
   {
     uint32 const entryId = entry.EntryId;
     if (entry.ClassId != player->getClass())
@@ -1538,34 +1614,58 @@ public:
     }
 
     uint32 const currentRank = AscensionCoATalentState::KnownRank(entry, SpellbookOf(player));
-    if (checkBudget && rank > currentRank && (entry.AECost || entry.TECost))
-    {
-      uint32 classBudget = 0;
-      uint32 specializationBudget = 0;
-      if (!TalentBudget(player, classBudget, specializationBudget, error))
-        return false;
+    bool const paid = entry.AECost || entry.TECost;
 
-      bool const classTree = entry.SpecId == 0;
-      AscensionCoATalentState::SpentPoints const spent =
-          AscensionCoATalentState::Spent(KnownTalentEntries(player));
-      uint32 const used = classTree ? spent.AE : spent.TE;
-      uint32 const budget = classTree ? classBudget : specializationBudget;
-      uint32 const cost = (rank - currentRank) * uint32(classTree ? entry.AECost : entry.TECost);
-      if (used + cost > budget)
+    if (checkRules && paid)
+    {
+      std::vector<AscensionCoATalentState::KnownEntry> const known = KnownTalentEntries(player);
+      std::vector<AscensionCoATalentState::KnownEntry> proposed;
+      for (AscensionCoATalentState::KnownEntry const& item : known)
+        if (item.EntryId != entryId && !IsChoiceSibling(entry, freeChoiceGroup, item.EntryId, rank))
+          proposed.push_back(item);
+      if (rank > 0)
+        proposed.push_back({ entryId, rank });
+
+      if (rank > currentRank)
       {
-        error = Acore::StringFormat(
-            "Talent entry {} rank {} needs {} {} point(s), but {} of the {} available at level {} are spent.",
-            entryId, rank, cost, classTree ? "class" : "specialization", used, budget,
-            uint32(player->GetLevel()));
+        uint32 classBudget = 0;
+        uint32 specializationBudget = 0;
+        if (!TalentBudget(player, classBudget, specializationBudget, error))
+          return false;
+
+        bool const classTree = entry.SpecId == 0;
+        AscensionCoATalentState::SpentPoints const spent = AscensionCoATalentState::Spent(known);
+        AscensionCoATalentState::SpentPoints const after = AscensionCoATalentState::Spent(proposed);
+        uint32 const used = classTree ? spent.AE : spent.TE;
+        uint32 const budget = classTree ? classBudget : specializationBudget;
+        uint32 const cost = (rank - currentRank) * uint32(classTree ? entry.AECost : entry.TECost);
+        if ((classTree ? after.AE : after.TE) > budget)
+        {
+          error = Acore::StringFormat(
+              "Talent entry {} rank {} needs {} {} point(s), but {} of the {} available at level {} are spent.",
+              entryId, rank, cost, classTree ? "class" : "specialization", used, budget,
+              uint32(player->GetLevel()));
+          return false;
+        }
+      }
+
+      if (uint32 const broken = NewLayoutViolation(known, proposed))
+      {
+        AscensionCompatData::CoATalentEntry const* brokenEntry = FindTalentEntry(broken);
+        error = broken == entryId && rank > 0
+            ? Acore::StringFormat("Talent entry {} needs {} point(s) spent in the rows above it in its tree.",
+                  entryId, uint32(brokenEntry->RequiredTreePoints))
+            : Acore::StringFormat("Talent entry {} still needs {} point(s) spent in the rows above it; "
+                  "remove it before changing talent entry {}.", broken,
+                  uint32(brokenEntry->RequiredTreePoints), entryId);
         return false;
       }
     }
 
-    if (rank > 0 && freeChoiceGroup)
+    if (rank > 0 && (freeChoiceGroup || entry.ChoiceGroup))
     {
       for (auto const& other : AscensionCompatData::CoATalentEntries)
-        if (other.ClassId == player->getClass() && other.SpecId == entry.SpecId && other.EntryId != entryId &&
-            GetSelectableFreeGroup(other.EntryId) == freeChoiceGroup)
+        if (other.ClassId == player->getClass() && IsChoiceSibling(entry, freeChoiceGroup, other.EntryId, rank))
           for (uint32 spellId : other.SpellIds)
             if (spellId && player->HasSpell(spellId))
               player->removeSpell(spellId, SPEC_MASK_ALL, false);
@@ -1723,6 +1823,12 @@ public:
                   Acore::StringFormat(
                       "That build spends {} class and {} specialization point(s); level {} has {} and {}.",
                       spent.AE, spent.TE, uint32(player->GetLevel()), classBudget, specializationBudget) };
+      return false;
+    }
+
+    if (uint32 const broken = NewLayoutViolation(KnownTalentEntries(player), priced))
+    {
+      refusal = LayoutRefusal(broken, priced);
       return false;
     }
 
@@ -1957,11 +2063,31 @@ public:
     StoreBuild(player, specializationId, LivePicks(player, specializationId));
   }
 
+  static uint8 RowOf(uint32 entryId)
+  {
+    AscensionCompatData::CoATalentEntry const* entry = FindTalentEntry(entryId);
+    return entry ? entry->Row : 0;
+  }
+
+  static std::vector<uint32> InRowOrder(std::vector<uint32> picks)
+  {
+    std::vector<AscensionCoATalentState::KnownEntry> stored;
+    for (uint32 const pick : picks)
+      stored.push_back({ pick / 10, pick % 10 });
+    std::erase_if(picks, [&stored](uint32 pick)
+    {
+      return AscensionCoATalentState::BreaksChoiceNode(stored, pick / 10);
+    });
+    std::stable_sort(picks.begin(), picks.end(),
+                     [](uint32 left, uint32 right) { return RowOf(left / 10) < RowOf(right / 10); });
+    return picks;
+  }
+
   uint32 RestoreBuilds(Player* player, uint32 specializationId)
   {
     uint32 restored = 0;
     for (uint32 const tree : { uint32(0), specializationId })
-      for (uint32 const pick : StoredBuild(player, tree))
+      for (uint32 const pick : InRowOrder(StoredBuild(player, tree)))
       {
         AscensionCompatData::CoATalentEntry const* entry = FindTalentEntry(pick / 10);
         uint32 const rank = pick % 10;
@@ -7344,34 +7470,14 @@ bool SetAscensionTalentRank(Player* player, uint32 entryId, uint32 rank)
         rank > entry->SpellCount)
         return false;
 
-    uint32 const freeChoiceGroup = AscensionClassService::GetSelectableFreeGroup(entryId);
-    if (entry->AECost == 0 && entry->TECost == 0 && !freeChoiceGroup)
+    if (entry->AECost == 0 && entry->TECost == 0 && !AscensionClassService::GetSelectableFreeGroup(entryId))
         return false;
 
     if (rank > 0 && entry->SpecId != 0 && entry->SpecId != GetAscensionActiveSpecialization(player))
         return false;
 
-    uint32 const selectedSpellId = rank > 0 ? entry->SpellIds[rank - 1] : 0;
-    if (rank > 0 && (!selectedSpellId || !sSpellMgr->GetSpellInfo(selectedSpellId)))
-        return false;
-
-    if (rank > 0 && freeChoiceGroup)
-        for (auto const& other : AscensionCompatData::CoATalentEntries)
-            if (other.ClassId == player->getClass() && other.SpecId == entry->SpecId && other.EntryId != entryId &&
-                AscensionClassService::GetSelectableFreeGroup(other.EntryId) == freeChoiceGroup)
-                for (uint32 spellId : other.SpellIds)
-                    if (spellId && player->HasSpell(spellId))
-                        player->removeSpell(spellId, SPEC_MASK_ALL, false);
-
-    for (uint32 spellId : entry->SpellIds)
-        if (spellId && player->HasSpell(spellId))
-            player->removeSpell(spellId, SPEC_MASK_ALL, false);
-
-    if (rank > 0)
-        player->learnSpell(selectedSpellId, false);
-
-    AscensionClassService::Instance().SynchronizeProgression(player);
-    return true;
+    std::string error;
+    return AscensionClassService::Instance().SetTalentRank(player, *entry, rank, error);
 }
 
 bool IsAscensionCustomClassId(uint8 classId)
