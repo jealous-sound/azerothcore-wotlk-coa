@@ -145,23 +145,23 @@ public:
         uint32 root = sSpellMgr->GetFirstSpellInChain(info->Id);
         if (root == SPELL_SMOLDER)
             player->RemoveAurasDueToSpell(SPELL_SPELLFIRE_READY, player->GetGUID());
-        if (player->HasAura(SPELL_RIFTBLADE, player->GetGUID()))
+        bool const riftblade = player->HasAura(SPELL_RIFTBLADE, player->GetGUID());
+        bool const eternalMagic = player->HasAura(SPELL_ETERNAL_MAGIC, player->GetGUID());
+        if ((root == SPELL_PRIMORDIAL_BLAST && (riftblade || eternalMagic)) ||
+            (root == SPELL_SMOLDER && riftblade))
         {
-            if (root == SPELL_PRIMORDIAL_BLAST || root == SPELL_SMOLDER)
+            if (uint32 rank = KnownRank(player, SPELL_RUNEBLADE))
+                player->RestoreSpellCharge(rank,
+                    root == SPELL_PRIMORDIAL_BLAST && eternalMagic ? SPELL_ETERNAL_MAGIC_CHARGES : 1);
+        }
+        if (root == SPELL_RUNEBLADE && riftblade)
+        {
+            player->CastSpell(player, SPELL_RIFTBLADE_COUNTER, true);
+            if (Aura* counter = player->GetAura(SPELL_RIFTBLADE_COUNTER, player->GetGUID());
+                counter && counter->GetStackAmount() >= 3)
             {
-                if (uint32 rank = KnownRank(player, SPELL_RUNEBLADE))
-                    player->RestoreSpellCharge(rank, root == SPELL_PRIMORDIAL_BLAST &&
-                        player->HasAura(SPELL_ETERNAL_MAGIC, player->GetGUID()) ? SPELL_ETERNAL_MAGIC_CHARGES : 1);
-            }
-            else if (root == SPELL_RUNEBLADE)
-            {
-                player->CastSpell(player, SPELL_RIFTBLADE_COUNTER, true);
-                if (Aura* counter = player->GetAura(SPELL_RIFTBLADE_COUNTER, player->GetGUID());
-                    counter && counter->GetStackAmount() >= 3)
-                {
-                    player->RemoveAurasDueToSpell(SPELL_RIFTBLADE_COUNTER, player->GetGUID());
-                    player->CastSpell(player, SPELL_RIFTBLADE_MANA, true);
-                }
+                player->RemoveAurasDueToSpell(SPELL_RIFTBLADE_COUNTER, player->GetGUID());
+                player->CastSpell(player, SPELL_RIFTBLADE_MANA, true);
             }
         }
         if ((root == SPELL_RUNEBLADE || root == SPELL_WARPDAGGER) &&
