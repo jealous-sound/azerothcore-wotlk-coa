@@ -189,8 +189,12 @@ namespace
             }
             else if (&store == &LootTemplates_Gameobject)
             {
+                // GO_CACHE_OF_THE_FIRELORD (179703) is itself > 100000 - unlike the creature
+                // offset scheme above, this is not a difficulty-encoded id, it is the one real
+                // entry that ever spawns (279703/379703/479703 are unused template placeholders
+                // with no gameobject spawn row at all), so compare it directly, not modulo'd.
                 GameObject const* go = lootOwner->GetMap()->GetGameObject(loot->sourceWorldObjectGUID);
-                if (!go || go->GetEntry() % 100000 != GO_CACHE_OF_THE_FIRELORD)
+                if (!go || go->GetEntry() != GO_CACHE_OF_THE_FIRELORD)
                     return;
                 baseEntry = FLEX_ITEM_MAJORDOMO_ENTRY;
             }
