@@ -600,6 +600,27 @@ players, 3 at 20+, same as every Tier 1 boss. The old 4% `creature_loot_template
 (`GroupId 5` Normal / `GroupId 3` Heroic/Mythic/Ascended, `Chance 4`) is deleted in the same migration so a
 kill cannot drop Chromatic Legguards twice.
 
+**Correction (`rev_20261001_73_molten_core_mythic_ascended_token_swap.sql`): the "25/26/27/37 =
+Normal/Heroic/Mythic/Ascended" prefix convention stated above is backwards for the last pair.**
+Every Molten-`<Slot>`/Chromatic Legguards token's own `item_template` row carries a decoded-WDB
+tooltip tag identifying its own difficulty directly (`"@Heroic Raid@"`/`"@Mythic Raid@"`/
+`"@Ascended Raid@"` prefixing the description; the Normal id has no tag) - this is the only
+direct, non-inferred evidence of which numeric id serves which difficulty, and it is corroborated
+by `buy_price` scaling strictly with difficulty (1.0M/1.5M/2.0M/2.5M) matching the Ascended->highest
+order the health scaling already established (`hp_d0..d3` above). For every item in this family,
+the **27-prefixed id is Ascended and the 37-prefixed id is Mythic** - the reverse of what was
+assumed when `rev_20261001_50`/`_51` built the guaranteed-pool `reference_loot_template` entries:
+each boss's Mythic reference entry (and Ragnaros's) held the 27-prefixed (actually Ascended) item
+and its Ascended entry held the 37-prefixed (actually Mythic) item, for all 8 Tier-1 bosses plus
+Ragnaros's Tier-2 Chromatic Legguards (18 rows total). `_73` swaps each pair back. Note this is the
+opposite mechanism from the one flagged in the flex-items plan: the direct `creature_loot_template`
+2-4% "own token" row on each Mythic/Ascended boss entry (e.g. Magmadar's 311982) already used the
+correct id under this mapping and needed no change - only the guaranteed-pool reference entries
+(the higher-volume drop vector read by `coa_mc_token_loot`/`FlexLoot.cpp`'s raid-size bonus roll)
+were swapped. `coa_mc_item_pool` and `coa_mc_fire_lord_cache_pool` hold none of this item family
+(they draw from the separate non-set-epic gear family, whose own +200000/+300000/+1300000
+additive scaling was checked and is correct) - no pool rebuild was needed.
+
 **Majordomo Executus drops no token of any kind.** He was never in the nine scheduled bosses'
 guaranteed-pool mechanism (never added to `coa_mc_token_loot`), and the export confirms there is nothing to
 add: his own "loot" is the Cache of the Firelord gameobject (179703, type Chest) that
