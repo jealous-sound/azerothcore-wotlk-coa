@@ -55,6 +55,12 @@ class SourceSelectionTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertTrue({'dbc', 'mechanics'} <= set(check_source.select([path])['checks']))
 
+    def test_chat_emoji_files_select_the_emoji_suite(self):
+        for path in ['apps/coa-emoji/emoji.json', 'apps/coa-emoji/client/Interface/FrameXML/ChatEmoji.lua',
+                     'apps/coa-emoji/client/Interface/CoAEmoji/1f44d.tga', 'apps/coa-emoji/build.py']:
+            with self.subTest(path=path):
+                self.assertEqual(check_source.select([path])['checks'], ['chat-emoji'])
+
     def test_reviewed_execution_sources_select_map_integrity_checks(self):
         path = 'src/server/game/Handlers/QuestHandler.cpp'
         result = check_source.select([path], mechanic_sources=[path])
