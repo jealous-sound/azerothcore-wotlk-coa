@@ -27,6 +27,7 @@
 #include "GossipDef.h"
 #include "Group.h"
 #include "GroupMgr.h"
+#include "InstanceScript.h"
 #include "Item.h"
 #include "LFGMgr.h"
 #include "ItemPackets.h"
@@ -1970,6 +1971,14 @@ private:
                 });
             }
             return 100.0 * hits / rolls;
+        }
+        if (metric == "instance_boss_state")
+        {
+            InstanceScript* instance = player->GetInstanceScript();
+            Require(instance != nullptr, "Boss state needs an instance script");
+            uint32 const boss = step.get<uint32>("id");
+            Require(boss < instance->GetEncounterCount(), "Boss index is outside the instance encounter list");
+            return instance->GetBossState(boss);
         }
         if (metric == "nearby_creature_count")
         {

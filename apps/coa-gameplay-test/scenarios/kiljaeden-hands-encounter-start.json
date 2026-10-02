@@ -1,0 +1,172 @@
+{
+  "schema": 1,
+  "name": "Kiljaeden starts when a Hand is pulled and resets a Hands-phase wipe",
+  "contract": "The Sunwell encounter starts when a Hand of the Deceiver enters combat, before any Hand dies. Pulling one Hand engages the controller encounter. A wipe while all three Hands remain alive returns the encounter to not started and replenishes all three Hands. This matches AzerothCore upstream PR 27880, approved and merged on 2026-10-01.",
+  "timeout_ms": 30000,
+  "location": {
+    "map": 580,
+    "x": 1740.0,
+    "y": 625.0,
+    "z": 28.0,
+    "o": 0,
+    "ignore_access": true
+  },
+  "players": [
+    {
+      "id": "raider",
+      "race": 1,
+      "class": 8,
+      "level": 60
+    }
+  ],
+  "creatures": [
+    {
+      "id": "controller",
+      "owner": "raider",
+      "entry": 25608,
+      "distance": 0,
+      "health": 100000
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "ms": 1000
+    },
+    {
+      "action": "assert",
+      "label": "The fixture entered Sunwell Plateau",
+      "actor": "raider",
+      "metric": "map_id",
+      "equals": 580
+    },
+    {
+      "action": "assert",
+      "label": "The controller summoned three living Hands",
+      "actor": "raider",
+      "metric": "nearby_creature_count",
+      "entry": 25588,
+      "equals": 3,
+      "within_ms": 3000
+    },
+    {
+      "action": "assert",
+      "label": "The encounter is initially idle",
+      "actor": "raider",
+      "metric": "instance_boss_state",
+      "id": 6,
+      "equals": 0
+    },
+    {
+      "action": "teleport",
+      "label": "Approach the first Hand after checking the idle state",
+      "actor": "raider",
+      "map": 580,
+      "x": 1703.6,
+      "y": 612.0,
+      "z": 27.66,
+      "o": 0
+    },
+    {
+      "action": "learn",
+      "actor": "raider",
+      "spell": 1449
+    },
+    {
+      "action": "cast",
+      "actor": "raider",
+      "spell": 1449,
+      "target": "raider"
+    },
+    {
+      "action": "assert",
+      "label": "Pulling a Hand starts the encounter before the first death",
+      "actor": "raider",
+      "metric": "instance_boss_state",
+      "id": 6,
+      "equals": 1,
+      "within_ms": 1500
+    },
+    {
+      "action": "assert",
+      "label": "All Hands are still alive when the encounter starts",
+      "actor": "raider",
+      "metric": "nearby_creature_count",
+      "entry": 25588,
+      "equals": 3
+    },
+    {
+      "action": "die",
+      "actor": "raider"
+    },
+    {
+      "action": "assert",
+      "label": "A Hands-phase wipe resets the encounter",
+      "actor": "raider",
+      "metric": "instance_boss_state",
+      "id": 6,
+      "equals": 0,
+      "within_ms": 8000
+    },
+    {
+      "action": "assert",
+      "label": "The reset restores three Hands",
+      "actor": "raider",
+      "metric": "nearby_creature_count",
+      "entry": 25588,
+      "equals": 3,
+      "within_ms": 3000
+    },
+    {
+      "action": "console",
+      "label": "Revive the raider for another pull",
+      "command": "revive Harnessa"
+    },
+    {
+      "action": "attack_nearby",
+      "label": "Defeat Hand 1",
+      "actor": "raider",
+      "entry": 25588,
+      "kill": true
+    },
+    {
+      "action": "attack_nearby",
+      "label": "Defeat Hand 2",
+      "actor": "raider",
+      "entry": 25588,
+      "kill": true
+    },
+    {
+      "action": "attack_nearby",
+      "label": "Defeat Hand 3",
+      "actor": "raider",
+      "entry": 25588,
+      "kill": true
+    },
+    {
+      "action": "assert",
+      "label": "Defeating all Hands still summons Kiljaeden",
+      "actor": "raider",
+      "metric": "nearby_creature_count",
+      "entry": 25315,
+      "equals": 1,
+      "within_ms": 3000
+    },
+    {
+      "action": "assert",
+      "label": "No living Hands remain during the boss phase",
+      "actor": "raider",
+      "metric": "nearby_creature_count",
+      "entry": 25588,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "The boss phase remains in progress",
+      "actor": "raider",
+      "metric": "instance_boss_state",
+      "id": 6,
+      "equals": 1
+    }
+  ]
+}

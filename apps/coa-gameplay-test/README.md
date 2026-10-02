@@ -478,6 +478,8 @@ Metrics: `health`, `max_health`, `creature_type`, `power`, `max_power`, `alive`,
 `dynamic_object_duration_ms`, `distance`, `spell_proc_count`, `spell_cast_count`, `temporary_spell_replacement`,
 `bank_shows`, `system_messages`, `cast_failure`, `pet_is_banker`, `pet_display`, `pet_scale`,
 `pet_knows_spell`.
+`instance_boss_state` requires a player inside an instance and its zero-based encounter `id`; it reads
+the native instance script state (`0` not started, `1` in progress, `2` failed, `3` done).
 `free_inventory_slots` is how many bag slots the player could still fill, so `fill_bags` plus
 `free_inventory_slots` `equals: 0` is how a scenario states "the bags are full". `mail_count` is the
 number of mails the player holds and `mail_item_count` the items inside them, which is how a reward
