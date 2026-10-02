@@ -3313,12 +3313,125 @@ private:
     std::lock_guard lock(_cacheMutex);
     if (!_rowsPrepared)
     {
-      _rows.CreatureDisplayIds = BuildDisplayPatchRows();
-      _rows.ItemDisplayInfos = LoadItemDisplayInfoPatchRows();
-      _rows.Items = LoadItemPatchRows();
+      std::filesystem::path const clientDbcDirectory =
+          ResolveClientDbcDirectory();
+      _rows.CreatureDisplayIds = BuildDisplayPatchRows(clientDbcDirectory);
+      _rows.ItemDisplayInfos =
+          BuildItemDisplayInfoPatchRows(clientDbcDirectory);
+      _rows.Items = BuildItemPatchRows(clientDbcDirectory);
       _rowsPrepared = true;
     }
     return _rows;
+  }
+
+  static std::filesystem::path ResolveClientDbcDirectory() {
+    std::string const configuredDirectory(
+        ascensionCompatConfig.GetConfigValue<std::string>(
+            AscensionCompatConfig::CLIENT_DBC_DIRECTORY));
+    if (!configuredDirectory.empty())
+      return configuredDirectory;
+    return std::filesystem::path(sWorld->GetDataPath()) / "dbc_clientset";
+  }
+
+  static std::optional<std::unordered_set<uint32>>
+  LoadDbcIds(std::filesystem::path const &path, uint32 minimumDWords) {
+    ClientDBC file;
+    if (!file.Load(path.string(), minimumDWords))
+      return std::nullopt;
+
+    std::unordered_set<uint32> ids;
+    ids.reserve(file.GetRecordCount());
+    for (uint32 row = 0; row < file.GetRecordCount(); ++row)
+      ids.insert(file.GetRecord(row).GetUInt32(0));
+    return ids;
+  }
+
+  static bool IsItemDisplayInfoStringField(uint8 field) {
+    return std::ranges::find(ITEM_DISPLAY_INFO_STRING_FIELDS, field) !=
+           ITEM_DISPLAY_INFO_STRING_FIELDS.end();
+  }
+
+  static std::vector<ItemDisplayInfoPatchRow>
+  BuildItemDisplayInfoPatchRows(std::filesystem::path const &clientDbcDirectory) {
+    std::vector<ItemDisplayInfoPatchRow> rows = LoadItemDisplayInfoPatchRows();
+
+    std::filesystem::path const clientDbc =
+        clientDbcDirectory / "ItemDisplayInfo.dbc";
+    std::optional<std::unordered_set<uint32>> const clientIds =
+        LoadDbcIds(clientDbc, ITEM_DISPLAY_INFO_FIELD_COUNT);
+    if (!clientIds)
+    {
+      LOG_WARN("coa",
+               "Client DBC copy {} is unavailable; streaming only the "
+               "itemdisplayinfo_dbc rows",
+               clientDbc.generic_string());
+      return rows;
+    }
+
+    std::unordered_set<uint32> overriddenIds;
+    for (ItemDisplayInfoPatchRow const &row : rows)
+      overriddenIds.insert(row.Values[0]);
+
+    ClientDBC serverDisplays;
+    std::filesystem::path const serverDbc =
+        std::filesystem::path(sWorld->GetDataPath()) / "dbc" /
+        "ItemDisplayInfo.dbc";
+    if (!serverDisplays.Load(serverDbc.string(), ITEM_DISPLAY_INFO_FIELD_COUNT))
+      return rows;
+
+    for (uint32 index = 0; index < serverDisplays.GetRecordCount(); ++index) {
+      ClientDBC::Record const record = serverDisplays.GetRecord(index);
+      uint32 const displayId = record.GetUInt32(0);
+      if (clientIds->contains(displayId) || overriddenIds.contains(displayId))
+        continue;
+
+      ItemDisplayInfoPatchRow &row = rows.emplace_back();
+      std::size_t stringIndex = 0;
+      for (uint8 field = 0; field < ITEM_DISPLAY_INFO_FIELD_COUNT; ++field) {
+        if (IsItemDisplayInfoStringField(field))
+          row.Strings[stringIndex++] = std::string(record.GetString(field));
+        else
+          row.Values[field] = record.GetUInt32(field);
+      }
+    }
+
+    return rows;
+  }
+
+  static std::vector<ItemPatchRow>
+  BuildItemPatchRows(std::filesystem::path const &clientDbcDirectory) {
+    std::vector<ItemPatchRow> rows = LoadItemPatchRows();
+
+    std::filesystem::path const clientDbc = clientDbcDirectory / "Item.dbc";
+    std::optional<std::unordered_set<uint32>> const clientIds =
+        LoadDbcIds(clientDbc, std::tuple_size_v<ItemPatchRow>);
+    if (!clientIds)
+    {
+      LOG_WARN("coa",
+               "Client DBC copy {} is unavailable; streaming only the item_dbc "
+               "rows",
+               clientDbc.generic_string());
+      return rows;
+    }
+
+    std::unordered_set<uint32> overriddenIds;
+    for (ItemPatchRow const &row : rows)
+      overriddenIds.insert(row[0]);
+
+    for (uint32 itemId = 0; itemId < sItemStore.GetNumRows(); ++itemId) {
+      ItemEntry const *entry = sItemStore.LookupEntry(itemId);
+      if (!entry || clientIds->contains(itemId) ||
+          overriddenIds.contains(itemId))
+        continue;
+
+      rows.push_back({entry->ID, entry->ClassID, entry->SubclassID,
+                      static_cast<uint32>(entry->SoundOverrideSubclassID),
+                      static_cast<uint32>(entry->Material),
+                      entry->DisplayInfoID, entry->InventoryType,
+                      entry->SheatheType});
+    }
+
+    return rows;
   }
 
   static std::vector<ItemDisplayInfoPatchRow> LoadItemDisplayInfoPatchRows() {
@@ -3340,8 +3453,7 @@ private:
       ItemDisplayInfoPatchRow &row = rows.emplace_back();
       std::size_t stringIndex = 0;
       for (uint8 field = 0; field < ITEM_DISPLAY_INFO_FIELD_COUNT; ++field) {
-        if (std::ranges::find(ITEM_DISPLAY_INFO_STRING_FIELDS, field) !=
-            ITEM_DISPLAY_INFO_STRING_FIELDS.end())
+        if (IsItemDisplayInfoStringField(field))
           row.Strings[stringIndex++] = fields[field].Get<std::string>();
         else
           row.Values[field] = static_cast<uint32>(fields[field].Get<int32>());
@@ -3370,28 +3482,14 @@ private:
     return rows;
   }
 
-  std::vector<uint32> BuildDisplayPatchRows() const {
-    std::filesystem::path clientDbcDirectory;
-    std::string const configuredDirectory(
-        ascensionCompatConfig.GetConfigValue<std::string>(
-            AscensionCompatConfig::CLIENT_DBC_DIRECTORY));
-    if (!configuredDirectory.empty())
-      clientDbcDirectory = configuredDirectory;
-    else
-      clientDbcDirectory =
-          std::filesystem::path(sWorld->GetDataPath()) / "dbc_clientset";
-
+  std::vector<uint32>
+  BuildDisplayPatchRows(std::filesystem::path const &clientDbcDirectory) const {
     std::filesystem::path const clientDbc =
         clientDbcDirectory / "CreatureDisplayInfo.dbc";
-    std::unordered_set<uint32> clientDisplayIds;
-    ClientDBC clientDisplays;
-    bool const haveClientSet = clientDisplays.Load(clientDbc.string(), 16);
-    if (haveClientSet)
-    {
-      for (uint32 row = 0; row < clientDisplays.GetRecordCount(); ++row)
-        clientDisplayIds.insert(clientDisplays.GetRecord(row).GetUInt32(0));
-    }
-    else
+    std::optional<std::unordered_set<uint32>> const clientDisplayIds =
+        LoadDbcIds(clientDbc, 16);
+    bool const haveClientSet = clientDisplayIds.has_value();
+    if (!haveClientSet)
     {
       LOG_WARN("coa",
                "Client DBC copy {} is unavailable; streaming every display id "
@@ -3407,7 +3505,7 @@ private:
 
       if (haveClientSet)
       {
-        if (clientDisplayIds.contains(displayId))
+        if (clientDisplayIds->contains(displayId))
           continue;
       }
       else if (displayId < CUSTOM_DISPLAY_ID_FALLBACK_MIN)
