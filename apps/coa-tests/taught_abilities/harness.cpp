@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <iostream>
 #include <map>
+#include <mutex>
 #include <set>
 #include <unordered_map>
 #include <vector>
@@ -171,6 +172,7 @@ void RemoveAscensionPrimalistWeapons(Player*) { }
 
 struct AscensionClassService
 {
+    mutable std::mutex _stateLock;
     std::unordered_map<uint32, uint32> _activeSpecializations;
     static AscensionClassService& Instance()
     {
@@ -336,7 +338,8 @@ void CheckReplacements()
             for (uint32 id : {680692u, 801076u, 562572u})
                 assert(blood.HasSpell(id) == (id == entry.Ranks.front().SpellId));
         }
-    std::cout << "PASS: 12 transformation routes, rank gates, callbacks, native routing and ownership cleanup\n";
+    std::cout << "PASS: " << AscensionCompatData::TalentReplacements.size()
+        << " transformation routes, rank gates, callbacks, native routing and ownership cleanup\n";
 }
 
 int main()
