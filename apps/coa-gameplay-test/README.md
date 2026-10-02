@@ -446,6 +446,7 @@ assert stable maximums and final levels when testing damage coefficients.
 | `restore_charges` | Player `actor`, `spell`: restore the native charge pool between independent cases. Separate from ordinary cooldowns. |
 | `wait` | `ms`: let the world continue updating for that much game time. |
 | `snapshot` | `actor`, `metric`, `save_as`: remember a numeric observation. |
+| `evade_nearby`, `remove_corpse_nearby` | `actor`, `entry`: native nearby AI evade or corpse removal. |
 | `assert` | `actor`, `metric`, `equals` and/or `min`/`max`: check an observation. |
 
 `set_health` also accepts an explicit `maximum` for a player or their pet, using native `SetMaxHealth`.
