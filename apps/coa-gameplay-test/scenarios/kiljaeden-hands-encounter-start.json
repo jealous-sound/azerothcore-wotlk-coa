@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "Kiljaeden starts when a Hand is pulled and resets a Hands-phase wipe",
-  "contract": "The Sunwell encounter starts when a Hand of the Deceiver enters combat, before any Hand dies. Pulling one Hand engages the controller encounter. A wipe while all three Hands remain alive returns the encounter to not started and replenishes all three Hands. This matches AzerothCore upstream PR 27880, approved and merged on 2026-10-01.",
+  "contract": "Hand aggro starts the encounter; a wipe resets living Hands; three Hand deaths summon Kil'jaeden.",
   "timeout_ms": 30000,
   "location": {
     "map": 580,
