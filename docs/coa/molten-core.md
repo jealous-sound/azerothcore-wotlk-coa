@@ -638,17 +638,14 @@ measured data.
   `item_template.class` filter with no manual id list. 2400040 itself is added to Ragnaros's
   Normal/Heroic loot at the same guaranteed rate it already has on Mythic/Ascended (111502/211502/
   311502/11502).
-- **Pool size is data-driven, and currently uneven across tiers**: Normal/Heroic resolve to the
-  raid's full classic itemization (Cloak of the Shrouded Mists, Band of Accuria, Bonereaver's Edge,
-  Drillborer Disk, Talisman of Binding Shard, Band of Sulfuras, ...), while Mythic/Ascended
-  currently resolve to only two items (Talisman of Binding Shard from Baron Geddon, Band of
-  Sulfuras from Ragnaros) — an accurate read of §7.1's own flattened Mythic/Ascended loot
-  restructure, not padded or invented here. Rebalancing Mythic/Ascended MC gear itself is a
-  separate, larger task.
-  **Update (§7.3):** once §7.3 moved every tier's non-set epic gear into `coa_mc_item_pool`,
-  `rev_20261001_71` unions that table into this CTE's result on every difficulty, so Mythic/
-  Ascended grow well past their old 2-item floor (the same gear the random-item mechanism now
-  draws from) instead of staying stuck at the flattened-export count.
+- **Pool size is data-driven.** The Mythic/Ascended-only 2-item floor this paragraph originally
+  described was already fixed by `rev_20261001_42` (§7.1's token/epic restore left the pool's own
+  CTE running before those rows existed; `_42` re-ran it once more, late) — live on slot 3 before
+  this section's own change, all four tiers already held 71 items each. §7.3's gear relocation
+  (moving those same items into `coa_mc_item_pool`) needed its own late rebuild, `rev_20261001_71`,
+  to union that table back into the CTE's result; confirmed live post-deploy: still 71/71/71/71,
+  unchanged, since the migration re-adds exactly the items it removed from
+  `creature_loot_template`.
 
 ### 7.3 Random item drops per kill
 
