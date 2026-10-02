@@ -1,0 +1,193 @@
+{
+  "schema": 1,
+  "name": "Rolled corpse loot removes empty corpse sparkles",
+  "contract": "Issue #6058. A corpse with no money and no unlooted items must lose UNIT_DYNFLAG_LOOTABLE after the final group roll awards its items, without requiring another loot-window release. Ragglesnout (7354) has guaranteed group-1 equipment loot. Two players consume ordinary slots before closing and resolve native CMSG_LOOT_ROLL votes. The companion retains money and must remain lootable. This checks native flag state, not client rendering.",
+  "timeout_ms": 90000,
+  "location": {
+    "map": 0,
+    "x": -8914,
+    "y": -133,
+    "z": 80.6
+  },
+  "players": [
+    {
+      "id": "looter",
+      "race": 1,
+      "class": 1,
+      "level": 60
+    },
+    {
+      "id": "partner",
+      "race": 1,
+      "class": 1,
+      "level": 60
+    }
+  ],
+  "creatures": [
+    {
+      "id": "corpse",
+      "entry": 7354,
+      "faction": 7,
+      "level": 37,
+      "health": 100,
+      "distance": 2,
+      "owner": "looter"
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "ms": 1000
+    },
+    {
+      "action": "group",
+      "actor": "looter",
+      "target": "partner",
+      "loot_method": 3
+    },
+    {
+      "action": "attack_nearby",
+      "actor": "looter",
+      "entry": 7354,
+      "kill": true
+    },
+    {
+      "action": "loot_creature",
+      "actor": "looter",
+      "target": "corpse"
+    },
+    {
+      "action": "loot_money",
+      "actor": "looter"
+    },
+    {
+      "action": "loot_slot",
+      "actor": "looter",
+      "slot": 0
+    },
+    {
+      "action": "loot_slot",
+      "actor": "looter",
+      "slot": 1
+    },
+    {
+      "action": "loot_slot",
+      "actor": "looter",
+      "slot": 2
+    },
+    {
+      "action": "loot_slot",
+      "actor": "looter",
+      "slot": 3
+    },
+    {
+      "action": "loot_slot",
+      "actor": "looter",
+      "slot": 4
+    },
+    {
+      "action": "loot_slot",
+      "actor": "looter",
+      "slot": 5
+    },
+    {
+      "action": "loot_slot",
+      "actor": "looter",
+      "slot": 6
+    },
+    {
+      "action": "loot_slot",
+      "actor": "looter",
+      "slot": 7
+    },
+    {
+      "action": "loot_slot",
+      "actor": "looter",
+      "slot": 8
+    },
+    {
+      "action": "loot_slot",
+      "actor": "looter",
+      "slot": 9
+    },
+    {
+      "action": "loot_slot",
+      "actor": "looter",
+      "slot": 10
+    },
+    {
+      "action": "loot_slot",
+      "actor": "looter",
+      "slot": 11
+    },
+    {
+      "action": "loot_slot",
+      "actor": "looter",
+      "slot": 12
+    },
+    {
+      "action": "loot_slot",
+      "actor": "looter",
+      "slot": 13
+    },
+    {
+      "action": "loot_slot",
+      "actor": "looter",
+      "slot": 14
+    },
+    {
+      "action": "loot_slot",
+      "actor": "looter",
+      "slot": 15
+    },
+    {
+      "action": "assert",
+      "actor": "corpse",
+      "metric": "creature_unlooted_items",
+      "min": 1,
+      "label": "Boss loot has a pending roll"
+    },
+    {
+      "action": "close_loot",
+      "actor": "looter"
+    },
+    {
+      "action": "assert",
+      "actor": "corpse",
+      "metric": "lootable",
+      "equals": 1
+    },
+    {
+      "action": "roll_loot",
+      "actor": "partner",
+      "target": "corpse",
+      "choice": 0
+    },
+    {
+      "action": "roll_loot",
+      "actor": "looter",
+      "target": "corpse",
+      "choice": 2
+    },
+    {
+      "action": "assert",
+      "actor": "corpse",
+      "metric": "creature_unlooted_items",
+      "equals": 0,
+      "label": "Every rolled item was consumed"
+    },
+    {
+      "action": "assert",
+      "actor": "corpse",
+      "metric": "creature_loot_gold",
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "corpse",
+      "metric": "lootable",
+      "equals": 0,
+      "label": "An exhausted corpse loses its lootable flag without reopening"
+    }
+  ]
+}

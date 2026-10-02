@@ -65,7 +65,8 @@ METRICS = {
     'spellbook_silent_buys', 'spellbook_multi_announced_buys',
     'cast_speed_multiplier', 'spell_crit_chance', 'spell_power_cost', 'spell_damage_done', 'melee_damage_done',
     'who_count', 'who_class', 'player_name', 'name_lookup', 'loot_count', 'loot_entry', 'loot_received',
-    'loot_gold', 'loot_bloodforged', 'nearby_gameobject_count', 'nearby_creature_count', 'carried_money',
+    'lootable', 'creature_unlooted_items', 'creature_loot_gold', 'loot_gold', 'loot_bloodforged',
+    'nearby_gameobject_count', 'nearby_creature_count', 'carried_money',
     'quest_rewarded', 'has_achievement', 'has_title', 'spell_damage_taken', 'melee_damage_taken', 'spell_healing_taken',
     'spell_hit_bonus_taken', 'rooted', 'stunned', 'spell_cast_count', 'spell_go_count', 'cast_failure',
     'stealth_detection', 'can_detect',
@@ -161,6 +162,7 @@ ACTIONS = {
     'who': ({'actor'}, {'actor', 'target', 'race_mask', 'class_mask'}),
     'open_item': ({'actor', 'item'}, {'actor', 'item'}),
     'collect_loot': ({'actor'}, {'actor'}),
+    'roll_loot': ({'actor', 'target', 'choice'}, {'actor', 'target', 'choice'}),
     'close_loot': ({'actor'}, {'actor'}),
     'set_money': ({'actor', 'value'}, {'actor', 'value'}),
     'set_phase': ({'actor'}, {'actor', 'value'}),
@@ -365,6 +367,9 @@ def validate(scenario):
         if action == 'attack_owned_creature':
             require(step['actor'] not in player_ids and step['target'] in player_ids,
                     f'{where}: attack needs a creature and a player who owns the target')
+        if action == 'roll_loot':
+            require(step['target'] not in player_ids, f'{where}: loot roll needs a creature')
+            number(step['choice'], f'{where}.choice', 0, 3, True)
         if action == 'group':
             require(step['target'] in player_ids and step['target'] != step['actor'],
                     f'{where}: group needs another player')

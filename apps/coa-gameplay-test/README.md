@@ -765,3 +765,8 @@ with a base amount of 1000 and requires `spell`; `periodic: true` selects the na
 
 `stealth_detection` reads native general stealth detection. `can_detect` requires `target` and invokes
 the observer's native `CanSeeOrDetect` check; neither metric covers client rendering.
+
+`roll_loot` takes a player `actor`, creature `target` and `choice` (0 pass, 1 need, 2 greed, 3 disenchant),
+and submits native roll votes for that player's pending rolls on the corpse. It fails if no matching roll exists.
+`lootable` reads the actor's native lootable dynamic flag. `creature_unlooted_items` and `creature_loot_gold`
+read a creature actor's remaining item count and money even after its loot window closes.
