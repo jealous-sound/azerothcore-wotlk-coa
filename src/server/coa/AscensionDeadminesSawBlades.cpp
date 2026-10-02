@@ -4,6 +4,8 @@
 #include "Random.h"
 #include "ScriptMgr.h"
 #include "ScriptedCreature.h"
+#include "SpellMgr.h"
+#include "SpellScript.h"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -15,6 +17,8 @@ enum DeadminesSawBladeData : uint32
 {
     NPC_SNEEDS_SHREDDER = 642,
     NPC_SNEED = 643,
+    NPC_CAPTAIN_GREENSKIN = 647,
+    SPELL_ASCENSION_POISONED_HARPOON = 2102585,
     SPELL_BUZZING_SAW_BLADE = 2102564,
     POINT_SAW_ORBIT = 1,
     SAW_MOVE_INTERVAL_MS = 250,
@@ -134,9 +138,39 @@ private:
     uint32 _dipElapsed;
     bool _started;
 };
+
+class spell_ascension_greenskin_poisoned_harpoon : public SpellScript
+{
+    PrepareSpellScript(spell_ascension_greenskin_poisoned_harpoon);
+
+    bool Load() override
+    {
+        Unit* caster = GetCaster();
+        return caster && caster->GetEntry() == NPC_CAPTAIN_GREENSKIN;
+    }
+
+    bool Validate(SpellInfo const*) override
+    {
+        return ValidateSpellInfo({ SPELL_ASCENSION_POISONED_HARPOON });
+    }
+
+    void ThrowHarpoon()
+    {
+        PreventHitAura();
+        PreventHitDamage();
+        if (Unit* target = GetHitUnit())
+            GetCaster()->CastSpell(target, SPELL_ASCENSION_POISONED_HARPOON, true);
+    }
+
+    void Register() override
+    {
+        OnHit += SpellHitFn(spell_ascension_greenskin_poisoned_harpoon::ThrowHarpoon);
+    }
+};
 }
 
 void AddSC_AscensionDeadminesSawBlades()
 {
     RegisterCreatureAI(npc_ascension_buzzing_saw_blade);
+    RegisterSpellScript(spell_ascension_greenskin_poisoned_harpoon);
 }
