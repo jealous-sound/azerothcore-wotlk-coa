@@ -97,6 +97,7 @@ struct Player
 using Unit = Player;
 bool IsAscensionCustomClass(Player const* player) { return player->cls >= 12 && player->cls <= 32; }
 bool HandleAscensionReaperResource(Player*, uint32, int32) { return false; }
+bool HandleAscensionPrimalistEarthshapingGain(Player*) { return false; }
 namespace AscensionPyromancer { bool Resource(Player*, uint32, int32) { return false; } }
 namespace AscensionCultist { bool Resource(Player*, uint32, int32) { return false; } }
 namespace AscensionVenomancer { bool Resource(Player*, uint32, int32) { return false; } }
