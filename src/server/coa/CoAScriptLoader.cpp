@@ -236,7 +236,7 @@ void AddSC_AscensionRangerToTheSkies();
 void AddSC_AscensionRunemasterManuscription();
 void AddSC_AscensionRangerTalents();
 void AddSC_AscensionRangerFlowers();
-void AddSC_AscensionDeadminesSawBlades();
+void AddSC_AscensionDeadminesBosses();
 void AddSC_AscensionRangerPetalkeeper();
 void AddSC_AscensionRangerFalconstrike();
 void AddSC_AscensionRangerArchery();
@@ -506,7 +506,7 @@ void AddCoAScripts()
     AddSC_AscensionRunemasterManuscription();
     AddSC_AscensionRangerTalents();
     AddSC_AscensionRangerFlowers();
-    AddSC_AscensionDeadminesSawBlades();
+    AddSC_AscensionDeadminesBosses();
     AddSC_AscensionRangerPetalkeeper();
     AddSC_AscensionRangerFalconstrike();
     AddSC_AscensionRangerArchery();

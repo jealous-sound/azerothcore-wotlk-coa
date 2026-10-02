@@ -1716,6 +1716,12 @@ void SpellMgr::LoadSpellInfoCorrections()
         spellInfo->Attributes |= SPELL_ATTR0_USES_RANGED_SLOT;
     });
 
+    // Buster Call (Edwin VanCleef) - the level 21 marker that drops it would miss every higher level player
+    ApplySpellFix({ 2102593, 2102594, 2102595, 2102596 }, [](SpellInfo* spellInfo)
+    {
+        spellInfo->AttributesEx3 |= SPELL_ATTR3_ALWAYS_HIT;
+    });
+
     // Moorabi - Transformation
     ApplySpellFix({ 55098 }, [](SpellInfo* spellInfo)
     {

@@ -18,6 +18,10 @@ enum DeadminesSawBladeData : uint32
     NPC_SNEEDS_SHREDDER = 642,
     NPC_SNEED = 643,
     NPC_CAPTAIN_GREENSKIN = 647,
+    SPELL_BUSTER_CALL_CIRCLE = 2102591,
+    SPELL_BUSTER_CALL_CANNONBALL = 2102592,
+    BUSTER_CALL_START_DELAY_MAX_MS = 1500,
+    BUSTER_CALL_FIRE_DELAY_MS = 4400,
     SPELL_ASCENSION_POISONED_HARPOON = 2102585,
     SPELL_BUZZING_SAW_BLADE = 2102564,
     POINT_SAW_ORBIT = 1,
@@ -35,6 +39,9 @@ constexpr float SawDipRadius = 2.0f;
 constexpr float SawSpeed = 3.0f;
 constexpr float SawLookaheadSeconds = 0.6f;
 constexpr float SawMinStepRadius = 2.0f;
+constexpr float BusterCallMinRadius = 3.0f;
+constexpr float BusterCallMaxRadius = 16.0f;
+constexpr float BusterCallHeight = 25.0f;
 
 struct npc_ascension_buzzing_saw_blade : ScriptedAI
 {
@@ -139,6 +146,55 @@ private:
     bool _started;
 };
 
+struct npc_ascension_buster_call_marker : ScriptedAI
+{
+    explicit npc_ascension_buster_call_marker(Creature* creature) : ScriptedAI(creature),
+        _delay(urand(0, BUSTER_CALL_START_DELAY_MAX_MS)), _elapsed(0), _stage(0), _x(0.0f), _y(0.0f), _z(0.0f) { }
+
+    void AttackStart(Unit*) override { }
+    void MoveInLineOfSight(Unit*) override { }
+    void EnterEvadeMode(EvadeReason) override { }
+
+    void IsSummonedBy(WorldObject* summoner) override
+    {
+        float const angle = frand(0.0f, 2.0f * std::numbers::pi_v<float>);
+        float const radius = frand(BusterCallMinRadius, BusterCallMaxRadius);
+        _x = summoner->GetPositionX() + radius * std::cos(angle);
+        _y = summoner->GetPositionY() + radius * std::sin(angle);
+        _z = summoner->GetPositionZ();
+        me->UpdateGroundPositionZ(_x, _y, _z);
+        me->SetDisableGravity(true);
+        me->NearTeleportTo(_x, _y, _z + BusterCallHeight, me->GetOrientation());
+        _stage = 1;
+    }
+
+    void UpdateAI(uint32 diff) override
+    {
+        if (_stage == 0 || _stage == 3)
+            return;
+
+        _elapsed += diff;
+        if (_stage == 1 && _elapsed >= _delay)
+        {
+            me->CastSpell(_x, _y, _z, SPELL_BUSTER_CALL_CIRCLE, true);
+            _elapsed = 0;
+            _stage = 2;
+        }
+        else if (_stage == 2 && _elapsed >= BUSTER_CALL_FIRE_DELAY_MS)
+        {
+            me->CastSpell(_x, _y, _z, SPELL_BUSTER_CALL_CANNONBALL, true);
+            _stage = 3;
+        }
+    }
+
+    uint32 _delay;
+    uint32 _elapsed;
+    uint8 _stage;
+    float _x;
+    float _y;
+    float _z;
+};
+
 class spell_ascension_greenskin_poisoned_harpoon : public SpellScript
 {
     PrepareSpellScript(spell_ascension_greenskin_poisoned_harpoon);
@@ -169,8 +225,9 @@ class spell_ascension_greenskin_poisoned_harpoon : public SpellScript
 };
 }
 
-void AddSC_AscensionDeadminesSawBlades()
+void AddSC_AscensionDeadminesBosses()
 {
     RegisterCreatureAI(npc_ascension_buzzing_saw_blade);
     RegisterSpellScript(spell_ascension_greenskin_poisoned_harpoon);
+    RegisterCreatureAI(npc_ascension_buster_call_marker);
 }
