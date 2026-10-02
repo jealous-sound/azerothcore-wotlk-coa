@@ -13,6 +13,15 @@
  * Same GetEntry()-stays-base-entry caveat as FlexLoot.cpp: the lookup key is rebuilt from the
  * base entry plus the map's own spawn mode rather than trusting GetEntry() to already carry the
  * difficulty.
+ *
+ * Majordomo Executus's own kill carries no set token and no own-pool rows (he draws only the
+ * common pool, FLEX_ITEM_BOSS_ENTRIES below), but his real loot vector is the Cache of the
+ * Firelord gameobject (179703, instance_molten_core.cpp / go_cache_of_the_firelord_coa), not his
+ * corpse. MISCHOOK_ON_AFTER_LOOT_TEMPLATE_PROCESS already fires for gameobject loot the same way
+ * it does for creature loot (Loot::FillLoot -> LootTemplate::Process, store-agnostic); the chest
+ * is one static spawn shared across every difficulty (its 279703/379703/479703 siblings are
+ * unused template placeholders, never spawned), so its difficulty has to come from the looting
+ * player's own map spawn mode rather than from the GO's entry at all.
  */
 
 #include "FlexItems.h"
@@ -20,6 +29,7 @@
 #include "Creature.h"
 #include "DatabaseEnv.h"
 #include "Field.h"
+#include "GameObject.h"
 #include "Log.h"
 #include "LootMgr.h"
 #include "Map.h"
@@ -51,6 +61,11 @@ namespace
     // CreatureEntry = 12018 rows), so he is listed here explicitly to still draw from the common
     // pool rather than being silently skipped because he never appears as an "own" pool key.
     constexpr uint32 FLEX_ITEM_BOSS_ENTRIES[] = { 11502, 11982, 11988, 12056, 12057, 12098, 12118, 12259, 12264, 12018 };
+
+    // Majordomo's own base entry, reused as the pool key for his Cache of the Firelord chest -
+    // same common-pool-only entry his own (hypothetical) corpse loot would draw from above.
+    constexpr uint32 FLEX_ITEM_MAJORDOMO_ENTRY = 12018;
+    constexpr uint32 GO_CACHE_OF_THE_FIRELORD = 179703;
 
     uint32 ItemCountForPlayers(uint32 players)
     {
@@ -161,15 +176,28 @@ namespace
         void OnAfterLootTemplateProcess(Loot* loot, LootTemplate const* /*tab*/, LootStore const& store,
             Player* lootOwner, bool /*personal*/, bool /*noEmptyError*/, uint16 /*lootMode*/) override
         {
-            if (!loot || !lootOwner || &store != &LootTemplates_Creature || !lootOwner->GetMap())
+            if (!loot || !lootOwner || !lootOwner->GetMap())
                 return;
 
-            Creature const* creature = lootOwner->GetMap()->GetCreature(loot->sourceWorldObjectGUID);
-            if (!creature)
+            uint32 baseEntry;
+            if (&store == &LootTemplates_Creature)
+            {
+                Creature const* creature = lootOwner->GetMap()->GetCreature(loot->sourceWorldObjectGUID);
+                if (!creature)
+                    return;
+                baseEntry = creature->GetEntry() % 100000;
+            }
+            else if (&store == &LootTemplates_Gameobject)
+            {
+                GameObject const* go = lootOwner->GetMap()->GetGameObject(loot->sourceWorldObjectGUID);
+                if (!go || go->GetEntry() % 100000 != GO_CACHE_OF_THE_FIRELORD)
+                    return;
+                baseEntry = FLEX_ITEM_MAJORDOMO_ENTRY;
+            }
+            else
                 return;
 
             uint32 const mode = uint32(lootOwner->GetMap()->GetSpawnMode());
-            uint32 const baseEntry = creature->GetEntry() % 100000;
 
             auto diffIt = g_poolByDiffAndBoss.find(mode);
             if (diffIt == g_poolByDiffAndBoss.end())

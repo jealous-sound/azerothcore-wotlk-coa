@@ -18,6 +18,7 @@
 #include "CreatureScript.h"
 #include "GameObjectAI.h"
 #include "GameObjectScript.h"
+#include "LootMgr.h"
 #include "ObjectAccessor.h"
 #include "Player.h"
 #include "ScriptedCreature.h"
@@ -664,10 +665,36 @@ struct go_ragnaros_portal_coa : public GameObjectAI
     }
 };
 
+// CoA addition: GameObject::Use() has no GAMEOBJECT_TYPE_CHEST case at all (it falls to
+// default:, spellId stays 0, nothing happens) - a type-3 chest is normally opened only via
+// Spell::EffectOpenLock, reached by the client auto-casting the spell matching its lock's
+// LockType.dbc entry. Cache of the Firelord's lock (57) resolves through LockType 5 ("Open"),
+// which SkillByLockType maps to SKILL_NONE, so CanOpenLock always succeeds with no real skill
+// or key - but nothing in this core ever drives that cast for a bare GAMEOBJECT_TYPE_CHEST
+// (confirmed live: neither CMSG_LOOT, guarded to creature/vehicle GUIDs only in
+// WorldSession::HandleLootOpcode, nor plain CMSG_GAMEOBJ_USE ever opened the loot window).
+// GossipHello fires before Use()'s switch and short-circuits it on a true return (the same
+// idiom go_ragnaros_portal_coa above already uses), so this calls SendLoot directly instead of
+// waiting on the unreachable lock-spell path.
+struct go_cache_of_the_firelord_coa : public GameObjectAI
+{
+    go_cache_of_the_firelord_coa(GameObject* go) : GameObjectAI(go) { }
+
+    bool GossipHello(Player* player, bool reportUse) override
+    {
+        if (reportUse || !player)
+            return false;
+
+        player->SendLoot(me->GetGUID(), LOOT_CORPSE);
+        return true;
+    }
+};
+
 void AddSC_boss_majordomo()
 {
     RegisterMoltenCoreCreatureAI(boss_majordomo);
     RegisterMoltenCoreGameObjectAI(go_ragnaros_portal_coa);
+    RegisterMoltenCoreGameObjectAI(go_cache_of_the_firelord_coa);
 
     // Spells
     RegisterSpellScript(spell_hate_to_zero);
