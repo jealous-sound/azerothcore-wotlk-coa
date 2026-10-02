@@ -17,6 +17,7 @@
 
 #include "AllBattlegroundScript.h"
 #include "AscensionSpecialization.h"
+#include "AscensionTalentReplacementData.h"
 #include "AscensionWildcard.h"
 #include "Battleground.h"
 #include "CoA.Prestige.API.h"
@@ -351,6 +352,14 @@ namespace
                 chains.insert(sSpellMgr->GetFirstSpellInChain(ability.SpellId));
                 player->removeSpell(ability.SpellId, SPEC_MASK_ALL, false);
             }
+        for (AscensionCompatData::TalentReplacement const& replacement : AscensionCompatData::TalentReplacements)
+            if (replacement.ClassId == player->getClass())
+                for (AscensionCompatData::ReplacementRank const& rank : replacement.Ranks)
+                    if (rank.RequiredLevel > level && player->HasSpell(rank.SpellId))
+                    {
+                        chains.insert(sSpellMgr->GetFirstSpellInChain(rank.SpellId));
+                        player->removeSpell(rank.SpellId, SPEC_MASK_ALL, false);
+                    }
         for (uint32 const spellId : CoASpellbook::UpgradeRanksAbove(player, level))
             if (player->HasSpell(spellId))
             {
