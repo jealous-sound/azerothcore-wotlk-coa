@@ -540,6 +540,52 @@ actual difficulty. Re-verified live post-fix (Lucifron, Ascended): a 20-bot kill
 (218878, 219143×2), a 10-bot kill dropped 2 (218861, 212598) — every item from the Ascended pool (`reference_loot_template`
 entry 4090051), none from the Normal pool (4090012).
 
+### 7.2 Cache of the Fire Lord (2400040) opener
+
+**Designed from player memory (no recorded data anywhere)** — `diag-K-firelord-cache.md` exhausted
+every source available this session (the repo's own SQL/export, AscensionDB's client captures and
+Exiles DB mirror, local WDB/addon snapshots) and found no itemized contents for 2400040 anywhere;
+its on-use spell 93461 is a bare dummy shared by 50+ unrelated cache items fleet-wide, so clicking
+it did nothing. The design below is the user's own recollection of live CoA, not a restoration of
+measured data.
+
+- **Behaviour**: opening the cache consumes it and gives one random piece of equippable gear
+  (`item_template.class` 2 Weapon / 4 Armor, including rings/trinkets/cloaks/necks) from the
+  **killed raid's own difficulty** — not the player's current raid difficulty setting. Reading the
+  setting at open time would be exploitable (kill on Normal, switch to Ascended, open for
+  Ascended-tier gear), so the difficulty is bound to the item the moment it is looted inside Molten
+  Core (`Map::GetSpawnMode()`, the same 0 Normal/1 Heroic/2 Mythic/3 Ascended convention
+  `coa_mc_token_loot`/`FlexLoot.cpp` already use) via a new `OnPlayerStoreNewItem` hook
+  (`AscensionFireLordCache.cpp`), recorded in the characters-DB table
+  `coa_mc_fire_lord_cache_tier` (`ItemGuid` -> `RaidDifficulty`) and cleared once the cache opens
+  successfully. No class filtering is applied — trivial class-fit checks were not an obvious win
+  here, unlike `AscensionPrestigiousCache.cpp`'s stat-preference logic, so every pool item is
+  equally likely regardless of the opener's class.
+- **Known limitation**: an item with no bound row — a GM-added cache, or one looted before this
+  table existed — falls back to the player's *current* raid difficulty setting at open time
+  (logged at `LOG_DEBUG`), which is exploitable exactly as above for that narrow case only; every
+  cache looted through the normal kill path after this change is unaffected.
+- **Pool, per raid difficulty**: `coa_mc_fire_lord_cache_pool` (world DB, `RaidDifficulty`,
+  `ItemEntry`) is filled by a late pending SQL migration that recursively resolves
+  `creature_loot_template`/`reference_loot_template` for the nine scheduled bosses plus Ragnaros,
+  at each of the four difficulties, rather than hard-coding any item id. Excluded while resolving:
+  every Tier 1 token reference (`4090011`-`4090057`, §7.1's own token pools) and
+  `reference_loot_template` 34002 (AzerothCore's own generic classic-era world-drop pool, reused by
+  thousands of unrelated creatures server-wide, not Molten Core's own itemization). Everything else
+  that is not class 2/4 (consumables, quest items, reagents, recipes, currency-like Misc items, the
+  two other unrelated "Cache of the Fire Lord"-named ids 1400024/1400040, Personal Cache 1170083,
+  and the legendaries Eye of Sulfuras/Bindings of the Windseeker) falls out of the plain
+  `item_template.class` filter with no manual id list. 2400040 itself is added to Ragnaros's
+  Normal/Heroic loot at the same guaranteed rate it already has on Mythic/Ascended (111502/211502/
+  311502/11502).
+- **Pool size is data-driven, and currently uneven across tiers**: Normal/Heroic resolve to the
+  raid's full classic itemization (Cloak of the Shrouded Mists, Band of Accuria, Bonereaver's Edge,
+  Drillborer Disk, Talisman of Binding Shard, Band of Sulfuras, ...), while Mythic/Ascended
+  currently resolve to only two items (Talisman of Binding Shard from Baron Geddon, Band of
+  Sulfuras from Ragnaros) — an accurate read of §7.1's own flattened Mythic/Ascended loot
+  restructure, not padded or invented here. Rebalancing Mythic/Ascended MC gear itself is a
+  separate, larger task.
+
 ## 8. Known gaps / needs decision
 
 1. **~~Normal flex health = Heroic × 0.750 (#5389).~~ Resolved for the video-covered roster.** Every boss and
