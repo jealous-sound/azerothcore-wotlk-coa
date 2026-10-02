@@ -2,7 +2,7 @@
   "schema": 1,
   "name": "ranger-barbed-quills-bleed-and-spread-5478",
   "timeout_ms": 120000,
-  "contract": "Barbed Quills 800077 is a paid Dueling talent. Landed Wild Strike, Flank and Quills damage applies the owner's 801472 bleed. Quills spreads owner periodic effects to at most five hostile enemies within ten yards and extends existing owner periodics by 2000 ms. Purchase the actual talent, compare an untalented Wild Strike, then observe both the bleed and a normally cast Serrated Shot spreading to an enemy outside Quills' own six-yard radius. A distant target and another caster are negative controls; bleed damage must actually tick.",
+  "contract": "Barbed Quills 800077 is a paid Dueling talent. Landed Wild Strike, Flank and Quills damage applies the owner's 801472 bleed. Quills spreads owner periodic effects to at most five hostile enemies within ten yards and extends existing owner periodics by 2000 ms. Purchase the actual talent, compare an untalented Wild Strike, then observe both the bleed and a normally cast Serrated Shot spreading to an enemy outside Quills' own eight-yard base radius and native leeway. A distant target and another caster are negative controls; bleed damage must actually tick.",
   "location": {
     "map": 0,
     "x": -8917.41,
@@ -37,7 +37,7 @@
       "entry": 36,
       "level": 1,
       "health": 1000000,
-      "distance": 3
+      "distance": 4
     },
     {
       "id": "near",
@@ -45,7 +45,7 @@
       "entry": 36,
       "level": 1,
       "health": 1000000,
-      "distance": 11
+      "distance": 13
     },
     {
       "id": "far",
@@ -61,7 +61,7 @@
       "entry": 36,
       "level": 1,
       "health": 1000000,
-      "distance": 11.2
+      "distance": 13.2
     },
     {
       "id": "near3",
@@ -69,7 +69,7 @@
       "entry": 36,
       "level": 1,
       "health": 1000000,
-      "distance": 11.4
+      "distance": 13.4
     },
     {
       "id": "near4",
@@ -77,7 +77,7 @@
       "entry": 36,
       "level": 1,
       "health": 1000000,
-      "distance": 11.6
+      "distance": 13.6
     },
     {
       "id": "near5",
@@ -85,7 +85,7 @@
       "entry": 36,
       "level": 1,
       "health": 1000000,
-      "distance": 11.8
+      "distance": 13.8
     },
     {
       "id": "near6",
@@ -93,7 +93,7 @@
       "entry": 36,
       "level": 1,
       "health": 1000000,
-      "distance": 12
+      "distance": 14
     }
   ],
   "steps": [
@@ -449,6 +449,60 @@
       "target": "near",
       "min": 1,
       "within_ms": 4000
+    },
+    {
+      "action": "assert",
+      "actor": "r",
+      "metric": "spell_damage_count",
+      "spell": 561186,
+      "target": "near",
+      "equals": 0,
+      "label": "Spread fixture receives no primary Quills hit: near"
+    },
+    {
+      "action": "assert",
+      "actor": "r",
+      "metric": "spell_damage_count",
+      "spell": 561186,
+      "target": "near2",
+      "equals": 0,
+      "label": "Spread fixture receives no primary Quills hit: near2"
+    },
+    {
+      "action": "assert",
+      "actor": "r",
+      "metric": "spell_damage_count",
+      "spell": 561186,
+      "target": "near3",
+      "equals": 0,
+      "label": "Spread fixture receives no primary Quills hit: near3"
+    },
+    {
+      "action": "assert",
+      "actor": "r",
+      "metric": "spell_damage_count",
+      "spell": 561186,
+      "target": "near4",
+      "equals": 0,
+      "label": "Spread fixture receives no primary Quills hit: near4"
+    },
+    {
+      "action": "assert",
+      "actor": "r",
+      "metric": "spell_damage_count",
+      "spell": 561186,
+      "target": "near5",
+      "equals": 0,
+      "label": "Spread fixture receives no primary Quills hit: near5"
+    },
+    {
+      "action": "assert",
+      "actor": "r",
+      "metric": "spell_damage_count",
+      "spell": 561186,
+      "target": "near6",
+      "equals": 0,
+      "label": "Spread fixture receives no primary Quills hit: near6"
     }
   ]
 }

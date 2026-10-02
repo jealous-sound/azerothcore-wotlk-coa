@@ -123,7 +123,7 @@ void ConsumeSelected(Player* player, Spell* spell)
                     if (sid == 524913 && spell->GetScriptValue(524914))
                         left = 1;
                     if (left > 1)
-                        aura->SetScriptValue(sid, left - 1);
+                        SetRemainingUses(aura, uint8(left - 1));
                     else
                         aura->Remove();
                 }

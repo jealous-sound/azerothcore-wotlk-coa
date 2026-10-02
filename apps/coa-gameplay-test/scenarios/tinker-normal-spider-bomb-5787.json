@@ -1,0 +1,104 @@
+{
+  "schema": 1,
+  "name": "Tinker normal Spider Bomb damages a distant target (#5787)",
+  "contract": [
+    "Original Build: Spider Bomb sends its device to a target and detonates. Original Spider Bomb Factory creates three bombs when Bomb Toss or Rocket Launcher is used. Explosive Inventor also creates a slow Heavy Spider Bomb.",
+    "The target is twenty yards away, selected through the normal session. Device explosions are observed separately from the factory-triggering Bomb Toss. No attack or device movement is injected."
+  ],
+  "timeout_ms": 90000,
+  "location": {
+    "map": 0,
+    "x": -8949.95,
+    "y": -132.493,
+    "z": 83.5312,
+    "o": 0
+  },
+  "players": [
+    {
+      "id": "tinker",
+      "race": 1,
+      "class": 28,
+      "level": 80,
+      "spell_hit_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "dummy",
+      "owner": "tinker",
+      "entry": 36,
+      "level": 80,
+      "health": 1000000,
+      "distance": 20
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "ms": 3000
+    },
+    {
+      "action": "learn",
+      "actor": "tinker",
+      "spell": 500535
+    },
+    {
+      "action": "client_packet",
+      "actor": "tinker",
+      "opcode": 317,
+      "fields": [
+        {
+          "actor_guid": "dummy"
+        }
+      ],
+      "consumed": false
+    },
+    {
+      "action": "snapshot",
+      "actor": "dummy",
+      "metric": "health",
+      "save_as": "before_build"
+    },
+    {
+      "action": "cast",
+      "actor": "tinker",
+      "spell": 500535,
+      "target": "dummy"
+    },
+    {
+      "action": "assert",
+      "actor": "tinker",
+      "metric": "owned_creature_count",
+      "entry": 226012,
+      "equals": 1,
+      "within_ms": 3000
+    },
+    {
+      "action": "assert",
+      "label": "The bomb travels to the selected target and detonates",
+      "actor": "dummy",
+      "metric": "health",
+      "relative_to": "before_build",
+      "max": -1,
+      "within_ms": 10000
+    },
+    {
+      "action": "assert",
+      "label": "The explosion is observed separately from Bomb Toss damage",
+      "actor": "tinker",
+      "metric": "spell_go_count",
+      "spell": 801982,
+      "entry": 226012,
+      "min": 1,
+      "within_ms": 1000
+    },
+    {
+      "action": "assert",
+      "actor": "tinker",
+      "metric": "owned_creature_count",
+      "entry": 226012,
+      "equals": 0,
+      "within_ms": 3000
+    }
+  ]
+}

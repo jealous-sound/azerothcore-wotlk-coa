@@ -66,6 +66,9 @@ assignment, evidence, verification, review and publication requirements still ap
    through the frozen topic queue; stop when it is exhausted, the user stops the run, or all remaining work is
    blocked. New arrivals belong to a later run. Preserve the batch number, queue, claims, branches, checks and PRs
    across interruptions, and report remaining blockers without asking for routine continuation approval.
+   On later fetches, check previous batch PRs for merges. Verify resolved reports on fetched `origin/main` and
+   add detailed gameplay evidence using the closure rules below, including reports already closed by merge
+   keywords. Partial fixes and reports whose remaining behavior cannot be tested stay open.
 
 ## Mode: auto or manual
 
@@ -212,9 +215,16 @@ Complete this loop for the issue or justified group before beginning the next in
    settings or schedule monitoring. This workflow does not merge PRs or wait indefinitely for approval.
 8. For an already-fixed report, verify the reported behavior with `verify_all.py` and the fix's presence on
    fetched `origin/main`.
-   Then close it as completed with the exact comment `Fixed` (after approval in manual mode), verifying state
-   and avoiding duplicate comments. A fix present only on an unmerged branch remains open and links to its
-   existing PR. Do not invent a commit/PR, label invalid or duplicate reports fixed, or reopen others' closures.
+   Then post a detailed verification comment and close it as completed (after approval in manual mode).
+   Include the tested main commit, fix PR when applicable, reproducible scenario names/commands, exercised
+   conditions and controls, actual versus expected observations, verification status, clock, sensitivity flags
+   and remaining coverage limits. Verify the public comment and issue state; avoid duplicate evidence comments.
+   Add this evidence to a merge-triggered closure without reopening it. A demonstrated incorrect expectation
+   may be closed as not planned with its current-data contract and native evidence, without calling it fixed.
+   A failed attempt caused by unavailable prerequisites, client rendering/input, external modules or an
+   unresolved contract is not proof that a report is non-reproducible. Keep those reports and partial fixes open.
+   A fix present only on an unmerged branch remains open and links to its existing PR. Do not invent a commit/PR,
+   label invalid or duplicate reports fixed, or reopen others' closures.
 9. Record blocked work and continue independent issues when useful, preserving unfinished edits in their own
    branch/worktree. A later failure does not delay or undo an earlier PR. Do not publish unverified fixes as ready.
 

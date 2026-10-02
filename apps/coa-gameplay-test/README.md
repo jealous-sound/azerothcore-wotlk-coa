@@ -387,7 +387,9 @@ area, zone or map range, which `system_messages` counts.
 
 Creatures require `id`, player `owner` and template `entry`. Optional `distance` offsets X from their owner
 (default 3 yards); `faction`, `level`, `health` default to 14, 80, 100000. They retain template data and AI,
-with passive reaction and health regeneration disabled. The native player-damage share a kill needs for loot and
+with health regeneration disabled and `reaction` defaulting to passive (0); defensive (1) and aggressive (2)
+fixtures exercise native target selection and movement. `victim` with a `target` measures whether that unit is
+the actor's current attack victim. The native player-damage share a kill needs for loot and
 reward is taken from the declared health, so a player's kill leaves a lootable or skinnable corpse. Pick a
 template whose scripts suit the experiment.
 Setup clears combat initiated by spawn-time AI before starting the scenario: a fixture whose AI engaged a player
