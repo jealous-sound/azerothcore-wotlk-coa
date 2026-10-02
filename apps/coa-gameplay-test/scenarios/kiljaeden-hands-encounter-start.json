@@ -5,9 +5,9 @@
   "timeout_ms": 30000,
   "location": {
     "map": 580,
-    "x": 1703.6,
-    "y": 612.0,
-    "z": 27.66,
+    "x": 1740.0,
+    "y": 625.0,
+    "z": 28.0,
     "o": 0,
     "ignore_access": true
   },
@@ -56,6 +56,16 @@
       "metric": "instance_boss_state",
       "id": 6,
       "equals": 0
+    },
+    {
+      "action": "teleport",
+      "label": "Approach the first Hand after checking the idle state",
+      "actor": "raider",
+      "map": 580,
+      "x": 1703.6,
+      "y": 612.0,
+      "z": 27.66,
+      "o": 0
     },
     {
       "action": "learn",
