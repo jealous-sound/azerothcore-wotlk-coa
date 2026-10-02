@@ -2961,7 +2961,7 @@ std::optional<ScrollToken> ScrollTokenOf(std::int32_t tokenType)
 {
     if (tokenType < 0 || std::size_t(tokenType) >= SPECIALIZATION_COUNT * SCROLL_COUNT)
         return std::nullopt;
-    return ScrollToken{ std::uint32_t(tokenType) % SPECIALIZATION_COUNT,
+    return ScrollToken{ std::uint32_t(std::size_t(tokenType) % SPECIALIZATION_COUNT),
         Scroll(std::uint32_t(tokenType) / SPECIALIZATION_COUNT) };
 }
 
