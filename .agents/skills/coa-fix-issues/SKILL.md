@@ -125,8 +125,9 @@ assignment, evidence, verification, review and publication requirements still ap
   open/closed state. A previous fix, merged PR, passing scenario or earlier closure does not override this
   exclusion. It applies to every topic, ordinary issue queues and resumed batches.
 - Read the complete paginated issue timeline or events from GitHub. For example, retrieve all pages with
-  `gh api --paginate --slurp "repos/<owner/repo>/issues/<number>/timeline?per_page=100"` and inspect every page
-  for `event == "reopened"`. Current state, `state_reason`, the latest comment and cached partial history are
+  `gh api --paginate "repos/<owner/repo>/issues/<number>/timeline?per_page=100"` and inspect every returned
+  page for `event == "reopened"`; require a successful exit after all pages. Current state, `state_reason`,
+  the latest comment and cached partial history are
   insufficient. If history cannot be retrieved completely, record `reopening history unavailable` and skip
   the issue until the check can be completed.
 - Check before selecting or claiming an issue, on resume, before publishing its fix, and immediately before
