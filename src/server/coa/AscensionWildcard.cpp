@@ -1626,6 +1626,22 @@ void SignalClientEvent(Player* player, char const* name)
     player->SendDirectMessage(&event);
 }
 
+constexpr Milliseconds ROLL_READY_DELAY = 1s;
+
+struct PendingRollReady final : DataMap::Base
+{
+    Milliseconds Due = Milliseconds::zero();
+};
+
+void SendDueRollReady(Player* player)
+{
+    PendingRollReady* pending = player->CustomData.Get<PendingRollReady>("AscensionWildcardRollReady");
+    if (!pending || pending->Due == Milliseconds::zero() || GameTime::GetGameTimeMS() < pending->Due)
+        return;
+    pending->Due = Milliseconds::zero();
+    SignalClientEvent(player, WILDCARD_ROLL_READY);
+}
+
 void SendActiveSpec(Player* player)
 {
     WorldPacket packet(SMSG_CHARACTER_ADVANCEMENT_ACTIVE_SPEC, 2 * sizeof(uint32));
@@ -1715,7 +1731,7 @@ bool SwitchSpecialization(Player* player, uint32 spec)
     SendKnownEntries(player, slots);
     SendSkillCards(player);
     SendRerollCounts(player, SMSG_WILDCARD_REROLL_COUNT);
-    SignalClientEvent(player, WILDCARD_ROLL_READY);
+    SignalRollReady(player);
     LOG_INFO("coa", "Wildcard specialization of {}: {} -> {} ({} entries)", player->GetName(), active + 1, spec + 1,
         std::count_if(slots.begin(), slots.end(), [](Slot const& slot) { return slot.EntryId != 0; }));
     return true;
@@ -2114,6 +2130,7 @@ public:
     void OnPlayerUpdate(Player* player, uint32) override
     {
         SyncRunes(player);
+        SendDueRollReady(player);
         if (!AnyPending)
             return;
 
@@ -3167,7 +3184,8 @@ std::uint32_t PrestigeSpecialization(Player* player)
 
 void SignalRollReady(Player* player)
 {
-    SignalClientEvent(player, WILDCARD_ROLL_READY);
+    player->CustomData.GetDefault<PendingRollReady>("AscensionWildcardRollReady")->Due =
+        GameTime::GetGameTimeMS() + ROLL_READY_DELAY;
 }
 
 void SendPrestigeInfo(Player* player)
