@@ -891,9 +891,14 @@ void GameObject::Update(uint32 diff)
                 uint32 dynamicRespawnDelay = GetMap()->ApplyDynamicModeRespawnScaling(this, m_respawnDelayTime);
                 m_respawnTime = GameTime::GetGameTime().count() + dynamicRespawnDelay;
 
-                // if option not set then object will be saved at grid unload
-                if (GetMap()->IsDungeon())
-                    SaveRespawnTime();
+                // CoA: always save immediately, not just for dungeons. With
+                // SaveRespawnTimeImmediately=1, grid unload no longer saves it
+                // either (Map::RemoveFromMap only does so when that option is
+                // OFF), so overworld GOs previously never persisted a pending
+                // respawn at all -- walking out of grid range and back reset
+                // them instantly. Matches how respawns are expected to behave
+                // (per Ascension reference behavior).
+                SaveRespawnTime();
 
                 DestroyForVisiblePlayers(); // xinef: old UpdateObjectVisibility();
                 break;
