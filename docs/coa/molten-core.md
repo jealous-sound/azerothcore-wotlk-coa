@@ -543,6 +543,27 @@ actual difficulty. Re-verified live post-fix (Lucifron, Ascended): a 20-bot kill
 (218878, 219143×2), a 10-bot kill dropped 2 (218861, 212598) — every item from the Ascended pool (`reference_loot_template`
 entry 4090051), none from the Normal pool (4090012).
 
+**Correction (`rev_20261001_40_molten_core_real_tier_tokens.sql`): the guaranteed pool above was the wrong
+item family.** The classic per-class Tier 1 armor pieces (Felheart Gloves 16805, Sorcerous Dagger 18878, ...)
+genuinely drop through the mechanism just described, but they are not CoA's "T1 tokens" and read as unrelated
+loot to players, which is why a user who ran two full MC clears reported seeing zero T1 tokens. The real
+tokens are a separate item family, independently confirmed from AscensionDB's "Client captures" records
+(modes `conquest-of-azeroth`/`season-9`/`season-10-freepick`, not just `Exiles DB`): class 15 (Misc),
+subclass 0, quality 4, non-equip, reqlvl 60 items named `Molten <Slot>` (Tier 1: Tunic/Legguards/Headpiece/
+Spaulders/Wristguards/Girdle/Handguards/Boots) and `Chromatic <Slot>` (Tier 2, BWL), one id per difficulty
+tier (`25/26/27/37` prefixes for Normal/Heroic/Mythic/Ascended). Their own captured tooltip says so directly:
+"This Token is a Global Token for Tier 1 `<Slot>` Slot items. This is Exchangeable at a Vendor found in
+Stormwind (Major Mattingly) or Orgrimmar (Overlord Runthak)." `reference_loot_template` 4090012-4090057 (the
+same ids FlexLoot.cpp/`coa_mc_token_loot` already read) now hold the 8-item Molten set for their difficulty,
+shared across all nine scheduled bosses, instead of the classic armor; no C++ change was needed since the
+pipeline was already fully data-driven. The export's own single low-chance per-boss `Molten <slot>` row
+(e.g. 2522362 at 2% on Lucifron) and the Chromatic Legguards row on Ragnaros (the only MC boss confirmed to
+drop a T2 token in the export, at 4%) are unchanged, aside from fixing a real tier-id swap on Ragnaros's
+Mythic/Ascended rows (each was serving the other's token id). **Major Mattingly (14394) and Overlord Runthak
+(14392) already exist with the gossip+vendor npcflag but an empty `npc_vendor`: the token-for-gear exchange
+itself is not implemented** (needs its own `item_extended_cost`/`npc_vendor` design per slot and class) and
+is explicitly out of scope for this fix — tokens now drop and are recognizable, but cannot yet be turned in.
+
 ### 7.2 Cache of the Fire Lord (2400040) opener
 
 **Designed from player memory (no recorded data anywhere)** — `diag-K-firelord-cache.md` exhausted
@@ -862,6 +883,11 @@ evidence + source reads), fixed individually below. See `impl-G-mechanics.md` fo
     35s/55s clock; `coa_boss_ai` has no "cast B after A" hook (each row is its own `EventMap` entry), so
     the row's own `first_ms`/`period_ms` were retimed to 13000/45100 to track Massive Stomp's 9000/45100
     instead.
+13. **T1/T2 token vendor exchange is not implemented.** Section 7.1's token fix makes `Molten <Slot>`/
+    `Chromatic <Slot>` tokens drop, but Major Mattingly (14394, Stormwind) and Overlord Runthak (14392,
+    Orgrimmar) — already gossip+vendor NPCs per `creature_template`, confirmed by the tokens' own captured
+    tooltip — have an empty `npc_vendor`. Turning a token into its matching class/slot gear piece (likely an
+    `item_extended_cost` per class per slot, priced in the matching token) is a separate, larger task.
 
 ## 10. Batch H (2026-10-01): melee damage ladder, Ragnaros submerge re-check, Ancient Core Hound fear
 
