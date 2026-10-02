@@ -580,10 +580,9 @@ shared across all nine scheduled bosses, instead of the classic armor; no C++ ch
 pipeline was already fully data-driven. The export's own single low-chance per-boss `Molten <slot>` row
 (e.g. 2522362 at 2% on Lucifron) and the Chromatic Legguards row on Ragnaros (the only MC boss confirmed to
 drop a T2 token in the export, at 4%) are unchanged, aside from fixing a real tier-id swap on Ragnaros's
-Mythic/Ascended rows (each was serving the other's token id). **Major Mattingly (14394) and Overlord Runthak
-(14392) already exist with the gossip+vendor npcflag but an empty `npc_vendor`: the token-for-gear exchange
-itself is not implemented** (needs its own `item_extended_cost`/`npc_vendor` design per slot and class) and
-is explicitly out of scope for this fix — tokens now drop and are recognizable, but cannot yet be turned in.
+Mythic/Ascended rows (each was serving the other's token id). The token-for-gear exchange at Major Mattingly
+(14394) and Overlord Runthak (14392) was out of scope for this fix — tokens now drop and are recognizable —
+and is resolved separately in §8 item 13 (`feat/mc-vendors`).
 
 **Second correction (`rev_20261001_50_molten_core_tokens_per_boss.sql`): the guaranteed pool was shared
 across all nine bosses, not boss-specific.** `_40` pointed every boss's guaranteed-pick reference at the
@@ -1041,11 +1040,28 @@ evidence + source reads), fixed individually below. See `impl-G-mechanics.md` fo
     35s/55s clock; `coa_boss_ai` has no "cast B after A" hook (each row is its own `EventMap` entry), so
     the row's own `first_ms`/`period_ms` were retimed to 13000/45100 to track Massive Stomp's 9000/45100
     instead.
-13. **T1/T2 token vendor exchange is not implemented.** Section 7.1's token fix makes `Molten <Slot>`/
-    `Chromatic <Slot>` tokens drop, but Major Mattingly (14394, Stormwind) and Overlord Runthak (14392,
-    Orgrimmar) — already gossip+vendor NPCs per `creature_template`, confirmed by the tokens' own captured
-    tooltip — have an empty `npc_vendor`. Turning a token into its matching class/slot gear piece (likely an
-    `item_extended_cost` per class per slot, priced in the matching token) is a separate, larger task.
+13. **~~T1/T2 token vendor exchange is not implemented.~~ Resolved (`feat/mc-vendors`, `impl-R-vendors.md`).**
+    Major Mattingly (14394, Stormwind) and Overlord Runthak (14392, Orgrimmar) did **not** actually have the
+    vendor npcflag, contrary to this doc's own earlier claim: `creature_template.npcflag` was 3
+    (`UNIT_NPC_FLAG_GOSSIP|UNIT_NPC_FLAG_QUESTGIVER`), missing `UNIT_NPC_FLAG_VENDOR` (0x80) entirely, so no
+    vendor window could ever have opened regardless of `npc_vendor` content — fixed to 131
+    (`rev_20261001_61_molten_core_tier_vendor_npcflag.sql`). The exchange itself needed no C++ and no class-split
+    design: the client's own `ItemExtendedCost.dbc` (loaded verbatim, no SQL override —
+    `src/server/game/DataStores/DBCStores.cpp`) already carries one row per Molten/Chromatic token id requiring
+    exactly 1 of that token, confirming the tokens' tooltip and resolving `diag-P-token-exchange.md`'s open
+    question (token-for-item, not gold-only). `rev_20261001_60_molten_core_tier_token_vendors.sql` adds 961
+    `npc_vendor` rows per vendor: every class variant (including each set's faction "Bloodforged" skin, where a
+    difficulty clone of it exists) of the nine classic Tier 1 sets (Arcanist/Prophecy/Felheart/Nightslayer/
+    Cenarion/Giantstalker's/Earthfury/Lawbringer/Might, plus Transcendence as the Horde skin of Prophecy) and
+    the nine Tier 2 BWL sets (Netherwind/Nemesis/Bloodfang/Stormrage/Dragonstalker's/Ten Storms/Judgement/
+    Wrath/Faith), identified by `item_template.ItemSet`, class=4 only — T0.5 and AQ40 Tier 2.5 sets untouched.
+    Per-difficulty clones are picked by a confirmed, reproducible item-id-offset rule (entry+0 Normal,
+    +300000 Heroic, +1300000 Mythic, +200000 Ascended — distinct from the creature offset convention) rather
+    than guessed; no `AllowableClass`/armor-type/faction restriction applies to any of these 961 items
+    (`FlagsExtra` is 0 on all of them, so `Player::BuyItemFromVendorSlot`'s Horde/Alliance gate never triggers),
+    matching the "any class/armor type may buy" rule as-is, no code change needed. Known gap: most sets'
+    "Bloodforged" skin only has Normal+Heroic clones in this DB (no Mythic/Ascended item id exists for it) —
+    only the clones that exist were wired, nothing invented for the missing tiers.
 
 ## 10. Batch H (2026-10-01): melee damage ladder, Ragnaros submerge re-check, Ancient Core Hound fear
 
