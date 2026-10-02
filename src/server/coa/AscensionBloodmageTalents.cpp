@@ -76,7 +76,9 @@ enum BloodmageTalentSpells : uint32
     SPELL_NIGHT_STALKER_BUFF = 808013,
     SPELL_CARDIAC_ARREST_LEECH = 806946,
     SPELL_BLOOD_ORB_PERIODIC = 712418,
-    SPELL_BLOOD_ORB_CDR = 712385
+    SPELL_BLOOD_ORB_CDR = 712385,
+    SPELL_SANGUINE_ESSENCE = 680692,
+    SPELL_SANGUINE_ESSENCE_HEAL = 680693
 };
 
 constexpr uint32 NPC_BLOOD_ORB = 315303;
@@ -868,6 +870,55 @@ class aura_ascension_bloodmage_night_stalker : public AuraScript
     }
 };
 
+class aura_ascension_bloodmage_sanguine_essence : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_bloodmage_sanguine_essence);
+
+    bool Validate(SpellInfo const* info) override
+    {
+        SpellInfo const* heal = sSpellMgr->GetSpellInfo(SPELL_SANGUINE_ESSENCE_HEAL);
+        return info->Id == SPELL_SANGUINE_ESSENCE && info->Effects[EFFECT_0].IsAura(AuraType(354)) &&
+            info->Effects[EFFECT_0].TriggerSpell == SPELL_SANGUINE_ESSENCE_HEAL && heal &&
+            heal->Effects[EFFECT_0].IsAura(SPELL_AURA_PERIODIC_HEAL);
+    }
+
+    bool Check(ProcEventInfo& event)
+    {
+        SpellInfo const* info = event.GetSpellInfo();
+        HealInfo const* heal = event.GetHealInfo();
+        return info && AscensionBloodmage::GetEmpowerment(info->Id) == AscensionBloodmage::Mend &&
+            event.GetActor() == GetTarget() && heal && heal->GetHeal() && heal->GetTarget() &&
+            heal->GetTarget()->IsAlive();
+    }
+
+    void Replicate(AuraEffect const* effect, ProcEventInfo& event)
+    {
+        PreventDefaultAction();
+        uint64 const amount = uint64(event.GetHealInfo()->GetHeal()) *
+            uint32(std::clamp(effect->GetAmount(), 0, 100)) / 100;
+        if (!amount)
+            return;
+
+        int32 const perTick = int32(std::min<uint64>(amount, std::numeric_limits<int32>::max()));
+        Unit* target = event.GetHealInfo()->GetTarget();
+        GetTarget()->CastCustomSpell(SPELL_SANGUINE_ESSENCE_HEAL, SPELLVALUE_BASE_POINT0,
+            perTick, target, TRIGGERED_FULL_MASK, nullptr, effect);
+        if (AuraEffect* heal = target->GetAuraEffect(SPELL_SANGUINE_ESSENCE_HEAL, EFFECT_0,
+            GetTarget()->GetGUID()))
+        {
+            heal->SetAmount(perTick);
+            heal->SetCritChance(0.0f);
+        }
+    }
+
+    void Register() override
+    {
+        DoCheckProc += AuraCheckProcFn(aura_ascension_bloodmage_sanguine_essence::Check);
+        OnEffectProc += AuraEffectProcFn(aura_ascension_bloodmage_sanguine_essence::Replicate,
+            EFFECT_0, AuraType(354));
+    }
+};
+
 class aura_ascension_bloodmage_cardiac_arrest : public AuraScript
 {
     PrepareAuraScript(aura_ascension_bloodmage_cardiac_arrest);
@@ -1030,6 +1081,9 @@ public:
         if (info->ExcludeCasterAuraSpell == SPELL_CURSED_FORM_REQUIREMENT_2)
             info->ExcludeCasterAuraSpell = AscensionBloodmage::CursedForm;
 
+        if (info->Id == SPELL_SANGUINE_ESSENCE_HEAL)
+            info->AscensionInheritsResolvedAmount = true;
+
         ApplyBloodmageConditionalContracts(info);
 
         if (info->Id == SPELL_BLOOD_SCENT &&
@@ -1108,6 +1162,7 @@ void AddSC_AscensionBloodmageTalents()
     RegisterSpellScript(spell_ascension_bloodmage_atheranns_anguish_explosion);
     RegisterSpellScript(aura_ascension_bloodmage_night_stalker);
     RegisterSpellScript(aura_ascension_bloodmage_cardiac_arrest);
+    RegisterSpellScript(aura_ascension_bloodmage_sanguine_essence);
     RegisterSpellScript(spell_ascension_bloodmage_lunge);
     RegisterSpellScript(spell_ascension_bloodmage_blood_orb_spawn);
     RegisterCreatureAI(npc_ascension_bloodmage_blood_orb);

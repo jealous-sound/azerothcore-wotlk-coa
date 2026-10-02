@@ -486,6 +486,13 @@
         "chronomancer-oblivion-epoch-overhealing"
       ],
       "args": []
+    },
+    {
+      "script": "check_sanguine_essence_mend.py",
+      "scenarios": [
+        "bloodmage-sanguine-essence-mend-replication"
+      ],
+      "args": []
     }
   ]
 }
