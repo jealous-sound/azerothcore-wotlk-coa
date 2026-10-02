@@ -525,11 +525,10 @@ bool Creature::InitEntry(uint32 Entry, CreatureData const* data)
 
     CreatureModel model = *ObjectMgr::ChooseDisplayId(cinfo, data);
     CreatureModelInfo const* mInfo = sObjectMgr->GetCreatureModelRandomGender(&model, cinfo);
-    if (!mInfo)                                             // Cancel load if no model defined
-    {
-        LOG_ERROR("sql.sql", "Creature (Entry: {}) has no model {} defined in table `creature_template_model`, can't load. ", Entry, model.CreatureDisplayID);
-        return false;
-    }
+    if (!mInfo)
+        LOG_DEBUG("sql.sql",
+                  "No model info for creature (Entry: {}) display {}; loading anyway.",
+                  Entry, model.CreatureDisplayID);
 
     SetDisplayId(model.CreatureDisplayID, model.DisplayScale);
     SetNativeDisplayId(model.CreatureDisplayID);

@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "A Wildcard Hero keeps a separate rolled build, scrolls and action bars in each unlocked specialization",
-  "contract": "On Darkmoon - Season 10 Wildcard Character Advancement listed 20 specializations. Spec 1 is always known; a Tome of Specialization teaches the swap spell of another (979994 for spec 2, SPEC_SWAP_SPELLS in FrameXML/Constants.lua), and the client unlocks a spec when its swap spell is known. Activating one casts the swap spell (effect 162 with the spec index); the server answers the active spec with SMSG 0x725 {u32 spec (0-based), u32 count} and the spec's build with SMSG 0x726. Every specialization is its own Wildcard build: a fresh spec at level 12 gets the starting choice and then every roll up to its level, has its own Scrolls of Fortune (TOKEN_TYPE_SCROLL_OF_FORTUNE_II... for spec 2, redeemed from Scroll of Fortune II items), its own leveling rewards at Silas (tier = spec index, Scroll of Fortune II and II: Talents) and its own action bars; switching back restores the previous build and bars. Silas refuses the rewards of a locked spec.",
+  "contract": "On Darkmoon - Season 10 Wildcard Character Advancement listed 20 specializations. Spec 1 is always known; a Tome of Specialization teaches the swap spell of another (979994 for spec 2, SPEC_SWAP_SPELLS in FrameXML/Constants.lua), and the client unlocks a spec when its swap spell is known. Activating one casts the swap spell (effect 162 with the spec index); the server answers the active spec with SMSG 0x725 {u32 spec (0-based), u32 count} and the spec's build with SMSG 0x726. About a second later it tells the client to recheck its roll dice (SMSG 0x68E WILDCARD_ROLL_READY): the client counts a build's abilities one frame after 0x726, so an event in the same burst still sees the old count and reopens the starting choice. Every specialization is its own Wildcard build: a fresh spec at level 12 gets the starting choice and then every roll up to its level, has its own Scrolls of Fortune (TOKEN_TYPE_SCROLL_OF_FORTUNE_II... for spec 2, redeemed from Scroll of Fortune II items), its own leveling rewards at Silas (tier = spec index, Scroll of Fortune II and II: Talents) and its own action bars; switching back restores the previous build and bars. Silas refuses the rewards of a locked spec.",
   "timeout_ms": 120000,
   "players": [
     {"id": "wild", "race": 1, "class": 10, "level": 1}
@@ -29,10 +29,10 @@
     {"action": "learn", "label": "Read a Tome of Specialization II", "actor": "wild", "spell": 979994},
     {"action": "snapshot", "actor": "wild", "metric": "server_packets", "opcode": 1829, "save_as": "specs"},
     {"action": "cast", "label": "Activate spec 2", "actor": "wild", "spell": 979994},
-    {"action": "wait", "ms": 7000},
+    {"action": "assert", "label": "The client is told", "actor": "wild", "metric": "server_packets", "opcode": 1829, "relative_to": "specs", "equals": 1, "within_ms": 7000},
+    {"action": "assert", "label": "but the dice waits until it has counted the new build", "actor": "wild", "metric": "server_packet_contains", "opcode": 1678, "text": "WILDCARD_ROLL_READY", "equals": 0},
+    {"action": "assert", "label": "and rechecks its roll dice a moment later", "actor": "wild", "metric": "server_packet_contains", "opcode": 1678, "text": "WILDCARD_ROLL_READY", "equals": 1, "within_ms": 3000},
     {"action": "assert", "label": "Spec 2 is active", "actor": "wild", "metric": "player_setting", "source": "core.wildcard.spec", "index": 0, "equals": 1},
-    {"action": "assert", "label": "and the client is told", "actor": "wild", "metric": "server_packets", "opcode": 1829, "relative_to": "specs", "equals": 1},
-    {"action": "assert", "label": "and rechecks its roll dice", "actor": "wild", "metric": "server_packet_contains", "opcode": 1678, "text": "WILDCARD_ROLL_READY", "equals": 1},
     {"action": "assert", "label": "Spec 2 starts empty", "actor": "wild", "metric": "wildcard_spells_known", "equals": 0},
     {"action": "assert", "label": "and spec 1's spells leave the bar", "actor": "wild", "metric": "action_button", "button": 11, "equals": 0},
 

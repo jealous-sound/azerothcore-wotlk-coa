@@ -37,6 +37,10 @@ def method_or(source, signature, fallback):
     return method(source, signature) if signature in source else fallback
 
 
+def method_in(source, anchor, signature):
+    return method(source[source.index(anchor):], signature)
+
+
 def main():
     parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument('--source-ref', help='Read production code from a local Git ref for regression checks.')
@@ -76,7 +80,8 @@ def main():
         ('QUEUE_CLIENT_PACKET', method(compat, 'void QueueClientPacket(uint32 accountId')),
         ('REJECT_CLIENT_PACKET', method_or(compat, 'void RejectClientPacket(uint32 accountId', '')),
         ('TAKE_CLIENT_PACKETS', method_or(compat, 'std::vector<WorldPacket> TakeClientPackets(uint32 accountId)', '')),
-        ('ON_PLAYER_UPDATE', method(compat, 'void OnPlayerUpdate(Player *player, uint32 diff) {')),
+        ('ON_PLAYER_UPDATE', method_in(compat, 'class AscensionCollectionService',
+                                       'void OnPlayerUpdate(Player *player, uint32 diff) {')),
         ('HANDLE_CLIENT_PACKET', method(compat, 'void HandleClientPacket(Player *player')),
         ('CAN_PACKET_RECEIVE_EARLY', method(compat, 'bool CanPacketReceiveEarly(WorldSession *session')),
         ('POINT_SPEND', method_or(compat, 'void HandlePointSpendRequest(Player* player', '')),
