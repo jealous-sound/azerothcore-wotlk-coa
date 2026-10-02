@@ -106,6 +106,57 @@
       "entry": 25588,
       "equals": 3,
       "within_ms": 3000
+    },
+    {
+      "action": "console",
+      "label": "Revive the raider for another pull",
+      "command": "revive Harnessa"
+    },
+    {
+      "action": "attack_nearby",
+      "label": "Defeat Hand 1",
+      "actor": "raider",
+      "entry": 25588,
+      "kill": true
+    },
+    {
+      "action": "attack_nearby",
+      "label": "Defeat Hand 2",
+      "actor": "raider",
+      "entry": 25588,
+      "kill": true
+    },
+    {
+      "action": "attack_nearby",
+      "label": "Defeat Hand 3",
+      "actor": "raider",
+      "entry": 25588,
+      "kill": true
+    },
+    {
+      "action": "assert",
+      "label": "Defeating all Hands still summons Kiljaeden",
+      "actor": "raider",
+      "metric": "nearby_creature_count",
+      "entry": 25315,
+      "equals": 1,
+      "within_ms": 3000
+    },
+    {
+      "action": "assert",
+      "label": "No living Hands remain during the boss phase",
+      "actor": "raider",
+      "metric": "nearby_creature_count",
+      "entry": 25588,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "The boss phase remains in progress",
+      "actor": "raider",
+      "metric": "instance_boss_state",
+      "id": 6,
+      "equals": 1
     }
   ]
 }
