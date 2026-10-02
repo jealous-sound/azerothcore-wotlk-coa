@@ -28,7 +28,7 @@ WITH RECURSIVE `boss_entry` (`RaidDifficulty`, `CreatureEntry`) AS (
     SELECT 3, 312118 UNION ALL SELECT 3, 312259 UNION ALL SELECT 3, 312264 UNION ALL SELECT 3, 312018
 ),
 `loot_scan` (`RaidDifficulty`, `TemplateEntry`, `TemplateSource`) AS (
-    SELECT `RaidDifficulty`, `CreatureEntry`, 'creature' FROM `boss_entry`
+    SELECT `RaidDifficulty`, `CreatureEntry`, CAST('creature' AS CHAR(9)) FROM `boss_entry`
     UNION ALL
     SELECT `ls`.`RaidDifficulty`, `clt`.`Reference`, 'reference'
     FROM `loot_scan` `ls`
