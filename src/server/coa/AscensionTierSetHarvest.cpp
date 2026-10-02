@@ -28,7 +28,7 @@ class unit_ascension_tier_set_harvest : public UnitScript
 public:
     unit_ascension_tier_set_harvest() : UnitScript("unit_ascension_tier_set_harvest", true, {UNITHOOK_ON_UNIT_DEATH}) { }
 
-    void OnUnitDeath(Unit* unit, Unit* /*killer*/) override
+    void OnUnitDeath(Unit* unit, Unit*) override
     {
         Creature* dead = unit->ToCreature();
         if (!dead || dead->IsControlledByPlayer() || dead->IsCritter())
