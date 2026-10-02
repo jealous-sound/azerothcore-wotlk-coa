@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "name": "Rolled corpse loot retains money",
+  "name": "Rolled loot with an open corpse window uses normal release cleanup",
   "contract": "Issue #6058. A corpse with no money and no unlooted items must lose UNIT_DYNFLAG_LOOTABLE after the final group roll awards its items, without requiring another loot-window release. Amnennar the Coldbringer (7358) has guaranteed group-1 equipment loot. Two players consume ordinary slots before closing and resolve native CMSG_LOOT_ROLL votes. The companion retains money and must remain lootable. This checks native flag state, not client rendering.",
   "timeout_ms": 90000,
   "location": {
@@ -55,6 +55,10 @@
       "action": "loot_creature",
       "actor": "looter",
       "target": "corpse"
+    },
+    {
+      "action": "loot_money",
+      "actor": "looter"
     },
     {
       "action": "loot_slot",
@@ -154,10 +158,6 @@
       "label": "Boss loot has a pending roll"
     },
     {
-      "action": "close_loot",
-      "actor": "looter"
-    },
-    {
       "action": "assert",
       "actor": "corpse",
       "metric": "lootable",
@@ -186,14 +186,25 @@
       "action": "assert",
       "actor": "corpse",
       "metric": "creature_loot_gold",
-      "min": 1
+      "equals": 0
     },
     {
       "action": "assert",
       "actor": "corpse",
       "metric": "lootable",
       "equals": 1,
-      "label": "Money keeps the corpse lootable"
+      "label": "An open window retains normal release cleanup"
+    },
+    {
+      "action": "close_loot",
+      "actor": "looter"
+    },
+    {
+      "action": "assert",
+      "actor": "corpse",
+      "metric": "lootable",
+      "equals": 0,
+      "label": "Normal release removes exhausted corpse lootability"
     }
   ]
 }

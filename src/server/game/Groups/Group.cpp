@@ -20,6 +20,7 @@
 #include "Battleground.h"
 #include "BattlegroundMgr.h"
 #include "Config.h"
+#include "Creature.h"
 #include "DatabaseEnv.h"
 #include "GameTime.h"
 #include "GroupMgr.h"
@@ -1813,6 +1814,26 @@ void Group::CountTheRoll(Rolls::iterator rollI)
         LootItem* item = &(roll->itemSlot >= roll->getLoot()->items.size() ? roll->getLoot()->quest_items[roll->itemSlot - roll->getLoot()->items.size()] : roll->getLoot()->items[roll->itemSlot]);
         if (item)
             item->is_blocked = false;
+    }
+
+    if (Loot* loot = roll->getLoot(); loot && loot->isLooted() && loot->PlayersLooting.empty() &&
+        loot->sourceWorldObjectGUID.IsCreature())
+    {
+        for (GroupReference* member = GetFirstMember(); member; member = member->next())
+        {
+            Player* player = member->GetSource();
+            if (!player || !player->IsInWorld())
+                continue;
+
+            Creature* creature = ObjectAccessor::GetCreature(*player, loot->sourceWorldObjectGUID);
+            if (!creature || &creature->loot != loot || creature->IsAlive() ||
+                !creature->HasDynamicFlag(UNIT_DYNFLAG_LOOTABLE))
+                continue;
+
+            creature->AllLootRemovedFromCorpse();
+            creature->RemoveDynamicFlag(UNIT_DYNFLAG_LOOTABLE);
+            break;
+        }
     }
 
     if (Loot* loot = roll->getLoot(); loot && loot->isLooted() && loot->sourceGameObject)
