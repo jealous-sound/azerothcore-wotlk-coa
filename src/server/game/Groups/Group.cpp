@@ -1816,7 +1816,7 @@ void Group::CountTheRoll(Rolls::iterator rollI)
             item->is_blocked = false;
     }
 
-    if (Loot* loot = roll->getLoot(); loot && loot->isLooted() && loot->PlayersLooting.empty() &&
+    if (Loot* loot = roll->getLoot(); loot && loot->isLooted() && !loot->HasLootingPlayers() &&
         loot->sourceWorldObjectGUID.IsCreature())
     {
         for (GroupReference* member = GetFirstMember(); member; member = member->next())
