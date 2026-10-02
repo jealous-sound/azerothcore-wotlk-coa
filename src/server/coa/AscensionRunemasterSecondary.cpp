@@ -38,6 +38,9 @@ enum RunemasterSecondarySpells : uint32
     SPELL_ARCANE_SIGIL = 805380,
     SPELL_ARCANE_SIGIL_DOT = 807819,
     SPELL_ARCANE_SIGIL_SILENCE = 808020,
+    SPELL_FIRE_SIGIL_HIT = 807012,
+    SPELL_FROST_SIGIL_HIT = 807825,
+    SPELL_WATER_SIGIL_DRAIN = 807818,
     SPELL_ETERNAL_MAGIC = 806698,
     SPELL_ETERNAL_MAGIC_CHARGES = 3,
     SPELL_FIRE_ENGRAVING = 653211,
@@ -233,6 +236,48 @@ class aura_ascension_arcane_palm_sigil : public AuraScript
     }
 };
 
+class aura_ascension_damage_palm_sigil : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_damage_palm_sigil);
+
+    bool Validate(SpellInfo const* info) override
+    {
+        uint32 const helper = info->Effects[EFFECT_0].TriggerSpell;
+        return info->Effects[EFFECT_0].IsAura(AuraType(354)) &&
+            (helper == SPELL_FIRE_SIGIL_HIT || helper == SPELL_FROST_SIGIL_HIT ||
+                helper == SPELL_WATER_SIGIL_DRAIN) && ValidateSpellInfo({helper});
+    }
+
+    bool Check(ProcEventInfo& event)
+    {
+        Unit* player = GetTarget();
+        Unit* target = event.GetActionTarget();
+        DamageInfo const* damage = event.GetDamageInfo();
+        bool const physicalSpellAllowed = GetSpellInfo()->Effects[EFFECT_0].TriggerSpell == SPELL_FIRE_SIGIL_HIT;
+        return player->IsPlayer() && player->getClass() == CLASS_SPIRIT_MAGE && player->IsAlive() &&
+            GetCaster() == player && event.GetActor() == player && target && target->IsAlive() &&
+            target != player && !player->IsFriendlyTo(target) && damage && damage->GetDamage() &&
+            damage->GetDamageType() == SPELL_DIRECT_DAMAGE &&
+            (physicalSpellAllowed || (damage->GetSchoolMask() & SPELL_SCHOOL_MASK_MAGIC));
+    }
+
+    void Proc(AuraEffect const* effect, ProcEventInfo& event)
+    {
+        PreventDefaultAction();
+        uint64 const amount = uint64(event.GetDamageInfo()->GetDamage()) * std::max(0, effect->GetAmount()) / 100;
+        GetTarget()->CastCustomSpell(effect->GetSpellInfo()->Effects[effect->GetEffIndex()].TriggerSpell,
+            SPELLVALUE_BASE_POINT0,
+            int32(std::min<uint64>(amount, std::numeric_limits<int32>::max())), event.GetActionTarget(),
+            TRIGGERED_FULL_MASK, nullptr, effect);
+    }
+
+    void Register() override
+    {
+        DoCheckProc += AuraCheckProcFn(aura_ascension_damage_palm_sigil::Check);
+        OnEffectProc += AuraEffectProcFn(aura_ascension_damage_palm_sigil::Proc, EFFECT_0, AuraType(354));
+    }
+};
+
 class aura_ascension_runemaster_fire_engraving : public AuraScript
 {
     PrepareAuraScript(aura_ascension_runemaster_fire_engraving);
@@ -280,7 +325,9 @@ public:
     {
         if (info->SpellFamilyName != 38)
             return;
-        if (info->Id == SPELL_FISTS_HIT || info->Id == SPELL_ARCANE_SIGIL_DOT)
+        if (info->Id == SPELL_FISTS_HIT || info->Id == SPELL_ARCANE_SIGIL_DOT ||
+            info->Id == SPELL_FIRE_SIGIL_HIT || info->Id == SPELL_FROST_SIGIL_HIT ||
+            info->Id == SPELL_WATER_SIGIL_DRAIN)
         {
             info->AttributesEx2 |= SPELL_ATTR2_CANT_CRIT;
             info->AttributesEx3 |= SPELL_ATTR3_IGNORE_CASTER_MODIFIERS;
@@ -304,5 +351,6 @@ void AddSC_AscensionRunemasterSecondary()
     new runemaster_secondary_casts();
     new runemaster_secondary_metadata();
     RegisterSpellScript(aura_ascension_arcane_palm_sigil);
+    RegisterSpellScript(aura_ascension_damage_palm_sigil);
     RegisterSpellScript(aura_ascension_runemaster_fire_engraving);
 }
