@@ -1,0 +1,182 @@
+{
+  "schema": 1,
+  "name": "Upper Blackrock Spire: Pyroguard Emberseer fights with Ascension's kit",
+  "contract": "Once freed, Pyroguard Emberseer uses Ascension's kit for him (db.exil.es/npc/9816): Gathering Heat 2102189 stacks Rising Heat 2102190 on him, and he fights with Flame Buffet 2102188, Immolation 2102825, Fierce Blow 975011, Fire Nova 2102830 and Pyroblast 2102834.",
+  "timeout_ms": 300000,
+  "location": {
+    "map": 229,
+    "x": 144.445,
+    "y": -278.5,
+    "z": 91.55,
+    "o": 4.71,
+    "ignore_access": true
+  },
+  "players": [
+    {
+      "id": "hero",
+      "race": 1,
+      "class": 1,
+      "level": 60
+    }
+  ],
+  "steps": [
+    {
+      "action": "set_phase",
+      "actor": "hero",
+      "value": 1
+    },
+    {
+      "action": "wait",
+      "ms": 8000
+    },
+    {
+      "action": "assert",
+      "label": "CONTROL: the hero is in Upper Blackrock Spire",
+      "actor": "hero",
+      "metric": "map_id",
+      "equals": 229
+    },
+    {
+      "action": "use_nearby_gameobject",
+      "label": "Use the Blackrock Altar",
+      "actor": "hero",
+      "entry": 175706
+    },
+    {
+      "action": "wait",
+      "ms": 9000
+    },
+    {
+      "action": "assert",
+      "label": "CONTROL: the ritual completes and casts Emberseer Start",
+      "actor": "hero",
+      "metric": "spell_cast_count",
+      "spell": 16533,
+      "min": 1
+    },
+    {
+      "action": "set_health",
+      "actor": "hero",
+      "value": 2000000,
+      "maximum": 2000000
+    },
+    {
+      "action": "attack_nearby",
+      "actor": "hero",
+      "entry": 10316,
+      "kill": true,
+      "label": "Kill the Blackhand Incarcerators"
+    },
+    {
+      "action": "attack_nearby",
+      "actor": "hero",
+      "entry": 10316,
+      "kill": true
+    },
+    {
+      "action": "attack_nearby",
+      "actor": "hero",
+      "entry": 10316,
+      "kill": true
+    },
+    {
+      "action": "attack_nearby",
+      "actor": "hero",
+      "entry": 10316,
+      "kill": true
+    },
+    {
+      "action": "attack_nearby",
+      "actor": "hero",
+      "entry": 10316,
+      "kill": true
+    },
+    {
+      "action": "attack_nearby",
+      "actor": "hero",
+      "entry": 10316,
+      "kill": true
+    },
+    {
+      "action": "attack_nearby",
+      "actor": "hero",
+      "entry": 10316,
+      "kill": true
+    },
+    {
+      "action": "set_health",
+      "actor": "hero",
+      "value": 2000000,
+      "maximum": 2000000
+    },
+    {
+      "action": "assert",
+      "label": "Emberseer breaks free and casts Flame Buffet",
+      "actor": "hero",
+      "metric": "spell_go_count",
+      "entry": 9816,
+      "spell": 2102188,
+      "min": 1,
+      "within_ms": 120000
+    },
+    {
+      "action": "assert",
+      "label": "Flame Buffet stays on the hero",
+      "actor": "hero",
+      "metric": "aura",
+      "spell": 2102188,
+      "min": 1,
+      "within_ms": 3000
+    },
+    {
+      "action": "assert",
+      "label": "Emberseer pulses Immolation",
+      "actor": "hero",
+      "metric": "spell_go_count",
+      "entry": 9816,
+      "spell": 2102825,
+      "min": 1,
+      "within_ms": 10000
+    },
+    {
+      "action": "assert",
+      "label": "Gathering Heat stacks Rising Heat on Emberseer",
+      "actor": "hero",
+      "metric": "spell_go_count",
+      "entry": 9816,
+      "spell": 2102190,
+      "min": 1,
+      "within_ms": 10000
+    },
+    {
+      "action": "assert",
+      "label": "Emberseer uses Fierce Blow",
+      "actor": "hero",
+      "metric": "spell_go_count",
+      "entry": 9816,
+      "spell": 975011,
+      "min": 1,
+      "within_ms": 15000
+    },
+    {
+      "action": "assert",
+      "label": "Emberseer casts Fire Nova",
+      "actor": "hero",
+      "metric": "spell_go_count",
+      "entry": 9816,
+      "spell": 2102830,
+      "min": 1,
+      "within_ms": 15000
+    },
+    {
+      "action": "assert",
+      "label": "Emberseer casts Pyroblast",
+      "actor": "hero",
+      "metric": "spell_go_count",
+      "entry": 9816,
+      "spell": 2102834,
+      "min": 1,
+      "within_ms": 25000
+    }
+  ]
+}
