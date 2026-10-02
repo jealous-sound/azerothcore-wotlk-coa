@@ -578,13 +578,27 @@ own tier-matched item only, so the guaranteed 2 (3 at 20+ players) pool picks re
 boss's own token, per "if a boss has exactly one specific token, the count means copies of that token."
 
 Ragnaros has no boss-specific row in the guaranteed-pool family anywhere in the export — his only token
-row is the pre-existing low-chance (4%) Chromatic Legguards group, structurally the same kind of row every
-other boss's own token sits in (never part of the guaranteed-pool mechanism). Turning that into a
+row was the pre-existing low-chance (4%) Chromatic Legguards group, structurally the same kind of row every
+other boss's own token sits in (never part of the guaranteed-pool mechanism). `_50` read that as meaning a
 guaranteed 2-3 extra Chromatic Legguards per kill would invent a drop rate/count the export does not
-support, so `_50` removes Ragnaros from the guaranteed-pool mechanism entirely (his `reference_loot_template`
-rows, his `creature_loot_template` guarantee row and his `coa_mc_token_loot` rows are all deleted); his 4%
-Chromatic Legguards row is untouched. T2 tokens in Molten Core, confirmed from the export, come only from
-Ragnaros, not from Majordomo — see below.
+support, and removed Ragnaros from the guaranteed-pool mechanism entirely (his `reference_loot_template`
+rows, his `creature_loot_template` guarantee row and his `coa_mc_token_loot` rows were all deleted), leaving
+only the 4% roll. T2 tokens in Molten Core, confirmed from the export, come only from Ragnaros, not from
+Majordomo — see below.
+
+**Third correction (`rev_20261001_51_molten_core_ragnaros_t2_token.sql`): Ragnaros's Chromatic Legguards
+drop is guaranteed, per the player's own measured kills, overriding `_50`'s export-only reading above.**
+The export's silence on a guaranteed row is not proof of a 4% rate — this fork is a reconstruction, and a
+player who ran multiple Ragnaros kills and saw Chromatic Legguards every time outranks an absent row. `_51`
+re-adds Ragnaros to the guaranteed-token mechanism on that basis: new single-item `reference_loot_template`
+pools (4090058 Normal/4090059 Heroic/4090060 Mythic/4090061 Ascended, holding only the tier-matched
+Chromatic Legguards id, `2522459`/`2622459`/`2722459`/`3722459`) back a `creature_loot_template` guarantee
+row on `11502`/`111502`/`211502`/`311502` shaped exactly like the other eight bosses' own guarantee rows
+(`Chance = 100`, `MinCount = MaxCount = 2`), and `coa_mc_token_loot` points each entry at its new reference
+so `FlexLoot.cpp`'s existing raid-size bonus roll applies unchanged: 2 Chromatic Legguards per kill below 20
+players, 3 at 20+, same as every Tier 1 boss. The old 4% `creature_loot_template` row on the same item
+(`GroupId 5` Normal / `GroupId 3` Heroic/Mythic/Ascended, `Chance 4`) is deleted in the same migration so a
+kill cannot drop Chromatic Legguards twice.
 
 **Majordomo Executus drops no token of any kind.** He was never in the nine scheduled bosses'
 guaranteed-pool mechanism (never added to `coa_mc_token_loot`), and the export confirms there is nothing to
