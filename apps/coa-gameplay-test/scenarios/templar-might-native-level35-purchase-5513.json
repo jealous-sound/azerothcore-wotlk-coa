@@ -1,0 +1,112 @@
+{
+  "schema": 1,
+  "name": "Templar: buy, remove and restore Templar's Might through the Crusader tree at level35 (#5513)",
+  "contract": "Current CharacterAdvancement7024 is Templar class19 Runes tab51, displayed as Crusader by ChrSpecs24. It costs one specialization point, requires no prior entry and has no extra level gate. A level35 Crusader must be able to buy rank1 through the native0x0727 upload, receive705291, remove it and repurchase it. Switching to22 must remove it and switching back to24 must restore the saved purchase. This proves native acquisition and persistence; a live client's talent-window click/render path is not observed.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "t",
+      "race": 1,
+      "class": 19,
+      "level": 35
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "ms": 3000
+    },
+    {
+      "action": "specialization",
+      "actor": "t",
+      "id": 24
+    },
+    {
+      "action": "advancement_rank",
+      "actor": "t",
+      "entry": 7024,
+      "rank": 1
+    },
+    {
+      "action": "assert",
+      "actor": "t",
+      "metric": "knows_spell",
+      "spell": 705291,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "actor": "t",
+      "metric": "aura",
+      "spell": 705291,
+      "equals": 1,
+      "within_ms": 2000
+    },
+    {
+      "action": "advancement_rank",
+      "actor": "t",
+      "entry": 7024,
+      "rank": 0
+    },
+    {
+      "action": "assert",
+      "actor": "t",
+      "metric": "knows_spell",
+      "spell": 705291,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "t",
+      "metric": "aura",
+      "spell": 705291,
+      "equals": 0
+    },
+    {
+      "action": "advancement_rank",
+      "actor": "t",
+      "entry": 7024,
+      "rank": 1
+    },
+    {
+      "action": "assert",
+      "actor": "t",
+      "metric": "aura",
+      "spell": 705291,
+      "equals": 1,
+      "within_ms": 2000
+    },
+    {
+      "action": "specialization",
+      "actor": "t",
+      "id": 22
+    },
+    {
+      "action": "assert",
+      "actor": "t",
+      "metric": "aura",
+      "spell": 705291,
+      "equals": 0
+    },
+    {
+      "action": "specialization",
+      "actor": "t",
+      "id": 24
+    },
+    {
+      "action": "assert",
+      "actor": "t",
+      "metric": "knows_spell",
+      "spell": 705291,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "actor": "t",
+      "metric": "aura",
+      "spell": 705291,
+      "equals": 1,
+      "within_ms": 2000
+    }
+  ]
+}

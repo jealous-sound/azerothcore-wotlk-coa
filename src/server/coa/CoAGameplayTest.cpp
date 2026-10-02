@@ -1522,7 +1522,9 @@ private:
                 creature->CombatStop(true, true);
                 if (CreatureAI* ai = creature->AI(); ai && ai->IsEngaged())
                     ai->EnterEvadeMode();
-                creature->SetReactState(REACT_PASSIVE);
+                uint32 const reaction = definition.get<uint32>("reaction", REACT_PASSIVE);
+                Require(reaction <= REACT_AGGRESSIVE, "Fixture reaction outside valid range");
+                creature->SetReactState(ReactStates(reaction));
             }
         }
         _targetsCreated = true;
@@ -1533,6 +1535,8 @@ private:
         Unit* unit = GetUnit(step.get<std::string>("actor"));
         std::string metric = step.get<std::string>("metric");
         uint32 spell = step.get<uint32>("spell", 0);
+        if (metric == "victim")
+            return unit->GetVictim() == GetUnit(step.get<std::string>("target")) ? 1.0 : 0.0;
         if (metric == "player_name")
             return unit->GetName() == step.get<std::string>("name") ? 1.0 : 0.0;
         if (metric == "name_lookup")
