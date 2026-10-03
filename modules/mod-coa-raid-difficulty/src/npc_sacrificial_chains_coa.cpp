@@ -107,6 +107,9 @@ namespace
     constexpr float CHAIN_RING_MIN_RADIUS = 4.0f;
     constexpr float CHAIN_RING_STEP = 2.0f;
 
+    constexpr uint32 POSITION_CHECK_INTERVAL_MS = 500;
+    constexpr float POSITION_DRIFT_TOLERANCE_YD = 0.5f;
+
     // User rule from CoA play: chained players follow the flex raid size, the same
     // non-GM player count coa_flex::CountPlayers uses for boss health (clamped 10..25
     // there), not the difficulty. 10-14 -> 1, 15-19 -> 2, 20-25 -> 3; same on every mode.
@@ -127,7 +130,9 @@ namespace
         void Reset() override
         {
             me->SetReactState(REACT_PASSIVE);
+            me->SetControlled(true, UNIT_STATE_ROOT);
             _chained.clear();
+            _positionCheckTimer = POSITION_CHECK_INTERVAL_MS;
 
             uint8 const cap = ChainTargetCap(me->GetMap());
             _targetCap = cap;
@@ -185,11 +190,23 @@ namespace
             _chained.clear();
         }
 
-        void UpdateAI(uint32 /*diff*/) override { }
+        void UpdateAI(uint32 diff) override
+        {
+            if (_positionCheckTimer > diff)
+            {
+                _positionCheckTimer -= diff;
+                return;
+            }
+
+            _positionCheckTimer = POSITION_CHECK_INTERVAL_MS;
+            if (me->GetExactDist(me->GetHomePosition()) > POSITION_DRIFT_TOLERANCE_YD)
+                me->NearTeleportTo(me->GetHomePosition());
+        }
 
     private:
         GuidVector _chained;
         uint8 _targetCap = 1;
+        uint32 _positionCheckTimer = POSITION_CHECK_INTERVAL_MS;
     };
 
     // Root + silence + pacify for the duration of Sacrifice (2108020): neither effect exists in

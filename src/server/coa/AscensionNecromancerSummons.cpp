@@ -476,7 +476,8 @@ class npc_ascension_necromancer : public ScriptedAI
             return;
         if (_command == 504316)
         {
-            target->GetMotionMaster()->MoveJump(me->GetPosition(), 24.0f, 8.0f);
+            if (!target->IsImmuneToForcedMovement())
+                target->GetMotionMaster()->MoveJump(me->GetPosition(), 24.0f, 8.0f);
             Cast(me, target, 800043);
             return;
         }

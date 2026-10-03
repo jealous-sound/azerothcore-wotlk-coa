@@ -88,7 +88,8 @@ class aura_ascension_reaper_harvesting_grounds : public AuraScript
         Unit* target = GetTarget();
         Unit* caster = GetCaster();
         if (aura->GetType() != DYNOBJ_AURA_TYPE || aura->IsRemoved() || aura->GetDuration() <= 0 ||
-            !target || !target->IsAlive() || !caster || caster->IsFriendlyTo(target))
+            !target || !target->IsAlive() || !caster || caster->IsFriendlyTo(target) ||
+            target->IsImmuneToForcedMovement())
             return;
         DynamicObject* ground = aura->GetDynobjOwner();
         if (!ground->IsInWorld() || !ground->IsInMap(target) || !ground->InSamePhase(target) ||

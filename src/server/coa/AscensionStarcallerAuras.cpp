@@ -83,7 +83,8 @@ class aura_ascension_starcaller_lifecycle : public AuraScript
             return;
         GetAura()->SetScriptValue(680705, 1);
         Position destination = player->GetNearPosition(2, 0);
-        if (!GetTarget()->IsImmunedToDamage(player, GetSpellInfo()) && !GetTarget()->HasUnitState(UNIT_STATE_ROOT))
+        if (!GetTarget()->IsImmunedToDamage(player, GetSpellInfo()) && !GetTarget()->HasUnitState(UNIT_STATE_ROOT) &&
+            !GetTarget()->IsImmuneToForcedMovement())
             GetTarget()->GetMotionMaster()->MoveJump(destination.GetPositionX(), destination.GetPositionY(),
                                                      destination.GetPositionZ(), 15, 8);
         Cast(player, GetTarget(), 680707);

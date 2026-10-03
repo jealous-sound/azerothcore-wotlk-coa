@@ -1499,3 +1499,41 @@ Knock Away (18945, single-target) and Stunning Strike (20276, single-target) wer
 own real families (group 1819: `2018949`/`2018950`/`2018951`; `2100135`), but are out of this fix's scope — the
 report concerns AoE damage, and the task's instruction was to keep the melee/special-attack ladder as-is unless
 the corpus showed otherwise. Not applied; see `docs/coa/molten-core.md` §4 table for the identified ids.
+
+## 15. Batch AH (2026-10-03): Sacrificial Chains made immovable
+
+The user reported Sacrificial Chains (92030) displaced across the room by a player's displacement ability,
+despite the creature already carrying `flags_extra` 0x40000000 (the knockback/pull immunity flag `diag-K-combat.md`
+item 1 had already confirmed was set via `rev_20261001_16`). That flag only protects a target inside
+`Spell::EffectKnockBack` and `Spell::EffectPullTowards` (`src/server/game/Spells/SpellEffects.cpp`); every other
+displacement path in this codebase was read for a gap (`Unit::KnockbackFrom`/`JumpTo`, `MotionMaster::MoveKnockbackFrom`/
+`MoveJump`, `Unit::NearTeleportTo`, every CoA class file under `src/server/coa/` calling one of those on a unit
+other than its own caster). Four real gaps were found, all unrelated to any specific class being reported — any of
+them could have moved the chain:
+
+- `Unit::KnockbackFrom` itself had no immunity check at all; a script calling `target->KnockbackFrom(...)` directly,
+  bypassing `Spell::EffectKnockBack`, skipped the guard outright. `AscensionWitchHunterAbilities.cpp`'s point-blank
+  knockback (spell ids 680236/680270-680273) does exactly this on every hit.
+- `Spell::EffectTeleportUnits` never checked the flag at all.
+- Four CoA-authored grip/pull/displace effects called `MotionMaster::MoveJump` or `Unit::NearTeleportTo` on an enemy
+  target directly, with no immunity check of any kind: the Starcaller's `Pull()` (`AscensionStarcallerAuras.cpp`),
+  the Chronomancer's `spell_ascension_displacement::Displace` (`AscensionChronomancerMovement.cpp`), the Reaper's
+  `aura_ascension_reaper_harvesting_grounds::Leave` pull-back (`AscensionReaperSpellContracts.cpp`), and the Knight
+  of Xoroth's and Necromancer summon's command-grip effects (`AscensionXorothSummons.cpp`,
+  `AscensionNecromancerSummons.cpp`).
+
+**Fix, in depth.** `Unit::IsImmuneToForcedMovement()` (`src/server/game/Entities/Unit/Unit.h`/`.cpp`) centralizes the
+same world-boss/dungeon-boss/`IsImmuneToKnockback()` check `Spell::EffectKnockBack`/`EffectPullTowards` already use,
+and is now checked inside `Unit::KnockbackFrom` itself (so every existing and future caller is covered for free,
+with no behavior change for the two effect handlers that already guarded themselves before calling it),
+`Spell::EffectTeleportUnits`, and each of the five CoA call sites above. Independently, `npc_sacrificial_chains_coa`
+now roots itself (`SetControlled(true, UNIT_STATE_ROOT)`) on spawn and self-corrects in `UpdateAI` — a cheap
+500 ms timer comparing its live position to `GetHomePosition()` and `NearTeleportTo`-ing back if the drift exceeds
+0.5 yd — as a second, independent layer that catches any displacement path this pass missed, without touching its
+damageability (still killable, so chained players are still freed on its death per §3's existing `JustDied`
+cleanup).
+
+Verification: `codestyle-cpp.py --files` on every touched file passed; `tools/verify_all.py --stages source
+--base origin/main` passed except the pre-existing `tools/test_comments.py` self-test failure (documented in
+every prior session on this branch, unrelated to any file this change touched). See `impl-AH-chain-immovable.md`
+for the live evidence.

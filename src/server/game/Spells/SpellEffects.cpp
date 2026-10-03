@@ -1500,6 +1500,9 @@ void Spell::EffectTeleportUnits(SpellEffIndex /*effIndex*/)
     if (!unitTarget || unitTarget->IsInFlight())
         return;
 
+    if (unitTarget->IsImmuneToForcedMovement() && unitTarget != m_caster)
+        return;
+
     if (unitTarget->IsPlayer())
     {
         sScriptMgr->AnticheatSetUnderACKmount(unitTarget->ToPlayer());
