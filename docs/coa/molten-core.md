@@ -1339,3 +1339,63 @@ Both observed ranges fall exactly inside the expected post-multiplier window com
 residual is random-roll noise from `EffectDieSides`, not drift in the multiplier). Heroic and Mythic were not
 live-tested — the multiplier is a single constant applied identically to all four difficulty ids, with no
 per-tier branch, so there is no mechanism by which they could scale differently.
+
+## 13. Batch AI (2026-10-03): Ragnaros portal spawned dynamically, retyped for a working client click
+
+Three live-play reports on top of batch AC's position/scale fix: the portal was visible from the start of the
+Majordomo fight (should only exist after he is defeated); its position still read as wrong; and it still could
+not be selected/clicked, even though `CMSG_GAMEOBJ_USE` reached the server (`go_ragnaros_portal_coa`'s own
+`GossipHello` already teleports correctly once triggered).
+
+**Visible before the kill — root cause.** `go_ragnaros_portal_coa` (guid 9000601) was a static `gameobject`
+row, present from map load on every difficulty; only `GO_FLAG_NOT_SELECTABLE` gated it, toggled by
+`SetBossState`/`OnGameObjectCreate`. That flag blocks `GameObject::Use()`'s early-return check
+(`GameObject.cpp:1487`), not rendering — the client draws the model regardless of the flag, matching the
+report exactly. Fixed by removing the static row (`DELETE FROM gameobject WHERE guid = 9000601`,
+`rev_20261001_i1_molten_core_majordomo_portal_dynamic.sql`) and summoning it instead:
+`instance_molten_core.cpp`'s new `SummonRagnarosPortal()` (`Map::SummonGameObject`, persistent — respawn time
+0) is called from `SetBossState(DATA_MAJORDOMO_EXECUTUS, DONE)` for a live kill and from `OnPlayerEnter()` for
+an instance already saved `DONE` (`GameObject::AddToWorld` invokes `InstanceScript::OnGameObjectCreate` for a
+summoned object exactly as it does for a static spawn, so the existing GUID-tracking case needed no change).
+The object simply does not exist before the encounter ends; nothing despawns it afterwards (no code touches
+`_ragnarosPortalCoaGUID` outside creation/lookup, so it survives subsequent wipes/resets on other bosses, and a
+full instance reset tears down the whole map like every other MC spawn).
+
+**Position re-checked.** `rev_20261001_90`'s point (742.1174, -1181.1216, -120.0913) matches the user's fresh
+`.gps` reading (742.1174, -1181.1216, floor Z -120.091324) exactly and was already live on the reporting slot
+(deployed at `bcb68ecf3`, which includes `19ad28636`, the commit that added `rev_20261001_90`) — not a stale
+position. One real mismatch found: `rev_20261001_90` updated only `position_x/y/z`, never `orientation`, which
+stayed at `rev_20261001_08`'s original 4.046 (facing the old post-defeat spot) instead of the user's 5.7636776
+— a ~99° facing error, folded into the new dynamic spawn's quaternion (`SummonGameObject`'s rotation2/3 =
+`sin(5.7636776/2)`/`cos(5.7636776/2)` = 0.2568427/-0.9664532). No second gameobject row, duplicate guid
+(99000601) or stale post-defeat spawn (851.9, -812.9, -229.6) exists anywhere in `data/sql/` — grepped
+`gameobject`/`gameobject_template` across base, archive and every pending file; the only row at entry 181623
+was the one static spawn already covered above, now removed.
+
+**Not clickable — root cause.** `gameobject_template` 181623 ("Molten Core Instance Portal") is `type = 5`
+(`GAMEOBJECT_TYPE_GENERIC`). Every other reuse of that exact type/name family in this fork's base data
+(19527-19531 "Instance Portal"/"Instance Portal Green/Red/White"/"Mage Portal", 19503 "Caverns of Time
+Portal") is pure decoration: stock Blizzard dungeons always pair it with a separate `areatrigger` that performs
+the teleport on walk-in (this fork's own `rev_20260923_04_coa_inquisitorial_dungeon_portal.sql` uses the same
+idiom for its type-31 portal doodads) — a type-5/31 object is never the thing a player clicks. `displayId`
+6450's own `GameObjectDisplayInfo.dbc` bounding box is not zero (checked directly: min/max
+(-0.273,-4.413,-1.470)/(0.273,4.413,7.222)), so the earlier "bad model" theory does not hold; the type is what
+the client uses to decide whether an object offers an interact cursor at all, and `GameObject::Use()`'s
+type-agnostic `AI()->GossipHello()` call before its own type `switch` (confirmed by reading `GameObject.cpp`)
+is exactly why the server-side click still worked while the client-side one never could.
+
+Fixed by retyping 181623 to `type = 10` (`GAMEOBJECT_TYPE_GOOBER`) with `displayId = 7161` ("Orb of
+Translocation"), copying `gameobject_template` 180911/180912/182543/182546 field-for-field (all `Data0-20`
+zero, no lock/quest/spell gate) — that exact type/displayId pair is spawned as real, static world objects in
+this fork's own base data (`gameobject` guids 12932/13210/23108/23159, map 530, Netherstorm/Eco-Dome
+teleporters), i.e. a combination already confirmed clickable in this client rather than an untested guess.
+`go_ragnaros_portal_coa`'s `GossipHello` needed no change — it already worked once a player could actually
+target the object.
+
+Verification: `python -B tools/verify_all.py --stages source --base origin/main` (pre-existing,
+unrelated `tools/test_comments.py` self-test failure on `origin/main` itself, confirmed via `git stash`) plus
+`codestyle-cpp.py`/`codestyle-sql.py --files` on every touched file, both clean. Live re-check pending a free
+slot: before `DATA_MAJORDOMO_EXECUTUS` is `DONE`, no `GO_RAGNAROS_PORTAL_COA` object should exist anywhere
+near the room (`FindGameObjectByEntry` empty); after `.instance setbossstate molten_core 8 3` (or a real kill)
+it should appear at the exact point, right-clickable, and `GAMEOBJ_USE` should teleport the clicker to
+`RagnarosLairEntranceCoa`.

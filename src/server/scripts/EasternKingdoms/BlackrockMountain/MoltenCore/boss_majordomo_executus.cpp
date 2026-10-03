@@ -642,10 +642,9 @@ class spell_summon_ragnaros : public SpellScript
     }
 };
 
-// CoA addition: once Majordomo turns friendly, the static go_ragnaros_portal_coa
-// (instance_molten_core.cpp, GO_RAGNAROS_PORTAL_COA) near his post-defeat spot becomes usable;
-// using it teleports a player straight to the Ragnaros lair entrance instead of requiring the
-// gossip-triggered summon sequence.
+// CoA addition: once Majordomo turns friendly, instance_molten_core.cpp summons
+// go_ragnaros_portal_coa (GO_RAGNAROS_PORTAL_COA); using it teleports a player straight to the
+// Ragnaros lair entrance instead of requiring the gossip-triggered summon sequence.
 struct go_ragnaros_portal_coa : public GameObjectAI
 {
     go_ragnaros_portal_coa(GameObject* go) : GameObjectAI(go) { }

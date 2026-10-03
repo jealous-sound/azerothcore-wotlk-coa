@@ -66,6 +66,9 @@ struct instance_molten_core : public InstanceScript
     {
         if (CheckMajordomoExecutus())
             SummonMajordomoExecutus();
+
+        if (GetBossState(DATA_MAJORDOMO_EXECUTUS) == DONE)
+            SummonRagnarosPortal();
     }
 
     void OnCreatureCreate(Creature* creature) override
@@ -221,10 +224,6 @@ struct instance_molten_core : public InstanceScript
             case GO_RAGNAROS_PORTAL_COA:
             {
                 _ragnarosPortalCoaGUID = go->GetGUID();
-                if (GetBossState(DATA_MAJORDOMO_EXECUTUS) == DONE)
-                    go->RemoveGameObjectFlag(GO_FLAG_NOT_SELECTABLE);
-                else
-                    go->SetGameObjectFlag(GO_FLAG_NOT_SELECTABLE);
                 break;
             }
         }
@@ -266,8 +265,7 @@ struct instance_molten_core : public InstanceScript
                 cache->SetLootRecipient(instance);
             }
 
-            if (GameObject* portal = instance->GetGameObject(_ragnarosPortalCoaGUID))
-                portal->RemoveGameObjectFlag(GO_FLAG_NOT_SELECTABLE);
+            SummonRagnarosPortal();
         }
         else if (bossId == DATA_GARR)
         {
@@ -412,6 +410,14 @@ struct instance_molten_core : public InstanceScript
         }
     }
 
+    void SummonRagnarosPortal()
+    {
+        if (instance->GetGameObject(_ragnarosPortalCoaGUID))
+            return;
+
+        instance->SummonGameObject(GO_RAGNAROS_PORTAL_COA, MajordomoSummonPos, 0.0f, 0.0f, 0.2568427f, -0.9664532f, 0);
+    }
+
     bool CheckMajordomoExecutus() const
     {
         if (GetBossState(DATA_RAGNAROS) == DONE)
@@ -453,9 +459,9 @@ private:
     ObjectGuid _magmadarGUID;
     GuidSet _shazzrahReflectionGUIDs;
 
-    // CoA addition: portal to Ragnaros' lair, spawned alongside Majordomo and only usable once
-    // he is defeated -- not selectable until DATA_MAJORDOMO_EXECUTUS reaches DONE, on first load
-    // or on this visit's own defeat.
+    // CoA addition: portal to Ragnaros' lair, summoned only once DATA_MAJORDOMO_EXECUTUS reaches
+    // DONE (live defeat, or on re-entering an instance where he is already dead) -- see
+    // SummonRagnarosPortal(). Does not exist at all before that.
     ObjectGuid _ragnarosPortalCoaGUID;
 };
 
