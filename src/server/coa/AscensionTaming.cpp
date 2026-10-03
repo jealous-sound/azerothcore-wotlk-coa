@@ -175,6 +175,6 @@ public:
 
 void AddAscensionTamingScripts()
 {
-    RegisterSpellScript(AscensionTaming::spell_ascension_family_call);
+    RegisterSpellScriptWithArgs(AscensionTaming::spell_ascension_family_call, "spell_ascension_family_call");
     new AscensionTaming::AscensionTamingPlayer();
 }
