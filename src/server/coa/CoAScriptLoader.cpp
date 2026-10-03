@@ -263,6 +263,7 @@ void AddSC_AscensionReaperTalentProcs();
 void AddSC_AscensionPersonalBank();
 void AddSC_AscensionWisdomball();
 void AddSC_AscensionBloodmageTalents();
+void AddSC_AscensionBloodmageBiteWound();
 void AddSC_AscensionBloodmageVitality();
 void AddSC_AscensionBloodmageProcs();
 void AddSC_AscensionTierSetHarvest();
@@ -533,6 +534,7 @@ void AddCoAScripts()
     AddSC_AscensionPersonalBank();
     AddSC_AscensionWisdomball();
     AddSC_AscensionBloodmageTalents();
+    AddSC_AscensionBloodmageBiteWound();
     AddSC_AscensionBloodmageVitality();
     AddSC_AscensionBloodmageProcs();
     AddSC_AscensionTierSetHarvest();
