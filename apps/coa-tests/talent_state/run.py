@@ -279,6 +279,12 @@ int main(int, char** argv)
     Check(split.Affordable && split.Marks == 52 && split.Money == 104,
           "removals take marks while a whole price is covered, then gold");
     Check(!PayForRemovals({ unlearn13, unlearn13 }, 0, 200).Affordable, "removals the gold cannot cover are refused");
+    bool anchorsFree = !CoASpecializations.empty();
+    for (CoASpecialization const& specialization : CoASpecializations)
+        anchorsFree = anchorsFree && IsSpecializationAnchor(specialization.IdentityEntryId) &&
+            (!specialization.SignatureEntryId || IsSpecializationAnchor(specialization.SignatureEntryId));
+    Check(anchorsFree, "every specialization identity and signature entry is removed without a charge");
+    Check(three && !IsSpecializationAnchor(three->EntryId), "an ordinary class talent is charged when removed");
     RemovalPayment const nothing = PayForRemovals({ UnlearnPriceAt(10, fresh) }, 0, 0);
     Check(nothing.Affordable && !nothing.Marks && !nothing.Money, "free removals need no payment");
 

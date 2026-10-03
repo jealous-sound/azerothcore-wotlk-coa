@@ -81,6 +81,8 @@ struct UnlearnPrice
 
 UnlearnPrice UnlearnPriceAt(std::uint32_t level, ResetCredits const& credits, bool freeUnlearn = false);
 
+bool IsSpecializationAnchor(std::uint32_t entryId);
+
 struct PurgePrice
 {
     std::uint32_t Money = 0;

@@ -207,6 +207,15 @@ UploadedSpecialization SpecializationOf(std::vector<KnownEntry> const& upload)
     return uploaded;
 }
 
+bool IsSpecializationAnchor(std::uint32_t entryId)
+{
+    return std::any_of(AscensionCompatData::CoASpecializations.begin(), AscensionCompatData::CoASpecializations.end(),
+        [entryId](AscensionCompatData::CoASpecialization const& specialization)
+        {
+            return specialization.IdentityEntryId == entryId || specialization.SignatureEntryId == entryId;
+        });
+}
+
 UnlearnPrice UnlearnPriceAt(std::uint32_t level, ResetCredits const& credits, bool freeUnlearn)
 {
     if (level <= 10 || freeUnlearn)
