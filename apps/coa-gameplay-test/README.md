@@ -597,6 +597,17 @@ talking to its flight master does, so a scenario can request a route through it.
 and `stable_result` is the code of the last `SMSG_STABLE_RESULT` they received (0 before any).
 `instance_binds_listed` decodes the player's last `SMSG_QUERY_INSTANCE_BINDS_RESULT` (0x06FE): the number of
 binds it lists, only those on map `id` when given, or -1 when it carries another result than `_OK`.
+`loot_count` and `loot_entry` accept `quality` to select only unlooted items of that exact quality in the open
+loot window. `loot_required_level` and `loot_item_level` read those fields from the first matching item.
+These values inspect generated loot through the native item template, without changing it.
+
+`server_packet_u32` and `server_packet_contains` accept `row` to capture a packet whose first 32-bit field is
+that value. Selected rows are retained independently of the ordinary 256-payload history limit, including core
+opcodes. `server_packet_u32` also accepts a byte `offset` and `skip_strings`: skip that many null-terminated
+strings at the offset, then read the 32-bit field at `index` relative to the resulting position.
+For an item query response, `offset: 16, skip_strings: 4` skips the four item names; indexes 9 and 10 are
+item level and required level. These observations cover server packet construction in socketless sessions.
+
 `spell_proc_count` requires `spell` and counts the procs of that spell's aura on the actor since the scenario
 started. What is counted is each spell the proc cast while the aura was named as its trigger, which is the one
 place the server records both the proc and its owner; an aura whose proc does not cast anything counts zero.

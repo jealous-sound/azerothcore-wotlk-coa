@@ -1,0 +1,517 @@
+{
+  "schema": 1,
+  "name": "CoA Legendary Items: signatures 1",
+  "contract": "Requires CoALegendaryItems.Enable=1, DropChance=100, StopDropLevel=60, DestinyWeaver.Enable=1, LevelScaling=1, offset=3, CoA.SendDisplayPatches=1. Each signature trinket boosts only its class ability main direct hit from 1000 to 1120 in the native script hook; unrelated spells, periodic effects and unequipped items are unchanged. First and highest available native ranks are checked.",
+  "timeout_ms": 180000,
+  "location": {
+    "map": 0,
+    "x": -9465,
+    "y": 64,
+    "z": 56,
+    "o": 0
+  },
+  "players": [
+    {
+      "id": "victim",
+      "race": 1,
+      "class": 8,
+      "level": 32
+    },
+    {
+      "id": "class12",
+      "race": 1,
+      "class": 12,
+      "level": 32
+    },
+    {
+      "id": "class13",
+      "race": 1,
+      "class": 13,
+      "level": 32
+    },
+    {
+      "id": "class14",
+      "race": 1,
+      "class": 14,
+      "level": 32
+    },
+    {
+      "id": "class15",
+      "race": 1,
+      "class": 15,
+      "level": 32
+    },
+    {
+      "id": "class16",
+      "race": 1,
+      "class": 16,
+      "level": 32
+    },
+    {
+      "id": "class17",
+      "race": 1,
+      "class": 17,
+      "level": 32
+    },
+    {
+      "id": "class18",
+      "race": 1,
+      "class": 18,
+      "level": 32
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "ms": 1000
+    },
+    {
+      "action": "assert",
+      "actor": "victim",
+      "metric": "script_spell_damage_taken",
+      "target": "class12",
+      "spell": 805808,
+      "equals": 1000
+    },
+    {
+      "action": "add_item",
+      "actor": "class12",
+      "item": 9700229
+    },
+    {
+      "action": "equip",
+      "actor": "class12",
+      "item": 9700229,
+      "slot": 12
+    },
+    {
+      "action": "assert",
+      "actor": "victim",
+      "metric": "script_spell_damage_taken",
+      "target": "class12",
+      "spell": 805808,
+      "equals": 1120
+    },
+    {
+      "action": "assert",
+      "actor": "victim",
+      "metric": "script_spell_damage_taken",
+      "target": "class12",
+      "spell": 116,
+      "equals": 1000
+    },
+    {
+      "action": "assert",
+      "actor": "victim",
+      "metric": "script_periodic_damage_taken",
+      "target": "class12",
+      "spell": 805808,
+      "equals": 1000
+    },
+    {
+      "action": "assert",
+      "actor": "victim",
+      "metric": "script_spell_damage_taken",
+      "target": "class12",
+      "spell": 572331,
+      "equals": 1120
+    },
+    {
+      "action": "destroy_item",
+      "actor": "class12",
+      "item": 9700229
+    },
+    {
+      "action": "assert",
+      "actor": "victim",
+      "metric": "script_spell_damage_taken",
+      "target": "class12",
+      "spell": 805808,
+      "equals": 1000
+    },
+    {
+      "action": "assert",
+      "actor": "victim",
+      "metric": "script_spell_damage_taken",
+      "target": "class13",
+      "spell": 802087,
+      "equals": 1000
+    },
+    {
+      "action": "add_item",
+      "actor": "class13",
+      "item": 9700529
+    },
+    {
+      "action": "equip",
+      "actor": "class13",
+      "item": 9700529,
+      "slot": 12
+    },
+    {
+      "action": "assert",
+      "actor": "victim",
+      "metric": "script_spell_damage_taken",
+      "target": "class13",
+      "spell": 802087,
+      "equals": 1120
+    },
+    {
+      "action": "assert",
+      "actor": "victim",
+      "metric": "script_spell_damage_taken",
+      "target": "class13",
+      "spell": 116,
+      "equals": 1000
+    },
+    {
+      "action": "assert",
+      "actor": "victim",
+      "metric": "script_periodic_damage_taken",
+      "target": "class13",
+      "spell": 802087,
+      "equals": 1000
+    },
+    {
+      "action": "assert",
+      "actor": "victim",
+      "metric": "script_spell_damage_taken",
+      "target": "class13",
+      "spell": 501181,
+      "equals": 1120
+    },
+    {
+      "action": "destroy_item",
+      "actor": "class13",
+      "item": 9700529
+    },
+    {
+      "action": "assert",
+      "actor": "victim",
+      "metric": "script_spell_damage_taken",
+      "target": "class13",
+      "spell": 802087,
+      "equals": 1000
+    },
+    {
+      "action": "assert",
+      "actor": "victim",
+      "metric": "script_spell_damage_taken",
+      "target": "class14",
+      "spell": 801895,
+      "equals": 1000
+    },
+    {
+      "action": "add_item",
+      "actor": "class14",
+      "item": 9700829
+    },
+    {
+      "action": "equip",
+      "actor": "class14",
+      "item": 9700829,
+      "slot": 12
+    },
+    {
+      "action": "assert",
+      "actor": "victim",
+      "metric": "script_spell_damage_taken",
+      "target": "class14",
+      "spell": 801895,
+      "equals": 1120
+    },
+    {
+      "action": "assert",
+      "actor": "victim",
+      "metric": "script_spell_damage_taken",
+      "target": "class14",
+      "spell": 116,
+      "equals": 1000
+    },
+    {
+      "action": "assert",
+      "actor": "victim",
+      "metric": "script_periodic_damage_taken",
+      "target": "class14",
+      "spell": 801895,
+      "equals": 1000
+    },
+    {
+      "action": "assert",
+      "actor": "victim",
+      "metric": "script_spell_damage_taken",
+      "target": "class14",
+      "spell": 501299,
+      "equals": 1120
+    },
+    {
+      "action": "destroy_item",
+      "actor": "class14",
+      "item": 9700829
+    },
+    {
+      "action": "assert",
+      "actor": "victim",
+      "metric": "script_spell_damage_taken",
+      "target": "class14",
+      "spell": 801895,
+      "equals": 1000
+    },
+    {
+      "action": "assert",
+      "actor": "victim",
+      "metric": "script_spell_damage_taken",
+      "target": "class15",
+      "spell": 680537,
+      "equals": 1000
+    },
+    {
+      "action": "add_item",
+      "actor": "class15",
+      "item": 9701129
+    },
+    {
+      "action": "equip",
+      "actor": "class15",
+      "item": 9701129,
+      "slot": 12
+    },
+    {
+      "action": "assert",
+      "actor": "victim",
+      "metric": "script_spell_damage_taken",
+      "target": "class15",
+      "spell": 680537,
+      "equals": 1120
+    },
+    {
+      "action": "assert",
+      "actor": "victim",
+      "metric": "script_spell_damage_taken",
+      "target": "class15",
+      "spell": 116,
+      "equals": 1000
+    },
+    {
+      "action": "assert",
+      "actor": "victim",
+      "metric": "script_periodic_damage_taken",
+      "target": "class15",
+      "spell": 680537,
+      "equals": 1000
+    },
+    {
+      "action": "assert",
+      "actor": "victim",
+      "metric": "script_spell_damage_taken",
+      "target": "class15",
+      "spell": 681352,
+      "equals": 1120
+    },
+    {
+      "action": "destroy_item",
+      "actor": "class15",
+      "item": 9701129
+    },
+    {
+      "action": "assert",
+      "actor": "victim",
+      "metric": "script_spell_damage_taken",
+      "target": "class15",
+      "spell": 680537,
+      "equals": 1000
+    },
+    {
+      "action": "assert",
+      "actor": "victim",
+      "metric": "script_spell_damage_taken",
+      "target": "class16",
+      "spell": 801847,
+      "equals": 1000
+    },
+    {
+      "action": "add_item",
+      "actor": "class16",
+      "item": 9701429
+    },
+    {
+      "action": "equip",
+      "actor": "class16",
+      "item": 9701429,
+      "slot": 12
+    },
+    {
+      "action": "assert",
+      "actor": "victim",
+      "metric": "script_spell_damage_taken",
+      "target": "class16",
+      "spell": 801847,
+      "equals": 1120
+    },
+    {
+      "action": "assert",
+      "actor": "victim",
+      "metric": "script_spell_damage_taken",
+      "target": "class16",
+      "spell": 116,
+      "equals": 1000
+    },
+    {
+      "action": "assert",
+      "actor": "victim",
+      "metric": "script_periodic_damage_taken",
+      "target": "class16",
+      "spell": 801847,
+      "equals": 1000
+    },
+    {
+      "action": "assert",
+      "actor": "victim",
+      "metric": "script_spell_damage_taken",
+      "target": "class16",
+      "spell": 567520,
+      "equals": 1120
+    },
+    {
+      "action": "destroy_item",
+      "actor": "class16",
+      "item": 9701429
+    },
+    {
+      "action": "assert",
+      "actor": "victim",
+      "metric": "script_spell_damage_taken",
+      "target": "class16",
+      "spell": 801847,
+      "equals": 1000
+    },
+    {
+      "action": "assert",
+      "actor": "victim",
+      "metric": "script_spell_damage_taken",
+      "target": "class17",
+      "spell": 800081,
+      "equals": 1000
+    },
+    {
+      "action": "add_item",
+      "actor": "class17",
+      "item": 9701729
+    },
+    {
+      "action": "equip",
+      "actor": "class17",
+      "item": 9701729,
+      "slot": 12
+    },
+    {
+      "action": "assert",
+      "actor": "victim",
+      "metric": "script_spell_damage_taken",
+      "target": "class17",
+      "spell": 800081,
+      "equals": 1120
+    },
+    {
+      "action": "assert",
+      "actor": "victim",
+      "metric": "script_spell_damage_taken",
+      "target": "class17",
+      "spell": 116,
+      "equals": 1000
+    },
+    {
+      "action": "assert",
+      "actor": "victim",
+      "metric": "script_periodic_damage_taken",
+      "target": "class17",
+      "spell": 800081,
+      "equals": 1000
+    },
+    {
+      "action": "assert",
+      "actor": "victim",
+      "metric": "script_spell_damage_taken",
+      "target": "class17",
+      "spell": 503367,
+      "equals": 1120
+    },
+    {
+      "action": "destroy_item",
+      "actor": "class17",
+      "item": 9701729
+    },
+    {
+      "action": "assert",
+      "actor": "victim",
+      "metric": "script_spell_damage_taken",
+      "target": "class17",
+      "spell": 800081,
+      "equals": 1000
+    },
+    {
+      "action": "assert",
+      "actor": "victim",
+      "metric": "script_spell_damage_taken",
+      "target": "class18",
+      "spell": 803129,
+      "equals": 1000
+    },
+    {
+      "action": "add_item",
+      "actor": "class18",
+      "item": 9702029
+    },
+    {
+      "action": "equip",
+      "actor": "class18",
+      "item": 9702029,
+      "slot": 12
+    },
+    {
+      "action": "assert",
+      "actor": "victim",
+      "metric": "script_spell_damage_taken",
+      "target": "class18",
+      "spell": 803129,
+      "equals": 1120
+    },
+    {
+      "action": "assert",
+      "actor": "victim",
+      "metric": "script_spell_damage_taken",
+      "target": "class18",
+      "spell": 116,
+      "equals": 1000
+    },
+    {
+      "action": "assert",
+      "actor": "victim",
+      "metric": "script_periodic_damage_taken",
+      "target": "class18",
+      "spell": 803129,
+      "equals": 1000
+    },
+    {
+      "action": "assert",
+      "actor": "victim",
+      "metric": "script_spell_damage_taken",
+      "target": "class18",
+      "spell": 503126,
+      "equals": 1120
+    },
+    {
+      "action": "destroy_item",
+      "actor": "class18",
+      "item": 9702029
+    },
+    {
+      "action": "assert",
+      "actor": "victim",
+      "metric": "script_spell_damage_taken",
+      "target": "class18",
+      "spell": 803129,
+      "equals": 1000
+    }
+  ]
+}

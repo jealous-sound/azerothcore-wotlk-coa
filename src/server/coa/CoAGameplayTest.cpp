@@ -398,6 +398,7 @@ struct Actor
     uint32 lfgProposalId = 0;
     std::map<uint16, uint32> extensionPackets;
     std::map<uint16, std::vector<std::string>> extensionPayloads;
+    std::map<std::pair<uint16, uint32>, std::string> selectedPacketRows;
     std::string observerError;
     std::unique_ptr<WorldSession> session;
     uint32 accountId = 0;
@@ -580,6 +581,12 @@ void ObserveUnitValues(Actor& actor, WorldPacket const& packet)
 
 void ObserveExtensionPacket(Actor& actor, WorldPacket const& packet)
 {
+    if (packet.size() >= sizeof(uint32))
+    {
+        auto selected = actor.selectedPacketRows.find({ packet.GetOpcode(), packet.read<uint32>(0) });
+        if (selected != actor.selectedPacketRows.end())
+            selected->second.assign(reinterpret_cast<char const*>(packet.contents()), packet.size());
+    }
     constexpr uint16 FirstExtensionOpcode = 0x520;
     constexpr std::size_t MaxPayloadsPerOpcode = 256;
     if (packet.GetOpcode() < FirstExtensionOpcode && packet.GetOpcode() != SMSG_MOVE_SET_CAN_FLY &&
@@ -911,6 +918,11 @@ public:
             Require(!id.empty() && !_actors.count(id), "Duplicate or empty player id");
             auto& actor = _actors[id];
             actor.definition = entry.second;
+            for (auto const& step : _steps)
+                if (step.second.get<std::string>("actor", "") == id)
+                    if (auto row = step.second.get_optional<uint32>("row"))
+                        actor.selectedPacketRows.try_emplace(
+                            std::pair{ uint16(step.second.get<uint32>("opcode")), *row });
             actor.account = "CT" + _runId + std::to_string(index);
             actor.name = FixtureName(entry.second, index++);
             actor.generatedName = _names && !entry.second.get_optional<std::string>("name");
@@ -2076,7 +2088,8 @@ private:
         }
         if (metric == "carried_money")
             return player->GetMoney();
-        if (metric == "loot_count" || metric == "loot_entry" || metric == "loot_gold")
+        if (metric == "loot_count" || metric == "loot_entry" || metric == "loot_gold" ||
+            metric == "loot_required_level" || metric == "loot_item_level")
         {
             Loot* window = nullptr;
             ObjectGuid const lootGuid = player->GetLootGUID();
@@ -2103,8 +2116,16 @@ private:
             for (LootItem const& item : window->items)
                 if (!item.is_looted)
                 {
+                    ItemTemplate const* proto = sObjectMgr->GetItemTemplate(item.itemid);
+                    if (!proto || (step.get_optional<uint32>("quality") &&
+                        proto->Quality != step.get<uint32>("quality")))
+                        continue;
                     if (metric == "loot_entry")
                         return item.itemid;
+                    if (metric == "loot_required_level")
+                        return proto->RequiredLevel;
+                    if (metric == "loot_item_level")
+                        return proto->ItemLevel;
                     ++count;
                 }
             return count;
@@ -2992,18 +3013,38 @@ private:
         }
         if (metric == "server_packet_u32")
         {
-            auto const& payloads = _actors.at(step.get<std::string>("actor")).extensionPayloads;
-            auto const found = payloads.find(uint16(step.get<uint32>("opcode")));
+            Actor const& actor = _actors.at(step.get<std::string>("actor"));
+            uint16 const opcode = uint16(step.get<uint32>("opcode"));
+            std::string const* payload = nullptr;
+            if (auto row = step.get_optional<uint32>("row"))
+            {
+                auto const found = actor.selectedPacketRows.find({ opcode, *row });
+                if (found != actor.selectedPacketRows.end())
+                    payload = &found->second;
+            }
+            else
+            {
+                auto const found = actor.extensionPayloads.find(opcode);
+                if (found != actor.extensionPayloads.end() && !found->second.empty())
+                    payload = &found->second.back();
+            }
             uint32 const index = step.get<uint32>("index", 0);
-            if (found == payloads.end() || found->second.empty())
+            if (!payload || payload->empty())
                 return -1;
-            std::string const& payload = found->second.back();
-            if (index >= payload.size() / sizeof(uint32))
+            std::size_t offset = step.get<uint32>("offset", 0);
+            for (uint32 strings = step.get<uint32>("skip_strings", 0); strings; --strings)
+            {
+                offset = payload->find('\0', offset);
+                if (offset == std::string::npos)
+                    return -1;
+                ++offset;
+            }
+            offset += std::size_t(index) * sizeof(uint32);
+            if (offset > payload->size() || payload->size() - offset < sizeof(uint32))
                 return -1;
-            std::size_t const offset = std::size_t(index) * sizeof(uint32);
             uint32 value = 0;
             for (uint32 byte = 0; byte < sizeof(uint32); ++byte)
-                value |= uint32(uint8(payload[offset + byte])) << (byte * 8);
+                value |= uint32(uint8((*payload)[offset + byte])) << (byte * 8);
             return value;
         }
         if (metric == "quest_log_sent_level" || metric == "quest_log_sent_xp")
@@ -3011,10 +3052,16 @@ private:
                 ? AscensionQuestLog::LevelField : AscensionQuestLog::RewardXPField);
         if (metric == "server_packet_contains")
         {
-            auto const& payloads = _actors.at(step.get<std::string>("actor")).extensionPayloads;
-            auto const found = payloads.find(uint16(step.get<uint32>("opcode")));
+            Actor const& actor = _actors.at(step.get<std::string>("actor"));
+            uint16 const opcode = uint16(step.get<uint32>("opcode"));
             std::string const needle = step.get<std::string>("text");
-            bool const contains = found != payloads.end() && std::any_of(found->second.begin(),
+            if (auto row = step.get_optional<uint32>("row"))
+            {
+                auto const found = actor.selectedPacketRows.find({ opcode, *row });
+                return found != actor.selectedPacketRows.end() && found->second.find(needle) != std::string::npos;
+            }
+            auto const found = actor.extensionPayloads.find(opcode);
+            bool const contains = found != actor.extensionPayloads.end() && std::any_of(found->second.begin(),
                 found->second.end(), [&needle](std::string const& payload)
                 { return payload.find(needle) != std::string::npos; });
             return contains ? 1.0 : 0.0;

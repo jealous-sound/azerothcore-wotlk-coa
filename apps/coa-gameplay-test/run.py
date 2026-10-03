@@ -68,7 +68,8 @@ METRICS = {
     'spellbook_silent_buys', 'spellbook_multi_announced_buys',
     'cast_speed_multiplier', 'spell_crit_chance', 'spell_power_cost', 'spell_damage_done', 'melee_damage_done',
     'who_count', 'who_class', 'player_name', 'name_lookup', 'loot_count', 'loot_entry', 'loot_received',
-    'loot_gold', 'loot_bloodforged', 'nearby_gameobject_count', 'nearby_creature_count', 'carried_money',
+    'loot_gold', 'loot_bloodforged', 'loot_required_level', 'loot_item_level',
+    'nearby_gameobject_count', 'nearby_creature_count', 'carried_money',
     'quest_rewarded', 'has_achievement', 'has_title', 'spell_damage_taken', 'melee_damage_taken', 'spell_healing_taken',
     'spell_hit_bonus_taken', 'rooted', 'stunned', 'spell_cast_count', 'spell_go_count', 'cast_failure',
     'stealth_detection', 'can_detect',
@@ -120,7 +121,8 @@ METRIC_FIELDS = {'actor', 'metric', 'spell', 'power', 'caster', 'effect', 'item'
                  'base', 'key', 'index', 'pet', 'critical', 'target_pet', 'periodic', 'name', 'text',
                  'min_distance', 'owner_display', 'skill', 'cache', 'table', 'exclude', 'dungeon', 'source',
                  'opcode', 'from', 'slot', 'achievement', 'title', 'type_mask', 'hit_mask', 'spell_type_mask',
-                 'phase_mask', 'trigger_spell', 'trials', 'incoming', 'heal'}
+                 'phase_mask', 'trigger_spell', 'trials', 'incoming', 'heal', 'quality',
+                 'row', 'offset', 'skip_strings'}
 ACTIONS = {
     'stop_attack': ({'actor'}, {'actor'}),
     'set_moving': ({'actor', 'enabled'}, {'actor', 'enabled'}),
@@ -658,6 +660,16 @@ def validate(scenario):
                 number(step.get('button'), f'{where}.button', 0, 143, True)
             if metric == 'server_packet_u32':
                 number(step.get('index', 0), f'{where}.index', 0, 2**16 - 1, True)
+                number(step.get('offset', 0), f'{where}.offset', 0, 2**16 - 1, True)
+                number(step.get('skip_strings', 0), f'{where}.skip_strings', 0, 32, True)
+            if 'row' in step:
+                require(metric in {'server_packet_u32', 'server_packet_contains'},
+                        f'{where}: row applies only to captured packet values or text')
+                number(step['row'], f'{where}.row', 0, 2**32 - 1, True)
+            if 'quality' in step:
+                require(metric in {'loot_count', 'loot_entry', 'loot_required_level', 'loot_item_level'},
+                        f'{where}: quality applies only to corpse/container loot items')
+                number(step['quality'], f'{where}.quality', 0, 7, True)
             if metric == 'at_login_flag':
                 number(step.get('id'), f'{where}.id', 1, 0xFFFF, True)
             if metric == 'server_packet_contains':
@@ -693,7 +705,8 @@ def validate(scenario):
                           'cast_speed_multiplier', 'spell_crit_chance', 'spell_power_cost',
                           'spell_damage_done', 'melee_damage_done',
                           'who_count', 'who_class',
-                          'loot_count', 'loot_entry', 'loot_received', 'quest_rewarded', 'has_achievement',
+                          'loot_count', 'loot_entry', 'loot_required_level', 'loot_item_level', 'loot_received',
+                          'quest_rewarded', 'has_achievement',
                           'has_title',
                           'quest_status', 'quest_takeable', 'quest_objective_count', 'dialog_status',
                           'ball_offer_count', 'ball_offers_quest',
