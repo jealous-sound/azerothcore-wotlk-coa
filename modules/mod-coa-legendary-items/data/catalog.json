@@ -36,7 +36,8 @@
     "inventory_type": 12,
     "signature_spell": 805808,
     "signature_name": "Keg Smash",
-    "magnitude": 12
+    "magnitude": 12,
+    "signature_mask_bit": 42
   },
   {
     "id": 3,
@@ -75,7 +76,8 @@
     "inventory_type": 12,
     "signature_spell": 802087,
     "signature_name": "Bad Juju",
-    "magnitude": 12
+    "magnitude": 12,
+    "signature_mask_bit": 5
   },
   {
     "id": 6,
@@ -114,7 +116,8 @@
     "inventory_type": 12,
     "signature_spell": 801895,
     "signature_name": "Ruin",
-    "magnitude": 12
+    "magnitude": 12,
+    "signature_mask_bit": 2
   },
   {
     "id": 9,
@@ -153,7 +156,8 @@
     "inventory_type": 12,
     "signature_spell": 680537,
     "signature_name": "Stake",
-    "magnitude": 12
+    "magnitude": 12,
+    "signature_mask_bit": 3
   },
   {
     "id": 12,
@@ -192,7 +196,8 @@
     "inventory_type": 12,
     "signature_spell": 801847,
     "signature_name": "Arm of Thorim",
-    "magnitude": 12
+    "magnitude": 12,
+    "signature_mask_bit": 1
   },
   {
     "id": 15,
@@ -231,7 +236,8 @@
     "inventory_type": 12,
     "signature_spell": 800081,
     "signature_name": "Chainwhip",
-    "magnitude": 12
+    "magnitude": 12,
+    "signature_mask_bit": 1
   },
   {
     "id": 18,
@@ -270,7 +276,8 @@
     "inventory_type": 12,
     "signature_spell": 803129,
     "signature_name": "Heavy Blow",
-    "magnitude": 12
+    "magnitude": 12,
+    "signature_mask_bit": 1
   },
   {
     "id": 21,
@@ -309,7 +316,8 @@
     "inventory_type": 12,
     "signature_spell": 805421,
     "signature_name": "Reckoning",
-    "magnitude": 12
+    "magnitude": 12,
+    "signature_mask_bit": 14
   },
   {
     "id": 24,
@@ -348,7 +356,8 @@
     "inventory_type": 12,
     "signature_spell": 504260,
     "signature_name": "Veinburst",
-    "magnitude": 12
+    "magnitude": 12,
+    "signature_mask_bit": 8
   },
   {
     "id": 27,
@@ -387,7 +396,8 @@
     "inventory_type": 12,
     "signature_spell": 500075,
     "signature_name": "Precision Shot",
-    "magnitude": 12
+    "magnitude": 12,
+    "signature_mask_bit": 26
   },
   {
     "id": 30,
@@ -426,7 +436,8 @@
     "inventory_type": 12,
     "signature_spell": 801292,
     "signature_name": "Chromatic Shard",
-    "magnitude": 12
+    "magnitude": 12,
+    "signature_mask_bit": 11
   },
   {
     "id": 33,
@@ -504,7 +515,8 @@
     "inventory_type": 12,
     "signature_spell": 801905,
     "signature_name": "Firefall",
-    "magnitude": 12
+    "magnitude": 12,
+    "signature_mask_bit": 19
   },
   {
     "id": 39,
@@ -543,7 +555,8 @@
     "inventory_type": 12,
     "signature_spell": 500714,
     "signature_name": "Malevolence",
-    "magnitude": 12
+    "magnitude": 12,
+    "signature_mask_bit": 4
   },
   {
     "id": 42,
@@ -582,7 +595,8 @@
     "inventory_type": 12,
     "signature_spell": 800497,
     "signature_name": "Starcall",
-    "magnitude": 12
+    "magnitude": 12,
+    "signature_mask_bit": 40
   },
   {
     "id": 45,
@@ -621,7 +635,8 @@
     "inventory_type": 12,
     "signature_spell": 500146,
     "signature_name": "Dawnsear",
-    "magnitude": 12
+    "magnitude": 12,
+    "signature_mask_bit": 0
   },
   {
     "id": 48,
@@ -660,7 +675,8 @@
     "inventory_type": 12,
     "signature_spell": 801005,
     "signature_name": "Bomb Toss",
-    "magnitude": 12
+    "magnitude": 12,
+    "signature_mask_bit": 1
   },
   {
     "id": 51,
@@ -699,7 +715,8 @@
     "inventory_type": 12,
     "signature_spell": 804961,
     "signature_name": "Widowmaker",
-    "magnitude": 12
+    "magnitude": 12,
+    "signature_mask_bit": 12
   },
   {
     "id": 54,
@@ -738,7 +755,8 @@
     "inventory_type": 12,
     "signature_spell": 800172,
     "signature_name": "Doomrend",
-    "magnitude": 12
+    "magnitude": 12,
+    "signature_mask_bit": 12
   },
   {
     "id": 57,
@@ -777,7 +795,8 @@
     "inventory_type": 12,
     "signature_spell": 300693,
     "signature_name": "Seismic Smash",
-    "magnitude": 12
+    "magnitude": 12,
+    "signature_mask_bit": 2
   },
   {
     "id": 60,
@@ -816,7 +835,8 @@
     "inventory_type": 12,
     "signature_spell": 801179,
     "signature_name": "Glyphic Ruin",
-    "magnitude": 12
+    "magnitude": 12,
+    "signature_mask_bit": 10
   },
   {
     "id": 63,

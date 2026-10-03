@@ -1,4 +1,6 @@
 import importlib.util
+import os
+import struct
 from pathlib import Path
 import unittest
 
@@ -39,6 +41,35 @@ class LegendaryCatalogTest(unittest.TestCase):
         self.assertEqual(CATALOG.aura_effects(catalog[6]), [(99, 0), (13, 126), (135, 0)])
         self.assertEqual(CATALOG.aura_effects(catalog[1]), [(31, 0)])
         self.assertEqual(CATALOG.aura_effects(catalog[63]), [(101, 1)])
+        self.assertEqual(CATALOG.aura_effects(catalog[2]), [(108, 0)])
+
+    def test_signature_selectors_preserve_existing_modifier_matches(self):
+        path = Path(os.environ.get('COA_DBC_DIR', ROOT / 'env/dist/data/dbc')) / 'Spell.dbc'
+        blob = path.read_bytes()
+        magic, count, width, size, _ = struct.unpack_from('<4s4I', blob)
+        self.assertEqual((magic, width, size), (b'WDBC', 234, 936))
+        rows = list(struct.iter_unpack('<234I', blob[20:20 + count * size]))
+        by_id = {row[0]: row for row in rows}
+        families = {}
+        for row in rows:
+            families.setdefault(row[208], []).append(row)
+        for item in CATALOG.load_catalog():
+            if item['power'] != 'Signature':
+                continue
+            signature = by_id[item['signature_spell']]
+            original = signature[209:212]
+            bit = item['signature_mask_bit']
+            extended = [value | ((1 << (bit % 32)) if bit // 32 == word else 0)
+                for word, value in enumerate(original)]
+            for row in families[signature[208]]:
+                for effect in range(3):
+                    if not row[71 + effect]:
+                        continue
+                    mask = row[122 + effect * 3:125 + effect * 3]
+                    before = any(a & b for a, b in zip(original, mask))
+                    after = any(a & b for a, b in zip(extended, mask))
+                    with self.subTest(item=item['name'], modifier=row[0], effect=effect):
+                        self.assertEqual(after, before)
 
 
 if __name__ == '__main__':

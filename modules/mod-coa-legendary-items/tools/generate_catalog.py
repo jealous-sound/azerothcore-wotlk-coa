@@ -53,8 +53,9 @@ def load_catalog():
             raise ValueError('Unknown legendary power')
         if item['power'] == 'Movement' and item['inventory_type'] != 8:
             raise ValueError('Movement powers belong on boots')
-        if item['power'] == 'Signature' and not item['signature_spell']:
-            raise ValueError('A signature power needs its class ability')
+        if item['power'] == 'Signature':
+            if not item['signature_spell'] or not 0 <= item['signature_mask_bit'] < 96:
+                raise ValueError('A signature power needs its ability and a valid modifier selector')
     return catalog
 
 
@@ -120,6 +121,8 @@ def item_stats(item, ilvl):
 
 
 def aura_effects(item):
+    if item['power'] == 'Signature':
+        return [(108, 0)]
     if item['power'] == 'Movement':
         return [(31, 0)]
     if item['power'] == 'Armor':
@@ -129,6 +132,20 @@ def aura_effects(item):
     if item['profile'].endswith('Hybrid'):
         return [(99, 0), (13, 126), (135, 0)]
     return [(99, 0), (124, 0)]
+
+
+def aura_text(item):
+    if item['power'] == 'Signature':
+        return f"Increases the main hit damage of your {item['signature_name']} by $s1%."
+    if item['power'] == 'Movement':
+        return 'Increases movement speed by $s1%.'
+    if item['power'] == 'Armor':
+        return 'Increases armor by $s1%.'
+    if item['profile'] == 'Caster':
+        return 'Increases spell power by $s1.'
+    if item['profile'].endswith('Hybrid'):
+        return 'Increases attack power by $s1 and spell power by $s2.'
+    return 'Increases melee and ranged attack power by $s1.'
 
 
 def render_sql(catalog):
@@ -149,15 +166,22 @@ def render_sql(catalog):
                 ilvl * 2 if slot == 16 else (ilvl * 3 // 2 if slot == 8 else 0),
                 1, power_text(item, level), material, 0, 12340])
             dbc_rows.append([entry, 4, subclass, -1, material, display, slot, 0])
-        if item['power'] != 'Signature':
-            effects = aura_effects(item)
-            aura = [AURA_BASE + item['id'], 0x11C0, 0x400, 1, 21, 1, -1, 1, item['name']]
-            for index in range(3):
-                if index < len(effects):
-                    aura += [6, 1, 0, 1, effects[index][0], effects[index][1]]
-                else:
-                    aura += [0, 0, 0, 0, 0, 0]
-            auras.append(aura)
+        effects = aura_effects(item)
+        timed = item['condition'] == 'AfterKill'
+        text = aura_text(item)
+        aura = [AURA_BASE + item['id'], 0x100 if timed else 0x1C0, 0x400, 1, 31 if timed else 21,
+            1, -1, 1, item['name'], text, text, item['class_id'] + 6 if item['class_id'] else 0,
+            516 if item['power'] == 'Movement' else 456]
+        for index in range(3):
+            if index < len(effects):
+                base = item['magnitude'] - 1 if item['power'] == 'Signature' else 0
+                aura += [6, 1, base, 1, effects[index][0], effects[index][1]]
+            else:
+                aura += [0, 0, 0, 0, 0, 0]
+        bit = item.get('signature_mask_bit', 0)
+        aura += [(1 << (bit % 32)) if item['power'] == 'Signature' and bit // 32 == word else 0
+            for word in range(3)]
+        auras.append(aura)
     low, high = ITEM_BASE, ITEM_BASE + 6400
     sections = [
         insert_rows('item_template', ['entry', 'class', 'subclass', 'SoundOverrideSubclass', 'name',
@@ -169,10 +193,16 @@ def render_sql(catalog):
             'DisplayInfoID', 'InventoryType', 'SheatheType'], dbc_rows,
             f'DELETE FROM `item_dbc` WHERE `ID` >= {low} AND `ID` < {high};'),
         insert_rows('spell_dbc', ['ID', 'Attributes', 'AttributesEx', 'CastingTimeIndex', 'DurationIndex',
-            'RangeIndex', 'EquippedItemClass', 'SchoolMask', 'Name_Lang_enUS',
+            'RangeIndex', 'EquippedItemClass', 'SchoolMask', 'Name_Lang_enUS', 'Description_Lang_enUS',
+            'AuraDescription_Lang_enUS', 'SpellClassSet', 'SpellIconID',
             *[f'{field}_{i}' for i in range(1, 4) for field in ('Effect', 'EffectDieSides', 'EffectBasePoints',
-                'ImplicitTargetA', 'EffectAura', 'EffectMiscValue')]], auras,
+                'ImplicitTargetA', 'EffectAura', 'EffectMiscValue')],
+            *[f'EffectSpellClassMaskA_{i}' for i in range(1, 4)]], auras,
             f'DELETE FROM `spell_dbc` WHERE `ID` >= {AURA_BASE} AND `ID` < {AURA_BASE + 64};'),
+        insert_rows('spell_script_names', ['spell_id', 'ScriptName'],
+            [[AURA_BASE + item['id'], 'aura_coa_legendary_signature']
+                for item in catalog if item['power'] == 'Signature'],
+            f'DELETE FROM `spell_script_names` WHERE `spell_id` >= {AURA_BASE} AND `spell_id` < {AURA_BASE + 64};'),
     ]
     return '\n\n'.join(sections) + '\n'
 
@@ -184,7 +214,8 @@ def render_header(catalog):
     for item in catalog:
         lines += [f'        {{ "{item["name"]}", {item["class_id"]}, Power::{item["power"]},',
             f'            Condition::{item["condition"]}, Profile::{item["profile"]}, '
-            f'{item["inventory_type"]}, {item["signature_spell"]}, {item["magnitude"]} }},']
+            f'{item["inventory_type"]}, {item["signature_spell"]}, {item["magnitude"]}, '
+            f'{item.get("signature_mask_bit", 0)} }},']
     lines += ['    }};', '}', '', '#endif', '']
     return '\n'.join(lines)
 

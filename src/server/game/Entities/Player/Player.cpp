@@ -6905,6 +6905,8 @@ void Player::_ApplyItemMods(Item* item, uint8 slot, bool apply)
 
     ApplyEnchantment(item, apply);
 
+    sScriptMgr->OnPlayerAfterApplyItemMods(this, item, slot, apply);
+
     LOG_DEBUG("entities.player.items", "_ApplyItemMods complete.");
 }
 

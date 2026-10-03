@@ -377,6 +377,9 @@ through the native regeneration hook. Spell costs, healing, energize effects and
 It defaults to true and has no effect on other players or on a disabled harness.
 Optional `expansion` (0..2, default 2) is the fixture session's expansion, as a realm with a lower `Expansion`
 setting caps a real client's; it gates maps and profession ranks.
+Optional `ascension_client: true` marks the socketless session as having negotiated Ascension compatibility,
+including its spell modifier packet layout. It defaults to false. This tests server packet construction;
+it does not perform socket authentication or verify delivery to a rendered client.
 Characters are created and loaded through the existing character creation, enumeration and login
 handlers with ordinary player security. Optional `location` supplies `map`, `x`, `y`, `z`, `o` for a fixture
 teleport. `location.ignore_access` optionally bypasses entry requirements for a fixture (for example a solo
@@ -734,7 +737,8 @@ The [portable gadgets scenario](scenarios/portable-gadgets.json) checks item sum
 teleports and expiry. It requires `mod-portablemail`; mailbox and altar client interfaces are not tested.
 `power`/`max_power` and `pet_power`/`pet_max_power` accept a numeric `power` (0..6).
 The pet queries require a player with a current pet. Aura metrics optionally accept `caster` to select
-ownership; `aura_amount` also accepts an effect index (0..2, default 0). Missing auras yield zero;
+ownership; `aura_visible` observes whether the native aura application occupies a client-visible buff slot.
+`aura_amount` also accepts an effect index (0..2, default 0). Missing auras yield zero;
 check aura presence separately when zero is a valid effect amount. Permanent aura duration is -1.
 
 ### Destiny Weaver regressions

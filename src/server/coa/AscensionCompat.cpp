@@ -32,6 +32,8 @@
 #include "AscensionCollectibleSpellData.h"
 #include "AscensionCustomClassData.h"
 #include "AscensionAuraAmounts.h"
+#include "AscensionClientSpellPatches.h"
+#include "DBCfmt.h"
 #include "AscensionClassTuning.h"
 #include "AscensionBarbarian.h"
 #include "AscensionBarbarianScaling.h"
@@ -3743,52 +3745,136 @@ private:
     return rows;
   }
 
-  static std::vector<SpellPatchRow> BuildSpellPatchRows() {
+  static void ApplyServerSpellSelectors(SpellPatchRow &row) {
+    SpellInfo const *info = sSpellMgr->GetSpellInfo(row.Values[0]);
+    if (!info)
+      return;
+
+    row.Values[144] = info->SpellFamilyName;
+    for (uint32 index = 0; index < 3; ++index)
+    {
+      row.Values[145 + index] = info->SpellFamilyFlags[index];
+      for (uint32 effect = 0; effect < MAX_SPELL_EFFECTS; ++effect)
+        row.Values[122 + effect * 3 + index] =
+            info->Effects[effect].SpellClassMask[index];
+    }
+  }
+
+  static std::vector<SpellPatchRow> LoadSqlSpellPatchRows() {
     std::vector<SpellPatchRow> rows;
+    PreparedQueryResult result = WorldDatabase.Query(
+        WorldDatabase.GetPreparedStatement(WORLD_SEL_CLIENT_SPELL_PATCHES));
+    if (!result)
+      return rows;
+    if (result->GetFieldCount() != SPELL_DBC_FIELD_COUNT)
+    {
+      LOG_ERROR("coa", "spell_dbc has {} columns; the spell patch stream requires {}",
+                result->GetFieldCount(), SPELL_DBC_FIELD_COUNT);
+      return rows;
+    }
+
+    static_assert(sizeof(SpellEntryfmt) - 1 == SPELL_DBC_FIELD_COUNT);
+    do {
+      Field const *fields = result->Fetch();
+      SpellPatchRow &row = rows.emplace_back();
+      std::size_t slot = 0;
+      for (uint32 field = 0; field < SPELL_DBC_FIELD_COUNT;)
+      {
+        bool const localized =
+            field >= SPELL_NAME_FIELD && field <= SPELL_TOOLTIP_FIELD;
+        if (localized)
+          row.Values[slot] = 0;
+        else if (SpellEntryfmt[field] == 'f')
+          row.Values[slot] = std::bit_cast<uint32>(fields[field].Get<float>());
+        else if (field == 12 || field == 14)
+          row.Values[slot] = static_cast<uint32>(fields[field].Get<uint64>());
+        else
+          row.Values[slot] = fields[field].Get<uint32>();
+        ++slot;
+        field += localized ? LOCALIZED_STRING_DWORDS : 1;
+      }
+      for (std::size_t text = 0; text < SPELL_WIRE_STRING_FIELDS.size(); ++text)
+        row.Strings[text] = fields[SPELL_WIRE_STRING_FIELDS[text]].Get<std::string>();
+      ApplyServerSpellSelectors(row);
+    } while (result->NextRow());
+    return rows;
+  }
+
+  static std::vector<SpellPatchRow> BuildSpellPatchRows() {
+    std::vector<SpellPatchRow> rows = LoadSqlSpellPatchRows();
     std::unordered_map<uint32, std::string> descriptions =
         LoadClientSpellDescriptions();
-    if (descriptions.empty())
-      return rows;
+    std::unordered_set<uint32> requested = Ascension::ClientSpellPatches::Instance().GetIds();
+    std::unordered_map<uint32, std::size_t> overridden;
+    for (std::size_t index = 0; index < rows.size(); ++index)
+    {
+      overridden.emplace(rows[index].Values[0], index);
+      requested.erase(rows[index].Values[0]);
+    }
 
     ClientDBC spells;
     std::filesystem::path const serverDbc =
         std::filesystem::path(sWorld->GetDataPath()) / "dbc" / "Spell.dbc";
-    if (!spells.Load(serverDbc.string(), SPELL_DBC_FIELD_COUNT))
-      return rows;
+    if (spells.Load(serverDbc.string(), SPELL_DBC_FIELD_COUNT))
+    {
+      for (uint32 index = 0; index < spells.GetRecordCount(); ++index)
+      {
+        ClientDBC::Record const record = spells.GetRecord(index);
+        uint32 const id = record.GetUInt32(0);
+        auto const overlay = overridden.find(id);
+        auto const description = descriptions.find(id);
+        if (overlay == overridden.end() && description == descriptions.end() && !requested.contains(id))
+          continue;
 
-    for (uint32 index = 0; index < spells.GetRecordCount(); ++index) {
-      ClientDBC::Record const record = spells.GetRecord(index);
-      auto const description = descriptions.find(record.GetUInt32(0));
-      if (description == descriptions.end())
-        continue;
+        std::size_t const rowIndex = overlay == overridden.end() ? rows.size() : overlay->second;
+        if (overlay == overridden.end())
+        {
+          SpellPatchRow &row = rows.emplace_back();
+          std::size_t slot = 0;
+          for (uint32 field = 0; field < SPELL_DBC_FIELD_COUNT;)
+          {
+            bool const localized =
+                field >= SPELL_NAME_FIELD && field <= SPELL_TOOLTIP_FIELD;
+            row.Values[slot++] = localized ? 0 : record.GetUInt32(field);
+            field += localized ? LOCALIZED_STRING_DWORDS : 1;
+          }
+          ApplyServerSpellSelectors(row);
+        }
 
-      SpellPatchRow &row = rows.emplace_back();
-      std::size_t slot = 0;
-      for (uint32 field = 0; field < SPELL_DBC_FIELD_COUNT;) {
-        bool const localized =
-            field >= SPELL_NAME_FIELD && field <= SPELL_TOOLTIP_FIELD;
-        row.Values[slot++] = localized ? 0 : record.GetUInt32(field);
-        field += localized ? LOCALIZED_STRING_DWORDS : 1;
+        SpellPatchRow &row = rows[rowIndex];
+        for (std::size_t text = 0; text < SPELL_WIRE_STRING_FIELDS.size(); ++text)
+          if (row.Strings[text].empty())
+            row.Strings[text] = std::string(record.GetString(SPELL_WIRE_STRING_FIELDS[text]));
+        if (description != descriptions.end())
+        {
+          row.Strings[SPELL_WIRE_DESCRIPTION] = std::move(description->second);
+          descriptions.erase(description);
+        }
+        requested.erase(id);
       }
-      for (std::size_t text = 0; text < SPELL_WIRE_STRING_FIELDS.size(); ++text)
-        row.Strings[text] =
-            std::string(record.GetString(SPELL_WIRE_STRING_FIELDS[text]));
-      row.Strings[SPELL_WIRE_DESCRIPTION] = std::move(description->second);
-      descriptions.erase(description);
     }
 
+    for (auto const &[id, index] : overridden)
+    {
+      auto const description = descriptions.find(id);
+      if (description != descriptions.end())
+      {
+        rows[index].Strings[SPELL_WIRE_DESCRIPTION] = std::move(description->second);
+        descriptions.erase(description);
+      }
+    }
     for (auto const &[spellId, text] : descriptions)
-      LOG_ERROR("coa",
-                "coa_client_spell_description {} has no Spell.dbc record",
-                spellId);
+      LOG_ERROR("coa", "coa_client_spell_description {} has no physical or SQL Spell record", spellId);
+    for (uint32 spellId : requested)
+      LOG_ERROR("coa", "Requested client Spell patch {} has no physical or SQL record", spellId);
 
     return rows;
   }
 
   static std::unordered_map<uint32, std::string> LoadClientSpellDescriptions() {
     std::unordered_map<uint32, std::string> descriptions;
-    QueryResult result = WorldDatabase.Query(
-        "SELECT `ID`, `Description` FROM `coa_client_spell_description`");
+    PreparedQueryResult result = WorldDatabase.Query(
+        WorldDatabase.GetPreparedStatement(WORLD_SEL_CLIENT_SPELL_DESCRIPTIONS));
     if (!result)
       return descriptions;
 

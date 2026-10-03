@@ -83,19 +83,6 @@ TEST(CoALegendaryPowers, ConditionsHaveInclusiveHealthBoundariesAndExpire)
     EXPECT_FALSE(ConditionActive(Condition::OutOfCombat, 100.0f, true, 0));
     EXPECT_TRUE(ConditionActive(Condition::InCombat, 100.0f, true, 0));
     EXPECT_FALSE(ConditionActive(Condition::InCombat, 100.0f, false, 0));
-    EXPECT_EQ(AdvanceTimer(8000, 7999), 1);
-    EXPECT_EQ(AdvanceTimer(8000, 8000), 0);
-    EXPECT_EQ(AdvanceTimer(8000, 9000), 0);
     EXPECT_EQ(AttackPowerBonus(29), 82);
     EXPECT_EQ(SpellPowerBonus(29), 41);
-}
-
-TEST(CoALegendaryPowers, SignatureDamagePreservesInvalidAmountsAndSaturates)
-{
-    EXPECT_EQ(BoostSignature(int32_t(1000), 12), 1120);
-    EXPECT_EQ(BoostSignature(uint32_t(1000), 12), 1120);
-    EXPECT_EQ(BoostSignature(int32_t(-10), 12), -10);
-    EXPECT_EQ(BoostSignature(int32_t(0), 12), 0);
-    EXPECT_EQ(BoostSignature(std::numeric_limits<int32_t>::max(), 12), std::numeric_limits<int32_t>::max());
-    EXPECT_EQ(BoostSignature(std::numeric_limits<uint32_t>::max(), 12), std::numeric_limits<uint32_t>::max());
 }

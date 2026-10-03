@@ -689,6 +689,12 @@ void ScriptMgr::OnPlayerApplyItemModsBefore(Player* player, uint8 slot, bool app
     CALL_ENABLED_HOOKS(PlayerScript, PLAYERHOOK_ON_APPLY_ITEM_MODS_BEFORE, script->OnPlayerApplyItemModsBefore(player, slot, apply, itemProtoStatNumber, statType, val));
 }
 
+void ScriptMgr::OnPlayerAfterApplyItemMods(Player* player, Item* item, uint8 slot, bool apply)
+{
+    CALL_ENABLED_HOOKS(PlayerScript, PLAYERHOOK_ON_AFTER_APPLY_ITEM_MODS,
+        script->OnPlayerAfterApplyItemMods(player, item, slot, apply));
+}
+
 void ScriptMgr::OnPlayerApplyEnchantmentItemModsBefore(Player* player, Item* item, EnchantmentSlot slot, bool apply, uint32 enchant_spell_id, uint32& enchant_amount)
 {
     CALL_ENABLED_HOOKS(PlayerScript, PLAYERHOOK_ON_APPLY_ENCHANTMENT_ITEM_MODS_BEFORE, script->OnPlayerApplyEnchantmentItemModsBefore(player, item, slot, apply, enchant_spell_id, enchant_amount));

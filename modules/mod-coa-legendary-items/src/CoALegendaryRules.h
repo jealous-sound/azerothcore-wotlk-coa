@@ -3,7 +3,6 @@
 
 #include <algorithm>
 #include <cstdint>
-#include <limits>
 #include <optional>
 
 namespace CoALegendary
@@ -15,7 +14,6 @@ namespace CoALegendary
     constexpr uint32_t MaximumCreatureLevel = 80;
     constexpr uint32_t ItemLevelBonus = 12;
     constexpr uint32_t KillPowerDurationMs = 8000;
-    constexpr uint32_t PowerUpdateMs = 250;
 
     enum class Power : uint8_t
     {
@@ -56,6 +54,7 @@ namespace CoALegendary
         uint8_t inventoryType;
         uint32_t signatureSpell;
         uint8_t magnitude;
+        uint8_t signatureMaskBit;
     };
 
     struct Variant
@@ -123,11 +122,6 @@ namespace CoALegendary
         return false;
     }
 
-    constexpr uint32_t AdvanceTimer(uint32_t remaining, uint32_t elapsed)
-    {
-        return remaining > elapsed ? remaining - elapsed : 0;
-    }
-
     constexpr int32_t AttackPowerBonus(uint32_t requiredLevel)
     {
         return int32_t(ItemLevel(requiredLevel) * 2);
@@ -138,14 +132,6 @@ namespace CoALegendary
         return int32_t(ItemLevel(requiredLevel));
     }
 
-    template <typename T>
-    constexpr T BoostSignature(T amount, uint32_t percent)
-    {
-        if (amount <= 0)
-            return amount;
-        uint64_t const boosted = uint64_t(amount) * (100u + uint64_t(percent)) / 100u;
-        return T(std::min<uint64_t>(boosted, std::numeric_limits<T>::max()));
-    }
 }
 
 #endif

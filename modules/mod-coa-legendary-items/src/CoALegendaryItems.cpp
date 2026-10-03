@@ -1,4 +1,7 @@
 #include "CoALegendaryCatalog.h"
+#include "AscensionClientSpellPatches.h"
+#include "DBCStores.h"
+#include "GameTime.h"
 #include "Config.h"
 #include "Creature.h"
 #include "Item.h"
@@ -14,6 +17,7 @@
 #include "SpellAuras.h"
 #include "SpellInfo.h"
 #include "SpellMgr.h"
+#include "SpellScript.h"
 #include <array>
 #include <atomic>
 #include <cmath>
@@ -29,12 +33,15 @@ namespace
     std::atomic<bool> dataReady{ false };
     std::atomic<float> dropChance{ 0.5f };
     std::atomic<uint32> stopDropLevel{ 60 };
+    std::atomic<uint32> configVersion{ 0 };
 
     struct PlayerState : DataMap::Base
     {
+        std::array<uint32, EQUIPMENT_SLOT_END> equippedEntries{};
         std::array<uint8, DesignCount> appliedLevels{};
-        uint32 killPowerMs = 0;
-        uint32 updateMs = 0;
+        uint64 killExpiresAt = 0;
+        uint32 configVersion = 0;
+        bool refreshing = false;
     };
 
     struct LootRoll : DataMap::Base
@@ -44,24 +51,34 @@ namespace
 
     using EquippedLevels = std::array<uint8, DesignCount>;
 
-    EquippedLevels GetEquippedLevels(Player* player)
+    flag96 SignatureMask(Design const& design)
+    {
+        flag96 mask;
+        mask[design.signatureMaskBit / 32] = uint32(1) << (design.signatureMaskBit % 32);
+        return mask;
+    }
+
+    uint32 KillPowerRemaining(PlayerState const& state)
+    {
+        uint64 const now = GameTime::GetGameTimeMS().count();
+        return state.killExpiresAt > now ? uint32(state.killExpiresAt - now) : 0;
+    }
+
+    EquippedLevels GetEquippedLevels(Player* player, PlayerState const& state)
     {
         EquippedLevels levels{};
         if (!enabled.load() || !dataReady.load() || !player->IsAlive() || !IsCustomClass(player->getClass()))
             return levels;
 
-        for (uint8 slot = EQUIPMENT_SLOT_START; slot < EQUIPMENT_SLOT_END; ++slot)
-            if (Item* item = player->GetItemByPos(INVENTORY_SLOT_BAG_0, slot))
-                if (!item->IsBroken())
-                    if (auto variant = DecodeEntry(item->GetEntry()))
-                        if (FitsClass(Catalog[variant->design], player->getClass()) &&
-                            variant->requiredLevel <= player->GetLevel())
-                            levels[variant->design] = std::max(levels[variant->design],
-                                uint8(variant->requiredLevel));
+        for (uint32 entry : state.equippedEntries)
+            if (auto variant = DecodeEntry(entry))
+                if (FitsClass(Catalog[variant->design], player->getClass()) &&
+                    variant->requiredLevel <= player->GetLevel())
+                    levels[variant->design] = std::max(levels[variant->design], uint8(variant->requiredLevel));
         return levels;
     }
 
-    void ApplyPower(Player* player, uint32 designIndex, uint32 level)
+    void ApplyPower(Player* player, uint32 designIndex, uint32 level, uint32 killRemaining)
     {
         Design const& design = Catalog[designIndex];
         int32 first = design.magnitude;
@@ -77,59 +94,107 @@ namespace
                 design.profile == Profile::IntellectHybrid)
                 second = third = SpellPowerBonus(level);
         }
-        player->CastCustomSpell(player, AuraEntryBase + designIndex, &first, &second, &third, true);
+        uint32 const auraId = AuraEntryBase + designIndex;
+        player->CastCustomSpell(player, auraId, &first, &second, &third, true);
+        if (design.condition == CoALegendary::Condition::AfterKill)
+            if (Aura* aura = player->GetAura(auraId, player->GetGUID()))
+                aura->SetDuration(int32(killRemaining));
     }
 
     void RefreshPowers(Player* player, PlayerState& state)
     {
-        EquippedLevels levels = GetEquippedLevels(player);
+        if (state.refreshing || !player->IsInWorld())
+            return;
+        state.refreshing = true;
+        state.configVersion = configVersion.load();
+        EquippedLevels const levels = GetEquippedLevels(player, state);
+        uint32 const killRemaining = KillPowerRemaining(state);
         for (uint32 index = 0; index < DesignCount; ++index)
         {
             Design const& design = Catalog[index];
-            if (design.power == Power::Signature)
-                continue;
-
             bool const active = levels[index] && ConditionActive(design.condition,
-                player->GetHealthPct(), player->IsInCombat(), state.killPowerMs);
+                player->GetHealthPct(), player->IsInCombat(), killRemaining);
             uint32 const auraId = AuraEntryBase + index;
             if (!active)
             {
-                if (state.appliedLevels[index])
-                    player->RemoveAurasDueToSpell(auraId);
+                bool const remove = state.appliedLevels[index] != 0;
                 state.appliedLevels[index] = 0;
+                if (remove)
+                    player->RemoveAurasDueToSpell(auraId, player->GetGUID());
                 continue;
             }
 
-            if (state.appliedLevels[index] != levels[index] || !player->HasAura(auraId))
+            if (state.appliedLevels[index] != levels[index] || !player->HasAura(auraId, player->GetGUID()))
             {
-                player->RemoveAurasDueToSpell(auraId);
-                ApplyPower(player, index, levels[index]);
-                state.appliedLevels[index] = levels[index];
+                state.appliedLevels[index] = 0;
+                player->RemoveAurasDueToSpell(auraId, player->GetGUID());
+                ApplyPower(player, index, levels[index], killRemaining);
+                state.appliedLevels[index] = player->HasAura(auraId, player->GetGUID()) ? levels[index] : 0;
             }
         }
+        state.refreshing = false;
     }
 
-    uint32 SignatureBonus(Unit* attacker, SpellInfo const* spell)
+    void RefreshPowers(Player* player)
     {
-        Player* player = attacker ? attacker->ToPlayer() : nullptr;
-        if (!player || !spell || !enabled.load() || !dataReady.load() || !player->IsAlive() ||
-            !IsCustomClass(player->getClass()))
-            return 0;
-
-        uint32 const firstRank = sSpellMgr->GetFirstSpellInChain(spell->Id);
-        for (uint32 index = 0; index < DesignCount; ++index)
-        {
-            Design const& design = Catalog[index];
-            if (design.power != Power::Signature || design.classId != player->getClass() ||
-                spell->SpellFamilyName != uint32(design.classId) + 6 ||
-                firstRank != sSpellMgr->GetFirstSpellInChain(design.signatureSpell))
-                continue;
-
-            EquippedLevels const levels = GetEquippedLevels(player);
-            return levels[index] ? design.magnitude : 0;
-        }
-        return 0;
+        if (PlayerState* state = player->CustomData.Get<PlayerState>(PlayerStateKey))
+            RefreshPowers(player, *state);
     }
+
+    void UpdateEquipmentSlot(Player* player, Item* item, uint8 slot, bool apply)
+    {
+        if (slot >= EQUIPMENT_SLOT_END || !player->IsInWorld())
+            return;
+        PlayerState* state = player->CustomData.Get<PlayerState>(PlayerStateKey);
+        if (!state)
+        {
+            if (!IsCustomClass(player->getClass()) || !item || !DecodeEntry(item->GetEntry()))
+                return;
+            state = player->CustomData.GetDefault<PlayerState>(PlayerStateKey);
+        }
+        state->equippedEntries[slot] = apply && item && !item->IsBroken() ? item->GetEntry() : 0;
+        RefreshPowers(player, *state);
+    }
+
+    class LegendaryMetadataScript final : public GlobalScript
+    {
+    public:
+        LegendaryMetadataScript() : GlobalScript("coa_legendary_items_metadata",
+            { GLOBALHOOK_ON_LOAD_SPELL_CUSTOM_ATTR }) { }
+
+        void OnLoadSpellCustomAttr(SpellInfo* info) override
+        {
+            if (info->Id >= AuraEntryBase && info->Id < AuraEntryBase + DesignCount)
+                info->AttributesCu |= SPELL_ATTR0_CU_AURA_CANNOT_BE_SAVED;
+
+            for (Design const& design : Catalog)
+                if (design.power == Power::Signature && info->SpellFamilyName == uint32(design.classId) + 6 &&
+                    sSpellMgr->GetFirstSpellInChain(info->Id) == sSpellMgr->GetFirstSpellInChain(design.signatureSpell))
+                {
+                    info->SpellFamilyFlags |= SignatureMask(design);
+                    Ascension::ClientSpellPatches::Instance().Register(info->Id);
+                    break;
+                }
+        }
+    };
+
+    class aura_coa_legendary_signature : public AuraScript
+    {
+        PrepareAuraScript(aura_coa_legendary_signature);
+
+        void RestrictTarget(AuraEffect const*, SpellModifier*& modifier)
+        {
+            uint32 const index = GetId() - AuraEntryBase;
+            if (modifier && index < DesignCount && Catalog[index].power == Power::Signature)
+                modifier->targetSpellRoot = sSpellMgr->GetFirstSpellInChain(Catalog[index].signatureSpell);
+        }
+
+        void Register() override
+        {
+            DoEffectCalcSpellMod += AuraEffectCalcSpellModFn(aura_coa_legendary_signature::RestrictTarget,
+                EFFECT_0, SPELL_AURA_ADD_PCT_MODIFIER);
+        }
+    };
 
     bool TryAddLegendary(Creature* creature, Player* owner, Loot* loot)
     {
@@ -171,6 +236,7 @@ namespace
             dropChance.store(std::isfinite(configuredChance) ? std::clamp(configuredChance, 0.0f, 100.0f) : 0.0f);
             stopDropLevel.store(std::clamp(
                 sConfigMgr->GetOption<uint32>("CoALegendaryItems.StopDropLevel", 60), 1u, 81u));
+            ++configVersion;
         }
 
         void OnStartup() override
@@ -187,10 +253,64 @@ namespace
                         item->InventoryType != design.inventoryType)
                         ++invalid;
                 }
-                if (design.power != Power::Signature && !sSpellMgr->GetSpellInfo(AuraEntryBase + index))
+                if (!sSpellMgr->GetSpellInfo(AuraEntryBase + index))
                     ++invalid;
                 if (design.power == Power::Signature && !sSpellMgr->GetSpellInfo(design.signatureSpell))
                     ++invalid;
+            }
+            for (SpellEntry const* entry : sSpellStore)
+            {
+                SpellInfo const* info = sSpellMgr->GetSpellInfo(entry->Id);
+                if (!info || info->SpellFamilyName < 18 || info->SpellFamilyName > 38)
+                    continue;
+                bool const direct = std::any_of(info->Effects.begin(), info->Effects.end(),
+                    [](SpellEffectInfo const& effect)
+                    {
+                        switch (effect.Effect)
+                        {
+                            case SPELL_EFFECT_SCHOOL_DAMAGE:
+                            case SPELL_EFFECT_HEALTH_LEECH:
+                            case SPELL_EFFECT_HEAL:
+                            case SPELL_EFFECT_WEAPON_DAMAGE_NOSCHOOL:
+                            case SPELL_EFFECT_WEAPON_PERCENT_DAMAGE:
+                            case SPELL_EFFECT_WEAPON_DAMAGE:
+                            case SPELL_EFFECT_HEAL_MECHANICAL:
+                            case SPELL_EFFECT_NORMALIZED_WEAPON_DMG:
+                            case SPELL_EFFECT_HEAL_PCT:
+                                return true;
+                            default:
+                                return false;
+                        }
+                    });
+                if (info->Id >= AuraEntryBase && info->Id < AuraEntryBase + DesignCount)
+                    continue;
+                for (Design const& design : Catalog)
+                {
+                    if (design.power != Power::Signature || info->SpellFamilyName != uint32(design.classId) + 6)
+                        continue;
+                    flag96 const mask = SignatureMask(design);
+                    if (direct && (info->SpellFamilyFlags & mask) &&
+                        sSpellMgr->GetFirstSpellInChain(info->Id) !=
+                            sSpellMgr->GetFirstSpellInChain(design.signatureSpell))
+                    {
+                        ++invalid;
+                        LOG_ERROR("module", "CoA Legendary Items: signature selector {} also matches spell {}",
+                            design.name, info->Id);
+                    }
+                    SpellInfo const* signature = sSpellMgr->GetSpellInfo(design.signatureSpell);
+                    if (!signature)
+                        continue;
+                    flag96 original = signature->SpellFamilyFlags;
+                    for (uint8 word = 0; word < 3; ++word)
+                        original[word] &= ~mask[word];
+                    for (SpellEffectInfo const& effect : info->Effects)
+                        if (effect.IsEffect() && (effect.SpellClassMask & mask) && !(effect.SpellClassMask & original))
+                        {
+                            ++invalid;
+                            LOG_ERROR("module", "CoA Legendary Items: signature selector {} overlaps modifier {}",
+                                design.name, info->Id);
+                        }
+                }
             }
             dataReady.store(invalid == 0);
             if (invalid)
@@ -226,32 +346,54 @@ namespace
     {
     public:
         LegendaryPlayerScript() : PlayerScript("coa_legendary_items_player",
-            { PLAYERHOOK_ON_UPDATE, PLAYERHOOK_ON_LOGOUT }) { }
+            { PLAYERHOOK_ON_EQUIP, PLAYERHOOK_ON_AFTER_APPLY_ITEM_MODS, PLAYERHOOK_ON_LOGIN,
+              PLAYERHOOK_ON_LOGOUT, PLAYERHOOK_ON_LEVEL_CHANGED, PLAYERHOOK_ON_PLAYER_RESURRECT,
+              PLAYERHOOK_ON_PLAYER_ENTER_COMBAT, PLAYERHOOK_ON_PLAYER_LEAVE_COMBAT, PLAYERHOOK_ON_UPDATE }) { }
 
-        void OnPlayerUpdate(Player* player, uint32 diff) override
+        void OnPlayerEquip(Player* player, Item* item, uint8 bag, uint8 slot, bool) override
         {
-            PlayerState* state = player->CustomData.Get<PlayerState>(PlayerStateKey);
-            if (!state)
-            {
-                if (!enabled.load() || !dataReady.load() || !IsCustomClass(player->getClass()))
-                    return;
-                state = player->CustomData.GetDefault<PlayerState>(PlayerStateKey);
-            }
-            state->killPowerMs = AdvanceTimer(state->killPowerMs, diff);
-            state->updateMs = AdvanceTimer(state->updateMs, diff);
-            if (!state->updateMs)
-            {
-                state->updateMs = PowerUpdateMs;
-                RefreshPowers(player, *state);
-            }
+            if (bag == INVENTORY_SLOT_BAG_0)
+                UpdateEquipmentSlot(player, item, slot, true);
+        }
+
+        void OnPlayerAfterApplyItemMods(Player* player, Item* item, uint8 slot, bool apply) override
+        {
+            UpdateEquipmentSlot(player, item, slot, apply);
+        }
+
+        void OnPlayerLogin(Player* player) override
+        {
+            if (!IsCustomClass(player->getClass()))
+                return;
+            PlayerState* state = player->CustomData.GetDefault<PlayerState>(PlayerStateKey);
+            state->equippedEntries.fill(0);
+            for (uint8 slot = EQUIPMENT_SLOT_START; slot < EQUIPMENT_SLOT_END; ++slot)
+                if (Item* item = player->GetItemByPos(INVENTORY_SLOT_BAG_0, slot))
+                    if (!item->IsBroken())
+                        state->equippedEntries[slot] = item->GetEntry();
+            RefreshPowers(player, *state);
+        }
+
+        void OnPlayerLevelChanged(Player* player, uint8) override { RefreshPowers(player); }
+        void OnPlayerResurrect(Player* player, float, bool&) override { RefreshPowers(player); }
+        void OnPlayerEnterCombat(Player* player, Unit*) override { RefreshPowers(player); }
+        void OnPlayerLeaveCombat(Player* player) override { RefreshPowers(player); }
+
+        void OnPlayerUpdate(Player* player, uint32) override
+        {
+            if (PlayerState* state = player->CustomData.Get<PlayerState>(PlayerStateKey))
+                if (state->configVersion != configVersion.load())
+                    RefreshPowers(player, *state);
         }
 
         void OnPlayerLogout(Player* player) override
         {
             if (PlayerState* state = player->CustomData.Get<PlayerState>(PlayerStateKey))
-                for (uint32 index = 0; index < DesignCount; ++index)
-                    if (state->appliedLevels[index])
-                        player->RemoveAurasDueToSpell(AuraEntryBase + index);
+            {
+                state->equippedEntries.fill(0);
+                state->killExpiresAt = 0;
+                RefreshPowers(player, *state);
+            }
             player->CustomData.Erase(PlayerStateKey);
         }
     };
@@ -260,13 +402,21 @@ namespace
     {
     public:
         LegendaryUnitScript() : UnitScript("coa_legendary_items_unit", true,
-            { UNITHOOK_ON_UNIT_DEATH, UNITHOOK_MODIFY_SPELL_DAMAGE_TAKEN }) { }
+            { UNITHOOK_ON_UNIT_DEATH, UNITHOOK_ON_HEALTH_CHANGED, UNITHOOK_ON_AURA_REMOVE }) { }
 
         void OnUnitDeath(Unit* unit, Unit* killer) override
         {
             Creature* creature = unit->ToCreature();
             if (!creature)
+            {
+                if (Player* player = unit->ToPlayer())
+                {
+                    if (PlayerState* state = player->CustomData.Get<PlayerState>(PlayerStateKey))
+                        state->killExpiresAt = 0;
+                    RefreshPowers(player);
+                }
                 return;
+            }
 
             LootRoll* roll = creature->CustomData.Get<LootRoll>(LootRollKey);
             if ((!roll || !roll->attempted) && creature->GetLootRecipient() &&
@@ -291,14 +441,29 @@ namespace
                 !creature->GetOwnerGUID() && !creature->GetCharmerGUID())
             {
                 PlayerState* state = player->CustomData.GetDefault<PlayerState>(PlayerStateKey);
-                state->killPowerMs = KillPowerDurationMs;
+                state->killExpiresAt = GameTime::GetGameTimeMS().count() + KillPowerDurationMs;
                 RefreshPowers(player, *state);
+                for (uint32 index = 0; index < DesignCount; ++index)
+                    if (Catalog[index].condition == CoALegendary::Condition::AfterKill && state->appliedLevels[index])
+                        if (Aura* aura = player->GetAura(AuraEntryBase + index, player->GetGUID()))
+                            aura->SetDuration(int32(KillPowerRemaining(*state)));
             }
         }
 
-        void ModifySpellDamageTaken(Unit*, Unit* attacker, int32& damage, SpellInfo const* spell) override
+        void OnHealthChanged(Unit* unit) override
         {
-            damage = BoostSignature(damage, SignatureBonus(attacker, spell));
+            if (Player* player = unit->ToPlayer())
+                RefreshPowers(player);
+        }
+
+        void OnAuraRemove(Unit* unit, AuraApplication* application, AuraRemoveMode) override
+        {
+            Player* player = unit->ToPlayer();
+            uint32 const id = application->GetBase()->GetId();
+            if (player && id >= AuraEntryBase && id < AuraEntryBase + DesignCount &&
+                application->GetBase()->GetCasterGUID() == player->GetGUID())
+                if (PlayerState* state = player->CustomData.Get<PlayerState>(PlayerStateKey))
+                    state->appliedLevels[id - AuraEntryBase] = 0;
         }
 
     };
@@ -306,6 +471,8 @@ namespace
 
 void AddSC_coa_legendary_items()
 {
+    new LegendaryMetadataScript();
+    RegisterSpellScript(aura_coa_legendary_signature);
     new LegendaryWorldScript();
     new LegendaryLootScript();
     new LegendaryPlayerScript();

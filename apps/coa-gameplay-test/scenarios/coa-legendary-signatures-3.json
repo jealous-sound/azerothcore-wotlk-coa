@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "CoA Legendary Items: signatures 3",
-  "contract": "Requires CoALegendaryItems.Enable=1, DropChance=100, StopDropLevel=60, DestinyWeaver.Enable=1, LevelScaling=1, offset=3, CoA.SendDisplayPatches=1. Each signature trinket boosts only its class ability main direct hit from 1000 to 1120 in the native script hook; unrelated spells, periodic effects and unequipped items are unchanged. First and highest available native ranks are checked.",
+  "contract": "Requires CoALegendaryItems.Enable=1, DropChance=100, StopDropLevel=60, DestinyWeaver.Enable=1, LevelScaling=1, offset=3, CoA.SendDisplayPatches=1. Each signature trinket boosts only its class ability main direct hit by 12% relative to existing class bonuses through a native percentage spell modifier; unrelated spells, secondary triggered spells, periodic effects and unequipped items are unchanged. First and highest available native ranks are checked.",
   "timeout_ms": 180000,
   "location": {
     "map": 0,
@@ -60,12 +60,231 @@
       "ms": 1000
     },
     {
-      "action": "assert",
-      "actor": "victim",
-      "metric": "script_spell_damage_taken",
-      "target": "class27",
+      "action": "snapshot",
+      "actor": "class27",
+      "metric": "spell_modifier",
       "spell": 500146,
-      "equals": 1000
+      "op": 0,
+      "base": 1000,
+      "save_as": "class27_spell500146_op0"
+    },
+    {
+      "action": "snapshot",
+      "actor": "class27",
+      "metric": "spell_modifier",
+      "spell": 116,
+      "op": 0,
+      "base": 1000,
+      "save_as": "class27_spell116_op0"
+    },
+    {
+      "action": "snapshot",
+      "actor": "class27",
+      "metric": "spell_modifier",
+      "spell": 500146,
+      "op": 22,
+      "base": 1000,
+      "save_as": "class27_spell500146_op22"
+    },
+    {
+      "action": "snapshot",
+      "actor": "class27",
+      "metric": "spell_modifier",
+      "spell": 554406,
+      "op": 0,
+      "base": 1000,
+      "save_as": "class27_spell554406_op0"
+    },
+    {
+      "action": "snapshot",
+      "actor": "class28",
+      "metric": "spell_modifier",
+      "spell": 801005,
+      "op": 0,
+      "base": 1000,
+      "save_as": "class28_spell801005_op0"
+    },
+    {
+      "action": "snapshot",
+      "actor": "class28",
+      "metric": "spell_modifier",
+      "spell": 116,
+      "op": 0,
+      "base": 1000,
+      "save_as": "class28_spell116_op0"
+    },
+    {
+      "action": "snapshot",
+      "actor": "class28",
+      "metric": "spell_modifier",
+      "spell": 801005,
+      "op": 22,
+      "base": 1000,
+      "save_as": "class28_spell801005_op22"
+    },
+    {
+      "action": "snapshot",
+      "actor": "class28",
+      "metric": "spell_modifier",
+      "spell": 547209,
+      "op": 0,
+      "base": 1000,
+      "save_as": "class28_spell547209_op0"
+    },
+    {
+      "action": "snapshot",
+      "actor": "class29",
+      "metric": "spell_modifier",
+      "spell": 804961,
+      "op": 0,
+      "base": 1000,
+      "save_as": "class29_spell804961_op0"
+    },
+    {
+      "action": "snapshot",
+      "actor": "class29",
+      "metric": "spell_modifier",
+      "spell": 116,
+      "op": 0,
+      "base": 1000,
+      "save_as": "class29_spell116_op0"
+    },
+    {
+      "action": "snapshot",
+      "actor": "class29",
+      "metric": "spell_modifier",
+      "spell": 804961,
+      "op": 22,
+      "base": 1000,
+      "save_as": "class29_spell804961_op22"
+    },
+    {
+      "action": "snapshot",
+      "actor": "class29",
+      "metric": "spell_modifier",
+      "spell": 573342,
+      "op": 0,
+      "base": 1000,
+      "save_as": "class29_spell573342_op0"
+    },
+    {
+      "action": "snapshot",
+      "actor": "class30",
+      "metric": "spell_modifier",
+      "spell": 800172,
+      "op": 0,
+      "base": 1000,
+      "save_as": "class30_spell800172_op0"
+    },
+    {
+      "action": "snapshot",
+      "actor": "class30",
+      "metric": "spell_modifier",
+      "spell": 116,
+      "op": 0,
+      "base": 1000,
+      "save_as": "class30_spell116_op0"
+    },
+    {
+      "action": "snapshot",
+      "actor": "class30",
+      "metric": "spell_modifier",
+      "spell": 800172,
+      "op": 22,
+      "base": 1000,
+      "save_as": "class30_spell800172_op22"
+    },
+    {
+      "action": "snapshot",
+      "actor": "class30",
+      "metric": "spell_modifier",
+      "spell": 567532,
+      "op": 0,
+      "base": 1000,
+      "save_as": "class30_spell567532_op0"
+    },
+    {
+      "action": "snapshot",
+      "actor": "class31",
+      "metric": "spell_modifier",
+      "spell": 300693,
+      "op": 0,
+      "base": 1000,
+      "save_as": "class31_spell300693_op0"
+    },
+    {
+      "action": "snapshot",
+      "actor": "class31",
+      "metric": "spell_modifier",
+      "spell": 116,
+      "op": 0,
+      "base": 1000,
+      "save_as": "class31_spell116_op0"
+    },
+    {
+      "action": "snapshot",
+      "actor": "class31",
+      "metric": "spell_modifier",
+      "spell": 300693,
+      "op": 22,
+      "base": 1000,
+      "save_as": "class31_spell300693_op22"
+    },
+    {
+      "action": "snapshot",
+      "actor": "class31",
+      "metric": "spell_modifier",
+      "spell": 301279,
+      "op": 0,
+      "base": 1000,
+      "save_as": "class31_spell301279_op0"
+    },
+    {
+      "action": "snapshot",
+      "actor": "class32",
+      "metric": "spell_modifier",
+      "spell": 801179,
+      "op": 0,
+      "base": 1000,
+      "save_as": "class32_spell801179_op0"
+    },
+    {
+      "action": "snapshot",
+      "actor": "class32",
+      "metric": "spell_modifier",
+      "spell": 116,
+      "op": 0,
+      "base": 1000,
+      "save_as": "class32_spell116_op0"
+    },
+    {
+      "action": "snapshot",
+      "actor": "class32",
+      "metric": "spell_modifier",
+      "spell": 801179,
+      "op": 22,
+      "base": 1000,
+      "save_as": "class32_spell801179_op22"
+    },
+    {
+      "action": "snapshot",
+      "actor": "class32",
+      "metric": "spell_modifier",
+      "spell": 572122,
+      "op": 0,
+      "base": 1000,
+      "save_as": "class32_spell572122_op0"
+    },
+    {
+      "action": "assert",
+      "actor": "class27",
+      "metric": "spell_modifier",
+      "spell": 500146,
+      "op": 0,
+      "base": 1000,
+      "ratio_to": "class27_spell500146_op0",
+      "min": 0.99999,
+      "max": 1.00001
     },
     {
       "action": "add_item",
@@ -80,35 +299,47 @@
     },
     {
       "action": "assert",
-      "actor": "victim",
-      "metric": "script_spell_damage_taken",
-      "target": "class27",
+      "actor": "class27",
+      "metric": "spell_modifier",
       "spell": 500146,
-      "equals": 1120
+      "op": 0,
+      "base": 1000,
+      "ratio_to": "class27_spell500146_op0",
+      "min": 1.11999,
+      "max": 1.1200100000000002
     },
     {
       "action": "assert",
-      "actor": "victim",
-      "metric": "script_spell_damage_taken",
-      "target": "class27",
+      "actor": "class27",
+      "metric": "spell_modifier",
       "spell": 116,
-      "equals": 1000
+      "op": 0,
+      "base": 1000,
+      "ratio_to": "class27_spell116_op0",
+      "min": 0.99999,
+      "max": 1.00001
     },
     {
       "action": "assert",
-      "actor": "victim",
-      "metric": "script_periodic_damage_taken",
-      "target": "class27",
+      "actor": "class27",
+      "metric": "spell_modifier",
       "spell": 500146,
-      "equals": 1000
+      "op": 22,
+      "base": 1000,
+      "ratio_to": "class27_spell500146_op22",
+      "min": 0.99999,
+      "max": 1.00001
     },
     {
       "action": "assert",
-      "actor": "victim",
-      "metric": "script_spell_damage_taken",
-      "target": "class27",
+      "actor": "class27",
+      "metric": "spell_modifier",
       "spell": 554406,
-      "equals": 1120
+      "op": 0,
+      "base": 1000,
+      "ratio_to": "class27_spell554406_op0",
+      "min": 1.11999,
+      "max": 1.1200100000000002
     },
     {
       "action": "destroy_item",
@@ -117,19 +348,25 @@
     },
     {
       "action": "assert",
-      "actor": "victim",
-      "metric": "script_spell_damage_taken",
-      "target": "class27",
+      "actor": "class27",
+      "metric": "spell_modifier",
       "spell": 500146,
-      "equals": 1000
+      "op": 0,
+      "base": 1000,
+      "ratio_to": "class27_spell500146_op0",
+      "min": 0.99999,
+      "max": 1.00001
     },
     {
       "action": "assert",
-      "actor": "victim",
-      "metric": "script_spell_damage_taken",
-      "target": "class28",
+      "actor": "class28",
+      "metric": "spell_modifier",
       "spell": 801005,
-      "equals": 1000
+      "op": 0,
+      "base": 1000,
+      "ratio_to": "class28_spell801005_op0",
+      "min": 0.99999,
+      "max": 1.00001
     },
     {
       "action": "add_item",
@@ -144,35 +381,47 @@
     },
     {
       "action": "assert",
-      "actor": "victim",
-      "metric": "script_spell_damage_taken",
-      "target": "class28",
+      "actor": "class28",
+      "metric": "spell_modifier",
       "spell": 801005,
-      "equals": 1120
+      "op": 0,
+      "base": 1000,
+      "ratio_to": "class28_spell801005_op0",
+      "min": 1.11999,
+      "max": 1.1200100000000002
     },
     {
       "action": "assert",
-      "actor": "victim",
-      "metric": "script_spell_damage_taken",
-      "target": "class28",
+      "actor": "class28",
+      "metric": "spell_modifier",
       "spell": 116,
-      "equals": 1000
+      "op": 0,
+      "base": 1000,
+      "ratio_to": "class28_spell116_op0",
+      "min": 0.99999,
+      "max": 1.00001
     },
     {
       "action": "assert",
-      "actor": "victim",
-      "metric": "script_periodic_damage_taken",
-      "target": "class28",
+      "actor": "class28",
+      "metric": "spell_modifier",
       "spell": 801005,
-      "equals": 1000
+      "op": 22,
+      "base": 1000,
+      "ratio_to": "class28_spell801005_op22",
+      "min": 0.99999,
+      "max": 1.00001
     },
     {
       "action": "assert",
-      "actor": "victim",
-      "metric": "script_spell_damage_taken",
-      "target": "class28",
+      "actor": "class28",
+      "metric": "spell_modifier",
       "spell": 547209,
-      "equals": 1120
+      "op": 0,
+      "base": 1000,
+      "ratio_to": "class28_spell547209_op0",
+      "min": 1.11999,
+      "max": 1.1200100000000002
     },
     {
       "action": "destroy_item",
@@ -181,19 +430,25 @@
     },
     {
       "action": "assert",
-      "actor": "victim",
-      "metric": "script_spell_damage_taken",
-      "target": "class28",
+      "actor": "class28",
+      "metric": "spell_modifier",
       "spell": 801005,
-      "equals": 1000
+      "op": 0,
+      "base": 1000,
+      "ratio_to": "class28_spell801005_op0",
+      "min": 0.99999,
+      "max": 1.00001
     },
     {
       "action": "assert",
-      "actor": "victim",
-      "metric": "script_spell_damage_taken",
-      "target": "class29",
+      "actor": "class29",
+      "metric": "spell_modifier",
       "spell": 804961,
-      "equals": 1000
+      "op": 0,
+      "base": 1000,
+      "ratio_to": "class29_spell804961_op0",
+      "min": 0.99999,
+      "max": 1.00001
     },
     {
       "action": "add_item",
@@ -208,35 +463,47 @@
     },
     {
       "action": "assert",
-      "actor": "victim",
-      "metric": "script_spell_damage_taken",
-      "target": "class29",
+      "actor": "class29",
+      "metric": "spell_modifier",
       "spell": 804961,
-      "equals": 1120
+      "op": 0,
+      "base": 1000,
+      "ratio_to": "class29_spell804961_op0",
+      "min": 1.11999,
+      "max": 1.1200100000000002
     },
     {
       "action": "assert",
-      "actor": "victim",
-      "metric": "script_spell_damage_taken",
-      "target": "class29",
+      "actor": "class29",
+      "metric": "spell_modifier",
       "spell": 116,
-      "equals": 1000
+      "op": 0,
+      "base": 1000,
+      "ratio_to": "class29_spell116_op0",
+      "min": 0.99999,
+      "max": 1.00001
     },
     {
       "action": "assert",
-      "actor": "victim",
-      "metric": "script_periodic_damage_taken",
-      "target": "class29",
+      "actor": "class29",
+      "metric": "spell_modifier",
       "spell": 804961,
-      "equals": 1000
+      "op": 22,
+      "base": 1000,
+      "ratio_to": "class29_spell804961_op22",
+      "min": 0.99999,
+      "max": 1.00001
     },
     {
       "action": "assert",
-      "actor": "victim",
-      "metric": "script_spell_damage_taken",
-      "target": "class29",
+      "actor": "class29",
+      "metric": "spell_modifier",
       "spell": 573342,
-      "equals": 1120
+      "op": 0,
+      "base": 1000,
+      "ratio_to": "class29_spell573342_op0",
+      "min": 1.11999,
+      "max": 1.1200100000000002
     },
     {
       "action": "destroy_item",
@@ -245,19 +512,25 @@
     },
     {
       "action": "assert",
-      "actor": "victim",
-      "metric": "script_spell_damage_taken",
-      "target": "class29",
+      "actor": "class29",
+      "metric": "spell_modifier",
       "spell": 804961,
-      "equals": 1000
+      "op": 0,
+      "base": 1000,
+      "ratio_to": "class29_spell804961_op0",
+      "min": 0.99999,
+      "max": 1.00001
     },
     {
       "action": "assert",
-      "actor": "victim",
-      "metric": "script_spell_damage_taken",
-      "target": "class30",
+      "actor": "class30",
+      "metric": "spell_modifier",
       "spell": 800172,
-      "equals": 1000
+      "op": 0,
+      "base": 1000,
+      "ratio_to": "class30_spell800172_op0",
+      "min": 0.99999,
+      "max": 1.00001
     },
     {
       "action": "add_item",
@@ -272,35 +545,47 @@
     },
     {
       "action": "assert",
-      "actor": "victim",
-      "metric": "script_spell_damage_taken",
-      "target": "class30",
+      "actor": "class30",
+      "metric": "spell_modifier",
       "spell": 800172,
-      "equals": 1120
+      "op": 0,
+      "base": 1000,
+      "ratio_to": "class30_spell800172_op0",
+      "min": 1.11999,
+      "max": 1.1200100000000002
     },
     {
       "action": "assert",
-      "actor": "victim",
-      "metric": "script_spell_damage_taken",
-      "target": "class30",
+      "actor": "class30",
+      "metric": "spell_modifier",
       "spell": 116,
-      "equals": 1000
+      "op": 0,
+      "base": 1000,
+      "ratio_to": "class30_spell116_op0",
+      "min": 0.99999,
+      "max": 1.00001
     },
     {
       "action": "assert",
-      "actor": "victim",
-      "metric": "script_periodic_damage_taken",
-      "target": "class30",
+      "actor": "class30",
+      "metric": "spell_modifier",
       "spell": 800172,
-      "equals": 1000
+      "op": 22,
+      "base": 1000,
+      "ratio_to": "class30_spell800172_op22",
+      "min": 0.99999,
+      "max": 1.00001
     },
     {
       "action": "assert",
-      "actor": "victim",
-      "metric": "script_spell_damage_taken",
-      "target": "class30",
+      "actor": "class30",
+      "metric": "spell_modifier",
       "spell": 567532,
-      "equals": 1120
+      "op": 0,
+      "base": 1000,
+      "ratio_to": "class30_spell567532_op0",
+      "min": 1.11999,
+      "max": 1.1200100000000002
     },
     {
       "action": "destroy_item",
@@ -309,19 +594,25 @@
     },
     {
       "action": "assert",
-      "actor": "victim",
-      "metric": "script_spell_damage_taken",
-      "target": "class30",
+      "actor": "class30",
+      "metric": "spell_modifier",
       "spell": 800172,
-      "equals": 1000
+      "op": 0,
+      "base": 1000,
+      "ratio_to": "class30_spell800172_op0",
+      "min": 0.99999,
+      "max": 1.00001
     },
     {
       "action": "assert",
-      "actor": "victim",
-      "metric": "script_spell_damage_taken",
-      "target": "class31",
+      "actor": "class31",
+      "metric": "spell_modifier",
       "spell": 300693,
-      "equals": 1000
+      "op": 0,
+      "base": 1000,
+      "ratio_to": "class31_spell300693_op0",
+      "min": 0.99999,
+      "max": 1.00001
     },
     {
       "action": "add_item",
@@ -336,35 +627,47 @@
     },
     {
       "action": "assert",
-      "actor": "victim",
-      "metric": "script_spell_damage_taken",
-      "target": "class31",
+      "actor": "class31",
+      "metric": "spell_modifier",
       "spell": 300693,
-      "equals": 1120
+      "op": 0,
+      "base": 1000,
+      "ratio_to": "class31_spell300693_op0",
+      "min": 1.11999,
+      "max": 1.1200100000000002
     },
     {
       "action": "assert",
-      "actor": "victim",
-      "metric": "script_spell_damage_taken",
-      "target": "class31",
+      "actor": "class31",
+      "metric": "spell_modifier",
       "spell": 116,
-      "equals": 1000
+      "op": 0,
+      "base": 1000,
+      "ratio_to": "class31_spell116_op0",
+      "min": 0.99999,
+      "max": 1.00001
     },
     {
       "action": "assert",
-      "actor": "victim",
-      "metric": "script_periodic_damage_taken",
-      "target": "class31",
+      "actor": "class31",
+      "metric": "spell_modifier",
       "spell": 300693,
-      "equals": 1000
+      "op": 22,
+      "base": 1000,
+      "ratio_to": "class31_spell300693_op22",
+      "min": 0.99999,
+      "max": 1.00001
     },
     {
       "action": "assert",
-      "actor": "victim",
-      "metric": "script_spell_damage_taken",
-      "target": "class31",
+      "actor": "class31",
+      "metric": "spell_modifier",
       "spell": 301279,
-      "equals": 1120
+      "op": 0,
+      "base": 1000,
+      "ratio_to": "class31_spell301279_op0",
+      "min": 1.11999,
+      "max": 1.1200100000000002
     },
     {
       "action": "destroy_item",
@@ -373,19 +676,25 @@
     },
     {
       "action": "assert",
-      "actor": "victim",
-      "metric": "script_spell_damage_taken",
-      "target": "class31",
+      "actor": "class31",
+      "metric": "spell_modifier",
       "spell": 300693,
-      "equals": 1000
+      "op": 0,
+      "base": 1000,
+      "ratio_to": "class31_spell300693_op0",
+      "min": 0.99999,
+      "max": 1.00001
     },
     {
       "action": "assert",
-      "actor": "victim",
-      "metric": "script_spell_damage_taken",
-      "target": "class32",
+      "actor": "class32",
+      "metric": "spell_modifier",
       "spell": 801179,
-      "equals": 1000
+      "op": 0,
+      "base": 1000,
+      "ratio_to": "class32_spell801179_op0",
+      "min": 0.99999,
+      "max": 1.00001
     },
     {
       "action": "add_item",
@@ -400,35 +709,47 @@
     },
     {
       "action": "assert",
-      "actor": "victim",
-      "metric": "script_spell_damage_taken",
-      "target": "class32",
+      "actor": "class32",
+      "metric": "spell_modifier",
       "spell": 801179,
-      "equals": 1120
+      "op": 0,
+      "base": 1000,
+      "ratio_to": "class32_spell801179_op0",
+      "min": 1.11999,
+      "max": 1.1200100000000002
     },
     {
       "action": "assert",
-      "actor": "victim",
-      "metric": "script_spell_damage_taken",
-      "target": "class32",
+      "actor": "class32",
+      "metric": "spell_modifier",
       "spell": 116,
-      "equals": 1000
+      "op": 0,
+      "base": 1000,
+      "ratio_to": "class32_spell116_op0",
+      "min": 0.99999,
+      "max": 1.00001
     },
     {
       "action": "assert",
-      "actor": "victim",
-      "metric": "script_periodic_damage_taken",
-      "target": "class32",
+      "actor": "class32",
+      "metric": "spell_modifier",
       "spell": 801179,
-      "equals": 1000
+      "op": 22,
+      "base": 1000,
+      "ratio_to": "class32_spell801179_op22",
+      "min": 0.99999,
+      "max": 1.00001
     },
     {
       "action": "assert",
-      "actor": "victim",
-      "metric": "script_spell_damage_taken",
-      "target": "class32",
+      "actor": "class32",
+      "metric": "spell_modifier",
       "spell": 572122,
-      "equals": 1120
+      "op": 0,
+      "base": 1000,
+      "ratio_to": "class32_spell572122_op0",
+      "min": 1.11999,
+      "max": 1.1200100000000002
     },
     {
       "action": "destroy_item",
@@ -437,11 +758,14 @@
     },
     {
       "action": "assert",
-      "actor": "victim",
-      "metric": "script_spell_damage_taken",
-      "target": "class32",
+      "actor": "class32",
+      "metric": "spell_modifier",
       "spell": 801179,
-      "equals": 1000
+      "op": 0,
+      "base": 1000,
+      "ratio_to": "class32_spell801179_op0",
+      "min": 0.99999,
+      "max": 1.00001
     }
   ]
 }
