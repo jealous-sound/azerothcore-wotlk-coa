@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <list>
 #include <numbers>
 
 namespace
@@ -36,7 +37,12 @@ constexpr std::array<uint32, 2> SawBosses = { NPC_SNEEDS_SHREDDER, NPC_SNEED };
 constexpr float SawBossRange = 80.0f;
 constexpr float SawOrbitRadius = 5.0f;
 constexpr float SawDipRadius = 2.0f;
-constexpr float SawSpeed = 3.0f;
+constexpr float SawSpeed = 2.2f;
+constexpr float SawLaneRadiusStep = 1.2f;
+constexpr float SawLaneDipStep = 0.7f;
+constexpr uint32 SawLaneCount = 3;
+constexpr float SawGoldenAngle = 2.39996f;
+constexpr float SawMinSeparation = 2.5f;
 constexpr float SawLookaheadSeconds = 0.6f;
 constexpr float SawMinStepRadius = 2.0f;
 constexpr float BusterCallMinRadius = 3.0f;
@@ -46,7 +52,7 @@ constexpr float BusterCallHeight = 25.0f;
 struct npc_ascension_buzzing_saw_blade : ScriptedAI
 {
     explicit npc_ascension_buzzing_saw_blade(Creature* creature) : ScriptedAI(creature),
-        _clockwise(urand(0, 1) == 1), _moveTimer(0), _lostTimer(0),
+        _clockwise(true), _lane(0), _angle(0.0f), _moveTimer(0), _lostTimer(0),
         _dipDelay(urand(SAW_DIP_DELAY_MIN_MS, SAW_DIP_DELAY_MAX_MS)), _dipElapsed(0), _started(false) { }
 
     void AttackStart(Unit*) override { }
@@ -87,6 +93,11 @@ private:
         if (_started)
             return;
         _started = true;
+        std::list<Creature*> saws;
+        me->GetCreatureListWithEntryInGrid(saws, me->GetEntry(), SawBossRange);
+        _lane = saws.empty() ? 0 : uint32(saws.size() - 1);
+        _clockwise = _lane % 2 == 0;
+        _angle = SawGoldenAngle * float(_lane);
         me->SetReactState(REACT_PASSIVE);
         me->CastSpell(me, SPELL_BUZZING_SAW_BLADE, true);
     }
@@ -120,17 +131,33 @@ private:
     float CurrentRadius() const
     {
         float const dip = _dipElapsed ? std::sin(std::numbers::pi_v<float> * float(_dipElapsed) / float(SAW_DIP_DURATION_MS)) : 0.0f;
-        return SawOrbitRadius - (SawOrbitRadius - SawDipRadius) * dip;
+        float const lane = float(_lane % SawLaneCount);
+        float const orbit = SawOrbitRadius + SawLaneRadiusStep * lane;
+        float const dipRadius = SawDipRadius + SawLaneDipStep * lane;
+        return orbit - (orbit - dipRadius) * dip;
+    }
+
+    bool TooCloseToOtherSaw(Creature* boss, float angle, float radius) const
+    {
+        float const x = boss->GetPositionX() + radius * std::cos(angle);
+        float const y = boss->GetPositionY() + radius * std::sin(angle);
+        std::list<Creature*> saws;
+        me->GetCreatureListWithEntryInGrid(saws, me->GetEntry(), SawBossRange);
+        for (Creature* saw : saws)
+            if (saw != me && saw->IsAlive() && me->GetGUID().GetCounter() > saw->GetGUID().GetCounter() &&
+                saw->GetExactDist2d(x, y) < SawMinSeparation)
+                return true;
+        return false;
     }
 
     void Orbit(Creature* boss)
     {
-        float const dx = me->GetPositionX() - boss->GetPositionX();
-        float const dy = me->GetPositionY() - boss->GetPositionY();
-        float const distance = std::max(std::hypot(dx, dy), SawMinStepRadius);
-        float const step = SawSpeed * SawLookaheadSeconds / distance;
-        float const angle = std::atan2(dy, dx) + (_clockwise ? -step : step);
-        float const radius = CurrentRadius();
+        float const radius = std::max(CurrentRadius(), SawMinStepRadius);
+        float const direction = _clockwise ? -1.0f : 1.0f;
+        float const advance = direction * SawSpeed * float(SAW_MOVE_INTERVAL_MS) / 1000.0f / radius;
+        if (!TooCloseToOtherSaw(boss, _angle + advance, radius))
+            _angle += advance;
+        float const angle = _angle + direction * SawSpeed * SawLookaheadSeconds / radius;
         float const x = boss->GetPositionX() + radius * std::cos(angle);
         float const y = boss->GetPositionY() + radius * std::sin(angle);
         float z = boss->GetPositionZ();
@@ -139,6 +166,8 @@ private:
     }
 
     bool _clockwise;
+    uint32 _lane;
+    float _angle;
     uint32 _moveTimer;
     uint32 _lostTimer;
     uint32 _dipDelay;
