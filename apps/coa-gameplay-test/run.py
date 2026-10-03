@@ -65,7 +65,8 @@ METRICS = {
     'spellbook_silent_buys', 'spellbook_multi_announced_buys',
     'cast_speed_multiplier', 'spell_crit_chance', 'spell_power_cost', 'spell_damage_done', 'melee_damage_done',
     'who_count', 'who_class', 'player_name', 'name_lookup', 'loot_count', 'loot_entry', 'loot_received',
-    'loot_gold', 'loot_bloodforged', 'nearby_gameobject_count', 'nearby_creature_count', 'carried_money',
+    'loot_gold', 'loot_bloodforged', 'nearby_gameobject_count', 'nearby_creature_count',
+    'instance_boss_state', 'carried_money',
     'quest_rewarded', 'has_achievement', 'has_title', 'spell_damage_taken', 'melee_damage_taken', 'spell_healing_taken',
     'spell_hit_bonus_taken', 'rooted', 'stunned', 'spell_cast_count', 'spell_go_count', 'cast_failure',
     'stealth_detection', 'can_detect',
@@ -480,6 +481,9 @@ def validate(scenario):
             if metric == 'creature_query_rank':
                 require(step['actor'] in player_ids, f'{where}: creature query metric needs a player')
                 number(step.get('entry'), f'{where}.entry', 1, 2**31 - 1, True)
+            if metric == 'instance_boss_state':
+                require(step['actor'] in player_ids and 'id' in step,
+                        f'{where}: boss state needs a player and encounter id')
             if metric == 'lfg_dungeon_disabled':
                 number(step.get('dungeon'), f'{where}.dungeon', 1, 2**24 - 1, True)
             if metric in {'quest_level', 'quest_xp'}:
