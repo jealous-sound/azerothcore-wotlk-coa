@@ -124,19 +124,15 @@ enum Misc
 };
 
 Position const MajordomoRagnaros = { 848.933f, -812.875f, -229.601f, 4.046f };
-// CoA correction: moved to the centroid of Majordomo's own 8-add summon ring
-// (creature_summon_groups, entry 12018 group 1) - closer to the room's actual geometric middle
-// than the previous point (Majordomo's own battle position), confirmed valid ground live on slot 3
-// (`.go xyz` lands and holds at this exact z, no fall-through).
-Position const MajordomoSummonPos = {753.3f, -1174.4f, -119.1f, 3.3048f };
+// CoA correction: the user stood at the room's real center and read the point off `.gps`
+// directly (floor Z -120.0913), replacing the earlier add-ring-centroid estimate.
+Position const MajordomoSummonPos = { 742.1174f, -1181.1216f, -120.0913f, 5.7636776f };
 Position const MajordomoMoveRagPos = { 830.9636f, -814.7055f, -228.9733f, 0.0f };   // Position used at Ragnaros summoning event
 Position const RagnarosSummonPos = { 838.3082f, -831.4665f, -232.1853f, 2.199115f };
 
-// CoA addition: safe point in front of the Ragnaros summon area for the post-Majordomo portal
-// (go_ragnaros_portal_coa, instance_molten_core.cpp) to teleport players to -- a designed
-// midpoint between Majordomo's post-defeat spot (MajordomoRagnaros) and RagnarosSummonPos,
-// pending live .gps confirmation.
-Position const RagnarosLairEntranceCoa = { 835.0f, -820.0f, -230.0f, 2.2f };
+// CoA correction: the user stood at the Ragnaros lair entrance and read the point off `.gps`
+// directly (floor Z -228.51599), replacing the earlier estimated midpoint.
+Position const RagnarosLairEntranceCoa = { 814.8772f, -851.9799f, -228.51599f, 0.7247386f };
 
 struct MajordomoAddData
 {

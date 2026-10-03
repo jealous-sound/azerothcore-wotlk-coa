@@ -1000,9 +1000,12 @@ evidence + source reads), fixed individually below. See `impl-G-mechanics.md` fo
    teleport effect), casts its one spell via SmartAI on spawn, and despawns a few seconds later. One
    per Blink -- no corpus evidence for more.
 8. **Sacrificial Chains spawns at a fixed point and pacifies the players it chains.** The chain now
-   spawns at `MajordomoSummonPos` (Majordomo's own battle spot, the burning ground in the middle of
-   his room) instead of under a random raid member. Chained players are teleported a couple of yards
-   next to the chain and, for the debuff's duration, can neither move, cast nor attack
+   spawns at `MajordomoSummonPos`, the exact room-center point the user stood on and read off
+   `.gps` in game (742.1174, -1181.1216, floor Z -120.0913, map 409) -- replacing an earlier
+   add-ring-centroid estimate. Chained players are teleported onto a 10 yd ring around the chain
+   (shrunk in 2 yd steps toward the chain if the ground or line of sight does not hold at the full
+   radius), evenly spread by angle across however many targets this chain actually took, instead of
+   standing adjacent to it. For the debuff's duration they can neither move, cast nor attack
    (`spell_sacrificial_chains_sacrifice_coa`: root + `UNIT_FLAG_SILENCED` + `UNIT_FLAG_PACIFIED` on
    apply, reverted on remove) -- neither 2108020 nor 2108023 carries any such effect in Spell.dbc, so
    this reproduces live Ascension's measured 18-23s total cast-stop per chained player
@@ -1024,13 +1027,19 @@ evidence + source reads), fixed individually below. See `impl-G-mechanics.md` fo
     coefficient choice, not a measured value for this spell.
 11. **A portal to Ragnaros' lair appears once Majordomo is defeated.** `go_ragnaros_portal_coa`
     reuses the existing "Molten Core Instance Portal" template (181623, display 6450) rather than a
-    new one; a static spawn near Majordomo's post-defeat spot stays not-selectable
-    (`GO_FLAG_NOT_SELECTABLE`) until `DATA_MAJORDOMO_EXECUTUS` reaches `DONE`, toggled by the
-    instance script both live and on `OnGameObjectCreate` (so it is also usable immediately on
-    re-entering an instance where Majordomo is already dead). Using it teleports the player to a
-    designed point in front of the Ragnaros summon area (`RagnarosLairEntranceCoa`) -- pending live
-    `.gps` confirmation. The portal despawns only on instance reset, same as every other static MC
-    spawn.
+    new one; a static spawn at the room-center point (same point as the Sacrificial Chains,
+    `MajordomoSummonPos`) stays not-selectable (`GO_FLAG_NOT_SELECTABLE`) until
+    `DATA_MAJORDOMO_EXECUTUS` reaches `DONE`, toggled by the instance script both live and on
+    `OnGameObjectCreate` (so it is also usable immediately on re-entering an instance where
+    Majordomo is already dead). Using it teleports the clicking player to the Ragnaros lair entrance
+    (`RagnarosLairEntranceCoa`), the exact point the user stood on and read off `.gps` in game
+    (814.8772, -851.9799, floor Z -228.51599, map 409) -- only the clicker is teleported, not their
+    group, matching every other single-player-use portal GO in this instance. The reused template
+    carried `size = 5` (five times every comparable portal GO in `gameobject_template`, none of
+    which ever actually spawned it in base data) -- corrected to `size = 1`
+    (`rev_20261001_90_molten_core_majordomo_room_center_refine.sql`), the most likely cause of both
+    the oversized visual and the reported click misses. The portal despawns only on instance reset,
+    same as every other static MC spawn.
 12. **Golemagg's Cave In is the remembered ground fire, timed off Massive Stomp.** Reverts the
     Magmadar-puddle reuse above (item 10 was superseded by this item and dropped — see commit
     history): `diag-golemagg-cavein.md`'s combat-log corpus shows Cave In's own DBC kit
@@ -1196,6 +1205,70 @@ visibility is already gated by the instance script's encounter state, not by the
 all four difficulties like the rest of MC. `tools/test_molten_core_spawn_masks.py` replays the statement
 order across both directories and fails if the final effective map-409 spawnMask is not 15, or if any later
 file inserts a map-409 row with a narrower one.
+
+## 12. Batch AC (2026-10-03): room-center position, chain ring, portal fixes, playerbots DPS exclusion
+
+Live user report from a playerbots (mod-playerbots) raid test, with exact `.gps` readings this time instead
+of estimates.
+
+**Room-center point corrected.** The user stood at the room's real center and read it off `.gps` directly:
+(742.1174, -1181.1216, floor Z -120.0913, orientation 5.7636776, map 409) — replacing `impl-K.md`'s
+add-ring-centroid estimate (753.3, -1174.4, -119.1). `MajordomoSummonPos` (the Sacrificial Chains spawn
+point) and the Ragnaros portal GO's static spawn (guid 9000601) both moved to this exact point.
+
+**Chained players now stand on a ring, not adjacent to the chain.** `OnSacrificeApplied`
+(`npc_sacrificial_chains_coa.cpp`) placed chained players 2 yd from the chain; per the user's visual
+request, they are now placed on a 10 yd ring, evenly spread by angle across however many targets this chain
+instance actually took, with the radius shrunk in 2 yd steps (down to a 4 yd floor) if the ground or line of
+sight does not hold at the full 10 yd.
+
+**The Ragnaros portal's destination point corrected the same way.** The user stood at the Ragnaros lair
+entrance and read it off `.gps`: (814.8772, -851.9799, floor Z -228.51599, orientation 0.7247386, map 409) —
+replacing `RagnarosLairEntranceCoa`'s earlier estimated midpoint. The portal still teleports only the
+clicking player, not their group, matching every other single-use portal GO in this instance.
+
+**The portal's oversized scale, and the most likely cause of the click-through reports.** The reused "Molten
+Core Instance Portal" template (181623, display 6450) carried `size = 5` in the base data, despite never
+being spawned anywhere in stock content; every comparable portal template in `gameobject_template`
+(`Instance Portal`/`Instance Portal Green/Red/White`/`Mage Portal`/`Caverns of Time Portal`) uses `size = 1`.
+`GameObject::Use()` already calls `AI()->GossipHello()` for any player as long as `GO_FLAG_NOT_SELECTABLE`
+is clear — the same idiom the Cache of the Firelord chest uses successfully — and the `DATA_MAJORDOMO_
+EXECUTUS == DONE` flag-toggle in `instance_molten_core.cpp` is symmetric on both the live `SetBossState`
+transition and `OnGameObjectCreate` (instance reload), with no code path found that would leave it stuck
+`NOT_SELECTABLE` once the encounter is done. The 5x scale mismatch — a model five times its logical size,
+whose collision no longer lines up with the GO's reported position — is the only concrete defect found and
+is corrected to `size = 1` (`rev_20261001_90_molten_core_majordomo_room_center_refine.sql`); re-confirm
+click-through live after deploy in case a second cause remains.
+
+**Why mod-playerbots refuses to DPS Majordomo after the 8 adds die (not our defect).** Reported: a human
+player can attack and damage Majordomo once all 8 adds are dead (matching the K6b 20%-floor fix,
+`DamageTaken`/`CompleteEncounter` in `boss_majordomo_executus.cpp`), but the user's playerbots group will
+not. Our own `CanAIAttack` only returns `false` once `DATA_MAJORDOMO_EXECUTUS == DONE` (i.e. after the
+20%-floor fight actually ends) — nothing in `SummonedCreatureDies`/`DamageTaken` changes Majordomo's
+faction, react state, immunities or unit flags while the adds are dying or during the post-adds solo phase,
+so there is no CoA-side flag/faction/evade-mode bug to find. The actual cause is in
+`modules/mod-playerbots/src/Ai/Raid/MC/MCStrategy.cpp`,
+`RaidMcStrategy::AppendTargetExclusions` (around line 124):
+
+```cpp
+if ((golemaggAlive && unit->GetEntry() == NPC_CORE_RAGER) || unit->GetEntry() == NPC_MAJORDOMO_EXECUTUS)
+    exclusions.insert(guid);
+```
+
+This unconditionally excludes every creature with Majordomo's entry (12018) from bots' DPS/Attacker target
+lists, with a comment stating the stale stock assumption directly: "Majordomo reflects and cannot die; his
+encounter ends when the eight adds are dead." That was true of the stock encounter (and of this fork before
+the K6b fix); it is no longer true on `feat/mc-restoration`, but the exclusion has no HP or boss-state check
+— it fires regardless of how close to 20% Majordomo actually is — so no server-side flag or state change can
+satisfy it. `mod-playerbots` is not part of this repository's tracked tree (not a submodule here; present
+only in slot 2's build clone), so it was not modified as part of this task. Fixing bots' behavior requires
+either removing the unconditional Majordomo branch from that exclusion rule upstream in mod-playerbots, or
+gating it on something bots can observe (e.g. only exclude him while adds remain alive).
+
+Verification: `python -B tools/verify_all.py --stages source --base origin/main` plus `codestyle-cpp.py`/
+`codestyle-sql.py --files` on every touched file; live `.gps`/`.go xyz` re-check of the new room-center and
+lair-entrance points, the chain ring radius, and the portal's scale/click behavior on a claimed slot — see
+`impl-AC-majordomo.md`.
 
 **Related finding, out of scope for this fix**: the same ASC revamp statement also narrows `spawnMask` on
 other instance maps 309, 531, 509 and 469 (to 1) and map 249 (to 3). Those are not Molten Core and were not

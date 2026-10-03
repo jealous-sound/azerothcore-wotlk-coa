@@ -88,6 +88,7 @@
 #include "../../../src/server/scripts/EasternKingdoms/BlackrockMountain/MoltenCore/molten_core.h"
 
 #include <algorithm>
+#include <cmath>
 
 namespace
 {
@@ -100,6 +101,11 @@ namespace
 
     // 1/56 Sacrifice applications carried Berserk in the corpus (one Ascended pull).
     constexpr float BERSERK_CHANCE_PCT = 1.8f;
+
+    // User request: chained players stand apart from the chain, not adjacent to it.
+    constexpr float CHAIN_RING_RADIUS = 10.0f;
+    constexpr float CHAIN_RING_MIN_RADIUS = 4.0f;
+    constexpr float CHAIN_RING_STEP = 2.0f;
 
     // User rule from CoA play: chained players follow the flex raid size, the same
     // non-GM player count coa_flex::CountPlayers uses for boss health (clamped 10..25
@@ -124,6 +130,7 @@ namespace
             _chained.clear();
 
             uint8 const cap = ChainTargetCap(me->GetMap());
+            _targetCap = cap;
 
             // Exclude players a concurrent chain already has Sacrifice on, so two chains spawning
             // close together never both pick the same player.
@@ -148,9 +155,23 @@ namespace
         // landed on the target. A failed/blocked cast (e.g. the target got chained by another
         // instance a moment earlier) never reaches here, so it never leaves a phantom teleport with
         // no chain - the defect this fix addresses.
+        //
+        // Placed on a ring around the chain rather than adjacent to it (user request): evenly
+        // spread by angle across the actual number of chained targets, radius shrunk in steps if
+        // the ground or line of sight does not hold at the full 10 yd (lava-room edges, pillars).
         void OnSacrificeApplied(Player* target)
         {
-            Position chainedSpot = me->GetNearPosition(2.0f, float(M_PI * 2.0 / 3.0) * float(_chained.size()));
+            uint8 const slots = std::max<uint8>(_targetCap, 1);
+            float const angle = float(M_PI * 2.0) / float(slots) * float(_chained.size() % slots);
+
+            Position chainedSpot = me->GetNearPosition(CHAIN_RING_RADIUS, angle);
+            for (float radius = CHAIN_RING_RADIUS - CHAIN_RING_STEP; radius >= CHAIN_RING_MIN_RADIUS &&
+                 (std::fabs(chainedSpot.GetPositionZ() - me->GetPositionZ()) > 6.0f || !me->IsWithinLOS(chainedSpot.GetPositionX(), chainedSpot.GetPositionY(), chainedSpot.GetPositionZ()));
+                 radius -= CHAIN_RING_STEP)
+            {
+                chainedSpot = me->GetNearPosition(radius, angle);
+            }
+
             target->NearTeleportTo(chainedSpot);
             _chained.push_back(target->GetGUID());
         }
@@ -168,6 +189,7 @@ namespace
 
     private:
         GuidVector _chained;
+        uint8 _targetCap = 1;
     };
 
     // Root + silence + pacify for the duration of Sacrifice (2108020): neither effect exists in
