@@ -207,12 +207,14 @@ UploadedSpecialization SpecializationOf(std::vector<KnownEntry> const& upload)
     return uploaded;
 }
 
-bool IsSpecializationAnchor(std::uint32_t entryId)
+bool IsUnpricedRemoval(AscensionCompatData::CoATalentEntry const& entry)
 {
+    if (!entry.AECost && !entry.TECost && !IsSelectableFree(entry.EntryId))
+        return true;
     return std::any_of(AscensionCompatData::CoASpecializations.begin(), AscensionCompatData::CoASpecializations.end(),
-        [entryId](AscensionCompatData::CoASpecialization const& specialization)
+        [&entry](AscensionCompatData::CoASpecialization const& specialization)
         {
-            return specialization.IdentityEntryId == entryId || specialization.SignatureEntryId == entryId;
+            return specialization.SignatureEntryId == entry.EntryId;
         });
 }
 

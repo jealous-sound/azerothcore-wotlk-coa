@@ -1815,7 +1815,7 @@ public:
               return item.EntryId == known.EntryId && item.Rank;
             });
         if (AscensionCompatData::CoATalentEntry const* entry = FindTalentEntry(known.EntryId);
-            entry && !kept && !AscensionCoATalentState::IsSpecializationAnchor(entry->EntryId))
+            entry && !kept && !AscensionCoATalentState::IsUnpricedRemoval(*entry))
         {
           removed.push_back(entry);
           prices.push_back(AscensionCoATalentState::UnlearnPriceAt(player->GetLevel(), credits, entry->FreeUnlearn));

@@ -281,10 +281,19 @@ int main(int, char** argv)
     Check(!PayForRemovals({ unlearn13, unlearn13 }, 0, 200).Affordable, "removals the gold cannot cover are refused");
     bool anchorsFree = !CoASpecializations.empty();
     for (CoASpecialization const& specialization : CoASpecializations)
-        anchorsFree = anchorsFree && IsSpecializationAnchor(specialization.IdentityEntryId) &&
-            (!specialization.SignatureEntryId || IsSpecializationAnchor(specialization.SignatureEntryId));
+    {
+        CoATalentEntry const* identity = Find(specialization.IdentityEntryId);
+        CoATalentEntry const* signature = Find(specialization.SignatureEntryId);
+        anchorsFree = anchorsFree && identity && IsUnpricedRemoval(*identity) &&
+            (!specialization.SignatureEntryId || (signature && IsUnpricedRemoval(*signature)));
+    }
     Check(anchorsFree, "every specialization identity and signature entry is removed without a charge");
-    Check(three && !IsSpecializationAnchor(three->EntryId), "an ordinary class talent is charged when removed");
+    CoATalentEntry const* levelPassive = Find(4436);
+    Check(levelPassive && !levelPassive->AECost && !levelPassive->TECost && IsUnpricedRemoval(*levelPassive),
+          "a cost-free automatic entry is removed without a charge");
+    Check(three && !IsUnpricedRemoval(*three), "an ordinary class talent is charged when removed");
+    CoATalentEntry const* specTalent = FirstPaid(three ? three->ClassId : 0, false);
+    Check(specTalent && !IsUnpricedRemoval(*specTalent), "an ordinary specialization talent is charged when removed");
     RemovalPayment const nothing = PayForRemovals({ UnlearnPriceAt(10, fresh) }, 0, 0);
     Check(nothing.Affordable && !nothing.Marks && !nothing.Money, "free removals need no payment");
 
