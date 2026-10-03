@@ -2,7 +2,7 @@
   "schema": 1,
   "name": "Shadow Rage deals greater proc damage with Lethal Pursuit stacks (#3939)",
   "contract": [
-    "Normal Shadowblasts with Shadow Rage grant the owner's aura to its summoned hound. Lethal Pursuit allows five stacks. The first actual proc against a second otherwise identical enemy is compared with a one-stack proc against the first enemy, so damage dealt while building stacks cannot enter the second sample. The owner's RAP and both targets stay unchanged."
+    "Normal Shadowblasts with Shadow Rage grant the owner's aura to its summoned hound. Lethal Pursuit allows five stacks. The first actual proc against a second otherwise identical enemy is compared with a one-stack proc against the first enemy, so damage dealt while building stacks cannot enter the second sample. The owner's RAP and both targets stay unchanged. The client's own 804192 description applies its whole per-application amount, rank term and 15% ranged attack power term alike, once per stack, so one proc at five stacks must be five times the one-stack proc rather than a stack-independent flat bonus."
   ],
   "timeout_ms": 90000,
   "players": [
@@ -277,8 +277,9 @@
       "spell": 567570,
       "target": "five",
       "ratio_to": "one_stack_damage",
-      "min": 1.1,
-      "label": "Five stacks increase the actual damage of one proc"
+      "min": 4.5,
+      "max": 5.3,
+      "label": "Five stacks multiply the actual damage of one proc"
     }
   ]
 }
