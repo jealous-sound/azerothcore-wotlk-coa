@@ -55,8 +55,10 @@ Roll::~Roll()
 {
 }
 
-void Roll::setLoot(Loot* pLoot)
+void Roll::setLoot(Loot* pLoot, WorldObject const& source)
 {
+    sourceMapId = source.GetMapId();
+    sourceInstanceId = source.GetInstanceId();
     link(pLoot, this);
 }
 
@@ -1175,7 +1177,7 @@ void Group::GroupLoot(Loot* loot, WorldObject* pLootedObject)
 
             if (r->totalPlayersRolling > 0)
             {
-                r->setLoot(loot);
+                r->setLoot(loot, *pLootedObject);
                 r->itemSlot = itemSlot;
                 if (item->DisenchantID && m_maxEnchantingLevel >= item->RequiredDisenchantSkill)
                     r->rollVoteMask |= ROLL_FLAG_TYPE_DISENCHANT;
@@ -1267,7 +1269,7 @@ void Group::GroupLoot(Loot* loot, WorldObject* pLootedObject)
 
         if (r->totalPlayersRolling > 0)
         {
-            r->setLoot(loot);
+            r->setLoot(loot, *pLootedObject);
             r->itemSlot = itemSlot;
 
             loot->quest_items[itemSlot - loot->items.size()].is_blocked = true;
@@ -1338,7 +1340,7 @@ void Group::NeedBeforeGreed(Loot* loot, WorldObject* lootedObject)
 
             if (r->totalPlayersRolling > 0)
             {
-                r->setLoot(loot);
+                r->setLoot(loot, *lootedObject);
                 r->itemSlot = itemSlot;
                 if (item->DisenchantID && m_maxEnchantingLevel >= item->RequiredDisenchantSkill)
                     r->rollVoteMask |= ROLL_FLAG_TYPE_DISENCHANT;
@@ -1415,7 +1417,7 @@ void Group::NeedBeforeGreed(Loot* loot, WorldObject* lootedObject)
 
         if (r->totalPlayersRolling > 0)
         {
-            r->setLoot(loot);
+            r->setLoot(loot, *lootedObject);
             r->itemSlot = itemSlot;
 
             loot->quest_items[itemSlot - loot->items.size()].is_blocked = true;
@@ -1819,20 +1821,13 @@ void Group::CountTheRoll(Rolls::iterator rollI)
     if (Loot* loot = roll->getLoot(); loot && loot->isLooted() && !loot->HasLootingPlayers() &&
         loot->sourceWorldObjectGUID.IsCreature())
     {
-        for (GroupReference* member = GetFirstMember(); member; member = member->next())
+        Map* map = sMapMgr->FindMap(roll->sourceMapId, roll->sourceInstanceId);
+        Creature* creature = map ? map->GetCreature(loot->sourceWorldObjectGUID) : nullptr;
+        if (creature && &creature->loot == loot && !creature->IsAlive() &&
+            creature->HasDynamicFlag(UNIT_DYNFLAG_LOOTABLE))
         {
-            Player* player = member->GetSource();
-            if (!player || !player->IsInWorld())
-                continue;
-
-            Creature* creature = ObjectAccessor::GetCreature(*player, loot->sourceWorldObjectGUID);
-            if (!creature || &creature->loot != loot || creature->IsAlive() ||
-                !creature->HasDynamicFlag(UNIT_DYNFLAG_LOOTABLE))
-                continue;
-
             creature->AllLootRemovedFromCorpse();
             creature->RemoveDynamicFlag(UNIT_DYNFLAG_LOOTABLE);
-            break;
         }
     }
 

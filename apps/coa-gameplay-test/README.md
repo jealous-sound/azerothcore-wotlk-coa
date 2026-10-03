@@ -788,3 +788,8 @@ with a base amount of 1000 and requires `spell`; `periodic: true` selects the na
 
 `stealth_detection` reads native general stealth detection. `can_detect` requires `target` and invokes
 the observer's native `CanSeeOrDetect` check; neither metric covers client rendering.
+
+The `group-roll-corpse-map-change` regression closes the loot window, moves both voters out of Deadmines
+and resolves their native votes from another map. The exhausted corpse in the original instance must lose
+its lootable flag without another release. `group-roll-corpse-map-change-need-before-greed` checks the same
+contract with Need Before Greed.

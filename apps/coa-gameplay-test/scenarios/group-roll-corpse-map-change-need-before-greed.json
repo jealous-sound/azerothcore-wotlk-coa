@@ -1,0 +1,280 @@
+{
+  "schema": 1,
+  "name": "Need Before Greed corpse cleanup after every voter leaves its instance",
+  "contract": "Issue #6058 and PR #6136 review. Both players close the loot window and leave Deadmines before native group-roll votes resolve. After the final award, the original instance corpse has no items or money and loses UNIT_DYNFLAG_LOOTABLE without reopening. This observes server state, not client rendering. This companion uses Need Before Greed.",
+  "timeout_ms": 90000,
+  "location": {
+    "map": 36,
+    "x": -16.4,
+    "y": -383.07,
+    "z": 61.78,
+    "ignore_access": true
+  },
+  "players": [
+    {
+      "id": "looter",
+      "race": 1,
+      "class": 1,
+      "level": 60
+    },
+    {
+      "id": "partner",
+      "race": 1,
+      "class": 1,
+      "level": 60
+    }
+  ],
+  "creatures": [
+    {
+      "id": "corpse",
+      "entry": 7358,
+      "faction": 7,
+      "level": 37,
+      "health": 100,
+      "distance": 2,
+      "owner": "looter"
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "ms": 1000
+    },
+    {
+      "action": "group",
+      "actor": "looter",
+      "target": "partner",
+      "loot_method": 4
+    },
+    {
+      "action": "teleport",
+      "actor": "partner",
+      "map": 0,
+      "x": -8914,
+      "y": -133,
+      "z": 80.6
+    },
+    {
+      "action": "wait",
+      "ms": 500
+    },
+    {
+      "action": "teleport",
+      "actor": "partner",
+      "map": 36,
+      "x": -16.4,
+      "y": -383.07,
+      "z": 61.78
+    },
+    {
+      "action": "wait",
+      "ms": 500
+    },
+    {
+      "action": "assert",
+      "actor": "partner",
+      "metric": "map_id",
+      "equals": 36
+    },
+    {
+      "action": "assert",
+      "actor": "partner",
+      "target": "corpse",
+      "metric": "distance",
+      "max": 5,
+      "label": "Both voters share the corpse instance before the kill"
+    },
+    {
+      "action": "attack_nearby",
+      "actor": "looter",
+      "entry": 7358,
+      "kill": true
+    },
+    {
+      "action": "loot_creature",
+      "actor": "looter",
+      "target": "corpse"
+    },
+    {
+      "action": "loot_money",
+      "actor": "looter"
+    },
+    {
+      "action": "loot_slot",
+      "actor": "looter",
+      "slot": 0
+    },
+    {
+      "action": "loot_slot",
+      "actor": "looter",
+      "slot": 1
+    },
+    {
+      "action": "loot_slot",
+      "actor": "looter",
+      "slot": 2
+    },
+    {
+      "action": "loot_slot",
+      "actor": "looter",
+      "slot": 3
+    },
+    {
+      "action": "loot_slot",
+      "actor": "looter",
+      "slot": 4
+    },
+    {
+      "action": "loot_slot",
+      "actor": "looter",
+      "slot": 5
+    },
+    {
+      "action": "loot_slot",
+      "actor": "looter",
+      "slot": 6
+    },
+    {
+      "action": "loot_slot",
+      "actor": "looter",
+      "slot": 7
+    },
+    {
+      "action": "loot_slot",
+      "actor": "looter",
+      "slot": 8
+    },
+    {
+      "action": "loot_slot",
+      "actor": "looter",
+      "slot": 9
+    },
+    {
+      "action": "loot_slot",
+      "actor": "looter",
+      "slot": 10
+    },
+    {
+      "action": "loot_slot",
+      "actor": "looter",
+      "slot": 11
+    },
+    {
+      "action": "loot_slot",
+      "actor": "looter",
+      "slot": 12
+    },
+    {
+      "action": "loot_slot",
+      "actor": "looter",
+      "slot": 13
+    },
+    {
+      "action": "loot_slot",
+      "actor": "looter",
+      "slot": 14
+    },
+    {
+      "action": "loot_slot",
+      "actor": "looter",
+      "slot": 15
+    },
+    {
+      "action": "loot_slot",
+      "actor": "looter",
+      "slot": 16
+    },
+    {
+      "action": "loot_slot",
+      "actor": "looter",
+      "slot": 17
+    },
+    {
+      "action": "assert",
+      "actor": "corpse",
+      "metric": "creature_unlooted_items",
+      "min": 1,
+      "label": "Boss loot has a pending roll"
+    },
+    {
+      "action": "close_loot",
+      "actor": "looter"
+    },
+    {
+      "action": "assert",
+      "actor": "corpse",
+      "metric": "lootable",
+      "equals": 1
+    },
+    {
+      "action": "teleport",
+      "actor": "looter",
+      "map": 0,
+      "x": -8914,
+      "y": -133,
+      "z": 80.6
+    },
+    {
+      "action": "wait",
+      "ms": 500
+    },
+    {
+      "action": "assert",
+      "actor": "looter",
+      "metric": "map_id",
+      "equals": 0,
+      "label": "Voter has left the corpse instance"
+    },
+    {
+      "action": "teleport",
+      "actor": "partner",
+      "map": 0,
+      "x": -8914,
+      "y": -133,
+      "z": 80.6
+    },
+    {
+      "action": "wait",
+      "ms": 500
+    },
+    {
+      "action": "assert",
+      "actor": "partner",
+      "metric": "map_id",
+      "equals": 0,
+      "label": "Voter has left the corpse instance"
+    },
+    {
+      "action": "roll_loot",
+      "actor": "partner",
+      "target": "corpse",
+      "choice": 0
+    },
+    {
+      "action": "roll_loot",
+      "actor": "looter",
+      "target": "corpse",
+      "choice": 2
+    },
+    {
+      "action": "assert",
+      "actor": "corpse",
+      "metric": "creature_unlooted_items",
+      "equals": 0,
+      "label": "Every rolled item was consumed"
+    },
+    {
+      "action": "assert",
+      "actor": "corpse",
+      "metric": "creature_loot_gold",
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "corpse",
+      "metric": "lootable",
+      "equals": 0,
+      "label": "An exhausted corpse loses its lootable flag without reopening"
+    }
+  ]
+}

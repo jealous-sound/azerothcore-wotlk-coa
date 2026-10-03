@@ -215,6 +215,7 @@ struct Roll
 
     Roll(ObjectGuid guid, LootItem const& item) : itemGUID(guid), itemid(item.itemid) { }
     void setLoot(Loot* loot) { Source = loot; }
+    void setLoot(Loot* loot, WorldObject const&) { setLoot(loot); }
     Loot* getLoot() const { return Source; }
 };
 

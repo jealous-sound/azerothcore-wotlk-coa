@@ -152,10 +152,12 @@ class Roll : public LootValidatorRef
 public:
     Roll(ObjectGuid _guid, LootItem const& li);
     ~Roll();
-    void setLoot(Loot* pLoot);
+    void setLoot(Loot* pLoot, WorldObject const& source);
     Loot* getLoot();
     void targetObjectBuildLink();
 
+    uint32 sourceMapId{0};
+    uint32 sourceInstanceId{0};
     ObjectGuid itemGUID;
     uint32 itemid;
     int32  itemRandomPropId;
