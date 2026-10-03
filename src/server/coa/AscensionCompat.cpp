@@ -25,6 +25,7 @@
 #include "WorldSessionMgr.h"
 #include "AscensionCoATalentState.h"
 #include "AscensionWildcard.h"
+#include "AscensionStockScriptShapes.h"
 #include "AscensionFreepick.h"
 #include "AscensionRunemasterEchoes.h"
 #include "AscensionCollectionModelData.h"
@@ -7206,6 +7207,7 @@ public:
                     break;
             }
             ApplyAscensionClassMechanics(spellInfo);
+            ApplyAscensionStockScriptShapes(spellInfo);
             ApplyAscensionPathPassiveContract(spellInfo);
             ApplyAscensionPrimalistEarthquakeContract(spellInfo);
             ApplyAscensionPrimalistEarthshapingContracts(spellInfo);
