@@ -60,7 +60,6 @@ void SendTransformedBar(Player* player, uint32 replacement)
 class aura_ascension_reaper_decimation_counter : public AuraScript
 {
     PrepareAuraScript(aura_ascension_reaper_decimation_counter);
-    bool _grantedDecimate = false;
 
     bool Validate(SpellInfo const*) override { return ValidateSpellInfo({SPELL_DECIMATE}); }
 
@@ -77,9 +76,7 @@ class aura_ascension_reaper_decimation_counter : public AuraScript
         if (GetStackAmount() < GetSpellInfo()->StackAmount)
             return;
         if (!player->HasActiveSpell(SPELL_DECIMATE))
-        {
-            _grantedDecimate = player->addSpell(SPELL_DECIMATE, player->GetActiveSpecMask(), true, true, true);
-        }
+            player->addSpell(SPELL_DECIMATE, player->GetActiveSpecMask(), true, true, true);
         for (uint32 rank : ReapRanks)
             if (player->HasActiveSpell(rank))
                 player->SetTemporarySpellReplacement(rank, SPELL_DECIMATE);
@@ -91,8 +88,6 @@ class aura_ascension_reaper_decimation_counter : public AuraScript
         for (uint32 rank : ReapRanks)
             if (player->GetTemporarySpellReplacement(rank) == SPELL_DECIMATE)
                 player->SetTemporarySpellReplacement(rank, 0);
-        if (_grantedDecimate)
-            player->removeSpell(SPELL_DECIMATE, SPEC_MASK_ALL, true);
     }
 
     void Register() override
@@ -113,8 +108,16 @@ public:
     void OnSpellCheckCast(Spell* spell, bool, SpellCastResult& result) override
     {
         Player* player = spell->GetCaster()->ToPlayer();
-        if (!player || player->getClass() != CLASS_REAPER || spell->IsTriggered() ||
-            !IsReap(spell->GetSpellInfo()->Id) || player->HasAura(SPELL_THRESH_DUMMY) ||
+        if (!player || player->getClass() != CLASS_REAPER || spell->IsTriggered())
+            return;
+        if (spell->GetSpellInfo()->Id == SPELL_DECIMATE)
+        {
+            Aura const* counter = player->GetAura(SPELL_DECIMATION_COUNTER, player->GetGUID());
+            if (!counter || uint32(counter->GetStackAmount()) < counter->GetSpellInfo()->CalcMaxAuraStacks(player))
+                result = SPELL_FAILED_CANT_DO_THAT_RIGHT_NOW;
+            return;
+        }
+        if (!IsReap(spell->GetSpellInfo()->Id) || player->HasAura(SPELL_THRESH_DUMMY) ||
             player->HasAura(SPELL_BLOODSHATTER_DUMMY) ||
             player->GetTemporarySpellReplacement(spell->GetSpellInfo()->Id) != SPELL_DECIMATE)
             return;
@@ -140,10 +143,18 @@ public:
 
     void OnAuraRemove(Unit* unit, AuraApplication* application, AuraRemoveMode) override
     {
-        if (unit->IsPlayer() && unit->getClass() == CLASS_REAPER && application &&
-            application->GetBase()->GetId() == SPELL_DECIMATION &&
-            application->GetBase()->GetCasterGUID() == unit->GetGUID())
-            unit->RemoveAurasDueToSpell(SPELL_DECIMATION_COUNTER, unit->GetGUID());
+        if (!unit->IsPlayer() || unit->getClass() != CLASS_REAPER || !application ||
+            application->GetBase()->GetId() != SPELL_DECIMATION ||
+            application->GetBase()->GetCasterGUID() != unit->GetGUID())
+            return;
+        unit->RemoveAurasDueToSpell(SPELL_DECIMATION_COUNTER, unit->GetGUID());
+        if (Player* player = unit->ToPlayer())
+        {
+            for (uint32 rank : ReapRanks)
+                if (player->GetTemporarySpellReplacement(rank) == SPELL_DECIMATE)
+                    player->SetTemporarySpellReplacement(rank, 0);
+            player->removeSpell(SPELL_DECIMATE, SPEC_MASK_ALL, true);
+        }
     }
 };
 
