@@ -37,6 +37,7 @@ METRICS = {
     'xp', 'next_level_xp', 'skill_value', 'skill_maximum', 'lfg_dungeon_disabled', 'map_id',
     'position_x', 'position_y', 'position_z',
     'view_level', 'sent_level', 'sent_max_health', 'creature_query_rank', 'quest_level', 'quest_xp',
+    'quest_log_sent_level', 'quest_log_sent_xp', 'quest_query_scaled',
     'health', 'health_pct', 'max_health', 'creature_type', 'respawn_remaining', 'power', 'max_power', 'alive', 'combat', 'victim', 'casting', 'level',
     'aura', 'aura_stacks', 'aura_charges', 'aura_duration_ms', 'aura_amount', 'aura_positive',
     'knows_spell', 'spell_active', 'has_talent', 'talent_points', 'cooldown_ms', 'global_cooldown_ms', 'spell_charges',
@@ -499,7 +500,7 @@ def validate(scenario):
                 number(step.get('entry'), f'{where}.entry', 1, 2**31 - 1, True)
             if metric == 'lfg_dungeon_disabled':
                 number(step.get('dungeon'), f'{where}.dungeon', 1, 2**24 - 1, True)
-            if metric in {'quest_level', 'quest_xp'}:
+            if metric in {'quest_level', 'quest_xp', 'quest_log_sent_level', 'quest_log_sent_xp', 'quest_query_scaled'}:
                 require(step['actor'] in player_ids and 'quest' in step,
                         f'{where}: quest metric needs a player and quest')
             if metric.startswith('aura') or metric in {
@@ -697,6 +698,7 @@ def validate(scenario):
                           'ball_turn_in_count', 'ball_turn_in_quest',
                           'temporary_spell_replacement', 'quest_menu_items', 'quest_menu_has',
                           'player_setting', 'server_packets', 'server_packet_u32', 'server_packet_contains',
+                          'quest_log_sent_level', 'quest_log_sent_xp',
                           'player_class', 'cached_class', 'at_login_flag',
                           'wildcard_starter_spells_known', 'action_bar_unknown_spells',
                           'wildcard_spells_known', 'wildcard_cards_pending',

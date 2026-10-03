@@ -26,6 +26,7 @@ void AddSC_AscensionHighRisk();
 void AddSC_AscensionBloodforged();
 void AddSC_AscensionPvpPower();
 void AddSC_AscensionGlory();
+void AddSC_AscensionQuestLog();
 void AddSC_AscensionRestingBuff();
 void AddSC_AscensionClosestResurrection();
 void AddSC_AscensionThreatRedirect();
@@ -586,6 +587,7 @@ void AddCoAScripts()
     AddSC_AscensionBloodforged();
     AddSC_AscensionPvpPower();
     AddSC_AscensionGlory();
+    AddSC_AscensionQuestLog();
     AddSC_AscensionRestingBuff();
     AddSC_AscensionClosestResurrection();
     AddSC_AscensionThreatRedirect();
