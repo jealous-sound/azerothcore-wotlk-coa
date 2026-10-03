@@ -6,6 +6,7 @@
 #include "AscensionReaperTalents.h"
 #include "AccountMgr.h"
 #include "AscensionCoATalentState.h"
+#include "AscensionQuestLog.h"
 #include "AscensionSpecialization.h"
 #include "AscensionWisdomball.h"
 #include "AscensionWildcard.h"
@@ -111,6 +112,7 @@ constexpr uint16 ApplyAppearancesOpcode = 0x0697;
 constexpr uint16 KnownEntriesUploadOpcode = 0x0727;
 constexpr uint16 UpdateEntriesResultOpcode = 0x072C;
 constexpr uint32 TalentRequestWindowMs = 2000;
+constexpr std::size_t QuestQueryFlagsOffset = 80;
 
 void Require(bool condition, std::string const& message)
 {
@@ -390,6 +392,7 @@ struct Actor
     uint32 challengeStartLastCode = 0;
     std::map<uint64, std::map<uint16, uint32>> unitValues;
     std::map<uint32, uint32> creatureQueryRank;
+    std::map<uint32, uint32> questQueryFlags;
     uint32 lastQuestWindow = 0;
     uint32 lastStableResult = 0;
     uint32 lfgProposalId = 0;
@@ -669,6 +672,8 @@ void ObservePacket(Actor& actor, WorldPacket const& packet)
     }
     if (packet.GetOpcode() == SMSG_SHOW_BANK)
         ++actor.bankShows;
+    if (packet.GetOpcode() == SMSG_QUEST_QUERY_RESPONSE && packet.size() >= QuestQueryFlagsOffset + sizeof(uint32))
+        actor.questQueryFlags[packet.read<uint32>(0)] = packet.read<uint32>(QuestQueryFlagsOffset);
     if (packet.GetOpcode() == SMSG_CREATURE_QUERY_RESPONSE)
     {
         WorldPacket response(packet);
@@ -1422,6 +1427,28 @@ private:
         throw std::runtime_error("No bought-back item of entry " + std::to_string(entry));
     }
 
+    double SentQuestLogField(Player const* player, Tree const& step, uint32 firstField) const
+    {
+        uint16 const slot = player->FindQuestSlot(step.get<uint32>("quest"));
+        Require(slot < MAX_QUEST_LOG_SIZE, "The quest is not in the quest log");
+        auto const& payloads = _actors.at(step.get<std::string>("actor")).extensionPayloads;
+        auto const updates = payloads.find(AscensionQuestLog::UpdateObjectAddonOpcode);
+        if (updates == payloads.end())
+            return -1;
+
+        for (auto update = updates->second.rbegin(); update != updates->second.rend(); ++update)
+        {
+            if (update->size() != 16)
+                continue;
+
+            ByteBuffer fields;
+            fields.append(reinterpret_cast<uint8 const*>(update->data()), update->size());
+            if (fields.read<uint64>() == player->GetGUID().GetRawValue() && fields.read<uint32>() == firstField + slot)
+                return fields.read<uint32>();
+        }
+        return -1;
+    }
+
     double ListedInstanceBinds(Tree const& step) const
     {
         auto const& payloads = _actors.at(step.get<std::string>("actor")).extensionPayloads;
@@ -1657,6 +1684,14 @@ private:
             if (itr == actor.unitValues.end() || !itr->second.count(field))
                 return 0;
             return itr->second.at(field);
+        }
+        if (metric == "quest_query_scaled")
+        {
+            Actor& actor = _actors.at(step.get<std::string>("actor"));
+            auto itr = actor.questQueryFlags.find(step.get<uint32>("quest"));
+            if (itr == actor.questQueryFlags.end())
+                return -1;
+            return (itr->second & AscensionQuestLog::ScaledQuestFlag) ? 1 : 0;
         }
         if (metric == "creature_query_rank")
         {
@@ -2971,6 +3006,9 @@ private:
                 value |= uint32(uint8(payload[offset + byte])) << (byte * 8);
             return value;
         }
+        if (metric == "quest_log_sent_level" || metric == "quest_log_sent_xp")
+            return SentQuestLogField(player, step, metric == "quest_log_sent_level"
+                ? AscensionQuestLog::LevelField : AscensionQuestLog::RewardXPField);
         if (metric == "server_packet_contains")
         {
             auto const& payloads = _actors.at(step.get<std::string>("actor")).extensionPayloads;

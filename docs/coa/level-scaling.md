@@ -248,6 +248,20 @@ RefreshQuestLogQueries()` re-sends the query response for every quest in the log
   that was missing: the toggle used to change the server's answers while the open log still showed
   the numbers from pickup time.
 
+The query response is not what the Ascension quest log shows, though. Its `Extensions.dll` answers
+`GetQuestLogTitle`'s level and the log's reward experience for a quest in the log from the player's
+`SMSG_UPDATE_OBJECT_ADDON` (0x0578) table: field 61 + quest log slot holds the level and field 36 +
+slot the experience, for slots 0 to 24. With nothing sent there every quest shows as level 0 in grey.
+`AscensionQuestLog` sends both fields, from `Player::GetQuestLevel` and the experience the quest giver
+offers, on login, on level-up, when a quest takes its slot (`Player::AddQuest`) and from
+`RefreshQuestLogQueries()`, so the toggle reaches the log as well.
+
+The client's own "this quest is scaled" marker is quest flag `0x01000000` in the query response:
+`GetQuestScaling` reads it, and the quest log then draws the title in `QuestDifficultyColors
+["standard"]` instead of the colour of its level. `PlayerMenu::SendQuestQueryResponse` sets it when
+scaling is on for the character and the level it sends differs from the authored one, so a lifted quest
+shows the standard colour while a quest above the character keeps its warning colour.
+
 ## 3. Quest money
 
 `Quest::GetRewOrReqMoney(playerLevel, levelScaling)`
@@ -378,7 +392,3 @@ consistent by construction: the "money instead of experience" part is `GetRewMon
 * `Quest::GetRewMoneyMaxLevel` (the "money instead of experience" payout at max level) is wired to
   the same flag, but whether it should use the scaled or the original level is a live-tuning
   question, not a formula one.
-* The client's own "this quest is scaled" marker — the quest log draws grey rather than green —
-  is set by a client-side flag whose packet field is still unidentified. Accepted quests are
-  re-sent on accept and on login (`RefreshScaledQuestQueries`), which fixes a stale *level*, not
-  the colour.
