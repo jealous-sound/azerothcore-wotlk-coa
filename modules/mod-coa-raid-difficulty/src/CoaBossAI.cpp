@@ -85,7 +85,11 @@ namespace
     struct ScheduleRow
     {
         uint32 spell[MAX_RAID_DIFFICULTY];
-        uint32 effect;          // cast when the dummy completes, 0 none
+        // Cast when the dummy completes, 0 none. Per difficulty: a dummy's
+        // real effect can itself be a tier-specific id with no SpellDifficulty.dbc
+        // group of its own (Shazzrah's Arcane Force Nova triggers one of four
+        // "Hidden Area Damage" ids, not a single id the core resolves by itself).
+        uint32 effect[MAX_RAID_DIFFICULTY];
         uint32 firstMs;
         uint32 periodMs;        // 0 casts once
         uint8 hpPct;            // > 0: once below this health instead of on a clock
@@ -158,8 +162,8 @@ namespace
 
         uint32 rows = 0;
         if (QueryResult result = WorldDatabase.Query(
-                "SELECT entry, spell_d0, spell_d1, spell_d2, spell_d3, effect, first_ms, period_ms, hp_pct, target "
-                "FROM coa_boss_schedule ORDER BY entry, idx"))
+                "SELECT entry, spell_d0, spell_d1, spell_d2, spell_d3, effect_d0, effect_d1, effect_d2, effect_d3, "
+                "first_ms, period_ms, hp_pct, target FROM coa_boss_schedule ORDER BY entry, idx"))
         {
             do
             {
@@ -169,11 +173,12 @@ namespace
                 ScheduleRow row{};
                 for (uint8 i = 0; i < MAX_RAID_DIFFICULTY; ++i)
                     row.spell[i] = f[1 + i].Get<uint32>();
-                row.effect = f[5].Get<uint32>();
-                row.firstMs = f[6].Get<uint32>();
-                row.periodMs = f[7].Get<uint32>();
-                row.hpPct = f[8].Get<uint8>();
-                row.target = f[9].Get<uint8>();
+                for (uint8 i = 0; i < MAX_RAID_DIFFICULTY; ++i)
+                    row.effect[i] = f[5 + i].Get<uint32>();
+                row.firstMs = f[9].Get<uint32>();
+                row.periodMs = f[10].Get<uint32>();
+                row.hpPct = f[11].Get<uint8>();
+                row.target = f[12].Get<uint8>();
 
                 g_bosses[entry].rows.push_back(row);
                 ++rows;
@@ -364,6 +369,13 @@ namespace
             return spell ? spell : row.spell[0];
         }
 
+        uint32 EffectFor(ScheduleRow const& row) const
+        {
+            uint8 const mode = uint8(me->GetMap()->GetSpawnMode());
+            uint32 const effect = mode < MAX_RAID_DIFFICULTY ? row.effect[mode] : 0;
+            return effect ? effect : row.effect[0];
+        }
+
         Unit* TargetFor(ScheduleRow const& row)
         {
             switch (row.target)
@@ -388,12 +400,12 @@ namespace
             if (!target)
                 return;
 
-            if (row.effect)
+            if (uint32 const effect = EffectFor(row))
             {
                 // The id the core will actually cast, after difficulty; that is
                 // the id OnSpellCast will see.
                 uint32 const resolved = sSpellMgr->GetSpellIdForDifficulty(spell, me);
-                _pending[resolved] = { row.effect, target->GetGUID() };
+                _pending[resolved] = { effect, target->GetGUID() };
             }
 
             if (SpellCastResult result = me->CastSpell(target, spell, false); result != SPELL_CAST_OK)
