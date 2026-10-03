@@ -49,6 +49,7 @@
 #include "SpellAuraEffects.h"
 #include "SpellAuras.h"
 #include "SpellMgr.h"
+#include "SpellProcTestObserver.h"
 #include "StringFormat.h"
 #include "TemporarySummon.h"
 #include "Timer.h"
@@ -335,6 +336,7 @@ struct SpellEnergizeEvent
 
 struct Actor
 {
+    std::map<std::pair<uint32, uint32>, SpellProcTestObserver::Subscription> procTrials;
     Tree definition;
     std::string account;
     std::string name;
@@ -1001,6 +1003,8 @@ public:
 
     bool Dismiss(bool leaveGroups)
     {
+        for (auto& [id, actor] : _actors)
+            actor.procTrials.clear();
         std::set<ObjectGuid> units;
         for (auto const& [id, target] : _targets)
         {
@@ -1747,6 +1751,28 @@ private:
         {
             Require(sSpellMgr->GetSpellInfo(spell) != nullptr, "Unknown spell in metric");
             return ProcCounter::CastCount(unit->GetGUID(), spell);
+        }
+        if (metric == "spell_proc_attempt_count" || metric == "spell_proc_attempt_chance" ||
+            metric == "spell_proc_trial_complete")
+        {
+            Require(unit->IsPlayer(), "Proc trial observation needs a player");
+            uint32 const trigger = step.get<uint32>("trigger_spell");
+            Require(sSpellMgr->GetSpellInfo(spell) && sSpellMgr->GetSpellInfo(trigger),
+                "Unknown aura or trigger in proc trial");
+            auto& subscriptions = _actors.at(step.get<std::string>("actor")).procTrials;
+            auto key = std::pair{ spell, trigger };
+            auto itr = subscriptions.find(key);
+            if (itr == subscriptions.end())
+                itr = subscriptions.emplace(key,
+                    SpellProcTestObserver::Subscribe(unit->GetGUID(), spell, trigger)).first;
+            auto const observation = itr->second.Read();
+            if (metric == "spell_proc_attempt_chance")
+                return observation.chance;
+            if (metric == "spell_proc_attempt_count")
+                return observation.attempts;
+            uint32 const trials = step.get<uint32>("trials");
+            Require(trials > 0 && trials <= 100000, "Invalid proc trial budget");
+            return ProcCounter::Count(unit->GetGUID(), spell) > 0 || observation.attempts >= trials;
         }
         if (metric == "spell_proc_count")
         {

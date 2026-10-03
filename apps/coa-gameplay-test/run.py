@@ -86,13 +86,15 @@ METRICS = {
     'spell_damage_count', 'spell_damage_total', 'spell_uses_armor',
     'spell_heal_count', 'spell_heal_total', 'spell_effective_heal_total',
     'pet_aura_amount', 'pet_aura_amplitude_ms', 'pet_max_health', 'pet_attack_power', 'pet_run_speed_rate',
-    'distance', 'spell_proc_count', 'temporary_spell_replacement', 'creature_loot_quality_rate',
+    'distance', 'spell_proc_count', 'spell_proc_attempt_count', 'spell_proc_attempt_chance',
+    'spell_proc_trial_complete', 'temporary_spell_replacement', 'creature_loot_quality_rate',
     'quest_menu_items', 'quest_menu_has', 'player_setting', 'server_packets', 'server_packet_contains',
     'player_class', 'cached_class', 'at_login_flag', 'wildcard_starter_spells_known', 'action_bar_unknown_spells',
     'wildcard_spells_known', 'wildcard_cards_pending', 'wildcard_cards_collected', 'wildcard_roll_cards_set',
     'wildcard_roll_cards_used', 'wildcard_bonus_pack_progress',
 }
 PLAYER_STAT_METRICS = {
+    'spell_proc_attempt_count', 'spell_proc_attempt_chance', 'spell_proc_trial_complete',
     'spell_go_count',
     'global_cooldown_ms',
     'melee_damage_count',
@@ -115,7 +117,7 @@ METRIC_FIELDS = {'actor', 'metric', 'spell', 'power', 'caster', 'effect', 'item'
                  'relative_to', 'ratio_to', 'target', 'quest', 'id', 'stat', 'school', 'hand', 'rating', 'op',
                  'base', 'key', 'index', 'pet', 'critical', 'target_pet', 'periodic', 'name', 'text',
                  'min_distance', 'owner_display', 'skill', 'cache', 'table', 'exclude', 'dungeon', 'source',
-                 'opcode', 'from', 'slot', 'achievement', 'title'}
+                 'opcode', 'from', 'slot', 'achievement', 'title', 'trigger_spell', 'trials'}
 ACTIONS = {
     'stop_attack': ({'actor'}, {'actor'}),
     'set_moving': ({'actor', 'enabled'}, {'actor', 'enabled'}),
@@ -511,9 +513,21 @@ def validate(scenario):
                     'spell_immune', 'spell_effect_immune', 'spell_damage_count', 'spell_damage_total',
                     'spell_uses_armor', 'pet_aura_amount', 'pet_aura_amplitude_ms', 'spell_heal_count', 'spell_heal_total',
                     'spell_effective_heal_total', 'spell_energize_count', 'spell_energize_total',
-                    'spell_proc_count', 'temporary_spell_replacement', 'cast_failure',
+                    'spell_proc_count', 'spell_proc_attempt_count', 'spell_proc_attempt_chance',
+                    'spell_proc_trial_complete', 'temporary_spell_replacement', 'cast_failure',
                     'trainer_window_state', 'trainer_window_ability', 'spellbook_superseded_for'}:
                 require('spell' in step, f'{where}: metric needs spell')
+            if metric in {'spell_proc_attempt_count', 'spell_proc_attempt_chance', 'spell_proc_trial_complete'}:
+                require('trigger_spell' in step, f'{where}: proc trial needs trigger_spell')
+                number(step['trigger_spell'], f'{where}.trigger_spell', 1, 2**32 - 1, True)
+                if metric == 'spell_proc_trial_complete':
+                    require('trials' in step, f'{where}: proc trial needs trials')
+                    number(step['trials'], f'{where}.trials', 1, 100000, True)
+                else:
+                    require('trials' not in step, f'{where}: trials only belongs to spell_proc_trial_complete')
+            else:
+                require('trigger_spell' not in step and 'trials' not in step,
+                        f'{where}: proc trial fields require a proc trial metric')
             for key in ('pet', 'critical'):
                 if key in step:
                     require(metric in {'spell_damage_count', 'spell_damage_total', 'spell_heal_count',

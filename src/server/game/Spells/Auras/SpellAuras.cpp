@@ -29,6 +29,7 @@
 #include "Spell.h"
 #include "SpellAuraEffects.h"
 #include "SpellMgr.h"
+#include "SpellProcTestObserver.h"
 #include "SpellScript.h"
 #include "Unit.h"
 #include "Util.h"
@@ -2281,6 +2282,8 @@ uint8 Aura::GetProcEffectMask(AuraApplication* aurApp, ProcEventInfo& eventInfo,
     }
 
     float procChance = CalcProcChance(*procEntry, eventInfo);
+    SpellInfo const* trigger = eventInfo.GetSpellInfo();
+    SpellProcTestObserver::Record(aurApp->GetTarget()->GetGUID(), GetId(), trigger ? trigger->Id : 0, procChance);
 
     if (roll_chance_f(procChance))
         return procEffectMask;

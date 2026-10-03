@@ -587,6 +587,15 @@ talking to its flight master does, so a scenario can request a route through it.
 and `stable_result` is the code of the last `SMSG_STABLE_RESULT` they received (0 before any).
 `instance_binds_listed` decodes the player's last `SMSG_QUERY_INSTANCE_BINDS_RESULT` (0x06FE): the number of
 binds it lists, only those on map `id` when given, or -1 when it carries another result than `_OK`.
+`spell_proc_attempt_count`, `spell_proc_attempt_chance` and `spell_proc_trial_complete` require `spell` as the
+proc aura and `trigger_spell` as its triggering spell. Measuring one subscribes that actor/aura/trigger until
+scenario cleanup. The counter observes native eligible rolls after all proc gates and immediately before the
+unchanged random roll. The chance is unavailable before the first roll or if observed chances differ.
+`spell_proc_trial_complete` additionally requires `trials` (1–100000); it becomes 1 after an actual aura-triggered
+cast or that many eligible rolls. Poll it with `within_ms` to stop early, then assert the actual proc and effect.
+The trial budget supports a conditional false-negative bound only when the observed chances are stable and the
+rolls independent. Reaching a time limit without enough eligible rolls is an insufficient sample.
+
 `spell_proc_count` requires `spell` and counts the procs of that spell's aura on the actor since the scenario
 started. What is counted is each spell the proc cast while the aura was named as its trigger, which is the one
 place the server records both the proc and its owner; an aura whose proc does not cast anything counts zero.
