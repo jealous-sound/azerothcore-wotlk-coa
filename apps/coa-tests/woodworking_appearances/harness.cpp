@@ -67,6 +67,7 @@ struct ObjectGuid
 struct Player
 {
     WorldSession Session;
+    std::vector<uint32> ItemPatchRequests;
     ObjectGuid GetGUID() const { return {}; }
     WorldSession* GetSession() { return &Session; }
     bool IsInWorld() const { return true; }
@@ -136,6 +137,17 @@ struct Config
     template<class T>
     T GetConfigValue(AscensionCompatConfig key) const { return key == AscensionCompatConfig::ENABLED; }
 } ascensionCompatConfig;
+
+struct AscensionDisplayPatchService
+{
+    static AscensionDisplayPatchService& Instance()
+    {
+        static AscensionDisplayPatchService service;
+        return service;
+    }
+
+    void SendItemRowOnDemand(Player* player, uint32 entry) { player->ItemPatchRequests.push_back(entry); }
+};
 
 struct Database
 {
@@ -219,6 +231,7 @@ struct AscensionCompatPlayerScript : PlayerScript
 {
     // ACTUAL_SCRIPT_CONSTRUCTOR
     // ACTUAL_SCRIPT_CREATE
+    // ACTUAL_SCRIPT_PATCH
 };
 
 void Require(bool condition, std::string const& message)
@@ -294,6 +307,8 @@ int main(int argc, char** argv)
         scripts.Scripts.push_back(&script);
         Item bow{1061535};
         scripts.OnPlayerCreateItem(&player, &bow, 1);
+        Require(player.ItemPatchRequests == std::vector<uint32>{1061535},
+            "the original crafted-item helper requests the obtained bow's display patch");
         Require(state->CollectedAppearances.contains(24272),
             "expected crafted Malachite-Infused Bow to unlock appearance 24272");
         Require(service._woodworkingItemAppearancePatches.size() == 78, "every visible crafted item needs a mapping");
@@ -340,7 +355,14 @@ int main(int argc, char** argv)
                 "appearance must match the crafted visual and equipment type");
             Item crafted{itemId};
             scripts.OnPlayerCreateItem(&player, &crafted, 1);
+            Require(player.ItemPatchRequests.back() == itemId,
+                "each ordinary crafting callback forwards its actual source item to the patch service");
         }
+        Require(player.ItemPatchRequests.size() == gear.size() + 1,
+            "one demand-patch request per actual crafting callback");
+        scripts.OnPlayerCreateItem(&player, nullptr, 1);
+        Require(player.ItemPatchRequests.size() == gear.size() + 1,
+            "an absent crafted item does not request a display patch");
         Require(state->CollectedAppearances.size() == expected.size() &&
             CharacterDatabase.Writes.size() == expected.size(),
             "crafted appearances persist once per distinct visual");

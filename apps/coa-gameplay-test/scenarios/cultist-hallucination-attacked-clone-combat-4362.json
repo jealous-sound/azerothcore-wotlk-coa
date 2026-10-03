@@ -4,7 +4,10 @@
   "contract": [
     "An NPC attacking a passive Hallucination clone must engage the clone while its Cultist owner remains out of",
     "combat, as shown in the original report. Use native creature AI AttackStart on an actual owned clone and",
-    "observe the attacker and owner combat states. The owner neither attacks nor assists the clone."
+    "observe the attacker and owner combat states. The owner neither attacks nor assists the clone.",
+    "Preserve the original twenty-yard fixture. Assert owner isolation while all three original three-second",
+    "clones still exist, then again after expiry. This observes engagement and combat propagation; landed melee",
+    "damage is outside this scenario. Native fixture descendants must be cleaned between queued scenarios."
   ],
   "timeout_ms": 90000,
   "players": [
@@ -56,6 +59,21 @@
       "metric": "combat",
       "equals": 1,
       "within_ms": 1000
+    },
+    {
+      "action": "assert",
+      "actor": "c",
+      "metric": "owned_creature_count",
+      "entry": 840025,
+      "equals": 3,
+      "label": "The attacker engages while the original three-second clones still exist"
+    },
+    {
+      "action": "assert",
+      "actor": "c",
+      "metric": "combat",
+      "equals": 0,
+      "label": "Engaging a live clone does not engage its owner"
     },
     {
       "action": "wait",

@@ -53,7 +53,9 @@ METRICS = {
     'system_message_contains', 'whispers_received', 'challenge_start_responses', 'challenge_start_code',
     'owned_creature_scale', 'owned_creature_visible', 'unit_scale', 'combat_reach', 'token_count', 'item_sell_price', 'creature_model_scale', 'creature_model_display',
     'taxi_node', 'in_flight', 'taxi_destination', 'stabled_pet_count', 'stable_result', 'pet_rows', 'instance_binds_listed', 'pet_entry', 'pet_aura_stacks', 'pet_aura_duration_ms', 'pet_is_banker', 'pet_display',
-    'pet_scale', 'pet_knows_spell', 'pet_distance', 'owned_creature_count', 'owned_creature_weapon_damage_min',
+    'pet_scale', 'pet_knows_spell', 'pet_distance', 'pet_casting',
+    'owned_creature_count', 'owned_creature_weapon_damage_min',
+    'owned_creature_spell_hit_chance',
     'charm_entry', 'charm_aura_stacks', 'controls_self', 'viewpoint_entry', 'seer_entry', 'private_instance',
     'dynamic_object', 'dynamic_object_duration_ms', 'gossip_options', 'gossip_option_text',
     'owned_gameobject_count', 'gameobject_remaining_ms', 'gameobject_display', 'gameobject_scale', 'at_homebind',
@@ -147,7 +149,7 @@ ACTIONS = {
     'grant_resource': ({'actor', 'spell'}, {'actor', 'spell', 'amount'}),
     'unlearn': ({'actor', 'spell'}, {'actor', 'spell', 'all_specs'}),
     'money': ({'actor', 'copper'}, {'actor', 'copper'}),
-    'set_aura': ({'actor', 'spell', 'stacks'}, {'actor', 'spell', 'stacks', 'pet'}),
+    'set_aura': ({'actor', 'spell', 'stacks'}, {'actor', 'spell', 'stacks', 'pet', 'owned_entry'}),
     'cancel_aura': ({'actor', 'spell'}, {'actor', 'spell'}),
     'cancel_mount': ({'actor'}, {'actor'}),
     'cast': ({'actor', 'spell'}, {'actor', 'spell', 'target', 'destination', 'target_pet'}),
@@ -290,7 +292,8 @@ def validate(scenario):
         require(type(player.get('allow_regeneration', True)) is bool, 'allow_regeneration must be boolean')
     for creature in creatures:
         keys(creature, {'id', 'owner', 'entry'},
-             {'id', 'owner', 'entry', 'distance', 'faction', 'level', 'health', 'reaction', 'spell_hit_bonus'},
+             {'id', 'owner', 'entry', 'distance', 'faction', 'level', 'health', 'reaction', 'spell_hit_bonus',
+              'stationary'},
              'creature')
         identity = creature['id']
         require(isinstance(identity, str) and ACTOR_ID.fullmatch(identity), 'Invalid creature id')
@@ -302,6 +305,7 @@ def validate(scenario):
         number(creature.get('level', 80), 'creature level', 1, 255, True)
         number(creature.get('distance', 3), 'distance', 0, 100)
         number(creature.get('reaction', 0), 'reaction', 0, 2, True)
+        require(type(creature.get('stationary', False)) is bool, 'stationary must be boolean')
         number(creature.get('spell_hit_bonus', 0), 'creature spell hit bonus', 0, 100)
     if 'location' in scenario:
         location = scenario['location']
@@ -375,6 +379,10 @@ def validate(scenario):
         if action in ('set_aura', 'attack', 'set_health', 'set_power') and 'pet' in step:
             require(type(step['pet']) is bool, f'{where}: pet must be boolean')
             require(step['actor'] in player_ids, f'{where}: pet fixture needs a player')
+        if action == 'set_aura' and 'owned_entry' in step:
+            require(step['actor'] in player_ids, f'{where}: owned creature fixture needs a player')
+            require(not step.get('pet', False), f'{where}: select either a pet or an owned creature')
+            number(step['owned_entry'], f'{where}.owned_entry', 1, 2**32 - 1, True)
         if action in {'pvp', 'set_moving'}:
             require(type(step['enabled']) is bool, f'{where}: enabled must be boolean')
         if 'all_specs' in step:
@@ -634,7 +642,8 @@ def validate(scenario):
             if metric == 'owned_creature_count':
                 require('entry' in step, f'{where}: metric needs creature entry')
                 require('caster' not in step or 'spell' in step, f'{where}: aura caster filter needs spell')
-            if metric in {'owned_creature_scale', 'owned_creature_visible', 'owned_creature_weapon_damage_min'}:
+            if metric in {'owned_creature_scale', 'owned_creature_visible', 'owned_creature_weapon_damage_min',
+                          'owned_creature_spell_hit_chance'}:
                 require('entry' in step, f'{where}: metric needs creature entry')
             if metric == 'system_message_contains':
                 require(isinstance(step.get('text'), str) and step['text'].strip(),
@@ -678,8 +687,8 @@ def validate(scenario):
                 number(step.get('offset', 0), f'{where}.offset', 0, 2**16 - 1, True)
                 number(step.get('skip_strings', 0), f'{where}.skip_strings', 0, 32, True)
             if 'row' in step:
-                require(metric in {'server_packet_u32', 'server_packet_contains'},
-                        f'{where}: row applies only to captured packet values or text')
+                require(metric in {'server_packets', 'server_packet_u32', 'server_packet_contains'},
+                        f'{where}: row applies only to captured packet counts, values or text')
                 number(step['row'], f'{where}.row', 0, 2**32 - 1, True)
             if 'quality' in step:
                 require(metric in {'loot_count', 'loot_entry', 'loot_required_level', 'loot_item_level'},
@@ -698,9 +707,9 @@ def validate(scenario):
                           'cast_pushback_ms',
                           'bank_shows', 'system_messages', 'system_message_contains', 'whispers_received',
                           'challenge_start_responses', 'challenge_start_code', 'owned_creature_scale', 'cast_failure',
-                          'owned_creature_weapon_damage_min',
+                          'owned_creature_weapon_damage_min', 'owned_creature_spell_hit_chance',
                           'pet_entry', 'pet_aura_stacks', 'pet_is_banker', 'pet_display', 'pet_scale',
-                          'pet_knows_spell', 'pet_distance', 'owned_creature_count', 'charm_entry',
+                          'pet_knows_spell', 'pet_distance', 'pet_casting', 'owned_creature_count', 'charm_entry',
                           'charm_aura_stacks', 'controls_self', 'private_instance',
                           'dynamic_object', 'dynamic_object_duration_ms', 'gossip_options', 'gossip_option_text',
                           'owned_gameobject_count', 'gameobject_remaining_ms', 'gameobject_display', 'gameobject_scale',

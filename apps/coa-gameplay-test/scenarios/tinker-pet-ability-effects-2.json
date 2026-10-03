@@ -17,7 +17,10 @@
     "original accuracy fixture aura 984948 contains only +1000 melee/ranged hit and +100000 expertise. Supply",
     "and assert it on the pets whose ordinary physical casts must land while checking their ability effects;",
     "preserve their damage, healing, mana, cooldown, stun and channel contracts. Owner ratings are not",
-    "substituted for pet hit."
+    "substituted for pet hit.",
+    "Clockwork Assistant Crowd Controller 578123 uses the original magic hit table. Its pet gets the original",
+    "Krosh Hit Buff 2132158, whose sole aura adds 100 percentage points of spell hit. Assert that native amount",
+    "before normal pet casts; keep the disarm and its original eight-second expiry unchanged."
   ],
   "timeout_ms": 240000,
   "players": [
@@ -1029,6 +1032,23 @@
       "metric": "pet_entry",
       "equals": 60070,
       "within_ms": 9000
+    },
+    {
+      "action": "set_aura",
+      "actor": "clock",
+      "pet": true,
+      "spell": 2132158,
+      "stacks": 1,
+      "label": "Supply original native NPC spell accuracy on Clockwork Assistant"
+    },
+    {
+      "action": "assert",
+      "actor": "clock",
+      "metric": "pet_aura_amount",
+      "spell": 2132158,
+      "effect": 0,
+      "equals": 100,
+      "label": "Original Krosh Hit Buff supplies exactly 100 percentage points of native spell hit"
     },
     {
       "action": "wait",

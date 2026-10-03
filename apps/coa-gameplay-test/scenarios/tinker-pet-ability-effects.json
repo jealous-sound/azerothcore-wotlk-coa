@@ -14,7 +14,11 @@
     "before its 3 s duration. The original accuracy fixture aura 984948 contains only +1000 melee/ranged hit",
     "and +100000 expertise. Supply and assert it on the pets whose ordinary physical casts must land while",
     "checking their ability effects; preserve their damage, healing, mana, cooldown, stun and channel",
-    "contracts. Owner ratings are not substituted for pet hit."
+    "contracts. Owner ratings are not substituted for pet hit.",
+    "Recalibrate 578270 is an original three-second native channel. Its owner aura can expire before the pet",
+    "clears UNIT_STATE_CASTING; CheckPetCast then rejects Arcanoreflector with SPELL_IN_PROGRESS (105).",
+    "Require actual pet casting during Recalibrate, then observe native channel completion before the next",
+    "ordinary pet cast. Keep the original three-second aura expiry and all shield, heal and damage checks."
   ],
   "timeout_ms": 150000,
   "players": [
@@ -309,6 +313,14 @@
     },
     {
       "action": "assert",
+      "actor": "bear",
+      "metric": "pet_casting",
+      "equals": 1,
+      "within_ms": 1000,
+      "label": "The native pet is actually channeling Recalibrate"
+    },
+    {
+      "action": "assert",
       "label": "Recalibrate does not land on the Mechano-Bear",
       "actor": "bear",
       "metric": "pet_aura_stacks",
@@ -332,6 +344,20 @@
       "spell": 578339,
       "equals": 1,
       "within_ms": 5000
+    },
+    {
+      "action": "snapshot",
+      "actor": "bear",
+      "metric": "pet_casting",
+      "save_as": "pet_cast_at_aura_end"
+    },
+    {
+      "action": "assert",
+      "actor": "bear",
+      "metric": "pet_casting",
+      "equals": 0,
+      "within_ms": 1000,
+      "label": "Wait for the native pet channel to finish before Arcanoreflector"
     },
     {
       "action": "cast_charm",
