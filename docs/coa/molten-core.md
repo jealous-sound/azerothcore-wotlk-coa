@@ -999,6 +999,31 @@ evidence + source reads), fixed individually below. See `impl-G-mechanics.md` fo
    nothing. Summoned at Shazzrah's pre-teleport spot (captured before the engine applies Blink's own
    teleport effect), casts its one spell via SmartAI on spawn, and despawns a few seconds later. One
    per Blink -- no corpus evidence for more.
+
+   **Correction (live-play mechanic design, `rev_20261001_84_molten_core_shazzrah_reflection_persist.sql`):**
+   the clone's original 6s timed despawn and one-shot cast undersold the mechanic the user actually plays
+   against -- the strategy is that players must keep moving the boss so successive Blinks' clones spread
+   out, since several of them casting Arcane Explosion from the same spot stacks unsustainable raid damage.
+   The reflection now persists for the whole encounter instead of timing out: `boss_shazzrah_coa.cpp`
+   summons it `TEMPSUMMON_MANUAL_DESPAWN`, rooted (`SetControlled(true, UNIT_STATE_ROOT)`) exactly where it
+   spawned, passive (no threat list, never chases or melees) and `SetImmuneToAll(true)` (immune to every
+   damage school and to CC, not killable or even damageable, while remaining visible and selectable). It
+   casts Mirrored Arcane Explosion (2105650, a single flat `SPELL_EFFECT_SCHOOL_DAMAGE` self-centered
+   Arcane nova -- `SpellDifficultyId` 0, no per-difficulty sibling family in `Spell.dbc`, confirmed via
+   `coa-dbc-viewer`) on a repeating `SMART_EVENT_UPDATE_OOC` cadence instead of once. The corpus (74 pulls on
+   entry 11504) never recorded a cast interval of its own for 2105650 (`casts: 0` in every pull, only
+   aura/damage-taken evidence survives, the same gap as Sulfuron's disciples), so the cadence reuses
+   Shazzrah's own measured Arcane Explosion schedule row unstaggered (`03_boss_schedule.sql`, 2105601,
+   first 3600ms/period 8400ms) rather than inventing a reflection-specific number. `flags_extra` already
+   carried 0x40000000 (knockback/pull immunity) on the base entry and all three difficulty variants from
+   rev_20261001_05 -- unchanged, still correct. `instance_molten_core.cpp` tracks every live reflection's
+   GUID (`OnCreatureCreate`/`OnCreatureRemove`) and despawns all of them the moment `DATA_SHAZZRAH` leaves
+   `IN_PROGRESS` (`NOT_STARTED`/`FAIL`/`DONE` -- wipe, evade, kill or a reset), the same `SetBossState` choke
+   point Garr's Firesworn and Golemagg's adds already use, so clones never count toward encounter state and
+   never carry over between pulls. Live-verified on slot 3 (Ghost harness, grouped raid, GM-immortal tank):
+   after 3 Blinks, 3 stationary clones stood exactly at their own blink spots, none took damage from
+   `.damage`/spells/auto-attacks, each cast Arcane Explosion on the expected cadence, and a wipe cleared
+   every clone instantly.
 8. **Sacrificial Chains spawns at a fixed point and pacifies the players it chains.** The chain now
    spawns at `MajordomoSummonPos`, the exact room-center point the user stood on and read off
    `.gps` in game (742.1174, -1181.1216, floor Z -120.0913, map 409) -- replacing an earlier

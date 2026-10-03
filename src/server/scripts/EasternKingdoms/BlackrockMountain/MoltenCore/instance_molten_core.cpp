@@ -108,6 +108,11 @@ struct instance_molten_core : public InstanceScript
                 _garrFireswornGUIDs.insert(creature->GetGUID());
                 break;
             }
+            case NPC_REFLECTION_OF_SHAZZRAH:
+            {
+                _shazzrahReflectionGUIDs.insert(creature->GetGUID());
+                break;
+            }
             case NPC_FLAMEWALKER:
             case NPC_FLAMEWALKER_PROTECTOR:
             case NPC_FLAMEWALKER_PRIEST:
@@ -128,6 +133,11 @@ struct instance_molten_core : public InstanceScript
             {
                 RemoveMinion(creature);
                 _garrFireswornGUIDs.erase(creature->GetGUID());
+                break;
+            }
+            case NPC_REFLECTION_OF_SHAZZRAH:
+            {
+                _shazzrahReflectionGUIDs.erase(creature->GetGUID());
                 break;
             }
             case NPC_FLAMEWALKER:
@@ -278,6 +288,27 @@ struct instance_molten_core : public InstanceScript
                     break;
             }
         }
+        else if (bossId == DATA_SHAZZRAH)
+        {
+            switch (state)
+            {
+                case NOT_STARTED:
+                case FAIL:
+                case DONE:
+                {
+                    for (ObjectGuid const& reflectionGuid : _shazzrahReflectionGUIDs)
+                    {
+                        if (Creature* reflection = instance->GetCreature(reflectionGuid))
+                            reflection->DespawnOrUnsummon();
+                    }
+
+                    _shazzrahReflectionGUIDs.clear();
+                    break;
+                }
+                default:
+                    break;
+            }
+        }
         else if (bossId == DATA_GOLEMAGG)
         {
             switch (state)
@@ -420,6 +451,7 @@ private:
     ObjectGuid _garrGUID;
     GuidSet _garrFireswornGUIDs;
     ObjectGuid _magmadarGUID;
+    GuidSet _shazzrahReflectionGUIDs;
 
     // CoA addition: portal to Ragnaros' lair, spawned alongside Majordomo and only usable once
     // he is defeated -- not selectable until DATA_MAJORDOMO_EXECUTUS reaches DONE, on first load

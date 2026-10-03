@@ -9,10 +9,20 @@
  * as sourced from wowwiki); this restores just that piece.
  *
  * It also leaves a "Reflection of Shazzrah" (11504) behind at the spot he
- * blinked away from, casting Mirrored Arcane Explosion (2105650) once
- * (smart_scripts, pending SQL) before its own timed despawn clears it. The
- * reflection is summoned in effect 0, before the engine applies effect 1's
- * teleport, so GetCaster()'s position here is still the pre-blink spot.
+ * blinked away from, repeatedly casting Mirrored Arcane Explosion (2105650)
+ * on itself (smart_scripts, pending SQL, SMART_EVENT_UPDATE_OOC reusing
+ * Shazzrah's own measured Arcane Explosion cadence - first 3.6s/period 8.4s -
+ * since the corpus never captured a cast interval of its own for 2105650).
+ * The reflection is summoned in effect 0, before the engine applies effect
+ * 1's teleport, so GetCaster()'s position here is still the pre-blink spot.
+ *
+ * Players must keep the boss moving so Blink's clones spread out rather than
+ * stack their Arcane Explosions on one spot; the reflection therefore stays
+ * exactly where it spawned (rooted, passive, no threat list to chase with)
+ * and is immune to all damage and control for as long as the Shazzrah
+ * encounter runs, rather than despawning on its own timer. instance_molten_
+ * core.cpp despawns every tracked reflection once DATA_SHAZZRAH leaves
+ * IN_PROGRESS (wipe, evade, kill or reset), so none linger between pulls.
  */
 
 #include "Creature.h"
@@ -21,6 +31,7 @@
 #include "SpellScriptLoader.h"
 #include "TemporarySummon.h"
 #include "Unit.h"
+#include "UnitDefines.h"
 
 namespace
 {
@@ -47,7 +58,13 @@ namespace
                     creatureCaster->GetThreatMgr().ResetAllThreat();
                     creatureCaster->GetThreatMgr().AddThreat(target, 1);
                     creatureCaster->AI()->AttackStart(target);
-                    creatureCaster->SummonCreature(NPC_REFLECTION_OF_SHAZZRAH, prevBlinkPos, TEMPSUMMON_TIMED_DESPAWN, 6000);
+
+                    if (Creature* reflection = creatureCaster->SummonCreature(NPC_REFLECTION_OF_SHAZZRAH, prevBlinkPos, TEMPSUMMON_MANUAL_DESPAWN))
+                    {
+                        reflection->SetReactState(REACT_PASSIVE);
+                        reflection->SetControlled(true, UNIT_STATE_ROOT);
+                        reflection->SetImmuneToAll(true);
+                    }
                 }
             }
         }

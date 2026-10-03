@@ -56,6 +56,7 @@ enum MCCreatures
 {
     NPC_MAGMADAR                    = 11982,
     NPC_SHAZZRAH                    = 12264,
+    NPC_REFLECTION_OF_SHAZZRAH      = 11504,
     NPC_BARON_GEDDON                = 12056,
     NPC_RAGNAROS                    = 11502,
     NPC_FLAMEWAKER_HEALER           = 11663,
