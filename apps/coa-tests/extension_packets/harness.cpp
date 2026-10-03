@@ -1,6 +1,7 @@
 #include "AscensionCollectibleSpellData.h"
 #include "ItemTemplate.h"
 #include "Optional.h"
+#include "Tokenize.h"
 #include "WorldPacket.h"
 #include <algorithm>
 #include <array>
@@ -237,6 +238,12 @@ bool HandleAscensionCharacterSelectionPacket(WorldSession*, WorldPacket const&)
 
 void SendAscensionCharacterListInfo(WorldSession*)
 {
+}
+
+void SendAscensionCoAConfig(WorldSession* session)
+{
+    WorldPacket packet(0x058D, 0);
+    session->SendPacket(&packet);
 }
 
 bool QueueAscensionManastormPacket(WorldSession*, WorldPacket const&)
@@ -493,6 +500,10 @@ void TestRealmInfo()
         "a level-60 realm sends the Classic ruleset, whose level cap the client shows");
     world.MaxPlayerLevel = 80;
 
+    RealmInfo const hero = SendRealmInfo("live", "hero");
+    Check(hero.Complete && hero.DataPath == "area-52" && hero.Name == realm.Name,
+        "Hero realm selects Area 52 data independently of its display name");
+
     bool allowedEverywhere = true;
     for (char const* realmType : {"live", "seasonal", "league", "ptr", "development"})
         for (char const* classModel : {"coa", "wcr", "classic"})
@@ -557,8 +568,9 @@ void TestCharacterEnumeration()
     WorldSession session;
     bool const passedOn = Receive(session, WorldPacket(CMSG_CHAR_ENUM, 0));
     Check(passedOn, "character enumeration still reaches the core handler");
-    Check(session.Sent.size() == 2 && session.Sent[0].GetOpcode() == 0x09BC && TrustsHelpUi(session.Sent[1]),
-        "character enumeration sends realm info followed by the secure HelpUI addon list");
+    Check(session.Sent.size() == 3 && session.Sent[0].GetOpcode() == 0x058D &&
+        session.Sent[1].GetOpcode() == 0x09BC && TrustsHelpUi(session.Sent[2]),
+        "character enumeration sends configuration before realm info and the secure HelpUI addon list");
 }
 
 WorldPacket ApplyAppearances()

@@ -13,6 +13,9 @@ configuration templates in `src/server/coa/conf/`. They install to
 supplied there, not by committing live local credentials. CoA logs under `coa`,
 `coa.gameplay_test` and `coa.highrisk`.
 
+For a dedicated Hero realm, see [Area 52 Free Pick initial setup](area52-freepick.md) for the
+verified character-creation and catalog profile and its remaining progression limitations.
+
 This fork, CoA included, is licensed under the root `LICENSE` (GNU GPL v2), like
 AzerothCore. Most CoA source files still carry the short "GNU AGPL v3" notice from
 AzerothCore's module template; changing those notices needs the agreement of the

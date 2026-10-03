@@ -116,10 +116,11 @@ def main():
         executable = out / ('regressions.exe' if os.name == 'nt' else 'regressions')
         if Path(compiler).stem.lower() == 'cl':
             flags = ['/nologo', '/std:c++20', '/EHsc', '/utf-8', *['/I' + str(p) for p in includes],
-                     str(cpp), '/Fe' + str(executable)]
+                     str(cpp), str(ROOT / 'src/common/Utilities/Tokenize.cpp'), '/Fe' + str(executable)]
         else:
             flags = ['-std=c++20', '-Wall', '-Wextra', '-Werror', '-Wno-unused-const-variable',
-                     *['-I' + str(p) for p in includes], str(cpp), '-o', str(executable)]
+                     *['-I' + str(p) for p in includes], str(cpp),
+                     str(ROOT / 'src/common/Utilities/Tokenize.cpp'), '-o', str(executable)]
         subprocess.run([compiler, *flags], cwd=out, check=True)
         return subprocess.run([str(executable)], cwd=out).returncode
 
