@@ -162,6 +162,7 @@ constexpr uint16 SMSG_CHARACTER_ADVANCEMENT_KNOWN_ENTRIES = 0x0726;
 constexpr uint16 CMSG_CHARACTER_ADVANCEMENT_KNOWN_ENTRIES = 0x0727;
 constexpr uint16 SMSG_CHARACTER_ADVANCEMENT_PURGE_TALENTS_RESULT = 0x072B;
 constexpr uint16 SMSG_CHARACTER_ADVANCEMENT_UPDATE_ENTRIES_RESULT = 0x072C;
+constexpr uint16 SMSG_CHARACTER_ADVANCEMENT_CREDITS = 0x0926;
 constexpr uint16 CMSG_INSPECT_CHARACTER_ADVANCEMENT = 0x06E1;
 constexpr uint16 SMSG_INSPECT_CHARACTER_ADVANCEMENT_RESULT = 0x06E2;
 constexpr uint16 CMSG_MISSILE_FIRE_POSITION = 0x09C7;
@@ -326,6 +327,7 @@ constexpr uint32 SPELL_REAPER_SCYTHE_RUSH_MARKER = 500377;
 constexpr uint32 SPELL_REAPER_HARVEST_TIME = 803995;
 constexpr char ASCENSION_ACTIVE_SPEC_SETTING[] = "core.ascension_active_spec";
 constexpr char ASCENSION_TALENT_BUILD_SETTING_PREFIX[] = "core.ascension_build.";
+constexpr char ASCENSION_RESET_CREDITS_SETTING[] = "core.ascension_reset_credits";
 
 enum CompanionLoot : uint32
 {
@@ -1470,8 +1472,35 @@ public:
     player->GetSession()->SendPacket(&packet);
   }
 
+  static AscensionCoATalentState::ResetCredits ResetCreditsOf(Player* player)
+  {
+    AscensionCoATalentState::ResetCredits credits{};
+    for (uint32 index = 0; index < credits.size(); ++index)
+      credits[index] = player->GetPlayerSetting(ASCENSION_RESET_CREDITS_SETTING, index).value;
+    return credits;
+  }
+
+  static void RaiseResetCredit(Player* player, AscensionCoATalentState::ResetCreditType type)
+  {
+    uint32 const index = uint32(type) - 1;
+    player->UpdatePlayerSetting(ASCENSION_RESET_CREDITS_SETTING, index,
+                                player->GetPlayerSetting(ASCENSION_RESET_CREDITS_SETTING, index).value + 1);
+  }
+
+  static void SendResetCredits(Player* player)
+  {
+    AscensionCoATalentState::ResetCredits const credits = ResetCreditsOf(player);
+    for (uint32 index = 0; index < credits.size(); ++index)
+    {
+      WorldPacket packet(SMSG_CHARACTER_ADVANCEMENT_CREDITS, 1 + sizeof(uint32));
+      packet << uint8(index + 1) << credits[index];
+      player->GetSession()->SendPacket(&packet);
+    }
+  }
+
   uint32 SendKnownTalentEntries(Player* player)
   {
+    SendResetCredits(player);
     std::vector<AscensionCoATalentState::KnownEntry> const known = KnownTalentEntries(player);
     std::vector<uint8> const body = AscensionCoATalentState::KnownEntriesPayload(known);
     WorldPacket packet(SMSG_CHARACTER_ADVANCEMENT_KNOWN_ENTRIES, body.size());
@@ -1590,6 +1619,33 @@ public:
     LOG_INFO("coa", "Set local CoA talent entry {} to rank {} for {} (class {})", entryId, rank,
              player->GetName(), uint32(player->getClass()));
     return true;
+  }
+
+  char const* PurgeTalents(Player* player)
+  {
+    bool const anyPaid = std::any_of(AscensionCompatData::CoATalentEntries.begin(),
+        AscensionCompatData::CoATalentEntries.end(), [player](AscensionCompatData::CoATalentEntry const& entry)
+        {
+          return entry.ClassId == player->getClass() && (entry.AECost || entry.TECost) &&
+                 AscensionCoATalentState::KnownRank(entry, SpellbookOf(player));
+        });
+    if (!anyPaid)
+      return "CA_PURGE_TALENTS_NO_KNOWN_TALENTS";
+
+    AscensionCoATalentState::PurgePrice const price =
+        AscensionCoATalentState::TalentPurgePriceAt(player->GetLevel(), ResetCreditsOf(player));
+    if (price.ItemCount && player->GetItemCount(price.Item) >= price.ItemCount)
+      player->DestroyItemCount(price.Item, price.ItemCount, true);
+    else if (price.Marks && player->GetItemCount(AscensionCoATalentState::MARK_OF_ASCENSION_ITEM) >= price.Marks)
+      player->DestroyItemCount(AscensionCoATalentState::MARK_OF_ASCENSION_ITEM, price.Marks, true);
+    else if (price.Money && player->HasEnoughMoney(price.Money))
+      player->ModifyMoney(-int32(price.Money));
+    else if (price.ItemCount || price.Marks || price.Money)
+      return "CA_PURGE_TALENTS_NO_PURGE_ITEM";
+
+    ResetPaidTalents(player);
+    RaiseResetCredit(player, AscensionCoATalentState::ResetCreditType::TalentReset);
+    return "CA_PURGE_TALENTS_OK";
   }
 
   uint32 ResetPaidTalents(Player* player)
@@ -1745,17 +1801,40 @@ public:
       return false;
     }
 
-    if (std::string reason; switching && !SwitchSpecialization(player, targetSpec, &reason, !requestedSpec))
+    std::vector<AscensionCompatData::CoATalentEntry const*> removed;
+    AscensionCoATalentState::RemovalPayment payment;
+    if (!requestedSpec)
+    {
+      AscensionCoATalentState::ResetCredits const credits = ResetCreditsOf(player);
+      std::vector<AscensionCoATalentState::UnlearnPrice> prices;
+      for (AscensionCoATalentState::KnownEntry const& known : KnownTalentEntries(player))
+      {
+        bool const kept = std::any_of(upload.begin(), upload.end(),
+            [&known](AscensionCoATalentState::KnownEntry const& item)
+            {
+              return item.EntryId == known.EntryId && item.Rank;
+            });
+        if (AscensionCompatData::CoATalentEntry const* entry = FindTalentEntry(known.EntryId); entry && !kept)
+        {
+          removed.push_back(entry);
+          prices.push_back(AscensionCoATalentState::UnlearnPriceAt(player->GetLevel(), credits, entry->FreeUnlearn));
+        }
+      }
+      payment = AscensionCoATalentState::PayForRemovals(
+          prices, player->GetItemCount(AscensionCoATalentState::MARK_OF_ASCENSION_ITEM), player->GetMoney());
+      if (!payment.Affordable)
+      {
+        refusal = { "CA_UPDATE_ENTRIES_BAD_UPDATE_COSTS", "", 0, 0,
+                    "You cannot pay to unlearn the talents this build removes." };
+        return false;
+      }
+    }
+
+    if (std::string reason; switching && !SwitchSpecialization(player, targetSpec, &reason, false))
     {
       refusal = SpecializationSwitchRefused(targetSpec, std::move(reason));
       return false;
     }
-
-    if (switching && !requestedSpec && !uploaded.ChoosesTalents && activeSpecialization)
-      for (AscensionCoATalentState::KnownEntry const& known : KnownTalentEntries(player))
-        if (auto const* entry = FindTalentEntry(known.EntryId); entry && entry->SpecId == uploaded.SpecId &&
-            (entry->AECost || entry->TECost || GetSelectableFreeGroup(entry->EntryId)))
-          wanted[entry->EntryId] = known.Rank;
 
     std::vector<std::pair<AscensionCompatData::CoATalentEntry const*, uint32>> changes;
     for (AscensionCompatData::CoATalentEntry const& entry : AscensionCompatData::CoATalentEntries)
@@ -1783,6 +1862,14 @@ public:
         refusal.Rank = rank;
         return false;
       }
+
+    if (payment.Marks)
+      player->DestroyItemCount(AscensionCoATalentState::MARK_OF_ASCENSION_ITEM, payment.Marks, true);
+    if (payment.Money)
+      player->ModifyMoney(-int32(payment.Money));
+    for (AscensionCompatData::CoATalentEntry const* entry : removed)
+      RaiseResetCredit(player, entry->Talent ? AscensionCoATalentState::ResetCreditType::TalentUnlearn
+                                             : AscensionCoATalentState::ResetCreditType::AbilityUnlearn);
     return true;
   }
 
@@ -1821,7 +1908,7 @@ public:
         continue;
       }
       WorldPacket result(SMSG_CHARACTER_ADVANCEMENT_PURGE_TALENTS_RESULT, 40);
-      result << (ResetPaidTalents(player) ? "CA_PURGE_TALENTS_OK" : "CA_PURGE_TALENTS_NO_KNOWN_TALENTS");
+      result << PurgeTalents(player);
       SendCharacterAdvancementKnownEntries(player);
       player->SendDirectMessage(&result);
     }

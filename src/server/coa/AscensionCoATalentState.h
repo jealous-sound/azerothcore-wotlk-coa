@@ -2,6 +2,7 @@
 #define ASCENSION_COA_TALENT_STATE_H
 
 #include "AscensionCoATalentData.h"
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -59,6 +60,47 @@ struct UploadedSpecialization
 UploadedSpecialization SpecializationOf(std::vector<KnownEntry> const& upload);
 
 std::vector<KnownEntry> SpecializationSwitch(std::uint8_t classId, HasSpell const& hasSpell, std::uint32_t specId);
+constexpr std::uint32_t TALENT_PURGE_ITEM = 919291;
+constexpr std::uint32_t MARK_OF_ASCENSION_ITEM = 375250;
+
+enum class ResetCreditType : std::uint8_t
+{
+    AbilityReset = 1,
+    TalentReset = 2,
+    AbilityUnlearn = 3,
+    TalentUnlearn = 4,
+};
+
+using ResetCredits = std::array<std::uint32_t, 4>;
+
+struct UnlearnPrice
+{
+    std::uint32_t Money = 0;
+    std::uint32_t Marks = 0;
+};
+
+UnlearnPrice UnlearnPriceAt(std::uint32_t level, ResetCredits const& credits, bool freeUnlearn = false);
+
+struct PurgePrice
+{
+    std::uint32_t Money = 0;
+    std::uint32_t Marks = 0;
+    std::uint32_t Item = 0;
+    std::uint32_t ItemCount = 0;
+};
+
+PurgePrice TalentPurgePriceAt(std::uint32_t level, ResetCredits const& credits);
+
+struct RemovalPayment
+{
+    bool Affordable = true;
+    std::uint32_t Money = 0;
+    std::uint32_t Marks = 0;
+};
+
+RemovalPayment PayForRemovals(std::vector<UnlearnPrice> const& prices, std::uint32_t marksHeld,
+    std::uint32_t moneyHeld);
+
 }
 
 #endif

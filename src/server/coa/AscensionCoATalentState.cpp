@@ -207,6 +207,58 @@ UploadedSpecialization SpecializationOf(std::vector<KnownEntry> const& upload)
     return uploaded;
 }
 
+UnlearnPrice UnlearnPriceAt(std::uint32_t level, ResetCredits const& credits, bool freeUnlearn)
+{
+    if (level <= 10 || freeUnlearn)
+        return {};
+    std::uint32_t const tier = level <= 19 ? 32 : level <= 29 ? 71 : level <= 49 ? 521 : level <= 59 ? 1107 : 2221;
+    double const base = double(tier) * level * 0.25;
+    std::uint32_t const repeats = credits[std::size_t(ResetCreditType::TalentReset) - 1] +
+        credits[std::size_t(ResetCreditType::AbilityUnlearn) - 1];
+    double const extra = double(std::int32_t(repeats)) * 4.16666666666667 * level * 0.25;
+    UnlearnPrice price;
+    price.Money = std::uint32_t(std::int32_t(std::min(std::max(2147483647.0 - base, 0.0), extra) + base));
+    price.Marks = level * 4;
+    return price;
+}
+
+PurgePrice TalentPurgePriceAt(std::uint32_t level, ResetCredits const& credits)
+{
+    PurgePrice price;
+    price.Item = TALENT_PURGE_ITEM;
+    if (level <= 10)
+        return price;
+    double const lvl = double(level);
+    double const resets = double(credits[std::size_t(ResetCreditType::TalentReset) - 1]);
+    double cost = lvl * lvl * 1.16220833333333 + resets * 0.0416666666666667 * 10000.0;
+    cost = (cost + lvl * 18.7038333333333 - 359.025) * lvl * 0.25;
+    price.Money = std::uint32_t(std::int64_t(cost > 4294967295.0 ? 4294967295.0 : cost));
+    price.Marks = level * 125;
+    price.ItemCount = 1;
+    return price;
+}
+
+RemovalPayment PayForRemovals(std::vector<UnlearnPrice> const& prices, std::uint32_t marksHeld,
+    std::uint32_t moneyHeld)
+{
+    RemovalPayment payment;
+    for (UnlearnPrice const& price : prices)
+    {
+        if (!price.Marks && !price.Money)
+            continue;
+        if (price.Marks && marksHeld >= price.Marks)
+        {
+            marksHeld -= price.Marks;
+            payment.Marks += price.Marks;
+            continue;
+        }
+        if (!price.Money || std::uint64_t(payment.Money) + price.Money > moneyHeld)
+            return { false, 0, 0 };
+        payment.Money += price.Money;
+    }
+    return payment;
+}
+
 std::vector<KnownEntry> SpecializationSwitch(std::uint8_t classId, HasSpell const& hasSpell, std::uint32_t specId)
 {
     std::unordered_set<std::uint32_t> departedSignatures;
