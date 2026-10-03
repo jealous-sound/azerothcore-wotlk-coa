@@ -696,7 +696,7 @@ void ObjectMgr::LoadCreatureTemplate(Field* fields, bool triggerHook)
     creatureTemplate.unit_flags       = fields[28].Get<uint32>();
     creatureTemplate.unit_flags2      = fields[29].Get<uint32>();
     creatureTemplate.dynamicflags     = fields[30].Get<uint32>();
-    creatureTemplate.family           = uint32(fields[31].Get<uint8>());
+    creatureTemplate.family           = uint32(fields[31].Get<uint16>());
     creatureTemplate.type             = uint32(fields[32].Get<uint8>());
     creatureTemplate.type_flags       = fields[33].Get<uint32>();
     creatureTemplate.lootid           = fields[34].Get<uint32>();
