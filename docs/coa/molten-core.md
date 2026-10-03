@@ -359,8 +359,8 @@ above Normal (SmartAI rows existed only for the base entry) versus never having 
 
 | Entry | CoA name | Gap found | Fix applied | Evidence | Open question |
 |---|---|---|---|---|---|
-| 11658 Molten Giant | — | zero abilities above Normal | replicated Smash/Knock Away rows onto +100000/200000/300000 | measured | Kit's higher-magnitude Smash/Knock Away siblings not swapped in — tier order is a guess, not a fact |
-| 11659 Molten Destroyer | — | zero above Normal; kit's "Ground Tremor"/"Magma Splash" family never cast at any difficulty | replicated Stunning Strike/Massive Tremor rows | measured | Ground Tremor/Magma Splash addition not proposed — no timer evidence |
+| 11658 Molten Giant | — | zero abilities above Normal; Smash ran on every difficulty (rev_20260930_99) at a flat, unscaled base-entry value | replicated Smash/Knock Away rows onto all difficulties (rev_20260930_99); Smash now reads its real per-difficulty value (SpellDifficulty group 1818: 2018944/2018946/2018947/2018948) via `spell_coa_damage_info_hit` (§14) | measured (rows) + SpellDifficulty.dbc (tier order, via `mc_evidence.py`) | Knock Away's own family (SpellDifficulty group 1819: 2018949/2018950/2018951) is identified but not applied — single-target, out of §14's AoE scope |
+| 11659 Molten Destroyer | — | zero above Normal; kit's "Ground Tremor"/"Magma Splash" family never cast at any difficulty; Massive Tremor ran on every difficulty (rev_20260930_99) at a flat, unscaled base-entry value | replicated Stunning Strike/Massive Tremor rows onto all difficulties (rev_20260930_99); Massive Tremor now reads its real per-difficulty value (SpellDifficulty group 1873, "Ground Tremor" family: 2100278/2100475/2100476/2100477) via `spell_coa_damage_info_hit` (§14) | measured (rows) + SpellDifficulty.dbc (tier order, via `mc_evidence.py`) | Stunning Strike's own family (2100135 D1) is identified but not applied — single-target, out of §14's AoE scope; Magma Splash (2105035-38, single-target DoT aura) still not added |
 | 11661 Flamewaker | — | zero above Normal | replicated Strike/Fist of Ragnaros/Sunder Armor rows | measured | — |
 | 11663 Flamewaker Healer | **Flamewaker Acolyte** | zero above Normal; kit's Shadow Nova/shield-bond mechanic never cast | replicated Shadow Shock/Shadow Bolt rows; renamed | measured (rows) + exiles-kit (name) | Which Shadow Bolt sibling (2108000-03) is the intended upgrade is ambiguous, not applied |
 | 11664 Flamewaker Elite | — | zero above Normal; kit's Magma Strike/Molten Shield/Broken Bond never cast | replicated Fireball/Blast Wave/Fire Blast rows | measured | Same Blast Wave sibling ambiguity as above |
@@ -1399,3 +1399,63 @@ slot: before `DATA_MAJORDOMO_EXECUTUS` is `DONE`, no `GO_RAGNAROS_PORTAL_COA` ob
 near the room (`FindGameObjectByEntry` empty); after `.instance setbossstate molten_core 8 3` (or a real kill)
 it should appear at the exact point, right-clickable, and `GAMEOBJ_USE` should teleport the clicker to
 `RagnarosLairEntranceCoa`.
+
+## 14. Batch AF (2026-10-03): Molten Giant/Molten Destroyer AoE damage (Smash/Massive Tremor) scaled per difficulty
+
+User report: Molten Giant (11658) and especially Molten Destroyer (11659) were expected to deal Golemagg-Stomp-class
+raid AoE damage, scaled per difficulty; on live, Ascended took almost nothing from them beyond the melee ladder.
+
+Both already cast a real, native AoE ability on every difficulty since rev_20260930_99 (`§4`): Smash (18944,
+`SCHOOL_DAMAGE`, `TARGET_SRC_CASTER`+`TARGET_UNIT_SRC_AREA_ENEMY`, SpellRadius 13 = 10 yd cleave) and Massive
+Tremor (19129, same target shape, SpellRadius 23 = 40 yd, essentially room-wide for trash positioning) — unlike
+Golemagg's Massive Stomp, these are not DBC-placeholder dummies, so the raid was never taking literally zero
+damage from them, but the damage was the ability's own flat base points regardless of difficulty (rev_20260930_99's
+own comment: "Their spells are vanilla (unscaled)").
+
+The live Ascension combat-log corpus (`coa-combatlog-parser` `local/logs/ascension`, `mc-summary.md`) recorded
+**zero casts of either ability's own per-difficulty DBC family, on any difficulty, in the entire corpus** — the
+same SmartAI-difficulty-gate bug rev_20260930_99 fixed evidently affected the original live server too. The
+family itself is real, not invented: `coa-combatlog-parser`'s `scripts/mc_evidence.py` (`load_spell_difficulty`)
+decodes `SpellDifficulty.dbc` directly and reports Smash as group 1818 (`2018944`/`2018946`/`2018947`/`2018948`,
+D0-D3) and Massive Tremor's family as "Ground Tremor", group 1873 (`2100278`/`2100475`/`2100476`/`2100477`,
+D0-D3) — both confirmed present in each creature's own db.exil.es export kit `spells` list (11658, 11659) and
+cross-checked against `mc-dataset.json`'s `spell_difficulty_map`. Real damage (this fork's "+1" Damage Info
+convention) is Smash 300/599/723/902 and Massive Tremor 300/599/898/1197 for D0-D3 (DBC `EffectBasePoints`+1).
+
+Implementation reused the existing `spell_coa_damage_info_hit` mechanism (`DamageInfo.cpp`, rev_20260930_83) —
+no new C++. Unlike Golemagg (whose real spell was triggered fresh per player from a dummy hook), Smash/Massive
+Tremor are already native multi-target AoE spells with a real `SCHOOL_DAMAGE` `EFFECT_0`, so the script was bound
+directly to the live cast ids: `rev_20261001_e1_molten_core_giants_damage_info.sql` adds
+`coa_spell_damage_info` rows for `18944`/`19129` (pointing at the two families above) and registers
+`spell_coa_damage_info_hit` on both via `spell_script_names`.
+
+**A real surprise found during live verification**: `SpellEffectInfo::CalcValue(caster)` is not a flat DBC
+lookup — it runs through `sScriptMgr->ModifySpellEffectBaseValue`, this fork's open-world per-creature damage
+scaling hook, using the *caster's* own level/stats. So the absolute numbers below are well above the raw
+DBC base points; what the fix controls is the *difficulty family selected* (same base-point ratios as the DBC),
+not raw unscaled damage. This was confirmed by temporarily instrumenting `ResolveDamage`/`SetDamage` with
+`LOG_ERROR` (not part of the shipped commit) and inspecting the live mode/info-spell/`CalcValue` resolution
+before removing it.
+
+Verified live on slot 3 (`TestMCRaidProbe`, 6 grouped bots, `.modify hp` pool, Molten Giant/Destroyer's own
+natural spawn near 955.057 -656.78 -199.603, map 409), both abilities hitting all 6 bots simultaneously per
+cast on every run:
+
+| Difficulty | Ability | n | min | max | mean | Expected bp ratio vs D0 | Observed mean ratio vs D0 |
+|---|---|---|---|---|---|---|---|
+| Normal (D0) | Smash | 12 | 1106 | 1509 | 1349.5 | 1.00 | 1.00 |
+| Ascended (D3) | Smash | 18 | 3209 | 3641 | 3389.9 | 3.02 (902/299) | 2.51 |
+| Normal (D0) | Massive Tremor | 11 | 1115 | 1289 | 1226.8 | 1.00 | 1.00 |
+| Ascended (D3) | Massive Tremor | 12 | 4452 | 4603 | 4530.2 | 4.00 (1197/299) | 3.69 |
+
+Both abilities scale meaningfully above Normal now (previously identical at every difficulty); the observed
+ratios run somewhat below the raw DBC base-point ratios, consistent with `ModifySpellEffectBaseValue`/armor
+mitigation compressing the gap rather than the family selection being wrong (`mode`/`infoSpell` resolution was
+confirmed correct for both D0 and D3 during the instrumented run). Heroic/Mythic were not live-tested — both
+families' D1/D2 members were confirmed present and correctly ordered via `SpellDifficulty.dbc` (`mc_evidence.py`),
+not live-measured.
+
+Knock Away (18945, single-target) and Stunning Strike (20276, single-target) were investigated and have their
+own real families (group 1819: `2018949`/`2018950`/`2018951`; `2100135`), but are out of this fix's scope — the
+report concerns AoE damage, and the task's instruction was to keep the melee/special-attack ladder as-is unless
+the corpus showed otherwise. Not applied; see `docs/coa/molten-core.md` §4 table for the identified ids.
