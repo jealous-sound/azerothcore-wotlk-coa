@@ -1412,7 +1412,10 @@ bool Battleground::UpdatePlayerScore(Player* player, uint32 type, uint32 value, 
     if (type == SCORE_BONUS_HONOR && doAddHonor && isBattleground())
         player->RewardHonor(nullptr, 1, value); // RewardHonor calls UpdatePlayerScore with doAddHonor = false
     else
+    {
         itr->second->UpdateScore(type, value);
+        sScriptMgr->OnBattlegroundUpdatePlayerScore(this, player, type, value);
+    }
 
     return true;
 }

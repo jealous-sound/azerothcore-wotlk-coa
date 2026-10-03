@@ -14995,6 +14995,8 @@ void Unit::Kill(Unit* killer, Unit* victim, bool durabilityLoss, WeaponAttackTyp
     if (creature && creature->IsPet() && creature->GetOwnerGUID().IsPlayer())
         isRewardAllowed = false;
 
+    uint32 const killerHonorableKills = player ? player->GetUInt32Value(PLAYER_FIELD_LIFETIME_HONORABLE_KILLS) : 0;
+
     // Reward player, his pets, and group/raid members
     // call kill spell proc event (before real die and combat stop to triggering auras removed at death/combat stop)
     if (isRewardAllowed && player && player != victim)
@@ -15264,6 +15266,9 @@ void Unit::Kill(Unit* killer, Unit* victim, bool durabilityLoss, WeaponAttackTyp
             else
                 bg->HandleKillUnit(victim->ToCreature(), player);
         }
+
+    if (player && victim->IsPlayer() && player->GetUInt32Value(PLAYER_FIELD_LIFETIME_HONORABLE_KILLS) > killerHonorableKills)
+        sScriptMgr->OnPlayerHonorableKillingBlow(player, victim->ToPlayer());
 
     // achievement stuff
     if (killer && victim->IsPlayer())
