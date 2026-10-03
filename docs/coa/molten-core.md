@@ -495,6 +495,8 @@ for both items, several real Classic droppers were missing from the table entire
 item=17010/fiery-core 20251017200731 and item=17011/lava-core 20251204231747), applied identically
 to all four difficulty variants (neither item has its own tiered id):
 
+Lava Core rates were then halved at the player's request (rev_20261001_f1): the Lava Core column below shows the Classic rate before the halving.
+
 | Creature | Fiery Core | Lava Core |
 |---|---|---|
 | Molten Destroyer (11659) | 26.7984% | 26.4793% |
