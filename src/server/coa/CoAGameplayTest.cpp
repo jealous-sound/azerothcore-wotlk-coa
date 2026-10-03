@@ -3389,6 +3389,25 @@ private:
             if (sScriptMgr->CanPacketReceive(player->GetSession(), packet))
                 player->GetSession()->HandleGameObjectUseOpcode(packet);
         }
+        else if (action == "evade_nearby" || action == "remove_corpse_nearby")
+        {
+            std::list<Creature*> creatures;
+            player->GetCreatureListWithEntryInGrid(creatures, step.get<uint32>("entry"), 40.0f);
+            creatures.remove_if([player, &action](Creature* creature)
+            {
+                return !creature->IsInWorld() || !player->InSamePhase(creature) ||
+                    (action == "evade_nearby") != creature->IsAlive();
+            });
+            Require(!creatures.empty(), "No nearby creature for lifecycle action");
+            Creature* creature = creatures.front();
+            if (action == "remove_corpse_nearby")
+                creature->RemoveCorpse();
+            else
+            {
+                Require(creature->AI() != nullptr, "Nearby evade needs a creature AI");
+                creature->AI()->EnterEvadeMode();
+            }
+        }
         else if (action == "attack_nearby" || action == "loot_nearby")
         {
             std::list<Creature*> creatures;

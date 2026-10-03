@@ -1,0 +1,127 @@
+{
+  "schema": 1,
+  "name": "formation-evade-respawn",
+  "contract": "The SSC Greyheart Spellbinder formation (leader 153139, members 153140-153142, groupAI 28) combines EVADE_TOGETHER and RESPAWN_ON_EVADE with a protected leader. Evading a surviving Spellbinder must respawn a killed sibling both while its corpse remains in the world and after native corpse removal drops its group membership. A second partial kill verifies that recreated members rejoin the formation. Real-clock confirmation is required for the map respawn checks.",
+  "timeout_ms": 60000,
+  "location": {
+    "map": 548,
+    "x": 376.543,
+    "y": -438.631,
+    "z": 29.6083,
+    "o": 0,
+    "ignore_access": true
+  },
+  "players": [
+    {
+      "id": "tester",
+      "race": 1,
+      "class": 1,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "set_phase",
+      "actor": "tester",
+      "value": 1
+    },
+    {
+      "action": "assert",
+      "actor": "tester",
+      "metric": "nearby_creature_count",
+      "entry": 21806,
+      "equals": 3,
+      "within_ms": 10000
+    },
+    {
+      "action": "attack_nearby",
+      "actor": "tester",
+      "entry": 21806,
+      "kill": true
+    },
+    {
+      "action": "assert",
+      "actor": "tester",
+      "metric": "nearby_creature_count",
+      "entry": 21806,
+      "equals": 2,
+      "within_ms": 10000
+    },
+    {
+      "action": "evade_nearby",
+      "actor": "tester",
+      "entry": 21806
+    },
+    {
+      "action": "assert",
+      "actor": "tester",
+      "metric": "nearby_creature_count",
+      "entry": 21806,
+      "equals": 3,
+      "within_ms": 10000
+    },
+    {
+      "action": "attack_nearby",
+      "actor": "tester",
+      "entry": 21806,
+      "kill": true
+    },
+    {
+      "action": "assert",
+      "actor": "tester",
+      "metric": "nearby_creature_count",
+      "entry": 21806,
+      "equals": 2,
+      "within_ms": 10000
+    },
+    {
+      "action": "remove_corpse_nearby",
+      "actor": "tester",
+      "entry": 21806
+    },
+    {
+      "action": "wait",
+      "ms": 100
+    },
+    {
+      "action": "evade_nearby",
+      "actor": "tester",
+      "entry": 21806
+    },
+    {
+      "action": "assert",
+      "actor": "tester",
+      "metric": "nearby_creature_count",
+      "entry": 21806,
+      "equals": 3,
+      "within_ms": 10000
+    },
+    {
+      "action": "attack_nearby",
+      "actor": "tester",
+      "entry": 21806,
+      "kill": true
+    },
+    {
+      "action": "assert",
+      "actor": "tester",
+      "metric": "nearby_creature_count",
+      "entry": 21806,
+      "equals": 2,
+      "within_ms": 10000
+    },
+    {
+      "action": "evade_nearby",
+      "actor": "tester",
+      "entry": 21806
+    },
+    {
+      "action": "assert",
+      "actor": "tester",
+      "metric": "nearby_creature_count",
+      "entry": 21806,
+      "equals": 3,
+      "within_ms": 10000
+    }
+  ]
+}
