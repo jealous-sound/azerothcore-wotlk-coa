@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "CoA Legendary Items: item stream",
-  "contract": "Requires CoALegendaryItems.Enable=1, DropChance=100, StopDropLevel=60, DestinyWeaver.Enable=1, LevelScaling=1, offset=3, CoA.SendDisplayPatches=1. All 64 designs have matching eight-field SMSG_PATCH_ITEM rows, with no ninth field. Boundary level variants are also streamed. Native bulk item queries supply correct names, legendary quality, slots, custom class masks and required/item levels. Captured socketless session packets do not establish network delivery or client rendering.",
+  "contract": "Requires CoALegendaryItems.Enable=1, DropChance=100, StopDropLevel=60, DestinyWeaver.Enable=1, LevelScaling=1, offset=3, CoA.SendDisplayPatches=1. World entry streams SMSG_PATCH_ITEM rows only for items the character holds, not the whole legendary table. Single and bulk item queries add the queried rows once each: all 64 designs have matching eight-field rows, with no ninth field, and so do the boundary level variants. Native bulk item queries supply correct names, legendary quality, slots, custom class masks and required/item levels. Captured socketless session packets do not establish network delivery or client rendering.",
   "timeout_ms": 180000,
   "location": {
     "map": 0,
@@ -20,6 +20,11 @@
   ],
   "steps": [
     {
+      "action": "add_item",
+      "actor": "viewer",
+      "item": 9700001
+    },
+    {
       "action": "client_packet",
       "actor": "viewer",
       "opcode": 1377
@@ -27,10 +32,332 @@
     {
       "action": "assert",
       "actor": "viewer",
+      "metric": "server_packet_u32",
+      "opcode": 2354,
+      "row": 9700001,
+      "index": 0,
+      "equals": 9700001,
+      "within_ms": 10000
+    },
+    {
+      "action": "assert",
+      "actor": "viewer",
       "metric": "server_packets",
       "opcode": 2354,
-      "min": 5120,
-      "within_ms": 10000
+      "max": 8
+    },
+    {
+      "action": "client_packet",
+      "actor": "viewer",
+      "opcode": 86,
+      "fields": [
+        {
+          "u32": 9700080
+        }
+      ],
+      "early": false,
+      "consumed": false
+    },
+    {
+      "action": "assert",
+      "actor": "viewer",
+      "metric": "server_packet_u32",
+      "opcode": 2354,
+      "row": 9700080,
+      "index": 0,
+      "equals": 9700080,
+      "within_ms": 2000
+    },
+    {
+      "action": "client_packet",
+      "actor": "viewer",
+      "opcode": 1563,
+      "fields": [
+        {
+          "u32": 32
+        },
+        {
+          "u32": 9700029
+        },
+        {
+          "u32": 9700129
+        },
+        {
+          "u32": 9700229
+        },
+        {
+          "u32": 9700329
+        },
+        {
+          "u32": 9700429
+        },
+        {
+          "u32": 9700529
+        },
+        {
+          "u32": 9700629
+        },
+        {
+          "u32": 9700729
+        },
+        {
+          "u32": 9700829
+        },
+        {
+          "u32": 9700929
+        },
+        {
+          "u32": 9701029
+        },
+        {
+          "u32": 9701129
+        },
+        {
+          "u32": 9701229
+        },
+        {
+          "u32": 9701329
+        },
+        {
+          "u32": 9701429
+        },
+        {
+          "u32": 9701529
+        },
+        {
+          "u32": 9701629
+        },
+        {
+          "u32": 9701729
+        },
+        {
+          "u32": 9701829
+        },
+        {
+          "u32": 9701929
+        },
+        {
+          "u32": 9702029
+        },
+        {
+          "u32": 9702129
+        },
+        {
+          "u32": 9702229
+        },
+        {
+          "u32": 9702329
+        },
+        {
+          "u32": 9702429
+        },
+        {
+          "u32": 9702529
+        },
+        {
+          "u32": 9702629
+        },
+        {
+          "u32": 9702729
+        },
+        {
+          "u32": 9702829
+        },
+        {
+          "u32": 9702929
+        },
+        {
+          "u32": 9703029
+        },
+        {
+          "u32": 9703129
+        }
+      ]
+    },
+    {
+      "action": "assert",
+      "actor": "viewer",
+      "metric": "server_packet_contains",
+      "equals": 1,
+      "opcode": 88,
+      "row": 9700029,
+      "text": "Bloodoath Signet",
+      "within_ms": 2000
+    },
+    {
+      "action": "client_packet",
+      "actor": "viewer",
+      "opcode": 1563,
+      "fields": [
+        {
+          "u32": 32
+        },
+        {
+          "u32": 9703229
+        },
+        {
+          "u32": 9703329
+        },
+        {
+          "u32": 9703429
+        },
+        {
+          "u32": 9703529
+        },
+        {
+          "u32": 9703629
+        },
+        {
+          "u32": 9703729
+        },
+        {
+          "u32": 9703829
+        },
+        {
+          "u32": 9703929
+        },
+        {
+          "u32": 9704029
+        },
+        {
+          "u32": 9704129
+        },
+        {
+          "u32": 9704229
+        },
+        {
+          "u32": 9704329
+        },
+        {
+          "u32": 9704429
+        },
+        {
+          "u32": 9704529
+        },
+        {
+          "u32": 9704629
+        },
+        {
+          "u32": 9704729
+        },
+        {
+          "u32": 9704829
+        },
+        {
+          "u32": 9704929
+        },
+        {
+          "u32": 9705029
+        },
+        {
+          "u32": 9705129
+        },
+        {
+          "u32": 9705229
+        },
+        {
+          "u32": 9705329
+        },
+        {
+          "u32": 9705429
+        },
+        {
+          "u32": 9705529
+        },
+        {
+          "u32": 9705629
+        },
+        {
+          "u32": 9705729
+        },
+        {
+          "u32": 9705829
+        },
+        {
+          "u32": 9705929
+        },
+        {
+          "u32": 9706029
+        },
+        {
+          "u32": 9706129
+        },
+        {
+          "u32": 9706229
+        },
+        {
+          "u32": 9706329
+        }
+      ]
+    },
+    {
+      "action": "assert",
+      "actor": "viewer",
+      "metric": "server_packet_contains",
+      "equals": 1,
+      "opcode": 88,
+      "row": 9703229,
+      "text": "Prism of Unwritten Tomorrows",
+      "within_ms": 2000
+    },
+    {
+      "action": "client_packet",
+      "actor": "viewer",
+      "opcode": 1563,
+      "fields": [
+        {
+          "u32": 2
+        },
+        {
+          "u32": 9706301
+        },
+        {
+          "u32": 9706380
+        }
+      ]
+    },
+    {
+      "action": "assert",
+      "actor": "viewer",
+      "metric": "server_packet_u32",
+      "opcode": 2354,
+      "row": 9706380,
+      "index": 0,
+      "equals": 9706380,
+      "within_ms": 2000
+    },
+    {
+      "action": "client_packet",
+      "actor": "viewer",
+      "opcode": 1563,
+      "fields": [
+        {
+          "u32": 2
+        },
+        {
+          "u32": 9700029
+        },
+        {
+          "u32": 9700080
+        }
+      ]
+    },
+    {
+      "action": "assert",
+      "actor": "viewer",
+      "metric": "server_packet_contains",
+      "equals": 2,
+      "opcode": 88,
+      "row": 9700029,
+      "text": "Bloodoath Signet",
+      "within_ms": 2000
+    },
+    {
+      "action": "assert",
+      "actor": "viewer",
+      "metric": "server_packets",
+      "opcode": 2354,
+      "max": 75
     },
     {
       "action": "assert",
@@ -5251,238 +5578,6 @@
       "row": 9706380,
       "index": 0,
       "equals": 9706380
-    },
-    {
-      "action": "client_packet",
-      "actor": "viewer",
-      "opcode": 1563,
-      "fields": [
-        {
-          "u32": 32
-        },
-        {
-          "u32": 9700029
-        },
-        {
-          "u32": 9700129
-        },
-        {
-          "u32": 9700229
-        },
-        {
-          "u32": 9700329
-        },
-        {
-          "u32": 9700429
-        },
-        {
-          "u32": 9700529
-        },
-        {
-          "u32": 9700629
-        },
-        {
-          "u32": 9700729
-        },
-        {
-          "u32": 9700829
-        },
-        {
-          "u32": 9700929
-        },
-        {
-          "u32": 9701029
-        },
-        {
-          "u32": 9701129
-        },
-        {
-          "u32": 9701229
-        },
-        {
-          "u32": 9701329
-        },
-        {
-          "u32": 9701429
-        },
-        {
-          "u32": 9701529
-        },
-        {
-          "u32": 9701629
-        },
-        {
-          "u32": 9701729
-        },
-        {
-          "u32": 9701829
-        },
-        {
-          "u32": 9701929
-        },
-        {
-          "u32": 9702029
-        },
-        {
-          "u32": 9702129
-        },
-        {
-          "u32": 9702229
-        },
-        {
-          "u32": 9702329
-        },
-        {
-          "u32": 9702429
-        },
-        {
-          "u32": 9702529
-        },
-        {
-          "u32": 9702629
-        },
-        {
-          "u32": 9702729
-        },
-        {
-          "u32": 9702829
-        },
-        {
-          "u32": 9702929
-        },
-        {
-          "u32": 9703029
-        },
-        {
-          "u32": 9703129
-        }
-      ]
-    },
-    {
-      "action": "assert",
-      "actor": "viewer",
-      "metric": "server_packet_contains",
-      "equals": 1,
-      "opcode": 88,
-      "row": 9700029,
-      "text": "Bloodoath Signet",
-      "within_ms": 2000
-    },
-    {
-      "action": "client_packet",
-      "actor": "viewer",
-      "opcode": 1563,
-      "fields": [
-        {
-          "u32": 32
-        },
-        {
-          "u32": 9703229
-        },
-        {
-          "u32": 9703329
-        },
-        {
-          "u32": 9703429
-        },
-        {
-          "u32": 9703529
-        },
-        {
-          "u32": 9703629
-        },
-        {
-          "u32": 9703729
-        },
-        {
-          "u32": 9703829
-        },
-        {
-          "u32": 9703929
-        },
-        {
-          "u32": 9704029
-        },
-        {
-          "u32": 9704129
-        },
-        {
-          "u32": 9704229
-        },
-        {
-          "u32": 9704329
-        },
-        {
-          "u32": 9704429
-        },
-        {
-          "u32": 9704529
-        },
-        {
-          "u32": 9704629
-        },
-        {
-          "u32": 9704729
-        },
-        {
-          "u32": 9704829
-        },
-        {
-          "u32": 9704929
-        },
-        {
-          "u32": 9705029
-        },
-        {
-          "u32": 9705129
-        },
-        {
-          "u32": 9705229
-        },
-        {
-          "u32": 9705329
-        },
-        {
-          "u32": 9705429
-        },
-        {
-          "u32": 9705529
-        },
-        {
-          "u32": 9705629
-        },
-        {
-          "u32": 9705729
-        },
-        {
-          "u32": 9705829
-        },
-        {
-          "u32": 9705929
-        },
-        {
-          "u32": 9706029
-        },
-        {
-          "u32": 9706129
-        },
-        {
-          "u32": 9706229
-        },
-        {
-          "u32": 9706329
-        }
-      ]
-    },
-    {
-      "action": "assert",
-      "actor": "viewer",
-      "metric": "server_packet_contains",
-      "equals": 1,
-      "opcode": 88,
-      "row": 9703229,
-      "text": "Prism of Unwritten Tomorrows",
-      "within_ms": 2000
     },
     {
       "action": "assert",

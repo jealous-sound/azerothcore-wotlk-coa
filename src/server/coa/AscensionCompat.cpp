@@ -3440,6 +3440,8 @@ public:
     uint32 const guid = player->GetGUID().GetCounter();
     std::lock_guard lock(_mutex);
     _streamedPlayers.erase(guid);
+    _sentItemRows.erase(guid);
+    _requestedItemRows.erase(guid);
     _fallbackTimers[guid] = DISPLAY_PATCH_FALLBACK_DELAY_MS;
   }
 
@@ -3447,7 +3449,34 @@ public:
     uint32 const guid = player->GetGUID().GetCounter();
     std::lock_guard lock(_mutex);
     _streamedPlayers.erase(guid);
+    _sentItemRows.erase(guid);
+    _requestedItemRows.erase(guid);
     _fallbackTimers.erase(guid);
+  }
+
+  void SendItemRowOnDemand(Player *player, uint32 itemId) {
+    if (!ascensionCompatConfig.GetConfigValue<bool>(
+            AscensionCompatConfig::SEND_DISPLAY_PATCHES))
+      return;
+
+    PreparedPatchRows const &rows = GetPreparedPatchRows();
+    auto const row = rows.ItemRowIndexById.find(itemId);
+    if (row == rows.ItemRowIndexById.end())
+      return;
+
+    uint32 const guid = player->GetGUID().GetCounter();
+    {
+      std::lock_guard lock(_mutex);
+      if (!_streamedPlayers.contains(guid))
+      {
+        _requestedItemRows[guid].insert(itemId);
+        return;
+      }
+      if (!_sentItemRows[guid].insert(itemId).second)
+        return;
+    }
+
+    SendItemRow(player, rows.Items[row->second]);
   }
 
   void OnPlayerUpdate(Player *player, uint32 diff) {
@@ -3482,15 +3511,33 @@ public:
       return;
 
     uint32 const guid = player->GetGUID().GetCounter();
+    PreparedPatchRows const &rows = GetPreparedPatchRows();
+    std::unordered_set<uint32> itemIds = CollectOwnedItemIds(player);
+    std::vector<std::size_t> itemRowIndexes;
     {
       std::lock_guard lock(_mutex);
       if (!_streamedPlayers.insert(guid).second)
         return;
       _fallbackTimers.erase(guid);
+
+      if (auto const requested = _requestedItemRows.find(guid);
+          requested != _requestedItemRows.end())
+      {
+        itemIds.merge(requested->second);
+        _requestedItemRows.erase(requested);
+      }
+
+      std::unordered_set<uint32> &sentItemRows = _sentItemRows[guid];
+      for (uint32 itemId : itemIds)
+      {
+        auto const row = rows.ItemRowIndexById.find(itemId);
+        if (row != rows.ItemRowIndexById.end() &&
+            sentItemRows.insert(itemId).second)
+          itemRowIndexes.push_back(row->second);
+      }
     }
 
     uint32 const startTime = getMSTime();
-    PreparedPatchRows const &rows = GetPreparedPatchRows();
 
     SendLoadingScreenRow(player);
 
@@ -3506,17 +3553,17 @@ public:
     for (ItemDisplayInfoPatchRow const &row : rows.ItemDisplayInfos)
       SendItemDisplayInfoRow(player, row);
 
-    for (ItemPatchRow const &row : rows.Items)
-      SendItemRow(player, row);
+    for (std::size_t index : itemRowIndexes)
+      SendItemRow(player, rows.Items[index]);
 
     for (SpellPatchRow const &row : rows.Spells)
       SendSpellRow(player, row);
 
     LOG_INFO("coa",
-             "Streamed {} CreatureDisplayInfo, {} ItemDisplayInfo, {} Item and "
-             "{} Spell patch rows to {} in {} ms",
-             sent, rows.ItemDisplayInfos.size(), rows.Items.size(),
-             rows.Spells.size(), player->GetName(),
+             "Streamed {} CreatureDisplayInfo, {} ItemDisplayInfo, {} of {} Item "
+             "and {} Spell patch rows to {} in {} ms",
+             sent, rows.ItemDisplayInfos.size(), itemRowIndexes.size(),
+             rows.Items.size(), rows.Spells.size(), player->GetName(),
              GetMSTimeDiffToNow(startTime));
   }
 
@@ -3553,8 +3600,31 @@ private:
     std::vector<uint32> CreatureDisplayIds;
     std::vector<ItemDisplayInfoPatchRow> ItemDisplayInfos;
     std::vector<ItemPatchRow> Items;
+    std::unordered_map<uint32, std::size_t> ItemRowIndexById;
     std::vector<SpellPatchRow> Spells;
   };
+
+  static std::unordered_set<uint32> CollectOwnedItemIds(Player *player) {
+    std::unordered_set<uint32> itemIds;
+    auto const addItem = [&itemIds](Item const *item) {
+      if (item)
+        itemIds.insert(item->GetEntry());
+    };
+    auto const addBagContents = [&](uint8 firstSlot, uint8 endSlot) {
+      for (uint8 slot = firstSlot; slot < endSlot; ++slot)
+        if (Bag const *bag = player->GetBagByPos(slot))
+          for (uint32 bagSlot = 0; bagSlot < bag->GetBagSize(); ++bagSlot)
+            addItem(bag->GetItemByPos(uint8(bagSlot)));
+    };
+
+    for (uint8 slot = EQUIPMENT_SLOT_START; slot < BANK_SLOT_BAG_END; ++slot)
+      addItem(player->GetItemByPos(INVENTORY_SLOT_BAG_0, slot));
+    for (uint8 slot = KEYRING_SLOT_START; slot < CURRENCYTOKEN_SLOT_END; ++slot)
+      addItem(player->GetItemByPos(INVENTORY_SLOT_BAG_0, slot));
+    addBagContents(INVENTORY_SLOT_BAG_START, INVENTORY_SLOT_BAG_END);
+    addBagContents(BANK_SLOT_BAG_START, BANK_SLOT_BAG_END);
+    return itemIds;
+  }
 
   static void AppendSizedString(WorldPacket &packet, std::string const &text) {
     packet << uint32(text.size());
@@ -3627,6 +3697,8 @@ private:
       _rows.ItemDisplayInfos =
           BuildItemDisplayInfoPatchRows(clientDbcDirectory);
       _rows.Items = BuildItemPatchRows(clientDbcDirectory);
+      for (std::size_t index = 0; index < _rows.Items.size(); ++index)
+        _rows.ItemRowIndexById.emplace(_rows.Items[index][0], index);
       _rows.Spells = BuildSpellPatchRows();
       _rowsPrepared = true;
     }
@@ -3888,6 +3960,8 @@ private:
 
   std::mutex _mutex;
   std::unordered_set<uint32> _streamedPlayers;
+  std::unordered_map<uint32, std::unordered_set<uint32>> _sentItemRows;
+  std::unordered_map<uint32, std::unordered_set<uint32>> _requestedItemRows;
   std::unordered_map<uint32, uint32> _fallbackTimers;
 
   std::mutex _cacheMutex;
@@ -5097,7 +5171,10 @@ private:
         break;
       case CMSG_ITEM_QUERY_BULK:
         for (uint32 entry : ReadBulkQueryEntries(packet, MAX_ITEM_QUERY_BULK_ENTRIES))
+        {
+          AscensionDisplayPatchService::Instance().SendItemRowOnDemand(player, entry);
           player->GetSession()->SendItemQuerySingleResponse(entry);
+        }
         break;
       case CMSG_CREATURE_QUERY_BULK:
         for (uint32 entry : ReadBulkQueryEntries(packet, MAX_CREATURE_QUERY_BULK_ENTRIES))
@@ -5910,6 +5987,13 @@ public:
         if (packet.GetOpcode() == CMSG_SET_ACTIVE_MOVER)
             AscensionClassService::Instance().OnPlayerActiveMover(session->GetPlayer());
 
+        if (packet.GetOpcode() == CMSG_ITEM_QUERY_SINGLE && packet.size() >= sizeof(uint32))
+        {
+            AscensionDisplayPatchService::Instance().SendItemRowOnDemand(session->GetPlayer(),
+                packet.read<uint32>(0));
+            return true;
+        }
+
         if (packet.GetOpcode() == CMSG_INSPECT && packet.size() >= sizeof(uint64))
         {
             if (Player* target = ObjectAccessor::GetPlayer(*session->GetPlayer(), packet.read<ObjectGuid>(0)))
@@ -6701,6 +6785,7 @@ public:
   void OnPlayerStoreNewItem(Player *player, Item *item,
                             uint32) override {
     AscensionCollectionService::Instance().OnItemObtained(player, item);
+    SendObtainedItemPatchRow(player, item);
     if (item && player->IsInWorld() && player->getClass() >= CLASS_BARBARIAN &&
         player->getClass() <= CLASS_SPIRIT_MAGE &&
         ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED))
@@ -6713,6 +6798,13 @@ public:
   void OnPlayerCreateItem(Player *player, Item *item,
                            uint32) override {
     AscensionCollectionService::Instance().OnItemObtained(player, item);
+    SendObtainedItemPatchRow(player, item);
+  }
+
+  static void SendObtainedItemPatchRow(Player *player, Item const *item) {
+    if (item && player->IsInWorld() &&
+        ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED))
+      AscensionDisplayPatchService::Instance().SendItemRowOnDemand(player, item->GetEntry());
   }
 
   Optional<bool> OnPlayerIsClass(Player const *player, Classes playerClass,
