@@ -69,6 +69,7 @@ struct npc_ascension_ranger_flower : ScriptedAI
         me->SetOwnerGUID(player->GetGUID());
         me->SetFaction(player->GetFaction());
         me->SetLevel(player->GetLevel());
+        me->SetUnitFlag(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE);
         me->SetReactState(REACT_PASSIVE);
         me->GetMotionMaster()->Clear();
         me->GetMotionMaster()->MoveIdle();

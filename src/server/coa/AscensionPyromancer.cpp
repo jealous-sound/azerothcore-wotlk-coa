@@ -38,6 +38,10 @@ PyromancerState& State(Player* player)
 }
 bool Named(SpellInfo const* info, uint32 root)
 {
+    if (info && root == 802174 &&
+        std::find(std::begin(PyromancerEchoRanks), std::end(PyromancerEchoRanks), info->Id) !=
+            std::end(PyromancerEchoRanks))
+        return true;
     return info && sSpellMgr->GetFirstSpellInChain(info->Id) == sSpellMgr->GetFirstSpellInChain(root);
 }
 bool Any(SpellInfo const* info, std::initializer_list<uint32> roots)

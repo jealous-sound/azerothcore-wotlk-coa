@@ -1,6 +1,7 @@
 #include "AscensionCollectibleSpellData.h"
 #include "ItemTemplate.h"
 #include "Optional.h"
+#include "Tokenize.h"
 #include "WorldPacket.h"
 #include <algorithm>
 #include <array>
@@ -363,6 +364,18 @@ struct AscensionClassService
     void QueueKnownEntriesUpload(uint32 accountId, WorldPacket const&) { Uploads.push_back(accountId); }
     void QueueTalentReset(uint32 accountId) { Resets.push_back(accountId); }
     void SendInspectResult(Player*, ObjectGuid) { }
+};
+
+class AscensionDisplayPatchService
+{
+public:
+    static AscensionDisplayPatchService& Instance()
+    {
+        static AscensionDisplayPatchService service;
+        return service;
+    }
+
+    void SendPatchStream(Player*) { }
 };
 
 class AscensionCollectionService

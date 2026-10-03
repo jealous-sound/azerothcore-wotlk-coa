@@ -70,7 +70,10 @@ void ApplyContracts(SpellInfo* info)
     if (id == 805102)
         info->Effects[0].Effect = SPELL_EFFECT_DUMMY;
     if (id == 504705)
+    {
         info->Effects[2].Effect = 0;
+        info->Effects[2].TriggerSpell = 0;
+    }
     if (id == 704264)
         dummy(0);
     if (id == 803196 || id == 803192 || id == 800910 || id == 681056 || id == 681417 || id == 706453 ||

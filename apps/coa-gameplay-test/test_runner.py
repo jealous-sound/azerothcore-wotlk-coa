@@ -15,6 +15,27 @@ import run
 
 
 class RunnerTests(unittest.TestCase):
+    def test_creature_reaction_and_victim_target_validation(self):
+        for reaction in (0, 1, 2):
+            scenario = copy.deepcopy(self.scenario)
+            scenario['creatures'][0]['reaction'] = reaction
+            scenario['steps'].append({'action': 'assert', 'actor': 'target', 'metric': 'victim',
+                                     'target': 'caster', 'equals': 0})
+            self.assertIs(run.validate(scenario), scenario)
+        for reaction in (-1, 3, True, 1.5, '1'):
+            scenario = copy.deepcopy(self.scenario)
+            scenario['creatures'][0]['reaction'] = reaction
+            with self.subTest(reaction=reaction), self.assertRaises(ValueError):
+                run.validate(scenario)
+        for target in (None, 'absent'):
+            scenario = copy.deepcopy(self.scenario)
+            step = {'action': 'assert', 'actor': 'target', 'metric': 'victim', 'equals': 0}
+            if target is not None:
+                step['target'] = target
+            scenario['steps'].append(step)
+            with self.subTest(target=target), self.assertRaises(ValueError):
+                run.validate(scenario)
+
     def test_profession_fixture_validation(self):
         scenario = run.read_json(Path(__file__).parent / 'scenarios' / 'profession-xp.json')
         self.assertIs(run.validate(scenario), scenario)
@@ -150,6 +171,27 @@ class RunnerTests(unittest.TestCase):
             scenario['steps'].append({'action': 'assert', 'actor': actor, 'metric': metric,
                                       'spell': 116, 'equals': 0, **extra})
             with self.subTest(metric=metric, actor=actor, extra=extra), self.assertRaises(ValueError):
+                run.validate(scenario)
+
+    def test_native_relog_and_slot_observations(self):
+        for step in [
+            {'action': 'relog', 'actor': 'caster'},
+            {'action': 'assert', 'actor': 'caster', 'metric': 'action_button_packed', 'button': 143, 'equals': 0},
+            {'action': 'assert', 'actor': 'caster', 'metric': 'server_packet_u32', 'opcode': 1829, 'index': 1,
+             'equals': 20},
+        ]:
+            scenario = copy.deepcopy(self.scenario)
+            scenario['steps'].append(step)
+            self.assertIs(run.validate(scenario), scenario)
+        for step in [
+            {'action': 'relog', 'actor': 'target'},
+            {'action': 'assert', 'actor': 'caster', 'metric': 'action_button_packed', 'equals': 0},
+            {'action': 'assert', 'actor': 'caster', 'metric': 'server_packet_u32', 'opcode': 1829, 'index': -1,
+             'equals': 0},
+        ]:
+            scenario = copy.deepcopy(self.scenario)
+            scenario['steps'].append(step)
+            with self.assertRaises(ValueError):
                 run.validate(scenario)
 
     def test_pet_aura_fixture(self):

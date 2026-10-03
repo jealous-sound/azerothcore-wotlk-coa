@@ -41,6 +41,7 @@ struct FelswornState
 Player* Owner(Unit const* unit);
 FelswornState& State(Player* player);
 bool Named(SpellInfo const* info, uint32 root);
+bool CanLearnRift(Player const* player, uint32 spellId);
 bool Spender(SpellInfo const* info);
 bool SpenderImpact(SpellInfo const* info);
 bool ResistDebuff(Player* player, SpellInfo const* info);

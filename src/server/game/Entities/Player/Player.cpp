@@ -2155,7 +2155,8 @@ void Player::RegenerateHealth()
 
 void Player::ResetAllPowers()
 {
-    SetHealth(GetMaxHealth());
+    if (IsAlive())
+        SetHealth(GetMaxHealth());
     if (HasActivePowerType(POWER_MANA))
     {
         SetPower(POWER_MANA, GetMaxPower(POWER_MANA));
@@ -8537,6 +8538,9 @@ void Player::SendLoot(ObjectGuid guid, LootType loot_type)
                 else
                     permission = NONE_PERMISSION;
             }
+            if (permission == NONE_PERMISSION && loot_type == LOOT_CORPSE
+                && loot->loot_type != LOOT_SKINNING && creature->IsSharedQuestParticipant(this))
+                permission = QUEST_PERMISSION;
         }
     }
 

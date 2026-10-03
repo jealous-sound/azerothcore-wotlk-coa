@@ -169,6 +169,11 @@ bool ScriptMgr::OnPlayerHasNoBonusExperience(Player* player)
     return suppress;
 }
 
+void ScriptMgr::OnPlayerHonorableKillingBlow(Player* killer, Player* victim)
+{
+    CALL_ENABLED_HOOKS(PlayerScript, PLAYERHOOK_ON_HONORABLE_KILLING_BLOW, script->OnPlayerHonorableKillingBlow(killer, victim));
+}
+
 bool ScriptMgr::OnPlayerReputationChange(Player* player, uint32 factionID, int32& standing, bool incremental)
 {
     CALL_ENABLED_BOOLEAN_HOOKS(PlayerScript, PLAYERHOOK_ON_REPUTATION_CHANGE, !script->OnPlayerReputationChange(player, factionID, standing, incremental));

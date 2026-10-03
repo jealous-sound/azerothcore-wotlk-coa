@@ -14,6 +14,7 @@
 #include "SpellAuras.h"
 #include "SpellMgr.h"
 #include <algorithm>
+#include <array>
 #include <memory>
 #include <mutex>
 #include <unordered_map>
@@ -38,6 +39,19 @@ FelswornState& State(Player* player)
 bool Named(SpellInfo const* info, uint32 root)
 {
     return info && sSpellMgr->GetFirstSpellInChain(info->Id) == sSpellMgr->GetFirstSpellInChain(root);
+}
+bool CanLearnRift(Player const* player, uint32 spellId)
+{
+    if (!player)
+        return false;
+    constexpr std::array<uint32, 8> factionRifts = {535595, 535596, 535597, 535598, 535599, 535600, 535601, 535602};
+    if (std::find(factionRifts.begin(), factionRifts.end(), spellId) == factionRifts.end())
+        return true;
+    auto const bounds = sSpellMgr->GetSkillLineAbilityMapBounds(spellId);
+    for (auto itr = bounds.first; itr != bounds.second; ++itr)
+        if (itr->second->RaceMask && !(itr->second->RaceMask & player->getRaceMask()))
+            return false;
+    return true;
 }
 bool Spender(SpellInfo const* info)
 {

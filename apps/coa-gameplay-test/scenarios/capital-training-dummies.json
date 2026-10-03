@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "Capital training grounds hold only the level 60 Training Dummy",
-  "contract": "CoA's client caches know one capital training dummy, 32666 \"Training Dummy\" at level 60, and never the level 70, 80 or 83 dummies. Each capital training ground therefore holds its full set of dummies as 32666 and none of 31144, 31146 or 32667, so a character standing there in the world phase finds only level 60 dummies within 60 yards.",
+  "contract": "CoA's client caches know one capital training dummy, 32666 \"Training Dummy\" at level 60, and never the level 70, 80 or 83 dummies. Each capital training ground therefore holds its full set of dummies as 32666 and none of 31144, 31146 or 32667, so a character standing there in the world phase finds only level 60 dummies within 60 yards. Stormwind's Old Town yard holds 12 since its dummies were laid out in rows and two added.",
   "timeout_ms": 240000,
   "location": { "map": 0, "x": -8730.0, "y": 345.0, "z": 100.5, "o": 0.0 },
   "players": [
@@ -11,7 +11,7 @@
     { "action": "set_phase", "actor": "human", "value": 1 },
     { "action": "teleport", "actor": "human", "map": 0, "x": -8730.0, "y": 345.0, "z": 100.5, "o": 0.0 },
     { "action": "wait", "ms": 2000 },
-    { "action": "assert", "label": "Stormwind: Training Dummies", "actor": "human", "metric": "nearby_creature_count", "entry": 32666, "equals": 10, "within_ms": 10000 },
+    { "action": "assert", "label": "Stormwind: Training Dummies", "actor": "human", "metric": "nearby_creature_count", "entry": 32666, "equals": 12, "within_ms": 10000 },
     { "action": "assert", "label": "Stormwind: no 31144", "actor": "human", "metric": "nearby_creature_count", "entry": 31144, "equals": 0 },
     { "action": "assert", "label": "Stormwind: no 31146", "actor": "human", "metric": "nearby_creature_count", "entry": 31146, "equals": 0 },
     { "action": "assert", "label": "Stormwind: no 32667", "actor": "human", "metric": "nearby_creature_count", "entry": 32667, "equals": 0 },

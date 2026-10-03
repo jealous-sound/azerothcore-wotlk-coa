@@ -99,6 +99,9 @@ void WorldSession::HandleAutostoreLootItemOpcode(WorldPacket& recvData)
         }
 
         loot = &creature->loot;
+        if (!creature->IsAlive() && loot->loot_type != LOOT_SKINNING && !creature->isTappedBy(player))
+            if (!creature->IsSharedQuestParticipant(player) || lootSlot < loot->items.size())
+                return;
     }
 
     sScriptMgr->OnPlayerAfterCreatureLoot(player);
@@ -173,6 +176,8 @@ void WorldSession::HandleLootMoneyOpcode(WorldPacket& /*recvData*/)
                 bool lootAllowed = creature && creature->IsAlive() == (creature->loot.loot_type == LOOT_PICKPOCKETING);
                 if (lootAllowed && player->IsWithinLootDistance(creature))
                 {
+                    if (!creature->IsAlive() && !creature->isTappedBy(player))
+                        return;
                     loot = &creature->loot;
                     if (creature->IsAlive())
                         shareMoney = false;

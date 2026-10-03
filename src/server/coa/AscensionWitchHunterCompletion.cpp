@@ -96,6 +96,8 @@ void ApplyContracts(SpellInfo* info)
     if (!info || info->SpellFamilyName != 21)
         return;
     uint32 id = info->Id;
+    if (id == 562026 && info->Effects[EFFECT_1].TriggerSpell == 562027)
+        info->Effects[EFFECT_1].Effect = 0;
     if (id == 681486 && info->Effects[EFFECT_2].ApplyAuraName == SPELL_AURA_ADD_PCT_MODIFIER &&
         info->Effects[EFFECT_2].MiscValue == SPELLMOD_DOT &&
         info->Effects[EFFECT_2].SpellClassMask == flag96(0, 268436480, 0))

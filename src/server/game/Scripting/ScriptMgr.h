@@ -342,6 +342,7 @@ public: /* PlayerScript */
     void OnPlayerGiveXP(Player* player, uint32& amount, Unit* victim, uint8 xpSource);
     uint8 GetMaxAllowedLevel(Player* player);
     bool OnPlayerHasNoBonusExperience(Player* player);
+    void OnPlayerHonorableKillingBlow(Player* killer, Player* victim);
     bool OnPlayerReputationChange(Player* player, uint32 factionID, int32& standing, bool incremental);
     void OnPlayerReputationRankChange(Player* player, uint32 factionID, ReputationRank newRank, ReputationRank oldRank, bool increased);
     void OnPlayerGiveReputation(Player* player, int32 factionID, float& amount, ReputationSource repSource);
@@ -676,6 +677,7 @@ public: /* BGScript */
     void OnBattlegroundDestroy(Battleground* bg);
     void OnBattlegroundCreate(Battleground* bg);
     void OnBattlegroundSetup(Battleground* bg);
+    void OnBattlegroundUpdatePlayerScore(Battleground* bg, Player* player, uint32 type, uint32 value);
     bool CanAddGroupToMatchingPool(BattlegroundQueue* queue, GroupQueueInfo* group, uint32 poolPlayerCount, Battleground* bg, BattlegroundBracketId bracketId);
     bool GetPlayerMatchmakingRating(ObjectGuid playerGuid, BattlegroundTypeId bgTypeId, float& outRating);
 

@@ -239,6 +239,7 @@ enum PlayerHook
     PLAYERHOOK_ON_CAN_ENERGIZE,
     PLAYERHOOK_ON_GET_MAX_ALLOWED_LEVEL,
     PLAYERHOOK_ON_HAS_NO_BONUS_EXPERIENCE,
+    PLAYERHOOK_ON_HONORABLE_KILLING_BLOW,
     PLAYERHOOK_ON_BANKER_ACTIVATE,
     PLAYERHOOK_ON_BANK_WITHDRAW,
     PLAYERHOOK_ON_LEARN_PET_TALENT,
@@ -352,6 +353,9 @@ public:
     // multiplier sites (kills, quests, professions). A NO_BONUS_EXPERIENCE challenge
     // returns true.
     virtual bool OnPlayerHasNoBonusExperience(Player* /*player*/) { return false; }
+
+    // Called when a player, or a unit they control, lands the killing blow on a player that counted as an honorable kill
+    virtual void OnPlayerHonorableKillingBlow(Player* /*killer*/, Player* /*victim*/) { }
 
     // Called when a player's reputation changes (before it is actually changed)
     virtual bool OnPlayerReputationChange(Player* /*player*/, uint32 /*factionID*/, int32& /*standing*/, bool /*incremental*/) { return true; }
