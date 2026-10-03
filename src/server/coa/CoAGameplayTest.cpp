@@ -4045,6 +4045,14 @@ private:
             player->TeleportTo(map, x, y, z, o);
             record.put("result", "teleport sent");
         }
+        else if (action == "set_homebind")
+        {
+            uint32 const map = step.get<uint32>("map");
+            Require(sMapStore.LookupEntry(map) != nullptr, "Unknown map to bind to");
+            WorldLocation const bind(map, step.get<float>("x"), step.get<float>("y"), step.get<float>("z"), 0.0f);
+            player->SetHomebind(bind, step.get<uint32>("area", 0));
+            record.put("result", "homebind set");
+        }
         else if (action == "discover_taxi_node")
         {
             uint32 const node = step.get<uint32>("entry");

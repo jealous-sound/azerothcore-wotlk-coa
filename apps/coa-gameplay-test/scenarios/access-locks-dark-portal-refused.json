@@ -1,0 +1,104 @@
+{
+  "schema": 1,
+  "name": "Area access: walking into the Dark Portal does not teleport and announces the lock once",
+  "contract": "The Dark Portal's area trigger 4354 (Blasted Lands, map 0) teleports to Hellfire Peninsula (530, -248.149, 921.875, 84.3885). Blasted Lands itself is not locked, so the player can stand in the portal, but the teleport's destination zone is locked by default and OnPlayerCanTeleportTo refuses it before any loading screen. The refusal chat line is throttled to one per 30 seconds per player, so three trigger packets in a row produce exactly one new chat line. Without the feature the player lands on map 530. Requires the default Coa.Access.* values (all locked).",
+  "timeout_ms": 90000,
+  "location": {
+    "map": 0,
+    "x": -11908.9,
+    "y": -3209.1,
+    "z": -14.79,
+    "o": 0
+  },
+  "players": [
+    {
+      "id": "traveler",
+      "race": 1,
+      "class": 1,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let the fixture settle",
+      "ms": 5000
+    },
+    {
+      "action": "assert",
+      "label": "Starts in Blasted Lands at the portal",
+      "actor": "traveler",
+      "metric": "map_id",
+      "equals": 0
+    },
+    {
+      "action": "snapshot",
+      "actor": "traveler",
+      "metric": "system_messages",
+      "save_as": "chat_before"
+    },
+    {
+      "action": "area_trigger",
+      "label": "Walk into the Dark Portal",
+      "actor": "traveler",
+      "id": 4354
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING: no teleport to Outland",
+      "actor": "traveler",
+      "metric": "map_id",
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "Still at the portal",
+      "actor": "traveler",
+      "metric": "position_x",
+      "min": -11958.9,
+      "max": -11858.9
+    },
+    {
+      "action": "assert",
+      "label": "One chat line announces the lock",
+      "actor": "traveler",
+      "metric": "system_messages",
+      "relative_to": "chat_before",
+      "equals": 1
+    },
+    {
+      "action": "area_trigger",
+      "label": "Stand in the portal, the trigger fires again",
+      "actor": "traveler",
+      "id": 4354
+    },
+    {
+      "action": "area_trigger",
+      "actor": "traveler",
+      "id": 4354
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "assert",
+      "label": "Still no teleport",
+      "actor": "traveler",
+      "metric": "map_id",
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING: the repeats inside 30 seconds add no chat line",
+      "actor": "traveler",
+      "metric": "system_messages",
+      "relative_to": "chat_before",
+      "equals": 1
+    }
+  ]
+}

@@ -24,6 +24,7 @@ void AddSC_AscensionRulesets();
 void AddSC_AscensionMercenary();
 void AddSC_AscensionHighRisk();
 void AddSC_AscensionBloodforged();
+void AddSC_AscensionAreaAccess();
 void AddSC_AscensionPvpPower();
 void AddSC_AscensionGlory();
 void AddSC_AscensionQuestLog();
@@ -587,6 +588,7 @@ void AddCoAScripts()
     AddSC_AscensionMercenary();
     AddSC_AscensionHighRisk();
     AddSC_AscensionBloodforged();
+    AddSC_AscensionAreaAccess();
     AddSC_AscensionPvpPower();
     AddSC_AscensionGlory();
     AddSC_AscensionQuestLog();

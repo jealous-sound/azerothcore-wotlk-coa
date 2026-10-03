@@ -20,6 +20,7 @@
 #include "MapMgr.h"
 #include "MoveSpline.h"
 #include "QueryResult.h"
+#include "ScriptMgr.h"
 #include "Transport.h"
 #include "TaskScheduler.h"
 #include "Config.h"
@@ -442,8 +443,13 @@ void TransportMgr::SpawnContinentTransports()
 
                 if (TransportTemplate const* tInfo = GetTransportTemplate(entry))
                     if (!tInfo->inInstance)
+                    {
+                        if (!sScriptMgr->OnCanSpawnContinentTransport(*tInfo))
+                            continue;
+
                         if (CreateTransport(entry, guid))
                             ++count;
+                    }
 
             } while (result->NextRow());
         }

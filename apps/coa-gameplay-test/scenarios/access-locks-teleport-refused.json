@@ -1,0 +1,257 @@
+{
+  "schema": 1,
+  "name": "Area access: teleports into locked Outland, Northrend, Blood Elf, Draenei and unreleased areas are refused",
+  "contract": "With the shipped defaults every Coa.Access.* key is locked. Player::TeleportTo asks OnPlayerCanTeleportTo before the teleport has any effect, and AscensionAreaAccess refuses a non-GM destination whose map or zone is locked: Hellfire Peninsula (530, zone 3483), Dalaran (571, zone 4395), Silvermoon City (530, 3487), the Exodar (530, 3557), Shattrath (530, 3703), the Nexus dungeon map 576 and the unreleased Stormwind Sewers map 903. A refused player stays where they were. Without the feature each of these teleports lands on the destination map. A teleport to Stormwind proves the harness teleport works. Requires the source config to keep the default Coa.Access.* values (all locked).",
+  "timeout_ms": 120000,
+  "location": {
+    "map": 0,
+    "x": -8917.41,
+    "y": -115.853,
+    "z": 82.3711,
+    "o": 0
+  },
+  "players": [
+    {
+      "id": "traveler",
+      "race": 1,
+      "class": 1,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let the fixture settle",
+      "ms": 3000
+    },
+    {
+      "action": "assert",
+      "label": "Starts in Elwynn Forest",
+      "actor": "traveler",
+      "metric": "map_id",
+      "equals": 0
+    },
+    {
+      "action": "teleport",
+      "label": "Teleport to Hellfire Peninsula, the Dark Portal landing",
+      "actor": "traveler",
+      "map": 530,
+      "x": -248.149,
+      "y": 921.875,
+      "z": 84.3885,
+      "o": 0
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING, refused for Hellfire Peninsula, the Dark Portal landing: still on the Eastern Kingdoms map",
+      "actor": "traveler",
+      "metric": "map_id",
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING, refused for Hellfire Peninsula, the Dark Portal landing: still in Elwynn Forest",
+      "actor": "traveler",
+      "metric": "position_x",
+      "min": -8967.0,
+      "max": -8867.0
+    },
+    {
+      "action": "teleport",
+      "label": "Teleport to Dalaran",
+      "actor": "traveler",
+      "map": 571,
+      "x": 5804.15,
+      "y": 624.771,
+      "z": 647.767,
+      "o": 0
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING, refused for Dalaran: still on the Eastern Kingdoms map",
+      "actor": "traveler",
+      "metric": "map_id",
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING, refused for Dalaran: still in Elwynn Forest",
+      "actor": "traveler",
+      "metric": "position_x",
+      "min": -8967.0,
+      "max": -8867.0
+    },
+    {
+      "action": "teleport",
+      "label": "Teleport to Silvermoon City",
+      "actor": "traveler",
+      "map": 530,
+      "x": 9487.69,
+      "y": -7279.2,
+      "z": 14.2866,
+      "o": 0
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING, refused for Silvermoon City: still on the Eastern Kingdoms map",
+      "actor": "traveler",
+      "metric": "map_id",
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING, refused for Silvermoon City: still in Elwynn Forest",
+      "actor": "traveler",
+      "metric": "position_x",
+      "min": -8967.0,
+      "max": -8867.0
+    },
+    {
+      "action": "teleport",
+      "label": "Teleport to the Exodar",
+      "actor": "traveler",
+      "map": 530,
+      "x": -3965.7,
+      "y": -11653.6,
+      "z": -138.844,
+      "o": 0
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING, refused for the Exodar: still on the Eastern Kingdoms map",
+      "actor": "traveler",
+      "metric": "map_id",
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING, refused for the Exodar: still in Elwynn Forest",
+      "actor": "traveler",
+      "metric": "position_x",
+      "min": -8967.0,
+      "max": -8867.0
+    },
+    {
+      "action": "teleport",
+      "label": "Teleport to Shattrath City",
+      "actor": "traveler",
+      "map": 530,
+      "x": -1838.16,
+      "y": 5301.79,
+      "z": -12.4279,
+      "o": 0
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING, refused for Shattrath City: still on the Eastern Kingdoms map",
+      "actor": "traveler",
+      "metric": "map_id",
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING, refused for Shattrath City: still in Elwynn Forest",
+      "actor": "traveler",
+      "metric": "position_x",
+      "min": -8967.0,
+      "max": -8867.0
+    },
+    {
+      "action": "teleport",
+      "label": "Teleport to a Northrend dungeon map (The Nexus)",
+      "actor": "traveler",
+      "map": 576,
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0,
+      "o": 0
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING, refused for a Northrend dungeon map (The Nexus): still on the Eastern Kingdoms map",
+      "actor": "traveler",
+      "metric": "map_id",
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING, refused for a Northrend dungeon map (The Nexus): still in Elwynn Forest",
+      "actor": "traveler",
+      "metric": "position_x",
+      "min": -8967.0,
+      "max": -8867.0
+    },
+    {
+      "action": "teleport",
+      "label": "Teleport to the unreleased Stormwind Sewers map",
+      "actor": "traveler",
+      "map": 903,
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0,
+      "o": 0
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING, refused for the unreleased Stormwind Sewers map: still on the Eastern Kingdoms map",
+      "actor": "traveler",
+      "metric": "map_id",
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING, refused for the unreleased Stormwind Sewers map: still in Elwynn Forest",
+      "actor": "traveler",
+      "metric": "position_x",
+      "min": -8967.0,
+      "max": -8867.0
+    },
+    {
+      "action": "teleport",
+      "label": "Control: teleport to Stormwind, an unlocked destination",
+      "actor": "traveler",
+      "map": 0,
+      "x": -8842.09,
+      "y": 626.358,
+      "z": 94.0867,
+      "o": 0
+    },
+    {
+      "action": "assert",
+      "label": "The control teleport is carried out, so the refusals above are the lock and not a broken teleport",
+      "actor": "traveler",
+      "metric": "position_y",
+      "min": 500.0,
+      "max": 700.0,
+      "within_ms": 5000
+    }
+  ]
+}

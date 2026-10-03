@@ -1,0 +1,117 @@
+{
+  "schema": 1,
+  "name": "Area access: a hearthstone bound in a locked area is reset to the race start",
+  "contract": "A character created before the locks can have their hearthstone bound in a now locked area such as Silvermoon City (map 530, zone 3487). On login and on every zone change a non-GM whose homebind is locked is rebound to their race start (Northshire for a Human) and told once with a chat line. The Hearthstone then takes them to that start instead of being refused after spending its cooldown. Without the reset the Hearthstone aims at Silvermoon, the teleport is refused and the player stays where they are. Requires the default Coa.Access.* values (all locked).",
+  "timeout_ms": 150000,
+  "location": {
+    "map": 0,
+    "x": -8917.41,
+    "y": -115.853,
+    "z": 82.3711,
+    "o": 0
+  },
+  "players": [
+    {
+      "id": "traveler",
+      "race": 1,
+      "class": 1,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let the fixture settle",
+      "ms": 3000
+    },
+    {
+      "action": "assert",
+      "label": "Carries a Hearthstone",
+      "actor": "traveler",
+      "metric": "item_count",
+      "item": 6948,
+      "equals": 1
+    },
+    {
+      "action": "set_homebind",
+      "label": "Bind to Silvermoon City, a locked area",
+      "actor": "traveler",
+      "map": 530,
+      "x": 9487.69,
+      "y": -7279.2,
+      "z": 14.2866,
+      "area": 3487
+    },
+    {
+      "action": "snapshot",
+      "actor": "traveler",
+      "metric": "system_messages",
+      "save_as": "chat_before"
+    },
+    {
+      "action": "teleport",
+      "label": "Cross into Stormwind, which fires a zone change",
+      "actor": "traveler",
+      "map": 0,
+      "x": -8842.09,
+      "y": 626.358,
+      "z": 94.0867,
+      "o": 0
+    },
+    {
+      "action": "wait",
+      "ms": 3000
+    },
+    {
+      "action": "assert",
+      "label": "The zone change was carried out",
+      "actor": "traveler",
+      "metric": "position_y",
+      "min": 500.0,
+      "max": 700.0
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING: one chat line says the bind was reset",
+      "actor": "traveler",
+      "metric": "system_messages",
+      "relative_to": "chat_before",
+      "equals": 1
+    },
+    {
+      "action": "use_item",
+      "label": "Use the Hearthstone",
+      "actor": "traveler",
+      "item": 6948,
+      "spell": 8690
+    },
+    {
+      "action": "wait",
+      "label": "Let the ten second channel finish",
+      "ms": 14000
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING: carried to the Human start, not refused",
+      "actor": "traveler",
+      "metric": "position_x",
+      "min": -9000.0,
+      "max": -8900.0,
+      "within_ms": 10000
+    },
+    {
+      "action": "assert",
+      "actor": "traveler",
+      "metric": "position_y",
+      "min": -182.0,
+      "max": -82.0
+    },
+    {
+      "action": "assert",
+      "label": "Still on the Eastern Kingdoms map",
+      "actor": "traveler",
+      "metric": "map_id",
+      "equals": 0
+    }
+  ]
+}

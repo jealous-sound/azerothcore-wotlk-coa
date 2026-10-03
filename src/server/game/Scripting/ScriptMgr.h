@@ -86,6 +86,7 @@ class SpellScriptLoader;
 struct AchievementCriteriaData;
 struct AuctionEntry;
 struct Mail;
+struct TransportTemplate;
 struct Condition;
 struct ConditionSourceInfo;
 struct DungeonProgressionRequirements;
@@ -197,6 +198,7 @@ public: /* WorldScript */
     void OnShutdownCancel();
     void OnWorldUpdate(uint32 diff);
     void OnStartup();
+    bool OnCanSpawnContinentTransport(TransportTemplate const& transport);
     void OnShutdown();
     void OnBeforeWorldInitialized();
     void OnAfterUnloadAllMaps();
@@ -371,6 +373,8 @@ public: /* PlayerScript */
     void OnPlayerUpdateZone(Player* player, uint32 newZone, uint32 newArea);
     void OnPlayerUpdateArea(Player* player, uint32 oldArea, uint32 newArea);
     bool OnPlayerBeforeTeleport(Player* player, uint32 mapid, float x, float y, float z, float orientation, uint32 options, Unit* target);
+    bool OnPlayerCanTeleportTo(Player* player, uint32 mapid, float x, float y, float z, uint32 options);
+    bool OnPlayerBeforeActivateTaxiPath(Player* player, std::vector<uint32> const& nodes);
     void OnPlayerUpdateFaction(Player* player);
     void OnPlayerAddToBattleground(Player* player, Battleground* bg);
     void OnPlayerQueueRandomDungeon(Player* player, uint32 & rDungeonId);

@@ -1473,6 +1473,9 @@ bool Player::TeleportTo(uint32 mapid, float x, float y, float z, float orientati
         return false;
     }
 
+    if (!sScriptMgr->OnPlayerCanTeleportTo(this, mapid, x, y, z, options))
+        return false;
+
     // client without expansion support
     if (GetSession()->Expansion() < mEntry->Expansion())
     {
@@ -10752,6 +10755,12 @@ bool Player::ActivateTaxiPathTo(std::vector<uint32> const& nodes, Creature* npc 
 {
     if (nodes.size() < 2)
         return false;
+
+    if (!sScriptMgr->OnPlayerBeforeActivateTaxiPath(this, nodes))
+    {
+        GetSession()->SendActivateTaxiReply(ERR_TAXINOSUCHPATH);
+        return false;
+    }
 
     // not let cheating with start flight in time of logout process || while in combat || has type state: stunned || has type state: root
     if (GetSession()->isLogingOut() || IsInCombat() || HasUnitState(UNIT_STATE_STUNNED) || HasUnitState(UNIT_STATE_ROOT))

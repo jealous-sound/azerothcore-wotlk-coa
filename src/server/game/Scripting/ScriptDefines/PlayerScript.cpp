@@ -314,6 +314,16 @@ bool ScriptMgr::OnPlayerBeforeTeleport(Player* player, uint32 mapid, float x, fl
     CALL_ENABLED_BOOLEAN_HOOKS(PlayerScript, PLAYERHOOK_ON_BEFORE_TELEPORT, !script->OnPlayerBeforeTeleport(player, mapid, x, y, z, orientation, options, target));
 }
 
+bool ScriptMgr::OnPlayerCanTeleportTo(Player* player, uint32 mapid, float x, float y, float z, uint32 options)
+{
+    CALL_ENABLED_BOOLEAN_HOOKS(PlayerScript, PLAYERHOOK_ON_CAN_TELEPORT_TO, !script->OnPlayerCanTeleportTo(player, mapid, x, y, z, options));
+}
+
+bool ScriptMgr::OnPlayerBeforeActivateTaxiPath(Player* player, std::vector<uint32> const& nodes)
+{
+    CALL_ENABLED_BOOLEAN_HOOKS(PlayerScript, PLAYERHOOK_ON_BEFORE_ACTIVATE_TAXI_PATH, !script->OnPlayerBeforeActivateTaxiPath(player, nodes));
+}
+
 void ScriptMgr::OnPlayerUpdateFaction(Player* player)
 {
     CALL_ENABLED_HOOKS(PlayerScript, PLAYERHOOK_ON_UPDATE_FACTION, script->OnPlayerUpdateFaction(player));

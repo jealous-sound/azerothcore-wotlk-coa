@@ -1,0 +1,176 @@
+{
+  "schema": 1,
+  "name": "Area access: flights to locked Outland and Northrend flight points are refused",
+  "contract": "Player::ActivateTaxiPathTo asks OnPlayerBeforeActivateTaxiPath before anything else. A route whose nodes include a locked location is refused and the player is told once (chat line throttled to one per 30 seconds); a route inside unlocked areas still starts. The routes are requested with the client's CMSG_ACTIVATETAXIEXPRESS for Stormwind (node 2) to Shattrath (node 128, Terokkar, map 530) and to Dalaran (node 310, map 571). A route with no path would also fail to fly, so the refusal is proven by the chat line, which only the lock sends. Control: Stormwind to Lakeshire (node 5) starts a flight. Requires the default Coa.Access.* values (all locked).",
+  "timeout_ms": 120000,
+  "location": {
+    "map": 0,
+    "x": -8840.56,
+    "y": 489.7,
+    "z": 109.61,
+    "o": 0
+  },
+  "players": [
+    {
+      "id": "traveler",
+      "race": 1,
+      "class": 1,
+      "level": 60
+    }
+  ],
+  "creatures": [
+    {
+      "id": "gryphon_master",
+      "owner": "traveler",
+      "entry": 352,
+      "faction": 12
+    }
+  ],
+  "steps": [
+    {
+      "action": "discover_taxi_node",
+      "actor": "traveler",
+      "entry": 2
+    },
+    {
+      "action": "discover_taxi_node",
+      "actor": "traveler",
+      "entry": 5
+    },
+    {
+      "action": "discover_taxi_node",
+      "actor": "traveler",
+      "entry": 128
+    },
+    {
+      "action": "discover_taxi_node",
+      "actor": "traveler",
+      "entry": 310
+    },
+    {
+      "action": "set_money",
+      "actor": "traveler",
+      "value": 100000
+    },
+    {
+      "action": "wait",
+      "label": "Let the fixture settle",
+      "ms": 3000
+    },
+    {
+      "action": "snapshot",
+      "actor": "traveler",
+      "metric": "system_messages",
+      "save_as": "chat_before"
+    },
+    {
+      "action": "client_packet",
+      "label": "Fly Stormwind - Shattrath",
+      "actor": "traveler",
+      "opcode": 786,
+      "consumed": false,
+      "fields": [
+        {
+          "actor_guid": "gryphon_master"
+        },
+        {
+          "u32": 2
+        },
+        {
+          "u32": 2
+        },
+        {
+          "u32": 128
+        }
+      ]
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "assert",
+      "label": "No flight starts",
+      "actor": "traveler",
+      "metric": "in_flight",
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING: the lock told the player (a missing path sends no chat line)",
+      "actor": "traveler",
+      "metric": "system_messages",
+      "relative_to": "chat_before",
+      "equals": 1
+    },
+    {
+      "action": "client_packet",
+      "label": "Fly Stormwind - Dalaran",
+      "actor": "traveler",
+      "opcode": 786,
+      "consumed": false,
+      "fields": [
+        {
+          "actor_guid": "gryphon_master"
+        },
+        {
+          "u32": 2
+        },
+        {
+          "u32": 2
+        },
+        {
+          "u32": 310
+        }
+      ]
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "assert",
+      "label": "No flight starts",
+      "actor": "traveler",
+      "metric": "in_flight",
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "The second refusal inside 30 seconds adds no chat line",
+      "actor": "traveler",
+      "metric": "system_messages",
+      "relative_to": "chat_before",
+      "equals": 1
+    },
+    {
+      "action": "client_packet",
+      "label": "Control: fly Stormwind - Lakeshire",
+      "actor": "traveler",
+      "opcode": 786,
+      "consumed": false,
+      "fields": [
+        {
+          "actor_guid": "gryphon_master"
+        },
+        {
+          "u32": 2
+        },
+        {
+          "u32": 2
+        },
+        {
+          "u32": 5
+        }
+      ]
+    },
+    {
+      "action": "assert",
+      "label": "An unlocked route still starts a flight",
+      "actor": "traveler",
+      "metric": "in_flight",
+      "equals": 1,
+      "within_ms": 3000
+    }
+  ]
+}

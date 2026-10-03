@@ -59,6 +59,11 @@ void ScriptMgr::OnWorldUpdate(uint32 diff)
     CALL_ENABLED_HOOKS(WorldScript, WORLDHOOK_ON_UPDATE, script->OnUpdate(diff));
 }
 
+bool ScriptMgr::OnCanSpawnContinentTransport(TransportTemplate const& transport)
+{
+    CALL_ENABLED_BOOLEAN_HOOKS(WorldScript, WORLDHOOK_ON_CAN_SPAWN_CONTINENT_TRANSPORT, !script->OnCanSpawnContinentTransport(transport));
+}
+
 void ScriptMgr::OnStartup()
 {
     CALL_ENABLED_HOOKS(WorldScript, WORLDHOOK_ON_STARTUP, script->OnStartup());

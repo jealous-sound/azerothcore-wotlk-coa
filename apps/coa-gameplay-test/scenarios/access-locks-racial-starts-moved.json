@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "name": "Area access: new Blood Elf and Draenei characters start in Deathknell and Shadowglen",
+  "contract": "Sunstrider Isle and Ammen Vale (map 530) are locked by default, so rev_20260930_70_blood_elf_draenei_starts.sql moves playercreateinfo for race 10 (Blood Elf) to Deathknell (map 0, 1676.71, 1678.31, 121.67) and for race 11 (Draenei) to Shadowglen (map 1, 10311.3, 832.463, 1326.41), keeping Death Knights on Acherus. Without the update a new Blood Elf or Draenei logs in on map 530 inside a locked zone, where eviction has no allowed bind or start position to send them to. Requires the default Coa.Access.* values (all locked).",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "bloodelf",
+      "race": 10,
+      "class": 1,
+      "level": 10
+    },
+    {
+      "id": "draenei",
+      "race": 11,
+      "class": 1,
+      "level": 10
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let login and any eviction finish",
+      "ms": 6000
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING: the Blood Elf starts on the Eastern Kingdoms map, not map 530",
+      "actor": "bloodelf",
+      "metric": "map_id",
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "In Deathknell",
+      "actor": "bloodelf",
+      "metric": "position_x",
+      "min": 1576.71,
+      "max": 1776.71
+    },
+    {
+      "action": "assert",
+      "actor": "bloodelf",
+      "metric": "position_y",
+      "min": 1578.31,
+      "max": 1778.31
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING: the Draenei starts on the Kalimdor map, not map 530",
+      "actor": "draenei",
+      "metric": "map_id",
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "label": "In Shadowglen",
+      "actor": "draenei",
+      "metric": "position_x",
+      "min": 10211.3,
+      "max": 10411.3
+    },
+    {
+      "action": "assert",
+      "actor": "draenei",
+      "metric": "position_y",
+      "min": 732.463,
+      "max": 932.463
+    }
+  ]
+}

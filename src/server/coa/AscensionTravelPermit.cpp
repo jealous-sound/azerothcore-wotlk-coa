@@ -24,16 +24,14 @@ struct Destination
     uint8 race;
 };
 
-constexpr std::array<Destination, 8> Destinations =
+constexpr std::array<Destination, 6> Destinations =
 {{
     {"Elwynn Forest", TEAM_ALLIANCE, RACE_HUMAN},
     {"Dun Morogh", TEAM_ALLIANCE, RACE_DWARF},
     {"Teldrassil", TEAM_ALLIANCE, RACE_NIGHTELF},
-    {"Ammen Vale", TEAM_ALLIANCE, RACE_DRAENEI},
     {"Tirisfal Glades", TEAM_HORDE, RACE_UNDEAD_PLAYER},
     {"Durotar", TEAM_HORDE, RACE_ORC},
-    {"Mulgore", TEAM_HORDE, RACE_TAUREN},
-    {"Sunstrider Isle", TEAM_HORDE, RACE_BLOODELF}
+    {"Mulgore", TEAM_HORDE, RACE_TAUREN}
 }};
 
 SpellCastResult CheckTravel(Player const* player)

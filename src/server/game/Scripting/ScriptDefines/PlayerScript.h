@@ -251,6 +251,8 @@ enum PlayerHook
     PLAYERHOOK_ON_REFRESH_QUEST_GIVER,
     PLAYERHOOK_ON_COA_PROGRESS,
     PLAYERHOOK_ON_GET_GAME_MODE_MASK,
+    PLAYERHOOK_ON_BEFORE_ACTIVATE_TAXI_PATH,
+    PLAYERHOOK_ON_CAN_TELEPORT_TO,
     PLAYERHOOK_END
 };
 
@@ -439,6 +441,12 @@ public:
 
     // Called before a player is being teleported to new coords
     [[nodiscard]] virtual bool OnPlayerBeforeTeleport(Player* /*player*/, uint32 /*mapid*/, float /*x*/, float /*y*/, float /*z*/, float /*orientation*/, uint32 /*options*/, Unit* /*target*/) { return true; }
+
+    // Called before a teleport has any effect on the player. Return false to refuse it
+    [[nodiscard]] virtual bool OnPlayerCanTeleportTo(Player* /*player*/, uint32 /*mapid*/, float /*x*/, float /*y*/, float /*z*/, uint32 /*options*/) { return true; }
+
+    // Called before a taxi flight along the given nodes is started. Return false to refuse it
+    [[nodiscard]] virtual bool OnPlayerBeforeActivateTaxiPath(Player* /*player*/, std::vector<uint32> const& /*nodes*/) { return true; }
 
     // Called when team/faction is set on player
     virtual void OnPlayerUpdateFaction(Player* /*player*/) { }

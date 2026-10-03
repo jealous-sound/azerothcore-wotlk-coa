@@ -22,6 +22,8 @@
 #include "ScriptObject.h"
 #include <vector>
 
+struct TransportTemplate;
+
 enum WorldHook
 {
     WORLDHOOK_ON_OPEN_STATE_CHANGE,
@@ -37,6 +39,7 @@ enum WorldHook
     WORLDHOOK_ON_AFTER_UNLOAD_ALL_MAPS,
     WORLDHOOK_ON_BEFORE_FINALIZE_PLAYER_WORLD_SESSION,
     WORLDHOOK_ON_BEFORE_WORLD_INITIALIZED,
+    WORLDHOOK_ON_CAN_SPAWN_CONTINENT_TRANSPORT,
     WORLDHOOK_END
 };
 
@@ -72,6 +75,9 @@ public:
 
     // Called when the world is started.
     virtual void OnStartup() { }
+
+    // Called for each continent transport before it is spawned. Return false to leave it out
+    [[nodiscard]] virtual bool OnCanSpawnContinentTransport(TransportTemplate const& /*transport*/) { return true; }
 
     // Called when the world is actually shut down.
     virtual void OnShutdown() { }

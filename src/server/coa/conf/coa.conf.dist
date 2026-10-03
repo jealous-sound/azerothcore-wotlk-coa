@@ -289,3 +289,49 @@ Ascension.CallboardCache.PreviousStageOnly = 0
 #        Default:     6
 
 Ascension.CallboardCache.ItemLevelAllowance = 6
+
+#
+#    Coa.Access.*
+#        Description: Locks the Outland, Blood Elf, Draenei and Northrend areas and their dungeons
+#                     for players, whatever the account expansion level, plus the custom zones
+#                     Ascension never released. Game masters are never restricted. All of map 530, zones without their own key included,
+#                     follows Coa.Access.Outland.
+#                     A location key overrides its region key. A missing or invalid value
+#                     counts as locked. Refusals are announced at most once every 30 seconds
+#                     per player. Zeppelins and boats whose route starts or ends in a locked
+#                     area are not spawned. Transports are spawned at startup, so a change to
+#                     those needs a restart. Other changes apply with .reload config.
+#
+#    Coa.Access.Outland
+#    Coa.Access.BloodElf
+#    Coa.Access.Draenei
+#    Coa.Access.Northrend
+#    Coa.Access.Unreleased
+#        Description: Default for every location of the region.
+#        Default:     0 - (Locked)
+#                     1 - (Accessible)
+#
+#    Coa.Access.Outland.<Location>
+#        Locations:   HellfirePeninsula, Zangarmarsh, TerokkarForest, Nagrand, BladesEdgeMountains, Netherstorm, ShadowmoonValley, ShattrathCity, IsleOfQuelDanas, Dungeons
+#
+#    Coa.Access.BloodElf.<Location>
+#        Locations:   EversongWoods, Ghostlands, SilvermoonCity, SunstriderIsle, AmaniCatacombs
+#
+#    Coa.Access.Draenei.<Location>
+#        Locations:   AzuremystIsle, BloodmystIsle, TheExodar, AmmenVale, StillpineHold
+#
+#    Coa.Access.Northrend.<Location>
+#        Locations:   BoreanTundra, HowlingFjord, Dragonblight, GrizzlyHills, ZulDrak, SholazarBasin, StormPeaks, Icecrown, CrystalsongForest, Dalaran, Wintergrasp, Dungeons
+#
+#    Coa.Access.Unreleased.<Location>
+#        Locations:   DrukThar, StormwindSewers, OrgrimmarDepths, FadingIsland, ForgottenMine,
+#                     KarazhanCrypts, ShadowboneDepths
+#
+#    Example, open Nagrand only:
+#        Coa.Access.Outland.Nagrand = 1
+
+Coa.Access.Outland = 0
+Coa.Access.BloodElf = 0
+Coa.Access.Draenei = 0
+Coa.Access.Northrend = 0
+Coa.Access.Unreleased = 0

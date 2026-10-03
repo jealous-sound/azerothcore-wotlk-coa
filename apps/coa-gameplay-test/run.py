@@ -127,6 +127,7 @@ ACTIONS = {
     'level_scaling_packet': ({'actor', 'value'}, {'actor', 'value'}),
     'client_packet': ({'actor', 'opcode'}, {'actor', 'opcode', 'fields', 'consumed', 'early'}),
     'discover_taxi_node': ({'actor', 'entry'}, {'actor', 'entry'}),
+    'set_homebind': ({'actor', 'map', 'x', 'y', 'z'}, {'actor', 'map', 'x', 'y', 'z', 'area'}),
     'specialization': ({'actor', 'id'}, {'actor', 'id', 'refused'}),
     'advancement_rank': ({'actor', 'entry', 'rank'}, {'actor', 'entry', 'rank', 'refused'}),
     'apply_appearances': ({'actor', 'selection'}, {'actor', 'selection'}),
@@ -446,6 +447,12 @@ def validate(scenario):
             for category, appearance in selection.items():
                 require(category.isdigit() and 0 < int(category) < 256, f'{where}.selection: invalid category')
                 number(appearance, f'{where}.selection.{category}', 0, 2**32 - 1, True)
+        if action == 'set_homebind':
+            number(step['map'], f'{where}.map', 0, 2**31 - 1, True)
+            for axis in ('x', 'y', 'z'):
+                number(step[axis], f'{where}.{axis}', -1e7, 1e7)
+            if 'area' in step:
+                number(step['area'], f'{where}.area', 0, 2**31 - 1, True)
         if action == 'discover_taxi_node':
             number(step['entry'], f'{where}.entry', 1, 2**31 - 1, True)
         if action == 'client_packet':

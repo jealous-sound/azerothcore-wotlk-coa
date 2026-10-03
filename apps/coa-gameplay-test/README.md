@@ -590,7 +590,9 @@ the difference between two observations; take a `snapshot` first and assert `rel
 `position_x`, `position_y` and `position_z` read the unit's native coordinates on its current map, so a
 teleport's landing can be held to its destination with `min`/`max` bounds; pair them with `map_id`.
 `in_flight` is 1 while a player rides a taxi and `taxi_destination` is the last node of the route still
-ahead (0 when none). `discover_taxi_node` (player `actor`, TaxiNodes `entry`) marks a node discovered, as
+ahead (0 when none). `set_homebind` (player `actor`, `map`, `x`, `y`, `z`, optional `area`) moves the hearthstone bind
+without the player travelling there, so a scenario can bind a player to a place they cannot stand in.
+`discover_taxi_node` (player `actor`, TaxiNodes `entry`) marks a node discovered, as
 talking to its flight master does, so a scenario can request a route through it.
 `stabled_pet_count` counts a player's stabled pets, `pet_rows` counts their saved pets in `character_pet`
 (only those saved in `character_pet.slot` `slot` when given)
