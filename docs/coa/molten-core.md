@@ -182,7 +182,40 @@ proc buff) — treated as stale/recycled aura data, not a real Garr mechanic, an
 | Blink 2105611, area, 14.6s/16.4s | ran as a plain teleport | Gate of Shazzrah's threat wipe (`ResetAllThreat`+`AddThreat`+`AttackStart`) bound via a new `SpellScript` | measured (timer) + measured (dead-code comparison to `boss_shazzrah.cpp`) | The wipe now always lands on the tank (`TARGET_AREA` resolves to the tank), not a random raid member as vanilla did |
 | Arcane Instability 2105605→606, area, 18.4s/65.2s | ran | unchanged | measured | — |
 | Mass Counterspell (self) 2105609→610, 23.6s/34.8s | targeted Shazzrah himself, both spells carry `SPELL_ATTR3_ONLY_ON_PLAYER` → `SPELL_FAILED_TARGET_NOT_PLAYER`, never landed | retargeted to tank (Dampen Magic) / area (Mass Counterspell) — `rev_20260930_87` | measured (docker cast-failure logs + Spell.dbc effect targets) | — |
-| Arcane Force Nova 2105612→617, area, 44.3s/64.6s | appeared "never" cast in short probe windows | unchanged spell, but `coa_boss_ai`'s event clock previously stalled a tick whenever the boss briefly had no victim (e.g. mid-teleport); fixed (`35c4f405e`) so the clock advances on every elapsed tick | measured (confirmed firing in the 32-run campaign once the clock fix landed) | — |
+| Arcane Force Nova 2105612→617, area, 44.3s/64.6s | appeared "never" cast in short probe windows | unchanged spell, but `coa_boss_ai`'s event clock previously stalled a tick whenever the boss briefly had no victim (e.g. mid-teleport); fixed (`35c4f405e`) so the clock advances on every elapsed tick | measured (confirmed firing in the 32-run campaign once the clock fix landed) | superseded below: the clock fix made it fire, but it still dealt no raid damage |
+
+**Arcane Force Nova dealt no raid damage even after the clock fix (confirmed defect, fixed this session).**
+rev_20261001_02 bound 2105617 (the dummy's completion cast) to the real per-difficulty amount via
+`coa_spell_damage_info`, fixing the DBC placeholder (1 damage) — but left the cast itself pointed at
+2105617, whose own `EffectImplicitTargetA` is `TARGET_UNIT_TARGET_ANY` (a single unit, whichever
+target `CoaBossAI::Cast()` passed — the tank), not an area. Live Ghost reproduction confirmed it: one
+Nova landed exactly one real hit (7413 on the tank) and zero on the rest of a 5-bot raid. The real
+area spells are 2105613-16 themselves ("Arcane Force Nova - Hidden Area Damage", `Spell.dbc`:
+`TARGET_UNIT_DEST_AREA_ENEMY`, `EffectRadiusIndex` 12 = 100yd, `SPELL_ATTR0_DO_NOT_DISPLAY`/
+`DO_NOT_LOG` — Blizzard's own hidden-trigger-effect pattern, never meant to be cast directly) already
+carrying the correct amount *and* the correct area target type; nothing ever cast them. No `Spell.dbc`
+row (2105612/2105613-16/2105617 checked individually) carries `SpellDifficultyId` pointing at
+`SpellDifficulty.dbc` group 2114, whose four `SpellID` columns happen to equal 2105613-16 — that
+group is orphaned data the engine cannot reach by casting any one id, so `coa_boss_schedule`'s single,
+difficulty-shared `effect` column could not name this per-tier family by itself (every other
+dummy/effect pair in this table uses an id that is the same across tiers).
+
+Fixed by letting `effect` differ per difficulty, the same shape `spell_d0..d3` already uses for casts
+whose id genuinely differs by tier (`coa_boss_schedule` gains `effect_d1`/`effect_d2`/`effect_d3`
+columns, `effect` renamed to `effect_d0`; `CoaBossAI.cpp`'s `ScheduleRow::effect`/`EffectFor()`
+mirror `spell`/`SpellFor()`). Shazzrah's Nova row now names 2105613/2105614/2105615/2105616 directly
+and the now-dead `coa_spell_damage_info`/`spell_script_names` rows for 2105617 are dropped.
+Re-verified live (Ghost harness, slot 4, grouped 5-bot raid, Normal difficulty): the same Nova now
+hits multiple distinct raid members in one cast (`SMSG_SPELL_GO` hit list `bot02,bot01`;
+`SMSG_SPELLNONMELEEDAMAGELOG` 7298 pre-resist on bot02, 7784 pre-resist on bot01 — both within normal
+roll variance of the Normal-tier corpus figure 6999), where the pre-fix build hit exactly one bot per
+cast. Only 2 of the 5 raid members were hit in that run despite a 100yd effect radius comfortably
+covering the whole encounter room; the other 3 bots' exact state at that tick (position/combat/LOS)
+was not captured by the harness, so the cause of the partial hit count is not pinned down — flagged
+as an open question, not re-opening the single-target defect this fix closes (the pre-fix build hit
+*at most one* target ever; the post-fix build's own `SMSG_SPELL_GO` already reports a genuine
+multi-target hit list for a single cast). Heroic, Mythic and Ascended were not re-verified live this
+session (not yet run).
 
 Health: `hp_d0..d3` 775,397/1,033,863/1,556,054/2,267,615 (rebuilt from a Bronzebeard video reading at
 Ascended times the C=3.306 BB->CoA coefficient — see §5). Time Stop (2105618) and Mass Slow (2105619) exist in the kit with no schedule row and no
@@ -923,6 +956,9 @@ Shazzrah himself) and the `CoaBossAI` event-clock fix (`35c4f405e`, `_events.Upd
 `UpdateVictim()` bail-out, so any victim-less tick stalled every row's timer, making low-frequency casts
 like Arcane Force Nova look "never fired" in a short window).
 
+This campaign only checked that Arcane Force Nova *fired*, not that it dealt raid-wide damage once it
+did — it did not, until the single-target-vs-area fix in §3 above.
+
 Baron Geddon's Inferno/Armageddon needed no server-side fix — see §3 for the probe-harness root cause.
 
 The "tier split" reports (Sulfuron, Golemagg, Lucifron Impending Doom, Gehennas Rain of Fire "missing"
@@ -974,10 +1010,14 @@ evidence + source reads), fixed individually below. See `impl-G-mechanics.md` fo
    (boss_garr.cpp) filters the native area-target list down to melee range (3 yd past
    `GetMeleeRange`, which already includes combat reach) after selection, the same
    filter-after-select idiom `spell_magmadar_head_lava_bomb` already uses.
-4. **Shazzrah's Arcane Force Nova (2105612 -> 2105617) wired through Damage Info.** 2105617 was a DBC
-   placeholder (1 damage); the real per-difficulty amounts live in "Arcane Force Nova - Hidden Area
-   Damage" (2105613-16). Bound via `coa_spell_damage_info`/`spell_coa_damage_info_hit`, the same
-   mechanism as rev_20260930_83's 12 pairs.
+4. **Shazzrah's Arcane Force Nova (2105612 -> 2105613/14/15/16) cast as its own area spell.** The
+   Damage Info retrofit above fixed the amount but left the dummy completing into 2105617, a
+   single-target placeholder (`TARGET_UNIT_TARGET_ANY`) — live reproduction showed one real hit on the
+   tank and zero on the rest of the raid. The real per-difficulty "Hidden Area Damage" spells
+   (2105613-16) already carry the correct amount and the correct `TARGET_UNIT_DEST_AREA_ENEMY`
+   targeting; `coa_boss_schedule.effect` is now per-difficulty (`effect_d0..d3`, mirroring
+   `spell_d0..d3`) so `CoaBossAI` can cast them directly, and the dead 2105617 Damage Info/script rows
+   are dropped (see the Shazzrah entry in §3 for the live before/after).
 5. **Ancient Core Hound (11673) given SmartAI above Normal, plus Melt Armor.** Like the rest of MC
    trash, only the base entry had any `smart_scripts` rows; replicated onto 111673/211673/311673 and
    added Melt Armor (2105025, `SPELL_AURA_MOD_RESISTANCE_PCT`, stacks to 5) on all four difficulties --
