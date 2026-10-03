@@ -6,10 +6,12 @@ at a time. Failed or unrun catalog cases are rerun once in single mode; a case t
 only there is reported as batch-sensitive, and an unrun case that passes there is reported as isolated-only.
 
 Simulated clock (--clock simulated): one worldserver runs up to --lanes cases at once in phase-isolated lanes on a
-game clock that skips scripted waits. Cases that clock_policy.json lists as exclusive run while no other case runs.
-Once every accelerated case has finished, each failed catalog case runs again on the same worldserver at real pace;
-a case that passes only there is reported as acceleration-sensitive. --isolated-rerun adds single-mode reruns of the
-cases that still fail. A case that has not returned its result is treated as hung 3 * timeout_ms / 1000 + 60
+game clock that skips scripted waits. Cases that enter the normal world phase or are listed as exclusive in
+clock_policy.json run while no other case runs.
+An accelerated failure remains failed by default. --real-pace-rerun explicitly enables slower same-server
+diagnostics after the accelerated queue; a case that passes only there is reported as acceleration-sensitive.
+That retry alone does not establish a clock dependency. --isolated-rerun adds single-mode reruns of failed cases.
+A case that has not returned its result is treated as hung 3 * timeout_ms / 1000 + 60
 seconds after a lane could first have admitted it. This worldserver writes its character database through
 --character-db-workers asynchronous connections at READ-COMMITTED isolation; real-clock and single-mode
 worldservers keep one worker at the MySQL server's default isolation.
@@ -783,7 +785,8 @@ class Batch:
         return self.output / folder / case.key
 
     def queue_real_pace(self):
-        if not self.simulated or self.real_pace_queued or self.queue or self.stopping.is_set():
+        if (not self.simulated or not self.args.real_pace_rerun or self.real_pace_queued or
+                self.queue or self.stopping.is_set()):
             return
         self.real_pace_queued = True
         self.queue.extend(longest_first(replace(case, pace=REAL_CLOCK) for case in self.cases
@@ -1157,7 +1160,10 @@ def run_batch(args, directory=catalog.DIRECTORY):
     if args.clock == SIMULATED_CLOCK:
         exclusive = clock_policy(directory)
         for case in cases:
-            case.exclusive = (not case.exploratory and case.key in exclusive) or case.hour is not None
+            world_phase = any(step['action'] == 'set_phase' and step['value'] & 1
+                              for step in case.scenario['steps'])
+            case.exclusive = (world_phase or (not case.exploratory and case.key in exclusive)
+                              or case.hour is not None)
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
     run.require(not any(output.iterdir()), f'Output directory must be new or empty: {output}')
@@ -1184,6 +1190,7 @@ def resolve_clock(args):
         run.require(1 <= args.character_db_workers <= MAX_DATABASE_WORKERS,
                     f'--character-db-workers must be between 1 and {MAX_DATABASE_WORKERS}')
     else:
+        run.require(not args.real_pace_rerun, '--real-pace-rerun requires --clock simulated')
         run.require(args.lanes in (None, 1), '--lanes above 1 requires --clock simulated')
         tuned = [option_name(option) for option in CLOCK_OPTIONS if getattr(args, option) is not None]
         run.require(not tuned, f"Clock tuning ({', '.join(tuned)}) requires --clock simulated")
@@ -1228,6 +1235,9 @@ def parser():
                              'keeps 1)')
     result.add_argument('--scenario', action='extend', nargs='+', default=[], metavar='ID_OR_PATH',
                         help='Catalog id or scenario file; default: every catalog scenario')
+    result.add_argument('--real-pace-rerun', action='store_true',
+                        help='Diagnose failed accelerated cases with slower same-server reruns '
+                             '(default: off; requires --clock simulated)')
     result.add_argument('--isolated-rerun', action=argparse.BooleanOptionalAction, default=None,
                         help='Rerun failed catalog cases in single mode (default: on for the real clock only)')
     result.add_argument('--startup-timeout', type=float, default=600)

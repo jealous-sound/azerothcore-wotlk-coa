@@ -245,7 +245,8 @@ The gameplay result tree contains:
   `phase_mask`, `game_elapsed_ms`, `real_elapsed_ms`, `setup_real_ms`, world `ticks` and `max_step_ms`, the
   largest world step while the case ran. On the real clock, a case with an `hour` leaves its single-mode bundle
   here instead.
-- `real-pace/<id>/`: the same bundle for a case's [real-pace rerun](#verdict-ladder) on the simulated clock.
+- `real-pace/<id>/`: the same bundle for a case's
+  [optional real-pace diagnostic](#accelerated-verdicts-and-optional-diagnostics) on the simulated clock.
 - `exploratory/<key>/`: the same bundle for an exploratory scenario file. `<key>` is the file name without
   `.json`, lowercased with other characters replaced by `-` and a `-2`, `-3` suffix for repeated names. Its
   progress line reads `exploratory:<key>` and its `exploratory_results` entry is keyed `<key>`.
@@ -334,31 +335,35 @@ A simulated verdict can differ from a real-clock one for these reasons:
   other transactions committed meanwhile. See [Character database](#character-database).
 - Lost servers: a crash or hang with several cases running, or after an earlier case on that server returned
   its result, fails the batch. With one case running on a server that has not returned a result yet, it fails
-  only that case, which then gets its real-pace rerun like any other failure. See
+  only that case. A real-pace retry is available only through the explicit diagnostic option. See
   [Server failures](#server-failures).
 
-### Verdict ladder
+### Accelerated verdicts and optional diagnostics
 
-1. A case that passes accelerated passes, with `mode: simulated`.
-2. After every accelerated case has finished, each failed or not-run catalog case runs again on the same server
-   with `pace: real`: while such a case runs no lane requests steps, so the world runs at real speed. These
-   reruns share the lanes. A pass counts as passed, with `mode: real_pace`, and lists the id in
-   `acceleration_sensitive`.
-3. Only `batch.py --isolated-rerun` adds single-mode reruns on their own worldservers (`mode: isolated`,
-   `batch_sensitive`). `verify_all.py` does not pass it, so a simulated gameplay stage uses one worldserver and a
-   case that fails both rungs fails.
+The normal gameplay stage runs accelerated only. A failed or not-run catalog case remains failed, and a passing
+case has `mode: simulated`. The runner does not turn a failed accelerated attempt into a pass through a slower
+retry. Repair the failed mechanic, fixture or independent expectation and run a new accelerated verification.
 
-Report `acceleration_sensitive` ids alongside the verdict: they passed only at real speed, which points to timing
-finer than the step caps, a wall-clock dependency, interference from a concurrent case, a lost server, or character
-writes committing out of order across the simulated server's character database workers (see
-[Character database](#character-database)). First read the accelerated attempt under `cases.<id>.batch` in
-`gameplay.json`: a `message` that begins `Worldserver exited` or reports `Case ... timed out after <n> s` means the
-worldserver crashed or hung during that attempt, and `gameplay.log` shows `SERVER <name> FAILED` for the server
-named by its `server`. Report that as a crash or hang, not as a timing difference. Rerunning the case with
-`--gameplay-db-workers 1` separates write order from clock timing: a pass there points to the character database. A
-`clock-*` id is different: those scenarios probe the simulated clock itself, so one in `acceleration_sensitive` is a
-simulated-clock defect to report as a failure even though the stage passed, unless it also passes with one
-character database worker. Confirm the others with a [real-clock reference run](#real-clock-reference-runs).
+For a controlled comparison, `verify_all.py --gameplay-real-pace-rerun` explicitly enables slower same-server
+diagnostics after the accelerated queue. The underlying runner option is `batch.py --real-pace-rerun`; continue
+to execute verification through `verify_all.py`. Each failed catalog case then runs with `pace: real`: while it
+runs no lane requests clock steps. A case passing this diagnostic has `mode: real_pace` and appears in
+`acceleration_sensitive`. Report it as a diagnostic-only pass, not a clean accelerated pass. `batch.py
+--isolated-rerun` separately opts into single-mode reruns; the regular simulated `verify_all.py` invocation
+enables neither slower path.
+
+A failed accelerated attempt followed by a passing retry does not by itself establish timing sensitivity.
+Independent random hit/proc rolls and invalid fixture assumptions can produce the same pattern. First inspect
+`cases.<id>.batch` and the original contract. A `Worldserver exited` or timeout message is a crash or hang to
+repair. For deterministic behavior, configure hit/expertise ratings and equipment explicitly; for random procs,
+collect enough eligible native events and use a statistical check. Preserve normal costs, cooldowns and proc
+rules. Only a repeatable controlled comparison supports a clock dependency; use a focused
+[real-clock reference run](#real-clock-reference-runs) while repairing one. Normal issue-batch verification
+uses the accelerated path.
+
+With multiple character database workers, a controlled `--gameplay-db-workers 1` run can distinguish write
+ordering from game-clock timing. A `clock-*` scenario failing accelerated indicates a simulated-clock defect;
+a slower diagnostic pass cannot establish that the clock works. Keep its accelerated failure explicit.
 
 ### Exclusive cases
 
@@ -373,8 +378,9 @@ An exclusive case is admitted only when every lane is idle, and no other case st
 rejects ids missing from the catalog and empty reasons. The list holds `who-custom-classes`, `who-hides-bots` and
 `who-lists-bots` (the Who list is process-global) and `bloodforged-high-risk-drop` and
 `coa-prestige-chromie-spawns` (`set_phase 1` affects live creatures) and `wildcard-season-event` (it stops the
-Wildcard season game event). A case with an [`hour`](#realm-local-time) is
-exclusive without being listed. Add a case, with its reason, when it reads or changes process-global state;
+Wildcard season game event). A case with an [`hour`](#realm-local-time) or a `set_phase` step whose mask includes
+the normal world phase (mask 1) is exclusive without being listed. The phase rule also applies to exploratory
+scenarios. Add a case, with its reason, when it reads or changes other process-global state;
 exclusivity does not fix timing failures. Chat that ignores
 phases is a known limit that the list does not cover: `treasure-keeper` asserts exact `system_messages` deltas and
 shares the server, so [creature text on its map](#fidelity-limits) from another lane can fail it.
@@ -401,9 +407,9 @@ of the day sets a top-level `hour` (0-23), and `realm_local_start` in each resul
 
 ### Real-clock reference runs
 
-The real clock remains the reference. Use it for an `acceleration_sensitive` case or a failure seen only on the
-simulated clock, when a change touches timers, the world update loop or the harness clock, and when a result
-depends on timing finer than the step caps:
+Use a focused real-clock reference to investigate a repeatable timing discrepancy or a change to timers,
+the world update loop or the harness clock. Rule out random hit/proc outcomes and missing prerequisites first.
+Normal verification remains accelerated only; a slower reference does not qualify a failed fast batch:
 
 ```sh
 python -B tools/verify_all.py --stages build,gameplay --gameplay-clock real --scenario <id>
@@ -414,8 +420,8 @@ It runs `gameplay_jobs` (or `--gameplay-jobs`) worldservers on the real clock, o
 isolated reruns. A `--gameplay-lanes` above 1 is rejected with it. Both clocks run the same harness: `wait`,
 `within_ms` and step `elapsed_ms` measure game time, which on the real clock follows the wall clock at world-tick
 resolution, and the login barrier and same-tick setup apply on both. A failure that both clocks show can
-therefore come from the harness as well as from the change. When the two clocks disagree on a case, the
-real-clock verdict decides; report the difference.
+therefore come from the harness as well as from the change. When the two clocks disagree on a case,
+report both outcomes and repair the discrepancy. A slower pass does not qualify a failed accelerated batch.
 
 ### Per-case isolation
 
@@ -481,9 +487,11 @@ workers at `REPEATABLE-READ` and 1067 s with one worker.
 
 Several workers can commit one session's writes in a different order than they were queued, so a case that reads
 back its own asynchronous character write can fail accelerated and pass at real pace; rerun it with
-`--gameplay-db-workers 1` to tell that apart from clock timing (see [Verdict ladder](#verdict-ladder)). Teardown
-repeats its deletions until one check finds the case's accounts and characters gone, but does not wait for writes
-still queued; see [Per-case isolation](#per-case-isolation) and [Fidelity limits](#fidelity-limits).
+`--gameplay-db-workers 1` to tell that apart from clock timing (see
+[Accelerated verdicts](#accelerated-verdicts-and-optional-diagnostics)). Teardown queues each account deletion
+once and retries residual character cleanup until the account rows, character rows and character cache entries
+are gone. It does not wait for every queued write; see [Per-case isolation](#per-case-isolation) and
+[Fidelity limits](#fidelity-limits).
 
 `READ-UNCOMMITTED` and `READ-COMMITTED` need row-based binary logging: with binary logging on and
 `binlog_format = STATEMENT`, MySQL rejects every InnoDB write at those levels (error 1665). The worldserver checks
@@ -606,8 +614,8 @@ Classify every failed or blocked stage, failed or `not_run` case and failed or u
    ([Separate worktrees](#separate-worktrees)).
 3. Acceleration-specific: a gameplay case that fails on the simulated clock and passes a
    [real-clock reference run](#real-clock-reference-runs) of the same checkout and settings
-   (`--gameplay-clock real --scenario <id>`). The real clock decides, so it does not block a PR; report both
-   results.
+   (`--gameplay-clock real --scenario <id>`). Report both outcomes; an affected accelerated failure must be
+   repaired before accepting a normal issue batch. Do not use the slower pass to clear it.
 4. New: everything else. Treat a new failure as a regression caused by the change until shown otherwise; it
    blocks a PR.
 

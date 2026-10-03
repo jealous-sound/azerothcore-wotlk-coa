@@ -58,8 +58,11 @@ Follow this sequence within the task's authorized scope:
   only for what ran. A full run is not yet all green on any setup; classify each failure or unavailable item as a
   documented prerequisite, pre-existing on the base, acceleration-specific (a real-clock reference run passes it)
   or new ([full runs](docs/coa/verification.md#full-runs)). A new failure blocks a PR.
-- Gameplay runs on a simulated clock by default: also report `acceleration_sensitive` ids, and confirm timing
-  results with `--gameplay-clock real` ([accelerated mode](docs/coa/verification.md#accelerated-single-server-mode)).
+- Gameplay verification runs accelerated only by default: fix fast failures before accepting a batch.
+  Slower same-server retries require `--gameplay-real-pace-rerun`; report their `acceleration_sensitive` ids as
+  diagnostic-only passes. A passing retry alone does not prove a clock dependency. Confirm a repeatable timing
+  defect with a focused `--gameplay-clock real` reference while repairing it, then use accelerated verification
+  ([accelerated mode](docs/coa/verification.md#accelerated-single-server-mode)).
 - `run.py validate`, `catalog.py` and `workflow.py` remain authoring and discovery tools, not verification.
 
 ## Task references

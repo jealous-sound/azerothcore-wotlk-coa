@@ -1,6 +1,7 @@
 #include "AscensionCollectibleSpellData.h"
 #include "ItemTemplate.h"
 #include "Optional.h"
+#include "Tokenize.h"
 #include "WorldPacket.h"
 #include <algorithm>
 #include <array>

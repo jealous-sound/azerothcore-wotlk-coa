@@ -1,7 +1,17 @@
 {
   "schema": 1,
   "name": "Upper Blackrock Spire: Pyroguard Emberseer fights with Ascension's kit",
-  "contract": "Once freed, Pyroguard Emberseer uses Ascension's kit for him (db.exil.es/npc/9816): Gathering Heat 2102189 stacks Rising Heat 2102190 on him, and he fights with Flame Buffet 2102188, Immolation 2102825, Fierce Blow 975011, Fire Nova 2102830 and Pyroblast 2102834.",
+  "contract": [
+    "Once freed, Pyroguard Emberseer uses Ascension's kit for him (db.exil.es/npc/9816): Gathering Heat",
+    "2102189 stacks Rising Heat 2102190 on him, and he fights with Flame Buffet 2102188, Immolation 2102825,",
+    "Fierce Blow 975011, Fire Nova 2102830 and Pyroblast 2102834. Original Flame Buffet 2102188 uses the",
+    "Magic hit table and has no no-miss attribute. Its dummy effect and school-damage-taken aura do not",
+    "promise a guaranteed first application. Keep its original hit roll and the boss script fourteen-second",
+    "repeat, while observing for up to ninety seconds after the first packet instead of requiring that first",
+    "roll to apply the aura within three seconds. Require the same aura and every other original kit packet,",
+    "plus a living observer before and after the extended sample. Ritual progression, boss timers, damage and",
+    "hit probabilities remain unchanged."
+  ],
   "timeout_ms": 300000,
   "location": {
     "map": 229,
@@ -121,12 +131,19 @@
     },
     {
       "action": "assert",
-      "label": "Flame Buffet stays on the hero",
+      "label": "The observer is alive after the first native Flame Buffet packet",
+      "actor": "hero",
+      "metric": "alive",
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "label": "A scheduled native Flame Buffet applies its authored aura",
       "actor": "hero",
       "metric": "aura",
       "spell": 2102188,
       "min": 1,
-      "within_ms": 3000
+      "within_ms": 90000
     },
     {
       "action": "assert",
@@ -177,6 +194,13 @@
       "spell": 2102834,
       "min": 1,
       "within_ms": 25000
+    },
+    {
+      "action": "assert",
+      "label": "The observer survives the complete boss-kit observation",
+      "actor": "hero",
+      "metric": "alive",
+      "equals": 1
     }
   ]
 }

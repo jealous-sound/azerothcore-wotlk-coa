@@ -257,10 +257,12 @@ invalidation reason, and preparation/server/total seconds. A retained world with
 Generated credential and module configuration files are removed on every normal cleanup.
 
 The gameplay stage writes each catalog case's queue-mode or accelerated attempt under `gameplay/cases/<id>/` of
-its output, a real-pace rerun under `gameplay/real-pace/<id>/` and an isolated rerun under
-`gameplay/isolated/<id>/`; `cases.<id>.directory` in `gameplay/gameplay.json` names the bundle that decided the
-verdict. Each exploratory scenario file gets a bundle under `gameplay/exploratory/<key>/` and each server's logs
-are under `gameplay/servers/`. A single-scenario run writes its bundle to `.cache/coa-gameplay-tests/<run-id>/`
+its output. Explicit `--gameplay-real-pace-rerun` diagnostics are under `gameplay/real-pace/<id>/`; an isolated
+rerun is under `gameplay/isolated/<id>/`; `cases.<id>.directory` in `gameplay/gameplay.json` names the bundle
+that decided the verdict. Each exploratory scenario file gets a bundle under `gameplay/exploratory/<key>/`
+and each server's logs
+are under `gameplay/servers/`. Normal verification runs accelerated only; repair fast failures before accepting
+a batch. A single-scenario run writes its bundle to `.cache/coa-gameplay-tests/<run-id>/`
 by default. The [verification guide](../../docs/coa/verification.md#results-and-exit-codes) lists the batch
 files.
 
@@ -336,6 +338,9 @@ and Linux binaries.
 
 ## Scenario format
 
+A creature fixture accepts `spell_hit_bonus` (0–100 percentage points) for its native spell hit modifier.
+An omitted bonus uses the creature's normal stats. Require the observed hit as well as the configured modifier.
+
 Start from [scenarios/frostbolt.json](scenarios/frostbolt.json). Schema version 1 accepts up to eight players,
 eight creatures and 10,000 sequential steps. Optional `timeout_ms` bounds setup plus execution (default 90s,
 maximum 10 minutes); execution counts in game time, which the simulated clock advances past waits. Optional
@@ -384,7 +389,9 @@ in world steps of up to 25 ms, so keep timing assertions robust to one step.
 Without `name`, players are `Harness<a..h>` with one lane and generated 10-letter names with several;
 `Harness<a..h>` in `console` and `command` text is rewritten to match, so refer to players by actor id elsewhere.
 A scenario that depends on process-global state, such as the Who list, belongs in `clock_policy.json`
-([exclusive cases](../../docs/coa/verification.md#exclusive-cases)). Phases do not separate creature text with
+([exclusive cases](../../docs/coa/verification.md#exclusive-cases)). A `set_phase` mask that includes the normal
+world phase (mask 1) automatically runs exclusively, including in an exploratory scenario. Phases do not
+separate creature text with
 area, zone or map range, which `system_messages` counts.
 
 Creatures require `id`, player `owner` and template `entry`. Optional `distance` offsets X from their owner
@@ -424,6 +431,10 @@ assert stable maximums and final levels when testing damage coefficients.
 | `group` | `actor`, `target`, optional `loot_method` (0-4): fixture party; creates the actor's group if needed, adds an ungrouped player and sets the loot method. |
 | `lfg_dungeon` | `actor`, LFGDungeons.dbc `dungeon`: fixture Dungeon Finder group; converts the actor's ordinary group to an LFG group assigned to that dungeon, as a completed proposal does. |
 | `lfg_teleport` | Player `actor`, optional boolean `out` (default false): native `CMSG_LFG_TELEPORT` request into or out of the group's dungeon. |
+| `lfg_join` | Player `actor`, LFGDungeons.dbc `dungeons` list, `roles` mask (1 leader, 2 tank, 4 healer, 8 damage): native `CMSG_LFG_JOIN` queue request, as the Dungeon Finder button sends it. A group leader starts the role check. |
+| `lfg_set_roles` | Player `actor` in a group, `roles` mask: native `CMSG_LFG_SET_ROLES` answer to the group role check. |
+| `lfg_accept` | Player `actor`: native `CMSG_LFG_PROPOSAL_RESULT` acceptance of the last Dungeon Finder proposal the actor received. |
+| `lfg_final_credit` | Player `actor` in a Dungeon Finder dungeon: credits the final encounter of the group's assigned dungeon, as `encounter_credit` does for that boss, when the proposal chose the dungeon. |
 | `encounter_credit` | Player `actor` in a dungeon, creature `entry`: credits that dungeon boss kill to the actor's map through the native encounter update, as a boss death does, including the Dungeon Finder completion it triggers. |
 | `leave_group` | Player `actor`: native `CMSG_GROUP_DISBAND` leave request; fails if the player stays grouped. |
 | `die` | Player `actor`: fixture death through self damage equal to current health; the body stays unreleased. |
@@ -478,7 +489,8 @@ Metrics: `health`, `max_health`, `creature_type`, `power`, `max_power`, `alive`,
 `cooldown_ms`, `item_count`, `carried_item_count`, `bank_bag_slots`, `aura`, `aura_stacks`, `aura_charges`,
 `aura_duration_ms`, `aura_amount`, `pet_entry`, `pet_aura_stacks`, `owned_creature_count`,
 `charm_entry`, `charm_aura_stacks`, `controls_self`, `private_instance`, `dynamic_object`,
-`dynamic_object_duration_ms`, `distance`, `spell_proc_count`, `spell_cast_count`, `temporary_spell_replacement`,
+`dynamic_object_duration_ms`, `distance`, `spell_proc_count`, `spell_proc_chance`, `aura_proc_rate`,
+`spell_cast_count`, `temporary_spell_replacement`,
 `bank_shows`, `system_messages`, `cast_failure`, `pet_is_banker`, `pet_display`, `pet_scale`,
 `pet_knows_spell`, `pet_distance`.
 `free_inventory_slots` is how many bag slots the player could still fill, so `fill_bags` plus
@@ -538,6 +550,8 @@ periodic interval.
 `block_chance` reads the player's percentage field; `block_value` reads native shield block value;
 `critical_block_chance` reads the total modifier used by the native critical block roll.
 `moving` reads the unit's native movement state. `water_walk` reports whether the unit has a water-walking aura.
+`spline_remaining_ms` reads the active native movement spline's remaining flight time in milliseconds, and
+`spline_speed` reads its movement velocity in yards per second. Both return zero for a finalized spline.
 `distance_2d` requires `target` and measures horizontal center distance.
 `forced_forward` reads the server's force-movement flag; it does not simulate client movement or navigation.
 `cast_remaining_ms` requires `spell` and returns its active cast/channel timer, or zero when inactive.
@@ -591,6 +605,14 @@ that the false-failure probability is acceptable, and assert a `min` on the coun
 `spell_cast_count` requires `spell` and counts the casts of that exact spell the actor completed since the scenario
 started, triggered casts included. Use it where a script casts the effect directly, so no aura is named as the trigger
 and `spell_proc_count` reads zero.
+`spell_proc_chance` requires `spell` and reads the loaded `spell_proc` Chance, after a zero is replaced by the DBC
+ProcChance. `aura_proc_rate` requires `spell` (an aura on the actor), `target` and `type_mask` (proc flags), and runs
+the aura's full proc decision, database filters, conditions, script CheckProc and the native chance roll, `trials`
+times (default 40000) on one synthetic event. It reports the percentage that would proc, without running the proc.
+The event deals 1000 damage, or 1000 effective healing with `heal`, from the actor to `target`, or from `target` to
+the actor with `incoming`. `trigger_spell` names the event's spell; `hit_mask` (default 1, normal),
+`spell_type_mask` (default damage, or heal) and `phase_mask` (default 2, hit) set the remaining event masks. Assert
+a window around the expected chance; 40000 trials put six standard deviations inside 1.5 points.
 Spell queries require `spell` and submit nothing: `spell_modifier` applies the player's native spell modifiers for
 `op` (`SpellModOp`) to the number `base`; `spell_effect_value` (optional `effect`) returns the effect's value as the
 player would cast it, including module base-value hooks; `spell_cast_time_ms`, `spell_max_range` and
@@ -598,8 +620,9 @@ player would cast it, including module base-value hooks; `spell_cast_time_ms`, `
 `effect`, with a fixed base of 1000. `spell_healing_done` and `spell_damage_done` accept `periodic: true`
 to query the native periodic coefficient path instead of direct healing/damage.
 `spell_effect_value` and `spell_damage_done` accept `pet: true` to calculate using the player's current pet.
-`melee_hit_chance`/`spell_hit_chance` read the player's hit modifiers and `spell_power` (`school` 1..6) its base
-spell damage bonus. `spell_done_crit_chance` and `melee_spell_damage_done` require `spell` and `target`: the native
+`melee_hit_chance` reads the player's melee hit modifier; `spell_hit_chance` reads a player or creature's native
+spell hit modifier. `spell_power` (`school` 1..6) reads the player's base spell damage bonus.
+`spell_done_crit_chance` and `melee_spell_damage_done` require `spell` and `target`: the native
 crit chance for that spell, and the weapon-spell damage bonus from a fixed base of 1000. `spell_done_crit_chance`
 only reflects native `ApplySpellMod(SPELLMOD_CRITICAL_CHANCE)` modifiers (a bare `Unit::SpellDoneCritChance` query);
 it does not invoke `AllSpellScript::OnSpellCritChance`, which only runs mid-cast (`Spell::DoAllEffectOnTarget`).
@@ -633,6 +656,13 @@ creature's remaining death-time respawn timer in seconds; summoned fixtures stil
 as fixture setup. `reward_quest` takes the same fields and optional zero-based `choice` (default 0); it checks normal
 reward eligibility and invokes native reward delivery. These actions do not test quest-giver interaction or objectives.
 `restore_quest_spells` takes `actor` and invokes the native restoration of spells from rewarded quests.
+`action_button_packed` takes `button` and reads the complete action word, including its type.
+`server_packet_u32` takes `opcode` and optional zero-based `index`, and decodes a word from the last
+packet payload. It returns -1 when no such word was sent. These observe server state and packet contents.
+
+`relog` takes `actor`, commits the character through the native save path, logs it out, and reloads it
+through the native character-login handler. It preserves saved character state and the scenario phase.
+
 `login_hooks` takes `actor` and replays registered player-login hooks on the current character; it does not reconnect
 or reload the character from the database. Use it to exercise a repair against deliberately seeded fixture state.
 Hooks read character rows synchronously, so the step first waits for a marker query queued behind every character
@@ -725,6 +755,10 @@ returns 1 when the `disables` table locks that dungeon's map and difficulty out 
 last creature query response delivered to that session, or -1 before one arrives.
 `quest_level` and `quest_xp` take a player `actor` and `quest`
 and query the native quest level and XP calculations without awarding a reward.
+`quest_log_sent_level` and `quest_log_sent_xp` take the same arguments and return the last level or reward XP
+sent for that quest's log slot in `SMSG_UPDATE_OBJECT_ADDON` (fields 61 and 36 + slot), or -1 before one arrives.
+`quest_query_scaled` takes the same arguments and returns 1 when the last quest query response for that quest
+carried the client's scaled-quest flag `0x01000000`, 0 when it did not, or -1 before one arrives.
 
 ## Evidence boundaries
 

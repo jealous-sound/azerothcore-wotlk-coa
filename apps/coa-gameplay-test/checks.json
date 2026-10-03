@@ -493,6 +493,76 @@
         "bloodmage-sanguine-essence-mend-replication"
       ],
       "args": []
+    },
+    {
+      "script": "check_reaper_crimson_death.py",
+      "scenarios": [
+        "reaper-crimson-death"
+      ],
+      "args": []
+    },
+    {
+      "script": "check_witch_hunter_shadow_rage.py",
+      "scenarios": [
+        "witch-hunter-shadow-rage-damage-stacks-3939"
+      ],
+      "args": []
+    },
+    {
+      "script": "check_chronomancer_reverse_engineering.py",
+      "scenarios": [
+        "chronomancer-reverse-engineering-haste"
+      ],
+      "args": []
+    },
+    {
+      "script": "check_barbarian_crusher.py",
+      "scenarios": [
+        "barbarian-audit-1257-crusher"
+      ],
+      "args": []
+    },
+    {
+      "script": "check_chronomancer_hourglass.py",
+      "scenarios": [
+        "chronomancer-hourglass-of-eternity-haste"
+      ],
+      "args": []
+    },
+    {
+      "script": "check_runemaster_runeslinger.py",
+      "scenarios": [
+        "runemaster-audit-2727-runeslinger"
+      ],
+      "args": []
+    },
+    {
+      "script": "check_reaper_extinction.py",
+      "scenarios": [
+        "reaper-extinction-proc"
+      ],
+      "args": []
+    },
+    {
+      "script": "check_venomancer_carapace.py",
+      "scenarios": [
+        "venomancer-5374-carapace-crash-scarab-summon"
+      ],
+      "args": []
+    },
+    {
+      "script": "check_runemaster_runic_obliteration.py",
+      "scenarios": [
+        "runemaster-audit-2734-runic-obliteration"
+      ],
+      "args": []
+    },
+    {
+      "script": "check_chronomancer_pure_chaos.py",
+      "scenarios": [
+        "chronomancer-pure-chaos-time-loop"
+      ],
+      "args": []
     }
   ]
 }

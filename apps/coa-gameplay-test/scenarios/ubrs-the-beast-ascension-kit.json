@@ -1,7 +1,14 @@
 {
   "schema": 1,
   "name": "Upper Blackrock Spire: The Beast fights with Ascension's kit",
-  "contract": "The Beast uses Ascension's kit for it (db.exil.es/npc/10430) instead of the old one: Immolate 2100036, Fierce Blow 975011, Blast Wave 2100205, Flame Breath 2102192, Bellowing Roar 2100439 and Overrun 2102159, whose charge tramples the units on its path with 2102160.",
+  "contract": [
+    "The Beast uses Ascension's kit for it (db.exil.es/npc/10430) instead of the old one: Immolate 2100036,",
+    "Fierce Blow 975011, Blast Wave 2100205, Flame Breath 2102192, Bellowing Roar 2100439 and Overrun",
+    "2102159, whose charge tramples the units on its path with 2102160. The encounter fixture normally casts",
+    "original 600001 before engaging and checks its +101 spell-hit aura, so the first required Immolate",
+    "cannot fail this kit test through an unrelated NPC hit roll. The boss still chooses and casts its own",
+    "authored abilities."
+  ],
   "timeout_ms": 240000,
   "location": {
     "map": 229,
@@ -48,6 +55,26 @@
       "actor": "hero",
       "value": 2000000,
       "maximum": 2000000
+    },
+    {
+      "action": "cast",
+      "actor": "boss",
+      "spell": 600001,
+      "label": "Give the encounter fixture deterministic native spell hit before engaging"
+    },
+    {
+      "action": "assert",
+      "actor": "boss",
+      "metric": "aura_amount",
+      "spell": 600001,
+      "effect": 0,
+      "equals": 101,
+      "label": "The native fixture spell-hit bonus is active"
+    },
+    {
+      "action": "wait",
+      "ms": 1600,
+      "label": "Clear the fixture buff global cooldown"
     },
     {
       "action": "attack",

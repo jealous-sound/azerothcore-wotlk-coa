@@ -26,12 +26,14 @@ namespace
 constexpr uint32 SHARED_CLASS_TAB_ID = 87;
 constexpr uint32 ADVANCEMENT_REQUIRED_COUNT = 3;
 constexpr uint32 ADVANCEMENT_RANK_COUNT = 5;
+constexpr uint32 ADVANCEMENT_FLAG_FREE_UNLEARN = 0x2000;
 
 constexpr std::array<uint32, 2> IDENTITY_PASSIVES_KEEPING_AUTHORED_GATES = { 4037, 4041 };
 
 enum AdvancementDwordField : uint32
 {
     ADVANCEMENT_ID           = 0,
+    ADVANCEMENT_TYPE         = 1,
     ADVANCEMENT_REQUIRED     = 2,
     ADVANCEMENT_SPELLS       = 5,
     ADVANCEMENT_AE_COST      = 14,
@@ -40,6 +42,7 @@ enum AdvancementDwordField : uint32
     ADVANCEMENT_GROUP        = 29,
     ADVANCEMENT_CLASS_TYPE   = 32,
     ADVANCEMENT_TAB          = 33,
+    ADVANCEMENT_FLAGS        = 73,
 };
 
 enum ChrSpecsDwordField : uint32
@@ -121,7 +124,7 @@ bool LoadCoATalentData()
         !classTypes.Load(GetClientDBCPath("CharacterAdvancementClassTypes.dbc"), 5) ||
         !tabTypes.Load(GetClientDBCPath("CharacterAdvancementTabTypes.dbc"), 2) ||
         !specs.Load(GetClientDBCPath("ChrSpecs.dbc"), 29) ||
-        !advancement.Load(GetClientDBCPath("CharacterAdvancement.dbc"), ADVANCEMENT_TAB + 1) ||
+        !advancement.Load(GetClientDBCPath("CharacterAdvancement.dbc"), ADVANCEMENT_FLAGS + 1) ||
         !essence.Load(GetClientDBCPath("CharacterAdvancementEssence.dbc"), ESSENCE_TE + 1))
         return false;
 
@@ -205,6 +208,8 @@ bool LoadCoATalentData()
         node.Entry.AECost = uint8(record.GetUInt32(ADVANCEMENT_AE_COST));
         node.Entry.TECost = uint8(record.GetUInt32(ADVANCEMENT_TE_COST));
         node.Entry.RequiredLevel = uint8(record.GetUInt32(ADVANCEMENT_LEVEL));
+        node.Entry.Talent = record.GetString(ADVANCEMENT_TYPE) == "Talent";
+        node.Entry.FreeUnlearn = (record.GetUInt32(ADVANCEMENT_FLAGS) & ADVANCEMENT_FLAG_FREE_UNLEARN) != 0;
         node.Group = record.GetUInt32(ADVANCEMENT_GROUP);
         node.ClassTab = tab == SHARED_CLASS_TAB_ID;
 

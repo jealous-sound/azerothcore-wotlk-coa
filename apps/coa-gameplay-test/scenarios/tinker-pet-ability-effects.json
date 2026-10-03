@@ -1,7 +1,21 @@
 {
   "schema": 1,
   "name": "Tinker pet abilities: Gear Toss, Revitalizing Aura, Recalibrate and Arcanoreflector (#4741, #5412)",
-  "contract": "Spell.dbc descriptions of the Tinker pet abilities taught by #5412. Gear Toss 520368 (ZIGGI-6K) deals Nature damage and heals the lowest health nearby ally equal to the damage dealt: DeviceEvent copies ZIGGI-6K's damage as 561267 onto the most wounded ally within 10 yd while the Tinker has Build: ZIGGI-6K 92140. Revitalizing Aura 524839 triggers Revitalise 524838 (heal, 40 yd) every 3 s and drains mana: ManaPerSecond 1 plus 1 per level, which Aura::Update takes from the caster each second. Recalibrate 578270 (Mechano-Bear) force-casts 578275 (SPELL_AURA_DEFLECT_SPELLS 100%, 3 s) on its master, the Tinker. Arcanoreflector 578339 absorbs the next spell on the bear and force-casts 653129 on the Tinker; absorbing a damaging spell explodes for 150% of the absorbed damage (DUMMY 150) on nearby enemies through 578346 (SCHOOL_DAMAGE, TARGET_UNIT_DEST_AREA_ENEMY), and the shield is spent on that spell, well before its 3 s duration.",
+  "contract": [
+    "Spell.dbc descriptions of the Tinker pet abilities taught by #5412. Gear Toss 520368 (ZIGGI-6K) deals",
+    "Nature damage and heals the lowest health nearby ally equal to the damage dealt: DeviceEvent copies",
+    "ZIGGI-6K's damage as 561267 onto the most wounded ally within 10 yd while the Tinker has Build: ZIGGI-6K",
+    "92140. Revitalizing Aura 524839 triggers Revitalise 524838 (heal, 40 yd) every 3 s and drains mana:",
+    "ManaPerSecond 1 plus 1 per level, which Aura::Update takes from the caster each second. Recalibrate",
+    "578270 (Mechano-Bear) force-casts 578275 (SPELL_AURA_DEFLECT_SPELLS 100%, 3 s) on its master, the",
+    "Tinker. Arcanoreflector 578339 absorbs the next spell on the bear and force-casts 653129 on the Tinker;",
+    "absorbing a damaging spell explodes for 150% of the absorbed damage (DUMMY 150) on nearby enemies",
+    "through 578346 (SCHOOL_DAMAGE, TARGET_UNIT_DEST_AREA_ENEMY), and the shield is spent on that spell, well",
+    "before its 3 s duration. The original accuracy fixture aura 984948 contains only +1000 melee/ranged hit",
+    "and +100000 expertise. Supply and assert it on the pets whose ordinary physical casts must land while",
+    "checking their ability effects; preserve their damage, healing, mana, cooldown, stun and channel",
+    "contracts. Owner ratings are not substituted for pet hit."
+  ],
   "timeout_ms": 150000,
   "players": [
     {
@@ -74,6 +88,32 @@
       "metric": "pet_entry",
       "equals": 500481,
       "within_ms": 9000
+    },
+    {
+      "action": "set_aura",
+      "actor": "ziggi",
+      "spell": 984948,
+      "pet": true,
+      "stacks": 1,
+      "label": "Supply the original pet hit and expertise fixture"
+    },
+    {
+      "action": "assert",
+      "actor": "ziggi",
+      "metric": "pet_aura_amount",
+      "spell": 984948,
+      "effect": 0,
+      "equals": 1000,
+      "label": "The pet has the original melee and ranged hit prerequisite"
+    },
+    {
+      "action": "assert",
+      "actor": "ziggi",
+      "metric": "pet_aura_amount",
+      "spell": 984948,
+      "effect": 1,
+      "equals": 100000,
+      "label": "The pet has the original expertise prerequisite"
     },
     {
       "action": "wait",

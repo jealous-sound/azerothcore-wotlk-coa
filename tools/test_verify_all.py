@@ -682,6 +682,20 @@ class GameplayTests(WorkspaceTest):
         if os.name != 'nt':
             self.assertEqual(pairs['--server-modules-dir'], str(workspace.conf / 'modules'))
 
+    def test_slower_gameplay_diagnostics_are_explicit_and_require_the_simulated_clock(self):
+        workspace = self.workspace()
+        args = verify_all.parser().parse_args(['--stages', 'gameplay', '--plan'])
+        self.assertFalse(args.gameplay_real_pace_rerun)
+        context = workspace.context(gameplay_clock=verify_all.SIMULATED_CLOCK, gameplay_jobs=1)
+        self.assertNotIn('--real-pace-rerun', verify_all.gameplay_command(context))
+        context.gameplay_real_pace_rerun = True
+        self.assertIn('--real-pace-rerun', verify_all.gameplay_command(context))
+        requested = verify_all.parser().parse_args(['--gameplay-real-pace-rerun'])
+        verify_all.check_gameplay_concurrency(requested)
+        requested.gameplay_clock = verify_all.REAL_CLOCK
+        with self.assertRaisesRegex(ValueError, 'requires --gameplay-clock simulated'):
+            verify_all.check_gameplay_concurrency(requested)
+
     def test_simulated_clock_runs_one_lane_server_and_reports_acceleration_sensitive_cases(self):
         workspace = self.workspace()
         context = workspace.context(gameplay_clock=verify_all.SIMULATED_CLOCK, gameplay_jobs=1, gameplay_lanes=15,
