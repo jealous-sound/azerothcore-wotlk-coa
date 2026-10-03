@@ -2068,13 +2068,12 @@ public:
         return std::nullopt;
     }
 
-    void OnPlayerBeforeGuardianInitStatsForLevel(Player* player, Guardian* guardian, CreatureTemplate const* cinfo,
+    void OnPlayerBeforeGuardianInitStatsForLevel(Player* player, Guardian* guardian, CreatureTemplate const*,
         PetType& petType) override
     {
         if (!guardian->IsPet() || !IsRealmHero(player))
             return;
-        CreatureFamilyEntry const* family = sCreatureFamilyStore.LookupEntry(cinfo->family);
-        petType = family && family->petTalentType >= 0 ? HUNTER_PET : SUMMON_PET;
+        petType = guardian->ToPet()->getPetType();
     }
 
     void OnPlayerCreatureKill(Player* killer, Creature* killed) override
@@ -3149,6 +3148,11 @@ bool IsWildcardHero(Player const* player)
         return false;
     std::optional<uint32> const mask = sScriptMgr->OnPlayerGetGameModeMask(player);
     return mask && (*mask & GAME_MODE_WILDCARD);
+}
+
+bool IsClasslessHero(Player const* player)
+{
+    return IsRealmHero(player);
 }
 
 std::uint32_t ActiveSpec(Player const* player)
