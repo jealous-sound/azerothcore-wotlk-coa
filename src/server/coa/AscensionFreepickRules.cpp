@@ -579,8 +579,11 @@ ApplyCheck CheckApply(Build const& base, std::vector<Entry> const& upload, UnitC
     {
         if (!entry.Rank)
             continue;
-        if (!catalog.Find(entry.EntryId) || std::any_of(wanted.begin(), wanted.end(),
-            [&entry](Entry const& seen) { return seen.EntryId == entry.EntryId; }))
+        Row const* row = catalog.Find(entry.EntryId);
+        if (!row || std::any_of(wanted.begin(), wanted.end(), [&catalog, &entry, row](Entry const& seen)
+            {
+                return seen.EntryId == entry.EntryId || (row->Group && catalog.Find(seen.EntryId)->Group == row->Group);
+            }))
         {
             check.Result = UPDATE_BAD_ENTRY;
             check.Failed = entry;

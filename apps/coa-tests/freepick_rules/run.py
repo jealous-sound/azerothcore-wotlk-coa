@@ -42,6 +42,8 @@ constexpr std::uint32_t FERAL_SHAPESHIFT_MASTERY = 42016;
 constexpr std::uint32_t BEAR_FORM = 42083;
 constexpr std::uint32_t TAME_BEAST_ABILITIES = 40308;
 constexpr std::uint32_t DOMINATE_UNDEAD = 41916;
+constexpr std::uint32_t PATH_OF_STRENGTH = 1149;
+constexpr std::uint32_t PATH_OF_AGILITY = 1150;
 
 bool Holds(std::vector<Entry> const& entries, std::uint32_t id, std::uint32_t rank)
 {
@@ -125,6 +127,15 @@ int main(int, char** argv)
     Check(applied.Result == UPDATE_BAD_ENTRY && applied.Failed.EntryId == 999999, "an unknown entry is BAD_ENTRY");
     Check(CheckApply(base, { { PURIFY, 1 }, { PURIFY, 1 } }, nullptr, {}).Result == UPDATE_BAD_ENTRY,
         "an entry listed twice is BAD_ENTRY");
+
+    Check(CheckApply(base, { { PATH_OF_STRENGTH, 1 } }, nullptr, {}).Result == UPDATE_OK,
+        "a level 1 Hero can choose a path");
+    Check(CheckApply(base, { { PATH_OF_STRENGTH, 1 }, { PATH_OF_AGILITY, 1 } }, nullptr, {}).Result ==
+        UPDATE_BAD_ENTRY, "two paths at once are BAD_ENTRY: a choice group holds one entry");
+    Build const strength(catalog, realm, 20, { { PATH_OF_STRENGTH, 1 } });
+    applied = CheckApply(strength, { { PATH_OF_AGILITY, 1 } }, nullptr, {});
+    Check(applied.Result == UPDATE_OK && Holds(applied.Entries, PATH_OF_AGILITY, 1) && !applied.Money &&
+        !applied.Marks, "switching path replaces the old one and costs nothing");
 
     applied = CheckApply(base, { { BEAR_FORM, 1 }, { FERAL_SHAPESHIFT_MASTERY, 1 } }, nullptr, {});
     Check(applied.Result == UPDATE_OK &&
