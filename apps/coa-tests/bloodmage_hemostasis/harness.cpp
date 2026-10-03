@@ -67,6 +67,7 @@ struct Player : Unit
     std::map<uint32, bool> spells;
     std::set<uint32> inactive;
     std::map<uint32, uint32> m_temporarySpellReplacements;
+    std::map<uint32, uint32> m_temporarySpellReplacementOrigins;
     Player* ToPlayer() override { return this; }
     uint32 getClass() const { return cls; }
     bool HasActiveSpell(uint32 id) const { return spells.contains(id) && !inactive.contains(id); }

@@ -178,6 +178,7 @@ struct Player : Unit
     Position teleportDestination, damageDestination, collisionDestination{30, 0, 0, 0};
     std::map<uint32, int> spells;
     std::map<uint32, uint32> m_temporarySpellReplacements;
+    std::map<uint32, uint32> m_temporarySpellReplacementOrigins;
     std::vector<std::unique_ptr<TempSummon>> creatures;
     Session session;
     Player* ToPlayer() override { return this; }

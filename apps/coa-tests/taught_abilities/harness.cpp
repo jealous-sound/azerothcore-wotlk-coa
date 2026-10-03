@@ -127,6 +127,7 @@ struct Player
     uint8 m_activeSpec = 0;
     PlayerSpellMap m_spells;
     std::map<uint32, uint32> m_temporarySpellReplacements;
+    std::map<uint32, uint32> m_temporarySpellReplacementOrigins;
     Session session;
     Player() = default;
     Player(Player const&) = delete;

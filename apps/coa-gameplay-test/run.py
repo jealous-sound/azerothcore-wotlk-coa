@@ -40,7 +40,8 @@ METRICS = {
     'health', 'health_pct', 'max_health', 'creature_type', 'respawn_remaining', 'power', 'max_power', 'alive', 'combat', 'victim', 'casting', 'level',
     'aura', 'aura_stacks', 'aura_charges', 'aura_duration_ms', 'aura_amount', 'aura_positive',
     'knows_spell', 'spell_active', 'has_talent', 'talent_points', 'cooldown_ms', 'global_cooldown_ms', 'spell_charges',
-    'action_button', 'item_count', 'carried_item_count', 'carried_pool_item_count', 'carried_variant_item_count',
+    'action_button', 'persisted_action_button', 'item_count', 'carried_item_count', 'carried_pool_item_count',
+    'carried_variant_item_count',
     'pool_variant_count', 'pool_retired_item_count', 'pool_row_count', 'pool_item_present',
     'cache_token_count', 'cache_token_stage', 'cache_token_present',
     'free_inventory_slots', 'mail_count', 'mail_item_count', 'mail_has_item',
@@ -637,7 +638,8 @@ def validate(scenario):
             if metric == 'server_packet_contains':
                 require(isinstance(step.get('text'), str) and step['text'].strip(),
                         f'{where}: metric needs the text to look for')
-            if metric in {'knows_spell', 'has_talent', 'talent_points', 'cooldown_ms', 'spell_charges', 'action_button', 'item_count',
+            if metric in {'knows_spell', 'has_talent', 'talent_points', 'cooldown_ms', 'spell_charges', 'action_button',
+                          'persisted_action_button', 'item_count',
                           'carried_item_count', 'carried_pool_item_count', 'carried_variant_item_count',
                           'bank_bag_slots', 'taxi_node', 'in_flight', 'taxi_destination', 'stabled_pet_count',
                           'stable_result', 'pet_rows', 'instance_binds_listed', 'spell_active',

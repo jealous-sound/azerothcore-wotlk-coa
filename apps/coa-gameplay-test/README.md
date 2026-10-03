@@ -642,6 +642,8 @@ or reload the character from the database. Use it to exercise a repair against d
 Hooks read character rows synchronously, so the step first waits for a marker query queued behind every character
 database write already queued, as a real login's queries are; with several character database workers a write that
 another worker is still running when the marker returns can remain uncommitted.
+`persisted_action_button` requires `button` and returns the spell ID `Player::_SaveActions` writes for that action
+button, or zero if it holds no spell.
 `temporary_spell_replacement` requires `spell` and returns the spell ID currently standing in for it on the
 player's bars. `Player::GetTemporarySpellReplacement` returns the queried spell itself when nothing replaces
 it, so the unreplaced reading is that spell's own ID, never zero. It reads server-side state, not what the
