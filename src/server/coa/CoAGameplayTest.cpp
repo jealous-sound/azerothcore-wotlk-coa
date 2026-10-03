@@ -29,6 +29,7 @@
 #include "GroupMgr.h"
 #include "Item.h"
 #include "LFGMgr.h"
+#include "LFGPackets.h"
 #include "ItemPackets.h"
 #include "NPCPackets.h"
 #include "Log.h"
@@ -390,6 +391,7 @@ struct Actor
     std::map<uint32, uint32> creatureQueryRank;
     uint32 lastQuestWindow = 0;
     uint32 lastStableResult = 0;
+    uint32 lfgProposalId = 0;
     std::map<uint16, uint32> extensionPackets;
     std::map<uint16, std::vector<std::string>> extensionPayloads;
     std::string observerError;
@@ -593,6 +595,9 @@ void ObservePacket(Actor& actor, WorldPacket const& packet)
     ObserveExtensionPacket(actor, packet);
     if (packet.GetOpcode() == SMSG_STABLE_RESULT && packet.size() == sizeof(uint8))
         actor.lastStableResult = packet.read<uint8>(0);
+    constexpr std::size_t LfgProposalIdOffset = sizeof(uint32) + sizeof(uint8);
+    if (packet.GetOpcode() == SMSG_LFG_PROPOSAL_UPDATE && packet.size() >= LfgProposalIdOffset + sizeof(uint32))
+        actor.lfgProposalId = packet.read<uint32>(LfgProposalIdOffset);
     ObserveSpellCasts(actor, packet);
     ObserveSpellDamage(actor, packet);
     ObserveSpellHealing(actor, packet);
@@ -3237,6 +3242,55 @@ private:
             packet << out;
             player->GetSession()->HandleLfgTeleportOpcode(packet);
             record.put("result", "teleport requested");
+        }
+        else if (action == "lfg_join")
+        {
+            std::vector<uint32> slots;
+            for (auto const& [unused, dungeon] : step.get_child("dungeons"))
+                slots.push_back(dungeon.get_value<uint32>());
+            WorldPacket packet(CMSG_LFG_JOIN);
+            packet << uint32(step.get<uint32>("roles")) << uint8(0) << uint8(0) << uint8(slots.size());
+            for (uint32 slot : slots)
+                packet << slot;
+            packet << uint8(3) << uint8(0) << uint8(0) << uint8(0) << std::string();
+            WorldPackets::LFG::LFGJoin join(std::move(packet));
+            join.Read();
+            player->GetSession()->HandleLfgJoinOpcode(join);
+            record.put("lfg_state", uint32(sLFGMgr->GetState(player->GetGUID())));
+        }
+        else if (action == "lfg_set_roles")
+        {
+            WorldPacket packet(CMSG_LFG_SET_ROLES, 1);
+            packet << uint8(step.get<uint32>("roles"));
+            player->GetSession()->HandleLfgSetRolesOpcode(packet);
+        }
+        else if (action == "lfg_accept")
+        {
+            uint32 const proposal = _actors.at(id).lfgProposalId;
+            Require(proposal != 0, "No Dungeon Finder proposal was offered");
+            WorldPacket packet(CMSG_LFG_PROPOSAL_RESULT, 5);
+            packet << proposal << true;
+            player->GetSession()->HandleLfgProposalResultOpcode(packet);
+            record.put("proposal", proposal);
+        }
+        else if (action == "lfg_final_credit")
+        {
+            Map* map = player->GetMap();
+            Group const* group = player->GetGroup();
+            Require(map != nullptr && map->IsDungeon(), "Final encounter credit needs a dungeon map");
+            Require(group != nullptr && group->isLFGGroup(), "Final encounter credit needs a Dungeon Finder group");
+            uint32 const dungeon = sLFGMgr->GetDungeon(group->GetGUID());
+            Difficulty const difficulty = IsSharedDifficultyMap(map->GetId())
+                ? Difficulty(map->GetDifficulty() % 2) : map->GetDifficulty();
+            DungeonEncounterList const* encounters = sObjectMgr->GetDungeonEncounterList(map->GetId(), difficulty);
+            Require(encounters != nullptr, "The dungeon has no encounters");
+            auto const finalEncounter = std::find_if(encounters->begin(), encounters->end(),
+                [dungeon](DungeonEncounter const* encounter) { return encounter->lastEncounterDungeon == dungeon; });
+            Require(finalEncounter != encounters->end(),
+                "No final encounter for Dungeon Finder dungeon " + std::to_string(dungeon));
+            map->UpdateEncounterState((*finalEncounter)->creditType, (*finalEncounter)->creditEntry, nullptr);
+            record.put("dungeon", dungeon);
+            record.put("entry", (*finalEncounter)->creditEntry);
         }
         else if (action == "encounter_credit")
         {
