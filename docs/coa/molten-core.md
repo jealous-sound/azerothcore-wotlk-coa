@@ -1188,3 +1188,42 @@ file inserts a map-409 row with a narrower one.
 **Related finding, out of scope for this fix**: the same ASC revamp statement also narrows `spawnMask` on
 other instance maps 309, 531, 509 and 469 (to 1) and map 249 (to 3). Those are not Molten Core and were not
 touched here; flagged for the user to decide whether they need the same restore treatment.
+
+## 12. Batch Z (2026-10-03): Baron Geddon's Inferno damage raised 20%
+
+The user reported Inferno too light: raid frames barely dropped and the raid never came close to dying on
+Ascended. Inferno's per-wave damage is real DBC data, not a placeholder: the channel 2105740
+(`coa_boss_schedule` row `12056` idx 6) applies a `PERIODIC_TRIGGER_SPELL` aura on itself, ticking every
+1000ms, whose `EffectTriggerSpell[1]` is resolved per difficulty by the core's own
+`SpellMgr::GetSpellIdForDifficulty` (`SpellAuraEffects.cpp:5993`) through `SpellDifficulty.dbc` row 2119:
+2105741 Normal, 2105742 Heroic, 2105743 Mythic, 2105744 Ascended. Each is a single `SCHOOL_DAMAGE` effect
+with its own fixed `EffectBasePoints`/`EffectDieSides` in `Spell.dbc` (no SpellDifficulty indirection below
+that), so none of them can be edited without a DBC edit:
+
+| Difficulty | Spell | Pre-change range (DBC) | Pre-change avg |
+|---|---|---|---|
+| Normal | 2105741 | 875-999 | 937.5 |
+| Heroic | 2105742 | 1167-1333 | 1250.0 |
+| Mythic | 2105743 | 1459-1666 | 1562.5 |
+| Ascended | 2105744 | 1750-1999 | 1874.5 |
+
+Since nothing in the data marks one tier as already correct, the fix applies the same +20% to all four:
+`spell_geddon_inferno_damage_coa` (`boss_geddon_coa.cpp`), registered on all four ids via
+`rev_20261001_90_molten_core_geddon_inferno_damage.sql`, multiplies `GetHitDamage()` by one tunable constant,
+`INFERNO_DAMAGE_MULTIPLIER = 1.20f`, in `OnEffectHitTarget` — after every other calculation, so the result is
+exactly ×1.20 of whatever the engine would otherwise have dealt, regardless of caster-side bonuses.
+
+Verified live on slot 4 with `TestMCRaidProbe` (`ConquestOfAzerothGhost/e2e/zzmcraid/raid_test.go`), a 10-bot
+raid vs. a `.npc add`-spawned Baron Geddon at his own spawn point (747.547, -981.676, -178.401, map 409),
+reading raw `SMSG_SPELLNONMELEEDAMAGELOG` (`amount` = damage + absorb + resist, i.e. pre-mitigation):
+
+| Difficulty | Spell | Observed range (after) | Observed avg | Expected post-×1.20 range | avg/pre-avg ratio |
+|---|---|---|---|---|---|
+| Normal | 2105741 | 1050-1197 (n=100) | 1130.8 | 1050-1198.8 | 1.206 |
+| Ascended | 2105744 | 2100-2398 (n=100) | 2247.76 | 2100-2398.8 | 1.199 |
+
+Both observed ranges fall exactly inside the expected post-multiplier window computed from the DBC's own
+`EffectBasePoints`/`EffectDieSides`, and both sampled averages land within 1% of the targeted 1.20 ratio (the
+residual is random-roll noise from `EffectDieSides`, not drift in the multiplier). Heroic and Mythic were not
+live-tested — the multiplier is a single constant applied identically to all four difficulty ids, with no
+per-tier branch, so there is no mechanism by which they could scale differently.
