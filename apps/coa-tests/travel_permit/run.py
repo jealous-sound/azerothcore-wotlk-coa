@@ -24,10 +24,10 @@ struct Item {uint32 id=977028;uint32 GetEntry()const{return id;}uint32 GetGUID()
 struct Player
 {
     uint32 level=1;TeamId team=TEAM_ALLIANCE;bool alive=true,combat=false;
-    std::vector<uint32> menu;uint32 shown=0,closed=0,teleports=0,destination=0;
+    std::vector<uint32> menu;uint32 shown=0,closed=0,teleports=0,destination=0;float x=0;
     Player* ToPlayer(){return this;}uint32 GetLevel()const{return level;}uint32 getClass()const{return 29;}
     bool IsAlive()const{return alive;}bool IsInCombat()const{return combat;}TeamId GetTeamId()const{return team;}
-    void TeleportTo(uint32 map,float,float,float,float){++teleports;destination=map;}
+    void TeleportTo(uint32 map,float tx,float,float,float){++teleports;destination=map;x=tx;}
 };
 struct PlayerInfo{uint32 mapId;float positionX=1,positionY=2,positionZ=3,orientation=4;};
 struct Manager
@@ -65,7 +65,8 @@ int main()
         for (uint32 action:actions)
         {
             auto before=p.teleports;select.OnGossipSelect(&p,&item,SenderTravelPermit,action);
-            assert(p.teleports==before+1 && p.destination==Destinations[action].race && p.menu.empty());
+            assert(p.teleports==before+1 && p.destination==Destinations[action].mapId && p.menu.empty());
+            assert(p.x==Destinations[action].x);
         }
         auto before=p.teleports;
         select.OnGossipSelect(&p,&item,SenderTravelPermit,team==TEAM_ALLIANCE?4:0);

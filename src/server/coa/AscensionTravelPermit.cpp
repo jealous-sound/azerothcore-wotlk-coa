@@ -22,18 +22,23 @@ struct Destination
     char const* name;
     TeamId team;
     uint8 race;
+    uint32 mapId;
+    float x;
+    float y;
+    float z;
+    float orientation;
 };
 
 constexpr std::array<Destination, 8> Destinations =
 {{
-    {"Elwynn Forest", TEAM_ALLIANCE, RACE_HUMAN},
-    {"Dun Morogh", TEAM_ALLIANCE, RACE_DWARF},
-    {"Teldrassil", TEAM_ALLIANCE, RACE_NIGHTELF},
-    {"Ammen Vale", TEAM_ALLIANCE, RACE_DRAENEI},
-    {"Tirisfal Glades", TEAM_HORDE, RACE_UNDEAD_PLAYER},
-    {"Durotar", TEAM_HORDE, RACE_ORC},
-    {"Mulgore", TEAM_HORDE, RACE_TAUREN},
-    {"Sunstrider Isle", TEAM_HORDE, RACE_BLOODELF}
+    {"Elwynn Forest", TEAM_ALLIANCE, RACE_HUMAN, 0, -8949.95f, -132.493f, 83.5312f, 0.0f},
+    {"Dun Morogh", TEAM_ALLIANCE, RACE_DWARF, 0, -6240.32f, 331.033f, 382.758f, 6.17716f},
+    {"Teldrassil", TEAM_ALLIANCE, RACE_NIGHTELF, 1, 10311.3f, 832.463f, 1326.41f, 5.69632f},
+    {"Ammen Vale", TEAM_ALLIANCE, RACE_DRAENEI, 530, -3961.64f, -13931.2f, 100.615f, 2.08364f},
+    {"Tirisfal Glades", TEAM_HORDE, RACE_UNDEAD_PLAYER, 0, 1676.71f, 1678.31f, 121.67f, 2.70526f},
+    {"Durotar", TEAM_HORDE, RACE_ORC, 1, -618.518f, -4251.67f, 38.718f, 0.0f},
+    {"Mulgore", TEAM_HORDE, RACE_TAUREN, 1, -2917.58f, -257.98f, 52.9968f, 0.0f},
+    {"Sunstrider Isle", TEAM_HORDE, RACE_BLOODELF, 530, 10349.6f, -6357.29f, 33.4026f, 5.31605f}
 }};
 
 SpellCastResult CheckTravel(Player const* player)
@@ -98,8 +103,8 @@ public:
         Destination const& destination = Destinations[action];
         if (destination.team != player->GetTeamId())
             return;
-        if (PlayerInfo const* start = sObjectMgr->GetPlayerInfo(destination.race, player->getClass()))
-            player->TeleportTo(start->mapId, start->positionX, start->positionY, start->positionZ, start->orientation);
+        if (sObjectMgr->GetPlayerInfo(destination.race, player->getClass()))
+            player->TeleportTo(destination.mapId, destination.x, destination.y, destination.z, destination.orientation);
     }
 };
 }
