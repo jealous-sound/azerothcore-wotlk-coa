@@ -8,6 +8,7 @@
 #include <vector>
 
 class Player;
+class SpellInfo;
 
 namespace AscensionFreepick
 {
@@ -25,5 +26,7 @@ std::vector<AscensionCoATalentState::KnownEntry> KnownEntries(Player const* play
 UploadResult ApplyUpload(Player* player, std::vector<AscensionCoATalentState::KnownEntry> const& upload);
 void Synchronize(Player* player);
 }
+
+void ApplyAscensionPathPassiveContract(SpellInfo* spellInfo);
 
 #endif

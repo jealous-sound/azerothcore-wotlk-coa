@@ -6729,6 +6729,7 @@ public:
                     break;
             }
             ApplyAscensionClassMechanics(spellInfo);
+            ApplyAscensionPathPassiveContract(spellInfo);
             ApplyAscensionPrimalistEarthquakeContract(spellInfo);
             ApplyAscensionPrimalistEarthshapingContracts(spellInfo);
             ApplyAscensionPrimalistSpiritBeastContract(spellInfo);

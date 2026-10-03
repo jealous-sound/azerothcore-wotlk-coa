@@ -9,6 +9,7 @@
 #include "Map.h"
 #include "Player.h"
 #include "ScriptMgr.h"
+#include "SpellInfo.h"
 #include "Tokenize.h"
 #include "World.h"
 #include <algorithm>
@@ -236,6 +237,37 @@ public:
             LOG_ERROR("coa", "Free-pick Character Advancement is unavailable: its client DBCs did not load");
     }
 };
+}
+
+void ApplyAscensionPathPassiveContract(SpellInfo* spellInfo)
+{
+    constexpr int32 TWO_HANDED_WEAPONS = 0x1562;
+    constexpr int32 ONE_HANDED_MELEE_WEAPONS = 0xA091;
+    constexpr uint32 AGILE_STRIKES = 986201;
+    switch (spellInfo->Id)
+    {
+        case 986202: case 986200: case 92839: case 92842: case 129245:
+            spellInfo->EquippedItemClass = ITEM_CLASS_WEAPON;
+            spellInfo->EquippedItemSubClassMask = TWO_HANDED_WEAPONS;
+            break;
+        case 986203: case AGILE_STRIKES: case 92840: case 92843: case 129246:
+            spellInfo->EquippedItemClass = ITEM_CLASS_WEAPON;
+            spellInfo->EquippedItemSubClassMask = ONE_HANDED_MELEE_WEAPONS;
+            break;
+        default:
+            return;
+    }
+    if (spellInfo->Id != AGILE_STRIKES)
+        return;
+    SpellEffectInfo& cost = spellInfo->Effects[EFFECT_0];
+    if (cost.ApplyAuraName != SPELL_AURA_DUMMY)
+    {
+        LOG_ERROR("coa", "Skipped unexpected Agile Strikes record {}", spellInfo->Id);
+        return;
+    }
+    cost.ApplyAuraName = SPELL_AURA_MOD_POWER_COST_SCHOOL_PCT;
+    cost.MiscValue = SPELL_SCHOOL_MASK_NORMAL;
+    cost.BasePoints = -9;
 }
 
 void AddAscensionFreepickScripts()

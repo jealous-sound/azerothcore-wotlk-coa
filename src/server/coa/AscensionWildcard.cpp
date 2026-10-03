@@ -115,7 +115,12 @@ struct EntrySpells
     std::array<uint32, 6> Spells;
 };
 
-constexpr std::array<EntrySpells, 13> ENTRY_SPELLS = { {
+constexpr std::array<EntrySpells, 18> ENTRY_SPELLS = { {
+    { 84864, { 986202, 986203 } },
+    { 84865, { 986200, 986201 } },
+    { 84866, { 92839, 92840 } },
+    { 84867, { 92842, 92843 } },
+    { 129243, { 129245, 129246 } },
     { AUTO_SHOT_ENTRY_SPELL, { AUTO_SHOT_SPELL } },
     { TAME_BEAST_ENTRY_SPELL, { 1515, 883, 2641, 6991, 982, 1462 } },
     { 891, { 885, 889, 893, 109980 } },
