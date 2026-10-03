@@ -78,12 +78,12 @@
     {
       "action": "add_item",
       "actor": "primalist",
-      "item": 37
+      "item": 1909
     },
     {
       "action": "equip",
       "actor": "primalist",
-      "item": 37,
+      "item": 1909,
       "slot": 15
     },
     {

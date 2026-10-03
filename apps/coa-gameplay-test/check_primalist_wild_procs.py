@@ -30,8 +30,13 @@ def main():
             hits = sorted((values[phase + '_' + who] for who in
                            ['target', 'extra1', 'extra2', 'extra3', 'extra4', 'extra5']), reverse=True)
             assert hits[-1] == 0 and hits[-2] > 0, hits
+            critical_multiplier = 2
+            assert all(hit % critical_multiplier == 0 for hit in hits), (phase, hits)
             for previous, current in zip(hits[:4], hits[1:5]):
-                assert .82 <= current / previous <= .88, (phase, hits)
+                assert current < previous, (phase, hits)
+                rounding_residual = 20 * current - 17 * previous
+                rounding_bound = 37 * critical_multiplier
+                assert abs(rounding_residual) <= rounding_bound, (phase, hits)
             print(f'{phase}: five hits with 15% attenuation per jump: {hits[:5]}')
     else:
         raise ValueError('Expected infused, cascade or carnage')
