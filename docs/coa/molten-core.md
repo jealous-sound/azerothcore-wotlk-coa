@@ -1067,9 +1067,20 @@ evidence + source reads), fixed individually below. See `impl-G-mechanics.md` fo
     item-id-offset rule (entry+0 Normal, +300000 Heroic, +1300000 Mythic, +200000 Ascended — distinct from the
     creature offset convention) rather than guessed; no `AllowableClass`/armor-type/faction restriction applies
     to any of these 961 items (`FlagsExtra` is 0 on all of them, so `Player::BuyItemFromVendorSlot`'s
-    Horde/Alliance gate never triggers), matching the "any class/armor type may buy" rule as-is. Known gap: most
-    sets' "Bloodforged" skin only has Normal+Heroic clones in this DB (no Mythic/Ascended item id exists for it) —
-    only the clones that exist were wired, nothing invented for the missing tiers.
+    Horde/Alliance gate never triggers), matching the "any class/armor type may buy" rule as-is.
+    **Correction (`rev_20261001_83_molten_core_vendor_remove_bloodforged.sql`):** the "faction versions, both
+    vendors list all" instruction above was wrong — Mattingly/Runthak must sell only the classic Tier 1/Tier 2
+    pieces, never a "Bloodforged" variant, for any set or difficulty. `ItemSet` cannot separate the two (a
+    Bloodforged piece keeps its base set's id, e.g. "Bloodforged Dragonstalker's Helm" still carries `ItemSet`
+    215, not a distinct 60215/61215 as the client DBC's own set name would suggest); every Bloodforged row's
+    `item_template.name` starts with the literal "Bloodforged " prefix instead, and that prefix is exact (no
+    vendor row contains "Bloodforged" anywhere in its name without it). This removed 320 rows — 80 apiece from
+    T1 Normal/Heroic and T2 Normal/Heroic (91000001/91000002/91000005/91000006); T1/T2 Mythic/Ascended
+    (91000003/91000004/91000007/91000008) never carried a Bloodforged clone to begin with (see gap below), so
+    they are unchanged. Current list sizes, all classic T1/T2 pieces only: T1 Normal 80, T1 Heroic 80, T1
+    Mythic 80, T1 Ascended 80, T2 Normal 80, T2 Heroic 80, T2 Mythic 80, T2 Ascended 80 (640 rows total).
+    Known gap: most sets' "Bloodforged" skin only had Normal+Heroic clones in this DB (no Mythic/Ascended item
+    id exists for it) — moot now that Bloodforged versions are not sold at all.
 
 ## 10. Batch H (2026-10-01): melee damage ladder, Ragnaros submerge re-check, Ancient Core Hound fear
 
