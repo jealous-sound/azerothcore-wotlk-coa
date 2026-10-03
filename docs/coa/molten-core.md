@@ -1081,6 +1081,18 @@ evidence + source reads), fixed individually below. See `impl-G-mechanics.md` fo
     Mythic 80, T1 Ascended 80, T2 Normal 80, T2 Heroic 80, T2 Mythic 80, T2 Ascended 80 (640 rows total).
     Known gap: most sets' "Bloodforged" skin only had Normal+Heroic clones in this DB (no Mythic/Ascended item
     id exists for it) — moot now that Bloodforged versions are not sold at all.
+    **Correction (`rev_20261001_84_molten_core_vendor_mythic_ascended_swap.sql`):** the Mythic and Ascended
+    `ExtendedCost` ids above were picked under the same backwards "27=Mythic/37=Ascended" assumption already
+    corrected for loot in `rev_20261001_73_molten_core_mythic_ascended_token_swap.sql` (ground truth, confirmed
+    by each item's own "@Heroic/@Mythic/@Ascended Raid@" tooltip tag: `25xxxxx` Normal, `26xxxxx` Heroic,
+    `37xxxxx` Mythic, `27xxxxx` Ascended). Decoding `ItemExtendedCost.dbc` directly showed the `403xx`/`406xx`
+    id family used by lists 91000003/91000007 ("Tokens T1/T2 Mythic", items at the `+1300000` offset) actually
+    requires a `2722xxx` token — Ascended, not Mythic — and the `302xx`/`305xx` family used by
+    91000004/91000008 ("Tokens T1/T2 Ascended", items at the `+200000` offset) requires a `3722xxx` token —
+    Mythic, not Ascended. The two families share per-slot suffixes, so the fix swaps `ExtendedCost` between the
+    matching rows of each pair (320 rows: 80 per list × 4 lists); Normal/Heroic were already correct and
+    untouched. Live Ghost e2e re-confirmed: a Mythic token buys the Mythic-list piece and is refused by the
+    Ascended-list piece, and vice versa for the Ascended token.
 
 ## 10. Batch H (2026-10-01): melee damage ladder, Ragnaros submerge re-check, Ancient Core Hound fear
 
