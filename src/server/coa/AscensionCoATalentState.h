@@ -83,6 +83,8 @@ UnlearnPrice UnlearnPriceAt(std::uint32_t level, ResetCredits const& credits, bo
 
 bool IsUnpricedRemoval(AscensionCompatData::CoATalentEntry const& entry);
 
+std::vector<std::uint32_t> SpellsAboveRank(AscensionCompatData::CoATalentEntry const& entry, std::uint32_t rank);
+
 struct PurgePrice
 {
     std::uint32_t Money = 0;

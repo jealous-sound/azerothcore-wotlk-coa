@@ -207,6 +207,15 @@ UploadedSpecialization SpecializationOf(std::vector<KnownEntry> const& upload)
     return uploaded;
 }
 
+std::vector<std::uint32_t> SpellsAboveRank(AscensionCompatData::CoATalentEntry const& entry, std::uint32_t rank)
+{
+    std::vector<std::uint32_t> spells;
+    for (std::uint32_t index = rank; index < entry.SpellCount; ++index)
+        if (entry.SpellIds[index])
+            spells.push_back(entry.SpellIds[index]);
+    return spells;
+}
+
 bool IsUnpricedRemoval(AscensionCompatData::CoATalentEntry const& entry)
 {
     if (!entry.AECost && !entry.TECost && !IsSelectableFree(entry.EntryId))

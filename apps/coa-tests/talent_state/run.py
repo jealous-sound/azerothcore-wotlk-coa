@@ -292,6 +292,14 @@ int main(int, char** argv)
     Check(levelPassive && !levelPassive->AECost && !levelPassive->TECost && IsUnpricedRemoval(*levelPassive),
           "a cost-free automatic entry is removed without a charge");
     Check(three && !IsUnpricedRemoval(*three), "an ordinary class talent is charged when removed");
+    if (three)
+    {
+        std::vector<std::uint32_t> const aboveOne = SpellsAboveRank(*three, 1);
+        Check(aboveOne.size() == 2 && aboveOne[0] == three->SpellIds[1] && aboveOne[1] == three->SpellIds[2],
+              "the ranks above a set rank are the ones a lower learn must not keep");
+        Check(SpellsAboveRank(*three, 3).empty() && SpellsAboveRank(*three, 0).size() == 3,
+              "a full rank keeps every rank spell and rank 0 keeps none");
+    }
     CoATalentEntry const* specTalent = FirstPaid(three ? three->ClassId : 0, false);
     Check(specTalent && !IsUnpricedRemoval(*specTalent), "an ordinary specialization talent is charged when removed");
     RemovalPayment const nothing = PayForRemovals({ UnlearnPriceAt(10, fresh) }, 0, 0);
