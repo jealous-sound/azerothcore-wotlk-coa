@@ -1,7 +1,14 @@
 {
   "schema": 1,
-  "name": "CoA Legendary Items: drop empty template",
-  "contract": "Requires CoALegendaryItems.Enable=1, DropChance=100, StopDropLevel=60, DestinyWeaver.Enable=1, LevelScaling=1, offset=3, CoA.SendDisplayPatches=1. An eligible corpse receives exactly one class-pool legendary. Required level equals its effective NPC level. Gray creatures, level-60 players and legacy classes receive none. Loot uses the native kill and corpse handlers.",
+  "name": "CoA Legendary Items: loot an empty-template corpse, then skin it",
+  "contract": [
+    "Requires CoALegendaryItems.Enable=1, DropChance=100, StopDropLevel=60, DestinyWeaver.Enable=1, LevelScaling=1,",
+    "offset=3, CoA.SendDisplayPatches=1. An eligible corpse receives exactly one class-pool legendary. Required level",
+    "equals its effective NPC level. Gray creatures, level-60 players and legacy classes receive none. Loot uses the",
+    "native kill and corpse handlers. Black Riding Wolf 5194 has no normal corpse loot or money and uses skinning",
+    "table 100001. Collecting the legendary through the native loot handler restores skinning; skinning generates no",
+    "legendary."
+  ],
   "timeout_ms": 180000,
   "location": {
     "map": 0,
@@ -22,7 +29,7 @@
     {
       "id": "wolf",
       "owner": "looter",
-      "entry": 120,
+      "entry": 5194,
       "level": 10,
       "health": 1000,
       "distance": 3
@@ -32,6 +39,23 @@
     {
       "action": "wait",
       "ms": 3000
+    },
+    {
+      "action": "add_item",
+      "actor": "looter",
+      "item": 7005
+    },
+    {
+      "action": "learn",
+      "actor": "looter",
+      "spell": 8613
+    },
+    {
+      "action": "set_skill",
+      "actor": "looter",
+      "skill": 393,
+      "value": 40,
+      "maximum": 75
     },
     {
       "action": "set_xp_enabled",
@@ -54,7 +78,7 @@
     {
       "action": "attack_nearby",
       "actor": "looter",
-      "entry": 120,
+      "entry": 5194,
       "kill": true
     },
     {
@@ -95,6 +119,48 @@
       "action": "loot_slot",
       "actor": "looter",
       "slot": 0
+    },
+    {
+      "action": "close_loot",
+      "actor": "looter"
+    },
+    {
+      "action": "cast",
+      "actor": "looter",
+      "spell": 8613,
+      "target": "wolf"
+    },
+    {
+      "action": "assert",
+      "label": "Taking the legendary makes the empty-template corpse skinnable",
+      "actor": "looter",
+      "metric": "spell_cast_count",
+      "spell": 8613,
+      "equals": 1,
+      "within_ms": 5000
+    },
+    {
+      "action": "assert",
+      "actor": "looter",
+      "metric": "cast_failure",
+      "spell": 8613,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "Native skinning loot opens",
+      "actor": "looter",
+      "metric": "loot_count",
+      "min": 1,
+      "within_ms": 2000
+    },
+    {
+      "action": "assert",
+      "label": "Skinning does not roll a second legendary",
+      "actor": "looter",
+      "metric": "loot_count",
+      "quality": 5,
+      "equals": 0
     }
   ]
 }

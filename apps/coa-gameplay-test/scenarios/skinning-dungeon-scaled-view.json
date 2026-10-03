@@ -1,7 +1,19 @@
 {
   "schema": 1,
   "name": "Skinning in a dungeon follows the level a scaled character is shown (#5289)",
-  "contract": "Requires DestinyWeaver.Enable=1, DestinyWeaver.LevelScaling=1 and DestinyWeaver.Scaling.Offset=3. Inside a normal five-player dungeon the Destiny Weaver view holds a creature within the character's band on both sides (ScaleDungeonCreatureLevelForViewer), so a level-15 character is sent a level-20 creature as level 18. The 3.3.5 client colours a corpse's Skinnable line from the level it was sent, and the server requirement (Spell::CheckCast: skill < 100 needs (level - 10) * 10) must be computed from the same level: 80 for the level-18 view, 100 for the authored level 20. Skinning 85 therefore skins the corpse the client shows as orange, Skinning 75 is refused with SPELL_FAILED_LOW_CASTLEVEL (49) as the client's red line says, and with scaling off the authored level 20 applies again and 85 is refused. Black Riding Wolf 5194 is a beast with skinning table 100001 and no creature loot or money, so its corpse becomes skinnable as soon as it dies. The Stockade (map 34) is a normal dungeon.",
+  "contract": [
+    "Requires CoALegendaryItems.DropChance=0: this scenario checks skinning an otherwise empty corpse.",
+    "Requires DestinyWeaver.Enable=1, DestinyWeaver.LevelScaling=1 and DestinyWeaver.Scaling.Offset=3. Inside a",
+    "normal five-player dungeon the Destiny Weaver view holds a creature within the character's band on both sides",
+    "(ScaleDungeonCreatureLevelForViewer), so a level-15 character is sent a level-20 creature as level 18. The 3.3.5",
+    "client colours a corpse's Skinnable line from the level it was sent, and the server requirement",
+    "(Spell::CheckCast: skill < 100 needs (level - 10) * 10) must be computed from the same level: 80 for the",
+    "level-18 view, 100 for the authored level 20. Skinning 85 therefore skins the corpse the client shows as orange,",
+    "Skinning 75 is refused with SPELL_FAILED_LOW_CASTLEVEL (49) as the client's red line says, and with scaling off",
+    "the authored level 20 applies again and 85 is refused. Black Riding Wolf 5194 is a beast with skinning table",
+    "100001 and no creature loot or money, so its corpse becomes skinnable as soon as it dies. The Stockade (map 34)",
+    "is a normal dungeon."
+  ],
   "timeout_ms": 120000,
   "location": {
     "map": 34,
