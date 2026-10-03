@@ -20,6 +20,7 @@
 #include "Battleground.h"
 #include "BattlegroundMgr.h"
 #include "Config.h"
+#include "Creature.h"
 #include "DatabaseEnv.h"
 #include "GameTime.h"
 #include "GroupMgr.h"
@@ -54,8 +55,10 @@ Roll::~Roll()
 {
 }
 
-void Roll::setLoot(Loot* pLoot)
+void Roll::setLoot(Loot* pLoot, WorldObject const& source)
 {
+    sourceMapId = source.GetMapId();
+    sourceInstanceId = source.GetInstanceId();
     link(pLoot, this);
 }
 
@@ -1174,7 +1177,7 @@ void Group::GroupLoot(Loot* loot, WorldObject* pLootedObject)
 
             if (r->totalPlayersRolling > 0)
             {
-                r->setLoot(loot);
+                r->setLoot(loot, *pLootedObject);
                 r->itemSlot = itemSlot;
                 if (item->DisenchantID && m_maxEnchantingLevel >= item->RequiredDisenchantSkill)
                     r->rollVoteMask |= ROLL_FLAG_TYPE_DISENCHANT;
@@ -1266,7 +1269,7 @@ void Group::GroupLoot(Loot* loot, WorldObject* pLootedObject)
 
         if (r->totalPlayersRolling > 0)
         {
-            r->setLoot(loot);
+            r->setLoot(loot, *pLootedObject);
             r->itemSlot = itemSlot;
 
             loot->quest_items[itemSlot - loot->items.size()].is_blocked = true;
@@ -1337,7 +1340,7 @@ void Group::NeedBeforeGreed(Loot* loot, WorldObject* lootedObject)
 
             if (r->totalPlayersRolling > 0)
             {
-                r->setLoot(loot);
+                r->setLoot(loot, *lootedObject);
                 r->itemSlot = itemSlot;
                 if (item->DisenchantID && m_maxEnchantingLevel >= item->RequiredDisenchantSkill)
                     r->rollVoteMask |= ROLL_FLAG_TYPE_DISENCHANT;
@@ -1414,7 +1417,7 @@ void Group::NeedBeforeGreed(Loot* loot, WorldObject* lootedObject)
 
         if (r->totalPlayersRolling > 0)
         {
-            r->setLoot(loot);
+            r->setLoot(loot, *lootedObject);
             r->itemSlot = itemSlot;
 
             loot->quest_items[itemSlot - loot->items.size()].is_blocked = true;
@@ -1813,6 +1816,19 @@ void Group::CountTheRoll(Rolls::iterator rollI)
         LootItem* item = &(roll->itemSlot >= roll->getLoot()->items.size() ? roll->getLoot()->quest_items[roll->itemSlot - roll->getLoot()->items.size()] : roll->getLoot()->items[roll->itemSlot]);
         if (item)
             item->is_blocked = false;
+    }
+
+    if (Loot* loot = roll->getLoot(); loot && loot->isLooted() && !loot->HasLootingPlayers() &&
+        loot->sourceWorldObjectGUID.IsCreature())
+    {
+        Map* map = sMapMgr->FindMap(roll->sourceMapId, roll->sourceInstanceId);
+        Creature* creature = map ? map->GetCreature(loot->sourceWorldObjectGUID) : nullptr;
+        if (creature && &creature->loot == loot && !creature->IsAlive() &&
+            creature->HasDynamicFlag(UNIT_DYNFLAG_LOOTABLE))
+        {
+            creature->AllLootRemovedFromCorpse();
+            creature->RemoveDynamicFlag(UNIT_DYNFLAG_LOOTABLE);
+        }
     }
 
     if (Loot* loot = roll->getLoot(); loot && loot->isLooted() && loot->sourceGameObject)

@@ -644,6 +644,10 @@ and closes its current loot window. `collect_loot` takes `actor`, collects slot 
 quantity reached inventory and records the item/count. It supports ordinary container loot, not quest-only slots.
 `loot_count` and `loot_entry` report the actor's current uncollected item slots and first entry; `loot_received`
 reports the inventory increase from its last successful `collect_loot`. Closed windows return zero slots/entry.
+`roll_loot` takes a player `actor`, creature `target` and `choice` (0 pass, 1 need, 2 greed, 3 disenchant),
+and submits native roll votes for that player's pending rolls on the corpse. It fails if no matching roll exists.
+`lootable` reads the actor's native lootable dynamic flag. `creature_unlooted_items` and `creature_loot_gold`
+read a creature actor's remaining item count and money even after its loot window closes.
 `creature_loot_quality_rate` requires `entry` (a creature loot id), fills that template `rolls` times (default 10000)
 for the actor and reports the percentage of fills holding an item of at least `quality` (default 3, rare).
 `loot_slot` accepts an optional `item` to find that item in the current creature corpse's per-player slots,
@@ -807,3 +811,8 @@ with a base amount of 1000 and requires `spell`; `periodic: true` selects the na
 
 `stealth_detection` reads native general stealth detection. `can_detect` requires `target` and invokes
 the observer's native `CanSeeOrDetect` check; neither metric covers client rendering.
+
+The `group-roll-corpse-map-change` regression closes the loot window, moves both voters out of Deadmines
+and resolves their native votes from another map. The exhausted corpse in the original instance must lose
+its lootable flag without another release. `group-roll-corpse-map-change-need-before-greed` checks the same
+contract with Need Before Greed.

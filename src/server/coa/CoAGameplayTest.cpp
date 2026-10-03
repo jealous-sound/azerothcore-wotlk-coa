@@ -1583,6 +1583,14 @@ private:
             return normalizePlayerName(name) && ObjectAccessor::FindPlayerByName(name) == unit &&
                 sCharacterCache->GetCharacterGuidByName(name) == unit->GetGUID() ? 1.0 : 0.0;
         }
+        if (metric == "lootable")
+            return unit->HasDynamicFlag(UNIT_DYNFLAG_LOOTABLE) ? 1.0 : 0.0;
+        if (metric == "creature_unlooted_items" || metric == "creature_loot_gold")
+        {
+            Require(unit->IsCreature(), "Creature loot query needs a creature");
+            Loot const& loot = unit->ToCreature()->loot;
+            return metric == "creature_unlooted_items" ? loot.unlootedCount : loot.gold;
+        }
         if (metric == "health")
             return unit->GetHealth();
         if (metric == "health_pct")
@@ -3565,6 +3573,26 @@ private:
             packet << target->GetGUID();
             if (sScriptMgr->CanPacketReceive(player->GetSession(), packet))
                 player->GetSession()->HandleLootOpcode(packet);
+        }
+        else if (action == "roll_loot")
+        {
+            Creature* creature = GetUnit(step.get<std::string>("target"))->ToCreature();
+            Group* group = player->GetGroup();
+            Require(creature && group, "Loot roll needs a creature and a grouped player");
+            std::vector<std::pair<ObjectGuid, uint32>> pending;
+            for (Roll* roll : group->GetRolls())
+                if (roll->isValid() && roll->getLoot() == &creature->loot &&
+                    roll->playerVote.contains(player->GetGUID()))
+                    pending.emplace_back(roll->itemGUID, roll->itemSlot);
+            Require(!pending.empty(), "No pending loot rolls for that player and corpse");
+            for (auto const& [guid, slot] : pending)
+            {
+                WorldPacket packet(CMSG_LOOT_ROLL, 13);
+                packet << guid << slot << uint8(step.get<uint32>("choice"));
+                if (sScriptMgr->CanPacketReceive(player->GetSession(), packet))
+                    player->GetSession()->HandleLootRoll(packet);
+            }
+            record.put("rolls", pending.size());
         }
         else if (action == "loot_slot")
         {
