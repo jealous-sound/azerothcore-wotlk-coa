@@ -49,21 +49,20 @@ joining tables, use field 2.
 
 `SetTalentRank` is the one owner of the rules: class, active specialization, rank count, level, automatic entries
 immutable, budget. A rank above the held one must fit the tree's budget (`Spent` over the known entries versus
-`GetCoATalentBudget`); rank 0 and lower ranks always go through, so an over-budget character can always come back
-under it. `SwitchSpecialization` removes every class talent spell when the specialization changes, then grants the
-new specialization's automatic entries. `ResetPaidTalents` removes every paid rank of the class; automatic grants
+`GetCoATalentBudget`). A native upload must also pay for omitted ranks before any state changes;
+`IsUnpricedRemoval` excludes automatic entries and archetype signatures, while original FREE_UNLEARN entries
+and characters at level 10 or below have no removal charge. `SwitchSpecialization` removes every class talent
+spell when the specialization changes, then grants the new specialization's automatic entries. `ResetPaidTalents` removes every paid rank of the class; automatic grants
 and the specialization stay. Clients reach them only through the native packets below; there is no chat command.
 
 ## Stored builds
 
-Each specialization slot keeps a build per archetype and swaps between them. A switch here removes every talent spell,
-so `SwitchSpecialization` first writes down the build being left (`StoreBuilds`: the shared class tree and the
-specialization's own tree, paid and free-choice ranks read from the spellbook as `entryId * 10 + rank`) in the
-player settings `core.ascension_build.<spec>` (0 for the class tree, index 0 = count), then puts back the build
-of the specialization being entered (`RestoreBuilds`), each rank through `SetTalentRank` so a stored rank the
-character can no longer afford is skipped, then runs the progression pass. Entering a specialization from
-none restores the same way. While a specialization is active the spellbook stays the truth; the record is
-only read on entry, never at login, so a rank the player removed is not resurrected. Idea from #4031.
+Native uploads are complete wanted builds, including archetype switches. They do not restore omitted purchases
+from an archetype's history after budget validation. `ApplyKnownEntriesUpload` uses
+`SwitchSpecialization(..., restoreStoredBuild = false)` and applies the validated uploaded ranks. Saved
+specialization slots remain independent presets and restore their complete validated entries and action bars.
+Legacy archetype records in `core.ascension_build.<spec>` are separate from those slot records; they cannot
+inject additional ranks into a native upload. The active spellbook remains the truth at login.
 
 ## Specialization slots and Tomes
 
@@ -110,10 +109,10 @@ Opcodes and layouts come from the reconstructed `Extensions.dll` (`firstoni-dev/
   it drops the old specialization's entries and adds the new identity entry and the entry of the
   specialization's signature spell (`ChrSpecs` +0x60, `SignatureEntryId`). `SpecializationOf` reads the
   specialization from the upload's ranked specialization entries; entries of two specializations refuse it.
-  `ApplyKnownEntriesUpload` validates every row and the budget before switching. A specialization other than
-  the active one, with no paid or free-choice entry of it, restores that specialization's stored purchases
-  through `SwitchSpecialization`; the upload still replaces the shared class tree, including its signature.
-  With such entries the switch runs first and the upload applies as the complete set. The native switch
+  `ApplyKnownEntriesUpload` validates every row, the budget and removal payment before switching, then applies
+  the complete uploaded set. An identity-and-signature-only upload leaves other purchases absent, including
+  when returning to a previously used archetype. A saved slot supplies its own complete build and skips
+  ordinary unlearn charges. The native switch
   helper also removes the departed specialization's shared signature, matching the DLL's `LeaveSpec`.
   The server prices the state the set leads to (including ranks the
   progression pass hands back to omitted entries) and applies removals before additions through
@@ -127,7 +126,10 @@ Opcodes and layouts come from the reconstructed `Extensions.dll` (`firstoni-dev/
   frame shows a refusal as a red error.
 - `CMSG_UNLEARN_TALENTS` (0x0213, `C_CharacterAdvancement.UnlearnAllTalents`): queued with the uploads in
   arrival order and handled by `ResetPaidTalents`, then 0x0726 and `SMSG 0x072B` with `CA_PURGE_TALENTS_OK`,
-  or `CA_PURGE_TALENTS_NO_KNOWN_TALENTS` when nothing was removed. The CoA talent frame resets through
+  `CA_PURGE_TALENTS_NO_PURGE_ITEM` when the original item, mark or gold price cannot be paid,
+  or `CA_PURGE_TALENTS_NO_KNOWN_TALENTS` when nothing was removed. Successful paid removals and purges raise
+  the reset counters sent in SMSG 0x0926; an unaffordable upload answers `CA_UPDATE_ENTRIES_BAD_UPDATE_COSTS`
+  without modifying the build. The CoA talent frame resets through
   `ClearPendingBuild` and an upload instead.
 - `CMSG 0x06E1` inspect (`C_CharacterAdvancement.InspectUnit`, u64 guid): `SMSG 0x06E2` answers a `CA_INSPECT_*`
   string; on `CA_INSPECT_OK` the guid, active slot index, slot capacity and the target's known entries in the

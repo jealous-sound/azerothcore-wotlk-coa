@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "Native specialization slots retain independent archetypes, purchases and full action bars",
-  "contract": "The original DLL supports twenty specialization slots. The original slot swap spells select slots through effect 162, with a five-second interruptible cast. A Tome unlocks a slot by teaching its swap spell. A slot is an independent preset, separate from ChrSpecs archetype identity: a fresh slot has no chosen archetype or purchased talents, and returning to a slot restores its own build and action bar. Source: original AscCAMgr Player::Ensure/Get and OnActiveSpec, Spell.dbc 979993/979994 and ItemSpells.dbc 106954.",
+  "contract": "The original DLL supports twenty specialization slots. The original slot swap spells select slots through\neffect 162, with a five-second interruptible cast. A Tome unlocks a slot by teaching its swap spell. A\nslot is an independent preset, separate from ChrSpecs archetype identity: a fresh slot has no chosen\narchetype or purchased talents, and returning to a slot restores its own build and action bar. Source:\noriginal AscCAMgr Player::Ensure/Get and OnActiveSpec, Spell.dbc 979993/979994 and ItemSpells.dbc 106954.\nNative removals and resets retain their original prices; fixture actors have 100 gold to pay them.\nArchetype-only uploads inside a slot remove omitted purchases and require explicit repurchase; slot casts\nstill restore saved presets and packed action bars.\nThe original client talent-purge payment token is 0xE06FB (919291), consumed once by the native reset.\nUse that token at level 11, whose original gold polynomial wraps a negative result; preserve client pricing.",
   "timeout_ms": 180000,
   "players": [
     {
@@ -15,6 +15,12 @@
     {
       "action": "wait",
       "ms": 5000
+    },
+    {
+      "action": "set_money",
+      "label": "Fund the original native removal and purge prices",
+      "actor": "bloodmage",
+      "value": 1000000
     },
     {
       "action": "client_packet",
@@ -200,10 +206,32 @@
     },
     {
       "action": "assert",
+      "label": "An archetype-only return omits the old purchase",
       "actor": "bloodmage",
       "metric": "knows_spell",
-      "spell": 804197,
-      "equals": 1
+      "equals": 0,
+      "spell": 804197
+    },
+    {
+      "action": "advancement_rank",
+      "label": "Repurchase through the complete native upload",
+      "actor": "bloodmage",
+      "entry": 30191,
+      "rank": 1
+    },
+    {
+      "action": "assert",
+      "label": "Restore the slot purchase explicitly",
+      "actor": "bloodmage",
+      "metric": "knows_spell",
+      "equals": 1,
+      "spell": 804197
+    },
+    {
+      "action": "set_action_button",
+      "actor": "bloodmage",
+      "button": 11,
+      "spell": 804197
     },
     {
       "action": "cast",
@@ -236,12 +264,33 @@
       "equals": 1073741826
     },
     {
+      "action": "snapshot",
+      "actor": "bloodmage",
+      "metric": "carried_money",
+      "save_as": "money_before_relog"
+    },
+    {
       "action": "relog",
       "actor": "bloodmage"
     },
     {
       "action": "wait",
       "ms": 1000
+    },
+    {
+      "action": "assert",
+      "label": "Relog retains the normal native level",
+      "actor": "bloodmage",
+      "metric": "level",
+      "equals": 11
+    },
+    {
+      "action": "assert",
+      "label": "Relog retains the funded balance after the paid archetype switch",
+      "actor": "bloodmage",
+      "metric": "carried_money",
+      "relative_to": "money_before_relog",
+      "equals": 0
     },
     {
       "action": "assert",
@@ -268,6 +317,20 @@
       "ms": 6000
     },
     {
+      "action": "add_item",
+      "label": "Supply the original native talent-purge payment token",
+      "actor": "bloodmage",
+      "item": 919291,
+      "count": 1
+    },
+    {
+      "action": "assert",
+      "actor": "bloodmage",
+      "metric": "item_count",
+      "item": 919291,
+      "equals": 1
+    },
+    {
       "action": "client_packet",
       "actor": "bloodmage",
       "opcode": 531
@@ -275,6 +338,24 @@
     {
       "action": "wait",
       "ms": 1000
+    },
+    {
+      "action": "assert",
+      "label": "The paid native purge succeeds",
+      "actor": "bloodmage",
+      "metric": "server_packet_contains",
+      "opcode": 1835,
+      "text": "CA_PURGE_TALENTS_OK",
+      "equals": 1,
+      "within_ms": 1000
+    },
+    {
+      "action": "assert",
+      "label": "The native purge consumes its original token",
+      "actor": "bloodmage",
+      "metric": "item_count",
+      "item": 919291,
+      "equals": 0
     },
     {
       "action": "assert",
