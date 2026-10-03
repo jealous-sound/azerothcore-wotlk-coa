@@ -1885,9 +1885,14 @@ bool Pet::learnSpell(uint32 spell_id)
 
     if (!m_loading)
     {
-        WorldPackets::Pet::PetLearnedSpell packet;
-        packet.SpellID = spell_id;
-        m_owner->SendDirectMessage(packet.Write());
+        // Ascension's pet families teach their scaling and passive auras as levelup spells; announce abilities only.
+        SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spell_id);
+        if (!spellInfo || !spellInfo->IsPassive())
+        {
+            WorldPackets::Pet::PetLearnedSpell packet;
+            packet.SpellID = spell_id;
+            m_owner->SendDirectMessage(packet.Write());
+        }
         m_owner->PetSpellInitialize();
     }
 
