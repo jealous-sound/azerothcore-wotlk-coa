@@ -22,8 +22,9 @@ After-kill powers require a non-gray creature kill and use visible native eight-
 duration refresh and expiry. Other powers remain hidden passives. No periodic condition or equipment scan runs.
 Only the strongest equipped copy of a design grants its power. Movement uses native aura speed stacking rules.
 Signature trinkets use native percentage spell modifiers to boost the named ability's main direct hit by 12%,
-across its native rank chain, and send the corresponding client modifier updates. Dedicated selectors and
-rank-chain constraints keep secondary triggered spells, periodic effects and unrelated abilities unchanged.
+across its native rank chain, and send the corresponding client modifier updates. Client selector tags and
+server rank-chain targeting keep secondary triggered spells, periodic effects and unrelated abilities unchanged.
+The tags are applied only to outgoing client records, preserving server metadata used by existing class scripts.
 Startup validation checks the selectors against effective spell data and existing modifier masks.
 
 ## Integration

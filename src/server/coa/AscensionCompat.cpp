@@ -3751,9 +3751,11 @@ private:
       return;
 
     row.Values[144] = info->SpellFamilyName;
+    Ascension::ClientSpellPatches::Selector const selector =
+        Ascension::ClientSpellPatches::Instance().GetSelector(info->Id);
     for (uint32 index = 0; index < 3; ++index)
     {
-      row.Values[145 + index] = info->SpellFamilyFlags[index];
+      row.Values[145 + index] = info->SpellFamilyFlags[index] | selector[index];
       for (uint32 effect = 0; effect < MAX_SPELL_EFFECTS; ++effect)
         row.Values[122 + effect * 3 + index] =
             info->Effects[effect].SpellClassMask[index];

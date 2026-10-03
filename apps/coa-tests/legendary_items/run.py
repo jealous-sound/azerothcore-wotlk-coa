@@ -43,7 +43,7 @@ class LegendaryCatalogTest(unittest.TestCase):
         self.assertEqual(CATALOG.aura_effects(catalog[63]), [(101, 1)])
         self.assertEqual(CATALOG.aura_effects(catalog[2]), [(108, 0)])
 
-    def test_signature_selectors_preserve_existing_modifier_matches(self):
+    def test_client_signature_selectors_preserve_existing_modifier_matches(self):
         path = Path(os.environ.get('COA_DBC_DIR', ROOT / 'env/dist/data/dbc')) / 'Spell.dbc'
         blob = path.read_bytes()
         magic, count, width, size, _ = struct.unpack_from('<4s4I', blob)

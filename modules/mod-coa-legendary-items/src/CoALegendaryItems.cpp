@@ -171,8 +171,8 @@ namespace
                 if (design.power == Power::Signature && info->SpellFamilyName == uint32(design.classId) + 6 &&
                     sSpellMgr->GetFirstSpellInChain(info->Id) == sSpellMgr->GetFirstSpellInChain(design.signatureSpell))
                 {
-                    info->SpellFamilyFlags |= SignatureMask(design);
-                    Ascension::ClientSpellPatches::Instance().Register(info->Id);
+                    flag96 const mask = SignatureMask(design);
+                    Ascension::ClientSpellPatches::Instance().Register(info->Id, { mask[0], mask[1], mask[2] });
                     break;
                 }
         }
@@ -300,9 +300,7 @@ namespace
                     SpellInfo const* signature = sSpellMgr->GetSpellInfo(design.signatureSpell);
                     if (!signature)
                         continue;
-                    flag96 original = signature->SpellFamilyFlags;
-                    for (uint8 word = 0; word < 3; ++word)
-                        original[word] &= ~mask[word];
+                    flag96 const original = signature->SpellFamilyFlags;
                     for (SpellEffectInfo const& effect : info->Effects)
                         if (effect.IsEffect() && (effect.SpellClassMask & mask) && !(effect.SpellClassMask & original))
                         {
