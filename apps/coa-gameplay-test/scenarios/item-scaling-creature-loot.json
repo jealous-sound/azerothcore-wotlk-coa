@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "name": "Item scaling: a level-scaled creature drops its green items lifted to the level it is shown at",
+  "contract": "Requires DestinyWeaver.Enable=1, DestinyWeaver.LevelScaling=1, DestinyWeaver.Scaling.Offset=3 and CoA.ItemScaling=1. The Rake 5807 is a level 10 creature that drops Lionfur Armor 17922 (green, item level 10, required level 5, 108 armor) at 100%. A level 30 character with open-world scaling on fights it at level 27, 17 levels above its own, so the armor it drops must be a copy lifted by the same 17 levels: item level 27, required level 22 and more armor than the authored 108. With scaling off the same creature is fought at 10 and drops the authored item. Client rendering of the copy is not tested.",
+  "timeout_ms": 120000,
+  "location": { "map": 0, "x": -9465, "y": 64, "z": 56, "o": 0 },
+  "players": [
+    { "id": "hero", "race": 1, "class": 1, "level": 30, "melee_hit_rating": 10000, "expertise_rating": 10000 }
+  ],
+  "creatures": [
+    { "id": "scaled_rake", "owner": "hero", "entry": 5807, "level": 10, "health": 1, "distance": 2 },
+    { "id": "authored_rake", "owner": "hero", "entry": 5807, "level": 10, "health": 1, "distance": 3 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let spawn AI settle", "ms": 2000 },
+    { "action": "level_scaling_packet", "actor": "hero", "value": 1 },
+    { "action": "assert", "label": "Scaling on shows The Rake at 27", "actor": "hero", "metric": "view_level", "target": "scaled_rake", "equals": 27, "within_ms": 2000 },
+    { "action": "attack", "actor": "hero", "target": "scaled_rake" },
+    { "action": "assert", "actor": "scaled_rake", "metric": "alive", "equals": 0, "within_ms": 30000 },
+    { "action": "loot_creature", "actor": "hero", "target": "scaled_rake" },
+    { "action": "assert", "label": "The scaled corpse holds a copy of Lionfur Armor", "actor": "hero", "metric": "loot_entry", "item": 17922, "min": 4400001, "max": 4912583 },
+    { "action": "assert", "label": "The copy is lifted to item level 27", "actor": "hero", "metric": "loot_item_level", "item": 17922, "equals": 27 },
+    { "action": "assert", "label": "The copy carries more armor than the authored 108", "actor": "hero", "metric": "loot_item_armor", "item": 17922, "min": 109 },
+    { "action": "loot_slot", "actor": "hero", "item": 17922 },
+    { "action": "assert", "label": "The looted copy keeps item level 27", "actor": "hero", "metric": "carried_item_level", "item": 17922, "equals": 27, "within_ms": 2000 },
+    { "action": "assert", "label": "The looted copy requires level 22", "actor": "hero", "metric": "carried_item_required_level", "item": 17922, "equals": 22 },
+    { "action": "close_loot", "actor": "hero" },
+
+    { "action": "level_scaling_packet", "actor": "hero", "value": 0 },
+    { "action": "assert", "label": "Scaling off shows The Rake at 10", "actor": "hero", "metric": "view_level", "target": "authored_rake", "equals": 10, "within_ms": 2000 },
+    { "action": "attack", "actor": "hero", "target": "authored_rake" },
+    { "action": "assert", "actor": "authored_rake", "metric": "alive", "equals": 0, "within_ms": 30000 },
+    { "action": "loot_creature", "actor": "hero", "target": "authored_rake" },
+    { "action": "assert", "label": "The unscaled corpse holds the authored Lionfur Armor", "actor": "hero", "metric": "loot_entry", "item": 17922, "equals": 17922 },
+    { "action": "assert", "label": "The authored item keeps item level 10", "actor": "hero", "metric": "loot_item_level", "item": 17922, "equals": 10 },
+    { "action": "close_loot", "actor": "hero" }
+  ]
+}

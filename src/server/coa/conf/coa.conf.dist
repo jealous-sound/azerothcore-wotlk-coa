@@ -69,6 +69,12 @@ CoA.RulesetLoginDefault = 1
 # Quests already above the player remain higher. Shared quest templates are immutable.
 CoA.QuestLevelScaling = 1
 
+# Weapons and armor dropped by level-scaled creatures, found in chests by characters who chose
+# level scaling or given by level-scaled quests are lifted to the level of that content, as copies
+# with entries from 4400001 up. Shirts, tabards and items without an item level are left as they are.
+# Set to 0 to stop new lifts; copies already handed out keep working.
+CoA.ItemScaling = 1
+
 # Automatic progression: hand out the class abilities and rank upgrades for the
 # character's class and level as they level up. Set to 0 to stop that
 # and let the player ask instead - a Book of Ascension grants them, so a realm that

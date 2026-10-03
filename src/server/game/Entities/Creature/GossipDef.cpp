@@ -430,10 +430,12 @@ void PlayerMenu::SendQuestGiverQuestDetails(Quest const* quest, ObjectGuid npcGU
             if (!quest->RewardChoiceItemId[i])
                 continue;
 
-            data << uint32(quest->RewardChoiceItemId[i]);
+            uint32 const itemId = LocalLevelScaling::QuestRewardItemFor(_session->GetPlayer(),
+                quest->RewardChoiceItemId[i], quest->GetQuestLevel());
+            data << uint32(itemId);
             data << uint32(quest->RewardChoiceItemCount[i]);
 
-            if (ItemTemplate const* itemTemplate = sObjectMgr->GetItemTemplate(quest->RewardChoiceItemId[i]))
+            if (ItemTemplate const* itemTemplate = sObjectMgr->GetItemTemplate(itemId))
                 data << uint32(itemTemplate->DisplayInfoID);
             else
                 data << uint32(0x00);
@@ -446,10 +448,12 @@ void PlayerMenu::SendQuestGiverQuestDetails(Quest const* quest, ObjectGuid npcGU
             if (!quest->RewardItemId[i])
                 continue;
 
-            data << uint32(quest->RewardItemId[i]);
+            uint32 const itemId = LocalLevelScaling::QuestRewardItemFor(_session->GetPlayer(),
+                quest->RewardItemId[i], quest->GetQuestLevel());
+            data << uint32(itemId);
             data << uint32(quest->RewardItemIdCount[i]);
 
-            if (ItemTemplate const* itemTemplate = sObjectMgr->GetItemTemplate(quest->RewardItemId[i]))
+            if (ItemTemplate const* itemTemplate = sObjectMgr->GetItemTemplate(itemId))
                 data << uint32(itemTemplate->DisplayInfoID);
             else
                 data << uint32(0);
@@ -599,12 +603,14 @@ void PlayerMenu::SendQuestQueryResponse(Quest const* quest) const
     {
         for (uint8 i = 0; i < QUEST_REWARDS_COUNT; ++i)
         {
-            data << uint32(quest->RewardItemId[i]);
+            data << uint32(LocalLevelScaling::QuestRewardItemFor(_session->GetPlayer(), quest->RewardItemId[i],
+                quest->GetQuestLevel()));
             data << uint32(quest->RewardItemIdCount[i]);
         }
         for (uint8 i = 0; i < QUEST_REWARD_CHOICES_COUNT; ++i)
         {
-            data << uint32(quest->RewardChoiceItemId[i]);
+            data << uint32(LocalLevelScaling::QuestRewardItemFor(_session->GetPlayer(), quest->RewardChoiceItemId[i],
+                quest->GetQuestLevel()));
             data << uint32(quest->RewardChoiceItemCount[i]);
         }
     }
@@ -694,10 +700,12 @@ void PlayerMenu::SendQuestGiverOfferReward(Quest const* quest, ObjectGuid npcGUI
     data << uint32(quest->GetRewChoiceItemsCount());
     for (uint32 i = 0; i < quest->GetRewChoiceItemsCount(); ++i)
     {
-        data << uint32(quest->RewardChoiceItemId[i]);
+        uint32 const itemId = LocalLevelScaling::QuestRewardItemFor(_session->GetPlayer(),
+            quest->RewardChoiceItemId[i], quest->GetQuestLevel());
+        data << uint32(itemId);
         data << uint32(quest->RewardChoiceItemCount[i]);
 
-        if (ItemTemplate const* itemTemplate = sObjectMgr->GetItemTemplate(quest->RewardChoiceItemId[i]))
+        if (ItemTemplate const* itemTemplate = sObjectMgr->GetItemTemplate(itemId))
             data << uint32(itemTemplate->DisplayInfoID);
         else
             data << uint32(0);
@@ -706,10 +714,12 @@ void PlayerMenu::SendQuestGiverOfferReward(Quest const* quest, ObjectGuid npcGUI
     data << uint32(quest->GetRewItemsCount());
     for (uint32 i = 0; i < quest->GetRewItemsCount(); ++i)
     {
-        data << uint32(quest->RewardItemId[i]);
+        uint32 const itemId = LocalLevelScaling::QuestRewardItemFor(_session->GetPlayer(),
+            quest->RewardItemId[i], quest->GetQuestLevel());
+        data << uint32(itemId);
         data << uint32(quest->RewardItemIdCount[i]);
 
-        if (ItemTemplate const* itemTemplate = sObjectMgr->GetItemTemplate(quest->RewardItemId[i]))
+        if (ItemTemplate const* itemTemplate = sObjectMgr->GetItemTemplate(itemId))
             data << uint32(itemTemplate->DisplayInfoID);
         else
             data << uint32(0);

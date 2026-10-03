@@ -5,6 +5,7 @@
  */
 
 #include "AscensionFelsworn.h"
+#include "AscensionItemScaling.h"
 #include "AscensionPyromancer.h"
 #include "AscensionCultist.h"
 #include "AscensionVenomancer.h"
@@ -3507,6 +3508,9 @@ public:
       SendItemDisplayInfoRow(player, row);
 
     for (ItemPatchRow const &row : rows.Items)
+      SendItemRow(player, row);
+
+    for (ItemPatchRow const &row : ItemScaling::ClientRows())
       SendItemRow(player, row);
 
     for (SpellPatchRow const &row : rows.Spells)

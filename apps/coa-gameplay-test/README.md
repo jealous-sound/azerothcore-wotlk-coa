@@ -451,6 +451,8 @@ assert stable maximums and final levels when testing damage coefficients.
 | `equip` | `actor`, `item`, `slot` (0..18 equipment, 19..22 bag slots): equip an owned item through the session handler. |
 | `use_item` | `actor`, `item`, `spell`, optional `target`, `target_item` (an owned item entry, sent as the item target instead of a unit) and `destination`: normal item-use handler. |
 | `use_gameobject` | `actor`, `entry`: native use request for the actor's single nearby owned gameobject. |
+| `summon_gameobject` | Player `actor`, `entry`, optional `distance` (yards in front, default 2) and `duration_s` (default 300): summon a gameobject the actor owns; fails if the actor already owns one of that entry. |
+| `loot_gameobject` | Player `actor`, `entry`: open the loot of the actor's single owned chest as a successful open-lock cast does, so chest loot is generated for that player. Lock, key and skill checks are not exercised. |
 | `set_skill` | `actor`, `skill`, `value`, `maximum`: fixture a native profession skill. |
 | `gather_skill` | `actor`, gathering `skill`, `required`: native gathering XP and skill-up attempt. |
 | `set_xp_enabled` | `actor`, boolean `enabled`: fixture the native XP-lock flag. |
@@ -655,11 +657,16 @@ and closes its current loot window. `collect_loot` takes `actor`, collects slot 
 quantity reached inventory and records the item/count. It supports ordinary container loot, not quest-only slots.
 `loot_count` and `loot_entry` report the actor's current uncollected item slots and first entry; `loot_received`
 reports the inventory increase from its last successful `collect_loot`. Closed windows return zero slots/entry.
+The `loot_*` item metrics accept an optional `item` that keeps only the slots holding that item or a level-scaled
+copy of it (entries 4400001 and up). `loot_item_armor` reads the first such slot's armor, and `loot_base_entry`
+names the authored item a copy was made from. `carried_item_level` and `carried_item_required_level` require `item` and return the highest item
+level or required level among equipped and bagged items that are that item or a copy of it, or zero without one.
+`loot_slot` with `item` also picks up a copy of that item.
 `creature_loot_quality_rate` requires `entry` (a creature loot id), fills that template `rolls` times (default 10000)
 for the actor and reports the percentage of fills holding an item of at least `quality` (default 3, rare).
-`loot_slot` accepts an optional `item` to find that item in the current creature corpse's per-player slots,
-then submits the native pickup request. Without it, `slot` defaults to zero. `respawn_remaining` reads a fixture
-creature's remaining death-time respawn timer in seconds; summoned fixtures still use corpse-based timing.
+`loot_slot` accepts an optional `item` to find that item in the current creature corpse's or chest's per-player
+slots, then submits the native pickup request. Without it, `slot` defaults to zero. `respawn_remaining` reads a
+fixture creature's remaining death-time respawn timer in seconds; summoned fixtures still use corpse-based timing.
 `quest_rewarded` requires `quest` and reads the player's native rewarded status.
 `has_achievement` requires `achievement` and reads whether the player has completed it.
 `has_title` requires `title` (a CharTitles.dbc id) and reads whether the player has earned it.
@@ -770,6 +777,8 @@ and query the native quest level and XP calculations without awarding a reward.
 sent for that quest's log slot in `SMSG_UPDATE_OBJECT_ADDON` (fields 61 and 36 + slot), or -1 before one arrives.
 `quest_query_scaled` takes the same arguments and returns 1 when the last quest query response for that quest
 carried the client's scaled-quest flag `0x01000000`, 0 when it did not, or -1 before one arrives.
+`quest_query_reward_choice` takes the same arguments and returns the first choice reward item id in the last quest
+query response for that quest, or -1 before one arrives.
 
 ## Evidence boundaries
 

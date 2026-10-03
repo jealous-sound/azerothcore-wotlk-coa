@@ -23,6 +23,7 @@ void AddAscensionTravelPermitScripts();
 void AddSC_AscensionRulesets();
 void AddSC_AscensionMercenary();
 void AddSC_AscensionHighRisk();
+void AddSC_AscensionItemScaling();
 void AddSC_AscensionBloodforged();
 void AddSC_AscensionPvpPower();
 void AddSC_AscensionGlory();
@@ -590,6 +591,7 @@ void AddCoAScripts()
     AddSC_AscensionRulesets();
     AddSC_AscensionMercenary();
     AddSC_AscensionHighRisk();
+    AddSC_AscensionItemScaling();
     AddSC_AscensionBloodforged();
     AddSC_AscensionPvpPower();
     AddSC_AscensionGlory();

@@ -38,7 +38,7 @@ METRICS = {
     'xp', 'next_level_xp', 'skill_value', 'skill_maximum', 'lfg_dungeon_disabled', 'map_id',
     'position_x', 'position_y', 'position_z',
     'view_level', 'sent_level', 'sent_max_health', 'creature_query_rank', 'quest_level', 'quest_xp',
-    'quest_log_sent_level', 'quest_log_sent_xp', 'quest_query_scaled',
+    'quest_log_sent_level', 'quest_log_sent_xp', 'quest_query_scaled', 'quest_query_reward_choice',
     'health', 'health_pct', 'max_health', 'creature_type', 'respawn_remaining', 'power', 'max_power', 'alive', 'combat', 'victim', 'casting', 'level',
     'aura', 'aura_stacks', 'aura_charges', 'aura_duration_ms', 'aura_amount', 'aura_positive',
     'knows_spell', 'spell_active', 'has_talent', 'talent_points', 'cooldown_ms', 'global_cooldown_ms', 'spell_charges',
@@ -68,7 +68,8 @@ METRICS = {
     'spellbook_silent_buys', 'spellbook_multi_announced_buys',
     'cast_speed_multiplier', 'spell_crit_chance', 'spell_power_cost', 'spell_damage_done', 'melee_damage_done',
     'who_count', 'who_class', 'player_name', 'name_lookup', 'loot_count', 'loot_entry', 'loot_received',
-    'loot_gold', 'loot_bloodforged', 'loot_required_level', 'loot_item_level',
+    'loot_gold', 'loot_bloodforged', 'loot_required_level', 'loot_item_level', 'loot_base_entry', 'loot_item_armor',
+    'carried_item_level', 'carried_item_required_level',
     'nearby_gameobject_count', 'nearby_creature_count', 'carried_money',
     'quest_rewarded', 'has_achievement', 'has_title', 'spell_damage_taken', 'melee_damage_taken', 'spell_healing_taken',
     'spell_hit_bonus_taken', 'rooted', 'stunned', 'spell_cast_count', 'spell_go_count', 'cast_failure',
@@ -195,6 +196,8 @@ ACTIONS = {
     'equip': ({'actor', 'item', 'slot'}, {'actor', 'item', 'slot'}),
     'use_item': ({'actor', 'item', 'spell'}, {'actor', 'item', 'spell', 'target', 'target_item', 'destination'}),
     'use_gameobject': ({'actor', 'entry'}, {'actor', 'entry'}),
+    'summon_gameobject': ({'actor', 'entry'}, {'actor', 'entry', 'distance', 'duration_s'}),
+    'loot_gameobject': ({'actor', 'entry'}, {'actor', 'entry'}),
     'set_skill': ({'actor', 'skill', 'value', 'maximum'}, {'actor', 'skill', 'value', 'maximum'}),
     'gather_skill': ({'actor', 'skill', 'required'}, {'actor', 'skill', 'required'}),
     'set_xp_enabled': ({'actor', 'enabled'}, {'actor', 'enabled'}),
@@ -448,6 +451,11 @@ def validate(scenario):
             for category, appearance in selection.items():
                 require(category.isdigit() and 0 < int(category) < 256, f'{where}.selection: invalid category')
                 number(appearance, f'{where}.selection.{category}', 0, 2**32 - 1, True)
+        if action in {'summon_gameobject', 'loot_gameobject'}:
+            require(step['actor'] in player_ids, f'{where}: {action} needs a player')
+            number(step['entry'], f'{where}.entry', 1, 2**32 - 1, True)
+            number(step.get('distance', 2), f'{where}.distance', 0, 20)
+            number(step.get('duration_s', 300), f'{where}.duration_s', 1, 86400, True)
         if action == 'discover_taxi_node':
             number(step['entry'], f'{where}.entry', 1, 2**31 - 1, True)
         if action == 'client_packet':
@@ -505,7 +513,8 @@ def validate(scenario):
                 number(step.get('entry'), f'{where}.entry', 1, 2**31 - 1, True)
             if metric == 'lfg_dungeon_disabled':
                 number(step.get('dungeon'), f'{where}.dungeon', 1, 2**24 - 1, True)
-            if metric in {'quest_level', 'quest_xp', 'quest_log_sent_level', 'quest_log_sent_xp', 'quest_query_scaled'}:
+            if metric in {'quest_level', 'quest_xp', 'quest_log_sent_level', 'quest_log_sent_xp', 'quest_query_scaled',
+                          'quest_query_reward_choice'}:
                 require(step['actor'] in player_ids and 'quest' in step,
                         f'{where}: quest metric needs a player and quest')
             if metric.startswith('aura') or metric in {
@@ -584,7 +593,7 @@ def validate(scenario):
                 number(step['hand'], f'{where}.hand', 0, maximum, True)
             if 'school' in step and metric == 'spell_crit_chance':
                 number(step['school'], f'{where}.school', 0, 6, True)
-            if metric == 'item_count':
+            if metric in {'item_count', 'carried_item_level', 'carried_item_required_level'}:
                 require('item' in step, f'{where}: metric needs item')
             if metric == 'carried_pool_item_count':
                 require('cache' in step, f'{where}: metric needs the cache item it checks against')
@@ -707,6 +716,8 @@ def validate(scenario):
                           'who_count', 'who_class',
                           'loot_count', 'loot_entry', 'loot_required_level', 'loot_item_level', 'loot_received',
                           'quest_rewarded', 'has_achievement',
+                          'loot_base_entry', 'loot_item_armor',
+                          'carried_item_level', 'carried_item_required_level',
                           'has_title',
                           'quest_status', 'quest_takeable', 'quest_objective_count', 'dialog_status',
                           'ball_offer_count', 'ball_offers_quest',
