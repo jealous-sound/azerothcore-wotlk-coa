@@ -199,8 +199,9 @@ namespace
             }
 
             _positionCheckTimer = POSITION_CHECK_INTERVAL_MS;
-            if (me->GetExactDist(me->GetHomePosition()) > POSITION_DRIFT_TOLERANCE_YD)
-                me->NearTeleportTo(me->GetHomePosition());
+            Position home = me->GetHomePosition();
+            if (me->GetExactDist(home) > POSITION_DRIFT_TOLERANCE_YD)
+                me->NearTeleportTo(home);
         }
 
     private:
