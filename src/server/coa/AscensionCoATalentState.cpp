@@ -47,6 +47,52 @@ bool IsIdentity(std::uint32_t entryId)
 }
 }
 
+std::vector<std::uint32_t> SpecializationSlotRecord(SpecializationSlot const& slot)
+{
+    std::vector<std::uint32_t> record = { 1, slot.ClassId, slot.SpecId, std::uint32_t(slot.Entries.size()) };
+    for (KnownEntry const& entry : slot.Entries)
+    {
+        record.push_back(entry.EntryId);
+        record.push_back(entry.Rank);
+    }
+    record.push_back(std::uint32_t(slot.Actions.size()));
+    for (auto const& [button, action] : slot.Actions)
+    {
+        record.push_back(button);
+        record.push_back(action);
+    }
+    return record;
+}
+
+bool ParseSpecializationSlot(std::vector<std::uint32_t> const& record, SpecializationSlot& slot)
+{
+    if (record.size() < 5 || record[0] != 1 || record[1] < 12 || record[1] > 32 ||
+        record[3] > (record.size() - 5) / 2)
+        return false;
+
+    SpecializationSlot parsed;
+    parsed.ClassId = record[1];
+    parsed.SpecId = record[2];
+    std::size_t cursor = 4;
+    for (std::size_t index = 0; index < record[3]; ++index, cursor += 2)
+        parsed.Entries.push_back({ record[cursor], record[cursor + 1] });
+
+    std::uint32_t const actions = record[cursor++];
+    if (actions > (record.size() - cursor) / 2)
+        return false;
+    std::unordered_set<std::uint32_t> buttons;
+    for (std::uint32_t index = 0; index < actions; ++index, cursor += 2)
+    {
+        if (record[cursor] >= 144 || !record[cursor + 1] || !buttons.insert(record[cursor]).second)
+            return false;
+        parsed.Actions.emplace_back(record[cursor], record[cursor + 1]);
+    }
+    if (std::any_of(record.begin() + cursor, record.end(), [](std::uint32_t value) { return value != 0; }))
+        return false;
+    slot = std::move(parsed);
+    return true;
+}
+
 std::uint32_t KnownRank(AscensionCompatData::CoATalentEntry const& entry, HasSpell const& hasSpell)
 {
     std::uint32_t rank = 0;
@@ -161,11 +207,91 @@ UploadedSpecialization SpecializationOf(std::vector<KnownEntry> const& upload)
     return uploaded;
 }
 
+std::vector<std::uint32_t> SpellsAboveRank(AscensionCompatData::CoATalentEntry const& entry, std::uint32_t rank)
+{
+    std::vector<std::uint32_t> spells;
+    for (std::uint32_t index = rank; index < entry.SpellCount; ++index)
+        if (entry.SpellIds[index])
+            spells.push_back(entry.SpellIds[index]);
+    return spells;
+}
+
+bool IsUnpricedRemoval(AscensionCompatData::CoATalentEntry const& entry)
+{
+    if (!entry.AECost && !entry.TECost && !IsSelectableFree(entry.EntryId))
+        return true;
+    return std::any_of(AscensionCompatData::CoASpecializations.begin(), AscensionCompatData::CoASpecializations.end(),
+        [&entry](AscensionCompatData::CoASpecialization const& specialization)
+        {
+            return specialization.SignatureEntryId == entry.EntryId;
+        });
+}
+
+UnlearnPrice UnlearnPriceAt(std::uint32_t level, ResetCredits const& credits, bool freeUnlearn)
+{
+    if (level <= 10 || freeUnlearn)
+        return {};
+    std::uint32_t const tier = level <= 19 ? 32 : level <= 29 ? 71 : level <= 49 ? 521 : level <= 59 ? 1107 : 2221;
+    double const base = double(tier) * level * 0.25;
+    std::uint32_t const repeats = credits[std::size_t(ResetCreditType::TalentReset) - 1] +
+        credits[std::size_t(ResetCreditType::AbilityUnlearn) - 1];
+    double const extra = double(std::int32_t(repeats)) * 4.16666666666667 * level * 0.25;
+    UnlearnPrice price;
+    price.Money = std::uint32_t(std::int32_t(std::min(std::max(2147483647.0 - base, 0.0), extra) + base));
+    price.Marks = level * 4;
+    return price;
+}
+
+PurgePrice TalentPurgePriceAt(std::uint32_t level, ResetCredits const& credits)
+{
+    PurgePrice price;
+    price.Item = TALENT_PURGE_ITEM;
+    if (level <= 10)
+        return price;
+    double const lvl = double(level);
+    double const resets = double(credits[std::size_t(ResetCreditType::TalentReset) - 1]);
+    double cost = lvl * lvl * 1.16220833333333 + resets * 0.0416666666666667 * 10000.0;
+    cost = (cost + lvl * 18.7038333333333 - 359.025) * lvl * 0.25;
+    price.Money = std::uint32_t(std::int64_t(cost > 4294967295.0 ? 4294967295.0 : cost));
+    price.Marks = level * 125;
+    price.ItemCount = 1;
+    return price;
+}
+
+RemovalPayment PayForRemovals(std::vector<UnlearnPrice> const& prices, std::uint32_t marksHeld,
+    std::uint32_t moneyHeld)
+{
+    RemovalPayment payment;
+    for (UnlearnPrice const& price : prices)
+    {
+        if (!price.Marks && !price.Money)
+            continue;
+        if (price.Marks && marksHeld >= price.Marks)
+        {
+            marksHeld -= price.Marks;
+            payment.Marks += price.Marks;
+            continue;
+        }
+        if (!price.Money || std::uint64_t(payment.Money) + price.Money > moneyHeld)
+            return { false, 0, 0 };
+        payment.Money += price.Money;
+    }
+    return payment;
+}
+
 std::vector<KnownEntry> SpecializationSwitch(std::uint8_t classId, HasSpell const& hasSpell, std::uint32_t specId)
 {
+    std::unordered_set<std::uint32_t> departedSignatures;
+    for (AscensionCompatData::CoASpecialization const& specialization : AscensionCompatData::CoASpecializations)
+        if (specialization.ClassId == classId && specialization.SpecId != specId)
+            if (auto const* identity = FindEntry(specialization.IdentityEntryId);
+                identity && KnownRank(*identity, hasSpell))
+                departedSignatures.insert(specialization.SignatureEntryId);
+
     std::vector<KnownEntry> upload;
     for (KnownEntry const& known : KnownEntries(classId, hasSpell))
-        if (AscensionCompatData::CoATalentEntry const* entry = FindEntry(known.EntryId); entry && !entry->SpecId)
+        if (AscensionCompatData::CoATalentEntry const* entry = FindEntry(known.EntryId);
+            entry && !entry->SpecId && !departedSignatures.contains(known.EntryId))
             upload.push_back(known);
 
     for (AscensionCompatData::CoASpecialization const& specialization : AscensionCompatData::CoASpecializations)

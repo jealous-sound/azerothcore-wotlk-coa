@@ -407,8 +407,9 @@ class aura_ascension_witch_hunter_event : public AuraScript
                 Player* caster = Owner(GetCaster());
                 if (caster)
                 {
+                    uint32 stacks = std::max<uint32>(1, GetAura()->GetStackAmount());
                     int32 value = GetEffect(EFFECT_2)->GetAmount() +
-                                  int32(caster->GetTotalAttackPowerValue(RANGED_ATTACK) * 0.15f);
+                                  int32(stacks * caster->GetTotalAttackPowerValue(RANGED_ATTACK) * 0.15f);
                     owner->CastCustomSpell(567570, SPELLVALUE_BASE_POINT0, value, other, TRIGGERED_FULL_MASK, nullptr,
                                            GetEffect(EFFECT_2), caster->GetGUID());
                 }

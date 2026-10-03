@@ -3,15 +3,18 @@
   "name": "Shadow Rage deals greater proc damage with Lethal Pursuit stacks (#3939)",
   "contract": [
     "Normal Shadowblasts with Shadow Rage grant the owner's aura to its summoned hound. Lethal Pursuit allows",
-    "five stacks. Original Shadow Rage has a 50 percent proc chance: collect damage and proc counts over",
-    "eighty seconds of ordinary pet attacks in each phase, refreshing its finite duration with twenty funded",
-    "normal Shadowblasts. Learn Lethal Pursuit after the one-stack sample so those refreshes remain at one",
-    "stack. Compare mean damage per actual proc against a second otherwise identical enemy after five stacks;",
-    "damage dealt while building stacks cannot enter the second sample. Assert every native refresh's stack",
-    "count and completed normal-cast count. The owner's RAP and both targets stay unchanged; proc chances and",
-    "attack timers are unmodified. Each mean proc hit must equal the captured native aura amount times its",
-    "stack count plus the unchanged owner RAP times 15 percent, allowing one point of integer rounding; a",
-    "generic increase is insufficient."
+    "five stacks. Original Shadow Rage has a 50 percent proc chance: collect damage and proc counts over eighty",
+    "seconds of ordinary pet attacks in each phase, refreshing its finite duration with twenty funded normal",
+    "Shadowblasts. Learn Lethal Pursuit after the one-stack sample so those refreshes remain at one stack.",
+    "Compare mean damage per actual proc against a second otherwise identical enemy after five stacks; damage",
+    "dealt while building stacks cannot enter the second sample. Assert every native refresh's stack count and",
+    "completed normal-cast count. The owner's RAP and both targets stay unchanged; proc chances and attack timers",
+    "are unmodified. Each mean proc hit must equal the captured native aura amount times its stack count plus the",
+    "unchanged owner RAP times 15 percent per stack, allowing one point of integer rounding; a generic increase",
+    "is insufficient. Original 804192 applies its complete per-application amount and 15 percent owner ranged",
+    "attack power once per stack. Five-stack mean proc damage must therefore be approximately five times the one-",
+    "stack mean; the numerical checker preserves the main regression bounds of 4.5 to 5.3 while comparing",
+    "measured counts rather than assuming a single proc."
   ],
   "timeout_ms": 240000,
   "players": [

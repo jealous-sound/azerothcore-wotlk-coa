@@ -1,0 +1,255 @@
+{
+  "schema": 1,
+  "name": "Native archetype switches apply shared signatures and restore stored spec purchases",
+  "contract": "ChrSpecs 26 (Sanguine) uses shared class entry 29543 for Scarlet Delirium 801074; ChrSpecs 99 (Eternal) uses shared class entry 31117 for Blood Pact 801955. Both cost 1 AE, and the level-11 Bloodmage budget is 1 AE / 1 TE. The original DLL LeaveSpec removes the old signature and EnterSpec inserts the new signature and identity before uploading CMSG 0x727. The server must honor those shared-tree edits, removing the old signature and granting the new one without exceeding the class budget. Its existing per-archetype stored-build feature must still restore purchased Eternal Rotclaw (30191, 804197, 1 TE) on return. The packet fixture contains only the new identity and signature, independent of the gameplay specialization helper.",
+  "timeout_ms": 30000,
+  "players": [
+    {
+      "id": "bloodmage",
+      "race": 1,
+      "class": 20,
+      "level": 11
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Settle login",
+      "ms": 5000
+    },
+    {
+      "action": "specialization",
+      "label": "Choose Sanguine",
+      "actor": "bloodmage",
+      "id": 26
+    },
+    {
+      "action": "assert",
+      "label": "Sanguine owns Scarlet Delirium",
+      "actor": "bloodmage",
+      "metric": "knows_spell",
+      "spell": 801074,
+      "equals": 1
+    },
+    {
+      "action": "client_packet",
+      "label": "Apply the native Eternal identity and Blood Pact signature",
+      "actor": "bloodmage",
+      "opcode": 1831,
+      "fields": [
+        {
+          "u32": 2
+        },
+        {
+          "u32": 4027
+        },
+        {
+          "u32": 1
+        },
+        {
+          "u32": 0
+        },
+        {
+          "u8": 0
+        },
+        {
+          "u32": 0
+        },
+        {
+          "u32": 0
+        },
+        {
+          "u32": 31117
+        },
+        {
+          "u32": 1
+        },
+        {
+          "u32": 0
+        },
+        {
+          "u8": 0
+        },
+        {
+          "u32": 0
+        },
+        {
+          "u32": 0
+        }
+      ]
+    },
+    {
+      "action": "assert",
+      "label": "Eternal receives Blood Pact from the uploaded shared tree",
+      "actor": "bloodmage",
+      "metric": "knows_spell",
+      "spell": 801955,
+      "equals": 1,
+      "within_ms": 1000
+    },
+    {
+      "action": "assert",
+      "label": "The departed Scarlet Delirium signature is removed",
+      "actor": "bloodmage",
+      "metric": "knows_spell",
+      "spell": 801074,
+      "equals": 0,
+      "within_ms": 1000
+    },
+    {
+      "action": "advancement_rank",
+      "label": "Purchase Rotclaw in Eternal",
+      "actor": "bloodmage",
+      "entry": 30191,
+      "rank": 1
+    },
+    {
+      "action": "client_packet",
+      "label": "Apply the native Sanguine signature",
+      "actor": "bloodmage",
+      "opcode": 1831,
+      "fields": [
+        {
+          "u32": 2
+        },
+        {
+          "u32": 4025
+        },
+        {
+          "u32": 1
+        },
+        {
+          "u32": 0
+        },
+        {
+          "u8": 0
+        },
+        {
+          "u32": 0
+        },
+        {
+          "u32": 0
+        },
+        {
+          "u32": 29543
+        },
+        {
+          "u32": 1
+        },
+        {
+          "u32": 0
+        },
+        {
+          "u8": 0
+        },
+        {
+          "u32": 0
+        },
+        {
+          "u32": 0
+        }
+      ]
+    },
+    {
+      "action": "assert",
+      "label": "Sanguine receives Scarlet Delirium again",
+      "actor": "bloodmage",
+      "metric": "knows_spell",
+      "spell": 801074,
+      "equals": 1,
+      "within_ms": 1000
+    },
+    {
+      "action": "assert",
+      "label": "Blood Pact is removed on leaving Eternal",
+      "actor": "bloodmage",
+      "metric": "knows_spell",
+      "spell": 801955,
+      "equals": 0,
+      "within_ms": 1000
+    },
+    {
+      "action": "assert",
+      "label": "The departing Eternal talent is stored and removed",
+      "actor": "bloodmage",
+      "metric": "knows_spell",
+      "spell": 804197,
+      "equals": 0,
+      "within_ms": 1000
+    },
+    {
+      "action": "client_packet",
+      "label": "Return to Eternal through the same native baseline upload",
+      "actor": "bloodmage",
+      "opcode": 1831,
+      "fields": [
+        {
+          "u32": 2
+        },
+        {
+          "u32": 4027
+        },
+        {
+          "u32": 1
+        },
+        {
+          "u32": 0
+        },
+        {
+          "u8": 0
+        },
+        {
+          "u32": 0
+        },
+        {
+          "u32": 0
+        },
+        {
+          "u32": 31117
+        },
+        {
+          "u32": 1
+        },
+        {
+          "u32": 0
+        },
+        {
+          "u8": 0
+        },
+        {
+          "u32": 0
+        },
+        {
+          "u32": 0
+        }
+      ]
+    },
+    {
+      "action": "assert",
+      "label": "Eternal receives its correct shared-tree signature",
+      "actor": "bloodmage",
+      "metric": "knows_spell",
+      "spell": 801955,
+      "equals": 1,
+      "within_ms": 1000
+    },
+    {
+      "action": "assert",
+      "label": "The old Sanguine signature does not survive",
+      "actor": "bloodmage",
+      "metric": "knows_spell",
+      "spell": 801074,
+      "equals": 0,
+      "within_ms": 1000
+    },
+    {
+      "action": "assert",
+      "label": "The previously purchased Eternal talent is restored",
+      "actor": "bloodmage",
+      "metric": "knows_spell",
+      "spell": 804197,
+      "equals": 1,
+      "within_ms": 1000
+    }
+  ]
+}
