@@ -109,22 +109,26 @@ DELETE FROM `gossip_menu` WHERE `MenuID`=9950100;
 INSERT INTO `gossip_menu` (`MenuID`, `TextID`) VALUES
 (9950100, 9950100);
 
-DELETE FROM `creature` WHERE `guid` BETWEEN 9950100 AND 9950110;
+DELETE FROM `creature` WHERE `guid` BETWEEN 9950100 AND 9950114;
 INSERT INTO `creature` (`guid`, `id`, `map`, `zoneId`, `areaId`, `spawnMask`, `phaseMask`, `equipment_id`,
   `position_x`, `position_y`, `position_z`, `orientation`, `spawntimesecs`, `wander_distance`, `currentwaypoint`,
   `curhealth`, `curmana`, `MovementType`, `npcflag`, `unit_flags`, `dynamicflags`, `ScriptName`, `VerifiedBuild`,
   `CreateObject`, `Comment`) VALUES
-(9950100, 776786, 0, 40, 108, 1, 1, 0, -10516.5, 1062.5, 55.57, 1.72, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Captain Olens (estimated position)'),
-(9950101, 255339, 0, 40, 108, 1, 1, 0, -10521, 1068, 54.27, 5, 120, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Militia Recruit (estimated position)'),
-(9950102, 255339, 0, 40, 108, 1, 1, 0, -10517, 1070.5, 54.43, 4.75, 120, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Militia Recruit (estimated position)'),
-(9950103, 255339, 0, 40, 108, 1, 1, 0, -10513, 1069, 55.01, 4.4, 120, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Militia Recruit (estimated position)'),
-(9950104, 255339, 0, 40, 108, 1, 1, 0, -10521, 1072.5, 53.29, 5.1, 120, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Militia Recruit (estimated position)'),
+(9950100, 776786, 0, 40, 108, 1, 1, 0, -10722.5, 990, 36.2, 3.91, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Captain Olens (estimated position, training yard)'),
+(9950101, 255339, 0, 40, 108, 1, 1, 0, -10731.5, 978, 36.84, 2.7, 120, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Militia Recruit (estimated position, training yard)'),
+(9950102, 255339, 0, 40, 108, 1, 1, 0, -10740.5, 971.5, 36.92, 2.71, 120, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Militia Recruit (estimated position, training yard)'),
+(9950103, 255339, 0, 40, 108, 1, 1, 0, -10736.5, 975.5, 36.91, 3.43, 120, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Militia Recruit (estimated position, training yard)'),
+(9950104, 255339, 0, 40, 108, 1, 1, 0, -10737.5, 989.5, 36.73, 2.46, 120, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Militia Recruit (estimated position, training yard)'),
 (9950105, 255150, 0, 40, 108, 1, 1, 0, -10489, 1060, 54.58, 3.14, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Idona Wyther (estimated position)'),
 (9950106, 776790, 0, 40, 108, 1, 1, 0, -10501.5, 1029.5, 60.6, 3.84, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Archivist Selnor (estimated position, tower floor)'),
 (9950107, 991515, 0, 40, 40, 1, 1, 0, -10259.3, 1780.44, 73.85, 5.82, 600, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Lenore the Hoarder (estimated position, Defias tower upper floor)'),
 (9950108, 157002, 0, 40, 921, 1, 1, 0, -11141, 1826, 39.15, 5.05, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Farmer Demont (estimated position, Demont''s Place ruins by the chimney)'),
 (9950109, 999900, 0, 40, 40, 1, 1, 0, -10100, 980, 40.37, 2.2, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Slain Protector (estimated position, broken harvester)'),
-(9950110, 999901, 0, 40, 922, 1, 1, 0, -11030, 790, 37.55, 1, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Half-Devoured Protector (estimated position, Riverpaw camp)');
+(9950110, 999901, 0, 40, 922, 1, 1, 0, -11030, 790, 37.55, 1, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Half-Devoured Protector (estimated position, Riverpaw camp)'),
+(9950111, 255339, 0, 40, 108, 1, 1, 0, -10734, 985, 36.75, 3.5, 120, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Militia Recruit (estimated position, training yard)'),
+(9950112, 255339, 0, 40, 108, 1, 1, 0, -10733, 994.5, 36.22, 2.74, 120, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Militia Recruit (estimated position, training yard)'),
+(9950113, 255339, 0, 40, 108, 1, 1, 0, -10729, 990, 36.25, 2.46, 120, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Militia Recruit (estimated position, training yard)'),
+(9950114, 255339, 0, 40, 108, 1, 1, 0, -10738.5, 981.5, 36.88, 2.78, 120, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Militia Recruit (estimated position, training yard)');
 
 -- Westfall Hoard (480104): Ascension's object id for it is unknown.
 INSERT INTO `gameobject_template` (`entry`, `type`, `displayId`, `name`, `IconName`, `castBarCaption`, `unk1`,
