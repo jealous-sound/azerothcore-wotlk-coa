@@ -7,3 +7,4 @@ CoANeeds.MealFill = 45.0
 CoANeeds.DrinkFill = 55.0
 CoANeeds.VigorRegenPerSecond = 8.0
 CoANeeds.SprintDrainPerSecond = 10.0
+CoANeeds.CampLifetimeSeconds = 3600

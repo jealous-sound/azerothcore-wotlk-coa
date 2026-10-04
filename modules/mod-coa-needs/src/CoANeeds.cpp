@@ -3,8 +3,10 @@
 #include "Chat.h"
 #include "Config.h"
 #include "DatabaseEnv.h"
+#include "GameObject.h"
 #include "Item.h"
 #include "Log.h"
+#include "Map.h"
 #include "NeedsChallengeBridge.h"
 #include "Player.h"
 #include "ScriptMgr.h"
@@ -35,6 +37,10 @@ constexpr uint32 WindAura = 996014;
 constexpr uint32 SprintAbility = 996015;
 constexpr uint32 DodgeAbility = 996016;
 constexpr uint32 WindAbility = 996017;
+constexpr uint32 CampRest = 996100;
+constexpr uint32 Fellowship = 996103;
+constexpr uint32 CampAbility = 996106;
+constexpr uint32 PackAbility = 996109;
 
 struct Options
 {
@@ -46,6 +52,7 @@ struct Options
     float drink = 55.0f;
     float regen = 8.0f;
     float sprintDrain = 10.0f;
+    uint32 campLifetime = 3600;
 };
 
 struct PendingMeal
@@ -80,13 +87,26 @@ struct State
     uint64 lastCombat = 0;
     bool sprint = false;
     bool delegated = false;
+    uint32 campReady = 0;
+    uint32 socialTick = 0;
+    int32 restingCamp = -1;
     PendingMeal meal;
+};
+
+struct Camp
+{
+    uint32 map = 0;
+    uint32 expires = 0;
+    uint32 tier = 0;
+    ObjectGuid fire;
+    ObjectGuid tent;
 };
 
 Options Config;
 bool SpellsReady = false;
 std::recursive_mutex Mutex;
 std::unordered_map<ObjectGuid::LowType, State> States;
+std::unordered_map<ObjectGuid::LowType, Camp> Camps;
 
 uint64 Milliseconds()
 {
@@ -121,9 +141,10 @@ void StopSprint(Player* player, State& state)
 
 void Save(Player* player, State const& state)
 {
-    std::array<uint32, 9> values = { 1, uint32(Clamp(state.food) * 1000.0f),
+    std::array<uint32, 10> values = { 1, uint32(Clamp(state.food) * 1000.0f),
         uint32(Clamp(state.water) * 1000.0f), uint32(Clamp(state.vigor) * 1000.0f),
-        state.dodgeUntil, state.windUntil, state.exhaustedUntil, state.attackLockUntil, state.windBuffUntil };
+        state.dodgeUntil, state.windUntil, state.exhaustedUntil, state.attackLockUntil, state.windBuffUntil,
+        state.campReady };
     for (uint32 index = 0; index < values.size(); ++index)
         player->UpdatePlayerSetting(Storage, index, values[index]);
 }
@@ -138,7 +159,8 @@ void Send(Player* player, State const& state)
     wire << "HXN\tSTATE~" << uint32(state.displayFood) << '~' << uint32(state.displayWater)
          << '~' << uint32(state.vigor) << '~' << uint32(state.cap) << '~' << state.sprint
          << '~' << remaining(state.dodgeUntil) << '~' << remaining(state.windUntil)
-         << '~' << remaining(state.exhaustedUntil) << '~' << state.delegated;
+         << '~' << remaining(state.exhaustedUntil) << '~' << state.delegated << '~' << state.restingCamp
+         << '~' << remaining(state.campReady);
     WorldPacket packet;
     ChatHandler::BuildChatPacket(packet, CHAT_MSG_WHISPER, LANG_ADDON, player, nullptr, wire.str());
     player->SendDirectMessage(&packet);
@@ -153,6 +175,143 @@ void Unlock(Player* player)
         player->learnSpell(DodgeAbility);
     if (player->GetLevel() >= 60)
         player->learnSpell(WindAbility);
+    for (uint32 tier = 0; tier < 3; ++tier)
+        if (player->GetLevel() >= std::array<uint32, 3>{ 15, 30, 50 }[tier])
+            player->learnSpell(CampAbility + tier);
+    if (player->GetLevel() >= 15)
+        player->learnSpell(PackAbility);
+}
+
+void PackCamp(Player* player)
+{
+    auto found = Camps.find(player->GetGUID().GetCounter());
+    if (found == Camps.end())
+        return;
+    if (Map* map = player->FindMap(); map && map->GetId() == found->second.map)
+    {
+        if (GameObject* fire = map->GetGameObject(found->second.fire))
+            fire->Delete();
+        if (GameObject* tent = map->GetGameObject(found->second.tent))
+            tent->Delete();
+    }
+    Camps.erase(found);
+}
+
+int32 NearbyCamp(Player* player)
+{
+    Map* map = player->FindMap();
+    if (!map)
+        return -1;
+    uint32 now = uint32(std::time(nullptr));
+    int32 tier = -1;
+    for (auto camp = Camps.begin(); camp != Camps.end();)
+    {
+        if (camp->second.expires <= now)
+        {
+            camp = Camps.erase(camp);
+            continue;
+        }
+        if (camp->second.map == map->GetId())
+        {
+            GameObject* fire = map->GetGameObject(camp->second.fire);
+            if (!fire)
+            {
+                camp = Camps.erase(camp);
+                continue;
+            }
+            if (player->InSamePhase(fire) && player->IsWithinDistInMap(fire, 15.0f + 5.0f * camp->second.tier))
+                tier = std::max(tier, int32(camp->second.tier));
+        }
+        ++camp;
+    }
+    return tier;
+}
+
+void PlaceCamp(Player* player, State& state, uint32 tier)
+{
+    Map* map = player->FindMap();
+    uint32 now = uint32(std::time(nullptr));
+    if (!map || map->Instanceable() || !player->IsAlive() || player->IsInCombat() || player->isMoving() ||
+        player->IsMounted() || player->IsInFlight() || player->IsInWater() || player->IsFalling() ||
+        player->HasUnitState(UNIT_STATE_CONTROLLED))
+    {
+        ChatHandler(player->GetSession()).SendSysMessage("Place camps on dry land outside combat and instances.");
+        return;
+    }
+    if (tier > 2 || player->GetLevel() < std::array<uint32, 3>{ 15, 30, 50 }[tier] || state.campReady > now)
+        return;
+    uint32 leather = tier == 1 ? 2318 : 4234;
+    if (!player->HasItemCount(4470, 2, false) || (tier && !player->HasItemCount(leather, 4, false)))
+    {
+        ChatHandler(player->GetSession()).SendSysMessage(tier == 0 ? "Campfire requires 2 Simple Wood." :
+            tier == 1 ? "Shelter requires 2 Simple Wood and 4 Light Leather." :
+            "Hearthstead requires 2 Simple Wood and 4 Heavy Leather.");
+        return;
+    }
+    float orientation = player->GetOrientation();
+    GameObject* fire = player->SummonGameObject(tier == 2 ? 1831 : 1798,
+        player->GetPositionX(), player->GetPositionY(), player->GetPositionZ(), orientation,
+        0, 0, std::sin(orientation / 2), std::cos(orientation / 2), Config.campLifetime);
+    if (!fire)
+        return;
+    GameObject* tent = nullptr;
+    if (tier)
+    {
+        float x, y, z;
+        player->GetNearPoint(nullptr, x, y, z, 0.0f, tier == 1 ? 5.0f : 8.0f, orientation + 1.5707963f);
+        tent = player->SummonGameObject(tier == 1 ? 184592 : 184593, x, y, z, orientation,
+            0, 0, std::sin(orientation / 2), std::cos(orientation / 2), Config.campLifetime);
+        if (!tent)
+        {
+            fire->Delete();
+            return;
+        }
+    }
+    PackCamp(player);
+    player->DestroyItemCount(4470, 2, true);
+    if (tier)
+        player->DestroyItemCount(leather, 4, true);
+    Camp camp;
+    camp.map = map->GetId();
+    camp.expires = now + Config.campLifetime;
+    camp.tier = tier;
+    camp.fire = fire->GetGUID();
+    if (tent)
+        camp.tent = tent->GetGUID();
+    Camps[player->GetGUID().GetCounter()] = camp;
+    state.campReady = now + 60;
+    Save(player, state);
+    ChatHandler(player->GetSession()).SendSysMessage("Camp placed. Sit nearby to recover and gain rested experience.");
+}
+
+void RestAtCamp(Player* player, State& state, int32 tier, uint32 elapsed)
+{
+    state.restingCamp = player->IsAlive() && player->IsSitState() && !player->IsInCombat() ? tier : -1;
+    for (uint32 index = 0; index < 3; ++index)
+        SetAura(player, CampRest + index, state.restingCamp == int32(index));
+    if (state.restingCamp < 0)
+    {
+        state.socialTick = 0;
+        return;
+    }
+    float seconds = elapsed / 1000.0f;
+    float rested = player->GetUInt32Value(PLAYER_NEXT_LEVEL_XP) * (0.25f + 0.15f * tier) * seconds / 3600.0f;
+    player->SetRestBonus(player->GetRestBonus() + rested);
+    state.socialTick += elapsed;
+    if (state.socialTick < 30000)
+        return;
+    state.socialTick = 0;
+    for (uint32 index = uint32(tier); index < 3; ++index)
+        if (player->HasAura(Fellowship + index))
+            return;
+    for (uint32 index = 0; index < 3; ++index)
+        player->RemoveAurasDueToSpell(Fellowship + index);
+    if (Aura* aura = player->AddAura(Fellowship + uint32(tier), player))
+    {
+        aura->SetMaxDuration(3600000);
+        aura->SetDuration(3600000);
+    }
+    ChatHandler(player->GetSession()).SendSysMessage("Campfire Fellowship: a lasting bonus to all primary attributes.");
 }
 
 void UpdateNeeds(Player* player, State& state)
@@ -189,6 +348,8 @@ public:
         Config.drink = std::max(0.0f, sConfigMgr->GetOption<float>("CoANeeds.DrinkFill", 55.0f));
         Config.regen = std::max(0.0f, sConfigMgr->GetOption<float>("CoANeeds.VigorRegenPerSecond", 8.0f));
         Config.sprintDrain = std::max(0.0f, sConfigMgr->GetOption<float>("CoANeeds.SprintDrainPerSecond", 10.0f));
+        Config.campLifetime = std::clamp(sConfigMgr->GetOption<uint32>("CoANeeds.CampLifetimeSeconds", 3600),
+            60u, 86400u);
     }
 
     void OnStartup() override
@@ -199,6 +360,12 @@ public:
             {
                 SpellsReady = false;
                 LOG_ERROR("module.coa_needs", "Missing client/server needs spell {}; module disabled", id);
+            }
+        for (uint32 id = CampRest; id <= PackAbility; ++id)
+            if (!sSpellMgr->GetSpellInfo(id))
+            {
+                SpellsReady = false;
+                LOG_ERROR("module.coa_needs", "Missing camp spell {}; module disabled", id);
             }
         LOG_INFO("module.coa_needs", "Hunger, hydration and vigor: enabled={}, spells ready={}, include bots={}",
             Config.enabled, SpellsReady, Config.bots);
@@ -229,8 +396,12 @@ public:
             state.exhaustedUntil = (*saved)[6].value;
             state.attackLockUntil = (*saved)[7].value;
             state.windBuffUntil = (*saved)[8].value;
+            if (saved->size() >= 10)
+                state.campReady = (*saved)[9].value;
         }
         StopSprint(player, state);
+        for (uint32 index = 0; index < 3; ++index)
+            player->RemoveAurasDueToSpell(CampRest + index);
         UpdateNeeds(player, state);
         States[player->GetGUID().GetCounter()] = state;
         Unlock(player);
@@ -258,6 +429,9 @@ public:
         if (found == States.end())
             return;
         StopSprint(player, found->second);
+        PackCamp(player);
+        for (uint32 index = 0; index < 3; ++index)
+            player->RemoveAurasDueToSpell(CampRest + index);
         Save(player, found->second);
         States.erase(found);
     }
@@ -286,6 +460,18 @@ public:
         State& state = found->second;
         uint32 id = spell->GetSpellInfo()->Id;
         uint32 now = uint32(std::time(nullptr));
+        if (id >= CampAbility && id <= PackAbility)
+        {
+            if (id == PackAbility)
+            {
+                if (!player->IsInCombat())
+                    PackCamp(player);
+            }
+            else
+                PlaceCamp(player, state, id - CampAbility);
+            Send(player, state);
+            return;
+        }
         if (id >= SprintAbility && id <= WindAbility)
         {
             UpdateNeeds(player, state);
@@ -363,6 +549,9 @@ public:
             StopSprint(player, state);
             for (uint32 id : { Starving, Dehydrated, Exhausted, WindAura })
                 player->RemoveAurasDueToSpell(id);
+            for (uint32 index = 0; index < 3; ++index)
+                player->RemoveAurasDueToSpell(CampRest + index);
+            PackCamp(player);
             return;
         }
         UpdateNeeds(player, state);
@@ -394,7 +583,9 @@ public:
         uint64 steady = Milliseconds();
         bool alive = player->IsAlive();
         bool pvp = player->InBattleground() || player->InArena();
-        if (alive && !pvp && !state.delegated)
+        int32 campTier = NearbyCamp(player);
+        RestAtCamp(player, state, campTier, elapsed);
+        if (alive && !pvp && !state.delegated && campTier < 0)
         {
             float cooking = player->GetSkillValue(SKILL_COOKING) / 450.0f;
             state.food = Clamp(state.food - Config.foodDrain * (1.0f - 0.05f * cooking) * seconds / 60.0f);
@@ -437,6 +628,8 @@ public:
                 regen *= 0.25f;
             else if (player->IsSitState())
                 regen *= 2.0f;
+            if (state.restingCamp >= 0)
+                regen *= 1.5f + 0.5f * state.restingCamp;
             if (state.windBuffUntil > now)
                 regen *= 2.5f;
             state.vigor = std::min(state.cap, state.vigor + regen * seconds);
@@ -450,7 +643,7 @@ public:
         if (state.dehydrationTick >= 10000)
         {
             state.dehydrationTick = 0;
-            if (alive && !pvp && !state.delegated && state.displayWater <= 10.0f &&
+            if (alive && !pvp && !state.delegated && campTier < 0 && state.displayWater <= 10.0f &&
                 !player->HasPlayerFlag(PLAYER_FLAGS_RESTING))
             {
                 uint32 damage = std::max(1u, uint32(player->GetMaxHealth() * 0.02f));
