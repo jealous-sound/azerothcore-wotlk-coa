@@ -7,6 +7,7 @@
 #include "Item.h"
 #include "Log.h"
 #include "Map.h"
+#include "ObjectAccessor.h"
 #include "NeedsChallengeBridge.h"
 #include "Player.h"
 #include "ScriptMgr.h"
@@ -15,6 +16,7 @@
 #include "SpellMgr.h"
 #include "WorldPacket.h"
 #include "WorldSession.h"
+#include "Weather.h"
 
 #include <algorithm>
 #include <array>
@@ -41,6 +43,9 @@ constexpr uint32 CampRest = 996100;
 constexpr uint32 Fellowship = 996103;
 constexpr uint32 CampAbility = 996106;
 constexpr uint32 PackAbility = 996109;
+constexpr uint32 WeatherAura = 996110;
+constexpr uint32 InjuryAura = 996115;
+constexpr uint32 SplintAbility = 996119;
 
 struct Options
 {
@@ -53,6 +58,21 @@ struct Options
     float regen = 8.0f;
     float sprintDrain = 10.0f;
     uint32 campLifetime = 3600;
+    bool weather = true;
+    bool injuries = true;
+    uint32 wetExposure = 300000;
+    uint32 coldExposure = 420000;
+    uint32 heatExposure = 180000;
+};
+
+struct Treatment
+{
+    uint32 item = 0;
+    uint32 count = 0;
+    uint32 spell = 0;
+    uint64 started = 0;
+    ObjectGuid target;
+    bool bandage = false;
 };
 
 struct PendingMeal
@@ -91,6 +111,13 @@ struct State
     uint32 socialTick = 0;
     int32 restingCamp = -1;
     PendingMeal meal;
+    Treatment treatment;
+    std::array<uint32, 3> exposure = {};
+    std::array<bool, 5> weather = {};
+    uint32 coldTick = 0;
+    uint32 stormTick = 0;
+    uint32 injuries = 0;
+    char condition = 'S';
 };
 
 struct Camp
@@ -107,6 +134,7 @@ bool SpellsReady = false;
 std::recursive_mutex Mutex;
 std::unordered_map<ObjectGuid::LowType, State> States;
 std::unordered_map<ObjectGuid::LowType, Camp> Camps;
+std::unordered_map<uint32, WeatherState> ZoneWeather;
 
 uint64 Milliseconds()
 {
@@ -141,10 +169,10 @@ void StopSprint(Player* player, State& state)
 
 void Save(Player* player, State const& state)
 {
-    std::array<uint32, 10> values = { 1, uint32(Clamp(state.food) * 1000.0f),
+    std::array<uint32, 11> values = { 1, uint32(Clamp(state.food) * 1000.0f),
         uint32(Clamp(state.water) * 1000.0f), uint32(Clamp(state.vigor) * 1000.0f),
         state.dodgeUntil, state.windUntil, state.exhaustedUntil, state.attackLockUntil, state.windBuffUntil,
-        state.campReady };
+        state.campReady, state.injuries };
     for (uint32 index = 0; index < values.size(); ++index)
         player->UpdatePlayerSetting(Storage, index, values[index]);
 }
@@ -160,7 +188,16 @@ void Send(Player* player, State const& state)
          << '~' << uint32(state.vigor) << '~' << uint32(state.cap) << '~' << state.sprint
          << '~' << remaining(state.dodgeUntil) << '~' << remaining(state.windUntil)
          << '~' << remaining(state.exhaustedUntil) << '~' << state.delegated << '~' << state.restingCamp
-         << '~' << remaining(state.campReady);
+         << '~' << remaining(state.campReady) << '~' << state.condition;
+    std::array<uint32, 3> thresholds = { Config.wetExposure, Config.coldExposure, Config.heatExposure };
+    for (uint32 index = 0; index < 3; ++index)
+        wire << '~' << (thresholds[index] > state.exposure[index] ?
+            (thresholds[index] - state.exposure[index] + 999) / 1000 : 0);
+    uint32 flags = 0;
+    for (uint32 index = 0; index < 5; ++index)
+        if (state.weather[index])
+            flags |= 1u << index;
+    wire << '~' << flags << '~' << state.injuries;
     WorldPacket packet;
     ChatHandler::BuildChatPacket(packet, CHAT_MSG_WHISPER, LANG_ADDON, player, nullptr, wire.str());
     player->SendDirectMessage(&packet);
@@ -171,6 +208,7 @@ void Unlock(Player* player)
     if (!Affects(player))
         return;
     player->learnSpell(SprintAbility);
+    player->learnSpell(SplintAbility);
     if (player->GetLevel() >= 30)
         player->learnSpell(DodgeAbility);
     if (player->GetLevel() >= 60)
@@ -332,6 +370,146 @@ void Exhaust(Player* player, State& state)
     state.attackLockUntil = now + 5;
 }
 
+void RefreshInjuries(Player* player, State const& state)
+{
+    bool active = Config.injuries && player->IsAlive() && !player->InBattleground() && !player->InArena();
+    for (uint32 index = 0; index < 4; ++index)
+        SetAura(player, InjuryAura + index, active && (state.injuries & (1u << index)));
+}
+
+void ChangeInjury(Player* player, State& state, uint32 index, bool active)
+{
+    uint32 mask = 1u << index;
+    if (bool(state.injuries & mask) == active)
+        return;
+    if (active)
+        state.injuries |= mask;
+    else
+        state.injuries &= ~mask;
+    Save(player, state);
+    static std::array<char const*, 4> const notices = {
+        "Lingering Wound: complete a bandage to treat it.",
+        "Lingering Venom: consume a healing potion or use a poison cure.",
+        "Broken Leg: use Field Splint outside combat. Requires 4 Simple Wood and 2 Linen Cloth.",
+        "Broken Arm: use Field Splint outside combat. Requires 4 Simple Wood and 2 Linen Cloth."
+    };
+    ChatHandler(player->GetSession()).SendSysMessage(active ? notices[index] : "Your injury has been treated.");
+}
+
+void TickWeather(Player* player, State& state, int32 campTier, uint32 elapsed)
+{
+    Map* map = player->FindMap();
+    bool sheltered = !Config.weather || !map || !player->IsAlive() || !player->IsOutdoors() ||
+        map->Instanceable() || player->InBattleground() || player->InArena() || campTier >= 0 ||
+        player->HasPlayerFlag(PLAYER_FLAGS_RESTING);
+    if (sheltered)
+    {
+        state.exposure = {};
+        state.weather = {};
+        state.coldTick = 0;
+        state.stormTick = 0;
+        state.condition = 'S';
+    }
+    else
+    {
+        map->GetOrGenerateZoneDefaultWeather(player->GetZoneId());
+        auto current = ZoneWeather.find(player->GetZoneId());
+        WeatherState sky = current != ZoneWeather.end() ? current->second : WEATHER_STATE_FINE;
+        bool storm = sky == WEATHER_STATE_THUNDERS || sky == WEATHER_STATE_BLACKRAIN;
+        bool rain = storm || sky == WEATHER_STATE_LIGHT_RAIN || sky == WEATHER_STATE_MEDIUM_RAIN ||
+            sky == WEATHER_STATE_HEAVY_RAIN;
+        bool snow = sky == WEATHER_STATE_LIGHT_SNOW || sky == WEATHER_STATE_MEDIUM_SNOW ||
+            sky == WEATHER_STATE_HEAVY_SNOW || sky == WEATHER_STATE_BLACKSNOW;
+        static std::array<uint32, 13> const hotZones = {
+            14, 17, 25, 440, 405, 400, 490, 51, 46, 1377, 3483, 3520, 3535
+        };
+        static std::array<uint32, 9> const coldZones = { 1, 618, 2817, 65, 394, 495, 210, 67, 66 };
+        bool hot = std::find(hotZones.begin(), hotZones.end(), player->GetZoneId()) != hotZones.end();
+        bool cold = snow || (player->GetMapId() == 571 && player->GetZoneId() != 3711) ||
+            std::find(coldZones.begin(), coldZones.end(), player->GetZoneId()) != coldZones.end();
+        std::array<bool, 3> exposed = { rain || snow, cold, hot && !rain && !snow };
+        std::array<uint32, 3> limits = { Config.wetExposure, Config.coldExposure, Config.heatExposure };
+        for (uint32 index = 0; index < 3; ++index)
+        {
+            uint64 amount = exposed[index] ? uint64(state.exposure[index]) + elapsed :
+                (uint64(elapsed) * 2 >= state.exposure[index] ? 0 : state.exposure[index] - uint64(elapsed) * 2);
+            state.exposure[index] = uint32(std::min<uint64>(amount, limits[index]));
+            state.weather[index] = state.exposure[index] >= limits[index];
+        }
+        state.weather[3] = storm;
+        state.weather[4] = sky == WEATHER_STATE_FINE && !cold && !hot &&
+            !state.weather[0] && !state.weather[1] && !state.weather[2];
+        state.condition = storm ? 'T' : snow ? 'N' : rain ? 'R' : hot ? 'H' : cold ? 'C' : 'F';
+        if (state.weather[0] && state.weather[1])
+        {
+            state.coldTick += elapsed;
+            if (state.coldTick >= 60000)
+            {
+                state.coldTick %= 60000;
+                player->EnvironmentalDamage(DAMAGE_EXHAUSTED, std::max(1u, player->GetMaxHealth() / 100));
+            }
+        }
+        else
+            state.coldTick = 0;
+        if (storm)
+        {
+            state.stormTick += elapsed;
+            if (state.stormTick >= 60000)
+            {
+                state.stormTick %= 60000;
+                state.vigor = std::max(0.0f, state.vigor - 5.0f);
+                state.lastSpend = Milliseconds();
+            }
+        }
+        else
+            state.stormTick = 0;
+    }
+    for (uint32 index = 0; index < 5; ++index)
+        SetAura(player, WeatherAura + index, state.weather[index]);
+}
+
+void TickTreatment(Player* player, State& state)
+{
+    Treatment& use = state.treatment;
+    if (!use.item)
+        return;
+    bool consumed = player->GetItemCount(use.item, false) < use.count;
+    if (Milliseconds() - use.started >= 30000)
+        use = {};
+    else if (!use.bandage && consumed)
+    {
+        Player* target = ObjectAccessor::FindPlayer(use.target);
+        if (Affects(target) && target->GetMapId() == player->GetMapId())
+        {
+            auto found = States.find(target->GetGUID().GetCounter());
+            if (found != States.end())
+            {
+                ChangeInjury(target, found->second, 1, false);
+                RefreshInjuries(target, found->second);
+                target->RemoveAppliedAuras([](AuraApplication const* application)
+                {
+                    return application->GetBase()->GetSpellInfo()->Dispel == DISPEL_POISON;
+                });
+            }
+        }
+        use = {};
+    }
+}
+
+class NeedsWeather : public ALEScript
+{
+public:
+    NeedsWeather() : ALEScript("CoANeedsWeather") { }
+
+    void OnWeatherChange(Weather* weather, WeatherState state, float) override
+    {
+        if (!weather)
+            return;
+        std::lock_guard<std::recursive_mutex> lock(Mutex);
+        ZoneWeather[weather->GetZone()] = state;
+    }
+};
+
 class NeedsWorld : public WorldScript
 {
 public:
@@ -350,6 +528,14 @@ public:
         Config.sprintDrain = std::max(0.0f, sConfigMgr->GetOption<float>("CoANeeds.SprintDrainPerSecond", 10.0f));
         Config.campLifetime = std::clamp(sConfigMgr->GetOption<uint32>("CoANeeds.CampLifetimeSeconds", 3600),
             60u, 86400u);
+        Config.weather = sConfigMgr->GetOption<bool>("CoANeeds.Weather.Enable", true);
+        Config.injuries = sConfigMgr->GetOption<bool>("CoANeeds.Injuries.Enable", true);
+        Config.wetExposure = std::clamp(sConfigMgr->GetOption<uint32>("CoANeeds.Weather.WetExposureMs", 300000),
+            1000u, 3600000u);
+        Config.coldExposure = std::clamp(sConfigMgr->GetOption<uint32>("CoANeeds.Weather.ColdExposureMs", 420000),
+            1000u, 3600000u);
+        Config.heatExposure = std::clamp(sConfigMgr->GetOption<uint32>("CoANeeds.Weather.HeatExposureMs", 180000),
+            1000u, 3600000u);
     }
 
     void OnStartup() override
@@ -366,6 +552,12 @@ public:
             {
                 SpellsReady = false;
                 LOG_ERROR("module.coa_needs", "Missing camp spell {}; module disabled", id);
+            }
+        for (uint32 id = WeatherAura; id <= SplintAbility; ++id)
+            if (!sSpellMgr->GetSpellInfo(id))
+            {
+                SpellsReady = false;
+                LOG_ERROR("module.coa_needs", "Missing weather/injury spell {}; module disabled", id);
             }
         LOG_INFO("module.coa_needs", "Hunger, hydration and vigor: enabled={}, spells ready={}, include bots={}",
             Config.enabled, SpellsReady, Config.bots);
@@ -398,12 +590,17 @@ public:
             state.windBuffUntil = (*saved)[8].value;
             if (saved->size() >= 10)
                 state.campReady = (*saved)[9].value;
+            if (saved->size() >= 11)
+                state.injuries = (*saved)[10].value & 15u;
         }
         StopSprint(player, state);
         for (uint32 index = 0; index < 3; ++index)
             player->RemoveAurasDueToSpell(CampRest + index);
         UpdateNeeds(player, state);
         States[player->GetGUID().GetCounter()] = state;
+        for (uint32 index = 0; index < 5; ++index)
+            player->RemoveAurasDueToSpell(WeatherAura + index);
+        RefreshInjuries(player, state);
         Unlock(player);
         Send(player, state);
     }
@@ -432,6 +629,8 @@ public:
         PackCamp(player);
         for (uint32 index = 0; index < 3; ++index)
             player->RemoveAurasDueToSpell(CampRest + index);
+        for (uint32 index = 0; index < 5; ++index)
+            player->RemoveAurasDueToSpell(WeatherAura + index);
         Save(player, found->second);
         States.erase(found);
     }
@@ -460,6 +659,25 @@ public:
         State& state = found->second;
         uint32 id = spell->GetSpellInfo()->Id;
         uint32 now = uint32(std::time(nullptr));
+        if (id == SplintAbility)
+        {
+            if (!Config.injuries || !player->IsAlive() || player->IsInCombat() || player->isMoving() ||
+                player->IsMounted() || player->IsInFlight() || player->InBattleground() || player->InArena())
+                return;
+            if (!(state.injuries & 12u))
+                ChatHandler(player->GetSession()).SendSysMessage("You have no broken arm or leg to splint.");
+            else if (player->GetItemCount(4470, false) < 4 || player->GetItemCount(2589, false) < 2)
+                ChatHandler(player->GetSession()).SendSysMessage("Field Splint requires 4 Simple Wood and 2 Linen Cloth.");
+            else
+            {
+                player->DestroyItemCount(4470, 4, true);
+                player->DestroyItemCount(2589, 2, true);
+                ChangeInjury(player, state, (state.injuries & 4u) ? 2 : 3, false);
+                RefreshInjuries(player, state);
+            }
+            Send(player, state);
+            return;
+        }
         if (id >= CampAbility && id <= PackAbility)
         {
             if (id == PackAbility)
@@ -524,6 +742,18 @@ public:
         }
         if (!spell->m_CastItem)
             return;
+        ItemTemplate const* item = spell->m_CastItem->GetTemplate();
+        bool bandage = item->Class == ITEM_CLASS_CONSUMABLE && item->SubClass == ITEM_SUBCLASS_BANDAGE;
+        bool healingPotion = spell->m_CastItem->IsPotion() &&
+            (spell->GetSpellInfo()->HasEffect(SPELL_EFFECT_HEAL) ||
+                spell->GetSpellInfo()->HasEffect(SPELL_EFFECT_HEAL_PCT));
+        if (Config.injuries && (bandage || healingPotion))
+        {
+            state.treatment = { item->ItemId, player->GetItemCount(item->ItemId, false), id,
+                Milliseconds(), spell->m_targets.GetUnitTargetGUID(), bandage };
+            if (state.treatment.target.IsEmpty())
+                state.treatment.target = player->GetGUID();
+        }
         uint32 category = spell->GetSpellInfo()->GetCategory();
         if (category != SPELL_CATEGORY_FOOD && category != SPELL_CATEGORY_DRINK)
             return;
@@ -551,10 +781,15 @@ public:
                 player->RemoveAurasDueToSpell(id);
             for (uint32 index = 0; index < 3; ++index)
                 player->RemoveAurasDueToSpell(CampRest + index);
+            for (uint32 index = 0; index < 5; ++index)
+                player->RemoveAurasDueToSpell(WeatherAura + index);
+            for (uint32 index = 0; index < 4; ++index)
+                player->RemoveAurasDueToSpell(InjuryAura + index);
             PackCamp(player);
             return;
         }
         UpdateNeeds(player, state);
+        TickTreatment(player, state);
         if (state.meal.item)
         {
             state.meal.elapsed += diff;
@@ -585,11 +820,16 @@ public:
         bool pvp = player->InBattleground() || player->InArena();
         int32 campTier = NearbyCamp(player);
         RestAtCamp(player, state, campTier, elapsed);
+        TickWeather(player, state, campTier, elapsed);
+        RefreshInjuries(player, state);
         if (alive && !pvp && !state.delegated && campTier < 0)
         {
             float cooking = player->GetSkillValue(SKILL_COOKING) / 450.0f;
-            state.food = Clamp(state.food - Config.foodDrain * (1.0f - 0.05f * cooking) * seconds / 60.0f);
-            state.water = Clamp(state.water - Config.waterDrain * seconds / 60.0f);
+            float foodDrain = Config.foodDrain * (1.0f - 0.05f * cooking) * (state.weather[2] ? 1.1f : 1.0f);
+            float waterDrain = Config.waterDrain * (state.weather[2] ? 1.25f : 1.0f) *
+                (state.weather[3] ? 1.1f : 1.0f) * (Config.injuries && (state.injuries & 2u) ? 1.15f : 1.0f);
+            state.food = Clamp(state.food - foodDrain * seconds / 60.0f);
+            state.water = Clamp(state.water - waterDrain * seconds / 60.0f);
         }
         UpdateNeeds(player, state);
         if (!alive || player->IsMounted() || player->IsInFlight() || player->IsSitState() || pvp ||
@@ -620,6 +860,13 @@ public:
         else if (alive && steady - state.lastSpend >= 1500)
         {
             float regen = Config.regen + 4.0f * player->GetSkillValue(SKILL_ENGINEERING) / 450.0f;
+            for (uint32 index = 0; index < 3; ++index)
+                if (state.weather[index])
+                    regen *= 0.9f;
+            if (state.weather[3])
+                regen *= 0.95f;
+            if (state.weather[4])
+                regen *= 1.05f;
             if (state.displayFood <= 35.0f)
                 regen *= 0.65f;
             if (state.displayWater <= 30.0f)
@@ -675,12 +922,81 @@ public:
 class NeedsUnit : public UnitScript
 {
 public:
-    NeedsUnit() : UnitScript("CoANeedsUnit", true, { UNITHOOK_ON_DAMAGE }) { }
+    NeedsUnit() : UnitScript("CoANeedsUnit", true,
+        { UNITHOOK_ON_DAMAGE, UNITHOOK_ON_AURA_APPLY, UNITHOOK_ON_AURA_REMOVE }) { }
+
+    void OnAuraApply(Unit* unit, Aura* aura) override
+    {
+        Player* player = unit ? unit->ToPlayer() : nullptr;
+        std::lock_guard<std::recursive_mutex> lock(Mutex);
+        if (!Config.injuries || !Affects(player) || !aura || !player->IsAlive() ||
+            player->InBattleground() || player->InArena() || !player->FindMap())
+            return;
+        Unit* caster = aura->GetCaster();
+        if (!caster || !caster->IsCreature() || caster->GetCharmerOrOwnerPlayerOrPlayerItself())
+            return;
+        auto found = States.find(player->GetGUID().GetCounter());
+        if (found == States.end())
+            return;
+        SpellInfo const* info = aura->GetSpellInfo();
+        if (info->HasEffectMechanic(MECHANIC_BLEED))
+            ChangeInjury(player, found->second, 0, true);
+        else if (info->Dispel == DISPEL_POISON)
+            ChangeInjury(player, found->second, 1, true);
+    }
+
+    void OnAuraRemove(Unit* unit, AuraApplication* application, AuraRemoveMode mode) override
+    {
+        Player* player = unit ? unit->ToPlayer() : nullptr;
+        std::lock_guard<std::recursive_mutex> lock(Mutex);
+        if (!Config.injuries || !Affects(player) || !application)
+            return;
+        auto found = States.find(player->GetGUID().GetCounter());
+        if (found == States.end())
+            return;
+        Aura* aura = application->GetBase();
+        if (aura->GetId() == InjuryAura + 1 && mode == AURA_REMOVE_BY_ENEMY_SPELL)
+            ChangeInjury(player, found->second, 1, false);
+        if (mode != AURA_REMOVE_BY_EXPIRE || !aura->GetCasterGUID().IsPlayer())
+            return;
+        auto healer = States.find(aura->GetCasterGUID().GetCounter());
+        if (healer == States.end())
+            return;
+        Treatment& use = healer->second.treatment;
+        Player* caster = ObjectAccessor::FindPlayer(aura->GetCasterGUID());
+        if (!caster || !use.bandage || use.spell != aura->GetId() || use.target != player->GetGUID() ||
+            caster->GetItemCount(use.item, false) >= use.count)
+            return;
+        use = {};
+        ChangeInjury(player, found->second, 0, false);
+        player->RemoveAppliedAuras([](AuraApplication const* applied)
+        {
+            return applied->GetBase()->GetCasterGUID().IsCreature() &&
+                applied->GetBase()->GetSpellInfo()->HasEffectMechanic(MECHANIC_BLEED);
+        });
+    }
 
     void OnDamage(Unit* attacker, Unit* victim, uint32& damage) override
     {
         Player* player = attacker ? attacker->ToPlayer() : nullptr;
         std::lock_guard<std::recursive_mutex> lock(Mutex);
+        Player* injured = victim ? victim->ToPlayer() : nullptr;
+        if (Config.injuries && Affects(injured) && attacker && attacker->IsCreature() && damage &&
+            !attacker->GetCharmerOrOwnerPlayerOrPlayerItself() && attacker->IsHostileTo(injured) &&
+            injured->IsAlive() && !injured->InBattleground() && !injured->InArena() && injured->FindMap() &&
+            (injured->IsOutdoors() || injured->FindMap()->Instanceable()) && damage < injured->GetHealth())
+        {
+            auto target = States.find(injured->GetGUID().GetCounter());
+            if (target != States.end())
+            {
+                uint64 hit = uint64(damage) * 100;
+                uint64 health = injured->GetMaxHealth();
+                if (hit >= health * 30)
+                    ChangeInjury(injured, target->second, 2, true);
+                else if (hit >= health * 20)
+                    ChangeInjury(injured, target->second, 3, true);
+            }
+        }
         if (!Affects(player) || !damage || attacker == victim)
             return;
         auto found = States.find(player->GetGUID().GetCounter());
@@ -714,6 +1030,7 @@ public:
 void AddSC_coa_needs()
 {
     new NeedsWorld();
+    new NeedsWeather();
     new NeedsPlayer();
     new NeedsUnit();
 }

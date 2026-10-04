@@ -72,3 +72,39 @@ Sitting continuously for 30 seconds grants Campfire/Shelter/Hearthstead Fellowsh
 +3/+4/+5 to all primary attributes for one hour. Only one Fellowship tier can be active;
 a stronger camp can upgrade it, and equal/weaker camps cannot continually refresh its duration.
 Camp rest auras stop when standing, entering combat, dying, or leaving the camp radius.
+
+## Weather and injuries
+
+Weather exposure uses native zone weather through the global ALE hook. Rain and snow build
+Soaked after 5 minutes; cold biomes/snow build Freezing after 7 minutes; hot biomes without
+rain/snow build Heat Strain after 3 minutes. Exposure decays twice as fast when conditions
+end. Indoor areas, rest areas, camps (even while standing), death, instances and battlegrounds
+clear weather exposure. Northrend except Sholazar and the original Survival cold/hot zone
+sets are retained. Weather is transient across logout; offline exposure does not accrue.
+
+Soaked and Freezing each slow movement 5% and vigor recovery 10%. Cold plus wet deals 1%
+maximum health damage per minute. Heat adds 10% hunger and 25% hydration drain and slows
+vigor recovery 10%. Storms add 10% hydration drain, slow recovery 5% and spend 5 vigor per
+minute. Clear temperate skies grant +1 primary attributes and +5% recovery. Delegated
+challenge hunger/hydration remain authoritative; extra drain multipliers are not applied twice.
+
+Creature-applied bleed/poison effects cause Lingering Wound (movement -3%) or Venom
+(hydration drain +15%). A nonfatal hostile creature hit of at least 30% maximum health
+causes Broken Leg (health -10%, movement -20%); 20% to below 30% causes Broken Arm
+(health -5%, attack power -10%). Player-controlled creatures and battlegrounds are excluded.
+Four injury flags persist in character_settings index 10 until treated; no migration is needed.
+Dead characters and battlegrounds suppress injury auras while retaining their flags.
+
+A consumed bandage must reach natural aura expiry to treat a wound; interrupted channels
+do not count. A consumed healing potion or poison dispel treats venom. Field Splint is a
+native Survivalist ability learned at level 1: outside combat, standing still and unmounted,
+consume 4 existing Simple Wood and 2 Linen Cloth to treat one fracture, leg first.
+No Survival-only item IDs or Woodworking profession are transplanted into CoA.
+Custom spells 996110-996119 cover weather, injuries and Field Splint. The DBC builder
+normalizes effect dice and strips unintended secondary effects from inherited templates.
+
+The CoA dashboard follows the original Survival layout with gold trim, numbered meal
+slots, three bars, weather/exposure and injury rows, hover help, dragging and width resizing.
+Abilities remain in the spellbook and an optional expandable tray. /needs reset restores
+default placement, width and scale; /needs toggles visibility outside combat. Meal textures
+are cached while their item stays unchanged and the hidden panel skips timer painting.
