@@ -804,6 +804,10 @@ namespace Spellbook
         if (!player)
             return spells;
 
+        for (SpellbookOfferData::Offer const &offer : SpellbookOfferData::Offers)
+            if (offer.ClassId == player->getClass() && offer.FirstSpellId && offer.RequiredLevel > level)
+                spells.push_back(offer.SpellId);
+
         for (SpellbookRankData::Rank const &rank : SpellbookRankData::Ranks)
             if (rank.ClassId == player->getClass() && rank.RequiredLevel > level)
                 spells.push_back(rank.SpellId);
