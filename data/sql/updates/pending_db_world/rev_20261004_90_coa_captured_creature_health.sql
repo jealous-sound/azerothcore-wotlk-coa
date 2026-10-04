@@ -2,8 +2,11 @@
 -- Source: hertigservices/ascension-data, data-cache-3761f8c7276d7ee2745e.
 -- cachedata/by-mode/conquest-of-azeroth/creaturecache.tsv.gz
 -- SHA256: 80db1cc82be2653074592a42a2dc644d88b01cfce858bf4cf7af06091baf59bf.
--- 6262 captured entries; only creature_template.HealthModifier is updated.
+-- 6112 captured entries; only creature_template.HealthModifier is updated.
 -- Nonpositive values and rank-zero sentinel multipliers are omitted.
+-- Reimplemented raid NPCs, their summons and difficulty variants are omitted.
+-- Raids: Molten Core, Onyxia's Lair, Blackwing Lair, Zul'Gurub, Ruins and Temple of Ahn'Qiraj.
+-- Scope: PRs #5120, #6015, #5750 and #6259, including the restored world bosses and Basalthane.
 -- The update excludes missing base-stat rows and health products that exceed uint32.
 DROP TEMPORARY TABLE IF EXISTS `_coa_captured_creature_health`;
 CREATE TEMPORARY TABLE `_coa_captured_creature_health` (
@@ -240,7 +243,6 @@ INSERT INTO `_coa_captured_creature_health` (`entry`, `HealthModifier`) VALUES
 (12053, 0.6), -- Frostwolf Guardian
 (12096, 14.7), -- Stormpike Quartermaster
 (12097, 14.7), -- Frostwolf Quartermaster
-(12119, 70.199997), -- Flamewaker Protector
 (12121, 9.0), -- Draka
 (12122, 9.0), -- Duros
 (12127, 0.88), -- Stormpike Guardsman
@@ -271,7 +273,6 @@ INSERT INTO `_coa_captured_creature_health` (`entry`, `HealthModifier`) VALUES
 (13139, 9.5), -- Commander Randolph
 (13140, 9.5), -- Commander Dardosh
 (13143, 5.9), -- Lieutenant Stronghoof
-(13148, 2.35), -- Flame of Ragnaros
 (13152, 5.6), -- Commander Malgor
 (13153, 5.6), -- Commander Mulfort
 (13154, 9.5), -- Commander Louis Philips
@@ -358,7 +359,6 @@ INSERT INTO `_coa_captured_creature_health` (`entry`, `HealthModifier`) VALUES
 (14242, 7.875), -- [UNUSED] Sulhasa
 (14282, 0.8), -- Frostwolf Bloodhound
 (14283, 0.8), -- Stormpike Owl
-(14302, 32.5), -- Chromatic Drakonid
 (14346, 3.3), -- Captain Greshkil
 (14385, 1.65), -- Doomguard Minion
 (14388, 4.8), -- Rogue Black Drake
@@ -394,8 +394,6 @@ INSERT INTO `_coa_captured_creature_health` (`entry`, `HealthModifier`) VALUES
 (14562, 0.75), -- Swift Blue Mechanostrider
 (14563, 0.75), -- Swift Red Mechanostrider
 (14581, 2.1), -- Sergeant Thunderhorn
-(14605, 1000.0), -- Bone Construct
-(14668, 21.2458), -- Corrupted Infernal
 (14684, 15.0), -- Balzaphon
 (14685, 7.5), -- Morbus
 (14687, 4.5), -- Soulless
@@ -414,120 +412,41 @@ INSERT INTO `_coa_captured_creature_health` (`entry`, `HealthModifier`) VALUES
 (14776, 60.0), -- Tower Point Warmaster
 (14777, 60.0), -- West Frostwolf Warmaster
 (14823, 1.25), -- Silas Darkmoon
-(14877, 540.0), -- High Priest Venoxis
-(14941, 540.0), -- High Priestess Jeklik
 (14943, 35.799999), -- Guse's War Rider
 (14944, 35.799999), -- Jeztor's War Rider
 (14945, 35.799999), -- Mulverick's War Rider
 (14946, 35.799999), -- Slidore's Gryphon
 (14947, 35.799999), -- Ichman's Gryphon
 (14948, 35.799999), -- Vipore's Gryphon
-(14966, 270.0), -- High Priest Thekal
-(14967, 540.0), -- High Priestess Mar'li
-(14968, 540.0), -- High Priestess Arlokk
-(15083, 540.0), -- Hazza'rah
-(15084, 540.0), -- Renataki
-(15085, 540.0), -- Wushoolay
-(15091, 3.1185), -- Zul'Gurub Panther Trigger
 (15135, 1.25), -- Chromatic Drake Mount
-(15163, 3.375), -- Nightmare Illusion
-(15168, 1.0), -- Vile Scarab
 (15203, 1248.670044), -- Prince Skaldrenox
 (15204, 936.5), -- High Marshal Whirlaxis
 (15205, 1248.670044), -- Baron Kazum
-(15224, 1000.0), -- Dream Fog
 (15228, 5.07), -- Vekniss Tunneler
-(15229, 11.83), -- Vekniss Soldier
-(15230, 11.83), -- Vekniss Warrior
 (15232, 10.14), -- Vekniss Marauder
-(15233, 11.83), -- Vekniss Guardian
-(15235, 23.66), -- Vekniss Stinger
-(15236, 11.83), -- Vekniss Wasp
 (15237, 5.07), -- Vekniss Wrathstinger
-(15240, 23.66), -- Vekniss Hive Crawler
 (15241, 5.0), -- Gryphon Rider Guard
 (15242, 2.5), -- Bat Rider Guard
-(15246, 11.83), -- Qiraji Mindslayer
-(15247, 23.66), -- Qiraji Brainwasher
-(15249, 11.83), -- Qiraji Lasher
-(15250, 11.83), -- Qiraji Slayer
-(15252, 23.66), -- Qiraji Champion
-(15261, 1.0), -- Dream Projection
-(15262, 29.575001), -- Obsidian Eradicator
-(15264, 35.490002), -- Anubisath Sentinel
-(15276, 845.0), -- Emperor Vek'lor
-(15277, 70.980003), -- Anubisath Defender
-(15300, 5.915), -- Vekniss Drone
-(15302, 150.0), -- Shade of Taerar
 (15305, 1248.670044), -- Lord Skwol
-(15311, 70.980003), -- Anubisath Warder
-(15312, 29.575001), -- Obsidian Nullifier
-(15316, 1.69), -- Qiraji Scarab
-(15317, 1.69), -- Qiraji Scorpion
-(15318, 13.0), -- Hive'Zara Drone
-(15319, 13.0), -- Hive'Zara Collector
-(15320, 13.0), -- Hive'Zara Soldier
-(15323, 13.0), -- Hive'Zara Sandstalker
-(15324, 26.0), -- Qiraji Gladiator
-(15325, 6.5), -- Hive'Zara Wasp
-(15327, 13.0), -- Hive'Zara Stinger
-(15333, 1.0), -- Silicate Feeder
-(15334, 42.1824), -- Giant Eye Tentacle
-(15335, 28.6), -- Flesh Hunter
-(15336, 13.0), -- Hive'Zara Tail Lasher
-(15338, 32.5), -- Obsidian Destroyer
 (15342, 1.6875), -- [UNUSED] Sphinx
-(15343, 13.0), -- Qiraji Swarmguard
-(15344, 6.5), -- Swarmguard Needler
 (15349, 0.5), -- RC Blimp <PH>
-(15355, 78.0), -- Anubisath Guardian
 (15359, 10.0), -- Alliance Companion
 (15360, 10.0), -- Horde Companion
-(15378, 8.45), -- Merithra of the Dream
-(15380, 8.45), -- Arygos
-(15385, 52.0), -- Colonel Zerran
-(15386, 26.0), -- Major Yeggeth
-(15387, 6.5), -- Qiraji Warrior
-(15388, 26.0), -- Major Pakkon
-(15389, 13.0), -- Captain Drenn
-(15390, 13.0), -- Captain Xurrem
-(15391, 13.0), -- Captain Qeez
-(15392, 13.0), -- Captain Tuubid
 (15398, 1.08), -- Larianna Riverwind
 (15399, 1.08), -- Lieutenant Dawnrunner
 (15402, 2.05), -- Apprentice Mirveda
-(15461, 6.5), -- Shrieker Scarab
-(15462, 6.5), -- Spitting Scarab
 (15466, 33.0), -- Minion of Omen
 (15467, 410.0), -- Omen
-(15471, 13.0), -- Lieutenant General Andorov
-(15473, 13.0), -- Kaldorei Elite
-(15475, 0.462), -- Beetle
-(15476, 0.554), -- Scorpion
 (15477, 5.25), -- Herbalist Proudfeather
 (15495, 6.615), -- Nighthaven Defender
-(15502, 8.45), -- Andorgos
-(15503, 8.45), -- Kandrostrasz
-(15504, 8.45), -- Vethsera
-(15505, 6.5), -- Canal Frenzy
-(15507, 520.0), -- Buru the Gorger Transform
-(15514, 13.0), -- Egg of Buru
-(15521, 6.5), -- Hive'Zara Brood Keeper
 
-(15527, 26.0), -- Mana Fiend
 (15528, 5.25), -- Healer Longrunner
 (15532, 5.25), -- Stoneguard Clayhoof
 (15535, 5.25), -- Chief Sharpclaw
-(15537, 13.0), -- Qiraj Warrior
-(15538, 13.0), -- Qiraj Swarmguard
-(15543, 282.230011), -- Princess Yauj
-(15544, 282.230011), -- Vem
-(15546, 6.5), -- Hive'Zara Swarmer
 (15547, 10.0), -- Spectral Charger
 (15549, 1.0), -- Elder Morndeep
 (15550, 200.0), -- Attumen the Huntsman
 (15551, 10.0), -- Spectral Stable Hand
-(15555, 6.5), -- Hive'Zara Larva
 (15556, 1.68), -- Elder Splitrock
 (15558, 1.304), -- Elder Silvervein
 (15559, 1.304), -- Elder Highpeak
@@ -558,8 +477,6 @@ INSERT INTO `_coa_captured_creature_health` (`entry`, `HealthModifier`) VALUES
 (15586, 1.3692), -- Elder Dreamseer
 (15587, 1.3692), -- Elder Mistwalker
 (15588, 1.3692), -- Elder High Mountain
-(15589, 659.099976), -- Eye of C'Thun
-(15590, 1000.0), -- Ossirian Crystal Trigger
 (15592, 1.304), -- Elder Windrun
 (15594, 1.304), -- Elder Moonstrike
 (15595, 1.304), -- Elder Bladeleaf
@@ -572,21 +489,11 @@ INSERT INTO `_coa_captured_creature_health` (`entry`, `HealthModifier`) VALUES
 (15605, 1.304), -- Elder Riversong
 (15607, 1.0), -- Elder Farwhisper
 (15608, 1000.0), -- Medivh
-(15621, 0.845), -- Yauj Brood
-(15622, 8.45), -- Vekniss Borer
-(15630, 8.45), -- Spawn of Fankriss
-(15667, 9.295), -- Glob of Viscidus
 (15668, 1.1), -- Grimscale Murloc
 (15669, 1.1), -- Grimscale Oracle
 (15670, 1.1), -- Grimscale Forager
 (15702, 5.25), -- Senior Sergeant Taiga
-(15712, 0.77), -- Dirt Mound
-(15717, 1.485), -- Ouro Trigger
-(15718, 3.3), -- Ouro Scarab
 (15721, 0.9375), -- Mechanical Greench
-(15725, 1.7576), -- Claw Tentacle
-(15726, 1.7576), -- Eye Tentacle
-(15728, 42.1824), -- Giant Claw Tentacle
 (15730, 1.40625), -- Pat's Snowcloud Guy
 (15739, 1.05), -- Thunder Bluff Commendation Officer
 (15740, 16700.0), -- Colossus of Zora
@@ -598,7 +505,6 @@ INSERT INTO `_coa_captured_creature_health` (`entry`, `HealthModifier`) VALUES
 (15789, 1.05), -- Tauren Female Winter Reveler
 (15792, 1.05), -- Troll Male Winter Reveler
 (15793, 1.05), -- Tauren Male Winter Reveler
-(15802, 21.0912), -- Flesh Tentacle
 (15847, 1.05), -- Might of Kalimdor Shaman
 (15849, 1.05), -- Might of Kalimdor Druid
 (15855, 21.0), -- Tauren Rifleman
@@ -612,10 +518,7 @@ INSERT INTO `_coa_captured_creature_health` (`entry`, `HealthModifier`) VALUES
 (15924, 1.1), -- Apprentice Loralthalis
 (15929, 109.849998), -- Stalagg
 (15930, 109.849998), -- Feugen
-(15934, 52.0), -- Hive'Zara Hornet
 (15950, 1.1), -- Grimscale Seer
-(15962, 1.69), -- Vekniss Hatchling
-(15963, 878.799988), -- The Master's Eye
 (15974, 27.4625), -- Dread Creeper
 (15975, 27.4625), -- Carrion Spinner
 (15976, 54.924999), -- Venom Stalker
@@ -624,7 +527,6 @@ INSERT INTO `_coa_captured_creature_health` (`entry`, `HealthModifier`) VALUES
 (15979, 54.924999), -- Tomb Horror
 (15980, 13.7312), -- Naxxramas Cultist
 (15981, 13.7312), -- Naxxramas Acolyte
-(15984, 1000.0), -- Phantom Dancer
 (15991, 3.104), -- Lady Dena Kennedy
 (16008, 1.05), -- Temma of the Wells
 (16017, 54.924999), -- Patchwork Golem
@@ -5629,9 +5531,7 @@ INSERT INTO `_coa_captured_creature_health` (`entry`, `HealthModifier`) VALUES
 (36303, 126.0), -- Zhaagrym (3)
 (36522, 5.4), -- Soul Horror
 (36565, 15.0), -- Apothecary Baxter
-(36566, 7.5), -- Onyxian Whelp (1)
 (36568, 1.0), -- Crazed Apothecary
-(36571, 40.0), -- UNUSED Onyxian Lair Guard
 (36609, 55.0), -- Val'kyr Shadowguard
 (36619, 5.1), -- Bone Spike
 (36633, 1.42857), -- Ice Sphere
@@ -6084,13 +5984,6 @@ INSERT INTO `_coa_captured_creature_health` (`entry`, `HealthModifier`) VALUES
 (56332, 0.5), -- Tank Worgen Form
 (60063, 0.25), -- Standard of Valiance
 (60064, 0.25), -- Standard of Valiance
-(64600, 3200.0), -- Setis
-(64605, 3200.0), -- The Will of Soggoth
-(64627, 7500.0), -- Snowgrave
-(67532, 9600.0), -- Atal'zul, the Soulreaver
-(67533, 9600.0), -- Zul'rogg
-(67534, 90.0), -- Damned Wight
-(67536, 300.0), -- Soul Vessel
 (75133, 1.34), -- Gorn Axefist
 (80061, 0.8375), -- Ameer Greatluck
 (80420, 0.945), -- Talk to Ameer Greatluck Credit
@@ -6099,50 +5992,10 @@ INSERT INTO `_coa_captured_creature_health` (`entry`, `HealthModifier`) VALUES
 (81041, 0.945), -- LFG Heroic Dungeon Completed Credit
 (81042, 0.945), -- LFG Normal Dungeon Completed Credit
 (100242, 1.008), -- Sunwalker Thunderhorn
-(110184, 1040.0), -- Onyxia (1)
-(111502, 4380.47998), -- Ragnaros (1)
-(111658, 81.881302), -- Molten Giant (1)
-(111659, 81.881302), -- Molten Destroyer (1)
-(111661, 101.087997), -- Flamewaker (1)
-(111662, 126.360001), -- Corvus the Nimble (1)
-(111663, 101.087997), -- Flamewaker Acolyte (1)
-(111664, 101.087997), -- Flamewaker Elite (1)
-(111665, 27.430201), -- Lava Annihilator (1)
-(111666, 13.7151), -- Firewalker (1)
-(111667, 13.7151), -- Flameguard (1)
-(111668, 27.430201), -- Firelord (1)
-(111669, 3.42878), -- Flame Imp (1)
-(111671, 13.7151), -- Core Hound (1)
-(111672, 50.543999), -- Cindermaw (1)
-(111673, 54.8605), -- Ancient Core Hound (1)
-(111982, 1010.880005), -- Magmadar (1)
-(111988, 1010.880005), -- Golemagg the Incinerator (1)
-(112018, 1010.880005), -- Majordomo Executus (1)
-(112056, 1010.880005), -- Baron Geddon (1)
-(112057, 1010.880005), -- Garr (1)
-(112076, 13.7151), -- Lava Elemental (1)
-(112098, 505.440002), -- Sulfuron Harbinger (1)
-(112099, 12.636), -- Firesworn (1)
-(112100, 13.7151), -- Lava Reaver (1)
-(112101, 27.430201), -- Lava Surger (1)
-(112118, 673.919983), -- Lucifron (1)
-(112119, 101.087997), -- Flamewaker Protector (1)
-(112143, 50.543999), -- Lesser Son of Flame (1)
-(112259, 1010.880005), -- Gehennas (1)
-(112264, 1010.880005), -- Shazzrah (1)
 (178081, 800.0), -- Chromie
-(212056, 1319.76001), -- Baron Geddon (2)
 (310603, 0.0819), -- Electrified Water Elemental
-(311502, 7000.0), -- Ragnaros (3)
-(311663, 162.863998), -- Flamewaker Acolyte (3)
-(311664, 162.863998), -- Flamewaker Elite (3)
-(311988, 1628.640015), -- Golemagg the Incinerator (3)
-(312018, 1628.640015), -- Majordomo Executus (3)
-(312056, 1628.640015), -- Baron Geddon (3)
-(312264, 1628.640015), -- Shazzrah (3)
 (416000, 1.5625), -- Edrim Skysong
 (421493, 1.5), -- Incarnation: Unleashed Golden Saberon
-(454004, 90.0), -- Psychophage
 (499656, 200.0), -- Voidtalon of the Dark Star
 (500589, 250.0), -- Defias Pillager
 (501296, 1.5), -- Zul’raja the Harvester
