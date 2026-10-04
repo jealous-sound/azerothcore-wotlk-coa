@@ -440,19 +440,29 @@ class spell_ascension_necromancer_ability : public SpellScript
     }
 };
 
-class spell_ascension_necromancer_transfer_life : public SpellScript
+class aura_ascension_necromancer_transfer_life : public AuraScript
 {
-    PrepareSpellScript(spell_ascension_necromancer_transfer_life);
-    void Filter(std::list<WorldObject*>& targets)
+    PrepareAuraScript(aura_ascension_necromancer_transfer_life);
+
+    bool Check(Unit* target)
     {
         Player* player = Owner(GetCaster());
-        targets.remove_if([player](WorldObject* object)
-                          { return !player || !object->ToUnit() || !IsMinion(player, object->ToUnit(), true); });
+        if (!player || !target || !target->IsAlive())
+            return false;
+        if (target == player)
+            return true;
+        if (!IsMinion(player, target, true))
+            return false;
+        auto count = GetAura()->GetApplicationMap().size();
+        if (GetAura()->GetApplicationOfTarget(player->GetGUID()))
+            --count;
+        return GetAura()->GetApplicationOfTarget(target->GetGUID()) ||
+            !GetSpellInfo()->MaxAffectedTargets || count < GetSpellInfo()->MaxAffectedTargets;
     }
+
     void Register() override
     {
-        OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_ascension_necromancer_transfer_life::Filter,
-                                                                  EFFECT_ALL, TARGET_UNIT_SRC_AREA_ALLY);
+        DoCheckAreaTarget += AuraCheckAreaTargetFn(aura_ascension_necromancer_transfer_life::Check);
     }
 };
 }
@@ -460,5 +470,5 @@ void AddAscensionNecromancerAbilityScripts()
 {
     new necromancer_casts();
     RegisterSpellScript(spell_ascension_necromancer_ability);
-    RegisterSpellScript(spell_ascension_necromancer_transfer_life);
+    RegisterSpellScript(aura_ascension_necromancer_transfer_life);
 }

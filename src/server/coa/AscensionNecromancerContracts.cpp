@@ -328,6 +328,18 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[1].TargetB = SpellImplicitTargetInfo();
         info->TargetAuraSpell = 0;
     }
+    if (id == 801530)
+    {
+        info->AttributesEx &= ~SPELL_ATTR1_EXCLUDE_CASTER;
+        info->AttributesCu &= ~(SPELL_ATTR0_CU_NEGATIVE_EFF0 | SPELL_ATTR0_CU_NEGATIVE_EFF1);
+        info->Effects[0].ApplyAuraName = SPELL_AURA_DUMMY;
+        info->Effects[1].Effect = SPELL_EFFECT_ASCENSION_APPLY_AURA_TO_SUMMONS;
+        for (auto& effect : info->Effects)
+        {
+            effect.TargetA = SpellImplicitTargetInfo(TARGET_UNIT_CASTER);
+            effect.TargetB = SpellImplicitTargetInfo();
+        }
+    }
     if (id == 801545)
         info->TargetAuraSpell = 0;
     if (id == 801514)
