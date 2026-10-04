@@ -115,6 +115,73 @@ std::vector<KnownEntry> KnownEntries(std::uint8_t classId, HasSpell const& hasSp
     return known;
 }
 
+bool CanGrantAutomatic(AscensionCompatData::CoATalentEntry const& entry, std::uint8_t classId, std::uint32_t level,
+    std::uint32_t specId, HasSpell const& hasSpell)
+{
+    if (entry.ClassId != classId || (entry.SpecId != 0 && entry.SpecId != specId) || entry.AECost != 0 ||
+        entry.TECost != 0 || entry.RequiredLevel > level || !entry.SpellCount || IsSelectableFree(entry.EntryId))
+        return false;
+
+    auto const& dependencies = AscensionCompatData::CoAAutomaticDependencies;
+    auto dependency = std::lower_bound(dependencies.begin(), dependencies.end(), entry.EntryId,
+        [](AscensionCompatData::CoAAutomaticDependency const& value, std::uint32_t id) { return value.EntryId < id; });
+    if (dependency == dependencies.end() || dependency->EntryId != entry.EntryId)
+        return true;
+
+    for (std::uint32_t requiredId : dependency->RequiredEntryIds)
+    {
+        if (!requiredId)
+            continue;
+        AscensionCompatData::CoATalentEntry const* required = FindEntry(requiredId);
+        if (!required || required->ClassId != classId ||
+            std::none_of(required->SpellIds.begin(), required->SpellIds.end(),
+                [&hasSpell](std::uint32_t spellId) { return spellId && hasSpell(spellId); }))
+            return false;
+    }
+    return true;
+}
+
+std::vector<KnownEntry> SlotKnownEntries(SpecializationSlot const& slot, std::uint32_t level,
+    HasSpell const& carried)
+{
+    std::unordered_set<std::uint32_t> spells;
+    for (KnownEntry const& pick : slot.Entries)
+        if (AscensionCompatData::CoATalentEntry const* entry = FindEntry(pick.EntryId);
+            entry && entry->ClassId == slot.ClassId && pick.Rank && pick.Rank <= entry->SpellCount &&
+            entry->SpellIds[pick.Rank - 1])
+            spells.insert(entry->SpellIds[pick.Rank - 1]);
+
+    HasSpell const known = [&spells, &carried](std::uint32_t spellId)
+    {
+        return spells.contains(spellId) || (carried && carried(spellId));
+    };
+    std::uint8_t const classId = std::uint8_t(slot.ClassId);
+    bool changed = level > 1;
+    for (std::size_t pass = 0; changed && pass < AscensionCompatData::CoATalentEntries.size(); ++pass)
+    {
+        changed = false;
+        for (AscensionCompatData::CoATalentEntry const& entry : AscensionCompatData::CoATalentEntries)
+        {
+            std::uint32_t const spellId = entry.SpellCount ? entry.SpellIds[entry.SpellCount - 1] : 0;
+            if (spellId && !known(spellId) && CanGrantAutomatic(entry, classId, level, slot.SpecId, known))
+                changed = spells.insert(spellId).second || changed;
+        }
+    }
+    return KnownEntries(classId, known);
+}
+
+std::vector<std::uint8_t> InspectSpecsPayload(std::vector<std::vector<KnownEntry>> const& specs)
+{
+    std::vector<std::uint8_t> out;
+    AppendUInt32(out, std::uint32_t(specs.size()));
+    for (std::vector<KnownEntry> const& known : specs)
+    {
+        std::vector<std::uint8_t> const list = KnownEntriesPayload(known);
+        out.insert(out.end(), list.begin(), list.end());
+    }
+    return out;
+}
+
 SpentPoints Spent(std::vector<KnownEntry> const& known)
 {
     SpentPoints spent;

@@ -3221,8 +3221,13 @@ void SendPrestigeInfo(Player* player)
 
 std::vector<Slot> Slots(Player const* player)
 {
+    return Slots(player, ActiveSpec(player));
+}
+
+std::vector<Slot> Slots(Player const* player, std::uint32_t spec)
+{
     std::vector<Slot> slots;
-    if (PlayerSettingVector const* stored = player->FindPlayerSettings(SpecSource(player, SLOTS_SETTING)))
+    if (PlayerSettingVector const* stored = player->FindPlayerSettings(SpecSettingSource(SLOTS_SETTING, spec)))
         for (PlayerSetting const& value : *stored)
             slots.push_back(Decode(value.value));
     return slots;
@@ -3230,7 +3235,12 @@ std::vector<Slot> Slots(Player const* player)
 
 std::uint32_t PrimaryStat(Player const* player)
 {
-    return FirstSetting(player, SpecSource(player, PRIMARY_STAT_SETTING));
+    return PrimaryStat(player, ActiveSpec(player));
+}
+
+std::uint32_t PrimaryStat(Player const* player, std::uint32_t spec)
+{
+    return FirstSetting(player, SpecSettingSource(PRIMARY_STAT_SETTING, spec));
 }
 
 StarterCardSlots StarterCards(Player const* player)
@@ -3251,7 +3261,12 @@ CardCollection Collection(Player const* player)
 
 std::vector<AscensionCoATalentState::KnownEntry> KnownEntries(Player const* player)
 {
-    return KnownEntries(Slots(player), PrimaryStat(player));
+    return KnownEntries(player, ActiveSpec(player));
+}
+
+std::vector<AscensionCoATalentState::KnownEntry> KnownEntries(Player const* player, std::uint32_t spec)
+{
+    return KnownEntries(Slots(player, spec), PrimaryStat(player, spec));
 }
 
 BuildChoice ApplyBuildUpload(Player* player, std::vector<AscensionCoATalentState::KnownEntry> const& upload)

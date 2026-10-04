@@ -38,6 +38,14 @@ std::uint32_t KnownRank(AscensionCompatData::CoATalentEntry const& entry, HasSpe
 
 std::vector<KnownEntry> KnownEntries(std::uint8_t classId, HasSpell const& hasSpell);
 
+bool CanGrantAutomatic(AscensionCompatData::CoATalentEntry const& entry, std::uint8_t classId, std::uint32_t level,
+    std::uint32_t specId, HasSpell const& hasSpell);
+
+std::vector<KnownEntry> SlotKnownEntries(SpecializationSlot const& slot, std::uint32_t level,
+    HasSpell const& carried);
+
+std::vector<std::uint8_t> InspectSpecsPayload(std::vector<std::vector<KnownEntry>> const& specs);
+
 struct SpentPoints
 {
     std::uint32_t AE = 0;
