@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "name": "Aeon Rend native eligible-cast cohort one (#718)",
+  "name": "Aeon Rend native eligible-cast cohort two (#718)",
   "contract": [
     "Original Aeon Rend 583248 has a 25 percent chance to fire both aura42 triggers: Chromatic Shard 801292",
     "strikes again and helper 583247 resets its cooldown. Effective spell_proc permits ordinary negative magic",

@@ -1,7 +1,18 @@
 {
   "schema": 1,
   "name": "CoA Legendary Items: item stream",
-  "contract": "Requires CoALegendaryItems.Enable=1, DropChance=100, StopDropLevel=60, DestinyWeaver.Enable=1, LevelScaling=1, offset=3, CoA.SendDisplayPatches=1. World entry streams SMSG_PATCH_ITEM rows only for items the character holds, not the whole legendary table. Single and bulk item queries add the queried rows once each: all 64 designs have matching eight-field rows, with no ninth field, and so do the boundary level variants. Native bulk item queries supply correct names, legendary quality, slots, custom class masks and required/item levels. Captured socketless session packets do not establish network delivery or client rendering.",
+  "contract": [
+    "Requires CoALegendaryItems.Enable=1, DropChance=100, StopDropLevel=60, DestinyWeaver.Enable=1,",
+    "LevelScaling=1, offset=3, CoA.SendDisplayPatches=1. World entry streams SMSG_PATCH_ITEM rows only for items",
+    "the character holds, not the whole legendary table. Single and bulk item queries add the queried rows once",
+    "each: all 64 designs have matching eight-field rows, with no ninth field, and so do the boundary level",
+    "variants. Native bulk item queries supply correct names, legendary quality, slots, custom class masks and",
+    "required/item levels. Captured socketless session packets do not establish network delivery or client",
+    "rendering.",
+    "Observe the single-query compatibility hook, then dispatch its ordinary core handler separately. Require",
+    "one actual item response before repeating both entries in a bulk request, two responses for each after it,",
+    "and no duplicate display patch. Text presence remains a separate boolean assertion."
+  ],
   "timeout_ms": 180000,
   "location": {
     "map": 0,
@@ -55,7 +66,29 @@
           "u32": 9700060
         }
       ],
+      "early": false,
       "consumed": false
+    },
+    {
+      "action": "client_packet",
+      "actor": "viewer",
+      "opcode": 86,
+      "fields": [
+        {
+          "u32": 9700060
+        }
+      ],
+      "consumed": false,
+      "label": "Dispatch the original single-item query through its ordinary core handler"
+    },
+    {
+      "action": "assert",
+      "actor": "viewer",
+      "metric": "server_packets",
+      "opcode": 88,
+      "row": 9700060,
+      "equals": 1,
+      "within_ms": 2000
     },
     {
       "action": "assert",
@@ -181,6 +214,15 @@
       "opcode": 88,
       "row": 9700029,
       "text": "Bloodoath Signet",
+      "within_ms": 2000
+    },
+    {
+      "action": "assert",
+      "actor": "viewer",
+      "metric": "server_packets",
+      "opcode": 88,
+      "row": 9700029,
+      "equals": 1,
       "within_ms": 2000
     },
     {
@@ -329,8 +371,8 @@
       "action": "snapshot",
       "actor": "viewer",
       "metric": "server_packets",
-      "opcode": 88,
-      "save_as": "before_repeat_queries"
+      "opcode": 2354,
+      "save_as": "patches_before_repeat"
     },
     {
       "action": "client_packet",
@@ -353,7 +395,16 @@
       "actor": "viewer",
       "metric": "server_packets",
       "opcode": 88,
-      "relative_to": "before_repeat_queries",
+      "row": 9700029,
+      "equals": 2,
+      "within_ms": 2000
+    },
+    {
+      "action": "assert",
+      "actor": "viewer",
+      "metric": "server_packets",
+      "opcode": 88,
+      "row": 9700060,
       "equals": 2,
       "within_ms": 2000
     },
@@ -366,6 +417,14 @@
       "row": 9700029,
       "text": "Bloodoath Signet",
       "within_ms": 2000
+    },
+    {
+      "action": "assert",
+      "actor": "viewer",
+      "metric": "server_packets",
+      "opcode": 2354,
+      "relative_to": "patches_before_repeat",
+      "equals": 0
     },
     {
       "action": "assert",

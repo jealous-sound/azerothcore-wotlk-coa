@@ -45,6 +45,14 @@ Follow this sequence within the task's authorized scope:
 
 ## Verification
 
+- Freeze the fetched `origin/main` revision when starting PR qualification and record the tested base and
+  candidate. Keep the checkout stable while checks run. Review later main changes for relevance before
+  integrating them: rebuild or repeat verification only when they affect the changed behavior, its callers,
+  build interfaces or effective data, or when an actual failure requires it. Unrelated main updates do not
+  restart qualification or delay publication. Finish in-flight checks before integrating relevant updates,
+  reuse existing build artifacts, and reverify the affected scope. After required checks pass, publish against
+  the recorded base instead of repeatedly chasing the newest main revision. If the user requests publication
+  while checks remain pending, open a draft PR and state the pending verification explicitly.
 - Verify changes only with `python -B tools/verify_all.py` ([guide](docs/coa/verification.md)). It runs the
   source checks, build, unit tests, Python test scripts, `apps/coa-tests` harnesses and gameplay scenarios. Do not
   run `check_source.py`, `ctest`, test scripts, harnesses, `run.py run` or `batch.py` yourself; where a guide

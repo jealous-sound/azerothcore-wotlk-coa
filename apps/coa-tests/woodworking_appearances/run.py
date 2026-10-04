@@ -53,11 +53,12 @@ def main():
         'RECORDS': '\n'.join(method(compat, signature) + ';' for signature in (
             'struct AppearanceInfo', 'struct VanityInfo', 'struct PlayerCollectionState')),
         'CLIENT_DBC': '\n'.join(method(client, signature) for signature in (
-            'uint32 ReadHeaderField(', 'std::string_view ClientDBC::Record::GetString(',
+            'uint32 ReadHeaderField(', 'std::string_view ClientDBC::Record::GetStringAt(',
             'bool ClientDBC::Load(', 'ClientDBC::Record ClientDBC::GetRecord(')),
         'DISPATCH_CREATE': method(dispatch, 'void ScriptMgr::OnPlayerCreateItem('),
         'SCRIPT_CONSTRUCTOR': re.search(r'AscensionCompatPlayerScript\(\)[\s\S]*?\}\)\s*\{\s*\}', script)[0],
         'SCRIPT_CREATE': method(script, 'void OnPlayerCreateItem('),
+        'SCRIPT_PATCH': method(script, 'static void SendObtainedItemPatchRow('),
     }
     for marker, signature in (
         ('INSTANCE', 'static AscensionCollectionService &Instance()'),

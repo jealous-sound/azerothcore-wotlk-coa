@@ -289,7 +289,8 @@ DEFAULT_DATABASES = {'LoginDatabase.WorkerThreads': '1', 'CharacterDatabase.Work
                      'LoginDatabase.TransactionIsolation': '', 'CharacterDatabase.TransactionIsolation': '',
                      'WorldDatabase.TransactionIsolation': ''}
 SHIPPED_EXCLUSIVE = {'bloodforged-high-risk-drop', 'coa-prestige-chromie-spawns', 'who-custom-classes',
-                     'who-hides-bots', 'who-lists-bots', 'wildcard-season-event'}
+                     'who-hides-bots', 'who-lists-bots', 'wildcard-season-event',
+                     'native-fixture-descendant-cleanup-producer', 'native-fixture-descendant-cleanup-consumer'}
 UTC_EVENING = datetime(2026, 9, 24, 22, 40, tzinfo=timezone.utc)
 
 
