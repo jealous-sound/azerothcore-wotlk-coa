@@ -2,7 +2,6 @@
 #include "AscensionVenomancer.h"
 #include "AscensionVenomancerData.h"
 #include "DynamicObject.h"
-#include "GameTime.h"
 #include "ObjectAccessor.h"
 #include "Player.h"
 #include "ScriptMgr.h"
@@ -217,7 +216,7 @@ class aura_ascension_venomancer_lifecycle : public AuraScript
         if (id == 800892)
             player->RemoveAurasDueToSpell(800960);
         if (id == 800848 && expired && GetAura()->GetStackAmount() < 3)
-            player->AddSpellCooldown(800848,0,uint32(GameTime::GetGameTime().count())+40,true);
+            player->AddSpellCooldown(800848, 0, 40 * IN_MILLISECONDS, true);
         if (id == Spider || id == Beetle || id == 804980 || id == 800912 || id == 705970 ||
             id == 805104 || id == 805140 || id == 704264 || id == 630932)
             Refresh(player);
