@@ -31,6 +31,7 @@ enum Aura : std::int32_t
     AURA_NONE = 0,
     AURA_DUMMY = 4,
     AURA_MOD_CHARM = 6,
+    AURA_MOD_THREAT = 10,
     AURA_MOD_STUN = 12,
     AURA_PERIODIC_TRIGGER_SPELL = 23,
     AURA_MOD_DECREASE_SPEED = 33,
@@ -198,6 +199,7 @@ constexpr Restore DEAD_CATALOG_SLOTS[] = {
         KEEP, 853513 } },
     { 760100, 0, { EFFECT_DUMMY, ANY, ANY }, { EFFECT_TRIGGER_SPELL, KEEP, KEEP, KEEP, KEEP, KEEP, KEEP, KEEP, KEEP,
         KEEP, 760101 } },
+    { 57340, 0, { EFFECT_APPLY_AURA, AURA_DUMMY, ANY }, { KEEP, AURA_MOD_THREAT } },
 };
 
 constexpr bool Matches(Shape const& broken, std::int32_t effect, std::int32_t aura, std::int32_t targetA)
