@@ -268,15 +268,15 @@ def clock_policy(directory=catalog.DIRECTORY):
     return exclusive
 
 
-def select_cases(values, directory=catalog.DIRECTORY):
+def select_cases(values, directory=catalog.DIRECTORY, excluded=()):
     checks = catalog.bindings(directory)
-    definitions = {row['id']: catalog.read_json(directory / 'scenarios' / (row['id'] + '.json'))
+    definitions = {row['id']: catalog.read_json(catalog.ROOT / row['path'])
                    for row in catalog.catalog(directory)}
     fingerprints = {}
     for key, definition in definitions.items():
         fingerprints.setdefault(json.dumps(definition, sort_keys=True), key)
     requested, exploratory, sources = [], {}, set()
-    for value in values or sorted(definitions):
+    for value in values or sorted(set(definitions) - set(excluded)):
         if value in definitions:
             requested.append(value)
             continue
@@ -1156,7 +1156,7 @@ class Batch:
 
 def run_batch(args, directory=catalog.DIRECTORY):
     started = time.monotonic()
-    cases = select_cases(args.scenario, directory)
+    cases = select_cases(args.scenario, directory, getattr(args, 'skip_scenario', []))
     if args.clock == SIMULATED_CLOCK:
         exclusive = clock_policy(directory)
         for case in cases:
@@ -1244,6 +1244,7 @@ def parser():
     mode = result.add_mutually_exclusive_group()
     mode.add_argument('--fresh-databases', action='store_true', help='Use disposable copies without the world cache')
     mode.add_argument('--refresh-world', action='store_true', help='Replace each slot world cache on first use')
+    result.add_argument('--skip-scenario', nargs='+', default=[], help='Catalog ids omitted from default selection')
     result.add_argument('--world-cache-root', type=Path, default=CACHE_ROOT,
                         help='Parent directory of the per-worker world-cache slots')
     return result

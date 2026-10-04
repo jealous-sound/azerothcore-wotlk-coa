@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "CoA Legendary Items: signatures 1",
-  "contract": "Requires CoALegendaryItems.Enable=1, DropChance=100, StopDropLevel=60, DestinyWeaver.Enable=1, LevelScaling=1, offset=3, CoA.SendDisplayPatches=1. Each signature trinket boosts only its class ability main direct hit by 12% relative to existing class bonuses through a native percentage spell modifier; unrelated spells, secondary triggered spells, periodic effects and unequipped items are unchanged. First and highest available native ranks are checked.",
+  "contract": "Requires CoALegendaryItems.Enable=1, DropChance=100, StopDropLevel=60, DestinyWeaver.Enable=1, LevelScaling=1, offset=3, CoA.SendDisplayPatches=1. Each signature trinket boosts only its class ability main direct hit by 12% relative to existing class bonuses through a native percentage spell modifier; unrelated spells (including native auras sharing selector bits), secondary triggered spells, periodic effects and unequipped items are unchanged. First and highest available native ranks are checked.",
   "timeout_ms": 180000,
   "location": {
     "map": 0,
@@ -493,6 +493,15 @@
       "max": 1.00001
     },
     {
+      "action": "snapshot",
+      "actor": "class14",
+      "metric": "spell_modifier",
+      "spell": 300490,
+      "op": 0,
+      "base": 1000,
+      "save_as": "class14_colliding_spell300490"
+    },
+    {
       "action": "add_item",
       "actor": "class14",
       "item": 9700829
@@ -546,6 +555,17 @@
       "ratio_to": "class14_spell501299_op0",
       "min": 1.11999,
       "max": 1.1200100000000002
+    },
+    {
+      "action": "assert",
+      "actor": "class14",
+      "metric": "spell_modifier",
+      "spell": 300490,
+      "op": 0,
+      "base": 1000,
+      "ratio_to": "class14_colliding_spell300490",
+      "min": 0.99999,
+      "max": 1.00001
     },
     {
       "action": "destroy_item",
@@ -821,6 +841,15 @@
       "max": 1.00001
     },
     {
+      "action": "snapshot",
+      "actor": "class18",
+      "metric": "spell_modifier",
+      "spell": 501528,
+      "op": 0,
+      "base": 1000,
+      "save_as": "class18_colliding_spell501528"
+    },
+    {
       "action": "add_item",
       "actor": "class18",
       "item": 9702029
@@ -874,6 +903,17 @@
       "ratio_to": "class18_spell503126_op0",
       "min": 1.11999,
       "max": 1.1200100000000002
+    },
+    {
+      "action": "assert",
+      "actor": "class18",
+      "metric": "spell_modifier",
+      "spell": 501528,
+      "op": 0,
+      "base": 1000,
+      "ratio_to": "class18_colliding_spell501528",
+      "min": 0.99999,
+      "max": 1.00001
     },
     {
       "action": "destroy_item",

@@ -189,7 +189,6 @@ struct SpellModifier
     flag96 mask;
     uint32 spellId;
     uint32 targetSpellId = 0; // Optional script constraint; zero retains normal family/mask targeting.
-    uint32 targetSpellRoot = 0;
     Aura* const ownerAura;
 };
 

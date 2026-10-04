@@ -17,7 +17,6 @@
 #include "SpellAuras.h"
 #include "SpellInfo.h"
 #include "SpellMgr.h"
-#include "SpellScript.h"
 #include <array>
 #include <atomic>
 #include <cmath>
@@ -29,7 +28,7 @@ namespace
     char const* const PlayerStateKey = "CoALegendaryItems.Player";
     char const* const LootRollKey = "CoALegendaryItems.LootRoll";
 
-    std::atomic<bool> enabled{ true };
+    std::atomic<bool> enabled{ false };
     std::atomic<bool> dataReady{ false };
     std::atomic<float> dropChance{ 0.5f };
     std::atomic<uint32> stopDropLevel{ 60 };
@@ -50,6 +49,8 @@ namespace
     };
 
     using EquippedLevels = std::array<uint8, DesignCount>;
+
+    bool IsEnabled() { return enabled.load(); }
 
     flag96 SignatureMask(Design const& design)
     {
@@ -160,7 +161,7 @@ namespace
     {
     public:
         LegendaryMetadataScript() : GlobalScript("coa_legendary_items_metadata",
-            { GLOBALHOOK_ON_LOAD_SPELL_CUSTOM_ATTR }) { }
+            { GLOBALHOOK_ON_LOAD_SPELL_CUSTOM_ATTR, GLOBALHOOK_ON_SPELL_MOD_FAMILY_MASK }) { }
 
         void OnLoadSpellCustomAttr(SpellInfo* info) override
         {
@@ -172,27 +173,23 @@ namespace
                     sSpellMgr->GetFirstSpellInChain(info->Id) == sSpellMgr->GetFirstSpellInChain(design.signatureSpell))
                 {
                     flag96 const mask = SignatureMask(design);
-                    Ascension::ClientSpellPatches::Instance().Register(info->Id, { mask[0], mask[1], mask[2] });
+                    Ascension::ClientSpellPatches::Instance().Register(info->Id,
+                        { mask[0], mask[1], mask[2] }, IsEnabled);
                     break;
                 }
         }
-    };
-
-    class aura_coa_legendary_signature : public AuraScript
-    {
-        PrepareAuraScript(aura_coa_legendary_signature);
-
-        void RestrictTarget(AuraEffect const*, SpellModifier*& modifier)
+        void OnSpellModFamilyMask(SpellInfo const* affectSpell, SpellInfo const* checkSpell,
+            SpellModifier const*, bool& affected) override
         {
-            uint32 const index = GetId() - AuraEntryBase;
-            if (modifier && index < DesignCount && Catalog[index].power == Power::Signature)
-                modifier->targetSpellRoot = sSpellMgr->GetFirstSpellInChain(Catalog[index].signatureSpell);
-        }
-
-        void Register() override
-        {
-            DoEffectCalcSpellMod += AuraEffectCalcSpellModFn(aura_coa_legendary_signature::RestrictTarget,
-                EFFECT_0, SPELL_AURA_ADD_PCT_MODIFIER);
+            if (affectSpell->Id < AuraEntryBase || affectSpell->Id >= AuraEntryBase + DesignCount)
+                return;
+            Design const& design = Catalog[affectSpell->Id - AuraEntryBase];
+            if (design.power != Power::Signature)
+                return;
+            affected = enabled.load() && dataReady.load() &&
+                affectSpell->SpellFamilyName == checkSpell->SpellFamilyName &&
+                sSpellMgr->GetFirstSpellInChain(design.signatureSpell) ==
+                    sSpellMgr->GetFirstSpellInChain(checkSpell->Id);
         }
     };
 
@@ -231,7 +228,7 @@ namespace
 
         void OnAfterConfigLoad(bool) override
         {
-            enabled.store(sConfigMgr->GetOption<bool>("CoALegendaryItems.Enable", true));
+            enabled.store(sConfigMgr->GetOption<bool>("CoALegendaryItems.Enable", false));
             float const configuredChance = sConfigMgr->GetOption<float>("CoALegendaryItems.DropChance", 0.5f);
             dropChance.store(std::isfinite(configuredChance) ? std::clamp(configuredChance, 0.0f, 100.0f) : 0.0f);
             stopDropLevel.store(std::clamp(
@@ -312,7 +309,7 @@ namespace
             }
             dataReady.store(invalid == 0);
             if (invalid)
-                LOG_ERROR("module", "CoA Legendary Items: {} missing or invalid records; apply the pending world "
+                LOG_ERROR("module", "CoA Legendary Items: {} missing or invalid records; apply the module world "
                     "migration. Drops and powers are disabled until the data is available.", invalid);
             else
                 LOG_INFO("module", "CoA Legendary Items: {} designs, {} level variants; drop chance {}%, cutoff {}.",
@@ -469,8 +466,16 @@ namespace
 
 void AddSC_coa_legendary_items()
 {
+    if (!sConfigMgr->GetOption<bool>("CoALegendaryItems.Enable", false))
+        return;
+    enabled.store(true);
+    for (uint32 index = 0; index < DesignCount; ++index)
+    {
+        Ascension::ClientSpellPatches::Instance().Register(AuraEntryBase + index, {}, IsEnabled);
+        for (uint32 level = 1; level <= MaximumCreatureLevel; ++level)
+            Ascension::ClientItemPatches::Instance().Register(EntryForLevel(index, level), {}, IsEnabled);
+    }
     new LegendaryMetadataScript();
-    RegisterSpellScript(aura_coa_legendary_signature);
     new LegendaryWorldScript();
     new LegendaryLootScript();
     new LegendaryPlayerScript();

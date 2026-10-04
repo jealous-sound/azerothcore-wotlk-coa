@@ -198,10 +198,7 @@ def render_sql(catalog):
                 'ImplicitTargetA', 'EffectAura', 'EffectMiscValue')],
             *[f'EffectSpellClassMaskA_{i}' for i in range(1, 4)]], auras,
             f'DELETE FROM `spell_dbc` WHERE `ID` >= {AURA_BASE} AND `ID` < {AURA_BASE + 64};'),
-        insert_rows('spell_script_names', ['spell_id', 'ScriptName'],
-            [[AURA_BASE + item['id'], 'aura_coa_legendary_signature']
-                for item in catalog if item['power'] == 'Signature'],
-            f'DELETE FROM `spell_script_names` WHERE `spell_id` >= {AURA_BASE} AND `spell_id` < {AURA_BASE + 64};'),
+        f'DELETE FROM `spell_script_names` WHERE `spell_id` >= {AURA_BASE} AND `spell_id` < {AURA_BASE + 64};',
     ]
     return '\n\n'.join(sections) + '\n'
 
@@ -251,8 +248,8 @@ def outputs(sql_output=None):
     }
     if sql_output:
         sql_output = sql_output.resolve()
-        if not sql_output.is_relative_to(ROOT / 'data/sql/updates/pending_db_world'):
-            raise ValueError('SQL output must be a new pending world migration')
+        if not sql_output.is_relative_to(MODULE / 'data/sql/db-world'):
+            raise ValueError('SQL output must be a new module world migration')
         generated[sql_output] = render_sql(catalog)
     return generated
 

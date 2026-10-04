@@ -1522,10 +1522,6 @@ bool SpellInfo::IsAffectedBySpellMod(SpellModifier const* mod) const
     if (mod->targetSpellId && mod->targetSpellId != Id)
         return false;
 
-    if (mod->targetSpellRoot)
-        return affectSpell->SpellFamilyName == SpellFamilyName &&
-            mod->targetSpellRoot == sSpellMgr->GetFirstSpellInChain(Id);
-
     if (SpellFamilyName == 31 && affectSpell->SpellFamilyName == 31)
     {
         // The copied Dark Veil mask collides with Hammer. Route these modifiers
@@ -1597,7 +1593,9 @@ bool SpellInfo::IsAffectedBySpellMod(SpellModifier const* mod) const
         }
     }
 
-    return IsAffected(affectSpell->SpellFamilyName, mod->mask);
+    bool affected = IsAffected(affectSpell->SpellFamilyName, mod->mask);
+    sScriptMgr->OnSpellModFamilyMask(affectSpell, this, mod, affected);
+    return affected;
 }
 
 bool SpellInfo::CanPierceImmuneAura(SpellInfo const* auraSpellInfo) const
