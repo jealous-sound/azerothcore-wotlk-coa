@@ -243,7 +243,7 @@ pEffect SpellEffects[TOTAL_SPELL_EFFECTS] =
     &Spell::EffectNULL,                                     //171 unknown Ascension effect
     &Spell::EffectNULL,                                     //172 unknown Ascension effect
     &Spell::EffectAscensionRefreshAura,                     //173 SPELL_EFFECT_ASCENSION_REFRESH_AURA
-    &Spell::EffectNULL,                                     //174 unknown Ascension effect
+    &Spell::EffectAscensionPctDamage,                       //174 Ascension percent damage (target max health / caster melee)
     &Spell::EffectAscensionModifyAuraStacks,                //175 SPELL_EFFECT_ASCENSION_MODIFY_AURA_STACKS
     &Spell::EffectAscensionModifyAuraStacksBySpell,         //176 SPELL_EFFECT_ASCENSION_MODIFY_AURA_STACKS_2
     &Spell::EffectAscensionModifyAuraDuration,              //177 SPELL_EFFECT_ASCENSION_MODIFY_AURA_DURATION
@@ -479,6 +479,28 @@ void Spell::EffectAscensionModifyAuraDuration(SpellEffIndex effIndex)
         else
             aura->SetDuration(duration);
     }
+}
+
+// Ascension effect 174: damage as a percentage. MiscValue 1 = of the caster's melee damage ("X% of melee damage"),
+// otherwise of the target's maximum health ("X% maximum health damage", e.g. Gizrul's Vicious Bite). Resistances and
+// damage taken modifiers apply, spell power does not.
+void Spell::EffectAscensionPctDamage(SpellEffIndex effIndex)
+{
+    if (effectHandleMode != SPELL_EFFECT_HANDLE_LAUNCH_TARGET)
+        return;
+
+    if (!unitTarget || !unitTarget->IsAlive() || damage <= 0)
+        return;
+
+    uint32 amount;
+    if (m_spellInfo->Effects[effIndex].MiscValue == 1)
+        amount = CalculatePct(m_caster->CalculateDamage(BASE_ATTACK, false, true), damage);
+    else
+        amount = unitTarget->CountPctFromMaxHealth(damage);
+
+    if (m_originalCaster)
+        amount = unitTarget->SpellDamageBonusTaken(m_originalCaster, m_spellInfo, amount, SPELL_DIRECT_DAMAGE);
+    m_damage += int32(amount);
 }
 
 void Spell::EffectAscensionRestoreBaseHealthPct(SpellEffIndex effIndex)

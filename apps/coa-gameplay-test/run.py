@@ -36,6 +36,7 @@ METRICS = {
     'melee_damage_count', 'melee_damage_total',
     'pet_power', 'pet_max_power', 'spell_energize_count', 'spell_energize_total',
     'xp', 'next_level_xp', 'skill_value', 'skill_maximum', 'lfg_dungeon_disabled', 'map_id',
+    'map_difficulty', 'nearby_creature_template', 'nearby_creature_max_health', 'loot_gear_item_level',
     'position_x', 'position_y', 'position_z',
     'view_level', 'sent_level', 'sent_max_health', 'creature_query_rank', 'quest_level', 'quest_xp',
     'quest_log_sent_level', 'quest_log_sent_xp', 'quest_query_scaled', 'quest_query_reward_choice',
@@ -138,6 +139,8 @@ ACTIONS = {
     'advancement_rank': ({'actor', 'entry', 'rank'}, {'actor', 'entry', 'rank', 'refused'}),
     'apply_appearances': ({'actor', 'selection'}, {'actor', 'selection'}),
     'sell_item': ({'actor', 'entry', 'item'}, {'actor', 'entry', 'item', 'count'}),
+    'dungeon_difficulty_packet': ({'actor', 'value'}, {'actor', 'value'}),
+    'ascension_dungeon_difficulty_packet': ({'actor', 'value'}, {'actor', 'value'}),
     'console': ({'command'}, {'command'}),
     'command': ({'actor', 'command'}, {'actor', 'command'}),
     'whisper': ({'actor', 'to', 'text'}, {'actor', 'to', 'text', 'language'}),
@@ -184,6 +187,7 @@ ACTIONS = {
     'use_nearby_gameobject': ({'actor', 'entry'}, {'actor', 'entry'}),
     'attack_owned_creature': ({'actor', 'target', 'entry'}, {'actor', 'target', 'entry'}),
     'attack_nearby': ({'actor', 'entry'}, {'actor', 'entry', 'kill', 'damage_pct'}),
+    'summon': ({'actor', 'as', 'entry'}, {'actor', 'as', 'entry', 'distance'}),
     'loot_nearby': ({'actor', 'entry'}, {'actor', 'entry'}),
     'loot_creature': ({'actor', 'target'}, {'actor', 'target'}),
     'loot_slot': ({'actor'}, {'actor', 'slot', 'item'}),
@@ -339,6 +343,9 @@ def validate(scenario):
                     f'{where}: whisper needs a target and text')
             if 'language' in step:
                 number(step['language'], f'{where}.language', 0, 2**32 - 1, True)
+        if action == 'summon':
+            require(isinstance(step['as'], str) and step['as'] not in actor_ids, f'{where}: duplicate summon id')
+            actor_ids.add(step['as'])
         if 'actor' in step:
             require(step['actor'] in actor_ids, f'{where}: unknown actor')
             require(action in {'snapshot', 'assert', 'set_health', 'cast', 'attack_owned_creature'}
@@ -361,6 +368,8 @@ def validate(scenario):
             keys(destination, {'x', 'y', 'z'}, {'x', 'y', 'z'}, f'{where}.destination')
             for key in ('x', 'y', 'z'):
                 number(destination[key], f'{where}.destination.{key}', -17000, 17000)
+        if action in {'dungeon_difficulty_packet', 'ascension_dungeon_difficulty_packet'}:
+            number(step['value'], f'{where}.value', 0, 2, True)
         if action == 'teleport':
             number(step['map'], f'{where}.map', 0, 2**31 - 1, True)
             for key in ('x', 'y', 'z', 'o'):
@@ -529,6 +538,11 @@ def validate(scenario):
             if metric == 'creature_query_rank':
                 require(step['actor'] in player_ids, f'{where}: creature query metric needs a player')
                 number(step.get('entry'), f'{where}.entry', 1, 2**31 - 1, True)
+            if metric in {'map_id', 'map_difficulty', 'nearby_creature_template',
+                          'nearby_creature_max_health', 'loot_gear_item_level'}:
+                require(step['actor'] in player_ids, f'{where}: dungeon/loot metric needs a player')
+            if metric in {'nearby_creature_template', 'nearby_creature_max_health'}:
+                number(step.get('entry'), f'{where}.entry', 1, 2**32 - 1, True)
             if metric == 'lfg_dungeon_disabled':
                 number(step.get('dungeon'), f'{where}.dungeon', 1, 2**24 - 1, True)
             if metric in {'quest_level', 'quest_xp', 'quest_log_sent_level', 'quest_log_sent_xp', 'quest_query_scaled',

@@ -6145,6 +6145,21 @@ class spell_ascension_personal_bank : public SpellScript
     }
 };
 
+bool QueueAscensionDungeonDifficulty(WorldSession* session, WorldPacket const& packet)
+{
+    if (packet.GetOpcode() != CMSG_COA_SET_DUNGEON_DIFFICULTY)
+        return false;
+    if (!session || packet.size() != sizeof(uint8))
+        return true;
+    uint8 const difficulty = packet.read<uint8>(0);
+    if (difficulty >= MAX_DUNGEON_DIFFICULTY)
+        return true;
+    WorldPacket* request = new WorldPacket(MSG_SET_DUNGEON_DIFFICULTY, sizeof(uint32));
+    *request << uint32(difficulty);
+    session->QueuePacket(request);
+    return true;
+}
+
 class AscensionCompatServerScript : public ServerScript {
 public:
   AscensionCompatServerScript()
@@ -6263,6 +6278,9 @@ public:
     if (!ascensionCompatConfig.GetConfigValue<bool>(
             AscensionCompatConfig::ENABLED))
       return true;
+
+    if (QueueAscensionDungeonDifficulty(session, packet))
+      return false;
 
     uint32 opcode = packet.GetOpcode();
 

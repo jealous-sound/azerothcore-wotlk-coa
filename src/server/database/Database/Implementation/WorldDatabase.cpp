@@ -117,6 +117,8 @@ void WorldDatabaseConnection::DoPrepareStatements()
     PrepareStatement(WORLD_SEL_CLIENT_SPELL_PATCHES, "SELECT * FROM spell_dbc WHERE ID = ?", CONNECTION_SYNCH);
     PrepareStatement(WORLD_SEL_CLIENT_SPELL_DESCRIPTIONS,
         "SELECT ID, Description FROM coa_client_spell_description", CONNECTION_SYNCH);
+    PrepareStatement(WORLD_SEL_COA_DUNGEON_LOOT_VARIANT, "SELECT base_item, heroic_item, mythic_item FROM coa_dungeon_loot_variant", CONNECTION_SYNCH);
+    PrepareStatement(WORLD_SEL_COA_DUNGEON_HEALTH, "SELECT map_id, difficulty, creature_entry, max_health FROM coa_dungeon_health", CONNECTION_SYNCH);
 }
 
 WorldDatabaseConnection::WorldDatabaseConnection(MySQLConnectionInfo& connInfo) : MySQLConnection(connInfo)

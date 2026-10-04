@@ -1,0 +1,107 @@
+/*
+ * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-AGPL3
+ */
+
+#include "Creature.h"
+#include "DatabaseEnv.h"
+#include "Field.h"
+#include "QueryResult.h"
+#include "Log.h"
+#include "Map.h"
+#include "SpellInfo.h"
+#include "UnitScript.h"
+#include "WorldScript.h"
+#include <unordered_map>
+#include <unordered_set>
+
+namespace
+{
+    std::unordered_map<uint32, float> Multipliers;
+    std::unordered_set<uint32> Bosses;
+
+    constexpr int32 TrashCapHeroic = 460;
+    constexpr int32 TrashCapMythic = 600;
+
+    int32 TrashCap(Unit const* attacker, SpellInfo const* spellInfo)
+    {
+        if (!attacker || !spellInfo || Multipliers.count(spellInfo->Id))
+            return 0;
+        Creature const* creature = attacker->ToCreature();
+        if (!creature || creature->GetCharmerOrOwnerPlayerOrPlayerItself() || creature->IsSummon() || Bosses.count(creature->GetEntry()))
+            return 0;
+        Map const* map = creature->GetMap();
+        if (!map || !map->IsNonRaidDungeon() || map->GetDifficulty() == DUNGEON_DIFFICULTY_NORMAL)
+            return 0;
+        return map->GetDifficulty() == DUNGEON_DIFFICULTY_HEROIC ? TrashCapHeroic : TrashCapMythic;
+    }
+
+    float Multiplier(Unit const* attacker, SpellInfo const* spellInfo)
+    {
+        if (Multipliers.empty() || !attacker || !spellInfo)
+            return 1.0f;
+        Creature const* creature = attacker->ToCreature();
+        if (!creature || creature->GetCharmerOrOwnerPlayerOrPlayerItself())
+            return 1.0f;
+        Map const* map = creature->GetMap();
+        if (!map || !map->IsDungeon() || map->GetDifficulty() == DUNGEON_DIFFICULTY_NORMAL)
+            return 1.0f;
+        auto itr = Multipliers.find(spellInfo->Id);
+        return itr == Multipliers.end() ? 1.0f : itr->second;
+    }
+}
+
+class CoADungeonSpellDamageWorld final : public WorldScript
+{
+public:
+    CoADungeonSpellDamageWorld() : WorldScript("CoADungeonSpellDamageWorld", { WORLDHOOK_ON_STARTUP }) { }
+
+    void OnStartup() override
+    {
+        Multipliers.clear();
+        if (QueryResult result = WorldDatabase.Query("SELECT spell_id, multiplier FROM coa_dungeon_spell_damage"))
+        {
+            do
+            {
+                Field* fields = result->Fetch();
+                Multipliers[fields[0].Get<uint32>()] = fields[1].Get<float>();
+            } while (result->NextRow());
+        }
+        LOG_INFO("server.loading", ">> Loaded {} CoA dungeon spell damage multipliers", Multipliers.size());
+        Bosses.clear();
+        if (QueryResult result = WorldDatabase.Query("SELECT entry FROM coa_dungeon_bosses"))
+        {
+            do
+            {
+                Bosses.insert(result->Fetch()[0].Get<uint32>());
+            } while (result->NextRow());
+        }
+        LOG_INFO("server.loading", ">> Loaded {} CoA dungeon boss entries (trash spell cap exempt)", Bosses.size());
+    }
+};
+
+class CoADungeonSpellDamage final : public UnitScript
+{
+public:
+    CoADungeonSpellDamage() : UnitScript("CoADungeonSpellDamage", true,
+        { UNITHOOK_MODIFY_SPELL_DAMAGE_TAKEN, UNITHOOK_MODIFY_PERIODIC_DAMAGE_AURAS_TICK }) { }
+
+    void ModifySpellDamageTaken(Unit*, Unit* attacker, int32& damage, SpellInfo const* spellInfo) override
+    {
+        if (float multiplier = Multiplier(attacker, spellInfo); multiplier != 1.0f)
+            damage = int32(damage * multiplier);
+        if (int32 cap = TrashCap(attacker, spellInfo); cap && damage > cap)
+            damage = cap + (damage - cap) / 20;
+    }
+
+    void ModifyPeriodicDamageAurasTick(Unit*, Unit* attacker, uint32& damage, SpellInfo const* spellInfo) override
+    {
+        if (float multiplier = Multiplier(attacker, spellInfo); multiplier != 1.0f)
+            damage = uint32(damage * multiplier);
+    }
+};
+
+void AddSC_CoADungeonSpellDamage()
+{
+    new CoADungeonSpellDamageWorld();
+    new CoADungeonSpellDamage();
+}

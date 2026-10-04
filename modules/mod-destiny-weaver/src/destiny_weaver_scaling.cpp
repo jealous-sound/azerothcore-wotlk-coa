@@ -40,6 +40,7 @@
 // (DamageTakenFactor). Both factors are 1 for a character with scaling off, and for a character
 // whose version *is* the creature: their fight is then the authored fight, and nobody else's fight
 // changes because of it.
+#include "DungeonHealth.h"
 #include "destiny_weaver.h"
 #include "destiny_weaver_view_damage.h"
 
@@ -172,6 +173,11 @@ namespace
 
         Map* map = creature->GetMap();
         if (!map || map->IsScriptedPrivateInstance())
+            return false;
+
+        // Vanilla dungeons on Heroic/Mythic carry authored level-60 health (coa_dungeon_health) and
+        // Mythic+ scales it; a per-character view would scale the same health a second time.
+        if (map->IsNonRaidDungeon() && !map->IsRegularDifficulty() && DungeonHealth::IsVanillaDungeon(map->GetId()))
             return false;
 
         return !creature->IsPet() && !creature->IsTotem() && !creature->IsTrigger() &&

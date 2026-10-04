@@ -34,6 +34,7 @@
 #include "LFGMgr.h"
 #include "LFGPackets.h"
 #include "ItemPackets.h"
+#include "InstancePackets.h"
 #include "NPCPackets.h"
 #include "Log.h"
 #include "LocalLevelScaling.h"
@@ -2266,6 +2267,23 @@ private:
             }
             return 100.0 * hits / rolls;
         }
+        if (metric == "map_id")
+            return player->GetMapId();
+        if (metric == "map_difficulty")
+            return player->GetMap()->GetSpawnMode();
+        if (metric == "nearby_creature_max_health")
+        {
+            Creature* creature = player->FindNearestCreature(step.get<uint32>("entry"), 60.0f, true);
+            Require(creature != nullptr, "Creature health metric needs a living nearby creature");
+            return creature->GetMaxHealth();
+        }
+        if (metric == "nearby_creature_template")
+        {
+            std::list<Creature*> creatures;
+            player->GetCreatureListWithEntryInGrid(creatures, step.get<uint32>("entry"), 60.0f);
+            Require(creatures.size() == 1, "Creature template metric needs exactly one nearby creature");
+            return creatures.front()->GetCreatureTemplate()->Entry;
+        }
         if (metric == "nearby_creature_count")
         {
             std::list<Creature*> creatures;
@@ -2277,7 +2295,7 @@ private:
             return player->GetMoney();
         if (metric == "loot_count" || metric == "loot_entry" || metric == "loot_gold" ||
             metric == "loot_required_level" || metric == "loot_item_level" || metric == "loot_base_entry" ||
-            metric == "loot_item_armor")
+            metric == "loot_item_armor" || metric == "loot_gear_item_level")
         {
             Loot* window = nullptr;
             ObjectGuid const lootGuid = player->GetLootGUID();
@@ -2310,6 +2328,12 @@ private:
                     if (!proto || (step.get_optional<uint32>("quality") &&
                         proto->Quality != step.get<uint32>("quality")))
                         continue;
+                    if (metric == "loot_gear_item_level")
+                    {
+                        if (proto->Class == ITEM_CLASS_WEAPON || proto->Class == ITEM_CLASS_ARMOR)
+                            return proto->ItemLevel;
+                        continue;
+                    }
                     if (metric == "loot_entry")
                         return item.itemid;
                     if (metric == "loot_base_entry")
@@ -4069,6 +4093,18 @@ private:
             Require(_actors.at(step.get<std::string>("actor")).whoResponses == before + 1,
                 "Who request did not produce a native response");
         }
+        else if (action == "summon")
+        {
+            std::string id = step.get<std::string>("as");
+            Require(!_actors.count(id) && !_targets.count(id), "Duplicate actor id");
+            Position position = player->GetPosition();
+            position.m_positionX += step.get<float>("distance", 5);
+            TempSummon* creature = player->SummonCreature(step.get<uint32>("entry"), position, TEMPSUMMON_MANUAL_DESPAWN);
+            Require(creature != nullptr, "Could not summon creature: " + id);
+            creature->SetPhaseMask(player->GetPhaseMask(), true);
+            _targets.emplace(id, Target{ creature->GetMapId(), creature->GetInstanceId(), creature->GetGUID() });
+            record.put("result", creature->GetCreatureTemplate()->Entry);
+        }
         else if (action == "attack")
         {
             Unit* target = GetUnit(step.get<std::string>("target"));
@@ -4385,6 +4421,30 @@ private:
             uint32 value = step.get<uint32>("value");
             Require(value <= target->GetMaxPower(Powers(power)), "Power fixture exceeds maximum");
             target->SetPower(Powers(power), value);
+        }
+        else if (action == "ascension_dungeon_difficulty_packet")
+        {
+            uint32 const difficulty = step.get<uint32>("value");
+            Require(difficulty < MAX_DUNGEON_DIFFICULTY, "Invalid dungeon difficulty");
+            WorldPacket packet(CMSG_COA_SET_DUNGEON_DIFFICULTY, 1);
+            packet << uint8(difficulty);
+            Require(!sScriptMgr->CanPacketReceiveEarly(player->GetSession(), packet),
+                "Ascension dungeon difficulty request was not consumed");
+            WorldSessionFilter filter(player->GetSession());
+            player->GetSession()->Update(0, filter);
+        }
+        else if (action == "dungeon_difficulty_packet")
+        {
+            uint32 const difficulty = step.get<uint32>("value");
+            Require(difficulty < MAX_DUNGEON_DIFFICULTY, "Invalid dungeon difficulty");
+            WorldPacket packet(MSG_SET_DUNGEON_DIFFICULTY, 4);
+            packet << difficulty;
+            if (sScriptMgr->CanPacketReceive(player->GetSession(), packet))
+            {
+                WorldPackets::Instance::SetDungeonDifficultyClient request(std::move(packet));
+                request.Read();
+                player->GetSession()->HandleSetDungeonDifficultyOpcode(request);
+            }
         }
         else if (action == "teleport")
         {
