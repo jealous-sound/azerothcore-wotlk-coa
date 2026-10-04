@@ -204,6 +204,11 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[0].ApplyAuraName = SPELL_AURA_SCHOOL_HEAL_ABSORB;
     if (id == 805049 || id == 807811 || id == 807813)
         info->RecoveryTime = info->CategoryRecoveryTime = 180000;
+    if (id == 808017)
+    {
+        info->Effects[2].ApplyAuraName = SPELL_AURA_SPELL_MAGNET;
+        info->ProcFlags = info->ProcCharges = 0;
+    }
     if (id == 803773)
         info->CategoryRecoveryTime = 60000;
     if (id == 807796)

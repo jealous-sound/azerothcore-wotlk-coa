@@ -82,6 +82,8 @@ uint32 ChampionAura(uint32 entry)
     {
     case 500482:
         return 805050;
+    case 500483:
+        return 808017;
     case 500484:
         return 807812;
     default:
@@ -102,7 +104,6 @@ uint32 AttackSpell(uint32 entry)
         return 801516;
     case 50323:
         return 822074;
-    case 500483:
     case 500484:
         return 801513;
     default:
