@@ -2,9 +2,9 @@
 -- Source: hertigservices/ascension-data, data-cache-3761f8c7276d7ee2745e.
 -- cachedata/by-mode/conquest-of-azeroth/creaturecache.tsv.gz
 -- SHA256: 80db1cc82be2653074592a42a2dc644d88b01cfce858bf4cf7af06091baf59bf.
--- 6112 captured entries; only creature_template.HealthModifier is updated.
+-- 6111 captured entries; only creature_template.HealthModifier is updated.
 -- Nonpositive values and rank-zero sentinel multipliers are omitted.
--- Reimplemented raid NPCs, their summons and difficulty variants are omitted.
+-- Reimplemented raid NPCs, summons, visual forms and difficulty variants are omitted.
 -- Raids: Molten Core, Onyxia's Lair, Blackwing Lair, Zul'Gurub, Ruins and Temple of Ahn'Qiraj.
 -- Scope: PRs #5120, #6015, #5750 and #6259, including the restored world bosses and Basalthane.
 -- The update excludes missing base-stat rows and health products that exceed uint32.
@@ -501,7 +501,6 @@ INSERT INTO `_coa_captured_creature_health` (`entry`, `HealthModifier`) VALUES
 (15742, 16700.0), -- Colossus of Ashi
 (15743, 1622.400024), -- Colossal Anubisath Warbringer
 (15758, 811.200012), -- Supreme Anubisath Warbringer
-(15778, 4000.0), -- Mouth Tentacle
 (15789, 1.05), -- Tauren Female Winter Reveler
 (15792, 1.05), -- Troll Male Winter Reveler
 (15793, 1.05), -- Tauren Male Winter Reveler
