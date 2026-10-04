@@ -1,0 +1,367 @@
+{
+  "schema": 1,
+  "name": "HXC all professions and Survivalist skill progression",
+  "contract": "With HXC profession options enabled, a level-one character receives all eighteen skills and starter tools once. Camp upgrades follow Survivalist skill and Barber Scissors craft and deploy without a character-level requirement.",
+  "timeout_ms": 120000,
+  "location": {
+    "map": 0,
+    "x": -9465,
+    "y": 64,
+    "z": 56,
+    "o": 0
+  },
+  "players": [
+    {
+      "id": "newbie",
+      "race": 1,
+      "class": 1,
+      "level": 1
+    }
+  ],
+  "steps": [
+    {
+      "action": "login_hooks",
+      "actor": "newbie"
+    },
+    {
+      "action": "assert",
+      "actor": "newbie",
+      "metric": "skill_value",
+      "skill": 164,
+      "equals": 1,
+      "label": "Profession 164 starts at skill 1"
+    },
+    {
+      "action": "assert",
+      "actor": "newbie",
+      "metric": "skill_value",
+      "skill": 165,
+      "equals": 1,
+      "label": "Profession 165 starts at skill 1"
+    },
+    {
+      "action": "assert",
+      "actor": "newbie",
+      "metric": "skill_value",
+      "skill": 171,
+      "equals": 1,
+      "label": "Profession 171 starts at skill 1"
+    },
+    {
+      "action": "assert",
+      "actor": "newbie",
+      "metric": "skill_value",
+      "skill": 182,
+      "equals": 1,
+      "label": "Profession 182 starts at skill 1"
+    },
+    {
+      "action": "assert",
+      "actor": "newbie",
+      "metric": "skill_value",
+      "skill": 185,
+      "equals": 1,
+      "label": "Profession 185 starts at skill 1"
+    },
+    {
+      "action": "assert",
+      "actor": "newbie",
+      "metric": "skill_value",
+      "skill": 186,
+      "equals": 1,
+      "label": "Profession 186 starts at skill 1"
+    },
+    {
+      "action": "assert",
+      "actor": "newbie",
+      "metric": "skill_value",
+      "skill": 197,
+      "equals": 1,
+      "label": "Profession 197 starts at skill 1"
+    },
+    {
+      "action": "assert",
+      "actor": "newbie",
+      "metric": "skill_value",
+      "skill": 202,
+      "equals": 1,
+      "label": "Profession 202 starts at skill 1"
+    },
+    {
+      "action": "assert",
+      "actor": "newbie",
+      "metric": "skill_value",
+      "skill": 333,
+      "equals": 1,
+      "label": "Profession 333 starts at skill 1"
+    },
+    {
+      "action": "assert",
+      "actor": "newbie",
+      "metric": "skill_value",
+      "skill": 356,
+      "equals": 1,
+      "label": "Profession 356 starts at skill 1"
+    },
+    {
+      "action": "assert",
+      "actor": "newbie",
+      "metric": "skill_value",
+      "skill": 393,
+      "equals": 1,
+      "label": "Profession 393 starts at skill 1"
+    },
+    {
+      "action": "assert",
+      "actor": "newbie",
+      "metric": "skill_value",
+      "skill": 755,
+      "equals": 1,
+      "label": "Profession 755 starts at skill 1"
+    },
+    {
+      "action": "assert",
+      "actor": "newbie",
+      "metric": "skill_value",
+      "skill": 773,
+      "equals": 1,
+      "label": "Profession 773 starts at skill 1"
+    },
+    {
+      "action": "assert",
+      "actor": "newbie",
+      "metric": "skill_value",
+      "skill": 129,
+      "equals": 1,
+      "label": "Profession 129 starts at skill 1"
+    },
+    {
+      "action": "assert",
+      "actor": "newbie",
+      "metric": "skill_value",
+      "skill": 732,
+      "equals": 1,
+      "label": "Profession 732 starts at skill 1"
+    },
+    {
+      "action": "assert",
+      "actor": "newbie",
+      "metric": "skill_value",
+      "skill": 757,
+      "equals": 1,
+      "label": "Profession 757 starts at skill 1"
+    },
+    {
+      "action": "assert",
+      "actor": "newbie",
+      "metric": "skill_value",
+      "skill": 505,
+      "equals": 1,
+      "label": "Profession 505 starts at skill 1"
+    },
+    {
+      "action": "assert",
+      "actor": "newbie",
+      "metric": "skill_value",
+      "skill": 9200,
+      "equals": 1,
+      "label": "Profession 9200 starts at skill 1"
+    },
+    {
+      "action": "assert",
+      "actor": "newbie",
+      "metric": "item_count",
+      "item": 5956,
+      "equals": 1,
+      "label": "Starter tool 5956 is granted once"
+    },
+    {
+      "action": "assert",
+      "actor": "newbie",
+      "metric": "item_count",
+      "item": 20815,
+      "equals": 1,
+      "label": "Starter tool 20815 is granted once"
+    },
+    {
+      "action": "assert",
+      "actor": "newbie",
+      "metric": "item_count",
+      "item": 39505,
+      "equals": 1,
+      "label": "Starter tool 39505 is granted once"
+    },
+    {
+      "action": "assert",
+      "actor": "newbie",
+      "metric": "item_count",
+      "item": 2901,
+      "equals": 1,
+      "label": "Starter tool 2901 is granted once"
+    },
+    {
+      "action": "assert",
+      "actor": "newbie",
+      "metric": "item_count",
+      "item": 7005,
+      "equals": 1,
+      "label": "Starter tool 7005 is granted once"
+    },
+    {
+      "action": "assert",
+      "actor": "newbie",
+      "metric": "item_count",
+      "item": 6256,
+      "equals": 1,
+      "label": "Starter tool 6256 is granted once"
+    },
+    {
+      "action": "assert",
+      "actor": "newbie",
+      "metric": "item_count",
+      "item": 6954,
+      "equals": 1,
+      "label": "Starter tool 6954 is granted once"
+    },
+    {
+      "action": "assert",
+      "actor": "newbie",
+      "metric": "item_count",
+      "item": 6218,
+      "equals": 1,
+      "label": "Starter tool 6218 is granted once"
+    },
+    {
+      "action": "login_hooks",
+      "actor": "newbie"
+    },
+    {
+      "action": "assert",
+      "actor": "newbie",
+      "metric": "item_count",
+      "item": 2901,
+      "equals": 1,
+      "label": "Repeated login does not duplicate tools"
+    },
+    {
+      "action": "assert",
+      "actor": "newbie",
+      "metric": "knows_spell",
+      "spell": 996119,
+      "equals": 1,
+      "label": "Field Splint is available at First Aid 1"
+    },
+    {
+      "action": "assert",
+      "actor": "newbie",
+      "metric": "knows_spell",
+      "spell": 996106,
+      "equals": 1,
+      "label": "Campfire is available immediately"
+    },
+    {
+      "action": "assert",
+      "actor": "newbie",
+      "metric": "knows_spell",
+      "spell": 996107,
+      "equals": 0,
+      "label": "Shelter is not learned at Survivalist 1"
+    },
+    {
+      "action": "set_skill",
+      "actor": "newbie",
+      "skill": 9200,
+      "value": 75,
+      "maximum": 300
+    },
+    {
+      "action": "assert",
+      "actor": "newbie",
+      "metric": "knows_spell",
+      "spell": 996107,
+      "equals": 1,
+      "label": "Shelter unlocks at Survivalist 75"
+    },
+    {
+      "action": "assert",
+      "actor": "newbie",
+      "metric": "knows_spell",
+      "spell": 996136,
+      "equals": 1,
+      "label": "Scissors unlock at Survivalist 75"
+    },
+    {
+      "action": "set_skill",
+      "actor": "newbie",
+      "skill": 9200,
+      "value": 150,
+      "maximum": 300
+    },
+    {
+      "action": "assert",
+      "actor": "newbie",
+      "metric": "knows_spell",
+      "spell": 996108,
+      "equals": 1,
+      "label": "Hearthstead unlocks at Survivalist 150"
+    },
+    {
+      "action": "add_item",
+      "actor": "newbie",
+      "item": 2840,
+      "count": 2
+    },
+    {
+      "action": "add_item",
+      "actor": "newbie",
+      "item": 8210230,
+      "count": 2
+    },
+    {
+      "action": "add_item",
+      "actor": "newbie",
+      "item": 2320,
+      "count": 2
+    },
+    {
+      "action": "cast",
+      "actor": "newbie",
+      "spell": 996136
+    },
+    {
+      "action": "wait",
+      "ms": 3000
+    },
+    {
+      "action": "assert",
+      "actor": "newbie",
+      "metric": "item_count",
+      "item": 996210,
+      "equals": 1,
+      "label": "Scissors craft at character level 1"
+    },
+    {
+      "action": "use_item",
+      "actor": "newbie",
+      "item": 996210,
+      "spell": 996137
+    },
+    {
+      "action": "assert",
+      "actor": "newbie",
+      "metric": "owned_gameobject_count",
+      "entry": 190683,
+      "equals": 1,
+      "within_ms": 2000,
+      "label": "Scissors create a temporary barber chair"
+    },
+    {
+      "action": "assert",
+      "actor": "newbie",
+      "metric": "item_count",
+      "item": 996210,
+      "equals": 1,
+      "label": "Scissors are reusable"
+    }
+  ]
+}

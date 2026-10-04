@@ -1,0 +1,166 @@
+{
+  "schema": 1,
+  "name": "HXC First Aid splint treatment",
+  "contract": "First Aid gains skill only on successful fracture treatment; unsuccessful treatment neither awards skill nor consumes materials.",
+  "timeout_ms": 120000,
+  "location": {
+    "map": 0,
+    "x": -9465,
+    "y": 64,
+    "z": 56,
+    "o": 0
+  },
+  "players": [
+    {
+      "id": "patient",
+      "race": 1,
+      "class": 1,
+      "level": 1,
+      "allow_regeneration": false,
+      "spell_hit_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "attacker",
+      "owner": "patient",
+      "entry": 5194,
+      "level": 1,
+      "faction": 14,
+      "distance": 2,
+      "health": 1000,
+      "spell_hit_bonus": 100
+    }
+  ],
+  "steps": [
+    {
+      "action": "login_hooks",
+      "actor": "patient"
+    },
+    {
+      "action": "add_item",
+      "actor": "patient",
+      "item": 4470,
+      "count": 8
+    },
+    {
+      "action": "add_item",
+      "actor": "patient",
+      "item": 2589,
+      "count": 4
+    },
+    {
+      "action": "cast",
+      "actor": "patient",
+      "spell": 996119
+    },
+    {
+      "action": "assert",
+      "actor": "patient",
+      "metric": "skill_value",
+      "skill": 129,
+      "equals": 1,
+      "label": "No injury means no First Aid skill gain"
+    },
+    {
+      "action": "assert",
+      "actor": "patient",
+      "metric": "item_count",
+      "item": 4470,
+      "equals": 8,
+      "label": "Failed treatment consumes no materials"
+    },
+    {
+      "action": "set_health",
+      "actor": "patient",
+      "value": 60,
+      "maximum": 60
+    },
+    {
+      "action": "cast",
+      "actor": "attacker",
+      "spell": 116,
+      "target": "patient"
+    },
+    {
+      "action": "wait",
+      "ms": 4000
+    },
+    {
+      "action": "assert",
+      "actor": "patient",
+      "metric": "player_setting",
+      "source": "core.coa.needs",
+      "index": 10,
+      "min": 4,
+      "label": "Hostile hit causes a fracture"
+    },
+    {
+      "action": "set_health",
+      "actor": "attacker",
+      "value": 1
+    },
+    {
+      "action": "learn",
+      "actor": "patient",
+      "spell": 116
+    },
+    {
+      "action": "cast",
+      "actor": "patient",
+      "spell": 116,
+      "target": "attacker"
+    },
+    {
+      "action": "wait",
+      "ms": 10000
+    },
+    {
+      "action": "assert",
+      "actor": "patient",
+      "metric": "combat",
+      "equals": 0
+    },
+    {
+      "action": "cast",
+      "actor": "patient",
+      "spell": 996119
+    },
+    {
+      "action": "wait",
+      "ms": 2000
+    },
+    {
+      "action": "assert",
+      "actor": "patient",
+      "metric": "player_setting",
+      "source": "core.coa.needs",
+      "index": 10,
+      "equals": 0,
+      "label": "Splint clears the actual fracture"
+    },
+    {
+      "action": "assert",
+      "actor": "patient",
+      "metric": "skill_value",
+      "skill": 129,
+      "min": 2,
+      "label": "Successful treatment improves First Aid"
+    },
+    {
+      "action": "assert",
+      "actor": "patient",
+      "metric": "item_count",
+      "item": 4470,
+      "equals": 4
+    },
+    {
+      "action": "assert",
+      "actor": "patient",
+      "metric": "item_count",
+      "item": 2589,
+      "equals": 2
+    }
+  ]
+}
+

@@ -1,0 +1,219 @@
+{
+  "schema": 1,
+  "name": "HXC unrestricted gathering retains skill gains",
+  "contract": "With unrestricted gathering enabled, skill-one Mining, Herbalism, Woodcutting and Skinning succeed on higher-tier targets and improve their profession skill.",
+  "timeout_ms": 120000,
+  "location": {
+    "map": 0,
+    "x": -9465,
+    "y": 64,
+    "z": 56,
+    "o": 0
+  },
+  "players": [
+    {
+      "id": "newbie",
+      "race": 1,
+      "class": 1,
+      "level": 20,
+      "spell_hit_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "beast",
+      "owner": "newbie",
+      "entry": 5194,
+      "level": 15,
+      "health": 1,
+      "distance": 2
+    }
+  ],
+  "steps": [
+    {
+      "action": "login_hooks",
+      "actor": "newbie"
+    },
+    {
+      "action": "set_skill",
+      "actor": "newbie",
+      "skill": 186,
+      "value": 1,
+      "maximum": 75
+    },
+    {
+      "action": "summon_gameobject",
+      "actor": "newbie",
+      "entry": 2040,
+      "distance": 2
+    },
+    {
+      "action": "cast",
+      "actor": "newbie",
+      "spell": 2575,
+      "target_gameobject": 2040
+    },
+    {
+      "action": "wait",
+      "ms": 5000
+    },
+    {
+      "action": "assert",
+      "actor": "newbie",
+      "metric": "cast_failure",
+      "spell": 2575,
+      "equals": 0,
+      "within_ms": 6000,
+      "label": "Skill 1 can harvest advanced node 2040"
+    },
+    {
+      "action": "assert",
+      "actor": "newbie",
+      "metric": "skill_value",
+      "skill": 186,
+      "min": 2,
+      "label": "Harvesting still awards skill"
+    },
+    {
+      "action": "close_loot",
+      "actor": "newbie"
+    },
+    {
+      "action": "set_skill",
+      "actor": "newbie",
+      "skill": 182,
+      "value": 1,
+      "maximum": 75
+    },
+    {
+      "action": "summon_gameobject",
+      "actor": "newbie",
+      "entry": 176583,
+      "distance": 2
+    },
+    {
+      "action": "cast",
+      "actor": "newbie",
+      "spell": 2366,
+      "target_gameobject": 176583
+    },
+    {
+      "action": "wait",
+      "ms": 5000
+    },
+    {
+      "action": "assert",
+      "actor": "newbie",
+      "metric": "cast_failure",
+      "spell": 2366,
+      "equals": 0,
+      "within_ms": 6000,
+      "label": "Skill 1 can harvest advanced node 176583"
+    },
+    {
+      "action": "assert",
+      "actor": "newbie",
+      "metric": "skill_value",
+      "skill": 182,
+      "min": 2,
+      "label": "Harvesting still awards skill"
+    },
+    {
+      "action": "close_loot",
+      "actor": "newbie"
+    },
+    {
+      "action": "set_skill",
+      "actor": "newbie",
+      "skill": 732,
+      "value": 1,
+      "maximum": 75
+    },
+    {
+      "action": "summon_gameobject",
+      "actor": "newbie",
+      "entry": 244635,
+      "distance": 2
+    },
+    {
+      "action": "cast",
+      "actor": "newbie",
+      "spell": 13977859,
+      "target_gameobject": 244635
+    },
+    {
+      "action": "wait",
+      "ms": 5000
+    },
+    {
+      "action": "assert",
+      "actor": "newbie",
+      "metric": "cast_failure",
+      "spell": 13977859,
+      "equals": 0,
+      "within_ms": 6000,
+      "label": "Skill 1 can harvest advanced node 244635"
+    },
+    {
+      "action": "assert",
+      "actor": "newbie",
+      "metric": "skill_value",
+      "skill": 732,
+      "min": 2,
+      "label": "Harvesting still awards skill"
+    },
+    {
+      "action": "close_loot",
+      "actor": "newbie"
+    },
+    {
+      "action": "learn",
+      "actor": "newbie",
+      "spell": 116
+    },
+    {
+      "action": "cast",
+      "actor": "newbie",
+      "spell": 116,
+      "target": "beast"
+    },
+    {
+      "action": "assert",
+      "actor": "beast",
+      "metric": "alive",
+      "equals": 0,
+      "within_ms": 10000
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "cast",
+      "actor": "newbie",
+      "spell": 8613,
+      "target": "beast"
+    },
+    {
+      "action": "wait",
+      "ms": 4000
+    },
+    {
+      "action": "assert",
+      "actor": "newbie",
+      "metric": "cast_failure",
+      "spell": 8613,
+      "equals": 0,
+      "within_ms": 5000,
+      "label": "Skill 1 skins a level 15 beast"
+    },
+    {
+      "action": "assert",
+      "actor": "newbie",
+      "metric": "skill_value",
+      "skill": 393,
+      "min": 2,
+      "label": "Skinning still awards skill"
+    }
+  ]
+}

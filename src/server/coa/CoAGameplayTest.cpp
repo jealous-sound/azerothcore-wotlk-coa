@@ -4197,7 +4197,13 @@ private:
                 target = player->GetPet();
                 Require(target != nullptr, "Cast at a pet needs a current pet");
             }
-            if (auto targetItem = step.get_optional<uint32>("target_item"))
+            if (auto gameObject = step.get_optional<uint32>("target_gameobject"))
+            {
+                std::list<GameObject*> objects = OwnedGameObjects(player, *gameObject);
+                Require(objects.size() == 1, "Gathering cast needs exactly one owned gameobject");
+                targets.SetGOTarget(objects.front());
+            }
+            else if (auto targetItem = step.get_optional<uint32>("target_item"))
             {
                 Item* item = player->GetItemByEntry(*targetItem);
                 Require(item != nullptr, "Target item is missing");
@@ -4316,6 +4322,11 @@ private:
                     + std::to_string(player->IsInCombat()) + ", casting "
                     + std::to_string(player->IsNonMeleeSpellCast(false)));
             }
+        }
+        else if (action == "set_player_setting")
+        {
+            player->UpdatePlayerSetting(step.get<std::string>("source"), step.get<uint8>("index"),
+                step.get<uint32>("value"));
         }
         else if (action == "set_skill")
         {

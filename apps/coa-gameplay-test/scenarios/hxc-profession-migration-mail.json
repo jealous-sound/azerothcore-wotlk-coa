@@ -1,0 +1,334 @@
+{
+  "schema": 1,
+  "name": "hxc-profession-migration-mail",
+  "contract": "Existing profession progress survives reconciliation; normal rank requirements remain; every missing starter tool is mailed when bags are full and never granted twice.",
+  "timeout_ms": 120000,
+  "location": {
+    "map": 0,
+    "x": -9465,
+    "y": 64,
+    "z": 56,
+    "o": 0
+  },
+  "players": [
+    {
+      "id": "veteran",
+      "race": 1,
+      "class": 1,
+      "level": 20
+    },
+    {
+      "id": "full",
+      "race": 1,
+      "class": 1,
+      "level": 1
+    }
+  ],
+  "steps": [
+    {
+      "action": "learn",
+      "actor": "veteran",
+      "spell": 2575
+    },
+    {
+      "action": "set_skill",
+      "actor": "veteran",
+      "skill": 186,
+      "value": 40,
+      "maximum": 75
+    },
+    {
+      "action": "login_hooks",
+      "actor": "veteran"
+    },
+    {
+      "action": "assert",
+      "actor": "veteran",
+      "metric": "skill_value",
+      "skill": 186,
+      "equals": 40,
+      "label": "Existing progress is retained"
+    },
+    {
+      "action": "set_skill",
+      "actor": "veteran",
+      "skill": 186,
+      "value": 74,
+      "maximum": 75
+    },
+    {
+      "action": "gather_skill",
+      "actor": "veteran",
+      "skill": 186,
+      "required": 75
+    },
+    {
+      "action": "assert",
+      "actor": "veteran",
+      "metric": "skill_maximum",
+      "skill": 186,
+      "equals": 150,
+      "label": "Eligible profession rank upgrades automatically"
+    },
+    {
+      "action": "destroy_item",
+      "actor": "full",
+      "item": 5956
+    },
+    {
+      "action": "set_player_setting",
+      "actor": "full",
+      "source": "core.hxc.profession.tools",
+      "index": 0,
+      "value": 0
+    },
+    {
+      "action": "destroy_item",
+      "actor": "full",
+      "item": 20815
+    },
+    {
+      "action": "set_player_setting",
+      "actor": "full",
+      "source": "core.hxc.profession.tools",
+      "index": 1,
+      "value": 0
+    },
+    {
+      "action": "destroy_item",
+      "actor": "full",
+      "item": 39505
+    },
+    {
+      "action": "set_player_setting",
+      "actor": "full",
+      "source": "core.hxc.profession.tools",
+      "index": 2,
+      "value": 0
+    },
+    {
+      "action": "destroy_item",
+      "actor": "full",
+      "item": 2901
+    },
+    {
+      "action": "set_player_setting",
+      "actor": "full",
+      "source": "core.hxc.profession.tools",
+      "index": 3,
+      "value": 0
+    },
+    {
+      "action": "destroy_item",
+      "actor": "full",
+      "item": 7005
+    },
+    {
+      "action": "set_player_setting",
+      "actor": "full",
+      "source": "core.hxc.profession.tools",
+      "index": 4,
+      "value": 0
+    },
+    {
+      "action": "destroy_item",
+      "actor": "full",
+      "item": 6256
+    },
+    {
+      "action": "set_player_setting",
+      "actor": "full",
+      "source": "core.hxc.profession.tools",
+      "index": 5,
+      "value": 0
+    },
+    {
+      "action": "destroy_item",
+      "actor": "full",
+      "item": 6954
+    },
+    {
+      "action": "set_player_setting",
+      "actor": "full",
+      "source": "core.hxc.profession.tools",
+      "index": 6,
+      "value": 0
+    },
+    {
+      "action": "destroy_item",
+      "actor": "full",
+      "item": 6218
+    },
+    {
+      "action": "set_player_setting",
+      "actor": "full",
+      "source": "core.hxc.profession.tools",
+      "index": 7,
+      "value": 0
+    },
+    {
+      "action": "fill_bags",
+      "actor": "full"
+    },
+    {
+      "action": "assert",
+      "actor": "full",
+      "metric": "free_inventory_slots",
+      "equals": 0
+    },
+    {
+      "action": "login_hooks",
+      "actor": "full"
+    },
+    {
+      "action": "assert",
+      "actor": "full",
+      "metric": "mail_has_item",
+      "item": 5956,
+      "equals": 1,
+      "label": "Overflow tool 5956 arrives by mail"
+    },
+    {
+      "action": "assert",
+      "actor": "full",
+      "metric": "mail_has_item",
+      "item": 20815,
+      "equals": 1,
+      "label": "Overflow tool 20815 arrives by mail"
+    },
+    {
+      "action": "assert",
+      "actor": "full",
+      "metric": "mail_has_item",
+      "item": 39505,
+      "equals": 1,
+      "label": "Overflow tool 39505 arrives by mail"
+    },
+    {
+      "action": "assert",
+      "actor": "full",
+      "metric": "mail_has_item",
+      "item": 2901,
+      "equals": 1,
+      "label": "Overflow tool 2901 arrives by mail"
+    },
+    {
+      "action": "assert",
+      "actor": "full",
+      "metric": "mail_has_item",
+      "item": 7005,
+      "equals": 1,
+      "label": "Overflow tool 7005 arrives by mail"
+    },
+    {
+      "action": "assert",
+      "actor": "full",
+      "metric": "mail_has_item",
+      "item": 6256,
+      "equals": 1,
+      "label": "Overflow tool 6256 arrives by mail"
+    },
+    {
+      "action": "assert",
+      "actor": "full",
+      "metric": "mail_has_item",
+      "item": 6954,
+      "equals": 1,
+      "label": "Overflow tool 6954 arrives by mail"
+    },
+    {
+      "action": "assert",
+      "actor": "full",
+      "metric": "mail_has_item",
+      "item": 6218,
+      "equals": 1,
+      "label": "Overflow tool 6218 arrives by mail"
+    },
+    {
+      "action": "snapshot",
+      "actor": "full",
+      "metric": "mail_count",
+      "save_as": "first_mail"
+    },
+    {
+      "action": "login_hooks",
+      "actor": "full"
+    },
+    {
+      "action": "assert",
+      "actor": "full",
+      "metric": "mail_count",
+      "relative_to": "first_mail",
+      "equals": 0,
+      "label": "Repeated login does not duplicate mailed tools"
+    },
+    {
+      "action": "set_player_setting",
+      "actor": "full",
+      "source": "core.hxc.profession.tools",
+      "index": 0,
+      "value": 0
+    },
+    {
+      "action": "set_player_setting",
+      "actor": "full",
+      "source": "core.hxc.profession.tools",
+      "index": 1,
+      "value": 0
+    },
+    {
+      "action": "set_player_setting",
+      "actor": "full",
+      "source": "core.hxc.profession.tools",
+      "index": 2,
+      "value": 0
+    },
+    {
+      "action": "set_player_setting",
+      "actor": "full",
+      "source": "core.hxc.profession.tools",
+      "index": 3,
+      "value": 0
+    },
+    {
+      "action": "set_player_setting",
+      "actor": "full",
+      "source": "core.hxc.profession.tools",
+      "index": 4,
+      "value": 0
+    },
+    {
+      "action": "set_player_setting",
+      "actor": "full",
+      "source": "core.hxc.profession.tools",
+      "index": 5,
+      "value": 0
+    },
+    {
+      "action": "set_player_setting",
+      "actor": "full",
+      "source": "core.hxc.profession.tools",
+      "index": 6,
+      "value": 0
+    },
+    {
+      "action": "set_player_setting",
+      "actor": "full",
+      "source": "core.hxc.profession.tools",
+      "index": 7,
+      "value": 0
+    },
+    {
+      "action": "login_hooks",
+      "actor": "full"
+    },
+    {
+      "action": "assert",
+      "actor": "full",
+      "metric": "mail_count",
+      "relative_to": "first_mail",
+      "equals": 0,
+      "label": "Existing mailed tools prevent duplicate grants even without saved markers"
+    }
+  ]
+}

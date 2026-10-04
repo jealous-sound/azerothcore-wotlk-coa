@@ -152,7 +152,7 @@ ACTIONS = {
     'set_aura': ({'actor', 'spell', 'stacks'}, {'actor', 'spell', 'stacks', 'pet', 'owned_entry'}),
     'cancel_aura': ({'actor', 'spell'}, {'actor', 'spell'}),
     'cancel_mount': ({'actor'}, {'actor'}),
-    'cast': ({'actor', 'spell'}, {'actor', 'spell', 'target', 'destination', 'target_pet', 'target_item'}),
+    'cast': ({'actor', 'spell'}, {'actor', 'spell', 'target', 'destination', 'target_pet', 'target_item', 'target_gameobject'}),
     'attack': ({'actor', 'target'}, {'actor', 'target', 'pet'}),
     'pvp': ({'actor', 'enabled'}, {'actor', 'enabled'}),
     'group': ({'actor', 'target'}, {'actor', 'target', 'loot_method'}),
@@ -204,6 +204,7 @@ ACTIONS = {
     'loot_gameobject': ({'actor', 'entry'}, {'actor', 'entry'}),
     'mapless_loot_hook': ({'actor', 'store'}, {'actor', 'store'}),
     'set_skill': ({'actor', 'skill', 'value', 'maximum'}, {'actor', 'skill', 'value', 'maximum'}),
+    'set_player_setting': ({'actor', 'source', 'index', 'value'}, {'actor', 'source', 'index', 'value'}),
     'gather_skill': ({'actor', 'skill', 'required'}, {'actor', 'skill', 'required'}),
     'set_xp_enabled': ({'actor', 'enabled'}, {'actor', 'enabled'}),
     'set_level': ({'actor', 'value'}, {'actor', 'value'}),
@@ -367,7 +368,7 @@ def validate(scenario):
                 if key in step:
                     number(step[key], f'{where}.{key}', -17000, 17000)
         for key in ('spell', 'item', 'talent', 'count', 'entry', 'quest', 'id', 'challenge', 'level',
-                    'target_item', 'achievement', 'title'):
+                    'target_item', 'target_gameobject', 'achievement', 'title'):
             if key in step:
                 number(step[key], f'{where}.{key}', 1, 2**31 - 1, True)
         for key, maximum in (('rank', 4), ('effect', 2), ('slot', 22),('power', 6), ('choice', 5),
@@ -501,6 +502,10 @@ def validate(scenario):
                     number(value, f'{where}.fields[{index}]', 0, maximum, True)
         if 'value' in step:
             number(step['value'], f'{where}.value', 1 if action == 'set_health' else 0, 2**31 - 1, True)
+        if action == 'set_player_setting':
+            require(isinstance(step['source'], str) and step['source'].strip(), f'{where}: setting needs a source')
+            number(step['index'], f'{where}.index', 0, 255, True)
+            number(step['value'], f'{where}.value', 0, 2**32 - 1, True)
         if action == 'set_health' and 'maximum' in step:
             require(step['actor'] in player_ids, f'{where}: maximum health fixture needs a player or their pet')
             number(step['maximum'], f'{where}.maximum', 1, 2**31 - 1, True)

@@ -16,6 +16,7 @@
  */
 
 #include "Spell.h"
+#include "AscensionProfessionPolicy.h"
 #include "ArenaSpectator.h"
 #include "AscensionPooledVitality.h"
 #include "BattlefieldMgr.h"
@@ -6400,7 +6401,7 @@ SpellCastResult Spell::CheckCast(bool strict, uint32* /*param1*/, uint32* /*para
                     int32 skillValue = m_caster->ToPlayer()->GetSkillValue(skill);
                     int32 TargetLevel = creature->GetLootSkillLevelFor(m_caster->ToPlayer());
                     int32 ReqValue = (skillValue < 100 ? (TargetLevel - 10) * 10 : TargetLevel * 5);
-                    if (ReqValue > skillValue)
+                    if (ReqValue > skillValue && !HxcProfessions::AllowGathering(m_caster->ToPlayer(), skill))
                         return SPELL_FAILED_LOW_CASTLEVEL;
 
                     break;
@@ -8627,7 +8628,8 @@ SpellCastResult Spell::CanOpenLock(uint32 effIndex, uint32 lockId, SkillType& sk
                             skillValue += m_spellInfo->Effects[effIndex].CalcValue();
                         }
 
-                        if (skillValue < reqSkillValue)
+                        if (skillValue < reqSkillValue &&
+                            !HxcProfessions::AllowGathering(m_caster->ToPlayer(), skillId))
                             return SPELL_FAILED_LOW_CASTLEVEL;
                     }
 

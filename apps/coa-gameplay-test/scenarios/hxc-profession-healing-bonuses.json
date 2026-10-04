@@ -1,0 +1,204 @@
+{
+  "schema": 1,
+  "name": "hxc-profession-healing-bonuses",
+  "contract": "First Aid bandages gain twenty percent effective healing at skill 450; Alchemy does not boost bandages and neither profession boosts ordinary healing. Engineering adds one percentage point of both crit types at maximum skill.",
+  "timeout_ms": 120000,
+  "location": {
+    "map": 0,
+    "x": -9465,
+    "y": 64,
+    "z": 56,
+    "o": 0
+  },
+  "players": [
+    {
+      "id": "control",
+      "race": 1,
+      "class": 1,
+      "level": 80,
+      "allow_regeneration": false
+    },
+    {
+      "id": "medic",
+      "race": 1,
+      "class": 1,
+      "level": 80,
+      "allow_regeneration": false
+    }
+  ],
+  "steps": [
+    {
+      "action": "login_hooks",
+      "actor": "control"
+    },
+    {
+      "action": "set_skill",
+      "actor": "control",
+      "skill": 129,
+      "value": 1,
+      "maximum": 450
+    },
+    {
+      "action": "set_skill",
+      "actor": "control",
+      "skill": 171,
+      "value": 450,
+      "maximum": 450
+    },
+    {
+      "action": "set_health",
+      "actor": "control",
+      "value": 100,
+      "maximum": 10000
+    },
+    {
+      "action": "add_item",
+      "actor": "control",
+      "item": 1251
+    },
+    {
+      "action": "use_item",
+      "actor": "control",
+      "item": 1251,
+      "spell": 746
+    },
+    {
+      "action": "login_hooks",
+      "actor": "medic"
+    },
+    {
+      "action": "set_skill",
+      "actor": "medic",
+      "skill": 129,
+      "value": 450,
+      "maximum": 450
+    },
+    {
+      "action": "set_skill",
+      "actor": "medic",
+      "skill": 171,
+      "value": 450,
+      "maximum": 450
+    },
+    {
+      "action": "set_health",
+      "actor": "medic",
+      "value": 100,
+      "maximum": 10000
+    },
+    {
+      "action": "add_item",
+      "actor": "medic",
+      "item": 1251
+    },
+    {
+      "action": "use_item",
+      "actor": "medic",
+      "item": 1251,
+      "spell": 746
+    },
+    {
+      "action": "wait",
+      "ms": 9000
+    },
+    {
+      "action": "snapshot",
+      "actor": "control",
+      "metric": "spell_heal_total",
+      "spell": 746,
+      "save_as": "bandage_control"
+    },
+    {
+      "action": "assert",
+      "actor": "medic",
+      "metric": "spell_heal_total",
+      "spell": 746,
+      "ratio_to": "bandage_control",
+      "min": 1.17,
+      "max": 1.22,
+      "label": "Only trained First Aid increases bandages by about twenty percent"
+    },
+    {
+      "action": "assert",
+      "actor": "medic",
+      "metric": "health",
+      "equals": 178,
+      "label": "Bandage bonus restores actual health before the healing log"
+    },
+    {
+      "action": "learn",
+      "actor": "control",
+      "spell": 2050
+    },
+    {
+      "action": "cast",
+      "actor": "control",
+      "spell": 2050
+    },
+    {
+      "action": "wait",
+      "ms": 3000
+    },
+    {
+      "action": "assert",
+      "actor": "control",
+      "metric": "spell_heal_total",
+      "spell": 2050,
+      "min": 32,
+      "max": 39,
+      "label": "Ordinary healing is not amplified by First Aid or Alchemy"
+    },
+    {
+      "action": "learn",
+      "actor": "medic",
+      "spell": 2050
+    },
+    {
+      "action": "cast",
+      "actor": "medic",
+      "spell": 2050
+    },
+    {
+      "action": "wait",
+      "ms": 3000
+    },
+    {
+      "action": "assert",
+      "actor": "medic",
+      "metric": "spell_heal_total",
+      "spell": 2050,
+      "min": 32,
+      "max": 39,
+      "label": "Ordinary healing is not amplified by First Aid or Alchemy"
+    },
+    {
+      "action": "set_skill",
+      "actor": "medic",
+      "skill": 202,
+      "value": 450,
+      "maximum": 450
+    },
+    {
+      "action": "wait",
+      "ms": 3000
+    },
+    {
+      "action": "assert",
+      "actor": "medic",
+      "metric": "aura_amount",
+      "spell": 996152,
+      "effect": 0,
+      "equals": 1,
+      "label": "Engineering physical crit reaches one percentage point"
+    },
+    {
+      "action": "assert",
+      "actor": "medic",
+      "metric": "aura_amount",
+      "spell": 996152,
+      "effect": 1,
+      "equals": 1,
+      "label": "Engineering spell crit reaches one percentage point"
+    }
+  ]
+}

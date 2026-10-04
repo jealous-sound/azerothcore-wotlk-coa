@@ -9,6 +9,7 @@
 #include "Log.h"
 #include "Map.h"
 #include "ObjectAccessor.h"
+#include "ObjectMgr.h"
 #include "NeedsChallengeBridge.h"
 #include "Player.h"
 #include "ScriptMgr.h"
@@ -29,6 +30,7 @@
 #include <mutex>
 #include <sstream>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace
 {
@@ -51,6 +53,20 @@ constexpr uint32 InjuryAura = 996115;
 constexpr uint32 SplintAbility = 996119;
 constexpr uint32 ToolRecipe = 996120;
 constexpr uint32 ProfessionAura = 996140;
+constexpr uint32 SurvivalistSkill = 9200;
+constexpr uint32 ScissorsRecipe = 996136;
+constexpr uint32 ScissorsUse = 996137;
+std::unordered_set<uint32> BandageSpells;
+std::unordered_set<uint32> PotionSpells;
+
+uint32 RecipeSkill(uint32 spell)
+{
+    if (spell >= CampAbility && spell < PackAbility)
+        return std::array<uint32, 3>{ 1, 75, 150 }[spell - CampAbility];
+    if (spell >= ToolRecipe && spell < ToolRecipe + 8)
+        return std::array<uint32, 8>{ 1, 1, 1, 1, 100, 150, 50, 1 }[spell - ToolRecipe];
+    return spell == ScissorsRecipe ? 75 : 0;
+}
 
 struct Options
 {
@@ -176,10 +192,10 @@ float SkillScale(Player const* player, uint32 skill)
 
 void RefreshProfessions(Player* player)
 {
-    static std::array<uint32, 12> const skills = { SKILL_MINING, SKILL_BLACKSMITHING, SKILL_SKINNING,
+    static std::array<uint32, 13> const skills = { SKILL_MINING, SKILL_BLACKSMITHING, SKILL_SKINNING,
         SKILL_INSCRIPTION, SKILL_TAILORING, SKILL_JEWELCRAFTING, SKILL_ENCHANTING, SKILL_LEATHERWORKING,
-        SKILL_HERBALISM, SKILL_ALCHEMY, SKILL_FIRST_AID, SKILL_FISHING };
-    static std::array<float, 12> const bonuses = { 8, 5, 3, 3, 20, 3, 10, 8, 5, 15, 20, 50 };
+        SKILL_HERBALISM, SKILL_ALCHEMY, SKILL_FIRST_AID, SKILL_FISHING, SKILL_ENGINEERING };
+    static std::array<float, 13> const bonuses = { 4, 3, 2, 2, 20, 2, 10, 5, 5, 15, 20, 50, 1 };
     for (uint32 index = 0; index < skills.size(); ++index)
     {
         float scale = SkillScale(player, skills[index]);
@@ -242,21 +258,27 @@ void Unlock(Player* player)
 {
     if (!Affects(player))
         return;
+    if (!player->HasSkill(SurvivalistSkill))
+        player->SetSkill(SurvivalistSkill, 1, 1, 300);
     player->learnSpell(SprintAbility);
-    player->learnSpell(SplintAbility);
+    if (player->HasSkill(SKILL_FIRST_AID))
+        player->learnSpell(SplintAbility);
     if (Config.tools)
+    {
         for (uint32 index = 0; index < 8; ++index)
-            if (player->GetLevel() >= std::array<uint32, 8>{ 1, 1, 10, 1, 30, 40, 15, 1 }[index])
+            if (player->GetPureSkillValue(SurvivalistSkill) >= RecipeSkill(ToolRecipe + index))
                 player->learnSpell(ToolRecipe + index);
+        if (player->GetPureSkillValue(SurvivalistSkill) >= RecipeSkill(ScissorsRecipe))
+            player->learnSpell(ScissorsRecipe);
+    }
     if (player->GetLevel() >= 30)
         player->learnSpell(DodgeAbility);
     if (player->GetLevel() >= 60)
         player->learnSpell(WindAbility);
     for (uint32 tier = 0; tier < 3; ++tier)
-        if (player->GetLevel() >= std::array<uint32, 3>{ 15, 30, 50 }[tier])
+        if (player->GetPureSkillValue(SurvivalistSkill) >= RecipeSkill(CampAbility + tier))
             player->learnSpell(CampAbility + tier);
-    if (player->GetLevel() >= 15)
-        player->learnSpell(PackAbility);
+    player->learnSpell(PackAbility);
 }
 
 void PackCamp(Player* player)
@@ -315,7 +337,7 @@ void PlaceCamp(Player* player, State& state, uint32 tier)
         ChatHandler(player->GetSession()).SendSysMessage("Place camps on dry land outside combat and instances.");
         return;
     }
-    if (tier > 2 || player->GetLevel() < std::array<uint32, 3>{ 15, 30, 50 }[tier] || state.campReady > now)
+    if (tier > 2 || player->GetPureSkillValue(SurvivalistSkill) < RecipeSkill(CampAbility + tier) || state.campReady > now)
         return;
     uint32 leather = tier == 1 ? 2318 : 4234;
     if (!player->HasItemCount(4470, 2, false) || (tier && !player->HasItemCount(leather, 4, false)))
@@ -357,6 +379,8 @@ void PlaceCamp(Player* player, State& state, uint32 tier)
         camp.tent = tent->GetGUID();
     Camps[player->GetGUID().GetCounter()] = camp;
     state.campReady = now + 60;
+    player->UpdateCraftSkill(CampAbility + tier);
+    Unlock(player);
     Save(player, state);
     ChatHandler(player->GetSession()).SendSysMessage("Camp placed. Sit nearby to recover and gain rested experience.");
 }
@@ -597,18 +621,30 @@ public:
                 SpellsReady = false;
                 LOG_ERROR("module.coa_needs", "Missing camp spell {}; module disabled", id);
             }
-        for (uint32 id = WeatherAura; id <= 996135; ++id)
+        for (uint32 id = WeatherAura; id <= ScissorsUse; ++id)
             if (!sSpellMgr->GetSpellInfo(id))
             {
                 SpellsReady = false;
                 LOG_ERROR("module.coa_needs", "Missing weather/injury spell {}; module disabled", id);
             }
-        for (uint32 id = ProfessionAura; id <= ProfessionAura + 11; ++id)
+        for (uint32 id = ProfessionAura; id <= ProfessionAura + 12; ++id)
             if (!sSpellMgr->GetSpellInfo(id))
             {
                 SpellsReady = false;
                 LOG_ERROR("module.coa_needs", "Missing profession spell {}; module disabled", id);
             }
+        BandageSpells.clear();
+        PotionSpells.clear();
+        for (auto const& [entry, item] : *sObjectMgr->GetItemTemplateStore())
+            if (item.Class == ITEM_CLASS_CONSUMABLE)
+                for (auto const& itemSpell : item.Spells)
+                    if (itemSpell.SpellId > 0)
+                    {
+                        if (item.SubClass == ITEM_SUBCLASS_BANDAGE)
+                            BandageSpells.insert(itemSpell.SpellId);
+                        else if (item.SubClass == ITEM_SUBCLASS_POTION)
+                            PotionSpells.insert(itemSpell.SpellId);
+                    }
         LOG_INFO("module.coa_needs", "Hunger, hydration and vigor: enabled={}, spells ready={}, include bots={}",
             Config.enabled, SpellsReady, Config.bots);
     }
@@ -619,7 +655,7 @@ class NeedsPlayer : public PlayerScript
 public:
     NeedsPlayer() : PlayerScript("CoANeedsPlayer", { PLAYERHOOK_ON_LOGIN, PLAYERHOOK_ON_BEFORE_LOGOUT,
         PLAYERHOOK_ON_SAVE, PLAYERHOOK_ON_UPDATE, PLAYERHOOK_ON_SPELL_CAST, PLAYERHOOK_ON_LEVEL_CHANGED,
-        PLAYERHOOK_ON_PLAYER_ENTER_COMBAT, PLAYERHOOK_CAN_PLAYER_USE_PRIVATE_CHAT }) { }
+        PLAYERHOOK_ON_PLAYER_ENTER_COMBAT, PLAYERHOOK_CAN_PLAYER_USE_PRIVATE_CHAT, PLAYERHOOK_ON_UPDATE_SKILL, PLAYERHOOK_ON_SET_SKILL }) { }
 
     void OnPlayerLogin(Player* player) override
     {
@@ -660,6 +696,21 @@ public:
     {
         std::lock_guard<std::recursive_mutex> lock(Mutex);
         Unlock(player);
+    }
+
+    void OnPlayerUpdateSkill(Player* player, uint32 skill, uint32, uint32, uint32, uint32) override
+    {
+        if (skill == SurvivalistSkill || skill == SKILL_FIRST_AID)
+        {
+            std::lock_guard<std::recursive_mutex> lock(Mutex);
+            Unlock(player);
+        }
+    }
+
+    void OnPlayerSetSkill(Player* player, uint32 skill, uint32 value, uint32 maximum, uint32 step,
+        uint32 newValue) override
+    {
+        OnPlayerUpdateSkill(player, skill, value, maximum, step, newValue);
     }
 
     void OnPlayerSave(Player* player) override
@@ -725,6 +776,7 @@ public:
                 player->DestroyItemCount(2589, 2, true);
                 ChangeInjury(player, state, (state.injuries & 4u) ? 2 : 3, false);
                 RefreshInjuries(player, state);
+                player->UpdateCraftSkill(SplintAbility);
             }
             Send(player, state);
             return;
@@ -913,7 +965,7 @@ public:
         }
         else if (alive && steady - state.lastSpend >= 1500)
         {
-            float regen = Config.regen + 4.0f * player->GetSkillValue(SKILL_ENGINEERING) / 450.0f;
+            float regen = Config.regen;
             if (Config.professions)
                 regen *= 1.0f + 0.05f * SkillScale(player, SKILL_HERBALISM);
             for (uint32 index = 0; index < 3; ++index)
@@ -979,15 +1031,21 @@ class NeedsUnit : public UnitScript
 {
 public:
     NeedsUnit() : UnitScript("CoANeedsUnit", true,
-        { UNITHOOK_ON_DAMAGE, UNITHOOK_ON_HEAL, UNITHOOK_ON_AURA_APPLY, UNITHOOK_ON_AURA_REMOVE }) { }
+        { UNITHOOK_ON_DAMAGE, UNITHOOK_ON_BEFORE_HEAL_ABSORB, UNITHOOK_ON_AURA_APPLY, UNITHOOK_ON_AURA_REMOVE }) { }
 
-    void OnHeal(Unit* healer, Unit*, uint32& gain) override
+    void OnBeforeHealAbsorb(HealInfo& heal) override
     {
         std::lock_guard<std::recursive_mutex> lock(Mutex);
-        Player* player = healer ? healer->ToPlayer() : nullptr;
-        if (Config.professions && Affects(player) && gain)
-            gain = uint32(gain * (1.0f + 0.2f * SkillScale(player, SKILL_FIRST_AID) +
-                0.15f * SkillScale(player, SKILL_ALCHEMY)));
+        Player* player = heal.GetHealer() ? heal.GetHealer()->ToPlayer() : nullptr;
+        SpellInfo const* info = heal.GetSpellInfo();
+        if (!Config.professions || !Affects(player) || !info || !heal.GetHeal())
+            return;
+        float bonus = 0.0f;
+        if (BandageSpells.count(info->Id))
+            bonus = 0.2f * SkillScale(player, SKILL_FIRST_AID);
+        else if (PotionSpells.count(info->Id))
+            bonus = 0.15f * SkillScale(player, SKILL_ALCHEMY);
+        heal.SetHeal(uint32(heal.GetHeal() * (1.0f + bonus)));
     }
 
     void OnAuraApply(Unit* unit, Aura* aura) override
@@ -1071,7 +1129,7 @@ public:
         float modifier = 1.0f;
         if (Config.professions && victim && victim->IsCreature() &&
             victim->ToCreature()->GetCreatureTemplate()->type == CREATURE_TYPE_BEAST)
-            modifier *= 1.0f + 0.08f * SkillScale(player, SKILL_LEATHERWORKING);
+            modifier *= 1.0f + 0.05f * SkillScale(player, SKILL_LEATHERWORKING);
         if (!state.delegated)
         {
             if (state.displayFood <= 35.0f)
@@ -1094,6 +1152,25 @@ public:
     }
 };
 
+class NeedsRecipeGate : public AllSpellScript
+{
+public:
+    NeedsRecipeGate() : AllSpellScript("CoANeedsRecipeGate", { ALLSPELLHOOK_ON_SPELL_CHECK_CAST }) { }
+
+    void OnSpellCheckCast(Spell* spell, bool, SpellCastResult& result) override
+    {
+        Player* player = spell->GetCaster() ? spell->GetCaster()->ToPlayer() : nullptr;
+        if (!Affects(player) || result != SPELL_CAST_OK)
+            return;
+        uint32 id = spell->GetSpellInfo()->Id;
+        uint32 requirement = RecipeSkill(id);
+        if (requirement && player->GetPureSkillValue(SurvivalistSkill) < requirement)
+            result = SPELL_FAILED_LOW_CASTLEVEL;
+        else if (id == SplintAbility && !player->HasSkill(SKILL_FIRST_AID))
+            result = SPELL_FAILED_LOW_CASTLEVEL;
+    }
+};
+
 class NeedsTool : public ItemScript
 {
 public:
@@ -1112,6 +1189,22 @@ public:
             return true;
         }
         uint32 entry = item->GetEntry();
+        if (entry == 996210)
+        {
+            if (!player->IsOutdoors() || map->Instanceable())
+            {
+                ChatHandler(player->GetSession()).SendSysMessage("Use Barber Scissors outdoors outside instances.");
+                return true;
+            }
+            float orientation = player->GetOrientation();
+            float x = player->GetPositionX() + std::cos(orientation) * 2.5f;
+            float y = player->GetPositionY() + std::sin(orientation) * 2.5f;
+            float z = map->GetHeight(player->GetPhaseMask(), x, y, player->GetPositionZ());
+            if (z > INVALID_HEIGHT)
+                player->SummonGameObject(190683, x, y, z, orientation, 0, 0,
+                    std::sin(orientation * 0.5f), std::cos(orientation * 0.5f), 60, false, GO_SUMMON_TIMED_DESPAWN);
+            return true;
+        }
         if (entry == 996200 || entry == 996202)
         {
             bool valid = player->IsInWater();
@@ -1198,4 +1291,5 @@ void AddSC_coa_needs()
     new NeedsPlayer();
     new NeedsUnit();
     new NeedsTool();
+    new NeedsRecipeGate();
 }

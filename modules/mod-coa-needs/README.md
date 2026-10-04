@@ -10,7 +10,7 @@ The complete Survival realm layer is not installed.
   55/65/75 hydration according to item tier. Existing Nourishment buffs remain independent.
 - Vigor starts at 100; maximum capacity falls with hunger and hydration, down to 25 when both
   are empty. Recovery is 8 per second after a 1.5-second spending delay, 25% in combat,
-  and doubled when seated outside combat. Engineering grants up to 4 extra recovery per second.
+  and doubled when seated outside combat. Engineering improves critical strike chance with trained skill.
 - Entering combat costs 8 vigor with a 10-second grace period. Dealing damage costs 3 vigor
   at most once per second. Moving in water costs 4 vigor per second.
 - Hunger at or below 35 reduces damage by 15%; hydration at or below 30 reduces it by 10%.
@@ -49,8 +49,8 @@ launcher validation rules or the Fresh/Survival payload inventories.
 
 ## Camps
 
-Campfire unlocks at level 15 and costs 2 Simple Wood. Shelter unlocks at 30 and also costs
-4 Light Leather; Hearthstead unlocks at 50 and also costs 4 Heavy Leather. The existing CoA
+Campfire unlocks at Survivalist skill 1 and costs 2 Simple Wood. Shelter unlocks at skill 75 and also costs
+4 Light Leather; Hearthstead unlocks at skill 150 and also costs 4 Heavy Leather. The existing CoA
 item 190120 is Branding Rod, so the Survival realm's Tinder reagent cannot be reused.
 Native placement and pack-up abilities appear as buttons in the needs panel and in a dedicated
 Survivalist spellbook section (SkillLine 9200, category 14), together with the vigor abilities.
@@ -100,9 +100,10 @@ Dead characters and battlegrounds suppress injury auras while retaining their fl
 
 A consumed bandage must reach natural aura expiry to treat a wound; interrupted channels
 do not count. A consumed healing potion or poison dispel treats venom. Field Splint is a
-native Survivalist ability learned at level 1: outside combat, standing still and unmounted,
+native First Aid ability learned at skill 1: outside combat, standing still and unmounted,
 consume 4 existing Simple Wood and 2 Linen Cloth to treat one fracture, leg first.
-No Survival-only item IDs or Woodworking profession are transplanted into CoA.
+Successful fracture treatment can improve First Aid through skill 100.
+The native CoA Woodcutting and Woodworking professions are retained.
 Custom spells 996110-996119 cover weather, injuries and Field Splint. The DBC builder
 normalizes effect dice and strips unintended secondary effects from inherited templates.
 
@@ -114,34 +115,41 @@ are cached while their item stays unchanged and the hidden panel skips timer pai
 
 ## Survival tools and professions
 
-Eight material-consuming native crafting spells (996120-996127) appear in Survivalist:
+Survivalist skill 9200 starts at 1 and progresses to 300 through crafting. Essential recipes are available
+at skill 1: flask, rain bucket, field repair kit, fishing float and fishing pole. Personal Raft unlocks at
+50, Barber Scissors at 75, War Drum at 100 and Travel Drum at 150. Camp placement also awards diminishing
+Survivalist skill; Shelter unlocks at 75 and Hearthstead at 150. Recipe access is checked when casting,
+including spells retained from the earlier character-level unlocks. Existing regular recipes and skill
+progress remain intact.
 
-- Flask: level 1, 1 Empty Vial and 2 Light Leather. Use the empty flask standing in water.
-- Rain bucket: level 1, 4 Simple Wood. Use outdoors in actual rain/thunder, outside instances.
-- Repair kit: level 10, 2 Copper Bars and 2 Linen Cloth. Repairs the equipped item with the
-  largest missing durability outside combat; consumes one kit only when needed.
-- Fishing float: level 1, 1 Simple Wood and 1 Coarse Thread. Native Shiny Bauble pole enchant.
-- War drum: level 30, 8 Simple Wood and 4 Medium Leather. 50 native charges; party AP +60,
-  spell power +30 for 30 seconds within 8 yards.
-- Travel drum: level 40, 8 Simple Wood and 4 Heavy Leather. 50 native charges; party speed
-  +15% for 30 seconds within 8 yards. Drums share the standard 2-minute category 24 cooldown.
-- Raft: level 15, 12 Simple Wood, 4 Linen Cloth and 4 Coarse Thread. Face open water while
-  stationary outdoors outside instances. Consumed only on successful spawn; lasts 30 minutes.
-  This is a stationary rowboat object, not a moving vehicle.
-- Fishing pole: level 1, 4 Simple Wood and 2 Coarse Thread; equipping requires trained Fishing.
+Barber Scissors consume 2 Copper Bars, 2 Forestwood Planks and 2 Coarse Thread when crafted. The reusable
+item places a standard barber chair outdoors outside combat and instances for one minute. Other tool
+recipes retain their existing CoA materials and behavior. All custom field items are usable at character
+level 1. Field Splint belongs to First Aid and consumes 4 Simple Wood and 2 Linen Cloth only after
+successfully treating a fracture, leg first.
 
-Custom items 996200-996209 have matching client/server Item.dbc rows; raft GO is 996200.
-Filled flask/bucket native drinks (996132-996133) restore hydration through the existing
-needs or challenge drink handling and create the empty container. Keep a spare bag slot;
-native spell checks prevent consuming a drink if its returned container cannot be stored.
-Item scripts gate alive/unmounted/outside combat and use inventory-only reagent counts.
+With CoANeeds.Professions.AllAtStart enabled, human characters receive missing professions from the
+Book of Artisans rank data on login. Rank upgrades are granted when normal trainer skill, level and
+expansion requirements are met. The primary profession limit becomes 32, enough for every native trade.
+Bushcraft is available to every race/class through the paired server/client DBC update. Survivalist is
+granted independently at 1/300. Bots retain their existing profession policy.
 
-Profession effects scale with unmodified trained skill / 450, capped at 1. Native auras
-996140-996151 refresh once per second, updating amounts only when changed, and remove
-when untrained, dead or disabled. Full benefits: Mining health/armor +8%; Blacksmithing
-melee/ranged AP +5%; Skinning physical/spell crit +3%; Inscription attack/cast haste +3%;
-Tailoring spell damage/healing +20; Jewelcrafting attributes +3%; Enchanting mana +10/5sec;
-Leatherworking beast damage +8%; Herbalism vigor recovery +5%; Alchemy healing +15%;
-First Aid healing +20%; Fishing swimming vigor cost -50%. Existing Cooking/Engineering
-hooks remain. Professions must be trained normally; no profession slots or skills are granted.
-Configuration switches are CoANeeds.Tools.Enable and CoANeeds.Professions.Enable.
+Missing starter tools are granted once; overflow is mailed and persistent character settings prevent
+repeated grants. Tools include the mining pick, skinning knife, fishing pole, lumber axe, blacksmith
+hammer, jeweler's kit, inking set and runed copper rod.
+
+CoANeeds.Professions.UnrestrictedGathering allows trained human Mining, Herbalism, Skinning and
+Woodcutting to harvest every eligible tier at any skill. Original difficulty values remain in place for
+skill gains; lockpicking, corpse eligibility and tool requirements are unchanged. Refinement and crafting
+retain their skill requirements.
+
+Profession bonuses scale with trained skill / 450. Full benefits: Mining health/armor +4%; Blacksmithing
+AP +3%; Skinning physical/spell crit +2 percentage points; Inscription haste +2%; Tailoring spell/healing
++20; Jewelcrafting attributes +2%; Enchanting mana +10/5sec; Leatherworking beast damage +5%; Herbalism
+vigor recovery +5%; Alchemy healing-potion recovery +15%; First Aid bandage recovery +20%; Fishing swim
+vigor cost -50%; Engineering physical/spell crit +1 percentage point. Engineering no longer improves
+vigor recovery. Alchemy and First Aid bonuses apply before absorption only to their item spell families,
+not ordinary healing spells. Cooking retains its nourishment benefit.
+
+The client patch includes the matching spells, items and profession mappings. Configure tools and custom
+bonuses with CoANeeds.Tools.Enable and CoANeeds.Professions.Enable.
