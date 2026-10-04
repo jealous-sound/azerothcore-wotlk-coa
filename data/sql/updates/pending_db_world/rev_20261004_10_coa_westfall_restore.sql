@@ -21,7 +21,6 @@ VALUES
 (157002, 0, 0, 0, 0, 0, 'Farmer Demont', '', NULL, 0, 15, 15, 0, 35, 2, 1, 1.14286, 1, 1, 18, 0, 0, 1, 1500, 2000, 1, 1, 1, 512, 2048, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 1.25, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
 (455339, 0, 0, 0, 0, 0, 'Slain Protector', 'The People''s Militia', NULL, 0, 15, 15, 0, 35, 2, 1, 1.14286, 1, 1, 18, 0, 0, 1, 2000, 2000, 1, 1, 1, 768, 2048, 32, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 2.048, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
 (455343, 0, 0, 0, 0, 0, 'Half-Devoured Protector', 'The People''s Militia', NULL, 0, 15, 15, 0, 35, 2, 1, 1.14286, 1, 1, 18, 0, 0, 1, 2000, 2000, 1, 1, 1, 768, 2048, 32, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 2.048, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
-(775125, 0, 0, 0, 0, 0, 'Defias Pyromancer', '', NULL, 0, 15, 15, 0, 17, 0, 1, 1.14286, 1, 1, 18, 1, 0, 1, 2000, 2000, 1, 1, 8, 32768, 2048, 0, 0, 7, 0, 775125, 0, 0, 0, 0, 4, 34, 'SmartAI', 1, 1, 2, 1, 1, 1, 0, 0, 1, 0, 0, '', 0),
 (100467, 0, 0, 0, 0, 0, 'Path to Ascension Flightmaster Credit', '', NULL, 0, 1, 1, 0, 35, 0, 1, 1.14286, 1, 1, 20, 0, 0, 1, 0, 0, 1, 1, 1, 2, 0, 0, 0, 7, 2147483648, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, '', 0)
 ON DUPLICATE KEY UPDATE `difficulty_entry_1` = VALUES(`difficulty_entry_1`),
   `difficulty_entry_2` = VALUES(`difficulty_entry_2`), `difficulty_entry_3` = VALUES(`difficulty_entry_3`),
@@ -48,9 +47,8 @@ ON DUPLICATE KEY UPDATE `difficulty_entry_1` = VALUES(`difficulty_entry_1`),
   `VerifiedBuild` = VALUES(`VerifiedBuild`);
 
 -- Stand-in displays: Olens 177231, Brenolt 177232, Selnor 177229, Idona 255150, Tavin 255151 and
--- Lenore 119854, Slain Protector 177256, Half-Devoured Protector 177252 and Defias Pyromancer 775125 are not
--- in the client.
-DELETE FROM `creature_template_model` WHERE `CreatureID` IN (776786,776787,776790,255150,255151,991515,255339,157002,455339,455343,775125,100467);
+-- Lenore 119854, Slain Protector 177256 and Half-Devoured Protector 177252 are not in the client.
+DELETE FROM `creature_template_model` WHERE `CreatureID` IN (776786,776787,776790,255150,255151,991515,255339,157002,455339,455343,100467);
 INSERT INTO `creature_template_model` (`CreatureID`, `Idx`, `CreatureDisplayID`, `DisplayScale`, `Probability`,
   `VerifiedBuild`) VALUES
 (776786, 0, 7310, 1, 1, 0),
@@ -66,8 +64,6 @@ INSERT INTO `creature_template_model` (`CreatureID`, `Idx`, `CreatureDisplayID`,
 (157002, 0, 19354, 1, 1, 0),
 (455339, 0, 2368, 1, 1, 0),
 (455343, 0, 7308, 1, 1, 0),
-(775125, 0, 2338, 1, 1, 0),
-(775125, 1, 2339, 1, 1, 0),
 (100467, 0, 11686, 1, 1, 0);
 
 DELETE FROM `creature_template_addon` WHERE `entry` IN (455339,455343);
@@ -120,8 +116,7 @@ INSERT INTO `creature_text` (`CreatureID`, `GroupID`, `ID`, `Text`, `Type`, `Lan
   `Duration`, `Sound`, `BroadcastTextId`, `TextRange`, `comment`) VALUES
 (991515, 0, 0, 'HEY! Get away from my stuff!!!', 12, 0, 100, 0, 0, 0, 0, 0, 'Lenore the Hoarder - Aggro');
 
--- Lenore the Hoarder and Defias Pyromancer spells: MobSpells capture (cachedata MobSpells.lua); timers
--- are estimated.
+-- Lenore the Hoarder spells: MobSpells capture (cachedata MobSpells.lua); timers are estimated.
 DELETE FROM `smart_scripts` WHERE `entryorguid`=991515 AND `source_type`=0;
 INSERT INTO `smart_scripts` (`entryorguid`, `source_type`, `id`, `link`, `event_type`, `event_phase_mask`,
   `event_chance`, `event_flags`, `event_param1`, `event_param2`, `event_param3`, `event_param4`, `event_param5`,
@@ -131,16 +126,6 @@ INSERT INTO `smart_scripts` (`entryorguid`, `source_type`, `id`, `link`, `event_
 (991515, 0, 0, 0, 4, 0, 100, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 'Lenore the Hoarder - On Aggro - Say Line 0'),
 (991515, 0, 1, 0, 0, 0, 100, 0, 5000, 8000, 15000, 20000, 0, 0, 11, 12024, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 'Lenore the Hoarder - In Combat - Cast ''Net'''),
 (991515, 0, 2, 0, 0, 0, 100, 0, 3000, 6000, 7000, 10000, 0, 0, 11, 992957, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 'Lenore the Hoarder - In Combat - Cast ''Sinister Strike''');
-
-DELETE FROM `smart_scripts` WHERE `entryorguid`=775125 AND `source_type`=0;
-INSERT INTO `smart_scripts` (`entryorguid`, `source_type`, `id`, `link`, `event_type`, `event_phase_mask`,
-  `event_chance`, `event_flags`, `event_param1`, `event_param2`, `event_param3`, `event_param4`, `event_param5`,
-  `event_param6`, `action_type`, `action_param1`, `action_param2`, `action_param3`, `action_param4`, `action_param5`,
-  `action_param6`, `target_type`, `target_param1`, `target_param2`, `target_param3`, `target_param4`, `target_x`,
-  `target_y`, `target_z`, `target_o`, `comment`) VALUES
-(775125, 0, 0, 0, 4, 0, 100, 0, 0, 0, 0, 0, 0, 0, 11, 271228, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 'Defias Pyromancer - On Aggro - Cast ''Fire Fire Fireball'''),
-(775125, 0, 1, 0, 0, 0, 100, 0, 0, 0, 3400, 5400, 0, 0, 11, 993084, 64, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 'Defias Pyromancer - In Combat CMC - Cast ''Fireball'''),
-(775125, 0, 2, 0, 0, 0, 100, 0, 6000, 9000, 12000, 16000, 0, 0, 11, 993083, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 'Defias Pyromancer - In Combat - Cast ''Fire Fire Fireball''');
 
 -- Protector Brenolt and Captain Olens talk as seen in footage; the repeat interval is estimated.
 DELETE FROM `creature_text` WHERE `CreatureID` IN (776787,776786);
@@ -178,7 +163,7 @@ DELETE FROM `gossip_menu` WHERE `MenuID`=9950100;
 INSERT INTO `gossip_menu` (`MenuID`, `TextID`) VALUES
 (9950100, 9950100);
 
-DELETE FROM `creature` WHERE `guid` BETWEEN 9950100 AND 9950117;
+DELETE FROM `creature` WHERE `guid` BETWEEN 9950100 AND 9950116;
 INSERT INTO `creature` (`guid`, `id`, `map`, `zoneId`, `areaId`, `spawnMask`, `phaseMask`, `equipment_id`,
   `position_x`, `position_y`, `position_z`, `orientation`, `spawntimesecs`, `wander_distance`, `currentwaypoint`,
   `curhealth`, `curmana`, `MovementType`, `npcflag`, `unit_flags`, `dynamicflags`, `ScriptName`, `VerifiedBuild`,
@@ -199,20 +184,7 @@ INSERT INTO `creature` (`guid`, `id`, `map`, `zoneId`, `areaId`, `spawnMask`, `p
 (9950113, 255339, 0, 40, 108, 1, 1, 0, -10729.0, 990.0, 36.25, 2.46, 120, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Militia Recruit (estimated position, training yard)'),
 (9950114, 255339, 0, 40, 108, 1, 1, 0, -10738.5, 981.5, 36.88, 2.78, 120, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Militia Recruit (estimated position, training yard)'),
 (9950115, 255151, 0, 40, 108, 1, 1, 0, -10509.95, 1144.83, 40.0, 3.48, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Tavin Wyther (estimated position, alchemist''s farmhouse)'),
-(9950116, 776787, 0, 40, 108, 1, 1, 0, -10724.26, 988.23, 36.25, 0.77, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Protector Brenolt (estimated position, training yard by Olens)'),
-(9950117, 775125, 0, 40, 20, 1, 1, 0, -11219.7, 1714.1, 39.08, 4.71, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Defias Pyromancer (Bisbeard atlas marker, Moonbrook)');
-
--- Defias Pyromancer (775125) loot: Exiles DB export 2026-09-13, creature_loot entry 775125.
-DELETE FROM `creature_loot_template` WHERE `Entry`=775125;
-INSERT INTO `creature_loot_template` (`Entry`, `Item`, `Reference`, `Chance`, `QuestRequired`, `LootMode`, `GroupId`,
-  `MinCount`, `MaxCount`, `Comment`) VALUES
-(775125, 201182, 0, 100, 0, 1, 0, 1, 1, 'Defias Pyromancer'),
-(775125, 2089201, 0, 1.667, 0, 1, 0, 1, 1, 'Defias Pyromancer'),
-(775125, 2089202, 0, 1.667, 0, 1, 0, 1, 1, 'Defias Pyromancer'),
-(775125, 2089203, 0, 1.667, 0, 1, 0, 1, 1, 'Defias Pyromancer'),
-(775125, 2089204, 0, 1.667, 0, 1, 0, 1, 1, 'Defias Pyromancer'),
-(775125, 2089207, 0, 1.667, 0, 1, 0, 1, 1, 'Defias Pyromancer'),
-(775125, 2089208, 0, 10, 0, 1, 0, 1, 1, 'Defias Pyromancer');
+(9950116, 776787, 0, 40, 108, 1, 1, 0, -10724.26, 988.23, 36.25, 0.77, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Protector Brenolt (estimated position, training yard by Olens)');
 
 -- Lenore the Hoarder (991515) loot: Exiles DB export 2026-09-13, creature_loot entry 991515.
 DELETE FROM `creature_loot_template` WHERE `Entry`=991515;

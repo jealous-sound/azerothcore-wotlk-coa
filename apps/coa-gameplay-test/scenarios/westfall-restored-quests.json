@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "Westfall quests restored from Ascension can be taken, progressed and rewarded",
-  "contract": "The Ascension WDB captures (2026-09-07..10) list 16 Westfall quests the server lacked. Each must load, accept in chain order and reward. Militia Training 255057 needs six Militia Recruits 255339 defeated: a recruit beaten to its floor credits the attacker and stays alive. Potions for Sentinel Hill 1313, taken from Idona Wyther 255150, needs the three pilfered crates 480101-480103 and Take It Back 254043, taken from Protector Gariel 490, the Westfall Supplies 1252801 from the Westfall Hoard 480104; each chest yields its quest item to a player on the quest and the items complete it. Wanted: Lenore the Hoarder 254042 is taken from its wanted poster 518551 and completed by killing Lenore the Hoarder 991515. A Defias Pyromancer 775125 always drops Mystic Scroll: Fire Fire Fireball 201182 (Exiles DB 2026-09-13). Loosely Packed Dirt 96004 yields the Faded Treasure Map 157016, and Sunken Treasure 17009 is handed in at the Waterlogged Trunk 96005. Tavin Wyther 255151 sells the ten alchemy goods his first vendor page shows in the footage.",
+  "contract": "The Ascension WDB captures (2026-09-07..10) list 16 Westfall quests the server lacked. Each must load, accept in chain order and reward. Militia Training 255057 needs six Militia Recruits 255339 defeated: a recruit beaten to its floor credits the attacker and stays alive. Potions for Sentinel Hill 1313, taken from Idona Wyther 255150, needs the three pilfered crates 480101-480103 and Take It Back 254043, taken from Protector Gariel 490, the Westfall Supplies 1252801 from the Westfall Hoard 480104; each chest yields its quest item to a player on the quest and the items complete it. Wanted: Lenore the Hoarder 254042 is taken from its wanted poster 518551 and completed by killing Lenore the Hoarder 991515. Loosely Packed Dirt 96004 yields the Faded Treasure Map 157016, and Sunken Treasure 17009 is handed in at the Waterlogged Trunk 96005. Tavin Wyther 255151 sells the ten alchemy goods his first vendor page shows in the footage.",
   "timeout_ms": 60000,
   "players": [
     {
@@ -56,13 +56,6 @@
       "id": "lenore",
       "owner": "p",
       "entry": 991515,
-      "distance": 3,
-      "level": 15
-    },
-    {
-      "id": "pyromancer",
-      "owner": "p",
-      "entry": 775125,
       "distance": 3,
       "level": 15
     }
@@ -386,35 +379,6 @@
       "actor": "p",
       "metric": "quest_rewarded",
       "quest": 254042,
-      "equals": 1
-    },
-    {
-      "label": "kill a Defias Pyromancer",
-      "action": "attack_nearby",
-      "actor": "p",
-      "entry": 775125,
-      "kill": true
-    },
-    {
-      "action": "loot_creature",
-      "actor": "p",
-      "target": "pyromancer"
-    },
-    {
-      "label": "the Pyromancer always drops its Mystic Scroll",
-      "action": "loot_slot",
-      "actor": "p",
-      "item": 201182
-    },
-    {
-      "action": "close_loot",
-      "actor": "p"
-    },
-    {
-      "action": "assert",
-      "actor": "p",
-      "metric": "item_count",
-      "item": 201182,
       "equals": 1
     },
     {
