@@ -27,7 +27,8 @@ enum RunemasterTalentProcSpells : uint32
     SPELL_ENGRAVING_ICE = 653217,
     SPELL_ENGRAVING_ARCANE = 653263,
     SPELL_ENGRAVING_EARTH = 653272,
-    SPELL_ENGRAVING_AIR = 653226
+    SPELL_ENGRAVING_AIR = 653226,
+    SPELL_AIR_ENGRAVING_PROC = 653225
 };
 
 bool IsRunemaster(Unit const* unit)
@@ -110,6 +111,47 @@ class aura_ascension_runemaster_decoder : public AuraScript
     {
         DoCheckProc += AuraCheckProcFn(aura_ascension_runemaster_decoder::CheckDamagedEnemy);
         OnProc += AuraProcFn(aura_ascension_runemaster_decoder::TriggerEngravings);
+    }
+};
+
+class aura_ascension_runemaster_air_engraving : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_runemaster_air_engraving);
+
+    bool Validate(SpellInfo const* info) override
+    {
+        return info->Id == SPELL_AIR_ENGRAVING_PROC && info->Effects[EFFECT_0].IsAura(AuraType(354)) &&
+            info->Effects[EFFECT_0].TriggerSpell == SPELL_ENGRAVING_AIR &&
+            ValidateSpellInfo({SPELL_ENGRAVING_AIR});
+    }
+
+    bool CheckDirectDamage(ProcEventInfo& eventInfo)
+    {
+        Unit* owner = GetTarget();
+        Unit* target = eventInfo.GetActionTarget();
+        DamageInfo const* damage = eventInfo.GetDamageInfo();
+        SpellInfo const* info = eventInfo.GetSpellInfo();
+        return IsRunemaster(owner) && GetCaster() == owner && eventInfo.GetActor() == owner && target &&
+            target->IsAlive() && owner->IsValidAttackTarget(target) && damage && damage->GetDamage() &&
+            (!info || info->Id != SPELL_ENGRAVING_AIR);
+    }
+
+    void CopyDamage(AuraEffect const* effect, ProcEventInfo& eventInfo)
+    {
+        PreventDefaultAction();
+        uint64 const damage = uint64(eventInfo.GetDamageInfo()->GetDamage()) *
+            std::clamp(effect->GetAmount(), 0, 100) / 100;
+        if (damage)
+            GetTarget()->CastCustomSpell(SPELL_ENGRAVING_AIR, SPELLVALUE_BASE_POINT0,
+                int32(std::min<uint64>(damage, std::numeric_limits<int32>::max())), eventInfo.GetActionTarget(),
+                TRIGGERED_FULL_MASK, nullptr, effect);
+    }
+
+    void Register() override
+    {
+        DoCheckProc += AuraCheckProcFn(aura_ascension_runemaster_air_engraving::CheckDirectDamage);
+        OnEffectProc += AuraEffectProcFn(aura_ascension_runemaster_air_engraving::CopyDamage, EFFECT_0,
+            AuraType(354));
     }
 };
 
@@ -269,6 +311,7 @@ void AddSC_AscensionRunemasterTalentProcs()
 {
     RegisterSpellScript(spell_ascension_runemaster_ancient_warrior);
     RegisterSpellScript(aura_ascension_runemaster_decoder);
+    RegisterSpellScript(aura_ascension_runemaster_air_engraving);
     RegisterSpellScript(aura_ascension_runemaster_leyfrost);
     RegisterSpellScript(aura_ascension_runemaster_convergence);
     new runemaster_ley_lock_duration();
