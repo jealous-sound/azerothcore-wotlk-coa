@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "Westfall quests restored from Ascension can be taken, progressed and rewarded",
-  "contract": "The Ascension WDB capture (2026-09-08) lists 15 Westfall quests the server lacked. Each must load, accept in chain order and reward. Militia Training 255057 needs six Militia Recruits 255339 defeated: a recruit beaten to its floor credits the attacker and stays alive. Potions for Sentinel Hill 1313, taken from Idona Wyther 255150, needs the three pilfered crates 480101-480103 and Take It Back 254043, taken from Protector Gariel 490, the Westfall Supplies 1252801 from the Westfall Hoard 480104; each chest yields its quest item to a player on the quest and the items complete it. Wanted: Lenore the Hoarder 254042 is taken from Scout Galiaan 878 and completed by killing Lenore the Hoarder 991515.",
+  "contract": "The Ascension WDB capture (2026-09-08) lists 15 Westfall quests the server lacked. Each must load, accept in chain order and reward. Militia Training 255057 needs six Militia Recruits 255339 defeated: a recruit beaten to its floor credits the attacker and stays alive. Potions for Sentinel Hill 1313, taken from Idona Wyther 255150, needs the three pilfered crates 480101-480103 and Take It Back 254043, taken from Protector Gariel 490, the Westfall Supplies 1252801 from the Westfall Hoard 480104; each chest yields its quest item to a player on the quest and the items complete it. Wanted: Lenore the Hoarder 254042 is taken from Scout Galiaan 878 and completed by killing Lenore the Hoarder 991515. Tavin Wyther 255151 sells the ten alchemy goods his first vendor page shows in the footage.",
   "timeout_ms": 60000,
   "players": [
     {
@@ -43,6 +43,14 @@
       "distance": 4,
       "faction": 12,
       "level": 30
+    },
+    {
+      "id": "tavin",
+      "owner": "p",
+      "entry": 255151,
+      "distance": 4,
+      "faction": 12,
+      "level": 23
     },
     {
       "id": "lenore",
@@ -367,6 +375,40 @@
       "metric": "quest_rewarded",
       "quest": 254042,
       "equals": 1
+    },
+    {
+      "label": "talk to Tavin Wyther",
+      "action": "gossip_hello",
+      "actor": "p",
+      "target": "tavin"
+    },
+    {
+      "action": "gossip_select",
+      "actor": "p",
+      "option": 1,
+      "label": "I want to browse your goods"
+    },
+    {
+      "action": "assert",
+      "actor": "p",
+      "metric": "vendor_list_packets",
+      "equals": 1,
+      "within_ms": 2000
+    },
+    {
+      "label": "Tavin sells the ten alchemy goods seen in the footage",
+      "action": "assert",
+      "actor": "p",
+      "metric": "vendor_items",
+      "equals": 10
+    },
+    {
+      "label": "Strong Troll's Blood Elixir is on his shelves",
+      "action": "assert",
+      "actor": "p",
+      "metric": "vendor_price",
+      "item": 3388,
+      "min": 1
     },
     {
       "action": "prepare_quest",
