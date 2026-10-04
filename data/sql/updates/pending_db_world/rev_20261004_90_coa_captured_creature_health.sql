@@ -6154,4 +6154,31 @@ WHERE `template`.`HealthModifier` <> `captured`.`HealthModifier`
         ELSE 4294967296
     END) BETWEEN 1 AND 4294967295;
 
+-- PR #6477 copies these six Normal templates for its provisional Heroic/Mythic fallback.
+-- Sync only variants still using the copied old modifier, regardless of migration application order.
+UPDATE `creature_template` AS `variant`
+INNER JOIN `creature_template` AS `template`
+    ON `variant`.`entry` IN (`template`.`difficulty_entry_1`, `template`.`difficulty_entry_2`)
+INNER JOIN `_coa_captured_creature_health` AS `captured` ON `captured`.`entry` = `template`.`entry`
+INNER JOIN `creature_classlevelstats` AS `stats`
+    ON `stats`.`level` = `variant`.`maxlevel` AND `stats`.`class` = `variant`.`unit_class`
+SET `variant`.`HealthModifier` = `captured`.`HealthModifier`
+WHERE `template`.`entry` IN (8580, 14516, 16042, 16080, 16097, 16118)
+    AND `variant`.`entry` IN (`template`.`entry` + 100000, `template`.`entry` + 200000)
+    AND `variant`.`HealthModifier` = CASE `template`.`entry`
+        WHEN 8580 THEN 7.5
+        WHEN 14516 THEN 15
+        WHEN 16042 THEN 45
+        WHEN 16080 THEN 19
+        WHEN 16097 THEN 10
+        WHEN 16118 THEN 15
+    END
+    AND `variant`.`exp` IN (0, 1, 2)
+    AND CEIL(`captured`.`HealthModifier` * CASE `variant`.`exp`
+        WHEN 0 THEN `stats`.`basehp0`
+        WHEN 1 THEN GREATEST(`stats`.`basehp0`, `stats`.`basehp1`)
+        WHEN 2 THEN GREATEST(`stats`.`basehp0`, `stats`.`basehp1`, `stats`.`basehp2`)
+        ELSE 4294967296
+    END) BETWEEN 1 AND 4294967295;
+
 DROP TEMPORARY TABLE `_coa_captured_creature_health`;
