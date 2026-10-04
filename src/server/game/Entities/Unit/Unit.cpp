@@ -15054,8 +15054,8 @@ void Unit::Kill(Unit* killer, Unit* victim, bool durabilityLoss, WeaponAttackTyp
             loot->clear();
             creature->FinalizeSharedQuestParticipants();
 
-            if (uint32 lootid = creature->GetCreatureTemplate()->lootid)
-                loot->FillLoot(lootid, LootTemplates_Creature, looter, false, false, creature->GetLootMode(), creature);
+            uint32 const lootid = creature->GetCreatureTemplate()->lootid;
+            loot->FillLoot(lootid, LootTemplates_Creature, looter, false, !lootid, creature->GetLootMode(), creature);
 
             if (creature->GetLootMode())
                 loot->generateMoneyLoot(creature->GetCreatureTemplate()->mingold, creature->GetCreatureTemplate()->maxgold);

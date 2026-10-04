@@ -20,6 +20,7 @@
 #include "Config.h"
 #include "Creature.h"
 #include "CreatureAI.h"
+#include "AscensionCreaturePreset.h"
 #include "DBCStores.h"
 #include "DatabaseEnv.h"
 #include "DynamicObject.h"
@@ -2176,6 +2177,49 @@ private:
                     if (!item.is_looted && itemTemplate->Name1.rfind("Bloodforged", 0) == 0)
                         ++count;
             return count;
+        }
+        if (metric == "equipped_gear_loot_rate")
+        {
+            uint32 const entry = step.get<uint32>("entry");
+            uint32 const wanted = step.get<uint32>("item", 0);
+            Creature creature;
+            Require(creature.Create(player->GetMap()->GenerateLowGuid<HighGuid::Unit>(), player->GetMap(),
+                player->GetPhaseMask(), entry, 0, player->GetPositionX(), player->GetPositionY(),
+                player->GetPositionZ(), player->GetOrientation()), "Cannot create equipped gear loot fixture");
+            Require(!creature.IsSummon(), "Equipped gear loot fixture must be an ordinary creature");
+            std::set<uint32> displays;
+            for (uint32 slot = 0; slot < MAX_EQUIPMENT_ITEMS; ++slot)
+                if (ItemTemplate const* weapon = sObjectMgr->GetItemTemplate(creature.GetVirtualItemId(slot)))
+                    displays.insert(weapon->DisplayInfoID);
+            if (CreatureDisplayPreset const* preset = sAscensionPresets->GetPreset(entry, creature.GetDisplayId()))
+                displays.insert(preset->items.begin(), preset->items.end());
+            else if (CreatureDisplayInfoEntry const* model = sCreatureDisplayInfoStore.LookupEntry(
+                creature.GetDisplayId()))
+                if (CreatureDisplayInfoExtraEntry const* extra = sCreatureDisplayInfoExtraStore.LookupEntry(
+                    model->ExtendedDisplayInfoID))
+                    displays.insert(std::begin(extra->NPCItemDisplay), std::end(extra->NPCItemDisplay));
+
+            uint32 hits = 0;
+            constexpr uint32 rolls = 5000;
+            for (uint32 roll = 0; roll < rolls; ++roll)
+            {
+                Loot loot;
+                loot.FillLoot(0, LootTemplates_Creature, player, false, true, LOOT_MODE_DEFAULT, &creature);
+                Require(loot.items.size() <= 1, "Equipped gear loot exceeded its per-kill budget");
+                for (LootItem const& item : loot.items)
+                {
+                    ItemTemplate const* gear = sObjectMgr->GetItemTemplate(item.itemid);
+                    Require(gear && gear->DisplayInfoID && displays.contains(gear->DisplayInfoID),
+                        "Equipped gear loot does not match a visible item");
+                    Require(gear->RequiredLevel <= creature.GetLevel() && gear->Quality <= ITEM_QUALITY_UNCOMMON,
+                        "Equipped gear loot exceeded its level or quality limit");
+                    Require(gear->Bonding == NO_BIND || gear->Bonding == BIND_WHEN_EQUIPPED,
+                        "Equipped gear loot used a restricted reward");
+                    Require(loot.unlootedCount == 1, "Equipped gear loot did not grant native loot ownership");
+                    hits += !wanted || item.itemid == wanted;
+                }
+            }
+            return 100.0 * hits / rolls;
         }
         if (metric == "creature_loot_quality_rate")
         {

@@ -16,6 +16,7 @@
  */
 
 #include "LootMgr.h"
+#include "AscensionEquippedGearLoot.h"
 #include "Containers.h"
 #include "Creature.h"
 #include "DisableMgr.h"
@@ -565,14 +566,24 @@ bool Loot::FillLoot(uint32 lootId, LootStore const& store, Player* lootOwner, bo
     {
         if (!noEmptyError)
             LOG_ERROR("sql.sql", "Table '{}' loot id #{} used but it doesn't have records.", store.GetName(), lootId);
-        return false;
     }
 
     items.reserve(MAX_NR_LOOT_ITEMS);
     quest_items.reserve(MAX_NR_QUEST_ITEMS);
 
     // Initial group is 0, top level set to True
-    tab->Process(*this, store, lootMode, lootOwner, 0, true);          // Processing is done there, callback via Loot::AddItem()
+    if (tab)
+        tab->Process(*this, store, lootMode, lootOwner, 0, true);      // Processing is done there, callback via Loot::AddItem()
+
+    bool const equippedGear = &store == &LootTemplates_Creature && lootSource
+        && AscensionEquippedGearLoot::AddLoot(lootSource->ToCreature(), *this, lootMode);
+    if (!tab)
+    {
+        if (!equippedGear)
+            return false;
+        static LootTemplate const emptyTemplate;
+        tab = &emptyTemplate;
+    }
 
     sScriptMgr->OnAfterLootTemplateProcess(this, tab, store, lootOwner, personal, noEmptyError, lootMode);
 

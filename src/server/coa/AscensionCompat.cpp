@@ -63,6 +63,7 @@
 #include "AscensionTaughtAbilityData.h"
 #include "AscensionPooledVitality.h"
 #include "AscensionCreaturePreset.h"
+#include "AscensionItemAppearanceAliases.h"
 #include "Bag.h"
 #include "Battlefield.h"
 #include "BattlefieldMgr.h"
@@ -4195,6 +4196,12 @@ public:
     }
     if (appearancesLoaded && itemAppearancesLoaded)
         LoadWoodworkingAppearances(lastItemAppearanceRecordId);
+
+    std::unordered_map<uint32, uint32> equipmentAppearances;
+    for (auto const& [id, appearance] : _appearances)
+      if (IsEquipmentAppearance(appearance))
+        equipmentAppearances.emplace(id, appearance.SourceItem);
+    AscensionItemAppearanceAliases::AddAliases(_itemAppearances, equipmentAppearances);
 
     ClientDBC itemSets;
     bool itemSetsLoaded = itemSets.Load(GetClientDBCPath("ItemSet.dbc"), 35);

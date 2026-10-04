@@ -67,6 +67,49 @@ Import the [world database package](../../apps/coa-world/README.md) into an empt
 world schema before the first worldserver startup. The same guide covers auditing
 an existing database and updating the package.
 
+## Equipped gear drops
+
+Rewarded enemy kills can drop one existing wearable item with the same display as the enemy's armor,
+weapon or shield. Armor comes from the active `creature_display_preset` or the current model's
+`CreatureDisplayInfoExtra` outfit. Weapon entries supply their display and weapon type. Preset slots contain
+display IDs, not loot item IDs. Matching also preserves the equipment slot, including robe/chest variants.
+Mage-class creatures prefer Intellect gear; shield bearers prefer defenses and Stamina; other creatures
+prefer Strength, Agility or attack power. Equal matches prefer the closest eligible level, then quality,
+with a stable item-ID tie break. Unknown outfits and appearances without a wearable match produce no drop.
+
+`CoA.EquippedGearLoot` enables the feature; `CoA.EquippedGearLootChance` is a reloadable per-kill percentage,
+defaulting to 5. Only unbound or BoE gear through uncommon quality is eligible. Required level must not
+exceed the creature's level; items without one use item level minus five, floored at zero. NPC placeholders,
+deprecated, conjured, quest, random-affix and requirement-gated items are excluded, as are pets, summons, controlled
+creatures, dungeon bosses and disabled loot rewards. Drops are generated once with corpse loot, including
+creatures without an ordinary loot table, before native group permissions and quality thresholds. Existing
+loot remains, exact item duplicates are skipped, and the loot-window capacity is respected. Native item
+scaling can lift the chosen reward while preserving its appearance. Obtaining the
+item uses the existing appearance collection path when `CoA.AutoCollectAppearances` is enabled.
+Items missing a direct `ItemAppearances` row inherit an existing equipment appearance only when display,
+slot, class and subclass match that appearance's captured source item. Direct mappings remain authoritative;
+robe/chest and weapon-hand variants share a slot. An item mapping whose source appearance has a different
+display cannot supply an alias. Looks absent from the captured wardrobe catalog remain uncollectible.
+No appearance record or client DBC row is invented.
+
+The [archived public changelog](https://github.com/hertigservices/ascension-data/blob/main/datasets/research-jeff-fro-coa-changelog-public-73833f29a4c2999b26184e55affe3c769682ccdb4431b2b6e9a4ebb4bbfaf72f.json)
+describes immersive gear in entries 62796/62797 (2025-07-28), caster additions in 63297/63298 (2025-08-09),
+and increased rogue drop chances in 64953 (2025-10-20). It supplies neither item pools nor exact probabilities.
+The rate, quality cap and selection policy here are reconstruction choices. Generic loot rates are unchanged;
+the archived generic-loot reductions cannot be reproduced exactly from those notes. The extensions
+[appearance API](https://github.com/firstoni-dev/ascension-extensions-reconstruction/blob/main/src/Ascension/AscAppearance.cpp)
+maps items to collected appearances; its `GetCreatureDisplayItems` function concerns incarnation appearances,
+and supplies no enemy loot table. This feature needs no new client packet or invented item template.
+
+`python -B tools/verify_all.py --stages harness --harness equipped_gear_loot` exercises the production selector,
+configuration callbacks and native `Loot::AddItem`/`FillLoot` with bounded APIs. Setting
+`COA_EQUIPPED_LOOT_BEFORE=1` selects the `origin/main` loot integration as a failing control;
+`COA_EQUIPPED_LOOT_BASE` can pin another pre-feature Git revision. The harness
+covers roles, appearance slots, model alternatives, presets, weapons, exclusions, capacity, duplicates,
+empty loot tables and group rights. It does not verify client rendering or a player collecting the appearance.
+The `equipped-gear-loot` gameplay scenario checks the installed caster/shield equipment and generated item
+templates through native loot processing, with ordinary creature fixtures and the default 5% configuration.
+
 ## Automatic specialization talents
 
 The talent catalog is read at startup from the client's `CharacterAdvancement.dbc`
