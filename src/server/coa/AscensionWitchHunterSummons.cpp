@@ -431,15 +431,27 @@ class spell_ascension_witch_hunter_summon : public SpellScript
 class spell_ascension_witch_hunter_smoke : public SpellScript
 {
     PrepareSpellScript(spell_ascension_witch_hunter_smoke);
-    void After()
+    bool Validate(SpellInfo const*) override
     {
-        if (WorldLocation const* destination = GetExplTargetDest())
-            GetCaster()->CastSpell(destination->GetPositionX(), destination->GetPositionY(),
-                                   destination->GetPositionZ(), 805757, true);
+        return ValidateSpellInfo({805757});
     }
+
+    void ApplyFriendlySmoke(SpellEffIndex)
+    {
+        if (DynamicObject* cloud = GetCaster()->GetDynObject(GetSpellInfo()->Id))
+        {
+            SpellCastTargets targets;
+            targets.SetDst(*cloud);
+            CustomSpellValues values;
+            values.AddSpellMod(SPELLVALUE_AURA_DURATION, cloud->GetDuration());
+            GetCaster()->CastSpell(targets, sSpellMgr->GetSpellInfo(805757), &values, TRIGGERED_FULL_MASK);
+        }
+    }
+
     void Register() override
     {
-        AfterCast += SpellCastFn(spell_ascension_witch_hunter_smoke::After);
+        OnEffectHit += SpellEffectFn(spell_ascension_witch_hunter_smoke::ApplyFriendlySmoke, EFFECT_1,
+                                    SPELL_EFFECT_PERSISTENT_AREA_AURA);
     }
 };
 }
