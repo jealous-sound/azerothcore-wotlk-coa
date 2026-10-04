@@ -6,6 +6,7 @@
 /conf/*
 !/conf/dist
 /modules/*
+!/modules/mod-coa-needs/
 !/modules/mod-coa-change-potions/
 !/modules/*.md
 !/modules/*.sh

@@ -1,11 +1,11 @@
 // mod-coa-challenges (review split): CoA.Challenges.Scripts.cpp
 // Mechanical split of review-CoAChallenges.cpp; no logic changes.
 #include "CoA.Challenges.Review.h"
+#include "../../mod-coa-needs/src/NeedsChallengeBridge.h"
 #include "RBAC.h"
 #include "KillRewarder.h"
 #include "Random.h"
 #include "AllCreatureScript.h"
-
 
 using namespace Acore::ChatCommands;
 
@@ -2282,6 +2282,8 @@ namespace CoAChallenges
         void OnAfterConfigLoad(bool /*reload*/) override
         {
             LoadChallengesEnabled();
+            CoANeeds::ChallengeMaximum = std::max(1.0f,
+                sConfigMgr->GetOption<float>("CoAChallenges.HungerMax", 100.0f));
         }
 
             void OnStartup() override

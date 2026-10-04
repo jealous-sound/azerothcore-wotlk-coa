@@ -1,6 +1,7 @@
 // mod-coa-challenges (review split): CoA.Challenges.Hunger.cpp
 // Mechanical split of review-CoAChallenges.cpp; no logic changes.
 #include "CoA.Challenges.Review.h"
+#include "../../mod-coa-needs/src/NeedsChallengeBridge.h"
 
 namespace CoAChallenges
 {
@@ -8,6 +9,35 @@ namespace CoAChallenges
     std::mutex HungerMutex;
     std::unordered_map<uint32, HungerClock> HungerAccum;
     std::unordered_set<uint32> HungerGuids;
+
+    bool ReadNeedsForVigor(uint32 guid, float& food, float& water)
+    {
+        std::lock_guard<std::mutex> lock(HungerMutex);
+        auto const found = HungerAccum.find(guid);
+        if (found == HungerAccum.end() || found->second.state.empty())
+            return false;
+        int32 hunger = 0;
+        int32 thirst = 0;
+        for (auto const& [challenge, state] : found->second.state)
+        {
+            hunger = std::max(hunger, state.hunger);
+            thirst = std::max(thirst, state.thirst);
+        }
+        float const maximum = CoANeeds::ChallengeMaximum.load();
+        food = std::clamp(100.0f - hunger * 100.0f / maximum, 0.0f, 100.0f);
+        water = std::clamp(100.0f - thirst * 100.0f / maximum, 0.0f, 100.0f);
+        return true;
+    }
+
+    struct NeedsBridgeRegistration
+    {
+        NeedsBridgeRegistration()
+        {
+            CoANeeds::ReadChallengeNeeds = ReadNeedsForVigor;
+        }
+    };
+
+    NeedsBridgeRegistration NeedsBridge;
 
     bool IsHungerChallenge(uint32 challengeID)
     {

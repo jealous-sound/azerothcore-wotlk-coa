@@ -1,0 +1,9 @@
+[worldserver]
+CoANeeds.Enable = 1
+CoANeeds.IncludeBots = 0
+CoANeeds.HungerDrainPerMinute = 4.5
+CoANeeds.HydrationDrainPerMinute = 6.0
+CoANeeds.MealFill = 45.0
+CoANeeds.DrinkFill = 55.0
+CoANeeds.VigorRegenPerSecond = 8.0
+CoANeeds.SprintDrainPerSecond = 10.0
