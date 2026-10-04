@@ -229,6 +229,9 @@ void AuthSession::CheckIpCallback(PreparedQueryResult result)
         }
     }
 
+    if (GetReadBuffer().GetActiveSize() && ReadHandler() == SocketReadCallbackResult::Stop)
+        return;
+
     AsyncRead();
 }
 
