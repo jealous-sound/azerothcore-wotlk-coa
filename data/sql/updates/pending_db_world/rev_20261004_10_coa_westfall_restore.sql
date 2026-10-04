@@ -12,6 +12,7 @@ INSERT INTO `creature_template` (`entry`, `difficulty_entry_1`, `difficulty_entr
   `RegenHealth`, `CreatureImmunitiesId`, `flags_extra`, `ScriptName`, `VerifiedBuild`)
 VALUES
 (776786, 0, 0, 0, 0, 0, 'Captain Olens', 'The People''s Militia', NULL, 9950100, 14, 14, 0, 12, 3, 1, 1.14286, 1, 1, 18, 0, 0, 1, 2000, 2000, 1, 1, 1, 512, 2048, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 0.98, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
+(776787, 0, 0, 0, 0, 0, 'Protector Brenolt', 'The People''s Militia', NULL, 0, 14, 14, 0, 12, 0, 1, 1.14286, 1, 1, 18, 0, 0, 1, 2000, 2000, 1, 1, 1, 512, 2048, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 'SmartAI', 0, 1, 0.98, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
 (776790, 0, 0, 0, 0, 0, 'Archivist Selnor', NULL, NULL, 0, 11, 11, 0, 12, 2, 1, 1.14286, 1, 1, 18, 0, 0, 1, 2000, 2000, 1, 1, 1, 512, 2048, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 0.98, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
 (255150, 0, 0, 0, 0, 0, 'Idona Wyther', 'Alchemy Trainer', NULL, 4110, 26, 26, 0, 12, 83, 1, 1.14286, 1, 1, 18, 0, 0, 1, 1500, 2000, 1, 1, 1, 512, 2048, 0, 0, 7, 134217728, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 1.064, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
 (255151, 0, 0, 0, 0, 0, 'Tavin Wyther', 'Alchemy Supplies', NULL, 0, 23, 23, 0, 12, 128, 1, 1.14286, 1, 1, 18, 0, 0, 1, 1500, 2000, 1, 1, 1, 512, 2048, 0, 0, 7, 134217728, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 1.064, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
@@ -44,12 +45,13 @@ ON DUPLICATE KEY UPDATE `difficulty_entry_1` = VALUES(`difficulty_entry_1`),
   `flags_extra` = VALUES(`flags_extra`), `ScriptName` = VALUES(`ScriptName`),
   `VerifiedBuild` = VALUES(`VerifiedBuild`);
 
--- Stand-in displays: Olens 177231, Selnor 177229, Idona 255150, Tavin 255151 and
+-- Stand-in displays: Olens 177231, Brenolt 177232, Selnor 177229, Idona 255150, Tavin 255151 and
 -- Lenore 119854 are not in the client.
-DELETE FROM `creature_template_model` WHERE `CreatureID` IN (776786,776790,255150,255151,991515,255339,157002,999900,999901);
+DELETE FROM `creature_template_model` WHERE `CreatureID` IN (776786,776787,776790,255150,255151,991515,255339,157002,999900,999901);
 INSERT INTO `creature_template_model` (`CreatureID`, `Idx`, `CreatureDisplayID`, `DisplayScale`, `Probability`,
   `VerifiedBuild`) VALUES
 (776786, 0, 7310, 1, 1, 0),
+(776787, 0, 7309, 1, 1, 0),
 (776790, 0, 7311, 1, 1, 0),
 (255150, 0, 1692, 1, 1, 0),
 (255151, 0, 3649, 1, 1, 0),
@@ -110,6 +112,26 @@ INSERT INTO `smart_scripts` (`entryorguid`, `source_type`, `id`, `link`, `event_
   `target_y`, `target_z`, `target_o`, `comment`) VALUES
 (991515, 0, 0, 0, 4, 0, 100, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 'Lenore the Hoarder - On Aggro - Say Line 0');
 
+-- Protector Brenolt and Captain Olens talk as seen in footage; the repeat interval is estimated.
+DELETE FROM `creature_text` WHERE `CreatureID` IN (776787,776786);
+INSERT INTO `creature_text` (`CreatureID`, `GroupID`, `ID`, `Text`, `Type`, `Language`, `Probability`, `Emote`,
+  `Duration`, `Sound`, `BroadcastTextId`, `TextRange`, `comment`) VALUES
+(776787, 0, 0, 'Recruitment rates are high, the promise of revenge against the Defias and a hot meal are appealing to many.', 12, 0, 100, 1, 0, 0, 0, 0, 'Protector Brenolt - Militia talk 1'),
+(776786, 0, 0, 'An army of farmers against an army of thieves. They may have the heart, but not the skill. We need more time.', 12, 0, 100, 1, 0, 0, 0, 0, 'Captain Olens - Militia talk 2'),
+(776787, 1, 0, 'Any news about the reinforcements from Stormwind, sir?', 12, 0, 100, 1, 0, 0, 0, 0, 'Protector Brenolt - Militia talk 3'),
+(776786, 1, 0, 'You know they''re not coming, Brenolt. We''re on our own out here.', 12, 0, 100, 1, 0, 0, 0, 0, 'Captain Olens - Militia talk 4');
+DELETE FROM `smart_scripts` WHERE (`entryorguid`=776787 AND `source_type`=0) OR (`entryorguid`=77678700 AND `source_type`=9);
+INSERT INTO `smart_scripts` (`entryorguid`, `source_type`, `id`, `link`, `event_type`, `event_phase_mask`,
+  `event_chance`, `event_flags`, `event_param1`, `event_param2`, `event_param3`, `event_param4`, `event_param5`,
+  `event_param6`, `action_type`, `action_param1`, `action_param2`, `action_param3`, `action_param4`, `action_param5`,
+  `action_param6`, `target_type`, `target_param1`, `target_param2`, `target_param3`, `target_param4`, `target_x`,
+  `target_y`, `target_z`, `target_o`, `comment`) VALUES
+(776787, 0, 0, 0, 1, 0, 100, 0, 30000, 60000, 240000, 300000, 0, 0, 80, 77678700, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 'Protector Brenolt - Out of Combat - Run Militia talk'),
+(77678700, 9, 0, 0, 0, 0, 100, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 'Protector Brenolt - Militia talk - Protector Brenolt Say Line 0'),
+(77678700, 9, 1, 0, 0, 0, 100, 0, 6000, 6000, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 19, 776786, 15, 0, 0, 0, 0, 0, 0, 'Protector Brenolt - Militia talk - Captain Olens Say Line 0'),
+(77678700, 9, 2, 0, 0, 0, 100, 0, 6000, 6000, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 'Protector Brenolt - Militia talk - Protector Brenolt Say Line 1'),
+(77678700, 9, 3, 0, 0, 0, 100, 0, 6000, 6000, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 19, 776786, 15, 0, 0, 0, 0, 0, 0, 'Protector Brenolt - Militia talk - Captain Olens Say Line 1');
+
 DELETE FROM `npc_text` WHERE `ID`=9950100;
 INSERT INTO `npc_text` (`ID`, `text0_0`, `text0_1`, `BroadcastTextID0`, `lang0`, `Probability0`, `em0_0`, `em0_1`,
   `em0_2`, `em0_3`, `em0_4`, `em0_5`, `text1_0`, `text1_1`, `BroadcastTextID1`, `lang1`, `Probability1`, `em1_0`,
@@ -126,27 +148,28 @@ DELETE FROM `gossip_menu` WHERE `MenuID`=9950100;
 INSERT INTO `gossip_menu` (`MenuID`, `TextID`) VALUES
 (9950100, 9950100);
 
-DELETE FROM `creature` WHERE `guid` BETWEEN 9950100 AND 9950115;
+DELETE FROM `creature` WHERE `guid` BETWEEN 9950100 AND 9950116;
 INSERT INTO `creature` (`guid`, `id`, `map`, `zoneId`, `areaId`, `spawnMask`, `phaseMask`, `equipment_id`,
   `position_x`, `position_y`, `position_z`, `orientation`, `spawntimesecs`, `wander_distance`, `currentwaypoint`,
   `curhealth`, `curmana`, `MovementType`, `npcflag`, `unit_flags`, `dynamicflags`, `ScriptName`, `VerifiedBuild`,
   `CreateObject`, `Comment`) VALUES
-(9950100, 776786, 0, 40, 108, 1, 1, 0, -10722.5, 990, 36.2, 3.91, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Captain Olens (estimated position, training yard)'),
-(9950101, 255339, 0, 40, 108, 1, 1, 0, -10731.5, 978, 36.84, 2.7, 120, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Militia Recruit (estimated position, training yard)'),
+(9950100, 776786, 0, 40, 108, 1, 1, 0, -10722.5, 990.0, 36.2, 3.91, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Captain Olens (estimated position, training yard)'),
+(9950101, 255339, 0, 40, 108, 1, 1, 0, -10731.5, 978.0, 36.84, 2.7, 120, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Militia Recruit (estimated position, training yard)'),
 (9950102, 255339, 0, 40, 108, 1, 1, 0, -10740.5, 971.5, 36.92, 2.71, 120, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Militia Recruit (estimated position, training yard)'),
 (9950103, 255339, 0, 40, 108, 1, 1, 0, -10736.5, 975.5, 36.91, 3.43, 120, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Militia Recruit (estimated position, training yard)'),
 (9950104, 255339, 0, 40, 108, 1, 1, 0, -10737.5, 989.5, 36.73, 2.46, 120, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Militia Recruit (estimated position, training yard)'),
-(9950105, 255150, 0, 40, 108, 1, 1, 0, -10511.4, 1147.09, 40, 1.02, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Idona Wyther (estimated position, alchemist''s farmhouse)'),
+(9950105, 255150, 0, 40, 108, 1, 1, 0, -10511.37, 1147.09, 40.0, 1.02, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Idona Wyther (estimated position, alchemist''s farmhouse)'),
 (9950106, 776790, 0, 40, 108, 1, 1, 0, -10501.5, 1029.5, 60.6, 3.84, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Archivist Selnor (estimated position, tower floor)'),
-(9950107, 991515, 0, 40, 40, 1, 1, 0, -10259.3, 1780.44, 73.85, 5.82, 600, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Lenore the Hoarder (estimated position, Defias tower upper floor)'),
-(9950108, 157002, 0, 40, 921, 1, 1, 0, -11141, 1826, 39.15, 5.05, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Farmer Demont (estimated position, Demont''s Place ruins by the chimney)'),
-(9950109, 999900, 0, 40, 40, 1, 1, 0, -10100, 980, 40.37, 2.2, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Slain Protector (estimated position, broken harvester)'),
-(9950110, 999901, 0, 40, 922, 1, 1, 0, -11030, 790, 37.55, 1, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Half-Devoured Protector (estimated position, Riverpaw camp)'),
-(9950111, 255339, 0, 40, 108, 1, 1, 0, -10734, 985, 36.75, 3.5, 120, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Militia Recruit (estimated position, training yard)'),
-(9950112, 255339, 0, 40, 108, 1, 1, 0, -10733, 994.5, 36.22, 2.74, 120, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Militia Recruit (estimated position, training yard)'),
-(9950113, 255339, 0, 40, 108, 1, 1, 0, -10729, 990, 36.25, 2.46, 120, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Militia Recruit (estimated position, training yard)'),
+(9950107, 991515, 0, 40, 40, 1, 1, 0, -10259.31, 1780.44, 73.85, 5.82, 600, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Lenore the Hoarder (estimated position, Defias tower upper floor)'),
+(9950108, 157002, 0, 40, 921, 1, 1, 0, -11141.0, 1826.0, 39.15, 5.05, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Farmer Demont (estimated position, Demont''s Place ruins by the chimney)'),
+(9950109, 999900, 0, 40, 40, 1, 1, 0, -10100.0, 980.0, 40.37, 2.2, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Slain Protector (estimated position, broken harvester)'),
+(9950110, 999901, 0, 40, 922, 1, 1, 0, -11030.0, 790.0, 37.55, 1, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Half-Devoured Protector (estimated position, Riverpaw camp)'),
+(9950111, 255339, 0, 40, 108, 1, 1, 0, -10734.0, 985.0, 36.75, 3.5, 120, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Militia Recruit (estimated position, training yard)'),
+(9950112, 255339, 0, 40, 108, 1, 1, 0, -10733.0, 994.5, 36.22, 2.74, 120, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Militia Recruit (estimated position, training yard)'),
+(9950113, 255339, 0, 40, 108, 1, 1, 0, -10729.0, 990.0, 36.25, 2.46, 120, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Militia Recruit (estimated position, training yard)'),
 (9950114, 255339, 0, 40, 108, 1, 1, 0, -10738.5, 981.5, 36.88, 2.78, 120, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Militia Recruit (estimated position, training yard)'),
-(9950115, 255151, 0, 40, 108, 1, 1, 0, -10510, 1144.83, 40, 3.48, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Tavin Wyther (estimated position, alchemist''s farmhouse)');
+(9950115, 255151, 0, 40, 108, 1, 1, 0, -10509.95, 1144.83, 40.0, 3.48, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Tavin Wyther (estimated position, alchemist''s farmhouse)'),
+(9950116, 776787, 0, 40, 108, 1, 1, 0, -10724.26, 988.23, 36.25, 0.77, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Protector Brenolt (estimated position, training yard by Olens)');
 
 -- Westfall Hoard (480104): Ascension's object id for it is unknown.
 INSERT INTO `gameobject_template` (`entry`, `type`, `displayId`, `name`, `IconName`, `castBarCaption`, `unk1`,
@@ -189,9 +212,9 @@ DELETE FROM `gameobject` WHERE `guid` BETWEEN 9001100 AND 9001103;
 INSERT INTO `gameobject` (`guid`, `id`, `map`, `zoneId`, `areaId`, `spawnMask`, `phaseMask`, `position_x`,
   `position_y`, `position_z`, `orientation`, `rotation0`, `rotation1`, `rotation2`, `rotation3`, `spawntimesecs`,
   `animprogress`, `state`, `ScriptName`, `VerifiedBuild`, `Comment`) VALUES
-(9001100, 480101, 0, 40, 919, 1, 1, -10725, 1400, 36.38, 1.2, 0, 0, 0.564642, 0.825336, 900, 100, 1, '', 0, 'Pilfered Lesser Healing Potions (estimated position, Stendel''s Pond)'),
-(9001101, 480102, 0, 40, 111, 1, 1, -9995.5, 1471, 41.4, 2.5, 0, 0, 0.948985, 0.315322, 900, 100, 1, '', 0, 'Pilfered Minor Healing Potions (estimated position, Jangolode shed)'),
-(9001102, 480103, 0, 40, 40, 1, 1, -10140, 1723, 33.01, 4, 0, 0, 0.909297, -0.416147, 900, 100, 1, '', 0, 'Pilfered Elixirs (estimated position, by Sergeant Brashclaw)'),
+(9001100, 480101, 0, 40, 919, 1, 1, -10725.0, 1400.0, 36.38, 1.2, 0, 0, 0.564642, 0.825336, 900, 100, 1, '', 0, 'Pilfered Lesser Healing Potions (estimated position, Stendel''s Pond)'),
+(9001101, 480102, 0, 40, 111, 1, 1, -9995.5, 1471.0, 41.4, 2.5, 0, 0, 0.948985, 0.315322, 900, 100, 1, '', 0, 'Pilfered Minor Healing Potions (estimated position, Jangolode shed)'),
+(9001102, 480103, 0, 40, 40, 1, 1, -10140.0, 1723.0, 33.01, 4, 0, 0, 0.909297, -0.416147, 900, 100, 1, '', 0, 'Pilfered Elixirs (estimated position, by Sergeant Brashclaw)'),
 (9001103, 480104, 0, 40, 40, 1, 1, -10259.7, 1775.1, 73.85, 5.82, 0, 0, 0.229528, -0.973302, 900, 100, 1, '', 0, 'Westfall Hoard (estimated position, Defias tower upper floor)');
 
 -- 999914 and 999933 are autocomplete (Method 0) in the WDB capture; QuestType 2 keeps them in the log
