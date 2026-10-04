@@ -87,6 +87,31 @@ namespace
 // ScriptName on gameobject_template and gameobject rows of every pickup.
 constexpr char const* WorldforgedPickupScript = "worldforged_pickup";
 constexpr char const* WorldforgedLootTable = "character_worldforged_loot";
+std::unordered_map<uint32, uint32> WorldforgedRequiredLevels;
+
+uint32 GetWorldforgedRequiredLevel(uint32 entry)
+{
+    auto itr = WorldforgedRequiredLevels.find(entry);
+    return itr != WorldforgedRequiredLevels.end() ? itr->second : 0;
+}
+
+void LoadWorldforgedRequiredLevels()
+{
+    WorldforgedRequiredLevels.clear();
+    if (QueryResult result = WorldDatabase.Query(
+            "SELECT `gameobject_template`.`entry`, MAX(`item_template`.`RequiredLevel`) "
+            "FROM `gameobject_template` "
+            "INNER JOIN `gameobject_loot_template` ON `gameobject_loot_template`.`Entry` = `gameobject_template`.`Data1` "
+            "INNER JOIN `item_template` ON `item_template`.`entry` = `gameobject_loot_template`.`Item` "
+            "WHERE `gameobject_template`.`ScriptName` = '{}' "
+            "GROUP BY `gameobject_template`.`entry`", WorldforgedPickupScript))
+    {
+        do
+        {
+            WorldforgedRequiredLevels[(*result)[0].Get<uint32>()] = (*result)[1].Get<uint32>();
+        } while (result->NextRow());
+    }
+}
 
 [[nodiscard]] bool IsWorldforgedPickup(GameObject const* go)
 {
@@ -200,6 +225,12 @@ public:
         if (!target)
             return;
 
+        if (target->GetLevel() < GetWorldforgedRequiredLevel(me->GetEntry()))
+        {
+            goFlags |= GO_FLAG_LOCKED | GO_FLAG_NOT_SELECTABLE;
+            return;
+        }
+
         if (WorldforgedLootStore::Instance().HasLooted(target->GetGUID().GetCounter(), me->GetSpawnId()))
         {
             goFlags |= GO_FLAG_LOCKED | GO_FLAG_NOT_SELECTABLE;
@@ -215,6 +246,9 @@ public:
     bool GossipHello(Player* player, bool /*reportUse*/) override
     {
         if (!player)
+            return true;
+
+        if (player->GetLevel() < GetWorldforgedRequiredLevel(me->GetEntry()))
             return true;
 
         if (!WorldforgedLootStore::Instance().HasLooted(player->GetGUID().GetCounter(), me->GetSpawnId()))
@@ -305,7 +339,10 @@ public:
             return false;
 
         GameObject* go = player->GetMap()->GetGameObject(source);
-        return IsWorldforgedPickup(go) &&
+        if (!IsWorldforgedPickup(go))
+            return false;
+
+        return player->GetLevel() < GetWorldforgedRequiredLevel(go->GetEntry()) ||
             WorldforgedLootStore::Instance().HasLooted(player->GetGUID().GetCounter(), go->GetSpawnId());
     }
 };
@@ -345,6 +382,17 @@ public:
         go->ForceValuesUpdateAtIndex(GAMEOBJECT_DYNAMIC);
     }
 };
+
+class worldforged_pickup_startup : public WorldScript
+{
+public:
+    worldforged_pickup_startup() : WorldScript("worldforged_pickup_startup") { }
+
+    void OnStartup() override
+    {
+        LoadWorldforgedRequiredLevels();
+    }
+};
 }
 
 void AddWorldforgedPickupsScripts()
@@ -352,4 +400,5 @@ void AddWorldforgedPickupsScripts()
     new worldforged_pickup_script();
     new worldforged_pickup_loot_veto();
     new worldforged_pickup_lifecycle();
+    new worldforged_pickup_startup();
 }
