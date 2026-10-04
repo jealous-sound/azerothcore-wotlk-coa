@@ -23,6 +23,11 @@ bool IsKind(uint32 creatureEntry, uint32 kind)
     return creature && creature->type == kind;
 }
 
+bool IsHunterPetOfKind(PetStable::PetInfo const& pet, uint32 kind)
+{
+    return pet.Type == HUNTER_PET && IsKind(pet.CreatureId, kind);
+}
+
 void MoveToSlot(Player* player, uint32 petNumber, PetSaveMode slot)
 {
     CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_CHAR_PET_SLOT_BY_ID);
@@ -34,74 +39,138 @@ void MoveToSlot(Player* player, uint32 petNumber, PetSaveMode slot)
 
 std::optional<std::size_t> FreeStableSlot(PetStable const& stable)
 {
-    for (std::size_t slot = 0; slot < stable.StabledPets.size(); ++slot)
+    for (std::size_t slot = 0; slot < stable.MaxStabledPets && slot < stable.StabledPets.size(); ++slot)
         if (!stable.StabledPets[slot])
             return slot;
     return std::nullopt;
 }
 
-void Park(Player* player, PetStable& stable, PetStable::PetInfo pet)
+void StableUnslottedHunterPets(Player* player, PetStable& stable)
 {
-    if (std::optional<std::size_t> const slot = FreeStableSlot(stable))
+    for (auto pet = stable.UnslottedPets.begin(); pet != stable.UnslottedPets.end();)
     {
-        MoveToSlot(player, pet.PetNumber, PetSaveMode(PET_SAVE_FIRST_STABLE_SLOT + *slot));
-        stable.StabledPets[*slot] = std::move(pet);
+        std::optional<std::size_t> const slot = pet->Type == HUNTER_PET ? FreeStableSlot(stable) : std::nullopt;
+        if (!slot)
+        {
+            ++pet;
+            continue;
+        }
+        MoveToSlot(player, pet->PetNumber, PetSaveMode(PET_SAVE_FIRST_STABLE_SLOT + *slot));
+        stable.StabledPets[*slot] = std::move(*pet);
+        pet = stable.UnslottedPets.erase(pet);
+    }
+}
+
+bool HasUnslottedHunterPet(PetStable const& stable)
+{
+    for (PetStable::PetInfo const& pet : stable.UnslottedPets)
+        if (pet.Type == HUNTER_PET)
+            return true;
+    return false;
+}
+
+bool CanLoad(Player* player, PetStable::PetInfo const& pet)
+{
+    if (!pet.Health)
+    {
+        player->SendTameFailure(PET_TAME_DEAD);
+        return false;
+    }
+    CreatureTemplate const* creature = sObjectMgr->GetCreatureTemplate(pet.CreatureId);
+    if (!creature || !creature->IsTameable(player->CanTameExoticPets()))
+    {
+        player->SendTameFailure(creature && creature->IsTameable(true) ? PET_TAME_CANT_CONTROL_EXOTIC
+                                                                         : PET_TAME_NOPET_AVAILABLE);
+        return false;
+    }
+    return true;
+}
+
+struct Plan
+{
+    std::optional<std::size_t> WantedSlot;
+    std::optional<std::size_t> WantedUnslotted;
+    std::optional<std::size_t> ParkSlot;
+
+    bool HasWanted() const { return WantedSlot || WantedUnslotted; }
+};
+
+SpellCastResult MakePlan(Player* player, PetStable const& stable, Pet const* out, uint32 kind, Plan& plan)
+{
+    for (std::size_t slot = 0; slot < stable.StabledPets.size() && !plan.HasWanted(); ++slot)
+        if (stable.StabledPets[slot] && IsHunterPetOfKind(*stable.StabledPets[slot], kind))
+            plan.WantedSlot = slot;
+    for (std::size_t index = 0; index < stable.UnslottedPets.size() && !plan.HasWanted(); ++index)
+        if (IsHunterPetOfKind(stable.UnslottedPets[index], kind))
+            plan.WantedUnslotted = index;
+
+    if (plan.WantedSlot && !CanLoad(player, *stable.StabledPets[*plan.WantedSlot]))
+        return SPELL_FAILED_DONT_REPORT;
+    if (plan.WantedUnslotted && !CanLoad(player, stable.UnslottedPets[*plan.WantedUnslotted]))
+        return SPELL_FAILED_DONT_REPORT;
+
+    if (out ? out->getPetType() != HUNTER_PET : !stable.CurrentPet || stable.CurrentPet->Type != HUNTER_PET)
+        return SPELL_CAST_OK;
+
+    if (out ? !out->IsAlive() : !stable.CurrentPet->Health)
+    {
+        player->SendTameFailure(PET_TAME_DEAD);
+        return SPELL_FAILED_DONT_REPORT;
+    }
+    plan.ParkSlot = plan.WantedSlot ? plan.WantedSlot : FreeStableSlot(stable);
+    if (!plan.ParkSlot)
+    {
+        player->SendTameFailure(PET_TAME_TOO_MANY);
+        return SPELL_FAILED_DONT_REPORT;
+    }
+    return SPELL_CAST_OK;
+}
+
+void ParkCurrent(Player* player, PetStable& stable, Pet* out, std::optional<std::size_t> slot)
+{
+    if (!slot)
+    {
+        if (out)
+            player->RemovePet(out, PET_SAVE_NOT_IN_SLOT);
+        else if (stable.CurrentPet)
+        {
+            MoveToSlot(player, stable.CurrentPet->PetNumber, PET_SAVE_NOT_IN_SLOT);
+            stable.UnslottedPets.push_back(std::move(*stable.CurrentPet));
+            stable.CurrentPet.reset();
+        }
         return;
     }
-    MoveToSlot(player, pet.PetNumber, PET_SAVE_NOT_IN_SLOT);
-    stable.UnslottedPets.push_back(std::move(pet));
+
+    PetSaveMode const mode = PetSaveMode(PET_SAVE_FIRST_STABLE_SLOT + *slot);
+    if (out)
+        player->RemovePet(out, mode);
+    else
+        MoveToSlot(player, stable.CurrentPet->PetNumber, mode);
+    std::swap(stable.StabledPets[*slot], stable.CurrentPet);
 }
 
-std::optional<PetStable::PetInfo> TakeStored(PetStable& stable, uint32 kind)
+void Swap(Player* player, PetStable& stable, Pet* out, Plan const& plan)
 {
-    for (std::optional<PetStable::PetInfo>& stabled : stable.StabledPets)
-        if (stabled && IsKind(stabled->CreatureId, kind))
-        {
-            std::optional<PetStable::PetInfo> taken = std::move(stabled);
-            stabled.reset();
-            return taken;
-        }
-    for (auto pet = stable.UnslottedPets.begin(); pet != stable.UnslottedPets.end(); ++pet)
-        if (IsKind(pet->CreatureId, kind))
-        {
-            PetStable::PetInfo taken = std::move(*pet);
-            stable.UnslottedPets.erase(pet);
-            return taken;
-        }
-    return std::nullopt;
-}
-
-bool Prepare(Player* player, FamilyCall const& call)
-{
-    PetStable& stable = player->GetOrInitPetStable();
-    while (!stable.UnslottedPets.empty() && FreeStableSlot(stable))
+    PetStable::PetInfo wanted;
+    if (plan.WantedSlot)
     {
-        PetStable::PetInfo pet = std::move(stable.UnslottedPets.back());
-        stable.UnslottedPets.pop_back();
-        Park(player, stable, std::move(pet));
+        wanted = std::move(*stable.StabledPets[*plan.WantedSlot]);
+        stable.StabledPets[*plan.WantedSlot].reset();
+    }
+    else
+    {
+        wanted = std::move(stable.UnslottedPets[*plan.WantedUnslotted]);
+        stable.UnslottedPets.erase(stable.UnslottedPets.begin() + *plan.WantedUnslotted);
     }
 
-    if (stable.CurrentPet && IsKind(stable.CurrentPet->CreatureId, call.Kind))
-        return true;
-
-    std::optional<PetStable::PetInfo> wanted = TakeStored(stable, call.Kind);
-    if (stable.CurrentPet)
-    {
-        PetStable::PetInfo current = std::move(*stable.CurrentPet);
-        stable.CurrentPet.reset();
-        Park(player, stable, std::move(current));
-    }
-    if (!wanted)
-        return false;
-
-    MoveToSlot(player, wanted->PetNumber, PET_SAVE_AS_CURRENT);
+    ParkCurrent(player, stable, out, plan.ParkSlot);
+    MoveToSlot(player, wanted.PetNumber, PET_SAVE_AS_CURRENT);
     stable.CurrentPet = std::move(wanted);
-    return true;
 }
 
 bool GrantStarter(Player* player, FamilyCall const& call)
 {
-    if (!call.Starter || player->GetPetGUID())
+    if (player->GetPetGUID())
         return false;
     Pet* pet = player->CreateTamedPetFrom(call.Starter, call.SpellId);
     if (!pet)
@@ -137,18 +206,41 @@ class spell_ascension_family_call : public SpellScript
         if (!player || !call || !AscensionWildcard::IsClasslessHero(player))
             return SPELL_CAST_OK;
 
-        if (Pet* out = player->GetPet())
+        if (player->GetCharmGUID())
+            return SPELL_CAST_OK;
+
+        PetStable& stable = player->GetOrInitPetStable();
+        Pet* out = player->GetPet();
+        if (out ? out->getPetType() == HUNTER_PET && IsKind(out->GetEntry(), call->Kind)
+                : stable.CurrentPet && IsHunterPetOfKind(*stable.CurrentPet, call->Kind))
+            return SPELL_CAST_OK;
+
+        StableUnslottedHunterPets(player, stable);
+
+        Plan plan;
+        if (SpellCastResult const result = MakePlan(player, stable, out, call->Kind, plan); result != SPELL_CAST_OK)
+            return result;
+
+        if (plan.HasWanted())
         {
-            if (IsKind(out->GetEntry(), call->Kind))
-                return SPELL_CAST_OK;
-            player->RemovePet(out, PET_SAVE_AS_CURRENT);
+            Swap(player, stable, out, plan);
+            return SPELL_CAST_OK;
         }
 
-        if (Prepare(player, *call))
-            return SPELL_CAST_OK;
-        if (GrantStarter(player, *call))
+        if (!call->Starter || !sObjectMgr->GetCreatureTemplate(call->Starter))
+        {
+            player->SendTameFailure(PET_TAME_NOPET_AVAILABLE);
             return SPELL_FAILED_DONT_REPORT;
-        return SPELL_CAST_OK;
+        }
+        if (HasUnslottedHunterPet(stable))
+        {
+            player->SendTameFailure(PET_TAME_TOO_MANY);
+            return SPELL_FAILED_DONT_REPORT;
+        }
+
+        ParkCurrent(player, stable, out, plan.ParkSlot);
+        GrantStarter(player, *call);
+        return SPELL_FAILED_DONT_REPORT;
     }
 
     void Register() override
@@ -167,7 +259,7 @@ public:
         FamilyCall const* call = FindFamilyCall(spellId);
         if (!call || !AscensionWildcard::IsClasslessHero(player))
             return;
-        if (Pet* out = player->GetPet(); out && IsKind(out->GetEntry(), call->Kind))
+        if (Pet* out = player->GetPet(); out && out->getPetType() == HUNTER_PET && IsKind(out->GetEntry(), call->Kind))
             player->RemovePet(out, PET_SAVE_AS_CURRENT);
     }
 };
