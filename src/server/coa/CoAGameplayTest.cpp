@@ -2749,7 +2749,7 @@ private:
             metric == "pet_aura_amplitude_ms" || metric == "pet_aura_duration_ms" || metric == "pet_max_health" ||
             metric == "pet_attack_power" || metric == "pet_run_speed_rate" || metric == "pet_is_banker" ||
             metric == "pet_display" || metric == "pet_scale" || metric == "pet_knows_spell" ||
-            metric == "pet_distance")
+            metric == "pet_distance" || metric == "pet_spell_bar_count")
         {
             Creature* pet = player->GetGuardianPet();
             if (!pet)
@@ -2764,6 +2764,18 @@ private:
                 return pet ? pet->GetDisplayId() : 0;
             if (metric == "pet_scale")
                 return pet ? double(pet->GetObjectScale()) : 0.0;
+            if (metric == "pet_spell_bar_count")
+            {
+                Require(pet && pet->GetCharmInfo(), "Metric needs a controllable pet");
+                uint32 count = 0;
+                for (uint8 index = 0; index < MAX_UNIT_ACTION_BAR_INDEX; ++index)
+                {
+                    UnitActionBarEntry const* entry = pet->GetCharmInfo()->GetActionBarEntry(index);
+                    if (entry->IsActionBarForSpell() && entry->GetAction())
+                        ++count;
+                }
+                return count;
+            }
             if (metric == "pet_knows_spell")
                 return pet && pet->IsPet() && pet->ToPet()->HasSpell(spell);
             if (!pet && (metric == "pet_aura_stacks" || metric == "pet_aura_amount" ||

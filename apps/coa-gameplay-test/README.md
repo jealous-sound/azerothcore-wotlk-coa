@@ -712,6 +712,8 @@ client draws.
 (a minipet, which never occupies the guardian slot), or zero if absent; `pet_display`, `pet_scale`
 and `pet_is_banker` read the same unit, and `pet_distance` is its 2D distance from the player in yards.
 `pet_knows_spell` requires `spell` and is 1 when that unit is a pet whose spellbook holds it.
+`pet_spell_bar_count` counts nonempty spell entries in the current controllable pet's native action bar;
+commands and reactions are excluded. It requires a pet with charm information and does not read rendered UI.
 `bank_shows` counts the native bank windows the actor's session has been sent, which is what a
 banker click is answered with. `system_messages` counts the chat lines the session has been sent.
 `whispers_received` counts whispers the actor received from player `from` with exactly `text`.
