@@ -10,7 +10,9 @@
 #include "SpellAuraEffects.h"
 #include "SpellAuras.h"
 #include "SpellMgr.h"
+#include "SpellScript.h"
 #include <algorithm>
+#include <array>
 #include <cstdlib>
 
 namespace
@@ -267,21 +269,6 @@ class witch_doctor_casts : public AllSpellScript
             }
         if (damage && (Family(info, 0, 4) || id == ShadowflareHit) && !target->IsAlive())
             GainSpirit(player);
-        if (Family(info, 0, 4) && player->HasAura(DarkIncantation) && damage)
-        {
-            uint64 hitCount = spell->GetScriptValue(DarkIncantation) + 1;
-            spell->SetScriptValue(DarkIncantation, hitCount);
-            if (hitCount < 3)
-                spell->SetScriptValue(hitCount == 1 ? Shadowflare : ShadowflareHit, target->GetGUID().GetRawValue());
-            else
-            {
-                if (hitCount == 3)
-                    for (uint32 key : {Shadowflare, ShadowflareHit})
-                        if (Unit* previous = ObjectAccessor::GetUnit(*player, ObjectGuid(spell->GetScriptValue(key))))
-                            Cast(player, previous, KnownRank(player, Hex));
-                Cast(player, target, KnownRank(player, Hex));
-            }
-        }
         if (damage && id == BottleDamage && player->HasAura(Touch))
             Cast(player, target, TouchDebuff);
         if (id == Umbral)
@@ -404,6 +391,45 @@ class witch_doctor_casts : public AllSpellScript
     }
 };
 
+class spell_ascension_witch_doctor_dark_incantation : public SpellScript
+{
+    PrepareSpellScript(spell_ascension_witch_doctor_dark_incantation);
+
+    bool Validate(SpellInfo const* info) override
+    {
+        return Family(info, 0, 4) && ValidateSpellInfo({DarkIncantation, Hex});
+    }
+
+    void ApplyHex()
+    {
+        Player* player = GetCaster()->ToPlayer();
+        Unit* target = GetHitUnit();
+        if (!player || !target || !player->HasAura(DarkIncantation) || GetHitDamage() <= 0 ||
+            player->IsFriendlyTo(target))
+            return;
+
+        if (_hitCount < _previous.size())
+            _previous[_hitCount] = target->GetGUID();
+        if (++_hitCount < 3)
+            return;
+
+        uint32 const hex = KnownRank(player, Hex);
+        if (_hitCount == 3)
+            for (ObjectGuid const& guid : _previous)
+                if (Unit* previous = ObjectAccessor::GetUnit(*player, guid))
+                    Cast(player, previous, hex);
+        Cast(player, target, hex);
+    }
+
+    void Register() override
+    {
+        AfterHit += SpellHitFn(spell_ascension_witch_doctor_dark_incantation::ApplyHex);
+    }
+
+    std::array<ObjectGuid, 2> _previous{};
+    uint32 _hitCount = 0;
+};
+
 class witch_doctor_spell_contracts : public GlobalScript
 {
   public:
@@ -427,5 +453,6 @@ class witch_doctor_spell_contracts : public GlobalScript
 void AddAscensionWitchDoctorAbilityScripts()
 {
     new witch_doctor_casts();
+    RegisterSpellScript(spell_ascension_witch_doctor_dark_incantation);
     new witch_doctor_spell_contracts();
 }
