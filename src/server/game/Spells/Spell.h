@@ -308,6 +308,7 @@ public:
     void EffectUnused(SpellEffIndex effIndex);
     void EffectAscensionModifyCooldown(SpellEffIndex effIndex);
     void EffectAscensionRestoreBaseManaPct(SpellEffIndex effIndex);
+    void EffectAscensionPlaySpellVisualKit(SpellEffIndex effIndex);
     void EffectAscensionRefreshAura(SpellEffIndex effIndex);
     void EffectAscensionModifyAuraStacks(SpellEffIndex effIndex);
     void EffectAscensionModifyAuraStacksBySpell(SpellEffIndex effIndex);

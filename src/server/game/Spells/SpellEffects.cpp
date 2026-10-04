@@ -237,7 +237,7 @@ pEffect SpellEffects[TOTAL_SPELL_EFFECTS] =
     &Spell::EffectAscensionModifyCooldown,                  //165 SPELL_EFFECT_ASCENSION_MODIFY_COOLDOWN
     &Spell::EffectAscensionRestoreBaseManaPct,              //166 SPELL_EFFECT_ASCENSION_RESTORE_BASE_MANA_PCT
     &Spell::EffectNULL,                                     //167 unknown Ascension effect
-    &Spell::EffectNULL,                                     //168 unknown Ascension effect
+    &Spell::EffectAscensionPlaySpellVisualKit,              //168 SPELL_EFFECT_ASCENSION_PLAY_SPELL_VISUAL_KIT
     &Spell::EffectNULL,                                     //169 SPELL_EFFECT_ASCENSION_SPREAD_AURA
     &Spell::EffectNULL,                                     //170 SPELL_EFFECT_ASCENSION_SPREAD_AURA_2
     &Spell::EffectNULL,                                     //171 unknown Ascension effect
@@ -379,6 +379,15 @@ void Spell::EffectAscensionModifyCooldown(SpellEffIndex effIndex)
     Player* player = target ? target->ToPlayer() : nullptr;
     SpellEffectInfo const& effect = m_spellInfo->Effects[effIndex];
     ModifyAscensionCooldown(player, effect.MiscValue, damage, effect.MiscValueB != 0);
+}
+
+void Spell::EffectAscensionPlaySpellVisualKit(SpellEffIndex effIndex)
+{
+    if (effectHandleMode != SPELL_EFFECT_HANDLE_HIT_TARGET || !unitTarget)
+        return;
+
+    if (uint32 kit = uint32(m_spellInfo->Effects[effIndex].MiscValue))
+        unitTarget->SendPlaySpellVisual(kit);
 }
 
 void Spell::EffectAscensionRestoreBaseManaPct(SpellEffIndex /*effIndex*/)
