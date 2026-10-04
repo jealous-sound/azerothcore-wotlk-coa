@@ -64,7 +64,10 @@ Objects left in a different map expire naturally and provide no registered camp 
 Campfire/Shelter/Hearthstead radii are 15/20/25 yards. Visible nearby camps serve human characters;
 camp recovery requires sitting outside combat. Native health and mana regeneration increase by 200%,
 and vigor recovery receives an additional 1.5/2/2.5 multiplier. Rested XP accumulates at
-25/40/55% of the next level per hour of active camp rest, subject to the core's rested-XP cap.
+the full configured rested-XP cap per five minutes of active camp rest for every camp tier.
+CoANeeds.CampRestFillSeconds defaults to 300. The rate follows the core's Rate.Rest.MaxBonus
+and next-level XP; existing rested XP shortens the time to full. Standing or combat pauses
+camp accrual, and maximum-level characters receive no rested XP.
 Global hunger/hydration drain and severe dehydration damage pause while near a live camp.
 Survivalist challenge hunger/thirst rules continue to control their own counters.
 

@@ -19,6 +19,7 @@
 #include "WorldPacket.h"
 #include "WorldSession.h"
 #include "Weather.h"
+#include "World.h"
 
 #include <algorithm>
 #include <array>
@@ -62,6 +63,7 @@ struct Options
     float regen = 8.0f;
     float sprintDrain = 10.0f;
     uint32 campLifetime = 3600;
+    uint32 campRestFillSeconds = 300;
     bool weather = true;
     bool injuries = true;
     bool tools = true;
@@ -370,7 +372,8 @@ void RestAtCamp(Player* player, State& state, int32 tier, uint32 elapsed)
         return;
     }
     float seconds = elapsed / 1000.0f;
-    float rested = player->GetUInt32Value(PLAYER_NEXT_LEVEL_XP) * (0.25f + 0.15f * tier) * seconds / 3600.0f;
+    float restedCap = player->GetUInt32Value(PLAYER_NEXT_LEVEL_XP) * sWorld->getRate(RATE_REST_MAX_BONUS) / 2.0f;
+    float rested = restedCap * seconds / Config.campRestFillSeconds;
     player->SetRestBonus(player->GetRestBonus() + rested);
     state.socialTick += elapsed;
     if (state.socialTick < 30000)
@@ -565,6 +568,8 @@ public:
         Config.sprintDrain = std::max(0.0f, sConfigMgr->GetOption<float>("CoANeeds.SprintDrainPerSecond", 10.0f));
         Config.campLifetime = std::clamp(sConfigMgr->GetOption<uint32>("CoANeeds.CampLifetimeSeconds", 3600),
             60u, 86400u);
+        Config.campRestFillSeconds = std::clamp(
+            sConfigMgr->GetOption<uint32>("CoANeeds.CampRestFillSeconds", 300), 1u, 86400u);
         Config.weather = sConfigMgr->GetOption<bool>("CoANeeds.Weather.Enable", true);
         Config.injuries = sConfigMgr->GetOption<bool>("CoANeeds.Injuries.Enable", true);
         Config.tools = sConfigMgr->GetOption<bool>("CoANeeds.Tools.Enable", true);

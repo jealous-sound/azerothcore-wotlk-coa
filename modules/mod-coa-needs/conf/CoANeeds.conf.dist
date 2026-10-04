@@ -8,6 +8,7 @@ CoANeeds.DrinkFill = 55.0
 CoANeeds.VigorRegenPerSecond = 8.0
 CoANeeds.SprintDrainPerSecond = 10.0
 CoANeeds.CampLifetimeSeconds = 3600
+CoANeeds.CampRestFillSeconds = 300
 CoANeeds.Weather.Enable = 1
 CoANeeds.Injuries.Enable = 1
 CoANeeds.Tools.Enable = 1
