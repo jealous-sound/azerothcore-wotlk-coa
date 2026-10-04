@@ -369,6 +369,11 @@ constexpr uint32 ITEM_FIX_O_TRON_5000 = 97330;
 constexpr std::size_t COMPANION_SPELLS_PER_BATCH = 4;
 constexpr uint32 COMPANION_SPELL_BATCH_INTERVAL_MS = 200;
 
+bool IsVanityItemUnlocked(bool owned, bool unlockAll, bool mount, bool unlockAllMounts)
+{
+    return owned || (unlockAll && (!mount || unlockAllMounts));
+}
+
 enum AscensionRidingSpells : uint32
 {
     SPELL_RIDING_APPRENTICE = 33388,
@@ -387,6 +392,7 @@ enum class AscensionCompatConfig {
   UNLOCK_LOCAL_APPEARANCE_CATALOG,
   APPEARANCE_CATALOG_PER_CATEGORY,
   UNLOCK_ALL_VANITY,
+  UNLOCK_ALL_VANITY_MOUNTS,
   REALM_TYPE,
   CLASS_MODEL,
   ALLOW_LEARNED_SPELL_DELIVERY,
@@ -422,12 +428,14 @@ public:
                          "CoA.AutoCollectAppearances", true);
     SetConfigValue<bool>(
         AscensionCompatConfig::UNLOCK_LOCAL_APPEARANCE_CATALOG,
-        "CoA.UnlockLocalAppearanceCatalog", true);
+        "CoA.UnlockLocalAppearanceCatalog", false);
     SetConfigValue<uint32>(
         AscensionCompatConfig::APPEARANCE_CATALOG_PER_CATEGORY,
         "CoA.AppearanceCatalogPerCategory", 500);
     SetConfigValue<bool>(AscensionCompatConfig::UNLOCK_ALL_VANITY,
                          "CoA.UnlockAllVanity", true);
+    SetConfigValue<bool>(AscensionCompatConfig::UNLOCK_ALL_VANITY_MOUNTS,
+                         "CoA.UnlockAllVanityMounts", false);
     SetConfigValue<std::string>(AscensionCompatConfig::REALM_TYPE,
                                 "CoA.RealmType", "live");
     SetConfigValue<std::string>(AscensionCompatConfig::CLASS_MODEL,
@@ -440,7 +448,7 @@ public:
     SetConfigValue<bool>(AscensionCompatConfig::LEARN_OWNED_COMPANIONS,
                          "CoA.LearnOwnedCompanions", true);
     SetConfigValue<bool>(AscensionCompatConfig::MAX_RIDING_FROM_START,
-                         "CoA.MaxRidingFromStart", true);
+                         "CoA.MaxRidingFromStart", false);
     SetConfigValue<bool>(AscensionCompatConfig::QUEST_LEVEL_SCALING,
                          "CoA.QuestLevelScaling", true);
     SetConfigValue<bool>(AscensionCompatConfig::AUTO_PROGRESSION,
@@ -3881,7 +3889,17 @@ public:
     void InitializeRiding(Player* player) const
     {
         if (!ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::MAX_RIDING_FROM_START))
+        {
+            if (player->GetLevel() < 20 && player->GetSkillValue(SKILL_RIDING))
+            {
+                for (uint32 spellId : {SPELL_RIDING_APPRENTICE, SPELL_RIDING_JOURNEYMAN,
+                    SPELL_RIDING_EXPERT, SPELL_RIDING_ARTISAN, SPELL_COLD_WEATHER_FLYING})
+                    player->removeSpell(spellId, SPEC_MASK_ALL, false);
+
+                player->SetSkill(SKILL_RIDING, 0, 0, 0);
+            }
             return;
+        }
 
         for (uint32 spellId : {SPELL_RIDING_APPRENTICE, SPELL_RIDING_JOURNEYMAN,
             SPELL_RIDING_EXPERT, SPELL_RIDING_ARTISAN, SPELL_COLD_WEATHER_FLYING})
@@ -3893,11 +3911,28 @@ public:
 
     void PrepareOwnedCompanionsBeforeMap(Player* player)
     {
-        if (!_clientDataLoaded || player->GetSession()->IsBot() || player->IsInWorld() || !player->GetSession()->PlayerLoading() ||
-            !ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::LEARN_OWNED_COMPANIONS))
+        if (!_clientDataLoaded || player->GetSession()->IsBot() || player->IsInWorld() ||
+            !player->GetSession()->PlayerLoading())
             return;
 
         std::shared_ptr<PlayerCollectionState const> const state = LoginState(player);
+        if (!ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::UNLOCK_ALL_VANITY_MOUNTS))
+        {
+            std::unordered_set<uint32> ownedMountSpells;
+            for (auto const& [itemId, vanity] : _vanityItems)
+                if ((vanity.CategoryMask & VANITY_CATEGORY_MOUNTS) &&
+                    state->OwnedVanityItems.contains(itemId) && vanity.LearnedSpell)
+                    ownedMountSpells.insert(vanity.LearnedSpell);
+
+            for (auto const& [itemId, vanity] : _vanityItems)
+                if ((vanity.CategoryMask & VANITY_CATEGORY_MOUNTS) && vanity.LearnedSpell &&
+                    !ownedMountSpells.contains(vanity.LearnedSpell) && player->HasSpell(vanity.LearnedSpell))
+                    player->removeSpell(vanity.LearnedSpell, SPEC_MASK_ALL, false);
+        }
+
+        if (!ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::LEARN_OWNED_COMPANIONS))
+            return;
+
         std::vector<uint32> const spells = GetMissingOwnedCompanionSpells(player, *state);
         std::size_t learned = 0;
         for (uint32 spellId : spells)
@@ -4007,12 +4042,15 @@ public:
             return spells;
 
         bool const unlockAll = ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::UNLOCK_ALL_VANITY);
+        bool const unlockAllMounts = ascensionCompatConfig.GetConfigValue<bool>(
+            AscensionCompatConfig::UNLOCK_ALL_VANITY_MOUNTS);
         for (auto const& [itemId, vanity] : _vanityItems)
         {
             bool const utilityCompanion = itemId == ITEM_WONDROUS_WISDOMBALL || itemId == ITEM_FIX_O_TRON_5000;
+            bool const mount = (vanity.CategoryMask & VANITY_CATEGORY_MOUNTS) != 0;
             if (!(vanity.CategoryMask & (VANITY_CATEGORY_MOUNTS | VANITY_CATEGORY_COMPANIONS)) && !utilityCompanion)
                 continue;
-            if ((!unlockAll && !state.OwnedVanityItems.contains(itemId)) ||
+            if (!IsVanityItemUnlocked(state.OwnedVanityItems.contains(itemId), unlockAll, mount, unlockAllMounts) ||
                 std::binary_search(AscensionCollectibles::SigilSpells.begin(),
                     AscensionCollectibles::SigilSpells.end(), vanity.LearnedSpell) ||
                 !vanity.LearnedSpell || player->HasSpell(vanity.LearnedSpell) ||
@@ -5101,9 +5139,18 @@ private:
     {
       vanityItems = _allVanityItemIds;
 
+      bool const unlockAllMounts = ascensionCompatConfig.GetConfigValue<bool>(
+          AscensionCompatConfig::UNLOCK_ALL_VANITY_MOUNTS);
+
       vanityItems.erase(
           std::remove_if(vanityItems.begin(), vanityItems.end(),
-                         [](uint32 itemId) { return IsBankVanityItem(itemId); }),
+                         [this, unlockAllMounts](uint32 itemId) {
+                           auto const vanity = _vanityItems.find(itemId);
+                           bool const mount = vanity != _vanityItems.end() &&
+                               (vanity->second.CategoryMask & VANITY_CATEGORY_MOUNTS) != 0;
+                           return IsBankVanityItem(itemId) ||
+                               !IsVanityItemUnlocked(false, true, mount, unlockAllMounts);
+                         }),
           vanityItems.end());
 
       for (uint32 itemId : state.OwnedVanityItems)

@@ -35,15 +35,16 @@ CoA.CharacterSelectionMaxActive = 128
 # Automatically add appearance and vanity entries for items obtained by a character.
 CoA.AutoCollectAppearances = 1
 
-# Solo-server convenience: unlock the complete local appearance catalog. The
-# per-category value balances the initial snapshot; remaining appearances are
-# streamed afterward to stay below the legacy client's 64 KiB packet limit.
-CoA.UnlockLocalAppearanceCatalog = 1
+# Unlock the complete local appearance catalog. The per-category value balances
+# the initial snapshot; remaining appearances are streamed afterward.
+CoA.UnlockLocalAppearanceCatalog = 0
 CoA.AppearanceCatalogPerCategory = 500
 
-# Solo-server convenience: expose every static VanityCollection entry as account-owned.
+# Expose static VanityCollection entries as account-owned.
 # Custom Ascension-only entries still require matching server item/spell templates to deliver.
 CoA.UnlockAllVanity = 1
+# Mount entries remain earned unless explicitly enabled here.
+CoA.UnlockAllVanityMounts = 0
 
 # If a vanity item has no server item template but its DBC row names a valid spell,
 # learn that spell directly when delivery is requested.
@@ -53,9 +54,8 @@ CoA.AllowLearnedSpellDelivery = 1
 # Ownership remains unchanged. Entries without a local spell are not invented.
 CoA.LearnOwnedCompanions = 1
 
-# Solo-server convenience: all riding ranks (300/300) and Cold Weather Flying
-# from the first login, including level-one characters. No profession grants.
-CoA.MaxRidingFromStart = 1
+# Grant all riding ranks (300/300) and Cold Weather Flying from first login.
+CoA.MaxRidingFromStart = 0
 
 # Give a character that carries none of the three PvP ruleset auras the PvE set at login,
 # because character creation grants no ruleset and the client's selection frame is level- and

@@ -15,6 +15,7 @@
 #include <string>
 #include <string_view>
 #include <type_traits>
+#include "Tokenize.h"
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -272,6 +273,7 @@ struct ServerScript
 namespace
 {
 // ACTUAL_OPCODES
+// ACTUAL_VANITY_UNLOCK_POLICY
 // ACTUAL_QUEUE_LIMIT
 // ACTUAL_CONFIG_KEYS
 
@@ -958,6 +960,15 @@ void TestVanityDelivery()
     Check(ignored == Delivery{},
         "Seasonal Points, Bazaar Tokens, unknown currencies and malformed requests deliver nothing");
 }
+
+void TestVanityUnlockPolicy()
+{
+    Check(IsVanityItemUnlocked(true, false, true, false), "earned mount vanity stays unlocked");
+    Check(IsVanityItemUnlocked(false, true, false, false), "companion vanity remains available");
+    Check(!IsVanityItemUnlocked(false, true, true, false), "unearned mount vanity stays locked");
+    Check(IsVanityItemUnlocked(false, true, true, true), "mount vanity unlock can be enabled");
+    Check(!IsVanityItemUnlocked(false, false, false, true), "disabled all-vanity does not grant companions");
+}
 }
 
 struct ClientClock
@@ -1118,6 +1129,7 @@ int main()
     TestCoreHandledRequests();
     TestItemQueries();
     TestVanityDelivery();
+    TestVanityUnlockPolicy();
     TestRejectedPacketWarnings();
     TestLocalTime();
     std::cout << checks - failures << '/' << checks << " checks passed\n";
