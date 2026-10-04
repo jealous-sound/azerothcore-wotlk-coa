@@ -53,6 +53,9 @@ Follow this sequence within the task's authorized scope:
   reuse existing build artifacts, and reverify the affected scope. After required checks pass, publish against
   the recorded base instead of repeatedly chasing the newest main revision. If the user requests publication
   while checks remain pending, open a draft PR and state the pending verification explicitly.
+- When resuming an empty unpublished branch, advance its ref to the fetched base before switching, after
+  checking ancestry and preserving stashes, or create a fresh branch at that base. Avoid checking out an old
+  tree and then fast-forwarding: that touches unchanged source and headers and invalidates incremental builds.
 - Verify changes only with `python -B tools/verify_all.py` ([guide](docs/coa/verification.md)). It runs the
   source checks, build, unit tests, Python test scripts, `apps/coa-tests` harnesses and gameplay scenarios. Do not
   run `check_source.py`, `ctest`, test scripts, harnesses, `run.py run` or `batch.py` yourself; where a guide
