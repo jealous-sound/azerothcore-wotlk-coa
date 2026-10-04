@@ -19,6 +19,16 @@ using uint16 = std::uint16_t;
 using uint32 = std::uint32_t;
 using int32 = std::int32_t;
 
+namespace ItemScaling
+{
+std::unordered_map<uint32, uint32> Bases;
+uint32 BaseEntry(uint32 entry)
+{
+    auto const base = Bases.find(entry);
+    return base == Bases.end() ? entry : base->second;
+}
+}
+
 // ACTUAL_CONSTANTS
 // ACTUAL_GROUP_HOOKS
 // ACTUAL_ROLL_VOTES
@@ -403,6 +413,7 @@ void Reset(std::vector<Player*> const& players, RollObserver& observer)
     service._appearances.clear();
     service._itemAppearances.clear();
     service._playerStates.clear();
+    ItemScaling::Bases.clear();
     CharacterDatabase.Writes.clear();
     scripts.Progress.clear();
     objectMgr.Items.clear();
@@ -674,6 +685,43 @@ void DeduplicationAndProgress(RollObserver& observer)
         scripts.Progress.size() == 6, "precollected appearances retain progress without duplicate writes or packets");
 }
 
+void ScaledAppearances(RollObserver& observer)
+{
+    Player human(1);
+    constexpr uint32 scaled = 900000000;
+    for (bool directMapping : {false, true})
+    {
+        Reset({&human}, observer);
+        ItemScaling::Bases[scaled] = 110;
+        objectMgr.Items[scaled] = {};
+        auto& service = AscensionCollectionService::Instance();
+        uint32 const expected = directMapping ? 211 : 210;
+        if (directMapping)
+        {
+            service._itemAppearances[scaled] = expected;
+            service._appearances[expected] = {110, 1};
+        }
+        Loot loot;
+        loot.items.push_back({});
+        loot.items.front().itemid = scaled;
+        Creature creature;
+        Group group;
+        group.AddMembers({&human});
+        group.GroupLoot(&loot, &creature);
+        Require(State(human)->CollectedAppearances.contains(expected),
+            "scaled gear must collect its source look while preserving a direct mapping");
+        Require(CharacterDatabase.Writes.size() == 1 &&
+            CharacterDatabase.Writes.front().Values == std::vector<uint32>{101, expected, scaled},
+            "scaled gear must persist the obtained item as its collection source");
+        Require(std::count_if(human.Session.Packets.begin(), human.Session.Packets.end(),
+            [expected](WorldPacket const& packet)
+            { return packet.Opcode == SMSG_APPEARANCE_ADDED && packet.Values[0] == expected; }) == 1,
+            "scaled gear must notify the collector once");
+        Require(scripts.Progress.size() == 1 && scripts.Progress.front().Value == expected,
+            "scaled gear must retain equipment appearance progress");
+    }
+}
+
 int main()
 {
     try
@@ -686,6 +734,7 @@ int main()
         SelectionBoundaries(observer);
         EligibilityAndData(observer);
         DeduplicationAndProgress(observer);
+        ScaledAppearances(observer);
         std::cout << "PASS: real group/need-before-greed regular and quest roll paths; "
             "creature and gameobject sources; "
             "roll-start dispatch and registration; losing/passing/capped humans; bot and eligibility filters; "

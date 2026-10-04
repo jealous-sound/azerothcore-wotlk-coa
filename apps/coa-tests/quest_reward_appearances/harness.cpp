@@ -16,6 +16,11 @@ using uint8 = std::uint8_t;
 using uint16 = std::uint16_t;
 using uint32 = std::uint32_t;
 
+namespace ItemScaling
+{
+uint32 BaseEntry(uint32 entry) { return entry; }
+}
+
 // ACTUAL_CONSTANTS
 // ACTUAL_PLAYER_HOOKS
 // ACTUAL_PROGRESS_EVENTS

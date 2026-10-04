@@ -27,6 +27,11 @@ constexpr std::size_t HeaderSize = 20;
 constexpr uint32 SKILL_WOODWORKING = 757;
 std::string Directory;
 
+namespace ItemScaling
+{
+uint32 BaseEntry(uint32 entry) { return entry; }
+}
+
 // ACTUAL_CONSTANTS
 // ACTUAL_PATCH_CONSTANTS
 // ACTUAL_ENUMS
@@ -96,8 +101,11 @@ struct ObjectMgr
         auto item = Items.find(id);
         return item == Items.end() ? nullptr : &item->second;
     }
+    auto const* GetItemTemplateStore() const { return &Items; }
 } objectMgr;
 auto sObjectMgr = &objectMgr;
+
+// ACTUAL_APPEARANCE_ALIASES
 
 struct SpellEffectInfo
 {

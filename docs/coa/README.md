@@ -86,6 +86,8 @@ creatures without an ordinary loot table, before native group permissions and qu
 loot remains, exact item duplicates are skipped, and the loot-window capacity is respected. Native item
 scaling can lift the chosen reward while preserving its appearance. Obtaining the
 item uses the existing appearance collection path when `CoA.AutoCollectAppearances` is enabled.
+Scaled items without a direct wardrobe mapping use their base item's mapping, while collection persistence
+retains the obtained item as its source.
 Items missing a direct `ItemAppearances` row inherit an existing equipment appearance only when display,
 slot, class and subclass match that appearance's captured source item. Direct mappings remain authoritative;
 robe/chest and weapon-hand variants share a slot. An item mapping whose source appearance has a different
