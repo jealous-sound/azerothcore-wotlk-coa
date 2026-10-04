@@ -2,6 +2,7 @@
 
 #include "AscensionItemScaling.h"
 #include "AscensionItemScalingPolicy.h"
+#include "AscensionItemStatData.h"
 #include "Config.h"
 #include "Creature.h"
 #include "DBCStores.h"
@@ -18,8 +19,12 @@
 #include "Player.h"
 #include "ScriptMgr.h"
 #include "World.h"
+#include "WorldPacket.h"
+#include "WorldSession.h"
 #include <algorithm>
 #include <atomic>
+#include <filesystem>
+#include <fstream>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -35,6 +40,25 @@ namespace
 constexpr uint32 MaximumSampleEntry = 60000;
 
 std::atomic<bool> liftsEnabled{true};
+bool useCapturedStats = false;
+CapturedStats::Table capturedStats;
+
+void LoadCapturedStats()
+{
+    if (!useCapturedStats)
+        return;
+
+    auto const path = std::filesystem::path(sWorld->GetDataPath()) / "dbc" / "ItemStat.dbc";
+    std::ifstream source(path, std::ios::binary);
+    std::string error;
+    if (!capturedStats.Load(source, error))
+    {
+        LOG_ERROR("server.loading", "Unable to load captured item stats from {}: {}; using estimated scaling",
+            path.string(), error);
+        return;
+    }
+    LOG_INFO("server.loading", ">> Loaded {} captured item-stat rows", capturedStats.Size());
+}
 
 using CurveKey = std::tuple<uint32, uint32, uint32, uint32>;
 using CurveSet = std::map<CurveKey, LevelCurve>;
@@ -130,6 +154,11 @@ std::unique_ptr<ItemTemplate> BuildTemplate(uint32 entry, ItemTemplate const& ba
     uint32 const itemLevel = base.ItemLevel + lift;
     proto->ItemId = entry;
     proto->ItemLevel = itemLevel;
+    if (CapturedStats::Record const* record = capturedStats.Find(base.ItemId, itemLevel))
+    {
+        record->Apply(*proto);
+        return proto;
+    }
     proto->RequiredLevel = LiftedRequiredLevel(base.RequiredLevel, base.ItemLevel, lift,
         sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL));
 
@@ -375,13 +404,16 @@ public:
     Configuration() : WorldScript("ItemScalingConfiguration",
         { WORLDHOOK_ON_AFTER_CONFIG_LOAD, WORLDHOOK_ON_LOAD_CUSTOM_DATABASE_TABLE }) { }
 
-    void OnAfterConfigLoad(bool) override
+    void OnAfterConfigLoad(bool reload) override
     {
         liftsEnabled.store(sConfigMgr->GetOption<bool>("CoA.ItemScaling", true), std::memory_order_relaxed);
+        if (!reload)
+            useCapturedStats = sConfigMgr->GetOption<bool>("CoA.ItemScaling.CapturedStats", false);
     }
 
     void OnLoadCustomDatabaseTable() override
     {
+        LoadCapturedStats();
         Registry::Instance().Load();
     }
 };
@@ -440,6 +472,27 @@ std::optional<ClientItemRow> ClientRow(uint32 entry)
     if (ItemTemplate const* proto = Registry::Instance().Template(entry))
         return RowOf(*proto);
     return std::nullopt;
+}
+
+void HandleStatQuery(WorldSession* session, WorldPacket const& packet)
+{
+    if (!session || packet.size() != sizeof(uint64) || !capturedStats.Size())
+        return;
+
+    uint32 const item = packet.read<uint32>(0);
+    uint32 const level = packet.read<uint32>(sizeof(uint32));
+    ItemTemplate const* proto = sObjectMgr->GetItemTemplate(item);
+    if (!proto)
+        return;
+    CapturedStats::Record const* record = capturedStats.Find(BaseEntry(item), level);
+    if (!record)
+        return;
+
+    std::array<uint32, 2> const damageTypes = { proto->Damage[0].DamageType, proto->Damage[1].DamageType };
+    WorldPacket response(CapturedStats::ResponseOpcode, CapturedStats::ResponseWords * sizeof(uint32));
+    for (uint32 word : record->Response(item, damageTypes))
+        response << word;
+    session->SendPacket(&response);
 }
 }
 

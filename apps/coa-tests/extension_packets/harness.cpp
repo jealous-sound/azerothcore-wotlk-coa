@@ -387,6 +387,17 @@ public:
     void SendItemRowOnDemand(Player*, uint32 entry) { ItemRequests.push_back(entry); }
 };
 
+namespace ItemScaling
+{
+std::vector<uint32> StatQueries;
+
+void HandleStatQuery(WorldSession*, WorldPacket const& packet)
+{
+    if (packet.size() == sizeof(uint64))
+        StatQueries.push_back(packet.read<uint32>(0));
+}
+}
+
 class AscensionCollectionService
 {
 public:
@@ -621,6 +632,23 @@ void TestStorePackets()
     Check(!glueQueryPassedOn && !gluePurchasePassedOn && DispatchedOpcodes.empty() && glue.Sent.size() == 1 &&
             glue.Sent[0].GetOpcode() == 0x06BA,
         "before login a store query gets the empty store at once and a purchase is dropped, not queued");
+}
+
+void TestItemStatQueryQueue()
+{
+    AscensionCollectionService& service = AscensionCollectionService::Instance();
+    WorldSession session;
+    Player player;
+    player.Session = &session;
+    session.PlayerObject = &player;
+    ItemScaling::StatQueries.clear();
+    WorldPacket query(0x06FF, 8);
+    query << uint32(720) << uint32(58);
+    Check(!Receive(session, query) && ItemScaling::StatQueries.empty(),
+        "item-stat queries are consumed and queued without executing on the socket thread");
+    service.OnPlayerUpdate(&player, 1);
+    Check(ItemScaling::StatQueries == std::vector<uint32>{720},
+        "the player update forwards the item-stat query to the scaling service");
 }
 
 void TestBotAltRequests()
@@ -1174,6 +1202,7 @@ int main()
     TestCharacterEnumeration();
     TestWorldEntryResend();
     TestStorePackets();
+    TestItemStatQueryQueue();
     TestBotAltRequests();
     TestTalentRequests();
     TestCoreHandledRequests();
