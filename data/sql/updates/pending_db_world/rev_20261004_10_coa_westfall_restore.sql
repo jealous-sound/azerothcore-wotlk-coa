@@ -168,15 +168,15 @@ INSERT INTO `creature` (`guid`, `id`, `map`, `zoneId`, `areaId`, `spawnMask`, `p
   `position_x`, `position_y`, `position_z`, `orientation`, `spawntimesecs`, `wander_distance`, `currentwaypoint`,
   `curhealth`, `curmana`, `MovementType`, `npcflag`, `unit_flags`, `dynamicflags`, `ScriptName`, `VerifiedBuild`,
   `CreateObject`, `Comment`) VALUES
-(9950100, 776786, 0, 40, 108, 1, 1, 0, -10722.5, 990.0, 36.2, 3.91, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Captain Olens (estimated position, training yard)'),
+(9950100, 776786, 0, 40, 108, 1, 1, 0, -10718.9, 980.03, 36.77, 3.1, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Captain Olens (client SuperTrack 21342, training yard; facing estimated)'),
 (9950101, 255339, 0, 40, 108, 1, 1, 0, -10731.5, 978.0, 36.84, 2.7, 120, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Militia Recruit (estimated position, training yard)'),
 (9950102, 255339, 0, 40, 108, 1, 1, 0, -10740.5, 971.5, 36.92, 2.71, 120, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Militia Recruit (estimated position, training yard)'),
 (9950103, 255339, 0, 40, 108, 1, 1, 0, -10736.5, 975.5, 36.91, 3.43, 120, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Militia Recruit (estimated position, training yard)'),
 (9950104, 255339, 0, 40, 108, 1, 1, 0, -10737.5, 989.5, 36.73, 2.46, 120, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Militia Recruit (estimated position, training yard)'),
 (9950105, 255150, 0, 40, 108, 1, 1, 0, -10511.37, 1147.09, 40.0, 1.02, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Idona Wyther (estimated position, alchemist''s farmhouse)'),
 (9950106, 776790, 0, 40, 108, 1, 1, 0, -10673.5, 959.97, 38.47, 2.88, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Archivist Selnor (client SuperTrack 21338, Sentinel Hill library)'),
-(9950107, 991515, 0, 40, 40, 1, 1, 0, -10259.31, 1780.44, 73.85, 5.82, 600, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Lenore the Hoarder (estimated position, Defias tower upper floor)'),
-(9950108, 157002, 0, 40, 921, 1, 1, 0, -11141.0, 1826.0, 39.15, 5.05, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Farmer Demont (estimated position, Demont''s Place ruins by the chimney)'),
+(9950107, 991515, 0, 40, 40, 1, 1, 0, -10265.7, 1782.1, 74.83, 5.82, 600, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Lenore the Hoarder (client SuperTrack 8525, Defias tower upper floor; facing estimated)'),
+(9950108, 157002, 0, 40, 921, 1, 1, 0, -11137.8, 1817.78, 38.96, 5.05, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Farmer Demont (client SuperTrack 3308, Demont''s Place; facing estimated)'),
 (9950109, 455339, 0, 40, 40, 1, 1, 0, -9976.29, 955.25, 31.96, 2.2, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Slain Protector (client SuperTrack 21334)'),
 (9950110, 455343, 0, 40, 922, 1, 1, 0, -11030.0, 790.0, 37.55, 1, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Half-Devoured Protector (estimated position, Riverpaw camp)'),
 (9950111, 255339, 0, 40, 108, 1, 1, 0, -10734.0, 985.0, 36.75, 3.5, 120, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Militia Recruit (estimated position, training yard)'),
@@ -284,10 +284,10 @@ DELETE FROM `gameobject` WHERE `guid` BETWEEN 9001100 AND 9001106;
 INSERT INTO `gameobject` (`guid`, `id`, `map`, `zoneId`, `areaId`, `spawnMask`, `phaseMask`, `position_x`,
   `position_y`, `position_z`, `orientation`, `rotation0`, `rotation1`, `rotation2`, `rotation3`, `spawntimesecs`,
   `animprogress`, `state`, `ScriptName`, `VerifiedBuild`, `Comment`) VALUES
-(9001100, 480101, 0, 40, 919, 1, 1, -10725.0, 1400.0, 36.38, 1.2, 0, 0, 0.564642, 0.825336, 900, 100, 1, '', 0, 'Pilfered Lesser Healing Potions (estimated position, Stendel''s Pond)'),
-(9001101, 480102, 0, 40, 111, 1, 1, -9995.5, 1471.0, 41.4, 2.5, 0, 0, 0.948985, 0.315322, 900, 100, 1, '', 0, 'Pilfered Minor Healing Potions (estimated position, Jangolode shed)'),
-(9001102, 480103, 0, 40, 40, 1, 1, -10140.0, 1723.0, 33.01, 4, 0, 0, 0.909297, -0.416147, 900, 100, 1, '', 0, 'Pilfered Elixirs (estimated position, by Sergeant Brashclaw)'),
-(9001103, 480104, 0, 40, 40, 1, 1, -10259.7, 1775.1, 73.85, 5.82, 0, 0, 0.229528, -0.973302, 900, 100, 1, '', 0, 'Westfall Hoard (estimated position, Defias tower upper floor)'),
+(9001100, 480101, 0, 40, 919, 1, 1, -10723.1, 1391.13, 35.37, 1.2, 0, 0, 0.564642, 0.825336, 900, 100, 1, '', 0, 'Pilfered Lesser Healing Potions (client SuperTrack 21332; facing estimated)'),
+(9001101, 480102, 0, 40, 111, 1, 1, -9999.35, 1469.87, 40.89, 2.5, 0, 0, 0.948985, 0.315322, 900, 100, 1, '', 0, 'Pilfered Minor Healing Potions (client SuperTrack 21330; facing estimated)'),
+(9001102, 480103, 0, 40, 40, 1, 1, -9845.18, 1036.06, 33.41, 4, 0, 0, 0.909297, -0.416147, 900, 100, 1, '', 0, 'Pilfered Elixirs (client SuperTrack 21331; facing estimated)'),
+(9001103, 480104, 0, 40, 40, 1, 1, -10258.8, 1767.37, 50.18, 5.82, 0, 0, 0.229528, -0.973302, 900, 100, 1, '', 0, 'Westfall Hoard (client SuperTrack 8526, Defias tower middle floor; facing estimated)'),
 (9001104, 96004, 0, 40, 40, 1, 1, -10377.0, 2196.17, 20.431, 0, 0, 0, 0, 1, 900, 100, 1, '', 0, 'Loosely Packed Dirt (catalogue position, orientation unknown)'),
 (9001105, 96005, 0, 40, 40, 1, 1, -9783.71, 1819.44, -8.025, 0, 0, 0, 0, 1, 900, 100, 1, '', 0, 'Waterlogged Trunk (catalogue position, orientation unknown)'),
 (9001106, 518551, 0, 40, 108, 1, 1, -10646.1, 1157.59, 32.996, 0, 0, 0, 0, 1, 900, 100, 1, '', 0, 'Wanted: Lenore the Hoarder (catalogue position, orientation unknown)');
@@ -449,7 +449,7 @@ INSERT INTO `creature_questender` (`id`, `quest`) VALUES
 (776790, 999914),
 (776790, 999933),
 (255150, 1313),
-(352, 100466);
+(234, 100466);
 
 DELETE FROM `gameobject_queststarter` WHERE `quest` IN (1313,17011,17012,17014,26993,26994,26995,26996,26997,254042,254043,255057,999913,999914,999933,100466,17009);
 INSERT INTO `gameobject_queststarter` (`id`, `quest`) VALUES
@@ -460,6 +460,11 @@ INSERT INTO `gameobject_questender` (`id`, `quest`) VALUES
 (96005, 17009);
 
 UPDATE `creature_template` SET `npcflag` = `npcflag` | 2 WHERE `entry` = 490;
+
+-- Turn-in positions follow the client QuestSuperTrack/SuperTrack points: Path to Ascension: Westfall ends at
+-- SuperTrack 310 (Gryan Stoutmantle), and 254042/254043 end at SuperTrack 8587/8588, where Protector Gariel
+-- now stands (facing unchanged).
+UPDATE `creature` SET `position_x` = -10633.9, `position_y` = 1181.08, `position_z` = 34.76 WHERE `guid` = 89531 AND `id` = 490;
 
 UPDATE `quest_template` SET `QuestLevel` = -1 WHERE `ID` IN (22,36,38,64,65,151,153,184,208,214);
 UPDATE `quest_template` SET `QuestLevel` = 15, `MinLevel` = 10 WHERE `ID` = 104;
