@@ -61,7 +61,7 @@ class OptionalLegendaryModule(unittest.TestCase):
                    "(9710000, 'aura_coa_legendary_signature'), (9710063, 'aura_coa_legendary_signature');")
         self.assertEqual(self.legendary_counts(), [('2',)] * 4)
         self.apply(self.core_updates())
-        self.assertEqual(self.legendary_counts(), [('0',)] * 4)
+        self.assertEqual(self.legendary_counts(), [('2',), ('0',), ('0',), ('0',)])
         self.assertEqual(self.query('SELECT name FROM item_template WHERE entry = 9699999;'
                                     'SELECT ID FROM item_dbc WHERE ID = 9699999;'
                                     'SELECT ID FROM spell_dbc WHERE ID = 9710064;'

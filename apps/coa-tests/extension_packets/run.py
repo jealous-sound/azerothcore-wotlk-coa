@@ -85,6 +85,7 @@ def main():
                                        'void OnPlayerUpdate(Player *player, uint32 diff) {')),
         ('HANDLE_CLIENT_PACKET', method(compat, 'void HandleClientPacket(Player *player')),
         ('CAN_PACKET_RECEIVE_EARLY', method(compat, 'bool CanPacketReceiveEarly(WorldSession *session')),
+        ('CAN_PACKET_SEND', method(compat, 'bool CanPacketSend(WorldSession* session')),
         ('POINT_SPEND', method_or(compat, 'void HandlePointSpendRequest(Player* player', '')),
         ('DELIVER_VANITY', method(compat, 'void DeliverVanityItem(Player *player, uint32 itemId)')),
         ('BANK_VANITY', '\n'.join([re.search(r'static constexpr std::array<uint32, \d+> BankVanityItems = [^;]+;',

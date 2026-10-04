@@ -92,7 +92,7 @@ public:
     bool IsBot() const { return Bot; }
     Player* GetPlayer() const { return PlayerObject; }
     int GetSessionDbLocaleIndex() const { return LocaleIndex; }
-    void SendPacket(WorldPacket const* packet) { Sent.push_back(*packet); }
+    void SendPacket(WorldPacket const* packet);
     void HandleItemQuerySingleOpcode(WorldPacket& recvData);
     void SendItemQuerySingleResponse(uint32 item);
 };
@@ -169,6 +169,7 @@ struct Player
 
     WorldSession* GetSession() const { return Session; }
     std::string GetName() const { return "Tester"; }
+    bool IsInWorld() const { return true; }
     void SendDirectMessage(WorldPacket const* packet) { Session->SendPacket(packet); }
     void SendAllSpellChargeStates() { ++ChargeSnapshots; }
 
@@ -271,6 +272,7 @@ struct ServerScript
 {
     virtual ~ServerScript() = default;
     [[nodiscard]] virtual bool CanPacketReceiveEarly(WorldSession*, WorldPacket const&) { return true; }
+    virtual bool CanPacketSend(WorldSession*, WorldPacket const&) { return true; }
 };
 
 namespace
@@ -432,6 +434,7 @@ public:
 struct AscensionCompatServerScript : ServerScript
 {
     // ACTUAL_CAN_PACKET_RECEIVE_EARLY
+    // ACTUAL_CAN_PACKET_SEND
 };
 
 struct AscensionCompatCommandScript
@@ -785,6 +788,7 @@ void TestItemQueries()
     Player player;
     player.Session = &session;
 
+    session.PlayerObject = &player;
     auto& itemPatches = AscensionDisplayPatchService::Instance().ItemRequests;
     itemPatches.clear();
     std::vector<std::vector<uint8>> const replies = BulkReplies(session, player, BulkQuery({35, 999999, 135522}));
@@ -792,8 +796,8 @@ void TestItemQueries()
     Check(replies.size() == 3 && replies[0] == SingleQueryReply(35, -1) && replies[1] == unknown &&
         replies[2] == SingleQueryReply(135522, -1),
         "a bulk item query answers each entry in order with the stock single-item response");
-    Check(itemPatches == std::vector<uint32>{35, 999999, 135522},
-        "bulk query entries reach the demand-patch service in their original order");
+    Check(itemPatches == std::vector<uint32>{35, 999999 | 0x80000000u, 135522},
+        "bulk responses reach the demand-patch hook in order, including the native unknown-item marker");
 
     WorldPacket first(SMSG_ITEM_QUERY_SINGLE_RESPONSE, 0);
     if (!replies.empty())
@@ -1005,6 +1009,13 @@ void TestVanityDelivery()
     Check(ignored == Delivery{},
         "Seasonal Points, Bazaar Tokens, unknown currencies and malformed requests deliver nothing");
 }
+}
+
+void WorldSession::SendPacket(WorldPacket const* packet)
+{
+    AscensionCompatServerScript script;
+    if (script.CanPacketSend(this, *packet))
+        Sent.push_back(*packet);
 }
 
 struct ClientClock

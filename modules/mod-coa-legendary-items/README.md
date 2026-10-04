@@ -39,15 +39,17 @@ Its configuration template is `conf/mod-coa-legendary-items.conf.dist`. To exclu
 
 The module's `data/sql/db-world/rev_20261004_01_coa_legendary_items.sql` supplies 5,120 item templates,
 3,840 client item rows and 64 native power spells. The normal worldserver updater applies it only when the module
-is built, including when its runtime option is disabled. Core's one-time cleanup migration removes definitions
-installed by the former shared migrations. The module migration runs afterwards under a new name and hash,
+is built, including when its runtime option is disabled. Core's one-time cleanup migration removes client rows
+and power spells installed by the former shared migrations while preserving item templates for saved inventory.
+The module migration runs afterwards under a new name and hash,
 so an existing migration ledger cannot mistake it for a rename and skip reinstalling the data.
 Historical level-61 through level-80 item templates remain in the module for saved-item compatibility;
 only level-1 through level-60 variants have client rows and can drop or grant powers.
 Excluding the module from a fresh build installs none of its data. After a module has been installed, its data
 can remain in the database when it is excluded; its drop and power scripts are absent and patches are not registered.
-Excluding it during the first upgrade from shared migrations removes the legacy item templates. Keep it built
-with `Enable=0` to retain saved legendary items while disabling drops and powers.
+Excluding it during the first upgrade from shared migrations preserves legacy item templates for saved inventory
+while removing their client rows and power spells. Keeping it built with `Enable=0` also retains module data
+while disabling drops and powers.
 The module validates its item and spell records at startup and disables drops and powers if they are incomplete.
 
 `AscensionCompat` already streams `item_dbc` through `SMSG_PATCH_ITEM` (`0x0932`, eight 32-bit fields).
