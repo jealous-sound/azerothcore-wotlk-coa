@@ -1,0 +1,5 @@
+* text=auto eol=lf
+*.lua text eol=lf
+*.toc text eol=lf
+*.tsv text eol=lf whitespace=-blank-at-eol
+*.zip binary

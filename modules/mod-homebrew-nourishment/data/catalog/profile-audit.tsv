@@ -1,0 +1,496 @@
+item_id	item_name	status	reason	tier	grade	family	minimum_level	duration_seconds	source_spell	meal_aura	native_aura	kind
+117	Tough Jerky	included	name	1	ordinary	hearty	1	1800	433	433	0	food
+159	Refreshing Spring Water	included	name	1	ordinary	clear	1	1800	430	430	0	drink
+414	Dalaran Sharp	included	name	2	ordinary	fortifying	5	1800	434	434	0	food
+422	Dwarven Mild	included	stable-fallback	3	ordinary	fortifying	15	1800	435	435	0	food
+724	Goretusk Liver Pie	included	name	2	premium	energizing	5	3600	5005	5005	19706	food
+733	Westfall Stew	included	name	2	ordinary	precise	5	1800	435	435	0	food
+787	Slitherskin Mackerel	included	name	1	ordinary	keen	1	1800	433	433	0	food
+961	Healing Herb	included	name	1	ordinary	insightful	1	1800	433	433	0	food
+1017	Seasoned Wolf Kabob	included	name	3	premium	hearty	15	3600	5006	5006	19708	food
+1072	Full Moonshine	excluded	missing-source-spell						0			
+1082	Redridge Goulash	included	curated-override	2	premium	precise	10	3600	5006	5006	19708	food
+1113	Conjured Bread	excluded	conjured						434			
+1114	Conjured Rye	excluded	conjured						435			
+1119	Bottled Spirits	excluded	missing-source-spell						0			
+1165	Test Food	excluded	missing-source-spell						0			
+1179	Ice Cold Milk	included	name	2	ordinary	clear	5	1800	431	431	0	drink
+1205	Melon Juice	included	name	3	ordinary	clear	15	1800	432	432	0	drink
+1326	Sauteed Sunfish	included	name	2	ordinary	keen	5	1800	434	434	0	food
+1401	Green Tea Leaf	included	name	1	ordinary	clear	4	1800	833	833	0	drink
+1487	Conjured Pumpernickel	excluded	conjured						1127			
+1645	Moonberry Juice	included	name	5	ordinary	clear	35	1800	1135	1135	0	drink
+1707	Stormwind Brie	included	name	4	ordinary	fortifying	25	1800	1127	1127	0	food
+1708	Sweet Nectar	included	name	4	ordinary	energizing	25	1800	1133	1133	0	drink
+2070	Darnassian Bleu	included	name	1	ordinary	fortifying	1	1800	433	433	0	food
+2136	Conjured Purified Water	excluded	conjured						432			
+2287	Haunch of Meat	included	name	2	ordinary	hearty	5	1800	434	434	0	food
+2288	Conjured Fresh Water	excluded	conjured						431			
+2593	Flask of Port	excluded	not-directly-edible						11008			
+2594	Flagon of Mead	excluded	alcohol						11009			
+2595	Jug of Bourbon	excluded	alcohol						11009			
+2596	Skin of Dwarven Stout	excluded	alcohol						11008			
+2679	Charred Wolf Meat	included	name	1	ordinary	hearty	1	1800	433	433	0	food
+2680	Spiced Wolf Meat	included	name	1	premium	hearty	1	3600	5004	5004	19705	food
+2681	Roasted Boar Meat	included	name	1	ordinary	hearty	1	1800	433	433	0	food
+2682	Cooked Crab Claw	included	name	2	ordinary	keen	5	1800	2639	2639	0	refreshment
+2683	Crab Cake	included	name	2	premium	energizing	5	3600	5005	5005	19706	food
+2684	Coyote Steak	included	name	2	premium	hearty	5	3600	5005	5005	19706	food
+2685	Succulent Pork Ribs	included	name	2	ordinary	hearty	10	1800	435	435	0	food
+2686	Thunder Ale	excluded	alcohol						11007			
+2687	Dry Pork Ribs	included	name	2	premium	hearty	5	3600	5005	5005	19706	food
+2723	Bottle of Pinot Noir	excluded	not-directly-edible						11007			
+2888	Beer Basted Boar Ribs	excluded	alcohol						5004			
+2894	Rhapsody Malt	excluded	not-directly-edible						11007			
+3220	Blood Sausage	included	name	2	premium	hearty	5	3600	5005	5005	19706	food
+3448	Senggin Root	excluded	alcohol						2639			
+3662	Crocolisk Steak	included	name	2	premium	hearty	5	3600	5005	5005	19706	food
+3663	Murloc Fin Soup	included	name	3	premium	keen	15	3600	5006	5006	19708	food
+3664	Crocolisk Gumbo	included	name	3	premium	hearty	15	3600	5006	5006	19708	food
+3665	Curiously Tasty Omelet	included	name	3	premium	precise	15	3600	5006	5006	19708	food
+3666	Gooey Spider Cake	included	name	3	premium	energizing	15	3600	5006	5006	19708	food
+3703	Southshore Stout	excluded	alcohol						11008			
+3726	Big Bear Steak	included	name	3	premium	hearty	15	3600	5006	5006	19708	food
+3727	Hot Lion Chops	included	name	3	premium	hearty	15	3600	5006	5006	19708	food
+3728	Tasty Lion Steak	included	name	3	premium	hearty	20	3600	5007	5007	19709	food
+3729	Soothing Turtle Bisque	included	name	4	premium	precise	25	3600	5007	5007	19709	food
+3770	Mutton Chop	included	name	3	ordinary	hearty	15	1800	435	435	0	food
+3771	Wild Hog Shank	included	name	4	ordinary	hearty	25	1800	1127	1127	0	food
+3772	Conjured Spring Water	excluded	conjured						1133			
+3927	Fine Aged Cheddar	included	name	5	ordinary	fortifying	35	1800	1129	1129	0	food
+4418	Deprecated Creeper Cakes	excluded	missing-source-spell						0			
+4457	Barbecued Buzzard Wing	included	name	4	premium	hearty	25	3600	5007	5007	19709	food
+4536	Shiny Red Apple	included	name	1	ordinary	nimble	1	1800	433	433	0	food
+4537	Tel'Abim Banana	included	name	2	ordinary	nimble	5	1800	434	434	0	food
+4538	Snapvine Watermelon	included	name	3	ordinary	nimble	15	1800	435	435	0	food
+4539	Goldenbark Apple	included	name	4	ordinary	nimble	25	1800	1127	1127	0	food
+4540	Tough Hunk of Bread	included	name	1	ordinary	fortifying	1	1800	433	433	0	food
+4541	Freshly Baked Bread	included	name	2	ordinary	fortifying	5	1800	434	434	0	food
+4542	Moist Cornbread	included	name	3	ordinary	nimble	15	1800	435	435	0	food
+4544	Mulgore Spice Bread	included	name	4	ordinary	fortifying	25	1800	1127	1127	0	food
+4592	Longjaw Mud Snapper	included	name	2	ordinary	keen	5	1800	434	434	0	food
+4593	Bristle Whisker Catfish	included	name	3	ordinary	keen	15	1800	435	435	0	food
+4594	Rockscale Cod	excluded	alcohol						1127			
+4595	Junglevine Wine	excluded	alcohol						11009			
+4599	Cured Ham Steak	included	name	5	ordinary	hearty	35	1800	1129	1129	0	food
+4600	Cherry Grog	excluded	alcohol						11009			
+4601	Soft Banana Bread	included	name	5	ordinary	nimble	35	1800	1129	1129	0	food
+4602	Moon Harvest Pumpkin	included	name	5	ordinary	nimble	35	1800	1129	1129	0	food
+4604	Forest Mushroom Cap	included	name	1	ordinary	insightful	1	1800	433	433	0	food
+4605	Red-speckled Mushroom	included	name	2	ordinary	insightful	5	1800	434	434	0	food
+4606	Spongy Morel	included	name	3	ordinary	insightful	15	1800	435	435	0	food
+4607	Delicious Cave Mold	included	curated-override	4	ordinary	insightful	25	1800	1127	1127	0	food
+4608	Raw Black Truffle	included	name	5	ordinary	insightful	35	1800	1129	1129	0	food
+4656	Small Pumpkin	included	name	1	ordinary	nimble	1	1800	433	433	0	food
+4791	Enchanted Water	included	name	4	ordinary	clear	25	1800	1133	1133	0	drink
+5057	Ripe Watermelon	included	name	1	ordinary	nimble	1	1800	433	433	0	food
+5066	Fissure Plant	included	curated-override	2	ordinary	nimble	5	1800	434	434	0	food
+5095	Rainbow Fin Albacore	included	name	2	ordinary	keen	5	1800	434	434	0	food
+5265	Watered-down Beer	excluded	missing-source-spell						0			
+5342	Raptor Punch	excluded	not-directly-edible						6114			
+5349	Conjured Muffin	excluded	conjured						433			
+5350	Conjured Water	excluded	conjured						430			
+5472	Kaldorei Spider Kabob	included	name	1	premium	precise	1	3600	5004	5004	19705	food
+5473	Scorpid Surprise	included	name	1	ordinary	precise	1	1800	6410	6410	0	food
+5474	Roasted Kodo Meat	included	name	1	premium	hearty	1	3600	5004	5004	19705	food
+5476	Fillet of Frenzy	included	name	2	premium	keen	5	3600	5005	5005	19706	food
+5477	Strider Stew	included	name	2	premium	precise	5	3600	5005	5005	19706	food
+5478	Dig Rat Stew	included	name	2	ordinary	hearty	10	1800	435	435	0	food
+5479	Crispy Lizard Tail	included	curated-override	2	premium	hearty	12	3600	5006	5006	19708	food
+5480	Lean Venison	included	name	3	premium	hearty	15	3600	5006	5006	19708	food
+5525	Boiled Clams	included	name	2	premium	keen	5	3600	5005	5005	19706	food
+5526	Clam Chowder	included	name	2	ordinary	keen	10	1800	435	435	0	food
+5527	Goblin Deviled Clams	included	name	3	premium	keen	15	3600	5006	5006	19708	food
+6038	Giant Clam Scorcho	included	name	4	premium	keen	25	3600	5007	5007	19709	food
+6290	Brilliant Smallfish	included	name	1	ordinary	keen	1	1800	433	433	0	food
+6299	Sickly Looking Fish	included	name	1	ordinary	keen	1	1800	7737	7737	0	food
+6316	Loch Frenzy Delight	included	name	2	ordinary	precise	5	1800	434	434	0	food
+6522	Deviate Fish	excluded	not-directly-edible						8063			
+6657	Savory Deviate Delight	excluded	not-directly-edible						8213			
+6807	Frog Leg Stew	included	name	4	ordinary	precise	25	1800	1127	1127	0	food
+6887	Spotted Yellowtail	included	name	5	ordinary	keen	35	1800	1129	1129	0	food
+6888	Herb Baked Egg	included	name	1	premium	hearty	1	3600	5004	5004	19705	food
+6890	Smoked Bear Meat	included	name	2	ordinary	hearty	5	1800	434	434	0	food
+7097	Leg Meat	included	name	1	ordinary	hearty	1	1800	433	433	0	food
+7228	Tigule and Foror's Strawberry Ice Cream	included	name	3	ordinary	energizing	15	1800	435	435	0	food
+7676	Thistle Tea	excluded	not-directly-edible						9512			
+7806	Lollipop	included	curated-override	1	premium	energizing	1	3600	5004	5004	19705	food
+7807	Candy Bar	included	name	1	premium	energizing	1	3600	5004	5004	19705	food
+7808	Chocolate Square	included	name	1	premium	energizing	1	3600	5004	5004	19705	food
+8075	Conjured Sourdough	excluded	conjured						1129			
+8076	Conjured Sweet Roll	excluded	conjured						1131			
+8077	Conjured Mineral Water	excluded	conjured						1135			
+8078	Conjured Sparkling Water	excluded	conjured						1137			
+8079	Conjured Crystal Water	excluded	conjured						22734			
+8243	Scooby Snack	excluded	missing-source-spell						0			
+8364	Mithril Head Trout	included	name	4	ordinary	keen	25	1800	1127	1127	0	food
+8543	Underwater Mushroom Cap	excluded	missing-source-spell						0			
+8766	Morning Glory Dew	included	drink-fallback	6	ordinary	clear	45	1800	1137	1137	0	drink
+8932	Alterac Swiss	included	name	6	ordinary	fortifying	45	1800	1131	1131	0	food
+8948	Dried King Bolete	included	curated-override	6	ordinary	insightful	45	1800	1131	1131	0	food
+8950	Homemade Cherry Pie	included	name	6	ordinary	energizing	45	1800	1131	1131	0	food
+8952	Roasted Quail	included	name	6	ordinary	hearty	45	1800	1131	1131	0	food
+8953	Deep Fried Plantains	included	name	6	ordinary	nimble	45	1800	1131	1131	0	food
+8957	Spinefin Halibut	included	name	6	ordinary	keen	45	1800	1131	1131	0	food
+9260	Volatile Rum	excluded	alcohol						11009			
+9360	Cuergo's Gold	excluded	not-directly-edible						11009			
+9361	Cuergo's Gold with Worm	excluded	not-directly-edible						11629			
+9451	Bubbling Water	included	name	3	ordinary	clear	15	1800	432	432	0	drink
+9681	Grilled King Crawler Legs	included	curated-override	5	ordinary	keen	35	1800	1129	1129	0	food
+10841	Goldthorn Tea	included	name	4	ordinary	clear	25	1800	1133	1133	0	drink
+11109	Special Chicken Feed	included	name	1	ordinary	hearty	1	1800	7737	7737	0	food
+11415	Mixed Berries	included	name	6	ordinary	nimble	45	1800	1131	1131	0	food
+11444	Grim Guzzler Boar	included	name	6	ordinary	hearty	45	1800	1131	1131	0	food
+11584	Cactus Apple Surprise	included	name	1	premium	nimble	1	3600	5004	5004	19705	food
+11846	Wizbang's Special Brew	excluded	alcohol						11008			
+11951	Whipper Root Tuber	excluded	binding-or-quest-item						15700			
+12003	Dark Dwarven Lager	excluded	alcohol						11629			
+12209	Lean Wolf Steak	included	name	3	premium	hearty	15	3600	5006	5006	19708	food
+12210	Roast Raptor	included	name	4	premium	hearty	25	3600	5007	5007	19709	food
+12211	Spiced Wolf Ribs	excluded	missing-source-spell						0			
+12212	Jungle Stew	included	name	4	premium	precise	25	3600	5007	5007	19709	food
+12213	Carrion Surprise	included	name	4	premium	precise	25	3600	5007	5007	19709	food
+12214	Mystery Stew	included	name	4	premium	precise	25	3600	5007	5007	19709	food
+12215	Heavy Kodo Stew	included	name	5	premium	precise	35	3600	10256	10256	19710	food
+12216	Spiced Chili Crab	included	name	5	premium	keen	40	3600	10256	10256	19710	food
+12217	Dragonbreath Chili	excluded	not-directly-edible						15852			
+12218	Monster Omelet	included	name	5	premium	precise	40	3600	10256	10256	19710	food
+12224	Crispy Bat Wing	included	curated-override	1	premium	hearty	1	3600	5004	5004	19705	food
+12238	Darkshore Grouper	included	name	2	ordinary	keen	5	1800	434	434	0	food
+12763	Un'Goro Etherfruit	excluded	missing-source-spell						0			
+13546	Bloodbelly Fish	included	name	4	ordinary	keen	25	1800	1129	1129	0	food
+13724	Enriched Manna Biscuit	excluded	reputation-gated						18071			
+13755	Winter Squid	included	name	5	ordinary	keen	35	1800	1127	1127	0	food
+13810	Blessed Sunfruit	excluded	binding-or-quest-item						18124			
+13851	Hot Wolf Ribs	included	name	4	premium	hearty	25	3600	5007	5007	19709	food
+13893	Large Raw Mightfish	included	name	6	ordinary	keen	45	1800	1129	1129	0	food
+13927	Cooked Glossy Mightfish	included	name	5	ordinary	keen	35	1800	18229	18229	0	food
+13928	Grilled Squid	included	name	5	ordinary	keen	35	1800	18230	18230	0	food
+13929	Hot Smoked Bass	included	name	5	ordinary	keen	35	1800	18231	18231	0	food
+13930	Filet of Redgill	included	name	5	ordinary	keen	35	1800	1129	1129	0	food
+13931	Nightfin Soup	included	name	5	ordinary	keen	35	1800	18233	18233	0	food
+13932	Poached Sunscale Salmon	excluded	alcohol						18232			
+13933	Lobster Stew	included	name	6	ordinary	keen	45	1800	1131	1131	0	food
+13934	Mightfish Steak	included	name	6	ordinary	keen	45	1800	18234	18234	0	food
+13935	Baked Salmon	included	name	6	ordinary	keen	45	1800	1131	1131	0	food
+16166	Bean Soup	excluded	event-item						433			
+16167	Versicolor Treat	excluded	event-item						434			
+16168	Heaven Peach	excluded	event-item						1129			
+16169	Wild Ricecake	excluded	event-item						1127			
+16170	Steamed Mandu	excluded	event-item						435			
+16171	Shinsollo	excluded	event-item						1131			
+16766	Undermine Clam Chowder	included	name	5	ordinary	keen	35	1800	1129	1129	0	food
+16971	Clamlette Surprise	included	name	5	premium	keen	40	3600	10256	10256	19710	food
+17119	Deeprun Rat Kabob	included	name	2	ordinary	hearty	5	1800	434	434	0	food
+17196	Holiday Spirits	excluded	alcohol						11007			
+17197	Gingerbread Cookie	included	name	1	premium	energizing	1	3600	5004	5004	19705	food
+17198	Egg Nog	included	name	1	premium	hearty	1	3600	21149	21149	19705	food
+17199	Bad Egg Nog	excluded	missing-source-spell						0			
+17222	Spider Sausage	included	name	5	premium	hearty	35	3600	10256	10256	19710	food
+17344	Candy Cane	included	name	1	ordinary	energizing	1	1800	433	433	0	food
+17402	Greatfather's Winter Ale	excluded	alcohol						11009			
+17403	Steamwheedle Fizzy Spirits	excluded	alcohol						11008			
+17404	Blended Bean Brew	excluded	alcohol						431			
+17406	Holiday Cheesewheel	included	name	2	ordinary	keen	5	1800	434	434	0	food
+17407	Graccu's Homemade Meat Pie	excluded	event-item						1127			
+17408	Spicy Beefstick	included	stable-fallback	5	ordinary	energizing	35	1800	1129	1129	0	food
+18045	Tender Wolf Steak	included	name	5	premium	hearty	40	3600	10256	10256	19710	food
+18254	Runn Tum Tuber Surprise	included	curated-override	6	ordinary	precise	45	1800	22731	22731	0	food
+18255	Runn Tum Tuber	included	name	6	ordinary	nimble	45	1800	1129	1129	0	food
+18287	Evermurky	excluded	not-directly-edible						11008			
+18288	Molasses Firewater	excluded	not-directly-edible						11009			
+18300	Hyjal Nectar	included	name	7	ordinary	clear	55	1800	22734	22734	0	drink
+18632	Moonbrook Riot Taffy	excluded	event-item						1127			
+18633	Styleen's Sour Suckerpop	excluded	event-item						434			
+18635	Bellara's Nutterbar	excluded	event-item						1129			
+19221	Darkmoon Special Reserve	excluded	event-item						11629			
+19222	Cheap Beer	excluded	alcohol						11007			
+19223	Darkmoon Dog	excluded	event-item						433			
+19224	Red Hot Wings	excluded	event-item						1127			
+19225	Deep Fried Candybar	excluded	event-item						1131			
+19299	Fizzy Faire Drink	excluded	event-item						432			
+19300	Bottled Winterspring Water	excluded	event-item						1135			
+19301	Alterac Manna Biscuit	excluded	binding-or-quest-item						23692			
+19304	Spiced Beef Jerky	excluded	event-item						434			
+19305	Pickled Kodo Foot	excluded	event-item						435			
+19306	Crunchy Frog	excluded	event-item						1129			
+19696	Harvest Bread	excluded	binding-or-quest-item						24005			
+19994	Harvest Fruit	excluded	binding-or-quest-item						24005			
+19995	Harvest Boar	excluded	binding-or-quest-item						24005			
+19996	Harvest Fish	excluded	binding-or-quest-item						24005			
+20031	Essence Mango	excluded	binding-or-quest-item						24384			
+20074	Heavy Crocolisk Stew	included	name	3	premium	hearty	20	3600	5007	5007	19709	food
+20452	Smoked Desert Dumplings	included	native-well-fed	6	premium	hearty	45	3600	24800	24800	24799	food
+20516	Bobbing Apple	excluded	binding-or-quest-item						24869			
+20709	Rumsey Rum Light	excluded	alcohol						25037			
+20857	Honey Bread	included	name	1	ordinary	energizing	1	1800	433	433	0	food
+21023	Dirge's Kickin' Chimaerok Chops	included	name	7	ordinary	hearty	55	1800	25660	25660	0	food
+21030	Darnassus Kimchi Pie	included	name	5	ordinary	energizing	35	1800	1129	1129	0	food
+21031	Cabbage Kimchi	included	name	6	ordinary	nimble	45	1800	1131	1131	0	food
+21033	Radish Kimchi	included	name	6	ordinary	nimble	45	1800	1131	1131	0	food
+21072	Smoked Sagefish	included	name	2	ordinary	keen	10	1800	25690	25703	0	drink
+21114	Rumsey Rum Dark	excluded	alcohol						25722			
+21151	Rumsey Rum Black Label	excluded	alcohol						25804			
+21215	Graccu's Mince Meat Fruitcake	excluded	binding-or-quest-item						25990			
+21217	Sagefish Delight	included	name	4	ordinary	keen	30	1800	25691	25889	0	drink
+21235	Winter Veil Roast	excluded	binding-or-quest-item						24005			
+21236	Winter Veil Loaf	excluded	binding-or-quest-item						0			
+21240	Winter Veil Candy	excluded	binding-or-quest-item						0			
+21254	Winter Veil Cookie	excluded	binding-or-quest-item						24869			
+21552	Striped Yellowtail	included	name	5	ordinary	keen	35	1800	1129	1129	0	food
+21721	Moonglow	excluded	not-directly-edible						26389			
+22018	Conjured Glacier Water	excluded	conjured						27089			
+22019	Conjured Croissant	excluded	conjured						33725			
+22324	Winter Kimchi	included	name	6	ordinary	nimble	45	1800	1131	1131	0	food
+22645	Crunchy Spider Surprise	included	name	2	premium	precise	5	3600	5005	5005	19706	food
+22895	Conjured Cinnamon Roll	excluded	conjured						29073			
+23160	Friendship Bread	excluded	binding-or-quest-item						29008			
+23172	Refreshing Red Apple	excluded	binding-or-quest-item						0			
+23495	Springpaw Appetizer	excluded	binding-or-quest-item						433			
+23683	Crystal Flake Throat Lozenge	excluded	missing-source-spell						0			
+23704	NPC Equip 23704	excluded	missing-source-spell						0			
+23756	Cookie's Jumbo Gumbo	included	name	1	premium	energizing	1	3600	5004	5004	19705	food
+23848	Nethergarde Bitter	excluded	not-directly-edible						11629			
+24008	Dried Mushroom Rations	excluded	binding-or-quest-item						18234			
+24009	Dried Fruit Rations	excluded	binding-or-quest-item						18234			
+24072	Sand Pear Pie	included	name	2	ordinary	energizing	5	1800	434	434	0	food
+24105	Roasted Moongraze Tenderloin	included	name	1	premium	hearty	1	3600	5004	5004	19705	food
+24338	Hellfire Spineleaf	included	name	7	ordinary	nimble	55	1800	1131	1131	0	food
+24539	Marsh Lichen	included	name	7	ordinary	insightful	55	1800	32112	32112	0	food
+27635	Lynx Steak	included	name	1	premium	hearty	1	3600	5004	5004	19705	food
+27636	Bat Bites	included	stable-fallback	2	premium	hearty	5	3600	5005	5005	19706	food
+27651	Buzzard Bites	included	name	7	premium	hearty	55	3600	33253	33253	33254	food
+27655	Ravager Dog	excluded	unsupported-native-utility						33260			
+27656	Sporeling Snack	excluded	not-directly-edible						33272			
+27657	Blackened Basilisk	included	native-well-fed	7	premium	insightful	55	3600	33264	33264	33263	food
+27658	Roasted Clefthoof	included	native-well-fed	7	premium	hearty	55	3600	33255	33255	33256	food
+27659	Warp Burger	included	native-well-fed	7	premium	nimble	55	3600	33262	33262	33261	food
+27660	Talbuk Steak	included	name	7	premium	hearty	55	3600	35271	35271	35272	food
+27661	Blackened Trout	included	name	7	ordinary	keen	55	1800	27094	27094	0	food
+27662	Feltail Delight	included	name	7	premium	precise	55	3600	33253	33253	33254	food
+27663	Blackened Sporefish	included	native-well-fed	7	premium	clear	55	3600	33266	33266	33265	food
+27664	Grilled Mudfish	included	native-well-fed	7	premium	nimble	55	3600	33262	33262	33261	food
+27665	Poached Bluefish	included	native-well-fed	7	premium	insightful	55	3600	33264	33264	33263	food
+27666	Golden Fish Sticks	included	native-well-fed	7	premium	insightful	55	3600	33269	33269	33268	food
+27667	Spicy Crawdad	included	name	7	premium	keen	55	3600	33258	33258	33257	food
+27854	Smoked Talbuk Venison	included	name	7	ordinary	hearty	55	1800	27094	27094	0	food
+27855	Mag'har Grainbread	included	name	7	ordinary	fortifying	55	1800	27094	27094	0	food
+27856	Skethyl Berries	included	name	7	ordinary	nimble	55	1800	27094	27094	0	food
+27857	Garadar Sharp	included	name	7	ordinary	fortifying	55	1800	27094	27094	0	food
+27858	Sunspring Carp	included	name	7	ordinary	keen	55	1800	27094	27094	0	food
+27859	Zangar Caps	included	curated-override	7	ordinary	insightful	55	1800	27094	27094	0	food
+27860	Purified Draenic Water	included	name	8	ordinary	clear	65	1800	27089	27089	0	drink
+28112	Underspore Pod	excluded	binding-or-quest-item						33772			
+28284	Don Carlos Tequila	excluded	not-directly-edible						11009			
+28399	Filtered Draenic Water	included	name	7	ordinary	clear	60	1800	34291	34291	0	drink
+28486	Moser's Magnificent Muffin	included	name	7	ordinary	keen	55	1800	27094	27094	0	food
+28501	Ravager Egg Omelet	included	name	7	ordinary	hearty	55	1800	18234	18234	0	food
+29112	Cenarion Spirits	excluded	alcohol						11009			
+29292	Helboar Bacon	included	native-well-fed	7	premium	hearty	55	3600	24800	24800	24799	food
+29293	NPC Equip 29293	excluded	missing-source-spell						0			
+29393	Diamond Berries	included	name	7	ordinary	nimble	55	1800	27094	27094	0	food
+29394	Lyribread	included	name	8	ordinary	fortifying	65	1800	35270	35270	0	food
+29395	Ethermead	excluded	alcohol						27089			
+29401	Sparkling Southshore Cider	included	name	8	ordinary	clear	65	1800	27089	27089	0	drink
+29402	NPC Equip 29402	excluded	missing-source-spell						0			
+29412	Jessen's Special Slop	included	name	7	ordinary	precise	55	1800	27094	27094	0	food
+29448	Mag'har Mild Cheese	included	name	8	ordinary	fortifying	65	1800	35270	35270	0	food
+29449	Bladespire Bagel	included	curated-override	8	ordinary	fortifying	65	1800	35270	35270	0	food
+29450	Telaari Grapes	included	name	8	ordinary	nimble	65	1800	35270	35270	0	food
+29451	Clefthoof Ribs	included	name	8	ordinary	hearty	65	1800	35270	35270	0	food
+29452	Zangar Trout	included	name	8	ordinary	keen	65	1800	35270	35270	0	food
+29453	Sporeggar Mushroom	included	curated-override	8	ordinary	insightful	65	1800	35270	35270	0	food
+29454	Silverwine	excluded	alcohol						34291			
+30155	Clam Bar	included	name	7	premium	keen	55	3600	33253	33253	33254	food
+30355	Grilled Shadowmoon Tuber	included	name	8	ordinary	nimble	65	1800	35270	35270	0	food
+30357	Oronok's Tuber of Healing	excluded	binding-or-quest-item						33269			
+30358	Oronok's Tuber of Agility	excluded	binding-or-quest-item						33262			
+30359	Oronok's Tuber of Strength	excluded	binding-or-quest-item						33255			
+30361	Oronok's Tuber of Spell Power	excluded	binding-or-quest-item						33264			
+30457	Gilneas Sparkling Water	included	name	8	ordinary	clear	65	1800	27089	27089	0	drink
+30458	Stromgarde Muenster	included	name	7	ordinary	fortifying	55	1800	27094	27094	0	food
+30610	Smoked Black Bear Meat	included	name	7	ordinary	hearty	55	1800	27094	27094	0	food
+30703	Conjured Mountain Spring Water	excluded	conjured						34291			
+30816	Spice Bread	included	name	1	ordinary	fortifying	1	1800	433	433	0	food
+31672	Mok'Nathal Shortribs	included	curated-override	7	premium	hearty	55	3600	35271	35271	35272	food
+31673	Crunchy Serpent	included	native-well-fed	7	premium	insightful	55	3600	33264	33264	33263	food
+32453	Star's Tears	included	drink-fallback	8	ordinary	clear	65	1800	27089	27089	0	drink
+32455	Star's Lament	included	drink-fallback	7	ordinary	clear	55	1800	22734	22734	0	drink
+32667	Bash Ale	excluded	alcohol						11009			
+32668	Dos Ogris	excluded	alcohol						27089			
+32685	Ogri'la Chicken Fingers	included	name	8	ordinary	hearty	65	1800	35270	35270	0	food
+32686	Mingo's Fortune Giblets	included	name	8	ordinary	hearty	65	1800	40768	40768	0	food
+32721	Skyguard Rations	excluded	binding-or-quest-item						41030			
+32722	Enriched Terocone Juice	excluded	reputation-gated						41031			
+33004	Clamlette Magnifique	excluded	binding-or-quest-item						64056			
+33042	Black Coffee	included	name	8	ordinary	energizing	65	1800	27089	27089	0	drink
+33048	Stewed Trout	included	name	8	ordinary	keen	65	1800	35270	35270	0	food
+33052	Fisherman's Feast	included	name	8	premium	keen	65	3600	33258	33258	33257	food
+33053	Hot Buttered Trout	included	name	8	ordinary	keen	65	1800	42309	42311	0	drink
+33443	Sour Goat Cheese	included	name	8	ordinary	fortifying	65	1800	43180	43180	0	food
+33444	Pungent Seal Whey	included	name	8	ordinary	fortifying	70	1800	43182	43182	0	drink
+33445	Honeymint Tea	included	name	9	ordinary	energizing	75	1800	43183	43183	0	drink
+33449	Crusty Flatbread	included	name	8	ordinary	fortifying	65	1800	43180	43180	0	food
+33451	Fillet of Icefin	included	name	8	ordinary	keen	65	1800	43180	43180	0	food
+33452	Honey-Spiced Lichen	included	name	8	ordinary	energizing	65	1800	43180	43180	0	food
+33454	Salted Venison	included	name	8	ordinary	hearty	65	1800	43180	43180	0	food
+33822	NPC Equip 33822	excluded	missing-source-spell						0			
+33825	Skullfish Soup	included	name	8	ordinary	keen	65	1800	43706	43706	0	drink
+33866	Stormchops	excluded	not-directly-edible						43730			
+33867	Broiled Bloodfin	excluded	unsupported-native-utility						45618			
+33872	Spicy Hot Talbuk	included	native-well-fed	8	premium	precise	65	3600	43763	43763	43764	food
+33874	Kibler's Bits	excluded	not-directly-edible						65247			
+33924	Delicious Chocolate Cake	included	name	1	ordinary	energizing	1	1800	43777	43777	0	food
+34062	Conjured Mana Biscuit	excluded	conjured						44166			
+34125	Shoveltusk Soup	included	native-well-fed	8	premium	energizing	70	3600	57287	57287	57288	food
+34411	Hot Apple Cider	included	name	8	premium	clear	65	3600	45020	45020	45245	drink
+34747	Northern Stew	included	name	8	ordinary	precise	70	1800	45548	45548	0	food
+34748	Mammoth Meal	excluded	unsupported-native-utility						57110			
+34749	Shoveltusk Steak	included	native-well-fed	9	premium	insightful	70	3600	57138	57138	57139	food
+34750	Worm Delight	included	native-well-fed	9	premium	keen	70	3600	57285	57285	57286	food
+34751	Roasted Worg	included	native-well-fed	9	premium	energizing	70	3600	57287	57287	57288	food
+34752	Rhino Dogs	included	native-well-fed	9	premium	clear	70	3600	57289	57289	57291	food
+34753	Great Feast	excluded	not-directly-edible						57301			
+34754	Mega Mammoth Meal	excluded	unsupported-native-utility						57324			
+34755	Tender Shoveltusk Steak	included	native-well-fed	9	premium	insightful	70	3600	57326	57326	57327	food
+34756	Spiced Worm Burger	included	native-well-fed	9	premium	keen	70	3600	57328	57328	57329	food
+34757	Very Burnt Worg	included	native-well-fed	9	premium	energizing	70	3600	57331	57331	57332	food
+34758	Mighty Rhino Dogs	included	native-well-fed	9	premium	clear	70	3600	57333	57333	57334	food
+34759	Smoked Rockfin	included	name	8	ordinary	keen	70	1800	57070	45548	0	drink
+34760	Grilled Bonescale	excluded	alcohol						57070			
+34761	Sauteed Goby	included	name	8	ordinary	keen	70	1800	57070	45548	0	drink
+34762	Grilled Sculpin	excluded	unsupported-native-utility						57085			
+34763	Smoked Salmon	included	native-well-fed	9	premium	insightful	70	3600	57096	57096	57097	drink
+34764	Poached Nettlefish	included	native-well-fed	9	premium	keen	70	3600	57098	57098	57100	drink
+34765	Pickled Fangtooth	included	native-well-fed	9	premium	clear	70	3600	57106	57106	57107	drink
+34766	Poached Northern Sculpin	excluded	unsupported-native-utility						57335			
+34767	Firecracker Salmon	included	native-well-fed	9	premium	insightful	70	3600	57341	57341	57327	drink
+34768	Spicy Blue Nettlefish	included	native-well-fed	9	premium	keen	70	3600	57343	57343	57329	drink
+34769	Imperial Manta Steak	included	native-well-fed	9	premium	energizing	70	3600	57344	57344	57332	drink
+34770	NPC Equip 34770	excluded	missing-source-spell						0			
+34780	Naaru Ration	excluded	binding-or-quest-item						44166			
+34832	Captain Rumsey's Lager	excluded	alcohol						45694			
+35563	Charred Bear Kabobs	excluded	unsupported-native-utility						46898			
+35565	Juicy Bear Burger	included	native-well-fed	6	premium	insightful	45	3600	46683	46683	46687	food
+35710	NPC Equip 35710	excluded	missing-source-spell						0			
+35720	Lord of Frost's Private Label	excluded	not-directly-edible						46927			
+35947	Sparkling Frostcap	included	name	9	ordinary	insightful	75	1800	45548	45548	0	food
+35948	Savory Snowplum	included	curated-override	9	ordinary	nimble	75	1800	45548	45548	0	food
+35949	Tundra Berries	included	name	8	ordinary	nimble	65	1800	43180	43180	0	food
+35950	Sweet Potato Bread	included	name	9	ordinary	energizing	75	1800	45548	45548	0	food
+35951	Poached Emperor Salmon	included	name	9	ordinary	keen	75	1800	45548	45548	0	food
+35952	Briny Hardcheese	included	name	9	ordinary	fortifying	75	1800	45548	45548	0	food
+35953	Mead Basted Caribou	excluded	alcohol						45548			
+35954	Sweetened Goat's Milk	included	name	8	ordinary	energizing	65	1800	27089	27089	0	drink
+36831	NPC Equip 36831	excluded	missing-source-spell						0			
+37252	Frostberries	included	name	8	ordinary	nimble	65	1800	43180	43180	0	food
+37253	Frostberry Juice	included	name	8	ordinary	clear	65	1800	27089	27089	0	drink
+37452	Fatty Bluefin	included	name	8	ordinary	keen	65	1800	48720	48720	0	food
+38350	"Winterfin ""Depth Charge"""	excluded	not-directly-edible						11009			
+38427	Pickled Egg	included	name	7	ordinary	hearty	55	1800	27094	27094	0	food
+38428	Rock-Salted Pretzel	included	name	8	ordinary	fortifying	65	1800	35270	35270	0	food
+38429	Blackrock Spring Water	included	name	6	ordinary	clear	45	1800	1137	1137	0	drink
+38430	Blackrock Mineral Water	included	name	7	ordinary	clear	60	1800	34291	34291	0	drink
+38431	Blackrock Fortified Water	included	name	8	ordinary	clear	65	1800	27089	27089	0	drink
+38432	Plugger's Blackrock Ale	excluded	alcohol						11009			
+38466	Sulfuron Slammer	excluded	not-directly-edible						50986			
+38698	Bitter Plasma	included	drink-fallback	8	ordinary	clear	70	1800	43182	43182	0	drink
+38706	Bowels 'n' Brains	included	stable-fallback	9	ordinary	insightful	75	1800	45548	45548	0	food
+39520	Kungaloosh	excluded	alcohol						52911			
+39691	Succulent Orca Stew	included	native-well-fed	8	premium	keen	70	3600	57285	57285	57286	food
+40035	Honey Mead	excluded	alcohol						11007			
+40036	Snowplum Brandy	excluded	alcohol						11008			
+40042	Caraway Burnwine	excluded	alcohol						11009			
+40202	Sizzling Grizzly Flank	included	curated-override	9	ordinary	hearty	75	1800	45548	45548	0	food
+40356	Grizzleberries	included	name	8	ordinary	nimble	65	1800	43180	43180	0	food
+40357	Grizzleberry Juice	included	name	8	ordinary	clear	65	1800	27089	27089	0	drink
+40358	Raw Tallhorn Chunk	included	name	8	ordinary	hearty	65	1800	43180	43180	0	food
+40359	Fresh Eagle Meat	included	name	8	ordinary	hearty	65	1800	43180	43180	0	food
+40667	NPC Equip 40667	excluded	missing-source-spell						0			
+41374	NPC Equip 41374	excluded	missing-source-spell						0			
+41729	Stewed Drakeflesh	included	name	9	ordinary	precise	75	1800	45548	45548	0	food
+41731	Yeti Milk	included	name	9	ordinary	clear	75	1800	43183	43183	0	drink
+41751	Black Mushroom	included	name	7	ordinary	insightful	55	1800	27094	27094	0	food
+42428	Carrot Cupcake	included	name	8	ordinary	energizing	70	1800	43180	43180	0	food
+42429	Red Velvet Cupcake	included	name	9	ordinary	energizing	75	1800	45548	45548	0	food
+42430	Dalaran Doughnut	included	name	8	ordinary	energizing	70	1800	43180	43180	0	food
+42431	Dalaran Brownie	included	name	9	ordinary	energizing	75	1800	45548	45548	0	food
+42432	Berry Pie Slice	included	name	8	ordinary	energizing	70	1800	43180	43180	0	food
+42433	Chocolate Cake Slice	included	name	8	ordinary	energizing	70	1800	43180	43180	0	food
+42434	Lovely Cake Slice	included	name	9	ordinary	energizing	75	1800	45548	45548	0	food
+42590	TEST FRUITCAKE	excluded	binding-or-quest-item						56439			
+42777	Crusader's Waterskin	included	drink-fallback	9	ordinary	clear	75	1800	43183	43183	0	drink
+42778	Crusader's Rations	included	curated-override	9	ordinary	banquet	75	1800	45548	45548	0	food
+42779	Steaming Chicken Soup	included	name	9	premium	hearty	75	3600	53283	53283	53284	food
+42942	Baked Manta Ray	included	native-well-fed	9	premium	energizing	70	3600	57101	57101	57102	drink
+42993	Spicy Fried Herring	included	native-well-fed	9	premium	clear	70	3600	57354	57354	57334	drink
+42994	Rhinolicious Wormsteak	included	native-well-fed	9	premium	precise	70	3600	57355	57355	57356	food
+42995	Hearty Rhino	included	native-well-fed	9	premium	precise	70	3600	57357	57357	57358	food
+42996	Snapper Extreme	included	native-well-fed	9	premium	precise	70	3600	57359	57359	57360	drink
+42997	Blackened Worg Steak	excluded	unsupported-native-utility						57362			
+42998	Cuttlesteak	included	name	9	premium	hearty	70	3600	57364	57364	57365	drink
+42999	Blackened Dragonfin	included	native-well-fed	9	premium	nimble	70	3600	57366	57366	57367	drink
+43000	Dragonfin Filet	included	native-well-fed	9	premium	hearty	70	3600	57370	57370	57371	drink
+43001	Tracker Snacks	excluded	unsupported-native-utility						57372			
+43004	Critter Bites	excluded	pet-only						57388			
+43005	Spiced Mammoth Treats	excluded	pet-only						43771			
+43015	Fish Feast	excluded	not-directly-edible						57426			
+43086	Fresh Apple Juice	included	name	8	ordinary	clear	70	1800	43182	43182	0	drink
+43087	Crisp Dalaran Apple	included	name	9	ordinary	nimble	75	1800	45548	45548	0	food
+43236	Star's Sorrow	included	drink-fallback	9	ordinary	clear	75	1800	43183	43183	0	drink
+43268	Dalaran Clam Chowder	included	native-well-fed	9	premium	banquet	70	3600	58067	58067	57294	drink
+43478	Gigantic Feast	excluded	not-directly-edible						58465			
+43480	Small Feast	excluded	not-directly-edible						58474			
+43488	Last Weeks Mammoth	excluded	not-directly-edible						58496			
+43490	Tasty Cupcake	excluded	not-directly-edible						58499			
+43491	Bad Clams	excluded	not-directly-edible						58500			
+43492	Haunted Herring	excluded	not-directly-edible						58502			
+43496	NPC Equip 43496	excluded	missing-source-spell						0			
+43518	Conjured Mana Pie	excluded	conjured						61828			
+43523	Conjured Mana Strudel	excluded	conjured						58648			
+43695	Half Full Bottle of Prison Moonshine	excluded	alcohol						11009			
+43696	Half Empty Bottle of Prison Moonshine	excluded	alcohol						11009			
+44049	Freshly-Speared Emperor Salmon	excluded	binding-or-quest-item						45548			
+44071	Slow-Roasted Eel	excluded	binding-or-quest-item						45548			
+44072	Roasted Mystery Beast	excluded	binding-or-quest-item						45548			
+44114	Old Spices	excluded	binding-or-quest-item						60106			
+44228	Baby Spice	excluded	binding-or-quest-item						60122			
+44570	Glass of Eversong Wine	excluded	alcohol						11007			
+44571	Bottle of Silvermoon Port	excluded	not-directly-edible						11008			
+44572	NPC Equip 44572	excluded	missing-source-spell						0			
+44573	Cup of Frog Venom Brew	excluded	alcohol						11009			
+44574	Skin of Mulgore Firewater	excluded	not-directly-edible						11009			
+44575	Flask of Bitter Cactus Cider	excluded	not-directly-edible						11008			
+44607	Aged Dalaran Sharp	included	name	9	ordinary	fortifying	75	1800	45548	45548	0	food
+44608	Dalaran Swiss	included	name	8	ordinary	fortifying	65	1800	43180	43180	0	food
+44609	Fresh Dalaran Bread Slice	included	name	8	ordinary	fortifying	65	1800	43180	43180	0	food
+44616	Glass of Dalaran White	excluded	not-directly-edible						11007			
+44617	Glass of Dalaran Red	excluded	not-directly-edible						11008			
+44618	Glass of Aged Dalaran Red	excluded	not-directly-edible						11008			
+44619	Glass of Peaked Dalaran Red	excluded	not-directly-edible						11008			
+44620	Glass of Vintage Dalaran Red	excluded	not-directly-edible						11007			
+44722	Aged Yolk	included	name	9	ordinary	hearty	75	1800	45548	45548	0	food
+44749	Salted Yeti Cheese	included	name	8	ordinary	fortifying	65	1800	43180	43180	0	food
+44750	Mountain Water	included	name	8	ordinary	clear	65	1800	27089	27089	0	drink
+44791	Noblegarden Chocolate	excluded	holiday						61874			
+44836	Pumpkin Pie	excluded	event-item						65421			
+44837	Spice Bread Stuffing	excluded	event-item						65419			
+44838	Slow-Roasted Turkey	excluded	event-item						65422			
+44839	Candied Sweet Potato	excluded	event-item						65418			
+44840	Cranberry Chutney	excluded	event-item						65420			
+44854	Tangy Wetland Cranberries	included	name	1	ordinary	nimble	1	1800	433	433	0	food
+44855	Teldrassil Sweet Potato	included	name	1	ordinary	energizing	1	1800	433	433	0	food
+44940	Corn-Breaded Sausage	included	name	9	ordinary	hearty	75	1800	45548	45548	0	food
+44941	Fresh-Squeezed Limeade	excluded	alcohol						43182			
+44953	Worg Tartare	included	native-well-fed	9	premium	precise	70	3600	57359	57359	57360	drink
+45279	Jillian's Gourmet Fish Feast	excluded	binding-or-quest-item						57426			
+45901	Homemade Fish Fry	included	name	8	ordinary	keen	70	1800	45548	45548	0	food
+45932	Black Jelly	included	drink-fallback	9	ordinary	clear	75	1800	64354	64355	0	drink
+46690	Candy Skull	excluded	holiday						433			
+46691	Bread of the Dead	excluded	holiday						24869			
+46784	Ripe Elwynn Pumpkin	included	name	1	ordinary	nimble	1	1800	433	433	0	food
+46793	Tangy Southfury Cranberries	included	name	1	ordinary	nimble	1	1800	433	433	0	food
+46796	Ripe Tirisfal Pumpkin	included	name	1	ordinary	nimble	1	1800	433	433	0	food
+46797	Mulgore Sweet Potato	included	name	1	ordinary	energizing	1	1800	433	433	0	food
+46887	Bountiful Feast	excluded	not-directly-edible						66476			
+49863	NPC Equip 49863	excluded	missing-source-spell						0			

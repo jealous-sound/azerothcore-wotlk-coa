@@ -1,0 +1,7 @@
+## Interface: 30300
+## Title: Homebrew Nourishment
+## Notes: Accurate tooltips and status for the server's completed-meal system.
+## Author: PMZFX
+## Version: 1.1.0
+
+HomebrewNourishment.lua

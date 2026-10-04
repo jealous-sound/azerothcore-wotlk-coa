@@ -1,0 +1,24 @@
+# Homebrew Nourishment by PMZFX
+
+HomebrewNourishment.Enable = 1
+
+# Lasting effects apply as soon as the food or drink item is consumed.
+
+# Ordinary and premium profiles use separate durations.
+HomebrewNourishment.OrdinaryDurationSeconds = 1800
+HomebrewNourishment.PremiumDurationSeconds = 3600
+# Food made by a Cooking recipe gets stronger Nourishment stats. The addon shows
+# the cooked-food bonus and the final rounded values. This does not extend duration.
+HomebrewNourishment.CookedFoodBonusMultiplier = 1.30
+
+# Death clears the lasting effect and its persisted record. It can be retained
+# for a different ruleset by explicitly enabling this option.
+HomebrewNourishment.PersistThroughDeath = 0
+HomebrewNourishment.AllowInBattlegrounds = 1
+HomebrewNourishment.AllowInArenas = 0
+
+# Playerbots must satisfy the same uninterrupted meal rules as humans.
+HomebrewNourishment.IncludePlayerbots = 1
+
+# Short grant/block explanations. Addon synchronization is independent.
+HomebrewNourishment.NotifyPlayers = 1

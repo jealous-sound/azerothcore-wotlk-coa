@@ -1,0 +1,32 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  addon-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install packaging tools
+        run: sudo apt-get update && sudo apt-get install -y luajit zip unzip ripgrep
+      - name: Validate and package
+        run: |
+          ./tests/test-release.sh
+          ./scripts/package-addon.sh
+          cd dist
+          sha256sum HomebrewNourishment-*.zip > SHA256SUMS
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --title "Homebrew Nourishment ${GITHUB_REF_NAME#v}" \
+            --generate-notes \
+            dist/HomebrewNourishment-*.zip \
+            dist/SHA256SUMS
