@@ -1501,6 +1501,10 @@ bool SpellInfo::IsAffectedBySpellMod(SpellModifier const* mod) const
         mod->spellId == 705780 && mod->op == SPELLMOD_JUMP_TARGETS && mod->type == SPELLMOD_FLAT &&
         mod->mask == flag96(128, 0, 0);
 
+    bool const windSurgeTargets = Id == 653226 && SpellFamilyName == 38 &&
+        mod->spellId == 805750 && mod->op == SPELLMOD_JUMP_TARGETS && mod->type == SPELLMOD_FLAT &&
+        mod->mask == flag96(0, 0x40000, 0);
+
     bool const bloodFueledAbsorb = Id == 560361 && mod->spellId == 705416 && mod->op == SPELLMOD_EFFECT1 &&
         mod->type == SPELLMOD_PCT;
 
@@ -1510,7 +1514,8 @@ bool SpellInfo::IsAffectedBySpellMod(SpellModifier const* mod) const
         mod->type == SPELLMOD_PCT;
 
     // xinef: dont check duration mod
-    if (mod->op != SPELLMOD_DURATION && !bandageGunTargets && !bloodFueledAbsorb && !bwonsamdisEdgeSplash)
+    if (mod->op != SPELLMOD_DURATION && !bandageGunTargets && !windSurgeTargets &&
+        !bloodFueledAbsorb && !bwonsamdisEdgeSplash)
         if (!IsAffectedBySpellMods())
             return false;
 
@@ -1593,7 +1598,9 @@ bool SpellInfo::IsAffectedBySpellMod(SpellModifier const* mod) const
         }
     }
 
-    return IsAffected(affectSpell->SpellFamilyName, mod->mask);
+    bool affected = IsAffected(affectSpell->SpellFamilyName, mod->mask);
+    sScriptMgr->OnSpellModFamilyMask(affectSpell, this, mod, affected);
+    return affected;
 }
 
 bool SpellInfo::CanPierceImmuneAura(SpellInfo const* auraSpellInfo) const

@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "name": "Item scaling: a chest opened by a level-scaled character holds its items lifted to the character's content level",
+  "contract": "Requires DestinyWeaver.Enable=1, DestinyWeaver.LevelScaling=1, DestinyWeaver.Scaling.Offset=3 and CoA.ItemScaling=1. Dwarf Remains 95673 holds Claw Scarred Mail 450780 (green, item level 12, required level 7, 86 armor) at 100%. A level 30 character with open-world scaling on meets content at level 27, so the mail it loots must be a copy lifted by 15 levels: item level 27, required level 22 and more armor than the authored 86. With scaling off, Underbed Glint 90550 holds the authored Rootbark Girdle 521000 at item level 11. Lock, key and skill checks of the chest are not exercised; client rendering of the copy is not tested.",
+  "timeout_ms": 120000,
+  "location": { "map": 0, "x": -9465, "y": 64, "z": 56, "o": 0 },
+  "players": [
+    { "id": "hero", "race": 1, "class": 1, "level": 30 }
+  ],
+  "steps": [
+    { "action": "level_scaling_packet", "actor": "hero", "value": 1 },
+    { "action": "summon_gameobject", "actor": "hero", "entry": 95673 },
+    { "action": "wait", "label": "Let the chest become ready", "ms": 1000 },
+    { "action": "loot_gameobject", "actor": "hero", "entry": 95673 },
+    { "action": "assert", "label": "The chest holds a copy of Claw Scarred Mail", "actor": "hero", "metric": "loot_entry", "item": 450780, "min": 4400001, "max": 4912583 },
+    { "action": "assert", "label": "The copy is lifted to item level 27", "actor": "hero", "metric": "loot_item_level", "item": 450780, "equals": 27 },
+    { "action": "assert", "label": "The copy carries more armor than the authored 86", "actor": "hero", "metric": "loot_item_armor", "item": 450780, "min": 87 },
+    { "action": "loot_slot", "actor": "hero", "item": 450780 },
+    { "action": "assert", "label": "The looted copy keeps item level 27", "actor": "hero", "metric": "carried_item_level", "item": 450780, "equals": 27, "within_ms": 2000 },
+    { "action": "assert", "label": "The looted copy requires level 22", "actor": "hero", "metric": "carried_item_required_level", "item": 450780, "equals": 22 },
+    { "action": "close_loot", "actor": "hero" },
+
+    { "action": "level_scaling_packet", "actor": "hero", "value": 0 },
+    { "action": "summon_gameobject", "actor": "hero", "entry": 90550 },
+    { "action": "wait", "label": "Let the chest become ready", "ms": 1000 },
+    { "action": "loot_gameobject", "actor": "hero", "entry": 90550 },
+    { "action": "assert", "label": "The unscaled chest holds the authored Rootbark Girdle", "actor": "hero", "metric": "loot_entry", "item": 521000, "equals": 521000 },
+    { "action": "assert", "label": "The authored item keeps item level 11", "actor": "hero", "metric": "loot_item_level", "item": 521000, "equals": 11 },
+    { "action": "close_loot", "actor": "hero" }
+  ]
+}

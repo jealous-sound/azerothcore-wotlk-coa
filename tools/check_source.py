@@ -31,6 +31,10 @@ SUITES = {
         'commands': [['tools/test_source.py'], ['tools/test_change_boundaries.py'], ['tools/test_registrations.py'],
                      ['tools/test_comments.py'], ['tools/test_verify_all.py']],
     },
+    'molten-core-sql': {
+        'paths': ['data/sql/updates/pending_db_world/*molten_core*.sql'],
+        'commands': [['tools/test_molten_core_smart_scripts_base_entry.py']],
+    },
     'codestyle': {
         'paths': ['apps/codestyle/*', '.editorconfig'],
         'commands': [['apps/codestyle/tests/test_scoped_lint.py']],

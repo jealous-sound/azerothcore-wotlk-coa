@@ -1500,6 +1500,9 @@ void Spell::EffectTeleportUnits(SpellEffIndex /*effIndex*/)
     if (!unitTarget || unitTarget->IsInFlight())
         return;
 
+    if (unitTarget->IsImmuneToForcedMovement() && unitTarget != m_caster)
+        return;
+
     if (unitTarget->IsPlayer())
     {
         sScriptMgr->AnticheatSetUnderACKmount(unitTarget->ToPlayer());
@@ -5495,6 +5498,14 @@ void Spell::EffectPullTowards(SpellEffIndex effIndex)
 
     if (!unitTarget)
         return;
+
+    // Xinef: allow entry specific spells to skip those checks
+    if (m_spellInfo->Effects[effIndex].TargetA.GetCheckType() != TARGET_CHECK_ENTRY && m_spellInfo->Effects[effIndex].TargetB.GetCheckType() != TARGET_CHECK_ENTRY)
+    {
+        if (Creature* creatureTarget = unitTarget->ToCreature())
+            if (creatureTarget->isWorldBoss() || creatureTarget->IsDungeonBoss() || creatureTarget->IsImmuneToKnockback())
+                return;
+    }
 
     Position pos;
     if (m_spellInfo->Effects[effIndex].Effect == SPELL_EFFECT_PULL_TOWARDS_DEST)

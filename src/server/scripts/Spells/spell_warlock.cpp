@@ -1256,9 +1256,10 @@ class spell_warl_drain_soul : public AuraScript
 
     void Register() override
     {
-        OnEffectRemove += AuraEffectRemoveFn(spell_warl_drain_soul::RemoveEffect, EFFECT_0, SPELL_AURA_CHANNEL_DEATH_ITEM, AURA_EFFECT_HANDLE_REAL);
+        // Ascension's Drain Soul deals its damage in the second effect; the soul shard aura is restored into it at load.
+        OnEffectRemove += AuraEffectRemoveFn(spell_warl_drain_soul::RemoveEffect, EFFECT_1, SPELL_AURA_CHANNEL_DEATH_ITEM, AURA_EFFECT_HANDLE_REAL);
         DoCheckProc += AuraCheckProcFn(spell_warl_drain_soul::CheckProc);
-        OnEffectPeriodic += AuraEffectPeriodicFn(spell_warl_drain_soul::HandleTick, EFFECT_1, SPELL_AURA_PERIODIC_DAMAGE);
+        OnEffectPeriodic += AuraEffectPeriodicFn(spell_warl_drain_soul::HandleTick, EFFECT_0, SPELL_AURA_PERIODIC_DAMAGE);
         OnEffectProc += AuraEffectProcFn(spell_warl_drain_soul::HandleProc, EFFECT_2, SPELL_AURA_PROC_TRIGGER_SPELL);
     }
 };

@@ -1,6 +1,7 @@
 #include "AscensionCollectibleSpellData.h"
 #include "ItemTemplate.h"
 #include "Optional.h"
+#include "Tokenize.h"
 #include "WorldPacket.h"
 #include <algorithm>
 #include <array>
@@ -82,15 +83,17 @@ class WorldSession
 {
 public:
     uint32 AccountId = 1;
+    bool Bot = false;
     int LocaleIndex = -1;
     Player* PlayerObject = nullptr;
     std::vector<WorldPacket> Sent;
     std::vector<std::string> Messages;
 
     uint32 GetAccountId() const { return AccountId; }
+    bool IsBot() const { return Bot; }
     Player* GetPlayer() const { return PlayerObject; }
     int GetSessionDbLocaleIndex() const { return LocaleIndex; }
-    void SendPacket(WorldPacket const* packet) { Sent.push_back(*packet); }
+    void SendPacket(WorldPacket const* packet);
     void HandleItemQuerySingleOpcode(WorldPacket& recvData);
     void SendItemQuerySingleResponse(uint32 item);
 };
@@ -167,6 +170,7 @@ struct Player
 
     WorldSession* GetSession() const { return Session; }
     std::string GetName() const { return "Tester"; }
+    bool IsInWorld() const { return true; }
     void SendDirectMessage(WorldPacket const* packet) { Session->SendPacket(packet); }
     void SendAllSpellChargeStates() { ++ChargeSnapshots; }
 
@@ -191,6 +195,7 @@ struct Player
     void SendInitialSpells() { }
 };
 
+// ACTUAL_RECEIVES_CLIENT_REQUESTS
 // ACTUAL_PROGRESS_EVENT
 
 struct ScriptMgr
@@ -268,6 +273,7 @@ struct ServerScript
 {
     virtual ~ServerScript() = default;
     [[nodiscard]] virtual bool CanPacketReceiveEarly(WorldSession*, WorldPacket const&) { return true; }
+    virtual bool CanPacketSend(WorldSession*, WorldPacket const&) { return true; }
 };
 
 namespace
@@ -377,6 +383,10 @@ public:
     }
 
     void SendPatchStream(Player*) { }
+
+    std::vector<uint32> ItemRequests;
+
+    void SendItemRowOnDemand(Player*, uint32 entry) { ItemRequests.push_back(entry); }
 };
 
 class AscensionCollectionService
@@ -426,6 +436,7 @@ public:
 struct AscensionCompatServerScript : ServerScript
 {
     // ACTUAL_CAN_PACKET_RECEIVE_EARLY
+    // ACTUAL_CAN_PACKET_SEND
 };
 
 struct AscensionCompatCommandScript
@@ -612,6 +623,38 @@ void TestStorePackets()
         "before login a store query gets the empty store at once and a purchase is dropped, not queued");
 }
 
+void TestBotAltRequests()
+{
+    AscensionCollectionService& service = AscensionCollectionService::Instance();
+    WorldSession session;
+    session.AccountId = 77;
+    Player player;
+    player.Session = &session;
+    session.PlayerObject = &player;
+    WorldSession botSession;
+    botSession.AccountId = 77;
+    botSession.Bot = true;
+    Player bot;
+    bot.Session = &botSession;
+    botSession.PlayerObject = &bot;
+    service.AppearancePackets.clear();
+
+    WorldPacket save(0x069E, 16);
+    save << std::string("Plate") << uint32(0);
+    for (WorldPacket const& packet : {ApplyAppearances(), save, ExtensionInitialized(), StoreQuery(7)})
+        Receive(session, packet);
+    DispatchedOpcodes.clear();
+    service.OnPlayerUpdate(&bot, 1);
+    Check(service.AppearancePackets.empty() && DispatchedOpcodes.empty() && !bot.ChargeSnapshots &&
+            botSession.Sent.empty(),
+        "a bot alt of the same account leaves the player's requests queued");
+    service.OnPlayerUpdate(&player, 1);
+    Check(service.AppearancePackets == std::vector<uint16>{0x0697, 0x069E} && player.ChargeSnapshots == 1 &&
+            DispatchedOpcodes == std::vector<uint16>{0x06B9} && session.Sent.size() == 2 &&
+            TrustsHelpUi(session.Sent[0]) && session.Sent[1].GetOpcode() == 0x06BA,
+        "the player's next update then handles every request of the account in order");
+}
+
 void TestWorldEntryResend()
 {
     AscensionCollectionService& service = AscensionCollectionService::Instance();
@@ -747,11 +790,16 @@ void TestItemQueries()
     Player player;
     player.Session = &session;
 
+    session.PlayerObject = &player;
+    auto& itemPatches = AscensionDisplayPatchService::Instance().ItemRequests;
+    itemPatches.clear();
     std::vector<std::vector<uint8>> const replies = BulkReplies(session, player, BulkQuery({35, 999999, 135522}));
     std::vector<uint8> const unknown = {0x3F, 0x42, 0x0F, 0x80};
     Check(replies.size() == 3 && replies[0] == SingleQueryReply(35, -1) && replies[1] == unknown &&
         replies[2] == SingleQueryReply(135522, -1),
         "a bulk item query answers each entry in order with the stock single-item response");
+    Check(itemPatches == std::vector<uint32>{35, 999999 | 0x80000000u, 135522},
+        "bulk responses reach the demand-patch hook in order, including the native unknown-item marker");
 
     WorldPacket first(SMSG_ITEM_QUERY_SINGLE_RESPONSE, 0);
     if (!replies.empty())
@@ -773,6 +821,7 @@ void TestItemQueries()
     Check(BulkReplies(session, player, BulkQuery(full)).size() == 50,
         "the client's largest batch of 50 entries is answered");
 
+    std::size_t const patchRequestsBeforeMalformed = itemPatches.size();
     bool rejected = true;
     for (WorldPacket const& malformed : {BulkQuery({}), BulkQuery(std::vector<uint32>(51, 35)),
             BulkQuery({35}, 2), BulkQuery({35, 36}, 1), WorldPacket(0x061B, 0)})
@@ -781,6 +830,8 @@ void TestItemQueries()
     shortCount << uint8(1) << uint8(0) << uint8(0);
     rejected &= BulkReplies(session, player, shortCount).empty();
     Check(rejected, "empty, oversized, truncated and padded batches are consumed without replies");
+    Check(itemPatches.size() == patchRequestsBeforeMalformed,
+        "malformed item queries do not reach the demand-patch service");
 
     AscensionCollectionService& service = AscensionCollectionService::Instance();
     session.Sent.clear();
@@ -971,6 +1022,13 @@ void TestVanityUnlockPolicy()
 }
 }
 
+void WorldSession::SendPacket(WorldPacket const* packet)
+{
+    AscensionCompatServerScript script;
+    if (script.CanPacketSend(this, *packet))
+        Sent.push_back(*packet);
+}
+
 struct ClientClock
 {
     bool Sent = false;
@@ -1125,6 +1183,7 @@ int main()
     TestCharacterEnumeration();
     TestWorldEntryResend();
     TestStorePackets();
+    TestBotAltRequests();
     TestTalentRequests();
     TestCoreHandledRequests();
     TestItemQueries();

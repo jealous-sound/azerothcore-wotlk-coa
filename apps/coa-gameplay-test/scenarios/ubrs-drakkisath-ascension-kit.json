@@ -1,7 +1,17 @@
 {
   "schema": 1,
   "name": "Upper Blackrock Spire: General Drakkisath and his guards fight with Ascension's kits",
-  "contract": "General Drakkisath uses Ascension's kit for him (db.exil.es/npc/10363): Pierce Armor 2100345, Fierce Blow 975011, Flamestrike 2100015, Cleave 2102501, Heatwave 2102203 with its line of burning ground 2102204, Conflagration 2102208 and Thunder Clap 2102619, and enrages (2102552) below 30% health. His Chromatic Elite Guards add Fierce Blow to their kit (db.exil.es/npc/10814).",
+  "contract": [
+    "General Drakkisath uses Ascension's kit for him (db.exil.es/npc/10363): Pierce Armor 2100345, Fierce Blow",
+    "975011, Flamestrike 2100015, Cleave 2102501, Heatwave 2102203 with its line of burning ground 2102204,",
+    "Conflagration 2102208 and Thunder Clap 2102619, and enrages (2102552) below 30% health. His Chromatic Elite",
+    "Guards add Fierce Blow to their kit (db.exil.es/npc/10814).",
+    "Configure the existing two-million survival health before the initial settling wait. These aggressive",
+    "creatures can attack during that wait; changing health afterward cannot revive a killed hero. Native alive",
+    "and maximum-health observations require a living hero before and after settling. Preserve both ordinary",
+    "attack requests, the existing encounter deadlines, every original kit assertion and the 35%-to-25% enrage",
+    "control. Boss damage, aggression, abilities and timers stay unchanged."
+  ],
   "timeout_ms": 240000,
   "location": {
     "map": 229,
@@ -41,9 +51,37 @@
   ],
   "steps": [
     {
+      "action": "set_health",
+      "actor": "hero",
+      "value": 2000000,
+      "maximum": 2000000,
+      "label": "Configure the original survival health before aggressive creatures can attack"
+    },
+    {
+      "action": "assert",
+      "actor": "hero",
+      "metric": "max_health",
+      "equals": 2000000,
+      "label": "CONTROL: the survival health is configured before settling"
+    },
+    {
+      "action": "assert",
+      "actor": "hero",
+      "metric": "alive",
+      "equals": 1,
+      "label": "CONTROL: health setup starts with a living hero"
+    },
+    {
       "action": "wait",
       "label": "Let the fixtures settle",
       "ms": 3000
+    },
+    {
+      "action": "assert",
+      "actor": "hero",
+      "metric": "alive",
+      "equals": 1,
+      "label": "CONTROL: the hero survives the initial aggressive encounter settling"
     },
     {
       "action": "assert",
@@ -51,12 +89,6 @@
       "actor": "hero",
       "metric": "map_id",
       "equals": 229
-    },
-    {
-      "action": "set_health",
-      "actor": "hero",
-      "value": 2000000,
-      "maximum": 2000000
     },
     {
       "action": "attack",

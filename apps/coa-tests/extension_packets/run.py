@@ -71,6 +71,7 @@ def main():
             'void WorldSession::SendItemQuerySingleResponse(uint32) { }')),
         ('OPCODES', opcodes(compat)),
         ('VANITY_UNLOCK_POLICY', method(compat, 'bool IsVanityItemUnlocked(')),
+        ('RECEIVES_CLIENT_REQUESTS', method_or(compat, 'bool ReceivesClientRequests(Player const *player)', '')),
         ('PROGRESS_EVENT', method(player_script, 'enum class CoAProgressEvent') + ';'),
         ('QUEUE_LIMIT', constant(compat, 'MAX_QUEUED_EXTENSION_PACKETS')),
         ('CONFIG_KEYS', method(compat, 'enum class AscensionCompatConfig') + ';'),
@@ -85,6 +86,7 @@ def main():
                                        'void OnPlayerUpdate(Player *player, uint32 diff) {')),
         ('HANDLE_CLIENT_PACKET', method(compat, 'void HandleClientPacket(Player *player')),
         ('CAN_PACKET_RECEIVE_EARLY', method(compat, 'bool CanPacketReceiveEarly(WorldSession *session')),
+        ('CAN_PACKET_SEND', method(compat, 'bool CanPacketSend(WorldSession* session')),
         ('POINT_SPEND', method_or(compat, 'void HandlePointSpendRequest(Player* player', '')),
         ('DELIVER_VANITY', method(compat, 'void DeliverVanityItem(Player *player, uint32 itemId)')),
         ('BANK_VANITY', '\n'.join([re.search(r'static constexpr std::array<uint32, \d+> BankVanityItems = [^;]+;',
@@ -114,17 +116,14 @@ def main():
         out = Path(directory)
         cpp = out / 'harness.cpp'
         cpp.write_text(harness, encoding='utf-8')
-        tokenize = out / 'tokenize.cpp'
-        tokenize.write_text(
-            '#include <string>\n#include "' + (ROOT / 'src/common/Utilities/Tokenize.cpp').as_posix() + '"\n',
-            encoding='utf-8')
         executable = out / ('regressions.exe' if os.name == 'nt' else 'regressions')
         if Path(compiler).stem.lower() == 'cl':
             flags = ['/nologo', '/std:c++20', '/EHsc', '/utf-8', *['/I' + str(p) for p in includes],
-                     str(cpp), str(tokenize), '/Fe' + str(executable)]
+                     str(cpp), str(ROOT / 'src/common/Utilities/Tokenize.cpp'), '/Fe' + str(executable)]
         else:
             flags = ['-std=c++20', '-Wall', '-Wextra', '-Werror', '-Wno-unused-const-variable',
-                     *['-I' + str(p) for p in includes], str(cpp), str(tokenize), '-o', str(executable)]
+                     *['-I' + str(p) for p in includes], str(cpp),
+                     str(ROOT / 'src/common/Utilities/Tokenize.cpp'), '-o', str(executable)]
         subprocess.run([compiler, *flags], cwd=out, check=True)
         return subprocess.run([str(executable)], cwd=out).returncode
 

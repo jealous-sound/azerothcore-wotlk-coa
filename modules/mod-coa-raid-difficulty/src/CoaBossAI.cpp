@@ -29,7 +29,28 @@
  * never stand down.
  *
  * Deliberately thin otherwise. Nothing here knows about ranges, conditions or
- * adds; a boss that needs that keeps its own script.
+ * adds; a boss that needs that keeps its own script. One exception
+ * (rev_20260930_92, widened rev_20260930_96): a boss's entry can carry one or
+ * more one-shot summons (entry, delay, buff spell cast on the new add) via the
+ * dedicated `coa_boss_summon` table, for a boss whose only extra need is
+ * "spawn reinforcements and buff them" - Lucifron's Shadow of Lucifron (one
+ * row), Sulfuron's three disciples (three rows, rev_20260930_96). A row can
+ * also name a `replace_entry`/`replace_radius`: the nearest still-alive
+ * creature of that entry within range is despawned and the summon takes its
+ * exact spot instead of a fixed offset from the boss - Sulfuron already has
+ * four static Flamewaker Priest/Corvus the Nimble spawns around him, and the
+ * fight does not differ by difficulty (the user's own report; no Normal/Heroic
+ * Sulfuron pull exists in the log corpus to confirm it independently), so
+ * three of the four make room for the disciples on every difficulty instead of
+ * the disciples being extra adds on top or Mythic/Ascended-only. A row's
+ * `min_difficulty` gate (rev_20260930_96) was removed with it: once Sulfuron's
+ * disciples stopped being Mythic/Ascended-only, no row left any value other
+ * than the column's own default, so the gate never filtered anything. A boss
+ * needing more than "summon(s),
+ * maybe replacing something nearby" still gets its own script, as Garr and
+ * Magmadar do for their own adds. The table is separate from `coa_boss` (base
+ * SQL, owned by this module's schema) so this add-only feature never needs an
+ * ALTER TABLE on it (it gets its own, in the migration that widens it).
  */
 
 #include "Creature.h"
@@ -46,7 +67,9 @@
 #include "SpellInfo.h"
 #include "SpellMgr.h"
 
+#include <list>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace
@@ -62,17 +85,37 @@ namespace
     struct ScheduleRow
     {
         uint32 spell[MAX_RAID_DIFFICULTY];
-        uint32 effect;          // cast when the dummy completes, 0 none
+        // Cast when the dummy completes, 0 none. Per difficulty: a dummy's
+        // real effect can itself be a tier-specific id with no SpellDifficulty.dbc
+        // group of its own (Shazzrah's Arcane Force Nova triggers one of four
+        // "Hidden Area Damage" ids, not a single id the core resolves by itself).
+        uint32 effect[MAX_RAID_DIFFICULTY];
         uint32 firstMs;
         uint32 periodMs;        // 0 casts once
         uint8 hpPct;            // > 0: once below this health instead of on a clock
         uint8 target;
     };
 
+    struct SummonRow
+    {
+        uint32 summonEntry = 0;
+        uint32 summonDelayMs = 0;
+        uint32 summonBuffSpell = 0;
+        // 0 none: otherwise despawn the nearest live creature of this entry within
+        // replaceRadius of the boss and summon at its spot instead of a fixed offset.
+        uint32 replaceEntry = 0;
+        float replaceRadius = 0.0f;
+    };
+
     struct BossData
     {
         uint32 bossId = 0;
         uint32 berserkMs = 0;
+        // One or more reinforcements, summoned once and optionally buffed by the boss
+        // itself, driven by data instead of a bespoke script for the boss body - the
+        // body keeps using this shared engine for its own schedule. Loaded from
+        // `coa_boss_summon`, a table separate from `coa_boss` itself.
+        std::vector<SummonRow> summons;
         std::vector<ScheduleRow> rows;
     };
 
@@ -99,10 +142,28 @@ namespace
             } while (result->NextRow());
         }
 
+        if (QueryResult result = WorldDatabase.Query(
+                "SELECT entry, summon_entry, summon_delay_ms, summon_buff_spell, replace_entry, replace_radius "
+                "FROM coa_boss_summon ORDER BY entry, idx"))
+        {
+            do
+            {
+                Field* f = result->Fetch();
+                BossData& boss = g_bosses[f[0].Get<uint32>()];
+                SummonRow row;
+                row.summonEntry = f[1].Get<uint32>();
+                row.summonDelayMs = f[2].Get<uint32>();
+                row.summonBuffSpell = f[3].Get<uint32>();
+                row.replaceEntry = f[4].Get<uint32>();
+                row.replaceRadius = f[5].Get<float>();
+                boss.summons.push_back(row);
+            } while (result->NextRow());
+        }
+
         uint32 rows = 0;
         if (QueryResult result = WorldDatabase.Query(
-                "SELECT entry, spell_d0, spell_d1, spell_d2, spell_d3, effect, first_ms, period_ms, hp_pct, target "
-                "FROM coa_boss_schedule ORDER BY entry, idx"))
+                "SELECT entry, spell_d0, spell_d1, spell_d2, spell_d3, effect_d0, effect_d1, effect_d2, effect_d3, "
+                "first_ms, period_ms, hp_pct, target FROM coa_boss_schedule ORDER BY entry, idx"))
         {
             do
             {
@@ -112,11 +173,12 @@ namespace
                 ScheduleRow row{};
                 for (uint8 i = 0; i < MAX_RAID_DIFFICULTY; ++i)
                     row.spell[i] = f[1 + i].Get<uint32>();
-                row.effect = f[5].Get<uint32>();
-                row.firstMs = f[6].Get<uint32>();
-                row.periodMs = f[7].Get<uint32>();
-                row.hpPct = f[8].Get<uint8>();
-                row.target = f[9].Get<uint8>();
+                for (uint8 i = 0; i < MAX_RAID_DIFFICULTY; ++i)
+                    row.effect[i] = f[5 + i].Get<uint32>();
+                row.firstMs = f[9].Get<uint32>();
+                row.periodMs = f[10].Get<uint32>();
+                row.hpPct = f[11].Get<uint8>();
+                row.target = f[12].Get<uint8>();
 
                 g_bosses[entry].rows.push_back(row);
                 ++rows;
@@ -137,6 +199,7 @@ namespace
             BossAI::Reset();
             _events.Reset();
             _pending.clear();
+            _replaced.clear();
             _hpDone.assign(_data ? _data->rows.size() : 0, false);
         }
 
@@ -154,6 +217,10 @@ namespace
 
             if (_data->berserkMs)
                 _events.ScheduleEvent(EVENT_BERSERK, Milliseconds(_data->berserkMs));
+
+            for (uint32 i = 0; i < _data->summons.size(); ++i)
+                if (_data->summons[i].summonEntry)
+                    _events.ScheduleEvent(EVENT_SUMMON_BASE + i, Milliseconds(_data->summons[i].summonDelayMs));
         }
 
         void DamageTaken(Unit* attacker, uint32& damage, DamageEffectType type, SpellSchoolMask school) override
@@ -196,12 +263,21 @@ namespace
 
         void UpdateAI(uint32 diff) override
         {
-            if (!UpdateVictim() || !_data)
+            if (!_data)
                 return;
 
+            // The clock runs on elapsed combat time, not on whether this
+            // exact tick has a victim to swing at: UpdateVictim() goes
+            // false for an instant on ordinary target swaps (Blink's
+            // teleport, a dummy's pending target dying), and gating the
+            // event map's Update() on it stalls every row's timer for as
+            // long as that keeps happening - by design a long-period row
+            // (Inferno, Arcane Force Nova) drifts far enough to miss a
+            // short test window while a fast-repeating row just looks a
+            // little late.
             _events.Update(diff);
 
-            if (me->HasUnitState(UNIT_STATE_CASTING))
+            if (!UpdateVictim() || me->HasUnitState(UNIT_STATE_CASTING))
                 return;
 
             while (uint32 eventId = _events.ExecuteEvent())
@@ -209,6 +285,12 @@ namespace
                 if (eventId == EVENT_BERSERK)
                 {
                     DoCastSelf(SPELL_BERSERK, true);
+                    continue;
+                }
+
+                if (eventId >= EVENT_SUMMON_BASE && eventId < EVENT_SUMMON_BASE + _data->summons.size())
+                {
+                    Summon(_data->summons[eventId - EVENT_SUMMON_BASE]);
                     continue;
                 }
 
@@ -235,8 +317,44 @@ namespace
         enum
         {
             EVENT_BERSERK = 0xFFFF,
+            EVENT_SUMMON_BASE = 0x8000,
             SPELL_BERSERK = 26662
         };
+
+        constexpr static float SUMMON_OFFSET_DIST = 4.0f;
+
+        // One add, at a designed offset unless it replaces a nearby creature (Sulfuron's
+        // disciples take the spot of a despawned Flamewaker Priest/Corvus the Nimble
+        // instead), then the boss buffs it if the row names a buff spell - see
+        // rev_20260930_92 (Shadow of Lucifron) and rev_20260930_96 (the disciples) for the
+        // evidence behind each row.
+        void Summon(SummonRow const& row)
+        {
+            if (!row.summonEntry)
+                return;
+
+            Position pos = me->GetNearPosition(SUMMON_OFFSET_DIST, 0.0f);
+
+            if (row.replaceEntry)
+            {
+                std::list<Creature*> nearby;
+                me->GetCreatureListWithEntryInGrid(nearby, row.replaceEntry, row.replaceRadius);
+                for (Creature* candidate : nearby)
+                {
+                    if (!candidate->IsAlive() || _replaced.find(candidate->GetGUID()) != _replaced.end())
+                        continue;
+
+                    pos = candidate->GetPosition();
+                    _replaced.insert(candidate->GetGUID());
+                    candidate->DespawnOrUnsummon();
+                    break;
+                }
+            }
+
+            if (Creature* summoned = DoSummon(row.summonEntry, pos, 0, TEMPSUMMON_MANUAL_DESPAWN))
+                if (row.summonBuffSpell)
+                    me->CastSpell(summoned, row.summonBuffSpell, true);
+        }
 
         struct Pending
         {
@@ -249,6 +367,13 @@ namespace
             uint8 const mode = uint8(me->GetMap()->GetSpawnMode());
             uint32 const spell = mode < MAX_RAID_DIFFICULTY ? row.spell[mode] : 0;
             return spell ? spell : row.spell[0];
+        }
+
+        uint32 EffectFor(ScheduleRow const& row) const
+        {
+            uint8 const mode = uint8(me->GetMap()->GetSpawnMode());
+            uint32 const effect = mode < MAX_RAID_DIFFICULTY ? row.effect[mode] : 0;
+            return effect ? effect : row.effect[0];
         }
 
         Unit* TargetFor(ScheduleRow const& row)
@@ -275,21 +400,27 @@ namespace
             if (!target)
                 return;
 
-            if (row.effect)
+            if (uint32 const effect = EffectFor(row))
             {
                 // The id the core will actually cast, after difficulty; that is
                 // the id OnSpellCast will see.
                 uint32 const resolved = sSpellMgr->GetSpellIdForDifficulty(spell, me);
-                _pending[resolved] = { row.effect, target->GetGUID() };
+                _pending[resolved] = { effect, target->GetGUID() };
             }
 
-            if (me->CastSpell(target, spell, false) != SPELL_CAST_OK)
+            if (SpellCastResult result = me->CastSpell(target, spell, false); result != SPELL_CAST_OK)
+            {
                 _pending.erase(sSpellMgr->GetSpellIdForDifficulty(spell, me));
+                LOG_DEBUG("scripts", "coa_boss_ai: boss {} (map spawn mode {}) failed to cast {} at {}: result {}",
+                          me->GetEntry(), uint32(me->GetMap()->GetSpawnMode()), spell, target->GetGUID().ToString(),
+                          uint32(result));
+            }
         }
 
         BossData const* _data;
         EventMap _events;
         std::unordered_map<uint32, Pending> _pending;
+        std::unordered_set<ObjectGuid> _replaced;
         std::vector<bool> _hpDone;
     };
 

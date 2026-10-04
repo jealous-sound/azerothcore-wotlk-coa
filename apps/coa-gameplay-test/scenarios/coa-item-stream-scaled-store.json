@@ -1,0 +1,99 @@
+{
+  "schema": 1,
+  "name": "CoA item stream: a newly rewarded scaled item is patched once",
+  "contract": [
+    "Requires CoA.SendDisplayPatches=1, CoA.ItemScaling=1, DestinyWeaver.Enable=1 and CoA.QuestLevelScaling=1.",
+    "A level-32 viewer receives quest 176's Footman Tunic as a copy lifted by 20 item levels (21 rounded down to a five-level step).",
+    "Storing that copy must immediately send one eight-field item patch even though it is absent from item_dbc.",
+    "Repeating the world-entry notice must not send its row again."
+  ],
+  "timeout_ms": 60000,
+  "location": {
+    "map": 0,
+    "x": -9465,
+    "y": 64,
+    "z": 56,
+    "o": 0
+  },
+  "players": [
+    {
+      "id": "viewer",
+      "race": 1,
+      "class": 12,
+      "level": 32
+    }
+  ],
+  "steps": [
+    {
+      "action": "client_packet",
+      "actor": "viewer",
+      "opcode": 1377
+    },
+    {
+      "action": "wait",
+      "ms": 100
+    },
+    {
+      "action": "level_scaling_packet",
+      "actor": "viewer",
+      "value": 1
+    },
+    {
+      "action": "prepare_quest",
+      "actor": "viewer",
+      "quest": 176
+    },
+    {
+      "action": "snapshot",
+      "actor": "viewer",
+      "metric": "server_packets",
+      "opcode": 2354,
+      "save_as": "before_reward"
+    },
+    {
+      "action": "reward_quest",
+      "actor": "viewer",
+      "quest": 176,
+      "choice": 0
+    },
+    {
+      "action": "assert",
+      "actor": "viewer",
+      "metric": "carried_item_level",
+      "item": 6085,
+      "equals": 33
+    },
+    {
+      "action": "assert",
+      "actor": "viewer",
+      "metric": "server_packets",
+      "opcode": 2354,
+      "relative_to": "before_reward",
+      "equals": 1
+    },
+    {
+      "action": "snapshot",
+      "actor": "viewer",
+      "metric": "server_packets",
+      "opcode": 2354,
+      "save_as": "before_world_entry"
+    },
+    {
+      "action": "client_packet",
+      "actor": "viewer",
+      "opcode": 1377
+    },
+    {
+      "action": "wait",
+      "ms": 100
+    },
+    {
+      "action": "assert",
+      "actor": "viewer",
+      "metric": "server_packets",
+      "opcode": 2354,
+      "relative_to": "before_world_entry",
+      "equals": 0
+    }
+  ]
+}

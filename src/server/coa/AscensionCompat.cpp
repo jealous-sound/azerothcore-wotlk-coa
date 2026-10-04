@@ -4,7 +4,9 @@
  * https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-AGPL3
  */
 
+#include "AccountMgr.h"
 #include "AscensionFelsworn.h"
+#include "AscensionItemScaling.h"
 #include "AscensionPyromancer.h"
 #include "AscensionCultist.h"
 #include "AscensionVenomancer.h"
@@ -24,6 +26,8 @@
 #include "WorldSessionMgr.h"
 #include "AscensionCoATalentState.h"
 #include "AscensionWildcard.h"
+#include "AscensionStockScriptShapes.h"
+#include "AscensionFreepick.h"
 #include "AscensionRunemasterEchoes.h"
 #include "AscensionCollectionModelData.h"
 #include "AscensionAmmunitionData.h"
@@ -31,6 +35,8 @@
 #include "AscensionCollectibleSpellData.h"
 #include "AscensionCustomClassData.h"
 #include "AscensionAuraAmounts.h"
+#include "AscensionClientSpellPatches.h"
+#include "DBCfmt.h"
 #include "AscensionClassTuning.h"
 #include "AscensionBarbarian.h"
 #include "AscensionBarbarianScaling.h"
@@ -58,6 +64,7 @@
 #include "AscensionTaughtAbilityData.h"
 #include "AscensionPooledVitality.h"
 #include "AscensionCreaturePreset.h"
+#include "AscensionItemAppearanceAliases.h"
 #include "Bag.h"
 #include "Battlefield.h"
 #include "BattlefieldMgr.h"
@@ -156,12 +163,12 @@ constexpr uint16 SMSG_VANITY_COLLECTION_ADDED = 0x06F8;
 constexpr uint16 CMSG_QUERY_CUSTOM_STORE = 0x06B9;
 constexpr uint16 CMSG_PURCHASE_CUSTOM_STORE_ITEM = 0x06BB;
 constexpr uint16 SMSG_QUERY_CUSTOM_STORE_RESULT = 0x06BA;
-constexpr std::size_t VANITY_STORE_RECORD_DWORDS = 16;
 constexpr uint16 SMSG_CHARACTER_ADVANCEMENT_ACTIVE_SPEC = 0x0725;
 constexpr uint16 SMSG_CHARACTER_ADVANCEMENT_KNOWN_ENTRIES = 0x0726;
 constexpr uint16 CMSG_CHARACTER_ADVANCEMENT_KNOWN_ENTRIES = 0x0727;
 constexpr uint16 SMSG_CHARACTER_ADVANCEMENT_PURGE_TALENTS_RESULT = 0x072B;
 constexpr uint16 SMSG_CHARACTER_ADVANCEMENT_UPDATE_ENTRIES_RESULT = 0x072C;
+constexpr uint16 SMSG_CHARACTER_ADVANCEMENT_CREDITS = 0x0926;
 constexpr uint16 CMSG_INSPECT_CHARACTER_ADVANCEMENT = 0x06E1;
 constexpr uint16 SMSG_INSPECT_CHARACTER_ADVANCEMENT_RESULT = 0x06E2;
 constexpr uint16 CMSG_MISSILE_FIRE_POSITION = 0x09C7;
@@ -170,6 +177,7 @@ constexpr uint16 SMSG_PATCH_LOADING_SCREENS = 0x05F8;
 constexpr uint16 SMSG_PATCH_CREATURE_DISPLAY_INFO = 0x0976;
 constexpr uint16 SMSG_PATCH_ITEM = 0x0932;
 constexpr uint16 SMSG_PATCH_ITEM_DISPLAY_INFO = 0x096B;
+constexpr uint16 SMSG_PATCH_SPELL = 0x092A;
 constexpr uint32 CUSTOM_DISPLAY_ID_FALLBACK_MIN = 652000;
 constexpr uint32 DISPLAY_PATCH_FALLBACK_DELAY_MS = 5000;
 
@@ -326,6 +334,7 @@ constexpr uint32 SPELL_REAPER_SCYTHE_RUSH_MARKER = 500377;
 constexpr uint32 SPELL_REAPER_HARVEST_TIME = 803995;
 constexpr char ASCENSION_ACTIVE_SPEC_SETTING[] = "core.ascension_active_spec";
 constexpr char ASCENSION_TALENT_BUILD_SETTING_PREFIX[] = "core.ascension_build.";
+constexpr char ASCENSION_RESET_CREDITS_SETTING[] = "core.ascension_reset_credits";
 
 enum CompanionLoot : uint32
 {
@@ -374,6 +383,11 @@ bool IsVanityItemUnlocked(bool owned, bool unlockAll, bool mount, bool unlockAll
     return owned || (unlockAll && (!mount || unlockAllMounts));
 }
 
+enum AscensionItems : uint32
+{
+    ITEM_HEARTWOOD_KEY = 1041710
+};
+
 enum AscensionRidingSpells : uint32
 {
     SPELL_RIDING_APPRENTICE = 33388,
@@ -405,6 +419,8 @@ enum class AscensionCompatConfig {
   CLIENT_INTEGER_CONFIGS,
   SEND_DISPLAY_PATCHES,
   CLIENT_DBC_DIRECTORY,
+  COLLECTIONS_FOR_BOTS,
+  RANDOM_BOT_ACCOUNT_PREFIX,
 
   NUM_CONFIGS,
 };
@@ -451,6 +467,10 @@ public:
                          "CoA.MaxRidingFromStart", false);
     SetConfigValue<bool>(AscensionCompatConfig::QUEST_LEVEL_SCALING,
                          "CoA.QuestLevelScaling", true);
+    SetConfigValue<uint32>(AscensionCompatConfig::COLLECTIONS_FOR_BOTS,
+                           "CoA.CollectionsForBots", 0);
+    SetConfigValue<std::string>(AscensionCompatConfig::RANDOM_BOT_ACCOUNT_PREFIX,
+                                "CoA.RandomBotAccountPrefix", "rndbot");
     SetConfigValue<bool>(AscensionCompatConfig::AUTO_PROGRESSION,
                          "CoA.AutoProgression", false);
     SetConfigValue<bool>(AscensionCompatConfig::SEND_DISPLAY_PATCHES,
@@ -475,7 +495,6 @@ struct VanityInfo {
   uint32 LearnedSpell = 0;
   uint32 Flags = 0;
   uint32 CategoryMask = 0;
-  std::array<uint32, VANITY_STORE_RECORD_DWORDS> StoreRecord{};
 };
 
 struct PlayerCollectionState {
@@ -548,6 +567,10 @@ uint8 WeaponEffectCategoryForEquipmentSlot(uint8 slot) {
 bool IsAscensionCustomClass(Player const *player) {
   uint8 playerClass = player->getClass();
   return playerClass >= CLASS_BARBARIAN && playerClass <= CLASS_SPIRIT_MAGE;
+}
+
+bool ReceivesClientRequests(Player const *player) {
+  return !player->GetSession()->IsBot();
 }
 
 enum LegacyQuestSpells : uint32
@@ -1340,6 +1363,10 @@ public:
         _activeSpecializations[player->GetGUID().GetCounter()] = specializationId;
     }
 
+    if (auto const* stored = player->FindPlayerSettings(SlotSetting(ActiveSlot(player)));
+        stored && stored->size() > 1 && (*stored)[0].value && (*stored)[1].value != player->getClass())
+      ClearSlots(player);
+    player->learnSpell(AscensionWildcard::SPECIALIZATION_SWAP_SPELLS[0]);
     SynchronizeProgression(player);
     SynchronizeProficiencies(player);
     RepairStarterKit(player, false);
@@ -1351,10 +1378,11 @@ public:
     actionsStmt->SetData(1, player->GetActiveSpec());
 
     WorldSession* session = player->GetSession();
+    uint32 const slot = ActiveSlot(player);
     session->GetQueryProcessor().AddCallback(CharacterDatabase.AsyncQuery(actionsStmt)
-        .WithPreparedCallback([session](PreparedQueryResult result)
+        .WithPreparedCallback([session, slot](PreparedQueryResult result)
         {
-            if (Player* owner = session->GetPlayer())
+            if (Player* owner = session->GetPlayer(); owner && ActiveSlot(owner) == slot)
                 owner->LoadActions(result);
         }));
   }
@@ -1398,6 +1426,8 @@ public:
   {
     if (AscensionWildcard::IsWildcardHero(player))
       return AscensionWildcard::KnownEntries(player);
+    if (AscensionFreepick::IsFreepickHero(player))
+      return AscensionFreepick::KnownEntries(player);
     return AscensionCoATalentState::KnownEntries(player->getClass(), SpellbookOf(player));
   }
 
@@ -1423,8 +1453,8 @@ public:
   {
     WorldPacket packet(SMSG_CHARACTER_ADVANCEMENT_ACTIVE_SPEC, sizeof(uint32) * 2);
     bool const wildcard = AscensionWildcard::IsWildcardHero(player);
-    packet << (wildcard ? AscensionWildcard::ActiveSpec(player) : uint32(0))
-           << uint32(wildcard ? AscensionWildcard::SPECIALIZATION_COUNT : 1);
+    packet << (wildcard ? AscensionWildcard::ActiveSpec(player) : ActiveSlot(player))
+           << uint32(wildcard || IsAscensionCustomClass(player) ? AscensionWildcard::SPECIALIZATION_COUNT : 1);
     player->GetSession()->SendPacket(&packet);
 
     uint32 const sent = SendKnownTalentEntries(player);
@@ -1460,15 +1490,57 @@ public:
     packet << result;
     if (target && std::string_view(result) == "CA_INSPECT_OK")
     {
-      std::vector<uint8> const body = AscensionCoATalentState::KnownEntriesPayload(KnownTalentEntries(target));
-      packet << guid.GetRawValue() << uint32(0) << uint32(1);
+      bool const wildcard = AscensionWildcard::IsWildcardHero(target);
+      std::vector<uint8> const body = AscensionCoATalentState::InspectSpecsPayload(InspectedSpecs(target));
+      packet << guid.GetRawValue() << (wildcard ? AscensionWildcard::ActiveSpec(target) : ActiveSlot(target));
       packet.append(body.data(), body.size());
     }
     player->GetSession()->SendPacket(&packet);
   }
 
+  static std::vector<std::vector<AscensionCoATalentState::KnownEntry>> InspectedSpecs(Player const* target)
+  {
+    std::vector<std::vector<AscensionCoATalentState::KnownEntry>> specs;
+    if (AscensionWildcard::IsWildcardHero(target))
+      for (uint32 spec = 0; spec < AscensionWildcard::SPECIALIZATION_COUNT; ++spec)
+        specs.push_back(AscensionWildcard::KnownEntries(target, spec));
+    else if (IsAscensionCustomClass(target))
+      for (uint32 slot = 0; slot < AscensionWildcard::SPECIALIZATION_COUNT; ++slot)
+        specs.push_back(SlotEntries(target, slot));
+    else
+      specs.push_back(KnownTalentEntries(target));
+    return specs;
+  }
+
+  static AscensionCoATalentState::ResetCredits ResetCreditsOf(Player* player)
+  {
+    AscensionCoATalentState::ResetCredits credits{};
+    for (uint32 index = 0; index < credits.size(); ++index)
+      credits[index] = player->GetPlayerSetting(ASCENSION_RESET_CREDITS_SETTING, index).value;
+    return credits;
+  }
+
+  static void RaiseResetCredit(Player* player, AscensionCoATalentState::ResetCreditType type)
+  {
+    uint32 const index = uint32(type) - 1;
+    player->UpdatePlayerSetting(ASCENSION_RESET_CREDITS_SETTING, index,
+                                player->GetPlayerSetting(ASCENSION_RESET_CREDITS_SETTING, index).value + 1);
+  }
+
+  static void SendResetCredits(Player* player)
+  {
+    AscensionCoATalentState::ResetCredits const credits = ResetCreditsOf(player);
+    for (uint32 index = 0; index < credits.size(); ++index)
+    {
+      WorldPacket packet(SMSG_CHARACTER_ADVANCEMENT_CREDITS, 1 + sizeof(uint32));
+      packet << uint8(index + 1) << credits[index];
+      player->GetSession()->SendPacket(&packet);
+    }
+  }
+
   uint32 SendKnownTalentEntries(Player* player)
   {
+    SendResetCredits(player);
     std::vector<AscensionCoATalentState::KnownEntry> const known = KnownTalentEntries(player);
     std::vector<uint8> const body = AscensionCoATalentState::KnownEntriesPayload(known);
     WorldPacket packet(SMSG_CHARACTER_ADVANCEMENT_KNOWN_ENTRIES, body.size());
@@ -1581,12 +1653,42 @@ public:
 
     if (rank > 0)
       player->learnSpell(selectedSpellId, false);
+    for (uint32 spellId : AscensionCoATalentState::SpellsAboveRank(entry, rank))
+      if (player->HasSpell(spellId))
+        player->removeSpell(spellId, SPEC_MASK_ALL, false);
 
     SynchronizeProgression(player);
 
     LOG_INFO("coa", "Set local CoA talent entry {} to rank {} for {} (class {})", entryId, rank,
              player->GetName(), uint32(player->getClass()));
     return true;
+  }
+
+  char const* PurgeTalents(Player* player)
+  {
+    bool const anyPaid = std::any_of(AscensionCompatData::CoATalentEntries.begin(),
+        AscensionCompatData::CoATalentEntries.end(), [player](AscensionCompatData::CoATalentEntry const& entry)
+        {
+          return entry.ClassId == player->getClass() && (entry.AECost || entry.TECost) &&
+                 AscensionCoATalentState::KnownRank(entry, SpellbookOf(player));
+        });
+    if (!anyPaid)
+      return "CA_PURGE_TALENTS_NO_KNOWN_TALENTS";
+
+    AscensionCoATalentState::PurgePrice const price =
+        AscensionCoATalentState::TalentPurgePriceAt(player->GetLevel(), ResetCreditsOf(player));
+    if (price.ItemCount && player->GetItemCount(price.Item) >= price.ItemCount)
+      player->DestroyItemCount(price.Item, price.ItemCount, true);
+    else if (price.Marks && player->GetItemCount(AscensionCoATalentState::MARK_OF_ASCENSION_ITEM) >= price.Marks)
+      player->DestroyItemCount(AscensionCoATalentState::MARK_OF_ASCENSION_ITEM, price.Marks, true);
+    else if (price.Money && player->HasEnoughMoney(price.Money))
+      player->ModifyMoney(-int32(price.Money));
+    else if (price.ItemCount || price.Marks || price.Money)
+      return "CA_PURGE_TALENTS_NO_PURGE_ITEM";
+
+    ResetPaidTalents(player);
+    RaiseResetCredit(player, AscensionCoATalentState::ResetCreditType::TalentReset);
+    return "CA_PURGE_TALENTS_OK";
   }
 
   uint32 ResetPaidTalents(Player* player)
@@ -1642,7 +1744,7 @@ public:
   }
 
   bool ApplyKnownEntriesUpload(Player* player, std::vector<AscensionCoATalentState::KnownEntry> const& upload,
-                               UpdateEntriesRefusal& refusal)
+                               UpdateEntriesRefusal& refusal, std::optional<uint32> requestedSpec = std::nullopt)
   {
     AscensionCoATalentState::UploadedSpecialization const uploaded = AscensionCoATalentState::SpecializationOf(upload);
     if (uploaded.Mixed)
@@ -1652,17 +1754,11 @@ public:
     }
 
     uint32 const activeSpecialization = GetActiveSpecialization(player);
-    bool const switching = uploaded.SpecId && uploaded.SpecId != activeSpecialization;
-    if (switching && !uploaded.ChoosesTalents && activeSpecialization)
-    {
-      std::string reason;
-      if (SwitchSpecialization(player, uploaded.SpecId, &reason))
-        return true;
-      refusal = SpecializationSwitchRefused(uploaded.SpecId, std::move(reason));
-      return false;
-    }
-
+    uint32 const targetSpec = requestedSpec.value_or(uploaded.SpecId ? uploaded.SpecId : activeSpecialization);
+    bool const switching = targetSpec != activeSpecialization;
     std::unordered_map<uint32, uint32> wanted;
+    std::unordered_set<uint32> received;
+    std::unordered_set<uint32> selectedGroups;
     for (AscensionCoATalentState::KnownEntry const& item : upload)
     {
       AscensionCompatData::CoATalentEntry const* entry = FindTalentEntry(item.EntryId);
@@ -1672,8 +1768,12 @@ public:
                     Acore::StringFormat("Talent entry {} does not belong to your custom class.", item.EntryId) };
         return false;
       }
-      if (!entry->AECost && !entry->TECost && !GetSelectableFreeGroup(entry->EntryId))
-        continue;
+      if (!received.insert(item.EntryId).second)
+      {
+        refusal = { "CA_UPDATE_ENTRIES_BAD_ENTRY", "", item.EntryId, item.Rank,
+                    "The uploaded build repeats a talent entry." };
+        return false;
+      }
       if (item.Rank > entry->SpellCount)
       {
         refusal = { "CA_UPDATE_ENTRIES_BAD_ENTRY", "", entry->EntryId, item.Rank,
@@ -1698,7 +1798,21 @@ public:
           return false;
         }
       }
-      wanted[entry->EntryId] = item.Rank;
+      if (item.Rank && entry->SpecId && entry->SpecId != targetSpec)
+      {
+        refusal = { "CA_UPDATE_ENTRIES_BAD_ENTRY", "CA_LEARN_WRONG_CLASS", item.EntryId, item.Rank,
+                    "The uploaded build includes an entry of another specialization." };
+        return false;
+      }
+      if (uint32 const group = GetSelectableFreeGroup(item.EntryId); item.Rank && group &&
+          !selectedGroups.insert(group).second)
+      {
+        refusal = { "CA_UPDATE_ENTRIES_NOT_TRAVERSIBLE", "CA_LEARN_GROUP", item.EntryId, item.Rank,
+                    "The uploaded build selects mutually exclusive talents." };
+        return false;
+      }
+      if (entry->AECost || entry->TECost || GetSelectableFreeGroup(entry->EntryId))
+        wanted[entry->EntryId] = item.Rank;
     }
 
     std::vector<AscensionCoATalentState::KnownEntry> priced;
@@ -1730,9 +1844,48 @@ public:
       return false;
     }
 
-    if (std::string reason; switching && !SwitchSpecialization(player, uploaded.SpecId, &reason))
+    std::vector<AscensionCompatData::CoATalentEntry const*> removed;
+    AscensionCoATalentState::RemovalPayment payment;
+    if (!requestedSpec)
     {
-      refusal = SpecializationSwitchRefused(uploaded.SpecId, std::move(reason));
+      AscensionCoATalentState::ResetCredits const credits = ResetCreditsOf(player);
+      std::vector<AscensionCoATalentState::UnlearnPrice> prices;
+      for (AscensionCoATalentState::KnownEntry const& known : KnownTalentEntries(player))
+      {
+        bool const kept = std::any_of(upload.begin(), upload.end(),
+            [&known](AscensionCoATalentState::KnownEntry const& item)
+            {
+              return item.EntryId == known.EntryId && item.Rank;
+            });
+        if (AscensionCompatData::CoATalentEntry const* entry = FindTalentEntry(known.EntryId);
+            entry && !kept && !AscensionCoATalentState::IsUnpricedRemoval(*entry))
+        {
+          removed.push_back(entry);
+          prices.push_back(AscensionCoATalentState::UnlearnPriceAt(player->GetLevel(), credits, entry->FreeUnlearn));
+        }
+      }
+      payment = AscensionCoATalentState::PayForRemovals(
+          prices, player->GetItemCount(AscensionCoATalentState::MARK_OF_ASCENSION_ITEM), player->GetMoney());
+      std::string charged;
+      for (std::size_t index = 0; index < removed.size(); ++index)
+        charged += Acore::StringFormat(" {}({}c/{}m)", removed[index]->EntryId, prices[index].Money,
+                                       prices[index].Marks);
+      std::string sent;
+      for (AscensionCoATalentState::KnownEntry const& item : upload)
+        sent += Acore::StringFormat(" {}:{}", item.EntryId, item.Rank);
+      LOG_INFO("coa", "Talent upload from {}: sent [{} ] removes [{} ] paying {}c and {} marks{}", player->GetName(),
+               sent, charged, payment.Money, payment.Marks, payment.Affordable ? "" : " (refused)");
+      if (!payment.Affordable)
+      {
+        refusal = { "CA_UPDATE_ENTRIES_BAD_UPDATE_COSTS", "", 0, 0,
+                    "You cannot pay to unlearn the talents this build removes." };
+        return false;
+      }
+    }
+
+    if (std::string reason; switching && !SwitchSpecialization(player, targetSpec, &reason, false))
+    {
+      refusal = SpecializationSwitchRefused(targetSpec, std::move(reason));
       return false;
     }
 
@@ -1762,6 +1915,14 @@ public:
         refusal.Rank = rank;
         return false;
       }
+
+    if (payment.Marks)
+      player->DestroyItemCount(AscensionCoATalentState::MARK_OF_ASCENSION_ITEM, payment.Marks, true);
+    if (payment.Money)
+      player->ModifyMoney(-int32(payment.Money));
+    for (AscensionCompatData::CoATalentEntry const* entry : removed)
+      RaiseResetCredit(player, entry->Talent ? AscensionCoATalentState::ResetCreditType::TalentUnlearn
+                                             : AscensionCoATalentState::ResetCreditType::AbilityUnlearn);
     return true;
   }
 
@@ -1780,6 +1941,9 @@ public:
 
   void ProcessTalentRequests(Player* player)
   {
+    if (!ReceivesClientRequests(player))
+      return;
+
     std::deque<TalentRequest> requests;
     {
       std::lock_guard<std::mutex> lock(_stateLock);
@@ -1790,7 +1954,8 @@ public:
       _pendingTalentRequests.erase(itr);
     }
 
-    if (!IsAscensionCustomClass(player) && !AscensionWildcard::IsWildcardHero(player))
+    if (!IsAscensionCustomClass(player) && !AscensionWildcard::IsWildcardHero(player) &&
+        !AscensionFreepick::IsFreepickHero(player))
       return;
     for (TalentRequest const& request : requests)
     {
@@ -1800,7 +1965,7 @@ public:
         continue;
       }
       WorldPacket result(SMSG_CHARACTER_ADVANCEMENT_PURGE_TALENTS_RESULT, 40);
-      result << (ResetPaidTalents(player) ? "CA_PURGE_TALENTS_OK" : "CA_PURGE_TALENTS_NO_KNOWN_TALENTS");
+      result << PurgeTalents(player);
       SendCharacterAdvancementKnownEntries(player);
       player->SendDirectMessage(&result);
     }
@@ -1821,6 +1986,14 @@ public:
       AscensionWildcard::BuildChoice const choice = AscensionWildcard::ApplyBuildUpload(player, upload);
       refusal.Result = choice.Result;
       refusal.Learn = choice.Learn;
+    }
+    else if (AscensionFreepick::IsFreepickHero(player))
+    {
+      AscensionFreepick::UploadResult const applied = AscensionFreepick::ApplyUpload(player, upload);
+      refusal.Result = applied.Result;
+      refusal.Learn = applied.Learn;
+      refusal.Entry = applied.EntryId;
+      refusal.Rank = applied.Rank;
     }
     else if (!ApplyKnownEntriesUpload(player, upload, refusal))
     {
@@ -1843,9 +2016,23 @@ public:
     return itr == _activeSpecializations.end() ? 0 : itr->second;
   }
 
-  static std::string BuildSetting(uint32 specializationId)
+    static uint32 ActiveSlot(Player const* player)
+    {
+        auto const* values = player->FindPlayerSettings("core.ascension_slot.active");
+        uint32 const slot = values && !values->empty() ? (*values)[0].value : 0;
+        return slot < AscensionWildcard::SPECIALIZATION_COUNT ? slot : 0;
+    }
+
+    static std::string SlotSetting(uint32 slot)
+    {
+        return "core.ascension_slot." + std::to_string(slot);
+    }
+
+  static std::string BuildSetting(Player const* player, uint32 specializationId)
   {
-    return std::string(ASCENSION_TALENT_BUILD_SETTING_PREFIX) + std::to_string(specializationId);
+    uint32 const slot = ActiveSlot(player);
+    return (slot ? SlotSetting(slot) + ".build." : std::string(ASCENSION_TALENT_BUILD_SETTING_PREFIX)) +
+        std::to_string(specializationId);
   }
 
   static std::vector<uint32> LivePicks(Player const* player, uint32 specializationId)
@@ -1864,7 +2051,7 @@ public:
 
   static void StoreBuild(Player* player, uint32 specializationId, std::vector<uint32> const& picks)
   {
-    std::string const setting = BuildSetting(specializationId);
+    std::string const setting = BuildSetting(player, specializationId);
     std::size_t previous = 0;
     if (PlayerSettingVector const* values = player->FindPlayerSettings(setting))
       previous = values->size();
@@ -1879,7 +2066,7 @@ public:
   static std::vector<uint32> StoredBuild(Player const* player, uint32 specializationId)
   {
     std::vector<uint32> picks;
-    PlayerSettingVector const* values = player->FindPlayerSettings(BuildSetting(specializationId));
+    PlayerSettingVector const* values = player->FindPlayerSettings(BuildSetting(player, specializationId));
     if (!values || values->empty())
       return picks;
 
@@ -1890,15 +2077,16 @@ public:
     return picks;
   }
 
-  static std::string BarSetting(uint32 specializationId)
+  static std::string BarSetting(Player const* player, uint32 specializationId)
   {
-    return "core.ascension_bar." + std::to_string(specializationId);
+    uint32 const slot = ActiveSlot(player);
+    return (slot ? SlotSetting(slot) + ".bar." : "core.ascension_bar.") + std::to_string(specializationId);
   }
 
   static std::vector<std::pair<uint8, uint32>> StoredBar(Player const* player, uint32 specializationId)
   {
     std::vector<std::pair<uint8, uint32>> bar;
-    PlayerSettingVector const* values = player->FindPlayerSettings(BarSetting(specializationId));
+    PlayerSettingVector const* values = player->FindPlayerSettings(BarSetting(player, specializationId));
     if (!values || values->empty())
       return bar;
 
@@ -1913,7 +2101,7 @@ public:
   static void StoreBar(Player* player, uint32 specializationId,
                        std::vector<std::pair<uint8, uint32>> const& bar)
   {
-    std::string const setting = BarSetting(specializationId);
+    std::string const setting = BarSetting(player, specializationId);
     std::size_t previous = 0;
     if (PlayerSettingVector const* values = player->FindPlayerSettings(setting))
       previous = values->size();
@@ -1946,7 +2134,7 @@ public:
 
   static void RestoreBarButtons(Player* player, uint32 specializationId, uint32 previousSpecialization)
   {
-    uint32 const source = player->FindPlayerSettings(BarSetting(specializationId))
+    uint32 const source = player->FindPlayerSettings(BarSetting(player, specializationId))
         ? specializationId : previousSpecialization;
     for (auto const& [button, spell] : StoredBar(player, source))
       if (player->HasSpell(spell) && !player->GetActionButton(button))
@@ -1985,8 +2173,10 @@ public:
     return restored;
   }
 
-  bool SwitchSpecialization(Player *player, uint32 specializationId, std::string *refusal = nullptr) {
-    if (!IsAscensionCustomClass(player) || !specializationId)
+  bool SwitchSpecialization(Player* player, uint32 specializationId, std::string* refusal = nullptr,
+                            bool restoreStoredBuild = true)
+  {
+    if (!IsAscensionCustomClass(player) || (!specializationId && restoreStoredBuild))
       return false;
 
     bool validSpecialization = std::any_of(
@@ -1997,11 +2187,11 @@ public:
           return entry.ClassId == player->getClass() &&
                  entry.SpecId == specializationId;
         });
-    if (!validSpecialization)
+    if (!validSpecialization && (specializationId || restoreStoredBuild))
       return false;
 
     uint32 const previousSpecialization = GetActiveSpecialization(player);
-    if (previousSpecialization && previousSpecialization != specializationId)
+    if (previousSpecialization != specializationId)
       if (std::string reason = SpecializationSwitchRefusal(player, previousSpecialization, specializationId);
           !reason.empty())
       {
@@ -2018,7 +2208,7 @@ public:
       }
       player->UpdatePlayerSetting(ASCENSION_ACTIVE_SPEC_SETTING, 0, specializationId);
 
-      uint32 const restored = previousSpecialization ? 0 : RestoreBuilds(player, specializationId);
+      uint32 const restored = previousSpecialization || !restoreStoredBuild ? 0 : RestoreBuilds(player, specializationId);
       uint32 granted = SynchronizeProgression(player);
       LOG_INFO("coa",
                "Synchronized {} (class {}) with local specialization {}, restored {} stored rank(s) and "
@@ -2027,7 +2217,8 @@ public:
       return true;
     }
 
-    StoreBuilds(player, previousSpecialization);
+    if (restoreStoredBuild)
+      StoreBuilds(player, previousSpecialization);
 
     if (Pet* pet = player->GetPet())
       player->RemovePet(pet, PET_SAVE_NOT_IN_SLOT);
@@ -2042,7 +2233,8 @@ public:
             if (spellId && player->HasSpell(spellId))
               talentSpells.insert(spellId);
       player->SendActionButtons(2);
-      RememberBarButtons(player, previousSpecialization, talentSpells);
+      if (restoreStoredBuild)
+        RememberBarButtons(player, previousSpecialization, talentSpells);
     }
     for (AscensionCompatData::CoATalentEntry const &entry :
          AscensionCompatData::CoATalentEntries) {
@@ -2068,9 +2260,10 @@ public:
     }
     player->UpdatePlayerSetting(ASCENSION_ACTIVE_SPEC_SETTING, 0, specializationId);
 
-    uint32 const restored = RestoreBuilds(player, specializationId);
+    uint32 const restored = restoreStoredBuild ? RestoreBuilds(player, specializationId) : 0;
     uint32 granted = SynchronizeProgression(player);
-    RestoreBarButtons(player, specializationId, previousSpecialization);
+    if (restoreStoredBuild)
+      RestoreBarButtons(player, specializationId, previousSpecialization);
     ChatHandler(player->GetSession())
         .PSendSysMessage(
             "Activated specialization {}. Stored the build of specialization {}, removed {} old talent "
@@ -2082,6 +2275,126 @@ public:
              player->GetName(), uint32(player->getClass()), specializationId, removed, restored, granted);
     return true;
   }
+
+    static AscensionCoATalentState::SpecializationSlot LiveSlot(Player* player, uint32 specializationId)
+    {
+        AscensionCoATalentState::SpecializationSlot slot;
+        slot.ClassId = player->getClass();
+        slot.SpecId = specializationId;
+        for (uint32 tree : { uint32(0), specializationId })
+        {
+            for (uint32 pick : LivePicks(player, tree))
+                slot.Entries.push_back({ pick / 10, pick % 10 });
+            if (!specializationId)
+                break;
+        }
+        for (uint8 button = 0; button < MAX_ACTION_BUTTONS; ++button)
+            if (ActionButton const* action = player->GetActionButton(button))
+                slot.Actions.emplace_back(button, action->packedData);
+        return slot;
+    }
+
+    static void StoreSlot(Player* player, uint32 index, AscensionCoATalentState::SpecializationSlot const& slot)
+    {
+        std::string const setting = SlotSetting(index);
+        auto const record = AscensionCoATalentState::SpecializationSlotRecord(slot);
+        auto const* previous = player->FindPlayerSettings(setting);
+        std::size_t const size = previous ? previous->size() : 0;
+        for (std::size_t offset = 0; offset < std::max(size, record.size()); ++offset)
+            player->UpdatePlayerSetting(setting, uint32(offset), offset < record.size() ? record[offset] : 0);
+    }
+
+    void SaveSlot(Player* player)
+    {
+        if (IsAscensionCustomClass(player) && !AscensionWildcard::IsWildcardHero(player))
+            StoreSlot(player, ActiveSlot(player), LiveSlot(player, GetActiveSpecialization(player)));
+    }
+
+    void ClearSlots(Player* player)
+    {
+        {
+            std::lock_guard<std::mutex> lock(_stateLock);
+            _activeSpecializations[player->GetGUID().GetCounter()] = 0;
+        }
+        player->UpdatePlayerSetting(ASCENSION_ACTIVE_SPEC_SETTING, 0, 0);
+        player->UpdatePlayerSetting("core.ascension_slot.active", 0, 0);
+        std::unordered_set<uint32> trees = { 0 };
+        for (auto const& entry : AscensionCompatData::CoATalentEntries)
+            trees.insert(entry.SpecId);
+        for (uint32 slot = 0; slot < AscensionWildcard::SPECIALIZATION_COUNT; ++slot)
+        {
+            player->UpdatePlayerSetting(SlotSetting(slot), 0, 0);
+            for (uint32 tree : trees)
+            {
+                std::string const prefix = slot ? SlotSetting(slot) : "core.ascension";
+                for (std::string const& setting : { prefix + (slot ? ".build." : "_build.") + std::to_string(tree),
+                                                  prefix + (slot ? ".bar." : "_bar.") + std::to_string(tree) })
+                    if (player->FindPlayerSettings(setting))
+                        player->UpdatePlayerSetting(setting, 0, 0);
+            }
+        }
+    }
+
+    void SendActiveSlot(Player* player)
+    {
+        {
+            std::lock_guard<std::mutex> lock(_stateLock);
+            if (!_advancementSent.count(player->GetGUID().GetCounter()))
+                return;
+        }
+        WorldPacket packet(SMSG_CHARACTER_ADVANCEMENT_ACTIVE_SPEC, sizeof(uint32) * 2);
+        packet << ActiveSlot(player) << uint32(AscensionWildcard::SPECIALIZATION_COUNT);
+        player->SendDirectMessage(&packet);
+    }
+
+    bool SwitchSlot(Player* player, uint32 index, std::string& error)
+    {
+        if (!IsAscensionCustomClass(player) || AscensionWildcard::IsWildcardHero(player) ||
+            index >= AscensionWildcard::SPECIALIZATION_COUNT ||
+            !player->HasSpell(AscensionWildcard::SPECIALIZATION_SWAP_SPELLS[index]))
+        {
+            error = "That specialization slot is not unlocked.";
+            return false;
+        }
+        if (index == ActiveSlot(player))
+            return true;
+
+        AscensionCoATalentState::SpecializationSlot target;
+        if (auto const* stored = player->FindPlayerSettings(SlotSetting(index));
+            stored && !stored->empty() && (*stored)[0].value)
+        {
+            std::vector<uint32> values;
+            for (auto const& setting : *stored)
+                values.push_back(setting.value);
+            if (!AscensionCoATalentState::ParseSpecializationSlot(values, target) ||
+                target.ClassId != player->getClass())
+            {
+                error = "The saved specialization slot is invalid for this character.";
+                return false;
+            }
+        }
+
+        uint32 const previousIndex = ActiveSlot(player);
+        auto const previous = LiveSlot(player, GetActiveSpecialization(player));
+        UpdateEntriesRefusal refusal;
+        if (!ApplyKnownEntriesUpload(player, target.Entries, refusal, target.SpecId))
+        {
+            error = refusal.Detail;
+            return false;
+        }
+
+        StoreSlot(player, previousIndex, previous);
+        player->SendActionButtons(2);
+        for (uint8 button = 0; button < MAX_ACTION_BUTTONS; ++button)
+            player->removeActionButton(button);
+        for (auto const& [button, action] : target.Actions)
+            player->addActionButton(uint8(button), ACTION_BUTTON_ACTION(action), uint8(ACTION_BUTTON_TYPE(action)));
+        player->UpdatePlayerSetting("core.ascension_slot.active", 0, index);
+        player->SaveToDB(false, false);
+        player->SendActionButtons(1);
+        SendCharacterAdvancementState(player);
+        return true;
+    }
 
     void UpdateClassTuning(Player* player, uint32 diff)
     {
@@ -2109,7 +2422,8 @@ public:
     _proficiencySynchronizations.erase(player->GetGUID().GetCounter());
     _advancementPending.erase(player->GetGUID().GetCounter());
     _advancementSent.erase(player->GetGUID().GetCounter());
-    _pendingTalentRequests.erase(player->GetSession()->GetAccountId());
+    if (ReceivesClientRequests(player))
+      _pendingTalentRequests.erase(player->GetSession()->GetAccountId());
   }
 
     static uint32 GetSelectableFreeGroup(uint32 entryId)
@@ -2123,39 +2437,43 @@ public:
     static bool CanGrantAutomaticEntry(Player const* player,
         AscensionCompatData::CoATalentEntry const& entry, uint32 specializationId)
     {
-        if (entry.ClassId != player->getClass() ||
-            (entry.SpecId != 0 && entry.SpecId != specializationId) ||
-            entry.AECost != 0 || entry.TECost != 0 ||
-            entry.RequiredLevel > player->GetLevel() || !entry.SpellCount || GetSelectableFreeGroup(entry.EntryId))
-            return false;
+        return AscensionCoATalentState::CanGrantAutomatic(entry, player->getClass(), player->GetLevel(),
+            specializationId, SpellbookOf(player));
+    }
 
+    static AscensionCoATalentState::HasSpell CarriedSpells(Player const* player)
+    {
+        std::unordered_set<uint32> carried;
         auto const& dependencies = AscensionCompatData::CoAAutomaticDependencies;
-        auto dependency = std::lower_bound(dependencies.begin(), dependencies.end(), entry.EntryId,
-            [](AscensionCompatData::CoAAutomaticDependency const& value, uint32 id)
-            {
-                return value.EntryId < id;
-            });
-        if (dependency == dependencies.end() || dependency->EntryId != entry.EntryId)
-            return true;
-
-        for (uint32 requiredId : dependency->RequiredEntryIds)
+        for (AscensionCompatData::CoATalentEntry const& entry : AscensionCompatData::CoATalentEntries)
         {
-            if (!requiredId)
+            auto const dependency = std::lower_bound(dependencies.begin(), dependencies.end(), entry.EntryId,
+                [](AscensionCompatData::CoAAutomaticDependency const& value, uint32 id) { return value.EntryId < id; });
+            if (entry.ClassId != player->getClass() || entry.SpecId || entry.AECost || entry.TECost ||
+                GetSelectableFreeGroup(entry.EntryId) ||
+                (dependency != dependencies.end() && dependency->EntryId == entry.EntryId))
                 continue;
-
-            auto const& entries = AscensionCompatData::CoATalentEntries;
-            auto required = std::lower_bound(entries.begin(), entries.end(), requiredId,
-                [](AscensionCompatData::CoATalentEntry const& value, uint32 id)
-                {
-                    return value.EntryId < id;
-                });
-            if (required == entries.end() || required->EntryId != requiredId ||
-                required->ClassId != player->getClass() ||
-                !std::any_of(required->SpellIds.begin(), required->SpellIds.end(),
-                    [player](uint32 spellId) { return spellId && player->HasSpell(spellId); }))
-                return false;
+            for (uint32 spellId : entry.SpellIds)
+                if (spellId && player->HasSpell(spellId))
+                    carried.insert(spellId);
         }
-        return true;
+        return [carried = std::move(carried)](uint32 spellId) { return carried.contains(spellId); };
+    }
+
+    static std::vector<AscensionCoATalentState::KnownEntry> SlotEntries(Player const* player, uint32 index)
+    {
+        if (index == ActiveSlot(player))
+            return KnownTalentEntries(player);
+        auto const* stored = player->FindPlayerSettings(SlotSetting(index));
+        if (!stored || stored->empty() || !(*stored)[0].value)
+            return {};
+        std::vector<uint32> values;
+        for (auto const& setting : *stored)
+            values.push_back(setting.value);
+        AscensionCoATalentState::SpecializationSlot slot;
+        if (!AscensionCoATalentState::ParseSpecializationSlot(values, slot) || slot.ClassId != player->getClass())
+            return {};
+        return AscensionCoATalentState::SlotKnownEntries(slot, player->GetLevel(), CarriedSpells(player));
     }
 
     static void ReconcileRunemasterFists(Player* player, uint32 specializationId)
@@ -3156,33 +3474,61 @@ public:
 
     PreparedPatchRows const &rows = GetPreparedPatchRows();
     LOG_INFO("coa",
-             "Prepared {} CreatureDisplayInfo, {} ItemDisplayInfo and {} Item "
-             "patch rows for the client stream",
+             "Prepared {} CreatureDisplayInfo, {} ItemDisplayInfo, {} Item and "
+             "{} Spell patch rows for the client stream",
              rows.CreatureDisplayIds.size(), rows.ItemDisplayInfos.size(),
-             rows.Items.size());
+             rows.Items.size(), rows.Spells.size());
   }
 
   void OnPlayerLogin(Player *player) {
-    if (!ascensionCompatConfig.GetConfigValue<bool>(
-            AscensionCompatConfig::SEND_DISPLAY_PATCHES))
+    if (!ReceivesPatchRows(player))
       return;
 
     uint32 const guid = player->GetGUID().GetCounter();
     std::lock_guard lock(_mutex);
     _streamedPlayers.erase(guid);
+    _sentItemRows.erase(guid);
+    _onDemandItemRows.erase(guid);
     _fallbackTimers[guid] = DISPLAY_PATCH_FALLBACK_DELAY_MS;
   }
 
   void OnPlayerLogout(Player *player) {
     uint32 const guid = player->GetGUID().GetCounter();
-    std::lock_guard lock(_mutex);
-    _streamedPlayers.erase(guid);
-    _fallbackTimers.erase(guid);
+    PatchRowTally onDemand;
+    {
+      std::lock_guard lock(_mutex);
+      _streamedPlayers.erase(guid);
+      _sentItemRows.erase(guid);
+      _fallbackTimers.erase(guid);
+      if (auto node = _onDemandItemRows.extract(guid))
+        onDemand = node.mapped();
+    }
+
+    if (onDemand.Rows)
+      LOG_INFO("coa", "Streamed {} Item patch rows ({} bytes) on demand to {} during the session",
+               onDemand.Rows, onDemand.Bytes, player->GetName());
   }
 
+    void SendItemRowOnDemand(Player* player, uint32 itemId)
+    {
+        if (!ReceivesPatchRows(player))
+            return;
+
+        PreparedPatchRows const& rows = GetPreparedPatchRows();
+        std::optional<ItemPatchRow> const row = FindItemRow(rows, itemId);
+        if (!row)
+            return;
+
+        PatchRowTally const sent = SendItemRows(player, rows, { *row });
+        if (!sent.Rows)
+            return;
+
+        std::lock_guard lock(_mutex);
+        _onDemandItemRows[player->GetGUID().GetCounter()].Add(sent);
+    }
+
   void OnPlayerUpdate(Player *player, uint32 diff) {
-    if (!ascensionCompatConfig.GetConfigValue<bool>(
-            AscensionCompatConfig::SEND_DISPLAY_PATCHES))
+    if (!ReceivesPatchRows(player))
       return;
 
     uint32 const guid = player->GetGUID().GetCounter();
@@ -3212,6 +3558,7 @@ public:
       return;
 
     uint32 const guid = player->GetGUID().GetCounter();
+    PreparedPatchRows const &rows = GetPreparedPatchRows();
     {
       std::lock_guard lock(_mutex);
       if (!_streamedPlayers.insert(guid).second)
@@ -3219,34 +3566,55 @@ public:
       _fallbackTimers.erase(guid);
     }
 
-    uint32 const startTime = getMSTime();
-    PreparedPatchRows const &rows = GetPreparedPatchRows();
+    std::vector<ItemPatchRow> itemRows;
+    for (uint32 itemId : CollectOwnedItemIds(player))
+        if (std::optional<ItemPatchRow> const row = FindItemRow(rows, itemId))
+            itemRows.push_back(*row);
 
-    SendLoadingScreenRow(player);
+    uint32 const startTime = getMSTime();
+
+    std::size_t bytes = SendLoadingScreenRow(player);
 
     uint32 sent = 0;
     for (uint32 displayId : rows.CreatureDisplayIds) {
       if (CreatureDisplayInfoEntry const *entry =
               sCreatureDisplayInfoStore.LookupEntry(displayId)) {
-        SendDisplayInfoRow(player, *entry);
+        bytes += SendDisplayInfoRow(player, *entry);
         ++sent;
       }
     }
 
     for (ItemDisplayInfoPatchRow const &row : rows.ItemDisplayInfos)
-      SendItemDisplayInfoRow(player, row);
+      bytes += SendItemDisplayInfoRow(player, row);
 
-    for (ItemPatchRow const &row : rows.Items)
-      SendItemRow(player, row);
+    PatchRowTally const sentItems = SendItemRows(player, rows, std::move(itemRows));
+    bytes += sentItems.Bytes;
+
+    uint32 sentSpells = 0;
+    for (SpellPatchRow const& row : rows.Spells)
+      if (!row.RequiresRegistration || Ascension::ClientSpellPatches::Instance().Contains(row.Values[0]))
+      {
+        SpellPatchRow active = row;
+        ApplyServerSpellSelectors(active);
+        bytes += SendSpellRow(player, active);
+        ++sentSpells;
+      }
 
     LOG_INFO("coa",
-             "Streamed {} CreatureDisplayInfo, {} ItemDisplayInfo and {} Item "
-             "patch rows to {} in {} ms",
-             sent, rows.ItemDisplayInfos.size(), rows.Items.size(),
-             player->GetName(), GetMSTimeDiffToNow(startTime));
+             "Streamed {} CreatureDisplayInfo, {} ItemDisplayInfo, {} of {} Item "
+             "and {} Spell patch rows ({} bytes) to {} in {} ms",
+             sent, rows.ItemDisplayInfos.size(), sentItems.Rows,
+             rows.Items.size(), sentSpells, bytes, player->GetName(),
+             GetMSTimeDiffToNow(startTime));
   }
 
 private:
+  static bool ReceivesPatchRows(Player const *player) {
+    return ascensionCompatConfig.GetConfigValue<bool>(
+               AscensionCompatConfig::SEND_DISPLAY_PATCHES) &&
+           !player->GetSession()->IsBot();
+  }
+
   static constexpr std::size_t ITEM_DISPLAY_INFO_FIELD_COUNT = 25;
   static constexpr std::array<uint8, 14> ITEM_DISPLAY_INFO_STRING_FIELDS = {
       1, 2, 3, 4, 5, 6, 15, 16, 17, 18, 19, 20, 21, 22};
@@ -3258,22 +3626,117 @@ private:
 
   using ItemPatchRow = std::array<uint32, 8>;
 
+  struct PatchRowTally {
+    uint32 Rows = 0;
+    std::size_t Bytes = 0;
+
+    void Add(PatchRowTally const &other) {
+      Rows += other.Rows;
+      Bytes += other.Bytes;
+    }
+  };
+
+  static constexpr uint32 SPELL_DBC_FIELD_COUNT = 234;
+  static constexpr uint32 SPELL_CLIENT_RECORD_DWORDS = 170;
+  static constexpr uint32 LOCALIZED_STRING_DWORDS = 17;
+  static constexpr uint32 SPELL_NAME_FIELD = 136;
+  static constexpr uint32 SPELL_RANK_FIELD = 153;
+  static constexpr uint32 SPELL_DESCRIPTION_FIELD = 170;
+  static constexpr uint32 SPELL_TOOLTIP_FIELD = 187;
+  static constexpr std::array<uint32, 4> SPELL_WIRE_STRING_FIELDS = {
+      SPELL_NAME_FIELD, SPELL_DESCRIPTION_FIELD, SPELL_RANK_FIELD,
+      SPELL_TOOLTIP_FIELD};
+  static constexpr std::size_t SPELL_WIRE_DESCRIPTION = 1;
+
+  struct SpellPatchRow {
+    std::array<uint32, SPELL_CLIENT_RECORD_DWORDS> Values{};
+    std::array<std::string, SPELL_WIRE_STRING_FIELDS.size()> Strings;
+    bool RequiresRegistration = false;
+  };
+
   struct PreparedPatchRows {
     std::vector<uint32> CreatureDisplayIds;
     std::vector<ItemDisplayInfoPatchRow> ItemDisplayInfos;
     std::vector<ItemPatchRow> Items;
+    std::vector<std::size_t> ItemCapacityOrder;
+    std::unordered_set<uint32> SqlItemIds;
+    std::unordered_map<uint32, std::size_t> ItemRowIndexById;
+    std::vector<SpellPatchRow> Spells;
   };
 
-  void SendLoadingScreenRow(Player *player) const {
+  static std::unordered_set<uint32> CollectOwnedItemIds(Player *player) {
+    std::unordered_set<uint32> itemIds;
+    auto const addItem = [&itemIds](Item const *item) {
+      if (item)
+        itemIds.insert(item->GetEntry());
+    };
+    auto const addBagContents = [&](uint8 firstSlot, uint8 endSlot) {
+      for (uint8 slot = firstSlot; slot < endSlot; ++slot)
+        if (Bag const *bag = player->GetBagByPos(slot))
+          for (uint32 bagSlot = 0; bagSlot < bag->GetBagSize(); ++bagSlot)
+            addItem(bag->GetItemByPos(uint8(bagSlot)));
+    };
+
+    for (uint8 slot = EQUIPMENT_SLOT_START; slot < BANK_SLOT_BAG_END; ++slot)
+      addItem(player->GetItemByPos(INVENTORY_SLOT_BAG_0, slot));
+    for (uint8 slot = KEYRING_SLOT_START; slot < CURRENCYTOKEN_SLOT_END; ++slot)
+      addItem(player->GetItemByPos(INVENTORY_SLOT_BAG_0, slot));
+    addBagContents(INVENTORY_SLOT_BAG_START, INVENTORY_SLOT_BAG_END);
+    addBagContents(BANK_SLOT_BAG_START, BANK_SLOT_BAG_END);
+    return itemIds;
+  }
+
+    static std::optional<ItemPatchRow> FindItemRow(PreparedPatchRows const& rows, uint32 itemId)
+    {
+        if (rows.SqlItemIds.contains(itemId) && !Ascension::ClientItemPatches::Instance().Contains(itemId))
+            return std::nullopt;
+        if (auto const row = rows.ItemRowIndexById.find(itemId); row != rows.ItemRowIndexById.end())
+            return rows.Items[row->second];
+        return ItemScaling::ClientRow(itemId);
+    }
+
+    PatchRowTally SendItemRows(Player* player, PreparedPatchRows const& rows, std::vector<ItemPatchRow> itemRows)
+    {
+        for (std::size_t index : rows.ItemCapacityOrder)
+            if (auto const capacity = FindItemRow(rows, rows.Items[index][0]))
+            {
+                itemRows.insert(itemRows.begin(), *capacity);
+                break;
+            }
+
+        PatchRowTally sent;
+        std::lock_guard lock(_mutex);
+        std::unordered_set<uint32>& sentItemRows = _sentItemRows[player->GetGUID().GetCounter()];
+        for (ItemPatchRow const& row : itemRows)
+            if (sentItemRows.insert(row[0]).second)
+            {
+                sent.Bytes += SendItemRow(player, row);
+                ++sent.Rows;
+            }
+        return sent;
+    }
+
+  static std::size_t SendRowPacket(Player *player, WorldPacket const &packet) {
+    player->GetSession()->SendPacket(&packet);
+    return packet.size();
+  }
+
+  static void AppendSizedString(WorldPacket &packet, std::string const &text) {
+    packet << uint32(text.size());
+    if (!text.empty())
+      packet.append(reinterpret_cast<uint8 const *>(text.data()), text.size());
+  }
+
+  std::size_t SendLoadingScreenRow(Player *player) const {
     WorldPacket packet(SMSG_PATCH_LOADING_SCREENS, 24);
     uint8 loadingScreenRow[16] = {};
     packet.append(loadingScreenRow, sizeof(loadingScreenRow));
     packet << uint32(0) << uint32(0);
-    player->GetSession()->SendPacket(&packet);
+    return SendRowPacket(player, packet);
   }
 
-  void SendDisplayInfoRow(Player *player,
-                          CreatureDisplayInfoEntry const &entry) const {
+  std::size_t SendDisplayInfoRow(Player *player,
+                                 CreatureDisplayInfoEntry const &entry) const {
     WorldPacket packet(SMSG_PATCH_CREATURE_DISPLAY_INFO, 80);
 
     uint32 const soundId = 0;
@@ -3289,28 +3752,34 @@ private:
     for (uint8 stringIndex = 0; stringIndex < 4; ++stringIndex)
       packet << uint32(0);
 
-    player->GetSession()->SendPacket(&packet);
+    return SendRowPacket(player, packet);
   }
 
-  void SendItemDisplayInfoRow(Player *player,
-                              ItemDisplayInfoPatchRow const &row) const {
+  std::size_t SendItemDisplayInfoRow(Player *player,
+                                     ItemDisplayInfoPatchRow const &row) const {
     WorldPacket packet(SMSG_PATCH_ITEM_DISPLAY_INFO, 160);
     for (uint32 value : row.Values)
       packet << value;
-    for (std::string const &text : row.Strings) {
-      packet << uint32(text.size());
-      if (!text.empty())
-        packet.append(reinterpret_cast<uint8 const *>(text.data()),
-                      text.size());
-    }
-    player->GetSession()->SendPacket(&packet);
+    for (std::string const &text : row.Strings)
+      AppendSizedString(packet, text);
+    return SendRowPacket(player, packet);
   }
 
-  void SendItemRow(Player *player, ItemPatchRow const &row) const {
+  std::size_t SendItemRow(Player *player, ItemPatchRow const &row) const {
     WorldPacket packet(SMSG_PATCH_ITEM, row.size() * sizeof(uint32));
     for (uint32 value : row)
       packet << value;
-    player->GetSession()->SendPacket(&packet);
+    return SendRowPacket(player, packet);
+  }
+
+  std::size_t SendSpellRow(Player *player, SpellPatchRow const &row) const {
+    WorldPacket packet(SMSG_PATCH_SPELL,
+                       row.Values.size() * sizeof(uint32) + 1024);
+    for (uint32 value : row.Values)
+      packet << value;
+    for (std::string const &text : row.Strings)
+      AppendSizedString(packet, text);
+    return SendRowPacket(player, packet);
   }
 
   PreparedPatchRows const &GetPreparedPatchRows() {
@@ -3322,7 +3791,15 @@ private:
       _rows.CreatureDisplayIds = BuildDisplayPatchRows(clientDbcDirectory);
       _rows.ItemDisplayInfos =
           BuildItemDisplayInfoPatchRows(clientDbcDirectory);
-      _rows.Items = BuildItemPatchRows(clientDbcDirectory);
+      _rows.Items = BuildItemPatchRows(clientDbcDirectory, _rows.SqlItemIds);
+      for (std::size_t index = 0; index < _rows.Items.size(); ++index)
+      {
+        _rows.ItemRowIndexById.emplace(_rows.Items[index][0], index);
+        _rows.ItemCapacityOrder.push_back(index);
+      }
+      std::sort(_rows.ItemCapacityOrder.begin(), _rows.ItemCapacityOrder.end(),
+          [this](std::size_t left, std::size_t right) { return _rows.Items[left][0] > _rows.Items[right][0]; });
+      _rows.Spells = BuildSpellPatchRows();
       _rowsPrepared = true;
     }
     return _rows;
@@ -3403,8 +3880,8 @@ private:
   }
 
   static std::vector<ItemPatchRow>
-  BuildItemPatchRows(std::filesystem::path const &clientDbcDirectory) {
-    std::vector<ItemPatchRow> rows = LoadItemPatchRows();
+  BuildItemPatchRows(std::filesystem::path const &clientDbcDirectory, std::unordered_set<uint32>& sqlIds) {
+    std::vector<ItemPatchRow> rows = LoadItemPatchRows(sqlIds);
 
     std::filesystem::path const clientDbc = clientDbcDirectory / "Item.dbc";
     std::optional<std::unordered_set<uint32>> const clientIds =
@@ -3425,7 +3902,7 @@ private:
     for (uint32 itemId = 0; itemId < sItemStore.GetNumRows(); ++itemId) {
       ItemEntry const *entry = sItemStore.LookupEntry(itemId);
       if (!entry || clientIds->contains(itemId) ||
-          overriddenIds.contains(itemId))
+          overriddenIds.contains(itemId) || sqlIds.contains(itemId))
         continue;
 
       rows.push_back({entry->ID, entry->ClassID, entry->SubclassID,
@@ -3436,6 +3913,162 @@ private:
     }
 
     return rows;
+  }
+
+  static void ApplyServerSpellSelectors(SpellPatchRow &row) {
+    SpellInfo const *info = sSpellMgr->GetSpellInfo(row.Values[0]);
+    if (!info)
+      return;
+
+    row.Values[144] = info->SpellFamilyName;
+    Ascension::ClientSpellPatches::Selector const selector =
+        Ascension::ClientSpellPatches::Instance().GetSelector(info->Id);
+    for (uint32 index = 0; index < 3; ++index)
+    {
+      row.Values[145 + index] = info->SpellFamilyFlags[index] | selector[index];
+      for (uint32 effect = 0; effect < MAX_SPELL_EFFECTS; ++effect)
+        row.Values[122 + effect * 3 + index] =
+            info->Effects[effect].SpellClassMask[index];
+    }
+  }
+
+  static std::vector<SpellPatchRow> LoadSqlSpellPatchRows(std::unordered_set<uint32> const& requested) {
+    std::vector<SpellPatchRow> rows;
+    std::vector<uint32> ordered(requested.begin(), requested.end());
+    std::sort(ordered.begin(), ordered.end());
+    for (uint32 id : ordered)
+    {
+      WorldDatabasePreparedStatement* statement = WorldDatabase.GetPreparedStatement(WORLD_SEL_CLIENT_SPELL_PATCHES);
+      statement->SetData(0, id);
+      PreparedQueryResult result = WorldDatabase.Query(statement);
+      if (!result)
+        continue;
+      if (result->GetFieldCount() != SPELL_DBC_FIELD_COUNT)
+      {
+        LOG_ERROR("coa", "spell_dbc has {} columns; the spell patch stream requires {}",
+                  result->GetFieldCount(), SPELL_DBC_FIELD_COUNT);
+        return {};
+      }
+
+      static_assert(sizeof(SpellEntryfmt) - 1 == SPELL_DBC_FIELD_COUNT);
+      Field const *fields = result->Fetch();
+      SpellPatchRow &row = rows.emplace_back();
+      std::size_t slot = 0;
+      for (uint32 field = 0; field < SPELL_DBC_FIELD_COUNT;)
+      {
+        bool const localized =
+            field >= SPELL_NAME_FIELD && field <= SPELL_TOOLTIP_FIELD;
+        if (localized)
+          row.Values[slot] = 0;
+        else if (SpellEntryfmt[field] == 'f')
+          row.Values[slot] = std::bit_cast<uint32>(fields[field].Get<float>());
+        else if (field == 12 || field == 14)
+          row.Values[slot] = static_cast<uint32>(fields[field].Get<uint64>());
+        else
+          row.Values[slot] = fields[field].Get<uint32>();
+        ++slot;
+        field += localized ? LOCALIZED_STRING_DWORDS : 1;
+      }
+      for (std::size_t text = 0; text < SPELL_WIRE_STRING_FIELDS.size(); ++text)
+        row.Strings[text] = fields[SPELL_WIRE_STRING_FIELDS[text]].Get<std::string>();
+      ApplyServerSpellSelectors(row);
+    }
+    return rows;
+  }
+
+  static std::vector<SpellPatchRow> BuildSpellPatchRows() {
+    std::unordered_map<uint32, std::string> descriptions =
+        LoadClientSpellDescriptions();
+    std::unordered_set<uint32> descriptionIds;
+    std::unordered_set<uint32> requested = Ascension::ClientSpellPatches::Instance().GetIds(true);
+    for (auto const& [id, description] : descriptions)
+    {
+      requested.insert(id);
+      descriptionIds.insert(id);
+    }
+    std::vector<SpellPatchRow> rows = LoadSqlSpellPatchRows(requested);
+    std::unordered_map<uint32, std::size_t> overridden;
+    for (std::size_t index = 0; index < rows.size(); ++index)
+    {
+      overridden.emplace(rows[index].Values[0], index);
+      requested.erase(rows[index].Values[0]);
+    }
+
+    ClientDBC spells;
+    std::filesystem::path const serverDbc =
+        std::filesystem::path(sWorld->GetDataPath()) / "dbc" / "Spell.dbc";
+    if (spells.Load(serverDbc.string(), SPELL_DBC_FIELD_COUNT))
+    {
+      for (uint32 index = 0; index < spells.GetRecordCount(); ++index)
+      {
+        ClientDBC::Record const record = spells.GetRecord(index);
+        uint32 const id = record.GetUInt32(0);
+        auto const overlay = overridden.find(id);
+        auto const description = descriptions.find(id);
+        if (overlay == overridden.end() && description == descriptions.end() && !requested.contains(id))
+          continue;
+
+        std::size_t const rowIndex = overlay == overridden.end() ? rows.size() : overlay->second;
+        if (overlay == overridden.end())
+        {
+          SpellPatchRow &row = rows.emplace_back();
+          std::size_t slot = 0;
+          for (uint32 field = 0; field < SPELL_DBC_FIELD_COUNT;)
+          {
+            bool const localized =
+                field >= SPELL_NAME_FIELD && field <= SPELL_TOOLTIP_FIELD;
+            row.Values[slot++] = localized ? 0 : record.GetUInt32(field);
+            field += localized ? LOCALIZED_STRING_DWORDS : 1;
+          }
+          ApplyServerSpellSelectors(row);
+        }
+
+        SpellPatchRow &row = rows[rowIndex];
+        for (std::size_t text = 0; text < SPELL_WIRE_STRING_FIELDS.size(); ++text)
+          if (row.Strings[text].empty())
+            row.Strings[text] = std::string(record.GetString(SPELL_WIRE_STRING_FIELDS[text]));
+        if (description != descriptions.end())
+        {
+          row.Strings[SPELL_WIRE_DESCRIPTION] = std::move(description->second);
+          descriptions.erase(description);
+        }
+        requested.erase(id);
+      }
+    }
+
+    for (auto const &[id, index] : overridden)
+    {
+      auto const description = descriptions.find(id);
+      if (description != descriptions.end())
+      {
+        rows[index].Strings[SPELL_WIRE_DESCRIPTION] = std::move(description->second);
+        descriptions.erase(description);
+      }
+    }
+    for (auto const &[spellId, text] : descriptions)
+      LOG_ERROR("coa", "coa_client_spell_description {} has no physical or SQL Spell record", spellId);
+    for (uint32 spellId : requested)
+      LOG_ERROR("coa", "Requested client Spell patch {} has no physical or SQL record", spellId);
+
+    for (SpellPatchRow& row : rows)
+      row.RequiresRegistration = !descriptionIds.contains(row.Values[0]);
+    return rows;
+  }
+
+  static std::unordered_map<uint32, std::string> LoadClientSpellDescriptions() {
+    std::unordered_map<uint32, std::string> descriptions;
+    PreparedQueryResult result = WorldDatabase.Query(
+        WorldDatabase.GetPreparedStatement(WORLD_SEL_CLIENT_SPELL_DESCRIPTIONS));
+    if (!result)
+      return descriptions;
+
+    do {
+      Field const *fields = result->Fetch();
+      descriptions.emplace(fields[0].Get<uint32>(),
+                           fields[1].Get<std::string>());
+    } while (result->NextRow());
+
+    return descriptions;
   }
 
   static std::vector<ItemDisplayInfoPatchRow> LoadItemDisplayInfoPatchRows() {
@@ -3467,8 +4100,9 @@ private:
     return rows;
   }
 
-  static std::vector<ItemPatchRow> LoadItemPatchRows() {
+  static std::vector<ItemPatchRow> LoadItemPatchRows(std::unordered_set<uint32>& sqlIds) {
     std::vector<ItemPatchRow> rows;
+    std::unordered_set<uint32> const requested = Ascension::ClientItemPatches::Instance().GetIds(true);
     QueryResult result = WorldDatabase.Query(
         "SELECT `ID`, `ClassID`, `SubclassID`, `Sound_Override_Subclassid`, "
         "`Material`, `DisplayInfoID`, `InventoryType`, `SheatheType` "
@@ -3478,6 +4112,10 @@ private:
 
     do {
       Field const *fields = result->Fetch();
+      uint32 const id = fields[0].Get<uint32>();
+      sqlIds.insert(id);
+      if (!requested.contains(id))
+        continue;
       ItemPatchRow &row = rows.emplace_back();
       for (std::size_t field = 0; field < row.size(); ++field)
         row[field] = static_cast<uint32>(fields[field].Get<int32>());
@@ -3525,6 +4163,8 @@ private:
 
   std::mutex _mutex;
   std::unordered_set<uint32> _streamedPlayers;
+  std::unordered_map<uint32, std::unordered_set<uint32>> _sentItemRows;
+  std::unordered_map<uint32, PatchRowTally> _onDemandItemRows;
   std::unordered_map<uint32, uint32> _fallbackTimers;
 
   std::mutex _cacheMutex;
@@ -3621,6 +4261,12 @@ public:
     if (appearancesLoaded && itemAppearancesLoaded)
         LoadWoodworkingAppearances(lastItemAppearanceRecordId);
 
+    std::unordered_map<uint32, uint32> equipmentAppearances;
+    for (auto const& [id, appearance] : _appearances)
+      if (IsEquipmentAppearance(appearance))
+        equipmentAppearances.emplace(id, appearance.SourceItem);
+    AscensionItemAppearanceAliases::AddAliases(_itemAppearances, equipmentAppearances);
+
     ClientDBC itemSets;
     bool itemSetsLoaded = itemSets.Load(GetClientDBCPath("ItemSet.dbc"), 35);
     for (uint32 row = 0; row < itemSets.GetRecordCount(); ++row) {
@@ -3648,9 +4294,6 @@ public:
 
       VanityInfo info{
           record.GetUInt32(76), record.GetUInt32(12), record.GetUInt32(2)};
-
-      for (uint32 field = 0; field < VANITY_STORE_RECORD_DWORDS; ++field)
-        info.StoreRecord[field] = record.GetUInt32(field);
 
       _vanityItems[itemId] = info;
       _allVanityItemIds.push_back(itemId);
@@ -3705,6 +4348,37 @@ public:
           packet.GetOpcode(), packet.size(), accountId, reason, rejected);
   }
 
+  static bool LoadsCollectionsForBot(Player *player) {
+    uint32 const mode = ascensionCompatConfig.GetConfigValue<uint32>(
+        AscensionCompatConfig::COLLECTIONS_FOR_BOTS);
+    if (mode != 1)
+      return mode >= 2;
+    uint32 const accountId = player->GetSession()->GetAccountId();
+    std::string const prefix = ascensionCompatConfig.GetConfigValue<std::string>(
+        AscensionCompatConfig::RANDOM_BOT_ACCOUNT_PREFIX);
+    static std::mutex cacheMutex;
+    static std::string cachedPrefix;
+    static std::unordered_map<uint32, bool> playerAccounts;
+    {
+      std::lock_guard lock(cacheMutex);
+      if (cachedPrefix != prefix)
+      {
+        playerAccounts.clear();
+        cachedPrefix = prefix;
+      }
+      if (auto const found = playerAccounts.find(accountId); found != playerAccounts.end())
+        return found->second;
+    }
+    std::string account;
+    if (!AccountMgr::GetName(accountId, account))
+      return false;
+    bool const playerAccount = prefix.empty() || !StringStartsWithI(account, prefix);
+    std::lock_guard lock(cacheMutex);
+    if (cachedPrefix == prefix)
+      playerAccounts[accountId] = playerAccount;
+    return playerAccount;
+  }
+
   void OnPlayerLogin(Player *player) {
     if (!_clientDataLoaded)
     {
@@ -3714,7 +4388,7 @@ public:
       return;
     }
 
-    if (player->GetSession()->IsBot())
+    if (player->GetSession()->IsBot() && !LoadsCollectionsForBot(player))
     {
       TakeLoginState(player);
       InitializeRiding(player);
@@ -3746,7 +4420,6 @@ public:
     SendRealmInfo(player);
     SendGameModeState(player);
     SendVanityCollection(player, *state);
-    SendOwnedVanityStoreRecords(player, *state);
     RefreshVisibleItems(player);
     for (auto const& [id, appearance] : _appearances)
         if (appearance.CosmeticSpell)
@@ -3768,6 +4441,9 @@ public:
       _playerStates.erase(player->GetGUID().GetCounter());
       _loginStates.erase(player->GetGUID().GetCounter());
     }
+
+    if (!ReceivesClientRequests(player))
+      return;
 
     {
       std::lock_guard lock(_rejectedPacketMutex);
@@ -3805,8 +4481,9 @@ public:
   }
 
   void OnPlayerUpdate(Player *player, uint32 diff) {
-    for (WorldPacket &packet : TakeClientPackets(player->GetSession()->GetAccountId()))
-      HandleClientPacket(player, packet);
+    if (ReceivesClientRequests(player))
+      for (WorldPacket &packet : TakeClientPackets(player->GetSession()->GetAccountId()))
+        HandleClientPacket(player, packet);
 
     ProcessPendingAppearanceAdds(player, diff);
     ProcessPendingCompanionSpells(player, diff);
@@ -4666,7 +5343,9 @@ private:
     void CollectItemAppearance(Player* player, PlayerCollectionState& state, uint32 itemId,
         bool notifyClient, bool equipmentOnly = false)
     {
-        auto const mapping = _itemAppearances.find(itemId);
+        auto mapping = _itemAppearances.find(itemId);
+        if (mapping == _itemAppearances.end())
+            mapping = _itemAppearances.find(ItemScaling::BaseEntry(itemId));
         if (mapping == _itemAppearances.end())
             return;
 
@@ -4729,7 +5408,6 @@ private:
       }
 
       LearnOwnedBankSpells(player, state, !player->IsInWorld());
-      SendOwnedVanityStoreRecords(player, state);
       LOG_INFO("coa", "Account {} acquired the bank item {} through {}",
                state.AccountId, itemId, player->GetName());
     }
@@ -5172,47 +5850,6 @@ private:
     player->GetSession()->SendPacket(&packet);
   }
 
-  void SendOwnedVanityStoreRecords(Player *player,
-                                   PlayerCollectionState const &state) {
-    bool const unlockAll = ascensionCompatConfig.GetConfigValue<bool>(
-        AscensionCompatConfig::UNLOCK_ALL_VANITY);
-
-    std::vector<uint32> itemIds;
-    if (unlockAll)
-      itemIds = _allVanityItemIds;
-    else
-      for (uint32 itemId : state.OwnedVanityItems)
-        if (_vanityItems.contains(itemId))
-          itemIds.push_back(itemId);
-
-    std::sort(itemIds.begin(), itemIds.end());
-    itemIds.erase(std::unique(itemIds.begin(), itemIds.end()), itemIds.end());
-
-    WorldPacket packet(SMSG_QUERY_CUSTOM_STORE_RESULT,
-                       64 + itemIds.size() * VANITY_STORE_RECORD_DWORDS * sizeof(uint32));
-    packet << "QUERY_CUSTOM_STORE_OK";
-    packet << static_cast<uint32>(itemIds.size());
-    for (uint32 itemId : itemIds)
-      for (uint32 field : _vanityItems.at(itemId).StoreRecord)
-        packet << field;
-
-    player->GetSession()->SendPacket(&packet);
-
-    if (!itemIds.empty())
-    {
-      std::string owned;
-      for (uint32 itemId : itemIds) {
-        if (!owned.empty())
-          owned += ' ';
-        owned += std::to_string(itemId);
-      }
-
-      LOG_INFO("coa",
-               "Sent {} vanity store record(s) to {} for owned item(s): {}",
-               itemIds.size(), player->GetName(), owned);
-    }
-  }
-
   void SendApplyResult(Player *player, char const *result) {
     WorldPacket packet(SMSG_APPLY_APPEARANCES_RESULT, std::strlen(result) + 1);
     packet << result;
@@ -5559,9 +6196,22 @@ class AscensionCompatServerScript : public ServerScript {
 public:
   AscensionCompatServerScript()
       : ServerScript("AscensionCompatServerScript",
-                     {SERVERHOOK_CAN_PACKET_RECEIVE_EARLY, SERVERHOOK_CAN_PACKET_RECEIVE})
+                     {SERVERHOOK_CAN_PACKET_RECEIVE_EARLY, SERVERHOOK_CAN_PACKET_RECEIVE,
+                         SERVERHOOK_CAN_PACKET_SEND})
   {
   }
+
+    bool CanPacketSend(WorldSession* session, WorldPacket const& packet) override
+    {
+        if (packet.GetOpcode() != SMSG_ITEM_QUERY_SINGLE_RESPONSE || packet.size() < sizeof(uint32))
+            return true;
+
+        Player* player = session ? session->GetPlayer() : nullptr;
+        if (player && player->IsInWorld() &&
+            ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED))
+            AscensionDisplayPatchService::Instance().SendItemRowOnDemand(player, packet.read<uint32>(0));
+        return true;
+    }
 
     [[nodiscard]] bool CanPacketReceive(WorldSession* session, WorldPacket const& packet) override
     {
@@ -6082,18 +6732,33 @@ public:
   AscensionCompatPlayerScript()
       : PlayerScript(
             "AscensionCompatPlayerScript",
-            {PLAYERHOOK_ON_LOGIN, PLAYERHOOK_ON_LOGOUT, PLAYERHOOK_ON_UPDATE,
+            {PLAYERHOOK_ON_LOGIN, PLAYERHOOK_ON_LOGOUT, PLAYERHOOK_ON_UPDATE, PLAYERHOOK_ON_SAVE,
              PLAYERHOOK_ON_AFTER_SET_VISIBLE_ITEM_SLOT, PLAYERHOOK_ON_EQUIP, PLAYERHOOK_ON_DELETE,
              PLAYERHOOK_ON_STORE_NEW_ITEM, PLAYERHOOK_ON_CREATE_ITEM,
              PLAYERHOOK_ON_PLAYER_COMPLETE_QUEST,
              PLAYERHOOK_ON_PLAYER_IS_CLASS, PLAYERHOOK_ON_LEVEL_CHANGED,
-             PLAYERHOOK_ON_LEARN_SPELL, PLAYERHOOK_ON_FORGOT_SPELL,
+             PLAYERHOOK_ON_LEARN_SPELL, PLAYERHOOK_ON_LEARN_TRAINER_SPELL, PLAYERHOOK_ON_FORGOT_SPELL,
              PLAYERHOOK_ON_AFTER_SPEC_SLOT_CHANGED,
              PLAYERHOOK_ON_CREATE_INITIAL_ITEMS,
              PLAYERHOOK_ON_GET_AMMO_DISPLAY,
              PLAYERHOOK_ON_AFTER_UPDATE_ATTACK_POWER_AND_DAMAGE,
              PLAYERHOOK_ON_SEND_INITIAL_PACKETS_BEFORE_ADD_TO_MAP,
+             PLAYERHOOK_CAN_USE_ITEM,
              PLAYERHOOK_CHECK_ITEM_IN_SLOT_AT_LOAD_INVENTORY}) {}
+
+    bool OnPlayerCanUseItem(Player* player, ItemTemplate const* item, InventoryResult& result) override
+    {
+        if (!ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED) ||
+            item->Spells[0].SpellId != 55884)
+            return true;
+        uint32 const learned = item->Spells[1].SpellId;
+        auto const& spells = AscensionWildcard::SPECIALIZATION_SWAP_SPELLS;
+        if (!player->HasSpell(learned) || std::find(spells.begin(), spells.end(), learned) == spells.end())
+            return true;
+        result = EQUIP_ERR_CANT_DO_RIGHT_NOW;
+        ChatHandler(player->GetSession()).SendSysMessage("That specialization slot is already unlocked.");
+        return false;
+    }
 
     void OnPlayerGetAmmoDisplay(Player* player, SpellInfo const* spellInfo,
         uint32& displayId, uint32& inventoryType) override
@@ -6221,11 +6886,18 @@ public:
     }
   }
 
+    void OnPlayerSave(Player* player) override
+    {
+        if (ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED))
+            AscensionClassService::Instance().SaveSlot(player);
+    }
+
   void OnPlayerLevelChanged(Player *player, uint8) override {
     if (ascensionCompatConfig.GetConfigValue<bool>(
             AscensionCompatConfig::ENABLED))
     {
       SendAverageItemLevel(player);
+      AscensionFreepick::Synchronize(player);
       AscensionClassService::Instance().SynchronizeProgression(player);
       AscensionClassService::Instance().SynchronizeProficiencies(player);
       AscensionClassService::Instance().SendCharacterAdvancementKnownEntries(player);
@@ -6235,6 +6907,13 @@ public:
   }
 
   void OnPlayerLearnSpell(Player *player, uint32 spellId) override {
+    if (ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED) &&
+        IsAscensionCustomClass(player) && !AscensionWildcard::IsWildcardHero(player) &&
+        std::find(AscensionWildcard::SPECIALIZATION_SWAP_SPELLS.begin(),
+                  AscensionWildcard::SPECIALIZATION_SWAP_SPELLS.end(), spellId) !=
+            AscensionWildcard::SPECIALIZATION_SWAP_SPELLS.end())
+      AscensionClassService::Instance().SendActiveSlot(player);
+
     if (ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED) &&
         (spellId == 712325 || spellId == 712389 || spellId == 521211))
       SynchronizeAscensionRunemasterEchoes(player,
@@ -6253,6 +6932,13 @@ public:
         AscensionClassService::Instance().AffectsProficiencies(spellId))
       AscensionClassService::Instance().SynchronizeProficiencies(player);
   }
+
+    void OnPlayerLearnTrainerSpell(Player* player, Creature*, uint32 spellId) override
+    {
+        if (ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED) &&
+            AscensionClassService::Instance().AffectsTalentReplacements(spellId))
+            AscensionClassService::Instance().SynchronizeTalentReplacements(player);
+    }
 
   void OnPlayerForgotSpell(Player *player, uint32 spellId) override {
     if (spellId == 537218)
@@ -6348,6 +7034,7 @@ public:
   void OnPlayerStoreNewItem(Player *player, Item *item,
                             uint32) override {
     AscensionCollectionService::Instance().OnItemObtained(player, item);
+    SendObtainedItemPatchRow(player, item);
     if (item && player->IsInWorld() && player->getClass() >= CLASS_BARBARIAN &&
         player->getClass() <= CLASS_SPIRIT_MAGE &&
         ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED))
@@ -6360,6 +7047,13 @@ public:
   void OnPlayerCreateItem(Player *player, Item *item,
                            uint32) override {
     AscensionCollectionService::Instance().OnItemObtained(player, item);
+    SendObtainedItemPatchRow(player, item);
+  }
+
+  static void SendObtainedItemPatchRow(Player *player, Item const *item) {
+    if (item && player->IsInWorld() &&
+        ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED))
+      AscensionDisplayPatchService::Instance().SendItemRowOnDemand(player, item->GetEntry());
   }
 
   Optional<bool> OnPlayerIsClass(Player const *player, Classes playerClass,
@@ -6669,6 +7363,8 @@ public:
                     break;
             }
             ApplyAscensionClassMechanics(spellInfo);
+            ApplyAscensionStockScriptShapes(spellInfo);
+            ApplyAscensionPathPassiveContract(spellInfo);
             ApplyAscensionPrimalistEarthquakeContract(spellInfo);
             ApplyAscensionPrimalistEarthshapingContracts(spellInfo);
             ApplyAscensionPrimalistSpiritBeastContract(spellInfo);
@@ -7094,6 +7790,54 @@ class spell_ascension_reaper_redshade : public AuraScript
     }
 };
 
+class spell_ascension_specialization_slot : public SpellScript
+{
+    PrepareSpellScript(spell_ascension_specialization_slot);
+
+    uint32 _slot = 0;
+
+    bool Load() override
+    {
+        Player* player = GetCaster()->ToPlayer();
+        auto const& spells = AscensionWildcard::SPECIALIZATION_SWAP_SPELLS;
+        auto const found = std::find(spells.begin(), spells.end(), GetSpellInfo()->Id);
+        if (!player || !ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED) ||
+            !IsAscensionCustomClass(player) || AscensionWildcard::IsWildcardHero(player) || found == spells.end())
+            return false;
+        _slot = uint32(found - spells.begin());
+        return true;
+    }
+
+    SpellCastResult CheckSlot()
+    {
+        Player* player = GetCaster()->ToPlayer();
+        if (!player->HasSpell(AscensionWildcard::SPECIALIZATION_SWAP_SPELLS[_slot]))
+            return SPELL_FAILED_NOT_KNOWN;
+        if (player->IsInCombat())
+            return SPELL_FAILED_AFFECTING_COMBAT;
+        return SPELL_CAST_OK;
+    }
+
+    void SwitchSlot(SpellEffIndex index)
+    {
+        PreventHitDefaultEffect(index);
+        Player* player = GetCaster()->ToPlayer();
+        std::string error;
+        if (!AscensionClassService::Instance().SwitchSlot(player, _slot, error))
+        {
+            ChatHandler(player->GetSession()).SendSysMessage(error);
+            AscensionClassService::Instance().SendActiveSlot(player);
+        }
+    }
+
+    void Register() override
+    {
+        OnCheckCast += SpellCheckCastFn(spell_ascension_specialization_slot::CheckSlot);
+        OnEffectHitTarget += SpellEffectFn(spell_ascension_specialization_slot::SwitchSlot, EFFECT_0,
+            SPELL_EFFECT_TALENT_SPEC_SELECT);
+    }
+};
+
 class spell_ascension_local_mount : public SpellScript
 {
     PrepareSpellScript(spell_ascension_local_mount);
@@ -7335,6 +8079,12 @@ std::string AscensionSpecializationSwitchRefusal(Player* player, uint32 activeSp
     return SpecializationSwitchRefusal(player, activeSpecializationId, requestedSpecializationId);
 }
 
+void ClearAscensionSpecializationSlots(Player* player)
+{
+    if (player)
+        AscensionClassService::Instance().ClearSlots(player);
+}
+
 uint32 ForgetAscensionClassTalents(Player* player)
 {
     if (!player || !IsAscensionCustomClass(player))
@@ -7355,7 +8105,7 @@ uint32 ForgetAscensionClassTalents(Player* player)
     }
 
     for (uint32 const tree : { uint32(0), GetAscensionActiveSpecialization(player) })
-        if (player->FindPlayerSettings(AscensionClassService::BuildSetting(tree)))
+        if (player->FindPlayerSettings(AscensionClassService::BuildSetting(player, tree)))
             AscensionClassService::StoreBuild(player, tree, {});
     return removed;
 }
@@ -7511,6 +8261,7 @@ void AppendConfiguredClientConfigs(AscensionClientConfig& config) {
 }
 
 void AddAscensionCompatScripts() {
+  Ascension::ClientItemPatches::Instance().Register(ITEM_HEARTWOOD_KEY);
   RegisterAscensionClientConfig([](AscensionClientConfig& config) {
     config.Booleans.emplace_back("CONFIG_CHARACTER_ADVANCEMENT_BUILD_INSPECT_ENABLED", true);
   });
@@ -7519,6 +8270,7 @@ void AddAscensionCompatScripts() {
   RegisterSpellScript(spell_ascension_personal_bank);
   RegisterSpellScript(spell_ascension_experience_potion);
   RegisterSpellScript(spell_ascension_local_mount);
+  RegisterSpellScript(spell_ascension_specialization_slot);
   RegisterSpellScript(spell_ascension_jailers_bargain);
   RegisterSpellScript(spell_ascension_reaper_extinction);
   RegisterSpellScript(spell_ascension_reaper_extinction_buff);

@@ -31,6 +31,7 @@ struct SunClericState
     uint32 sunchargeStacks = 0;
     bool event = false, refreshing = false, dawnEvent = false;
     bool landingDawn = false, landingFulfillment = false;
+    bool gavelHealing = false;
     bool healthyAbove80 = false;
 };
 Player* Owner(Unit const* unit);

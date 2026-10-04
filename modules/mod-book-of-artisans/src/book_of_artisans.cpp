@@ -16,7 +16,9 @@
  * nobody can buy: a character who has never held a needle gets shown Grand Master Tailoring, and
  * there is nothing to do about it from there. So the books ask for the trainable rows
  * (`SendTrainerList`'s `onlyTrainable`, a plain argument to `Trainer::SendSpells`): the entry rank
- * of each profession, the ranks they have reached, and the ranks they already know, drawn greyed.
+ * of each profession and the ranks they have reached. A rank they already hold is left out too: the
+ * client re-reads the open window's rank rows whenever a spell is learned and draws a held rank as
+ * available again, so a greyed rank row would turn green after the next recipe was trained.
  * Train the apprentice rank, put the skill to 50, and journeyman is in the next window sent.
  *
  * What the module adds is the two things data cannot express:

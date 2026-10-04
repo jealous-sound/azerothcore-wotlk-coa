@@ -71,7 +71,8 @@
       "spell": 706332,
       "target": "primary",
       "min": 2,
-      "within_ms": 6000
+      "within_ms": 6000,
+      "pet": true
     },
     {
       "action": "assert",

@@ -35,6 +35,24 @@ CoA.CharacterSelectionMaxActive = 128
 # Automatically add appearance and vanity entries for items obtained by a character.
 CoA.AutoCollectAppearances = 1
 
+# Drop at most one wearable item matching an enemy's visible equipment on a rewarded kill.
+# Uses NPC display presets or CreatureDisplayInfoExtra, plus the current weapon/shield entries.
+# Only unbound/BoE gear up to uncommon quality, at or below the enemy's level, is eligible.
+# Stats prefer caster Intellect, defender defenses/Stamina or physical Strength/Agility.
+# The per-kill percentage is a local reconstruction default; original rates were not captured.
+CoA.EquippedGearLoot = 1
+CoA.EquippedGearLootChance = 5
+
+# Wardrobe, outfits, vanity and mount/companion collections for characters played by bots.
+# 0 - never: bot sessions skip the collections (default).
+# 1 - only characters of player accounts played as bots (alts), never random bot accounts:
+#     their saved outfits and appearances are applied as for the player.
+# 2 - every bot session.
+# Random bot accounts are recognised by their name prefix, CoA.RandomBotAccountPrefix, which
+# must match AiPlayerbot.RandomBotAccountPrefix of mod-playerbots (default: rndbot).
+CoA.CollectionsForBots = 0
+CoA.RandomBotAccountPrefix = "rndbot"
+
 # Unlock the complete local appearance catalog. The per-category value balances
 # the initial snapshot; remaining appearances are streamed afterward.
 CoA.UnlockLocalAppearanceCatalog = 0
@@ -68,6 +86,13 @@ CoA.RulesetLoginDefault = 1
 # Lower-level quests report the player's level and use the matching QuestXP row.
 # Quests already above the player remain higher. Shared quest templates are immutable.
 CoA.QuestLevelScaling = 1
+
+# Weapons and armor dropped by level-scaled creatures, found in chests by characters who chose
+# level scaling or given by level-scaled quests are lifted to the level of that content, rounded down
+# to a step of five levels, as copies with entries from 4400001 up. Shirts, tabards and items without
+# an item level are left as they are.
+# Set to 0 to stop new lifts; copies already handed out keep working.
+CoA.ItemScaling = 1
 
 # Automatic progression: hand out the class abilities and rank upgrades for the
 # character's class and level as they level up. Set to 0 to stop that

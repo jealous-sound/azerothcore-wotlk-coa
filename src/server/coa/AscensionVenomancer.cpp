@@ -399,16 +399,17 @@ void Refresh(Player* player)
         else if (!enabled)
             player->removeSpell(active, SPEC_MASK_ALL, true);
     }
-    for (auto [root, replacement, enabled] : {std::tuple(800880u,504705u,
-             player->HasAura(807600) && Count(player,807244) >= 2),
-             std::tuple(800887u,504706u,player->HasAura(630932))})
+    bool widowsKiss = player->HasAura(807600);
+    for (auto [root, replacement, known, enabled] : {std::tuple(800880u,504705u,widowsKiss,
+             widowsKiss && Count(player,807244) >= 2),
+             std::tuple(800887u,504706u,player->HasAura(630932),player->HasAura(630932))})
     {
-        if (enabled && !player->HasSpell(replacement))
+        if (known && !player->HasSpell(replacement))
             player->learnSpell(replacement, true);
         for (auto const& pair : player->GetSpellMap())
             if (player->HasSpell(pair.first) && Named(sSpellMgr->GetSpellInfo(pair.first),root))
                 player->SetTemporarySpellReplacement(pair.first,enabled ? replacement : 0);
-        if (!enabled)
+        if (!known)
             player->removeSpell(replacement,SPEC_MASK_ALL,true);
     }
     if (!state.host.IsEmpty())

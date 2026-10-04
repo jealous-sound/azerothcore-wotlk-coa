@@ -1,13 +1,7 @@
 {
   "schema": 1,
   "name": "necromancer-talent-removal-dismisses-minion",
-  "contract": [
-    "Raise: Ghoul is specialization Animation entry 33775, spell 500971, costing one talent essence. Removing the",
-    "owning talent through the native character-advancement upload must dismiss its raised Ghoul 50073, release",
-    "occupied Life Force, and preserve the active specialization. The spell and summon are acquired through",
-    "ordinary talent and cast paths. An independently known Lesser Skeletal Warrior must remain, while free Life",
-    "Force increases by one."
-  ],
+  "contract": "Raise: Ghoul is specialization Animation entry 33775, spell 500971, costing one talent essence. Removing\nthe owning talent through the native character-advancement upload must dismiss its raised Ghoul 50073,\nrelease occupied Life Force, and preserve the active specialization. The spell and summon are acquired\nthrough ordinary talent and cast paths. An independently known Lesser Skeletal Warrior must remain, while\nfree Life Force increases by one. Native removals and resets retain their original prices; fixture actors\nhave 100 gold to pay them.",
   "timeout_ms": 90000,
   "players": [
     {
@@ -21,6 +15,12 @@
     {
       "action": "wait",
       "ms": 3000
+    },
+    {
+      "action": "set_money",
+      "label": "Fund the original native removal and purge prices",
+      "actor": "n",
+      "value": 1000000
     },
     {
       "action": "specialization",

@@ -26,7 +26,7 @@
     { "action": "gossip_hello", "actor": "classic", "target": "classic_book", "label": "classic: right-click the Book of Artisans" },
     { "action": "gossip_select", "actor": "classic", "option": 0, "label": "classic: I require training" },
     { "action": "assert", "actor": "classic", "metric": "trainer_list_packets", "equals": 1, "label": "classic: the trainer window opened" },
-    { "action": "assert", "actor": "classic", "metric": "trainer_window_state", "spell": 9786, "equals": 2, "label": "classic: Artisan Blacksmith reads known" },
+    { "action": "assert", "actor": "classic", "metric": "trainer_window_state", "spell": 9786, "equals": -1, "label": "classic: Artisan Blacksmith, already held, is not a row" },
     { "action": "assert", "actor": "classic", "metric": "trainer_window_state", "spell": 29845, "equals": -1, "label": "classic: Master Blacksmith is not offered on a classic session" },
     { "action": "assert", "actor": "classic", "metric": "trainer_window_state", "spell": 3911, "equals": 0, "label": "classic: a classic trade, Apprentice Tailor, is still offered for the free slot" },
     { "action": "assert", "actor": "classic", "metric": "trainer_window_state", "spell": 25245, "equals": -1, "label": "classic: Jewelcrafting, a Burning Crusade trade, is not offered" },

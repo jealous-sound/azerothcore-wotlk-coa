@@ -53,8 +53,11 @@ assignment, evidence, verification, review and publication requirements still ap
 4. **Launch verification after the batch's fixes are ready.** Run the batch's gameplay regressions through
    `tools/verify_all.py`, including `build` whenever sources changed, then run every stage with
    `--base origin/main` before publication. Follow the full-run failure classification in the verification guide;
-   report missing prerequisites and pre-existing failures accurately. Confirm acceleration-sensitive timing
-   cases on the real clock. Every fix needs its own meaningful verification even when tests share a scenario.
+   report missing prerequisites and pre-existing failures accurately. Use the default accelerated-only
+   gameplay path for normal batches: repair fast failures rather than accepting a slower retry. A retry with a
+   different random outcome is not proof of timing sensitivity. Reserve slower diagnostics and real-clock
+   reference runs for a controlled investigation of an actual clock dependency. Every fix needs its own
+   meaningful verification even when tests share a scenario.
 5. **Repair verification errors and return to step 3.** Diagnose each failure, correct new defects or faulty
    tests, then rerun the affected verification. Repeat until all new failures are resolved and every fix has
    passing relevant coverage. Do not weaken assertions merely to obtain a pass. Missing prerequisites remain

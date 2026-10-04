@@ -2,6 +2,8 @@
 
 #include "AscensionWildcard.h"
 #include "AscensionCacheRewards.h"
+#include "AscensionHeroClass.h"
+#include "AscensionFreepick.h"
 #include "AscensionCoAConfig.h"
 #include "AscensionCompatOpcodes.h"
 #include "AscensionSpecialization.h"
@@ -114,9 +116,25 @@ struct EntrySpells
     std::array<uint32, 6> Spells;
 };
 
-constexpr std::array<EntrySpells, 2> ENTRY_SPELLS = { {
+constexpr std::array<EntrySpells, 18> ENTRY_SPELLS = { {
+    { 84864, { 986202, 986203 } },
+    { 84865, { 986200, 986201 } },
+    { 84866, { 92839, 92840 } },
+    { 84867, { 92842, 92843 } },
+    { 129243, { 129245, 129246 } },
     { AUTO_SHOT_ENTRY_SPELL, { AUTO_SHOT_SPELL } },
-    { TAME_BEAST_ENTRY_SPELL, { 1515, 883, 2641, 6991, 982, 1462 } } } };
+    { TAME_BEAST_ENTRY_SPELL, { 1515, 883, 2641, 6991, 982, 1462 } },
+    { 891, { 885, 889, 893, 109980 } },
+    { 890, { 884, 887, 892, 109981 } },
+    { 91634, { 91631, 91633, 91652, 109982 } },
+    { 91606, { 91602, 91605, 91651, 109983 } },
+    { 5487, { 779, 277420 } },
+    { 768, { 1082 } },
+    { 48263, { 56222 } },
+    { 25780, { 277422 } },
+    { 71, { 277421 } },
+    { 701463, { 277423 } },
+    { 275585, { 217364, 275588 } } } };
 constexpr uint32 SPELL_RANK_FIRST_SPELL = 1;
 constexpr uint32 SPELL_RANK_SPELL = 2;
 constexpr uint32 SPELL_RANK_RANK = 3;
@@ -1849,9 +1867,11 @@ std::vector<Trainer::Spell> RankTrainerRows(Player const* player)
     return rows;
 }
 
+bool IsRealmHero(Player const* player);
+
 void GrantEntrySpells(Player* player)
 {
-    if (!IsWildcardHero(player))
+    if (!IsRealmHero(player) && !IsWildcardHero(player))
         return;
     for (EntrySpells const& entry : ENTRY_SPELLS)
         if (player->HasSpell(entry.EntrySpell))
@@ -1998,7 +2018,7 @@ bool RealmPlaysWildcard = false;
 
 bool IsRealmHero(Player const* player)
 {
-    return RealmPlaysWildcard && player->getClass() == CLASS_HERO;
+    return (RealmPlaysWildcard || AscensionFreepick::RealmIsClassless()) && player->getClass() == CLASS_HERO;
 }
 
 struct SentRunes final : DataMap::Base
@@ -2028,6 +2048,18 @@ void SyncRunes(Player* player)
     sent.Sent = true;
 }
 
+static_assert(AscensionHeroClass::WARRIOR == CLASS_WARRIOR && AscensionHeroClass::PALADIN == CLASS_PALADIN &&
+    AscensionHeroClass::HUNTER == CLASS_HUNTER && AscensionHeroClass::ROGUE == CLASS_ROGUE &&
+    AscensionHeroClass::PRIEST == CLASS_PRIEST && AscensionHeroClass::DEATH_KNIGHT == CLASS_DEATH_KNIGHT &&
+    AscensionHeroClass::SHAMAN == CLASS_SHAMAN && AscensionHeroClass::MAGE == CLASS_MAGE &&
+    AscensionHeroClass::WARLOCK == CLASS_WARLOCK && AscensionHeroClass::DRUID == CLASS_DRUID);
+static_assert(AscensionHeroClass::CONTEXT_ABILITY == CLASS_CONTEXT_ABILITY &&
+    AscensionHeroClass::CONTEXT_ABILITY_REACTIVE == CLASS_CONTEXT_ABILITY_REACTIVE &&
+    AscensionHeroClass::CONTEXT_PET == CLASS_CONTEXT_PET &&
+    AscensionHeroClass::CONTEXT_PET_CHARM == CLASS_CONTEXT_PET_CHARM &&
+    AscensionHeroClass::CONTEXT_EQUIP_RELIC == CLASS_CONTEXT_EQUIP_RELIC &&
+    AscensionHeroClass::CONTEXT_EQUIP_SHIELDS == CLASS_CONTEXT_EQUIP_SHIELDS);
+
 class AscensionWildcardPlayer final : public PlayerScript
 {
 public:
@@ -2042,10 +2074,11 @@ public:
 
     Optional<bool> OnPlayerIsClass(Player const* player, Classes playerClass, ClassContext context) override
     {
-        bool const runes = playerClass == CLASS_DEATH_KNIGHT && context == CLASS_CONTEXT_ABILITY;
-        bool const tamedPets = playerClass == CLASS_HUNTER && context == CLASS_CONTEXT_PET;
-        if ((runes || tamedPets) && IsRealmHero(player))
-            return true;
+        if (!IsRealmHero(player))
+            return std::nullopt;
+        if (std::optional<bool> const answer = AscensionHeroClass::Answer(uint8(playerClass), uint8(context),
+            [player](uint32 spellId) { return player->HasSpell(spellId); }))
+            return *answer;
         return std::nullopt;
     }
 
@@ -2072,7 +2105,7 @@ public:
 
     bool OnPlayerHasActivePowerType(Player const* player, Powers power) override
     {
-        return (power == POWER_RAGE || power == POWER_ENERGY) && IsWildcardHero(player);
+        return (power == POWER_RAGE || power == POWER_ENERGY) && (IsRealmHero(player) || IsWildcardHero(player));
     }
 
     void OnPlayerLearnSpell(Player* player, uint32 spellId) override
@@ -2084,7 +2117,7 @@ public:
 
     void OnPlayerForgotSpell(Player* player, uint32 spellId) override
     {
-        if (!IsWildcardHero(player))
+        if (!IsRealmHero(player) && !IsWildcardHero(player))
             return;
         for (EntrySpells const& entry : ENTRY_SPELLS)
             if (entry.EntrySpell == spellId)
@@ -3202,8 +3235,13 @@ void SendPrestigeInfo(Player* player)
 
 std::vector<Slot> Slots(Player const* player)
 {
+    return Slots(player, ActiveSpec(player));
+}
+
+std::vector<Slot> Slots(Player const* player, std::uint32_t spec)
+{
     std::vector<Slot> slots;
-    if (PlayerSettingVector const* stored = player->FindPlayerSettings(SpecSource(player, SLOTS_SETTING)))
+    if (PlayerSettingVector const* stored = player->FindPlayerSettings(SpecSettingSource(SLOTS_SETTING, spec)))
         for (PlayerSetting const& value : *stored)
             slots.push_back(Decode(value.value));
     return slots;
@@ -3211,7 +3249,12 @@ std::vector<Slot> Slots(Player const* player)
 
 std::uint32_t PrimaryStat(Player const* player)
 {
-    return FirstSetting(player, SpecSource(player, PRIMARY_STAT_SETTING));
+    return PrimaryStat(player, ActiveSpec(player));
+}
+
+std::uint32_t PrimaryStat(Player const* player, std::uint32_t spec)
+{
+    return FirstSetting(player, SpecSettingSource(PRIMARY_STAT_SETTING, spec));
 }
 
 StarterCardSlots StarterCards(Player const* player)
@@ -3232,7 +3275,12 @@ CardCollection Collection(Player const* player)
 
 std::vector<AscensionCoATalentState::KnownEntry> KnownEntries(Player const* player)
 {
-    return KnownEntries(Slots(player), PrimaryStat(player));
+    return KnownEntries(player, ActiveSpec(player));
+}
+
+std::vector<AscensionCoATalentState::KnownEntry> KnownEntries(Player const* player, std::uint32_t spec)
+{
+    return KnownEntries(Slots(player, spec), PrimaryStat(player, spec));
 }
 
 BuildChoice ApplyBuildUpload(Player* player, std::vector<AscensionCoATalentState::KnownEntry> const& upload)

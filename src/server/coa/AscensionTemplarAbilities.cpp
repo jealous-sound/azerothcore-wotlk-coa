@@ -127,6 +127,8 @@ class templar_casts : public AllSpellScript
         Player* player = Owner(caster);
         if (!player || info->SpellFamilyName != 25)
             return;
+        if (info->Id == 801450 && player->HasAura(704576))
+            Cast(player, player, 807764);
         if (info->Id == 801832)
         {
             ConsumeSelected(player, spell);
@@ -257,8 +259,6 @@ class templar_casts : public AllSpellScript
             return;
         if (info->Id == 801450)
         {
-            if (player->HasAura(704576))
-                Cast(player, player, 807764);
             if (player->HasAura(504107) && !player->HasAura(563269))
                 Cast(player, player, 563270);
             if (player->HasAura(504561))

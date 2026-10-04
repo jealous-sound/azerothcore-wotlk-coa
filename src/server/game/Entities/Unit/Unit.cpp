@@ -13288,6 +13288,7 @@ void Unit::SetHealth(uint32 val)
             val = maxHealth;
     }
 
+    uint32 const previousHealth = GetHealth();
     float prevHealthPct = GetHealthPct();
 
     SetUInt32Value(UNIT_FIELD_HEALTH, val);
@@ -13323,6 +13324,8 @@ void Unit::SetHealth(uint32 val)
                 }
         }
     }
+    if (previousHealth != GetHealth())
+        sScriptMgr->OnHealthChanged(this);
 }
 
 void Unit::SetMaxHealth(uint32 val)
@@ -13330,6 +13333,7 @@ void Unit::SetMaxHealth(uint32 val)
     if (!val)
         val = 1;
 
+    uint32 const previousMaxHealth = GetMaxHealth();
     uint32 health = GetHealth();
     SetUInt32Value(UNIT_FIELD_MAXHEALTH, val);
 
@@ -13361,6 +13365,8 @@ void Unit::SetMaxHealth(uint32 val)
 
     if (val < health)
         SetHealth(val);
+    else if (previousMaxHealth != val)
+        sScriptMgr->OnHealthChanged(this);
 }
 
 void Unit::SetPower(Powers power, uint32 val, bool withPowerUpdate /*= true*/, bool fromRegenerate /* = false */)
@@ -14995,6 +15001,8 @@ void Unit::Kill(Unit* killer, Unit* victim, bool durabilityLoss, WeaponAttackTyp
     if (creature && creature->IsPet() && creature->GetOwnerGUID().IsPlayer())
         isRewardAllowed = false;
 
+    uint32 const killerHonorableKills = player ? player->GetUInt32Value(PLAYER_FIELD_LIFETIME_HONORABLE_KILLS) : 0;
+
     // Reward player, his pets, and group/raid members
     // call kill spell proc event (before real die and combat stop to triggering auras removed at death/combat stop)
     if (isRewardAllowed && player && player != victim)
@@ -15046,8 +15054,8 @@ void Unit::Kill(Unit* killer, Unit* victim, bool durabilityLoss, WeaponAttackTyp
             loot->clear();
             creature->FinalizeSharedQuestParticipants();
 
-            if (uint32 lootid = creature->GetCreatureTemplate()->lootid)
-                loot->FillLoot(lootid, LootTemplates_Creature, looter, false, false, creature->GetLootMode(), creature);
+            uint32 const lootid = creature->GetCreatureTemplate()->lootid;
+            loot->FillLoot(lootid, LootTemplates_Creature, looter, false, !lootid, creature->GetLootMode(), creature);
 
             if (creature->GetLootMode())
                 loot->generateMoneyLoot(creature->GetCreatureTemplate()->mingold, creature->GetCreatureTemplate()->maxgold);
@@ -15264,6 +15272,9 @@ void Unit::Kill(Unit* killer, Unit* victim, bool durabilityLoss, WeaponAttackTyp
             else
                 bg->HandleKillUnit(victim->ToCreature(), player);
         }
+
+    if (player && victim->IsPlayer() && player->GetUInt32Value(PLAYER_FIELD_LIFETIME_HONORABLE_KILLS) > killerHonorableKills)
+        sScriptMgr->OnPlayerHonorableKillingBlow(player, victim->ToPlayer());
 
     // achievement stuff
     if (killer && victim->IsPlayer())
@@ -16395,8 +16406,17 @@ void Unit::UpdateObjectVisibility(bool forced, bool /*fromUpdate*/)
     }
 }
 
+bool Unit::IsImmuneToForcedMovement() const
+{
+    Creature const* creature = ToCreature();
+    return creature && (creature->isWorldBoss() || creature->IsDungeonBoss() || creature->IsImmuneToKnockback());
+}
+
 void Unit::KnockbackFrom(float x, float y, float speedXY, float speedZ)
 {
+    if (IsImmuneToForcedMovement())
+        return;
+
     Player* player = ToPlayer();
     if (!player)
     {

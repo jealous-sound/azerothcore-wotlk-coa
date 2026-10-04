@@ -772,7 +772,7 @@ struct CreatureDisplayInfoExtraEntry
     //uint32 HairStyleID;                                   // 5
     //uint32 HairColorID;                                   // 6
     //uint32 FacialHairID;                                  // 7
-    //uint32 NPCItemDisplay[11];                            // 8-18
+    uint32 NPCItemDisplay[11];                              // 8-18
     //uint32 Flags;                                         // 19
     //char const* BakeName;                                 // 20
 };

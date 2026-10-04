@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "Knight of Xoroth: paid Brimstone Bludgeon replaces known Sever ranks and survives refresh (#5589)",
-  "contract": "Current CharacterAdvancement7891 buys Brimstone Bludgeon800710 for one War specialization point. Its independent description promises to transform Sever500904 into520005, scaling with modifiers to Sever. A real War purchase must establish replacement mappings for the active level58 Sever501505, and a normal cast through the player's highest Sever button must actually hit as520005. Removing the talent must clear the mapping and restore native Sever. Client action-bar rendering is not observed. Player::GetTemporarySpellReplacement returns the original spell when no usable replacement exists; inactive lower ranks are therefore not treated as castable buttons.",
+  "contract": "Current CharacterAdvancement7891 buys Brimstone Bludgeon800710 for one War specialization point. Its\nindependent description promises to transform Sever500904 into520005, scaling with modifiers to Sever. A\nreal War purchase must establish replacement mappings for the active level58 Sever501505, and a normal\ncast through the player's highest Sever button must actually hit as520005. Removing the talent must clear\nthe mapping and restore native Sever. Client action-bar rendering is not observed.\nPlayer::GetTemporarySpellReplacement returns the original spell when no usable replacement exists;\ninactive lower ranks are therefore not treated as castable buttons. Native removals and resets retain\ntheir original prices; fixture actors have 100 gold to pay them.",
   "timeout_ms": 90000,
   "players": [
     {
@@ -28,6 +28,12 @@
     {
       "action": "wait",
       "ms": 3000
+    },
+    {
+      "action": "set_money",
+      "label": "Fund the original native removal and purge prices",
+      "actor": "k",
+      "value": 1000000
     },
     {
       "action": "add_item",

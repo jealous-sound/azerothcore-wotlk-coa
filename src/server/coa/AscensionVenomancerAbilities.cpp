@@ -164,7 +164,7 @@ public:
         if (spell->IsTriggered())
             return;
         Finish(player,spell);
-        if (Chance(player,500219))
+        if (!info->HasAura(SPELL_AURA_MOD_SHAPESHIFT) && Chance(player,500219))
             Cast(player,player,800861);
         if (info->SpellFamilyName != 35)
             return;

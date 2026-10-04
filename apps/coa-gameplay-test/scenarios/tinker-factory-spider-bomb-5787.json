@@ -2,9 +2,14 @@
   "schema": 1,
   "name": "Tinker factory Spider Bomb damages a distant target (#5787)",
   "contract": [
-    "Original Build: Spider Bomb sends its device to a target and detonates. Original Spider Bomb Factory creates three bombs when Bomb Toss or Rocket Launcher is used. Explosive Inventor also creates a slow Heavy Spider Bomb.",
-    "The target is twenty yards away, selected through the normal session. Device explosions are observed separately from the factory-triggering Bomb Toss. No attack or device movement is injected.",
-    "Require a landed Bomb Toss and measure its actual damage. The target must lose more health than that throw alone can cause, after separately observing native device explosion packets. Allow up to ten seconds for twenty-yard device travel; the target has passive fixture AI and no other damage source."
+    "Original Build: Spider Bomb sends its device to a target and detonates. Original Spider Bomb Factory",
+    "creates three bombs when Bomb Toss or Rocket Launcher is used. Explosive Inventor also creates a slow",
+    "Heavy Spider Bomb.",
+    "The target is twenty yards away, selected through the normal session. Device explosions are observed",
+    "separately from the factory-triggering Bomb Toss. No attack or device movement is injected.",
+    "Require a landed Bomb Toss and measure its actual damage. The target must lose more health than that",
+    "throw alone can cause, after separately observing native device explosion packets. Allow up to ten",
+    "seconds for twenty-yard device travel; the target has passive fixture AI and no other damage source."
   ],
   "timeout_ms": 90000,
   "location": {
@@ -20,7 +25,8 @@
       "race": 1,
       "class": 28,
       "level": 80,
-      "spell_hit_rating": 10000
+      "spell_hit_rating": 10000,
+      "ranged_hit_rating": 10000
     }
   ],
   "creatures": [

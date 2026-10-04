@@ -1,7 +1,16 @@
 {
   "schema": 1,
   "name": "witch hunter destroyer of evil shadow brand 4388",
-  "contract": "Active spell 680528 says Dawn Blade deals an additional 20% as Twilight damage over time (680532) and applies Shadow Brand (680517). A landed normal Dawn Blade 802252 with the talent must apply both auras; removing the talent stops both additions. The report describes older tooltip text, so this checks current active gameplay.",
+  "contract": [
+    "Active spell 680528 says Dawn Blade deals an additional 20% as Twilight damage over time (680532) and",
+    "applies Shadow Brand (680517). A landed normal Dawn Blade 802252 with the talent must apply both auras;",
+    "removing the talent stops both additions. The report describes older tooltip text, so this checks",
+    "current active gameplay. Original Dawn Blade 802252 uses Melee accuracy, while its original Twilight",
+    "child 680532 is DmgClass Magic with no always-hit or no-miss attribute. Explicit native spell hit covers",
+    "that separately rolled child. Assert accepted parent casts, a real Twilight tick while learned and real",
+    "Dawn damage after unlearning; preserve both original aura gates. No native hit rules or talent",
+    "probabilities are changed."
+  ],
   "timeout_ms": 90000,
   "players": [
     {
@@ -10,7 +19,8 @@
       "class": 15,
       "level": 60,
       "melee_hit_rating": 100000,
-      "expertise_rating": 100000
+      "expertise_rating": 100000,
+      "spell_hit_rating": 100000
     }
   ],
   "steps": [
@@ -51,10 +61,24 @@
       "value": 1000
     },
     {
+      "action": "assert",
+      "actor": "hunter",
+      "metric": "spell_hit_chance",
+      "min": 100,
+      "label": "The Twilight damage-over-time child uses native Magic accuracy"
+    },
+    {
       "action": "cast",
       "actor": "hunter",
       "spell": 802252,
       "target": "target"
+    },
+    {
+      "action": "assert",
+      "actor": "hunter",
+      "metric": "cast_failure",
+      "spell": 802252,
+      "equals": 0
     },
     {
       "action": "assert",
@@ -78,6 +102,16 @@
       "metric": "aura",
       "spell": 680532,
       "equals": 1
+    },
+    {
+      "action": "assert",
+      "actor": "hunter",
+      "metric": "spell_damage_count",
+      "spell": 680532,
+      "target": "target",
+      "min": 1,
+      "within_ms": 2000,
+      "label": "The learned talent produces an actual native Twilight tick"
     },
     {
       "action": "wait",
@@ -106,8 +140,24 @@
       "target": "target"
     },
     {
+      "action": "assert",
+      "actor": "hunter",
+      "metric": "cast_failure",
+      "spell": 802252,
+      "equals": 0
+    },
+    {
       "action": "wait",
       "ms": 500
+    },
+    {
+      "action": "assert",
+      "actor": "hunter",
+      "metric": "spell_damage_count",
+      "spell": 802252,
+      "target": "target",
+      "equals": 2,
+      "label": "The unlearned control still lands its normal Dawn Blade"
     },
     {
       "action": "assert",

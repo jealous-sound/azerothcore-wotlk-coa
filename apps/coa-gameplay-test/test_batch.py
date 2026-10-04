@@ -289,7 +289,8 @@ DEFAULT_DATABASES = {'LoginDatabase.WorkerThreads': '1', 'CharacterDatabase.Work
                      'LoginDatabase.TransactionIsolation': '', 'CharacterDatabase.TransactionIsolation': '',
                      'WorldDatabase.TransactionIsolation': ''}
 SHIPPED_EXCLUSIVE = {'bloodforged-high-risk-drop', 'coa-prestige-chromie-spawns', 'who-custom-classes',
-                     'who-hides-bots', 'who-lists-bots', 'wildcard-season-event'}
+                     'who-hides-bots', 'who-lists-bots', 'wildcard-season-event',
+                     'native-fixture-descendant-cleanup-producer', 'native-fixture-descendant-cleanup-consumer'}
 UTC_EVENING = datetime(2026, 9, 24, 22, 40, tzinfo=timezone.utc)
 
 
@@ -887,8 +888,55 @@ class BatchTests(unittest.TestCase):
         self.assertEqual(result['simulation']['exclusive'], ['alpha'])
         self.assertTrue(self.summary('alpha')['simulation']['exclusive'])
 
+    def test_world_phase_cases_run_exclusively_without_a_policy_entry(self):
+        world_phase = {**SCENARIOS['beta'], 'steps': [*SCENARIOS['beta']['steps'],
+                       {'action': 'set_phase', 'actor': 'caster', 'value': 1}]}
+        private_phase = {**SCENARIOS['slow-one'], 'steps': [*SCENARIOS['slow-one']['steps'],
+                         {'action': 'set_phase', 'actor': 'caster', 'value': 2}]}
+        self.write(self.definitions / 'scenarios' / 'beta.json', world_phase)
+        self.write(self.definitions / 'scenarios' / 'slow-one.json', private_phase)
+        code, result = self.simulated('--lanes', '3', '--scenario', 'beta', *SLOW[:3])
+        self.assertEqual(code, 0, self.stderr.getvalue())
+        admissions = self.events('lanes.log')
+        self.assertEqual((admissions[0]['name'], admissions[0]['exclusive'], admissions[0]['running']),
+                         ('Beta', True, []))
+        self.assertFalse(any('Beta' in event['running'] for event in admissions))
+        self.assertEqual([event['exclusive'] for event in admissions[1:]], [False] * 3)
+        self.assertEqual(result['simulation']['exclusive'], ['beta'])
+        self.assertTrue(self.summary('beta')['simulation']['exclusive'])
+
+    def test_exploratory_world_phase_masks_run_exclusively(self):
+        probe = self.path / 'world-phase-probe.json'
+        self.write(probe, {**SCENARIOS['slow-one'], 'name': 'Exploratory world phase',
+                          'steps': [*SCENARIOS['slow-one']['steps'],
+                                    {'action': 'set_phase', 'actor': 'caster', 'value': 3}]})
+        code, result = self.simulated('--lanes', '3', '--scenario', str(probe), 'beta', 'slow-two')
+        self.assertEqual(code, 0, self.stderr.getvalue())
+        admissions = self.events('lanes.log')
+        self.assertEqual((admissions[0]['name'], admissions[0]['exclusive'], admissions[0]['running']),
+                         ('Exploratory world phase', True, []))
+        self.assertFalse(any('Exploratory world phase' in event['running'] for event in admissions))
+        self.assertEqual(result['simulation']['exclusive'], ['world-phase-probe'])
+        self.assertEqual(result['exploratory_results']['world-phase-probe']['status'], 'passed')
+        self.assertTrue(self.summary('world-phase-probe', 'exploratory')['simulation']['exclusive'])
+
+    def test_accelerated_failure_cannot_pass_through_an_automatic_slower_retry(self):
+        code, result = self.simulated('--lanes', '2', '--scenario', 'jittery', 'beta')
+        self.assertEqual(code, 1)
+        self.assertEqual(result['status'], 'failed')
+        jittery = result['cases']['jittery']
+        self.assertEqual((jittery['status'], jittery['mode']), ('failed', 'simulated'))
+        self.assertEqual(jittery['directory'], str(self.output / 'cases' / 'jittery'))
+        self.assertEqual(result['cases']['beta']['status'], 'passed')
+        self.assertEqual(result['acceleration_sensitive'], [])
+        self.assertEqual(result['verification']['status'], 'failed')
+        self.assertNotIn('real_pace', jittery)
+        self.assertFalse((self.output / 'real-pace').exists())
+        self.assertEqual({event['pace'] for event in self.events('lanes.log')}, {'accelerated'})
+        self.assertEqual([mode for mode, pid in self.starts()], ['queue'])
+
     def test_failures_rerun_at_real_pace_on_the_same_worldserver(self):
-        code, result = self.simulated('--lanes', '2', '--scenario', 'jittery', 'broken', 'beta')
+        code, result = self.simulated('--real-pace-rerun', '--lanes', '2', '--scenario', 'jittery', 'broken', 'beta')
         self.assertEqual(code, 1)
         self.assertEqual(result['status'], 'failed')
         jittery = result['cases']['jittery']
@@ -918,7 +966,8 @@ class BatchTests(unittest.TestCase):
         self.assertIn('1 acceleration-sensitive, 0 batch-sensitive', lines[-1])
 
     def test_isolated_rerun_is_an_opt_in_rung_after_real_pace(self):
-        code, result = self.simulated('--lanes', '2', '--isolated-rerun', '--scenario', 'flaky', 'beta')
+        code, result = self.simulated('--real-pace-rerun', '--lanes', '2', '--isolated-rerun',
+                                     '--scenario', 'flaky', 'beta')
         self.assertEqual(code, 0, self.stderr.getvalue())
         flaky = result['cases']['flaky']
         self.assertEqual((flaky['status'], flaky['mode'], flaky['batch']['mode']), ('passed', 'isolated', 'simulated'))
@@ -930,7 +979,7 @@ class BatchTests(unittest.TestCase):
         self.assertIn('isolated single-mode reruns', result['scope'])
 
     def test_crash_with_several_cases_in_flight_requeues_each_once(self):
-        code, result = self.simulated('--lanes', '2', '--scenario', 'lane-crash', *SLOW)
+        code, result = self.simulated('--real-pace-rerun', '--lanes', '2', '--scenario', 'lane-crash', *SLOW)
         self.assertEqual(code, 1)
         self.assertEqual(len(result['failures']), 1, result['failures'])
         failure = result['failures'][0]
@@ -1001,7 +1050,8 @@ class BatchTests(unittest.TestCase):
             self.assertIn('had not started', catalog.read_json(requeued / key / 'summary.json')['message'])
 
     def test_exit_with_the_last_result_writes_no_case_to_the_stopped_worldserver(self):
-        code, result = self.simulated('--lanes', '2', '--scenario', 'slow-aborter', 'jittery', 'broken')
+        code, result = self.simulated('--real-pace-rerun', '--lanes', '2',
+                                     '--scenario', 'slow-aborter', 'jittery', 'broken')
         self.assertEqual(code, 1)
         self.assertEqual(len(result['failures']), 1, result['failures'])
         failure = result['failures'][0]
@@ -1143,7 +1193,7 @@ class BatchTests(unittest.TestCase):
         self.assertFalse((self.output / 'isolated').exists())
 
     def test_real_pace_reruns_after_an_hour_case_run_at_the_start_hour(self):
-        code, result = self.simulated('--lanes', '2', '--scenario', 'jittery', 'noon')
+        code, result = self.simulated('--real-pace-rerun', '--lanes', '2', '--scenario', 'jittery', 'noon')
         self.assertEqual(code, 0, self.stderr.getvalue())
         self.assertEqual([(event['name'], event['pace'], event['hour']) for event in self.events('lanes.log')],
                          [('Jittery', 'accelerated', None), ('Noon', 'accelerated', 12), ('Jittery', 'real', None)])
@@ -1181,7 +1231,7 @@ class BatchTests(unittest.TestCase):
         self.assertEqual(dusk['batch']['realm_local_start'], '2026-09-25 18:00:00')
         self.assertEqual(result['batch_sensitive'], ['dusk'])
         self.assertEqual([(event['hour'], event['pace']) for event in self.events('lanes.log')
-                          if event['name'] == 'Dusk'], [(18, 'accelerated'), (18, 'real')])
+                          if event['name'] == 'Dusk'], [(18, 'accelerated')])
         self.assertEqual([entry['TZ'] for entry in self.events('timezones.log') if entry['mode'] == 'single'],
                          ['UTC+04:40'])
 

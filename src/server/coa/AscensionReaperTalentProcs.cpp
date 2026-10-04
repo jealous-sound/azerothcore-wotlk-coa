@@ -3,6 +3,7 @@
 #include "AscensionReaperTalentProcs.h"
 #include "Player.h"
 #include "ScriptMgr.h"
+#include "Spell.h"
 #include "SpellAuraEffects.h"
 #include "SpellAuras.h"
 #include "SpellInfo.h"
@@ -19,6 +20,8 @@ using AscensionReaperTalentProcs::Rules;
 constexpr uint32 JailersWill = 524939;
 constexpr uint32 JailersWillHelper = 578264;
 constexpr float JailersWillStrengthCoefficient = 0.3f;
+constexpr uint32 SiphonAnimaAura = 572768;
+constexpr uint32 SiphonAnimaHeal = 504306;
 constexpr uint32 DeathchaserExtender = 807546;
 constexpr uint32 DeathchaserFirstRank = 805190;
 constexpr uint32 SoulsForSlaughterDamage = 575847;
@@ -191,6 +194,42 @@ class aura_ascension_reaper_soulrot : public AuraScript
         AfterDispel += AuraDispelFn(aura_ascension_reaper_soulrot::HandleDispel);
     }
 };
+
+class aura_ascension_reaper_siphon_anima : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_reaper_siphon_anima);
+
+    bool Validate(SpellInfo const* info) override
+    {
+        return info->Id == SiphonAnimaAura &&
+            info->Effects[EFFECT_0].TriggerSpell == SiphonAnimaHeal &&
+            ValidateSpellInfo({SiphonAnimaHeal});
+    }
+
+    bool CheckProc(ProcEventInfo& event)
+    {
+        Unit* owner = GetTarget();
+        Unit* victim = event.GetActionTarget();
+        DamageInfo const* damage = event.GetDamageInfo();
+        return owner->IsAlive() && event.GetActor() == owner && victim && victim != owner &&
+            !owner->IsFriendlyTo(victim) && damage && damage->GetDamage();
+    }
+
+    void Heal(AuraEffect const* effect, ProcEventInfo& event)
+    {
+        PreventDefaultAction();
+        uint64 amount = uint64(event.GetDamageInfo()->GetDamage()) * std::max(0, effect->GetAmount()) / 100;
+        if (amount)
+            GetTarget()->CastCustomSpell(SiphonAnimaHeal, SPELLVALUE_BASE_POINT0,
+                int32(std::min<uint64>(amount, std::numeric_limits<int32>::max())), GetTarget(), TRIGGERED_FULL_MASK);
+    }
+
+    void Register() override
+    {
+        DoCheckProc += AuraCheckProcFn(aura_ascension_reaper_siphon_anima::CheckProc);
+        OnEffectProc += AuraEffectProcFn(aura_ascension_reaper_siphon_anima::Heal, EFFECT_0, AuraType(354));
+    }
+};
 }
 
 void AddSC_AscensionReaperTalentProcs()
@@ -200,4 +239,5 @@ void AddSC_AscensionReaperTalentProcs()
     RegisterSpellScript(spell_ascension_reaper_talent_proc);
     RegisterSpellScript(spell_ascension_reaper_chasing_death_extender);
     RegisterSpellScript(aura_ascension_reaper_soulrot);
+    RegisterSpellScript(aura_ascension_reaper_siphon_anima);
 }

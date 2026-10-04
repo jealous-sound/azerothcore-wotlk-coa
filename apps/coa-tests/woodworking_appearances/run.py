@@ -38,8 +38,10 @@ def main():
     crafting = method(source('src/server/game/Spells/SpellEffects.cpp'), 'void Spell::DoCreateItem(')
     assert crafting.index('StoreNewItem(') < crafting.index('sScriptMgr->OnPlayerCreateItem(player, pItem, addNumber);')
     replacements = {
+        'APPEARANCE_ALIASES': re.sub(r'^#include.*\n', '',
+            (ROOT / 'src/server/coa/AscensionItemAppearanceAliases.cpp').read_text(), flags=re.M),
         'CONSTANTS': '\n'.join(re.search(r'^constexpr [\w:]+ ' + name + r' = [^;]+;$', compat, re.M)[0]
-                              for name in ('APPEARANCE_CATEGORY_COUNT', 'VANITY_STORE_RECORD_DWORDS',
+                              for name in ('APPEARANCE_CATEGORY_COUNT',
                                            'SMSG_APPEARANCE_ADDED', 'SMSG_VANITY_COLLECTION_ADDED')),
         'PATCH_CONSTANTS': '\n'.join(
             re.search(r'^constexpr uint16 ' + name + r' = [^;]+;$', compat, re.M)[0]
@@ -53,11 +55,12 @@ def main():
         'RECORDS': '\n'.join(method(compat, signature) + ';' for signature in (
             'struct AppearanceInfo', 'struct VanityInfo', 'struct PlayerCollectionState')),
         'CLIENT_DBC': '\n'.join(method(client, signature) for signature in (
-            'uint32 ReadHeaderField(', 'std::string_view ClientDBC::Record::GetString(',
+            'uint32 ReadHeaderField(', 'std::string_view ClientDBC::Record::GetStringAt(',
             'bool ClientDBC::Load(', 'ClientDBC::Record ClientDBC::GetRecord(')),
         'DISPATCH_CREATE': method(dispatch, 'void ScriptMgr::OnPlayerCreateItem('),
         'SCRIPT_CONSTRUCTOR': re.search(r'AscensionCompatPlayerScript\(\)[\s\S]*?\}\)\s*\{\s*\}', script)[0],
         'SCRIPT_CREATE': method(script, 'void OnPlayerCreateItem('),
+        'SCRIPT_PATCH': method(script, 'static void SendObtainedItemPatchRow('),
     }
     for marker, signature in (
         ('INSTANCE', 'static AscensionCollectionService &Instance()'),

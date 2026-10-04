@@ -4,9 +4,10 @@ units, standalone Python/C++ harness scripts and the catalog gameplay scenarios 
 Stages run in order: source, build, unit, harness, gameplay. --stages and --skip choose stages; --scenario,
 --spell, --quest and --query narrow gameplay and --harness narrows the harness stage without disabling others.
 Gameplay runs by default in one worldserver on a simulated clock, with --gameplay-lanes concurrent cases and
---gameplay-db-workers character database workers at READ-COMMITTED isolation; cases that fail there are rerun at real
-pace on the same server. --gameplay-clock real runs the real-clock reference instead: --gameplay-jobs parallel
-worldservers, one case at a time each, with one character database worker and isolated single-mode reruns.
+--gameplay-db-workers character database workers at READ-COMMITTED isolation. Accelerated failures remain failed;
+--gameplay-real-pace-rerun explicitly enables slower same-server diagnostics. --gameplay-clock real runs the
+real-clock reference instead: --gameplay-jobs parallel worldservers, one case at a time each, with one character
+database worker and isolated single-mode reruns.
 Settings come from the optional conf/verify-all.json plus auto-detection. --plan prints the resolved plan as JSON
 and executes nothing. Exit status: 0 every selected stage passed, 1 something failed or was blocked, 3 nothing
 failed but some scope was unavailable (a gameplay selection of exploratory scenario files only included),
@@ -115,6 +116,7 @@ class Context:
     environment: dict
     world_databases: str | None = None
     gameplay_db_workers: int = 1
+    gameplay_real_pace_rerun: bool = False
 
 
 def absolute(value, base):
@@ -862,10 +864,40 @@ def scenario_file(value, rows):
     return str(resolved)
 
 
+def inactive_module_scenarios(context, rows=None):
+    rows = load_catalog().catalog() if rows is None else rows
+    modules = [row for row in rows if row.get('module')]
+    if not modules or context.scenarios:
+        return []
+    runner = gameplay_module('run')
+    cache = cmake_cache(context.settings['build_directory'])
+    config_path = context.settings.get('worldserver_config')
+    config = runner.read_config(config_path) if config_path and config_path.is_file() else {}
+    config_directory = context.settings.get('modules_config_dir')
+    if config_directory is None and config_path:
+        config_directory = config_path.parent / 'modules'
+    if config_directory:
+        for path in sorted(config_directory.glob('*.conf')):
+            config.update(runner.read_config(path))
+    skipped = []
+    for row in modules:
+        mode = cache.get('MODULE_' + row['module'].upper(), 'default')
+        built = mode != 'disabled' and (mode != 'default' or cache.get('MODULES', 'static') != 'disabled')
+        enabled = all(str(runner.source_setting(config, key, default, context.environment)).upper() in CMAKE_TRUE
+                      for key, default in row.get('configuration', {}).items())
+        if (built and enabled) != row.get('module_active', True):
+            skipped.append(row['id'])
+    return skipped
+
+
 def scenario_plan(context):
     catalog = load_catalog()
     rows = catalog.catalog()
     if not context.scenarios:
+        skipped = inactive_module_scenarios(context, rows)
+        if skipped:
+            return {'selection': 'all enabled catalog scenarios', 'count': len(rows) - len(skipped),
+                    'skipped_optional': skipped}
         return {'selection': 'all catalog scenarios', 'count': len(rows)}
     known = {row['id'] for row in rows}
     cases = [value for value in context.scenarios if value in known]
@@ -935,10 +967,16 @@ def gameplay_command(context):
     if context.gameplay_clock == SIMULATED_CLOCK:
         command += ['--clock', SIMULATED_CLOCK, '--lanes', context.gameplay_lanes,
                     '--character-db-workers', context.gameplay_db_workers]
+    if context.gameplay_real_pace_rerun:
+        command.append('--real-pace-rerun')
     if context.world_databases:
         command.append(WORLD_DATABASE_FLAGS[context.world_databases])
     if context.scenarios:
         command += ['--scenario', *context.scenarios]
+    else:
+        skipped = inactive_module_scenarios(context)
+        if skipped:
+            command += ['--skip-scenario', *skipped]
     return [str(part) for part in command]
 
 
@@ -1215,6 +1253,9 @@ def parser():
     result.add_argument('--gameplay-clock', choices=GAMEPLAY_CLOCKS, default=SIMULATED_CLOCK,
                         help='Gameplay clock: one accelerated worldserver, or the real-clock reference '
                              f'(default: {SIMULATED_CLOCK})')
+    result.add_argument('--gameplay-real-pace-rerun', action='store_true',
+                        help='Diagnose failed accelerated cases with slower same-server reruns '
+                             '(default: off; requires --gameplay-clock simulated)')
     result.add_argument('--gameplay-lanes', type=lane_count,
                         help=f'Concurrent cases in the simulated-clock worldserver (default: {DEFAULT_GAMEPLAY_LANES})')
     result.add_argument('--gameplay-jobs', type=positive_integer, help='Concurrent real-clock gameplay worldservers')
@@ -1268,6 +1309,8 @@ def claim_output(requested, root):
 
 
 def check_gameplay_concurrency(args):
+    if args.gameplay_real_pace_rerun and args.gameplay_clock != SIMULATED_CLOCK:
+        raise ValueError('--gameplay-real-pace-rerun requires --gameplay-clock simulated')
     if args.gameplay_clock == SIMULATED_CLOCK and args.gameplay_jobs not in (None, 1):
         raise ValueError('--gameplay-jobs above 1 requires --gameplay-clock real; the simulated clock runs one '
                          'worldserver with --gameplay-lanes concurrent cases')
@@ -1314,7 +1357,7 @@ def prepare(args, root, environment):
     scenarios = resolve_scenarios(args) if 'gameplay' in stages else []
     context = Context(root, raw, settings, output, stages, jobs, gameplay_jobs, args.gameplay_clock, gameplay_lanes,
                       args.base, scenarios, harness, environment, args.world_databases,
-                      gameplay_db_workers(args, raw))
+                      gameplay_db_workers(args, raw), args.gameplay_real_pace_rerun)
     check_command_length(context)
     if not args.plan:
         context.output = claim_output(requested, root)

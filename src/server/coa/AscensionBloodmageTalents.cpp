@@ -58,6 +58,7 @@ enum BloodmageTalentSpells : uint32
     SPELL_BLOODSURGE = 553267,
     SPELL_BLOODCHASER = 523721,
     SPELL_BLOOD_BOND_REWARD = 505325,
+    SPELL_BLOOD_BOND_SPEED = 505169,
     SPELL_GORE_TOME = 807788,
     SPELL_GORE_TOME_WINDOW = 808014,
     SPELL_ONE_MANS_CURSE = 680661,
@@ -722,7 +723,10 @@ class aura_ascension_bloodmage_blood_bond : public AuraScript
 {
     PrepareAuraScript(aura_ascension_bloodmage_blood_bond);
 
-    bool Validate(SpellInfo const*) override { return ValidateSpellInfo({SPELL_BLOOD_BOND_REWARD}); }
+    bool Validate(SpellInfo const*) override
+    {
+        return ValidateSpellInfo({SPELL_BLOOD_BOND_REWARD, SPELL_BLOOD_BOND_SPEED});
+    }
 
     bool Check(ProcEventInfo& event)
     {
@@ -739,11 +743,26 @@ class aura_ascension_bloodmage_blood_bond : public AuraScript
             owner->CastSpell(owner, SPELL_BLOOD_BOND_REWARD, true);
     }
 
+    void Speed(AuraEffect const*)
+    {
+        Unit* target = GetTarget();
+        Unit* caster = GetCaster();
+        if (!target->IsInCombat() && !target->IsPetInCombat() &&
+            (!caster || (!caster->IsInCombat() && !caster->IsPetInCombat())))
+            return;
+        PreventDefaultAction();
+        target->RemoveAurasDueToSpell(SPELL_BLOOD_BOND_SPEED, GetCasterGUID());
+        if (caster)
+            caster->RemoveAurasDueToSpell(SPELL_BLOOD_BOND_SPEED, GetCasterGUID());
+    }
+
     void Register() override
     {
         DoCheckProc += AuraCheckProcFn(aura_ascension_bloodmage_blood_bond::Check);
         OnEffectProc += AuraEffectProcFn(aura_ascension_bloodmage_blood_bond::Proc, EFFECT_0,
             SPELL_AURA_PROC_TRIGGER_SPELL);
+        OnEffectPeriodic += AuraEffectPeriodicFn(aura_ascension_bloodmage_blood_bond::Speed, EFFECT_1,
+            SPELL_AURA_PERIODIC_TRIGGER_SPELL);
     }
 };
 

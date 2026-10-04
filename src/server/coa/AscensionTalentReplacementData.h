@@ -22,8 +22,9 @@ struct TalentReplacement
     std::array<ReplacementRank, 9> Ranks;
 };
 
-inline constexpr std::array<TalentReplacement, 15> TalentReplacements =
+inline constexpr std::array<TalentReplacement, 16> TalentReplacements =
 {{
+    { 14, 9, 520853, 500028, {{ { 500610, 0 } }} },
     { 17, 18, 570727, 801059, {{
         { 802581, 0 }, { 802582, 18 }, { 802583, 28 }, { 802584, 36 },
         { 802585, 44 }, { 802586, 52 }

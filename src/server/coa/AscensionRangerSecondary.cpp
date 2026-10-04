@@ -10,13 +10,13 @@
 
 namespace
 {
-constexpr uint32 AdvantageCompanions[] = {704337, 801429, 801700, 802612};
+constexpr uint32 AdvantageCompanions[] = {520614, 704337, 801429, 801700, 802612};
 
 class aura_ascension_ranger_advantage : public AuraScript
 {
     PrepareAuraScript(aura_ascension_ranger_advantage);
 
-    bool Validate(SpellInfo const*) override { return ValidateSpellInfo({704337, 801429, 801700, 802612}); }
+    bool Validate(SpellInfo const*) override { return ValidateSpellInfo({520614, 704337, 801429, 801700, 802612}); }
 
     bool Load() override
     {
@@ -31,7 +31,8 @@ class aura_ascension_ranger_advantage : public AuraScript
         {
             Aura* companion = player->GetAura(id, player->GetGUID());
             if (!companion)
-                companion = player->AddAura(id, player);
+                companion = player->AddAura(sSpellMgr->GetSpellInfo(id),
+                    id == 520614 ? (1 << EFFECT_1) : MAX_EFFECT_MASK, player);
             if (companion && companion->GetStackAmount() != GetStackAmount())
                 companion->SetStackAmount(GetStackAmount());
         }
@@ -105,6 +106,10 @@ public:
     {
         if (!info || info->SpellFamilyName != 27)
             return;
+        if (info->Id == 807001 || info->Id == 520640)
+            for (auto& effect : info->Effects)
+                if (effect.Effect == SPELL_EFFECT_ASCENSION_MODIFY_COOLDOWN)
+                    effect.BasePoints = -2001;
         if (info->Id == 806342)
         {
             info->Effects[EFFECT_0].ChainTarget = info->MaxAffectedTargets;

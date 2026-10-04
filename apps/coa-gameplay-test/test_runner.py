@@ -15,6 +15,33 @@ import run
 
 
 class RunnerTests(unittest.TestCase):
+    def test_spell_family_flags_require_a_spell_and_valid_word(self):
+        for word in (0, 1, 2):
+            scenario = copy.deepcopy(self.scenario)
+            scenario['steps'].append({'action': 'assert', 'actor': 'caster',
+                                     'metric': 'spell_family_flags', 'spell': 116, 'index': word, 'equals': 0})
+            self.assertIs(run.validate(scenario), scenario)
+        for extra in ({}, {'spell': 116, 'index': -1}, {'spell': 116, 'index': 3},
+                      {'spell': 116, 'index': True}, {'spell': 116, 'index': 0.5}):
+            scenario = copy.deepcopy(self.scenario)
+            scenario['steps'].append({'action': 'assert', 'actor': 'caster',
+                                     'metric': 'spell_family_flags', 'equals': 0, **extra})
+            with self.subTest(extra=extra), self.assertRaises(ValueError):
+                run.validate(scenario)
+
+    def test_creature_spell_hit_bonus_and_native_metric(self):
+        for bonus in (0, 4, 100):
+            scenario = copy.deepcopy(self.scenario)
+            scenario['creatures'][0]['spell_hit_bonus'] = bonus
+            scenario['steps'].append({'action': 'assert', 'actor': 'target',
+                                     'metric': 'spell_hit_chance', 'equals': bonus})
+            self.assertIs(run.validate(scenario), scenario)
+        for bonus in (-1, 100.1, True, float('nan'), float('inf'), '100'):
+            scenario = copy.deepcopy(self.scenario)
+            scenario['creatures'][0]['spell_hit_bonus'] = bonus
+            with self.subTest(bonus=bonus), self.assertRaises(ValueError):
+                run.validate(scenario)
+
     def test_creature_reaction_and_victim_target_validation(self):
         for reaction in (0, 1, 2):
             scenario = copy.deepcopy(self.scenario)
@@ -171,6 +198,27 @@ class RunnerTests(unittest.TestCase):
             scenario['steps'].append({'action': 'assert', 'actor': actor, 'metric': metric,
                                       'spell': 116, 'equals': 0, **extra})
             with self.subTest(metric=metric, actor=actor, extra=extra), self.assertRaises(ValueError):
+                run.validate(scenario)
+
+    def test_native_relog_and_slot_observations(self):
+        for step in [
+            {'action': 'relog', 'actor': 'caster'},
+            {'action': 'assert', 'actor': 'caster', 'metric': 'action_button_packed', 'button': 143, 'equals': 0},
+            {'action': 'assert', 'actor': 'caster', 'metric': 'server_packet_u32', 'opcode': 1829, 'index': 1,
+             'equals': 20},
+        ]:
+            scenario = copy.deepcopy(self.scenario)
+            scenario['steps'].append(step)
+            self.assertIs(run.validate(scenario), scenario)
+        for step in [
+            {'action': 'relog', 'actor': 'target'},
+            {'action': 'assert', 'actor': 'caster', 'metric': 'action_button_packed', 'equals': 0},
+            {'action': 'assert', 'actor': 'caster', 'metric': 'server_packet_u32', 'opcode': 1829, 'index': -1,
+             'equals': 0},
+        ]:
+            scenario = copy.deepcopy(self.scenario)
+            scenario['steps'].append(step)
+            with self.assertRaises(ValueError):
                 run.validate(scenario)
 
     def test_pet_aura_fixture(self):

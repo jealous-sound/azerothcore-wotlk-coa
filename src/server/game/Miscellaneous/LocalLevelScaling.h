@@ -14,6 +14,7 @@
 
 class Creature;
 class Player;
+struct ItemTemplate;
 
 namespace LocalLevelScaling
 {
@@ -161,6 +162,31 @@ inline std::uint32_t RewardKeepPercent(std::uint32_t floorPercent, std::int32_t 
 
     std::uint32_t const sharePercent = std::uint32_t(questLevel) * 100 / effectiveLevel;
     return floorPercent + (100 - floorPercent) * sharePercent / 100;
+}
+
+/// Item templates that are not in the world database: lifted copies of authored items, made when
+/// scaled content drops or rewards an item for a character above the content's level. Items already
+/// handed out keep pointing at their copy, so the owner serves every copy it ever made even while new
+/// lifts are switched off - an inventory whose template went missing would be deleted on login.
+using ScaledItemTemplateResolver = ItemTemplate const* (*)(std::uint32_t entry);
+inline std::atomic<ScaledItemTemplateResolver> ScaledItemTemplateOwner{nullptr};
+
+inline ItemTemplate const* ScaledItemTemplateFor(std::uint32_t entry)
+{
+    ScaledItemTemplateResolver const owner = ScaledItemTemplateOwner.load(std::memory_order_relaxed);
+    return owner ? owner(entry) : nullptr;
+}
+
+/// The item one character is offered and given for a quest's reward slot: the authored item, or a
+/// copy lifted by as many levels as the quest itself is lifted for that character. The offer, the
+/// query response and the reward all ask here, so what is shown is what is received.
+using QuestRewardItemResolver = std::uint32_t (*)(Player const*, std::uint32_t itemId, std::int32_t questLevel);
+inline std::atomic<QuestRewardItemResolver> QuestRewardItemOwner{nullptr};
+
+inline std::uint32_t QuestRewardItemFor(Player const* player, std::uint32_t itemId, std::int32_t questLevel)
+{
+    QuestRewardItemResolver const owner = QuestRewardItemOwner.load(std::memory_order_relaxed);
+    return owner && itemId ? owner(player, itemId, questLevel) : itemId;
 }
 }
 

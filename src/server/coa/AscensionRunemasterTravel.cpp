@@ -100,8 +100,7 @@ bool HasTravelMarker(Player* player, uint32 spell)
 
 bool CanReturn(Player* player, uint32 spell)
 {
-    return HasTravelMarker(player, spell) &&
-        (spell == SPELL_ECHO_RUNE || player->IsWithinLOSInMap(FindMarker(player, spell)));
+    return HasTravelMarker(player, spell);
 }
 
 bool ReturnToMarker(Player* player, uint32 spell, Position* arrival = nullptr)

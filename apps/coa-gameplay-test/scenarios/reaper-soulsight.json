@@ -4,6 +4,7 @@
  "contract": "Soulsight 300565 promises 3% party/raid crit and a 15% chance for direct damage to generate a Soul Fragment (805077). EFFECT_0 is native SPELL_EFFECT_APPLY_AREA_AURA_RAID with SPELL_AURA_MOD_CRIT_PCT (290), EffectBasePoints 2 + DieSides 1 = 3. EFFECT_1 is SPELL_EFFECT_APPLY_AURA with SPELL_AURA_PROC_TRIGGER_SPELL (42) triggering 805077 at ProcChance 15; the DBC record carries ProcFlags 0, but rev_20260921_20_reaper_talent_procs_two.sql (already on main) inserts a spell_proc row (SpellId 300565, ProcFlags 69652 = done melee auto attack + done spell melee/none-negative dmg class) and binds spell_script_names 300565 -> spell_ascension_reaper_talent_proc, whose AscensionReaperTalentProcs::Rules entry for 300565 is {{0}} (no spell filter, any qualifying direct damage). #3895's zero-hits static grep predates this fix; ALREADY_FIXED_ON_MAIN.",
  "timeout_ms": 180000,
  "players": [{"id": "reaper", "race": 10, "class": 30, "level": 80}],
+ "location": { "map": 530, "x": 10349.6, "y": -6357.29, "z": 33.4026, "o": 5.31605 },
  "creatures": [{"id": "enemy", "owner": "reaper", "entry": 1601, "level": 80}],
  "steps": [
   {"action": "wait", "label": "Let spawn AI and level scaling settle", "ms": 6000},

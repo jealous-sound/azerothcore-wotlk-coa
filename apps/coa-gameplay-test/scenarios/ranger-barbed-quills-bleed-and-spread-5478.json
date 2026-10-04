@@ -2,7 +2,16 @@
   "schema": 1,
   "name": "ranger-barbed-quills-bleed-and-spread-5478",
   "timeout_ms": 120000,
-  "contract": "Barbed Quills 800077 is a paid Dueling talent. Landed Wild Strike, Flank and Quills damage applies the owner's 801472 bleed. Quills spreads owner periodic effects to at most five hostile enemies within ten yards and extends existing owner periodics by 2000 ms. Purchase the actual talent, compare an untalented Wild Strike, then observe both the bleed and a normally cast Serrated Shot spreading to an enemy outside Quills' own eight-yard base radius and native leeway. A distant target and another caster are negative controls; bleed damage must actually tick.",
+  "contract": [
+    "Barbed Quills 800077 is a paid Dueling talent. Landed Wild Strike, Flank and Quills damage applies the",
+    "owner's 801472 bleed. Quills spreads owner periodic effects to at most five hostile enemies within ten",
+    "yards and extends existing owner periodics by 2000 ms. Purchase the actual talent, compare an untalented",
+    "Wild Strike, then observe both the bleed and a normally cast Serrated Shot spreading to an enemy outside",
+    "Quills' own eight-yard base radius and native leeway. A distant target and another caster are negative",
+    "controls; bleed damage must actually tick. Quills 561186 requires CasterAuraSpell 804329 (Advantage) in",
+    "the original DBC. The fixture supplies and asserts that prerequisite explicitly instead of depending on",
+    "a random earlier critical strike to generate it."
+  ],
   "location": {
     "map": 0,
     "x": -8917.41,
@@ -331,9 +340,32 @@
       "value": 100
     },
     {
+      "action": "set_aura",
+      "actor": "r",
+      "spell": 804329,
+      "stacks": 1,
+      "label": "Supply the authored Advantage prerequisite for the Quills proc test"
+    },
+    {
+      "action": "assert",
+      "actor": "r",
+      "metric": "aura",
+      "spell": 804329,
+      "equals": 1,
+      "label": "Quills has its required Advantage aura before the normal cast"
+    },
+    {
       "action": "cast",
       "actor": "r",
       "spell": 561186
+    },
+    {
+      "action": "assert",
+      "actor": "r",
+      "metric": "cast_failure",
+      "spell": 561186,
+      "equals": 0,
+      "label": "The ordinary Quills submission is accepted with its native prerequisite"
     },
     {
       "action": "assert",

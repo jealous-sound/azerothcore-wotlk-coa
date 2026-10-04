@@ -159,15 +159,24 @@ namespace Trainer
             SpellInfo const* trainerSpellInfo = sSpellMgr->AssertSpellInfo(trainerSpell.SpellId);
 
             bool primaryProfessionFirstRank = false;
+            bool knownOnlyBySkillMaximum = false;
+            bool teachesLearnedSpell = false;
             for (SpellEffectInfo const& spellEffectInfo : trainerSpellInfo->GetEffects())
             {
                 if (!spellEffectInfo.IsEffect(SPELL_EFFECT_LEARN_SPELL))
                     continue;
 
+                teachesLearnedSpell = true;
+                if (spellState == SpellState::Known && !player->HasSpell(spellEffectInfo.TriggerSpell))
+                    knownOnlyBySkillMaximum = true;
+
                 SpellInfo const* learnedSpellInfo = sSpellMgr->GetSpellInfo(spellEffectInfo.TriggerSpell);
                 if (learnedSpellInfo && learnedSpellInfo->IsPrimaryProfessionFirstRank())
                     primaryProfessionFirstRank = true;
             }
+
+            if (knownOnlyBySkillMaximum || (onlyTrainable && spellState == SpellState::Known && teachesLearnedSpell))
+                continue;
 
             trainerList.Spells.emplace_back();
             WorldPackets::NPC::TrainerListSpell& trainerListSpell = trainerList.Spells.back();
@@ -305,6 +314,10 @@ namespace Trainer
                     return SpellState::Unavailable;
 
             hasLearnSpellEffect = true;
+            if (SpellLearnSkillNode const* learnedSkill = sSpellMgr->GetSpellLearnSkill(spellEffectInfo.TriggerSpell))
+                if (learnedSkill->maxvalue && player->GetPureMaxSkillValue(learnedSkill->skill) >= learnedSkill->maxvalue)
+                    continue;
+
             if (!player->HasSpell(spellEffectInfo.TriggerSpell))
                 knowsAllLearnedSpells = false;
 

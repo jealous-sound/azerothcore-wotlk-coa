@@ -1716,6 +1716,18 @@ void SpellMgr::LoadSpellInfoCorrections()
         spellInfo->Attributes |= SPELL_ATTR0_USES_RANGED_SLOT;
     });
 
+    // Whirlwind (Rhahk'Zor's Bladestorm) - 2 yards from the center never reaches anyone fighting a creature this size
+    ApplySpellFix({ 2102555 }, [](SpellInfo* spellInfo)
+    {
+        spellInfo->Effects[EFFECT_0].RadiusEntry = sSpellRadiusStore.LookupEntry(EFFECT_RADIUS_8_YARDS);
+    });
+
+    // Buster Call (Edwin VanCleef) - the level 21 marker that drops it would miss every higher level player
+    ApplySpellFix({ 2102593, 2102594, 2102595, 2102596 }, [](SpellInfo* spellInfo)
+    {
+        spellInfo->AttributesEx3 |= SPELL_ATTR3_ALWAYS_HIT;
+    });
+
     // Moorabi - Transformation
     ApplySpellFix({ 55098 }, [](SpellInfo* spellInfo)
     {

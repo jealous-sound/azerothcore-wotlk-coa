@@ -34,6 +34,7 @@
 #include "GroupMgr.h"
 #include "GuildMgr.h"
 #include "LFGMgr.h"
+#include "LocalLevelScaling.h"
 #include "Log.h"
 #include "MapMgr.h"
 #include "Pet.h"
@@ -3994,7 +3995,11 @@ void ObjectMgr::LoadItemTemplates()
 
 ItemTemplate const* ObjectMgr::GetItemTemplate(uint32 entry)
 {
-    return entry < _itemTemplateStoreFast.size() ? _itemTemplateStoreFast[entry] : nullptr;
+    if (entry < _itemTemplateStoreFast.size())
+        if (ItemTemplate const* proto = _itemTemplateStoreFast[entry])
+            return proto;
+
+    return LocalLevelScaling::ScaledItemTemplateFor(entry);
 }
 
 void ObjectMgr::LoadItemSetNameLocales()

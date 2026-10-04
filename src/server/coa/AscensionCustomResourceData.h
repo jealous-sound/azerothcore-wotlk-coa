@@ -512,7 +512,7 @@ struct ResourceCostRule
     std::uint8_t PreserveCostChancePercent = 0;
 };
 
-inline constexpr std::array<ResourceCostRule, 65> ResourceCostRules =
+inline constexpr std::array<ResourceCostRule, 71> ResourceCostRules =
 {{
     {14, 801904, 801904, 800058, 2, ResourceConsumption::Fixed,
         705137, 30},
@@ -538,6 +538,10 @@ inline constexpr std::array<ResourceCostRule, 65> ResourceCostRules =
     {16, 501388, 501399, 803102, 50, ResourceConsumption::Fixed},
     {16, 800227, 800227, 803102, 50, ResourceConsumption::Fixed},
     {16, 501415, 501420, 803102, 50, ResourceConsumption::Fixed},
+    {16, 802354, 802354, 803102, 20, ResourceConsumption::Fixed},
+    {16, 570161, 570166, 803102, 20, ResourceConsumption::Fixed},
+    {16, 801839, 801839, 803102, 50, ResourceConsumption::Fixed},
+    {16, 501450, 501458, 803102, 50, ResourceConsumption::Fixed},
     {16, 532751, 532751, 803102, 50, ResourceConsumption::Fixed},
     {16, 567555, 567555, 803102, 20, ResourceConsumption::None},
     {16, 705672, 705672, 803102, 20, ResourceConsumption::None},
@@ -555,6 +559,8 @@ inline constexpr std::array<ResourceCostRule, 65> ResourceCostRules =
     {16, 806430, 806436, 803102, 40, ResourceConsumption::Fixed},
     {16, 806400, 806400, 803102, 50, ResourceConsumption::Fixed},
     {16, 807713, 807717, 803102, 50, ResourceConsumption::Fixed},
+    {16, 503352, 503360, 803102, 40, ResourceConsumption::Fixed},
+    {16, 804017, 804017, 803102, 40, ResourceConsumption::Fixed},
 
     {24, 502057, 502063, 807533, 1, ResourceConsumption::Fixed},
     {24, 534600, 534604, 807533, 1, ResourceConsumption::Fixed},
