@@ -1,4 +1,4 @@
--- Westfall restore from Ascension captures: 15 missing quests (WDB 2026-09-08, Exiles DB 2026-09-13),
+-- Westfall restore from Ascension captures: 16 missing quests (WDB 2026-09-08, Exiles DB 2026-09-13),
 -- their givers, targets and objects, plus field differences in existing Westfall quests.
 -- Positions are estimated; displays marked stand-in replace Ascension models the client lacks.
 
@@ -16,11 +16,12 @@ VALUES
 (776790, 0, 0, 0, 0, 0, 'Archivist Selnor', NULL, NULL, 0, 11, 11, 0, 12, 2, 1, 1.14286, 1, 1, 18, 0, 0, 1, 2000, 2000, 1, 1, 1, 512, 2048, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 0.98, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
 (255150, 0, 0, 0, 0, 0, 'Idona Wyther', 'Alchemy Trainer', NULL, 4110, 26, 26, 0, 12, 83, 1, 1.14286, 1, 1, 18, 0, 0, 1, 1500, 2000, 1, 1, 1, 512, 2048, 0, 0, 7, 134217728, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 1.064, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
 (255151, 0, 0, 0, 0, 0, 'Tavin Wyther', 'Alchemy Supplies', NULL, 0, 23, 23, 0, 12, 128, 1, 1.14286, 1, 1, 18, 0, 0, 1, 1500, 2000, 1, 1, 1, 512, 2048, 0, 0, 7, 134217728, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 1.064, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
-(991515, 0, 0, 0, 0, 0, 'Lenore the Hoarder', '', NULL, 0, 15, 15, 0, 17, 0, 1, 1.14286, 1, 1, 18, 1, 0, 1, 2000, 2000, 1, 1, 1, 32768, 2048, 0, 0, 7, 0, 95, 95, 0, 0, 0, 3, 24, 'SmartAI', 0, 1, 3, 1, 1, 1, 0, 0, 1, 0, 0, '', 0),
+(991515, 0, 0, 0, 0, 0, 'Lenore the Hoarder', '', NULL, 0, 15, 15, 0, 17, 0, 1, 1.14286, 1, 1, 18, 1, 0, 1, 2000, 2000, 1, 1, 1, 32768, 2048, 0, 0, 7, 0, 991515, 95, 0, 0, 0, 3, 24, 'SmartAI', 0, 1, 3, 1, 1, 1, 0, 0, 1, 0, 0, '', 0),
 (255339, 0, 0, 0, 0, 0, 'Militia Recruit', 'The People''s Militia', NULL, 0, 14, 16, 0, 7, 0, 1, 1.14286, 1, 1, 18, 0, 0, 1, 2000, 2000, 1, 1, 1, 0, 2048, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 'SmartAI', 0, 1, 1.448, 1, 1, 1, 0, 0, 1, 0, 0, '', 0),
 (157002, 0, 0, 0, 0, 0, 'Farmer Demont', '', NULL, 0, 15, 15, 0, 35, 2, 1, 1.14286, 1, 1, 18, 0, 0, 1, 1500, 2000, 1, 1, 1, 512, 2048, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 1.25, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
 (999900, 0, 0, 0, 0, 0, 'Slain Protector', NULL, NULL, 0, 15, 15, 0, 35, 2, 1, 1.14286, 1, 1, 18, 0, 0, 1, 2000, 2000, 1, 1, 1, 768, 2048, 32, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 1, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
-(999901, 0, 0, 0, 0, 0, 'Half-Devoured Protector', 'The People''s Militia', NULL, 0, 15, 15, 0, 35, 2, 1, 1.14286, 1, 1, 18, 0, 0, 1, 2000, 2000, 1, 1, 1, 768, 2048, 32, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 1, 1, 1, 1, 0, 0, 1, 0, 2, '', 0)
+(999901, 0, 0, 0, 0, 0, 'Half-Devoured Protector', 'The People''s Militia', NULL, 0, 15, 15, 0, 35, 2, 1, 1.14286, 1, 1, 18, 0, 0, 1, 2000, 2000, 1, 1, 1, 768, 2048, 32, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 1, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
+(100467, 0, 0, 0, 0, 0, 'Path to Ascension Flightmaster Credit', '', NULL, 0, 1, 1, 0, 35, 0, 1, 1.14286, 1, 1, 20, 0, 0, 1, 0, 0, 1, 1, 1, 2, 0, 0, 0, 7, 2147483648, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, '', 0)
 ON DUPLICATE KEY UPDATE `difficulty_entry_1` = VALUES(`difficulty_entry_1`),
   `difficulty_entry_2` = VALUES(`difficulty_entry_2`), `difficulty_entry_3` = VALUES(`difficulty_entry_3`),
   `KillCredit1` = VALUES(`KillCredit1`), `KillCredit2` = VALUES(`KillCredit2`), `name` = VALUES(`name`),
@@ -47,7 +48,7 @@ ON DUPLICATE KEY UPDATE `difficulty_entry_1` = VALUES(`difficulty_entry_1`),
 
 -- Stand-in displays: Olens 177231, Brenolt 177232, Selnor 177229, Idona 255150, Tavin 255151 and
 -- Lenore 119854 are not in the client.
-DELETE FROM `creature_template_model` WHERE `CreatureID` IN (776786,776787,776790,255150,255151,991515,255339,157002,999900,999901);
+DELETE FROM `creature_template_model` WHERE `CreatureID` IN (776786,776787,776790,255150,255151,991515,255339,157002,999900,999901,100467);
 INSERT INTO `creature_template_model` (`CreatureID`, `Idx`, `CreatureDisplayID`, `DisplayScale`, `Probability`,
   `VerifiedBuild`) VALUES
 (776786, 0, 7310, 1, 1, 0),
@@ -62,7 +63,8 @@ INSERT INTO `creature_template_model` (`CreatureID`, `Idx`, `CreatureDisplayID`,
 (255339, 3, 7311, 1, 1, 0),
 (157002, 0, 19354, 1, 1, 0),
 (999900, 0, 2368, 1, 1, 0),
-(999901, 0, 7308, 1, 1, 0);
+(999901, 0, 7308, 1, 1, 0),
+(100467, 0, 11686, 1, 1, 0);
 
 DELETE FROM `creature_template_addon` WHERE `entry` IN (999900,999901);
 INSERT INTO `creature_template_addon` (`entry`, `path_id`, `mount`, `bytes1`, `bytes2`, `emote`,
@@ -98,6 +100,16 @@ INSERT INTO `smart_scripts` (`entryorguid`, `source_type`, `id`, `link`, `event_
 (255339, 0, 0, 0, 25, 0, 100, 0, 0, 0, 0, 0, 0, 0, 42, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 'Militia Recruit - On Reset - Set Invincibility Hp Level 1'),
 (255339, 0, 1, 2, 2, 0, 100, 0, 0, 1, 1000, 1000, 0, 0, 33, 255339, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 'Militia Recruit - Between 0-1% Health - Quest Credit ''Militia Training'''),
 (255339, 0, 2, 0, 61, 0, 100, 0, 0, 0, 0, 0, 0, 0, 24, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 'Militia Recruit - On Link - Evade');
+
+-- Path to Ascension: Westfall (100466): no capture names its ender; Dungar Longdrink grants the credit
+-- on greeting and takes the quest, as an estimate.
+DELETE FROM `smart_scripts` WHERE `entryorguid`=352 AND `source_type`=0 AND `id`=3;
+INSERT INTO `smart_scripts` (`entryorguid`, `source_type`, `id`, `link`, `event_type`, `event_phase_mask`,
+  `event_chance`, `event_flags`, `event_param1`, `event_param2`, `event_param3`, `event_param4`, `event_param5`,
+  `event_param6`, `action_type`, `action_param1`, `action_param2`, `action_param3`, `action_param4`, `action_param5`,
+  `action_param6`, `target_type`, `target_param1`, `target_param2`, `target_param3`, `target_param4`, `target_x`,
+  `target_y`, `target_z`, `target_o`, `comment`) VALUES
+(352, 0, 3, 0, 64, 0, 100, 0, 0, 0, 0, 0, 0, 0, 33, 100467, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 'Dungar Longdrink - On Gossip Hello - Quest Credit ''Path to Ascension: Westfall''');
 
 DELETE FROM `creature_text` WHERE `CreatureID`=991515;
 INSERT INTO `creature_text` (`CreatureID`, `GroupID`, `ID`, `Text`, `Type`, `Language`, `Probability`, `Emote`,
@@ -170,6 +182,53 @@ INSERT INTO `creature` (`guid`, `id`, `map`, `zoneId`, `areaId`, `spawnMask`, `p
 (9950114, 255339, 0, 40, 108, 1, 1, 0, -10738.5, 981.5, 36.88, 2.78, 120, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Militia Recruit (estimated position, training yard)'),
 (9950115, 255151, 0, 40, 108, 1, 1, 0, -10509.95, 1144.83, 40.0, 3.48, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Tavin Wyther (estimated position, alchemist''s farmhouse)'),
 (9950116, 776787, 0, 40, 108, 1, 1, 0, -10724.26, 988.23, 36.25, 0.77, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Protector Brenolt (estimated position, training yard by Olens)');
+
+-- Lenore the Hoarder (991515) loot: Exiles DB export 2026-09-13, creature_loot entry 991515.
+DELETE FROM `creature_loot_template` WHERE `Entry`=991515;
+INSERT INTO `creature_loot_template` (`Entry`, `Item`, `Reference`, `Chance`, `QuestRequired`, `LootMode`, `GroupId`,
+  `MinCount`, `MaxCount`, `Comment`) VALUES
+(991515, 9771, 0, 0.012, 0, 1, 0, 1, 1, 'Lenore the Hoarder'),
+(991515, 14127, 0, 0.012, 0, 1, 0, 1, 1, 'Lenore the Hoarder'),
+(991515, 14133, 0, 0.012, 0, 1, 0, 1, 1, 'Lenore the Hoarder'),
+(991515, 14165, 0, 0.012, 0, 1, 0, 1, 1, 'Lenore the Hoarder'),
+(991515, 14179, 0, 0.012, 0, 1, 0, 1, 1, 'Lenore the Hoarder'),
+(991515, 15117, 0, 0.012, 0, 1, 0, 1, 1, 'Lenore the Hoarder'),
+(991515, 15122, 0, 0.012, 0, 1, 0, 1, 1, 'Lenore the Hoarder'),
+(991515, 15124, 0, 0.012, 0, 1, 0, 1, 1, 'Lenore the Hoarder'),
+(991515, 15329, 0, 0.012, 0, 1, 0, 1, 1, 'Lenore the Hoarder'),
+(991515, 15330, 0, 0.012, 0, 1, 0, 1, 1, 'Lenore the Hoarder'),
+(991515, 15500, 0, 0.012, 0, 1, 0, 1, 1, 'Lenore the Hoarder'),
+(991515, 15511, 0, 0.012, 0, 1, 0, 1, 1, 'Lenore the Hoarder'),
+(991515, 15512, 0, 0.012, 0, 1, 0, 1, 1, 'Lenore the Hoarder'),
+(991515, 15513, 0, 0.012, 0, 1, 0, 1, 1, 'Lenore the Hoarder'),
+(991515, 15517, 0, 0.012, 0, 1, 0, 1, 1, 'Lenore the Hoarder'),
+(991515, 15526, 0, 0.012, 0, 1, 0, 1, 1, 'Lenore the Hoarder'),
+(991515, 15972, 0, 0.012, 0, 1, 0, 1, 1, 'Lenore the Hoarder'),
+(991515, 554126, 0, 0.417, 0, 1, 0, 1, 1, 'Lenore the Hoarder'),
+(991515, 1013664, 0, 0.417, 0, 1, 0, 1, 1, 'Lenore the Hoarder'),
+(991515, 1013673, 0, 0.417, 0, 1, 0, 1, 1, 'Lenore the Hoarder'),
+(991515, 1013677, 0, 0.417, 0, 1, 0, 1, 1, 'Lenore the Hoarder'),
+(991515, 1013679, 0, 0.417, 0, 1, 0, 1, 1, 'Lenore the Hoarder'),
+(991515, 1013977, 0, 0.417, 0, 1, 0, 1, 1, 'Lenore the Hoarder'),
+(991515, 2089832, 0, 3.125, 0, 1, 0, 1, 1, 'Lenore the Hoarder'),
+(991515, 2089833, 0, 3.125, 0, 1, 0, 1, 1, 'Lenore the Hoarder'),
+(991515, 2089834, 0, 3.125, 0, 1, 0, 1, 1, 'Lenore the Hoarder'),
+(991515, 2089835, 0, 3.125, 0, 1, 0, 1, 1, 'Lenore the Hoarder'),
+(991515, 2089836, 0, 3.125, 0, 1, 0, 1, 1, 'Lenore the Hoarder'),
+(991515, 2089837, 0, 3.125, 0, 1, 0, 1, 1, 'Lenore the Hoarder'),
+(991515, 2089838, 0, 3.125, 0, 1, 0, 1, 1, 'Lenore the Hoarder'),
+(991515, 2089839, 0, 3.125, 0, 1, 0, 1, 1, 'Lenore the Hoarder');
+
+-- Reef Shark (12123) spawns: Exiles DB export 2026-09-13, creature_spawn guids 60841-60844.
+DELETE FROM `creature` WHERE `guid` BETWEEN 9950120 AND 9950123;
+INSERT INTO `creature` (`guid`, `id`, `map`, `zoneId`, `areaId`, `spawnMask`, `phaseMask`, `equipment_id`,
+  `position_x`, `position_y`, `position_z`, `orientation`, `spawntimesecs`, `wander_distance`, `currentwaypoint`,
+  `curhealth`, `curmana`, `MovementType`, `npcflag`, `unit_flags`, `dynamicflags`, `ScriptName`, `VerifiedBuild`,
+  `CreateObject`, `Comment`) VALUES
+(9950120, 12123, 0, 40, 40, 1, 1, 0, -11327.4, 2292.78, -48.1677, 0, 300, 5, 0, 0, 0, 1, 0, 0, 0, '', 0, 0, 'Reef Shark (Exiles DB export 2026-09-13)'),
+(9950121, 12123, 0, 40, 40, 1, 1, 0, -10638.2, 2354.37, -49.2443, 0, 300, 5, 0, 0, 0, 1, 0, 0, 0, '', 0, 0, 'Reef Shark (Exiles DB export 2026-09-13)'),
+(9950122, 12123, 0, 40, 40, 1, 1, 0, -9985.74, 2374.5, -49.2355, 0, 300, 5, 0, 0, 0, 1, 0, 0, 0, '', 0, 0, 'Reef Shark (Exiles DB export 2026-09-13)'),
+(9950123, 12123, 0, 40, 40, 1, 1, 0, -9783.67, 2353.35, -49.3094, 0, 300, 5, 0, 0, 0, 1, 0, 0, 0, '', 0, 0, 'Reef Shark (Exiles DB export 2026-09-13)');
 
 -- Westfall Hoard (480104): Ascension's object id for it is unknown.
 INSERT INTO `gameobject_template` (`entry`, `type`, `displayId`, `name`, `IconName`, `castBarCaption`, `unk1`,
@@ -254,7 +313,8 @@ VALUES
 (255057, 2, -1, 10, 40, 0, 0, 0, 0, 0, 0, 0, 5, 500, 236, 0, 0, 0, 0, 0, 8, 0, 375250, 100, 1397885, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 72, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 'Militia Training', 'Practice your skills against the Militia Recruits.', 'You look like you can hold your own, against a cutthroat or two. $B$BSince you''re here, why don''t you test your skills against our recruits? It isn''t safe outside of Sentinel Hill and you should make sure your skills are sharp before heading off into Defias territory... not to mention this batch can certainly use the practice.$B$BI don''t like the thought of sending more fools out to their deaths, show me what you can do.', '', 'Return to Captain Olens at Sentinel Hill.', 255339, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 'Militia Recruits Defeated', '', '', '', 0),
 (999913, 2, 11, 9, 40, 0, 0, 0, 0, 0, 0, 0, 4, 0, 270, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 72, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 'The Missing Report', 'Find the report from the missing patroller.', 'Do you know how difficult it is to sort papers when I''m missing so many reports? $B$BI understand the tedious task of filing paperwork is unappreciated by some, but that doesn''t mean it isn''t important.$B$BI''m missing the field report from one of our patrollers, he walks the route from Sentinel Hill to the border of Elwynn. Find him for me, and bring me back his report since he can''t be bothered to do it himself.', '', '', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', '', '', 0),
 (999914, 2, 11, 9, 40, 0, 0, 0, 0, 0, 0, 0, 4, 0, 270, 0, 0, 0, 0, 999920, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 72, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 'The Half-Detailed Report', 'Return the Half-Detailed Report to Archivist Selnor.', 'Upon inspecting the body, you find the patroller''s half-completed report. $B$BThis should be delivered back to Sentinel Hill - the Archivist will want to know what happened.', '', '', 0, 0, 0, 0, 0, 0, 0, 0, 999920, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 'Deliver the Half-Detailed Report to Archivist Selnor.', '', '', '', 0),
-(999933, 2, 16, 12, 40, 0, 0, 0, 0, 0, 0, 0, 4, 0, 270, 0, 0, 0, 0, 999923, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 72, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 'The Spit-Soaked Report', 'Deliver the Spit-Soaked Report to Archivist Selnor.', 'The parchment is disgusting - covered in spit and gore. The author of these papers lay in pieces all around you, unrecognizable. $B$BArchivist Selnor will want to see this report, she will know who this is.', '', '', 0, 0, 0, 0, 0, 0, 0, 0, 999923, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 'Deliver the Spit-Soaked Report to Archivist Selnor.', '', '', '', 0)
+(999933, 2, 16, 12, 40, 0, 0, 0, 0, 0, 0, 0, 4, 0, 270, 0, 0, 0, 0, 999923, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 72, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 'The Spit-Soaked Report', 'Deliver the Spit-Soaked Report to Archivist Selnor.', 'The parchment is disgusting - covered in spit and gore. The author of these papers lay in pieces all around you, unrecognizable. $B$BArchivist Selnor will want to see this report, she will know who this is.', '', '', 0, 0, 0, 0, 0, 0, 0, 0, 999923, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 'Deliver the Spit-Soaked Report to Archivist Selnor.', '', '', '', 0),
+(100466, 2, 12, 10, 40, 0, 0, 0, 0, 0, 0, 0, 4, 0, 225, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 72, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 'Path to Ascension: Westfall', 'Explore Stormwind to your heart''s content, then visit Flightmaster Dungar Longdrink to fly to Westfall to continue your adventure.', 'Hail, Hero.$B$BWelcome to Stormwind, capital of the Alliance. I assume you''ve arrived to rest and restock. You''ll find many things to aid you on your adventure, from personal banks and the Auction House to blacksmiths, enchanters, and of course other heroes. Explore as you like, but when you''re ready to return to your adventure, speak to Flightmaster Dungar Longdrink. There is trouble brewing in the western province that requires your aid.', '', '', 100467, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 'Explore Stormwind to your heart''s content, then visit Flightmaster Dungar Longdrink to fly to Westfall to continue your adventure', '', '', '', 0)
 ON DUPLICATE KEY UPDATE `QuestType` = VALUES(`QuestType`), `QuestLevel` = VALUES(`QuestLevel`),
   `MinLevel` = VALUES(`MinLevel`), `QuestSortID` = VALUES(`QuestSortID`), `QuestInfoID` = VALUES(`QuestInfoID`),
   `SuggestedGroupNum` = VALUES(`SuggestedGroupNum`), `RequiredFactionId1` = VALUES(`RequiredFactionId1`),
@@ -313,7 +373,7 @@ ON DUPLICATE KEY UPDATE `QuestType` = VALUES(`QuestType`), `QuestLevel` = VALUES
   `ObjectiveText3` = VALUES(`ObjectiveText3`), `ObjectiveText4` = VALUES(`ObjectiveText4`),
   `VerifiedBuild` = VALUES(`VerifiedBuild`);
 
-DELETE FROM `quest_template_addon` WHERE `ID` IN (1313,17011,17012,17014,26993,26994,26995,26996,26997,254042,254043,255057,999913,999914,999933);
+DELETE FROM `quest_template_addon` WHERE `ID` IN (1313,17011,17012,17014,26993,26994,26995,26996,26997,254042,254043,255057,999913,999914,999933,100466);
 INSERT INTO `quest_template_addon` (`ID`, `MaxLevel`, `AllowableClasses`, `SourceSpellID`, `PrevQuestID`,
   `NextQuestID`, `ExclusiveGroup`, `BreadcrumbForQuestId`, `RewardMailTemplateID`, `RewardMailDelay`,
   `RequiredSkillID`, `RequiredSkillPoints`, `RequiredMinRepFaction`, `RequiredMaxRepFaction`, `RequiredMinRepValue`,
@@ -332,9 +392,10 @@ INSERT INTO `quest_template_addon` (`ID`, `MaxLevel`, `AllowableClasses`, `Sourc
 (255057, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
 (999913, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
 (999914, 0, 0, 0, 999913, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-(999933, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+(999933, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+(100466, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
-DELETE FROM `creature_queststarter` WHERE `quest` IN (1313,17011,17012,17014,26993,26994,26995,26996,26997,254042,254043,255057,999913,999914,999933);
+DELETE FROM `creature_queststarter` WHERE `quest` IN (1313,17011,17012,17014,26993,26994,26995,26996,26997,254042,254043,255057,999913,999914,999933,100466);
 INSERT INTO `creature_queststarter` (`id`, `quest`) VALUES
 (237, 26993),
 (237, 26994),
@@ -350,9 +411,10 @@ INSERT INTO `creature_queststarter` (`id`, `quest`) VALUES
 (776790, 999913),
 (999900, 999914),
 (999901, 999933),
-(255150, 1313);
+(255150, 1313),
+(466, 100466);
 
-DELETE FROM `creature_questender` WHERE `quest` IN (1313,17011,17012,17014,26993,26994,26995,26996,26997,254042,254043,255057,999913,999914,999933);
+DELETE FROM `creature_questender` WHERE `quest` IN (1313,17011,17012,17014,26993,26994,26995,26996,26997,254042,254043,255057,999913,999914,999933,100466);
 INSERT INTO `creature_questender` (`id`, `quest`) VALUES
 (237, 26993),
 (233, 26994),
@@ -368,7 +430,8 @@ INSERT INTO `creature_questender` (`id`, `quest`) VALUES
 (999900, 999913),
 (776790, 999914),
 (776790, 999933),
-(255150, 1313);
+(255150, 1313),
+(352, 100466);
 
 UPDATE `creature_template` SET `npcflag` = `npcflag` | 2 WHERE `entry` = 490;
 
@@ -379,3 +442,122 @@ UPDATE `quest_template` SET `MinLevel` = 10 WHERE `ID` IN (166,214);
 UPDATE `quest_template` SET `RequiredItemId1` = 1358, `RequiredItemCount1` = 1 WHERE `ID` = 138;
 UPDATE `quest_template` SET `RequiredItemId1` = 1361, `RequiredItemCount1` = 1 WHERE `ID` = 139;
 UPDATE `quest_template` SET `RequiredItemId1` = 1362, `RequiredItemCount1` = 1 WHERE `ID` = 140;
+
+-- Westfall creature drops missing here: Exiles DB export 2026-09-13, creature_loot.
+DELETE FROM `creature_loot_template` WHERE (`Entry`=36 AND `Item`=3595661) OR (`Entry`=121 AND `Item`=1013734) OR
+  (`Entry`=122 AND `Item`=201450) OR (`Entry`=122 AND `Item`=1013661) OR (`Entry`=122 AND `Item`=1013841) OR
+  (`Entry`=122 AND `Item`=1178874) OR (`Entry`=124 AND `Item`=1013642) OR (`Entry`=124 AND `Item`=1013649) OR
+  (`Entry`=154 AND `Item`=79348) OR (`Entry`=157 AND `Item`=79349) OR (`Entry`=199 AND `Item`=79350) OR
+  (`Entry`=391 AND `Item`=1180) OR (`Entry`=449 AND `Item`=1013734) OR (`Entry`=454 AND `Item`=79359) OR
+  (`Entry`=456 AND `Item`=955) OR (`Entry`=462 AND `Item`=79360) OR (`Entry`=462 AND `Item`=103729) OR
+  (`Entry`=501 AND `Item`=765) OR (`Entry`=501 AND `Item`=785) OR (`Entry`=501 AND `Item`=2447) OR
+  (`Entry`=501 AND `Item`=2449) OR (`Entry`=501 AND `Item`=2450) OR (`Entry`=501 AND `Item`=2452) OR
+  (`Entry`=506 AND `Item`=56925) OR (`Entry`=513 AND `Item`=835) OR (`Entry`=519 AND `Item`=56927) OR
+  (`Entry`=547 AND `Item`=79367) OR (`Entry`=572 AND `Item`=56931) OR (`Entry`=573 AND `Item`=56932) OR
+  (`Entry`=573 AND `Item`=450560) OR (`Entry`=589 AND `Item`=1175834) OR (`Entry`=589 AND `Item`=1178864) OR
+  (`Entry`=589 AND `Item`=2005012) OR (`Entry`=830 AND `Item`=79393) OR (`Entry`=831 AND `Item`=79394) OR
+  (`Entry`=833 AND `Item`=79395) OR (`Entry`=834 AND `Item`=79396) OR (`Entry`=1109 AND `Item`=79424) OR
+  (`Entry`=1150 AND `Item`=79439) OR (`Entry`=1151 AND `Item`=79440) OR (`Entry`=1216 AND `Item`=79455);
+INSERT INTO `creature_loot_template` (`Entry`, `Item`, `Reference`, `Chance`, `QuestRequired`, `LootMode`, `GroupId`,
+  `MinCount`, `MaxCount`, `Comment`) VALUES
+(36, 3595661, 0, 2, 0, 1, 0, 1, 1, 'Harvest Golem - Handcrafted Crossbow'),
+(121, 1013734, 0, 1.25, 0, 1, 0, 1, 1, 'Defias Pathstalker - Mystic Scroll: Impale'),
+(122, 201450, 0, 3.75, 0, 1, 0, 1, 1, 'Defias Highwayman - Mystic Scroll: Bleeding Edge'),
+(122, 1013661, 0, 0.625, 0, 1, 0, 1, 1, 'Defias Highwayman - Mystic Scroll: Dual Wield Specialization'),
+(122, 1013841, 0, 0.625, 0, 1, 0, 1, 1, 'Defias Highwayman - Mystic Scroll: Dual Wield Specialization'),
+(122, 1178874, 0, 5.5, 0, 1, 0, 1, 1, 'Defias Highwayman - Mystic Scroll: Retaliatory Justice'),
+(124, 1013642, 0, 1.25, 0, 1, 0, 1, 1, 'Riverpaw Brute - Mystic Scroll: Booming Voice'),
+(124, 1013649, 0, 1.25, 0, 1, 0, 1, 1, 'Riverpaw Brute - Mystic Scroll: Improved Demoralizing Shout'),
+(154, 79348, 0, 1, 0, 1, 0, 1, 1, 'Greater Fleshripper - Beastmaster''s Whistle: Greater Fleshripper'),
+(157, 79349, 0, 1, 0, 1, 0, 1, 1, 'Goretusk - Beastmaster''s Whistle: Goretusk'),
+(199, 79350, 0, 1, 0, 1, 0, 1, 1, 'Young Fleshripper - Beastmaster''s Whistle: Young Fleshripper'),
+(391, 1180, 0, 0.56, 0, 1, 0, 1, 1, 'Old Murk-Eye - Scroll of Stamina'),
+(449, 1013734, 0, 2.5, 0, 1, 0, 1, 1, 'Defias Knuckleduster - Mystic Scroll: Impale'),
+(454, 79359, 0, 1, 0, 1, 0, 1, 1, 'Young Goretusk - Beastmaster''s Whistle: Young Goretusk'),
+(456, 955, 0, 0.5, 0, 1, 0, 1, 1, 'Murloc Minor Oracle - Scroll of Intellect'),
+(462, 79360, 0, 1, 0, 1, 0, 1, 1, 'Vultros - Beastmaster''s Whistle: Vultros'),
+(462, 103729, 0, 1, 0, 1, 0, 1, 1, 'Vultros - Sigil of Vultros'),
+(501, 765, 0, 3.22, 0, 1, 0, 1, 1, 'Riverpaw Herbalist - Silverleaf'),
+(501, 785, 0, 3.54, 0, 1, 0, 1, 1, 'Riverpaw Herbalist - Mageroyal'),
+(501, 2447, 0, 3.38, 0, 1, 0, 1, 1, 'Riverpaw Herbalist - Peacebloom'),
+(501, 2449, 0, 3.34, 0, 1, 0, 1, 1, 'Riverpaw Herbalist - Earthroot'),
+(501, 2450, 0, 3.44, 0, 1, 0, 1, 1, 'Riverpaw Herbalist - Briarthorn'),
+(501, 2452, 0, 1.6121, 0, 1, 0, 1, 1, 'Riverpaw Herbalist - Swiftthistle'),
+(506, 56925, 0, 1, 0, 1, 0, 1, 1, 'Sergeant Brashclaw - Sigil of Sergeant Brashclaw'),
+(513, 835, 0, 4.503, 0, 1, 0, 1, 1, 'Murloc Netter - Large Rope Net'),
+(519, 56927, 0, 1, 0, 1, 0, 1, 1, 'Slark - Sigil of Slark'),
+(547, 79367, 0, 1, 0, 1, 0, 1, 1, 'Great Goretusk - Beastmaster''s Whistle: Great Goretusk'),
+(572, 56931, 0, 1, 0, 1, 0, 1, 1, 'Leprithus - Sigil of Leprithus'),
+(573, 56932, 0, 1, 0, 1, 0, 1, 1, 'Foe Reaper 4000 - Sigil of Foe Reaper 4000'),
+(573, 450560, 0, 100, 0, 1, 0, 1, 1, 'Foe Reaper 4000 - Harvest Golem Scythe'),
+(589, 1175834, 0, 5.5, 0, 1, 0, 1, 1, 'Defias Pillager - Mystic Scroll: Blazing Speed'),
+(589, 1178864, 0, 5.5, 0, 1, 0, 1, 1, 'Defias Pillager - Mystic Scroll: Flagellation'),
+(589, 2005012, 0, 4, 0, 1, 0, 1, 1, 'Defias Pillager - Magic Stick'),
+(830, 79393, 0, 1, 0, 1, 0, 1, 1, 'Sand Crawler - Beastmaster''s Whistle: Sand Crawler'),
+(831, 79394, 0, 1, 0, 1, 0, 1, 1, 'Sea Crawler - Beastmaster''s Whistle: Sea Crawler'),
+(833, 79395, 0, 1, 0, 1, 0, 1, 1, 'Coyote Packleader - Beastmaster''s Whistle: Coyote Packleader'),
+(834, 79396, 0, 1, 0, 1, 0, 1, 1, 'Coyote - Beastmaster''s Whistle: Coyote'),
+(1109, 79424, 0, 1, 0, 1, 0, 1, 1, 'Fleshripper - Beastmaster''s Whistle: Fleshripper'),
+(1150, 79439, 0, 1, 0, 1, 0, 1, 1, 'River Crocolisk - Beastmaster''s Whistle: River Crocolisk'),
+(1151, 79440, 0, 1, 0, 1, 0, 1, 1, 'Saltwater Crocolisk - Beastmaster''s Whistle: Saltwater Crocolisk'),
+(1216, 79455, 0, 1, 0, 1, 0, 1, 1, 'Shore Crawler - Beastmaster''s Whistle: Shore Crawler');
+
+UPDATE `creature_loot_template` SET `Chance` = 28.0247 WHERE `Entry` = 480 AND `Item` = 732;
+UPDATE `creature_loot_template` SET `Chance` = 30 WHERE `Entry` = 573 AND `Item` = 732;
+
+-- Westfall vendor goods missing here: Exiles DB export 2026-09-13, npc_vendor.
+DELETE FROM `npc_vendor` WHERE (`entry`=491 AND `item` IN (417, 466, 469, 471, 473, 474, 475, 476, 477)) OR
+  (`entry`=491 AND `item` IN (480, 352621, 421276, 3595665, 3595667)) OR
+  (`entry`=843 AND `item` IN (2692, 3713, 6954)) OR (`entry`=8934 AND `item` IN (2692, 3713, 6954)) OR
+  (`entry`=1668 AND `item` IN (3595665)) OR (`entry`=1670 AND `item` IN (772065, 772074)) OR
+  (`entry`=8931 AND `item` IN (6948, 772061, 772062, 772063, 772064, 772065, 772066, 772067, 772068)) OR
+  (`entry`=8931 AND `item` IN (772069, 772070, 772071, 772072, 772073, 772074, 772075, 772076));
+INSERT INTO `npc_vendor` (`entry`, `slot`, `item`, `maxcount`, `incrtime`, `ExtendedCost`, `VerifiedBuild`) VALUES
+(491, 0, 417, 0, 0, 0, 0),
+(491, 0, 466, 0, 0, 0, 0),
+(491, 0, 469, 0, 0, 0, 0),
+(491, 0, 471, 0, 0, 0, 0),
+(491, 0, 473, 0, 0, 0, 0),
+(491, 0, 474, 0, 0, 0, 0),
+(491, 0, 475, 0, 0, 0, 0),
+(491, 0, 476, 0, 0, 0, 0),
+(491, 0, 477, 0, 0, 0, 0),
+(491, 0, 480, 0, 0, 0, 0),
+(491, 0, 352621, 0, 0, 0, 0),
+(491, 0, 421276, 0, 0, 0, 0),
+(491, 0, 3595665, 0, 0, 0, 0),
+(491, 0, 3595667, 0, 0, 0, 0),
+(843, 0, 2692, 0, 0, 0, 0),
+(843, 0, 3713, 0, 0, 0, 0),
+(843, 0, 6954, 0, 0, 0, 0),
+(8934, 0, 2692, 0, 0, 0, 0),
+(8934, 0, 3713, 0, 0, 0, 0),
+(8934, 0, 6954, 0, 0, 0, 0),
+(1668, 0, 3595665, 0, 0, 0, 0),
+(1670, 0, 772065, 0, 0, 0, 0),
+(1670, 0, 772074, 0, 0, 0, 0),
+(8931, 0, 6948, 0, 0, 0, 0),
+(8931, 0, 772061, 0, 0, 0, 0),
+(8931, 0, 772062, 0, 0, 0, 0),
+(8931, 0, 772063, 0, 0, 0, 0),
+(8931, 0, 772064, 0, 0, 0, 0),
+(8931, 0, 772065, 0, 0, 0, 0),
+(8931, 0, 772066, 0, 0, 0, 0),
+(8931, 0, 772067, 0, 0, 0, 0),
+(8931, 0, 772068, 0, 0, 0, 0),
+(8931, 0, 772069, 0, 0, 0, 0),
+(8931, 0, 772070, 0, 0, 0, 0),
+(8931, 0, 772071, 0, 0, 0, 0),
+(8931, 0, 772072, 0, 0, 0, 0),
+(8931, 0, 772073, 0, 0, 0, 0),
+(8931, 0, 772074, 0, 0, 0, 0),
+(8931, 0, 772075, 0, 0, 0, 0),
+(8931, 0, 772076, 0, 0, 0, 0);
+
+-- Westfall reputation and template values: Exiles DB export 2026-09-13.
+UPDATE `creature_onkill_reputation` SET `RewOnKillRepValue1` = 25 WHERE `creature_id` IN (1094,1096,1097);
+UPDATE `creature_template` SET `minlevel` = 15 WHERE `entry` = 121;
+UPDATE `creature_template` SET `minlevel` = 13 WHERE `entry` IN (123,456);
+UPDATE `creature_template` SET `maxlevel` = 60 WHERE `entry` = 25962;
+UPDATE `creature_template` SET `mingold` = 0, `maxgold` = 0 WHERE `entry` = 7050;
+UPDATE `creature_template` SET `rank` = 0 WHERE `entry` = 7053;
