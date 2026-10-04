@@ -37,6 +37,7 @@ void AddSC_CoALfgStartPoint();
 void AddSC_AscensionKeepersScrollSteadfast();
 void AddSC_AscensionProfessionSpellAffect();
 void AddSC_AscensionPerforatingShots();
+void AddSC_AscensionSummonedEffects();
 void AddSC_AscensionKeepersScrollZoneBuff();
 void AddAscensionStockCoefficientScripts();
 void AddAscensionScalingBaseScripts();
@@ -608,6 +609,7 @@ void AddCoAScripts()
     AddSC_AscensionKeepersScrollSteadfast();
     AddSC_AscensionProfessionSpellAffect();
     AddSC_AscensionPerforatingShots();
+    AddSC_AscensionSummonedEffects();
     AddSC_AscensionKeepersScrollZoneBuff();
     AddSC_AscensionWelcomeWarchest();
     AddSC_AscensionClassBundleStore();
