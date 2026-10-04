@@ -1478,8 +1478,13 @@ namespace CoAChallenges
             // Official behavior: you can only group with players in the exact
             // same challenge set (both with none = free grouping). This is a
             // server-side mechanic, not encoded in the client definitions.
+            // Playerbots are companions controlled by the challenge owner, not
+            // independent challenge participants. Let them join regardless of
+            // their own challenge rows; the same-challenge restriction remains
+            // in force for player-to-player groups.
+            bool const targetIsBot = target && target->GetSession() && target->GetSession()->IsBot();
             if (sConfigMgr->GetOption<bool>("CoAChallenges.RequireSameChallengeToGroup", true)
-                && target
+                && target && !targetIsBot
                 && ActiveChallenges(player->GetGUID().GetCounter())
                     != ActiveChallenges(target->GetGUID().GetCounter()))
             {
@@ -1523,8 +1528,11 @@ namespace CoAChallenges
             }
 
             // Same-challenge grouping gate (see OnPlayerCanGroupInvite).
+            bool const playerIsBot = player->GetSession() && player->GetSession()->IsBot();
+            bool const leaderIsBot = leader && leader->GetSession() && leader->GetSession()->IsBot();
             if (sConfigMgr->GetOption<bool>("CoAChallenges.RequireSameChallengeToGroup", true)
                 && leader
+                && !playerIsBot && !leaderIsBot
                 && ActiveChallenges(player->GetGUID().GetCounter())
                     != ActiveChallenges(leader->GetGUID().GetCounter()))
             {
@@ -3830,4 +3838,3 @@ void Addmod_coa_challengesScripts()
     new CoAChallenges::CoAChallengesSpells();
     new CoAChallenges::CoAChallengesAllCreature();
 }
-
