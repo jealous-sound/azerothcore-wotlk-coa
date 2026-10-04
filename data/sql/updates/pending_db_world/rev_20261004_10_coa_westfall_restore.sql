@@ -11,14 +11,14 @@ INSERT INTO `creature_template` (`entry`, `difficulty_entry_1`, `difficulty_entr
   `HealthModifier`, `ManaModifier`, `ArmorModifier`, `ExperienceModifier`, `RacialLeader`, `movementId`,
   `RegenHealth`, `CreatureImmunitiesId`, `flags_extra`, `ScriptName`, `VerifiedBuild`)
 VALUES
-(776786, 0, 0, 0, 0, 0, 'Captain Olens', 'The People''s Militia', NULL, 0, 33, 33, 0, 12, 2, 1, 1.14286, 1, 1, 18, 0, 0, 1, 2000, 2000, 1, 1, 1, 512, 2048, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 0.98, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
-(776790, 0, 0, 0, 0, 0, 'Archivist Selnor', NULL, NULL, 0, 33, 33, 0, 12, 2, 1, 1.14286, 1, 1, 18, 0, 0, 1, 2000, 2000, 1, 1, 1, 512, 2048, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 0.98, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
+(776786, 0, 0, 0, 0, 0, 'Captain Olens', 'The People''s Militia', NULL, 9950100, 14, 14, 0, 12, 3, 1, 1.14286, 1, 1, 18, 0, 0, 1, 2000, 2000, 1, 1, 1, 512, 2048, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 0.98, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
+(776790, 0, 0, 0, 0, 0, 'Archivist Selnor', NULL, NULL, 0, 11, 11, 0, 12, 2, 1, 1.14286, 1, 1, 18, 0, 0, 1, 2000, 2000, 1, 1, 1, 512, 2048, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 0.98, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
 (255150, 0, 0, 0, 0, 0, 'Idona Wyther', 'Alchemy Trainer', NULL, 4110, 26, 26, 0, 12, 83, 1, 1.14286, 1, 1, 18, 0, 0, 1, 1500, 2000, 1, 1, 1, 512, 2048, 0, 0, 7, 134217728, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 1.064, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
-(991515, 0, 0, 0, 0, 0, 'Lenore the Hoarder', '', NULL, 0, 13, 13, 0, 17, 0, 1, 1.14286, 1, 1, 18, 1, 0, 1, 2000, 2000, 1, 1, 1, 32768, 2048, 0, 0, 7, 0, 95, 95, 0, 0, 0, 3, 24, '', 0, 1, 3, 1, 1, 1, 0, 0, 1, 0, 0, '', 0),
-(255339, 0, 0, 0, 0, 0, 'Militia Recruit', 'The People''s Militia', NULL, 0, 10, 11, 0, 7, 0, 1, 1.14286, 1, 1, 18, 0, 0, 1, 2000, 2000, 1, 1, 1, 0, 2048, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 'SmartAI', 0, 1, 1.448, 1, 1, 1, 0, 0, 1, 0, 0, '', 0),
-(157002, 0, 0, 0, 0, 0, 'Farmer Demont', '', NULL, 0, 20, 20, 0, 35, 2, 1, 1.14286, 1, 1, 18, 0, 0, 1, 1500, 2000, 1, 1, 1, 512, 2048, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 1.25, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
-(999900, 0, 0, 0, 0, 0, 'Fallen Protector', NULL, NULL, 0, 11, 11, 0, 35, 2, 1, 1.14286, 1, 1, 18, 0, 0, 1, 2000, 2000, 1, 1, 1, 768, 2048, 32, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 1, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
-(999901, 0, 0, 0, 0, 0, 'Mangled Remains', NULL, NULL, 0, 16, 16, 0, 35, 2, 1, 1.14286, 1, 1, 18, 0, 0, 1, 2000, 2000, 1, 1, 1, 768, 2048, 32, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 1, 1, 1, 1, 0, 0, 1, 0, 2, '', 0)
+(991515, 0, 0, 0, 0, 0, 'Lenore the Hoarder', '', NULL, 0, 15, 15, 0, 17, 0, 1, 1.14286, 1, 1, 18, 1, 0, 1, 2000, 2000, 1, 1, 1, 32768, 2048, 0, 0, 7, 0, 95, 95, 0, 0, 0, 3, 24, 'SmartAI', 0, 1, 3, 1, 1, 1, 0, 0, 1, 0, 0, '', 0),
+(255339, 0, 0, 0, 0, 0, 'Militia Recruit', 'The People''s Militia', NULL, 0, 14, 16, 0, 7, 0, 1, 1.14286, 1, 1, 18, 0, 0, 1, 2000, 2000, 1, 1, 1, 0, 2048, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 'SmartAI', 0, 1, 1.448, 1, 1, 1, 0, 0, 1, 0, 0, '', 0),
+(157002, 0, 0, 0, 0, 0, 'Farmer Demont', '', NULL, 0, 15, 15, 0, 35, 2, 1, 1.14286, 1, 1, 18, 0, 0, 1, 1500, 2000, 1, 1, 1, 512, 2048, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 1.25, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
+(999900, 0, 0, 0, 0, 0, 'Slain Protector', NULL, NULL, 0, 15, 15, 0, 35, 2, 1, 1.14286, 1, 1, 18, 0, 0, 1, 2000, 2000, 1, 1, 1, 768, 2048, 32, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 1, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
+(999901, 0, 0, 0, 0, 0, 'Half-Devoured Protector', 'The People''s Militia', NULL, 0, 15, 15, 0, 35, 2, 1, 1.14286, 1, 1, 18, 0, 0, 1, 2000, 2000, 1, 1, 1, 768, 2048, 32, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 1, 1, 1, 1, 0, 0, 1, 0, 2, '', 0)
 ON DUPLICATE KEY UPDATE `difficulty_entry_1` = VALUES(`difficulty_entry_1`),
   `difficulty_entry_2` = VALUES(`difficulty_entry_2`), `difficulty_entry_3` = VALUES(`difficulty_entry_3`),
   `KillCredit1` = VALUES(`KillCredit1`), `KillCredit2` = VALUES(`KillCredit2`), `name` = VALUES(`name`),
@@ -59,7 +59,6 @@ INSERT INTO `creature_template_model` (`CreatureID`, `Idx`, `CreatureDisplayID`,
 (999900, 0, 2368, 1, 1, 0),
 (999901, 0, 7308, 1, 1, 0);
 
--- Fallen Protector and Mangled Remains are estimated names for the report bodies.
 DELETE FROM `creature_template_addon` WHERE `entry` IN (999900,999901);
 INSERT INTO `creature_template_addon` (`entry`, `path_id`, `mount`, `bytes1`, `bytes2`, `emote`,
   `visibilityDistanceType`, `auras`) VALUES
@@ -81,6 +80,35 @@ INSERT INTO `smart_scripts` (`entryorguid`, `source_type`, `id`, `link`, `event_
 (255339, 0, 1, 2, 2, 0, 100, 0, 0, 1, 1000, 1000, 0, 0, 33, 255339, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 'Militia Recruit - Between 0-1% Health - Quest Credit ''Militia Training'''),
 (255339, 0, 2, 0, 61, 0, 100, 0, 0, 0, 0, 0, 0, 0, 24, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 'Militia Recruit - On Link - Evade');
 
+DELETE FROM `creature_text` WHERE `CreatureID`=991515;
+INSERT INTO `creature_text` (`CreatureID`, `GroupID`, `ID`, `Text`, `Type`, `Language`, `Probability`, `Emote`,
+  `Duration`, `Sound`, `BroadcastTextId`, `TextRange`, `comment`) VALUES
+(991515, 0, 0, 'HEY! Get away from my stuff!!!', 12, 0, 100, 0, 0, 0, 0, 0, 'Lenore the Hoarder - Aggro');
+
+DELETE FROM `smart_scripts` WHERE `entryorguid`=991515 AND `source_type`=0;
+INSERT INTO `smart_scripts` (`entryorguid`, `source_type`, `id`, `link`, `event_type`, `event_phase_mask`,
+  `event_chance`, `event_flags`, `event_param1`, `event_param2`, `event_param3`, `event_param4`, `event_param5`,
+  `event_param6`, `action_type`, `action_param1`, `action_param2`, `action_param3`, `action_param4`, `action_param5`,
+  `action_param6`, `target_type`, `target_param1`, `target_param2`, `target_param3`, `target_param4`, `target_x`,
+  `target_y`, `target_z`, `target_o`, `comment`) VALUES
+(991515, 0, 0, 0, 4, 0, 100, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 'Lenore the Hoarder - On Aggro - Say Line 0');
+
+DELETE FROM `npc_text` WHERE `ID`=9950100;
+INSERT INTO `npc_text` (`ID`, `text0_0`, `text0_1`, `BroadcastTextID0`, `lang0`, `Probability0`, `em0_0`, `em0_1`,
+  `em0_2`, `em0_3`, `em0_4`, `em0_5`, `text1_0`, `text1_1`, `BroadcastTextID1`, `lang1`, `Probability1`, `em1_0`,
+  `em1_1`, `em1_2`, `em1_3`, `em1_4`, `em1_5`, `text2_0`, `text2_1`, `BroadcastTextID2`, `lang2`, `Probability2`,
+  `em2_0`, `em2_1`, `em2_2`, `em2_3`, `em2_4`, `em2_5`, `text3_0`, `text3_1`, `BroadcastTextID3`, `lang3`,
+  `Probability3`, `em3_0`, `em3_1`, `em3_2`, `em3_3`, `em3_4`, `em3_5`, `text4_0`, `text4_1`, `BroadcastTextID4`,
+  `lang4`, `Probability4`, `em4_0`, `em4_1`, `em4_2`, `em4_3`, `em4_4`, `em4_5`, `text5_0`, `text5_1`,
+  `BroadcastTextID5`, `lang5`, `Probability5`, `em5_0`, `em5_1`, `em5_2`, `em5_3`, `em5_4`, `em5_5`, `text6_0`,
+  `text6_1`, `BroadcastTextID6`, `lang6`, `Probability6`, `em6_0`, `em6_1`, `em6_2`, `em6_3`, `em6_4`, `em6_5`,
+  `text7_0`, `text7_1`, `BroadcastTextID7`, `lang7`, `Probability7`, `em7_0`, `em7_1`, `em7_2`, `em7_3`, `em7_4`,
+  `em7_5`, `VerifiedBuild`) VALUES
+(9950100, 'We must do what we can to press back the Defias. Most of us aren''t fighters, but I''ve spent enough time on both the farms and the front to teach a fool how to replace a pitchfork with a sword. If you want to help out the recruits, or get some practice of your own, feel free. Otherwise report to Captain Danuven, we need all the hands we can get - assuming they''re capable, of course.', '', 0, 0, 1, 0, 0, 0, 0, 0, 0, '', '', 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+DELETE FROM `gossip_menu` WHERE `MenuID`=9950100;
+INSERT INTO `gossip_menu` (`MenuID`, `TextID`) VALUES
+(9950100, 9950100);
+
 DELETE FROM `creature` WHERE `guid` BETWEEN 9950100 AND 9950110;
 INSERT INTO `creature` (`guid`, `id`, `map`, `zoneId`, `areaId`, `spawnMask`, `phaseMask`, `equipment_id`,
   `position_x`, `position_y`, `position_z`, `orientation`, `spawntimesecs`, `wander_distance`, `currentwaypoint`,
@@ -93,12 +121,12 @@ INSERT INTO `creature` (`guid`, `id`, `map`, `zoneId`, `areaId`, `spawnMask`, `p
 (9950104, 255339, 0, 40, 108, 1, 1, 0, -10521, 1072.5, 53.29, 5.1, 120, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Militia Recruit (estimated position)'),
 (9950105, 255150, 0, 40, 108, 1, 1, 0, -10489, 1060, 54.58, 3.14, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Idona Wyther (estimated position)'),
 (9950106, 776790, 0, 40, 108, 1, 1, 0, -10501.5, 1029.5, 60.6, 3.84, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Archivist Selnor (estimated position, tower floor)'),
-(9950107, 991515, 0, 40, 40, 1, 1, 0, -10496, 1334, 42.62, 0, 600, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Lenore the Hoarder (estimated position, west Defias camp)'),
+(9950107, 991515, 0, 40, 40, 1, 1, 0, -10259.3, 1780.44, 73.85, 5.82, 600, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Lenore the Hoarder (estimated position, Defias tower upper floor)'),
 (9950108, 157002, 0, 40, 921, 1, 1, 0, -11018, 1784, 43.92, 3.14, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Farmer Demont (estimated position, Demont''s Place)'),
-(9950109, 999900, 0, 40, 40, 1, 1, 0, -9828, 874, 26.08, 2.2, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Fallen Protector (estimated position, road to Elwynn)'),
-(9950110, 999901, 0, 40, 922, 1, 1, 0, -11110, 860, 40.03, 1, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Mangled Remains (estimated position, The Dust Plains)');
+(9950109, 999900, 0, 40, 40, 1, 1, 0, -10100, 980, 40.37, 2.2, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Slain Protector (estimated position, broken harvester)'),
+(9950110, 999901, 0, 40, 922, 1, 1, 0, -11030, 790, 37.55, 1, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Half-Devoured Protector (estimated position, Riverpaw camp)');
 
--- Stolen Militia Supplies (480104) is an estimated name; Ascension's object id for it is unknown.
+-- Westfall Hoard (480104): Ascension's object id for it is unknown.
 INSERT INTO `gameobject_template` (`entry`, `type`, `displayId`, `name`, `IconName`, `castBarCaption`, `unk1`,
   `size`, `Data0`, `Data1`, `Data2`, `Data3`, `Data4`, `Data5`, `Data6`, `Data7`, `Data8`, `Data9`, `Data10`,
   `Data11`, `Data12`, `Data13`, `Data14`, `Data15`, `Data16`, `Data17`, `Data18`, `Data19`, `Data20`, `Data21`,
@@ -107,7 +135,7 @@ VALUES
 (480101, 3, 6448, 'Pilfered Lesser Healing Potions', '', '', '', 1, 43, 480101, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', 0),
 (480102, 3, 6448, 'Pilfered Minor Healing Potions', '', '', '', 1, 43, 480102, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', 0),
 (480103, 3, 6448, 'Pilfered Elixirs', '', '', '', 1, 43, 480103, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', 0),
-(480104, 3, 36, 'Stolen Militia Supplies', '', '', '', 1, 43, 480104, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', 0)
+(480104, 3, 36, 'Westfall Hoard', '', '', '', 1, 43, 480104, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', 0)
 ON DUPLICATE KEY UPDATE `type` = VALUES(`type`), `displayId` = VALUES(`displayId`), `name` = VALUES(`name`),
   `IconName` = VALUES(`IconName`), `castBarCaption` = VALUES(`castBarCaption`), `unk1` = VALUES(`unk1`),
   `size` = VALUES(`size`), `Data0` = VALUES(`Data0`), `Data1` = VALUES(`Data1`), `Data2` = VALUES(`Data2`),
@@ -133,16 +161,16 @@ INSERT INTO `gameobject_loot_template` (`Entry`, `Item`, `Reference`, `Chance`, 
 (480101, 480201, 0, 100, 1, 1, 0, 1, 1, 'Pilfered Lesser Healing Potions'),
 (480102, 480202, 0, 100, 1, 1, 0, 1, 1, 'Pilfered Minor Healing Potions'),
 (480103, 480203, 0, 100, 1, 1, 0, 1, 1, 'Pilfered Elixirs'),
-(480104, 1252801, 0, 100, 1, 1, 0, 1, 1, 'Stolen Militia Supplies');
+(480104, 1252801, 0, 100, 1, 1, 0, 1, 1, 'Westfall Hoard');
 
 DELETE FROM `gameobject` WHERE `guid` BETWEEN 9001100 AND 9001103;
 INSERT INTO `gameobject` (`guid`, `id`, `map`, `zoneId`, `areaId`, `spawnMask`, `phaseMask`, `position_x`,
   `position_y`, `position_z`, `orientation`, `rotation0`, `rotation1`, `rotation2`, `rotation3`, `spawntimesecs`,
   `animprogress`, `state`, `ScriptName`, `VerifiedBuild`, `Comment`) VALUES
-(9001100, 480101, 0, 40, 40, 1, 1, -10486.5, 1325, 42.65, 1.2, 0, 0, 0.564642, 0.825336, 900, 100, 1, '', 0, 'Pilfered Lesser Healing Potions (estimated position, west Defias camp)'),
-(9001101, 480102, 0, 40, 918, 1, 1, -10287, 1395, 40.38, 2.5, 0, 0, 0.948985, 0.315322, 900, 100, 1, '', 0, 'Pilfered Minor Healing Potions (estimated position, Molsen Farm)'),
-(9001102, 480103, 0, 40, 111, 1, 1, -9993, 1461, 41.38, 4, 0, 0, 0.909297, -0.416147, 900, 100, 1, '', 0, 'Pilfered Elixirs (estimated position, Jangolode Mine)'),
-(9001103, 480104, 0, 40, 40, 1, 1, -10490.1, 1214.43, 67.08, 0.6, 0, 0, 0.29552, 0.955336, 900, 100, 1, '', 0, 'Stolen Militia Supplies (estimated position)');
+(9001100, 480101, 0, 40, 919, 1, 1, -10725, 1400, 36.38, 1.2, 0, 0, 0.564642, 0.825336, 900, 100, 1, '', 0, 'Pilfered Lesser Healing Potions (estimated position, Stendel''s Pond)'),
+(9001101, 480102, 0, 40, 111, 1, 1, -9995.5, 1471, 41.4, 2.5, 0, 0, 0.948985, 0.315322, 900, 100, 1, '', 0, 'Pilfered Minor Healing Potions (estimated position, Jangolode shed)'),
+(9001102, 480103, 0, 40, 40, 1, 1, -10140, 1723, 33.01, 4, 0, 0, 0.909297, -0.416147, 900, 100, 1, '', 0, 'Pilfered Elixirs (estimated position, by Sergeant Brashclaw)'),
+(9001103, 480104, 0, 40, 40, 1, 1, -10259.7, 1775.1, 73.85, 5.82, 0, 0, 0.229528, -0.973302, 900, 100, 1, '', 0, 'Westfall Hoard (estimated position, Defias tower upper floor)');
 
 -- 999914 and 999933 are autocomplete (Method 0) in the WDB capture; QuestType 2 keeps them in the log
 -- until the report reaches Archivist Selnor.
@@ -271,7 +299,7 @@ INSERT INTO `creature_queststarter` (`id`, `quest`) VALUES
 (233, 17014),
 (157002, 17011),
 (157002, 17012),
-(490, 254042),
+(878, 254042),
 (490, 254043),
 (776786, 255057),
 (776790, 999913),
