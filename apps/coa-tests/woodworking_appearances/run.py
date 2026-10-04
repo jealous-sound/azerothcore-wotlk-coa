@@ -39,7 +39,7 @@ def main():
     assert crafting.index('StoreNewItem(') < crafting.index('sScriptMgr->OnPlayerCreateItem(player, pItem, addNumber);')
     replacements = {
         'CONSTANTS': '\n'.join(re.search(r'^constexpr [\w:]+ ' + name + r' = [^;]+;$', compat, re.M)[0]
-                              for name in ('APPEARANCE_CATEGORY_COUNT', 'VANITY_STORE_RECORD_DWORDS',
+                              for name in ('APPEARANCE_CATEGORY_COUNT',
                                            'SMSG_APPEARANCE_ADDED', 'SMSG_VANITY_COLLECTION_ADDED')),
         'PATCH_CONSTANTS': '\n'.join(
             re.search(r'^constexpr uint16 ' + name + r' = [^;]+;$', compat, re.M)[0]

@@ -162,7 +162,6 @@ constexpr uint16 SMSG_VANITY_COLLECTION_ADDED = 0x06F8;
 constexpr uint16 CMSG_QUERY_CUSTOM_STORE = 0x06B9;
 constexpr uint16 CMSG_PURCHASE_CUSTOM_STORE_ITEM = 0x06BB;
 constexpr uint16 SMSG_QUERY_CUSTOM_STORE_RESULT = 0x06BA;
-constexpr std::size_t VANITY_STORE_RECORD_DWORDS = 16;
 constexpr uint16 SMSG_CHARACTER_ADVANCEMENT_ACTIVE_SPEC = 0x0725;
 constexpr uint16 SMSG_CHARACTER_ADVANCEMENT_KNOWN_ENTRIES = 0x0726;
 constexpr uint16 CMSG_CHARACTER_ADVANCEMENT_KNOWN_ENTRIES = 0x0727;
@@ -482,7 +481,6 @@ struct VanityInfo {
   uint32 LearnedSpell = 0;
   uint32 Flags = 0;
   uint32 CategoryMask = 0;
-  std::array<uint32, VANITY_STORE_RECORD_DWORDS> StoreRecord{};
 };
 
 struct PlayerCollectionState {
@@ -4243,9 +4241,6 @@ public:
       VanityInfo info{
           record.GetUInt32(76), record.GetUInt32(12), record.GetUInt32(2)};
 
-      for (uint32 field = 0; field < VANITY_STORE_RECORD_DWORDS; ++field)
-        info.StoreRecord[field] = record.GetUInt32(field);
-
       _vanityItems[itemId] = info;
       _allVanityItemIds.push_back(itemId);
     }
@@ -4371,7 +4366,6 @@ public:
     SendRealmInfo(player);
     SendGameModeState(player);
     SendVanityCollection(player, *state);
-    SendOwnedVanityStoreRecords(player, *state);
     RefreshVisibleItems(player);
     for (auto const& [id, appearance] : _appearances)
         if (appearance.CosmeticSpell)
@@ -5328,7 +5322,6 @@ private:
       }
 
       LearnOwnedBankSpells(player, state, !player->IsInWorld());
-      SendOwnedVanityStoreRecords(player, state);
       LOG_INFO("coa", "Account {} acquired the bank item {} through {}",
                state.AccountId, itemId, player->GetName());
     }
@@ -5760,47 +5753,6 @@ private:
       packet << itemId;
 
     player->GetSession()->SendPacket(&packet);
-  }
-
-  void SendOwnedVanityStoreRecords(Player *player,
-                                   PlayerCollectionState const &state) {
-    bool const unlockAll = ascensionCompatConfig.GetConfigValue<bool>(
-        AscensionCompatConfig::UNLOCK_ALL_VANITY);
-
-    std::vector<uint32> itemIds;
-    if (unlockAll)
-      itemIds = _allVanityItemIds;
-    else
-      for (uint32 itemId : state.OwnedVanityItems)
-        if (_vanityItems.contains(itemId))
-          itemIds.push_back(itemId);
-
-    std::sort(itemIds.begin(), itemIds.end());
-    itemIds.erase(std::unique(itemIds.begin(), itemIds.end()), itemIds.end());
-
-    WorldPacket packet(SMSG_QUERY_CUSTOM_STORE_RESULT,
-                       64 + itemIds.size() * VANITY_STORE_RECORD_DWORDS * sizeof(uint32));
-    packet << "QUERY_CUSTOM_STORE_OK";
-    packet << static_cast<uint32>(itemIds.size());
-    for (uint32 itemId : itemIds)
-      for (uint32 field : _vanityItems.at(itemId).StoreRecord)
-        packet << field;
-
-    player->GetSession()->SendPacket(&packet);
-
-    if (!itemIds.empty())
-    {
-      std::string owned;
-      for (uint32 itemId : itemIds) {
-        if (!owned.empty())
-          owned += ' ';
-        owned += std::to_string(itemId);
-      }
-
-      LOG_INFO("coa",
-               "Sent {} vanity store record(s) to {} for owned item(s): {}",
-               itemIds.size(), player->GetName(), owned);
-    }
   }
 
   void SendApplyResult(Player *player, char const *result) {

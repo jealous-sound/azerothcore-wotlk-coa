@@ -330,8 +330,10 @@ void VanityBoundaries(Player& player)
     Require(state->CollectedAppearances.contains(500) && state->OwnedVanityItems.contains(700),
         "physically obtained vanity items retain existing collection behavior");
     AwardItem(player, 702);
-    Require(state->OwnedVanityItems.contains(702) && player.BankSpellCalls == 1 && player.VanityStoreCalls == 1,
+    Require(state->OwnedVanityItems.contains(702) && player.BankSpellCalls == 1,
         "physically obtained bank items retain existing ownership behavior");
+    Require(!player.VanityStoreCalls,
+        "acquiring a bank item must not push vanity rows into the client's custom store list");
 }
 
 void MissingStateAndDisabled(Player& player)

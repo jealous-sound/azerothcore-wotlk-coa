@@ -214,7 +214,6 @@ public:
     static uint32 ResolveCosmeticSpell(uint32, uint32, uint32) { return 0; }
     bool IsBankVanityItem(uint32) const { return false; }
     void LearnOwnedBankSpells(Player*, PlayerCollectionState&, bool) { }
-    void SendOwnedVanityStoreRecords(Player*, PlayerCollectionState&) { }
     // ACTUAL_INSTANCE
     // ACTUAL_LOAD
     // ACTUAL_LOAD_WOODWORKING
