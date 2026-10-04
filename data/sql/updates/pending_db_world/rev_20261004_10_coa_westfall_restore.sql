@@ -1,4 +1,4 @@
--- Westfall restore from Ascension captures: 16 missing quests (WDB 2026-09-08, Exiles DB 2026-09-13),
+-- Westfall restore from Ascension captures: 17 missing quests (WDB 2026-09-07..10, Exiles DB 2026-09-13),
 -- their givers, targets and objects, plus field differences in existing Westfall quests.
 -- Positions are estimated; displays marked stand-in replace Ascension models the client lacks.
 
@@ -19,8 +19,9 @@ VALUES
 (991515, 0, 0, 0, 0, 0, 'Lenore the Hoarder', '', NULL, 0, 15, 15, 0, 17, 0, 1, 1.14286, 1, 1, 18, 1, 0, 1, 2000, 2000, 1, 1, 1, 32768, 2048, 0, 0, 7, 0, 991515, 95, 0, 0, 0, 3, 24, 'SmartAI', 0, 1, 3, 1, 1, 1, 0, 0, 1, 0, 0, '', 0),
 (255339, 0, 0, 0, 0, 0, 'Militia Recruit', 'The People''s Militia', NULL, 0, 14, 16, 0, 7, 0, 1, 1.14286, 1, 1, 18, 0, 0, 1, 2000, 2000, 1, 1, 1, 0, 2048, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 'SmartAI', 0, 1, 1.448, 1, 1, 1, 0, 0, 1, 0, 0, '', 0),
 (157002, 0, 0, 0, 0, 0, 'Farmer Demont', '', NULL, 0, 15, 15, 0, 35, 2, 1, 1.14286, 1, 1, 18, 0, 0, 1, 1500, 2000, 1, 1, 1, 512, 2048, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 1.25, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
-(999900, 0, 0, 0, 0, 0, 'Slain Protector', NULL, NULL, 0, 15, 15, 0, 35, 2, 1, 1.14286, 1, 1, 18, 0, 0, 1, 2000, 2000, 1, 1, 1, 768, 2048, 32, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 1, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
-(999901, 0, 0, 0, 0, 0, 'Half-Devoured Protector', 'The People''s Militia', NULL, 0, 15, 15, 0, 35, 2, 1, 1.14286, 1, 1, 18, 0, 0, 1, 2000, 2000, 1, 1, 1, 768, 2048, 32, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 1, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
+(455339, 0, 0, 0, 0, 0, 'Slain Protector', 'The People''s Militia', NULL, 0, 15, 15, 0, 35, 2, 1, 1.14286, 1, 1, 18, 0, 0, 1, 2000, 2000, 1, 1, 1, 768, 2048, 32, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 2.048, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
+(455343, 0, 0, 0, 0, 0, 'Half-Devoured Protector', 'The People''s Militia', NULL, 0, 15, 15, 0, 35, 2, 1, 1.14286, 1, 1, 18, 0, 0, 1, 2000, 2000, 1, 1, 1, 768, 2048, 32, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 2.048, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
+(775125, 0, 0, 0, 0, 0, 'Defias Pyromancer', '', NULL, 0, 15, 15, 0, 17, 0, 1, 1.14286, 1, 1, 18, 1, 0, 1, 2000, 2000, 1, 1, 8, 32768, 2048, 0, 0, 7, 0, 775125, 0, 0, 0, 0, 4, 34, 'SmartAI', 1, 1, 2, 1, 1, 1, 0, 0, 1, 0, 0, '', 0),
 (100467, 0, 0, 0, 0, 0, 'Path to Ascension Flightmaster Credit', '', NULL, 0, 1, 1, 0, 35, 0, 1, 1.14286, 1, 1, 20, 0, 0, 1, 0, 0, 1, 1, 1, 2, 0, 0, 0, 7, 2147483648, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, '', 0)
 ON DUPLICATE KEY UPDATE `difficulty_entry_1` = VALUES(`difficulty_entry_1`),
   `difficulty_entry_2` = VALUES(`difficulty_entry_2`), `difficulty_entry_3` = VALUES(`difficulty_entry_3`),
@@ -47,8 +48,9 @@ ON DUPLICATE KEY UPDATE `difficulty_entry_1` = VALUES(`difficulty_entry_1`),
   `VerifiedBuild` = VALUES(`VerifiedBuild`);
 
 -- Stand-in displays: Olens 177231, Brenolt 177232, Selnor 177229, Idona 255150, Tavin 255151 and
--- Lenore 119854 are not in the client.
-DELETE FROM `creature_template_model` WHERE `CreatureID` IN (776786,776787,776790,255150,255151,991515,255339,157002,999900,999901,100467);
+-- Lenore 119854, Slain Protector 177256, Half-Devoured Protector 177252 and Defias Pyromancer 775125 are not
+-- in the client.
+DELETE FROM `creature_template_model` WHERE `CreatureID` IN (776786,776787,776790,255150,255151,991515,255339,157002,455339,455343,775125,100467);
 INSERT INTO `creature_template_model` (`CreatureID`, `Idx`, `CreatureDisplayID`, `DisplayScale`, `Probability`,
   `VerifiedBuild`) VALUES
 (776786, 0, 7310, 1, 1, 0),
@@ -62,15 +64,17 @@ INSERT INTO `creature_template_model` (`CreatureID`, `Idx`, `CreatureDisplayID`,
 (255339, 2, 7310, 1, 1, 0),
 (255339, 3, 7311, 1, 1, 0),
 (157002, 0, 19354, 1, 1, 0),
-(999900, 0, 2368, 1, 1, 0),
-(999901, 0, 7308, 1, 1, 0),
+(455339, 0, 2368, 1, 1, 0),
+(455343, 0, 7308, 1, 1, 0),
+(775125, 0, 2338, 1, 1, 0),
+(775125, 1, 2339, 1, 1, 0),
 (100467, 0, 11686, 1, 1, 0);
 
-DELETE FROM `creature_template_addon` WHERE `entry` IN (999900,999901);
+DELETE FROM `creature_template_addon` WHERE `entry` IN (455339,455343);
 INSERT INTO `creature_template_addon` (`entry`, `path_id`, `mount`, `bytes1`, `bytes2`, `emote`,
   `visibilityDistanceType`, `auras`) VALUES
-(999900, 0, 0, 7, 1, 0, 0, NULL),
-(999901, 0, 0, 7, 1, 0, 0, NULL);
+(455339, 0, 0, 7, 1, 0, 0, NULL),
+(455343, 0, 0, 7, 1, 0, 0, NULL);
 
 -- Estimated: Idona Wyther teaches the same alchemy list as Alchemist Mallory.
 DELETE FROM `creature_default_trainer` WHERE `CreatureId`=255150;
@@ -116,13 +120,27 @@ INSERT INTO `creature_text` (`CreatureID`, `GroupID`, `ID`, `Text`, `Type`, `Lan
   `Duration`, `Sound`, `BroadcastTextId`, `TextRange`, `comment`) VALUES
 (991515, 0, 0, 'HEY! Get away from my stuff!!!', 12, 0, 100, 0, 0, 0, 0, 0, 'Lenore the Hoarder - Aggro');
 
+-- Lenore the Hoarder and Defias Pyromancer spells: MobSpells capture (cachedata MobSpells.lua); timers
+-- are estimated.
 DELETE FROM `smart_scripts` WHERE `entryorguid`=991515 AND `source_type`=0;
 INSERT INTO `smart_scripts` (`entryorguid`, `source_type`, `id`, `link`, `event_type`, `event_phase_mask`,
   `event_chance`, `event_flags`, `event_param1`, `event_param2`, `event_param3`, `event_param4`, `event_param5`,
   `event_param6`, `action_type`, `action_param1`, `action_param2`, `action_param3`, `action_param4`, `action_param5`,
   `action_param6`, `target_type`, `target_param1`, `target_param2`, `target_param3`, `target_param4`, `target_x`,
   `target_y`, `target_z`, `target_o`, `comment`) VALUES
-(991515, 0, 0, 0, 4, 0, 100, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 'Lenore the Hoarder - On Aggro - Say Line 0');
+(991515, 0, 0, 0, 4, 0, 100, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 'Lenore the Hoarder - On Aggro - Say Line 0'),
+(991515, 0, 1, 0, 0, 0, 100, 0, 5000, 8000, 15000, 20000, 0, 0, 11, 12024, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 'Lenore the Hoarder - In Combat - Cast ''Net'''),
+(991515, 0, 2, 0, 0, 0, 100, 0, 3000, 6000, 7000, 10000, 0, 0, 11, 992957, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 'Lenore the Hoarder - In Combat - Cast ''Sinister Strike''');
+
+DELETE FROM `smart_scripts` WHERE `entryorguid`=775125 AND `source_type`=0;
+INSERT INTO `smart_scripts` (`entryorguid`, `source_type`, `id`, `link`, `event_type`, `event_phase_mask`,
+  `event_chance`, `event_flags`, `event_param1`, `event_param2`, `event_param3`, `event_param4`, `event_param5`,
+  `event_param6`, `action_type`, `action_param1`, `action_param2`, `action_param3`, `action_param4`, `action_param5`,
+  `action_param6`, `target_type`, `target_param1`, `target_param2`, `target_param3`, `target_param4`, `target_x`,
+  `target_y`, `target_z`, `target_o`, `comment`) VALUES
+(775125, 0, 0, 0, 4, 0, 100, 0, 0, 0, 0, 0, 0, 0, 11, 271228, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 'Defias Pyromancer - On Aggro - Cast ''Fire Fire Fireball'''),
+(775125, 0, 1, 0, 0, 0, 100, 0, 0, 0, 3400, 5400, 0, 0, 11, 993084, 64, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 'Defias Pyromancer - In Combat CMC - Cast ''Fireball'''),
+(775125, 0, 2, 0, 0, 0, 100, 0, 6000, 9000, 12000, 16000, 0, 0, 11, 993083, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 'Defias Pyromancer - In Combat - Cast ''Fire Fire Fireball''');
 
 -- Protector Brenolt and Captain Olens talk as seen in footage; the repeat interval is estimated.
 DELETE FROM `creature_text` WHERE `CreatureID` IN (776787,776786);
@@ -160,7 +178,7 @@ DELETE FROM `gossip_menu` WHERE `MenuID`=9950100;
 INSERT INTO `gossip_menu` (`MenuID`, `TextID`) VALUES
 (9950100, 9950100);
 
-DELETE FROM `creature` WHERE `guid` BETWEEN 9950100 AND 9950116;
+DELETE FROM `creature` WHERE `guid` BETWEEN 9950100 AND 9950117;
 INSERT INTO `creature` (`guid`, `id`, `map`, `zoneId`, `areaId`, `spawnMask`, `phaseMask`, `equipment_id`,
   `position_x`, `position_y`, `position_z`, `orientation`, `spawntimesecs`, `wander_distance`, `currentwaypoint`,
   `curhealth`, `curmana`, `MovementType`, `npcflag`, `unit_flags`, `dynamicflags`, `ScriptName`, `VerifiedBuild`,
@@ -174,14 +192,27 @@ INSERT INTO `creature` (`guid`, `id`, `map`, `zoneId`, `areaId`, `spawnMask`, `p
 (9950106, 776790, 0, 40, 108, 1, 1, 0, -10501.5, 1029.5, 60.6, 3.84, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Archivist Selnor (estimated position, tower floor)'),
 (9950107, 991515, 0, 40, 40, 1, 1, 0, -10259.31, 1780.44, 73.85, 5.82, 600, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Lenore the Hoarder (estimated position, Defias tower upper floor)'),
 (9950108, 157002, 0, 40, 921, 1, 1, 0, -11141.0, 1826.0, 39.15, 5.05, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Farmer Demont (estimated position, Demont''s Place ruins by the chimney)'),
-(9950109, 999900, 0, 40, 40, 1, 1, 0, -10100.0, 980.0, 40.37, 2.2, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Slain Protector (estimated position, broken harvester)'),
-(9950110, 999901, 0, 40, 922, 1, 1, 0, -11030.0, 790.0, 37.55, 1, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Half-Devoured Protector (estimated position, Riverpaw camp)'),
+(9950109, 455339, 0, 40, 40, 1, 1, 0, -10100.0, 980.0, 40.37, 2.2, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Slain Protector (estimated position, broken harvester)'),
+(9950110, 455343, 0, 40, 922, 1, 1, 0, -11030.0, 790.0, 37.55, 1, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Half-Devoured Protector (estimated position, Riverpaw camp)'),
 (9950111, 255339, 0, 40, 108, 1, 1, 0, -10734.0, 985.0, 36.75, 3.5, 120, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Militia Recruit (estimated position, training yard)'),
 (9950112, 255339, 0, 40, 108, 1, 1, 0, -10733.0, 994.5, 36.22, 2.74, 120, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Militia Recruit (estimated position, training yard)'),
 (9950113, 255339, 0, 40, 108, 1, 1, 0, -10729.0, 990.0, 36.25, 2.46, 120, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Militia Recruit (estimated position, training yard)'),
 (9950114, 255339, 0, 40, 108, 1, 1, 0, -10738.5, 981.5, 36.88, 2.78, 120, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Militia Recruit (estimated position, training yard)'),
 (9950115, 255151, 0, 40, 108, 1, 1, 0, -10509.95, 1144.83, 40.0, 3.48, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Tavin Wyther (estimated position, alchemist''s farmhouse)'),
-(9950116, 776787, 0, 40, 108, 1, 1, 0, -10724.26, 988.23, 36.25, 0.77, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Protector Brenolt (estimated position, training yard by Olens)');
+(9950116, 776787, 0, 40, 108, 1, 1, 0, -10724.26, 988.23, 36.25, 0.77, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Protector Brenolt (estimated position, training yard by Olens)'),
+(9950117, 775125, 0, 40, 20, 1, 1, 0, -11219.7, 1714.1, 39.08, 4.71, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Defias Pyromancer (Bisbeard atlas marker, Moonbrook)');
+
+-- Defias Pyromancer (775125) loot: Exiles DB export 2026-09-13, creature_loot entry 775125.
+DELETE FROM `creature_loot_template` WHERE `Entry`=775125;
+INSERT INTO `creature_loot_template` (`Entry`, `Item`, `Reference`, `Chance`, `QuestRequired`, `LootMode`, `GroupId`,
+  `MinCount`, `MaxCount`, `Comment`) VALUES
+(775125, 201182, 0, 100, 0, 1, 0, 1, 1, 'Defias Pyromancer'),
+(775125, 2089201, 0, 1.667, 0, 1, 0, 1, 1, 'Defias Pyromancer'),
+(775125, 2089202, 0, 1.667, 0, 1, 0, 1, 1, 'Defias Pyromancer'),
+(775125, 2089203, 0, 1.667, 0, 1, 0, 1, 1, 'Defias Pyromancer'),
+(775125, 2089204, 0, 1.667, 0, 1, 0, 1, 1, 'Defias Pyromancer'),
+(775125, 2089207, 0, 1.667, 0, 1, 0, 1, 1, 'Defias Pyromancer'),
+(775125, 2089208, 0, 10, 0, 1, 0, 1, 1, 'Defias Pyromancer');
 
 -- Lenore the Hoarder (991515) loot: Exiles DB export 2026-09-13, creature_loot entry 991515.
 DELETE FROM `creature_loot_template` WHERE `Entry`=991515;
@@ -230,7 +261,8 @@ INSERT INTO `creature` (`guid`, `id`, `map`, `zoneId`, `areaId`, `spawnMask`, `p
 (9950122, 12123, 0, 40, 40, 1, 1, 0, -9985.74, 2374.5, -49.2355, 0, 300, 5, 0, 0, 0, 1, 0, 0, 0, '', 0, 0, 'Reef Shark (Exiles DB export 2026-09-13)'),
 (9950123, 12123, 0, 40, 40, 1, 1, 0, -9783.67, 2353.35, -49.3094, 0, 300, 5, 0, 0, 0, 1, 0, 0, 0, '', 0, 0, 'Reef Shark (Exiles DB export 2026-09-13)');
 
--- Westfall Hoard (480104): Ascension's object id for it is unknown.
+-- Westfall Hoard (480104): Ascension's object id for it is unknown. Loosely Packed Dirt, Waterlogged Trunk
+-- and Wanted: Lenore the Hoarder: WDB gameobject cache 2026-09-09..10.
 INSERT INTO `gameobject_template` (`entry`, `type`, `displayId`, `name`, `IconName`, `castBarCaption`, `unk1`,
   `size`, `Data0`, `Data1`, `Data2`, `Data3`, `Data4`, `Data5`, `Data6`, `Data7`, `Data8`, `Data9`, `Data10`,
   `Data11`, `Data12`, `Data13`, `Data14`, `Data15`, `Data16`, `Data17`, `Data18`, `Data19`, `Data20`, `Data21`,
@@ -239,7 +271,10 @@ VALUES
 (480101, 3, 6448, 'Pilfered Lesser Healing Potions', '', '', '', 1, 43, 480101, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', 0),
 (480102, 3, 6448, 'Pilfered Minor Healing Potions', '', '', '', 1, 43, 480102, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', 0),
 (480103, 3, 6448, 'Pilfered Elixirs', '', '', '', 1, 43, 480103, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', 0),
-(480104, 3, 36, 'Westfall Hoard', '', '', '', 1, 43, 480104, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', 0)
+(480104, 3, 36, 'Westfall Hoard', '', '', '', 1, 43, 480104, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', 0),
+(96004, 3, 20, 'Loosely Packed Dirt', '', '', '', 0.5, 43, 96004, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', 0),
+(96005, 2, 1, 'Waterlogged Trunk', '', '', '', 1.33, 43, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', 0),
+(518551, 2, 2491, 'Wanted: Lenore the Hoarder', '', '', '', 1, 0, 93, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', 0)
 ON DUPLICATE KEY UPDATE `type` = VALUES(`type`), `displayId` = VALUES(`displayId`), `name` = VALUES(`name`),
   `IconName` = VALUES(`IconName`), `castBarCaption` = VALUES(`castBarCaption`), `unk1` = VALUES(`unk1`),
   `size` = VALUES(`size`), `Data0` = VALUES(`Data0`), `Data1` = VALUES(`Data1`), `Data2` = VALUES(`Data2`),
@@ -267,14 +302,23 @@ INSERT INTO `gameobject_loot_template` (`Entry`, `Item`, `Reference`, `Chance`, 
 (480103, 480203, 0, 100, 1, 1, 0, 1, 1, 'Pilfered Elixirs'),
 (480104, 1252801, 0, 100, 1, 1, 0, 1, 1, 'Westfall Hoard');
 
-DELETE FROM `gameobject` WHERE `guid` BETWEEN 9001100 AND 9001103;
+-- Estimated: the map text says the treasure map lies buried under the dirt, so it always drops.
+DELETE FROM `gameobject_loot_template` WHERE `Entry`=96004;
+INSERT INTO `gameobject_loot_template` (`Entry`, `Item`, `Reference`, `Chance`, `QuestRequired`, `LootMode`,
+  `GroupId`, `MinCount`, `MaxCount`, `Comment`) VALUES
+(96004, 157016, 0, 100, 0, 1, 0, 1, 1, 'Loosely Packed Dirt - Faded Treasure Map');
+
+DELETE FROM `gameobject` WHERE `guid` BETWEEN 9001100 AND 9001106;
 INSERT INTO `gameobject` (`guid`, `id`, `map`, `zoneId`, `areaId`, `spawnMask`, `phaseMask`, `position_x`,
   `position_y`, `position_z`, `orientation`, `rotation0`, `rotation1`, `rotation2`, `rotation3`, `spawntimesecs`,
   `animprogress`, `state`, `ScriptName`, `VerifiedBuild`, `Comment`) VALUES
 (9001100, 480101, 0, 40, 919, 1, 1, -10725.0, 1400.0, 36.38, 1.2, 0, 0, 0.564642, 0.825336, 900, 100, 1, '', 0, 'Pilfered Lesser Healing Potions (estimated position, Stendel''s Pond)'),
 (9001101, 480102, 0, 40, 111, 1, 1, -9995.5, 1471.0, 41.4, 2.5, 0, 0, 0.948985, 0.315322, 900, 100, 1, '', 0, 'Pilfered Minor Healing Potions (estimated position, Jangolode shed)'),
 (9001102, 480103, 0, 40, 40, 1, 1, -10140.0, 1723.0, 33.01, 4, 0, 0, 0.909297, -0.416147, 900, 100, 1, '', 0, 'Pilfered Elixirs (estimated position, by Sergeant Brashclaw)'),
-(9001103, 480104, 0, 40, 40, 1, 1, -10259.7, 1775.1, 73.85, 5.82, 0, 0, 0.229528, -0.973302, 900, 100, 1, '', 0, 'Westfall Hoard (estimated position, Defias tower upper floor)');
+(9001103, 480104, 0, 40, 40, 1, 1, -10259.7, 1775.1, 73.85, 5.82, 0, 0, 0.229528, -0.973302, 900, 100, 1, '', 0, 'Westfall Hoard (estimated position, Defias tower upper floor)'),
+(9001104, 96004, 0, 40, 40, 1, 1, -10377.0, 2196.17, 20.431, 0, 0, 0, 0, 1, 900, 100, 1, '', 0, 'Loosely Packed Dirt (catalogue position, orientation unknown)'),
+(9001105, 96005, 0, 40, 40, 1, 1, -9783.71, 1819.44, -8.025, 0, 0, 0, 0, 1, 900, 100, 1, '', 0, 'Waterlogged Trunk (catalogue position, orientation unknown)'),
+(9001106, 518551, 0, 40, 108, 1, 1, -10646.1, 1157.59, 32.996, 0, 0, 0, 0, 1, 900, 100, 1, '', 0, 'Wanted: Lenore the Hoarder (catalogue position, orientation unknown)');
 
 -- 999914 and 999933 are autocomplete (Method 0) in the WDB capture; QuestType 2 keeps them in the log
 -- until the report reaches Archivist Selnor.
@@ -314,7 +358,8 @@ VALUES
 (999913, 2, 11, 9, 40, 0, 0, 0, 0, 0, 0, 0, 4, 0, 270, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 72, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 'The Missing Report', 'Find the report from the missing patroller.', 'Do you know how difficult it is to sort papers when I''m missing so many reports? $B$BI understand the tedious task of filing paperwork is unappreciated by some, but that doesn''t mean it isn''t important.$B$BI''m missing the field report from one of our patrollers, he walks the route from Sentinel Hill to the border of Elwynn. Find him for me, and bring me back his report since he can''t be bothered to do it himself.', '', '', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', '', '', 0),
 (999914, 2, 11, 9, 40, 0, 0, 0, 0, 0, 0, 0, 4, 0, 270, 0, 0, 0, 0, 999920, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 72, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 'The Half-Detailed Report', 'Return the Half-Detailed Report to Archivist Selnor.', 'Upon inspecting the body, you find the patroller''s half-completed report. $B$BThis should be delivered back to Sentinel Hill - the Archivist will want to know what happened.', '', '', 0, 0, 0, 0, 0, 0, 0, 0, 999920, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 'Deliver the Half-Detailed Report to Archivist Selnor.', '', '', '', 0),
 (999933, 2, 16, 12, 40, 0, 0, 0, 0, 0, 0, 0, 4, 0, 270, 0, 0, 0, 0, 999923, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 72, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 'The Spit-Soaked Report', 'Deliver the Spit-Soaked Report to Archivist Selnor.', 'The parchment is disgusting - covered in spit and gore. The author of these papers lay in pieces all around you, unrecognizable. $B$BArchivist Selnor will want to see this report, she will know who this is.', '', '', 0, 0, 0, 0, 0, 0, 0, 0, 999923, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 'Deliver the Spit-Soaked Report to Archivist Selnor.', '', '', '', 0),
-(100466, 2, 12, 10, 40, 0, 0, 0, 0, 0, 0, 0, 4, 0, 225, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 72, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 'Path to Ascension: Westfall', 'Explore Stormwind to your heart''s content, then visit Flightmaster Dungar Longdrink to fly to Westfall to continue your adventure.', 'Hail, Hero.$B$BWelcome to Stormwind, capital of the Alliance. I assume you''ve arrived to rest and restock. You''ll find many things to aid you on your adventure, from personal banks and the Auction House to blacksmiths, enchanters, and of course other heroes. Explore as you like, but when you''re ready to return to your adventure, speak to Flightmaster Dungar Longdrink. There is trouble brewing in the western province that requires your aid.', '', '', 100467, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 'Explore Stormwind to your heart''s content, then visit Flightmaster Dungar Longdrink to fly to Westfall to continue your adventure', '', '', '', 0)
+(100466, 2, 12, 10, 40, 0, 0, 0, 0, 0, 0, 0, 4, 0, 225, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 72, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 'Path to Ascension: Westfall', 'Explore Stormwind to your heart''s content, then visit Flightmaster Dungar Longdrink to fly to Westfall to continue your adventure.', 'Hail, Hero.$B$BWelcome to Stormwind, capital of the Alliance. I assume you''ve arrived to rest and restock. You''ll find many things to aid you on your adventure, from personal banks and the Auction House to blacksmiths, enchanters, and of course other heroes. Explore as you like, but when you''re ready to return to your adventure, speak to Flightmaster Dungar Longdrink. There is trouble brewing in the western province that requires your aid.', '', '', 100467, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 'Explore Stormwind to your heart''s content, then visit Flightmaster Dungar Longdrink to fly to Westfall to continue your adventure', '', '', '', 0),
+(17009, 2, 15, 13, 40, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 544, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 'Sunken Treasure', 'Find the Waterlogged Trunk off the coast of Westfall.', 'The map is i smudged with seaweed and dirt. Fortunately there seems to be some text scribbled towards the bottom which you can barely make out.$B$B"I can''t believe we managed to escape those horrendous fish ''things'' with our lives, but we somehow made it out with their treasure too! I''ve marked the map so as not to forget where I''ve hidden the booty. Would be a shame to come this far only to forget which ship I''ve thrown the chest in. I''ll be sure leave this map someplace safe where prying eye won''t think to look." There seems to be more scribbled down, but you can''t make it out.$B$BThere''s not much to go off of, but it would seem the treasure this map speaks of is hidden beneath the waves in one of the shipwrecks.', '', 'Find the Waterlogged Trunk off the coast of Westfall.', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', '', '', 0)
 ON DUPLICATE KEY UPDATE `QuestType` = VALUES(`QuestType`), `QuestLevel` = VALUES(`QuestLevel`),
   `MinLevel` = VALUES(`MinLevel`), `QuestSortID` = VALUES(`QuestSortID`), `QuestInfoID` = VALUES(`QuestInfoID`),
   `SuggestedGroupNum` = VALUES(`SuggestedGroupNum`), `RequiredFactionId1` = VALUES(`RequiredFactionId1`),
@@ -373,7 +418,7 @@ ON DUPLICATE KEY UPDATE `QuestType` = VALUES(`QuestType`), `QuestLevel` = VALUES
   `ObjectiveText3` = VALUES(`ObjectiveText3`), `ObjectiveText4` = VALUES(`ObjectiveText4`),
   `VerifiedBuild` = VALUES(`VerifiedBuild`);
 
-DELETE FROM `quest_template_addon` WHERE `ID` IN (1313,17011,17012,17014,26993,26994,26995,26996,26997,254042,254043,255057,999913,999914,999933,100466);
+DELETE FROM `quest_template_addon` WHERE `ID` IN (1313,17011,17012,17014,26993,26994,26995,26996,26997,254042,254043,255057,999913,999914,999933,100466,17009);
 INSERT INTO `quest_template_addon` (`ID`, `MaxLevel`, `AllowableClasses`, `SourceSpellID`, `PrevQuestID`,
   `NextQuestID`, `ExclusiveGroup`, `BreadcrumbForQuestId`, `RewardMailTemplateID`, `RewardMailDelay`,
   `RequiredSkillID`, `RequiredSkillPoints`, `RequiredMinRepFaction`, `RequiredMaxRepFaction`, `RequiredMinRepValue`,
@@ -393,9 +438,10 @@ INSERT INTO `quest_template_addon` (`ID`, `MaxLevel`, `AllowableClasses`, `Sourc
 (999913, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
 (999914, 0, 0, 0, 999913, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
 (999933, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-(100466, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+(100466, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+(17009, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
-DELETE FROM `creature_queststarter` WHERE `quest` IN (1313,17011,17012,17014,26993,26994,26995,26996,26997,254042,254043,255057,999913,999914,999933,100466);
+DELETE FROM `creature_queststarter` WHERE `quest` IN (1313,17011,17012,17014,26993,26994,26995,26996,26997,254042,254043,255057,999913,999914,999933,100466,17009);
 INSERT INTO `creature_queststarter` (`id`, `quest`) VALUES
 (237, 26993),
 (237, 26994),
@@ -409,12 +455,12 @@ INSERT INTO `creature_queststarter` (`id`, `quest`) VALUES
 (490, 254043),
 (776786, 255057),
 (776790, 999913),
-(999900, 999914),
-(999901, 999933),
+(455339, 999914),
+(455343, 999933),
 (255150, 1313),
 (466, 100466);
 
-DELETE FROM `creature_questender` WHERE `quest` IN (1313,17011,17012,17014,26993,26994,26995,26996,26997,254042,254043,255057,999913,999914,999933,100466);
+DELETE FROM `creature_questender` WHERE `quest` IN (1313,17011,17012,17014,26993,26994,26995,26996,26997,254042,254043,255057,999913,999914,999933,100466,17009);
 INSERT INTO `creature_questender` (`id`, `quest`) VALUES
 (237, 26993),
 (233, 26994),
@@ -427,11 +473,19 @@ INSERT INTO `creature_questender` (`id`, `quest`) VALUES
 (490, 254042),
 (490, 254043),
 (776786, 255057),
-(999900, 999913),
+(455339, 999913),
 (776790, 999914),
 (776790, 999933),
 (255150, 1313),
 (352, 100466);
+
+DELETE FROM `gameobject_queststarter` WHERE `quest` IN (1313,17011,17012,17014,26993,26994,26995,26996,26997,254042,254043,255057,999913,999914,999933,100466,17009);
+INSERT INTO `gameobject_queststarter` (`id`, `quest`) VALUES
+(518551, 254042);
+
+DELETE FROM `gameobject_questender` WHERE `quest` IN (1313,17011,17012,17014,26993,26994,26995,26996,26997,254042,254043,255057,999913,999914,999933,100466,17009);
+INSERT INTO `gameobject_questender` (`id`, `quest`) VALUES
+(96005, 17009);
 
 UPDATE `creature_template` SET `npcflag` = `npcflag` | 2 WHERE `entry` = 490;
 
@@ -560,4 +614,3 @@ UPDATE `creature_template` SET `minlevel` = 15 WHERE `entry` = 121;
 UPDATE `creature_template` SET `minlevel` = 13 WHERE `entry` IN (123,456);
 UPDATE `creature_template` SET `maxlevel` = 60 WHERE `entry` = 25962;
 UPDATE `creature_template` SET `mingold` = 0, `maxgold` = 0 WHERE `entry` = 7050;
-UPDATE `creature_template` SET `rank` = 0 WHERE `entry` = 7053;
