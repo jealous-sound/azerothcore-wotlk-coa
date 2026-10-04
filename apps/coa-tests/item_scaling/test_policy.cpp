@@ -25,6 +25,9 @@ int main()
     assert(ContentLift(12, 30, 3) == 15 && ContentLift(27, 30, 3) == 0 && ContentLift(40, 30, 3) == 0);
     assert(ContentLift(1, 3, 3) == 0 && ContentLift(1, 2, 3) == 0);
 
+    assert(SteppedLift(0) == 0 && SteppedLift(4) == 0 && SteppedLift(5) == 5);
+    assert(SteppedLift(17) == 15 && SteppedLift(19) == 15 && SteppedLift(22) == 20 && SteppedLift(79) == 75);
+
     assert(LiftedRequiredLevel(5, 10, 17, 80) == 22 && LiftedRequiredLevel(0, 4, 23, 80) == 22);
     assert(LiftedRequiredLevel(0, 4, 0, 80) == 0 && LiftedRequiredLevel(0, 1, 4, 80) == 0);
     assert(LiftedRequiredLevel(0, 70, 30, 80) == 80 && LiftedRequiredLevel(7, 12, 0, 80) == 7);

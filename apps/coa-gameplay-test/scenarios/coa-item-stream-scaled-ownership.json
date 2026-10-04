@@ -3,7 +3,7 @@
   "name": "CoA item stream: login excludes scaled copies owned by other characters",
   "contract": [
     "Requires CoA.SendDisplayPatches=1, CoA.ItemScaling=1, DestinyWeaver.Enable=1 and CoA.QuestLevelScaling=1.",
-    "A producer previews quest 176 at ten levels, creating more than eight realm-wide scaled item records.",
+    "A producer previews quest 176 at ten levels five apart, creating more than eight realm-wide scaled item records.",
     "The viewer owns none of them. Its login sends at most eight item rows, including the capacity row.",
     "Rows belonging to other characters must not enter this viewer's login stream."
   ],
@@ -43,47 +43,47 @@
     {
       "action": "set_level",
       "actor": "producer",
-      "value": 21
-    },
-    {
-      "action": "set_level",
-      "actor": "producer",
-      "value": 22
-    },
-    {
-      "action": "set_level",
-      "actor": "producer",
-      "value": 23
-    },
-    {
-      "action": "set_level",
-      "actor": "producer",
-      "value": 24
-    },
-    {
-      "action": "set_level",
-      "actor": "producer",
       "value": 25
     },
     {
       "action": "set_level",
       "actor": "producer",
-      "value": 26
+      "value": 30
     },
     {
       "action": "set_level",
       "actor": "producer",
-      "value": 27
+      "value": 35
     },
     {
       "action": "set_level",
       "actor": "producer",
-      "value": 28
+      "value": 40
     },
     {
       "action": "set_level",
       "actor": "producer",
-      "value": 29
+      "value": 45
+    },
+    {
+      "action": "set_level",
+      "actor": "producer",
+      "value": 50
+    },
+    {
+      "action": "set_level",
+      "actor": "producer",
+      "value": 55
+    },
+    {
+      "action": "set_level",
+      "actor": "producer",
+      "value": 60
+    },
+    {
+      "action": "set_level",
+      "actor": "producer",
+      "value": 65
     },
     {
       "action": "client_packet",

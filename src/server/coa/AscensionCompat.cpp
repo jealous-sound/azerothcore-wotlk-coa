@@ -4,6 +4,7 @@
  * https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-AGPL3
  */
 
+#include "AccountMgr.h"
 #include "AscensionFelsworn.h"
 #include "AscensionItemScaling.h"
 #include "AscensionPyromancer.h"
@@ -412,6 +413,8 @@ enum class AscensionCompatConfig {
   CLIENT_INTEGER_CONFIGS,
   SEND_DISPLAY_PATCHES,
   CLIENT_DBC_DIRECTORY,
+  COLLECTIONS_FOR_BOTS,
+  RANDOM_BOT_ACCOUNT_PREFIX,
 
   NUM_CONFIGS,
 };
@@ -456,6 +459,10 @@ public:
                          "CoA.MaxRidingFromStart", true);
     SetConfigValue<bool>(AscensionCompatConfig::QUEST_LEVEL_SCALING,
                          "CoA.QuestLevelScaling", true);
+    SetConfigValue<uint32>(AscensionCompatConfig::COLLECTIONS_FOR_BOTS,
+                           "CoA.CollectionsForBots", 0);
+    SetConfigValue<std::string>(AscensionCompatConfig::RANDOM_BOT_ACCOUNT_PREFIX,
+                                "CoA.RandomBotAccountPrefix", "rndbot");
     SetConfigValue<bool>(AscensionCompatConfig::AUTO_PROGRESSION,
                          "CoA.AutoProgression", false);
     SetConfigValue<bool>(AscensionCompatConfig::SEND_DISPLAY_PATCHES,
@@ -553,6 +560,10 @@ uint8 WeaponEffectCategoryForEquipmentSlot(uint8 slot) {
 bool IsAscensionCustomClass(Player const *player) {
   uint8 playerClass = player->getClass();
   return playerClass >= CLASS_BARBARIAN && playerClass <= CLASS_SPIRIT_MAGE;
+}
+
+bool ReceivesClientRequests(Player const *player) {
+  return !player->GetSession()->IsBot();
 }
 
 enum LegacyQuestSpells : uint32
@@ -1472,13 +1483,26 @@ public:
     packet << result;
     if (target && std::string_view(result) == "CA_INSPECT_OK")
     {
-      std::vector<uint8> const body = AscensionCoATalentState::KnownEntriesPayload(KnownTalentEntries(target));
       bool const wildcard = AscensionWildcard::IsWildcardHero(target);
-      packet << guid.GetRawValue() << (wildcard ? AscensionWildcard::ActiveSpec(target) : ActiveSlot(target))
-             << uint32(wildcard || IsAscensionCustomClass(target) ? AscensionWildcard::SPECIALIZATION_COUNT : 1);
+      std::vector<uint8> const body = AscensionCoATalentState::InspectSpecsPayload(InspectedSpecs(target));
+      packet << guid.GetRawValue() << (wildcard ? AscensionWildcard::ActiveSpec(target) : ActiveSlot(target));
       packet.append(body.data(), body.size());
     }
     player->GetSession()->SendPacket(&packet);
+  }
+
+  static std::vector<std::vector<AscensionCoATalentState::KnownEntry>> InspectedSpecs(Player const* target)
+  {
+    std::vector<std::vector<AscensionCoATalentState::KnownEntry>> specs;
+    if (AscensionWildcard::IsWildcardHero(target))
+      for (uint32 spec = 0; spec < AscensionWildcard::SPECIALIZATION_COUNT; ++spec)
+        specs.push_back(AscensionWildcard::KnownEntries(target, spec));
+    else if (IsAscensionCustomClass(target))
+      for (uint32 slot = 0; slot < AscensionWildcard::SPECIALIZATION_COUNT; ++slot)
+        specs.push_back(SlotEntries(target, slot));
+    else
+      specs.push_back(KnownTalentEntries(target));
+    return specs;
   }
 
   static AscensionCoATalentState::ResetCredits ResetCreditsOf(Player* player)
@@ -1910,6 +1934,9 @@ public:
 
   void ProcessTalentRequests(Player* player)
   {
+    if (!ReceivesClientRequests(player))
+      return;
+
     std::deque<TalentRequest> requests;
     {
       std::lock_guard<std::mutex> lock(_stateLock);
@@ -2388,7 +2415,8 @@ public:
     _proficiencySynchronizations.erase(player->GetGUID().GetCounter());
     _advancementPending.erase(player->GetGUID().GetCounter());
     _advancementSent.erase(player->GetGUID().GetCounter());
-    _pendingTalentRequests.erase(player->GetSession()->GetAccountId());
+    if (ReceivesClientRequests(player))
+      _pendingTalentRequests.erase(player->GetSession()->GetAccountId());
   }
 
     static uint32 GetSelectableFreeGroup(uint32 entryId)
@@ -2402,39 +2430,43 @@ public:
     static bool CanGrantAutomaticEntry(Player const* player,
         AscensionCompatData::CoATalentEntry const& entry, uint32 specializationId)
     {
-        if (entry.ClassId != player->getClass() ||
-            (entry.SpecId != 0 && entry.SpecId != specializationId) ||
-            entry.AECost != 0 || entry.TECost != 0 ||
-            entry.RequiredLevel > player->GetLevel() || !entry.SpellCount || GetSelectableFreeGroup(entry.EntryId))
-            return false;
+        return AscensionCoATalentState::CanGrantAutomatic(entry, player->getClass(), player->GetLevel(),
+            specializationId, SpellbookOf(player));
+    }
 
+    static AscensionCoATalentState::HasSpell CarriedSpells(Player const* player)
+    {
+        std::unordered_set<uint32> carried;
         auto const& dependencies = AscensionCompatData::CoAAutomaticDependencies;
-        auto dependency = std::lower_bound(dependencies.begin(), dependencies.end(), entry.EntryId,
-            [](AscensionCompatData::CoAAutomaticDependency const& value, uint32 id)
-            {
-                return value.EntryId < id;
-            });
-        if (dependency == dependencies.end() || dependency->EntryId != entry.EntryId)
-            return true;
-
-        for (uint32 requiredId : dependency->RequiredEntryIds)
+        for (AscensionCompatData::CoATalentEntry const& entry : AscensionCompatData::CoATalentEntries)
         {
-            if (!requiredId)
+            auto const dependency = std::lower_bound(dependencies.begin(), dependencies.end(), entry.EntryId,
+                [](AscensionCompatData::CoAAutomaticDependency const& value, uint32 id) { return value.EntryId < id; });
+            if (entry.ClassId != player->getClass() || entry.SpecId || entry.AECost || entry.TECost ||
+                GetSelectableFreeGroup(entry.EntryId) ||
+                (dependency != dependencies.end() && dependency->EntryId == entry.EntryId))
                 continue;
-
-            auto const& entries = AscensionCompatData::CoATalentEntries;
-            auto required = std::lower_bound(entries.begin(), entries.end(), requiredId,
-                [](AscensionCompatData::CoATalentEntry const& value, uint32 id)
-                {
-                    return value.EntryId < id;
-                });
-            if (required == entries.end() || required->EntryId != requiredId ||
-                required->ClassId != player->getClass() ||
-                !std::any_of(required->SpellIds.begin(), required->SpellIds.end(),
-                    [player](uint32 spellId) { return spellId && player->HasSpell(spellId); }))
-                return false;
+            for (uint32 spellId : entry.SpellIds)
+                if (spellId && player->HasSpell(spellId))
+                    carried.insert(spellId);
         }
-        return true;
+        return [carried = std::move(carried)](uint32 spellId) { return carried.contains(spellId); };
+    }
+
+    static std::vector<AscensionCoATalentState::KnownEntry> SlotEntries(Player const* player, uint32 index)
+    {
+        if (index == ActiveSlot(player))
+            return KnownTalentEntries(player);
+        auto const* stored = player->FindPlayerSettings(SlotSetting(index));
+        if (!stored || stored->empty() || !(*stored)[0].value)
+            return {};
+        std::vector<uint32> values;
+        for (auto const& setting : *stored)
+            values.push_back(setting.value);
+        AscensionCoATalentState::SpecializationSlot slot;
+        if (!AscensionCoATalentState::ParseSpecializationSlot(values, slot) || slot.ClassId != player->getClass())
+            return {};
+        return AscensionCoATalentState::SlotKnownEntries(slot, player->GetLevel(), CarriedSpells(player));
     }
 
     static void ReconcileRunemasterFists(Player* player, uint32 specializationId)
@@ -3442,38 +3474,54 @@ public:
   }
 
   void OnPlayerLogin(Player *player) {
-    if (!ascensionCompatConfig.GetConfigValue<bool>(
-            AscensionCompatConfig::SEND_DISPLAY_PATCHES))
+    if (!ReceivesPatchRows(player))
       return;
 
     uint32 const guid = player->GetGUID().GetCounter();
     std::lock_guard lock(_mutex);
     _streamedPlayers.erase(guid);
     _sentItemRows.erase(guid);
+    _onDemandItemRows.erase(guid);
     _fallbackTimers[guid] = DISPLAY_PATCH_FALLBACK_DELAY_MS;
   }
 
   void OnPlayerLogout(Player *player) {
     uint32 const guid = player->GetGUID().GetCounter();
-    std::lock_guard lock(_mutex);
-    _streamedPlayers.erase(guid);
-    _sentItemRows.erase(guid);
-    _fallbackTimers.erase(guid);
+    PatchRowTally onDemand;
+    {
+      std::lock_guard lock(_mutex);
+      _streamedPlayers.erase(guid);
+      _sentItemRows.erase(guid);
+      _fallbackTimers.erase(guid);
+      if (auto node = _onDemandItemRows.extract(guid))
+        onDemand = node.mapped();
+    }
+
+    if (onDemand.Rows)
+      LOG_INFO("coa", "Streamed {} Item patch rows ({} bytes) on demand to {} during the session",
+               onDemand.Rows, onDemand.Bytes, player->GetName());
   }
 
     void SendItemRowOnDemand(Player* player, uint32 itemId)
     {
-        if (!ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::SEND_DISPLAY_PATCHES))
+        if (!ReceivesPatchRows(player))
             return;
 
         PreparedPatchRows const& rows = GetPreparedPatchRows();
-        if (std::optional<ItemPatchRow> const row = FindItemRow(rows, itemId))
-            SendItemRows(player, rows, { *row });
+        std::optional<ItemPatchRow> const row = FindItemRow(rows, itemId);
+        if (!row)
+            return;
+
+        PatchRowTally const sent = SendItemRows(player, rows, { *row });
+        if (!sent.Rows)
+            return;
+
+        std::lock_guard lock(_mutex);
+        _onDemandItemRows[player->GetGUID().GetCounter()].Add(sent);
     }
 
   void OnPlayerUpdate(Player *player, uint32 diff) {
-    if (!ascensionCompatConfig.GetConfigValue<bool>(
-            AscensionCompatConfig::SEND_DISPLAY_PATCHES))
+    if (!ReceivesPatchRows(player))
       return;
 
     uint32 const guid = player->GetGUID().GetCounter();
@@ -3518,21 +3566,22 @@ public:
 
     uint32 const startTime = getMSTime();
 
-    SendLoadingScreenRow(player);
+    std::size_t bytes = SendLoadingScreenRow(player);
 
     uint32 sent = 0;
     for (uint32 displayId : rows.CreatureDisplayIds) {
       if (CreatureDisplayInfoEntry const *entry =
               sCreatureDisplayInfoStore.LookupEntry(displayId)) {
-        SendDisplayInfoRow(player, *entry);
+        bytes += SendDisplayInfoRow(player, *entry);
         ++sent;
       }
     }
 
     for (ItemDisplayInfoPatchRow const &row : rows.ItemDisplayInfos)
-      SendItemDisplayInfoRow(player, row);
+      bytes += SendItemDisplayInfoRow(player, row);
 
-    uint32 const sentItems = SendItemRows(player, rows, std::move(itemRows));
+    PatchRowTally const sentItems = SendItemRows(player, rows, std::move(itemRows));
+    bytes += sentItems.Bytes;
 
     uint32 sentSpells = 0;
     for (SpellPatchRow const& row : rows.Spells)
@@ -3540,19 +3589,25 @@ public:
       {
         SpellPatchRow active = row;
         ApplyServerSpellSelectors(active);
-        SendSpellRow(player, active);
+        bytes += SendSpellRow(player, active);
         ++sentSpells;
       }
 
     LOG_INFO("coa",
              "Streamed {} CreatureDisplayInfo, {} ItemDisplayInfo, {} of {} Item "
-             "and {} Spell patch rows to {} in {} ms",
-             sent, rows.ItemDisplayInfos.size(), sentItems,
-             rows.Items.size(), sentSpells, player->GetName(),
+             "and {} Spell patch rows ({} bytes) to {} in {} ms",
+             sent, rows.ItemDisplayInfos.size(), sentItems.Rows,
+             rows.Items.size(), sentSpells, bytes, player->GetName(),
              GetMSTimeDiffToNow(startTime));
   }
 
 private:
+  static bool ReceivesPatchRows(Player const *player) {
+    return ascensionCompatConfig.GetConfigValue<bool>(
+               AscensionCompatConfig::SEND_DISPLAY_PATCHES) &&
+           !player->GetSession()->IsBot();
+  }
+
   static constexpr std::size_t ITEM_DISPLAY_INFO_FIELD_COUNT = 25;
   static constexpr std::array<uint8, 14> ITEM_DISPLAY_INFO_STRING_FIELDS = {
       1, 2, 3, 4, 5, 6, 15, 16, 17, 18, 19, 20, 21, 22};
@@ -3563,6 +3618,16 @@ private:
   };
 
   using ItemPatchRow = std::array<uint32, 8>;
+
+  struct PatchRowTally {
+    uint32 Rows = 0;
+    std::size_t Bytes = 0;
+
+    void Add(PatchRowTally const &other) {
+      Rows += other.Rows;
+      Bytes += other.Bytes;
+    }
+  };
 
   static constexpr uint32 SPELL_DBC_FIELD_COUNT = 234;
   static constexpr uint32 SPELL_CLIENT_RECORD_DWORDS = 170;
@@ -3623,7 +3688,7 @@ private:
         return ItemScaling::ClientRow(itemId);
     }
 
-    uint32 SendItemRows(Player* player, PreparedPatchRows const& rows, std::vector<ItemPatchRow> itemRows)
+    PatchRowTally SendItemRows(Player* player, PreparedPatchRows const& rows, std::vector<ItemPatchRow> itemRows)
     {
         for (std::size_t index : rows.ItemCapacityOrder)
             if (auto const capacity = FindItemRow(rows, rows.Items[index][0]))
@@ -3632,17 +3697,22 @@ private:
                 break;
             }
 
-        uint32 sent = 0;
+        PatchRowTally sent;
         std::lock_guard lock(_mutex);
         std::unordered_set<uint32>& sentItemRows = _sentItemRows[player->GetGUID().GetCounter()];
         for (ItemPatchRow const& row : itemRows)
             if (sentItemRows.insert(row[0]).second)
             {
-                SendItemRow(player, row);
-                ++sent;
+                sent.Bytes += SendItemRow(player, row);
+                ++sent.Rows;
             }
         return sent;
     }
+
+  static std::size_t SendRowPacket(Player *player, WorldPacket const &packet) {
+    player->GetSession()->SendPacket(&packet);
+    return packet.size();
+  }
 
   static void AppendSizedString(WorldPacket &packet, std::string const &text) {
     packet << uint32(text.size());
@@ -3650,16 +3720,16 @@ private:
       packet.append(reinterpret_cast<uint8 const *>(text.data()), text.size());
   }
 
-  void SendLoadingScreenRow(Player *player) const {
+  std::size_t SendLoadingScreenRow(Player *player) const {
     WorldPacket packet(SMSG_PATCH_LOADING_SCREENS, 24);
     uint8 loadingScreenRow[16] = {};
     packet.append(loadingScreenRow, sizeof(loadingScreenRow));
     packet << uint32(0) << uint32(0);
-    player->GetSession()->SendPacket(&packet);
+    return SendRowPacket(player, packet);
   }
 
-  void SendDisplayInfoRow(Player *player,
-                          CreatureDisplayInfoEntry const &entry) const {
+  std::size_t SendDisplayInfoRow(Player *player,
+                                 CreatureDisplayInfoEntry const &entry) const {
     WorldPacket packet(SMSG_PATCH_CREATURE_DISPLAY_INFO, 80);
 
     uint32 const soundId = 0;
@@ -3675,34 +3745,34 @@ private:
     for (uint8 stringIndex = 0; stringIndex < 4; ++stringIndex)
       packet << uint32(0);
 
-    player->GetSession()->SendPacket(&packet);
+    return SendRowPacket(player, packet);
   }
 
-  void SendItemDisplayInfoRow(Player *player,
-                              ItemDisplayInfoPatchRow const &row) const {
+  std::size_t SendItemDisplayInfoRow(Player *player,
+                                     ItemDisplayInfoPatchRow const &row) const {
     WorldPacket packet(SMSG_PATCH_ITEM_DISPLAY_INFO, 160);
     for (uint32 value : row.Values)
       packet << value;
     for (std::string const &text : row.Strings)
       AppendSizedString(packet, text);
-    player->GetSession()->SendPacket(&packet);
+    return SendRowPacket(player, packet);
   }
 
-  void SendItemRow(Player *player, ItemPatchRow const &row) const {
+  std::size_t SendItemRow(Player *player, ItemPatchRow const &row) const {
     WorldPacket packet(SMSG_PATCH_ITEM, row.size() * sizeof(uint32));
     for (uint32 value : row)
       packet << value;
-    player->GetSession()->SendPacket(&packet);
+    return SendRowPacket(player, packet);
   }
 
-  void SendSpellRow(Player *player, SpellPatchRow const &row) const {
+  std::size_t SendSpellRow(Player *player, SpellPatchRow const &row) const {
     WorldPacket packet(SMSG_PATCH_SPELL,
                        row.Values.size() * sizeof(uint32) + 1024);
     for (uint32 value : row.Values)
       packet << value;
     for (std::string const &text : row.Strings)
       AppendSizedString(packet, text);
-    player->GetSession()->SendPacket(&packet);
+    return SendRowPacket(player, packet);
   }
 
   PreparedPatchRows const &GetPreparedPatchRows() {
@@ -4087,6 +4157,7 @@ private:
   std::mutex _mutex;
   std::unordered_set<uint32> _streamedPlayers;
   std::unordered_map<uint32, std::unordered_set<uint32>> _sentItemRows;
+  std::unordered_map<uint32, PatchRowTally> _onDemandItemRows;
   std::unordered_map<uint32, uint32> _fallbackTimers;
 
   std::mutex _cacheMutex;
@@ -4267,6 +4338,37 @@ public:
           packet.GetOpcode(), packet.size(), accountId, reason, rejected);
   }
 
+  static bool LoadsCollectionsForBot(Player *player) {
+    uint32 const mode = ascensionCompatConfig.GetConfigValue<uint32>(
+        AscensionCompatConfig::COLLECTIONS_FOR_BOTS);
+    if (mode != 1)
+      return mode >= 2;
+    uint32 const accountId = player->GetSession()->GetAccountId();
+    std::string const prefix = ascensionCompatConfig.GetConfigValue<std::string>(
+        AscensionCompatConfig::RANDOM_BOT_ACCOUNT_PREFIX);
+    static std::mutex cacheMutex;
+    static std::string cachedPrefix;
+    static std::unordered_map<uint32, bool> playerAccounts;
+    {
+      std::lock_guard lock(cacheMutex);
+      if (cachedPrefix != prefix)
+      {
+        playerAccounts.clear();
+        cachedPrefix = prefix;
+      }
+      if (auto const found = playerAccounts.find(accountId); found != playerAccounts.end())
+        return found->second;
+    }
+    std::string account;
+    if (!AccountMgr::GetName(accountId, account))
+      return false;
+    bool const playerAccount = prefix.empty() || !StringStartsWithI(account, prefix);
+    std::lock_guard lock(cacheMutex);
+    if (cachedPrefix == prefix)
+      playerAccounts[accountId] = playerAccount;
+    return playerAccount;
+  }
+
   void OnPlayerLogin(Player *player) {
     if (!_clientDataLoaded)
     {
@@ -4276,7 +4378,7 @@ public:
       return;
     }
 
-    if (player->GetSession()->IsBot())
+    if (player->GetSession()->IsBot() && !LoadsCollectionsForBot(player))
     {
       TakeLoginState(player);
       InitializeRiding(player);
@@ -4331,6 +4433,9 @@ public:
       _loginStates.erase(player->GetGUID().GetCounter());
     }
 
+    if (!ReceivesClientRequests(player))
+      return;
+
     {
       std::lock_guard lock(_rejectedPacketMutex);
       _rejectedPackets.erase(player->GetSession()->GetAccountId());
@@ -4367,8 +4472,9 @@ public:
   }
 
   void OnPlayerUpdate(Player *player, uint32 diff) {
-    for (WorldPacket &packet : TakeClientPackets(player->GetSession()->GetAccountId()))
-      HandleClientPacket(player, packet);
+    if (ReceivesClientRequests(player))
+      for (WorldPacket &packet : TakeClientPackets(player->GetSession()->GetAccountId()))
+        HandleClientPacket(player, packet);
 
     ProcessPendingAppearanceAdds(player, diff);
     ProcessPendingCompanionSpells(player, diff);

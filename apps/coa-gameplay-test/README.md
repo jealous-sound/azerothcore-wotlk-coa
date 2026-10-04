@@ -434,7 +434,7 @@ assert stable maximums and final levels when testing damage coefficients.
 | `advancement_rank` | Player `actor`, CharacterAdvancement `entry`, `rank` (0 removes): uploads the known entries with that rank as native `0x0727`, then waits up to 2 s for the server to apply it. With `refused: true` it instead waits for the upload's `0x072C` result and requires the rank to stay unapplied. |
 | `client_packet` | Player `actor`, `opcode`, optional `fields` (a list of one-key objects: `u8`, `u32`, `u64`, `string` as a C string, `buyback_guid` slot, `actor_guid` player or creature id, `stabled_pet` stable slot 0-3 as its pet number), `consumed` (default true) and `early` (default true): sends the request through the early packet hook as the client would, and a request that hook passes on reaches its logged-in core opcode handler, as the session would deliver it; `early: false` sends it through the packet hook the session update runs instead, as for `CMSG_SET_ACTIVE_MOVER` after the client enters the world. |
 | `apply_appearances` | Player `actor`, `selection` mapping category ids to appearance ids: sends the complete array as native `CMSG_APPLY_APPEARANCES` (`0x0697`); unlisted categories are 0. The next step sees the result. |
-| `cast` | `actor`, `spell`, optional `target` (self by default): normal session cast handler. |
+| `cast` | `actor`, `spell`, optional `target` (self by default) or `target_item` (an owned item entry): normal session cast handler. |
 | `attack` | `actor`, `target`: native melee attack request; optional `pet: true` sends the pet's attack command. Verify combat or damage with assertions. |
 | `stop_attack` | Player `actor`: native melee stop request. |
 | `pvp` | Player `actor`, boolean `enabled`: native PvP toggle request. Disabling retains the ordinary flag-removal timer. |
@@ -746,6 +746,8 @@ returning zero when absent. Pair it with a count assertion when checking a hidde
 `owned_creature_spell_hit_chance` requires a player and a present owned creature selected by `entry`.
 It reads that creature's native spell hit modifier. `set_aura` accepts `owned_entry` to select the same type
 of owned creature within 100 yards and the player's phase; it cannot also select `pet: true`.
+`owned_creature_attackable` requires the owning player, a present creature `entry` and a `target` unit.
+It reads whether that target can attack the summon through the native `IsValidAttackTarget` check.
 `pet_casting` requires the player's present native pet and reads its casting flag and active non-melee spell.
 Use it to observe channel completion before submitting another ordinary pet cast;
 aura expiry is a separate event.

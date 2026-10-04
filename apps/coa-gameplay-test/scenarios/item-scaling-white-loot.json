@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "Item scaling: white items dropped by a level-scaled creature are lifted like green ones",
-  "contract": "Requires DestinyWeaver.Enable=1, DestinyWeaver.LevelScaling=1, DestinyWeaver.Scaling.Offset=3 and CoA.ItemScaling=1. \"Squealer\" Thornmantle 3229 is a level 5 creature that drops Squealer's Belt 4951 (white, item level 4, required level 1, 45 armor) at 100%. A level 30 character with open-world scaling on fights it at level 27, 22 levels above its own, so the belt must be a copy lifted by 22 levels: item level 26, required level 23 and more armor than the authored 45. With scaling off the same creature is fought at 5 and drops the authored belt. Client rendering of the copy is not tested.",
+  "contract": "Requires DestinyWeaver.Enable=1, DestinyWeaver.LevelScaling=1, DestinyWeaver.Scaling.Offset=3 and CoA.ItemScaling=1. \"Squealer\" Thornmantle 3229 is a level 5 creature that drops Squealer's Belt 4951 (white, item level 4, required level 1, 45 armor) at 100%. A level 30 character with open-world scaling on fights it at level 27, 22 levels above its own, and item lifts round down to five-level steps, so the belt must be a copy lifted by 20 levels: item level 24, required level 21 and more armor than the authored 45. With scaling off the same creature is fought at 5 and drops the authored belt. Client rendering of the copy is not tested.",
   "timeout_ms": 120000,
   "location": { "map": 0, "x": -9465, "y": 64, "z": 56, "o": 0 },
   "players": [
@@ -19,11 +19,11 @@
     { "action": "assert", "actor": "scaled_squealer", "metric": "alive", "equals": 0, "within_ms": 30000 },
     { "action": "loot_creature", "actor": "hero", "target": "scaled_squealer" },
     { "action": "assert", "label": "The scaled corpse holds a copy of Squealer's Belt", "actor": "hero", "metric": "loot_entry", "item": 4951, "min": 4400001, "max": 4912583 },
-    { "action": "assert", "label": "The copy is lifted to item level 26", "actor": "hero", "metric": "loot_item_level", "item": 4951, "equals": 26 },
+    { "action": "assert", "label": "The copy is lifted to item level 24", "actor": "hero", "metric": "loot_item_level", "item": 4951, "equals": 24 },
     { "action": "assert", "label": "The copy carries more armor than the authored 45", "actor": "hero", "metric": "loot_item_armor", "item": 4951, "min": 46 },
     { "action": "loot_slot", "actor": "hero", "item": 4951 },
-    { "action": "assert", "label": "The looted copy keeps item level 26", "actor": "hero", "metric": "carried_item_level", "item": 4951, "equals": 26, "within_ms": 2000 },
-    { "action": "assert", "label": "The looted copy requires level 23", "actor": "hero", "metric": "carried_item_required_level", "item": 4951, "equals": 23 },
+    { "action": "assert", "label": "The looted copy keeps item level 24", "actor": "hero", "metric": "carried_item_level", "item": 4951, "equals": 24, "within_ms": 2000 },
+    { "action": "assert", "label": "The looted copy requires level 21", "actor": "hero", "metric": "carried_item_required_level", "item": 4951, "equals": 21 },
     { "action": "close_loot", "actor": "hero" },
 
     { "action": "level_scaling_packet", "actor": "hero", "value": 0 },

@@ -282,7 +282,11 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[EFFECT_2].Effect = 0;
     }
     if (id == 805757)
+    {
         info->Effects[EFFECT_0].TargetA = SpellImplicitTargetInfo(TARGET_UNIT_DEST_AREA_ALLY);
+        info->Effects[EFFECT_0].TargetB = SpellImplicitTargetInfo(TARGET_DEST_DYNOBJ_ALLY);
+        info->AttributesCu &= ~SPELL_ATTR0_CU_NEGATIVE_EFF0;
+    }
     if (id == 500102)
         info->Effects[EFFECT_1].Effect = 0;
     if (id == 504713)

@@ -2,6 +2,7 @@
 
 #include "AscensionWildcard.h"
 #include "AscensionCacheRewards.h"
+#include "AscensionHeroClass.h"
 #include "AscensionFreepick.h"
 #include "AscensionCoAConfig.h"
 #include "AscensionCompatOpcodes.h"
@@ -2047,6 +2048,18 @@ void SyncRunes(Player* player)
     sent.Sent = true;
 }
 
+static_assert(AscensionHeroClass::WARRIOR == CLASS_WARRIOR && AscensionHeroClass::PALADIN == CLASS_PALADIN &&
+    AscensionHeroClass::HUNTER == CLASS_HUNTER && AscensionHeroClass::ROGUE == CLASS_ROGUE &&
+    AscensionHeroClass::PRIEST == CLASS_PRIEST && AscensionHeroClass::DEATH_KNIGHT == CLASS_DEATH_KNIGHT &&
+    AscensionHeroClass::SHAMAN == CLASS_SHAMAN && AscensionHeroClass::MAGE == CLASS_MAGE &&
+    AscensionHeroClass::WARLOCK == CLASS_WARLOCK && AscensionHeroClass::DRUID == CLASS_DRUID);
+static_assert(AscensionHeroClass::CONTEXT_ABILITY == CLASS_CONTEXT_ABILITY &&
+    AscensionHeroClass::CONTEXT_ABILITY_REACTIVE == CLASS_CONTEXT_ABILITY_REACTIVE &&
+    AscensionHeroClass::CONTEXT_PET == CLASS_CONTEXT_PET &&
+    AscensionHeroClass::CONTEXT_PET_CHARM == CLASS_CONTEXT_PET_CHARM &&
+    AscensionHeroClass::CONTEXT_EQUIP_RELIC == CLASS_CONTEXT_EQUIP_RELIC &&
+    AscensionHeroClass::CONTEXT_EQUIP_SHIELDS == CLASS_CONTEXT_EQUIP_SHIELDS);
+
 class AscensionWildcardPlayer final : public PlayerScript
 {
 public:
@@ -2061,10 +2074,11 @@ public:
 
     Optional<bool> OnPlayerIsClass(Player const* player, Classes playerClass, ClassContext context) override
     {
-        bool const runes = playerClass == CLASS_DEATH_KNIGHT && context == CLASS_CONTEXT_ABILITY;
-        bool const tamedPets = playerClass == CLASS_HUNTER && context == CLASS_CONTEXT_PET;
-        if ((runes || tamedPets) && IsRealmHero(player))
-            return true;
+        if (!IsRealmHero(player))
+            return std::nullopt;
+        if (std::optional<bool> const answer = AscensionHeroClass::Answer(uint8(playerClass), uint8(context),
+            [player](uint32 spellId) { return player->HasSpell(spellId); }))
+            return *answer;
         return std::nullopt;
     }
 
@@ -3221,8 +3235,13 @@ void SendPrestigeInfo(Player* player)
 
 std::vector<Slot> Slots(Player const* player)
 {
+    return Slots(player, ActiveSpec(player));
+}
+
+std::vector<Slot> Slots(Player const* player, std::uint32_t spec)
+{
     std::vector<Slot> slots;
-    if (PlayerSettingVector const* stored = player->FindPlayerSettings(SpecSource(player, SLOTS_SETTING)))
+    if (PlayerSettingVector const* stored = player->FindPlayerSettings(SpecSettingSource(SLOTS_SETTING, spec)))
         for (PlayerSetting const& value : *stored)
             slots.push_back(Decode(value.value));
     return slots;
@@ -3230,7 +3249,12 @@ std::vector<Slot> Slots(Player const* player)
 
 std::uint32_t PrimaryStat(Player const* player)
 {
-    return FirstSetting(player, SpecSource(player, PRIMARY_STAT_SETTING));
+    return PrimaryStat(player, ActiveSpec(player));
+}
+
+std::uint32_t PrimaryStat(Player const* player, std::uint32_t spec)
+{
+    return FirstSetting(player, SpecSettingSource(PRIMARY_STAT_SETTING, spec));
 }
 
 StarterCardSlots StarterCards(Player const* player)
@@ -3251,7 +3275,12 @@ CardCollection Collection(Player const* player)
 
 std::vector<AscensionCoATalentState::KnownEntry> KnownEntries(Player const* player)
 {
-    return KnownEntries(Slots(player), PrimaryStat(player));
+    return KnownEntries(player, ActiveSpec(player));
+}
+
+std::vector<AscensionCoATalentState::KnownEntry> KnownEntries(Player const* player, std::uint32_t spec)
+{
+    return KnownEntries(Slots(player, spec), PrimaryStat(player, spec));
 }
 
 BuildChoice ApplyBuildUpload(Player* player, std::vector<AscensionCoATalentState::KnownEntry> const& upload)

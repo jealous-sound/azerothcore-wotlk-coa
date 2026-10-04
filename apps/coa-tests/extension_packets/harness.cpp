@@ -82,12 +82,14 @@ class WorldSession
 {
 public:
     uint32 AccountId = 1;
+    bool Bot = false;
     int LocaleIndex = -1;
     Player* PlayerObject = nullptr;
     std::vector<WorldPacket> Sent;
     std::vector<std::string> Messages;
 
     uint32 GetAccountId() const { return AccountId; }
+    bool IsBot() const { return Bot; }
     Player* GetPlayer() const { return PlayerObject; }
     int GetSessionDbLocaleIndex() const { return LocaleIndex; }
     void SendPacket(WorldPacket const* packet) { Sent.push_back(*packet); }
@@ -191,6 +193,7 @@ struct Player
     void SendInitialSpells() { }
 };
 
+// ACTUAL_RECEIVES_CLIENT_REQUESTS
 // ACTUAL_PROGRESS_EVENT
 
 struct ScriptMgr
@@ -613,6 +616,38 @@ void TestStorePackets()
     Check(!glueQueryPassedOn && !gluePurchasePassedOn && DispatchedOpcodes.empty() && glue.Sent.size() == 1 &&
             glue.Sent[0].GetOpcode() == 0x06BA,
         "before login a store query gets the empty store at once and a purchase is dropped, not queued");
+}
+
+void TestBotAltRequests()
+{
+    AscensionCollectionService& service = AscensionCollectionService::Instance();
+    WorldSession session;
+    session.AccountId = 77;
+    Player player;
+    player.Session = &session;
+    session.PlayerObject = &player;
+    WorldSession botSession;
+    botSession.AccountId = 77;
+    botSession.Bot = true;
+    Player bot;
+    bot.Session = &botSession;
+    botSession.PlayerObject = &bot;
+    service.AppearancePackets.clear();
+
+    WorldPacket save(0x069E, 16);
+    save << std::string("Plate") << uint32(0);
+    for (WorldPacket const& packet : {ApplyAppearances(), save, ExtensionInitialized(), StoreQuery(7)})
+        Receive(session, packet);
+    DispatchedOpcodes.clear();
+    service.OnPlayerUpdate(&bot, 1);
+    Check(service.AppearancePackets.empty() && DispatchedOpcodes.empty() && !bot.ChargeSnapshots &&
+            botSession.Sent.empty(),
+        "a bot alt of the same account leaves the player's requests queued");
+    service.OnPlayerUpdate(&player, 1);
+    Check(service.AppearancePackets == std::vector<uint16>{0x0697, 0x069E} && player.ChargeSnapshots == 1 &&
+            DispatchedOpcodes == std::vector<uint16>{0x06B9} && session.Sent.size() == 2 &&
+            TrustsHelpUi(session.Sent[0]) && session.Sent[1].GetOpcode() == 0x06BA,
+        "the player's next update then handles every request of the account in order");
 }
 
 void TestWorldEntryResend()
@@ -1126,6 +1161,7 @@ int main()
     TestCharacterEnumeration();
     TestWorldEntryResend();
     TestStorePackets();
+    TestBotAltRequests();
     TestTalentRequests();
     TestCoreHandledRequests();
     TestItemQueries();
