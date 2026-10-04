@@ -11,6 +11,7 @@ CREATE TEMPORARY TABLE `_coa_captured_creature_health` (
     `HealthModifier` FLOAT NOT NULL
 ) ENGINE = InnoDB;
 
+DELETE FROM `_coa_captured_creature_health`;
 INSERT INTO `_coa_captured_creature_health` (`entry`, `HealthModifier`) VALUES
 (19, 0.928625), -- Benny Questgiver
 (25, 0.928625), -- Mithril Mechanical Dragonling
@@ -511,9 +512,8 @@ INSERT INTO `_coa_captured_creature_health` (`entry`, `HealthModifier`) VALUES
 (15505, 6.5), -- Canal Frenzy
 (15507, 520.0), -- Buru the Gorger Transform
 (15514, 13.0), -- Egg of Buru
-(15521, 6.5); -- Hive'Zara Brood Keeper
+(15521, 6.5), -- Hive'Zara Brood Keeper
 
-INSERT INTO `_coa_captured_creature_health` (`entry`, `HealthModifier`) VALUES
 (15527, 26.0), -- Mana Fiend
 (15528, 5.25), -- Healer Longrunner
 (15532, 5.25), -- Stoneguard Clayhoof
@@ -1013,9 +1013,8 @@ INSERT INTO `_coa_captured_creature_health` (`entry`, `HealthModifier`) VALUES
 (16907, 1.096), -- Bleeding Hollow Peon
 (16915, 1.104), -- Foreman Razelcraz
 (16917, 1.1), -- Aurok
-(16918, 1.1); -- Jel
+(16918, 1.1), -- Jel
 
-INSERT INTO `_coa_captured_creature_health` (`entry`, `HealthModifier`) VALUES
 (16919, 1.1), -- Mura
 (16920, 1.1), -- Ryosh
 (16922, 1.448), -- Red Radiation Trigger
@@ -1515,9 +1514,8 @@ INSERT INTO `_coa_captured_creature_health` (`entry`, `HealthModifier`) VALUES
 (18485, 50.700001), -- Ancient of War
 (18486, 50.700001), -- Ancient of Lore
 (18487, 50.700001), -- Ancient Protector
-(18492, 1.38); -- Tavgren's Kodo
+(18492, 1.38), -- Tavgren's Kodo
 
-INSERT INTO `_coa_captured_creature_health` (`entry`, `HealthModifier`) VALUES
 (18493, 2.67703), -- Auchenai Soulpriest
 (18495, 2.67703), -- Auchenai Vindicator
 (18497, 2.67703), -- Auchenai Monk
@@ -2017,9 +2015,8 @@ INSERT INTO `_coa_captured_creature_health` (`entry`, `HealthModifier`) VALUES
 (19837, 1.352), -- Daga Ramba
 (19845, 1.448), -- Area 52 Fireworks Controller
 (19847, 15.6), -- Levixus
-(19849, 13.0); -- Scrap Reaver X6000
+(19849, 13.0), -- Scrap Reaver X6000
 
-INSERT INTO `_coa_captured_creature_health` (`entry`, `HealthModifier`) VALUES
 (19851, 26.0), -- Negatron
 (19852, 0.9), -- Artifact Seeker
 (19853, 1.1), -- Felblade Doomguard
@@ -2519,9 +2516,8 @@ INSERT INTO `_coa_captured_creature_health` (`entry`, `HealthModifier`) VALUES
 (21298, 13.0), -- Coilfang Serpentguard
 (21299, 13.0), -- Coilfang Fathom-Witch
 (21301, 13.0), -- Coilfang Shatterer
-(21303, 2.67703); -- Defender Corpse
+(21303, 2.67703), -- Defender Corpse
 
-INSERT INTO `_coa_captured_creature_health` (`entry`, `HealthModifier`) VALUES
 (21304, 2.67703), -- Warder Corpse
 (21309, 0.9), -- Painmistress Gabrissa
 (21314, 1.25), -- Terrormaster
@@ -3021,9 +3017,8 @@ INSERT INTO `_coa_captured_creature_health` (`entry`, `HealthModifier`) VALUES
 (22666, 0.88), -- Stormpike Guardsman
 (22667, 1.7), -- Veteran Mountaineer
 (22668, 1.6), -- Veteran Sentinel
-(22669, 1.6); -- Veteran Warrior
+(22669, 1.6), -- Veteran Warrior
 
-INSERT INTO `_coa_captured_creature_health` (`entry`, `HealthModifier`) VALUES
 (22670, 2.9), -- Aggi Rumblestomp
 (22671, 1.8), -- Champion Mountaineer
 (22672, 1.7), -- Champion Sentinel
@@ -3523,9 +3518,8 @@ INSERT INTO `_coa_captured_creature_health` (`entry`, `HealthModifier`) VALUES
 (24696, 6.5), -- Coilskar Witch
 (24697, 5.85), -- Sister of Torment
 (24698, 6.5), -- Ethereum Smuggler
-(24699, 3.3); -- [UNUSED] Sargeron Trickster
+(24699, 3.3), -- [UNUSED] Sargeron Trickster
 
-INSERT INTO `_coa_captured_creature_health` (`entry`, `HealthModifier`) VALUES
 (24708, 1000.0), -- Arcane Sphere
 (24715, 6.09375), -- Definitely NOT a Remote-Controlled High Explosive Sheep
 (24721, 32.5), -- Flying Blue Drake
@@ -4025,9 +4019,8 @@ INSERT INTO `_coa_captured_creature_health` (`entry`, `HealthModifier`) VALUES
 (27344, 22.5), -- Bat Handler Adeline
 (27363, 0.9), -- Smoldering Geist
 (27370, 0.9), -- Vengeful Geist
-(27374, 1.1); -- Unholy Archon
+(27374, 1.1), -- Unholy Archon
 
-INSERT INTO `_coa_captured_creature_health` (`entry`, `HealthModifier`) VALUES
 (27386, 3.125), -- Avenging Spirit
 (27389, 12.5), -- Dalronn the Controller
 (27390, 12.5), -- Skarvald the Constructor
@@ -4527,9 +4520,8 @@ INSERT INTO `_coa_captured_creature_health` (`entry`, `HealthModifier`) VALUES
 (30048, 171.875), -- Unstoppable Abomination (1)
 (30049, 171.875), -- Unstoppable Abomination (1)
 (30055, 1.25), -- Stormpeak Wyrm
-(30057, 1098.5); -- The Lich King
+(30057, 1098.5), -- The Lich King
 
-INSERT INTO `_coa_captured_creature_health` (`entry`, `HealthModifier`) VALUES
 (30058, 1.3), -- Warden of the Chamber
 (30061, 6350.0), -- Kel'Thuzad (1)
 (30063, 6.6), -- Stormforged Decimator
@@ -5029,9 +5021,8 @@ INSERT INTO `_coa_captured_creature_health` (`entry`, `HealthModifier`) VALUES
 (32281, 1.1), -- Guardian of Time
 (32295, 1300.0), -- Alexstrasza the Life-Binder
 (32299, 7.8), -- Bone Sentinel
-(32306, 1.1); -- Infinite Dragonspawn
+(32306, 1.1), -- Infinite Dragonspawn
 
-INSERT INTO `_coa_captured_creature_health` (`entry`, `HealthModifier`) VALUES
 (32313, 15.5), -- Infinite Corruptor (1)
 (32316, 0.55), -- Dark Messenger
 (32326, 60.0), -- Prince Arthas Menethil
@@ -5531,9 +5522,8 @@ INSERT INTO `_coa_captured_creature_health` (`entry`, `HealthModifier`) VALUES
 (35539, 46.799999), -- Memory of Onyxia (1)
 (35594, 0.9), -- Brassbolt Mechawrench
 (35607, 0.9), -- Reginald Arcfire
-(35610, 35.0); -- Cat
+(35610, 35.0), -- Cat
 
-INSERT INTO `_coa_captured_creature_health` (`entry`, `HealthModifier`) VALUES
 (35615, 4500.0), -- Anub'arak (2)
 (35616, 6000.0), -- Anub'arak (3)
 (35642, 2.7), -- Jeeves
@@ -6033,9 +6023,8 @@ INSERT INTO `_coa_captured_creature_health` (`entry`, `HealthModifier`) VALUES
 (40218, 0.93), -- Spy Frog Credit
 (40257, 0.93), -- Troll Citizen
 (40301, 0.93), -- Tiger Matriarch Credit
-(40305, 10.0); -- Spirit of the Tiger
+(40305, 10.0), -- Spirit of the Tiger
 
-INSERT INTO `_coa_captured_creature_health` (`entry`, `HealthModifier`) VALUES
 (40417, 55.0), -- Charscale Invoker
 (40418, 110.0), -- Charscale Invoker (1)
 (40419, 62.5), -- Charscale Assaulter
