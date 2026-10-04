@@ -108,3 +108,37 @@ slots, three bars, weather/exposure and injury rows, hover help, dragging and wi
 Abilities remain in the spellbook and an optional expandable tray. /needs reset restores
 default placement, width and scale; /needs toggles visibility outside combat. Meal textures
 are cached while their item stays unchanged and the hidden panel skips timer painting.
+
+## Survival tools and professions
+
+Eight material-consuming native crafting spells (996120-996127) appear in Survivalist:
+
+- Flask: level 1, 1 Empty Vial and 2 Light Leather. Use the empty flask standing in water.
+- Rain bucket: level 1, 4 Simple Wood. Use outdoors in actual rain/thunder, outside instances.
+- Repair kit: level 10, 2 Copper Bars and 2 Linen Cloth. Repairs the equipped item with the
+  largest missing durability outside combat; consumes one kit only when needed.
+- Fishing float: level 1, 1 Simple Wood and 1 Coarse Thread. Native Shiny Bauble pole enchant.
+- War drum: level 30, 8 Simple Wood and 4 Medium Leather. 50 native charges; party AP +60,
+  spell power +30 for 30 seconds within 8 yards.
+- Travel drum: level 40, 8 Simple Wood and 4 Heavy Leather. 50 native charges; party speed
+  +15% for 30 seconds within 8 yards. Drums share the standard 2-minute category 24 cooldown.
+- Raft: level 15, 12 Simple Wood, 4 Linen Cloth and 4 Coarse Thread. Face open water while
+  stationary outdoors outside instances. Consumed only on successful spawn; lasts 30 minutes.
+  This is a stationary rowboat object, not a moving vehicle.
+- Fishing pole: level 1, 4 Simple Wood and 2 Coarse Thread; equipping requires trained Fishing.
+
+Custom items 996200-996209 have matching client/server Item.dbc rows; raft GO is 996200.
+Filled flask/bucket native drinks (996132-996133) restore hydration through the existing
+needs or challenge drink handling and create the empty container. Keep a spare bag slot;
+native spell checks prevent consuming a drink if its returned container cannot be stored.
+Item scripts gate alive/unmounted/outside combat and use inventory-only reagent counts.
+
+Profession effects scale with unmodified trained skill / 450, capped at 1. Native auras
+996140-996151 refresh once per second, updating amounts only when changed, and remove
+when untrained, dead or disabled. Full benefits: Mining health/armor +8%; Blacksmithing
+melee/ranged AP +5%; Skinning physical/spell crit +3%; Inscription attack/cast haste +3%;
+Tailoring spell damage/healing +20; Jewelcrafting attributes +3%; Enchanting mana +10/5sec;
+Leatherworking beast damage +8%; Herbalism vigor recovery +5%; Alchemy healing +15%;
+First Aid healing +20%; Fishing swimming vigor cost -50%. Existing Cooking/Engineering
+hooks remain. Professions must be trained normally; no profession slots or skills are granted.
+Configuration switches are CoANeeds.Tools.Enable and CoANeeds.Professions.Enable.

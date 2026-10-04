@@ -2,6 +2,7 @@
 // Mechanical split of review-CoAChallenges.cpp; no logic changes.
 #include "CoA.Challenges.Review.h"
 #include "../../mod-coa-needs/src/NeedsChallengeBridge.h"
+#include "SpellAuraEffects.h"
 
 namespace CoAChallenges
 {
@@ -165,7 +166,14 @@ namespace CoAChallenges
         uint32 foodRestore = sConfigMgr->GetOption<uint32>("CoAChallenges.FoodRestore", 1);
         uint32 drinkRestore = sConfigMgr->GetOption<uint32>("CoAChallenges.DrinkRestore", 1);
         bool eating = player->HasAuraType(SPELL_AURA_MOD_REGEN);
-        bool drinking = player->HasAuraType(SPELL_AURA_MOD_POWER_REGEN);
+        bool drinking = false;
+        for (AuraEffect const* effect : player->GetAuraEffectsByType(SPELL_AURA_MOD_POWER_REGEN))
+            if (effect->GetSpellInfo()->GetCategory() == SPELL_CATEGORY_DRINK ||
+                effect->GetSpellInfo()->GetCategory() == SPELL_CATEGORY_FOOD)
+            {
+                drinking = true;
+                break;
+            }
 
         struct Changed { uint32 challengeID; int32 hunger; int32 thirst; };
         std::vector<Changed> changed;
