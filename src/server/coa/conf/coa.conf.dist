@@ -43,6 +43,16 @@ CoA.AutoCollectAppearances = 1
 CoA.EquippedGearLoot = 1
 CoA.EquippedGearLootChance = 5
 
+# Wardrobe, outfits, vanity and mount/companion collections for characters played by bots.
+# 0 - never: bot sessions skip the collections (default).
+# 1 - only characters of player accounts played as bots (alts), never random bot accounts:
+#     their saved outfits and appearances are applied as for the player.
+# 2 - every bot session.
+# Random bot accounts are recognised by their name prefix, CoA.RandomBotAccountPrefix, which
+# must match AiPlayerbot.RandomBotAccountPrefix of mod-playerbots (default: rndbot).
+CoA.CollectionsForBots = 0
+CoA.RandomBotAccountPrefix = "rndbot"
+
 # Solo-server convenience: unlock the complete local appearance catalog. The
 # per-category value balances the initial snapshot; remaining appearances are
 # streamed afterward to stay below the legacy client's 64 KiB packet limit.

@@ -70,6 +70,7 @@ def main():
             items, 'void WorldSession::SendItemQuerySingleResponse(',
             'void WorldSession::SendItemQuerySingleResponse(uint32) { }')),
         ('OPCODES', opcodes(compat)),
+        ('RECEIVES_CLIENT_REQUESTS', method_or(compat, 'bool ReceivesClientRequests(Player const *player)', '')),
         ('PROGRESS_EVENT', method(player_script, 'enum class CoAProgressEvent') + ';'),
         ('QUEUE_LIMIT', constant(compat, 'MAX_QUEUED_EXTENSION_PACKETS')),
         ('CONFIG_KEYS', method(compat, 'enum class AscensionCompatConfig') + ';'),

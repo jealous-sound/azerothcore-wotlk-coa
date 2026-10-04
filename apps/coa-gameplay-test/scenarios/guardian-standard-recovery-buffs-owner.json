@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "Guardian Standard of Recovery's healing buff reaches its own owner (#4968)",
-  "contract": "#4968 reports a Guardian's Standard did not buff its owner with positive effects. The Standard of Recovery banner (creature 50053) sets its faction to the owner's faction before casting its aura (500266, an APPLY_AREA_AURA_FRIEND), so the owner should receive the healing-received buff from their own Standard, not only grouped allies.",
+  "contract": "Owner-recipient control for #4968, which reports cross-faction party interactions. The Standard of Recovery banner (creature 50053) sets its faction to the owner's faction before casting its aura (500266, an APPLY_AREA_AURA_FRIEND), so the owner should receive the healing-received buff from their own Standard. This control does not exercise opposite-faction party members; guardian-standards-cross-faction-recovery-4968 covers that condition.",
   "timeout_ms": 60000,
   "players": [
     { "id": "guardian", "race": 1, "class": 18, "level": 80 }

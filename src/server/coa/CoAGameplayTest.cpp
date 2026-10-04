@@ -2698,6 +2698,12 @@ private:
             Require(creature != nullptr, "Spell hit observation needs a present owned creature");
             return creature->m_modSpellHitChance;
         }
+        if (metric == "owned_creature_attackable")
+        {
+            Creature* creature = GetOwnedCreature(player, step.get<uint32>("entry"));
+            Require(creature != nullptr, "Attack observation needs a present owned creature");
+            return GetUnit(step.get<std::string>("target"))->IsValidAttackTarget(creature);
+        }
         if (metric == "owned_creature_weapon_damage_min")
         {
             uint32 entry = step.get<uint32>("entry");
