@@ -1,0 +1,511 @@
+{
+  "schema": 1,
+  "name": "Westfall quests restored from Ascension can be taken, progressed and rewarded",
+  "contract": "The Ascension WDB capture (2026-09-08) lists 15 Westfall quests the server lacked. Each must load, accept in chain order and reward. Militia Training 255057 needs six Militia Recruits 255339 defeated: a recruit beaten to its floor credits the attacker and stays alive. Potions for Sentinel Hill 1313, taken from Idona Wyther 255150, needs the three pilfered crates 480101-480103 and Take It Back 254043, taken from Protector Gariel 490, the Westfall Supplies 1252801 from 480104; each chest yields its quest item to a player on the quest and the items complete it.",
+  "timeout_ms": 60000,
+  "players": [
+    {
+      "id": "p",
+      "race": 1,
+      "class": 1,
+      "level": 20
+    }
+  ],
+  "creatures": [
+    {
+      "id": "recruit",
+      "owner": "p",
+      "entry": 255339,
+      "distance": 2,
+      "faction": 7,
+      "level": 10
+    },
+    {
+      "id": "idona",
+      "owner": "p",
+      "entry": 255150,
+      "distance": 4,
+      "faction": 12,
+      "level": 26
+    },
+    {
+      "id": "gariel",
+      "owner": "p",
+      "entry": 490,
+      "distance": 4,
+      "faction": 11,
+      "level": 30
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "ms": 1000
+    },
+    {
+      "action": "prepare_quest",
+      "actor": "p",
+      "quest": 255057,
+      "complete": false
+    },
+    {
+      "action": "assert",
+      "actor": "p",
+      "metric": "quest_objective_count",
+      "quest": 255057,
+      "equals": 0
+    },
+    {
+      "label": "start a melee fight with a Militia Recruit",
+      "action": "attack_nearby",
+      "actor": "p",
+      "entry": 255339
+    },
+    {
+      "label": "the recruit is engaged",
+      "action": "assert",
+      "actor": "recruit",
+      "metric": "combat",
+      "equals": 1,
+      "within_ms": 5000
+    },
+    {
+      "label": "beat the recruit down to its invincibility floor",
+      "action": "attack_nearby",
+      "actor": "p",
+      "entry": 255339,
+      "damage_pct": 99
+    },
+    {
+      "label": "finish the beating",
+      "action": "attack_nearby",
+      "actor": "p",
+      "entry": 255339,
+      "damage_pct": 99
+    },
+    {
+      "label": "the recruit sits at its floor",
+      "action": "assert",
+      "actor": "recruit",
+      "metric": "health_pct",
+      "max": 1
+    },
+    {
+      "action": "assert",
+      "actor": "p",
+      "metric": "quest_objective_count",
+      "quest": 255057,
+      "equals": 1,
+      "within_ms": 3000
+    },
+    {
+      "label": "the recruit yields instead of dying",
+      "action": "assert",
+      "actor": "recruit",
+      "metric": "alive",
+      "equals": 1
+    },
+    {
+      "label": "take quest 1313 from its giver",
+      "action": "quest_accept",
+      "actor": "p",
+      "quest": 1313,
+      "entry": 255150
+    },
+    {
+      "label": "the quest is in the log and incomplete",
+      "action": "assert",
+      "actor": "p",
+      "metric": "quest_status",
+      "quest": 1313,
+      "equals": 3,
+      "within_ms": 3000
+    },
+    {
+      "action": "summon_gameobject",
+      "actor": "p",
+      "entry": 480101
+    },
+    {
+      "action": "wait",
+      "label": "let the chest become ready",
+      "ms": 1000
+    },
+    {
+      "action": "loot_gameobject",
+      "actor": "p",
+      "entry": 480101
+    },
+    {
+      "action": "loot_slot",
+      "actor": "p",
+      "item": 480201
+    },
+    {
+      "action": "close_loot",
+      "actor": "p"
+    },
+    {
+      "action": "assert",
+      "actor": "p",
+      "metric": "item_count",
+      "item": 480201,
+      "equals": 1
+    },
+    {
+      "action": "summon_gameobject",
+      "actor": "p",
+      "entry": 480102
+    },
+    {
+      "action": "wait",
+      "label": "let the chest become ready",
+      "ms": 1000
+    },
+    {
+      "action": "loot_gameobject",
+      "actor": "p",
+      "entry": 480102
+    },
+    {
+      "action": "loot_slot",
+      "actor": "p",
+      "item": 480202
+    },
+    {
+      "action": "close_loot",
+      "actor": "p"
+    },
+    {
+      "action": "assert",
+      "actor": "p",
+      "metric": "item_count",
+      "item": 480202,
+      "equals": 1
+    },
+    {
+      "action": "summon_gameobject",
+      "actor": "p",
+      "entry": 480103
+    },
+    {
+      "action": "wait",
+      "label": "let the chest become ready",
+      "ms": 1000
+    },
+    {
+      "action": "loot_gameobject",
+      "actor": "p",
+      "entry": 480103
+    },
+    {
+      "action": "loot_slot",
+      "actor": "p",
+      "item": 480203
+    },
+    {
+      "action": "close_loot",
+      "actor": "p"
+    },
+    {
+      "action": "assert",
+      "actor": "p",
+      "metric": "item_count",
+      "item": 480203,
+      "equals": 1
+    },
+    {
+      "label": "the looted chest items complete the quest",
+      "action": "assert",
+      "actor": "p",
+      "metric": "quest_status",
+      "quest": 1313,
+      "equals": 1,
+      "within_ms": 3000
+    },
+    {
+      "action": "reward_quest",
+      "actor": "p",
+      "quest": 1313
+    },
+    {
+      "action": "assert",
+      "actor": "p",
+      "metric": "quest_rewarded",
+      "quest": 1313,
+      "equals": 1
+    },
+    {
+      "label": "take quest 254043 from its giver",
+      "action": "quest_accept",
+      "actor": "p",
+      "quest": 254043,
+      "entry": 490
+    },
+    {
+      "label": "the quest is in the log and incomplete",
+      "action": "assert",
+      "actor": "p",
+      "metric": "quest_status",
+      "quest": 254043,
+      "equals": 3,
+      "within_ms": 3000
+    },
+    {
+      "action": "summon_gameobject",
+      "actor": "p",
+      "entry": 480104
+    },
+    {
+      "action": "wait",
+      "label": "let the chest become ready",
+      "ms": 1000
+    },
+    {
+      "action": "loot_gameobject",
+      "actor": "p",
+      "entry": 480104
+    },
+    {
+      "action": "loot_slot",
+      "actor": "p",
+      "item": 1252801
+    },
+    {
+      "action": "close_loot",
+      "actor": "p"
+    },
+    {
+      "action": "assert",
+      "actor": "p",
+      "metric": "item_count",
+      "item": 1252801,
+      "equals": 1
+    },
+    {
+      "label": "the looted chest items complete the quest",
+      "action": "assert",
+      "actor": "p",
+      "metric": "quest_status",
+      "quest": 254043,
+      "equals": 1,
+      "within_ms": 3000
+    },
+    {
+      "action": "reward_quest",
+      "actor": "p",
+      "quest": 254043
+    },
+    {
+      "action": "assert",
+      "actor": "p",
+      "metric": "quest_rewarded",
+      "quest": 254043,
+      "equals": 1
+    },
+    {
+      "action": "prepare_quest",
+      "actor": "p",
+      "quest": 26993
+    },
+    {
+      "action": "reward_quest",
+      "actor": "p",
+      "quest": 26993
+    },
+    {
+      "action": "assert",
+      "actor": "p",
+      "metric": "quest_rewarded",
+      "quest": 26993,
+      "equals": 1
+    },
+    {
+      "action": "prepare_quest",
+      "actor": "p",
+      "quest": 26994
+    },
+    {
+      "action": "reward_quest",
+      "actor": "p",
+      "quest": 26994
+    },
+    {
+      "action": "assert",
+      "actor": "p",
+      "metric": "quest_rewarded",
+      "quest": 26994,
+      "equals": 1
+    },
+    {
+      "action": "prepare_quest",
+      "actor": "p",
+      "quest": 26995
+    },
+    {
+      "action": "reward_quest",
+      "actor": "p",
+      "quest": 26995
+    },
+    {
+      "action": "assert",
+      "actor": "p",
+      "metric": "quest_rewarded",
+      "quest": 26995,
+      "equals": 1
+    },
+    {
+      "action": "prepare_quest",
+      "actor": "p",
+      "quest": 26996
+    },
+    {
+      "action": "reward_quest",
+      "actor": "p",
+      "quest": 26996
+    },
+    {
+      "action": "assert",
+      "actor": "p",
+      "metric": "quest_rewarded",
+      "quest": 26996,
+      "equals": 1
+    },
+    {
+      "action": "prepare_quest",
+      "actor": "p",
+      "quest": 26997
+    },
+    {
+      "action": "reward_quest",
+      "actor": "p",
+      "quest": 26997
+    },
+    {
+      "action": "assert",
+      "actor": "p",
+      "metric": "quest_rewarded",
+      "quest": 26997,
+      "equals": 1
+    },
+    {
+      "action": "prepare_quest",
+      "actor": "p",
+      "quest": 17014
+    },
+    {
+      "action": "reward_quest",
+      "actor": "p",
+      "quest": 17014
+    },
+    {
+      "action": "assert",
+      "actor": "p",
+      "metric": "quest_rewarded",
+      "quest": 17014,
+      "equals": 1
+    },
+    {
+      "action": "prepare_quest",
+      "actor": "p",
+      "quest": 17011
+    },
+    {
+      "action": "reward_quest",
+      "actor": "p",
+      "quest": 17011
+    },
+    {
+      "action": "assert",
+      "actor": "p",
+      "metric": "quest_rewarded",
+      "quest": 17011,
+      "equals": 1
+    },
+    {
+      "action": "prepare_quest",
+      "actor": "p",
+      "quest": 17012
+    },
+    {
+      "action": "reward_quest",
+      "actor": "p",
+      "quest": 17012
+    },
+    {
+      "action": "assert",
+      "actor": "p",
+      "metric": "quest_rewarded",
+      "quest": 17012,
+      "equals": 1
+    },
+    {
+      "action": "prepare_quest",
+      "actor": "p",
+      "quest": 254042
+    },
+    {
+      "action": "reward_quest",
+      "actor": "p",
+      "quest": 254042
+    },
+    {
+      "action": "assert",
+      "actor": "p",
+      "metric": "quest_rewarded",
+      "quest": 254042,
+      "equals": 1
+    },
+    {
+      "action": "prepare_quest",
+      "actor": "p",
+      "quest": 999913
+    },
+    {
+      "action": "reward_quest",
+      "actor": "p",
+      "quest": 999913
+    },
+    {
+      "action": "assert",
+      "actor": "p",
+      "metric": "quest_rewarded",
+      "quest": 999913,
+      "equals": 1
+    },
+    {
+      "action": "prepare_quest",
+      "actor": "p",
+      "quest": 999914
+    },
+    {
+      "action": "reward_quest",
+      "actor": "p",
+      "quest": 999914
+    },
+    {
+      "action": "assert",
+      "actor": "p",
+      "metric": "quest_rewarded",
+      "quest": 999914,
+      "equals": 1
+    },
+    {
+      "action": "prepare_quest",
+      "actor": "p",
+      "quest": 999933
+    },
+    {
+      "action": "reward_quest",
+      "actor": "p",
+      "quest": 999933
+    },
+    {
+      "action": "assert",
+      "actor": "p",
+      "metric": "quest_rewarded",
+      "quest": 999933,
+      "equals": 1
+    }
+  ]
+}
