@@ -40,14 +40,10 @@ namespace
 constexpr uint32 MaximumSampleEntry = 60000;
 
 std::atomic<bool> liftsEnabled{true};
-bool useCapturedStats = false;
 CapturedStats::Table capturedStats;
 
 void LoadCapturedStats()
 {
-    if (!useCapturedStats)
-        return;
-
     auto const path = std::filesystem::path(sWorld->GetDataPath()) / "dbc" / "ItemStat.dbc";
     std::ifstream source(path, std::ios::binary);
     std::string error;
@@ -404,11 +400,9 @@ public:
     Configuration() : WorldScript("ItemScalingConfiguration",
         { WORLDHOOK_ON_AFTER_CONFIG_LOAD, WORLDHOOK_ON_LOAD_CUSTOM_DATABASE_TABLE }) { }
 
-    void OnAfterConfigLoad(bool reload) override
+    void OnAfterConfigLoad(bool) override
     {
         liftsEnabled.store(sConfigMgr->GetOption<bool>("CoA.ItemScaling", true), std::memory_order_relaxed);
-        if (!reload)
-            useCapturedStats = sConfigMgr->GetOption<bool>("CoA.ItemScaling.CapturedStats", false);
     }
 
     void OnLoadCustomDatabaseTable() override

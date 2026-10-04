@@ -94,10 +94,6 @@ CoA.QuestLevelScaling = 1
 # Set to 0 to stop new lifts; copies already handed out keep working.
 CoA.ItemScaling = 1
 
-# Read captured ItemStat.dbc rows for lifted templates and extension stat queries.
-# Requires DataDir/dbc/ItemStat.dbc; restart after changing. Missing rows use estimated scaling.
-CoA.ItemScaling.CapturedStats = 0
-
 # Automatic progression: hand out the class abilities and rank upgrades for the
 # character's class and level as they level up. Set to 0 to stop that
 # and let the player ask instead - a Book of Ascension grants them, so a realm that

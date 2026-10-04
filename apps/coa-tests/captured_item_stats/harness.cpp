@@ -2,7 +2,9 @@
 #include "AscensionItemStatData.h"
 #include "ItemTemplate.h"
 #include "WorldPacket.h"
+#include <atomic>
 #include <cassert>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -10,6 +12,8 @@
 #include <unordered_map>
 
 #define ASSERT(condition, ...) assert(condition)
+#define LOG_ERROR(...) static_cast<void>(0)
+#define LOG_INFO(...) static_cast<void>(0)
 
 // ACTUAL_BYTE_BUFFER
 
@@ -34,13 +38,31 @@ ObjectMgr* sObjectMgr = &objectMgr;
 constexpr int CONFIG_MAX_PLAYER_LEVEL = 0;
 struct World
 {
+    std::string dataPath;
+    std::string const& GetDataPath() const { return dataPath; }
     uint32 getIntConfig(int) const { return 80; }
 } world;
 World* sWorld = &world;
 
+struct ConfigMgr
+{
+    template <typename T>
+    T GetOption(char const*, T fallback) const { return fallback; }
+} configMgr;
+ConfigMgr* sConfigMgr = &configMgr;
+
+constexpr int WORLDHOOK_ON_AFTER_CONFIG_LOAD = 0;
+constexpr int WORLDHOOK_ON_LOAD_CUSTOM_DATABASE_TABLE = 1;
+struct WorldScript
+{
+    WorldScript(char const*, std::initializer_list<int>) { }
+    virtual void OnAfterConfigLoad(bool) { }
+    virtual void OnLoadCustomDatabaseTable() { }
+};
+
 namespace ItemScaling
 {
-CapturedStats::Table capturedStats;
+// ACTUAL_STARTUP
 using CurveKey = std::tuple<uint32, uint32, uint32, uint32>;
 using CurveSet = std::map<CurveKey, LevelCurve>;
 struct Curves
@@ -59,6 +81,14 @@ uint32 BaseEntry(uint32 item) { return item == FirstScaledEntry ? 720 : item; }
 
 // ACTUAL_BUILD_TEMPLATE
 // ACTUAL_HANDLE_QUERY
+
+struct Registry
+{
+    static Registry& Instance() { static Registry registry; return registry; }
+    void Load() { }
+};
+
+// ACTUAL_CONFIGURATION
 }
 
 namespace
@@ -192,9 +222,14 @@ void TestTemplatesAndReplies()
         sword.ItemStat[0].ItemStatValue == 8, "captured weapon damage and stamina retain the original row");
     auto saved = std::move(capturedStats);
     capturedStats = CapturedStats::Table{};
+    auto const dataPath = world.dataPath;
+    world.dataPath += "/missing";
+    Configuration{}.OnLoadCustomDatabaseTable();
     auto fallback = BuildTemplate(FirstScaledEntry, base, 30, curves);
-    Check(fallback->ItemStat[0].ItemStatValue == 18 && fallback->ItemStat[1].ItemStatValue == 15,
-        "absent or disabled capture retains existing estimated scaling");
+    Check(!capturedStats.Size() && fallback->ItemStat[0].ItemStatValue == 18 &&
+        fallback->ItemStat[1].ItemStatValue == 15,
+        "startup without ItemStat.dbc retains existing estimated scaling");
+    world.dataPath = dataPath;
     capturedStats = std::move(saved);
     auto unmatched = BuildTemplate(FirstScaledEntry, base, 31, curves);
     Check(unmatched->ItemLevel == 59 && unmatched->ItemStat[0].ItemStatValue == 18,
@@ -207,8 +242,11 @@ int main(int argc, char** argv)
     if (argc < 2)
         return 2;
     std::string error;
-    std::ifstream input(argv[1], std::ios::binary);
-    Check(ItemScaling::capturedStats.Load(input, error), "byte-exact original CoA fixture rows load");
+    world.dataPath = std::filesystem::path(argv[1]).parent_path().parent_path().string();
+    ItemScaling::Configuration startup;
+    startup.OnAfterConfigLoad(false);
+    startup.OnLoadCustomDatabaseTable();
+    Check(ItemScaling::capturedStats.Size() == 6, "startup uses original ItemStat rows without an opt-in setting");
     auto const* gloves = ItemScaling::capturedStats.Find(720, 58);
     Check(gloves && ItemScaling::capturedStats.Find(720, 28) && !ItemScaling::capturedStats.Find(720, 57),
         "lookup uses the exact item and scaling level");

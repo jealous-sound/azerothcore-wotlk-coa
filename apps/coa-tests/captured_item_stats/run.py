@@ -24,6 +24,8 @@ def main():
     fixture = json.loads((HERE / 'fixtures.json').read_text(encoding='utf-8'))
     harness = (HERE / 'harness.cpp').read_text(encoding='utf-8')
     for marker, text in [
+        ('STARTUP', source[source.index('std::atomic<bool> liftsEnabled'):source.index('using CurveKey =')]),
+        ('CONFIGURATION', method(source, 'class Configuration : public WorldScript') + ';'),
         ('BUILD_TEMPLATE', method(source, 'std::unique_ptr<ItemTemplate> BuildTemplate(')),
         ('HANDLE_QUERY', method(source, 'void HandleStatQuery(') if 'void HandleStatQuery(' in source else
          'void HandleStatQuery(WorldSession*, WorldPacket const&) { }'),
@@ -42,7 +44,8 @@ def main():
         out = Path(directory)
         cpp = out / 'harness.cpp'
         cpp.write_text(harness, encoding='utf-8')
-        data = out / 'ItemStat.dbc'
+        data = out / 'dbc' / 'ItemStat.dbc'
+        data.parent.mkdir()
         data.write_bytes(struct.pack('<4s4I', b'WDBC', len(fixture['rows']), 39, 156, 0) +
                          b''.join(struct.pack('<39I', *row) for row in fixture['rows']))
         executable = out / ('regressions.exe' if os.name == 'nt' else 'regressions')

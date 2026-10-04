@@ -8,7 +8,7 @@ The table also contains required level 53, sell price 2676 and reborn armor 82 f
 To use the captured table for the existing loot and quest item lifts:
 
 1. Place the original CoA `ItemStat.dbc` at `<DataDir>/dbc/ItemStat.dbc`.
-2. Set `CoA.ItemScaling.CapturedStats = 1` in `coa.conf` and restart the server.
+2. Restart the server. The captured table loads automatically; no separate configuration flag is needed.
 3. Check startup for `Loaded ... captured item-stat rows`. A missing or invalid file logs an error and
    leaves estimated scaling active.
 
@@ -39,14 +39,15 @@ Damage schools come from the item template. Armor, reborn armor, six resistances
 required level and sell price occupy `0x78` through `0xA4`. The `0x08` base-item field follows the recovered
 client's `CacheRecord` builder; its broader meaning in original server replies remains unconfirmed.
 
-This is opt-in because the original server's row-selection rules have not been captured. It supplies the
-existing fixed item lifts and explicit item-stat requests. It does not implement continuous scaling of
-equipped items with player level, change lift selection, apply reborn armor to combat, or set player addon
-field 87. Enabling field 87 would make the client choose additional player-level scaling rows before the
-server has matching equip and level-change behavior.
+Captured rows take precedence over estimates by default. The original server's row-selection rules have
+not been captured; lookup supplies the existing fixed item lifts and explicit item-stat requests.
+It does not implement continuous scaling of equipped items with player level, change lift selection,
+apply reborn armor to combat, or set player addon field 87. Enabling field 87 would make the client choose
+additional player-level scaling rows before the server has matching equip and level-change behavior.
 
 Verify through `python -B tools/verify_all.py --stages source,build,harness --harness captured_item_stats
-item_scaling extension_packets --base origin/main`. The new harness exercises the production template
-builder and query handler with the real `ItemTemplate` and `WorldPacket`, plus captured rows and malformed
-input. When verification settings select a DBC directory containing `ItemStat.dbc`, it also validates the
-complete original table. Server build and gameplay verification require the normal CoA prerequisites.
+item_scaling extension_packets --base origin/main`. The harness exercises the production startup hooks,
+template builder and query handler with the real `ItemTemplate` and `WorldPacket`, plus captured rows and
+malformed input. When verification settings select a DBC directory containing `ItemStat.dbc`, it also
+validates the complete original table. Server build and gameplay verification require the normal CoA
+prerequisites.
