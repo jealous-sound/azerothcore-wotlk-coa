@@ -305,6 +305,13 @@ struct npc_ascension_tinker_device : ScriptedAI
         me->SetCombatMovement(Mobile());
         State(player).summons.insert(me->GetGUID());
         Scale(player,me,true);
+        if (Turret(me->GetEntry()))
+        {
+            Cast(player, player, 807293);
+            if (!player->HasSpell(500470))
+                player->learnSpell(500470, true);
+            player->SetTemporarySpellReplacement(500239, 500470);
+        }
         focus = State(player).focus;
         start = previous = me->GetPosition();
         if (!Mobile())
@@ -398,6 +405,15 @@ struct npc_ascension_tinker_device : ScriptedAI
         {
             player->m_Controlled.erase(me);
             State(player).summons.erase(me->GetGUID());
+            if (Turret(me->GetEntry()))
+            {
+                auto devices = Devices(player);
+                if (std::none_of(devices.begin(), devices.end(), [](Creature* device) { return Turret(device->GetEntry()); }))
+                {
+                    player->RemoveAurasDueToSpell(807293, player->GetGUID());
+                    player->SetTemporarySpellReplacement(500239, 0);
+                }
+            }
         }
     }
     void OnDespawn() override { Cleanup(); }

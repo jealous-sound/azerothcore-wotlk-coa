@@ -282,6 +282,17 @@ class spell_ascension_tinker_ability : public SpellScript
             return;
         uint32 id = GetSpellInfo()->Id;
         auto type = GetSpellInfo()->Effects[index].Effect;
+        if (id == 500470)
+        {
+            PreventHitDefaultEffect(index);
+            if (handled)
+                return;
+            handled = true;
+            for (Creature* device : Devices(player))
+                if (Turret(device->GetEntry()))
+                    device->DespawnOrUnsummon();
+            return;
+        }
         if (id == 801744)
         {
             PreventHitDefaultEffect(index);
