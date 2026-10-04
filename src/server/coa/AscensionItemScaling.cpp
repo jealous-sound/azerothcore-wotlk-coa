@@ -18,8 +18,6 @@
 #include "Player.h"
 #include "ScriptMgr.h"
 #include "World.h"
-#include "WorldPacket.h"
-#include "WorldSession.h"
 #include <algorithm>
 #include <atomic>
 #include <map>
@@ -28,12 +26,12 @@
 #include <shared_mutex>
 #include <tuple>
 #include <unordered_map>
+#include <vector>
 
 namespace ItemScaling
 {
 namespace
 {
-constexpr uint16 PatchItemOpcode = 0x0932;
 constexpr uint32 MaximumSampleEntry = 60000;
 
 std::atomic<bool> liftsEnabled{true};
@@ -282,16 +280,6 @@ public:
         return record == _records.end() ? entry : record->second.baseEntry;
     }
 
-    std::vector<uint32> Entries()
-    {
-        std::vector<uint32> entries;
-        std::shared_lock lock(_mutex);
-        entries.reserve(_records.size());
-        for (auto const& [entry, record] : _records)
-            entries.push_back(entry);
-        return entries;
-    }
-
 private:
     struct Record
     {
@@ -405,10 +393,14 @@ public:
     void OnAfterLootTemplateProcess(Loot* loot, LootTemplate const*, LootStore const& store, Player* owner,
         bool personal, bool, uint16) override
     {
-        if (!loot || !owner || !owner->GetMap() || !liftsEnabled.load(std::memory_order_relaxed))
+        if (!loot || !owner || !liftsEnabled.load(std::memory_order_relaxed) ||
+            (&store != &LootTemplates_Creature && &store != &LootTemplates_Gameobject))
             return;
 
-        Map* map = owner->GetMap();
+        Map* map = owner->FindMap();
+        if (!map)
+            return;
+
         if (&store == &LootTemplates_Creature)
         {
             Creature const* creature = map->GetCreature(loot->sourceWorldObjectGUID);
@@ -435,31 +427,6 @@ public:
     }
 };
 
-class ClientItemRows : public ServerScript
-{
-public:
-    ClientItemRows() : ServerScript("ItemScalingClientRows", { SERVERHOOK_CAN_PACKET_SEND }) { }
-
-    bool CanPacketSend(WorldSession* session, WorldPacket const& packet) override
-    {
-        if (!session || packet.GetOpcode() != SMSG_ITEM_QUERY_SINGLE_RESPONSE || packet.size() < sizeof(uint32))
-            return true;
-
-        uint32 const entry = packet.read<uint32>(0);
-        if (!IsScaledEntry(entry))
-            return true;
-
-        if (ItemTemplate const* proto = Registry::Instance().Template(entry))
-        {
-            ClientItemRow const row = RowOf(*proto);
-            WorldPacket rowPacket(PatchItemOpcode, row.size() * sizeof(uint32));
-            for (uint32 value : row)
-                rowPacket << value;
-            session->SendPacket(&rowPacket);
-        }
-        return true;
-    }
-};
 }
 
 uint32 BaseEntry(uint32 entry)
@@ -467,13 +434,11 @@ uint32 BaseEntry(uint32 entry)
     return Registry::Instance().BaseEntry(entry);
 }
 
-std::vector<ClientItemRow> ClientRows()
+std::optional<ClientItemRow> ClientRow(uint32 entry)
 {
-    std::vector<ClientItemRow> rows;
-    for (uint32 entry : Registry::Instance().Entries())
-        if (ItemTemplate const* proto = Registry::Instance().Template(entry))
-            rows.push_back(RowOf(*proto));
-    return rows;
+    if (ItemTemplate const* proto = Registry::Instance().Template(entry))
+        return RowOf(*proto);
+    return std::nullopt;
 }
 }
 
@@ -483,5 +448,4 @@ void AddSC_AscensionItemScaling()
     LocalLevelScaling::QuestRewardItemOwner.store(&ItemScaling::QuestRewardItem, std::memory_order_relaxed);
     new ItemScaling::Configuration();
     new ItemScaling::ScaledLoot();
-    new ItemScaling::ClientItemRows();
 }

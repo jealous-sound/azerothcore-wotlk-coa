@@ -2,6 +2,7 @@ import importlib.util
 import os
 import struct
 from pathlib import Path
+import re
 import unittest
 
 
@@ -33,6 +34,16 @@ class LegendaryCatalogTest(unittest.TestCase):
         self.assertEqual(len(movements), 21)
         self.assertTrue(all(item['inventory_type'] == 8 for item in movements))
         self.assertEqual(catalog[63]['power'], 'Armor')
+
+    def test_emitted_item_rows_end_at_level_60(self):
+        sql = CATALOG.render_sql(CATALOG.load_catalog())
+        item_rows = sql.split('INSERT INTO `item_dbc`', 1)[1].split('INSERT INTO `spell_dbc`', 1)[0]
+        entries = [int(entry) for entry in re.findall(r'^\((\d+),', item_rows, re.MULTILINE)]
+        self.assertEqual(len(entries), 3840)
+        self.assertEqual(len(set(entries)), 3840)
+        self.assertTrue(all(1 <= (entry - 9700000) % 100 <= 60 for entry in entries))
+        self.assertIn(9700060, entries)
+        self.assertIn(9706360, entries)
 
     def test_native_stat_auras_cover_the_advertised_bonuses(self):
         catalog = CATALOG.load_catalog()

@@ -176,7 +176,7 @@ namespace
         void OnAfterLootTemplateProcess(Loot* loot, LootTemplate const* /*tab*/, LootStore const& store,
             Player* lootOwner, bool /*personal*/, bool /*noEmptyError*/, uint16 /*lootMode*/) override
         {
-            if (!loot || !lootOwner || !lootOwner->GetMap())
+            if (!loot || !lootOwner || !lootOwner->FindMap())
                 return;
 
             uint32 baseEntry;

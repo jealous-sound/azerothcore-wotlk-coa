@@ -3,14 +3,14 @@
 
 #include <array>
 #include <cstdint>
-#include <vector>
+#include <optional>
 
 namespace ItemScaling
 {
 using ClientItemRow = std::array<std::uint32_t, 8>;
 
 std::uint32_t BaseEntry(std::uint32_t entry);
-std::vector<ClientItemRow> ClientRows();
+std::optional<ClientItemRow> ClientRow(std::uint32_t entry);
 }
 
 #endif

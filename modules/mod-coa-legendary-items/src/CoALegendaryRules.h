@@ -11,7 +11,7 @@ namespace CoALegendary
     constexpr uint32_t ItemEntryStride = 100;
     constexpr uint32_t AuraEntryBase = 9710000;
     constexpr uint32_t DesignCount = 64;
-    constexpr uint32_t MaximumCreatureLevel = 80;
+    constexpr uint32_t MaximumCreatureLevel = 60;
     constexpr uint32_t ItemLevelBonus = 12;
     constexpr uint32_t KillPowerDurationMs = 8000;
 

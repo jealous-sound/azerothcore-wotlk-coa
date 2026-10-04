@@ -6,10 +6,9 @@ from pathlib import Path
 
 MODULE = Path(__file__).resolve().parents[1]
 ROOT = MODULE.parents[1]
-SQL = ROOT / 'data/sql/updates/pending_db_world/rev_1791051693307538000.sql'
 ITEM_BASE = 9700000
 AURA_BASE = 9710000
-MAX_LEVEL = 80
+MAX_LEVEL = 60
 APPEARANCES = {
     8: (1, 7, 16492),
     11: (0, 5, 6921),
@@ -223,7 +222,7 @@ def render_header(catalog):
 def render_catalog(catalog):
     lines = ['# Leveling legendary catalog', '',
         '64 non-set designs. Required level is the effective creature level; item level is required level + 12.',
-        'Each design has variants for creature levels 1–80; the default player drop cutoff is 60.', '',
+        f'Each design has variants for creature levels 1–{MAX_LEVEL}; the default player drop cutoff is 60.', '',
         'Stat profiles give the named primary stat, stamina and AP or SP; hybrids receive both AP and SP.',
         'The shared cloak gives stamina and critical strike rating. Powers use the fixed item level.', '',
         '| Design | Class | Name | Slot | Stats | Legendary power |',
@@ -242,23 +241,31 @@ def render_catalog(catalog):
     return '\n'.join(lines)
 
 
-def outputs():
+def outputs(sql_output=None):
     catalog = load_catalog()
-    return {
+    generated = {
         MODULE / 'src/CoALegendaryCatalog.h': render_header(catalog),
         MODULE / 'CATALOG.md': render_catalog(catalog),
         MODULE / 'preview.html': (MODULE / 'tools/preview.template.html').read_text().replace(
             '__CATALOG__', json.dumps(catalog, ensure_ascii=False, indent=2)),
-        SQL: render_sql(catalog),
     }
+    if sql_output:
+        sql_output = sql_output.resolve()
+        if not sql_output.is_relative_to(ROOT / 'data/sql/updates/pending_db_world'):
+            raise ValueError('SQL output must be a new pending world migration')
+        generated[sql_output] = render_sql(catalog)
+    return generated
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--check', action='store_true')
+    parser.add_argument('--sql-output', type=Path)
     args = parser.parse_args()
+    if args.sql_output and not args.check and args.sql_output.exists():
+        parser.error('--sql-output must name a new migration; existing migrations are not overwritten')
     stale = []
-    for path, content in outputs().items():
+    for path, content in outputs(args.sql_output).items():
         if args.check:
             if not path.exists() or path.read_text() != content:
                 stale.append(str(path.relative_to(ROOT)))

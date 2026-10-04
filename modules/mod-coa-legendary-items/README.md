@@ -11,7 +11,7 @@ Players at level 60 or above receive no new drops by default. Previously earned 
 Required level is `creature->getLevelForTarget(lootOwner)`, the same per-player level used by Destiny Weaver.
 Item level is always required level + 12. A level-32 player killing a wolf scaled from 10 to 29 receives a
 level-29, item-level-41 variant. Without scaling, that gray level-10 wolf is ineligible. Normal and quest loot
-continue through their existing paths. Each design has level-1 through level-80 variants with fixed stats;
+continue through their existing paths. Each design has level-1 through level-60 variants with fixed stats;
 equipping one does not increase its level.
 
 Movement powers are exclusive to boots. Boots use cloth armor and class-specific stats, allowing their intended
@@ -36,6 +36,9 @@ The module is discovered automatically by CMake. Its configuration is
 The pending migration `data/sql/updates/pending_db_world/rev_1791051693307538000.sql` supplies 5,120 item templates,
 matching `item_dbc` rows, 64 native power spells and signature aura-script bindings. Apply it through the normal
 worldserver updater.
+`rev_20261004_00_coa_legendary_level_cap.sql` removes the unused level-61 through level-80 client definitions,
+leaving 3,840 streamable item rows. Historical item templates remain for saved-item compatibility;
+the module only recognizes and generates level-1 through level-60 variants.
 The module validates its item and spell records at startup and disables drops and powers if they are incomplete.
 
 `AscensionCompat` already streams `item_dbc` through `SMSG_PATCH_ITEM` (`0x0932`, eight 32-bit fields).
@@ -48,8 +51,10 @@ tooltips receive current effect amounts through the existing Ascension aura-amou
 or server DBC file is modified. Server packet construction is covered by socketless gameplay scenarios; live
 client delivery, numeric tooltip rendering and buff icons require separate client acceptance.
 
-The authoritative designs are in `data/catalog.json`. Regenerate the C++ catalog, pending migration, catalog
+The authoritative designs are in `data/catalog.json`. Regenerate the C++ catalog, catalog
 and standalone HTML preview with `python3 -B modules/mod-coa-legendary-items/tools/generate_catalog.py`.
+To author a new full catalog migration, pass `--sql-output` with a new path in `data/sql/updates/pending_db_world/`.
+Previously applied migrations are kept unchanged.
 The HTML works directly from disk and makes no external requests.
 
 ## Verification

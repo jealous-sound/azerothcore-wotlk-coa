@@ -1,7 +1,7 @@
 # Leveling legendary catalog
 
 64 non-set designs. Required level is the effective creature level; item level is required level + 12.
-Each design has variants for creature levels 1–80; the default player drop cutoff is 60.
+Each design has variants for creature levels 1–60; the default player drop cutoff is 60.
 
 Stat profiles give the named primary stat, stamina and AP or SP; hybrids receive both AP and SP.
 The shared cloak gives stamina and critical strike rating. Powers use the fixed item level.

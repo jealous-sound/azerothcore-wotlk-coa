@@ -200,6 +200,7 @@ ACTIONS = {
     'use_gameobject': ({'actor', 'entry'}, {'actor', 'entry'}),
     'summon_gameobject': ({'actor', 'entry'}, {'actor', 'entry', 'distance', 'duration_s'}),
     'loot_gameobject': ({'actor', 'entry'}, {'actor', 'entry'}),
+    'mapless_loot_hook': ({'actor', 'store'}, {'actor', 'store'}),
     'set_skill': ({'actor', 'skill', 'value', 'maximum'}, {'actor', 'skill', 'value', 'maximum'}),
     'gather_skill': ({'actor', 'skill', 'required'}, {'actor', 'skill', 'required'}),
     'set_xp_enabled': ({'actor', 'enabled'}, {'actor', 'enabled'}),
@@ -454,6 +455,9 @@ def validate(scenario):
             for category, appearance in selection.items():
                 require(category.isdigit() and 0 < int(category) < 256, f'{where}.selection: invalid category')
                 number(appearance, f'{where}.selection.{category}', 0, 2**32 - 1, True)
+        if action == 'mapless_loot_hook':
+            require(step['actor'] in player_ids, f'{where}: mapless loot needs a player')
+            require(step.get('store') in {'mail', 'gameobject'}, f'{where}: unsupported mapless loot store')
         if action in {'summon_gameobject', 'loot_gameobject'}:
             require(step['actor'] in player_ids, f'{where}: {action} needs a player')
             number(step['entry'], f'{where}.entry', 1, 2**32 - 1, True)

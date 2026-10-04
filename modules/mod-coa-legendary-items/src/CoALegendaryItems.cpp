@@ -235,7 +235,7 @@ namespace
             float const configuredChance = sConfigMgr->GetOption<float>("CoALegendaryItems.DropChance", 0.5f);
             dropChance.store(std::isfinite(configuredChance) ? std::clamp(configuredChance, 0.0f, 100.0f) : 0.0f);
             stopDropLevel.store(std::clamp(
-                sConfigMgr->GetOption<uint32>("CoALegendaryItems.StopDropLevel", 60), 1u, 81u));
+                sConfigMgr->GetOption<uint32>("CoALegendaryItems.StopDropLevel", 60), 1u, MaximumCreatureLevel + 1));
             ++configVersion;
         }
 

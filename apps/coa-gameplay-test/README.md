@@ -456,6 +456,7 @@ assert stable maximums and final levels when testing damage coefficients.
 | `use_gameobject` | `actor`, `entry`: native use request for the actor's single nearby owned gameobject. |
 | `summon_gameobject` | Player `actor`, `entry`, optional `distance` (yards in front, default 2) and `duration_s` (default 300): summon a gameobject the actor owns; fails if the actor already owns one of that entry. |
 | `loot_gameobject` | Player `actor`, `entry`: open the loot of the actor's single owned chest as a successful open-lock cast does, so chest loot is generated for that player. Lock, key and skill checks are not exercised. |
+| `mapless_loot_hook` | Player `actor`, `store` (`mail`/`gameobject`): test registered loot hooks without a map. |
 | `set_skill` | `actor`, `skill`, `value`, `maximum`: fixture a native profession skill. |
 | `gather_skill` | `actor`, gathering `skill`, `required`: native gathering XP and skill-up attempt. |
 | `set_xp_enabled` | `actor`, boolean `enabled`: fixture the native XP-lock flag. |

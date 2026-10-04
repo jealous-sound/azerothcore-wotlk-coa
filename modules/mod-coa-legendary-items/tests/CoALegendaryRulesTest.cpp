@@ -50,6 +50,9 @@ TEST(CoALegendaryVariants, PreserveCreatureLevelAndTwelveItemLevels)
             EXPECT_EQ(variant->requiredLevel, level);
         }
     EXPECT_FALSE(DecodeEntry(9700000));
+    EXPECT_TRUE(DecodeEntry(9700060));
+    EXPECT_FALSE(DecodeEntry(9700061));
+    EXPECT_FALSE(DecodeEntry(9700080));
     EXPECT_FALSE(DecodeEntry(9700081));
     EXPECT_FALSE(DecodeEntry(9699999));
     EXPECT_FALSE(DecodeEntry(9706401));
@@ -58,7 +61,9 @@ TEST(CoALegendaryVariants, PreserveCreatureLevelAndTwelveItemLevels)
 TEST(CoALegendaryDrops, ExcludesGrayTargetsAndThePlayerLevelCutoff)
 {
     EXPECT_TRUE(CanDrop(12, 32, 29, 60, true));
-    EXPECT_TRUE(CanDrop(32, 59, 62, 60, true));
+    EXPECT_TRUE(CanDrop(32, 59, 60, 60, true));
+    EXPECT_FALSE(CanDrop(32, 59, 61, 60, true));
+    EXPECT_FALSE(CanDrop(32, 59, 62, 60, true));
     EXPECT_FALSE(CanDrop(12, 32, 10, 60, false));
     EXPECT_FALSE(CanDrop(12, 60, 57, 60, true));
     EXPECT_FALSE(CanDrop(12, 80, 80, 60, true));
