@@ -359,6 +359,7 @@ struct Actor
     uint32 buysMisannounced = 0;
     uint32 supersededPackets = 0;
     std::map<uint32, uint32> supersededFor;
+    std::set<uint32> clientSpells;
     std::vector<std::pair<uint32, uint32>> announcements;
     uint32 lastBuyOrdinal = 0;
     uint32 lastBuyCues = 0;
@@ -747,6 +748,25 @@ void ObservePacket(Actor& actor, WorldPacket const& packet)
         packet.GetOpcode() == SMSG_QUESTGIVER_QUEST_DETAILS)
         actor.lastQuestWindow = packet.GetOpcode();
 
+    if (packet.GetOpcode() == SMSG_INITIAL_SPELLS)
+    {
+        WorldPacket list(packet);
+        uint8 talentSpec = 0;
+        uint16 count = 0;
+        list >> talentSpec >> count;
+        actor.clientSpells.clear();
+        for (uint16 index = 0; index < count; ++index)
+        {
+            uint32 spell = 0;
+            uint16 slot = 0;
+            list >> spell >> slot;
+            actor.clientSpells.insert(spell);
+        }
+    }
+
+    if (packet.GetOpcode() == SMSG_REMOVED_SPELL && packet.size() >= sizeof(uint32))
+        actor.clientSpells.erase(packet.read<uint32>(0));
+
     if (packet.GetOpcode() == SMSG_SUPERCEDED_SPELL)
     {
         ++actor.supersededPackets;
@@ -755,6 +775,8 @@ void ObservePacket(Actor& actor, WorldPacket const& packet)
         uint32 replacement = 0;
         swap >> previous >> replacement;
         ++actor.supersededFor[replacement];
+        actor.clientSpells.erase(previous);
+        actor.clientSpells.insert(replacement);
         actor.announcements.emplace_back(actor.packetOrdinal, replacement);
     }
 
@@ -765,6 +787,7 @@ void ObservePacket(Actor& actor, WorldPacket const& packet)
         announcement >> announced;
         ++actor.learnedAlerts[announced];
         actor.announced.insert(announced);
+        actor.clientSpells.insert(announced);
         actor.announcements.emplace_back(actor.packetOrdinal, announced);
     }
 
@@ -2018,10 +2041,12 @@ private:
             metric == "spell_active" || metric == "global_cooldown_ms" || metric == "has_talent" ||
             metric == "spellbook_offers_spell" || metric == "spellbook_covers_spell" ||
             metric == "trainer_window_state" || metric == "trainer_window_ability" ||
-            metric == "temporary_spell_replacement")
+            metric == "temporary_spell_replacement" || metric == "client_knows_spell")
             Require(sSpellMgr->GetSpellInfo(spell) != nullptr, "Unknown spell in metric");
         if (metric == "knows_spell")
             return player->HasSpell(spell);
+        if (metric == "client_knows_spell")
+            return _actors.at(step.get<std::string>("actor")).clientSpells.count(spell) ? 1.0 : 0.0;
         if (metric == "spell_active")
         {
             auto known = player->GetSpellMap().find(spell);
