@@ -122,7 +122,7 @@ INSERT INTO `creature` (`guid`, `id`, `map`, `zoneId`, `areaId`, `spawnMask`, `p
 (9950105, 255150, 0, 40, 108, 1, 1, 0, -10489, 1060, 54.58, 3.14, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Idona Wyther (estimated position)'),
 (9950106, 776790, 0, 40, 108, 1, 1, 0, -10501.5, 1029.5, 60.6, 3.84, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Archivist Selnor (estimated position, tower floor)'),
 (9950107, 991515, 0, 40, 40, 1, 1, 0, -10259.3, 1780.44, 73.85, 5.82, 600, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Lenore the Hoarder (estimated position, Defias tower upper floor)'),
-(9950108, 157002, 0, 40, 921, 1, 1, 0, -11018, 1784, 43.92, 3.14, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Farmer Demont (estimated position, Demont''s Place)'),
+(9950108, 157002, 0, 40, 921, 1, 1, 0, -11141, 1826, 39.15, 5.05, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Farmer Demont (estimated position, Demont''s Place ruins by the chimney)'),
 (9950109, 999900, 0, 40, 40, 1, 1, 0, -10100, 980, 40.37, 2.2, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Slain Protector (estimated position, broken harvester)'),
 (9950110, 999901, 0, 40, 922, 1, 1, 0, -11030, 790, 37.55, 1, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Half-Devoured Protector (estimated position, Riverpaw camp)');
 
