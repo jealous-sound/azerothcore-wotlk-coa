@@ -10286,6 +10286,31 @@ bool Player::IsAffectedBySpellmod(SpellInfo const* spellInfo, SpellModifier* mod
     return spellInfo->IsAffectedBySpellMod(mod);
 }
 
+// xinef's Backdraft coupling only makes sense when the same aura also reduces cast
+// time: its gcd half must not fire when its cast-time half was not applied. An aura
+// whose only spell modifier is the gcd reduction (Dark Frenzy's 804845 helper, kept
+// up by AscensionBloodmageTalents.cpp while a Cursed Form is active) has no cast-time
+// half to wait for, so it must reach the gcd calculation itself.
+static bool AuraAlsoModifiesCastingTime(Aura const* aura)
+{
+    if (!aura)
+        return false;
+
+    SpellInfo const* info = aura->GetSpellInfo();
+    if (!info)
+        return false;
+
+    for (uint8 i = 0; i < MAX_SPELL_EFFECTS; ++i)
+    {
+        SpellEffectInfo const& effect = info->Effects[i];
+        if ((effect.ApplyAuraName == SPELL_AURA_ADD_FLAT_MODIFIER || effect.ApplyAuraName == SPELL_AURA_ADD_PCT_MODIFIER) &&
+            effect.MiscValue == SPELLMOD_CASTING_TIME)
+            return true;
+    }
+
+    return false;
+}
+
 template <class T>
 void Player::ApplySpellMod(uint32 spellId, SpellModOp op, T& basevalue, Spell* spell, bool temporaryPet)
 {
@@ -10336,7 +10361,8 @@ void Player::ApplySpellMod(uint32 spellId, SpellModOp op, T& basevalue, Spell* s
             else if (mod->op == SPELLMOD_CRITICAL_CHANCE && !HasSpellModApplied(mod, spell))
                 return;
             // xinef: special case for backdraft gcd reduce with backlast time reduction, dont affect gcd if cast time was not applied
-            else if (mod->op == SPELLMOD_GLOBAL_COOLDOWN && !HasSpellModApplied(mod, spell))
+            else if (mod->op == SPELLMOD_GLOBAL_COOLDOWN && !HasSpellModApplied(mod, spell) &&
+                AuraAlsoModifiesCastingTime(mod->ownerAura))
                 return;
 
             // xinef: those two mods should be multiplicative (Glyph of Renew)

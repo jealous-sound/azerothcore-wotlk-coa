@@ -13,6 +13,7 @@
 #include "AscensionTinker.h"
 #include "AscensionSunCleric.h"
 #include "AllCreatureScript.h"
+#include "AllItemScript.h"
 #include "AllSpellScript.h"
 #include "AscensionChangelogCompat.h"
 #include "AscensionCompatOpcodes.h"
@@ -3639,6 +3640,21 @@ private:
       SPELL_NAME_FIELD, SPELL_DESCRIPTION_FIELD, SPELL_RANK_FIELD,
       SPELL_TOOLTIP_FIELD};
   static constexpr std::size_t SPELL_WIRE_DESCRIPTION = 1;
+  static constexpr std::size_t SPELL_WIRE_TOOLTIP = 3;
+  static constexpr uint32 SPELL_EXCLUDE_CASTER_AURA_SPELL_FIELD = 26;
+  static constexpr uint32 SPELL_FAMILY_NAME_FIELD = 208;
+
+  struct ClientSpellText {
+    std::string Description;
+    std::string ToolTip;
+  };
+
+  static constexpr std::size_t SPELL_WIRE_SLOT(uint32 field) {
+    return field < SPELL_NAME_FIELD
+               ? field
+               : SPELL_NAME_FIELD + SPELL_WIRE_STRING_FIELDS.size() +
+                     (field - (SPELL_TOOLTIP_FIELD + LOCALIZED_STRING_DWORDS));
+  }
 
   struct SpellPatchRow {
     std::array<uint32, SPELL_CLIENT_RECORD_DWORDS> Values{};
@@ -3969,7 +3985,7 @@ private:
   }
 
   static std::vector<SpellPatchRow> BuildSpellPatchRows() {
-    std::unordered_map<uint32, std::string> descriptions =
+    std::unordered_map<uint32, ClientSpellText> descriptions =
         LoadClientSpellDescriptions();
     std::unordered_set<uint32> descriptionIds;
     std::unordered_set<uint32> requested = Ascension::ClientSpellPatches::Instance().GetIds(true);
@@ -3995,9 +4011,17 @@ private:
       {
         ClientDBC::Record const record = spells.GetRecord(index);
         uint32 const id = record.GetUInt32(0);
+        uint32 const excludedAura =
+            record.GetUInt32(SPELL_EXCLUDE_CASTER_AURA_SPELL_FIELD);
+        uint32 const clientExcludedAura =
+            AscensionBloodmage::RuntimeExcludeCasterAuraSpell(
+                record.GetUInt32(SPELL_FAMILY_NAME_FIELD), excludedAura);
+        bool const redirectsExclusion = clientExcludedAura != excludedAura;
+
         auto const overlay = overridden.find(id);
         auto const description = descriptions.find(id);
-        if (overlay == overridden.end() && description == descriptions.end() && !requested.contains(id))
+        if (overlay == overridden.end() && description == descriptions.end() &&
+            !requested.contains(id) && !redirectsExclusion)
           continue;
 
         std::size_t const rowIndex = overlay == overridden.end() ? rows.size() : overlay->second;
@@ -4021,8 +4045,17 @@ private:
             row.Strings[text] = std::string(record.GetString(SPELL_WIRE_STRING_FIELDS[text]));
         if (description != descriptions.end())
         {
-          row.Strings[SPELL_WIRE_DESCRIPTION] = std::move(description->second);
+          row.Strings[SPELL_WIRE_DESCRIPTION] = description->second.Description;
+          if (!description->second.ToolTip.empty())
+            row.Strings[SPELL_WIRE_TOOLTIP] = description->second.ToolTip;
           descriptions.erase(description);
+        }
+        if (redirectsExclusion)
+        {
+          row.Values[SPELL_WIRE_SLOT(SPELL_EXCLUDE_CASTER_AURA_SPELL_FIELD)] =
+              clientExcludedAura;
+          RedirectCursedFormCheck(row.Strings[SPELL_WIRE_DESCRIPTION]);
+          RedirectCursedFormCheck(row.Strings[SPELL_WIRE_TOOLTIP]);
         }
         requested.erase(id);
       }
@@ -4033,7 +4066,9 @@ private:
       auto const description = descriptions.find(id);
       if (description != descriptions.end())
       {
-        rows[index].Strings[SPELL_WIRE_DESCRIPTION] = std::move(description->second);
+        rows[index].Strings[SPELL_WIRE_DESCRIPTION] = description->second.Description;
+        if (!description->second.ToolTip.empty())
+          rows[index].Strings[SPELL_WIRE_TOOLTIP] = description->second.ToolTip;
         descriptions.erase(description);
       }
     }
@@ -4047,8 +4082,18 @@ private:
     return rows;
   }
 
-  static std::unordered_map<uint32, std::string> LoadClientSpellDescriptions() {
-    std::unordered_map<uint32, std::string> descriptions;
+  static void RedirectCursedFormCheck(std::string &text) {
+    std::string const from =
+        "$?a" + std::to_string(AscensionBloodmage::CursedFormCheck);
+    std::string const to =
+        "$?a" + std::to_string(AscensionBloodmage::CursedForm);
+    for (std::size_t pos = text.find(from); pos != std::string::npos;
+         pos = text.find(from, pos + to.size()))
+      text.replace(pos, from.size(), to);
+  }
+
+  static std::unordered_map<uint32, ClientSpellText> LoadClientSpellDescriptions() {
+    std::unordered_map<uint32, ClientSpellText> descriptions;
     PreparedQueryResult result = WorldDatabase.Query(
         WorldDatabase.GetPreparedStatement(WORLD_SEL_CLIENT_SPELL_DESCRIPTIONS));
     if (!result)
@@ -4056,8 +4101,10 @@ private:
 
     do {
       Field const *fields = result->Fetch();
-      descriptions.emplace(fields[0].Get<uint32>(),
-                           fields[1].Get<std::string>());
+      ClientSpellText &text = descriptions[fields[0].Get<uint32>()];
+      text.Description = fields[1].Get<std::string>();
+      if (!fields[2].IsNull())
+        text.ToolTip = fields[2].Get<std::string>();
     } while (result->NextRow());
 
     return descriptions;
@@ -7486,6 +7533,43 @@ constexpr ScrollProfession kProfessions[] = {
 constexpr uint32 kGossipTextId = 1;
 constexpr uint32 kSenderScroll = 0xA5C0;
 
+enum StoreTitleContract : uint32
+{
+    ITEM_BLOODFORGED_CONTRACT = 977220,
+    ITEM_FOUNDERS_CHARTER = 134988,
+    TITLE_THE_BLOODY = 230,
+    TITLE_FOUNDER = 210
+};
+
+class item_coa_title_contract : public AllItemScript
+{
+public:
+    item_coa_title_contract() : AllItemScript("item_coa_title_contract") { }
+
+    bool CanItemUse(Player* player, Item* item, SpellCastTargets const&) override
+    {
+        if (!player || !item)
+            return false;
+
+        uint32 titleId = 0;
+        switch (item->GetEntry())
+        {
+            case ITEM_BLOODFORGED_CONTRACT:
+                titleId = TITLE_THE_BLOODY;
+                break;
+            case ITEM_FOUNDERS_CHARTER:
+                titleId = TITLE_FOUNDER;
+                break;
+            default:
+                return false;
+        }
+
+        if (CharTitlesEntry const* title = sCharTitlesStore.LookupEntry(titleId))
+            player->SetTitle(title);
+        return false;
+    }
+};
+
 class AscensionTradesmanScroll : public ItemScript
 {
 public:
@@ -8250,6 +8334,7 @@ void AddAscensionCompatScripts() {
   RegisterSpellScript(spell_ascension_wildcard_mount);
   RegisterSpellScript(spell_ascension_legacy_quest_reward);
   new AscensionTradesmanScroll();
+  new item_coa_title_contract();
   new AscensionCompatServerScript();
   new AscensionCompatCommandScript();
   new AscensionCompatPlayerScript();
