@@ -46,7 +46,9 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[index].TriggerSpell = 0;
     };
     for (SpellEffectInfo& effect : info->Effects)
-        if (effect.ApplyAuraName == 42 || effect.ApplyAuraName == 354)
+        if ((effect.ApplyAuraName == 42 || effect.ApplyAuraName == 354) &&
+            !(id == 503740 && effect.Effect == SPELL_EFFECT_ASCENSION_APPLY_AURA_TO_SUMMONS &&
+                effect.TriggerSpell == 707014))
         {
             effect.ApplyAuraName = SPELL_AURA_DUMMY;
             effect.TriggerSpell = 0;

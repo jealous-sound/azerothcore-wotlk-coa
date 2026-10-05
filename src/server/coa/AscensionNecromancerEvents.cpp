@@ -216,6 +216,32 @@ class aura_ascension_necromancer_event : public AuraScript
     }
 };
 
+class aura_ascension_necromancer_ghoul_mastery : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_necromancer_ghoul_mastery);
+
+    bool Validate(SpellInfo const*) override
+    {
+        return ValidateSpellInfo({707014});
+    }
+
+    bool Check(ProcEventInfo& event)
+    {
+        Unit* ghoul = GetTarget();
+        Player* player = Owner(ghoul);
+        Unit* target = event.GetActionTarget();
+        DamageInfo const* damage = event.GetDamageInfo();
+        return player && GetCaster() == player && ghoul->IsCreature() && ghoul->GetEntry() == 50073 &&
+            IsMinion(player, ghoul) && event.GetActor() == ghoul && target &&
+            player->IsValidAttackTarget(target) && damage && damage->GetDamage();
+    }
+
+    void Register() override
+    {
+        DoCheckProc += AuraCheckProcFn(aura_ascension_necromancer_ghoul_mastery::Check);
+    }
+};
+
 class necromancer_defense : public UnitScript
 {
   public:
@@ -258,5 +284,6 @@ class necromancer_defense : public UnitScript
 void AddAscensionNecromancerEventScripts()
 {
     RegisterSpellScript(aura_ascension_necromancer_event);
+    RegisterSpellScript(aura_ascension_necromancer_ghoul_mastery);
     new necromancer_defense();
 }
