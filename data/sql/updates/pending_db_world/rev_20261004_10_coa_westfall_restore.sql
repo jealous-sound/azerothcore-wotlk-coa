@@ -620,3 +620,23 @@ UPDATE `creature_template` SET `minlevel` = 15 WHERE `entry` = 121;
 UPDATE `creature_template` SET `minlevel` = 13 WHERE `entry` IN (123,456);
 UPDATE `creature_template` SET `maxlevel` = 60 WHERE `entry` = 25962;
 UPDATE `creature_template` SET `mingold` = 0, `maxgold` = 0 WHERE `entry` = 7050;
+
+-- Westfall creature cache values: Ascension creaturecache.wdb captures up to 2026-09-05, matching the
+-- db.exil.es dump of 2026-10-04 (Foe Reaper 4000 reads rank 4 there; the WDB rank 2 wins).
+UPDATE `creature_template` SET `rank` = 2 WHERE `entry` IN (462,506,519,520,572,573,1424);
+UPDATE `creature_template` SET `name` = 'Ghoul' WHERE `entry` = 846;
+UPDATE `creature_template` SET `subname` = 'General Trade Goods Vendor' WHERE `entry` = 8934;
+DELETE FROM `creature_questitem` WHERE `CreatureEntry` IN (154,157,454,462,1109);
+INSERT INTO `creature_questitem` (`CreatureEntry`, `Idx`, `ItemId`, `VerifiedBuild`) VALUES
+(154, 0, 729, 0),
+(157, 0, 723, 0),
+(157, 1, 731, 0),
+(454, 0, 723, 0),
+(454, 1, 731, 0),
+(462, 0, 729, 0),
+(1109, 0, 729, 0);
+
+-- Coyote Packleader 81744 was moved to Eversong coordinates on map 0 by 2021_12_16_06; db.exil.es dump
+-- 2026-10-04 (creature_spawn 81744) places it in Westfall. Facing unchanged.
+UPDATE `creature` SET `position_x` = -10012, `position_y` = 1577.74, `position_z` = 43.0575, `zoneId` = 40, `areaId` = 40
+  WHERE `guid` = 81744 AND `id` = 833;
