@@ -31,7 +31,13 @@ VALUES
 (776791, 0, 0, 0, 0, 0, 'Scheming Protector', 'The People''s Militia', NULL, 9950103, 31, 31, 0, 11, 1, 1, 1.14286, 1, 1, 18, 0, 0, 1, 2000, 2000, 1, 1, 1, 4096, 2048, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 0.98, 1, 1, 1, 0, 0, 1, 0, 0, '', 0),
 (776792, 0, 0, 0, 0, 0, 'Scheming Protector', 'The People''s Militia', NULL, 9950103, 31, 31, 0, 11, 1, 1, 1.14286, 1, 1, 18, 0, 0, 1, 2000, 2000, 1, 1, 1, 4096, 2048, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 0.98, 1, 1, 1, 0, 0, 1, 0, 0, '', 0),
 (265154, 0, 0, 0, 0, 0, 'Bella', '', NULL, 0, 5, 5, 0, 190, 0, 1, 0.85714, 1, 1, 18, 0, 0, 1, 2000, 2000, 1, 1, 1, 0, 2048, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, '', 1, 1, 0.0112, 1, 1, 0, 0, 100, 1, 0, 0, '', 0),
-(256249, 0, 0, 0, 0, 0, 'Snuggles', 'Wyther''s Family Pet', NULL, 0, 15, 15, 0, 35, 0, 1, 0.85714, 1, 1, 18, 0, 0, 1, 2000, 2000, 1, 1, 1, 0, 2048, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, '', 1, 1, 2.548, 1, 1, 0, 0, 100, 1, 0, 0, '', 0)
+(256249, 0, 0, 0, 0, 0, 'Snuggles', 'Wyther''s Family Pet', NULL, 0, 15, 15, 0, 35, 0, 1, 0.85714, 1, 1, 18, 0, 0, 1, 2000, 2000, 1, 1, 1, 0, 2048, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, '', 1, 1, 2.548, 1, 1, 0, 0, 100, 1, 0, 0, '', 0),
+(776778, 0, 0, 0, 0, 0, 'Melissa Norman', NULL, NULL, 0, 10, 10, 0, 12, 0, 1, 1.14286, 1, 1, 18, 0, 0, 1, 1500, 2000, 1, 1, 1, 512, 2048, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 0.98, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
+(776779, 0, 0, 0, 0, 0, 'Ethan Norman', NULL, NULL, 0, 5, 5, 0, 12, 0, 1, 1.14286, 1, 1, 18, 0, 0, 1, 1500, 2000, 1, 1, 1, 512, 2048, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 0.98, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
+(776781, 0, 0, 0, 0, 0, 'Willow Brelor', NULL, NULL, 0, 10, 10, 0, 12, 0, 1, 1.14286, 1, 1, 18, 0, 0, 1, 1500, 2000, 1, 1, 1, 512, 2048, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 0.98, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
+(776782, 0, 0, 0, 0, 0, 'Sally Vernal', NULL, NULL, 0, 10, 10, 0, 12, 0, 1, 1.14286, 1, 1, 18, 0, 0, 1, 1500, 2000, 1, 1, 1, 512, 2048, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 0.98, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
+(776783, 0, 0, 0, 0, 0, 'Everard Handor', NULL, NULL, 0, 10, 10, 0, 12, 0, 1, 1.14286, 1, 1, 18, 0, 0, 1, 1500, 2000, 1, 1, 1, 512, 2048, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 0.98, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
+(776788, 0, 0, 0, 0, 0, 'Protector Murphy', 'The People''s Militia', NULL, 0, 14, 14, 0, 12, 0, 1, 1.14286, 1, 1, 18, 0, 0, 1, 2000, 2000, 1, 1, 1, 512, 2048, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 0.98, 1, 1, 1, 0, 0, 1, 0, 2, '', 0)
 ON DUPLICATE KEY UPDATE `difficulty_entry_1` = VALUES(`difficulty_entry_1`),
   `difficulty_entry_2` = VALUES(`difficulty_entry_2`), `difficulty_entry_3` = VALUES(`difficulty_entry_3`),
   `KillCredit1` = VALUES(`KillCredit1`), `KillCredit2` = VALUES(`KillCredit2`), `name` = VALUES(`name`),
@@ -63,12 +69,16 @@ ON DUPLICATE KEY UPDATE `difficulty_entry_1` = VALUES(`difficulty_entry_1`),
 -- 2026-07-13). Stand-in displays: Displaced Farmer 652361-652364, Brother Alric 449278, Jane Foster 177227,
 -- Hank Dullahan 177228, Mayor Leighton 255153, Marianna Carson 177223 and the Scheming Protectors
 -- 177242/177243 are not in the client. Bella and Snuggles use their Ascension displays.
-DELETE FROM `creature_template_model` WHERE `CreatureID` IN (776786,776787,776790,255150,255151,991515,255339,157002,455339,455343,100467,255152,449328,776784,776785,255153,776780,776791,776792,265154,256249);
+-- Town hall residents Melissa Norman 177221, Ethan Norman 177222, Willow Brelor 177224, Sally Vernal 177225,
+-- Everard Handor 177226 and Protector Murphy 177233 (Exiles DB export 2026-09-13; archive only) are matched
+-- to the people the footage shows in the town hall; their levels are estimated and their displays are
+-- stand-ins chosen by the clothes in the footage.
+DELETE FROM `creature_template_model` WHERE `CreatureID` IN (776786,776787,776790,255150,255151,991515,255339,157002,455339,455343,100467,255152,449328,776784,776785,255153,776780,776791,776792,265154,256249,776778,776779,776781,776782,776783,776788);
 INSERT INTO `creature_template_model` (`CreatureID`, `Idx`, `CreatureDisplayID`, `DisplayScale`, `Probability`,
   `VerifiedBuild`) VALUES
 (776786, 0, 7310, 1, 1, 0),
 (776787, 0, 7309, 1, 1, 0),
-(776790, 0, 7311, 1, 1, 0),
+(776790, 0, 1840, 1, 1, 0),
 (255150, 0, 1692, 1, 1, 0),
 (255151, 0, 3649, 1, 1, 0),
 (991515, 0, 4419, 1, 1, 0),
@@ -87,13 +97,24 @@ INSERT INTO `creature_template_model` (`CreatureID`, `Idx`, `CreatureDisplayID`,
 (449328, 0, 3283, 1, 1, 0),
 (776784, 0, 1295, 1, 1, 0),
 (776785, 0, 3274, 1, 1, 0),
-(255153, 0, 1753, 1, 1, 0),
+(255153, 0, 3637, 1, 1, 0),
 (776780, 0, 1691, 1, 1, 0),
 (776791, 0, 2369, 1, 1, 0),
 (776792, 0, 2371, 1, 1, 0),
 (265154, 0, 1060, 1, 1, 0),
 (265154, 1, 102275, 1, 1, 0),
-(256249, 0, 30213, 1, 1, 0);
+(256249, 0, 30213, 1, 1, 0),
+(776778, 0, 3486, 1, 1, 0),
+(776779, 0, 251, 1, 1, 0),
+(776781, 0, 3647, 1, 1, 0),
+(776782, 0, 5552, 1, 1, 0),
+(776783, 0, 18617, 1, 1, 0),
+(776788, 0, 7308, 1, 1, 0);
+
+-- Protector Murphy carries a sword in the footage; the militia protectors' sword is used.
+DELETE FROM `creature_equip_template` WHERE `CreatureID`=776788;
+INSERT INTO `creature_equip_template` (`CreatureID`, `ID`, `ItemID1`, `ItemID2`, `ItemID3`, `VerifiedBuild`) VALUES
+(776788, 1, 1899, 0, 0, 0);
 
 DELETE FROM `creature_template_addon` WHERE `entry` IN (455339,455343,256249);
 INSERT INTO `creature_template_addon` (`entry`, `path_id`, `mount`, `bytes1`, `bytes2`, `emote`,
@@ -310,7 +331,7 @@ INSERT INTO `creature` (`guid`, `id`, `map`, `zoneId`, `areaId`, `spawnMask`, `p
 (9950103, 255339, 0, 40, 108, 1, 1, 0, -10736.5, 975.5, 36.91, 3.43, 120, 3, 0, 0, 0, 1, 0, 0, 0, '', 0, 0, 'Militia Recruit (estimated position and wander distance, training yard)'),
 (9950104, 255339, 0, 40, 108, 1, 1, 0, -10737.5, 989.5, 36.73, 2.46, 120, 3, 0, 0, 0, 1, 0, 0, 0, '', 0, 0, 'Militia Recruit (estimated position and wander distance, training yard)'),
 (9950105, 255150, 0, 40, 108, 1, 1, 0, -10511.37, 1147.09, 40.0, 1.02, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Idona Wyther (estimated position, alchemist''s farmhouse)'),
-(9950106, 776790, 0, 40, 108, 1, 1, 0, -10673.5, 959.97, 38.47, 2.88, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Archivist Selnor (client SuperTrack 21338, Sentinel Hill library)'),
+(9950106, 776790, 0, 40, 108, 1, 1, 0, -10679.3, 957.9, 38.47, 2.64, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Archivist Selnor (Sentinel Hill library rug between the reading tables, as in the footage; client SuperTrack 21338 marks the library)'),
 (9950107, 991515, 0, 40, 40, 1, 1, 0, -10265.7, 1782.1, 74.83, 5.82, 600, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Lenore the Hoarder (client SuperTrack 8525, Defias tower upper floor; facing estimated)'),
 (9950108, 157002, 0, 40, 921, 1, 1, 0, -11137.8, 1817.78, 38.96, 5.05, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Farmer Demont (client SuperTrack 3308, Demont''s Place; facing estimated)'),
 (9950109, 455339, 0, 40, 40, 1, 1, 0, -9976.29, 955.25, 31.96, 2.2, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Slain Protector (client SuperTrack 21334)'),
@@ -323,30 +344,45 @@ INSERT INTO `creature` (`guid`, `id`, `map`, `zoneId`, `areaId`, `spawnMask`, `p
 (9950116, 776787, 0, 40, 108, 1, 1, 0, -10724.26, 988.23, 36.25, 0.77, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Protector Brenolt (estimated position, training yard by Olens)');
 
 -- Sentinel Hill residents placed where the footage shows them (YouTube F6vp8CJOTGk); positions and facings
--- are estimated, heights are the ground or WMO floor.
-DELETE FROM `creature` WHERE `guid` BETWEEN 9950130 AND 9950147;
+-- are estimated, heights are the ground, WMO floor, town hall stage or wall bench.
+DELETE FROM `creature` WHERE `guid` BETWEEN 9950130 AND 9950154;
 INSERT INTO `creature` (`guid`, `id`, `map`, `zoneId`, `areaId`, `spawnMask`, `phaseMask`, `equipment_id`,
   `position_x`, `position_y`, `position_z`, `orientation`, `spawntimesecs`, `wander_distance`, `currentwaypoint`,
   `curhealth`, `curmana`, `MovementType`, `npcflag`, `unit_flags`, `dynamicflags`, `ScriptName`, `VerifiedBuild`,
   `CreateObject`, `Comment`) VALUES
-(9950130, 255153, 0, 40, 108, 1, 1, 0, -10686.4, 960.6, 38.52, 2.56, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Mayor Leighton (town hall); Sentinel Hill footage, position estimated'),
+(9950130, 255153, 0, 40, 108, 1, 1, 0, -10705.0, 969.8, 39.83, 5.88, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Mayor Leighton (town hall, behind the stage podium); Sentinel Hill footage, position estimated'),
 (9950131, 776784, 0, 40, 108, 1, 1, 0, -10606.8, 1044.6, 36.29, 3.71, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Jane Foster (Thor''s house); Sentinel Hill footage, position estimated'),
 (9950132, 22816, 0, 40, 108, 1, 1, 0, -10604.5, 1047.0, 36.29, 4, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Black Cat (Thor''s house); Sentinel Hill footage, position estimated'),
-(9950133, 776780, 0, 40, 108, 1, 1, 0, -10517.3, 1178.8, 36.8, 2.48, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Marianna Carson (barn, milking Bella); Sentinel Hill footage, position estimated'),
-(9950134, 265154, 0, 40, 108, 1, 1, 0, -10519.5, 1180.5, 36.78, 4.05, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Bella (barn); Sentinel Hill footage, position estimated'),
+(9950133, 776780, 0, 40, 108, 1, 1, 0, -10517.3, 1178.8, 36.8, 0.75, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Marianna Carson (barn, milking Bella); Sentinel Hill footage, position estimated'),
+(9950134, 265154, 0, 40, 108, 1, 1, 0, -10515.8, 1180.2, 36.81, 3.89, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Bella (barn, clear of the barrels and the stall rail); Sentinel Hill footage, position estimated'),
 (9950135, 256249, 0, 40, 108, 1, 1, 0, -10520.5, 1137.0, 39.7, 0.88, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Snuggles (asleep by the doghouse); Sentinel Hill footage, position estimated'),
 (9950136, 449328, 0, 40, 108, 1, 1, 0, -10584.5, 1041.5, 35.06, 0.9, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Brother Alric (refugee camp, facing the campfire); Sentinel Hill footage, position estimated'),
 (9950137, 255152, 0, 40, 108, 1, 1, 0, -10583.0, 1047.5, 35.31, 5.14, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Displaced Farmer (refugee camp); Sentinel Hill footage, position estimated'),
 (9950138, 255152, 0, 40, 108, 1, 1, 0, -10579.0, 1042.0, 35.12, 2.34, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Displaced Farmer (refugee camp); Sentinel Hill footage, position estimated'),
 (9950139, 255152, 0, 40, 108, 1, 1, 0, -10650.9, 971.0, 36.63, 1, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Displaced Farmer (market camp, beside the campfire); Sentinel Hill footage, position estimated'),
-(9950140, 255152, 0, 40, 108, 1, 1, 0, -10692.0, 966.0, 38.52, 0.4, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Displaced Farmer (town hall); Sentinel Hill footage, position estimated'),
+(9950140, 255152, 0, 40, 108, 1, 1, 0, -10688.24, 970.98, 39.36, 2.74, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Displaced Farmer (town hall, asleep on the right wall bench); Sentinel Hill footage, position estimated'),
 (9950141, 255152, 0, 40, 108, 1, 1, 0, -10521.5, 1176.0, 36.76, 1.6, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Displaced Farmer (barn); Sentinel Hill footage, position estimated'),
 (9950142, 776785, 0, 40, 108, 1, 1, 0, -10656.92, 1060.84, 33.96, 5.66, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Hank Dullahan (stable aisle entrance, left post); Sentinel Hill footage, position estimated'),
 (9950143, 12375, 0, 40, 108, 1, 1, 0, -10658.28, 1058.98, 33.96, 5.66, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Chestnut Mare (by Hank Dullahan, left stall fence); Sentinel Hill footage, position estimated'),
 (9950144, 12376, 0, 40, 108, 1, 1, 0, -10663.65, 1069.45, 34.09, 5.66, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Brown Horse (end of the stable aisle); Sentinel Hill footage, position estimated'),
 (9950145, 12376, 0, 40, 108, 1, 1, 0, -10656.38, 1070.09, 34.02, 4.4, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Brown Horse (right stall); Sentinel Hill footage, position estimated'),
 (9950146, 776791, 0, 40, 108, 1, 1, 0, -10683.0, 943.0, 37.12, 5.42, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Scheming Protector (alley behind the town hall); Sentinel Hill footage, position estimated'),
-(9950147, 776792, 0, 40, 108, 1, 1, 0, -10681.8, 941.6, 37.13, 2.28, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Scheming Protector (alley behind the town hall); Sentinel Hill footage, position estimated');
+(9950147, 776792, 0, 40, 108, 1, 1, 0, -10681.8, 941.6, 37.13, 2.28, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Scheming Protector (alley behind the town hall); Sentinel Hill footage, position estimated'),
+(9950148, 776788, 0, 40, 108, 1, 1, 1, -10704.5, 966.0, 39.83, 5.6, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Protector Murphy (town hall stage, left of the podium); Sentinel Hill footage, position estimated'),
+(9950149, 776783, 0, 40, 108, 1, 1, 0, -10695.46, 956.71, 38.47, 1.16, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Everard Handor (town hall, seated on the left wall bench); Sentinel Hill footage, position estimated'),
+(9950150, 776778, 0, 40, 108, 1, 1, 0, -10694.98, 958.09, 38.47, 4.38, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Melissa Norman (town hall, standing by Everard Handor); Sentinel Hill footage, position estimated'),
+(9950151, 776779, 0, 40, 108, 1, 1, 0, -10694.42, 956.86, 38.47, 2, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Ethan Norman (town hall, beside Melissa Norman); Sentinel Hill footage, position estimated'),
+(9950152, 776781, 0, 40, 108, 1, 1, 0, -10691.87, 972.65, 38.47, 4.31, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Willow Brelor (town hall, seated on the right wall bench); Sentinel Hill footage, position estimated'),
+(9950153, 776782, 0, 40, 108, 1, 1, 0, -10699.5, 973.5, 38.47, 2.74, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Sally Vernal (town hall, right end of the third pew); Sentinel Hill footage, position estimated'),
+(9950154, 255152, 0, 40, 108, 1, 1, 0, -10697.56, 973.35, 38.47, 2.74, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Displaced Farmer (town hall, right wall by the stage); Sentinel Hill footage, position estimated');
+
+-- The seated and sleeping town hall residents, as in the footage.
+DELETE FROM `creature_addon` WHERE `guid` BETWEEN 9950130 AND 9950154;
+INSERT INTO `creature_addon` (`guid`, `path_id`, `mount`, `bytes1`, `bytes2`, `emote`, `visibilityDistanceType`,
+  `auras`) VALUES
+(9950140, 0, 0, 3, 1, 0, 0, NULL),
+(9950149, 0, 0, 5, 1, 0, 0, NULL),
+(9950152, 0, 0, 5, 1, 0, 0, NULL);
 
 -- Lenore the Hoarder (991515) loot: Exiles DB export 2026-09-13, creature_loot entry 991515.
 DELETE FROM `creature_loot_template` WHERE `Entry`=991515;
