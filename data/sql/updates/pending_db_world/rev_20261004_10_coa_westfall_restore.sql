@@ -338,13 +338,13 @@ INSERT INTO `creature` (`guid`, `id`, `map`, `zoneId`, `areaId`, `spawnMask`, `p
 (9950136, 449328, 0, 40, 108, 1, 1, 0, -10584.5, 1041.5, 35.06, 0.9, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Brother Alric (refugee camp, facing the campfire); Sentinel Hill footage, position estimated'),
 (9950137, 255152, 0, 40, 108, 1, 1, 0, -10583.0, 1047.5, 35.31, 5.14, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Displaced Farmer (refugee camp); Sentinel Hill footage, position estimated'),
 (9950138, 255152, 0, 40, 108, 1, 1, 0, -10579.0, 1042.0, 35.12, 2.34, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Displaced Farmer (refugee camp); Sentinel Hill footage, position estimated'),
-(9950139, 255152, 0, 40, 108, 1, 1, 0, -10650.0, 972.0, 36.62, 1, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Displaced Farmer (market camp); Sentinel Hill footage, position estimated'),
+(9950139, 255152, 0, 40, 108, 1, 1, 0, -10650.9, 971.0, 36.63, 1, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Displaced Farmer (market camp, beside the campfire); Sentinel Hill footage, position estimated'),
 (9950140, 255152, 0, 40, 108, 1, 1, 0, -10692.0, 966.0, 38.52, 0.4, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Displaced Farmer (town hall); Sentinel Hill footage, position estimated'),
 (9950141, 255152, 0, 40, 108, 1, 1, 0, -10521.5, 1176.0, 36.76, 1.6, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Displaced Farmer (barn); Sentinel Hill footage, position estimated'),
-(9950142, 776785, 0, 40, 108, 1, 1, 0, -10661.5, 1057.0, 33.88, 4.71, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Hank Dullahan (stable entrance); Sentinel Hill footage, position estimated'),
-(9950143, 12375, 0, 40, 108, 1, 1, 0, -10663.3, 1057.6, 33.95, 4.71, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Chestnut Mare (by Hank Dullahan); Sentinel Hill footage, position estimated'),
-(9950144, 12376, 0, 40, 108, 1, 1, 0, -10655.0, 1065.0, 34.0, 1.57, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Brown Horse (stable stall); Sentinel Hill footage, position estimated'),
-(9950145, 12376, 0, 40, 108, 1, 1, 0, -10660.0, 1072.0, 34.09, 1.57, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Brown Horse (stable stall); Sentinel Hill footage, position estimated'),
+(9950142, 776785, 0, 40, 108, 1, 1, 0, -10656.92, 1060.84, 33.96, 5.66, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Hank Dullahan (stable aisle entrance, left post); Sentinel Hill footage, position estimated'),
+(9950143, 12375, 0, 40, 108, 1, 1, 0, -10658.28, 1058.98, 33.96, 5.66, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Chestnut Mare (by Hank Dullahan, left stall fence); Sentinel Hill footage, position estimated'),
+(9950144, 12376, 0, 40, 108, 1, 1, 0, -10663.65, 1069.45, 34.09, 5.66, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Brown Horse (end of the stable aisle); Sentinel Hill footage, position estimated'),
+(9950145, 12376, 0, 40, 108, 1, 1, 0, -10656.38, 1070.09, 34.02, 4.4, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Brown Horse (right stall); Sentinel Hill footage, position estimated'),
 (9950146, 776791, 0, 40, 108, 1, 1, 0, -10683.0, 943.0, 37.12, 5.42, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Scheming Protector (alley behind the town hall); Sentinel Hill footage, position estimated'),
 (9950147, 776792, 0, 40, 108, 1, 1, 0, -10681.8, 941.6, 37.13, 2.28, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Scheming Protector (alley behind the town hall); Sentinel Hill footage, position estimated');
 
