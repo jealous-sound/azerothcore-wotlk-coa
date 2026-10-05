@@ -14250,10 +14250,11 @@ static RuneType runeSlotTypes[MAX_RUNES] =
 
 void Player::InitRunes()
 {
-    if (!IsClass(CLASS_DEATH_KNIGHT, CLASS_CONTEXT_ABILITY))
+    if (!IsClass(CLASS_DEATH_KNIGHT, CLASS_CONTEXT_ABILITY) && getClass() != CLASS_HERO)
         return;
 
-    m_runes = new Runes;
+    if (!m_runes)
+        m_runes = new Runes;
 
     m_runes->runeState = 0;
     m_runes->lastUsedRune = RUNE_BLOOD;

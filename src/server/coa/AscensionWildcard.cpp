@@ -2018,7 +2018,8 @@ bool RealmPlaysWildcard = false;
 
 bool IsRealmHero(Player const* player)
 {
-    return (RealmPlaysWildcard || AscensionFreepick::RealmIsClassless()) && player->getClass() == CLASS_HERO;
+    return player->getClass() == CLASS_HERO &&
+        (RealmPlaysWildcard || AscensionFreepick::RealmIsClassless() || IsWildcardHero(player));
 }
 
 struct SentRunes final : DataMap::Base
