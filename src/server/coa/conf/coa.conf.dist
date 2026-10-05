@@ -43,6 +43,21 @@ CoA.AutoCollectAppearances = 1
 CoA.EquippedGearLoot = 1
 CoA.EquippedGearLootChance = 5
 
+# Health and damage multipliers for regular-difficulty creatures, tuned to Ascension's combat logs.
+# Health is multiplied when a creature takes its level; damage applies to hits on players and their pets.
+# Heroic/Mythic, battlegrounds, arenas, pets, summons, totems, triggers, critters, civilians and training
+# dummies are not changed. MapHealth/MapDamage replace the context value per map as "mapId:multiplier".
+# Without this section the server keeps these multipliers but leaves the feature disabled.
+CoA.CreatureScaling.Enable = 1
+CoA.CreatureScaling.World.Health = 2.0
+CoA.CreatureScaling.Dungeon.Health = 2.5
+CoA.CreatureScaling.Raid.Health = 2.2
+CoA.CreatureScaling.MapHealth = "36:2.2 43:2.0 229:4.0 389:3.0 469:5.0"
+CoA.CreatureScaling.World.Damage = 1.0
+CoA.CreatureScaling.Dungeon.Damage = 1.5
+CoA.CreatureScaling.Raid.Damage = 1.0
+CoA.CreatureScaling.MapDamage = ""
+
 # Wardrobe, outfits, vanity and mount/companion collections for characters played by bots.
 # 0 - never: bot sessions skip the collections (default).
 # 1 - only characters of player accounts played as bots (alts), never random bot accounts:
