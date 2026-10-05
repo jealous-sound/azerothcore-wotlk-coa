@@ -811,6 +811,13 @@ carried the client's scaled-quest flag `0x01000000`, 0 when it did not, or -1 be
 `quest_query_reward_choice` takes the same arguments and returns the first choice reward item id in the last quest
 query response for that quest, or -1 before one arrives.
 
+`dungeon_difficulty_packet` takes a player `actor` and `value` (0, 1 or 2), sends the native dungeon
+selection packet through the packet hook and typed session handler, and does not bypass its group or
+in-instance restrictions. `map_id` and `map_difficulty` observe the current map after a normal teleport.
+`nearby_creature_template` requires `entry` and exactly one creature within 60 yards, then returns its
+selected difficulty template. `loot_gear_item_level` returns the first unlooted weapon/armor item's level in
+the current loot window (zero if absent). The three `vanilla-dungeons-*` scenarios use these to check
+all 19 map/mode pairs per tier and a real VanCleef killing blow, without a GM access bypass.
 ## Evidence boundaries
 
 ### Optional character names
@@ -858,3 +865,10 @@ with a base amount of 1000 and requires `spell`; `periodic: true` selects the na
 
 `stealth_detection` reads native general stealth detection. `can_detect` requires `target` and invokes
 the observer's native `CanSeeOrDetect` check; neither metric covers client rendering.
+
+`ascension_dungeon_difficulty_packet` sends the one-byte Ascension portrait-menu request through the
+real early receive hook and session queue; follow it with a wait before teleporting. The native
+`dungeon_difficulty_packet` remains available for Normal and Heroic. `nearby_creature_max_health`
+requires an entry and reads the nearest living matching creature within 60 yards. The
+`vanilla-dungeons-health` scenario uses real spawns to check video HP, explicitly inferred HP and
+unchanged Normal health. It does not establish the original Ascension scaling formula.

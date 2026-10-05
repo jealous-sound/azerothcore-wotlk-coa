@@ -56,6 +56,7 @@
 #include "AscensionFelsworn.h"
 #include "AscensionGuardianCompletion.h"
 #include "AscensionSpellProgressionData.h"
+#include "AscensionTalentReplacementData.h"
 #include "SpellbookCostData.h"
 #include "SpellbookOfferData.h"
 #include "SpellbookRankData.h"
@@ -205,6 +206,17 @@ namespace
         return itr != table.end() && itr->ClassId == classId && itr->SpellId == spellId;
     }
 
+    bool CanLearnTalentReplacement(Player* player, uint32 spellId)
+    {
+        for (auto const& replacement : AscensionCompatData::TalentReplacements)
+            if (replacement.ClassId == player->getClass() &&
+                std::any_of(replacement.Ranks.begin(), replacement.Ranks.end(),
+                    [spellId](auto const& rank) { return rank.SpellId == spellId; }))
+                return replacement.SpecId == ActiveSpec(player) && player->HasSpell(replacement.ParentSpellId);
+
+        return true;
+    }
+
     /// The row set behind both the window and the announcement push.
     ///
     /// The window view is what the player is shown, and it is the only view that gets
@@ -236,6 +248,9 @@ namespace
             // A spell the talent trees grant is the tree's to hand out, whatever source
             // below would otherwise reach it through.
             if (windowView && IsTreeSpell(classId, spellId))
+                return;
+
+            if (windowView && !CanLearnTalentReplacement(player, spellId))
                 return;
 
             for (Row const &known : rows)
@@ -566,6 +581,7 @@ namespace
         if (found == rows.end())
         {
             if (!AscensionFelsworn::CanLearnRift(player, wanted) ||
+                !CanLearnTalentReplacement(player, wanted) ||
                 IsTreeSpell(uint32(player->getClass()), wanted) ||
                 HasRankOrBetter(player, wanted) ||
                 (player->getClass() == CLASS_GUARDIAN && AscensionGuardian::Ballad(wanted)))

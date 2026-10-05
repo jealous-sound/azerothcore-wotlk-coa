@@ -7301,6 +7301,13 @@ SpellCastResult Spell::CheckPower()
     if (m_CastItem)
         return SPELL_CAST_OK;
 
+    // CoA: dungeon creatures on Heroic/Mythic never run out of power (Heroic/Mythic templates often have no mana pool,
+    // e.g. Incendius and Magmus failed every spell with SPELL_FAILED_NO_POWER)
+    if (Creature const* creature = m_caster->ToCreature())
+        if (!creature->IsCharmedOwnedByPlayerOrPlayer() && creature->GetMap()->IsDungeon()
+            && creature->GetMap()->GetDifficulty() != DUNGEON_DIFFICULTY_NORMAL)
+            return SPELL_CAST_OK;
+
     //While .cheat power is enabled dont check if we need power to cast the spell
     if (m_caster->IsPlayer())
     {

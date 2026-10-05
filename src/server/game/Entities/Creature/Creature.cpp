@@ -16,6 +16,7 @@
  */
 
 #include "Creature.h"
+#include "DungeonHealth.h"
 #include "BattlegroundMgr.h"
 #include "CellImpl.h"
 #include "Common.h"
@@ -57,6 +58,38 @@
 //  there is probably some underlying problem with imports which should properly addressed
 //  see: https://github.com/azerothcore/azerothcore-wotlk/issues/9766
 #include "GridNotifiersImpl.h"
+
+namespace
+{
+    DungeonHealth::Values dungeonHealthOverrides;
+}
+
+void Creature::LoadDungeonHealthOverrides()
+{
+    dungeonHealthOverrides.clear();
+    auto* statement = WorldDatabase.GetPreparedStatement(WORLD_SEL_COA_DUNGEON_HEALTH);
+    if (PreparedQueryResult result = WorldDatabase.Query(statement))
+    {
+        do
+        {
+            Field* fields = result->Fetch();
+            uint32 const map = fields[0].Get<uint16>();
+            uint8 const difficulty = fields[1].Get<uint8>();
+            uint32 const entry = fields[2].Get<uint32>();
+            uint32 const health = fields[3].Get<uint32>();
+            if (!DungeonHealth::IsVanillaDungeon(map) || (difficulty != 1 && difficulty != 2)
+                || !sObjectMgr->GetCreatureTemplate(entry) || !health)
+            {
+                LOG_ERROR("sql.sql", "Invalid dungeon health override: map {}, mode {}, entry {}, HP {}",
+                    map, difficulty, entry, health);
+                continue;
+            }
+            dungeonHealthOverrides[{map, difficulty, entry}] = health;
+        } while (result->NextRow());
+    }
+    LOG_INFO("server.loading", ">> Loaded {} reconstructed dungeon health targets; fallback values are provisional",
+        dungeonHealthOverrides.size());
+}
 
 CreatureMovementData::CreatureMovementData() : Ground(CreatureGroundMovementType::Run), Flight(CreatureFlightMovementType::None),
                                                Swim(true), Rooted(false), Chase(CreatureChaseMovementType::Run),
@@ -1584,6 +1617,13 @@ void Creature::SelectLevel(bool changelevel)
 
     sScriptMgr->OnBeforeCreatureSelectLevel(cInfo, this, level);
 
+    // Vanilla dungeons on Heroic/Mythic are level 60 content. A creature without its own difficulty
+    // template would keep its Normal level there (Defias Miner: 17), and a level-17 creature is then
+    // scaled up again by per-character views on top of the health from coa_dungeon_health.
+    if (!IsPet() && cInfo->Entry == GetEntry() && DungeonHealth::IsVanillaDungeon(GetMapId())
+        && (GetMap()->GetSpawnMode() == 1 || GetMap()->GetSpawnMode() == 2))
+        level = std::max<uint8>(level, rank == CREATURE_ELITE_WORLDBOSS ? 62 : 60);
+
     if (changelevel)
         SetLevel(level);
 
@@ -1594,6 +1634,20 @@ void Creature::SelectLevel(bool changelevel)
 
     uint32 basehp = std::max<uint32>(1, stats->GenerateHealth(cInfo));
     uint32 health = uint32(basehp * healthmod);
+    uint32 heroicHealth = health;
+    if (!IsPet() && GetMap()->GetSpawnMode() == 2 && DungeonHealth::IsVanillaDungeon(GetMapId()))
+    {
+        CreatureTemplate const* normalInfo = sObjectMgr->GetCreatureTemplate(GetEntry());
+        if (normalInfo && normalInfo->DifficultyEntry[0])
+            if (CreatureTemplate const* heroicInfo = sObjectMgr->GetCreatureTemplate(normalInfo->DifficultyEntry[0]))
+            {
+                CreatureBaseStats const* heroicStats = sObjectMgr->GetCreatureBaseStats(level, heroicInfo->unit_class);
+                heroicHealth = uint32(std::max<uint32>(1, heroicStats->GenerateHealth(heroicInfo))
+                    * _GetHealthMod(heroicInfo->rank));
+            }
+    }
+    health = DungeonHealth::Resolve(dungeonHealthOverrides, GetMapId(), uint8(GetMap()->GetSpawnMode()),
+        GetEntry(), health, heroicHealth, cInfo->Entry != GetEntry(), IsPet(), cInfo->rank == CREATURE_ELITE_WORLDBOSS);
 
     SetCreateHealth(health);
     SetMaxHealth(health);
@@ -1831,7 +1885,14 @@ bool Creature::LoadCreatureFromDB(ObjectGuid::LowType spawnId, Map* map, bool ad
 
     uint32 curhealth;
 
-    if (!m_regenHealth)
+    // CoA: a fixed spawn health is the vanilla value; on Heroic/Mythic the creature has far more health
+    // (coa_dungeon_health), so it started fights at 5-20% (Zul'Farrak stair event). Full health there instead.
+    if (!m_regenHealth && GetMap() && DungeonHealth::IsVanillaDungeon(GetMapId()) && GetMap()->GetSpawnMode() != 0)
+    {
+        curhealth = GetMaxHealth();
+        SetPower(POWER_MANA, GetMaxPower(POWER_MANA));
+    }
+    else if (!m_regenHealth)
     {
         curhealth = data->curhealth;
         if (curhealth)

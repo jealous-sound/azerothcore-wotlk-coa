@@ -561,6 +561,7 @@ void World::SetInitialWorldSettings()
 
     LOG_INFO("server.loading", "Loading Creature Base Stats...");
     sObjectMgr->LoadCreatureClassLevelStats();
+    Creature::LoadDungeonHealthOverrides();
 
     LOG_INFO("server.loading", "Loading Spawn Group Templates...");
     sObjectMgr->LoadSpawnGroupTemplates();

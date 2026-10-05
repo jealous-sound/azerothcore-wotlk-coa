@@ -13,6 +13,7 @@
 #include "AscensionTinker.h"
 #include "AscensionSunCleric.h"
 #include "AllCreatureScript.h"
+#include "AllItemScript.h"
 #include "AllSpellScript.h"
 #include "AscensionChangelogCompat.h"
 #include "AscensionCompatOpcodes.h"
@@ -935,7 +936,10 @@ public:
                 continue;
 
             uint32 replacement = 0;
-            bool const allowed = specializationId == entry.SpecId && player->HasSpell(entry.ParentSpellId);
+            Aura const* aura = entry.RequiresAura ? player->GetAura(entry.ParentSpellId, player->GetGUID()) : nullptr;
+            bool const parentOwned = entry.RequiresAura ? aura && !aura->IsRemoved() :
+                player->HasSpell(entry.ParentSpellId);
+            bool const allowed = (!entry.SpecId || specializationId == entry.SpecId) && parentOwned;
             for (auto const& rank : entry.Ranks)
             {
                 if (!rank.SpellId)
@@ -1422,13 +1426,102 @@ public:
     return [player](uint32 spellId) { return player->HasSpell(spellId); };
   }
 
+    static std::set<uint32> const& SharedPaidEntries()
+    {
+        static std::set<uint32> const shared = []
+        {
+            std::map<std::pair<uint8, uint32>, uint32> owners;
+            std::set<uint32> entries;
+            for (auto const& entry : AscensionCompatData::CoATalentEntries)
+            {
+                if (!entry.AECost && !entry.TECost)
+                    continue;
+                for (uint32 spellId : entry.SpellIds)
+                {
+                    if (!spellId)
+                        continue;
+                    auto const [itr, inserted] = owners.try_emplace({entry.ClassId, spellId}, entry.EntryId);
+                    if (!inserted && itr->second != entry.EntryId)
+                    {
+                        entries.insert(itr->second);
+                        entries.insert(entry.EntryId);
+                    }
+                }
+            }
+            return entries;
+        }();
+        return shared;
+    }
+
+    static bool SelectedSlot(Player const* player, AscensionCoATalentState::SpecializationSlot& slot)
+    {
+        auto const* values = player->FindPlayerSettings(SlotSetting(ActiveSlot(player)));
+        if (!values)
+            return false;
+        std::vector<uint32> record;
+        record.reserve(values->size());
+        for (auto const& value : *values)
+            record.push_back(value.value);
+        return AscensionCoATalentState::ParseSpecializationSlot(record, slot) &&
+            slot.ClassId == player->getClass();
+    }
+
+    static uint32 KnownRank(Player const* player, AscensionCompatData::CoATalentEntry const& entry)
+    {
+        uint32 const learned = AscensionCoATalentState::KnownRank(entry, SpellbookOf(player));
+        if (!learned || !SharedPaidEntries().count(entry.EntryId))
+            return learned;
+        AscensionCoATalentState::SpecializationSlot slot;
+        if (!SelectedSlot(player, slot))
+            return learned;
+        auto const selected = std::find_if(slot.Entries.begin(), slot.Entries.end(), [&entry](auto const& known)
+        {
+            return known.EntryId == entry.EntryId;
+        });
+        return selected == slot.Entries.end() ? 0 : std::min(learned, selected->Rank);
+    }
+
+    static void SelectSharedEntryRank(Player* player, AscensionCompatData::CoATalentEntry const& entry, uint32 rank)
+    {
+        if (!SharedPaidEntries().count(entry.EntryId))
+            return;
+        auto slot = LiveSlot(player, Instance().GetActiveSpecialization(player));
+        std::erase_if(slot.Entries, [&entry](auto const& known) { return known.EntryId == entry.EntryId; });
+        if (rank)
+            slot.Entries.push_back({entry.EntryId, rank});
+        StoreSlot(player, ActiveSlot(player), slot);
+    }
+
+    static bool SharedSpellStillSelected(Player const* player, AscensionCompatData::CoATalentEntry const& entry,
+        uint32 spellId)
+    {
+        if (!SharedPaidEntries().count(entry.EntryId))
+            return false;
+        for (uint32 otherId : SharedPaidEntries())
+        {
+            auto const* other = FindTalentEntry(otherId);
+            if (!other || otherId == entry.EntryId || other->ClassId != player->getClass())
+                continue;
+            uint32 const rank = KnownRank(player, *other);
+            for (uint32 index = 0; index < rank; ++index)
+                if (other->SpellIds[index] == spellId)
+                    return true;
+        }
+        return false;
+    }
+
   static std::vector<AscensionCoATalentState::KnownEntry> KnownTalentEntries(Player const* player)
   {
     if (AscensionWildcard::IsWildcardHero(player))
       return AscensionWildcard::KnownEntries(player);
     if (AscensionFreepick::IsFreepickHero(player))
       return AscensionFreepick::KnownEntries(player);
-    return AscensionCoATalentState::KnownEntries(player->getClass(), SpellbookOf(player));
+    std::vector<AscensionCoATalentState::KnownEntry> known;
+    for (auto const& entry : AscensionCompatData::CoATalentEntries)
+        if (entry.ClassId == player->getClass())
+            if (uint32 const rank = KnownRank(player, entry))
+                known.push_back({entry.EntryId, rank});
+    return known;
   }
 
   void QueueCharacterAdvancementState(Player* player)
@@ -1613,7 +1706,7 @@ public:
       return false;
     }
 
-    uint32 const currentRank = AscensionCoATalentState::KnownRank(entry, SpellbookOf(player));
+    uint32 const currentRank = KnownRank(player, entry);
     if (checkBudget && rank > currentRank && (entry.AECost || entry.TECost))
     {
       uint32 classBudget = 0;
@@ -1647,14 +1740,15 @@ public:
               player->removeSpell(spellId, SPEC_MASK_ALL, false);
     }
 
+    SelectSharedEntryRank(player, entry, rank);
     for (uint32 spellId : entry.SpellIds)
-      if (spellId && player->HasSpell(spellId))
+      if (spellId && player->HasSpell(spellId) && !SharedSpellStillSelected(player, entry, spellId))
         player->removeSpell(spellId, SPEC_MASK_ALL, false);
 
     if (rank > 0)
       player->learnSpell(selectedSpellId, false);
     for (uint32 spellId : AscensionCoATalentState::SpellsAboveRank(entry, rank))
-      if (player->HasSpell(spellId))
+      if (player->HasSpell(spellId) && !SharedSpellStillSelected(player, entry, spellId))
         player->removeSpell(spellId, SPEC_MASK_ALL, false);
 
     SynchronizeProgression(player);
@@ -1670,7 +1764,7 @@ public:
         AscensionCompatData::CoATalentEntries.end(), [player](AscensionCompatData::CoATalentEntry const& entry)
         {
           return entry.ClassId == player->getClass() && (entry.AECost || entry.TECost) &&
-                 AscensionCoATalentState::KnownRank(entry, SpellbookOf(player));
+                 KnownRank(player, entry);
         });
     if (!anyPaid)
       return "CA_PURGE_TALENTS_NO_KNOWN_TALENTS";
@@ -1826,6 +1920,34 @@ public:
         priced.push_back({ entry.EntryId, rank });
     }
 
+    AscensionCoATalentState::SpecializationSlot proposed;
+    proposed.ClassId = player->getClass();
+    proposed.SpecId = targetSpec;
+    proposed.Entries = priced;
+    for (auto const& [entryId, rank] : wanted)
+        if (rank && GetSelectableFreeGroup(entryId))
+            proposed.Entries.push_back({ entryId, rank });
+    std::vector<AscensionCoATalentState::KnownEntry> const proposedKnown =
+        AscensionCoATalentState::SlotKnownEntries(proposed, player->GetLevel(), CarriedSpells(player));
+    for (AscensionCoATalentState::KnownEntry const& item : priced)
+    {
+        AscensionCompatData::CoATalentEntry const* entry = FindTalentEntry(item.EntryId);
+        if (entry->SpecId && entry->SpecId != targetSpec)
+            continue;
+        for (uint32 requiredId : entry->RequiredEntryIds)
+            if (requiredId && std::none_of(proposedKnown.begin(), proposedKnown.end(),
+                [requiredId](AscensionCoATalentState::KnownEntry const& known)
+                {
+                    return known.EntryId == requiredId && known.Rank;
+                }))
+            {
+                refusal = { "CA_UPDATE_ENTRIES_NOT_TRAVERSIBLE", "", item.EntryId, item.Rank,
+                    Acore::StringFormat("Talent entry {} requires entry {} in the uploaded build.",
+                        item.EntryId, requiredId) };
+                return false;
+            }
+    }
+
     uint32 classBudget = 0;
     uint32 specializationBudget = 0;
     if (!TalentBudget(player, classBudget, specializationBudget, refusal.Detail))
@@ -1897,7 +2019,7 @@ public:
         continue;
       auto itr = wanted.find(entry.EntryId);
       uint32 const rank = itr == wanted.end() ? 0 : itr->second;
-      if (rank != AscensionCoATalentState::KnownRank(entry, SpellbookOf(player)))
+      if (rank != KnownRank(player, entry))
         changes.emplace_back(&entry, rank);
     }
     if (changes.empty())
@@ -2043,7 +2165,7 @@ public:
       if (entry.ClassId != player->getClass() || entry.SpecId != specializationId ||
           (!entry.AECost && !entry.TECost && !GetSelectableFreeGroup(entry.EntryId)))
         continue;
-      if (uint32 const rank = AscensionCoATalentState::KnownRank(entry, SpellbookOf(player)))
+      if (uint32 const rank = KnownRank(player, entry))
         picks.push_back(entry.EntryId * 10 + rank);
     }
     return picks;
@@ -2160,7 +2282,7 @@ public:
         if (!entry || entry->ClassId != player->getClass() || entry->SpecId != tree || !rank ||
             rank > entry->SpellCount)
           continue;
-        if (AscensionCoATalentState::KnownRank(*entry, SpellbookOf(player)) >= rank)
+        if (KnownRank(player, *entry) >= rank)
           continue;
 
         std::string error;
@@ -3647,6 +3769,21 @@ private:
       SPELL_NAME_FIELD, SPELL_DESCRIPTION_FIELD, SPELL_RANK_FIELD,
       SPELL_TOOLTIP_FIELD};
   static constexpr std::size_t SPELL_WIRE_DESCRIPTION = 1;
+  static constexpr std::size_t SPELL_WIRE_TOOLTIP = 3;
+  static constexpr uint32 SPELL_EXCLUDE_CASTER_AURA_SPELL_FIELD = 26;
+  static constexpr uint32 SPELL_FAMILY_NAME_FIELD = 208;
+
+  struct ClientSpellText {
+    std::string Description;
+    std::string ToolTip;
+  };
+
+  static constexpr std::size_t SPELL_WIRE_SLOT(uint32 field) {
+    return field < SPELL_NAME_FIELD
+               ? field
+               : SPELL_NAME_FIELD + SPELL_WIRE_STRING_FIELDS.size() +
+                     (field - (SPELL_TOOLTIP_FIELD + LOCALIZED_STRING_DWORDS));
+  }
 
   struct SpellPatchRow {
     std::array<uint32, SPELL_CLIENT_RECORD_DWORDS> Values{};
@@ -3977,7 +4114,7 @@ private:
   }
 
   static std::vector<SpellPatchRow> BuildSpellPatchRows() {
-    std::unordered_map<uint32, std::string> descriptions =
+    std::unordered_map<uint32, ClientSpellText> descriptions =
         LoadClientSpellDescriptions();
     std::unordered_set<uint32> descriptionIds;
     std::unordered_set<uint32> requested = Ascension::ClientSpellPatches::Instance().GetIds(true);
@@ -4003,9 +4140,17 @@ private:
       {
         ClientDBC::Record const record = spells.GetRecord(index);
         uint32 const id = record.GetUInt32(0);
+        uint32 const excludedAura =
+            record.GetUInt32(SPELL_EXCLUDE_CASTER_AURA_SPELL_FIELD);
+        uint32 const clientExcludedAura =
+            AscensionBloodmage::RuntimeExcludeCasterAuraSpell(
+                record.GetUInt32(SPELL_FAMILY_NAME_FIELD), excludedAura);
+        bool const redirectsExclusion = clientExcludedAura != excludedAura;
+
         auto const overlay = overridden.find(id);
         auto const description = descriptions.find(id);
-        if (overlay == overridden.end() && description == descriptions.end() && !requested.contains(id))
+        if (overlay == overridden.end() && description == descriptions.end() &&
+            !requested.contains(id) && !redirectsExclusion)
           continue;
 
         std::size_t const rowIndex = overlay == overridden.end() ? rows.size() : overlay->second;
@@ -4029,8 +4174,17 @@ private:
             row.Strings[text] = std::string(record.GetString(SPELL_WIRE_STRING_FIELDS[text]));
         if (description != descriptions.end())
         {
-          row.Strings[SPELL_WIRE_DESCRIPTION] = std::move(description->second);
+          row.Strings[SPELL_WIRE_DESCRIPTION] = description->second.Description;
+          if (!description->second.ToolTip.empty())
+            row.Strings[SPELL_WIRE_TOOLTIP] = description->second.ToolTip;
           descriptions.erase(description);
+        }
+        if (redirectsExclusion)
+        {
+          row.Values[SPELL_WIRE_SLOT(SPELL_EXCLUDE_CASTER_AURA_SPELL_FIELD)] =
+              clientExcludedAura;
+          RedirectCursedFormCheck(row.Strings[SPELL_WIRE_DESCRIPTION]);
+          RedirectCursedFormCheck(row.Strings[SPELL_WIRE_TOOLTIP]);
         }
         requested.erase(id);
       }
@@ -4041,7 +4195,9 @@ private:
       auto const description = descriptions.find(id);
       if (description != descriptions.end())
       {
-        rows[index].Strings[SPELL_WIRE_DESCRIPTION] = std::move(description->second);
+        rows[index].Strings[SPELL_WIRE_DESCRIPTION] = description->second.Description;
+        if (!description->second.ToolTip.empty())
+          rows[index].Strings[SPELL_WIRE_TOOLTIP] = description->second.ToolTip;
         descriptions.erase(description);
       }
     }
@@ -4055,8 +4211,18 @@ private:
     return rows;
   }
 
-  static std::unordered_map<uint32, std::string> LoadClientSpellDescriptions() {
-    std::unordered_map<uint32, std::string> descriptions;
+  static void RedirectCursedFormCheck(std::string &text) {
+    std::string const from =
+        "$?a" + std::to_string(AscensionBloodmage::CursedFormCheck);
+    std::string const to =
+        "$?a" + std::to_string(AscensionBloodmage::CursedForm);
+    for (std::size_t pos = text.find(from); pos != std::string::npos;
+         pos = text.find(from, pos + to.size()))
+      text.replace(pos, from.size(), to);
+  }
+
+  static std::unordered_map<uint32, ClientSpellText> LoadClientSpellDescriptions() {
+    std::unordered_map<uint32, ClientSpellText> descriptions;
     PreparedQueryResult result = WorldDatabase.Query(
         WorldDatabase.GetPreparedStatement(WORLD_SEL_CLIENT_SPELL_DESCRIPTIONS));
     if (!result)
@@ -4064,8 +4230,10 @@ private:
 
     do {
       Field const *fields = result->Fetch();
-      descriptions.emplace(fields[0].Get<uint32>(),
-                           fields[1].Get<std::string>());
+      ClientSpellText &text = descriptions[fields[0].Get<uint32>()];
+      text.Description = fields[1].Get<std::string>();
+      if (!fields[2].IsNull())
+        text.ToolTip = fields[2].Get<std::string>();
     } while (result->NextRow());
 
     return descriptions;
@@ -6192,6 +6360,21 @@ class spell_ascension_personal_bank : public SpellScript
     }
 };
 
+bool QueueAscensionDungeonDifficulty(WorldSession* session, WorldPacket const& packet)
+{
+    if (packet.GetOpcode() != CMSG_COA_SET_DUNGEON_DIFFICULTY)
+        return false;
+    if (!session || packet.size() != sizeof(uint8))
+        return true;
+    uint8 const difficulty = packet.read<uint8>(0);
+    if (difficulty >= MAX_DUNGEON_DIFFICULTY)
+        return true;
+    WorldPacket* request = new WorldPacket(MSG_SET_DUNGEON_DIFFICULTY, sizeof(uint32));
+    *request << uint32(difficulty);
+    session->QueuePacket(request);
+    return true;
+}
+
 class AscensionCompatServerScript : public ServerScript {
 public:
   AscensionCompatServerScript()
@@ -6310,6 +6493,9 @@ public:
     if (!ascensionCompatConfig.GetConfigValue<bool>(
             AscensionCompatConfig::ENABLED))
       return true;
+
+    if (QueueAscensionDungeonDifficulty(session, packet))
+      return false;
 
     uint32 opcode = packet.GetOpcode();
 
@@ -7515,6 +7701,43 @@ constexpr ScrollProfession kProfessions[] = {
 constexpr uint32 kGossipTextId = 1;
 constexpr uint32 kSenderScroll = 0xA5C0;
 
+enum StoreTitleContract : uint32
+{
+    ITEM_BLOODFORGED_CONTRACT = 977220,
+    ITEM_FOUNDERS_CHARTER = 134988,
+    TITLE_THE_BLOODY = 230,
+    TITLE_FOUNDER = 210
+};
+
+class item_coa_title_contract : public AllItemScript
+{
+public:
+    item_coa_title_contract() : AllItemScript("item_coa_title_contract") { }
+
+    bool CanItemUse(Player* player, Item* item, SpellCastTargets const&) override
+    {
+        if (!player || !item)
+            return false;
+
+        uint32 titleId = 0;
+        switch (item->GetEntry())
+        {
+            case ITEM_BLOODFORGED_CONTRACT:
+                titleId = TITLE_THE_BLOODY;
+                break;
+            case ITEM_FOUNDERS_CHARTER:
+                titleId = TITLE_FOUNDER;
+                break;
+            default:
+                return false;
+        }
+
+        if (CharTitlesEntry const* title = sCharTitlesStore.LookupEntry(titleId))
+            player->SetTitle(title);
+        return false;
+    }
+};
+
 class AscensionTradesmanScroll : public ItemScript
 {
 public:
@@ -8124,10 +8347,18 @@ uint32 GetAscensionTalentRank(Player const* player, uint32 entryId)
     if (!player || !entry)
         return 0;
 
-    for (uint32 rank = entry->SpellCount; rank > 0; --rank)
-        if (entry->SpellIds[rank - 1] && player->HasSpell(entry->SpellIds[rank - 1]))
-            return rank;
-    return 0;
+    return AscensionClassService::KnownRank(player, *entry);
+}
+
+std::vector<AscensionCoATalentState::KnownEntry> GetAscensionKnownTalentEntries(Player const* player)
+{
+    return player ? AscensionClassService::KnownTalentEntries(player) :
+        std::vector<AscensionCoATalentState::KnownEntry>{};
+}
+
+uint32 SynchronizeAscensionTalentReplacements(Player* player)
+{
+    return player ? AscensionClassService::Instance().SynchronizeTalentReplacements(player) : 0;
 }
 
 bool SetAscensionTalentRank(Player* player, uint32 entryId, uint32 rank)
@@ -8156,8 +8387,10 @@ bool SetAscensionTalentRank(Player* player, uint32 entryId, uint32 rank)
                     if (spellId && player->HasSpell(spellId))
                         player->removeSpell(spellId, SPEC_MASK_ALL, false);
 
+    AscensionClassService::SelectSharedEntryRank(player, *entry, rank);
     for (uint32 spellId : entry->SpellIds)
-        if (spellId && player->HasSpell(spellId))
+        if (spellId && player->HasSpell(spellId) &&
+            !AscensionClassService::SharedSpellStillSelected(player, *entry, spellId))
             player->removeSpell(spellId, SPEC_MASK_ALL, false);
 
     if (rank > 0)
@@ -8279,6 +8512,7 @@ void AddAscensionCompatScripts() {
   RegisterSpellScript(spell_ascension_wildcard_mount);
   RegisterSpellScript(spell_ascension_legacy_quest_reward);
   new AscensionTradesmanScroll();
+  new item_coa_title_contract();
   new AscensionCompatServerScript();
   new AscensionCompatCommandScript();
   new AscensionCompatPlayerScript();

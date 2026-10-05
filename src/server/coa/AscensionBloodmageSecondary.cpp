@@ -65,13 +65,86 @@ enum BloodmageSecondarySpells : uint32
     SPELL_VAMPIRIC_FANG_SHARE = 572373,
     SPELL_VAMPIRIC_FANG_HEAL = 572374,
     SPELL_RUNNING_WILD = 800175,
-    SPELL_RUNNING_WILD_JOURNEYMAN = 520575
+    SPELL_RUNNING_WILD_JOURNEYMAN = 520575,
+    SPELL_BITE_WOUND = 706654,
+    SPELL_BITE_WOUND_PERCENT = 532612
 };
 
 constexpr uint32 TORTURE_MINIMUM_THIRST_STACKS = 9;
 constexpr uint32 VampiricFangRanks[] = {804726, 504093, 504094, 504095, 504096, 504097, 553271, 553272};
 constexpr std::array<uint32, 10> BLOODMOON_BLAST_RANKS = {
     500125, 501607, 501608, 501609, 501610, 501611, 501612, 501613, 501614, 572332 };
+
+class spell_ascension_bloodmage_bloodfang_bite : public SpellScript
+{
+    PrepareSpellScript(spell_ascension_bloodmage_bloodfang_bite);
+
+    bool Validate(SpellInfo const* info) override
+    {
+        return info->SpellFamilyName == 26 && info->Effects[EFFECT_0].Effect == SPELL_EFFECT_SCHOOL_DAMAGE &&
+            ValidateSpellInfo({SPELL_BITE_WOUND});
+    }
+
+    bool Load() override
+    {
+        return GetCaster()->IsPlayer() && GetCaster()->getClass() == CLASS_SON_OF_ARUGAL;
+    }
+
+    void ApplyWound()
+    {
+        Unit* target = GetHitUnit();
+        if (target && target->IsAlive() && GetCaster()->IsValidAttackTarget(target))
+            GetCaster()->CastSpell(target, SPELL_BITE_WOUND, TRIGGERED_FULL_MASK);
+    }
+
+    void Register() override
+    {
+        AfterHit += SpellHitFn(spell_ascension_bloodmage_bloodfang_bite::ApplyWound);
+    }
+};
+
+class aura_ascension_bloodmage_bite_wound : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_bloodmage_bite_wound);
+
+    bool Validate(SpellInfo const* info) override
+    {
+        return info->Id == SPELL_BITE_WOUND && info->Effects[EFFECT_0].IsAura(SPELL_AURA_DUMMY) &&
+            ValidateSpellInfo({SPELL_BITE_WOUND_PERCENT});
+    }
+
+    bool Check(ProcEventInfo& event)
+    {
+        Unit* caster = GetCaster();
+        DamageInfo const* damage = event.GetDamageInfo();
+        return caster && caster->IsPlayer() && caster->getClass() == CLASS_SON_OF_ARUGAL &&
+            caster->IsAlive() && caster->IsInWorld() && event.GetActor() == caster && damage &&
+            damage->GetVictim() == GetTarget() && damage->GetDamage() &&
+            (event.GetTypeMask() & (PROC_FLAG_TAKEN_MELEE_AUTO_ATTACK | PROC_FLAG_TAKEN_RANGED_AUTO_ATTACK));
+    }
+
+    void HealCaster(AuraEffect const*, ProcEventInfo& event)
+    {
+        PreventDefaultAction();
+        Unit* caster = GetCaster();
+        SpellInfo const* scalar = sSpellMgr->AssertSpellInfo(SPELL_BITE_WOUND_PERCENT);
+        uint32 percent = uint32(std::clamp(scalar->Effects[EFFECT_0].CalcValue(caster), 0, 100));
+        uint32 heal = uint32(uint64(event.GetDamageInfo()->GetDamage()) * percent / 100);
+        if (heal)
+        {
+            heal = caster->SpellHealingBonusTaken(caster, GetSpellInfo(), heal, HEAL);
+            HealInfo healing(caster, caster, heal, GetSpellInfo(), GetSpellInfo()->GetSchoolMask());
+            caster->HealBySpell(healing);
+        }
+    }
+
+    void Register() override
+    {
+        DoCheckProc += AuraCheckProcFn(aura_ascension_bloodmage_bite_wound::Check);
+        OnEffectProc += AuraEffectProcFn(aura_ascension_bloodmage_bite_wound::HealCaster,
+            EFFECT_0, SPELL_AURA_DUMMY);
+    }
+};
 
 class aura_ascension_bloodmage_sacrificial_rite : public AuraScript
 {
@@ -709,6 +782,8 @@ public:
 
 void AddSC_AscensionBloodmageSecondary()
 {
+    RegisterSpellScript(spell_ascension_bloodmage_bloodfang_bite);
+    RegisterSpellScript(aura_ascension_bloodmage_bite_wound);
     RegisterSpellScript(aura_ascension_bloodmage_sacrificial_rite);
     new bloodmage_secondary_casts();
     new bloodmage_kiss_periodic();

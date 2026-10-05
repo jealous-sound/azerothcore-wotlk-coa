@@ -19,6 +19,7 @@ struct CoATalentEntry
     std::array<std::uint32_t, 3> SpellIds;
     bool Talent = false;
     bool FreeUnlearn = false;
+    std::array<std::uint32_t, 3> RequiredEntryIds{};
 };
 
 struct CoASelectableFreeEntry

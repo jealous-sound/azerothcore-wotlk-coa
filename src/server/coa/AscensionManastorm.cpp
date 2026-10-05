@@ -358,6 +358,8 @@ namespace
                 itr->second.token = 0;
                 itr->second.lastSeen = GameTime::GetGameTime().count();
             }
+            if (player->GetSession()->IsBot())
+                return;
             std::lock_guard<std::mutex> queueLock(queueMutex);
             requests.erase(player->GetSession()->GetAccountId());
         }
@@ -422,6 +424,7 @@ namespace
             if (!enabled.load())
                 return;
             std::deque<Request> incoming;
+            if (!player->GetSession()->IsBot())
             {
                 std::lock_guard<std::mutex> lock(queueMutex);
                 auto itr = requests.find(player->GetSession()->GetAccountId());

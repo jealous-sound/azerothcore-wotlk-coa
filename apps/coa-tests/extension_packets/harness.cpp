@@ -433,6 +433,8 @@ public:
     std::unordered_map<uint32, uint32> _rejectedPackets;
 };
 
+bool QueueAscensionDungeonDifficulty(WorldSession*, WorldPacket const&) { return false; }
+
 struct AscensionCompatServerScript : ServerScript
 {
     // ACTUAL_CAN_PACKET_RECEIVE_EARLY

@@ -522,6 +522,7 @@ inline Slot Decode(std::uint32_t value)
 
 Tables const& LoadedTables();
 bool IsWildcardHero(Player const* player);
+bool IsClasslessHero(Player const* player);
 bool PlaysWildcard(std::string_view realmModes);
 
 std::uint32_t ActiveSpec(Player const* player);

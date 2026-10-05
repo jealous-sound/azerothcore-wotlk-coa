@@ -237,13 +237,13 @@ pEffect SpellEffects[TOTAL_SPELL_EFFECTS] =
     &Spell::EffectAscensionModifyCooldown,                  //165 SPELL_EFFECT_ASCENSION_MODIFY_COOLDOWN
     &Spell::EffectAscensionRestoreBaseManaPct,              //166 SPELL_EFFECT_ASCENSION_RESTORE_BASE_MANA_PCT
     &Spell::EffectNULL,                                     //167 unknown Ascension effect
-    &Spell::EffectNULL,                                     //168 unknown Ascension effect
+    &Spell::EffectAscensionPlaySpellVisualKit,              //168 SPELL_EFFECT_ASCENSION_PLAY_SPELL_VISUAL_KIT
     &Spell::EffectNULL,                                     //169 SPELL_EFFECT_ASCENSION_SPREAD_AURA
     &Spell::EffectNULL,                                     //170 SPELL_EFFECT_ASCENSION_SPREAD_AURA_2
     &Spell::EffectNULL,                                     //171 unknown Ascension effect
     &Spell::EffectNULL,                                     //172 unknown Ascension effect
     &Spell::EffectAscensionRefreshAura,                     //173 SPELL_EFFECT_ASCENSION_REFRESH_AURA
-    &Spell::EffectNULL,                                     //174 unknown Ascension effect
+    &Spell::EffectAscensionPctDamage,                       //174 Ascension percent damage (target max health / caster melee)
     &Spell::EffectAscensionModifyAuraStacks,                //175 SPELL_EFFECT_ASCENSION_MODIFY_AURA_STACKS
     &Spell::EffectAscensionModifyAuraStacksBySpell,         //176 SPELL_EFFECT_ASCENSION_MODIFY_AURA_STACKS_2
     &Spell::EffectAscensionModifyAuraDuration,              //177 SPELL_EFFECT_ASCENSION_MODIFY_AURA_DURATION
@@ -381,6 +381,15 @@ void Spell::EffectAscensionModifyCooldown(SpellEffIndex effIndex)
     ModifyAscensionCooldown(player, effect.MiscValue, damage, effect.MiscValueB != 0);
 }
 
+void Spell::EffectAscensionPlaySpellVisualKit(SpellEffIndex effIndex)
+{
+    if (effectHandleMode != SPELL_EFFECT_HANDLE_HIT_TARGET || !unitTarget)
+        return;
+
+    if (uint32 kit = uint32(m_spellInfo->Effects[effIndex].MiscValue))
+        unitTarget->SendPlaySpellVisual(kit);
+}
+
 void Spell::EffectAscensionRestoreBaseManaPct(SpellEffIndex /*effIndex*/)
 {
     if (effectHandleMode != SPELL_EFFECT_HANDLE_HIT_TARGET)
@@ -479,6 +488,28 @@ void Spell::EffectAscensionModifyAuraDuration(SpellEffIndex effIndex)
         else
             aura->SetDuration(duration);
     }
+}
+
+// Ascension effect 174: damage as a percentage. MiscValue 1 = of the caster's melee damage ("X% of melee damage"),
+// otherwise of the target's maximum health ("X% maximum health damage", e.g. Gizrul's Vicious Bite). Resistances and
+// damage taken modifiers apply, spell power does not.
+void Spell::EffectAscensionPctDamage(SpellEffIndex effIndex)
+{
+    if (effectHandleMode != SPELL_EFFECT_HANDLE_LAUNCH_TARGET)
+        return;
+
+    if (!unitTarget || !unitTarget->IsAlive() || damage <= 0)
+        return;
+
+    uint32 amount;
+    if (m_spellInfo->Effects[effIndex].MiscValue == 1)
+        amount = CalculatePct(m_caster->CalculateDamage(BASE_ATTACK, false, true), damage);
+    else
+        amount = unitTarget->CountPctFromMaxHealth(damage);
+
+    if (m_originalCaster)
+        amount = unitTarget->SpellDamageBonusTaken(m_originalCaster, m_spellInfo, amount, SPELL_DIRECT_DAMAGE);
+    m_damage += int32(amount);
 }
 
 void Spell::EffectAscensionRestoreBaseHealthPct(SpellEffIndex effIndex)
@@ -5035,7 +5066,13 @@ void Spell::EffectAddExtraAttacks(SpellEffIndex effIndex)
         return;
     }
 
-    unitTarget->AddExtraAttacks(damage);
+    // A proc trigger can name the enemy the extra attacks are meant for while the effect itself
+    // lands on the caster (Cruel Intent casts 707599 at the Lunged target, whose effect target is
+    // the caster). That explicit victim is preferred over the last melee hit or a selection.
+    Unit* strikeTarget = m_targets.GetUnitTarget();
+    unitTarget->AddExtraAttacks(damage,
+        strikeTarget && strikeTarget != unitTarget && strikeTarget->IsAlive() ?
+            strikeTarget->GetGUID() : ObjectGuid::Empty);
 
     ExecuteLogEffectExtraAttacks(effIndex, unitTarget, damage);
 }

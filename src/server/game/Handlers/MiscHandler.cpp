@@ -1488,6 +1488,7 @@ void WorldSession::HandleSetDungeonDifficultyOpcode(WorldPackets::Instance::SetD
         }
         Player::ResetInstances(_player->GetGUID(), INSTANCE_RESET_CHANGE_DIFFICULTY, false);
         _player->SetDungeonDifficulty(Difficulty(packet.Mode));
+        _player->SendDungeonDifficulty(false);
     }
 }
 

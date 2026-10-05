@@ -133,7 +133,7 @@ struct boss_pyroguard_emberseer : public BossAI
         events.ScheduleEvent(EVENT_FLAMEBUFFET, 3s);
         events.ScheduleEvent(EVENT_PYROBLAST,  14s);
         events.ScheduleEvent(EVENT_IMMOLATION,  3s);
-        events.ScheduleEvent(EVENT_FIERCE_BLOW, 5s, 7s);
+        events.ScheduleEvent(EVENT_FIERCE_BLOW, 8s, 10s);
     }
 
     void OnSpellFailed(SpellInfo const* spell) override
@@ -307,7 +307,7 @@ struct boss_pyroguard_emberseer : public BossAI
                     break;
                 case EVENT_FIERCE_BLOW:
                     DoCastVictim(SPELL_FIERCE_BLOW);
-                    events.ScheduleEvent(EVENT_FIERCE_BLOW, 6s, 8s);
+                    events.ScheduleEvent(EVENT_FIERCE_BLOW, 8s, 9s);
                     break;
                 default:
                     break;

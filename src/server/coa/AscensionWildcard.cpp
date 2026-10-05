@@ -715,6 +715,26 @@ void Enqueue(uint32 account, Request const& request)
     AnyPending = true;
 }
 
+struct BotRequests final : DataMap::Base
+{
+    std::deque<Request> Queue;
+};
+
+std::string const BotRequestsKey = "AscensionWildcardBotRequests";
+
+void Enqueue(Player* player, Request const& request)
+{
+    if (!player->GetSession()->IsBot())
+    {
+        Enqueue(player->GetSession()->GetAccountId(), request);
+        return;
+    }
+
+    std::deque<Request>& queue = player->CustomData.GetDefault<BotRequests>(BotRequestsKey)->Queue;
+    if (queue.size() < MaxQueuedRequests)
+        queue.push_back(request);
+}
+
 bool QueueRequest(WorldSession* session, WorldPacket const& packet)
 {
     if (!session)
@@ -2018,7 +2038,8 @@ bool RealmPlaysWildcard = false;
 
 bool IsRealmHero(Player const* player)
 {
-    return (RealmPlaysWildcard || AscensionFreepick::RealmIsClassless()) && player->getClass() == CLASS_HERO;
+    return player->getClass() == CLASS_HERO &&
+        (RealmPlaysWildcard || AscensionFreepick::RealmIsClassless() || IsWildcardHero(player));
 }
 
 struct SentRunes final : DataMap::Base
@@ -2082,13 +2103,12 @@ public:
         return std::nullopt;
     }
 
-    void OnPlayerBeforeGuardianInitStatsForLevel(Player* player, Guardian* guardian, CreatureTemplate const* cinfo,
+    void OnPlayerBeforeGuardianInitStatsForLevel(Player* player, Guardian* guardian, CreatureTemplate const*,
         PetType& petType) override
     {
         if (!guardian->IsPet() || !IsRealmHero(player))
             return;
-        CreatureFamilyEntry const* family = sCreatureFamilyStore.LookupEntry(cinfo->family);
-        petType = family && family->petTalentType >= 0 ? HUNTER_PET : SUMMON_PET;
+        petType = guardian->ToPet()->getPetType();
     }
 
     void OnPlayerCreatureKill(Player* killer, Creature* killed) override
@@ -2155,6 +2175,8 @@ public:
             std::lock_guard<std::mutex> lock(CollectionLock);
             Collections.erase(account);
         }
+        if (player->GetSession()->IsBot())
+            return;
         std::lock_guard<std::mutex> lock(PendingLock);
         PendingRequests.erase(account);
         AnyPending = !PendingRequests.empty();
@@ -2164,6 +2186,13 @@ public:
     {
         SyncRunes(player);
         SendDueRollReady(player);
+        if (player->GetSession()->IsBot())
+        {
+            if (BotRequests* own = player->CustomData.Get<BotRequests>(BotRequestsKey))
+                for (Request const& request : std::exchange(own->Queue, {}))
+                    Process(player, request);
+            return;
+        }
         if (!AnyPending)
             return;
 
@@ -2206,7 +2235,7 @@ public:
             Request open{ CMSG_PURCHASE_SEALED_CARD };
             open.CardType = pack->PurchaseType;
             open.Count = 1;
-            Enqueue(player->GetSession()->GetAccountId(), open);
+            Enqueue(player, open);
         }
 
         if (std::optional<ScrollToken> const token = RedeemToken(spellInfo))
@@ -3163,6 +3192,11 @@ bool IsWildcardHero(Player const* player)
         return false;
     std::optional<uint32> const mask = sScriptMgr->OnPlayerGetGameModeMask(player);
     return mask && (*mask & GAME_MODE_WILDCARD);
+}
+
+bool IsClasslessHero(Player const* player)
+{
+    return IsRealmHero(player);
 }
 
 std::uint32_t ActiveSpec(Player const* player)

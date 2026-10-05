@@ -170,6 +170,20 @@ class spell_ascension_runemaster_glyph_cast : public SpellScript
     bool _released = false;
 };
 
+class spell_ascension_runemaster_runic_obliteration_glyph : public SpellScript
+{
+    PrepareSpellScript(spell_ascension_runemaster_runic_obliteration_glyph);
+
+    bool Load() override { return IsRunemaster(GetCaster()); }
+
+    void Generate() { GenerateGlyph(GetCaster()); }
+
+    void Register() override
+    {
+        AfterCast += SpellCastFn(spell_ascension_runemaster_runic_obliteration_glyph::Generate);
+    }
+};
+
 class spell_ascension_runemaster_glyph_payload : public SpellScript
 {
     PrepareSpellScript(spell_ascension_runemaster_glyph_payload);
@@ -312,6 +326,7 @@ void ApplyAscensionRunemasterGlyphContracts(SpellInfo* info)
 void AddAscensionRunemasterGlyphScripts()
 {
     RegisterSpellScript(spell_ascension_runemaster_glyph_cast);
+    RegisterSpellScript(spell_ascension_runemaster_runic_obliteration_glyph);
     RegisterSpellScript(spell_ascension_runemaster_glyph_payload);
     RegisterSpellScript(spell_ascension_runemaster_overloaded_frost);
 }

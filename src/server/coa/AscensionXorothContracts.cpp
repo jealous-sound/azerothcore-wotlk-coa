@@ -60,6 +60,8 @@ void ApplyContracts(SpellInfo* info)
             info->Effects[0].TargetA =
                 SpellImplicitTargetInfo(id == 681206 ? TARGET_UNIT_CASTER : TARGET_UNIT_TARGET_ENEMY);
             info->Effects[0].TargetB = SpellImplicitTargetInfo();
+            if (id == 681206)
+                info->DurationEntry = sSpellDurationStore.LookupEntry(27);
             if (id == 680204)
                 info->Effects[0].ValueMultiplier = 1;
         }
