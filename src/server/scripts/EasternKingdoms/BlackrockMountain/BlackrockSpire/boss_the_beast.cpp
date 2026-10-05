@@ -114,10 +114,10 @@ struct boss_the_beast : public BossAI
     {
         _JustEngagedWith();
         events.ScheduleEvent(EVENT_IMMOLATE, 3s);
-        events.ScheduleEvent(EVENT_FIERCE_BLOW, 5s, 7s);
+        events.ScheduleEvent(EVENT_FIERCE_BLOW, 9s, 11s);
         events.ScheduleEvent(EVENT_BLAST_WAVE, 10s);
-        events.ScheduleEvent(EVENT_FLAME_BREATH, 12s);
-        events.ScheduleEvent(EVENT_OVERRUN, 20s);
+        events.ScheduleEvent(EVENT_FLAME_BREATH, 1s, 3s);
+        events.ScheduleEvent(EVENT_OVERRUN, 29s, 31s);
         events.ScheduleEvent(EVENT_BELLOWING_ROAR, 23s);
     }
 
@@ -274,7 +274,7 @@ struct boss_the_beast : public BossAI
                 case EVENT_FLAME_BREATH:
                     if (Unit* victim = me->GetVictim())
                         me->CastSpell(victim, SPELL_FLAME_BREATH, TRIGGERED_IGNORE_POWER_AND_REAGENT_COST);
-                    events.ScheduleEvent(EVENT_FLAME_BREATH, 10s);
+                    events.ScheduleEvent(EVENT_FLAME_BREATH, 20s, 22s);
                     break;
                 case EVENT_IMMOLATE:
                     if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 40.f, true))
@@ -291,12 +291,12 @@ struct boss_the_beast : public BossAI
                         _overrunTargetGUID = target->GetGUID();
                         DoCast(target, SPELL_OVERRUN);
                     }
-                    events.ScheduleEvent(EVENT_OVERRUN, 25s, 30s);
+                    events.ScheduleEvent(EVENT_OVERRUN, 35s, 37s);
                     break;
                 }
                 case EVENT_FIERCE_BLOW:
                     DoCastVictim(SPELL_FIERCE_BLOW);
-                    events.ScheduleEvent(EVENT_FIERCE_BLOW, 6s, 8s);
+                    events.ScheduleEvent(EVENT_FIERCE_BLOW, 9s, 10s);
                     break;
             }
 
