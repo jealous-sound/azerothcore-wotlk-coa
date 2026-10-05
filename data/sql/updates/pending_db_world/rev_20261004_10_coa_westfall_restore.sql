@@ -15,13 +15,23 @@ VALUES
 (776787, 0, 0, 0, 0, 0, 'Protector Brenolt', 'The People''s Militia', NULL, 0, 14, 14, 0, 12, 0, 1, 1.14286, 1, 1, 18, 0, 0, 1, 2000, 2000, 1, 1, 1, 512, 2048, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 'SmartAI', 0, 1, 0.98, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
 (776790, 0, 0, 0, 0, 0, 'Archivist Selnor', NULL, NULL, 0, 11, 11, 0, 12, 2, 1, 1.14286, 1, 1, 18, 0, 0, 1, 2000, 2000, 1, 1, 1, 512, 2048, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 0.98, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
 (255150, 0, 0, 0, 0, 0, 'Idona Wyther', 'Alchemy Trainer', NULL, 4110, 26, 26, 0, 12, 83, 1, 1.14286, 1, 1, 18, 0, 0, 1, 1500, 2000, 1, 1, 1, 512, 2048, 0, 0, 7, 134217728, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 1.064, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
-(255151, 0, 0, 0, 0, 0, 'Tavin Wyther', 'Alchemy Supplies', NULL, 0, 23, 23, 0, 12, 128, 1, 1.14286, 1, 1, 18, 0, 0, 1, 1500, 2000, 1, 1, 1, 512, 2048, 0, 0, 7, 134217728, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 1.064, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
+(255151, 0, 0, 0, 0, 0, 'Tavin Wyther', 'Alchemy Supplies', NULL, 0, 23, 23, 0, 12, 128, 1, 1.14286, 1, 1, 18, 0, 0, 1, 1500, 2000, 1, 1, 1, 512, 2048, 0, 0, 7, 134217728, 0, 0, 0, 0, 0, 0, 0, 'SmartAI', 0, 1, 1.064, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
 (991515, 0, 0, 0, 0, 0, 'Lenore the Hoarder', '', NULL, 0, 15, 15, 0, 17, 0, 1, 1.14286, 1, 1, 18, 1, 0, 1, 2000, 2000, 1, 1, 1, 32768, 2048, 0, 0, 7, 0, 991515, 95, 0, 0, 0, 3, 24, 'SmartAI', 0, 1, 3, 1, 1, 1, 0, 0, 1, 0, 0, '', 0),
 (255339, 0, 0, 0, 0, 0, 'Militia Recruit', 'The People''s Militia', NULL, 58274, 14, 16, 0, 12, 1, 1, 1.14286, 1, 1, 18, 0, 0, 1, 2000, 2000, 1, 1, 1, 0, 2048, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 'SmartAI', 0, 1, 1.448, 1, 1, 1, 0, 0, 1, 0, 0, '', 0),
 (157002, 0, 0, 0, 0, 0, 'Farmer Demont', '', NULL, 0, 15, 15, 0, 35, 2, 1, 1.14286, 1, 1, 18, 0, 0, 1, 1500, 2000, 1, 1, 1, 512, 2048, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 1.25, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
 (455339, 0, 0, 0, 0, 0, 'Slain Protector', 'The People''s Militia', NULL, 0, 15, 15, 0, 35, 2, 1, 1.14286, 1, 1, 18, 0, 0, 1, 2000, 2000, 1, 1, 1, 768, 2048, 32, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 2.048, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
 (455343, 0, 0, 0, 0, 0, 'Half-Devoured Protector', 'The People''s Militia', NULL, 0, 15, 15, 0, 35, 2, 1, 1.14286, 1, 1, 18, 0, 0, 1, 2000, 2000, 1, 1, 1, 768, 2048, 32, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 2.048, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
-(100467, 0, 0, 0, 0, 0, 'Path to Ascension Flightmaster Credit', '', NULL, 0, 1, 1, 0, 35, 0, 1, 1.14286, 1, 1, 20, 0, 0, 1, 0, 0, 1, 1, 1, 2, 0, 0, 0, 7, 2147483648, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, '', 0)
+(100467, 0, 0, 0, 0, 0, 'Path to Ascension Flightmaster Credit', '', NULL, 0, 1, 1, 0, 35, 0, 1, 1.14286, 1, 1, 20, 0, 0, 1, 0, 0, 1, 1, 1, 2, 0, 0, 0, 7, 2147483648, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, '', 0),
+(255152, 0, 0, 0, 0, 0, 'Displaced Farmer', '', NULL, 0, 8, 8, 0, 12, 0, 1, 1.14286, 1, 1, 18, 0, 0, 1, 1500, 2000, 1, 1, 1, 512, 2048, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 'SmartAI', 0, 1, 0.96, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
+(449328, 0, 0, 0, 0, 0, 'Brother Alric', NULL, NULL, 9950101, 22, 22, 0, 12, 1, 1, 1.14286, 1, 1, 18, 0, 0, 1, 1000, 2000, 1, 1, 1, 768, 2048, 0, 0, 7, 134217728, 0, 0, 0, 0, 0, 0, 0, 'SmartAI', 0, 1, 1.328, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
+(776784, 0, 0, 0, 0, 0, 'Jane Foster', '', NULL, 9950102, 11, 11, 0, 12, 1, 1, 1.14286, 1, 1, 18, 0, 0, 1, 1500, 2000, 1, 1, 1, 512, 2048, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 0.98, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
+(776785, 0, 0, 0, 0, 0, 'Hank Dullahan', 'Riding Trainer', NULL, 9950104, 11, 11, 0, 12, 83, 1, 1.14286, 1, 1, 18, 0, 0, 1, 2000, 2000, 1, 1, 1, 512, 2048, 0, 0, 7, 134217728, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 0.98, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
+(255153, 0, 0, 0, 0, 0, 'Mayor Leighton', '', NULL, 0, 30, 30, 0, 12, 0, 1, 1.14286, 1, 1, 18, 0, 0, 1, 1000, 2000, 1, 1, 1, 512, 2048, 0, 0, 7, 134217728, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 1.064, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
+(776780, 0, 0, 0, 0, 0, 'Marianna Carson', '', NULL, 0, 5, 5, 0, 12, 0, 1, 1.14286, 1, 1, 18, 0, 0, 1, 1500, 2000, 1, 1, 1, 512, 2048, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 'SmartAI', 0, 1, 0.96, 1, 1, 1, 0, 0, 1, 0, 2, '', 0),
+(776791, 0, 0, 0, 0, 0, 'Scheming Protector', 'The People''s Militia', NULL, 9950103, 31, 31, 0, 11, 1, 1, 1.14286, 1, 1, 18, 0, 0, 1, 2000, 2000, 1, 1, 1, 4096, 2048, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 0.98, 1, 1, 1, 0, 0, 1, 0, 0, '', 0),
+(776792, 0, 0, 0, 0, 0, 'Scheming Protector', 'The People''s Militia', NULL, 9950103, 31, 31, 0, 11, 1, 1, 1.14286, 1, 1, 18, 0, 0, 1, 2000, 2000, 1, 1, 1, 4096, 2048, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 1, 0.98, 1, 1, 1, 0, 0, 1, 0, 0, '', 0),
+(265154, 0, 0, 0, 0, 0, 'Bella', '', NULL, 0, 5, 5, 0, 190, 0, 1, 0.85714, 1, 1, 18, 0, 0, 1, 2000, 2000, 1, 1, 1, 0, 2048, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, '', 1, 1, 0.0112, 1, 1, 0, 0, 100, 1, 0, 0, '', 0),
+(256249, 0, 0, 0, 0, 0, 'Snuggles', 'Wyther''s Family Pet', NULL, 0, 15, 15, 0, 35, 0, 1, 0.85714, 1, 1, 18, 0, 0, 1, 2000, 2000, 1, 1, 1, 0, 2048, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, '', 1, 1, 2.548, 1, 1, 0, 0, 100, 1, 0, 0, '', 0)
 ON DUPLICATE KEY UPDATE `difficulty_entry_1` = VALUES(`difficulty_entry_1`),
   `difficulty_entry_2` = VALUES(`difficulty_entry_2`), `difficulty_entry_3` = VALUES(`difficulty_entry_3`),
   `KillCredit1` = VALUES(`KillCredit1`), `KillCredit2` = VALUES(`KillCredit2`), `name` = VALUES(`name`),
@@ -48,7 +58,12 @@ ON DUPLICATE KEY UPDATE `difficulty_entry_1` = VALUES(`difficulty_entry_1`),
 
 -- Stand-in displays: Olens 177231, Brenolt 177232, Selnor 177229, Idona 255150, Tavin 255151 and
 -- Lenore 119854, Slain Protector 177256 and Half-Devoured Protector 177252 are not in the client.
-DELETE FROM `creature_template_model` WHERE `CreatureID` IN (776786,776787,776790,255150,255151,991515,255339,157002,455339,455343,100467);
+-- Sentinel Hill residents from AscensionDB and the db.exil.es dump of 2026-10-04 (names, subnames, levels,
+-- health; Snuggles, Marianna Carson and Bella added 2026-06-07, Mayor Leighton and the Scheming Protectors
+-- 2026-07-13). Stand-in displays: Displaced Farmer 652361-652364, Brother Alric 449278, Jane Foster 177227,
+-- Hank Dullahan 177228, Mayor Leighton 255153, Marianna Carson 177223 and the Scheming Protectors
+-- 177242/177243 are not in the client. Bella and Snuggles use their Ascension displays.
+DELETE FROM `creature_template_model` WHERE `CreatureID` IN (776786,776787,776790,255150,255151,991515,255339,157002,455339,455343,100467,255152,449328,776784,776785,255153,776780,776791,776792,265154,256249);
 INSERT INTO `creature_template_model` (`CreatureID`, `Idx`, `CreatureDisplayID`, `DisplayScale`, `Probability`,
   `VerifiedBuild`) VALUES
 (776786, 0, 7310, 1, 1, 0),
@@ -64,13 +79,34 @@ INSERT INTO `creature_template_model` (`CreatureID`, `Idx`, `CreatureDisplayID`,
 (157002, 0, 19354, 1, 1, 0),
 (455339, 0, 2368, 1, 1, 0),
 (455343, 0, 7308, 1, 1, 0),
-(100467, 0, 11686, 1, 1, 0);
+(100467, 0, 11686, 1, 1, 0),
+(255152, 0, 18616, 1, 1, 0),
+(255152, 1, 18617, 1, 1, 0),
+(255152, 2, 18618, 1, 1, 0),
+(255152, 3, 18619, 1, 1, 0),
+(449328, 0, 3283, 1, 1, 0),
+(776784, 0, 1295, 1, 1, 0),
+(776785, 0, 3274, 1, 1, 0),
+(255153, 0, 1753, 1, 1, 0),
+(776780, 0, 1691, 1, 1, 0),
+(776791, 0, 2369, 1, 1, 0),
+(776792, 0, 2371, 1, 1, 0),
+(265154, 0, 1060, 1, 1, 0),
+(265154, 1, 102275, 1, 1, 0),
+(256249, 0, 30213, 1, 1, 0);
 
-DELETE FROM `creature_template_addon` WHERE `entry` IN (455339,455343);
+DELETE FROM `creature_template_addon` WHERE `entry` IN (455339,455343,256249);
 INSERT INTO `creature_template_addon` (`entry`, `path_id`, `mount`, `bytes1`, `bytes2`, `emote`,
   `visibilityDistanceType`, `auras`) VALUES
 (455339, 0, 0, 7, 1, 0, 0, NULL),
-(455343, 0, 0, 7, 1, 0, 0, NULL);
+(455343, 0, 0, 7, 1, 0, 0, NULL),
+(256249, 0, 0, 3, 1, 0, 0, NULL);
+
+-- Hank Dullahan <Riding Trainer> teaches riding as Randal Hunter does; his greeting is from the Sentinel Hill
+-- footage (YouTube F6vp8CJOTGk).
+DELETE FROM `creature_default_trainer` WHERE `CreatureId`=776785;
+INSERT INTO `creature_default_trainer` (`CreatureId`, `TrainerId`) VALUES
+(776785, 37);
 
 -- Estimated: Idona Wyther teaches the same alchemy list as Alchemist Mallory.
 DELETE FROM `creature_default_trainer` WHERE `CreatureId`=255150;
@@ -192,6 +228,77 @@ INSERT INTO `gossip_menu_option` (`MenuID`, `OptionID`, `OptionIcon`, `OptionTex
   `BoxBroadcastTextID`, `VerifiedBuild`) VALUES
 (58274, 0, 0, 'Let''s practice.', 0, 1, 1, 0, 0, 0, 0, '', 0, 0);
 
+-- Greetings and Brother Alric's option: Sentinel Hill footage (YouTube F6vp8CJOTGk). Hank Dullahan's option
+-- is Randal Hunter's (gossip menu 4018).
+DELETE FROM `npc_text` WHERE `ID` IN (9950101,9950102,9950103,9950104);
+INSERT INTO `npc_text` (`ID`, `text0_0`, `text0_1`, `BroadcastTextID0`, `lang0`, `Probability0`, `em0_0`, `em0_1`,
+  `em0_2`, `em0_3`, `em0_4`, `em0_5`, `text1_0`, `text1_1`, `BroadcastTextID1`, `lang1`, `Probability1`, `em1_0`,
+  `em1_1`, `em1_2`, `em1_3`, `em1_4`, `em1_5`, `text2_0`, `text2_1`, `BroadcastTextID2`, `lang2`, `Probability2`,
+  `em2_0`, `em2_1`, `em2_2`, `em2_3`, `em2_4`, `em2_5`, `text3_0`, `text3_1`, `BroadcastTextID3`, `lang3`,
+  `Probability3`, `em3_0`, `em3_1`, `em3_2`, `em3_3`, `em3_4`, `em3_5`, `text4_0`, `text4_1`, `BroadcastTextID4`,
+  `lang4`, `Probability4`, `em4_0`, `em4_1`, `em4_2`, `em4_3`, `em4_4`, `em4_5`, `text5_0`, `text5_1`,
+  `BroadcastTextID5`, `lang5`, `Probability5`, `em5_0`, `em5_1`, `em5_2`, `em5_3`, `em5_4`, `em5_5`, `text6_0`,
+  `text6_1`, `BroadcastTextID6`, `lang6`, `Probability6`, `em6_0`, `em6_1`, `em6_2`, `em6_3`, `em6_4`, `em6_5`,
+  `text7_0`, `text7_1`, `BroadcastTextID7`, `lang7`, `Probability7`, `em7_0`, `em7_1`, `em7_2`, `em7_3`, `em7_4`,
+  `em7_5`, `VerifiedBuild`) VALUES
+(9950101, 'I came to Westfall the moment I heard. I thought, perhaps I could be of use, offer some light in the dark. But this land... it swallows hope. Every wound I tend, more open. Every prayer feels hollow. Maybe I was foolish. Maybe I should just return to Stormwind. My bed is still warm there. My conscience... quieter.', '', 0, 0, 1, 0, 0, 0, 0, 0, 0, '', '', 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+(9950102, 'This place is so different from Stormwind, don''t you think? I miss my studies, but this place lets me see the stars so clearly. When Thor asked me to come live with him I was hesitant, but now, I''m glad I came. Oh, and speaking of Thor... If you find a free moment to chat with him, tell him I''m borrowing his hammer to repair this ratty old shelf. I don''t know why he''s so protective over the thing, it''s not like he even uses it as a gryphon master...', '', 0, 0, 1, 0, 0, 0, 0, 0, 0, '', '', 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+(9950103, 'Stormwind has abandoned us and the peasants are raising their pitchforks. It''s hopeless. We''re all going to die and I don''t know about you, but I plan to be on the winning side. I''ve lost enough already, I don''t want to lose my life too.', '', 0, 0, 1, 0, 0, 0, 0, 0, 0, '', '', 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+(9950104, 'Hello! Ready for some training?', '', 0, 0, 1, 0, 0, 0, 0, 0, 0, '', '', 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+DELETE FROM `gossip_menu` WHERE `MenuID` IN (9950101,9950102,9950103,9950104);
+INSERT INTO `gossip_menu` (`MenuID`, `TextID`) VALUES
+(9950101, 9950101),
+(9950102, 9950102),
+(9950103, 9950103),
+(9950104, 9950104);
+DELETE FROM `gossip_menu_option` WHERE `MenuID` IN (9950101,9950102,9950103,9950104);
+INSERT INTO `gossip_menu_option` (`MenuID`, `OptionID`, `OptionIcon`, `OptionText`, `OptionBroadcastTextID`,
+  `OptionType`, `OptionNpcFlag`, `ActionMenuID`, `ActionPoiID`, `BoxCoded`, `BoxMoney`, `BoxText`,
+  `BoxBroadcastTextID`, `VerifiedBuild`) VALUES
+(9950101, 0, 0, 'Even a single spark can guide the lost, Brother. Westfall needs that light, and so do we.', 0, 1, 1, 0, 0, 0, 0, '', 0, 0),
+(9950104, 0, 3, 'I seek training to ride a steed.', 7548, 5, 16, 0, 0, 0, 0, '', 0, 0);
+
+-- Sentinel Hill speech from the footage (YouTube F6vp8CJOTGk); how often each line repeats is estimated.
+DELETE FROM `creature_text` WHERE `CreatureID` IN (255151,255152,265154,449328,776780);
+INSERT INTO `creature_text` (`CreatureID`, `GroupID`, `ID`, `Text`, `Type`, `Language`, `Probability`, `Emote`,
+  `Duration`, `Sound`, `BroadcastTextId`, `TextRange`, `comment`) VALUES
+(449328, 0, 0, 'The light burns like a flame within us all, even here. Though it may feel more like a... slightly warm breeze rather than a comforting fire.', 12, 0, 100, 1, 0, 0, 0, 0, 'Brother Alric - Out of Combat'),
+(449328, 0, 1, 'We must all stay calm and be ready to assist those who need our help most. I''m here to help you all, even if I''m... starting to wish I wasn''t.', 12, 0, 100, 1, 0, 0, 0, 0, 'Brother Alric - Out of Combat'),
+(449328, 1, 0, 'You''re right. Even a dying candle still pushes back the dark. I cannot heal the whole of Westfall, but I can heal someone. And that will be enough. Thank you, truly.', 12, 0, 100, 1, 0, 0, 0, 0, 'Brother Alric - Gossip Option Selected'),
+(255152, 0, 0, 'We''re all going to die, aren''t we?', 12, 0, 100, 1, 0, 0, 0, 0, 'Displaced Farmer - Out of Combat'),
+(255152, 0, 1, 'This isn''t helping!', 12, 0, 100, 1, 0, 0, 0, 0, 'Displaced Farmer - Out of Combat'),
+(776780, 0, 0, 'Come on Bella, just one more bucket... our defenders are thirsty!', 12, 0, 100, 1, 0, 0, 0, 0, 'Marianna Carson - Milking'),
+(265154, 0, 0, 'Moo.', 12, 0, 100, 0, 0, 0, 0, 0, 'Bella - Milking'),
+(255151, 0, 0, 'Yes, Ma...', 12, 0, 100, 1, 0, 0, 0, 0, 'Tavin Wyther - Out of Combat');
+DELETE FROM `smart_scripts` WHERE (`entryorguid` IN (449328,255152,776780,255151) AND `source_type`=0) OR
+  (`entryorguid`=77678000 AND `source_type`=9);
+INSERT INTO `smart_scripts` (`entryorguid`, `source_type`, `id`, `link`, `event_type`, `event_phase_mask`,
+  `event_chance`, `event_flags`, `event_param1`, `event_param2`, `event_param3`, `event_param4`, `event_param5`,
+  `event_param6`, `action_type`, `action_param1`, `action_param2`, `action_param3`, `action_param4`, `action_param5`,
+  `action_param6`, `target_type`, `target_param1`, `target_param2`, `target_param3`, `target_param4`, `target_x`,
+  `target_y`, `target_z`, `target_o`, `comment`) VALUES
+(449328, 0, 0, 1, 62, 0, 100, 0, 9950101, 0, 0, 0, 0, 0, 72, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 'Brother Alric - On Gossip Option 0 Selected - Close Gossip'),
+(449328, 0, 1, 0, 61, 0, 100, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 'Brother Alric - On Link - Say Line 1'),
+(449328, 0, 2, 0, 1, 0, 100, 0, 60000, 120000, 240000, 360000, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 'Brother Alric - Out of Combat - Say Line 0'),
+(255152, 0, 0, 0, 1, 0, 100, 0, 60000, 180000, 300000, 600000, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 'Displaced Farmer - Out of Combat - Say Line 0'),
+(776780, 0, 0, 0, 1, 0, 100, 0, 30000, 60000, 180000, 240000, 0, 0, 80, 77678000, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 'Marianna Carson - Out of Combat - Run Milking talk'),
+(77678000, 9, 0, 0, 0, 0, 100, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 'Marianna Carson - Milking talk - Say Line 0'),
+(77678000, 9, 1, 0, 0, 0, 100, 0, 3000, 3000, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 19, 265154, 15, 0, 0, 0, 0, 0, 0, 'Marianna Carson - Milking talk - Bella Say Line 0'),
+(255151, 0, 0, 0, 1, 0, 100, 0, 120000, 300000, 600000, 900000, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 'Tavin Wyther - Out of Combat - Say Line 0');
+
+-- Gryan Stoutmantle and Captain Danuvin exchange their existing lines on the tower, as in the footage
+-- (YouTube F6vp8CJOTGk); the repeat interval is estimated.
+DELETE FROM `smart_scripts` WHERE (`entryorguid`=234 AND `source_type`=0 AND `id`=1) OR
+  (`entryorguid`=23400 AND `source_type`=9);
+INSERT INTO `smart_scripts` (`entryorguid`, `source_type`, `id`, `link`, `event_type`, `event_phase_mask`,
+  `event_chance`, `event_flags`, `event_param1`, `event_param2`, `event_param3`, `event_param4`, `event_param5`,
+  `event_param6`, `action_type`, `action_param1`, `action_param2`, `action_param3`, `action_param4`, `action_param5`,
+  `action_param6`, `target_type`, `target_param1`, `target_param2`, `target_param3`, `target_param4`, `target_x`,
+  `target_y`, `target_z`, `target_o`, `comment`) VALUES
+(234, 0, 1, 0, 1, 0, 100, 0, 60000, 120000, 240000, 360000, 0, 0, 80, 23400, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 'Gryan Stoutmantle - Out of Combat - Run Tower talk'),
+(23400, 9, 0, 0, 0, 0, 100, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 'Gryan Stoutmantle - Tower talk - Say Line 1'),
+(23400, 9, 1, 0, 0, 0, 100, 0, 6000, 6000, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 19, 821, 15, 0, 0, 0, 0, 0, 0, 'Gryan Stoutmantle - Tower talk - Captain Danuvin Say Line 0');
+
 DELETE FROM `creature` WHERE `guid` BETWEEN 9950100 AND 9950116;
 INSERT INTO `creature` (`guid`, `id`, `map`, `zoneId`, `areaId`, `spawnMask`, `phaseMask`, `equipment_id`,
   `position_x`, `position_y`, `position_z`, `orientation`, `spawntimesecs`, `wander_distance`, `currentwaypoint`,
@@ -214,6 +321,32 @@ INSERT INTO `creature` (`guid`, `id`, `map`, `zoneId`, `areaId`, `spawnMask`, `p
 (9950114, 255339, 0, 40, 108, 1, 1, 0, -10738.5, 981.5, 36.88, 2.78, 120, 3, 0, 0, 0, 1, 0, 0, 0, '', 0, 0, 'Militia Recruit (estimated position and wander distance, training yard)'),
 (9950115, 255151, 0, 40, 108, 1, 1, 0, -10509.95, 1144.83, 40.0, 3.48, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Tavin Wyther (estimated position, alchemist''s farmhouse)'),
 (9950116, 776787, 0, 40, 108, 1, 1, 0, -10724.26, 988.23, 36.25, 0.77, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Protector Brenolt (estimated position, training yard by Olens)');
+
+-- Sentinel Hill residents placed where the footage shows them (YouTube F6vp8CJOTGk); positions and facings
+-- are estimated, heights are the ground or WMO floor.
+DELETE FROM `creature` WHERE `guid` BETWEEN 9950130 AND 9950147;
+INSERT INTO `creature` (`guid`, `id`, `map`, `zoneId`, `areaId`, `spawnMask`, `phaseMask`, `equipment_id`,
+  `position_x`, `position_y`, `position_z`, `orientation`, `spawntimesecs`, `wander_distance`, `currentwaypoint`,
+  `curhealth`, `curmana`, `MovementType`, `npcflag`, `unit_flags`, `dynamicflags`, `ScriptName`, `VerifiedBuild`,
+  `CreateObject`, `Comment`) VALUES
+(9950130, 255153, 0, 40, 108, 1, 1, 0, -10686.4, 960.6, 38.52, 2.56, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Mayor Leighton (town hall); Sentinel Hill footage, position estimated'),
+(9950131, 776784, 0, 40, 108, 1, 1, 0, -10606.8, 1044.6, 36.29, 3.71, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Jane Foster (Thor''s house); Sentinel Hill footage, position estimated'),
+(9950132, 22816, 0, 40, 108, 1, 1, 0, -10604.5, 1047.0, 36.29, 4, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Black Cat (Thor''s house); Sentinel Hill footage, position estimated'),
+(9950133, 776780, 0, 40, 108, 1, 1, 0, -10517.3, 1178.8, 36.8, 2.48, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Marianna Carson (barn, milking Bella); Sentinel Hill footage, position estimated'),
+(9950134, 265154, 0, 40, 108, 1, 1, 0, -10519.5, 1180.5, 36.78, 4.05, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Bella (barn); Sentinel Hill footage, position estimated'),
+(9950135, 256249, 0, 40, 108, 1, 1, 0, -10520.5, 1137.0, 39.7, 0.88, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Snuggles (asleep by the doghouse); Sentinel Hill footage, position estimated'),
+(9950136, 449328, 0, 40, 108, 1, 1, 0, -10584.5, 1041.5, 35.06, 0.9, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Brother Alric (refugee camp, facing the campfire); Sentinel Hill footage, position estimated'),
+(9950137, 255152, 0, 40, 108, 1, 1, 0, -10583.0, 1047.5, 35.31, 5.14, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Displaced Farmer (refugee camp); Sentinel Hill footage, position estimated'),
+(9950138, 255152, 0, 40, 108, 1, 1, 0, -10579.0, 1042.0, 35.12, 2.34, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Displaced Farmer (refugee camp); Sentinel Hill footage, position estimated'),
+(9950139, 255152, 0, 40, 108, 1, 1, 0, -10650.0, 972.0, 36.62, 1, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Displaced Farmer (market camp); Sentinel Hill footage, position estimated'),
+(9950140, 255152, 0, 40, 108, 1, 1, 0, -10692.0, 966.0, 38.52, 0.4, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Displaced Farmer (town hall); Sentinel Hill footage, position estimated'),
+(9950141, 255152, 0, 40, 108, 1, 1, 0, -10521.5, 1176.0, 36.76, 1.6, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Displaced Farmer (barn); Sentinel Hill footage, position estimated'),
+(9950142, 776785, 0, 40, 108, 1, 1, 0, -10661.5, 1057.0, 33.88, 4.71, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Hank Dullahan (stable entrance); Sentinel Hill footage, position estimated'),
+(9950143, 12375, 0, 40, 108, 1, 1, 0, -10663.3, 1057.6, 33.95, 4.71, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Chestnut Mare (by Hank Dullahan); Sentinel Hill footage, position estimated'),
+(9950144, 12376, 0, 40, 108, 1, 1, 0, -10655.0, 1065.0, 34.0, 1.57, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Brown Horse (stable stall); Sentinel Hill footage, position estimated'),
+(9950145, 12376, 0, 40, 108, 1, 1, 0, -10660.0, 1072.0, 34.09, 1.57, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Brown Horse (stable stall); Sentinel Hill footage, position estimated'),
+(9950146, 776791, 0, 40, 108, 1, 1, 0, -10683.0, 943.0, 37.12, 5.42, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Scheming Protector (alley behind the town hall); Sentinel Hill footage, position estimated'),
+(9950147, 776792, 0, 40, 108, 1, 1, 0, -10681.8, 941.6, 37.13, 2.28, 300, 0, 0, 0, 0, 0, 0, 0, 0, '', 0, 0, 'Scheming Protector (alley behind the town hall); Sentinel Hill footage, position estimated');
 
 -- Lenore the Hoarder (991515) loot: Exiles DB export 2026-09-13, creature_loot entry 991515.
 DELETE FROM `creature_loot_template` WHERE `Entry`=991515;
@@ -646,7 +779,6 @@ UPDATE `creature` SET `position_x` = -10012, `position_y` = 1577.74, `position_z
 -- above it: the barn for Mageroyal 207180 and the town hall for lantern 52072. The Midsummer mug keeps
 -- its height above the camp table.
 UPDATE `creature` SET `position_z` = 36.281 WHERE `guid` = 90391 AND `id` = 8096;
-UPDATE `creature` SET `position_z` = 36.342 WHERE `guid` = 48880 AND `id` = 843;
 UPDATE `creature` SET `position_z` = 33.03 WHERE `guid` = 89532 AND `id` = 869;
 UPDATE `creature` SET `position_z` = 33.879 WHERE `guid` = 94756 AND `id` = 26258;
 UPDATE `creature` SET `position_z` = 33.947 WHERE `guid` = 245520 AND `id` = 16592;
@@ -664,17 +796,12 @@ UPDATE `waypoint_data` SET `position_z` = 35.729 WHERE `id` = 898610 AND `point`
 UPDATE `waypoint_data` SET `position_z` = 35.372 WHERE `id` = 898610 AND `point` IN (15);
 UPDATE `waypoint_data` SET `position_z` = 35.834 WHERE `id` = 898610 AND `point` IN (17);
 UPDATE `waypoint_data` SET `position_z` = 34.668 WHERE `id` = 442960 AND `point` IN (2);
-UPDATE `gameobject` SET `position_z` = 36.292 WHERE `guid` = 11020 AND `id` = 1843;
-UPDATE `gameobject` SET `position_z` = 35.893 WHERE `guid` = 42737 AND `id` = 3705;
 UPDATE `gameobject` SET `position_z` = 35.199 WHERE `guid` = 207183 AND `id` = 1620;
 UPDATE `gameobject` SET `position_z` = 36.7 WHERE `guid` = 207180 AND `id` = 1620;
 UPDATE `gameobject` SET `position_z` = 36.82 WHERE `guid` = 52072 AND `id` = 181355;
 UPDATE `gameobject` SET `position_z` = 35.554 WHERE `guid` = 51967 AND `id` = 181355;
 UPDATE `gameobject` SET `position_z` = 33.885 WHERE `guid` = 76304 AND `id` = 187564;
 UPDATE `gameobject` SET `position_z` = 33.947 WHERE `guid` = 242629 AND `id` = 181371;
-UPDATE `gameobject` SET `position_z` = 33.597 WHERE `guid` = 50801 AND `id` = 181302;
-UPDATE `gameobject` SET `position_z` = 33.649 WHERE `guid` = 50739 AND `id` = 181302;
-UPDATE `gameobject` SET `position_z` = 33.527 WHERE `guid` = 50870 AND `id` = 181306;
 UPDATE `gameobject` SET `position_z` = 33.797 WHERE `guid` = 52510 AND `id` = 188021;
 UPDATE `gameobject` SET `position_z` = 33.799 WHERE `guid` = 50821 AND `id` = 181305;
 UPDATE `gameobject` SET `position_z` = 34.729 WHERE `guid` = 50930 AND `id` = 181307;
@@ -699,3 +826,19 @@ UPDATE `creature` SET `position_x` = -10669.979, `position_y` = 989.242, `positi
   WHERE `guid` = 48881 AND `id` = 1668;
 UPDATE `creature` SET `position_x` = -10659.08, `position_y` = 981.867, `position_z` = 35.617
   WHERE `guid` = 48876 AND `id` = 1670;
+
+-- Sentinel Hill footage (YouTube F6vp8CJOTGk): Gina MacGregor, the campfire and the milk barrel stand in the
+-- market by William MacGregor, and the Midsummer crates stand outside the stable instead of inside it.
+-- Positions are estimated from the footage; facings are unchanged.
+UPDATE `gameobject` SET `position_x` = -10659.0, `position_y` = 986.8, `position_z` = 35.653
+  WHERE `guid` = 11020 AND `id` = 1843;
+UPDATE `gameobject` SET `position_x` = -10670.0, `position_y` = 985.9, `position_z` = 36.177
+  WHERE `guid` = 42737 AND `id` = 3705;
+UPDATE `gameobject` SET `position_x` = -10645.13, `position_y` = 1067.61, `position_z` = 33.928
+  WHERE `guid` = 50739 AND `id` = 181302;
+UPDATE `gameobject` SET `position_x` = -10646.43, `position_y` = 1066.68, `position_z` = 34.064
+  WHERE `guid` = 50801 AND `id` = 181302;
+UPDATE `gameobject` SET `position_x` = -10644.93, `position_y` = 1066.11, `position_z` = 33.956
+  WHERE `guid` = 50870 AND `id` = 181306;
+UPDATE `creature` SET `position_x` = -10668.07, `position_y` = 986.01, `position_z` = 36.054
+  WHERE `guid` = 48880 AND `id` = 843;
