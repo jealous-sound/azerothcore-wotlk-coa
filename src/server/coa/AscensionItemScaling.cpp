@@ -54,6 +54,9 @@ void LoadCapturedStats()
         return;
     }
     LOG_INFO("server.loading", ">> Loaded {} captured item-stat rows", capturedStats.Size());
+    if (capturedStats.InvalidRows() || capturedStats.DuplicateRows())
+        LOG_WARN("server.loading", "Skipped {} invalid and {} duplicate captured item-stat rows from {}",
+            capturedStats.InvalidRows(), capturedStats.DuplicateRows(), path.string());
 }
 
 using CurveKey = std::tuple<uint32, uint32, uint32, uint32>;
@@ -153,6 +156,14 @@ std::unique_ptr<ItemTemplate> BuildTemplate(uint32 entry, ItemTemplate const& ba
     if (CapturedStats::Record const* record = capturedStats.Find(base.ItemId, itemLevel))
     {
         record->Apply(*proto);
+        if (base.BuyPrice > 0)
+        {
+            double const price = base.SellPrice ? double(proto->SellPrice) / base.SellPrice :
+                std::max(1.0, SetRatio(curves.sellPrice, KeyOf(base), base.ItemLevel, itemLevel,
+                    PointsRatio(PropertyPoints(base.ItemLevel, base.Quality),
+                        PropertyPoints(itemLevel, base.Quality))));
+            proto->BuyPrice = int32(std::min(std::round(double(base.BuyPrice) * price), double(INT32_MAX)));
+        }
         return proto;
     }
     proto->RequiredLevel = LiftedRequiredLevel(base.RequiredLevel, base.ItemLevel, lift,

@@ -9,8 +9,9 @@ To use the captured table for the existing loot and quest item lifts:
 
 1. Place the original CoA `ItemStat.dbc` at `<DataDir>/dbc/ItemStat.dbc`.
 2. Restart the server. The captured table loads automatically; no separate configuration flag is needed.
-3. Check startup for `Loaded ... captured item-stat rows`. A missing or invalid file logs an error and
-   leaves estimated scaling active.
+3. Check startup for `Loaded ... captured item-stat rows`. Invalid rows are skipped with a warning that
+   counts invalid and duplicate rows. Duplicate keys retain the first valid row in file order. A missing,
+   malformed or truncated file, or one with no valid rows, logs an error and leaves estimated scaling active.
 
 The file used for the regression fixtures has SHA-256
 `c09b91e67d97db5624f68a3de3cc0a3aa76e8672647cbf9bd924e343f918b237`: 1,513,931 records,
@@ -21,8 +22,11 @@ The repository includes six byte-exact numeric regression rows, not the full cli
 
 Lifted templates use the base item ID and `base.ItemLevel + lift` for exact lookup. Captured stats replace
 the ten stat pairs, damage ranges, armor, resistances, block, random property, required level and sell price.
-Item identity, weapon delay, damage schools, buy price and other fields absent from this table retain the
-base template's values. Missing keys retain the existing estimates; they never use a nearby captured row.
+Buy price follows the captured sell-price ratio to the base template, with rounding and a cap at `INT32_MAX`.
+When the base sell price is zero, buy price uses the existing estimated price ratio. Nonpositive base buy
+prices retain their sentinel values. Item identity, weapon delay, damage schools and other fields absent
+from this table retain the base template's values. Missing keys retain the existing estimates; they never
+use a nearby captured row.
 The table is loaded once at startup, before scaled templates are materialized, and requires a restart to
 change. It is a sorted, contiguous row vector with binary lookup rather than a sparse DBC ID array or a
 per-row hash allocation (approximately 236 MB for the original table, before allocator overhead).

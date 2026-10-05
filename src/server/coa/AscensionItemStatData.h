@@ -133,6 +133,7 @@ public:
         }
         std::vector<Record> rows;
         rows.reserve(count);
+        std::size_t invalidRows = 0;
         std::array<unsigned char, RecordBytes> bytes{};
         for (std::uint32_t index = 0; index < count; ++index)
         {
@@ -146,8 +147,8 @@ public:
                 row.words[column] = ReadWord(bytes.data() + column * sizeof(std::uint32_t));
             if (!row.Valid())
             {
-                error = "invalid item, scaling level, stat type or damage in ItemStat record";
-                return false;
+                ++invalidRows;
+                continue;
             }
             rows.push_back(row);
         }
@@ -156,14 +157,19 @@ public:
             error = "unexpected data after ItemStat records";
             return false;
         }
-        std::sort(rows.begin(), rows.end(), [](Record const& a, Record const& b) { return a.Key() < b.Key(); });
-        if (std::adjacent_find(rows.begin(), rows.end(),
-            [](Record const& a, Record const& b) { return a.Key() == b.Key(); }) != rows.end())
+        if (rows.empty())
         {
-            error = "duplicate item and scaling level in ItemStat records";
+            error = "no valid ItemStat records";
             return false;
         }
+        std::stable_sort(rows.begin(), rows.end(), [](Record const& a, Record const& b) { return a.Key() < b.Key(); });
+        auto const end = std::unique(rows.begin(), rows.end(),
+            [](Record const& a, Record const& b) { return a.Key() == b.Key(); });
+        std::size_t const duplicateRows = std::size_t(rows.end() - end);
+        rows.erase(end, rows.end());
         _rows.swap(rows);
+        _invalidRows = invalidRows;
+        _duplicateRows = duplicateRows;
         return true;
     }
 
@@ -180,6 +186,16 @@ public:
         return _rows.size();
     }
 
+    std::size_t InvalidRows() const
+    {
+        return _invalidRows;
+    }
+
+    std::size_t DuplicateRows() const
+    {
+        return _duplicateRows;
+    }
+
 private:
     static std::uint32_t ReadWord(unsigned char const* bytes)
     {
@@ -188,6 +204,8 @@ private:
     }
 
     std::vector<Record> _rows;
+    std::size_t _invalidRows = 0;
+    std::size_t _duplicateRows = 0;
 };
 }
 
