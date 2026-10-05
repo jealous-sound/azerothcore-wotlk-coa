@@ -199,12 +199,12 @@ void RefreshProfessions(Player* player)
     for (uint32 index = 0; index < skills.size(); ++index)
     {
         float scale = SkillScale(player, skills[index]);
-        bool active = Config.professions && Affects(player) && player->IsAlive() && scale > 0;
+        int32 amount = int32(std::lround(bonuses[index] * scale));
+        bool active = Config.professions && Affects(player) && player->IsAlive() && amount != 0;
         uint32 spell = ProfessionAura + index;
         SetAura(player, spell, active);
         if (!active)
             continue;
-        int32 amount = int32(std::lround(bonuses[index] * scale));
         for (uint8 effect = 0; effect < MAX_SPELL_EFFECTS; ++effect)
             if (AuraEffect* aura = player->GetAuraEffect(spell, effect))
                 if (aura->GetAmount() != amount)
