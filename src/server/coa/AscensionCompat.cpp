@@ -927,7 +927,10 @@ public:
                 continue;
 
             uint32 replacement = 0;
-            bool const allowed = specializationId == entry.SpecId && player->HasSpell(entry.ParentSpellId);
+            Aura const* aura = entry.RequiresAura ? player->GetAura(entry.ParentSpellId, player->GetGUID()) : nullptr;
+            bool const parentOwned = entry.RequiresAura ? aura && !aura->IsRemoved() :
+                player->HasSpell(entry.ParentSpellId);
+            bool const allowed = (!entry.SpecId || specializationId == entry.SpecId) && parentOwned;
             for (auto const& rank : entry.Ranks)
             {
                 if (!rank.SpellId)
