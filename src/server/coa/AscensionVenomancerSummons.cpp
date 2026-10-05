@@ -163,7 +163,7 @@ struct npc_ascension_venomancer_summon : public ScriptedAI
     {
         if (damage && me->GetEntry() == SpiderlingEntry)
             if (Player* player = ObjectAccessor::FindPlayer(owner); player && player->IsInMap(me))
-                ApplyVenoms(player,target);
+                ApplyVenoms(player, target, true);
     }
     void UpdateAI(uint32 diff) override
     {
