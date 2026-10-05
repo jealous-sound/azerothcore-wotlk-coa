@@ -181,6 +181,7 @@ constexpr uint16 SMSG_PATCH_ITEM_DISPLAY_INFO = 0x096B;
 constexpr uint16 SMSG_PATCH_SPELL = 0x092A;
 constexpr uint32 CUSTOM_DISPLAY_ID_FALLBACK_MIN = 652000;
 constexpr uint32 DISPLAY_PATCH_FALLBACK_DELAY_MS = 5000;
+constexpr uint32 DISPLAY_PATCH_RESEND_COOLDOWN_MS = 10000;
 
 constexpr uint16 SMSG_PATCH_VANITY_COLLECTION = 0x0573;
 constexpr uint16 SMSG_UPDATE_OBJECT_ADDON = 0x0578;
@@ -3603,7 +3604,8 @@ public:
     _streamedPlayers.erase(guid);
     _sentItemRows.erase(guid);
     _onDemandItemRows.erase(guid);
-    _fallbackTimers[guid] = DISPLAY_PATCH_FALLBACK_DELAY_MS;
+    _lastStreamMs.erase(guid);
+    _fallbackTimers[guid] = { DISPLAY_PATCH_FALLBACK_DELAY_MS, false };
   }
 
   void OnPlayerLogout(Player *player) {
@@ -3614,6 +3616,7 @@ public:
       _streamedPlayers.erase(guid);
       _sentItemRows.erase(guid);
       _fallbackTimers.erase(guid);
+      _lastStreamMs.erase(guid);
       if (auto node = _onDemandItemRows.extract(guid))
         onDemand = node.mapped();
     }
@@ -3647,15 +3650,17 @@ public:
 
     uint32 const guid = player->GetGUID().GetCounter();
     bool expired = false;
+    bool force = false;
     {
       std::lock_guard lock(_mutex);
       auto const itr = _fallbackTimers.find(guid);
       if (itr != _fallbackTimers.end())
       {
-        if (itr->second > diff)
-          itr->second -= diff;
+        if (itr->second.DelayMs > diff)
+          itr->second.DelayMs -= diff;
         else
         {
+          force = itr->second.Force;
           _fallbackTimers.erase(itr);
           expired = true;
         }
@@ -3663,10 +3668,10 @@ public:
     }
 
     if (expired)
-      SendPatchStream(player);
+      SendPatchStream(player, force);
   }
 
-  void SendPatchStream(Player *player) {
+  void SendPatchStream(Player *player, bool force = false) {
     if (!ascensionCompatConfig.GetConfigValue<bool>(
             AscensionCompatConfig::SEND_DISPLAY_PATCHES))
       return;
@@ -3675,9 +3680,24 @@ public:
     PreparedPatchRows const &rows = GetPreparedPatchRows();
     {
       std::lock_guard lock(_mutex);
+      if (force)
+      {
+        auto const last = _lastStreamMs.find(guid);
+        if (last != _lastStreamMs.end())
+        {
+          uint32 const elapsed = GetMSTimeDiffToNow(last->second);
+          if (elapsed < DISPLAY_PATCH_RESEND_COOLDOWN_MS)
+          {
+            _fallbackTimers[guid] = { DISPLAY_PATCH_RESEND_COOLDOWN_MS - elapsed, true };
+            return;
+          }
+        }
+        _streamedPlayers.erase(guid);
+      }
       if (!_streamedPlayers.insert(guid).second)
         return;
       _fallbackTimers.erase(guid);
+      _lastStreamMs[guid] = getMSTime();
     }
 
     std::vector<ItemPatchRow> itemRows;
@@ -4138,11 +4158,14 @@ private:
             AscensionBloodmage::RuntimeExcludeCasterAuraSpell(
                 record.GetUInt32(SPELL_FAMILY_NAME_FIELD), excludedAura);
         bool const redirectsExclusion = clientExcludedAura != excludedAura;
+        bool const restrictingFormGated =
+            clientExcludedAura == AscensionBloodmage::CursedForm;
 
         auto const overlay = overridden.find(id);
         auto const description = descriptions.find(id);
         if (overlay == overridden.end() && description == descriptions.end() &&
-            !requested.contains(id) && !redirectsExclusion)
+            !requested.contains(id) && !redirectsExclusion &&
+            !restrictingFormGated)
           continue;
 
         std::size_t const rowIndex = overlay == overridden.end() ? rows.size() : overlay->second;
@@ -4172,11 +4195,13 @@ private:
           descriptions.erase(description);
         }
         if (redirectsExclusion)
-        {
           row.Values[SPELL_WIRE_SLOT(SPELL_EXCLUDE_CASTER_AURA_SPELL_FIELD)] =
               clientExcludedAura;
+        if (restrictingFormGated)
+        {
           RedirectCursedFormCheck(row.Strings[SPELL_WIRE_DESCRIPTION]);
           RedirectCursedFormCheck(row.Strings[SPELL_WIRE_TOOLTIP]);
+          Ascension::ClientSpellPatches::Instance().Register(id);
         }
         requested.erase(id);
       }
@@ -4325,7 +4350,14 @@ private:
   std::unordered_set<uint32> _streamedPlayers;
   std::unordered_map<uint32, std::unordered_set<uint32>> _sentItemRows;
   std::unordered_map<uint32, PatchRowTally> _onDemandItemRows;
-  std::unordered_map<uint32, uint32> _fallbackTimers;
+  struct FallbackResend
+  {
+    uint32 DelayMs;
+    bool Force;
+  };
+
+  std::unordered_map<uint32, FallbackResend> _fallbackTimers;
+  std::unordered_map<uint32, uint32> _lastStreamMs;
 
   std::mutex _cacheMutex;
   bool _rowsPrepared = false;
@@ -4487,8 +4519,8 @@ public:
     {
       return queued.GetOpcode() == CMSG_EXTENSION_INITIALIZED;
     };
-    if (isWorldEntryNotice(packet) && std::any_of(queue.begin(), queue.end(), isWorldEntryNotice))
-      return;
+    if (isWorldEntryNotice(packet))
+      queue.erase(std::remove_if(queue.begin(), queue.end(), isWorldEntryNotice), queue.end());
 
     if (queue.size() >= MAX_QUEUED_EXTENSION_PACKETS)
     {
@@ -4496,7 +4528,10 @@ public:
       return;
     }
 
-    queue.emplace_back(packet);
+    if (isWorldEntryNotice(packet))
+      queue.emplace_front(packet);
+    else
+      queue.emplace_back(packet);
   }
 
   void RejectClientPacket(uint32 accountId, WorldPacket const& packet, std::string_view reason)
@@ -5566,7 +5601,7 @@ private:
         SendSecureAddonList(player->GetSession());
         player->SendAllSpellChargeStates();
         SendAscensionRunemasterEchoesCooldown(player);
-        AscensionDisplayPatchService::Instance().SendPatchStream(player);
+        AscensionDisplayPatchService::Instance().SendPatchStream(player, true);
         LOG_DEBUG("coa", "Resent spell charge state to {} after client world entry",
                   player->GetName());
         break;
