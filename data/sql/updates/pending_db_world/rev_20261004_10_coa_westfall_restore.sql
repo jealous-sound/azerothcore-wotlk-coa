@@ -640,3 +640,62 @@ INSERT INTO `creature_questitem` (`CreatureEntry`, `Idx`, `ItemId`, `VerifiedBui
 -- 2026-10-04 (creature_spawn 81744) places it in Westfall. Facing unchanged.
 UPDATE `creature` SET `position_x` = -10012, `position_y` = 1577.74, `position_z` = 43.0575, `zoneId` = 40, `areaId` = 40
   WHERE `guid` = 81744 AND `id` = 833;
+
+-- Sentinel Hill as rebuilt by the client's patch-WB1.MPQ (tiles Azeroth_29_51..30_52), whose terrain the
+-- server maps match exactly. Spawns set on the vanilla ground stand on the WB1 ground, or on the WMO floor
+-- above it: the barn for Mageroyal 207180 and the town hall for lantern 52072. The Midsummer mug keeps
+-- its height above the camp table.
+UPDATE `creature` SET `position_z` = 36.281 WHERE `guid` = 90391 AND `id` = 8096;
+UPDATE `creature` SET `position_z` = 36.342 WHERE `guid` = 48880 AND `id` = 843;
+UPDATE `creature` SET `position_z` = 33.03 WHERE `guid` = 89532 AND `id` = 869;
+UPDATE `creature` SET `position_z` = 33.879 WHERE `guid` = 94756 AND `id` = 26258;
+UPDATE `creature` SET `position_z` = 33.947 WHERE `guid` = 245520 AND `id` = 16592;
+UPDATE `creature` SET `position_z` = 33.769 WHERE `guid` = 86253 AND `id` = 26401;
+UPDATE `creature` SET `position_z` = 38.25 WHERE `guid` = 90234 AND `id` = 154;
+UPDATE `creature` SET `position_z` = 36.305 WHERE `guid` = 90384 AND `id` = 154;
+UPDATE `creature` SET `position_z` = 37.505 WHERE `guid` = 89822 AND `id` = 547;
+UPDATE `creature` SET `position_z` = 36.91 WHERE `guid` = 90359 AND `id` = 547;
+UPDATE `creature` SET `position_z` = 38.235 WHERE `guid` = 89793 AND `id` = 157;
+UPDATE `waypoint_data` SET `position_z` = 33.03 WHERE `id` = 895320 AND `point` IN (1);
+UPDATE `waypoint_data` SET `position_z` = 32.472 WHERE `id` = 895320 AND `point` IN (2,52);
+UPDATE `waypoint_data` SET `position_z` = 34.268 WHERE `id` = 895380 AND `point` IN (8,48);
+UPDATE `waypoint_data` SET `position_z` = 34.212 WHERE `id` = 895380 AND `point` IN (9,47);
+UPDATE `waypoint_data` SET `position_z` = 35.729 WHERE `id` = 898610 AND `point` IN (4);
+UPDATE `waypoint_data` SET `position_z` = 35.372 WHERE `id` = 898610 AND `point` IN (15);
+UPDATE `waypoint_data` SET `position_z` = 35.834 WHERE `id` = 898610 AND `point` IN (17);
+UPDATE `waypoint_data` SET `position_z` = 34.668 WHERE `id` = 442960 AND `point` IN (2);
+UPDATE `gameobject` SET `position_z` = 36.292 WHERE `guid` = 11020 AND `id` = 1843;
+UPDATE `gameobject` SET `position_z` = 35.893 WHERE `guid` = 42737 AND `id` = 3705;
+UPDATE `gameobject` SET `position_z` = 35.199 WHERE `guid` = 207183 AND `id` = 1620;
+UPDATE `gameobject` SET `position_z` = 36.7 WHERE `guid` = 207180 AND `id` = 1620;
+UPDATE `gameobject` SET `position_z` = 36.82 WHERE `guid` = 52072 AND `id` = 181355;
+UPDATE `gameobject` SET `position_z` = 35.554 WHERE `guid` = 51967 AND `id` = 181355;
+UPDATE `gameobject` SET `position_z` = 33.885 WHERE `guid` = 76304 AND `id` = 187564;
+UPDATE `gameobject` SET `position_z` = 33.947 WHERE `guid` = 242629 AND `id` = 181371;
+UPDATE `gameobject` SET `position_z` = 33.597 WHERE `guid` = 50801 AND `id` = 181302;
+UPDATE `gameobject` SET `position_z` = 33.649 WHERE `guid` = 50739 AND `id` = 181302;
+UPDATE `gameobject` SET `position_z` = 33.527 WHERE `guid` = 50870 AND `id` = 181306;
+UPDATE `gameobject` SET `position_z` = 33.797 WHERE `guid` = 52510 AND `id` = 188021;
+UPDATE `gameobject` SET `position_z` = 33.799 WHERE `guid` = 50821 AND `id` = 181305;
+UPDATE `gameobject` SET `position_z` = 34.729 WHERE `guid` = 50930 AND `id` = 181307;
+
+-- patch-WB1.MPQ moved the doodads these spawns stand on, without turning them: the signpost
+-- WOODSIGNPOSTWORN01 (uid 120166) for the three arrows, two market barrels (uids 17852, 17837) for the
+-- Midsummer lanterns and FLAGPOLE01 (uid 181171) for its lantern. Each spawn takes its doodad's offset.
+-- William MacGregor and Mike Miller take the mean offset of their stall doodads within 3 yd.
+UPDATE `gameobject` SET `position_x` = -10650.26, `position_y` = 1034.58, `position_z` = 33.39
+  WHERE `guid` = 31939 AND `id` = 86;
+UPDATE `gameobject` SET `position_x` = -10650.56, `position_y` = 1033.43, `position_z` = 32.363
+  WHERE `guid` = 31940 AND `id` = 88;
+UPDATE `gameobject` SET `position_x` = -10650.56, `position_y` = 1033.38, `position_z` = 34.194
+  WHERE `guid` = 32331 AND `id` = 87;
+UPDATE `gameobject` SET `position_x` = -10674.8, `position_y` = 986.85, `position_z` = 38.408
+  WHERE `guid` = 52789 AND `id` = 181388;
+UPDATE `gameobject` SET `position_x` = -10671.65, `position_y` = 987.64, `position_z` = 37.236
+  WHERE `guid` = 53272 AND `id` = 181391;
+UPDATE `gameobject` SET `position_x` = -10634.74, `position_y` = 1030.65, `position_z` = 35.162
+  WHERE `guid` = 54893 AND `id` = 187576;
+UPDATE `creature` SET `position_x` = -10669.979, `position_y` = 989.242, `position_z` = 36.176
+  WHERE `guid` = 48881 AND `id` = 1668;
+UPDATE `creature` SET `position_x` = -10659.08, `position_y` = 981.867, `position_z` = 35.617
+  WHERE `guid` = 48876 AND `id` = 1670;
