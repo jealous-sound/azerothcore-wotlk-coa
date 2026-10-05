@@ -1,7 +1,7 @@
 -- Bosses whose Ascension kit main already implemented (Deadmines #6282, Upper Blackrock Spire #6175) fight with
 -- main's kit: the vanilla dungeon kit rows from id 9000 are removed and main's rows restored. Jed Runewatcher and
 -- Goraluk Anvilcrack run main's rows on every difficulty, as do the Chromatic Elite Guards (10814); Jed's despawn
--- stays Normal only.
+-- stays Normal only. Jed's Fierce Blow uses the interval from the Ascension combat logs (7.7-9.7 s, then 8-9 s).
 DELETE FROM `smart_scripts` WHERE `entryorguid` = 639 AND `source_type` = 0;
 INSERT INTO `smart_scripts` (`entryorguid`, `source_type`, `id`, `link`, `event_type`, `event_phase_mask`, `event_chance`, `event_flags`, `event_param1`, `event_param2`, `event_param3`, `event_param4`, `event_param5`, `event_param6`, `action_type`, `action_param1`, `action_param2`, `action_param3`, `action_param4`, `action_param5`, `action_param6`, `target_type`, `target_param1`, `target_param2`, `target_param3`, `target_param4`, `target_x`, `target_y`, `target_z`, `target_o`, `comment`) VALUES
 (639, 0, 0, 0, 1, 0, 100, 257, 1000, 1000, 0, 0, 0, 0, 11, 674, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0.0, 0.0, 0.0, 0.0, 'Edwin VanCleef - Out of Combat - Cast ''Dual Wield'' (No Repeat)'),
@@ -70,7 +70,7 @@ INSERT INTO `smart_scripts` (`entryorguid`, `source_type`, `id`, `link`, `event_
 (10509, 0, 3, 0, 0, 0, 100, 0, 10000, 10000, 5000, 15000, 0, 0, 11, 15749, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0.0, 0.0, 0.0, 0.0, 'Every 5 - 15 seconds (10 - 10s initially)  - Self: Cast spell Shield Charge (15749) on Random hostile'),
 (10509, 0, 4, 0, 4, 0, 100, 0, 0, 0, 0, 0, 0, 0, 11, 2102741, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0.0, 0.0, 0.0, 0.0, 'Jed Runewatcher - On Aggro - Cast ''Defensive Stance'''),
 (10509, 0, 5, 0, 0, 0, 100, 0, 8000, 12000, 15000, 20000, 0, 0, 11, 2102840, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0.0, 0.0, 0.0, 0.0, 'Jed Runewatcher - In Combat - Cast ''Berserker Charge'' on Random hostile'),
-(10509, 0, 6, 0, 0, 0, 100, 0, 5000, 7000, 6000, 8000, 0, 0, 11, 975011, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0.0, 0.0, 0.0, 0.0, 'Jed Runewatcher - In Combat - Cast ''Fierce Blow'' on Victim');
+(10509, 0, 6, 0, 0, 0, 100, 0, 7700, 9700, 8000, 9000, 0, 0, 11, 975011, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0.0, 0.0, 0.0, 0.0, 'Jed Runewatcher - In Combat - Cast ''Fierce Blow'' on Victim');
 DELETE FROM `smart_scripts` WHERE `entryorguid` = 10899 AND `source_type` = 0;
 INSERT INTO `smart_scripts` (`entryorguid`, `source_type`, `id`, `link`, `event_type`, `event_phase_mask`, `event_chance`, `event_flags`, `event_param1`, `event_param2`, `event_param3`, `event_param4`, `event_param5`, `event_param6`, `action_type`, `action_param1`, `action_param2`, `action_param3`, `action_param4`, `action_param5`, `action_param6`, `target_type`, `target_param1`, `target_param2`, `target_param3`, `target_param4`, `target_x`, `target_y`, `target_z`, `target_o`, `comment`) VALUES
 (10899, 0, 1, 0, 0, 0, 100, 0, 5000, 7000, 4000, 6000, 0, 0, 11, 15580, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0.0, 0.0, 0.0, 0.0, 'Every 4 - 6 seconds (5 - 7s initially)  - Self: Cast spell Strike (15580) on Victim'),
