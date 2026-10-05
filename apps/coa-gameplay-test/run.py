@@ -98,6 +98,8 @@ METRICS = {
     'spell_family_flags',
     'creature_loot_quality_rate', 'equipped_gear_loot_rate',
     'quest_menu_items', 'quest_menu_has', 'player_setting', 'server_packets', 'server_packet_u32', 'server_packet_contains',
+    'known_entry_rank',
+    'pet_autocast_enabled', 'combo_points', 'game_mode_mask', 'owned_creature_spell_proc_count',
     'player_class', 'cached_class', 'at_login_flag', 'wildcard_starter_spells_known', 'action_bar_unknown_spells',
     'wildcard_spells_known', 'wildcard_cards_pending', 'wildcard_cards_collected', 'wildcard_roll_cards_set',
     'wildcard_roll_cards_used', 'wildcard_bonus_pack_progress',
@@ -177,6 +179,7 @@ ACTIONS = {
     'stop_challenge': ({'actor', 'challenge'}, {'actor', 'challenge'}),
     'area_trigger': ({'actor', 'id'}, {'actor', 'id'}),
     'trainer_buy': ({'actor', 'spell'}, {'actor', 'spell', 'target'}),
+    'pet_autocast': ({'actor', 'spell', 'enabled'}, {'actor', 'spell', 'enabled'}),
     'gossip_select': ({'actor', 'option'}, {'actor', 'option', 'code', 'code_actor'}),
     'who': ({'actor'}, {'actor', 'target', 'race_mask', 'class_mask'}),
     'open_item': ({'actor', 'item'}, {'actor', 'item'}),
@@ -392,6 +395,8 @@ def validate(scenario):
         if action in ('set_aura', 'attack', 'set_health', 'set_power') and 'pet' in step:
             require(type(step['pet']) is bool, f'{where}: pet must be boolean')
             require(step['actor'] in player_ids, f'{where}: pet fixture needs a player')
+        if action == 'pet_autocast':
+            require(type(step['enabled']) is bool, f'{where}: enabled must be boolean')
         if action == 'set_aura' and 'owned_entry' in step:
             require(step['actor'] in player_ids, f'{where}: owned creature fixture needs a player')
             require(not step.get('pet', False), f'{where}: select either a pet or an owned creature')
@@ -516,6 +521,15 @@ def validate(scenario):
             require(step['value'] <= step['maximum'], f'{where}: health exceeds fixture maximum')
         if action in {'snapshot', 'assert'}:
             metric = step['metric']
+            if metric in {'known_entry_rank', 'owned_creature_spell_proc_count'}:
+                require(step['actor'] in player_ids, f'{where}: metric needs a player')
+                number(step.get('entry'), f'{where}.entry', 1, 2**31 - 1, True)
+            if metric in {'pet_autocast_enabled', 'owned_creature_spell_proc_count'}:
+                number(step.get('spell'), f'{where}.spell', 1, 2**31 - 1, True)
+            if metric == 'spell_damage_done' and 'base' in step:
+                number(step['base'], f'{where}.base', 0, 2**32 - 1, True)
+            if metric in {'combo_points', 'game_mode_mask', 'pet_autocast_enabled'}:
+                require(step['actor'] in player_ids, f'{where}: metric needs a player')
             if metric == 'victim':
                 require('target' in step, f'{where}: victim metric requires a target')
             if 'periodic' in step:
