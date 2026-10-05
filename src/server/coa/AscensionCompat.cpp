@@ -1818,6 +1818,34 @@ public:
         priced.push_back({ entry.EntryId, rank });
     }
 
+    AscensionCoATalentState::SpecializationSlot proposed;
+    proposed.ClassId = player->getClass();
+    proposed.SpecId = targetSpec;
+    proposed.Entries = priced;
+    for (auto const& [entryId, rank] : wanted)
+        if (rank && GetSelectableFreeGroup(entryId))
+            proposed.Entries.push_back({ entryId, rank });
+    std::vector<AscensionCoATalentState::KnownEntry> const proposedKnown =
+        AscensionCoATalentState::SlotKnownEntries(proposed, player->GetLevel(), CarriedSpells(player));
+    for (AscensionCoATalentState::KnownEntry const& item : priced)
+    {
+        AscensionCompatData::CoATalentEntry const* entry = FindTalentEntry(item.EntryId);
+        if (entry->SpecId && entry->SpecId != targetSpec)
+            continue;
+        for (uint32 requiredId : entry->RequiredEntryIds)
+            if (requiredId && std::none_of(proposedKnown.begin(), proposedKnown.end(),
+                [requiredId](AscensionCoATalentState::KnownEntry const& known)
+                {
+                    return known.EntryId == requiredId && known.Rank;
+                }))
+            {
+                refusal = { "CA_UPDATE_ENTRIES_NOT_TRAVERSIBLE", "", item.EntryId, item.Rank,
+                    Acore::StringFormat("Talent entry {} requires entry {} in the uploaded build.",
+                        item.EntryId, requiredId) };
+                return false;
+            }
+    }
+
     uint32 classBudget = 0;
     uint32 specializationBudget = 0;
     if (!TalentBudget(player, classBudget, specializationBudget, refusal.Detail))
