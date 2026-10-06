@@ -5977,10 +5977,31 @@ public:
         if (!session)
             return;
 
-        WorldPacket packet(SMSG_ASCENSION_SECURE_ADDONS, 32);
-        packet << uint32(1);
-        packet << "Ascension_HelpUI";
-        packet << uint8(1);
+        static constexpr std::array<std::string_view, 33> ascensionAddons = {
+            "AscensionResources", "AscensionUI", "Ascension_AddonPanel", "Ascension_AppearanceUI",
+            "Ascension_BuildCreator", "Ascension_ChallengesUI", "Ascension_CharacterAdvancement",
+            "Ascension_CharacterAdvancementSeason9", "Ascension_CoATalents", "Ascension_Collections",
+            "Ascension_CompactRaidFrames", "Ascension_Draft", "Ascension_EnchantCollection",
+            "Ascension_ForcedPrimaryStat", "Ascension_HelpUI", "Ascension_InspectUI", "Ascension_Manastorm",
+            "Ascension_MythicPlus", "Ascension_NamePlates", "Ascension_NewPlayerExperience",
+            "Ascension_PTRFeedback", "Ascension_PathToAscension", "Ascension_Poll",
+            "Ascension_RandomModeShared", "Ascension_SeasonCollection", "Ascension_SkillCards",
+            "Ascension_TalentUI", "Ascension_TicketUI", "Ascension_UIDevelopmentTools",
+            "Ascension_VanityCollection", "Ascension_Warmode", "Ascension_WarmodeLegacy", "Ascension_WildCard",
+        };
+
+        std::vector<std::string> names = session->GetClientAddonNames();
+        for (std::string_view addon : ascensionAddons)
+            if (std::find(names.begin(), names.end(), addon) == names.end())
+                names.emplace_back(addon);
+
+        WorldPacket packet(SMSG_ASCENSION_SECURE_ADDONS, sizeof(uint32) + names.size() * 32);
+        packet << uint32(names.size());
+        for (std::string const& name : names)
+        {
+            packet << name;
+            packet << uint8(name.starts_with("Blizzard_") || name.starts_with("Ascension"));
+        }
         session->SendPacket(&packet);
     }
 

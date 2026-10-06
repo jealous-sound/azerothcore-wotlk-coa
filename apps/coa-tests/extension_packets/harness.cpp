@@ -87,8 +87,10 @@ public:
     Player* PlayerObject = nullptr;
     std::vector<WorldPacket> Sent;
     std::vector<std::string> Messages;
+    std::vector<std::string> ClientAddons;
 
     uint32 GetAccountId() const { return AccountId; }
+    std::vector<std::string> const& GetClientAddonNames() const { return ClientAddons; }
     bool IsBot() const { return Bot; }
     Player* GetPlayer() const { return PlayerObject; }
     int GetSessionDbLocaleIndex() const { return LocaleIndex; }
@@ -557,12 +559,18 @@ WorldPacket ExtensionInitialized()
 
 bool TrustsHelpUi(WorldPacket packet)
 {
-    if (packet.GetOpcode() != 0x094E || packet.size() != 22)
+    if (packet.GetOpcode() != 0x094E || packet.size() < sizeof(uint32))
         return false;
-
     packet.rpos(0);
-    return packet.read<uint32>() == 1 && ReadString(packet) == "Ascension_HelpUI" &&
-        packet.read<uint8>() == 1 && packet.rpos() == packet.size();
+    uint32 const count = packet.read<uint32>();
+    bool helpUiSecure = false;
+    for (uint32 i = 0; i < count; ++i)
+    {
+        std::string const name = ReadString(packet);
+        uint8 const secure = packet.read<uint8>();
+        helpUiSecure |= name == "Ascension_HelpUI" && secure == 1;
+    }
+    return helpUiSecure && packet.rpos() == packet.size();
 }
 
 void TestCharacterEnumeration()
