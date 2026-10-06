@@ -179,6 +179,7 @@ constexpr uint16 SMSG_PATCH_CREATURE_DISPLAY_INFO = 0x0976;
 constexpr uint16 SMSG_PATCH_ITEM = 0x0932;
 constexpr uint16 SMSG_PATCH_ITEM_DISPLAY_INFO = 0x096B;
 constexpr uint16 SMSG_PATCH_SPELL = 0x092A;
+constexpr uint16 SMSG_PATCH_SUPER_TRACK = 0x06BE;
 constexpr uint32 CUSTOM_DISPLAY_ID_FALLBACK_MIN = 652000;
 constexpr uint32 DISPLAY_PATCH_FALLBACK_DELAY_MS = 5000;
 
@@ -3596,10 +3597,10 @@ public:
 
     PreparedPatchRows const &rows = GetPreparedPatchRows();
     LOG_INFO("coa",
-             "Prepared {} CreatureDisplayInfo, {} ItemDisplayInfo, {} Item and "
-             "{} Spell patch rows for the client stream",
+             "Prepared {} CreatureDisplayInfo, {} ItemDisplayInfo, {} Item, "
+             "{} Spell and {} SuperTrack patch rows for the client stream",
              rows.CreatureDisplayIds.size(), rows.ItemDisplayInfos.size(),
-             rows.Items.size(), rows.Spells.size());
+             rows.Items.size(), rows.Spells.size(), rows.SuperTracks.size());
   }
 
   void OnPlayerLogin(Player *player) {
@@ -3722,12 +3723,15 @@ public:
         ++sentSpells;
       }
 
+    for (SuperTrackPatchRow const &row : rows.SuperTracks)
+      bytes += SendSuperTrackRow(player, row);
+
     LOG_INFO("coa",
-             "Streamed {} CreatureDisplayInfo, {} ItemDisplayInfo, {} of {} Item "
-             "and {} Spell patch rows ({} bytes) to {} in {} ms",
+             "Streamed {} CreatureDisplayInfo, {} ItemDisplayInfo, {} of {} Item, "
+             "{} Spell and {} SuperTrack patch rows ({} bytes) to {} in {} ms",
              sent, rows.ItemDisplayInfos.size(), sentItems.Rows,
-             rows.Items.size(), sentSpells, bytes, player->GetName(),
-             GetMSTimeDiffToNow(startTime));
+             rows.Items.size(), sentSpells, rows.SuperTracks.size(), bytes,
+             player->GetName(), GetMSTimeDiffToNow(startTime));
   }
 
 private:
@@ -3747,6 +3751,7 @@ private:
   };
 
   using ItemPatchRow = std::array<uint32, 8>;
+  using SuperTrackPatchRow = std::array<uint32, 8>;
 
   struct PatchRowTally {
     uint32 Rows = 0;
@@ -3799,6 +3804,7 @@ private:
     std::unordered_set<uint32> SqlItemIds;
     std::unordered_map<uint32, std::size_t> ItemRowIndexById;
     std::vector<SpellPatchRow> Spells;
+    std::vector<SuperTrackPatchRow> SuperTracks;
   };
 
   static std::unordered_set<uint32> CollectOwnedItemIds(Player *player) {
@@ -3919,6 +3925,36 @@ private:
     return SendRowPacket(player, packet);
   }
 
+  std::size_t SendSuperTrackRow(Player *player,
+                                SuperTrackPatchRow const &row) const {
+    WorldPacket packet(SMSG_PATCH_SUPER_TRACK, row.size() * sizeof(uint32));
+    for (uint32 value : row)
+      packet << value;
+    return SendRowPacket(player, packet);
+  }
+
+  static std::vector<SuperTrackPatchRow> LoadSuperTrackPatchRows() {
+    std::vector<SuperTrackPatchRow> rows;
+    QueryResult result = WorldDatabase.Query(
+        "SELECT `ID`, `MapID`, `PositionX`, `PositionY`, `PositionZ`, "
+        "`Radius`, `NextID`, `Flags` FROM `coa_client_super_track` ORDER BY `ID`");
+    if (!result)
+      return rows;
+
+    do {
+      Field const *fields = result->Fetch();
+      SuperTrackPatchRow &row = rows.emplace_back();
+      row[0] = fields[0].Get<uint32>();
+      row[1] = fields[1].Get<uint32>();
+      for (uint8 index = 2; index < 6; ++index)
+        row[index] = std::bit_cast<uint32>(fields[index].Get<float>());
+      row[6] = fields[6].Get<uint32>();
+      row[7] = fields[7].Get<uint32>();
+    } while (result->NextRow());
+
+    return rows;
+  }
+
   PreparedPatchRows const &GetPreparedPatchRows() {
     std::lock_guard lock(_cacheMutex);
     if (!_rowsPrepared)
@@ -3937,6 +3973,7 @@ private:
       std::sort(_rows.ItemCapacityOrder.begin(), _rows.ItemCapacityOrder.end(),
           [this](std::size_t left, std::size_t right) { return _rows.Items[left][0] > _rows.Items[right][0]; });
       _rows.Spells = BuildSpellPatchRows();
+      _rows.SuperTracks = LoadSuperTrackPatchRows();
       _rowsPrepared = true;
     }
     return _rows;

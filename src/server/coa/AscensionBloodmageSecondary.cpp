@@ -58,7 +58,6 @@ enum BloodmageSecondarySpells : uint32
     SPELL_DARK_ESSENCE = 680732,
     SPELL_DARK_ESSENCE_HEAL = 681036,
     SPELL_BLOOD_RITUALS = 706623,
-    SPELL_BLOOD_RITUALS_TALENT = 706624,
     SPELL_BLOOD_RITUALS_HEAL = 704119,
     SPELL_CURSED_FORM_REQUIREMENT = 525031,
     SPELL_CURSED_FORM_REQUIREMENT_2 = 524861,
@@ -239,7 +238,7 @@ public:
         if (player->HasAura(SPELL_DARK_ESSENCE) && (IsCursedFormAbility(info) ||
             AscensionBloodmage::GetEmpowerment(info->Id) == AscensionBloodmage::Bloodbolt))
             player->CastSpell(player, SPELL_DARK_ESSENCE_HEAL, true);
-        if (player->HasAura(SPELL_BLOOD_RITUALS_TALENT) && IsBloodmoonBlast(info->Id))
+        if (IsBloodmoonBlast(info->Id))
             player->CastSpell(player, SPELL_BLOOD_RITUALS_HEAL, true);
         if (!player->HasAura(SPELL_NIGHT_HUNTER))
             return;

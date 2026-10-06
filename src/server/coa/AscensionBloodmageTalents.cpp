@@ -91,7 +91,8 @@ enum BloodmageTalentSpells : uint32
     SPELL_INFUSE = 681403,
     SPELL_INFUSE_UNLEASH = 681404,
     SPELL_DARK_FRENZY = 704644,
-    SPELL_DARK_FRENZY_GCD = 804845
+    SPELL_DARK_FRENZY_GCD = 804845,
+    SPELL_CRIMSON_SCION_INSTANT = 806425
 };
 
 constexpr uint32 NPC_BLOOD_ORB = 315303;
@@ -1488,6 +1489,27 @@ public:
         fear.RadiusEntry = info->Effects[EFFECT_0].RadiusEntry;
     }
 };
+
+class spell_ascension_bloodmage_sanguine_mend : public SpellScript
+{
+    PrepareSpellScript(spell_ascension_bloodmage_sanguine_mend);
+
+    bool Validate(SpellInfo const*) override
+    {
+        return ValidateSpellInfo({SPELL_CRIMSON_SCION_INSTANT});
+    }
+
+    void ConsumeCrimsonScion()
+    {
+        if (GetCaster()->HasAura(SPELL_CRIMSON_SCION_INSTANT))
+            GetCaster()->RemoveAurasDueToSpell(SPELL_CRIMSON_SCION_INSTANT);
+    }
+
+    void Register() override
+    {
+        AfterCast += SpellCastFn(spell_ascension_bloodmage_sanguine_mend::ConsumeCrimsonScion);
+    }
+};
 }
 
 void AddSC_AscensionBloodmageTalents()
@@ -1526,4 +1548,5 @@ void AddSC_AscensionBloodmageTalents()
     RegisterSpellScript(spell_ascension_bloodmage_blood_orb_spawn);
     RegisterCreatureAI(npc_ascension_bloodmage_blood_orb);
     RegisterSpellScript(spell_ascension_bloodmage_blood_orb_pickup);
+    RegisterSpellScript(spell_ascension_bloodmage_sanguine_mend);
 }
