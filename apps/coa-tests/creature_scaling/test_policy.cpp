@@ -26,7 +26,7 @@ int main()
     assert(Multiplier(settings.health, Context::Raid, 409) == 2.2f);
     assert(Multiplier(settings.health, Context::Raid, 469) == 5.0f);
     assert(Multiplier(settings.health, Context::None, 469) == 1.0f);
-    assert(Multiplier(settings.damage, Context::World, 0) == 1.5f);
+    assert(Multiplier(settings.damage, Context::World, 0) == 2.0f);
     assert(Multiplier(settings.damage, Context::Dungeon, 36) == 1.5f);
     assert(Multiplier(settings.damage, Context::Raid, 469) == 1.0f);
     assert(Multiplier(settings.damage, Context::None, 36) == 1.0f);
