@@ -252,12 +252,9 @@ class aura_ascension_guardian_recovery : public AuraScript
     {
         PreventDefaultAction();
         Player* owner = StandardOwner(GetCaster());
-        if (!owner)
+        if (!owner || !GetTarget()->IsAlive())
             return;
-        SpellInfo const* heal = sSpellMgr->GetSpellInfo(STANDARD_RECOVERY_HEAL);
-        if (!heal || !GetTarget()->IsAlive())
-            return;
-        int32 amount = heal->Effects[EFFECT_0].CalcValue(owner) + int32(owner->GetStat(STAT_STRENGTH) * 0.25f);
+        int32 amount = effect->GetAmount() + int32(owner->GetStat(STAT_STRENGTH) * 0.25f);
         GetCaster()->CastCustomSpell(GetTarget(), STANDARD_RECOVERY_HEAL, &amount, nullptr, nullptr,
             true, nullptr, effect, owner->GetGUID());
     }
