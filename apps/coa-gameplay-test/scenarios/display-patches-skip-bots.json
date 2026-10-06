@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "name": "Display patch stream skips bot sessions",
+  "contract": "Requires CoA.SendDisplayPatches=1. A player session that never sends the extension handshake still receives the display patch stream from the login fallback; a bot session logged in at the same time never receives it.",
+  "players": [
+    { "id": "viewer", "race": 1, "class": 12, "level": 20 },
+    { "id": "botviewer", "race": 1, "class": 12, "level": 20, "bot": true }
+  ],
+  "steps": [
+    { "action": "assert", "actor": "viewer", "metric": "server_packets", "opcode": 1528, "min": 1, "within_ms": 10000 },
+    { "action": "wait", "ms": 1000 },
+    { "action": "assert", "actor": "botviewer", "metric": "server_packets", "opcode": 1528, "equals": 0 }
+  ]
+}

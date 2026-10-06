@@ -1,0 +1,8 @@
+# binaries come with the release zip; local install state
+files/worldserver.exe
+files/dbc/
+files/client/
+backup/
+installed.json
+character-backups/
+files/dbc_clientset/

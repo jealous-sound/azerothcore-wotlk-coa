@@ -331,8 +331,8 @@ struct PlayerInfo
     float positionY{0.0f};
     float positionZ{0.0f};
     float orientation{0.0f};
-    uint16 displayId_m{0};
-    uint16 displayId_f{0};
+    uint32 displayId_m{0}; // custom race display ids go above 65535
+    uint32 displayId_f{0};
     PlayerCreateInfoItems item;
     PlayerCreateInfoSpells customSpells;
     PlayerCreateInfoSpells  castSpells;

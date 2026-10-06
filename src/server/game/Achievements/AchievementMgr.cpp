@@ -2558,7 +2558,7 @@ bool AchievementGlobalMgr::IsStatisticAchievement(AchievementEntry const* achiev
         return false;
 
     AchievementCategoryEntry const* cat = sAchievementCategoryStore.LookupEntry(achievement->categoryId);
-    do
+    while (cat)
     {
         switch (cat->ID)
         {
@@ -2570,7 +2570,7 @@ bool AchievementGlobalMgr::IsStatisticAchievement(AchievementEntry const* achiev
                 cat = sAchievementCategoryStore.LookupEntry(cat->parentCategory);
                 break;
         }
-    } while (cat);
+    }
 
     return false;
 }

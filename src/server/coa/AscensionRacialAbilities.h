@@ -71,8 +71,33 @@ constexpr bool IsClassVariantOutsideDbcMask(uint32 spellId, uint8 classId)
     return false;
 }
 
-inline constexpr std::array<RacialSkill, 12> Skills =
+inline constexpr std::array<RacialSkill, 37> Skills =
 {{
+    {9, SKILL_ORC_RACIAL}, // extra race
+    {9, SKILL_ORC_RACIAL_LEGACY}, // extra race
+    {12, SKILL_RACIAL_TROLL}, // extra race
+    {13, SKILL_RACIAL_NIGHT_ELF}, // extra race
+    {14, SKILL_RACIAL_BLOODELF}, // extra race
+    {15, SKILL_RACIAL_DWARVEN}, // extra race
+    {16, SKILL_RACIAL_HUMAN}, // extra race
+    {17, SKILL_RACIAL_TAUREN}, // extra race
+    {18, SKILL_RACIAL_HUMAN}, // extra race
+    {19, SKILL_RACIAL_TROLL}, // extra race
+    {20, SKILL_RACIAL_DRAENEI}, // extra race
+    {20, SKILL_DRAENEI_RACIAL_COA}, // extra race
+    {21, SKILL_RACIAL_UNDED}, // extra race
+    {22, SKILL_RACIAL_DRAENEI}, // extra race
+    {22, SKILL_DRAENEI_RACIAL_COA}, // extra race
+    {23, SKILL_ORC_RACIAL}, // extra race
+    {23, SKILL_ORC_RACIAL_LEGACY}, // extra race
+    {24, SKILL_RACIAL_TROLL}, // extra race
+    {25, SKILL_RACIAL_TROLL}, // extra race
+    {26, SKILL_RACIAL_UNDED}, // extra race
+    {27, SKILL_RACIAL_DWARVEN}, // extra race
+    {28, SKILL_RACIAL_TROLL}, // extra race
+    {29, SKILL_RACIAL_TAUREN}, // extra race
+    {30, SKILL_RACIAL_UNDED}, // extra race
+    {31, SKILL_RACIAL_UNDED}, // extra race
     {RACE_HUMAN, SKILL_RACIAL_HUMAN},
     {RACE_ORC, SKILL_ORC_RACIAL},
     {RACE_ORC, SKILL_ORC_RACIAL_LEGACY},
@@ -87,6 +112,14 @@ inline constexpr std::array<RacialSkill, 12> Skills =
     {RACE_DRAENEI, SKILL_DRAENEI_RACIAL_COA}
 }};
 
+constexpr bool HasRacialSkill(uint8 raceId, uint32 skillId)
+{
+    for (RacialSkill const& skill : Skills)
+        if (skill.RaceId == raceId && skill.SkillId == skillId)
+            return true;
+    return false;
+}
+
 constexpr uint8 GetRace(uint32 skillId)
 {
     for (RacialSkill const& skill : Skills)
@@ -97,7 +130,7 @@ constexpr uint8 GetRace(uint32 skillId)
 
 inline bool CanLearn(SkillLineAbilityEntry const& ability, uint8 raceId, uint8 classId)
 {
-    if (!raceId || GetRace(ability.SkillLine) != raceId || !IsAscensionClass(classId))
+    if (!raceId || !HasRacialSkill(raceId, ability.SkillLine) || !IsAscensionClass(classId))
         return false;
 
     return ability.AcquireMethod == SKILL_LINE_ABILITY_LEARNED_ON_SKILL_LEARN &&

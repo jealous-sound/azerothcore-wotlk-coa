@@ -31,6 +31,9 @@
 #include "AscensionFreepick.h"
 #include "AscensionRunemasterEchoes.h"
 #include "AscensionCollectionModelData.h"
+#include "AscensionIncarnation.h"
+#include "SpellAuraEffects.h"
+#include "Pet.h"
 #include "AscensionAmmunitionData.h"
 #include "AscensionPersonalBank.h"
 #include "AscensionCollectibleSpellData.h"
@@ -88,6 +91,7 @@
 #include "Log.h"
 #include "Map.h"
 #include "ObjectMgr.h"
+#include "Trainer.h"
 #include "Opcodes.h"
 #include "Player.h"
 #include "QuestDef.h"
@@ -1050,6 +1054,7 @@ public:
 
     uint32 learned = 0;
     uint32 removed = 0;
+    std::string changedSpells;
     for (AscensionCompatData::ProficiencyDefinition const &definition :
          AscensionCompatData::ProficiencyDefinitions) {
       bool const allowed = isAllowed(definition.SpellId);
@@ -1084,6 +1089,8 @@ public:
       {
         player->removeSpell(definition.SpellId, SPEC_MASK_ALL, false);
         ++removed;
+        changedSpells += Acore::StringFormat(" -{}{}", definition.SpellId,
+                                             player->HasSpell(definition.SpellId) ? "(still known)" : "");
       }
       if (player->HasSkill(definition.SkillId))
         player->SetSkill(definition.SkillId, 0, 0, 0);
@@ -1106,9 +1113,9 @@ public:
     {
       LOG_INFO("coa",
                "Synchronized proficiencies for {} (class {}, level {}): "
-               "learned {}, removed {}",
+               "learned {}, removed {}{}",
                player->GetName(), uint32(player->getClass()),
-               uint32(player->GetLevel()), learned, removed);
+               uint32(player->GetLevel()), learned, removed, changedSpells);
     }
   }
 
@@ -3783,6 +3790,16 @@ private:
     }
   };
 
+  struct PatchRowTally {
+    uint32 Rows = 0;
+    std::size_t Bytes = 0;
+
+    void Add(PatchRowTally const &other) {
+      Rows += other.Rows;
+      Bytes += other.Bytes;
+    }
+  };
+
   static constexpr uint32 SPELL_DBC_FIELD_COUNT = 234;
   static constexpr uint32 SPELL_CLIENT_RECORD_DWORDS = 170;
   static constexpr uint32 LOCALIZED_STRING_DWORDS = 17;
@@ -4411,6 +4428,39 @@ private:
 
 class AscensionCollectionService {
 public:
+    // AscensionIncarnation: Wardrobe categories that dress a shapeshift form or a pet.
+    static bool IsIncarnationCategory(uint32 category)
+    {
+        return (category >= 17 && category <= 31) || IsClassPetCategory(category) || (category >= 65 && category <= 68);
+    }
+
+    // Call Pet / Summon Demon / Raise Undead / Call Dragonkin / Raise Elemental: the look is a creature.
+    static bool IsClassPetCategory(uint32 category)
+    {
+        return category >= 33 && category <= 37;
+    }
+
+    uint32 GetIncarnationDisplay(Player const* player, uint32 category)
+    {
+        if (category >= APPEARANCE_CATEGORY_COUNT)
+            return 0;
+        std::shared_ptr<PlayerCollectionState> state = GetState(player);
+        if (!state)
+            return 0;
+        uint32 const appearanceId = state->ActiveAppearances[category];
+        if (!appearanceId)
+            return 0;
+        auto const itr = _incarnationDisplays.find(appearanceId);
+        if (itr != _incarnationDisplays.end())
+            return itr->second;
+        auto const creature = _incarnationCreatures.find(appearanceId);
+        if (creature != _incarnationCreatures.end())
+            if (CreatureTemplate const* creatureTemplate = sObjectMgr->GetCreatureTemplate(creature->second))
+                if (CreatureModel const* model = creatureTemplate->GetFirstValidModel())
+                    return model->CreatureDisplayID;
+        return 0;
+    }
+
     static bool IsCosmeticCategory(uint32 category)
     {
         return category >= 56 && category <= 58;
@@ -4455,6 +4505,8 @@ public:
 
   bool LoadClientData() {
     _appearances.clear();
+    _incarnationDisplays.clear();
+    _incarnationCreatures.clear();
     _itemAppearances.clear();
     _itemSetItems.clear();
     _vanityItems.clear();
@@ -4473,6 +4525,12 @@ public:
         continue;
 
       uint32 displayId = record.GetUInt32(3);
+      // AscensionIncarnation: creature-type incarnations carry their model in field 8.
+      if (IsClassPetCategory(record.GetUInt32(5)))
+        _incarnationCreatures[appearanceId] = record.GetUInt32(3); // creature whose look is collected
+      else if (IsIncarnationCategory(record.GetUInt32(5)) &&
+          sCreatureDisplayInfoStore.LookupEntry(record.GetUInt32(8)))
+        _incarnationDisplays[appearanceId] = record.GetUInt32(8);
       _appearances[appearanceId] =
           AppearanceInfo{displayId, record.GetUInt32(5), record.GetUInt32(6),
                          record.GetUInt32(7), displayId};
@@ -4647,6 +4705,7 @@ public:
       std::lock_guard lock(_stateMutex);
       _playerStates[player->GetGUID().GetCounter()] = state;
     }
+    RefreshAscensionIncarnationDisplay(player);
 
     if (ascensionCompatConfig.GetConfigValue<bool>(
             AscensionCompatConfig::AUTO_COLLECT_APPEARANCES))
@@ -5773,6 +5832,7 @@ private:
 
     state->ActiveAppearances = requested;
     SaveActiveAppearances(player, *state);
+    RefreshAscensionIncarnationDisplay(player);
     RefreshCosmetics(player, *state);
     RefreshVisibleItems(player);
     SendApplyResult(player, "APPLY_APPEARANCES_OK");
@@ -6172,6 +6232,8 @@ private:
 
   bool _clientDataLoaded = false;
   std::unordered_map<uint32, AppearanceInfo> _appearances;
+  std::unordered_map<uint32, uint32> _incarnationDisplays; // AscensionIncarnation: appearance -> model
+  std::unordered_map<uint32, uint32> _incarnationCreatures; // class pet incarnations: appearance -> creature
   std::unordered_map<uint32, uint32> _itemAppearances;
   std::unordered_map<uint32, std::vector<uint32>> _itemSetItems;
   std::unordered_map<uint32, VanityInfo> _vanityItems;
@@ -8565,6 +8627,300 @@ void AppendConfiguredClientConfigs(AscensionClientConfig& config) {
                                   config.Integers);
 }
 
+// AscensionIncarnation ---------------------------------------------------------------------
+// Wardrobe category a form wears. The Venomancer's forms borrow the druid ones.
+static uint32 IncarnationCategoryFor(uint32 form, uint32 spellId)
+{
+    switch (spellId)
+    {
+        case 800841: return 18; // Spider Form      -> Cat Form
+        case 803183: return 17; // Beetle Form      -> Bear Form
+        case 520307: return 19; // Venomwing Form   -> Travel Form
+        case 803212: return 20; // Sea Serpent Form -> Aquatic Form
+        case 800912: return 22; // Vizier Form      -> Moonkin Form
+        case 800157:            // Bloodmage Eternal Curse (tank form) -> Cat Form
+        case 804518: return 18; // Bloodmage Eternal Curse (shapeshift)
+        case 562572:            // Bloodmage Accursed Form -> Metamorphosis
+        case 804216: return 31; // Bloodmage Inner Demon   -> Metamorphosis
+        case 800797: return 24; // Reaper Underwalk -> Ghost Wolf
+        case 561083: return 19; // Reaper Ghost Form -> Travel Form
+        case 803054:            // Starcaller Celestial Form -> Moonkin Form
+        case 804287: return 22; // Starcaller Warden of the Moon
+        default: break;
+    }
+
+    switch (form)
+    {
+        case FORM_BEAR:
+        case FORM_DIREBEAR:      return 17;
+        case FORM_CAT:           return 18;
+        case FORM_TRAVEL:        return 19;
+        case FORM_AQUA:          return 20;
+        case FORM_FLIGHT:
+        case FORM_FLIGHT_EPIC:   return 21;
+        case FORM_MOONKIN:       return 22;
+        case FORM_TREE:          return 23;
+        case FORM_GHOSTWOLF:     return 24;
+        case FORM_METAMORPHOSIS: return 31;
+        case 55:                 return 66; // Pyromancer Draconic Form
+        case 50:                 return 67; // Necromancer Lich Form (CoA)
+        default:                 return 0;
+    }
+}
+
+// Wardrobe category a summoned creature wears (normal and Bronzebeard summons).
+static uint32 IncarnationCategoryForCreature(uint32 entry)
+{
+    switch (entry)
+    {
+        case 416:   case 1100416: return 25; // Imp
+        case 1860:  case 1101860: return 26; // Voidwalker
+        case 1863:  case 1101863: return 27; // Succubus
+        case 417:   case 1100417: return 28; // Felhunter
+        case 17252: case 1117252: return 29; // Felguard
+        case 1793:                return 68; // Shadowhound
+        default:                  return 0;
+    }
+}
+
+// Class pet slot (Wardrobe categories 33-37) worn by a vanilla class's own pets and guardians.
+static uint32 ClassPetCategoryForCreature(Creature* creature)
+{
+    if (Pet* pet = creature->ToPet())
+        if (pet->getPetType() == HUNTER_PET)
+            return 33;                                   // Call Pet
+    uint32 entry = creature->GetEntry();
+    if (entry > 1100000)
+        entry -= 1100000;                                // Bronzebeard copies
+    switch (entry)
+    {
+        case 416: case 1860: case 1863: case 417: case 17252:
+        case 89: case 11859:     return 34;              // Summon Demon (warlock demons, Infernal, Doomguard)
+        case 26125: case 27829:  return 35;              // Raise Undead (ghoul, gargoyle)
+        case 510:                return 36;              // Call Dragonkin (Water Elemental)
+        case 15438: case 15352:
+        case 29264:              return 37;              // Raise Elemental (Fire/Earth Elemental, Spirit Wolf)
+        default:                 return 0;
+    }
+}
+
+void ApplyAscensionCreatureIncarnation(Creature* creature)
+{
+    if (!creature || !ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED))
+        return;
+
+    uint32 const category = IncarnationCategoryForCreature(creature->GetEntry());
+    uint32 const classPetCategory = ClassPetCategoryForCreature(creature);
+    if (!category && !classPetCategory)
+        return;
+
+    Player* owner = creature->GetCharmerOrOwnerPlayerOrPlayerItself();
+    if (!owner)
+        return;
+
+    AscensionCollectionService& collection = AscensionCollectionService::Instance();
+    uint32 model = category ? collection.GetIncarnationDisplay(owner, category) : 0;
+    if (!model && classPetCategory)
+        model = collection.GetIncarnationDisplay(owner, classPetCategory);
+    Pet* pet = creature->ToPet();
+    if (pet && pet->getPetType() == HUNTER_PET)
+    {
+        creature->SetDisplayId(model ? model : creature->GetNativeDisplayId());
+        return;
+    }
+    if (model)
+    {
+        creature->SetNativeDisplayId(model);
+        creature->SetDisplayId(model);
+    }
+}
+
+class AscensionIncarnationPetScript : public PetScript
+{
+public:
+    AscensionIncarnationPetScript() : PetScript("AscensionIncarnationPetScript", { PETHOOK_ON_PET_ADD_TO_WORLD }) { }
+
+    void OnPetAddToWorld(Pet* pet) override { ApplyAscensionCreatureIncarnation(pet); }
+};
+
+class AscensionIncarnationCreatureScript : public AllCreatureScript
+{
+public:
+    AscensionIncarnationCreatureScript() : AllCreatureScript("AscensionIncarnationCreatureScript") { }
+
+    void OnCreatureAddWorld(Creature* creature) override
+    {
+        if (creature->IsSummon())
+            ApplyAscensionCreatureIncarnation(creature);
+    }
+};
+
+uint32 GetAscensionIncarnationDisplay(Player const* player, uint32 form, uint32 spellId)
+{
+    if (!player || !ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED))
+        return 0;
+
+    uint32 const category = IncarnationCategoryFor(form, spellId);
+    return category ? AscensionCollectionService::Instance().GetIncarnationDisplay(player, category) : 0;
+}
+
+void RefreshAscensionIncarnationDisplay(Player* player)
+{
+    if (!player || !player->IsInWorld())
+        return;
+
+    // Summoned pet
+    if (Pet* pet = player->GetPet())
+        if (pet->IsInWorld())
+            ApplyAscensionCreatureIncarnation(pet);
+
+    // Shapeshift forms
+    Unit::AuraEffectList const& shapeshifts = player->GetAuraEffectsByType(SPELL_AURA_MOD_SHAPESHIFT);
+    if (!shapeshifts.empty() && !player->getTransForm())
+    {
+        if (uint32 model = player->GetModelForForm(player->GetShapeshiftForm(), shapeshifts.front()->GetId()))
+            player->SetDisplayId(model);
+        return;
+    }
+
+    // Forms that are a transform (Sea Serpent Form)
+    if (uint32 transform = player->getTransForm())
+        if (uint32 model = GetAscensionIncarnationDisplay(player, FORM_NONE, transform))
+            player->SetDisplayId(model);
+}
+
+// Custom race looks ---------------------------------------------------------------------------
+static std::unordered_map<uint32, std::map<uint32, uint32>> CustomRaceDisplays; // (race << 8 | gender) -> idx -> look
+
+static void LoadCustomRaceDisplays()
+{
+    CustomRaceDisplays.clear();
+    QueryResult result = WorldDatabase.Query("SELECT race, gender, idx, displayId FROM custom_race_display");
+    if (!result)
+        return;
+
+    uint32 count = 0;
+    do
+    {
+        Field* fields = result->Fetch();
+        CustomRaceDisplays[(fields[0].Get<uint32>() << 8) | fields[1].Get<uint32>()][fields[2].Get<uint32>()] = fields[3].Get<uint32>();
+        ++count;
+    } while (result->NextRow());
+    LOG_INFO("server.loading", ">> Loaded {} custom race looks", count);
+}
+
+bool IsAscensionMaleOnlyRace(uint8 race)
+{
+    // Tuskarr, Taunka, Vrykul, Broken, Fel Orc, Forest Troll, Ice Troll, Skeleton: same list as the client's
+    // CHAR_CREATE_MALE_ONLY_RACES (patchlua_races.py). A female of these races has no body in the client.
+    switch (race)
+    {
+        case 15: case 17: case 18: case 22: case 23: case 24: case 25: case 26:
+            return true;
+        default:
+            return false;
+    }
+}
+
+bool HasAscensionCustomRaceDisplay(uint8 race, uint8 gender)
+{
+    auto const itr = CustomRaceDisplays.find((uint32(race) << 8) | gender);
+    return itr != CustomRaceDisplays.end() && !itr->second.empty();
+}
+
+uint32 GetAscensionCustomRaceDisplay(Player const* player)
+{
+    if (!player)
+        return 0;
+
+    auto const itr = CustomRaceDisplays.find((uint32(player->getRace(true)) << 8) | player->getGender());
+    if (itr == CustomRaceDisplays.end() || itr->second.empty())
+        return 0;
+
+    // idx = hair style * 32 + skin colour (Whim murloc: armor x body); else the skin colour picks a look
+    std::map<uint32, uint32> const& looks = itr->second;
+    uint32 const skin = player->GetByteValue(PLAYER_BYTES, 0);
+    uint32 const hairStyle = player->GetByteValue(PLAYER_BYTES, 2);
+    uint32 display = 0;
+    if (auto const look = looks.find(hairStyle * 32 + skin); look != looks.end())
+        display = look->second;
+    else if (auto const bySkin = looks.find(skin); bySkin != looks.end())
+        display = bySkin->second;
+    else
+        display = std::next(looks.begin(), skin % looks.size())->second;
+
+    LOG_INFO("coa", "Custom race look for {}: race {} gender {} skin {} hair style {} -> display {}",
+        player->GetName(), player->getRace(true), player->getGender(), skin, hairStyle, display);
+    return display;
+}
+
+class AscensionCustomRaceDisplayWorldScript : public WorldScript
+{
+public:
+    AscensionCustomRaceDisplayWorldScript() : WorldScript("AscensionCustomRaceDisplayWorldScript", { WORLDHOOK_ON_STARTUP }) { }
+
+    void OnStartup() override { LoadCustomRaceDisplays(); }
+};
+
+// Vanilla classes: starting spells ---------------------------------------------------------------------
+// The Book (trainer 900100) is the vanilla classes' trainer. A new vanilla character is taught the Book spells of
+// level 1 (its class's starting spells) on its first login; everything else is bought in the Book, like the CoA
+// classes do.
+static constexpr uint32 VANILLA_BOOK_TRAINER = 900100;
+
+static Trainer::Trainer const* VanillaBookTrainer()
+{
+    static Trainer::Trainer const* trainer = nullptr;
+    static bool looked = false;
+    if (!looked)
+    {
+        looked = true;
+        if (QueryResult result = WorldDatabase.Query("SELECT CreatureId FROM creature_default_trainer WHERE TrainerId = {} LIMIT 1", VANILLA_BOOK_TRAINER))
+            trainer = sObjectMgr->GetTrainer(result->Fetch()[0].Get<uint32>());
+    }
+    return trainer;
+}
+
+static void TeachVanillaBookSpells(Player* player)
+{
+    if (!player || !player->GetSession() || player->GetSession()->IsBot())
+        return;                                       // bots use the stock spells of the class trainers
+    uint8 const playerClass = player->getClass();
+    if (playerClass == 0 || playerClass > 11 || playerClass == 10)
+        return;                                       // CoA classes and Hero learn through Character Advancement
+    Trainer::Trainer const* trainer = VanillaBookTrainer();
+    if (!trainer)
+        return;
+
+    for (uint8 pass = 0; pass < 8; ++pass)            // a learned rank can make the next one available
+    {
+        bool learned = false;
+        for (Trainer::Spell const& spell : trainer->GetSpells())
+        {
+            if (spell.ReqLevel > 1 || !trainer->CanTeachSpell(player, &spell))
+                continue;
+            uint32 const stockId = spell.SpellId >= 1100000 ? spell.SpellId - 1100000 : spell.SpellId;
+            if (GetTalentSpellPos(stockId) || GetTalentSpellPos(spell.SpellId))
+                continue;                             // talent spells (e.g. Devastate) come from the talent tree
+            if (spell.IsCastable())
+                player->CastSpell(player, spell.SpellId, true);
+            else
+                player->learnSpell(spell.SpellId);
+            learned = true;
+        }
+        if (!learned)
+            break;
+    }
+}
+
+class AscensionVanillaBookPlayerScript : public PlayerScript
+{
+public:
+    AscensionVanillaBookPlayerScript() : PlayerScript("AscensionVanillaBookPlayerScript", { PLAYERHOOK_ON_FIRST_LOGIN }) { }
+
+    void OnPlayerFirstLogin(Player* player) override { TeachVanillaBookSpells(player); }
+};
+
 void AddAscensionCompatScripts() {
   Ascension::ClientItemPatches::Instance().Register(ITEM_HEARTWOOD_KEY);
   RegisterAscensionClientConfig([](AscensionClientConfig& config) {
@@ -8594,4 +8950,8 @@ void AddAscensionCompatScripts() {
   new AscensionCompatChangelogScript();
   new AscensionCompatWorldScript();
   new AscensionCompatAllCreatureScript();
+  new AscensionIncarnationPetScript();
+  new AscensionIncarnationCreatureScript();
+  new AscensionCustomRaceDisplayWorldScript();
+  new AscensionVanillaBookPlayerScript();
 }
