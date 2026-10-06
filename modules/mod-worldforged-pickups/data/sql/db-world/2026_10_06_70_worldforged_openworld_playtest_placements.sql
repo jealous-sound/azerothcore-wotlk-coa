@@ -10,7 +10,8 @@
 -- necklace reads as a small pickup rather than a chest-scale model.
 --
 -- Round-4 live playtest follow-ups folded in below: Deserter 2nd cave move, hatchet lay-flat, Glen Guardian
--- rack+chairs, Zul'Kunda Z + lay-flat, Heretical Libram Z, Scarlet Band Z + lay-flat + band display.
+-- rack+chairs, Zul'Kunda Z + lay-flat rot, Heretical Libram Z, Scarlet Band Z + lay-flat rot + band display.
+-- Confirmed ring quat (0, 0.707107, 0, 0.707107); ring Z nudged down a pixel (152.05 / 61.40).
 START TRANSACTION;
 
 -- 6941652 Dropped Shield: confirmed. Laid flat face-up on a plank (XY nudged onto the plank, Z from the player's
@@ -56,9 +57,9 @@ UPDATE `gameobject` SET `position_z` = 333.999, `rotation0` = 0.357006, `rotatio
 UPDATE `gameobject` SET `phaseMask` = 0 WHERE `guid` IN (18693, 18694, 18699);
 UPDATE `gameobject` SET `position_z` = 12.900 WHERE `guid` = 6940548;
 
--- 6941371 Zul'Kunda Blood Ring: was floating at 65.785; player GroundZ/FloorZ 61.408. Drop slightly above ground
--- and lay flat with quaternion (0.5, 0.5, 0.5, 0.5).
-UPDATE `gameobject` SET `position_z` = 61.500, `rotation0` = 0.5, `rotation1` = 0.5, `rotation2` = 0.5, `rotation3` = 0.5 WHERE `guid` = 6941371;
+-- 6941371 Zul'Kunda Blood Ring: was floating at 65.785; player GroundZ/FloorZ 61.408. Z 61.40 sits on the ground
+-- (61.50 floated a pixel). Lay flat with quaternion (0, 0.707107, 0, 0.707107) - confirmed in playtest.
+UPDATE `gameobject` SET `position_z` = 61.40, `rotation0` = 0, `rotation1` = 0.707107, `rotation2` = 0, `rotation3` = 0.707107 WHERE `guid` = 6941371;
 
 -- 6941820 Heretical Libram: SQL 65 snapped to ADT 65.814 (merged under coffin/floor prop). Raise to the Nether Sister
 -- floor band (~68.0); +0.5 above floor so it sits on/beside the coffin rather than inside it.
@@ -71,7 +72,7 @@ UPDATE `gameobject_template` SET `displayId` = 1070109, `size` = 0.25 WHERE `ent
 UPDATE `gameobject_template` SET `size` = 0.25 WHERE `entry` = 95736;
 
 -- 6941010 Scarlet Band: SQL 65 snapped to ADT 146.025 (buried); Scarlet Sentinels at this XY stand at 152.103.
--- Raise to 152.15 and lay flat with quaternion (0.5, 0.5, 0.5, 0.5).
-UPDATE `gameobject` SET `position_z` = 152.150, `rotation0` = 0.5, `rotation1` = 0.5, `rotation2` = 0.5, `rotation3` = 0.5 WHERE `guid` = 6941010;
+-- Raise to 152.05 (152.15 floated a pixel) and lay flat with quaternion (0, 0.707107, 0, 0.707107) - confirmed.
+UPDATE `gameobject` SET `position_z` = 152.05, `rotation0` = 0, `rotation1` = 0.707107, `rotation2` = 0, `rotation3` = 0.707107 WHERE `guid` = 6941010;
 
 COMMIT;
