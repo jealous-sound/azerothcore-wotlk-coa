@@ -1062,8 +1062,7 @@ uint32 ChargeRankRoot(uint32 spellId)
 void ApplyClientSpellCharges(SpellInfo* spellInfo)
 {
     auto charge = ClientSpellCharges().find(spellInfo->Id);
-    if (charge == ClientSpellCharges().end() || spellInfo->IsDeprecatedForPlayers ||
-        !IsCustomClassFamily(spellInfo->SpellFamilyName))
+    if (charge == ClientSpellCharges().end() || spellInfo->IsDeprecatedForPlayers)
         return;
 
     uint32 const root = ChargeRankRoot(spellInfo->Id);
