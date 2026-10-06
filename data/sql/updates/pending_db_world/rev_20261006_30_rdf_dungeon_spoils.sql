@@ -1,13 +1,12 @@
 -- Random Classic Dungeon Heroic (1258) and Mythic (2258) rewards: as on Ascension, finishing one through the Dungeon
--- Finder gives Dungeon Spoils (Heroic/Mythic) and Marks of Triumph, and the Dungeon Finder shows them as rewards.
--- The first run of the day gives three Marks, every further run two.
-UPDATE `quest_template` SET `RewardItem2` = 1202039, `RewardAmount2` = 1, `RewardItem3` = 1414502, `RewardAmount3` = 3 WHERE `ID` = 90189;
-UPDATE `quest_template` SET `RewardItem2` = 1202039, `RewardAmount2` = 1, `RewardItem3` = 1414502, `RewardAmount3` = 2 WHERE `ID` = 90191;
-UPDATE `quest_template` SET `RewardItem2` = 1027965, `RewardAmount2` = 1, `RewardItem3` = 1414502, `RewardAmount3` = 3 WHERE `ID` = 90209;
-UPDATE `quest_template` SET `RewardItem2` = 1027965, `RewardAmount2` = 1, `RewardItem3` = 1414502, `RewardAmount3` = 2 WHERE `ID` = 90211;
+-- Finder gives Dungeon Spoils (Heroic/Mythic), and the Dungeon Finder shows them as a reward.
+UPDATE `quest_template` SET `RewardItem2` = 1202039, `RewardAmount2` = 1 WHERE `ID` = 90189;
+UPDATE `quest_template` SET `RewardItem2` = 1202039, `RewardAmount2` = 1 WHERE `ID` = 90191;
+UPDATE `quest_template` SET `RewardItem2` = 1027965, `RewardAmount2` = 1 WHERE `ID` = 90209;
+UPDATE `quest_template` SET `RewardItem2` = 1027965, `RewardAmount2` = 1 WHERE `ID` = 90211;
 
--- Dungeon Spoils open into one or two random items: the Heroic or Mythic versions of the vanilla dungeon items
--- (coa_dungeon_loot_variant), one for sure and a second at 50 %.
+-- Dungeon Spoils open into one or two random items, the Heroic or Mythic versions of the vanilla dungeon items
+-- (coa_dungeon_loot_variant): one for sure and a second at 50 %.
 DELETE FROM `reference_loot_template` WHERE `Entry` = 1202039;
 INSERT INTO `reference_loot_template` (`Entry`, `Item`, `Reference`, `Chance`, `QuestRequired`, `LootMode`, `GroupId`, `MinCount`, `MaxCount`, `Comment`)
 SELECT DISTINCT 1202039, `v`.`heroic_item`, 0, 0, 0, 1, 1, 1, 1, 'Dungeon Spoils (Heroic) - Heroic dungeon item'

@@ -1,7 +1,7 @@
 {
     "schema":  1,
-    "name":  "Random Classic Dungeon Mythic: the completion gives Dungeon Spoils (Mythic) and Marks of Triumph, the spoils open into dungeon items",
-    "contract":  "A level 60 group finishes a Random Classic Dungeon Mythic (2258) from the Dungeon Finder. The reward quest of the day\u0027s first run gives every member Dungeon Spoils (Mythic) (1027965) and three Marks of Triumph (1414502). Using the spoils opens a loot window with one or two epic Mythic dungeon items.",
+    "name":  "Random Classic Dungeon Mythic: the completion gives Dungeon Spoils (Mythic) and the final boss a Mark of Triumph",
+    "contract":  "A level 60 group finishes a Random Classic Dungeon Mythic (2258) from the Dungeon Finder. The reward quest gives every member Dungeon Spoils (Mythic) (1027965), and the final boss of a Heroic or Mythic vanilla dungeon one Mark of Triumph (1414502). Using the spoils opens a loot window with one or two epic Mythic dungeon items.",
     "timeout_ms":  180000,
     "location":  {
                      "map":  0,
@@ -215,21 +215,28 @@
                   },
                   {
                       "action":  "assert",
-                      "label":  "p1 holds three Marks of Triumph",
-                      "actor":  "p1",
-                      "metric":  "item_count",
-                      "item":  1414502,
-                      "equals":  3,
-                      "within_ms":  5000
-                  },
-                  {
-                      "action":  "assert",
                       "label":  "p2 holds Dungeon Spoils (Mythic)",
                       "actor":  "p2",
                       "metric":  "item_count",
                       "item":  1027965,
                       "equals":  1,
                       "within_ms":  5000
+                  },
+                  {
+                      "action":  "assert",
+                      "label":  "p1 holds the final boss Mark of Triumph",
+                      "actor":  "p1",
+                      "metric":  "item_count",
+                      "item":  1414502,
+                      "equals":  1
+                  },
+                  {
+                      "action":  "assert",
+                      "label":  "p5 holds the final boss Mark of Triumph",
+                      "actor":  "p5",
+                      "metric":  "item_count",
+                      "item":  1414502,
+                      "equals":  1
                   },
                   {
                       "action":  "use_item",
