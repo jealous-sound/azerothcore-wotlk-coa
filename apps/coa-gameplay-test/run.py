@@ -32,7 +32,7 @@ MINUTES_PER_HOUR = 60
 MINUTES_PER_DAY = HOURS_PER_DAY * MINUTES_PER_HOUR
 METRICS = {
     'moving', 'spline_remaining_ms', 'spline_speed', 'water_walk', 'forced_forward', 'distance_2d',
-    'cast_remaining_ms', 'cast_pushback_ms',
+    'point_distance_2d', 'cast_remaining_ms', 'cast_pushback_ms',
     'melee_damage_count', 'melee_damage_total',
     'pet_power', 'pet_max_power', 'spell_energize_count', 'spell_energize_total',
     'xp', 'next_level_xp', 'skill_value', 'skill_maximum', 'lfg_dungeon_disabled', 'map_id',
@@ -131,7 +131,7 @@ METRIC_FIELDS = {'actor', 'metric', 'spell', 'power', 'caster', 'effect', 'item'
                  'min_distance', 'owner_display', 'skill', 'cache', 'table', 'exclude', 'dungeon', 'source',
                  'opcode', 'from', 'slot', 'achievement', 'title', 'type_mask', 'hit_mask', 'spell_type_mask',
                  'phase_mask', 'trigger_spell', 'trials', 'incoming', 'heal', 'quality',
-                 'row', 'offset', 'skip_strings'}
+                 'row', 'offset', 'skip_strings', 'x', 'y'}
 ACTIONS = {
     'stop_attack': ({'actor'}, {'actor'}),
     'set_moving': ({'actor', 'enabled'}, {'actor', 'enabled'}),
@@ -171,6 +171,7 @@ ACTIONS = {
     'encounter_credit': ({'actor', 'entry'}, {'actor', 'entry'}),
     'leave_group': ({'actor'}, {'actor'}),
     'die': ({'actor'}, {'actor', 'revived'}),
+    'release_spirit': ({'actor'}, {'actor'}),
     'cast_charm': ({'actor', 'spell'}, {'actor', 'spell', 'target', 'pet', 'destination'}),
     'gossip_hello': ({'actor'}, {'actor', 'target'}),
     'banker_activate': ({'actor'}, {'actor', 'target', 'owner', 'entry'}),
@@ -629,6 +630,11 @@ def validate(scenario):
                         require(type(step[key]) is bool, f'{where}: {key} must be boolean')
             if metric == 'distance':
                 require('target' in step, f'{where}: {metric} metric needs target')
+            if metric == 'point_distance_2d':
+                for key in ('x', 'y'):
+                    number(step.get(key), f'{where}.{key}', -17000, 17000)
+            elif 'x' in step or 'y' in step:
+                require(False, f'{where}: x and y only apply to point_distance_2d')
             if metric == 'stat':
                 number(step.get('stat'), f'{where}.stat', 0, 4, True)
             if metric == 'aura_script_value':

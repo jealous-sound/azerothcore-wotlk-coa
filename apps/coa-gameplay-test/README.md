@@ -449,6 +449,7 @@ assert stable maximums and final levels when testing damage coefficients.
 | `encounter_credit` | Player `actor` in a dungeon, creature `entry`: credits that dungeon boss kill to the actor's map through the native encounter update, as a boss death does, including the Dungeon Finder completion it triggers. |
 | `leave_group` | Player `actor`: native `CMSG_GROUP_DISBAND` leave request; fails if the player stays grouped. |
 | `die` | Player `actor`: fixture death through self damage equal to current health; the body stays unreleased. |
+| `release_spirit` | Player `actor`: native `CMSG_REPOP_REQUEST` for an unreleased body; fails if the player is neither a ghost nor alive afterwards. |
 | `cast_charm` | Same fields: native pet-cast handler, with the charmed unit as the default target. `pet: true` casts from the player's pet instead. |
 | `gossip_hello` | `actor`, optional `target`: native gossip handler; defaults to the actor's summoned companion. |
 | `banker_activate` | `actor`, optional `target`, or optional `owner` + `entry`: native banker click (`CMSG_BANKER_ACTIVATE`); defaults to the actor's summoned companion, and `owner` aims it at a companion another actor summoned, walking up to it first. |
@@ -571,6 +572,7 @@ periodic interval.
 `spline_remaining_ms` reads the active native movement spline's remaining flight time in milliseconds, and
 `spline_speed` reads its movement velocity in yards per second. Both return zero for a finalized spline.
 `distance_2d` requires `target` and measures horizontal center distance.
+`point_distance_2d` requires `x` and `y` and measures the horizontal distance from the unit to that point on its map.
 `forced_forward` reads the server's force-movement flag; it does not simulate client movement or navigation.
 `cast_remaining_ms` requires `spell` and returns its active cast/channel timer, or zero when inactive.
 `cast_pushback_ms` reads the player's cumulative native cast-delay notifications, excluding elapsed cast time.
