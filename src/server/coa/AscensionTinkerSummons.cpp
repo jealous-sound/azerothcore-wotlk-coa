@@ -416,6 +416,7 @@ struct npc_ascension_tinker_device : ScriptedAI
                 {
                     player->RemoveAurasDueToSpell(807293, player->GetGUID());
                     player->SetTemporarySpellReplacement(500239, 0);
+                    player->removeSpell(500470, SPEC_MASK_ALL, true);
                 }
             }
         }
