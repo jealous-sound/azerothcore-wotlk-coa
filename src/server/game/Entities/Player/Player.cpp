@@ -11539,6 +11539,10 @@ void Player::AddSpellAndCategoryCooldowns(SpellInfo const* spellInfo, uint32 ite
         cat = spellInfo->GetCategory();
         rec = spellInfo->RecoveryTime;
         catrec = spellInfo->CategoryRecoveryTime;
+
+        // A charged spell recovers through its charges, not through its DBC category cooldown
+        if (spellInfo->MaxCharges)
+            catrec = 0;
     }
 
     time_t catrecTime;
