@@ -181,6 +181,7 @@ constexpr uint16 SMSG_PATCH_ITEM_DISPLAY_INFO = 0x096B;
 constexpr uint16 SMSG_PATCH_SPELL = 0x092A;
 constexpr uint16 SMSG_PATCH_SUPER_TRACK = 0x06BE;
 constexpr uint16 SMSG_PATCH_SPELL_SHAPESHIFT_FORM = 0x0949;
+constexpr uint16 SMSG_PATCH_CREATURE_MODEL_DATA = 0x0974;
 constexpr uint32 CUSTOM_DISPLAY_ID_FALLBACK_MIN = 652000;
 constexpr uint32 DISPLAY_PATCH_FALLBACK_DELAY_MS = 5000;
 constexpr uint32 DISPLAY_PATCH_RESEND_COOLDOWN_MS = 10000;
@@ -3591,9 +3592,9 @@ public:
 
     PreparedPatchRows const &rows = GetPreparedPatchRows();
     LOG_INFO("coa",
-             "Prepared {} CreatureDisplayInfo, {} ItemDisplayInfo, {} Item, "
+             "Prepared {} CreatureModelData, {} CreatureDisplayInfo, {} ItemDisplayInfo, {} Item, "
              "{} Spell, {} SuperTrack and {} SpellShapeshiftForm patch rows for the client stream",
-             rows.CreatureDisplayIds.size(), rows.ItemDisplayInfos.size(),
+             rows.CreatureModels.size(), rows.CreatureDisplayIds.size(), rows.ItemDisplayInfos.size(),
              rows.Items.size(), rows.Spells.size(), rows.SuperTracks.size(), rows.ShapeshiftForms.size());
   }
 
@@ -3711,6 +3712,9 @@ public:
 
     std::size_t bytes = SendLoadingScreenRow(player);
 
+    for (CreatureModelPatchRow const &row : rows.CreatureModels)
+      bytes += SendCreatureModelRow(player, row);
+
     uint32 sent = 0;
     for (uint32 displayId : rows.CreatureDisplayIds) {
       if (CreatureDisplayInfoEntry const *entry =
@@ -3743,9 +3747,9 @@ public:
       bytes += SendShapeshiftFormRow(player, row);
 
     LOG_INFO("coa",
-             "Streamed {} CreatureDisplayInfo, {} ItemDisplayInfo, {} of {} Item, "
+             "Streamed {} CreatureModelData, {} CreatureDisplayInfo, {} ItemDisplayInfo, {} of {} Item, "
              "{} Spell, {} SuperTrack and {} SpellShapeshiftForm patch rows ({} bytes) to {} in {} ms",
-             sent, rows.ItemDisplayInfos.size(), sentItems.Rows,
+             rows.CreatureModels.size(), sent, rows.ItemDisplayInfos.size(), sentItems.Rows,
              rows.Items.size(), sentSpells, rows.SuperTracks.size(), rows.ShapeshiftForms.size(), bytes,
              player->GetName(), GetMSTimeDiffToNow(startTime));
   }
@@ -3776,6 +3780,14 @@ private:
   struct ShapeshiftFormPatchRow {
     std::array<uint32, 18> Values{};
     std::string Name;
+  };
+
+  static constexpr uint32 CREATURE_MODEL_DATA_FIELD_COUNT = 28;
+  static constexpr uint32 CREATURE_MODEL_DATA_NAME_FIELD = 2;
+
+  struct CreatureModelPatchRow {
+    std::array<uint32, CREATURE_MODEL_DATA_FIELD_COUNT> Values{};
+    std::string ModelName;
   };
 
   struct PatchRowTally {
@@ -3831,6 +3843,7 @@ private:
     std::vector<SpellPatchRow> Spells;
     std::vector<SuperTrackPatchRow> SuperTracks;
     std::vector<ShapeshiftFormPatchRow> ShapeshiftForms;
+    std::vector<CreatureModelPatchRow> CreatureModels;
   };
 
   static std::unordered_set<uint32> CollectOwnedItemIds(Player *player) {
@@ -3921,6 +3934,16 @@ private:
     for (uint8 stringIndex = 0; stringIndex < 4; ++stringIndex)
       packet << uint32(0);
 
+    return SendRowPacket(player, packet);
+  }
+
+  std::size_t SendCreatureModelRow(Player *player,
+                                   CreatureModelPatchRow const &row) const {
+    WorldPacket packet(SMSG_PATCH_CREATURE_MODEL_DATA,
+                       row.Values.size() * sizeof(uint32) + sizeof(uint32) + row.ModelName.size());
+    for (uint32 value : row.Values)
+      packet << value;
+    AppendSizedString(packet, row.ModelName);
     return SendRowPacket(player, packet);
   }
 
@@ -4054,6 +4077,7 @@ private:
       _rows.Spells = BuildSpellPatchRows();
       _rows.SuperTracks = LoadSuperTrackPatchRows();
       _rows.ShapeshiftForms = LoadShapeshiftFormPatchRows();
+      _rows.CreatureModels = BuildCreatureModelPatchRows();
       _rowsPrepared = true;
     }
     return _rows;
@@ -4128,6 +4152,45 @@ private:
         else
           row.Values[field] = record.GetUInt32(field);
       }
+    }
+
+    return rows;
+  }
+
+  static std::vector<CreatureModelPatchRow> BuildCreatureModelPatchRows() {
+    std::vector<CreatureModelPatchRow> rows;
+    ClientDBC clientModels;
+    std::filesystem::path const clientDbc =
+        std::filesystem::path(sWorld->GetDataPath()) / "dbc" / "CreatureModelData.dbc";
+    if (!clientModels.Load(clientDbc.string(), CREATURE_MODEL_DATA_FIELD_COUNT))
+      return rows;
+
+    for (uint32 index = 0; index < clientModels.GetRecordCount(); ++index) {
+      ClientDBC::Record const record = clientModels.GetRecord(index);
+      CreatureModelDataEntry const *entry =
+          sCreatureModelDataStore.LookupEntry(record.GetUInt32(0));
+      if (!entry)
+        continue;
+
+      std::array<std::pair<uint32, uint32>, 5> const serverFields = {{
+          {1, entry->Flags},
+          {4, std::bit_cast<uint32>(entry->Scale)},
+          {14, std::bit_cast<uint32>(entry->CollisionWidth)},
+          {15, std::bit_cast<uint32>(entry->CollisionHeight)},
+          {16, std::bit_cast<uint32>(entry->MountHeight)}}};
+      auto const matchesClient = [&record](auto const &field) {
+        return record.GetUInt32(field.first) == field.second;
+      };
+      if (std::ranges::all_of(serverFields, matchesClient))
+        continue;
+
+      CreatureModelPatchRow &row = rows.emplace_back();
+      for (uint32 field = 0; field < CREATURE_MODEL_DATA_FIELD_COUNT; ++field)
+        if (field != CREATURE_MODEL_DATA_NAME_FIELD)
+          row.Values[field] = record.GetUInt32(field);
+      for (auto const &[field, value] : serverFields)
+        row.Values[field] = value;
+      row.ModelName = std::string(record.GetString(CREATURE_MODEL_DATA_NAME_FIELD));
     }
 
     return rows;
