@@ -3790,16 +3790,6 @@ private:
     }
   };
 
-  struct PatchRowTally {
-    uint32 Rows = 0;
-    std::size_t Bytes = 0;
-
-    void Add(PatchRowTally const &other) {
-      Rows += other.Rows;
-      Bytes += other.Bytes;
-    }
-  };
-
   static constexpr uint32 SPELL_DBC_FIELD_COUNT = 234;
   static constexpr uint32 SPELL_CLIENT_RECORD_DWORDS = 170;
   static constexpr uint32 LOCALIZED_STRING_DWORDS = 17;
@@ -4428,13 +4418,11 @@ private:
 
 class AscensionCollectionService {
 public:
-    // AscensionIncarnation: Wardrobe categories that dress a shapeshift form or a pet.
     static bool IsIncarnationCategory(uint32 category)
     {
         return (category >= 17 && category <= 31) || IsClassPetCategory(category) || (category >= 65 && category <= 68);
     }
 
-    // Call Pet / Summon Demon / Raise Undead / Call Dragonkin / Raise Elemental: the look is a creature.
     static bool IsClassPetCategory(uint32 category)
     {
         return category >= 33 && category <= 37;
@@ -4525,9 +4513,8 @@ public:
         continue;
 
       uint32 displayId = record.GetUInt32(3);
-      // AscensionIncarnation: creature-type incarnations carry their model in field 8.
       if (IsClassPetCategory(record.GetUInt32(5)))
-        _incarnationCreatures[appearanceId] = record.GetUInt32(3); // creature whose look is collected
+        _incarnationCreatures[appearanceId] = record.GetUInt32(3);
       else if (IsIncarnationCategory(record.GetUInt32(5)) &&
           sCreatureDisplayInfoStore.LookupEntry(record.GetUInt32(8)))
         _incarnationDisplays[appearanceId] = record.GetUInt32(8);
@@ -6232,8 +6219,8 @@ private:
 
   bool _clientDataLoaded = false;
   std::unordered_map<uint32, AppearanceInfo> _appearances;
-  std::unordered_map<uint32, uint32> _incarnationDisplays; // AscensionIncarnation: appearance -> model
-  std::unordered_map<uint32, uint32> _incarnationCreatures; // class pet incarnations: appearance -> creature
+  std::unordered_map<uint32, uint32> _incarnationDisplays;
+  std::unordered_map<uint32, uint32> _incarnationCreatures;
   std::unordered_map<uint32, uint32> _itemAppearances;
   std::unordered_map<uint32, std::vector<uint32>> _itemSetItems;
   std::unordered_map<uint32, VanityInfo> _vanityItems;
@@ -8627,25 +8614,23 @@ void AppendConfiguredClientConfigs(AscensionClientConfig& config) {
                                   config.Integers);
 }
 
-// AscensionIncarnation ---------------------------------------------------------------------
-// Wardrobe category a form wears. The Venomancer's forms borrow the druid ones.
 static uint32 IncarnationCategoryFor(uint32 form, uint32 spellId)
 {
     switch (spellId)
     {
-        case 800841: return 18; // Spider Form      -> Cat Form
-        case 803183: return 17; // Beetle Form      -> Bear Form
-        case 520307: return 19; // Venomwing Form   -> Travel Form
-        case 803212: return 20; // Sea Serpent Form -> Aquatic Form
-        case 800912: return 22; // Vizier Form      -> Moonkin Form
-        case 800157:            // Bloodmage Eternal Curse (tank form) -> Cat Form
-        case 804518: return 18; // Bloodmage Eternal Curse (shapeshift)
-        case 562572:            // Bloodmage Accursed Form -> Metamorphosis
-        case 804216: return 31; // Bloodmage Inner Demon   -> Metamorphosis
-        case 800797: return 24; // Reaper Underwalk -> Ghost Wolf
-        case 561083: return 19; // Reaper Ghost Form -> Travel Form
-        case 803054:            // Starcaller Celestial Form -> Moonkin Form
-        case 804287: return 22; // Starcaller Warden of the Moon
+        case 800841: return 18;
+        case 803183: return 17;
+        case 520307: return 19;
+        case 803212: return 20;
+        case 800912: return 22;
+        case 800157:
+        case 804518: return 18;
+        case 562572:
+        case 804216: return 31;
+        case 800797: return 24;
+        case 561083: return 19;
+        case 803054:
+        case 804287: return 22;
         default: break;
     }
 
@@ -8662,44 +8647,42 @@ static uint32 IncarnationCategoryFor(uint32 form, uint32 spellId)
         case FORM_TREE:          return 23;
         case FORM_GHOSTWOLF:     return 24;
         case FORM_METAMORPHOSIS: return 31;
-        case 55:                 return 66; // Pyromancer Draconic Form
-        case 50:                 return 67; // Necromancer Lich Form (CoA)
+        case 55:                 return 66;
+        case 50:                 return 67;
         default:                 return 0;
     }
 }
 
-// Wardrobe category a summoned creature wears (normal and Bronzebeard summons).
 static uint32 IncarnationCategoryForCreature(uint32 entry)
 {
     switch (entry)
     {
-        case 416:   case 1100416: return 25; // Imp
-        case 1860:  case 1101860: return 26; // Voidwalker
-        case 1863:  case 1101863: return 27; // Succubus
-        case 417:   case 1100417: return 28; // Felhunter
-        case 17252: case 1117252: return 29; // Felguard
-        case 1793:                return 68; // Shadowhound
+        case 416:   case 1100416: return 25;
+        case 1860:  case 1101860: return 26;
+        case 1863:  case 1101863: return 27;
+        case 417:   case 1100417: return 28;
+        case 17252: case 1117252: return 29;
+        case 1793:                return 68;
         default:                  return 0;
     }
 }
 
-// Class pet slot (Wardrobe categories 33-37) worn by a vanilla class's own pets and guardians.
 static uint32 ClassPetCategoryForCreature(Creature* creature)
 {
     if (Pet* pet = creature->ToPet())
         if (pet->getPetType() == HUNTER_PET)
-            return 33;                                   // Call Pet
+            return 33;
     uint32 entry = creature->GetEntry();
     if (entry > 1100000)
-        entry -= 1100000;                                // Bronzebeard copies
+        entry -= 1100000;
     switch (entry)
     {
         case 416: case 1860: case 1863: case 417: case 17252:
-        case 89: case 11859:     return 34;              // Summon Demon (warlock demons, Infernal, Doomguard)
-        case 26125: case 27829:  return 35;              // Raise Undead (ghoul, gargoyle)
-        case 510:                return 36;              // Call Dragonkin (Water Elemental)
+        case 89: case 11859:     return 34;
+        case 26125: case 27829:  return 35;
+        case 510:                return 36;
         case 15438: case 15352:
-        case 29264:              return 37;              // Raise Elemental (Fire/Earth Elemental, Spirit Wolf)
+        case 29264:              return 37;
         default:                 return 0;
     }
 }
@@ -8769,12 +8752,10 @@ void RefreshAscensionIncarnationDisplay(Player* player)
     if (!player || !player->IsInWorld())
         return;
 
-    // Summoned pet
     if (Pet* pet = player->GetPet())
         if (pet->IsInWorld())
             ApplyAscensionCreatureIncarnation(pet);
 
-    // Shapeshift forms
     Unit::AuraEffectList const& shapeshifts = player->GetAuraEffectsByType(SPELL_AURA_MOD_SHAPESHIFT);
     if (!shapeshifts.empty() && !player->getTransForm())
     {
@@ -8783,14 +8764,12 @@ void RefreshAscensionIncarnationDisplay(Player* player)
         return;
     }
 
-    // Forms that are a transform (Sea Serpent Form)
     if (uint32 transform = player->getTransForm())
         if (uint32 model = GetAscensionIncarnationDisplay(player, FORM_NONE, transform))
             player->SetDisplayId(model);
 }
 
-// Custom race looks ---------------------------------------------------------------------------
-static std::unordered_map<uint32, std::map<uint32, uint32>> CustomRaceDisplays; // (race << 8 | gender) -> idx -> look
+static std::unordered_map<uint32, std::map<uint32, uint32>> CustomRaceDisplays;
 
 static void LoadCustomRaceDisplays()
 {
@@ -8811,8 +8790,6 @@ static void LoadCustomRaceDisplays()
 
 bool IsAscensionMaleOnlyRace(uint8 race)
 {
-    // Tuskarr, Taunka, Vrykul, Broken, Fel Orc, Forest Troll, Ice Troll, Skeleton: same list as the client's
-    // CHAR_CREATE_MALE_ONLY_RACES (patchlua_races.py). A female of these races has no body in the client.
     switch (race)
     {
         case 15: case 17: case 18: case 22: case 23: case 24: case 25: case 26:
@@ -8837,7 +8814,6 @@ uint32 GetAscensionCustomRaceDisplay(Player const* player)
     if (itr == CustomRaceDisplays.end() || itr->second.empty())
         return 0;
 
-    // idx = hair style * 32 + skin colour (Whim murloc: armor x body); else the skin colour picks a look
     std::map<uint32, uint32> const& looks = itr->second;
     uint32 const skin = player->GetByteValue(PLAYER_BYTES, 0);
     uint32 const hairStyle = player->GetByteValue(PLAYER_BYTES, 2);
@@ -8862,10 +8838,6 @@ public:
     void OnStartup() override { LoadCustomRaceDisplays(); }
 };
 
-// Vanilla classes: starting spells ---------------------------------------------------------------------
-// The Book (trainer 900100) is the vanilla classes' trainer. A new vanilla character is taught the Book spells of
-// level 1 (its class's starting spells) on its first login; everything else is bought in the Book, like the CoA
-// classes do.
 static constexpr uint32 VANILLA_BOOK_TRAINER = 900100;
 
 static Trainer::Trainer const* VanillaBookTrainer()
@@ -8884,15 +8856,15 @@ static Trainer::Trainer const* VanillaBookTrainer()
 static void TeachVanillaBookSpells(Player* player)
 {
     if (!player || !player->GetSession() || player->GetSession()->IsBot())
-        return;                                       // bots use the stock spells of the class trainers
+        return;
     uint8 const playerClass = player->getClass();
     if (playerClass == 0 || playerClass > 11 || playerClass == 10)
-        return;                                       // CoA classes and Hero learn through Character Advancement
+        return;
     Trainer::Trainer const* trainer = VanillaBookTrainer();
     if (!trainer)
         return;
 
-    for (uint8 pass = 0; pass < 8; ++pass)            // a learned rank can make the next one available
+    for (uint8 pass = 0; pass < 8; ++pass)
     {
         bool learned = false;
         for (Trainer::Spell const& spell : trainer->GetSpells())
@@ -8901,7 +8873,7 @@ static void TeachVanillaBookSpells(Player* player)
                 continue;
             uint32 const stockId = spell.SpellId >= 1100000 ? spell.SpellId - 1100000 : spell.SpellId;
             if (GetTalentSpellPos(stockId) || GetTalentSpellPos(spell.SpellId))
-                continue;                             // talent spells (e.g. Devastate) come from the talent tree
+                continue;
             if (spell.IsCastable())
                 player->CastSpell(player, spell.SpellId, true);
             else

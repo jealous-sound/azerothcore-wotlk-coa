@@ -73,31 +73,31 @@ constexpr bool IsClassVariantOutsideDbcMask(uint32 spellId, uint8 classId)
 
 inline constexpr std::array<RacialSkill, 37> Skills =
 {{
-    {9, SKILL_ORC_RACIAL}, // extra race
-    {9, SKILL_ORC_RACIAL_LEGACY}, // extra race
-    {12, SKILL_RACIAL_TROLL}, // extra race
-    {13, SKILL_RACIAL_NIGHT_ELF}, // extra race
-    {14, SKILL_RACIAL_BLOODELF}, // extra race
-    {15, SKILL_RACIAL_DWARVEN}, // extra race
-    {16, SKILL_RACIAL_HUMAN}, // extra race
-    {17, SKILL_RACIAL_TAUREN}, // extra race
-    {18, SKILL_RACIAL_HUMAN}, // extra race
-    {19, SKILL_RACIAL_TROLL}, // extra race
-    {20, SKILL_RACIAL_DRAENEI}, // extra race
-    {20, SKILL_DRAENEI_RACIAL_COA}, // extra race
-    {21, SKILL_RACIAL_UNDED}, // extra race
-    {22, SKILL_RACIAL_DRAENEI}, // extra race
-    {22, SKILL_DRAENEI_RACIAL_COA}, // extra race
-    {23, SKILL_ORC_RACIAL}, // extra race
-    {23, SKILL_ORC_RACIAL_LEGACY}, // extra race
-    {24, SKILL_RACIAL_TROLL}, // extra race
-    {25, SKILL_RACIAL_TROLL}, // extra race
-    {26, SKILL_RACIAL_UNDED}, // extra race
-    {27, SKILL_RACIAL_DWARVEN}, // extra race
-    {28, SKILL_RACIAL_TROLL}, // extra race
-    {29, SKILL_RACIAL_TAUREN}, // extra race
-    {30, SKILL_RACIAL_UNDED}, // extra race
-    {31, SKILL_RACIAL_UNDED}, // extra race
+    {9, SKILL_ORC_RACIAL},
+    {9, SKILL_ORC_RACIAL_LEGACY},
+    {12, SKILL_RACIAL_TROLL},
+    {13, SKILL_RACIAL_NIGHT_ELF},
+    {14, SKILL_RACIAL_BLOODELF},
+    {15, SKILL_RACIAL_DWARVEN},
+    {16, SKILL_RACIAL_HUMAN},
+    {17, SKILL_RACIAL_TAUREN},
+    {18, SKILL_RACIAL_HUMAN},
+    {19, SKILL_RACIAL_TROLL},
+    {20, SKILL_RACIAL_DRAENEI},
+    {20, SKILL_DRAENEI_RACIAL_COA},
+    {21, SKILL_RACIAL_UNDED},
+    {22, SKILL_RACIAL_DRAENEI},
+    {22, SKILL_DRAENEI_RACIAL_COA},
+    {23, SKILL_ORC_RACIAL},
+    {23, SKILL_ORC_RACIAL_LEGACY},
+    {24, SKILL_RACIAL_TROLL},
+    {25, SKILL_RACIAL_TROLL},
+    {26, SKILL_RACIAL_UNDED},
+    {27, SKILL_RACIAL_DWARVEN},
+    {28, SKILL_RACIAL_TROLL},
+    {29, SKILL_RACIAL_TAUREN},
+    {30, SKILL_RACIAL_UNDED},
+    {31, SKILL_RACIAL_UNDED},
     {RACE_HUMAN, SKILL_RACIAL_HUMAN},
     {RACE_ORC, SKILL_ORC_RACIAL},
     {RACE_ORC, SKILL_ORC_RACIAL_LEGACY},
