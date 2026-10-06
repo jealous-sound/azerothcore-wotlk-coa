@@ -694,6 +694,11 @@ SkillRangeType GetSkillRangeType(SkillRaceClassInfoEntry const* rcEntry);
 
 bool normalizePlayerName(std::string& name);
 
+// The stock client splits typed names at the first space, so "/w "First Last" text" arrives as target "\"First".
+using PlayerNameByFirstName = std::function<std::string(std::string const&)>;
+bool joinQuotedPlayerName(std::string& name, std::string_view& rest);
+bool resolveWhisperTarget(std::string& to, std::string& msg, PlayerNameByFirstName const& uniqueNameByFirstName);
+
 struct LanguageDesc
 {
     Language lang_id;
@@ -1445,6 +1450,7 @@ public:
     bool DeleteGameTele(std::string_view name);
 
     Trainer::Trainer* GetTrainer(uint32 creatureId);
+    [[nodiscard]] std::unordered_map<uint32, Trainer::Trainer> const& GetTrainers() const { return _trainers; }
     std::vector<Trainer::Trainer const*> const& GetClassTrainers(uint8 classId) const { return _classTrainers.at(classId); }
 
     [[nodiscard]] VendorItemData const* GetNpcVendorItemList(uint32 entry) const

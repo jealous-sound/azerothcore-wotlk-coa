@@ -626,6 +626,27 @@ class ProcessControlTests(unittest.TestCase):
 
 
 class GameplayTests(WorkspaceTest):
+    def test_default_gameplay_omits_disabled_modules_and_accepts_explicit_opt_in(self):
+        workspace = self.workspace()
+        row = {'id': 'optional-case', 'module': 'mod-optional', 'configuration': {'Optional.Enable': False}}
+        inactive = dict(row, id='inactive-case', module_active=False)
+        context = workspace.context()
+        self.assertEqual(verify_all.inactive_module_scenarios(context, [row, inactive]), ['optional-case'])
+        modules = workspace.base / 'module-configs'
+        write(modules / 'optional.conf', 'Optional.Enable = 1\n')
+        context.settings['modules_config_dir'] = modules
+        self.assertEqual(verify_all.inactive_module_scenarios(context, [row, inactive]), ['inactive-case'])
+        with (workspace.build / 'CMakeCache.txt').open('a') as cache:
+            cache.write('MODULE_MOD-OPTIONAL:STRING=disabled\n')
+        self.assertEqual(verify_all.inactive_module_scenarios(context, [row, inactive]), ['optional-case'])
+
+    def test_default_gameplay_observes_environment_configuration_overrides(self):
+        workspace = self.workspace()
+        context = workspace.context()
+        row = {'id': 'optional-case', 'module': 'mod-optional', 'configuration': {'Optional.Enable': False}}
+        context.environment['AC_OPTIONAL_ENABLE'] = 'true'
+        self.assertEqual(verify_all.inactive_module_scenarios(context, [row]), [])
+
     def test_missing_prerequisites_make_gameplay_unavailable_with_their_names(self):
         workspace = self.workspace()
         (workspace.conf / 'worldserver.conf').unlink()
@@ -681,6 +702,20 @@ class GameplayTests(WorkspaceTest):
         self.assertEqual(command[-3:], ['--scenario', 'frost', '/tmp/exploratory.json'])
         if os.name != 'nt':
             self.assertEqual(pairs['--server-modules-dir'], str(workspace.conf / 'modules'))
+
+    def test_slower_gameplay_diagnostics_are_explicit_and_require_the_simulated_clock(self):
+        workspace = self.workspace()
+        args = verify_all.parser().parse_args(['--stages', 'gameplay', '--plan'])
+        self.assertFalse(args.gameplay_real_pace_rerun)
+        context = workspace.context(gameplay_clock=verify_all.SIMULATED_CLOCK, gameplay_jobs=1)
+        self.assertNotIn('--real-pace-rerun', verify_all.gameplay_command(context))
+        context.gameplay_real_pace_rerun = True
+        self.assertIn('--real-pace-rerun', verify_all.gameplay_command(context))
+        requested = verify_all.parser().parse_args(['--gameplay-real-pace-rerun'])
+        verify_all.check_gameplay_concurrency(requested)
+        requested.gameplay_clock = verify_all.REAL_CLOCK
+        with self.assertRaisesRegex(ValueError, 'requires --gameplay-clock simulated'):
+            verify_all.check_gameplay_concurrency(requested)
 
     def test_simulated_clock_runs_one_lane_server_and_reports_acceleration_sensitive_cases(self):
         workspace = self.workspace()

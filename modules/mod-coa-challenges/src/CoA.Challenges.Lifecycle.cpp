@@ -125,7 +125,7 @@ namespace CoAChallenges
             "CoAChallenges.RequiredGameMode." + std::to_string(challengeID), 0);
     }
 
-    // Game modes are NOT player-toggleable (SendConfigBatch locks the UI): the
+    // Game modes are NOT player-toggleable (AppendClientConfig locks the UI): the
     // bitmask is derived from the active challenges' RequiredGameMode. So a
     // trial that "is" a game mode (e.g. 61 -> Nightmare 0x100) turns the mode
     // on while active and off when it stops/fails/completes.
@@ -142,7 +142,7 @@ namespace CoAChallenges
             return;
         uint32 guid = player->GetGUID().GetCounter();
 
-        uint32 mask = 0;
+        uint32 mask = RealmGameModeMask();
         for (ActiveChallengeRow const& row : rows)
             mask |= RequiredGameMode(row.challengeId);
 
@@ -1638,10 +1638,12 @@ namespace CoAChallenges
             return;
         }
 
+        std::string eTrialId = trialID;
+        CharacterDatabase.EscapeString(eTrialId);
         std::vector<uint32> bundled;
         if (QueryResult r = CharacterDatabase.Query(
                 "SELECT challengeId FROM coa_custom_trial_entry WHERE guid = {} AND trialId = '{}'",
-                ownerGuid, trialID))
+                ownerGuid, eTrialId))
             do { bundled.push_back(r->Fetch()[0].Get<uint32>()); } while (r->NextRow());
 
         if (std::find(bundled.begin(), bundled.end(), challengeID) == bundled.end())

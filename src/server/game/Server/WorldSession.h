@@ -38,7 +38,9 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <utility>
+#include <vector>
 
 class Creature;
 class GameObject;
@@ -887,6 +889,7 @@ public:                                                 // opcodes handlers
     void HandleTaxiQueryAvailableNodes(WorldPacket& recvPacket);
     void HandleActivateTaxiOpcode(WorldPacket& recvPacket);
     void HandleActivateTaxiExpressOpcode(WorldPacket& recvPacket);
+    void HandleTaxiRequestEarlyLandingOpcode(WorldPacket& recvPacket);
     void HandleMoveSplineDoneOpcode(WorldPacket& recvPacket);
     void SendActivateTaxiReply(ActivateTaxiReply reply);
 
@@ -902,6 +905,7 @@ public:                                                 // opcodes handlers
     void HandleListStabledPetsOpcode(WorldPacket& recvPacket);
     void HandleStablePet(WorldPacket& recvPacket);
     void HandleUnstablePet(WorldPacket& recvPacket);
+    void HandleStableDeletePet(WorldPacket& recvPacket);
     void HandleBuyStableSlot(WorldPacket& recvPacket);
     void HandleStableRevivePet(WorldPacket& recvPacket);
     void HandleStableSwapPet(WorldPacket& recvPacket);
@@ -1094,6 +1098,9 @@ public:                                                 // opcodes handlers
     void HandleResetInstancesOpcode(WorldPackets::Instance::ResetInstances& packet);
     void HandleResetDungeonsOpcode(WorldPacket& recvData);
     void ResetAllDungeons();
+    void HandlePortGraveyardOpcode(WorldPacket& recvData);
+    void HandleQueryInstanceBindsOpcode(WorldPacket& recvData);
+    void HandleResetInstanceOpcode(WorldPacket& recvData);
     void HandleHearthAndResurrect(WorldPacket& recvData);
     void HandleInstanceLockResponse(WorldPackets::Instance::InstanceLockResponse& packet);
     void HandleUpdateMissileTrajectory(WorldPacket& recvPacket);
@@ -1241,11 +1248,16 @@ public:                                                 // opcodes handlers
      */
 
     QueryCallbackProcessor& GetQueryProcessor() { return _queryProcessor; }
+    void QueueQueryCallback(QueryCallback&& callback);
     TransactionCallback& AddTransactionCallback(TransactionCallback&& callback);
     SQLQueryHolderCallback& AddQueryHolderCallback(SQLQueryHolderCallback&& callback);
 
     [[nodiscard]] bool HasPendingAsyncCallbacks() const
     {
+        std::lock_guard lock(_queuedQueryCallbacksMutex);
+        if (!_queuedQueryCallbacks.empty())
+            return true;
+
         return !_queryProcessor.Empty() || !_transactionCallbacks.Empty() || !_queryHolderProcessor.Empty();
     }
 
@@ -1265,6 +1277,8 @@ private:
     void ProcessQueryCallbacks();
 
     QueryCallbackProcessor _queryProcessor;
+    mutable std::mutex _queuedQueryCallbacksMutex;
+    std::vector<QueryCallback> _queuedQueryCallbacks;
     AsyncCallbackProcessor<TransactionCallback> _transactionCallbacks;
     AsyncCallbackProcessor<SQLQueryHolderCallback> _queryHolderProcessor;
 

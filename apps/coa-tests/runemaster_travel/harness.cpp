@@ -377,10 +377,9 @@ int main()
     dagger->position = {17, 0, 0, 1};
     recall.info.Id = 500587;
     player.los = false;
-    assert(recall.CheckReturn() != SPELL_CAST_OK);
+    assert(recall.CheckReturn() == SPELL_CAST_OK);
     lifecycle.OnPlayerUpdate(&player, 1);
     assert(FindMarker(&player, 500287) == dagger);
-    player.los = true;
     assert(recall.CheckReturn() == SPELL_CAST_OK);
     recall.Warp(0);
     assert(player.teleportDestination == Position(17, 0, 0, 1));

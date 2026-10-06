@@ -165,7 +165,7 @@ class spell_ascension_displacement : public SpellScript
         PreventHitDefaultEffect(effIndex);
         Unit* caster = GetCaster();
         Unit* target = GetHitUnit();
-        if (!caster || !target || target == caster)
+        if (!caster || !target || target == caster || target->IsImmuneToForcedMovement())
             return;
         Position destination = caster->GetNearPosition(2.0f, 0.0f);
         target->NearTeleportTo(destination, true);

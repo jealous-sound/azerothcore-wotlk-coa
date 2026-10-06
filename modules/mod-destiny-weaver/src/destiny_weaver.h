@@ -36,7 +36,7 @@ namespace DestinyWeaver
     ///
     /// While grouped this answers with the **leader's** switch, and with nothing else of theirs: the
     /// leader decides whether scaling is on, never *at what level*. Every member's level comes from
-    /// that member - `ScaleCreatureLevel(original, viewer->GetLevel(), offset)` and
+    /// that member - `ScaleCreatureLevelForViewer(original, viewer->GetLevel(), offset)` and
     /// `ScaleQuestLevel(questLevel, playerLevel)` are only ever handed the character being served -
     /// so a level-12 in a level-31 leader's group fights level 9 versions of what the leader sees at
     /// 28, and a creature is never turned into one version for the whole party.

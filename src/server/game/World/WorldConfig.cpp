@@ -284,10 +284,15 @@ void WorldConfig::BuildConfigCache()
 
     // Up to 128: the Ascension character screen renders as many rows as the
     // server reports, and every count that carries the value is a uint8.
-    SetConfigValue<uint32>(CONFIG_CHARACTERS_PER_REALM, "CharactersPerRealm", 10, ConfigValueCache::Reloadable::Yes, [](uint32 const& value) { return value > 0 && value <= 128; }, "> 0 && <= 128");
+    SetConfigValue<uint32>(CONFIG_CHARACTERS_PER_REALM, "CharactersPerRealm", 128,
+        ConfigValueCache::Reloadable::Yes,
+        [](uint32 const& value) { return value > 0 && value <= 128; }, "> 0 && <= 128");
 
     // must be after CONFIG_CHARACTERS_PER_REALM
-    SetConfigValue<uint32>(CONFIG_CHARACTERS_PER_ACCOUNT, "CharactersPerAccount", 50, ConfigValueCache::Reloadable::Yes, [this](uint32 const& value) { return value >= GetConfigValue<uint32>(CONFIG_CHARACTERS_PER_REALM); }, ">= CONFIG_CHARACTERS_PER_REALM");
+    SetConfigValue<uint32>(CONFIG_CHARACTERS_PER_ACCOUNT, "CharactersPerAccount", 128,
+        ConfigValueCache::Reloadable::Yes,
+        [this](uint32 const& value) { return value >= GetConfigValue<uint32>(CONFIG_CHARACTERS_PER_REALM); },
+        ">= CONFIG_CHARACTERS_PER_REALM");
     SetConfigValue<uint32>(CONFIG_HEROIC_CHARACTERS_PER_REALM, "HeroicCharactersPerRealm", 1, ConfigValueCache::Reloadable::Yes, [](uint32 const& value) { return value <= 10; }, "<= 10");
 
     SetConfigValue<uint32>(CONFIG_CHARACTER_CREATING_MIN_LEVEL_FOR_HEROIC_CHARACTER, "CharacterCreating.MinLevelForHeroicCharacter", 55);
@@ -555,7 +560,7 @@ void WorldConfig::BuildConfigCache()
     SetConfigValue<uint32>(CONFIG_GUILD_BANK_EVENT_LOG_COUNT, "Guild.BankEventLogRecordsCount", GUILD_BANKLOG_MAX_RECORDS, ConfigValueCache::Reloadable::Yes, [](uint32 const& value) { return value <= GUILD_BANKLOG_MAX_RECORDS; }, "<= GUILD_BANKLOG_MAX_RECORDS");
 
     ///- Load the CharDelete related config options
-    SetConfigValue<uint32>(CONFIG_CHARDELETE_METHOD, "CharDelete.Method", 0);
+    SetConfigValue<uint32>(CONFIG_CHARDELETE_METHOD, "CharDelete.Method", 1);
     SetConfigValue<uint32>(CONFIG_CHARDELETE_MIN_LEVEL, "CharDelete.MinLevel", 0);
     SetConfigValue<uint32>(CONFIG_CHARDELETE_KEEP_DAYS, "CharDelete.KeepDays", 30);
 

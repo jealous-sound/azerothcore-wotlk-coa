@@ -31,6 +31,7 @@
 #include "Group.h"
 #include "GuildMgr.h"
 #include "InstancePackets.h"
+#include "InstanceSaveMgr.h"
 #include "InstanceScript.h"
 #include "Language.h"
 #include "Log.h"
@@ -87,6 +88,18 @@ void WorldSession::HandleRepopRequestOpcode(WorldPacket& recv_data)
     //this is spirit release confirm?
     GetPlayer()->RemovePet(nullptr, PET_SAVE_NOT_IN_SLOT, true);
     GetPlayer()->BuildPlayerRepop();
+    GetPlayer()->RepopAtGraveyard();
+}
+
+// The Ascension ghost frame's "Return to graveyard" calls PortGraveyard(), which sends this empty
+// extension opcode.
+void WorldSession::HandlePortGraveyardOpcode(WorldPacket& /*recvData*/)
+{
+    LOG_DEBUG("network", "WORLD: CMSG_PORT_GRAVEYARD");
+
+    if (GetPlayer()->IsAlive() || !GetPlayer()->HasPlayerFlag(PLAYER_FLAGS_GHOST))
+        return;
+
     GetPlayer()->RepopAtGraveyard();
 }
 
@@ -1372,6 +1385,62 @@ void WorldSession::ResetAllDungeons()
         Player::ResetInstances(_player->GetGUID(), INSTANCE_RESET_ALL, false);
 }
 
+// The Ascension client asks for its instance binds at every world entry and instance info update; the portrait
+// menu lists them for a single reset. Only binds that can still be reset are listed.
+void WorldSession::HandleQueryInstanceBindsOpcode(WorldPacket& /*recvData*/)
+{
+    LOG_DEBUG("network", "WORLD: CMSG_QUERY_INSTANCE_BINDS");
+
+    std::vector<InstanceSave const*> saves;
+    for (uint8 difficulty = 0; difficulty < MAX_DIFFICULTY; ++difficulty)
+        for (auto const& [mapId, bind] : sInstanceSaveMgr->PlayerGetBoundInstances(_player->GetGUID(), Difficulty(difficulty)))
+            if (bind.save->CanReset())
+                saves.push_back(bind.save);
+
+    WorldPacket data(SMSG_QUERY_INSTANCE_BINDS_RESULT, 24 + 4 + saves.size() * 12);
+    data << "QUERY_INSTANCE_BINDS_OK";
+    data << uint32(saves.size());
+    for (InstanceSave const* save : saves)
+        data << uint32(save->GetInstanceId()) << uint32(save->GetMapId()) << uint32(save->GetDifficulty());
+    SendPacket(&data);
+}
+
+// A Reset Instances list entry calls C_LootLockout.ResetInstanceDifficulty(map, difficulty), which sends this
+// extension opcode to reset one bind the query above listed.
+void WorldSession::HandleResetInstanceOpcode(WorldPacket& recvData)
+{
+    uint32 mapId;
+    uint8 difficulty;
+    recvData >> mapId >> difficulty;
+
+    LOG_DEBUG("network", "WORLD: CMSG_RESET_INSTANCE map {} difficulty {}", mapId, difficulty);
+
+    if (difficulty >= MAX_DIFFICULTY)
+        return;
+
+    if (Group* group = _player->GetGroup())
+        if (!group->IsLeader(_player->GetGUID()) || group->isLFGGroup() || group->isBGGroup() || group->isBFGroup())
+            return;
+
+    InstancePlayerBind* bind = sInstanceSaveMgr->PlayerGetBoundInstance(_player->GetGUID(), mapId, Difficulty(difficulty));
+    if (!bind || !bind->save->CanReset())
+        return;
+
+    InstanceSave* save = bind->save;
+    if (Map* map = sMapMgr->FindMap(save->GetMapId(), save->GetInstanceId()))
+    {
+        if (!map->ToInstanceMap()->Reset(INSTANCE_RESET_ALL))
+        {
+            _player->SendResetInstanceFailed(INSTANCE_RESET_FAILED, mapId);
+            return;
+        }
+    }
+
+    _player->SendResetInstanceSuccess(mapId);
+    sInstanceSaveMgr->DeleteInstanceSavedData(save->GetInstanceId());
+    sInstanceSaveMgr->UnbindAllFor(save);
+}
+
 void WorldSession::HandleSetDungeonDifficultyOpcode(WorldPackets::Instance::SetDungeonDifficultyClient& packet)
 {
     LOG_DEBUG("network", "MSG_SET_DUNGEON_DIFFICULTY");
@@ -1419,6 +1488,7 @@ void WorldSession::HandleSetDungeonDifficultyOpcode(WorldPackets::Instance::SetD
         }
         Player::ResetInstances(_player->GetGUID(), INSTANCE_RESET_CHANGE_DIFFICULTY, false);
         _player->SetDungeonDifficulty(Difficulty(packet.Mode));
+        _player->SendDungeonDifficulty(false);
     }
 }
 
@@ -1585,6 +1655,10 @@ void WorldSession::HandleCancelMountAuraOpcode(WorldPacket& /*recv_data*/)
 
     // A cast can already have dismounted the player before the client's cancel packet arrives.
     if (!_player->IsMounted())
+        return;
+
+    // The client sends this with every cast while mounted; the Mechsuit is left through its own aura.
+    if (_player->IsInTinkerMechsuit())
         return;
 
     if (_player->IsInFlight())                               // not blizz like; no any messages on blizz

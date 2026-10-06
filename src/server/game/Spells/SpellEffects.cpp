@@ -237,13 +237,13 @@ pEffect SpellEffects[TOTAL_SPELL_EFFECTS] =
     &Spell::EffectAscensionModifyCooldown,                  //165 SPELL_EFFECT_ASCENSION_MODIFY_COOLDOWN
     &Spell::EffectAscensionRestoreBaseManaPct,              //166 SPELL_EFFECT_ASCENSION_RESTORE_BASE_MANA_PCT
     &Spell::EffectNULL,                                     //167 unknown Ascension effect
-    &Spell::EffectNULL,                                     //168 unknown Ascension effect
+    &Spell::EffectAscensionPlaySpellVisualKit,              //168 SPELL_EFFECT_ASCENSION_PLAY_SPELL_VISUAL_KIT
     &Spell::EffectNULL,                                     //169 SPELL_EFFECT_ASCENSION_SPREAD_AURA
     &Spell::EffectNULL,                                     //170 SPELL_EFFECT_ASCENSION_SPREAD_AURA_2
     &Spell::EffectNULL,                                     //171 unknown Ascension effect
     &Spell::EffectNULL,                                     //172 unknown Ascension effect
     &Spell::EffectAscensionRefreshAura,                     //173 SPELL_EFFECT_ASCENSION_REFRESH_AURA
-    &Spell::EffectNULL,                                     //174 unknown Ascension effect
+    &Spell::EffectAscensionPctDamage,                       //174 Ascension percent damage (target max health / caster melee)
     &Spell::EffectAscensionModifyAuraStacks,                //175 SPELL_EFFECT_ASCENSION_MODIFY_AURA_STACKS
     &Spell::EffectAscensionModifyAuraStacksBySpell,         //176 SPELL_EFFECT_ASCENSION_MODIFY_AURA_STACKS_2
     &Spell::EffectAscensionModifyAuraDuration,              //177 SPELL_EFFECT_ASCENSION_MODIFY_AURA_DURATION
@@ -381,6 +381,15 @@ void Spell::EffectAscensionModifyCooldown(SpellEffIndex effIndex)
     ModifyAscensionCooldown(player, effect.MiscValue, damage, effect.MiscValueB != 0);
 }
 
+void Spell::EffectAscensionPlaySpellVisualKit(SpellEffIndex effIndex)
+{
+    if (effectHandleMode != SPELL_EFFECT_HANDLE_HIT_TARGET || !unitTarget)
+        return;
+
+    if (uint32 kit = uint32(m_spellInfo->Effects[effIndex].MiscValue))
+        unitTarget->SendPlaySpellVisual(kit);
+}
+
 void Spell::EffectAscensionRestoreBaseManaPct(SpellEffIndex /*effIndex*/)
 {
     if (effectHandleMode != SPELL_EFFECT_HANDLE_HIT_TARGET)
@@ -479,6 +488,28 @@ void Spell::EffectAscensionModifyAuraDuration(SpellEffIndex effIndex)
         else
             aura->SetDuration(duration);
     }
+}
+
+// Ascension effect 174: damage as a percentage. MiscValue 1 = of the caster's melee damage ("X% of melee damage"),
+// otherwise of the target's maximum health ("X% maximum health damage", e.g. Gizrul's Vicious Bite). Resistances and
+// damage taken modifiers apply, spell power does not.
+void Spell::EffectAscensionPctDamage(SpellEffIndex effIndex)
+{
+    if (effectHandleMode != SPELL_EFFECT_HANDLE_LAUNCH_TARGET)
+        return;
+
+    if (!unitTarget || !unitTarget->IsAlive() || damage <= 0)
+        return;
+
+    uint32 amount;
+    if (m_spellInfo->Effects[effIndex].MiscValue == 1)
+        amount = CalculatePct(m_caster->CalculateDamage(BASE_ATTACK, false, true), damage);
+    else
+        amount = unitTarget->CountPctFromMaxHealth(damage);
+
+    if (m_originalCaster)
+        amount = unitTarget->SpellDamageBonusTaken(m_originalCaster, m_spellInfo, amount, SPELL_DIRECT_DAMAGE);
+    m_damage += int32(amount);
 }
 
 void Spell::EffectAscensionRestoreBaseHealthPct(SpellEffIndex effIndex)
@@ -1457,7 +1488,7 @@ void Spell::EffectJumpDest(SpellEffIndex effIndex)
     {
         player->SetCanTeleport(true);
     }
-    m_caster->GetMotionMaster()->MoveJump(x, y, z, speedXY, speedZ);
+    m_caster->GetMotionMaster()->MoveJump(x, y, z, speedXY, speedZ, 0, nullptr, m_jumpFinalOrientation);
 
     if (m_caster->IsPlayer())
     {
@@ -1498,6 +1529,9 @@ void Spell::EffectTeleportUnits(SpellEffIndex /*effIndex*/)
         return;
 
     if (!unitTarget || unitTarget->IsInFlight())
+        return;
+
+    if (unitTarget->IsImmuneToForcedMovement() && unitTarget != m_caster)
         return;
 
     if (unitTarget->IsPlayer())
@@ -2942,7 +2976,7 @@ void Spell::EffectDispel(SpellEffIndex effIndex)
     // Ok if exist some buffs for dispel try dispel it
     uint32 failCount = 0;
     DispelChargesList success_list;
-    WorldPacket dataFail(SMSG_DISPEL_FAILED, 8 + 8 + 4 + 4 + dispelCount * 4);
+    WorldPacket dataFail(SMSG_DISPEL_FAILED, 8 + 8 + 4 + 4 + std::max(dispelCount, 0) * 4);
     // dispel N = damage buffs (or while exist buffs for dispel)
     for (int32 count = 0; count < dispelCount && !dispel_list.empty();)
     {
@@ -5032,7 +5066,13 @@ void Spell::EffectAddExtraAttacks(SpellEffIndex effIndex)
         return;
     }
 
-    unitTarget->AddExtraAttacks(damage);
+    // A proc trigger can name the enemy the extra attacks are meant for while the effect itself
+    // lands on the caster (Cruel Intent casts 707599 at the Lunged target, whose effect target is
+    // the caster). That explicit victim is preferred over the last melee hit or a selection.
+    Unit* strikeTarget = m_targets.GetUnitTarget();
+    unitTarget->AddExtraAttacks(damage,
+        strikeTarget && strikeTarget != unitTarget && strikeTarget->IsAlive() ?
+            strikeTarget->GetGUID() : ObjectGuid::Empty);
 
     ExecuteLogEffectExtraAttacks(effIndex, unitTarget, damage);
 }
@@ -5249,7 +5289,7 @@ void Spell::EffectSkinning(SpellEffIndex /*effIndex*/)
         return;
 
     Creature* creature = unitTarget->ToCreature();
-    int32 targetLevel = creature->GetLevel();
+    int32 targetLevel = creature->GetLootSkillLevelFor(m_caster->ToPlayer());
 
     uint32 skill = creature->GetCreatureTemplate()->GetRequiredLootSkill();
 
@@ -5495,6 +5535,14 @@ void Spell::EffectPullTowards(SpellEffIndex effIndex)
 
     if (!unitTarget)
         return;
+
+    // Xinef: allow entry specific spells to skip those checks
+    if (m_spellInfo->Effects[effIndex].TargetA.GetCheckType() != TARGET_CHECK_ENTRY && m_spellInfo->Effects[effIndex].TargetB.GetCheckType() != TARGET_CHECK_ENTRY)
+    {
+        if (Creature* creatureTarget = unitTarget->ToCreature())
+            if (creatureTarget->isWorldBoss() || creatureTarget->IsDungeonBoss() || creatureTarget->IsImmuneToKnockback())
+                return;
+    }
 
     Position pos;
     if (m_spellInfo->Effects[effIndex].Effect == SPELL_EFFECT_PULL_TOWARDS_DEST)
@@ -6002,7 +6050,7 @@ void Spell::EffectStealBeneficialBuff(SpellEffIndex effIndex)
     // Ok if exist some buffs for dispel try dispel it
     uint32 failCount = 0;
     DispelList success_list;
-    WorldPacket dataFail(SMSG_DISPEL_FAILED, 8 + 8 + 4 + 4 + damage * 4);
+    WorldPacket dataFail(SMSG_DISPEL_FAILED, 8 + 8 + 4 + 4 + std::max(damage, 0) * 4);
     // dispel N = damage buffs (or while exist buffs for dispel)
     for (int32 count = 0; count < damage && !steal_list.empty();)
     {
@@ -6048,7 +6096,7 @@ void Spell::EffectStealBeneficialBuff(SpellEffIndex effIndex)
     if (success_list.empty())
         return;
 
-    WorldPacket dataSuccess(SMSG_SPELLSTEALLOG, 8 + 8 + 4 + 1 + 4 + damage * 5);
+    WorldPacket dataSuccess(SMSG_SPELLSTEALLOG, 8 + 8 + 4 + 1 + 4 + std::max(damage, 0) * 5);
     dataSuccess << unitTarget->GetPackGUID();       // Victim GUID
     dataSuccess << m_caster->GetPackGUID();         // Caster GUID
     dataSuccess << uint32(m_spellInfo->Id);         // dispel spell id

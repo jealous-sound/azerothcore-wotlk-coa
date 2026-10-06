@@ -421,7 +421,7 @@ bool WorldSession::Update(uint32 diff, PacketFilter& updater)
 
     constexpr uint32 MAX_PROCESSED_PACKETS_IN_SAME_WORLDSESSION_UPDATE = 150;
 
-    while (m_Socket && _recvQueue.next(packet, updater))
+    while ((m_Socket || _socketlessPacketObserver) && _recvQueue.next(packet, updater))
     {
         OpcodeClient opcode = static_cast<OpcodeClient>(packet->GetOpcode());
         ClientOpcodeHandler const* opHandle = opcodeTable[opcode];
@@ -1432,9 +1432,22 @@ void WorldSession::SetPlayer(Player* player)
 
 void WorldSession::ProcessQueryCallbacks()
 {
+    {
+        std::lock_guard lock(_queuedQueryCallbacksMutex);
+        for (QueryCallback& callback : _queuedQueryCallbacks)
+            _queryProcessor.AddCallback(std::move(callback));
+        _queuedQueryCallbacks.clear();
+    }
+
     _queryProcessor.ProcessReadyCallbacks();
     _transactionCallbacks.ProcessReadyCallbacks();
     _queryHolderProcessor.ProcessReadyCallbacks();
+}
+
+void WorldSession::QueueQueryCallback(QueryCallback&& callback)
+{
+    std::lock_guard lock(_queuedQueryCallbacksMutex);
+    _queuedQueryCallbacks.emplace_back(std::move(callback));
 }
 
 TransactionCallback& WorldSession::AddTransactionCallback(TransactionCallback&& callback)

@@ -164,7 +164,7 @@ public:
         if (spell->IsTriggered())
             return;
         Finish(player,spell);
-        if (Chance(player,500219))
+        if (!info->HasAura(SPELL_AURA_MOD_SHAPESHIFT) && Chance(player,500219))
             Cast(player,player,800861);
         if (info->SpellFamilyName != 35)
             return;
@@ -207,8 +207,8 @@ public:
             if (marks >= 5 && player->HasAura(706270))
                 player->EnergizeBySpell(player,572584,Amount(572584),POWER_ENERGY);
         }
-        if (Any(info,{803193,803199}) && player->HasAura(Beetle) && Chance(player,704264) && target)
-            Summon(player,target,560989);
+        if (Any(info,{803193,803199}) && player->HasAura(Beetle) && Chance(player,704264))
+            Summon(player,target ? target : player->GetVictim(),560989);
         if (Named(info,800880) && player->HasAura(807600))
             Cast(player,player,807244);
         if (id == 504705)
@@ -275,7 +275,7 @@ class spell_ascension_venomancer_ability : public SpellScript
         if (!player)
             return;
         uint32 id = GetSpellInfo()->Id;
-        Unit* target = GetHitUnit();
+        Unit* target = IsInTargetHook() ? GetHitUnit() : nullptr;
         if (GetSpellInfo()->Effects[index].Effect != SPELL_EFFECT_DUMMY)
             return;
         PreventHitDefaultEffect(index);

@@ -59,6 +59,14 @@ bool RefundableMiss(Player* player, Spell* spell)
             }
     return hostile && refundable;
 }
+bool SilencedByHit(Unit* target)
+{
+    for (uint32 type = CURRENT_MELEE_SPELL; type < CURRENT_MAX_SPELL; ++type)
+        if (Spell* current = target->GetCurrentSpell(CurrentSpellTypes(type)))
+            if (current->GetSpellInfo()->PreventionType == SPELL_PREVENTION_TYPE_SILENCE)
+                return true;
+    return false;
+}
 void RecordBellowsResult(Player* player, SpellInfo const* info, Unit* target, uint8 miss)
 {
     if ((info->Id == 520292 || info->Id == 520857) && player->IsHostileTo(target))
@@ -115,7 +123,7 @@ void ConsumeSelected(Player* player, Spell* spell)
                     if (sid == 524913 && spell->GetScriptValue(524914))
                         left = 1;
                     if (left > 1)
-                        aura->SetScriptValue(sid, left - 1);
+                        SetRemainingUses(aura, uint8(left - 1));
                     else
                         aura->Remove();
                 }
@@ -153,7 +161,7 @@ class xoroth_casts : public AllSpellScript
                          {ALLSPELLHOOK_ON_SPELL_CHECK_CAST, ALLSPELLHOOK_ON_BEFORE_EFFECTS, ALLSPELLHOOK_ON_CAST,
                           ALLSPELLHOOK_ON_CALCULATED_TARGET, ALLSPELLHOOK_ON_HIT_RESULT,
                           ALLSPELLHOOK_ON_CALC_MAX_DURATION, ALLSPELLHOOK_ON_CRIT_CHANCE,
-                          ALLSPELLHOOK_ON_SUCCESSFUL_INTERRUPT, ALLSPELLHOOK_ON_INTERRUPT_DURATION})
+                          ALLSPELLHOOK_ON_INTERRUPT_DURATION})
     {
     }
     void OnSpellCheckCast(Spell* spell, bool, SpellCastResult& result) override
@@ -185,10 +193,8 @@ class xoroth_casts : public AllSpellScript
         if (!player)
             return;
         uint32 fire = State(player).fire, id = aura->GetId();
-        if (id == 801064)
-            duration = 3000 * fire;
-        if (id == 801063)
-            duration = 3000 * fire;
+        if (id == 801064 || id == 801063)
+            duration = Amount(500906, EFFECT_2, player) * int32(fire);
         if (id == 801017)
             duration *= 1 + fire;
         if (id == 803889)
@@ -248,9 +254,16 @@ class xoroth_casts : public AllSpellScript
     void OnSpellCalculatedTarget(Spell* spell, Unit* target, TargetInfo& result) override
     {
         Player* player = Owner(spell->GetCaster());
-        if (!player || result.damage <= 0 || !target)
+        if (!player || !target)
             return;
         auto info = spell->GetSpellInfo();
+        if (Named(info, 800081) && !spell->GetScriptValue(800835) && SilencedByHit(target))
+        {
+            spell->SetScriptValue(800835, 1);
+            Reduce(player, 800081, int32(info->RecoveryTime * Amount(800835) / 100));
+        }
+        if (result.damage <= 0)
+            return;
         uint32 fire = uint32(spell->GetScriptValue(500906));
         float factor = 1;
         if (Named(info, 800168))
@@ -277,14 +290,6 @@ class xoroth_casts : public AllSpellScript
     {
         if (Player* player = Owner(spell->GetCaster()); player && spell->GetSpellInfo()->Id == 802857)
             duration = int32(duration * State(player).unleash);
-    }
-    void OnSpellSuccessfulInterrupt(Spell* spell, Unit*) override
-    {
-        Player* player = Owner(spell->GetCaster());
-        if (!player || !Named(spell->GetSpellInfo(), 800081) || spell->GetScriptValue(800835))
-            return;
-        spell->SetScriptValue(800835, 1);
-        Reduce(player, 800081, int32(spell->GetSpellInfo()->RecoveryTime * Amount(800835) / 100));
     }
     void OnSpellHitResult(Spell* spell, Unit* target, uint8 miss, uint32 damage, uint32, bool critical) override
     {
@@ -453,7 +458,7 @@ class xoroth_casts : public AllSpellScript
                         (summon->GetEntry() == 50301 || summon->GetEntry() == 50375))
                         player->AddAura(id, summon);
             if (id == 807247)
-                Cast(player, player, 807248);
+                player->AddAura(807248, player);
             if (id == 801061)
                 for (Unit* ally : Nearby(player, 20))
                     if (ally == player || player->IsInRaidWith(ally))

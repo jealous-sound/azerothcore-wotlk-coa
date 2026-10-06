@@ -75,13 +75,16 @@ public:
     {
         Player* player = Owner(spell->GetCaster());
         auto* info = spell->GetSpellInfo();
-        if (!player || player != spell->GetCaster() || info->SpellFamilyName != 34 || spell->IsTriggered() ||
-            result != SPELL_CAST_OK)
+        if (!player || player != spell->GetCaster() || info->SpellFamilyName != 34 || spell->IsTriggered())
+            return;
+        if ((info->Id == GatlingGun || Any(info,{801387,801389,805372})) && !player->HasAura(Mechsuit))
+            result = SPELL_FAILED_ONLY_MOUNTED;
+        else if (Named(info,500549) && player->HasAura(Mechsuit))
+            result = SPELL_FAILED_NOT_MOUNTED;
+        if (result != SPELL_CAST_OK)
             return;
         if (info->Id == Mechsuit && !Count(player,Scrap))
             result = SPELL_FAILED_NO_POWER;
-        if ((info->Id == 500213 || Any(info,{801387,801389,805372})) && !player->HasAura(Mechsuit))
-            result = SPELL_FAILED_CANT_DO_THAT_RIGHT_NOW;
         if (info->Id == 504594 && !player->HasAura(681245))
             result = SPELL_FAILED_CANT_DO_THAT_RIGHT_NOW;
     }
@@ -279,6 +282,17 @@ class spell_ascension_tinker_ability : public SpellScript
             return;
         uint32 id = GetSpellInfo()->Id;
         auto type = GetSpellInfo()->Effects[index].Effect;
+        if (id == 500470)
+        {
+            PreventHitDefaultEffect(index);
+            if (handled)
+                return;
+            handled = true;
+            for (Creature* device : Devices(player))
+                if (Turret(device->GetEntry()))
+                    device->DespawnOrUnsummon();
+            return;
+        }
         if (id == 801744)
         {
             PreventHitDefaultEffect(index);

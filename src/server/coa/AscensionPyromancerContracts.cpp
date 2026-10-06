@@ -213,7 +213,7 @@ class pyromancer_scaling : public UnitScript
             if (row.spell == info->Id && row.effect == index)
             {
                 float sp = row.sp;
-                if (Named(info, 803950))
+                if (Any(info, {803950, 800790}))
                 {
                     float percent = sp * 100;
                     player->ApplySpellMod(info->Id, SPELLMOD_BONUS_MULTIPLIER, percent);

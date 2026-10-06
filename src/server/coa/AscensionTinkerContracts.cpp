@@ -50,6 +50,12 @@ void ApplyContracts(SpellInfo* info)
         if (info->Effects[slot].Effect == 190)
             info->Effects[slot].Effect = SPELL_EFFECT_APPLY_AURA;
     };
+    if (id == 807293)
+    {
+        info->Effects[EFFECT_0].Effect = SPELL_EFFECT_APPLY_AURA;
+        info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_DUMMY;
+        info->AttributesCu |= SPELL_ATTR0_CU_AURA_CANNOT_BE_SAVED;
+    }
     for (auto list : {std::pair(TinkerEvents,std::size(TinkerEvents)),
                      std::pair(TinkerDrivers,std::size(TinkerDrivers)),
                      std::pair(TinkerFinite,std::size(TinkerFinite))})
@@ -270,6 +276,14 @@ void ApplyContracts(SpellInfo* info)
             info->AscensionInheritsResolvedAmount = true;
         }
     info->_InitializeExplicitTargetMask();
+}
+void ApplyBeaconChargePool(SpellInfo* info)
+{
+    if (!info)
+        return;
+    for (uint32 beacon : TinkerBeacons)
+        if (info->Id == beacon)
+            info->ChargeRecoveryKey = TinkerBeaconChargeRoot;
 }
 }
 namespace

@@ -127,6 +127,8 @@ class templar_casts : public AllSpellScript
         Player* player = Owner(caster);
         if (!player || info->SpellFamilyName != 25)
             return;
+        if (info->Id == 801450 && player->HasAura(704576))
+            Cast(player, player, 807764);
         if (info->Id == 801832)
         {
             ConsumeSelected(player, spell);
@@ -159,7 +161,7 @@ class templar_casts : public AllSpellScript
                         if (Aura* aura = pair.second->GetBase();
                             Named(aura->GetSpellInfo(), 803872) && aura->GetCasterGUID() == player->GetGUID())
                             aura->SetDuration(aura->GetMaxDuration());
-            if (!player->HasAura(92109) && !player->HasAura(803149))
+            if (!player->HasAura(92109) && !player->HasAura(803149) && !Named(info, 805409))
                 ClearOaths(player);
             if (Named(info, 501562))
                 player->RemoveAurasDueToSpell(807764);
@@ -257,8 +259,6 @@ class templar_casts : public AllSpellScript
             return;
         if (info->Id == 801450)
         {
-            if (player->HasAura(704576))
-                Cast(player, player, 807764);
             if (player->HasAura(504107) && !player->HasAura(563269))
                 Cast(player, player, 563270);
             if (player->HasAura(504561))
@@ -272,7 +272,7 @@ class templar_casts : public AllSpellScript
         if (info->Id == 801832)
         {
             if (player->HasAura(705255))
-                Cast(player, player, 803372);
+                player->AddAura(803372, player);
             return;
         }
         if (info->Id == 707111 && player->HasAura(573452) && !spell->GetScriptValue(806106))

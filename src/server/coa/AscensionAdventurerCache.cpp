@@ -1,5 +1,6 @@
 /* Copyright (C) 2016+ AzerothCore, GNU AGPL v3. */
 #include "AscensionCacheRewards.h"
+#include "AscensionSpecialization.h"
 #include "Chat.h"
 #include "Item.h"
 #include "ItemScript.h"
@@ -26,6 +27,33 @@ enum CacheItems : uint32
 bool IsAdventurerReward(uint32 entry)
 {
     return entry == AdventurerSatchel || entry == AdventurerCache || entry == AdventurerRareCache;
+}
+
+constexpr uint32 FirstHelpfulGoodsSatchel = 51999;
+constexpr uint32 LastHelpfulGoodsSatchel = 52002;
+
+bool IsHelpfulGoodsSatchel(uint32 entry)
+{
+    return entry >= FirstHelpfulGoodsSatchel && entry <= LastHelpfulGoodsSatchel;
+}
+
+LootStoreItem* BestWearableEntry(Player const* player, std::list<LootStoreItem*> const& entries)
+{
+    LootStoreItem* best = nullptr;
+    uint32 bestArmorClass = 0;
+    for (LootStoreItem* entry : entries)
+    {
+        ItemTemplate const* item = sObjectMgr->GetItemTemplate(entry->itemid);
+        if (!item || entry->reference || item->RequiredLevel > player->GetLevel() ||
+            player->CanUseItem(item) != EQUIP_ERR_OK || (item->GetSkill() && !player->GetSkillValue(item->GetSkill())))
+            continue;
+        if (!best || item->SubClass > bestArmorClass)
+        {
+            best = entry;
+            bestArmorClass = item->SubClass;
+        }
+    }
+    return best;
 }
 
 enum RewardKind : uint8
@@ -116,6 +144,12 @@ public:
         if (!player || &store != &LootTemplates_Item)
             return true;
         Item const* container = player->GetItemByGuid(loot.containerGUID);
+        if (container && IsHelpfulGoodsSatchel(container->GetEntry()) && IsAscensionCustomClassId(player->getClass()))
+        {
+            if (LootStoreItem* wearable = BestWearableEntry(player, entries))
+                loot.AddItem(*wearable);
+            return false;
+        }
         if (!container || !IsAdventurerReward(container->GetEntry()))
             return true;
 

@@ -12,6 +12,7 @@
 namespace
 {
 using namespace AscensionXoroth;
+constexpr uint32 SPELL_HELLWRATH = 804014;
 bool First(AuraEffect const* effect)
 {
     for (uint8 i = 0; i < effect->GetEffIndex(); ++i)
@@ -31,7 +32,12 @@ class aura_ascension_xoroth_lifecycle : public AuraScript
         if (id == 520294 && effect->GetEffIndex() == EFFECT_1)
             amount = int32(amount * (1 + .2f * State(player).blood));
         if (id == 805680 && effect->GetEffIndex() == EFFECT_0)
-            amount = int32(amount * (1 + .2f * State(player).blood));
+        {
+            float perStack = .2f;
+            if (player->HasAura(SPELL_HELLWRATH))
+                perStack += Amount(SPELL_HELLWRATH, EFFECT_1) / 100.0f;
+            amount = int32(amount * (1 + perStack * State(player).blood));
+        }
         if (id == 803889)
             amount = int32(amount * (1 + .2f * State(player).fire));
         if (id == 801063 && effect->GetEffIndex() == EFFECT_2)
@@ -66,11 +72,11 @@ class aura_ascension_xoroth_lifecycle : public AuraScript
             return;
         GetAura()->SetScriptValue(500906, ++State(player).sequence);
         if (id == 681184)
-            GetAura()->SetScriptValue(id, 2);
+            SetRemainingUses(GetAura(), 2);
         if (id == 524913)
-            GetAura()->SetScriptValue(id, 5);
+            SetRemainingUses(GetAura(), 5);
         if (id == 524920)
-            GetAura()->SetScriptValue(id, 6 + State(player).fire);
+            SetRemainingUses(GetAura(), uint8(6 + State(player).fire));
         if (id == 712294)
             Replace(player, 800340, 504581);
         if (id == 800999 || id == 92104)

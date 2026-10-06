@@ -34,6 +34,7 @@
 #include "GroupMgr.h"
 #include "GuildMgr.h"
 #include "LFGMgr.h"
+#include "LocalLevelScaling.h"
 #include "Log.h"
 #include "MapMgr.h"
 #include "Pet.h"
@@ -231,6 +232,62 @@ bool normalizePlayerName(std::string& name)
     if (!WStrToUtf8(tmp, name))
         return false;
 
+    return true;
+}
+
+bool joinQuotedPlayerName(std::string& name, std::string_view& rest)
+{
+    if (name.size() < 2 || (name.front() != '"' && name.front() != '\''))
+        return false;
+
+    char const quote = name.front();
+    if (name.back() == quote)
+    {
+        if (name.size() == 2)
+            return false;
+
+        name = name.substr(1, name.size() - 2);
+        return true;
+    }
+
+    std::size_t const secondEnd = rest.find(' ');
+    std::string_view second = rest.substr(0, secondEnd);
+    if (second.size() < 2 || second.back() != quote)
+        return false;
+    second.remove_suffix(1);
+
+    name = name.substr(1) + ' ' + std::string(second);
+    std::size_t const tail = secondEnd == std::string_view::npos ? secondEnd : rest.find_first_not_of(' ', secondEnd);
+    rest = tail == std::string_view::npos ? std::string_view() : rest.substr(tail);
+    return true;
+}
+
+bool resolveWhisperTarget(std::string& to, std::string& msg, PlayerNameByFirstName const& uniqueNameByFirstName)
+{
+    std::string joined = to;
+    std::string_view rest(msg);
+    if (joinQuotedPlayerName(joined, rest))
+    {
+        if (rest.empty())
+            return false;
+
+        to = std::move(joined);
+        msg = std::string(rest);
+        return true;
+    }
+
+    if (to.size() < 2 || (to.front() != '"' && to.front() != '\''))
+        return false;
+
+    std::string first = to.substr(1);
+    if (first.find_first_of(" \"'") != std::string::npos || !normalizePlayerName(first))
+        return false;
+
+    std::string fullName = uniqueNameByFirstName(first);
+    if (fullName.empty())
+        return false;
+
+    to = std::move(fullName);
     return true;
 }
 
@@ -640,7 +697,7 @@ void ObjectMgr::LoadCreatureTemplate(Field* fields, bool triggerHook)
     creatureTemplate.unit_flags       = fields[28].Get<uint32>();
     creatureTemplate.unit_flags2      = fields[29].Get<uint32>();
     creatureTemplate.dynamicflags     = fields[30].Get<uint32>();
-    creatureTemplate.family           = uint32(fields[31].Get<uint8>());
+    creatureTemplate.family           = uint32(fields[31].Get<uint16>());
     creatureTemplate.type             = uint32(fields[32].Get<uint8>());
     creatureTemplate.type_flags       = fields[33].Get<uint32>();
     creatureTemplate.lootid           = fields[34].Get<uint32>();
@@ -745,12 +802,10 @@ void ObjectMgr::LoadCreatureTemplateModels()
             continue;
         }
 
-        CreatureDisplayInfoEntry const* displayEntry = sCreatureDisplayInfoStore.LookupEntry(creatureDisplayId);
-        if (!displayEntry)
-        {
-            LOG_ERROR("sql.sql", "Creature (Entry: {}) lists non-existing CreatureDisplayID id ({}), this can crash the client.", creatureId, creatureDisplayId);
-            continue;
-        }
+        if (!sCreatureDisplayInfoStore.LookupEntry(creatureDisplayId))
+            LOG_WARN("sql.sql",
+                     "Creature (Entry: {}) uses display id ({}) unknown to the server; keeping it.",
+                     creatureId, creatureDisplayId);
 
         CreatureModelInfo const* modelInfo = GetCreatureModelInfo(creatureDisplayId);
         if (!modelInfo)
@@ -1740,10 +1795,7 @@ void ObjectMgr::LoadCreatureModelInfo()
         uint32 modelId = fields[0].Get<uint32>();
         CreatureDisplayInfoEntry const* creatureDisplay = sCreatureDisplayInfoStore.LookupEntry(modelId);
         if (!creatureDisplay)
-        {
-            LOG_ERROR("sql.sql", "Table `creature_model_info` references missing display id ({}), skipping.", modelId);
-            continue;
-        }
+            LOG_WARN("sql.sql", "Table `creature_model_info` uses unknown display id ({}); keeping it.", modelId);
 
         CreatureModelInfo& modelInfo = _creatureModelStore[modelId];
 
@@ -1770,7 +1822,8 @@ void ObjectMgr::LoadCreatureModelInfo()
         if (modelInfo.combat_reach < 0.1f)
             modelInfo.combat_reach = DEFAULT_COMBAT_REACH;
 
-        if (CreatureModelDataEntry const* modelData = sCreatureModelDataStore.LookupEntry(creatureDisplay->ModelId))
+        CreatureModelDataEntry const* modelData = creatureDisplay ? sCreatureModelDataStore.LookupEntry(creatureDisplay->ModelId) : nullptr;
+        if (modelData)
         {
             for (uint32 i = 0; i < 14; i++)
             {
@@ -3942,7 +3995,11 @@ void ObjectMgr::LoadItemTemplates()
 
 ItemTemplate const* ObjectMgr::GetItemTemplate(uint32 entry)
 {
-    return entry < _itemTemplateStoreFast.size() ? _itemTemplateStoreFast[entry] : nullptr;
+    if (entry < _itemTemplateStoreFast.size())
+        if (ItemTemplate const* proto = _itemTemplateStoreFast[entry])
+            return proto;
+
+    return LocalLevelScaling::ScaledItemTemplateFor(entry);
 }
 
 void ObjectMgr::LoadItemSetNameLocales()

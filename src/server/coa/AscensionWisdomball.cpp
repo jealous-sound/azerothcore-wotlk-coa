@@ -40,6 +40,11 @@ constexpr float InteractionRange = 30.0f;
 
 constexpr uint32 StatusCheckIntervalMs = 2000;
 
+constexpr uint32 QuestsCompletedWithoutPlayerAction[] = { 5722, 5724 };
+
+constexpr uint32 RazorfenKraulMapId = 47;
+constexpr uint32 RazorfenKraulOverworldQuestSortAreaId = 1717;
+
 struct DungeonQuests
 {
     std::vector<uint32> starters;
@@ -103,6 +108,16 @@ std::string IdList(std::vector<uint32> const& ids)
     return list;
 }
 
+std::vector<uint32> ExtraQuestSortAreas(uint32 mapId)
+{
+    std::vector<uint32> areas;
+
+    if (mapId == RazorfenKraulMapId)
+        areas.push_back(RazorfenKraulOverworldQuestSortAreaId);
+
+    return areas;
+}
+
 std::vector<uint32> AreasOfMap(uint32 mapId)
 {
     std::vector<uint32> areas;
@@ -111,6 +126,9 @@ std::vector<uint32> AreasOfMap(uint32 mapId)
         if (AreaTableEntry const* area = sAreaTableStore.LookupEntry(i))
             if (area->mapid == mapId)
                 areas.push_back(area->ID);
+
+    for (uint32 extra : ExtraQuestSortAreas(mapId))
+        areas.push_back(extra);
 
     return areas;
 }
@@ -158,6 +176,15 @@ bool Contains(std::vector<uint32> const& ids, uint32 questId)
     return std::binary_search(ids.begin(), ids.end(), questId);
 }
 
+bool CompletesWithoutPlayerAction(uint32 questId)
+{
+    for (uint32 excluded : QuestsCompletedWithoutPlayerAction)
+        if (excluded == questId)
+            return true;
+
+    return false;
+}
+
 std::vector<uint32> DungeonMaps()
 {
     std::vector<uint32> maps;
@@ -186,6 +213,10 @@ std::vector<uint32> LoadAllDungeonQuests()
         if (AreaTableEntry const* area = sAreaTableStore.LookupEntry(i))
             if (std::binary_search(maps.begin(), maps.end(), area->mapid))
                 areas.push_back(area->ID);
+
+    for (uint32 map : maps)
+        for (uint32 extra : ExtraQuestSortAreas(map))
+            areas.push_back(extra);
 
     if (!areas.empty())
         ReadQuestIds(ids, "SELECT ID FROM quest_template WHERE QuestSortID IN (" + IdList(areas) + ")");
@@ -259,10 +290,19 @@ bool CanOffer(Player* player, uint32 questId)
     if (!quest || IsPlaceholder(quest))
         return false;
 
+    if (CompletesWithoutPlayerAction(questId))
+        return false;
+
     if (player->GetQuestStatus(questId) != QUEST_STATUS_NONE)
         return false;
 
     if (player->IsQuestRewarded(questId) && !quest->IsRepeatable())
+        return false;
+
+    if (!player->SatisfyQuestRace(quest, false))
+        return false;
+
+    if (!player->SatisfyQuestExclusiveGroup(quest, false))
         return false;
 
     return true;

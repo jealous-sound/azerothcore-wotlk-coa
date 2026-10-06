@@ -36,10 +36,10 @@ bool Derived(SpellInfo const* info)
         return false;
     }
 }
-void LeechArmy(Player* player, uint32 damage)
+void LeechArmy(Player* player, uint32 damage, int32 percent)
 {
     auto minions = Minions(player);
-    uint32 amount = uint32(uint64(damage) * std::max(0, Amount(680388)) / (100 * (minions.size() + 1)));
+    uint32 amount = uint32(uint64(damage) * std::max(0, percent) / (100 * (minions.size() + 1)));
     Copy(player, player, 681463, amount);
     for (Creature* unit : minions)
         Copy(player, unit, 681463, amount);
@@ -84,8 +84,8 @@ class aura_ascension_necromancer_event : public AuraScript
         }
         if ((minion || own) && target != player && player->IsValidAttackTarget(target))
         {
-            if (actor->HasAura(680388, player->GetGUID()))
-                LeechArmy(player, damage);
+            if (AuraEffect const* ward = actor->GetAuraEffect(680388, EFFECT_0, player->GetGUID()))
+                LeechArmy(player, damage, ward->GetAmount());
             if (minion && player->HealthBelowPct(50) && actor->HasAura(560607, player->GetGUID()))
                 Copy(player, player, 561095, uint64(damage) * std::max(0, Amount(560607, 1)) / 100);
             if (actor->HasAura(800027, player->GetGUID()))
@@ -216,6 +216,32 @@ class aura_ascension_necromancer_event : public AuraScript
     }
 };
 
+class aura_ascension_necromancer_ghoul_mastery : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_necromancer_ghoul_mastery);
+
+    bool Validate(SpellInfo const*) override
+    {
+        return ValidateSpellInfo({707014});
+    }
+
+    bool Check(ProcEventInfo& event)
+    {
+        Unit* ghoul = GetTarget();
+        Player* player = Owner(ghoul);
+        Unit* target = event.GetActionTarget();
+        DamageInfo const* damage = event.GetDamageInfo();
+        return player && GetCaster() == player && ghoul->IsCreature() && ghoul->GetEntry() == 50073 &&
+            IsMinion(player, ghoul) && event.GetActor() == ghoul && target &&
+            player->IsValidAttackTarget(target) && damage && damage->GetDamage();
+    }
+
+    void Register() override
+    {
+        DoCheckProc += AuraCheckProcFn(aura_ascension_necromancer_ghoul_mastery::Check);
+    }
+};
+
 class necromancer_defense : public UnitScript
 {
   public:
@@ -258,5 +284,6 @@ class necromancer_defense : public UnitScript
 void AddAscensionNecromancerEventScripts()
 {
     RegisterSpellScript(aura_ascension_necromancer_event);
+    RegisterSpellScript(aura_ascension_necromancer_ghoul_mastery);
     new necromancer_defense();
 }

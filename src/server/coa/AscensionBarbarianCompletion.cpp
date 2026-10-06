@@ -146,6 +146,8 @@ void ApplyContracts(SpellInfo* info)
     }
     if (id == 707410)
         info->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_DUMMY;
+    if (id == 800401)
+        info->AttributesCu &= ~SPELL_ATTR0_CU_NEGATIVE;
     if (id == 801761)
     {
         SpellEffectInfo& cost = info->Effects[EFFECT_1];
@@ -230,12 +232,56 @@ public:
     }
 };
 
+class aura_ascension_barbarian_tankard : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_barbarian_tankard);
+
+    bool Validate(SpellInfo const*) override
+    {
+        return ValidateSpellInfo({SPELL_FULL_TANKARD, SPELL_EMPTY_TANKARD});
+    }
+
+    void Apply(AuraEffect const*, AuraEffectHandleModes)
+    {
+        Player* player = Owner(GetTarget());
+        if (!player)
+            return;
+
+        if (GetStackAmount() >= GetSpellInfo()->CalcMaxAuraStacks(player))
+        {
+            if (!player->HasAura(SPELL_FULL_TANKARD))
+                player->AddAura(SPELL_FULL_TANKARD, player);
+        }
+        else
+            player->RemoveAurasDueToSpell(SPELL_FULL_TANKARD);
+    }
+
+    void Remove(AuraEffect const*, AuraEffectHandleModes)
+    {
+        if (Player* player = Owner(GetTarget()))
+            player->RemoveAurasDueToSpell(SPELL_FULL_TANKARD);
+    }
+
+    void Register() override
+    {
+        AfterEffectApply += AuraEffectApplyFn(aura_ascension_barbarian_tankard::Apply, EFFECT_0,
+            SPELL_AURA_ADD_PCT_MODIFIER, AURA_EFFECT_HANDLE_REAL_OR_REAPPLY_MASK);
+        AfterEffectRemove += AuraEffectRemoveFn(aura_ascension_barbarian_tankard::Remove, EFFECT_0,
+            SPELL_AURA_ADD_PCT_MODIFIER, AURA_EFFECT_HANDLE_REAL);
+    }
+};
+
 class aura_ascension_barbarian_lifecycle : public AuraScript
 {
     PrepareAuraScript(aura_ascension_barbarian_lifecycle);
 
     void Apply(AuraEffect const* effect, AuraEffectHandleModes)
     {
+        if (Spirit(GetId()))
+            if (Player* self = Owner(GetTarget()))
+                for (uint32 spirit : { 707763, 707764, 707775, 712467, 712468 })
+                    if (spirit != GetId())
+                        self->RemoveAurasDueToSpell(spirit);
         if (effect->GetEffIndex() != EFFECT_0)
             return;
         if (GetId() == 805804)
@@ -252,10 +298,6 @@ class aura_ascension_barbarian_lifecycle : public AuraScript
         if (!player)
             return;
         uint32 id = GetId();
-        if (Spirit(id))
-            for (uint32 spirit : { 707763, 707764, 707775, 712467, 712468 })
-                if (spirit != id)
-                    player->RemoveAurasDueToSpell(spirit);
         if (id == 801761 && player->HasAura(707410))
             player->CastSpell(player, 521240, true);
         if (id == 707410)
@@ -467,5 +509,6 @@ void AddAscensionBarbarianCompletionScripts()
     new barbarian_barbaric_rage();
     new barbarian_scaling();
     new barbarian_casts();
+    RegisterSpellScript(aura_ascension_barbarian_tankard);
     RegisterSpellScript(aura_ascension_barbarian_lifecycle);
 }

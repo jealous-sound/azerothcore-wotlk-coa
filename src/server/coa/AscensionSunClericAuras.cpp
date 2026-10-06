@@ -90,7 +90,7 @@ class aura_ascension_sun_cleric_lifecycle : public AuraScript
             return;
         uint32 id = GetId();
         uint8 slot = effect->GetEffIndex();
-        if (id == Dawn && slot == 1)
+        if (id == Dawn && slot == 0)
         {
             amount = 1;
             recalculate = false;

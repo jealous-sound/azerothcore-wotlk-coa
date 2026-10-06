@@ -30,31 +30,33 @@ void SyncFalconstrike(Player* player)
 {
     if (player->getClass() != CLASS_RANGER)
         return;
-    bool ready = FalconstrikeReady(player);
-    uint32 replacement = 0;
-    if (ready)
+    if (!player->HasAura(SPELL_FALCONSTRIKE_TALENT))
     {
-        replacement = Falconstrikes.front();
         for (uint32 rank : Falconstrikes)
-            if (SpellInfo const* info = sSpellMgr->GetSpellInfo(rank); info && info->SpellLevel <= player->GetLevel())
-                replacement = rank;
-        if (player->GetSpellMap().find(replacement) == player->GetSpellMap().end())
-            player->learnSpell(replacement, true);
+            if (player->GetSpellMap().find(rank) != player->GetSpellMap().end())
+                player->removeSpell(rank, SPEC_MASK_ALL, true);
+        player->RemoveAurasDueToSpell(SPELL_FALCONSTRIKE_COUNTER, player->GetGUID());
+        player->RemoveAurasDueToSpell(SPELL_FALCONSTRIKE_READY, player->GetGUID());
+        for (uint32 quick : QuickShots)
+            player->SetTemporarySpellReplacement(quick, 0);
+        return;
     }
+    uint32 replacement = Falconstrikes.front();
+    for (uint32 rank : Falconstrikes)
+        if (SpellInfo const* info = sSpellMgr->GetSpellInfo(rank); info && info->SpellLevel <= player->GetLevel())
+            replacement = rank;
+    if (player->GetSpellMap().find(replacement) == player->GetSpellMap().end())
+        player->learnSpell(replacement, true);
+    for (uint32 rank : Falconstrikes)
+        if (rank != replacement && player->GetSpellMap().find(rank) != player->GetSpellMap().end())
+            player->removeSpell(rank, SPEC_MASK_ALL, true);
+    bool ready = FalconstrikeReady(player);
     for (uint32 quick : QuickShots)
     {
         if (ready && player->HasActiveSpell(quick) && player->HasActiveSpell(replacement))
             player->SetTemporarySpellReplacement(quick, replacement);
         else
             player->SetTemporarySpellReplacement(quick, 0);
-    }
-    for (uint32 rank : Falconstrikes)
-        if (rank != replacement && player->GetSpellMap().find(rank) != player->GetSpellMap().end())
-            player->removeSpell(rank, SPEC_MASK_ALL, true);
-    if (!player->HasAura(SPELL_FALCONSTRIKE_TALENT))
-    {
-        player->RemoveAurasDueToSpell(SPELL_FALCONSTRIKE_COUNTER, player->GetGUID());
-        player->RemoveAurasDueToSpell(SPELL_FALCONSTRIKE_READY, player->GetGUID());
     }
 }
 

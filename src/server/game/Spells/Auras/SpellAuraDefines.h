@@ -382,6 +382,7 @@ enum AuraType
     // until their individual mechanics are ported.
     SPELL_AURA_ASCENSION_MOD_ABSORB_AMOUNT_PCT              = 317,
     SPELL_AURA_ASCENSION_MOD_HEALING_RECEIVED_PCT           = 319,
+    SPELL_AURA_ASCENSION_MOD_PVP_DAMAGE_DONE_PCT            = 322,
     SPELL_AURA_ASCENSION_MOD_STAT_FROM_STAT                 = 327,
     SPELL_AURA_ASCENSION_MOD_MAX_MANA_FROM_STAT             = 328,
     SPELL_AURA_ASCENSION_MOD_CRIT_CHANCE_AGAINST_TARGET     = 330,
@@ -425,6 +426,7 @@ enum AscensionCreatureTypeDamageScope
 // spellmod indices out of the native player's fixed-size modifier arrays.
 enum AscensionAttackPowerCoefficientScript
 {
+    ASCENSION_DIRECT_AP_COEFFICIENT_FLAT = 20032,
     ASCENSION_DIRECT_AP_COEFFICIENT_PCT = 20042,
     ASCENSION_PERIODIC_AP_COEFFICIENT_PCT = 20045
 };
@@ -462,6 +464,7 @@ enum AscensionConditionalCombatModifier
 
 enum AscensionConditionalTargetState
 {
+    ASCENSION_TARGET_SLOWED = 26,
     ASCENSION_TARGET_HEALTH_ABOVE_80_PERCENT = 28
 };
 

@@ -53,6 +53,7 @@ enum UnitHook
     UNITHOOK_MODIFY_SPELL_EFFECT_BASE_VALUE,
     UNITHOOK_CAN_UNIT_ATTACK,
     UNITHOOK_SPELL_MAGNET_TARGET,
+    UNITHOOK_ON_HEALTH_CHANGED,
     UNITHOOK_END
 };
 
@@ -150,6 +151,7 @@ public:
     virtual void OnUnitExitCombat(Unit* /*unit*/) { }
     virtual void OnUnitDeath(Unit* /*unit*/, Unit* /*killer*/) { }
     virtual void OnUnitSetShapeshiftForm(Unit* /*unit*/, uint8 /*form*/) { }
+    virtual void OnHealthChanged(Unit* /*unit*/) { }
 };
 
 #endif

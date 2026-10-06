@@ -9,7 +9,7 @@ struct ScalingBaseEntry
     std::uint32_t Spell;
     std::uint8_t EffectMask;
 };
-inline constexpr std::array<ScalingBaseEntry, 462> ScalingBaseSpells =
+inline constexpr std::array<ScalingBaseEntry, 460> ScalingBaseSpells =
 {{
     {16549, 1},
     {17466, 1},
@@ -163,7 +163,6 @@ inline constexpr std::array<ScalingBaseEntry, 462> ScalingBaseSpells =
     {586212, 1},
     {589023, 1},
     {602136, 1},
-    {630869, 1},
     {630937, 1},
     {653247, 4},
     {653272, 1},
@@ -215,7 +214,6 @@ inline constexpr std::array<ScalingBaseEntry, 462> ScalingBaseSpells =
     {804886, 1},
     {805006, 1},
     {805548, 1},
-    {805896, 1},
     {806016, 1},
     {806039, 1},
     {806156, 1},

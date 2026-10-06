@@ -17,6 +17,8 @@ namespace
 {
 using namespace AscensionWitchHunter;
 
+constexpr uint8 DESECRATE_SHADOWSTORM_EVENT = 22;
+
 bool Damage(ProcEventInfo const& event)
 {
     return event.GetDamageInfo() && event.GetDamageInfo()->GetDamage();
@@ -76,6 +78,25 @@ void CarryDamage(Unit* caster, Unit* target, uint32 id, uint64 amount)
     caster->CastCustomSpell(id, SPELLVALUE_BASE_POINT0,
                             int32(std::min<uint64>(amount / ticks, std::numeric_limits<int32>::max())), target,
                             TriggerCastFlags(TRIGGERED_FULL_MASK | TRIGGERED_NO_PERIODIC_RESET));
+}
+
+void StrikeShadowRage(Unit* attacker, AuraEffect* rage, Unit* target)
+{
+    Player* caster = Owner(rage->GetCaster());
+    if (!caster)
+        return;
+    uint32 stacks = std::max<uint32>(1, rage->GetBase()->GetStackAmount());
+    int32 value = rage->GetAmount() + int32(stacks * caster->GetTotalAttackPowerValue(RANGED_ATTACK) * 0.15f);
+    attacker->CastCustomSpell(567570, SPELLVALUE_BASE_POINT0, value, target, TRIGGERED_FULL_MASK, nullptr, rage,
+                              caster->GetGUID());
+}
+
+void CleaveShadowRage(Unit* hound, Unit* target, ProcEventInfo& event)
+{
+    Aura* rage = hound->GetAura(804192);
+    SpellProcEntry const* proc = sSpellMgr->GetSpellProcEntry(804192);
+    if (rage && proc && roll_chance_f(rage->CalcProcChance(*proc, event)))
+        StrikeShadowRage(hound, rage->GetEffect(EFFECT_2), target);
 }
 
 class aura_ascension_witch_hunter_event : public AuraScript
@@ -153,6 +174,13 @@ class aura_ascension_witch_hunter_event : public AuraScript
             case 680538:
                 return outgoing && Direct(event) && (Dusk(info) || (info && info->Id == 803502));
             case 520277:
+                if (outgoing && Direct(event) && Desecrate(info))
+                {
+                    if (Spell const* spell = event.GetProcSpell();
+                        spell && spell->TryMarkScriptEventHandled(DESECRATE_SHADOWSTORM_EVENT))
+                        Cast(owner, event.GetActionTarget(), 520278);
+                    return false;
+                }
                 return outgoing && Direct(event) && Family(info, 2, 33554432);
             case 681092:
                 return !outgoing && Direct(event) && (event.GetSchoolMask() & 126);
@@ -394,17 +422,8 @@ class aura_ascension_witch_hunter_event : public AuraScript
                 break;
             case 680275:
             case 804192:
-            {
-                Player* caster = Owner(GetCaster());
-                if (caster)
-                {
-                    int32 value = GetEffect(EFFECT_2)->GetAmount() +
-                                  int32(caster->GetTotalAttackPowerValue(RANGED_ATTACK) * 0.15f);
-                    owner->CastCustomSpell(567570, SPELLVALUE_BASE_POINT0, value, other, TRIGGERED_FULL_MASK, nullptr,
-                                           GetEffect(EFFECT_2), caster->GetGUID());
-                }
+                StrikeShadowRage(owner, GetEffect(EFFECT_2), other);
                 break;
-            }
             case 562027:
             case 570726:
                 if (Unit* caster = GetCaster())
@@ -414,6 +433,7 @@ class aura_ascension_witch_hunter_event : public AuraScript
                             owner->CastCustomSpell(567570, SPELLVALUE_BASE_POINT0, int32(damage), target,
                                                    TRIGGERED_FULL_MASK, nullptr, GetEffect(EFFECT_0),
                                                    caster->GetGUID());
+                            CleaveShadowRage(owner, target, event);
                             break;
                         }
                 break;

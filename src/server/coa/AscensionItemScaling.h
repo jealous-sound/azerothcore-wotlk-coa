@@ -1,0 +1,16 @@
+#ifndef COA_ASCENSION_ITEM_SCALING_H
+#define COA_ASCENSION_ITEM_SCALING_H
+
+#include <array>
+#include <cstdint>
+#include <optional>
+
+namespace ItemScaling
+{
+using ClientItemRow = std::array<std::uint32_t, 8>;
+
+std::uint32_t BaseEntry(std::uint32_t entry);
+std::optional<ClientItemRow> ClientRow(std::uint32_t entry);
+}
+
+#endif

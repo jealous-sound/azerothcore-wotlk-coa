@@ -14,6 +14,9 @@
 namespace
 {
 using namespace AscensionSunCleric;
+constexpr uint32 ChosenKing = 707079;
+constexpr uint32 HammerOfKings = 804751;
+constexpr uint32 Anointed = 524998;
 bool Select(uint32 id, SpellInfo const* info)
 {
     switch (id)
@@ -44,6 +47,9 @@ bool Useful(SpellInfo const* info)
             return true;
     return Gavel(info) || Any(info, {800626, 520359, 520024, 800054, 804751,804249,572752});
 }
+constexpr uint32 ScorchMarks = 807059;
+constexpr uint32 BurnTheHeretics = 560857;
+constexpr uint32 BurnTheHereticsMagicDamage = 560856;
 void Finish(Player* player, Spell* spell)
 {
     for (uint32 id : SunClericFinite)
@@ -58,6 +64,8 @@ void Finish(Player* player, Spell* spell)
                     Cast(player, player, 524859);
                 if (id == 800722 && player->HasAura(680648))
                     StackWithoutRefresh(player, 681254);
+                if (id == ScorchMarks && player->HasAura(BurnTheHeretics))
+                    Cast(player, player, BurnTheHereticsMagicDamage);
             }
 }
 class sun_cleric_spells : public AllSpellScript
@@ -122,7 +130,7 @@ public:
                 spell->SetScriptValue(Dawn, 1);
                 State(player).timers.ScheduleEvent(Dawn, 1s);
             }
-            if (AuraEffect* choice = dawn->GetEffect(EFFECT_1); choice && choice->GetAmount() &&
+            if (AuraEffect* choice = dawn->GetEffect(EFFECT_0); choice && choice->GetAmount() &&
                 (player->HasSpell(92135) || player->HasAura(92135)))
             {
                 uint32 school = info->SchoolMask & (SPELL_SCHOOL_MASK_HOLY | SPELL_SCHOOL_MASK_FIRE);
@@ -166,6 +174,8 @@ public:
         if (!player || caster != player || info->SpellFamilyName != 33 || spell->IsTriggered())
             return;
         uint32 id = info->Id;
+        if (id == HammerOfKings && player->HasAura(ChosenKing, player->GetGUID()))
+            Cast(player, player, Anointed);
         if (Invocation(info))
         {
             if (player->HasAura(681436))
@@ -224,6 +234,16 @@ public:
             return;
         if (info->Id == 707774 && damage)
             Copy(player,player,707522,damage / 10);
+        if (info->Id == 707522 && spell->GetCaster() == player && target == player && healing &&
+            State(player).gavelHealing && player->HasAura(301011))
+        {
+            auto allies = Allies(player, player, Radius(301012));
+            allies.remove(player);
+            if (allies.size() > 5)
+                allies.resize(5);
+            for (Unit* ally : allies)
+                Copy(player, ally, 301012, CalculatePct(healing, Amount(301011)));
+        }
         if (Derived(info) || State(player).event)
             return;
         (void)critical;
@@ -244,7 +264,10 @@ public:
             if (Named(info, 800611))
             {
                 uint32 copied = CalculatePct(damage, Amount(707521));
+                bool const oldGavelHealing = State(player).gavelHealing;
+                State(player).gavelHealing = true;
                 Copy(player, player, 707522, copied);
+                State(player).gavelHealing = oldGavelHealing;
                 if (player->HasAura(HolyForm) && player->HasAura(300353))
                     Copy(player, player, 805489, copied);
             }

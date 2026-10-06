@@ -153,7 +153,8 @@ bool Resource(Player* player, uint32 id, int32 delta, bool force)
     after = Count(player, id);
     if (before < 60 && after >= 60 && player->HasAura(300307))
         Cast(player, player, 573285);
-    if (after == 100 && before < 100 && !player->HasSpell(92131) && !player->HasSpell(805120))
+    if (after == 100 && before < 100 && !player->HasSpell(92131) && !player->HasSpell(805120) &&
+        !player->HasSpell(680750))
         Cast(player, player, 803060);
     Refresh(player);
     return true;
@@ -244,7 +245,7 @@ void Refresh(Player* player)
     }
     else
         SetHelper(player, 807883, false);
-    SetHelper(player, 500727, player->IsAlive() && player->HasSpell(500706));
+    SetHelper(player, 500727, player->IsAlive() && (stacks || player->HasSpell(Insanity)));
     for (auto [root, replacement, active] : {std::tuple(804670u, 804711u, player->HasAura(706182)),
              std::tuple(800416u, 504719u, player->HasAura(255070)),
              std::tuple(500110u, 680576u, player->HasAura(681794)),

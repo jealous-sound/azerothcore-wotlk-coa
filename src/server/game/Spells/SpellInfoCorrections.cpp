@@ -1330,10 +1330,19 @@ void SpellMgr::LoadSpellInfoCorrections()
         spellInfo->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_MOD_ATTACKER_MELEE_CRIT_CHANCE;
     });
 
+    // Emberseer Object Visual
+    // The Blackrock Altar ritual drops participants no longer channeling when its 5 second timer expires,
+    // so the channel must outlast that timer or the ritual never casts Emberseer Start.
+    ApplySpellFix({ 16532 }, [](SpellInfo* spellInfo)
+    {
+        spellInfo->DurationEntry = sSpellDurationStore.LookupEntry(1); // 10 seconds
+    });
+
     // Resurrection Sickness
     ApplySpellFix({ 15007 }, [](SpellInfo* spellInfo)
     {
         spellInfo->SpellFamilyName = SPELLFAMILY_GENERIC;
+        spellInfo->AttributesEx4 |= SPELL_ATTR4_AURA_EXPIRES_OFFLINE;
     });
 
     // Luck of the Draw
@@ -1705,6 +1714,18 @@ void SpellMgr::LoadSpellInfoCorrections()
     ApplySpellFix({ 55550 }, [](SpellInfo* spellInfo)
     {
         spellInfo->Attributes |= SPELL_ATTR0_USES_RANGED_SLOT;
+    });
+
+    // Whirlwind (Rhahk'Zor's Bladestorm) - 2 yards from the center never reaches anyone fighting a creature this size
+    ApplySpellFix({ 2102555 }, [](SpellInfo* spellInfo)
+    {
+        spellInfo->Effects[EFFECT_0].RadiusEntry = sSpellRadiusStore.LookupEntry(EFFECT_RADIUS_8_YARDS);
+    });
+
+    // Buster Call (Edwin VanCleef) - the level 21 marker that drops it would miss every higher level player
+    ApplySpellFix({ 2102593, 2102594, 2102595, 2102596 }, [](SpellInfo* spellInfo)
+    {
+        spellInfo->AttributesEx3 |= SPELL_ATTR3_ALWAYS_HIT;
     });
 
     // Moorabi - Transformation
@@ -5283,6 +5304,102 @@ void SpellMgr::LoadSpellInfoCorrections()
     ApplySpellFix({ 45008 }, [](SpellInfo* spellInfo)
     {
         spellInfo->AttributesEx3 |= SPELL_ATTR3_ALWAYS_HIT;
+    });
+
+    // CoA: Steal Warmth (Amnennar, Heroic/Mythic) hits everyone within 5 yards of the marked player,
+    // the damage is split among them (spell_custom_attr SHARE_DAMAGE)
+    ApplySpellFix({ 2100710, 2100711 }, [](SpellInfo* spellInfo)
+    {
+        spellInfo->Effects[EFFECT_0].TargetA = SpellImplicitTargetInfo(TARGET_DEST_TARGET_ENEMY);
+        spellInfo->Effects[EFFECT_0].TargetB = SpellImplicitTargetInfo(TARGET_UNIT_DEST_AREA_ENEMY);
+    });
+
+    // CoA: Wing Flap (Hazzas, Morphaz, Sunken Temple): 1 s cast, damage to the cone in front plus the knockback
+    // (damage per difficulty from the SmartAI kit through effect 1)
+    ApplySpellFix({ 12882 }, [](SpellInfo* spellInfo)
+    {
+        spellInfo->CastTimeEntry = sSpellCastTimesStore.LookupEntry(4);
+        spellInfo->Effects[EFFECT_1].Effect = SPELL_EFFECT_SCHOOL_DAMAGE;
+        spellInfo->Effects[EFFECT_1].TargetA = spellInfo->Effects[EFFECT_0].TargetA;
+        spellInfo->Effects[EFFECT_1].RadiusEntry = spellInfo->Effects[EFFECT_0].RadiusEntry;
+        spellInfo->Effects[EFFECT_1].BasePoints = 614;
+        spellInfo->Effects[EFFECT_1].DieSides = 1;
+    });
+
+    // CoA: Frost Shot (Zerillis, Zul'Farrak) had a 5 yard minimum range and never hit anyone in melee
+    ApplySpellFix({ 12551, 154620 }, [](SpellInfo* spellInfo)
+    {
+        spellInfo->RangeEntry = sSpellRangeStore.LookupEntry(4);
+    });
+
+    // CoA: Fatal Bite (Rotgrip, Maraudon) needed a target below 20% health and failed every time
+    ApplySpellFix({ 16495 }, [](SpellInfo* spellInfo)
+    {
+        spellInfo->TargetAuraState = 0;
+    });
+
+    // CoA: Skum's Overrun (Wailing Caverns): 3 s cast in the locked direction, then he runs (CoADungeonBossSpells.cpp)
+    ApplySpellFix({ 2102624 }, [](SpellInfo* spellInfo)
+    {
+        spellInfo->CastTimeEntry = sSpellCastTimesStore.LookupEntry(14);
+    });
+
+    // CoA: Wing Flap of Hazzas and Morphaz (Sunken Temple) uses Cleave 52835 (cleave animation plus knockback):
+    // 1 s cast, flat damage to everyone in the cone in front (value set per difficulty by the SmartAI kit)
+    ApplySpellFix({ 52835 }, [](SpellInfo* spellInfo)
+    {
+        spellInfo->CastTimeEntry = sSpellCastTimesStore.LookupEntry(4);
+        spellInfo->Effects[EFFECT_0].Effect = SPELL_EFFECT_SCHOOL_DAMAGE;
+        spellInfo->Effects[EFFECT_0].TargetA = SpellImplicitTargetInfo(TARGET_UNIT_CONE_ENEMY_24);
+        spellInfo->Effects[EFFECT_0].RadiusEntry = spellInfo->Effects[EFFECT_1].RadiusEntry;
+        spellInfo->Effects[EFFECT_0].BasePoints = 614;
+        spellInfo->Effects[EFFECT_0].DieSides = 1;
+    });
+
+    // CoA: Walking Bomb Effect: the bomb killed itself in the same hit and its damage was lost; the SmartAI despawns it
+    ApplySpellFix({ 11504 }, [](SpellInfo* spellInfo)
+    {
+        spellInfo->Effects[EFFECT_1].Effect = 0;
+    });
+
+    // CoA: Volley (Illyanna Ravenoak) and Bomb (Tinkerer Gizlock) have a 5 yard minimum range: against a player in melee
+    // range the boss never cast them. Same 30 yards without the minimum.
+    ApplySpellFix({ 22908, 2100234, 2100235, 9143 }, [](SpellInfo* spellInfo)
+    {
+        spellInfo->RangeEntry = sSpellRangeStore.LookupEntry(4);
+    });
+
+    // CoA: Smoke Bomb (Lord Vyletongue, Maraudon): the second effect feared Vyletongue himself (he stood stunned in his
+    // own smoke); only the stun on nearby enemies and the stealth trigger stay
+    ApplySpellFix({ 2100743 }, [](SpellInfo* spellInfo)
+    {
+        spellInfo->Effects[EFFECT_1].Effect = 0;
+        spellInfo->Effects[EFFECT_1].ApplyAuraName = SPELL_AURA_NONE;
+    });
+
+    // CoA: Bone Crush on Rattlegore's melee target (CoADungeonBossSpells.cpp uses Curse of Blood 40412): +30% Physical
+    // damage taken per stack, stacks with every hit on the same target (up to 5)
+    ApplySpellFix({ 40412 }, [](SpellInfo* spellInfo)
+    {
+        spellInfo->Effects[EFFECT_0].BasePoints = 29;
+        spellInfo->StackAmount = 5;
+    });
+
+    // CoA: Conflagration (General Drakkisath) Heroic/Mythic tiers: a percent-of-health DoT that ticked for millions
+    // here; one hit instead (Heroic 770, Mythic 1000), the panic effect stays
+    ApplySpellFix({ 158874, 386225 }, [](SpellInfo* spellInfo)
+    {
+        spellInfo->Effects[EFFECT_0].Effect = SPELL_EFFECT_SCHOOL_DAMAGE;
+        spellInfo->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_NONE;
+        spellInfo->Effects[EFFECT_0].Amplitude = 0;
+        spellInfo->Effects[EFFECT_0].DieSides = 1;
+        spellInfo->Effects[EFFECT_0].BasePoints = spellInfo->Id == 386225 ? 999 : 769;
+    });
+
+    // CoA: Rumbling Earth (Taragaman's pillar warning): only the ground marker; the pillar itself is summoned by the boss
+    ApplySpellFix({ 2102514 }, [](SpellInfo* spellInfo)
+    {
+        spellInfo->Effects[EFFECT_1].Effect = 0;
     });
 
     for (uint32 i = 0; i < GetSpellInfoStoreSize(); ++i)

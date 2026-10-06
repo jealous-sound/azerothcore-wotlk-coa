@@ -1,9 +1,9 @@
 CLI_DESCRIPTION = """Run Ascension extension packet regressions without a server or database.
 
 Compiles the production realm-info sender, socket-thread packet hook, extension packet
-queue, world-thread handler, stock item query builder, vanity delivery, .localvanity
-and .localtime commands against the real WorldPacket and ItemTemplate. Pass --source-ref
-to test another Git ref.
+queue, world-thread handler, stock item query builder, vanity delivery and the .localtime
+command against the real WorldPacket and ItemTemplate. Pass --source-ref to test another
+Git ref.
 """
 
 import argparse
@@ -37,6 +37,10 @@ def method_or(source, signature, fallback):
     return method(source, signature) if signature in source else fallback
 
 
+def method_in(source, anchor, signature):
+    return method(source[source.index(anchor):], signature)
+
+
 def main():
     parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument('--source-ref', help='Read production code from a local Git ref for regression checks.')
@@ -52,6 +56,7 @@ def main():
     objects = source('src/server/game/Globals/ObjectMgr.h')
     buffer = source('src/server/shared/Packets/ByteBuffer.cpp')
     timer = source('src/common/Utilities/Timer.cpp')
+    player_script = source('src/server/game/Scripting/ScriptDefines/PlayerScript.h')
     harness = (HERE / 'harness.cpp').read_text(encoding='utf-8')
     for marker, text in [
         ('BYTE_BUFFER', '\n'.join(method(buffer, signature) for signature in (
@@ -65,17 +70,24 @@ def main():
             items, 'void WorldSession::SendItemQuerySingleResponse(',
             'void WorldSession::SendItemQuerySingleResponse(uint32) { }')),
         ('OPCODES', opcodes(compat)),
+        ('RECEIVES_CLIENT_REQUESTS', method_or(compat, 'bool ReceivesClientRequests(Player const *player)', '')),
+        ('PROGRESS_EVENT', method(player_script, 'enum class CoAProgressEvent') + ';'),
         ('QUEUE_LIMIT', constant(compat, 'MAX_QUEUED_EXTENSION_PACKETS')),
         ('CONFIG_KEYS', method(compat, 'enum class AscensionCompatConfig') + ';'),
         ('SEND_REALM_INFO', method(compat, 'void SendRealmInfo(WorldSession *session')),
+        ('SEND_GAME_MODE_STATE', method_or(compat, 'void SendGameModeState(Player *player)',
+                                           'void SendGameModeState(Player*) { }')),
+        ('SEND_SECURE_ADDON_LIST', method_or(compat, 'void SendSecureAddonList(WorldSession* session)', '')),
         ('QUEUE_CLIENT_PACKET', method(compat, 'void QueueClientPacket(uint32 accountId')),
         ('REJECT_CLIENT_PACKET', method_or(compat, 'void RejectClientPacket(uint32 accountId', '')),
         ('TAKE_CLIENT_PACKETS', method_or(compat, 'std::vector<WorldPacket> TakeClientPackets(uint32 accountId)', '')),
-        ('ON_PLAYER_UPDATE', method(compat, 'void OnPlayerUpdate(Player *player, uint32 diff) {')),
+        ('ON_PLAYER_UPDATE', method_in(compat, 'class AscensionCollectionService',
+                                       'void OnPlayerUpdate(Player *player, uint32 diff) {')),
         ('HANDLE_CLIENT_PACKET', method(compat, 'void HandleClientPacket(Player *player')),
         ('CAN_PACKET_RECEIVE_EARLY', method(compat, 'bool CanPacketReceiveEarly(WorldSession *session')),
+        ('CAN_PACKET_SEND', method(compat, 'bool CanPacketSend(WorldSession* session')),
         ('POINT_SPEND', method_or(compat, 'void HandlePointSpendRequest(Player* player', '')),
-        ('DELIVER_VANITY', method(compat, 'void DeliverLocalVanityItem(Player *player, uint32 itemId)')),
+        ('DELIVER_VANITY', method(compat, 'void DeliverVanityItem(Player *player, uint32 itemId)')),
         ('BANK_VANITY', '\n'.join([re.search(r'static constexpr std::array<uint32, \d+> BankVanityItems = [^;]+;',
                                              compat)[0]] + [method(compat, signature) for signature in (
             'static bool IsBankVanityItem(uint32 itemId)',
@@ -83,7 +95,6 @@ def main():
             'std::vector<uint32> GetMissingBankSpells(Player* player',
             'void LearnOwnedBankSpells(Player* player',
         )])),
-        ('LOCAL_VANITY_COMMAND', method(compat, 'static bool HandleLocalVanityCommand(ChatHandler *handler')),
         ('LOCAL_TIME_COMMAND', '\n'.join([
             (re.search(r'static constexpr float REAL_TIME_GAME_SPEED = [^;]+;', compat) or [''])[0],
             method_or(compat, 'static time_t SameDayAt(time_t time', ''),
@@ -107,10 +118,11 @@ def main():
         executable = out / ('regressions.exe' if os.name == 'nt' else 'regressions')
         if Path(compiler).stem.lower() == 'cl':
             flags = ['/nologo', '/std:c++20', '/EHsc', '/utf-8', *['/I' + str(p) for p in includes],
-                     str(cpp), '/Fe' + str(executable)]
+                     str(cpp), str(ROOT / 'src/common/Utilities/Tokenize.cpp'), '/Fe' + str(executable)]
         else:
             flags = ['-std=c++20', '-Wall', '-Wextra', '-Werror', '-Wno-unused-const-variable',
-                     *['-I' + str(p) for p in includes], str(cpp), '-o', str(executable)]
+                     *['-I' + str(p) for p in includes], str(cpp),
+                     str(ROOT / 'src/common/Utilities/Tokenize.cpp'), '-o', str(executable)]
         subprocess.run([compiler, *flags], cwd=out, check=True)
         return subprocess.run([str(executable)], cwd=out).returncode
 

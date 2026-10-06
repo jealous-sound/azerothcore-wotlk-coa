@@ -17,6 +17,9 @@ struct CoATalentEntry
     std::uint8_t TECost;
     std::uint8_t RequiredLevel;
     std::array<std::uint32_t, 3> SpellIds;
+    bool Talent = false;
+    bool FreeUnlearn = false;
+    std::array<std::uint32_t, 3> RequiredEntryIds{};
 };
 
 struct CoASelectableFreeEntry
@@ -31,6 +34,14 @@ struct CoAAutomaticDependency
     std::array<std::uint32_t, 2> RequiredEntryIds;
 };
 
+struct CoASpecialization
+{
+    std::uint16_t SpecId;
+    std::uint8_t ClassId;
+    std::uint32_t IdentityEntryId;
+    std::uint32_t SignatureEntryId;
+};
+
 struct CoATalentBudget
 {
     std::uint8_t ClassId;
@@ -42,6 +53,7 @@ struct CoATalentBudget
 extern std::vector<CoATalentEntry> CoATalentEntries;
 extern std::vector<CoASelectableFreeEntry> CoASelectableFreeEntries;
 extern std::vector<CoAAutomaticDependency> CoAAutomaticDependencies;
+extern std::vector<CoASpecialization> CoASpecializations;
 extern std::vector<CoATalentBudget> CoATalentBudgets;
 
 bool GetCoATalentBudget(std::uint8_t classId, std::uint8_t level, std::uint32_t& ae, std::uint32_t& te);

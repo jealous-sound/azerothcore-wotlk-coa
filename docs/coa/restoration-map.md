@@ -20,16 +20,14 @@ per-character system adds, and of what a port has to carry.
 | `src/server/coa/AscensionCompat.cpp` | includes `LocalLevelScaling.h`; hosts the realm-wide fallback lift that must stay **off** while this module owns scaling |
 | `modules/mod-destiny-weaver/src/destiny_weaver.h` | `CMSG_SET_LEVEL_SCALING = 0x0667`, claimed from CoA's client-opcode dispatch (`AscensionCompatOpcodes::Claim`), so a client can toggle scaling without a menu |
 | `src/server/coa/AscensionCompatOpcodes.h` | the client-opcode dispatch and the atlas ids it agrees with |
-| `docs/coa/level-scaling.md` | the implementation reference (formulas, group rules, notifications, the hook-dispatch trap) |
-| `docs/coa/level-scaling-vs-main.md` | the comparison against `main`, the answer on their fixes, the multi-player and notification audits |
+| `docs/coa/level-scaling.md` | the implementation reference (formulas, group rules, notifications, the hook-dispatch trap, the multi-player and notification audits) |
 
 ### Server, in the core (patches to stock AzerothCore files)
 
 | file | what was changed |
 |---|---|
-| `src/server/game/Miscellaneous/LocalLevelScaling.h` | the shared rules header: `CreatureOffset`, `CreatureMaxLift`, `ScaleCreatureLevel`, `ScaleQuestLevel`, `RewardKeepPercent`, the reward keep-shares, and the three resolver slots a module installs (`QuestScalingOwner`, `CreatureViewArmorOwner`, `CreatureViewLevelOwner`) with their accessors |
+| `src/server/game/Miscellaneous/LocalLevelScaling.h` | the shared rules header: `CreatureOffset`, `ScaleCreatureLevelForViewer`, `ScaleQuestLevel`, `RewardKeepPercent`, the reward keep-shares, and the three resolver slots a module installs (`QuestScalingOwner`, `CreatureViewArmorOwner`, `CreatureViewLevelOwner`) with their accessors |
 | `src/server/game/Entities/Unit/Unit.cpp` | `CalcArmorReducedDamage` asks the viewer's armor resolver; `getLevelForTarget` returns the view level for a creature, which is the single lever every level-derived roll hangs off |
-| `src/server/game/Entities/Creature/Creature.cpp` / `.h` | `Creature::RefreshLevelDependantStats()` — the level-dependent pass `UpdateEntry` runs after `SelectLevel`, exposed for anything that changes a creature's level at runtime |
 | `src/server/game/Entities/Player/Player.cpp` / `.h` | `Player::RefreshQuestLogQueries()`; `isHonorOrXPTarget` and `RewardReputation` read the view level |
 | `src/server/game/Entities/Player/PlayerQuest.cpp` | `Player::GetQuestLevel` asks the per-character resolver |
 | `src/server/game/Entities/Player/KillRewarder.cpp` | the gray check and the kill experience are per member, on that member's view level |
@@ -50,7 +48,6 @@ per-character system adds, and of what a port has to carry.
 | `DestinyWeaver.Scaling.QuestXpKeepShare` | | 100 | experience kept there — 100 puts no discount on levelling |
 | `DestinyWeaver.ExperienceBonusControl` | | 1 | exposes the second Weaver option |
 | `DestinyWeaver.DisplayStream.Enable` | | 1 | streams the Weavers' display rows (Part 2) |
-| `CoA.LevelScaling` | `coa.conf` | either | the realm-wide object lift; it stands aside by itself while the per-character module is on (see `CreatureScalingOwnedPerViewer`), so no configuration change is needed either way |
 
 Each key lives in its component's `*.conf.dist` (`src/server/coa/conf/coa.conf.dist` and
 `modules/mod-destiny-weaver/conf/destiny_weaver.conf.dist`).
@@ -166,7 +163,5 @@ has:
    installed, the core answers exactly as `main` does today).
 2. **`mod-destiny-weaver`** — scaling engine, the menu, the notifications, the display stream.
 3. **The SQL updates** — creatures, models, presets, spawns, gossip text.
-4. **Nothing about `CoA.LevelScaling`**: the realm-wide lift stands aside automatically
-   while the per-character module is enabled, and returns when it is not.
-5. **Nothing client-side**, which is the point of streaming the displays and of keeping the
+4. **Nothing client-side**, which is the point of streaming the displays and of keeping the
    per-recipient patch: the same build works on a stock CoA client.

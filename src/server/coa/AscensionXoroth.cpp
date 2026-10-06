@@ -63,6 +63,11 @@ void Reduce(Player* player, uint32 root, int32 milliseconds)
 }
 void Replace(Player* player, uint32 root, uint32 replacement)
 {
+    if (replacement)
+        for (auto const& [id, spell] : player->GetSpellMap())
+            if (player->HasActiveSpell(id) && Named(sSpellMgr->GetSpellInfo(id), replacement) &&
+                sSpellMgr->GetSpellRank(id) > sSpellMgr->GetSpellRank(replacement))
+                replacement = id;
     for (auto const& pair : player->GetSpellMap())
         if (player->HasSpell(pair.first) && Named(sSpellMgr->GetSpellInfo(pair.first), root))
             player->SetTemporarySpellReplacement(pair.first, replacement);
@@ -157,6 +162,12 @@ void Blood(Player* player)
         Unleash(player, player, .5f);
     Refresh(player);
 }
+void SetRemainingUses(Aura* aura, uint8 uses)
+{
+    aura->SetScriptValue(aura->GetId(), uses);
+    aura->SetCharges(uses);
+    aura->SetUsingCharges(false);
+}
 void Refresh(Player* player)
 {
     auto& state = State(player);
@@ -182,7 +193,10 @@ void Refresh(Player* player)
         if (aura && aura->GetEffect(EFFECT_0) && aura->GetEffect(EFFECT_0)->GetAmount() != value)
             aura->GetEffect(EFFECT_0)->ChangeAmount(value);
     };
-    scale(302546, player->GetAuraOfRankedSpell(706569) ? imps * Amount(302546) : 0);
+    int32 blockPerImp = player->HasAura(707836)                ? Amount(302546, 1)
+                        : player->GetAuraOfRankedSpell(706569) ? Amount(302546)
+                                                               : 0;
+    scale(302546, int32(imps) * blockPerImp);
     scale(302573, player->HasAura(804340) ? imps * Amount(302573) : 0);
     scale(302574, player->HasAura(804340) ? -int32(imps) * Amount(302574) : 0);
     scale(302592, imps);
@@ -197,6 +211,13 @@ void Refresh(Player* player)
         effect->ChangeAmount(Count(player, 500906));
 
     scale(573075, player->HasAura(573035) ? player->GetUInt32Value(PLAYER_FIELD_COMBAT_RATING_1 + CR_BLOCK) / 2 : 0);
+    if (player->HasAura(800710) && !player->HasSpell(520005))
+        player->learnSpell(520005);
+    if (!player->HasAura(800710) && player->HasSpell(520005))
+    {
+        Replace(player, 500904, 0);
+        player->removeSpell(520005, SPEC_MASK_ALL, false);
+    }
     for (auto const& replacement : {std::array<uint32, 3>{800710, 500904, 520005},
                                     {570727, 801059, 802581},
                                     {807587, 801059, 520292}})

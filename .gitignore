@@ -6,6 +6,7 @@
 /conf/*
 !/conf/dist
 /modules/*
+!/modules/mod-coa-change-potions/
 !/modules/*.md
 !/modules/*.sh
 !/modules/CMakeLists.txt
@@ -136,3 +137,13 @@ __pycache__/
 !/modules/mod-destiny-weaver/
 !/modules/mod-treasure-keeper/
 !/modules/mod-coa-titan-scrolls/
+!/modules/mod-path-to-ascension/
+!/modules/mod-war-games/
+!/modules/mod-hero-call-board/
+!/modules/mod-item-recovery/
+!/modules/mod-battlehorn/
+!/modules/mod-scrolls-of-retreat/
+!/modules/mod-coa-prestige/
+!/modules/mod-woodworking/
+!/modules/mod-portable-sawmill/
+!/modules/mod-coa-legendary-items/

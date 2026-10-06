@@ -6,6 +6,7 @@ import runpy
 import shutil
 import subprocess
 import tempfile
+import textwrap
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -80,8 +81,10 @@ def main():
     start = attack.index("    if (target->HasUnitFlag(UNIT_FLAG_NON_ATTACKABLE")
     attack = attack[start:attack.index("    ReputationRank repThisToTarget", start)]
     harness = (HERE.parent / "tinker_sentry/harness.cpp").read_text(encoding="utf-8")
-    harness = harness[:harness.index("// ACTUAL_TIMER")].replace("// ACTUAL_ADMISSION", attack)
+    harness = harness[:harness.index("// ACTUAL_TIMER")].replace("// ACTUAL_ADMISSION", textwrap.indent(attack, "    "))
     harness += CASES.replace("// ACTUAL_IMP", imp)
+    for name in ("RANGED_ATTACK", "CURRENT_AUTOREPEAT_SPELL", "SPELL_AURA_MOD_PACIFY"):
+        harness = harness.replace("constexpr uint32 " + name, "[[maybe_unused]] constexpr uint32 " + name)
     compiler = shutil.which(os.environ.get("CXX", "g++"))
     assert compiler, "Set CXX to a C++20 compiler."
     with tempfile.TemporaryDirectory(prefix="coa-hellfire-imp-") as directory:

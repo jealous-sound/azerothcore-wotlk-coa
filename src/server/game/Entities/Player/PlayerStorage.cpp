@@ -5760,6 +5760,9 @@ bool Player::isAllowedToLoot(Creature const* creature)
     if (loot->loot_type == LOOT_SKINNING)
         return creature->GetLootRecipientGUID() == GetGUID();
 
+    if (creature->IsSharedQuestParticipant(this) && loot->hasItemFor(this))
+        return true;
+
     Group* thisGroup = GetGroup();
     if (!thisGroup)
         return this == creature->GetLootRecipient();

@@ -96,7 +96,7 @@ void WorldSession::SendTrainerList(Creature* npc, bool onlyTrainable)
     if (GetPlayer()->HasUnitState(UNIT_STATE_DIED))
         GetPlayer()->RemoveAurasByType(SPELL_AURA_FEIGN_DEATH);
 
-    Trainer::Trainer const* trainer = sObjectMgr->GetTrainer(npc->GetEntry());
+    Trainer::Trainer const* trainer = Trainer::GetTrainerFor(npc, _player);
     if (!trainer)
     {
         LOG_DEBUG("network", "WorldSession: SendTrainerList - trainer spells not found for {}", npc->GetGUID().ToString().c_str());
@@ -129,7 +129,7 @@ void WorldSession::HandleTrainerBuySpellOpcode(WorldPackets::NPC::TrainerBuySpel
     if (GetPlayer()->HasUnitState(UNIT_STATE_DIED))
         GetPlayer()->RemoveAurasByType(SPELL_AURA_FEIGN_DEATH);
 
-    Trainer::Trainer* trainer = sObjectMgr->GetTrainer(npc->GetEntry());
+    Trainer::Trainer* trainer = Trainer::GetTrainerFor(npc, _player);
     if (!trainer)
         return;
 
@@ -322,6 +322,10 @@ void WorldSession::SendBindPoint(Creature* npc)
 
     // send spell for homebinding (3286)
     npc->CastSpell(_player, bindspell, true);
+
+    // Innkeepers replace a lost Hearthstone when the player makes the inn their home.
+    if (!_player->HasItemCount(6948, 1, true))
+        _player->AddItem(6948, 1);
 
     WorldPacket data(SMSG_TRAINER_BUY_SUCCEEDED, (8 + 4));
     data << npc->GetGUID();
@@ -602,6 +606,38 @@ void WorldSession::HandleUnstablePet(WorldPacket& recvData)
 
         SendStableResult(STABLE_SUCCESS_UNSTABLE);
     }
+}
+
+// The Ascension stable window's delete button calls DeleteStablePet(petNumber), which sends this extension opcode
+// without the stable master. A success result makes the client ask the stable master for the list again.
+void WorldSession::HandleStableDeletePet(WorldPacket& recvData)
+{
+    LOG_DEBUG("network", "WORLD: Recv CMSG_STABLE_DELETE_PET.");
+    uint32 petNumber;
+
+    recvData >> petNumber;
+
+    PetStable* petStable = GetPlayer()->GetPetStable();
+    if (!petStable)
+    {
+        SendStableResult(STABLE_ERR_STABLE);
+        return;
+    }
+
+    auto stabledPet = std::find_if(petStable->StabledPets.begin(), petStable->StabledPets.end(), [petNumber](Optional<PetStable::PetInfo> const& pet)
+    {
+        return pet && pet->PetNumber == petNumber;
+    });
+
+    if (stabledPet == petStable->StabledPets.end())
+    {
+        SendStableResult(STABLE_ERR_STABLE);
+        return;
+    }
+
+    stabledPet->reset();
+    Pet::DeleteFromDB(petNumber);
+    SendStableResult(STABLE_SUCCESS_STABLE);
 }
 
 void WorldSession::HandleBuyStableSlot(WorldPacket& recvData)
