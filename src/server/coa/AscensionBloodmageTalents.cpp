@@ -78,6 +78,8 @@ enum BloodmageTalentSpells : uint32
     SPELL_ATHERANNS_ANGUISH = 680680,
     SPELL_ATHERANNS_ANGUISH_EXPLOSION = 680681,
     SPELL_NIGHT_STALKER_BUFF = 808013,
+    SPELL_TRANSGRESSION = 801076,
+    SPELL_VAMPIRIC_FEAST = 804934,
     SPELL_CARDIAC_ARREST_LEECH = 806946,
     SPELL_BLOOD_ORB_PERIODIC = 712418,
     SPELL_BLOOD_ORB_CDR = 712385,
@@ -714,6 +716,38 @@ class aura_ascension_bloodmage_cursed_blood : public AuraScript
     {
         DoCheckProc += AuraCheckProcFn(aura_ascension_bloodmage_cursed_blood::Check);
         OnEffectProc += AuraEffectProcFn(aura_ascension_bloodmage_cursed_blood::Proc, EFFECT_0, AuraType(354));
+    }
+};
+
+class aura_ascension_bloodmage_transgression : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_bloodmage_transgression);
+
+    bool Validate(SpellInfo const* info) override
+    {
+        return info->Id == SPELL_TRANSGRESSION &&
+            info->Effects[EFFECT_2].IsAura(AuraType(354)) &&
+            info->Effects[EFFECT_2].TriggerSpell == SPELL_VAMPIRIC_FEAST &&
+            ValidateSpellInfo({SPELL_VAMPIRIC_FEAST});
+    }
+
+    bool Check(ProcEventInfo& event)
+    {
+        return IsBloodmageDamageProc(GetTarget(), GetCaster(), event);
+    }
+
+    void Proc(AuraEffect const* effect, ProcEventInfo& event)
+    {
+        PreventDefaultAction();
+        if (int32 damage = BloodmageProcShare(effect, event))
+            GetTarget()->CastCustomSpell(SPELL_VAMPIRIC_FEAST, SPELLVALUE_BASE_POINT0, damage,
+                event.GetActionTarget(), TRIGGERED_FULL_MASK);
+    }
+
+    void Register() override
+    {
+        DoCheckProc += AuraCheckProcFn(aura_ascension_bloodmage_transgression::Check);
+        OnEffectProc += AuraEffectProcFn(aura_ascension_bloodmage_transgression::Proc, EFFECT_2, AuraType(354));
     }
 };
 
@@ -1538,6 +1572,7 @@ void AddSC_AscensionBloodmageTalents()
     RegisterSpellScript(aura_ascension_bloodmage_thick_pelt);
     RegisterSpellScript(aura_ascension_bloodmage_blood_moon);
     RegisterSpellScript(aura_ascension_bloodmage_cursed_blood);
+    RegisterSpellScript(aura_ascension_bloodmage_transgression);
     RegisterSpellScript(aura_ascension_bloodmage_essence_harvester);
     RegisterSpellScript(aura_ascension_bloodmage_blood_bond);
     RegisterSpellScript(aura_ascension_bloodmage_atheranns_anguish);
