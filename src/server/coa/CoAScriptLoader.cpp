@@ -40,6 +40,7 @@ void AddSC_CoALfgStartPoint();
 void AddSC_CoABossProbe();
 void AddSC_CoADungeonSpellDamage();
 void AddSC_CoADungeonBossKit();
+void AddSC_CoADungeonCompletion();
 void AddSC_CoADungeonSpoils();
 void AddSC_CoADungeonTuning();
 void AddSC_CoADungeonBossSpells();
@@ -637,6 +638,7 @@ void AddCoAScripts()
     AddSC_CoABossProbe();
     AddSC_CoADungeonSpellDamage();
     AddSC_CoADungeonBossKit();
+    AddSC_CoADungeonCompletion();
     AddSC_CoADungeonSpoils();
     AddSC_CoADungeonTuning();
     AddSC_CoADungeonBossSpells();
