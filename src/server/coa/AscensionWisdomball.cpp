@@ -108,6 +108,16 @@ std::string IdList(std::vector<uint32> const& ids)
     return list;
 }
 
+std::vector<uint32> ExtraQuestSortAreas(uint32 mapId)
+{
+    std::vector<uint32> areas;
+
+    if (mapId == RazorfenKraulMapId)
+        areas.push_back(RazorfenKraulOverworldQuestSortAreaId);
+
+    return areas;
+}
+
 std::vector<uint32> AreasOfMap(uint32 mapId)
 {
     std::vector<uint32> areas;
@@ -117,8 +127,8 @@ std::vector<uint32> AreasOfMap(uint32 mapId)
             if (area->mapid == mapId)
                 areas.push_back(area->ID);
 
-    if (mapId == RazorfenKraulMapId)
-        areas.push_back(RazorfenKraulOverworldQuestSortAreaId);
+    for (uint32 extra : ExtraQuestSortAreas(mapId))
+        areas.push_back(extra);
 
     return areas;
 }
@@ -203,6 +213,10 @@ std::vector<uint32> LoadAllDungeonQuests()
         if (AreaTableEntry const* area = sAreaTableStore.LookupEntry(i))
             if (std::binary_search(maps.begin(), maps.end(), area->mapid))
                 areas.push_back(area->ID);
+
+    for (uint32 map : maps)
+        for (uint32 extra : ExtraQuestSortAreas(map))
+            areas.push_back(extra);
 
     if (!areas.empty())
         ReadQuestIds(ids, "SELECT ID FROM quest_template WHERE QuestSortID IN (" + IdList(areas) + ")");
