@@ -4,10 +4,12 @@
 #include "CoACreatureScalingPolicy.h"
 #include "AllCreatureScript.h"
 #include "Config.h"
-#include "DatabaseEnv.h"
 #include "Creature.h"
+#include "DatabaseEnv.h"
+#include "Field.h"
 #include "Log.h"
 #include "Map.h"
+#include "QueryResult.h"
 #include "UnitScript.h"
 #include "WorldScript.h"
 #include <atomic>
