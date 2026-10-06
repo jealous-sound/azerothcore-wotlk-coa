@@ -38,6 +38,7 @@ void AddSC_CoALfgStartPoint();
 void AddSC_CoABossProbe();
 void AddSC_CoADungeonSpellDamage();
 void AddSC_CoADungeonBossKit();
+void AddSC_CoADungeonTuning();
 void AddSC_CoADungeonBossSpells();
 void AddSC_AscensionKeepersScrollSteadfast();
 void AddSC_AscensionProfessionSpellAffect();
@@ -619,6 +620,7 @@ void AddCoAScripts()
     AddSC_CoABossProbe();
     AddSC_CoADungeonSpellDamage();
     AddSC_CoADungeonBossKit();
+    AddSC_CoADungeonTuning();
     AddSC_CoADungeonBossSpells();
     AddSC_AscensionKeepersScrollSteadfast();
     AddSC_AscensionProfessionSpellAffect();
