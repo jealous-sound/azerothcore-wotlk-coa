@@ -316,6 +316,20 @@ Ascension.CallboardCache.PreviousStageOnly = 0
 Ascension.CallboardCache.ItemLevelAllowance = 6
 
 #
+#    Ascension.CallboardCache.StageCachePoints
+#        Description: Callboard Cache progress points that pay one cache of the released
+#                     stage, listed for stages 0-7. Each Callboard quest adds its points
+#                     from ascension_callboard_quest_points; a full bar pays the stage's
+#                     cache (a Heroic Dungeon Callboard Cache at stage 0, the raid's named
+#                     cache above it) and the remainder carries over. Live (2026-09) paid
+#                     the base cache at 3, Zul'Gurub at 5, Molten Core at 10 and Blackwing
+#                     Lair at 15; Onyxia's Lair keeps Molten Core's 10 and the later raids
+#                     Blackwing Lair's 15. Missing stages repeat the last value.
+#        Default:     "3 5 10 10 15 15 15 15"
+
+Ascension.CallboardCache.StageCachePoints = "3 5 10 10 15 15 15 15"
+
+#
 #    CoA.DungeonTuning.Enable
 #        Description: Allow `.mythic damage` and `.mythic health` in 5-man dungeons. Every player can
 #                     raise or lower the damage and health of the creatures in their own instance

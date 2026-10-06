@@ -1,19 +1,28 @@
 /* Copyright (C) 2016+ AzerothCore, GNU AGPL v3. */
 #include "AscensionCacheRewards.h"
+#include "AscensionCompatOpcodes.h"
 #include "Chat.h"
 #include "Config.h"
 #include "DatabaseEnv.h"
 #include "Item.h"
 #include "ItemScript.h"
 #include "Log.h"
+#include "Mail.h"
 #include "ObjectMgr.h"
 #include "Player.h"
 #include "PlayerScript.h"
+#include "QuestDef.h"
 #include "Random.h"
 #include "ScriptMgr.h"
+#include "StringConvert.h"
+#include "Tokenize.h"
 #include "World.h"
+#include "WorldPacket.h"
+#include "WorldSession.h"
 #include <algorithm>
 #include <mutex>
+#include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -23,6 +32,13 @@ constexpr uint32 CallboardGeneric = 978050;
 constexpr uint32 CallboardGenericOld = 1378050;
 constexpr uint32 CallboardGenericVoucher = 1615000;
 constexpr uint32 CallboardBonus = 1478050;
+
+constexpr uint16 SMSG_CALLBOARD_CACHE_CONFIG = 0x0730;
+constexpr uint16 CMSG_QUERY_CALLBOARD_QUEST_POINTS = 0x0731;
+constexpr uint16 SMSG_CALLBOARD_QUEST_POINTS = 0x0732;
+constexpr uint16 SMSG_CALLBOARD_TOKEN_UPDATE = 0x0670;
+constexpr char CallboardPointsToken[] = "TOKEN_TYPE_CALLBOARD_CACHE_POINTS";
+constexpr char CallboardPointsSetting[] = "core.callboard.points";
 
 std::vector<std::vector<uint32>> const CallboardTiers = {
     { 1615001, 1615002 },
@@ -40,15 +56,57 @@ using CallboardPool = std::vector<AscensionCacheRewards::Reward>;
 std::mutex g_poolLock;
 std::unordered_map<uint32, CallboardPool> g_pools;
 
+std::unordered_map<uint32, uint32> g_questPoints;
+
 uint8 g_releaseStage = 7;
 uint32 g_itemLevelAllowance = 6;
 bool g_previousStageOnly = false;
+std::vector<uint32> const DefaultStageCachePoints = { 3, 5, 10, 10, 15, 15, 15, 15 };
+std::vector<uint32> g_stageCachePoints = DefaultStageCachePoints;
+
+std::vector<uint32> ParseStageCachePoints(std::string const& list)
+{
+    std::vector<uint32> points;
+    for (std::string_view token : Acore::Tokenize(list, ' ', false))
+        points.push_back(std::max<uint32>(1, Acore::StringTo<uint32>(token).value_or(1)));
+
+    if (points.empty())
+        return DefaultStageCachePoints;
+
+    points.resize(CallboardTiers.size(), points.back());
+    return points;
+}
+
+void LoadCallboardQuestPoints()
+{
+    std::unordered_map<uint32, uint32> questPoints;
+    if (QueryResult result = WorldDatabase.Query(
+            "SELECT `QuestId`, `Points` FROM `ascension_callboard_quest_points`"))
+    {
+        do
+        {
+            Field* fields = result->Fetch();
+            questPoints[fields[0].Get<uint32>()] = fields[1].Get<uint16>();
+        } while (result->NextRow());
+    }
+    else
+    {
+        LOG_WARN("coa",
+            "ascension_callboard_quest_points is missing: Callboard quests will not fill the cache progress bar.");
+    }
+
+    std::lock_guard<std::mutex> guard(g_poolLock);
+    g_questPoints = std::move(questPoints);
+}
 
 void LoadCallboardCachePools()
 {
     g_releaseStage = uint8(sConfigMgr->GetOption<uint32>("Ascension.CallboardCache.ReleaseStage", 7));
     g_itemLevelAllowance = sConfigMgr->GetOption<uint32>("Ascension.CallboardCache.ItemLevelAllowance", 6);
     g_previousStageOnly = sConfigMgr->GetOption<bool>("Ascension.CallboardCache.PreviousStageOnly", false);
+    g_stageCachePoints = ParseStageCachePoints(
+        sConfigMgr->GetOption<std::string>("Ascension.CallboardCache.StageCachePoints", "3 5 10 10 15 15 15 15"));
+    LoadCallboardQuestPoints();
 
     std::unordered_map<uint32, CallboardPool> pools;
     if (QueryResult result = WorldDatabase.Query(
@@ -88,11 +146,14 @@ uint32 HighestItemLevel(CallboardPool const& pool)
     return highest;
 }
 
+uint8 ReleasedStage()
+{
+    return std::min<uint8>(g_releaseStage, uint8(CallboardTiers.size() - 1));
+}
+
 uint8 HighestStage(uint32 cacheItemId)
 {
-    uint8 highest = g_releaseStage;
-    if (!CallboardTiers.empty() && highest > CallboardTiers.size() - 1)
-        highest = uint8(CallboardTiers.size() - 1);
+    uint8 highest = ReleasedStage();
     if ((g_previousStageOnly || cacheItemId == CallboardGenericOld) && highest > 0)
         --highest;
     return highest;
@@ -187,6 +248,114 @@ bool OpenCallboardCache(Player* player, Item* item)
     return true;
 }
 
+uint32 QuestPoints(uint32 questId)
+{
+    std::lock_guard<std::mutex> guard(g_poolLock);
+    auto it = g_questPoints.find(questId);
+    return it == g_questPoints.end() ? 0 : it->second;
+}
+
+uint32 OpenTierCache()
+{
+    return CallboardTiers[ReleasedStage()].front();
+}
+
+uint32 PointsPerCache()
+{
+    return g_stageCachePoints[ReleasedStage()];
+}
+
+uint32 StoredPoints(Player const* player)
+{
+    PlayerSettingVector const* stored = player->FindPlayerSettings(CallboardPointsSetting);
+    return stored && !stored->empty() ? stored->front().value : 0;
+}
+
+void SendPoints(Player* player, uint32 points)
+{
+    WorldPacket update(SMSG_CALLBOARD_TOKEN_UPDATE, sizeof(CallboardPointsToken) + 2 * sizeof(uint32));
+    update << CallboardPointsToken << points << uint32(0);
+    player->SendDirectMessage(&update);
+}
+
+void SetPoints(Player* player, uint32 points)
+{
+    player->UpdatePlayerSetting(CallboardPointsSetting, 0, points);
+    SendPoints(player, points);
+}
+
+void SendCacheConfig(Player* player)
+{
+    WorldPacket config(SMSG_CALLBOARD_CACHE_CONFIG, 7 * sizeof(uint32));
+    config << uint32(1);
+    config << uint32(1) << uint32(0) << uint32(0) << uint32(0) << OpenTierCache() << PointsPerCache();
+    player->SendDirectMessage(&config);
+}
+
+void GrantCache(Player* player, uint32 cacheItemId)
+{
+    ItemPosCountVec dest;
+    if (player->CanStoreNewItem(NULL_BAG, NULL_SLOT, dest, cacheItemId, 1) == EQUIP_ERR_OK)
+    {
+        if (Item* item = player->StoreNewItem(dest, cacheItemId, true))
+        {
+            player->SendNewItem(item, 1, true, false);
+            return;
+        }
+    }
+
+    Item* item = Item::CreateItem(cacheItemId, 1, player);
+    if (!item)
+        return;
+
+    CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
+    item->SaveToDB(trans);
+    MailDraft("Callboard Cache", "Your bags were full, so your Callboard Cache was sent by mail.")
+        .AddItem(item)
+        .SendMailTo(trans, MailReceiver(player), MailSender(player));
+    CharacterDatabase.CommitTransaction(trans);
+}
+
+void AwardQuestPoints(Player* player, uint32 questId)
+{
+    uint32 const award = QuestPoints(questId);
+    if (!award)
+        return;
+
+    uint32 points = StoredPoints(player) + award;
+    SetPoints(player, points);
+
+    uint32 const cacheItemId = OpenTierCache();
+    if (!sObjectMgr->GetItemTemplate(cacheItemId))
+        return;
+
+    uint32 const threshold = PointsPerCache();
+    while (points >= threshold)
+    {
+        GrantCache(player, cacheItemId);
+        points -= threshold;
+        SetPoints(player, points);
+    }
+}
+
+bool HandleQuestPointsQuery(WorldSession* session, WorldPacket const& packet)
+{
+    if (!session || packet.size() < sizeof(uint32))
+        return true;
+
+    uint32 const questId = packet.read<uint32>(0);
+    WorldPacket reply(SMSG_CALLBOARD_QUEST_POINTS, 3 * sizeof(uint32));
+    reply << questId << QuestPoints(questId) << uint32(0);
+    session->SendPacket(&reply);
+    return true;
+}
+
+void SendProgressState(Player* player)
+{
+    SendCacheConfig(player);
+    SendPoints(player, StoredPoints(player));
+}
+
 class item_ascension_callboard_cache : public ItemScript
 {
 public:
@@ -209,6 +378,31 @@ public:
         if (!item || !OpenCallboardCache(player, item))
             return true;
         return false;
+    }
+};
+
+class ascension_callboard_cache_progress : public PlayerScript
+{
+public:
+    ascension_callboard_cache_progress()
+        : PlayerScript("ascension_callboard_cache_progress",
+              { PLAYERHOOK_ON_LOGIN, PLAYERHOOK_ON_SEND_INITIAL_PACKETS_BEFORE_ADD_TO_MAP,
+                PLAYERHOOK_ON_PLAYER_COMPLETE_QUEST }) { }
+
+    void OnPlayerLogin(Player* player) override
+    {
+        SendProgressState(player);
+    }
+
+    void OnPlayerSendInitialPacketsBeforeAddToMap(Player* player, WorldPacket&) override
+    {
+        if (player->IsInWorld())
+            SendProgressState(player);
+    }
+
+    void OnPlayerCompleteQuest(Player* player, Quest const* quest) override
+    {
+        AwardQuestPoints(player, quest->GetQuestId());
     }
 };
 
@@ -236,5 +430,7 @@ void AddSC_AscensionCallboardCache()
 {
     new item_ascension_callboard_cache();
     new ascension_callboard_cache_open();
+    new ascension_callboard_cache_progress();
     new ascension_callboard_cache_pools();
+    AscensionCompatOpcodes::Claim(CMSG_QUERY_CALLBOARD_QUEST_POINTS, &HandleQuestPointsQuery);
 }

@@ -1,0 +1,366 @@
+{
+  "schema": 1,
+  "name": "Callboard quests fill the cache progress bar and a full bar pays the released stage's cache",
+  "contract": "Callboard Cache progress as on Ascension live. The client asks a quest's points with CMSG 0x731 (quest id) and reads SMSG 0x732 (quest id, points, 0); captured live replies (questcacheaddon.wdb, 2026-08/09) give Dungeon Diving 81244 15 and the world boss quest 170015 50, and uncaptured quests follow the Bronzebeard video of 2025-11-05: profession 15, world kill 20, elite 25. A quest outside the Callboard is worth 0. At login the server sends SMSG 0x730 with one cache record (count 1; id, 0, condition 0, item level 0, cache item, points per cache) and the TOKEN_TYPE_CALLBOARD_CACHE_POINTS token (SMSG 0x670: name, amount, 0). At the default release stage 7 the cache is Callboard Cache (Naxxramas) 1615009 at 15 points, the highest live threshold (Blackwing Lair, 2026-09). A turn-in adds its points and pays one cache per 15, keeping the remainder, as a live turn-in subtracted the threshold once per cache: an elite quest (25) pays one and leaves 10, a world kill (20) then reaches 30 and pays two, leaving 0, another elite pays one and leaves 10. The points survive the next login.",
+  "timeout_ms": 180000,
+  "location": {
+    "map": 0,
+    "x": -8914.0,
+    "y": -133.0,
+    "z": 80.6
+  },
+  "players": [
+    {
+      "id": "hero",
+      "race": 1,
+      "class": 1,
+      "level": 60
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "ms": 3000
+    },
+    {
+      "action": "client_packet",
+      "label": "Ask the points of an elite Callboard quest",
+      "actor": "hero",
+      "opcode": 1841,
+      "fields": [
+        {
+          "u32": 18034
+        }
+      ]
+    },
+    {
+      "action": "assert",
+      "label": "the reply names quest 18034",
+      "actor": "hero",
+      "metric": "server_packet_u32",
+      "opcode": 1842,
+      "index": 0,
+      "equals": 18034,
+      "within_ms": 2000
+    },
+    {
+      "action": "assert",
+      "label": "quest 18034 is worth 25 points",
+      "actor": "hero",
+      "metric": "server_packet_u32",
+      "opcode": 1842,
+      "index": 1,
+      "equals": 25
+    },
+    {
+      "action": "client_packet",
+      "label": "Ask the points of a profession Callboard quest",
+      "actor": "hero",
+      "opcode": 1841,
+      "fields": [
+        {
+          "u32": 26035
+        }
+      ]
+    },
+    {
+      "action": "assert",
+      "label": "the reply names quest 26035",
+      "actor": "hero",
+      "metric": "server_packet_u32",
+      "opcode": 1842,
+      "index": 0,
+      "equals": 26035,
+      "within_ms": 2000
+    },
+    {
+      "action": "assert",
+      "label": "quest 26035 is worth 15 points",
+      "actor": "hero",
+      "metric": "server_packet_u32",
+      "opcode": 1842,
+      "index": 1,
+      "equals": 15
+    },
+    {
+      "action": "client_packet",
+      "label": "Ask the points of a world kill Callboard quest",
+      "actor": "hero",
+      "opcode": 1841,
+      "fields": [
+        {
+          "u32": 18017
+        }
+      ]
+    },
+    {
+      "action": "assert",
+      "label": "the reply names quest 18017",
+      "actor": "hero",
+      "metric": "server_packet_u32",
+      "opcode": 1842,
+      "index": 0,
+      "equals": 18017,
+      "within_ms": 2000
+    },
+    {
+      "action": "assert",
+      "label": "quest 18017 is worth 20 points",
+      "actor": "hero",
+      "metric": "server_packet_u32",
+      "opcode": 1842,
+      "index": 1,
+      "equals": 20
+    },
+    {
+      "action": "client_packet",
+      "label": "Ask the points of Dungeon Diving",
+      "actor": "hero",
+      "opcode": 1841,
+      "fields": [
+        {
+          "u32": 81244
+        }
+      ]
+    },
+    {
+      "action": "assert",
+      "label": "the reply names quest 81244",
+      "actor": "hero",
+      "metric": "server_packet_u32",
+      "opcode": 1842,
+      "index": 0,
+      "equals": 81244,
+      "within_ms": 2000
+    },
+    {
+      "action": "assert",
+      "label": "quest 81244 is worth 15 points",
+      "actor": "hero",
+      "metric": "server_packet_u32",
+      "opcode": 1842,
+      "index": 1,
+      "equals": 15
+    },
+    {
+      "action": "client_packet",
+      "label": "Ask the points of a world boss quest",
+      "actor": "hero",
+      "opcode": 1841,
+      "fields": [
+        {
+          "u32": 170015
+        }
+      ]
+    },
+    {
+      "action": "assert",
+      "label": "the reply names quest 170015",
+      "actor": "hero",
+      "metric": "server_packet_u32",
+      "opcode": 1842,
+      "index": 0,
+      "equals": 170015,
+      "within_ms": 2000
+    },
+    {
+      "action": "assert",
+      "label": "quest 170015 is worth 50 points",
+      "actor": "hero",
+      "metric": "server_packet_u32",
+      "opcode": 1842,
+      "index": 1,
+      "equals": 50
+    },
+    {
+      "action": "client_packet",
+      "label": "Ask the points of a quest outside the Callboard",
+      "actor": "hero",
+      "opcode": 1841,
+      "fields": [
+        {
+          "u32": 33
+        }
+      ]
+    },
+    {
+      "action": "assert",
+      "label": "the reply names quest 33",
+      "actor": "hero",
+      "metric": "server_packet_u32",
+      "opcode": 1842,
+      "index": 0,
+      "equals": 33,
+      "within_ms": 2000
+    },
+    {
+      "action": "assert",
+      "label": "quest 33 is worth 0 points",
+      "actor": "hero",
+      "metric": "server_packet_u32",
+      "opcode": 1842,
+      "index": 1,
+      "equals": 0
+    },
+    {
+      "action": "login_hooks",
+      "label": "Log in",
+      "actor": "hero"
+    },
+    {
+      "action": "assert",
+      "label": "the cache config holds one record",
+      "actor": "hero",
+      "metric": "server_packet_u32",
+      "opcode": 1840,
+      "index": 0,
+      "equals": 1,
+      "within_ms": 2000
+    },
+    {
+      "action": "assert",
+      "label": "the record is always eligible",
+      "actor": "hero",
+      "metric": "server_packet_u32",
+      "opcode": 1840,
+      "index": 3,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "its cache is the released stage's Naxxramas cache",
+      "actor": "hero",
+      "metric": "server_packet_u32",
+      "opcode": 1840,
+      "index": 5,
+      "equals": 1615009
+    },
+    {
+      "action": "assert",
+      "label": "a late raid cache needs 15 points",
+      "actor": "hero",
+      "metric": "server_packet_u32",
+      "opcode": 1840,
+      "index": 6,
+      "equals": 15
+    },
+    {
+      "action": "assert",
+      "label": "a new character starts with an empty bar",
+      "actor": "hero",
+      "metric": "server_packet_u32",
+      "opcode": 1648,
+      "skip_strings": 1,
+      "index": 0,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "a new character holds no cache",
+      "actor": "hero",
+      "metric": "item_count",
+      "item": 1615009,
+      "equals": 0
+    },
+    {
+      "action": "prepare_quest",
+      "actor": "hero",
+      "quest": 18034
+    },
+    {
+      "action": "reward_quest",
+      "actor": "hero",
+      "quest": 18034
+    },
+    {
+      "action": "assert",
+      "label": "an elite quest pays one cache and leaves 10",
+      "actor": "hero",
+      "metric": "server_packet_u32",
+      "opcode": 1648,
+      "skip_strings": 1,
+      "index": 0,
+      "equals": 10
+    },
+    {
+      "action": "assert",
+      "label": "the first cache arrives",
+      "actor": "hero",
+      "metric": "item_count",
+      "item": 1615009,
+      "equals": 1
+    },
+    {
+      "action": "prepare_quest",
+      "actor": "hero",
+      "quest": 18017
+    },
+    {
+      "action": "reward_quest",
+      "actor": "hero",
+      "quest": 18017
+    },
+    {
+      "action": "assert",
+      "label": "a world kill quest reaches 30 and pays two caches",
+      "actor": "hero",
+      "metric": "server_packet_u32",
+      "opcode": 1648,
+      "skip_strings": 1,
+      "index": 0,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "two caches arrive at once",
+      "actor": "hero",
+      "metric": "item_count",
+      "item": 1615009,
+      "equals": 3
+    },
+    {
+      "action": "prepare_quest",
+      "actor": "hero",
+      "quest": 18036
+    },
+    {
+      "action": "reward_quest",
+      "actor": "hero",
+      "quest": 18036
+    },
+    {
+      "action": "assert",
+      "label": "another elite quest leaves 10 again",
+      "actor": "hero",
+      "metric": "server_packet_u32",
+      "opcode": 1648,
+      "skip_strings": 1,
+      "index": 0,
+      "equals": 10
+    },
+    {
+      "action": "assert",
+      "label": "the fourth cache arrives",
+      "actor": "hero",
+      "metric": "item_count",
+      "item": 1615009,
+      "equals": 4
+    },
+    {
+      "action": "login_hooks",
+      "label": "Log in again",
+      "actor": "hero"
+    },
+    {
+      "action": "assert",
+      "label": "the bar keeps its points",
+      "actor": "hero",
+      "metric": "server_packet_u32",
+      "opcode": 1648,
+      "skip_strings": 1,
+      "index": 0,
+      "equals": 10,
+      "within_ms": 2000
+    }
+  ]
+}
