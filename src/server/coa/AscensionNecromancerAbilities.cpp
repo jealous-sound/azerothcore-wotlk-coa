@@ -17,18 +17,20 @@ namespace AscensionNecromancer
 {
 void CorpseExplosion(Player* player, Unit* center)
 {
-    for (Unit* unit : Nearby(center, 15.0f, false))
-        if (Creature* corpse = unit->ToCreature())
-            if (corpse->getDeathState() == DeathState::Corpse &&
-                corpse->GetCreatureType() != CREATURE_TYPE_MECHANICAL &&
-                corpse->GetCreatureType() != CREATURE_TYPE_ELEMENTAL && center->IsWithinLOSInMap(corpse))
-            {
-                auto targets = Nearby(corpse, 10.0f);
-                corpse->RemoveCorpse();
-                for (Unit* target : targets)
-                    if (player->IsValidAttackTarget(target))
-                        Copy(player, target, 533240, std::max(1, Amount(KnownRank(player, 533236), 0, player)));
-            }
+    std::list<Creature*> corpses;
+    center->GetDeadCreatureListInGrid(corpses, 15.0f, true);
+    for (Creature* corpse : corpses)
+        if (corpse->getDeathState() == DeathState::Corpse &&
+            corpse->GetCreatureType() != CREATURE_TYPE_MECHANICAL &&
+            corpse->GetCreatureType() != CREATURE_TYPE_ELEMENTAL && center->InSamePhase(corpse) &&
+            center->IsWithinLOSInMap(corpse))
+        {
+            auto targets = Nearby(corpse, 10.0f);
+            corpse->RemoveCorpse();
+            for (Unit* target : targets)
+                if (player->IsValidAttackTarget(target))
+                    Copy(player, target, 533240, std::max(1, Amount(KnownRank(player, 533236), 0, player)));
+        }
 }
 }
 namespace

@@ -137,14 +137,14 @@ def aura_text(item):
     if item['power'] == 'Signature':
         return f"Increases the main hit damage of your {item['signature_name']} by $s1%."
     if item['power'] == 'Movement':
-        return 'Increases movement speed by $s1%.'
+        return f"Increases movement speed by {item['magnitude']}%."
     if item['power'] == 'Armor':
-        return 'Increases armor by $s1%.'
+        return f"Increases armor by {item['magnitude']}%."
     if item['profile'] == 'Caster':
-        return 'Increases spell power by $s1.'
+        return 'Increases spell power by an amount that grows with the item level.'
     if item['profile'].endswith('Hybrid'):
-        return 'Increases attack power by $s1 and spell power by $s2.'
-    return 'Increases melee and ranged attack power by $s1.'
+        return 'Increases attack power and spell power by amounts that grow with the item level.'
+    return 'Increases melee and ranged attack power by an amount that grows with the item level.'
 
 
 def render_sql(catalog):

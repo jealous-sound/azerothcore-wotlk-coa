@@ -314,3 +314,13 @@ Ascension.CallboardCache.PreviousStageOnly = 0
 #        Default:     6
 
 Ascension.CallboardCache.ItemLevelAllowance = 6
+
+#
+#    CoA.DungeonTuning.Enable
+#        Description: Allow `.mythic damage` and `.mythic health` in 5-man dungeons. Every player can
+#                     raise or lower the damage and health of the creatures in their own instance
+#                     by a percentage to try values; each change is logged as a TUNING line.
+#                     For test realms; switch it off on a live realm.
+#        Default:     1
+
+CoA.DungeonTuning.Enable = 1

@@ -1,4 +1,5 @@
 /* Copyright (C) 2016+ AzerothCore, GNU AGPL v3. */
+#include "AscensionClientSpellPatches.h"
 #include "AscensionPooledVitality.h"
 #include "AscensionRealmClock.h"
 #include "DBCStores.h"
@@ -1415,8 +1416,11 @@ public:
         if (!info || info->SpellFamilyName != 26)
             return;
 
+        uint32 const excludeCasterAuraSpell = info->ExcludeCasterAuraSpell;
         info->ExcludeCasterAuraSpell = AscensionBloodmage::RuntimeExcludeCasterAuraSpell(
-            info->SpellFamilyName, info->ExcludeCasterAuraSpell);
+            info->SpellFamilyName, excludeCasterAuraSpell);
+        if (info->ExcludeCasterAuraSpell != excludeCasterAuraSpell)
+            Ascension::ClientSpellPatches::Instance().Register(info->Id);
 
         if (info->Id == SPELL_SANGUINE_ESSENCE_HEAL)
             info->AscensionInheritsResolvedAmount = true;

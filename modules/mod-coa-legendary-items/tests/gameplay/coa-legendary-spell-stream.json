@@ -128,7 +128,7 @@
       "metric": "server_packet_contains",
       "opcode": 2346,
       "row": 9710000,
-      "text": "Increases melee and ranged attack power by $s1.",
+      "text": "Increases melee and ranged attack power by an amount that grows with the item level.",
       "equals": 1
     },
     {
@@ -227,7 +227,7 @@
       "metric": "server_packet_contains",
       "opcode": 2346,
       "row": 9710001,
-      "text": "Increases movement speed by $s1%.",
+      "text": "Increases movement speed by 15%.",
       "equals": 1
     },
     {
@@ -461,7 +461,7 @@
       "metric": "server_packet_contains",
       "opcode": 2346,
       "row": 9710003,
-      "text": "Increases spell power by $s1.",
+      "text": "Increases spell power by an amount that grows with the item level.",
       "equals": 1
     },
     {
@@ -560,7 +560,7 @@
       "metric": "server_packet_contains",
       "opcode": 2346,
       "row": 9710004,
-      "text": "Increases movement speed by $s1%.",
+      "text": "Increases movement speed by 18%.",
       "equals": 1
     },
     {
@@ -794,7 +794,7 @@
       "metric": "server_packet_contains",
       "opcode": 2346,
       "row": 9710006,
-      "text": "Increases attack power by $s1 and spell power by $s2.",
+      "text": "Increases attack power and spell power by amounts that grow with the item level.",
       "equals": 1
     },
     {
@@ -893,7 +893,7 @@
       "metric": "server_packet_contains",
       "opcode": 2346,
       "row": 9710007,
-      "text": "Increases movement speed by $s1%.",
+      "text": "Increases movement speed by 20%.",
       "equals": 1
     },
     {
@@ -1127,7 +1127,7 @@
       "metric": "server_packet_contains",
       "opcode": 2346,
       "row": 9710009,
-      "text": "Increases melee and ranged attack power by $s1.",
+      "text": "Increases melee and ranged attack power by an amount that grows with the item level.",
       "equals": 1
     },
     {
@@ -1226,7 +1226,7 @@
       "metric": "server_packet_contains",
       "opcode": 2346,
       "row": 9710010,
-      "text": "Increases movement speed by $s1%.",
+      "text": "Increases movement speed by 10%.",
       "equals": 1
     },
     {
@@ -1460,7 +1460,7 @@
       "metric": "server_packet_contains",
       "opcode": 2346,
       "row": 9710012,
-      "text": "Increases attack power by $s1 and spell power by $s2.",
+      "text": "Increases attack power and spell power by amounts that grow with the item level.",
       "equals": 1
     },
     {
@@ -1559,7 +1559,7 @@
       "metric": "server_packet_contains",
       "opcode": 2346,
       "row": 9710013,
-      "text": "Increases movement speed by $s1%.",
+      "text": "Increases movement speed by 15%.",
       "equals": 1
     },
     {
@@ -1793,7 +1793,7 @@
       "metric": "server_packet_contains",
       "opcode": 2346,
       "row": 9710015,
-      "text": "Increases melee and ranged attack power by $s1.",
+      "text": "Increases melee and ranged attack power by an amount that grows with the item level.",
       "equals": 1
     },
     {
@@ -1892,7 +1892,7 @@
       "metric": "server_packet_contains",
       "opcode": 2346,
       "row": 9710016,
-      "text": "Increases movement speed by $s1%.",
+      "text": "Increases movement speed by 18%.",
       "equals": 1
     },
     {
@@ -2126,7 +2126,7 @@
       "metric": "server_packet_contains",
       "opcode": 2346,
       "row": 9710018,
-      "text": "Increases melee and ranged attack power by $s1.",
+      "text": "Increases melee and ranged attack power by an amount that grows with the item level.",
       "equals": 1
     },
     {
@@ -2225,7 +2225,7 @@
       "metric": "server_packet_contains",
       "opcode": 2346,
       "row": 9710019,
-      "text": "Increases movement speed by $s1%.",
+      "text": "Increases movement speed by 20%.",
       "equals": 1
     },
     {
@@ -2459,7 +2459,7 @@
       "metric": "server_packet_contains",
       "opcode": 2346,
       "row": 9710021,
-      "text": "Increases attack power by $s1 and spell power by $s2.",
+      "text": "Increases attack power and spell power by amounts that grow with the item level.",
       "equals": 1
     },
     {
@@ -2558,7 +2558,7 @@
       "metric": "server_packet_contains",
       "opcode": 2346,
       "row": 9710022,
-      "text": "Increases movement speed by $s1%.",
+      "text": "Increases movement speed by 10%.",
       "equals": 1
     },
     {
@@ -2792,7 +2792,7 @@
       "metric": "server_packet_contains",
       "opcode": 2346,
       "row": 9710024,
-      "text": "Increases spell power by $s1.",
+      "text": "Increases spell power by an amount that grows with the item level.",
       "equals": 1
     },
     {
@@ -2891,7 +2891,7 @@
       "metric": "server_packet_contains",
       "opcode": 2346,
       "row": 9710025,
-      "text": "Increases movement speed by $s1%.",
+      "text": "Increases movement speed by 15%.",
       "equals": 1
     },
     {
@@ -3125,7 +3125,7 @@
       "metric": "server_packet_contains",
       "opcode": 2346,
       "row": 9710027,
-      "text": "Increases melee and ranged attack power by $s1.",
+      "text": "Increases melee and ranged attack power by an amount that grows with the item level.",
       "equals": 1
     },
     {
@@ -3224,7 +3224,7 @@
       "metric": "server_packet_contains",
       "opcode": 2346,
       "row": 9710028,
-      "text": "Increases movement speed by $s1%.",
+      "text": "Increases movement speed by 18%.",
       "equals": 1
     },
     {
@@ -3458,7 +3458,7 @@
       "metric": "server_packet_contains",
       "opcode": 2346,
       "row": 9710030,
-      "text": "Increases spell power by $s1.",
+      "text": "Increases spell power by an amount that grows with the item level.",
       "equals": 1
     },
     {
@@ -3557,7 +3557,7 @@
       "metric": "server_packet_contains",
       "opcode": 2346,
       "row": 9710031,
-      "text": "Increases movement speed by $s1%.",
+      "text": "Increases movement speed by 20%.",
       "equals": 1
     },
     {
@@ -3791,7 +3791,7 @@
       "metric": "server_packet_contains",
       "opcode": 2346,
       "row": 9710033,
-      "text": "Increases spell power by $s1.",
+      "text": "Increases spell power by an amount that grows with the item level.",
       "equals": 1
     },
     {
@@ -3890,7 +3890,7 @@
       "metric": "server_packet_contains",
       "opcode": 2346,
       "row": 9710034,
-      "text": "Increases movement speed by $s1%.",
+      "text": "Increases movement speed by 10%.",
       "equals": 1
     },
     {
@@ -3989,7 +3989,7 @@
       "metric": "server_packet_contains",
       "opcode": 2346,
       "row": 9710035,
-      "text": "Increases spell power by $s1.",
+      "text": "Increases spell power by an amount that grows with the item level.",
       "equals": 1
     },
     {
@@ -4088,7 +4088,7 @@
       "metric": "server_packet_contains",
       "opcode": 2346,
       "row": 9710036,
-      "text": "Increases spell power by $s1.",
+      "text": "Increases spell power by an amount that grows with the item level.",
       "equals": 1
     },
     {
@@ -4187,7 +4187,7 @@
       "metric": "server_packet_contains",
       "opcode": 2346,
       "row": 9710037,
-      "text": "Increases movement speed by $s1%.",
+      "text": "Increases movement speed by 15%.",
       "equals": 1
     },
     {
@@ -4421,7 +4421,7 @@
       "metric": "server_packet_contains",
       "opcode": 2346,
       "row": 9710039,
-      "text": "Increases attack power by $s1 and spell power by $s2.",
+      "text": "Increases attack power and spell power by amounts that grow with the item level.",
       "equals": 1
     },
     {
@@ -4520,7 +4520,7 @@
       "metric": "server_packet_contains",
       "opcode": 2346,
       "row": 9710040,
-      "text": "Increases movement speed by $s1%.",
+      "text": "Increases movement speed by 18%.",
       "equals": 1
     },
     {
@@ -4754,7 +4754,7 @@
       "metric": "server_packet_contains",
       "opcode": 2346,
       "row": 9710042,
-      "text": "Increases spell power by $s1.",
+      "text": "Increases spell power by an amount that grows with the item level.",
       "equals": 1
     },
     {
@@ -4853,7 +4853,7 @@
       "metric": "server_packet_contains",
       "opcode": 2346,
       "row": 9710043,
-      "text": "Increases movement speed by $s1%.",
+      "text": "Increases movement speed by 20%.",
       "equals": 1
     },
     {
@@ -5087,7 +5087,7 @@
       "metric": "server_packet_contains",
       "opcode": 2346,
       "row": 9710045,
-      "text": "Increases spell power by $s1.",
+      "text": "Increases spell power by an amount that grows with the item level.",
       "equals": 1
     },
     {
@@ -5186,7 +5186,7 @@
       "metric": "server_packet_contains",
       "opcode": 2346,
       "row": 9710046,
-      "text": "Increases movement speed by $s1%.",
+      "text": "Increases movement speed by 10%.",
       "equals": 1
     },
     {
@@ -5420,7 +5420,7 @@
       "metric": "server_packet_contains",
       "opcode": 2346,
       "row": 9710048,
-      "text": "Increases attack power by $s1 and spell power by $s2.",
+      "text": "Increases attack power and spell power by amounts that grow with the item level.",
       "equals": 1
     },
     {
@@ -5519,7 +5519,7 @@
       "metric": "server_packet_contains",
       "opcode": 2346,
       "row": 9710049,
-      "text": "Increases movement speed by $s1%.",
+      "text": "Increases movement speed by 15%.",
       "equals": 1
     },
     {
@@ -5753,7 +5753,7 @@
       "metric": "server_packet_contains",
       "opcode": 2346,
       "row": 9710051,
-      "text": "Increases spell power by $s1.",
+      "text": "Increases spell power by an amount that grows with the item level.",
       "equals": 1
     },
     {
@@ -5852,7 +5852,7 @@
       "metric": "server_packet_contains",
       "opcode": 2346,
       "row": 9710052,
-      "text": "Increases movement speed by $s1%.",
+      "text": "Increases movement speed by 18%.",
       "equals": 1
     },
     {
@@ -6086,7 +6086,7 @@
       "metric": "server_packet_contains",
       "opcode": 2346,
       "row": 9710054,
-      "text": "Increases melee and ranged attack power by $s1.",
+      "text": "Increases melee and ranged attack power by an amount that grows with the item level.",
       "equals": 1
     },
     {
@@ -6185,7 +6185,7 @@
       "metric": "server_packet_contains",
       "opcode": 2346,
       "row": 9710055,
-      "text": "Increases movement speed by $s1%.",
+      "text": "Increases movement speed by 20%.",
       "equals": 1
     },
     {
@@ -6419,7 +6419,7 @@
       "metric": "server_packet_contains",
       "opcode": 2346,
       "row": 9710057,
-      "text": "Increases attack power by $s1 and spell power by $s2.",
+      "text": "Increases attack power and spell power by amounts that grow with the item level.",
       "equals": 1
     },
     {
@@ -6518,7 +6518,7 @@
       "metric": "server_packet_contains",
       "opcode": 2346,
       "row": 9710058,
-      "text": "Increases movement speed by $s1%.",
+      "text": "Increases movement speed by 10%.",
       "equals": 1
     },
     {
@@ -6752,7 +6752,7 @@
       "metric": "server_packet_contains",
       "opcode": 2346,
       "row": 9710060,
-      "text": "Increases spell power by $s1.",
+      "text": "Increases spell power by an amount that grows with the item level.",
       "equals": 1
     },
     {
@@ -6851,7 +6851,7 @@
       "metric": "server_packet_contains",
       "opcode": 2346,
       "row": 9710061,
-      "text": "Increases movement speed by $s1%.",
+      "text": "Increases movement speed by 15%.",
       "equals": 1
     },
     {
@@ -7085,7 +7085,7 @@
       "metric": "server_packet_contains",
       "opcode": 2346,
       "row": 9710063,
-      "text": "Increases armor by $s1%.",
+      "text": "Increases armor by 20%.",
       "equals": 1
     },
     {
