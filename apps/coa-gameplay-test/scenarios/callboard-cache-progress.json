@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "Callboard quests fill the cache progress bar and a full bar pays the released stage's cache",
-  "contract": "Callboard Cache progress as on Ascension live. The client asks a quest's points with CMSG 0x731 (quest id) and reads SMSG 0x732 (quest id, points, 0); captured live replies (questcacheaddon.wdb, 2026-08/09) give Dungeon Diving 81244 15 and the world boss quest 170015 50, and uncaptured quests follow the Bronzebeard video of 2025-11-05: profession 15, world kill 20, elite 25. A quest outside the Callboard is worth 0. At login the server sends SMSG 0x730 with one cache record (count 1; id, 0, condition 0, item level 0, cache item, points per cache) and the TOKEN_TYPE_CALLBOARD_CACHE_POINTS token (SMSG 0x670: name, amount, 0). At the default release stage 7 the cache is Callboard Cache (Naxxramas) 1615009 at 15 points, the highest live threshold (Blackwing Lair, 2026-09). A turn-in adds its points and pays one cache per 15, keeping the remainder, as a live turn-in subtracted the threshold once per cache: an elite quest (25) pays one and leaves 10, a world kill (20) then reaches 30 and pays two, leaving 0, another elite pays one and leaves 10. The points survive the next login.",
+  "contract": "Callboard Cache progress. The client asks a quest's points with CMSG 0x731 (quest id) and reads SMSG 0x732 (quest id, points, 0); captured live replies (questcacheaddon.wdb, 2026-08/09) give Dungeon Diving 81244 15 and the world boss quest 170015 50, and uncaptured quests follow the Bronzebeard video of 2025-11-05: profession 15, world kill 20, elite 25. A quest outside the Callboard is worth 0. At login the server sends SMSG 0x730 with one cache record (count 1; id, 0, condition 0, item level 0, cache item, points per cache) and the TOKEN_TYPE_CALLBOARD_CACHE_POINTS token (SMSG 0x670: name, amount, 0). At the default release stage 7 the cache is Callboard Cache (Naxxramas) 1615009, and one cache costs 150 points. A turn-in adds its points and pays one cache per 150, keeping the remainder: four elite quests reach 100, two world kill quests 140 with no cache yet, and a profession quest 155, which pays one cache and leaves 5. The points survive the next login.",
   "timeout_ms": 180000,
   "location": {
     "map": 0,
@@ -237,12 +237,12 @@
     },
     {
       "action": "assert",
-      "label": "a late raid cache needs 15 points",
+      "label": "a cache needs 150 points",
       "actor": "hero",
       "metric": "server_packet_u32",
       "opcode": 1840,
       "index": 6,
-      "equals": 15
+      "equals": 150
     },
     {
       "action": "assert",
@@ -273,78 +273,110 @@
       "quest": 18034
     },
     {
+      "action": "prepare_quest",
+      "actor": "hero",
+      "quest": 18036
+    },
+    {
+      "action": "reward_quest",
+      "actor": "hero",
+      "quest": 18036
+    },
+    {
+      "action": "prepare_quest",
+      "actor": "hero",
+      "quest": 18104
+    },
+    {
+      "action": "reward_quest",
+      "actor": "hero",
+      "quest": 18104
+    },
+    {
+      "action": "prepare_quest",
+      "actor": "hero",
+      "quest": 18109
+    },
+    {
+      "action": "reward_quest",
+      "actor": "hero",
+      "quest": 18109
+    },
+    {
       "action": "assert",
-      "label": "an elite quest pays one cache and leaves 10",
+      "label": "four elite quests give 100 points",
       "actor": "hero",
       "metric": "server_packet_u32",
       "opcode": 1648,
       "skip_strings": 1,
       "index": 0,
-      "equals": 10
+      "equals": 100
+    },
+    {
+      "action": "prepare_quest",
+      "actor": "hero",
+      "quest": 18017
+    },
+    {
+      "action": "reward_quest",
+      "actor": "hero",
+      "quest": 18017
+    },
+    {
+      "action": "prepare_quest",
+      "actor": "hero",
+      "quest": 18018
+    },
+    {
+      "action": "reward_quest",
+      "actor": "hero",
+      "quest": 18018
     },
     {
       "action": "assert",
-      "label": "the first cache arrives",
+      "label": "two world kill quests bring the bar to 140",
+      "actor": "hero",
+      "metric": "server_packet_u32",
+      "opcode": 1648,
+      "skip_strings": 1,
+      "index": 0,
+      "equals": 140
+    },
+    {
+      "action": "assert",
+      "label": "no cache below 150 points",
+      "actor": "hero",
+      "metric": "item_count",
+      "item": 1615009,
+      "equals": 0
+    },
+    {
+      "action": "prepare_quest",
+      "actor": "hero",
+      "quest": 26035
+    },
+    {
+      "action": "reward_quest",
+      "actor": "hero",
+      "quest": 26035
+    },
+    {
+      "action": "assert",
+      "label": "reaching 155 points pays one Naxxramas cache",
       "actor": "hero",
       "metric": "item_count",
       "item": 1615009,
       "equals": 1
     },
     {
-      "action": "prepare_quest",
-      "actor": "hero",
-      "quest": 18017
-    },
-    {
-      "action": "reward_quest",
-      "actor": "hero",
-      "quest": 18017
-    },
-    {
       "action": "assert",
-      "label": "a world kill quest reaches 30 and pays two caches",
+      "label": "the remainder carries over",
       "actor": "hero",
       "metric": "server_packet_u32",
       "opcode": 1648,
       "skip_strings": 1,
       "index": 0,
-      "equals": 0
-    },
-    {
-      "action": "assert",
-      "label": "two caches arrive at once",
-      "actor": "hero",
-      "metric": "item_count",
-      "item": 1615009,
-      "equals": 3
-    },
-    {
-      "action": "prepare_quest",
-      "actor": "hero",
-      "quest": 18036
-    },
-    {
-      "action": "reward_quest",
-      "actor": "hero",
-      "quest": 18036
-    },
-    {
-      "action": "assert",
-      "label": "another elite quest leaves 10 again",
-      "actor": "hero",
-      "metric": "server_packet_u32",
-      "opcode": 1648,
-      "skip_strings": 1,
-      "index": 0,
-      "equals": 10
-    },
-    {
-      "action": "assert",
-      "label": "the fourth cache arrives",
-      "actor": "hero",
-      "metric": "item_count",
-      "item": 1615009,
-      "equals": 4
+      "equals": 5
     },
     {
       "action": "login_hooks",
@@ -359,7 +391,7 @@
       "opcode": 1648,
       "skip_strings": 1,
       "index": 0,
-      "equals": 10,
+      "equals": 5,
       "within_ms": 2000
     }
   ]

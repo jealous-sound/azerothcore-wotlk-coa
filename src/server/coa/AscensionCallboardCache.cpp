@@ -14,15 +14,11 @@
 #include "QuestDef.h"
 #include "Random.h"
 #include "ScriptMgr.h"
-#include "StringConvert.h"
-#include "Tokenize.h"
 #include "World.h"
 #include "WorldPacket.h"
 #include "WorldSession.h"
 #include <algorithm>
 #include <mutex>
-#include <string>
-#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -61,21 +57,7 @@ std::unordered_map<uint32, uint32> g_questPoints;
 uint8 g_releaseStage = 7;
 uint32 g_itemLevelAllowance = 6;
 bool g_previousStageOnly = false;
-std::vector<uint32> const DefaultStageCachePoints = { 3, 5, 10, 10, 15, 15, 15, 15 };
-std::vector<uint32> g_stageCachePoints = DefaultStageCachePoints;
-
-std::vector<uint32> ParseStageCachePoints(std::string const& list)
-{
-    std::vector<uint32> points;
-    for (std::string_view token : Acore::Tokenize(list, ' ', false))
-        points.push_back(std::max<uint32>(1, Acore::StringTo<uint32>(token).value_or(1)));
-
-    if (points.empty())
-        return DefaultStageCachePoints;
-
-    points.resize(CallboardTiers.size(), points.back());
-    return points;
-}
+uint32 g_cachePoints = 150;
 
 void LoadCallboardQuestPoints()
 {
@@ -104,8 +86,7 @@ void LoadCallboardCachePools()
     g_releaseStage = uint8(sConfigMgr->GetOption<uint32>("Ascension.CallboardCache.ReleaseStage", 7));
     g_itemLevelAllowance = sConfigMgr->GetOption<uint32>("Ascension.CallboardCache.ItemLevelAllowance", 6);
     g_previousStageOnly = sConfigMgr->GetOption<bool>("Ascension.CallboardCache.PreviousStageOnly", false);
-    g_stageCachePoints = ParseStageCachePoints(
-        sConfigMgr->GetOption<std::string>("Ascension.CallboardCache.StageCachePoints", "3 5 10 10 15 15 15 15"));
+    g_cachePoints = std::max<uint32>(1, sConfigMgr->GetOption<uint32>("Ascension.CallboardCache.CachePoints", 150));
     LoadCallboardQuestPoints();
 
     std::unordered_map<uint32, CallboardPool> pools;
@@ -262,7 +243,7 @@ uint32 OpenTierCache()
 
 uint32 PointsPerCache()
 {
-    return g_stageCachePoints[ReleasedStage()];
+    return g_cachePoints;
 }
 
 uint32 StoredPoints(Player const* player)
