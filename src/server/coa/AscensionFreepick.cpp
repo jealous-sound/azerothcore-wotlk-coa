@@ -17,15 +17,6 @@
 
 namespace AscensionFreepick
 {
-namespace
-{
-constexpr char BUILD_SETTING[] = "core.freepick";
-constexpr std::uint32_t RANK_FACTOR = 10;
-
-Catalog Loaded;
-Realm CurrentRealm;
-bool Classless = false;
-
 Realm ReadRealm()
 {
     Realm realm;
@@ -47,6 +38,16 @@ Realm ReadRealm()
     realm.Ruleset = maxLevel <= 60 ? 0 : maxLevel <= 70 ? 1 : 2;
     return realm;
 }
+
+namespace
+{
+constexpr char BUILD_SETTING[] = "core.freepick";
+constexpr std::uint32_t RANK_FACTOR = 10;
+
+Catalog Loaded;
+Realm CurrentRealm;
+bool Classless = false;
+bool Reborn = false;
 
 std::vector<Entry> StoredEntries(Player const* player)
 {
@@ -160,6 +161,17 @@ bool IsFreepickHero(Player const* player)
     return Classless && player->getClass() == CLASS_HERO && !AscensionWildcard::IsWildcardHero(player);
 }
 
+bool IsRebornCharacter(Player const* player)
+{
+    uint8 const classId = player->getClass();
+    return Reborn && classId >= CLASS_WARRIOR && classId <= CLASS_DRUID && classId != CLASS_HERO;
+}
+
+bool HasFreepickBuild(Player const* player)
+{
+    return IsFreepickHero(player) || IsRebornCharacter(player);
+}
+
 std::vector<AscensionCoATalentState::KnownEntry> KnownEntries(Player const* player)
 {
     std::vector<AscensionCoATalentState::KnownEntry> known;
@@ -175,7 +187,7 @@ UploadResult ApplyUpload(Player* player, std::vector<AscensionCoATalentState::Kn
     for (AscensionCoATalentState::KnownEntry const& entry : upload)
         wanted.push_back({ entry.EntryId, entry.Rank });
 
-    Build const base(Loaded, CurrentRealm, player->GetLevel(), StoredEntries(player));
+    Build const base(Loaded, CurrentRealm, player->GetLevel(), StoredEntries(player), player->getClass());
     UnitCheck const unit = UnitRules(player);
     ApplyCheck const check = CheckApply(base, wanted, unit,
         { player->GetMoney(), player->GetItemCount(MARK_OF_ASCENSION_ITEM, false) });
@@ -204,10 +216,10 @@ UploadResult ApplyUpload(Player* player, std::vector<AscensionCoATalentState::Kn
 
 void Synchronize(Player* player)
 {
-    if (!IsFreepickHero(player))
+    if (!HasFreepickBuild(player))
         return;
     std::vector<Entry> const stored = StoredEntries(player);
-    Build build(Loaded, CurrentRealm, player->GetLevel(), stored);
+    Build build(Loaded, CurrentRealm, player->GetLevel(), stored, player->getClass());
     if (build.AutoLearn(UnitRules(player)))
         Store(player, build.Entries());
     SyncSpells(player, stored, build.Entries());
@@ -233,7 +245,8 @@ public:
     {
         CurrentRealm = ReadRealm();
         Classless = sConfigMgr->GetOption<std::string>("CoA.ClassModel", "coa") == "hero";
-        if (Classless && !LoadCatalog(Loaded))
+        Reborn = CurrentRealm.WarcraftReborn;
+        if ((Classless || Reborn) && !LoadCatalog(Loaded))
             LOG_ERROR("coa", "Free-pick Character Advancement is unavailable: its client DBCs did not load");
     }
 };

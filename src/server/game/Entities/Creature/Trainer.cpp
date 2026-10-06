@@ -44,6 +44,7 @@ namespace
     // class nor the core's rank chains (which miss Ascension's added ranks) decide what it may learn.
     constexpr uint32 WILDCARD_RANK_TRAINER_ID = std::numeric_limits<uint32>::max();
     Trainer::WildcardRankRows WildcardRankRowsOf = nullptr;
+    Trainer::ClassTrainerFor ClassTrainerOf = nullptr;
 
     uint8 ProfessionExpansion(uint32 skill)
     {
@@ -398,14 +399,30 @@ namespace Trainer
         _greeting[locale] = std::move(greeting);
     }
 
+    Trainer Trainer::WithSpells(std::vector<Spell> spells) const
+    {
+        Trainer trainer(*this);
+        trainer._spells = std::move(spells);
+        return trainer;
+    }
+
     void SetWildcardRankRows(WildcardRankRows rows)
     {
         WildcardRankRowsOf = rows;
     }
 
+    void SetClassTrainerFor(ClassTrainerFor trainers)
+    {
+        ClassTrainerOf = trainers;
+    }
+
     Trainer* GetTrainerFor(Creature const* npc, Player const* player)
     {
         Trainer* trainer = sObjectMgr->GetTrainer(npc->GetEntry());
+        if (trainer && trainer->GetTrainerType() == Type::Class && ClassTrainerOf)
+            if (Trainer* replacement = ClassTrainerOf(*trainer, player))
+                return replacement;
+
         bool const classTrainerUnit = trainer ? trainer->GetTrainerType() == Type::Class
                                               : npc->HasNpcFlag(UNIT_NPC_FLAG_TRAINER_CLASS);
         if (!classTrainerUnit || !WildcardRankRowsOf || !IsWildcardHero(player))

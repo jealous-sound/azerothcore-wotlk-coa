@@ -1173,7 +1173,7 @@ bool Guardian::InitStatsForLevel(uint8 petlevel)
                     SetBaseWeaponDamage(BASE_ATTACK, MAXDAMAGE, float(petlevel + (petlevel / 4)));
                 }
 
-                switch (GetEntry())
+                switch (GetStockPetEntry(GetEntry()))
                 {
                     case NPC_WATER_ELEMENTAL_PERM:
                         {

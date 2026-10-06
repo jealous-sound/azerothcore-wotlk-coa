@@ -790,6 +790,10 @@ public:
     void UnloadSpellInfoChains();
     void LoadSpellTalentRanks();
     void LoadSpellRanks();
+    /// rank chains a module adds after `spell_ranks`; a chain touching an already ranked spell is skipped
+    using AddedSpellRanks = std::vector<std::vector<uint32>> (*)();
+    void SetAddedSpellRanks(AddedSpellRanks ranks) { _addedSpellRanks = ranks; }
+    void LoadAddedSpellRanks();
     void LoadSpellRequired();
     void LoadSpellLearnSkills();
     void LoadSpellTargetPositions();
@@ -820,6 +824,7 @@ public:
     void LoadSpellJumpDistances();
 
 private:
+    AddedSpellRanks            _addedSpellRanks = nullptr;
     SpellDifficultySearcherMap mSpellDifficultySearcherMap;
     SpellChainMap              mSpellChains;
     SpellsRequiringSpellMap    mSpellsReqSpell;

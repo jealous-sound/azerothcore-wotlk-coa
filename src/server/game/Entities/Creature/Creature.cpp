@@ -1047,7 +1047,8 @@ void Creature::Regenerate(Powers power)
                 // Combat and any controlled creature
                 if (IsInCombat() || GetCharmerOrOwnerGUID())
                 {
-                    if (GetEntry() == NPC_IMP || GetEntry() == NPC_WATER_ELEMENTAL_TEMP || GetEntry() == NPC_WATER_ELEMENTAL_PERM)
+                    if (uint32 const stock = GetStockPetEntry(GetEntry());
+                        stock == NPC_IMP || stock == NPC_WATER_ELEMENTAL_TEMP || stock == NPC_WATER_ELEMENTAL_PERM)
                     {
                         addvalue = uint32((GetStat(STAT_SPIRIT) / (IsUnderLastManaUseEffect() ? 8.0f : 5.0f) + 17.0f));
                     }
