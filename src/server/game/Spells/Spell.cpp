@@ -4023,6 +4023,10 @@ void Spell::_cast(bool skipCheck)
     // we must send smsg_spell_go packet before m_castItem delete in TakeCastItem()...
     SendSpellGo();
 
+    // The client starts the DBC category cooldown by itself on cast; a charged spell has none
+    if (m_spellInfo->MaxCharges && m_spellInfo->CategoryRecoveryTime && m_caster->IsPlayer())
+        m_caster->ToPlayer()->SendClearCooldown(m_spellInfo->Id, m_caster);
+
     bool resetAttackTimers = IsAutoActionResetSpell() && !m_spellInfo->HasAttribute(SPELL_ATTR2_DO_NOT_RESET_COMBAT_TIMERS);
     if (resetAttackTimers)
     {
