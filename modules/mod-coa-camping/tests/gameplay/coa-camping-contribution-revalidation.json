@@ -1,0 +1,497 @@
+{
+  "schema": 1,
+  "name": "coa-camping-contribution-revalidation",
+  "contract": [
+    "Use CoACamping.AllowSoloContributions=0 and CoACamping.Capacity=3 for this shared-camp scenario.",
+    "Requires CoACamping.Enable=1 and the default shared 3600-second contribution cooldown.",
+    "Skill and missing-material failures consume nothing. Two stale menus cannot commit duplicate candles.",
+    "The losing contributor retains materials and cooldown. The winning deadline survives native relog.",
+    "The deadline also blocks a different camp. Selecting a menu after moving away cannot spend materials."
+  ],
+  "timeout_ms": 400000,
+  "location": {
+    "map": 0,
+    "x": -9465,
+    "y": 64,
+    "z": 56,
+    "o": 0
+  },
+  "players": [
+    {
+      "id": "owner",
+      "race": 1,
+      "class": 1,
+      "level": 80
+    },
+    {
+      "id": "first",
+      "race": 1,
+      "class": 1,
+      "level": 80
+    },
+    {
+      "id": "second",
+      "race": 1,
+      "class": 1,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "owner",
+      "spell": 818
+    },
+    {
+      "action": "cast",
+      "actor": "owner",
+      "spell": 818
+    },
+    {
+      "action": "assert",
+      "actor": "owner",
+      "metric": "owned_gameobject_count",
+      "equals": 1,
+      "entry": 29784,
+      "within_ms": 15000
+    },
+    {
+      "action": "assert",
+      "actor": "owner",
+      "metric": "owned_gameobject_count",
+      "equals": 1,
+      "entry": 9500200,
+      "within_ms": 2000
+    },
+    {
+      "action": "set_skill",
+      "actor": "first",
+      "skill": 182,
+      "value": 0,
+      "maximum": 75
+    },
+    {
+      "action": "set_skill",
+      "actor": "second",
+      "skill": 182,
+      "value": 20,
+      "maximum": 75
+    },
+    {
+      "action": "add_item",
+      "actor": "first",
+      "item": 2447,
+      "count": 2
+    },
+    {
+      "action": "add_item",
+      "actor": "first",
+      "item": 765,
+      "count": 2
+    },
+    {
+      "action": "add_item",
+      "actor": "second",
+      "item": 2447,
+      "count": 2
+    },
+    {
+      "action": "add_item",
+      "actor": "second",
+      "item": 765,
+      "count": 2
+    },
+    {
+      "action": "use_gameobject",
+      "actor": "first",
+      "entry": 9500200,
+      "owner": "owner"
+    },
+    {
+      "action": "gossip_select",
+      "actor": "first",
+      "option": 0
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "assert",
+      "actor": "first",
+      "metric": "item_count",
+      "equals": 2,
+      "item": 2447
+    },
+    {
+      "action": "assert",
+      "actor": "first",
+      "metric": "item_count",
+      "equals": 2,
+      "item": 765
+    },
+    {
+      "action": "assert",
+      "actor": "first",
+      "metric": "player_setting",
+      "equals": 0,
+      "source": "core.coa.camping",
+      "index": 0
+    },
+    {
+      "action": "set_skill",
+      "actor": "first",
+      "skill": 182,
+      "value": 20,
+      "maximum": 75
+    },
+    {
+      "action": "destroy_item",
+      "actor": "first",
+      "item": 765
+    },
+    {
+      "action": "use_gameobject",
+      "actor": "first",
+      "entry": 9500200,
+      "owner": "owner"
+    },
+    {
+      "action": "gossip_select",
+      "actor": "first",
+      "option": 0
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "assert",
+      "actor": "first",
+      "metric": "item_count",
+      "equals": 2,
+      "item": 2447
+    },
+    {
+      "action": "assert",
+      "actor": "first",
+      "metric": "player_setting",
+      "equals": 0,
+      "source": "core.coa.camping",
+      "index": 0
+    },
+    {
+      "action": "add_item",
+      "actor": "first",
+      "item": 765,
+      "count": 2
+    },
+    {
+      "action": "use_gameobject",
+      "actor": "first",
+      "entry": 9500200,
+      "owner": "owner"
+    },
+    {
+      "action": "use_gameobject",
+      "actor": "second",
+      "entry": 9500200,
+      "owner": "owner"
+    },
+    {
+      "action": "gossip_select",
+      "actor": "first",
+      "option": 0
+    },
+    {
+      "action": "gossip_select",
+      "actor": "second",
+      "option": 0
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "assert",
+      "actor": "first",
+      "metric": "owned_gameobject_count",
+      "equals": 1,
+      "entry": 9500201
+    },
+    {
+      "action": "assert",
+      "actor": "second",
+      "metric": "owned_gameobject_count",
+      "equals": 0,
+      "entry": 9500201
+    },
+    {
+      "action": "assert",
+      "actor": "first",
+      "metric": "item_count",
+      "equals": 1,
+      "item": 2447
+    },
+    {
+      "action": "assert",
+      "actor": "first",
+      "metric": "item_count",
+      "equals": 1,
+      "item": 765
+    },
+    {
+      "action": "assert",
+      "actor": "second",
+      "metric": "item_count",
+      "equals": 2,
+      "item": 2447
+    },
+    {
+      "action": "assert",
+      "actor": "second",
+      "metric": "item_count",
+      "equals": 2,
+      "item": 765
+    },
+    {
+      "action": "assert",
+      "actor": "second",
+      "metric": "player_setting",
+      "equals": 0,
+      "source": "core.coa.camping",
+      "index": 0
+    },
+    {
+      "action": "snapshot",
+      "actor": "first",
+      "metric": "player_setting",
+      "source": "core.coa.camping",
+      "index": 0,
+      "save_as": "first_deadline"
+    },
+    {
+      "action": "use_gameobject",
+      "actor": "first",
+      "entry": 9500200,
+      "owner": "owner"
+    },
+    {
+      "action": "gossip_select",
+      "actor": "first",
+      "option": 0
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "assert",
+      "actor": "first",
+      "metric": "item_count",
+      "equals": 1,
+      "item": 2447
+    },
+    {
+      "action": "assert",
+      "actor": "first",
+      "metric": "item_count",
+      "equals": 1,
+      "item": 765
+    },
+    {
+      "action": "assert",
+      "actor": "first",
+      "metric": "player_setting",
+      "equals": 0,
+      "source": "core.coa.camping",
+      "index": 0,
+      "relative_to": "first_deadline"
+    },
+    {
+      "action": "relog",
+      "actor": "first"
+    },
+    {
+      "action": "assert",
+      "actor": "first",
+      "metric": "player_setting",
+      "equals": 0,
+      "source": "core.coa.camping",
+      "index": 0,
+      "relative_to": "first_deadline"
+    },
+    {
+      "action": "relog",
+      "actor": "owner"
+    },
+    {
+      "action": "assert",
+      "actor": "second",
+      "metric": "nearby_gameobject_count",
+      "equals": 0,
+      "entry": 9500200,
+      "within_ms": 3000
+    },
+    {
+      "action": "wait",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "second",
+      "spell": 818
+    },
+    {
+      "action": "cast",
+      "actor": "second",
+      "spell": 818
+    },
+    {
+      "action": "assert",
+      "actor": "second",
+      "metric": "owned_gameobject_count",
+      "equals": 1,
+      "entry": 29784,
+      "within_ms": 15000
+    },
+    {
+      "action": "assert",
+      "actor": "second",
+      "metric": "owned_gameobject_count",
+      "equals": 1,
+      "entry": 9500200,
+      "within_ms": 2000
+    },
+    {
+      "action": "use_gameobject",
+      "actor": "first",
+      "entry": 9500200,
+      "owner": "second"
+    },
+    {
+      "action": "gossip_select",
+      "actor": "first",
+      "option": 0
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "assert",
+      "actor": "first",
+      "metric": "item_count",
+      "equals": 1,
+      "item": 2447
+    },
+    {
+      "action": "assert",
+      "actor": "first",
+      "metric": "item_count",
+      "equals": 1,
+      "item": 765
+    },
+    {
+      "action": "assert",
+      "actor": "first",
+      "metric": "player_setting",
+      "equals": 0,
+      "source": "core.coa.camping",
+      "index": 0,
+      "relative_to": "first_deadline"
+    },
+    {
+      "action": "use_gameobject",
+      "actor": "second",
+      "entry": 9500200,
+      "owner": "second"
+    },
+    {
+      "action": "teleport",
+      "actor": "second",
+      "map": 0,
+      "x": -9435,
+      "y": 64,
+      "z": 56,
+      "o": 0
+    },
+    {
+      "action": "gossip_select",
+      "actor": "second",
+      "option": 0
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "assert",
+      "actor": "second",
+      "metric": "item_count",
+      "equals": 2,
+      "item": 2447
+    },
+    {
+      "action": "assert",
+      "actor": "second",
+      "metric": "item_count",
+      "equals": 2,
+      "item": 765
+    },
+    {
+      "action": "assert",
+      "actor": "second",
+      "metric": "player_setting",
+      "equals": 0,
+      "source": "core.coa.camping",
+      "index": 0
+    },
+    {
+      "action": "teleport",
+      "actor": "second",
+      "map": 0,
+      "x": -9465,
+      "y": 64,
+      "z": 56,
+      "o": 0
+    },
+    {
+      "action": "use_gameobject",
+      "actor": "second",
+      "entry": 9500200,
+      "owner": "second"
+    },
+    {
+      "action": "gossip_select",
+      "actor": "second",
+      "option": 0
+    },
+    {
+      "action": "assert",
+      "actor": "second",
+      "metric": "owned_gameobject_count",
+      "equals": 1,
+      "entry": 9500201,
+      "within_ms": 2000
+    },
+    {
+      "action": "assert",
+      "actor": "second",
+      "metric": "item_count",
+      "equals": 1,
+      "item": 2447
+    },
+    {
+      "action": "assert",
+      "actor": "second",
+      "metric": "item_count",
+      "equals": 1,
+      "item": 765
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+[worldserver]
+
+# Camping requires the pending camping world migration and existing stock display/spell mappings.
+# All options are read at startup. Restart the server after changing them.
+CoACamping.Enable = 0
+
+# Allow one character to build every feature, bypassing the shared cooldown and one-per-camp limit.
+CoACamping.AllowSoloContributions = 1
+
+# Outdoor world maps. An empty area list permits every outdoor area on the allowed maps.
+CoACamping.AllowedMaps = "0,1,530,571"
+CoACamping.AllowedAreas = ""
+
+# Seconds, except the scan interval in milliseconds. Only managed spell-818 fires use this lifetime.
+CoACamping.LifetimeSeconds = 900
+CoACamping.RestSeconds = 60
+CoACamping.TentRestSeconds = 30
+CoACamping.TentCooldownSeconds = 3600
+CoACamping.TentRestedPercent = 5
+CoACamping.BenefitSeconds = 3600
+CoACamping.ContributionCooldownSeconds = 3600
+CoACamping.ScanMilliseconds = 1000
+
+# Distances in yards. Capacity excludes the base fire and controller.
+CoACamping.BenefitRadius = 20
+CoACamping.ContributionDistance = 5
+CoACamping.MinimumSpacing = 40
+CoACamping.Capacity = 5

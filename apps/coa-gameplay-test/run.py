@@ -35,9 +35,10 @@ METRICS = {
     'point_distance_2d', 'cast_remaining_ms', 'cast_pushback_ms',
     'melee_damage_count', 'melee_damage_total',
     'pet_power', 'pet_max_power', 'spell_energize_count', 'spell_energize_total',
-    'xp', 'next_level_xp', 'skill_value', 'skill_maximum', 'lfg_dungeon_disabled', 'map_id',
+    'xp', 'next_level_xp', 'rested_xp', 'item_durability', 'skill_value', 'skill_maximum',
+    'lfg_dungeon_disabled', 'map_id',
     'map_difficulty', 'nearby_creature_template', 'nearby_creature_max_health', 'loot_gear_item_level',
-    'position_x', 'position_y', 'position_z',
+    'position_x', 'position_y', 'position_z', 'sitting',
     'view_level', 'sent_level', 'sent_max_health', 'creature_query_rank', 'quest_level', 'quest_xp',
     'quest_log_sent_level', 'quest_log_sent_xp', 'quest_query_scaled', 'quest_query_reward_choice',
     'health', 'health_pct', 'max_health', 'creature_type', 'respawn_remaining', 'power', 'max_power', 'alive', 'combat', 'victim', 'casting', 'level',
@@ -84,7 +85,8 @@ METRICS = {
     'gossip_text',
     'stat', 'attack_power', 'ranged_attack_power', 'armor', 'weapon_damage_min', 'resistance',
     'attack_time_ms', 'pet_attack_time_ms', 'run_speed_rate', 'display_id',
-    'aura_amplitude_ms', 'melee_crit_chance', 'dodge_chance', 'parry_chance', 'expertise', 'combat_rating',
+    'aura_amplitude_ms', 'melee_crit_chance', 'ranged_crit_chance', 'dodge_chance', 'parry_chance', 'expertise',
+    'combat_rating',
     'spell_modifier', 'spell_cast_time_ms', 'spell_max_range', 'spell_max_stacks', 'spell_healing_done',
     'aura_crit_chance', 'aura_script_value', 'melee_hit_chance', 'spell_hit_chance', 'spell_power',
     'spell_done_crit_chance', 'spell_taken_crit_chance', 'spell_done_crit_chance_scripted',
@@ -111,7 +113,7 @@ PLAYER_STAT_METRICS = {
     'melee_damage_count',
     'melee_damage_total',
     'pet_power', 'pet_max_power', 'spell_energize_count', 'spell_energize_total',
-    'melee_crit_chance', 'dodge_chance', 'parry_chance', 'expertise', 'combat_rating',
+    'melee_crit_chance', 'ranged_crit_chance', 'dodge_chance', 'parry_chance', 'expertise', 'combat_rating',
     'spell_modifier', 'spell_cast_time_ms', 'spell_max_range', 'spell_max_stacks', 'spell_healing_done',
     'spell_family_flags',
     'melee_hit_chance', 'spell_power', 'spell_done_crit_chance',
@@ -183,6 +185,12 @@ ACTIONS = {
     'trainer_buy': ({'actor', 'spell'}, {'actor', 'spell', 'target'}),
     'pet_autocast': ({'actor', 'spell', 'enabled'}, {'actor', 'spell', 'enabled'}),
     'gossip_select': ({'actor', 'option'}, {'actor', 'option', 'code', 'code_actor'}),
+    'list_inventory': ({'actor', 'entry'}, {'actor', 'entry'}),
+    'buy_item': ({'actor', 'entry', 'item'}, {'actor', 'entry', 'item', 'count'}),
+    'repair_item': ({'actor', 'entry', 'item'}, {'actor', 'entry', 'item'}),
+    'damage_item': ({'actor', 'item', 'percent'}, {'actor', 'item', 'percent'}),
+    'set_rested_xp': ({'actor', 'value'}, {'actor', 'value'}),
+    'give_xp': ({'actor', 'amount'}, {'actor', 'amount', 'target'}),
     'who': ({'actor'}, {'actor', 'target', 'race_mask', 'class_mask'}),
     'open_item': ({'actor', 'item'}, {'actor', 'item'}),
     'collect_loot': ({'actor'}, {'actor'}),
@@ -208,7 +216,7 @@ ACTIONS = {
     'fill_bags': ({'actor'}, {'actor', 'slots'}),
     'equip': ({'actor', 'item', 'slot'}, {'actor', 'item', 'slot'}),
     'use_item': ({'actor', 'item', 'spell'}, {'actor', 'item', 'spell', 'target', 'target_item', 'destination'}),
-    'use_gameobject': ({'actor', 'entry'}, {'actor', 'entry'}),
+    'use_gameobject': ({'actor', 'entry'}, {'actor', 'entry', 'owner'}),
     'summon_gameobject': ({'actor', 'entry'}, {'actor', 'entry', 'distance', 'duration_s'}),
     'loot_gameobject': ({'actor', 'entry'}, {'actor', 'entry'}),
     'mapless_loot_hook': ({'actor', 'store'}, {'actor', 'store'}),
@@ -369,6 +377,8 @@ def validate(scenario):
         for key in ('target', 'caster'):
             if key in step:
                 require(step[key] in actor_ids, f'{where}: unknown {key}')
+        if action == 'use_gameobject' and 'owner' in step:
+            require(step['owner'] in player_ids, f'{where}: gameobject owner must be a player')
         if 'destination' in step:
             destination = step['destination']
             keys(destination, {'x', 'y', 'z'}, {'x', 'y', 'z'}, f'{where}.destination')
@@ -451,6 +461,14 @@ def validate(scenario):
             require(type(step['enabled']) is bool, f'{where}: enabled must be boolean')
         if action == 'money':
             number(step['copper'], f'{where}.copper', 1, 2**31 - 1, True)
+        if action == 'damage_item':
+            number(step['percent'], f'{where}.percent', 0, 100)
+        if action == 'set_rested_xp':
+            number(step['value'], f'{where}.value', 0, 2**31 - 1)
+        if action == 'give_xp':
+            number(step['amount'], f'{where}.amount', 1, 2**31 - 1, True)
+            if 'target' in step:
+                require(step['target'] not in player_ids, f'{where}: kill XP needs a creature')
         if action == 'set_level':
             number(step['value'], f'{where}.value', 1, 80, True)
         if action == 'level_scaling_packet':
@@ -542,10 +560,12 @@ def validate(scenario):
                         and type(step['periodic']) is bool,
                         f'{where}: periodic requires a damage/healing calculation and a boolean')
             require(metric in METRICS, f'{where}: unknown metric')
-            if metric in {'xp', 'next_level_xp', 'skill_value', 'skill_maximum'}:
+            if metric in {'xp', 'next_level_xp', 'rested_xp', 'item_durability', 'skill_value', 'skill_maximum'}:
                 require(step['actor'] in player_ids, f'{where}: XP/skill metric needs a player')
-                if metric in {'skill_value', 'skill_maximum'}:
-                    number(step.get('skill'), f'{where}.skill', 1, 65535, True)
+            if metric == 'item_durability':
+                require('item' in step, f'{where}: durability needs an item')
+            if metric in {'skill_value', 'skill_maximum'}:
+                number(step.get('skill'), f'{where}.skill', 1, 65535, True)
             if metric in {'player_name', 'name_lookup'}:
                 require(step['actor'] in player_ids and isinstance(step.get('name'), str)
                         and bool(step['name']), f'{where}: name metric needs a player and name')

@@ -7,6 +7,7 @@
 !/conf/dist
 /modules/*
 !/modules/mod-coa-change-potions/
+!/modules/mod-coa-camping/
 !/modules/*.md
 !/modules/*.sh
 !/modules/CMakeLists.txt

@@ -15,6 +15,39 @@ import run
 
 
 class RunnerTests(unittest.TestCase):
+    def test_service_and_rested_fixtures_reject_invalid_inputs(self):
+        steps = [
+            {'action': 'damage_item', 'actor': 'caster', 'item': 25, 'percent': 50},
+            {'action': 'set_rested_xp', 'actor': 'caster', 'value': 0},
+            {'action': 'give_xp', 'actor': 'caster', 'amount': 100, 'target': 'target'},
+            {'action': 'buy_item', 'actor': 'caster', 'entry': 9500220, 'item': 17020},
+            {'action': 'repair_item', 'actor': 'caster', 'entry': 9500221, 'item': 25},
+            {'action': 'assert', 'actor': 'caster', 'metric': 'item_durability', 'item': 25, 'equals': 20},
+        ]
+        scenario = copy.deepcopy(self.scenario)
+        scenario['steps'].extend(steps)
+        self.assertIs(run.validate(scenario), scenario)
+        for index, key, value in [(0, 'percent', -1), (0, 'percent', 101), (1, 'value', -1),
+                                  (2, 'amount', 0), (2, 'target', 'caster'), (3, 'count', 0),
+                                  (4, 'actor', 'target')]:
+            invalid = copy.deepcopy(scenario)
+            invalid['steps'][-len(steps) + index][key] = value
+            with self.subTest(index=index, key=key, value=value), self.assertRaises(ValueError):
+                run.validate(invalid)
+        del scenario['steps'][-1]['item']
+        with self.assertRaises(ValueError):
+            run.validate(scenario)
+
+    def test_shared_gameobject_use_requires_a_player_owner(self):
+        scenario = copy.deepcopy(self.scenario)
+        step = {'action': 'use_gameobject', 'actor': 'caster', 'entry': 9500200, 'owner': 'caster'}
+        scenario['steps'].append(step)
+        self.assertIs(run.validate(scenario), scenario)
+        for owner in ('target', 'absent', None, 1):
+            step['owner'] = owner
+            with self.subTest(owner=owner), self.assertRaises(ValueError):
+                run.validate(scenario)
+
     def test_spell_family_flags_require_a_spell_and_valid_word(self):
         for word in (0, 1, 2):
             scenario = copy.deepcopy(self.scenario)

@@ -1,0 +1,410 @@
+{
+  "schema": 1,
+  "name": "coa-camping-class-buffs",
+  "contract": [
+    "Use CoACamping.AllowSoloContributions=0 and CoACamping.Capacity=3 for this shared-camp scenario.",
+    "Requires CoACamping.Enable=1, 60-second rest and 3600-second camping benefit.",
+    "An existing class Arcane Intellect keeps its mage caster and loses only elapsed duration during rest.",
+    "A class cast after camping replaces the camping-owned proxy and establishes normal class ownership/duration.",
+    "Rank 2 wins with exactly 7 Intellect; later rest neither stacks rank 1 nor refreshes the class aura."
+  ],
+  "timeout_ms": 400000,
+  "location": {
+    "map": 0,
+    "x": -9465,
+    "y": 64,
+    "z": 56,
+    "o": 0
+  },
+  "players": [
+    {
+      "id": "owner",
+      "race": 1,
+      "class": 1,
+      "level": 80
+    },
+    {
+      "id": "guest",
+      "race": 1,
+      "class": 1,
+      "level": 80
+    },
+    {
+      "id": "mage",
+      "race": 1,
+      "class": 8,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "owner",
+      "spell": 818
+    },
+    {
+      "action": "cast",
+      "actor": "owner",
+      "spell": 818
+    },
+    {
+      "action": "assert",
+      "actor": "owner",
+      "metric": "owned_gameobject_count",
+      "equals": 1,
+      "entry": 29784,
+      "within_ms": 15000
+    },
+    {
+      "action": "assert",
+      "actor": "owner",
+      "metric": "owned_gameobject_count",
+      "equals": 1,
+      "entry": 9500200,
+      "within_ms": 2000
+    },
+    {
+      "action": "set_skill",
+      "actor": "owner",
+      "skill": 182,
+      "value": 20,
+      "maximum": 75
+    },
+    {
+      "action": "add_item",
+      "actor": "owner",
+      "item": 2447,
+      "count": 2
+    },
+    {
+      "action": "add_item",
+      "actor": "owner",
+      "item": 765,
+      "count": 2
+    },
+    {
+      "action": "use_gameobject",
+      "actor": "owner",
+      "entry": 9500200,
+      "owner": "owner"
+    },
+    {
+      "action": "assert",
+      "actor": "owner",
+      "metric": "gossip_options",
+      "equals": 6
+    },
+    {
+      "action": "gossip_select",
+      "actor": "owner",
+      "option": 0
+    },
+    {
+      "action": "assert",
+      "actor": "owner",
+      "metric": "owned_gameobject_count",
+      "equals": 1,
+      "entry": 9500201,
+      "within_ms": 2000
+    },
+    {
+      "action": "assert",
+      "actor": "owner",
+      "metric": "item_count",
+      "equals": 1,
+      "item": 2447
+    },
+    {
+      "action": "assert",
+      "actor": "owner",
+      "metric": "item_count",
+      "equals": 1,
+      "item": 765
+    },
+    {
+      "action": "learn",
+      "actor": "mage",
+      "spell": 1459
+    },
+    {
+      "action": "learn",
+      "actor": "mage",
+      "spell": 1460
+    },
+    {
+      "action": "snapshot",
+      "actor": "guest",
+      "metric": "stat",
+      "stat": 3,
+      "save_as": "guest_base_intellect"
+    },
+    {
+      "action": "snapshot",
+      "actor": "owner",
+      "metric": "stat",
+      "stat": 3,
+      "save_as": "owner_base_intellect"
+    },
+    {
+      "action": "cast",
+      "actor": "mage",
+      "spell": 1459,
+      "target": "owner"
+    },
+    {
+      "action": "assert",
+      "actor": "owner",
+      "metric": "aura",
+      "equals": 1,
+      "spell": 1459,
+      "caster": "mage",
+      "within_ms": 2000
+    },
+    {
+      "action": "snapshot",
+      "actor": "owner",
+      "metric": "aura_duration_ms",
+      "spell": 1459,
+      "caster": "mage",
+      "save_as": "class_duration"
+    },
+    {
+      "action": "client_packet",
+      "actor": "owner",
+      "opcode": 257,
+      "fields": [
+        {
+          "u32": 1
+        }
+      ],
+      "consumed": false
+    },
+    {
+      "action": "client_packet",
+      "actor": "guest",
+      "opcode": 257,
+      "fields": [
+        {
+          "u32": 1
+        }
+      ],
+      "consumed": false
+    },
+    {
+      "action": "wait",
+      "ms": 62000
+    },
+    {
+      "action": "assert",
+      "actor": "guest",
+      "metric": "aura_amount",
+      "equals": 2,
+      "spell": 1459
+    },
+    {
+      "action": "assert",
+      "actor": "guest",
+      "metric": "stat",
+      "equals": 2,
+      "stat": 3,
+      "relative_to": "guest_base_intellect"
+    },
+    {
+      "action": "assert",
+      "actor": "owner",
+      "metric": "aura",
+      "equals": 1,
+      "spell": 1459,
+      "caster": "mage"
+    },
+    {
+      "action": "assert",
+      "actor": "owner",
+      "metric": "aura_duration_ms",
+      "spell": 1459,
+      "caster": "mage",
+      "relative_to": "class_duration",
+      "min": -65000,
+      "max": -61000
+    },
+    {
+      "action": "cast",
+      "actor": "mage",
+      "spell": 1459,
+      "target": "guest"
+    },
+    {
+      "action": "assert",
+      "actor": "guest",
+      "metric": "aura",
+      "equals": 1,
+      "spell": 1459,
+      "caster": "mage",
+      "within_ms": 2000
+    },
+    {
+      "action": "assert",
+      "actor": "guest",
+      "metric": "aura_duration_ms",
+      "spell": 1459,
+      "caster": "mage",
+      "min": 1797000,
+      "max": 1800000
+    },
+    {
+      "action": "assert",
+      "actor": "guest",
+      "metric": "stat",
+      "equals": 2,
+      "stat": 3,
+      "relative_to": "guest_base_intellect"
+    },
+    {
+      "action": "cancel_aura",
+      "actor": "owner",
+      "spell": 1459
+    },
+    {
+      "action": "client_packet",
+      "actor": "owner",
+      "opcode": 257,
+      "fields": [
+        {
+          "u32": 0
+        }
+      ],
+      "consumed": false
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "client_packet",
+      "actor": "owner",
+      "opcode": 257,
+      "fields": [
+        {
+          "u32": 1
+        }
+      ],
+      "consumed": false
+    },
+    {
+      "action": "wait",
+      "ms": 62000
+    },
+    {
+      "action": "assert",
+      "actor": "owner",
+      "metric": "aura_amount",
+      "equals": 2,
+      "spell": 1459
+    },
+    {
+      "action": "cast",
+      "actor": "mage",
+      "spell": 1460,
+      "target": "owner"
+    },
+    {
+      "action": "assert",
+      "actor": "owner",
+      "metric": "aura",
+      "equals": 1,
+      "spell": 1460,
+      "caster": "mage",
+      "within_ms": 2000
+    },
+    {
+      "action": "assert",
+      "actor": "owner",
+      "metric": "aura",
+      "equals": 0,
+      "spell": 1459
+    },
+    {
+      "action": "assert",
+      "actor": "owner",
+      "metric": "stat",
+      "equals": 7,
+      "stat": 3,
+      "relative_to": "owner_base_intellect"
+    },
+    {
+      "action": "snapshot",
+      "actor": "owner",
+      "metric": "aura_duration_ms",
+      "spell": 1460,
+      "caster": "mage",
+      "save_as": "higher_duration"
+    },
+    {
+      "action": "client_packet",
+      "actor": "owner",
+      "opcode": 257,
+      "fields": [
+        {
+          "u32": 0
+        }
+      ],
+      "consumed": false
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "client_packet",
+      "actor": "owner",
+      "opcode": 257,
+      "fields": [
+        {
+          "u32": 1
+        }
+      ],
+      "consumed": false
+    },
+    {
+      "action": "wait",
+      "ms": 62000
+    },
+    {
+      "action": "assert",
+      "actor": "owner",
+      "metric": "aura",
+      "equals": 0,
+      "spell": 1459
+    },
+    {
+      "action": "assert",
+      "actor": "owner",
+      "metric": "aura",
+      "equals": 1,
+      "spell": 1460,
+      "caster": "mage"
+    },
+    {
+      "action": "assert",
+      "actor": "owner",
+      "metric": "aura_duration_ms",
+      "spell": 1460,
+      "caster": "mage",
+      "relative_to": "higher_duration",
+      "min": -68000,
+      "max": -63000
+    },
+    {
+      "action": "assert",
+      "actor": "owner",
+      "metric": "stat",
+      "equals": 7,
+      "stat": 3,
+      "relative_to": "owner_base_intellect"
+    }
+  ]
+}

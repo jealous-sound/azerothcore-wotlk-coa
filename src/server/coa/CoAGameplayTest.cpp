@@ -1771,6 +1771,8 @@ private:
             return unit->GetMapId();
         if (metric == "position_x")
             return unit->GetPositionX();
+        if (metric == "sitting")
+            return unit->IsSitState();
         if (metric == "position_y")
             return unit->GetPositionY();
         if (metric == "position_z")
@@ -1811,10 +1813,19 @@ private:
                         return std::max(0, current->GetCastTimeRemaining());
             return 0;
         }
-        if (metric == "xp" || metric == "next_level_xp" || metric == "skill_value" || metric == "skill_maximum")
+        if (metric == "xp" || metric == "next_level_xp" || metric == "rested_xp" || metric == "item_durability" ||
+            metric == "skill_value" || metric == "skill_maximum")
         {
             Player* player = unit->ToPlayer();
             Require(player != nullptr, "XP/skill metric needs a player");
+            if (metric == "rested_xp")
+                return player->GetRestBonus();
+            if (metric == "item_durability")
+            {
+                Item* item = player->GetItemByEntry(step.get<uint32>("item"));
+                Require(item != nullptr, "Durability metric needs a carried item");
+                return item->GetUInt32Value(ITEM_FIELD_DURABILITY);
+            }
             if (metric == "skill_value")
                 return player->GetPureSkillValue(step.get<uint32>("skill"));
             if (metric == "skill_maximum")
@@ -2389,6 +2400,8 @@ private:
         }
         if (metric == "melee_crit_chance")
             return player->GetFloatValue(PLAYER_CRIT_PERCENTAGE);
+        if (metric == "ranged_crit_chance")
+            return player->GetFloatValue(PLAYER_RANGED_CRIT_PERCENTAGE);
         if (metric == "dodge_chance")
             return player->GetFloatValue(PLAYER_DODGE_PERCENTAGE);
         if (metric == "parry_chance")
@@ -4138,6 +4151,62 @@ private:
             request.Read();
             player->GetSession()->HandleSellItemOpcode(request);
         }
+        else if (action == "list_inventory" || action == "buy_item" || action == "repair_item")
+        {
+            Creature* vendor = GetGiver(player, step.get<uint32>("entry"));
+            Require(vendor != nullptr, "No service creature of that entry is nearby");
+            if (action == "list_inventory")
+            {
+                WorldPacket packet(CMSG_LIST_INVENTORY, 8);
+                packet << vendor->GetGUID();
+                WorldPackets::Item::ListInventory request(std::move(packet));
+                request.Read();
+                player->GetSession()->HandleListInventoryOpcode(request);
+            }
+            else if (action == "buy_item")
+            {
+                VendorItemData const* items = vendor->GetVendorItems();
+                Require(items != nullptr, "Service creature has no vendor inventory");
+                uint32 const item = step.get<uint32>("item");
+                uint32 slot = 0;
+                while (slot < items->GetItemCount() && items->GetItem(slot)->item != item)
+                    ++slot;
+                Require(slot < items->GetItemCount(), "Requested item is not in the vendor inventory");
+                WorldPacket packet(CMSG_BUY_ITEM, 21);
+                packet << vendor->GetGUID() << item << uint32(slot + 1)
+                       << step.get<uint32>("count", 1) << uint8(0);
+                WorldPackets::Item::BuyItem request(std::move(packet));
+                request.Read();
+                player->GetSession()->HandleBuyItemOpcode(request);
+            }
+            else
+            {
+                Item* item = player->GetItemByEntry(step.get<uint32>("item"));
+                Require(item != nullptr, "Repair needs a carried item");
+                WorldPacket packet(CMSG_REPAIR_ITEM, 17);
+                packet << vendor->GetGUID() << item->GetGUID() << uint8(0);
+                player->GetSession()->HandleRepairItemOpcode(packet);
+            }
+        }
+        else if (action == "damage_item")
+        {
+            Item* item = player->GetItemByEntry(step.get<uint32>("item"));
+            Require(item != nullptr, "Durability fixture needs a carried item");
+            player->DurabilityLoss(item, step.get<double>("percent") / 100.0);
+        }
+        else if (action == "set_rested_xp")
+            player->SetRestBonus(step.get<float>("value"));
+        else if (action == "give_xp")
+        {
+            Creature* victim = nullptr;
+            if (auto target = step.get_optional<std::string>("target"))
+            {
+                victim = GetUnit(*target)->ToCreature();
+                Require(victim != nullptr, "Kill XP fixture needs a creature");
+                victim->SetLootRecipient(player);
+            }
+            player->GiveXP(step.get<uint32>("amount"), victim);
+        }
         else if (action == "who")
         {
             sWhoListCacheMgr->Update();
@@ -4349,7 +4418,9 @@ private:
         }
         else if (action == "use_gameobject")
         {
-            std::list<GameObject*> objects = OwnedGameObjects(player, step.get<uint32>("entry"));
+            Player* owner = step.get_optional<std::string>("owner") ?
+                GetPlayer(step.get<std::string>("owner")) : player;
+            std::list<GameObject*> objects = OwnedGameObjects(owner, step.get<uint32>("entry"));
             Require(objects.size() == 1, "Gameobject use needs exactly one owned object");
             WorldPacket packet(CMSG_GAMEOBJ_USE, 8);
             packet << objects.front()->GetGUID();

@@ -1,0 +1,215 @@
+{
+  "schema": 1,
+  "name": "coa-camping-expiry",
+  "contract": [
+    "Use CoACamping.AllowSoloContributions=0 and CoACamping.Capacity=3 for this shared-camp scenario.",
+    "Requires CoACamping.Enable=1, CoACamping.LifetimeSeconds=120 and CoACamping.RestSeconds=60.",
+    "A same-model fixture fire without spell 818 stays unmanaged at its native 300-second lifetime.",
+    "At the configured managed deadline the fire, supplies and contributed candle expire together.",
+    "The nearby unmanaged fire survives; it must not be enrolled, extended, or removed by camping cleanup."
+  ],
+  "timeout_ms": 200000,
+  "location": {
+    "map": 0,
+    "x": -9465,
+    "y": 64,
+    "z": 56,
+    "o": 0
+  },
+  "players": [
+    {
+      "id": "owner",
+      "race": 1,
+      "class": 1,
+      "level": 80
+    },
+    {
+      "id": "guest",
+      "race": 1,
+      "class": 1,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "ms": 5000
+    },
+    {
+      "action": "summon_gameobject",
+      "actor": "guest",
+      "entry": 29784,
+      "duration_s": 300
+    },
+    {
+      "action": "assert",
+      "actor": "guest",
+      "metric": "owned_gameobject_count",
+      "equals": 1,
+      "entry": 29784
+    },
+    {
+      "action": "assert",
+      "actor": "guest",
+      "metric": "owned_gameobject_count",
+      "equals": 0,
+      "entry": 9500200
+    },
+    {
+      "action": "assert",
+      "actor": "guest",
+      "metric": "gameobject_remaining_ms",
+      "entry": 29784,
+      "min": 298000,
+      "max": 300000
+    },
+    {
+      "action": "wait",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "owner",
+      "spell": 818
+    },
+    {
+      "action": "cast",
+      "actor": "owner",
+      "spell": 818
+    },
+    {
+      "action": "assert",
+      "actor": "owner",
+      "metric": "owned_gameobject_count",
+      "equals": 1,
+      "entry": 29784,
+      "within_ms": 15000
+    },
+    {
+      "action": "assert",
+      "actor": "owner",
+      "metric": "owned_gameobject_count",
+      "equals": 1,
+      "entry": 9500200,
+      "within_ms": 2000
+    },
+    {
+      "action": "set_skill",
+      "actor": "owner",
+      "skill": 182,
+      "value": 20,
+      "maximum": 75
+    },
+    {
+      "action": "add_item",
+      "actor": "owner",
+      "item": 2447,
+      "count": 2
+    },
+    {
+      "action": "add_item",
+      "actor": "owner",
+      "item": 765,
+      "count": 2
+    },
+    {
+      "action": "use_gameobject",
+      "actor": "owner",
+      "entry": 9500200,
+      "owner": "owner"
+    },
+    {
+      "action": "assert",
+      "actor": "owner",
+      "metric": "gossip_options",
+      "equals": 1
+    },
+    {
+      "action": "gossip_select",
+      "actor": "owner",
+      "option": 0
+    },
+    {
+      "action": "assert",
+      "actor": "owner",
+      "metric": "owned_gameobject_count",
+      "equals": 1,
+      "entry": 9500201,
+      "within_ms": 2000
+    },
+    {
+      "action": "assert",
+      "actor": "owner",
+      "metric": "item_count",
+      "equals": 1,
+      "item": 2447
+    },
+    {
+      "action": "assert",
+      "actor": "owner",
+      "metric": "item_count",
+      "equals": 1,
+      "item": 765
+    },
+    {
+      "action": "assert",
+      "actor": "owner",
+      "metric": "gameobject_remaining_ms",
+      "entry": 29784,
+      "min": 117000,
+      "max": 120000
+    },
+    {
+      "action": "wait",
+      "ms": 115000
+    },
+    {
+      "action": "assert",
+      "actor": "owner",
+      "metric": "owned_gameobject_count",
+      "equals": 1,
+      "entry": 9500200
+    },
+    {
+      "action": "assert",
+      "actor": "owner",
+      "metric": "owned_gameobject_count",
+      "equals": 1,
+      "entry": 9500201
+    },
+    {
+      "action": "wait",
+      "ms": 7000
+    },
+    {
+      "action": "assert",
+      "actor": "owner",
+      "metric": "nearby_gameobject_count",
+      "equals": 0,
+      "entry": 9500200,
+      "within_ms": 2000
+    },
+    {
+      "action": "assert",
+      "actor": "owner",
+      "metric": "nearby_gameobject_count",
+      "equals": 0,
+      "entry": 9500201,
+      "within_ms": 2000
+    },
+    {
+      "action": "assert",
+      "actor": "owner",
+      "metric": "owned_gameobject_count",
+      "equals": 0,
+      "entry": 29784
+    },
+    {
+      "action": "assert",
+      "actor": "guest",
+      "metric": "owned_gameobject_count",
+      "equals": 1,
+      "entry": 29784
+    }
+  ]
+}

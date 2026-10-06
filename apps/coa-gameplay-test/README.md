@@ -462,7 +462,7 @@ assert stable maximums and final levels when testing damage coefficients.
 | `fill_bags` | `actor`, optional `slots` (default 0): fill the bags with distinct non-stacking armor until that many free slots remain, so a scenario can prove what a full inventory does. Fails if the bags cannot be filled. |
 | `equip` | `actor`, `item`, `slot` (0..18 equipment, 19..22 bag slots): equip an owned item through the session handler. |
 | `use_item` | `actor`, `item`, `spell`, optional `target`, `target_item` (an owned item entry, sent as the item target instead of a unit) and `destination`: normal item-use handler. |
-| `use_gameobject` | `actor`, `entry`: native use request for the actor's single nearby owned gameobject. |
+| `use_gameobject` | `actor`, `entry`, optional player `owner`: native use request for that player's single nearby owned gameobject; defaults to the actor. The interacting actor retains normal distance, phase and usability checks. |
 | `summon_gameobject` | Player `actor`, `entry`, optional `distance` (yards in front, default 2) and `duration_s` (default 300): summon a gameobject the actor owns; fails if the actor already owns one of that entry. |
 | `loot_gameobject` | Player `actor`, `entry`: open the loot of the actor's single owned chest as a successful open-lock cast does, so chest loot is generated for that player. Lock, key and skill checks are not exercised. |
 | `mapless_loot_hook` | Player `actor`, `store` (`mail`/`gameobject`): test registered loot hooks without a map. |
@@ -483,10 +483,22 @@ This fixture supports exact health-percentage boundaries without granting GM per
 `gather_skill` calls `UpdateGatherSkill`; it does not harvest a node or prove loot delivery.
 
 `xp` and `next_level_xp` read the player's XP fields; `skill_value` and `skill_maximum` require `skill` and read
-the pure skill value and maximum. `spell_active` requires `spell` and reports whether a known rank is the active one.
+the corresponding native skill values. `rested_xp` reads the native rested pool; `item_durability` requires a carried
+`item`. `sitting` includes ground and chair sitting. `ranged_crit_chance` reads the native ranged crit percentage.
+`spell_active` requires `spell` and reports whether a known rank is the active one.
 `client_knows_spell` requires `spell` and is 1 when the spell packets sent to the player (initial list, learned,
 superseded and removed) leave it in the client's spellbook.
 XP-delta assertions must also keep the level stable, or crossing a level would wrap the XP bar.
+
+`list_inventory`, `buy_item` and `repair_item` take a player `actor` and nearby creature `entry`; buying and
+repair also require a carried or sold `item`. Buying accepts optional `count` (default 1). They use native
+vendor and paid repair packet handlers at the actor's actual distance. `damage_item` takes player `actor`,
+carried `item` and `percent` (0..100), and applies native durability loss for a repair fixture.
+
+`set_rested_xp` takes a player `actor` and nonnegative `value`, setting the fixture pool through native
+`SetRestBonus` and its level cap. `give_xp` takes player `actor`, positive `amount` and optional creature
+`target`. It uses the native XP award; a target receives fixture loot credit and exercises kill rested-XP
+consumption. The amount and credit are fixture input: this does not test kill-XP calculation or an actual kill.
 
 Every step accepts a descriptive `label`. Assertions optionally accept `within_ms`: poll until the expected
 state appears, failing at the deadline. This means "eventually", not "remains true throughout the window".

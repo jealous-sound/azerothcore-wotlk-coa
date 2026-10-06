@@ -1,0 +1,252 @@
+{
+  "schema": 1,
+  "name": "coa-camping-rest-interruption",
+  "contract": [
+    "Use CoACamping.AllowSoloContributions=0 and CoACamping.Capacity=3 for this shared-camp scenario.",
+    "Requires CoACamping.Enable=1 and 60-second rest. The scenario uses normal phase 1 and runs exclusively.",
+    "Standing, a brief movement flag between scan intervals, and leaving the camp phase each reset rest.",
+    "Returning to the original phase requires a new full 60-second seated interval before receiving 2 Intellect."
+  ],
+  "timeout_ms": 400000,
+  "location": {
+    "map": 0,
+    "x": -9465,
+    "y": 64,
+    "z": 56,
+    "o": 0
+  },
+  "players": [
+    {
+      "id": "owner",
+      "race": 1,
+      "class": 1,
+      "level": 80
+    },
+    {
+      "id": "guest",
+      "race": 1,
+      "class": 1,
+      "level": 80
+    }
+  ],
+  "steps": [
+    {
+      "action": "set_phase",
+      "actor": "owner",
+      "value": 1
+    },
+    {
+      "action": "set_phase",
+      "actor": "guest",
+      "value": 1
+    },
+    {
+      "action": "wait",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "owner",
+      "spell": 818
+    },
+    {
+      "action": "cast",
+      "actor": "owner",
+      "spell": 818
+    },
+    {
+      "action": "assert",
+      "actor": "owner",
+      "metric": "owned_gameobject_count",
+      "equals": 1,
+      "entry": 29784,
+      "within_ms": 15000
+    },
+    {
+      "action": "assert",
+      "actor": "owner",
+      "metric": "owned_gameobject_count",
+      "equals": 1,
+      "entry": 9500200,
+      "within_ms": 2000
+    },
+    {
+      "action": "set_skill",
+      "actor": "owner",
+      "skill": 182,
+      "value": 20,
+      "maximum": 75
+    },
+    {
+      "action": "add_item",
+      "actor": "owner",
+      "item": 2447,
+      "count": 2
+    },
+    {
+      "action": "add_item",
+      "actor": "owner",
+      "item": 765,
+      "count": 2
+    },
+    {
+      "action": "use_gameobject",
+      "actor": "owner",
+      "entry": 9500200,
+      "owner": "owner"
+    },
+    {
+      "action": "assert",
+      "actor": "owner",
+      "metric": "gossip_options",
+      "equals": 6
+    },
+    {
+      "action": "gossip_select",
+      "actor": "owner",
+      "option": 0
+    },
+    {
+      "action": "assert",
+      "actor": "owner",
+      "metric": "owned_gameobject_count",
+      "equals": 1,
+      "entry": 9500201,
+      "within_ms": 2000
+    },
+    {
+      "action": "assert",
+      "actor": "owner",
+      "metric": "item_count",
+      "equals": 1,
+      "item": 2447
+    },
+    {
+      "action": "assert",
+      "actor": "owner",
+      "metric": "item_count",
+      "equals": 1,
+      "item": 765
+    },
+    {
+      "action": "client_packet",
+      "actor": "guest",
+      "opcode": 257,
+      "fields": [
+        {
+          "u32": 1
+        }
+      ],
+      "consumed": false
+    },
+    {
+      "action": "wait",
+      "ms": 30000
+    },
+    {
+      "action": "client_packet",
+      "actor": "guest",
+      "opcode": 257,
+      "fields": [
+        {
+          "u32": 0
+        }
+      ],
+      "consumed": false
+    },
+    {
+      "action": "wait",
+      "ms": 1500
+    },
+    {
+      "action": "client_packet",
+      "actor": "guest",
+      "opcode": 257,
+      "fields": [
+        {
+          "u32": 1
+        }
+      ],
+      "consumed": false
+    },
+    {
+      "action": "wait",
+      "ms": 30000
+    },
+    {
+      "action": "assert",
+      "actor": "guest",
+      "metric": "aura",
+      "equals": 0,
+      "spell": 1459
+    },
+    {
+      "action": "set_moving",
+      "actor": "guest",
+      "enabled": true
+    },
+    {
+      "action": "wait",
+      "ms": 100
+    },
+    {
+      "action": "set_moving",
+      "actor": "guest",
+      "enabled": false
+    },
+    {
+      "action": "wait",
+      "ms": 30000
+    },
+    {
+      "action": "assert",
+      "actor": "guest",
+      "metric": "aura",
+      "equals": 0,
+      "spell": 1459
+    },
+    {
+      "action": "set_phase",
+      "actor": "guest",
+      "value": 2
+    },
+    {
+      "action": "wait",
+      "ms": 30000
+    },
+    {
+      "action": "assert",
+      "actor": "guest",
+      "metric": "aura",
+      "equals": 0,
+      "spell": 1459
+    },
+    {
+      "action": "set_phase",
+      "actor": "guest",
+      "value": 1
+    },
+    {
+      "action": "wait",
+      "ms": 30000
+    },
+    {
+      "action": "assert",
+      "actor": "guest",
+      "metric": "aura",
+      "equals": 0,
+      "spell": 1459
+    },
+    {
+      "action": "wait",
+      "ms": 33000
+    },
+    {
+      "action": "assert",
+      "actor": "guest",
+      "metric": "aura_amount",
+      "equals": 2,
+      "spell": 1459
+    }
+  ]
+}
