@@ -73,6 +73,7 @@ class aura_ascension_venomancer_lifecycle : public AuraScript
             Cast(player,player,806152);
             if (!player->HasSpell(806217))
                 player->learnSpell(806217,true);
+            player->SetTemporarySpellReplacement(806154,806217);
             if (player->HasAura(800878) && player->HasAura(Spider))
                 Cast(player,player,Skulk);
         }
@@ -201,6 +202,7 @@ class aura_ascension_venomancer_lifecycle : public AuraScript
         if (id == 806154)
         {
             player->RemoveAurasDueToSpell(806152);
+            player->SetTemporarySpellReplacement(806154,0);
             player->removeSpell(806217,SPEC_MASK_ALL,true);
         }
         if (id == Skulk && player->HasAura(706026))
