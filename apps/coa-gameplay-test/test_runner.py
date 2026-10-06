@@ -127,6 +127,17 @@ class RunnerTests(unittest.TestCase):
             with self.subTest(hour=hour), self.assertRaisesRegex(ValueError, '^hour: '):
                 run.validate(scenario)
 
+    def test_creature_scaling_is_an_optional_boolean(self):
+        for value in (True, False):
+            scenario = copy.deepcopy(self.scenario)
+            scenario['creature_scaling'] = value
+            self.assertIs(run.validate(scenario), scenario)
+        for value in (1, 'true', None):
+            scenario = copy.deepcopy(self.scenario)
+            scenario['creature_scaling'] = value
+            with self.subTest(value=value), self.assertRaisesRegex(ValueError, 'creature_scaling must be boolean'):
+                run.validate(scenario)
+
     def test_hour_timezone_is_a_posix_offset_placing_local_time_at_the_start_of_that_hour(self):
         for utc_hour, hour, expected in ((10, 12, 'UTC-01:01'), (23, 0, 'UTC-00:01'), (1, 23, 'UTC+02:59'),
                                          (12, 0, 'UTC-11:01'), (12, 23, 'UTC-10:01'), (5, 5, 'UTC+00:59'),

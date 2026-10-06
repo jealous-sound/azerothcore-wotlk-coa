@@ -4,6 +4,7 @@
 #include "CoACreatureScalingPolicy.h"
 #include "AllCreatureScript.h"
 #include "Config.h"
+#include "DatabaseEnv.h"
 #include "Creature.h"
 #include "Log.h"
 #include "Map.h"
@@ -12,6 +13,7 @@
 #include <atomic>
 #include <memory>
 #include <mutex>
+#include <unordered_set>
 
 namespace
 {
@@ -19,6 +21,7 @@ namespace
     std::shared_ptr<CreatureScaling::Settings const> Configured = std::make_shared<CreatureScaling::Settings>();
     std::shared_ptr<CreatureScaling::Settings const> Override;
     std::atomic<bool> Enabled = false;
+    std::unordered_set<uint32> FlexHealthEntries;
 
     std::shared_ptr<CreatureScaling::Settings const> Active()
     {
@@ -31,6 +34,11 @@ namespace
         Enabled = (Override ? Override : Configured)->enabled;
     }
 
+    bool HasFlexHealth(Creature const* creature)
+    {
+        return FlexHealthEntries.count(creature->GetEntry()) || FlexHealthEntries.count(creature->GetEntry() % 100000);
+    }
+
     bool IsDummy(Creature const* creature)
     {
         std::string const& script = creature->GetScriptName();
@@ -39,9 +47,8 @@ namespace
 
     bool IsEligible(Creature const* creature)
     {
-        return creature && !creature->IsPet() && !creature->IsSummon() && !creature->IsTotem()
-            && !creature->IsTrigger() && !creature->IsCritter() && !creature->IsCivilian()
-            && !creature->GetCharmerOrOwnerGUID() && !IsDummy(creature);
+        return creature && !creature->IsPet() && !creature->IsSummon() && !creature->IsTotem() && !creature->IsTrigger()
+            && !creature->IsCritter() && !creature->GetCharmerOrOwnerGUID() && !IsDummy(creature);
     }
 
     CreatureScaling::Context ContextOf(Creature const* creature)
@@ -124,11 +131,21 @@ public:
     void OnStartup() override
     {
         OnAfterConfigLoad(false);
+        FlexHealthEntries.clear();
+        if (QueryResult result = WorldDatabase.Query("SELECT entry FROM coa_boss_flex"))
+        {
+            do
+            {
+                FlexHealthEntries.insert(result->Fetch()[0].Get<uint32>());
+            } while (result->NextRow());
+        }
         auto settings = Active();
-        LOG_INFO("server.loading", ">> CoA creature scaling {}: health {}/{}/{}, damage {}/{}/{} (world/dungeon/raid), "
-            "{} map health overrides", settings->enabled ? "enabled" : "disabled", settings->health.world,
-            settings->health.dungeon, settings->health.raid, settings->damage.world, settings->damage.dungeon,
-            settings->damage.raid, settings->health.maps.size());
+        LOG_INFO("server.loading",
+            ">> CoA creature scaling {}: health {}/{}/{}, damage {}/{}/{} (world/dungeon/raid), "
+            "{} map health overrides, {} flex health entries kept",
+            settings->enabled ? "enabled" : "disabled", settings->health.world, settings->health.dungeon,
+            settings->health.raid, settings->damage.world, settings->damage.dungeon, settings->damage.raid,
+            settings->health.maps.size(), FlexHealthEntries.size());
     }
 };
 
@@ -139,7 +156,7 @@ public:
 
     void OnCreatureSelectLevel(CreatureTemplate const*, Creature* creature) override
     {
-        if (!Enabled || !IsEligible(creature))
+        if (!Enabled || !IsEligible(creature) || HasFlexHealth(creature))
             return;
         CreatureScaling::Context const context = ContextOf(creature);
         if (context == CreatureScaling::Context::None)
@@ -159,8 +176,8 @@ public:
 class CoACreatureScalingDamage final : public UnitScript
 {
 public:
-    CoACreatureScalingDamage() : UnitScript("CoACreatureScalingDamage", true,
-        { UNITHOOK_MODIFY_MELEE_DAMAGE, UNITHOOK_MODIFY_SPELL_DAMAGE_TAKEN, UNITHOOK_MODIFY_PERIODIC_DAMAGE_AURAS_TICK })
+    CoACreatureScalingDamage() : UnitScript("CoACreatureScalingDamage", true, { UNITHOOK_MODIFY_MELEE_DAMAGE,
+        UNITHOOK_MODIFY_SPELL_DAMAGE_TAKEN, UNITHOOK_MODIFY_PERIODIC_DAMAGE_AURAS_TICK })
     { }
 
     void ModifyMeleeDamage(Unit* target, Unit* attacker, uint32& damage) override
