@@ -50,11 +50,11 @@ CoA.EquippedGearLootChance = 5
 # MapHealth/MapDamage replace the context value per map as "mapId:multiplier".
 # Without this section the server keeps these multipliers but leaves the feature disabled.
 CoA.CreatureScaling.Enable = 1
-CoA.CreatureScaling.World.Health = 2.0
+CoA.CreatureScaling.World.Health = 2.5
 CoA.CreatureScaling.Dungeon.Health = 2.5
 CoA.CreatureScaling.Raid.Health = 2.2
 CoA.CreatureScaling.MapHealth = "36:2.2 43:2.0 229:4.0 389:3.0 469:5.0"
-CoA.CreatureScaling.World.Damage = 1.0
+CoA.CreatureScaling.World.Damage = 1.5
 CoA.CreatureScaling.Dungeon.Damage = 1.5
 CoA.CreatureScaling.Raid.Damage = 1.0
 CoA.CreatureScaling.MapDamage = ""

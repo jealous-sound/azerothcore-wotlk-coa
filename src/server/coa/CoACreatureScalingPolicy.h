@@ -30,8 +30,8 @@ struct Multipliers
 struct Settings
 {
     bool enabled = false;
-    Multipliers health{ 2.0f, 2.5f, 2.2f, { { 36, 2.2f }, { 43, 2.0f }, { 229, 4.0f }, { 389, 3.0f }, { 469, 5.0f } } };
-    Multipliers damage{ 1.0f, 1.5f, 1.0f, {} };
+    Multipliers health{ 2.5f, 2.5f, 2.2f, { { 36, 2.2f }, { 43, 2.0f }, { 229, 4.0f }, { 389, 3.0f }, { 469, 5.0f } } };
+    Multipliers damage{ 1.5f, 1.5f, 1.0f, {} };
 };
 
 inline Context ContextOf(bool battlegroundOrArena, bool scriptedPrivateInstance, bool regularDifficulty, bool raid,
