@@ -200,7 +200,7 @@ void RefreshProfessions(Player* player)
     {
         float scale = SkillScale(player, skills[index]);
         int32 amount = int32(std::lround(bonuses[index] * scale));
-        bool active = Config.professions && Affects(player) && player->IsAlive() && amount != 0;
+        bool active = Config.professions && Affects(player) && player->IsAlive() && player->GetLevel() > 1 && amount != 0;
         uint32 spell = ProfessionAura + index;
         SetAura(player, spell, active);
         if (!active)
@@ -695,6 +695,7 @@ public:
     void OnPlayerLevelChanged(Player* player, uint8) override
     {
         std::lock_guard<std::recursive_mutex> lock(Mutex);
+        RefreshProfessions(player);
         Unlock(player);
     }
 
