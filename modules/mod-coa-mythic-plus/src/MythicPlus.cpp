@@ -1932,11 +1932,11 @@ private:
     static void AddInfo(Player* player)
     {
         Weekly const weekly = GetWeekly(player->GetGUID());
-        AddGossipItemFor(player, GOSSIP_ICON_MONEY_BAG, Opt("INV_Box_02", Acore::StringFormat("Mythical Caches Opened: {} / {}", weekly.caches,
+        AddGossipItemFor(player, GOSSIP_ICON_MONEY_BAG, Opt("inv_legion_chest_legionfall", Acore::StringFormat("Mythical Caches Opened: {} / {}", weekly.caches,
             WeeklyCacheCap()), 30), MENU_MAIN, 0);
-        AddGossipItemFor(player, GOSSIP_ICON_MONEY_BAG, Opt("INV_Misc_Coin_02", Acore::StringFormat("Mythic Coins Obtained: {} / {}", weekly.coins,
+        AddGossipItemFor(player, GOSSIP_ICON_MONEY_BAG, Opt("timelesscoin", Acore::StringFormat("Mythic Coins Obtained: {} / {}", weekly.coins,
             WeeklyCoinCap()), 30), MENU_MAIN, 0);
-        AddGossipItemFor(player, GOSSIP_ICON_BATTLE, Opt("INV_Misc_Key_13", Acore::StringFormat("Highest Mythic Level Completed: {}",
+        AddGossipItemFor(player, GOSSIP_ICON_BATTLE, Opt("inv_relics_hourglass", Acore::StringFormat("Highest Mythic Level Completed: {}\n",
             GetBestLevel(player->GetGUID())), 30), MENU_MAIN, 0);
     }
 
@@ -1944,19 +1944,19 @@ private:
     {
         ClearGossipMenuFor(player);
         AddInfo(player);
-        AddGossipItemFor(player, GOSSIP_ICON_VENDOR, Opt("INV_Misc_Bag_10_Blue", "Purchase Items"), MENU_PURCHASE, 0);
-        AddGossipItemFor(player, GOSSIP_ICON_INTERACT_1, Opt("Spell_ChargePositive", "Upgrade Items"), MENU_UPGRADE, 0);
+        AddGossipItemFor(player, GOSSIP_ICON_VENDOR, Opt("inv__faction_championsofazeroth", "Purchase Items"), MENU_PURCHASE, 0);
+        AddGossipItemFor(player, GOSSIP_ICON_INTERACT_1, Opt("garrison_greenarmorupgrade", "Upgrade Items"), MENU_UPGRADE, 0);
         uint32 const highest = std::min(HighestOwnedLevel(player), GetBestLevel(player->GetGUID()));
         uint32 count = 0, cost = 0;
         UpgradeAllPlan(player, highest, count, cost);
         if (count)
-            AddGossipItemFor(player, GOSSIP_ICON_INTERACT_1, Opt("Spell_Holy_DivineProvidence", Acore::StringFormat("Upgrade Items to Highest Level ({})", highest)),
+            AddGossipItemFor(player, GOSSIP_ICON_INTERACT_1, Opt("garrison_purplearmorupgrade", Acore::StringFormat("Upgrade Items to Highest Level ({})", highest)),
                 DO_UPGRADE_ALL, 0, Acore::StringFormat("Upgrade {} items to Mythic {} for {} Mythic Coins?", count, highest, cost), 0, false);
         AddGossipItemFor(player, GOSSIP_ICON_INTERACT_2, Opt("INV_Misc_Dice_01", "Randomize your Mythic Keystone"), DO_RANDOMIZE, 0,
             "Randomize the dungeon of your Mythic Keystone?", RANDOMIZE_COST, false);
-        AddGossipItemFor(player, GOSSIP_ICON_INTERACT_2, Opt("Spell_ChargeNegative", "Downgrade Keystone"), DO_DOWNGRADE, 0,
+        AddGossipItemFor(player, GOSSIP_ICON_INTERACT_2, Opt("misc_arrowdown", "Downgrade Keystone"), DO_DOWNGRADE, 0,
             "Lower your Mythic Keystone by one level?", 0, false);
-        AddGossipItemFor(player, GOSSIP_ICON_TRAINER, Opt("Trade_Engineering", "Recycle Items"), MENU_RECYCLE, 0);
+        AddGossipItemFor(player, GOSSIP_ICON_TRAINER, Opt("inv_enchant_alchemistcauldron", "Recycle Items"), MENU_RECYCLE, 0);
         SendGossipMenuFor(player, TEXT_EDRIM, creature->GetGUID());
     }
 
@@ -2099,8 +2099,8 @@ public:
     bool OnGossipHello(Player* player, Creature* creature) override
     {
         ClearGossipMenuFor(player);
-        AddGossipItemFor(player, GOSSIP_ICON_VENDOR, Opt("Spell_Holy_ChampionsBond", "Mark of Triumph"), 2, 0);
-        AddGossipItemFor(player, GOSSIP_ICON_VENDOR, Opt("INV_Misc_Bag_10_Green", "Heroic Dungeon Items"), 1, 0);
+        AddGossipItemFor(player, GOSSIP_ICON_VENDOR, Opt("pvecurrency-valor", "Mark of Triumph"), 2, 0);
+        AddGossipItemFor(player, GOSSIP_ICON_VENDOR, Opt("pvecurrency-valor", "Heroic Dungeon Items"), 1, 0);
         SendGossipMenuFor(player, TEXT_MARKUS, creature->GetGUID());
         return true;
     }
