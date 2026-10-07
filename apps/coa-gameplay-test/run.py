@@ -131,7 +131,7 @@ METRIC_FIELDS = {'actor', 'metric', 'spell', 'power', 'caster', 'effect', 'item'
                  'min_distance', 'owner_display', 'skill', 'cache', 'table', 'exclude', 'dungeon', 'source',
                  'opcode', 'from', 'slot', 'achievement', 'title', 'type_mask', 'hit_mask', 'spell_type_mask',
                  'phase_mask', 'trigger_spell', 'trials', 'incoming', 'heal', 'quality',
-                 'row', 'offset', 'skip_strings', 'x', 'y'}
+                 'row', 'offset', 'skip_strings', 'x', 'y', 'min_required_level', 'max_required_level'}
 ACTIONS = {
     'stop_attack': ({'actor'}, {'actor'}),
     'set_moving': ({'actor', 'enabled'}, {'actor', 'enabled'}),
