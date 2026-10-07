@@ -227,7 +227,7 @@ class spell_ascension_family_call : public SpellScript
             return SPELL_CAST_OK;
         }
 
-        if (!call->Starter || !sObjectMgr->GetCreatureTemplate(call->Starter))
+        if (call->Kind == KIND_BEAST || !call->Starter || !sObjectMgr->GetCreatureTemplate(call->Starter))
         {
             player->SendTameFailure(PET_TAME_NOPET_AVAILABLE);
             return SPELL_FAILED_DONT_REPORT;

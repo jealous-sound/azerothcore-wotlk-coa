@@ -10,6 +10,7 @@ namespace CoALegendary
     constexpr uint32_t ItemEntryBase = 9700000;
     constexpr uint32_t ItemEntryStride = 100;
     constexpr uint32_t AuraEntryBase = 9710000;
+    constexpr uint32_t TooltipEntryBase = 9720000;
     constexpr uint32_t DesignCount = 64;
     constexpr uint32_t MaximumCreatureLevel = 60;
     constexpr uint32_t ItemLevelBonus = 12;
@@ -81,6 +82,11 @@ namespace CoALegendary
     constexpr uint32_t EntryForLevel(uint32_t design, uint32_t requiredLevel)
     {
         return ItemEntryBase + design * ItemEntryStride + requiredLevel;
+    }
+
+    constexpr uint32_t TooltipForLevel(uint32_t design, uint32_t requiredLevel)
+    {
+        return TooltipEntryBase + design * ItemEntryStride + requiredLevel;
     }
 
     constexpr std::optional<Variant> DecodeEntry(uint32_t entry)

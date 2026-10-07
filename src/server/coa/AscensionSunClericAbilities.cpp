@@ -80,7 +80,7 @@ public:
         auto* info = spell->GetSpellInfo();
         if (!player || info->SpellFamilyName != 33 || spell->IsTriggered() || result != SPELL_CAST_OK)
             return;
-        if (info->Id == DawnCast && (Count(player, SolarPower) < 20 || player->HasAura(Dawn)))
+        if (info->Id == DawnCast && !player->HasAura(Dawn) && Count(player, SolarPower) < 20)
             result = SPELL_FAILED_NO_POWER;
         if (info->Id == 680630 && !player->HasAura(Dawn))
             result = SPELL_FAILED_CANT_DO_THAT_RIGHT_NOW;
@@ -389,7 +389,10 @@ class spell_ascension_sun_cleric_ability : public SpellScript
         if (id == DawnCast)
         {
             done = true;
-            ActivateDawn(player);
+            if (Aura* dawn = player->GetAura(Dawn))
+                dawn->Remove(AURA_REMOVE_BY_CANCEL);
+            else
+                ActivateDawn(player);
         }
         if (id == 680630)
         {

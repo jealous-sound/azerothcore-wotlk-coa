@@ -18,6 +18,7 @@
 #include "WorldforgedUpgrades.h"
 
 #include "AscensionCompatOpcodes.h"
+#include "AscensionItemScaling.h"
 
 #include "Config.h"
 #include "DatabaseEnv.h"
@@ -252,6 +253,14 @@ namespace Worldforged
             auto const& stored = g_recipes.emplace(recipe.key, recipe).first->second;
             g_byStore[recipe.store].push_back(&stored);
         } while (result->NextRow());
+
+        std::unordered_set<uint32> upgradeItems;
+        for (auto const& [key, recipe] : g_recipes)
+        {
+            upgradeItems.insert(recipe.baseItem);
+            upgradeItems.insert(recipe.targetItem);
+        }
+        ItemScaling::SetUnliftableEntries(std::move(upgradeItems));
 
         LOG_INFO("module.worldforged",
                  "Worldforged: {} upgrades loaded, {} weapons and {} armour{}.",
