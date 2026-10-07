@@ -772,6 +772,11 @@ or -1 for an object without an expiry. Moving out of range is not proof of despa
 The [portable gadgets scenario](scenarios/portable-gadgets.json) checks item summons, lifetimes, portal
 teleports and expiry. It requires `mod-portablemail`; mailbox and altar client interfaces are not tested.
 `power`/`max_power` and `pet_power`/`pet_max_power` accept a numeric `power` (0..6).
+`mana_regen` and `mana_regen_interrupted` read the player's owner-visible mana regeneration fields in
+mana per second, outside and inside the five-second rule. `resting` reads the native resting player flag.
+`sent_mana_regen` and `sent_mana_regen_interrupted` decode those fields from native values-update packets
+received by the owner's session, returning -1 until the field has been observed. These metrics do not
+inspect a rendered resource bar.
 The pet queries require a player with a current pet. Aura metrics optionally accept `caster` to select
 ownership; `aura_visible` observes whether the native aura application occupies a client-visible buff slot.
 `aura_amount` also accepts an effect index (0..2, default 0). Missing auras yield zero;

@@ -31,6 +31,8 @@ HOURS_PER_DAY = 24
 MINUTES_PER_HOUR = 60
 MINUTES_PER_DAY = HOURS_PER_DAY * MINUTES_PER_HOUR
 METRICS = {
+    'mana_regen', 'mana_regen_interrupted', 'resting',
+    'sent_mana_regen', 'sent_mana_regen_interrupted',
     'moving', 'spline_remaining_ms', 'spline_speed', 'water_walk', 'forced_forward', 'distance_2d',
     'point_distance_2d', 'cast_remaining_ms', 'cast_pushback_ms',
     'melee_damage_count', 'melee_damage_total',
@@ -106,6 +108,8 @@ METRICS = {
     'wildcard_roll_cards_used', 'wildcard_bonus_pack_progress',
 }
 PLAYER_STAT_METRICS = {
+    'mana_regen', 'mana_regen_interrupted', 'resting',
+    'sent_mana_regen', 'sent_mana_regen_interrupted',
     'spell_go_count',
     'global_cooldown_ms',
     'melee_damage_count',

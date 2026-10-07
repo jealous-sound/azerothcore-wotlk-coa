@@ -73,6 +73,7 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <chrono>
 #include <cmath>
 #include <ctime>
@@ -1738,6 +1739,29 @@ private:
             return unit->GetHealthPct();
         if (metric == "max_health")
             return unit->GetMaxHealth();
+        if (metric == "mana_regen" || metric == "mana_regen_interrupted")
+        {
+            Require(unit->IsPlayer(), "Mana regeneration rate needs a player");
+            uint16 field = metric == "mana_regen" ? UNIT_FIELD_POWER_REGEN_FLAT_MODIFIER :
+                UNIT_FIELD_POWER_REGEN_INTERRUPTED_FLAT_MODIFIER;
+            return unit->GetFloatValue(field + AsUnderlyingType(POWER_MANA));
+        }
+        if (metric == "sent_mana_regen" || metric == "sent_mana_regen_interrupted")
+        {
+            Require(unit->IsPlayer(), "Sent mana regeneration rate needs a player");
+            Actor& actor = _actors.at(step.get<std::string>("actor"));
+            uint16 field = metric == "sent_mana_regen" ? UNIT_FIELD_POWER_REGEN_FLAT_MODIFIER :
+                UNIT_FIELD_POWER_REGEN_INTERRUPTED_FLAT_MODIFIER;
+            auto itr = actor.unitValues.find(unit->GetGUID().GetRawValue());
+            if (itr == actor.unitValues.end() || !itr->second.count(field))
+                return -1;
+            return std::bit_cast<float>(itr->second.at(field));
+        }
+        if (metric == "resting")
+        {
+            Require(unit->IsPlayer(), "Resting state needs a player");
+            return unit->ToPlayer()->HasPlayerFlag(PLAYER_FLAGS_RESTING);
+        }
         if (metric == "creature_type")
             return unit->GetCreatureType();
         if (metric == "display_id")
