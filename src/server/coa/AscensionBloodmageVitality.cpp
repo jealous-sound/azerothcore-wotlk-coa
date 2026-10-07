@@ -5,6 +5,7 @@
 #include "Spell.h"
 #include "SpellAuraEffects.h"
 #include "SpellAuras.h"
+#include "SpellMgr.h"
 #include "SpellScript.h"
 #include <algorithm>
 #include <cmath>
@@ -15,6 +16,7 @@ namespace
 using namespace AscensionBloodmage;
 constexpr uint32 VitalityCost = 10;
 constexpr uint32 Hemopulse = 524906;
+constexpr uint32 DarkfallenLamentLeech = 630874;
 
 bool IsBloodmage(Player const* player)
 {
@@ -114,6 +116,19 @@ public:
         else if (GetEmpowerment(info->Id) == Heartbreak)
             bonus = std::max(0, const_cast<Unit*>(caster)->SpellBaseDamageBonusDone(SPELL_SCHOOL_MASK_SHADOW)) * 0.5 +
                 caster->GetStat(STAT_SPIRIT);
+        else if (info->Id == DarkfallenLamentLeech &&
+            info->Effects[EFFECT_0].Effect == SPELL_EFFECT_HEALTH_LEECH &&
+            info->Effects[EFFECT_0].BonusMultiplier == 0)
+        {
+            if (SpellBonusEntry const* native = sSpellMgr->GetSpellBonusData(info->Id))
+                if (native->direct_damage != 0 || native->ap_bonus != 0)
+                    return;
+            float coefficient = 1.0f;
+            if (Player* owner = caster->GetSpellModOwner())
+                owner->ApplySpellMod(info->Id, SPELLMOD_BONUS_MULTIPLIER, coefficient);
+            bonus = std::max(0, const_cast<Unit*>(caster)->SpellBaseHealingBonusDone(SPELL_SCHOOL_MASK_SHADOW)) *
+                coefficient;
+        }
         else
             return;
 
