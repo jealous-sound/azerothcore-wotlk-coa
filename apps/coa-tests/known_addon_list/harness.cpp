@@ -5,6 +5,7 @@
 #include <iostream>
 #include <string>
 #include <string_view>
+#include <unordered_set>
 #include <vector>
 
 using uint8 = std::uint8_t;
@@ -115,18 +116,36 @@ int main()
     Expect(Find(entries, "Blizzard_TrainerUI")->secure == 1, "Blizzard addons are secure");
     Expect(Find(entries, "!BugGrabber")->secure == 0, "third-party addons are not secure");
 
-    for (char const* name : { "AscensionUI", "AscensionResources", "Ascension_CharacterAdvancement",
-                              "Ascension_WildCard", "Ascension_UIDevelopmentTools" })
+    for (char const* name : { "AscensionUI", "Ascension_CompactRaidFrames", "Ascension_EnchantCollection",
+                              "Ascension_HelpUI", "Ascension_InspectUI", "Ascension_MythicPlus",
+                              "Ascension_SeasonCollection", "Ascension_TicketUI", "Ascension_UIDevelopmentTools",
+                              "Ascension_WildCard" })
     {
         Entry const* entry = Find(entries, name);
         Expect(entry != nullptr, "Ascension's own addons are listed even when the client did not report them");
-        Expect(entry->secure == 1, "Ascension's own addons are secure");
+        Expect(entry->secure == 1, "Ascension addons that need protected calls are secure");
     }
+
+    for (char const* name : { "AscensionResources", "Ascension_AddonPanel", "Ascension_AppearanceUI",
+                              "Ascension_BuildCreator", "Ascension_ChallengesUI", "Ascension_CharacterAdvancement",
+                              "Ascension_CharacterAdvancementSeason9", "Ascension_CoATalents",
+                              "Ascension_Collections", "Ascension_Draft", "Ascension_ForcedPrimaryStat",
+                              "Ascension_Manastorm", "Ascension_NamePlates", "Ascension_NewPlayerExperience",
+                              "Ascension_PTRFeedback", "Ascension_PathToAscension", "Ascension_Poll",
+                              "Ascension_RandomModeShared", "Ascension_SkillCards", "Ascension_TalentUI",
+                              "Ascension_VanityCollection", "Ascension_Warmode", "Ascension_WarmodeLegacy" })
+    {
+        Entry const* entry = Find(entries, name);
+        Expect(entry != nullptr, "Ascension's own addons are listed even when the client did not report them");
+        Expect(entry->secure == 0, "Ascension addons that need no protected calls are known but not secure");
+    }
+
+    Expect(entries.size() == session.clientAddons.size() - 1 + 33, "every Ascension addon is listed exactly once");
 
     Expect(std::count_if(entries.begin(), entries.end(),
                          [](Entry const& e) { return e.name == "Ascension_HelpUI"; }) == 1,
            "an addon the client already reported is not listed twice");
 
-    std::cout << "PASS: SMSG 0x94E echoes " << entries.size() << " addons, Blizzard and Ascension secure\n";
+    std::cout << "PASS: SMSG 0x94E echoes " << entries.size() << " addons, Blizzard and 10 Ascension addons secure\n";
     return 0;
 }

@@ -6145,6 +6145,12 @@ public:
             "Ascension_VanityCollection", "Ascension_Warmode", "Ascension_WarmodeLegacy", "Ascension_WildCard",
         };
 
+        static std::unordered_set<std::string_view> const secureAscensionAddons = {
+            "AscensionUI", "Ascension_CompactRaidFrames", "Ascension_EnchantCollection", "Ascension_HelpUI",
+            "Ascension_InspectUI", "Ascension_MythicPlus", "Ascension_SeasonCollection", "Ascension_TicketUI",
+            "Ascension_UIDevelopmentTools", "Ascension_WildCard",
+        };
+
         std::vector<std::string> names = session->GetClientAddonNames();
         for (std::string_view addon : ascensionAddons)
             if (std::find(names.begin(), names.end(), addon) == names.end())
@@ -6155,7 +6161,7 @@ public:
         for (std::string const& name : names)
         {
             packet << name;
-            packet << uint8(name.starts_with("Blizzard_") || name.starts_with("Ascension"));
+            packet << uint8(name.starts_with("Blizzard_") || secureAscensionAddons.contains(name));
         }
         session->SendPacket(&packet);
     }
