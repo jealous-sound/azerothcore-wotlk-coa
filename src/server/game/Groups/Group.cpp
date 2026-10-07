@@ -2342,10 +2342,11 @@ void Group::ResetInstances(uint8 method, bool isRaid, Player* leader)
     {
         case INSTANCE_RESET_ALL:
             {
-                if (leader->GetDifficulty(false) != DUNGEON_DIFFICULTY_NORMAL)
-                    break;
+                // CoA: Heroic and Mythic 5-man dungeons are resettable like Normal ones; permanent binds still block
                 std::vector<InstanceSave*> toUnbind;
-                BoundInstancesMap const& m_boundInstances = sInstanceSaveMgr->PlayerGetBoundInstances(leader->GetGUID(), Difficulty(DUNGEON_DIFFICULTY_NORMAL));
+                for (uint8 difficulty = DUNGEON_DIFFICULTY_NORMAL; difficulty < MAX_DUNGEON_DIFFICULTY; ++difficulty)
+                {
+                BoundInstancesMap const& m_boundInstances = sInstanceSaveMgr->PlayerGetBoundInstances(leader->GetGUID(), Difficulty(difficulty));
                 for (BoundInstancesMap::const_iterator itr = m_boundInstances.begin(); itr != m_boundInstances.end(); ++itr)
                 {
                     InstanceSave* instanceSave = itr->second.save;
@@ -2365,6 +2366,7 @@ void Group::ResetInstances(uint8 method, bool isRaid, Player* leader)
                     }
 
                     sInstanceSaveMgr->DeleteInstanceSavedData(instanceSave->GetInstanceId());
+                }
                 }
                 for (std::vector<InstanceSave*>::const_iterator itr = toUnbind.begin(); itr != toUnbind.end(); ++itr)
                     sInstanceSaveMgr->UnbindAllFor(*itr);

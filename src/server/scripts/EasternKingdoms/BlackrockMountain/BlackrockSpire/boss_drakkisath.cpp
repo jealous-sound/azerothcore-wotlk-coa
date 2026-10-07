@@ -71,12 +71,12 @@ struct boss_drakkisath : public BossAI
     {
         _JustEngagedWith();
         events.ScheduleEvent(EVENT_PIERCE_ARMOR, 5s);
-        events.ScheduleEvent(EVENT_FIERCE_BLOW, 5s, 7s);
+        events.ScheduleEvent(EVENT_FIERCE_BLOW, 8500ms, 10500ms);
         events.ScheduleEvent(EVENT_FLAMESTRIKE, 6s);
         events.ScheduleEvent(EVENT_CLEAVE, 8s);
-        events.ScheduleEvent(EVENT_HEATWAVE, 12s);
+        events.ScheduleEvent(EVENT_HEATWAVE, 22s, 24s);
         events.ScheduleEvent(EVENT_CONFLAGRATION, 15s);
-        events.ScheduleEvent(EVENT_THUNDERCLAP, 17s);
+        events.ScheduleEvent(EVENT_THUNDERCLAP, 14600ms, 16600ms);
     }
 
     void DamageTaken(Unit* /*attacker*/, uint32& damage, DamageEffectType /*type*/, SpellSchoolMask /*school*/) override
@@ -172,7 +172,7 @@ struct boss_drakkisath : public BossAI
                     break;
                 case EVENT_THUNDERCLAP:
                     DoCastAOE(SPELL_THUNDERCLAP);
-                    events.ScheduleEvent(EVENT_THUNDERCLAP, 20s);
+                    events.ScheduleEvent(EVENT_THUNDERCLAP, 15s, 17s);
                     break;
                 case EVENT_PIERCE_ARMOR:
                     DoCastVictim(SPELL_PIERCE_ARMOR);
@@ -184,11 +184,11 @@ struct boss_drakkisath : public BossAI
                         _heatwaveTarget = target->GetGUID();
                         DoCast(target, SPELL_HEATWAVE);
                     }
-                    events.ScheduleEvent(EVENT_HEATWAVE, 20s, 25s);
+                    events.ScheduleEvent(EVENT_HEATWAVE, 25s, 27s);
                     break;
                 case EVENT_FIERCE_BLOW:
                     DoCastVictim(SPELL_FIERCE_BLOW);
-                    events.ScheduleEvent(EVENT_FIERCE_BLOW, 6s, 8s);
+                    events.ScheduleEvent(EVENT_FIERCE_BLOW, 9s, 10s);
                     break;
                 case EVENT_CHECK_CONFLAGRATION_TARGET:
                     if (Unit* target = ObjectAccessor::GetUnit(*me, _conflagrateTarget))

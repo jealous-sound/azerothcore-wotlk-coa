@@ -114,9 +114,11 @@ void WorldDatabaseConnection::DoPrepareStatements()
     PrepareStatement(WORLD_SEL_REQ_XP, "SELECT Experience FROM player_xp_for_level WHERE Level = ?", CONNECTION_SYNCH);
     PrepareStatement(WORLD_UPD_VERSION, "UPDATE version SET core_version = ?, core_revision = ?", CONNECTION_ASYNC);
     PrepareStatement(WORLD_DEL_SPAWNGROUP_MEMBER, "DELETE FROM spawn_group WHERE spawnType = ? AND spawnId = ?", CONNECTION_ASYNC);
-    PrepareStatement(WORLD_SEL_CLIENT_SPELL_PATCHES, "SELECT * FROM spell_dbc ORDER BY ID", CONNECTION_SYNCH);
+    PrepareStatement(WORLD_SEL_CLIENT_SPELL_PATCHES, "SELECT * FROM spell_dbc WHERE ID = ?", CONNECTION_SYNCH);
     PrepareStatement(WORLD_SEL_CLIENT_SPELL_DESCRIPTIONS,
-        "SELECT ID, Description FROM coa_client_spell_description", CONNECTION_SYNCH);
+        "SELECT ID, Description, ToolTip FROM coa_client_spell_description", CONNECTION_SYNCH);
+    PrepareStatement(WORLD_SEL_COA_DUNGEON_LOOT_VARIANT, "SELECT base_item, heroic_item, mythic_item FROM coa_dungeon_loot_variant", CONNECTION_SYNCH);
+    PrepareStatement(WORLD_SEL_COA_DUNGEON_HEALTH, "SELECT map_id, difficulty, creature_entry, max_health FROM coa_dungeon_health", CONNECTION_SYNCH);
 }
 
 WorldDatabaseConnection::WorldDatabaseConnection(MySQLConnectionInfo& connInfo) : MySQLConnection(connInfo)

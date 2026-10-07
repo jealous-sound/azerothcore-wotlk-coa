@@ -27,7 +27,11 @@ enum RunemasterTalentProcSpells : uint32
     SPELL_ENGRAVING_ICE = 653217,
     SPELL_ENGRAVING_ARCANE = 653263,
     SPELL_ENGRAVING_EARTH = 653272,
-    SPELL_ENGRAVING_AIR = 653226
+    SPELL_ENGRAVING_AIR = 653226,
+    SPELL_AIR_ENGRAVING_PROC = 653225,
+    SPELL_ICE_ENGRAVING_PROC = 653266,
+    SPELL_ICEBOUND_MOMENTUM = 712490,
+    SPELL_ICEBOUND_MOMENTUM_DAMAGE = 712491
 };
 
 bool IsRunemaster(Unit const* unit)
@@ -110,6 +114,47 @@ class aura_ascension_runemaster_decoder : public AuraScript
     {
         DoCheckProc += AuraCheckProcFn(aura_ascension_runemaster_decoder::CheckDamagedEnemy);
         OnProc += AuraProcFn(aura_ascension_runemaster_decoder::TriggerEngravings);
+    }
+};
+
+class aura_ascension_runemaster_air_engraving : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_runemaster_air_engraving);
+
+    bool Validate(SpellInfo const* info) override
+    {
+        return info->Id == SPELL_AIR_ENGRAVING_PROC && info->Effects[EFFECT_0].IsAura(AuraType(354)) &&
+            info->Effects[EFFECT_0].TriggerSpell == SPELL_ENGRAVING_AIR &&
+            ValidateSpellInfo({SPELL_ENGRAVING_AIR});
+    }
+
+    bool CheckDirectDamage(ProcEventInfo& eventInfo)
+    {
+        Unit* owner = GetTarget();
+        Unit* target = eventInfo.GetActionTarget();
+        DamageInfo const* damage = eventInfo.GetDamageInfo();
+        SpellInfo const* info = eventInfo.GetSpellInfo();
+        return IsRunemaster(owner) && GetCaster() == owner && eventInfo.GetActor() == owner && target &&
+            target->IsAlive() && owner->IsValidAttackTarget(target) && damage && damage->GetDamage() &&
+            (!info || info->Id != SPELL_ENGRAVING_AIR);
+    }
+
+    void CopyDamage(AuraEffect const* effect, ProcEventInfo& eventInfo)
+    {
+        PreventDefaultAction();
+        uint64 const damage = uint64(eventInfo.GetDamageInfo()->GetDamage()) *
+            std::clamp(effect->GetAmount(), 0, 100) / 100;
+        if (damage)
+            GetTarget()->CastCustomSpell(SPELL_ENGRAVING_AIR, SPELLVALUE_BASE_POINT0,
+                int32(std::min<uint64>(damage, std::numeric_limits<int32>::max())), eventInfo.GetActionTarget(),
+                TRIGGERED_FULL_MASK, nullptr, effect);
+    }
+
+    void Register() override
+    {
+        DoCheckProc += AuraCheckProcFn(aura_ascension_runemaster_air_engraving::CheckDirectDamage);
+        OnEffectProc += AuraEffectProcFn(aura_ascension_runemaster_air_engraving::CopyDamage, EFFECT_0,
+            AuraType(354));
     }
 };
 
@@ -249,6 +294,57 @@ class aura_ascension_runemaster_harvested_ley_energy : public AuraScript
     }
 };
 
+class runemaster_ice_engraving_hits : public AllSpellScript
+{
+public:
+    runemaster_ice_engraving_hits() : AllSpellScript("runemaster_ice_engraving_hits",
+        {ALLSPELLHOOK_ON_HIT_RESULT}) { }
+
+    void OnSpellHitResult(Spell* spell, Unit* target, uint8 miss, uint32 damage, uint32, bool) override
+    {
+        Unit* caster = spell->GetCaster();
+        SpellInfo const* info = spell->GetSpellInfo();
+        if (info->Id == SPELL_ENGRAVING_ICE && info->SpellFamilyName == uint32(CLASS_SPIRIT_MAGE) + 6 &&
+            IsRunemaster(caster) && caster->HasAura(SPELL_ICE_ENGRAVING_PROC, caster->GetGUID()) &&
+            miss == SPELL_MISS_NONE && damage && target && target->IsAlive() && caster->IsValidAttackTarget(target))
+            caster->CastSpell(target, SPELL_ICEBOUND_MOMENTUM, TRIGGERED_FULL_MASK);
+    }
+};
+
+class aura_ascension_runemaster_icebound_momentum : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_runemaster_icebound_momentum);
+
+    bool Validate(SpellInfo const*) override { return ValidateSpellInfo({SPELL_ICEBOUND_MOMENTUM_DAMAGE}); }
+
+    bool Check(ProcEventInfo& event)
+    {
+        Unit* caster = GetCaster();
+        DamageInfo const* damage = event.GetDamageInfo();
+        SpellInfo const* info = event.GetSpellInfo();
+        return IsRunemaster(caster) && event.GetActor() == caster && event.GetActionTarget() == GetTarget() &&
+            damage && damage->GetDamage() && (!info || info->Id != SPELL_ICEBOUND_MOMENTUM_DAMAGE);
+    }
+
+    void CopyDamage(AuraEffect const* effect, ProcEventInfo& event)
+    {
+        PreventDefaultAction();
+        uint64 const amount = uint64(event.GetDamageInfo()->GetDamage()) *
+            std::clamp(effect->GetAmount(), 0, 100) / 100;
+        if (amount)
+            GetCaster()->CastCustomSpell(SPELL_ICEBOUND_MOMENTUM_DAMAGE, SPELLVALUE_BASE_POINT0,
+                int32(std::min<uint64>(amount, std::numeric_limits<int32>::max())), GetTarget(),
+                TRIGGERED_FULL_MASK, nullptr, effect);
+    }
+
+    void Register() override
+    {
+        DoCheckProc += AuraCheckProcFn(aura_ascension_runemaster_icebound_momentum::Check);
+        OnEffectProc += AuraEffectProcFn(aura_ascension_runemaster_icebound_momentum::CopyDamage,
+            EFFECT_0, SPELL_AURA_DUMMY);
+    }
+};
+
 class runemaster_ley_power_metadata : public GlobalScript
 {
 public:
@@ -257,6 +353,19 @@ public:
 
     void OnLoadSpellCustomAttr(SpellInfo* info) override
     {
+        if (info->SpellFamilyName == uint32(CLASS_SPIRIT_MAGE) + 6)
+        {
+            if (info->Id == SPELL_ICEBOUND_MOMENTUM)
+                info->ProcFlags = PROC_FLAG_TAKEN_DAMAGE;
+            if (info->Id == SPELL_ICEBOUND_MOMENTUM_DAMAGE)
+            {
+                info->AscensionInheritsResolvedAmount = true;
+                info->Effects[EFFECT_0].BonusMultiplier = 0.0f;
+                info->AttributesEx2 |= SPELL_ATTR2_CANT_CRIT;
+                info->AttributesEx3 |= SPELL_ATTR3_IGNORE_CASTER_MODIFIERS;
+                info->AttributesEx4 |= SPELL_ATTR4_IGNORE_DAMAGE_TAKEN_MODIFIERS;
+            }
+        }
         if (info->Id != SPELL_LEY_POWER_STRIKE || info->Effects[EFFECT_0].Effect != SPELL_EFFECT_SCHOOL_DAMAGE)
             return;
         info->AscensionInheritsResolvedAmount = true;
@@ -269,10 +378,13 @@ void AddSC_AscensionRunemasterTalentProcs()
 {
     RegisterSpellScript(spell_ascension_runemaster_ancient_warrior);
     RegisterSpellScript(aura_ascension_runemaster_decoder);
+    RegisterSpellScript(aura_ascension_runemaster_air_engraving);
     RegisterSpellScript(aura_ascension_runemaster_leyfrost);
     RegisterSpellScript(aura_ascension_runemaster_convergence);
     new runemaster_ley_lock_duration();
     RegisterSpellScript(spell_ascension_runemaster_ley_power);
     RegisterSpellScript(aura_ascension_runemaster_harvested_ley_energy);
+    new runemaster_ice_engraving_hits();
+    RegisterSpellScript(aura_ascension_runemaster_icebound_momentum);
     new runemaster_ley_power_metadata();
 }

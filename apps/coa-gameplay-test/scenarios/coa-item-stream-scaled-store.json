@@ -3,7 +3,7 @@
   "name": "CoA item stream: a newly rewarded scaled item is patched once",
   "contract": [
     "Requires CoA.SendDisplayPatches=1, CoA.ItemScaling=1, DestinyWeaver.Enable=1 and CoA.QuestLevelScaling=1.",
-    "A level-32 viewer receives quest 176's Footman Tunic as a copy lifted by 21 item levels.",
+    "A level-32 viewer receives quest 176's Footman Tunic as a copy lifted by 20 item levels (21 rounded down to a five-level step).",
     "Storing that copy must immediately send one eight-field item patch even though it is absent from item_dbc.",
     "Repeating the world-entry notice must not send its row again."
   ],
@@ -61,7 +61,7 @@
       "actor": "viewer",
       "metric": "carried_item_level",
       "item": 6085,
-      "equals": 34
+      "equals": 33
     },
     {
       "action": "assert",

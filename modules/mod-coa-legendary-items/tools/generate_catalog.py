@@ -137,14 +137,14 @@ def aura_text(item):
     if item['power'] == 'Signature':
         return f"Increases the main hit damage of your {item['signature_name']} by $s1%."
     if item['power'] == 'Movement':
-        return 'Increases movement speed by $s1%.'
+        return f"Increases movement speed by {item['magnitude']}%."
     if item['power'] == 'Armor':
-        return 'Increases armor by $s1%.'
+        return f"Increases armor by {item['magnitude']}%."
     if item['profile'] == 'Caster':
-        return 'Increases spell power by $s1.'
+        return 'Increases spell power by an amount that grows with the item level.'
     if item['profile'].endswith('Hybrid'):
-        return 'Increases attack power by $s1 and spell power by $s2.'
-    return 'Increases melee and ranged attack power by $s1.'
+        return 'Increases attack power and spell power by amounts that grow with the item level.'
+    return 'Increases melee and ranged attack power by an amount that grows with the item level.'
 
 
 def render_sql(catalog):
@@ -198,10 +198,7 @@ def render_sql(catalog):
                 'ImplicitTargetA', 'EffectAura', 'EffectMiscValue')],
             *[f'EffectSpellClassMaskA_{i}' for i in range(1, 4)]], auras,
             f'DELETE FROM `spell_dbc` WHERE `ID` >= {AURA_BASE} AND `ID` < {AURA_BASE + 64};'),
-        insert_rows('spell_script_names', ['spell_id', 'ScriptName'],
-            [[AURA_BASE + item['id'], 'aura_coa_legendary_signature']
-                for item in catalog if item['power'] == 'Signature'],
-            f'DELETE FROM `spell_script_names` WHERE `spell_id` >= {AURA_BASE} AND `spell_id` < {AURA_BASE + 64};'),
+        f'DELETE FROM `spell_script_names` WHERE `spell_id` >= {AURA_BASE} AND `spell_id` < {AURA_BASE + 64};',
     ]
     return '\n\n'.join(sections) + '\n'
 
@@ -251,8 +248,8 @@ def outputs(sql_output=None):
     }
     if sql_output:
         sql_output = sql_output.resolve()
-        if not sql_output.is_relative_to(ROOT / 'data/sql/updates/pending_db_world'):
-            raise ValueError('SQL output must be a new pending world migration')
+        if not sql_output.is_relative_to(MODULE / 'data/sql/db-world'):
+            raise ValueError('SQL output must be a new module world migration')
         generated[sql_output] = render_sql(catalog)
     return generated
 

@@ -434,7 +434,7 @@ assert stable maximums and final levels when testing damage coefficients.
 | `advancement_rank` | Player `actor`, CharacterAdvancement `entry`, `rank` (0 removes): uploads the known entries with that rank as native `0x0727`, then waits up to 2 s for the server to apply it. With `refused: true` it instead waits for the upload's `0x072C` result and requires the rank to stay unapplied. |
 | `client_packet` | Player `actor`, `opcode`, optional `fields` (a list of one-key objects: `u8`, `u32`, `u64`, `string` as a C string, `buyback_guid` slot, `actor_guid` player or creature id, `stabled_pet` stable slot 0-3 as its pet number), `consumed` (default true) and `early` (default true): sends the request through the early packet hook as the client would, and a request that hook passes on reaches its logged-in core opcode handler, as the session would deliver it; `early: false` sends it through the packet hook the session update runs instead, as for `CMSG_SET_ACTIVE_MOVER` after the client enters the world. |
 | `apply_appearances` | Player `actor`, `selection` mapping category ids to appearance ids: sends the complete array as native `CMSG_APPLY_APPEARANCES` (`0x0697`); unlisted categories are 0. The next step sees the result. |
-| `cast` | `actor`, `spell`, optional `target` (self by default): normal session cast handler. |
+| `cast` | `actor`, `spell`, optional `target` (self by default) or `target_item` (an owned item entry): normal session cast handler. |
 | `attack` | `actor`, `target`: native melee attack request; optional `pet: true` sends the pet's attack command. Verify combat or damage with assertions. |
 | `stop_attack` | Player `actor`: native melee stop request. |
 | `pvp` | Player `actor`, boolean `enabled`: native PvP toggle request. Disabling retains the ordinary flag-removal timer. |
@@ -449,6 +449,7 @@ assert stable maximums and final levels when testing damage coefficients.
 | `encounter_credit` | Player `actor` in a dungeon, creature `entry`: credits that dungeon boss kill to the actor's map through the native encounter update, as a boss death does, including the Dungeon Finder completion it triggers. |
 | `leave_group` | Player `actor`: native `CMSG_GROUP_DISBAND` leave request; fails if the player stays grouped. |
 | `die` | Player `actor`: fixture death through self damage equal to current health; the body stays unreleased. |
+| `release_spirit` | Player `actor`: native `CMSG_REPOP_REQUEST` for an unreleased body; fails if the player is neither a ghost nor alive afterwards. |
 | `cast_charm` | Same fields: native pet-cast handler, with the charmed unit as the default target. `pet: true` casts from the player's pet instead. |
 | `gossip_hello` | `actor`, optional `target`: native gossip handler; defaults to the actor's summoned companion. |
 | `banker_activate` | `actor`, optional `target`, or optional `owner` + `entry`: native banker click (`CMSG_BANKER_ACTIVATE`); defaults to the actor's summoned companion, and `owner` aims it at a companion another actor summoned, walking up to it first. |
@@ -483,6 +484,8 @@ This fixture supports exact health-percentage boundaries without granting GM per
 
 `xp` and `next_level_xp` read the player's XP fields; `skill_value` and `skill_maximum` require `skill` and read
 the pure skill value and maximum. `spell_active` requires `spell` and reports whether a known rank is the active one.
+`client_knows_spell` requires `spell` and is 1 when the spell packets sent to the player (initial list, learned,
+superseded and removed) leave it in the client's spellbook.
 XP-delta assertions must also keep the level stable, or crossing a level would wrap the XP bar.
 
 Every step accepts a descriptive `label`. Assertions optionally accept `within_ms`: poll until the expected
@@ -568,6 +571,7 @@ periodic interval.
 `spline_remaining_ms` reads the active native movement spline's remaining flight time in milliseconds, and
 `spline_speed` reads its movement velocity in yards per second. Both return zero for a finalized spline.
 `distance_2d` requires `target` and measures horizontal center distance.
+`point_distance_2d` requires `x` and `y` and measures the horizontal distance from the unit to that point on its map.
 `forced_forward` reads the server's force-movement flag; it does not simulate client movement or navigation.
 `cast_remaining_ms` requires `spell` and returns its active cast/channel timer, or zero when inactive.
 `cast_pushback_ms` reads the player's cumulative native cast-delay notifications, excluding elapsed cast time.
@@ -746,6 +750,8 @@ returning zero when absent. Pair it with a count assertion when checking a hidde
 `owned_creature_spell_hit_chance` requires a player and a present owned creature selected by `entry`.
 It reads that creature's native spell hit modifier. `set_aura` accepts `owned_entry` to select the same type
 of owned creature within 100 yards and the player's phase; it cannot also select `pet: true`.
+`owned_creature_attackable` requires the owning player, a present creature `entry` and a `target` unit.
+It reads whether that target can attack the summon through the native `IsValidAttackTarget` check.
 `pet_casting` requires the player's present native pet and reads its casting flag and active non-melee spell.
 Use it to observe channel completion before submitting another ordinary pet cast;
 aura expiry is a separate event.
@@ -806,6 +812,13 @@ carried the client's scaled-quest flag `0x01000000`, 0 when it did not, or -1 be
 `quest_query_reward_choice` takes the same arguments and returns the first choice reward item id in the last quest
 query response for that quest, or -1 before one arrives.
 
+`dungeon_difficulty_packet` takes a player `actor` and `value` (0, 1 or 2), sends the native dungeon
+selection packet through the packet hook and typed session handler, and does not bypass its group or
+in-instance restrictions. `map_id` and `map_difficulty` observe the current map after a normal teleport.
+`nearby_creature_template` requires `entry` and exactly one creature within 60 yards, then returns its
+selected difficulty template. `loot_gear_item_level` returns the first unlooted weapon/armor item's level in
+the current loot window (zero if absent). The three `vanilla-dungeons-*` scenarios use these to check
+all 19 map/mode pairs per tier and a real VanCleef killing blow, without a GM access bypass.
 ## Evidence boundaries
 
 ### Optional character names
@@ -853,3 +866,10 @@ with a base amount of 1000 and requires `spell`; `periodic: true` selects the na
 
 `stealth_detection` reads native general stealth detection. `can_detect` requires `target` and invokes
 the observer's native `CanSeeOrDetect` check; neither metric covers client rendering.
+
+`ascension_dungeon_difficulty_packet` sends the one-byte Ascension portrait-menu request through the
+real early receive hook and session queue; follow it with a wait before teleporting. The native
+`dungeon_difficulty_packet` remains available for Normal and Heroic. `nearby_creature_max_health`
+requires an entry and reads the nearest living matching creature within 60 yards. The
+`vanilla-dungeons-health` scenario uses real spawns to check video HP, explicitly inferred HP and
+unchanged Normal health. It does not establish the original Ascension scaling formula.

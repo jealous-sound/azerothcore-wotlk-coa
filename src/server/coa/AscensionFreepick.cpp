@@ -2,14 +2,20 @@
 
 #include "AscensionFreepick.h"
 #include "AscensionFreepickRules.h"
+#include "AscensionCoATalentState.h"
 #include "AscensionWildcard.h"
 #include "Battleground.h"
+#include "Chat.h"
 #include "Config.h"
 #include "Log.h"
 #include "Map.h"
+#include "Pet.h"
 #include "Player.h"
 #include "ScriptMgr.h"
 #include "SpellInfo.h"
+#include "SpellScript.h"
+#include "WorldPacket.h"
+#include "WorldSession.h"
 #include "Tokenize.h"
 #include "World.h"
 #include <algorithm>
@@ -17,15 +23,6 @@
 
 namespace AscensionFreepick
 {
-namespace
-{
-constexpr char BUILD_SETTING[] = "core.freepick";
-constexpr std::uint32_t RANK_FACTOR = 10;
-
-Catalog Loaded;
-Realm CurrentRealm;
-bool Classless = false;
-
 Realm ReadRealm()
 {
     Realm realm;
@@ -48,10 +45,33 @@ Realm ReadRealm()
     return realm;
 }
 
-std::vector<Entry> StoredEntries(Player const* player)
+namespace
+{
+constexpr char BUILD_SETTING[] = "core.freepick";
+constexpr char ACTIVE_SPECIALIZATION_SETTING[] = "core.ascension_slot.active";
+constexpr std::uint32_t RANK_FACTOR = 10;
+constexpr uint16 SMSG_CHARACTER_ADVANCEMENT_ACTIVE_SPEC = 0x0725;
+constexpr uint16 SMSG_CHARACTER_ADVANCEMENT_KNOWN_ENTRIES = 0x0726;
+
+Catalog Loaded;
+Realm CurrentRealm;
+bool Classless = false;
+bool Reborn = false;
+
+std::string SpecializationBuildSetting(std::uint32_t index)
+{
+    return std::string(BUILD_SETTING) + ".build." + std::to_string(index);
+}
+
+std::string SpecializationBarSetting(std::uint32_t index)
+{
+    return std::string(BUILD_SETTING) + ".bar." + std::to_string(index);
+}
+
+std::vector<Entry> StoredEntries(Player const* player, std::string const& setting = BUILD_SETTING)
 {
     std::vector<Entry> entries;
-    PlayerSettingVector const* stored = player->FindPlayerSettings(BUILD_SETTING);
+    PlayerSettingVector const* stored = player->FindPlayerSettings(setting);
     if (!stored || stored->empty())
         return entries;
     std::size_t const count = std::min<std::size_t>((*stored)[0].value, stored->size() - 1);
@@ -65,17 +85,50 @@ std::vector<Entry> StoredEntries(Player const* player)
     return entries;
 }
 
-void Store(Player* player, std::vector<Entry> const& entries)
+void Store(Player* player, std::vector<Entry> const& entries, std::string const& setting = BUILD_SETTING)
 {
     std::size_t previous = 0;
-    if (PlayerSettingVector const* stored = player->FindPlayerSettings(BUILD_SETTING))
+    if (PlayerSettingVector const* stored = player->FindPlayerSettings(setting))
         previous = stored->size();
-    player->UpdatePlayerSetting(BUILD_SETTING, 0, uint32(entries.size()));
+    player->UpdatePlayerSetting(setting, 0, uint32(entries.size()));
     for (std::size_t index = 0; index < entries.size(); ++index)
-        player->UpdatePlayerSetting(BUILD_SETTING, uint32(index + 1),
+        player->UpdatePlayerSetting(setting, uint32(index + 1),
             entries[index].EntryId * RANK_FACTOR + entries[index].Rank);
     for (std::size_t index = entries.size() + 1; index < previous; ++index)
-        player->UpdatePlayerSetting(BUILD_SETTING, uint32(index), 0);
+        player->UpdatePlayerSetting(setting, uint32(index), 0);
+}
+
+void StoreActionBars(Player* player, std::uint32_t specialization)
+{
+    std::string const setting = SpecializationBarSetting(specialization);
+    for (uint8 button = 0; button < MAX_ACTION_BUTTONS; ++button)
+    {
+        ActionButton const* action = player->GetActionButton(button);
+        player->UpdatePlayerSetting(setting, button, action ? action->packedData : 0);
+    }
+}
+
+void RestoreActionBars(Player* player, std::uint32_t specialization)
+{
+    PlayerSettingVector const* stored = player->FindPlayerSettings(SpecializationBarSetting(specialization));
+    for (uint8 button = 0; button < MAX_ACTION_BUTTONS; ++button)
+    {
+        uint32 const packed = stored && button < stored->size() ? (*stored)[button].value : 0;
+        if (packed)
+            player->addActionButton(button, ACTION_BUTTON_ACTION(packed), uint8(ACTION_BUTTON_TYPE(packed)));
+    }
+    player->SendActionButtons(1);
+}
+
+void SendSpecializationState(Player* player)
+{
+    WorldPacket active(SMSG_CHARACTER_ADVANCEMENT_ACTIVE_SPEC, sizeof(uint32) * 2);
+    active << ActiveSpecialization(player) << uint32(AscensionWildcard::SPECIALIZATION_COUNT);
+    player->SendDirectMessage(&active);
+    std::vector<uint8> const body = AscensionCoATalentState::KnownEntriesPayload(KnownEntries(player));
+    WorldPacket known(SMSG_CHARACTER_ADVANCEMENT_KNOWN_ENTRIES, body.size());
+    known.append(body.data(), body.size());
+    player->SendDirectMessage(&known);
 }
 
 UnitCheck UnitRules(Player const* player)
@@ -129,7 +182,15 @@ void RemoveFromActionBars(Player* player, std::unordered_set<uint32> const& spel
         player->SendActionButtons(1);
 }
 
-void SyncSpells(Player* player, std::vector<Entry> const& before, std::vector<Entry> const& after)
+void ClearActionBars(Player* player)
+{
+    player->SendActionButtons(2);
+    for (uint8 button = 0; button < MAX_ACTION_BUTTONS; ++button)
+        player->removeActionButton(button);
+}
+
+void SyncSpells(Player* player, std::vector<Entry> const& before, std::vector<Entry> const& after,
+    bool keepActionBars = true)
 {
     std::unordered_set<uint32> const granted = GrantedSpells(after);
     std::unordered_set<uint32> removed;
@@ -146,7 +207,8 @@ void SyncSpells(Player* player, std::vector<Entry> const& before, std::vector<En
     for (uint32 spellId : granted)
         if (!player->HasSpell(spellId))
             player->learnSpell(spellId);
-    RemoveFromActionBars(player, removed);
+    if (keepActionBars)
+        RemoveFromActionBars(player, removed);
 }
 }
 
@@ -158,6 +220,17 @@ bool RealmIsClassless()
 bool IsFreepickHero(Player const* player)
 {
     return Classless && player->getClass() == CLASS_HERO && !AscensionWildcard::IsWildcardHero(player);
+}
+
+bool IsRebornCharacter(Player const* player)
+{
+    uint8 const classId = player->getClass();
+    return Reborn && classId >= CLASS_WARRIOR && classId <= CLASS_DRUID && classId != CLASS_HERO;
+}
+
+bool HasFreepickBuild(Player const* player)
+{
+    return IsFreepickHero(player) || IsRebornCharacter(player);
 }
 
 std::vector<AscensionCoATalentState::KnownEntry> KnownEntries(Player const* player)
@@ -175,7 +248,7 @@ UploadResult ApplyUpload(Player* player, std::vector<AscensionCoATalentState::Kn
     for (AscensionCoATalentState::KnownEntry const& entry : upload)
         wanted.push_back({ entry.EntryId, entry.Rank });
 
-    Build const base(Loaded, CurrentRealm, player->GetLevel(), StoredEntries(player));
+    Build const base(Loaded, CurrentRealm, player->GetLevel(), StoredEntries(player), player->getClass());
     UnitCheck const unit = UnitRules(player);
     ApplyCheck const check = CheckApply(base, wanted, unit,
         { player->GetMoney(), player->GetItemCount(MARK_OF_ASCENSION_ITEM, false) });
@@ -202,15 +275,129 @@ UploadResult ApplyUpload(Player* player, std::vector<AscensionCoATalentState::Kn
     return {};
 }
 
+std::uint32_t ActiveSpecialization(Player const* player)
+{
+    PlayerSettingVector const* stored = player->FindPlayerSettings(ACTIVE_SPECIALIZATION_SETTING);
+    std::uint32_t const index = stored && !stored->empty() ? (*stored)[0].value : 0;
+    return index < AscensionWildcard::SPECIALIZATION_COUNT ? index : 0;
+}
+
+bool SwitchSpecialization(Player* player, std::uint32_t index, std::string& error)
+{
+    if (!IsFreepickHero(player) || index >= AscensionWildcard::SPECIALIZATION_COUNT ||
+        !player->HasSpell(AscensionWildcard::SPECIALIZATION_SWAP_SPELLS[index]))
+    {
+        error = "That specialization slot is not unlocked.";
+        return false;
+    }
+    std::uint32_t const previous = ActiveSpecialization(player);
+    if (index == previous)
+        return true;
+
+    std::vector<Entry> const before = StoredEntries(player);
+    Build next(Loaded, CurrentRealm, player->GetLevel(), StoredEntries(player, SpecializationBuildSetting(index)));
+    next.AutoLearn(UnitRules(player));
+    Store(player, before, SpecializationBuildSetting(previous));
+    StoreActionBars(player, previous);
+    if (Pet* pet = player->GetPet())
+        player->RemovePet(pet, PET_SAVE_NOT_IN_SLOT);
+    player->ClearAllReactives();
+    player->UnsummonAllTotems();
+    player->RemoveAllControlled();
+    ClearActionBars(player);
+    Store(player, next.Entries());
+    player->UpdatePlayerSetting(ACTIVE_SPECIALIZATION_SETTING, 0, index);
+    SyncSpells(player, before, next.Entries(), false);
+    RestoreActionBars(player, index);
+    player->SaveToDB(false, false);
+    SendSpecializationState(player);
+    LOG_INFO("coa", "{} switched free-pick specialization {} -> {} ({} entries)", player->GetName(), previous + 1,
+        index + 1, next.Entries().size());
+    return true;
+}
+
+class spell_ascension_freepick_specialization_swap : public SpellScript
+{
+    PrepareSpellScript(spell_ascension_freepick_specialization_swap);
+
+    std::uint32_t _index = 0;
+
+    bool Load() override
+    {
+        Player* player = GetCaster()->ToPlayer();
+        auto const& spells = AscensionWildcard::SPECIALIZATION_SWAP_SPELLS;
+        auto const found = std::find(spells.begin(), spells.end(), GetSpellInfo()->Id);
+        if (!player || !IsFreepickHero(player) || found == spells.end())
+            return false;
+        _index = std::uint32_t(found - spells.begin());
+        return true;
+    }
+
+    SpellCastResult CheckSpecialization()
+    {
+        Player* player = GetCaster()->ToPlayer();
+        if (!player->HasSpell(AscensionWildcard::SPECIALIZATION_SWAP_SPELLS[_index]))
+            return SPELL_FAILED_NOT_KNOWN;
+        if (player->IsInCombat())
+            return SPELL_FAILED_AFFECTING_COMBAT;
+        return SPELL_CAST_OK;
+    }
+
+    void Switch(SpellEffIndex effIndex)
+    {
+        PreventHitDefaultEffect(effIndex);
+        Player* player = GetCaster()->ToPlayer();
+        std::string error;
+        if (!SwitchSpecialization(player, _index, error))
+        {
+            ChatHandler(player->GetSession()).SendSysMessage(error);
+            SendSpecializationState(player);
+        }
+    }
+
+    void Register() override
+    {
+        OnCheckCast += SpellCheckCastFn(spell_ascension_freepick_specialization_swap::CheckSpecialization);
+        OnEffectHitTarget += SpellEffectFn(spell_ascension_freepick_specialization_swap::Switch, EFFECT_0,
+            SPELL_EFFECT_TALENT_SPEC_SELECT);
+    }
+};
+
 void Synchronize(Player* player)
 {
-    if (!IsFreepickHero(player))
+    if (!HasFreepickBuild(player))
         return;
+    if (IsFreepickHero(player))
+    {
+        if (player->GetActiveSpec())
+            player->ActivateSpec(0);
+        if (!player->HasSpell(AscensionWildcard::SPECIALIZATION_SWAP_SPELLS[0]))
+            player->learnSpell(AscensionWildcard::SPECIALIZATION_SWAP_SPELLS[0]);
+    }
     std::vector<Entry> const stored = StoredEntries(player);
-    Build build(Loaded, CurrentRealm, player->GetLevel(), stored);
+    Build build(Loaded, CurrentRealm, player->GetLevel(), stored, player->getClass());
     if (build.AutoLearn(UnitRules(player)))
         Store(player, build.Entries());
     SyncSpells(player, stored, build.Entries());
+}
+
+std::array<bool, 5> RealmGates()
+{
+    return { CurrentRealm.Live, CurrentRealm.Seasonal, CurrentRealm.League, CurrentRealm.Ptr,
+        CurrentRealm.Development };
+}
+
+std::uint32_t InvestedEssence(Player const* player, std::uint32_t classType, std::uint32_t tab, bool talent)
+{
+    constexpr std::uint32_t WHOLE = 1;
+    if (!HasFreepickBuild(player))
+        return 0;
+    Build const build(Loaded, CurrentRealm, player->GetLevel(), StoredEntries(player), player->getClass());
+    if (classType == WHOLE)
+        return talent ? build.GlobalTE(0) : build.GlobalAE(0);
+    if (tab == WHOLE)
+        return talent ? build.ClassTE(classType, 0) : build.ClassAE(classType, 0);
+    return talent ? build.TabTE(classType, tab, 0) : build.TabAE(classType, tab, 0);
 }
 
 class AscensionFreepickPlayer final : public PlayerScript
@@ -233,7 +420,8 @@ public:
     {
         CurrentRealm = ReadRealm();
         Classless = sConfigMgr->GetOption<std::string>("CoA.ClassModel", "coa") == "hero";
-        if (Classless && !LoadCatalog(Loaded))
+        Reborn = CurrentRealm.WarcraftReborn;
+        if ((Classless || Reborn) && !LoadCatalog(Loaded))
             LOG_ERROR("coa", "Free-pick Character Advancement is unavailable: its client DBCs did not load");
     }
 };
@@ -274,4 +462,6 @@ void AddAscensionFreepickScripts()
 {
     new AscensionFreepick::AscensionFreepickPlayer();
     new AscensionFreepick::AscensionFreepickWorld();
+    RegisterSpellScriptWithArgs(AscensionFreepick::spell_ascension_freepick_specialization_swap,
+        "spell_ascension_freepick_specialization_swap");
 }

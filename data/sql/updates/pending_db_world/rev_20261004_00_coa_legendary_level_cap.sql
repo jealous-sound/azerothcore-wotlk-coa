@@ -1,2 +1,0 @@
-DELETE FROM `item_dbc`
-WHERE `ID` >= 9700000 AND `ID` < 9706400 AND (`ID` - 9700000) % 100 > 60;

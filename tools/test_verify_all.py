@@ -626,6 +626,27 @@ class ProcessControlTests(unittest.TestCase):
 
 
 class GameplayTests(WorkspaceTest):
+    def test_default_gameplay_omits_disabled_modules_and_accepts_explicit_opt_in(self):
+        workspace = self.workspace()
+        row = {'id': 'optional-case', 'module': 'mod-optional', 'configuration': {'Optional.Enable': False}}
+        inactive = dict(row, id='inactive-case', module_active=False)
+        context = workspace.context()
+        self.assertEqual(verify_all.inactive_module_scenarios(context, [row, inactive]), ['optional-case'])
+        modules = workspace.base / 'module-configs'
+        write(modules / 'optional.conf', 'Optional.Enable = 1\n')
+        context.settings['modules_config_dir'] = modules
+        self.assertEqual(verify_all.inactive_module_scenarios(context, [row, inactive]), ['inactive-case'])
+        with (workspace.build / 'CMakeCache.txt').open('a') as cache:
+            cache.write('MODULE_MOD-OPTIONAL:STRING=disabled\n')
+        self.assertEqual(verify_all.inactive_module_scenarios(context, [row, inactive]), ['optional-case'])
+
+    def test_default_gameplay_observes_environment_configuration_overrides(self):
+        workspace = self.workspace()
+        context = workspace.context()
+        row = {'id': 'optional-case', 'module': 'mod-optional', 'configuration': {'Optional.Enable': False}}
+        context.environment['AC_OPTIONAL_ENABLE'] = 'true'
+        self.assertEqual(verify_all.inactive_module_scenarios(context, [row]), [])
+
     def test_missing_prerequisites_make_gameplay_unavailable_with_their_names(self):
         workspace = self.workspace()
         (workspace.conf / 'worldserver.conf').unlink()

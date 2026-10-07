@@ -300,8 +300,9 @@ ItemTemplate const* ScaledTemplate(uint32 entry)
     return Registry::Instance().Template(entry);
 }
 
-uint32 EligibleLift(uint32 itemId, uint32 lift)
+uint32 EligibleLift(uint32 itemId, uint32 rawLift)
 {
+    uint32 const lift = SteppedLift(rawLift);
     if (!lift || !liftsEnabled.load(std::memory_order_relaxed))
         return itemId;
 

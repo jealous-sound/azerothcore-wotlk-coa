@@ -96,6 +96,17 @@ void ApplyContracts(SpellInfo* info)
     if (!info || info->SpellFamilyName != 21)
         return;
     uint32 id = info->Id;
+    if (id == 802272)
+    {
+        info->AttributesCu &= ~SPELL_ATTR0_CU_FORCE_AURA_SAVING;
+        info->AttributesCu |= SPELL_ATTR0_CU_AURA_CANNOT_BE_SAVED;
+    }
+    if (id == 680376 || id == 681562 || id == 681563 || id == 681564)
+    {
+        info->Effects[EFFECT_0].TargetA = SpellImplicitTargetInfo(TARGET_DEST_DEST);
+        info->CasterAuraSpell = 802272;
+        info->_InitializeExplicitTargetMask();
+    }
     if (id == 562026 && info->Effects[EFFECT_1].TriggerSpell == 562027)
         info->Effects[EFFECT_1].Effect = 0;
     if (id == 681486 && info->Effects[EFFECT_2].ApplyAuraName == SPELL_AURA_ADD_PCT_MODIFIER &&
@@ -282,7 +293,11 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[EFFECT_2].Effect = 0;
     }
     if (id == 805757)
+    {
         info->Effects[EFFECT_0].TargetA = SpellImplicitTargetInfo(TARGET_UNIT_DEST_AREA_ALLY);
+        info->Effects[EFFECT_0].TargetB = SpellImplicitTargetInfo(TARGET_DEST_DYNOBJ_ALLY);
+        info->AttributesCu &= ~SPELL_ATTR0_CU_NEGATIVE_EFF0;
+    }
     if (id == 500102)
         info->Effects[EFFECT_1].Effect = 0;
     if (id == 504713)

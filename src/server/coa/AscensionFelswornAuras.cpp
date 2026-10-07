@@ -87,8 +87,6 @@ class aura_ascension_felsworn_lifecycle : public AuraScript
             RefreshUnphased(player);
             player->UpdateArmor();
         }
-        if (id == 520853)
-            Replace(player, 500028, 500610);
         if (id == 804216 || id == 574140 || id == 802108 || id == 705122 || id == 805236)
             Refresh(player);
         if (id == 804823)
@@ -201,8 +199,6 @@ class aura_ascension_felsworn_lifecycle : public AuraScript
             RefreshUnphased(player);
             player->UpdateArmor();
         }
-        if (id == 520853)
-            Replace(player, 500028, 0);
         if (id == 806109 && alive)
             Cast(player, player, 806128);
         if (Named(GetSpellInfo(), 705129) && player->HasAura(560822) && alive)

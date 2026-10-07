@@ -350,7 +350,7 @@ class spell_sha_fire_elemental_scaling : public AuraScript
         if (Unit* owner = GetUnitOwner()->GetOwner())
         {
             int32 fire = owner->SpellBaseDamageBonusDone(SPELL_SCHOOL_MASK_FIRE);
-            amount = CalculatePct(std::max<int32>(0, fire), (GetUnitOwner()->GetEntry() == NPC_FIRE_ELEMENTAL ? 300 : 150));
+            amount = CalculatePct(std::max<int32>(0, fire), (GetStockPetEntry(GetUnitOwner()->GetEntry()) == NPC_FIRE_ELEMENTAL ? 300 : 150));
         }
     }
 

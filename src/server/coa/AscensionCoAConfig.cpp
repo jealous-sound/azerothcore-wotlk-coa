@@ -111,14 +111,19 @@ void RegisterAscensionClientConfig(AscensionClientConfigSource source)
     Sources().push_back(source);
 }
 
-WorldPacket BuildAscensionCoAConfig()
+AscensionClientConfig CollectAscensionClientConfig()
 {
     AscensionClientConfig config;
     for (ClientRate const& rate : XpRates)
         config.Rates.emplace_back(std::string(rate.key), sWorld->getRate(rate.setting));
     for (AscensionClientConfigSource source : Sources())
         source(config);
+    return config;
+}
 
+WorldPacket BuildAscensionCoAConfig()
+{
+    AscensionClientConfig const config = CollectAscensionClientConfig();
     WorldPacket packet(SMSG_COA_CONFIG);
     uint32 constexpr integerVectorConfigCount = 0;
     uint32 constexpr floatVectorConfigCount = 0;

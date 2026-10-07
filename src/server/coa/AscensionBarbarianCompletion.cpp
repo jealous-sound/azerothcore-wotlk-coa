@@ -232,6 +232,45 @@ public:
     }
 };
 
+class aura_ascension_barbarian_tankard : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_barbarian_tankard);
+
+    bool Validate(SpellInfo const*) override
+    {
+        return ValidateSpellInfo({SPELL_FULL_TANKARD, SPELL_EMPTY_TANKARD});
+    }
+
+    void Apply(AuraEffect const*, AuraEffectHandleModes)
+    {
+        Player* player = Owner(GetTarget());
+        if (!player)
+            return;
+
+        if (GetStackAmount() >= GetSpellInfo()->CalcMaxAuraStacks(player))
+        {
+            if (!player->HasAura(SPELL_FULL_TANKARD))
+                player->AddAura(SPELL_FULL_TANKARD, player);
+        }
+        else
+            player->RemoveAurasDueToSpell(SPELL_FULL_TANKARD);
+    }
+
+    void Remove(AuraEffect const*, AuraEffectHandleModes)
+    {
+        if (Player* player = Owner(GetTarget()))
+            player->RemoveAurasDueToSpell(SPELL_FULL_TANKARD);
+    }
+
+    void Register() override
+    {
+        AfterEffectApply += AuraEffectApplyFn(aura_ascension_barbarian_tankard::Apply, EFFECT_0,
+            SPELL_AURA_ADD_PCT_MODIFIER, AURA_EFFECT_HANDLE_REAL_OR_REAPPLY_MASK);
+        AfterEffectRemove += AuraEffectRemoveFn(aura_ascension_barbarian_tankard::Remove, EFFECT_0,
+            SPELL_AURA_ADD_PCT_MODIFIER, AURA_EFFECT_HANDLE_REAL);
+    }
+};
+
 class aura_ascension_barbarian_lifecycle : public AuraScript
 {
     PrepareAuraScript(aura_ascension_barbarian_lifecycle);
@@ -470,5 +509,6 @@ void AddAscensionBarbarianCompletionScripts()
     new barbarian_barbaric_rage();
     new barbarian_scaling();
     new barbarian_casts();
+    RegisterSpellScript(aura_ascension_barbarian_tankard);
     RegisterSpellScript(aura_ascension_barbarian_lifecycle);
 }

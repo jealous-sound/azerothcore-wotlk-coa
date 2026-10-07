@@ -35,6 +35,24 @@ CoA.CharacterSelectionMaxActive = 128
 # Automatically add appearance and vanity entries for items obtained by a character.
 CoA.AutoCollectAppearances = 1
 
+# Drop at most one wearable item matching an enemy's visible equipment on a rewarded kill.
+# Uses NPC display presets or CreatureDisplayInfoExtra, plus the current weapon/shield entries.
+# Only unbound/BoE gear up to uncommon quality, at or below the enemy's level, is eligible.
+# Stats prefer caster Intellect, defender defenses/Stamina or physical Strength/Agility.
+# The per-kill percentage is a local reconstruction default; original rates were not captured.
+CoA.EquippedGearLoot = 1
+CoA.EquippedGearLootChance = 5
+
+# Wardrobe, outfits, vanity and mount/companion collections for characters played by bots.
+# 0 - never: bot sessions skip the collections (default).
+# 1 - only characters of player accounts played as bots (alts), never random bot accounts:
+#     their saved outfits and appearances are applied as for the player.
+# 2 - every bot session.
+# Random bot accounts are recognised by their name prefix, CoA.RandomBotAccountPrefix, which
+# must match AiPlayerbot.RandomBotAccountPrefix of mod-playerbots (default: rndbot).
+CoA.CollectionsForBots = 0
+CoA.RandomBotAccountPrefix = "rndbot"
+
 # Solo-server convenience: unlock the complete local appearance catalog. The
 # per-category value balances the initial snapshot; remaining appearances are
 # streamed afterward to stay below the legacy client's 64 KiB packet limit.
@@ -70,8 +88,9 @@ CoA.RulesetLoginDefault = 1
 CoA.QuestLevelScaling = 1
 
 # Weapons and armor dropped by level-scaled creatures, found in chests by characters who chose
-# level scaling or given by level-scaled quests are lifted to the level of that content, as copies
-# with entries from 4400001 up. Shirts, tabards and items without an item level are left as they are.
+# level scaling or given by level-scaled quests are lifted to the level of that content, rounded down
+# to a step of five levels, as copies with entries from 4400001 up. Shirts, tabards and items without
+# an item level are left as they are.
 # Set to 0 to stop new lifts; copies already handed out keep working.
 CoA.ItemScaling = 1
 
@@ -295,3 +314,13 @@ Ascension.CallboardCache.PreviousStageOnly = 0
 #        Default:     6
 
 Ascension.CallboardCache.ItemLevelAllowance = 6
+
+#
+#    CoA.DungeonTuning.Enable
+#        Description: Allow `.mythic damage` and `.mythic health` in 5-man dungeons. Every player can
+#                     raise or lower the damage and health of the creatures in their own instance
+#                     by a percentage to try values; each change is logged as a TUNING line.
+#                     For test realms; switch it off on a live realm.
+#        Default:     1
+
+CoA.DungeonTuning.Enable = 1

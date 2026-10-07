@@ -67,7 +67,8 @@ struct UploadedSpecialization
 
 UploadedSpecialization SpecializationOf(std::vector<KnownEntry> const& upload);
 
-std::vector<KnownEntry> SpecializationSwitch(std::uint8_t classId, HasSpell const& hasSpell, std::uint32_t specId);
+std::vector<KnownEntry> SpecializationSwitch(std::uint8_t classId, HasSpell const& hasSpell, std::uint32_t specId,
+    std::vector<KnownEntry> const* current = nullptr);
 constexpr std::uint32_t TALENT_PURGE_ITEM = 919291;
 constexpr std::uint32_t MARK_OF_ASCENSION_ITEM = 375250;
 

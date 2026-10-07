@@ -274,6 +274,10 @@ struct npc_ascension_tinker_device : ScriptedAI
     {
         return me->GetEntry() == 226012 || me->GetEntry() == 840028 || me->GetEntry() == 226112;
     }
+    bool Explosive() const
+    {
+        return Bomb() || me->GetEntry() == 50045 || me->GetEntry() == 50600 || me->GetEntry() == 226312;
+    }
     void Pursue(Unit* target)
     {
         MotionMaster* motion = me->GetMotionMaster();
@@ -295,7 +299,7 @@ struct npc_ascension_tinker_device : ScriptedAI
         me->SetOwnerGUID(owner);
         player->m_Controlled.insert(me);
         me->SetFaction(player->GetFaction());
-        if (Turret(me->GetEntry()))
+        if (Turret(me->GetEntry()) || Explosive())
         {
             me->m_ControlledByPlayer = true;
             me->SetUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED);
@@ -412,6 +416,7 @@ struct npc_ascension_tinker_device : ScriptedAI
                 {
                     player->RemoveAurasDueToSpell(807293, player->GetGUID());
                     player->SetTemporarySpellReplacement(500239, 0);
+                    player->removeSpell(500470, SPEC_MASK_ALL, true);
                 }
             }
         }

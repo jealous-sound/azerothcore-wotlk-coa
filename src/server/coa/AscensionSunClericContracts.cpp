@@ -11,6 +11,7 @@
 namespace AscensionSunCleric
 {
 constexpr uint32 SpellRangeAnywhere = 13;
+constexpr uint32 SunDownDuration = 39;
 void ApplyContracts(SpellInfo* info)
 {
     if (!info || info->SpellFamilyName != 33)
@@ -249,8 +250,9 @@ void ApplyContracts(SpellInfo* info)
         if (id == periodic)
         {
             uint8 slot = id == 570125 ? 2 : 0;
-            if (id == 560123 || id == 570125)
-                aura(slot, SPELL_AURA_PERIODIC_DUMMY, 0, 0, id == 570125 ? TARGET_UNIT_TARGET_ENEMY : TARGET_UNIT_CASTER);
+            if (id == 560123 || id == 570125 || id == 572752)
+                aura(slot, SPELL_AURA_PERIODIC_DUMMY, 0, 0,
+                    id == 560123 ? TARGET_UNIT_CASTER : TARGET_UNIT_TARGET_ENEMY);
             else
                 info->Effects[slot].ApplyAuraName = SPELL_AURA_PERIODIC_DUMMY;
             info->Effects[slot].TriggerSpell = 0;
@@ -258,6 +260,11 @@ void ApplyContracts(SpellInfo* info)
                 info->Effects[slot].Amplitude = 3000;
             if (id == 570125)
                 info->Effects[slot].Amplitude = 500;
+            if (id == 572752)
+            {
+                info->Effects[slot].Amplitude = 1900;
+                info->DurationEntry = sSpellDurationStore.LookupEntry(SunDownDuration);
+            }
         }
     info->_InitializeExplicitTargetMask();
 }

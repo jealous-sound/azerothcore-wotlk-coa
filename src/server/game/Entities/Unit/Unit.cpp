@@ -590,25 +590,33 @@ void Unit::Update(uint32 p_time)
     m_combatManager.Update(p_time);
 
     _lastDamagedTargetGuid = ObjectGuid::Empty;
-    if (_lastExtraAttackSpell)
+    // Extra attacks are queued by the spell that grants them and delivered as soon as the victim can
+    // actually be struck. Cruel Intent queues them while its Lunge is still in flight, so an entry
+    // that is out of reach yet is kept for a later update instead of being dropped with the jump.
+    for (auto itr = extraAttacksTargets.begin(); itr != extraAttacksTargets.end();)
     {
-        while (!extraAttacksTargets.empty())
+        ObjectGuid targetGuid = itr->first;
+        uint32 count = itr->second;
+        Unit* victim = ObjectAccessor::GetUnit(*this, targetGuid);
+        if (!victim || !victim->IsAlive())
         {
-            auto itr = extraAttacksTargets.begin();
-            ObjectGuid targetGuid = itr->first;
-            uint32 count = itr->second;
-            extraAttacksTargets.erase(itr);
-            if (Unit* victim = ObjectAccessor::GetUnit(*this, targetGuid))
-            {
-                if (_lastExtraAttackSpell == SPELL_SWORD_SPECIALIZATION || _lastExtraAttackSpell == SPELL_HACK_AND_SLASH
-                    || victim->IsWithinMeleeRange(this))
-                {
-                    HandleProcExtraAttackFor(victim, count);
-                }
-            }
+            itr = extraAttacksTargets.erase(itr);
+            continue;
         }
-        _lastExtraAttackSpell = 0;
+
+        if (_lastExtraAttackSpell != SPELL_SWORD_SPECIALIZATION && _lastExtraAttackSpell != SPELL_HACK_AND_SLASH
+            && !victim->IsWithinMeleeRange(this))
+        {
+            ++itr;
+            continue;
+        }
+
+        itr = extraAttacksTargets.erase(itr);
+        HandleProcExtraAttackFor(victim, count);
     }
+
+    if (extraAttacksTargets.empty())
+        _lastExtraAttackSpell = 0;
 
     // not implemented before 3.0.2
     // xinef: if attack time > 0, reduce by diff
@@ -3148,17 +3156,23 @@ void Unit::HandleProcExtraAttackFor(Unit* victim, uint32 count)
     }
 }
 
-void Unit::AddExtraAttacks(uint32 count)
+void Unit::AddExtraAttacks(uint32 count, ObjectGuid const& target)
 {
-    ObjectGuid targetGUID = _lastDamagedTargetGuid;
+    // A spell that was triggered at a specific enemy (Cruel Intent's Lunge trigger) names the
+    // victim itself; only when it does not is the last melee hit or the current selection used.
+    ObjectGuid targetGUID = target;
     if (!targetGUID)
     {
-        if (ObjectGuid selection = GetTarget())
+        targetGUID = _lastDamagedTargetGuid;
+        if (!targetGUID)
         {
-            targetGUID = selection; // Spell was cast directly (not triggered by aura)
+            if (ObjectGuid selection = GetTarget())
+            {
+                targetGUID = selection; // Spell was cast directly (not triggered by aura)
+            }
+            else
+                return;
         }
-        else
-            return;
     }
 
     extraAttacksTargets[targetGUID] += count;
@@ -15054,8 +15068,8 @@ void Unit::Kill(Unit* killer, Unit* victim, bool durabilityLoss, WeaponAttackTyp
             loot->clear();
             creature->FinalizeSharedQuestParticipants();
 
-            if (uint32 lootid = creature->GetCreatureTemplate()->lootid)
-                loot->FillLoot(lootid, LootTemplates_Creature, looter, false, false, creature->GetLootMode(), creature);
+            uint32 const lootid = creature->GetCreatureTemplate()->lootid;
+            loot->FillLoot(lootid, LootTemplates_Creature, looter, false, !lootid, creature->GetLootMode(), creature);
 
             if (creature->GetLootMode())
                 loot->generateMoneyLoot(creature->GetCreatureTemplate()->mingold, creature->GetCreatureTemplate()->maxgold);

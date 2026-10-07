@@ -323,13 +323,24 @@ void Spread(Player* player, Unit* source, Unit* target, uint32 root)
         return;
     }
 }
-void ApplyVenoms(Player* player, Unit* target)
+void ApplyVenoms(Player* player, Unit* target, bool fromSpiderling)
 {
     for (auto [activation, helper] : {std::pair(630868u,630869u), std::pair(805731u,805895u),
         std::pair(805775u,805894u), std::pair(805776u,805896u), std::pair(805777u,805897u), std::pair(805778u,706000u)})
         if (player->HasAura(activation))
         {
-            if (helper == 805894)
+            if (fromSpiderling && helper == 706000)
+            {
+                SpellInfo const* info = sSpellMgr->GetSpellInfo(helper);
+                if (!info || !player->IsInWorld() || !target || !target->IsAlive())
+                    continue;
+                SpellCastTargets targets;
+                targets.SetUnitTarget(target);
+                Spell* venom = new Spell(player, info, TRIGGERED_FULL_MASK);
+                venom->SetScriptValue(SpiderlingVenomSource, 1);
+                venom->prepare(&targets);
+            }
+            else if (helper == 805894)
                 Cast(player, player, helper);
             else if (helper == 630869)
                 player->CastSpell(target->GetPositionX(),target->GetPositionY(),target->GetPositionZ(),helper,true);

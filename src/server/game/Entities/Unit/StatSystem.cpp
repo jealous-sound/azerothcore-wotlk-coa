@@ -1398,7 +1398,7 @@ void Guardian::UpdateMaxHealth()
     float stamina = std::max<float>(GetStat(STAT_STAMINA) - GetCreateStat(STAT_STAMINA), 0.0f);
 
     float multiplicator;
-    switch (GetEntry())
+    switch (GetStockPetEntry(GetEntry()))
     {
         case NPC_IMP:
             multiplicator = 8.4f;
@@ -1447,7 +1447,7 @@ void Guardian::UpdateMaxPower(Powers power)
     float addValue = (power == POWER_MANA) ? std::max<float>(GetStat(STAT_INTELLECT) - GetCreateStat(STAT_INTELLECT), 0.0f) : 0.0f;
     float multiplicator = 15.0f;
 
-    switch (GetEntry())
+    switch (GetStockPetEntry(GetEntry()))
     {
         case NPC_IMP:
         case NPC_WATER_ELEMENTAL_TEMP:
@@ -1486,7 +1486,7 @@ void Guardian::UpdateAttackPowerAndDamage(bool ranged)
     float val = 0.0f;
     UnitMods unitMod = UNIT_MOD_ATTACK_POWER;
 
-    if (GetEntry() == NPC_IMP)                                     // imp's attack power
+    if (GetStockPetEntry(GetEntry()) == NPC_IMP)                                     // imp's attack power
         val = GetStat(STAT_STRENGTH) - 10.0f;
     else if (IsPetGhoul())                                         // DK's ghoul attack power
         val = 589 /*xinef: base ap!*/ + GetStat(STAT_STRENGTH) + GetStat(STAT_AGILITY);

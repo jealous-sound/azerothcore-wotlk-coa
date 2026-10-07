@@ -1,6 +1,7 @@
 /* Copyright (C) 2016+ AzerothCore, GNU AGPL v3. */
 
 #include "AscensionWitchHunterCompletion.h"
+#include "AscensionSpecialization.h"
 #include "Creature.h"
 #include "DBCStores.h"
 #include "DynamicObject.h"
@@ -188,10 +189,8 @@ class HoundActions
                               int32(owner->GetTotalAttackPowerValue(RANGED_ATTACK) * 0.35f);
                 if (owner->HasAura(705450))
                     value += owner->GetLevel() * 2;
-                _me->CastCustomSpell(706332, SPELLVALUE_BASE_POINT1, value, target, TRIGGERED_FULL_MASK, nullptr,
-                                     nullptr, owner->GetGUID());
-                _me->CastCustomSpell(706332, SPELLVALUE_BASE_POINT1, value, target, TRIGGERED_FULL_MASK, nullptr,
-                                     nullptr, owner->GetGUID());
+                _me->CastCustomSpell(706332, SPELLVALUE_BASE_POINT1, value, target, TRIGGERED_FULL_MASK);
+                _me->CastCustomSpell(706332, SPELLVALUE_BASE_POINT1, value, target, TRIGGERED_FULL_MASK);
                 if (_called && owner->HasAura(500056))
                     for (Unit* enemy : Nearby(target, 6.0f))
                         if (owner->IsValidAttackTarget(enemy))
@@ -300,6 +299,9 @@ struct npc_ascension_witch_hunter_field : ScriptedAI
         ownerGuid = owner->GetGUID();
         me->SetOwnerGUID(ownerGuid);
         me->SetFaction(owner->GetFaction());
+        me->m_ControlledByPlayer = true;
+        me->SetUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED);
+        me->SetByteValue(UNIT_FIELD_BYTES_2, 1, owner->GetByteValue(UNIT_FIELD_BYTES_2, 1));
         me->SetLevel(owner->GetLevel());
         me->SetReactState(REACT_PASSIVE);
         me->SetImmuneToNPC(true);
@@ -324,6 +326,7 @@ struct npc_ascension_witch_hunter_field : ScriptedAI
             me->DespawnOrUnsummon();
             return;
         }
+        me->SetByteValue(UNIT_FIELD_BYTES_2, 1, owner->GetByteValue(UNIT_FIELD_BYTES_2, 1));
         uint32 entry = me->GetEntry();
         if (entry == 254862)
         {
@@ -386,6 +389,26 @@ struct npc_ascension_witch_hunter_field : ScriptedAI
     }
 };
 
+class aura_ascension_witch_hunter_trap_launcher : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_witch_hunter_trap_launcher);
+
+    void Synchronize(AuraEffect const*, AuraEffectHandleModes)
+    {
+        Player* player = Owner(GetTarget());
+        if (player && player == GetTarget() && GetCaster() == player)
+            SynchronizeAscensionTalentReplacements(player);
+    }
+
+    void Register() override
+    {
+        AfterEffectApply += AuraEffectApplyFn(aura_ascension_witch_hunter_trap_launcher::Synchronize,
+            EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL_OR_REAPPLY_MASK);
+        AfterEffectRemove += AuraEffectRemoveFn(aura_ascension_witch_hunter_trap_launcher::Synchronize,
+            EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
+    }
+};
+
 class spell_ascension_witch_hunter_summon : public SpellScript
 {
     PrepareSpellScript(spell_ascension_witch_hunter_summon);
@@ -431,15 +454,27 @@ class spell_ascension_witch_hunter_summon : public SpellScript
 class spell_ascension_witch_hunter_smoke : public SpellScript
 {
     PrepareSpellScript(spell_ascension_witch_hunter_smoke);
-    void After()
+    bool Validate(SpellInfo const*) override
     {
-        if (WorldLocation const* destination = GetExplTargetDest())
-            GetCaster()->CastSpell(destination->GetPositionX(), destination->GetPositionY(),
-                                   destination->GetPositionZ(), 805757, true);
+        return ValidateSpellInfo({805757});
     }
+
+    void ApplyFriendlySmoke(SpellEffIndex)
+    {
+        if (DynamicObject* cloud = GetCaster()->GetDynObject(GetSpellInfo()->Id))
+        {
+            SpellCastTargets targets;
+            targets.SetDst(*cloud);
+            CustomSpellValues values;
+            values.AddSpellMod(SPELLVALUE_AURA_DURATION, cloud->GetDuration());
+            GetCaster()->CastSpell(targets, sSpellMgr->GetSpellInfo(805757), &values, TRIGGERED_FULL_MASK);
+        }
+    }
+
     void Register() override
     {
-        AfterCast += SpellCastFn(spell_ascension_witch_hunter_smoke::After);
+        OnEffectHit += SpellEffectFn(spell_ascension_witch_hunter_smoke::ApplyFriendlySmoke, EFFECT_1,
+                                    SPELL_EFFECT_PERSISTENT_AREA_AURA);
     }
 };
 }
@@ -450,5 +485,6 @@ void AddAscensionWitchHunterSummonScripts()
     RegisterCreatureAI(npc_ascension_witch_hunter_hound);
     RegisterCreatureAI(npc_ascension_witch_hunter_field);
     RegisterSpellScript(spell_ascension_witch_hunter_summon);
+    RegisterSpellScript(aura_ascension_witch_hunter_trap_launcher);
     RegisterSpellScript(spell_ascension_witch_hunter_smoke);
 }

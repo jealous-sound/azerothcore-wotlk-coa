@@ -347,7 +347,7 @@ class spell_warl_generic_scaling : public AuraScript
                 amount = CalculatePct(std::max<int32>(0, maximum), 57);
 
                 // Glyph of felguard, 99% sure this is a HACK
-                if (pet->GetEntry() == NPC_FELGUARD)
+                if (GetStockPetEntry(pet->GetEntry()) == NPC_FELGUARD)
                 {
                     if (AuraEffect* glyph = owner->GetAuraEffect(SPELL_GLYPH_OF_FELGUARD, EFFECT_0))
                     {

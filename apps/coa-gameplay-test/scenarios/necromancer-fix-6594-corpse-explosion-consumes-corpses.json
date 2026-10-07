@@ -1,0 +1,60 @@
+{
+  "schema": 1,
+  "name": "Necromancer: Corpse Explosion consumes the corpses it is cast on (#6594)",
+  "contract": "Corpse Explosion 533236-533239 (family 29, ranks 1-4, Runic Power cost 400) is bound to spell_ascension_necromancer_ability. The Necromancer contract turns effect 0 into a caster-targeted SPELL_EFFECT_DUMMY, and the script's Hit calls AscensionNecromancer::CorpseExplosion(player, player), which is meant to claim every eligible corpse within 15 yd and explode it into the enemies within 10 yd. That scan asked Nearby(center, 15.0f, false) for its units, and Nearby searches with Acore::AnyUnitInObjectRangeCheck, whose operator() returns true only when u->IsAlive(): a corpse never entered the list, the alive=false filter that follows never saw one, and a cast consumed nothing and dealt nothing. The scan now fills the list through WorldObject::GetDeadCreatureListInGrid(corpses, 15.0f, true), where AllDeadCreaturesInRange(reqAlive = true) rejects living units, and the corpse state, creature type, phase and line-of-sight gates are unchanged. Fixtures: a Necromancer raises two Lesser Skeletal Warriors 50065 with 500970 and sacrifices both with Sacrifice Undead 807938, which kills instead of despawning them and leaves two corpses beside the caster; an enemy player flagged for PvP 5 yd away is the only valid attack target, and an eater that learned Cannibalize 20577 observes the corpses. Cannibalize is refused with SPELL_FAILED_NO_EDIBLE_CORPSES (141) unless a corpse that is not friendly to the caster lies within 5 yd. Expected: the control Cannibalize before the sacrifice is refused with 141, a Corpse Explosion cast then damages the enemy once per claimed corpse, and a Cannibalize after it is refused with 141 again because both corpses are gone.",
+  "timeout_ms": 90000,
+  "location": { "map": 0, "x": -8917.41, "y": -115.853, "z": 82.3711, "o": 0 },
+  "players": [
+    { "id": "n", "race": 5, "class": 23, "level": 80 },
+    { "id": "victim", "race": 1, "class": 1, "level": 80 },
+    { "id": "eater", "race": 1, "class": 1, "level": 80 }
+  ],
+  "steps": [
+    { "action": "wait", "label": "Let login and the Life Force aura settle", "ms": 3000 },
+    { "action": "learn", "actor": "n", "spell": 500970 },
+    { "action": "learn", "actor": "n", "spell": 807938 },
+    { "action": "learn", "actor": "n", "spell": 533236 },
+    { "action": "learn", "actor": "eater", "spell": 20577 },
+    { "action": "pvp", "label": "Flag the Necromancer for PvP so an enemy player is a valid explosion target", "actor": "n", "enabled": true },
+    { "action": "pvp", "label": "Flag the enemy beside the corpses", "actor": "victim", "enabled": true },
+    { "action": "cast", "label": "Raise the first Lesser Skeletal Warrior", "actor": "n", "spell": 500970 },
+    {
+      "action": "assert", "label": "SETUP: one Lesser Skeletal Warrior is raised", "actor": "n",
+      "metric": "owned_creature_count", "entry": 50065, "equals": 1, "within_ms": 5000
+    },
+    { "action": "wait", "label": "Clear the global cooldown", "ms": 500 },
+    { "action": "cast", "label": "Raise the second Lesser Skeletal Warrior", "actor": "n", "spell": 500970 },
+    {
+      "action": "assert", "label": "SETUP: two Lesser Skeletal Warriors are raised", "actor": "n",
+      "metric": "owned_creature_count", "entry": 50065, "equals": 2, "within_ms": 5000
+    },
+    { "action": "wait", "label": "Let the minions take their places beside the Necromancer", "ms": 1500 },
+    { "action": "cast", "label": "CONTROL: Cannibalize while the minions live", "actor": "eater", "spell": 20577 },
+    {
+      "action": "assert", "label": "CONTROL: no edible corpse lies within reach before the sacrifice", "actor": "eater",
+      "metric": "cast_failure", "spell": 20577, "equals": 141, "within_ms": 1000
+    },
+    { "action": "cast", "label": "Sacrifice Undead", "actor": "n", "spell": 807938 },
+    {
+      "action": "assert", "label": "Both minions are destroyed and leave corpses", "actor": "n",
+      "metric": "owned_creature_count", "entry": 50065, "equals": 0, "within_ms": 3000
+    },
+    { "action": "wait", "label": "Let the sacrificed minions settle as corpses", "ms": 1000 },
+    { "action": "set_power", "label": "Give the Runic Power for one Corpse Explosion", "actor": "n", "power": 6, "value": 1000 },
+    {
+      "action": "snapshot", "label": "Count the Corpse Explosion payload hits before the cast", "actor": "n",
+      "metric": "spell_damage_count", "spell": 533240, "target": "victim", "save_as": "explosions"
+    },
+    { "action": "cast", "label": "Corpse Explosion beside the two corpses", "actor": "n", "spell": 533236 },
+    {
+      "action": "assert", "label": "Every claimed corpse explodes onto the enemy standing beside it", "actor": "n",
+      "metric": "spell_damage_count", "spell": 533240, "target": "victim", "relative_to": "explosions",
+      "min": 1, "max": 2, "within_ms": 3000
+    },
+    { "action": "cast", "label": "Cannibalize after the explosion", "actor": "eater", "spell": 20577 },
+    {
+      "action": "assert", "label": "The exploded corpses are gone", "actor": "eater",
+      "metric": "cast_failure", "spell": 20577, "equals": 141, "within_ms": 1500
+    }
+  ]
+}

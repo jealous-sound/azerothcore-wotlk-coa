@@ -113,6 +113,31 @@ enum CustomEquipmentSpells : uint32
     SPELL_VALKYR_GRIP = 707072
 };
 
+enum ClientKnownSupersededSpells : uint32
+{
+    SPELL_RANGER_SKULLPIERCER_RANK_1 = 802036
+};
+
+// The Ascension client shows the Ranger Advantage bar only while it knows Skullpiercer rank 1.
+static bool IsKeptInClientSpellbookWhenSuperseded(uint32 spellId)
+{
+    return spellId == SPELL_RANGER_SKULLPIERCER_RANK_1;
+}
+
+static void ReplaceSpellOnActionButtons(Player* player, uint32 from, uint32 to)
+{
+    bool changed = false;
+    for (uint8 slot = 0; slot < MAX_ACTION_BUTTONS; ++slot)
+    {
+        ActionButton const* button = player->GetActionButton(slot);
+        if (button && button->GetType() == ACTION_BUTTON_SPELL && button->GetAction() == from)
+            changed = player->addActionButton(slot, to, ACTION_BUTTON_SPELL) != nullptr || changed;
+    }
+
+    if (changed)
+        player->SendActionButtons(1);
+}
+
 enum CharacterFlags
 {
     CHARACTER_FLAG_NONE                 = 0x00000000,
@@ -2918,7 +2943,8 @@ void Player::SendInitialSpells()
         if (itr->second->State == PLAYERSPELL_REMOVED)
             continue;
 
-        if (!itr->second->Active || !itr->second->IsInSpec(GetActiveSpec()))
+        if ((!itr->second->Active && !IsKeptInClientSpellbookWhenSuperseded(itr->first)) ||
+            !itr->second->IsInSpec(GetActiveSpec()))
             continue;
 
         data << uint32(itr->first);
@@ -3285,7 +3311,12 @@ bool Player::addSpell(uint32 spellId, uint8 addSpecMask, bool updateActive, bool
                     if (!isBeingLoaded() && IsUnlearnNeededForSpell(spellId))
                         SendUnlearnSpells();
 
-                    if (IsInWorld())
+                    if (IsInWorld() && IsKeptInClientSpellbookWhenSuperseded(nextSpellInfo->Id))
+                    {
+                        SendLearnPacket(spellInfo->Id, true);
+                        ReplaceSpellOnActionButtons(this, nextSpellInfo->Id, spellInfo->Id);
+                    }
+                    else if (IsInWorld())
                     {
                         WorldPacket data(SMSG_SUPERCEDED_SPELL, 4 + 4);
                         data << uint32(nextSpellInfo->Id);
@@ -10255,6 +10286,31 @@ bool Player::IsAffectedBySpellmod(SpellInfo const* spellInfo, SpellModifier* mod
     return spellInfo->IsAffectedBySpellMod(mod);
 }
 
+// xinef's Backdraft coupling only makes sense when the same aura also reduces cast
+// time: its gcd half must not fire when its cast-time half was not applied. An aura
+// whose only spell modifier is the gcd reduction (Dark Frenzy's 804845 helper, kept
+// up by AscensionBloodmageTalents.cpp while a Cursed Form is active) has no cast-time
+// half to wait for, so it must reach the gcd calculation itself.
+static bool AuraAlsoModifiesCastingTime(Aura const* aura)
+{
+    if (!aura)
+        return false;
+
+    SpellInfo const* info = aura->GetSpellInfo();
+    if (!info)
+        return false;
+
+    for (uint8 i = 0; i < MAX_SPELL_EFFECTS; ++i)
+    {
+        SpellEffectInfo const& effect = info->Effects[i];
+        if ((effect.ApplyAuraName == SPELL_AURA_ADD_FLAT_MODIFIER || effect.ApplyAuraName == SPELL_AURA_ADD_PCT_MODIFIER) &&
+            effect.MiscValue == SPELLMOD_CASTING_TIME)
+            return true;
+    }
+
+    return false;
+}
+
 template <class T>
 void Player::ApplySpellMod(uint32 spellId, SpellModOp op, T& basevalue, Spell* spell, bool temporaryPet)
 {
@@ -10305,7 +10361,8 @@ void Player::ApplySpellMod(uint32 spellId, SpellModOp op, T& basevalue, Spell* s
             else if (mod->op == SPELLMOD_CRITICAL_CHANCE && !HasSpellModApplied(mod, spell))
                 return;
             // xinef: special case for backdraft gcd reduce with backlast time reduction, dont affect gcd if cast time was not applied
-            else if (mod->op == SPELLMOD_GLOBAL_COOLDOWN && !HasSpellModApplied(mod, spell))
+            else if (mod->op == SPELLMOD_GLOBAL_COOLDOWN && !HasSpellModApplied(mod, spell) &&
+                AuraAlsoModifiesCastingTime(mod->ownerAura))
                 return;
 
             // xinef: those two mods should be multiplicative (Glyph of Renew)
@@ -10502,9 +10559,7 @@ void Player::RestoreSpellMods(Spell* spell, uint32 ownerAuraId, Aura* aura)
             if (iterMod == spell->m_appliedMods.end())
                 continue;
             // Second, check if the current mod is one of those applied by the mod aura
-            bool const affected = mod->targetSpellRoot ? spell->m_spellInfo->IsAffectedBySpellMod(mod) :
-                bool(mod->mask & spell->m_spellInfo->SpellFamilyFlags);
-            if (!affected)
+            if (!(mod->mask & spell->m_spellInfo->SpellFamilyFlags))
                 continue;
 
             // remove from list - This will be done after all mods have been gone through
@@ -11484,6 +11539,10 @@ void Player::AddSpellAndCategoryCooldowns(SpellInfo const* spellInfo, uint32 ite
         cat = spellInfo->GetCategory();
         rec = spellInfo->RecoveryTime;
         catrec = spellInfo->CategoryRecoveryTime;
+
+        // A charged spell recovers through its charges, not through its DBC category cooldown
+        if (spellInfo->MaxCharges)
+            catrec = 0;
     }
 
     time_t catrecTime;
@@ -14221,10 +14280,11 @@ static RuneType runeSlotTypes[MAX_RUNES] =
 
 void Player::InitRunes()
 {
-    if (!IsClass(CLASS_DEATH_KNIGHT, CLASS_CONTEXT_ABILITY))
+    if (!IsClass(CLASS_DEATH_KNIGHT, CLASS_CONTEXT_ABILITY) && getClass() != CLASS_HERO)
         return;
 
-    m_runes = new Runes;
+    if (!m_runes)
+        m_runes = new Runes;
 
     m_runes->runeState = 0;
     m_runes->lastUsedRune = RUNE_BLOOD;

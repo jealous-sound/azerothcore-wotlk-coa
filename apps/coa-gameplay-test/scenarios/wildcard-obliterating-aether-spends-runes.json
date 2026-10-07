@@ -58,6 +58,12 @@
       "spell": 907878
     },
     {
+      "action": "learn",
+      "actor": "wild",
+      "spell": 201,
+      "label": "The fixture learns One-Handed Swords before equipping one"
+    },
+    {
       "action": "add_item",
       "actor": "wild",
       "item": 25
