@@ -593,6 +593,13 @@
         "wildcard-cremation-all-dots-6791"
       ],
       "args": []
+    },
+    {
+      "script": "check_wildcard_spell_payoffs.py",
+      "scenarios": [
+        "wildcard-solar-strike-five-points-6806"
+      ],
+      "args": []
     }
   ]
 }
