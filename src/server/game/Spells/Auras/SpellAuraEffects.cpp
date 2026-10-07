@@ -5356,6 +5356,9 @@ void AuraEffect::HandleAuraDummy(AuraApplication const* aurApp, uint8 mode, bool
     if (target->IsPlayer() && GetSpellInfo()->Effects[GetEffIndex()].GetItemArmorSubclassMask())
         target->UpdateArmor();
 
+    if (GetId() == 84866 && target->IsPlayer() && (mode & AURA_EFFECT_HANDLE_REAL))
+        target->ToPlayer()->UpdateSpellDamageAndHealingBonus();
+
     Unit* caster = GetCaster();
 
     if (mode & AURA_EFFECT_HANDLE_REAL)
