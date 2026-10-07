@@ -745,6 +745,8 @@ Player commands retain normal permission and gameplay checks; verify their effec
 `owned_creature_count` requires a player and `entry`. It counts living creatures of that entry owned, created or summoned by
 the player, in the same phase and within 100 yards, including summons outside the guardian-pet slot.
 An optional `spell` restricts the count to creatures with that aura; `caster` can select its aura owner. `min_distance` keeps creatures at least that many yards from the player (2D), and `owner_display: true` those wearing the player's display.
+`ranged_weapon_subclass` (0..20) restricts the count to creatures carrying a weapon of that item subclass
+in their ranged virtual equipment slot; subclass 2 means bows. This observes server equipment, not client rendering.
 `owned_creature_visible` requires a player and `entry` and reads one matching summon's server visibility,
 returning zero when absent. Pair it with a count assertion when checking a hidden helper.
 `owned_creature_spell_hit_chance` requires a player and a present owned creature selected by `entry`.
