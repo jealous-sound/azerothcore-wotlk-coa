@@ -789,6 +789,7 @@ void ObservePacket(Actor& actor, WorldPacket const& packet)
             uint32 spell = 0;
             list >> spell;
             actor.clientSpells.erase(spell);
+            actor.clientSpellbookCopies.erase(spell);
         }
     }
 
