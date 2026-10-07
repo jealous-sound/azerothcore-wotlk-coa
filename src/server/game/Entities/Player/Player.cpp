@@ -3032,7 +3032,8 @@ void Player::SendUnlearnSpells()
 
     for (auto const& itr : m_spells)
     {
-        if (itr.second->State == PLAYERSPELL_REMOVED || itr.second->Active)
+        if (itr.second->State == PLAYERSPELL_REMOVED || itr.second->Active ||
+            IsKeptInClientSpellbookWhenSuperseded(itr.first))
             continue;
 
         auto skillLineAbilities = sSpellMgr->GetSkillLineAbilityMapBounds(itr.first);
