@@ -129,6 +129,8 @@ class aura_ascension_sun_cleric_lifecycle : public AuraScript
             Refresh(player);
         if (!player->IsAlive() || !player->IsInWorld())
             return;
+        if (id == Dawn && target == player && (mode == AURA_REMOVE_BY_CANCEL || mode == AURA_REMOVE_BY_EXPIRE))
+            Resource(player, SolarPower, GetAura()->GetCharges());
         bool old = State(player).event;
         State(player).event = true;
         if (id == 802598 && depleted && player->HasAura(680637))
