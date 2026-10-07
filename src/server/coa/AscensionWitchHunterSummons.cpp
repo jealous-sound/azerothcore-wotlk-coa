@@ -141,6 +141,14 @@ class HoundActions
             }
             if (event == EVENT_REFRESH_OWNER)
             {
+                if (!_me->getTransForm())
+                {
+                    uint32 display = GetShadowhoundDisplay(owner);
+                    if (!display)
+                        display = _me->GetNativeDisplayId();
+                    if (_me->GetDisplayId() != display)
+                        _me->SetDisplayId(display, _me->GetObjectScale());
+                }
                 float healthFraction = _me->GetHealthPct() / 100.0f;
                 uint32 maximum = std::max(1u, owner->CountPctFromMaxHealth(_me->GetEntry() == 50124 ? 40 : 20));
                 if (maximum != _me->GetMaxHealth())

@@ -31,6 +31,7 @@
 #include "AscensionFreepick.h"
 #include "AscensionRunemasterEchoes.h"
 #include "AscensionCollectionModelData.h"
+#include "AscensionWitchHunterCompletion.h"
 #include "AscensionAmmunitionData.h"
 #include "AscensionPersonalBank.h"
 #include "AscensionCollectibleSpellData.h"
@@ -370,6 +371,9 @@ constexpr std::array<std::pair<uint32, uint32>, 1> REAPER_ONE_SOUL_CONSUMERS =
 
 constexpr std::size_t APPEARANCE_CATEGORY_COUNT = 69;
 constexpr uint32 APPEARANCE_CATEGORY_AMMUNITION = 32;
+constexpr uint32 APPEARANCE_CATEGORY_SHADOWHOUND = 68;
+
+AscensionCollectionModels::Entry const* FindCollectionModel(uint32 creatureId);
 constexpr std::size_t MAX_APPEARANCE_SNAPSHOT_ENTRIES = 65536;
 constexpr std::size_t APPEARANCE_ADDS_PER_BATCH = 16;
 constexpr uint32 APPEARANCE_ADD_BATCH_INTERVAL_MS = 100;
@@ -486,6 +490,7 @@ struct AppearanceInfo {
   uint32 TertiaryCategory = 0;
   uint32 EnchantId = 0;
   uint32 CosmeticSpell = 0;
+  uint32 CreatureDisplay = 0;
 };
 
 struct VanityInfo {
@@ -4572,6 +4577,12 @@ public:
         return 0;
     }
 
+    static uint32 ResolveShadowhoundDisplay(uint32 creatureId)
+    {
+        auto const* model = FindCollectionModel(creatureId);
+        return model && sCreatureDisplayInfoStore.LookupEntry(model->DisplayId) ? model->DisplayId : 0;
+    }
+
   static AscensionCollectionService &Instance() {
     static AscensionCollectionService instance;
     return instance;
@@ -4604,6 +4615,8 @@ public:
       if (IsCosmeticCategory(appearance.PrimaryCategory))
         appearance.CosmeticSpell = ResolveCosmeticSpell(appearanceId,
             displayId, record.GetUInt32(8));
+      if (appearance.PrimaryCategory == APPEARANCE_CATEGORY_SHADOWHOUND)
+        appearance.CreatureDisplay = ResolveShadowhoundDisplay(displayId);
       _allAppearanceIds.push_back(appearanceId);
     }
 
@@ -5217,6 +5230,24 @@ public:
             appearanceId, [](AscensionAmmunition::Entry const& row, uint32 id) { return row.AppearanceId < id; });
         return entry != AscensionAmmunition::Entries.end() && entry->AppearanceId == appearanceId ?
             entry->ItemDisplayId : 0;
+    }
+
+    uint32 GetShadowhoundDisplay(Player* player)
+    {
+        if (!player || player->getClass() != CLASS_WITCH_HUNTER ||
+            !ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED))
+            return 0;
+
+        auto state = GetState(player);
+        if (!state || !state->CanSeeSpellAppearances)
+            return 0;
+
+        uint32 const appearanceId = state->ActiveAppearances[APPEARANCE_CATEGORY_SHADOWHOUND];
+        if (!state->CollectedAppearances.contains(appearanceId))
+            return 0;
+
+        auto const appearance = _appearances.find(appearanceId);
+        return appearance != _appearances.end() ? appearance->second.CreatureDisplay : 0;
     }
 
   void DeliverVanityItem(Player *player, uint32 itemId) {
@@ -5845,6 +5876,7 @@ private:
 
       AppearanceInfo const &appearance = appearanceItr->second;
       if ((categoryId <= 14 || categoryId == APPEARANCE_CATEGORY_AMMUNITION ||
+          categoryId == APPEARANCE_CATEGORY_SHADOWHOUND ||
           IsCosmeticCategory(categoryId)) &&
           appearance.PrimaryCategory != categoryId &&
           appearance.SecondaryCategory != categoryId &&
@@ -5852,7 +5884,8 @@ private:
         SendApplyResult(player, "APPLY_APPEARANCES_INVALID_CATEGORY");
         return;
       }
-      if (IsCosmeticCategory(categoryId) && !appearance.CosmeticSpell)
+      if ((IsCosmeticCategory(categoryId) && !appearance.CosmeticSpell) ||
+          (categoryId == APPEARANCE_CATEGORY_SHADOWHOUND && !appearance.CreatureDisplay))
       {
         SendApplyResult(player, "APPLY_APPEARANCES_INVALID_SELECTION");
         return;
@@ -8460,6 +8493,11 @@ uint32 GetAscensionActiveSpecialization(Player const* player)
         return active;
 
     return const_cast<Player*>(player)->GetPlayerSetting(ASCENSION_ACTIVE_SPEC_SETTING, 0).value;
+}
+
+uint32 AscensionWitchHunter::GetShadowhoundDisplay(Player* player)
+{
+    return AscensionCollectionService::Instance().GetShadowhoundDisplay(player);
 }
 
 bool SwitchAscensionSpecialization(Player* player, uint32 specializationId)
