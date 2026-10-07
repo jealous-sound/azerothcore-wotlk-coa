@@ -55,6 +55,7 @@ void AddAscensionArenaQueueScripts();
 void AddCoAPlayerTicketScripts();
 void AddAscensionWildcardScripts();
 void AddSC_AscensionWildcardRecuperate();
+void AddSC_AscensionWildcardBloodbath();
 void AddSC_AscensionWildcardSolarStrike();
 void AddSC_AscensionWildcardCremation();
 void AddSC_AscensionWildcardElementalBlast();
@@ -610,6 +611,7 @@ void AddCoAScripts()
     AddCoAPlayerTicketScripts();
     AddAscensionWildcardScripts();
     AddSC_AscensionWildcardRecuperate();
+    AddSC_AscensionWildcardBloodbath();
     AddSC_AscensionWildcardSolarStrike();
     AddSC_AscensionWildcardCremation();
     AddSC_AscensionWildcardElementalBlast();
