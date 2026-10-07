@@ -579,10 +579,16 @@ enum LegacyQuestSpells : uint32
 {
     QuestStoneskinTotem = 8073,
     QuestPathOfDefense = 8121,
+    QuestSummonVoidwalker = 11520,
+    QuestBearForm = 19179,
     LegacyDefensiveStance = 1100071,
     LegacyTaunt = 1100355,
     LegacySunderArmor = 1107386,
-    LegacyStoneskinTotem = 1108071
+    LegacyStoneskinTotem = 1108071,
+    LegacySummonVoidwalker = 1100697,
+    LegacyBearForm = 1105487,
+    LegacyGrowl = 1106795,
+    LegacyMaul = 1106807
 };
 
 struct LegacyQuestReward
@@ -591,9 +597,11 @@ struct LegacyQuestReward
     std::array<uint32, MAX_SPELL_EFFECTS> Spells;
 };
 
-constexpr std::array<LegacyQuestReward, 2> LegacyQuestRewards = {{
+constexpr std::array<LegacyQuestReward, 4> LegacyQuestRewards = {{
     {QuestStoneskinTotem, {LegacyStoneskinTotem, 0, 0}},
-    {QuestPathOfDefense, {LegacyDefensiveStance, LegacySunderArmor, LegacyTaunt}}
+    {QuestPathOfDefense, {LegacyDefensiveStance, LegacySunderArmor, LegacyTaunt}},
+    {QuestSummonVoidwalker, {LegacySummonVoidwalker, 0, 0}},
+    {QuestBearForm, {LegacyBearForm, LegacyGrowl, LegacyMaul}}
 }};
 
 LegacyQuestReward const* GetLegacyQuestReward(uint32 wrapper)
@@ -3821,6 +3829,7 @@ private:
   static constexpr uint32 SPELL_CASTER_AURA_SPELL_FIELD = 24;
   static constexpr uint32 SPELL_EXCLUDE_CASTER_AURA_SPELL_FIELD = 26;
   static constexpr uint32 SPELL_FAMILY_NAME_FIELD = 208;
+  static constexpr uint32 SPELL_LEVEL_FIELD = 39;
 
   struct ClientSpellText {
     std::string Description;
@@ -4326,6 +4335,10 @@ private:
       requested.erase(rows[index].Values[0]);
     }
 
+    std::unordered_map<uint32, uint32> rankTrainingLevels;
+    for (AscensionProgression::Rank const& rank : AscensionProgression::Ranks)
+      rankTrainingLevels.emplace(rank.SpellId, rank.RequiredLevel);
+
     ClientDBC spells;
     std::filesystem::path const serverDbc =
         std::filesystem::path(sWorld->GetDataPath()) / "dbc" / "Spell.dbc";
@@ -4343,12 +4356,16 @@ private:
         bool const redirectsExclusion = clientExcludedAura != excludedAura;
         bool const restrictingFormGated =
             clientExcludedAura == AscensionBloodmage::CursedForm;
+        auto const trainingLevel = rankTrainingLevels.find(id);
+        bool const raisesRankLevel =
+            trainingLevel != rankTrainingLevels.end() &&
+            record.GetUInt32(SPELL_LEVEL_FIELD) < trainingLevel->second;
 
         auto const overlay = overridden.find(id);
         auto const description = descriptions.find(id);
         if (overlay == overridden.end() && description == descriptions.end() &&
             !requested.contains(id) && !redirectsExclusion &&
-            !restrictingFormGated)
+            !restrictingFormGated && !raisesRankLevel)
           continue;
 
         std::size_t const rowIndex = overlay == overridden.end() ? rows.size() : overlay->second;
@@ -4384,6 +4401,11 @@ private:
         {
           RedirectCursedFormCheck(row.Strings[SPELL_WIRE_DESCRIPTION]);
           RedirectCursedFormCheck(row.Strings[SPELL_WIRE_TOOLTIP]);
+          Ascension::ClientSpellPatches::Instance().Register(id);
+        }
+        if (raisesRankLevel)
+        {
+          row.Values[SPELL_WIRE_SLOT(SPELL_LEVEL_FIELD)] = trainingLevel->second;
           Ascension::ClientSpellPatches::Instance().Register(id);
         }
         requested.erase(id);

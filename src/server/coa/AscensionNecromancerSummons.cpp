@@ -498,9 +498,8 @@ class npc_ascension_necromancer : public ScriptedAI
         {
         case 50065:
         case 51065:
+            me->SetInFront(target);
             Cast(me, target, 570042);
-            if (entry == 51065)
-                Cast(me, target, 570216);
             break;
         case 50073:
             Cast(me, target, 801514);
@@ -724,6 +723,29 @@ class necromancer_minion_dismiss : public ServerScript
     }
 };
 
+class spell_ascension_necromancer_warrior_strike : public SpellScript
+{
+    PrepareSpellScript(spell_ascension_necromancer_warrior_strike);
+
+    bool Validate(SpellInfo const*) override
+    {
+        return ValidateSpellInfo({570216});
+    }
+
+    void Pierce()
+    {
+        Creature* warrior = GetCaster()->ToCreature();
+        Unit* target = GetHitUnit();
+        if (warrior && warrior->GetEntry() == 51065 && target && target->IsAlive() && GetHitDamage() > 0)
+            warrior->CastSpell(target, 570216, true);
+    }
+
+    void Register() override
+    {
+        AfterHit += SpellHitFn(spell_ascension_necromancer_warrior_strike::Pierce);
+    }
+};
+
 class npc_ascension_necromancer_script : public GenericCreatureScript<npc_ascension_necromancer>
 {
 public:
@@ -742,6 +764,7 @@ public:
 void AddAscensionNecromancerSummonScripts()
 {
     new npc_ascension_necromancer_script();
+    RegisterSpellScript(spell_ascension_necromancer_warrior_strike);
     RegisterSpellScript(spell_ascension_necromancer_summon);
     new necromancer_minion_dismiss();
 }
