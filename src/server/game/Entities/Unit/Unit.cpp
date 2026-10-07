@@ -10865,6 +10865,17 @@ bool Unit::IsImmunedToAuraPeriodicTick(Unit const* caster, SpellInfo const* spel
     return false;
 }
 
+static bool IsUncontrolledCreature(Unit const* unit)
+{
+    return unit->IsCreature() && !unit->IsCharmedOwnedByPlayerOrPlayer();
+}
+
+// CoA: poisons that count as bleeds still hit bleed-immune NPCs.
+static bool IsIgnoredCreatureMechanicImmunity(Unit const* unit, SpellInfo const* spellInfo, uint32 mechanic)
+{
+    return mechanic == MECHANIC_BLEED && spellInfo->Dispel == DISPEL_POISON && IsUncontrolledCreature(unit);
+}
+
 bool Unit::IsImmunedToSpell(SpellInfo const* spellInfo, Unit const* caster)
 {
     return IsImmunedToSpell(spellInfo, caster, spellInfo ? spellInfo->GetSchoolMask() : SPELL_SCHOOL_MASK_NONE);
@@ -10900,7 +10911,7 @@ bool Unit::IsImmunedToSpell(SpellInfo const* spellInfo, Unit const* caster, Spel
     }
 
     // Spells that don't have effectMechanics.
-    if (uint32 mechanic = spellInfo->Mechanic)
+    if (uint32 mechanic = spellInfo->Mechanic; mechanic && !IsIgnoredCreatureMechanicImmunity(this, spellInfo, mechanic))
     {
         SpellImmuneContainer const& mechanicList = m_spellImmune[IMMUNITY_MECHANIC];
         if (mechanicList.count(mechanic) > 0)
@@ -10975,7 +10986,8 @@ bool Unit::IsImmunedToSpellEffect(SpellInfo const* spellInfo, uint32 index, Unit
         }
     }
 
-    if (uint32 mechanic = spellInfo->Effects[index].Mechanic)
+    if (uint32 mechanic = spellInfo->Effects[index].Mechanic;
+        mechanic && !IsIgnoredCreatureMechanicImmunity(this, spellInfo, mechanic))
     {
         auto const& mechanicList = m_spellImmune[IMMUNITY_MECHANIC];
         if (mechanicList.count(mechanic) > 0)
@@ -11330,10 +11342,26 @@ private:
     uint32 _type;
 };
 
+// CoA: NPCs are never spell or damage immune to only some schools (fire elementals to fire, etc.) nor to
+// poisons; full invulnerability stays.
+static bool IsIgnoredCreatureImmunity(Unit const* unit, uint32 op, uint32 type)
+{
+    if (!IsUncontrolledCreature(unit))
+        return false;
+
+    if (op == IMMUNITY_SCHOOL || op == IMMUNITY_DAMAGE)
+        return (type & SPELL_SCHOOL_MASK_ALL) != SPELL_SCHOOL_MASK_ALL;
+
+    return op == IMMUNITY_DISPEL && type == DISPEL_POISON;
+}
+
 void Unit::ApplySpellImmune(uint32 spellId, uint32 op, uint32 type, bool apply, SpellImmuneBlockType /*blockType*/)
 {
     if (apply)
-        m_spellImmune[op].emplace(type, spellId);
+    {
+        if (!IsIgnoredCreatureImmunity(this, op, type))
+            m_spellImmune[op].emplace(type, spellId);
+    }
     else
     {
         auto bounds = m_spellImmune[op].equal_range(type);

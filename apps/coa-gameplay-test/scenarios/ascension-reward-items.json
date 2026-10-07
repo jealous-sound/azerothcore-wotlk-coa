@@ -1620,6 +1620,75 @@
     },
     {
       "action": "assert",
+      "label": "no cache pays a legendary: the Black Temple pool holds no Warglaive of Azzinoth",
+      "actor": "opener",
+      "metric": "pool_item_present",
+      "table": "prestigious",
+      "cache": 1297317,
+      "item": 32837,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "nor its off-hand Warglaive",
+      "actor": "opener",
+      "metric": "pool_item_present",
+      "table": "prestigious",
+      "cache": 1297317,
+      "item": 32838,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "Cache of the Fire Lord holds no Talisman of Binding Shard",
+      "actor": "opener",
+      "metric": "pool_item_present",
+      "table": "fire_lord",
+      "cache": 2400040,
+      "item": 17782,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "nor its raid difficulty 1 copy",
+      "actor": "opener",
+      "metric": "pool_item_present",
+      "table": "fire_lord",
+      "cache": 2400040,
+      "item": 317782,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "nor its raid difficulty 2 copy",
+      "actor": "opener",
+      "metric": "pool_item_present",
+      "table": "fire_lord",
+      "cache": 2400040,
+      "item": 1317782,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "nor its raid difficulty 3 copy",
+      "actor": "opener",
+      "metric": "pool_item_present",
+      "table": "fire_lord",
+      "cache": 2400040,
+      "item": 217782,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "Cache of the Fire Lord keeps the rest of its pool",
+      "actor": "opener",
+      "metric": "pool_row_count",
+      "table": "fire_lord",
+      "cache": 2400040,
+      "min": 280
+    },
+    {
+      "action": "assert",
       "label": "every reward the first opener was paid is a normal row",
       "actor": "opener",
       "metric": "carried_variant_item_count",

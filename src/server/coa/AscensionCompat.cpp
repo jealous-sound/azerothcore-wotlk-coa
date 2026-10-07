@@ -3818,6 +3818,7 @@ private:
       SPELL_TOOLTIP_FIELD};
   static constexpr std::size_t SPELL_WIRE_DESCRIPTION = 1;
   static constexpr std::size_t SPELL_WIRE_TOOLTIP = 3;
+  static constexpr uint32 SPELL_CASTER_AURA_SPELL_FIELD = 24;
   static constexpr uint32 SPELL_EXCLUDE_CASTER_AURA_SPELL_FIELD = 26;
   static constexpr uint32 SPELL_FAMILY_NAME_FIELD = 208;
 
@@ -4242,6 +4243,14 @@ private:
     SpellInfo const *info = sSpellMgr->GetSpellInfo(row.Values[0]);
     if (!info)
       return;
+
+    if (info->Id == AscensionSunCleric::DawnCast)
+    {
+      row.Values[SPELL_WIRE_SLOT(SPELL_CASTER_AURA_SPELL_FIELD)] = info->CasterAuraSpell;
+      row.Values[SPELL_WIRE_SLOT(SPELL_EXCLUDE_CASTER_AURA_SPELL_FIELD)] = info->ExcludeCasterAuraSpell;
+    }
+    if (info->Id == AscensionSunCleric::Dawn)
+      row.Values[4] = info->Attributes;
 
     row.Values[144] = info->SpellFamilyName;
     Ascension::ClientSpellPatches::Selector const selector =

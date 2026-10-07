@@ -33,6 +33,7 @@ void AddSC_AscensionQuestLog();
 void AddSC_AscensionRestingBuff();
 void AddSC_AscensionClosestResurrection();
 void AddSC_AscensionDungeonRelease();
+void AddSC_AscensionRaidRelease();
 void AddSC_AscensionThreatRedirect();
 void AddSC_AscensionTalentDataProcs();
 void AddSC_CoALfgStartPoint();
@@ -623,6 +624,7 @@ void AddCoAScripts()
     AddSC_AscensionRestingBuff();
     AddSC_AscensionClosestResurrection();
     AddSC_AscensionDungeonRelease();
+    AddSC_AscensionRaidRelease();
     AddSC_AscensionThreatRedirect();
     AddSC_AscensionTalentDataProcs();
     AddSC_CoALfgStartPoint();

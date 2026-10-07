@@ -1,6 +1,7 @@
 /* Copyright (C) 2016+ AzerothCore, GNU AGPL v3. */
 #include "AscensionSunCleric.h"
 #include "AscensionSunClericData.h"
+#include "AscensionClientSpellPatches.h"
 #include "DBCStores.h"
 #include "DynamicObject.h"
 #include "Player.h"
@@ -87,6 +88,12 @@ void ApplyContracts(SpellInfo* info)
         info->Effects[0].TargetA = SpellImplicitTargetInfo(TARGET_UNIT_TARGET_ALLY);
         info->Effects[0].TargetB = SpellImplicitTargetInfo();
     }
+    if (id == DawnCast)
+    {
+        info->CasterAuraSpell = 0;
+        info->ExcludeCasterAuraSpell = 0;
+        Ascension::ClientSpellPatches::Instance().Register(id);
+    }
     if (id == Dawn)
     {
         dummy(0);
@@ -94,6 +101,7 @@ void ApplyContracts(SpellInfo* info)
         info->Attributes &= ~SPELL_ATTR0_AURA_IS_DEBUFF;
         info->Attributes &= ~SPELL_ATTR0_NO_AURA_CANCEL;
         info->AttributesCu &= ~SPELL_ATTR0_CU_NEGATIVE;
+        Ascension::ClientSpellPatches::Instance().Register(id);
     }
     if (id == SolarPower)
         dummy(1);
