@@ -111,6 +111,7 @@ enum CustomEquipmentSpells : uint32
 {
     SPELL_BURNING_COMMANDER = 92089,
     SPELL_VALKYR_GRIP = 707072,
+    SPELL_TITANS_GRIP = 46917,
     SPELL_DUAL_WIELD = 674
 };
 
@@ -3809,7 +3810,8 @@ void Player::removeSpell(uint32 spell_id, uint8 removeSpecMask, bool onlyTempora
             SetCanDualWield(false);
     }
 
-    if (spell_id == SPELL_BURNING_COMMANDER || spell_id == SPELL_VALKYR_GRIP)
+    if (spell_id == SPELL_BURNING_COMMANDER || spell_id == SPELL_VALKYR_GRIP ||
+        (getClass() == CLASS_HERO && spell_id == SPELL_TITANS_GRIP))
         AutoUnequipOffhandIfNeed();
 
     // pussywizard: remove from spell book (can't be replaced by previous rank, because such spells can't be unlearnt)
@@ -13966,8 +13968,15 @@ uint32 Player::GetTemporarySpellReplacement(uint32 original) const
 
 bool Player::CanUseTwoHandWithShield(ItemTemplate const* main, ItemTemplate const* off) const
 {
-    if (getClass() != CLASS_GUARDIAN || !main || !off || main->InventoryType != INVTYPE_2HWEAPON ||
-        main->Class != ITEM_CLASS_WEAPON || off->InventoryType != INVTYPE_SHIELD)
+    if (!main || !off || main->InventoryType != INVTYPE_2HWEAPON || main->Class != ITEM_CLASS_WEAPON)
+        return false;
+    if (getClass() == CLASS_HERO && HasActiveSpell(SPELL_TITANS_GRIP) && CanTitanGrip() &&
+        main->SubClass == ITEM_SUBCLASS_WEAPON_STAFF)
+        return off->InventoryType == INVTYPE_SHIELD ||
+            (off->Class == ITEM_CLASS_WEAPON && CanDualWield() &&
+                (off->InventoryType == INVTYPE_WEAPON || off->InventoryType == INVTYPE_WEAPONOFFHAND) &&
+                off->SubClass != ITEM_SUBCLASS_WEAPON_POLEARM && off->SubClass != ITEM_SUBCLASS_WEAPON_FISHING_POLE);
+    if (getClass() != CLASS_GUARDIAN || off->InventoryType != INVTYPE_SHIELD)
         return false;
     return (main->SubClass == ITEM_SUBCLASS_WEAPON_POLEARM &&
         (HasSpell(802299) || HasSpell(803832) || HasSpell(807892))) ||
@@ -16203,7 +16212,7 @@ void Player::ActivateSpec(uint8 spec)
     SetPower(pw, 0);
 
     // xinef: remove titan grip if player had it set and does not have appropriate talent
-    if (!HasTalent(46917, GetActiveSpec()) && m_canTitanGrip)
+    if (!HasTalent(SPELL_TITANS_GRIP, GetActiveSpec()) && m_canTitanGrip)
         SetCanTitanGrip(false);
     // xinef: remove dual wield if player does not have dual wield spell (shamans)
     if (!HasSpell(SPELL_DUAL_WIELD) && CanDualWield())
