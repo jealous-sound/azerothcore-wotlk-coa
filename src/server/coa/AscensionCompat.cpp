@@ -5045,6 +5045,16 @@ public:
         return std::find(BankVanityItems.begin(), BankVanityItems.end(), itemId) != BankVanityItems.end();
     }
 
+    static constexpr std::array<uint32, 17> MysticAltarVanityItems = {
+        406, 203954, 203955, 503515, 1903513, 2903513, 8210192, 8210195, 8210196,
+        8210197, 8210198, 8210199, 8210200, 8210201, 8210202, 8210203, 8210250 };
+
+    [[nodiscard]] static bool IsWithheldVanityItem(uint32 itemId)
+    {
+        return !AscensionFreepick::RealmOffersMysticAltars() &&
+            std::find(MysticAltarVanityItems.begin(), MysticAltarVanityItems.end(), itemId) != MysticAltarVanityItems.end();
+    }
+
     [[nodiscard]] bool OwnsBankVanityItem(Player* player, PlayerCollectionState const& state, uint32 itemId) const
     {
         if (state.OwnedVanityItems.contains(itemId) || player->HasItemCount(itemId))
@@ -5319,6 +5329,13 @@ public:
       ChatHandler(player->GetSession())
           .PSendSysMessage(
               "Vanity item {} is not present in this client build.", itemId);
+      return;
+    }
+
+    if (IsWithheldVanityItem(itemId))
+    {
+      ChatHandler(player->GetSession())
+          .SendSysMessage("Mystic Enchanting altars are not available on this realm.");
       return;
     }
 
@@ -6276,6 +6293,7 @@ private:
       vanityItems.assign(state.OwnedVanityItems.begin(),
                          state.OwnedVanityItems.end());
 
+    vanityItems.erase(std::remove_if(vanityItems.begin(), vanityItems.end(), IsWithheldVanityItem), vanityItems.end());
     std::sort(vanityItems.begin(), vanityItems.end());
     vanityItems.erase(std::unique(vanityItems.begin(), vanityItems.end()), vanityItems.end());
     WorldPacket packet(SMSG_VANITY_COLLECTION_INFO,
