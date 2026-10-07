@@ -8635,7 +8635,7 @@ SpellCastResult Spell::CanOpenLock(uint32 effIndex, uint32 lockId, SkillType& sk
                         if ((m_spellInfo->Effects[effIndex].TargetA.GetTarget() == TARGET_GAMEOBJECT_ITEM_TARGET || m_spellInfo->Effects[effIndex].TargetB.GetTarget() == TARGET_GAMEOBJECT_ITEM_TARGET)
                             && !m_spellInfo->IsAbilityOfSkillType(SKILL_LOCKPICKING))
                         {
-                            skillValue += m_spellInfo->Effects[effIndex].CalcValue();
+                            skillValue += m_spellInfo->Effects[effIndex].CalcValue(m_caster);
                         }
 
                         if (skillValue < reqSkillValue)
