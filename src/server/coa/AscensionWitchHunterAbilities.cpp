@@ -303,6 +303,8 @@ class spell_ascension_witch_hunter_ability : public SpellScript
             if (SixfoldShotReady(player))
             {
                 Cast(player, player, SPELL_SIXFOLD_SHOT_TRANSFORM);
+                if (!player->HasSpell(SPELL_SIXFOLD_SHOT))
+                    player->learnSpellWithoutAnnouncement(SPELL_SIXFOLD_SHOT);
                 Replacement(player, 0, 64, SPELL_SIXFOLD_SHOT);
             }
         }
