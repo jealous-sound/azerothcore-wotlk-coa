@@ -110,7 +110,8 @@
 enum CustomEquipmentSpells : uint32
 {
     SPELL_BURNING_COMMANDER = 92089,
-    SPELL_VALKYR_GRIP = 707072
+    SPELL_VALKYR_GRIP = 707072,
+    SPELL_DUAL_WIELD = 674
 };
 
 enum ClientKnownSupersededSpells : uint32
@@ -3801,7 +3802,14 @@ void Player::removeSpell(uint32 spell_id, uint8 removeSpecMask, bool onlyTempora
         }
     }
 
-    if (spell_id == SPELL_BURNING_COMMANDER)
+    if (getClass() == CLASS_SUN_CLERIC && spell_id == SPELL_VALKYR_GRIP && !HasValkyrGrip())
+    {
+        SetCanTitanGrip(false);
+        if (!HasActiveSpell(SPELL_DUAL_WIELD))
+            SetCanDualWield(false);
+    }
+
+    if (spell_id == SPELL_BURNING_COMMANDER || spell_id == SPELL_VALKYR_GRIP)
         AutoUnequipOffhandIfNeed();
 
     // pussywizard: remove from spell book (can't be replaced by previous rank, because such spells can't be unlearnt)
@@ -4128,7 +4136,7 @@ bool Player::resetTalents(bool noResetCost)
     if (m_canTitanGrip)
         SetCanTitanGrip(false);
     // xinef: remove dual wield if player does not have dual wield spell (shamans)
-    if (!HasSpell(674) && CanDualWield())
+    if (!HasSpell(SPELL_DUAL_WIELD) && CanDualWield())
         SetCanDualWield(false);
 
     AutoUnequipOffhandIfNeed();
@@ -16198,7 +16206,7 @@ void Player::ActivateSpec(uint8 spec)
     if (!HasTalent(46917, GetActiveSpec()) && m_canTitanGrip)
         SetCanTitanGrip(false);
     // xinef: remove dual wield if player does not have dual wield spell (shamans)
-    if (!HasSpell(674) && CanDualWield())
+    if (!HasSpell(SPELL_DUAL_WIELD) && CanDualWield())
         SetCanDualWield(false);
 
     AutoUnequipOffhandIfNeed();
