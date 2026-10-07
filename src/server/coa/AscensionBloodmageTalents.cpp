@@ -85,6 +85,7 @@ enum BloodmageTalentSpells : uint32
     SPELL_BLOOD_ORB_CDR = 712385,
     SPELL_SANGUINE_ESSENCE = 680692,
     SPELL_SANGUINE_ESSENCE_HEAL = 680693,
+    SPELL_SANGUINE_ESSENCE_DAMAGE = 681399,
     SPELL_NIGHTMARE_TALENT = 300226,
     SPELL_NIGHTMARE_BUFF = 301273,
     SPELL_BLOOD_VEIL = 504263,
@@ -1196,37 +1197,46 @@ class aura_ascension_bloodmage_sanguine_essence : public AuraScript
     bool Validate(SpellInfo const* info) override
     {
         SpellInfo const* heal = sSpellMgr->GetSpellInfo(SPELL_SANGUINE_ESSENCE_HEAL);
+        SpellInfo const* damage = sSpellMgr->GetSpellInfo(SPELL_SANGUINE_ESSENCE_DAMAGE);
         return info->Id == SPELL_SANGUINE_ESSENCE && info->Effects[EFFECT_0].IsAura(AuraType(354)) &&
             info->Effects[EFFECT_0].TriggerSpell == SPELL_SANGUINE_ESSENCE_HEAL && heal &&
-            heal->Effects[EFFECT_0].IsAura(SPELL_AURA_PERIODIC_HEAL);
+            heal->Effects[EFFECT_0].IsAura(SPELL_AURA_PERIODIC_HEAL) && damage &&
+            damage->Effects[EFFECT_0].IsAura(SPELL_AURA_PERIODIC_DAMAGE);
     }
 
     bool Check(ProcEventInfo& event)
     {
         SpellInfo const* info = event.GetSpellInfo();
         HealInfo const* heal = event.GetHealInfo();
-        return info && AscensionBloodmage::GetEmpowerment(info->Id) == AscensionBloodmage::Mend &&
-            event.GetActor() == GetTarget() && heal && heal->GetHeal() && heal->GetTarget() &&
-            heal->GetTarget()->IsAlive();
+        DamageInfo const* damage = event.GetDamageInfo();
+        if (!info || event.GetActor() != GetTarget())
+            return false;
+        if (AscensionBloodmage::GetEmpowerment(info->Id) == AscensionBloodmage::Mend)
+            return heal && heal->GetHeal() && heal->GetTarget() && heal->GetTarget()->IsAlive();
+        return info->SpellFamilyName == 26 && (info->SpellFamilyFlags[1] & 8192) && damage &&
+            damage->GetDamage() && damage->GetVictim() && damage->GetVictim()->IsAlive();
     }
 
     void Replicate(AuraEffect const* effect, ProcEventInfo& event)
     {
         PreventDefaultAction();
-        uint64 const amount = uint64(event.GetHealInfo()->GetHeal()) *
+        HealInfo const* healing = event.GetHealInfo();
+        uint64 const resolved = healing ? healing->GetHeal() : event.GetDamageInfo()->GetDamage();
+        uint64 const amount = resolved *
             uint32(std::clamp(effect->GetAmount(), 0, 100)) / 100;
         if (!amount)
             return;
 
         int32 const perTick = int32(std::min<uint64>(amount, std::numeric_limits<int32>::max()));
-        Unit* target = event.GetHealInfo()->GetTarget();
-        GetTarget()->CastCustomSpell(SPELL_SANGUINE_ESSENCE_HEAL, SPELLVALUE_BASE_POINT0,
+        Unit* target = healing ? healing->GetTarget() : event.GetDamageInfo()->GetVictim();
+        uint32 const spellId = healing ? SPELL_SANGUINE_ESSENCE_HEAL : SPELL_SANGUINE_ESSENCE_DAMAGE;
+        GetTarget()->CastCustomSpell(spellId, SPELLVALUE_BASE_POINT0,
             perTick, target, TRIGGERED_FULL_MASK, nullptr, effect);
-        if (AuraEffect* heal = target->GetAuraEffect(SPELL_SANGUINE_ESSENCE_HEAL, EFFECT_0,
+        if (AuraEffect* echo = target->GetAuraEffect(spellId, EFFECT_0,
             GetTarget()->GetGUID()))
         {
-            heal->SetAmount(perTick);
-            heal->SetCritChance(0.0f);
+            echo->SetAmount(perTick);
+            echo->SetCritChance(0.0f);
         }
     }
 
@@ -1456,7 +1466,7 @@ public:
         if (info->ExcludeCasterAuraSpell != excludeCasterAuraSpell)
             Ascension::ClientSpellPatches::Instance().Register(info->Id);
 
-        if (info->Id == SPELL_SANGUINE_ESSENCE_HEAL)
+        if (info->Id == SPELL_SANGUINE_ESSENCE_HEAL || info->Id == SPELL_SANGUINE_ESSENCE_DAMAGE)
             info->AscensionInheritsResolvedAmount = true;
 
         ApplyBloodmageConditionalContracts(info);
