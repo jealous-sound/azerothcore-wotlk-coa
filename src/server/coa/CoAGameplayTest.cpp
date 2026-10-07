@@ -2882,6 +2882,12 @@ private:
                     return 1;
             return 0;
         }
+        if (metric == "pet_loading")
+        {
+            Pet const* pet = player->GetPet();
+            Require(pet != nullptr, "Pet loading observation needs a present pet");
+            return pet->isBeingLoaded();
+        }
         if (metric == "pet_casting")
         {
             Pet* pet = player->GetPet();
@@ -3433,6 +3439,23 @@ private:
         else if (action == "client_packet")
         {
             Player* player = GetPlayer(step.get<std::string>("actor"));
+            if (auto spell = step.get_optional<uint32>("cast_before"))
+            {
+                Require(player->HasActiveSpell(*spell), "Packet prerequisite spell is not active");
+                SpellCastTargets targets;
+                targets.SetUnitTarget(player);
+                WorldPacket cast(CMSG_CAST_SPELL, 64);
+                cast << uint8(++_castCount) << *spell << uint8(0);
+                targets.Write(cast);
+                player->GetSession()->HandleCastSpellOpcode(cast);
+            }
+            if (auto loading = step.get_optional<bool>("pet_loading_before"))
+            {
+                Pet* pet = player->GetPet();
+                Require(pet != nullptr, "Packet loading observation needs a present pet");
+                record.put("pet_loading_before", pet->isBeingLoaded());
+                Require(pet->isBeingLoaded() == *loading, "Unexpected pet loading state before packet");
+            }
             WorldPacket request(uint16(step.get<uint32>("opcode")), 64);
             if (auto const fields = step.get_child_optional("fields"))
                 for (auto const& [position, field] : *fields)
@@ -3452,6 +3475,12 @@ private:
                             request << StabledPetNumber(player, value.get_value<uint32>());
                         else if (kind == "actor_guid")
                             request << GetUnit(value.get_value<std::string>())->GetGUID().GetRawValue();
+                        else if (kind == "pet_guid")
+                        {
+                            Pet* pet = GetPlayer(value.get_value<std::string>())->GetPet();
+                            Require(pet != nullptr, "Packet pet GUID requires a summoned pet");
+                            request << pet->GetGUID().GetRawValue();
+                        }
                         else if (kind == "wildcard_entry")
                             request << WildcardSlot(player, value.get_value<uint32>()).EntryId;
                         else if (kind == "wildcard_lowest_card")
