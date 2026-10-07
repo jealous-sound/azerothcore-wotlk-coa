@@ -2,15 +2,17 @@
   "schema": 1,
   "name": "Felsworn: Noxxion resists Enslave Elemental in every dungeon difficulty (#4835)",
   "contract": [
-    "Archived db.exil.es/npc/13282 explicitly lists Noxxion as immune to Charm; source page SHA256 is",
-    "cd1659fe7c1a1d0dd193140861d000f5feedaba1dafe1ff12956230459ba076e. Effective templates 13282,",
-    "113282 and 213282 originally shared set -66, whose MechanicsMask 20516 lacks MECHANIC_CHARM bit 1.",
-    "Enslave Elemental 954534 is the authored level-20 Felsworn ability and applies native MOD_CHARM with",
-    "Mechanic 1. Ordinary Dust Devil 832 must still be enslaved and released by native Abandon.",
-    "Normal casts must complete on each Noxxion variant without acquiring a charm or applying its aura.",
-    "Existing Frost immunity and vulnerability to Fire are controls for preserving the original immunity set.",
-    "Creature fixtures retain template immunities; no spell, AI, threat or immunity fixture bypasses them.",
-    "Targets stay in normal casting range, beyond Dust Devil Gust of Wind and Noxxion melee interrupts."
+    "Enslave Elemental 954534 is normally trainable by Felsworn 14 at level 20. At level 47 an ordinary",
+    "Dust Devil 832 can be controlled and released; all three level-46 Noxxion variants",
+    "13282/113282/213282 must reject the same normal cast. Archived db.exil.es/npc/13282 explicitly lists",
+    "Charm immunity; page SHA256 cd1659fe7c1a1d0dd193140861d000f5feedaba1dafe1ff12956230459ba076e.",
+    "The pending migration copies curated immunity set -66 to positive 13282 and adds only Charm mask 2.",
+    "Its raw school, dispel, other mechanics, effects, auras and area/chain fields remain unchanged.",
+    "Main ignores partial-school immunity on uncontrolled NPCs through Unit::ApplySpellImmune; Charm",
+    "remains effective. A separate native Mage 8 at level 47 learns normally obtainable Frostbolt 116",
+    "and Fireball 133 to verify positive damage under that policy. The Felsworn learns only its class",
+    "control spell. All casts use normal session handlers, native template AI and immunities. Ordinary",
+    "charm release uses CMSG_PET_ACTION Abandon. No client-rendering or deployment acceptance is claimed."
   ],
   "timeout_ms": 90000,
   "location": {
@@ -25,6 +27,13 @@
       "id": "felsworn",
       "race": 1,
       "class": 14,
+      "level": 47,
+      "spell_hit_rating": 10000
+    },
+    {
+      "id": "mage",
+      "race": 1,
+      "class": 8,
       "level": 47,
       "spell_hit_rating": 10000
     }
@@ -64,6 +73,12 @@
     }
   ],
   "steps": [
+    {
+      "action": "set_health",
+      "actor": "mage",
+      "value": 1000000,
+      "maximum": 1000000
+    },
     {
       "action": "wait",
       "ms": 3000
@@ -256,12 +271,12 @@
     },
     {
       "action": "learn",
-      "actor": "felsworn",
+      "actor": "mage",
       "spell": 116
     },
     {
       "action": "learn",
-      "actor": "felsworn",
+      "actor": "mage",
       "spell": 133
     },
     {
@@ -272,29 +287,27 @@
     },
     {
       "action": "cast",
-      "actor": "felsworn",
+      "actor": "mage",
       "spell": 116,
       "target": "normal"
     },
     {
       "action": "assert",
-      "actor": "felsworn",
+      "actor": "mage",
       "metric": "spell_cast_count",
       "spell": 116,
       "equals": 1,
       "within_ms": 5000,
-      "label": "The normal Frostbolt cast completes before testing retained immunity"
-    },
-    {
-      "action": "wait",
-      "ms": 5000
+      "label": "A normally obtainable Mage Frostbolt completes before testing current NPC school policy"
     },
     {
       "action": "assert",
       "actor": "normal",
       "metric": "health",
       "relative_to": "before_frost",
-      "equals": 0
+      "max": -1,
+      "within_ms": 5000,
+      "label": "Frostbolt damages an uncontrolled NPC under the merged school-immunity policy"
     },
     {
       "action": "snapshot",
@@ -304,7 +317,7 @@
     },
     {
       "action": "cast",
-      "actor": "felsworn",
+      "actor": "mage",
       "spell": 133,
       "target": "normal"
     },
