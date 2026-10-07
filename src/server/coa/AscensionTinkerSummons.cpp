@@ -389,7 +389,7 @@ struct npc_ascension_tinker_device : ScriptedAI
                 Cast(me,enemy,802779);
         }
         if (id == 500601)
-            me->CastSpell(me->GetPositionX(),me->GetPositionY(),me->GetPositionZ(),500753,true);
+            player->CastSpell(me->GetPositionX(),me->GetPositionY(),me->GetPositionZ(),500753,true);
         me->DespawnOrUnsummon(100ms);
     }
     void DoAction(int32 action) override
@@ -563,7 +563,7 @@ struct npc_ascension_tinker_device : ScriptedAI
                     for (Unit* enemy : Nearby(me,Radius(500601)))
                         if (player->IsValidAttackTarget(enemy))
                             Cast(me,enemy,500601);
-                    me->CastSpell(me->GetPositionX(),me->GetPositionY(),me->GetPositionZ(),500753,true);
+                    player->CastSpell(me->GetPositionX(),me->GetPositionY(),me->GetPositionZ(),500753,true);
                 }
                 if (entry == 506051)
                     for (Unit* ally : Allies(player,me,Radius(570717)))

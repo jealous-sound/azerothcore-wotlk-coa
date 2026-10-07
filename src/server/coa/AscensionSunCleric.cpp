@@ -23,6 +23,8 @@ namespace AscensionSunCleric
 {
 namespace
 {
+constexpr uint32 Fortuitous = 561328;
+constexpr uint32 FortuitousHelper = 561396;
 std::unordered_map<ObjectGuid, std::unique_ptr<SunClericState>> states;
 std::mutex stateMutex;
 }
@@ -110,6 +112,13 @@ void SetHelper(Player* player, uint32 id, bool enabled)
         Cast(player, player, id);
     else if (!enabled)
         player->RemoveAurasDueToSpell(id);
+    if (enabled && id == FortuitousHelper)
+        if (Aura* aura = player->GetAura(id))
+            if (aura->GetDuration() >= 0 || aura->GetMaxDuration() >= 0)
+            {
+                aura->SetMaxDuration(-1);
+                aura->SetDuration(-1);
+            }
 }
 void SetAmount(Player* player, uint32 id, uint8 slot, int32 amount)
 {
@@ -334,7 +343,7 @@ void Refresh(Player* player)
     else if (player->GetHealthPct() <= 75)
         state.healthyAbove80 = false;
     bool healthy = state.healthyAbove80;
-    for (auto [talent, helper] : {std::pair(561328u, 561396u), std::pair(704585u, 707769u),
+    for (auto [talent, helper] : {std::pair(Fortuitous, FortuitousHelper), std::pair(704585u, 707769u),
                                 std::pair(805267u, 807876u), std::pair(300314u, 301341u)})
         SetHelper(player, helper, healthy && player->HasAura(talent));
     bool day = player->IsAlive() && Daytime();

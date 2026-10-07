@@ -4,7 +4,7 @@
   "contract": [
     "Gatling Gun (500213) is a Mechsuit ability, like a druid's form abilities: it is learned together with",
     "Build: Mechsuit (801384) and stays learned when the Tinker enters or leaves the suit, is refused outside",
-    "the suit as a mounted-only ability, and is removed with Build: Mechsuit. Scrap Shot (500549) is refused",
+    "the suit as a mounted-only ability, and is removed with Build: Mechsuit. Scrap Shot (500549) transforms into Gatling Gun",
     "inside the suit. Gatling Gun has no cast time: its 2 second channel (aura 500213) starts at once instead",
     "of after the 0.5 second ranged-slot cast. Original Gatling Gun parent 500213 and shot 500577 use RANGED",
     "hit resolution; the level-28 fixture supplies and asserts native ranged hit for the same enemy-channel",
@@ -128,12 +128,17 @@
     },
     {
       "action": "assert",
-      "label": "CONTRACT Scrap Shot is refused inside the suit (SPELL_FAILED_NOT_MOUNTED)",
+      "label": "CONTRACT casting Scrap Shot inside the suit starts Gatling Gun",
       "actor": "tinker",
-      "metric": "cast_failure",
-      "spell": 500549,
-      "equals": 64,
+      "metric": "aura",
+      "spell": 500213,
+      "equals": 1,
       "within_ms": 1000
+    },
+    {
+      "action": "wait",
+      "label": "Let the transformed channel and global cooldown end",
+      "ms": 2500
     },
     {
       "action": "cast",
