@@ -520,7 +520,8 @@ centre-screen notices a session has been sent and `notification_contains` takes 
 whether one carried it, which is how a test proves a player was told something in the middle of the
 screen and not only in chat. The cache metrics are `carried_pool_item_count` (needs `cache`,
 optional `table`), `pool_variant_count`, `pool_retired_item_count`, `pool_row_count`,
-`pool_item_present` (needs `item`), and `cache_token_count`, `cache_token_stage`, `cache_token_present`
+`pool_item_present` (needs `item`; `table` `fire_lord` with `cache` 2400040 reads Cache of the Fire Lord's
+pool across every raid difficulty), and `cache_token_count`, `cache_token_stage`, `cache_token_present`
 (need `cache`, the last also `item`), which read the token table the realm loads and answer how many
 tier tokens a cache may pay, the highest tier among them, and whether one named token is among them.
 Boolean metrics use 0/1. Spell/aura metrics require `spell`; `item_count` requires `item`.
