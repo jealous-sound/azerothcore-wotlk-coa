@@ -9022,8 +9022,13 @@ void Spell::PrepareTriggersExecutedOnHit()
     /// @todo: move this to scripts
     if (m_spellInfo->SpellFamilyName)
     {
+        constexpr uint32 HeavyArmsLockout = 285381;
+        constexpr uint32 SlamFamilyMask = 0x00200000;
+        bool const slamCasterLockout = m_spellInfo->SpellFamilyName == SPELLFAMILY_WARRIOR &&
+            (m_spellInfo->SpellFamilyFlags[0] & SlamFamilyMask) &&
+            m_spellInfo->ExcludeCasterAuraSpell == HeavyArmsLockout;
         SpellInfo const* excludeCasterSpellInfo = sSpellMgr->GetSpellInfo(m_spellInfo->ExcludeCasterAuraSpell);
-        if (excludeCasterSpellInfo && !excludeCasterSpellInfo->IsPositive())
+        if (excludeCasterSpellInfo && !excludeCasterSpellInfo->IsPositive() && !slamCasterLockout)
             m_preCastSpell = m_spellInfo->ExcludeCasterAuraSpell;
         SpellInfo const* excludeTargetSpellInfo = sSpellMgr->GetSpellInfo(m_spellInfo->ExcludeTargetAuraSpell);
         if (excludeTargetSpellInfo && !excludeTargetSpellInfo->IsPositive())
