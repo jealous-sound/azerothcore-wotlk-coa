@@ -241,6 +241,9 @@ namespace
                 return;
             if (!AscensionFelsworn::CanLearnRift(player, spellId))
                 return;
+            if (windowView && classId == CLASS_FLESHWARDEN && player->HasAura(301302) &&
+                sSpellMgr->GetFirstSpellInChain(spellId) == 801016)
+                return;
             if (windowView && classId == CLASS_GUARDIAN && AscensionGuardian::Ballad(spellId) &&
                 (spec != 20 || !player->HasAura(505344)))
                 return;

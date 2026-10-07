@@ -56,7 +56,7 @@ METRICS = {
     'system_message_contains', 'whispers_received', 'challenge_start_responses', 'challenge_start_code',
     'owned_creature_scale', 'owned_creature_visible', 'unit_scale', 'combat_reach', 'token_count', 'item_sell_price', 'creature_model_scale', 'creature_model_display',
     'taxi_node', 'in_flight', 'taxi_destination', 'stabled_pet_count', 'stable_result', 'pet_rows', 'instance_binds_listed', 'pet_entry', 'pet_aura_stacks', 'pet_aura_duration_ms', 'pet_is_banker', 'pet_display',
-    'pet_scale', 'pet_knows_spell', 'pet_distance', 'pet_casting', 'pet_spell_bar_count',
+    'pet_scale', 'pet_knows_spell', 'pet_distance', 'pet_casting', 'pet_loading', 'pet_spell_bar_count',
     'owned_creature_count', 'owned_creature_weapon_damage_min',
     'owned_creature_spell_hit_chance', 'owned_creature_attackable',
     'charm_entry', 'charm_aura_stacks', 'controls_self', 'viewpoint_entry', 'seer_entry', 'private_instance',
@@ -142,7 +142,8 @@ ACTIONS = {
     'stop_attack': ({'actor'}, {'actor'}),
     'set_moving': ({'actor', 'enabled'}, {'actor', 'enabled'}),
     'level_scaling_packet': ({'actor', 'value'}, {'actor', 'value'}),
-    'client_packet': ({'actor', 'opcode'}, {'actor', 'opcode', 'fields', 'consumed', 'early'}),
+    'client_packet': ({'actor', 'opcode'},
+                      {'actor', 'opcode', 'fields', 'consumed', 'early', 'cast_before', 'pet_loading_before'}),
     'discover_taxi_node': ({'actor', 'entry'}, {'actor', 'entry'}),
     'specialization': ({'actor', 'id'}, {'actor', 'id', 'refused'}),
     'advancement_rank': ({'actor', 'entry', 'rank'}, {'actor', 'entry', 'rank', 'refused'}),
@@ -182,6 +183,8 @@ ACTIONS = {
     'cast_charm': ({'actor', 'spell'}, {'actor', 'spell', 'target', 'pet', 'destination'}),
     'gossip_hello': ({'actor'}, {'actor', 'target'}),
     'banker_activate': ({'actor'}, {'actor', 'target', 'owner', 'entry'}),
+    'personal_bank_open': ({'actor', 'entry'}, {'actor', 'entry'}),
+    'personal_bank_swap': ({'actor', 'entry', 'direction'}, {'actor', 'entry', 'direction', 'item', 'slot'}),
     'binder_activate': ({'actor', 'target'}, {'actor', 'target'}),
     'destroy_item': ({'actor', 'item'}, {'actor', 'item'}),
     'start_challenge': ({'actor', 'challenge', 'level'}, {'actor', 'challenge', 'level'}),
@@ -503,6 +506,11 @@ def validate(scenario):
         if action == 'discover_taxi_node':
             number(step['entry'], f'{where}.entry', 1, 2**31 - 1, True)
         if action == 'client_packet':
+            if 'cast_before' in step:
+                number(step['cast_before'], f'{where}.cast_before', 1, 2**32 - 1, True)
+            if 'pet_loading_before' in step:
+                require(type(step['pet_loading_before']) is bool,
+                        f'{where}: pet_loading_before must be boolean')
             number(step['opcode'], f'{where}.opcode', 1, 0xFFFF, True)
             if 'consumed' in step:
                 require(type(step['consumed']) is bool, f'{where}: consumed must be boolean')
@@ -513,13 +521,15 @@ def validate(scenario):
             for index, field in enumerate(fields):
                 require(isinstance(field, dict) and len(field) == 1, f'{where}.fields[{index}]: expected one typed value')
                 (kind, value), = field.items()
-                require(kind in {'u8', 'u32', 'u64', 'string', 'buyback_guid', 'actor_guid', 'stabled_pet',
+                require(kind in {'u8', 'u32', 'u64', 'string', 'buyback_guid', 'actor_guid', 'pet_guid', 'stabled_pet',
                                  'wildcard_entry', 'wildcard_pending_cards', 'wildcard_lowest_card'},
                         f'{where}.fields[{index}]: unknown field type')
                 if kind == 'string':
                     require(isinstance(value, str), f'{where}.fields[{index}]: expected a string')
                 elif kind == 'actor_guid':
                     require(value in actor_ids, f'{where}.fields[{index}]: expected a player or creature id')
+                elif kind == 'pet_guid':
+                    require(value in player_ids, f'{where}.fields[{index}]: expected a player id')
                 else:
                     maximum = {'u8': 255, 'u32': 2**32 - 1, 'u64': 2**64 - 1, 'buyback_guid': 2**31 - 1,
                                'stabled_pet': 3, 'wildcard_entry': 255, 'wildcard_pending_cards': 1000,
@@ -605,8 +615,9 @@ def validate(scenario):
                                                            'spell_damage_done'}),
                             f'{where}: {key} only filters supported spell combat events')
                     require(type(step[key]) is bool, f'{where}: {key} must be boolean')
-            if metric == 'spell_go_count' and 'entry' in step:
-                require('pet' not in step, f'{where}: spell_go_count selects either pet or entry')
+            if metric in {'spell_go_count', 'spell_damage_count', 'spell_damage_total'} and 'entry' in step:
+                number(step['entry'], f'{where}.entry', 1, 2**32 - 1, True)
+                require('pet' not in step, f'{where}: spell combat query selects either pet or entry')
             if 'target_pet' in step:
                 require(metric in {'spell_heal_count', 'spell_heal_total', 'spell_effective_heal_total',
                                    'spell_energize_count', 'spell_energize_total'}
@@ -767,7 +778,8 @@ def validate(scenario):
                           'owned_creature_weapon_damage_min', 'owned_creature_spell_hit_chance',
                           'owned_creature_attackable',
                           'pet_entry', 'pet_aura_stacks', 'pet_is_banker', 'pet_display', 'pet_scale',
-                          'pet_knows_spell', 'pet_distance', 'pet_casting', 'owned_creature_count', 'charm_entry',
+                          'pet_knows_spell', 'pet_distance', 'pet_casting', 'pet_loading',
+                          'owned_creature_count', 'charm_entry',
                           'charm_aura_stacks', 'controls_self', 'private_instance',
                           'dynamic_object', 'dynamic_object_duration_ms', 'gossip_options', 'gossip_option_text',
                           'owned_gameobject_count', 'gameobject_remaining_ms', 'gameobject_display', 'gameobject_scale',

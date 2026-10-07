@@ -3824,6 +3824,7 @@ private:
   static constexpr uint32 SPELL_CASTER_AURA_SPELL_FIELD = 24;
   static constexpr uint32 SPELL_EXCLUDE_CASTER_AURA_SPELL_FIELD = 26;
   static constexpr uint32 SPELL_FAMILY_NAME_FIELD = 208;
+  static constexpr uint32 SPELL_LEVEL_FIELD = 39;
 
   struct ClientSpellText {
     std::string Description;
@@ -4329,6 +4330,10 @@ private:
       requested.erase(rows[index].Values[0]);
     }
 
+    std::unordered_map<uint32, uint32> rankTrainingLevels;
+    for (AscensionProgression::Rank const& rank : AscensionProgression::Ranks)
+      rankTrainingLevels.emplace(rank.SpellId, rank.RequiredLevel);
+
     ClientDBC spells;
     std::filesystem::path const serverDbc =
         std::filesystem::path(sWorld->GetDataPath()) / "dbc" / "Spell.dbc";
@@ -4346,12 +4351,16 @@ private:
         bool const redirectsExclusion = clientExcludedAura != excludedAura;
         bool const restrictingFormGated =
             clientExcludedAura == AscensionBloodmage::CursedForm;
+        auto const trainingLevel = rankTrainingLevels.find(id);
+        bool const raisesRankLevel =
+            trainingLevel != rankTrainingLevels.end() &&
+            record.GetUInt32(SPELL_LEVEL_FIELD) < trainingLevel->second;
 
         auto const overlay = overridden.find(id);
         auto const description = descriptions.find(id);
         if (overlay == overridden.end() && description == descriptions.end() &&
             !requested.contains(id) && !redirectsExclusion &&
-            !restrictingFormGated)
+            !restrictingFormGated && !raisesRankLevel)
           continue;
 
         std::size_t const rowIndex = overlay == overridden.end() ? rows.size() : overlay->second;
@@ -4387,6 +4396,11 @@ private:
         {
           RedirectCursedFormCheck(row.Strings[SPELL_WIRE_DESCRIPTION]);
           RedirectCursedFormCheck(row.Strings[SPELL_WIRE_TOOLTIP]);
+          Ascension::ClientSpellPatches::Instance().Register(id);
+        }
+        if (raisesRankLevel)
+        {
+          row.Values[SPELL_WIRE_SLOT(SPELL_LEVEL_FIELD)] = trainingLevel->second;
           Ascension::ClientSpellPatches::Instance().Register(id);
         }
         requested.erase(id);
