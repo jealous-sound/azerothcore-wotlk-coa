@@ -170,6 +170,8 @@ class xoroth_casts : public AllSpellScript
         if (!player || spell->IsTriggered() || result != SPELL_CAST_OK)
             return;
         auto info = spell->GetSpellInfo();
+        if (Named(info, 504581) && !player->HasAura(712294))
+            result = SPELL_FAILED_CASTER_AURASTATE;
         if (Spender(info) && !Count(player, 500906))
             result = SPELL_FAILED_NO_POWER;
         if ((info->Id == 520294 || info->Id == 805679) && !Count(player, 800999))
