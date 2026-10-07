@@ -6,7 +6,9 @@
     "natural expiry. Normally cast Sacred Swing with Staffguard and Armor of Faith learned; let the first",
     "acquired absorb expire without a blast, then acquire another and deplete it with real enemy Frostbolt",
     "damage. The depleted shield must blast a nearby enemy exactly once and leave an enemy outside the radius",
-    "untouched. Recently Parried or Dodged is supplied only as the unrelated Sacred Swing cast prerequisite."
+    "untouched. Recently Parried or Dodged is supplied only as the unrelated Sacred Swing cast prerequisite.",
+    "Give the enemy spell hit for the one Frostbolt that must deplete Staffguard; a normal miss leaves the",
+    "absorb intact and does not exercise Armor of Faith's shield-break contract. Keep all native effect assertions."
   ],
   "timeout_ms": 120000,
   "location": {
@@ -35,7 +37,8 @@
       "entry": 299,
       "level": 80,
       "health": 1000000,
-      "distance": 3
+      "distance": 3,
+      "spell_hit_bonus": 100
     },
     {
       "id": "far",
