@@ -179,6 +179,7 @@ constexpr char REROLLS_SETTING[] = "core.wildcard.rerolls";
 constexpr char ROLL_CARDS_SETTING[] = "core.wildcard.cards";
 constexpr char ACTIVE_SPEC_SETTING[] = "core.wildcard.spec";
 constexpr char ACTION_BARS_SETTING[] = "core.wildcard.bars";
+constexpr char TRAINED_RANKS_SETTING[] = "core.wildcard.trainedranks";
 constexpr char REPURCHASE_SETTING[] = "core.wildcard.repurchase";
 constexpr std::array<uint32, 8> PRESTIGE_DELETED_ITEMS = { 1278048, 1278049, 98453, 98454, 98465, 98466, 1478051,
     1478052 };
@@ -485,6 +486,8 @@ void LoadRankLadders(ClientDBC const& spellRanks, Tables& tables)
         std::vector<uint32>& ladder = tables.RankLadders[first];
         ladder.resize(std::max<std::size_t>(ladder.size(), rank));
         ladder[rank - 1] = record.GetUInt32(SPELL_RANK_SPELL);
+        if (rank > 1 && ladder[rank - 1])
+            tables.RankRoots[ladder[rank - 1]] = first;
     }
 }
 
@@ -635,6 +638,42 @@ void ClearSetting(Player* player, std::string const& source)
     if (PlayerSettingVector const* stored = player->FindPlayerSettings(source))
         for (uint32 index = 0; index < stored->size(); ++index)
             player->UpdatePlayerSetting(source, index, 0);
+}
+
+void RememberTrainedRank(Player* player, uint32 spellId)
+{
+    uint32 free = 0;
+    if (PlayerSettingVector const* stored = player->FindPlayerSettings(TRAINED_RANKS_SETTING))
+    {
+        free = uint32(stored->size());
+        for (uint32 index = 0; index < stored->size(); ++index)
+        {
+            if ((*stored)[index].value == spellId)
+                return;
+            if (!(*stored)[index].value && free == stored->size())
+                free = index;
+        }
+    }
+    player->UpdatePlayerSetting(TRAINED_RANKS_SETTING, free, spellId);
+}
+
+void RestoreTrainedRanks(Player* player, uint32 firstSpellId)
+{
+    PlayerSettingVector const* stored = player->FindPlayerSettings(TRAINED_RANKS_SETTING);
+    if (!stored)
+        return;
+    std::vector<uint32> remembered;
+    for (uint32 index = 0; index < stored->size(); ++index)
+        if (uint32 const spellId = (*stored)[index].value)
+            if (auto const root = Loaded.RankRoots.find(spellId); root != Loaded.RankRoots.end() && root->second == firstSpellId)
+            {
+                remembered.push_back(spellId);
+                player->UpdatePlayerSetting(TRAINED_RANKS_SETTING, index, 0);
+            }
+    for (uint32 rankSpellId : Loaded.RankLadders.at(firstSpellId))
+        if (rankSpellId && std::find(remembered.begin(), remembered.end(), rankSpellId) != remembered.end() &&
+            !player->HasSpell(rankSpellId) && sSpellMgr->GetSpellInfo(rankSpellId))
+            player->learnSpell(rankSpellId);
 }
 
 void AppendUInt32(std::vector<std::uint8_t>& out, std::uint32_t value)
@@ -2166,12 +2205,16 @@ public:
         if (std::any_of(ENTRY_SPELLS.begin(), ENTRY_SPELLS.end(),
             [spellId](EntrySpells const& entry) { return entry.EntrySpell == spellId; }))
             GrantEntrySpells(player);
+        if ((IsRealmHero(player) || IsWildcardHero(player)) && Loaded.RankLadders.contains(spellId))
+            RestoreTrainedRanks(player, spellId);
     }
 
     void OnPlayerForgotSpell(Player* player, uint32 spellId) override
     {
         if (!IsRealmHero(player) && !IsWildcardHero(player))
             return;
+        if (Loaded.RankRoots.contains(spellId))
+            RememberTrainedRank(player, spellId);
         for (EntrySpells const& entry : ENTRY_SPELLS)
             if (entry.EntrySpell == spellId)
                 for (uint32 spell : entry.Spells)
