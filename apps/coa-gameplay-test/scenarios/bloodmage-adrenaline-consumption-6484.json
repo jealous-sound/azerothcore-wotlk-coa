@@ -1,7 +1,12 @@
 {
   "schema": 1,
   "name": "Adrenaline consumes its instant-cast benefit once (#6484)",
-  "contract": "Adrenaline Boost promises the next Dark Liturgy or Bloodmoon Blast instant. Fixture only its proc payload 680678; successful normal casts consume it once, while a refused cast and an unrelated Fireball retain it. Melee proc generation and its authored 50% chance are unchanged. Both affected spells have independent nonzero cast-time controls.",
+  "contract": [
+    "Adrenaline Boost promises the next Dark Liturgy or Bloodmoon Blast instant. Fixture only its proc payload",
+    "680678; successful normal casts consume it once, while a refused cast and an unrelated Fireball retain it.",
+    "Melee proc generation and its authored 50% chance are unchanged. Both affected spells have independent",
+    "nonzero cast-time controls."
+  ],
   "timeout_ms": 60000,
   "players": [
     {

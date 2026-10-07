@@ -1,7 +1,13 @@
 {
   "schema": 1,
   "name": "Fury of the Wild restores copied boons after dismount (#6495)",
-  "contract": "A Boon cast with Fury of the Wild applies to the current living pet at half strength. Normal mounting temporarily unsummons that persistent pet; dismount must retain its copied permanent Boon without another Boon cast. Exercise all five Boons with independently authored half-strength amounts before and after mounting. Remove Fury while mounted as a negative control. Cancel the owner Boon while mounted to verify its restoration link is cleared, then recast it on the living pet before testing Fury removal.",
+  "contract": [
+    "A Boon cast with Fury of the Wild applies to the current living pet at half strength. Normal mounting",
+    "temporarily unsummons that persistent pet; dismount must retain its copied permanent Boon without another",
+    "Boon cast. Exercise all five Boons with independently authored half-strength amounts before and after",
+    "mounting. Remove Fury while mounted as a negative control. Cancel the owner Boon while mounted to verify",
+    "its restoration link is cleared, then recast it on the living pet before testing Fury removal."
+  ],
   "timeout_ms": 120000,
   "players": [
     {
