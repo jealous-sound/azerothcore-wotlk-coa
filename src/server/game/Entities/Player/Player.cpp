@@ -13926,7 +13926,7 @@ void Player::SetTemporarySpellReplacement(uint32 original, uint32 replacement)
             return;
         m_temporarySpellReplacements[original] = replacement;
     }
-    if (previous != replacement && IsInWorld())
+    if (previous != replacement && IsInWorld() && HasActiveSpell(original))
     {
         WorldPacket packet(SMSG_SUPERCEDED_SPELL, 8);
         packet << previous << replacement;
