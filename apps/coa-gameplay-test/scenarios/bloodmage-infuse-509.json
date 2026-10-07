@@ -1,7 +1,36 @@
 {
   "schema": 1,
   "name": "Infuse accumulates 10% of group damage, absorbs healing, and unleashes the stored amount as Shadow damage (#509)",
-  "contract": "Infuse 681403 (SpellFamilyName 26, Shadow, 40 yd, 30 s cooldown, health cost 35% of base mana) is a 10 s debuff (DurationIndex 1) whose effect 0 is SPELL_AURA_DUMMY with EffectTriggerSpell 681404 and whose effect 1 is SPELL_AURA_SCHOOL_ABSORB with MiscValue 127 (all schools); 681404 is a single SPELL_EFFECT_SCHOOL_DAMAGE. The client's own cast description reads \\\"Accumulates damage dealt to the target by you, your party or raid members, and their minions for $d, then unleashes the stored amount as Shadow damage.\\\" and the debuff's unit-frame tooltip reads \\\"Accumulating damage dealt by the caster's group at diminishing rates; unleashes the stored amount when this effect expires.\\\". No rate is given by the client data, so the only original number is the talent text of the same ability (Conquest of Azeroth Fleshweaver tree, node 7434): \\\"Accumulates 10% of all damage dealt to the target and unleashes it after 10 seconds, dealing Shadow damage and absorbing healing done to the target equal to the damage done for 10 seconds. Damage dealt is unable to exceed 3 times your maximum health.\\\" That is what this scenario measures: damage the target takes from the caster and the caster's party or raid members (and their minions) adds 10% of its value to a pool stored on the aura, capped at three times the caster's maximum health; the pool is mirrored into the absorb effect's amount so the unit frame shows it and healing done to the target is absorbed by it; on expiry the pool is cast through 681404 as its base points, which the core resolves to exactly that amount because 681404's own bonus multiplier is zero and it has no spell bonus entry. The heal absorb is measured comparatively: auto-attack swings leave a pool far smaller than the 32-38 point heal used here, so the heal must land for less than the first one did (the cumulative healing total stays under 1.9 times the control heal instead of the doubling seen without an absorb), while the pool snapshot proves the stored amount and the absorb capacity agree exactly. NOT asserted here: party/raid membership of the damaging unit (the scenario damages with the caster itself), the three-times-maximum-health cap (the pool stays far below it), the \\\"diminishing rates\\\" wording of the debuff tooltip (the original data gives no rate behind it, so none was invented), and whether a dispelled or dead-target debuff should still explode (only AURA_REMOVE_BY_EXPIRE unleashes).",
+  "contract": [
+    "Infuse 681403 (SpellFamilyName 26, Shadow, 40 yd, 30 s cooldown, health cost 35% of base mana) is a 10 s",
+    "debuff (DurationIndex 1) whose effect 0 is SPELL_AURA_DUMMY with EffectTriggerSpell 681404 and whose effect 1",
+    "is SPELL_AURA_SCHOOL_ABSORB with MiscValue 127 (all schools); 681404 is a single SPELL_EFFECT_SCHOOL_DAMAGE.",
+    "The client's own cast description reads \\\"Accumulates damage dealt to the target by you, your party or raid",
+    "members, and their minions for $d, then unleashes the stored amount as Shadow damage.\\\" and the debuff's",
+    "unit-frame tooltip reads \\\"Accumulating damage dealt by the caster's group at diminishing rates; unleashes the",
+    "stored amount when this effect expires.\\\". No rate is given by the client data, so the only original number is",
+    "the talent text of the same ability (Conquest of Azeroth Fleshweaver tree, node 7434): \\\"Accumulates 10% of",
+    "all damage dealt to the target and unleashes it after 10 seconds, dealing Shadow damage and absorbing healing",
+    "done to the target equal to the damage done for 10 seconds. Damage dealt is unable to exceed 3 times your",
+    "maximum health.\\\" That is what this scenario measures: damage the target takes from the caster and the",
+    "caster's party or raid members (and their minions) adds 10% of its value to a pool stored on the aura, capped",
+    "at three times the caster's maximum health; the pool is mirrored into the absorb effect's amount so the unit",
+    "frame shows it and healing done to the target is absorbed by it; on expiry the pool is cast through 681404 as",
+    "its base points, which the core resolves to exactly that amount because 681404's own bonus multiplier is zero",
+    "and it has no spell bonus entry. The heal absorb is measured comparatively: auto-attack swings leave a pool",
+    "far smaller than the 32-38 point heal used here, so the heal must land for less than the first one did (the",
+    "cumulative healing total stays under 1.9 times the control heal instead of the doubling seen without an",
+    "absorb), while the pool snapshot proves the stored amount and the absorb capacity agree exactly. NOT asserted",
+    "here: party/raid membership of the damaging unit (the scenario damages with the caster itself), the",
+    "three-times-maximum-health cap (the pool stays far below it), the \\\"diminishing rates\\\" wording of the debuff",
+    "tooltip (the original data gives no rate behind it, so none was invented), and whether a dispelled or",
+    "dead-target debuff should still explode (only AURA_REMOVE_BY_EXPIRE unleashes). Expiry helper 681404 targets",
+    "one enemy selected from a destination area (target type 16, radius index 13 = 10 yards, MaxAffectedTargets =",
+    "1), and the core randomly reduces a larger eligible target list. Keep the Horde healer 20 yards from the",
+    "victim, within Greater Heal (2050) range of 40 yards, so healing the PvP victim does not add a second nearby",
+    "enemy to that selection. Preserve all original damage, pool, absorb and expiry assertions, and assert that no",
+    "expiry damage is delivered to the healer."
+  ],
   "timeout_ms": 180000,
   "location": {
     "map": 0,
@@ -41,6 +70,26 @@
       "action": "wait",
       "label": "Let level scaling settle",
       "ms": 5000
+    },
+    {
+      "action": "teleport",
+      "label": "Place the healer outside the expiry area while keeping ordinary heals in range",
+      "actor": "healer",
+      "map": 0,
+      "x": -9597.06,
+      "y": -288.949,
+      "z": 57.3053,
+      "o": 0
+    },
+    {
+      "action": "assert",
+      "label": "CONTROL: healer is outside the ten-yard expiry area",
+      "actor": "healer",
+      "metric": "distance",
+      "target": "victim",
+      "min": 19.9,
+      "max": 20.1,
+      "within_ms": 1000
     },
     {
       "action": "pvp",
@@ -328,6 +377,15 @@
       "actor": "victim",
       "metric": "health",
       "min": 1
+    },
+    {
+      "action": "assert",
+      "label": "CONTROL: the expiry helper does not select the distant healer",
+      "actor": "bloodmage",
+      "metric": "spell_damage_count",
+      "spell": 681404,
+      "target": "healer",
+      "equals": 0
     }
   ]
 }
