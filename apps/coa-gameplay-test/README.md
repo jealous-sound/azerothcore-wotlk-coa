@@ -708,6 +708,10 @@ reward eligibility and invokes native reward delivery. These actions do not test
 `action_button_packed` takes `button` and reads the complete action word, including its type.
 `server_packet_u32` takes `opcode` and optional zero-based `index`, and decodes a word from the last
 packet payload. It returns -1 when no such word was sent. These observe server state and packet contents.
+`server_packet_float` uses the same fields to decode a finite IEEE 754 float. With `from_end: true`,
+`index: 0` reads the last float and `index: 1` the preceding float, independent of a packed GUID's size.
+The recorded core packets include `SMSG_MOVE_KNOCK_BACK` (239), whose final two floats are horizontal
+speed and the negated vertical speed. These observations do not simulate client movement or keyboard input.
 Besides the Ascension extension opcodes (0x520 and above), the recorded packets include the learned, superseded
 and removed spell notices (299, 300 and 515) that the client prints to chat.
 

@@ -103,7 +103,8 @@ METRICS = {
     'distance', 'spell_proc_count', 'spell_proc_chance', 'aura_proc_rate', 'temporary_spell_replacement',
     'spell_family_flags',
     'creature_loot_quality_rate', 'equipped_gear_loot_rate',
-    'quest_menu_items', 'quest_menu_has', 'player_setting', 'server_packets', 'server_packet_u32', 'server_packet_contains',
+    'quest_menu_items', 'quest_menu_has', 'player_setting', 'server_packets', 'server_packet_u32',
+    'server_packet_float', 'server_packet_contains',
     'known_entry_rank',
     'pet_autocast_enabled', 'combo_points', 'game_mode_mask', 'owned_creature_spell_proc_count',
     'player_class', 'cached_class', 'at_login_flag', 'wildcard_starter_spells_known', 'action_bar_unknown_spells',
@@ -139,7 +140,7 @@ METRIC_FIELDS = {'actor', 'metric', 'spell', 'power', 'caster', 'effect', 'item'
                  'dungeon', 'source', 'opcode', 'from', 'slot', 'achievement', 'title',
                  'type_mask', 'hit_mask', 'spell_type_mask',
                  'phase_mask', 'trigger_spell', 'trials', 'incoming', 'heal', 'quality',
-                 'row', 'offset', 'skip_strings', 'x', 'y', 'min_required_level', 'max_required_level',
+                 'row', 'offset', 'skip_strings', 'from_end', 'x', 'y', 'min_required_level', 'max_required_level',
                  'flat_coefficient_modifier'}
 ACTIONS = {
     'stop_attack': ({'actor'}, {'actor'}),
@@ -755,16 +756,22 @@ def validate(scenario):
                 require(isinstance(step.get('source'), str) and step['source'].strip() and 'index' in step,
                         f'{where}: metric needs a setting source and index')
                 number(step['index'], f'{where}.index', 0, 2**16 - 1, True)
-            if metric in {'server_packets', 'server_packet_u32', 'server_packet_contains'}:
+            if metric in {'server_packets', 'server_packet_u32', 'server_packet_float', 'server_packet_contains'}:
                 number(step.get('opcode'), f'{where}.opcode', 1, 0xFFFF, True)
             if metric == 'action_button_packed':
                 number(step.get('button'), f'{where}.button', 0, 143, True)
-            if metric == 'server_packet_u32':
+            if metric in {'server_packet_u32', 'server_packet_float'}:
                 number(step.get('index', 0), f'{where}.index', 0, 2**16 - 1, True)
                 number(step.get('offset', 0), f'{where}.offset', 0, 2**16 - 1, True)
                 number(step.get('skip_strings', 0), f'{where}.skip_strings', 0, 32, True)
+            if 'from_end' in step:
+                require(metric == 'server_packet_float' and isinstance(step['from_end'], bool),
+                        f'{where}: from_end is a boolean for server_packet_float')
+                require(not step['from_end'] or (not step.get('offset', 0) and not step.get('skip_strings', 0)),
+                        f'{where}: from_end cannot combine with offset or skip_strings')
             if 'row' in step:
-                require(metric in {'server_packets', 'server_packet_u32', 'server_packet_contains'},
+                require(metric in {'server_packets', 'server_packet_u32', 'server_packet_float',
+                                   'server_packet_contains'},
                         f'{where}: row applies only to captured packet counts, values or text')
                 number(step['row'], f'{where}.row', 0, 2**32 - 1, True)
             if 'quality' in step:
@@ -820,7 +827,8 @@ def validate(scenario):
                           'ball_carried_count', 'ball_carried_quest',
                           'ball_turn_in_count', 'ball_turn_in_quest',
                           'temporary_spell_replacement', 'quest_menu_items', 'quest_menu_has',
-                          'player_setting', 'server_packets', 'server_packet_u32', 'server_packet_contains',
+                          'player_setting', 'server_packets', 'server_packet_u32', 'server_packet_float',
+                          'server_packet_contains',
                           'quest_log_sent_level', 'quest_log_sent_xp',
                           'player_class', 'cached_class', 'at_login_flag',
                           'wildcard_starter_spells_known', 'action_bar_unknown_spells',

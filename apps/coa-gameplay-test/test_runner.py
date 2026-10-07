@@ -221,6 +221,22 @@ class RunnerTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 run.validate(scenario)
 
+    def test_packet_float_observation_fields(self):
+        valid = {'action': 'assert', 'actor': 'caster', 'metric': 'server_packet_float',
+                 'opcode': 239, 'from_end': True, 'index': 0, 'equals': -8.6}
+        scenario = copy.deepcopy(self.scenario)
+        scenario['steps'].append(valid)
+        self.assertIs(run.validate(scenario), scenario)
+        for changes in [{'opcode': 0}, {'index': -1}, {'from_end': 1}, {'offset': 4}, {'skip_strings': 1}]:
+            with self.subTest(changes=changes):
+                scenario = copy.deepcopy(self.scenario)
+                scenario['steps'].append({**valid, **changes})
+                with self.assertRaises(ValueError):
+                    run.validate(scenario)
+        scenario = copy.deepcopy(self.scenario)
+        scenario['steps'].append({**valid, 'from_end': False, 'offset': 4})
+        self.assertIs(run.validate(scenario), scenario)
+
     def test_pet_aura_fixture(self):
         self.scenario['steps'].append({'action': 'set_aura', 'actor': 'caster',
                                        'spell': 82888, 'stacks': 1, 'pet': True})

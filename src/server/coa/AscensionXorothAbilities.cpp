@@ -4,6 +4,7 @@
 #include "Corpse.h"
 #include "Creature.h"
 #include "DataMap.h"
+#include "GameTime.h"
 #include "GridNotifiers.h"
 #include "GridNotifiersImpl.h"
 #include "MotionMaster.h"
@@ -692,6 +693,51 @@ class spell_ascension_xoroth_ability : public SpellScript
         OnEffectHitTarget += SpellEffectFn(spell_ascension_xoroth_ability::Effect, EFFECT_ALL, SPELL_EFFECT_ANY);
     }
 };
+
+class spell_ascension_xoroth_hellfire_advance : public SpellScript
+{
+    PrepareSpellScript(spell_ascension_xoroth_hellfire_advance);
+
+    bool Validate(SpellInfo const* info) override
+    {
+        SpellInfo const* path = sSpellMgr->GetSpellInfo(804787);
+        SpellEffectInfo const& leap = info->Effects[EFFECT_0];
+        return info->Id == 804788 && info->SpellFamilyName == 23 && info->CasterAuraSpell == 804703 &&
+            leap.Effect == SPELL_EFFECT_LEAP_BACK && leap.TargetA.GetTarget() == TARGET_UNIT_CASTER &&
+            leap.MiscValue == 254 && leap.BasePoints == 85 && leap.DieSides == 1 && !leap.RealPointsPerLevel &&
+            path && path->SpellFamilyName == info->SpellFamilyName &&
+            path->Effects[EFFECT_2].ApplyAuraName == SPELL_AURA_DUMMY &&
+            path->Effects[EFFECT_2].MiscValue == SPELLMOD_EFFECT1 &&
+            path->Effects[EFFECT_2].SpellClassMask.HasFlag(
+                info->SpellFamilyFlags[0], info->SpellFamilyFlags[1], info->SpellFamilyFlags[2]);
+    }
+
+    bool Load() override
+    {
+        return Owner(GetCaster()) != nullptr;
+    }
+
+    void Launch(SpellEffIndex index)
+    {
+        Player* player = Owner(GetCaster());
+        if (GetHitUnit() != player)
+            return;
+
+        PreventHitDefaultEffect(index);
+        SpellEffectInfo const& leap = GetSpellInfo()->Effects[index];
+        AuraEffect const* path = player->GetAuraEffect(804787, EFFECT_2, player->GetGUID());
+        float const distanceFactor = 1.0f + (path ? std::max(0, path->GetAmount()) / 100.0f : 0.0f);
+        player->JumpTo(leap.MiscValue / 10.0f * distanceFactor, leap.CalcValue() / 10.0f, true);
+        sScriptMgr->AnticheatSetUnderACKmount(player);
+        player->SetFallInformation(GameTime::GetGameTime().count(), player->GetPositionZ());
+    }
+
+    void Register() override
+    {
+        OnEffectLaunchTarget += SpellEffectFn(spell_ascension_xoroth_hellfire_advance::Launch,
+            EFFECT_0, SPELL_EFFECT_LEAP_BACK);
+    }
+};
 }
 void AddSC_AscensionXorothAbilities()
 {
@@ -699,4 +745,5 @@ void AddSC_AscensionXorothAbilities()
     new xoroth_flayed_corpse_death();
     new xoroth_flayed_corpse_lifecycle();
     RegisterSpellScript(spell_ascension_xoroth_ability);
+    RegisterSpellScript(spell_ascension_xoroth_hellfire_advance);
 }
