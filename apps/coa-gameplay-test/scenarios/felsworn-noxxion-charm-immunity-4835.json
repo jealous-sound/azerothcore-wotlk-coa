@@ -1,0 +1,320 @@
+{
+  "schema": 1,
+  "name": "Felsworn: Noxxion resists Enslave Elemental in every dungeon difficulty (#4835)",
+  "contract": [
+    "Archived db.exil.es/npc/13282 explicitly lists Noxxion as immune to Charm; source page SHA256 is",
+    "cd1659fe7c1a1d0dd193140861d000f5feedaba1dafe1ff12956230459ba076e. Effective templates 13282,",
+    "113282 and 213282 originally shared set -66, whose MechanicsMask 20516 lacks MECHANIC_CHARM bit 1.",
+    "Enslave Elemental 954534 is the authored level-20 Felsworn ability and applies native MOD_CHARM with",
+    "Mechanic 1. Ordinary Dust Devil 832 must still be enslaved and released by native Abandon.",
+    "Normal casts must complete on each Noxxion variant without acquiring a charm or applying its aura.",
+    "Existing Frost immunity and vulnerability to Fire are controls for preserving the original immunity set.",
+    "Creature fixtures retain template immunities; no spell, AI, threat or immunity fixture bypasses them.",
+    "Targets stay in normal casting range, beyond Dust Devil Gust of Wind and Noxxion melee interrupts."
+  ],
+  "timeout_ms": 90000,
+  "location": {
+    "map": 0,
+    "x": -8917.41,
+    "y": -115.853,
+    "z": 82.3711,
+    "o": 0
+  },
+  "players": [
+    {
+      "id": "felsworn",
+      "race": 1,
+      "class": 14,
+      "level": 47,
+      "spell_hit_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "ordinary",
+      "owner": "felsworn",
+      "entry": 832,
+      "level": 19,
+      "health": 1000000,
+      "distance": 20
+    },
+    {
+      "id": "normal",
+      "owner": "felsworn",
+      "entry": 13282,
+      "level": 46,
+      "health": 1000000,
+      "distance": 25
+    },
+    {
+      "id": "heroic",
+      "owner": "felsworn",
+      "entry": 113282,
+      "level": 46,
+      "health": 1000000,
+      "distance": 26
+    },
+    {
+      "id": "mythic",
+      "owner": "felsworn",
+      "entry": 213282,
+      "level": 46,
+      "health": 1000000,
+      "distance": 27
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "ms": 3000
+    },
+    {
+      "action": "set_health",
+      "actor": "felsworn",
+      "value": 1000000,
+      "maximum": 1000000
+    },
+    {
+      "action": "learn",
+      "actor": "felsworn",
+      "spell": 954534,
+      "label": "Acquire the class ability available from level 20"
+    },
+    {
+      "action": "cast",
+      "actor": "felsworn",
+      "spell": 954534,
+      "target": "ordinary"
+    },
+    {
+      "action": "assert",
+      "actor": "felsworn",
+      "metric": "charm_entry",
+      "equals": 832,
+      "within_ms": 5000
+    },
+    {
+      "action": "client_packet",
+      "actor": "felsworn",
+      "opcode": 373,
+      "consumed": false,
+      "fields": [
+        {
+          "actor_guid": "ordinary"
+        },
+        {
+          "u32": 117440515
+        },
+        {
+          "u64": 0
+        }
+      ],
+      "label": "Release the ordinary elemental with native Abandon"
+    },
+    {
+      "action": "assert",
+      "actor": "felsworn",
+      "metric": "charm_entry",
+      "equals": 0,
+      "within_ms": 1000
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "snapshot",
+      "actor": "felsworn",
+      "metric": "spell_cast_count",
+      "spell": 954534,
+      "save_as": "normal_casts_before"
+    },
+    {
+      "action": "cast",
+      "actor": "felsworn",
+      "spell": 954534,
+      "target": "normal",
+      "label": "Attempt a normal Enslave cast on normal Noxxion"
+    },
+    {
+      "action": "assert",
+      "actor": "felsworn",
+      "metric": "spell_cast_count",
+      "spell": 954534,
+      "relative_to": "normal_casts_before",
+      "equals": 1,
+      "within_ms": 5000
+    },
+    {
+      "action": "wait",
+      "ms": 200
+    },
+    {
+      "action": "assert",
+      "actor": "felsworn",
+      "metric": "charm_entry",
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "normal",
+      "metric": "aura",
+      "spell": 954534,
+      "equals": 0
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "snapshot",
+      "actor": "felsworn",
+      "metric": "spell_cast_count",
+      "spell": 954534,
+      "save_as": "heroic_casts_before"
+    },
+    {
+      "action": "cast",
+      "actor": "felsworn",
+      "spell": 954534,
+      "target": "heroic",
+      "label": "Attempt a normal Enslave cast on heroic Noxxion"
+    },
+    {
+      "action": "assert",
+      "actor": "felsworn",
+      "metric": "spell_cast_count",
+      "spell": 954534,
+      "relative_to": "heroic_casts_before",
+      "equals": 1,
+      "within_ms": 5000
+    },
+    {
+      "action": "wait",
+      "ms": 200
+    },
+    {
+      "action": "assert",
+      "actor": "felsworn",
+      "metric": "charm_entry",
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "heroic",
+      "metric": "aura",
+      "spell": 954534,
+      "equals": 0
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "snapshot",
+      "actor": "felsworn",
+      "metric": "spell_cast_count",
+      "spell": 954534,
+      "save_as": "mythic_casts_before"
+    },
+    {
+      "action": "cast",
+      "actor": "felsworn",
+      "spell": 954534,
+      "target": "mythic",
+      "label": "Attempt a normal Enslave cast on mythic Noxxion"
+    },
+    {
+      "action": "assert",
+      "actor": "felsworn",
+      "metric": "spell_cast_count",
+      "spell": 954534,
+      "relative_to": "mythic_casts_before",
+      "equals": 1,
+      "within_ms": 5000
+    },
+    {
+      "action": "wait",
+      "ms": 200
+    },
+    {
+      "action": "assert",
+      "actor": "felsworn",
+      "metric": "charm_entry",
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "mythic",
+      "metric": "aura",
+      "spell": 954534,
+      "equals": 0
+    },
+    {
+      "action": "wait",
+      "ms": 1600
+    },
+    {
+      "action": "learn",
+      "actor": "felsworn",
+      "spell": 116
+    },
+    {
+      "action": "learn",
+      "actor": "felsworn",
+      "spell": 133
+    },
+    {
+      "action": "snapshot",
+      "actor": "normal",
+      "metric": "health",
+      "save_as": "before_frost"
+    },
+    {
+      "action": "cast",
+      "actor": "felsworn",
+      "spell": 116,
+      "target": "normal"
+    },
+    {
+      "action": "assert",
+      "actor": "felsworn",
+      "metric": "spell_cast_count",
+      "spell": 116,
+      "equals": 1,
+      "within_ms": 5000,
+      "label": "The normal Frostbolt cast completes before testing retained immunity"
+    },
+    {
+      "action": "wait",
+      "ms": 5000
+    },
+    {
+      "action": "assert",
+      "actor": "normal",
+      "metric": "health",
+      "relative_to": "before_frost",
+      "equals": 0
+    },
+    {
+      "action": "snapshot",
+      "actor": "normal",
+      "metric": "health",
+      "save_as": "before_fire"
+    },
+    {
+      "action": "cast",
+      "actor": "felsworn",
+      "spell": 133,
+      "target": "normal"
+    },
+    {
+      "action": "assert",
+      "actor": "normal",
+      "metric": "health",
+      "relative_to": "before_fire",
+      "max": -1,
+      "within_ms": 5000
+    }
+  ]
+}
