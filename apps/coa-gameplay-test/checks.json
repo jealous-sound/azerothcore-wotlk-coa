@@ -586,6 +586,13 @@
         "wildcard-elemental-blast-secondary-6782"
       ],
       "args": []
+    },
+    {
+      "script": "check_wildcard_spell_payoffs.py",
+      "scenarios": [
+        "wildcard-cremation-all-dots-6791"
+      ],
+      "args": []
     }
   ]
 }
