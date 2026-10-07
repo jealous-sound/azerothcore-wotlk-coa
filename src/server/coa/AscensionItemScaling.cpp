@@ -26,6 +26,7 @@
 #include <shared_mutex>
 #include <tuple>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace ItemScaling
@@ -35,6 +36,8 @@ namespace
 constexpr uint32 MaximumSampleEntry = 60000;
 
 std::atomic<bool> liftsEnabled{true};
+std::shared_mutex unliftableMutex;
+std::unordered_set<uint32> unliftableEntries;
 
 using CurveKey = std::tuple<uint32, uint32, uint32, uint32>;
 using CurveSet = std::map<CurveKey, LevelCurve>;
@@ -52,6 +55,15 @@ bool Eligible(ItemTemplate const& proto)
 {
     return EligibleItem(proto.Quality, proto.Class, proto.InventoryType, proto.ItemLevel,
         proto.ScalingStatDistribution, proto.StartQuest);
+}
+
+bool Liftable(ItemTemplate const& proto)
+{
+    if (!Eligible(proto) || IsWorldforgedDescription(proto.Description))
+        return false;
+
+    std::shared_lock lock(unliftableMutex);
+    return !unliftableEntries.contains(proto.ItemId);
 }
 
 CurveKey KeyOf(ItemTemplate const& proto)
@@ -307,7 +319,7 @@ uint32 EligibleLift(uint32 itemId, uint32 rawLift)
         return itemId;
 
     ItemTemplate const* proto = sObjectMgr->GetItemTemplate(itemId);
-    return proto && Eligible(*proto) ? Registry::Instance().Acquire(itemId, lift) : itemId;
+    return proto && Liftable(*proto) ? Registry::Instance().Acquire(itemId, lift) : itemId;
 }
 
 uint32 QuestRewardItem(Player const* player, uint32 itemId, int32 questLevel)
@@ -356,7 +368,7 @@ void LiftLootItems(Loot& loot, ItemLift itemLift)
             continue;
 
         ItemTemplate const* proto = sObjectMgr->GetItemTemplate(item.itemid);
-        if (!proto || !Eligible(*proto))
+        if (!proto || !Liftable(*proto))
             continue;
 
         uint32 const scaled = EligibleLift(item.itemid, itemLift(*proto));
@@ -440,6 +452,12 @@ std::optional<ClientItemRow> ClientRow(uint32 entry)
     if (ItemTemplate const* proto = Registry::Instance().Template(entry))
         return RowOf(*proto);
     return std::nullopt;
+}
+
+void SetUnliftableEntries(std::unordered_set<uint32> entries)
+{
+    std::unique_lock lock(unliftableMutex);
+    unliftableEntries = std::move(entries);
 }
 }
 
