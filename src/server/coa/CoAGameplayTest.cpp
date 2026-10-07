@@ -2994,6 +2994,7 @@ private:
         }
         if (metric == "pet_entry" || metric == "pet_aura_stacks" || metric == "pet_aura_amount" ||
             metric == "pet_aura_amplitude_ms" || metric == "pet_aura_duration_ms" || metric == "pet_max_health" ||
+            metric == "pet_health" ||
             metric == "pet_attack_power" || metric == "pet_run_speed_rate" || metric == "pet_is_banker" ||
             metric == "pet_display" || metric == "pet_scale" || metric == "pet_knows_spell" ||
             metric == "pet_distance" || metric == "pet_spell_bar_count")
@@ -3033,6 +3034,8 @@ private:
                 return player->GetExactDist2d(pet);
             if (metric == "pet_max_health")
                 return pet->GetMaxHealth();
+            if (metric == "pet_health")
+                return pet->GetHealth();
             if (metric == "pet_attack_power")
                 return pet->GetTotalAttackPowerValue(BASE_ATTACK);
             if (metric == "pet_run_speed_rate")
@@ -3059,6 +3062,13 @@ private:
             return player->GetSpellCharges(sSpellMgr->GetSpellInfo(spell)).Available;
         if (metric == "global_cooldown_ms")
             return player->GetGlobalCooldownMgr().GetGlobalCooldown(sSpellMgr->GetSpellInfo(spell));
+        if (metric == "equipped_item")
+        {
+            uint32 slot = step.get<uint32>("slot");
+            Require(slot < EQUIPMENT_SLOT_END, "Equipment observation needs a slot from 0 through 18");
+            Item const* item = player->GetItemByPos(INVENTORY_SLOT_BAG_0, uint8(slot));
+            return item ? item->GetEntry() : 0;
+        }
         if (metric == "item_count")
         {
             uint32 item = step.get<uint32>("item");
