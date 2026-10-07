@@ -62,7 +62,11 @@ requirements and stats come from native item query responses.
 Legendary powers use native equip-spell tooltip lines. Each level variant has a separate display-only
 spell with its exact bonus and condition; item flavor descriptions are empty. These spells have no effects
 and are skipped by the module's equip-spell hook, so the event-driven power auras remain the only source
-of gameplay bonuses. The pending world migration upgrades existing module data and runs after the module's
+of gameplay bonuses. Tooltip spells are delivered only alongside owned, acquired or queried items, once per
+spell per session. The login stream omits unowned variants, and its item-table capacity placeholder does not
+request a tooltip spell. Tooltip rows precede native item responses, including bulk queries.
+
+The pending world migration upgrades existing module data and runs after the module's
 catalog migration on fresh installs. It adds nothing when the module's client item rows are absent.
 The enabled module advances the native client-cache version so previously cached item descriptions are fetched again.
 
