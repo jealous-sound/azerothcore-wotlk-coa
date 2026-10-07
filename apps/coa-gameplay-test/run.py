@@ -47,7 +47,7 @@ METRICS = {
     'aura', 'aura_stacks', 'aura_charges', 'aura_duration_ms', 'aura_amount', 'aura_positive', 'aura_visible',
     'knows_spell', 'spell_active', 'has_talent', 'talent_points', 'cooldown_ms', 'global_cooldown_ms', 'spell_charges',
     'action_button', 'action_button_packed', 'item_count', 'carried_item_count', 'carried_pool_item_count',
-    'carried_variant_item_count', 'client_knows_spell',
+    'carried_variant_item_count', 'client_knows_spell', 'client_spellbook_copies',
     'pool_variant_count', 'pool_retired_item_count', 'pool_row_count', 'pool_item_present',
     'cache_token_count', 'cache_token_stage', 'cache_token_present',
     'free_inventory_slots', 'mail_count', 'mail_item_count', 'mail_has_item',
@@ -591,7 +591,7 @@ def validate(scenario):
                         f'{where}: quest metric needs a player and quest')
             if metric.startswith('aura') or metric in {
                     'knows_spell', 'cooldown_ms', 'global_cooldown_ms', 'spell_charges', 'cast_remaining_ms', 'has_talent',
-                    'pet_knows_spell', 'client_knows_spell',
+                    'pet_knows_spell', 'client_knows_spell', 'client_spellbook_copies',
                     'pet_aura_stacks', 'pet_aura_duration_ms', 'charm_aura_stacks', 'spell_active',
                     'dynamic_object', 'dynamic_object_duration_ms', 'spell_power_cost',
                     'spell_damage_done', 'spell_damage_taken', 'spell_healing_taken', 'spell_hit_bonus_taken',
@@ -776,7 +776,8 @@ def validate(scenario):
             if metric == 'server_packet_contains':
                 require(isinstance(step.get('text'), str) and step['text'].strip(),
                         f'{where}: metric needs the text to look for')
-            if metric in {'knows_spell', 'client_knows_spell', 'has_talent', 'talent_points', 'cooldown_ms',
+            if metric in {'knows_spell', 'client_knows_spell', 'client_spellbook_copies', 'has_talent',
+                          'talent_points', 'cooldown_ms',
                           'spell_charges',
                           'action_button', 'action_button_packed', 'item_count',
                           'carried_item_count', 'carried_pool_item_count', 'carried_variant_item_count',

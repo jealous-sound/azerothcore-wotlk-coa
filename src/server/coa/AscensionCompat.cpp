@@ -995,7 +995,7 @@ public:
         {
             if (player->GetSpellMap().find(id) == player->GetSpellMap().end())
             {
-                player->learnSpell(id, true);
+                player->learnSpellWithoutAnnouncement(id);
                 if (player->HasSpell(id))
                     ++learned;
             }

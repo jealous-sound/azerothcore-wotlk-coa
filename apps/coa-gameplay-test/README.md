@@ -487,7 +487,10 @@ This fixture supports exact health-percentage boundaries without granting GM per
 `xp` and `next_level_xp` read the player's XP fields; `skill_value` and `skill_maximum` require `skill` and read
 the pure skill value and maximum. `spell_active` requires `spell` and reports whether a known rank is the active one.
 `client_knows_spell` requires `spell` and is 1 when the spell packets sent to the player (initial list, learned,
-superseded and removed) leave it in the client's spellbook.
+superseded and removed) leave it in the client's spellbook. `client_spellbook_copies` requires `spell` and counts
+how many rows the client's spellbook holds for it: the client appends a row per announcement and only its
+highest-rank view hides a spell that has ranks, so an unranked spell announced twice (a learned-spell packet
+beside the superseded one that delivers it) is listed twice on screen.
 XP-delta assertions must also keep the level stable, or crossing a level would wrap the XP bar.
 
 Every step accepts a descriptive `label`. Assertions optionally accept `within_ms`: poll until the expected
