@@ -41,7 +41,7 @@ class witch_doctor_casts : public AllSpellScript
         if (spell->IsTriggered() || spell->GetScriptValue(BuffSnapshotKey))
             return;
         spell->SetScriptValue(BuffSnapshotKey, 1);
-        for (uint32 id : {MojoFree, SenjinBuff, PriceReady, DambalaReady, TrueSpiritReady, OverflowBuff, VolleyReady,
+        for (uint32 id : {MojoFree, PriceReady, DambalaReady, TrueSpiritReady, OverflowBuff, VolleyReady,
                           UmbralReady, HexfireReady, MojoThistle, MojoFish, MojoShrooms})
             if (caster->HasAura(id))
                 spell->SetScriptValue(id, 1);
@@ -371,9 +371,6 @@ class witch_doctor_casts : public AllSpellScript
                 player->RemoveAurasDueToSpell(buff);
         };
         consume(MojoFree, true);
-        if (Family(info, 1, 131072) && spell->GetScriptValue(SenjinBuff))
-            if (Aura* buff = player->GetAura(SenjinBuff))
-                buff->DropCharge();
         consume(PriceReady, Family(info, 0, 33554432));
         if (Family(info, 0, 33554432) && spell->GetScriptValue(PriceReady))
             Reduce(player, Shadowstalker, std::abs(Amount(PriceCooldown)));
