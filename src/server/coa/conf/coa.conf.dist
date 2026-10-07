@@ -286,6 +286,19 @@ Ascension.PrestigiousCache.ClassicStages = 8
 Ascension.PrestigiousCache.TbcStages = 0
 
 #
+#    Ascension.RaidLock.ReleaseStage
+#        Description: The newest Classic raid players may enter, 0-7, in the same order as
+#                     Ascension.CallboardCache.ReleaseStage: 0 no raids, 1 Zul'Gurub,
+#                     2 Molten Core, 3 Onyxia's Lair, 4 Blackwing Lair, 5 Ruins of Ahn'Qiraj,
+#                     6 Temple of Ahn'Qiraj, 7 Naxxramas. A raid above the stage is closed:
+#                     entering it shows "Instance is closed" and a character logging in inside
+#                     it is moved out. Game Masters still enter. Other maps are not affected.
+#                     Applied on .reload config.
+#        Default:     7
+
+Ascension.RaidLock.ReleaseStage = 7
+
+#
 #    Ascension.CallboardCache.ReleaseStage
 #        Description: The realm's current content progression stage, 0-7, in the order the
 #                     Callboard Caches released: Heroic and Mythic Dungeons, Zul'Gurub,
