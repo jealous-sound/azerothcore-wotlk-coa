@@ -2616,6 +2616,24 @@ private:
                 Require(effect < MAX_SPELL_EFFECTS && info->Effects[effect].IsEffect(), "Spell effect does not exist");
                 Unit* caster = step.get<bool>("pet", false) ? static_cast<Unit*>(player->GetPet()) : player;
                 Require(caster != nullptr, "Spell effect query needs a present pet");
+                auto const removeModifier = [player](SpellModifier* modifier)
+                {
+                    player->AddSpellMod(modifier, false);
+                };
+                std::unique_ptr<SpellModifier, decltype(removeModifier)> modifier(nullptr, removeModifier);
+                if (auto flat = step.get_optional<int32>("flat_coefficient_modifier"))
+                {
+                    Require(caster == player, "Coefficient modifier fixture requires the player caster");
+                    Require(info->SpellFamilyFlags != flag96(), "Coefficient modifier fixture needs a spell mask");
+                    modifier.reset(new SpellModifier());
+                    modifier->op = SPELLMOD_BONUS_MULTIPLIER;
+                    modifier->type = SPELLMOD_FLAT;
+                    modifier->value = *flat;
+                    modifier->mask = info->SpellFamilyFlags;
+                    modifier->spellId = spell;
+                    modifier->targetSpellId = spell;
+                    player->AddSpellMod(modifier.get(), true);
+                }
                 return info->Effects[effect].CalcValue(caster);
             }
             if (metric == "spell_cast_time_ms")

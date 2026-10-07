@@ -13,7 +13,9 @@
     "This does not reconstruct the reporters gear or promise the same damage against different dungeon",
     "defenses.",
     "Six nearby enemies reproduce the reported group size; each must take all sixteen ticks, with",
-    "ninety-six leech heals."
+    "ninety-six leech heals.",
+    "Flat coefficient modifiers use percentage points: +20 changes the 2000 bonus-healing term to",
+    "2400 and -20 changes it to 1600. Removing the temporary modifier must restore the 2000 term."
   ],
   "timeout_ms": 120000,
   "players": [
@@ -120,6 +122,35 @@
       "school": 5,
       "relative_to": "damage_power",
       "equals": 0
+    },
+    {
+      "action": "assert",
+      "actor": "mage",
+      "metric": "spell_effect_value",
+      "spell": 630874,
+      "effect": 0,
+      "relative_to": "base_leech",
+      "equals": 2000
+    },
+    {
+      "action": "assert",
+      "actor": "mage",
+      "metric": "spell_effect_value",
+      "spell": 630874,
+      "effect": 0,
+      "flat_coefficient_modifier": 20,
+      "relative_to": "base_leech",
+      "equals": 2400
+    },
+    {
+      "action": "assert",
+      "actor": "mage",
+      "metric": "spell_effect_value",
+      "spell": 630874,
+      "effect": 0,
+      "flat_coefficient_modifier": -20,
+      "relative_to": "base_leech",
+      "equals": 1600
     },
     {
       "action": "assert",

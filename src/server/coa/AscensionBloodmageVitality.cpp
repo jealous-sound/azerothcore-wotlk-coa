@@ -123,11 +123,11 @@ public:
             if (SpellBonusEntry const* native = sSpellMgr->GetSpellBonusData(info->Id))
                 if (native->direct_damage != 0 || native->ap_bonus != 0)
                     return;
-            float coefficient = 1.0f;
+            float coefficient = 100.0f;
             if (Player* owner = caster->GetSpellModOwner())
                 owner->ApplySpellMod(info->Id, SPELLMOD_BONUS_MULTIPLIER, coefficient);
             bonus = std::max(0, const_cast<Unit*>(caster)->SpellBaseHealingBonusDone(SPELL_SCHOOL_MASK_SHADOW)) *
-                coefficient;
+                coefficient / 100.0f;
         }
         else
             return;

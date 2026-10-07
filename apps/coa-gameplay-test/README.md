@@ -651,6 +651,8 @@ player would cast it, including module base-value hooks; `spell_cast_time_ms`, `
 `effect`, with a fixed base of 1000. `spell_healing_done` and `spell_damage_done` accept `periodic: true`
 to query the native periodic coefficient path instead of direct healing/damage.
 `spell_effect_value` and `spell_damage_done` accept `pet: true` to calculate using the player's current pet.
+For a player query, `spell_effect_value` accepts `flat_coefficient_modifier`: a temporary native
+`SPELLMOD_BONUS_MULTIPLIER` in percentage points, restricted to that spell and removed after the query.
 `melee_hit_chance` reads the player's melee hit modifier; `spell_hit_chance` reads a player or creature's native
 spell hit modifier. `spell_power` (`school` 1..6) reads the player's base spell damage bonus.
 `spell_done_crit_chance` and `melee_spell_damage_done` require `spell` and `target`: the native

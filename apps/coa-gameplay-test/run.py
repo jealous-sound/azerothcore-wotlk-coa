@@ -131,7 +131,7 @@ METRIC_FIELDS = {'actor', 'metric', 'spell', 'power', 'caster', 'effect', 'item'
                  'min_distance', 'owner_display', 'skill', 'cache', 'table', 'exclude', 'dungeon', 'source',
                  'opcode', 'from', 'slot', 'achievement', 'title', 'type_mask', 'hit_mask', 'spell_type_mask',
                  'phase_mask', 'trigger_spell', 'trials', 'incoming', 'heal', 'quality',
-                 'row', 'offset', 'skip_strings', 'x', 'y'}
+                 'row', 'offset', 'skip_strings', 'x', 'y', 'flat_coefficient_modifier'}
 ACTIONS = {
     'stop_attack': ({'actor'}, {'actor'}),
     'set_moving': ({'actor', 'enabled'}, {'actor', 'enabled'}),
@@ -645,6 +645,11 @@ def validate(scenario):
             if metric == 'spell_modifier':
                 number(step.get('op'), f'{where}.op', 0, 31, True)
                 number(step.get('base'), f'{where}.base')
+            if 'flat_coefficient_modifier' in step:
+                require(metric == 'spell_effect_value' and not step.get('pet', False),
+                        f'{where}: flat_coefficient_modifier needs a player spell effect query')
+                number(step['flat_coefficient_modifier'], f'{where}.flat_coefficient_modifier',
+                       -(2**31), 2**31 - 1, True)
             if metric == 'spell_family_flags':
                 number(step.get('index', 0), f'{where}.index', 0, 2, True)
             if 'hand' in step:
