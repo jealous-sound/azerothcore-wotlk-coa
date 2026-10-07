@@ -65,6 +65,7 @@ enum MageSpells
     SPELL_MAGE_T10_2P_BONUS_EFFECT               = 70753,
     SPELL_MAGE_T8_4P_BONUS                       = 64869,
     SPELL_MAGE_HOT_STREAK_PROC                   = 48108,
+    SPELL_MAGE_HOT_HANDS                         = 275397,
     SPELL_MAGE_CHILLED_R1                        = 12484,
     SPELL_MAGE_CHILLED_R2                        = 12485,
     SPELL_MAGE_CHILLED_R3                        = 12486,
@@ -1260,6 +1261,13 @@ class spell_mage_hot_streak : public AuraScript
         return ValidateSpellInfo({ SPELL_MAGE_HOT_STREAK_PROC });
     }
 
+    bool CheckProc(ProcEventInfo& eventInfo)
+    {
+        SpellInfo const* spell = eventInfo.GetSpellInfo();
+        return !spell || spell->SpellFamilyName != SPELLFAMILY_MAGE ||
+            !(spell->SpellFamilyFlags[0] & 0x00400000) || GetTarget()->HasAura(SPELL_MAGE_HOT_HANDS);
+    }
+
     void HandleProc(AuraEffect const* aurEff, ProcEventInfo& eventInfo)
     {
         PreventDefaultAction();
@@ -1285,6 +1293,7 @@ class spell_mage_hot_streak : public AuraScript
 
     void Register() override
     {
+        DoCheckProc += AuraCheckProcFn(spell_mage_hot_streak::CheckProc);
         OnEffectProc += AuraEffectProcFn(spell_mage_hot_streak::HandleProc, EFFECT_0, SPELL_AURA_DUMMY);
     }
 
