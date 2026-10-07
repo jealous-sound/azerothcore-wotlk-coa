@@ -7,12 +7,14 @@
 #include "Battleground.h"
 #include "Chat.h"
 #include "Config.h"
+#include "Item.h"
 #include "Log.h"
 #include "Map.h"
 #include "Pet.h"
 #include "Player.h"
 #include "ScriptMgr.h"
 #include "SpellInfo.h"
+#include "SpellMgr.h"
 #include "SpellScript.h"
 #include "WorldPacket.h"
 #include "WorldSession.h"
@@ -458,10 +460,58 @@ void ApplyAscensionPathPassiveContract(SpellInfo* spellInfo)
     cost.BasePoints = -9;
 }
 
+namespace
+{
+class ghostly_strike_contracts : public GlobalScript
+{
+public:
+    ghostly_strike_contracts() : GlobalScript("ghostly_strike_contracts",
+        {GLOBALHOOK_ON_LOAD_SPELL_CUSTOM_ATTR}) { }
+
+    void OnLoadSpellCustomAttr(SpellInfo* info) override
+    {
+        if (info->Id == 965819 && info->Effects[EFFECT_2].ApplyAuraName == 229)
+            info->Effects[EFFECT_2].ApplyAuraName = SPELL_AURA_MOD_PARRY_PERCENT;
+    }
+};
+
+class spell_ascension_ghostly_strike : public SpellScript
+{
+    PrepareSpellScript(spell_ascension_ghostly_strike);
+
+    bool Validate(SpellInfo const*) override
+    {
+        return ValidateSpellInfo({965819});
+    }
+
+    void Defend(SpellEffIndex)
+    {
+        Player* player = GetCaster()->ToPlayer();
+        if (!player)
+            return;
+        Item const* weapon = player->GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_MAINHAND);
+        bool const twoHanded = weapon && weapon->GetTemplate()->InventoryType == INVTYPE_2HWEAPON &&
+            !player->GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_OFFHAND);
+        int32 const amount = sSpellMgr->AssertSpellInfo(965819)->Effects[EFFECT_1].CalcValue(player);
+        CustomSpellValues values;
+        values.AddSpellMod(SPELLVALUE_BASE_POINT1, twoHanded ? 0 : amount);
+        values.AddSpellMod(SPELLVALUE_BASE_POINT2, twoHanded ? amount : 0);
+        player->CastCustomSpell(965819, values, player, TRIGGERED_FULL_MASK);
+    }
+
+    void Register() override
+    {
+        OnEffectHitTarget += SpellEffectFn(spell_ascension_ghostly_strike::Defend, EFFECT_1, SPELL_EFFECT_DUMMY);
+    }
+};
+}
+
 void AddAscensionFreepickScripts()
 {
     new AscensionFreepick::AscensionFreepickPlayer();
     new AscensionFreepick::AscensionFreepickWorld();
+    new ghostly_strike_contracts();
+    RegisterSpellScript(spell_ascension_ghostly_strike);
     RegisterSpellScriptWithArgs(AscensionFreepick::spell_ascension_freepick_specialization_swap,
         "spell_ascension_freepick_specialization_swap");
 }
