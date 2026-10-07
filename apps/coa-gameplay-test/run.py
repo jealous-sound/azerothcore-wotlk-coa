@@ -177,6 +177,8 @@ ACTIONS = {
     'cast_charm': ({'actor', 'spell'}, {'actor', 'spell', 'target', 'pet', 'destination'}),
     'gossip_hello': ({'actor'}, {'actor', 'target'}),
     'banker_activate': ({'actor'}, {'actor', 'target', 'owner', 'entry'}),
+    'personal_bank_open': ({'actor', 'entry'}, {'actor', 'entry'}),
+    'personal_bank_swap': ({'actor', 'entry', 'direction'}, {'actor', 'entry', 'direction', 'item', 'slot'}),
     'binder_activate': ({'actor', 'target'}, {'actor', 'target'}),
     'destroy_item': ({'actor', 'item'}, {'actor', 'item'}),
     'start_challenge': ({'actor', 'challenge', 'level'}, {'actor', 'challenge', 'level'}),

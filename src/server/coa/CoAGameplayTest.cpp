@@ -4102,6 +4102,37 @@ private:
             packet << guid;
             player->GetSession()->HandleBankerActivateOpcode(packet);
         }
+        else if (action == "personal_bank_open" || action == "personal_bank_swap")
+        {
+            GameObject* vault = player->FindNearestGameObject(step.get<uint32>("entry"), 20.0f);
+            Require(vault != nullptr, "No bank object of that entry within 20 yards");
+            if (action == "personal_bank_open")
+            {
+                WorldPacket packet(CMSG_GUILD_BANKER_ACTIVATE, 9);
+                packet << vault->GetGUID() << uint8(1);
+                sScriptMgr->CanPacketReceive(player->GetSession(), packet);
+            }
+            else
+            {
+                uint8 const bankSlot = uint8(step.get<uint32>("slot", 0));
+                std::string const direction = step.get<std::string>("direction");
+                Require(direction == "deposit" || direction == "withdraw",
+                        "Personal bank swap direction must be deposit or withdraw");
+                WorldPacket packet(CMSG_GUILD_BANK_SWAP_ITEMS, 32);
+                packet << vault->GetGUID() << uint8(0) << uint8(0) << bankSlot;
+                if (direction == "deposit")
+                {
+                    Item* item = player->GetItemByEntry(step.get<uint32>("item"));
+                    Require(item != nullptr, "The player carries no item of that entry");
+                    packet << uint32(item->GetEntry()) << uint8(0) << uint8(item->GetBagSlot())
+                           << uint8(item->GetSlot()) << uint8(0) << int32(0);
+                }
+                else
+                    packet << uint32(0) << uint8(1) << int32(0) << uint8(0) << int32(0);
+                sScriptMgr->CanPacketReceive(player->GetSession(), packet);
+            }
+            record.put("result", "submitted; verify the answer with assertions");
+        }
         else if (action == "binder_activate")
         {
             Unit* innkeeper = GetUnit(step.get<std::string>("target"));
