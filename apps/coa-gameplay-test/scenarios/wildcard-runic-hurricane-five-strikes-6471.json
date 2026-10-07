@@ -2,7 +2,13 @@
   "schema": 1,
   "name": "Wildcard Runic Hurricane lands five strikes and cleans up dodge (#6471)",
   "contract": [
-    "Original Spell.dbc 280930 promises five Nature weapon strikes over 2500 ms and 100% dodge from 280933 while the sequence blocks other abilities. Its periodic dummy is 500 ms and its damage payload 280932 is the original weapon-percent effect; the authored payload is used without importing the CoA class polynomial. Test a real equipped weapon, ordinary cast acceptance and carrier application, exactly five positive damage events on the chosen enemy, no events on a neighbor, and helper removal at normal expiry. Repeat against a one-health enemy after cooldown to prove target death ends both carrier and protection. These are gameplay observations, independent of script names or source patterns."
+    "Original Spell.dbc 280930 promises five Nature weapon strikes over 2500 ms and 100% dodge from 280933 while",
+    "the sequence blocks other abilities. Its periodic dummy is 500 ms and its damage payload 280932 is the",
+    "original weapon-percent effect; the authored payload is used without importing the CoA class polynomial.",
+    "Test a real equipped weapon, ordinary cast acceptance and carrier application, exactly five positive damage",
+    "events on the chosen enemy, no events on a neighbor, and helper removal at normal expiry. Repeat against a",
+    "one-health enemy after cooldown to prove target death ends both carrier and protection. These are gameplay",
+    "observations, independent of script names or source patterns."
   ],
   "timeout_ms": 90000,
   "location": {

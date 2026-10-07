@@ -25,18 +25,22 @@ enum CorruptedBladeSpells : uint32
 class wildcard_corrupted_blade : public AllSpellScript
 {
 public:
-    wildcard_corrupted_blade() : AllSpellScript("wildcard_corrupted_blade", {ALLSPELLHOOK_ON_CAST}) { }
+    wildcard_corrupted_blade() : AllSpellScript("wildcard_corrupted_blade", {ALLSPELLHOOK_ON_HIT_RESULT}) { }
 
-    void OnSpellCast(Spell* spell, Unit* caster, SpellInfo const* info, bool) override
+    void OnSpellHitResult(Spell* spell, Unit* source, uint8 miss, uint32, uint32, bool) override
     {
+        if (miss != SPELL_MISS_NONE)
+            return;
+
+        Unit* caster = spell->GetCaster();
         Player* player = caster ? caster->ToPlayer() : nullptr;
+        SpellInfo const* info = spell->GetSpellInfo();
         if (!player || !AscensionWildcard::IsWildcardHero(player) || spell->IsTriggered() ||
             !player->HasAura(SPELL_CORRUPTED_BLADE, player->GetGUID()) ||
             (sSpellMgr->GetFirstSpellInChain(info->Id) != SPELL_SINISTER_STRIKE &&
                 (info->SpellFamilyName != SPELLFAMILY_ROGUE || !(info->SpellFamilyFlags[2] & 0x80000000))))
             return;
 
-        Unit* source = spell->m_targets.GetUnitTarget();
         SpellInfo const* spread = sSpellMgr->GetSpellInfo(SPELL_CORRUPTED_BLADE_SPREAD);
         if (!source || !source->IsAlive() || !player->IsValidAttackTarget(source) || !spread)
             return;

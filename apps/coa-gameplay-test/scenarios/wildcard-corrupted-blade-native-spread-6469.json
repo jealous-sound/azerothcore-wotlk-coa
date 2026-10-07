@@ -2,7 +2,14 @@
   "schema": 1,
   "name": "Corrupted Blade spreads owned Corruption on Sinister Strike and Gloomblade (#6469)",
   "contract": [
-    "Original Corrupted Blade 281492 promises that Sinister Strike and Gloomblade casts spread the caster's Corruption to enemies within ten yards of the struck target. Test ordinary native attacks, a no-talent control, an unrelated-spell control, positive aura application within range, no application past ten yards, preservation of the source, and refusal to spread another caster's dot. Finally test Gloomblade independently. Spell 281493 points its two authored spread effects to Corruption 172 and 285710; original radius 14 is ten yards. The fixture grants rolled spells directly and proves combat behavior, not roll/acquisition or client rendering. Equip an original dagger for the native Gloomblade restriction, and verify copied duration, amount and positive periodic damage."
+    "Original Corrupted Blade 281492 promises that Sinister Strike and Gloomblade casts spread the caster's",
+    "Corruption to enemies within ten yards of the struck target. Test ordinary native attacks, a no-talent",
+    "control, an unrelated-spell control, positive aura application within range, no application past ten yards,",
+    "preservation of the source, and refusal to spread another caster's dot. Finally test Gloomblade",
+    "independently. Spell 281493 points its two authored spread effects to Corruption 172 and 285710; original",
+    "radius 14 is ten yards. The fixture grants rolled spells directly and proves combat behavior, not",
+    "roll/acquisition or client rendering. Equip an original dagger for the native Gloomblade restriction, and",
+    "verify copied duration, amount and positive periodic damage."
   ],
   "timeout_ms": 180000,
   "location": {
