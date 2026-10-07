@@ -606,8 +606,9 @@ def validate(scenario):
                                                            'spell_damage_done'}),
                             f'{where}: {key} only filters supported spell combat events')
                     require(type(step[key]) is bool, f'{where}: {key} must be boolean')
-            if metric == 'spell_go_count' and 'entry' in step:
-                require('pet' not in step, f'{where}: spell_go_count selects either pet or entry')
+            if metric in {'spell_go_count', 'spell_damage_count', 'spell_damage_total'} and 'entry' in step:
+                number(step['entry'], f'{where}.entry', 1, 2**32 - 1, True)
+                require('pet' not in step, f'{where}: spell combat query selects either pet or entry')
             if 'target_pet' in step:
                 require(metric in {'spell_heal_count', 'spell_heal_total', 'spell_effective_heal_total',
                                    'spell_energize_count', 'spell_energize_total'}

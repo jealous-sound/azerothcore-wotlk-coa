@@ -2425,6 +2425,13 @@ private:
         if (metric == "spell_damage_count" || metric == "spell_damage_total")
         {
             ObjectGuid caster = step.get<bool>("pet", false) ? player->GetPetGUID() : player->GetGUID();
+            if (auto entry = step.get_optional<uint32>("entry"))
+            {
+                Require(!step.get<bool>("pet", false), "Spell damage query selects a pet or a creature entry");
+                Creature* creature = GetOwnedCreature(player, *entry);
+                Require(creature != nullptr, "Spell damage observation needs a present owned creature");
+                caster = creature->GetGUID();
+            }
             ObjectGuid target;
             if (auto id = step.get_optional<std::string>("target"))
                 target = GetUnit(*id)->GetGUID();
