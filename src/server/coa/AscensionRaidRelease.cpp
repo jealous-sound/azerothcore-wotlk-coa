@@ -15,7 +15,7 @@ uint32 g_raidReleaseStage = RaidRelease::AllRaidsReleased;
 
 void LoadRaidReleaseStage()
 {
-    g_raidReleaseStage = sConfigMgr->GetOption<uint32>("Ascension.RaidLock.ReleaseStage",
+    g_raidReleaseStage = sConfigMgr->GetOption<uint32>("Ascension.CallboardCache.ReleaseStage",
         RaidRelease::AllRaidsReleased);
 }
 

@@ -97,18 +97,19 @@ def main():
     loader = (ROOT / 'src/server/coa/CoAScriptLoader.cpp').read_text(encoding='utf-8')
     config = (ROOT / 'src/server/coa/conf/coa.conf.dist').read_text(encoding='utf-8')
     assert '{ PLAYERHOOK_CAN_ENTER_MAP }' in source
-    assert '"Ascension.RaidLock.ReleaseStage"' in source
+    assert '"Ascension.CallboardCache.ReleaseStage"' in source
     assert 'WORLDHOOK_ON_STARTUP, WORLDHOOK_ON_AFTER_CONFIG_LOAD' in source
     assert loader.count('AddSC_AscensionRaidRelease()') == 2
-    assert '\nAscension.RaidLock.ReleaseStage = 7\n' in config
+    assert '\nAscension.CallboardCache.ReleaseStage = 7\n' in config
+    assert 'Ascension.RaidLock' not in config
     with tempfile.TemporaryDirectory(prefix='coa-raid-release-') as directory:
         out = Path(directory)
         cpp, exe = out / 'raid_release.cpp', out / 'raid_release.exe'
         cpp.write_text(harness(source), encoding='utf-8')
         subprocess.run(command(cpp, exe), cwd=out, check=True, timeout=60)
         subprocess.run([str(exe)], cwd=out, check=True, timeout=15)
-    print('PASS: Classic raids open up to the configured stage, closed ones refuse entry and login with '
-          '"Instance is closed", other maps stay open, and the default keeps every raid open')
+    print('PASS: Classic raids open up to the Callboard Cache release stage, closed ones refuse entry and login '
+          'with "Instance is closed", other maps stay open, and the default keeps every raid open')
 
 
 if __name__ == '__main__':
