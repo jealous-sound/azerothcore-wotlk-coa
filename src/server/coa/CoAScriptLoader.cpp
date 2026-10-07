@@ -309,6 +309,7 @@ void AddSC_AscensionPrimalistSecondary();
 void AddSC_AscensionRunemasterSecondary();
 void AddSC_AscensionRunemasterBurnedEtching();
 void AddSC_AscensionRunemasterHurricane();
+void AddSC_AscensionWildcardCorruptedBlade();
 void AddSC_AscensionRunemasterRiftClones();
 void AddSC_AscensionRunemasterDisappearance();
 void AddSC_AscensionRunemasterTalentEffects();
@@ -583,6 +584,7 @@ void AddCoAScripts()
     AddSC_AscensionRunemasterSecondary();
     AddSC_AscensionRunemasterBurnedEtching();
     AddSC_AscensionRunemasterHurricane();
+    AddSC_AscensionWildcardCorruptedBlade();
     AddSC_AscensionRunemasterRiftClones();
     AddSC_AscensionRunemasterDisappearance();
     AddSC_AscensionRunemasterTalentEffects();
