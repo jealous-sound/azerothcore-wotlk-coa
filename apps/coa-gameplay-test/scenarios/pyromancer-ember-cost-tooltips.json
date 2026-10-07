@@ -15,7 +15,8 @@
       "id": "pyro",
       "race": 1,
       "class": 24,
-      "level": 80
+      "level": 80,
+      "spell_hit_rating": 10000
     }
   ],
   "creatures": [
