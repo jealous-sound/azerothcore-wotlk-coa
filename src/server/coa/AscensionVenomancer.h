@@ -21,8 +21,7 @@ constexpr uint32 SpiderlingVenomSource = 807702;
 constexpr uint32 Beetle = 803183;
 constexpr uint32 Skulk = 800843;
 constexpr uint32 SpiderLord = 704264;
-constexpr uint32 SpiderLordDisplay = 139094;
-constexpr float SpiderLordScale = 0.25f;
+constexpr uint32 SpiderLordDisplay = 142811;
 struct VenomancerState
 {
     EventMap timers;
