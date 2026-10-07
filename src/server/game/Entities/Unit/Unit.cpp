@@ -11329,10 +11329,20 @@ private:
     uint32 _type;
 };
 
+// CoA: NPCs never resist only some schools (fire elementals to fire, etc.); full invulnerability stays.
+static bool IsIgnoredCreatureSchoolImmunity(Unit const* unit, uint32 op, uint32 schoolMask)
+{
+    return op == IMMUNITY_SCHOOL && unit->IsCreature() && !unit->IsCharmedOwnedByPlayerOrPlayer() &&
+        (schoolMask & SPELL_SCHOOL_MASK_ALL) != SPELL_SCHOOL_MASK_ALL;
+}
+
 void Unit::ApplySpellImmune(uint32 spellId, uint32 op, uint32 type, bool apply, SpellImmuneBlockType /*blockType*/)
 {
     if (apply)
-        m_spellImmune[op].emplace(type, spellId);
+    {
+        if (!IsIgnoredCreatureSchoolImmunity(this, op, type))
+            m_spellImmune[op].emplace(type, spellId);
+    }
     else
     {
         auto bounds = m_spellImmune[op].equal_range(type);
