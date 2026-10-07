@@ -21,7 +21,8 @@ def main():
         exe = Path(directory) / 'policy.exe'
         subprocess.run(command(HERE / 'test_policy.cpp', exe), cwd=directory, check=True, timeout=60)
         subprocess.run([str(exe)], cwd=directory, check=True, timeout=15)
-    print('PASS: scaled entry range, eligibility, quest and loot lifts, required level, value scaling and level curves')
+    print('PASS: scaled entry range, eligibility, Worldforged marker, quest and loot lifts, required level, '
+          'value scaling and level curves')
 
 
 if __name__ == '__main__':
