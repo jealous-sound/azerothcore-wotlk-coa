@@ -1657,8 +1657,10 @@ void WorldSession::HandleCancelMountAuraOpcode(WorldPacket& /*recv_data*/)
     if (!_player->IsMounted())
         return;
 
-    // The client sends this with every cast while mounted; the Mechsuit is left through its own aura.
-    if (_player->IsInTinkerMechsuit())
+    // The client sends this with every cast while mounted; these combat mounts are left through their auras.
+    if (_player->IsInTinkerMechsuit() ||
+        (_player->getClass() == CLASS_STARCALLER && !_player->IsInFlight() &&
+            _player->GetMountID() == 9991 && _player->HasAura(704772, _player->GetGUID())))
         return;
 
     if (_player->IsInFlight())                               // not blizz like; no any messages on blizz

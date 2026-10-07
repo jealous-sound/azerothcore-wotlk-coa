@@ -5,6 +5,7 @@
 #include <cmath>
 #include <cstdint>
 #include <map>
+#include <string_view>
 #include <vector>
 
 namespace ItemScaling
@@ -20,6 +21,7 @@ constexpr std::uint32_t InventoryTypeTabard = 19;
 constexpr std::uint32_t RequiredLevelGap = 5;
 constexpr std::uint32_t LiftStep = 5;
 constexpr std::uint32_t MaximumCurveLevel = 300;
+constexpr std::string_view WorldforgedMarker = "@Worldforged@";
 
 inline bool IsScaledEntry(std::uint32_t entry)
 {
@@ -33,6 +35,11 @@ inline bool EligibleItem(std::uint32_t quality, std::uint32_t itemClass, std::ui
         && (itemClass == ItemClassWeapon || itemClass == ItemClassArmor)
         && inventoryType != 0 && inventoryType != InventoryTypeShirt && inventoryType != InventoryTypeTabard
         && itemLevel != 0 && scalingStatDistribution == 0 && startQuest == 0;
+}
+
+inline bool IsWorldforgedDescription(std::string_view description)
+{
+    return description.compare(0, WorldforgedMarker.size(), WorldforgedMarker) == 0;
 }
 
 inline std::uint32_t QuestLift(std::int32_t questLevel, std::uint32_t scaledQuestLevel)
