@@ -237,7 +237,8 @@ void ApplyContracts(SpellInfo* info)
     {
         info->AttributesEx2 |= SPELL_ATTR2_ALLOW_DEAD_TARGET;
         info->Effects[0].Effect = SPELL_EFFECT_DUMMY;
-        info->Effects[0].TargetA = SpellImplicitTargetInfo(TARGET_UNIT_TARGET_ENEMY);
+        info->Effects[0].TargetA = SpellImplicitTargetInfo(TARGET_UNIT_CASTER);
+        info->Effects[0].TargetB = SpellImplicitTargetInfo();
         for (uint8 i = 1; i < MAX_SPELL_EFFECTS; ++i)
             if (info->Effects[i].Effect)
                 info->Effects[i].TargetA = SpellImplicitTargetInfo(TARGET_UNIT_CASTER);
