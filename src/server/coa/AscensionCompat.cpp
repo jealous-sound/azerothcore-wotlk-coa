@@ -574,10 +574,16 @@ enum LegacyQuestSpells : uint32
 {
     QuestStoneskinTotem = 8073,
     QuestPathOfDefense = 8121,
+    QuestSummonVoidwalker = 11520,
+    QuestBearForm = 19179,
     LegacyDefensiveStance = 1100071,
     LegacyTaunt = 1100355,
     LegacySunderArmor = 1107386,
-    LegacyStoneskinTotem = 1108071
+    LegacyStoneskinTotem = 1108071,
+    LegacySummonVoidwalker = 1100697,
+    LegacyBearForm = 1105487,
+    LegacyGrowl = 1106795,
+    LegacyMaul = 1106807
 };
 
 struct LegacyQuestReward
@@ -586,9 +592,11 @@ struct LegacyQuestReward
     std::array<uint32, MAX_SPELL_EFFECTS> Spells;
 };
 
-constexpr std::array<LegacyQuestReward, 2> LegacyQuestRewards = {{
+constexpr std::array<LegacyQuestReward, 4> LegacyQuestRewards = {{
     {QuestStoneskinTotem, {LegacyStoneskinTotem, 0, 0}},
-    {QuestPathOfDefense, {LegacyDefensiveStance, LegacySunderArmor, LegacyTaunt}}
+    {QuestPathOfDefense, {LegacyDefensiveStance, LegacySunderArmor, LegacyTaunt}},
+    {QuestSummonVoidwalker, {LegacySummonVoidwalker, 0, 0}},
+    {QuestBearForm, {LegacyBearForm, LegacyGrowl, LegacyMaul}}
 }};
 
 LegacyQuestReward const* GetLegacyQuestReward(uint32 wrapper)
