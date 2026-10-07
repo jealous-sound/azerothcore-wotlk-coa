@@ -292,6 +292,25 @@ public:
         return record == _records.end() ? entry : record->second.baseEntry;
     }
 
+    void RestoreUnliftableCopies()
+    {
+        std::vector<std::pair<uint32, uint32>> restorable;
+        {
+            std::shared_lock lock(_mutex);
+            for (auto const& [entry, record] : _records)
+                if (ItemTemplate const* base = sObjectMgr->GetItemTemplate(record.baseEntry); base && !Liftable(*base))
+                    restorable.emplace_back(entry, record.baseEntry);
+        }
+
+        for (auto const& [entry, baseEntry] : restorable)
+            CharacterDatabase.DirectExecute("UPDATE `item_instance` SET `itemEntry` = {} WHERE `itemEntry` = {}",
+                baseEntry, entry);
+
+        if (!restorable.empty())
+            LOG_INFO("server.loading", ">> Restored items of {} unliftable scaled item templates to their base entries",
+                restorable.size());
+    }
+
 private:
     struct Record
     {
@@ -385,7 +404,7 @@ class Configuration : public WorldScript
 {
 public:
     Configuration() : WorldScript("ItemScalingConfiguration",
-        { WORLDHOOK_ON_AFTER_CONFIG_LOAD, WORLDHOOK_ON_LOAD_CUSTOM_DATABASE_TABLE }) { }
+        { WORLDHOOK_ON_AFTER_CONFIG_LOAD, WORLDHOOK_ON_LOAD_CUSTOM_DATABASE_TABLE, WORLDHOOK_ON_STARTUP }) { }
 
     void OnAfterConfigLoad(bool) override
     {
@@ -395,6 +414,11 @@ public:
     void OnLoadCustomDatabaseTable() override
     {
         Registry::Instance().Load();
+    }
+
+    void OnStartup() override
+    {
+        Registry::Instance().RestoreUnliftableCopies();
     }
 };
 
@@ -456,8 +480,11 @@ std::optional<ClientItemRow> ClientRow(uint32 entry)
 
 void SetUnliftableEntries(std::unordered_set<uint32> entries)
 {
-    std::unique_lock lock(unliftableMutex);
-    unliftableEntries = std::move(entries);
+    {
+        std::unique_lock lock(unliftableMutex);
+        unliftableEntries = std::move(entries);
+    }
+    Registry::Instance().RestoreUnliftableCopies();
 }
 }
 
