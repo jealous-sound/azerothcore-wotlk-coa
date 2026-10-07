@@ -192,7 +192,7 @@ class spell_ascension_guardian_standard : public SpellScript
         if (duration <= 0)
             return;
         if (TempSummon* standard = owner->SummonCreature(contract->creature, *destination,
-                TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, uint32(duration)))
+                TEMPSUMMON_TIMED_DESPAWN, uint32(duration)))
         {
             standard->SetUInt32Value(UNIT_CREATED_BY_SPELL, GetSpellInfo()->Id);
             ReplaceStandard(owner, standard->GetGUID());

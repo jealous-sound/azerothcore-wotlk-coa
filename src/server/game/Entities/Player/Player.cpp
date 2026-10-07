@@ -3539,6 +3539,16 @@ bool Player::IsNeedCastPassiveSpellAtLearn(SpellInfo const* spellInfo) const
 
 void Player::learnSpell(uint32 spellId, bool temporary /*= false*/, bool learnFromSkill /*= false*/)
 {
+    _learnSpell(spellId, temporary, learnFromSkill, true);
+}
+
+void Player::learnSpellWithoutAnnouncement(uint32 spellId, bool temporary /*= true*/)
+{
+    _learnSpell(spellId, temporary, false, false);
+}
+
+void Player::_learnSpell(uint32 spellId, bool temporary, bool learnFromSkill, bool announce)
+{
     if (IsAscensionClass(getClass()))
         if (SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spellId))
             if (spellInfo->IsDeprecatedForPlayers)
@@ -3553,7 +3563,11 @@ void Player::learnSpell(uint32 spellId, bool temporary /*= false*/, bool learnFr
 
     uint8 const specMask = GetLearnSpellSpecMask(spellId);
 
-    bool const added = addSpell(spellId, specMask, true, temporary, learnFromSkill);
+    // A caller that delivers the spell to the client itself (learnSpellWithoutAnnouncement) asks for
+    // neither announcement site to send it, or the client holds the spell twice: its spellbook is a
+    // list of slots that every announcement appends to, and the highest-rank view it draws over that
+    // list only collapses a spell that has ranks.
+    bool const added = addSpell(spellId, specMask, true, temporary, learnFromSkill || !announce);
     if (added)
     {
         sScriptMgr->OnPlayerLearnSpell(this, spellId);
@@ -3563,7 +3577,7 @@ void Player::learnSpell(uint32 spellId, bool temporary /*= false*/, bool learnFr
         // and Player::removeSpell answers such a grant with a single SMSG_REMOVED_SPELL. Announcing it twice
         // leaves the client one extra copy of the spell per grant/revoke cycle, which both hides the real
         // spellbook entry behind duplicates and keeps the client believing a revoked spell is still known.
-        if (IsInWorld() && (!temporary || learnFromSkill))
+        if (announce && IsInWorld() && (!temporary || learnFromSkill))
             SendLearnPacket(spellId, true);
     }
 

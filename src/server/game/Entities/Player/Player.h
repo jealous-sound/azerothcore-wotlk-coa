@@ -1737,7 +1737,15 @@ public:
     void SendLearnPacket(uint32 spellId, bool learn);
     bool addSpell(uint32 spellId, uint8 addSpecMask, bool updateActive, bool temporary = false, bool learnFromSkill = false);
     bool _addSpell(uint32 spellId, uint8 addSpecMask, bool temporary, bool learnFromSkill = false);
+    void _learnSpell(uint32 spellId, bool temporary, bool learnFromSkill, bool announce);
     void learnSpell(uint32 spellId, bool temporary = false, bool learnFromSkill = false);
+    /// Learns a spell without telling the client about it, for a caller whose own packet delivers the
+    /// knowledge: AscensionCompat's temporary replacements announce the replacement through the
+    /// SMSG_SUPERCEDED_SPELL that stands it in for the spell it replaces, and a learned-spell packet
+    /// beside that one left the client a second copy of an unranked form in its spellbook (#6721).
+    /// Everything else - the spec mask, the script hook, next rank and required spells - matches
+    /// Player::learnSpell.
+    void learnSpellWithoutAnnouncement(uint32 spellId, bool temporary = true);
     void removeSpell(uint32 spellId, uint8 removeSpecMask, bool onlyTemporary);
     void MarkSpellForSave(uint32 spellId);
     void resetSpells();
