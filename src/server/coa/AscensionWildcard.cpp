@@ -3440,4 +3440,5 @@ void AddAscensionWildcardScripts()
     RegisterSpellScriptWithArgs(AscensionWildcard::aura_wildcard_victorious_state, "aura_wildcard_victorious_state");
     new AscensionWildcard::AscensionWildcardWorld();
     Trainer::SetWildcardRankRows(&AscensionWildcard::RankTrainerRows);
+    Trainer::SetRankTrainerHero(&AscensionWildcard::IsClasslessHero);
 }

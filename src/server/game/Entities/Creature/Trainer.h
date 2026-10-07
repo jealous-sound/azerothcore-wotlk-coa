@@ -104,13 +104,18 @@ namespace Trainer
     using WildcardRankRows = std::vector<Spell> (*)(Player const* player);
     AC_GAME_API void SetWildcardRankRows(WildcardRankRows rows);
 
+    /// Whether this Hero trains those rows: a Wildcard Hero, or any Hero on a classless realm, set by AscensionWildcard.
+    using RankTrainerHero = bool (*)(Player const* player);
+    AC_GAME_API void SetRankTrainerHero(RankTrainerHero heroes);
+
     /// The class trainer a realm serves this player in place of `trainer`, or nullptr to keep it.
     using ClassTrainerFor = Trainer* (*)(Trainer const& trainer, Player const* player);
     AC_GAME_API void SetClassTrainerFor(ClassTrainerFor trainers);
 
     /// The trainer that serves this player at this unit: its own, or the class trainer the realm puts in its place,
-    /// except that a Wildcard Hero is taught the next rank of each Wildcard ability it knows at any class trainer or
-    /// Book of Ascension. Valid until the next call on this thread.
+    /// except that a rank-training Hero is taught the next rank of each ability it knows at any class trainer or
+    /// Book of Ascension. A class trainer unit without a trainer of its own (a Book of Ascension) serves the player's
+    /// own class trainer. Valid until the next call on this thread.
     AC_GAME_API Trainer* GetTrainerFor(Creature const* npc, Player const* player);
 }
 
