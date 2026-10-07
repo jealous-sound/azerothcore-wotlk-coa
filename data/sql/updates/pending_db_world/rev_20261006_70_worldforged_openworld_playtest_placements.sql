@@ -1,7 +1,7 @@
 -- ----------------------------------------------------------------------------
 -- Worldforged pickups: third playtest pass on open-world placements (#4984)
 -- ----------------------------------------------------------------------------
--- Additive on top of 2026_10_06_65 .. _69, which stay as shipped.
+-- Additive on top of rev_20261006_65 .. _69, which stay as shipped.
 -- Confirmed in game: Dropped Shield pose. Jewelry display swap and Scarlet Band / Zul'Kunda ring lay-flat folded from live playtest.
 --
 -- Display 1074163 is 9mw_domination_legendaryarmor_necklace01.m2, a tall (0.9 yd) legendary-armor showpiece that
@@ -53,8 +53,9 @@ UPDATE `gameobject` SET `position_z` = 333.999, `rotation0` = 0.357006, `rotatio
     `rotation2` = 0.610366, `rotation3` = 0.357006 WHERE `guid` = 6940773;
 
 -- 6940548 Glen Guardian (Eye-Catching Item Rack): raised off the ADT onto the stock floor, then lowered slightly so
--- the rack feet sit clean (13.476 -> 12.900). Soft-disable the three overlapping Wooden Chairs (phaseMask=0).
-UPDATE `gameobject` SET `phaseMask` = 0 WHERE `guid` IN (18693, 18694, 18699);
+-- the rack feet sit clean (13.476 -> 12.900). The three stock Wooden Chairs it overlaps (18693, 18694, 18699) are
+-- removed: the loader resets a zero phaseMask to 1, so they cannot be hidden that way.
+DELETE FROM `gameobject` WHERE `guid` IN (18693, 18694, 18699);
 UPDATE `gameobject` SET `position_z` = 12.900 WHERE `guid` = 6940548;
 
 -- 6941371 Zul'Kunda Blood Ring: was floating at 65.785; player GroundZ/FloorZ 61.408. Z 61.40 sits on the ground
