@@ -295,6 +295,13 @@ class spell_ascension_runemaster_overloaded_frost : public AuraScript
 
 void ApplyAscensionRunemasterGlyphContracts(SpellInfo* info)
 {
+    if (info && info->Id == SPELL_UNLEASHED_ARCANE &&
+        info->SpellFamilyName == uint32(CLASS_SPIRIT_MAGE) + 6 &&
+        info->Effects[EFFECT_0].Effect == SPELL_EFFECT_SCHOOL_DAMAGE &&
+        info->Effects[EFFECT_0].TargetA.GetTarget() == TARGET_UNIT_TARGET_ENEMY &&
+        info->Effects[EFFECT_0].TargetB.GetTarget() == TARGET_UNIT_DEST_AREA_ENEMY)
+        info->AttributesEx2 |= SPELL_ATTR2_ALLOW_DEAD_TARGET;
+
     if (info && info->Id == SPELL_ARCANE_GLYPH_PASSIVE &&
         info->SpellFamilyName == uint32(CLASS_SPIRIT_MAGE) + 6)
     {
