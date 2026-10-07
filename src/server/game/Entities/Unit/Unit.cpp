@@ -83,6 +83,7 @@
 // Ascension's caster state for "only usable after the target dodges" (its Overpower and the Chaser strikes),
 // which it uses instead of the warrior's combo point.
 constexpr AuraStateType ASCENSION_AURA_STATE_TARGET_DODGED = AuraStateType(24);
+constexpr uint32 ASCENSION_SPELL_HELLKNIGHT = 800703;
 
 float baseMoveSpeed[MAX_MOVE_TYPE] =
 {
@@ -12085,6 +12086,9 @@ void Unit::UpdateSpeed(UnitMoveType mtype, bool forced)
     // now we ready for speed calculation
     if (mtype == MOVE_RUN && !IsMounted() && IsPlayer() && getClass() == CLASS_WITCH_HUNTER && HasAura(504790))
         main_speed_mod = std::max(main_speed_mod, 20);
+    if (mtype == MOVE_RUN && !IsMounted())
+        if (AuraEffect const* hellknight = GetAuraEffect(ASCENSION_SPELL_HELLKNIGHT, EFFECT_0))
+            main_speed_mod = std::max(main_speed_mod, -hellknight->GetAmount());
     float speed = std::max(non_stack_bonus, stack_bonus);
     if (main_speed_mod)
         AddPct(speed, main_speed_mod);
