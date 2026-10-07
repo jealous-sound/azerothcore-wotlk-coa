@@ -67,6 +67,13 @@ struct OpenBank
 
 std::unordered_map<ObjectGuid::LowType, OpenBank> openBanks;
 
+[[nodiscard]] ObjectGuid BankItemOwner(OpenBank const& bank)
+{
+    return bank.OwnerKind == OWNER_CHARACTER
+               ? ObjectGuid::Create<HighGuid::Player>(ObjectGuid::LowType(bank.OwnerId))
+               : ObjectGuid::Empty;
+}
+
 void LoadBank(OpenBank& bank, ObjectGuid itemOwner)
 {
     QueryResult tabs = CharacterDatabase.Query(
@@ -176,7 +183,7 @@ void StoreSlot(CharacterDatabaseTransaction trans, OpenBank const& bank, uint8 t
                   bank.OwnerKind, bank.OwnerId, tab, slot, item->GetGUID().GetCounter());
 
     item->SetGuidValue(ITEM_FIELD_CONTAINED, ObjectGuid::Empty);
-    item->SetGuidValue(ITEM_FIELD_OWNER, ObjectGuid::Empty);
+    item->SetOwnerGUID(BankItemOwner(bank));
     item->FSetState(ITEM_NEW);
     item->SaveToDB(trans);
 }
@@ -1008,7 +1015,7 @@ void Opened(Player* player, uint8 kind, ObjectGuid vault)
     bank.OwnerKind = kind == REALM ? OWNER_REALM : OWNER_CHARACTER;
     bank.OwnerId = BankOwnerId(player, kind);
     bank.Vault = vault;
-    LoadBank(bank, bank.OwnerKind == OWNER_CHARACTER ? player->GetGUID() : ObjectGuid::Empty);
+    LoadBank(bank, BankItemOwner(bank));
 
     OpenBank const& stored = openBanks.emplace(guid, std::move(bank)).first->second;
 

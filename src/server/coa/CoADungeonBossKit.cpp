@@ -167,7 +167,7 @@ public:
         if (itr == Kits.end())
             return;
         Map const* map = me->GetMap();
-        if (!map || !map->IsNonRaidDungeon() || map->GetDifficulty() == DUNGEON_DIFFICULTY_NORMAL || me->IsCharmedOwnedByPlayerOrPlayer())
+        if (!map || !map->IsNonRaidDungeon() || me->IsCharmedOwnedByPlayerOrPlayer())
             return;
 
         std::vector<KitEntry> const& kits = itr->second;
@@ -178,7 +178,7 @@ public:
             return;
         }
 
-        bool mythic = map->GetDifficulty() != DUNGEON_DIFFICULTY_HEROIC;
+        bool mythic = map->GetDifficulty() == DUNGEON_DIFFICULTY_EPIC;
         KitState* state = me->CustomData.GetDefault<KitState>("coa_boss_kit");
         if (!state->running)
         {

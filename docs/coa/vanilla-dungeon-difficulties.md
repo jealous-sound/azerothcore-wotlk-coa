@@ -103,14 +103,10 @@ difficulty flags pick the tier. Vanilla rows that the kit replaces get event fla
 5-man dungeon, so they stay in place for reference. Bosses with a C++ script keep it unchanged;
 `coa_dungeon_boss_kit` runs their kit next to the script on non-raid dungeon maps.
 
-Where main already gave a boss Ascension abilities (Deadmines bosses, Jed Runewatcher, Goraluk Anvilcrack), the
-kit stays authoritative for the abilities it covers and those rows are switched off the same way; the rest of
-main's logic stays (Eject Sneed, Cookie's cauldron, Goraluk's self-enchants on Normal). Edwin VanCleef's Buster
-Call markers are switched off in favour of the kit's cannonball volleys at 75/50/25 %, which play the same role.
-Buzzing Saw Blade (180237) keeps main's C++ AI.
-Health triggers in the export are kept, cast timers come from the supplied combat logs where available and
-otherwise from the closest comparable boss. Event bosses and several summons were checked in game by the
-user on all 19 maps; some event bosses remain untested.
+Where a boss's Ascension kit was already implemented before this restoration (Deadmines bosses, Jed Runewatcher,
+Goraluk Anvilcrack, General Drakkisath, Pyroguard Emberseer, The Beast, Mr. Smite), that kit is used and the
+vanilla dungeon kit adds nothing: no `smart_scripts` rows from id 9000, no `coa_dungeon_boss_kit` rows and no spell
+corrections of its own. Jed's and Goraluk's rows run on every difficulty.
 
 Spell damage of dungeon creatures is scaled per map and difficulty in `coa_dungeon_spell_damage`, with
 fixed per-spell factors where in-game logs showed a different value. Trash spells are softened above

@@ -454,6 +454,7 @@ public:
 
     void ReadAddonsInfo(ByteBuffer& data);
     void SendAddonsInfo();
+    std::vector<std::string> const& GetClientAddonNames() const { return m_clientAddonNames; }
 
     void ReadMovementInfo(WorldPacket& data, MovementInfo* mi);
     void WriteMovementInfo(WorldPacket* data, MovementInfo* mi);
@@ -1370,6 +1371,7 @@ private:
     uint32 m_Tutorials[MAX_ACCOUNT_TUTORIAL_VALUES];
     bool   m_TutorialsChanged;
     AddonsList m_addonsList;
+    std::vector<std::string> m_clientAddonNames;
     uint32 recruiterId;
     bool isRecruiter;
     LockedQueue<WorldPacket*> _recvQueue;

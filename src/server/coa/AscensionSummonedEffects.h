@@ -24,7 +24,8 @@ enum class Behaviour : std::uint8_t
     Turret,
     Mine,
     Vortex,
-    Return
+    Return,
+    Ravager
 };
 
 enum class Motion : std::uint8_t
@@ -278,7 +279,7 @@ constexpr Summon SUMMONS[] = {
     Still(954328, 840031),
     Still(1569647, 840100),
     Still(1133050, 840081),
-    Still(293180, 840082),
+    Timed(293180, 840082, Behaviour::Ravager, 293181, 1000, 293182),
     Still(1143180, 840082),
     Still(290063, 841091),
     Still(901308, 841103),

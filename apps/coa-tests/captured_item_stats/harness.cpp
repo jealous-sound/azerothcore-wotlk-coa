@@ -8,8 +8,10 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include <shared_mutex>
 #include <sstream>
 #include <unordered_map>
+#include <unordered_set>
 
 #define ASSERT(condition, ...) assert(condition)
 #define LOG_ERROR(...) static_cast<void>(0)
@@ -56,11 +58,13 @@ ConfigMgr* sConfigMgr = &configMgr;
 
 constexpr int WORLDHOOK_ON_AFTER_CONFIG_LOAD = 0;
 constexpr int WORLDHOOK_ON_LOAD_CUSTOM_DATABASE_TABLE = 1;
+constexpr int WORLDHOOK_ON_STARTUP = 2;
 struct WorldScript
 {
     WorldScript(char const*, std::initializer_list<int>) { }
     virtual void OnAfterConfigLoad(bool) { }
     virtual void OnLoadCustomDatabaseTable() { }
+    virtual void OnStartup() { }
 };
 
 namespace ItemScaling
@@ -87,8 +91,10 @@ uint32 BaseEntry(uint32 item) { return item == FirstScaledEntry ? 720 : item; }
 
 struct Registry
 {
+    std::size_t restorations = 0;
     static Registry& Instance() { static Registry registry; return registry; }
     void Load() { }
+    void RestoreUnliftableCopies() { ++restorations; }
 };
 
 // ACTUAL_CONFIGURATION
@@ -331,6 +337,9 @@ int main(int argc, char** argv)
     startup.OnAfterConfigLoad(false);
     startup.OnLoadCustomDatabaseTable();
     Check(ItemScaling::capturedStats.Size() == 6, "startup uses original ItemStat rows without an opt-in setting");
+    startup.OnStartup();
+    Check(ItemScaling::Registry::Instance().restorations == 1 && ItemScaling::capturedStats.Size() == 6,
+        "startup restores unliftable copies while retaining captured item stats");
     auto const* gloves = ItemScaling::capturedStats.Find(720, 58);
     Check(gloves && ItemScaling::capturedStats.Find(720, 28) && !ItemScaling::capturedStats.Find(720, 57),
         "lookup uses the exact item and scaling level");

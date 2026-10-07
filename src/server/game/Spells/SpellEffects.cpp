@@ -5066,7 +5066,13 @@ void Spell::EffectAddExtraAttacks(SpellEffIndex effIndex)
         return;
     }
 
-    unitTarget->AddExtraAttacks(damage);
+    // A proc trigger can name the enemy the extra attacks are meant for while the effect itself
+    // lands on the caster (Cruel Intent casts 707599 at the Lunged target, whose effect target is
+    // the caster). That explicit victim is preferred over the last melee hit or a selection.
+    Unit* strikeTarget = m_targets.GetUnitTarget();
+    unitTarget->AddExtraAttacks(damage,
+        strikeTarget && strikeTarget != unitTarget && strikeTarget->IsAlive() ?
+            strikeTarget->GetGUID() : ObjectGuid::Empty);
 
     ExecuteLogEffectExtraAttacks(effIndex, unitTarget, damage);
 }
@@ -5188,7 +5194,7 @@ void Spell::EffectForceDeselect(SpellEffIndex /*effIndex*/)
     {
         std::vector<Unit*> images;
         for (Unit::ControlSet::const_iterator itr = m_caster->m_Controlled.begin(); itr != m_caster->m_Controlled.end(); ++itr)
-            if ((*itr)->GetEntry() == 31216 /*NPC_MIRROR_IMAGE*/)
+            if (GetStockPetEntry((*itr)->GetEntry()) == 31216 /*NPC_MIRROR_IMAGE*/)
                 images.push_back(*itr);
 
         if (images.empty())

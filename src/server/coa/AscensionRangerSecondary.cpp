@@ -115,6 +115,8 @@ public:
             info->Effects[EFFECT_0].ChainTarget = info->MaxAffectedTargets;
             info->Effects[EFFECT_1].ChainTarget = info->MaxAffectedTargets;
         }
+        if (info->Id == 520621)
+            info->ProcFlags |= PROC_FLAG_DONE_MELEE_AUTO_ATTACK | PROC_FLAG_DONE_SPELL_MELEE_DMG_CLASS;
         if (info->Id == 560805)
             info->ExcludeTargetAuraSpell = 570167;
         if (info->Id == 801935)

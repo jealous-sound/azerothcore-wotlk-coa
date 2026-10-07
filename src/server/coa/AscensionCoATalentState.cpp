@@ -346,7 +346,8 @@ RemovalPayment PayForRemovals(std::vector<UnlearnPrice> const& prices, std::uint
     return payment;
 }
 
-std::vector<KnownEntry> SpecializationSwitch(std::uint8_t classId, HasSpell const& hasSpell, std::uint32_t specId)
+std::vector<KnownEntry> SpecializationSwitch(std::uint8_t classId, HasSpell const& hasSpell, std::uint32_t specId,
+    std::vector<KnownEntry> const* current)
 {
     std::unordered_set<std::uint32_t> departedSignatures;
     for (AscensionCompatData::CoASpecialization const& specialization : AscensionCompatData::CoASpecializations)
@@ -356,7 +357,7 @@ std::vector<KnownEntry> SpecializationSwitch(std::uint8_t classId, HasSpell cons
                 departedSignatures.insert(specialization.SignatureEntryId);
 
     std::vector<KnownEntry> upload;
-    for (KnownEntry const& known : KnownEntries(classId, hasSpell))
+    for (KnownEntry const& known : current ? *current : KnownEntries(classId, hasSpell))
         if (AscensionCompatData::CoATalentEntry const* entry = FindEntry(known.EntryId);
             entry && !entry->SpecId && !departedSignatures.contains(known.EntryId))
             upload.push_back(known);

@@ -8,6 +8,7 @@
 #include "GridNotifiers.h"
 #include "GridNotifiersImpl.h"
 #include "Group.h"
+#include "Item.h"
 #include "MotionMaster.h"
 #include "PetDefines.h"
 #include "Player.h"
@@ -210,6 +211,10 @@ struct npc_ascension_summoned_effect : public ScriptedAI
             case Behaviour::Delay:
                 events.ScheduleEvent(EVENT_ACT, Milliseconds(row->Milliseconds));
                 break;
+            case Behaviour::Ravager:
+                Outlive(me, row->SummonSpell);
+                events.ScheduleEvent(EVENT_ACT, Milliseconds(row->Milliseconds));
+                break;
             case Behaviour::Mine:
                 events.ScheduleEvent(EVENT_ACT, Milliseconds(MINE_POLL_MS));
                 break;
@@ -323,9 +328,28 @@ struct npc_ascension_summoned_effect : public ScriptedAI
             case Behaviour::Mine:
                 Mine(owner);
                 break;
+            case Behaviour::Ravager:
+                Ravager(owner);
+                events.ScheduleEvent(EVENT_ACT, Milliseconds(row->Milliseconds));
+                break;
             default:
                 break;
         }
+    }
+
+    void Ravager(Unit* owner)
+    {
+        Player* player = owner->ToPlayer();
+        if (!player)
+            return;
+        Item const* main = player->GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_MAINHAND);
+        Item const* off = player->GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_OFFHAND);
+        uint32 const payload = main && main->GetTemplate()->InventoryType == INVTYPE_2HWEAPON && !off ?
+            row->Payload : off && off->GetTemplate()->Class == ITEM_CLASS_WEAPON ? row->Extra : 0;
+        SpellInfo const* info = sSpellMgr->GetSpellInfo(row->SummonSpell);
+        if (payload && info)
+            for (Unit* enemy : EnemiesNear(me, owner, info->Effects[EFFECT_0].CalcRadius(owner)))
+                player->CastSpell(enemy, payload, true);
     }
 
     void Heal(Unit* owner)
@@ -639,6 +663,11 @@ class spell_ascension_summoned_effect_summon : public SpellScript
 {
     PrepareSpellScript(spell_ascension_summoned_effect_summon);
 
+    void PreventRavagerArea(SpellEffIndex index)
+    {
+        PreventHitDefaultEffect(index);
+    }
+
     void Summon(SpellEffIndex index)
     {
         SpellEffectInfo const& effect = GetSpellInfo()->Effects[index];
@@ -659,6 +688,9 @@ class spell_ascension_summoned_effect_summon : public SpellScript
 
     void Register() override
     {
+        if (m_scriptSpellId == 293180)
+            OnEffectHit += SpellEffectFn(spell_ascension_summoned_effect_summon::PreventRavagerArea,
+                EFFECT_ALL, SPELL_EFFECT_PERSISTENT_AREA_AURA);
         OnEffectHit += SpellEffectFn(spell_ascension_summoned_effect_summon::Summon, EFFECT_ALL, SPELL_EFFECT_SUMMON);
     }
 };

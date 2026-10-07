@@ -1047,7 +1047,8 @@ void Creature::Regenerate(Powers power)
                 // Combat and any controlled creature
                 if (IsInCombat() || GetCharmerOrOwnerGUID())
                 {
-                    if (GetEntry() == NPC_IMP || GetEntry() == NPC_WATER_ELEMENTAL_TEMP || GetEntry() == NPC_WATER_ELEMENTAL_PERM)
+                    if (uint32 const stock = GetStockPetEntry(GetEntry());
+                        stock == NPC_IMP || stock == NPC_WATER_ELEMENTAL_TEMP || stock == NPC_WATER_ELEMENTAL_PERM)
                     {
                         addvalue = uint32((GetStat(STAT_SPIRIT) / (IsUnderLastManaUseEffect() ? 8.0f : 5.0f) + 17.0f));
                     }
@@ -2428,6 +2429,13 @@ void Creature::LoadTemplateImmunities(int32 creatureImmunitiesId)
         _creatureImmunitiesId = 0;
 }
 
+// CoA: poisons that count as bleeds still hit bleed-immune NPCs.
+static bool IsIgnoredTemplateMechanicImmunity(Creature const* creature, SpellInfo const* spellInfo, uint32 mechanic)
+{
+    return mechanic == MECHANIC_BLEED && spellInfo->Dispel == DISPEL_POISON &&
+        !creature->IsCharmedOwnedByPlayerOrPlayer();
+}
+
 bool Creature::IsImmunedToSpell(SpellInfo const* spellInfo, Spell const* spell)
 {
     if (!spellInfo)
@@ -2440,7 +2448,8 @@ bool Creature::IsImmunedToSpell(SpellInfo const* spellInfo, Spell const* spell)
 
     // Xinef: this should exclude self casts...
     // Spells that don't have effectMechanics.
-    if (spellInfo->Mechanic > MECHANIC_NONE && HasMechanicTemplateImmunity(1ULL << spellInfo->Mechanic))
+    if (spellInfo->Mechanic > MECHANIC_NONE && HasMechanicTemplateImmunity(1ULL << spellInfo->Mechanic) &&
+        !IsIgnoredTemplateMechanicImmunity(this, spellInfo, spellInfo->Mechanic))
         return true;
 
     // The above helper uses the creature_immunities table rather than a
@@ -2463,7 +2472,9 @@ bool Creature::IsImmunedToSpell(SpellInfo const* spellInfo, Spell const* spell)
 bool Creature::IsImmunedToSpellEffect(SpellInfo const* spellInfo, uint32 index, Unit const* caster /*= nullptr*/) const
 {
     // Xinef: this should exclude self casts...
-    if (spellInfo->Effects[index].Mechanic > MECHANIC_NONE && HasMechanicTemplateImmunity(1ULL << spellInfo->Effects[index].Mechanic))
+    uint32 mechanic = spellInfo->Effects[index].Mechanic;
+    if (mechanic > MECHANIC_NONE && HasMechanicTemplateImmunity(1ULL << mechanic) &&
+        !IsIgnoredTemplateMechanicImmunity(this, spellInfo, mechanic))
         return true;
 
     // Tinker heals are designed to repair player-owned mechanical pets and devices

@@ -1,6 +1,11 @@
 /* Copyright (C) 2016+ AzerothCore, GNU AGPL v3. */
 #include "AscensionXoroth.h"
+#include "CellImpl.h"
+#include "Corpse.h"
 #include "Creature.h"
+#include "DataMap.h"
+#include "GridNotifiers.h"
+#include "GridNotifiersImpl.h"
 #include "MotionMaster.h"
 #include "ObjectAccessor.h"
 #include "Pet.h"
@@ -131,9 +136,39 @@ void ConsumeSelected(Player* player, Spell* spell)
                     aura->Remove();
             }
 }
-bool Flayable(Unit* unit)
+constexpr char FlayedCorpseKey[] = "AscensionXoroth.FlayedCorpse";
+struct FlayedCorpse : DataMap::Base
 {
-    Creature* corpse = unit ? unit->ToCreature() : nullptr;
+};
+
+bool Flayed(WorldObject const* object)
+{
+    return object && object->CustomData.Get<FlayedCorpse>(FlayedCorpseKey);
+}
+
+void MarkFlayed(WorldObject* object)
+{
+    object->CustomData.GetDefault<FlayedCorpse>(FlayedCorpseKey);
+    if (Corpse* corpse = object->ToCorpse())
+        if (Player* owner = ObjectAccessor::FindConnectedPlayer(corpse->GetOwnerGUID()))
+            owner->CustomData.GetDefault<FlayedCorpse>(FlayedCorpseKey);
+    if (Player* player = object->ToPlayer())
+        if (Corpse* corpse = player->GetCorpse())
+            corpse->CustomData.GetDefault<FlayedCorpse>(FlayedCorpseKey);
+}
+
+bool Flayable(WorldObject* object)
+{
+    if (!object || Flayed(object))
+        return false;
+    if (Corpse* corpse = object->ToCorpse())
+    {
+        Player* owner = ObjectAccessor::FindConnectedPlayer(corpse->GetOwnerGUID());
+        return corpse->GetType() != CORPSE_BONES && !Flayed(owner);
+    }
+    if (Player* player = object->ToPlayer())
+        return !player->IsAlive() && !player->HasPlayerFlag(PLAYER_FLAGS_GHOST);
+    Creature* corpse = object->ToCreature();
     return corpse && corpse->getDeathState() == DeathState::Corpse &&
            (corpse->GetCreatureType() == CREATURE_TYPE_HUMANOID || corpse->GetCreatureType() == CREATURE_TYPE_BEAST ||
             corpse->GetCreatureType() == CREATURE_TYPE_DEMON);
@@ -142,17 +177,68 @@ float FlayRange(Player* player, Spell* spell)
 {
     return std::max(spell->GetSpellInfo()->GetMaxRange(false, player, spell), INTERACTION_DISTANCE);
 }
-Creature* NearestFlayable(Player* player, float range)
+bool FlayableInRange(Player* player, WorldObject* corpse, float range)
 {
-    std::list<Creature*> corpses;
-    player->GetDeadCreatureListInGrid(corpses, range, true);
-    Creature* nearest = nullptr;
-    for (Creature* corpse : corpses)
-        if (Flayable(corpse) && player->IsWithinLOSInMap(corpse) &&
-            (!nearest || player->GetExactDistSq(corpse) < player->GetExactDistSq(nearest)))
-            nearest = corpse;
-    return nearest;
+    return Flayable(corpse) && player->IsWithinDistInMap(corpse, range) && player->IsWithinLOSInMap(corpse);
 }
+
+WorldObject* NearestFlayable(Player* player, float range)
+{
+    std::list<WorldObject*> corpses;
+    auto check = [player, range](WorldObject* corpse) { return FlayableInRange(player, corpse, range); };
+    Acore::WorldObjectListSearcher<decltype(check)> search(player, corpses, check);
+    Cell::VisitObjects(player, search, range);
+    if (corpses.empty())
+        return nullptr;
+    return *std::min_element(corpses.begin(), corpses.end(), [player](WorldObject* first, WorldObject* second)
+    {
+        return player->GetExactDistSq(first) < player->GetExactDistSq(second);
+    });
+}
+
+WorldObject* FlayTarget(Player* player, Spell* spell)
+{
+    if (uint64 guid = spell->GetScriptValue(801042))
+        return ObjectAccessor::GetWorldObject(*player, ObjectGuid(guid));
+    if (Corpse* corpse = spell->m_targets.GetCorpseTarget())
+        return corpse;
+    return spell->m_targets.GetUnitTarget();
+}
+
+class xoroth_flayed_corpse_death : public UnitScript
+{
+public:
+    xoroth_flayed_corpse_death() : UnitScript("xoroth_flayed_corpse_death", true, {UNITHOOK_ON_UNIT_DEATH}) { }
+
+    void OnUnitDeath(Unit* unit, Unit*) override
+    {
+        unit->CustomData.Erase(FlayedCorpseKey);
+    }
+};
+
+class xoroth_flayed_corpse_lifecycle : public PlayerScript
+{
+public:
+    xoroth_flayed_corpse_lifecycle() : PlayerScript("xoroth_flayed_corpse_lifecycle",
+        {PLAYERHOOK_ON_PLAYER_RELEASED_GHOST, PLAYERHOOK_ON_LOGOUT}) { }
+
+    void Preserve(Player* player)
+    {
+        if (Flayed(player))
+            if (Corpse* corpse = player->GetCorpse())
+                corpse->CustomData.GetDefault<FlayedCorpse>(FlayedCorpseKey);
+    }
+
+    void OnPlayerReleasedGhost(Player* player) override
+    {
+        Preserve(player);
+    }
+
+    void OnPlayerLogout(Player* player) override
+    {
+        Preserve(player);
+    }
+};
 class xoroth_casts : public AllSpellScript
 {
   public:
@@ -170,6 +256,8 @@ class xoroth_casts : public AllSpellScript
         if (!player || spell->IsTriggered() || result != SPELL_CAST_OK)
             return;
         auto info = spell->GetSpellInfo();
+        if (Named(info, 504581) && !player->HasAura(712294))
+            result = SPELL_FAILED_CASTER_AURASTATE;
         if (Spender(info) && !Count(player, 500906))
             result = SPELL_FAILED_NO_POWER;
         if ((info->Id == 520294 || info->Id == 805679) && !Count(player, 800999))
@@ -178,13 +266,20 @@ class xoroth_casts : public AllSpellScript
             result = SPELL_FAILED_CASTER_AURASTATE;
         if (info->Id == 801042)
         {
-            if (!Flayable(spell->m_targets.GetUnitTarget()))
-                if (Creature* corpse = NearestFlayable(player, FlayRange(player, spell)))
-                    spell->m_targets.SetUnitTarget(corpse);
+            WorldObject* corpse = FlayTarget(player, spell);
+            float const range = FlayRange(player, spell);
+            if (!FlayableInRange(player, corpse, range))
+                corpse = NearestFlayable(player, range);
             if (player->IsInCombat())
                 result = SPELL_FAILED_AFFECTING_COMBAT;
-            else if (!Flayable(spell->m_targets.GetUnitTarget()))
+            else if (!corpse)
                 result = SPELL_FAILED_BAD_TARGETS;
+            else
+            {
+                spell->SetScriptValue(801042, corpse->GetGUID().GetRawValue());
+                spell->m_targets.RemoveObjectTarget();
+                spell->m_targets.SetUnitTarget(player);
+            }
         }
     }
     void OnCalcMaxDuration(Aura const* aura, int32& duration) override
@@ -548,6 +643,7 @@ class spell_ascension_xoroth_ability : public SpellScript
 {
     PrepareSpellScript(spell_ascension_xoroth_ability);
     bool summoned = false;
+    bool flayed = false;
     void Effect(SpellEffIndex index)
     {
         Player* player = Owner(GetCaster());
@@ -564,12 +660,13 @@ class spell_ascension_xoroth_ability : public SpellScript
         if (id == 801042)
         {
             PreventHitDefaultEffect(index);
-            if (Unit* unit = GetHitUnit())
-                if (Creature* corpse = unit->ToCreature(); corpse && corpse->getDeathState() == DeathState::Corpse)
-                {
-                    corpse->RemoveCorpse();
-                    player->EnergizeBySpell(player, id, 200, POWER_RAGE);
-                }
+            WorldObject* corpse = FlayTarget(player, GetSpell());
+            if (!flayed && FlayableInRange(player, corpse, FlayRange(player, GetSpell())))
+            {
+                flayed = true;
+                MarkFlayed(corpse);
+                player->EnergizeBySpell(player, id, 200, POWER_RAGE);
+            }
             return;
         }
         if (id != 524897 && id != 805966 && id != 807699 && id != 704247 && id != 706756 && id != 804774)
@@ -599,5 +696,7 @@ class spell_ascension_xoroth_ability : public SpellScript
 void AddSC_AscensionXorothAbilities()
 {
     new xoroth_casts();
+    new xoroth_flayed_corpse_death();
+    new xoroth_flayed_corpse_lifecycle();
     RegisterSpellScript(spell_ascension_xoroth_ability);
 }

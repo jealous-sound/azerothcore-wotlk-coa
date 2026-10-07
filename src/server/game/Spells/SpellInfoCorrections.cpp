@@ -5314,20 +5314,6 @@ void SpellMgr::LoadSpellInfoCorrections()
         spellInfo->Effects[EFFECT_0].TargetB = SpellImplicitTargetInfo(TARGET_UNIT_DEST_AREA_ENEMY);
     });
 
-    // CoA: Bladestorm (Rhahk'Zor, Deadmines Mythic): two hits per second, follows at 80 % speed
-    ApplySpellFix({ 2102554 }, [](SpellInfo* spellInfo)
-    {
-        spellInfo->Effects[EFFECT_0].Amplitude = 500;
-        spellInfo->Effects[EFFECT_1].BasePoints = -21; // -20%
-    });
-
-    // CoA: Whirlwind (Rhahk'Zor, Bladestorm tick): 100 % weapon damage in 5 yards instead of 75 % in 2
-    ApplySpellFix({ 2102555 }, [](SpellInfo* spellInfo)
-    {
-        spellInfo->Effects[EFFECT_0].BasePoints = 99;
-        spellInfo->Effects[EFFECT_0].RadiusEntry = sSpellRadiusStore.LookupEntry(EFFECT_RADIUS_5_YARDS);
-    });
-
     // CoA: Wing Flap (Hazzas, Morphaz, Sunken Temple): 1 s cast, damage to the cone in front plus the knockback
     // (damage per difficulty from the SmartAI kit through effect 1)
     ApplySpellFix({ 12882 }, [](SpellInfo* spellInfo)
@@ -5399,15 +5385,6 @@ void SpellMgr::LoadSpellInfoCorrections()
         spellInfo->StackAmount = 5;
     });
 
-    // CoA: The Beast (Blackrock Spire) has a 12 yard combat reach; Flamebreak and Bellowing Roar reach 10 yards from his
-    // center and never hit anyone in melee -> 20 yards
-    ApplySpellFix({ 16785, 2100439 }, [](SpellInfo* spellInfo)
-    {
-        for (uint8 i = 0; i < MAX_SPELL_EFFECTS; ++i)
-            if (spellInfo->Effects[i].RadiusEntry)
-                spellInfo->Effects[i].RadiusEntry = sSpellRadiusStore.LookupEntry(EFFECT_RADIUS_20_YARDS);
-    });
-
     // CoA: Conflagration (General Drakkisath) Heroic/Mythic tiers: a percent-of-health DoT that ticked for millions
     // here; one hit instead (Heroic 770, Mythic 1000), the panic effect stays
     ApplySpellFix({ 158874, 386225 }, [](SpellInfo* spellInfo)
@@ -5423,12 +5400,6 @@ void SpellMgr::LoadSpellInfoCorrections()
     ApplySpellFix({ 2102514 }, [](SpellInfo* spellInfo)
     {
         spellInfo->Effects[EFFECT_1].Effect = 0;
-    });
-
-    // CoA: Buzzing Saw Blade (Sneed's Shredder): the blade on the ground hits in 3 yards instead of 1
-    ApplySpellFix({ 2102565, 2102566, 2102567, 2102568 }, [](SpellInfo* spellInfo)
-    {
-        spellInfo->Effects[EFFECT_0].RadiusEntry = sSpellRadiusStore.LookupEntry(EFFECT_RADIUS_3_YARDS);
     });
 
     for (uint32 i = 0; i < GetSpellInfoStoreSize(); ++i)

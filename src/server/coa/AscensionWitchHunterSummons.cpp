@@ -1,6 +1,7 @@
 /* Copyright (C) 2016+ AzerothCore, GNU AGPL v3. */
 
 #include "AscensionWitchHunterCompletion.h"
+#include "AscensionSpecialization.h"
 #include "Creature.h"
 #include "DBCStores.h"
 #include "DynamicObject.h"
@@ -140,6 +141,14 @@ class HoundActions
             }
             if (event == EVENT_REFRESH_OWNER)
             {
+                if (!_me->getTransForm())
+                {
+                    uint32 display = GetShadowhoundDisplay(owner);
+                    if (!display)
+                        display = _me->GetNativeDisplayId();
+                    if (_me->GetDisplayId() != display)
+                        _me->SetDisplayId(display, _me->GetObjectScale());
+                }
                 float healthFraction = _me->GetHealthPct() / 100.0f;
                 uint32 maximum = std::max(1u, owner->CountPctFromMaxHealth(_me->GetEntry() == 50124 ? 40 : 20));
                 if (maximum != _me->GetMaxHealth())
@@ -388,6 +397,26 @@ struct npc_ascension_witch_hunter_field : ScriptedAI
     }
 };
 
+class aura_ascension_witch_hunter_trap_launcher : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_witch_hunter_trap_launcher);
+
+    void Synchronize(AuraEffect const*, AuraEffectHandleModes)
+    {
+        Player* player = Owner(GetTarget());
+        if (player && player == GetTarget() && GetCaster() == player)
+            SynchronizeAscensionTalentReplacements(player);
+    }
+
+    void Register() override
+    {
+        AfterEffectApply += AuraEffectApplyFn(aura_ascension_witch_hunter_trap_launcher::Synchronize,
+            EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL_OR_REAPPLY_MASK);
+        AfterEffectRemove += AuraEffectRemoveFn(aura_ascension_witch_hunter_trap_launcher::Synchronize,
+            EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
+    }
+};
+
 class spell_ascension_witch_hunter_summon : public SpellScript
 {
     PrepareSpellScript(spell_ascension_witch_hunter_summon);
@@ -464,5 +493,6 @@ void AddAscensionWitchHunterSummonScripts()
     RegisterCreatureAI(npc_ascension_witch_hunter_hound);
     RegisterCreatureAI(npc_ascension_witch_hunter_field);
     RegisterSpellScript(spell_ascension_witch_hunter_summon);
+    RegisterSpellScript(aura_ascension_witch_hunter_trap_launcher);
     RegisterSpellScript(spell_ascension_witch_hunter_smoke);
 }

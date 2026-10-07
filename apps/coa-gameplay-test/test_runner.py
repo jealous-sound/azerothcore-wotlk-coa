@@ -273,6 +273,18 @@ class RunnerTests(unittest.TestCase):
                     with self.assertRaises(ValueError):
                         run.validate(invalid)
 
+    def test_flat_coefficient_modifier_query(self):
+        self.scenario['steps'].append({'action': 'assert', 'actor': 'caster', 'metric': 'spell_effect_value',
+                                      'spell': 630874, 'flat_coefficient_modifier': 20, 'min': 0})
+        self.assertIs(run.validate(self.scenario), self.scenario)
+        for change in ({'metric': 'spell_modifier', 'op': 24, 'base': 100}, {'pet': True},
+                       {'actor': 'target'}, {'flat_coefficient_modifier': True},
+                       {'flat_coefficient_modifier': 0.5}, {'flat_coefficient_modifier': 2**31}):
+            invalid = copy.deepcopy(self.scenario)
+            invalid['steps'][-1].update(change)
+            with self.subTest(change=change), self.assertRaises(ValueError):
+                run.validate(invalid)
+
     def test_unlearn_all_specs_fixture(self):
         self.scenario['steps'].append({'action': 'unlearn', 'actor': 'caster',
                                        'spell': 116, 'all_specs': True})

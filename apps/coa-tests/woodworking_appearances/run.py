@@ -37,12 +37,14 @@ def main():
     client = source('src/server/shared/DataStores/ClientDBC.cpp')
     crafting = method(source('src/server/game/Spells/SpellEffects.cpp'), 'void Spell::DoCreateItem(')
     assert crafting.index('StoreNewItem(') < crafting.index('sScriptMgr->OnPlayerCreateItem(player, pItem, addNumber);')
+    constants = ['APPEARANCE_CATEGORY_COUNT', 'SMSG_APPEARANCE_ADDED', 'SMSG_VANITY_COLLECTION_ADDED']
+    if 'APPEARANCE_CATEGORY_SHADOWHOUND' in compat:
+        constants.append('APPEARANCE_CATEGORY_SHADOWHOUND')
     replacements = {
         'APPEARANCE_ALIASES': re.sub(r'^#include.*\n', '',
             (ROOT / 'src/server/coa/AscensionItemAppearanceAliases.cpp').read_text(), flags=re.M),
         'CONSTANTS': '\n'.join(re.search(r'^constexpr [\w:]+ ' + name + r' = [^;]+;$', compat, re.M)[0]
-                              for name in ('APPEARANCE_CATEGORY_COUNT',
-                                           'SMSG_APPEARANCE_ADDED', 'SMSG_VANITY_COLLECTION_ADDED')),
+                              for name in constants),
         'PATCH_CONSTANTS': '\n'.join(
             re.search(r'^constexpr uint16 ' + name + r' = [^;]+;$', compat, re.M)[0]
             if name in compat else f'constexpr uint16 {name} = {value};'

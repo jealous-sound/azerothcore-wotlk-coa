@@ -48,6 +48,8 @@ enum WarriorSpells
     SPELL_WARRIOR_LAST_STAND_TRIGGERED              = 12976,
     SPELL_WARRIOR_RETALIATION_DAMAGE                = 20240,
     SPELL_WARRIOR_SLAM                              = 50783,
+    SPELL_WARRIOR_STORM_SLAM                        = 903140,
+    SPELL_WARRIOR_STORM_SLAM_DAMAGE                 = 903246,
     SPELL_WARRIOR_SUNDER_ARMOR                      = 58567,
     SPELL_WARRIOR_SWEEPING_STRIKES_EXTRA_ATTACK_1   = 12723,
     SPELL_WARRIOR_SWEEPING_STRIKES_EXTRA_ATTACK_2   = 26654,
@@ -320,9 +322,14 @@ class spell_warr_slam : public SpellScript
 {
     PrepareSpellScript(spell_warr_slam);
 
-    bool Validate(SpellInfo const* /*spellInfo*/) override
+    static uint32 DamageSpell(SpellInfo const* info)
     {
-        return ValidateSpellInfo({ SPELL_WARRIOR_SLAM });
+        return info->Id == SPELL_WARRIOR_STORM_SLAM ? SPELL_WARRIOR_STORM_SLAM_DAMAGE : SPELL_WARRIOR_SLAM;
+    }
+
+    bool Validate(SpellInfo const* info) override
+    {
+        return ValidateSpellInfo({ DamageSpell(info) });
     }
 
     void SendMiss(SpellMissInfo missInfo)
@@ -333,7 +340,7 @@ class spell_warr_slam : public SpellScript
             {
                 if (Unit* target = GetHitUnit())
                 {
-                    caster->SendSpellMiss(target, SPELL_WARRIOR_SLAM, missInfo);
+                    caster->SendSpellMiss(target, DamageSpell(GetSpellInfo()), missInfo);
                 }
             }
         }
@@ -342,7 +349,8 @@ class spell_warr_slam : public SpellScript
     void HandleDummy(SpellEffIndex /*effIndex*/)
     {
         if (GetHitUnit())
-            GetCaster()->CastCustomSpell(SPELL_WARRIOR_SLAM, SPELLVALUE_BASE_POINT0, GetEffectValue(), GetHitUnit(), TRIGGERED_FULL_MASK);
+            GetCaster()->CastCustomSpell(DamageSpell(GetSpellInfo()), SPELLVALUE_BASE_POINT0, GetEffectValue(),
+                GetHitUnit(), TRIGGERED_FULL_MASK);
     }
 
     void Register() override

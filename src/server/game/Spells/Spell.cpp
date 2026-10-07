@@ -4022,6 +4022,10 @@ void Spell::_cast(bool skipCheck)
     // we must send smsg_spell_go packet before m_castItem delete in TakeCastItem()...
     SendSpellGo();
 
+    // The client starts the DBC category cooldown by itself on cast; a charged spell has none
+    if (m_spellInfo->MaxCharges && m_spellInfo->CategoryRecoveryTime && m_caster->IsPlayer())
+        m_caster->ToPlayer()->SendClearCooldown(m_spellInfo->Id, m_caster);
+
     bool resetAttackTimers = IsAutoActionResetSpell() && !m_spellInfo->HasAttribute(SPELL_ATTR2_DO_NOT_RESET_COMBAT_TIMERS);
     if (resetAttackTimers)
     {
@@ -6457,7 +6461,7 @@ SpellCastResult Spell::CheckCast(bool strict, uint32* /*param1*/, uint32* /*para
                     if (GameObject* go = m_targets.GetGOTarget())
                     {
                         lockId = go->GetGOInfo()->GetLockId();
-                        if (!lockId)
+                        if (!lockId && go->GetGoType() != GAMEOBJECT_TYPE_DOOR)
                             return SPELL_FAILED_BAD_TARGETS;
                     }
                     else if (Item* itm = m_targets.GetItemTarget())
@@ -8628,10 +8632,13 @@ SpellCastResult Spell::CanOpenLock(uint32 effIndex, uint32 lockId, SkillType& sk
 
                         // skill bonus provided by casting spell (mostly item spells)
                         // add the effect base points modifier from the spell casted (cheat lock / skeleton key etc.)
-                        if ((m_spellInfo->Effects[effIndex].TargetA.GetTarget() == TARGET_GAMEOBJECT_ITEM_TARGET || m_spellInfo->Effects[effIndex].TargetB.GetTarget() == TARGET_GAMEOBJECT_ITEM_TARGET)
-                            && !m_spellInfo->IsAbilityOfSkillType(SKILL_LOCKPICKING))
+                        SpellEffectInfo const& effect = m_spellInfo->Effects[effIndex];
+                        bool const hasClassLockBonus = m_spellInfo->Id == 570122 || m_spellInfo->Id == 804662;
+                        if ((effect.TargetA.GetTarget() == TARGET_GAMEOBJECT_ITEM_TARGET ||
+                            effect.TargetB.GetTarget() == TARGET_GAMEOBJECT_ITEM_TARGET) &&
+                            (!m_spellInfo->IsAbilityOfSkillType(SKILL_LOCKPICKING) || hasClassLockBonus))
                         {
-                            skillValue += m_spellInfo->Effects[effIndex].CalcValue();
+                            skillValue += effect.CalcValue(m_caster);
                         }
 
                         if (skillValue < reqSkillValue)
@@ -9018,8 +9025,13 @@ void Spell::PrepareTriggersExecutedOnHit()
     /// @todo: move this to scripts
     if (m_spellInfo->SpellFamilyName)
     {
+        constexpr uint32 HeavyArmsLockout = 285381;
+        constexpr uint32 SlamFamilyMask = 0x00200000;
+        bool const slamCasterLockout = m_spellInfo->SpellFamilyName == SPELLFAMILY_WARRIOR &&
+            (m_spellInfo->SpellFamilyFlags[0] & SlamFamilyMask) &&
+            m_spellInfo->ExcludeCasterAuraSpell == HeavyArmsLockout;
         SpellInfo const* excludeCasterSpellInfo = sSpellMgr->GetSpellInfo(m_spellInfo->ExcludeCasterAuraSpell);
-        if (excludeCasterSpellInfo && !excludeCasterSpellInfo->IsPositive())
+        if (excludeCasterSpellInfo && !excludeCasterSpellInfo->IsPositive() && !slamCasterLockout)
             m_preCastSpell = m_spellInfo->ExcludeCasterAuraSpell;
         SpellInfo const* excludeTargetSpellInfo = sSpellMgr->GetSpellInfo(m_spellInfo->ExcludeTargetAuraSpell);
         if (excludeTargetSpellInfo && !excludeTargetSpellInfo->IsPositive())

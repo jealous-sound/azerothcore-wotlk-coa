@@ -414,9 +414,27 @@ void StartDash(Player* player)
                    : player->HasUnitMovementFlag(MOVEMENTFLAG_STRAFE_RIGHT) ? -1
                                                                             : 0;
     float angle = forward || strafe ? std::atan2(strafe, forward) : 0;
-    Position end = player->GetPosition();
     float distance = sSpellMgr->GetSpellInfo(801929)->Effects[0].CalcRadius(player);
-    player->MovePositionToFirstCollision(end, distance > 0 ? distance : 15, angle);
+    if (distance <= 0)
+        distance = 15;
+    if (forward || strafe)
+    {
+        float rate = player->GetSpeedRate(MOVE_RUN);
+        float speed = player->GetSpeed(MOVE_RUN);
+        if (speed > 0 && speed < 35.0f)
+        {
+            float surge = rate * 35.0f / speed;
+            player->SetSpeed(MOVE_RUN, surge, true);
+            state.scheduler.Schedule(Milliseconds(uint32(1000.0f * distance / 35.0f)), [player, rate, surge](TaskContext)
+            {
+                if (player->IsInWorld() && player->GetSpeedRate(MOVE_RUN) == surge)
+                    player->SetSpeed(MOVE_RUN, rate, true);
+            });
+        }
+        return;
+    }
+    Position end = player->GetPosition();
+    player->MovePositionToFirstCollision(end, distance, angle);
     player->GetMotionMaster()->MoveCharge(end.GetPositionX(), end.GetPositionY(), end.GetPositionZ(), 35);
 }
 void UpdateDash(Player* player, uint32 diff)

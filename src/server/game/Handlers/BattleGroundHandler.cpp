@@ -706,17 +706,14 @@ void WorldSession::HandleBattlemasterJoinArena(WorldPacket& recvData)
 
     recvData >> guid >> arenaslot >> asGroup >> isRated;
 
+    LOG_DEBUG("bg.battleground", "Arena join from {}: battlemaster {}, slot {}, group {}, rated {}", _player->GetName(), guid.ToString(), arenaslot, asGroup, isRated);
+
     // can't queue for rated without a group
     if (isRated && !asGroup)
         return;
 
     // ignore if we already in BG or BG queue
     if (_player->InBattleground())
-        return;
-
-    // find creature by guid
-    Creature* unit = GetPlayer()->GetMap()->GetCreature(guid);
-    if (!unit || !unit->IsBattleMaster())
         return;
 
     // get arena type

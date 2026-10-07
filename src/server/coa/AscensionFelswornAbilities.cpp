@@ -389,7 +389,16 @@ class spell_ascension_felsworn_ability : public SpellScript
             uint32 bonus = uint32(GetSpell()->GetScriptValue(560087));
             for (uint32 index = 0; index < 3; ++index)
             {
-                Position position = player->GetNearPosition(4.0f + 7.0f * index, 0);
+                float const distance = 4.0f + 7.0f * index;
+                Position position = player->GetPosition();
+                if (player->IsInWater())
+                {
+                    position.RelocateOffset(Position(distance, 0, 0, 0));
+                    Acore::NormalizeMapCoord(position.m_positionX);
+                    Acore::NormalizeMapCoord(position.m_positionY);
+                }
+                else
+                    position = player->GetNearPosition(distance, 0);
                 State(player).scheduler.Schedule(
                     Milliseconds(index * 300), [guid, position, map, phase, bonus](TaskContext) {
                         Player* player = ObjectAccessor::FindPlayer(guid);

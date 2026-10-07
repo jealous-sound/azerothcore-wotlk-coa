@@ -18,6 +18,12 @@ int main()
     assert(!EligibleItem(0, ItemClassWeapon, 13, 0, 0, 0));
     assert(!EligibleItem(2, ItemClassArmor, 5, 12, 1, 0) && !EligibleItem(2, ItemClassArmor, 5, 12, 0, 176));
 
+    assert(IsWorldforgedDescription("@Worldforged@"));
+    assert(IsWorldforgedDescription("@Worldforged@Salvaged from Theramore."));
+    assert(!IsWorldforgedDescription("") && !IsWorldforgedDescription("@Worldforged"));
+    assert(!IsWorldforgedDescription("Mad Love."));
+    assert(!IsWorldforgedDescription("A @Worldforged@ item") && !IsWorldforgedDescription("@Refined@"));
+
     assert(QuestLift(11, 30) == 19 && QuestLift(11, 11) == 0 && QuestLift(40, 30) == 0);
     assert(QuestLift(0, 30) == 0 && QuestLift(-1, 30) == 0);
     assert(LootLift(10, 27) == 17 && LootLift(10, 0) == 0 && LootLift(30, 27) == 0);

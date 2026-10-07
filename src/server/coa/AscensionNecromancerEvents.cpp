@@ -169,6 +169,10 @@ class aura_ascension_necromancer_event : public AuraScript
                 Reduce(player, 801938, std::abs(Amount(806322)));
             if (actor->GetEntry() == 50073 && Chance(player, 503740))
                 Cast(player, actor, 707014);
+            if (melee && actor->GetEntry() == 50078 && roll_chance_i(sSpellMgr->GetSpellInfo(805023)->ProcChance))
+                Cast(actor, target, 805024);
+            if (melee && actor->GetEntry() == 503200 && actor->HasAura(531133))
+                Cast(actor, target, 531132);
             if (critical && Chance(player, 537208, 1, 1000))
                 Reduce(player, 805029, std::abs(Amount(680553)));
             if (critical && melee && Chance(player, 638403))
@@ -216,6 +220,32 @@ class aura_ascension_necromancer_event : public AuraScript
     }
 };
 
+class aura_ascension_necromancer_ghoul_mastery : public AuraScript
+{
+    PrepareAuraScript(aura_ascension_necromancer_ghoul_mastery);
+
+    bool Validate(SpellInfo const*) override
+    {
+        return ValidateSpellInfo({707014});
+    }
+
+    bool Check(ProcEventInfo& event)
+    {
+        Unit* ghoul = GetTarget();
+        Player* player = Owner(ghoul);
+        Unit* target = event.GetActionTarget();
+        DamageInfo const* damage = event.GetDamageInfo();
+        return player && GetCaster() == player && ghoul->IsCreature() && ghoul->GetEntry() == 50073 &&
+            IsMinion(player, ghoul) && event.GetActor() == ghoul && target &&
+            player->IsValidAttackTarget(target) && damage && damage->GetDamage();
+    }
+
+    void Register() override
+    {
+        DoCheckProc += AuraCheckProcFn(aura_ascension_necromancer_ghoul_mastery::Check);
+    }
+};
+
 class necromancer_defense : public UnitScript
 {
   public:
@@ -258,5 +288,6 @@ class necromancer_defense : public UnitScript
 void AddAscensionNecromancerEventScripts()
 {
     RegisterSpellScript(aura_ascension_necromancer_event);
+    RegisterSpellScript(aura_ascension_necromancer_ghoul_mastery);
     new necromancer_defense();
 }

@@ -1335,6 +1335,7 @@ void WorldSession::ReadAddonsInfo(ByteBuffer& data)
 
                 /// @todo: Find out when to not use CRC/pubkey, and other possible states.
                 m_addonsList.push_back(addon);
+                m_clientAddonNames.push_back(addon.Name);
             }
 
             uint32 currentTime;

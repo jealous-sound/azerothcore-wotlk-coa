@@ -401,7 +401,7 @@ class spell_mage_glyph_of_eternal_water : public AuraScript
         if (Unit* target = GetTarget())
             if (Player* player = target->ToPlayer())
                 if (Pet* pet = player->GetPet())
-                    if (pet->GetEntry() == NPC_WATER_ELEMENTAL_PERM)
+                    if (GetStockPetEntry(pet->GetEntry()) == NPC_WATER_ELEMENTAL_PERM)
                         pet->Remove(PET_SAVE_NOT_IN_SLOT);
     }
 

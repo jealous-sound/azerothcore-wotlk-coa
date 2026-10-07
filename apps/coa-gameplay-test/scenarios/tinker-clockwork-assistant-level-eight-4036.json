@@ -55,7 +55,8 @@
       "actor": "tinker",
       "metric": "pet_knows_spell",
       "spell": 574359,
-      "equals": 1
+      "equals": 1,
+      "within_ms": 2000
     },
     {
       "action": "snapshot",

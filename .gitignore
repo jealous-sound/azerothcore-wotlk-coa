@@ -7,6 +7,7 @@
 !/conf/dist
 /modules/*
 !/modules/mod-coa-change-potions/
+!/modules/mod-coa-mythic-plus/
 !/modules/*.md
 !/modules/*.sh
 !/modules/CMakeLists.txt
@@ -147,3 +148,4 @@ __pycache__/
 !/modules/mod-woodworking/
 !/modules/mod-portable-sawmill/
 !/modules/mod-coa-legendary-items/
+!/modules/mod-ethereal-bazaar/

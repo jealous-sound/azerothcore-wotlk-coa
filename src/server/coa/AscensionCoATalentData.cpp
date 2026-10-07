@@ -245,6 +245,9 @@ bool LoadCoATalentData()
             node.Required.clear();
         }
 
+        if (node.Entry.AECost || node.Entry.TECost)
+            std::copy(node.Required.begin(), node.Required.end(), node.Entry.RequiredEntryIds.begin());
+
         nodes.push_back(std::move(node));
     }
 
