@@ -224,7 +224,8 @@ namespace
     {
     public:
         LegendaryWorldScript() : WorldScript("coa_legendary_items_world",
-            { WORLDHOOK_ON_AFTER_CONFIG_LOAD, WORLDHOOK_ON_STARTUP }) { }
+            { WORLDHOOK_ON_AFTER_CONFIG_LOAD, WORLDHOOK_ON_STARTUP,
+              WORLDHOOK_ON_BEFORE_FINALIZE_PLAYER_WORLD_SESSION }) { }
 
         void OnAfterConfigLoad(bool) override
         {
@@ -236,6 +237,12 @@ namespace
             ++configVersion;
         }
 
+        void OnBeforeFinalizePlayerWorldSession(uint32& cacheVersion) override
+        {
+            if (enabled.load() && dataReady.load())
+                ++cacheVersion;
+        }
+
         void OnStartup() override
         {
             uint32 invalid = 0;
@@ -245,9 +252,16 @@ namespace
                 for (uint32 level = 1; level <= MaximumCreatureLevel; ++level)
                 {
                     ItemTemplate const* item = sObjectMgr->GetItemTemplate(EntryForLevel(index, level));
+                    uint32 const tooltipId = TooltipForLevel(index, level);
                     if (!item || item->RequiredLevel != level || item->ItemLevel != ItemLevel(level) ||
                         item->Quality != ITEM_QUALITY_LEGENDARY || item->ItemSet ||
-                        item->InventoryType != design.inventoryType)
+                        item->InventoryType != design.inventoryType || !item->Description.empty() ||
+                        item->Spells[0].SpellId != int32(tooltipId) ||
+                        item->Spells[0].SpellTrigger != ITEM_SPELLTRIGGER_ON_EQUIP)
+                        ++invalid;
+                    SpellInfo const* tooltip = sSpellMgr->GetSpellInfo(tooltipId);
+                    if (!tooltip || std::any_of(tooltip->Effects.begin(), tooltip->Effects.end(),
+                        [](SpellEffectInfo const& effect) { return effect.IsEffect(); }))
                         ++invalid;
                 }
                 if (!sSpellMgr->GetSpellInfo(AuraEntryBase + index))
@@ -343,7 +357,14 @@ namespace
         LegendaryPlayerScript() : PlayerScript("coa_legendary_items_player",
             { PLAYERHOOK_ON_EQUIP, PLAYERHOOK_ON_AFTER_APPLY_ITEM_MODS, PLAYERHOOK_ON_LOGIN,
               PLAYERHOOK_ON_LOGOUT, PLAYERHOOK_ON_LEVEL_CHANGED, PLAYERHOOK_ON_PLAYER_RESURRECT,
-              PLAYERHOOK_ON_PLAYER_ENTER_COMBAT, PLAYERHOOK_ON_PLAYER_LEAVE_COMBAT, PLAYERHOOK_ON_UPDATE }) { }
+              PLAYERHOOK_ON_PLAYER_ENTER_COMBAT, PLAYERHOOK_ON_PLAYER_LEAVE_COMBAT, PLAYERHOOK_ON_UPDATE,
+              PLAYERHOOK_CAN_APPLY_EQUIP_SPELL }) { }
+
+        bool OnPlayerCanApplyEquipSpell(Player*, SpellInfo const* info, Item*, bool, bool) override
+        {
+            return info->Id < TooltipEntryBase ||
+                !DecodeEntry(info->Id - TooltipEntryBase + ItemEntryBase);
+        }
 
         void OnPlayerEquip(Player* player, Item* item, uint8 bag, uint8 slot, bool) override
         {
@@ -473,7 +494,10 @@ void AddSC_coa_legendary_items()
     {
         Ascension::ClientSpellPatches::Instance().Register(AuraEntryBase + index, {}, IsEnabled);
         for (uint32 level = 1; level <= MaximumCreatureLevel; ++level)
+        {
             Ascension::ClientItemPatches::Instance().Register(EntryForLevel(index, level), {}, IsEnabled);
+            Ascension::ClientSpellPatches::Instance().Register(TooltipForLevel(index, level), {}, IsEnabled);
+        }
     }
     new LegendaryMetadataScript();
     new LegendaryWorldScript();

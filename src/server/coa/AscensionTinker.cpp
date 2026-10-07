@@ -338,6 +338,9 @@ void Refresh(Player* player)
         player->learnSpell(GatlingGun);
     else if (!suit && player->HasSpell(GatlingGun))
         player->removeSpell(GatlingGun,SPEC_MASK_ALL,false);
+    for (auto const& pair : player->GetSpellMap())
+        if (player->HasSpell(pair.first) && Named(sSpellMgr->GetSpellInfo(pair.first),500549))
+            player->SetTemporarySpellReplacement(pair.first,mech && suit ? GatlingGun : 0);
     if (!mech)
     {
         player->RemoveAurasDueToSpell(803451,player->GetGUID());

@@ -24,6 +24,7 @@
 #include "Random.h"
 #include "ScriptMgr.h"
 #include "Spell.h"
+#include "SpellAuraEffects.h"
 #include "SpellScript.h"
 #include "SpellScriptLoader.h"
 #include "SpellInfo.h"
@@ -109,6 +110,11 @@ constexpr uint32 DICE_OF_DESTINY_SPELL = 18283;
 constexpr uint32 AUTO_SHOT_ENTRY_SPELL = 965202;
 constexpr uint32 AUTO_SHOT_SPELL = 75;
 constexpr uint32 TAME_BEAST_ENTRY_SPELL = 965200;
+constexpr uint32 CAT_FORM_SPELL = 768;
+constexpr uint32 BEAR_FORM_SPELL = 5487;
+constexpr uint32 DIRE_BEAR_FORM_SPELL = 9634;
+constexpr uint32 FERAL_FORM_MASK = (1u << (FORM_CAT - 1)) | (1u << (FORM_BEAR - 1)) |
+    (1u << (FORM_DIREBEAR - 1));
 
 struct EntrySpells
 {
@@ -128,8 +134,8 @@ constexpr std::array<EntrySpells, 31> ENTRY_SPELLS = { {
     { 890, { 884, 887, 892, 109981 } },
     { 91634, { 91631, 91633, 91652, 109982 } },
     { 91606, { 91602, 91605, 91651, 109983 } },
-    { 5487, { 779, 277420 } },
-    { 768, { 1082 } },
+    { BEAR_FORM_SPELL, { 779, 277420 } },
+    { CAT_FORM_SPELL, { 1082 } },
     { 49377, { 16979, 49376 } },
     { 33917, { 33876, 33878 } },
     { 850073, { 939300 } },
@@ -589,7 +595,21 @@ uint32 FirstSpellOf(uint32 entryId)
 
 bool CanTake(Player const* player, uint32 spellId)
 {
-    return sSpellMgr->GetSpellInfo(spellId) && !player->HasSpell(spellId);
+    SpellInfo const* spell = sSpellMgr->GetSpellInfo(spellId);
+    if (!spell || player->HasSpell(spellId))
+        return false;
+
+    if (!spell->Stances || (spell->Stances & ~FERAL_FORM_MASK) ||
+        spell->CheckShapeshift(FORM_NONE) == SPELL_CAST_OK)
+        return true;
+
+    for (AuraEffect const* effect : player->GetAuraEffectsByType(SPELL_AURA_MOD_IGNORE_SHAPESHIFT))
+        if (effect->IsAffectedOnSpell(spell))
+            return true;
+
+    return ((spell->Stances & (1u << (FORM_CAT - 1))) && player->HasSpell(CAT_FORM_SPELL)) ||
+        ((spell->Stances & (1u << (FORM_BEAR - 1))) && player->HasSpell(BEAR_FORM_SPELL)) ||
+        ((spell->Stances & (1u << (FORM_DIREBEAR - 1))) && player->HasSpell(DIRE_BEAR_FORM_SPELL));
 }
 
 uint32 PrimaryStatSpell(uint32 entryId)

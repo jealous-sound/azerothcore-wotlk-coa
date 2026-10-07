@@ -2199,7 +2199,13 @@ void AuraEffect::HandleAuraModShapeshift(AuraApplication const* aurApp, uint8 mo
             uint32 oldPower = target->GetPower(PowerType);
             // reset power to default values only at power change
             if (target->getPowerType() != PowerType)
+            {
+                bool const powerAlreadyActive = target->IsPlayer() &&
+                    target->ToPlayer()->HasActivePowerType(PowerType);
                 target->setPowerType(PowerType);
+                if (powerAlreadyActive)
+                    target->SetPower(PowerType, oldPower);
+            }
 
             switch (form)
             {

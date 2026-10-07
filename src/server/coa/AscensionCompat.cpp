@@ -574,10 +574,16 @@ enum LegacyQuestSpells : uint32
 {
     QuestStoneskinTotem = 8073,
     QuestPathOfDefense = 8121,
+    QuestSummonVoidwalker = 11520,
+    QuestBearForm = 19179,
     LegacyDefensiveStance = 1100071,
     LegacyTaunt = 1100355,
     LegacySunderArmor = 1107386,
-    LegacyStoneskinTotem = 1108071
+    LegacyStoneskinTotem = 1108071,
+    LegacySummonVoidwalker = 1100697,
+    LegacyBearForm = 1105487,
+    LegacyGrowl = 1106795,
+    LegacyMaul = 1106807
 };
 
 struct LegacyQuestReward
@@ -586,9 +592,11 @@ struct LegacyQuestReward
     std::array<uint32, MAX_SPELL_EFFECTS> Spells;
 };
 
-constexpr std::array<LegacyQuestReward, 2> LegacyQuestRewards = {{
+constexpr std::array<LegacyQuestReward, 4> LegacyQuestRewards = {{
     {QuestStoneskinTotem, {LegacyStoneskinTotem, 0, 0}},
-    {QuestPathOfDefense, {LegacyDefensiveStance, LegacySunderArmor, LegacyTaunt}}
+    {QuestPathOfDefense, {LegacyDefensiveStance, LegacySunderArmor, LegacyTaunt}},
+    {QuestSummonVoidwalker, {LegacySummonVoidwalker, 0, 0}},
+    {QuestBearForm, {LegacyBearForm, LegacyGrowl, LegacyMaul}}
 }};
 
 LegacyQuestReward const* GetLegacyQuestReward(uint32 wrapper)
@@ -3813,6 +3821,7 @@ private:
       SPELL_TOOLTIP_FIELD};
   static constexpr std::size_t SPELL_WIRE_DESCRIPTION = 1;
   static constexpr std::size_t SPELL_WIRE_TOOLTIP = 3;
+  static constexpr uint32 SPELL_CASTER_AURA_SPELL_FIELD = 24;
   static constexpr uint32 SPELL_EXCLUDE_CASTER_AURA_SPELL_FIELD = 26;
   static constexpr uint32 SPELL_FAMILY_NAME_FIELD = 208;
 
@@ -4237,6 +4246,14 @@ private:
     SpellInfo const *info = sSpellMgr->GetSpellInfo(row.Values[0]);
     if (!info)
       return;
+
+    if (info->Id == AscensionSunCleric::DawnCast)
+    {
+      row.Values[SPELL_WIRE_SLOT(SPELL_CASTER_AURA_SPELL_FIELD)] = info->CasterAuraSpell;
+      row.Values[SPELL_WIRE_SLOT(SPELL_EXCLUDE_CASTER_AURA_SPELL_FIELD)] = info->ExcludeCasterAuraSpell;
+    }
+    if (info->Id == AscensionSunCleric::Dawn)
+      row.Values[4] = info->Attributes;
 
     row.Values[144] = info->SpellFamilyName;
     Ascension::ClientSpellPatches::Selector const selector =

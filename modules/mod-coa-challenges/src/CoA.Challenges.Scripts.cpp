@@ -6,7 +6,6 @@
 #include "Random.h"
 #include "AllCreatureScript.h"
 
-
 using namespace Acore::ChatCommands;
 
 namespace CoAChallenges
@@ -555,12 +554,15 @@ namespace CoAChallenges
         add("CHALLENGE_RULES_TYPE_CAST_RANGE_LIMITED_TO_MELEE", REGEN_CAST_RANGE);
         add("CHALLENGE_RULES_TYPE_NO_PORTALS", REGEN_NO_PORTALS);
 
-        std::lock_guard<std::mutex> lock(RegenMutex);
-        uint32 guid = player->GetGUID().GetCounter();
-        if (mask)
-            RegenRuleMask[guid] = mask;
-        else
-            RegenRuleMask.erase(guid);
+        {
+            std::lock_guard<std::mutex> lock(RegenMutex);
+            uint32 guid = player->GetGUID().GetCounter();
+            if (mask)
+                RegenRuleMask[guid] = mask;
+            else
+                RegenRuleMask.erase(guid);
+        }
+        player->UpdateManaRegen();
     }
 
     void UntrackRegen(Player* player)
@@ -3830,4 +3832,3 @@ void Addmod_coa_challengesScripts()
     new CoAChallenges::CoAChallengesSpells();
     new CoAChallenges::CoAChallengesAllCreature();
 }
-

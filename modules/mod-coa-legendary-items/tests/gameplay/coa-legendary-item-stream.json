@@ -5666,7 +5666,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9700029,
       "text": "Gain 82 melee and ranged attack power for 8 sec after killing a non-gray creature."
@@ -5816,7 +5816,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9700129,
       "text": "Gain 15% movement speed while out of combat."
@@ -5966,7 +5966,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9700229,
       "text": "Your Keg Smash's main hit deals 12% more damage (all ranks)."
@@ -6116,7 +6116,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9700329,
       "text": "Gain 41 spell power while at or above 80% health."
@@ -6266,7 +6266,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9700429,
       "text": "Gain 18% movement speed for 8 sec after killing a non-gray creature."
@@ -6416,7 +6416,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9700529,
       "text": "Your Bad Juju's main hit deals 12% more damage (all ranks)."
@@ -6566,7 +6566,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9700629,
       "text": "Gain 82 attack power and 41 spell power while at or below 35% health."
@@ -6738,7 +6738,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9700729,
       "text": "Gain 20% movement speed while at or below 35% health."
@@ -6910,7 +6910,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9700829,
       "text": "Your Ruin's main hit deals 12% more damage (all ranks)."
@@ -7082,7 +7082,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9700929,
       "text": "Gain 82 melee and ranged attack power for 8 sec after killing a non-gray creature."
@@ -7232,7 +7232,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9701029,
       "text": "Gain 10% movement speed while at or above 80% health."
@@ -7382,7 +7382,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9701129,
       "text": "Your Stake's main hit deals 12% more damage (all ranks)."
@@ -7532,7 +7532,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9701229,
       "text": "Gain 82 attack power and 41 spell power while at or above 80% health."
@@ -7704,7 +7704,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9701329,
       "text": "Gain 15% movement speed while out of combat."
@@ -7876,7 +7876,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9701429,
       "text": "Your Arm of Thorim's main hit deals 12% more damage (all ranks)."
@@ -8048,7 +8048,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9701529,
       "text": "Gain 82 melee and ranged attack power while at or below 35% health."
@@ -8198,7 +8198,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9701629,
       "text": "Gain 18% movement speed for 8 sec after killing a non-gray creature."
@@ -8348,7 +8348,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9701729,
       "text": "Your Chainwhip's main hit deals 12% more damage (all ranks)."
@@ -8498,7 +8498,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9701829,
       "text": "Gain 82 melee and ranged attack power for 8 sec after killing a non-gray creature."
@@ -8648,7 +8648,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9701929,
       "text": "Gain 20% movement speed while at or below 35% health."
@@ -8798,7 +8798,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9702029,
       "text": "Your Heavy Blow's main hit deals 12% more damage (all ranks)."
@@ -8948,7 +8948,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9702129,
       "text": "Gain 82 attack power and 41 spell power while at or above 80% health."
@@ -9120,7 +9120,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9702229,
       "text": "Gain 10% movement speed while at or above 80% health."
@@ -9292,7 +9292,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9702329,
       "text": "Your Reckoning's main hit deals 12% more damage (all ranks)."
@@ -9464,7 +9464,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9702429,
       "text": "Gain 41 spell power while at or below 35% health."
@@ -9614,7 +9614,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9702529,
       "text": "Gain 15% movement speed while out of combat."
@@ -9764,7 +9764,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9702629,
       "text": "Your Veinburst's main hit deals 12% more damage (all ranks)."
@@ -9914,7 +9914,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9702729,
       "text": "Gain 82 melee and ranged attack power for 8 sec after killing a non-gray creature."
@@ -10064,7 +10064,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9702829,
       "text": "Gain 18% movement speed for 8 sec after killing a non-gray creature."
@@ -10214,7 +10214,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9702929,
       "text": "Your Precision Shot's main hit deals 12% more damage (all ranks)."
@@ -10364,7 +10364,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9703029,
       "text": "Gain 41 spell power while at or above 80% health."
@@ -10514,7 +10514,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9703129,
       "text": "Gain 20% movement speed while at or below 35% health."
@@ -10664,7 +10664,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9703229,
       "text": "Your Chromatic Shard's main hit deals 12% more damage (all ranks)."
@@ -10814,7 +10814,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9703329,
       "text": "Gain 41 spell power while at or below 35% health."
@@ -10964,7 +10964,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9703429,
       "text": "Gain 10% movement speed while at or above 80% health."
@@ -11114,7 +11114,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9703529,
       "text": "Gain 41 spell power while in combat."
@@ -11264,7 +11264,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9703629,
       "text": "Gain 41 spell power for 8 sec after killing a non-gray creature."
@@ -11414,7 +11414,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9703729,
       "text": "Gain 15% movement speed while out of combat."
@@ -11564,7 +11564,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9703829,
       "text": "Your Firefall's main hit deals 12% more damage (all ranks)."
@@ -11714,7 +11714,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9703929,
       "text": "Gain 82 attack power and 41 spell power while at or above 80% health."
@@ -11886,7 +11886,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9704029,
       "text": "Gain 18% movement speed for 8 sec after killing a non-gray creature."
@@ -12058,7 +12058,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9704129,
       "text": "Your Malevolence's main hit deals 12% more damage (all ranks)."
@@ -12230,7 +12230,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9704229,
       "text": "Gain 41 spell power while at or below 35% health."
@@ -12380,7 +12380,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9704329,
       "text": "Gain 20% movement speed while at or below 35% health."
@@ -12530,7 +12530,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9704429,
       "text": "Your Starcall's main hit deals 12% more damage (all ranks)."
@@ -12680,7 +12680,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9704529,
       "text": "Gain 41 spell power for 8 sec after killing a non-gray creature."
@@ -12830,7 +12830,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9704629,
       "text": "Gain 10% movement speed while at or above 80% health."
@@ -12980,7 +12980,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9704729,
       "text": "Your Dawnsear's main hit deals 12% more damage (all ranks)."
@@ -13130,7 +13130,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9704829,
       "text": "Gain 82 attack power and 41 spell power while at or above 80% health."
@@ -13302,7 +13302,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9704929,
       "text": "Gain 15% movement speed while out of combat."
@@ -13474,7 +13474,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9705029,
       "text": "Your Bomb Toss's main hit deals 12% more damage (all ranks)."
@@ -13646,7 +13646,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9705129,
       "text": "Gain 41 spell power while at or below 35% health."
@@ -13796,7 +13796,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9705229,
       "text": "Gain 18% movement speed for 8 sec after killing a non-gray creature."
@@ -13946,7 +13946,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9705329,
       "text": "Your Widowmaker's main hit deals 12% more damage (all ranks)."
@@ -14096,7 +14096,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9705429,
       "text": "Gain 82 melee and ranged attack power for 8 sec after killing a non-gray creature."
@@ -14246,7 +14246,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9705529,
       "text": "Gain 20% movement speed while at or below 35% health."
@@ -14396,7 +14396,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9705629,
       "text": "Your Doomrend's main hit deals 12% more damage (all ranks)."
@@ -14546,7 +14546,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9705729,
       "text": "Gain 82 attack power and 41 spell power while at or above 80% health."
@@ -14718,7 +14718,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9705829,
       "text": "Gain 10% movement speed while at or above 80% health."
@@ -14890,7 +14890,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9705929,
       "text": "Your Seismic Smash's main hit deals 12% more damage (all ranks)."
@@ -15062,7 +15062,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9706029,
       "text": "Gain 41 spell power while at or below 35% health."
@@ -15212,7 +15212,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9706129,
       "text": "Gain 15% movement speed while out of combat."
@@ -15362,7 +15362,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9706229,
       "text": "Your Glyphic Ruin's main hit deals 12% more damage (all ranks)."
@@ -15512,7 +15512,7 @@
       "action": "assert",
       "actor": "viewer",
       "metric": "server_packet_contains",
-      "equals": 1,
+      "equals": 0,
       "opcode": 88,
       "row": 9706329,
       "text": "Gain 20% armor while at or below 35% health."

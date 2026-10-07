@@ -2,7 +2,7 @@
   "schema": 1,
   "name": "Normal Ice Engraving triggers stack Icebound Momentum and its extra Frost hit (#6354)",
   "contract": "Native Ice Engraving hits apply the owner-specific twelve-second Icebound Momentum debuff, capped at eight stacks. Normal Primordial Blast then copies eight percent of its resolved damage as Frost once, without a second crit. Another Runemaster cannot use that owner\u2019s debuff. Expiry stops the copies.",
-  "timeout_ms": 300000,
+  "timeout_ms": 480000,
   "location": {
     "map": 0,
     "x": -8949.95,
@@ -156,6 +156,16 @@
       "within_ms": 40000
     },
     {
+      "action": "assert",
+      "label": "Eight active stacks before the eight-percent copy",
+      "actor": "enemy",
+      "metric": "aura_stacks",
+      "spell": 712490,
+      "caster": "p",
+      "equals": 8,
+      "within_ms": 180000
+    },
+    {
       "action": "stop_attack",
       "actor": "p"
     },
@@ -165,7 +175,7 @@
       "metric": "aura_stacks",
       "spell": 712490,
       "caster": "p",
-      "max": 8
+      "equals": 8
     },
     {
       "action": "set_aura",
