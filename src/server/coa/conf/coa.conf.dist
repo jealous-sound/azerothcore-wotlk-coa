@@ -317,14 +317,25 @@ Ascension.CallboardCache.ItemLevelAllowance = 6
 
 #
 #    Ascension.CallboardCache.CachePoints
-#        Description: Callboard Cache progress points that pay one cache of the released
-#                     stage. Each Callboard quest adds its points from
-#                     ascension_callboard_quest_points; a full bar pays the stage's cache
-#                     (a Heroic Dungeon Callboard Cache at stage 0, the raid's named cache
-#                     above it) and the remainder carries over.
+#        Description: Callboard Cache progress points that pay one cache. Each Callboard
+#                     quest adds its points from ascension_callboard_quest_points; a full
+#                     bar pays the cache of the highest released ascension_callboard_cache_tier
+#                     row at or below the character's highest average item level reached,
+#                     and the remainder carries over. The client shows a tenth of every
+#                     amount: a 150-point bar as 15, a 25-point quest as 3 (rounded up).
 #        Default:     150
 
 Ascension.CallboardCache.CachePoints = 150
+
+#
+#    Ascension.CallboardCache.GoldMin
+#    Ascension.CallboardCache.GoldMax
+#        Description: Gold paid on top of the item when a Callboard Cache opens, rolled
+#                     between these two amounts. GoldMax 0 pays no gold.
+#        Default:     5, 15
+
+Ascension.CallboardCache.GoldMin = 5
+Ascension.CallboardCache.GoldMax = 15
 
 #
 #    CoA.DungeonTuning.Enable

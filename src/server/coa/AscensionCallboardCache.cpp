@@ -4,6 +4,7 @@
 #include "Chat.h"
 #include "Config.h"
 #include "DatabaseEnv.h"
+#include "GameTime.h"
 #include "Item.h"
 #include "ItemScript.h"
 #include "Log.h"
@@ -35,6 +36,9 @@ constexpr uint16 SMSG_CALLBOARD_QUEST_POINTS = 0x0732;
 constexpr uint16 SMSG_CALLBOARD_TOKEN_UPDATE = 0x0670;
 constexpr char CallboardPointsToken[] = "TOKEN_TYPE_CALLBOARD_CACHE_POINTS";
 constexpr char CallboardPointsSetting[] = "core.callboard.points";
+constexpr char CallboardItemLevelSetting[] = "core.callboard.itemlevel";
+constexpr uint32 HighestItemLevelReachedCriterion = 80129;
+constexpr uint32 PointsPerDisplayedPoint = 10;
 
 std::vector<std::vector<uint32>> const CallboardTiers = {
     { 1615001, 1615002 },
@@ -49,15 +53,25 @@ std::vector<std::vector<uint32>> const CallboardTiers = {
 
 using CallboardPool = std::vector<AscensionCacheRewards::Reward>;
 
+struct CacheTier
+{
+    uint32 itemLevel;
+    uint8 releaseStage;
+    uint32 cacheItemId;
+};
+
 std::mutex g_poolLock;
 std::unordered_map<uint32, CallboardPool> g_pools;
 
 std::unordered_map<uint32, uint32> g_questPoints;
+std::vector<CacheTier> g_cacheTiers;
 
 uint8 g_releaseStage = 7;
 uint32 g_itemLevelAllowance = 6;
 bool g_previousStageOnly = false;
 uint32 g_cachePoints = 150;
+uint32 g_goldMin = 5;
+uint32 g_goldMax = 15;
 
 void LoadCallboardQuestPoints()
 {
@@ -81,13 +95,39 @@ void LoadCallboardQuestPoints()
     g_questPoints = std::move(questPoints);
 }
 
+void LoadCallboardCacheTiers()
+{
+    std::vector<CacheTier> tiers;
+    if (QueryResult result = WorldDatabase.Query(
+            "SELECT `ItemLevel`, `ReleaseStage`, `CacheItemId` FROM `ascension_callboard_cache_tier` "
+            "ORDER BY `ItemLevel` DESC"))
+    {
+        do
+        {
+            Field* fields = result->Fetch();
+            tiers.push_back({ fields[0].Get<uint16>(), fields[1].Get<uint8>(), fields[2].Get<uint32>() });
+        } while (result->NextRow());
+    }
+    else
+    {
+        LOG_WARN("coa",
+            "ascension_callboard_cache_tier is missing: a full Callboard progress bar will not pay a cache.");
+    }
+
+    std::lock_guard<std::mutex> guard(g_poolLock);
+    g_cacheTiers = std::move(tiers);
+}
+
 void LoadCallboardCachePools()
 {
     g_releaseStage = uint8(sConfigMgr->GetOption<uint32>("Ascension.CallboardCache.ReleaseStage", 7));
     g_itemLevelAllowance = sConfigMgr->GetOption<uint32>("Ascension.CallboardCache.ItemLevelAllowance", 6);
     g_previousStageOnly = sConfigMgr->GetOption<bool>("Ascension.CallboardCache.PreviousStageOnly", false);
     g_cachePoints = std::max<uint32>(1, sConfigMgr->GetOption<uint32>("Ascension.CallboardCache.CachePoints", 150));
+    g_goldMin = sConfigMgr->GetOption<uint32>("Ascension.CallboardCache.GoldMin", 5);
+    g_goldMax = std::max(g_goldMin, sConfigMgr->GetOption<uint32>("Ascension.CallboardCache.GoldMax", 15));
     LoadCallboardQuestPoints();
+    LoadCallboardCacheTiers();
 
     std::unordered_map<uint32, CallboardPool> pools;
     if (QueryResult result = WorldDatabase.Query(
@@ -200,6 +240,16 @@ bool PickReward(Player* player, CallboardPool const& pool, uint32 averageItemLev
     return true;
 }
 
+void GrantGold(Player* player, uint32 copper)
+{
+    if (!player->ModifyMoney(int32(copper)))
+        return;
+
+    WorldPacket notice(SMSG_LOOT_MONEY_NOTIFY, 4 + 1);
+    notice << copper << uint8(1);
+    player->SendDirectMessage(&notice);
+}
+
 bool OpenCallboardCache(Player* player, Item* item)
 {
     uint32 cacheItemId = item->GetEntry();
@@ -224,7 +274,8 @@ bool OpenCallboardCache(Player* player, Item* item)
     }
 
     std::vector<AscensionCacheRewards::Reward> payout = { reward };
-    AscensionCacheRewards::Deliver(player, payout, item);
+    if (AscensionCacheRewards::Deliver(player, payout, item) && g_goldMax)
+        GrantGold(player, urand(g_goldMin, g_goldMax) * GOLD);
 
     return true;
 }
@@ -236,9 +287,23 @@ uint32 QuestPoints(uint32 questId)
     return it == g_questPoints.end() ? 0 : it->second;
 }
 
-uint32 OpenTierCache()
+std::vector<CacheTier> ReleasedCacheTiers()
 {
-    return CallboardTiers[ReleasedStage()].front();
+    uint8 const stage = ReleasedStage();
+    std::vector<CacheTier> released;
+    std::lock_guard<std::mutex> guard(g_poolLock);
+    for (CacheTier const& tier : g_cacheTiers)
+        if (tier.releaseStage <= stage)
+            released.push_back(tier);
+    return released;
+}
+
+uint32 CacheForItemLevel(uint32 itemLevel)
+{
+    for (CacheTier const& tier : ReleasedCacheTiers())
+        if (tier.itemLevel <= itemLevel)
+            return tier.cacheItemId;
+    return 0;
 }
 
 uint32 PointsPerCache()
@@ -252,10 +317,20 @@ uint32 StoredPoints(Player const* player)
     return stored && !stored->empty() ? stored->front().value : 0;
 }
 
+uint32 DisplayedProgress(uint32 points)
+{
+    return points / PointsPerDisplayedPoint;
+}
+
+uint32 DisplayedQuestPoints(uint32 points)
+{
+    return (points + PointsPerDisplayedPoint - 1) / PointsPerDisplayedPoint;
+}
+
 void SendPoints(Player* player, uint32 points)
 {
     WorldPacket update(SMSG_CALLBOARD_TOKEN_UPDATE, sizeof(CallboardPointsToken) + 2 * sizeof(uint32));
-    update << CallboardPointsToken << points << uint32(0);
+    update << CallboardPointsToken << DisplayedProgress(points) << uint32(0);
     player->SendDirectMessage(&update);
 }
 
@@ -265,11 +340,49 @@ void SetPoints(Player* player, uint32 points)
     SendPoints(player, points);
 }
 
+uint32 ReachedItemLevel(Player const* player)
+{
+    PlayerSettingVector const* stored = player->FindPlayerSettings(CallboardItemLevelSetting);
+    return stored && !stored->empty() ? stored->front().value : 0;
+}
+
+void SendReachedItemLevel(Player* player, uint32 itemLevel)
+{
+    WorldPacket update(SMSG_CRITERIA_UPDATE, 4 + 8 + 8 + 4 + 4 + 4 + 4);
+    update << HighestItemLevelReachedCriterion;
+    update.appendPackGUID(itemLevel);
+    update << player->GetPackGUID();
+    update << uint32(0);
+    update.AppendPackedTime(GameTime::GetGameTime().count());
+    update << uint32(0) << uint32(0);
+    player->SendDirectMessage(&update);
+}
+
+bool RaiseReachedItemLevel(Player* player)
+{
+    uint32 const equipped = uint32(player->GetAverageItemLevel());
+    if (equipped <= ReachedItemLevel(player))
+        return false;
+
+    player->UpdatePlayerSetting(CallboardItemLevelSetting, 0, equipped);
+    return true;
+}
+
+void TrackReachedItemLevel(Player* player)
+{
+    if (RaiseReachedItemLevel(player))
+        SendReachedItemLevel(player, ReachedItemLevel(player));
+}
+
 void SendCacheConfig(Player* player)
 {
-    WorldPacket config(SMSG_CALLBOARD_CACHE_CONFIG, 7 * sizeof(uint32));
-    config << uint32(1);
-    config << uint32(1) << uint32(0) << uint32(0) << uint32(0) << OpenTierCache() << PointsPerCache();
+    std::vector<CacheTier> const tiers = ReleasedCacheTiers();
+    WorldPacket config(SMSG_CALLBOARD_CACHE_CONFIG, (1 + 6 * tiers.size()) * sizeof(uint32));
+    config << uint32(tiers.size());
+    uint32 recordId = 0;
+    for (CacheTier const& tier : tiers)
+        config << ++recordId << uint32(0) << uint32(0) << tier.itemLevel << tier.cacheItemId
+               << DisplayedProgress(PointsPerCache());
     player->SendDirectMessage(&config);
 }
 
@@ -306,8 +419,9 @@ void AwardQuestPoints(Player* player, uint32 questId)
     uint32 points = StoredPoints(player) + award;
     SetPoints(player, points);
 
-    uint32 const cacheItemId = OpenTierCache();
-    if (!sObjectMgr->GetItemTemplate(cacheItemId))
+    TrackReachedItemLevel(player);
+    uint32 const cacheItemId = CacheForItemLevel(ReachedItemLevel(player));
+    if (!cacheItemId || !sObjectMgr->GetItemTemplate(cacheItemId))
         return;
 
     uint32 const threshold = PointsPerCache();
@@ -326,7 +440,7 @@ bool HandleQuestPointsQuery(WorldSession* session, WorldPacket const& packet)
 
     uint32 const questId = packet.read<uint32>(0);
     WorldPacket reply(SMSG_CALLBOARD_QUEST_POINTS, 3 * sizeof(uint32));
-    reply << questId << QuestPoints(questId) << uint32(0);
+    reply << questId << DisplayedQuestPoints(QuestPoints(questId)) << uint32(0);
     session->SendPacket(&reply);
     return true;
 }
@@ -334,6 +448,7 @@ bool HandleQuestPointsQuery(WorldSession* session, WorldPacket const& packet)
 void SendProgressState(Player* player)
 {
     SendCacheConfig(player);
+    SendReachedItemLevel(player, ReachedItemLevel(player));
     SendPoints(player, StoredPoints(player));
 }
 
@@ -368,10 +483,11 @@ public:
     ascension_callboard_cache_progress()
         : PlayerScript("ascension_callboard_cache_progress",
               { PLAYERHOOK_ON_LOGIN, PLAYERHOOK_ON_SEND_INITIAL_PACKETS_BEFORE_ADD_TO_MAP,
-                PLAYERHOOK_ON_PLAYER_COMPLETE_QUEST }) { }
+                PLAYERHOOK_ON_PLAYER_COMPLETE_QUEST, PLAYERHOOK_ON_EQUIP }) { }
 
     void OnPlayerLogin(Player* player) override
     {
+        RaiseReachedItemLevel(player);
         SendProgressState(player);
     }
 
@@ -384,6 +500,12 @@ public:
     void OnPlayerCompleteQuest(Player* player, Quest const* quest) override
     {
         AwardQuestPoints(player, quest->GetQuestId());
+    }
+
+    void OnPlayerEquip(Player* player, Item*, uint8, uint8, bool) override
+    {
+        if (player->IsInWorld())
+            TrackReachedItemLevel(player);
     }
 };
 
