@@ -52,6 +52,7 @@ void AddAscensionScalingBaseScripts();
 void AddCoABugReportScripts();
 void AddCoAPlayerTicketScripts();
 void AddAscensionWildcardScripts();
+void AddSC_AscensionWildcardRecuperate();
 void AddAscensionFreepickScripts();
 void AddAscensionMysticEnchantScripts();
 void AddAscensionWarcraftRebornScripts();
@@ -600,6 +601,7 @@ void AddCoAScripts()
     AddCoABugReportScripts();
     AddCoAPlayerTicketScripts();
     AddAscensionWildcardScripts();
+    AddSC_AscensionWildcardRecuperate();
     AddAscensionFreepickScripts();
     AddAscensionMysticEnchantScripts();
     AddAscensionWarcraftRebornScripts();
