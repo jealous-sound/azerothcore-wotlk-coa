@@ -3,16 +3,16 @@
   "name": "Tinker: controlled mechanicals assist in Defensive mode (#4110)",
   "contract": [
     "Control Mechanical 807846 is granted at level 24 by AscensionCustomClassData and the class trainer.",
-    "Spell.dbc applies the native charm aura to a mechanical, plus 25% attack speed and 2% maximum-health",
-    "damage every three seconds. A level-27 Tinker must normally acquire and cast it on Harvest Reaper 115 (a",
-    "mechanical using SmartAI). An explicit native Attack command first proves the charm can deal damage, and",
-    "Stay clears that command while the mechanical remains within melee range. After a normal Defensive",
-    "reaction request, the controlled unit must assist the owner in combat, as PetAI OwnerAttacked and",
-    "OwnerAttackedBy require for a defensive charm. The owner starts a normal melee attack, then stops. Only",
-    "the controlled mechanical can continue reducing the passive enemy's health after that snapshot, while its",
-    "short-circuit aura remains active. Reaction changes use CMSG_PET_ACTION, never direct AI or threat",
-    "fixtures. The client pet bar is not rendered. The native Abandon command must release control, remove the",
-    "short-circuit aura and stop attacking the former owners enemy."
+    "Spell.dbc applies the native charm aura to a mechanical, plus 25% attack speed and 2% maximum-health damage",
+    "every three seconds. A level-27 Tinker must normally acquire and cast it on Harvest Reaper 115 (a mechanical",
+    "using SmartAI). An explicit native Attack command first proves the charm can deal damage, and Passive stops",
+    "that explicit attack; the cleared victim is asserted before Stay and a normal Defensive reaction request,",
+    "the controlled unit must assist the owner in combat, as PetAI OwnerAttacked and OwnerAttackedBy require for",
+    "a defensive charm. The owner starts a normal melee attack, then stops. Only the controlled mechanical can",
+    "continue reducing the passive enemy's health after that snapshot, while its short-circuit aura remains",
+    "active. Reaction changes use CMSG_PET_ACTION, never direct AI or threat fixtures. The client pet bar is not",
+    "rendered. The native Abandon command must release control, remove the short-circuit aura and stop attacking",
+    "the former owners enemy."
   ],
   "timeout_ms": 90000,
   "location": {
@@ -123,13 +123,40 @@
           "actor_guid": "mechanical"
         },
         {
+          "u32": 100663296
+        },
+        {
+          "u64": 0
+        }
+      ],
+      "label": "Native Passive stops the preceding explicit attack"
+    },
+    {
+      "action": "assert",
+      "actor": "mechanical",
+      "metric": "victim",
+      "target": "enemy",
+      "equals": 0,
+      "within_ms": 2000,
+      "label": "The earlier explicit target is cleared before testing Defensive assistance"
+    },
+    {
+      "action": "client_packet",
+      "actor": "tinker",
+      "opcode": 373,
+      "consumed": false,
+      "fields": [
+        {
+          "actor_guid": "mechanical"
+        },
+        {
           "u32": 117440512
         },
         {
           "u64": 0
         }
       ],
-      "label": "Native Stay clears the explicit attack command in melee range"
+      "label": "Native Stay holds the mechanical within melee range"
     },
     {
       "action": "wait",
@@ -152,6 +179,18 @@
         }
       ],
       "label": "Native Defensive reaction for the charmed mechanical"
+    },
+    {
+      "action": "wait",
+      "ms": 500
+    },
+    {
+      "action": "assert",
+      "actor": "mechanical",
+      "metric": "victim",
+      "target": "enemy",
+      "equals": 0,
+      "label": "Defensive starts with no inherited explicit-attack victim"
     },
     {
       "action": "attack",
