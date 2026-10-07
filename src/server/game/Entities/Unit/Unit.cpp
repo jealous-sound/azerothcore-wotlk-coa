@@ -11329,10 +11329,12 @@ private:
     uint32 _type;
 };
 
-// CoA: NPCs never resist only some schools (fire elementals to fire, etc.); full invulnerability stays.
+// CoA: NPCs are never spell or damage immune to only some schools (fire elementals to fire, etc.);
+// full invulnerability stays.
 static bool IsIgnoredCreatureSchoolImmunity(Unit const* unit, uint32 op, uint32 schoolMask)
 {
-    return op == IMMUNITY_SCHOOL && unit->IsCreature() && !unit->IsCharmedOwnedByPlayerOrPlayer() &&
+    return (op == IMMUNITY_SCHOOL || op == IMMUNITY_DAMAGE) && unit->IsCreature() &&
+        !unit->IsCharmedOwnedByPlayerOrPlayer() &&
         (schoolMask & SPELL_SCHOOL_MASK_ALL) != SPELL_SCHOOL_MASK_ALL;
 }
 
