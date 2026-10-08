@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "name": "Termites in Teldrassil: the map marks the den and the queen, not only the turn-in",
-  "contract": "Quest 1660074 'Termites in Teldrassil' is finished by killing 10 Barkshredder Termites 162876 and the single Barkshredder Queen 162877 (RequiredNpcOrGo1 and 2) in the den CoA cut under Dolanaar, but the only quest_poi row it carried was the turn-in pin rev_20260924_60_coa_quest_markers.sql wrote (id 0, ObjectiveIndex -1, at Kaladir), so a player carrying the open quest saw nothing on the world map for either objective (#6914, reported by a level 12 Sun Cleric standing at the giver). This case asks the server for the quest's points with the CMSG_QUEST_POI_QUERY a real client sends and reads SMSG_QUEST_POI_QUERY_RESPONSE itself, so the whole server-to-client path is covered rather than the database rows. The first query is a control for 1660075 'Stay a While', a Teldrassil quest this character does not carry, which must come back with no points at all even though it has a pin of its own; the second is 1660074, which must answer with its unchanged turn-in pin followed by the termite area (ObjectiveIndex 0) and the queen's pin (ObjectiveIndex 1) on Teldrassil (WorldMapAreaId 41, the value the pin and every stock Teldrassil quest use). Both marker points are the client's own QuestSuperTrack nodes for this quest - 8786 at the crater floor by the den mouth, 8787 in the bottom chamber where the Queen's spawn stands - so the map and the client's 3D arrow agree. The last two steps walk the player onto a real den spawn of each objective and show that a living termite and the living queen stand within 60 yd of the ground the markers cover, which is the only way the objectives can be found in game.",
+  "name": "Termites in Teldrassil: the map marks the den and the queen, not only the turn-in, at bug size",
+  "contract": "Quest 1660074 'Termites in Teldrassil' is finished by killing 10 Barkshredder Termites 162876 and the single Barkshredder Queen 162877 (RequiredNpcOrGo1 and 2) in the den CoA cut under Dolanaar, but the only quest_poi row it carried was the turn-in pin rev_20260924_60_coa_quest_markers.sql wrote (id 0, ObjectiveIndex -1, at Kaladir), so a player carrying the open quest saw nothing on the world map for either objective (#6914, reported by a level 12 Sun Cleric standing at the giver). This case asks the server for the quest's points with the CMSG_QUEST_POI_QUERY a real client sends and reads SMSG_QUEST_POI_QUERY_RESPONSE itself, so the whole server-to-client path is covered rather than the database rows. The first query is a control for 1660075 'Stay a While', a Teldrassil quest this character does not carry, which must come back with no points at all even though it has a pin of its own; the second is 1660074, which must answer with its unchanged turn-in pin followed by the termite area (ObjectiveIndex 0) and the queen's pin (ObjectiveIndex 1) on Teldrassil (WorldMapAreaId 41, the value the pin and every stock Teldrassil quest use). Both marker points are the client's own QuestSuperTrack nodes for this quest - 8786 at the crater floor by the den mouth, 8787 in the bottom chamber where the Queen's spawn stands - so the map and the client's 3D arrow agree. The last steps walk the player onto a real den spawn of each objective and show that a living termite and the living queen stand within 60 yd of the ground the markers cover, which is the only way the objectives can be found in game. They also pin the size the quest shipped with: at creature_template_model.DisplayScale 1 the termite's Silithid model (display 11091, CreatureDisplayInfo scale 1.15) stands 4.73 yd wide and 2.75 yd tall against the queen's 1.73 x 1.63 (display 141829, scale 0.20), so the termite template must now carry 0.45 while the queen stays at 1 - the discriminating and control assertions at the end.",
   "timeout_ms": 120000,
   "location": {
     "map": 1,
@@ -436,6 +436,25 @@
       "entry": 162877,
       "min": 1,
       "within_ms": 10000
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING: the termites no longer stand 2.7 times the queen's width - the template's DisplayScale is now 0.45, where the quest shipped it at 1",
+      "actor": "c",
+      "metric": "creature_model_scale",
+      "entry": 162876,
+      "min": 0.4499,
+      "max": 0.4501,
+      "within_ms": 4000
+    },
+    {
+      "action": "assert",
+      "label": "CONTROL: the queen's own size is untouched at DisplayScale 1",
+      "actor": "c",
+      "metric": "creature_model_scale",
+      "entry": 162877,
+      "equals": 1,
+      "within_ms": 4000
     }
   ]
 }

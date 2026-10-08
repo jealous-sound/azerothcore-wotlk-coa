@@ -1,0 +1,25 @@
+-- CoA: the Barkshredder Termites of 1660074 'Termites in Teldrassil' stood 2.7 times the width of
+-- the Barkshredder Queen they guard.
+--
+-- Both creatures ship at creature_template_model.DisplayScale 1, so the difference is the models the
+-- client gives them:
+--   162876 Barkshredder Termite  display 11091  ->  CreatureModelData 36     'Creature\SILITHID\Silithid.mdx'
+--      CreatureDisplayInfo 11091 scales it 1.15, so its bounds
+--      X -2.6846..1.4295 (4.115 yd), Y -1.7083..1.7077 (3.416 yd), Z -0.0144..2.3749 (2.389 yd)
+--      reach 4.73 x 3.93 x 2.75 yd (collision height 2.083).
+--   162877 Barkshredder Queen    display 141829 ->  CreatureModelData 112945  'creature\mantidtank\mantidtank_low01.m2'
+--      CreatureDisplayInfo 141829 scales it 0.20, so its bounds
+--      X -4.2880..4.3529 (8.641 yd), Y -4.0655..4.1490 (8.215 yd), Z 0.0518..8.1815 (8.130 yd)
+--      reach 1.73 x 1.64 x 1.63 yd (collision height 2.031).
+-- (SOURCED-CLIENT: raw/tables/CreatureDisplayInfo and CreatureModelData of the CoA client; the
+-- bounds are CreatureModelData's own collision box, and both models carry model scale 1.0.)
+--
+-- At DisplayScale 1 the termites therefore stand 4.73 yd wide and 2.75 yd tall against the queen's
+-- 1.73 x 1.63 - bigger than the tunnelled den they live in and bigger than the mobs players meet
+-- anywhere else in Dolanaar. 0.45 puts a termite at 1.85 x 1.54 x 1.08 yd, which is the queen's
+-- footprint to within a tenth of a yard while staying a low, wide bug: 39% of the size the quest
+-- shipped with. It is one template, so all 31 den spawns (guids 9007403-9007433) shrink together.
+--
+-- Idempotent: a fixed-value update of the exact key.
+
+UPDATE `creature_template_model` SET `DisplayScale` = 0.45 WHERE `CreatureID` = 162876 AND `Idx` = 0;
