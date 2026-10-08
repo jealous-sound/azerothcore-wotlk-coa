@@ -6629,6 +6629,36 @@ bool Unit::HasAuras(SearchMethod sm, std::vector<uint32>& spellIds) const
     }
 }
 
+bool Unit::HasAuraOrTwin(uint32 spellId, ObjectGuid casterGUID) const
+{
+    for (uint32 relative : sSpellMgr->GetSpellAndRelatives(spellId))
+        if (HasAura(relative, casterGUID))
+            return true;
+    return false;
+}
+
+Aura* Unit::GetAuraOfRankedSpellOrTwin(uint32 spellId, ObjectGuid casterGUID) const
+{
+    for (uint32 relative : sSpellMgr->GetSpellAndRelatives(spellId))
+        if (Aura* aura = GetAuraOfRankedSpell(relative, casterGUID))
+            return aura;
+    return nullptr;
+}
+
+AuraEffect* Unit::GetAuraEffectOfRankedSpellOrTwin(uint32 spellId, uint8 effIndex, ObjectGuid casterGUID) const
+{
+    for (uint32 relative : sSpellMgr->GetSpellAndRelatives(spellId))
+        if (AuraEffect* effect = GetAuraEffectOfRankedSpell(relative, effIndex, casterGUID))
+            return effect;
+    return nullptr;
+}
+
+void Unit::RemoveAurasDueToSpellOrTwin(uint32 spellId)
+{
+    for (uint32 relative : sSpellMgr->GetSpellAndRelatives(spellId))
+        RemoveAurasDueToSpell(relative);
+}
+
 bool Unit::HasAura(uint32 spellId, ObjectGuid casterGUID, ObjectGuid itemCasterGUID, uint8 reqEffMask) const
 {
     if (GetAuraApplication(spellId, casterGUID, itemCasterGUID, reqEffMask))

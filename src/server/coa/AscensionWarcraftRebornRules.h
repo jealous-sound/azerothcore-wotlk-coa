@@ -82,6 +82,14 @@ using SpellLayoutOf = std::function<std::optional<SpellLayout>(std::uint32_t spe
 
 std::vector<std::pair<std::uint32_t, std::uint32_t>> SpellTwins(std::uint32_t spellCount, SpellLayoutOf const& layout);
 
+std::vector<std::pair<std::uint32_t, std::uint32_t>> SpellNamesakes(std::uint32_t spellCount, SpellLayoutOf const& layout);
+
+using LaterRanks = std::function<std::vector<std::uint32_t>(std::uint32_t spellId)>;
+using FirstRank = std::function<std::uint32_t(std::uint32_t spellId)>;
+
+std::vector<std::pair<std::uint32_t, std::uint32_t>> RankTwins(std::vector<std::pair<std::uint32_t, std::uint32_t>> const& twins,
+    LaterRanks const& laterRanks, FirstRank const& firstRank, SpellLayoutOf const& layout);
+
 std::vector<TrainerSpell> TrainerSpells(Data const& data, AscensionFreepick::Realm const& realm, std::uint32_t classId,
     std::vector<TrainerSpell> const& stock, SpellExists const& exists, RebornRow const& reborn);
 }

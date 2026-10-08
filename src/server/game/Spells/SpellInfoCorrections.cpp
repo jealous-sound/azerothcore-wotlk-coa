@@ -22,6 +22,28 @@
 #include "SpellInfo.h"
 #include "SpellMgr.h"
 
+inline bool SameSpellTuning(SpellInfo const* first, SpellInfo const* second)
+{
+    for (uint8 i = 0; i < MAX_SPELL_EFFECTS; ++i)
+    {
+        SpellEffectInfo const& a = first->Effects[i];
+        SpellEffectInfo const& b = second->Effects[i];
+        if (a.BasePoints != b.BasePoints || a.DieSides != b.DieSides || a.RealPointsPerLevel != b.RealPointsPerLevel ||
+            a.PointsPerComboPoint != b.PointsPerComboPoint || a.ValueMultiplier != b.ValueMultiplier ||
+            a.DamageMultiplier != b.DamageMultiplier || a.BonusMultiplier != b.BonusMultiplier || a.Amplitude != b.Amplitude ||
+            a.MiscValue != b.MiscValue || a.MiscValueB != b.MiscValueB || a.RadiusEntry != b.RadiusEntry ||
+            a.ChainTarget != b.ChainTarget)
+            return false;
+    }
+    return first->DurationEntry == second->DurationEntry && first->RangeEntry == second->RangeEntry &&
+        first->CastTimeEntry == second->CastTimeEntry && first->RecoveryTime == second->RecoveryTime &&
+        first->CategoryRecoveryTime == second->CategoryRecoveryTime && first->StartRecoveryTime == second->StartRecoveryTime &&
+        first->ProcChance == second->ProcChance && first->ProcCharges == second->ProcCharges &&
+        first->StackAmount == second->StackAmount && first->MaxAffectedTargets == second->MaxAffectedTargets &&
+        first->ManaCost == second->ManaCost && first->ManaCostPercentage == second->ManaCostPercentage &&
+        first->Speed == second->Speed;
+}
+
 inline void ApplySpellFix(std::initializer_list<uint32> spellIds, void(*fix)(SpellInfo*))
 {
     for (uint32 spellId : spellIds)
@@ -33,7 +55,15 @@ inline void ApplySpellFix(std::initializer_list<uint32> spellIds, void(*fix)(Spe
             continue;
         }
 
+        std::vector<SpellInfo*> twins;
+        auto const [begin, end] = sSpellMgr->GetSpellTwins().equal_range(spellId);
+        for (auto itr = begin; itr != end; ++itr)
+            if (SpellInfo const* twin = sSpellMgr->GetSpellInfo(itr->second); twin && SameSpellTuning(spellInfo, twin))
+                twins.push_back(const_cast<SpellInfo*>(twin));
+
         fix(const_cast<SpellInfo*>(spellInfo));
+        for (SpellInfo* twin : twins)
+            fix(twin);
     }
 }
 
