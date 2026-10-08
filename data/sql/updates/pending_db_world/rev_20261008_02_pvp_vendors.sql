@@ -375,7 +375,6 @@ INSERT INTO `itemextendedcost_dbc` (`ID`, `HonorPoints`, `ArenaPoints`, `ArenaBr
 -- Item fields from the CoA-mode item cache (AscensionDB client captures).
 UPDATE `item_template` SET `RequiredLevel` = 60 WHERE `entry` IN (68490, 68491, 68492, 68493, 68494, 68495, 68496, 68497, 68498);
 UPDATE `item_template` SET `RequiredLevel` = 58 WHERE `entry` IN (68500, 68501, 68502, 68503);
-UPDATE `item_template` SET `spellcooldown_1` = 3600, `spellcategory_1` = 0, `spellcooldown_2` = 3600, `spellcategory_2` = 0 WHERE `entry` = 106954;
 UPDATE `item_template` SET `spellid_5` = 0, `spelltrigger_5` = 0 WHERE `entry` = 1118853;
 UPDATE `item_template` SET `spellid_1` = 1142292, `spellcategorycooldown_1` = 120000 WHERE `entry` = 1118864;
 UPDATE `item_template` SET `spellid_1` = 1142292, `spellcategorycooldown_1` = 45000 WHERE `entry` = 1118865;
