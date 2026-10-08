@@ -372,14 +372,19 @@ ItemTemplate const* ScaledTemplate(uint32 entry)
     return Registry::Instance().Template(entry);
 }
 
+bool LiftsActive()
+{
+    return liftsEnabled.load(std::memory_order_relaxed) && !NativeItemScaling::Active();
+}
+
 uint32 EligibleLift(uint32 itemId, uint32 rawLift)
 {
     uint32 const lift = SteppedLift(rawLift);
-    if (!lift || !liftsEnabled.load(std::memory_order_relaxed))
+    if (!lift || !LiftsActive())
         return itemId;
 
     ItemTemplate const* proto = sObjectMgr->GetItemTemplate(itemId);
-    if (!proto || !Liftable(*proto) || NativeItemScaling::Handles(itemId))
+    if (!proto || !Liftable(*proto))
         return itemId;
     return Registry::Instance().Acquire(itemId, lift);
 }
@@ -474,7 +479,7 @@ public:
     void OnAfterLootTemplateProcess(Loot* loot, LootTemplate const*, LootStore const& store, Player* owner,
         bool personal, bool, uint16) override
     {
-        if (!loot || !owner || !liftsEnabled.load(std::memory_order_relaxed) ||
+        if (!loot || !owner || !LiftsActive() ||
             (&store != &LootTemplates_Creature && &store != &LootTemplates_Gameobject))
             return;
 
