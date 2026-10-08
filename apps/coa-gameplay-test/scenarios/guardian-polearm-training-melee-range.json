@@ -1,0 +1,218 @@
+{
+  "schema": 1,
+  "name": "Polearm Training lets a polearm wield melee abilities at an extended range (#6906)",
+  "contract": [
+    "Polearm Training ranks 802299/803832/807892 are item-independent passives (EquippedItemClass -1) whose",
+    "dummy Effect 0 carries $s1 = 2/3/5 yd (basePoints 1/2/4). Player::GetMeleeAbilityRangeBonus returns that",
+    "aura amount while a polearm is in the main hand, and Unit::GetSpellMaxRangeForTarget adds it for",
+    "SPELL_DAMAGE_CLASS_MELEE spells whose SpellRange row is the melee row (Combat Range, 0-5 yd, flags 1).",
+    "Centurion Strike 802738 is such a spell (DmgClass Melee, 0-5 yd, basePoints 274 weapon percent).",
+    "Spell::CheckRange then accepts meleeRange + MELEE_RANGE (1.0 yd) + the bonus, so the guardian must be",
+    "able to land Centurion Strike on a target 9.5 yd away whereas a two-handed sword is rejected at the same",
+    "distance. That distance sits between the sword ceiling (meleeRange + 1 = 6 yd, 8 yd when leeway applies)",
+    "and the rank 3 polearm ceiling (meleeRange + 1 + 5 = 11 yd).",
+    "Only the native melee-range gate is pinned here; the client's own range indicator is client-side and is",
+    "not observed by the harness.",
+    "Fixture: guardian level 80 on the default location facing the spawn axis, Sunfury Blade 30394 in the main",
+    "hand for the control, Jeweled Halberd 30396 plus all three Polearm Training ranks for the fix."
+  ],
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "guardian",
+      "race": 1,
+      "class": 18,
+      "level": 80,
+      "melee_hit_rating": 10000,
+      "expertise_rating": 10000,
+      "spell_hit_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "dummy",
+      "owner": "guardian",
+      "entry": 36,
+      "faction": 14,
+      "level": 80,
+      "health": 1000000,
+      "distance": 9.5
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "guardian",
+      "spell": 802738
+    },
+    {
+      "action": "add_item",
+      "actor": "guardian",
+      "item": 30394
+    },
+    {
+      "action": "equip",
+      "actor": "guardian",
+      "item": 30394,
+      "slot": 15
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: a two-handed sword is in the main hand",
+      "actor": "guardian",
+      "metric": "equipped_item",
+      "slot": 15,
+      "equals": 30394
+    },
+    {
+      "action": "set_power",
+      "actor": "guardian",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "guardian",
+      "spell": 802738
+    },
+    {
+      "action": "wait",
+      "label": "Let the global cooldown pass",
+      "ms": 1700
+    },
+    {
+      "action": "snapshot",
+      "label": "802738 damage logs on the dummy before the sword control",
+      "actor": "guardian",
+      "metric": "spell_damage_count",
+      "spell": 802738,
+      "target": "dummy",
+      "save_as": "sword_before"
+    },
+    {
+      "action": "cast",
+      "label": "Centurion Strike with a two-handed sword at 9.5 yd",
+      "actor": "guardian",
+      "spell": 802738,
+      "target": "dummy"
+    },
+    {
+      "action": "assert",
+      "label": "CONTROL: the sword cast is rejected",
+      "actor": "guardian",
+      "metric": "cast_failure",
+      "spell": 802738,
+      "min": 1
+    },
+    {
+      "action": "assert",
+      "label": "CONTROL: the sword reaches nothing at 9.5 yd",
+      "actor": "guardian",
+      "metric": "spell_damage_count",
+      "spell": 802738,
+      "target": "dummy",
+      "relative_to": "sword_before",
+      "equals": 0
+    },
+    {
+      "action": "learn",
+      "actor": "guardian",
+      "spell": 802299
+    },
+    {
+      "action": "learn",
+      "actor": "guardian",
+      "spell": 803832
+    },
+    {
+      "action": "learn",
+      "actor": "guardian",
+      "spell": 807892
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: Polearm Training rank 3 is active",
+      "actor": "guardian",
+      "metric": "aura",
+      "spell": 807892,
+      "equals": 1,
+      "within_ms": 3000
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: rank 3 advertises 5 yd of extra melee ability range",
+      "actor": "guardian",
+      "metric": "aura_amount",
+      "spell": 807892,
+      "effect": 0,
+      "equals": 5
+    },
+    {
+      "action": "add_item",
+      "actor": "guardian",
+      "item": 30396
+    },
+    {
+      "action": "equip",
+      "actor": "guardian",
+      "item": 30396,
+      "slot": 15
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: the polearm replaces the sword",
+      "actor": "guardian",
+      "metric": "equipped_item",
+      "slot": 15,
+      "equals": 30396
+    },
+    {
+      "action": "set_power",
+      "actor": "guardian",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "guardian",
+      "spell": 802738
+    },
+    {
+      "action": "wait",
+      "label": "Let the global cooldown pass",
+      "ms": 1700
+    },
+    {
+      "action": "snapshot",
+      "label": "802738 damage logs on the dummy before the polearm cast",
+      "actor": "guardian",
+      "metric": "spell_damage_count",
+      "spell": 802738,
+      "target": "dummy",
+      "save_as": "polearm_before"
+    },
+    {
+      "action": "cast",
+      "label": "Centurion Strike with a polearm at 9.5 yd",
+      "actor": "guardian",
+      "spell": 802738,
+      "target": "dummy"
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING: the polearm lands the same ability at 9.5 yd",
+      "actor": "guardian",
+      "metric": "spell_damage_count",
+      "spell": 802738,
+      "target": "dummy",
+      "relative_to": "polearm_before",
+      "min": 1,
+      "within_ms": 4000
+    }
+  ]
+}

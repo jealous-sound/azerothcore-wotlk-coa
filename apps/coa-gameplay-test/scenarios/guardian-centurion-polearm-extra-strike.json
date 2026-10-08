@@ -1,0 +1,243 @@
+{
+  "schema": 1,
+  "name": "Centurion Strike with a polearm stabs the target an additional time (#6905)",
+  "contract": [
+    "Centurion Strike 802738 (Rank 6, DmgClass Melee, SpellFamily 24) reads 'Stab an enemy, dealing $s3%",
+    "Weapon Damage plus an additional effect based on your weapon', and its polearm line reads 'Stabs the",
+    "target and enemies behind them an additional time'.",
+    "The core resolves the polearm effect in two halves: every enemy inside the 5 yd deep, 5 yd wide box",
+    "behind the main target is added for the two weapon damage effects (EFFECT_0 NORMALIZED_WEAPON_DMG and",
+    "EFFECT_2 WEAPON_PERCENT_DAMAGE, basePoints 274 at rank 6), and the main target takes the additional",
+    "strike. The additional strike used to be folded into the same hit (targetInfo.damage x 2), so the",
+    "client reported a single bonk even though the damage was doubled.",
+    "The additional strike is now dealt as its own damage event, so a polearm must report two 802738 damage",
+    "logs on the main target and one on the enemy behind it. A two-handed sword only triggers the sword",
+    "effect 807967 (2 extra auto attacks) and must report exactly one 802738 damage log on the main target",
+    "and none behind it.",
+    "Fixture: guardian level 80 on the default location facing the spawn axis, Jeweled Halberd 30396 in the",
+    "main hand, hostiles at distance 2 (front) and 5 (back) so that back sits 3 yd behind front on the same",
+    "axis, well inside the polearm box."
+  ],
+  "timeout_ms": 120000,
+  "players": [
+    {
+      "id": "guardian",
+      "race": 1,
+      "class": 18,
+      "level": 80,
+      "melee_hit_rating": 10000,
+      "expertise_rating": 10000,
+      "spell_hit_rating": 10000
+    }
+  ],
+  "creatures": [
+    {
+      "id": "front",
+      "owner": "guardian",
+      "entry": 36,
+      "faction": 14,
+      "level": 80,
+      "health": 1000000,
+      "distance": 2
+    },
+    {
+      "id": "back",
+      "owner": "guardian",
+      "entry": 36,
+      "faction": 14,
+      "level": 80,
+      "health": 1000000,
+      "distance": 5
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let spawn AI and level scaling settle",
+      "ms": 5000
+    },
+    {
+      "action": "learn",
+      "actor": "guardian",
+      "spell": 802738
+    },
+    {
+      "action": "learn",
+      "actor": "guardian",
+      "spell": 802299
+    },
+    {
+      "action": "learn",
+      "actor": "guardian",
+      "spell": 803832
+    },
+    {
+      "action": "learn",
+      "actor": "guardian",
+      "spell": 807892
+    },
+    {
+      "action": "add_item",
+      "actor": "guardian",
+      "item": 30396
+    },
+    {
+      "action": "equip",
+      "actor": "guardian",
+      "item": 30396,
+      "slot": 15
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: the polearm is in the main hand",
+      "actor": "guardian",
+      "metric": "equipped_item",
+      "slot": 15,
+      "equals": 30396
+    },
+    {
+      "action": "set_power",
+      "actor": "guardian",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "guardian",
+      "spell": 802738
+    },
+    {
+      "action": "wait",
+      "label": "Let the global cooldown pass",
+      "ms": 1700
+    },
+    {
+      "action": "snapshot",
+      "label": "802738 damage logs on the main target before the polearm cast",
+      "actor": "guardian",
+      "metric": "spell_damage_count",
+      "spell": 802738,
+      "target": "front",
+      "save_as": "front_polearm_before"
+    },
+    {
+      "action": "snapshot",
+      "label": "802738 damage logs behind the target before the polearm cast",
+      "actor": "guardian",
+      "metric": "spell_damage_count",
+      "spell": 802738,
+      "target": "back",
+      "save_as": "back_polearm_before"
+    },
+    {
+      "action": "cast",
+      "label": "Centurion Strike with a polearm",
+      "actor": "guardian",
+      "spell": 802738,
+      "target": "front"
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING: the main target takes the stab an additional time",
+      "actor": "guardian",
+      "metric": "spell_damage_count",
+      "spell": 802738,
+      "target": "front",
+      "relative_to": "front_polearm_before",
+      "equals": 2,
+      "within_ms": 4000
+    },
+    {
+      "action": "assert",
+      "label": "the enemy behind takes the additional stab once",
+      "actor": "guardian",
+      "metric": "spell_damage_count",
+      "spell": 802738,
+      "target": "back",
+      "relative_to": "back_polearm_before",
+      "equals": 1,
+      "within_ms": 4000
+    },
+    {
+      "action": "snapshot",
+      "label": "802738 damage logs on the main target before the sword control",
+      "actor": "guardian",
+      "metric": "spell_damage_count",
+      "spell": 802738,
+      "target": "front",
+      "save_as": "front_sword_before"
+    },
+    {
+      "action": "snapshot",
+      "label": "802738 damage logs behind the target before the sword control",
+      "actor": "guardian",
+      "metric": "spell_damage_count",
+      "spell": 802738,
+      "target": "back",
+      "save_as": "back_sword_before"
+    },
+    {
+      "action": "add_item",
+      "actor": "guardian",
+      "item": 30394
+    },
+    {
+      "action": "equip",
+      "actor": "guardian",
+      "item": 30394,
+      "slot": 15
+    },
+    {
+      "action": "assert",
+      "label": "CONTROL: a two-handed sword is in the main hand",
+      "actor": "guardian",
+      "metric": "equipped_item",
+      "slot": 15,
+      "equals": 30394
+    },
+    {
+      "action": "set_power",
+      "actor": "guardian",
+      "power": 3,
+      "value": 100
+    },
+    {
+      "action": "reset_cooldown",
+      "actor": "guardian",
+      "spell": 802738
+    },
+    {
+      "action": "wait",
+      "label": "Let the 15 s cooldown and the global cooldown expire",
+      "ms": 16000
+    },
+    {
+      "action": "cast",
+      "label": "Centurion Strike with a two-handed sword",
+      "actor": "guardian",
+      "spell": 802738,
+      "target": "front"
+    },
+    {
+      "action": "assert",
+      "label": "CONTROL: the sword lands a single stab on the main target",
+      "actor": "guardian",
+      "metric": "spell_damage_count",
+      "spell": 802738,
+      "target": "front",
+      "relative_to": "front_sword_before",
+      "equals": 1,
+      "within_ms": 4000
+    },
+    {
+      "action": "assert",
+      "label": "CONTROL: the sword reaches nothing behind the main target",
+      "actor": "guardian",
+      "metric": "spell_damage_count",
+      "spell": 802738,
+      "target": "back",
+      "relative_to": "back_sword_before",
+      "equals": 0
+    }
+  ]
+}
