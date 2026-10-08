@@ -1,7 +1,8 @@
 -- CoA's PvP vendors are the Classic quartermasters plus the Season 1 vendors of Champion's Hall and the Hall of
 -- Legends (rev_20261008_02 and _03). Remove the spawns of the Burning Crusade and Wrath of the Lich King PvP
--- vendors: the Outland and Northrend armor quartermasters of both capitals, the arena vendors of Gadgetzan, Area 52
--- and Dalaran, and the Halaa, Spirit Shard and Venture Coin quartermasters. Their templates and vendor lists stay.
+-- vendors: the Outland and Northrend armor quartermasters of both capitals, the arena vendors of Gadgetzan, Area 52,
+-- Dalaran, Shattrath, Blade's Edge and Nagrand, and the Halaa, Spirit Shard and Venture Coin quartermasters. Their
+-- templates and vendor lists stay.
 DELETE FROM `creature_addon` WHERE `guid` IN (SELECT `guid` FROM `creature` WHERE `id` IN (12778, 12788, 18821, 18822,
 19772, 19773, 19857, 20278, 21474, 21485, 25176, 26384, 27721, 27722, 27730, 27760, 31863, 31864, 31865, 32380, 32381,
 32383, 32385, 32405, 32407, 32832, 32834, 33915, 33916, 33917, 33918, 33919, 33920, 33921, 33922, 33923, 33924, 33925,
