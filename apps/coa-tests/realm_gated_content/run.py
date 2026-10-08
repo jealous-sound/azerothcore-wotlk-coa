@@ -6,6 +6,10 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
 SQL = ROOT / 'data/sql/updates/pending_db_world/rev_20261007_98_coa_class_trainers_event.sql'
 GUARDIAN_SQL = ROOT / 'data/sql/updates/pending_db_world/rev_20261005_04_coa_guardian_of_time_stores.sql'
+SCROLL_SQL = ROOT / 'data/sql/updates/pending_db_world/rev_20261007_99_coa_unimbued_mystic_scroll_altars_store.sql'
+UNIMBUED_MYSTIC_SCROLL = 992720
+GENERAL_GOODS = 9781000
+ALTARS = 9781012
 MECHANICAL_MYSTIC_ALTAR = 2903513
 
 
@@ -67,10 +71,35 @@ def check_source():
     assert altars - {MECHANICAL_MYSTIC_ALTAR} <= sold, altars - sold
 
 
+def check_scrolls():
+    enchant = (ROOT / 'src/server/coa/AscensionMysticEnchant.cpp').read_text(encoding='utf-8')
+    scroll = enchant[enchant.index('bool IsMysticScroll(uint32 item)'):]
+    assert 'return item == UNTARNISHED_MYSTIC_SCROLL || (Ready && Loaded.FindItem(item));' in scroll[:scroll.index('}')]
+    roll = enchant[enchant.index('bool OnItemRoll('):]
+    roll = roll[:roll.index('return true;')]
+    pattern = (r'if \(!item->reference && !AscensionFreepick::RealmOffersMysticAltars\(\) && '
+               r'IsMysticScroll\(item->itemid\)\)\s*chance = 0\.0f;')
+    assert re.search(pattern, roll), 'a scroll never drops where Mystic Enchants are not played'
+    assert 'GLOBALHOOK_ON_ITEM_ROLL' in enchant and 'new AscensionMysticEnchant::AscensionMysticEnchantLoot();' in enchant
+
+    db = sqlite3.connect(':memory:')
+    db.executescript('''
+        CREATE TABLE `npc_vendor` (`entry`, `slot`, `item`, `maxcount`, `incrtime`, `ExtendedCost`);
+        INSERT INTO `npc_vendor` VALUES (9781000, 14, 1, 0, 0, 0), (9781000, 15, 992720, 0, 0, 0), (9781012, 16, 2, 0, 0, 0);
+    ''')
+    sql = SCROLL_SQL.read_text(encoding='utf-8')
+    db.executescript(sql)
+    db.executescript(sql)
+    sold = set(db.execute('SELECT `entry`, `item` FROM `npc_vendor` WHERE `item` = 992720'))
+    assert sold == {(ALTARS, UNIMBUED_MYSTIC_SCROLL)}, sold
+    assert db.execute('SELECT COUNT(*) FROM `npc_vendor` WHERE `entry` = 9781000').fetchone()[0] == 1
+
+
 def main():
     check_trainer_event()
     check_source()
-    print('PASS: CoA class trainers only on CoA realms; Mystic Enchanting altars only on free-pick and Warcraft Reborn realms')
+    check_scrolls()
+    print('PASS: CoA class trainers only on CoA realms; Mystic Enchanting altars and scrolls only on free-pick and Warcraft Reborn realms')
 
 
 if __name__ == '__main__':
