@@ -44,6 +44,7 @@
 #include "WorldSession.h"
 
 #include <algorithm>
+#include <iterator>
 #include <map>
 #include <string>
 #include <utility>
@@ -55,6 +56,7 @@
 #include "AscensionCustomClassData.h"
 #include "AscensionFelsworn.h"
 #include "AscensionGuardianCompletion.h"
+#include "AscensionPyromancerData.h"
 #include "AscensionSpellProgressionData.h"
 #include "AscensionTalentReplacementData.h"
 #include "SpellbookCostData.h"
@@ -208,6 +210,11 @@ namespace
 
     bool CanLearnTalentReplacement(Player* player, uint32 spellId)
     {
+        if (player->getClass() == CLASS_PYROMANCER &&
+            std::find(std::begin(PyromancerEchoRanks), std::end(PyromancerEchoRanks), spellId) !=
+                std::end(PyromancerEchoRanks))
+            return ActiveSpec(player) == 39 && player->HasSpell(520937);
+
         for (auto const& replacement : AscensionCompatData::TalentReplacements)
             if (replacement.ClassId == player->getClass() &&
                 std::any_of(replacement.Ranks.begin(), replacement.Ranks.end(),

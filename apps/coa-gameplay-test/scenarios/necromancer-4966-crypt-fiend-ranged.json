@@ -12,6 +12,8 @@
   ],
   "steps": [
     { "action": "wait", "label": "Let spawn AI and the Life Force aura settle", "ms": 3000 },
+    { "action": "assert", "label": "SETUP: Command accuracy is independent of the minion attack loop",
+      "actor": "n", "metric": "spell_hit_chance", "min": 100 },
     { "action": "learn", "actor": "n", "spell": 504859 },
     { "action": "learn", "actor": "n", "spell": 504868 },
     { "action": "cast", "label": "Raise: Crypt Fiend", "actor": "n", "spell": 504859 },

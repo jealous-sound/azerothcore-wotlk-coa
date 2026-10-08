@@ -625,7 +625,7 @@ void ObserveExtensionPacket(Actor& actor, WorldPacket const& packet)
         packet.GetOpcode() != SMSG_MOVE_UNSET_CAN_FLY && packet.GetOpcode() != SMSG_CONVERT_RUNE &&
         packet.GetOpcode() != SMSG_ADD_RUNE_POWER && packet.GetOpcode() != SMSG_LEARNED_SPELL &&
         packet.GetOpcode() != SMSG_SUPERCEDED_SPELL && packet.GetOpcode() != SMSG_REMOVED_SPELL &&
-        packet.GetOpcode() != SMSG_ITEM_QUERY_SINGLE_RESPONSE)
+        packet.GetOpcode() != SMSG_ITEM_QUERY_SINGLE_RESPONSE && packet.GetOpcode() != SMSG_MOVE_KNOCK_BACK)
         return;
 
     ++actor.extensionPackets[packet.GetOpcode()];
@@ -3715,7 +3715,7 @@ private:
             });
             return selected == known.end() ? 0 : selected->Rank;
         }
-        if (metric == "server_packet_u32")
+        if (metric == "server_packet_u32" || metric == "server_packet_float")
         {
             Actor const& actor = _actors.at(step.get<std::string>("actor"));
             uint16 const opcode = uint16(step.get<uint32>("opcode"));
@@ -3744,11 +3744,23 @@ private:
                 ++offset;
             }
             offset += std::size_t(index) * sizeof(uint32);
+            if (metric == "server_packet_float" && step.get<bool>("from_end", false))
+            {
+                std::size_t const tail = (std::size_t(index) + 1) * sizeof(uint32);
+                if (tail > payload->size())
+                    return -1;
+                offset = payload->size() - tail;
+            }
             if (offset > payload->size() || payload->size() - offset < sizeof(uint32))
                 return -1;
             uint32 value = 0;
             for (uint32 byte = 0; byte < sizeof(uint32); ++byte)
                 value |= uint32(uint8((*payload)[offset + byte])) << (byte * 8);
+            if (metric == "server_packet_float")
+            {
+                float const number = std::bit_cast<float>(value);
+                return std::isfinite(number) ? double(number) : -1;
+            }
             return value;
         }
         if (metric == "quest_log_sent_level" || metric == "quest_log_sent_xp")

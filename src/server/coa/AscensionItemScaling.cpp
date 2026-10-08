@@ -2,6 +2,7 @@
 
 #include "AscensionItemScaling.h"
 #include "AscensionItemScalingPolicy.h"
+#include "AscensionItemStatData.h"
 #include "AscensionNativeItemScaling.h"
 #include "Config.h"
 #include "Creature.h"
@@ -19,9 +20,13 @@
 #include "Player.h"
 #include "ScriptMgr.h"
 #include "World.h"
+#include "WorldPacket.h"
+#include "WorldSession.h"
 #include <fmt/ranges.h>
 #include <algorithm>
 #include <atomic>
+#include <filesystem>
+#include <fstream>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -40,6 +45,24 @@ constexpr uint32 MaximumSampleEntry = 60000;
 std::atomic<bool> liftsEnabled{true};
 std::shared_mutex unliftableMutex;
 std::unordered_set<uint32> unliftableEntries;
+CapturedStats::Table capturedStats;
+
+void LoadCapturedStats()
+{
+    auto const path = std::filesystem::path(sWorld->GetDataPath()) / "dbc" / "ItemStat.dbc";
+    std::ifstream source(path, std::ios::binary);
+    std::string error;
+    if (!capturedStats.Load(source, error))
+    {
+        LOG_ERROR("server.loading", "Unable to load captured item stats from {}: {}; using estimated scaling",
+            path.string(), error);
+        return;
+    }
+    LOG_INFO("server.loading", ">> Loaded {} captured item-stat rows", capturedStats.Size());
+    if (capturedStats.InvalidRows() || capturedStats.DuplicateRows())
+        LOG_WARN("server.loading", "Skipped {} invalid and {} duplicate captured item-stat rows from {}",
+            capturedStats.InvalidRows(), capturedStats.DuplicateRows(), path.string());
+}
 
 using CurveKey = std::tuple<uint32, uint32, uint32, uint32>;
 using CurveSet = std::map<CurveKey, LevelCurve>;
@@ -144,6 +167,19 @@ std::unique_ptr<ItemTemplate> BuildTemplate(uint32 entry, ItemTemplate const& ba
     uint32 const itemLevel = base.ItemLevel + lift;
     proto->ItemId = entry;
     proto->ItemLevel = itemLevel;
+    if (CapturedStats::Record const* record = capturedStats.Find(base.ItemId, itemLevel))
+    {
+        record->Apply(*proto);
+        if (base.BuyPrice > 0)
+        {
+            double const price = base.SellPrice ? double(proto->SellPrice) / base.SellPrice :
+                std::max(1.0, SetRatio(curves.sellPrice, KeyOf(base), base.ItemLevel, itemLevel,
+                    PointsRatio(PropertyPoints(base.ItemLevel, base.Quality),
+                        PropertyPoints(itemLevel, base.Quality))));
+            proto->BuyPrice = int32(std::min(std::round(double(base.BuyPrice) * price), double(INT32_MAX)));
+        }
+        return proto;
+    }
     proto->RequiredLevel = LiftedRequiredLevel(base.RequiredLevel, base.ItemLevel, lift,
         sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL));
 
@@ -420,6 +456,7 @@ public:
 
     void OnLoadCustomDatabaseTable() override
     {
+        LoadCapturedStats();
         Registry::Instance().Load();
     }
 
@@ -489,6 +526,27 @@ bool LiftableEntry(uint32 entry)
 {
     ItemTemplate const* proto = sObjectMgr->GetItemTemplate(entry);
     return proto && Liftable(*proto);
+}
+
+void HandleStatQuery(WorldSession* session, WorldPacket const& packet)
+{
+    if (!session || packet.size() != sizeof(uint64) || !capturedStats.Size())
+        return;
+
+    uint32 const item = packet.read<uint32>(0);
+    uint32 const level = packet.read<uint32>(sizeof(uint32));
+    ItemTemplate const* proto = sObjectMgr->GetItemTemplate(item);
+    if (!proto || NativeItemScaling::Handles(item))
+        return;
+    CapturedStats::Record const* record = capturedStats.Find(BaseEntry(item), level);
+    if (!record)
+        return;
+
+    std::array<uint32, 2> const damageTypes = { proto->Damage[0].DamageType, proto->Damage[1].DamageType };
+    WorldPacket response(CapturedStats::ResponseOpcode, CapturedStats::ResponseWords * sizeof(uint32));
+    for (uint32 word : record->Response(item, damageTypes))
+        response << word;
+    session->SendPacket(&response);
 }
 
 void SetUnliftableEntries(std::unordered_set<uint32> entries)
