@@ -2,6 +2,7 @@
 
 #include "AscensionItemScaling.h"
 #include "AscensionItemScalingPolicy.h"
+#include "AscensionNativeItemScaling.h"
 #include "Config.h"
 #include "Creature.h"
 #include "DBCStores.h"
@@ -342,16 +343,17 @@ uint32 EligibleLift(uint32 itemId, uint32 rawLift)
         return itemId;
 
     ItemTemplate const* proto = sObjectMgr->GetItemTemplate(itemId);
-    return proto && Liftable(*proto) ? Registry::Instance().Acquire(itemId, lift) : itemId;
+    if (!proto || !Liftable(*proto) || NativeItemScaling::Handles(itemId))
+        return itemId;
+    return Registry::Instance().Acquire(itemId, lift);
 }
 
-uint32 QuestRewardItem(Player const* player, uint32 itemId, int32 questLevel)
+uint32 QuestRewardItem(Player const* player, uint32 itemId, Quest const* quest)
 {
-    if (!player || !LocalLevelScaling::QuestScalingEnabled(player))
+    if (!player)
         return itemId;
 
-    uint8 const scaledLevel = LocalLevelScaling::ScaleQuestLevel(questLevel, player->GetLevel());
-    return EligibleLift(itemId, QuestLift(questLevel, scaledLevel));
+    return EligibleLift(itemId, QuestLift(quest->GetQuestLevel(), uint32(player->GetQuestLevel(quest))));
 }
 
 uint32 CreatureViewerLift(Player const* player, Creature const* creature)
@@ -361,7 +363,8 @@ uint32 CreatureViewerLift(Player const* player, Creature const* creature)
 
 uint32 ChestViewerLift(Player const* player, uint32 itemLevel)
 {
-    if (!LocalLevelScaling::ScalingChoiceEnabled(player))
+    if (!LocalLevelScaling::ScalingChoiceEnabled(player) ||
+        (LocalLevelScaling::ScalingBlocksFor(player) & LocalLevelScaling::ChallengeBlocksCreatureScaling))
         return 0;
     return ContentLift(itemLevel, player->GetLevel(),
         LocalLevelScaling::CreatureOffset.load(std::memory_order_relaxed));
@@ -480,6 +483,12 @@ std::optional<ClientItemRow> ClientRow(uint32 entry)
     if (ItemTemplate const* proto = Registry::Instance().Template(entry))
         return RowOf(*proto);
     return std::nullopt;
+}
+
+bool LiftableEntry(uint32 entry)
+{
+    ItemTemplate const* proto = sObjectMgr->GetItemTemplate(entry);
+    return proto && Liftable(*proto);
 }
 
 void SetUnliftableEntries(std::unordered_set<uint32> entries)

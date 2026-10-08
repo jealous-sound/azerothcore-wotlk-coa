@@ -2224,6 +2224,9 @@ void Unit::DealMeleeDamage(CalcDamageInfo* damageInfo, bool durabilityLoss)
         uint32 VictimDefense = victim->GetDefenseSkillValue();
         uint32 VictimAuraDefense = -victim->GetTotalAuraModifier(SPELL_AURA_MOD_ATTACKER_MELEE_CRIT_CHANCE) * 25;
         uint32 AttackerMeleeSkill = GetUnitMeleeSkill();
+        if (Player const* viewer = victim->GetCharmerOrOwnerPlayerOrPlayerItself())
+            if (uint8 const view = LocalLevelScaling::ViewLevelFor(viewer, ToCreature()))
+                AttackerMeleeSkill = view * 5;
 
         // xinef: fix daze mechanics
         float const chancePerSkillPoint = IsClassicPlusCombat(this, victim) ?

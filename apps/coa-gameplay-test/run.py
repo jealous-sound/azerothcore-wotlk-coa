@@ -80,7 +80,7 @@ METRICS = {
     'cast_speed_multiplier', 'spell_crit_chance', 'spell_power_cost', 'spell_damage_done', 'melee_damage_done',
     'who_count', 'who_class', 'player_name', 'name_lookup', 'loot_count', 'loot_entry', 'loot_received',
     'loot_gold', 'loot_bloodforged', 'loot_required_level', 'loot_item_level', 'loot_base_entry', 'loot_item_armor',
-    'carried_item_level', 'carried_item_required_level',
+    'carried_item_level', 'carried_item_required_level', 'carried_item_armor', 'carried_item_scaling_level',
     'nearby_gameobject_count', 'nearby_gameobject_quest_active', 'nearby_gameobject_state', 'nearby_creature_count',
     'carried_money',
     'channel_object_entry',
@@ -693,7 +693,8 @@ def validate(scenario):
                 number(step['hand'], f'{where}.hand', 0, maximum, True)
             if 'school' in step and metric == 'spell_crit_chance':
                 number(step['school'], f'{where}.school', 0, 6, True)
-            if metric in {'item_count', 'carried_item_level', 'carried_item_required_level'}:
+            if metric in {'item_count', 'carried_item_level', 'carried_item_required_level', 'carried_item_armor',
+                          'carried_item_scaling_level'}:
                 require('item' in step, f'{where}: metric needs item')
             if metric == 'carried_pool_item_count':
                 require('cache' in step, f'{where}: metric needs the cache item it checks against')
@@ -831,7 +832,8 @@ def validate(scenario):
                           'loot_count', 'loot_entry', 'loot_required_level', 'loot_item_level', 'loot_received',
                           'quest_rewarded', 'has_achievement',
                           'loot_base_entry', 'loot_item_armor',
-                          'carried_item_level', 'carried_item_required_level',
+                          'carried_item_level', 'carried_item_required_level', 'carried_item_armor',
+                          'carried_item_scaling_level',
                           'has_title',
                           'quest_status', 'quest_takeable', 'quest_objective_count', 'dialog_status',
                           'ball_offer_count', 'ball_offers_quest',

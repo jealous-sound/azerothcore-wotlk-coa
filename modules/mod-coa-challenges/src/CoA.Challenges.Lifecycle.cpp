@@ -243,6 +243,7 @@ namespace CoAChallenges
         // DB rows.
         CharacterDatabase.DirectExecute("DELETE FROM coa_character_challenge WHERE guid = {}", guid);
         ClearCharChallengeCache(guid);
+        RefreshLevelScalingTracking(player);
         CharacterDatabase.DirectExecute("DELETE FROM coa_character_objective WHERE guid = {}", guid);
         CharacterDatabase.DirectExecute("DELETE FROM coa_challenge_completion WHERE guid = {}", guid);
         CharacterDatabase.DirectExecute("DELETE FROM coa_challenge_failure WHERE guid = {}", guid);
@@ -534,6 +535,7 @@ namespace CoAChallenges
         TrackInvertedBreath(player, challengeID);
         RefreshRegenTracking(player);
         RefreshHighRiskTracking(player);
+        RefreshLevelScalingTracking(player);
         RefreshLootedTracking(player);
         RecomputeRequiredGameModes(player);
         EnforceGroupOnActivation(player);
@@ -588,6 +590,7 @@ namespace CoAChallenges
         UntrackInvertedBreath(player);
         RefreshRegenTracking(player);
         RefreshHighRiskTracking(player);
+        RefreshLevelScalingTracking(player);
         RefreshLootedTracking(player);
         RecomputeRequiredGameModes(player);
 
@@ -1468,6 +1471,7 @@ namespace CoAChallenges
         UntrackInvertedBreath(player);
         RefreshRegenTracking(player);
         RefreshHighRiskTracking(player);
+        RefreshLevelScalingTracking(player);
         RefreshLootedTracking(player);
         RecomputeRequiredGameModes(player);
 
@@ -1695,6 +1699,7 @@ namespace CoAChallenges
         UntrackInvertedBreath(player);
         RefreshRegenTracking(player);
         RefreshHighRiskTracking(player);
+        RefreshLevelScalingTracking(player);
         RefreshLootedTracking(player);
         RecomputeRequiredGameModes(player);
 

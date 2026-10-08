@@ -24,6 +24,8 @@ void AddSC_AscensionRulesets();
 void AddSC_AscensionMercenary();
 void AddSC_AscensionHighRisk();
 void AddSC_AscensionItemScaling();
+void AddSC_AscensionNativeItemScaling();
+void AddSC_AscensionQuestScaling();
 void AddSC_AscensionBloodforged();
 void AddAscensionEquippedGearLootScripts();
 void AddSC_AscensionPvpPower();
@@ -634,6 +636,8 @@ void AddCoAScripts()
     AddSC_AscensionMercenary();
     AddSC_AscensionHighRisk();
     AddSC_AscensionItemScaling();
+    AddSC_AscensionNativeItemScaling();
+    AddSC_AscensionQuestScaling();
     AddSC_AscensionBloodforged();
     AddAscensionEquippedGearLootScripts();
     AddSC_AscensionPvpPower();

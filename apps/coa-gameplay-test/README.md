@@ -693,8 +693,10 @@ quantity reached inventory and records the item/count. It supports ordinary cont
 reports the inventory increase from its last successful `collect_loot`. Closed windows return zero slots/entry.
 The `loot_*` item metrics accept an optional `item` that keeps only the slots holding that item or a level-scaled
 copy of it (entries 4400001 and up). `loot_item_armor` reads the first such slot's armor, and `loot_base_entry`
-names the authored item a copy was made from. `carried_item_level` and `carried_item_required_level` require `item` and return the highest item
-level or required level among equipped and bagged items that are that item or a copy of it, or zero without one.
+names the authored item a copy was made from. `carried_item_level`, `carried_item_required_level` and `carried_item_armor`
+require `item` and return the highest item level, required level or armor among equipped and bagged items that are
+that item or a copy of it, read from the item's own scaled template, or zero without one. `carried_item_scaling_level`
+returns the highest per-item level that native item scaling stored for such an item, or zero when none was stored.
 `loot_slot` with `item` also picks up a copy of that item.
 `creature_loot_quality_rate` requires `entry` (a creature loot id), fills that template `rolls` times (default 10000)
 for the actor and reports the percentage of fills holding an item of at least `quality` (default 3, rare).
@@ -824,18 +826,19 @@ check aura presence separately when zero is a valid effect amount. Permanent aur
 
 `scenarios/destiny-weaver-scaling.json` checks deferred scaling choices, armor debuffs, creature values
 updates after level changes, fractional damage accumulation, and ordinary damage with scaling off.
-It requires `DestinyWeaver.Enable=1`, `DestinyWeaver.LevelScaling=1`, `DestinyWeaver.Scaling.Offset=3`,
+It requires `DestinyWeaver.Enable=1`, `DestinyWeaver.LevelScaling=1`, `DestinyWeaver.Scaling.Offset=5`,
 and `CoA.QuestLevelScaling=1`. Spell 705798 supplies one base damage without critical hits;
 Faerie Fire (770) supplies a 5% armor reduction. Spell 705798 uses melee hit resolution, so the fixture
 sets melee hit and expertise as well as spell hit. Template 1501 has HealthModifier 0.93: the level-1
-fixture's real pool remains 40 HP while its level-57 view has 2,590 HP. Ten one-damage hits cannot remove
+fixture's real pool remains 40 HP while its level-55 view has 2,432 HP. Ten one-damage hits cannot remove
 a whole real HP; 67 remove one.
 
 `scenarios/skinning-dungeon-scaled-view.json` and `scenarios/skinning-open-world-level-scaling.json` need the
 same settings: the skinning requirement follows a view that lowers a dungeon creature, never one that lifts it.
 
 `scenarios/destiny-weaver-quest-fallback.json` requires a separate run with `DestinyWeaver.Enable=0`
-and `CoA.QuestLevelScaling=1`. Quest 7 must still scale to the player's level and award XP.
+and `CoA.QuestLevelScaling=1`. Quest 7 must still follow its QuestTemplateScaling.dbc row to level 20 and
+award XP.
 
 The `level_scaling_packet` action takes a player `actor` and `value` (0 or 1). It sends the existing
 four-byte request through the early packet hook on a worker, verifies that player state has not changed

@@ -2,6 +2,8 @@ CLI_DESCRIPTION = """Check that a Destiny Weaver view scales creature damage by 
 
 Compiles the module's actual level-row, average-hit and factor code against creature_classlevelstats rows from
 the base world SQL, and compares it with AzerothCore's creature melee range computed independently here.
+Also checks that a whole-number creature roll is spread back over the creature's real range before it is scaled,
+and that the scaled blow is rounded without bias.
 Pass --source-ref to run the same checks against the module source of another Git ref.
 """
 
@@ -34,6 +36,10 @@ CASES = [
     (1, 0, 40, 40, 1.0, 2000),
 ]
 RESEARCH = {(1, 0, 5, 40): (10.86, 0.01), (1, 0, 5, 77): (30.2, 0.05)}
+BUCKETS = [(1.5, 2.3), (1.5, 1.9), (0.4, 2.6), (3.25, 7.75), (12.0, 18.0)]
+ROUNDED = [0.25, 1.0, 1.4, 22.5, 39.8]
+UNREACHABLE_ROLL = (5, 1.5, 2.3)
+SPOTS = 1000
 
 
 def method(source, signature):
@@ -107,6 +113,10 @@ def harness(module_source, rows):
             f'{row["armor"]}f, {row["attack_power"]}, {row["ranged_attack_power"]}, '
             f'{{{", ".join(f"{v}f" for v in row["damage"])}}});')
     cases = [f'    Report({c}, {e}, {o}, {v}, {var}f, {t});' for c, e, o, v, var, t in CASES]
+    cases += [f'    Bucket({low}f, {high}f);' for low, high in BUCKETS]
+    cases += [f'    Rounded({damage});' for damage in ROUNDED]
+    rolled, low, high = UNREACHABLE_ROLL
+    cases.append(f'    std::printf("%.9f\\n", DestinyWeaver::BlowInRange({rolled}, {low}f, {high}f, 0.5));')
     return r'''#include "Define.h"
 #include "destiny_weaver_view_damage.h"
 #include <algorithm>
@@ -127,7 +137,7 @@ struct CreatureTemplate
     float ModMana = 1.0f;
     float ModArmor = 1.0f;
 };
-''' + base_stats + r'''
+''' + f'constexpr int SPOTS = {SPOTS};\n' + base_stats + r'''
 struct ObjectMgr
 {
     std::map<std::pair<uint32, uint32>, CreatureBaseStats> rows;
@@ -165,6 +175,30 @@ void Report(uint32 unitClass, uint32 expansion, uint8 own, uint8 view, float var
     info.BaseAttackTime = attackTime;
     std::printf("%.9f\n", Factor(StatsAt(view, &info), StatsAt(own, &info), &info));
 }
+void Bucket(float minDamage, float maxDamage)
+{
+    double total = 0.0;
+    double lowest = 1e30;
+    double highest = -1e30;
+    int count = 0;
+    for (uint32 rolled = uint32(minDamage); rolled <= uint32(maxDamage); ++rolled)
+        for (int i = 0; i < SPOTS; ++i)
+        {
+            double const blow = DestinyWeaver::BlowInRange(rolled, minDamage, maxDamage, (i + 0.5) / SPOTS);
+            total += blow;
+            lowest = std::min(lowest, blow);
+            highest = std::max(highest, blow);
+            ++count;
+        }
+    std::printf("%.9f %.9f %.9f\n", total / count, lowest, highest);
+}
+void Rounded(double damage)
+{
+    double total = 0.0;
+    for (int i = 0; i < SPOTS; ++i)
+        total += DestinyWeaver::WholeDamage(damage, (i + 0.5) / SPOTS);
+    std::printf("%.9f\n", total / SPOTS);
+}
 int main()
 {
 ''' + '\n'.join(loaded) + '\n' + '\n'.join(cases) + '\n}\n'
@@ -187,7 +221,7 @@ def compile_run(code):
                      '-o', str(executable)]
         subprocess.run([compiler, *flags], cwd=out, check=True, timeout=120)
         result = subprocess.run([str(executable)], cwd=out, check=True, timeout=30, capture_output=True, text=True)
-    return [float(line) for line in result.stdout.split()]
+    return [[float(value) for value in line.split()] for line in result.stdout.splitlines()]
 
 
 def main():
@@ -201,9 +235,23 @@ def main():
     rows = level_rows()
     high, divisor = core_melee_range()
     actual = compile_run(harness(module_source, rows))
-    assert len(actual) == len(CASES)
+    assert len(actual) == len(CASES) + len(BUCKETS) + len(ROUNDED) + 1, actual
+    factors = [line[0] for line in actual[:len(CASES)]]
+    buckets = actual[len(CASES):len(CASES) + len(BUCKETS)]
+    rounded = [line[0] for line in actual[len(CASES) + len(BUCKETS):-1]]
+    unreachable = actual[-1][0]
     failures = []
-    for case, factor in zip(CASES, actual):
+    for (bottom, top), (mean, lowest, highest) in zip(BUCKETS, buckets):
+        tolerance = (top - bottom) / SPOTS
+        if max(abs(mean - (bottom + top) / 2), abs(lowest - bottom), abs(highest - top)) > tolerance:
+            failures.append(f'range {bottom}-{top}: blows {lowest:.4f}-{highest:.4f}, mean {mean:.4f}, '
+                            f'real range mean {(bottom + top) / 2:.4f}')
+    for damage, average in zip(ROUNDED, rounded):
+        if abs(average - max(1.0, damage)) > 1e-9:
+            failures.append(f'{damage} rounds to {average:.4f} on average, expected {max(1.0, damage)}')
+    if unreachable != UNREACHABLE_ROLL[0]:
+        failures.append(f'roll {UNREACHABLE_ROLL[0]} outside {UNREACHABLE_ROLL[1:]} became {unreachable}')
+    for case, factor in zip(CASES, factors):
         expected = expected_factor(rows, high, divisor, *case)
         if abs(factor - expected) > 1e-5 * expected:
             failures.append(f'class {case[0]} exp {case[1]} L{case[2]}->L{case[3]} variance {case[4]} '
@@ -213,7 +261,8 @@ def main():
             failures.append(f'class {case[0]} L{case[2]}->L{case[3]}: factor {factor:.4f}, research {pinned[0]}')
     assert not failures, '\n'.join(failures)
     print(f'PASS: {len(CASES)} view damage factors equal the true AzerothCore average-hit ratio '
-          f'(weapon range x1..x{high:g}, AP/{divisor:g} x variance, attack time)')
+          f'(weapon range x1..x{high:g}, AP/{divisor:g} x variance, attack time); {len(BUCKETS)} whole-number '
+          f'rolls spread over their real range; {len(ROUNDED)} scaled blows rounded without bias')
 
 
 if __name__ == '__main__':

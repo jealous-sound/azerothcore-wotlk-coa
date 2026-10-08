@@ -7,6 +7,7 @@
 #include "AccountMgr.h"
 #include "AscensionCoATalentState.h"
 #include "AscensionItemScaling.h"
+#include "AscensionNativeItemScaling.h"
 #include "AscensionQuestLog.h"
 #include "AscensionSpecialization.h"
 #include "AscensionWisdomball.h"
@@ -3556,7 +3557,8 @@ private:
                             countItem(item);
             return count;
         }
-        if (metric == "carried_item_level" || metric == "carried_item_required_level")
+        if (metric == "carried_item_level" || metric == "carried_item_required_level" ||
+            metric == "carried_item_armor" || metric == "carried_item_scaling_level")
         {
             uint32 const baseEntry = step.get<uint32>("item");
             Require(sObjectMgr->GetItemTemplate(baseEntry) != nullptr, "Unknown item in metric");
@@ -3565,8 +3567,15 @@ private:
             {
                 if (ItemScaling::BaseEntry(item->GetEntry()) != baseEntry)
                     return;
-                ItemTemplate const* proto = item->GetTemplate();
-                highest = std::max(highest, metric == "carried_item_level" ? proto->ItemLevel : proto->RequiredLevel);
+                ItemTemplate const* proto = LocalLevelScaling::InstanceTemplateFor(item, item->GetTemplate());
+                uint32 value = proto->ItemLevel;
+                if (metric == "carried_item_required_level")
+                    value = proto->RequiredLevel;
+                else if (metric == "carried_item_armor")
+                    value = proto->Armor;
+                else if (metric == "carried_item_scaling_level")
+                    value = NativeItemScaling::InstanceLevel(item);
+                highest = std::max(highest, value);
             };
             for (uint8 slot = EQUIPMENT_SLOT_START; slot < INVENTORY_SLOT_ITEM_END; ++slot)
                 if (Item* item = player->GetItemByPos(INVENTORY_SLOT_BAG_0, slot))

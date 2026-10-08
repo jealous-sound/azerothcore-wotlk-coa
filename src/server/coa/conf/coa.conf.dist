@@ -83,9 +83,21 @@ CoA.MaxRidingFromStart = 1
 # Set to 0 to leave such characters on Ruleset.None instead.
 CoA.RulesetLoginDefault = 1
 
-# Lower-level quests report the player's level and use the matching QuestXP row.
-# Quests already above the player remain higher. Shared quest templates are immutable.
+# War Mode (1004119 without PvE Mode) and High-Risk (1004019) switch creature, chest and quest level
+# scaling off in the open world, as their tooltips state: "Level scaling is disabled while in War
+# Mode / High-Risk". Instances keep the character's own choice. Set to 0 to let the rulesets scale.
+CoA.Ruleset.DisableLevelScaling = 1
+
+# Quests with a row in the client's QuestTemplateScaling.dbc trail the character: the row's highest
+# point at or below the character's level sets the quest to that level plus its offset (the shipped
+# rows trail by 4 to 1 levels), held within the row's minimum and maximum level and never below the
+# quest's own level. Experience is priced at that level, and money by its tier's ratio between that
+# level and the quest's own. Quests without a row keep their authored level.
 CoA.QuestLevelScaling = 1
+
+# Mark a quest on its curve with the client's scaling flag (0x01000000), which colours it "standard"
+# instead of by level. Live quest caches never carried the flag.
+CoA.QuestLevelScaling.ClientFlag = 0
 
 # Weapons and armor dropped by level-scaled creatures, found in chests by characters who chose
 # level scaling or given by level-scaled quests are lifted to the level of that content, rounded down
@@ -93,6 +105,16 @@ CoA.QuestLevelScaling = 1
 # an item level are left as they are.
 # Set to 0 to stop new lifts; copies already handed out keep working.
 CoA.ItemScaling = 1
+
+# Weapons and armor that the client's ItemStat.dbc has a level ladder for keep their own entry and are
+# given a scaling level instead of a copy: the looter's level plus LootLevelOffset, from 1 to 65, set
+# once when the item is looted, won in a roll or, with QuestRewards, given by a quest. Their stats come
+# from the ladder row for that level, and the client asks for the same row with opcode 0x6FF.
+# Worldforged items and items the copy path never lifts stay as they are.
+# Read at startup only. With 0, items keep their authored stats and the copy path handles them again.
+CoA.ItemScaling.Native = 1
+CoA.ItemScaling.Native.LootLevelOffset = 0
+CoA.ItemScaling.Native.QuestRewards = 1
 
 # Automatic progression: hand out the class abilities and rank upgrades for the
 # character's class and level as they level up. Set to 0 to stop that

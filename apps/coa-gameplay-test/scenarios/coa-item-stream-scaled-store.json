@@ -3,7 +3,7 @@
   "name": "CoA item stream: a newly rewarded scaled item is patched once",
   "contract": [
     "Requires CoA.SendDisplayPatches=1, CoA.ItemScaling=1, DestinyWeaver.Enable=1 and CoA.QuestLevelScaling=1.",
-    "A level-32 viewer receives quest 176's Footman Tunic as a copy lifted by 20 item levels (21 rounded down to a five-level step).",
+    "A level-32 viewer plays quest 9146 (authored at 12) at 28 on its QuestTemplateScaling.dbc row and receives Farstrider's Tunic 23405, which has no ItemStat.dbc ladder, as a copy lifted by 15 item levels (16 rounded down to a five-level step): item level 27.",
     "Storing that copy must immediately send one eight-field item patch even though it is absent from item_dbc.",
     "Repeating the world-entry notice must not send its row again."
   ],
@@ -41,7 +41,7 @@
     {
       "action": "prepare_quest",
       "actor": "viewer",
-      "quest": 176
+      "quest": 9146
     },
     {
       "action": "snapshot",
@@ -53,15 +53,15 @@
     {
       "action": "reward_quest",
       "actor": "viewer",
-      "quest": 176,
+      "quest": 9146,
       "choice": 0
     },
     {
       "action": "assert",
       "actor": "viewer",
       "metric": "carried_item_level",
-      "item": 6085,
-      "equals": 33
+      "item": 23405,
+      "equals": 27
     },
     {
       "action": "assert",

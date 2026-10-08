@@ -24,6 +24,7 @@
 #include "Common.h"
 #include "GameTime.h"
 #include "GridNotifiers.h"
+#include "LocalLevelScaling.h"
 #include "Log.h"
 #include "ObjectAccessor.h"
 #include "ObjectMgr.h"
@@ -3241,7 +3242,8 @@ void AuraEffect::HandleAuraModDisarm(AuraApplication const* aurApp, uint8 mode, 
             player->ApplyItemDependentAuras(pItem, !apply);
             if (attackType < MAX_ATTACK)
             {
-                player->_ApplyWeaponDamage(slot, pItem->GetTemplate(), nullptr, !apply);
+                ItemTemplate const* proto = LocalLevelScaling::InstanceTemplateFor(pItem, pItem->GetTemplate());
+                player->_ApplyWeaponDamage(slot, proto, nullptr, !apply);
                 if (!apply) // apply case already handled on item dependent aura removal (if any)
                     player->UpdateWeaponDependentAuras(attackType);
             }

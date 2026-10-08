@@ -1335,6 +1335,8 @@ namespace CoAChallenges
             "CHALLENGE_RULES_TYPE_NO_PORTALS",
             "CHALLENGE_RULES_TYPE_NO_LEAVE_CONTINENT",
             "CHALLENGE_RULES_TYPE_HIGH_RISK_ONLY",
+            "CHALLENGE_RULES_TYPE_NO_CREATURE_LEVEL_SCALING",
+            "CHALLENGE_RULES_TYPE_NO_QUEST_LEVEL_SCALING",
             // NOTE: FLOOR_IS_LAVA (165 "The Floor is Lava!") is NOT modelled here:
             // its About is "Don't. Stop. Jumping." (damage while grounded), not
             // lava/fire environmental damage, and 165 is challenge-only (custom
@@ -1843,6 +1845,8 @@ namespace CoAChallenges
                 "CHALLENGE_RULES_TYPE_PVE_ONLY",                          // `.coa ruletestparty`
                 "CHALLENGE_RULES_TYPE_COSMETIC_ELITE_ENEMIES",            // challenges-adventure-mode scenario
                 "CHALLENGE_RULES_TYPE_STRICT_CHALLENGE_RESTRICTED_TAPPING", // challenges-adventure-mode scenario
+                "CHALLENGE_RULES_TYPE_NO_CREATURE_LEVEL_SCALING", // challenges-level-scaling-rules scenario
+                "CHALLENGE_RULES_TYPE_NO_QUEST_LEVEL_SCALING",    // challenges-level-scaling-rules scenario
             };
             std::set<std::string> const& impl = ImplementedRules();
             uint32 missing = 0;
@@ -2282,15 +2286,10 @@ namespace CoAChallenges
         std::set<std::string> const& conds = KnownConditions();
 
         // Rules intentionally not enforced server-side, each with the reason.
-        // IMPORTANT: the *_LEVEL_SCALING ones are NOT confirmed covered by the
-        // client - Extensions.dll was not fully reversed beyond the 35 C_Challenge
-        // functions, and the client Lua only reads 4 UI rules. Treat as
-        // "needs further DLL RE" before assuming the client handles them.
         static std::map<std::string, char const*> const kNotApplicable = {
             {"CHALLENGE_RULES_TYPE_NONE", "client export sentinel (empty slot)"},
             {"CHALLENGE_RULES_TYPE_NO_REALM_BANK", "no realm bank feature on this fork"},
-            {"CHALLENGE_RULES_TYPE_NO_QUEST_LEVEL_SCALING", "no server scaling; needs DLL RE"},
-            {"CHALLENGE_RULES_TYPE_NO_PLAYER_LEVEL_SCALING", "no server scaling; needs DLL RE"},
+            {"CHALLENGE_RULES_TYPE_NO_PLAYER_LEVEL_SCALING", "no player level sync on this fork"},
         };
         std::set<std::string> naSeen;
         uint32 ruleCount = 0, unenforced = 0;

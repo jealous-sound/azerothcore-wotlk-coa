@@ -3,7 +3,7 @@
   "name": "CoA item stream: login excludes scaled copies owned by other characters",
   "contract": [
     "Requires CoA.SendDisplayPatches=1, CoA.ItemScaling=1, DestinyWeaver.Enable=1 and CoA.QuestLevelScaling=1.",
-    "A producer previews quest 176 at ten levels five apart, creating more than eight realm-wide scaled item records.",
+    "A producer previews quest 9146, whose Farstrider's Tunic 23405 has no ItemStat.dbc ladder, at ten levels five apart, creating more than eight realm-wide scaled item records.",
     "The viewer owns none of them. Its login sends at most eight item rows, including the capacity row.",
     "Rows belonging to other characters must not enter this viewer's login stream."
   ],
@@ -38,7 +38,7 @@
     {
       "action": "prepare_quest",
       "actor": "producer",
-      "quest": 176
+      "quest": 9146
     },
     {
       "action": "set_level",
