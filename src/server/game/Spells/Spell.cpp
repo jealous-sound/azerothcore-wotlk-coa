@@ -31,6 +31,7 @@
 #include "GridNotifiers.h"
 #include "Group.h"
 #include "InstanceScript.h"
+#include "LocalLevelScaling.h"
 #include "Log.h"
 #include "LootMgr.h"
 #include "ObjectAccessor.h"
@@ -5725,6 +5726,7 @@ void Spell::HandleThreatSpells()
         {
             if (!target->CanHaveThreatList())
                 continue;
+            threatToAdd = LocalLevelScaling::PoolThreatFor(unitCaster, target, threatToAdd);
             target->GetThreatMgr().AddThreat(unitCaster, threatToAdd, m_spellInfo, true);
         }
     }

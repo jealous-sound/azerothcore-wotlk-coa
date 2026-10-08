@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "War Mode and High-Risk switch open-world level scaling off",
-  "contract": "The War Mode (1004119) and High-Risk (1004019) auras end their tooltips with \"Level scaling is disabled while in War Mode\" / \"... in High-Risk\"; PvE Mode (9931032) has no such line. Requires DestinyWeaver.Enable=1, DestinyWeaver.LevelScaling=1, offset 5, CoA.QuestLevelScaling=1 and CoA.Ruleset.DisableLevelScaling=1. Every character is level 32, starts in the PvE set the login default gives, and turns open world scaling on through the native request. A level-1 creature is viewed at 27 (32 minus the offset) and Kobold Camp Cleanup (7, authored at 2) plays at 20 from its QuestTemplateScaling.dbc row. Selecting War Mode or High-Risk in an inn holds both to their authored levels in the open world and re-sends the creature's level; selecting PvE Mode again gives the scaling back without a relog.",
+  "contract": "The War Mode (1004119) and High-Risk (1004019) auras end their tooltips with \"Level scaling is disabled while in War Mode\" / \"... in High-Risk\"; PvE Mode (9931032) has no such line. Requires DestinyWeaver.Enable=1, DestinyWeaver.LevelScaling=1, offset 4, CoA.QuestLevelScaling=1 and CoA.Ruleset.DisableLevelScaling=1. Every character is level 32, starts in the PvE set the login default gives, and turns open world scaling on through the native request. A level-1 creature is viewed at 28 (32 minus the offset) and Kobold Camp Cleanup (7, authored at 2) plays at 20 from its QuestTemplateScaling.dbc row. Selecting War Mode or High-Risk in an inn holds both to their authored levels in the open world and re-sends the creature's level; selecting PvE Mode again gives the scaling back without a relog.",
   "timeout_ms": 180000,
   "location": {
     "map": 0,
@@ -78,7 +78,7 @@
       "actor": "pve",
       "metric": "view_level",
       "target": "pve_target",
-      "equals": 27,
+      "equals": 28,
       "within_ms": 2000,
       "label": "in PvE Mode the level-1 creature is viewed at 32 minus the offset"
     },
@@ -95,7 +95,7 @@
       "actor": "warmode",
       "metric": "view_level",
       "target": "warmode_target",
-      "equals": 27,
+      "equals": 28,
       "within_ms": 2000,
       "label": "before War Mode the creature is scaled like everyone else's"
     },
@@ -157,7 +157,7 @@
       "actor": "highrisk",
       "metric": "view_level",
       "target": "highrisk_target",
-      "equals": 27,
+      "equals": 28,
       "within_ms": 2000,
       "label": "before High-Risk the creature is scaled like everyone else's"
     },
@@ -237,7 +237,7 @@
       "actor": "warmode",
       "metric": "view_level",
       "target": "warmode_target",
-      "equals": 27,
+      "equals": 28,
       "within_ms": 3000,
       "label": "leaving War Mode gives the creature view back"
     },
@@ -246,7 +246,7 @@
       "actor": "warmode",
       "metric": "sent_level",
       "target": "warmode_target",
-      "equals": 27,
+      "equals": 28,
       "within_ms": 3000,
       "label": "and re-sends the scaled level without a relog"
     },

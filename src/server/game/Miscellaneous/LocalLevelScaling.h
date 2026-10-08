@@ -7,6 +7,7 @@
 #ifndef AC_LOCAL_LEVEL_SCALING_H
 #define AC_LOCAL_LEVEL_SCALING_H
 
+#include "Define.h"
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -18,12 +19,13 @@ class Creature;
 class Item;
 class Player;
 class Quest;
+class Unit;
 struct ItemTemplate;
 
 namespace LocalLevelScaling
 {
 inline std::atomic<bool> QuestEnabled{false};
-inline std::atomic<std::uint8_t> CreatureOffset{5};
+inline std::atomic<std::uint8_t> CreatureOffset{4};
 
 /// Whether a query response marks a quest on its curve with the client's scaling flag, which colours
 /// it "standard" instead of by level. Off by default: live quest caches never carried the flag.
@@ -229,12 +231,22 @@ inline std::uint32_t ViewMaxHealthFor(Player const* viewer, Creature const* crea
     return owner ? owner(viewer, creature) : 0;
 }
 
+/// `threat` that the character behind `source` generated against `threatOwner`, in the creature's real
+/// health pool: their damage already reaches the pool converted, and threat from anything else (healing,
+/// threat spells, mana drains) is converted by the same ratio so it keeps pace with damage threat. Unchanged
+/// when no character sees a version of the creature.
+AC_GAME_API float PoolThreatFor(Unit const* source, Unit const* threatOwner, float threat);
+
+/// The health `victim` shows the character behind `attacker`: the real health scaled to that character's
+/// version of the creature, which is the size damage logs report hits in. The real health otherwise.
+AC_GAME_API std::uint32_t ShownHealthFor(Unit const* attacker, Unit const* victim);
+
 /// The level a *viewer* is shown for an open-world creature: never lowered, and lifted to the viewer's
 /// level minus the offset. A view is told to nobody else, so it has no ceiling: the creature in front
 /// of a character comes all the way up to that character's band, which is the whole point of the
 /// feature (a starting-zone creature stays relevant to the character standing in front of it).
 inline std::uint8_t ScaleCreatureLevelForViewer(std::uint8_t originalLevel, std::uint8_t playerLevel,
-    std::uint8_t offset = 5)
+    std::uint8_t offset = 4)
 {
     std::uint8_t floor = playerLevel > offset ? playerLevel - offset : 1;
     return std::max(originalLevel, floor);
@@ -325,6 +337,86 @@ inline void NotifyItemArrival(Player* player, Item* item)
     ItemArrivalResolver const owner = ItemArrivalOwner.load(std::memory_order_relaxed);
     if (owner && player && item)
         owner(player, item);
+}
+
+/// An item a master looter handed to `receiver`. That path never reaches the loot hooks, so the owner
+/// of instance levels is told here and gives the item the receiver's level like any other loot.
+using MasterLootResolver = void (*)(Player* receiver, Item* item);
+inline std::atomic<MasterLootResolver> MasterLootOwner{nullptr};
+
+inline void NotifyMasterLoot(Player* receiver, Item* item)
+{
+    MasterLootResolver const owner = MasterLootOwner.load(std::memory_order_relaxed);
+    if (owner && receiver && item)
+        owner(receiver, item);
+}
+
+/// A quest reward just stored for `player`, before the reward hooks run, so the owner of instance levels
+/// can give it the level the quest itself showed for it.
+using QuestRewardLevelResolver = void (*)(Player* player, Item* item, Quest const* quest);
+inline std::atomic<QuestRewardLevelResolver> QuestRewardLevelOwner{nullptr};
+
+inline void NotifyQuestRewardItem(Player* player, Item* item, Quest const* quest)
+{
+    QuestRewardLevelResolver const owner = QuestRewardLevelOwner.load(std::memory_order_relaxed);
+    if (owner && player && item && quest)
+        owner(player, item, quest);
+}
+
+/// The loot preview. The client shows a scaling item that has no level of its own yet (a loot slot, a
+/// roll, an inspected or auctioned item) at a level the server tells it beforehand, so each character
+/// sees the version they would receive. The owner of instance levels installs these hooks only while the
+/// preview is on; without them the client shows the authored items.
+struct ItemPreviewHooks
+{
+    /// Tells `roller` the level their next roll frame shows and returns it, zero for none.
+    std::uint32_t (*RollLevel)(Player* roller);
+    /// The level a lootable corpse shows `viewer`, zero for its usual one.
+    std::uint32_t (*CorpseLevel)(Player* viewer, Creature const* corpse);
+    /// Tells `inspector` the level of each item `target` wears.
+    void (*Inspected)(Player* inspector, Player* target);
+    /// Tells `player` the level of each item waiting in their mailbox.
+    void (*MailListed)(Player* player);
+    /// The level an auction of the instance `itemGuidLow` lists, zero for none.
+    std::uint32_t (*AuctionLevel)(std::uint32_t itemGuidLow, ItemTemplate const* proto);
+};
+inline std::atomic<ItemPreviewHooks const*> ItemPreviewOwner{nullptr};
+
+inline bool ItemPreviewActive()
+{
+    return ItemPreviewOwner.load(std::memory_order_relaxed) != nullptr;
+}
+
+inline std::uint32_t RollPreviewLevel(Player* roller)
+{
+    ItemPreviewHooks const* hooks = ItemPreviewOwner.load(std::memory_order_relaxed);
+    return hooks && roller ? hooks->RollLevel(roller) : 0;
+}
+
+inline std::uint32_t CorpsePreviewLevel(Player* viewer, Creature const* corpse)
+{
+    ItemPreviewHooks const* hooks = ItemPreviewOwner.load(std::memory_order_relaxed);
+    return hooks && viewer && corpse ? hooks->CorpseLevel(viewer, corpse) : 0;
+}
+
+inline void NotifyInspected(Player* inspector, Player* target)
+{
+    ItemPreviewHooks const* hooks = ItemPreviewOwner.load(std::memory_order_relaxed);
+    if (hooks && inspector && target)
+        hooks->Inspected(inspector, target);
+}
+
+inline void NotifyMailListed(Player* player)
+{
+    ItemPreviewHooks const* hooks = ItemPreviewOwner.load(std::memory_order_relaxed);
+    if (hooks && player)
+        hooks->MailListed(player);
+}
+
+inline std::uint32_t AuctionPreviewLevel(std::uint32_t itemGuidLow, ItemTemplate const* proto)
+{
+    ItemPreviewHooks const* hooks = ItemPreviewOwner.load(std::memory_order_relaxed);
+    return hooks && proto ? hooks->AuctionLevel(itemGuidLow, proto) : 0;
 }
 }
 

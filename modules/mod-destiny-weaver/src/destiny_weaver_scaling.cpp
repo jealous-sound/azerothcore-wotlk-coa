@@ -91,7 +91,7 @@ namespace
     /// read an atomic instead of a config file.
     uint8 ScalingOffset()
     {
-        return uint8(std::min<uint32>(sConfigMgr->GetOption<uint32>("DestinyWeaver.Scaling.Offset", 5), 60));
+        return uint8(std::min<uint32>(sConfigMgr->GetOption<uint32>("DestinyWeaver.Scaling.Offset", 4), 60));
     }
 
     /// The client flag that marks a unit as scaled for this client (UnitIsLevelScaling): the client then
@@ -145,7 +145,7 @@ namespace
                 continue;
 
             LocalLevelScaling::LevelBand const band =
-                LocalLevelScaling::DungeonBandFromFinder(dungeon->MinLevel, dungeon->MaxLevel);
+                LocalLevelScaling::DungeonBandFromFinder(dungeon->TargetLevelMin, dungeon->MaxLevel);
             auto [itr, inserted] = scope->DungeonBands.try_emplace(dungeon->MapID, band);
             if (!inserted)
                 itr->second = LocalLevelScaling::MergeBands(itr->second, band);
@@ -199,6 +199,11 @@ namespace
                                                       info->BaseAttackTime);
     }
 
+    double SwingFrom(LevelStats const& stats, CreatureTemplate const* info, double weaponFactor)
+    {
+        return DestinyWeaver::CreatureSwingEnd(stats.BaseDamage, stats.AttackPower, info->BaseVariance, weaponFactor);
+    }
+
     /// One character's version of one creature.
     struct CreatureView
     {
@@ -209,6 +214,9 @@ namespace
         double DamageDealtToPool;
         /// The creature's own blow -> what it is worth in this character's version of the fight.
         double DamageTakenFactor;
+        /// The same for the bottom and the top of its melee range.
+        double DamageTakenLow;
+        double DamageTakenHigh;
     };
 
     Player* OwningPlayer(Unit* unit)
@@ -337,6 +345,11 @@ namespace
         view.DamageDealtToPool = double(realMaxHealth) / double(view.MaxHealth);
         view.DamageTakenFactor = DestinyWeaver::ViewDamageTakenFactor(HitFrom(view.Stats, info),
                                                                       HitFrom(ownStats, info));
+        view.DamageTakenLow = DestinyWeaver::ViewDamageTakenFactor(SwingFrom(view.Stats, info, 1.0),
+                                                                   SwingFrom(ownStats, info, 1.0));
+        view.DamageTakenHigh = DestinyWeaver::ViewDamageTakenFactor(
+            SwingFrom(view.Stats, info, DestinyWeaver::CREATURE_MAX_WEAPON_DAMAGE_FACTOR),
+            SwingFrom(ownStats, info, DestinyWeaver::CREATURE_MAX_WEAPON_DAMAGE_FACTOR));
         return true;
     }
 
@@ -823,9 +836,10 @@ public:
         if (!ViewFor(creature, player, view))
             return;
 
-        double const blow = DestinyWeaver::BlowInRange(damage, creature->GetFloatValue(UNIT_FIELD_MINDAMAGE),
-                                                       creature->GetFloatValue(UNIT_FIELD_MAXDAMAGE), rand_norm());
-        damage = DestinyWeaver::WholeDamage(blow * view.DamageTakenFactor, rand_norm());
+        double const blow = DestinyWeaver::ViewBlow(damage, creature->GetFloatValue(UNIT_FIELD_MINDAMAGE),
+                                                    creature->GetFloatValue(UNIT_FIELD_MAXDAMAGE), view.DamageTakenLow,
+                                                    view.DamageTakenHigh, view.DamageTakenFactor, rand_norm());
+        damage = DestinyWeaver::WholeDamage(blow, rand_norm());
     }
 
     /// The same for a creature's spells.

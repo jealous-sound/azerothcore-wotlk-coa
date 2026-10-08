@@ -34,9 +34,9 @@ TEST(LocalLevelScalingTest, OpenWorldCreatureAboveViewerKeepsItsLevel)
     EXPECT_EQ(ScaleCreatureLevelForViewer(38, 20), 38);
 }
 
-TEST(LocalLevelScalingTest, OpenWorldCreatureIsLiftedToFiveBelowTheViewer)
+TEST(LocalLevelScalingTest, OpenWorldCreatureIsLiftedToFourBelowTheViewer)
 {
-    EXPECT_EQ(ScaleCreatureLevelForViewer(5, 60), 55);
+    EXPECT_EQ(ScaleCreatureLevelForViewer(5, 60), 56);
     EXPECT_EQ(ScaleCreatureLevelForViewer(5, 4), 5);
     EXPECT_EQ(ScaleCreatureLevelForViewer(1, 3), 1);
     EXPECT_EQ(ScaleCreatureLevelForViewer(5, 40, 3), 37);

@@ -6,13 +6,17 @@
 #include "AscensionItemScaling.h"
 #include "Bag.h"
 #include "Config.h"
+#include "Creature.h"
 #include "DatabaseEnv.h"
+#include "Group.h"
 #include "Item.h"
 #include "LocalLevelScaling.h"
 #include "Log.h"
+#include "Mail.h"
 #include "ObjectMgr.h"
 #include "Player.h"
 #include "PlayerScript.h"
+#include "QuestDef.h"
 #include "Timer.h"
 #include "World.h"
 #include "WorldScript.h"
@@ -37,6 +41,8 @@ constexpr uint32 ScanChunkRecords = 8192;
 std::atomic<bool> enabled{false};
 std::atomic<int32> lootLevelOffset{0};
 std::atomic<bool> questRewards{true};
+std::atomic<bool> levelKeys{false};
+std::atomic<bool> preview{false};
 
 class LadderStore
 {
@@ -165,6 +171,30 @@ uint8 StoredLevel(Item const* item)
     return level == instanceLevels.end() ? 0 : level->second;
 }
 
+bool PreviewOn()
+{
+    return preview.load(std::memory_order_relaxed);
+}
+
+bool IsBot(Player const* player)
+{
+    return !player->GetSession() || player->GetSession()->IsBot();
+}
+
+bool IsScalingItem(ItemTemplate const* proto)
+{
+    return proto && ItemLadder::ScalableItem(*proto) && ItemScaling::LiftableEntry(proto->ItemId) &&
+        LadderStore::Instance().Has(proto->ItemId);
+}
+
+uint32 ClientLevel(Item const* item)
+{
+    if (uint8 const level = StoredLevel(item))
+        return level;
+    ItemTemplate const* proto = item->GetTemplate();
+    return PreviewOn() && IsScalingItem(proto) ? proto->ItemLevel : 0;
+}
+
 ItemTemplate const* InstanceTemplate(Item const* item)
 {
     if (!enabled.load(std::memory_order_relaxed))
@@ -172,7 +202,7 @@ ItemTemplate const* InstanceTemplate(Item const* item)
 
     uint8 const level = StoredLevel(item);
     ItemTemplate const* base = level ? item->GetTemplate() : nullptr;
-    if (!base)
+    if (!base || (PreviewOn() && level == base->ItemLevel))
         return nullptr;
 
     ItemLadder::Row const* row = LadderStore::Instance().Row(base->ItemId, level);
@@ -188,7 +218,7 @@ ItemTemplate const* InstanceTemplate(Item const* item)
 
 void SendLevel(Player* player, Item const* item)
 {
-    if (uint8 const level = StoredLevel(item))
+    if (uint32 const level = ClientLevel(item))
     {
         WorldPacket data = ItemLadder::BuildLevelAddon(item->GetGUID(), level);
         player->SendDirectMessage(&data);
@@ -220,17 +250,21 @@ void ItemArrived(Player* player, Item* item)
         SendLevel(player, item);
 }
 
-void AssignDropLevel(Player* looter, Item* item)
+uint32 DropBase(Player const* looter)
 {
-    if (!enabled.load(std::memory_order_relaxed) || !looter || !item || item->IsEquipped())
+    return ItemLadder::DropBase(looter->GetLevel(), lootLevelOffset.load(std::memory_order_relaxed));
+}
+
+void AssignLevel(Player* owner, Item* item, uint32 key)
+{
+    if (!enabled.load(std::memory_order_relaxed) || !owner || !item || item->IsEquipped())
         return;
 
     ItemTemplate const* proto = item->GetTemplate();
-    if (!proto || !ItemLadder::ScalableItem(*proto) || !ItemScaling::LiftableEntry(proto->ItemId) ||
-        !LadderStore::Instance().Has(proto->ItemId) || StoredLevel(item))
+    if (!IsScalingItem(proto) || StoredLevel(item))
         return;
 
-    uint8 const level = ItemLadder::DropLevel(looter->GetLevel(), lootLevelOffset.load(std::memory_order_relaxed));
+    uint8 const level = ItemLadder::ClampLevel(key);
     {
         std::unique_lock lock(levelsMutex);
         instanceLevels[item->GetGUID().GetCounter()] = level;
@@ -238,7 +272,100 @@ void AssignDropLevel(Player* looter, Item* item)
     CharacterDatabase.Execute(
         "REPLACE INTO `character_item_scaling` (`item_guid`, `item_entry`, `scaling_level`) VALUES ({}, {}, {})",
         item->GetGUID().GetCounter(), proto->ItemId, level);
-    SendLevel(looter, item);
+    SendLevel(owner, item);
+}
+
+void AssignDropLevel(Player* looter, Item* item, uint32 base = 0)
+{
+    if (!looter)
+        return;
+
+    if (!base)
+        base = DropBase(looter);
+    AssignLevel(looter, item, levelKeys.load(std::memory_order_relaxed) ? ItemLadder::ClientKey(base) : base);
+}
+
+void MasterLooted(Player* receiver, Item* item)
+{
+    AssignDropLevel(receiver, item);
+}
+
+void QuestRewardStored(Player* player, Item* item, Quest const* quest)
+{
+    if (!levelKeys.load(std::memory_order_relaxed) || !questRewards.load(std::memory_order_relaxed))
+        return;
+
+    LocalLevelScaling::QuestCurve const* curve = LocalLevelScaling::QuestCurveFor(quest->GetQuestId());
+    uint32 const key = curve ? uint32(std::max<int32>(1, LocalLevelScaling::CurveLevel(*curve, player->GetLevel())))
+                             : ItemLadder::ClientKey(player->GetLevel());
+    AssignLevel(player, item, key);
+}
+
+uint32 RollLevel(Player* roller)
+{
+    if (IsBot(roller))
+        return 0;
+
+    uint32 const base = DropBase(roller);
+    WorldPacket data = ItemLadder::BuildRollLevel(base);
+    roller->SendDirectMessage(&data);
+    return base;
+}
+
+uint32 CorpseLevel(Player* viewer, Creature const* corpse)
+{
+    if (IsBot(viewer) || corpse->IsAlive() || !corpse->HasDynamicFlag(UNIT_DYNFLAG_LOOTABLE) ||
+        !viewer->isAllowedToLoot(corpse))
+        return 0;
+    return std::min<uint32>(DropBase(viewer), 255);
+}
+
+void Inspected(Player* inspector, Player* target)
+{
+    if (IsBot(inspector))
+        return;
+
+    std::array<uint32, ItemLadder::InspectSlots> levels{};
+    for (uint8 slot = 0; slot < ItemLadder::InspectSlots; ++slot)
+        if (Item const* item = target->GetItemByPos(INVENTORY_SLOT_BAG_0, slot))
+            if (uint32 const key = ClientLevel(item))
+                levels[slot] = ItemLadder::ClientBaseForKey(key);
+
+    WorldPacket data = ItemLadder::BuildInspectLevels(levels);
+    inspector->SendDirectMessage(&data);
+}
+
+void MailListed(Player* player)
+{
+    if (IsBot(player))
+        return;
+
+    for (Mail const* mail : player->GetMails())
+        for (MailItemInfo const& info : mail->items)
+            if (Item const* item = player->GetMItem(info.item_guid))
+                SendLevel(player, item);
+}
+
+uint32 AuctionLevel(uint32 itemGuidLow, ItemTemplate const* proto)
+{
+    {
+        std::shared_lock lock(levelsMutex);
+        if (auto const level = instanceLevels.find(itemGuidLow); level != instanceLevels.end())
+            return level->second;
+    }
+    return IsScalingItem(proto) ? proto->ItemLevel : 0;
+}
+
+constexpr LocalLevelScaling::ItemPreviewHooks PreviewHooks = { &RollLevel, &CorpseLevel, &Inspected,
+    &MailListed, &AuctionLevel };
+
+void SendPreviewFlag(Player* player)
+{
+    if (!PreviewOn() || IsBot(player))
+        return;
+
+    WorldPacket data = ItemLadder::BuildPreviewAddon(player->GetGUID());
+    player->SendDirectMessage(&data);
 }
 
 bool HandleItemStatQuery(WorldSession* session, WorldPacket const& packet)
@@ -248,11 +375,22 @@ bool HandleItemStatQuery(WorldSession* session, WorldPacket const& packet)
 
     uint32 const itemId = packet.read<uint32>(0);
     uint32 const level = packet.read<uint32>(sizeof(uint32));
+    ItemTemplate const* proto = sObjectMgr->GetItemTemplate(itemId);
+    if (!level || !proto)
+        return true;
+
+    if (PreviewOn() && level == proto->ItemLevel)
+    {
+        WorldPacket stock = ItemLadder::BuildItemStatResponse(itemId, level, ItemLadder::StockRow(*proto), proto);
+        session->SendPacket(&stock);
+        return true;
+    }
+
     ItemLadder::Row const* row = LadderStore::Instance().Row(itemId, level);
     if (!row)
         return true;
 
-    WorldPacket reply = ItemLadder::BuildItemStatResponse(itemId, level, *row, sObjectMgr->GetItemTemplate(itemId));
+    WorldPacket reply = ItemLadder::BuildItemStatResponse(itemId, level, *row, proto);
     session->SendPacket(&reply);
     return true;
 }
@@ -294,6 +432,18 @@ public:
             std::memory_order_relaxed);
         questRewards.store(sConfigMgr->GetOption<bool>("CoA.ItemScaling.Native.QuestRewards", true),
             std::memory_order_relaxed);
+        if (reload)
+            return;
+
+        levelKeys.store(sConfigMgr->GetOption<bool>("CoA.ItemScaling.Native.LevelKeys", false),
+            std::memory_order_relaxed);
+        _previewRequested = sConfigMgr->GetOption<bool>("CoA.ItemScaling.Native.Preview", false);
+        if (_previewRequested && !levelKeys.load(std::memory_order_relaxed))
+        {
+            LOG_ERROR("server.loading", "CoA.ItemScaling.Native.Preview needs CoA.ItemScaling.Native.LevelKeys; "
+                "the loot preview stays off");
+            _previewRequested = false;
+        }
     }
 
     void OnStartup() override
@@ -312,24 +462,39 @@ public:
 
         LoadInstanceLevels();
         enabled.store(true, std::memory_order_relaxed);
+        if (_previewRequested)
+        {
+            preview.store(true, std::memory_order_relaxed);
+            LocalLevelScaling::ItemPreviewOwner.store(&PreviewHooks, std::memory_order_relaxed);
+        }
         LOG_INFO("server.loading", ">> Indexed {} native item scaling ladders in {} ms",
             LadderStore::Instance().Items(), GetMSTimeDiffToNow(started));
     }
 
 private:
     bool _requested = false;
+    bool _previewRequested = false;
 };
 
 class Acquisition : public PlayerScript
 {
 public:
     Acquisition() : PlayerScript("NativeItemScalingAcquisition", { PLAYERHOOK_ON_LOGIN, PLAYERHOOK_ON_LOOT_ITEM,
-        PLAYERHOOK_ON_GROUP_ROLL_REWARD_ITEM, PLAYERHOOK_ON_QUEST_REWARD_ITEM }) { }
+        PLAYERHOOK_ON_GROUP_ROLL_REWARD_ITEM, PLAYERHOOK_ON_QUEST_REWARD_ITEM, PLAYERHOOK_ON_STORE_NEW_ITEM }) { }
 
     void OnPlayerLogin(Player* player) override
     {
-        if (enabled.load(std::memory_order_relaxed))
-            SendAllLevels(player);
+        if (!enabled.load(std::memory_order_relaxed))
+            return;
+
+        SendPreviewFlag(player);
+        SendAllLevels(player);
+    }
+
+    void OnPlayerStoreNewItem(Player* player, Item* item, uint32) override
+    {
+        if (PreviewOn() && player && item && !IsBot(player))
+            SendLevel(player, item);
     }
 
     void OnPlayerLootItem(Player* player, Item* item, uint32, ObjectGuid) override
@@ -337,9 +502,14 @@ public:
         AssignDropLevel(player, item);
     }
 
-    void OnPlayerGroupRollRewardItem(Player* player, Item* item, uint32, RollVote, Roll*) override
+    void OnPlayerGroupRollRewardItem(Player* player, Item* item, uint32, RollVote, Roll* roll) override
     {
-        AssignDropLevel(player, item);
+        uint32 base = 0;
+        if (roll && player)
+            if (auto const previewed = roll->previewLevels.find(player->GetGUID());
+                previewed != roll->previewLevels.end())
+                base = previewed->second;
+        AssignDropLevel(player, item, base);
     }
 
     void OnPlayerQuestRewardItem(Player* player, Item* item, uint32) override
@@ -371,6 +541,9 @@ void AddSC_AscensionNativeItemScaling()
     LocalLevelScaling::ItemInstanceTemplateOwner.store(&NativeItemScaling::InstanceTemplate,
         std::memory_order_relaxed);
     LocalLevelScaling::ItemArrivalOwner.store(&NativeItemScaling::ItemArrived, std::memory_order_relaxed);
+    LocalLevelScaling::MasterLootOwner.store(&NativeItemScaling::MasterLooted, std::memory_order_relaxed);
+    LocalLevelScaling::QuestRewardLevelOwner.store(&NativeItemScaling::QuestRewardStored,
+        std::memory_order_relaxed);
     AscensionCompatOpcodes::Claim(ItemLadder::ItemStatQueryOpcode, &NativeItemScaling::HandleItemStatQuery);
     new NativeItemScaling::Configuration();
     new NativeItemScaling::Acquisition();

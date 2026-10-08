@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "Challenge rules switch level scaling off for the character holding them",
-  "contract": "ChallengeRuleTypes.dbc names NO_CREATURE_LEVEL_SCALING and NO_QUEST_LEVEL_SCALING. Ironman - Overwhelming Odds (71) carries only the creature rule; Hardcore - Inn-Sane (76) carries both. Requires DestinyWeaver.Enable=1, DestinyWeaver.LevelScaling=1, offset 5 and CoA.QuestLevelScaling=1. Every character turns open world scaling on through the native request and is level 32. A level-1 creature is viewed at 27 (32 minus the offset) by a character without either rule, and at its authored level 1 while the creature rule is active. Kobold Camp Cleanup (7) is authored at level 2; its QuestTemplateScaling.dbc row (min 2, max 20, offset -4 from level 6) plays it at 20 for a level-32 character, and at its authored level 2 while the quest rule is active. Stopping the challenge gives the scaling back without a relog: the view returns to 27 and the creature's level is re-sent to the owner's session.",
+  "contract": "ChallengeRuleTypes.dbc names NO_CREATURE_LEVEL_SCALING and NO_QUEST_LEVEL_SCALING. Ironman - Overwhelming Odds (71) carries only the creature rule; Hardcore - Inn-Sane (76) carries both. Requires DestinyWeaver.Enable=1, DestinyWeaver.LevelScaling=1, offset 4 and CoA.QuestLevelScaling=1. Every character turns open world scaling on through the native request and is level 32. A level-1 creature is viewed at 28 (32 minus the offset) by a character without either rule, and at its authored level 1 while the creature rule is active. Kobold Camp Cleanup (7) is authored at level 2; its QuestTemplateScaling.dbc row (min 2, max 20, offset -4 from level 6) plays it at 20 for a level-32 character, and at its authored level 2 while the quest rule is active. Stopping the challenge gives the scaling back without a relog: the view returns to 28 and the creature's level is re-sent to the owner's session.",
   "timeout_ms": 180000,
   "location": {
     "map": 0,
@@ -117,7 +117,7 @@
       "metric": "view_level",
       "target": "control_target",
       "label": "without a rule the level-1 creature is viewed at 32 minus the offset",
-      "equals": 27,
+      "equals": 28,
       "within_ms": 2000
     },
     {
@@ -173,7 +173,7 @@
       "metric": "view_level",
       "target": "ironman_target",
       "label": "stopping the challenge gives the creature view back",
-      "equals": 27,
+      "equals": 28,
       "within_ms": 3000
     },
     {
@@ -182,7 +182,7 @@
       "metric": "sent_level",
       "target": "ironman_target",
       "label": "the restored level is re-sent without a relog",
-      "equals": 27,
+      "equals": 28,
       "within_ms": 3000
     },
     {
@@ -205,7 +205,7 @@
       "metric": "sent_level",
       "target": "innsane_target",
       "label": "the restored creature level is re-sent without a relog",
-      "equals": 27,
+      "equals": 28,
       "within_ms": 3000
     }
   ]

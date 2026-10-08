@@ -43,7 +43,7 @@ per-character system adds, and of what a port has to carry.
 | `DestinyWeaver.Enable` | `destiny_weaver.conf` | 1 | master switch |
 | `DestinyWeaver.LevelScaling` | | 1 | the feature |
 | `DestinyWeaver.LevelScaling.Default` | | 1 | what a character who never chose gets |
-| `DestinyWeaver.Scaling.Offset` | | 5 | how far below the character an open-world view sits |
+| `DestinyWeaver.Scaling.Offset` | | 4 | how far below the character an open-world view sits |
 | `DestinyWeaver.Scaling.WorldMaps` | | "0 1" | the open-world maps whose creatures scale |
 | `DestinyWeaver.Scaling.DungeonIds` | | 19 classic finder entries | the dungeons that scale inside their LFGDungeons.dbc band |
 | `DestinyWeaver.ExperienceBonusControl` | | 1 | exposes the second Weaver option |

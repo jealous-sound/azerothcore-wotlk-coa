@@ -15,7 +15,11 @@ namespace ItemLadder
 constexpr uint16 ItemStatQueryOpcode = 0x06FF;
 constexpr uint16 ItemStatResponseOpcode = 0x0700;
 constexpr uint16 UpdateObjectAddonOpcode = 0x0578;
+constexpr uint16 InspectLevelsOpcode = 0x0716;
+constexpr uint16 RollLevelOpcode = 0x073F;
 constexpr uint32 LevelAddonField = 0;
+constexpr uint32 PreviewAddonField = 87;
+constexpr uint32 InspectSlots = 19;
 constexpr uint32 RecordFields = 39;
 constexpr uint32 RecordSize = RecordFields * sizeof(uint32);
 constexpr std::size_t ItemStatResponseSize = 168;
@@ -55,10 +59,18 @@ private:
 
 [[nodiscard]] bool ScalableItem(ItemTemplate const& proto);
 [[nodiscard]] uint8 DropLevel(uint8 looterLevel, int32 offset);
+[[nodiscard]] uint32 DropBase(uint8 looterLevel, int32 offset);
+[[nodiscard]] uint8 ClampLevel(uint32 key);
+[[nodiscard]] uint32 ClientKey(uint32 level);
+[[nodiscard]] uint32 ClientBaseForKey(uint32 key);
+[[nodiscard]] Row StockRow(ItemTemplate const& proto);
 void ApplyRow(ItemTemplate& proto, Row const& row);
 [[nodiscard]] WorldPacket BuildItemStatResponse(uint32 itemId, uint32 level, Row const& row,
     ItemTemplate const* proto);
 [[nodiscard]] WorldPacket BuildLevelAddon(ObjectGuid guid, uint32 level);
+[[nodiscard]] WorldPacket BuildPreviewAddon(ObjectGuid playerGuid);
+[[nodiscard]] WorldPacket BuildRollLevel(uint32 level);
+[[nodiscard]] WorldPacket BuildInspectLevels(std::array<uint32, InspectSlots> const& levels);
 }
 
 #endif

@@ -34,6 +34,7 @@
 #include "InstanceSaveMgr.h"
 #include "InstanceScript.h"
 #include "Language.h"
+#include "LocalLevelScaling.h"
 #include "Log.h"
 #include "LootMgr.h"
 #include "MapMgr.h"
@@ -1120,6 +1121,8 @@ void WorldSession::HandleInspectOpcode(WorldPacket& recv_data)
 
     player->BuildEnchantmentsInfoData(&data);
     SendPacket(&data);
+
+    LocalLevelScaling::NotifyInspected(_player, player);
 }
 
 void WorldSession::HandleInspectHonorStatsOpcode(WorldPacket& recv_data)

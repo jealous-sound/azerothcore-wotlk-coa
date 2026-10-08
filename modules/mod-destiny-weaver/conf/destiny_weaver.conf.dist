@@ -42,15 +42,15 @@ DestinyWeaver.LevelScaling.Default = 1
 
 #    DestinyWeaver.Scaling.Offset
 #        Description: How far below the character a scaled open-world creature sits. A level 40
-#                     character pulls creatures up to level 35 with the default, so the world stays a
+#                     character pulls creatures up to level 36 with the default, so the world stays a
 #                     step behind. There is no ceiling on the lift: a view is delivered to one client,
 #                     so there is nobody else for a high view to be wrong for. Dungeons do not use it:
 #                     a scaled dungeon's creatures stand at the character's own level, held inside the
 #                     dungeon's band.
-#        Default:     5
+#        Default:     4
 #        Reloadable:  yes (.reload config)
 
-DestinyWeaver.Scaling.Offset = 5
+DestinyWeaver.Scaling.Offset = 4
 
 #    DestinyWeaver.Scaling.WorldMaps
 #        Description: The open-world maps whose creatures scale, as space-separated map ids. Raids,
@@ -63,7 +63,7 @@ DestinyWeaver.Scaling.WorldMaps = "0 1"
 #    DestinyWeaver.Scaling.DungeonIds
 #        Description: The dungeon finder entries (LFGDungeons.dbc ids) whose dungeons scale, on their
 #                     regular difficulty. A dungeon's creatures stand at the character's level, held
-#                     inside the entry's MinLevel-MaxLevel band; an entry whose levels lie outside
+#                     inside the entry's TargetLevelMin-MaxLevel band; an entry whose levels lie outside
 #                     1-60 uses 15-59, and a map listed by several entries covers all of them. A
 #                     dungeon that is not listed keeps its authored levels.
 #        Default:     "1 4 6 8 10 12 14 16 18 20 22 24 26 28 163 164 165 272 273"

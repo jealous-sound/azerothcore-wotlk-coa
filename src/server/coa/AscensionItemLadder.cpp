@@ -85,6 +85,70 @@ uint8 DropLevel(uint8 looterLevel, int32 offset)
     return uint8(std::clamp<int32>(int32(looterLevel) + offset, 1, MaxLevel));
 }
 
+uint32 DropBase(uint8 looterLevel, int32 offset)
+{
+    return uint32(std::clamp<int32>(int32(looterLevel) + offset, 1, 255));
+}
+
+uint8 ClampLevel(uint32 key)
+{
+    return uint8(std::clamp<uint32>(key, 1, MaxLevel));
+}
+
+uint32 ClientKey(uint32 level)
+{
+    static constexpr std::array<uint8, 20> AboveSixty = { 25, 26, 28, 30, 31, 32, 32, 33, 34, 35,
+                                                          35, 35, 35, 35, 35, 35, 35, 35, 35, 35 };
+    if (level <= 20)
+        return level + 2;
+    if (level <= 30)
+        return level + 3;
+    if (level <= 50)
+        return level + 4;
+    if (level <= 60)
+        return level + 5;
+    if (level <= 80)
+        return level + AboveSixty[level - 61];
+    return level + 5;
+}
+
+uint32 ClientBaseForKey(uint32 key)
+{
+    uint32 below = 0;
+    for (uint32 level = 1; level <= 80; ++level)
+    {
+        uint32 const levelKey = ClientKey(level);
+        if (levelKey == key)
+            return level;
+        if (levelKey < key)
+            below = level;
+    }
+    return below;
+}
+
+Row StockRow(ItemTemplate const& proto)
+{
+    Row row;
+    row.ItemId = proto.ItemId;
+    row.Level = proto.ItemLevel;
+    for (uint32 i = 0; i < MAX_ITEM_PROTO_STATS; ++i)
+        row.Stats[i] = proto.ItemStat[i];
+    for (uint32 i = 0; i < MAX_ITEM_PROTO_DAMAGES; ++i)
+    {
+        row.DamageMin[i] = proto.Damage[i].DamageMin;
+        row.DamageMax[i] = proto.Damage[i].DamageMax;
+    }
+    row.Armor = proto.Armor;
+    row.ArmorReborn = proto.Armor;
+    row.Resistances = { proto.HolyRes, proto.FireRes, proto.NatureRes, proto.FrostRes, proto.ShadowRes,
+        proto.ArcaneRes };
+    row.Block = proto.Block;
+    row.RandomProperty = uint32(proto.RandomProperty);
+    row.RequiredLevel = proto.RequiredLevel;
+    row.SellPrice = proto.SellPrice;
+    return row;
+}
+
 void ApplyRow(ItemTemplate& proto, Row const& row)
 {
     proto.StatsCount = 0;
@@ -132,6 +196,28 @@ WorldPacket BuildLevelAddon(ObjectGuid guid, uint32 level)
 {
     WorldPacket data(UpdateObjectAddonOpcode, 16);
     data << guid << LevelAddonField << level;
+    return data;
+}
+
+WorldPacket BuildPreviewAddon(ObjectGuid playerGuid)
+{
+    WorldPacket data(UpdateObjectAddonOpcode, 16);
+    data << playerGuid << PreviewAddonField << uint32(1);
+    return data;
+}
+
+WorldPacket BuildRollLevel(uint32 level)
+{
+    WorldPacket data(RollLevelOpcode, 4);
+    data << level;
+    return data;
+}
+
+WorldPacket BuildInspectLevels(std::array<uint32, InspectSlots> const& levels)
+{
+    WorldPacket data(InspectLevelsOpcode, 4 * InspectSlots);
+    for (uint32 level : levels)
+        data << level;
     return data;
 }
 }

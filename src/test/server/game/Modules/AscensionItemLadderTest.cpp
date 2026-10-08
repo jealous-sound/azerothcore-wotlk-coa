@@ -276,3 +276,78 @@ TEST(AscensionItemLadder, RebornArmorReachesTheTemplateAndBothTooltipFields)
     EXPECT_EQ(data.read<uint32>(), 97u);
     EXPECT_EQ(data.read<uint32>(), 97u);
 }
+
+TEST(AscensionItemLadder, ClientKeysFollowTheClientBands)
+{
+    EXPECT_EQ(ItemLadder::ClientKey(1), 3u);
+    EXPECT_EQ(ItemLadder::ClientKey(20), 22u);
+    EXPECT_EQ(ItemLadder::ClientKey(21), 24u);
+    EXPECT_EQ(ItemLadder::ClientKey(30), 33u);
+    EXPECT_EQ(ItemLadder::ClientKey(31), 35u);
+    EXPECT_EQ(ItemLadder::ClientKey(50), 54u);
+    EXPECT_EQ(ItemLadder::ClientKey(51), 56u);
+    EXPECT_EQ(ItemLadder::ClientKey(60), 65u);
+    EXPECT_EQ(ItemLadder::ClientKey(61), 86u);
+    EXPECT_EQ(ItemLadder::ClientKey(80), 115u);
+    EXPECT_EQ(ItemLadder::ClientKey(81), 86u);
+}
+
+TEST(AscensionItemLadder, ClientBaseForKeyInvertsTheKeyOrTakesTheLevelBelow)
+{
+    for (uint32 level = 1; level <= 60; ++level)
+        EXPECT_EQ(ItemLadder::ClientBaseForKey(ItemLadder::ClientKey(level)), level);
+    EXPECT_EQ(ItemLadder::ClientBaseForKey(23), 20u);
+    EXPECT_EQ(ItemLadder::ClientBaseForKey(1), 0u);
+}
+
+TEST(AscensionItemLadder, DropBaseAndClampedLevels)
+{
+    EXPECT_EQ(ItemLadder::DropBase(37, 4), 41u);
+    EXPECT_EQ(ItemLadder::DropBase(1, -5), 1u);
+    EXPECT_EQ(ItemLadder::DropBase(255, 5), 255u);
+    EXPECT_EQ(ItemLadder::ClampLevel(0), 1);
+    EXPECT_EQ(ItemLadder::ClampLevel(86), ItemLadder::MaxLevel);
+}
+
+TEST(AscensionItemLadder, StockRowAnswersTheAuthoredItem)
+{
+    ItemTemplate cowl = Authored(29, 61);
+    cowl.ItemId = 2244;
+    cowl.RequiredLevel = 24;
+    cowl.ItemStat[0] = { 7, 5 };
+
+    ItemLadder::Row const row = ItemLadder::StockRow(cowl);
+    EXPECT_EQ(row.ItemId, 2244u);
+    EXPECT_EQ(row.Level, 29u);
+    EXPECT_EQ(row.Armor, 61u);
+    EXPECT_EQ(row.ArmorReborn, 61u);
+    EXPECT_EQ(row.RequiredLevel, 24u);
+    EXPECT_EQ(row.Stats[0].ItemStatType, 7u);
+    EXPECT_EQ(row.Stats[0].ItemStatValue, 5);
+}
+
+TEST(AscensionItemLadder, PreviewPacketsCarryTheFlagRollAndInspectLevels)
+{
+    ObjectGuid const player = ObjectGuid::Create<HighGuid::Player>(42);
+    WorldPacket flag = ItemLadder::BuildPreviewAddon(player);
+    EXPECT_EQ(flag.GetOpcode(), 0x0578);
+    ASSERT_EQ(flag.size(), 16u);
+    EXPECT_EQ(flag.read<uint64>(), player.GetRawValue());
+    EXPECT_EQ(flag.read<uint32>(), 87u);
+    EXPECT_EQ(flag.read<uint32>(), 1u);
+
+    WorldPacket roll = ItemLadder::BuildRollLevel(41);
+    EXPECT_EQ(roll.GetOpcode(), 0x073F);
+    ASSERT_EQ(roll.size(), 4u);
+    EXPECT_EQ(roll.read<uint32>(), 41u);
+
+    std::array<uint32, ItemLadder::InspectSlots> levels{};
+    levels[0] = 37;
+    levels[18] = 12;
+    WorldPacket inspect = ItemLadder::BuildInspectLevels(levels);
+    EXPECT_EQ(inspect.GetOpcode(), 0x0716);
+    ASSERT_EQ(inspect.size(), 4u * 19u);
+    EXPECT_EQ(inspect.read<uint32>(), 37u);
+    inspect.read_skip(17 * sizeof(uint32));
+    EXPECT_EQ(inspect.read<uint32>(), 12u);
+}

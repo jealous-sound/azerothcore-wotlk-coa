@@ -6625,7 +6625,7 @@ void AuraEffect::HandlePeriodicDamageAurasTick(Unit* target, Unit* caster) const
     if (damage)
         procVictim |= PROC_FLAG_TAKEN_DAMAGE;
 
-    int32 overkill = damage - target->GetHealth();
+    int32 overkill = damage - LocalLevelScaling::ShownHealthFor(caster, target);
     if (overkill < 0)
         overkill = 0;
 
@@ -6973,7 +6973,8 @@ void AuraEffect::HandlePeriodicManaLeechAuraTick(Unit* target, Unit* caster) con
     if (gainAmount)
     {
         gainedAmount = caster->ModifyPower(PowerType, gainAmount);
-        target->AddThreat(caster, float(gainedAmount) * 0.5f, GetSpellInfo()->GetSchoolMask(), GetSpellInfo());
+        float const threat = LocalLevelScaling::PoolThreatFor(caster, target, float(gainedAmount) * 0.5f);
+        target->AddThreat(caster, threat, GetSpellInfo()->GetSchoolMask(), GetSpellInfo());
     }
 
     // remove CC auras

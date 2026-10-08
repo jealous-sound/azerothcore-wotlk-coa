@@ -5,7 +5,7 @@ Destiny Weaver (`mod-destiny-weaver`), which the character-creation screen offer
 
 * **creatures** are scaled **per viewer**. Each character is sent their own version of a creature, at
   their own level minus `DestinyWeaver.Scaling.Offset`, while the creature object keeps its authored
-  level. A level 30 and a level 20 character facing the same level 15 creature see it at 25 and 15 at
+  level. A level 30 and a level 20 character facing the same level 15 creature see it at 26 and 16 at
   the same time, and a character with scaling off sees 15. There is no realm-wide creature lift: with
   `DestinyWeaver.Enable` or `DestinyWeaver.LevelScaling` at 0, every creature keeps its authored level.
 * **quests** are per character as well (`CoA.QuestLevelScaling` is the realm switch; the character's
@@ -21,15 +21,15 @@ Destiny Weaver (`mod-destiny-weaver`), which the character-creation screen offer
 `src/server/game/Miscellaneous/LocalLevelScaling.h`
 
 ```
-ScaleCreatureLevelForViewer(original, viewerLevel, offset = 5):
+ScaleCreatureLevelForViewer(original, viewerLevel, offset = 4):
     floor = max(1, viewerLevel - offset)
     return max(original, floor)                         # up only, no ceiling
 
 ScaleDungeonCreatureLevelForViewer(viewerLevel, band):
     return clamp(viewerLevel, band.Low, band.High)       # both ways, no offset
 
-DungeonBandFromFinder(minLevel, maxLevel):             # one LFGDungeons.dbc entry
-    low  = minLevel if 1 <= minLevel <= 60 else 15
+DungeonBandFromFinder(targetLevelMin, maxLevel):        # one LFGDungeons.dbc entry
+    low  = targetLevelMin if 1 <= targetLevelMin <= 60 else 15
     high = maxLevel if low <= maxLevel <= 60 else 59
 
 CurveLevel(curve, playerLevel):                       # one QuestTemplateScaling.dbc row
@@ -42,14 +42,14 @@ EffectiveQuestLevel(authored, playerLevel, curve):
     return curve ? max(stock, CurveLevel(curve, playerLevel)) : stock
 ```
 
-`CreatureOffset` comes from `DestinyWeaver.Scaling.Offset` (default 5). An open-world view has no
+`CreatureOffset` comes from `DestinyWeaver.Scaling.Offset` (default 4). An open-world view has no
 ceiling: it is told to one client only, so the creature in front of a character comes all the way up
 to that character's band. That is the whole point of the feature: content in front of a character is
 relevant to that character.
 
 Inside a scaled five-player dungeon every creature stands at the viewer's own level, held inside the
 dungeon's band on both sides, because the dungeon finder admits a group well below a dungeon's
-authored level. The band is the `MinLevel`-`MaxLevel` of the dungeon's `LFGDungeons.dbc` entries,
+authored level. The band is the `TargetLevelMin`-`MaxLevel` of the dungeon's `LFGDungeons.dbc` entries,
 merged per map; entries with placeholder levels (100/100 for Wailing Caverns, Gnomeregan and Uldaman)
 use 15-59.
 
@@ -129,8 +129,11 @@ authored one, at the same time, against the same corpse. Two mechanisms carry th
 | stealth/detection and aggro radius | `Object::isVisibleForOrDetect`, `Creature::GetAggroRange`, `GetAttackDistance` |
 | kill experience | `Acore::XP::Gain` (`Formulas.cpp`), and the gray checks in `KillRewarder` |
 | armour a blow lands against | `Unit::CalcArmorReducedDamage` asks `LocalLevelScaling::ViewArmorFor` |
-| damage the creature deals | `CreatureView::DamageTakenFactor` — the `creature_classlevelstats` row at the view level (`BaseDamage + AttackPower / 14`) over the same row at the authored level, applied to the blow spread back over the creature's real range (below) |
+| armour-penetration cap, level-based resistance and partial resists | `ShownCombatLevel` in `Unit.cpp`: the view level on whichever side is the creature, its real level for a world boss |
+| damage the creature deals | melee: `CreatureView::DamageTakenLow`/`DamageTakenHigh` scale the bottom (`BaseDamage + AttackPower / 14`) and the top (`BaseDamage × 1.5 + AttackPower / 14`) of the `creature_classlevelstats` range separately, so the blow keeps its place inside the view level's range (below); spells and periodic damage: `CreatureView::DamageTakenFactor`, the average-hit ratio of the same two rows |
 | damage the character deals to it | `CreatureView::DamageDealtToPool` takes the matching share out of the real pool, so the bar falls by exactly the number their client was shown |
+| overkill in damage logs | `LocalLevelScaling::ShownHealthFor`: the health that character is shown, the size their hits are logged in |
+| threat | damage threat is added after `DealDamage`, so it already counts in real-pool units; healing, threat spells (`HandleThreatSpells`, `EffectThreat`), Guard Dog, mana drains and flat total-threat modifiers such as Fade go through `LocalLevelScaling::PoolThreatFor`, the same ratio, per creature, so a healer does not pull a scaled creature early |
 
 `DamageTakenFactor` and `DamageDealtToPool` are both ratios of the *same* two rows, which is why the
 view is one definition rather than several: level, pool, mana, armour, damage and skills all read the
@@ -144,10 +147,13 @@ every other pair (world bosses included).
 `Unit::CalculateDamage` rolls a creature's blow as `urand(uint32(min), uint32(max))`. A Young Wolf's
 1.5 - 2.3 range therefore only lands on 1 or 2, and multiplying that whole number by a view factor of
 around 20 gave two flat hits whose average sat a fifth below the one the factor was measured against.
-`ModifyMeleeDamage` puts the blow back at a uniform spot inside its whole-number bucket, maps the
-buckets onto the creature's real range (`DestinyWeaver::BlowInRange`), scales it, and keeps the
-fraction of the scaled blow with that probability (`DestinyWeaver::WholeDamage`). A number the roll
-cannot have produced, because an aura already changed it, is scaled as it is.
+`ModifyMeleeDamage` puts the blow back at a uniform spot inside its whole-number bucket and lands it
+on the same spot of the view level's range, whose bottom and top are the real ones times
+`DamageTakenLow` and `DamageTakenHigh` (`DestinyWeaver::ViewBlow`), then keeps the fraction of the
+scaled blow with that probability (`DestinyWeaver::WholeDamage`). Scaling both ends by one average
+ratio would keep a low creature's nearly flat range flat: its attack power dominates both ends, while
+at the view level the weapon term does. A number the roll cannot have produced, because an aura
+already changed it, takes the ratio of its place in the real range.
 
 ### Groups: the leader sets the switch, never the level
 
@@ -252,8 +258,28 @@ numbers. Module scripts that override `ModifyMeleeDamage`, `ModifySpellDamageTak
 `ModifyPeriodicDamageAurasTick` must name those hooks in their constructor. `DealDamage` is the
 exception: it is dispatched to every registered unit script.
 
-Not scaled, deliberately, and matching the reference implementation: **resistances** (template-based
-and level-independent there too) and **loot**, which is one corpse shared by everyone who tagged it.
+Not scaled, deliberately, and matching the reference implementation: the creature's **resistance values**
+(template-based and level-independent there too; only the level terms above follow the view) and **loot
+tables**, which are one corpse shared by everyone who tagged it. Scaling gear on that corpse takes the level
+of whoever loots it or wins the roll, a master looter's pick the receiver's.
+
+With `CoA.ItemScaling.Native.LevelKeys` the stored level is the client's own item key for that level
+(level + 2 up to 20, + 3 up to 30, + 4 up to 50, + 5 up to 60, the client's table above 60), and a quest
+reward takes the level the quest's `QuestTemplateScaling.dbc` row puts it at, or the key of the
+character's level for a quest without one. `CoA.ItemScaling.Native.Preview` (needs LevelKeys; both off by
+default and read at startup) lets each character see the version they would receive before it is theirs:
+
+| Where | What the server sends |
+|---|---|
+| Login | `0x578` field 87 = 1 on the character's guid, which switches the client's preview on |
+| Corpse | a lootable corpse's level field shows each viewer allowed to loot it their own drop level |
+| Roll frame | `0x73F {u32 level}` before each roll; the winner receives the level their frame showed |
+| Inspect | `0x716` with 19 levels, one per equipment slot |
+| Mail list | each attached item's level (`0x578` field 0) |
+| Auction list | the instance level in the auction's unused flags word, the item level for an unscaled one |
+
+An item whose key equals its own item level is the authored item: the server answers the client's
+`0x6FF` query for that key with the authored stats instead of a ladder row.
 
 ### Many characters, one creature
 

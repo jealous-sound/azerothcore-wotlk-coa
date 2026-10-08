@@ -769,7 +769,7 @@ public:
     void ReplaceAllNpcFlags(NPCFlags flags) { SetUInt32Value(UNIT_NPC_FLAGS, flags); }
 
     uint32 GetDynamicFlags() const override { return GetUInt32Value(UNIT_DYNAMIC_FLAGS); }
-    void ReplaceAllDynamicFlags(uint32 flag) override { SetUInt32Value(UNIT_DYNAMIC_FLAGS, flag); }
+    void ReplaceAllDynamicFlags(uint32 flag) override;
 
     // Movement flags
     void AddUnitMovementFlag(uint32 f) { m_movementInfo.flags |= f; }

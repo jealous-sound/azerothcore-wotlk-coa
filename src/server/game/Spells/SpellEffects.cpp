@@ -33,6 +33,7 @@
 #include "Group.h"
 #include "InstanceScript.h"
 #include "Language.h"
+#include "LocalLevelScaling.h"
 #include "Log.h"
 #include "MapMgr.h"
 #include "MiscPackets.h"
@@ -4098,7 +4099,8 @@ void Spell::EffectThreat(SpellEffIndex /*effIndex*/)
         return;
 
     // SPELL_EFFECT_THREAT adds flat threat that should not be modified by threat reduction
-    unitTarget->GetThreatMgr().AddThreat(m_caster, float(damage), m_spellInfo, true);
+    float const threat = LocalLevelScaling::PoolThreatFor(m_caster, unitTarget, float(damage));
+    unitTarget->GetThreatMgr().AddThreat(m_caster, threat, m_spellInfo, true);
 }
 
 void Spell::EffectHealMaxHealth(SpellEffIndex /*effIndex*/)
