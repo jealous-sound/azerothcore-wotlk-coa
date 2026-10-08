@@ -579,6 +579,8 @@ namespace
             return;
 
         state.active = false;
+        if (player->GetLevel() < 10 && !AscensionWildcard::IsWildcardHero(player))
+            state.signaturePending = true;
         SaveState(player, state);
         player->RemoveAurasDueToSpell(PrestigedAura);
         SyncDailyAuras(player);
@@ -589,10 +591,14 @@ namespace
 
     void RestoreSpecializationSignature(Player* player)
     {
-        State const state = LoadState(player);
-        if (state.active && !AscensionWildcard::IsWildcardHero(player) &&
-            state.specialization == GetAscensionActiveSpecialization(player))
-            RestoreAscensionSpecializationSignature(player);
+        State state = LoadState(player);
+        if ((state.active || state.signaturePending) && !AscensionWildcard::IsWildcardHero(player) &&
+            state.specialization == GetAscensionActiveSpecialization(player) &&
+            RestoreAscensionSpecializationSignature(player) && state.signaturePending)
+        {
+            state.signaturePending = false;
+            SaveState(player, state);
+        }
     }
 
     std::string SpecializationSwitchRefusal(Player* player, uint32 /*active*/, uint32 requested)

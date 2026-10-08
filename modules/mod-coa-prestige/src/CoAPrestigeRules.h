@@ -58,6 +58,7 @@ namespace CoAPrestige
         uint32_t level = 0;
         bool active = false;
         uint32_t specialization = 0;
+        bool signaturePending = false;
 
         bool operator==(State const&) const = default;
     };
@@ -71,12 +72,17 @@ namespace CoAPrestige
             state.active = values[1] != 0;
         if (values.size() > 2)
             state.specialization = values[2];
+        if (values.size() > 3)
+            state.signaturePending = values[3] != 0;
         return state;
     }
 
     inline std::vector<uint32_t> EncodeState(State const& state)
     {
-        return { state.level, state.active ? 1u : 0u, state.specialization };
+        std::vector<uint32_t> values{ state.level, state.active ? 1u : 0u, state.specialization };
+        if (state.signaturePending)
+            values.push_back(1);
+        return values;
     }
 
     enum class Refusal

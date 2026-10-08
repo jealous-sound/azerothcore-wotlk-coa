@@ -291,6 +291,18 @@
       "actor": "p"
     },
     {
+      "action": "client_packet",
+      "actor": "p",
+      "opcode": 618,
+      "early": false,
+      "consumed": false,
+      "fields": [
+        {
+          "actor_guid": "p"
+        }
+      ]
+    },
+    {
       "action": "assert",
       "actor": "p",
       "metric": "knows_spell",
@@ -331,6 +343,18 @@
     {
       "action": "relog",
       "actor": "p"
+    },
+    {
+      "action": "client_packet",
+      "actor": "p",
+      "opcode": 618,
+      "early": false,
+      "consumed": false,
+      "fields": [
+        {
+          "actor_guid": "p"
+        }
+      ]
     },
     {
       "action": "assert",

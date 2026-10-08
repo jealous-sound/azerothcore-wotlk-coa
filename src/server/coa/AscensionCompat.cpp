@@ -9014,8 +9014,10 @@ bool RestoreAscensionSpecializationSignature(Player* player)
         return false;
 
     auto const* signature = FindAscensionTalentEntry(specialization->SignatureEntryId);
-    if (!signature || AscensionClassService::KnownRank(player, *signature))
+    if (!signature)
         return false;
+    if (AscensionClassService::KnownRank(player, *signature))
+        return true;
 
     auto known = AscensionClassService::KnownTalentEntries(player);
     known.push_back({signature->EntryId, 1});
