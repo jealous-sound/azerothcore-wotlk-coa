@@ -79,6 +79,9 @@ constexpr std::uint32_t RANGER = 12;
 constexpr std::uint32_t IMPROVED_SHADOW_BOLT = 13354, BANE = 13359, UNBREAKABLE_WILL = 12678;
 constexpr std::uint32_t SHADOW_BOLT_ENTRY = 18581;
 constexpr std::uint32_t SPELL_LEVEL = 39;
+constexpr std::uint32_t SPELL_NAME = 136;
+constexpr std::uint32_t SPELL_EFFECT = 71;
+constexpr std::uint32_t SPELL_EFFECT_AURA = 95;
 
 AscensionFreepick::Realm FreepickRealm()
 {
@@ -97,9 +100,22 @@ int main(int, char** argv)
 
     ClientDBC spellStore;
     std::unordered_map<std::uint32_t, std::uint32_t> spells;
-    if (spellStore.Load(GetClientDBCPath("Spell.dbc"), SPELL_LEVEL + 1))
+    std::unordered_map<std::uint32_t, SpellLayout> layouts;
+    std::uint32_t spellCount = 0;
+    if (spellStore.Load(GetClientDBCPath("Spell.dbc"), SPELL_NAME + 1))
         for (std::uint32_t index = 0; index < spellStore.GetRecordCount(); ++index)
-            spells[spellStore.GetRecord(index).GetUInt32(0)] = spellStore.GetRecord(index).GetUInt32(SPELL_LEVEL);
+        {
+            std::uint32_t const spellId = spellStore.GetRecord(index).GetUInt32(0);
+            spells[spellId] = spellStore.GetRecord(index).GetUInt32(SPELL_LEVEL);
+            SpellLayout& layout = layouts[spellId];
+            layout.Name = std::string(spellStore.GetRecord(index).GetString(SPELL_NAME));
+            for (std::uint32_t effect = 0; effect < 3; ++effect)
+            {
+                layout.Effects[effect] = spellStore.GetRecord(index).GetUInt32(SPELL_EFFECT + effect);
+                layout.Auras[effect] = spellStore.GetRecord(index).GetUInt32(SPELL_EFFECT_AURA + effect);
+            }
+            spellCount = std::max(spellCount, spellId + 1);
+        }
     SpellExists const exists = [&spells](std::uint32_t spellId) { return spells.contains(spellId); };
 
     AscensionFreepick::Realm reborn;
@@ -233,6 +249,26 @@ int main(int, char** argv)
             .size() == 2,
         "on a free-pick realm the rules add nothing to a trainer");
 
+    std::vector<std::pair<std::uint32_t, std::uint32_t>> const twins = SpellTwins(spellCount,
+        [&layouts](std::uint32_t spellId) -> std::optional<SpellLayout>
+        {
+            auto const itr = layouts.find(spellId);
+            return itr != layouts.end() ? std::optional<SpellLayout>(itr->second) : std::nullopt;
+        });
+    auto const twinned = [&twins](std::uint32_t source, std::uint32_t twin)
+    {
+        return std::find(twins.begin(), twins.end(), std::make_pair(source, twin)) != twins.end();
+    };
+    Check(twinned(1454, 1101454) && twinned(57946, 1157946),
+        "every rank of Reborn Life Tap takes stock Life Tap's script and data");
+    Check(twinned(53, 1100053) && twinned(20271, 1120271), "Reborn Backstab and Judgement of Light are twins");
+    Check(!twinned(160, 1100160) && std::none_of(twins.begin(), twins.end(),
+            [&layouts](auto const& pair) { return layouts[pair.first] != layouts[pair.second]; }),
+        "a stock spell and an unrelated spell 1100000 above it (Forked Lightning, Glyph of Slam) are not twins");
+    Check(!twinned(133, 1100133) && !twinned(172, 1100172) && !twinned(633, 1100633),
+        "a Reborn spell with other effects than its stock namesake (Fireball, Corruption, Lay on Hands) takes nothing");
+    Check(twins.size() > 7000, "the Reborn spell table is twinned with its stock spells");
+
     return failures ? 1 : 0;
 }
 """
@@ -256,6 +292,56 @@ def check_form_only_bindings(dbc):
     print(f"{'PASS' if ok else 'FAIL'}: every rank of Provoke, Soul Gorge and Maw of Dread is cast only in "
           "Dark Apotheosis")
     return ok
+
+
+TWIN_COPIES = {
+    "src/server/game/Spells/SpellMgr.cpp": [
+        "CopyToSpellTwins(mSpellCooldownOverrideMap);", "CopyToSpellTwins(mSpellProcMap);",
+        "CopyToSpellTwins(mSpellBonusMap);", "CopyToSpellTwins(mSpellThreatMap);",
+        "CopyToSpellTwins(mSpellMixologyMap);", "CopyToSpellTwins(mSpellCones);", "twinRequirements", "twinGroups",
+        "twinLinks", "mSpellTargetPositions[{ twin, SpellEffIndex(i) }]", "mSpellPetAuraMap.emplace((twin << 8) + i",
+        "databaseAttributes.contains(twin)"],
+    "src/server/game/Globals/ObjectMgr.cpp": ["sSpellMgr->GetSpellTwins()"],
+    "src/server/game/World/World.cpp": ["sSpellMgr->LoadSpellTwins();"],
+    "src/server/coa/AscensionWarcraftReborn.cpp": ["sSpellMgr->SetSpellTwins(&AscensionWarcraftReborn::LoadTwins);"],
+    "src/server/scripts/Spells/spell_warlock.cpp": ["bonus ? bonus->direct_damage : 0.5f"],
+}
+
+
+COEFFICIENTS_SQL = ROOT / "data/sql/updates/pending_db_world/rev_20261008_20_coa_reborn_spell_coefficients.sql"
+
+
+def check_reborn_coefficients(dbc):
+    data = (dbc / "Spell.dbc").read_bytes()
+    count, fields, size, strings = struct.unpack_from("<4I", data, 4)
+    text = 20 + count * size
+    tooltips = {}
+    for row in range(count):
+        spell_id, description = struct.unpack_from("<I", data, 20 + row * size)[0], struct.unpack_from(
+            "<I", data, 20 + row * size + 170 * 4)[0]
+        if spell_id in (1101454, 1101455, 1101456, 1111687, 1111688, 1111689, 1127222, 1157946, 1119306):
+            tooltips[spell_id] = data[text + description:data.index(b"\0", text + description)].decode()
+    rows = {int(spell): (float(direct), float(ap)) for spell, direct, ap in re.findall(
+        r"\((\d+), ([\d.]+), 0, ([\d.]+), 0,", COEFFICIENTS_SQL.read_text(encoding="utf-8"))}
+    expected = {}
+    for spell_id, tooltip in tooltips.items():
+        spell_power = re.search(r"\$SPS\*([\d.]+)", tooltip)
+        attack_power = re.search(r"\$AP\*([\d.]+)", tooltip)
+        expected[spell_id] = (float(spell_power.group(1)) if spell_power else 0.0,
+                              float(attack_power.group(1)) if attack_power else 0.0)
+    ok = len(expected) == 9 and rows == expected
+    print(f"{'PASS' if ok else 'FAIL'}: Reborn Life Tap and Counterattack use the coefficients their own tooltips give")
+    return ok
+
+
+def check_twin_copies():
+    missing = [f"{path}: {needle}" for path, needles in TWIN_COPIES.items()
+               for needle in needles if needle not in (ROOT / path).read_text(encoding="utf-8")]
+    print(f"{'PASS' if not missing else 'FAIL'}: spell scripts, procs, coefficients, cooldowns, threat, groups, links, "
+          "requirements, target positions, pet auras and custom attributes reach the Reborn twins")
+    for line in missing:
+        print("  missing", line)
+    return not missing
 
 
 def main():
@@ -287,7 +373,8 @@ def main():
             raise SystemExit("Warcraft Reborn rules harness did not compile:\n" + build.stdout + build.stderr)
         result = subprocess.run([str(executable), str(args.dbc_dir.resolve())], text=True)
         bindings_ok = check_form_only_bindings(args.dbc_dir.resolve())
-        raise SystemExit(result.returncode or (0 if bindings_ok else 1))
+        twins_ok = check_twin_copies() and check_reborn_coefficients(args.dbc_dir.resolve())
+        raise SystemExit(result.returncode or (0 if bindings_ok and twins_ok else 1))
 
 
 if __name__ == "__main__":

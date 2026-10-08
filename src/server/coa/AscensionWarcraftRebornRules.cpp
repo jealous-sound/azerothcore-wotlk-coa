@@ -239,4 +239,16 @@ std::vector<TrainerSpell> TrainerSpells(Data const& data, Realm const& realm, st
     }
     return spells;
 }
+
+std::vector<std::pair<std::uint32_t, std::uint32_t>> SpellTwins(std::uint32_t spellCount, SpellLayoutOf const& layout)
+{
+    std::vector<std::pair<std::uint32_t, std::uint32_t>> twins;
+    for (std::uint32_t spellId = 1; spellId < REBORN_SPELL_OFFSET && spellId + REBORN_SPELL_OFFSET < spellCount; ++spellId)
+    {
+        std::optional<SpellLayout> const stock = layout(spellId);
+        if (stock && stock == layout(spellId + REBORN_SPELL_OFFSET))
+            twins.emplace_back(spellId, spellId + REBORN_SPELL_OFFSET);
+    }
+    return twins;
+}
 }

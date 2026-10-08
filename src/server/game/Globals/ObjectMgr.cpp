@@ -6459,6 +6459,18 @@ void ObjectMgr::LoadSpellScriptNames()
         ++count;
     } while (result->NextRow());
 
+    for (auto const& [source, twin] : sSpellMgr->GetSpellTwins())
+    {
+        if (_spellScriptsStore.contains(twin))
+            continue;
+        std::vector<uint32> scriptIds;
+        auto const [begin, end] = _spellScriptsStore.equal_range(source);
+        for (auto itr = begin; itr != end; ++itr)
+            scriptIds.push_back(itr->second);
+        for (uint32 scriptId : scriptIds)
+            _spellScriptsStore.emplace(twin, scriptId);
+    }
+
     LOG_INFO("server.loading", ">> Loaded {} spell script names in {} ms", count, GetMSTimeDiffToNow(oldMSTime));
     LOG_INFO("server.loading", " ");
 }

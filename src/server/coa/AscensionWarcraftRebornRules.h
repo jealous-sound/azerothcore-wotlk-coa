@@ -7,8 +7,11 @@
 #include <array>
 #include <cstdint>
 #include <functional>
+#include <optional>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 namespace AscensionWarcraftReborn
@@ -65,6 +68,19 @@ using SpellExists = std::function<bool(std::uint32_t spellId)>;
 using RebornRow = std::function<TrainerSpell(std::uint32_t spellId)>;
 
 std::uint32_t RebornSpell(std::uint32_t spellId, SpellExists const& exists);
+
+struct SpellLayout
+{
+    std::string Name;
+    std::array<std::uint32_t, 3> Effects{};
+    std::array<std::uint32_t, 3> Auras{};
+
+    bool operator==(SpellLayout const&) const = default;
+};
+
+using SpellLayoutOf = std::function<std::optional<SpellLayout>(std::uint32_t spellId)>;
+
+std::vector<std::pair<std::uint32_t, std::uint32_t>> SpellTwins(std::uint32_t spellCount, SpellLayoutOf const& layout);
 
 std::vector<TrainerSpell> TrainerSpells(Data const& data, AscensionFreepick::Realm const& realm, std::uint32_t classId,
     std::vector<TrainerSpell> const& stock, SpellExists const& exists, RebornRow const& reborn);
