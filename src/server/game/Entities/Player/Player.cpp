@@ -4780,6 +4780,14 @@ void Player::ResurrectPlayer(float restore_percent, bool applySickness)
     uint32 newzone, newarea;
     GetZoneAndAreaId(newzone, newarea);
     UpdateZone(newzone, newarea, true);
+    if (sWorld->getBoolConfig(CONFIG_VMAP_INDOOR_CHECK))
+    {
+        SpellAttr0 const disallowedAttribute = IsOutdoors() ? SPELL_ATTR0_ONLY_INDOORS : SPELL_ATTR0_ONLY_OUTDOORS;
+        RemoveOwnedAuras([disallowedAttribute](Aura const* aura)
+        {
+            return !aura->IsPassive() && aura->GetSpellInfo()->HasAttribute(disallowedAttribute);
+        });
+    }
     sOutdoorPvPMgr->HandlePlayerResurrects(this, newzone);
 
     if (Battleground* bg = GetBattleground())
