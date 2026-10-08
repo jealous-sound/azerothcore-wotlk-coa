@@ -63,6 +63,8 @@ void ApplyContracts(SpellInfo* info)
     if (!info || info->SpellFamilyName != 18)
         return;
     uint32 id = info->Id;
+    if (id == 705171)
+        info->Effects[EFFECT_2].Effect = 0;
     if (id == 705186)
         info->Effects[EFFECT_0].SpellClassMask = flag96(0, 64 | 2 | 2048, 0);
     if (id == 705234 || id == 707779)

@@ -21,6 +21,7 @@
 #include "World.h"
 #include "WorldPacket.h"
 #include "WorldSession.h"
+#include <fmt/ranges.h>
 #include <algorithm>
 #include <atomic>
 #include <filesystem>
@@ -330,21 +331,24 @@ public:
 
     void RestoreUnliftableCopies()
     {
-        std::vector<std::pair<uint32, uint32>> restorable;
+        std::vector<uint32> restorable;
         {
             std::shared_lock lock(_mutex);
             for (auto const& [entry, record] : _records)
                 if (ItemTemplate const* base = sObjectMgr->GetItemTemplate(record.baseEntry); base && !Liftable(*base))
-                    restorable.emplace_back(entry, record.baseEntry);
+                    restorable.push_back(entry);
         }
 
-        for (auto const& [entry, baseEntry] : restorable)
-            CharacterDatabase.DirectExecute("UPDATE `item_instance` SET `itemEntry` = {} WHERE `itemEntry` = {}",
-                baseEntry, entry);
+        if (restorable.empty())
+            return;
 
-        if (!restorable.empty())
-            LOG_INFO("server.loading", ">> Restored items of {} unliftable scaled item templates to their base entries",
-                restorable.size());
+        CharacterDatabase.DirectExecute("UPDATE `item_instance` SET `itemEntry` = (SELECT `base_entry` "
+            "FROM `coa_scaled_item` WHERE `coa_scaled_item`.`entry` = `item_instance`.`itemEntry`) "
+            "WHERE `itemEntry` IN ({})",
+            fmt::join(restorable, ","));
+
+        LOG_INFO("server.loading", ">> Restored items of {} unliftable scaled item templates to their base entries",
+            restorable.size());
     }
 
 private:

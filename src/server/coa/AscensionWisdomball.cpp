@@ -45,6 +45,9 @@ constexpr uint32 QuestsCompletedWithoutPlayerAction[] = { 5722, 5724 };
 constexpr uint32 RazorfenKraulMapId = 47;
 constexpr uint32 RazorfenKraulOverworldQuestSortAreaId = 1717;
 
+constexpr uint32 GnomereganMapId = 90;
+constexpr uint32 GnomereganQuestSortAreaId = 133;
+
 struct DungeonQuests
 {
     std::vector<uint32> starters;
@@ -114,6 +117,9 @@ std::vector<uint32> ExtraQuestSortAreas(uint32 mapId)
 
     if (mapId == RazorfenKraulMapId)
         areas.push_back(RazorfenKraulOverworldQuestSortAreaId);
+
+    if (mapId == GnomereganMapId)
+        areas.push_back(GnomereganQuestSortAreaId);
 
     return areas;
 }

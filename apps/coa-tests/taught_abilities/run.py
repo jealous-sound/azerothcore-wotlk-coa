@@ -171,6 +171,8 @@ def main():
         ("HOOKS", "\n".join(method(service, signature).replace(" override", "") for signature in (
             "void OnPlayerLearnSpell(", "void OnPlayerForgotSpell(", "void OnPlayerAfterSpecSlotChanged("))),
         ("PLAYER", "\n".join((add, remove, method(player, "void Player::learnSpell("),
+            method(player, "void Player::learnSpellWithoutAnnouncement("),
+            method(player, "void Player::_learnSpell("),
             method(player, "bool Player::HasSpell("), method(player, "bool Player::HasActiveSpell("),
             method(storage, "void Player::_SaveSpells("), method(player, "void Player::SetTemporarySpellReplacement("),
             method(player, "uint32 Player::GetTemporarySpellReplacement(")))),

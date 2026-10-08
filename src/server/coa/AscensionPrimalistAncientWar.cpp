@@ -10,6 +10,7 @@ namespace
 enum AncientWarSpells : uint32
 {
     AncientOfWar = 504222,
+    WildcardAncientOfWar = 281261,
     AncientMovement = 504369,
     AncientCreature = 3469
 };
@@ -22,9 +23,11 @@ public:
 
     void OnLoadSpellCustomAttr(SpellInfo* info) override
     {
-        if (info->Id != AncientOfWar || info->SpellFamilyName != 37)
+        bool const primalist = info->Id == AncientOfWar && info->SpellFamilyName == 37;
+        bool const wildcard = info->Id == WildcardAncientOfWar && info->SpellFamilyName == SPELLFAMILY_GENERIC;
+        if (!primalist && !wildcard)
             return;
-        if (info->Effects[EFFECT_1].IsAura(SPELL_AURA_ADD_FLAT_MODIFIER))
+        if (primalist && info->Effects[EFFECT_1].IsAura(SPELL_AURA_ADD_FLAT_MODIFIER))
             info->Effects[EFFECT_1].ApplyAuraName = SPELL_AURA_ADD_PCT_MODIFIER;
         if (info->Effects[EFFECT_2].IsAura(SPELL_AURA_TRANSFORM) &&
             info->Effects[EFFECT_2].MiscValue == 346922)
