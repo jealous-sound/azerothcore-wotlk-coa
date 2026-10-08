@@ -24,6 +24,8 @@ from client_data import dbc_dir  # noqa: E402
 MAIN = r"""
 #include "AscensionMysticEnchantRules.h"
 #include "DBCStores.h"
+#include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <string>
 
@@ -317,6 +319,56 @@ int main(int, char** argv)
     Check(!ValidSpecializationLink(20, true, 1, 1) && !ValidSpecializationLink(0, true, 0, 1) &&
         !ValidSpecializationLink(0, true, 3, 2),
         "a link outside the 20 specializations or the unlocked presets is refused");
+
+    Character const freepick = Hero(plain, 80);
+    std::vector<Enchant const*> const heroReveal = RevealPool(catalog, freepick, nullptr);
+    Check(heroReveal == ReforgePool(catalog, freepick, nullptr) && !heroReveal.empty(),
+        "a Hero reveals from the same pool a blank scroll reforges from");
+    Character reborn = Hero(plain, 80);
+    reborn.Class = WARRIOR;
+    reborn.RealmGates = { true, false, false, false, false };
+    std::vector<Enchant const*> const rebornReveal = RevealPool(catalog, reborn, nullptr);
+    bool const otherClasses = std::any_of(rebornReveal.begin(), rebornReveal.end(),
+        [](Enchant const* enchant) { return !ClassAllowed(*enchant, WARRIOR); });
+    bool const ownClass = std::any_of(rebornReveal.begin(), rebornReveal.end(),
+        [](Enchant const* enchant) { return ClassAllowed(*enchant, WARRIOR); });
+    bool const rebornClean = std::all_of(rebornReveal.begin(), rebornReveal.end(), [&reborn](Enchant const* enchant)
+        { return !enchant->Worldforged && (enchant->ClassMask & STOCK_CLASS_MASK) && RealmAllows(*enchant, reborn.RealmGates); });
+    Check(otherClasses && ownClass && rebornClean,
+        "a Warcraft Reborn reveal draws every stock class's scrolls of its realm, never a Worldforged one");
+    Check(std::none_of(heroReveal.begin(), heroReveal.end(), [](Enchant const* enchant) { return enchant->Worldforged; }),
+        "a Hero never reveals a Worldforged scroll");
+
+    std::array<double, QUALITY_MAX> expected{};
+    double expectedTotal = 0.0;
+    for (Enchant const* enchant : ReforgePool(catalog, reborn, nullptr))
+    {
+        expected[QualityOf(*enchant, WARRIOR)] += enchant->Weight;
+        expectedTotal += enchant->Weight;
+    }
+    std::array<double, QUALITY_MAX> revealed{};
+    constexpr int SAMPLES = 4000;
+    bool favoredRight = true;
+    for (int sample = 0; sample < SAMPLES; ++sample)
+    {
+        double const unit = (sample + 0.5) / SAMPLES;
+        Enchant const* chosen = RollReveal(catalog, reborn, nullptr,
+            [](Enchant const& enchant) { return ClassAllowed(enchant, WARRIOR); }, unit, unit < 0.5 ? 0.1 : 0.9, 0.5);
+        if (!chosen)
+            continue;
+        revealed[QualityOf(*chosen, WARRIOR)] += 1.0;
+        favoredRight = favoredRight && ClassAllowed(*chosen, WARRIOR) == (unit < 0.5);
+    }
+    bool qualityMatches = expectedTotal > 0.0;
+    for (std::uint32_t quality = 0; quality < QUALITY_MAX; ++quality)
+        qualityMatches = qualityMatches && std::abs(revealed[quality] / SAMPLES - expected[quality] / expectedTotal) < 0.01;
+    Check(qualityMatches, "a reveal's quality odds are a blank scroll reforge's");
+    Check(favoredRight, "below 33% a Warcraft Reborn reveal is for the own class, above it for another class");
+    Enchant const* fallback = RollReveal(catalog, freepick, nullptr, [](Enchant const&) { return false; }, 0.5, 0.1, 0.5);
+    Check(fallback && !fallback->Worldforged, "with nothing favored, a reveal still gives a scroll from the rest");
+    Character nowhere = Hero(plain, 80);
+    nowhere.RealmGates = {};
+    Check(!RollReveal(catalog, nowhere, nullptr, nullptr, 0.5, 0.5, 0.5), "a realm without enchants reveals nothing");
 
     return failures ? 1 : 0;
 }

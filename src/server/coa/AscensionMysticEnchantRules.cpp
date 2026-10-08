@@ -872,6 +872,60 @@ Enchant const* Roll(std::vector<Enchant const*> const& pool, double unit)
     return pool.empty() ? nullptr : pool.back();
 }
 
+std::vector<Enchant const*> RevealPool(Catalog const& catalog, Character const& character,
+    std::function<bool(std::uint32_t item)> const& itemExists)
+{
+    if (!IsStockClass(character.Class))
+        return ReforgePool(catalog, character, itemExists);
+    std::vector<Enchant const*> pool;
+    for (Enchant const& enchant : catalog.Rows)
+        if (enchant.Item && enchant.Weight > 0.0f && !enchant.Worldforged && (enchant.ClassMask & STOCK_CLASS_MASK) &&
+            RealmAllows(enchant, character.RealmGates) && (!itemExists || itemExists(enchant.Item)))
+            pool.push_back(&enchant);
+    return pool;
+}
+
+Enchant const* RollReveal(Catalog const& catalog, Character const& character,
+    std::function<bool(std::uint32_t item)> const& itemExists, std::function<bool(Enchant const&)> const& favored,
+    double qualityUnit, double favoredUnit, double pickUnit)
+{
+    std::array<double, QUALITY_MAX> weights{};
+    double total = 0.0;
+    for (Enchant const* enchant : ReforgePool(catalog, character, itemExists))
+    {
+        std::uint32_t const quality = QualityOf(*enchant, character.Class);
+        if (quality < QUALITY_MAX)
+        {
+            weights[quality] += enchant->Weight;
+            total += enchant->Weight;
+        }
+    }
+    if (total <= 0.0)
+        return nullptr;
+
+    std::uint32_t quality = QUALITY_MAX;
+    double target = std::clamp(qualityUnit, 0.0, 1.0) * total;
+    for (std::uint32_t index = 0; index < QUALITY_MAX && quality == QUALITY_MAX; ++index)
+    {
+        target -= weights[index];
+        if (weights[index] > 0.0 && target < 0.0)
+            quality = index;
+    }
+    if (quality == QUALITY_MAX)
+        for (std::uint32_t index = QUALITY_MAX; index > 0 && quality == QUALITY_MAX; --index)
+            if (weights[index - 1] > 0.0)
+                quality = index - 1;
+
+    std::vector<Enchant const*> chosen;
+    std::vector<Enchant const*> others;
+    for (Enchant const* enchant : RevealPool(catalog, character, itemExists))
+        if (QualityOf(*enchant, character.Class) == quality)
+            (favored && favored(*enchant) ? chosen : others).push_back(enchant);
+    if (favoredUnit >= REVEAL_FAVORED_CHANCE)
+        std::swap(chosen, others);
+    return Roll(chosen.empty() ? others : chosen, pickUnit);
+}
+
 std::uint64_t LevelProgress(std::uint32_t level)
 {
     if (level == 0)

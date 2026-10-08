@@ -23,6 +23,9 @@ constexpr std::uint32_t MAX_PRESETS = 100;
 constexpr std::uint32_t SPECIALIZATION_COUNT = 20;
 constexpr std::uint32_t RARE_WORLDFORGED_LIMIT = 3;
 constexpr std::uint32_t UNTARNISHED_MYSTIC_SCROLL = 992720;
+constexpr std::uint32_t UNIDENTIFIED_MYSTIC_SCROLL = 97866;
+constexpr std::uint64_t STOCK_CLASS_MASK = 0x5FF;
+constexpr double REVEAL_FAVORED_CHANCE = 0.33;
 constexpr std::uint32_t PRESET_UNLOCK_TOKEN = 1806961;
 constexpr std::uint32_t RUNE_OF_ASCENSION = 375250;
 constexpr std::uint32_t MYSTIC_EXTRACT = 98463;
@@ -381,6 +384,11 @@ std::uint32_t ExtractsBoughtWithSave(Character const& character, std::uint32_t a
 std::vector<Enchant const*> ReforgePool(Catalog const& catalog, Character const& character,
     std::function<bool(std::uint32_t item)> const& itemExists);
 Enchant const* Roll(std::vector<Enchant const*> const& pool, double unit);
+std::vector<Enchant const*> RevealPool(Catalog const& catalog, Character const& character,
+    std::function<bool(std::uint32_t item)> const& itemExists);
+Enchant const* RollReveal(Catalog const& catalog, Character const& character,
+    std::function<bool(std::uint32_t item)> const& itemExists, std::function<bool(Enchant const&)> const& favored,
+    double qualityUnit, double favoredUnit, double pickUnit);
 std::uint64_t LevelProgress(std::uint32_t level);
 std::uint64_t ReforgeProgressGain(Enchant const& enchant, double multiplier);
 std::uint32_t AddProgress(Progress& progress, std::uint64_t gain);
