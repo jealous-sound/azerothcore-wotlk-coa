@@ -268,7 +268,8 @@ enum class CoAProgressEvent : uint8
     Transmogrified,
     VanityDelivered,
     VanityCollected,
-    AppearanceCollected
+    AppearanceCollected,
+    ExperimentalTeleporter
 };
 
 class PlayerScript : public ScriptObject

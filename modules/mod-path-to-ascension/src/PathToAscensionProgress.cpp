@@ -711,7 +711,7 @@ namespace PathToAscension
     {
         static constexpr uint32 ids[] =
         {
-            2, 5, 6, 8, 9, 10, 13, 14, 15, 16, 18, 19, 22, 24, 27, 28, 29, 30, 32,
+            2, 5, 6, 8, 9, 10, 13, 14, 15, 16, 18, 19, 22, 24, 27, 28, 29, 30, 31, 32,
             33, 36, 41, 51, 56, 57, 58, 64, 65, 74, 76, 78, 80, 82, 83, 84, 89, 90, 91, 92,
             93, 101, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 121, 122, 124, 125,
             126, 128, 129, 131, 132, 133, 135, 136, 138, 139, 140, 142, 143, 145, 146, 147, 149, 150,
@@ -969,6 +969,9 @@ public:
                 break;
             case CoAProgressEvent::AppearanceCollected:
                 RecordAppearance(player, value);
+                break;
+            case CoAProgressEvent::ExperimentalTeleporter:
+                CompleteVerifiedTutorial(player, 31);
                 break;
         }
     }
