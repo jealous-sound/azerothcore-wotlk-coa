@@ -400,6 +400,12 @@ void HandleStatQuery(WorldSession*, WorldPacket const& packet)
 }
 }
 
+namespace AscensionFreepick
+{
+bool MysticAltars = false;
+bool RealmOffersMysticAltars() { return MysticAltars; }
+}
+
 class AscensionCollectionService
 {
 public:
@@ -434,6 +440,7 @@ public:
     // ACTUAL_HANDLE_CLIENT_PACKET
     // ACTUAL_POINT_SPEND
     // ACTUAL_DELIVER_VANITY
+    // ACTUAL_WITHHELD_VANITY
     // ACTUAL_BANK_VANITY
 
     std::shared_ptr<PlayerCollectionState> State;
@@ -962,12 +969,14 @@ struct VanitySetup
     bool UnlockAll = true;
     bool LearnedSpellDelivery = true;
     bool BagsFull = false;
+    bool MysticAltars = false;
 };
 
 Delivery Deliver(VanitySetup const& setup, std::vector<WorldPacket> const& requests, uint32 directItem = 0)
 {
     ascensionCompatConfig.UnlockAllVanity = setup.UnlockAll;
     ascensionCompatConfig.LearnedSpellDelivery = setup.LearnedSpellDelivery;
+    AscensionFreepick::MysticAltars = setup.MysticAltars;
     AscensionCollectionService& service = AscensionCollectionService::Instance();
     scriptMgr.Progress.clear();
     service.State = std::make_shared<PlayerCollectionState>();
@@ -1029,6 +1038,17 @@ void TestVanityDelivery()
     Check(owned.Reported == std::vector<uint32>{1001} && bank.Reported == std::vector<uint32>{134985} &&
         spell.Reported == std::vector<uint32>{1003},
         "each delivered vanity item or spell is reported once as progress");
+
+    constexpr uint32 altar = 2903513;
+    objectMgr.Items[altar].ItemId = altar;
+    service._vanityItems[altar] = {};
+    Delivery const withheld = Deliver({}, {DonationPointsRequest(altar)});
+    Check(withheld.Stored.empty() && withheld.Learned.empty() && withheld.Reported.empty() &&
+        withheld.Messages == std::vector<std::string>{"Mystic Enchanting altars are not available on this realm."},
+        "Mystic altars are withheld when the realm does not offer them");
+    Delivery const allowed = Deliver({true, true, false, true}, {DonationPointsRequest(altar)});
+    Check(allowed.Stored == std::vector<uint32>{altar} && allowed.Reported == std::vector<uint32>{altar},
+        "Mystic altars are delivered when the realm offers them");
 
     VanitySetup const locked{false, true, false};
     Delivery const refused = Deliver(locked, {DonationPointsRequest(1002), DonationPointsRequest(56925),
