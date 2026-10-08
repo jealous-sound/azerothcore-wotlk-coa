@@ -725,6 +725,29 @@ or reload the character from the database. Use it to exercise a repair against d
 Hooks read character rows synchronously, so the step first waits for a marker query queued behind every character
 database write already queued, as a real login's queries are; with several character database workers a write that
 another worker is still running when the marker returns can remain uncommitted.
+`persisted_action_button` requires `button` and returns the spell ID `Player::_SaveActions` writes for that action
+button, or zero if it holds no spell.
+
+`spellbook_loud_supersedes_for` requires `spell` and counts the `SMSG_SUPERCEDED_SPELL` notices that swapped that spell in
+while the client still held it notable, the bit of its `SpellCustomAttr` row the "New Spell Learned" toast tests: no row
+pushed yet, or the last one pushed carrying the bit. `spellbook_client_notable` reports the last pushed row's bit for
+`spell`: 1, 0, or -1 when none was pushed.
+`client_chat_lines_for` requires `spell` and counts the spell notices for it that the client prints to chat, following
+Extensions.dll. A learned notice (299) is silent while the spell's last `SpellCustomAttr` row carries the quiet-learn
+bit (0x40000 of the fourth attribute dword). A learned or superseded notice (300) is silent while a spell in it, or its
+first rank, is listed by an indexed `SMSG_PATCH_CHARACTER_ADVANCEMENT` row (1610); a row is indexed by its second send
+and every insertion of a new row clears that index; a learned or superseded notice is also silent while the added
+spell's last Spell row is hidden. A learned or removed notice (515) is silent while the spell's last
+`SMSG_PATCH_SPELL` row (2346) carries `SPELL_ATTR0_DO_NOT_DISPLAY` or `SPELL_ATTR0_IS_TRADESKILL`.
+`client_placing_learns_for` counts the spell's learned notices sent while its last `SpellCustomAttr` row lacked the
+no-placement bit (0x1000000 of the fourth attribute dword); up to level 10 the client places such a spell on an empty
+button. `client_placing_supersedes_for` counts the superseded notices adding that spell while the Rank text of its last
+`SMSG_PATCH_SPELL` row (the number in it) was 1 or less, or before any row was sent: up to level 10 the client places
+such a spell on an empty button. `client_spell_rank_for` returns that number for the last row sent, or -1.
+`client_removals_keeping_buttons_for` counts its removed notices ending in a zero byte, which Extensions.dll
+answers without clearing the spell's action buttons. `client_spell_row_restored` returns 1 when the last two
+`SMSG_PATCH_SPELL` rows for `spell` are the same row, first with `SPELL_ATTR0_DO_NOT_DISPLAY` and then without.
+The model reads attributes only from rows the server sent, not from the client's own tables.
 `temporary_spell_replacement` requires `spell` and returns the spell ID currently standing in for it on the
 player's bars. `Player::GetTemporarySpellReplacement` returns the queried spell itself when nothing replaces
 it, so the unreplaced reading is that spell's own ID, never zero. It reads server-side state, not what the

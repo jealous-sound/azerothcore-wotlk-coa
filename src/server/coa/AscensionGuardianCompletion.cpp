@@ -1,6 +1,7 @@
 /* Copyright (C) 2016+ AzerothCore, GNU AGPL v3. */
 
 #include "AscensionGuardianCompletion.h"
+#include "AscensionClientSpellPatches.h"
 #include "GridNotifiers.h"
 #include "GridNotifiersImpl.h"
 #include "CellImpl.h"
@@ -321,6 +322,7 @@ void AscensionGuardian::ApplyContracts(SpellInfo* info)
 
 void AddAscensionGuardianCompletionScripts()
 {
+    Ascension::ClientSpellPatches::Instance().Register(500673);
     new guardian_scaling();
     RegisterSpellScript(aura_ascension_guardian_lifecycle);
 }
