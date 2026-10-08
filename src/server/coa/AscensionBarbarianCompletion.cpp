@@ -31,19 +31,19 @@ Unit* Ancestor(Player* player)
         pet : nullptr;
 }
 
-class barbarian_dwarf_ancestor : public PetScript
+class barbarian_ancestor_appearance : public PetScript
 {
 public:
-    barbarian_dwarf_ancestor() : PetScript("barbarian_dwarf_ancestor", {PETHOOK_ON_PET_ADD_TO_WORLD}) { }
+    barbarian_ancestor_appearance() : PetScript("barbarian_ancestor_appearance", {PETHOOK_ON_PET_ADD_TO_WORLD}) { }
 
     void OnPetAddToWorld(Pet* pet) override
     {
         Player* player = pet ? pet->GetOwner() : nullptr;
-        if (!player || player->getClass() != CLASS_BARBARIAN || player->getRace() != RACE_DWARF ||
-            pet->GetEntry() != 51265)
+        if (!player || player->getClass() != CLASS_BARBARIAN || pet->GetEntry() != 51265)
             return;
 
-        CreatureDisplayInfoEntry const* display = sCreatureDisplayInfoStore.LookupEntry(260901);
+        uint32 const displayId = player->getRace() == RACE_DWARF ? 260901 : 173031;
+        CreatureDisplayInfoEntry const* display = sCreatureDisplayInfoStore.LookupEntry(displayId);
         if (!display || !sCreatureModelDataStore.LookupEntry(display->ModelId))
             return;
 
@@ -530,7 +530,7 @@ public:
 
 void AddAscensionBarbarianCompletionScripts()
 {
-    new barbarian_dwarf_ancestor();
+    new barbarian_ancestor_appearance();
     new barbarian_barbaric_rage();
     new barbarian_scaling();
     new barbarian_casts();

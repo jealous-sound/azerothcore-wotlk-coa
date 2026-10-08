@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "name": "Dwarf Barbarians summon the authored Dwarf ancestor (#5527)",
+  "name": "Barbarian ancestor appearance follows the current race across saved-pet reloads (#5527, PR6866 P2)",
   "contract": [
     "Report #5527 observes a large Troll ancestor summoned by a Dwarf Barbarian.",
     "Spell.dbc Ancestor's Call 804869 is ranked Dwarf and summons creature 51266.",
@@ -11,9 +11,11 @@
     "Trolls retain display 173031. Draenei have no authored racial variant and retain the existing fallback.",
     "Normal specialization and casts exercise summoning; polymorph, relog and dismissal test appearance restoration.",
     "Ancestor's Call has a 20-second recovery time; resummoning waits for its ordinary cooldown to expire.",
+    "Pet::SavePetToDB persists the native display and the race/faction service retains pet data. A former Dwarf must recover the shared fallback after its owner becomes Draenei or Troll; becoming Dwarf again must recover the Dwarf display.",
+    "Relog's race fixture seeds the owner's post-service database race without modifying saved pet data. Real save/logout/login tests both model fields, repeated persistence and polymorph restoration; it does not submit the character-screen service packet.",
     "Native model and scale fields are observed; this does not render animations or measure assets on screen."
   ],
-  "timeout_ms": 90000,
+  "timeout_ms": 150000,
   "players": [
     {
       "id": "troll",
@@ -343,6 +345,290 @@
       "metric": "pet_scale",
       "min": 0.999,
       "max": 1.001
+    },
+    {
+      "action": "assert",
+      "actor": "dwarf",
+      "metric": "pet_native_display",
+      "equals": 260901,
+      "label": "Dwarf display is the persisted native model before changing race"
+    },
+    {
+      "action": "relog",
+      "actor": "dwarf",
+      "race": 11,
+      "label": "Reload the saved ancestor with a post-service Draenei owner"
+    },
+    {
+      "action": "assert",
+      "actor": "dwarf",
+      "metric": "race",
+      "equals": 11,
+      "label": "The reloaded owner is Draenei"
+    },
+    {
+      "action": "assert",
+      "actor": "dwarf",
+      "metric": "pet_entry",
+      "equals": 51265,
+      "label": "Draenei owner keeps the same ancestor entry"
+    },
+    {
+      "action": "assert",
+      "actor": "dwarf",
+      "metric": "pet_native_display",
+      "equals": 173031,
+      "label": "Draenei owner receives the correct native ancestor display"
+    },
+    {
+      "action": "assert",
+      "actor": "dwarf",
+      "metric": "pet_display",
+      "equals": 173031,
+      "label": "Draenei owner receives the correct visible ancestor display"
+    },
+    {
+      "action": "assert",
+      "actor": "dwarf",
+      "metric": "pet_scale",
+      "min": 0.999,
+      "max": 1.001,
+      "label": "Draenei owner retains canonical ancestor scale"
+    },
+    {
+      "action": "set_aura",
+      "actor": "dwarf",
+      "spell": 118,
+      "pet": true,
+      "stacks": 1
+    },
+    {
+      "action": "assert",
+      "actor": "dwarf",
+      "metric": "pet_aura_stacks",
+      "equals": 1,
+      "label": "The fallback ancestor is polymorphed",
+      "spell": 118
+    },
+    {
+      "action": "assert",
+      "actor": "dwarf",
+      "metric": "pet_display",
+      "max": 70000,
+      "label": "Polymorph temporarily replaces the fallback display"
+    },
+    {
+      "action": "assert",
+      "actor": "dwarf",
+      "metric": "pet_native_display",
+      "equals": 173031,
+      "label": "Polymorph preserves the reconciled fallback native display"
+    },
+    {
+      "action": "set_aura",
+      "actor": "dwarf",
+      "spell": 118,
+      "pet": true,
+      "stacks": 0
+    },
+    {
+      "action": "assert",
+      "actor": "dwarf",
+      "metric": "pet_display",
+      "equals": 173031,
+      "label": "Ending polymorph restores the fallback rather than the former Dwarf model"
+    },
+    {
+      "action": "relog",
+      "actor": "dwarf",
+      "label": "Save and reload the reconciled Draenei fallback again"
+    },
+    {
+      "action": "assert",
+      "actor": "dwarf",
+      "metric": "race",
+      "equals": 11,
+      "label": "Draenei race persists across the next relog"
+    },
+    {
+      "action": "assert",
+      "actor": "dwarf",
+      "metric": "pet_entry",
+      "equals": 51265,
+      "label": "Draenei ancestor remains present on the next login"
+    },
+    {
+      "action": "assert",
+      "actor": "dwarf",
+      "metric": "pet_native_display",
+      "equals": 173031,
+      "label": "Draenei fallback is saved as the next native model"
+    },
+    {
+      "action": "assert",
+      "actor": "dwarf",
+      "metric": "pet_display",
+      "equals": 173031,
+      "label": "Draenei fallback remains visible on the next login"
+    },
+    {
+      "action": "relog",
+      "actor": "dwarf",
+      "race": 3,
+      "label": "Reload the saved ancestor with a post-service Dwarf owner"
+    },
+    {
+      "action": "assert",
+      "actor": "dwarf",
+      "metric": "race",
+      "equals": 3,
+      "label": "The reloaded owner is Dwarf"
+    },
+    {
+      "action": "assert",
+      "actor": "dwarf",
+      "metric": "pet_entry",
+      "equals": 51265,
+      "label": "Dwarf owner keeps the same ancestor entry"
+    },
+    {
+      "action": "assert",
+      "actor": "dwarf",
+      "metric": "pet_native_display",
+      "equals": 260901,
+      "label": "Dwarf owner receives the correct native ancestor display"
+    },
+    {
+      "action": "assert",
+      "actor": "dwarf",
+      "metric": "pet_display",
+      "equals": 260901,
+      "label": "Dwarf owner receives the correct visible ancestor display"
+    },
+    {
+      "action": "assert",
+      "actor": "dwarf",
+      "metric": "pet_scale",
+      "min": 0.999,
+      "max": 1.001,
+      "label": "Dwarf owner retains canonical ancestor scale"
+    },
+    {
+      "action": "relog",
+      "actor": "dwarf",
+      "race": 8,
+      "label": "Reload the saved ancestor with a post-service Troll owner"
+    },
+    {
+      "action": "assert",
+      "actor": "dwarf",
+      "metric": "race",
+      "equals": 8,
+      "label": "The reloaded owner is Troll"
+    },
+    {
+      "action": "assert",
+      "actor": "dwarf",
+      "metric": "pet_entry",
+      "equals": 51265,
+      "label": "Troll owner keeps the same ancestor entry"
+    },
+    {
+      "action": "assert",
+      "actor": "dwarf",
+      "metric": "pet_native_display",
+      "equals": 173031,
+      "label": "Troll owner receives the correct native ancestor display"
+    },
+    {
+      "action": "assert",
+      "actor": "dwarf",
+      "metric": "pet_display",
+      "equals": 173031,
+      "label": "Troll owner receives the correct visible ancestor display"
+    },
+    {
+      "action": "assert",
+      "actor": "dwarf",
+      "metric": "pet_scale",
+      "min": 0.999,
+      "max": 1.001,
+      "label": "Troll owner retains canonical ancestor scale"
+    },
+    {
+      "action": "relog",
+      "actor": "dwarf",
+      "label": "Save and reload the reconciled Troll fallback again"
+    },
+    {
+      "action": "assert",
+      "actor": "dwarf",
+      "metric": "race",
+      "equals": 8,
+      "label": "Troll race persists across the next relog"
+    },
+    {
+      "action": "assert",
+      "actor": "dwarf",
+      "metric": "pet_entry",
+      "equals": 51265,
+      "label": "Troll ancestor remains present on the next login"
+    },
+    {
+      "action": "assert",
+      "actor": "dwarf",
+      "metric": "pet_native_display",
+      "equals": 173031,
+      "label": "Troll fallback is saved as the next native model"
+    },
+    {
+      "action": "assert",
+      "actor": "dwarf",
+      "metric": "pet_display",
+      "equals": 173031,
+      "label": "Troll fallback remains visible on the next login"
+    },
+    {
+      "action": "relog",
+      "actor": "dwarf",
+      "race": 3,
+      "label": "Reload the saved ancestor with a post-service Dwarf owner"
+    },
+    {
+      "action": "assert",
+      "actor": "dwarf",
+      "metric": "race",
+      "equals": 3,
+      "label": "The reloaded owner is Dwarf"
+    },
+    {
+      "action": "assert",
+      "actor": "dwarf",
+      "metric": "pet_entry",
+      "equals": 51265,
+      "label": "Dwarf owner keeps the same ancestor entry"
+    },
+    {
+      "action": "assert",
+      "actor": "dwarf",
+      "metric": "pet_native_display",
+      "equals": 260901,
+      "label": "Dwarf owner receives the correct native ancestor display"
+    },
+    {
+      "action": "assert",
+      "actor": "dwarf",
+      "metric": "pet_display",
+      "equals": 260901,
+      "label": "Dwarf owner receives the correct visible ancestor display"
+    },
+    {
+      "action": "assert",
+      "actor": "dwarf",
+      "metric": "pet_scale",
+      "min": 0.999,
+      "max": 1.001,
+      "label": "Dwarf owner retains canonical ancestor scale"
     }
   ]
 }

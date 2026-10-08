@@ -203,6 +203,9 @@ class RunnerTests(unittest.TestCase):
     def test_native_relog_and_slot_observations(self):
         for step in [
             {'action': 'relog', 'actor': 'caster'},
+            {'action': 'relog', 'actor': 'caster', 'race': 11},
+            {'action': 'assert', 'actor': 'caster', 'metric': 'race', 'equals': 11},
+            {'action': 'assert', 'actor': 'caster', 'metric': 'pet_native_display', 'equals': 173031},
             {'action': 'assert', 'actor': 'caster', 'metric': 'action_button_packed', 'button': 143, 'equals': 0},
             {'action': 'assert', 'actor': 'caster', 'metric': 'server_packet_u32', 'opcode': 1829, 'index': 1,
              'equals': 20},
@@ -481,6 +484,9 @@ class RunnerTests(unittest.TestCase):
             lambda s: s['players'][0].update(level=True),
             lambda s: s['steps'].append({'action': 'set_level', 'actor': 'caster', 'value': 0}),
             lambda s: s['steps'].append({'action': 'set_level', 'actor': 'caster', 'value': 81}),
+            lambda s: s['steps'].append({'action': 'relog', 'actor': 'caster', 'race': 0}),
+            lambda s: s['steps'].append({'action': 'relog', 'actor': 'caster', 'race': 256}),
+            lambda s: s['steps'].append({'action': 'relog', 'actor': 'caster', 'race': True}),
             lambda s: s['steps'].append({'action': 'assert', 'actor': 'caster',
                                          'metric': 'spell_damage_done', 'spell': 686, 'equals': 1000}),
             lambda s: s['steps'].append({'action': 'assert', 'actor': 'caster',

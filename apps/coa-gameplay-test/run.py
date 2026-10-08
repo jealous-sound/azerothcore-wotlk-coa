@@ -58,7 +58,8 @@ METRICS = {
     'owned_creature_scale', 'owned_creature_visible', 'owned_creature_display', 'unit_scale', 'combat_reach',
     'token_count', 'item_sell_price', 'creature_model_scale', 'creature_model_display',
     'taxi_node', 'in_flight', 'taxi_destination', 'stabled_pet_count', 'stable_result', 'pet_rows', 'instance_binds_listed', 'pet_entry', 'pet_aura_stacks', 'pet_aura_duration_ms', 'pet_is_banker', 'pet_display',
-    'pet_scale', 'pet_knows_spell', 'pet_distance', 'pet_casting', 'pet_loading', 'pet_spell_bar_count',
+    'pet_native_display', 'race', 'pet_scale', 'pet_knows_spell', 'pet_distance', 'pet_casting', 'pet_loading',
+    'pet_spell_bar_count',
     'owned_creature_count', 'owned_creature_weapon_damage_min',
     'owned_creature_spell_hit_chance', 'owned_creature_attackable',
     'charm_entry', 'charm_aura_stacks', 'controls_self', 'viewpoint_entry', 'seer_entry', 'private_instance',
@@ -214,7 +215,7 @@ ACTIONS = {
     'reward_quest': ({'actor', 'quest'}, {'actor', 'quest', 'choice'}),
     'restore_quest_spells': ({'actor'}, {'actor'}),
     'login_hooks': ({'actor'}, {'actor'}),
-    'relog': ({'actor'}, {'actor'}),
+    'relog': ({'actor'}, {'actor', 'race'}),
     'talent': ({'actor', 'talent', 'rank'}, {'actor', 'talent', 'rank'}),
     'reset_talents': ({'actor'}, {'actor'}),
     'add_item': ({'actor', 'item'}, {'actor', 'item', 'count'}),
@@ -482,6 +483,8 @@ def validate(scenario):
             require(type(step['revived']) is bool, f'{where}: revived must be boolean')
         if action == 'relog':
             require(step['actor'] in player_ids, f'{where}: relog needs a player')
+            if 'race' in step:
+                number(step['race'], f'{where}.race', 1, 255, True)
         if action == 'specialization':
             require(step['actor'] in player_ids, f'{where}: specialization needs a player')
             number(step['id'], f'{where}.id', 1, 0xFFFF, True)
@@ -788,7 +791,7 @@ def validate(scenario):
                           'challenge_start_responses', 'challenge_start_code', 'owned_creature_scale', 'cast_failure',
                           'owned_creature_weapon_damage_min', 'owned_creature_spell_hit_chance',
                           'owned_creature_attackable',
-                          'pet_entry', 'pet_aura_stacks', 'pet_is_banker', 'pet_display', 'pet_scale',
+                          'pet_entry', 'pet_aura_stacks', 'pet_is_banker', 'pet_display', 'pet_native_display', 'pet_scale',
                           'pet_knows_spell', 'pet_distance', 'pet_casting', 'pet_loading',
                           'owned_creature_count', 'charm_entry',
                           'charm_aura_stacks', 'controls_self', 'private_instance',

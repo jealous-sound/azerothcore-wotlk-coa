@@ -713,6 +713,11 @@ and removed spell notices (299, 300 and 515) that the client prints to chat.
 
 `relog` takes `actor`, commits the character through the native save path, logs it out, and reloads it
 through the native character-login handler. It preserves saved character state and the scenario phase.
+Optional `race` seeds the saved character's race through `CHAR_UPD_CHAR_RACE` and updates the character cache
+before login, retaining saved pet data. This fixtures the post-service state; it does not submit a race/faction
+service request or perform that service's spell, quest, faction, language or appearance conversions.
+`race` reads the loaded unit's current race. `pet_native_display` reads the guardian's native display,
+which the pet save path persists and transformation removal restores.
 
 `login_hooks` takes `actor` and replays registered player-login hooks on the current character; it does not reconnect
 or reload the character from the database. Use it to exercise a repair against deliberately seeded fixture state.
