@@ -115,11 +115,8 @@ uint32 NewestReleasedTier(std::vector<uint32> const& ladder, uint8 released)
     return resolved;
 }
 
-uint32 ResolveCache(uint32 cacheItemId)
+uint32 NewestReleasedCache()
 {
-    if (cacheItemId != GenericCacheAll && cacheItemId != GenericCacheTbc && cacheItemId != GenericCacheWotlk)
-        return cacheItemId;
-
     if (g_tbcStages)
     {
         uint32 tier = NewestReleasedTier(TbcLadder, g_tbcStages);
@@ -192,9 +189,32 @@ bool PickToken(Player* player, uint32 cacheItemId, AscensionCacheRewards::Reward
     return true;
 }
 
+bool IsGenericCache(uint32 cacheItemId)
+{
+    return cacheItemId == GenericCacheAll || cacheItemId == GenericCacheTbc || cacheItemId == GenericCacheWotlk;
+}
+
+bool GrantNewestCache(Player* player, Item* item)
+{
+    player->SendEquipError(EQUIP_ERR_NONE, item, nullptr);
+
+    uint32 cacheItemId = NewestReleasedCache();
+    if (!cacheItemId)
+    {
+        ChatHandler(player->GetSession()).SendSysMessage("No Prestigious Cache is available yet.");
+        return true;
+    }
+
+    AscensionCacheRewards::Deliver(player, { { cacheItemId, 0, 0, 0 } }, item);
+    return true;
+}
+
 bool OpenPrestigiousCache(Player* player, Item* item)
 {
-    uint32 cacheItemId = ResolveCache(item->GetEntry());
+    if (IsGenericCache(item->GetEntry()))
+        return GrantNewestCache(player, item);
+
+    uint32 cacheItemId = item->GetEntry();
     CachePool const* pool = GetPool(cacheItemId);
     if (!pool)
         return false;

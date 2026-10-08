@@ -858,6 +858,13 @@
       "save_as": "prest_generic_held"
     },
     {
+      "action": "snapshot",
+      "actor": "opener",
+      "metric": "item_count",
+      "item": 1287311,
+      "save_as": "prest_generic_naxx_held"
+    },
+    {
       "action": "open_item",
       "actor": "opener",
       "item": 1287330
@@ -873,12 +880,36 @@
     },
     {
       "action": "assert",
-      "label": "one reward arrives, plus at most the two tier tokens",
+      "label": "it grants the newest released Prestigious Cache (Naxxramas 1287311) rather than gear (#6011)",
+      "actor": "opener",
+      "metric": "item_count",
+      "item": 1287311,
+      "relative_to": "prest_generic_naxx_held",
+      "equals": 1,
+      "within_ms": 2000
+    },
+    {
+      "action": "assert",
+      "label": "and nothing else arrives",
       "actor": "opener",
       "metric": "carried_item_count",
       "relative_to": "prest_generic_held",
-      "min": 0,
-      "max": 2,
+      "equals": 0,
+      "within_ms": 2000
+    },
+    {
+      "action": "destroy_item",
+      "actor": "opener",
+      "item": 1287311
+    },
+    {
+      "action": "assert",
+      "label": "the granted cache is discarded before the paid rewards are classified",
+      "actor": "opener",
+      "metric": "item_count",
+      "item": 1287311,
+      "relative_to": "prest_generic_naxx_held",
+      "equals": 0,
       "within_ms": 2000
     },
     {
