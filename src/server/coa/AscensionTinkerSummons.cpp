@@ -88,7 +88,8 @@ std::list<Creature*> Devices(Player* player)
 }
 void Scale(Player* player, Creature* creature, bool initial)
 {
-    float health = creature->GetHealthPct();
+    uint32 health = creature->GetHealth();
+    uint32 maximumHealth = creature->GetMaxHealth();
     float mana = creature->GetMaxPower(POWER_MANA) ?
         float(creature->GetPower(POWER_MANA)) / creature->GetMaxPower(POWER_MANA) : 1;
     creature->SetLevel(player->GetLevel());
@@ -104,7 +105,8 @@ void Scale(Player* player, Creature* creature, bool initial)
     creature->SetStat(STAT_INTELLECT,int32(creature->GetTotalStatValue(STAT_INTELLECT)));
     creature->SetStatFlatModifier(UNIT_MOD_HEALTH,BASE_VALUE,player->GetLevel() * 35.0f + creature->GetStat(STAT_STAMINA) * 10);
     creature->UpdateMaxHealth();
-    creature->SetHealth(initial ? creature->GetMaxHealth() : std::max(1u,creature->CountPctFromMaxHealth(health)));
+    creature->SetHealth(initial || !maximumHealth ? creature->GetMaxHealth() :
+        std::max(1u, uint32(uint64(health) * creature->GetMaxHealth() / maximumHealth)));
     creature->SetStatFlatModifier(UNIT_MOD_MANA,BASE_VALUE,player->GetLevel() * 15.0f + creature->GetStat(STAT_INTELLECT) * 15);
     creature->UpdateMaxPower(POWER_MANA);
     creature->SetPower(POWER_MANA,initial ? creature->GetMaxPower(POWER_MANA) :

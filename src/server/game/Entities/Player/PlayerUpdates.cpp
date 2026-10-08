@@ -1947,6 +1947,19 @@ void Player::UpdateForQuestWorldObjects()
 
 void Player::UpdateTitansGrip()
 {
+    constexpr uint32 TitansGrip = 46917;
+    constexpr uint32 TitansGripStaffPenalty = 818047;
+    Item const* main = GetWeaponForAttack(BASE_ATTACK);
+    bool const staff = getClass() == CLASS_HERO && HasActiveSpell(TitansGrip) && CanTitanGrip() && main &&
+        main->GetTemplate()->SubClass == ITEM_SUBCLASS_WEAPON_STAFF;
+    if (staff)
+    {
+        if (!HasAura(TitansGripStaffPenalty))
+            CastSpell(this, TitansGripStaffPenalty, TRIGGERED_FULL_MASK);
+    }
+    else
+        RemoveAurasDueToSpell(TitansGripStaffPenalty);
+
     // 10% damage reduce if 2x2h weapons are used
     if (HasBurningCommander() || !CanTitanGrip())
         RemoveAurasDueToSpell(49152);

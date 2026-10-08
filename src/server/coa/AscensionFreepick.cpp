@@ -7,6 +7,7 @@
 #include "Battleground.h"
 #include "Chat.h"
 #include "Config.h"
+#include "GameEventMgr.h"
 #include "Item.h"
 #include "Log.h"
 #include "Map.h"
@@ -50,6 +51,7 @@ Realm ReadRealm()
 namespace
 {
 constexpr char BUILD_SETTING[] = "core.freepick";
+constexpr std::uint16_t COA_CLASS_TRAINERS_EVENT = 195;
 constexpr char ACTIVE_SPECIALIZATION_SETTING[] = "core.ascension_slot.active";
 constexpr std::uint32_t RANK_FACTOR = 10;
 constexpr uint16 SMSG_CHARACTER_ADVANCEMENT_ACTIVE_SPEC = 0x0725;
@@ -58,6 +60,7 @@ constexpr uint16 SMSG_CHARACTER_ADVANCEMENT_KNOWN_ENTRIES = 0x0726;
 Catalog Loaded;
 Realm CurrentRealm;
 bool Classless = false;
+bool MysticAltars = false;
 bool Reborn = false;
 
 std::string SpecializationBuildSetting(std::uint32_t index)
@@ -217,6 +220,11 @@ void SyncSpells(Player* player, std::vector<Entry> const& before, std::vector<En
 bool RealmIsClassless()
 {
     return Classless;
+}
+
+bool RealmOffersMysticAltars()
+{
+    return MysticAltars;
 }
 
 bool IsFreepickHero(Player const* player)
@@ -423,6 +431,10 @@ public:
         CurrentRealm = ReadRealm();
         Classless = sConfigMgr->GetOption<std::string>("CoA.ClassModel", "coa") == "hero";
         Reborn = CurrentRealm.WarcraftReborn;
+        MysticAltars = (Classless || Reborn) &&
+            !AscensionWildcard::PlaysWildcard(sConfigMgr->GetOption<std::string>("CoAChallenges.GameModes.Realm", ""));
+        if (CurrentRealm.ConquestOfAzeroth)
+            sGameEventMgr->StartInternalEvent(COA_CLASS_TRAINERS_EVENT);
         if ((Classless || Reborn) && !LoadCatalog(Loaded))
             LOG_ERROR("coa", "Free-pick Character Advancement is unavailable: its client DBCs did not load");
     }

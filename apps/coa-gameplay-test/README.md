@@ -487,9 +487,9 @@ This fixture supports exact health-percentage boundaries without granting GM per
 `xp` and `next_level_xp` read the player's XP fields; `skill_value` and `skill_maximum` require `skill` and read
 the pure skill value and maximum. `spell_active` requires `spell` and reports whether a known rank is the active one.
 `client_knows_spell` requires `spell` and is 1 when the spell packets sent to the player (initial list, learned,
-superseded and removed) leave it in the client's spellbook. `client_spellbook_copies` requires `spell` and counts
-how many rows the client's spellbook holds for it: the client appends a row per announcement and only its
-highest-rank view hides a spell that has ranks, so an unranked spell announced twice (a learned-spell packet
+superseded, removed and unlearned) leave it in the client's spellbook. `client_spellbook_copies` requires `spell`
+and counts how many rows the client's spellbook holds for it: the client appends a row per announcement and only
+its highest-rank view hides a spell that has ranks, so an unranked spell announced twice (a learned-spell packet
 beside the superseded one that delivers it) is listed twice on screen.
 XP-delta assertions must also keep the level stable, or crossing a level would wrap the XP bar.
 
@@ -514,7 +514,8 @@ Metrics: `health`, `max_health`, `creature_type`, `power`, `max_power`, `alive`,
 `dynamic_object_duration_ms`, `distance`, `spell_proc_count`, `spell_proc_chance`, `aura_proc_rate`,
 `spell_cast_count`, `temporary_spell_replacement`,
 `bank_shows`, `system_messages`, `cast_failure`, `pet_is_banker`, `pet_display`, `pet_scale`,
-`pet_knows_spell`, `pet_distance`.
+`pet_knows_spell`, `pet_distance`. `pet_health` and `pet_max_health` read native health and maximum health.
+`equipped_item` takes `slot` (0..18) and reads that equipment slot's item entry, or zero when empty.
 `free_inventory_slots` is how many bag slots the player could still fill, so `fill_bags` plus
 `free_inventory_slots` `equals: 0` is how a scenario states "the bags are full". `mail_count` is the
 number of mails the player holds and `mail_item_count` the items inside them, which is how a reward
@@ -647,6 +648,8 @@ that the false-failure probability is acceptable, and assert a `min` on the coun
 `spell_cast_count` requires `spell` and counts the casts of that exact spell the actor completed since the scenario
 started, triggered casts included. Use it where a script casts the effect directly, so no aura is named as the trigger
 and `spell_proc_count` reads zero.
+These two count metrics accept each other's snapshots with `relative_to`. Subtract an engraving aura's proc count
+from its payload's total cast count to isolate a talent that casts the same payload without aura attribution.
 `spell_proc_chance` requires `spell` and reads the loaded `spell_proc` Chance, after a zero is replaced by the DBC
 ProcChance. `aura_proc_rate` requires `spell` (an aura on the actor), `target` and `type_mask` (proc flags), and runs
 the aura's full proc decision, database filters, conditions, script CheckProc and the native chance roll, `trials`
@@ -723,6 +726,29 @@ or reload the character from the database. Use it to exercise a repair against d
 Hooks read character rows synchronously, so the step first waits for a marker query queued behind every character
 database write already queued, as a real login's queries are; with several character database workers a write that
 another worker is still running when the marker returns can remain uncommitted.
+`persisted_action_button` requires `button` and returns the spell ID `Player::_SaveActions` writes for that action
+button, or zero if it holds no spell.
+
+`spellbook_loud_supersedes_for` requires `spell` and counts the `SMSG_SUPERCEDED_SPELL` notices that swapped that spell in
+while the client still held it notable, the bit of its `SpellCustomAttr` row the "New Spell Learned" toast tests: no row
+pushed yet, or the last one pushed carrying the bit. `spellbook_client_notable` reports the last pushed row's bit for
+`spell`: 1, 0, or -1 when none was pushed.
+`client_chat_lines_for` requires `spell` and counts the spell notices for it that the client prints to chat, following
+Extensions.dll. A learned notice (299) is silent while the spell's last `SpellCustomAttr` row carries the quiet-learn
+bit (0x40000 of the fourth attribute dword). A learned or superseded notice (300) is silent while a spell in it, or its
+first rank, is listed by an indexed `SMSG_PATCH_CHARACTER_ADVANCEMENT` row (1610); a row is indexed by its second send
+and every insertion of a new row clears that index; a learned or superseded notice is also silent while the added
+spell's last Spell row is hidden. A learned or removed notice (515) is silent while the spell's last
+`SMSG_PATCH_SPELL` row (2346) carries `SPELL_ATTR0_DO_NOT_DISPLAY` or `SPELL_ATTR0_IS_TRADESKILL`.
+`client_placing_learns_for` counts the spell's learned notices sent while its last `SpellCustomAttr` row lacked the
+no-placement bit (0x1000000 of the fourth attribute dword); up to level 10 the client places such a spell on an empty
+button. `client_placing_supersedes_for` counts the superseded notices adding that spell while the Rank text of its last
+`SMSG_PATCH_SPELL` row (the number in it) was 1 or less, or before any row was sent: up to level 10 the client places
+such a spell on an empty button. `client_spell_rank_for` returns that number for the last row sent, or -1.
+`client_removals_keeping_buttons_for` counts its removed notices ending in a zero byte, which Extensions.dll
+answers without clearing the spell's action buttons. `client_spell_row_restored` returns 1 when the last two
+`SMSG_PATCH_SPELL` rows for `spell` are the same row, first with `SPELL_ATTR0_DO_NOT_DISPLAY` and then without.
+The model reads attributes only from rows the server sent, not from the client's own tables.
 `temporary_spell_replacement` requires `spell` and returns the spell ID currently standing in for it on the
 player's bars. `Player::GetTemporarySpellReplacement` returns the queried spell itself when nothing replaces
 it, so the unreplaced reading is that spell's own ID, never zero. It reads server-side state, not what the

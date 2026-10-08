@@ -110,7 +110,9 @@
 enum CustomEquipmentSpells : uint32
 {
     SPELL_BURNING_COMMANDER = 92089,
-    SPELL_VALKYR_GRIP = 707072
+    SPELL_VALKYR_GRIP = 707072,
+    SPELL_TITANS_GRIP = 46917,
+    SPELL_DUAL_WIELD = 674
 };
 
 enum ClientKnownSupersededSpells : uint32
@@ -3032,7 +3034,8 @@ void Player::SendUnlearnSpells()
 
     for (auto const& itr : m_spells)
     {
-        if (itr.second->State == PLAYERSPELL_REMOVED || itr.second->Active)
+        if (itr.second->State == PLAYERSPELL_REMOVED || itr.second->Active ||
+            IsKeptInClientSpellbookWhenSuperseded(itr.first))
             continue;
 
         auto skillLineAbilities = sSpellMgr->GetSkillLineAbilityMapBounds(itr.first);
@@ -3267,7 +3270,7 @@ void Player::_addTalentAurasAndSpells(uint32 spellId)
     }
 }
 
-void Player::SendLearnPacket(uint32 spellId, bool learn)
+void Player::SendLearnPacket(uint32 spellId, bool learn, bool keepActionButtons /*= false*/)
 {
     if (learn)
     {
@@ -3278,8 +3281,12 @@ void Player::SendLearnPacket(uint32 spellId, bool learn)
     }
     else
     {
-        WorldPacket data(SMSG_REMOVED_SPELL, 4);
+        WorldPacket data(SMSG_REMOVED_SPELL, 5);
         data << uint32(spellId);
+        // The CoA client's Extensions.dll leaves the spell's action buttons in place for a removal that ends in a
+        // zero byte; the stock client reads only the spell id.
+        if (keepActionButtons)
+            data << uint8(0);
         SendDirectMessage(&data);
     }
 }
@@ -3367,7 +3374,11 @@ bool Player::_addSpell(uint32 spellId, uint8 addSpecMask, bool temporary, bool l
     // condition mirrors the one Player::removeSpell uses for onlyTemporary. Player::learnSpell must not
     // announce the same grant again, or the client ends up with more copies than the server ever removes.
     if (IsInWorld() && !isBeingLoaded() && temporary && !learnFromSkill && (!spellInfo->HasAttribute(SpellAttr0(SPELL_ATTR0_PASSIVE | SPELL_ATTR0_DO_NOT_DISPLAY)) || !spellInfo->HasAnyAura()) && !spellInfo->HasEffect(SPELL_EFFECT_LEARN_SPELL))
+    {
+        sScriptMgr->OnPlayerTemporarySpellLearnNotice(this, spellInfo->Id, false);
         SendLearnPacket(spellInfo->Id, true);
+        sScriptMgr->OnPlayerTemporarySpellLearnNotice(this, spellInfo->Id, true);
+    }
 
     // xinef: DO NOT allow to learn spell with effect learn spell!
     // xinef: if spell possess spell learn effects only, learn those spells as temporary (eg. Metamorphosis, Tree of Life)
@@ -3577,7 +3588,13 @@ void Player::_learnSpell(uint32 spellId, bool temporary, bool learnFromSkill, bo
         // leaves the client one extra copy of the spell per grant/revoke cycle, which both hides the real
         // spellbook entry behind duplicates and keeps the client believing a revoked spell is still known.
         if (announce && IsInWorld() && (!temporary || learnFromSkill))
-            SendLearnPacket(spellId, true);
+        {
+            uint32 const replacement = GetTemporarySpellReplacement(spellId);
+            bool const artificersWandReplacement = replacement != spellId &&
+                (replacement == 561284 || (replacement >= 561354 && replacement <= 561357));
+            if (!artificersWandReplacement)
+                SendLearnPacket(spellId, true);
+        }
     }
 
     // pussywizard: rank stuff at the end!
@@ -3800,14 +3817,26 @@ void Player::removeSpell(uint32 spell_id, uint8 removeSpecMask, bool onlyTempora
         }
     }
 
-    if (spell_id == SPELL_BURNING_COMMANDER)
+    if (getClass() == CLASS_SUN_CLERIC && spell_id == SPELL_VALKYR_GRIP && !HasValkyrGrip())
+    {
+        SetCanTitanGrip(false);
+        if (!HasActiveSpell(SPELL_DUAL_WIELD))
+            SetCanDualWield(false);
+    }
+
+    if (spell_id == SPELL_BURNING_COMMANDER || spell_id == SPELL_VALKYR_GRIP ||
+        (getClass() == CLASS_HERO && spell_id == SPELL_TITANS_GRIP))
         AutoUnequipOffhandIfNeed();
 
     // pussywizard: remove from spell book (can't be replaced by previous rank, because such spells can't be unlearnt)
     if (!onlyTemporary || ((!spellInfo->HasAttribute(SpellAttr0(SPELL_ATTR0_PASSIVE | SPELL_ATTR0_DO_NOT_DISPLAY)) || !spellInfo->HasAnyAura()) && !spellInfo->HasEffect(SPELL_EFFECT_LEARN_SPELL)))
     {
         sScriptMgr->OnPlayerForgotSpell(this, spell_id);
-        SendLearnPacket(spell_id, false);
+        if (onlyTemporary)
+            sScriptMgr->OnPlayerTemporarySpellRemoveNotice(this, spell_id, false);
+        SendLearnPacket(spell_id, false, onlyTemporary && IsTemporarySpellReplacementStandIn(spell_id));
+        if (onlyTemporary)
+            sScriptMgr->OnPlayerTemporarySpellRemoveNotice(this, spell_id, true);
     }
 }
 
@@ -4127,7 +4156,7 @@ bool Player::resetTalents(bool noResetCost)
     if (m_canTitanGrip)
         SetCanTitanGrip(false);
     // xinef: remove dual wield if player does not have dual wield spell (shamans)
-    if (!HasSpell(674) && CanDualWield())
+    if (!HasSpell(SPELL_DUAL_WIELD) && CanDualWield())
         SetCanDualWield(false);
 
     AutoUnequipOffhandIfNeed();
@@ -4773,6 +4802,14 @@ void Player::ResurrectPlayer(float restore_percent, bool applySickness)
     uint32 newzone, newarea;
     GetZoneAndAreaId(newzone, newarea);
     UpdateZone(newzone, newarea, true);
+    if (sWorld->getBoolConfig(CONFIG_VMAP_INDOOR_CHECK))
+    {
+        SpellAttr0 const disallowedAttribute = IsOutdoors() ? SPELL_ATTR0_ONLY_INDOORS : SPELL_ATTR0_ONLY_OUTDOORS;
+        RemoveOwnedAuras([disallowedAttribute](Aura const* aura)
+        {
+            return !aura->IsPassive() && aura->GetSpellInfo()->HasAttribute(disallowedAttribute);
+        });
+    }
     sOutdoorPvPMgr->HandlePlayerResurrects(this, newzone);
 
     if (Battleground* bg = GetBattleground())
@@ -13929,6 +13966,11 @@ void Player::SetTemporarySpellReplacement(uint32 original, uint32 replacement)
 {
     auto itr = m_temporarySpellReplacements.find(original);
     uint32 previous = itr == m_temporarySpellReplacements.end() ? original : itr->second;
+    bool const sharedReplacement = replacement && std::any_of(m_temporarySpellReplacements.begin(),
+        m_temporarySpellReplacements.end(), [this, original, replacement](auto const& entry)
+        {
+            return entry.first != original && entry.second == replacement && HasActiveSpell(entry.first);
+        });
     if (!replacement)
     {
         m_temporarySpellReplacements.erase(original);
@@ -13939,12 +13981,21 @@ void Player::SetTemporarySpellReplacement(uint32 original, uint32 replacement)
         if (!HasActiveSpell(original) || !HasActiveSpell(replacement))
             return;
         m_temporarySpellReplacements[original] = replacement;
+        m_temporarySpellReplacementOrigins[replacement] = original;
     }
     if (previous != replacement && IsInWorld() && HasActiveSpell(original))
     {
+        if (sharedReplacement)
+        {
+            sScriptMgr->OnPlayerTemporarySpellRemoveNotice(this, replacement, false);
+            SendLearnPacket(replacement, false, true);
+            sScriptMgr->OnPlayerTemporarySpellRemoveNotice(this, replacement, true);
+        }
+        sScriptMgr->OnPlayerTemporarySpellReplacementNotice(this, previous, replacement, false);
         WorldPacket packet(SMSG_SUPERCEDED_SPELL, 8);
         packet << previous << replacement;
         GetSession()->SendPacket(&packet);
+        sScriptMgr->OnPlayerTemporarySpellReplacementNotice(this, previous, replacement, true);
     }
 }
 
@@ -13955,10 +14006,42 @@ uint32 Player::GetTemporarySpellReplacement(uint32 original) const
         itr->second : original;
 }
 
+bool Player::IsTemporarySpellReplacementStandIn(uint32 spellId) const
+{
+    auto const origin = m_temporarySpellReplacementOrigins.find(spellId);
+    return origin != m_temporarySpellReplacementOrigins.end() && origin->second != spellId;
+}
+
+uint32 Player::GetSavedActionButtonSpell(uint32 action)
+{
+    // A temporary replacement is never saved, so the next login would drop a button holding it: save the spell it
+    // replaces, which the replacement takes over again once its owner re-applies it. A timed replacement may already
+    // be unlearned while a button still holds it, which the next login would drop just the same.
+    for (uint8 depth = 0; depth < 4; ++depth)
+    {
+        auto spell = m_spells.find(action);
+        auto origin = m_temporarySpellReplacementOrigins.find(action);
+        bool const unsaved = spell == m_spells.end() || spell->second->State == PLAYERSPELL_TEMPORARY ||
+            spell->second->State == PLAYERSPELL_REMOVED;
+        if (!unsaved || origin == m_temporarySpellReplacementOrigins.end() || !HasSpell(origin->second))
+            break;
+        action = origin->second;
+    }
+    sScriptMgr->OnPlayerNormalizeActionButtonSpell(this, action, false);
+    return action;
+}
+
 bool Player::CanUseTwoHandWithShield(ItemTemplate const* main, ItemTemplate const* off) const
 {
-    if (getClass() != CLASS_GUARDIAN || !main || !off || main->InventoryType != INVTYPE_2HWEAPON ||
-        main->Class != ITEM_CLASS_WEAPON || off->InventoryType != INVTYPE_SHIELD)
+    if (!main || !off || main->InventoryType != INVTYPE_2HWEAPON || main->Class != ITEM_CLASS_WEAPON)
+        return false;
+    if (getClass() == CLASS_HERO && HasActiveSpell(SPELL_TITANS_GRIP) && CanTitanGrip() &&
+        main->SubClass == ITEM_SUBCLASS_WEAPON_STAFF)
+        return off->InventoryType == INVTYPE_SHIELD ||
+            (off->Class == ITEM_CLASS_WEAPON && CanDualWield() &&
+                (off->InventoryType == INVTYPE_WEAPON || off->InventoryType == INVTYPE_WEAPONOFFHAND) &&
+                off->SubClass != ITEM_SUBCLASS_WEAPON_POLEARM && off->SubClass != ITEM_SUBCLASS_WEAPON_FISHING_POLE);
+    if (getClass() != CLASS_GUARDIAN || off->InventoryType != INVTYPE_SHIELD)
         return false;
     return (main->SubClass == ITEM_SUBCLASS_WEAPON_POLEARM &&
         (HasSpell(802299) || HasSpell(803832) || HasSpell(807892))) ||
@@ -16194,10 +16277,10 @@ void Player::ActivateSpec(uint8 spec)
     SetPower(pw, 0);
 
     // xinef: remove titan grip if player had it set and does not have appropriate talent
-    if (!HasTalent(46917, GetActiveSpec()) && m_canTitanGrip)
+    if (!HasTalent(SPELL_TITANS_GRIP, GetActiveSpec()) && m_canTitanGrip)
         SetCanTitanGrip(false);
     // xinef: remove dual wield if player does not have dual wield spell (shamans)
-    if (!HasSpell(674) && CanDualWield())
+    if (!HasSpell(SPELL_DUAL_WIELD) && CanDualWield())
         SetCanDualWield(false);
 
     AutoUnequipOffhandIfNeed();
