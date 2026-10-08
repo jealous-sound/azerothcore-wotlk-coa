@@ -31,6 +31,7 @@
 #include "GameEventMgr.h"
 #include "GlobalScript.h"
 #include "Item.h"
+#include "LFGMgr.h"
 #include "Log.h"
 #include "Mail.h"
 #include "Map.h"
@@ -513,6 +514,7 @@ namespace
 
         RememberActionBar(player);
         DismissPets(player);
+        sLFGMgr->LeaveLfg(player->GetGUID());
         ResetQuests(player, requiredLevel);
 
         uint32 const talents = wildcard ? AscensionWildcard::PrestigeSpecialization(player) :
