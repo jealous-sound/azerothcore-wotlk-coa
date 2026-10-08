@@ -548,6 +548,9 @@ from one that still offers it.
 count of the last one, `vendor_price` requires `item` and returns the price that list offered it at
 (`-1` when the shelves do not hold that item), and `vendor_price_sum` is what the whole list costs -
 a fingerprint of a vendor's stock, so one vendor can be held to another's items and prices.
+`vendor_extended_cost` requires `item` and returns the ItemExtendedCost id that list sold it for (`0` for a
+plain money price, `-1` when the shelves do not hold that item): the honor, arena point, token and rating
+price a client reads from its own ItemExtendedCost.dbc.
 `who_count` counts players in the actor's last native Who response; `who_class` requires a player `target`
 and returns that player's class ID, or zero if absent. These inspect packets from socketless test sessions,
 not client packet delivery. Masks use native Who bits (`1 << classID`, `1 << raceID`), with class 32 in bit zero;

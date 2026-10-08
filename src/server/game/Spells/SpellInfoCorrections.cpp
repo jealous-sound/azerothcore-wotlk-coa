@@ -5250,6 +5250,7 @@ void SpellMgr::LoadSpellInfoCorrections()
 
     ApplySpellFix({
         42292,  // PvP Trinket
+        1142292, // PvP Trinket (Ascension)
         59752,  // Every Man for Himself
         19574,  // Bestial Wrath
         34471   // The Beast Within
