@@ -221,12 +221,18 @@ struct Roll
     uint32 totalPlayersRolling = 0;
     uint32 totalPass = 0;
     PlayerVote playerVote;
+    mutable std::map<ObjectGuid, uint32> previewLevels;
     Loot* Source = nullptr;
 
     Roll(ObjectGuid guid, LootItem const& item) : itemGUID(guid), itemid(item.itemid) { }
     void setLoot(Loot* loot) { Source = loot; }
     Loot* getLoot() const { return Source; }
 };
+
+namespace LocalLevelScaling
+{
+uint32 RollPreviewLevel(Player const*) { return 0; }
+}
 
 struct GroupReference
 {
