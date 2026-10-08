@@ -15,6 +15,33 @@ import run
 
 
 class RunnerTests(unittest.TestCase):
+    def test_spell_cast_and_proc_counts_can_share_relative_snapshots(self):
+        for measured, captured in (('spell_cast_count', 'spell_proc_count'),
+                                   ('spell_proc_count', 'spell_cast_count')):
+            scenario = copy.deepcopy(self.scenario)
+            scenario['steps'].extend([
+                {'action': 'snapshot', 'actor': 'caster', 'metric': captured,
+                 'spell': 653267, 'save_as': 'native_procs'},
+                {'action': 'assert', 'actor': 'caster', 'metric': measured,
+                 'spell': 653263, 'relative_to': 'native_procs', 'equals': 0},
+            ])
+            with self.subTest(measured=measured, captured=captured):
+                self.assertIs(run.validate(scenario), scenario)
+
+    def test_spell_event_relative_snapshots_reject_missing_or_incompatible_metrics(self):
+        for captured, reference in (('health', 'baseline'), ('spell_proc_count', 'missing')):
+            scenario = copy.deepcopy(self.scenario)
+            scenario['steps'].extend([
+                {'action': 'snapshot', 'actor': 'caster', 'metric': captured,
+                 **({'spell': 653267} if captured == 'spell_proc_count' else {}),
+                 'save_as': 'baseline'},
+                {'action': 'assert', 'actor': 'caster', 'metric': 'spell_cast_count',
+                 'spell': 653263, 'relative_to': reference, 'equals': 0},
+            ])
+            with self.subTest(captured=captured, reference=reference), \
+                    self.assertRaisesRegex(ValueError, 'missing or incompatible snapshot'):
+                run.validate(scenario)
+
     def test_spell_family_flags_require_a_spell_and_valid_word(self):
         for word in (0, 1, 2):
             scenario = copy.deepcopy(self.scenario)

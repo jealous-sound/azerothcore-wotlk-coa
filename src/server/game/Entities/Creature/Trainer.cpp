@@ -31,7 +31,8 @@
 
 namespace
 {
-    // A Hero playing Wildcard (the game mode bit of AscensionWildcard::GAME_MODE_WILDCARD).
+    // A Hero playing Wildcard (the game mode bit of AscensionWildcard::GAME_MODE_WILDCARD), until
+    // AscensionWildcard installs its own rule.
     bool IsWildcardHero(Player const* player)
     {
         if (player->getClass() != CLASS_HERO)
@@ -45,6 +46,12 @@ namespace
     constexpr uint32 WILDCARD_RANK_TRAINER_ID = std::numeric_limits<uint32>::max();
     Trainer::WildcardRankRows WildcardRankRowsOf = nullptr;
     Trainer::ClassTrainerFor ClassTrainerOf = nullptr;
+    Trainer::RankTrainerHero RankTrainerHeroOf = nullptr;
+
+    bool IsRankTrainerHero(Player const* player)
+    {
+        return RankTrainerHeroOf ? RankTrainerHeroOf(player) : IsWildcardHero(player);
+    }
 
     uint8 ProfessionExpansion(uint32 skill)
     {
@@ -249,6 +256,12 @@ namespace Trainer
         return nullptr;
     }
 
+    // A rank trainer's next rank turns trainable once the rank below it is bought, so its list is sent again.
+    bool Trainer::RepublishesAfterPurchase() const
+    {
+        return _trainerId == WILDCARD_RANK_TRAINER_ID;
+    }
+
     bool Trainer::CanTeachSpell(Player const* player, Spell const* trainerSpell) const
     {
         SpellState state = GetSpellState(player, trainerSpell);
@@ -353,7 +366,7 @@ namespace Trainer
         {
             case Type::Class:
                 // check class for class trainers; a Wildcard Hero trains its ranks at any of them
-                return player->getClass() == GetTrainerRequirement() || IsWildcardHero(player);
+                return player->getClass() == GetTrainerRequirement() || IsRankTrainerHero(player);
             case Type::Pet:
                 return player->getClass() == GetTrainerRequirement();
             case Type::Mount:
@@ -416,16 +429,35 @@ namespace Trainer
         ClassTrainerOf = trainers;
     }
 
+    void SetRankTrainerHero(RankTrainerHero heroes)
+    {
+        RankTrainerHeroOf = heroes;
+    }
+
+    // The class's full trainer list: the largest class trainer for it, the others being starter and portal lists.
+    Trainer* OwnClassTrainer(Player const* player)
+    {
+        Trainer const* best = nullptr;
+        for (auto const& [id, candidate] : sObjectMgr->GetTrainers())
+            if (candidate.GetTrainerType() == Type::Class && candidate.GetTrainerRequirement() == player->getClass() &&
+                (!best || candidate.GetSpells().size() > best->GetSpells().size()))
+                best = &candidate;
+        return const_cast<Trainer*>(best);
+    }
+
     Trainer* GetTrainerFor(Creature const* npc, Player const* player)
     {
         Trainer* trainer = sObjectMgr->GetTrainer(npc->GetEntry());
+        bool const rankTrainerHero = IsRankTrainerHero(player);
+        if (!trainer && !rankTrainerHero && npc->HasNpcFlag(UNIT_NPC_FLAG_TRAINER_CLASS))
+            trainer = OwnClassTrainer(player);
         if (trainer && trainer->GetTrainerType() == Type::Class && ClassTrainerOf)
             if (Trainer* replacement = ClassTrainerOf(*trainer, player))
                 return replacement;
 
         bool const classTrainerUnit = trainer ? trainer->GetTrainerType() == Type::Class
                                               : npc->HasNpcFlag(UNIT_NPC_FLAG_TRAINER_CLASS);
-        if (!classTrainerUnit || !WildcardRankRowsOf || !IsWildcardHero(player))
+        if (!classTrainerUnit || !WildcardRankRowsOf || !rankTrainerHero)
             return trainer;
 
         // ponytail: rebuilt for every request, one per thread; cache per player if the lists ever get large.

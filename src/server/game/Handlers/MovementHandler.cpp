@@ -868,13 +868,25 @@ void WorldSession::HandleMoveKnockBackAck(WorldPacket& recvData)
 
 void WorldSession::HandleSummonResponseOpcode(WorldPacket& recvData)
 {
-    if (!_player->IsAlive() || _player->IsInCombat())
-        return;
-
     ObjectGuid summoner_guid;
     bool agree;
     recvData >> summoner_guid;
     recvData >> agree;
+
+    if (!agree)
+    {
+        // A declined summon has to clear the pending request even when the
+        // player cannot accept one, which is why the early return below must
+        // not swallow the answer: otherwise the target keeps its summon timer
+        // for the full two minutes and every further summon spell on it fails
+        // with SPELL_FAILED_SUMMON_PENDING until the player relogs.
+        _player->SetSummonAsSpectator(false);
+        _player->SummonIfPossible(false, summoner_guid);
+        return;
+    }
+
+    if (!_player->IsAlive() || _player->IsInCombat())
+        return;
 
     if (agree && _player->IsSummonAsSpectator())
     {

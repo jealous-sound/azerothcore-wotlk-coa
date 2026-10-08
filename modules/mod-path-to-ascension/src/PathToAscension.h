@@ -105,7 +105,8 @@ namespace PathToAscension
         bool tracking = false;
         bool legacyContent = false;
         bool starterMountBridge = false;
-        uint32 expansion = 2;
+        uint32 expansion = 0;
+        uint32 clientExpansion = 2;
         RealmProfile realm = RealmProfile::Live;
         RealmProfile client = RealmProfile::Live;
     };
@@ -128,6 +129,7 @@ namespace PathToAscension
     void CompleteVerifiedTutorial(Player* player, uint32 tutorialId);
     void RecordTutorialEvent(Player* player, uint32 tutorialId, uint32 bit);
     bool IsLegacyAvailable(uint32 tutorialId);
+    bool IsExpansionOffered(Tutorial const& tutorial);
     bool IsCallbackImplemented(uint32 tutorialId);
     bool IsCallBoard(uint32 entry);
 

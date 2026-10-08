@@ -1,8 +1,8 @@
 {
   "schema": 1,
-  "name": "Blast Mine remote detonation and expiry remove its temporary ability (#4029)",
+  "name": "Blast Mine remote detonation and expiry keep one Remote Detonation known (#4029)",
   "contract": [
-    "The DBC promises destruction and remote detonation triggers. Two normal deployments grant the one native Remote Detonation spell; a normal remote cast damages a nearby enemy and removes both mines and the grant. A later mine naturally expires and removes the grant. Client action-bar duplication is outside this server-side control."
+    "The DBC promises destruction and remote detonation triggers. Remote Detonation stays known while the Tinker knows a mine spell; a normal remote cast damages a nearby enemy and removes both mines, and a later mine naturally expires, without the spell being taken away. Client action-bar duplication is outside this server-side control."
   ],
   "timeout_ms": 120000,
   "players": [
@@ -123,7 +123,7 @@
       "actor": "tinker",
       "metric": "knows_spell",
       "spell": 801798,
-      "equals": 0,
+      "equals": 1,
       "within_ms": 2000
     },
     {
@@ -176,7 +176,7 @@
       "actor": "tinker",
       "metric": "knows_spell",
       "spell": 801798,
-      "equals": 0
+      "equals": 1
     }
   ],
   "creatures": [

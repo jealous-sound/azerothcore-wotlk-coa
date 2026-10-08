@@ -9,6 +9,7 @@
 #include "GameObject.h"
 #include "Item.h"
 #include "Log.h"
+#include "LootMgr.h"
 #include "ObjectAccessor.h"
 #include "ObjectMgr.h"
 #include "Player.h"
@@ -798,6 +799,24 @@ public:
     }
 };
 
+bool IsMysticScroll(uint32 item)
+{
+    return item == UNTARNISHED_MYSTIC_SCROLL || (Ready && Loaded.FindItem(item));
+}
+
+class AscensionMysticEnchantLoot final : public GlobalScript
+{
+public:
+    AscensionMysticEnchantLoot() : GlobalScript("AscensionMysticEnchantLoot", { GLOBALHOOK_ON_ITEM_ROLL }) { }
+
+    bool OnItemRoll(Player const*, LootStoreItem const* item, float& chance, Loot&, LootStore const&) override
+    {
+        if (!item->reference && !AscensionFreepick::RealmOffersMysticAltars() && IsMysticScroll(item->itemid))
+            chance = 0.0f;
+        return true;
+    }
+};
+
 class AscensionMysticEnchantWorld final : public WorldScript
 {
 public:
@@ -820,4 +839,5 @@ void AddAscensionMysticEnchantScripts()
     RegisterAscensionClientConfig(&AscensionMysticEnchant::AppendExtractCosts);
     new AscensionMysticEnchant::AscensionMysticEnchantPlayer();
     new AscensionMysticEnchant::AscensionMysticEnchantWorld();
+    new AscensionMysticEnchant::AscensionMysticEnchantLoot();
 }

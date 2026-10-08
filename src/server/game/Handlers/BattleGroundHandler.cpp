@@ -732,6 +732,11 @@ void WorldSession::HandleBattlemasterJoinArena(WorldPacket& recvData)
             arenatype = ARENA_TYPE_3v3;
             break;
         case 2:
+            if (!IsBot())
+            {
+                ChatHandler(this).SendSysMessage("This arena bracket is not available yet.");
+                return;
+            }
             arenatype = ARENA_TYPE_5v5;
             break;
         default:
