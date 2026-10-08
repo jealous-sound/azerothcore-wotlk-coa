@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "First-Class Experimental Teleporter carries players for 8 gold",
-  "contract": "The First-Class Experimental Teleporter (gameobject 323232, gossip text 61004) offers the character's own faction capitals, Booty Bay, Gadgetzan and Everlook, and submenus of the 22 vanilla Eastern Kingdoms zones and 18 Kalimdor zones. Every jump costs 8 gold (user choice 2026-10-08) and is refused without the money, charging nothing. A jump starts 985513 'Experimental Teleporter', a 5 minute recharge during which the teleporter refuses with a notice. A city jump lands at the city's teleport point; a zone jump drops the character 120 yards above the zone's teleport point with Parachute 45472, applied after arrival when the jump crosses continents. The first jump completes Path to Ascension tutorial 31 and its achievement 87230.",
+  "contract": "The First-Class Experimental Teleporter (gameobject 323232, gossip text 61004) offers, in one menu, the character's own faction capitals, Booty Bay and the endgame zones Burning Steppes, Western Plaguelands, Silithus, Un'Goro Crater and Winterspring (user list 2026-10-08, Eastern Plaguelands removed by the user). Every jump costs 8 gold (user choice 2026-10-08) and is refused without the money, charging nothing. A jump starts 985513 'Experimental Teleporter', a 5 minute recharge during which the teleporter refuses with a notice. A city jump lands at the city's teleport point; a zone jump drops the character 120 yards above the zone's teleport point with Parachute 45472, applied after arrival when the jump crosses continents. The first jump completes Path to Ascension tutorial 31 and its achievement 87230.",
   "timeout_ms": 120000,
   "players": [
     {
@@ -47,10 +47,10 @@
     },
     {
       "action": "assert",
-      "label": "an Alliance character is offered three capitals, three goblin towns and two continents",
+      "label": "an Alliance character is offered three capitals, Booty Bay and five endgame zones",
       "actor": "alliance",
       "metric": "gossip_options",
-      "equals": 8
+      "equals": 9
     },
     {
       "action": "assert",
@@ -81,7 +81,7 @@
     },
     {
       "action": "assert",
-      "label": "Booty Bay",
+      "label": "then Booty Bay",
       "actor": "alliance",
       "metric": "gossip_option_text",
       "index": 3,
@@ -90,111 +90,48 @@
     },
     {
       "action": "assert",
-      "label": "Gadgetzan",
+      "label": "Burning Steppes",
       "actor": "alliance",
       "metric": "gossip_option_text",
       "index": 4,
-      "text": "Gadgetzan",
+      "text": "Burning Steppes",
       "equals": 1
     },
     {
       "action": "assert",
-      "label": "Everlook",
+      "label": "Western Plaguelands",
       "actor": "alliance",
       "metric": "gossip_option_text",
       "index": 5,
-      "text": "Everlook",
+      "text": "Western Plaguelands",
       "equals": 1
     },
     {
       "action": "assert",
-      "label": "the Eastern Kingdoms zones",
+      "label": "Silithus",
       "actor": "alliance",
       "metric": "gossip_option_text",
       "index": 6,
-      "text": "Eastern Kingdoms...",
+      "text": "Silithus",
       "equals": 1
     },
     {
       "action": "assert",
-      "label": "the Kalimdor zones",
+      "label": "Un'Goro Crater",
       "actor": "alliance",
       "metric": "gossip_option_text",
       "index": 7,
-      "text": "Kalimdor...",
-      "equals": 1
-    },
-    {
-      "action": "gossip_select",
-      "actor": "alliance",
-      "option": 6,
-      "label": "open the Eastern Kingdoms zones"
-    },
-    {
-      "action": "assert",
-      "label": "22 Eastern Kingdoms zones and Back",
-      "actor": "alliance",
-      "metric": "gossip_options",
-      "equals": 23
-    },
-    {
-      "action": "assert",
-      "label": "Westfall among them",
-      "actor": "alliance",
-      "metric": "gossip_option_text",
-      "index": 20,
-      "text": "Westfall",
+      "text": "Un'Goro Crater",
       "equals": 1
     },
     {
       "action": "assert",
-      "label": "Back last",
+      "label": "Winterspring",
       "actor": "alliance",
       "metric": "gossip_option_text",
-      "index": 22,
-      "text": "Back",
-      "equals": 1
-    },
-    {
-      "action": "gossip_select",
-      "actor": "alliance",
-      "option": 22,
-      "label": "go back"
-    },
-    {
-      "action": "assert",
-      "label": "the main menu again",
-      "actor": "alliance",
-      "metric": "gossip_options",
-      "equals": 8
-    },
-    {
-      "action": "gossip_select",
-      "actor": "alliance",
-      "option": 7,
-      "label": "open the Kalimdor zones"
-    },
-    {
-      "action": "assert",
-      "label": "18 Kalimdor zones and Back",
-      "actor": "alliance",
-      "metric": "gossip_options",
-      "equals": 19
-    },
-    {
-      "action": "assert",
-      "label": "Winterspring last of the zones",
-      "actor": "alliance",
-      "metric": "gossip_option_text",
-      "index": 17,
+      "index": 8,
       "text": "Winterspring",
       "equals": 1
-    },
-    {
-      "action": "gossip_select",
-      "actor": "alliance",
-      "option": 18,
-      "label": "go back"
     },
     {
       "action": "snapshot",
@@ -337,10 +274,10 @@
     },
     {
       "action": "assert",
-      "label": "a Horde character is offered the same eight choices",
+      "label": "a Horde character is offered the same nine choices",
       "actor": "horde",
       "metric": "gossip_options",
-      "equals": 8
+      "equals": 9
     },
     {
       "action": "assert",
@@ -367,6 +304,33 @@
       "metric": "gossip_option_text",
       "index": 2,
       "text": "Thunder Bluff",
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "label": "then Booty Bay",
+      "actor": "horde",
+      "metric": "gossip_option_text",
+      "index": 3,
+      "text": "Booty Bay",
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "label": "then the endgame zones",
+      "actor": "horde",
+      "metric": "gossip_option_text",
+      "index": 4,
+      "text": "Burning Steppes",
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "label": "Winterspring last",
+      "actor": "horde",
+      "metric": "gossip_option_text",
+      "index": 8,
+      "text": "Winterspring",
       "equals": 1
     },
     {
@@ -424,14 +388,8 @@
     {
       "action": "gossip_select",
       "actor": "horde",
-      "option": 6,
-      "label": "open the Eastern Kingdoms zones"
-    },
-    {
-      "action": "gossip_select",
-      "actor": "horde",
-      "option": 20,
-      "label": "choose Westfall"
+      "option": 5,
+      "label": "choose Western Plaguelands"
     },
     {
       "action": "assert",
@@ -443,19 +401,19 @@
     },
     {
       "action": "assert",
-      "label": "over Westfall",
+      "label": "over Western Plaguelands",
       "actor": "horde",
       "metric": "position_x",
-      "min": -10240,
-      "max": -10230
+      "min": 1723,
+      "max": 1734
     },
     {
       "action": "assert",
       "label": "high above the ground",
       "actor": "horde",
       "metric": "position_z",
-      "min": 160,
-      "max": 168
+      "min": 179,
+      "max": 188
     },
     {
       "action": "assert",
@@ -493,22 +451,16 @@
     {
       "action": "gossip_select",
       "actor": "drop",
-      "option": 6,
-      "label": "open the Eastern Kingdoms zones"
-    },
-    {
-      "action": "gossip_select",
-      "actor": "drop",
-      "option": 20,
-      "label": "choose Westfall on the same continent"
+      "option": 4,
+      "label": "choose Burning Steppes on the same continent"
     },
     {
       "action": "assert",
-      "label": "the character is over Westfall",
+      "label": "the character is over Burning Steppes",
       "actor": "drop",
       "metric": "position_x",
-      "min": -10240,
-      "max": -10230,
+      "min": -8124,
+      "max": -8113,
       "within_ms": 5000
     },
     {
@@ -516,8 +468,8 @@
       "label": "high above the ground",
       "actor": "drop",
       "metric": "position_z",
-      "min": 160,
-      "max": 168
+      "min": 249,
+      "max": 258
     },
     {
       "action": "assert",
