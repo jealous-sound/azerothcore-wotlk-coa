@@ -104,10 +104,10 @@ namespace
     // Lua global at once when the flag for its current screen is set.
     constexpr uint32 GLOBAL_STRING_IN_GAME = 0x1;
     constexpr uint32 GLOBAL_STRING_AT_LOGIN = 0x2;
-    constexpr std::array<std::tuple<uint32, char const*, char const*>, 3> CLIENT_STRINGS = { {
+    // MapDifficulty.dbc names DUNGEON_DIFFICULTY_5PLAYER_EPIC for Mythic, which the client's GlobalStrings.dbc lacks;
+    // without it the welcome message reads "Deadmines ()".
+    constexpr std::array<std::tuple<uint32, char const*, char const*>, 1> CLIENT_STRINGS = { {
         { 9700001, "DUNGEON_DIFFICULTY_5PLAYER_EPIC", "5 Player (Mythic)" },
-        { 9700002, "DUNGEON_DIFFICULTY3", "5 Player (Mythic)" },
-        { 9700003, "LFG_TYPE_MYTHIC_DUNGEON", "Mythic Dungeon" },
     } };
 
     enum RunState : uint8
@@ -199,16 +199,6 @@ namespace
         WorldPacket data(SMSG_CUSTOM_WINDOW_SET_VISIBILITY, 2);
         data << uint8(WINDOW_KEYSTONE_ACTIVATION) << uint8(visible ? 1 : 0);
         player->SendDirectMessage(&data);
-        // C_Keystones opens the socket from a C_Hook event, and C_Hook does not see the event the packet above
-        // fires. C_Hook passes on addon whispers from the player to themselves as hook events, so the event goes
-        // that way too.
-        if (visible)
-        {
-            WorldPacket hook;
-            ChatHandler::BuildChatPacket(hook, CHAT_MSG_WHISPER, LANG_ADDON, player, player,
-                "ASCENSION_MYTHIC_PLUS_KEYSTONE_ACTIVATION_WINDOW_VISIBILITY_CHANGED\t1");
-            player->SendDirectMessage(&hook);
-        }
     }
 
     void SendInstanceInfo(Player* player, uint32 instanceId)
@@ -784,10 +774,13 @@ namespace
         return urand(10, 40);
     }
 
-    // 50 Mythic Coins per keystone level, plus the first-time bonus, up to the weekly cap.
-    void GiveCoins(Player* player, uint32 level, uint32 bonusPercent)
+    // 50 Mythic Coins per keystone level, plus the first-time bonus, up to the weekly cap. Each expansion has its own
+    // coin: Mythic Coin, Mythic Coin (TBC), Mythic Coin (WOTLK).
+    void GiveCoins(Player* player, uint32 level, uint32 bonusPercent, uint32 expansion)
     {
-        uint32 const coinItem = sConfigMgr->GetOption<uint32>("MythicPlus.CoinItem", 1414500);
+        uint32 const coinItem = expansion >= 2 ? sConfigMgr->GetOption<uint32>("MythicPlus.CoinItem.WotLK", 1414530)
+            : expansion == 1 ? sConfigMgr->GetOption<uint32>("MythicPlus.CoinItem.TBC", 1414529)
+            : sConfigMgr->GetOption<uint32>("MythicPlus.CoinItem", 1414500);
         uint32 const perLevel = sConfigMgr->GetOption<uint32>("MythicPlus.CoinsPerLevel", 50);
         Weekly const weekly = GetWeekly(player->GetGUID());
         uint32 const cap = WeeklyCoinCap();
@@ -977,7 +970,7 @@ namespace
             if (caches)
                 Give(player, CacheForLevel(run.level), caches);
             if (timed)
-                GiveCoins(player, run.level, bonusPercent);
+                GiveCoins(player, run.level, bonusPercent, run.dungeon.expansion);
 
             if (player->GetGUID() == run.owner)
             {

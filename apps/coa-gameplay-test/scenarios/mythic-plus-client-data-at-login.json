@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "Mythic+: client data at login",
-  "contract": "At login the server sends what the client needs for Mythic+ and the Classic Heroics and Mythics without an addon: three Lua strings, the champion count per dungeon, and this week's affix rows with Tiny swapped out.",
+  "contract": "At login the server sends what the client needs for Mythic+ and the Classic Heroics and Mythics without an addon: the Lua string for the Mythic difficulty, the champion count per dungeon, and the affix rows with Tiny swapped out for the week (fixed to 39 with .mythic week, then a relog).",
   "timeout_ms": 30000,
   "location": {
     "map": 0,
@@ -24,11 +24,11 @@
     },
     {
       "action": "assert",
-      "label": "Three Lua strings (SMSG_PATCH_GLOBAL_STRINGS)",
+      "label": "The Mythic difficulty string (SMSG_PATCH_GLOBAL_STRINGS)",
       "actor": "hero",
       "metric": "server_packets",
       "opcode": 1654,
-      "equals": 3
+      "equals": 1
     },
     {
       "action": "assert",
@@ -39,12 +39,28 @@
       "min": 60
     },
     {
+      "action": "console",
+      "command": "mythic week 39"
+    },
+    {
+      "action": "relog",
+      "actor": "hero"
+    },
+    {
+      "action": "wait",
+      "ms": 1000
+    },
+    {
       "action": "assert",
-      "label": "Affix rows with Tiny swapped out (SMSG_PATCH_MYTHIC_AFFIXES)",
+      "label": "Week 39: affix rows with Tiny swapped out (SMSG_PATCH_MYTHIC_AFFIXES)",
       "actor": "hero",
       "metric": "server_packets",
       "opcode": 1388,
       "min": 1
+    },
+    {
+      "action": "console",
+      "command": "mythic week"
     }
   ]
 }

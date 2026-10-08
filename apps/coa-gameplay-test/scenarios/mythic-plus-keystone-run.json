@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "Mythic+: keystone socket, start, affixes and scaling",
-  "contract": "Using a keystone opens the socket anywhere in its own dungeon on Mythic difficulty, in any wing; otherwise the player is told why. Start Keystone starts that key and puts the group at its wing's start point. During the run creatures get +10 health and this week's creature affixes, the players this week's player affixes. The affix assertions are added per week by the runner.",
+  "contract": "Using a keystone opens the socket anywhere in its own dungeon on Mythic difficulty, in any wing; otherwise the player is told why. Start Keystone starts that key and puts the group at its wing's start point. During the run creatures get +10 health and this week's creature affixes, the players this week's player affixes. The scenario fixes the affix week to 39 (.mythic week).",
   "timeout_ms": 120000,
   "location": {
     "map": 0,
@@ -18,6 +18,10 @@
     }
   ],
   "steps": [
+    {
+      "action": "console",
+      "command": "mythic week 39"
+    },
     {
       "action": "wait",
       "ms": 1000
@@ -311,6 +315,10 @@
       "metric": "aura",
       "spell": 80054,
       "equals": 1
+    },
+    {
+      "action": "console",
+      "command": "mythic week"
     }
   ]
 }
