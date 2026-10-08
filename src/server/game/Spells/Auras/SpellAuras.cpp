@@ -1640,7 +1640,7 @@ void Aura::HandleAuraSpecificMods(AuraApplication const* aurApp, Unit* caster, b
                     if (AuraEffect* aurEff = caster->GetAuraEffect(SPELL_AURA_DUMMY, SPELLFAMILY_WARLOCK, 98, 0))
                     {
                         uint32 spellId = 0;
-                        switch (aurEff->GetId())
+                        switch (sSpellMgr->GetSpellTwinSource(aurEff->GetId()))
                         {
                             case 53759:
                                 spellId = 60947;
