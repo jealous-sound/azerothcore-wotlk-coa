@@ -169,6 +169,10 @@ class aura_ascension_necromancer_event : public AuraScript
                 Reduce(player, 801938, std::abs(Amount(806322)));
             if (actor->GetEntry() == 50073 && Chance(player, 503740))
                 Cast(player, actor, 707014);
+            if (melee && actor->GetEntry() == 50078 && roll_chance_i(sSpellMgr->GetSpellInfo(805023)->ProcChance))
+                Cast(actor, target, 805024);
+            if (melee && actor->GetEntry() == 503200 && actor->HasAura(531133))
+                Cast(actor, target, 531132);
             if (critical && Chance(player, 537208, 1, 1000))
                 Reduce(player, 805029, std::abs(Amount(680553)));
             if (critical && melee && Chance(player, 638403))

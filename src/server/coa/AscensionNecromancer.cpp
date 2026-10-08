@@ -325,9 +325,14 @@ class necromancer_sessions : public PlayerScript
 {
   public:
     necromancer_sessions()
-        : PlayerScript("necromancer_sessions", {PLAYERHOOK_ON_LOGOUT, PLAYERHOOK_ON_PVP_KILL,
+        : PlayerScript("necromancer_sessions", {PLAYERHOOK_ON_LOGIN, PLAYERHOOK_ON_LOGOUT, PLAYERHOOK_ON_PVP_KILL,
                                                 PLAYERHOOK_ON_CREATURE_KILL, PLAYERHOOK_ON_CREATURE_KILLED_BY_PET})
     {
+    }
+    void OnPlayerLogin(Player* player) override
+    {
+        if (player->HasAura(500981) && !player->HasAura(504691))
+            Cast(player, player, 504691);
     }
     void OnPlayerLogout(Player* player) override
     {

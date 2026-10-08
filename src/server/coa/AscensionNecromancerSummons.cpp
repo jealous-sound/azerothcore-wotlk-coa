@@ -343,6 +343,7 @@ class npc_ascension_necromancer : public ScriptedAI
     explicit npc_ascension_necromancer(Creature* creature) : ScriptedAI(creature) {}
     ObjectGuid _owner;
     ObjectGuid _target;
+    ObjectGuid _breathTarget;
     EventMap _events;
     uint32 _command = 0;
     uint32 _spell = 0;
@@ -399,6 +400,15 @@ class npc_ascension_necromancer : public ScriptedAI
             _events.ScheduleEvent(3, Milliseconds(sSpellMgr->GetSpellInfo(807640)->Effects[1].Amplitude));
         if (me->GetEntry() == 542064)
             _events.ScheduleEvent(4, 2s);
+        if (me->GetEntry() == 50177)
+        {
+            me->SetFloatValue(UNIT_FIELD_HOVERHEIGHT, 3.0f);
+            me->SetHover(true);
+            me->SetAnimTier(AnimTier::Fly);
+            _events.ScheduleEvent(8, 2s);
+        }
+        if (me->GetEntry() == 503200)
+            me->CastSpell(me, 531133, true);
         if (me->GetEntry() == 542065)
         {
             me->ToTempSummon()->SetTempSummonType(TEMPSUMMON_CORPSE_TIMED_DESPAWN);
@@ -406,6 +416,7 @@ class npc_ascension_necromancer : public ScriptedAI
         }
         if (me->GetEntry() == 575091)
         {
+            me->CastSpell(me, 807317, true);
             if (!player->HasSpell(807098))
                 player->learnSpell(807098, true);
             auto previous = State(player).minions;
@@ -443,6 +454,8 @@ class npc_ascension_necromancer : public ScriptedAI
         float distance = PET_FOLLOW_DIST;
         float angle = PET_FOLLOW_ANGLE;
         Formation(FormationSlot(player, me), distance, angle);
+        if (me->GetEntry() == 50177)
+            angle = float(M_PI);
         if (std::fabs(_followRange - distance) < 0.01f && std::fabs(me->GetFollowAngle() - angle) < 0.01f &&
             me->GetMotionMaster()->GetCurrentMovementGeneratorType() == FOLLOW_MOTION_TYPE)
             return;
@@ -450,6 +463,18 @@ class npc_ascension_necromancer : public ScriptedAI
             static_cast<Minion*>(me)->SetFollowAngle(angle);
         _followRange = distance;
         me->GetMotionMaster()->MoveFollow(player, distance, angle);
+    }
+    Unit* BreathTarget(Player* player)
+    {
+        if (Unit* victim = me->GetVictim(); victim && player->IsValidAttackTarget(victim))
+            return victim;
+        Unit* nearest = nullptr;
+        for (auto const& [guid, reference] : player->GetCombatManager().GetPvECombatRefs())
+            if (Unit* enemy = reference->GetOther(player); player->IsValidAttackTarget(enemy) &&
+                me->IsWithinDistInMap(enemy, 40.0f) && me->IsWithinLOSInMap(enemy) &&
+                (!nearest || me->GetDistance(enemy) < me->GetDistance(nearest)))
+                nearest = enemy;
+        return nearest;
     }
     void EnterEvadeMode(EvadeReason why) override
     {
@@ -659,6 +684,21 @@ class npc_ascension_necromancer : public ScriptedAI
                 Unit::Kill(me, me);
                 return;
             }
+            if (event == 8)
+            {
+                if (!player->HasAura(500983) && !me->HasUnitState(UNIT_STATE_CONTROLLED))
+                    if (Unit* enemy = BreathTarget(player))
+                    {
+                        _breathTarget = enemy->GetGUID();
+                        Cast(me, enemy, 45200);
+                        _events.ScheduleEvent(9, Milliseconds(uint32(me->GetDistance(enemy) * 1000.0f /
+                                                                     sSpellMgr->GetSpellInfo(45200)->Speed)));
+                    }
+                _events.ScheduleEvent(8, 2s);
+            }
+            if (event == 9)
+                if (Unit* enemy = ObjectAccessor::GetUnit(*me, _breathTarget))
+                    Cast(me, enemy, 807339);
         }
         if (me->GetEntry() == 523032 && !_exploded)
             for (Unit* nearby : Nearby(me, 2.5f))

@@ -363,6 +363,9 @@ public: /* PlayerScript */
     bool OnPlayerCreateInitialItems(Player* player, bool& handled);
     void OnPlayerSave(Player* player);
     void OnPlayerNormalizeActionButtonSpell(Player* player, uint32& action, bool loading);
+    void OnPlayerTemporarySpellReplacementNotice(Player* player, uint32 previous, uint32 replacement, bool sent);
+    void OnPlayerTemporarySpellLearnNotice(Player* player, uint32 spellId, bool sent);
+    void OnPlayerTemporarySpellRemoveNotice(Player* player, uint32 spellId, bool sent);
     void OnPlayerSpellChargeConsumed(Player* player, SpellInfo const* spellInfo, Spell* spell, uint32 recoveryMs, uint64 nowEpochMs);
     void OnPlayerSpellCooldownCalculated(Player* player, SpellInfo const* spellInfo, Spell* spell, uint32 recoveryMs);
     void OnPlayerDelete(ObjectGuid guid, uint32 accountId);

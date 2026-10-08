@@ -20,13 +20,18 @@ void CorpseExplosion(Player* player, Unit* center)
     std::list<Creature*> corpses;
     center->GetDeadCreatureListInGrid(corpses, 15.0f, true);
     for (Creature* corpse : corpses)
-        if (corpse->getDeathState() == DeathState::Corpse &&
+        if (corpse->getDeathState() == DeathState::Corpse && corpse->GetDisplayId() == corpse->GetNativeDisplayId() &&
             corpse->GetCreatureType() != CREATURE_TYPE_MECHANICAL &&
             corpse->GetCreatureType() != CREATURE_TYPE_ELEMENTAL && center->InSamePhase(corpse) &&
             center->IsWithinLOSInMap(corpse))
         {
             auto targets = Nearby(corpse, 10.0f);
-            corpse->RemoveCorpse();
+            corpse->SendPlaySpellVisual(10290);
+            corpse->SendPlaySpellVisual(220);
+            bool halved = roll_chance_i(50);
+            corpse->SetDisplayId(halved ? 25539 : 25538);
+            if (halved)
+                corpse->SetObjectScale(corpse->GetObjectScale() * 0.5f);
             for (Unit* target : targets)
                 if (player->IsValidAttackTarget(target))
                     Copy(player, target, 533240, std::max(1, Amount(KnownRank(player, 533236), 0, player)));
