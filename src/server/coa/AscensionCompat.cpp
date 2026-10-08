@@ -8624,6 +8624,41 @@ uint32 GetAscensionTalentRank(Player const* player, uint32 entryId)
     return AscensionClassService::KnownRank(player, *entry);
 }
 
+bool RestoreAscensionSpecializationSignature(Player* player)
+{
+    if (!player || player->GetLevel() < 10 || !IsAscensionCustomClass(player) ||
+        AscensionWildcard::IsWildcardHero(player))
+        return false;
+
+    uint32 const active = GetAscensionActiveSpecialization(player);
+    auto const specialization = std::find_if(AscensionCompatData::CoASpecializations.begin(),
+        AscensionCompatData::CoASpecializations.end(), [player, active](auto const& row)
+        {
+            return row.ClassId == player->getClass() && row.SpecId == active;
+        });
+    if (specialization == AscensionCompatData::CoASpecializations.end())
+        return false;
+
+    auto const* identity = FindAscensionTalentEntry(specialization->IdentityEntryId);
+    if (!identity || !AscensionClassService::KnownRank(player, *identity))
+        return false;
+
+    auto const* signature = FindAscensionTalentEntry(specialization->SignatureEntryId);
+    if (!signature || AscensionClassService::KnownRank(player, *signature))
+        return false;
+
+    auto known = AscensionClassService::KnownTalentEntries(player);
+    known.push_back({signature->EntryId, 1});
+    UpdateEntriesRefusal refusal;
+    auto& service = AscensionClassService::Instance();
+    if (!service.ApplyKnownEntriesUpload(player, known, refusal, active))
+        return false;
+
+    service.SaveSlot(player);
+    service.SendCharacterAdvancementKnownEntries(player);
+    return true;
+}
+
 std::vector<AscensionCoATalentState::KnownEntry> GetAscensionKnownTalentEntries(Player const* player)
 {
     return player ? AscensionClassService::KnownTalentEntries(player) :

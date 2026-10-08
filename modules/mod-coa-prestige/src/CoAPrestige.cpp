@@ -587,6 +587,14 @@ namespace
             "Prestige {} complete: your specialization is unlocked.", state.level);
     }
 
+    void RestoreSpecializationSignature(Player* player)
+    {
+        State const state = LoadState(player);
+        if (state.active && !AscensionWildcard::IsWildcardHero(player) &&
+            state.specialization == GetAscensionActiveSpecialization(player))
+            RestoreAscensionSpecializationSignature(player);
+    }
+
     std::string SpecializationSwitchRefusal(Player* player, uint32 /*active*/, uint32 requested)
     {
         if (!g_enabled || IsSpecializationSwitchAllowed(LoadState(player), requested))
@@ -676,7 +684,10 @@ public:
             player->m_Events.AddEventAtOffset([guid = player->GetGUID()]
             {
                 if (Player* player = ObjectAccessor::FindPlayer(guid))
+                {
+                    RestoreSpecializationSignature(player);
                     SendPrestigeLevels(player);
+                }
             }, 1s);
     }
 
@@ -704,6 +715,8 @@ public:
     {
         if (!g_enabled)
             return;
+
+        RestoreSpecializationSignature(player);
 
         // "Max Level Reached" daily objective: credited at the required level. The
         // daily still keeps its content objective until that is met too.
