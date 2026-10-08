@@ -1673,7 +1673,11 @@ void Aura::HandleAuraSpecificMods(AuraApplication const* aurApp, Unit* caster, b
                 else if (removeMode == AURA_REMOVE_BY_ENEMY_SPELL && GetSpellInfo()->SpellFamilyFlags[0] & 0x00000001)
                 {
                     // Rapture
-                    if (Aura const* aura = caster->GetAuraOfRankedSpell(47535))
+                    Aura const* rapture = caster->GetAuraOfRankedSpell(47535);
+                    auto const [twinBegin, twinEnd] = sSpellMgr->GetSpellTwins().equal_range(47535);
+                    for (auto twin = twinBegin; !rapture && twin != twinEnd; ++twin)
+                        rapture = caster->GetAuraOfRankedSpell(twin->second);
+                    if (Aura const* aura = rapture)
                     {
                         // check cooldown
                         if (caster->IsPlayer())
@@ -1693,9 +1697,10 @@ void Aura::HandleAuraSpecificMods(AuraApplication const* aurApp, Unit* caster, b
                         if (AuraEffect const* aurEff = aura->GetEffect(0))
                         {
                             float multiplier = (float)aurEff->GetAmount();
-                            if (aurEff->GetId() == 47535)
+                            uint32 const raptureRank = sSpellMgr->GetSpellTwinSource(aurEff->GetId());
+                            if (raptureRank == 47535)
                                 multiplier -= 0.5f;
-                            else if (aurEff->GetId() == 47537)
+                            else if (raptureRank == 47537)
                                 multiplier += 0.5f;
 
                             int32 basepoints0 = int32(CalculatePct(caster->GetMaxPower(POWER_MANA), multiplier));

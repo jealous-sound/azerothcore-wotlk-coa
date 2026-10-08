@@ -15246,7 +15246,11 @@ void Unit::Kill(Unit* killer, Unit* victim, bool durabilityLoss, WeaponAttackTyp
     bool spiritOfRedemption = false;
     if (victim->IsPlayer() && victim->IsClass(CLASS_PRIEST, CLASS_CONTEXT_ABILITY) && !victim->ToPlayer()->HasPlayerFlag(PLAYER_FLAGS_IS_OUT_OF_BOUNDS))
     {
-        if (AuraEffect* aurEff = victim->GetAuraEffectDummy(20711))
+        AuraEffect* aurEff = victim->GetAuraEffectDummy(20711);
+        auto const [twinBegin, twinEnd] = sSpellMgr->GetSpellTwins().equal_range(20711);
+        for (auto twin = twinBegin; !aurEff && twin != twinEnd; ++twin)
+            aurEff = victim->GetAuraEffectDummy(twin->second);
+        if (aurEff)
         {
             // Xinef: aura_spirit_of_redemption is triggered by 27827 shapeshift
             if (victim->HasSpiritOfRedemptionAura() || victim->HasAura(27827))
