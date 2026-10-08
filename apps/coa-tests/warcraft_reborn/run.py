@@ -376,6 +376,30 @@ def check_reborn_coefficients(dbc):
     return ok
 
 
+CLASS_SPELLS = sorted((ROOT / "data/sql/updates/pending_db_world").glob("rev_*_coa_reborn_*_spells.sql"))
+
+
+def check_class_spell_bindings(dbc):
+    data = (dbc / "Spell.dbc").read_bytes()
+    count, fields, size, strings = struct.unpack_from("<4I", data, 4)
+    spells = {struct.unpack_from("<I", data, 20 + row * size)[0] for row in range(count)}
+    sources = "\n".join(path.read_text(encoding="utf-8", errors="replace")
+                        for path in (ROOT / "src/server").rglob("*.cpp"))
+    problems = []
+    for path in CLASS_SPELLS:
+        for spell, script in re.findall(r"\((-?\d+), '(\w+)'\)", path.read_text(encoding="utf-8")):
+            if abs(int(spell)) not in spells:
+                problems.append(f"{path.name}: spell {spell} is not in Spell.dbc")
+            if not re.search(r"(RegisterSpellScript\w*|RegisterSpellAndAuraScriptPair)\(\s*(\w+::)*" + script + r"\b", sources):
+                problems.append(f"{path.name}: script {script} is not registered")
+    ok = bool(CLASS_SPELLS) and not problems
+    print(f"{'PASS' if ok else 'FAIL'}: every Reborn class spell binding names a registered script and a client spell "
+          f"({len(CLASS_SPELLS)} files)")
+    for line in problems:
+        print("  ", line)
+    return ok
+
+
 def check_twin_copies():
     missing = [f"{path}: {needle}" for path, needles in TWIN_COPIES.items()
                for needle in needles if needle not in (ROOT / path).read_text(encoding="utf-8")]
@@ -415,7 +439,8 @@ def main():
             raise SystemExit("Warcraft Reborn rules harness did not compile:\n" + build.stdout + build.stderr)
         result = subprocess.run([str(executable), str(args.dbc_dir.resolve())], text=True)
         bindings_ok = check_form_only_bindings(args.dbc_dir.resolve())
-        twins_ok = check_twin_copies() and check_reborn_coefficients(args.dbc_dir.resolve())
+        twins_ok = (check_twin_copies() & check_reborn_coefficients(args.dbc_dir.resolve()) &
+                    check_class_spell_bindings(args.dbc_dir.resolve()))
         raise SystemExit(result.returncode or (0 if bindings_ok and twins_ok else 1))
 
 

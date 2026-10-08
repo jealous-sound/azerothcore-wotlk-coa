@@ -69,6 +69,7 @@ void AddAscensionFreepickScripts();
 void AddAscensionHeroBloomingShotScripts();
 void AddAscensionMysticEnchantScripts();
 void AddAscensionWarcraftRebornScripts();
+void AddAscensionWarcraftRebornWarriorScripts();
 void AddAscensionTamingScripts();
 void AddAscensionBarnabusWhistleScripts();
 void AddAscensionAchievementConditionScripts();
@@ -630,6 +631,7 @@ void AddCoAScripts()
     AddAscensionHeroBloomingShotScripts();
     AddAscensionMysticEnchantScripts();
     AddAscensionWarcraftRebornScripts();
+    AddAscensionWarcraftRebornWarriorScripts();
     AddAscensionTamingScripts();
     AddAscensionBarnabusWhistleScripts();
     AddAscensionAchievementConditionScripts();
