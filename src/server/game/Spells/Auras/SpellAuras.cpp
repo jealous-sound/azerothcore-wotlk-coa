@@ -1831,7 +1831,7 @@ void Aura::HandleAuraSpecificMods(AuraApplication const* aurApp, Unit* caster, b
             if (GetSpellInfo()->SpellFamilyFlags[0] & 0x00400000)
             {
                 // Master of Subtlety
-                if (AuraEffect const* aurEff = target->GetAuraEffectOfRankedSpell(31221, 0))
+                if (AuraEffect const* aurEff = target->GetAuraEffectOfRankedSpellOrTwin(31221, 0))
                 {
                     if (!apply)
                         target->CastSpell(target, 31666, true);
@@ -1845,7 +1845,7 @@ void Aura::HandleAuraSpecificMods(AuraApplication const* aurApp, Unit* caster, b
                     }
                 }
                 // Overkill
-                if (target->HasAura(58426))
+                if (target->HasAuraOrTwin(58426))
                 {
                     if (!apply)
                         target->CastSpell(target, 58428, true);
