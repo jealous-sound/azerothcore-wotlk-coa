@@ -56,6 +56,7 @@ inline bool MainBrand(SpellInfo const* info)
 }
 Player* Owner(Unit* unit);
 Unit* Hound(Player* player);
+uint32 GetShadowhoundDisplay(Player* player);
 std::list<Unit*> Nearby(Unit* center, float range);
 void Cast(Unit* caster, Unit* target, uint32 id);
 void Reset(Player* player, uint32 id);

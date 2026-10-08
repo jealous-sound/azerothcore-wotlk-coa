@@ -1734,10 +1734,18 @@ public:
 
     void SendProficiency(ItemClass itemClass, uint32 itemSubclassMask);
     void SendInitialSpells();
-    void SendLearnPacket(uint32 spellId, bool learn);
+    void SendLearnPacket(uint32 spellId, bool learn, bool keepActionButtons = false);
     bool addSpell(uint32 spellId, uint8 addSpecMask, bool updateActive, bool temporary = false, bool learnFromSkill = false);
     bool _addSpell(uint32 spellId, uint8 addSpecMask, bool temporary, bool learnFromSkill = false);
+    void _learnSpell(uint32 spellId, bool temporary, bool learnFromSkill, bool announce);
     void learnSpell(uint32 spellId, bool temporary = false, bool learnFromSkill = false);
+    /// Learns a spell without telling the client about it, for a caller whose own packet delivers the
+    /// knowledge: AscensionCompat's temporary replacements announce the replacement through the
+    /// SMSG_SUPERCEDED_SPELL that stands it in for the spell it replaces, and a learned-spell packet
+    /// beside that one left the client a second copy of an unranked form in its spellbook (#6721).
+    /// Everything else - the spec mask, the script hook, next rank and required spells - matches
+    /// Player::learnSpell.
+    void learnSpellWithoutAnnouncement(uint32 spellId, bool temporary = true);
     void removeSpell(uint32 spellId, uint8 removeSpecMask, bool onlyTemporary);
     void MarkSpellForSave(uint32 spellId);
     void resetSpells();
@@ -1814,6 +1822,8 @@ public:
     // Transient action replacements; never written to character spell ownership.
     void SetTemporarySpellReplacement(uint32 original, uint32 replacement);
     [[nodiscard]] uint32 GetTemporarySpellReplacement(uint32 original) const;
+    [[nodiscard]] uint32 GetSavedActionButtonSpell(uint32 action);
+    [[nodiscard]] bool IsTemporarySpellReplacementStandIn(uint32 spellId) const;
     [[nodiscard]] bool CanUseTwoHandWithShield(ItemTemplate const* main, ItemTemplate const* off) const;
     [[nodiscard]] float GetMeleeAbilityRangeBonus() const;
 
@@ -2957,6 +2967,7 @@ protected:
     PlayerMails m_mail;
     PlayerSpellMap m_spells;
     std::map<uint32, uint32> m_temporarySpellReplacements;
+    std::map<uint32, uint32> m_temporarySpellReplacementOrigins;
     PlayerTalentMap m_talents;
     uint32 m_lastPotionId;                              // last used health/mana potion in combat, that block next potion use
 

@@ -356,7 +356,7 @@ void UpdateSpiderLordDisplay(Player* player)
     {
         float boundingRadius = player->GetFloatValue(UNIT_FIELD_BOUNDINGRADIUS);
         float combatReach = player->GetCombatReach();
-        player->SetDisplayId(SpiderLordDisplay, SpiderLordScale);
+        player->SetDisplayId(SpiderLordDisplay);
         player->SetFloatValue(UNIT_FIELD_BOUNDINGRADIUS, boundingRadius);
         player->SetFloatValue(UNIT_FIELD_COMBATREACH, combatReach);
     }

@@ -2,6 +2,7 @@
 
 #include "AscensionItemScaling.h"
 #include "AscensionItemScalingPolicy.h"
+#include "AscensionItemStatData.h"
 #include "Config.h"
 #include "Creature.h"
 #include "DBCStores.h"
@@ -18,14 +19,20 @@
 #include "Player.h"
 #include "ScriptMgr.h"
 #include "World.h"
+#include "WorldPacket.h"
+#include "WorldSession.h"
+#include <fmt/ranges.h>
 #include <algorithm>
 #include <atomic>
+#include <filesystem>
+#include <fstream>
 #include <map>
 #include <memory>
 #include <mutex>
 #include <shared_mutex>
 #include <tuple>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace ItemScaling
@@ -35,6 +42,26 @@ namespace
 constexpr uint32 MaximumSampleEntry = 60000;
 
 std::atomic<bool> liftsEnabled{true};
+std::shared_mutex unliftableMutex;
+std::unordered_set<uint32> unliftableEntries;
+CapturedStats::Table capturedStats;
+
+void LoadCapturedStats()
+{
+    auto const path = std::filesystem::path(sWorld->GetDataPath()) / "dbc" / "ItemStat.dbc";
+    std::ifstream source(path, std::ios::binary);
+    std::string error;
+    if (!capturedStats.Load(source, error))
+    {
+        LOG_ERROR("server.loading", "Unable to load captured item stats from {}: {}; using estimated scaling",
+            path.string(), error);
+        return;
+    }
+    LOG_INFO("server.loading", ">> Loaded {} captured item-stat rows", capturedStats.Size());
+    if (capturedStats.InvalidRows() || capturedStats.DuplicateRows())
+        LOG_WARN("server.loading", "Skipped {} invalid and {} duplicate captured item-stat rows from {}",
+            capturedStats.InvalidRows(), capturedStats.DuplicateRows(), path.string());
+}
 
 using CurveKey = std::tuple<uint32, uint32, uint32, uint32>;
 using CurveSet = std::map<CurveKey, LevelCurve>;
@@ -52,6 +79,15 @@ bool Eligible(ItemTemplate const& proto)
 {
     return EligibleItem(proto.Quality, proto.Class, proto.InventoryType, proto.ItemLevel,
         proto.ScalingStatDistribution, proto.StartQuest);
+}
+
+bool Liftable(ItemTemplate const& proto)
+{
+    if (!Eligible(proto) || IsWorldforgedDescription(proto.Description))
+        return false;
+
+    std::shared_lock lock(unliftableMutex);
+    return !unliftableEntries.contains(proto.ItemId);
 }
 
 CurveKey KeyOf(ItemTemplate const& proto)
@@ -130,6 +166,19 @@ std::unique_ptr<ItemTemplate> BuildTemplate(uint32 entry, ItemTemplate const& ba
     uint32 const itemLevel = base.ItemLevel + lift;
     proto->ItemId = entry;
     proto->ItemLevel = itemLevel;
+    if (CapturedStats::Record const* record = capturedStats.Find(base.ItemId, itemLevel))
+    {
+        record->Apply(*proto);
+        if (base.BuyPrice > 0)
+        {
+            double const price = base.SellPrice ? double(proto->SellPrice) / base.SellPrice :
+                std::max(1.0, SetRatio(curves.sellPrice, KeyOf(base), base.ItemLevel, itemLevel,
+                    PointsRatio(PropertyPoints(base.ItemLevel, base.Quality),
+                        PropertyPoints(itemLevel, base.Quality))));
+            proto->BuyPrice = int32(std::min(std::round(double(base.BuyPrice) * price), double(INT32_MAX)));
+        }
+        return proto;
+    }
     proto->RequiredLevel = LiftedRequiredLevel(base.RequiredLevel, base.ItemLevel, lift,
         sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL));
 
@@ -280,6 +329,28 @@ public:
         return record == _records.end() ? entry : record->second.baseEntry;
     }
 
+    void RestoreUnliftableCopies()
+    {
+        std::vector<uint32> restorable;
+        {
+            std::shared_lock lock(_mutex);
+            for (auto const& [entry, record] : _records)
+                if (ItemTemplate const* base = sObjectMgr->GetItemTemplate(record.baseEntry); base && !Liftable(*base))
+                    restorable.push_back(entry);
+        }
+
+        if (restorable.empty())
+            return;
+
+        CharacterDatabase.DirectExecute("UPDATE `item_instance` SET `itemEntry` = (SELECT `base_entry` "
+            "FROM `coa_scaled_item` WHERE `coa_scaled_item`.`entry` = `item_instance`.`itemEntry`) "
+            "WHERE `itemEntry` IN ({})",
+            fmt::join(restorable, ","));
+
+        LOG_INFO("server.loading", ">> Restored items of {} unliftable scaled item templates to their base entries",
+            restorable.size());
+    }
+
 private:
     struct Record
     {
@@ -307,7 +378,7 @@ uint32 EligibleLift(uint32 itemId, uint32 rawLift)
         return itemId;
 
     ItemTemplate const* proto = sObjectMgr->GetItemTemplate(itemId);
-    return proto && Eligible(*proto) ? Registry::Instance().Acquire(itemId, lift) : itemId;
+    return proto && Liftable(*proto) ? Registry::Instance().Acquire(itemId, lift) : itemId;
 }
 
 uint32 QuestRewardItem(Player const* player, uint32 itemId, int32 questLevel)
@@ -356,7 +427,7 @@ void LiftLootItems(Loot& loot, ItemLift itemLift)
             continue;
 
         ItemTemplate const* proto = sObjectMgr->GetItemTemplate(item.itemid);
-        if (!proto || !Eligible(*proto))
+        if (!proto || !Liftable(*proto))
             continue;
 
         uint32 const scaled = EligibleLift(item.itemid, itemLift(*proto));
@@ -373,7 +444,7 @@ class Configuration : public WorldScript
 {
 public:
     Configuration() : WorldScript("ItemScalingConfiguration",
-        { WORLDHOOK_ON_AFTER_CONFIG_LOAD, WORLDHOOK_ON_LOAD_CUSTOM_DATABASE_TABLE }) { }
+        { WORLDHOOK_ON_AFTER_CONFIG_LOAD, WORLDHOOK_ON_LOAD_CUSTOM_DATABASE_TABLE, WORLDHOOK_ON_STARTUP }) { }
 
     void OnAfterConfigLoad(bool) override
     {
@@ -382,7 +453,13 @@ public:
 
     void OnLoadCustomDatabaseTable() override
     {
+        LoadCapturedStats();
         Registry::Instance().Load();
+    }
+
+    void OnStartup() override
+    {
+        Registry::Instance().RestoreUnliftableCopies();
     }
 };
 
@@ -440,6 +517,36 @@ std::optional<ClientItemRow> ClientRow(uint32 entry)
     if (ItemTemplate const* proto = Registry::Instance().Template(entry))
         return RowOf(*proto);
     return std::nullopt;
+}
+
+void HandleStatQuery(WorldSession* session, WorldPacket const& packet)
+{
+    if (!session || packet.size() != sizeof(uint64) || !capturedStats.Size())
+        return;
+
+    uint32 const item = packet.read<uint32>(0);
+    uint32 const level = packet.read<uint32>(sizeof(uint32));
+    ItemTemplate const* proto = sObjectMgr->GetItemTemplate(item);
+    if (!proto)
+        return;
+    CapturedStats::Record const* record = capturedStats.Find(BaseEntry(item), level);
+    if (!record)
+        return;
+
+    std::array<uint32, 2> const damageTypes = { proto->Damage[0].DamageType, proto->Damage[1].DamageType };
+    WorldPacket response(CapturedStats::ResponseOpcode, CapturedStats::ResponseWords * sizeof(uint32));
+    for (uint32 word : record->Response(item, damageTypes))
+        response << word;
+    session->SendPacket(&response);
+}
+
+void SetUnliftableEntries(std::unordered_set<uint32> entries)
+{
+    {
+        std::unique_lock lock(unliftableMutex);
+        unliftableEntries = std::move(entries);
+    }
+    Registry::Instance().RestoreUnliftableCopies();
 }
 }
 

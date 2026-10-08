@@ -17,7 +17,8 @@
       "race": 1,
       "class": 12,
       "level": 43,
-      "spell_hit_rating": 10000
+      "spell_hit_rating": 10000,
+      "melee_hit_rating": 10000
     }
   ],
   "creatures": [

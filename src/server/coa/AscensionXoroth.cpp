@@ -211,6 +211,15 @@ void Refresh(Player* player)
         effect->ChangeAmount(Count(player, 500906));
 
     scale(573075, player->HasAura(573035) ? player->GetUInt32Value(PLAYER_FIELD_COMBAT_RATING_1 + CR_BLOCK) / 2 : 0);
+    if (player->HasAura(706502) && !player->HasSpell(504581))
+        player->learnSpell(504581, true);
+    if (!player->HasAura(706502))
+    {
+        player->RemoveAurasDueToSpell(712294);
+        if (player->HasSpell(504581))
+            player->removeSpell(504581, SPEC_MASK_ALL, false);
+    }
+    Replace(player, 800340, player->HasAura(706502) && player->HasAura(712294) ? 504581 : 0);
     if (player->HasAura(800710) && !player->HasSpell(520005))
         player->learnSpell(520005);
     if (!player->HasAura(800710) && player->HasSpell(520005))

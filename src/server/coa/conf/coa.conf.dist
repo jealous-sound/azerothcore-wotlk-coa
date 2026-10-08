@@ -308,6 +308,11 @@ Ascension.PrestigiousCache.TbcStages = 0
 #                     Molten Core, Onyxia's Lair, Blackwing Lair, Ruins of Ahn'Qiraj,
 #                     Temple of Ahn'Qiraj, Naxxramas. A generic Callboard Cache resolves
 #                     to a tier at or below this stage.
+#                     The same stage gates the Classic raids: a raid above it is closed,
+#                     entering it shows "Instance is closed" and a character logging in
+#                     inside it is moved out (0 closes every raid, 2 opens Zul'Gurub and
+#                     Molten Core). Game Masters still enter; other maps are not affected.
+#                     Applied on .reload config.
 #        Default:     7
 
 Ascension.CallboardCache.ReleaseStage = 7
@@ -330,3 +335,35 @@ Ascension.CallboardCache.PreviousStageOnly = 0
 #        Default:     6
 
 Ascension.CallboardCache.ItemLevelAllowance = 6
+
+#
+#    Ascension.CallboardCache.CachePoints
+#        Description: Callboard Cache progress points that pay one cache. Each Callboard
+#                     quest adds its points from ascension_callboard_quest_points; a full
+#                     bar pays the cache of the highest released ascension_callboard_cache_tier
+#                     row at or below the character's highest average item level reached,
+#                     and the remainder carries over. The client shows a tenth of every
+#                     amount: a 150-point bar as 15, a 25-point quest as 3 (rounded up).
+#        Default:     150
+
+Ascension.CallboardCache.CachePoints = 150
+
+#
+#    Ascension.CallboardCache.GoldMin
+#    Ascension.CallboardCache.GoldMax
+#        Description: Gold paid on top of the item when a Callboard Cache opens, rolled
+#                     between these two amounts. GoldMax 0 pays no gold.
+#        Default:     5, 15
+
+Ascension.CallboardCache.GoldMin = 5
+Ascension.CallboardCache.GoldMax = 15
+
+#
+#    CoA.DungeonTuning.Enable
+#        Description: Allow `.mythic damage` and `.mythic health` in 5-man dungeons. Every player can
+#                     raise or lower the damage and health of the creatures in their own instance
+#                     by a percentage to try values; each change is logged as a TUNING line.
+#                     For test realms; switch it off on a live realm.
+#        Default:     1
+
+CoA.DungeonTuning.Enable = 1

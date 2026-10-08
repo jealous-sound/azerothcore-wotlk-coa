@@ -1,4 +1,5 @@
 /* Copyright (C) 2016+ AzerothCore, GNU AGPL v3. */
+#include "AscensionClientSpellPatches.h"
 #include "CellImpl.h"
 #include "GameObject.h"
 #include "GameObjectAI.h"
@@ -27,6 +28,8 @@ constexpr uint32 SPELL_CHARGE_TREMOR = 64228;
 constexpr uint32 SPELL_ENRAGE = 256756;
 constexpr uint32 SPELL_THUNDERCLAP = 8078;
 constexpr uint32 SPELL_SLAM = 11430;
+constexpr uint32 SPELL_GRIMTOTEM_DISGUISE_WARRIOR = 256709;
+constexpr uint32 SPELL_GRIMTOTEM_DISGUISE_GUARD = 256710;
 
 constexpr uint32 FACTION_MALGORM = 1027;
 
@@ -48,7 +51,7 @@ constexpr uint32 TREMOR_PULSE_MS = 1000;
 constexpr uint32 ENRAGE_HEALTH_PCT = 50;
 constexpr int32 ENRAGE_MS = 10000;
 constexpr uint32 LOW_HEALTH_PCT = 20;
-constexpr float CORRUPTED_TOTEM_REACH = 3.0f;
+constexpr float CORRUPTED_TOTEM_REACH = 5.5f;
 constexpr uint32 NPC_TOTEM_CHANNEL_TARGET = 23033;
 constexpr float TOTEM_CHANNEL_TARGET_HEIGHT = 1.5f;
 
@@ -414,4 +417,6 @@ void AddSC_AscensionThreeTotems()
     RegisterSpellAndAuraScriptPair(spell_coa_corrupting_totem, spell_coa_corrupting_totem_aura);
     RegisterSpellScript(spell_coa_malgorm_trample);
     RegisterSpellScript(spell_coa_grimtotem_disguise);
+    for (uint32 disguise : { SPELL_GRIMTOTEM_DISGUISE_WARRIOR, SPELL_GRIMTOTEM_DISGUISE_GUARD })
+        Ascension::ClientSpellPatches::Instance().Register(disguise);
 }

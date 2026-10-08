@@ -206,18 +206,18 @@ bool LoadCatalog(Catalog& catalog)
     for (std::uint32_t index = 0; index < essence.GetRecordCount(); ++index)
     {
         ClientDBC::Record const record = essence.GetRecord(index);
-        bool plain = record.GetUInt32(ESSENCE_CLASS) == HERO_CLASS;
+        bool plain = true;
         for (std::uint32_t field = ESSENCE_FIRST_MODE; field <= ESSENCE_LAST_MODE; ++field)
             plain = plain && !record.GetUInt32(field);
         if (plain)
-            loaded.Budget.push_back({ record.GetUInt32(ESSENCE_LEVEL), record.GetUInt32(ESSENCE_AE),
-                record.GetUInt32(ESSENCE_TE) });
+            loaded.Budget[record.GetUInt32(ESSENCE_CLASS)].push_back({ record.GetUInt32(ESSENCE_LEVEL),
+                record.GetUInt32(ESSENCE_AE), record.GetUInt32(ESSENCE_TE) });
     }
 
     LOG_INFO("coa", "Loaded {} free-pick advancement entries, {} class types and {} Hero essence levels",
-        loaded.Rows.size(), loaded.ClassTypes.size(), loaded.Budget.size());
+        loaded.Rows.size(), loaded.ClassTypes.size(), loaded.Budget[HERO_CLASS].size());
     catalog = std::move(loaded);
-    return !catalog.Rows.empty() && !catalog.Budget.empty();
+    return !catalog.Rows.empty() && catalog.Budget.contains(HERO_CLASS) && !catalog.Budget.at(HERO_CLASS).empty();
 }
 
 bool Visible(Catalog const& catalog, Realm const& realm, Row const& row)
@@ -251,8 +251,9 @@ bool ClassAdmits(Catalog const& catalog, Row const& row, std::uint32_t classId)
     return type->second.Stock && StockClass(classId);
 }
 
-Build::Build(Catalog const& catalog, Realm const& realm, std::uint32_t level, std::vector<Entry> entries)
-    : _catalog(&catalog), _realm(realm), _level(level), _entries(std::move(entries))
+Build::Build(Catalog const& catalog, Realm const& realm, std::uint32_t level, std::vector<Entry> entries,
+    std::uint32_t classId)
+    : _catalog(&catalog), _realm(realm), _level(level), _entries(std::move(entries)), _class(classId)
 {
 }
 
@@ -283,9 +284,12 @@ bool Build::HasGroup(std::uint32_t group, std::uint32_t exceptId) const
 
 Essence const* Build::BudgetRow() const
 {
-    auto const itr = std::find_if(_catalog->Budget.begin(), _catalog->Budget.end(),
+    auto const budget = _catalog->Budget.find(_class);
+    if (budget == _catalog->Budget.end())
+        return nullptr;
+    auto const itr = std::find_if(budget->second.begin(), budget->second.end(),
         [this](Essence const& essence) { return essence.Level == _level; });
-    return itr == _catalog->Budget.end() ? nullptr : &*itr;
+    return itr == budget->second.end() ? nullptr : &*itr;
 }
 
 std::uint32_t Build::AEBudget() const
@@ -384,7 +388,7 @@ bool Build::BuildRuleOk(std::uint32_t slot, Row const& row) const
         case LEARN_DISABLED:
             return !row.Has(ROW_DISABLED);
         case LEARN_WRONG_CLASS:
-            return ClassAdmits(*_catalog, row, HERO_CLASS);
+            return ClassAdmits(*_catalog, row, _class);
         case LEARN_ALREADY_KNOW_A_STARTING_NODE:
             return !row.StartingNode || std::none_of(_entries.begin(), _entries.end(), [this](Entry const& entry)
             {
@@ -481,7 +485,7 @@ void Build::Remove(std::uint32_t entryId)
 
 bool Build::ValidateAll(UnitCheck const& unit, Entry& failed, std::uint32_t& result) const
 {
-    Build walk(*_catalog, _realm, _level);
+    Build walk(*_catalog, _realm, _level, {}, _class);
     for (Entry const& entry : _entries)
         for (std::uint32_t rank = 0; rank < entry.Rank; ++rank)
         {
@@ -513,7 +517,7 @@ bool Build::Reorder(UnitCheck const& unit, Entry& failed, std::uint32_t& result)
         return left < right;
     });
 
-    Build walk(*_catalog, _realm, _level);
+    Build walk(*_catalog, _realm, _level, {}, _class);
     while (!steps.empty())
     {
         bool progress = false;

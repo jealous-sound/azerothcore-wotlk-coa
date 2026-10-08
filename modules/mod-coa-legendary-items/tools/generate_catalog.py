@@ -8,6 +8,7 @@ MODULE = Path(__file__).resolve().parents[1]
 ROOT = MODULE.parents[1]
 ITEM_BASE = 9700000
 AURA_BASE = 9710000
+TOOLTIP_BASE = 9720000
 MAX_LEVEL = 60
 APPEARANCES = {
     8: (1, 7, 16492),
@@ -137,20 +138,21 @@ def aura_text(item):
     if item['power'] == 'Signature':
         return f"Increases the main hit damage of your {item['signature_name']} by $s1%."
     if item['power'] == 'Movement':
-        return 'Increases movement speed by $s1%.'
+        return f"Increases movement speed by {item['magnitude']}%."
     if item['power'] == 'Armor':
-        return 'Increases armor by $s1%.'
+        return f"Increases armor by {item['magnitude']}%."
     if item['profile'] == 'Caster':
-        return 'Increases spell power by $s1.'
+        return 'Increases spell power by an amount that grows with the item level.'
     if item['profile'].endswith('Hybrid'):
-        return 'Increases attack power by $s1 and spell power by $s2.'
-    return 'Increases melee and ranged attack power by $s1.'
+        return 'Increases attack power and spell power by amounts that grow with the item level.'
+    return 'Increases melee and ranged attack power by an amount that grows with the item level.'
 
 
 def render_sql(catalog):
     templates = []
     dbc_rows = []
     auras = []
+    tooltips = []
     for item in catalog:
         slot = item['inventory_type']
         subclass, material, display = APPEARANCES[slot]
@@ -159,12 +161,14 @@ def render_sql(catalog):
             mask -= 0x100000000
         for level in range(1, MAX_LEVEL + 1):
             entry = ITEM_BASE + item['id'] * 100 + level
+            tooltip = TOOLTIP_BASE + item['id'] * 100 + level
             ilvl = level + 12
             templates.append([entry, 4, subclass, -1, item['name'], display, 5, slot, mask, -1,
                 ilvl, level, 1, 1, *item_stats(item, ilvl),
                 ilvl * 2 if slot == 16 else (ilvl * 3 // 2 if slot == 8 else 0),
-                1, power_text(item, level), material, 0, 12340])
+                1, '', tooltip, 1, 0, -1, 0, -1, material, 0, 12340])
             dbc_rows.append([entry, 4, subclass, -1, material, display, slot, 0])
+            tooltips.append([tooltip, 64, 65536, 1, 1, -1, 1, item['name'], power_text(item, level)])
         effects = aura_effects(item)
         timed = item['condition'] == 'AfterKill'
         text = aura_text(item)
@@ -186,7 +190,8 @@ def render_sql(catalog):
         insert_rows('item_template', ['entry', 'class', 'subclass', 'SoundOverrideSubclass', 'name',
             'displayid', 'Quality', 'InventoryType', 'AllowableClass', 'AllowableRace', 'ItemLevel',
             'RequiredLevel', 'maxcount', 'stackable', *[f'stat_{field}{i}' for i in range(1, 5)
-                for field in ('type', 'value')], 'armor', 'bonding', 'description', 'Material', 'itemset',
+                for field in ('type', 'value')], 'armor', 'bonding', 'description', 'spellid_1', 'spelltrigger_1',
+            'spellcharges_1', 'spellcooldown_1', 'spellcategory_1', 'spellcategorycooldown_1', 'Material', 'itemset',
             'VerifiedBuild'], templates, upsert=True),
         insert_rows('item_dbc', ['ID', 'ClassID', 'SubclassID', 'Sound_Override_Subclassid', 'Material',
             'DisplayInfoID', 'InventoryType', 'SheatheType'], dbc_rows,
@@ -198,6 +203,9 @@ def render_sql(catalog):
                 'ImplicitTargetA', 'EffectAura', 'EffectMiscValue')],
             *[f'EffectSpellClassMaskA_{i}' for i in range(1, 4)]], auras,
             f'DELETE FROM `spell_dbc` WHERE `ID` >= {AURA_BASE} AND `ID` < {AURA_BASE + 64};'),
+        insert_rows('spell_dbc', ['ID', 'Attributes', 'AttributesEx3', 'CastingTimeIndex', 'RangeIndex',
+            'EquippedItemClass', 'SchoolMask', 'Name_Lang_enUS', 'Description_Lang_enUS'], tooltips,
+            f'DELETE FROM `spell_dbc` WHERE `ID` >= {TOOLTIP_BASE} AND `ID` < {TOOLTIP_BASE + 6400};'),
         f'DELETE FROM `spell_script_names` WHERE `spell_id` >= {AURA_BASE} AND `spell_id` < {AURA_BASE + 64};',
     ]
     return '\n\n'.join(sections) + '\n'

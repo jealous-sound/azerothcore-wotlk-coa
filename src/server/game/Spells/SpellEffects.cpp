@@ -5194,7 +5194,7 @@ void Spell::EffectForceDeselect(SpellEffIndex /*effIndex*/)
     {
         std::vector<Unit*> images;
         for (Unit::ControlSet::const_iterator itr = m_caster->m_Controlled.begin(); itr != m_caster->m_Controlled.end(); ++itr)
-            if ((*itr)->GetEntry() == 31216 /*NPC_MIRROR_IMAGE*/)
+            if (GetStockPetEntry((*itr)->GetEntry()) == 31216 /*NPC_MIRROR_IMAGE*/)
                 images.push_back(*itr);
 
         if (images.empty())

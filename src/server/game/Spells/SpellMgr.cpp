@@ -1420,6 +1420,38 @@ void SpellMgr::LoadSpellRanks()
     LOG_INFO("server.loading", " ");
 }
 
+void SpellMgr::LoadAddedSpellRanks()
+{
+    if (!_addedSpellRanks)
+        return;
+
+    uint32 count = 0;
+    for (std::vector<uint32> const& chain : _addedSpellRanks())
+    {
+        if (chain.size() < 2 || std::any_of(chain.begin(), chain.end(), [this](uint32 spellId)
+            {
+                SpellInfo const* spellInfo = GetSpellInfo(spellId);
+                return !spellInfo || spellInfo->ChainEntry;
+            }))
+            continue;
+
+        for (std::size_t rank = 0; rank < chain.size(); ++rank)
+        {
+            SpellChainNode& node = mSpellChains[chain[rank]];
+            node.first = GetSpellInfo(chain.front());
+            node.last = GetSpellInfo(chain.back());
+            node.rank = uint8(rank + 1);
+            node.prev = rank ? GetSpellInfo(chain[rank - 1]) : nullptr;
+            node.next = rank + 1 < chain.size() ? GetSpellInfo(chain[rank + 1]) : nullptr;
+            mSpellInfoMap[chain[rank]]->ChainEntry = &node;
+        }
+        count += chain.size();
+    }
+
+    LOG_INFO("server.loading", ">> Loaded {} added spell rank records", count);
+    LOG_INFO("server.loading", " ");
+}
+
 void SpellMgr::LoadSpellRequired()
 {
     uint32 oldMSTime = getMSTime();

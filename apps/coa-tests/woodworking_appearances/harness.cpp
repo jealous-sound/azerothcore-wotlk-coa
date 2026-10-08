@@ -220,6 +220,7 @@ public:
     bool _clientDataLoaded = false;
     static bool IsCosmeticCategory(uint32) { return false; }
     static uint32 ResolveCosmeticSpell(uint32, uint32, uint32) { return 0; }
+    static uint32 ResolveShadowhoundDisplay(uint32) { return 0; }
     bool IsBankVanityItem(uint32) const { return false; }
     void LearnOwnedBankSpells(Player*, PlayerCollectionState&, bool) { }
     // ACTUAL_INSTANCE

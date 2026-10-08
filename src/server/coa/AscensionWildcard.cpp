@@ -1,6 +1,7 @@
 /* Copyright (C) 2016+ AzerothCore, GNU AGPL v3. */
 
 #include "AscensionWildcard.h"
+#include "AscensionRemovedSpellActionBars.h"
 #include "AscensionCacheRewards.h"
 #include "AscensionHeroClass.h"
 #include "AscensionFreepick.h"
@@ -24,6 +25,7 @@
 #include "Random.h"
 #include "ScriptMgr.h"
 #include "Spell.h"
+#include "SpellAuraEffects.h"
 #include "SpellScript.h"
 #include "SpellScriptLoader.h"
 #include "SpellInfo.h"
@@ -109,6 +111,11 @@ constexpr uint32 DICE_OF_DESTINY_SPELL = 18283;
 constexpr uint32 AUTO_SHOT_ENTRY_SPELL = 965202;
 constexpr uint32 AUTO_SHOT_SPELL = 75;
 constexpr uint32 TAME_BEAST_ENTRY_SPELL = 965200;
+constexpr uint32 CAT_FORM_SPELL = 768;
+constexpr uint32 BEAR_FORM_SPELL = 5487;
+constexpr uint32 DIRE_BEAR_FORM_SPELL = 9634;
+constexpr uint32 FERAL_FORM_MASK = (1u << (FORM_CAT - 1)) | (1u << (FORM_BEAR - 1)) |
+    (1u << (FORM_DIREBEAR - 1));
 
 struct EntrySpells
 {
@@ -116,7 +123,7 @@ struct EntrySpells
     std::array<uint32, 6> Spells;
 };
 
-constexpr std::array<EntrySpells, 18> ENTRY_SPELLS = { {
+constexpr std::array<EntrySpells, 31> ENTRY_SPELLS = { {
     { 84864, { 986202, 986203 } },
     { 84865, { 986200, 986201 } },
     { 84866, { 92839, 92840 } },
@@ -128,8 +135,21 @@ constexpr std::array<EntrySpells, 18> ENTRY_SPELLS = { {
     { 890, { 884, 887, 892, 109981 } },
     { 91634, { 91631, 91633, 91652, 109982 } },
     { 91606, { 91602, 91605, 91651, 109983 } },
-    { 5487, { 779, 277420 } },
-    { 768, { 1082 } },
+    { BEAR_FORM_SPELL, { 779, 277420 } },
+    { CAT_FORM_SPELL, { 1082 } },
+    { 49377, { 16979, 49376 } },
+    { 33917, { 33876, 33878 } },
+    { 850073, { 939300 } },
+    { 939300, { 939320, 939340 } },
+    { 939301, { 939321, 939341 } },
+    { 939302, { 939322, 939342 } },
+    { 939303, { 939323, 939343 } },
+    { 939304, { 939324, 939344 } },
+    { 939305, { 939325, 939345 } },
+    { 939306, { 939326, 939346 } },
+    { 939307, { 939327, 939347 } },
+    { 939308, { 939328, 939348 } },
+    { 939309, { 939329, 939349 } },
     { 48263, { 56222 } },
     { 25780, { 277422 } },
     { 71, { 277421 } },
@@ -160,6 +180,7 @@ constexpr char REROLLS_SETTING[] = "core.wildcard.rerolls";
 constexpr char ROLL_CARDS_SETTING[] = "core.wildcard.cards";
 constexpr char ACTIVE_SPEC_SETTING[] = "core.wildcard.spec";
 constexpr char ACTION_BARS_SETTING[] = "core.wildcard.bars";
+constexpr char TRAINED_RANKS_SETTING[] = "core.wildcard.trainedranks";
 constexpr char REPURCHASE_SETTING[] = "core.wildcard.repurchase";
 constexpr std::array<uint32, 8> PRESTIGE_DELETED_ITEMS = { 1278048, 1278049, 98453, 98454, 98465, 98466, 1478051,
     1478052 };
@@ -466,6 +487,8 @@ void LoadRankLadders(ClientDBC const& spellRanks, Tables& tables)
         std::vector<uint32>& ladder = tables.RankLadders[first];
         ladder.resize(std::max<std::size_t>(ladder.size(), rank));
         ladder[rank - 1] = record.GetUInt32(SPELL_RANK_SPELL);
+        if (rank > 1 && ladder[rank - 1])
+            tables.RankRoots[ladder[rank - 1]] = first;
     }
 }
 
@@ -576,7 +599,21 @@ uint32 FirstSpellOf(uint32 entryId)
 
 bool CanTake(Player const* player, uint32 spellId)
 {
-    return sSpellMgr->GetSpellInfo(spellId) && !player->HasSpell(spellId);
+    SpellInfo const* spell = sSpellMgr->GetSpellInfo(spellId);
+    if (!spell || player->HasSpell(spellId))
+        return false;
+
+    if (!spell->Stances || (spell->Stances & ~FERAL_FORM_MASK) ||
+        spell->CheckShapeshift(FORM_NONE) == SPELL_CAST_OK)
+        return true;
+
+    for (AuraEffect const* effect : player->GetAuraEffectsByType(SPELL_AURA_MOD_IGNORE_SHAPESHIFT))
+        if (effect->IsAffectedOnSpell(spell))
+            return true;
+
+    return ((spell->Stances & (1u << (FORM_CAT - 1))) && player->HasSpell(CAT_FORM_SPELL)) ||
+        ((spell->Stances & (1u << (FORM_BEAR - 1))) && player->HasSpell(BEAR_FORM_SPELL)) ||
+        ((spell->Stances & (1u << (FORM_DIREBEAR - 1))) && player->HasSpell(DIRE_BEAR_FORM_SPELL));
 }
 
 uint32 PrimaryStatSpell(uint32 entryId)
@@ -602,6 +639,42 @@ void ClearSetting(Player* player, std::string const& source)
     if (PlayerSettingVector const* stored = player->FindPlayerSettings(source))
         for (uint32 index = 0; index < stored->size(); ++index)
             player->UpdatePlayerSetting(source, index, 0);
+}
+
+void RememberTrainedRank(Player* player, uint32 spellId)
+{
+    uint32 free = 0;
+    if (PlayerSettingVector const* stored = player->FindPlayerSettings(TRAINED_RANKS_SETTING))
+    {
+        free = uint32(stored->size());
+        for (uint32 index = 0; index < stored->size(); ++index)
+        {
+            if ((*stored)[index].value == spellId)
+                return;
+            if (!(*stored)[index].value && free == stored->size())
+                free = index;
+        }
+    }
+    player->UpdatePlayerSetting(TRAINED_RANKS_SETTING, free, spellId);
+}
+
+void RestoreTrainedRanks(Player* player, uint32 firstSpellId)
+{
+    PlayerSettingVector const* stored = player->FindPlayerSettings(TRAINED_RANKS_SETTING);
+    if (!stored)
+        return;
+    std::vector<uint32> remembered;
+    for (uint32 index = 0; index < stored->size(); ++index)
+        if (uint32 const spellId = (*stored)[index].value)
+            if (auto const root = Loaded.RankRoots.find(spellId); root != Loaded.RankRoots.end() && root->second == firstSpellId)
+            {
+                remembered.push_back(spellId);
+                player->UpdatePlayerSetting(TRAINED_RANKS_SETTING, index, 0);
+            }
+    for (uint32 rankSpellId : Loaded.RankLadders.at(firstSpellId))
+        if (rankSpellId && std::find(remembered.begin(), remembered.end(), rankSpellId) != remembered.end() &&
+            !player->HasSpell(rankSpellId) && sSpellMgr->GetSpellInfo(rankSpellId))
+            player->learnSpell(rankSpellId);
 }
 
 void AppendUInt32(std::vector<std::uint8_t>& out, std::uint32_t value)
@@ -1866,23 +1939,33 @@ uint32 TrainerPrice(uint32 spellId, uint32 level)
 
 std::vector<Trainer::Spell> RankTrainerRows(Player const* player)
 {
-    std::vector<Trainer::Spell> rows;
+    std::vector<std::uint32_t> firstSpells;
     for (auto const& [firstSpellId, ladder] : Loaded.RankLadders)
-    {
-        auto const known = std::find_if(ladder.rbegin(), ladder.rend(),
-            [player](uint32 spellId) { return spellId && player->HasSpell(spellId); });
-        if (known == ladder.rend())
-            continue;
-        auto const next = std::find_if(known.base(), ladder.end(), [](uint32 spellId) { return spellId != 0; });
-        SpellInfo const* info = next != ladder.end() ? sSpellMgr->GetSpellInfo(*next) : nullptr;
-        if (!info)
-            continue;
+        if (std::any_of(ladder.begin(), ladder.end(), [player](uint32 spellId) { return spellId && player->HasSpell(spellId); }))
+            firstSpells.push_back(firstSpellId);
+    std::sort(firstSpells.begin(), firstSpells.end());
 
-        Trainer::Spell row;
-        row.SpellId = info->Id;
-        row.ReqLevel = uint8(std::clamp<uint32>(info->BaseLevel ? info->BaseLevel : info->SpellLevel, 1, 255));
-        row.MoneyCost = TrainerPrice(info->Id, row.ReqLevel);
-        rows.push_back(row);
+    std::vector<Trainer::Spell> rows;
+    for (std::uint32_t firstSpellId : firstSpells)
+    {
+        std::vector<uint32> const& ladder = Loaded.RankLadders.at(firstSpellId);
+        uint32 previous = 0;
+        for (uint32 spellId : ladder)
+        {
+            SpellInfo const* info = spellId ? sSpellMgr->GetSpellInfo(spellId) : nullptr;
+            if (!info)
+                continue;
+            if (previous)
+            {
+                Trainer::Spell row;
+                row.SpellId = info->Id;
+                row.ReqAbility[0] = previous;
+                row.ReqLevel = uint8(std::clamp<uint32>(info->BaseLevel ? info->BaseLevel : info->SpellLevel, 1, 255));
+                row.MoneyCost = TrainerPrice(info->Id, row.ReqLevel);
+                rows.push_back(row);
+            }
+            previous = info->Id;
+        }
     }
     return rows;
 }
@@ -2133,12 +2216,16 @@ public:
         if (std::any_of(ENTRY_SPELLS.begin(), ENTRY_SPELLS.end(),
             [spellId](EntrySpells const& entry) { return entry.EntrySpell == spellId; }))
             GrantEntrySpells(player);
+        if ((IsRealmHero(player) || IsWildcardHero(player)) && Loaded.RankLadders.contains(spellId))
+            RestoreTrainedRanks(player, spellId);
     }
 
     void OnPlayerForgotSpell(Player* player, uint32 spellId) override
     {
         if (!IsRealmHero(player) && !IsWildcardHero(player))
             return;
+        if (Loaded.RankRoots.contains(spellId))
+            RememberTrainedRank(player, spellId);
         for (EntrySpells const& entry : ENTRY_SPELLS)
             if (entry.EntrySpell == spellId)
                 for (uint32 spell : entry.Spells)
@@ -3372,6 +3459,7 @@ bool UnlearnForReroll(Player* player, std::uint32_t entryId)
 
 void AddAscensionWildcardScripts()
 {
+    new AscensionRemovedSpellActionBars::Script(AscensionWildcard::IsWildcardHero);
     for (uint16 opcode : { AscensionWildcard::CMSG_WILDCARD_REROLL_UNLOCKED_STARTING_ABILITIES,
              AscensionWildcard::CMSG_WILDCARD_ROLL_ABILITIES, AscensionWildcard::CMSG_WILDCARD_UNLEARN_ABILITY,
              AscensionWildcard::CMSG_CHARACTER_ADVANCEMENT_LOCK_ENTRY,
@@ -3407,4 +3495,5 @@ void AddAscensionWildcardScripts()
     RegisterSpellScriptWithArgs(AscensionWildcard::aura_wildcard_victorious_state, "aura_wildcard_victorious_state");
     new AscensionWildcard::AscensionWildcardWorld();
     Trainer::SetWildcardRankRows(&AscensionWildcard::RankTrainerRows);
+    Trainer::SetRankTrainerHero(&AscensionWildcard::IsClasslessHero);
 }

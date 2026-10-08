@@ -7332,7 +7332,7 @@ void Player::_SaveActions(CharacterDatabaseTransaction trans)
     {
         uint32 action = itr->second.GetAction();
         if (itr->second.GetType() == ACTION_BUTTON_SPELL)
-            sScriptMgr->OnPlayerNormalizeActionButtonSpell(this, action, false);
+            action = GetSavedActionButtonSpell(action);
 
         switch (itr->second.uState)
         {

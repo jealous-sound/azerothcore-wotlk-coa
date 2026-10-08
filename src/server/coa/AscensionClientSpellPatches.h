@@ -4,6 +4,7 @@
 #include "Define.h"
 #include <array>
 #include <mutex>
+#include <optional>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -16,6 +17,7 @@ namespace Ascension
     public:
         using Selector = std::array<uint32, 3>;
         using EnabledPredicate = bool (*)();
+        enum class Delivery { Login, Item };
 
         static ClientPatches& Instance()
         {
@@ -23,17 +25,18 @@ namespace Ascension
             return patches;
         }
 
-        void Register(uint32 id, Selector const& selector = {}, EnabledPredicate enabled = nullptr)
+        void Register(uint32 id, Selector const& selector = {}, EnabledPredicate enabled = nullptr,
+            Delivery delivery = Delivery::Login)
         {
             std::lock_guard lock(_mutex);
             std::vector<Patch>& patches = _patches[id];
             for (Patch& patch : patches)
-                if (patch.enabled == enabled)
+                if (patch.enabled == enabled && patch.delivery == delivery)
                 {
                     Merge(patch.selector, selector);
                     return;
                 }
-            patches.push_back({ selector, enabled });
+            patches.push_back({ selector, enabled, delivery });
         }
 
         std::unordered_set<uint32> GetIds(bool includeDisabled = false) const
@@ -50,13 +53,13 @@ namespace Ascension
             return ids;
         }
 
-        bool Contains(uint32 id) const
+        bool Contains(uint32 id, std::optional<Delivery> delivery = std::nullopt) const
         {
             std::lock_guard lock(_mutex);
             auto const found = _patches.find(id);
             if (found != _patches.end())
                 for (Patch const& patch : found->second)
-                    if (patch.IsEnabled())
+                    if (patch.IsEnabled() && (!delivery || patch.delivery == *delivery))
                         return true;
             return false;
         }
@@ -78,6 +81,7 @@ namespace Ascension
         {
             Selector selector;
             EnabledPredicate enabled;
+            Delivery delivery;
 
             bool IsEnabled() const { return !enabled || enabled(); }
         };

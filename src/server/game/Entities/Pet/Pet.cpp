@@ -505,9 +505,19 @@ void Pet::SavePetToDB(PetSaveMode mode)
     if (!GetOwnerGUID().IsPlayer())
         return;
 
+    Player* owner = GetOwner();
+    if (!owner || !GetEntry() || !isControlled())
+        return;
+
+    if (mode == PET_SAVE_AS_DELETED)
+    {
+        RemoveAllAuras();
+        DeleteFromDB(m_charmInfo->GetPetNumber());
+        return;
+    }
+
     // dont allow to save pet when it is loaded, possibly bugs action bar!, save only fully controlled creature
-    Player* owner = GetOwner()->ToPlayer();
-    if (!owner || m_loading || !GetEntry() || !isControlled())
+    if (m_loading)
         return;
 
     // not save pet as current if another pet temporary unsummoned
@@ -1173,7 +1183,7 @@ bool Guardian::InitStatsForLevel(uint8 petlevel)
                     SetBaseWeaponDamage(BASE_ATTACK, MAXDAMAGE, float(petlevel + (petlevel / 4)));
                 }
 
-                switch (GetEntry())
+                switch (GetStockPetEntry(GetEntry()))
                 {
                     case NPC_WATER_ELEMENTAL_PERM:
                         {

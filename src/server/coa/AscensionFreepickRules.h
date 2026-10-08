@@ -144,7 +144,7 @@ struct Catalog
     std::unordered_map<std::uint32_t, Row> Rows;
     std::vector<std::uint32_t> RowOrder;
     std::unordered_map<std::uint32_t, ClassType> ClassTypes;
-    std::vector<Essence> Budget;
+    std::unordered_map<std::uint32_t, std::vector<Essence>> Budget;
 
     [[nodiscard]] Row const* Find(std::uint32_t entryId) const;
 };
@@ -177,10 +177,12 @@ using UnitCheck = std::function<bool(std::uint32_t slot, Row const& row)>;
 class Build
 {
 public:
-    Build(Catalog const& catalog, Realm const& realm, std::uint32_t level, std::vector<Entry> entries = {});
+    Build(Catalog const& catalog, Realm const& realm, std::uint32_t level, std::vector<Entry> entries = {},
+        std::uint32_t classId = HERO_CLASS);
 
     [[nodiscard]] std::vector<Entry> const& Entries() const { return _entries; }
     [[nodiscard]] std::uint32_t Level() const { return _level; }
+    [[nodiscard]] std::uint32_t Class() const { return _class; }
     [[nodiscard]] Catalog const& Data() const { return *_catalog; }
 
     [[nodiscard]] std::uint32_t RankOf(std::uint32_t entryId) const;
@@ -218,6 +220,7 @@ private:
     Realm _realm;
     std::uint32_t _level;
     std::vector<Entry> _entries;
+    std::uint32_t _class;
 };
 
 struct UnlearnCost

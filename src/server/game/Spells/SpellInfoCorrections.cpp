@@ -72,6 +72,19 @@ void SpellMgr::LoadSpellInfoCorrections()
         spellInfo->Attributes |= SPELL_ATTR0_NO_AURA_CANCEL;
         spellInfo->AttributesEx |= SPELL_ATTR1_NO_AURA_ICON;
     });
+    // Pulverize Reset is Guardbreaker's cooldown reset, but its effect names
+    // only Ram's rank 1 record. Ram is a ten rank ability whose later ranks are
+    // the ones a levelled Guardian has on the bar, and its ranks share spell
+    // category 1096, so the reset has to clear that category as well or the
+    // talent's 20% proc changed nothing the player could see.
+    ApplySpellFix({ 802895 }, [](SpellInfo* spellInfo)
+    {
+        if (spellInfo->SpellFamilyName != 24 ||
+            spellInfo->Effects[EFFECT_0].Effect != SPELL_EFFECT_ASCENSION_RESET_COOLDOWN ||
+            spellInfo->Effects[EFFECT_0].MiscValue != 802284)
+            return;
+        spellInfo->Effects[EFFECT_0].MiscValueB = 1;
+    });
     // Reclaim uses the owner's exact standard GUID in its script; the authored
     // entry-area target must not enumerate nearby unrelated creatures first.
     ApplySpellFix({ 801504, 574339 }, [](SpellInfo* spellInfo)
@@ -5250,6 +5263,7 @@ void SpellMgr::LoadSpellInfoCorrections()
 
     ApplySpellFix({
         42292,  // PvP Trinket
+        1142292, // PvP Trinket (Ascension)
         59752,  // Every Man for Himself
         19574,  // Bestial Wrath
         34471   // The Beast Within
