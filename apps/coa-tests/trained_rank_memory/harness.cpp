@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <array>
 #include <cstdint>
 #include <cstdlib>
 #include <iostream>
@@ -8,6 +9,7 @@
 #include <unordered_map>
 #include <vector>
 
+using uint8 = std::uint8_t;
 using uint32 = std::uint32_t;
 
 struct PlayerSetting
@@ -18,13 +20,23 @@ using PlayerSettingVector = std::vector<PlayerSetting>;
 
 struct SpellInfo
 {
+    uint32 Id = 0;
+    uint32 BaseLevel = 0;
+    uint32 SpellLevel = 0;
 };
 
 struct SpellMgr
 {
     std::set<uint32> known;
-    SpellInfo info;
-    SpellInfo const* GetSpellInfo(uint32 spellId) const { return known.contains(spellId) ? &info : nullptr; }
+    mutable SpellInfo info;
+    SpellInfo const* GetSpellInfo(uint32 spellId) const
+    {
+        if (!known.contains(spellId))
+            return nullptr;
+        info.Id = spellId;
+        info.BaseLevel = spellId % 100 * 10;
+        return &info;
+    }
 };
 
 SpellMgr spellMgr;
@@ -63,6 +75,22 @@ struct Tables
 };
 
 Tables Loaded;
+
+namespace Trainer
+{
+    struct Spell
+    {
+        uint32 SpellId = 0;
+        uint32 MoneyCost = 0;
+        std::array<uint32, 3> ReqAbility = { };
+        uint8 ReqLevel = 0;
+    };
+}
+
+uint32 TrainerPrice(uint32, uint32 level)
+{
+    return level * 100;
+}
 constexpr char TRAINED_RANKS_SETTING[] = "core.wildcard.trainedranks";
 
 // ACTUAL_RANKS
@@ -130,6 +158,22 @@ int main()
     player.learnOrder.clear();
     RestoreTrainedRanks(&player, 200);
     Expect(player.learnOrder.empty(), "restoring twice grants nothing more");
+
+    Player trainee;
+    trainee.spells = { 100, 101 };
+    std::vector<Trainer::Spell> rows = RankTrainerRows(&trainee);
+    Expect(rows.size() == 3, "every rank from 2 up of a known ability is listed, held ranks included");
+    Expect(rows[0].SpellId == 101 && rows[0].ReqAbility[0] == 100, "rank 2 requires rank 1");
+    Expect(rows[1].SpellId == 102 && rows[1].ReqAbility[0] == 101, "rank 3 requires rank 2");
+    Expect(rows[2].SpellId == 103 && rows[2].ReqAbility[0] == 102 && rows[2].ReqLevel == 30, "rank 4 requires rank 3 and its level");
+    Expect(std::none_of(rows.begin(), rows.end(), [](Trainer::Spell const& row) { return row.SpellId == 100; }),
+           "rank 1 is never offered");
+    trainee.spells.insert(102);
+    std::vector<Trainer::Spell> const after = RankTrainerRows(&trainee);
+    Expect(after.size() == rows.size() && after[1].SpellId == rows[1].SpellId, "buying a rank keeps the rows in place");
+    trainee.spells.insert(200);
+    rows = RankTrainerRows(&trainee);
+    Expect(rows.size() == 4 && rows[3].SpellId == 202 && rows[3].ReqAbility[0] == 200, "a gap in a ladder is skipped");
 
     std::cout << "PASS: trained ranks come back when a Hero re-learns the ability\n";
     return 0;

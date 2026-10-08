@@ -256,6 +256,12 @@ namespace Trainer
         return nullptr;
     }
 
+    // A rank trainer's next rank turns trainable once the rank below it is bought, so its list is sent again.
+    bool Trainer::RepublishesAfterPurchase() const
+    {
+        return _trainerId == WILDCARD_RANK_TRAINER_ID;
+    }
+
     bool Trainer::CanTeachSpell(Player const* player, Spell const* trainerSpell) const
     {
         SpellState state = GetSpellState(player, trainerSpell);

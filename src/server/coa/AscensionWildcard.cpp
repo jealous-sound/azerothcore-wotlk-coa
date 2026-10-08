@@ -1938,23 +1938,33 @@ uint32 TrainerPrice(uint32 spellId, uint32 level)
 
 std::vector<Trainer::Spell> RankTrainerRows(Player const* player)
 {
-    std::vector<Trainer::Spell> rows;
+    std::vector<std::uint32_t> firstSpells;
     for (auto const& [firstSpellId, ladder] : Loaded.RankLadders)
-    {
-        auto const known = std::find_if(ladder.rbegin(), ladder.rend(),
-            [player](uint32 spellId) { return spellId && player->HasSpell(spellId); });
-        if (known == ladder.rend())
-            continue;
-        auto const next = std::find_if(known.base(), ladder.end(), [](uint32 spellId) { return spellId != 0; });
-        SpellInfo const* info = next != ladder.end() ? sSpellMgr->GetSpellInfo(*next) : nullptr;
-        if (!info)
-            continue;
+        if (std::any_of(ladder.begin(), ladder.end(), [player](uint32 spellId) { return spellId && player->HasSpell(spellId); }))
+            firstSpells.push_back(firstSpellId);
+    std::sort(firstSpells.begin(), firstSpells.end());
 
-        Trainer::Spell row;
-        row.SpellId = info->Id;
-        row.ReqLevel = uint8(std::clamp<uint32>(info->BaseLevel ? info->BaseLevel : info->SpellLevel, 1, 255));
-        row.MoneyCost = TrainerPrice(info->Id, row.ReqLevel);
-        rows.push_back(row);
+    std::vector<Trainer::Spell> rows;
+    for (std::uint32_t firstSpellId : firstSpells)
+    {
+        std::vector<uint32> const& ladder = Loaded.RankLadders.at(firstSpellId);
+        uint32 previous = 0;
+        for (uint32 spellId : ladder)
+        {
+            SpellInfo const* info = spellId ? sSpellMgr->GetSpellInfo(spellId) : nullptr;
+            if (!info)
+                continue;
+            if (previous)
+            {
+                Trainer::Spell row;
+                row.SpellId = info->Id;
+                row.ReqAbility[0] = previous;
+                row.ReqLevel = uint8(std::clamp<uint32>(info->BaseLevel ? info->BaseLevel : info->SpellLevel, 1, 255));
+                row.MoneyCost = TrainerPrice(info->Id, row.ReqLevel);
+                rows.push_back(row);
+            }
+            previous = info->Id;
+        }
     }
     return rows;
 }
