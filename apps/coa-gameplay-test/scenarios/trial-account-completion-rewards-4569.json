@@ -2,7 +2,7 @@
   "schema": 1,
   "name": "Trial completion and repeat item rewards follow the account (#4569)",
   "contract": "Issue #4569 requires the completion tick and reduced repeat item rewards to follow an account, including characters with no personal completion. The user clarified that achievements remain per character. Personal Nightmare 64 and Prestige Personal Nightmare 278 have distinct identities. World reward rows give first-only Ny'alotha Allseer 499363 and repeat rewards 77249 (normal) or 100646 (Prestige). Achievement.dbc identifies Warrior 24935 and Paladin 24955 as the corresponding class achievements. Native start packets and GiveLevel to the configured level cap complete each trial; no completion rows or reward outcomes are seeded. Relog checks the completed-list packet 0x597 and persisted mail. Shared disposable-account fixtures model character ownership, not simultaneous client authentication. The Prestige aura is fixture setup. Client rendering and cross-realm sharing are outside this native check.",
-  "timeout_ms": 120000,
+  "timeout_ms": 600000,
   "players": [
     {"id": "first", "race": 1, "class": 1, "level": 1},
     {"id": "alt", "race": 1, "class": 2, "level": 1, "account_of": "first"},

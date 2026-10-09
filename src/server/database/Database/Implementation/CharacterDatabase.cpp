@@ -16,12 +16,24 @@
  */
 
 #include "CharacterDatabase.h"
+#include "Config.h"
 #include "MySQLPreparedStatement.h"
 
 void CharacterDatabaseConnection::DoPrepareStatements()
 {
     if (!m_reconnecting)
         m_stmts.resize(MAX_CHARACTERDATABASE_STATEMENTS);
+
+    if (sConfigMgr->GetOption<bool>("CoAChallenges.AutoCreateSchema", false))
+        Execute(
+            "CREATE TABLE IF NOT EXISTS coa_account_challenge_completion ("
+            "account INT UNSIGNED NOT NULL, "
+            "challengeId INT UNSIGNED NOT NULL, "
+            "level INT UNSIGNED NOT NULL DEFAULT 1, "
+            "completeTime INT UNSIGNED NOT NULL DEFAULT 0, "
+            "startTime INT UNSIGNED NOT NULL DEFAULT 0, "
+            "PRIMARY KEY (account, challengeId, level)) "
+            "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
     PrepareStatement(CHAR_SEL_COA_ACCOUNT_CHALLENGE_COMPLETION,
         "SELECT 1 FROM coa_account_challenge_completion WHERE account = ? AND challengeId = ? AND level = ? LIMIT 1",
