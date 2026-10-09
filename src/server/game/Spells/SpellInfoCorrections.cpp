@@ -5416,6 +5416,13 @@ void SpellMgr::LoadSpellInfoCorrections()
         spellInfo->Effects[EFFECT_1].Effect = 0;
     });
 
+    // CoA: Fierce Blow (the dungeon and raid bosses' kit strike): it takes the place of the next
+    // melee swing instead of landing on top of one, and never goes off while another spell is cast.
+    ApplySpellFix({ 975011 }, [](SpellInfo* spellInfo)
+    {
+        spellInfo->Attributes |= SPELL_ATTR0_ON_NEXT_SWING;
+    });
+
     for (uint32 i = 0; i < GetSpellInfoStoreSize(); ++i)
     {
         SpellInfo* spellInfo = mSpellInfoMap[i];
@@ -5508,6 +5515,11 @@ void SpellMgr::LoadSpellInfoCorrections()
             // Xinef: Dun Morogh, Kharanos tavern, missing resting flag
             else if (areaEntry->ID == 2102)
                 areaEntry->flags |= AREA_FLAG_REST_ZONE_ALLIANCE;
+
+            // CoA: Ascension's AreaTable marks some dungeon areas flyable (Zul'Farrak); nobody flies
+            // inside a dungeon or raid.
+            if (MapEntry const* mapEntry = sMapStore.LookupEntry(areaEntry->mapid); mapEntry && mapEntry->IsDungeon())
+                areaEntry->flags &= ~AREA_FLAG_OUTLAND;
         }
 
     // Xinef: fix for something?
