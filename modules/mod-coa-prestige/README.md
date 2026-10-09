@@ -34,8 +34,9 @@ Then, in this order:
 1. The action bar's spells are remembered.
 2. Exotic hunter pets are deleted across every stable slot. Other pets, including one put away by a
    mount, and totems are dismissed.
-3. The quest log is emptied, and every ordinary zone quest up to the Prestige level may be done
-   again. Class, profession, dungeon, raid, PvP, event and repeating quests stay done.
+3. The quest log is emptied, and every ordinary zone or dungeon quest up to the Prestige level may be
+   done again, including quests that scale with the character. Class, profession, raid, PvP, event and
+   repeating quests stay done.
 4. The class's talents are forgotten (`ForgetAscensionClassTalents`), including the stored class-tree
    and active-specialization builds. The builds of other specializations are kept.
 5. Upgraded ranks above level 1 are removed. The character goes to level 1 through

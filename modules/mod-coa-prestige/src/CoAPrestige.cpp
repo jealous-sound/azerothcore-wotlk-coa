@@ -333,7 +333,7 @@ namespace
             {
                 QuestTraits const traits{ quest->GetZoneOrSort(), quest->GetQuestLevel(), quest->GetType(),
                     quest->IsRepeatable() || quest->IsDailyOrWeekly() || quest->IsMonthly() || quest->IsSeasonal() ||
-                    quest->IsDFQuest() };
+                    quest->IsDFQuest(), quest->GetMinLevel() };
                 if (IsReplayableQuest(traits, maxLevel))
                     replayable.push_back(questId);
             }
